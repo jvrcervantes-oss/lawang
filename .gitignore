@@ -1,0 +1,12 @@
+# Server-managed files — never overwrite on deploy
+data.json
+images/
+api/.passhash
+
+# Local only
+Backups/
+Marketing and Design/
+*.md
+brand_identity.md
+inventario_assets.md
+PRODUCT.md

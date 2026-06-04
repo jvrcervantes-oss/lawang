@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Riverfront II® — Signature freehold villas in Balian Hills, Bali. Steel frame, 6–9 months delivery, fully managed rental. Lawang Tropical Properties.">
+<title>Riverfront II® — Signature Villas · Lawang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="image" href="assets/images/hero-dusk.jpg">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,800;1,400;1,500;1,600&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --bone:   #F4EFE6;
+  --bone-2: #EAE3D5;
+  --bone-3: #DDD5C4;
+  --ink:    #1A1512;
+  --ink-2:  #5A5048;
+  --ink-3:  #8A7A6A;
+  --gold:   #B8935A;
+  --gold-l: #D4AD7A;
+  --gold-d: #8A6A38;
+  --jungle: #192416;
+  --fhld:   #2A5C3A;
+  --line:   #D8CEBC;
+  --serif:  'EB Garamond', Georgia, serif;
+  --sans:   'Barlow', system-ui, sans-serif;
+  --max:    1280px;
+  --pad:    clamp(22px, 5vw, 72px);
+}
+
+/* ── RESET ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bone); color: var(--ink);
+  line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+/* grain */
+body::before { content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  opacity: .028; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* ── TYPOGRAPHY ─────────────────────────────────────────────── */
+.serif  { font-family: var(--serif); }
+.italic { font-style: italic; }
+.display { font-family: var(--serif); font-weight: 400; line-height: .96; letter-spacing: -.01em; }
+.display em { font-style: italic; font-weight: 400; }
+.kicker  { font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); font-family: var(--sans); }
+h1,h2,h3,h4 { font-weight: 400; text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* ── LAYOUT ─────────────────────────────────────────────────── */
+.wrap { max-width: var(--max); margin: 0 auto; padding-inline: var(--pad); }
+.s-pad { padding-block: clamp(72px,9vw,130px); }
+.eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.eyebrow::after { content: ''; height: 1px; flex: 1; background: currentColor; opacity: .14; }
+
+/* ── BUTTONS ────────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 28px;
+  border-radius: 2px; font-size: 11.5px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; border: 1px solid transparent; transition: background .22s, color .22s, border-color .22s, transform .15s; }
+.btn:active { transform: scale(.98); }
+.btn .arr { transition: transform .28s cubic-bezier(.16,1,.3,1); }
+.btn:hover .arr { transform: translateX(5px); }
+.btn-gold  { background: var(--gold); color: var(--bone); }
+.btn-gold:hover { background: var(--gold-d); }
+.btn-outline { border-color: var(--gold); color: var(--gold); }
+.btn-outline:hover { background: var(--gold); color: var(--bone); }
+.btn-dark  { background: var(--ink); color: var(--bone); }
+.btn-dark:hover { background: var(--gold); }
+.btn-bone  { border-color: rgba(244,239,230,.45); color: var(--bone); }
+.btn-bone:hover { background: rgba(244,239,230,.12); border-color: rgba(244,239,230,.7); }
+
+/* ── BADGES ─────────────────────────────────────────────────── */
+.badge-fh { display: inline-flex; align-items: center; gap: 7px;
+  background: var(--fhld); color: #D4EDD9; padding: 5px 13px; border-radius: 2px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.badge-fh::before { content: '◆'; font-size: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px;
+  border-radius: 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.pill-gold { background: rgba(184,147,90,.1); border: 1px solid rgba(184,147,90,.3); color: var(--gold); }
+
+/* ── REVEAL ─────────────────────────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(20px);
+  transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1); }
+.reveal.in { opacity: 1; transform: none; }
+.reveal-fade { opacity: 0; transition: opacity 1s cubic-bezier(.16,1,.3,1); }
+.reveal-fade.in { opacity: 1; }
+.reveal-left { opacity: 0; transform: translateX(-28px);
+  transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1); }
+.reveal-left.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-fade, .reveal-left { transition: opacity .3s; transform: none; }
+}
+
+/* ── NAV ─────────────────────────────────────────────────────── */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 70px;
+  display: flex; align-items: center; transition: background .4s, border-color .4s; border-bottom: 1px solid transparent; }
+.nav.solid { background: rgba(244,239,230,.93); backdrop-filter: blur(14px); border-color: var(--line); }
+.nav.dark  { color: var(--bone); }
+.nav.dark.solid { background: rgba(22,18,14,.88); border-color: rgba(184,147,90,.18); color: var(--bone); }
+.nav-inner { width: 100%; max-width: 1480px; margin: 0 auto; padding-inline: var(--pad);
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.nav-logo { font-family: var(--serif); font-size: 21px; letter-spacing: .04em;
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.nav-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+.nav-logo small { font-family: var(--sans); font-size: 8px; font-weight: 600; letter-spacing: .2em;
+  text-transform: uppercase; opacity: .45; align-self: flex-start; margin-top: 4px; }
+.nav-links { display: flex; align-items: center; gap: 22px; }
+.nav-links a { font-size: 12px; font-weight: 500; letter-spacing: .04em; opacity: .65; transition: opacity .2s, color .2s; position: relative; }
+.nav-links a::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px; background: var(--gold); transition: width .25s cubic-bezier(.16,1,.3,1); }
+.nav-links a:hover { opacity: 1; }
+.nav-links a:hover::after { width: 100%; }
+.nav.dark .nav-links a::after { background: var(--gold-l); }
+.nav-ctl { display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-flex; border: 1px solid currentColor; border-radius: 99px; overflow: hidden; opacity: .75; }
+.seg button { appearance: none; background: none; border: 0; color: inherit; font-family: var(--sans);
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; padding: 5px 10px; transition: background .2s; }
+.seg button.on { background: currentColor; }
+.seg button.on span { display: block; color: var(--bone); mix-blend-mode: normal; }
+.seg button span { display: block; }
+.nav.dark .seg button.on span { color: var(--ink); }
+
+@media (max-width: 960px) { .nav-links { display: none; } }
+@media (max-width: 580px) { .nav-ctl .btn { display: none; } }
+
+/* ── 01 HERO ────────────────────────────────────────────────── */
+@keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:none; } }
+@keyframes pulse  { 0%,100%{transform:scaleY(.4);opacity:.4;transform-origin:top}50%{transform:scaleY(1);opacity:1;transform-origin:top} }
+
+.hero { position: relative; height: 100svh; min-height: 640px; overflow: hidden;
+  background: var(--jungle); color: var(--bone); display: flex; align-items: flex-end; }
+.hero-bg { position: absolute; inset: 0;
+  background:
+    radial-gradient(140% 100% at 68% 0%, #2D4B28 0%, transparent 52%),
+    radial-gradient(110% 110% at 10% 85%, #111C0E 0%, transparent 58%),
+    linear-gradient(160deg, #223020 0%, #0E1A0C 100%); }
+.hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.hero-grad { position: absolute; inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(14,26,12,.3) 0%, rgba(14,26,12,0) 28%, rgba(14,26,12,.06) 55%, rgba(14,26,12,.8) 100%); }
+.hero-arch { position: absolute; inset: 11vh 7vw auto 7vw; height: 77vh;
+  border: 1px solid rgba(244,239,230,.14); border-bottom: none;
+  border-radius: 50vw 50vw 0 0 / 17vh 17vh 0 0; pointer-events: none; }
+.hero-content { position: relative; padding: 0 var(--pad) clamp(44px,7vh,84px); width: 100%; max-width: 1480px; margin: 0 auto; }
+
+.hero-label { font-size: 10.5px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase;
+  opacity: .65; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; animation: fadeUp .9s .1s both; }
+.hero-label::before { content: ''; width: 26px; height: 1px; background: var(--gold); flex-shrink: 0; }
+.hero-title { font-family: var(--serif); font-size: clamp(52px,7.5vw,84px); font-weight: 400;
+  line-height: .94; letter-spacing: -.015em; margin-bottom: 22px; animation: fadeUp 1.1s .24s both; }
+.hero-title .reg { font-size: .38em; vertical-align: super; opacity: .55; font-weight: 300; }
+.hero-tagline { font-family: var(--serif); font-style: italic; font-size: clamp(16px,1.9vw,22px);
+  font-weight: 400; line-height: 1.5; max-width: 52ch; opacity: .88; margin-bottom: 12px; animation: fadeUp 1.1s .38s both; }
+.hero-desc { font-size: clamp(12px,1.2vw,13.5px); line-height: 1.65; max-width: 50ch; letter-spacing: .01em;
+  opacity: .58; margin-bottom: 26px; animation: fadeUp 1.1s .5s both; }
+.hero-dist { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 10.5px;
+  letter-spacing: .1em; opacity: .48; margin-bottom: 30px; animation: fadeUp 1.1s .62s both; }
+.hero-dist .sep { opacity: .3; }
+.hero-cta { animation: fadeUp 1.1s .76s both; }
+.hero-scroll { position: absolute; left: var(--pad); bottom: 26px;
+  display: flex; align-items: center; gap: 10px; font-size: 9.5px; letter-spacing: .28em;
+  text-transform: uppercase; opacity: .38; }
+.hero-scroll-line { width: 1px; height: 38px; background: linear-gradient(var(--bone),transparent); animation: pulse 2s ease-in-out infinite; }
+
+/* ── 02 DESCRIPTION ─────────────────────────────────────────── */
+.desc-section { background: var(--bone); }
+.desc-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: clamp(36px,6vw,100px); align-items: start; }
+.desc-lead { font-family: var(--serif); font-style: italic; font-size: clamp(20px,2.6vw,32px);
+  font-weight: 400; line-height: 1.35; color: var(--gold-d); }
+.desc-h2 { font-family: var(--serif); font-size: clamp(30px,4.5vw,60px); font-weight: 400;
+  line-height: 1.05; margin-bottom: clamp(24px,3vw,40px); }
+.desc-h2 em { font-style: italic; }
+.desc-para { font-size: clamp(14.5px,1.4vw,16.5px); color: var(--ink-2); line-height: 1.75; }
+.desc-para + .desc-para { margin-top: 18px; }
+.diff-list { list-style: none; margin-top: 36px; border-top: 1px solid var(--line); }
+.diff-list li { display: flex; align-items: flex-start; gap: 14px; padding: 15px 0;
+  border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+.diff-list li::before { content: '→'; color: var(--gold); flex-shrink: 0; font-weight: 700; margin-top: 1px; }
+@media (max-width: 720px) { .desc-grid { grid-template-columns: 1fr; } }
+
+/* ── 03 AT A GLANCE ─────────────────────────────────────────── */
+.glance-section { background: var(--jungle); color: var(--bone); }
+.glance-layout { display: grid; grid-template-columns: 1fr 1.6fr; gap: clamp(28px,5vw,72px); margin-top: 52px; align-items: start; }
+/* Left: freehold feature */
+.glance-fh { padding: 36px 32px 40px; background: rgba(42,92,58,.22); border: 1px solid rgba(80,160,100,.2); display: flex; flex-direction: column; gap: 18px; }
+.glance-fh-label { font-size: 10px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; opacity: .5; }
+.glance-fh-title { font-family: var(--serif); font-size: clamp(32px,3.8vw,52px); font-weight: 200; line-height: 1.05; color: #D4EDD9; }
+.glance-fh-body { font-size: 13.5px; color: rgba(244,239,230,.65); line-height: 1.7; max-width: 30ch; }
+.glance-fh-badge { margin-top: 6px; }
+/* Right: fact table */
+.glance-table { display: flex; flex-direction: column; gap: 0; }
+.g-row { display: grid; grid-template-columns: minmax(140px,1.1fr) 1fr; gap: 16px; padding: 14px 0;
+  border-bottom: 1px solid rgba(184,147,90,.12); align-items: baseline; }
+.g-row:first-child { border-top: 1px solid rgba(184,147,90,.12); }
+.g-label { font-size: 10.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; opacity: .42; }
+.g-value { font-family: var(--serif); font-size: clamp(15px,1.6vw,19px); font-weight: 300; line-height: 1.25; }
+.g-value.gold { color: var(--gold-l); }
+.g-pend  { font-size: 13px; opacity: .3; font-style: italic; }
+@media (max-width: 780px) {
+  .glance-layout { grid-template-columns: 1fr; }
+  .g-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── 04 TIPOLOGÍAS ──────────────────────────────────────────── */
+.typo-section { background: var(--bone-2); }
+.typo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 2px; }
+.t-card { background: var(--bone); border: 1px solid var(--line); display: flex; flex-direction: column;
+  transition: transform .4s cubic-bezier(.2,.7,.2,1), box-shadow .4s; }
+.t-card:hover { transform: translateY(-4px); box-shadow: 0 24px 60px -32px rgba(26,21,18,.45); }
+.t-ph { aspect-ratio: 4/3; position: relative; overflow: hidden; }
+.t-ph-j { background-image: url('assets/images/aerial-3.jpg'); background-size: cover; background-position: center; }
+.t-ph-s { background-image: url('assets/images/aerial-4.jpg'); background-size: cover; background-position: center; }
+.t-ph-o { background-image: url('assets/images/aerial-morning.jpg'); background-size: cover; background-position: center; }
+.t-ph::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(10,16,8,.15) 0%, rgba(10,16,8,.52) 100%); }
+.t-ph-label { position: absolute; left: 14px; bottom: 12px; z-index: 2;
+  font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  font-family: var(--sans);
+  color: rgba(244,239,230,.85); display: flex; align-items: center; gap: 7px; }
+.t-ph-label::before { content: ''; width: 14px; height: 1px; background: rgba(244,239,230,.6); }
+.t-body { padding: 22px 20px 26px; flex: 1; display: flex; flex-direction: column; gap: 9px; }
+.t-name { font-family: var(--serif); font-size: 32px; font-weight: 300; line-height: 1; }
+.t-sub  { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.t-specs { display: flex; gap: 14px; font-size: 12px; color: var(--ink-3); flex-wrap: wrap; }
+.t-note { font-size: 12px; color: var(--ink-3); font-style: italic; margin-top: auto;
+  padding-top: 13px; border-top: 1px solid var(--line); }
+
+/* ── 05 ESPACIOS ────────────────────────────────────────────── */
+.spaces-section { background: var(--bone); }
+.s-intro { font-family: var(--serif); font-size: clamp(28px,4.5vw,58px); font-weight: 300;
+  line-height: 1.05; max-width: 17ch; margin-bottom: clamp(44px,5vw,72px); }
+.sp-block { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(20px,4vw,60px);
+  align-items: center; margin-bottom: clamp(52px,6vw,90px); }
+.sp-block:nth-child(even) .sp-img  { order: 2; }
+.sp-block:nth-child(even) .sp-text { order: 1; }
+.sp-img  { aspect-ratio: 4/3; position: relative; overflow: hidden; border-radius: 2px; }
+.sp-num  { font-size: 10px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; opacity: .38; }
+.sp-name { font-family: var(--serif); font-size: clamp(22px,2.8vw,36px); font-weight: 300; margin: 10px 0 7px; }
+.sp-sub  { font-family: var(--serif); font-style: italic; font-size: clamp(14px,1.5vw,18px); color: var(--gold); margin-bottom: 13px; }
+.sp-desc { font-size: 14px; color: var(--ink-2); line-height: 1.7; max-width: 42ch; }
+.sp-grad-j { background-image: url('assets/images/aerial-jungle.jpg'); background-size: cover; background-position: center; }
+.sp-grad-s { background-image: url('assets/images/aerial-2.jpg'); background-size: cover; background-position: center top; }
+.sp-grad-o { background-image: url('assets/images/aerial-wide.jpg'); background-size: cover; background-position: center; }
+.sp-grad-d { background-image: url('assets/images/hero-night.jpg'); background-size: cover; background-position: center; }
+.amenities-wrap { margin-top: 60px; border-top: 1px solid var(--line); padding-top: 40px; }
+.amenities { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 0; margin-top: 20px; }
+.am { display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: transparent; border-bottom: 1px solid var(--line); font-size: 13.5px; font-family: var(--sans); }
+.am:first-child { border-top: 1px solid var(--line); }
+.am::before { content: ''; width: 18px; height: 1px; background: var(--gold); flex-shrink: 0; }
+@media (max-width: 700px) {
+  .sp-block { grid-template-columns: 1fr; }
+  .sp-block:nth-child(even) .sp-img { order: unset; }
+  .sp-block:nth-child(even) .sp-text { order: unset; }
+}
+
+/* ── 06 PROCESO ─────────────────────────────────────────────── */
+.process-section { background: var(--jungle); color: var(--bone); }
+.phases { display: grid; grid-template-columns: 1fr 2fr; gap: clamp(28px,5vw,80px); margin-top: 56px; }
+.ph-aside { position: sticky; top: 90px; align-self: start; }
+.ph-aside-h { font-family: var(--serif); font-size: clamp(28px,3.5vw,48px); font-weight: 200; line-height: 1.1; opacity: .9; }
+.ph-aside-sub { font-family: var(--serif); font-style: italic; font-size: clamp(14px,1.4vw,17px); color: var(--gold-l); opacity: .7; margin-top: 14px; }
+.ph-steps { display: flex; flex-direction: column; gap: 0; }
+.ph-card { display: grid; grid-template-columns: 52px 1fr; gap: 24px; padding: 32px 0; border-top: 1px solid rgba(184,147,90,.14); }
+.ph-card:last-child { border-bottom: 1px solid rgba(184,147,90,.14); }
+.ph-num  { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--gold); line-height: 1; padding-top: 4px; opacity: .7; }
+.ph-content { display: flex; flex-direction: column; gap: 8px; }
+.ph-title { font-family: var(--serif); font-size: clamp(18px,2vw,24px); font-weight: 300; line-height: 1.2; }
+.ph-sub  { font-style: italic; font-size: 13px; color: var(--gold-l); opacity: .72; }
+.ph-bullets { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+.ph-bullets li { font-size: 13.5px; opacity: .65; line-height: 1.55; display: flex; align-items: flex-start; gap: 10px; }
+.ph-bullets li::before { content: '—'; color: var(--gold); flex-shrink: 0; opacity: .55; }
+@media (max-width: 720px) {
+  .phases { grid-template-columns: 1fr; }
+  .ph-aside { position: static; }
+  .ph-card { grid-template-columns: 36px 1fr; }
+}
+
+/* ── 07 ARGUMENTO DE INVERSIÓN ─────────────────────────────── */
+.invest-section { background: var(--bone-2); }
+.inv-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 2px;
+  background: var(--line); border: 1px solid var(--line); margin-top: 52px; }
+.inv-card { background: var(--bone); padding: 32px 28px 36px; display: flex; flex-direction: column; gap: 11px; }
+.inv-card.fh-card { background: #EFF8F2; grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+.inv-title { font-family: var(--serif); font-size: clamp(20px,2.1vw,26px); font-weight: 300; line-height: 1.15; }
+.inv-body  { font-size: 13.5px; color: var(--ink-2); line-height: 1.7; }
+.inv-card.fh-card .inv-title { color: var(--fhld); font-size: clamp(22px,2.5vw,32px); }
+.inv-card.fh-card .inv-body  { font-size: 14px; }
+.inv-fh-badge { margin-top: 4px; }
+.inv-disc { margin-top: 30px; padding: 18px 20px; background: rgba(184,147,90,.07);
+  border: 1px solid rgba(184,147,90,.18); font-size: 12px; color: var(--ink-3); line-height: 1.65; }
+@media (max-width: 640px) {
+  .inv-grid { grid-template-columns: 1fr; }
+  .inv-card.fh-card { grid-column: auto; grid-template-columns: 1fr; }
+}
+
+/* ── 08 PLAN DE PAGOS ───────────────────────────────────────── */
+.payment-section { background: var(--bone); }
+.pay-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: clamp(32px,5vw,80px); align-items: start; margin-top: 48px; }
+.pay-steps { display: flex; flex-direction: column; }
+.pay-step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 18px 0;
+  border-bottom: 1px solid var(--line); align-items: start; }
+.pay-step:first-child { border-top: 1px solid var(--line); }
+.ps-n { font-family: var(--serif); font-size: 26px; font-weight: 200; color: var(--gold); line-height: 1; padding-top: 2px; }
+.ps-t { font-size: 13.5px; font-weight: 600; letter-spacing: .03em; margin-bottom: 4px; }
+.ps-d { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.ps-a { font-family: var(--serif); font-size: 19px; font-weight: 300; color: var(--gold); margin-top: 4px; }
+.ps-a.pend { font-size: 13px; font-style: italic; color: var(--ink-3); opacity: .55; }
+.pay-aside { background: var(--bone-2); padding: 28px 24px 32px; border: 1px solid var(--line); position: sticky; top: 82px; }
+.pa-title { font-family: var(--serif); font-size: 22px; font-weight: 300; margin-bottom: 16px; }
+.pa-note  { font-size: 13px; color: var(--ink-2); line-height: 1.65; margin-bottom: 20px; }
+.pa-cta   { display: flex; justify-content: center; width: 100%; }
+@media (max-width: 720px) { .pay-grid { grid-template-columns: 1fr; } .pay-aside { position: static; } }
+
+/* ── 09 FAQs ────────────────────────────────────────────────── */
+.faq-section { background: var(--bone-2); }
+.faq-list { margin-top: 46px; border-top: 1px solid var(--line); }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-q { display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 0; cursor: pointer; gap: 20px; user-select: none; }
+.faq-q-t { font-family: var(--serif); font-size: clamp(16px,1.8vw,21px); font-weight: 400; }
+.faq-icon { width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 15px; color: var(--gold); transition: transform .35s, border-color .2s; }
+.faq-item.open .faq-icon { transform: rotate(45deg); border-color: var(--gold); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height .45s cubic-bezier(.2,.7,.2,1); }
+.faq-a-i { padding: 0 48px 20px 0; font-size: 14px; color: var(--ink-2); line-height: 1.74; max-width: 72ch; }
+.faq-item.open .faq-a { max-height: 500px; }
+
+/* ── 10 TRACK RECORD ────────────────────────────────────────── */
+.track-section { background: var(--ink); color: var(--bone); position: relative; overflow: hidden; }
+.track-section::before { content: ''; position: absolute; inset: 0;
+  background-image: url('assets/images/aerial-1.jpg'); background-size: cover; background-position: center 30%;
+  opacity: .1; }
+.track-section > .wrap { position: relative; }
+.track-stats { display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid rgba(244,239,230,.1); margin-top: 52px; }
+.tr-stat { padding: 32px 20px 36px; border-right: 1px solid rgba(244,239,230,.07); }
+.tr-stat:last-child { border-right: none; }
+.tr-n { font-family: var(--serif); font-size: clamp(44px,5.5vw,72px); font-weight: 400; color: var(--gold-l); line-height: 1; font-variant-numeric: tabular-nums; }
+.tr-l { font-size: 10.5px; font-family: var(--sans); letter-spacing: .18em; text-transform: uppercase; opacity: .4; margin-top: 10px; }
+.track-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: clamp(36px,5vw,88px); margin-top: 60px; }
+.track-text { font-family: var(--serif); font-size: clamp(18px,2.1vw,26px); font-weight: 400; line-height: 1.6; opacity: .82; }
+.testimonials { display: flex; flex-direction: column; gap: 18px; }
+.testi { padding: 24px 26px; background: rgba(255,255,255,.03); border: 1px solid rgba(184,147,90,.14); }
+.testi-t { font-family: var(--serif); font-style: italic; font-size: 15.5px; line-height: 1.68; opacity: .8; margin-bottom: 14px; }
+.testi-t::before { content: '\201C'; } .testi-t::after { content: '\201D'; }
+.testi-a { font-size: 10.5px; font-family: var(--sans); letter-spacing: .14em; text-transform: uppercase; opacity: .35; }
+.testi-ph { font-size: 13px; font-family: var(--serif); font-style: italic; opacity: .26; padding: 20px 22px; border: 1px dashed rgba(244,239,230,.12); }
+@media (max-width: 720px) { .track-body { grid-template-columns: 1fr; } .track-stats { grid-template-columns: 1fr 1fr; } .tr-stat { border-right: none; border-bottom: 1px solid rgba(244,239,230,.07); } }
+
+/* ── 11 CTA FINAL ───────────────────────────────────────────── */
+.close-section { position: relative; overflow: hidden; color: var(--bone); }
+.close-bg { position: absolute; inset: 0;
+  background: radial-gradient(140% 100% at 60% 0%, #2D4B28 0%, transparent 52%), linear-gradient(160deg,#192416,#0C130A); }
+.close-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .35; }
+.close-ov  { position: absolute; inset: 0; background: linear-gradient(160deg, rgba(10,18,8,.72) 0%, rgba(18,28,14,.58) 100%); }
+.close-content { position: relative; text-align: center; padding-block: clamp(80px,12vw,160px); }
+.close-h { font-family: var(--serif); font-size: clamp(38px,6.5vw,96px); font-weight: 200;
+  line-height: .94; letter-spacing: -.02em; max-width: 14ch; margin: 0 auto 22px; }
+.close-sub { font-size: clamp(14px,1.5vw,17px); opacity: .72; max-width: 52ch; margin: 0 auto 14px; line-height: 1.62; }
+.close-bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 36ch;
+  margin: 26px auto; text-align: left; font-size: 13.5px; opacity: .82; }
+.close-bullets li { display: flex; align-items: flex-start; gap: 12px; }
+.close-bullets li::before { content: '◆'; color: var(--gold); font-size: 8px; flex-shrink: 0; margin-top: 4px; }
+.close-btns { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 34px; }
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+.footer { background: #0D1209; color: var(--bone); padding: 52px 0 28px; }
+.ft-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 36px; margin-bottom: 36px; }
+.ft-logo { font-family: var(--serif); font-size: 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.ft-logo .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+.ft-tag { font-size: 13px; opacity: .48; line-height: 1.6; max-width: 26ch; }
+.ft-col h5 { font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; opacity: .36; margin-bottom: 13px; }
+.ft-col a { display: block; font-size: 13px; opacity: .55; margin-bottom: 7px; transition: opacity .2s; }
+.ft-col a:hover { opacity: 1; }
+.ft-rule { height: 1px; background: rgba(244,239,230,.09); margin-bottom: 18px; }
+.ft-bottom { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-size: 11px; opacity: .3; }
+@media (max-width: 720px) { .ft-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ══════════════════════════════════════════════════ -->
+<nav class="nav dark" id="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <span class="dot"></span>Lawang
+      <small>Tropical&nbsp;Properties</small>
+    </div>
+    <div class="nav-links">
+      <a href="#overview"    data-t="nav.overview">Overview</a>
+      <a href="#typologies"  data-t="nav.typo">Typologies</a>
+      <a href="#process"     data-t="nav.process">Process</a>
+      <a href="#invest"      data-t="nav.invest">Invest</a>
+      <a href="#faq"         data-t="nav.faq">FAQ</a>
+    </div>
+    <div class="nav-ctl">
+      <div class="seg" id="lang-seg">
+        <button class="on" onclick="setLang('en')"><span>EN</span></button>
+        <button onclick="setLang('es')"><span>ES</span></button>
+        <button onclick="setLang('id')"><span>ID</span></button>
+      </div>
+      <div class="seg" id="cur-seg">
+        <button class="on" onclick="setCur('EUR')"><span>€</span></button>
+        <button onclick="setCur('USD')"><span>$</span></button>
+        <button onclick="setCur('AUD')"><span>A$</span></button>
+        <button onclick="setCur('GBP')"><span>£</span></button>
+        <button onclick="setCur('IDR')"><span>Rp</span></button>
+      </div>
+      <a href="#contact" class="btn btn-gold" data-t="hero.cta">Get Investment Details</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ 01 · HERO ════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <img class="hero-img" src="assets/images/hero-dusk.jpg" alt="Aerial view of Balian Hills, Bali at dusk" loading="eager">
+  <div class="hero-grad"></div>
+  <div class="hero-arch" aria-hidden="true"></div>
+
+  <div class="hero-content">
+    <div class="hero-label" data-t="hero.label">BALI VILLAS FOR LEASE</div>
+    <h1 class="hero-title">RIVERFRONT II<span class="reg">®</span></h1>
+    <p class="hero-tagline" data-t="hero.tagline">Calm of nature, total comfort, and immediate connection to Bali's most vibrant area.</p>
+    <p class="hero-desc" data-t="hero.desc">A PREMIUM RIVERSIDE VILLA hidden within Bali's tropical jungle — in one of the island's most privileged residential zones.</p>
+    <div class="hero-dist">
+      <span data-t="hero.d1">2 min Amazona Jungle Resort</span>
+      <span class="sep">·</span>
+      <span data-t="hero.d2">6 min Best Sun School</span>
+      <span class="sep">·</span>
+      <span data-t="hero.d3">15 min Nyanyi Beach</span>
+      <span class="sep">·</span>
+      <span data-t="hero.d4">15 min Canggu</span>
+    </div>
+    <div class="hero-cta">
+      <a href="#contact" class="btn btn-gold" data-t="hero.cta">Get Investment Details <span class="arr">→</span></a>
+    </div>
+  </div>
+
+  <div class="hero-scroll">
+    <span data-t="hero.scroll">Scroll</span>
+    <div class="hero-scroll-line"></div>
+  </div>
+</section>
+
+<!-- ═══ 02 · DESCRIPCIÓN ══════════════════════════════════════ -->
+<section class="desc-section s-pad" id="overview">
+  <div class="wrap">
+    <div class="desc-grid">
+      <div class="reveal">
+        <div class="eyebrow"><span class="kicker" data-t="s2.kicker">The project</span></div>
+        <h2 class="desc-h2" data-t="s2.title">Your Villa, Fully Managed<br><em>from Vision to Delivery</em></h2>
+        <p class="desc-lead" data-t="s2.p1">In Indonesia's island of Bali, between jungle and rice fields, Riverfront emerges as a rare enclave of privacy and design. An exclusive river-view home in Kaba-Kaba, surrounded by calm, light, and the sound of flowing water.</p>
+      </div>
+      <div class="reveal" style="transition-delay:120ms">
+        <p class="desc-para" data-t="s2.p2">Villas designed through light, balance, and nature perspective. A living composition — where every space opens toward the river, the jungle, or the sky.</p>
+        <p class="desc-para" data-t="s2.p3">Supported by a dedicated team handling permits, construction, interiors, and post-delivery guidance.</p>
+        <ul class="diff-list">
+          <li data-t="s2.d1">River and jungle views from every room</li>
+          <li data-t="s2.d2">Real freehold ownership via HGB + PT PMA</li>
+          <li data-t="s2.d3">Steel frame. Guaranteed delivery in 6–9 months</li>
+          <li data-t="s2.d4">Rental management coordinated from day one</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 03 · AT A GLANCE ══════════════════════════════════════ -->
+<section class="glance-section s-pad">
+  <div class="wrap">
+    <h2 class="display reveal" style="font-size:clamp(32px,5vw,64px);max-width:18ch" data-t="s3.title">Key facts, clearly stated.</h2>
+    <div class="glance-layout">
+      <!-- Left: freehold feature -->
+      <div class="glance-fh reveal" style="transition-delay:80ms">
+        <div class="glance-fh-label" data-t="g.tenure">Ownership type</div>
+        <div class="glance-fh-title">Freehold<br>HGB</div>
+        <p class="glance-fh-body" data-t="g.tenure.sub">Full legal ownership via your own PT PMA company. Not a lease — the actual asset.</p>
+        <div class="glance-fh-badge"><span class="badge-fh">FREEHOLD HGB · PT PMA</span></div>
+      </div>
+      <!-- Right: fact table -->
+      <div class="glance-table reveal" style="transition-delay:160ms">
+        <div class="g-row">
+          <div class="g-label" data-t="g.build">Construction</div>
+          <div class="g-value gold">Steel frame</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.delivery">Delivery</div>
+          <div class="g-value gold" data-t="g.delivery.v">6–9 months</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.location">Location</div>
+          <div class="g-value" data-t="g.location.v">Balian Hills, Bali</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.ptpma">PT PMA</div>
+          <div class="g-value"><span data-price="1000">€1,000</span> <span style="font-size:11px;opacity:.45;font-family:var(--sans)" data-t="g.ptpma.sub">· ~1 week</span></div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.rental">Rental</div>
+          <div class="g-value" data-t="g.rental.v">Coordinated</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.delivered">Track record</div>
+          <div class="g-value gold">+50 villas</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.land">Land portfolio</div>
+          <div class="g-value gold">+200 ha</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.price">Entry price</div>
+          <div class="g-pend" data-t="g.price.pend">Consult with our team</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.villa">Villa area</div>
+          <div class="g-value" data-t="g.villa.v">39 / 49 / 59 m²</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.plot">Plot area</div>
+          <div class="g-pend" data-t="g.plot.pend">~200 m² — to confirm</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.deposit">Deposit</div>
+          <div class="g-pend" data-t="g.deposit.pend">Consult with our team</div>
+        </div>
+        <div class="g-row">
+          <div class="g-label" data-t="g.status">Status</div>
+          <div class="g-pend" data-t="g.status.pend">Available — units to confirm</div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 04 · TIPOLOGÍAS ═══════════════════════════════════════ -->
+<section class="typo-section s-pad" id="typologies">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="display" style="font-size:clamp(32px,5vw,70px);max-width:18ch" data-t="s4.title">Find your model.</h2>
+      <p style="font-size:14.5px;color:var(--ink-2);margin-top:16px;max-width:62ch;line-height:1.65" data-t="s4.sub">Three typologies — each designed around the river, the jungle, and the Balinese light. Same freehold ownership, same delivery guarantee.</p>
+    </div>
+    <div class="typo-grid" style="margin-top:48px">
+
+      <!-- Villa S -->
+      <div class="t-card reveal" style="transition-delay:0ms">
+        <div class="t-ph t-ph-j">
+          <div class="t-ph-label" data-t="t1.label">01 — Signature S</div>
+        </div>
+        <div class="t-body">
+          <div class="pill pill-gold" data-t="t.entry">Entry model</div>
+          <div class="t-name" data-t="t1.name">Villa S</div>
+          <p class="t-sub" data-t="t1.sub">The most accessible entry point into Lawang freehold ownership. Compact, efficient, and fully riverside.</p>
+          <div class="t-specs">
+            <span>~39 m²</span>
+            <span>·</span>
+            <span data-t="t1.beds">1 bed · 1 bath</span>
+            <span>·</span>
+            <span data-t="t.pool.opt">Pool optional</span>
+          </div>
+          <div class="t-note" data-t="t.price.note">Price on request — contact the team</div>
+          <div style="margin-top:10px">
+            <a href="#contact" class="btn btn-outline" style="font-size:11.5px;padding:10px 20px" data-t="t.cta">Request details <span class="arr">→</span></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Villa M -->
+      <div class="t-card reveal" style="transition-delay:80ms">
+        <div class="t-ph t-ph-s">
+          <div class="t-ph-label" data-t="t2.label">02 — Signature M</div>
+        </div>
+        <div class="t-body">
+          <div class="pill pill-gold" data-t="t.mid">Mid model</div>
+          <div class="t-name" data-t="t2.name">Villa M</div>
+          <p class="t-sub" data-t="t2.sub">The balance point between investment yield and personal retreat. Two bedrooms, private pool, river views.</p>
+          <div class="t-specs">
+            <span>~49 m²</span>
+            <span>·</span>
+            <span data-t="t2.beds">2 bed · 2 bath</span>
+            <span>·</span>
+            <span data-t="t.pool.inc">Pool included</span>
+          </div>
+          <div class="t-note" data-t="t.price.note">Price on request — contact the team</div>
+          <div style="margin-top:10px">
+            <a href="#contact" class="btn btn-outline" style="font-size:11.5px;padding:10px 20px" data-t="t.cta">Request details <span class="arr">→</span></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Villa L -->
+      <div class="t-card reveal" style="transition-delay:160ms">
+        <div class="t-ph t-ph-o">
+          <div class="t-ph-label" data-t="t3.label">03 — Signature L</div>
+        </div>
+        <div class="t-body">
+          <div class="pill pill-gold" data-t="t.prem">Premium model</div>
+          <div class="t-name" data-t="t3.name">Villa L</div>
+          <p class="t-sub" data-t="t3.sub">Maximum space, maximum return. Ideal for families or investors seeking the highest occupancy tier.</p>
+          <div class="t-specs">
+            <span>~59 m²</span>
+            <span>·</span>
+            <span data-t="t3.beds">2–3 bed · 2 bath</span>
+            <span>·</span>
+            <span data-t="t.pool.inc">Pool included</span>
+          </div>
+          <div class="t-note" data-t="t.price.note">Price on request — contact the team</div>
+          <div style="margin-top:10px">
+            <a href="#contact" class="btn btn-outline" style="font-size:11.5px;padding:10px 20px" data-t="t.cta">Request details <span class="arr">→</span></a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 05 · ESPACIOS ═════════════════════════════════════════ -->
+<section class="spaces-section s-pad">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="s-intro" data-t="s5.title">Designed through light, balance, and nature.</h2>
+    </div>
+
+    <div class="sp-block reveal">
+      <div class="sp-img sp-grad-j"></div>
+      <div class="sp-text">
+        <div class="sp-num">01</div>
+        <div class="sp-name" data-t="sp1.name">Living Pavilion</div>
+        <div class="sp-sub" data-t="sp1.sub">Privacy with warmth</div>
+        <p class="sp-desc" data-t="sp1.desc">An open-plan living space that breathes. Teak screens filter the afternoon light while the river's sound fills the room — a composition of calm, material, and connection to the landscape beyond.</p>
+      </div>
+    </div>
+
+    <div class="sp-block reveal">
+      <div class="sp-text">
+        <div class="sp-num">02</div>
+        <div class="sp-name" data-t="sp2.name">Master Bedroom</div>
+        <div class="sp-sub" data-t="sp2.sub">Wake up to the sound of water</div>
+        <p class="sp-desc" data-t="sp2.desc">Every morning starts with the river. The bedroom opens fully to the garden, channelling cross-breeze and dawn light through floor-to-ceiling timber panels. No alarm required.</p>
+      </div>
+      <div class="sp-img sp-grad-s"></div>
+    </div>
+
+    <div class="sp-block reveal">
+      <div class="sp-img sp-grad-o"></div>
+      <div class="sp-text">
+        <div class="sp-num">03</div>
+        <div class="sp-name" data-t="sp3.name">Pool &amp; Terrace</div>
+        <div class="sp-sub" data-t="sp3.sub">Where the jungle meets the sky</div>
+        <p class="sp-desc" data-t="sp3.desc">The pool extends the living space outward. Surrounded by tropical planting and open to the sky, it blurs the line between architecture and nature — the point where guests stop moving.</p>
+      </div>
+    </div>
+
+    <div class="sp-block reveal">
+      <div class="sp-text">
+        <div class="sp-num">04</div>
+        <div class="sp-name" data-t="sp4.name">Open-Air Bathroom</div>
+        <div class="sp-sub" data-t="sp4.sub">The simplicity of modern design</div>
+        <p class="sp-desc" data-t="sp4.desc">Stone, water, and sky. The outdoor bathroom brings the Balinese relationship with nature into the daily ritual — a sky-lit space of minimal elements and maximal calm.</p>
+      </div>
+      <div class="sp-img sp-grad-d"></div>
+    </div>
+
+    <!-- Amenidades -->
+    <div class="amenities-wrap reveal">
+      <p style="font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.8" data-t="s5.am.kicker">Included as standard</p>
+      <div class="amenities">
+        <div class="am" data-t="am.1">Natural ventilation + solar control</div>
+        <div class="am" data-t="am.2">Low-maintenance tropical finishes</div>
+        <div class="am" data-t="am.3">Locally sourced materials</div>
+        <div class="am" data-t="am.4">Steel frame structure</div>
+        <div class="am" data-t="am.5">Private tropical garden</div>
+        <div class="am" data-t="am.6">River or jungle views</div>
+        <div class="am" data-t="am.7">Full permit package</div>
+        <div class="am" data-t="am.8">PT PMA company formation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 06 · PROCESO ══════════════════════════════════════════ -->
+<section class="process-section s-pad" id="process">
+  <div class="wrap">
+    <div class="phases">
+      <div class="ph-aside reveal">
+        <h2 class="ph-aside-h" data-t="s6.title">We handle every step — you collect the result.</h2>
+        <p class="ph-aside-sub" data-t="s6.kicker">From first call to front-door key</p>
+        <div style="margin-top:36px">
+          <a href="#contact" class="btn btn-bone" data-t="s6.cta">Talk to the team <span class="arr">→</span></a>
+        </div>
+      </div>
+      <div class="ph-steps">
+        <div class="ph-card reveal" style="transition-delay:60ms">
+          <div class="ph-num">01</div>
+          <div class="ph-content">
+            <div class="ph-title" data-t="ph1.t">We acquire, legalise &amp; build</div>
+            <div class="ph-sub"  data-t="ph1.s">The hard work is already done when you arrive.</div>
+            <ul class="ph-bullets">
+              <li data-t="ph1.b1">Land acquisition with own capital</li>
+              <li data-t="ph1.b2">Individual title certificate per plot</li>
+              <li data-t="ph1.b3">Steel frame construction</li>
+              <li data-t="ph1.b4">Monthly progress reports with photos</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ph-card reveal" style="transition-delay:120ms">
+          <div class="ph-num">02</div>
+          <div class="ph-content">
+            <div class="ph-title" data-t="ph2.t">Your PT PMA and Freehold — in under a week</div>
+            <div class="ph-sub"  data-t="ph2.s">The strongest legal ownership structure in Southeast Asia.</div>
+            <ul class="ph-bullets">
+              <li data-t="ph2.b1">PT PMA company formation (~€1,000)</li>
+              <li data-t="ph2.b2">Contract signing and documentation</li>
+              <li data-t="ph2.b3">HGB title registration</li>
+              <li data-t="ph2.b4">Coordination with your tax advisor</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ph-card reveal" style="transition-delay:180ms">
+          <div class="ph-num">03</div>
+          <div class="ph-content">
+            <div class="ph-title" data-t="ph3.t">Handover — and first rental in 90 days</div>
+            <div class="ph-sub"  data-t="ph3.s">You collect. We coordinate.</div>
+            <ul class="ph-bullets">
+              <li data-t="ph3.b1">Handover with complete documentation</li>
+              <li data-t="ph3.b2">Rental manager onboarding</li>
+              <li data-t="ph3.b3">First income within &lt;90 days</li>
+              <li data-t="ph3.b4">Delegated management at 20% of gross</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 07 · ARGUMENTO DE INVERSIÓN ══════════════════════════ -->
+<section class="invest-section s-pad" id="invest">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="display" style="font-size:clamp(30px,4.8vw,66px);max-width:18ch" data-t="s7.title">Why Indonesia. Why Balian. Why now.</h2>
+    </div>
+    <div class="inv-grid">
+
+      <!-- Freehold — full width, primary argument -->
+      <div class="inv-card fh-card reveal" style="transition-delay:0ms">
+        <div>
+          <div class="inv-title" data-t="inv3.t">Real ownership — not leasehold</div>
+          <div class="inv-fh-badge" style="margin-top:14px"><span class="badge-fh">FREEHOLD HGB · PT PMA</span></div>
+        </div>
+        <div>
+          <p class="inv-body" data-t="inv3.b">Most Bali properties are sold on leasehold (30+15 years). Lawang operates through HGB freehold titles held via your own PT PMA company. You own the land. Not a lease — the actual asset. This is the single most important differentiator in the Bali investment market today.</p>
+        </div>
+      </div>
+
+      <div class="inv-card reveal" style="transition-delay:80ms">
+        <div class="inv-title" data-t="inv1.t">An emerging zone</div>
+        <p class="inv-body" data-t="inv1.b">Balian Hills sits 15 minutes west of Canggu — the fastest-growing zone in Bali. Where Canggu is saturated, Balian still has horizon. Land prices are rising as infrastructure catches up. Early ownership here is the same position Canggu buyers had ten years ago.</p>
+      </div>
+
+      <div class="inv-card reveal" style="transition-delay:140ms">
+        <div class="inv-title" data-t="inv2.t">Architectural value</div>
+        <p class="inv-body" data-t="inv2.b">Lawang villas are built on steel frames with locally sourced tropical materials — designed for durability, cross-ventilation, and the kind of indoor-outdoor living that commands premium rental rates. A property built to last, in a market that rewards design.</p>
+      </div>
+
+      <div class="inv-card reveal" style="transition-delay:200ms">
+        <div class="inv-title" data-t="inv4.t">Yield and lifestyle</div>
+        <p class="inv-body" data-t="inv4.b">Bali's tourist arrivals reached record levels in 2024, with structural undersupply in design-led stays. Historically, well-positioned villas in the west coast corridor have achieved occupancy rates above 80% in high season. Managed by our partner operator from day one.</p>
+      </div>
+
+      <div class="inv-card reveal" style="transition-delay:260ms; grid-column: 1 / -1;">
+        <div class="inv-disc" style="margin:0">
+          <span data-t="inv.disc">All yield figures are historical and indicative. Past performance does not guarantee future results. ROI projections are estimates only and depend on market conditions, management, and seasonal demand. This page does not constitute a financial offer.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 08 · PLAN DE PAGOS ════════════════════════════════════ -->
+<section class="payment-section s-pad" id="payment">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="display" style="font-size:clamp(30px,4.5vw,64px);max-width:18ch" data-t="s8.title">Simple structure. No surprises.</h2>
+    </div>
+    <div class="pay-grid">
+      <div class="pay-steps reveal">
+        <div class="pay-step">
+          <div class="ps-n">01</div>
+          <div>
+            <div class="ps-t" data-t="ps1.t">Reservation deposit</div>
+            <div class="ps-d" data-t="ps1.d">Locks your plot while you complete due diligence. Refundable subject to conditions.</div>
+            <div class="ps-a pend" data-t="ps1.a">Amount — consult team</div>
+          </div>
+        </div>
+        <div class="pay-step">
+          <div class="ps-n">02</div>
+          <div>
+            <div class="ps-t" data-t="ps2.t">Contract signing</div>
+            <div class="ps-d" data-t="ps2.d">Main payment at the point of signing the purchase contract and HGB title process begins.</div>
+            <div class="ps-a pend" data-t="ps2.a">% of total — consult team</div>
+          </div>
+        </div>
+        <div class="pay-step">
+          <div class="ps-n">03</div>
+          <div>
+            <div class="ps-t" data-t="ps3.t">Construction start</div>
+            <div class="ps-d" data-t="ps3.d">Tranche linked to on-site construction milestone. Verified before payment is due.</div>
+            <div class="ps-a pend" data-t="ps3.a">% of total — consult team</div>
+          </div>
+        </div>
+        <div class="pay-step">
+          <div class="ps-n">04</div>
+          <div>
+            <div class="ps-t" data-t="ps4.t">Handover</div>
+            <div class="ps-d" data-t="ps4.d">Final payment on delivery with complete documentation: HGB title, PT PMA certificate, and villa snagging sign-off.</div>
+            <div class="ps-a pend" data-t="ps4.a">% of total — consult team</div>
+          </div>
+        </div>
+        <div class="pay-step">
+          <div class="ps-n" style="color:var(--fhld)">+</div>
+          <div>
+            <div class="ps-t" data-t="ps5.t">PT PMA formation</div>
+            <div class="ps-d" data-t="ps5.d">Your Indonesian company. Full management and legal setup included in the process.</div>
+            <div class="ps-a" data-t="ps5.a">~<span data-price="1000">€1,000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pay-aside reveal" style="transition-delay:120ms">
+        <div class="pa-title" data-t="pa.title">Start with a conversation</div>
+        <p class="pa-note" data-t="pa.note">The exact payment structure is confirmed during your first call with our team. We walk you through every step — from reservation to rental income.</p>
+        <p class="pa-note" data-t="pa.note2">Financing options for qualified investors available on request. No public commitment required to enquire.</p>
+        <a href="#contact" class="btn btn-gold pa-cta" data-t="pa.cta">Get investment details <span class="arr">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 09 · FAQS ════════════════════════════════════════════ -->
+<section class="faq-section s-pad" id="faq">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="display" style="font-size:clamp(30px,4.5vw,64px);max-width:18ch" data-t="s9.title">What we get asked most.</h2>
+    </div>
+    <div class="faq-list reveal" style="transition-delay:100ms">
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq1.q">What does 'Signature' mean?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq1.a">Signature is Lawang's fully turnkey product line. You receive a completed villa — permitted, built, and ready to move in or rent out — together with the legal structure (PT PMA + HGB freehold title). It is the complete solution, not a build-it-yourself kit. Everything from land acquisition to front-door key is handled by our team.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq2.q">Is it for living or for investing?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq2.a">Both. Every Signature villa is designed for premium private living and for competitive rental returns. Many owners split their time — staying several weeks a year and renting for the rest through our managed programme. The freehold structure means the asset is yours in the way a primary residence would be.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq3.q">Where exactly is it?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq3.a">Balian Hills, on the west coast of Bali — one of the island's most privileged residential zones. 15 minutes from Canggu, 2 minutes from Amazona Jungle Resort, and 6 minutes from the British school. The area combines jungle calm with access to Bali's most dynamic social corridor.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq4.q">What type of ownership do I get?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq4.a">HGB Freehold title, held through your own PT PMA (Indonesian limited company). This is the strongest form of legal ownership available to foreign investors in Indonesia — not a 30-year lease, not a nominee arrangement, but a registered title in a company you own. Our legal team handles the full PT PMA formation process for approximately €1,000.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq5.q">Can I buy as a foreign national?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq5.a">Yes. Foreign nationals cannot hold property in Indonesia under their personal name — but they can own it legally through an Indonesian company (PT PMA) that they control 100%. Lawang coordinates the full PT PMA formation: registration, legal documentation and ongoing compliance support. This is the standard structure used by thousands of international investors in Bali.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq6.q">How does the purchase process work?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq6.a">1. Discovery call — we understand your goals and confirm availability. 2. Reservation — a deposit locks your plot while you complete due diligence. 3. PT PMA + contract — legal structure formed, HGB title process begins. 4. Construction — steel frame build with monthly photo updates. 5. Handover — complete documentation, snagging sign-off, and rental manager introduction. First rental income typically within 90 days of handover.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-t" data-t="fq7.q">What returns can I expect?</span><span class="faq-icon">+</span></div>
+        <div class="faq-a"><div class="faq-a-i" data-t="fq7.a">We do not provide guaranteed yield figures. Historically, well-managed design-led villas on Bali's west coast have achieved 75–85% occupancy in high season, with average daily rates that have tracked tourism demand. The specific rental projections for each typology are shared during our investor call. All figures are estimates based on historical performance — not a guarantee of future returns.</div></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 10 · TRACK RECORD ════════════════════════════════════ -->
+<section class="track-section s-pad">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="display" style="font-size:clamp(30px,4.8vw,66px);max-width:20ch" data-t="s10.title">More than 50 homes delivered. This is the next step.</h2>
+    </div>
+    <div class="track-stats reveal" style="transition-delay:100ms">
+      <div class="tr-stat"><div class="tr-n">+50</div><div class="tr-l" data-t="tr1">Villas built &amp; delivered</div></div>
+      <div class="tr-stat"><div class="tr-n">+200</div><div class="tr-l" data-t="tr2">Hectares of land</div></div>
+      <div class="tr-stat"><div class="tr-n">2</div><div class="tr-l" data-t="tr3">Active regions</div></div>
+      <div class="tr-stat"><div class="tr-n" style="font-size:clamp(28px,3vw,44px);color:var(--gold-l)" data-t="tr4.n">Balian + Sumba</div><div class="tr-l" data-t="tr4">Bali &amp; Sumba Island</div></div>
+    </div>
+    <div class="track-body">
+      <div class="track-text reveal">
+        <span data-t="s10.body">We don't sell from Spain with renders. Lawang has been operating on the ground in Bali since day one — acquiring land with our own capital, building with our own construction team, and handing over completed homes with verified freehold title. Every villa in our portfolio was built by the same team that will build yours.</span>
+      </div>
+      <div class="testimonials reveal" style="transition-delay:120ms">
+        <!-- PENDING: Add real testimonials when available -->
+        <div class="testi-ph" data-t="testi.ph">Client testimonials — coming soon. Contact us to speak directly with previous buyers.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 11 · CTA FINAL ═══════════════════════════════════════ -->
+<section class="close-section" id="contact">
+  <div class="close-bg"></div>
+  <img class="close-img" src="assets/images/aerial-jungle.jpg" alt="Aerial view of Balian Hills jungle, Bali" loading="lazy">
+  <div class="close-ov"></div>
+  <div class="wrap close-content">
+    <div class="reveal">
+      <h2 class="close-h" data-t="s11.h">The door is open.<br><em>For now.</em></h2>
+      <p class="close-sub" data-t="s11.sub">Reserve your plot and lock today's price. The team walks you through every step — from first call to first rental income.</p>
+      <ul class="close-bullets">
+        <li data-t="s11.b1">Freehold HGB — real ownership, not leasehold</li>
+        <li data-t="s11.b2">+50 villas delivered — not renders</li>
+        <li data-t="s11.b3">PT PMA included — your Indonesian company in a week</li>
+        <li data-t="s11.b4">Rental management coordinated from day one</li>
+      </ul>
+      <div class="close-btns">
+        <a href="mailto:hello@lawang.id" class="btn btn-gold" data-t="s11.cta1">Talk to the team <span class="arr">→</span></a>
+        <a href="https://wa.me/6281200000000" class="btn btn-bone" data-t="s11.cta2">WhatsApp us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="ft-grid">
+      <div>
+        <div class="ft-logo"><span class="dot"></span>Lawang</div>
+        <p class="ft-tag" data-t="ft.tag">Tropical Properties · Balian Hills, Bali &amp; Sumba Island, Indonesia.</p>
+        <p style="font-size:12px;opacity:.38;margin-top:16px">hello@lawang.id</p>
+      </div>
+      <div class="ft-col">
+        <h5 data-t="ft.project">Project</h5>
+        <a href="#overview"   data-t="nav.overview">Overview</a>
+        <a href="#typologies" data-t="nav.typo">Typologies</a>
+        <a href="#process"    data-t="nav.process">Process</a>
+        <a href="#invest"     data-t="nav.invest">Investment case</a>
+        <a href="#faq"        data-t="nav.faq">FAQ</a>
+      </div>
+      <div class="ft-col">
+        <h5 data-t="ft.regions">Regions</h5>
+        <a>Balian Hills, Bali</a>
+        <a>Sumba Island</a>
+        <a href="../index.html" data-t="ft.back">← Back to Lawang Estate</a>
+      </div>
+    </div>
+    <div class="ft-rule"></div>
+    <div class="ft-bottom">
+      <span data-t="ft.legal">© 2026 Lawang Tropical Properties. Indicative information only — not a financial offer. All yield figures are historical estimates.</span>
+      <span>Riverfront II® · Signature Villas</span>
+    </div>
+  </div>
+</footer>
+
+<script type="application/json" id="contenido">
+{
+  "meta": {
+    "titulo": "Riverfront II® — Signature Villas · Lawang",
+    "descripcion": "Riverfront II® — Signature freehold villas in Balian Hills, Bali. Steel frame, 6–9 months delivery, fully managed rental. Lawang Tropical Properties.",
+    "email": "hello@lawang.id",
+    "whatsapp": "https://wa.me/6281200000000",
+    "marca": "Lawang",
+    "submarca": "Tropical Properties"
+  },
+  "hero": {
+    "proyecto": "RIVERFRONT II®",
+    "ubicacion": "Balian Hills, Bali, Indonesia",
+    "distancias": [
+      { "ref": "hero.d1", "texto": "2 min Amazona Jungle Resort" },
+      { "ref": "hero.d2", "texto": "6 min Best Sun School" },
+      { "ref": "hero.d3", "texto": "15 min Nyanyi Beach" },
+      { "ref": "hero.d4", "texto": "15 min Canggu" }
+    ]
+  },
+  "tipologias": [
+    {
+      "id": "S",
+      "nombre_ref": "t1.name",
+      "descripcion_ref": "t1.sub",
+      "superficie_m2": 39,
+      "dormitorios": 1,
+      "banos": 1,
+      "piscina": "optional",
+      "precio_eur": null,
+      "pendiente_precio": true,
+      "nivel": "entry",
+      "foto_clase": "t-ph-j"
+    },
+    {
+      "id": "M",
+      "nombre_ref": "t2.name",
+      "descripcion_ref": "t2.sub",
+      "superficie_m2": 49,
+      "dormitorios": 2,
+      "banos": 2,
+      "piscina": "included",
+      "precio_eur": null,
+      "pendiente_precio": true,
+      "nivel": "mid",
+      "foto_clase": "t-ph-s"
+    },
+    {
+      "id": "L",
+      "nombre_ref": "t3.name",
+      "descripcion_ref": "t3.sub",
+      "superficie_m2": 59,
+      "dormitorios": "2-3",
+      "banos": 2,
+      "piscina": "included",
+      "precio_eur": null,
+      "pendiente_precio": true,
+      "nivel": "premium",
+      "foto_clase": "t-ph-o"
+    }
+  ],
+  "datos_clave": [
+    { "clave": "tenure",    "tipo": "fh", "valor": "FREEHOLD HGB + PT PMA",  "pendiente": false },
+    { "clave": "build",     "valor": "Steel frame",                            "pendiente": false },
+    { "clave": "delivery",  "valor": "6–9 months",                            "pendiente": false },
+    { "clave": "ptpma",     "precio_eur": 1000,                               "pendiente": false },
+    { "clave": "location",  "valor": "Balian Hills, Bali",                    "pendiente": false },
+    { "clave": "rental",    "valor": "Coordinated",                           "pendiente": false },
+    { "clave": "delivered", "valor": "+50",                                   "pendiente": false },
+    { "clave": "land",      "valor": "+200 ha",                               "pendiente": false },
+    { "clave": "price",     "precio_eur": null,                               "pendiente": true  },
+    { "clave": "plot",      "valor": "~200 m²",                               "pendiente": true  },
+    { "clave": "deposit",   "precio_eur": null,                               "pendiente": true  },
+    { "clave": "status",    "valor": "Available",                             "pendiente": true  }
+  ],
+  "espacios": [
+    { "num": "01", "nombre_ref": "sp1.name", "subtitulo_ref": "sp1.sub", "desc_ref": "sp1.desc", "estilo": "sp-grad-j" },
+    { "num": "02", "nombre_ref": "sp2.name", "subtitulo_ref": "sp2.sub", "desc_ref": "sp2.desc", "estilo": "sp-grad-s" },
+    { "num": "03", "nombre_ref": "sp3.name", "subtitulo_ref": "sp3.sub", "desc_ref": "sp3.desc", "estilo": "sp-grad-o" },
+    { "num": "04", "nombre_ref": "sp4.name", "subtitulo_ref": "sp4.sub", "desc_ref": "sp4.desc", "estilo": "sp-grad-d" }
+  ],
+  "amenidades": ["am.1", "am.2", "am.3", "am.4", "am.5", "am.6", "am.7", "am.8"],
+  "proceso": [
+    {
+      "num": "01",
+      "titulo_ref": "ph1.t",
+      "subtitulo_ref": "ph1.s",
+      "bullets": ["ph1.b1", "ph1.b2", "ph1.b3", "ph1.b4"]
+    },
+    {
+      "num": "02",
+      "titulo_ref": "ph2.t",
+      "subtitulo_ref": "ph2.s",
+      "bullets": ["ph2.b1", "ph2.b2", "ph2.b3", "ph2.b4"]
+    },
+    {
+      "num": "03",
+      "titulo_ref": "ph3.t",
+      "subtitulo_ref": "ph3.s",
+      "bullets": ["ph3.b1", "ph3.b2", "ph3.b3", "ph3.b4"]
+    }
+  ],
+  "inversion": [
+    { "num": "01", "titulo_ref": "inv1.t", "cuerpo_ref": "inv1.b", "fh": false },
+    { "num": "02", "titulo_ref": "inv2.t", "cuerpo_ref": "inv2.b", "fh": false },
+    { "num": "03", "titulo_ref": "inv3.t", "cuerpo_ref": "inv3.b", "fh": true  },
+    { "num": "04", "titulo_ref": "inv4.t", "cuerpo_ref": "inv4.b", "fh": false }
+  ],
+  "plan_pagos": [
+    { "num": "01", "titulo_ref": "ps1.t", "desc_ref": "ps1.d", "precio_eur": null,  "porcentaje": null, "pendiente": true  },
+    { "num": "02", "titulo_ref": "ps2.t", "desc_ref": "ps2.d", "precio_eur": null,  "porcentaje": null, "pendiente": true  },
+    { "num": "03", "titulo_ref": "ps3.t", "desc_ref": "ps3.d", "precio_eur": null,  "porcentaje": null, "pendiente": true  },
+    { "num": "04", "titulo_ref": "ps4.t", "desc_ref": "ps4.d", "precio_eur": null,  "porcentaje": null, "pendiente": true  },
+    { "num": "+",  "titulo_ref": "ps5.t", "desc_ref": "ps5.d", "precio_eur": 1000, "porcentaje": null, "pendiente": false }
+  ],
+  "faqs": [
+    { "pregunta_ref": "fq1.q", "respuesta_ref": "fq1.a" },
+    { "pregunta_ref": "fq2.q", "respuesta_ref": "fq2.a" },
+    { "pregunta_ref": "fq3.q", "respuesta_ref": "fq3.a" },
+    { "pregunta_ref": "fq4.q", "respuesta_ref": "fq4.a" },
+    { "pregunta_ref": "fq5.q", "respuesta_ref": "fq5.a" },
+    { "pregunta_ref": "fq6.q", "respuesta_ref": "fq6.a" },
+    { "pregunta_ref": "fq7.q", "respuesta_ref": "fq7.a" }
+  ],
+  "track_record": {
+    "estadisticas": [
+      { "valor": "+50",          "etiqueta_ref": "tr1" },
+      { "valor": "+200",         "etiqueta_ref": "tr2" },
+      { "valor": "2",            "etiqueta_ref": "tr3" },
+      { "valor": "Balian+Sumba", "etiqueta_ref": "tr4" }
+    ],
+    "testimonios": []
+  },
+  "close_cta": {
+    "bullets": ["s11.b1", "s11.b2", "s11.b3", "s11.b4"],
+    "email": "hello@lawang.id",
+    "whatsapp": "https://wa.me/6281200000000"
+  },
+  "footer": {
+    "email": "hello@lawang.id",
+    "enlaces_nav": ["overview", "typologies", "process", "invest", "faq"],
+    "regiones": ["Balian Hills, Bali", "Sumba Island"]
+  },
+  "monedas": {
+    "tasas":      { "EUR": 1, "USD": 1.09, "AUD": 1.66, "GBP": 0.86, "IDR": 17800 },
+    "simbolos":   { "EUR": "€", "USD": "$", "AUD": "A$", "GBP": "£", "IDR": "Rp " },
+    "predeterminada": "EUR"
+  },
+  "idiomas": ["en", "es", "id"],
+  "idioma_predeterminado": "en"
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   SIGNATURE — i18n · Currency · Nav · FAQ · Reveal
+   ═══════════════════════════════════════════════════ */
+
+/* ── DICTIONARY ─────────────────────────────────── */
+const T = {
+en: {
+  'nav.overview':'Overview','nav.typo':'Typologies','nav.process':'Process','nav.invest':'Invest','nav.faq':'FAQ',
+  'hero.label':'BALI VILLAS FOR LEASE',
+  'hero.tagline':"Calm of nature, total comfort, and immediate connection to Bali's most vibrant area.",
+  'hero.desc':"A PREMIUM RIVERSIDE VILLA hidden within Bali's tropical jungle — in one of the island's most privileged residential zones.",
+  'hero.d1':'2 min Amazona Jungle Resort','hero.d2':'6 min Best Sun School','hero.d3':'15 min Nyanyi Beach','hero.d4':'15 min Canggu',
+  'hero.cta':'Get Investment Details','hero.scroll':'Scroll',
+  's2.kicker':'The project','s2.title':'Your Villa, Fully Managed<br><em>from Vision to Delivery</em>',
+  's2.p1':"In Indonesia's island of Bali, between jungle and rice fields, Riverfront emerges as a rare enclave of privacy and design. An exclusive river-view home in Kaba-Kaba, surrounded by calm, light, and the sound of flowing water.",
+  's2.p2':"Villas designed through light, balance, and nature perspective. A living composition — where every space opens toward the river, the jungle, or the sky.",
+  's2.p3':'Supported by a dedicated team handling permits, construction, interiors, and post-delivery guidance.',
+  's2.d1':'River and jungle views from every room','s2.d2':'Real freehold ownership via HGB + PT PMA',
+  's2.d3':'Steel frame. Guaranteed delivery in 6–9 months','s2.d4':'Rental management coordinated from day one',
+  's3.kicker':'At a glance','s3.title':'Key facts, clearly stated.',
+  'g.tenure':'Ownership type','g.tenure.sub':'Full legal support included','g.build':'Construction','g.build.sub':'Premium durability · tropical design',
+  'g.delivery':'Delivery','g.delivery.v':'6–9 months','g.delivery.sub':'From contract signing',
+  'g.ptpma':'PT PMA included','g.ptpma.sub':'Full management, ~1 week',
+  'g.location':'Location','g.location.v':'Balian Hills, Bali','g.location.sub':'West coast · 15 min Canggu',
+  'g.rental':'Rental management','g.rental.v':'Coordinated','g.rental.sub':'Specialist property manager',
+  'g.delivered':'Villas delivered','g.delivered.sub':'Track record confirmed',
+  'g.land':'Land portfolio','g.land.sub':'Balian Hills + Sumba',
+  'g.price':'Entry price','g.price.pend':'Consult with our team',
+  'g.villa':'Villa area','g.villa.v':'39 / 49 / 59 m²',
+  'g.plot':'Plot area','g.plot.pend':'~200 m² — to be confirmed',
+  'g.deposit':'Reservation deposit','g.deposit.pend':'Consult with our team',
+  'g.status':'Current status','g.status.pend':'Available — units to confirm',
+  's4.kicker':'Villa typologies','s4.title':'Find your model.',
+  's4.sub':'Three typologies — each designed around the river, the jungle, and the Balinese light.',
+  't1.label':'01 — Signature S','t1.name':'Villa S','t1.sub':'The most accessible entry point into Lawang freehold ownership. Compact, efficient, and fully riverside.','t1.beds':'1 bed · 1 bath',
+  't2.label':'02 — Signature M','t2.name':'Villa M','t2.sub':'The balance point between investment yield and personal retreat. Two bedrooms, private pool, river views.','t2.beds':'2 bed · 2 bath',
+  't3.label':'03 — Signature L','t3.name':'Villa L','t3.sub':'Maximum space, maximum return. Ideal for families or investors seeking the highest occupancy tier.','t3.beds':'2–3 bed · 2 bath',
+  't.entry':'Entry model','t.mid':'Mid model','t.prem':'Premium model',
+  't.pool.opt':'Pool optional','t.pool.inc':'Pool included','t.price.note':'Price on request — contact the team','t.cta':'Request details',
+  's5.kicker':'The spaces','s5.title':'Designed through light, balance, and nature.',
+  'sp1.name':'Living Pavilion','sp1.sub':'Privacy with warmth','sp1.desc':"An open-plan living space that breathes. Teak screens filter the afternoon light while the river's sound fills the room — a composition of calm, material, and connection to the landscape beyond.",
+  'sp2.name':'Master Bedroom','sp2.sub':'Wake up to the sound of water','sp2.desc':'Every morning starts with the river. The bedroom opens fully to the garden, channelling cross-breeze and dawn light through floor-to-ceiling timber panels.',
+  'sp3.name':'Pool & Terrace','sp3.sub':'Where the jungle meets the sky','sp3.desc':"The pool extends the living space outward. Surrounded by tropical planting and open to the sky, it blurs the line between architecture and nature.",
+  'sp4.name':'Open-Air Bathroom','sp4.sub':'The simplicity of modern design','sp4.desc':'Stone, water, and sky. The outdoor bathroom brings the Balinese relationship with nature into the daily ritual — a sky-lit space of minimal elements and maximal calm.',
+  's5.am.kicker':'Included as standard',
+  'am.1':'Natural ventilation + solar control','am.2':'Low-maintenance tropical finishes','am.3':'Locally sourced materials','am.4':'Steel frame structure','am.5':'Private tropical garden','am.6':'River or jungle views','am.7':'Full permit package','am.8':'PT PMA company formation',
+  's6.kicker':'From first call to front-door key','s6.title':'We handle every step — you collect the result.',
+  'ph1.t':'We acquire, legalise & build','ph1.s':'The hard work is already done when you arrive.','ph1.b1':'Land acquisition with own capital','ph1.b2':'Individual title certificate per plot','ph1.b3':'Steel frame construction','ph1.b4':'Monthly progress reports with photos',
+  'ph2.t':'Your PT PMA and Freehold — in under a week','ph2.s':'The strongest legal ownership structure in Southeast Asia.','ph2.b1':'PT PMA company formation (~€1,000)','ph2.b2':'Contract signing and documentation','ph2.b3':'HGB title registration','ph2.b4':'Coordination with your tax advisor',
+  'ph3.t':'Handover — and first rental in 90 days','ph3.s':'You collect. We coordinate.','ph3.b1':'Handover with complete documentation','ph3.b2':'Rental manager onboarding','ph3.b3':'First income within <90 days','ph3.b4':'Delegated management at 20% of gross',
+  's6.cta':'Talk to the team',
+  's7.kicker':'The investment case','s7.title':'Why Indonesia. Why Balian. Why now.',
+  'inv1.t':'An emerging zone','inv1.b':"Balian Hills sits 15 minutes west of Canggu — the fastest-growing zone in Bali. Where Canggu is saturated, Balian still has horizon. Land prices are rising as infrastructure catches up.",
+  'inv2.t':'Architectural value','inv2.b':'Lawang villas are built on steel frames with locally sourced tropical materials — designed for durability, cross-ventilation, and the kind of indoor-outdoor living that commands premium rental rates.',
+  'inv3.t':'Real ownership — not leasehold','inv3.b':'Most Bali properties are sold on leasehold (30+15 years). Lawang operates through HGB freehold titles held via your own PT PMA company. You own the land. Not a lease — the actual asset.',
+  'inv4.t':'Yield and lifestyle','inv4.b':"Bali's tourist arrivals reached record levels in 2024, with structural undersupply in design-led stays. Historically, well-positioned villas on the west coast have achieved occupancy rates above 80% in high season.",
+  'inv.disc':'All yield figures are historical and indicative. Past performance does not guarantee future results. This page does not constitute a financial offer.',
+  's8.kicker':'How it works','s8.title':'Simple structure. No surprises.',
+  'ps1.t':'Reservation deposit','ps1.d':'Locks your plot while you complete due diligence. Refundable subject to conditions.','ps1.a':'Amount — consult team',
+  'ps2.t':'Contract signing','ps2.d':'Main payment at the point of signing the purchase contract and HGB title process begins.','ps2.a':'% of total — consult team',
+  'ps3.t':'Construction start','ps3.d':'Tranche linked to on-site construction milestone. Verified before payment is due.','ps3.a':'% of total — consult team',
+  'ps4.t':'Handover','ps4.d':'Final payment on delivery with complete documentation: HGB title, PT PMA certificate, villa snagging sign-off.','ps4.a':'% of total — consult team',
+  'ps5.t':'PT PMA formation','ps5.d':'Your Indonesian company. Full management and legal setup included in the process.','ps5.a':'~',
+  'pa.title':'Start with a conversation','pa.note':'The exact payment structure is confirmed during your first call with our team. We walk you through every step.','pa.note2':'Financing options for qualified investors available on request.','pa.cta':'Get investment details',
+  's9.kicker':'Questions','s9.title':'What we get asked most.',
+  'fq1.q':"What does 'Signature' mean?",'fq1.a':"Signature is Lawang's fully turnkey product line. You receive a completed villa — permitted, built, and ready to move in or rent out — with the legal structure (PT PMA + HGB freehold title). Everything from land acquisition to front-door key is handled by our team.",
+  'fq2.q':'Is it for living or for investing?','fq2.a':'Both. Every Signature villa is designed for premium private living and for competitive rental returns. Many owners split their time — staying several weeks a year and renting for the rest through our managed programme.',
+  'fq3.q':'Where exactly is it?','fq3.a':"Balian Hills, on Bali's west coast — 15 minutes from Canggu, 2 minutes from Amazona Jungle Resort. The area combines jungle calm with access to Bali's most dynamic social corridor.",
+  'fq4.q':'What type of ownership do I get?','fq4.a':'HGB Freehold title, held through your own PT PMA (Indonesian limited company). This is the strongest form of legal ownership available to foreign investors — not a 30-year lease, but a registered title in a company you own.',
+  'fq5.q':'Can I buy as a foreign national?','fq5.a':'Yes. Foreign nationals own Indonesian property legally through a PT PMA company they control 100%. Lawang coordinates the full formation: registration, legal documentation and ongoing compliance. Standard structure used by thousands of international investors in Bali.',
+  'fq6.q':'How does the purchase process work?','fq6.a':'1. Discovery call. 2. Reservation deposit. 3. PT PMA + contract. 4. Construction with monthly updates. 5. Handover with documentation + rental manager introduction. First rental income typically within 90 days.',
+  'fq7.q':'What returns can I expect?','fq7.a':'We do not provide guaranteed yield figures. Historically, well-managed design-led villas on the west coast have achieved 75–85% occupancy in high season. Specific projections are shared during our investor call — all figures are estimates, not guarantees.',
+  's10.kicker':'Track record','s10.title':'More than 50 homes delivered. This is the next step.',
+  's10.body':"We don't sell from Spain with renders. Lawang has been operating on the ground in Bali from day one — acquiring land with our own capital, building with our own team, and handing over completed homes with verified freehold title.",
+  'tr1':'Villas built & delivered','tr2':'Hectares of land','tr3':'Active regions','tr4.n':'Balian + Sumba','tr4':'Bali & Sumba Island',
+  'testi.ph':'Client testimonials — coming soon. Contact us to speak directly with previous buyers.',
+  's11.h':'The door is open.<br><em>For now.</em>',
+  's11.sub':'Reserve your plot and lock today\'s price. The team walks you through every step — from first call to first rental income.',
+  's11.b1':'Freehold HGB — real ownership, not leasehold','s11.b2':'+50 villas delivered — not renders','s11.b3':'PT PMA included — your Indonesian company in a week','s11.b4':'Rental management coordinated from day one',
+  's11.cta1':'Talk to the team','s11.cta2':'WhatsApp us',
+  'ft.tag':'Tropical Properties · Balian Hills, Bali & Sumba Island, Indonesia.','ft.project':'Project','ft.regions':'Regions','ft.back':'← Back to Lawang Estate',
+  'ft.legal':'© 2026 Lawang Tropical Properties. Indicative information only — not a financial offer. All yield figures are historical estimates.'
+},
+es: {
+  'nav.overview':'Descripción','nav.typo':'Tipologías','nav.process':'Proceso','nav.invest':'Inversión','nav.faq':'Preguntas',
+  'hero.label':'VILLAS EN BALI EN ARRENDAMIENTO',
+  'hero.tagline':'Calma de la naturaleza, confort total y conexión inmediata con la zona más vibrante de Bali.',
+  'hero.desc':'UNA VILLA PREMIUM FRENTE AL RÍO escondida en la selva tropical de Bali — en una de las zonas residenciales más privilegiadas de la isla.',
+  'hero.d1':'2 min Amazona Jungle Resort','hero.d2':'6 min Best Sun School','hero.d3':'15 min Playa Nyanyi','hero.d4':'15 min Canggu',
+  'hero.cta':'Obtener detalles de inversión','hero.scroll':'Desliza',
+  's2.kicker':'El proyecto','s2.title':'Tu villa, gestionada de principio a fin',
+  's2.p1':'En la isla de Bali, entre selva y arrozales, Riverfront emerge como un enclave de privacidad y diseño. Una casa con vistas al río en Kaba-Kaba, rodeada de calma, luz y el sonido del agua.',
+  's2.p2':'Villas diseñadas a través de la luz, el equilibrio y la perspectiva natural. Una composición viva — donde cada espacio se abre hacia el río, la selva o el cielo.',
+  's2.p3':'Con un equipo dedicado que gestiona permisos, construcción, interiorismo y asesoramiento post-entrega.',
+  's2.d1':'Vistas al río y la selva desde cada habitación','s2.d2':'Propiedad freehold real mediante HGB + PT PMA',
+  's2.d3':'Steel frame. Entrega garantizada en 6–9 meses','s2.d4':'Alquiler turístico coordinado desde el primer día',
+  's3.kicker':'De un vistazo','s3.title':'Los datos clave, sin rodeos.',
+  'g.tenure':'Tipo de propiedad','g.tenure.sub':'Apoyo legal completo incluido','g.build':'Construcción','g.build.sub':'Durabilidad premium · diseño tropical',
+  'g.delivery':'Entrega','g.delivery.v':'6–9 meses','g.delivery.sub':'Desde la firma del contrato',
+  'g.ptpma':'PT PMA incluida','g.ptpma.sub':'Gestión completa, ~1 semana',
+  'g.location':'Ubicación','g.location.v':'Balian Hills, Bali','g.location.sub':'Costa oeste · 15 min de Canggu',
+  'g.rental':'Gestión del alquiler','g.rental.v':'Coordinada','g.rental.sub':'Gestora especializada',
+  'g.delivered':'Villas entregadas','g.delivered.sub':'Track record confirmado',
+  'g.land':'Portfolio de terrenos','g.land.sub':'Balian Hills + Sumba',
+  'g.price':'Precio de entrada','g.price.pend':'Consultar con el equipo',
+  'g.villa':'Superficie villa','g.villa.v':'39 / 49 / 59 m²',
+  'g.plot':'Superficie parcela','g.plot.pend':'~200 m² — por confirmar',
+  'g.deposit':'Depósito de reserva','g.deposit.pend':'Consultar con el equipo',
+  'g.status':'Estado actual','g.status.pend':'Disponible — unidades por confirmar',
+  's4.kicker':'Tipologías de villa','s4.title':'Elige tu modelo.',
+  's4.sub':'Tres tipologías — cada una diseñada alrededor del río, la selva y la luz balinesa.',
+  't1.label':'01 — Signature S','t1.name':'Villa S','t1.sub':'La entrada más accesible a la propiedad freehold de Lawang. Compacta, eficiente y con vistas al río.','t1.beds':'1 hab · 1 baño',
+  't2.label':'02 — Signature M','t2.name':'Villa M','t2.sub':'El punto de equilibrio entre rentabilidad de inversión y retiro personal. Dos dormitorios, piscina privada, vistas al río.','t2.beds':'2 hab · 2 baños',
+  't3.label':'03 — Signature L','t3.name':'Villa L','t3.sub':'Máximo espacio, máxima rentabilidad. Ideal para familias o inversores que buscan la mayor ocupación.','t3.beds':'2–3 hab · 2 baños',
+  't.entry':'Modelo entrada','t.mid':'Modelo medio','t.prem':'Modelo premium',
+  't.pool.opt':'Piscina opcional','t.pool.inc':'Piscina incluida','t.price.note':'Precio bajo petición — contacta con el equipo','t.cta':'Solicitar información',
+  's5.kicker':'Los espacios','s5.title':'Diseñados a través de la luz, el equilibrio y la naturaleza.',
+  'sp1.name':'Pabellón principal','sp1.sub':'Privacidad con calidez','sp1.desc':'Un espacio de día abierto que respira. Las celosías de teca filtran la luz de la tarde mientras el sonido del río llena la estancia.',
+  'sp2.name':'Dormitorio principal','sp2.sub':'Despierta con el sonido del agua','sp2.desc':'Cada mañana empieza con el río. El dormitorio se abre completamente al jardín, canalizando la brisa y la luz del amanecer.',
+  'sp3.name':'Piscina y terraza','sp3.sub':'Donde la selva se encuentra con el cielo','sp3.desc':'La piscina extiende el espacio de vida hacia el exterior. Rodeada de vegetación tropical y abierta al cielo.',
+  'sp4.name':'Baño exterior','sp4.sub':'La sencillez del diseño moderno','sp4.desc':'Piedra, agua y cielo. El baño al aire libre integra la relación balinesa con la naturaleza en el ritual cotidiano.',
+  's5.am.kicker':'Incluido de serie',
+  'am.1':'Ventilación natural + control solar','am.2':'Acabados de bajo mantenimiento','am.3':'Materiales de origen local','am.4':'Estructura steel frame','am.5':'Jardín tropical privado','am.6':'Vistas al río o a la selva','am.7':'Paquete completo de permisos','am.8':'Constitución de PT PMA',
+  's6.kicker':'De la primera llamada a las llaves','s6.title':'Nosotros gestionamos cada paso — tú recibes el resultado.',
+  'ph1.t':'Compramos, legalizamos y construimos','ph1.s':'El trabajo difícil ya está hecho cuando tú llegas.','ph1.b1':'Adquisición de terreno con capital propio','ph1.b2':'Certificado de título individual por parcela','ph1.b3':'Construcción con steel frame','ph1.b4':'Informes mensuales de progreso con fotos',
+  'ph2.t':'Tu PT PMA y tu Freehold, en menos de una semana','ph2.s':'La estructura legal más sólida del Sudeste Asiático.','ph2.b1':'Constitución PT PMA (~€1.000)','ph2.b2':'Firma de contratos y documentación','ph2.b3':'Inscripción registral HGB','ph2.b4':'Coordinación con tu asesor fiscal',
+  'ph3.t':'Entrega de llaves — y primer alquiler en 90 días','ph3.s':'Tú cobras. Nosotros coordinamos.','ph3.b1':'Entrega con documentación completa','ph3.b2':'Incorporación de gestora turística','ph3.b3':'Primer ingreso en menos de 90 días','ph3.b4':'Gestión delegada al 20% del bruto',
+  's6.cta':'Hablar con el equipo',
+  's7.kicker':'El caso de inversión','s7.title':'Por qué Indonesia. Por qué Balian. Por qué ahora.',
+  'inv1.t':'Una zona emergente','inv1.b':'Balian Hills está a 15 minutos al oeste de Canggu — la zona de mayor crecimiento en Bali. Donde Canggu está saturado, Balian todavía tiene horizonte. Los precios del suelo suben a medida que la infraestructura avanza.',
+  'inv2.t':'Valor arquitectónico','inv2.b':'Las villas Lawang se construyen con estructura de acero y materiales tropicales de origen local — diseñadas para la durabilidad, la ventilación cruzada y el estilo de vida interior-exterior que exige alquileres premium.',
+  'inv3.t':'Propiedad real — no leasehold','inv3.b':'La mayoría de propiedades en Bali se venden en leasehold (30+15 años). Lawang opera con títulos freehold HGB bajo tu propia empresa PT PMA. Tú eres dueño del terreno. No un arrendamiento — el activo real.',
+  'inv4.t':'Renta y estilo de vida','inv4.b':'Las llegadas turísticas a Bali alcanzaron niveles récord en 2024, con escasez estructural de alojamientos de diseño. Históricamente, las villas bien gestionadas en el corredor de la costa oeste han alcanzado tasas de ocupación superiores al 80% en temporada alta.',
+  'inv.disc':'Todas las cifras de rentabilidad son históricas e indicativas. El rendimiento pasado no garantiza resultados futuros. Esta página no constituye una oferta financiera.',
+  's8.kicker':'Cómo funciona','s8.title':'Estructura sencilla. Sin sorpresas.',
+  'ps1.t':'Depósito de reserva','ps1.d':'Bloquea tu parcela mientras realizas la due diligence. Reembolsable según condiciones.','ps1.a':'Importe — consultar al equipo',
+  'ps2.t':'Firma del contrato','ps2.d':'Pago principal en el momento de la firma y comienzo del proceso de título HGB.','ps2.a':'% del total — consultar al equipo',
+  'ps3.t':'Inicio de la construcción','ps3.d':'Tramo vinculado al hito de obra. Verificado antes de que se deba el pago.','ps3.a':'% del total — consultar al equipo',
+  'ps4.t':'Entrega de llaves','ps4.d':'Pago final en la entrega con documentación completa: título HGB, certificado PT PMA, acta de entrega.','ps4.a':'% del total — consultar al equipo',
+  'ps5.t':'Constitución PT PMA','ps5.d':'Tu empresa indonesia. Gestión completa incluida en el proceso.','ps5.a':'~',
+  'pa.title':'Empieza con una conversación','pa.note':'La estructura de pago exacta se confirma en la primera llamada con nuestro equipo. Te acompañamos en cada paso.','pa.note2':'Opciones de financiación para inversores cualificados disponibles bajo petición.','pa.cta':'Obtener detalles de inversión',
+  's9.kicker':'Preguntas frecuentes','s9.title':'Lo que más nos preguntan.',
+  'fq1.q':"¿Qué significa 'Signature'?",'fq1.a':"Signature es la línea de producto turnkey completa de Lawang. Recibes una villa terminada — con permisos, construida y lista para vivir o alquilar — junto con la estructura legal (PT PMA + título freehold HGB).",
+  'fq2.q':'¿Es para vivir o para invertir?','fq2.a':'Ambas. Cada villa Signature está diseñada tanto para el uso personal de calidad como para la rentabilidad de alquiler. Muchos propietarios dividen su tiempo — estando varias semanas al año y alquilando el resto.',
+  'fq3.q':'¿Dónde está exactamente?','fq3.a':'Balian Hills, en la costa oeste de Bali — a 15 minutos de Canggu, 2 minutos de Amazona Jungle Resort y 6 minutos del colegio inglés. La zona combina la calma de la selva con el acceso al corredor social más dinámico de Bali.',
+  'fq4.q':'¿Qué tipo de propiedad obtengo?','fq4.a':'Título freehold HGB, en manos de tu propia empresa PT PMA (sociedad limitada indonesia). Es la forma más sólida de propiedad legal disponible para inversores extranjeros en Indonesia — no un arrendamiento de 30 años, sino un título registrado en una empresa que tú controlas.',
+  'fq5.q':'¿Puedo comprar siendo extranjero?','fq5.a':'Sí. Los extranjeros no pueden figurar como personas físicas en el registro de la propiedad en Indonesia, pero pueden ser propietarios mediante una PT PMA que controlan al 100%. Lawang coordina la constitución completa: registro, documentación legal y soporte de cumplimiento continuo.',
+  'fq6.q':'¿Cómo funciona el proceso de compra?','fq6.a':'1. Llamada inicial. 2. Depósito de reserva. 3. PT PMA + contrato. 4. Construcción con actualizaciones mensuales. 5. Entrega con documentación + incorporación de gestora. Primer ingreso de alquiler típicamente en menos de 90 días.',
+  'fq7.q':'¿Qué rentabilidad puedo esperar?','fq7.a':'No ofrecemos cifras de rentabilidad garantizadas. Históricamente, las villas de diseño bien gestionadas en el corredor de la costa oeste han alcanzado ocupaciones del 75–85% en temporada alta. Las proyecciones específicas se comparten en la llamada de inversión — todas son estimaciones, no garantías.',
+  's10.kicker':'Trayectoria','s10.title':'Más de 50 casas entregadas. Este es el siguiente paso.',
+  's10.body':'No vendemos desde España con renders. Lawang lleva operando sobre el terreno en Bali desde el primer día — adquiriendo terrenos con capital propio, construyendo con nuestro propio equipo y entregando casas terminadas con título freehold verificado.',
+  'tr1':'Villas construidas y entregadas','tr2':'Hectáreas de terreno','tr3':'Regiones activas','tr4.n':'Balian + Sumba','tr4':'Bali y la Isla de Sumba',
+  'testi.ph':'Testimonios de clientes — próximamente. Contáctanos para hablar directamente con compradores anteriores.',
+  's11.h':'La puerta está abierta.<br><em>Por ahora.</em>',
+  's11.sub':'Reserva tu parcela y bloquea el precio actual. El equipo te acompaña en cada paso — desde la primera llamada hasta el primer ingreso de alquiler.',
+  's11.b1':'Freehold HGB — propiedad real, no leasehold','s11.b2':'+50 villas entregadas — no son renders','s11.b3':'PT PMA incluida — tu empresa indonesia en una semana','s11.b4':'Alquiler turístico coordinado desde el primer día',
+  's11.cta1':'Hablar con el equipo','s11.cta2':'Escribirnos por WhatsApp',
+  'ft.tag':'Tropical Properties · Balian Hills, Bali y la Isla de Sumba, Indonesia.','ft.project':'Proyecto','ft.regions':'Regiones','ft.back':'← Volver a Lawang Estate',
+  'ft.legal':'© 2026 Lawang Tropical Properties. Información orientativa — no constituye oferta financiera. Cifras de rentabilidad son estimaciones históricas.'
+},
+id: {
+  'nav.overview':'Ikhtisar','nav.typo':'Tipologi','nav.process':'Proses','nav.invest':'Investasi','nav.faq':'FAQ',
+  'hero.label':'VILA BALI UNTUK DISEWA',
+  'hero.tagline':'Ketenangan alam, kenyamanan total, dan koneksi langsung ke area paling dinamis di Bali.',
+  'hero.desc':'VILA TEPI SUNGAI PREMIUM tersembunyi di hutan tropis Bali — di salah satu kawasan hunian paling istimewa di pulau ini.',
+  'hero.d1':'2 menit dari Amazona Jungle Resort','hero.d2':'6 menit dari Best Sun School','hero.d3':'15 menit dari Pantai Nyanyi','hero.d4':'15 menit dari Canggu',
+  'hero.cta':'Dapatkan Detail Investasi','hero.scroll':'Gulir',
+  's2.kicker':'Proyek','s2.title':'Vila Anda, Dikelola Penuh<br><em>dari Visi hingga Penyerahan</em>',
+  's2.p1':'Di pulau Bali, antara hutan dan sawah, Riverfront hadir sebagai enklave privasi dan desain yang langka.',
+  's2.p2':'Rumah tepi sungai eksklusif di Kaba-Kaba, dikelilingi ketenangan, cahaya, dan suara air yang mengalir. Vila yang dirancang melalui cahaya, keseimbangan, dan perspektif alam.',
+  's2.p3':'Didukung oleh tim berdedikasi yang menangani izin, konstruksi, interior, dan panduan pasca-penyerahan.',
+  's2.d1':'Pemandangan sungai dan hutan dari setiap kamar','s2.d2':'Kepemilikan freehold nyata via HGB + PT PMA',
+  's2.d3':'Rangka baja. Pengiriman terjamin 6–9 bulan','s2.d4':'Manajemen sewa dikoordinasi sejak hari pertama',
+  's3.kicker':'Sekilas','s3.title':'Fakta utama, jelas dan ringkas.',
+  'g.tenure':'Jenis kepemilikan','g.tenure.sub':'Dukungan hukum penuh termasuk','g.build':'Konstruksi','g.build.sub':'Ketahanan premium · desain tropis',
+  'g.delivery':'Pengiriman','g.delivery.v':'6–9 bulan','g.delivery.sub':'Dari penandatanganan kontrak',
+  'g.ptpma':'PT PMA termasuk','g.ptpma.sub':'Manajemen penuh, ~1 minggu',
+  'g.location':'Lokasi','g.location.v':'Balian Hills, Bali','g.location.sub':'Pantai barat · 15 mnt dari Canggu',
+  'g.rental':'Manajemen sewa','g.rental.v':'Terkoordinasi','g.rental.sub':'Manajer properti spesialis',
+  'g.delivered':'Vila yang diserahkan','g.delivered.sub':'Rekam jejak terkonfirmasi',
+  'g.land':'Portofolio lahan','g.land.sub':'Balian Hills + Sumba',
+  'g.price':'Harga masuk','g.price.pend':'Hubungi tim kami',
+  'g.plot':'Luas lahan','g.plot.pend':'~200 m² — perlu dikonfirmasi',
+  'g.deposit':'Deposit reservasi','g.deposit.pend':'Hubungi tim kami',
+  'g.status':'Status saat ini','g.status.pend':'Tersedia — unit perlu dikonfirmasi',
+  's4.kicker':'Tipologi vila','s4.title':'Temukan model Anda.',
+  's4.sub':'Tiga tipologi — masing-masing dirancang menghadap sungai, hutan, dan cahaya Bali.',
+  't1.label':'01 — Signature S','t1.name':'Vila S','t1.sub':'Titik masuk paling terjangkau ke kepemilikan freehold Lawang. Kompak, efisien, dan menghadap sungai.','t1.beds':'1 kamar · 1 kamar mandi',
+  't2.label':'02 — Signature M','t2.name':'Vila M','t2.sub':'Keseimbangan antara imbal hasil investasi dan retreat pribadi. Dua kamar tidur, kolam renang pribadi, pemandangan sungai.','t2.beds':'2 kamar · 2 kamar mandi',
+  't3.label':'03 — Signature L','t3.name':'Vila L','t3.sub':'Ruang maksimal, imbal hasil maksimal. Ideal untuk keluarga atau investor yang mencari tingkat hunian tertinggi.','t3.beds':'2–3 kamar · 2 kamar mandi',
+  't.entry':'Model dasar','t.mid':'Model menengah','t.prem':'Model premium',
+  't.pool.opt':'Kolam renang opsional','t.pool.inc':'Kolam renang termasuk','t.price.note':'Harga atas permintaan — hubungi tim','t.cta':'Minta detail',
+  's5.kicker':'Ruang-ruang','s5.title':'Dirancang melalui cahaya, keseimbangan, dan alam.',
+  'sp1.name':'Paviliun Utama','sp1.sub':'Privasi dengan kehangatan','sp1.desc':'Ruang terbuka yang bernapas. Layar kayu jati menyaring cahaya sore hari sementara suara sungai memenuhi ruangan.',
+  'sp2.name':'Kamar Tidur Utama','sp2.sub':'Terbangun dengan suara air','sp2.desc':'Setiap pagi dimulai dengan sungai. Kamar tidur terbuka penuh ke taman, mengalirkan angin sepoi-sepoi dan cahaya fajar.',
+  'sp3.name':'Kolam & Teras','sp3.sub':'Di mana hutan bertemu langit','sp3.desc':'Kolam renang memperpanjang ruang hidup ke luar. Dikelilingi tanaman tropis dan terbuka ke langit.',
+  'sp4.name':'Kamar Mandi Terbuka','sp4.sub':'Kesederhanaan desain modern','sp4.desc':'Batu, air, dan langit. Kamar mandi outdoor membawa hubungan Bali dengan alam ke dalam ritual harian.',
+  's5.am.kicker':'Termasuk standar',
+  'am.1':'Ventilasi alami + kontrol surya','am.2':'Finishing perawatan rendah','am.3':'Material lokal','am.4':'Struktur rangka baja','am.5':'Taman tropis pribadi','am.6':'Pemandangan sungai atau hutan','am.7':'Paket izin lengkap','am.8':'Pembentukan PT PMA',
+  's6.kicker':'Dari panggilan pertama hingga kunci','s6.title':'Kami menangani setiap langkah — Anda menikmati hasilnya.',
+  'ph1.t':'Kami membeli, melegalkan & membangun','ph1.s':'Pekerjaan berat sudah selesai saat Anda tiba.','ph1.b1':'Akuisisi lahan dengan modal sendiri','ph1.b2':'Sertifikat judul individual per kavling','ph1.b3':'Konstruksi rangka baja','ph1.b4':'Laporan kemajuan bulanan dengan foto',
+  'ph2.t':'PT PMA dan Freehold Anda — kurang dari seminggu','ph2.s':'Struktur kepemilikan hukum terkuat di Asia Tenggara.','ph2.b1':'Pembentukan PT PMA (~€1.000)','ph2.b2':'Penandatanganan kontrak dan dokumentasi','ph2.b3':'Pendaftaran judul HGB','ph2.b4':'Koordinasi dengan penasihat pajak Anda',
+  'ph3.t':'Serah terima — dan sewa pertama dalam 90 hari','ph3.s':'Anda menerima. Kami mengkoordinasikan.','ph3.b1':'Serah terima dengan dokumentasi lengkap','ph3.b2':'Orientasi manajer sewa','ph3.b3':'Pendapatan pertama dalam <90 hari','ph3.b4':'Manajemen yang didelegasikan 20% dari kotor',
+  's6.cta':'Bicara dengan tim',
+  's7.kicker':'Kasus investasi','s7.title':'Mengapa Indonesia. Mengapa Balian. Mengapa sekarang.',
+  'inv1.t':'Kawasan berkembang','inv1.b':'Balian Hills berada 15 menit barat Canggu — zona dengan pertumbuhan tercepat di Bali. Sementara Canggu sudah jenuh, Balian masih punya cakrawala. Harga tanah naik seiring infrastruktur berkembang.',
+  'inv2.t':'Nilai arsitektural','inv2.b':'Vila Lawang dibangun dengan rangka baja dan material tropis lokal — dirancang untuk ketahanan, ventilasi silang, dan gaya hidup indoor-outdoor yang mendorong tarif sewa premium.',
+  'inv3.t':'Kepemilikan nyata — bukan leasehold','inv3.b':'Sebagian besar properti Bali dijual dengan leasehold (30+15 tahun). Lawang beroperasi melalui judul freehold HGB yang dipegang oleh PT PMA Anda sendiri. Anda memiliki tanahnya. Bukan sewa — aset sesungguhnya.',
+  'inv4.t':'Imbal hasil dan gaya hidup','inv4.b':'Kedatangan wisatawan ke Bali mencapai rekor pada 2024, dengan kekurangan struktural akomodasi berdesain. Secara historis, vila desain berkualitas di koridor pantai barat mencapai tingkat hunian di atas 80% pada musim tinggi.',
+  'inv.disc':'Semua angka imbal hasil bersifat historis dan indikatif. Kinerja masa lalu tidak menjamin hasil masa depan. Halaman ini bukan penawaran keuangan.',
+  's8.kicker':'Cara kerjanya','s8.title':'Struktur sederhana. Tanpa kejutan.',
+  'ps1.t':'Deposit reservasi','ps1.d':'Mengunci kavling Anda saat Anda melakukan uji tuntas. Dapat dikembalikan sesuai kondisi.','ps1.a':'Jumlah — hubungi tim',
+  'ps2.t':'Penandatanganan kontrak','ps2.d':'Pembayaran utama saat penandatanganan kontrak dan proses judul HGB dimulai.','ps2.a':'% dari total — hubungi tim',
+  'ps3.t':'Mulai konstruksi','ps3.d':'Tahap terkait tonggak konstruksi di lokasi. Diverifikasi sebelum pembayaran jatuh tempo.','ps3.a':'% dari total — hubungi tim',
+  'ps4.t':'Serah terima','ps4.d':'Pembayaran akhir pada penyerahan dengan dokumentasi lengkap: judul HGB, sertifikat PT PMA, berita acara serah terima.','ps4.a':'% dari total — hubungi tim',
+  'ps5.t':'Pembentukan PT PMA','ps5.d':'Perusahaan Indonesia Anda. Manajemen dan pengaturan hukum lengkap termasuk dalam proses.','ps5.a':'~',
+  'pa.title':'Mulai dengan percakapan','pa.note':'Struktur pembayaran yang tepat dikonfirmasi selama panggilan pertama dengan tim kami.','pa.note2':'Opsi pembiayaan untuk investor berkualifikasi tersedia atas permintaan.','pa.cta':'Dapatkan detail investasi',
+  's9.kicker':'Pertanyaan umum','s9.title':'Yang paling sering ditanyakan.',
+  'fq1.q':"Apa itu 'Signature'?",'fq1.a':"Signature adalah lini produk turnkey lengkap Lawang. Anda menerima vila yang sudah selesai — berizin, terbangun, dan siap ditinggali atau disewakan — beserta struktur hukum (PT PMA + judul freehold HGB).",
+  'fq2.q':'Untuk ditinggali atau berinvestasi?','fq2.a':'Keduanya. Setiap vila Signature dirancang untuk hunian pribadi premium dan imbal hasil sewa yang kompetitif. Banyak pemilik membagi waktu mereka — tinggal beberapa minggu per tahun dan menyewakan sisanya.',
+  'fq3.q':'Di mana tepatnya?','fq3.a':'Balian Hills, di pantai barat Bali — 15 menit dari Canggu, 2 menit dari Amazona Jungle Resort. Area ini memadukan ketenangan hutan dengan akses ke koridor sosial paling dinamis di Bali.',
+  'fq4.q':'Jenis kepemilikan apa yang saya dapatkan?','fq4.a':'Judul freehold HGB, dipegang melalui PT PMA Anda sendiri. Ini adalah bentuk kepemilikan hukum terkuat yang tersedia untuk investor asing di Indonesia — bukan sewa 30 tahun, tapi judul terdaftar di perusahaan yang Anda kendalikan.',
+  'fq5.q':'Bisakah WNA membeli?','fq5.a':'Ya. WNA tidak dapat mendaftarkan properti atas nama pribadi di Indonesia, tetapi dapat memilikinya secara legal melalui PT PMA yang mereka kendalikan 100%. Lawang mengkoordinasikan pembentukan penuh: pendaftaran, dokumentasi hukum, dan dukungan kepatuhan berkelanjutan.',
+  'fq6.q':'Bagaimana proses pembeliannya?','fq6.a':'1. Panggilan awal. 2. Deposit reservasi. 3. PT PMA + kontrak. 4. Konstruksi dengan pembaruan bulanan. 5. Serah terima dengan dokumentasi + pengenalan manajer sewa. Pendapatan sewa pertama biasanya dalam 90 hari.',
+  'fq7.q':'Berapa imbal hasil yang bisa diharapkan?','fq7.a':'Kami tidak memberikan angka imbal hasil yang dijamin. Secara historis, vila desain berkualitas di koridor pantai barat mencapai hunian 75–85% di musim tinggi. Proyeksi spesifik dibagikan selama panggilan investor — semua angka adalah estimasi, bukan jaminan.',
+  's10.kicker':'Rekam jejak','s10.title':'Lebih dari 50 rumah diserahkan. Ini adalah langkah berikutnya.',
+  's10.body':'Kami tidak menjual dari Spanyol dengan render. Lawang telah beroperasi di lapangan di Bali sejak awal — mengakuisisi lahan dengan modal sendiri, membangun dengan tim konstruksi sendiri, dan menyerahkan rumah selesai dengan judul freehold terverifikasi.',
+  'tr1':'Vila dibangun & diserahkan','tr2':'Hektar lahan','tr3':'Wilayah aktif','tr4.n':'Balian + Sumba','tr4':'Bali & Pulau Sumba',
+  'testi.ph':'Testimoni klien — segera hadir. Hubungi kami untuk berbicara langsung dengan pembeli sebelumnya.',
+  's11.h':'Pintunya terbuka.<br><em>Untuk saat ini.</em>',
+  's11.sub':'Reservasi kavling Anda dan kunci harga hari ini. Tim akan memandu Anda di setiap langkah.',
+  's11.b1':'Freehold HGB — kepemilikan nyata, bukan leasehold','s11.b2':'+50 vila diserahkan — bukan render','s11.b3':'PT PMA termasuk — perusahaan Indonesia Anda dalam seminggu','s11.b4':'Manajemen sewa dikoordinasi sejak hari pertama',
+  's11.cta1':'Bicara dengan tim','s11.cta2':'WhatsApp kami',
+  'ft.tag':'Tropical Properties · Balian Hills, Bali & Pulau Sumba, Indonesia.','ft.project':'Proyek','ft.regions':'Wilayah','ft.back':'← Kembali ke Lawang Estate',
+  'ft.legal':'© 2026 Lawang Tropical Properties. Informasi indikatif — bukan penawaran keuangan. Angka imbal hasil adalah estimasi historis.'
+}
+};
+
+/* ── CURRENCY ────────────────────────────────────── */
+const RATES = { EUR:1, USD:1.09, AUD:1.66, GBP:0.86, IDR:17800 };
+const SYMS  = { EUR:'€', USD:'$', AUD:'A$', GBP:'£', IDR:'Rp ' };
+let curLang = 'en', curCur = 'EUR';
+
+function fmtPrice(eur, c) {
+  const v = Math.round(eur * RATES[c]);
+  return SYMS[c] + (c === 'IDR'
+    ? v.toLocaleString('en-US').replace(/,/g,'.')
+    : v.toLocaleString('en-US'));
+}
+
+function applyLang(l) {
+  curLang = l;
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const k = el.dataset.t;
+    if (T[l][k] !== undefined) el.innerHTML = T[l][k];
+  });
+  document.querySelectorAll('#lang-seg button').forEach((b,i) => {
+    b.classList.toggle('on', ['en','es','id'][i] === l);
+  });
+}
+
+function setLang(l) { applyLang(l); }
+
+function applyCur(c) {
+  curCur = c;
+  document.querySelectorAll('[data-price]').forEach(el => {
+    el.textContent = fmtPrice(Number(el.dataset.price), c);
+  });
+  document.querySelectorAll('#cur-seg button').forEach((b,i) => {
+    b.classList.toggle('on', ['EUR','USD','AUD','GBP','IDR'][i] === c);
+  });
+}
+
+function setCur(c) { applyCur(c); }
+
+/* ── NAV ─────────────────────────────────────────── */
+const nav   = document.getElementById('nav');
+const hero  = document.getElementById('hero');
+window.addEventListener('scroll', () => {
+  const past = window.scrollY > (hero ? hero.offsetHeight - 80 : 200);
+  nav.classList.toggle('solid', window.scrollY > 50);
+  nav.classList.toggle('dark', !past);
+}, { passive: true });
+
+/* ── FAQ ACCORDION ───────────────────────────────── */
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.closest('.faq-item');
+    const open = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+    if (!open) item.classList.add('open');
+  });
+});
+
+/* ── SCROLL REVEAL ───────────────────────────────── */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+}, { threshold: 0.08, rootMargin: '0px 0px -5% 0px' });
+document.querySelectorAll('.reveal, .reveal-fade, .reveal-left').forEach(el => obs.observe(el));
+
+/* ── INIT ─────────────────────────────────────────── */
+applyLang('en');
+applyCur('EUR');
+</script>
+</body>
+</html>

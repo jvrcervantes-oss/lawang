@@ -1,0 +1,9 @@
+# Deny direct access to config and password files
+<Files ".passhash">
+  Order allow,deny
+  Deny from all
+</Files>
+<Files "config.php">
+  Order allow,deny
+  Deny from all
+</Files>

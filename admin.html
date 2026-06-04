@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lawang · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --tg:#485B37;--dl:#104C4F;--be:#42210B;--sc:#8F9B7A;--va:#2E3437;--ss:#BEB3A5;--rl:#F5F0E6;
+  --danger:#9b2c2c;--warn-bg:#fffbeb;--warn:#b45309;--ok-bg:#f0fdf4;--ok:#166534;
+  --r:6px;--sh:0 1px 6px rgba(0,0,0,.1);--sh-lg:0 4px 24px rgba(0,0,0,.14);--hh:60px;
+}
+body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var(--va);line-height:1.5}
+.hidden{display:none!important}
+.muted{color:var(--ss);font-size:12px}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--dl);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-box{width:320px;text-align:center}
+.login-mark{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:400;color:var(--rl);letter-spacing:.22em;margin-bottom:4px}
+.login-sub{font-size:11px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--sc);margin-bottom:36px}
+.login-box input{width:100%;padding:14px 16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);color:#fff;font-size:15px;font-family:'Jost',sans-serif;margin-bottom:12px;outline:none;transition:border-color .15s}
+.login-box input:focus{border-color:var(--sc)}
+.login-box input::placeholder{color:rgba(255,255,255,.35)}
+.login-btn{width:100%;padding:14px;background:var(--sc);color:var(--dl);border:none;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.login-btn:hover{background:#a3af8e}
+.login-error{margin-top:14px;font-size:13px;color:#f9a8a8}
+
+/* APP */
+#admin-app{display:flex;flex-direction:column;min-height:100vh}
+.app-header{position:sticky;top:0;z-index:50;height:var(--hh);background:#fff;border-bottom:1px solid #e8e2d8;display:flex;align-items:center;padding:0 24px;gap:20px}
+.app-brand{font-family:'Cormorant Garamond',serif;font-size:22px;letter-spacing:.18em;color:var(--dl);flex-shrink:0}
+.app-tabs{display:flex;gap:2px;flex:1}
+.tab{padding:8px 16px;border:none;background:transparent;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;font-weight:500;color:var(--ss);cursor:pointer;transition:background .15s,color .15s}
+.tab:hover{background:var(--rl);color:var(--va)}
+.tab.active{background:var(--rl);color:var(--tg);font-weight:600}
+.app-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+#btn-publish{padding:8px 18px;background:var(--tg);color:#fff;border:none;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s}
+#btn-publish:disabled{opacity:.35;cursor:default}
+#btn-publish:not(:disabled):hover{background:#3a4a2c}
+.btn-logout{padding:8px 14px;background:transparent;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;color:var(--ss);cursor:pointer}
+.btn-logout:hover{border-color:var(--ss);color:var(--va)}
+#dirty-banner{background:var(--warn-bg);border-bottom:1px solid #fde68a;padding:9px 24px;font-size:13px;color:var(--warn);text-align:center}
+
+/* PANELS */
+.panel{display:none;padding:32px 32px 80px;max-width:980px;margin:0 auto;width:100%}
+.panel.active{display:block}
+.panel-bar{display:flex;align-items:baseline;gap:14px;margin-bottom:24px;flex-wrap:wrap}
+.panel-bar h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;color:var(--dl)}
+.panel-bar .muted{font-size:13px}
+.panel-bar .btn-primary{margin-left:auto}
+.panel-foot{margin-top:24px;display:flex;justify-content:flex-end}
+
+/* BUTTONS */
+.btn-primary{padding:9px 20px;background:var(--tg);color:#fff;border:none;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-primary:hover{background:#3a4a2c}
+.btn-secondary{padding:8px 16px;background:var(--rl);color:var(--tg);border:1px solid var(--sc);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;font-weight:500;cursor:pointer}
+.btn-secondary:hover{background:#e8e4d8}
+.btn-ghost{padding:8px 16px;background:transparent;color:var(--va);border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;cursor:pointer}
+.btn-ghost:hover{border-color:var(--ss)}
+.btn-danger{padding:7px 12px;background:transparent;color:var(--danger);border:1px solid #f5c6c6;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:12px;cursor:pointer}
+.btn-danger:hover{background:#fff5f5}
+
+/* PROPERTIES */
+.prop-table{width:100%;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--sh);border:1px solid #e8e2d8}
+.prop-table-head{display:grid;grid-template-columns:1fr 90px 90px 80px 60px 110px;padding:10px 16px;background:#faf8f4;border-bottom:1px solid #e8e2d8;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ss);gap:12px}
+.prop-row{display:grid;grid-template-columns:1fr 90px 90px 80px 60px 110px;padding:14px 16px;border-bottom:1px solid #f5f0e8;align-items:center;gap:12px;transition:background .12s}
+.prop-row:last-child{border-bottom:none}
+.prop-row:hover{background:#faf8f4}
+.prop-name{font-weight:600;color:var(--va);font-size:14px}
+.prop-region{font-size:11px;color:var(--ss);margin-top:1px}
+.line-badge{display:inline-block;padding:2px 8px;border-radius:30px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.line-signature{background:rgba(16,76,79,.1);color:var(--dl)}
+.line-land{background:rgba(72,91,55,.1);color:var(--tg)}
+.line-villa{background:rgba(143,155,122,.18);color:#4a5a39}
+.line-resorts{background:rgba(66,33,11,.1);color:var(--be)}
+.prop-price{font-weight:600;font-size:13px}
+.prop-star{color:#d4a853;font-size:15px;text-align:center}
+.prop-actions{display:flex;gap:6px;justify-content:flex-end}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.settings-card{background:#fff;border-radius:10px;padding:24px;border:1px solid #e8e2d8;box-shadow:var(--sh)}
+.settings-card h3{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--dl);margin-bottom:18px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ss);margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:14px;color:var(--va);background:#fff;outline:none;transition:border-color .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--tg)}
+.form-group textarea{resize:vertical}
+.form-group .hint{font-size:11px;color:var(--ss);font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px}
+.cb-group{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.cb-group input[type="checkbox"]{width:16px;height:16px;accent-color:var(--tg);flex-shrink:0;cursor:pointer}
+.cb-group label{font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--va);cursor:pointer;margin-bottom:0}
+
+/* DOWNLOADS */
+.dl-section{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;border:1px solid #e8e2d8;box-shadow:var(--sh)}
+.dl-section h3{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--dl);margin-bottom:14px}
+.dl-header{display:grid;grid-template-columns:2fr 0.6fr 0.8fr 3fr 28px;gap:8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ss);padding:0 2px;margin-bottom:6px}
+.dl-item{display:grid;grid-template-columns:2fr 0.6fr 0.8fr 3fr 28px;gap:8px;align-items:center;margin-bottom:6px}
+.dl-item input{padding:7px 10px;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;color:var(--va);background:#fff;outline:none}
+.dl-item input:focus{border-color:var(--tg)}
+.dl-remove{background:transparent;border:none;color:var(--ss);font-size:16px;cursor:pointer;padding:4px;border-radius:var(--r);line-height:1}
+.dl-remove:hover{color:var(--danger);background:#fff5f5}
+
+/* IMAGES */
+.upload-zone{background:#fff;border:2px dashed #d5cfc3;border-radius:10px;padding:40px;text-align:center;margin-bottom:24px;transition:border-color .2s,background .2s;cursor:pointer}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--tg);background:rgba(72,91,55,.03)}
+.upload-zone p{font-size:14px;color:var(--ss);margin-bottom:4px}
+.upload-zone button{background:none;border:none;color:var(--tg);font-weight:600;font-size:14px;cursor:pointer;font-family:'Jost',sans-serif;text-decoration:underline}
+.images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.img-card{background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e8e2d8;box-shadow:var(--sh)}
+.img-card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.img-card-foot{padding:7px 8px;display:flex;align-items:center;gap:6px}
+.img-card-foot .img-fname{font-size:10px;color:var(--ss);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.img-copy-btn{background:none;border:1px solid #e0dbd0;border-radius:4px;padding:3px 7px;font-size:10px;font-family:'Jost',sans-serif;color:var(--tg);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.img-copy-btn:hover{background:var(--rl)}
+
+/* SLIDE-OVER */
+.slide-overlay{position:fixed;inset:0;z-index:200;display:flex;justify-content:flex-end}
+.slide-overlay::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.slide-panel{position:relative;width:min(600px,100vw);background:#fff;display:flex;flex-direction:column;height:100vh;box-shadow:-4px 0 30px rgba(0,0,0,.15)}
+.slide-header{padding:20px 24px;border-bottom:1px solid #e8e2d8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.slide-header h3{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--dl)}
+.slide-close{background:transparent;border:none;font-size:20px;color:var(--ss);cursor:pointer;padding:4px 8px;border-radius:var(--r)}
+.slide-close:hover{background:var(--rl);color:var(--va)}
+.slide-body{flex:1;overflow-y:auto;padding:24px}
+.slide-footer{padding:16px 24px;border-top:1px solid #e8e2d8;display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;background:#fff}
+.form-section{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid #f0ece4}
+.form-section:last-child{border-bottom:none;margin-bottom:0}
+.form-section h4{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--sc);margin-bottom:16px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.img-slot{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:3px 4px;border-radius:var(--r);border:2px solid transparent;transition:border-color .15s}
+.img-slot.drag-over{border-color:var(--tg);background:#f0f4eb}
+.drag-handle{cursor:grab;color:#ccc;font-size:16px;flex-shrink:0;padding:0 2px;user-select:none;line-height:1}
+.drag-handle:active{cursor:grabbing}
+.img-slot-thumb-wrap{position:relative;width:48px;height:36px;flex-shrink:0;border-radius:4px;overflow:hidden;border:1px solid #e0dbd0;background:#f5f0e6}
+.img-slot-thumb{width:100%;height:100%;object-fit:cover;display:block}
+.img-slot-spinner{position:absolute;inset:0;background:rgba(245,240,230,.85);display:flex;align-items:center;justify-content:center}
+.img-slot-spinner::after{content:'';width:14px;height:14px;border:2px solid #ddd;border-top-color:var(--tg);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.img-slot input{flex:1;padding:7px 10px;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:12px;color:var(--va);outline:none}
+.img-slot input:focus{border-color:var(--tg)}
+.img-slot-upload{padding:6px 9px;background:var(--rl);border:1px solid #e0dbd0;border-radius:var(--r);font-size:13px;font-family:'Jost',sans-serif;color:var(--va);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.img-slot-upload:hover{border-color:var(--sc)}
+.img-slot-upload:disabled{opacity:.4;cursor:default}
+.img-slot-pick{padding:6px 10px;background:var(--rl);border:1px solid #e0dbd0;border-radius:var(--r);font-size:11px;font-family:'Jost',sans-serif;color:var(--va);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.img-slot-pick:hover{border-color:var(--sc)}
+.img-slot-del{background:transparent;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:4px;border-radius:var(--r);line-height:1;flex-shrink:0}
+.img-slot-del:hover{color:var(--danger);background:#fff5f5}
+
+/* PICKER MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:680px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-lg)}
+.modal-head{padding:16px 20px;border-bottom:1px solid #e8e2d8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-head h3{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--dl)}
+.modal-head button{background:transparent;border:none;font-size:18px;color:var(--ss);cursor:pointer;padding:4px 8px;border-radius:var(--r)}
+.modal-head button:hover{background:var(--rl)}
+.modal-body{flex:1;overflow-y:auto;padding:16px}
+.picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.picker-thumb{cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid transparent;transition:border-color .15s}
+.picker-thumb:hover{border-color:var(--tg)}
+.picker-thumb img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:500;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;box-shadow:var(--sh-lg);transition:opacity .3s}
+.toast.ok{background:var(--ok-bg);color:var(--ok);border:1px solid #bbf7d0}
+.toast.err{background:#fff5f5;color:var(--danger);border:1px solid #fecaca}
+.toast.info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-mark">LAWANG</div>
+    <p class="login-sub">Estate · Admin</p>
+    <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Enter</button>
+    <p id="login-error" class="login-error hidden"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="admin-app" class="hidden">
+
+  <header class="app-header">
+    <span class="app-brand">LAWANG</span>
+    <nav class="app-tabs">
+      <button class="tab active" data-panel="properties" onclick="showPanel('properties')">Properties</button>
+      <button class="tab" data-panel="settings"   onclick="showPanel('settings')">Settings</button>
+      <button class="tab" data-panel="images"     onclick="showPanel('images')">Images</button>
+    </nav>
+    <div class="app-right">
+      <button id="btn-publish" disabled onclick="publishData()">Publish changes</button>
+      <button class="btn-logout" onclick="doLogout()">Log out</button>
+    </div>
+  </header>
+  <div id="dirty-banner" class="hidden" style="background:var(--warn-bg);border-bottom:1px solid #fde68a;padding:9px 24px;font-size:13px;color:var(--warn);text-align:center">
+    You have unsaved changes — click <strong>Publish changes</strong> to make them live on the website.
+  </div>
+
+  <!-- PROPERTIES -->
+  <section id="panel-properties" class="panel active">
+    <div class="panel-bar">
+      <h2>Properties</h2>
+      <button class="btn-primary" onclick="openPropertyForm(null)">+ Add property</button>
+    </div>
+    <div id="properties-list"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="panel-settings" class="panel">
+    <div class="panel-bar"><h2>Settings</h2></div>
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h3>Contact</h3>
+        <div class="form-group">
+          <label>WhatsApp <span class="hint">digits only, with country code</span></label>
+          <input type="text" id="s-whatsapp" placeholder="34600000000">
+        </div>
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" id="s-email" placeholder="hello@lawang.id">
+        </div>
+        <button class="btn-primary" onclick="saveSettings()">Save contact</button>
+      </div>
+      <div class="settings-card">
+        <h3>Admin password</h3>
+        <div class="form-group">
+          <label>New password <span class="hint">min. 8 characters</span></label>
+          <input type="password" id="s-newpass" placeholder="New password" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Confirm</label>
+          <input type="password" id="s-newpass2" placeholder="Repeat password" autocomplete="new-password">
+        </div>
+        <button class="btn-primary" onclick="changePassword()">Change password</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMAGES -->
+  <section id="panel-images" class="panel">
+    <div class="panel-bar">
+      <h2>Images</h2>
+      <p class="muted">Upload property photos. Copy the URL and paste it into the property image fields.</p>
+    </div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none"
+             onchange="handleFileSelect(this.files)">
+      <p>Drop images here or <button type="button" onclick="event.stopPropagation();document.getElementById('file-input').click()">click to browse</button></p>
+      <p class="muted" style="margin-top:4px">JPG, PNG or WebP · max 8 MB per file</p>
+    </div>
+    <div id="images-grid" class="images-grid"></div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+</div>
+
+<!-- PROPERTY SLIDE-OVER -->
+<div id="prop-overlay" class="slide-overlay hidden">
+  <div class="slide-panel">
+    <div class="slide-header">
+      <h3 id="slide-title">Add property</h3>
+      <button class="slide-close" onclick="closePropertyForm()">✕</button>
+    </div>
+    <div class="slide-body">
+      <form id="prop-form" onsubmit="return false">
+
+        <div class="form-section">
+          <h4>Identity</h4>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Product line</label>
+              <select id="f-line">
+                <option value="signature">Signature</option>
+                <option value="land">Land</option>
+                <option value="villa">Villa</option>
+                <option value="resorts">Resorts</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Region</label>
+              <select id="f-regionKey">
+                <option value="bali">Bali</option>
+                <option value="sumba">Sumba</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Full region label <span class="hint">e.g. "Balian Hills, Bali"</span></label>
+            <input type="text" id="f-region" placeholder="Balian Hills, Bali">
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Status</label>
+              <select id="f-status">
+                <option value="status.offplan">Off-plan</option>
+                <option value="status.ready">Ready</option>
+                <option value="status.land">Titled land</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Handover date</label>
+              <input type="text" id="f-handover" placeholder="Q4 2026">
+            </div>
+          </div>
+          <div class="cb-group">
+            <input type="checkbox" id="f-featured">
+            <label for="f-featured">Featured release <span class="muted">(highlighted at top of portfolio)</span></label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Pricing &amp; Tenure</h4>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Price (EUR)</label>
+              <input type="number" id="f-priceEUR" min="0" placeholder="285000">
+            </div>
+            <div class="form-group">
+              <label>Tenure</label>
+              <select id="f-tenure">
+                <option value="tenure.freehold">Freehold (Hak Milik)</option>
+                <option value="tenure.leasehold">Leasehold — 30 yrs</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Specifications</h4>
+          <div class="form-row-4">
+            <div class="form-group"><label>Beds</label><input type="number" id="f-beds" min="0" placeholder="3"></div>
+            <div class="form-group"><label>Baths</label><input type="number" id="f-baths" min="0" placeholder="3"></div>
+            <div class="form-group"><label>Built m²</label><input type="number" id="f-built" min="0" placeholder="240"></div>
+            <div class="form-group"><label>Land m²</label><input type="number" id="f-land" min="0" placeholder="600"></div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Style</label>
+              <input type="text" id="f-style" placeholder="Contemporary Balinese">
+            </div>
+            <div class="form-group">
+              <label>Nightly rate EUR <span class="hint">ROI calculator</span></label>
+              <input type="number" id="f-nightlyRate" min="0" placeholder="180">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Amenities</h4>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Pool <span class="hint">leave empty if none</span></label>
+              <input type="text" id="f-poolType" placeholder="Private Infinity Pool (14 m)">
+            </div>
+            <div class="form-group">
+              <label>Furnished</label>
+              <input type="text" id="f-furnished" placeholder="Fully furnished">
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="cb-group" style="margin-bottom:0;align-self:end;padding-bottom:14px">
+              <input type="checkbox" id="f-garage">
+              <label for="f-garage">Garage included</label>
+            </div>
+            <div class="form-group">
+              <label>Garage description</label>
+              <input type="text" id="f-garageDesc" placeholder="1 covered space">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Content — English</h4>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="f-title-en" placeholder="Ridge House">
+          </div>
+          <div class="form-group">
+            <label>Subtitle <span class="hint">one line, shown on cards</span></label>
+            <input type="text" id="f-sub-en" placeholder="A cantilevered three-bed...">
+          </div>
+          <div class="form-group">
+            <label>Description <span class="hint">2–3 sentences for the detail page</span></label>
+            <textarea id="f-desc-en" rows="4" placeholder="Ridge House reads the land..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Content — Spanish</h4>
+          <div class="form-group">
+            <label>Título</label>
+            <input type="text" id="f-title-es" placeholder="Casa Ridge">
+          </div>
+          <div class="form-group">
+            <label>Subtítulo</label>
+            <input type="text" id="f-sub-es" placeholder="Una vivienda de tres dormitorios...">
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea id="f-desc-es" rows="4" placeholder="Casa Ridge lee el terreno..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Up to 8 photos. Paste a URL directly or pick from uploaded images.</span></h4>
+          <div id="f-images-list"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button type="button" class="btn-secondary" onclick="addImageSlot('')">+ Add image</button>
+            <button type="button" class="btn-ghost" onclick="openImagePicker(null)">📁 Pick from uploaded images</button>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Downloads <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">PDFs shown on this property's detail page. Leave URL empty to show "Coming soon".</span></h4>
+          <div id="f-downloads-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addDownloadRow()">+ Add document</button>
+        </div>
+
+      </form>
+    </div>
+    <div class="slide-footer">
+      <button type="button" class="btn-ghost" onclick="closePropertyForm()">Cancel</button>
+      <button type="button" class="btn-primary" onclick="saveProperty()">Save property</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE PICKER MODAL -->
+<div id="img-picker" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Pick an image</h3>
+      <button onclick="closeImagePicker()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="picker-grid" class="picker-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ─── STATE ─────────────────────────────────────────────────── */
+var DATA       = null;
+var DIRTY      = false;
+var EDIT_ID    = null;
+var PICK_CB    = null;
+var IMGS_CACHE = [];
+var DRAG_SRC   = null;
+
+/* ─── INIT ──────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', async function() {
+  // Check if session is already active
+  try {
+    var r = await fetch('api/auth.php', { credentials: 'include' });
+    var d = await r.json();
+    if (d.ok) { showApp(); await loadData(); }
+  } catch(e) { /* no session, stay on login */ }
+
+  // Drag & drop on upload zone
+  var zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', function(e){
+    e.preventDefault(); zone.classList.remove('drag-over');
+    handleFileSelect(e.dataTransfer.files);
+  });
+});
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('admin-app').classList.remove('hidden');
+}
+
+/* ─── AUTH ──────────────────────────────────────────────────── */
+async function doLogin() {
+  var pass = document.getElementById('login-pass').value;
+  var err  = document.getElementById('login-error');
+  if (!pass) return;
+  try {
+    var r = await fetch('api/auth.php', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ password: pass })
+    });
+    var d = await r.json();
+    if (d.ok) { showApp(); err.classList.add('hidden'); await loadData(); }
+    else { err.textContent = 'Incorrect password.'; err.classList.remove('hidden'); }
+  } catch(e) {
+    err.textContent = 'Could not connect to server.';
+    err.classList.remove('hidden');
+  }
+}
+
+async function doLogout() {
+  await fetch('api/auth.php', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'logout' })
+  }).catch(function(){});
+  location.reload();
+}
+
+/* ─── DATA ──────────────────────────────────────────────────── */
+async function loadData() {
+  var r = await fetch('data.json?_=' + Date.now());
+  DATA = await r.json();
+  renderProperties();
+  renderSettings();
+}
+
+async function publishData() {
+  try {
+    var r = await fetch('api/save.php', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(DATA)
+    });
+    var d = await r.json();
+    if (d.ok) {
+      DIRTY = false;
+      document.getElementById('btn-publish').disabled = true;
+      document.getElementById('dirty-banner').classList.add('hidden');
+      toast('Changes published — website updated.', 'ok');
+    } else {
+      toast('Save failed: ' + (d.error || 'server error'), 'err');
+    }
+  } catch(e) { toast('Connection error. Try again.', 'err'); }
+}
+
+function markDirty() {
+  DIRTY = true;
+  document.getElementById('btn-publish').disabled = false;
+  document.getElementById('dirty-banner').classList.remove('hidden');
+}
+
+/* ─── NAVIGATION ────────────────────────────────────────────── */
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.classList.toggle('active', t.dataset.panel === name);
+  });
+  if (name === 'images') loadImages();
+}
+
+/* ─── TOAST ─────────────────────────────────────────────────── */
+var _tt = null;
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (type || 'info');
+  el.classList.remove('hidden');
+  if (_tt) clearTimeout(_tt);
+  _tt = setTimeout(function(){ el.classList.add('hidden'); }, 3500);
+}
+
+/* ─── PROPERTIES ────────────────────────────────────────────── */
+function fmtPrice(eur) {
+  if (!eur) return '—';
+  return eur >= 1000 ? '€' + Math.round(eur/1000) + 'k' : '€' + eur;
+}
+
+function renderProperties() {
+  var el = document.getElementById('properties-list');
+  if (!DATA.properties || !DATA.properties.length) {
+    el.innerHTML = '<p class="muted" style="padding:24px 0">No properties yet. Click "+ Add property" to get started.</p>';
+    return;
+  }
+  var rows = DATA.properties.map(function(p) {
+    var name = (p.title && p.title.en) || p.id;
+    return '<div class="prop-row">' +
+      '<div><div class="prop-name">' + esc(name) + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
+      '<div><span class="line-badge line-' + esc(p.line) + '">' + esc(p.line) + '</span></div>' +
+      '<div class="prop-price">' + fmtPrice(p.priceEUR) + '</div>' +
+      '<div class="muted">' + esc((p.status||'').replace('status.','')) + '</div>' +
+      '<div class="prop-star">' + (p.featured ? '★' : '') + '</div>' +
+      '<div class="prop-actions">' +
+        '<button class="btn-ghost" onclick="openPropertyForm(\'' + esc(p.id) + '\')">Edit</button>' +
+        '<button class="btn-danger" onclick="deleteProperty(\'' + esc(p.id) + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  el.innerHTML = '<div class="prop-table">' +
+    '<div class="prop-table-head"><div>Property</div><div>Line</div><div>Price</div><div>Status</div><div>★</div><div></div></div>' +
+    rows + '</div>';
+}
+
+function openPropertyForm(id) {
+  EDIT_ID = id;
+  var p = id ? DATA.properties.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('slide-title').textContent = p ? 'Edit — ' + ((p.title&&p.title.en)||id) : 'Add property';
+  propertyToForm(p || {});
+  document.getElementById('prop-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePropertyForm() {
+  document.getElementById('prop-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+  EDIT_ID = null;
+}
+
+function propertyToForm(p) {
+  function set(id, val) {
+    var el = document.getElementById(id); if (!el) return;
+    if (el.type === 'checkbox') el.checked = !!val; else el.value = val == null ? '' : val;
+  }
+  set('f-line',        p.line        || 'signature');
+  set('f-regionKey',   p.regionKey   || 'bali');
+  set('f-region',      p.region      || '');
+  set('f-status',      p.status      || 'status.offplan');
+  set('f-handover',    p.handover    || '');
+  set('f-featured',    p.featured    || false);
+  set('f-priceEUR',    p.priceEUR    || '');
+  set('f-tenure',      p.tenure      || 'tenure.freehold');
+  set('f-beds',        p.beds        != null ? p.beds : '');
+  set('f-baths',       p.baths       != null ? p.baths : '');
+  set('f-built',       p.built       || '');
+  set('f-land',        p.land        || '');
+  set('f-style',       p.style       || '');
+  set('f-nightlyRate', p.nightlyRate || '');
+  set('f-poolType',    p.poolType    || '');
+  set('f-furnished',   p.furnished   || '');
+  set('f-garage',      p.garage      || false);
+  set('f-garageDesc',  p.garageDesc  || '');
+  set('f-title-en', (p.title && p.title.en) || '');
+  set('f-title-es', (p.title && p.title.es) || '');
+  set('f-sub-en',   (p.sub   && p.sub.en)   || '');
+  set('f-sub-es',   (p.sub   && p.sub.es)   || '');
+  set('f-desc-en',  (p.desc  && p.desc.en)  || '');
+  set('f-desc-es',  (p.desc  && p.desc.es)  || '');
+  // Images
+  var container = document.getElementById('f-images-list');
+  container.innerHTML = '';
+  var imgs = (p.images && p.images.length) ? p.images : [''];
+  imgs.forEach(function(url){ addImageSlot(url); });
+  // Downloads
+  var dlContainer = document.getElementById('f-downloads-list');
+  dlContainer.innerHTML = '';
+  var dls = (p.downloads && p.downloads.length) ? p.downloads : [];
+  dls.forEach(function(item){ addDownloadRow(item); });
+}
+
+function addImageSlot(url) {
+  url = url || '';
+  var container = document.getElementById('f-images-list');
+  var div = document.createElement('div');
+  div.className = 'img-slot';
+  div.draggable = true;
+  div.innerHTML =
+    '<span class="drag-handle" title="Drag to reorder">⠿</span>' +
+    '<div class="img-slot-thumb-wrap">' +
+      '<img class="img-slot-thumb" src="' + esc(url) + '" alt="" style="opacity:' + (url?'1':'0') + '" onerror="this.style.opacity=0">' +
+      '<div class="img-slot-spinner hidden"></div>' +
+    '</div>' +
+    '<input type="text" value="' + esc(url) + '" placeholder="https://... or /images/photo.jpg" oninput="syncSlot(this)">' +
+    '<button type="button" class="img-slot-upload" onclick="uploadForSlot(this)" title="Upload file">↑</button>' +
+    '<button type="button" class="img-slot-pick" onclick="pickForSlot(this)">Pick</button>' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  initSlotDrag(div);
+  container.appendChild(div);
+}
+
+function initSlotDrag(slot) {
+  slot.addEventListener('dragstart', function(e) {
+    DRAG_SRC = slot;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(function(){ slot.style.opacity = '.35'; }, 0);
+  });
+  slot.addEventListener('dragend', function() {
+    slot.style.opacity = '1';
+    document.querySelectorAll('#f-images-list .img-slot').forEach(function(s){ s.classList.remove('drag-over'); });
+  });
+  slot.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    if (DRAG_SRC === slot) return;
+    document.querySelectorAll('#f-images-list .img-slot').forEach(function(s){ s.classList.remove('drag-over'); });
+    slot.classList.add('drag-over');
+  });
+  slot.addEventListener('drop', function(e) {
+    e.preventDefault();
+    if (!DRAG_SRC || DRAG_SRC === slot) return;
+    var container = document.getElementById('f-images-list');
+    var rect = slot.getBoundingClientRect();
+    var after = e.clientY > rect.top + rect.height / 2;
+    container.insertBefore(DRAG_SRC, after ? slot.nextSibling : slot);
+    slot.classList.remove('drag-over');
+  });
+}
+
+async function uploadForSlot(btn) {
+  var slot = btn.parentNode;
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.onchange = async function() {
+    if (!fileInput.files.length) return;
+    var file = fileInput.files[0];
+    var spinner = slot.querySelector('.img-slot-spinner');
+    spinner.classList.remove('hidden');
+    btn.disabled = true;
+    var fd = new FormData(); fd.append('image', file);
+    try {
+      var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
+      var d = await r.json();
+      if (d.ok) {
+        var inp = slot.querySelector('input[type="text"]');
+        inp.value = d.url; syncSlot(inp);
+        IMGS_CACHE.unshift({ url: d.url, name: d.name });
+        toast('Image uploaded.', 'ok');
+      } else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
+    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+    finally { spinner.classList.add('hidden'); btn.disabled = false; }
+  };
+  fileInput.click();
+}
+
+function syncSlot(input) {
+  var img = input.parentNode.querySelector('.img-slot-thumb');
+  img.src = input.value; img.style.opacity = input.value ? 1 : 0;
+}
+
+function pickForSlot(btn) {
+  var slot = btn.parentNode;
+  openImagePicker(function(url) {
+    var input = slot.querySelector('input[type="text"]');
+    input.value = url; syncSlot(input);
+  });
+}
+
+function formToProperty() {
+  function get(id) {
+    var el = document.getElementById(id); if (!el) return '';
+    return el.type === 'checkbox' ? el.checked : el.value.trim();
+  }
+  var titleEn   = get('f-title-en');
+  var regionKey = get('f-regionKey');
+  var id = EDIT_ID || uniqueId(slugify(titleEn + '-' + regionKey));
+  var images = [];
+  document.querySelectorAll('#f-images-list input[type="text"]').forEach(function(inp){
+    var v = inp.value.trim(); if (v) images.push(v);
+  });
+  return {
+    id:          id,
+    line:        get('f-line'),
+    region:      get('f-region'),
+    regionKey:   regionKey,
+    featured:    get('f-featured'),
+    priceEUR:    parseFloat(get('f-priceEUR'))    || 0,
+    beds:        parseInt(get('f-beds'))           || 0,
+    baths:       parseInt(get('f-baths'))          || 0,
+    built:       parseInt(get('f-built'))          || 0,
+    land:        parseInt(get('f-land'))           || 0,
+    pool:        !!(get('f-poolType')),
+    poolType:    get('f-poolType'),
+    garage:      get('f-garage'),
+    garageDesc:  get('f-garageDesc'),
+    furnished:   get('f-furnished'),
+    style:       get('f-style'),
+    nightlyRate: parseFloat(get('f-nightlyRate')) || 0,
+    tenure:      get('f-tenure'),
+    status:      get('f-status'),
+    handover:    get('f-handover'),
+    images:      images,
+    title:     { en: get('f-title-en'), es: get('f-title-es') },
+    sub:       { en: get('f-sub-en'),   es: get('f-sub-es')   },
+    desc:      { en: get('f-desc-en'),  es: get('f-desc-es')  },
+    downloads: Array.from(document.querySelectorAll('#f-downloads-list .dl-item')).map(function(row) {
+      return {
+        name: row.querySelector('.dl-name').value.trim(),
+        ext:  row.querySelector('.dl-ext').value.trim()  || 'PDF',
+        size: row.querySelector('.dl-size').value.trim(),
+        url:  row.querySelector('.dl-url').value.trim()
+      };
+    }).filter(function(d){ return d.name; })
+  };
+}
+
+function saveProperty() {
+  var p = formToProperty();
+  if (!p.title.en) { toast('Please enter a title in English.', 'err'); return; }
+  var idx = DATA.properties.findIndex(function(x){ return x.id === p.id; });
+  if (idx >= 0) DATA.properties[idx] = p; else DATA.properties.push(p);
+  closePropertyForm();
+  renderProperties();
+  markDirty();
+  toast('Property saved in memory. Click Publish changes to go live.', 'info');
+}
+
+function deleteProperty(id) {
+  var p    = DATA.properties.find(function(x){ return x.id === id; });
+  var name = (p && p.title && p.title.en) || id;
+  if (!confirm('Delete "' + name + '"?\nThis cannot be undone once published.')) return;
+  DATA.properties = DATA.properties.filter(function(x){ return x.id !== id; });
+  renderProperties(); markDirty();
+}
+
+/* ─── SETTINGS ──────────────────────────────────────────────── */
+function renderSettings() {
+  var s = DATA.settings || {};
+  document.getElementById('s-whatsapp').value = s.whatsapp || '';
+  document.getElementById('s-email').value    = s.email    || '';
+}
+
+function saveSettings() {
+  if (!DATA.settings) DATA.settings = {};
+  DATA.settings.whatsapp = document.getElementById('s-whatsapp').value.trim();
+  DATA.settings.email    = document.getElementById('s-email').value.trim();
+  markDirty();
+  toast('Contact saved. Click Publish changes to go live.', 'info');
+}
+
+async function changePassword() {
+  var p1 = document.getElementById('s-newpass').value;
+  var p2 = document.getElementById('s-newpass2').value;
+  if (!p1)      { toast('Enter a new password.', 'err'); return; }
+  if (p1 !== p2){ toast('Passwords do not match.', 'err'); return; }
+  if (p1.length < 8){ toast('Password must be at least 8 characters.', 'err'); return; }
+  try {
+    var r = await fetch('api/change-password.php', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ password: p1 })
+    });
+    var d = await r.json();
+    if (d.ok) {
+      document.getElementById('s-newpass').value  = '';
+      document.getElementById('s-newpass2').value = '';
+      toast('Password changed successfully.', 'ok');
+    } else { toast('Error: ' + (d.error||'unknown'), 'err'); }
+  } catch(e){ toast('Connection error.', 'err'); }
+}
+
+/* ─── DOWNLOADS (per-property) ──────────────────────────────── */
+function addDownloadRow(item) {
+  item = item || {};
+  var container = document.getElementById('f-downloads-list');
+  var div = document.createElement('div');
+  div.className = 'dl-item';
+  div.innerHTML =
+    '<input type="text" class="dl-name" value="' + esc(item.name||'') + '" placeholder="Document name">' +
+    '<input type="text" class="dl-ext"  value="' + esc(item.ext||'PDF') + '" placeholder="PDF">' +
+    '<input type="text" class="dl-size" value="' + esc(item.size||'') + '" placeholder="2.4 MB">' +
+    '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="/assets/docs/brochure.pdf">' +
+    '<button class="dl-remove" type="button" onclick="this.parentNode.remove()" title="Remove">✕</button>';
+  container.appendChild(div);
+}
+
+/* ─── IMAGES ────────────────────────────────────────────────── */
+async function loadImages() {
+  try {
+    var r = await fetch('api/list-images.php', { credentials:'include' });
+    if (!r.ok) return;
+    IMGS_CACHE = await r.json();
+    renderImages(IMGS_CACHE, 'images-grid');
+  } catch(e) {}
+}
+
+function renderImages(list, containerId) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  if (!list || !list.length) {
+    el.innerHTML = '<p class="muted" style="padding:8px 0">No images uploaded yet.</p>';
+    return;
+  }
+  el.innerHTML = list.map(function(img) {
+    return '<div class="img-card">' +
+      '<img src="' + esc(img.url) + '" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'">' +
+      '<div class="img-card-foot">' +
+        '<span class="img-fname muted">' + esc(img.name) + '</span>' +
+        '<button class="img-copy-btn" onclick="copyUrl(\'' + esc(img.url) + '\',this)">Copy URL</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function copyUrl(url, btn) {
+  navigator.clipboard.writeText(url).then(function(){
+    var old = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = old; }, 1600);
+  }).catch(function(){
+    prompt('Copy this URL:', url);
+  });
+}
+
+async function handleFileSelect(files) {
+  if (!files || !files.length) return;
+  var zone = document.getElementById('upload-zone');
+  zone.style.opacity = '.5';
+  for (var i = 0; i < files.length; i++) { await uploadFile(files[i]); }
+  zone.style.opacity = '1';
+  document.getElementById('file-input').value = '';
+  await loadImages();
+  toast(files.length + ' image' + (files.length > 1 ? 's' : '') + ' uploaded.', 'ok');
+}
+
+async function uploadFile(file) {
+  var fd = new FormData(); fd.append('image', file);
+  try {
+    var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
+    var d = await r.json();
+    if (!d.ok) toast('Upload failed: ' + (d.error || file.name), 'err');
+  } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+}
+
+/* ─── IMAGE PICKER ──────────────────────────────────────────── */
+async function openImagePicker(callback) {
+  PICK_CB = callback;
+  var grid = document.getElementById('picker-grid');
+  grid.innerHTML = '<p class="muted" style="padding:20px;text-align:center">Loading…</p>';
+  document.getElementById('img-picker').classList.remove('hidden');
+  await loadImages();
+  if (!IMGS_CACHE.length) {
+    grid.innerHTML = '<p class="muted" style="padding:20px">No images uploaded yet. Use the ↑ button to upload from the edit form.</p>';
+  } else {
+    grid.innerHTML = IMGS_CACHE.map(function(img) {
+      return '<div class="picker-thumb" onclick="pickImage(\'' + esc(img.url) + '\')">' +
+        '<img src="' + esc(img.url) + '" alt="" loading="lazy">' +
+      '</div>';
+    }).join('');
+  }
+}
+
+function closeImagePicker() {
+  document.getElementById('img-picker').classList.add('hidden');
+  PICK_CB = null;
+}
+
+function pickImage(url) {
+  closeImagePicker();
+  if (PICK_CB) { PICK_CB(url); }
+  else { addImageSlot(url); } // fallback: add new slot
+}
+
+/* ─── UTILS ─────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function slugify(s) {
+  return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+
+function uniqueId(base) {
+  if (!DATA || !DATA.properties) return base;
+  var id = base, n = 1;
+  while (DATA.properties.some(function(p){ return p.id === id; })) id = base + '-' + (++n);
+  return id;
+}
+</script>
+</body>
+</html>
