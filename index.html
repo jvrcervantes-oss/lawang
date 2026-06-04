@@ -363,11 +363,6 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
          poster="assets/images/frame-1.jpg">
     <source src="assets/images/Lawang-entry-video.mp4" type="video/mp4">
   </video>
-  <div id="loader-ov"></div>
-  <div id="loader-txt">
-    <div class="loader-logo">Lawang</div>
-    <div class="loader-sub">Tropical Properties</div>
-  </div>
   <button id="loader-skip" onclick="dismissLoader()">Skip →</button>
 </div>
 
@@ -791,18 +786,9 @@ window.addEventListener('load', () => {
   const hard = setTimeout(go, 14000);
 
   if(vid) {
-    // El vídeo empieza oculto — fade in a 0.8s para que se vea el logo primero
-    vid.style.opacity = '0';
-    vid.style.transition = 'opacity 1.2s ease';
-
     vid.addEventListener('ended', go, { once:true });
     vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
-    vid.play().then(() => {
-      // Play OK — mostrar el vídeo con fade tras 0.8s (salta intro negra)
-      setTimeout(() => { vid.style.opacity = '1'; }, 800);
-    }).catch(() => {
-      if(!gone) setTimeout(go, 2500);
-    });
+    vid.play().catch(() => { if(!gone) setTimeout(go, 2500); });
   } else {
     setTimeout(go, 2000);
   }
