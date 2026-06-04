@@ -786,9 +786,13 @@ window.addEventListener('load', () => {
   const hard = setTimeout(go, 14000);
 
   if(vid) {
+    vid.style.opacity = '0';
+    vid.style.transition = 'opacity 1s ease';
     vid.addEventListener('ended', go, { once:true });
     vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
-    vid.play().catch(() => { if(!gone) setTimeout(go, 2500); });
+    vid.play().then(() => {
+      setTimeout(() => { vid.style.opacity = '1'; }, 600);
+    }).catch(() => { if(!gone) setTimeout(go, 2500); });
   } else {
     setTimeout(go, 2000);
   }
