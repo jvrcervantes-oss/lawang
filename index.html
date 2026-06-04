@@ -171,38 +171,22 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #vid-progress-bar{height:100%;background:rgba(190,179,165,0.4);width:0%}
 
 /* Loader */
-#loader{position:fixed;inset:0;background:var(--obsidian);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2rem;transition:opacity 0.8s ease}
+#loader{position:fixed;inset:0;z-index:1000;overflow:hidden;transition:opacity 0.8s ease}
 #loader.out{opacity:0;pointer-events:none}
+#loader-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+#loader-ov{position:absolute;inset:0;background:rgba(0,0,0,0.28);z-index:1}
+#loader-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:2}
+#loader-skip{position:absolute;bottom:2rem;right:2.5rem;z-index:2;background:none;border:1px solid rgba(245,240,230,0.3);color:rgba(245,240,230,0.5);font-family:'Jost',sans-serif;font-size:0.48rem;letter-spacing:0.4em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.3s}
+#loader-skip:hover{border-color:rgba(245,240,230,0.7);color:rgba(245,240,230,0.9)}
 .loader-logo{font-family:'Jost',sans-serif;font-weight:400;font-size:1.6rem;letter-spacing:0.55em;color:#fff;text-transform:uppercase}
-.loader-sub{font-family:'Jost',sans-serif;font-weight:200;font-size:0.42rem;letter-spacing:0.65em;color:rgba(190,179,165,0.5);text-transform:uppercase}
-.lbar-wrap{width:160px;height:1px;background:rgba(190,179,165,0.12);margin-top:0.5rem;overflow:hidden}
-.lbar{height:100%;background:var(--gold);width:0%;transition:width 1.6s cubic-bezier(0.4,0,0.2,1)}
+.loader-sub{font-family:'Jost',sans-serif;font-weight:200;font-size:0.42rem;letter-spacing:0.65em;color:rgba(190,179,165,0.5);text-transform:uppercase;margin-top:0.6rem}
 
 body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");opacity:0.038;pointer-events:none;z-index:50;animation:gr 7s steps(8) infinite}
 @keyframes gr{0%{background-position:0 0}25%{background-position:-5% -10%}50%{background-position:-10% 5%}75%{background-position:5% -5%}100%{background-position:10% 10%}}
 
 
-/* ── Transition hint at bottom of cinematic */
-#enter-market-hint{
-  position:absolute;
-  bottom:0;left:0;right:0;
-  height:22vh;
-  background:linear-gradient(to bottom,transparent,rgba(8,10,6,0.85));
-  z-index:22;
-  display:flex;align-items:flex-end;justify-content:center;
-  padding-bottom:2.5rem;
-  opacity:0;transition:opacity 0.6s;
-  pointer-events:none;
-}
-#enter-market-hint.show{opacity:1;pointer-events:auto}
-.hint-text{
-  font-size:0.58rem;letter-spacing:0.32em;color:rgba(245,240,230,0.75);
-  text-transform:uppercase;font-weight:300;font-family:'Jost',sans-serif;
-  display:flex;flex-direction:column;align-items:center;gap:0.7rem;
-  padding:10px 28px;border:1px solid rgba(245,240,230,0.18);
-  transition:border-color 0.3s,color 0.3s;
-}
-.hint-text:hover{color:rgba(245,240,230,1);border-color:rgba(245,240,230,0.5)}
+/* hint element kept as empty anchor for JS refs — visually hidden */
+#enter-market-hint{display:none}
 </style>
 </head>
 <body>
@@ -375,16 +359,15 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </svg>
 
 <div id="loader">
-  <video id="loader-vid" autoplay muted playsinline preload="auto"
-         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0">
+  <video id="loader-vid" autoplay muted playsinline preload="auto">
     <source src="assets/images/Lawang-entry-video.mp4" type="video/mp4">
   </video>
-  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.22);z-index:1"></div>
-  <div style="position:relative;z-index:2;text-align:center">
+  <div id="loader-ov"></div>
+  <div id="loader-txt">
     <div class="loader-logo">Lawang</div>
     <div class="loader-sub">Tropical Properties</div>
   </div>
-  <button onclick="dismissLoader()" style="position:absolute;bottom:2rem;right:2.5rem;z-index:2;background:none;border:1px solid rgba(245,240,230,0.35);color:rgba(245,240,230,0.55);font-family:'Jost',sans-serif;font-size:0.48rem;letter-spacing:0.4em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.3s">Skip →</button>
+  <button id="loader-skip" onclick="dismissLoader()">Skip →</button>
 </div>
 
 <div id="cursor"></div>
@@ -411,10 +394,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div id="overlay"></div>
 </div>
 
-<!-- Content entry hint -->
-<div id="enter-market-hint">
-  <a href="javascript:void(0)" onclick="enterContent()" class="hint-text" style="text-decoration:none;cursor:pointer">↓ Discover more</a>
-</div>
+<div id="enter-market-hint"></div>
 
 <!-- Fixed UI -->
 <div id="logo">
@@ -428,11 +408,11 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </div>
 <nav id="nav">
   <a class="nav-link" href="javascript:void(0)" onclick="scrollToTop()">The Estate</a>
-  <a class="nav-link nav-content" href="#process"  style="display:none">Process</a>
-  <a class="nav-link nav-content" href="#invest"   style="display:none">Why Invest</a>
-  <a class="nav-link nav-content" href="#faq"      style="display:none">FAQ</a>
+  <a class="nav-link" href="javascript:void(0)" onclick="goToSection('process')">Process</a>
+  <a class="nav-link" href="javascript:void(0)" onclick="goToSection('invest')">Why Invest</a>
+  <a class="nav-link" href="javascript:void(0)" onclick="goToSection('faq')">FAQ</a>
   <a class="nav-link" href="portfolio.html">Portfolio</a>
-  <a class="nav-cta" href="portfolio.html">Invest</a>
+  <a class="nav-cta" href="javascript:void(0)" onclick="goToSection('contact')">Invest →</a>
 </nav>
 
 <div id="scene-text">
@@ -650,7 +630,9 @@ function onScroll() {
   const cp = Math.min(1, st / cinematicMax);
 
   cp > 0.03 ? scrollHint.classList.add('hidden') : scrollHint.classList.remove('hidden');
-  cp >= MARKET_HINT_AT ? mktHint.classList.add('show') : mktHint.classList.remove('show');
+
+  // Auto-trigger content sections when cinematic ends
+  if(cp >= 0.97 && !inContentMode) { enterContent(); return; }
 
   // ── Vídeo activo: fast-forward o revertir ──
   if(playingVid >= 0) {
@@ -680,6 +662,18 @@ function onScroll() {
     setActiveFrame(targetScene);
     setScene(targetScene);
     setTimeout(showText, 80);
+  }
+}
+
+// ── Section navigation (works from both cinematic and content mode) ──
+function goToSection(id) {
+  if(inContentMode) {
+    document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
+  } else {
+    enterContent();
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 850);
   }
 }
 
