@@ -728,6 +728,28 @@ function enterContent() {
     }, { threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
     document.querySelectorAll('#content-sections .reveal').forEach(el => obs.observe(el));
 
+    // Counter animation for Track Record stats
+    function animateCount(el, target, prefix, duration) {
+      const start = performance.now();
+      (function tick(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+        el.textContent = prefix + Math.round(eased * target);
+        if(p < 1) requestAnimationFrame(tick);
+      })(start);
+    }
+    const cntObs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if(!e.isIntersecting) return;
+        cntObs.unobserve(e.target);
+        const el = e.target;
+        const target = parseInt(el.dataset.count);
+        const prefix = el.dataset.prefix || '';
+        animateCount(el, target, prefix, 1600);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll('[data-count]').forEach(el => cntObs.observe(el));
+
     document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
       btn.addEventListener('click', () => {
         const item = btn.closest('.cs-faq-item');
@@ -839,9 +861,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .cs-pad  { padding-block: clamp(72px,9vw,130px); }
 
 /* ── Reveal ──────────────────────────────────────────────────── */
-#content-sections .reveal { opacity: 0; transform: translateY(20px);
-  transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1); }
-#content-sections .reveal.in { opacity: 1; transform: none; }
+#content-sections .reveal { opacity: 0; transform: translateY(28px); filter: blur(4px);
+  transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1), filter .85s cubic-bezier(.16,1,.3,1); }
+#content-sections .reveal.in { opacity: 1; transform: none; filter: blur(0); }
+@media(prefers-reduced-motion:reduce){ #content-sections .reveal{ filter:none; transform:none; transition:opacity .4s ease; } }
 
 /* ── Typography helpers ──────────────────────────────────────── */
 .cs-kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase;
@@ -858,7 +881,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 /* ── Buttons ─────────────────────────────────────────────────── */
 .cs-btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 28px;
   font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-  border: 1px solid transparent; transition: background .22s, color .22s, border-color .22s; text-decoration: none; cursor: pointer; font-family: var(--csa); }
+  border: 1px solid transparent; transition: transform .16s cubic-bezier(0.23,1,0.32,1), background .22s, color .22s, border-color .22s; text-decoration: none; cursor: pointer; font-family: var(--csa); }
+.cs-btn:active { transform: scale(0.97); }
 .cs-btn .arr { transition: transform .28s cubic-bezier(.16,1,.3,1); }
 .cs-btn:hover .arr { transform: translateX(5px); }
 .cs-btn-green { background: var(--ca); color: var(--cb); border-color: var(--ca); }
@@ -924,9 +948,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   font-size: 15px; color: var(--ca); transition: transform .35s, border-color .2s; }
 .cs-faq-item.open .cs-faq-icon { transform: rotate(45deg); border-color: var(--ca); }
-.cs-faq-a { max-height: 0; overflow: hidden; transition: max-height .45s cubic-bezier(.2,.7,.2,1); }
-.cs-faq-a-i { padding: 0 48px 20px 0; font-size: 14px; color: var(--ci2); line-height: 1.74; max-width: 72ch; }
-.cs-faq-item.open .cs-faq-a { max-height: 600px; }
+.cs-faq-a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .42s cubic-bezier(.16,1,.3,1); }
+.cs-faq-a-i { min-height: 0; overflow: hidden; padding: 0 48px 20px 0; font-size: 14px; color: var(--ci2); line-height: 1.74; max-width: 72ch; }
+.cs-faq-item.open .cs-faq-a { grid-template-rows: 1fr; }
 
 /* ── 05 · TRACK RECORD ───────────────────────────────────────── */
 .cs-track { background: var(--cd); color: var(--cb); position: relative; overflow: hidden; }
@@ -1199,9 +1223,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <h2 class="cs-display" style="font-size:clamp(30px,4.8vw,66px);max-width:20ch;color:var(--cb)">More than 50 homes delivered. This is the next step.</h2>
     </div>
     <div class="cs-tr-stats reveal" style="transition-delay:100ms">
-      <div class="cs-tr-stat"><div class="cs-tr-n">+50</div><div class="cs-tr-l">Villas built &amp; delivered</div></div>
-      <div class="cs-tr-stat"><div class="cs-tr-n">+200</div><div class="cs-tr-l">Hectares of land</div></div>
-      <div class="cs-tr-stat"><div class="cs-tr-n">2</div><div class="cs-tr-l">Active regions</div></div>
+      <div class="cs-tr-stat"><div class="cs-tr-n" data-count="50" data-prefix="+">+50</div><div class="cs-tr-l">Villas built &amp; delivered</div></div>
+      <div class="cs-tr-stat"><div class="cs-tr-n" data-count="200" data-prefix="+">+200</div><div class="cs-tr-l">Hectares of land</div></div>
+      <div class="cs-tr-stat"><div class="cs-tr-n" data-count="2">2</div><div class="cs-tr-l">Active regions</div></div>
       <div class="cs-tr-stat"><div class="cs-tr-n" style="font-size:clamp(24px,2.8vw,42px)">Balian<br>+ Sumba</div><div class="cs-tr-l">Bali &amp; Sumba Island</div></div>
     </div>
     <div class="cs-track-body">

@@ -179,8 +179,17 @@ article:hover .view-cta { gap:9px; }
 /* Filter chip press feedback */
 .filter-chip { transition:transform .12s var(--ease-press),background .2s,color .2s,border-color .2s !important; }
 .filter-chip:active { transform:scale(0.95) !important; }
-/* Topbar link hover underline */
+/* Topbar link hover */
 .pf-topbar a { transition:opacity .2s; }
+/* Gallery thumbnails in property detail */
+#pf-overlay .gallery-thumb { transition:transform .18s var(--ease-press),border-color .2s; }
+#pf-overlay .gallery-thumb:hover { transform:scale(1.04); }
+/* TechSpecs cells hover */
+.tech-specs-grid > div { transition:background .22s; }
+.tech-specs-grid > div:hover { background:rgba(255,255,255,0.07) !important; }
+/* PropertySidebar CTA buttons */
+.sidebar-cta { transition:transform .16s var(--ease-press),background .22s,color .22s,border-color .22s,opacity .22s !important; }
+.sidebar-cta:active { transform:scale(0.97) !important; }
 </style>
 </head>
 <body>
@@ -631,8 +640,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             style={{ borderRadius:6, boxShadow:"0 30px 80px -36px rgba(27,26,21,.45)" }} />
         <div style={{ display:"grid", gridTemplateColumns:`repeat(${keys.length}, 1fr)`, gap:10, marginTop:10 }}>
           {keys.map((k, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              style={{ padding:0, border:"2px solid "+(i===active ? "var(--clay)" : "transparent"), borderRadius:4, overflow:"hidden", cursor:"pointer", background:"none" }}>
+            <button key={i} className="gallery-thumb" onClick={() => setActive(i)}
+              style={{ padding:0, border:"2px solid "+(i===active ? "var(--clay)" : "transparent"), borderRadius:6, overflow:"hidden", cursor:"pointer", background:"none" }}>
               <Ph imgKey={k} theme={theme} ratio="4/3" tint={0.1} />
             </button>
           ))}
@@ -658,7 +667,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     if (specs.length === 0) return null;
     return (
       <div style={{ background:"#104C4F", borderRadius:8, marginTop:28, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))" }}>
+        <div className="tech-specs-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))" }}>
           {specs.map((s, i) => (
             <div key={i} style={{
               padding:"20px 18px",
@@ -743,11 +752,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             <p style={{ fontSize:12.5, color:"rgba(245,240,230,0.7)", marginBottom:0, lineHeight:1.5 }}>{t("wa.sub")}</p>
           </div>
           <div style={{ padding:"0 20px 20px", display:"flex", flexDirection:"column", gap:10 }}>
-            <a href={waUrl} target="_blank" rel="noopener"
+            <a href={waUrl} target="_blank" rel="noopener" className="sidebar-cta"
               style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"#25D366", color:"white", padding:"12px 20px", borderRadius:6, fontSize:13, fontWeight:700, textDecoration:"none", fontFamily:"var(--sans)" }}>
               ✓ {t("wa.cta")}
             </a>
-            <button onClick={() => window.open("mailto:" + email)}
+            <button onClick={() => window.open("mailto:" + email)} className="sidebar-cta"
               style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"rgba(245,240,230,0.1)", border:"1px solid rgba(245,240,230,0.25)", color:"var(--bone)", padding:"11px 20px", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"var(--sans)" }}>
               {t("pd.enquire")} →
             </button>
