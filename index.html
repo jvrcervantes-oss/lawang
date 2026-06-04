@@ -13,6 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -187,6 +189,15 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 /* hint element kept as empty anchor for JS refs — visually hidden */
 #enter-market-hint{display:none}
+
+/* ── Walkthrough video (overrides global video{opacity:0}) ── */
+#walkthrough-vid{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;opacity:1;z-index:2;pointer-events:none;
+  filter:saturate(1.05) contrast(1.03);
+}
+/* ── Scene panels — each shown/hidden by GSAP ── */
+.scene-panel{opacity:0;visibility:hidden}
 </style>
 </head>
 <body>
@@ -378,15 +389,12 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </div><!-- end scroll-inner -->
 </div><!-- end scroll-zone -->
 
-<!-- Cinematic stage (fixed) -->
+<!-- Cinematic stage (fixed) — video controlado por scroll vía GSAP ScrollTrigger -->
+<!-- IMPORTANTE: servir por HTTP, no por file://. El video solo carga desde un servidor. -->
 <div id="stage">
-  <div class="frame active" id="frame0" style="background-image:url('assets/images/frame-1.jpg')"></div>
-  <div class="frame" id="frame1" style="background-image:url('assets/images/frame-2.jpg')"></div>
-  <div class="frame" id="frame2" style="background-image:url('assets/images/frame-3.jpg')"></div>
-  <div class="frame" id="frame3" style="background-image:url('assets/images/frame-4.jpg')"></div>
-  <video id="vid0" playsinline muted preload="auto"><source src="assets/videos/trans-1.mp4" type="video/mp4"></video>
-  <video id="vid1" playsinline muted preload="auto"><source src="assets/videos/trans-2.mp4" type="video/mp4"></video>
-  <video id="vid2" playsinline muted preload="auto"><source src="assets/videos/trans-3.mp4" type="video/mp4"></video>
+  <video id="walkthrough-vid"
+         src="assets/videos/lawang-walkthrough.mp4"
+         muted playsinline preload="auto"></video>
   <div id="overlay"></div>
 </div>
 
@@ -412,9 +420,26 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </nav>
 
 <div id="scene-text">
-  <div class="scene-label"><div class="label-line"></div><div class="label-text" id="lbl">Arrival</div></div>
-  <div class="scene-title" id="ttl">Enter<br><em>Paradise</em></div>
-  <div class="scene-sub" id="sub">Lawang Estate · Bali, Indonesia</div>
+  <div class="scene-panel" data-in="0.03" data-out="0.20">
+    <div class="scene-label"><div class="label-line"></div><div class="label-text">Arrival</div></div>
+    <div class="scene-title">Enter<br><em>Paradise</em></div>
+    <div class="scene-sub">Lawang Estate · Bali, Indonesia</div>
+  </div>
+  <div class="scene-panel" data-in="0.30" data-out="0.48">
+    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Kitchen</div></div>
+    <div class="scene-title">Crafted<br><em>for Living</em></div>
+    <div class="scene-sub">Open Pavilion · Ocean Views</div>
+  </div>
+  <div class="scene-panel" data-in="0.56" data-out="0.72">
+    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Great Room</div></div>
+    <div class="scene-title">Where<br><em>Space Breathes</em></div>
+    <div class="scene-sub">Stone · Teak · Ocean Light</div>
+  </div>
+  <div class="scene-panel" data-in="0.80" data-out="1.0">
+    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Horizon</div></div>
+    <div class="scene-title">Endless<br><em>Blue</em></div>
+    <div class="scene-sub">Private Infinity Pool · Sunset</div>
+  </div>
 </div>
 
 <div id="scroll-hint">
@@ -428,292 +453,109 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div class="cnt-tot">04</div>
 </div>
 <div id="coord">08°40′59″S &nbsp;·&nbsp; 115°09′45″E</div>
-<div id="vid-progress-wrap"><div id="vid-progress-bar"></div></div>
 
 <script>
-const SCENES = [
-  { label:'Arrival',        title:'Enter<br><em>Paradise</em>',       sub:'Lawang Estate · Bali, Indonesia' },
-  { label:'The Kitchen',    title:'Crafted<br><em>for Living</em>',   sub:'Open Pavilion · Ocean Views' },
-  { label:'The Great Room', title:'Where<br><em>Space Breathes</em>', sub:'Stone · Teak · Ocean Light' },
-  { label:'The Horizon',    title:'Endless<br><em>Blue</em>',         sub:'Private Infinity Pool · Sunset' },
-];
+gsap.registerPlugin(ScrollTrigger);
 
-const CINEMATIC_FRAC = 1; // full scroll is cinematic
+// ── Elementos ─────────────────────────────────────────────────
+const scrollZone     = document.getElementById('scroll-zone');
+const scrollInner    = document.getElementById('scroll-inner');
+const walkthroughVid = document.getElementById('walkthrough-vid');
+const stage          = document.getElementById('stage');
+const sceneText      = document.getElementById('scene-text');
+const progressEl     = document.getElementById('progress');
+const scrollHint     = document.getElementById('scroll-hint');
+const cntEl          = document.getElementById('cnt');
+const counter        = document.getElementById('counter');
+const coord          = document.getElementById('coord');
+const nav            = document.getElementById('nav');
+const logo           = document.getElementById('logo');
+const mktHint        = document.getElementById('enter-market-hint');
 
-// Within cinematic 0–1:
-const VID_TRIGGERS = [0.15, 0.42, 0.69];
-const VID_ENDS     = [0.34, 0.61, 0.88];
-const PRELOAD_AT   = 0.82;
-// Show marketplace hint when cinematic > this
-const MARKET_HINT_AT = 0.80;
+let inContentMode = false;
+let built         = false;
 
-const scrollZone = document.getElementById('scroll-zone');
-const frames     = [0,1,2,3].map(i => document.getElementById('frame'+i));
-const vids       = [0,1,2].map(i => document.getElementById('vid'+i));
-const stage      = document.getElementById('stage');
-const sceneText  = document.getElementById('scene-text');
-const progressEl = document.getElementById('progress');
-const scrollHint = document.getElementById('scroll-hint');
-const cntEl      = document.getElementById('cnt');
-const lblEl      = document.getElementById('lbl');
-const ttlEl      = document.getElementById('ttl');
-const subEl      = document.getElementById('sub');
-const vidWrap    = document.getElementById('vid-progress-wrap');
-const vidBar     = document.getElementById('vid-progress-bar');
-const counter    = document.getElementById('counter');
-const coord      = document.getElementById('coord');
-const nav        = document.getElementById('nav');
-const logo       = document.getElementById('logo');
-const mktHint    = document.getElementById('enter-market-hint');
+const panels = gsap.utils.toArray('.scene-panel');
 
-let currentScene    = 0;
-let playingVid      = -1;
-let didPreload      = false;
-let rafId           = null;
-let ending          = false;
-let inMarket        = false;
-let lastScrollTop   = 0;      // para detectar dirección de scroll
+// ── Build GSAP scroll-scrub (se llama al cargar metadata del vídeo) ──
+function build() {
+  if(built) return; built = true;
 
-// ── Frame helpers ─────────────────────────────────────────────
-function resetFrames() { frames.forEach(f => { f.className = 'frame'; }); }
-function setActiveFrame(idx) { resetFrames(); frames[idx].classList.add('active'); }
-function setBehindFrame(idx) { frames[idx].classList.add('behind'); }
-function promoteBehindToActive(idx) { resetFrames(); frames[idx].classList.add('active'); }
+  ScrollTrigger.defaults({ scroller: scrollZone });
 
-// ── Text ──────────────────────────────────────────────────────
-function showText() { sceneText.classList.remove('hidden'); }
-function hideText() { sceneText.classList.add('hidden'); }
-function setScene(idx) {
-  const s = SCENES[idx];
-  lblEl.textContent = s.label;
-  ttlEl.innerHTML   = s.title;
-  subEl.textContent = s.sub;
-  cntEl.textContent = String(idx+1).padStart(2,'0');
-}
+  const proxy = { t: 0 };
 
-// ── Market mode ───────────────────────────────────────────────
-function enterMarket() {
-  if(inMarket) return;
-  inMarket = true;
-  stage.style.opacity = '0';
-  stage.style.transition = 'opacity 0.6s ease';
-  sceneText.classList.add('hidden');
-  counter.classList.add('hidden');
-  coord.classList.add('hidden');
-  mktHint.classList.remove('show');
-  scrollHint.classList.add('hidden');
-  // Ocultar nav y logo fijos — el marketplace tiene su propio topbar
-  nav.style.opacity = '0';
-  nav.style.pointerEvents = 'none';
-  logo.style.opacity = '0';
-  logo.style.pointerEvents = 'none';
-}
-
-function exitMarket() {
-  if(!inMarket) return;
-  inMarket = false;
-  stage.style.opacity = '1';
-  counter.classList.remove('hidden');
-  coord.classList.remove('hidden');
-  mktHint.classList.remove('show');
-  // Restaurar nav y logo
-  nav.style.opacity = '1';
-  nav.style.pointerEvents = 'auto';
-  nav.classList.remove('light-nav');
-  logo.style.opacity = '1';
-  logo.style.pointerEvents = 'auto';
-  logo.classList.remove('dark');
-  showText();
-}
-
-// ── Video end ─────────────────────────────────────────────────
-function finishVideo(vidIdx) {
-  if(ending) return;
-  ending = true;
-  const vid = vids[vidIdx];
-  const nextIdx = vidIdx + 1;
-  if(!didPreload) setBehindFrame(nextIdx);
-  vid.classList.add('ending');
-  vid.pause();
-  setTimeout(() => {
-    vid.classList.remove('active','ending');
-    cancelAnimationFrame(rafId);
-    promoteBehindToActive(nextIdx);
-    playingVid = -1; didPreload = false; ending = false;
-    currentScene = nextIdx;
-    vidWrap.classList.remove('show');
-    vidBar.style.width = '0%';
-    // Avanzar scroll — solo si el usuario no llegó ya al marketplace
-    if(!inMarket) {
-      const max = scrollZone.scrollHeight - scrollZone.clientHeight;
-      const cinematicMax = CINEMATIC_FRAC * max;
-      scrollZone.scrollTop = (VID_ENDS[vidIdx] + 0.005) * cinematicMax;
-    }
-    setScene(nextIdx);
-    setTimeout(showText, 200);
-  }, 720);
-}
-
-// ── RAF ───────────────────────────────────────────────────────
-function rafLoop(vidIdx) {
-  if(playingVid !== vidIdx) return;
-  const vid = vids[vidIdx];
-  if(vid.duration) {
-    const pct = vid.currentTime / vid.duration;
-    vidBar.style.width = (pct*100)+'%';
-    if(pct >= PRELOAD_AT && !didPreload) { didPreload = true; setBehindFrame(vidIdx+1); }
-  }
-  rafId = requestAnimationFrame(() => rafLoop(vidIdx));
-}
-
-// ── Start video ───────────────────────────────────────────────
-function startVideo(vidIdx) {
-  if(playingVid === vidIdx) return;
-  if(playingVid >= 0) { vids[playingVid].pause(); vids[playingVid].classList.remove('active','ending'); }
-  playingVid = vidIdx; didPreload = false; ending = false;
-  const vid = vids[vidIdx];
-  hideText();
-  vid.currentTime = 0;
-  vid.classList.remove('ending');
-  vid.classList.add('active');
-  vid.play().catch(()=>{});
-  vidWrap.classList.add('show');
-  vid.onended = () => finishVideo(vidIdx);
-  cancelAnimationFrame(rafId);
-  rafLoop(vidIdx);
-}
-
-// ── Fast-forward ──────────────────────────────────────────────
-function handleFastForward(vidIdx, cp) {
-  if(ending) return;
-  const vid = vids[vidIdx];
-  if(!vid.duration) return;
-  const zoneP = Math.max(0, Math.min(1, (cp - VID_TRIGGERS[vidIdx]) / (VID_ENDS[vidIdx] - VID_TRIGGERS[vidIdx])));
-  const target = zoneP * vid.duration;
-  if(target > vid.currentTime + 0.2) vid.currentTime = target;
-  if(cp >= VID_ENDS[vidIdx]) { vid.currentTime = vid.duration; finishVideo(vidIdx); }
-}
-
-// ── REVERSE: going back through frames ───────────────────────
-function handleReverse(vidIdx, cp) {
-  // If user scrolls back above a video zone while video was playing, stop it and show source frame
-  if(playingVid === vidIdx && cp < VID_TRIGGERS[vidIdx] - 0.01) {
-    cancelAnimationFrame(rafId);
-    vids[vidIdx].pause();
-    vids[vidIdx].classList.remove('active','ending');
-    vidWrap.classList.remove('show');
-    vidBar.style.width = '0%';
-    playingVid = -1; didPreload = false; ending = false;
-    currentScene = vidIdx;
-    setActiveFrame(vidIdx);
-    setScene(vidIdx);
-    setTimeout(showText, 100);
-  }
-}
-
-// ── Main scroll ───────────────────────────────────────────────
-function onScroll() {
-  const st  = scrollZone.scrollTop;
-  const max = scrollZone.scrollHeight - scrollZone.clientHeight;
-  const scrollingForward = st >= lastScrollTop;
-  lastScrollTop = st;
-
-  progressEl.style.width = (st / max * 100) + '%';
-
-  const cinematicMax  = CINEMATIC_FRAC * max;
-  const inMarketZone  = st >= cinematicMax;
-
-  const cp = Math.min(1, st / cinematicMax);
-
-  cp > 0.03 ? scrollHint.classList.add('hidden') : scrollHint.classList.remove('hidden');
-
-  // Auto-trigger content sections when cinematic ends
-  if(cp >= 0.97 && !inContentMode) { enterContent(); return; }
-
-  // ── Vídeo activo: fast-forward o revertir ──
-  if(playingVid >= 0) {
-    handleReverse(playingVid, cp);
-    if(playingVid >= 0) handleFastForward(playingVid, cp);
-    return;
-  }
-
-  // Escena objetivo basada en posición
-  let targetScene = 0;
-  if(cp >= VID_ENDS[2])      targetScene = 3;
-  else if(cp >= VID_ENDS[1]) targetScene = 2;
-  else if(cp >= VID_ENDS[0]) targetScene = 1;
-
-  // Disparar vídeo SOLO en scroll hacia adelante
-  if(scrollingForward) {
-    for(let i = 0; i < VID_TRIGGERS.length; i++) {
-      if(cp >= VID_TRIGGERS[i] && cp < VID_ENDS[i] && currentScene === i) {
-        startVideo(i); return;
+  const tl = gsap.timeline({
+    defaults: { ease: 'none' },
+    scrollTrigger: {
+      trigger: scrollInner,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: 0.5,
+      onUpdate(self) {
+        // Actualizar barra de progreso y contador
+        const p = self.progress;
+        progressEl.style.width = (p * 100) + '%';
+        const idx = p < 0.20 ? 1 : p < 0.48 ? 2 : p < 0.72 ? 3 : 4;
+        if(cntEl) cntEl.textContent = String(idx).padStart(2, '0');
+        // Disparar secciones de contenido al final del recorrido
+        if(p >= 0.97 && !inContentMode) enterContent();
       }
     }
-  }
+  });
 
-  // Cambio de escena (adelante o atrás)
-  if(targetScene !== currentScene) {
-    currentScene = targetScene;
-    setActiveFrame(targetScene);
-    setScene(targetScene);
-    setTimeout(showText, 80);
-  }
+  // 1) Scrub video currentTime con el scroll
+  tl.to(proxy, {
+    t: 1, duration: 1,
+    onUpdate() {
+      const d = walkthroughVid.duration;
+      if(isFinite(d) && d > 0) walkthroughVid.currentTime = d * proxy.t;
+    }
+  }, 0);
+
+  // 2) Ocultar scroll hint al inicio del recorrido
+  tl.to(scrollHint, { autoAlpha: 0, duration: 0.04 }, 0.02);
+
+  // 3) Revelar cada panel en su tramo del recorrido
+  panels.forEach(panel => {
+    const tin  = parseFloat(panel.dataset.in);
+    const tout = parseFloat(panel.dataset.out);
+    tl.fromTo(panel,
+      { autoAlpha: 0, y: 24 },
+      { autoAlpha: 1, y: 0, duration: 0.06 }, tin);
+    if(tout < 0.99) {
+      tl.to(panel, { autoAlpha: 0, y: -24, duration: 0.06 }, tout);
+    }
+  });
+
+  ScrollTrigger.refresh();
 }
 
-// ── Section navigation (works from both cinematic and content mode) ──
-function goToSection(id) {
-  if(inContentMode) {
-    document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
-  } else {
-    enterContent();
-    setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
-    }, 850);
-  }
-}
-
-// ── Content sections transition ───────────────────────────────
-let inContentMode = false;
-
+// ── Transición a secciones de contenido ──────────────────────
 function enterContent() {
   if(inContentMode) return;
   inContentMode = true;
 
-  // Stop any playing video
-  if(playingVid >= 0) {
-    vids[playingVid].pause();
-    vids[playingVid].classList.remove('active','ending');
-    cancelAnimationFrame(rafId);
-    vidWrap.classList.remove('show');
-    playingVid = -1;
-  }
-
-  // Fade out stage
   stage.style.transition = 'opacity 0.55s ease';
   stage.style.opacity = '0';
   sceneText.classList.add('hidden');
   counter.classList.add('hidden');
   coord.classList.add('hidden');
   scrollHint.classList.add('hidden');
-  mktHint.classList.remove('show');
+  if(mktHint) mktHint.classList.remove('show');
 
   setTimeout(() => {
-    // Kill cinematic scroll
     stage.style.display = 'none';
     scrollZone.style.overflow = 'hidden';
     scrollZone.style.pointerEvents = 'none';
 
-    // Unlock normal body scroll
     document.body.style.overflow = 'auto';
     document.body.style.overflowX = 'hidden';
 
-    // Show content
     const cs = document.getElementById('content-sections');
     cs.style.display = 'block';
     setTimeout(() => cs.classList.add('visible'), 30);
 
-    // Nav → content mode (light)
     nav.style.opacity = '1';
     nav.style.pointerEvents = 'auto';
     logo.style.opacity = '1';
@@ -722,18 +564,16 @@ function enterContent() {
     nav.classList.add('solid', 'light-nav');
     document.querySelectorAll('.nav-content').forEach(el => { el.style.display = ''; });
 
-    // Wire up reveals & FAQ now that sections are in the DOM
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); }});
     }, { threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
     document.querySelectorAll('#content-sections .reveal').forEach(el => obs.observe(el));
 
-    // Counter animation for Track Record stats
     function animateCount(el, target, prefix, duration) {
       const start = performance.now();
       (function tick(now) {
         const p = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+        const eased = 1 - Math.pow(1 - p, 3);
         el.textContent = prefix + Math.round(eased * target);
         if(p < 1) requestAnimationFrame(tick);
       })(start);
@@ -759,44 +599,48 @@ function enterContent() {
       });
     });
 
-    // Nav background on scroll
     window.addEventListener('scroll', () => {
-      nav.classList.toggle('solid', true); // always solid in content mode
+      nav.classList.toggle('solid', true);
     }, { passive: true });
 
   }, 580);
 }
 
-// ── Navigation helpers ────────────────────────────────────────
+// ── Navegación ────────────────────────────────────────────────
+function goToSection(id) {
+  if(inContentMode) {
+    document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
+  } else {
+    enterContent();
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 850);
+  }
+}
+
 function scrollToMarket(e) {
   if(e) e.preventDefault();
   window.location.href = 'portfolio.html';
 }
+
 function scrollToTop() {
-  // Detener vídeo en curso antes de volver al principio
-  if(playingVid >= 0) {
-    vids[playingVid].pause();
-    vids[playingVid].classList.remove('active','ending');
-    cancelAnimationFrame(rafId);
-    vidWrap.classList.remove('show');
-    vidBar.style.width = '0%';
-    playingVid = -1; didPreload = false; ending = false;
-  }
   scrollZone.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── Init ──────────────────────────────────────────────────────
+// ── Init (invocado por dismissLoader) ─────────────────────────
 function init() {
-  setActiveFrame(0); setScene(0); showText();
-  vids.forEach(v => { v.load(); v.currentTime = 0; });
   setTimeout(() => logo.classList.add('show'), 500);
   setTimeout(() => nav.classList.add('show'), 700);
-  scrollZone.addEventListener('scroll', onScroll, { passive: true });
+  if(walkthroughVid.readyState >= 1) { build(); }
+  else { walkthroughVid.addEventListener('loadedmetadata', build, { once: true }); }
+  // Safety: si los metadatos tardan, no bloquear la experiencia
+  setTimeout(() => { if(!built) build(); }, 4000);
 }
 
+// ── Dismiss loader ────────────────────────────────────────────
 function dismissLoader() {
   const loader = document.getElementById('loader');
-  if (!loader || loader.classList.contains('out')) return;
+  if(!loader || loader.classList.contains('out')) return;
   loader.classList.add('out');
   setTimeout(() => { loader.remove(); init(); }, 900);
 }
@@ -820,7 +664,7 @@ window.addEventListener('load', () => {
   }
 });
 
-// Cursor
+// ── Cursor ────────────────────────────────────────────────────
 const cur = document.getElementById('cursor');
 const ring = document.getElementById('cursor-ring');
 let mx=0,my=0,rx=0,ry=0;
