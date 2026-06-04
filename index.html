@@ -200,33 +200,39 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   display:flex;align-items:center;justify-content:center;
   pointer-events:none;text-align:center;
 }
+/* Scrim propio del hero — asegura legibilidad sobre CUALQUIER fotograma del vídeo */
+#hero-tagline::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 70% at 50% 50%, rgba(4,8,4,0.52) 0%, rgba(4,8,4,0.72) 100%);
+  z-index:0;
+}
 #hero-mark-bg{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
-  color:var(--ivory);opacity:0.06;pointer-events:none;
+  color:var(--ivory);opacity:0.14;pointer-events:none;z-index:1;
 }
-#hero-mark-bg svg{width:min(58vw,58vh);height:auto}
-#hero-content{position:relative;z-index:1;padding:0 2rem}
+#hero-mark-bg svg{width:min(56vw,56vh);height:auto}
+#hero-content{position:relative;z-index:2;padding:0 2rem}
 .hero-eyebrow-label{
-  font-family:'Jost',sans-serif;font-weight:200;font-size:0.55rem;
+  font-family:'Jost',sans-serif;font-weight:200;font-size:0.56rem;
   letter-spacing:0.58em;text-transform:uppercase;
   color:var(--gold);margin-bottom:1.6rem;
-  text-shadow:0 1px 10px rgba(0,0,0,0.5);
+  text-shadow:0 1px 12px rgba(0,0,0,0.7);
 }
 .hero-question{
   font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:300;
-  font-size:clamp(1rem,2vw,1.5rem);letter-spacing:0.07em;
-  color:rgba(245,240,230,0.78);margin-bottom:0.4rem;
-  text-shadow:0 2px 20px rgba(0,0,0,0.4);
+  font-size:clamp(1.1rem,2.2vw,1.6rem);letter-spacing:0.07em;
+  color:rgba(245,240,230,0.90);margin-bottom:0.5rem;
+  text-shadow:0 2px 24px rgba(0,0,0,0.7);
 }
 .hero-headline{
   font-family:'Cormorant Garamond',serif;font-weight:500;
-  font-size:clamp(2.4rem,6vw,5.6rem);
-  letter-spacing:0.22em;text-transform:uppercase;
+  font-size:clamp(2.6rem,6.2vw,5.8rem);
+  letter-spacing:0.20em;text-transform:uppercase;
   color:var(--ivory);line-height:1;
-  text-shadow:0 3px 40px rgba(0,0,0,0.5);
+  text-shadow:0 2px 32px rgba(0,0,0,0.65),0 0 80px rgba(0,0,0,0.4);
 }
-.hero-hl-accent{color:var(--sc)} /* Soft Canopy — verde tenue */
+.hero-hl-accent{color:var(--sc)} /* Soft Canopy — verde tenue marca */
 .hero-hl-sep{
   color:var(--gold);font-size:0.42em;
   vertical-align:middle;letter-spacing:0;
