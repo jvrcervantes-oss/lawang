@@ -870,6 +870,14 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const { lang, go } = useApp();
     const { PROPERTIES } = window.LAWANG;
     const p = PROPERTIES.find((x) => x.id === id);
+
+    useEffect(() => {
+      if (!p) return;
+      const name = p.title[lang] || p.title.en;
+      document.title = name + " · Lawang";
+      return () => { document.title = "Portfolio · Lawang Tropical Properties"; };
+    }, [p && p.id, lang]);
+
     if (!p) return (
       <div className="wrap" style={{ paddingTop:120, paddingBottom:120, textAlign:"center" }}>
         <p className="serif" style={{ fontSize:28 }}>Property not found.</p>
@@ -880,9 +888,6 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     return (
       <div style={{ paddingTop:"clamp(32px,4vw,56px)", paddingBottom:80 }}>
         <div className="wrap">
-          {/* Back */}
-          <button onClick={()=>go("properties")} style={{ background:"none", border:0, cursor:"pointer", color:"var(--ink-2)", fontSize:14, fontWeight:600, display:"inline-flex", alignItems:"center", gap:8, padding:"8px 0", marginBottom:22 }}>← {t("pd.back")}</button>
-
           {/* Header */}
           <Reveal>
             <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"space-between", alignItems:"flex-end", gap:24, marginBottom:30 }}>
@@ -1022,8 +1027,37 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         else ctx.go(r);
       }
     });
+    const { lang, setLang, cur, setCur } = ctx;
+    const btnStyle = (active) => ({
+      appearance:"none", border:0,
+      background: active ? "var(--tg)" : "transparent",
+      color: active ? "#fff" : "var(--ink-2)",
+      fontFamily:"var(--sans)", fontSize:11.5, fontWeight:600,
+      letterSpacing:".04em", padding:"5px 10px",
+      cursor:"pointer", transition:"background .2s,color .2s", borderRadius:0,
+    });
+    const toggleWrap = {
+      display:"inline-flex", borderRadius:6,
+      border:"1px solid var(--line)", overflow:"hidden",
+    };
     return (
       <div id="pf-overlay">
+        <div className="pf-overlay-bar">
+          <button onClick={onClose} style={{ background:"none", border:0, cursor:"pointer", color:"var(--ink-2)", fontSize:13, fontWeight:600, display:"inline-flex", alignItems:"center", gap:8, padding:"8px 0", fontFamily:"var(--sans)" }}>
+            ← Portfolio
+          </button>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={toggleWrap}>
+              <button style={btnStyle(lang==="en")} onClick={() => setLang("en")}>EN</button>
+              <button style={btnStyle(lang==="es")} onClick={() => setLang("es")}>ES</button>
+            </div>
+            <div style={toggleWrap}>
+              <button style={btnStyle(cur==="EUR")} onClick={() => setCur("EUR")}>€</button>
+              <button style={btnStyle(cur==="USD")} onClick={() => setCur("USD")}>$</button>
+              <button style={btnStyle(cur==="AUD")} onClick={() => setCur("AUD")}>A$</button>
+            </div>
+          </div>
+        </div>
         <AppCtx.Provider value={overlayCtx}>
           <window.LawangProperty id={id} />
         </AppCtx.Provider>
