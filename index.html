@@ -788,13 +788,21 @@ window.addEventListener('load', () => {
   const vid = document.getElementById('loader-vid');
   let gone = false;
   function go() { if(gone) return; gone = true; clearTimeout(hard); dismissLoader(); }
-  const hard = setTimeout(go, 14000); // salir tras 14s pase lo que pase
+  const hard = setTimeout(go, 14000);
 
   if(vid) {
+    // El vídeo empieza oculto — fade in a 0.8s para que se vea el logo primero
+    vid.style.opacity = '0';
+    vid.style.transition = 'opacity 1.2s ease';
+
     vid.addEventListener('ended', go, { once:true });
-    // Si el src no carga (404, codec, etc.) — esperar 2.5s con poster y luego salir
     vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
-    vid.play().catch(() => { if(!gone) setTimeout(go, 2500); });
+    vid.play().then(() => {
+      // Play OK — mostrar el vídeo con fade tras 0.8s (salta intro negra)
+      setTimeout(() => { vid.style.opacity = '1'; }, 800);
+    }).catch(() => {
+      if(!gone) setTimeout(go, 2500);
+    });
   } else {
     setTimeout(go, 2000);
   }
