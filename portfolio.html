@@ -357,8 +357,8 @@ h1,h2,h3{ margin:0; font-weight:300; }
 
   const U = function(id,w){ return "https://images.unsplash.com/photo-"+id+"?auto=format&fit=crop&w="+(w||1600)+"&q=80"; };
   const IMG = {aerial:"1634671651144-adbeca8623cb"};
-  // img() returns direct URL if key starts with http, otherwise treats as Unsplash ID key
-  var img = function(key,w){ if(!key) return U(IMG.aerial,w); if(typeof key==='string'&&key.startsWith('http')) return key; return U(IMG[key]||IMG.aerial,w); };
+  // img() returns direct URL for http/relative paths; treats short keys as Unsplash IDs
+  var img = function(key,w){ if(!key) return null; if(typeof key==='string'&&(key.startsWith('http')||key.startsWith('/')||key.startsWith('.'))) return key; var id=IMG[key]; return id?U(id,w):null; };
   window.LAWANG = { DICT, PROPERTIES, LINES, money, RATES, SYMS, EUR_TO_USD, IMG, img, getPaymentPlan, DOWNLOADS, SETTINGS:{whatsapp:'34600000000',email:'hello@lawang.id'} };
 })();
 </script>
@@ -401,6 +401,7 @@ function Reveal({ children, className = "", delay = 0, as = "div", style }) {
 function Ph({ theme = "jungle", imgKey, src, w = 1600, label, ratio, kb = false, video = false, timecode, tint = 0.18, style, className = "", children }) {
   const url = src || (imgKey ? window.LAWANG.img(imgKey, w) : null);
   const [loaded, setLoaded] = useState(false);
+  if (!url && !children) return null;
   const cls = ["ph", kb ? "ph-kb" : "", url ? "ph-photo" : "ph-horizon", className].join(" ");
   const st = { ...style };
   if (ratio) st.aspectRatio = ratio;
@@ -462,10 +463,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const { go, lang } = useApp();
     const t = useT();
     const wide = layout === "list";
+    const hasImg = p.imgKeys && p.imgKeys.length > 0;
     return (
       <Reveal>
         <article onClick={() => go("property/" + p.id)}
-          style={{ cursor:"pointer", display: wide ? "grid" : "flex", gridTemplateColumns: wide ? "minmax(0,1.1fr) minmax(0,1fr)" : undefined, flexDirection:"column", background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:6, overflow:"hidden", transition:"transform .4s cubic-bezier(.2,.7,.2,1),box-shadow .4s" }}
+          style={{ cursor:"pointer", display: wide && hasImg ? "grid" : "flex", gridTemplateColumns: wide && hasImg ? "minmax(0,1.1fr) minmax(0,1fr)" : undefined, flexDirection:"column", background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:6, overflow:"hidden", transition:"transform .4s cubic-bezier(.2,.7,.2,1),box-shadow .4s" }}
           onMouseEnter={(e) => { e.currentTarget.style.transform="translateY(-4px)"; e.currentTarget.style.boxShadow="0 26px 60px -34px rgba(32,24,15,.55)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="none"; }}>
           <Ph imgKey={p.imgKeys[0]} theme={themeFor(p)} ratio={wide ? undefined : "4/3"} tint={0.22}
@@ -501,6 +503,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   function Featured({ p }) {
     const { go, lang } = useApp();
     const t = useT();
+    if (!p.imgKeys || p.imgKeys.length === 0) return null;
     return (
       <Reveal>
         <div onClick={() => go("property/" + p.id)} style={{ cursor:"pointer", position:"relative", borderRadius:8, overflow:"hidden", marginBottom:56 }}>
@@ -602,6 +605,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const [active, setActive] = useState(0);
     const theme = themeFor(p);
     const keys = p.imgKeys;
+    if (!keys || keys.length === 0) return null;
     return (
       <div>
         <Ph imgKey={keys[active]} w={2000} theme={theme} kb ratio="16/9" tint={0.12}
@@ -618,97 +622,141 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     );
   }
 
-  /* ── Glance card individual ───────────────────────────────── */
-  function GlanceCard({ label, value, sub, featured, last }) {
-    return (
-      <div style={{
-        padding:"22px 20px 20px",
-        borderRight: last ? "none" : "1px solid rgba(255,255,255,0.07)",
-        background: featured ? "rgba(245,240,230,0.09)" : "transparent",
-        minWidth:0,
-      }}>
-        <div style={{ fontSize:9, fontWeight:600, letterSpacing:".22em", textTransform:"uppercase", color:"rgba(245,240,230,0.38)", marginBottom:10, fontFamily:"var(--sans)" }}>{label}</div>
-        <div style={{ fontFamily:"var(--serif)", fontSize: featured ? "1.45rem" : "1.1rem", fontWeight: featured ? 400 : 300, color: featured ? "#F5F0E6" : "rgba(245,240,230,0.88)", lineHeight:1.1, wordBreak:"break-word" }}>{value}</div>
-        {sub && <div style={{ fontSize:9, color:"rgba(245,240,230,0.32)", marginTop:6, letterSpacing:".1em", fontFamily:"var(--sans)" }}>{sub}</div>}
-      </div>
-    );
-  }
-
-  /* ── Horizontal At-a-Glance strip ─────────────────────────── */
-  function GlanceStrip({ p }) {
+  /* ── Technical specs strip (below gallery) ─────────────────── */
+  function TechSpecs({ p }) {
     const t = useT();
-    const { cur } = useApp();
-    const { money } = window.LAWANG;
     const isFreehold = p.tenure === "tenure.freehold";
-    const isLand = p.line === "land";
-    const cards = [
-      { label:t("glance.tenure"),   value:isFreehold?"Freehold HGB":"Leasehold", sub:isFreehold?t("glance.viapt"):"30 yrs", featured:true },
-      { label:t("glance.entry"),    value:money(p.priceEUR,cur), sub:t("glance.indicative"), featured:false },
-      p.built>0 && { label:t("glance.villa"), value:p.built+" m²", sub:null, featured:false },
-      p.land>0  && { label:t("glance.land"),  value:p.land+" m²",  sub:null, featured:false },
-      { label:t("glance.const"),    value:"Steel frame", sub:null, featured:false },
-      { label:t("glance.delivery"), value:p.handover!=="—"?p.handover:"6–9 mo", sub:t("glance.from.sign"), featured:false },
-      isFreehold && { label:t("glance.ptpma"), value:"Included", sub:t("glance.ptpma.sub"), featured:false },
-      !isLand && { label:t("glance.rental"), value:"Coordinated", sub:null, featured:false },
-      { label:t("glance.status"),   value:t(p.status), sub:null, featured:false },
-      { label:t("glance.track"),    value:"+50 villas", sub:t("glance.delivered"), featured:false },
+    const specs = [
+      { label: t("glance.tenure"),    value: isFreehold ? "Freehold HGB" : "Leasehold 30yr" },
+      p.built > 0  && { label: t("glance.villa"),     value: p.built + " m²" },
+      p.land  > 0  && { label: t("glance.land"),      value: p.land  + " m²" },
+      p.beds  > 0  && { label: t("pd.spec.beds"),     value: p.beds },
+      p.baths > 0  && { label: t("pd.spec.baths"),    value: p.baths },
+      p.pool       && { label: t("spec.pool"),         value: p.poolType || "Yes" },
+      p.garage     && { label: t("spec.garage"),       value: p.garageDesc || "Yes" },
+      p.furnished && p.furnished !== "None" && { label: t("spec.furnished"), value: p.furnished },
     ].filter(Boolean);
+    if (specs.length === 0) return null;
     return (
       <div style={{ background:"#104C4F", borderRadius:8, marginTop:28, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))", borderTop:"1px solid rgba(255,255,255,0.06)", borderLeft:"1px solid rgba(255,255,255,0.06)" }}>
-          {cards.map((c,i) => <GlanceCard key={i} {...c} last={i===cards.length-1} />)}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))" }}>
+          {specs.map((s, i) => (
+            <div key={i} style={{
+              padding:"20px 18px",
+              borderRight: i === specs.length - 1 ? "none" : "1px solid rgba(255,255,255,0.07)",
+              borderBottom:"1px solid rgba(255,255,255,0.06)",
+            }}>
+              <div style={{ fontSize:9, fontWeight:600, letterSpacing:".22em", textTransform:"uppercase", color:"rgba(245,240,230,0.38)", marginBottom:8, fontFamily:"var(--sans)" }}>{s.label}</div>
+              <div style={{ fontFamily:"var(--serif)", fontSize:"1.1rem", fontWeight:300, color:"rgba(245,240,230,0.88)", lineHeight:1.1 }}>{s.value}</div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  /* ── Specifications (grouped, right column) ────────────────── */
-  function SpecRow({ label, value, accent }) {
-    return (
-      <div style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom:"1px solid var(--line)", gap:12 }}>
-        <span style={{ fontSize:12.5, color:"var(--ink-2)", fontWeight:500, flexShrink:0 }}>{label}</span>
-        <span style={{ fontSize:13, textAlign:"right", fontWeight:accent?600:400, color:accent?"var(--tg)":"var(--ink)" }}>{value}</span>
-      </div>
-    );
-  }
-  function SpecGroup({ title, children }) {
-    return (
-      <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--line)" }}>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:6 }}>{title}</div>
-        {children}
-        <div style={{ height:4 }}/>
-      </div>
-    );
-  }
-  function Specifications({ p }) {
+  /* ── Right column sidebar ──────────────────────────────────── */
+  function PropertySidebar({ p, lang }) {
     const t = useT();
     const { cur } = useApp();
     const { money } = window.LAWANG;
     const isFreehold = p.tenure === "tenure.freehold";
+    const waNum  = (window.LAWANG.SETTINGS && window.LAWANG.SETTINGS.whatsapp) || "34600000000";
+    const email  = (window.LAWANG.SETTINGS && window.LAWANG.SETTINGS.email)    || "hello@lawang.id";
+    const title  = p.title[lang] || p.title.en;
+    const waUrl  = "https://wa.me/" + waNum + "?text=" + encodeURIComponent("Hello! I'm interested in " + title + ". Can we schedule a call?");
+    const files  = (p.downloads && p.downloads.length) ? p.downloads : null;
+
+    const row = { display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:"1px solid var(--line)", gap:12 };
+    const lbl = { fontSize:12.5, color:"var(--ink-2)", fontWeight:500, flexShrink:0 };
+    const val = { fontSize:13, textAlign:"right" };
+
     return (
-      <div style={{ background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden" }}>
-        <SpecGroup title="Property">
-          <SpecRow label="Price" value={money(p.priceEUR,cur)} accent />
-          {p.built>0 && <SpecRow label={t("glance.villa")} value={p.built+" m²"} />}
-          {p.land>0  && <SpecRow label={t("glance.land")}  value={p.land+" m²"} />}
-          <SpecRow label={t("spec.style")} value={p.style} />
-          <SpecRow label={t("spec.construction")} value="Steel frame" />
-        </SpecGroup>
-        <SpecGroup title="Legal">
-          <SpecRow label={t("glance.tenure")} value={isFreehold?"Freehold HGB":"Leasehold (30 yr)"} accent={isFreehold} />
-          {isFreehold && <SpecRow label={t("glance.ptpma")} value="Included · ~€1,000" />}
-          <SpecRow label={t("glance.delivery")} value={p.handover!=="—"?p.handover:"On request"} />
-          <SpecRow label={t("glance.status")} value={t(p.status)} />
-        </SpecGroup>
-        {(p.beds>0||p.pool) && (
-          <SpecGroup title="Features">
-            {p.beds>0  && <SpecRow label={t("pd.spec.beds")}  value={p.beds} />}
-            {p.baths>0 && <SpecRow label={t("pd.spec.baths")} value={p.baths} />}
-            <SpecRow label={t("spec.pool")} value={p.pool?(p.poolType||"Yes"):"No"} />
-            <SpecRow label={t("spec.garage")} value={p.garage?(p.garageDesc||"Yes"):"No"} />
-            {p.furnished!=="None" && <SpecRow label={t("spec.furnished")} value={p.furnished} />}
-          </SpecGroup>
+      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+        {/* Price */}
+        <div style={{ padding:"20px", background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:8 }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:10 }}>{t("glance.entry")}</div>
+          <div className="serif" style={{ fontSize:"clamp(26px,2.8vw,34px)", fontWeight:400, lineHeight:1 }}><Price eur={p.priceEUR} from /></div>
+          <div style={{ display:"flex", gap:14, marginTop:10, flexWrap:"wrap" }}>
+            {["EUR","USD","AUD"].map(c => (
+              <div key={c} style={{ fontSize:11.5, color:"var(--ink-2)" }}>
+                <span style={{ fontWeight:600 }}>{c}</span> {money(p.priceEUR, c)}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:6, opacity:.7 }}>{t("pd.pricenote")}</div>
+        </div>
+
+        {/* Location + Legal */}
+        <div style={{ background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden" }}>
+          <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--line)" }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:8 }}>{t("glance.location")}</div>
+            <div style={{ fontSize:14, fontWeight:600 }}>{p.region}</div>
+          </div>
+          <div style={{ padding:"14px 18px" }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:10 }}>Legal</div>
+            <div style={row}>
+              <span style={lbl}>{t("glance.tenure")}</span>
+              <span style={{ ...val, fontWeight:600, color: isFreehold ? "var(--tg)" : "inherit" }}>{isFreehold ? "Freehold HGB" : "Leasehold 30yr"}</span>
+            </div>
+            {isFreehold && (
+              <div style={row}>
+                <span style={lbl}>{t("glance.ptpma")}</span>
+                <span style={val}>Included · ~€1,000</span>
+              </div>
+            )}
+            <div style={row}>
+              <span style={lbl}>{t("glance.delivery")}</span>
+              <span style={val}>{p.handover !== "—" ? p.handover : "On request"}</span>
+            </div>
+            <div style={{ ...row, borderBottom:"none" }}>
+              <span style={lbl}>{t("glance.status")}</span>
+              <span style={val}>{t(p.status)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact */}
+        <div style={{ background:"var(--tg)", borderRadius:8, overflow:"hidden" }}>
+          <div style={{ padding:"18px 20px 14px" }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:".16em", textTransform:"uppercase", color:"rgba(245,240,230,0.5)", marginBottom:6 }}>{t("wa.title")}</div>
+            <p style={{ fontSize:12.5, color:"rgba(245,240,230,0.7)", marginBottom:0, lineHeight:1.5 }}>{t("wa.sub")}</p>
+          </div>
+          <div style={{ padding:"0 20px 20px", display:"flex", flexDirection:"column", gap:10 }}>
+            <a href={waUrl} target="_blank" rel="noopener"
+              style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"#25D366", color:"white", padding:"12px 20px", borderRadius:6, fontSize:13, fontWeight:700, textDecoration:"none", fontFamily:"var(--sans)" }}>
+              ✓ {t("wa.cta")}
+            </a>
+            <button onClick={() => window.open("mailto:" + email)}
+              style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"rgba(245,240,230,0.1)", border:"1px solid rgba(245,240,230,0.25)", color:"var(--bone)", padding:"11px 20px", borderRadius:6, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"var(--sans)" }}>
+              {t("pd.enquire")} →
+            </button>
+          </div>
+        </div>
+
+        {/* Downloads */}
+        {files && (
+          <div style={{ padding:"18px", background:"var(--bone)", border:"1px solid var(--line)", borderRadius:8 }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:12 }}>{t("dl.title")}</div>
+            {files.map((f,i) => (
+              <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:i<files.length-1?"1px solid var(--line)":"none" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:28, height:28, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)", letterSpacing:".04em" }}>{f.ext||"PDF"}</div>
+                  <div>
+                    <div style={{ fontSize:13 }}>{f.name}</div>
+                    <div style={{ fontSize:11, color:"var(--ink-2)" }}>{f.size}{f.size?" · ":""}{f.url ? "" : t("dl.coming")}</div>
+                  </div>
+                </div>
+                {f.url
+                  ? <a href={f.url} target="_blank" rel="noopener" download style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--tg)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0, textDecoration:"none" }}>↓</a>
+                  : <button onClick={() => alert("File coming soon — contact us directly.")} style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--ink-2)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0 }}>↓</button>
+                }
+              </div>
+            ))}
+          </div>
         )}
+
       </div>
     );
   }
@@ -816,54 +864,6 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     );
   }
 
-  /* ── Downloads ─────────────────────────────────────────────── */
-  function Downloads({ p }) {
-    const t = useT();
-    const files = (p.downloads && p.downloads.length) ? p.downloads : null;
-    if (!files) return null;
-    return (
-      <div style={{ marginTop:20, padding:"18px", background:"var(--bone)", border:"1px solid var(--line)", borderRadius:8 }}>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:12 }}>{t("dl.title")}</div>
-        {files.map((f,i)=>(
-          <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:i<files.length-1?"1px solid var(--line)":"none" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:28, height:28, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)", letterSpacing:".04em" }}>{f.ext||'PDF'}</div>
-              <div>
-                <div style={{ fontSize:13 }}>{f.name}</div>
-                <div style={{ fontSize:11, color:"var(--ink-2)" }}>{f.size}{f.size?" · ":""}{f.url ? "" : t("dl.coming")}</div>
-              </div>
-            </div>
-            {f.url
-              ? <a href={f.url} target="_blank" rel="noopener" download
-                  style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--tg)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0, textDecoration:"none" }}>↓</a>
-              : <button onClick={()=>alert("File coming soon — contact us directly.")}
-                  style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--ink-2)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0 }}>↓</button>
-            }
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  /* ── WhatsApp CTA ──────────────────────────────────────────── */
-  function WhatsAppCTA({ p, lang }) {
-    const t = useT();
-    const title = p.title[lang] || p.title.en;
-    const msg = encodeURIComponent(`Hello! I'm interested in ${title}. Can we schedule a call?`);
-    const wa = (window.LAWANG.SETTINGS&&window.LAWANG.SETTINGS.whatsapp)||'34600000000';
-    const waUrl = `https://wa.me/${wa}?text=${msg}`;
-    return (
-      <div style={{ marginTop:14, padding:"20px", background:"var(--tg)", borderRadius:8 }}>
-        <div style={{ fontSize:10, fontWeight:700, letterSpacing:".16em", textTransform:"uppercase", color:"rgba(245,240,230,0.5)", marginBottom:6 }}>{t("wa.title")}</div>
-        <p style={{ fontSize:13, color:"rgba(245,240,230,0.78)", marginBottom:16, lineHeight:1.5 }}>{t("wa.sub")}</p>
-        <a href={waUrl} target="_blank" rel="noopener"
-          style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"#25D366", color:"white", padding:"12px 20px", borderRadius:6, fontSize:13, fontWeight:700, textDecoration:"none", fontFamily:"var(--sans)" }}>
-          ✓ {t("wa.cta")}
-        </a>
-      </div>
-    );
-  }
-
   /* ── Property — main layout ────────────────────────────────── */
   function Property({ id }) {
     const t = useT();
@@ -904,8 +904,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           {/* Gallery */}
           <Reveal><Gallery p={p} /></Reveal>
 
-          {/* Glance strip — full width */}
-          <Reveal><GlanceStrip p={p} /></Reveal>
+          {/* Tech specs strip */}
+          <Reveal><TechSpecs p={p} /></Reveal>
 
           {/* Two-column layout */}
           <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1.65fr) minmax(0,1fr)", gap:"clamp(28px,5vw,72px)", marginTop:56, alignItems:"start" }}>
@@ -922,15 +922,9 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
               <Reveal><PaymentPlan p={p} /></Reveal>
             </div>
 
-            {/* RIGHT — specs + downloads + WhatsApp + CTA (sticky) */}
+            {/* RIGHT — price · location · legal · contact (sticky) */}
             <div style={{ position:"sticky", top:80 }}>
-              <Reveal><Specifications p={p} /></Reveal>
-              <Reveal delay={60}><Downloads p={p} /></Reveal>
-              <Reveal delay={90}><WhatsAppCTA p={p} lang={lang} /></Reveal>
-              <button className="btn btn-clay" style={{ width:"100%", justifyContent:"center", marginTop:12 }}
-                onClick={()=>window.open("mailto:"+(window.LAWANG.SETTINGS&&window.LAWANG.SETTINGS.email||'hello@lawang.id'))}>
-                {t("pd.enquire")} <span className="arr">→</span>
-              </button>
+              <Reveal><PropertySidebar p={p} lang={lang} /></Reveal>
             </div>
           </div>
 
@@ -1083,7 +1077,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
       if(data.settings.rates){ L.RATES = data.settings.rates; L.EUR_TO_USD = data.settings.rates.USD||1.08; }
       L.SETTINGS = data.settings;
     }
-    L.PROPERTIES.forEach(function(p){ p.imgKeys = (p.images&&p.images.length)?p.images:[L.img('aerial')]; });
+    L.PROPERTIES.forEach(function(p){ p.imgKeys = (p.images&&p.images.length)?p.images:[]; });
     // Fetch live rates; fall back to data.json values if unavailable
     fetch('https://open.er-api.com/v6/latest/EUR')
       .then(function(r){ return r.json(); })
