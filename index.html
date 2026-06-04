@@ -359,7 +359,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </svg>
 
 <div id="loader">
-  <video id="loader-vid" autoplay muted playsinline preload="auto">
+  <video id="loader-vid" autoplay muted playsinline preload="auto"
+         poster="assets/images/frame-1.jpg">
     <source src="assets/images/Lawang-entry-video.mp4" type="video/mp4">
   </video>
   <div id="loader-ov"></div>
@@ -785,14 +786,17 @@ function dismissLoader() {
 
 window.addEventListener('load', () => {
   const vid = document.getElementById('loader-vid');
-  const MAX_MS = 14000; // fallback: salir si el video tarda más de 14 s
-  const fallback = setTimeout(dismissLoader, MAX_MS);
-  if (vid) {
-    vid.play().catch(() => { clearTimeout(fallback); dismissLoader(); });
-    vid.addEventListener('ended', () => { clearTimeout(fallback); dismissLoader(); }, { once: true });
+  let gone = false;
+  function go() { if(gone) return; gone = true; clearTimeout(hard); dismissLoader(); }
+  const hard = setTimeout(go, 14000); // salir tras 14s pase lo que pase
+
+  if(vid) {
+    vid.addEventListener('ended', go, { once:true });
+    // Si el src no carga (404, codec, etc.) — esperar 2.5s con poster y luego salir
+    vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
+    vid.play().catch(() => { if(!gone) setTimeout(go, 2500); });
   } else {
-    clearTimeout(fallback);
-    setTimeout(dismissLoader, 2000);
+    setTimeout(go, 2000);
   }
 });
 
