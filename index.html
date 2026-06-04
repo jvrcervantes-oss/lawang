@@ -126,6 +126,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 }
 #nav.light-nav .nav-link{color:rgba(26,22,18,0.7);text-shadow:none}
 #nav.light-nav .nav-link:hover{color:var(--gold)}
+#nav.light-nav .nav-link.active{color:var(--tg);font-weight:400}
 .nav-link:hover{color:var(--gold)}
 .nav-cta{
   border:1px solid rgba(190,179,165,0.7);padding:9px 24px;
@@ -606,6 +607,23 @@ function enterContent() {
       nav.classList.toggle('solid', true);
     }, { passive: true });
 
+    // ── Active nav section tracker ──────────────────────────
+    const trackedSections = ['process', 'invest', 'faq', 'contact']
+      .map(id => document.getElementById(id)).filter(Boolean);
+    const allNavLinks = document.querySelectorAll('#nav .nav-link');
+
+    function updateActiveNav() {
+      const trigger = window.scrollY + window.innerHeight * 0.38;
+      let current = null;
+      trackedSections.forEach(s => { if(s.offsetTop <= trigger) current = s.id; });
+      allNavLinks.forEach(l => {
+        const fn = l.getAttribute('onclick') || '';
+        l.classList.toggle('active', !!current && fn.includes("'"+current+"'"));
+      });
+    }
+    window.addEventListener('scroll', updateActiveNav, { passive: true });
+    updateActiveNav();
+
   }, 580);
 }
 
@@ -627,7 +645,11 @@ function scrollToMarket(e) {
 }
 
 function scrollToTop() {
-  scrollZone.scrollTo({ top: 0, behavior: 'smooth' });
+  if(inContentMode) {
+    window.location.reload();
+  } else {
+    scrollZone.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 // ── Init (invocado por dismissLoader) ─────────────────────────
