@@ -788,7 +788,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const t = useT();
     const { cur } = useApp();
     const { money, getPaymentPlan } = window.LAWANG;
-    const steps = getPaymentPlan(p);
+    const steps = (p.paymentPlan && p.paymentPlan.length) ? p.paymentPlan : getPaymentPlan(p);
     return (
       <div style={{ marginTop:60, paddingTop:40, borderTop:"1px solid var(--line)" }}>
         <div className="kicker" style={{ marginBottom:20 }}>{t("pay.title")}</div>
@@ -819,15 +819,15 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   /* ── Downloads ─────────────────────────────────────────────── */
   function Downloads({ p }) {
     const t = useT();
-    const { DOWNLOADS } = window.LAWANG;
-    const files = DOWNLOADS[p.line] || [];
+    const files = (p.downloads && p.downloads.length) ? p.downloads : null;
+    if (!files) return null;
     return (
       <div style={{ marginTop:20, padding:"18px", background:"var(--bone)", border:"1px solid var(--line)", borderRadius:8 }}>
         <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:12 }}>{t("dl.title")}</div>
         {files.map((f,i)=>(
           <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:i<files.length-1?"1px solid var(--line)":"none" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:28, height:28, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)", letterSpacing:".04em" }}>{f.ext}</div>
+              <div style={{ width:28, height:28, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)", letterSpacing:".04em" }}>{f.ext||'PDF'}</div>
               <div>
                 <div style={{ fontSize:13 }}>{f.name}</div>
                 <div style={{ fontSize:11, color:"var(--ink-2)" }}>{f.size}{f.size?" · ":""}{f.url ? "" : t("dl.coming")}</div>

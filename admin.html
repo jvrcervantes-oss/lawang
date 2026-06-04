@@ -103,6 +103,12 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
 .dl-item input{padding:7px 10px;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;color:var(--va);background:#fff;outline:none}
 .dl-item input:focus{border-color:var(--tg)}
 .dl-upload{padding:5px 7px;background:var(--rl);border:1px solid #e0dbd0;border-radius:var(--r);font-size:13px;cursor:pointer;color:var(--va);flex-shrink:0}
+.pp-item{display:grid;grid-template-columns:56px 2fr 3fr 28px;gap:8px;align-items:start;margin-bottom:6px}
+.pp-item input,.pp-item textarea{padding:7px 10px;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;color:var(--va);background:#fff;outline:none;width:100%}
+.pp-item input:focus,.pp-item textarea:focus{border-color:var(--tg)}
+.pp-item textarea{resize:vertical;min-height:54px}
+.pp-pct-hint{font-size:11px;margin-top:6px;color:var(--ss)}
+.pp-pct-hint.warn{color:#b45309}
 .dl-upload:hover{border-color:var(--sc)}
 .dl-upload:disabled{opacity:.4;cursor:default}
 .prop-row.is-hidden{opacity:.45}
@@ -434,6 +440,21 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
           <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addDownloadRow()">+ Add document</button>
         </div>
 
+        <div class="form-section">
+          <h4>Payment Plan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Leave empty to use the default plan for this property line.</span></h4>
+          <div style="display:grid;grid-template-columns:56px 2fr 3fr 28px;gap:8px;margin-bottom:4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">%</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Label</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Note</div>
+            <div></div>
+          </div>
+          <div id="f-payplan-list"></div>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:8px;flex-wrap:wrap">
+            <button type="button" class="btn-ghost" style="font-size:12px" onclick="addPaymentStep()">+ Add step</button>
+            <span class="pp-pct-hint" id="pp-pct-hint"></span>
+          </div>
+        </div>
+
       </form>
     </div>
     <div class="slide-footer">
@@ -661,6 +682,12 @@ function propertyToForm(p) {
   dlContainer.innerHTML = '';
   var dls = (p.downloads && p.downloads.length) ? p.downloads : [];
   dls.forEach(function(item){ addDownloadRow(item); });
+  // Payment plan
+  var ppContainer = document.getElementById('f-payplan-list');
+  ppContainer.innerHTML = '';
+  var pp = (p.paymentPlan && p.paymentPlan.length) ? p.paymentPlan : [];
+  pp.forEach(function(step){ addPaymentStep(step); });
+  updatePctHint();
 }
 
 function addImageSlot(url) {
@@ -795,7 +822,15 @@ function formToProperty() {
         size: row.querySelector('.dl-size').value.trim(),
         url:  row.querySelector('.dl-url').value.trim()
       };
-    }).filter(function(d){ return d.name; })
+    }).filter(function(d){ return d.name; }),
+    paymentPlan: Array.from(document.querySelectorAll('#f-payplan-list .pp-item')).map(function(row, i) {
+      return {
+        step:  i + 1,
+        pct:   parseInt(row.querySelector('.pp-pct').value)  || 0,
+        label: row.querySelector('.pp-label').value.trim(),
+        note:  row.querySelector('.pp-note').value.trim()
+      };
+    }).filter(function(s){ return s.label && s.pct > 0; })
   };
 }
 
@@ -852,6 +887,32 @@ async function changePassword() {
       toast('Password changed successfully.', 'ok');
     } else { toast('Error: ' + (d.error||'unknown'), 'err'); }
   } catch(e){ toast('Connection error.', 'err'); }
+}
+
+/* ─── PAYMENT PLAN ──────────────────────────────────────────── */
+function addPaymentStep(item) {
+  item = item || {};
+  var container = document.getElementById('f-payplan-list');
+  var div = document.createElement('div');
+  div.className = 'pp-item';
+  div.innerHTML =
+    '<input type="number" class="pp-pct" value="' + esc(item.pct||'') + '" placeholder="%" min="1" max="100" oninput="updatePctHint()">' +
+    '<input type="text"   class="pp-label" value="' + esc(item.label||'') + '" placeholder="Reservation Deposit">' +
+    '<textarea class="pp-note" placeholder="Short note shown below the label" rows="2">' + esc(item.note||'') + '</textarea>' +
+    '<button type="button" class="btn-danger" style="margin-top:2px" onclick="this.parentNode.remove();updatePctHint()" title="Remove">✕</button>';
+  container.appendChild(div);
+}
+
+function updatePctHint() {
+  var rows = document.querySelectorAll('#f-payplan-list .pp-item');
+  var hint = document.getElementById('pp-pct-hint');
+  if (!hint) return;
+  if (!rows.length) { hint.textContent = ''; return; }
+  var total = Array.from(rows).reduce(function(sum, row) {
+    return sum + (parseInt(row.querySelector('.pp-pct').value) || 0);
+  }, 0);
+  hint.textContent = 'Total: ' + total + '%' + (total !== 100 ? ' (should be 100%)' : ' ✓');
+  hint.className = 'pp-pct-hint' + (total !== 100 ? ' warn' : '');
 }
 
 /* ─── DOWNLOADS (per-property) ──────────────────────────────── */
