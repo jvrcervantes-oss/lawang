@@ -407,7 +407,7 @@ function Ph({ theme = "jungle", imgKey, src, w = 1600, label, ratio, kb = false,
   return (
     <div className={cls} style={st}>
       <div className={`ph-grad ph-${theme}`} style={{ opacity: url && loaded ? 0 : 1, transition: "opacity .8s ease" }}></div>
-      {url && <img src={url} alt="" loading="lazy" onLoad={() => setLoaded(true)} className="ph-img" style={{ opacity: loaded ? 1 : 0 }} />}
+      {url && <img src={url} alt="" onLoad={() => setLoaded(true)} className="ph-img" style={{ opacity: loaded ? 1 : 0 }} />}
       {url && tint > 0 && <div className="ph-tint" style={{ background: `linear-gradient(180deg,rgba(26,22,15,${tint*0.7}) 0%,transparent 30%,transparent 55%,rgba(26,22,15,${tint*1.6}) 100%)` }}></div>}
       {video && <div className="ph-play"><span></span></div>}
       {label && <div className="ph-label">{label}</div>}
