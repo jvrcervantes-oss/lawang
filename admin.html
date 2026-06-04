@@ -99,9 +99,14 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
 .dl-section{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;border:1px solid #e8e2d8;box-shadow:var(--sh)}
 .dl-section h3{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--dl);margin-bottom:14px}
 .dl-header{display:grid;grid-template-columns:2fr 0.6fr 0.8fr 3fr 28px;gap:8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ss);padding:0 2px;margin-bottom:6px}
-.dl-item{display:grid;grid-template-columns:2fr 0.6fr 0.8fr 3fr 28px;gap:8px;align-items:center;margin-bottom:6px}
+.dl-item{display:grid;grid-template-columns:2fr 0.6fr 0.8fr 3fr 30px 28px;gap:8px;align-items:center;margin-bottom:6px}
 .dl-item input{padding:7px 10px;border:1px solid #e0dbd0;border-radius:var(--r);font-family:'Jost',sans-serif;font-size:13px;color:var(--va);background:#fff;outline:none}
 .dl-item input:focus{border-color:var(--tg)}
+.dl-upload{padding:5px 7px;background:var(--rl);border:1px solid #e0dbd0;border-radius:var(--r);font-size:13px;cursor:pointer;color:var(--va);flex-shrink:0}
+.dl-upload:hover{border-color:var(--sc)}
+.dl-upload:disabled{opacity:.4;cursor:default}
+.prop-row.is-hidden{opacity:.45}
+.prop-hidden-badge{display:inline-block;padding:1px 7px;border-radius:30px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:#f5f0e6;color:var(--ss);margin-left:6px;vertical-align:middle}
 .dl-remove{background:transparent;border:none;color:var(--ss);font-size:16px;cursor:pointer;padding:4px;border-radius:var(--r);line-height:1}
 .dl-remove:hover{color:var(--danger);background:#fff5f5}
 
@@ -310,6 +315,10 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
               <label>Handover date</label>
               <input type="text" id="f-handover" placeholder="Q4 2026">
             </div>
+          </div>
+          <div class="cb-group">
+            <input type="checkbox" id="f-visible" checked>
+            <label for="f-visible">Visible in marketplace <span class="muted">(uncheck to hide from public portfolio)</span></label>
           </div>
           <div class="cb-group">
             <input type="checkbox" id="f-featured">
@@ -579,8 +588,9 @@ function renderProperties() {
   }
   var rows = DATA.properties.map(function(p) {
     var name = (p.title && p.title.en) || p.id;
-    return '<div class="prop-row">' +
-      '<div><div class="prop-name">' + esc(name) + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
+    var hidden = p.visible === false;
+    return '<div class="prop-row' + (hidden ? ' is-hidden' : '') + '">' +
+      '<div><div class="prop-name">' + esc(name) + (hidden ? '<span class="prop-hidden-badge">hidden</span>' : '') + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
       '<div><span class="line-badge line-' + esc(p.line) + '">' + esc(p.line) + '</span></div>' +
       '<div class="prop-price">' + fmtPrice(p.priceEUR) + '</div>' +
       '<div class="muted">' + esc((p.status||'').replace('status.','')) + '</div>' +
@@ -616,6 +626,7 @@ function propertyToForm(p) {
     var el = document.getElementById(id); if (!el) return;
     if (el.type === 'checkbox') el.checked = !!val; else el.value = val == null ? '' : val;
   }
+  set('f-visible',     p.visible !== false);
   set('f-line',        p.line        || 'signature');
   set('f-regionKey',   p.regionKey   || 'bali');
   set('f-region',      p.region      || '');
@@ -753,6 +764,7 @@ function formToProperty() {
   });
   return {
     id:          id,
+    visible:     get('f-visible'),
     line:        get('f-line'),
     region:      get('f-region'),
     regionKey:   regionKey,
@@ -852,9 +864,36 @@ function addDownloadRow(item) {
     '<input type="text" class="dl-name" value="' + esc(item.name||'') + '" placeholder="Document name">' +
     '<input type="text" class="dl-ext"  value="' + esc(item.ext||'PDF') + '" placeholder="PDF">' +
     '<input type="text" class="dl-size" value="' + esc(item.size||'') + '" placeholder="2.4 MB">' +
-    '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="/assets/docs/brochure.pdf">' +
+    '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="/docs/brochure.pdf">' +
+    '<button class="dl-upload" type="button" onclick="uploadDocForRow(this)" title="Upload file">↑</button>' +
     '<button class="dl-remove" type="button" onclick="this.parentNode.remove()" title="Remove">✕</button>';
   container.appendChild(div);
+}
+
+async function uploadDocForRow(btn) {
+  var row = btn.parentNode;
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf,.doc,.docx,.zip';
+  fileInput.onchange = async function() {
+    if (!fileInput.files.length) return;
+    var file = fileInput.files[0];
+    btn.disabled = true; btn.textContent = '…';
+    var fd = new FormData(); fd.append('file', file);
+    try {
+      var r = await fetch('api/upload-doc.php', { method:'POST', credentials:'include', body: fd });
+      var d = await r.json();
+      if (d.ok) {
+        row.querySelector('.dl-url').value  = d.url;
+        row.querySelector('.dl-ext').value  = d.ext;
+        row.querySelector('.dl-size').value = d.size;
+        if (!row.querySelector('.dl-name').value) row.querySelector('.dl-name').value = file.name.replace(/\.[^.]+$/, '');
+        toast('Document uploaded.', 'ok');
+      } else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
+    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+    finally { btn.disabled = false; btn.textContent = '↑'; }
+  };
+  fileInput.click();
 }
 
 /* ─── IMAGES ────────────────────────────────────────────────── */

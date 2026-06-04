@@ -526,8 +526,9 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const [line, setLine] = useState("all");
     const [region, setRegion] = useState("all");
     const [layout, setLayout] = useState("grid");
-    const featured = PROPERTIES.find((p) => p.featured);
+    const featured = PROPERTIES.find((p) => p.featured && p.visible !== false);
     const filtered = useMemo(() => PROPERTIES.filter((p) =>
+      p.visible !== false &&
       (line === "all" || p.line === line) && (region === "all" || p.regionKey === region)
     ), [line, region]);
     const lineDescs = { signature:"line.signature.d", land:"line.land.d", villa:"line.villa.d", resorts:"line.resorts.d" };
