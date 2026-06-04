@@ -1,6 +1,6 @@
 # Server-managed files — never overwrite on deploy
 data.json
-images/
+/images/
 api/.passhash
 
 # Local only
