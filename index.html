@@ -171,12 +171,12 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #vid-progress-bar{height:100%;background:rgba(190,179,165,0.4);width:0%}
 
 /* Loader */
-#loader{position:fixed;inset:0;z-index:1000;overflow:hidden;transition:opacity 0.8s ease}
+#loader{position:fixed;top:0;left:0;width:100%;height:100%;background:#060A06;z-index:1000;transition:opacity 0.8s ease}
 #loader.out{opacity:0;pointer-events:none}
-#loader-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-#loader-ov{position:absolute;inset:0;background:rgba(0,0,0,0.28);z-index:1}
-#loader-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:2}
-#loader-skip{position:absolute;bottom:2rem;right:2.5rem;z-index:2;background:none;border:1px solid rgba(245,240,230,0.3);color:rgba(245,240,230,0.5);font-family:'Jost',sans-serif;font-size:0.48rem;letter-spacing:0.4em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.3s}
+#loader-vid{display:block;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+#loader-ov{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.25)}
+#loader-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+#loader-skip{position:absolute;bottom:2rem;right:2.5rem;background:none;border:1px solid rgba(245,240,230,0.3);color:rgba(245,240,230,0.5);font-family:'Jost',sans-serif;font-size:0.48rem;letter-spacing:0.4em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.3s}
 #loader-skip:hover{border-color:rgba(245,240,230,0.7);color:rgba(245,240,230,0.9)}
 .loader-logo{font-family:'Jost',sans-serif;font-weight:400;font-size:1.6rem;letter-spacing:0.55em;color:#fff;text-transform:uppercase}
 .loader-sub{font-family:'Jost',sans-serif;font-weight:200;font-size:0.42rem;letter-spacing:0.65em;color:rgba(190,179,165,0.5);text-transform:uppercase;margin-top:0.6rem}
