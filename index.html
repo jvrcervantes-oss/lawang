@@ -397,8 +397,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div id="overlay"></div>
 </div>
 
-<!-- Marketplace entry hint -->
-<div id="enter-market-hint"><a href="portfolio.html" class="hint-text" style="text-decoration:none;cursor:pointer">↓ Explore the portfolio</a></div>
+<!-- Content entry hint -->
+<div id="enter-market-hint">
+  <a href="javascript:void(0)" onclick="enterContent()" class="hint-text" style="text-decoration:none;cursor:pointer">↓ Discover more</a>
+</div>
 
 <!-- Fixed UI -->
 <div id="logo">
@@ -412,7 +414,9 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </div>
 <nav id="nav">
   <a class="nav-link" href="javascript:void(0)" onclick="scrollToTop()">The Estate</a>
-  <a class="nav-link" href="javascript:void(0)">Location</a>
+  <a class="nav-link nav-content" href="#process"  style="display:none">Process</a>
+  <a class="nav-link nav-content" href="#invest"   style="display:none">Why Invest</a>
+  <a class="nav-link nav-content" href="#faq"      style="display:none">FAQ</a>
   <a class="nav-link" href="portfolio.html">Portfolio</a>
   <a class="nav-cta" href="portfolio.html">Invest</a>
 </nav>
@@ -665,6 +669,78 @@ function onScroll() {
   }
 }
 
+// ── Content sections transition ───────────────────────────────
+let inContentMode = false;
+
+function enterContent() {
+  if(inContentMode) return;
+  inContentMode = true;
+
+  // Stop any playing video
+  if(playingVid >= 0) {
+    vids[playingVid].pause();
+    vids[playingVid].classList.remove('active','ending');
+    cancelAnimationFrame(rafId);
+    vidWrap.classList.remove('show');
+    playingVid = -1;
+  }
+
+  // Fade out stage
+  stage.style.transition = 'opacity 0.55s ease';
+  stage.style.opacity = '0';
+  sceneText.classList.add('hidden');
+  counter.classList.add('hidden');
+  coord.classList.add('hidden');
+  scrollHint.classList.add('hidden');
+  mktHint.classList.remove('show');
+
+  setTimeout(() => {
+    // Kill cinematic scroll
+    stage.style.display = 'none';
+    scrollZone.style.overflow = 'hidden';
+    scrollZone.style.pointerEvents = 'none';
+
+    // Unlock normal body scroll
+    document.body.style.overflow = 'auto';
+    document.body.style.overflowX = 'hidden';
+
+    // Show content
+    const cs = document.getElementById('content-sections');
+    cs.style.display = 'block';
+    setTimeout(() => cs.classList.add('visible'), 30);
+
+    // Nav → content mode (light)
+    nav.style.opacity = '1';
+    nav.style.pointerEvents = 'auto';
+    logo.style.opacity = '1';
+    logo.style.pointerEvents = 'auto';
+    logo.classList.add('dark');
+    nav.classList.add('solid', 'light-nav');
+    document.querySelectorAll('.nav-content').forEach(el => { el.style.display = ''; });
+
+    // Wire up reveals & FAQ now that sections are in the DOM
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); }});
+    }, { threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
+    document.querySelectorAll('#content-sections .reveal').forEach(el => obs.observe(el));
+
+    document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.cs-faq-item');
+        const open = item.classList.contains('open');
+        document.querySelectorAll('#content-sections .cs-faq-item.open').forEach(i => i.classList.remove('open'));
+        if(!open) item.classList.add('open');
+      });
+    });
+
+    // Nav background on scroll
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('solid', true); // always solid in content mode
+    }, { passive: true });
+
+  }, 580);
+}
+
 // ── Navigation helpers ────────────────────────────────────────
 function scrollToMarket(e) {
   if(e) e.preventDefault();
@@ -708,6 +784,474 @@ let mx=0,my=0,rx=0,ry=0;
 document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.style.left=mx+'px'; cur.style.top=my+'px'; });
 (function loop(){ rx+=(mx-rx)*0.11; ry+=(my-ry)*0.11; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(loop); })();
 </script>
+
+<!-- ═══════════════════════════════════════════
+     CONTENT SECTIONS — appear after cinematic
+     ═══════════════════════════════════════════ -->
+<style>
+/* ── Content section tokens ──────────────────────────────────── */
+#content-sections {
+  --cb:  #F5F0E6;   /* bone */
+  --cb2: #EBE4D6;   /* bone dark */
+  --ci:  #2E3437;   /* ink */
+  --ci2: #5A5048;   /* ink 2 */
+  --ci3: #8A7A6A;   /* ink 3 */
+  --ca:  #485B37;   /* accent green */
+  --cal: #8F9B7A;   /* accent light */
+  --cd:  #141A11;   /* dark bg */
+  --cdl: #104C4F;   /* deep lagoon */
+  --cl:  #D8CEBC;   /* line */
+  --cse: 'Cormorant Garamond', Georgia, serif;
+  --csa: 'Jost', system-ui, sans-serif;
+  --cpd: clamp(22px,5vw,72px);
+  --cmx: 1280px;
+  font-family: var(--csa);
+  color: var(--ci);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+#content-sections { display: none; opacity: 0; transition: opacity 0.5s ease; }
+#content-sections.visible { opacity: 1; }
+
+/* ── Shared layout ───────────────────────────────────────────── */
+.cs-wrap { max-width: var(--cmx); margin: 0 auto; padding-inline: var(--cpd); }
+.cs-pad  { padding-block: clamp(72px,9vw,130px); }
+
+/* ── Reveal ──────────────────────────────────────────────────── */
+#content-sections .reveal { opacity: 0; transform: translateY(20px);
+  transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1); }
+#content-sections .reveal.in { opacity: 1; transform: none; }
+
+/* ── Typography helpers ──────────────────────────────────────── */
+.cs-kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase;
+  color: var(--ca); font-family: var(--csa); }
+.cs-display { font-family: var(--cse); font-weight: 400; line-height: .96; letter-spacing: -.01em; }
+.cs-display em { font-style: italic; }
+
+/* ── Badges ──────────────────────────────────────────────────── */
+.cs-badge-fh { display: inline-flex; align-items: center; gap: 7px;
+  background: var(--ca); color: #D4EDD9; padding: 5px 13px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.cs-badge-fh::before { content: '◆'; font-size: 8px; }
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.cs-btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 28px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  border: 1px solid transparent; transition: background .22s, color .22s, border-color .22s; text-decoration: none; cursor: pointer; font-family: var(--csa); }
+.cs-btn .arr { transition: transform .28s cubic-bezier(.16,1,.3,1); }
+.cs-btn:hover .arr { transform: translateX(5px); }
+.cs-btn-green { background: var(--ca); color: var(--cb); border-color: var(--ca); }
+.cs-btn-green:hover { background: #364429; border-color: #364429; }
+.cs-btn-outline { border-color: var(--ca); color: var(--ca); }
+.cs-btn-outline:hover { background: var(--ca); color: var(--cb); }
+.cs-btn-bone { border-color: rgba(245,240,230,.45); color: var(--cb); }
+.cs-btn-bone:hover { background: rgba(245,240,230,.12); border-color: rgba(245,240,230,.7); }
+
+/* ── 01 · PROCESS ────────────────────────────────────────────── */
+.cs-process { background: var(--ci); color: var(--cb); }
+.cs-phases { display: grid; grid-template-columns: 1fr 2fr; gap: clamp(28px,5vw,80px); margin-top: 56px; }
+.cs-ph-aside { position: sticky; top: 90px; align-self: start; }
+.cs-ph-aside-h { font-family: var(--cse); font-size: clamp(26px,3.2vw,44px); font-weight: 300; line-height: 1.1; opacity: .9; }
+.cs-ph-aside-sub { font-family: var(--cse); font-style: italic; font-size: clamp(14px,1.4vw,17px); color: var(--cal); opacity: .7; margin-top: 14px; }
+.cs-ph-steps { display: flex; flex-direction: column; gap: 0; }
+.cs-ph-card { display: grid; grid-template-columns: 52px 1fr; gap: 24px; padding: 32px 0;
+  border-top: 1px solid rgba(143,155,122,.18); }
+.cs-ph-card:last-child { border-bottom: 1px solid rgba(143,155,122,.18); }
+.cs-ph-num  { font-family: var(--cse); font-size: 22px; font-weight: 300; color: var(--cal); line-height: 1; padding-top: 4px; opacity: .7; }
+.cs-ph-content { display: flex; flex-direction: column; gap: 8px; }
+.cs-ph-title { font-family: var(--cse); font-size: clamp(18px,2vw,24px); font-weight: 300; line-height: 1.2; }
+.cs-ph-sub  { font-style: italic; font-size: 13px; color: var(--cal); opacity: .72; }
+.cs-ph-bullets { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+.cs-ph-bullets li { font-size: 13.5px; opacity: .65; line-height: 1.55; display: flex; align-items: flex-start; gap: 10px; }
+.cs-ph-bullets li::before { content: '—'; color: var(--cal); flex-shrink: 0; opacity: .55; }
+
+/* ── 02 · INVEST ─────────────────────────────────────────────── */
+.cs-invest { background: var(--cb2); }
+.cs-inv-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px;
+  background: var(--cl); border: 1px solid var(--cl); margin-top: 52px; }
+.cs-inv-card { background: var(--cb); padding: 32px 28px 36px; display: flex; flex-direction: column; gap: 11px; }
+.cs-inv-card.fh { background: #EFF8F2; grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+.cs-inv-title { font-family: var(--cse); font-size: clamp(20px,2vw,26px); font-weight: 300; line-height: 1.15; }
+.cs-inv-body  { font-size: 13.5px; color: var(--ci2); line-height: 1.7; }
+.cs-inv-card.fh .cs-inv-title { color: var(--ca); font-size: clamp(22px,2.4vw,30px); }
+.cs-inv-disc { margin-top: 0; padding: 18px 20px; background: rgba(72,91,55,.06);
+  border: 1px solid rgba(72,91,55,.18); font-size: 12px; color: var(--ci3); line-height: 1.65; }
+
+/* ── 03 · PAYMENT ────────────────────────────────────────────── */
+.cs-payment { background: var(--cb); }
+.cs-pay-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: clamp(32px,5vw,80px); align-items: start; margin-top: 48px; }
+.cs-pay-steps { display: flex; flex-direction: column; }
+.cs-pay-step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 18px 0;
+  border-bottom: 1px solid var(--cl); align-items: start; }
+.cs-pay-step:first-child { border-top: 1px solid var(--cl); }
+.cs-ps-n { font-family: var(--cse); font-size: 26px; font-weight: 200; color: var(--ca); line-height: 1; padding-top: 2px; }
+.cs-ps-t { font-size: 13.5px; font-weight: 600; letter-spacing: .03em; margin-bottom: 4px; }
+.cs-ps-d { font-size: 13px; color: var(--ci2); line-height: 1.55; }
+.cs-pay-aside { background: var(--cb2); padding: 28px 24px 32px; border: 1px solid var(--cl); position: sticky; top: 82px; }
+.cs-pa-title { font-family: var(--cse); font-size: 22px; font-weight: 300; margin-bottom: 16px; }
+.cs-pa-note  { font-size: 13px; color: var(--ci2); line-height: 1.65; margin-bottom: 14px; }
+
+/* ── 04 · FAQ ────────────────────────────────────────────────── */
+.cs-faq { background: var(--cb2); }
+.cs-faq-list { margin-top: 46px; border-top: 1px solid var(--cl); }
+.cs-faq-item { border-bottom: 1px solid var(--cl); }
+.faq-q { display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 0; cursor: pointer; gap: 20px; user-select: none; }
+.faq-q-t { font-family: var(--cse); font-size: clamp(16px,1.8vw,21px); font-weight: 400; }
+.cs-faq-icon { width: 26px; height: 26px; border: 1px solid var(--cl); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 15px; color: var(--ca); transition: transform .35s, border-color .2s; }
+.cs-faq-item.open .cs-faq-icon { transform: rotate(45deg); border-color: var(--ca); }
+.cs-faq-a { max-height: 0; overflow: hidden; transition: max-height .45s cubic-bezier(.2,.7,.2,1); }
+.cs-faq-a-i { padding: 0 48px 20px 0; font-size: 14px; color: var(--ci2); line-height: 1.74; max-width: 72ch; }
+.cs-faq-item.open .cs-faq-a { max-height: 600px; }
+
+/* ── 05 · TRACK RECORD ───────────────────────────────────────── */
+.cs-track { background: var(--cd); color: var(--cb); position: relative; overflow: hidden; }
+.cs-track::before { content: ''; position: absolute; inset: 0;
+  background-image: url('assets/images/aerial-1.jpg'); background-size: cover; background-position: center 30%; opacity: .08; }
+.cs-track > .cs-wrap { position: relative; }
+.cs-tr-stats { display: grid; grid-template-columns: repeat(4,1fr);
+  border-top: 1px solid rgba(245,240,230,.1); margin-top: 52px; }
+.cs-tr-stat { padding: 32px 20px 36px; border-right: 1px solid rgba(245,240,230,.07); }
+.cs-tr-stat:last-child { border-right: none; }
+.cs-tr-n { font-family: var(--cse); font-size: clamp(44px,5.5vw,72px); font-weight: 400;
+  color: var(--cal); line-height: 1; }
+.cs-tr-l { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; opacity: .4; margin-top: 10px; }
+.cs-track-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: clamp(36px,5vw,88px); margin-top: 60px; }
+.cs-track-text { font-family: var(--cse); font-size: clamp(18px,2.1vw,24px); font-weight: 400; line-height: 1.6; opacity: .82; }
+.cs-testi-ph { font-size: 13px; font-family: var(--cse); font-style: italic; opacity: .26;
+  padding: 20px 22px; border: 1px dashed rgba(245,240,230,.12); }
+
+/* ── 06 · CTA ────────────────────────────────────────────────── */
+.cs-cta { position: relative; overflow: hidden; color: var(--cb); }
+.cs-cta-bg { position: absolute; inset: 0;
+  background: radial-gradient(140% 100% at 60% 0%, #1e3a1e 0%, transparent 52%),
+    linear-gradient(160deg, #104C4F, #0A1210); }
+.cs-cta-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .28; }
+.cs-cta-ov  { position: absolute; inset: 0; background: linear-gradient(160deg,rgba(16,24,14,.75) 0%,rgba(16,76,79,.45) 100%); }
+.cs-cta-content { position: relative; text-align: center; padding-block: clamp(80px,12vw,160px); }
+.cs-cta-h { font-family: var(--cse); font-size: clamp(38px,6.5vw,96px); font-weight: 200;
+  line-height: .94; letter-spacing: -.02em; max-width: 14ch; margin: 0 auto 22px; }
+.cs-cta-h em { font-style: italic; }
+.cs-cta-sub { font-size: clamp(14px,1.5vw,17px); opacity: .72; max-width: 52ch; margin: 0 auto 14px; line-height: 1.62; }
+.cs-cta-bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 36ch;
+  margin: 26px auto; text-align: left; font-size: 13.5px; opacity: .82; }
+.cs-cta-bullets li { display: flex; align-items: flex-start; gap: 12px; }
+.cs-cta-bullets li::before { content: '◆'; color: var(--cal); font-size: 8px; flex-shrink: 0; margin-top: 4px; }
+.cs-cta-btns { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 34px; }
+
+/* ── FOOTER ──────────────────────────────────────────────────── */
+.cs-footer { background: #0A0C09; color: var(--cb); padding: 52px 0 28px; }
+.cs-ft-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 36px; margin-bottom: 36px; }
+.cs-ft-logo { font-family: var(--cse); font-size: 20px; margin-bottom: 12px; }
+.cs-ft-tag  { font-size: 13px; opacity: .48; line-height: 1.6; max-width: 26ch; }
+.cs-ft-col h5 { font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; opacity: .36; margin-bottom: 13px; }
+.cs-ft-col a { display: block; font-size: 13px; opacity: .55; margin-bottom: 7px; transition: opacity .2s; cursor: pointer; }
+.cs-ft-col a:hover { opacity: 1; }
+.cs-ft-rule { height: 1px; background: rgba(245,240,230,.09); margin-bottom: 18px; }
+.cs-ft-bottom { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-size: 11px; opacity: .3; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media(max-width:780px){
+  .cs-phases { grid-template-columns: 1fr; }
+  .cs-ph-aside { position: static; }
+  .cs-ph-card { grid-template-columns: 36px 1fr; }
+  .cs-inv-grid { grid-template-columns: 1fr; }
+  .cs-inv-card.fh { grid-column: auto; grid-template-columns: 1fr; }
+  .cs-pay-grid { grid-template-columns: 1fr; }
+  .cs-pay-aside { position: static; }
+  .cs-tr-stats { grid-template-columns: 1fr 1fr; }
+  .cs-tr-stat { border-right: none; border-bottom: 1px solid rgba(245,240,230,.07); }
+  .cs-track-body { grid-template-columns: 1fr; }
+  .cs-ft-grid { grid-template-columns: 1fr; }
+}
+@media(max-width:640px){ .cs-ph-card { grid-template-columns: 32px 1fr; gap:16px; } }
+</style>
+
+<!-- Content sections wrapper (shown after cinematic transition) -->
+<div id="content-sections">
+
+<!-- ── 01 · PROCESS ────────────────────────────────────────── -->
+<section class="cs-process cs-pad" id="process">
+  <div class="cs-wrap">
+    <div class="cs-phases">
+      <div class="cs-ph-aside reveal">
+        <div class="cs-kicker" style="color:var(--cal);opacity:.7">From first call to front-door key</div>
+        <h2 class="cs-ph-aside-h" style="margin-top:14px">We handle every step —<br>you collect the result.</h2>
+        <p class="cs-ph-aside-sub">The hard work is done before you arrive.</p>
+        <div style="margin-top:36px">
+          <a href="#contact" class="cs-btn cs-btn-bone">Talk to the team <span class="arr">→</span></a>
+        </div>
+      </div>
+      <div class="cs-ph-steps">
+        <div class="cs-ph-card reveal" style="transition-delay:60ms">
+          <div class="cs-ph-num">01</div>
+          <div class="cs-ph-content">
+            <div class="cs-ph-title">We acquire, legalise &amp; build</div>
+            <div class="cs-ph-sub">The hard work is already done when you arrive.</div>
+            <ul class="cs-ph-bullets">
+              <li>Land acquisition with own capital</li>
+              <li>Individual title certificate per plot</li>
+              <li>Steel frame construction</li>
+              <li>Monthly progress reports with photos</li>
+            </ul>
+          </div>
+        </div>
+        <div class="cs-ph-card reveal" style="transition-delay:120ms">
+          <div class="cs-ph-num">02</div>
+          <div class="cs-ph-content">
+            <div class="cs-ph-title">Your PT PMA and Freehold — in under a week</div>
+            <div class="cs-ph-sub">The strongest legal ownership structure in Southeast Asia.</div>
+            <ul class="cs-ph-bullets">
+              <li>PT PMA company formation (~€1,000)</li>
+              <li>Contract signing and documentation</li>
+              <li>HGB title registration</li>
+              <li>Coordination with your tax advisor</li>
+            </ul>
+          </div>
+        </div>
+        <div class="cs-ph-card reveal" style="transition-delay:180ms">
+          <div class="cs-ph-num">03</div>
+          <div class="cs-ph-content">
+            <div class="cs-ph-title">Handover — and first rental in 90 days</div>
+            <div class="cs-ph-sub">You collect. We coordinate.</div>
+            <ul class="cs-ph-bullets">
+              <li>Handover with complete documentation</li>
+              <li>Rental manager onboarding</li>
+              <li>First income within &lt;90 days</li>
+              <li>Delegated management at 20% of gross</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 02 · WHY INVEST ──────────────────────────────────────── -->
+<section class="cs-invest cs-pad" id="invest">
+  <div class="cs-wrap">
+    <div class="reveal">
+      <div class="cs-kicker" style="margin-bottom:20px">The investment case</div>
+      <h2 class="cs-display" style="font-size:clamp(30px,4.8vw,66px);max-width:18ch">Why Indonesia. Why Balian. Why now.</h2>
+    </div>
+    <div class="cs-inv-grid">
+      <div class="cs-inv-card fh reveal" style="transition-delay:0ms">
+        <div>
+          <div class="cs-inv-title">Real ownership — not leasehold</div>
+          <div style="margin-top:14px"><span class="cs-badge-fh">FREEHOLD HGB · PT PMA</span></div>
+        </div>
+        <div>
+          <p class="cs-inv-body">Most Bali properties are sold on leasehold (30+15 years). Lawang operates through HGB freehold titles held via your own PT PMA company. You own the land. Not a lease — the actual asset. This is the single most important differentiator in the Bali investment market today.</p>
+        </div>
+      </div>
+      <div class="cs-inv-card reveal" style="transition-delay:80ms">
+        <div class="cs-inv-title">An emerging zone</div>
+        <p class="cs-inv-body">Balian Hills sits 15 minutes west of Canggu — the fastest-growing zone in Bali. Where Canggu is saturated, Balian still has horizon. Land prices are rising as infrastructure catches up. Early ownership here is the same position Canggu buyers had ten years ago.</p>
+      </div>
+      <div class="cs-inv-card reveal" style="transition-delay:140ms">
+        <div class="cs-inv-title">Architectural value</div>
+        <p class="cs-inv-body">Lawang villas are built on steel frames with locally sourced tropical materials — designed for durability, cross-ventilation, and the kind of indoor-outdoor living that commands premium rental rates. A property built to last, in a market that rewards design.</p>
+      </div>
+      <div class="cs-inv-card reveal" style="transition-delay:200ms">
+        <div class="cs-inv-title">Yield and lifestyle</div>
+        <p class="cs-inv-body">Bali's tourist arrivals reached record levels in 2024, with structural undersupply in design-led stays. Historically, well-positioned villas in the west coast corridor have achieved occupancy rates above 80% in high season. Managed by our partner operator from day one.</p>
+      </div>
+      <div class="cs-inv-card reveal" style="transition-delay:240ms;grid-column:1/-1;padding:0;">
+        <div class="cs-inv-disc">All yield figures are historical and indicative. Past performance does not guarantee future results. ROI projections are estimates only. This page does not constitute a financial offer.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 03 · PAYMENT PLAN ────────────────────────────────────── -->
+<section class="cs-payment cs-pad" id="payment">
+  <div class="cs-wrap">
+    <div class="reveal">
+      <div class="cs-kicker" style="margin-bottom:20px">How it works</div>
+      <h2 class="cs-display" style="font-size:clamp(30px,4.5vw,64px);max-width:18ch">Simple structure. No surprises.</h2>
+    </div>
+    <div class="cs-pay-grid">
+      <div class="cs-pay-steps reveal">
+        <div class="cs-pay-step">
+          <div class="cs-ps-n">01</div>
+          <div>
+            <div class="cs-ps-t">Reservation deposit</div>
+            <div class="cs-ps-d">Locks your plot while you complete due diligence. Refundable subject to conditions.</div>
+          </div>
+        </div>
+        <div class="cs-pay-step">
+          <div class="cs-ps-n">02</div>
+          <div>
+            <div class="cs-ps-t">Contract &amp; PT PMA</div>
+            <div class="cs-ps-d">Main payment at signing. HGB title process and PT PMA formation begin immediately.</div>
+          </div>
+        </div>
+        <div class="cs-pay-step">
+          <div class="cs-ps-n">03</div>
+          <div>
+            <div class="cs-ps-t">Construction milestone</div>
+            <div class="cs-ps-d">Tranche linked to verified on-site construction milestone. Checked before payment is due.</div>
+          </div>
+        </div>
+        <div class="cs-pay-step">
+          <div class="cs-ps-n">04</div>
+          <div>
+            <div class="cs-ps-t">Handover</div>
+            <div class="cs-ps-d">Final payment on delivery: HGB title, PT PMA certificate, and villa snagging sign-off.</div>
+          </div>
+        </div>
+        <div class="cs-pay-step">
+          <div class="cs-ps-n" style="color:var(--ca);opacity:.6">+</div>
+          <div>
+            <div class="cs-ps-t">PT PMA formation</div>
+            <div class="cs-ps-d">Your Indonesian company. Full legal setup coordinated separately, ~€1,000.</div>
+          </div>
+        </div>
+      </div>
+      <div class="cs-pay-aside reveal" style="transition-delay:120ms">
+        <div class="cs-pa-title">Start with a conversation</div>
+        <p class="cs-pa-note">The exact payment structure is confirmed during your first call with our team. We walk you through every step — from reservation to rental income.</p>
+        <p class="cs-pa-note">Financing options for qualified investors available on request. No public commitment required to enquire.</p>
+        <a href="#contact" class="cs-btn cs-btn-green" style="width:100%;justify-content:center;margin-top:8px">Get investment details <span class="arr">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 04 · FAQ ──────────────────────────────────────────────── -->
+<section class="cs-faq cs-pad" id="faq">
+  <div class="cs-wrap">
+    <div class="reveal">
+      <div class="cs-kicker" style="margin-bottom:20px">Questions</div>
+      <h2 class="cs-display" style="font-size:clamp(30px,4.5vw,64px);max-width:18ch">What we get asked most.</h2>
+    </div>
+    <div class="cs-faq-list reveal" style="transition-delay:100ms">
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">What type of ownership do I get?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">HGB Freehold title, held through your own PT PMA (Indonesian limited company). This is the strongest form of legal ownership available to foreign investors in Indonesia — not a 30-year lease, but a registered title in a company you own. Our legal team handles the full PT PMA formation process for approximately €1,000.</div></div>
+      </div>
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">Can I buy as a foreign national?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">Yes. Foreign nationals cannot hold property in Indonesia under their personal name — but they can own it legally through an Indonesian company (PT PMA) that they control 100%. Lawang coordinates the full PT PMA formation: registration, legal documentation and ongoing compliance support. This is the standard structure used by thousands of international investors in Bali.</div></div>
+      </div>
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">Is it for living or for investing?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">Both. Every Lawang property is designed for premium private living and for competitive rental returns. Many owners split their time — staying several weeks a year and renting for the rest through our managed programme. The freehold structure means the asset is yours the way a primary residence would be.</div></div>
+      </div>
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">How does the purchase process work?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">1. Discovery call — we understand your goals and confirm availability. 2. Reservation — a deposit locks your plot while you complete due diligence. 3. PT PMA + contract — legal structure formed, HGB title process begins. 4. Construction — steel frame build with monthly photo updates. 5. Handover — complete documentation, snagging sign-off, and rental manager introduction. First rental income typically within 90 days of handover.</div></div>
+      </div>
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">Where exactly is Balian Hills?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">On the west coast of Bali — 15 minutes from Canggu, 2 minutes from Amazona Jungle Resort, and 6 minutes from Best Sun School. The area combines jungle calm with access to Bali's most dynamic social corridor. It is where Canggu was a decade ago.</div></div>
+      </div>
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">What returns can I expect?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">We do not provide guaranteed yield figures. Historically, well-managed design-led villas on Bali's west coast have achieved 75–85% occupancy in high season, with average daily rates that have tracked tourism demand. Specific rental projections for each property are shared during our investor call. All figures are estimates based on historical performance — not a guarantee of future returns.</div></div>
+      </div>
+
+      <div class="cs-faq-item">
+        <div class="faq-q"><span class="faq-q-t">Do you also have land for sale?</span><span class="cs-faq-icon">+</span></div>
+        <div class="cs-faq-a"><div class="cs-faq-a-i">Yes. Titled land parcels are available in both Balian Hills (Bali) and Sumba. They come with full due diligence, road access, and utility connections to the boundary. You can build using a Lawang typology or your own architect. See the full portfolio at the link below.</div></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── 05 · TRACK RECORD ─────────────────────────────────────── -->
+<section class="cs-track cs-pad">
+  <div class="cs-wrap">
+    <div class="reveal">
+      <div class="cs-kicker" style="color:var(--cal);opacity:.7;margin-bottom:20px">Track record</div>
+      <h2 class="cs-display" style="font-size:clamp(30px,4.8vw,66px);max-width:20ch;color:var(--cb)">More than 50 homes delivered. This is the next step.</h2>
+    </div>
+    <div class="cs-tr-stats reveal" style="transition-delay:100ms">
+      <div class="cs-tr-stat"><div class="cs-tr-n">+50</div><div class="cs-tr-l">Villas built &amp; delivered</div></div>
+      <div class="cs-tr-stat"><div class="cs-tr-n">+200</div><div class="cs-tr-l">Hectares of land</div></div>
+      <div class="cs-tr-stat"><div class="cs-tr-n">2</div><div class="cs-tr-l">Active regions</div></div>
+      <div class="cs-tr-stat"><div class="cs-tr-n" style="font-size:clamp(24px,2.8vw,42px)">Balian<br>+ Sumba</div><div class="cs-tr-l">Bali &amp; Sumba Island</div></div>
+    </div>
+    <div class="cs-track-body">
+      <div class="cs-track-text reveal">
+        We don't sell from Spain with renders. Lawang has been operating on the ground in Bali since day one — acquiring land with our own capital, building with our own construction team, and handing over completed homes with verified freehold title. Every villa in our portfolio was built by the same team that will build yours.
+      </div>
+      <div class="reveal" style="transition-delay:120ms">
+        <div class="cs-testi-ph">Client testimonials — coming soon. Contact us to speak directly with previous buyers.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 06 · CTA ──────────────────────────────────────────────── -->
+<section class="cs-cta" id="contact">
+  <div class="cs-cta-bg"></div>
+  <img class="cs-cta-img" src="assets/images/frame-1.jpg" alt="Lawang Estate, Bali" loading="lazy">
+  <div class="cs-cta-ov"></div>
+  <div class="cs-wrap cs-cta-content">
+    <div class="reveal">
+      <h2 class="cs-cta-h">The door is open.<br><em>For now.</em></h2>
+      <p class="cs-cta-sub">Reserve your plot and lock today's price. The team walks you through every step — from first call to first rental income.</p>
+      <ul class="cs-cta-bullets">
+        <li>Freehold HGB — real ownership, not leasehold</li>
+        <li>+50 villas delivered — not renders</li>
+        <li>PT PMA included — your Indonesian company in a week</li>
+        <li>Rental management coordinated from day one</li>
+      </ul>
+      <div class="cs-cta-btns">
+        <a href="mailto:hello@lawang.id" class="cs-btn cs-btn-green">Talk to the team <span class="arr">→</span></a>
+        <a href="https://wa.me/34600000000" target="_blank" rel="noopener" class="cs-btn cs-btn-bone">WhatsApp us</a>
+        <a href="portfolio.html" class="cs-btn cs-btn-bone">Explore the portfolio <span class="arr">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────────────── -->
+<footer class="cs-footer">
+  <div class="cs-wrap">
+    <div class="cs-ft-grid">
+      <div>
+        <div class="cs-ft-logo">Lawang</div>
+        <p class="cs-ft-tag">Tropical Properties · Balian Hills, Bali &amp; Sumba Island, Indonesia.</p>
+        <p style="font-size:12px;opacity:.38;margin-top:16px;font-family:var(--csa)">hello@lawang.id</p>
+      </div>
+      <div class="cs-ft-col" style="font-family:var(--csa)">
+        <h5>The estate</h5>
+        <a onclick="scrollToTop()">The cinematic</a>
+        <a href="#process">Process</a>
+        <a href="#invest">Why Invest</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="cs-ft-col" style="font-family:var(--csa)">
+        <h5>Portfolio</h5>
+        <a href="portfolio.html">All properties</a>
+        <a href="portfolio.html#signature">Signature villas</a>
+        <a href="portfolio.html#land">Land parcels</a>
+        <a href="signature.html">Riverfront II®</a>
+      </div>
+    </div>
+    <div class="cs-ft-rule"></div>
+    <div class="cs-ft-bottom" style="font-family:var(--csa)">
+      <span>© 2026 Lawang Tropical Properties. Indicative information only — not a financial offer. All yield figures are historical estimates.</span>
+      <span>Balian Hills, Bali · Sumba Island</span>
+    </div>
+  </div>
+</footer>
+
+</div><!-- end #content-sections -->
 
 <!-- ═══════════════════════════════════════════
      ADMIN PANEL — Lawang CMS
