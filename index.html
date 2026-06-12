@@ -572,6 +572,8 @@ function build() {
         // Actualizar barra de progreso y contador
         const p = self.progress;
         progressEl.style.width = (p * 100) + '%';
+        // El menú permanece oculto en el top y se revela al empezar el scroll
+        if(!inContentMode) nav.classList.toggle('show', p > 0.004);
         const idx = p < 0.20 ? 1 : p < 0.48 ? 2 : p < 0.72 ? 3 : 4;
         if(cntEl) cntEl.textContent = String(idx).padStart(2, '0');
         // Disparar secciones de contenido al final del recorrido
@@ -736,7 +738,7 @@ function scrollToTop() {
 // ── Init (invocado por dismissLoader) ─────────────────────────
 function init() {
   setTimeout(() => logo.classList.add('show'), 500);
-  setTimeout(() => nav.classList.add('show'), 700);
+  // El menú (#nav) ya no aparece por tiempo: se revela al empezar el scroll (ver onUpdate de build)
   if(walkthroughVid.readyState >= 1) { build(); }
   else { walkthroughVid.addEventListener('loadedmetadata', build, { once: true }); }
   // Safety: si los metadatos tardan, no bloquear la experiencia
