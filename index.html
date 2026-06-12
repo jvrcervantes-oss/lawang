@@ -427,6 +427,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </defs>
 </svg>
 
+<!-- [v2] Vídeo de entrada (loader) ocultado temporalmente — restaurar quitando el comentario
 <div id="loader">
   <video id="loader-vid" autoplay muted playsinline preload="auto"
          poster="assets/images/frame-1.jpg">
@@ -434,6 +435,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </video>
   <button id="loader-skip" onclick="dismissLoader()">Skip →</button>
 </div>
+-->
 
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
@@ -451,7 +453,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <!-- IMPORTANTE: servir por HTTP, no por file://. El video solo carga desde un servidor. -->
 <div id="stage">
   <video id="walkthrough-vid"
-         src="assets/videos/lawang-walkthrough.mp4"
+         src="assets/videos/lawang_hero_1080p.mp4"
+         poster="assets/videos/lawang_poster.jpg"
          muted playsinline preload="auto"></video>
   <div id="overlay"></div>
   <div id="scene-scrim"></div>
@@ -603,6 +606,13 @@ function build() {
   });
 
   ScrollTrigger.refresh();
+
+  // 4) Forzar el pintado del primer fotograma. El navegador NO renderiza un
+  //    <video> sin reproducir hasta que ocurre un seek (cambio de currentTime).
+  //    Sin esto, el hero se ve negro hasta que el usuario hace el primer scroll.
+  const paintFirstFrame = () => { try { walkthroughVid.currentTime = 0.05; } catch(e){} };
+  if(walkthroughVid.readyState >= 2) paintFirstFrame();
+  else walkthroughVid.addEventListener('loadeddata', paintFirstFrame, { once: true });
 }
 
 // ── Transición a secciones de contenido ──────────────────────
@@ -742,21 +752,28 @@ function dismissLoader() {
 }
 
 window.addEventListener('load', () => {
-  const vid = document.getElementById('loader-vid');
-  let gone = false;
-  function go() { if(gone) return; gone = true; clearTimeout(hard); dismissLoader(); }
-  const hard = setTimeout(go, 14000);
+  // [v2] Loader/vídeo de entrada ocultado: arrancamos la experiencia directamente.
+  const loader = document.getElementById('loader');
+  if(loader) {
+    // Si se restaura el loader, mantener el flujo original de vídeo + skip.
+    const vid = document.getElementById('loader-vid');
+    let gone = false;
+    function go() { if(gone) return; gone = true; clearTimeout(hard); dismissLoader(); }
+    const hard = setTimeout(go, 14000);
 
-  if(vid) {
-    vid.style.opacity = '0';
-    vid.style.transition = 'opacity 1s ease';
-    vid.addEventListener('ended', go, { once:true });
-    vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
-    vid.play().then(() => {
-      setTimeout(() => { vid.style.opacity = '1'; }, 600);
-    }).catch(() => { if(!gone) setTimeout(go, 2500); });
+    if(vid) {
+      vid.style.opacity = '0';
+      vid.style.transition = 'opacity 1s ease';
+      vid.addEventListener('ended', go, { once:true });
+      vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
+      vid.play().then(() => {
+        setTimeout(() => { vid.style.opacity = '1'; }, 600);
+      }).catch(() => { if(!gone) setTimeout(go, 2500); });
+    } else {
+      setTimeout(go, 2000);
+    }
   } else {
-    setTimeout(go, 2000);
+    init();
   }
 });
 
