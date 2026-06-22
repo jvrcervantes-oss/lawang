@@ -146,8 +146,11 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
   padding-top:clamp(.7rem,1.6vh,1.1rem);padding-bottom:clamp(.7rem,1.6vh,1.1rem)}
 
 #nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  display:flex;align-items:center;gap:clamp(1.3rem,2.8vw,2.6rem);
-  background:none;border:none;border-radius:0;padding:0;opacity:1;z-index:1}
+  display:flex;align-items:center;gap:clamp(1.2rem,2.6vw,2.4rem);
+  background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;
+  padding:.6rem 1.7rem;opacity:1;z-index:1;
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
+#topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
 .nav-link{font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
   color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:none;
   transition:color .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
