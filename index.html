@@ -333,18 +333,20 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-discover:hover .ar:first-child{transform:translateY(3px)}
 /* Franja inferior — marcas de agua + tagline */
 .hero-band{position:absolute;left:0;right:0;bottom:0;z-index:5;
-  padding-bottom:clamp(1.4rem,4vh,2.6rem);display:flex;flex-direction:column;align-items:center;gap:.9rem}
+  padding:clamp(2.4rem,7vh,4rem) 1rem clamp(1.4rem,4vh,2.4rem);
+  display:flex;flex-direction:column;align-items:center;gap:1.1rem;
+  background:linear-gradient(to top,rgba(8,10,8,.86) 0%,rgba(8,10,8,.5) 50%,transparent 100%)}
 .hero-marks{display:flex;align-items:center;justify-content:center;gap:clamp(18px,3vw,42px);
-  width:100%;opacity:.16;pointer-events:none;overflow:hidden;height:34px}
-.hero-marks svg{width:26px;height:26px;flex:none;color:var(--gold-light)}
-.hero-tagline{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.4vw,.84rem);
-  letter-spacing:.26em;text-transform:uppercase;color:var(--gold-light);text-align:center;
-  text-shadow:0 1px 12px rgba(0,0,0,.9);padding:0 1.2rem;line-height:1.6}
-.hero-tagline b{font-weight:600;color:#fff}
+  width:100%;opacity:.14;pointer-events:none;overflow:hidden;height:30px}
+.hero-marks svg{width:24px;height:24px;flex:none;color:var(--gold-light)}
+.hero-tagline{font-family:'Jost',sans-serif;font-weight:500;font-size:clamp(.86rem,2vw,1.22rem);
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
+  text-shadow:0 2px 22px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.7);padding:0 1.2rem;line-height:1.55}
+.hero-tagline b{font-weight:700;color:var(--gold)}
 @media(max-width:680px){
   .hero-h{font-size:clamp(2.8rem,15vw,4.4rem)}
   .hero-marks{gap:14px}
-  .hero-tagline{font-size:.56rem;letter-spacing:.18em}
+  .hero-tagline{font-size:.82rem;letter-spacing:.14em}
 }
 
 /* ════════════════════════════════════════════════════════════
