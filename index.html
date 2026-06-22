@@ -304,6 +304,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-layer{position:absolute;background-position:center;background-size:cover;will-change:transform;transition:transform .12s linear}
 .hero-layer.l-bg{inset:-5%;width:110%;height:110%;z-index:1;
   background-image:url('assets/images/portada-lawang.jpg')}
+/* El fondo es un cinemagraph (vídeo) — anula la regla global heredada video{opacity:0} */
+video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:none}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 .hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
@@ -577,7 +579,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 <!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
-  <div class="hero-layer l-bg" data-depth="8"></div>
+  <video class="hero-layer l-bg" data-depth="8" autoplay muted loop playsinline preload="auto"
+         poster="assets/images/portada-lawang.jpg">
+    <source src="assets/videos/lawang-hero.mp4" type="video/mp4">
+  </video>
   <div class="hero-mist"></div>
   <div class="hero-vignette"></div>
   <div class="hero-inner" data-depth="-5">
