@@ -61,10 +61,17 @@
   --obsidian:   #0A0C09;   /* Near-black with green undertone */
   --stone:      #2E3437;   /* Volcanic Ash */
 }
-html{scroll-snap-type:y proximity;scroll-behavior:smooth;scroll-padding-top:0}
-html,body{width:100%;background:var(--rl);overflow-x:hidden;font-family:'Jost',sans-serif;cursor:none}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;scroll-snap-type:none}}
+html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Jost',sans-serif;cursor:none}
 @media(hover:none){html,body{cursor:auto}}
+
+/* ── SNAP SCROLLER · 1 pantalla = 1 sección (estilo Burger) ── */
+.snap{height:100vh;height:100dvh;overflow-y:scroll;overflow-x:hidden;
+  scroll-snap-type:y mandatory;scroll-behavior:smooth;position:relative;z-index:1;
+  scrollbar-width:none;-ms-overflow-style:none}
+.snap::-webkit-scrollbar{display:none}
+.snap > section,
+#content-sections > section{ scroll-snap-align:start; scroll-snap-stop:always; }
+@media(prefers-reduced-motion:reduce){.snap{scroll-behavior:auto;scroll-snap-type:y proximity}}
 
 #cursor{position:fixed;width:6px;height:6px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference}
 #cursor-ring{position:fixed;width:32px;height:32px;border-radius:50%;border:1px solid rgba(190,179,165,0.4);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all 0.12s ease}
@@ -106,13 +113,8 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #progress{position:fixed;top:0;left:0;height:1px;background:linear-gradient(90deg,var(--gold),var(--gold-light));z-index:200;width:0%}
 
 /* Nav */
-#logo{
-  position:fixed;top:2.2rem;left:3rem;
-  opacity:0;transform:translateY(-8px);
-  transition:opacity 0.4s ease,transform 1s 0.5s;
-  pointer-events:auto;z-index:150;
-}
-#logo.show{opacity:1;transform:translateY(0)}
+#logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
+#logo.show{opacity:1;transform:none}
 #logo-inner{display:flex;align-items:center;gap:10px}
 #logo-mark{
   width:28px;height:28px;flex-shrink:0;
@@ -132,38 +134,47 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #logo.dark #logo-wordmark{color:var(--va);text-shadow:none}
 #logo.dark #logo-sub{color:var(--sc)}
 
-#nav{
-  position:fixed;top:2.6rem;right:3.5rem;
-  display:flex;align-items:center;gap:2.8rem;
-  z-index:150;opacity:0;transition:opacity 0.4s ease;
-  background:rgba(8,8,8,0.28);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:40px;padding:0.7rem 1.8rem;
-  pointer-events:auto;
-}
-#nav.show{opacity:1}
-#nav.light-nav{background:rgba(247,244,239,0.85);border-color:rgba(190,179,165,0.2)}
-.nav-link{
-  font-family:'Jost',sans-serif;font-weight:300;font-size:0.62rem;
-  letter-spacing:0.28em;color:rgba(255,255,255,0.88);
-  text-transform:uppercase;text-decoration:none;cursor:none;
-  transition:color 0.3s;text-shadow:0 1px 6px rgba(0,0,0,0.4);
-}
-#nav.light-nav .nav-link{color:rgba(26,22,18,0.7);text-shadow:none}
-#nav.light-nav .nav-link:hover{color:var(--gold)}
-#nav.light-nav .nav-link.active{color:var(--tg);font-weight:400}
+/* ── TOPBAR estilo referencia (logo | links centro | acciones) ── */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:150;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:clamp(1.1rem,2.4vh,1.9rem) clamp(1.4rem,4vw,3.4rem);
+  opacity:0;transition:opacity .5s ease,background .3s,box-shadow .3s,padding .3s;pointer-events:none}
+#topbar.show{opacity:1}
+#topbar > *{pointer-events:auto}
+#topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 1px 0 rgba(190,179,165,.3);
+  padding-top:clamp(.7rem,1.6vh,1.1rem);padding-bottom:clamp(.7rem,1.6vh,1.1rem)}
+
+#nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:clamp(1.3rem,2.8vw,2.6rem);
+  background:none;border:none;border-radius:0;padding:0;opacity:1;z-index:1}
+.nav-link{font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
+  color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:none;
+  transition:color .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
 .nav-link:hover{color:var(--gold)}
-.nav-cta{
-  border:1px solid rgba(190,179,165,0.7);padding:9px 24px;
-  font-family:'Jost',sans-serif;font-weight:300;font-size:0.58rem;
-  letter-spacing:0.35em;color:var(--gold-light);
-  text-transform:uppercase;cursor:none;background:rgba(190,179,165,0.1);
-  transition:all 0.4s;border-radius:30px;
-}
-#nav.light-nav .nav-cta{color:var(--tg);border-color:rgba(72,91,55,0.45);background:transparent}
-#nav.light-nav .nav-cta:hover{background:var(--tg);color:var(--rl);border-color:var(--tg)}
+#topbar.solid .nav-link{color:rgba(26,22,18,.72);text-shadow:none}
+#topbar.solid .nav-link:hover{color:var(--tg)}
+#topbar.solid .nav-link.active{color:var(--tg);font-weight:500}
+
+#nav-actions{display:flex;align-items:center;gap:clamp(1rem,2vw,1.7rem);flex:none}
+.nav-lang{font-family:'Jost',sans-serif;font-weight:300;font-size:.56rem;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(245,240,230,.7);background:none;border:none;cursor:none;
+  text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .3s;white-space:nowrap}
+.nav-lang b{font-weight:600;color:var(--gold-light)}
+.nav-lang:hover{color:#fff}
+#topbar.solid .nav-lang{color:rgba(26,22,18,.55);text-shadow:none}
+#topbar.solid .nav-lang b{color:var(--tg)}
+.nav-cta{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;
+  border:1px solid rgba(190,179,165,.7);padding:8px 20px 8px 9px;border-radius:30px;
+  font-family:'Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
+  color:var(--gold-light);text-transform:uppercase;cursor:none;
+  background:rgba(20,18,14,.25);transition:all .35s}
+.nav-cta .wa{width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;line-height:1}
 .nav-cta:hover{background:var(--gold);color:var(--obsidian);border-color:var(--gold)}
+#topbar.solid .nav-cta{color:var(--tg);border-color:rgba(72,91,55,.5);background:transparent}
+#topbar.solid .nav-cta:hover{background:var(--tg);color:var(--rl);border-color:var(--tg)}
+@media(max-width:900px){#nav{display:none}.nav-lang{display:none}}
 
 /* Scene text */
 #scene-text{
@@ -277,58 +288,76 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 /* ── Walkthrough video (overrides global video{opacity:0}) ── */
 /* ════════════════════════════════════════════════════════════
-   [v3] HERO PANEL + SCROLL-SNAP POR SECCIONES (sustituye al cinemático)
+   [v4] HERO estilo referencia (1.jpeg) — centrado, "OWN ETERNITY"
    ════════════════════════════════════════════════════════════ */
-/* Cada sección "engancha" al hacer scroll (una por una) */
-.hero-panel,
-#content-sections > section{ scroll-snap-align:start; scroll-snap-stop:normal; }
-
-/* ── HERO ── */
 .hero-panel{
   position:relative;min-height:100vh;min-height:100dvh;width:100%;
-  display:flex;flex-direction:column;justify-content:center;overflow:hidden;
-  background:var(--obsidian);color:var(--ivory);
-  padding:clamp(6rem,13vh,9rem) clamp(1.4rem,5vw,5rem) clamp(3rem,8vh,5rem);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--obsidian);color:var(--ivory);text-align:center;
+  padding:clamp(6rem,14vh,9rem) clamp(1.4rem,5vw,4rem) clamp(5rem,12vh,7rem);
 }
-.hero-bg{position:absolute;inset:0;background:url('assets/images/aerial-1.jpg') center 28%/cover no-repeat;opacity:.55;transform:scale(1.05)}
+.hero-bg{position:absolute;inset:0;background:url('assets/images/hero-dusk.jpg') center/cover no-repeat;transform:scale(1.04)}
 .hero-scrim{position:absolute;inset:0;background:
-  linear-gradient(165deg,rgba(10,12,9,.62) 0%,rgba(16,76,79,.34) 48%,rgba(10,12,9,.9) 100%)}
-.hero-mark-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ivory);opacity:.045;pointer-events:none}
-.hero-mark-bg svg{width:min(52vw,52vh);height:auto}
-.hero-inner{position:relative;max-width:1280px;margin:0 auto;width:100%}
-.hero-eyebrow{font-family:'Jost',sans-serif;font-weight:200;font-size:clamp(.56rem,1.3vw,.7rem);
-  letter-spacing:.52em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;
-  text-shadow:0 1px 12px rgba(0,0,0,.7)}
-.hero-h{font-family:'Cormorant Garamond',serif;font-weight:300;
-  font-size:clamp(3rem,8vw,7rem);line-height:.98;letter-spacing:-.01em;
-  color:var(--ivory);max-width:16ch;margin-bottom:1.6rem;
-  text-shadow:0 2px 30px rgba(0,0,0,.55)}
-.hero-h em{font-style:italic;color:var(--sc)}
-.hero-sub{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.92rem,1.5vw,1.08rem);
-  line-height:1.7;color:rgba(245,240,230,.82);max-width:46ch;margin-bottom:2.4rem}
-.hero-btns{display:flex;gap:14px;flex-wrap:wrap}
-.hero-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 30px;
-  font-family:'Jost',sans-serif;font-size:.74rem;font-weight:500;letter-spacing:.14em;
-  text-transform:uppercase;text-decoration:none;cursor:none;border:1px solid transparent;
-  transition:transform .18s cubic-bezier(.23,1,.32,1),background .25s,color .25s,border-color .25s}
-.hero-btn .arr{transition:transform .28s cubic-bezier(.16,1,.3,1)}
-.hero-btn:hover .arr{transform:translateX(5px)}
-.hero-btn-solid{background:var(--sc);color:var(--obsidian);border-color:var(--sc)}
-.hero-btn-solid:hover{background:var(--gold);border-color:var(--gold)}
-.hero-btn-ghost{border-color:rgba(245,240,230,.4);color:var(--ivory)}
-.hero-btn-ghost:hover{background:rgba(245,240,230,.12);border-color:rgba(245,240,230,.7)}
-.hero-cue{position:absolute;left:50%;bottom:clamp(1.6rem,4vh,2.6rem);transform:translateX(-50%);
-  display:flex;flex-direction:column;align-items:center;gap:.7rem;z-index:2;pointer-events:none}
-.hero-cue span{font-family:'Jost',sans-serif;font-weight:300;font-size:.5rem;letter-spacing:.5em;
-  text-transform:uppercase;color:rgba(190,179,165,.75)}
-.hero-cue i{width:1px;height:46px;background:linear-gradient(to bottom,var(--gold),transparent);
-  animation:cueLine 2s ease infinite;display:block}
-@keyframes cueLine{0%{transform:scaleY(0);transform-origin:top;opacity:0}45%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);transform-origin:bottom;opacity:0}}
-#coord-tag{position:absolute;left:clamp(1.4rem,5vw,5rem);bottom:clamp(1.6rem,4vh,2.6rem);z-index:2;
-  font-family:'Jost',sans-serif;font-weight:100;font-size:.48rem;letter-spacing:.3em;color:rgba(242,237,228,.3);pointer-events:none}
-@media(max-width:680px){.hero-h{font-size:clamp(2.8rem,12vw,4rem)}.hero-cue,#coord-tag{display:none}}
+  radial-gradient(120% 80% at 50% 42%, rgba(8,10,8,.18) 0%, rgba(8,10,8,.55) 70%, rgba(8,10,8,.82) 100%),
+  linear-gradient(to bottom, rgba(8,10,8,.35) 0%, transparent 26%, transparent 60%, rgba(8,10,8,.78) 100%)}
+.hero-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:1.4rem}
+.hero-eyebrow{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.3vw,.82rem);
+  letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.9);
+  text-shadow:0 1px 14px rgba(0,0,0,.8);margin-bottom:-.4rem}
+.hero-h{font-family:'Cormorant Garamond',serif;font-weight:400;
+  font-size:clamp(3.2rem,10vw,9rem);line-height:.94;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ivory);text-shadow:0 2px 40px rgba(0,0,0,.6),0 0 80px rgba(0,0,0,.4)}
+.hero-discover{display:inline-flex;align-items:center;gap:1rem;margin-top:1rem;
+  padding:14px 30px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
+  background:rgba(20,18,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  font-family:'Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--gold-light);text-decoration:none;cursor:none;
+  transition:background .3s,border-color .3s,color .3s,transform .3s}
+.hero-discover .ar{font-size:.8em;opacity:.8;transition:transform .3s}
+.hero-discover:hover{background:rgba(190,179,165,.16);border-color:rgba(190,179,165,.85);color:#fff}
+.hero-discover:hover .ar:last-child{transform:translateY(3px)}
+.hero-discover:hover .ar:first-child{transform:translateY(3px)}
+/* Franja inferior — marcas de agua + tagline */
+.hero-band{position:absolute;left:0;right:0;bottom:0;z-index:2;
+  padding-bottom:clamp(1.4rem,4vh,2.6rem);display:flex;flex-direction:column;align-items:center;gap:.9rem}
+.hero-marks{display:flex;align-items:center;justify-content:center;gap:clamp(18px,3vw,42px);
+  width:100%;opacity:.16;pointer-events:none;overflow:hidden;height:34px}
+.hero-marks svg{width:26px;height:26px;flex:none;color:var(--gold-light)}
+.hero-tagline{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.4vw,.84rem);
+  letter-spacing:.26em;text-transform:uppercase;color:var(--gold-light);text-align:center;
+  text-shadow:0 1px 12px rgba(0,0,0,.9);padding:0 1.2rem;line-height:1.6}
+.hero-tagline b{font-weight:600;color:#fff}
+@media(max-width:680px){
+  .hero-h{font-size:clamp(2.8rem,15vw,4.4rem)}
+  .hero-marks{gap:14px}
+  .hero-tagline{font-size:.56rem;letter-spacing:.18em}
+}
 
-/* Nav siempre visible por defecto (ya no hay intro oscura) */
+/* ════════════════════════════════════════════════════════════
+   [v4] PANELES DE CONTENIDO — cada sección = 1 pantalla completa
+   ════════════════════════════════════════════════════════════ */
+#content-sections > section{
+  min-height:100vh;min-height:100dvh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding-block:clamp(5.5rem,10vh,7rem) clamp(2rem,5vh,3rem);
+}
+#content-sections > section > .cs-wrap{width:100%}
+/* La franja Track/Studio y el CTA centran su contenido */
+.cs-track,.cs-cta{justify-content:center}
+.cs-footer.cs-footer{min-height:auto;justify-content:flex-end}
+/* Compactar separaciones internas para que quepan en una pantalla */
+.cs-pad{padding-block:0}
+.cs-phases{margin-top:clamp(20px,3vh,40px)}
+.cs-ph-card{padding:clamp(14px,2vh,24px) 0}
+.cs-inv-grid{margin-top:clamp(20px,3vh,40px)}
+.cs-inv-card{padding:clamp(16px,2.4vh,28px) 24px}
+.cs-pay-grid{margin-top:clamp(18px,3vh,38px)}
+.cs-faq-list{margin-top:clamp(22px,3vh,42px)}
+.cs-faq .faq-q{padding:clamp(13px,1.8vh,24px) 0}
+.cs-tr-stats{margin-top:clamp(22px,3vh,42px)}
+.cs-track-body{margin-top:clamp(22px,3vh,44px)}
+
+/* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
 </head>
@@ -504,43 +533,45 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
 
-<!-- Fixed UI -->
-<div id="logo" class="show">
-  <div id="logo-inner">
-    <svg id="logo-mark" viewBox="0 0 80 88" aria-hidden="true"><use href="#lawang-mark"/></svg>
-    <div id="logo-text">
-      <div id="logo-wordmark">Lawang</div>
-      <div id="logo-sub">Estate · Bali</div>
+<!-- ════════ TOPBAR (fijo, fuera del scroller) ════════ -->
+<header id="topbar" class="show">
+  <div id="logo">
+    <div id="logo-inner">
+      <svg id="logo-mark" viewBox="0 0 80 88" aria-hidden="true"><use href="#lawang-mark"/></svg>
+      <div id="logo-text">
+        <div id="logo-wordmark">Lawang</div>
+        <div id="logo-sub">Estate · Bali</div>
+      </div>
     </div>
   </div>
-</div>
-<nav id="nav" class="show">
-  <a class="nav-link" href="#home">The Estate</a>
-  <a class="nav-link" href="#process">Process</a>
-  <a class="nav-link" href="#invest">Why Invest</a>
-  <a class="nav-link" href="#faq">FAQ</a>
-  <a class="nav-link" href="portfolio.html">Portfolio</a>
-  <a class="nav-cta" href="#contact">Invest →</a>
-</nav>
+  <nav id="nav">
+    <a class="nav-link" href="portfolio.html">Land</a>
+    <a class="nav-link" href="portfolio.html">Villa</a>
+    <a class="nav-link" href="#studio">The Studio</a>
+    <a class="nav-link" href="#soul">The Soul</a>
+  </nav>
+  <div id="nav-actions">
+    <button class="nav-lang" type="button">Select <b>Language</b></button>
+    <a class="nav-cta" href="#contact"><span class="wa">✆</span> Let's Talk</a>
+  </div>
+</header>
 
-<!-- ════════ HERO (panel 1 — scroll-snap) ════════ -->
+<!-- ════════ SNAP SCROLLER — 1 pantalla = 1 sección ════════ -->
+<main class="snap" id="snap">
+
+<!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
   <div class="hero-bg"></div>
   <div class="hero-scrim"></div>
-  <div class="hero-mark-bg">
-    <svg viewBox="0 0 80 88" fill="currentColor" aria-hidden="true"><use href="#lawang-mark"/></svg>
-  </div>
   <div class="hero-inner">
-    <div class="hero-eyebrow">Balian Hills, Bali &nbsp;·&nbsp; Sumba Island</div>
-    <h1 class="hero-h">Lawang means <em>door.</em></h1>
-    <p class="hero-sub">We open the door to Indonesia — real freehold land and villas, built and delivered. No leasehold. No renders. No excuses.</p>
-    <div class="hero-btns">
-      <a href="portfolio.html" class="hero-btn hero-btn-solid">Explore the portfolio <span class="arr">→</span></a>
-      <a href="#contact" class="hero-btn hero-btn-ghost">Talk to the team</a>
-    </div>
+    <div class="hero-eyebrow">What if you could</div>
+    <h1 class="hero-h">Own Eternity</h1>
+    <a class="hero-discover" href="#soul"><span class="ar">↓</span> Discover Lawang <span class="ar">↓</span></a>
   </div>
-  <div id="coord-tag">08°40′59″S &nbsp;·&nbsp; 115°09′45″E</div>
-  <div class="hero-cue"><span>Scroll</span><i></i></div>
+  <div class="hero-band">
+    <div class="hero-marks" id="hero-marks" aria-hidden="true"></div>
+    <div class="hero-tagline">Real Estate Investment and <b>Project Developer</b> at the heart of Bali</div>
+  </div>
 </section>
 
 <script>
@@ -550,13 +581,31 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 // en el DOM, así que los nodos deben existir antes de observarlos.
 // ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function(){
-const nav  = document.getElementById('nav');
-const logo = document.getElementById('logo');
+const snap   = document.getElementById('snap');
+const topbar = document.getElementById('topbar');
+const logo   = document.getElementById('logo');
+
+// ── Franja de marcas del hero (watermark band) ────────────────
+const marksWrap = document.getElementById('hero-marks');
+if(marksWrap){
+  let s = '';
+  for(let i=0;i<16;i++) s += '<svg viewBox="0 0 80 88" fill="currentColor" aria-hidden="true"><use href="#lawang-mark"/></svg>';
+  marksWrap.innerHTML = s;
+}
+
+// ── Scroll suave de anclas dentro del contenedor .snap ────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    const t = id && document.getElementById(id);
+    if(t){ e.preventDefault(); t.scrollIntoView({ behavior:'smooth', block:'start' }); }
+  });
+});
 
 // ── Reveals al entrar en viewport ─────────────────────────────
 const revealObs = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); revealObs.unobserve(e.target); } });
-}, { threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
+}, { root: snap, threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
 document.querySelectorAll('#content-sections .reveal').forEach(el => revealObs.observe(el));
 
 // ── Contadores animados ───────────────────────────────────────
@@ -575,7 +624,7 @@ const cntObs = new IntersectionObserver(entries => {
     cntObs.unobserve(e.target);
     animateCount(e.target, parseInt(e.target.dataset.count), e.target.dataset.prefix || '', 1600);
   });
-}, { threshold: 0.6 });
+}, { root: snap, threshold: 0.6 });
 document.querySelectorAll('[data-count]').forEach(el => cntObs.observe(el));
 
 // ── FAQ acordeón ──────────────────────────────────────────────
@@ -588,28 +637,26 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
   });
 });
 
-// ── Nav: estado claro al salir del hero + sección activa ──────
-const sections = ['home','process','invest','faq','contact']
+// ── Topbar: sólido al salir del hero + sección activa ─────────
+const sections = ['home','soul','process','invest','payment','faq','studio','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
 
 function onScroll() {
-  // Al pasar el hero, el nav se vuelve sólido/claro y el logo oscuro
-  const past = window.scrollY > window.innerHeight * 0.6;
-  nav.classList.toggle('solid', past);
-  nav.classList.toggle('light-nav', past);
+  // Al pasar el hero, la barra se vuelve sólida/clara y el logo oscuro
+  const past = snap.scrollTop > window.innerHeight * 0.6;
+  topbar.classList.toggle('solid', past);
   logo.classList.toggle('dark', past);
 
-  // Sección activa
-  const trigger = window.scrollY + window.innerHeight * 0.38;
+  // Sección activa (según posición en viewport dentro del scroller)
   let current = null;
-  sections.forEach(s => { if(s.offsetTop <= trigger) current = s.id; });
+  sections.forEach(s => { if(s.getBoundingClientRect().top <= window.innerHeight * 0.4) current = s.id; });
   navLinks.forEach(l => {
     const href = l.getAttribute('href') || '';
     l.classList.toggle('active', !!current && href === '#' + current);
   });
 }
-window.addEventListener('scroll', onScroll, { passive: true });
+snap.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
 // ── Cursor personalizado ──────────────────────────────────────
@@ -786,6 +833,16 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .cs-faq-item.open .cs-faq-a { grid-template-rows: 1fr; }
 .cs-faq-item.open .cs-faq-a-i { padding-bottom: 30px; }
 
+/* ── THE SOUL ────────────────────────────────────────────────── */
+.cs-soul{ background:radial-gradient(125% 95% at 50% 32%, #16211B 0%, #0A0C09 72%); color:var(--cb); text-align:center; }
+.cs-soul .cs-kicker{ color:var(--cal); }
+.cs-soul .cs-display{ color:var(--cb); }
+.cs-soul .cs-display em{ color:var(--cal); }
+.cs-soul-lead{ font-family:var(--cse); font-style:italic; font-size:clamp(18px,2.3vw,27px);
+  color:var(--cal); line-height:1.5; margin-top:22px; }
+.cs-soul-body{ font-size:clamp(14px,1.5vw,16px); color:rgba(245,240,230,.62);
+  max-width:56ch; margin:26px auto 0; line-height:1.85; }
+
 /* ── 05 · TRACK RECORD ───────────────────────────────────────── */
 .cs-track { background: var(--cd); color: var(--cb); position: relative; overflow: hidden; }
 .cs-track::before { content: ''; position: absolute; inset: 0;
@@ -869,6 +926,16 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 <!-- Content sections wrapper (shown after cinematic transition) -->
 <div id="content-sections">
+
+<!-- ── THE SOUL — filosofía de marca (panel) ───────────────── -->
+<section class="cs-soul" id="soul">
+  <div class="cs-wrap" style="text-align:center;max-width:920px">
+    <div class="cs-kicker reveal">The Soul</div>
+    <h2 class="cs-display reveal" style="font-size:clamp(34px,6.4vw,86px);margin-top:18px">Lawang means <em>door.</em></h2>
+    <p class="cs-soul-lead reveal">We open the door to Indonesia — for those who have long been looking from the outside.</p>
+    <p class="cs-soul-body reveal">Real development in Bali. No leasehold. No renders. No excuses. The axis of the world has shifted — and Lawang is the threshold.</p>
+  </div>
+</section>
 
 <!-- ── 01 · PROCESS ────────────────────────────────────────── -->
 <section class="cs-process cs-pad" id="process">
@@ -1067,10 +1134,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 </section>
 
 <!-- ── 05 · TRACK RECORD ─────────────────────────────────────── -->
-<section class="cs-track cs-pad">
+<section class="cs-track cs-pad" id="studio">
   <div class="cs-wrap">
     <div class="reveal">
-      <div class="cs-kicker" style="color:var(--cal);opacity:.7;margin-bottom:20px">Track record</div>
+      <div class="cs-kicker" style="color:var(--cal);opacity:.7;margin-bottom:20px">The Studio · Track record</div>
       <h2 class="cs-display" style="font-size:clamp(30px,4.8vw,66px);max-width:20ch;color:var(--cb)">More than 50 homes delivered. This is the next step.</h2>
     </div>
     <div class="cs-tr-stats reveal" style="transition-delay:100ms">
@@ -1148,6 +1215,33 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 </footer>
 
 </div><!-- end #content-sections -->
+
+</main><!-- end .snap -->
+
+<style>
+/* [v4] Compactado final — cada panel cabe en 1 pantalla (este bloque va
+   después del stylesheet de #content-sections, así que gana en cascada) */
+#content-sections > section{ padding-block:clamp(4.6rem,8vh,6rem) clamp(1.4rem,3.5vh,2.4rem); }
+/* Process */
+#process .cs-phases{ margin-top:clamp(14px,2.2vh,30px); }
+#process .cs-ph-card{ padding:clamp(11px,1.7vh,20px) 0; }
+#process .cs-ph-bullets{ gap:5px; }
+/* Invest */
+#invest .cs-inv-grid{ margin-top:clamp(14px,2.2vh,28px); }
+#invest .cs-inv-card{ padding:clamp(12px,1.9vh,22px) 22px; gap:8px; }
+#invest .cs-inv-card.fh{ padding:clamp(14px,2vh,24px) 24px; gap:22px; }
+#invest .cs-inv-disc{ padding:11px 16px; }
+/* Studio / track */
+#studio .cs-tr-stats{ margin-top:clamp(14px,2.2vh,28px); }
+#studio .cs-tr-stat{ padding:clamp(13px,1.9vh,24px) 18px; }
+#studio .cs-track-body{ margin-top:clamp(14px,2.4vh,32px); }
+/* Contact / CTA */
+#contact .cs-cta-content{ padding-block:clamp(16px,4vh,44px); }
+@media(max-height:720px){
+  .cs-display{ font-size:clamp(26px,4vw,46px)!important; }
+  #content-sections > section{ padding-block:clamp(4.2rem,7vh,5rem) 1.2rem; }
+}
+</style>
 
 </body>
 </html>
