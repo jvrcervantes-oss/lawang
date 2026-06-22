@@ -296,11 +296,22 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   overflow:hidden;background:var(--obsidian);color:var(--ivory);text-align:center;
   padding:clamp(6rem,14vh,9rem) clamp(1.4rem,5vw,4rem) clamp(5rem,12vh,7rem);
 }
-.hero-bg{position:absolute;inset:0;background:url('assets/images/hero-dusk.jpg') center/cover no-repeat;transform:scale(1.04)}
-.hero-scrim{position:absolute;inset:0;background:
-  radial-gradient(120% 80% at 50% 42%, rgba(8,10,8,.18) 0%, rgba(8,10,8,.55) 70%, rgba(8,10,8,.82) 100%),
-  linear-gradient(to bottom, rgba(8,10,8,.35) 0%, transparent 26%, transparent 60%, rgba(8,10,8,.78) 100%)}
-.hero-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:1.4rem}
+/* ── Diorama 2.5D: la escena (PortadaLawang) separada en planos ── */
+.hero-panel{cursor:crosshair}
+.hero-layer{position:absolute;background-position:center;background-size:cover;will-change:transform;transition:transform .12s linear}
+.hero-layer.l-bg{inset:-5%;width:110%;height:110%;z-index:1;
+  background-image:url('assets/images/portada-lawang.jpg')}
+.hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
+  background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
+.hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,10,8,.5),transparent 22%,transparent 50%,rgba(8,10,8,.72))}
+/* Plano frontal = misma imagen, enmascarada para conservar solo el marco de vegetación */
+.hero-layer.l-fg{inset:-16%;width:132%;height:132%;z-index:4;
+  background-image:url('assets/images/portada-lawang.jpg');filter:saturate(1.05) brightness(.82);
+  -webkit-mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%);
+          mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%)}
+@media(prefers-reduced-motion:reduce){.hero-layer{transition:none}}
+.hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform}
 .hero-eyebrow{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.3vw,.82rem);
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.9);
   text-shadow:0 1px 14px rgba(0,0,0,.8);margin-bottom:-.4rem}
@@ -318,7 +329,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-discover:hover .ar:last-child{transform:translateY(3px)}
 .hero-discover:hover .ar:first-child{transform:translateY(3px)}
 /* Franja inferior — marcas de agua + tagline */
-.hero-band{position:absolute;left:0;right:0;bottom:0;z-index:2;
+.hero-band{position:absolute;left:0;right:0;bottom:0;z-index:5;
   padding-bottom:clamp(1.4rem,4vh,2.6rem);display:flex;flex-direction:column;align-items:center;gap:.9rem}
 .hero-marks{display:flex;align-items:center;justify-content:center;gap:clamp(18px,3vw,42px);
   width:100%;opacity:.16;pointer-events:none;overflow:hidden;height:34px}
@@ -561,13 +572,15 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 <!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
-  <div class="hero-bg"></div>
-  <div class="hero-scrim"></div>
-  <div class="hero-inner">
+  <div class="hero-layer l-bg" data-depth="8"></div>
+  <div class="hero-mist"></div>
+  <div class="hero-vignette"></div>
+  <div class="hero-inner" data-depth="-5">
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
     <a class="hero-discover" href="#soul"><span class="ar">↓</span> Discover Lawang <span class="ar">↓</span></a>
   </div>
+  <div class="hero-layer l-fg" data-depth="26"></div>
   <div class="hero-band">
     <div class="hero-marks" id="hero-marks" aria-hidden="true"></div>
     <div class="hero-tagline">Real Estate Investment and <b>Project Developer</b> at the heart of Bali</div>
@@ -584,6 +597,28 @@ document.addEventListener('DOMContentLoaded', function(){
 const snap   = document.getElementById('snap');
 const topbar = document.getElementById('topbar');
 const logo   = document.getElementById('logo');
+
+// ── Hero diorama 2.5D — parallax por capas con el cursor ──────
+(function(){
+  const stage = document.querySelector('.hero-panel');
+  if(!stage || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  const layers = [...stage.querySelectorAll('[data-depth]')];
+  let tx=0, ty=0, cx=0, cy=0;
+  stage.addEventListener('pointermove', e => {
+    const r = stage.getBoundingClientRect();
+    tx = ((e.clientX - r.left) / r.width  - .5) * 2;   // -1..1
+    ty = ((e.clientY - r.top ) / r.height - .5) * 2;
+  });
+  stage.addEventListener('pointerleave', () => { tx=0; ty=0; });
+  (function loop(){
+    cx += (tx - cx) * .06;  cy += (ty - cy) * .06;
+    for(const l of layers){
+      const d = +l.dataset.depth;
+      l.style.transform = `translate3d(${(-cx*d).toFixed(2)}px, ${(-cy*d).toFixed(2)}px, 0)`;
+    }
+    requestAnimationFrame(loop);
+  })();
+})();
 
 // ── Franja de marcas del hero (watermark band) ────────────────
 const marksWrap = document.getElementById('hero-marks');
