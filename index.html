@@ -37,8 +37,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<!-- [v3] Experiencia cinemática retirada (reunión con cliente). Ahora: navegación por secciones con scroll-snap. GSAP ya no es necesario. -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -62,7 +61,10 @@
   --obsidian:   #0A0C09;   /* Near-black with green undertone */
   --stone:      #2E3437;   /* Volcanic Ash */
 }
-html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Jost',sans-serif;cursor:none}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth;scroll-padding-top:0}
+html,body{width:100%;background:var(--rl);overflow-x:hidden;font-family:'Jost',sans-serif;cursor:none}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;scroll-snap-type:none}}
+@media(hover:none){html,body{cursor:auto}}
 
 #cursor{position:fixed;width:6px;height:6px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference}
 #cursor-ring{position:fixed;width:32px;height:32px;border-radius:50%;border:1px solid rgba(190,179,165,0.4);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all 0.12s ease}
@@ -274,12 +276,60 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-hl-sep{color:var(--gold);font-size:0.42em;vertical-align:middle;letter-spacing:0}
 
 /* ── Walkthrough video (overrides global video{opacity:0}) ── */
-#walkthrough-vid{
-  position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;opacity:1;z-index:2;pointer-events:none;
-  filter:saturate(1.05) contrast(1.03);
-}
+/* ════════════════════════════════════════════════════════════
+   [v3] HERO PANEL + SCROLL-SNAP POR SECCIONES (sustituye al cinemático)
+   ════════════════════════════════════════════════════════════ */
+/* Cada sección "engancha" al hacer scroll (una por una) */
+.hero-panel,
+#content-sections > section{ scroll-snap-align:start; scroll-snap-stop:normal; }
 
+/* ── HERO ── */
+.hero-panel{
+  position:relative;min-height:100vh;min-height:100dvh;width:100%;
+  display:flex;flex-direction:column;justify-content:center;overflow:hidden;
+  background:var(--obsidian);color:var(--ivory);
+  padding:clamp(6rem,13vh,9rem) clamp(1.4rem,5vw,5rem) clamp(3rem,8vh,5rem);
+}
+.hero-bg{position:absolute;inset:0;background:url('assets/images/aerial-1.jpg') center 28%/cover no-repeat;opacity:.55;transform:scale(1.05)}
+.hero-scrim{position:absolute;inset:0;background:
+  linear-gradient(165deg,rgba(10,12,9,.62) 0%,rgba(16,76,79,.34) 48%,rgba(10,12,9,.9) 100%)}
+.hero-mark-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ivory);opacity:.045;pointer-events:none}
+.hero-mark-bg svg{width:min(52vw,52vh);height:auto}
+.hero-inner{position:relative;max-width:1280px;margin:0 auto;width:100%}
+.hero-eyebrow{font-family:'Jost',sans-serif;font-weight:200;font-size:clamp(.56rem,1.3vw,.7rem);
+  letter-spacing:.52em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;
+  text-shadow:0 1px 12px rgba(0,0,0,.7)}
+.hero-h{font-family:'Cormorant Garamond',serif;font-weight:300;
+  font-size:clamp(3rem,8vw,7rem);line-height:.98;letter-spacing:-.01em;
+  color:var(--ivory);max-width:16ch;margin-bottom:1.6rem;
+  text-shadow:0 2px 30px rgba(0,0,0,.55)}
+.hero-h em{font-style:italic;color:var(--sc)}
+.hero-sub{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.92rem,1.5vw,1.08rem);
+  line-height:1.7;color:rgba(245,240,230,.82);max-width:46ch;margin-bottom:2.4rem}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap}
+.hero-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 30px;
+  font-family:'Jost',sans-serif;font-size:.74rem;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;text-decoration:none;cursor:none;border:1px solid transparent;
+  transition:transform .18s cubic-bezier(.23,1,.32,1),background .25s,color .25s,border-color .25s}
+.hero-btn .arr{transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.hero-btn:hover .arr{transform:translateX(5px)}
+.hero-btn-solid{background:var(--sc);color:var(--obsidian);border-color:var(--sc)}
+.hero-btn-solid:hover{background:var(--gold);border-color:var(--gold)}
+.hero-btn-ghost{border-color:rgba(245,240,230,.4);color:var(--ivory)}
+.hero-btn-ghost:hover{background:rgba(245,240,230,.12);border-color:rgba(245,240,230,.7)}
+.hero-cue{position:absolute;left:50%;bottom:clamp(1.6rem,4vh,2.6rem);transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.7rem;z-index:2;pointer-events:none}
+.hero-cue span{font-family:'Jost',sans-serif;font-weight:300;font-size:.5rem;letter-spacing:.5em;
+  text-transform:uppercase;color:rgba(190,179,165,.75)}
+.hero-cue i{width:1px;height:46px;background:linear-gradient(to bottom,var(--gold),transparent);
+  animation:cueLine 2s ease infinite;display:block}
+@keyframes cueLine{0%{transform:scaleY(0);transform-origin:top;opacity:0}45%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);transform-origin:bottom;opacity:0}}
+#coord-tag{position:absolute;left:clamp(1.4rem,5vw,5rem);bottom:clamp(1.6rem,4vh,2.6rem);z-index:2;
+  font-family:'Jost',sans-serif;font-weight:100;font-size:.48rem;letter-spacing:.3em;color:rgba(242,237,228,.3);pointer-events:none}
+@media(max-width:680px){.hero-h{font-size:clamp(2.8rem,12vw,4rem)}.hero-cue,#coord-tag{display:none}}
+
+/* Nav siempre visible por defecto (ya no hay intro oscura) */
+#nav{transition:background .3s,opacity .3s}
 </style>
 </head>
 <body>
@@ -451,57 +501,11 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   </defs>
 </svg>
 
-<!-- [v2] Vídeo de entrada (loader) ocultado temporalmente — restaurar quitando el comentario
-<div id="loader">
-  <video id="loader-vid" autoplay muted playsinline preload="auto"
-         poster="assets/images/frame-1.jpg">
-    <source src="assets/images/Lawang-entry-video.mp4" type="video/mp4">
-  </video>
-  <button id="loader-skip" onclick="dismissLoader()">Skip →</button>
-</div>
--->
-
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
-<div id="progress"></div>
-
-<!-- Scroll driver — 600vh cinematic -->
-<div id="scroll-zone">
-  <div id="scroll-inner">
-
-
-  </div><!-- end scroll-inner -->
-</div><!-- end scroll-zone -->
-
-<!-- Cinematic stage (fixed) — video controlado por scroll vía GSAP ScrollTrigger -->
-<!-- IMPORTANTE: servir por HTTP, no por file://. El video solo carga desde un servidor. -->
-<div id="stage">
-  <video id="walkthrough-vid"
-         src="assets/videos/lawang_hero_1080p.mp4"
-         poster="assets/videos/lawang_poster.jpg"
-         muted playsinline preload="auto"></video>
-  <div id="overlay"></div>
-  <div id="scene-scrim"></div>
-</div>
-
-<div id="enter-market-hint"></div>
-
-<!-- ── HERO TAGLINE — Primary Star Piece (fades on first scroll) ── -->
-<div id="hero-tagline">
-  <div id="hero-mark-bg">
-    <svg viewBox="0 0 80 88" fill="currentColor" aria-hidden="true"><use href="#lawang-mark"/></svg>
-  </div>
-  <div id="hero-content">
-    <div class="hero-eyebrow-label">Bali &nbsp;·&nbsp; Indonesia</div>
-    <div class="hero-question">What if… you could</div>
-    <div class="hero-headline">
-      <span class="hero-hl-accent">OWN</span><span class="hero-hl-sep"> ∙ </span>THE<span class="hero-hl-sep"> ∙ </span><span class="hero-hl-accent">ETERNITY</span>
-    </div>
-  </div>
-</div>
 
 <!-- Fixed UI -->
-<div id="logo">
+<div id="logo" class="show">
   <div id="logo-inner">
     <svg id="logo-mark" viewBox="0 0 80 88" aria-hidden="true"><use href="#lawang-mark"/></svg>
     <div id="logo-text">
@@ -510,300 +514,105 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     </div>
   </div>
 </div>
-<nav id="nav">
-  <a class="nav-link" href="javascript:void(0)" onclick="scrollToTop()">The Estate</a>
-  <a class="nav-link" href="javascript:void(0)" onclick="goToSection('process')">Process</a>
-  <a class="nav-link" href="javascript:void(0)" onclick="goToSection('invest')">Why Invest</a>
-  <a class="nav-link" href="javascript:void(0)" onclick="goToSection('faq')">FAQ</a>
+<nav id="nav" class="show">
+  <a class="nav-link" href="#home">The Estate</a>
+  <a class="nav-link" href="#process">Process</a>
+  <a class="nav-link" href="#invest">Why Invest</a>
+  <a class="nav-link" href="#faq">FAQ</a>
   <a class="nav-link" href="portfolio.html">Portfolio</a>
-  <a class="nav-cta" href="javascript:void(0)" onclick="goToSection('contact')">Invest →</a>
+  <a class="nav-cta" href="#contact">Invest →</a>
 </nav>
 
-<div id="scene-text">
-  <div class="scene-panel" data-in="0.03" data-out="0.20">
-    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Name</div></div>
-    <div class="scene-title">Lawang<br>means <em>door.</em></div>
-    <div class="scene-sub">We chose that name because that's exactly what we do — open the door to Indonesia for those who have long been looking from the outside.</div>
+<!-- ════════ HERO (panel 1 — scroll-snap) ════════ -->
+<section class="hero-panel" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-scrim"></div>
+  <div class="hero-mark-bg">
+    <svg viewBox="0 0 80 88" fill="currentColor" aria-hidden="true"><use href="#lawang-mark"/></svg>
   </div>
-  <div class="scene-panel" data-in="0.30" data-out="0.48">
-    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Place</div></div>
-    <div class="scene-title">Real development<br>in <em>Bali.</em></div>
-    <div class="scene-sub">No leasehold. No renders. No excuses.</div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Balian Hills, Bali &nbsp;·&nbsp; Sumba Island</div>
+    <h1 class="hero-h">Lawang means <em>door.</em></h1>
+    <p class="hero-sub">We open the door to Indonesia — real freehold land and villas, built and delivered. No leasehold. No renders. No excuses.</p>
+    <div class="hero-btns">
+      <a href="portfolio.html" class="hero-btn hero-btn-solid">Explore the portfolio <span class="arr">→</span></a>
+      <a href="#contact" class="hero-btn hero-btn-ghost">Talk to the team</a>
+    </div>
   </div>
-  <div class="scene-panel" data-in="0.56" data-out="0.72">
-    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Case</div></div>
-    <div class="scene-title">Your money is worth<br>far more <em>in the East.</em></div>
-    <div class="scene-sub">Than in the West.</div>
-  </div>
-  <div class="scene-panel" data-in="0.80" data-out="1.0">
-    <div class="scene-label"><div class="label-line"></div><div class="label-text">The Move</div></div>
-    <div class="scene-title">The axis of the world<br>has <em>shifted.</em></div>
-    <div class="scene-sub">Have you?</div>
-  </div>
-</div>
-
-<div id="scroll-hint">
-  <div class="scroll-label">Scroll to enter</div>
-  <div class="scroll-line"></div>
-</div>
-
-<div id="counter">
-  <div class="cnt-cur" id="cnt">01</div>
-  <div class="cnt-div"></div>
-  <div class="cnt-tot">04</div>
-</div>
-<div id="coord">08°40′59″S &nbsp;·&nbsp; 115°09′45″E</div>
+  <div id="coord-tag">08°40′59″S &nbsp;·&nbsp; 115°09′45″E</div>
+  <div class="hero-cue"><span>Scroll</span><i></i></div>
+</section>
 
 <script>
-gsap.registerPlugin(ScrollTrigger);
+// ════════════════════════════════════════════════════════════
+// [v3] Navegación por secciones con scroll-snap (sin cinemático)
+// Se ejecuta tras DOMContentLoaded: el script va antes de #content-sections
+// en el DOM, así que los nodos deben existir antes de observarlos.
+// ════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function(){
+const nav  = document.getElementById('nav');
+const logo = document.getElementById('logo');
 
-// ── Elementos ─────────────────────────────────────────────────
-const scrollZone     = document.getElementById('scroll-zone');
-const scrollInner    = document.getElementById('scroll-inner');
-const walkthroughVid = document.getElementById('walkthrough-vid');
-const stage          = document.getElementById('stage');
-const sceneText      = document.getElementById('scene-text');
-const progressEl     = document.getElementById('progress');
-const scrollHint     = document.getElementById('scroll-hint');
-const cntEl          = document.getElementById('cnt');
-const counter        = document.getElementById('counter');
-const coord          = document.getElementById('coord');
-const nav            = document.getElementById('nav');
-const logo           = document.getElementById('logo');
-const mktHint        = document.getElementById('enter-market-hint');
+// ── Reveals al entrar en viewport ─────────────────────────────
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
+document.querySelectorAll('#content-sections .reveal').forEach(el => revealObs.observe(el));
 
-let inContentMode = false;
-let built         = false;
-
-const panels = gsap.utils.toArray('.scene-panel');
-
-// ── Build GSAP scroll-scrub (se llama al cargar metadata del vídeo) ──
-function build() {
-  if(built) return; built = true;
-
-  ScrollTrigger.defaults({ scroller: scrollZone });
-
-  const proxy = { t: 0 };
-
-  const tl = gsap.timeline({
-    defaults: { ease: 'none' },
-    scrollTrigger: {
-      trigger: scrollInner,
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: 0.5,
-      onUpdate(self) {
-        // Actualizar barra de progreso y contador
-        const p = self.progress;
-        progressEl.style.width = (p * 100) + '%';
-        // El menú permanece oculto en el top y se revela al empezar el scroll
-        if(!inContentMode) nav.classList.toggle('show', p > 0.004);
-        const idx = p < 0.20 ? 1 : p < 0.48 ? 2 : p < 0.72 ? 3 : 4;
-        if(cntEl) cntEl.textContent = String(idx).padStart(2, '0');
-        // Disparar secciones de contenido al final del recorrido
-        if(p >= 0.97 && !inContentMode) enterContent();
-      }
-    }
+// ── Contadores animados ───────────────────────────────────────
+function animateCount(el, target, prefix, duration) {
+  const start = performance.now();
+  (function tick(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = prefix + Math.round(eased * target);
+    if(p < 1) requestAnimationFrame(tick);
+  })(start);
+}
+const cntObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    cntObs.unobserve(e.target);
+    animateCount(e.target, parseInt(e.target.dataset.count), e.target.dataset.prefix || '', 1600);
   });
+}, { threshold: 0.6 });
+document.querySelectorAll('[data-count]').forEach(el => cntObs.observe(el));
 
-  // 1) Scrub video currentTime con el scroll
-  tl.to(proxy, {
-    t: 1, duration: 1,
-    onUpdate() {
-      const d = walkthroughVid.duration;
-      if(isFinite(d) && d > 0) walkthroughVid.currentTime = d * proxy.t;
-    }
-  }, 0);
-
-  // 2) Hero tagline + scroll hint desaparecen al arrancar el recorrido
-  tl.to('#hero-tagline', { autoAlpha: 0, y: -28, duration: 0.07 }, 0.01);
-  tl.to(scrollHint, { autoAlpha: 0, duration: 0.04 }, 0.02);
-
-  // 3) Revelar cada panel en su tramo del recorrido
-  panels.forEach(panel => {
-    const tin  = parseFloat(panel.dataset.in);
-    const tout = parseFloat(panel.dataset.out);
-    tl.fromTo(panel,
-      { autoAlpha: 0, y: 24 },
-      { autoAlpha: 1, y: 0, duration: 0.06 }, tin);
-    if(tout < 0.99) {
-      tl.to(panel, { autoAlpha: 0, y: -24, duration: 0.06 }, tout);
-    }
+// ── FAQ acordeón ──────────────────────────────────────────────
+document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.closest('.cs-faq-item');
+    const open = item.classList.contains('open');
+    document.querySelectorAll('#content-sections .cs-faq-item.open').forEach(i => i.classList.remove('open'));
+    if(!open) item.classList.add('open');
   });
-
-  ScrollTrigger.refresh();
-
-  // 4) Forzar el pintado del primer fotograma. El navegador NO renderiza un
-  //    <video> sin reproducir hasta que ocurre un seek (cambio de currentTime).
-  //    Sin esto, el hero se ve negro hasta que el usuario hace el primer scroll.
-  const paintFirstFrame = () => { try { walkthroughVid.currentTime = 0.05; } catch(e){} };
-  if(walkthroughVid.readyState >= 2) paintFirstFrame();
-  else walkthroughVid.addEventListener('loadeddata', paintFirstFrame, { once: true });
-}
-
-// ── Transición a secciones de contenido ──────────────────────
-function enterContent() {
-  if(inContentMode) return;
-  inContentMode = true;
-
-  stage.style.transition = 'opacity 0.55s ease';
-  stage.style.opacity = '0';
-  sceneText.classList.add('hidden');
-  counter.classList.add('hidden');
-  coord.classList.add('hidden');
-  scrollHint.classList.add('hidden');
-  if(mktHint) mktHint.classList.remove('show');
-  gsap.to('#hero-tagline', { autoAlpha: 0, duration: 0.3 });
-
-  setTimeout(() => {
-    stage.style.display = 'none';
-    scrollZone.style.overflow = 'hidden';
-    scrollZone.style.pointerEvents = 'none';
-
-    document.body.style.overflow = 'auto';
-    document.body.style.overflowX = 'hidden';
-
-    const cs = document.getElementById('content-sections');
-    cs.style.display = 'block';
-    setTimeout(() => cs.classList.add('visible'), 30);
-
-    nav.style.opacity = '1';
-    nav.style.pointerEvents = 'auto';
-    logo.style.opacity = '1';
-    logo.style.pointerEvents = 'auto';
-    logo.classList.add('dark');
-    nav.classList.add('solid', 'light-nav');
-    document.querySelectorAll('.nav-content').forEach(el => { el.style.display = ''; });
-
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); }});
-    }, { threshold: 0.07, rootMargin: '0px 0px -4% 0px' });
-    document.querySelectorAll('#content-sections .reveal').forEach(el => obs.observe(el));
-
-    function animateCount(el, target, prefix, duration) {
-      const start = performance.now();
-      (function tick(now) {
-        const p = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = prefix + Math.round(eased * target);
-        if(p < 1) requestAnimationFrame(tick);
-      })(start);
-    }
-    const cntObs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if(!e.isIntersecting) return;
-        cntObs.unobserve(e.target);
-        const el = e.target;
-        const target = parseInt(el.dataset.count);
-        const prefix = el.dataset.prefix || '';
-        animateCount(el, target, prefix, 1600);
-      });
-    }, { threshold: 0.6 });
-    document.querySelectorAll('[data-count]').forEach(el => cntObs.observe(el));
-
-    document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = btn.closest('.cs-faq-item');
-        const open = item.classList.contains('open');
-        document.querySelectorAll('#content-sections .cs-faq-item.open').forEach(i => i.classList.remove('open'));
-        if(!open) item.classList.add('open');
-      });
-    });
-
-    window.addEventListener('scroll', () => {
-      nav.classList.toggle('solid', true);
-    }, { passive: true });
-
-    // ── Active nav section tracker ──────────────────────────
-    const trackedSections = ['process', 'invest', 'faq', 'contact']
-      .map(id => document.getElementById(id)).filter(Boolean);
-    const allNavLinks = document.querySelectorAll('#nav .nav-link');
-
-    function updateActiveNav() {
-      const trigger = window.scrollY + window.innerHeight * 0.38;
-      let current = null;
-      trackedSections.forEach(s => { if(s.offsetTop <= trigger) current = s.id; });
-      allNavLinks.forEach(l => {
-        const fn = l.getAttribute('onclick') || '';
-        l.classList.toggle('active', !!current && fn.includes("'"+current+"'"));
-      });
-    }
-    window.addEventListener('scroll', updateActiveNav, { passive: true });
-    updateActiveNav();
-
-  }, 580);
-}
-
-// ── Navegación ────────────────────────────────────────────────
-function goToSection(id) {
-  if(inContentMode) {
-    document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
-  } else {
-    enterContent();
-    setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' });
-    }, 850);
-  }
-}
-
-function scrollToMarket(e) {
-  if(e) e.preventDefault();
-  window.location.href = 'portfolio.html';
-}
-
-function scrollToTop() {
-  if(inContentMode) {
-    window.location.reload();
-  } else {
-    scrollZone.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-}
-
-// ── Init (invocado por dismissLoader) ─────────────────────────
-function init() {
-  setTimeout(() => logo.classList.add('show'), 500);
-  // El menú (#nav) ya no aparece por tiempo: se revela al empezar el scroll (ver onUpdate de build)
-  if(walkthroughVid.readyState >= 1) { build(); }
-  else { walkthroughVid.addEventListener('loadedmetadata', build, { once: true }); }
-  // Safety: si los metadatos tardan, no bloquear la experiencia
-  setTimeout(() => { if(!built) build(); }, 4000);
-}
-
-// ── Dismiss loader ────────────────────────────────────────────
-function dismissLoader() {
-  const loader = document.getElementById('loader');
-  if(!loader || loader.classList.contains('out')) return;
-  loader.classList.add('out');
-  setTimeout(() => { loader.remove(); init(); }, 900);
-}
-
-window.addEventListener('load', () => {
-  // [v2] Loader/vídeo de entrada ocultado: arrancamos la experiencia directamente.
-  const loader = document.getElementById('loader');
-  if(loader) {
-    // Si se restaura el loader, mantener el flujo original de vídeo + skip.
-    const vid = document.getElementById('loader-vid');
-    let gone = false;
-    function go() { if(gone) return; gone = true; clearTimeout(hard); dismissLoader(); }
-    const hard = setTimeout(go, 14000);
-
-    if(vid) {
-      vid.style.opacity = '0';
-      vid.style.transition = 'opacity 1s ease';
-      vid.addEventListener('ended', go, { once:true });
-      vid.addEventListener('error', () => { if(!gone) setTimeout(go, 2500); }, { once:true });
-      vid.play().then(() => {
-        setTimeout(() => { vid.style.opacity = '1'; }, 600);
-      }).catch(() => { if(!gone) setTimeout(go, 2500); });
-    } else {
-      setTimeout(go, 2000);
-    }
-  } else {
-    init();
-  }
 });
 
-// ── Cursor ────────────────────────────────────────────────────
+// ── Nav: estado claro al salir del hero + sección activa ──────
+const sections = ['home','process','invest','faq','contact']
+  .map(id => document.getElementById(id)).filter(Boolean);
+const navLinks = document.querySelectorAll('#nav .nav-link');
+
+function onScroll() {
+  // Al pasar el hero, el nav se vuelve sólido/claro y el logo oscuro
+  const past = window.scrollY > window.innerHeight * 0.6;
+  nav.classList.toggle('solid', past);
+  nav.classList.toggle('light-nav', past);
+  logo.classList.toggle('dark', past);
+
+  // Sección activa
+  const trigger = window.scrollY + window.innerHeight * 0.38;
+  let current = null;
+  sections.forEach(s => { if(s.offsetTop <= trigger) current = s.id; });
+  navLinks.forEach(l => {
+    const href = l.getAttribute('href') || '';
+    l.classList.toggle('active', !!current && href === '#' + current);
+  });
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+// ── Cursor personalizado ──────────────────────────────────────
 const cur = document.getElementById('cursor');
 const ring = document.getElementById('cursor-ring');
 let mx=0,my=0,rx=0,ry=0;
@@ -814,7 +623,6 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 (function() {
   var navCta = document.querySelector('.nav-cta');
   if(!navCta) return;
-  navCta.style.cursor = 'pointer';
   navCta.addEventListener('mousemove', function(e) {
     var r = navCta.getBoundingClientRect();
     var dx = (e.clientX - (r.left + r.width / 2)) * 0.3;
@@ -827,6 +635,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
     setTimeout(function() { navCta.style.transition = ''; }, 520);
   });
 })();
+
+}); // end DOMContentLoaded
 </script>
 
 <!-- ═══════════════════════════════════════════
@@ -854,8 +664,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
-#content-sections { display: none; opacity: 0; transition: opacity 0.5s ease; }
-#content-sections.visible { opacity: 1; }
+#content-sections { display: block; opacity: 1; }
 
 /* ── Shared layout ───────────────────────────────────────────── */
 .cs-wrap { max-width: var(--cmx); margin: 0 auto; padding-inline: var(--cpd); }
@@ -1316,7 +1125,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </div>
       <div class="cs-ft-col" style="font-family:var(--csa)">
         <h5>The estate</h5>
-        <a onclick="scrollToTop()">The cinematic</a>
+        <a href="#home">Home</a>
         <a href="#process">Process</a>
         <a href="#invest">Why Invest</a>
         <a href="#faq">FAQ</a>
