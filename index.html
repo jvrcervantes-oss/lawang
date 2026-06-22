@@ -151,22 +151,49 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
   padding:.6rem 1.7rem;opacity:1;z-index:1;
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
 #topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
-.nav-link{font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
+.nav-link{position:relative;font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
   color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:none;
-  transition:color .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
-.nav-link:hover{color:var(--gold)}
+  transition:color .3s,letter-spacing .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;
+  background:var(--gold);transform:scaleX(0);transform-origin:center;
+  transition:transform .32s cubic-bezier(.16,1,.3,1);box-shadow:0 0 8px rgba(190,179,165,.5)}
+.nav-link:hover{color:#fff;letter-spacing:.25em}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1)}
 #topbar.solid .nav-link{color:rgba(26,22,18,.72);text-shadow:none}
 #topbar.solid .nav-link:hover{color:var(--tg)}
 #topbar.solid .nav-link.active{color:var(--tg);font-weight:500}
+#topbar.solid .nav-link::after{background:var(--tg);box-shadow:none}
 
 #nav-actions{display:flex;align-items:center;gap:clamp(1rem,2vw,1.7rem);flex:none}
-.nav-lang{font-family:'Jost',sans-serif;font-weight:300;font-size:.56rem;letter-spacing:.2em;
-  text-transform:uppercase;color:rgba(245,240,230,.7);background:none;border:none;cursor:none;
+.nav-lang-wrap{position:relative}
+.nav-lang{display:inline-flex;align-items:center;gap:.5rem;
+  font-family:'Jost',sans-serif;font-weight:400;font-size:.58rem;letter-spacing:.2em;
+  text-transform:uppercase;color:rgba(245,240,230,.78);background:none;border:none;cursor:none;
   text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .3s;white-space:nowrap}
-.nav-lang b{font-weight:600;color:var(--gold-light)}
+.nav-lang .globe{width:14px;height:14px;flex:none;opacity:.85}
+.nav-lang .caret{font-size:.62rem;opacity:.7;transition:transform .28s cubic-bezier(.16,1,.3,1)}
+.nav-lang[aria-expanded="true"] .caret{transform:rotate(180deg)}
 .nav-lang:hover{color:#fff}
-#topbar.solid .nav-lang{color:rgba(26,22,18,.55);text-shadow:none}
-#topbar.solid .nav-lang b{color:var(--tg)}
+#topbar.solid .nav-lang{color:rgba(26,22,18,.62);text-shadow:none}
+#topbar.solid .nav-lang:hover{color:var(--tg)}
+/* desplegable */
+.lang-menu{position:absolute;top:calc(100% + 14px);right:0;min-width:158px;list-style:none;margin:0;padding:6px;
+  border-radius:14px;background:rgba(18,16,12,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(190,179,165,.38);box-shadow:0 20px 44px -18px rgba(0,0,0,.7);
+  opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transform-origin:top right;
+  transition:opacity .24s ease,transform .24s cubic-bezier(.16,1,.3,1),visibility .24s;z-index:60}
+.lang-menu.open{opacity:1;visibility:visible;transform:none}
+.lang-menu li{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(245,240,230,.8);padding:10px 13px;border-radius:9px;cursor:none;transition:background .2s,color .2s}
+.lang-menu li:hover{background:rgba(190,179,165,.18);color:#fff}
+.lang-menu li.active{color:var(--gold-light)}
+.lang-menu li.active::after{content:'✓';font-size:.78rem;color:var(--gold)}
+#topbar.solid .lang-menu{background:rgba(255,255,255,.97);border-color:rgba(72,91,55,.2);box-shadow:0 20px 44px -18px rgba(72,91,55,.28)}
+#topbar.solid .lang-menu li{color:rgba(26,22,18,.72)}
+#topbar.solid .lang-menu li:hover{background:rgba(72,91,55,.1);color:var(--tg)}
+#topbar.solid .lang-menu li.active{color:var(--tg)}
+#topbar.solid .lang-menu li.active::after{color:var(--tg)}
 .nav-cta{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;
   border:1px solid rgba(190,179,165,.7);padding:8px 20px 8px 9px;border-radius:30px;
   font-family:'Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
@@ -569,7 +596,20 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
     <a class="nav-link" href="#soul">The Soul</a>
   </nav>
   <div id="nav-actions">
-    <button class="nav-lang" type="button">Select <b>Language</b></button>
+    <div class="nav-lang-wrap" id="langWrap">
+      <button class="nav-lang" id="langBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/>
+        </svg>
+        <span id="langCurrent">English</span>
+        <span class="caret">▾</span>
+      </button>
+      <ul class="lang-menu" id="langMenu" role="listbox" aria-label="Language">
+        <li role="option" data-lang="en" class="active">English</li>
+        <li role="option" data-lang="es">Español</li>
+        <li role="option" data-lang="id">Bahasa</li>
+      </ul>
+    </div>
     <a class="nav-cta" href="#contact"><span class="wa">✆</span> Let's Talk</a>
   </div>
 </header>
@@ -628,6 +668,39 @@ const logo   = document.getElementById('logo');
     }
     requestAnimationFrame(loop);
   })();
+})();
+
+// ── Selector de idioma (desplegable) ──────────────────────────
+(function(){
+  const wrap = document.getElementById('langWrap');
+  const btn  = document.getElementById('langBtn');
+  const menu = document.getElementById('langMenu');
+  const cur  = document.getElementById('langCurrent');
+  if(!wrap || !btn || !menu) return;
+  const close = () => { menu.classList.remove('open'); btn.setAttribute('aria-expanded','false'); };
+  const open  = () => { menu.classList.add('open');    btn.setAttribute('aria-expanded','true');  };
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    menu.classList.contains('open') ? close() : open();
+  });
+  menu.querySelectorAll('li').forEach(li => {
+    li.addEventListener('click', () => {
+      menu.querySelectorAll('li').forEach(i => i.classList.remove('active'));
+      li.classList.add('active');
+      cur.textContent = li.textContent.trim();
+      document.documentElement.lang = li.dataset.lang;
+      try { localStorage.setItem('lawang_lang', li.dataset.lang); } catch(e){}
+      close();
+      // NOTA: la traducción real del contenido aún no está cableada (index es EN).
+    });
+  });
+  document.addEventListener('click', e => { if(!wrap.contains(e.target)) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
+  // Restaurar elección previa
+  try {
+    const saved = localStorage.getItem('lawang_lang');
+    if(saved){ const li = menu.querySelector('[data-lang="'+saved+'"]'); if(li) li.click(); }
+  } catch(e){}
 })();
 
 // ── Franja de marcas del hero (watermark band) ────────────────
