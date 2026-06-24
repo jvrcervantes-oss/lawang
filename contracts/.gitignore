@@ -1,0 +1,13 @@
+# Secretos y archivos generados — nunca en git
+private/config.php
+private/contratos/
+vendor/
+
+# Artefactos de prueba locales
+_demo_ppjb.html
+templates/_demo_*.html
+_originales/
+.playwright-mcp/
+
+# Vía .docx abandonada (pivote a plantilla HTML) — 11MB de binarios obsoletos
+private/plantillas/

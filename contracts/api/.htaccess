@@ -1,0 +1,7 @@
+# Bloquear acceso directo a includes internos
+<Files "bootstrap.php">
+  Require all denied
+</Files>
+
+# Sin listados de directorio
+Options -Indexes

@@ -1,0 +1,52 @@
+{
+  "templates": [
+    {
+      "slug": "ppjb_reserva",
+      "name": "Contrato de Reserva de Proyecto",
+      "desc": "PPJB · pacto preliminar de compraventa",
+      "file": "ppjb_reserva.html",
+      "sections": [
+        { "id": "comprador", "title": "Adquiriente I", "fields": [
+          ["adq1_nombre", "Nombre y apellidos", "text"],
+          ["adq1_nacionalidad", "Nacionalidad", "text"],
+          ["adq1_pasaporte", "Pasaporte", "text"]
+        ]},
+        { "id": "comprador2", "title": "Adquiriente II", "optional": true, "fields": [
+          ["adq2_nombre", "Nombre y apellidos", "text"],
+          ["adq2_nacionalidad", "Nacionalidad", "text"],
+          ["adq2_pasaporte", "Pasaporte", "text"]
+        ]},
+        { "id": "comprador3", "title": "Adquiriente III", "optional": true, "fields": [
+          ["adq3_nombre", "Nombre y apellidos", "text"],
+          ["adq3_nacionalidad", "Nacionalidad", "text"],
+          ["adq3_pasaporte", "Pasaporte", "text"]
+        ]},
+        { "id": "ptpma", "title": "Entidad jurídica (PT PMA)", "optional": true, "fields": [
+          ["ptpma_domicilio", "Domicilio social", "text"],
+          ["ptpma_nib", "NIB / OSS", "text"],
+          ["ptpma_npwp", "NPWP", "text"]
+        ]},
+        { "id": "proyecto", "title": "Proyecto y parcela", "fields": [
+          ["proyecto_nombre", "Nombre del proyecto", "text"],
+          ["parcela_num", "Número de parcela", "text"],
+          ["vendedor_cargo", "Cargo del representante del vendedor", "text", "Director"]
+        ]},
+        { "id": "precio", "title": "Precio", "fields": [
+          ["precio_total_eur", "Precio total (€)", "number"],
+          ["precio_total_letras", "Precio total en letras", "text"],
+          ["precio_reserva_eur", "Precio de reserva (€)", "number"],
+          ["precio_reserva_letras", "Reserva en letras", "text"]
+        ]},
+        { "id": "plazo", "title": "Plazo y fecha", "fields": [
+          ["plazo_meses", "Plazo de ejecución (meses)", "number"],
+          ["fecha_firma", "Fecha de firma", "date"]
+        ]},
+        { "id": "firmas", "title": "Firmas", "fields": [
+          ["firma_adquiriente", "Firma del adquiriente", "signature"],
+          ["firma_promotor", "Firma del promotor", "signature"]
+        ]}
+      ],
+      "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
+    }
+  ]
+}

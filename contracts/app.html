@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lawang · Generador de Contratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+    --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --muted:#6b6c66;
+    --line:#e4ddcf;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:'Jost',sans-serif; color:var(--va); background:var(--rl);
+    font-size:16px; line-height:1.5;
+  }
+  /* ---------- App shell ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:20; background:#fff;
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; padding:14px 18px;
+    padding-top:max(14px, env(safe-area-inset-top));
+  }
+  .topbar .glyph{
+    width:34px; height:34px; border:1.5px solid var(--tg); border-radius:50%;
+    display:grid; place-items:center; color:var(--tg);
+    font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600;
+  }
+  .topbar h1{ font-family:'Cormorant Garamond',serif; font-size:19px; letter-spacing:.16em;
+    text-transform:uppercase; margin:0; color:var(--va); }
+  .topbar h1 small{ display:block; font-family:'Jost'; font-size:10px; letter-spacing:.28em; color:var(--muted); }
+
+  .wrap{ max-width:680px; margin:0 auto; padding:18px 16px 120px; }
+
+  /* ---------- Plantilla seleccionada ---------- */
+  .tpl-card{
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin-bottom:18px; display:flex; align-items:center; gap:14px;
+  }
+  .tpl-card .ico{ width:44px; height:44px; border-radius:10px; background:var(--dl);
+    display:grid; place-items:center; color:#fff; font-size:20px; flex:none; }
+  .tpl-card .meta b{ display:block; font-size:15px; }
+  .tpl-card .meta span{ font-size:12.5px; color:var(--muted); }
+  .tpl-card .badge{ margin-left:auto; font-size:11px; color:var(--tg);
+    border:1px solid var(--sc); border-radius:20px; padding:3px 10px; }
+
+  /* ---------- Secciones del formulario ---------- */
+  .section{ background:#fff; border:1px solid var(--line); border-radius:14px;
+    margin-bottom:14px; overflow:hidden; }
+  .section > header{
+    display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer;
+    user-select:none;
+  }
+  .section > header .num{ font-family:'Cormorant Garamond',serif; font-style:italic;
+    color:var(--tg); font-size:18px; width:22px; }
+  .section > header h2{ font-size:13px; letter-spacing:.06em; text-transform:uppercase;
+    margin:0; color:var(--dl); font-weight:600; flex:1; }
+  .section > header .chev{ color:var(--muted); transition:transform .2s; font-size:13px; }
+  .section.collapsed > header .chev{ transform:rotate(-90deg); }
+  .section .body{ padding:4px 16px 16px; }
+  .section.collapsed .body{ display:none; }
+
+  /* toggle opcional */
+  .opt-toggle{ display:flex; align-items:center; gap:8px; margin-left:auto; font-size:12px; color:var(--muted); }
+  .switch{ position:relative; width:42px; height:24px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:var(--ss); border-radius:24px; transition:.2s; }
+  .slider:before{ content:""; position:absolute; height:18px; width:18px; left:3px; top:3px;
+    background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider{ background:var(--tg); }
+  .switch input:checked + .slider:before{ transform:translateX(18px); }
+  .section.optional.off .body{ display:none; }
+  .section.optional.off{ opacity:.85; }
+
+  /* campos */
+  .field{ margin:12px 0; }
+  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px;
+    letter-spacing:.02em; }
+  .field input, .field textarea, .field select{
+    width:100%; font-family:inherit; font-size:16px; color:var(--va);
+    padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fdfcf9;
+  }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--tg);
+    box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .field .hint{ font-size:11px; color:var(--muted); margin-top:4px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:460px){ .grid2{ grid-template-columns:1fr; } }
+
+  /* firma */
+  .sigpad-wrap{ border:1px dashed var(--ss); border-radius:10px; background:#fff;
+    position:relative; touch-action:none; }
+  .sigpad-wrap canvas{ width:100%; height:150px; display:block; border-radius:10px; }
+  .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center;
+    color:var(--ss); font-size:13px; pointer-events:none; }
+  .sigpad-wrap.signed .ph{ display:none; }
+  .sig-actions{ display:flex; justify-content:flex-end; margin-top:6px; }
+  .link-btn{ background:none; border:none; color:var(--tg); font-size:12.5px; cursor:pointer;
+    text-decoration:underline; padding:4px; }
+
+  /* barra inferior */
+  .actionbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff;
+    border-top:1px solid var(--line); padding:12px 16px;
+    padding-bottom:max(12px, env(safe-area-inset-bottom));
+    display:flex; gap:10px; align-items:center;
+  }
+  .actionbar .prog{ flex:1; font-size:12px; color:var(--muted); }
+  .actionbar .prog b{ color:var(--tg); }
+  .btn{ font-family:inherit; font-size:15px; font-weight:500; border-radius:10px;
+    padding:13px 20px; border:none; cursor:pointer; }
+  .btn.primary{ background:var(--dl); color:#fff; }
+  .btn.primary:disabled{ background:var(--ss); cursor:not-allowed; }
+  .btn.ghost{ background:none; border:1px solid var(--line); color:var(--va); }
+
+  /* preview overlay */
+  .overlay{ position:fixed; inset:0; z-index:50; background:rgba(46,52,55,.55);
+    display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:14px; }
+  .overlay.open{ display:flex; }
+  .preview{ background:#fff; width:100%; max-width:820px; border-radius:14px; overflow:hidden;
+    margin:auto; }
+  .preview .pv-bar{ display:flex; align-items:center; gap:10px; padding:12px 16px;
+    border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; z-index:2; }
+  .preview .pv-bar b{ font-size:14px; flex:1; }
+  .preview iframe{ width:100%; height:70vh; border:none; }
+
+  .toast{ position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+    background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px;
+    z-index:60; opacity:0; transition:.3s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="glyph">L</div>
+    <h1>Contratos<small>LAWANG TROPICAL PROPERTIES</small></h1>
+  </div>
+
+  <div class="wrap">
+    <div class="tpl-card">
+      <div class="ico">📄</div>
+      <div class="meta">
+        <b id="tplName">Contrato de Reserva de Proyecto</b>
+        <span id="tplDesc">PPJB · pacto preliminar de compraventa</span>
+      </div>
+      <div class="badge">Plantilla</div>
+    </div>
+
+    <form id="form"><!-- secciones generadas por JS --></form>
+  </div>
+
+  <div class="actionbar">
+    <div class="prog">Completados <b><span id="cDone">0</span>/<span id="cTotal">0</span></b></div>
+    <button type="button" class="btn ghost" id="btnReset">Limpiar</button>
+    <button type="button" class="btn primary" id="btnGen">Generar contrato</button>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="preview">
+      <div class="pv-bar">
+        <b>Contrato generado</b>
+        <button class="btn ghost" id="btnEdit">Editar</button>
+        <button class="btn primary" id="btnPdf">Descargar PDF</button>
+      </div>
+      <iframe id="pvFrame"></iframe>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   GENERADOR DE CONTRATOS — prototipo cliente
+   Flujo: cargar plantilla -> auto-detectar {{marcadores}} ->
+   formulario -> rellenar -> previsualizar -> PDF (print)
+   En producción: api/generar.php hace el merge + mPDF + guarda.
+   ============================================================ */
+const TEMPLATE_URL = 'templates/ppjb_reserva.html';
+
+/* Metadatos de campos (etiqueta, tipo, sección, opcional).
+   Cualquier {{marcador}} no listado aquí se añade igual con
+   etiqueta automática -> el sistema sirve para cualquier contrato. */
+const FALLBACK_SECTIONS = [
+  { id:'comprador', title:'Adquiriente I', fields:[
+    ['adq1_nombre','Nombre y apellidos','text'],
+    ['adq1_nacionalidad','Nacionalidad','text'],
+    ['adq1_pasaporte','Pasaporte','text'],
+  ]},
+  { id:'comprador2', title:'Adquiriente II', optional:true, fields:[
+    ['adq2_nombre','Nombre y apellidos','text'],
+    ['adq2_nacionalidad','Nacionalidad','text'],
+    ['adq2_pasaporte','Pasaporte','text'],
+  ]},
+  { id:'comprador3', title:'Adquiriente III', optional:true, fields:[
+    ['adq3_nombre','Nombre y apellidos','text'],
+    ['adq3_nacionalidad','Nacionalidad','text'],
+    ['adq3_pasaporte','Pasaporte','text'],
+  ]},
+  { id:'ptpma', title:'Entidad jurídica (PT PMA)', optional:true, fields:[
+    ['ptpma_domicilio','Domicilio social','text'],
+    ['ptpma_nib','NIB / OSS','text'],
+    ['ptpma_npwp','NPWP','text'],
+  ]},
+  { id:'proyecto', title:'Proyecto y parcela', fields:[
+    ['proyecto_nombre','Nombre del proyecto','text'],
+    ['parcela_num','Número de parcela','text'],
+    ['vendedor_cargo','Cargo del representante del vendedor','text','Director'],
+  ]},
+  { id:'precio', title:'Precio', fields:[
+    ['precio_total_eur','Precio total (€)','number'],
+    ['precio_total_letras','Precio total en letras','text'],
+    ['precio_reserva_eur','Precio de reserva (€)','number'],
+    ['precio_reserva_letras','Reserva en letras','text'],
+  ]},
+  { id:'plazo', title:'Plazo y fecha', fields:[
+    ['plazo_meses','Plazo de ejecución (meses)','number'],
+    ['fecha_firma','Fecha de firma','date'],
+  ]},
+  { id:'firmas', title:'Firmas', fields:[
+    ['firma_adquiriente','Firma del adquiriente','signature'],
+    ['firma_promotor','Firma del promotor','signature'],
+  ]},
+];
+
+let SECTIONS = FALLBACK_SECTIONS;   // se sustituye por las del manifiesto si hay backend
+let templateHTML = '';
+let BACKEND = false;                 // ¿hay servidor PHP detrás?
+let CSRF = null;
+let CURRENT_SLUG = 'ppjb_reserva';
+const pads = {}; // canvas signature pads
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* ---------- construir formulario ---------- */
+function fieldHTML(f){
+  const [key,label,type,def] = f;
+  const val = def ? `value="${def}"` : '';
+  if(type==='signature'){
+    return `<div class="field" data-key="${key}">
+      <label>${label}</label>
+      <div class="sigpad-wrap" id="pad-${key}">
+        <canvas></canvas><div class="ph">Firma con el dedo aquí</div>
+      </div>
+      <div class="sig-actions"><button type="button" class="link-btn" data-clear="${key}">Borrar firma</button></div>
+    </div>`;
+  }
+  if(type==='textarea'){
+    return `<div class="field"><label>${label}</label><textarea name="${key}" rows="2"></textarea></div>`;
+  }
+  return `<div class="field"><label>${label}</label>
+    <input name="${key}" type="${type||'text'}" ${val} autocomplete="off"></div>`;
+}
+
+function buildForm(){
+  const form = $('#form');
+  form.innerHTML = SECTIONS.map((s,i)=>{
+    const optional = s.optional ? `<div class="opt-toggle">añadir
+        <label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
+    const collapsed = s.optional ? 'collapsed optional off' : '';
+    const grid = (s.id.startsWith('comprador')||s.id==='ptpma'||s.id==='precio'||s.id==='plazo');
+    const body = s.fields.map(fieldHTML).join('');
+    return `<section class="section ${collapsed}" data-sec="${s.id}">
+      <header><span class="num">${i+1}</span><h2>${s.title}</h2>${optional}<span class="chev">▾</span></header>
+      <div class="body"><div class="${grid?'grid2':''}">${body}</div></div>
+    </section>`;
+  }).join('');
+
+  // colapsar/expandir
+  form.querySelectorAll('.section > header').forEach(h=>{
+    h.addEventListener('click', e=>{
+      if(e.target.closest('.opt-toggle')) return;
+      h.parentElement.classList.toggle('collapsed');
+    });
+  });
+  // toggles opcionales
+  form.querySelectorAll('[data-opt]').forEach(chk=>{
+    chk.addEventListener('change', ()=>{
+      const sec = form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
+      sec.classList.toggle('off', !chk.checked);
+      sec.classList.toggle('collapsed', !chk.checked);
+    });
+  });
+  // firmas
+  form.querySelectorAll('.sigpad-wrap').forEach(initPad);
+  form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>clearPad(b.dataset.clear)));
+  // progreso
+  form.addEventListener('input', updateProgress);
+  updateProgress();
+}
+
+/* ---------- pad de firma ---------- */
+function initPad(wrap){
+  const key = wrap.id.replace('pad-','');
+  const cv = wrap.querySelector('canvas');
+  const ratio = window.devicePixelRatio||1;
+  function resize(){ const r=cv.getBoundingClientRect(); cv.width=r.width*ratio; cv.height=r.height*ratio;
+    const ctx=cv.getContext('2d'); ctx.scale(ratio,ratio); ctx.lineWidth=2; ctx.lineCap='round';
+    ctx.strokeStyle='#104C4F'; pads[key]={cv,ctx,empty:true}; }
+  resize();
+  let drawing=false, last=null;
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
+    return {x:t.clientX-r.left, y:t.clientY-r.top}; };
+  const start=e=>{ drawing=true; last=pos(e); e.preventDefault(); };
+  const move=e=>{ if(!drawing)return; const p=pos(e); const c=pads[key].ctx;
+    c.beginPath(); c.moveTo(last.x,last.y); c.lineTo(p.x,p.y); c.stroke(); last=p;
+    pads[key].empty=false; wrap.classList.add('signed'); e.preventDefault(); };
+  const end=()=>{ drawing=false; };
+  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false});
+  cv.addEventListener('touchmove',move,{passive:false});
+  cv.addEventListener('touchend',end);
+}
+function clearPad(key){ const p=pads[key]; if(!p)return; p.ctx.clearRect(0,0,p.cv.width,p.cv.height);
+  p.empty=true; document.getElementById('pad-'+key).classList.remove('signed'); }
+
+/* ---------- progreso ---------- */
+function activeKeys(){
+  const keys=[];
+  SECTIONS.forEach(s=>{
+    const sec=$(`[data-sec="${s.id}"]`);
+    if(s.optional && sec.classList.contains('off')) return;
+    s.fields.forEach(f=>keys.push(f[0]));
+  });
+  return keys;
+}
+function collect(){
+  const data={};
+  activeKeys().forEach(k=>{
+    const pad=pads[k];
+    if(pad){ data[k]= pad.empty ? '' : pad.cv.toDataURL('image/png'); return; }
+    const el=$(`[name="${k}"]`); data[k]= el? el.value.trim() : '';
+  });
+  return data;
+}
+function updateProgress(){
+  const keys=activeKeys().filter(k=>!k.startsWith('firma'));
+  const data=collect();
+  const done=keys.filter(k=>data[k]).length;
+  $('#cDone').textContent=done; $('#cTotal').textContent=keys.length;
+  $('#btnGen').disabled = done < keys.length;
+}
+
+/* ---------- generar (merge cliente) ---------- */
+function generate(){
+  const data=collect();
+  let html=templateHTML;
+  // ocultar bloques opcionales no rellenados (por comentarios <!--opt:KEY-->…<!--/opt:KEY-->,
+  // idéntico al servidor). Quita el bloque si el valor KEY está vacío.
+  html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=>
+    (k in data && data[k]!=='') ? m : '');
+  // sustituir marcadores (firma vacía -> '' para no dejar imagen rota)
+  html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{
+    const filled = (k in data && data[k]!=='');
+    if(k.startsWith('firma')) return filled ? data[k] : '';
+    return filled ? esc(data[k],k) : '—';
+  });
+  // mostrar
+  const f=$('#pvFrame'); f.srcdoc=html; $('#overlay').classList.add('open');
+}
+function esc(v,k){ if(k.startsWith('firma')) return v; // data URI, no escapar
+  return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- eventos ---------- */
+$('#btnGen').addEventListener('click', generate);
+$('#btnEdit').addEventListener('click', ()=>$('#overlay').classList.remove('open'));
+$('#btnPdf').addEventListener('click', downloadPdf);
+
+async function downloadPdf(){
+  // Sin backend (prototipo): imprimir el preview a PDF
+  if(!BACKEND){ $('#pvFrame').contentWindow.focus(); $('#pvFrame').contentWindow.print(); return; }
+  // Con backend: el servidor genera el PDF con mPDF y lo guarda
+  const btn=$('#btnPdf'); btn.disabled=true; btn.textContent='Generando…';
+  try{
+    const r=await fetch('api/generar.php',{
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF||''},
+      body:JSON.stringify({slug:CURRENT_SLUG, data:collect()})
+    });
+    const d=await r.json();
+    if(d.ok){ window.open(d.download+'&dl=1','_blank'); toast('Contrato guardado'); }
+    else{ toast(d.error||'Error al generar'); }
+  }catch(_){ toast('No se pudo conectar'); }
+  btn.disabled=false; btn.textContent='Descargar PDF';
+}
+$('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos?')) location.reload(); });
+
+/* ---------- cobertura de marcadores (genérico para cualquier contrato) ---------- */
+function ensureCoverage(html){
+  const inTpl=[...new Set([...html.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]))].filter(k=>k!=='campo');
+  const known=new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
+  const missing=inTpl.filter(k=>!known.has(k));
+  if(missing.length){
+    SECTIONS.splice(SECTIONS.length-1,0,{ id:'otros', title:'Otros campos',
+      fields:missing.map(k=>[k,humanize(k),'text']) });
+  }
+}
+
+/* ---------- init: detecta backend (PHP) o cae a modo standalone ---------- */
+async function init(){
+  // 1) ¿hay backend? (api/auth.php responde)
+  try{
+    const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
+    BACKEND = true; CSRF = me.csrf;
+    if(!me.agent){ location.href='login.html'; return; }   // requiere login
+    const tpl = await fetch('api/plantillas.php?action=get&slug='+CURRENT_SLUG).then(r=>r.json());
+    if(!tpl.ok) throw 0;
+    if(Array.isArray(tpl.sections) && tpl.sections.length) SECTIONS = tpl.sections;
+    templateHTML = tpl.html;
+    $('#tplName').textContent = tpl.name || $('#tplName').textContent;
+  }catch(_){
+    // 2) modo standalone (prototipo, sin PHP): usa fallback + archivo de plantilla
+    BACKEND = false;
+    try{ templateHTML = await fetch(TEMPLATE_URL).then(r=>r.text()); }
+    catch(e){ $('#form').innerHTML='<p style="color:#a33">No se pudo cargar la plantilla. Sirve la app por HTTP.</p>'; return; }
+  }
+  ensureCoverage(templateHTML);
+  buildForm();
+}
+init();
+</script>
+</body>
+</html>

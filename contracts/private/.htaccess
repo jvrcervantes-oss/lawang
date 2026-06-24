@@ -1,0 +1,2 @@
+# private/ contiene secretos y los PDF generados. Nunca accesible por web.
+Require all denied
