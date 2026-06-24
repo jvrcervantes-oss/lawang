@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS contracts (
   project_name  VARCHAR(200)  NULL,
   signed        TINYINT(1)    NOT NULL DEFAULT 0,  -- ¿llevaba firma en pantalla?
   data_json     LONGTEXT      NOT NULL,            -- valores rellenados (sin imágenes de firma)
-  pdf_file      VARCHAR(120)  NOT NULL,            -- nombre del archivo en private/contratos/
-  pdf_bytes     INT UNSIGNED  NULL,
+  doc_file      VARCHAR(120)  NOT NULL,            -- snapshot HTML en private/contratos/ (el PDF lo hace el navegador)
+  doc_bytes     INT UNSIGNED  NULL,
   created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_contracts_agent (agent_id, created_at),

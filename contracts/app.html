@@ -373,19 +373,21 @@ $('#btnGen').addEventListener('click', generate);
 $('#btnEdit').addEventListener('click', ()=>$('#overlay').classList.remove('open'));
 $('#btnPdf').addEventListener('click', downloadPdf);
 
+function printPreview(){ const w=$('#pvFrame').contentWindow; w.focus(); w.print(); }
+
 async function downloadPdf(){
-  // Sin backend (prototipo): imprimir el preview a PDF
-  if(!BACKEND){ $('#pvFrame').contentWindow.focus(); $('#pvFrame').contentWindow.print(); return; }
-  // Con backend: el servidor genera el PDF con mPDF y lo guarda
-  const btn=$('#btnPdf'); btn.disabled=true; btn.textContent='Generando…';
+  // Sin backend (prototipo): solo imprimir el preview → Guardar como PDF
+  if(!BACKEND){ printPreview(); return; }
+  // Con backend: guardar el registro del contrato en el servidor y luego imprimir
+  const btn=$('#btnPdf'); btn.disabled=true; btn.textContent='Guardando…';
   try{
     const r=await fetch('api/generar.php',{
       method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF||''},
       body:JSON.stringify({slug:CURRENT_SLUG, data:collect()})
     });
     const d=await r.json();
-    if(d.ok){ window.open(d.download+'&dl=1','_blank'); toast('Contrato guardado'); }
-    else{ toast(d.error||'Error al generar'); }
+    if(d.ok){ toast('Contrato guardado · abre Guardar como PDF'); printPreview(); }
+    else{ toast(d.error||'Error al guardar'); }
   }catch(_){ toast('No se pudo conectar'); }
   btn.disabled=false; btn.textContent='Descargar PDF';
 }

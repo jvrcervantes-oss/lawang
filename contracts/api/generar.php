@@ -22,26 +22,20 @@ $path = $TPL_DIR . '/' . basename($tpl['file']);
 if (!is_file($path)) fail('Archivo de plantilla ausente', 500);
 $html = file_get_contents($path);
 
-// ---- merge (idéntico al cliente: opcionales por comentario + marcadores) ----
+// ---- merge server-side (idéntico al cliente: opcionales por comentario + marcadores) ----
 function render_contract(string $html, array $data): string {
-  // 1) bloques opcionales: <!--opt:KEY--> ... <!--/opt:KEY-->  (se quitan si KEY vacío)
   $html = preg_replace_callback('/<!--opt:([a-z0-9_]+)-->.*?<!--\/opt:\1-->/s', function ($m) use ($data) {
     return trim((string)($data[$m[1]] ?? '')) === '' ? '' : $m[0];
   }, $html);
-  // 2) marcadores {{campo}}
   $html = preg_replace_callback('/\{\{([a-z0-9_]+)\}\}/', function ($m) use ($data) {
     $k = $m[1];
-    if ($k === 'campo') return $m[0]; // ejemplo dentro de un comentario CSS
+    if ($k === 'campo') return $m[0];
     $v = (string)($data[$k] ?? '');
-    if (str_starts_with($k, 'firma')) return $v;   // data URI PNG o vacío
+    if (str_starts_with($k, 'firma')) return $v;            // data URI PNG o vacío
     return $v !== '' ? htmlspecialchars($v, ENT_QUOTES, 'UTF-8') : '—';
   }, $html);
   return $html;
 }
-
-// quitar Google Fonts (mPDF no descarga woff2; usaría fuente por defecto)
-$html = preg_replace('#<link[^>]+fonts\.(googleapis|gstatic)\.com[^>]*>#i', '', $html);
-$merged = render_contract($html, $data);
 
 // ---- validar firma(s): solo PNG/JPEG en data URI ----
 foreach (['firma_adquiriente', 'firma_promotor'] as $sk) {
@@ -51,26 +45,11 @@ foreach (['firma_adquiriente', 'firma_promotor'] as $sk) {
 }
 $signed = (!empty($data['firma_adquiriente']) || !empty($data['firma_promotor'])) ? 1 : 0;
 
-// ---- generar PDF con mPDF ----
-$autoload = __DIR__ . '/../vendor/autoload.php';
-if (!is_file($autoload)) fail('mPDF no instalado en el servidor (composer require mpdf/mpdf)', 500);
-require $autoload;
+// Documento renderizado (snapshot exacto del contrato). El PDF lo hace el navegador
+// al imprimir; aquí guardamos el HTML como registro/auditoría y re-descarga.
+$merged = render_contract($html, $data);
 
-try {
-  $mpdf = new \Mpdf\Mpdf([
-    'mode' => 'utf-8', 'format' => 'A4',
-    'margin_left' => 18, 'margin_right' => 18, 'margin_top' => 18, 'margin_bottom' => 20,
-    'tempDir' => sys_get_temp_dir(),
-  ]);
-  $mpdf->SetTitle($tpl['name']);
-  $mpdf->SetAuthor('Lawang Tropical Properties');
-  $mpdf->WriteHTML($merged);
-  $pdfBytes = $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
-} catch (\Throwable $e) {
-  fail('Error generando el PDF' . (($GLOBALS['CONFIG']['debug'] ?? false) ? ': ' . $e->getMessage() : ''), 500);
-}
-
-// ---- guardar archivo en private/contratos/ ----
+// ---- guardar snapshot HTML en private/contratos/ ----
 $OUT_DIR = __DIR__ . '/../private/contratos';
 if (!is_dir($OUT_DIR)) @mkdir($OUT_DIR, 0750, true);
 function uuidv4(): string {
@@ -80,30 +59,29 @@ function uuidv4(): string {
   return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($d), 4));
 }
 $id   = uuidv4();
-$file = $id . '.pdf';
-if (file_put_contents($OUT_DIR . '/' . $file, $pdfBytes) === false) fail('No se pudo guardar el PDF', 500);
+$file = $id . '.html';
+if (file_put_contents($OUT_DIR . '/' . $file, $merged) === false) fail('No se pudo guardar el contrato', 500);
 
-// ---- registrar en BD (sin guardar las imágenes de firma para no inflar) ----
+// ---- registrar en BD (sin las imágenes de firma para no inflar) ----
 $meta  = $tpl['meta_fields'] ?? [];
-$buyer = $meta['buyer']   ? ($data[$meta['buyer']]   ?? null) : null;
-$proj  = $meta['project'] ? ($data[$meta['project']] ?? null) : null;
+$buyer = !empty($meta['buyer'])   ? ($data[$meta['buyer']]   ?? null) : null;
+$proj  = !empty($meta['project']) ? ($data[$meta['project']] ?? null) : null;
 $store = $data;
 foreach ($store as $k => $v) { if (str_starts_with($k, 'firma')) unset($store[$k]); }
 
 $st = db()->prepare(
-  'INSERT INTO contracts (id, template_slug, template_name, agent_id, buyer_name, project_name, signed, data_json, pdf_file, pdf_bytes)
+  'INSERT INTO contracts (id, template_slug, template_name, agent_id, buyer_name, project_name, signed, data_json, doc_file, doc_bytes)
    VALUES (?,?,?,?,?,?,?,?,?,?)'
 );
 $st->execute([
   $id, $slug, $tpl['name'], (int)$agent['id'],
-  $buyer ? mb_substr($buyer, 0, 200) : null,
-  $proj ? mb_substr($proj, 0, 200) : null,
-  $signed, json_encode($store, JSON_UNESCAPED_UNICODE), $file, strlen($pdfBytes),
+  $buyer ? mb_substr((string)$buyer, 0, 200) : null,
+  $proj ? mb_substr((string)$proj, 0, 200) : null,
+  $signed, json_encode($store, JSON_UNESCAPED_UNICODE), $file, strlen($merged),
 ]);
 
 json_out([
   'ok' => true,
   'id' => $id,
-  'download' => 'api/contratos.php?action=pdf&id=' . $id,
-  'bytes' => strlen($pdfBytes),
+  'view' => 'api/contratos.php?action=view&id=' . $id,
 ]);

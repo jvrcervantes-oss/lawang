@@ -1,8 +1,0 @@
-{
-  "name": "lawang/contracts",
-  "description": "Generador de contratos Lawang — backend PHP + mPDF",
-  "require": {
-    "php": ">=8.0",
-    "mpdf/mpdf": "^8.2"
-  }
-}
