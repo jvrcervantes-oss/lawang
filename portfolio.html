@@ -413,9 +413,12 @@ article:hover .view-cta { gap:9px; }
     "pd.also":{"en":"More in this line","es":"Más en esta línea"},
     "tenure.freehold":{"en":"Freehold (Hak Milik)","es":"Freehold (Hak Milik)"},
     "tenure.leasehold":{"en":"Leasehold — 30 yrs","es":"Leasehold — 30 años"},
-    "status.ready":{"en":"Ready","es":"Lista"},
-    "status.offplan":{"en":"Off-plan","es":"Sobre plano"},
+    "status.ready":{"en":"Built","es":"Construida"},
+    "status.construction":{"en":"Under construction","es":"En construcción"},
+    "status.offplan":{"en":"Off-plan","es":"En plano"},
     "status.land":{"en":"Titled land","es":"Terreno titulado"},
+    "tag.freehold":{"en":"Freehold","es":"Freehold"},
+    "tag.leasehold":{"en":"Leasehold","es":"Leasehold"},
     "ct.send":{"en":"Send enquiry","es":"Enviar solicitud"},
     "glance.entry":    {"en":"Entry price",     "es":"Precio entrada"},
     "glance.tenure":   {"en":"Tenure",          "es":"Régimen"},
@@ -561,6 +564,13 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   const LINE_KEYS = { signature:"line.signature", land:"line.land", villa:"line.villa", resorts:"line.resorts" };
   const LINE_ICONS = { signature:"icon-signature", land:"icon-land", villa:"icon-villas", resorts:"icon-resorts" };
 
+  // Construction-status pill colour: built = green, under construction = burnt earth, off-plan / land = outline
+  function statusStyle(s) {
+    if (s === "status.ready")        return { background:"var(--clay)", color:"var(--bone)", borderColor:"var(--clay)" };
+    if (s === "status.construction") return { background:"var(--be)",   color:"var(--bone)", borderColor:"var(--be)" };
+    return { background:"transparent", color:"var(--ink-2)", borderColor:"var(--line)" };
+  }
+
   function FilterChip({ active, onClick, children }) {
     return (
       <button className="filter-chip" onClick={onClick} style={{
@@ -596,9 +606,12 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                 </span>
               } />
           <div style={{ padding:"22px 24px 26px", display:"flex", flexDirection:"column", gap:12, flex:1 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
               <span style={{ fontSize:12, fontWeight:600, letterSpacing:".06em", textTransform:"uppercase", color:"var(--ink-2)" }}>{p.region}</span>
-              <span className={`pill ${p.status==="status.land" ? "" : "clay"}`} style={{ padding:"3px 9px", fontSize:10 }}>{t(p.status)}</span>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
+                <span className="pill" style={{ padding:"3px 9px", fontSize:9.5, background:"var(--tg-light)", color:"var(--clay-d)", borderColor:"rgba(72,91,55,.28)" }}>{t(p.tenure==="tenure.leasehold" ? "tag.leasehold" : "tag.freehold")}</span>
+                <span className="pill" style={{ padding:"3px 9px", fontSize:9.5, ...statusStyle(p.status) }}>{t(p.status)}</span>
+              </div>
             </div>
             <h3 className="serif" style={{ fontSize:28, fontWeight:300, lineHeight:1.05 }}>{p.title[lang] || p.title.en}</h3>
             <p style={{ fontSize:14.5, color:"var(--ink-2)", lineHeight:1.5, margin:0 }}>{p.sub[lang] || p.sub.en}</p>
@@ -625,17 +638,17 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     return (
       <Reveal>
         <div onClick={() => go("property/" + p.id)}
-          style={{ cursor:"pointer", position:"relative", borderRadius:10, overflow:"hidden", marginBottom:56, transition:"box-shadow .4s var(--ease)" }}
+          style={{ cursor:"pointer", position:"relative", borderRadius:10, overflow:"hidden", marginBottom:26, transition:"box-shadow .4s var(--ease)" }}
           onMouseEnter={e=>{ e.currentTarget.style.boxShadow="0 48px 100px -40px rgba(32,24,15,.5)"; }}
           onMouseLeave={e=>{ e.currentTarget.style.boxShadow="none"; }}>
-          <Ph imgKey={p.imgKeys[0]} w={2000} theme={themeFor(p)} kb ratio="21/8" tint={0} style={{ minHeight:360 }} />
-          <div style={{ position:"absolute", inset:0, background:"linear-gradient(105deg,rgba(22,18,12,.88) 0%,rgba(22,18,12,.5) 44%,rgba(22,18,12,.0) 100%)" }} />
-          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:"clamp(26px,4vw,52px)", color:"var(--bone)", maxWidth:640 }}>
-            <span className="pill clay" style={{ alignSelf:"flex-start", marginBottom:18 }}>{t("mk.featured")}</span>
-            <h3 className="display" style={{ fontSize:"clamp(34px,5vw,64px)" }}>{p.title[lang] || p.title.en}</h3>
-            <p style={{ fontSize:17, opacity:.9, marginTop:14, maxWidth:480 }}>{p.sub[lang] || p.sub.en}</p>
-            <div style={{ display:"flex", gap:22, alignItems:"center", marginTop:24 }}>
-              <span className="serif" style={{ fontSize:30 }}><Price eur={p.priceEUR} from /></span>
+          <Ph imgKey={p.imgKeys[0]} w={2000} theme={themeFor(p)} kb ratio="21/6" tint={0} style={{ minHeight:210 }} />
+          <div style={{ position:"absolute", inset:0, background:"linear-gradient(105deg,rgba(22,18,12,.88) 0%,rgba(22,18,12,.5) 48%,rgba(22,18,12,.0) 100%)" }} />
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:"clamp(20px,3vw,38px)", color:"var(--bone)", maxWidth:600 }}>
+            <span className="pill clay" style={{ alignSelf:"flex-start", marginBottom:12 }}>{t("mk.featured")}</span>
+            <h3 className="display" style={{ fontSize:"clamp(26px,3.6vw,44px)" }}>{p.title[lang] || p.title.en}</h3>
+            <p style={{ fontSize:15, opacity:.9, marginTop:8, maxWidth:460 }}>{p.sub[lang] || p.sub.en}</p>
+            <div style={{ display:"flex", gap:18, alignItems:"center", marginTop:16 }}>
+              <span className="serif" style={{ fontSize:25 }}><Price eur={p.priceEUR} from /></span>
               <button className="btn btn-light">{t("mk.view")} <span className="arr">→</span></button>
             </div>
           </div>
@@ -659,22 +672,26 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
 
     return (
       <div style={{ background:"var(--bone)" }}>
-        <section className="wrap" style={{ paddingTop:"clamp(40px,6vw,80px)", paddingBottom:36 }}>
+        <section className="wrap" style={{ paddingTop:"clamp(22px,3vw,42px)", paddingBottom:22 }}>
           <Reveal>
             <div className="eyebrow-row"><span className="kicker">{t("mk.kicker")}</span></div>
-            <h1 className="display" style={{ fontSize:"clamp(36px,6vw,82px)", marginTop:24, maxWidth:"16ch" }}>{t("mk.title")}</h1>
+            <h1 className="display" style={{ fontSize:"clamp(28px,4vw,52px)", marginTop:12, maxWidth:"18ch" }}>{t("mk.title")}</h1>
           </Reveal>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:1, marginTop:48, background:"var(--line)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:1, marginTop:22, background:"var(--line)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden" }}>
             {LINES.map((l, i) => (
               <Reveal key={l} delay={i * 70}>
                 <button onClick={() => { setLine(l); document.getElementById("pf-grid")?.scrollIntoView({ behavior:"smooth", block:"start" }); }}
-                  style={{ textAlign:"left", width:"100%", height:"100%", background: line===l ? "var(--tg,#485B37)" : "var(--bone)", color: line===l ? "var(--bone)" : "var(--ink)", border:0, cursor:"pointer", padding:"28px 22px 30px", transition:"background .3s,color .3s" }}>
-                  <svg style={{ width:40, height:40, display:"block", marginBottom:16, color: line===l ? "rgba(245,240,230,0.9)" : "var(--clay,#485B37)", fill:"currentColor" }} aria-hidden="true">
-                    <use href={`#${LINE_ICONS[l]}`} />
-                  </svg>
-                  <div style={{ fontSize:10, fontWeight:600, letterSpacing:".18em", color: line===l ? "rgba(245,240,230,0.6)" : "var(--clay,#485B37)", marginBottom:10, textTransform:"uppercase" }}>{String(i+1).padStart(2,"0")}</div>
-                  <div className="serif" style={{ fontSize:24, fontWeight:400, lineHeight:1 }}>{t(LINE_KEYS[l])}</div>
-                  <p style={{ fontSize:13, lineHeight:1.45, marginTop:10, marginBottom:0, opacity:.78 }}>{t(lineDescs[l])}</p>
+                  style={{ textAlign:"left", width:"100%", height:"100%", background: line===l ? "var(--tg,#485B37)" : "var(--bone)", color: line===l ? "var(--bone)" : "var(--ink)", border:0, cursor:"pointer", padding:"15px 18px 16px", transition:"background .3s,color .3s" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+                    <svg style={{ width:26, height:26, flexShrink:0, color: line===l ? "rgba(245,240,230,0.9)" : "var(--clay,#485B37)", fill:"currentColor" }} aria-hidden="true">
+                      <use href={`#${LINE_ICONS[l]}`} />
+                    </svg>
+                    <div>
+                      <div style={{ fontSize:9, fontWeight:600, letterSpacing:".18em", color: line===l ? "rgba(245,240,230,0.6)" : "var(--clay,#485B37)", textTransform:"uppercase" }}>{String(i+1).padStart(2,"0")}</div>
+                      <div className="serif" style={{ fontSize:19, fontWeight:400, lineHeight:1.05 }}>{t(LINE_KEYS[l])}</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize:12, lineHeight:1.4, marginTop:9, marginBottom:0, opacity:.74 }}>{t(lineDescs[l])}</p>
                 </button>
               </Reveal>
             ))}
@@ -686,7 +703,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         )}
 
         <section className="wrap" id="pf-grid" style={{ scrollMarginTop:90 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap", paddingBottom:24, borderBottom:"1px solid var(--line)", marginBottom:36 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap", paddingBottom:18, borderBottom:"1px solid var(--line)", marginBottom:24 }}>
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
               <FilterChip active={line==="all"} onClick={() => setLine("all")}>{t("mk.all")}</FilterChip>
               {LINES.map((l) => <FilterChip key={l} active={line===l} onClick={() => setLine(l)}>{t(LINE_KEYS[l])}</FilterChip>)}
