@@ -368,8 +368,8 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
 @media(prefers-reduced-motion:reduce){.hero-layer{transition:none}}
 .hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform}
 .hero-eyebrow{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.3vw,.82rem);
-  letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.9);
-  text-shadow:0 1px 14px rgba(0,0,0,.8);margin-bottom:-.4rem}
+  letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.92);
+  text-shadow:0 1px 4px rgba(0,0,0,.92),0 2px 16px rgba(0,0,0,.7),0 0 30px rgba(0,0,0,.45);margin-bottom:-.4rem}
 .hero-h{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:400;
   font-size:clamp(3.2rem,10vw,9rem);line-height:.94;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ivory);text-shadow:0 2px 40px rgba(0,0,0,.6),0 0 80px rgba(0,0,0,.4)}
@@ -389,8 +389,8 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   display:flex;flex-direction:column;align-items:center;gap:0;
   background:linear-gradient(to top,rgba(8,10,8,.55) 0%,transparent 100%)}
 .hero-marks{width:100%;overflow:hidden;height:42px;pointer-events:none;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
-          mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 2.5%,#000 97.5%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 2.5%,#000 97.5%,transparent)}
 .marks-track{display:flex;align-items:center;justify-content:center;gap:clamp(14px,2.4vw,32px);
   width:100%;opacity:.30}
 .marks-track img{height:36px;width:auto;flex:none;display:block}
@@ -736,7 +736,7 @@ const logo   = document.getElementById('logo');
 const marksWrap = document.getElementById('hero-marks');
 if(marksWrap){
   let s = '';
-  for(let i=0;i<16;i++) s += '<img src="assets/brand/logos/LAWANG-14.png" alt="" />';
+  for(let i=0;i<30;i++) s += '<img src="assets/brand/logos/LAWANG-14.png" alt="" />';
   marksWrap.innerHTML = '<div class="marks-track">' + s + '</div>'; // fila fija centrada
 }
 
