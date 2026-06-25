@@ -743,27 +743,69 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const [active, setActive] = useState(0);
     const [fading, setFading] = useState(false);
     const theme = themeFor(p);
-    const keys = p.imgKeys;
-    if (!keys || keys.length === 0) return null;
+    // Combined media: photos first, then videos (from data.json `videos`: string URL or {src/url, poster})
+    const media = [
+      ...((p.imgKeys || []).map((k) => ({ type:"image", key:k }))),
+      ...((p.videos || []).map((v) => {
+        const o = (typeof v === "string") ? { src:v } : (v || {});
+        return { type:"video", src: o.src || o.url || "", poster: o.poster || "" };
+      }).filter((m) => m.src)),
+    ];
+    if (media.length === 0) return null;
+    const total = media.length;
+    const cur = media[active] || media[0];
 
-    const changeImage = (i) => {
-      if (i === active || fading) return;
+    const change = (i) => {
+      const n = ((i % total) + total) % total;
+      if (n === active || fading) return;
       setFading(true);
-      setTimeout(() => { setActive(i); setFading(false); }, 260);
+      setTimeout(() => { setActive(n); setFading(false); }, 220);
     };
 
+    const arrow = (side) => ({ position:"absolute", top:"50%", [side]:12, transform:"translateY(-50%)", zIndex:4, width:38, height:38, borderRadius:999, border:"none", cursor:"pointer", background:"rgba(20,16,11,.42)", color:"var(--bone)", fontSize:20, lineHeight:0, display:"grid", placeItems:"center", backdropFilter:"blur(3px)", transition:"background .25s", fontFamily:"var(--sans)" });
+
     return (
-      <div>
-        <div style={{ opacity: fading ? 0 : 1, transition:"opacity 0.26s ease" }}>
-          <Ph imgKey={keys[active]} w={2000} theme={theme} kb ratio="3/2" tint={0.12}
-              style={{ borderRadius:8, boxShadow:"0 30px 80px -36px rgba(27,26,21,.45)" }} />
+      <div style={{ maxWidth:840, margin:"0 auto" }}>
+        {/* Main stage — reduced, centered, holds photo OR video */}
+        <div style={{ position:"relative", aspectRatio:"16/10", borderRadius:10, overflow:"hidden", background:"var(--bone-2)", boxShadow:"0 30px 80px -40px rgba(27,26,21,.45)" }}>
+          <div style={{ position:"absolute", inset:0, opacity: fading ? 0 : 1, transition:"opacity .22s ease" }}>
+            {cur.type === "video"
+              ? <video key={cur.src} src={cur.src} poster={cur.poster || undefined} controls playsInline preload="metadata"
+                  style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", background:"#000" }} />
+              : <Ph imgKey={cur.key} w={2000} theme={theme} kb tint={0.12} style={{ position:"absolute", inset:0 }} />
+            }
+          </div>
+          {total > 1 && (
+            <React.Fragment>
+              <button aria-label="Previous" onClick={() => change(active-1)} style={arrow("left")}
+                onMouseEnter={(e)=>e.currentTarget.style.background="rgba(20,16,11,.72)"} onMouseLeave={(e)=>e.currentTarget.style.background="rgba(20,16,11,.42)"}>‹</button>
+              <button aria-label="Next" onClick={() => change(active+1)} style={arrow("right")}
+                onMouseEnter={(e)=>e.currentTarget.style.background="rgba(20,16,11,.72)"} onMouseLeave={(e)=>e.currentTarget.style.background="rgba(20,16,11,.42)"}>›</button>
+              <div style={{ position:"absolute", right:14, bottom:13, zIndex:4, background:"rgba(20,16,11,.5)", color:"var(--bone)", fontFamily:"var(--sans)", fontSize:11.5, fontWeight:600, letterSpacing:".1em", padding:"4px 11px", borderRadius:999, backdropFilter:"blur(3px)", fontVariantNumeric:"tabular-nums" }}>
+                {String(active+1).padStart(2,"0")} <span style={{ opacity:.55 }}>/ {String(total).padStart(2,"0")}</span>
+              </div>
+            </React.Fragment>
+          )}
         </div>
-        {keys.length > 1 && (
-          <div style={{ display:"grid", gridTemplateColumns:`repeat(${Math.min(keys.length, 6)}, 1fr)`, gap:8, marginTop:8 }}>
-            {keys.map((k, i) => (
-              <button key={i} className="gallery-thumb" onClick={() => changeImage(i)}
+        {/* Thumbnails — double as pagination; video thumbs get a play badge */}
+        {total > 1 && (
+          <div style={{ display:"grid", gridTemplateColumns:`repeat(${Math.min(total, 6)}, 1fr)`, gap:8, marginTop:8 }}>
+            {media.map((m, i) => (
+              <button key={i} className="gallery-thumb" onClick={() => change(i)}
                 style={{ padding:0, border:"2px solid "+(i===active ? "var(--clay)" : "transparent"), borderRadius:5, overflow:"hidden", cursor:"pointer", background:"none", opacity: fading && i === active ? 0.5 : 1 }}>
-                <Ph imgKey={k} theme={theme} ratio="4/3" tint={0.1} />
+                {m.type === "video"
+                  ? <div style={{ position:"relative", aspectRatio:"4/3", overflow:"hidden", background:"#1a1410" }}>
+                      {m.poster
+                        ? <img src={m.poster} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                        : <div className={"ph-grad ph-"+theme} style={{ position:"absolute", inset:0 }} />}
+                      <div style={{ position:"absolute", inset:0, display:"grid", placeItems:"center" }}>
+                        <span style={{ width:26, height:26, borderRadius:999, background:"rgba(20,16,11,.55)", display:"grid", placeItems:"center", backdropFilter:"blur(2px)" }}>
+                          <span style={{ width:0, height:0, marginLeft:2, borderLeft:"8px solid var(--bone)", borderTop:"5px solid transparent", borderBottom:"5px solid transparent" }} />
+                        </span>
+                      </div>
+                    </div>
+                  : <Ph imgKey={m.key} theme={theme} ratio="4/3" tint={0.1} />
+                }
               </button>
             ))}
           </div>
@@ -1036,8 +1078,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   /* ── Property — main layout ────────────────────────────────── */
   function Property({ id }) {
     const t = useT();
-    const { lang, go } = useApp();
-    const { PROPERTIES } = window.LAWANG;
+    const { lang, go, cur } = useApp();
+    const { PROPERTIES, money } = window.LAWANG;
     const p = PROPERTIES.find((x) => x.id === id);
 
     useEffect(() => {
@@ -1057,16 +1099,27 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     return (
       <div style={{ paddingTop:"clamp(32px,4vw,56px)", paddingBottom:80 }}>
         <div className="wrap">
-          {/* Header */}
+          {/* Header — title left, price top-right (visible on entry) */}
           <Reveal>
-            <div style={{ marginBottom:30 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:18 }}>
-                <span style={{ fontSize:10, fontWeight:600, letterSpacing:".22em", textTransform:"uppercase", color:"var(--clay)", fontFamily:"var(--sans)" }}>{t(LINE_KEYS[p.line])}</span>
-                <span style={{ width:1, height:12, background:"var(--line)" }} />
-                <span style={{ fontSize:10, fontWeight:400, letterSpacing:".1em", textTransform:"uppercase", color:"var(--ink-2)", fontFamily:"var(--sans)" }}>{t(p.status)}</span>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", gap:"clamp(20px,4vw,48px)", flexWrap:"wrap", marginBottom:30 }}>
+              <div style={{ flex:"1 1 380px", minWidth:0 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+                  <span style={{ fontSize:10, fontWeight:600, letterSpacing:".22em", textTransform:"uppercase", color:"var(--clay)", fontFamily:"var(--sans)" }}>{t(LINE_KEYS[p.line])}</span>
+                  <span style={{ width:1, height:12, background:"var(--line)" }} />
+                  <span style={{ fontSize:10, fontWeight:400, letterSpacing:".1em", textTransform:"uppercase", color:"var(--ink-2)", fontFamily:"var(--sans)" }}>{t(p.status)}</span>
+                </div>
+                <h1 className="display" style={{ fontSize:"clamp(34px,5vw,64px)" }}>{p.title[lang]||p.title.en}</h1>
+                <p style={{ fontSize:18, color:"var(--ink-2)", marginTop:14, maxWidth:"50ch" }}>{p.sub[lang]||p.sub.en}</p>
               </div>
-              <h1 className="display" style={{ fontSize:"clamp(38px,6vw,76px)" }}>{p.title[lang]||p.title.en}</h1>
-              <p style={{ fontSize:18, color:"var(--ink-2)", marginTop:14, maxWidth:"50ch" }}>{p.sub[lang]||p.sub.en}</p>
+              <div style={{ flexShrink:0, background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:12, padding:"14px 22px 16px", minWidth:190 }}>
+                <div style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:8 }}>{t("glance.entry")}</div>
+                <div className="serif" style={{ fontSize:"clamp(26px,2.6vw,34px)", fontWeight:400, lineHeight:1 }}><Price eur={p.priceEUR} from /></div>
+                <div style={{ display:"flex", gap:12, marginTop:9, flexWrap:"wrap" }}>
+                  {["EUR","USD","AUD"].filter((c)=>c!==cur).map((c) => (
+                    <span key={c} style={{ fontSize:11.5, color:"var(--ink-2)" }}><span style={{ fontWeight:600 }}>{c}</span> {money(p.priceEUR, c)}</span>
+                  ))}
+                </div>
+              </div>
             </div>
           </Reveal>
 

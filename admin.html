@@ -436,6 +436,12 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
         </div>
 
         <div class="form-section">
+          <h4>Videos <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">MP4 URLs shown in the gallery carousel after the photos. Paste a direct link (e.g. /assets/videos/tour.mp4 or https://...).</span></h4>
+          <div id="f-videos-list"></div>
+          <button type="button" class="btn-secondary" style="margin-top:8px" onclick="addVideoSlot('')">+ Add video</button>
+        </div>
+
+        <div class="form-section">
           <h4>Downloads <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">PDFs shown on this property's detail page. Leave URL empty to show "Coming soon".</span></h4>
           <div id="f-downloads-list"></div>
           <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addDownloadRow()">+ Add document</button>
@@ -678,6 +684,11 @@ function propertyToForm(p) {
   container.innerHTML = '';
   var imgs = (p.images && p.images.length) ? p.images : [''];
   imgs.forEach(function(url){ addImageSlot(url); });
+  // Videos
+  var vidContainer = document.getElementById('f-videos-list');
+  vidContainer.innerHTML = '';
+  var vids = (p.videos && p.videos.length) ? p.videos : [];
+  vids.forEach(function(v){ addVideoSlot(typeof v === 'string' ? v : (v.src || v.url || '')); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -689,6 +700,18 @@ function propertyToForm(p) {
   var pp = (p.paymentPlan && p.paymentPlan.length) ? p.paymentPlan : [];
   pp.forEach(function(step){ addPaymentStep(step); });
   updatePctHint();
+}
+
+function addVideoSlot(url) {
+  url = url || '';
+  var container = document.getElementById('f-videos-list');
+  var div = document.createElement('div');
+  div.className = 'img-slot';
+  div.innerHTML =
+    '<span class="drag-handle" title="Video" style="cursor:default">▶</span>' +
+    '<input type="text" value="' + esc(url) + '" placeholder="/assets/videos/tour.mp4 or https://...mp4">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  container.appendChild(div);
 }
 
 function addImageSlot(url) {
@@ -790,6 +813,10 @@ function formToProperty() {
   document.querySelectorAll('#f-images-list input[type="text"]').forEach(function(inp){
     var v = inp.value.trim(); if (v) images.push(v);
   });
+  var videos = [];
+  document.querySelectorAll('#f-videos-list input[type="text"]').forEach(function(inp){
+    var v = inp.value.trim(); if (v) videos.push(v);
+  });
   return {
     id:          id,
     visible:     get('f-visible'),
@@ -813,6 +840,7 @@ function formToProperty() {
     status:      get('f-status'),
     handover:    get('f-handover'),
     images:      images,
+    videos:      videos,
     title:     { en: get('f-title-en'), es: get('f-title-es') },
     sub:       { en: get('f-sub-en'),   es: get('f-sub-es')   },
     desc:      { en: get('f-desc-en'),  es: get('f-desc-es')  },
