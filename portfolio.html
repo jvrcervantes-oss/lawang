@@ -155,6 +155,11 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .pdp-mosaic .pdp-side:hover img, .pdp-mosaic .pdp-side:hover .ph { transform:scale(1.05); }
 @media(max-width:720px){ .pdp-mosaic{ grid-template-columns:1fr; grid-template-rows:1fr; aspect-ratio:4/3; } .pdp-mosaic .pdp-side{ display:none; } }
 
+/* ── CONFIGURATOR STEP FADE ──────────────────────────────── */
+.cfg-step{ animation:cfgFade .32s var(--ease); }
+@keyframes cfgFade{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+@media(prefers-reduced-motion:reduce){ .cfg-step{ animation:none; } }
+
 /* ── SCROLL REVEAL ───────────────────────────────────────── */
 .reveal    { opacity:0; transform:translateY(28px); filter:blur(4px); transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease); }
 .reveal.in { opacity:1; transform:none; filter:blur(0); }
@@ -490,6 +495,21 @@ article:hover .view-cta { gap:9px; }
     "fin.config":      {"en":"Your configuration","es":"Tu configuración"},
     "fin.base":        {"en":"Base price","es":"Precio base"},
     "fin.total":       {"en":"Configured total","es":"Total configurado"},
+    "cfg.title":       {"en":"Build your offer","es":"Configura tu oferta"},
+    "cfg.sub":         {"en":"Choose step by step — the plan updates as you go.","es":"Elige paso a paso — el plan se actualiza sobre la marcha."},
+    "cfg.step.land":   {"en":"Plot","es":"Parcela"},
+    "cfg.step.home":   {"en":"Villa","es":"Villa"},
+    "cfg.step.extras": {"en":"Extras","es":"Extras"},
+    "cfg.step.pay":    {"en":"Plan","es":"Plan"},
+    "cfg.next":        {"en":"Continue","es":"Continuar"},
+    "cfg.back":        {"en":"Back","es":"Atrás"},
+    "cfg.skip":        {"en":"Skip this step","es":"Omitir este paso"},
+    "cfg.restart":     {"en":"Start over","es":"Empezar de nuevo"},
+    "cfg.step.of":     {"en":"of","es":"de"},
+    "land.title":      {"en":"Choose your plot","es":"Elige tu parcela"},
+    "land.sub":        {"en":"Pick the parcel size that fits your project.","es":"Elige el tamaño de parcela para tu proyecto."},
+    "sig.delivered":   {"en":"Delivered project","es":"Proyecto entregado"},
+    "sig.note":        {"en":"Part of our portfolio of completed and sold residences. Not available for sale.","es":"Parte de nuestro portfolio de residencias terminadas y vendidas. No disponible para la venta."},
     "glance.units":    {"en":"Available units","es":"Unidades disponibles"},
     "dl.gate.title":   {"en":"Enter your email to download","es":"Introduce tu email para descargar"},
     "dl.gate.note":    {"en":"We'll send the files to your inbox and keep you posted on this project.","es":"Te enviamos los archivos por correo y te mantenemos al día del proyecto."},
@@ -785,6 +805,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
 
   // Shared configuration (Choose-your-home model + Extras) → feeds the Payment Plan price
   const ConfigCtx = React.createContext(null);
+  const resolveLand   = (p) => (p.showLandOptions === true || (p.landOptions && p.landOptions.length)) ? ((p.landOptions && p.landOptions.length) ? p.landOptions : LAND_PLACEHOLDER) : null;
   const resolveHomes  = (p) => (p.showHomeModels === true || (p.homeModels && p.homeModels.length)) ? ((p.homeModels && p.homeModels.length) ? p.homeModels : HOME_PLACEHOLDER) : null;
   const resolveExtras = (p) => (p.showExtras === true || (p.extras && p.extras.length)) ? ((p.extras && p.extras.length) ? p.extras : EXTRAS_PLACEHOLDER) : null;
 
@@ -1192,28 +1213,41 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   }
 
   /* ── Financials — Payment plan + Investment projections (fused) ─ */
-  function Financials({ p }) {
+  function Financials({ p, bare }) {
     const t = useT();
     const { cur } = useApp();
     const { money } = window.LAWANG;
     const cfg = useContext(ConfigCtx) || {};
     const configuredEUR = cfg.configuredEUR != null ? cfg.configuredEUR : p.priceEUR;
-    const baseEUR = cfg.baseEUR != null ? cfg.baseEUR : p.priceEUR;
-    const extrasTotal = cfg.extrasTotal || 0;
-    const selModel = (cfg.models && cfg.models[cfg.modelIdx]) || null;
+    const parcel = (cfg.landOptions && cfg.landOptions[cfg.parcelIdx]) || null;
+    const model  = (cfg.models && cfg.models[cfg.modelIdx]) || null;
     const selExtras = (cfg.extrasList || []).filter((e, i) => cfg.extrasSel && cfg.extrasSel[i]);
-    const showBreakdown = selModel != null || extrasTotal > 0;
+    const showBreakdown = !!(parcel || model || selExtras.length);
     const bRow = { display:"flex", justifyContent:"space-between", alignItems:"baseline", fontSize:14, padding:"4px 0" };
-    return (
-      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
-        <div className="kicker" style={{ marginBottom:24 }}>{t("fin.title")}</div>
+    const inner = (
+      <React.Fragment>
+        {!bare && <div className="kicker" style={{ marginBottom:24 }}>{t("fin.title")}</div>}
         {showBreakdown && (
           <div style={{ background:"var(--tg-light)", border:"1px solid rgba(72,91,55,.2)", borderRadius:10, padding:"16px 18px", marginBottom:28 }}>
             <div style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--clay)", marginBottom:12 }}>{t("fin.config")}</div>
-            <div style={bRow}>
-              <span style={{ fontWeight:600 }}>{selModel ? selModel.name : t("fin.base")}</span>
-              <span className="serif" style={{ fontSize:16 }}>{money(baseEUR, cur)}</span>
-            </div>
+            {parcel && (
+              <div style={bRow}>
+                <span style={{ fontWeight:600 }}>{t("cfg.step.land")} · {parcel.size} m²</span>
+                <span className="serif" style={{ fontSize:16 }}>{money(cfg.parcelEUR, cur)}</span>
+              </div>
+            )}
+            {model && (
+              <div style={bRow}>
+                <span style={{ fontWeight:600 }}>{model.name}</span>
+                <span className="serif" style={{ fontSize:16 }}>{money(cfg.homeEUR, cur)}</span>
+              </div>
+            )}
+            {!parcel && !model && (
+              <div style={bRow}>
+                <span style={{ fontWeight:600 }}>{t("fin.base")}</span>
+                <span className="serif" style={{ fontSize:16 }}>{money(p.priceEUR, cur)}</span>
+              </div>
+            )}
             {selExtras.map((e, i) => (
               <div key={i} style={{ ...bRow, color:"var(--ink-2)" }}>
                 <span>+ {e.name}</span>
@@ -1228,8 +1262,9 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         )}
         <PaymentPlan p={p} priceEUR={configuredEUR} />
         {p.nightlyRate > 0 && <InvestmentCalc p={p} priceEUR={configuredEUR} />}
-      </div>
+      </React.Fragment>
     );
+    return bare ? <div>{inner}</div> : <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>{inner}</div>;
   }
 
   /* ── Breadcrumbs ───────────────────────────────────────────── */
@@ -1273,40 +1308,51 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     );
   }
 
+  /* ── Land plots (optional) ─────────────────────────────────── */
+  const LAND_PLACEHOLDER = [
+    { size:400, priceEUR:95000 },
+    { size:600, priceEUR:135000 },
+    { size:1000, priceEUR:210000 },
+  ];
+
   /* ── Choose your home (optional) ───────────────────────────── */
   const HOME_PLACEHOLDER = [
     { name:"Lontar",     beds:2, built:120, priceEUR:215000 },
     { name:"Banyan",     beds:3, built:180, priceEUR:285000 },
     { name:"Frangipani", beds:4, built:240, priceEUR:360000 },
   ];
-  function ChooseHome({ p }) {
+  function ChooseHome({ p, bare }) {
     const t = useT();
     const cfg = useContext(ConfigCtx);
     const models = cfg && cfg.models;
     if (!models) return null;
     const sel = cfg.modelIdx;
+    const grid = (
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:14 }}>
+        {models.map((m, i) => {
+          const on = i === sel;
+          return (
+            <button key={i} onClick={() => cfg.setModelIdx(i)} style={{ textAlign:"left", padding:0, border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, overflow:"hidden", cursor:"pointer", background:"var(--bone-2)", transition:"border-color .25s" }}>
+              <div style={{ position:"relative", aspectRatio:"4/3" }}>
+                {m.image ? <img src={m.image} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} /> : <div className={"ph-grad ph-"+themeFor(p)} style={{ position:"absolute", inset:0 }} />}
+                {on && <span style={{ position:"absolute", top:8, right:8, background:"var(--clay)", color:"var(--bone)", fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", padding:"3px 8px", borderRadius:999 }}>{t("home.selected")}</span>}
+              </div>
+              <div style={{ padding:"12px 14px 14px" }}>
+                <div className="serif" style={{ fontSize:19 }}>{m.name}</div>
+                <div style={{ fontSize:12, color:"var(--ink-2)", marginTop:4 }}>{m.beds} {t("home.beds")} · {m.built} m²</div>
+                <div style={{ fontSize:14, fontWeight:600, marginTop:8 }}><Price eur={m.priceEUR} from /></div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+    if (bare) return grid;
     return (
       <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
         <div className="kicker" style={{ marginBottom:8 }}>{t("home.title")}</div>
         <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:24, maxWidth:"46ch" }}>{t("home.sub")}</p>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:14 }}>
-          {models.map((m, i) => {
-            const on = i === sel;
-            return (
-              <button key={i} onClick={() => cfg.setModelIdx(i)} style={{ textAlign:"left", padding:0, border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, overflow:"hidden", cursor:"pointer", background:"var(--bone-2)", transition:"border-color .25s" }}>
-                <div style={{ position:"relative", aspectRatio:"4/3" }}>
-                  {m.image ? <img src={m.image} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} /> : <div className={"ph-grad ph-"+themeFor(p)} style={{ position:"absolute", inset:0 }} />}
-                  {on && <span style={{ position:"absolute", top:8, right:8, background:"var(--clay)", color:"var(--bone)", fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", padding:"3px 8px", borderRadius:999 }}>{t("home.selected")}</span>}
-                </div>
-                <div style={{ padding:"12px 14px 14px" }}>
-                  <div className="serif" style={{ fontSize:19 }}>{m.name}</div>
-                  <div style={{ fontSize:12, color:"var(--ink-2)", marginTop:4 }}>{m.beds} {t("home.beds")} · {m.built} m²</div>
-                  <div style={{ fontSize:14, fontWeight:600, marginTop:8 }}><Price eur={m.priceEUR} from /></div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {grid}
       </div>
     );
   }
@@ -1319,7 +1365,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     { name:"Airbnb rental kit",    priceEUR:6500 },
     { name:"Solar energy package", priceEUR:9000 },
   ];
-  function ExtrasBlock({ p }) {
+  function ExtrasBlock({ p, bare }) {
     const t = useT();
     const { cur } = useApp();
     const { money } = window.LAWANG;
@@ -1328,10 +1374,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     if (!extras) return null;
     const sel = cfg.extrasSel;
     const total = cfg.extrasTotal;
-    return (
-      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
-        <div className="kicker" style={{ marginBottom:8 }}>{t("extras.title")}</div>
-        <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:20, maxWidth:"46ch" }}>{t("extras.sub")}</p>
+    const body = (
+      <React.Fragment>
         <div style={{ border:"1px solid var(--line)", borderRadius:10, overflow:"hidden" }}>
           {extras.map((e, i) => {
             const on = !!sel[i];
@@ -1355,6 +1399,134 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             <span className="serif" style={{ fontSize:20, fontWeight:600 }}>+{money(total, cur)}</span>
           </div>
         )}
+      </React.Fragment>
+    );
+    if (bare) return body;
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:8 }}>{t("extras.title")}</div>
+        <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:20, maxWidth:"46ch" }}>{t("extras.sub")}</p>
+        {body}
+      </div>
+    );
+  }
+
+  /* ── Plot picker (land step) ───────────────────────────────── */
+  function ParcelStep({ p, bare }) {
+    const t = useT();
+    const cfg = useContext(ConfigCtx);
+    const opts = cfg && cfg.landOptions;
+    if (!opts) return null;
+    const sel = cfg.parcelIdx;
+    const grid = (
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:12 }}>
+        {opts.map((o, i) => {
+          const on = i === sel;
+          return (
+            <button key={i} onClick={() => cfg.setParcelIdx(i)} style={{ textAlign:"left", padding:"16px 16px 18px", border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, cursor:"pointer", background: on?"var(--tg-light)":"var(--bone-2)", transition:"all .2s" }}>
+              <div className="serif" style={{ fontSize:26, lineHeight:1 }}>{o.size} <span style={{ fontSize:14 }}>m²</span></div>
+              <div style={{ fontSize:14, fontWeight:600, marginTop:10 }}><Price eur={o.priceEUR} from /></div>
+              {on && <div style={{ fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--clay)", marginTop:8 }}>✓ {t("home.selected")}</div>}
+            </button>
+          );
+        })}
+      </div>
+    );
+    if (bare) return grid;
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:8 }}>{t("land.title")}</div>
+        <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:24, maxWidth:"46ch" }}>{t("land.sub")}</p>
+        {grid}
+      </div>
+    );
+  }
+
+  /* ── Signature showcase (delivered / sold) ─────────────────── */
+  function SignatureNote({ p }) {
+    const t = useT();
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"var(--dl)", color:"var(--bone)", borderRadius:999, padding:"7px 16px", fontFamily:"var(--sans)", fontSize:11, fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" }}>
+          <span style={{ width:7, height:7, borderRadius:999, background:"var(--bone)" }} /> {t("sig.delivered")}
+        </div>
+        <p style={{ fontSize:15, color:"var(--ink-2)", lineHeight:1.6, marginTop:18, maxWidth:"52ch" }}>{t("sig.note")}</p>
+      </div>
+    );
+  }
+
+  /* ── Configurator (stepped slide) ──────────────────────────── */
+  function Configurator({ p }) {
+    const t = useT();
+    const { cur } = useApp();
+    const { money } = window.LAWANG;
+    const cfg = useContext(ConfigCtx);
+    const [step, setStep] = useState(0);
+
+    const steps = [];
+    if (cfg.landOptions) steps.push({ id:"land",   label:t("cfg.step.land"),   title:t("land.title"),   sub:t("land.sub"),    required:true,  done: cfg.parcelIdx >= 0, content:<ParcelStep p={p} bare /> });
+    if (cfg.models)      steps.push({ id:"home",   label:t("cfg.step.home"),   title:t("home.title"),   sub:t("home.sub"),    required:true,  done: cfg.modelIdx >= 0,  content:<ChooseHome p={p} bare /> });
+    if (cfg.extrasList)  steps.push({ id:"extras", label:t("cfg.step.extras"), title:t("extras.title"), sub:t("extras.sub"),  required:false, done:true,                 content:<ExtrasBlock p={p} bare /> });
+    steps.push({ id:"pay", label:t("cfg.step.pay"), title:t("fin.title"), sub:null, required:false, done:true, content:<Financials p={p} bare /> });
+
+    const idx = Math.min(step, steps.length - 1);
+    const s = steps[idx];
+    const isLast = idx >= steps.length - 1;
+    const reachable = (i) => i === 0 || steps.slice(0, i).every((x) => !x.required || x.done);
+    const canNext = !s.required || s.done;
+    const reset = () => { cfg.setParcelIdx(-1); cfg.setModelIdx(-1); cfg.setExtrasSel({}); setStep(0); };
+
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:8 }}>{t("cfg.title")}</div>
+        <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:22, maxWidth:"46ch" }}>{t("cfg.sub")}</p>
+
+        {/* Progress */}
+        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:26 }}>
+          {steps.map((st, i) => {
+            const on = i === idx;
+            const ok = reachable(i);
+            const complete = st.required && st.done && i !== idx;
+            return (
+              <React.Fragment key={st.id}>
+                {i > 0 && <span style={{ width:14, height:1, background:"var(--line)" }} />}
+                <button onClick={() => ok && setStep(i)} disabled={!ok}
+                  style={{ display:"inline-flex", alignItems:"center", gap:8, border:"1px solid "+(on?"var(--clay)":"var(--line)"), background: on?"var(--clay)":"transparent", color: on?"var(--bone)":(ok?"var(--ink)":"var(--ink-2)"), borderRadius:999, padding:"6px 14px 6px 7px", fontFamily:"var(--sans)", fontSize:12.5, fontWeight:600, cursor: ok?"pointer":"default", opacity: ok?1:0.5, transition:"all .2s" }}>
+                  <span style={{ width:20, height:20, borderRadius:999, display:"grid", placeItems:"center", fontSize:11, fontWeight:700, background: on?"rgba(255,255,255,.22)":(complete?"var(--clay)":"var(--bone-2)"), color: (on||complete)?"var(--bone)":"var(--ink-2)" }}>{complete ? "✓" : i + 1}</span>
+                  {st.label}
+                </button>
+              </React.Fragment>
+            );
+          })}
+          {cfg.configuredEUR > 0 && (
+            <div style={{ marginLeft:"auto", textAlign:"right" }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:".16em", textTransform:"uppercase", color:"var(--ink-2)" }}>{t("fin.total")}</div>
+              <div className="serif" style={{ fontSize:20, fontWeight:600, lineHeight:1 }}>{money(cfg.configuredEUR, cur)}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Step content */}
+        <div key={s.id} className="cfg-step">
+          {s.id !== "pay" && (
+            <div style={{ marginBottom:18 }}>
+              <h4 className="serif" style={{ fontSize:"clamp(20px,2vw,25px)", fontWeight:300 }}>{s.title}</h4>
+              {s.sub && <p style={{ fontSize:14, color:"var(--ink-2)", marginTop:6, maxWidth:"46ch" }}>{s.sub}</p>}
+            </div>
+          )}
+          {s.content}
+        </div>
+
+        {/* Footer nav */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:30, paddingTop:20, borderTop:"1px solid var(--line)" }}>
+          <button onClick={() => setStep(Math.max(0, idx - 1))} disabled={idx === 0}
+            style={{ background:"none", border:"1px solid var(--line)", borderRadius:999, padding:"10px 20px", fontFamily:"var(--sans)", fontSize:13, fontWeight:600, cursor: idx===0?"default":"pointer", opacity: idx===0?0.4:1, color:"var(--ink)" }}>← {t("cfg.back")}</button>
+          {!isLast
+            ? <button onClick={() => canNext && setStep(idx + 1)} disabled={!canNext}
+                style={{ background: canNext?"var(--clay)":"var(--line)", color:"var(--bone)", border:"none", borderRadius:999, padding:"11px 26px", fontFamily:"var(--sans)", fontSize:13, fontWeight:700, cursor: canNext?"pointer":"default" }}>{s.id==="extras" && cfg.extrasTotal===0 ? t("cfg.skip") : t("cfg.next")} →</button>
+            : <button onClick={reset}
+                style={{ background:"none", border:"1px solid var(--line)", borderRadius:999, padding:"10px 20px", fontFamily:"var(--sans)", fontSize:13, fontWeight:600, cursor:"pointer", color:"var(--ink-2)" }}>↺ {t("cfg.restart")}</button>}
+        </div>
       </div>
     );
   }
@@ -1373,10 +1545,12 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
       return () => { document.title = "The Field · Lawang Tropical Properties"; };
     }, [p && p.id, lang]);
 
-    // Live configuration: chosen home model + selected extras → drives the Payment Plan price
-    const models     = p ? resolveHomes(p)  : null;
-    const extrasList = p ? resolveExtras(p) : null;
-    const [modelIdx, setModelIdx]   = useState(-1);  // -1 = none chosen → base price
+    // Live configuration: plot + home model + extras → additive price that drives the Payment Plan
+    const landOptions = p ? resolveLand(p)   : null;
+    const models      = p ? resolveHomes(p)  : null;
+    const extrasList  = p ? resolveExtras(p) : null;
+    const [parcelIdx, setParcelIdx] = useState(-1);
+    const [modelIdx, setModelIdx]   = useState(-1);
     const [extrasSel, setExtrasSel] = useState({});
 
     if (!p) return (
@@ -1386,10 +1560,22 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
       </div>
     );
     const also = PROPERTIES.filter((x)=>x.line===p.line&&x.id!==p.id).slice(0,3);
-    const safeModelIdx = (models && modelIdx >= 0 && modelIdx < models.length) ? modelIdx : -1;
-    const baseEUR = (models && models[safeModelIdx]) ? (Number(models[safeModelIdx].priceEUR) || p.priceEUR) : p.priceEUR;
+    const isSignature = p.line === "signature";
+    const hasConfigurator = !isSignature && !!(landOptions || models || extrasList);
+    const safeParcelIdx = (landOptions && parcelIdx >= 0 && parcelIdx < landOptions.length) ? parcelIdx : -1;
+    const safeModelIdx  = (models && modelIdx >= 0 && modelIdx < models.length) ? modelIdx : -1;
+    const parcelEUR = (landOptions && landOptions[safeParcelIdx]) ? (Number(landOptions[safeParcelIdx].priceEUR) || 0) : 0;
+    const homeEUR   = (models && models[safeModelIdx]) ? (Number(models[safeModelIdx].priceEUR) || 0) : 0;
     const extrasTotal = extrasList ? extrasList.reduce((s, e, i) => extrasSel[i] ? s + (Number(e.priceEUR) || 0) : s, 0) : 0;
-    const cfg = { models, extrasList, modelIdx: safeModelIdx, setModelIdx, extrasSel, setExtrasSel, baseEUR, extrasTotal, configuredEUR: baseEUR + extrasTotal };
+    // Additive when there are plot/home options; otherwise the fixed property price (resort) + any extras
+    const configuredEUR = (landOptions || models) ? (parcelEUR + homeEUR + extrasTotal) : (p.priceEUR + extrasTotal);
+    const cfg = {
+      landOptions, models, extrasList,
+      parcelIdx: safeParcelIdx, setParcelIdx,
+      modelIdx: safeModelIdx, setModelIdx,
+      extrasSel, setExtrasSel,
+      parcelEUR, homeEUR, extrasTotal, configuredEUR, basePriceEUR: p.priceEUR,
+    };
     return (
       <ConfigCtx.Provider value={cfg}>
       <div style={{ paddingTop:"clamp(32px,4vw,56px)", paddingBottom:80 }}>
@@ -1433,9 +1619,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                 </div>
               </Reveal>
               <Reveal><MapBlock p={p} /></Reveal>
-              <Reveal><ChooseHome p={p} /></Reveal>
-              <Reveal><ExtrasBlock p={p} /></Reveal>
-              <Reveal><Financials p={p} /></Reveal>
+              {isSignature
+                ? <Reveal><SignatureNote p={p} /></Reveal>
+                : hasConfigurator
+                  ? <Reveal><Configurator p={p} /></Reveal>
+                  : <Reveal><Financials p={p} /></Reveal>}
             </div>
 
             {/* RIGHT — price · location · legal · contact (sticky) */}

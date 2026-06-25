@@ -459,6 +459,21 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
         </div>
 
         <div class="form-section">
+          <h4>Land plots <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. First step of the configurator (Land properties): pick a parcel by m².</span></h4>
+          <div class="cb-group">
+            <input type="checkbox" id="f-showLandOptions">
+            <label for="f-showLandOptions">Show "Choose your plot" step <span class="muted">(if on with no plots below, sample placeholders are shown)</span></label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.4fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Size m²</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
+            <div></div>
+          </div>
+          <div id="f-land-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addLandRow()">+ Add plot</button>
+        </div>
+
+        <div class="form-section">
           <h4>Choose your home <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Show selectable house models on the detail page.</span></h4>
           <div class="cb-group">
             <input type="checkbox" id="f-showHomeModels">
@@ -722,6 +737,7 @@ function propertyToForm(p) {
   set('f-unitsAvailable', p.unitsAvailable != null ? p.unitsAvailable : '');
   set('f-unitsTotal',  p.unitsTotal != null ? p.unitsTotal : '');
   set('f-mapImage',    p.mapImage    || '');
+  set('f-showLandOptions', p.showLandOptions === true);
   set('f-showHomeModels', p.showHomeModels === true);
   set('f-showExtras',  p.showExtras  === true);
   set('f-poolType',    p.poolType    || '');
@@ -744,6 +760,9 @@ function propertyToForm(p) {
   vidContainer.innerHTML = '';
   var vids = (p.videos && p.videos.length) ? p.videos : [];
   vids.forEach(function(v){ addVideoSlot(typeof v === 'string' ? v : (v.src || v.url || '')); });
+  // Land plots
+  document.getElementById('f-land-list').innerHTML = '';
+  (p.landOptions || []).forEach(function(o){ addLandRow(o); });
   // Home models
   document.getElementById('f-homes-list').innerHTML = '';
   (p.homeModels || []).forEach(function(m){ addHomeRow(m); });
@@ -771,6 +790,19 @@ function addVideoSlot(url) {
   div.innerHTML =
     '<span class="drag-handle" title="Video" style="cursor:default">▶</span>' +
     '<input type="text" value="' + esc(url) + '" placeholder="/assets/videos/tour.mp4 or https://...mp4">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  container.appendChild(div);
+}
+
+function addLandRow(o) {
+  o = o || {};
+  var container = document.getElementById('f-land-list');
+  var div = document.createElement('div');
+  div.className = 'land-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="number" class="ld-size"  value="' + esc(o.size != null ? o.size : '')         + '" min="0" placeholder="600">' +
+    '<input type="number" class="ld-price" value="' + esc(o.priceEUR != null ? o.priceEUR : '') + '" min="0" placeholder="135000">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
 }
@@ -907,6 +939,12 @@ function formToProperty() {
   document.querySelectorAll('#f-videos-list input[type="text"]').forEach(function(inp){
     var v = inp.value.trim(); if (v) videos.push(v);
   });
+  var landOptions = Array.from(document.querySelectorAll('#f-land-list .land-row')).map(function(row){
+    return {
+      size:     parseInt(row.querySelector('.ld-size').value)    || 0,
+      priceEUR: parseFloat(row.querySelector('.ld-price').value) || 0
+    };
+  }).filter(function(o){ return o.size > 0; });
   var homeModels = Array.from(document.querySelectorAll('#f-homes-list .home-row')).map(function(row){
     return {
       name:     row.querySelector('.hm-name').value.trim(),
@@ -946,6 +984,8 @@ function formToProperty() {
     unitsAvailable: unitsAvailableRaw === '' ? null : (parseInt(unitsAvailableRaw) || 0),
     unitsTotal:     unitsTotalRaw     === '' ? null : (parseInt(unitsTotalRaw)     || 0),
     mapImage:    get('f-mapImage'),
+    showLandOptions: get('f-showLandOptions'),
+    landOptions: landOptions,
     showHomeModels: get('f-showHomeModels'),
     homeModels:  homeModels,
     showExtras:  get('f-showExtras'),
