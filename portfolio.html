@@ -5,14 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Field · Lawang Tropical Properties</title>
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
-<!-- Fonts: Cormorant Garamond + Jost (reemplaza OTF demo de fonnts.com) -->
+<!-- Fonts: The Seasons + Neue Kabel (marca, locales) · Cormorant Garamond + Jost de fallback -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+/* ── BRAND FONTS (locales, mismas que index.html) ────────── */
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-LightItalic.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Regular.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+
 /* ── RESET & PAGE BASE ───────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{min-height:100%;font-family:'Jost',sans-serif;}
+html,body{min-height:100%;font-family:'Neue Kabel','Jost',sans-serif;}
 img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit}
@@ -40,8 +53,8 @@ button{font-family:inherit}
   --line:   #D4CCBA;
   --clay:   #485B37;
   --clay-d: #364429;
-  --serif:  "Cormorant Garamond", Georgia, serif;
-  --sans:   "Jost", ui-sans-serif, system-ui, sans-serif;
+  --serif:  "The Seasons", "Cormorant Garamond", Georgia, serif;
+  --sans:   "Neue Kabel", "Jost", ui-sans-serif, system-ui, sans-serif;
   --wrap:   1280px;
   --gut:    clamp(20px, 5vw, 72px);
   --nav-h:  64px;
