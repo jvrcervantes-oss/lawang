@@ -590,10 +590,10 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
     </div>
   </div>
   <nav id="nav">
-    <a class="nav-link" href="portfolio.html">Land</a>
-    <a class="nav-link" href="portfolio.html">Villa</a>
-    <a class="nav-link" href="#studio">The Studio</a>
-    <a class="nav-link" href="#soul">The Soul</a>
+    <a class="nav-link" href="#about">The Soul</a>
+    <a class="nav-link" href="#lines">The Field</a>
+    <a class="nav-link" href="#services">The Studio</a>
+    <a class="nav-link" href="#timeline">The Expedition</a>
   </nav>
   <div id="nav-actions">
     <div class="nav-lang-wrap" id="langWrap">
@@ -756,7 +756,7 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
 });
 
 // ── Topbar: sólido al salir del hero + sección activa ─────────
-const sections = ['home','soul','process','invest','payment','faq','studio','contact']
+const sections = ['home','lines','about','services','portfolio','timeline','featured','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
 
@@ -808,15 +808,21 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
      CONTENT SECTIONS — appear after cinematic
      ═══════════════════════════════════════════ -->
 <style>
-/* ── Content section tokens ──────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   [v5] REDISEÑO "Tropical Properties" — secciones de agencia
+   Réplica vanilla del Website.html, dentro del snap (1 sección =
+   1 pantalla). Tokens compartidos con el resto del sitio.
+   ════════════════════════════════════════════════════════════ */
 #content-sections {
-  --cb:  #F5F0E6;   /* bone */
+  --cb:  #F5F0E6;   /* bone / raw linen */
   --cb2: #EBE4D6;   /* bone dark */
+  --cbr: #FBF8F1;   /* card raised */
   --ci:  #2E3437;   /* ink */
   --ci2: #5A5048;   /* ink 2 */
   --ci3: #8A7A6A;   /* ink 3 */
   --ca:  #485B37;   /* accent green */
-  --cal: #8F9B7A;   /* accent light */
+  --cal: #8F9B7A;   /* accent light / soft canopy */
+  --css: #BEB3A5;   /* stone sand */
   --cd:  #141A11;   /* dark bg */
   --cdl: #104C4F;   /* deep lagoon */
   --cl:  #D8CEBC;   /* line */
@@ -832,8 +838,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 #content-sections { display: block; opacity: 1; }
 
 /* ── Shared layout ───────────────────────────────────────────── */
-.cs-wrap { max-width: var(--cmx); margin: 0 auto; padding-inline: var(--cpd); }
-.cs-pad  { padding-block: clamp(72px,9vw,130px); }
+.cs-wrap { max-width: var(--cmx); margin: 0 auto; padding-inline: var(--cpd); width:100%; }
 
 /* ── Reveal ──────────────────────────────────────────────────── */
 #content-sections .reveal { opacity: 0; transform: translateY(28px); filter: blur(4px);
@@ -841,493 +846,387 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 #content-sections .reveal.in { opacity: 1; transform: none; filter: blur(0); }
 @media(prefers-reduced-motion:reduce){ #content-sections .reveal{ filter:none; transform:none; transition:opacity .4s ease; } }
 
-/* ── Typography helpers ──────────────────────────────────────── */
-.cs-kicker { font-size: 10.5px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase;
-  color: var(--ca); font-family: var(--csa); }
-.cs-display { font-family: var(--cse); font-weight: 400; line-height: .96; letter-spacing: -.01em; }
-.cs-display em { font-style: italic; }
-
-/* ── Badges ──────────────────────────────────────────────────── */
-.cs-badge-fh { display: inline-flex; align-items: center; gap: 7px;
-  background: var(--ca); color: #D4EDD9; padding: 5px 13px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
-.cs-badge-fh::before { content: '◆'; font-size: 8px; }
+/* ── Section heading + helpers ───────────────────────────────── */
+.lw-head { display:flex; flex-direction:column; gap:14px; }
+.lw-head.center { align-items:center; text-align:center; margin:0 auto; max-width:760px; }
+.lw-kicker { font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:var(--ca); font-family:var(--csa); }
+.lw-title { font-family:var(--cse); font-weight:400; line-height:1.0; letter-spacing:-.01em; color:var(--ci);
+  font-size:clamp(28px,4.4vw,56px); margin:0; }
+.lw-p { font-size:1rem; line-height:1.75; color:var(--ci2); max-width:48ch; margin:20px 0 0; }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
-.cs-btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 28px;
-  font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-  border: 1px solid transparent; transition: transform .16s cubic-bezier(0.23,1,0.32,1), background .22s, color .22s, border-color .22s; text-decoration: none; cursor: pointer; font-family: var(--csa); }
-.cs-btn:active { transform: scale(0.97); }
-.cs-btn .arr { transition: transform .28s cubic-bezier(.16,1,.3,1); }
-.cs-btn:hover .arr { transform: translateX(5px); }
-.cs-btn-green { background: var(--ca); color: var(--cb); border-color: var(--ca); }
-.cs-btn-green:hover { background: #364429; border-color: #364429; }
-.cs-btn-outline { border-color: var(--ca); color: var(--ca); }
-.cs-btn-outline:hover { background: var(--ca); color: var(--cb); }
-.cs-btn-bone { border-color: rgba(245,240,230,.45); color: var(--cb); }
-.cs-btn-bone:hover { background: rgba(245,240,230,.12); border-color: rgba(245,240,230,.7); }
+.cs-btn { display:inline-flex; align-items:center; gap:10px; padding:13px 28px;
+  font-size:11.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  border:1px solid transparent; text-decoration:none; cursor:none; font-family:var(--csa);
+  transition:transform .16s cubic-bezier(.23,1,.32,1), background .22s, color .22s, border-color .22s; }
+.cs-btn:active { transform:scale(.97); }
+.cs-btn .arr { transition:transform .28s cubic-bezier(.16,1,.3,1); }
+.cs-btn:hover .arr { transform:translateX(5px); }
+.cs-btn-green { background:var(--ca); color:var(--cb); border-color:var(--ca); }
+.cs-btn-green:hover { background:#364429; border-color:#364429; }
+.cs-btn-bone { border-color:rgba(245,240,230,.45); color:var(--cb); background:rgba(245,240,230,.04); }
+.cs-btn-bone:hover { background:rgba(245,240,230,.12); border-color:rgba(245,240,230,.7); }
+.cs-btn-pill { border-radius:40px; }
 
-/* ── 01 · PROCESS ────────────────────────────────────────────── */
-.cs-process { background: var(--tg); color: var(--cb); }
-.cs-phases { display: grid; grid-template-columns: 1fr 2fr; gap: clamp(28px,5vw,80px); margin-top: 56px; }
-.cs-ph-aside { position: sticky; top: 90px; align-self: start; }
-.cs-ph-aside-h { font-family: var(--cse); font-size: clamp(26px,3.2vw,44px); font-weight: 300; line-height: 1.1; opacity: .9; }
-.cs-ph-aside-sub { font-family: var(--cse); font-style: italic; font-size: clamp(14px,1.4vw,17px); color: var(--cal); opacity: .7; margin-top: 14px; }
-.cs-ph-steps { display: flex; flex-direction: column; gap: 0; }
-.cs-ph-card { display: grid; grid-template-columns: 52px 1fr; gap: 24px; padding: 32px 0;
-  border-top: 1px solid rgba(143,155,122,.18); }
-.cs-ph-card:last-child { border-bottom: 1px solid rgba(143,155,122,.18); }
-.cs-ph-num  { font-family: var(--cse); font-size: 22px; font-weight: 300; color: var(--cal); line-height: 1; padding-top: 4px; opacity: .7; }
-.cs-ph-content { display: flex; flex-direction: column; gap: 8px; }
-.cs-ph-title { font-family: var(--cse); font-size: clamp(18px,2vw,24px); font-weight: 300; line-height: 1.2; }
-.cs-ph-sub  { font-style: italic; font-size: 13px; color: var(--cal); opacity: .72; }
-.cs-ph-bullets { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
-.cs-ph-bullets li { font-size: 13.5px; opacity: .65; line-height: 1.55; display: flex; align-items: flex-start; gap: 10px; }
-.cs-ph-bullets li::before { content: '—'; color: var(--cal); flex-shrink: 0; opacity: .55; }
+/* ════ DIVISIONS (#lines) — 4 project lines ════ */
+.lw-divisions { background:linear-gradient(rgba(235,228,214,.82),rgba(235,228,214,.82)), url('assets/images/redesign/bgTirta.jpg') center/cover no-repeat; }
+.lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem; margin-top:clamp(26px,4vh,52px); }
+.lw-show { position:relative; display:block; overflow:hidden; border-radius:14px; isolation:isolate; text-decoration:none;
+  height:clamp(300px,44vh,480px); }
+.lw-show-media { position:absolute; inset:0; background:var(--img) center/cover no-repeat; transition:transform .9s cubic-bezier(.16,1,.3,1); }
+.lw-show:hover .lw-show-media { transform:scale(1.06); }
+.lw-show-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.82),rgba(10,12,9,.1) 56%,rgba(10,12,9,.3)); }
+.lw-show-icon { position:absolute; top:18px; left:18px; width:38px; height:auto; opacity:.95; z-index:2; filter:drop-shadow(0 2px 10px rgba(0,0,0,.5)); }
+.lw-show-cap { position:absolute; left:20px; right:16px; bottom:18px; display:flex; flex-direction:column; gap:4px; z-index:2; }
+.lw-show-sub { font-size:10.5px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.82); }
+.lw-show-title { font-family:var(--cse); font-size:26px; color:var(--cb); line-height:1; }
 
-/* ── 02 · INVEST ─────────────────────────────────────────────── */
-.cs-invest { background: var(--cb2); }
-.cs-inv-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px;
-  background: var(--cl); border: 1px solid var(--cl); margin-top: 52px; }
-.cs-inv-card { background: var(--cb); padding: 32px 28px 36px; display: flex; flex-direction: column; gap: 11px; }
-.cs-inv-card.fh { background: #EFF8F2; grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-.cs-inv-title { font-family: var(--cse); font-size: clamp(20px,2vw,26px); font-weight: 300; line-height: 1.15; }
-.cs-inv-body  { font-size: 13.5px; color: var(--ci2); line-height: 1.7; }
-.cs-inv-card.fh .cs-inv-title { color: var(--ca); font-size: clamp(22px,2.4vw,30px); }
-.cs-inv-disc { margin-top: 0; padding: 18px 20px; background: rgba(72,91,55,.06);
-  border: 1px solid rgba(72,91,55,.18); font-size: 12px; color: var(--ci3); line-height: 1.65; }
+/* ════ ABOUT (#about) — who we are + why here ════ */
+.lw-about { background:linear-gradient(rgba(245,240,230,.9),rgba(245,240,230,.9)), url('assets/images/redesign/bgPagina.jpg') center/cover no-repeat; }
+.lw-about-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5rem); align-items:center; }
+.lw-stats { display:flex; gap:2.6rem; flex-wrap:wrap; margin-top:26px; }
+.lw-stat { display:flex; flex-direction:column; gap:4px; }
+.lw-stat-n { font-family:var(--cse); font-size:clamp(34px,4vw,52px); font-weight:300; color:var(--ca); line-height:1; }
+.lw-stat-n sup { font-size:.5em; color:var(--cal); }
+.lw-stat-l { font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ci3); }
+.lw-why { background:var(--cbr); border:1px solid var(--cl); border-radius:14px; padding:clamp(1.8rem,3vw,2.6rem); }
+.lw-why-list { margin-top:18px; }
+.lw-why-item { display:flex; gap:16px; padding:18px 0; border-top:1px solid var(--cl); }
+.lw-why-n { font-family:var(--cse); font-size:1.1rem; color:var(--cal); width:28px; flex:none; line-height:1.4; }
+.lw-why-item h4 { font-family:var(--cse); font-weight:400; font-size:1.2rem; color:var(--ci); margin:0; }
+.lw-why-item p { font-size:.875rem; line-height:1.6; color:var(--ci3); margin:5px 0 0; }
 
-/* ── 03 · PAYMENT ────────────────────────────────────────────── */
-.cs-payment { background: var(--cb); }
-.cs-pay-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-  gap: clamp(32px,5vw,80px); align-items: start; margin-top: 48px; }
-.cs-pay-steps { display: flex; flex-direction: column; }
-.cs-pay-step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 18px 0;
-  border-bottom: 1px solid var(--cl); align-items: start; }
-.cs-pay-step:first-child { border-top: 1px solid var(--cl); }
-.cs-ps-n { font-family: var(--cse); font-size: 26px; font-weight: 200; color: var(--ca); line-height: 1; padding-top: 2px; }
-.cs-ps-t { font-size: 13.5px; font-weight: 600; letter-spacing: .03em; margin-bottom: 4px; }
-.cs-ps-d { font-size: 13px; color: var(--ci2); line-height: 1.55; }
-.cs-pay-aside { background: var(--cb2); padding: 28px 24px 32px; border: 1px solid var(--cl); position: sticky; top: 82px; }
-.cs-pa-title { font-family: var(--cse); font-size: 22px; font-weight: 300; margin-bottom: 16px; }
-.cs-pa-note  { font-size: 13px; color: var(--ci2); line-height: 1.65; margin-bottom: 14px; }
+/* ════ SERVICES (#services) — 3 cards ════ */
+.lw-services { background:var(--cb2); }
+.lw-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.4rem; margin-top:clamp(24px,3.5vh,48px); }
+.lw-svc { display:flex; flex-direction:column; gap:1rem; background:var(--cbr); border:1px solid var(--cl);
+  border-radius:14px; padding:clamp(1.5rem,2.4vh,2.2rem) 1.9rem; transition:transform .32s cubic-bezier(.16,1,.3,1), box-shadow .32s; }
+.lw-svc:hover { transform:translateY(-3px); box-shadow:0 18px 48px -18px rgba(32,24,15,.16); }
+.lw-svc-top { display:flex; align-items:center; justify-content:space-between; }
+.lw-svc-icon { width:40px; height:40px; color:var(--ca); }
+.lw-svc-n { font-family:var(--cse); font-size:1.3rem; color:var(--css); }
+.lw-svc h3 { font-family:var(--cse); font-weight:400; font-size:1.5rem; line-height:1.15; color:var(--ci); margin:auto 0 0; }
+.lw-svc p { font-size:.875rem; line-height:1.65; color:var(--ci3); margin:0; }
 
-/* ── 04 · FAQ — rediseño editorial (arte: sección oscura, espaciado premium) ── */
-.cs-faq { background: var(--ci); color: var(--cb); }
-.cs-faq .cs-kicker { color: var(--cal); }
-.cs-faq .cs-display { color: var(--cb); }
-.cs-faq-list { margin-top: 52px; }
-.cs-faq-item {
-  border-bottom: 1px solid rgba(245,240,230,0.09);
-  transition: background .25s;
-}
-.cs-faq-list .cs-faq-item:first-child { border-top: 1px solid rgba(245,240,230,0.09); }
-.faq-q {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 28px 0; cursor: pointer; gap: 32px; user-select: none;
-}
-.faq-q-t {
-  font-family: var(--cse); font-size: clamp(17px,1.85vw,23px); font-weight: 400;
-  color: var(--cb); line-height: 1.25;
-}
-.cs-faq-item.open .faq-q-t { color: #fff; }
-/* Icono limpio — sin círculo */
-.cs-faq-icon {
-  width: 18px; height: 18px; flex-shrink: 0; margin-top: 5px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; font-weight: 200; line-height: 1;
-  color: rgba(245,240,230,0.3);
-  border: none; border-radius: 0; background: none;
-  transition: transform .38s cubic-bezier(.16,1,.3,1), color .25s;
-}
-.cs-faq-item.open .cs-faq-icon { transform: rotate(45deg); color: var(--cal); }
-/* Acordeón — bug fix: sin padding-bottom en estado cerrado */
-.cs-faq-a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .44s cubic-bezier(.16,1,.3,1); }
-.cs-faq-a-i {
-  min-height: 0; overflow: hidden;
-  padding: 0 3rem 0 0;        /* SIN padding-bottom en cerrado */
-  font-size: 14.5px; color: rgba(245,240,230,0.48); line-height: 1.82; max-width: 68ch;
-}
-.cs-faq-item.open .cs-faq-a { grid-template-rows: 1fr; }
-.cs-faq-item.open .cs-faq-a-i { padding-bottom: 30px; }
+/* ════ PORTFOLIO (#portfolio) — filterable cards ════ */
+.lw-portfolio { background:var(--cb); }
+.lw-pf-top { display:flex; align-items:flex-end; justify-content:space-between; gap:2rem; flex-wrap:wrap; }
+.lw-pf-filters { display:flex; gap:8px; flex-wrap:wrap; }
+.lw-pill { font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; cursor:none;
+  padding:9px 18px; border-radius:40px; border:1px solid var(--cl); background:transparent; color:var(--ci3); transition:all .25s; }
+.lw-pill.active { background:var(--ca); border-color:var(--ca); color:var(--cb); }
+.lw-pf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(.9rem,1.4vw,1.2rem); margin-top:clamp(16px,2.4vh,30px); }
+.lw-prop { border:1px solid var(--cl); border-radius:14px; overflow:hidden; background:var(--cbr); display:flex; flex-direction:column; }
+.lw-prop-media { position:relative; aspect-ratio:16/9; background:var(--img) center/cover no-repeat; }
+.lw-prop-body { padding:11px 16px 13px; display:flex; flex-direction:column; gap:3px; }
+.lw-prop-loc { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ci3); }
+.lw-prop-title { font-family:var(--cse); font-size:1.25rem; color:var(--ci); margin:0; line-height:1.1; }
+.lw-prop-meta { font-size:12px; color:var(--ci2); }
+.lw-prop-foot { display:flex; align-items:baseline; justify-content:space-between; margin-top:6px; border-top:1px solid var(--cl); padding-top:9px; }
+.lw-prop-price { font-weight:500; font-size:1.05rem; color:var(--ci); }
+.lw-prop-note { font-size:11px; color:var(--ci3); }
+.lw-badge { position:absolute; top:12px; left:12px; font-size:9.5px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; padding:5px 11px; border-radius:30px; }
+.lw-badge-fh { background:var(--ca); color:#D4EDD9; }
+.lw-badge-lh { background:rgba(16,76,79,.92); color:#E4EEEF; }
 
-/* ── THE SOUL ────────────────────────────────────────────────── */
-.cs-soul{ background:radial-gradient(125% 95% at 50% 32%, #16211B 0%, #0A0C09 72%); color:var(--cb); text-align:center; }
-.cs-soul .cs-kicker{ color:var(--cal); }
-.cs-soul .cs-display{ color:var(--cb); }
-.cs-soul .cs-display em{ color:var(--cal); }
-.cs-soul-lead{ font-family:var(--cse); font-style:italic; font-size:clamp(18px,2.3vw,27px);
-  color:var(--cal); line-height:1.5; margin-top:22px; }
-.cs-soul-body{ font-size:clamp(14px,1.5vw,16px); color:rgba(245,240,230,.62);
-  max-width:56ch; margin:26px auto 0; line-height:1.85; }
+/* ════ TIMELINE (#timeline) — green expedition ════ */
+.lw-timeline { background:var(--ca); color:var(--cb); position:relative; overflow:hidden; }
+.lw-tl-bg { position:absolute; inset:0; background:url('assets/images/redesign/bgCanopy.jpg') center/cover; mix-blend-mode:soft-light; opacity:.5; pointer-events:none; }
+.lw-tl-inner { position:relative; }
+.lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.6vw,3.2rem); line-height:1.05;
+  text-transform:uppercase; letter-spacing:.04em; color:var(--cb); margin:16px 0 0; }
+.lw-tl-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1.2rem; margin-top:clamp(28px,4vh,52px); }
+.lw-tl-item { display:flex; flex-direction:column; gap:12px; padding-top:22px; border-top:1px solid rgba(245,240,230,.28); }
+.lw-tl-y { font-size:1.6rem; font-weight:300; color:var(--cb); line-height:1; }
+.lw-tl-item h4 { font-family:var(--cse); font-weight:400; font-size:1.15rem; color:var(--cb); margin:0; }
+.lw-tl-item p { font-size:.8125rem; line-height:1.6; color:rgba(245,240,230,.72); margin:0; }
 
-/* ── 05 · TRACK RECORD ───────────────────────────────────────── */
-.cs-track { background: var(--cd); color: var(--cb); position: relative; overflow: hidden; }
-.cs-track::before { content: ''; position: absolute; inset: 0;
-  background-image: url('assets/images/aerial-1.jpg'); background-size: cover; background-position: center 30%; opacity: .08; }
-.cs-track > .cs-wrap { position: relative; }
-.cs-tr-stats { display: grid; grid-template-columns: repeat(4,1fr);
-  border-top: 1px solid rgba(245,240,230,.1); margin-top: 52px; }
-.cs-tr-stat { padding: 32px 20px 36px; border-right: 1px solid rgba(245,240,230,.07); }
-.cs-tr-stat:last-child { border-right: none; }
-.cs-tr-n { font-family: var(--cse); font-size: clamp(44px,5.5vw,72px); font-weight: 400;
-  color: var(--cal); line-height: 1; }
-.cs-tr-l { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; opacity: .4; margin-top: 10px; }
-.cs-track-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-  gap: clamp(36px,5vw,88px); margin-top: 60px; }
-.cs-track-text { font-family: var(--cse); font-size: clamp(18px,2.1vw,24px); font-weight: 400; line-height: 1.6; opacity: .82; }
-.cs-testi-ph { font-size: 13px; font-family: var(--cse); font-style: italic; opacity: .26;
-  padding: 20px 22px; border: 1px dashed rgba(245,240,230,.12); }
+/* ════ FEATURED (#featured) — image + text ════ */
+.lw-featured { background:var(--cb); }
+.lw-feat-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:clamp(2rem,5vw,4.5rem); align-items:center; }
+.lw-feat-media { position:relative; border-radius:14px; overflow:hidden; aspect-ratio:4/3; box-shadow:0 18px 40px -22px rgba(46,52,55,.32); }
+.lw-feat-media img { width:100%; height:100%; object-fit:cover; display:block; }
+.lw-feat-media::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.5),transparent 50%); }
+.lw-feat-cap { position:absolute; left:20px; bottom:18px; display:flex; flex-direction:column; gap:6px; color:var(--cb); z-index:2; }
+.lw-feat-cap-loc { font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
+.lw-feat-cap-t { font-family:var(--cse); font-size:1.6rem; }
+.lw-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+.lw-badge2 { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:6px 13px; border-radius:30px; }
+.lw-badge2.fh { background:var(--ca); color:#D4EDD9; }
+.lw-badge2.lg { background:var(--cdl); color:#E4EEEF; }
+.lw-badge2.ol { border:1px solid var(--cl); color:var(--ci2); }
+.lw-feat-price { display:flex; align-items:baseline; gap:14px; margin:18px 0; }
+.lw-feat-amt { font-weight:500; font-size:1.4rem; color:var(--ci); }
+.lw-feat-note { font-size:12px; color:var(--ci3); }
 
-/* ── 06 · CTA ────────────────────────────────────────────────── */
-.cs-cta { position: relative; overflow: hidden; color: var(--cb); }
-.cs-cta-bg { position: absolute; inset: 0;
-  background: radial-gradient(140% 100% at 60% 0%, #1e3a1e 0%, transparent 52%),
-    linear-gradient(160deg, #104C4F, #0A1210); }
-.cs-cta-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .28; }
-.cs-cta-ov  { position: absolute; inset: 0; background: linear-gradient(160deg,rgba(16,24,14,.75) 0%,rgba(16,76,79,.45) 100%); }
-.cs-cta-content { position: relative; text-align: center; padding-block: clamp(80px,12vw,160px); }
-.cs-cta-h { font-family: var(--cse); font-size: clamp(38px,6.5vw,96px); font-weight: 200;
-  line-height: .94; letter-spacing: -.02em; max-width: 14ch; margin: 0 auto 22px; }
-.cs-cta-h em { font-style: italic; }
-.cs-cta-sub { font-size: clamp(14px,1.5vw,17px); opacity: .72; max-width: 52ch; margin: 0 auto 14px; line-height: 1.62; }
-.cs-cta-bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 36ch;
-  margin: 26px auto; text-align: left; font-size: 13.5px; opacity: .82; }
-.cs-cta-bullets li { display: flex; align-items: flex-start; gap: 12px; }
-.cs-cta-bullets li::before { content: '◆'; color: var(--cal); font-size: 8px; flex-shrink: 0; margin-top: 4px; }
-.cs-cta-btns { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 34px; }
+/* ════ CONTACT (#contact) — dark form ════ */
+.lw-contact { background:var(--obsidian); color:var(--cb); position:relative; overflow:hidden; }
+.lw-ct-totem { position:absolute; right:-2%; top:50%; transform:translateY(-50%); height:120%; width:auto; opacity:.07; pointer-events:none; }
+.lw-ct-grid { position:relative; display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5rem); align-items:center; }
+.lw-ct-h { font-family:var(--cse); font-weight:400; font-size:clamp(2.4rem,5vw,4rem); line-height:1;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--cb); margin:14px 0 0; }
+.lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:1.2rem; color:rgba(245,240,230,.7); margin:14px 0 0; }
+.lw-ct-note { font-size:.9rem; line-height:1.7; color:rgba(245,240,230,.6); max-width:38ch; margin:12px 0 0; }
+.lw-ct-form { display:flex; flex-direction:column; gap:1.4rem; }
+.lw-field { font-size:.9rem; color:var(--cb); background:transparent; border:none; border-bottom:1px solid rgba(245,240,230,.28);
+  padding:12px 2px; outline:none; width:100%; font-family:var(--csa); }
+.lw-field::placeholder { color:rgba(245,240,230,.4); }
+.lw-field:focus { border-color:var(--cal); }
 
-/* ── FOOTER ──────────────────────────────────────────────────── */
-.cs-footer { background: #0A0C09; color: var(--cb); padding: 52px 0 28px; }
-.cs-ft-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 36px; margin-bottom: 36px; }
-.cs-ft-logo { font-family: var(--cse); font-size: 20px; margin-bottom: 12px; }
-.cs-ft-tag  { font-size: 13px; opacity: .48; line-height: 1.6; max-width: 26ch; }
-.cs-ft-col h5 { font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; opacity: .36; margin-bottom: 13px; }
-.cs-ft-col a { display: block; font-size: 13px; opacity: .55; margin-bottom: 7px; transition: opacity .2s; cursor: pointer; }
-.cs-ft-col a:hover { opacity: 1; }
-.cs-ft-rule { height: 1px; background: rgba(245,240,230,.09); margin-bottom: 18px; }
-.cs-ft-bottom { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-size: 11px; opacity: .3; }
+/* ════ FOOTER ════ */
+.lw-footer { background:#0A0C09; color:var(--cb); padding:clamp(2.6rem,5vh,3.6rem) 0 2rem; }
+.lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
+.lw-ft-logo { font-family:var(--cse); font-size:22px; letter-spacing:.04em; }
+.lw-ft-sub { font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--css); margin-top:4px; }
+.lw-ft-tag { font-size:13px; opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
+.lw-ft-col h5 { font-size:10px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--cal); margin-bottom:13px; }
+.lw-ft-col a { display:block; font-size:13.5px; color:rgba(245,240,230,.72); margin-bottom:9px; transition:color .2s; cursor:none; text-decoration:none; }
+.lw-ft-col a:hover { color:#fff; }
+.lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
+  margin-top:2.4rem; padding-top:1.5rem; border-top:1px solid rgba(245,240,230,.12); }
+.lw-ft-copy { font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.04em; }
 
-/* ── Process bullets stagger ─────────────────────────────────── */
-.cs-ph-bullets li { opacity:0; transform:translateX(-10px);
-  transition:opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1); }
-.reveal.in .cs-ph-bullets li { opacity:.65; transform:none; }
-.reveal.in .cs-ph-bullets li:nth-child(1) { transition-delay:100ms; }
-.reveal.in .cs-ph-bullets li:nth-child(2) { transition-delay:175ms; }
-.reveal.in .cs-ph-bullets li:nth-child(3) { transition-delay:250ms; }
-.reveal.in .cs-ph-bullets li:nth-child(4) { transition-delay:325ms; }
-@media(prefers-reduced-motion:reduce){ .cs-ph-bullets li{ transition:none; opacity:.65; transform:none; } }
-
-/* ── Invest cards hover ──────────────────────────────────────── */
-.cs-inv-card { transition:transform .32s cubic-bezier(.16,1,.3,1), box-shadow .32s cubic-bezier(.16,1,.3,1); cursor:default; }
-.cs-inv-card:not(.fh):hover { transform:translateY(-3px); box-shadow:0 18px 48px -18px rgba(32,24,15,.16); }
-
-/* ── Nav shadow in content mode ──────────────────────────────── */
-#nav.light-nav { box-shadow:0 2px 24px -2px rgba(72,91,55,.1), inset 0 1px 0 rgba(255,255,255,.55); }
+/* ── Toast ───────────────────────────────────────────────────── */
+#lw-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(160%);
+  background:var(--va); color:var(--rl); padding:14px 24px; border-radius:40px; font-family:'Jost',sans-serif;
+  font-size:.78rem; letter-spacing:.06em; z-index:300; box-shadow:0 30px 60px -28px rgba(10,12,9,.55);
+  transition:transform .5s cubic-bezier(.16,1,.3,1); display:flex; align-items:center; gap:10px; pointer-events:none; }
+#lw-toast.show { transform:translateX(-50%) translateY(0); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
-@media(max-width:780px){
-  .cs-phases { grid-template-columns: 1fr; }
-  .cs-ph-aside { position: static; }
-  .cs-ph-card { grid-template-columns: 36px 1fr; }
-  .cs-inv-grid { grid-template-columns: 1fr; }
-  .cs-inv-card.fh { grid-column: auto; grid-template-columns: 1fr; }
-  .cs-pay-grid { grid-template-columns: 1fr; }
-  .cs-pay-aside { position: static; }
-  .cs-tr-stats { grid-template-columns: 1fr 1fr; }
-  .cs-tr-stat { border-right: none; border-bottom: 1px solid rgba(245,240,230,.07); }
-  .cs-track-body { grid-template-columns: 1fr; }
-  .cs-ft-grid { grid-template-columns: 1fr; }
+@media(max-width:900px){
+  .lw-show-grid { grid-template-columns:1fr 1fr; }
+  .lw-svc-grid, .lw-pf-grid { grid-template-columns:1fr 1fr; }
+  .lw-about-grid, .lw-feat-grid, .lw-ct-grid { grid-template-columns:1fr; }
+  .lw-tl-grid { grid-template-columns:repeat(2,1fr); }
+  .lw-ft-grid { grid-template-columns:1fr 1fr; }
 }
-@media(max-width:640px){ .cs-ph-card { grid-template-columns: 32px 1fr; gap:16px; } }
+@media(max-width:560px){
+  .lw-show-grid, .lw-svc-grid, .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
+  .lw-stats { gap:1.6rem; }
+}
 </style>
 
-<!-- Content sections wrapper (shown after cinematic transition) -->
+<!-- Content sections wrapper -->
 <div id="content-sections">
 
-<!-- ── THE SOUL — filosofía de marca (panel) ───────────────── -->
-<section class="cs-soul" id="soul">
-  <div class="cs-wrap" style="text-align:center;max-width:920px">
-    <div class="cs-kicker reveal">The Soul</div>
-    <h2 class="cs-display reveal" style="font-size:clamp(34px,6.4vw,86px);margin-top:18px">Lawang means <em>door.</em></h2>
-    <p class="cs-soul-lead reveal">We open the door to Indonesia — for those who have long been looking from the outside.</p>
-    <p class="cs-soul-body reveal">Real development in Bali. No leasehold. No renders. No excuses. The axis of the world has shifted — and Lawang is the threshold.</p>
-  </div>
-</section>
-
-<!-- ── 01 · PROCESS ────────────────────────────────────────── -->
-<section class="cs-process cs-pad" id="process">
+<!-- ════ DIVISIONS — Four project lines ════ -->
+<section class="lw-divisions" id="lines">
   <div class="cs-wrap">
-    <div class="cs-phases">
-      <div class="cs-ph-aside reveal">
-        <div class="cs-kicker" style="color:var(--cal);opacity:.7">From first call to front-door key</div>
-        <h2 class="cs-ph-aside-h" style="margin-top:14px">We handle every step —<br>you collect the result.</h2>
-        <p class="cs-ph-aside-sub">The hard work is done before you arrive.</p>
-        <div style="margin-top:36px">
-          <a href="#contact" class="cs-btn cs-btn-bone">Talk to the team <span class="arr">→</span></a>
-        </div>
-      </div>
-      <div class="cs-ph-steps">
-        <div class="cs-ph-card reveal" style="transition-delay:60ms">
-          <div class="cs-ph-num">01</div>
-          <div class="cs-ph-content">
-            <div class="cs-ph-title">We acquire, legalise &amp; build</div>
-            <div class="cs-ph-sub">The hard work is already done when you arrive.</div>
-            <ul class="cs-ph-bullets">
-              <li>Land acquisition with own capital</li>
-              <li>Individual title certificate per plot</li>
-              <li>Steel frame construction</li>
-              <li>Monthly progress reports with photos</li>
-            </ul>
-          </div>
-        </div>
-        <div class="cs-ph-card reveal" style="transition-delay:120ms">
-          <div class="cs-ph-num">02</div>
-          <div class="cs-ph-content">
-            <div class="cs-ph-title">Your PT PMA and Freehold — in under a week</div>
-            <div class="cs-ph-sub">The strongest legal ownership structure in Southeast Asia.</div>
-            <ul class="cs-ph-bullets">
-              <li>PT PMA company formation (~€1,000)</li>
-              <li>Contract signing and documentation</li>
-              <li>HGB title registration</li>
-              <li>Coordination with your tax advisor</li>
-            </ul>
-          </div>
-        </div>
-        <div class="cs-ph-card reveal" style="transition-delay:180ms">
-          <div class="cs-ph-num">03</div>
-          <div class="cs-ph-content">
-            <div class="cs-ph-title">Handover — and first rental in 90 days</div>
-            <div class="cs-ph-sub">You collect. We coordinate.</div>
-            <ul class="cs-ph-bullets">
-              <li>Handover with complete documentation</li>
-              <li>Rental manager onboarding</li>
-              <li>First income within &lt;90 days</li>
-              <li>Delegated management at 20% of gross</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+    <div class="lw-head center reveal">
+      <span class="lw-kicker">The Ecosystem</span>
+      <h2 class="lw-title">Four project lines, one presence</h2>
+    </div>
+    <div class="lw-show-grid">
+      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/images/redesign/villasCoast.jpg')">
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+        <img class="lw-show-icon" src="assets/images/redesign/creamSignature.png" alt="" draggable="false">
+        <div class="lw-show-cap"><span class="lw-show-sub">Prime Investments</span><span class="lw-show-title">Signature</span></div>
+      </a>
+      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/images/redesign/aerialJungle.jpg');transition-delay:80ms">
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+        <img class="lw-show-icon" src="assets/images/redesign/creamLand.png" alt="" draggable="false">
+        <div class="lw-show-cap"><span class="lw-show-sub">Legacy</span><span class="lw-show-title">Land</span></div>
+      </a>
+      <a class="lw-show reveal" href="portfolio.html" style="--img:url('assets/images/redesign/djiRicefield.jpg');transition-delay:140ms">
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+        <img class="lw-show-icon" src="assets/images/redesign/creamVillas.png" alt="" draggable="false">
+        <div class="lw-show-cap"><span class="lw-show-sub">Tropical</span><span class="lw-show-title">Villas</span></div>
+      </a>
+      <a class="lw-show reveal" href="portfolio.html" style="--img:url('assets/images/redesign/balianBeach.jpg');transition-delay:200ms">
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+        <img class="lw-show-icon" src="assets/images/redesign/creamResorts.png" alt="" draggable="false">
+        <div class="lw-show-cap"><span class="lw-show-sub">Beachfront</span><span class="lw-show-title">Resorts</span></div>
+      </a>
     </div>
   </div>
 </section>
 
-<!-- ── 02 · WHY INVEST ──────────────────────────────────────── -->
-<section class="cs-invest cs-pad" id="invest">
-  <div class="cs-wrap">
+<!-- ════ ABOUT — Who we are + Why here ════ -->
+<section class="lw-about" id="about">
+  <div class="cs-wrap lw-about-grid">
     <div class="reveal">
-      <div class="cs-kicker" style="margin-bottom:20px">The investment case</div>
-      <h2 class="cs-display" style="font-size:clamp(30px,4.8vw,66px);max-width:18ch">Why Indonesia. Why Balian. Why now.</h2>
+      <div class="lw-head">
+        <span class="lw-kicker">Who We Are</span>
+        <h2 class="lw-title" style="font-size:clamp(26px,3.4vw,42px)">A strategic partner for territorial assets</h2>
+      </div>
+      <p class="lw-p">Lawang is a strategic asset investment, structuring and development partner in Indonesia. We structure territorial opportunities with intelligence, long-term vision, and financial discipline — across Bali and Sumba.</p>
+      <div class="lw-stats">
+        <div class="lw-stat"><span class="lw-stat-n">6<sup>+</sup></span><span class="lw-stat-l">Years</span></div>
+        <div class="lw-stat"><span class="lw-stat-n">30<sup>+</sup></span><span class="lw-stat-l">Land Plots</span></div>
+        <div class="lw-stat"><span class="lw-stat-n">350<sup>+</sup></span><span class="lw-stat-l">Projects</span></div>
+      </div>
     </div>
-    <div class="cs-inv-grid">
-      <div class="cs-inv-card fh reveal" style="transition-delay:0ms">
-        <div>
-          <div class="cs-inv-title">Real ownership — not leasehold</div>
-          <div style="margin-top:14px"><span class="cs-badge-fh">FREEHOLD HGB · PT PMA</span></div>
-        </div>
-        <div>
-          <p class="cs-inv-body">Most Bali properties are sold on leasehold (30+15 years). Lawang operates through HGB freehold titles held via your own PT PMA company. You own the land. Not a lease — the actual asset. This is the single most important differentiator in the Bali investment market today.</p>
-        </div>
+    <div class="lw-why reveal" style="transition-delay:120ms">
+      <div class="lw-head">
+        <span class="lw-kicker">Why Here?</span>
+        <h3 class="lw-title" style="font-size:clamp(24px,3vw,34px)">Why Bali &amp; Sumba</h3>
       </div>
-      <div class="cs-inv-card reveal" style="transition-delay:80ms">
-        <div class="cs-inv-title">An emerging zone</div>
-        <p class="cs-inv-body">Balian Hills sits 15 minutes west of Canggu — the fastest-growing zone in Bali. Where Canggu is saturated, Balian still has horizon. Land prices are rising as infrastructure catches up. Early ownership here is the same position Canggu buyers had ten years ago.</p>
-      </div>
-      <div class="cs-inv-card reveal" style="transition-delay:140ms">
-        <div class="cs-inv-title">Architectural value</div>
-        <p class="cs-inv-body">Lawang villas are built on steel frames with locally sourced tropical materials — designed for durability, cross-ventilation, and the kind of indoor-outdoor living that commands premium rental rates. A property built to last, in a market that rewards design.</p>
-      </div>
-      <div class="cs-inv-card reveal" style="transition-delay:200ms">
-        <div class="cs-inv-title">Yield and lifestyle</div>
-        <p class="cs-inv-body">Bali's tourist arrivals reached record levels in 2024, with structural undersupply in design-led stays. Historically, well-positioned villas in the west coast corridor have achieved occupancy rates above 80% in high season. Managed by our partner operator from day one.</p>
-      </div>
-      <div class="cs-inv-card reveal" style="transition-delay:240ms;grid-column:1/-1;padding:0;">
-        <div class="cs-inv-disc">All yield figures are historical and indicative. Past performance does not guarantee future results. ROI projections are estimates only. This page does not constitute a financial offer.</div>
+      <div class="lw-why-list">
+        <div class="lw-why-item"><span class="lw-why-n">01</span><div><h4>Verified expansion</h4><p>We operate only within territories with measured, proven growth dynamics.</p></div></div>
+        <div class="lw-why-item"><span class="lw-why-n">02</span><div><h4>Legal &amp; fiscal layer</h4><p>Every acquisition is structured and verified before it reaches you.</p></div></div>
+        <div class="lw-why-item"><span class="lw-why-n">03</span><div><h4>End-to-end delivery</h4><p>From land to development, one ecosystem holds the whole journey.</p></div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── 03 · PAYMENT PLAN ────────────────────────────────────── -->
-<section class="cs-payment cs-pad" id="payment">
+<!-- ════ SERVICES — Our services ════ -->
+<section class="lw-services" id="services">
   <div class="cs-wrap">
-    <div class="reveal">
-      <div class="cs-kicker" style="margin-bottom:20px">How it works</div>
-      <h2 class="cs-display" style="font-size:clamp(30px,4.5vw,64px);max-width:18ch">Simple structure. No surprises.</h2>
+    <div class="lw-head reveal">
+      <span class="lw-kicker">What We Do</span>
+      <h2 class="lw-title">Our services</h2>
     </div>
-    <div class="cs-pay-grid">
-      <div class="cs-pay-steps reveal">
-        <div class="cs-pay-step">
-          <div class="cs-ps-n">01</div>
-          <div>
-            <div class="cs-ps-t">Reservation deposit</div>
-            <div class="cs-ps-d">Locks your plot while you complete due diligence. Refundable subject to conditions.</div>
-          </div>
-        </div>
-        <div class="cs-pay-step">
-          <div class="cs-ps-n">02</div>
-          <div>
-            <div class="cs-ps-t">Contract &amp; PT PMA</div>
-            <div class="cs-ps-d">Main payment at signing. HGB title process and PT PMA formation begin immediately.</div>
-          </div>
-        </div>
-        <div class="cs-pay-step">
-          <div class="cs-ps-n">03</div>
-          <div>
-            <div class="cs-ps-t">Construction milestone</div>
-            <div class="cs-ps-d">Tranche linked to verified on-site construction milestone. Checked before payment is due.</div>
-          </div>
-        </div>
-        <div class="cs-pay-step">
-          <div class="cs-ps-n">04</div>
-          <div>
-            <div class="cs-ps-t">Handover</div>
-            <div class="cs-ps-d">Final payment on delivery: HGB title, PT PMA certificate, and villa snagging sign-off.</div>
-          </div>
-        </div>
-        <div class="cs-pay-step">
-          <div class="cs-ps-n" style="color:var(--ca);opacity:.6">+</div>
-          <div>
-            <div class="cs-ps-t">PT PMA formation</div>
-            <div class="cs-ps-d">Your Indonesian company. Full legal setup coordinated separately, ~€1,000.</div>
-          </div>
-        </div>
+    <div class="lw-svc-grid">
+      <div class="lw-svc reveal" style="transition-delay:60ms">
+        <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 80 60" aria-hidden="true"><use href="#icon-tepi-sungai"/></svg><span class="lw-svc-n">01</span></div>
+        <h3>Development &amp; Construction</h3>
+        <p>Tepi Sungai, our construction division, executes each project with structural integrity and alignment to its territorial context.</p>
       </div>
-      <div class="cs-pay-aside reveal" style="transition-delay:120ms">
-        <div class="cs-pa-title">Start with a conversation</div>
-        <p class="cs-pa-note">The exact payment structure is confirmed during your first call with our team. We walk you through every step — from reservation to rental income.</p>
-        <p class="cs-pa-note">Financing options for qualified investors available on request. No public commitment required to enquire.</p>
-        <a href="#contact" class="cs-btn cs-btn-green" style="width:100%;justify-content:center;margin-top:8px">Get investment details <span class="arr">→</span></a>
+      <div class="lw-svc reveal" style="transition-delay:120ms">
+        <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 100 80" aria-hidden="true"><use href="#icon-land"/></svg><span class="lw-svc-n">02</span></div>
+        <h3>Territorial Investment</h3>
+        <p>We structure land and signature opportunities within verified expansion corridors — built to appreciate and to last.</p>
+      </div>
+      <div class="lw-svc reveal" style="transition-delay:180ms">
+        <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 80 80" aria-hidden="true"><use href="#icon-balian-hills"/></svg><span class="lw-svc-n">03</span></div>
+        <h3>Legal Structure</h3>
+        <p>Our legal and fiscal layer verifies and structures every acquisition — leasehold or PT PMA freehold.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── 04 · FAQ ──────────────────────────────────────────────── -->
-<section class="cs-faq cs-pad" id="faq">
+<!-- ════ PORTFOLIO — Prime projects, verified ════ -->
+<section class="lw-portfolio" id="portfolio">
   <div class="cs-wrap">
-    <div class="reveal">
-      <div class="cs-kicker" style="margin-bottom:20px">Questions</div>
-      <h2 class="cs-display" style="font-size:clamp(30px,4.5vw,64px);max-width:18ch">What we get asked most.</h2>
+    <div class="lw-pf-top reveal">
+      <div class="lw-head"><span class="lw-kicker">Curated Portfolio</span><h2 class="lw-title">Prime projects, verified</h2></div>
+      <div class="lw-pf-filters" id="lwFilters">
+        <button class="lw-pill active" data-cat="All">All</button>
+        <button class="lw-pill" data-cat="Signature">Signature</button>
+        <button class="lw-pill" data-cat="Land">Land</button>
+        <button class="lw-pill" data-cat="Villas">Villas</button>
+        <button class="lw-pill" data-cat="Resorts">Resorts</button>
+      </div>
     </div>
-    <div class="cs-faq-list reveal" style="transition-delay:100ms">
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">What type of ownership do I get?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">HGB Freehold title, held through your own PT PMA (Indonesian limited company). This is the strongest form of legal ownership available to foreign investors in Indonesia — not a 30-year lease, but a registered title in a company you own. Our legal team handles the full PT PMA formation process for approximately €1,000.</div></div>
-      </div>
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">Can I buy as a foreign national?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">Yes. Foreign nationals cannot hold property in Indonesia under their personal name — but they can own it legally through an Indonesian company (PT PMA) that they control 100%. Lawang coordinates the full PT PMA formation: registration, legal documentation and ongoing compliance support. This is the standard structure used by thousands of international investors in Bali.</div></div>
-      </div>
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">Is it for living or for investing?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">Both. Every Lawang property is designed for premium private living and for competitive rental returns. Many owners split their time — staying several weeks a year and renting for the rest through our managed programme. The freehold structure means the asset is yours the way a primary residence would be.</div></div>
-      </div>
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">How does the purchase process work?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">1. Discovery call — we understand your goals and confirm availability. 2. Reservation — a deposit locks your plot while you complete due diligence. 3. PT PMA + contract — legal structure formed, HGB title process begins. 4. Construction — steel frame build with monthly photo updates. 5. Handover — complete documentation, snagging sign-off, and rental manager introduction. First rental income typically within 90 days of handover.</div></div>
-      </div>
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">Where exactly is Balian Hills?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">On the west coast of Bali — 15 minutes from Canggu, 2 minutes from Amazona Jungle Resort, and 6 minutes from Best Sun School. The area combines jungle calm with access to Bali's most dynamic social corridor. It is where Canggu was a decade ago.</div></div>
-      </div>
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">What returns can I expect?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">We do not provide guaranteed yield figures. Historically, well-managed design-led villas on Bali's west coast have achieved 75–85% occupancy in high season, with average daily rates that have tracked tourism demand. Specific rental projections for each property are shared during our investor call. All figures are estimates based on historical performance — not a guarantee of future returns.</div></div>
-      </div>
-
-      <div class="cs-faq-item">
-        <div class="faq-q"><span class="faq-q-t">Do you also have land for sale?</span><span class="cs-faq-icon">+</span></div>
-        <div class="cs-faq-a"><div class="cs-faq-a-i">Yes. Titled land parcels are available in both Balian Hills (Bali) and Sumba. They come with full due diligence, road access, and utility connections to the boundary. You can build using a Lawang typology or your own architect. See the full portfolio at the link below.</div></div>
-      </div>
-
+    <div class="lw-pf-grid reveal" id="lwGrid" style="transition-delay:100ms">
+      <article class="lw-prop" data-cat="Signature">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiRicefield.jpg')"><span class="lw-badge lw-badge-fh">Freehold</span></div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Tabanan · Bali</span><h3 class="lw-prop-title">Ridge House Estate</h3><div class="lw-prop-meta">3 Bed · Ocean View · 450 m²</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 485,000</span><span class="lw-prop-note">Freehold</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Land">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerial1.jpg')"><span class="lw-badge lw-badge-lh">Leasehold</span></div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Tampaksiring · Bali</span><h3 class="lw-prop-title">Jungle Plateau Plot</h3><div class="lw-prop-meta">1,200 m² · Valley View</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 210,000</span><span class="lw-prop-note">Leasehold · 30 yr</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Villas">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/villasCoast.jpg')"><span class="lw-badge lw-badge-fh">Freehold</span></div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Uluwatu · Bali</span><h3 class="lw-prop-title">Cliffside Villa Seri</h3><div class="lw-prop-meta">4 Bed · Infinity Pool</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 1.18 M</span><span class="lw-prop-note">Freehold</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Resorts">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/balianBeach.jpg')"><span class="lw-badge lw-badge-lh">Signature</span></div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Balian · Bali</span><h3 class="lw-prop-title">Balian Beach Resort</h3><div class="lw-prop-meta">12 Keys · Beachfront</div><div class="lw-prop-foot"><span class="lw-prop-price">On request</span><span class="lw-prop-note">Investment</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Land">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiCoast.jpg')"><span class="lw-badge lw-badge-fh">Freehold</span></div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Sumba · East</span><h3 class="lw-prop-title">Riverbend Legacy Land</h3><div class="lw-prop-meta">3,400 m² · Riverfront</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 320,000</span><span class="lw-prop-note">Freehold</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Signature">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerialJungle.jpg')"><span class="lw-badge lw-badge-lh">Leasehold</span></div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Ubud · Bali</span><h3 class="lw-prop-title">Canopy Signature Suites</h3><div class="lw-prop-meta">2 Bed · Rooftop</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 395,000</span><span class="lw-prop-note">Leasehold · 25 yr</span></div></div>
+      </article>
     </div>
   </div>
 </section>
 
-<!-- ── 05 · TRACK RECORD ─────────────────────────────────────── -->
-<section class="cs-track cs-pad" id="studio">
+<!-- ════ TIMELINE — A territorial journey ════ -->
+<section class="lw-timeline" id="timeline">
+  <div class="lw-tl-bg" aria-hidden="true"></div>
+  <div class="cs-wrap lw-tl-inner">
+    <span class="lw-kicker reveal" style="color:#EDF1E8">The Expedition</span>
+    <h2 class="lw-tl-h reveal">A territorial journey</h2>
+    <div class="lw-tl-grid">
+      <div class="lw-tl-item reveal" style="transition-delay:60ms"><span class="lw-tl-y">2019</span><h4>Founded in Bali</h4><p>Lawang is established as a territorial investment partner.</p></div>
+      <div class="lw-tl-item reveal" style="transition-delay:120ms"><span class="lw-tl-y">2021</span><h4>First land portfolio</h4><p>Verified expansion corridors secured across Tabanan.</p></div>
+      <div class="lw-tl-item reveal" style="transition-delay:180ms"><span class="lw-tl-y">2023</span><h4>Signature launched</h4><p>Prime, income-ready estates enter the ecosystem.</p></div>
+      <div class="lw-tl-item reveal" style="transition-delay:240ms"><span class="lw-tl-y">2025</span><h4>Sumba expansion</h4><p>The ecosystem extends east to verified Sumba territory.</p></div>
+      <div class="lw-tl-item reveal" style="transition-delay:300ms"><span class="lw-tl-y">2026</span><h4>350+ projects</h4><p>Built to last — a territorial presence across two islands.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ FEATURED — A position, not a transaction ════ -->
+<section class="lw-featured" id="featured">
+  <div class="cs-wrap lw-feat-grid">
+    <div class="lw-feat-media reveal">
+      <img src="assets/images/redesign/villasCoast.jpg" alt="Featured project — Ridge House Estate">
+      <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t">Ridge House Estate</span></div>
+    </div>
+    <div class="reveal" style="transition-delay:120ms">
+      <span class="lw-kicker">Featured Project</span>
+      <h2 class="lw-title" style="font-size:clamp(1.9rem,3vw,2.8rem);margin-top:14px">A position, not a transaction</h2>
+      <p class="lw-p" style="max-width:46ch">A signature estate within a verified expansion corridor — structured, legally clear, and built to last. A position in the territory, not a transaction.</p>
+      <div class="lw-badges"><span class="lw-badge2 fh">Freehold</span><span class="lw-badge2 lg">Signature</span><span class="lw-badge2 ol">450 m²</span></div>
+      <div class="lw-feat-price"><span class="lw-feat-amt">$ 485,000</span><span class="lw-feat-note">Freehold</span></div>
+      <a class="cs-btn cs-btn-green" href="#contact">View Project <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ════ CONTACT — Own The Eternity ════ -->
+<section class="lw-contact" id="contact">
+  <img class="lw-ct-totem" src="assets/images/redesign/tikiTotem.png" alt="" aria-hidden="true" draggable="false">
+  <div class="cs-wrap lw-ct-grid">
+    <div class="reveal">
+      <span class="lw-kicker" style="color:var(--cal)">The Tropical Partner</span>
+      <h2 class="lw-ct-h">Own The Eternity</h2>
+      <p class="lw-ct-italic">You've thought about staying.</p>
+      <p class="lw-ct-note">Tell us what kind of legacy you value. Our team will reach out with verified opportunities.</p>
+    </div>
+    <form class="lw-ct-form reveal" id="lwForm" style="transition-delay:120ms">
+      <input class="lw-field" type="text" placeholder="Full name" required>
+      <input class="lw-field" type="email" placeholder="Email address" required>
+      <input class="lw-field" type="text" placeholder="What are you looking for? (Land · Villa · Signature)">
+      <button class="cs-btn cs-btn-bone cs-btn-pill" type="submit" style="align-self:flex-start;margin-top:6px">Let's Talk <span class="arr">→</span></button>
+    </form>
+  </div>
+</section>
+
+<!-- ════ FOOTER ════ -->
+<footer class="lw-footer">
   <div class="cs-wrap">
-    <div class="reveal">
-      <div class="cs-kicker" style="color:var(--cal);opacity:.7;margin-bottom:20px">The Studio · Track record</div>
-      <h2 class="cs-display" style="font-size:clamp(30px,4.8vw,66px);max-width:20ch;color:var(--cb)">More than 50 homes delivered. This is the next step.</h2>
-    </div>
-    <div class="cs-tr-stats reveal" style="transition-delay:100ms">
-      <div class="cs-tr-stat"><div class="cs-tr-n" data-count="50" data-prefix="+">+50</div><div class="cs-tr-l">Villas built &amp; delivered</div></div>
-      <div class="cs-tr-stat"><div class="cs-tr-n" data-count="200" data-prefix="+">+200</div><div class="cs-tr-l">Hectares of land</div></div>
-      <div class="cs-tr-stat"><div class="cs-tr-n" data-count="2">2</div><div class="cs-tr-l">Active regions</div></div>
-      <div class="cs-tr-stat"><div class="cs-tr-n" style="font-size:clamp(24px,2.8vw,42px)">Balian<br>+ Sumba</div><div class="cs-tr-l">Bali &amp; Sumba Island</div></div>
-    </div>
-    <div class="cs-track-body">
-      <div class="cs-track-text reveal">
-        We don't sell from Spain with renders. Lawang has been operating on the ground in Bali since day one — acquiring land with our own capital, building with our own construction team, and handing over completed homes with verified freehold title. Every villa in our portfolio was built by the same team that will build yours.
-      </div>
-      <div class="reveal" style="transition-delay:120ms">
-        <div class="cs-testi-ph">Client testimonials — coming soon. Contact us to speak directly with previous buyers.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── 06 · CTA ──────────────────────────────────────────────── -->
-<section class="cs-cta" id="contact">
-  <div class="cs-cta-bg"></div>
-  <img class="cs-cta-img" src="assets/images/frame-1.jpg" alt="Lawang Estate, Bali" loading="lazy">
-  <div class="cs-cta-ov"></div>
-  <div class="cs-wrap cs-cta-content">
-    <div class="reveal">
-      <h2 class="cs-cta-h">The door is open.<br><em>For now.</em></h2>
-      <p class="cs-cta-sub">Reserve your plot and lock today's price. The team walks you through every step — from first call to first rental income.</p>
-      <ul class="cs-cta-bullets">
-        <li>Freehold HGB — real ownership, not leasehold</li>
-        <li>+50 villas delivered — not renders</li>
-        <li>PT PMA included — your Indonesian company in a week</li>
-        <li>Rental management coordinated from day one</li>
-      </ul>
-      <div class="cs-cta-btns">
-        <a href="mailto:hello@lawang.id" class="cs-btn cs-btn-green">Talk to the team <span class="arr">→</span></a>
-        <a href="https://wa.me/34600000000" target="_blank" rel="noopener" class="cs-btn cs-btn-bone">WhatsApp us</a>
-        <a href="portfolio.html" class="cs-btn cs-btn-bone">Explore the portfolio <span class="arr">→</span></a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── FOOTER ────────────────────────────────────────────────── -->
-<footer class="cs-footer">
-  <div class="cs-wrap">
-    <div class="cs-ft-grid">
+    <div class="lw-ft-grid">
       <div>
-        <div class="cs-ft-logo">Lawang</div>
-        <p class="cs-ft-tag">Tropical Properties · Balian Hills, Bali &amp; Sumba Island, Indonesia.</p>
-        <p style="font-size:12px;opacity:.38;margin-top:16px;font-family:var(--csa)">hello@lawang.id</p>
+        <div class="lw-ft-logo">Lawang</div>
+        <div class="lw-ft-sub">Tropical Properties</div>
+        <p class="lw-ft-tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>
       </div>
-      <div class="cs-ft-col" style="font-family:var(--csa)">
-        <h5>The estate</h5>
-        <a href="#home">Home</a>
-        <a href="#process">Process</a>
-        <a href="#invest">Why Invest</a>
-        <a href="#faq">FAQ</a>
-        <a href="#contact">Contact</a>
-      </div>
-      <div class="cs-ft-col" style="font-family:var(--csa)">
+      <div class="lw-ft-col">
         <h5>Portfolio</h5>
-        <a href="portfolio.html">All properties</a>
-        <a href="portfolio.html#signature">Signature villas</a>
-        <a href="portfolio.html#land">Land parcels</a>
+        <a href="portfolio.html#signature">Signature</a>
+        <a href="portfolio.html#land">Land</a>
+        <a href="portfolio.html">Villas</a>
+        <a href="portfolio.html">Resorts</a>
+      </div>
+      <div class="lw-ft-col">
+        <h5>Company</h5>
+        <a href="#about">The Soul</a>
+        <a href="#services">The Studio</a>
+        <a href="#timeline">The Expedition</a>
+        <a href="#featured">Featured</a>
+      </div>
+      <div class="lw-ft-col">
+        <h5>Divisions</h5>
+        <a href="#services">Tepi Sungai</a>
+        <a href="#services">Balian Hills</a>
         <a href="signature.html">Riverfront II®</a>
       </div>
     </div>
-    <div class="cs-ft-rule"></div>
-    <div class="cs-ft-bottom" style="font-family:var(--csa)">
-      <span>© 2026 Lawang Tropical Properties. Indicative information only — not a financial offer. All yield figures are historical estimates.</span>
-      <span>Balian Hills, Bali · Sumba Island</span>
+    <div class="lw-ft-bottom">
+      <span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>
+      <span class="lw-ft-copy">Balian Hills, Bali · Sumba Island</span>
     </div>
   </div>
 </footer>
@@ -1336,30 +1235,38 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 </main><!-- end .snap -->
 
-<style>
-/* [v4] Compactado final — cada panel cabe en 1 pantalla (este bloque va
-   después del stylesheet de #content-sections, así que gana en cascada) */
-#content-sections > section{ padding-block:clamp(4.6rem,8vh,6rem) clamp(1.4rem,3.5vh,2.4rem); }
-/* Process */
-#process .cs-phases{ margin-top:clamp(14px,2.2vh,30px); }
-#process .cs-ph-card{ padding:clamp(11px,1.7vh,20px) 0; }
-#process .cs-ph-bullets{ gap:5px; }
-/* Invest */
-#invest .cs-inv-grid{ margin-top:clamp(14px,2.2vh,28px); }
-#invest .cs-inv-card{ padding:clamp(12px,1.9vh,22px) 22px; gap:8px; }
-#invest .cs-inv-card.fh{ padding:clamp(14px,2vh,24px) 24px; gap:22px; }
-#invest .cs-inv-disc{ padding:11px 16px; }
-/* Studio / track */
-#studio .cs-tr-stats{ margin-top:clamp(14px,2.2vh,28px); }
-#studio .cs-tr-stat{ padding:clamp(13px,1.9vh,24px) 18px; }
-#studio .cs-track-body{ margin-top:clamp(14px,2.4vh,32px); }
-/* Contact / CTA */
-#contact .cs-cta-content{ padding-block:clamp(16px,4vh,44px); }
-@media(max-height:720px){
-  .cs-display{ font-size:clamp(26px,4vw,46px)!important; }
-  #content-sections > section{ padding-block:clamp(4.2rem,7vh,5rem) 1.2rem; }
-}
-</style>
+<!-- Toast de confirmación (formulario / CTA) -->
+<div id="lw-toast">✆&nbsp;&nbsp;Thank you — our team will reach out shortly.</div>
+
+<script>
+// ── [v5] Portfolio filter + toast ──────────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  // Filtro de portfolio
+  var filters = document.getElementById('lwFilters');
+  var grid = document.getElementById('lwGrid');
+  if(filters && grid){
+    filters.addEventListener('click', function(e){
+      var btn = e.target.closest('.lw-pill'); if(!btn) return;
+      filters.querySelectorAll('.lw-pill').forEach(function(p){ p.classList.remove('active'); });
+      btn.classList.add('active');
+      var cat = btn.dataset.cat;
+      grid.querySelectorAll('.lw-prop').forEach(function(card){
+        card.style.display = (cat === 'All' || card.dataset.cat === cat) ? '' : 'none';
+      });
+    });
+  }
+  // Toast
+  var toast = document.getElementById('lw-toast');
+  function showToast(){
+    if(!toast) return;
+    toast.classList.add('show');
+    clearTimeout(window.__lwToastT);
+    window.__lwToastT = setTimeout(function(){ toast.classList.remove('show'); }, 3200);
+  }
+  var form = document.getElementById('lwForm');
+  if(form) form.addEventListener('submit', function(e){ e.preventDefault(); form.reset(); showToast(); });
+});
+</script>
 
 </body>
 </html>
