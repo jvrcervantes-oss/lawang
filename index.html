@@ -351,7 +351,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-panel{cursor:crosshair}
 .hero-layer{position:absolute;background-position:center;background-size:cover;will-change:transform;transition:transform .12s linear}
 .hero-layer.l-bg{inset:-5%;width:110%;height:110%;z-index:1;
-  background-image:url('assets/images/portada-lawang.jpg')}
+  background-image:url('assets/brand/logos/headerweb.png')}
 /* El fondo es un cinemagraph (vídeo) — anula la regla global heredada video{opacity:0} */
 video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:none}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
@@ -360,7 +360,7 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   background:linear-gradient(180deg,rgba(8,10,8,.5),transparent 22%,transparent 50%,rgba(8,10,8,.72))}
 /* Plano frontal = misma imagen, enmascarada para conservar solo el marco de vegetación */
 .hero-layer.l-fg{inset:-16%;width:132%;height:132%;z-index:4;
-  background-image:url('assets/images/portada-lawang.jpg');filter:saturate(1.05) brightness(.82);
+  background-image:url('assets/brand/logos/headerweb.png');filter:saturate(1.05) brightness(.82);
   -webkit-mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%);
           mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%)}
 @media(prefers-reduced-motion:reduce){.hero-layer{transition:none}}
@@ -393,6 +393,8 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
   text-shadow:0 2px 22px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.7);padding:0 1.2rem;line-height:1.55}
 .hero-tagline b{font-weight:700;color:var(--gold)}
+.hero-tagline .ht-l1{display:block}
+.hero-tagline .ht-l2{display:block;font-weight:200;margin-top:.32em;letter-spacing:.24em;opacity:.9}
 @media(max-width:680px){
   .hero-h{font-size:clamp(2.8rem,15vw,4.4rem)}
   .hero-marks{gap:14px}
@@ -643,16 +645,13 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
 
 <!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
-  <video class="hero-layer l-bg" data-depth="8" autoplay muted loop playsinline preload="auto"
-         poster="assets/images/portada-lawang.jpg">
-    <source src="assets/videos/lawang-hero.mp4" type="video/mp4">
-  </video>
+  <div class="hero-layer l-bg" data-depth="8"></div>
   <div class="hero-mist"></div>
   <div class="hero-vignette"></div>
   <div class="hero-inner" data-depth="-5">
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
-    <div class="hero-tagline">Real Estate Investment and <b>Project Developer</b> at the heart of Bali</div>
+    <div class="hero-tagline"><span class="ht-l1">We are a Real Estate Investment and <b>Project Developer</b></span><span class="ht-l2">at the heart of Bali</span></div>
     <a class="hero-discover" href="#soul"><span class="ar">↓</span> Discover Lawang <span class="ar">↓</span></a>
   </div>
   <div class="hero-layer l-fg" data-depth="26"></div>
