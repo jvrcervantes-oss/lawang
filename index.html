@@ -37,6 +37,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- ════ FUENTES DE MARCA (self-hosted, extraídas del bundle del rediseño) ════
+     The Seasons (display serif) + Neue Kabel (sans). Cormorant/Jost quedan de
+     fallback. ⚠️ DEMO de fonnts.com: The Seasons corrompe & - + 4 → no usar esos
+     glifos en texto serif; números/precios van en Neue Kabel (sans, OK). -->
+<style>
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-LightItalic.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Regular.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+</style>
 <!-- [v3] Experiencia cinemática retirada (reunión con cliente). Ahora: navegación por secciones con scroll-snap. GSAP ya no es necesario. -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -61,7 +78,7 @@
   --obsidian:   #0A0C09;   /* Near-black with green undertone */
   --stone:      #2E3437;   /* Volcanic Ash */
 }
-html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Jost',sans-serif;cursor:none}
+html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Neue Kabel','Jost',sans-serif;cursor:none}
 @media(hover:none){html,body{cursor:auto}}
 
 /* ── SNAP SCROLLER · 1 pantalla = 1 sección (estilo Burger) ── */
@@ -122,12 +139,12 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 }
 #logo-text{display:flex;flex-direction:column;gap:2px}
 #logo-wordmark{
-  font-family:'Jost',sans-serif;font-weight:400;font-size:1.05rem;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:1.05rem;
   letter-spacing:0.4em;color:#fff;text-transform:uppercase;line-height:1;
   text-shadow:0 1px 8px rgba(0,0,0,0.4);
 }
 #logo-sub{
-  font-family:'Jost',sans-serif;font-weight:200;font-size:0.38rem;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:200;font-size:0.38rem;
   letter-spacing:0.5em;color:rgba(255,255,255,0.5);text-transform:uppercase;
 }
 #logo.dark #logo-mark{color:var(--tg);filter:none}
@@ -151,7 +168,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
   padding:.6rem 1.7rem;opacity:1;z-index:1;
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
 #topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
-.nav-link{position:relative;font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
+.nav-link{position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
   color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:none;
   transition:color .3s,letter-spacing .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
 .nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;
@@ -167,7 +184,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #nav-actions{display:flex;align-items:center;gap:clamp(1rem,2vw,1.7rem);flex:none}
 .nav-lang-wrap{position:relative}
 .nav-lang{display:inline-flex;align-items:center;gap:.5rem;
-  font-family:'Jost',sans-serif;font-weight:400;font-size:.58rem;letter-spacing:.2em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.58rem;letter-spacing:.2em;
   text-transform:uppercase;color:rgba(245,240,230,.78);background:none;border:none;cursor:none;
   text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .3s;white-space:nowrap}
 .nav-lang .globe{width:14px;height:14px;flex:none;opacity:.85}
@@ -184,7 +201,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
   transition:opacity .24s ease,transform .24s cubic-bezier(.16,1,.3,1),visibility .24s;z-index:60}
 .lang-menu.open{opacity:1;visibility:visible;transform:none}
 .lang-menu li{display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  font-family:'Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;
   color:rgba(245,240,230,.8);padding:10px 13px;border-radius:9px;cursor:none;transition:background .2s,color .2s}
 .lang-menu li:hover{background:rgba(190,179,165,.18);color:#fff}
 .lang-menu li.active{color:var(--gold-light)}
@@ -196,7 +213,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid .lang-menu li.active::after{color:var(--tg)}
 .nav-cta{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;
   border:1px solid rgba(190,179,165,.7);padding:8px 20px 8px 9px;border-radius:30px;
-  font-family:'Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
   color:var(--gold-light);text-transform:uppercase;cursor:none;
   background:rgba(20,18,14,.25);transition:all .35s}
 .nav-cta .wa{width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;
@@ -224,18 +241,18 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 .scene-label{display:flex;align-items:center;gap:1.2rem;margin-bottom:0.9rem}
 .label-line{width:36px;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
 .label-text{
-  font-family:'Jost',sans-serif;font-weight:200;font-size:0.52rem;letter-spacing:0.5em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:200;font-size:0.52rem;letter-spacing:0.5em;
   color:var(--gold);text-transform:uppercase;
   text-shadow:0 1px 2px rgba(0,0,0,1),0 2px 12px rgba(0,0,0,0.8);
 }
 .scene-title{
-  font-family:'Cormorant Garamond',serif;font-weight:300;
+  font-family:'The Seasons','Cormorant Garamond',serif;font-weight:300;
   font-size:clamp(3.2rem,5.5vw,5.6rem);line-height:1.0;
   color:var(--ivory);letter-spacing:0.01em;margin-bottom:1rem;max-width:700px;
   text-shadow:0 1px 3px rgba(0,0,0,1),0 3px 24px rgba(0,0,0,0.8),0 0 60px rgba(0,0,0,0.5);
 }
 .scene-sub{
-  font-family:'Jost',sans-serif;font-weight:300;font-size:0.64rem;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:0.64rem;
   letter-spacing:0.18em;color:rgba(242,237,228,0.65);text-transform:uppercase;
   max-width:520px;line-height:1.7;
   text-shadow:0 1px 2px rgba(0,0,0,1),0 2px 12px rgba(0,0,0,0.8);
@@ -246,16 +263,16 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #scroll-hint.hidden{opacity:0}
 .scroll-line{width:1px;height:50px;background:linear-gradient(to bottom,var(--gold),transparent);animation:sa 2s ease infinite}
 @keyframes sa{0%{transform:scaleY(0);transform-origin:top;opacity:0}45%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);transform-origin:bottom;opacity:0}}
-.scroll-label{font-family:'Jost',sans-serif;font-weight:300;font-size:0.5rem;letter-spacing:0.5em;color:rgba(190,179,165,0.75);text-transform:uppercase}
+.scroll-label{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:0.5rem;letter-spacing:0.5em;color:rgba(190,179,165,0.75);text-transform:uppercase}
 
 /* Counter */
 #counter{position:fixed;right:3.5rem;bottom:4.5rem;display:flex;flex-direction:column;align-items:center;gap:1.2rem;pointer-events:none;z-index:25;transition:opacity 0.5s}
 #counter.hidden{opacity:0}
-.cnt-cur{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:0.8rem;letter-spacing:0.2em;color:var(--gold);writing-mode:vertical-rl}
+.cnt-cur{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:300;font-size:0.8rem;letter-spacing:0.2em;color:var(--gold);writing-mode:vertical-rl}
 .cnt-div{width:1px;height:28px;background:rgba(190,179,165,0.22)}
-.cnt-tot{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:0.8rem;letter-spacing:0.2em;color:rgba(190,179,165,0.3);writing-mode:vertical-rl}
+.cnt-tot{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:300;font-size:0.8rem;letter-spacing:0.2em;color:rgba(190,179,165,0.3);writing-mode:vertical-rl}
 
-#coord{position:fixed;left:3.5rem;bottom:4.5rem;font-family:'Jost',sans-serif;font-weight:100;font-size:0.48rem;letter-spacing:0.3em;color:rgba(242,237,228,0.18);pointer-events:none;z-index:25;transition:opacity 0.5s}
+#coord{position:fixed;left:3.5rem;bottom:4.5rem;font-family:'Neue Kabel','Jost',sans-serif;font-weight:100;font-size:0.48rem;letter-spacing:0.3em;color:rgba(242,237,228,0.18);pointer-events:none;z-index:25;transition:opacity 0.5s}
 #coord.hidden{opacity:0}
 
 /* Vid progress */
@@ -269,10 +286,10 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #loader-vid{display:block;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
 #loader-ov{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.25)}
 #loader-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-#loader-skip{position:absolute;bottom:2rem;right:2.5rem;background:none;border:1px solid rgba(245,240,230,0.3);color:rgba(245,240,230,0.5);font-family:'Jost',sans-serif;font-size:0.48rem;letter-spacing:0.4em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.3s}
+#loader-skip{position:absolute;bottom:2rem;right:2.5rem;background:none;border:1px solid rgba(245,240,230,0.3);color:rgba(245,240,230,0.5);font-family:'Neue Kabel','Jost',sans-serif;font-size:0.48rem;letter-spacing:0.4em;text-transform:uppercase;padding:8px 20px;cursor:pointer;transition:all 0.3s}
 #loader-skip:hover{border-color:rgba(245,240,230,0.7);color:rgba(245,240,230,0.9)}
-.loader-logo{font-family:'Jost',sans-serif;font-weight:400;font-size:1.6rem;letter-spacing:0.55em;color:#fff;text-transform:uppercase}
-.loader-sub{font-family:'Jost',sans-serif;font-weight:200;font-size:0.42rem;letter-spacing:0.65em;color:rgba(190,179,165,0.5);text-transform:uppercase;margin-top:0.6rem}
+.loader-logo{font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:1.6rem;letter-spacing:0.55em;color:#fff;text-transform:uppercase}
+.loader-sub{font-family:'Neue Kabel','Jost',sans-serif;font-weight:200;font-size:0.42rem;letter-spacing:0.65em;color:rgba(190,179,165,0.5);text-transform:uppercase;margin-top:0.6rem}
 
 body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");opacity:0.038;pointer-events:none;z-index:50;animation:gr 7s steps(8) infinite}
 @keyframes gr{0%{background-position:0 0}25%{background-position:-5% -10%}50%{background-position:-10% 5%}75%{background-position:5% -5%}100%{background-position:10% 10%}}
@@ -295,19 +312,19 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 #hero-mark-bg svg{width:min(56vw,56vh);height:auto}
 #hero-content{position:relative;padding:0 2rem}
 .hero-eyebrow-label{
-  font-family:'Jost',sans-serif;font-weight:200;font-size:0.56rem;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:200;font-size:0.56rem;
   letter-spacing:0.58em;text-transform:uppercase;
   color:var(--gold);margin-bottom:1.6rem;
   text-shadow:0 1px 2px rgba(0,0,0,1),0 2px 16px rgba(0,0,0,0.9);
 }
 .hero-question{
-  font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:300;
+  font-family:'The Seasons','Cormorant Garamond',serif;font-style:italic;font-weight:300;
   font-size:clamp(1.1rem,2.2vw,1.6rem);letter-spacing:0.07em;
   color:rgba(245,240,230,0.92);margin-bottom:0.5rem;
   text-shadow:0 1px 2px rgba(0,0,0,1),0 2px 20px rgba(0,0,0,0.9);
 }
 .hero-headline{
-  font-family:'Cormorant Garamond',serif;font-weight:500;
+  font-family:'The Seasons','Cormorant Garamond',serif;font-weight:500;
   font-size:clamp(2.6rem,6.2vw,5.8rem);
   letter-spacing:0.20em;text-transform:uppercase;
   color:var(--ivory);line-height:1;
@@ -344,16 +361,16 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
           mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%)}
 @media(prefers-reduced-motion:reduce){.hero-layer{transition:none}}
 .hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform}
-.hero-eyebrow{font-family:'Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.3vw,.82rem);
+.hero-eyebrow{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.3vw,.82rem);
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.9);
   text-shadow:0 1px 14px rgba(0,0,0,.8);margin-bottom:-.4rem}
-.hero-h{font-family:'Cormorant Garamond',serif;font-weight:400;
+.hero-h{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:400;
   font-size:clamp(3.2rem,10vw,9rem);line-height:.94;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ivory);text-shadow:0 2px 40px rgba(0,0,0,.6),0 0 80px rgba(0,0,0,.4)}
 .hero-discover{display:inline-flex;align-items:center;gap:1rem;margin-top:1rem;
   padding:14px 30px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
   background:rgba(20,18,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-  font-family:'Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.32em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.32em;
   text-transform:uppercase;color:var(--gold-light);text-decoration:none;cursor:none;
   transition:background .3s,border-color .3s,color .3s,transform .3s}
 .hero-discover .ar{font-size:.8em;opacity:.8;transition:transform .3s}
@@ -368,7 +385,7 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
 .hero-marks{display:flex;align-items:center;justify-content:center;gap:clamp(18px,3vw,42px);
   width:100%;opacity:.14;pointer-events:none;overflow:hidden;height:30px}
 .hero-marks svg{width:24px;height:24px;flex:none;color:var(--gold-light)}
-.hero-tagline{font-family:'Jost',sans-serif;font-weight:500;font-size:clamp(.86rem,2vw,1.22rem);
+.hero-tagline{font-family:'Neue Kabel','Jost',sans-serif;font-weight:500;font-size:clamp(.86rem,2vw,1.22rem);
   letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
   text-shadow:0 2px 22px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.7);padding:0 1.2rem;line-height:1.55}
 .hero-tagline b{font-weight:700;color:var(--gold)}
@@ -590,10 +607,10 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
     </div>
   </div>
   <nav id="nav">
+    <a class="nav-link" href="portfolio.html#land">Land</a>
+    <a class="nav-link" href="portfolio.html#villas">Villas</a>
     <a class="nav-link" href="#about">The Soul</a>
-    <a class="nav-link" href="#lines">The Field</a>
-    <a class="nav-link" href="#services">The Studio</a>
-    <a class="nav-link" href="#timeline">The Expedition</a>
+    <a class="nav-link" href="#portfolio">Portfolio</a>
   </nav>
   <div id="nav-actions">
     <div class="nav-lang-wrap" id="langWrap">
@@ -756,7 +773,7 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
 });
 
 // ── Topbar: sólido al salir del hero + sección activa ─────────
-const sections = ['home','lines','about','services','portfolio','timeline','featured','contact']
+const sections = ['home','lines','portfolio','services','about','expedition','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
 
@@ -809,55 +826,55 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
      ═══════════════════════════════════════════ -->
 <style>
 /* ════════════════════════════════════════════════════════════
-   [v5] REDISEÑO "Tropical Properties" — secciones de agencia
-   Réplica vanilla del Website.html, dentro del snap (1 sección =
-   1 pantalla). Tokens compartidos con el resto del sitio.
+   [v6] REDISEÑO "Tropical Properties" — fidelidad al Website.html
+   Fuentes reales (The Seasons + Neue Kabel). Orden y fusiones del
+   cliente. Snap mandatory conservado (secciones largas = snap al inicio).
    ════════════════════════════════════════════════════════════ */
 #content-sections {
-  --cb:  #F5F0E6;   /* bone / raw linen */
-  --cb2: #EBE4D6;   /* bone dark */
+  --cb:  #F5F0E6;   /* raw linen */
+  --cb2: #EFE8DA;   /* linen 2 */
   --cbr: #FBF8F1;   /* card raised */
   --ci:  #2E3437;   /* ink */
   --ci2: #5A5048;   /* ink 2 */
   --ci3: #8A7A6A;   /* ink 3 */
-  --ca:  #485B37;   /* accent green */
-  --cal: #8F9B7A;   /* accent light / soft canopy */
+  --ca:  #485B37;   /* territorial green */
+  --cal: #8F9B7A;   /* soft canopy */
   --css: #BEB3A5;   /* stone sand */
-  --cd:  #141A11;   /* dark bg */
+  --cd:  #141A11;   /* dark */
   --cdl: #104C4F;   /* deep lagoon */
-  --cl:  #D8CEBC;   /* line */
-  --cse: 'Cormorant Garamond', Georgia, serif;
-  --csa: 'Jost', system-ui, sans-serif;
+  --cl:  #DED5C3;   /* line */
+  --cse: 'The Seasons', 'Cormorant Garamond', Georgia, serif;
+  --csa: 'Neue Kabel', 'Jost', system-ui, sans-serif;
   --cpd: clamp(22px,5vw,72px);
   --cmx: 1280px;
   font-family: var(--csa);
   color: var(--ci);
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 #content-sections { display: block; opacity: 1; }
 
-/* ── Shared layout ───────────────────────────────────────────── */
+/* ── Shared ──────────────────────────────────────────────────── */
 .cs-wrap { max-width: var(--cmx); margin: 0 auto; padding-inline: var(--cpd); width:100%; }
-
-/* ── Reveal ──────────────────────────────────────────────────── */
-#content-sections .reveal { opacity: 0; transform: translateY(28px); filter: blur(4px);
-  transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1), filter .85s cubic-bezier(.16,1,.3,1); }
-#content-sections .reveal.in { opacity: 1; transform: none; filter: blur(0); }
+#content-sections .reveal { opacity:0; transform:translateY(28px); filter:blur(4px);
+  transition:opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1), filter .85s cubic-bezier(.16,1,.3,1); }
+#content-sections .reveal.in { opacity:1; transform:none; filter:blur(0); }
 @media(prefers-reduced-motion:reduce){ #content-sections .reveal{ filter:none; transform:none; transition:opacity .4s ease; } }
 
-/* ── Section heading + helpers ───────────────────────────────── */
-.lw-head { display:flex; flex-direction:column; gap:14px; }
-.lw-head.center { align-items:center; text-align:center; margin:0 auto; max-width:760px; }
-.lw-kicker { font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:var(--ca); font-family:var(--csa); }
-.lw-title { font-family:var(--cse); font-weight:400; line-height:1.0; letter-spacing:-.01em; color:var(--ci);
-  font-size:clamp(28px,4.4vw,56px); margin:0; }
-.lw-p { font-size:1rem; line-height:1.75; color:var(--ci2); max-width:48ch; margin:20px 0 0; }
+.lw-head { display:flex; flex-direction:column; gap:12px; }
+.lw-head.center { align-items:center; text-align:center; margin:0 auto; max-width:820px; }
+.lw-kicker { display:inline-flex; align-items:center; gap:12px; font-family:var(--csa); font-size:11px; font-weight:500;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--ca); }
+.lw-kicker::before { content:""; width:30px; height:1px; background:currentColor; opacity:.5; }
+.lw-head.center .lw-kicker::before { display:none; }
+.lw-title { font-family:var(--cse); font-weight:400; line-height:1.0; letter-spacing:.005em; color:var(--ci);
+  font-size:clamp(34px,5.4vw,68px); margin:0; }
+.lw-p { font-family:var(--csa); font-size:1rem; line-height:1.8; color:var(--ci2); max-width:48ch; margin:22px 0 0; }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
-.cs-btn { display:inline-flex; align-items:center; gap:10px; padding:13px 28px;
-  font-size:11.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
-  border:1px solid transparent; text-decoration:none; cursor:none; font-family:var(--csa);
+.cs-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 30px;
+  font-family:var(--csa); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase;
+  border:1px solid transparent; text-decoration:none; cursor:none;
   transition:transform .16s cubic-bezier(.23,1,.32,1), background .22s, color .22s, border-color .22s; }
 .cs-btn:active { transform:scale(.97); }
 .cs-btn .arr { transition:transform .28s cubic-bezier(.16,1,.3,1); }
@@ -865,145 +882,158 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .cs-btn-green { background:var(--ca); color:var(--cb); border-color:var(--ca); }
 .cs-btn-green:hover { background:#364429; border-color:#364429; }
 .cs-btn-bone { border-color:rgba(245,240,230,.45); color:var(--cb); background:rgba(245,240,230,.04); }
-.cs-btn-bone:hover { background:rgba(245,240,230,.12); border-color:rgba(245,240,230,.7); }
+.cs-btn-bone:hover { background:rgba(245,240,230,.12); border-color:rgba(245,240,230,.75); }
 .cs-btn-pill { border-radius:40px; }
 
-/* ════ DIVISIONS (#lines) — 4 project lines ════ */
-.lw-divisions { background:linear-gradient(rgba(235,228,214,.82),rgba(235,228,214,.82)), url('assets/images/redesign/bgTirta.jpg') center/cover no-repeat; }
-.lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem; margin-top:clamp(26px,4vh,52px); }
-.lw-show { position:relative; display:block; overflow:hidden; border-radius:14px; isolation:isolate; text-decoration:none;
-  height:clamp(300px,44vh,480px); }
+/* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
+.lw-divisions { background:linear-gradient(rgba(243,238,228,.9),rgba(243,238,228,.9)), url('assets/images/redesign/bgTirta.jpg') center/cover no-repeat; }
+.lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.6rem; margin-top:clamp(26px,4vh,48px); }
+.lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
+  height:clamp(320px,52vh,520px); box-shadow:0 24px 50px -30px rgba(46,52,55,.5); }
 .lw-show-media { position:absolute; inset:0; background:var(--img) center/cover no-repeat; transition:transform .9s cubic-bezier(.16,1,.3,1); }
-.lw-show:hover .lw-show-media { transform:scale(1.06); }
-.lw-show-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.82),rgba(10,12,9,.1) 56%,rgba(10,12,9,.3)); }
-.lw-show-icon { position:absolute; top:18px; left:18px; width:38px; height:auto; opacity:.95; z-index:2; filter:drop-shadow(0 2px 10px rgba(0,0,0,.5)); }
-.lw-show-cap { position:absolute; left:20px; right:16px; bottom:18px; display:flex; flex-direction:column; gap:4px; z-index:2; }
-.lw-show-sub { font-size:10.5px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.82); }
-.lw-show-title { font-family:var(--cse); font-size:26px; color:var(--cb); line-height:1; }
+.lw-show:hover .lw-show-media { transform:scale(1.05); }
+.lw-show-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.86),rgba(10,12,9,.04) 52%,rgba(10,12,9,.26)); }
+.lw-show-frame { position:absolute; inset:10px; border:1px solid rgba(245,240,230,.34); border-radius:10px; pointer-events:none; z-index:2; }
+.lw-show-icon { position:absolute; top:24px; left:50%; transform:translateX(-50%); width:42px; height:auto; opacity:.95; z-index:3;
+  filter:drop-shadow(0 2px 10px rgba(0,0,0,.45)); }
+.lw-show-cap { position:absolute; left:0; right:0; bottom:26px; display:flex; flex-direction:column; align-items:center; gap:5px; z-index:3; text-align:center; }
+.lw-show-title { font-family:var(--cse); font-weight:400; font-size:clamp(26px,2.1vw,38px); color:var(--cb); line-height:1; letter-spacing:.02em; text-transform:uppercase; }
+.lw-show-sub { font-family:var(--csa); font-size:10px; font-weight:500; letter-spacing:.26em; text-transform:uppercase; color:rgba(245,240,230,.82); }
 
-/* ════ ABOUT (#about) — who we are + why here ════ */
-.lw-about { background:linear-gradient(rgba(245,240,230,.9),rgba(245,240,230,.9)), url('assets/images/redesign/bgPagina.jpg') center/cover no-repeat; }
-.lw-about-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5rem); align-items:center; }
-.lw-stats { display:flex; gap:2.6rem; flex-wrap:wrap; margin-top:26px; }
-.lw-stat { display:flex; flex-direction:column; gap:4px; }
-.lw-stat-n { font-family:var(--cse); font-size:clamp(34px,4vw,52px); font-weight:300; color:var(--ca); line-height:1; }
-.lw-stat-n sup { font-size:.5em; color:var(--cal); }
-.lw-stat-l { font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ci3); }
-.lw-why { background:var(--cbr); border:1px solid var(--cl); border-radius:14px; padding:clamp(1.8rem,3vw,2.6rem); }
-.lw-why-list { margin-top:18px; }
-.lw-why-item { display:flex; gap:16px; padding:18px 0; border-top:1px solid var(--cl); }
-.lw-why-n { font-family:var(--cse); font-size:1.1rem; color:var(--cal); width:28px; flex:none; line-height:1.4; }
-.lw-why-item h4 { font-family:var(--cse); font-weight:400; font-size:1.2rem; color:var(--ci); margin:0; }
-.lw-why-item p { font-size:.875rem; line-height:1.6; color:var(--ci3); margin:5px 0 0; }
-
-/* ════ SERVICES (#services) — 3 cards ════ */
-.lw-services { background:var(--cb2); }
-.lw-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.4rem; margin-top:clamp(24px,3.5vh,48px); }
-.lw-svc { display:flex; flex-direction:column; gap:1rem; background:var(--cbr); border:1px solid var(--cl);
-  border-radius:14px; padding:clamp(1.5rem,2.4vh,2.2rem) 1.9rem; transition:transform .32s cubic-bezier(.16,1,.3,1), box-shadow .32s; }
-.lw-svc:hover { transform:translateY(-3px); box-shadow:0 18px 48px -18px rgba(32,24,15,.16); }
-.lw-svc-top { display:flex; align-items:center; justify-content:space-between; }
-.lw-svc-icon { width:40px; height:40px; color:var(--ca); }
-.lw-svc-n { font-family:var(--cse); font-size:1.3rem; color:var(--css); }
-.lw-svc h3 { font-family:var(--cse); font-weight:400; font-size:1.5rem; line-height:1.15; color:var(--ci); margin:auto 0 0; }
-.lw-svc p { font-size:.875rem; line-height:1.65; color:var(--ci3); margin:0; }
-
-/* ════ PORTFOLIO (#portfolio) — filterable cards ════ */
+/* ════ 3 · CURATED PORTFOLIO (#portfolio) — 4 col ════ */
 .lw-portfolio { background:var(--cb); }
 .lw-pf-top { display:flex; align-items:flex-end; justify-content:space-between; gap:2rem; flex-wrap:wrap; }
 .lw-pf-filters { display:flex; gap:8px; flex-wrap:wrap; }
-.lw-pill { font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; cursor:none;
+.lw-pill { font-family:var(--csa); font-size:10px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; cursor:none;
   padding:9px 18px; border-radius:40px; border:1px solid var(--cl); background:transparent; color:var(--ci3); transition:all .25s; }
 .lw-pill.active { background:var(--ca); border-color:var(--ca); color:var(--cb); }
-.lw-pf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(.9rem,1.4vw,1.2rem); margin-top:clamp(16px,2.4vh,30px); }
-.lw-prop { border:1px solid var(--cl); border-radius:14px; overflow:hidden; background:var(--cbr); display:flex; flex-direction:column; }
-.lw-prop-media { position:relative; aspect-ratio:16/9; background:var(--img) center/cover no-repeat; }
-.lw-prop-body { padding:11px 16px 13px; display:flex; flex-direction:column; gap:3px; }
-.lw-prop-loc { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ci3); }
-.lw-prop-title { font-family:var(--cse); font-size:1.25rem; color:var(--ci); margin:0; line-height:1.1; }
-.lw-prop-meta { font-size:12px; color:var(--ci2); }
-.lw-prop-foot { display:flex; align-items:baseline; justify-content:space-between; margin-top:6px; border-top:1px solid var(--cl); padding-top:9px; }
-.lw-prop-price { font-weight:500; font-size:1.05rem; color:var(--ci); }
-.lw-prop-note { font-size:11px; color:var(--ci3); }
-.lw-badge { position:absolute; top:12px; left:12px; font-size:9.5px; font-weight:700; letter-spacing:.14em;
-  text-transform:uppercase; padding:5px 11px; border-radius:30px; }
-.lw-badge-fh { background:var(--ca); color:#D4EDD9; }
-.lw-badge-lh { background:rgba(16,76,79,.92); color:#E4EEEF; }
+.lw-pf-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem; margin-top:clamp(22px,3vh,40px); }
+.lw-prop { display:flex; flex-direction:column; }
+.lw-prop-media { position:relative; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:var(--img) center/cover no-repeat; }
+.lw-prop-line { position:absolute; top:13px; left:13px; display:inline-flex; align-items:center; gap:7px; z-index:2;
+  font-family:var(--csa); font-size:9px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:rgba(245,240,230,.95);
+  text-shadow:0 1px 6px rgba(0,0,0,.5); }
+.lw-prop-line img { width:17px; height:17px; opacity:.92; }
+.lw-prop-ten { position:absolute; top:12px; right:12px; z-index:2; display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--csa); font-size:8.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:5px 11px; border-radius:30px; }
+.lw-prop-ten.fh { background:var(--ca); color:#D7EFDD; }
+.lw-prop-ten.fh::before { content:"◆"; font-size:6px; }
+.lw-prop-ten.lh { background:rgba(46,52,55,.8); color:#E4EEEF; }
+.lw-prop-body { padding:14px 2px 0; display:flex; flex-direction:column; gap:6px; }
+.lw-prop-loc { font-family:var(--csa); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--ci3); }
+.lw-prop-title { font-family:var(--cse); font-weight:400; font-size:clamp(19px,1.5vw,23px); color:var(--ci); margin:0; line-height:1.1; }
+.lw-prop-meta { font-family:var(--csa); font-size:11.5px; color:var(--ci2); display:flex; flex-wrap:wrap; }
+.lw-prop-meta span:not(:last-child)::after { content:"·"; margin:0 7px; color:var(--ci3); }
+.lw-prop-foot { display:flex; align-items:baseline; justify-content:space-between; margin-top:8px; padding-top:12px; border-top:1px solid var(--cl); }
+.lw-prop-price { font-family:var(--csa); font-weight:500; font-size:1.05rem; color:var(--ci); }
+.lw-prop-note { font-family:var(--csa); font-size:10.5px; color:var(--ci3); }
 
-/* ════ TIMELINE (#timeline) — green expedition ════ */
-.lw-timeline { background:var(--ca); color:var(--cb); position:relative; overflow:hidden; }
-.lw-tl-bg { position:absolute; inset:0; background:url('assets/images/redesign/bgCanopy.jpg') center/cover; mix-blend-mode:soft-light; opacity:.5; pointer-events:none; }
+/* ════ 4 · WHAT WE DO — Services (#services) ════ */
+.lw-services { background:var(--cb2); }
+.lw-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.6rem; margin-top:clamp(24px,3.5vh,48px); }
+.lw-svc { display:flex; flex-direction:column; gap:1rem; background:var(--cbr); border:1px solid var(--cl);
+  border-radius:16px; padding:clamp(1.7rem,2.6vh,2.4rem) 2rem; min-height:clamp(240px,30vh,300px);
+  transition:transform .32s cubic-bezier(.16,1,.3,1), box-shadow .32s; }
+.lw-svc:hover { transform:translateY(-4px); box-shadow:0 22px 54px -20px rgba(32,24,15,.18); }
+.lw-svc-top { display:flex; align-items:center; justify-content:space-between; }
+.lw-svc-icon { width:42px; height:42px; color:var(--ca); }
+.lw-svc-n { font-family:var(--cse); font-size:1.4rem; color:var(--css); }
+.lw-svc h3 { font-family:var(--cse); font-weight:400; font-size:clamp(1.5rem,2vw,1.75rem); line-height:1.15; color:var(--ci); margin:auto 0 0; }
+.lw-svc p { font-family:var(--csa); font-size:.875rem; line-height:1.7; color:var(--ci3); margin:0; }
+
+/* ════ 5 · WHO WE ARE + WHY HERE — About (#about) ════ */
+.lw-about { background:linear-gradient(rgba(245,240,230,.92),rgba(245,240,230,.92)), url('assets/images/redesign/bgPagina.jpg') center/cover no-repeat; }
+.lw-about-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:center; }
+.lw-stats { display:flex; gap:clamp(1.8rem,3vw,2.8rem); flex-wrap:wrap; margin-top:30px; }
+.lw-stat { display:flex; flex-direction:column; gap:6px; }
+.lw-stat-n { font-family:var(--csa); font-weight:200; font-size:clamp(40px,4.4vw,62px); color:var(--ci); line-height:1; }
+.lw-stat-n sup { font-size:.4em; font-weight:300; color:var(--cal); top:-.7em; }
+.lw-stat-l { font-family:var(--csa); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ci3); }
+.lw-why { background:var(--cbr); border:1px solid var(--cl); border-radius:18px; padding:clamp(1.9rem,3vw,2.8rem); }
+.lw-why-list { margin-top:18px; }
+.lw-why-item { display:flex; gap:18px; padding:18px 0; border-top:1px solid var(--cl); }
+.lw-why-n { font-family:var(--cse); font-size:1.15rem; color:var(--cal); width:30px; flex:none; line-height:1.5; }
+.lw-why-item h4 { font-family:var(--cse); font-weight:400; font-size:1.25rem; color:var(--ci); margin:0; }
+.lw-why-item p { font-family:var(--csa); font-size:.875rem; line-height:1.6; color:var(--ci3); margin:5px 0 0; }
+
+/* ════ 6 · THE EXPEDITION + FEATURED (fusion, #expedition) ════ */
+#content-sections > section.lw-expedition { display:block; padding:0; min-height:auto; background:var(--cb); justify-content:flex-start; }
+.lw-exp-tl { position:relative; overflow:hidden; background:var(--ca); color:var(--cb);
+  padding:clamp(4.5rem,9vh,7rem) 0 clamp(3.5rem,7vh,5rem); }
+.lw-exp-tlbg { position:absolute; inset:0; background:url('assets/images/redesign/bgCanopy.jpg') center/cover; mix-blend-mode:soft-light; opacity:.5; pointer-events:none; }
 .lw-tl-inner { position:relative; }
-.lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.6vw,3.2rem); line-height:1.05;
-  text-transform:uppercase; letter-spacing:.04em; color:var(--cb); margin:16px 0 0; }
-.lw-tl-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1.2rem; margin-top:clamp(28px,4vh,52px); }
-.lw-tl-item { display:flex; flex-direction:column; gap:12px; padding-top:22px; border-top:1px solid rgba(245,240,230,.28); }
-.lw-tl-y { font-size:1.6rem; font-weight:300; color:var(--cb); line-height:1; }
+.lw-tl-inner .lw-kicker { color:#E6EDDD; }
+.lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.8vw,3.4rem); line-height:1.05;
+  text-transform:uppercase; letter-spacing:.04em; color:var(--cb); margin:14px 0 0; }
+.lw-tl-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1.2rem; margin-top:clamp(26px,4vh,48px); }
+.lw-tl-item { display:flex; flex-direction:column; gap:11px; padding-top:22px; border-top:1px solid rgba(245,240,230,.28); }
+.lw-tl-y { font-family:var(--cse); font-weight:300; font-size:1.7rem; color:var(--cb); line-height:1; }
 .lw-tl-item h4 { font-family:var(--cse); font-weight:400; font-size:1.15rem; color:var(--cb); margin:0; }
-.lw-tl-item p { font-size:.8125rem; line-height:1.6; color:rgba(245,240,230,.72); margin:0; }
-
-/* ════ FEATURED (#featured) — image + text ════ */
-.lw-featured { background:var(--cb); }
-.lw-feat-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:clamp(2rem,5vw,4.5rem); align-items:center; }
-.lw-feat-media { position:relative; border-radius:14px; overflow:hidden; aspect-ratio:4/3; box-shadow:0 18px 40px -22px rgba(46,52,55,.32); }
+.lw-tl-item p { font-family:var(--csa); font-size:.8125rem; line-height:1.6; color:rgba(245,240,230,.72); margin:0; }
+.lw-feat-wrap { padding:clamp(3.5rem,7vh,5.5rem) 0; }
+.lw-feat-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:clamp(2rem,5vw,4.5rem); align-items:center;
+  max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
+.lw-feat-media { position:relative; border-radius:16px; overflow:hidden; aspect-ratio:4/3; box-shadow:0 22px 46px -24px rgba(46,52,55,.4); }
 .lw-feat-media img { width:100%; height:100%; object-fit:cover; display:block; }
-.lw-feat-media::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.5),transparent 50%); }
-.lw-feat-cap { position:absolute; left:20px; bottom:18px; display:flex; flex-direction:column; gap:6px; color:var(--cb); z-index:2; }
-.lw-feat-cap-loc { font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
-.lw-feat-cap-t { font-family:var(--cse); font-size:1.6rem; }
+.lw-feat-media::after { content:""; position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.5),transparent 50%); }
+.lw-feat-cap { position:absolute; left:22px; bottom:20px; display:flex; flex-direction:column; gap:6px; color:var(--cb); z-index:2; }
+.lw-feat-cap-loc { font-family:var(--csa); font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
+.lw-feat-cap-t { font-family:var(--cse); font-size:1.7rem; }
 .lw-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
-.lw-badge2 { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:6px 13px; border-radius:30px; }
-.lw-badge2.fh { background:var(--ca); color:#D4EDD9; }
+.lw-badge2 { font-family:var(--csa); font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:6px 13px; border-radius:30px; }
+.lw-badge2.fh { background:var(--ca); color:#D7EFDD; }
 .lw-badge2.lg { background:var(--cdl); color:#E4EEEF; }
 .lw-badge2.ol { border:1px solid var(--cl); color:var(--ci2); }
-.lw-feat-price { display:flex; align-items:baseline; gap:14px; margin:18px 0; }
-.lw-feat-amt { font-weight:500; font-size:1.4rem; color:var(--ci); }
-.lw-feat-note { font-size:12px; color:var(--ci3); }
+.lw-feat-price { display:flex; align-items:baseline; gap:14px; margin:20px 0; }
+.lw-feat-amt { font-family:var(--csa); font-weight:500; font-size:1.45rem; color:var(--ci); }
+.lw-feat-note { font-family:var(--csa); font-size:12px; color:var(--ci3); }
 
-/* ════ CONTACT (#contact) — dark form ════ */
-.lw-contact { background:var(--obsidian); color:var(--cb); position:relative; overflow:hidden; }
-.lw-ct-totem { position:absolute; right:-2%; top:50%; transform:translateY(-50%); height:120%; width:auto; opacity:.07; pointer-events:none; }
-.lw-ct-grid { position:relative; display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5rem); align-items:center; }
-.lw-ct-h { font-family:var(--cse); font-weight:400; font-size:clamp(2.4rem,5vw,4rem); line-height:1;
-  letter-spacing:.05em; text-transform:uppercase; color:var(--cb); margin:14px 0 0; }
-.lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:1.2rem; color:rgba(245,240,230,.7); margin:14px 0 0; }
-.lw-ct-note { font-size:.9rem; line-height:1.7; color:rgba(245,240,230,.6); max-width:38ch; margin:12px 0 0; }
-.lw-ct-form { display:flex; flex-direction:column; gap:1.4rem; }
-.lw-field { font-size:.9rem; color:var(--cb); background:transparent; border:none; border-bottom:1px solid rgba(245,240,230,.28);
-  padding:12px 2px; outline:none; width:100%; font-family:var(--csa); }
-.lw-field::placeholder { color:rgba(245,240,230,.4); }
+/* ════ 7 · CONTACT + FOOTER (fusion, #contact) ════ */
+#content-sections > section.lw-contact { display:block; padding:0; min-height:100vh; background:var(--obsidian); color:var(--cb); position:relative; overflow:hidden; justify-content:flex-start; }
+.lw-ct-totem { position:absolute; right:-3%; top:42%; transform:translateY(-50%); height:118%; width:auto; opacity:.06; pointer-events:none; z-index:0; }
+.lw-ct-top { position:relative; z-index:1; padding:clamp(5rem,11vh,8rem) 0 clamp(3rem,6vh,4.5rem); }
+.lw-ct-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:center; max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
+.lw-ct-grid .lw-kicker { color:var(--cal); }
+.lw-ct-h { font-family:var(--cse); font-weight:400; font-size:clamp(2.6rem,5.4vw,4.6rem); line-height:1;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--cb); margin:14px 0 0; }
+.lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:1.25rem; color:rgba(245,240,230,.7); margin:16px 0 0; }
+.lw-ct-note { font-family:var(--csa); font-size:.9rem; line-height:1.75; color:rgba(245,240,230,.6); max-width:40ch; margin:12px 0 0; }
+.lw-ct-form { display:flex; flex-direction:column; gap:1.5rem; }
+.lw-field { font-family:var(--csa); font-size:.9rem; color:var(--cb); background:transparent; border:none;
+  border-bottom:1px solid rgba(245,240,230,.28); padding:13px 2px; outline:none; width:100%; }
+.lw-field::placeholder { color:rgba(245,240,230,.42); }
 .lw-field:focus { border-color:var(--cal); }
-
-/* ════ FOOTER ════ */
-.lw-footer { background:#0A0C09; color:var(--cb); padding:clamp(2.6rem,5vh,3.6rem) 0 2rem; }
+.lw-ft { position:relative; z-index:1; border-top:1px solid rgba(245,240,230,.12); padding:clamp(2.6rem,5vh,3.6rem) 0 2rem;
+  max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
 .lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
-.lw-ft-logo { font-family:var(--cse); font-size:22px; letter-spacing:.04em; }
-.lw-ft-sub { font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--css); margin-top:4px; }
-.lw-ft-tag { font-size:13px; opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
-.lw-ft-col h5 { font-size:10px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--cal); margin-bottom:13px; }
-.lw-ft-col a { display:block; font-size:13.5px; color:rgba(245,240,230,.72); margin-bottom:9px; transition:color .2s; cursor:none; text-decoration:none; }
+.lw-ft-logo { font-family:var(--cse); font-size:24px; letter-spacing:.06em; }
+.lw-ft-sub { font-family:var(--csa); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--css); margin-top:4px; }
+.lw-ft-tag { font-family:var(--csa); font-size:13px; opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
+.lw-ft-col h5 { font-family:var(--csa); font-size:10px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--cal); margin-bottom:14px; }
+.lw-ft-col a { display:block; font-family:var(--csa); font-size:13.5px; color:rgba(245,240,230,.72); margin-bottom:10px; transition:color .2s; cursor:none; text-decoration:none; }
 .lw-ft-col a:hover { color:#fff; }
 .lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
-  margin-top:2.4rem; padding-top:1.5rem; border-top:1px solid rgba(245,240,230,.12); }
-.lw-ft-copy { font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.04em; }
+  max-width:var(--cmx); margin:2.2rem auto 0; padding:1.5rem var(--cpd) 0; border-top:1px solid rgba(245,240,230,.1); position:relative; z-index:1; }
+.lw-ft-copy { font-family:var(--csa); font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.04em; }
 
 /* ── Toast ───────────────────────────────────────────────────── */
 #lw-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(160%);
-  background:var(--va); color:var(--rl); padding:14px 24px; border-radius:40px; font-family:'Jost',sans-serif;
+  background:var(--va); color:var(--rl); padding:14px 24px; border-radius:40px; font-family:'Neue Kabel','Jost',sans-serif;
   font-size:.78rem; letter-spacing:.06em; z-index:300; box-shadow:0 30px 60px -28px rgba(10,12,9,.55);
   transition:transform .5s cubic-bezier(.16,1,.3,1); display:flex; align-items:center; gap:10px; pointer-events:none; }
 #lw-toast.show { transform:translateX(-50%) translateY(0); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
-@media(max-width:900px){
+@media(max-width:980px){
   .lw-show-grid { grid-template-columns:1fr 1fr; }
-  .lw-svc-grid, .lw-pf-grid { grid-template-columns:1fr 1fr; }
+  .lw-pf-grid { grid-template-columns:1fr 1fr; }
+  .lw-svc-grid { grid-template-columns:1fr; }
   .lw-about-grid, .lw-feat-grid, .lw-ct-grid { grid-template-columns:1fr; }
   .lw-tl-grid { grid-template-columns:repeat(2,1fr); }
   .lw-ft-grid { grid-template-columns:1fr 1fr; }
 }
 @media(max-width:560px){
-  .lw-show-grid, .lw-svc-grid, .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
+  .lw-show-grid, .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
   .lw-stats { gap:1.6rem; }
 }
 </style>
@@ -1011,7 +1041,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 <!-- Content sections wrapper -->
 <div id="content-sections">
 
-<!-- ════ DIVISIONS — Four project lines ════ -->
+<!-- ════ 2 · THE ECOSYSTEM ════ -->
 <section class="lw-divisions" id="lines">
   <div class="cs-wrap">
     <div class="lw-head center reveal">
@@ -1020,59 +1050,102 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
     </div>
     <div class="lw-show-grid">
       <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/images/redesign/villasCoast.jpg')">
-        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/images/redesign/creamSignature.png" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-sub">Prime Investments</span><span class="lw-show-title">Signature</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Prime Investments</span></div>
       </a>
       <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/images/redesign/aerialJungle.jpg');transition-delay:80ms">
-        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/images/redesign/creamLand.png" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-sub">Legacy</span><span class="lw-show-title">Land</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title">Land</span><span class="lw-show-sub">Legacy</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html" style="--img:url('assets/images/redesign/djiRicefield.jpg');transition-delay:140ms">
-        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/images/redesign/djiRicefield.jpg');transition-delay:140ms">
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/images/redesign/creamVillas.png" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-sub">Tropical</span><span class="lw-show-title">Villas</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Tropical</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html" style="--img:url('assets/images/redesign/balianBeach.jpg');transition-delay:200ms">
-        <div class="lw-show-media"></div><div class="lw-show-grad"></div>
+      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/images/redesign/balianBeach.jpg');transition-delay:200ms">
+        <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/images/redesign/creamResorts.png" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-sub">Beachfront</span><span class="lw-show-title">Resorts</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Beachfront</span></div>
       </a>
     </div>
   </div>
 </section>
 
-<!-- ════ ABOUT — Who we are + Why here ════ -->
-<section class="lw-about" id="about">
-  <div class="cs-wrap lw-about-grid">
-    <div class="reveal">
-      <div class="lw-head">
-        <span class="lw-kicker">Who We Are</span>
-        <h2 class="lw-title" style="font-size:clamp(26px,3.4vw,42px)">A strategic partner for territorial assets</h2>
-      </div>
-      <p class="lw-p">Lawang is a strategic asset investment, structuring and development partner in Indonesia. We structure territorial opportunities with intelligence, long-term vision, and financial discipline — across Bali and Sumba.</p>
-      <div class="lw-stats">
-        <div class="lw-stat"><span class="lw-stat-n">6<sup>+</sup></span><span class="lw-stat-l">Years</span></div>
-        <div class="lw-stat"><span class="lw-stat-n">30<sup>+</sup></span><span class="lw-stat-l">Land Plots</span></div>
-        <div class="lw-stat"><span class="lw-stat-n">350<sup>+</sup></span><span class="lw-stat-l">Projects</span></div>
+<!-- ════ 3 · CURATED PORTFOLIO ════ -->
+<section class="lw-portfolio" id="portfolio">
+  <div class="cs-wrap">
+    <div class="lw-pf-top reveal">
+      <div class="lw-head"><span class="lw-kicker">Curated Portfolio</span><h2 class="lw-title">Prime projects, verified</h2></div>
+      <div class="lw-pf-filters" id="lwFilters">
+        <button class="lw-pill active" data-cat="All">All</button>
+        <button class="lw-pill" data-cat="Signature">Signature</button>
+        <button class="lw-pill" data-cat="Land">Land</button>
+        <button class="lw-pill" data-cat="Villas">Villas</button>
+        <button class="lw-pill" data-cat="Resorts">Resorts</button>
       </div>
     </div>
-    <div class="lw-why reveal" style="transition-delay:120ms">
-      <div class="lw-head">
-        <span class="lw-kicker">Why Here?</span>
-        <h3 class="lw-title" style="font-size:clamp(24px,3vw,34px)">Why Bali &amp; Sumba</h3>
-      </div>
-      <div class="lw-why-list">
-        <div class="lw-why-item"><span class="lw-why-n">01</span><div><h4>Verified expansion</h4><p>We operate only within territories with measured, proven growth dynamics.</p></div></div>
-        <div class="lw-why-item"><span class="lw-why-n">02</span><div><h4>Legal &amp; fiscal layer</h4><p>Every acquisition is structured and verified before it reaches you.</p></div></div>
-        <div class="lw-why-item"><span class="lw-why-n">03</span><div><h4>End-to-end delivery</h4><p>From land to development, one ecosystem holds the whole journey.</p></div></div>
-      </div>
+    <div class="lw-pf-grid reveal" id="lwGrid" style="transition-delay:100ms">
+      <article class="lw-prop" data-cat="Signature">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiRicefield.jpg')">
+          <span class="lw-prop-line"><img src="assets/images/redesign/creamSignature.png" alt="">Signature</span>
+          <span class="lw-prop-ten fh">Freehold</span>
+        </div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Tabanan · Bali</span><h3 class="lw-prop-title">Ridge House Estate</h3>
+          <div class="lw-prop-meta"><span>3 Bed</span><span>Ocean View</span><span>450 m²</span></div>
+          <div class="lw-prop-foot"><span class="lw-prop-price">$ 485,000</span><span class="lw-prop-note">Freehold</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Land">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerial1.jpg')">
+          <span class="lw-prop-line"><img src="assets/images/redesign/creamLand.png" alt="">Land</span>
+          <span class="lw-prop-ten lh">Leasehold</span>
+        </div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Tampaksiring · Bali</span><h3 class="lw-prop-title">Jungle Plateau Plot</h3>
+          <div class="lw-prop-meta"><span>1,200 m²</span><span>Valley View</span></div>
+          <div class="lw-prop-foot"><span class="lw-prop-price">$ 210,000</span><span class="lw-prop-note">Leasehold · 30 yr</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Villas">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/villasCoast.jpg')">
+          <span class="lw-prop-line"><img src="assets/images/redesign/creamVillas.png" alt="">Villas</span>
+          <span class="lw-prop-ten fh">Freehold</span>
+        </div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Uluwatu · Bali</span><h3 class="lw-prop-title">Cliffside Villa Seri</h3>
+          <div class="lw-prop-meta"><span>4 Bed</span><span>Infinity Pool</span></div>
+          <div class="lw-prop-foot"><span class="lw-prop-price">$ 1.18 M</span><span class="lw-prop-note">Freehold</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Resorts">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/balianBeach.jpg')">
+          <span class="lw-prop-line"><img src="assets/images/redesign/creamResorts.png" alt="">Resorts</span>
+          <span class="lw-prop-ten fh">Signature</span>
+        </div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Balian · Bali</span><h3 class="lw-prop-title">Balian Beach Resort</h3>
+          <div class="lw-prop-meta"><span>12 Keys</span><span>Beachfront</span></div>
+          <div class="lw-prop-foot"><span class="lw-prop-price">On request</span><span class="lw-prop-note">Investment</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Land">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiCoast.jpg')">
+          <span class="lw-prop-line"><img src="assets/images/redesign/creamLand.png" alt="">Land</span>
+          <span class="lw-prop-ten fh">Freehold</span>
+        </div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Sumba · East</span><h3 class="lw-prop-title">Riverbend Legacy Land</h3>
+          <div class="lw-prop-meta"><span>3,400 m²</span><span>Riverfront</span></div>
+          <div class="lw-prop-foot"><span class="lw-prop-price">$ 320,000</span><span class="lw-prop-note">Freehold</span></div></div>
+      </article>
+      <article class="lw-prop" data-cat="Signature">
+        <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerialJungle.jpg')">
+          <span class="lw-prop-line"><img src="assets/images/redesign/creamSignature.png" alt="">Signature</span>
+          <span class="lw-prop-ten lh">Leasehold</span>
+        </div>
+        <div class="lw-prop-body"><span class="lw-prop-loc">Ubud · Bali</span><h3 class="lw-prop-title">Canopy Signature Suites</h3>
+          <div class="lw-prop-meta"><span>2 Bed</span><span>Rooftop</span></div>
+          <div class="lw-prop-foot"><span class="lw-prop-price">$ 395,000</span><span class="lw-prop-note">Leasehold · 25 yr</span></div></div>
+      </article>
     </div>
   </div>
 </section>
 
-<!-- ════ SERVICES — Our services ════ -->
+<!-- ════ 4 · WHAT WE DO ════ -->
 <section class="lw-services" id="services">
   <div class="cs-wrap">
     <div class="lw-head reveal">
@@ -1082,7 +1155,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
     <div class="lw-svc-grid">
       <div class="lw-svc reveal" style="transition-delay:60ms">
         <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 80 60" aria-hidden="true"><use href="#icon-tepi-sungai"/></svg><span class="lw-svc-n">01</span></div>
-        <h3>Development &amp; Construction</h3>
+        <h3>Development and Construction</h3>
         <p>Tepi Sungai, our construction division, executes each project with structural integrity and alignment to its territorial context.</p>
       </div>
       <div class="lw-svc reveal" style="transition-delay:120ms">
@@ -1099,104 +1172,89 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   </div>
 </section>
 
-<!-- ════ PORTFOLIO — Prime projects, verified ════ -->
-<section class="lw-portfolio" id="portfolio">
-  <div class="cs-wrap">
-    <div class="lw-pf-top reveal">
-      <div class="lw-head"><span class="lw-kicker">Curated Portfolio</span><h2 class="lw-title">Prime projects, verified</h2></div>
-      <div class="lw-pf-filters" id="lwFilters">
-        <button class="lw-pill active" data-cat="All">All</button>
-        <button class="lw-pill" data-cat="Signature">Signature</button>
-        <button class="lw-pill" data-cat="Land">Land</button>
-        <button class="lw-pill" data-cat="Villas">Villas</button>
-        <button class="lw-pill" data-cat="Resorts">Resorts</button>
+<!-- ════ 5 · WHO WE ARE + WHY HERE ════ -->
+<section class="lw-about" id="about">
+  <div class="cs-wrap lw-about-grid">
+    <div class="reveal">
+      <div class="lw-head">
+        <span class="lw-kicker">Who We Are</span>
+        <h2 class="lw-title" style="font-size:clamp(28px,3.6vw,46px)">A strategic partner for territorial assets</h2>
+      </div>
+      <p class="lw-p">Lawang is a strategic asset investment, structuring and development partner in Indonesia. We structure territorial opportunities with intelligence, long-term vision, and financial discipline — across Bali and Sumba.</p>
+      <div class="lw-stats">
+        <div class="lw-stat"><span class="lw-stat-n">6<sup>+</sup></span><span class="lw-stat-l">Years</span></div>
+        <div class="lw-stat"><span class="lw-stat-n">30<sup>+</sup></span><span class="lw-stat-l">Land Plots</span></div>
+        <div class="lw-stat"><span class="lw-stat-n">350<sup>+</sup></span><span class="lw-stat-l">Projects</span></div>
       </div>
     </div>
-    <div class="lw-pf-grid reveal" id="lwGrid" style="transition-delay:100ms">
-      <article class="lw-prop" data-cat="Signature">
-        <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiRicefield.jpg')"><span class="lw-badge lw-badge-fh">Freehold</span></div>
-        <div class="lw-prop-body"><span class="lw-prop-loc">Tabanan · Bali</span><h3 class="lw-prop-title">Ridge House Estate</h3><div class="lw-prop-meta">3 Bed · Ocean View · 450 m²</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 485,000</span><span class="lw-prop-note">Freehold</span></div></div>
-      </article>
-      <article class="lw-prop" data-cat="Land">
-        <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerial1.jpg')"><span class="lw-badge lw-badge-lh">Leasehold</span></div>
-        <div class="lw-prop-body"><span class="lw-prop-loc">Tampaksiring · Bali</span><h3 class="lw-prop-title">Jungle Plateau Plot</h3><div class="lw-prop-meta">1,200 m² · Valley View</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 210,000</span><span class="lw-prop-note">Leasehold · 30 yr</span></div></div>
-      </article>
-      <article class="lw-prop" data-cat="Villas">
-        <div class="lw-prop-media" style="--img:url('assets/images/redesign/villasCoast.jpg')"><span class="lw-badge lw-badge-fh">Freehold</span></div>
-        <div class="lw-prop-body"><span class="lw-prop-loc">Uluwatu · Bali</span><h3 class="lw-prop-title">Cliffside Villa Seri</h3><div class="lw-prop-meta">4 Bed · Infinity Pool</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 1.18 M</span><span class="lw-prop-note">Freehold</span></div></div>
-      </article>
-      <article class="lw-prop" data-cat="Resorts">
-        <div class="lw-prop-media" style="--img:url('assets/images/redesign/balianBeach.jpg')"><span class="lw-badge lw-badge-lh">Signature</span></div>
-        <div class="lw-prop-body"><span class="lw-prop-loc">Balian · Bali</span><h3 class="lw-prop-title">Balian Beach Resort</h3><div class="lw-prop-meta">12 Keys · Beachfront</div><div class="lw-prop-foot"><span class="lw-prop-price">On request</span><span class="lw-prop-note">Investment</span></div></div>
-      </article>
-      <article class="lw-prop" data-cat="Land">
-        <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiCoast.jpg')"><span class="lw-badge lw-badge-fh">Freehold</span></div>
-        <div class="lw-prop-body"><span class="lw-prop-loc">Sumba · East</span><h3 class="lw-prop-title">Riverbend Legacy Land</h3><div class="lw-prop-meta">3,400 m² · Riverfront</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 320,000</span><span class="lw-prop-note">Freehold</span></div></div>
-      </article>
-      <article class="lw-prop" data-cat="Signature">
-        <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerialJungle.jpg')"><span class="lw-badge lw-badge-lh">Leasehold</span></div>
-        <div class="lw-prop-body"><span class="lw-prop-loc">Ubud · Bali</span><h3 class="lw-prop-title">Canopy Signature Suites</h3><div class="lw-prop-meta">2 Bed · Rooftop</div><div class="lw-prop-foot"><span class="lw-prop-price">$ 395,000</span><span class="lw-prop-note">Leasehold · 25 yr</span></div></div>
-      </article>
+    <div class="lw-why reveal" style="transition-delay:120ms">
+      <div class="lw-head">
+        <span class="lw-kicker">Why Here?</span>
+        <h3 class="lw-title" style="font-size:clamp(26px,3.2vw,38px)">Why Bali · Sumba</h3>
+      </div>
+      <div class="lw-why-list">
+        <div class="lw-why-item"><span class="lw-why-n">01</span><div><h4>Verified expansion</h4><p>We operate only within territories with measured, proven growth dynamics.</p></div></div>
+        <div class="lw-why-item"><span class="lw-why-n">02</span><div><h4>Legal and fiscal layer</h4><p>Every acquisition is structured and verified before it reaches you.</p></div></div>
+        <div class="lw-why-item"><span class="lw-why-n">03</span><div><h4>End to end delivery</h4><p>From land to development, one ecosystem holds the whole journey.</p></div></div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ════ TIMELINE — A territorial journey ════ -->
-<section class="lw-timeline" id="timeline">
-  <div class="lw-tl-bg" aria-hidden="true"></div>
-  <div class="cs-wrap lw-tl-inner">
-    <span class="lw-kicker reveal" style="color:#EDF1E8">The Expedition</span>
-    <h2 class="lw-tl-h reveal">A territorial journey</h2>
-    <div class="lw-tl-grid">
-      <div class="lw-tl-item reveal" style="transition-delay:60ms"><span class="lw-tl-y">2019</span><h4>Founded in Bali</h4><p>Lawang is established as a territorial investment partner.</p></div>
-      <div class="lw-tl-item reveal" style="transition-delay:120ms"><span class="lw-tl-y">2021</span><h4>First land portfolio</h4><p>Verified expansion corridors secured across Tabanan.</p></div>
-      <div class="lw-tl-item reveal" style="transition-delay:180ms"><span class="lw-tl-y">2023</span><h4>Signature launched</h4><p>Prime, income-ready estates enter the ecosystem.</p></div>
-      <div class="lw-tl-item reveal" style="transition-delay:240ms"><span class="lw-tl-y">2025</span><h4>Sumba expansion</h4><p>The ecosystem extends east to verified Sumba territory.</p></div>
-      <div class="lw-tl-item reveal" style="transition-delay:300ms"><span class="lw-tl-y">2026</span><h4>350+ projects</h4><p>Built to last — a territorial presence across two islands.</p></div>
+<!-- ════ 6 · THE EXPEDITION + FEATURED (fusión) ════ -->
+<section class="lw-expedition" id="expedition">
+  <div class="lw-exp-tl">
+    <div class="lw-exp-tlbg" aria-hidden="true"></div>
+    <div class="cs-wrap lw-tl-inner">
+      <span class="lw-kicker reveal">The Expedition</span>
+      <h2 class="lw-tl-h reveal">A territorial journey</h2>
+      <div class="lw-tl-grid">
+        <div class="lw-tl-item reveal" style="transition-delay:60ms"><span class="lw-tl-y">2019</span><h4>Founded in Bali</h4><p>Lawang is established as a territorial investment partner.</p></div>
+        <div class="lw-tl-item reveal" style="transition-delay:120ms"><span class="lw-tl-y">2021</span><h4>First land portfolio</h4><p>Verified expansion corridors secured across Tabanan.</p></div>
+        <div class="lw-tl-item reveal" style="transition-delay:180ms"><span class="lw-tl-y">2023</span><h4>Signature launched</h4><p>Prime, income-ready estates enter the ecosystem.</p></div>
+        <div class="lw-tl-item reveal" style="transition-delay:240ms"><span class="lw-tl-y">2025</span><h4>Sumba expansion</h4><p>The ecosystem extends east to verified Sumba territory.</p></div>
+        <div class="lw-tl-item reveal" style="transition-delay:300ms"><span class="lw-tl-y">2026</span><h4>Built to last</h4><p>A territorial presence across two islands and beyond.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="lw-feat-wrap">
+    <div class="lw-feat-grid">
+      <div class="lw-feat-media reveal">
+        <img src="assets/images/redesign/villasCoast.jpg" alt="Featured project — Ridge House Estate">
+        <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t">Ridge House Estate</span></div>
+      </div>
+      <div class="reveal" style="transition-delay:120ms">
+        <span class="lw-kicker">Featured Project</span>
+        <h2 class="lw-title" style="font-size:clamp(2rem,3.2vw,3rem);margin-top:14px">A position, not a transaction</h2>
+        <p class="lw-p" style="max-width:46ch">A signature estate within a verified expansion corridor — structured, legally clear, and built to last. A position in the territory, not a transaction.</p>
+        <div class="lw-badges"><span class="lw-badge2 fh">Freehold</span><span class="lw-badge2 lg">Signature</span><span class="lw-badge2 ol">450 m²</span></div>
+        <div class="lw-feat-price"><span class="lw-feat-amt">$ 485,000</span><span class="lw-feat-note">Freehold</span></div>
+        <a class="cs-btn cs-btn-green" href="#contact">View Project <span class="arr">→</span></a>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ════ FEATURED — A position, not a transaction ════ -->
-<section class="lw-featured" id="featured">
-  <div class="cs-wrap lw-feat-grid">
-    <div class="lw-feat-media reveal">
-      <img src="assets/images/redesign/villasCoast.jpg" alt="Featured project — Ridge House Estate">
-      <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t">Ridge House Estate</span></div>
-    </div>
-    <div class="reveal" style="transition-delay:120ms">
-      <span class="lw-kicker">Featured Project</span>
-      <h2 class="lw-title" style="font-size:clamp(1.9rem,3vw,2.8rem);margin-top:14px">A position, not a transaction</h2>
-      <p class="lw-p" style="max-width:46ch">A signature estate within a verified expansion corridor — structured, legally clear, and built to last. A position in the territory, not a transaction.</p>
-      <div class="lw-badges"><span class="lw-badge2 fh">Freehold</span><span class="lw-badge2 lg">Signature</span><span class="lw-badge2 ol">450 m²</span></div>
-      <div class="lw-feat-price"><span class="lw-feat-amt">$ 485,000</span><span class="lw-feat-note">Freehold</span></div>
-      <a class="cs-btn cs-btn-green" href="#contact">View Project <span class="arr">→</span></a>
-    </div>
-  </div>
-</section>
-
-<!-- ════ CONTACT — Own The Eternity ════ -->
+<!-- ════ 7 · CONTACT + FOOTER (fusión) ════ -->
 <section class="lw-contact" id="contact">
   <img class="lw-ct-totem" src="assets/images/redesign/tikiTotem.png" alt="" aria-hidden="true" draggable="false">
-  <div class="cs-wrap lw-ct-grid">
-    <div class="reveal">
-      <span class="lw-kicker" style="color:var(--cal)">The Tropical Partner</span>
-      <h2 class="lw-ct-h">Own The Eternity</h2>
-      <p class="lw-ct-italic">You've thought about staying.</p>
-      <p class="lw-ct-note">Tell us what kind of legacy you value. Our team will reach out with verified opportunities.</p>
+  <div class="lw-ct-top">
+    <div class="lw-ct-grid">
+      <div class="reveal">
+        <span class="lw-kicker">The Tropical Partner</span>
+        <h2 class="lw-ct-h">Own The Eternity</h2>
+        <p class="lw-ct-italic">You have thought about staying.</p>
+        <p class="lw-ct-note">Tell us what kind of legacy you value. Our team will reach out with verified opportunities.</p>
+      </div>
+      <form class="lw-ct-form reveal" id="lwForm" style="transition-delay:120ms">
+        <input class="lw-field" type="text" placeholder="Full name" required>
+        <input class="lw-field" type="email" placeholder="Email address" required>
+        <input class="lw-field" type="text" placeholder="What are you looking for? (Land · Villa · Signature)">
+        <button class="cs-btn cs-btn-bone cs-btn-pill" type="submit" style="align-self:flex-start;margin-top:6px">Let's Talk <span class="arr">→</span></button>
+      </form>
     </div>
-    <form class="lw-ct-form reveal" id="lwForm" style="transition-delay:120ms">
-      <input class="lw-field" type="text" placeholder="Full name" required>
-      <input class="lw-field" type="email" placeholder="Email address" required>
-      <input class="lw-field" type="text" placeholder="What are you looking for? (Land · Villa · Signature)">
-      <button class="cs-btn cs-btn-bone cs-btn-pill" type="submit" style="align-self:flex-start;margin-top:6px">Let's Talk <span class="arr">→</span></button>
-    </form>
   </div>
-</section>
-
-<!-- ════ FOOTER ════ -->
-<footer class="lw-footer">
-  <div class="cs-wrap">
+  <div class="lw-ft">
     <div class="lw-ft-grid">
       <div>
         <div class="lw-ft-logo">Lawang</div>
@@ -1207,15 +1265,15 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
         <h5>Portfolio</h5>
         <a href="portfolio.html#signature">Signature</a>
         <a href="portfolio.html#land">Land</a>
-        <a href="portfolio.html">Villas</a>
-        <a href="portfolio.html">Resorts</a>
+        <a href="portfolio.html#villas">Villas</a>
+        <a href="portfolio.html#resorts">Resorts</a>
       </div>
       <div class="lw-ft-col">
         <h5>Company</h5>
         <a href="#about">The Soul</a>
-        <a href="#services">The Studio</a>
-        <a href="#timeline">The Expedition</a>
-        <a href="#featured">Featured</a>
+        <a href="#services">What We Do</a>
+        <a href="#expedition">The Expedition</a>
+        <a href="#portfolio">Curated Portfolio</a>
       </div>
       <div class="lw-ft-col">
         <h5>Divisions</h5>
@@ -1224,24 +1282,23 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
         <a href="signature.html">Riverfront II®</a>
       </div>
     </div>
-    <div class="lw-ft-bottom">
-      <span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>
-      <span class="lw-ft-copy">Balian Hills, Bali · Sumba Island</span>
-    </div>
   </div>
-</footer>
+  <div class="lw-ft-bottom">
+    <span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>
+    <span class="lw-ft-copy">Balian Hills, Bali · Sumba Island</span>
+  </div>
+</section>
 
 </div><!-- end #content-sections -->
 
 </main><!-- end .snap -->
 
-<!-- Toast de confirmación (formulario / CTA) -->
+<!-- Toast (formulario / CTA) -->
 <div id="lw-toast">✆&nbsp;&nbsp;Thank you — our team will reach out shortly.</div>
 
 <script>
-// ── [v5] Portfolio filter + toast ──────────────────────────────
+// ── [v6] Portfolio filter + toast ──────────────────────────────
 document.addEventListener('DOMContentLoaded', function(){
-  // Filtro de portfolio
   var filters = document.getElementById('lwFilters');
   var grid = document.getElementById('lwGrid');
   if(filters && grid){
@@ -1255,7 +1312,6 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     });
   }
-  // Toast
   var toast = document.getElementById('lw-toast');
   function showToast(){
     if(!toast) return;
