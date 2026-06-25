@@ -368,6 +368,16 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
               <input type="number" id="f-nightlyRate" min="0" placeholder="180">
             </div>
           </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Units available <span class="hint">shown in sidebar; leave empty to hide</span></label>
+              <input type="number" id="f-unitsAvailable" min="0" placeholder="4">
+            </div>
+            <div class="form-group">
+              <label>Units total <span class="hint">optional, shows as "4 / 12"</span></label>
+              <input type="number" id="f-unitsTotal" min="0" placeholder="12">
+            </div>
+          </div>
         </div>
 
         <div class="form-section">
@@ -439,6 +449,46 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
           <h4>Videos <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">MP4 URLs shown in the gallery carousel after the photos. Paste a direct link (e.g. /assets/videos/tour.mp4 or https://...).</span></h4>
           <div id="f-videos-list"></div>
           <button type="button" class="btn-secondary" style="margin-top:8px" onclick="addVideoSlot('')">+ Add video</button>
+        </div>
+
+        <div class="form-section">
+          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Image (site plan / map) shown in the "Location &amp; Surroundings" section. Leave empty to show a placeholder.</span></h4>
+          <div class="form-group">
+            <input type="text" id="f-mapImage" placeholder="/images/map-balian.jpg or https://...">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Choose your home <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Show selectable house models on the detail page.</span></h4>
+          <div class="cb-group">
+            <input type="checkbox" id="f-showHomeModels">
+            <label for="f-showHomeModels">Show "Choose your home" section <span class="muted">(if on with no models below, sample placeholders are shown)</span></label>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Model</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Beds</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">m²</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Image URL</div>
+            <div></div>
+          </div>
+          <div id="f-homes-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHomeRow()">+ Add model</button>
+        </div>
+
+        <div class="form-section">
+          <h4>Extras &amp; Add-ons <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Add-ons with a price (sauna, pool, Airbnb kit…).</span></h4>
+          <div class="cb-group">
+            <input type="checkbox" id="f-showExtras">
+            <label for="f-showExtras">Show "Extras" section <span class="muted">(if on with no items below, sample placeholders are shown)</span></label>
+          </div>
+          <div style="display:grid;grid-template-columns:3fr 1.2fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Extra</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
+            <div></div>
+          </div>
+          <div id="f-extras-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addExtraRow()">+ Add extra</button>
         </div>
 
         <div class="form-section">
@@ -669,6 +719,11 @@ function propertyToForm(p) {
   set('f-land',        p.land        || '');
   set('f-style',       p.style       || '');
   set('f-nightlyRate', p.nightlyRate || '');
+  set('f-unitsAvailable', p.unitsAvailable != null ? p.unitsAvailable : '');
+  set('f-unitsTotal',  p.unitsTotal != null ? p.unitsTotal : '');
+  set('f-mapImage',    p.mapImage    || '');
+  set('f-showHomeModels', p.showHomeModels === true);
+  set('f-showExtras',  p.showExtras  === true);
   set('f-poolType',    p.poolType    || '');
   set('f-furnished',   p.furnished   || '');
   set('f-garage',      p.garage      || false);
@@ -689,6 +744,12 @@ function propertyToForm(p) {
   vidContainer.innerHTML = '';
   var vids = (p.videos && p.videos.length) ? p.videos : [];
   vids.forEach(function(v){ addVideoSlot(typeof v === 'string' ? v : (v.src || v.url || '')); });
+  // Home models
+  document.getElementById('f-homes-list').innerHTML = '';
+  (p.homeModels || []).forEach(function(m){ addHomeRow(m); });
+  // Extras
+  document.getElementById('f-extras-list').innerHTML = '';
+  (p.extras || []).forEach(function(e){ addExtraRow(e); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -710,6 +771,35 @@ function addVideoSlot(url) {
   div.innerHTML =
     '<span class="drag-handle" title="Video" style="cursor:default">▶</span>' +
     '<input type="text" value="' + esc(url) + '" placeholder="/assets/videos/tour.mp4 or https://...mp4">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  container.appendChild(div);
+}
+
+function addHomeRow(m) {
+  m = m || {};
+  var container = document.getElementById('f-homes-list');
+  var div = document.createElement('div');
+  div.className = 'home-row';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="text"   class="hm-name"  value="' + esc(m.name || '')               + '" placeholder="Lontar">' +
+    '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
+    '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
+    '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
+    '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/images/model.jpg">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  container.appendChild(div);
+}
+
+function addExtraRow(e) {
+  e = e || {};
+  var container = document.getElementById('f-extras-list');
+  var div = document.createElement('div');
+  div.className = 'extra-row';
+  div.style.cssText = 'display:grid;grid-template-columns:3fr 1.2fr 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="text"   class="ex-name"  value="' + esc(e.name || '')               + '" placeholder="Private pool">' +
+    '<input type="number" class="ex-price" value="' + esc(e.priceEUR != null ? e.priceEUR : '') + '" min="0" placeholder="28000">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
 }
@@ -817,6 +907,23 @@ function formToProperty() {
   document.querySelectorAll('#f-videos-list input[type="text"]').forEach(function(inp){
     var v = inp.value.trim(); if (v) videos.push(v);
   });
+  var homeModels = Array.from(document.querySelectorAll('#f-homes-list .home-row')).map(function(row){
+    return {
+      name:     row.querySelector('.hm-name').value.trim(),
+      beds:     parseInt(row.querySelector('.hm-beds').value)   || 0,
+      built:    parseInt(row.querySelector('.hm-built').value)  || 0,
+      priceEUR: parseFloat(row.querySelector('.hm-price').value) || 0,
+      image:    row.querySelector('.hm-image').value.trim()
+    };
+  }).filter(function(m){ return m.name; });
+  var extras = Array.from(document.querySelectorAll('#f-extras-list .extra-row')).map(function(row){
+    return {
+      name:     row.querySelector('.ex-name').value.trim(),
+      priceEUR: parseFloat(row.querySelector('.ex-price').value) || 0
+    };
+  }).filter(function(e){ return e.name; });
+  var unitsAvailableRaw = get('f-unitsAvailable');
+  var unitsTotalRaw     = get('f-unitsTotal');
   return {
     id:          id,
     visible:     get('f-visible'),
@@ -836,6 +943,13 @@ function formToProperty() {
     furnished:   get('f-furnished'),
     style:       get('f-style'),
     nightlyRate: parseFloat(get('f-nightlyRate')) || 0,
+    unitsAvailable: unitsAvailableRaw === '' ? null : (parseInt(unitsAvailableRaw) || 0),
+    unitsTotal:     unitsTotalRaw     === '' ? null : (parseInt(unitsTotalRaw)     || 0),
+    mapImage:    get('f-mapImage'),
+    showHomeModels: get('f-showHomeModels'),
+    homeModels:  homeModels,
+    showExtras:  get('f-showExtras'),
+    extras:      extras,
     tenure:      get('f-tenure'),
     status:      get('f-status'),
     handover:    get('f-handover'),

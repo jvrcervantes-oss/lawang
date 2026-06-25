@@ -135,6 +135,13 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .ph:hover .ph-play span { transform:scale(1.08); background:rgba(189,90,50,.4); }
 .ph-timecode { position:absolute; right:14px; bottom:12px; z-index:3; font-family:var(--sans); font-size:10.5px; font-weight:500; letter-spacing:.1em; color:rgba(244,239,228,.7); font-variant-numeric:tabular-nums; }
 
+/* ── PDP GALLERY MOSAIC ──────────────────────────────────── */
+.pdp-mosaic { display:grid; grid-template-columns:1.55fr 1fr; grid-template-rows:1fr 1fr; gap:8px; aspect-ratio:16/9; }
+.pdp-mosaic .pdp-tile { position:relative; border:none; padding:0; margin:0; border-radius:10px; overflow:hidden; cursor:pointer; background:var(--bone-2); }
+.pdp-mosaic .pdp-tile img, .pdp-mosaic .pdp-tile .ph { transition:transform .5s var(--ease); }
+.pdp-mosaic .pdp-side:hover img, .pdp-mosaic .pdp-side:hover .ph { transform:scale(1.05); }
+@media(max-width:720px){ .pdp-mosaic{ grid-template-columns:1fr; grid-template-rows:1fr; aspect-ratio:4/3; } .pdp-mosaic .pdp-side{ display:none; } }
+
 /* ── SCROLL REVEAL ───────────────────────────────────────── */
 .reveal    { opacity:0; transform:translateY(28px); filter:blur(4px); transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease); }
 .reveal.in { opacity:1; transform:none; filter:blur(0); }
@@ -451,7 +458,28 @@ article:hover .view-cta { gap:9px; }
     "dl.coming":       {"en":"Coming soon","es":"Próximamente"},
     "wa.title":        {"en":"Talk to the team","es":"Habla con el equipo"},
     "wa.sub":          {"en":"We answer within a few hours.","es":"Respondemos en pocas horas."},
-    "wa.cta":          {"en":"WhatsApp us","es":"Escríbenos por WhatsApp"}
+    "wa.cta":          {"en":"WhatsApp us","es":"Escríbenos por WhatsApp"},
+    "crumb.home":      {"en":"Lawang","es":"Lawang"},
+    "crumb.portfolio": {"en":"Portfolio","es":"Portfolio"},
+    "map.title":       {"en":"Location & Surroundings","es":"Ubicación y entorno"},
+    "map.soon":        {"en":"Site map coming soon","es":"Plano de ubicación próximamente"},
+    "home.title":      {"en":"Choose your home","es":"Elige tu villa"},
+    "home.sub":        {"en":"Pick the model that fits the way you want to live.","es":"Elige el modelo que encaja con cómo quieres vivir."},
+    "home.select":     {"en":"Select","es":"Elegir"},
+    "home.selected":   {"en":"Selected","es":"Elegida"},
+    "home.beds":       {"en":"bd","es":"hab"},
+    "extras.title":    {"en":"Extras & Add-ons","es":"Extras y mejoras"},
+    "extras.sub":      {"en":"Optional upgrades you can add to your villa.","es":"Mejoras opcionales que puedes añadir a tu villa."},
+    "extras.add":      {"en":"Add","es":"Añadir"},
+    "extras.added":    {"en":"Added","es":"Añadida"},
+    "extras.total":    {"en":"Selected extras","es":"Extras seleccionados"},
+    "fin.title":       {"en":"Payments & Returns","es":"Pagos y Rentabilidad"},
+    "glance.units":    {"en":"Available units","es":"Unidades disponibles"},
+    "dl.gate.title":   {"en":"Enter your email to download","es":"Introduce tu email para descargar"},
+    "dl.gate.note":    {"en":"We'll send the files to your inbox and keep you posted on this project.","es":"Te enviamos los archivos por correo y te mantenemos al día del proyecto."},
+    "dl.gate.cta":     {"en":"Unlock downloads","es":"Desbloquear descargas"},
+    "dl.gate.invalid": {"en":"Please enter a valid email.","es":"Introduce un email válido."},
+    "dl.unlocked":     {"en":"Downloads unlocked","es":"Descargas desbloqueadas"}
   };
   const PROPERTIES = []; // loaded from data.json
   const LINES = ["signature","land","villa","resorts"];
@@ -764,48 +792,80 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
 
     const arrow = (side) => ({ position:"absolute", top:"50%", [side]:12, transform:"translateY(-50%)", zIndex:4, width:38, height:38, borderRadius:999, border:"none", cursor:"pointer", background:"rgba(20,16,11,.42)", color:"var(--bone)", fontSize:20, lineHeight:0, display:"grid", placeItems:"center", backdropFilter:"blur(3px)", transition:"background .25s", fontFamily:"var(--sans)" });
 
+    // Play badge for video previews (side tiles + filmstrip)
+    const PlayBadge = ({ size = 26 }) => (
+      <div style={{ position:"absolute", inset:0, display:"grid", placeItems:"center", zIndex:2 }}>
+        <span style={{ width:size, height:size, borderRadius:999, background:"rgba(20,16,11,.55)", display:"grid", placeItems:"center", backdropFilter:"blur(2px)" }}>
+          <span style={{ width:0, height:0, marginLeft:size*0.08, borderLeft:`${size*0.32}px solid var(--bone)`, borderTop:`${size*0.2}px solid transparent`, borderBottom:`${size*0.2}px solid transparent` }} />
+        </span>
+      </div>
+    );
+    // Static preview of any media (image or video poster) — fills its positioned parent
+    const Preview = ({ m }) => (
+      m.type === "video"
+        ? <React.Fragment>
+            {m.poster
+              ? <img src={m.poster} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
+              : <div className={"ph-grad ph-"+theme} style={{ position:"absolute", inset:0 }} />}
+            <PlayBadge />
+          </React.Fragment>
+        : <Ph imgKey={m.key} theme={theme} tint={0.12} style={{ position:"absolute", inset:0 }} />
+    );
+
+    // Up to 2 side tiles previewing what comes next; "+N" on the last if there are more
+    const sideCount = Math.min(2, total - 1);
+    const sideItems = [];
+    for (let s = 1; s <= sideCount; s++) sideItems.push((active + s) % total);
+    const extra = total - 1 - sideCount;
+
     return (
-      <div style={{ maxWidth:840, margin:"0 auto" }}>
-        {/* Main stage — reduced, centered, holds photo OR video */}
-        <div style={{ position:"relative", aspectRatio:"16/10", borderRadius:10, overflow:"hidden", background:"var(--bone-2)", boxShadow:"0 30px 80px -40px rgba(27,26,21,.45)" }}>
-          <div style={{ position:"absolute", inset:0, opacity: fading ? 0 : 1, transition:"opacity .22s ease" }}>
-            {cur.type === "video"
-              ? <video key={cur.src} src={cur.src} poster={cur.poster || undefined} controls playsInline preload="metadata"
-                  style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", background:"#000" }} />
-              : <Ph imgKey={cur.key} w={2000} theme={theme} kb tint={0.12} style={{ position:"absolute", inset:0 }} />
-            }
+      <div style={{ maxWidth:960, margin:"0 auto" }}>
+        {/* Mosaic — big main left, stacked previews right */}
+        <div className="pdp-mosaic" style={{ boxShadow:"0 30px 80px -42px rgba(27,26,21,.45)", borderRadius:10 }}>
+          {/* MAIN */}
+          <div style={{ position:"relative", gridColumn:"1", gridRow:"1 / span 2", borderRadius:10, overflow:"hidden", background:"var(--bone-2)" }}>
+            <div style={{ position:"absolute", inset:0, opacity: fading ? 0 : 1, transition:"opacity .2s ease" }}>
+              {cur.type === "video"
+                ? <video key={cur.src} src={cur.src} poster={cur.poster || undefined} controls playsInline preload="metadata"
+                    style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", background:"#000" }} />
+                : <Ph imgKey={cur.key} w={2000} theme={theme} kb tint={0.12} style={{ position:"absolute", inset:0 }} />
+              }
+            </div>
+            {total > 1 && (
+              <React.Fragment>
+                <button aria-label="Previous" onClick={() => change(active-1)} style={arrow("left")}
+                  onMouseEnter={(e)=>e.currentTarget.style.background="rgba(20,16,11,.72)"} onMouseLeave={(e)=>e.currentTarget.style.background="rgba(20,16,11,.42)"}>‹</button>
+                <button aria-label="Next" onClick={() => change(active+1)} style={arrow("right")}
+                  onMouseEnter={(e)=>e.currentTarget.style.background="rgba(20,16,11,.72)"} onMouseLeave={(e)=>e.currentTarget.style.background="rgba(20,16,11,.42)"}>›</button>
+                <div style={{ position:"absolute", right:14, bottom:13, zIndex:4, background:"rgba(20,16,11,.5)", color:"var(--bone)", fontFamily:"var(--sans)", fontSize:11.5, fontWeight:600, letterSpacing:".1em", padding:"4px 11px", borderRadius:999, backdropFilter:"blur(3px)", fontVariantNumeric:"tabular-nums" }}>
+                  {String(active+1).padStart(2,"0")} <span style={{ opacity:.55 }}>/ {String(total).padStart(2,"0")}</span>
+                </div>
+              </React.Fragment>
+            )}
           </div>
-          {total > 1 && (
-            <React.Fragment>
-              <button aria-label="Previous" onClick={() => change(active-1)} style={arrow("left")}
-                onMouseEnter={(e)=>e.currentTarget.style.background="rgba(20,16,11,.72)"} onMouseLeave={(e)=>e.currentTarget.style.background="rgba(20,16,11,.42)"}>‹</button>
-              <button aria-label="Next" onClick={() => change(active+1)} style={arrow("right")}
-                onMouseEnter={(e)=>e.currentTarget.style.background="rgba(20,16,11,.72)"} onMouseLeave={(e)=>e.currentTarget.style.background="rgba(20,16,11,.42)"}>›</button>
-              <div style={{ position:"absolute", right:14, bottom:13, zIndex:4, background:"rgba(20,16,11,.5)", color:"var(--bone)", fontFamily:"var(--sans)", fontSize:11.5, fontWeight:600, letterSpacing:".1em", padding:"4px 11px", borderRadius:999, backdropFilter:"blur(3px)", fontVariantNumeric:"tabular-nums" }}>
-                {String(active+1).padStart(2,"0")} <span style={{ opacity:.55 }}>/ {String(total).padStart(2,"0")}</span>
-              </div>
-            </React.Fragment>
-          )}
+          {/* SIDE PREVIEWS */}
+          {sideItems.map((idx, k) => {
+            const isLast = k === sideItems.length - 1;
+            const span = sideCount === 1 ? "1 / span 2" : (k === 0 ? "1" : "2");
+            return (
+              <button key={idx} className="pdp-tile pdp-side" onClick={() => change(idx)} style={{ gridColumn:"2", gridRow:span }}>
+                <Preview m={media[idx]} />
+                {isLast && extra > 0 && (
+                  <div style={{ position:"absolute", inset:0, background:"rgba(20,16,11,.52)", display:"grid", placeItems:"center", zIndex:3 }}>
+                    <span style={{ fontFamily:"var(--serif)", fontSize:"clamp(20px,2.4vw,30px)", color:"var(--bone)", fontWeight:400 }}>+{extra}</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
-        {/* Thumbnails — double as pagination; video thumbs get a play badge */}
+        {/* Filmstrip — full pagination, video thumbs get a play badge */}
         {total > 1 && (
-          <div style={{ display:"grid", gridTemplateColumns:`repeat(${Math.min(total, 6)}, 1fr)`, gap:8, marginTop:8 }}>
+          <div style={{ display:"grid", gridTemplateColumns:`repeat(${Math.min(total, 8)}, 1fr)`, gap:8, marginTop:8 }}>
             {media.map((m, i) => (
               <button key={i} className="gallery-thumb" onClick={() => change(i)}
-                style={{ padding:0, border:"2px solid "+(i===active ? "var(--clay)" : "transparent"), borderRadius:5, overflow:"hidden", cursor:"pointer", background:"none", opacity: fading && i === active ? 0.5 : 1 }}>
-                {m.type === "video"
-                  ? <div style={{ position:"relative", aspectRatio:"4/3", overflow:"hidden", background:"#1a1410" }}>
-                      {m.poster
-                        ? <img src={m.poster} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
-                        : <div className={"ph-grad ph-"+theme} style={{ position:"absolute", inset:0 }} />}
-                      <div style={{ position:"absolute", inset:0, display:"grid", placeItems:"center" }}>
-                        <span style={{ width:26, height:26, borderRadius:999, background:"rgba(20,16,11,.55)", display:"grid", placeItems:"center", backdropFilter:"blur(2px)" }}>
-                          <span style={{ width:0, height:0, marginLeft:2, borderLeft:"8px solid var(--bone)", borderTop:"5px solid transparent", borderBottom:"5px solid transparent" }} />
-                        </span>
-                      </div>
-                    </div>
-                  : <Ph imgKey={m.key} theme={theme} ratio="4/3" tint={0.1} />
-                }
+                style={{ position:"relative", padding:0, border:"2px solid "+(i===active ? "var(--clay)" : "transparent"), borderRadius:5, overflow:"hidden", cursor:"pointer", background:"none", opacity: fading && i === active ? 0.5 : 1, aspectRatio:"4/3" }}>
+                <Preview m={m} />
               </button>
             ))}
           </div>
@@ -843,6 +903,70 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  /* ── Downloads with email gate ─────────────────────────────── */
+  function Downloads({ files, p }) {
+    const t = useT();
+    const [unlocked, setUnlocked] = useState(false);
+    const [email, setEmail] = useState("");
+    const [err, setErr] = useState(false);
+    const valid = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((s||"").trim());
+    const submit = (e) => {
+      if (e) e.preventDefault();
+      if (!valid(email)) { setErr(true); return; }
+      setErr(false);
+      setUnlocked(true);
+      try {
+        fetch("api/lead.php", { method:"POST", headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+          body: "email=" + encodeURIComponent(email.trim()) + "&source=downloads&property=" + encodeURIComponent((p && p.id) || "") }).catch(function(){});
+      } catch (_) {}
+    };
+    const fileRow = (f, i) => (
+      <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:i<files.length-1?"1px solid var(--line)":"none" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:28, height:28, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)", letterSpacing:".04em" }}>{f.ext||"PDF"}</div>
+          <div>
+            <div style={{ fontSize:13 }}>{f.name}</div>
+            <div style={{ fontSize:11, color:"var(--ink-2)" }}>{f.size}{f.size?" · ":""}{f.url ? "" : t("dl.coming")}</div>
+          </div>
+        </div>
+        {f.url
+          ? <a href={f.url} target="_blank" rel="noopener" download style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--tg)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0, textDecoration:"none" }}>↓</a>
+          : <button onClick={() => alert("File coming soon — contact us directly.")} style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--ink-2)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0 }}>↓</button>}
+      </div>
+    );
+    return (
+      <div style={{ padding:"18px", background:"var(--bone)", border:"1px solid var(--line)", borderRadius:8 }}>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:12 }}>{t("dl.title")}</div>
+        {unlocked ? (
+          <React.Fragment>
+            <div style={{ display:"flex", alignItems:"center", gap:7, fontSize:11, fontWeight:700, letterSpacing:".04em", textTransform:"uppercase", color:"var(--tg)", marginBottom:8 }}>
+              <span style={{ width:7, height:7, borderRadius:999, background:"var(--tg)" }} /> {t("dl.unlocked")}
+            </div>
+            {files.map(fileRow)}
+          </React.Fragment>
+        ) : (
+          <form onSubmit={submit}>
+            <div style={{ marginBottom:14 }}>
+              {files.map((f,i) => (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 0", opacity:.5 }}>
+                  <div style={{ width:26, height:26, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)" }}>{f.ext||"PDF"}</div>
+                  <div style={{ fontSize:13 }}>{f.name}</div>
+                  <svg viewBox="0 0 24 24" style={{ width:14, height:14, marginLeft:"auto", stroke:"var(--ink-2)", fill:"none", strokeWidth:1.6 }} aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize:12.5, color:"var(--ink)", fontWeight:600, lineHeight:1.4, marginBottom:10 }}>{t("dl.gate.title")}</p>
+            <input type="email" value={email} onChange={(e)=>{ setEmail(e.target.value); if (err) setErr(false); }} placeholder="you@email.com" aria-label="Email"
+              style={{ width:"100%", padding:"10px 12px", border:"1px solid "+(err?"#b3402e":"var(--line)"), borderRadius:6, fontSize:14, fontFamily:"var(--sans)", outline:"none", marginBottom: err?6:10, background:"white", boxSizing:"border-box" }} />
+            {err && <div style={{ fontSize:11.5, color:"#b3402e", marginBottom:10 }}>{t("dl.gate.invalid")}</div>}
+            <button type="submit" style={{ width:"100%", background:"var(--clay)", color:"var(--bone)", border:"none", borderRadius:6, padding:"11px", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"var(--sans)" }}>{t("dl.gate.cta")} →</button>
+            <p style={{ fontSize:11, color:"var(--ink-2)", lineHeight:1.5, marginTop:10, opacity:.85 }}>{t("dl.gate.note")}</p>
+          </form>
+        )}
       </div>
     );
   }
@@ -889,6 +1013,17 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             <span style={{ fontSize:13, fontWeight:600 }}>{p.region}</span>
           </div>
 
+          {/* Available units */}
+          {p.unitsAvailable != null && p.unitsAvailable !== "" && (
+            <div style={{ padding:"12px 20px", borderBottom:"1px solid var(--line)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--ink-2)" }}>{t("glance.units")}</span>
+              <span style={{ display:"inline-flex", alignItems:"center", gap:7, fontSize:13, fontWeight:600 }}>
+                <span style={{ width:7, height:7, borderRadius:999, background: Number(p.unitsAvailable) > 0 ? "var(--tg)" : "var(--ink-2)" }} />
+                {p.unitsAvailable}{p.unitsTotal ? " / " + p.unitsTotal : ""}
+              </span>
+            </div>
+          )}
+
           {/* Legal */}
           <div style={{ padding:"14px 20px" }}>
             <div style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:10 }}>Legal</div>
@@ -931,27 +1066,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           </div>
         </div>
 
-        {/* Downloads */}
-        {files && (
-          <div style={{ padding:"18px", background:"var(--bone)", border:"1px solid var(--line)", borderRadius:8 }}>
-            <div style={{ fontSize:9, fontWeight:700, letterSpacing:".2em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:12 }}>{t("dl.title")}</div>
-            {files.map((f,i) => (
-              <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:i<files.length-1?"1px solid var(--line)":"none" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{ width:28, height:28, background:"var(--tg-light)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"var(--tg)", letterSpacing:".04em" }}>{f.ext||"PDF"}</div>
-                  <div>
-                    <div style={{ fontSize:13 }}>{f.name}</div>
-                    <div style={{ fontSize:11, color:"var(--ink-2)" }}>{f.size}{f.size?" · ":""}{f.url ? "" : t("dl.coming")}</div>
-                  </div>
-                </div>
-                {f.url
-                  ? <a href={f.url} target="_blank" rel="noopener" download style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--tg)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0, textDecoration:"none" }}>↓</a>
-                  : <button onClick={() => alert("File coming soon — contact us directly.")} style={{ background:"none", border:"1px solid var(--line)", borderRadius:4, padding:"4px 10px", fontSize:11, color:"var(--ink-2)", cursor:"pointer", fontFamily:"var(--sans)", flexShrink:0 }}>↓</button>
-                }
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Downloads — email-gated */}
+        {files && <Downloads files={files} p={p} />}
 
       </div>
     );
@@ -962,7 +1078,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const t = useT();
     const { cur } = useApp();
     const { money } = window.LAWANG;
-    const [rateEUR, setRateEUR] = useState(p.nightlyRate || 150);
+    const rateEUR = p.nightlyRate || 150;   // fixed; admin sets it, no client-facing input
     const [showTable, setShowTable] = useState(false);
     const MGMT = 0.20;
     const occs = [0.70, 0.80, 0.90];
@@ -975,8 +1091,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const thStyle = { padding:"10px 8px", fontWeight:700, fontSize:11, letterSpacing:".1em", textTransform:"uppercase", color:"var(--tg)" };
     const tdStyle = (bold) => ({ padding:"10px 8px", fontFamily:"var(--serif)", fontSize:15, fontWeight:bold?600:300, textAlign:"right" });
     return (
-      <div style={{ marginTop:60, paddingTop:40, borderTop:"1px solid var(--line)" }}>
-        <div className="kicker" style={{ marginBottom:20 }}>{t("inv.title")}</div>
+      <div style={{ marginTop:40, paddingTop:36, borderTop:"1px solid var(--line)" }}>
+        <h4 className="serif" style={{ fontSize:"clamp(20px,2vw,25px)", fontWeight:300, marginBottom:20 }}>{t("inv.title")}</h4>
 
         {/* KPI callout */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:2, background:"var(--line)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden", marginBottom:24 }}>
@@ -987,18 +1103,6 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           <div style={{ background:"var(--tg-light)", padding:"20px 18px" }}>
             <div style={{ fontSize:9, fontWeight:600, letterSpacing:".2em", textTransform:"uppercase", color:"var(--clay)", marginBottom:8 }}>Break-even · 80% occ.</div>
             <div className="serif" style={{ fontSize:38, fontWeight:300, color:"var(--tg)", lineHeight:1 }}>{beYr(0.80)} <span style={{ fontSize:18, opacity:.6 }}>yr</span></div>
-          </div>
-        </div>
-
-        {/* Nightly rate input */}
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16, flexWrap:"wrap" }}>
-          <span style={{ fontSize:13, color:"var(--ink-2)" }}>{t("inv.nightly")}:</span>
-          <div style={{ display:"flex", alignItems:"center", border:"1px solid var(--line)", borderRadius:6, overflow:"hidden", background:"white" }}>
-            <span style={{ padding:"8px 12px", background:"var(--bone-2)", fontSize:13, color:"var(--ink-2)", borderRight:"1px solid var(--line)" }}>€</span>
-            <input type="number" min="30" max="3000" step="10" value={rateEUR}
-              onChange={e=>setRateEUR(Math.max(30,Number(e.target.value)||30))}
-              style={{ padding:"8px 10px", width:80, border:"none", outline:"none", fontSize:15, fontFamily:"var(--sans)" }} />
-            <span style={{ padding:"8px 12px", fontSize:12, color:"var(--ink-2)", borderLeft:"1px solid var(--line)" }}>/night</span>
           </div>
         </div>
 
@@ -1049,8 +1153,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const { money, getPaymentPlan } = window.LAWANG;
     const steps = (p.paymentPlan && p.paymentPlan.length) ? p.paymentPlan : getPaymentPlan(p);
     return (
-      <div style={{ marginTop:60, paddingTop:40, borderTop:"1px solid var(--line)" }}>
-        <h3 className="serif" style={{ fontSize:"clamp(22px,2.2vw,28px)", fontWeight:300, marginBottom:28 }}>{t("pay.title")}</h3>
+      <div>
+        <h4 className="serif" style={{ fontSize:"clamp(20px,2vw,25px)", fontWeight:300, marginBottom:22 }}>{t("pay.title")}</h4>
         {steps.map((s,i)=>(
           <div key={i} style={{ display:"grid", gridTemplateColumns:"44px 1fr auto", gap:16, alignItems:"start", padding:"18px 0", borderBottom:"1px solid var(--line)" }}>
             <div style={{ fontFamily:"var(--serif)", fontSize:28, fontWeight:200, color:"var(--clay)", lineHeight:1, paddingTop:2, opacity: i === 0 ? 1 : 0.45, flexShrink:0 }}>{s.step}</div>
@@ -1071,6 +1175,145 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         <p style={{ fontSize:11.5, color:"var(--ink-2)", marginTop:14, lineHeight:1.65 }}>
           PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.
         </p>
+      </div>
+    );
+  }
+
+  /* ── Financials — Payment plan + Investment projections (fused) ─ */
+  function Financials({ p }) {
+    const t = useT();
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:24 }}>{t("fin.title")}</div>
+        <PaymentPlan p={p} />
+        {p.nightlyRate > 0 && <InvestmentCalc p={p} />}
+      </div>
+    );
+  }
+
+  /* ── Breadcrumbs ───────────────────────────────────────────── */
+  function Breadcrumbs({ p }) {
+    const t = useT();
+    const { lang, go } = useApp();
+    const sep = <span aria-hidden="true" style={{ opacity:.4, margin:"0 9px" }}>›</span>;
+    const link = (label, onClick) => (
+      <button onClick={onClick} style={{ background:"none", border:"none", padding:0, cursor:"pointer", font:"inherit", letterSpacing:".08em", color:"var(--ink-2)", transition:"color .2s" }}
+        onMouseEnter={(e)=>e.currentTarget.style.color="var(--clay)"} onMouseLeave={(e)=>e.currentTarget.style.color="var(--ink-2)"}>{label}</button>
+    );
+    return (
+      <nav aria-label="Breadcrumb" style={{ fontFamily:"var(--sans)", fontSize:11.5, fontWeight:500, textTransform:"uppercase", letterSpacing:".08em", display:"flex", flexWrap:"wrap", alignItems:"center", marginBottom:22 }}>
+        {link(t("crumb.home"), () => { window.location.href = "index.html"; })}
+        {sep}
+        {link(t("crumb.portfolio"), () => go("properties"))}
+        {sep}
+        {link(t(LINE_KEYS[p.line]), () => go("properties"))}
+        {sep}
+        <span style={{ color:"var(--ink)", letterSpacing:".08em" }}>{p.title[lang] || p.title.en}</span>
+      </nav>
+    );
+  }
+
+  /* ── Map (image) ───────────────────────────────────────────── */
+  function MapBlock({ p }) {
+    const t = useT();
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:20 }}>{t("map.title")}</div>
+        {p.mapImage
+          ? <img src={p.mapImage} alt={t("map.title")} style={{ width:"100%", borderRadius:10, display:"block", border:"1px solid var(--line)" }} />
+          : <div style={{ aspectRatio:"16/9", borderRadius:10, border:"1px dashed var(--line)", background:"var(--bone-2)", display:"grid", placeItems:"center" }}>
+              <div style={{ textAlign:"center", color:"var(--ink-2)" }}>
+                <svg viewBox="0 0 24 24" style={{ width:30, height:30, fill:"none", stroke:"var(--ink-2)", strokeWidth:1.4, opacity:.7 }} aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                <div style={{ fontSize:13, letterSpacing:".06em", marginTop:10 }}>{t("map.soon")}</div>
+                <div style={{ fontSize:14, color:"var(--ink)", marginTop:4, fontWeight:600 }}>{p.region}</div>
+              </div>
+            </div>}
+      </div>
+    );
+  }
+
+  /* ── Choose your home (optional) ───────────────────────────── */
+  const HOME_PLACEHOLDER = [
+    { name:"Lontar",     beds:2, built:120, priceEUR:215000 },
+    { name:"Banyan",     beds:3, built:180, priceEUR:285000 },
+    { name:"Frangipani", beds:4, built:240, priceEUR:360000 },
+  ];
+  function ChooseHome({ p }) {
+    const t = useT();
+    const enabled = p.showHomeModels === true || (p.homeModels && p.homeModels.length);
+    const [sel, setSel] = useState(0);
+    if (!enabled) return null;
+    const models = (p.homeModels && p.homeModels.length) ? p.homeModels : HOME_PLACEHOLDER;
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:8 }}>{t("home.title")}</div>
+        <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:24, maxWidth:"46ch" }}>{t("home.sub")}</p>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:14 }}>
+          {models.map((m, i) => {
+            const on = i === sel;
+            return (
+              <button key={i} onClick={() => setSel(i)} style={{ textAlign:"left", padding:0, border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, overflow:"hidden", cursor:"pointer", background:"var(--bone-2)", transition:"border-color .25s" }}>
+                <div style={{ position:"relative", aspectRatio:"4/3" }}>
+                  {m.image ? <img src={m.image} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} /> : <div className={"ph-grad ph-"+themeFor(p)} style={{ position:"absolute", inset:0 }} />}
+                  {on && <span style={{ position:"absolute", top:8, right:8, background:"var(--clay)", color:"var(--bone)", fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", padding:"3px 8px", borderRadius:999 }}>{t("home.selected")}</span>}
+                </div>
+                <div style={{ padding:"12px 14px 14px" }}>
+                  <div className="serif" style={{ fontSize:19 }}>{m.name}</div>
+                  <div style={{ fontSize:12, color:"var(--ink-2)", marginTop:4 }}>{m.beds} {t("home.beds")} · {m.built} m²</div>
+                  <div style={{ fontSize:14, fontWeight:600, marginTop:8 }}><Price eur={m.priceEUR} from /></div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Extras (optional) ─────────────────────────────────────── */
+  const EXTRAS_PLACEHOLDER = [
+    { name:"Private pool",         priceEUR:28000 },
+    { name:"Sauna",                priceEUR:12000 },
+    { name:"Outdoor kitchen",      priceEUR:8500 },
+    { name:"Airbnb rental kit",    priceEUR:6500 },
+    { name:"Solar energy package", priceEUR:9000 },
+  ];
+  function ExtrasBlock({ p }) {
+    const t = useT();
+    const { cur } = useApp();
+    const { money } = window.LAWANG;
+    const enabled = p.showExtras === true || (p.extras && p.extras.length);
+    const [sel, setSel] = useState({});
+    if (!enabled) return null;
+    const extras = (p.extras && p.extras.length) ? p.extras : EXTRAS_PLACEHOLDER;
+    const total = extras.reduce((sum, e, i) => sel[i] ? sum + (Number(e.priceEUR) || 0) : sum, 0);
+    return (
+      <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
+        <div className="kicker" style={{ marginBottom:8 }}>{t("extras.title")}</div>
+        <p style={{ fontSize:14.5, color:"var(--ink-2)", marginBottom:20, maxWidth:"46ch" }}>{t("extras.sub")}</p>
+        <div style={{ border:"1px solid var(--line)", borderRadius:10, overflow:"hidden" }}>
+          {extras.map((e, i) => {
+            const on = !!sel[i];
+            return (
+              <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, padding:"14px 16px", borderBottom: i<extras.length-1 ? "1px solid var(--line)" : "none", background: on?"var(--tg-light)":"transparent", transition:"background .2s" }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:14.5, fontWeight:600 }}>{e.name}</div>
+                  {e.note && <div style={{ fontSize:12, color:"var(--ink-2)", marginTop:2 }}>{e.note}</div>}
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:14, flexShrink:0 }}>
+                  <span className="serif" style={{ fontSize:16 }}>{e.priceEUR ? money(e.priceEUR, cur) : "—"}</span>
+                  <button onClick={() => setSel((s)=>({ ...s, [i]: !s[i] }))} style={{ border:"1px solid "+(on?"var(--clay)":"var(--line)"), background: on?"var(--clay)":"transparent", color: on?"var(--bone)":"var(--ink)", borderRadius:999, padding:"6px 16px", fontSize:12.5, fontWeight:600, cursor:"pointer", fontFamily:"var(--sans)", whiteSpace:"nowrap", transition:"all .2s" }}>{on ? ("✓ "+t("extras.added")) : t("extras.add")}</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {total > 0 && (
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:16, paddingTop:14, borderTop:"2px solid var(--ink)" }}>
+            <span style={{ fontWeight:700, fontSize:13.5, textTransform:"uppercase", letterSpacing:".06em" }}>{t("extras.total")}</span>
+            <span className="serif" style={{ fontSize:20, fontWeight:600 }}>+{money(total, cur)}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -1099,6 +1342,9 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     return (
       <div style={{ paddingTop:"clamp(32px,4vw,56px)", paddingBottom:80 }}>
         <div className="wrap">
+          {/* Breadcrumbs */}
+          <Reveal><Breadcrumbs p={p} /></Reveal>
+
           {/* Header — title left, price top-right (visible on entry) */}
           <Reveal>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", gap:"clamp(20px,4vw,48px)", flexWrap:"wrap", marginBottom:30 }}>
@@ -1132,7 +1378,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           {/* Two-column layout */}
           <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1.65fr) minmax(0,1fr)", gap:"clamp(28px,5vw,72px)", marginTop:56, alignItems:"start" }}>
 
-            {/* LEFT — description + investment calc + payment plan */}
+            {/* LEFT — overview · map · choose your home · extras · financials */}
             <div>
               <Reveal>
                 <div>
@@ -1140,8 +1386,10 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                   <p className="serif" style={{ fontSize:"clamp(20px,2.4vw,28px)", fontWeight:300, lineHeight:1.5, marginTop:18 }}>{p.desc[lang]||p.desc.en}</p>
                 </div>
               </Reveal>
-              {p.nightlyRate>0 && <Reveal><InvestmentCalc p={p} /></Reveal>}
-              <Reveal><PaymentPlan p={p} /></Reveal>
+              <Reveal><MapBlock p={p} /></Reveal>
+              <Reveal><ChooseHome p={p} /></Reveal>
+              <Reveal><ExtrasBlock p={p} /></Reveal>
+              <Reveal><Financials p={p} /></Reveal>
             </div>
 
             {/* RIGHT — price · location · legal · contact (sticky) */}
