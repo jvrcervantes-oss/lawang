@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio · Lawang Tropical Properties</title>
+<title>The Field · Lawang Tropical Properties</title>
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <!-- Fonts: Cormorant Garamond + Jost (reemplaza OTF demo de fonnts.com) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -388,7 +388,7 @@ article:hover .view-cta { gap:9px; }
     "intro.stat2.v":{"en":"Architect-built villas","es":"Villas de autor"},
     "intro.stat3.k":{"en":"2 regions","es":"2 regiones"},
     "intro.stat3.v":{"en":"Balian Hills & Sumba","es":"Balian Hills y Sumba"},
-    "mk.kicker":{"en":"The portfolio","es":"El portfolio"},
+    "mk.kicker":{"en":"The Field","es":"The Field"},
     "mk.title":{"en":"Four ways to own a piece of Indonesia.","es":"Cuatro formas de poseer un trozo de Indonesia."},
     "mk.all":{"en":"All","es":"Todo"},
     "mk.featured":{"en":"Featured release","es":"Lanzamiento destacado"},
@@ -404,7 +404,7 @@ article:hover .view-cta { gap:9px; }
     "line.land.d":{"en":"Titled, due-diligenced parcels in our master-planned estates.","es":"Parcelas tituladas y verificadas en nuestros desarrollos."},
     "line.villa.d":{"en":"Repeatable villa designs you build on your own plot.","es":"Diseños de villa replicables para construir en tu parcela."},
     "line.resorts.d":{"en":"Income-producing hospitality, fully managed.","es":"Hospitalidad con renta, gestión integral."},
-    "pd.back":{"en":"Back to portfolio","es":"Volver al portfolio"},
+    "pd.back":{"en":"Back to The Field","es":"Volver a The Field"},
     "pd.overview":{"en":"Overview","es":"Resumen"},
     "pd.specs":{"en":"Specifications","es":"Especificaciones"},
     "pd.spec.land":{"en":"Land area","es":"Superficie parcela"},
@@ -460,7 +460,7 @@ article:hover .view-cta { gap:9px; }
     "wa.sub":          {"en":"We answer within a few hours.","es":"Respondemos en pocas horas."},
     "wa.cta":          {"en":"WhatsApp us","es":"Escríbenos por WhatsApp"},
     "crumb.home":      {"en":"Lawang","es":"Lawang"},
-    "crumb.portfolio": {"en":"Portfolio","es":"Portfolio"},
+    "crumb.portfolio": {"en":"The Field","es":"The Field"},
     "map.title":       {"en":"Location & Surroundings","es":"Ubicación y entorno"},
     "map.soon":        {"en":"Site map coming soon","es":"Plano de ubicación próximamente"},
     "home.title":      {"en":"Choose your home","es":"Elige tu villa"},
@@ -827,7 +827,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const extra = total - 1 - sideCount;
 
     return (
-      <div style={{ maxWidth:960, margin:"0 auto" }}>
+      <div>
         {/* Mosaic — big main left, stacked previews right */}
         <div className="pdp-mosaic" style={{ boxShadow:"0 30px 80px -42px rgba(27,26,21,.45)", borderRadius:10 }}>
           {/* MAIN */}
@@ -1357,7 +1357,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
       if (!p) return;
       const name = p.title[lang] || p.title.en;
       document.title = name + " · Lawang";
-      return () => { document.title = "Portfolio · Lawang Tropical Properties"; };
+      return () => { document.title = "The Field · Lawang Tropical Properties"; };
     }, [p && p.id, lang]);
 
     // Live configuration: chosen home model + selected extras → drives the Payment Plan price
@@ -1396,14 +1396,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                 <h1 className="display" style={{ fontSize:"clamp(34px,5vw,64px)" }}>{p.title[lang]||p.title.en}</h1>
                 <p style={{ fontSize:18, color:"var(--ink-2)", marginTop:14, maxWidth:"50ch" }}>{p.sub[lang]||p.sub.en}</p>
               </div>
-              <div style={{ flexShrink:0, background:"var(--bone-2)", border:"1px solid var(--line)", borderRadius:12, padding:"14px 22px 16px", minWidth:190 }}>
-                <div style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--ink-2)", marginBottom:8 }}>{t("glance.entry")}</div>
-                <div className="serif" style={{ fontSize:"clamp(26px,2.6vw,34px)", fontWeight:400, lineHeight:1 }}><Price eur={p.priceEUR} from /></div>
-                <div style={{ display:"flex", gap:12, marginTop:9, flexWrap:"wrap" }}>
-                  {["EUR","USD","AUD"].filter((c)=>c!==cur).map((c) => (
-                    <span key={c} style={{ fontSize:11.5, color:"var(--ink-2)" }}><span style={{ fontWeight:600 }}>{c}</span> {money(p.priceEUR, c)}</span>
-                  ))}
-                </div>
+              <div style={{ flexShrink:0, textAlign:"right" }}>
+                <div className="serif" style={{ fontSize:"clamp(28px,2.8vw,38px)", fontWeight:400, lineHeight:1 }}><Price eur={p.priceEUR} from /></div>
               </div>
             </div>
           </Reveal>
@@ -1497,7 +1491,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             <use href="#lawang-mark" />
           </svg>
           <div>
-            <div style={{ fontFamily:"var(--serif)", fontWeight:400, fontSize:"1.05rem", letterSpacing:".18em", color:"#E8DFC8", textTransform:"uppercase" }}>Portfolio · Lawang</div>
+            <div style={{ fontFamily:"var(--serif)", fontWeight:400, fontSize:"1.05rem", letterSpacing:".18em", color:"#E8DFC8", textTransform:"uppercase" }}>The Field · Lawang</div>
             <div style={{ fontSize:10, fontWeight:300, color:"rgba(232,223,200,0.4)", letterSpacing:".35em", textTransform:"uppercase", marginTop:2, fontFamily:"var(--sans)" }}>{t("brand.tag")}</div>
           </div>
         </a>
@@ -1557,7 +1551,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             style={{ background:"none", border:0, cursor:"pointer", color:"var(--ink-2)", fontSize:10, fontWeight:600, letterSpacing:".2em", textTransform:"uppercase", display:"inline-flex", alignItems:"center", gap:10, padding:"8px 0", fontFamily:"var(--sans)", transition:"color .2s" }}
             onMouseEnter={e=>e.currentTarget.style.color="var(--tg)"}
             onMouseLeave={e=>e.currentTarget.style.color="var(--ink-2)"}>
-            <span style={{ fontSize:16, fontWeight:300, letterSpacing:0 }}>←</span> Portfolio
+            <span style={{ fontSize:16, fontWeight:300, letterSpacing:0 }}>←</span> The Field
           </button>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={toggleWrap}>
