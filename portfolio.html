@@ -474,6 +474,9 @@ article:hover .view-cta { gap:9px; }
     "extras.added":    {"en":"Added","es":"Añadida"},
     "extras.total":    {"en":"Selected extras","es":"Extras seleccionados"},
     "fin.title":       {"en":"Payments & Returns","es":"Pagos y Rentabilidad"},
+    "fin.config":      {"en":"Your configuration","es":"Tu configuración"},
+    "fin.base":        {"en":"Base price","es":"Precio base"},
+    "fin.total":       {"en":"Configured total","es":"Total configurado"},
     "glance.units":    {"en":"Available units","es":"Unidades disponibles"},
     "dl.gate.title":   {"en":"Enter your email to download","es":"Introduce tu email para descargar"},
     "dl.gate.note":    {"en":"We'll send the files to your inbox and keep you posted on this project.","es":"Te enviamos los archivos por correo y te mantenemos al día del proyecto."},
@@ -764,8 +767,13 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
 <script type="text/babel">
 (function () {
   const { useApp, useT, Reveal, Ph, themeFor, Price } = window.L;
-  const { useState, useMemo } = React;
+  const { useState, useMemo, useContext } = React;
   const LINE_KEYS = { signature:"line.signature", land:"line.land", villa:"line.villa", resorts:"line.resorts" };
+
+  // Shared configuration (Choose-your-home model + Extras) → feeds the Payment Plan price
+  const ConfigCtx = React.createContext(null);
+  const resolveHomes  = (p) => (p.showHomeModels === true || (p.homeModels && p.homeModels.length)) ? ((p.homeModels && p.homeModels.length) ? p.homeModels : HOME_PLACEHOLDER) : null;
+  const resolveExtras = (p) => (p.showExtras === true || (p.extras && p.extras.length)) ? ((p.extras && p.extras.length) ? p.extras : EXTRAS_PLACEHOLDER) : null;
 
   function Gallery({ p }) {
     const [active, setActive] = useState(0);
@@ -859,17 +867,6 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             );
           })}
         </div>
-        {/* Filmstrip — full pagination, video thumbs get a play badge */}
-        {total > 1 && (
-          <div style={{ display:"grid", gridTemplateColumns:`repeat(${Math.min(total, 8)}, 1fr)`, gap:8, marginTop:8 }}>
-            {media.map((m, i) => (
-              <button key={i} className="gallery-thumb" onClick={() => change(i)}
-                style={{ position:"relative", padding:0, border:"2px solid "+(i===active ? "var(--clay)" : "transparent"), borderRadius:5, overflow:"hidden", cursor:"pointer", background:"none", opacity: fading && i === active ? 0.5 : 1, aspectRatio:"4/3" }}>
-                <Preview m={m} />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     );
   }
@@ -1074,10 +1071,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   }
 
   /* ── Investment Return Calculator ──────────────────────────── */
-  function InvestmentCalc({ p }) {
+  function InvestmentCalc({ p, priceEUR }) {
     const t = useT();
     const { cur } = useApp();
     const { money } = window.LAWANG;
+    const price = priceEUR != null ? priceEUR : p.priceEUR;
     const rateEUR = p.nightlyRate || 150;   // fixed; admin sets it, no client-facing input
     const [showTable, setShowTable] = useState(false);
     const MGMT = 0.20;
@@ -1085,8 +1083,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const yrs  = [1, 5, 10, 20, 30];
     const annNet = (o) => rateEUR * 365 * o * (1-MGMT);
     const cum    = (o, y) => Math.round(annNet(o) * y);
-    const roi30  = (o) => ((cum(o,30)/p.priceEUR)*100).toFixed(0);
-    const beYr   = (o) => (p.priceEUR/annNet(o)).toFixed(1);
+    const roi30  = (o) => ((cum(o,30)/price)*100).toFixed(0);
+    const beYr   = (o) => (price/annNet(o)).toFixed(1);
     const fmtCur = (eur) => money(eur, cur);
     const thStyle = { padding:"10px 8px", fontWeight:700, fontSize:11, letterSpacing:".1em", textTransform:"uppercase", color:"var(--tg)" };
     const tdStyle = (bold) => ({ padding:"10px 8px", fontFamily:"var(--serif)", fontSize:15, fontWeight:bold?600:300, textAlign:"right" });
@@ -1147,10 +1145,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   }
 
   /* ── Payment Plan ──────────────────────────────────────────── */
-  function PaymentPlan({ p }) {
+  function PaymentPlan({ p, priceEUR }) {
     const t = useT();
     const { cur } = useApp();
     const { money, getPaymentPlan } = window.LAWANG;
+    const price = priceEUR != null ? priceEUR : p.priceEUR;
     const steps = (p.paymentPlan && p.paymentPlan.length) ? p.paymentPlan : getPaymentPlan(p);
     return (
       <div>
@@ -1163,14 +1162,14 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
               <div style={{ fontSize:12.5, color:"var(--ink-2)", lineHeight:1.5 }}>{s.note}</div>
             </div>
             <div style={{ textAlign:"right", flexShrink:0 }}>
-              <div style={{ fontFamily:"var(--serif)", fontSize:18 }}>{money(Math.round(p.priceEUR*s.pct/100), cur)}</div>
+              <div style={{ fontFamily:"var(--serif)", fontSize:18 }}>{money(Math.round(price*s.pct/100), cur)}</div>
               <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:2 }}>{s.pct}%</div>
             </div>
           </div>
         ))}
         <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 0", borderTop:"2px solid var(--ink)" }}>
           <span style={{ fontWeight:700, fontSize:14 }}>Total</span>
-          <span style={{ fontFamily:"var(--serif)", fontSize:20, fontWeight:600 }}>{money(p.priceEUR,cur)}</span>
+          <span style={{ fontFamily:"var(--serif)", fontSize:20, fontWeight:600 }}>{money(price,cur)}</span>
         </div>
         <p style={{ fontSize:11.5, color:"var(--ink-2)", marginTop:14, lineHeight:1.65 }}>
           PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.
@@ -1182,11 +1181,40 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   /* ── Financials — Payment plan + Investment projections (fused) ─ */
   function Financials({ p }) {
     const t = useT();
+    const { cur } = useApp();
+    const { money } = window.LAWANG;
+    const cfg = useContext(ConfigCtx) || {};
+    const configuredEUR = cfg.configuredEUR != null ? cfg.configuredEUR : p.priceEUR;
+    const baseEUR = cfg.baseEUR != null ? cfg.baseEUR : p.priceEUR;
+    const extrasTotal = cfg.extrasTotal || 0;
+    const selModel = (cfg.models && cfg.models[cfg.modelIdx]) || null;
+    const selExtras = (cfg.extrasList || []).filter((e, i) => cfg.extrasSel && cfg.extrasSel[i]);
+    const showBreakdown = selModel != null || extrasTotal > 0;
+    const bRow = { display:"flex", justifyContent:"space-between", alignItems:"baseline", fontSize:14, padding:"4px 0" };
     return (
       <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
         <div className="kicker" style={{ marginBottom:24 }}>{t("fin.title")}</div>
-        <PaymentPlan p={p} />
-        {p.nightlyRate > 0 && <InvestmentCalc p={p} />}
+        {showBreakdown && (
+          <div style={{ background:"var(--tg-light)", border:"1px solid rgba(72,91,55,.2)", borderRadius:10, padding:"16px 18px", marginBottom:28 }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:".18em", textTransform:"uppercase", color:"var(--clay)", marginBottom:12 }}>{t("fin.config")}</div>
+            <div style={bRow}>
+              <span style={{ fontWeight:600 }}>{selModel ? selModel.name : t("fin.base")}</span>
+              <span className="serif" style={{ fontSize:16 }}>{money(baseEUR, cur)}</span>
+            </div>
+            {selExtras.map((e, i) => (
+              <div key={i} style={{ ...bRow, color:"var(--ink-2)" }}>
+                <span>+ {e.name}</span>
+                <span>{money(Number(e.priceEUR) || 0, cur)}</span>
+              </div>
+            ))}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(72,91,55,.22)" }}>
+              <span style={{ fontWeight:700, fontSize:12.5, textTransform:"uppercase", letterSpacing:".06em" }}>{t("fin.total")}</span>
+              <span className="serif" style={{ fontSize:22, fontWeight:600 }}>{money(configuredEUR, cur)}</span>
+            </div>
+          </div>
+        )}
+        <PaymentPlan p={p} priceEUR={configuredEUR} />
+        {p.nightlyRate > 0 && <InvestmentCalc p={p} priceEUR={configuredEUR} />}
       </div>
     );
   }
@@ -1240,10 +1268,10 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   ];
   function ChooseHome({ p }) {
     const t = useT();
-    const enabled = p.showHomeModels === true || (p.homeModels && p.homeModels.length);
-    const [sel, setSel] = useState(0);
-    if (!enabled) return null;
-    const models = (p.homeModels && p.homeModels.length) ? p.homeModels : HOME_PLACEHOLDER;
+    const cfg = useContext(ConfigCtx);
+    const models = cfg && cfg.models;
+    if (!models) return null;
+    const sel = cfg.modelIdx;
     return (
       <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
         <div className="kicker" style={{ marginBottom:8 }}>{t("home.title")}</div>
@@ -1252,7 +1280,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           {models.map((m, i) => {
             const on = i === sel;
             return (
-              <button key={i} onClick={() => setSel(i)} style={{ textAlign:"left", padding:0, border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, overflow:"hidden", cursor:"pointer", background:"var(--bone-2)", transition:"border-color .25s" }}>
+              <button key={i} onClick={() => cfg.setModelIdx(i)} style={{ textAlign:"left", padding:0, border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, overflow:"hidden", cursor:"pointer", background:"var(--bone-2)", transition:"border-color .25s" }}>
                 <div style={{ position:"relative", aspectRatio:"4/3" }}>
                   {m.image ? <img src={m.image} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} /> : <div className={"ph-grad ph-"+themeFor(p)} style={{ position:"absolute", inset:0 }} />}
                   {on && <span style={{ position:"absolute", top:8, right:8, background:"var(--clay)", color:"var(--bone)", fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", padding:"3px 8px", borderRadius:999 }}>{t("home.selected")}</span>}
@@ -1282,11 +1310,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const t = useT();
     const { cur } = useApp();
     const { money } = window.LAWANG;
-    const enabled = p.showExtras === true || (p.extras && p.extras.length);
-    const [sel, setSel] = useState({});
-    if (!enabled) return null;
-    const extras = (p.extras && p.extras.length) ? p.extras : EXTRAS_PLACEHOLDER;
-    const total = extras.reduce((sum, e, i) => sel[i] ? sum + (Number(e.priceEUR) || 0) : sum, 0);
+    const cfg = useContext(ConfigCtx);
+    const extras = cfg && cfg.extrasList;
+    if (!extras) return null;
+    const sel = cfg.extrasSel;
+    const total = cfg.extrasTotal;
     return (
       <div style={{ marginTop:56, paddingTop:40, borderTop:"1px solid var(--line)" }}>
         <div className="kicker" style={{ marginBottom:8 }}>{t("extras.title")}</div>
@@ -1302,7 +1330,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:14, flexShrink:0 }}>
                   <span className="serif" style={{ fontSize:16 }}>{e.priceEUR ? money(e.priceEUR, cur) : "—"}</span>
-                  <button onClick={() => setSel((s)=>({ ...s, [i]: !s[i] }))} style={{ border:"1px solid "+(on?"var(--clay)":"var(--line)"), background: on?"var(--clay)":"transparent", color: on?"var(--bone)":"var(--ink)", borderRadius:999, padding:"6px 16px", fontSize:12.5, fontWeight:600, cursor:"pointer", fontFamily:"var(--sans)", whiteSpace:"nowrap", transition:"all .2s" }}>{on ? ("✓ "+t("extras.added")) : t("extras.add")}</button>
+                  <button onClick={() => cfg.setExtrasSel((s)=>({ ...s, [i]: !s[i] }))} style={{ border:"1px solid "+(on?"var(--clay)":"var(--line)"), background: on?"var(--clay)":"transparent", color: on?"var(--bone)":"var(--ink)", borderRadius:999, padding:"6px 16px", fontSize:12.5, fontWeight:600, cursor:"pointer", fontFamily:"var(--sans)", whiteSpace:"nowrap", transition:"all .2s" }}>{on ? ("✓ "+t("extras.added")) : t("extras.add")}</button>
                 </div>
               </div>
             );
@@ -1332,6 +1360,12 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
       return () => { document.title = "Portfolio · Lawang Tropical Properties"; };
     }, [p && p.id, lang]);
 
+    // Live configuration: chosen home model + selected extras → drives the Payment Plan price
+    const models     = p ? resolveHomes(p)  : null;
+    const extrasList = p ? resolveExtras(p) : null;
+    const [modelIdx, setModelIdx]   = useState(-1);  // -1 = none chosen → base price
+    const [extrasSel, setExtrasSel] = useState({});
+
     if (!p) return (
       <div className="wrap" style={{ paddingTop:120, paddingBottom:120, textAlign:"center" }}>
         <p className="serif" style={{ fontSize:28 }}>Property not found.</p>
@@ -1339,7 +1373,12 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
       </div>
     );
     const also = PROPERTIES.filter((x)=>x.line===p.line&&x.id!==p.id).slice(0,3);
+    const safeModelIdx = (models && modelIdx >= 0 && modelIdx < models.length) ? modelIdx : -1;
+    const baseEUR = (models && models[safeModelIdx]) ? (Number(models[safeModelIdx].priceEUR) || p.priceEUR) : p.priceEUR;
+    const extrasTotal = extrasList ? extrasList.reduce((s, e, i) => extrasSel[i] ? s + (Number(e.priceEUR) || 0) : s, 0) : 0;
+    const cfg = { models, extrasList, modelIdx: safeModelIdx, setModelIdx, extrasSel, setExtrasSel, baseEUR, extrasTotal, configuredEUR: baseEUR + extrasTotal };
     return (
+      <ConfigCtx.Provider value={cfg}>
       <div style={{ paddingTop:"clamp(32px,4vw,56px)", paddingBottom:80 }}>
         <div className="wrap">
           {/* Breadcrumbs */}
@@ -1422,6 +1461,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           )}
         </div>
       </div>
+      </ConfigCtx.Provider>
     );
   }
 
