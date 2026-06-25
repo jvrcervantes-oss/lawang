@@ -223,7 +223,8 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
   color:var(--gold-light);text-transform:uppercase;cursor:none;
   background:rgba(20,18,14,.25);transition:all .35s}
 .nav-cta .wa{width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;
-  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;line-height:1}
+  display:flex;align-items:center;justify-content:center;color:#fff;line-height:1}
+.nav-cta .wa svg{width:13px;height:13px;display:block}
 .nav-cta:hover{background:var(--gold);color:var(--obsidian);border-color:var(--gold)}
 #topbar.solid .nav-cta{color:var(--tg);border-color:rgba(72,91,55,.5);background:transparent}
 #topbar.solid .nav-cta:hover{background:var(--tg);color:var(--rl);border-color:var(--tg)}
@@ -642,7 +643,7 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
         <li role="option" data-lang="id"><span class="lang-opt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#fff"/><rect width="3" height="1" fill="#ce1126"/></svg>Bahasa</span></li>
       </ul>
     </div>
-    <a class="nav-cta" href="#contact"><span class="wa">✆</span> Let's Talk</a>
+    <a class="nav-cta" href="#contact"><span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span> Let's Talk</a>
   </div>
 </header>
 
@@ -921,7 +922,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-pf-top > * { position:relative; z-index:1; }
 .lw-pf-top .lw-kicker { color:#E6EDDD; }
 .lw-pf-statement { font-family:var(--csa); font-weight:300; font-size:clamp(26px,3.4vw,46px); line-height:1.14; letter-spacing:-.01em; color:var(--cb); margin:16px 0 0; max-width:24ch; }
-.lw-pf-title2 { font-family:var(--csa); text-transform:uppercase; font-weight:400; font-size:clamp(34px,5.4vw,68px); line-height:1.0; letter-spacing:.005em; color:var(--ci); margin:clamp(30px,4.5vh,56px) 0 0; }
+.lw-pf-title2 { font-family:var(--csa); text-transform:uppercase; font-weight:400; font-size:clamp(22px,3vw,42px); line-height:1.05; letter-spacing:.005em; color:var(--ci); margin:clamp(30px,4.5vh,56px) 0 0; }
+@media(min-width:760px){ .lw-pf-title2 { white-space:nowrap; } }
 .lw-pf-title2 b { font-weight:400; }
 .lw-pf-title2 .thin { font-weight:200; }
 .lw-pf-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); }
