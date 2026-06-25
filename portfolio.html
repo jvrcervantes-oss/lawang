@@ -486,7 +486,7 @@ article:hover .view-cta { gap:9px; }
     "home.select":     {"en":"Select","es":"Elegir"},
     "home.selected":   {"en":"Selected","es":"Elegida"},
     "home.beds":       {"en":"bd","es":"hab"},
-    "extras.title":    {"en":"Extras & Add-ons","es":"Extras y mejoras"},
+    "extras.title":    {"en":"Extras and Add-ons","es":"Extras y mejoras"},
     "extras.sub":      {"en":"Optional upgrades you can add to your villa.","es":"Mejoras opcionales que puedes añadir a tu villa."},
     "extras.add":      {"en":"Add","es":"Añadir"},
     "extras.added":    {"en":"Added","es":"Añadida"},
@@ -610,7 +610,7 @@ function Price({ eur, from }) {
   const t = useT();
   const { money } = window.LAWANG;
   return (
-    <span>
+    <span style={{ fontFamily:"var(--sans)" }}>
       {from && <span style={{ fontSize:".62em", opacity:.6, marginRight:6 }}>{t("mk.from")}</span>}
       {money(eur, cur)}
     </span>
@@ -894,7 +894,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                 <Preview m={media[idx]} />
                 {isLast && extra > 0 && (
                   <div style={{ position:"absolute", inset:0, background:"rgba(20,16,11,.52)", display:"grid", placeItems:"center", zIndex:3 }}>
-                    <span style={{ fontFamily:"var(--serif)", fontSize:"clamp(20px,2.4vw,30px)", color:"var(--bone)", fontWeight:400 }}>+{extra}</span>
+                    <span style={{ fontFamily:"var(--sans)", fontSize:"clamp(20px,2.4vw,30px)", color:"var(--bone)", fontWeight:500 }}>+{extra}</span>
                   </div>
                 )}
               </button>
@@ -930,7 +930,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
               borderBottom:"1px solid rgba(255,255,255,0.06)",
             }}>
               <div style={{ fontSize:9, fontWeight:600, letterSpacing:".22em", textTransform:"uppercase", color:"rgba(245,240,230,0.38)", marginBottom:8, fontFamily:"var(--sans)" }}>{s.label}</div>
-              <div style={{ fontFamily:"var(--serif)", fontSize:"1.1rem", fontWeight:300, color:"rgba(245,240,230,0.88)", lineHeight:1.1 }}>{s.value}</div>
+              <div style={{ fontFamily:"var(--sans)", fontSize:"1rem", fontWeight:500, color:"rgba(245,240,230,0.88)", lineHeight:1.2 }}>{s.value}</div>
             </div>
           ))}
         </div>
@@ -1121,7 +1121,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
     const beYr   = (o) => (price/annNet(o)).toFixed(1);
     const fmtCur = (eur) => money(eur, cur);
     const thStyle = { padding:"10px 8px", fontWeight:700, fontSize:11, letterSpacing:".1em", textTransform:"uppercase", color:"var(--tg)" };
-    const tdStyle = (bold) => ({ padding:"10px 8px", fontFamily:"var(--serif)", fontSize:15, fontWeight:bold?600:300, textAlign:"right" });
+    const tdStyle = (bold) => ({ padding:"10px 8px", fontFamily:"var(--sans)", fontSize:14, fontWeight:bold?600:400, textAlign:"right" });
     return (
       <div style={{ marginTop:40, paddingTop:36, borderTop:"1px solid var(--line)" }}>
         <h4 className="serif" style={{ fontSize:"clamp(20px,2vw,25px)", fontWeight:300, marginBottom:20 }}>{t("inv.title")}</h4>
@@ -1130,11 +1130,11 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:2, background:"var(--line)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden", marginBottom:24 }}>
           <div style={{ background:"var(--tg-light)", padding:"20px 18px" }}>
             <div style={{ fontSize:9, fontWeight:600, letterSpacing:".2em", textTransform:"uppercase", color:"var(--clay)", marginBottom:8 }}>ROI 30 yr · 80% occ.</div>
-            <div className="serif" style={{ fontSize:38, fontWeight:300, color:"var(--tg)", lineHeight:1 }}>{roi30(0.80)}%</div>
+            <div style={{ fontFamily:"var(--sans)", fontSize:34, fontWeight:500, color:"var(--tg)", lineHeight:1 }}>{roi30(0.80)}%</div>
           </div>
           <div style={{ background:"var(--tg-light)", padding:"20px 18px" }}>
             <div style={{ fontSize:9, fontWeight:600, letterSpacing:".2em", textTransform:"uppercase", color:"var(--clay)", marginBottom:8 }}>Break-even · 80% occ.</div>
-            <div className="serif" style={{ fontSize:38, fontWeight:300, color:"var(--tg)", lineHeight:1 }}>{beYr(0.80)} <span style={{ fontSize:18, opacity:.6 }}>yr</span></div>
+            <div style={{ fontFamily:"var(--sans)", fontSize:34, fontWeight:500, color:"var(--tg)", lineHeight:1 }}>{beYr(0.80)} <span style={{ fontSize:18, opacity:.6 }}>yr</span></div>
           </div>
         </div>
 
@@ -1190,20 +1190,20 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         <h4 className="serif" style={{ fontSize:"clamp(20px,2vw,25px)", fontWeight:300, marginBottom:22 }}>{t("pay.title")}</h4>
         {steps.map((s,i)=>(
           <div key={i} style={{ display:"grid", gridTemplateColumns:"44px 1fr auto", gap:16, alignItems:"start", padding:"18px 0", borderBottom:"1px solid var(--line)" }}>
-            <div style={{ fontFamily:"var(--serif)", fontSize:28, fontWeight:200, color:"var(--clay)", lineHeight:1, paddingTop:2, opacity: i === 0 ? 1 : 0.45, flexShrink:0 }}>{s.step}</div>
+            <div style={{ fontFamily:"var(--sans)", fontSize:22, fontWeight:300, color:"var(--clay)", lineHeight:1, paddingTop:4, opacity: i === 0 ? 1 : 0.45, flexShrink:0 }}>{s.step}</div>
             <div>
               <div style={{ fontSize:14, fontWeight:600, marginBottom:4 }}>{s.label}</div>
               <div style={{ fontSize:12.5, color:"var(--ink-2)", lineHeight:1.5 }}>{s.note}</div>
             </div>
             <div style={{ textAlign:"right", flexShrink:0 }}>
-              <div style={{ fontFamily:"var(--serif)", fontSize:18 }}>{money(Math.round(price*s.pct/100), cur)}</div>
+              <div style={{ fontFamily:"var(--sans)", fontSize:16, fontWeight:600 }}>{money(Math.round(price*s.pct/100), cur)}</div>
               <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:2 }}>{s.pct}%</div>
             </div>
           </div>
         ))}
         <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 0", borderTop:"2px solid var(--ink)" }}>
           <span style={{ fontWeight:700, fontSize:14 }}>Total</span>
-          <span style={{ fontFamily:"var(--serif)", fontSize:20, fontWeight:600 }}>{money(price,cur)}</span>
+          <span style={{ fontFamily:"var(--sans)", fontSize:18, fontWeight:700 }}>{money(price,cur)}</span>
         </div>
         <p style={{ fontSize:11.5, color:"var(--ink-2)", marginTop:14, lineHeight:1.65 }}>
           PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.
@@ -1233,19 +1233,19 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             {parcel && (
               <div style={bRow}>
                 <span style={{ fontWeight:600 }}>{t("cfg.step.land")} · {parcel.size} m²</span>
-                <span className="serif" style={{ fontSize:16 }}>{money(cfg.parcelEUR, cur)}</span>
+                <span style={{ fontFamily:"var(--sans)", fontSize:15, fontWeight:600 }}>{money(cfg.parcelEUR, cur)}</span>
               </div>
             )}
             {model && (
               <div style={bRow}>
                 <span style={{ fontWeight:600 }}>{model.name}</span>
-                <span className="serif" style={{ fontSize:16 }}>{money(cfg.homeEUR, cur)}</span>
+                <span style={{ fontFamily:"var(--sans)", fontSize:15, fontWeight:600 }}>{money(cfg.homeEUR, cur)}</span>
               </div>
             )}
             {!parcel && !model && (
               <div style={bRow}>
                 <span style={{ fontWeight:600 }}>{t("fin.base")}</span>
-                <span className="serif" style={{ fontSize:16 }}>{money(p.priceEUR, cur)}</span>
+                <span style={{ fontFamily:"var(--sans)", fontSize:15, fontWeight:600 }}>{money(p.priceEUR, cur)}</span>
               </div>
             )}
             {selExtras.map((e, i) => (
@@ -1256,7 +1256,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
             ))}
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", paddingTop:10, marginTop:6, borderTop:"1px solid rgba(72,91,55,.22)" }}>
               <span style={{ fontWeight:700, fontSize:12.5, textTransform:"uppercase", letterSpacing:".06em" }}>{t("fin.total")}</span>
-              <span className="serif" style={{ fontSize:22, fontWeight:600 }}>{money(configuredEUR, cur)}</span>
+              <span style={{ fontFamily:"var(--sans)", fontSize:20, fontWeight:700 }}>{money(configuredEUR, cur)}</span>
             </div>
           </div>
         )}
@@ -1386,7 +1386,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                   {e.note && <div style={{ fontSize:12, color:"var(--ink-2)", marginTop:2 }}>{e.note}</div>}
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:14, flexShrink:0 }}>
-                  <span className="serif" style={{ fontSize:16 }}>{e.priceEUR ? money(e.priceEUR, cur) : "—"}</span>
+                  <span style={{ fontFamily:"var(--sans)", fontSize:15, fontWeight:600 }}>{e.priceEUR ? money(e.priceEUR, cur) : "—"}</span>
                   <button onClick={() => cfg.setExtrasSel((s)=>({ ...s, [i]: !s[i] }))} style={{ border:"1px solid "+(on?"var(--clay)":"var(--line)"), background: on?"var(--clay)":"transparent", color: on?"var(--bone)":"var(--ink)", borderRadius:999, padding:"6px 16px", fontSize:12.5, fontWeight:600, cursor:"pointer", fontFamily:"var(--sans)", whiteSpace:"nowrap", transition:"all .2s" }}>{on ? ("✓ "+t("extras.added")) : t("extras.add")}</button>
                 </div>
               </div>
@@ -1396,7 +1396,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         {total > 0 && (
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:16, paddingTop:14, borderTop:"2px solid var(--ink)" }}>
             <span style={{ fontWeight:700, fontSize:13.5, textTransform:"uppercase", letterSpacing:".06em" }}>{t("extras.total")}</span>
-            <span className="serif" style={{ fontSize:20, fontWeight:600 }}>+{money(total, cur)}</span>
+            <span style={{ fontFamily:"var(--sans)", fontSize:18, fontWeight:700 }}>+{money(total, cur)}</span>
           </div>
         )}
       </React.Fragment>
@@ -1424,7 +1424,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           const on = i === sel;
           return (
             <button key={i} onClick={() => cfg.setParcelIdx(i)} style={{ textAlign:"left", padding:"16px 16px 18px", border:"2px solid "+(on?"var(--clay)":"var(--line)"), borderRadius:10, cursor:"pointer", background: on?"var(--tg-light)":"var(--bone-2)", transition:"all .2s" }}>
-              <div className="serif" style={{ fontSize:26, lineHeight:1 }}>{o.size} <span style={{ fontSize:14 }}>m²</span></div>
+              <div style={{ fontFamily:"var(--sans)", fontSize:24, fontWeight:600, lineHeight:1 }}>{o.size} <span style={{ fontSize:13, fontWeight:500 }}>m²</span></div>
               <div style={{ fontSize:14, fontWeight:600, marginTop:10 }}><Price eur={o.priceEUR} from /></div>
               {on && <div style={{ fontSize:9, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--clay)", marginTop:8 }}>✓ {t("home.selected")}</div>}
             </button>
@@ -1501,7 +1501,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           {cfg.configuredEUR > 0 && (
             <div style={{ marginLeft:"auto", textAlign:"right" }}>
               <div style={{ fontSize:9, fontWeight:700, letterSpacing:".16em", textTransform:"uppercase", color:"var(--ink-2)" }}>{t("fin.total")}</div>
-              <div className="serif" style={{ fontSize:20, fontWeight:600, lineHeight:1 }}>{money(cfg.configuredEUR, cur)}</div>
+              <div style={{ fontFamily:"var(--sans)", fontSize:19, fontWeight:700, lineHeight:1 }}>{money(cfg.configuredEUR, cur)}</div>
             </div>
           )}
         </div>
@@ -1615,7 +1615,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
               <Reveal>
                 <div>
                   <div className="kicker">{t("pd.overview")}</div>
-                  <p className="serif" style={{ fontSize:"clamp(20px,2.4vw,28px)", fontWeight:300, lineHeight:1.5, marginTop:18 }}>{p.desc[lang]||p.desc.en}</p>
+                  <p style={{ fontFamily:"var(--sans)", fontSize:"clamp(17px,1.7vw,21px)", fontWeight:300, lineHeight:1.65, marginTop:18, color:"var(--ink)" }}>{p.desc[lang]||p.desc.en}</p>
                 </div>
               </Reveal>
               <Reveal><MapBlock p={p} /></Reveal>
