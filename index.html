@@ -388,14 +388,12 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   padding:clamp(2rem,5vh,3rem) 1rem clamp(1.3rem,3.5vh,2rem);
   display:flex;flex-direction:column;align-items:center;gap:0;
   background:linear-gradient(to top,rgba(8,10,8,.55) 0%,transparent 100%)}
-.hero-marks{width:100%;overflow:hidden;height:34px;pointer-events:none;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
-          mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
-.marks-track{display:flex;align-items:center;gap:clamp(40px,8vw,120px);width:max-content;
-  opacity:.30;animation:marksDrift 60s linear infinite;will-change:transform}
-.marks-track img{height:30px;width:auto;flex:none;display:block}
-@keyframes marksDrift{from{transform:translateX(-50%)}to{transform:translateX(0)}}
-@media(prefers-reduced-motion:reduce){.marks-track{animation:none}}
+.hero-marks{width:100%;overflow:hidden;height:42px;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.marks-track{display:flex;align-items:center;justify-content:center;gap:clamp(14px,2.4vw,32px);
+  width:100%;opacity:.30}
+.marks-track img{height:36px;width:auto;flex:none;display:block}
 .hero-tagline{font-family:'Neue Kabel','Jost',sans-serif;font-weight:500;font-size:clamp(.86rem,2vw,1.22rem);
   letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
   text-shadow:0 2px 22px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.7);padding:0 1.2rem;line-height:1.55}
@@ -404,8 +402,8 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
 .hero-tagline .ht-l2{display:block;font-weight:200;margin-top:.32em;letter-spacing:.24em;opacity:.9}
 @media(max-width:680px){
   .hero-h{font-size:clamp(2.8rem,15vw,4.4rem)}
-  .marks-track{gap:60px}
-  .marks-track img{height:24px}
+  .marks-track{gap:14px}
+  .marks-track img{height:29px}
   .hero-tagline{font-size:.82rem;letter-spacing:.14em}
 }
 
@@ -738,8 +736,8 @@ const logo   = document.getElementById('logo');
 const marksWrap = document.getElementById('hero-marks');
 if(marksWrap){
   let s = '';
-  for(let i=0;i<14;i++) s += '<img src="assets/brand/logos/LAWANG-14.png" alt="" />';
-  marksWrap.innerHTML = '<div class="marks-track">' + s + s + '</div>'; // duplicado = loop sin costura
+  for(let i=0;i<16;i++) s += '<img src="assets/brand/logos/LAWANG-14.png" alt="" />';
+  marksWrap.innerHTML = '<div class="marks-track">' + s + '</div>'; // fila fija centrada
 }
 
 // ── Scroll suave de anclas dentro del contenedor .snap ────────
