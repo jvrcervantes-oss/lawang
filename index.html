@@ -966,27 +966,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-services > .cs-wrap { position:relative; z-index:1; }
 .lw-services .lw-kicker { color:#E6EDDD; }
 .lw-services .lw-title { color:var(--cb); }
-.lw-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.6rem; margin-top:clamp(24px,3.5vh,48px); }
-.lw-svc { display:flex; flex-direction:column; gap:1rem; background:var(--cbr); border:1px solid var(--cl);
-  border-radius:16px; padding:clamp(1.7rem,2.6vh,2.4rem) 2rem; min-height:clamp(240px,30vh,300px);
-  transition:transform .32s cubic-bezier(.16,1,.3,1), box-shadow .32s; }
-.lw-svc:hover { transform:translateY(-4px); box-shadow:0 22px 54px -20px rgba(8,10,8,.34); }
-.lw-svc-top { display:flex; align-items:center; justify-content:space-between; }
-.lw-svc-icon { width:42px; height:42px; color:var(--ca); }
-.lw-svc-n { font-family:var(--cse); font-size:1.4rem; color:var(--css); }
-.lw-svc h3 { font-family:var(--cse); font-weight:400; font-size:clamp(1.5rem,2vw,1.75rem); line-height:1.15; color:var(--ci); margin:auto 0 0; }
-.lw-svc p { font-family:var(--csa); font-size:.875rem; line-height:1.7; color:var(--ci3); margin:0; }
-/* Fondos de tarjeta por servicio */
-.lw-svc.c-sand   { background:#BEB3A5; border-color:rgba(46,52,55,.10); }
-.lw-svc.c-canopy { background:#8F9B7A; border-color:rgba(46,52,55,.12); }
-.lw-svc.c-ash    { background:#2E3437; border-color:rgba(245,240,230,.10); }
-.lw-svc.c-sand p, .lw-svc.c-canopy p { color:rgba(46,52,55,.82); }
-.lw-svc.c-sand .lw-svc-n, .lw-svc.c-canopy .lw-svc-n { color:rgba(46,52,55,.55); }
-.lw-svc.c-canopy .lw-svc-icon { color:#2E3437; }
-.lw-svc.c-ash h3 { color:#F5F0E6; }
-.lw-svc.c-ash p { color:rgba(245,240,230,.76); }
-.lw-svc.c-ash .lw-svc-n { color:rgba(245,240,230,.5); }
-.lw-svc.c-ash .lw-svc-icon { color:#BEB3A5; }
+/* Servicios → pipeline integrado (cadena extremo a extremo) */
+.lw-svc-lead { font-family:var(--csa); font-weight:300; font-size:clamp(1rem,1.3vw,1.18rem); line-height:1.6;
+  color:rgba(245,240,230,.82); max-width:46ch; margin:.9rem 0 0; }
+.lw-pipe { margin-top:clamp(32px,5.2vh,64px); }
+.lw-pipe-track { position:relative; display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(16px,2.2vw,38px); }
+.lw-pipe-track::before { content:""; position:absolute; top:6px; left:12.5%; right:12.5%; height:1px;
+  background:linear-gradient(90deg, rgba(245,240,230,.08), rgba(245,240,230,.32) 16%, rgba(245,240,230,.32) 84%, rgba(245,240,230,.08)); }
+.lw-step { position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; }
+.lw-step-node { width:13px; height:13px; transform:rotate(45deg); background:var(--cb); position:relative; z-index:1;
+  transition:transform .5s cubic-bezier(.16,1,.3,1), background .4s; }
+.lw-step-body { margin-top:32px; max-width:240px; }
+.lw-step-num { display:block; font-family:var(--csa); font-size:12px; font-weight:600; letter-spacing:.32em;
+  color:rgba(245,240,230,.6); margin-bottom:15px; transition:color .35s; }
+.lw-step-body h3 { font-family:var(--cse); font-weight:400; font-size:clamp(1.3rem,1.6vw,1.55rem); line-height:1.16;
+  color:var(--cb); margin:0 0 .6rem; }
+.lw-step-body p { font-family:var(--csa); font-size:.86rem; line-height:1.68; color:rgba(245,240,230,.78); margin:0; }
+.lw-step:hover .lw-step-node { transform:rotate(45deg) scale(1.55); background:var(--cal); }
+.lw-step:hover .lw-step-num { color:var(--cb); }
 
 /* ════ 5 · WHO WE ARE + WHY HERE — About (#about) ════ */
 .lw-about { background:linear-gradient(rgba(245,240,230,.5),rgba(245,240,230,.5)), url('assets/images/redesign/bg-about.jpg') center/cover no-repeat; }
@@ -1074,10 +1071,18 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 @media(max-width:980px){
   .lw-show-grid { grid-template-columns:1fr 1fr; }
   .lw-pf-grid { grid-template-columns:1fr 1fr; }
-  .lw-svc-grid { grid-template-columns:1fr; }
   .lw-about-grid, .lw-feat-grid, .lw-ct-grid { grid-template-columns:1fr; }
   .lw-tl-grid { grid-template-columns:repeat(2,1fr); }
   .lw-ft-grid { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:780px){
+  .lw-pipe-track { grid-template-columns:1fr; gap:0; }
+  .lw-pipe-track::before { top:8px; bottom:8px; left:6px; right:auto; width:1px; height:auto;
+    background:linear-gradient(180deg, rgba(245,240,230,.08), rgba(245,240,230,.3) 10%, rgba(245,240,230,.3) 90%, rgba(245,240,230,.08)); }
+  .lw-step { flex-direction:row; align-items:flex-start; text-align:left; gap:22px; padding:15px 0; }
+  .lw-step-node { margin-top:5px; flex:0 0 auto; }
+  .lw-step-body { margin-top:0; max-width:none; }
+  .lw-step-num { margin-bottom:6px; }
 }
 @media(max-width:560px){
   .lw-show-grid, .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
@@ -1206,23 +1211,43 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   <div class="cs-wrap">
     <div class="lw-head reveal">
       <span class="lw-kicker">All in one</span>
-      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">Our services</h2>
+      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">From land to <span style="font-weight:200">legacy</span></h2>
+      <p class="lw-svc-lead">One partner for the entire journey — sourcing, legal structure, construction and returns, under a single name.</p>
     </div>
-    <div class="lw-svc-grid">
-      <div class="lw-svc c-sand reveal" style="transition-delay:60ms">
-        <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 80 60" aria-hidden="true"><use href="#icon-tepi-sungai"/></svg><span class="lw-svc-n">01</span></div>
-        <h3>Development and Construction</h3>
-        <p>Tepi Sungai, our construction division, executes each project with structural integrity and alignment to its territorial context.</p>
-      </div>
-      <div class="lw-svc c-canopy reveal" style="transition-delay:120ms">
-        <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 100 80" aria-hidden="true"><use href="#icon-land"/></svg><span class="lw-svc-n">02</span></div>
-        <h3>Territorial Investment</h3>
-        <p>We structure land and signature opportunities within verified expansion corridors — built to appreciate and to last.</p>
-      </div>
-      <div class="lw-svc c-ash reveal" style="transition-delay:180ms">
-        <div class="lw-svc-top"><svg class="lw-svc-icon" viewBox="0 0 80 80" aria-hidden="true"><use href="#icon-balian-hills"/></svg><span class="lw-svc-n">03</span></div>
-        <h3>Legal Structure</h3>
-        <p>Our legal and fiscal layer verifies and structures every acquisition — leasehold or PT PMA freehold.</p>
+    <div class="lw-pipe">
+      <div class="lw-pipe-track">
+        <div class="lw-step reveal" style="transition-delay:60ms">
+          <span class="lw-step-node"></span>
+          <div class="lw-step-body">
+            <span class="lw-step-num">01</span>
+            <h3>Territorial sourcing</h3>
+            <p>We secure land inside verified expansion corridors, vetted for title, access and long-term upside.</p>
+          </div>
+        </div>
+        <div class="lw-step reveal" style="transition-delay:120ms">
+          <span class="lw-step-node"></span>
+          <div class="lw-step-body">
+            <span class="lw-step-num">02</span>
+            <h3>Legal and structure</h3>
+            <p>Every acquisition verified and structured — leasehold or PT PMA freehold, with full fiscal clarity.</p>
+          </div>
+        </div>
+        <div class="lw-step reveal" style="transition-delay:180ms">
+          <span class="lw-step-node"></span>
+          <div class="lw-step-body">
+            <span class="lw-step-num">03</span>
+            <h3>Development and build</h3>
+            <p>Tepi Sungai, our construction division, delivers each villa with structural integrity and territorial context.</p>
+          </div>
+        </div>
+        <div class="lw-step reveal" style="transition-delay:240ms">
+          <span class="lw-step-node"></span>
+          <div class="lw-step-body">
+            <span class="lw-step-num">04</span>
+            <h3>Rental and returns</h3>
+            <p>Once delivered, we manage occupancy and yield so the asset keeps performing year after year.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
