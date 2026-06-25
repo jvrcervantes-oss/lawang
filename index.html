@@ -210,6 +210,8 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 .lang-menu li:hover{background:rgba(190,179,165,.18);color:#fff}
 .lang-menu li.active{color:var(--gold-light)}
 .lang-menu li.active::after{content:'✓';font-size:.78rem;color:var(--gold)}
+.lang-opt{display:inline-flex;align-items:center;gap:.6rem}
+.flag{width:21px;height:14px;flex:none;border-radius:2px;display:block;box-shadow:0 0 0 1px rgba(0,0,0,.10)}
 #topbar.solid .lang-menu{background:rgba(255,255,255,.97);border-color:rgba(72,91,55,.2);box-shadow:0 20px 44px -18px rgba(72,91,55,.28)}
 #topbar.solid .lang-menu li{color:rgba(26,22,18,.72)}
 #topbar.solid .lang-menu li:hover{background:rgba(72,91,55,.1);color:var(--tg)}
@@ -377,18 +379,23 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.32em;
   text-transform:uppercase;color:var(--gold-light);text-decoration:none;cursor:none;
   transition:background .3s,border-color .3s,color .3s,transform .3s}
-.hero-discover .ar{font-size:.8em;opacity:.8;transition:transform .3s}
+.hero-discover .ar{font-size:1.5em;line-height:0;opacity:1;font-weight:700;transition:transform .3s}
 .hero-discover:hover{background:rgba(190,179,165,.16);border-color:rgba(190,179,165,.85);color:#fff}
-.hero-discover:hover .ar:last-child{transform:translateY(3px)}
-.hero-discover:hover .ar:first-child{transform:translateY(3px)}
+.hero-discover:hover .ar:last-child{transform:translateY(4px)}
+.hero-discover:hover .ar:first-child{transform:translateY(4px)}
 /* Franja inferior — marcas de agua + tagline */
 .hero-band{position:absolute;left:0;right:0;bottom:0;z-index:5;
   padding:clamp(2rem,5vh,3rem) 1rem clamp(1.3rem,3.5vh,2rem);
   display:flex;flex-direction:column;align-items:center;gap:0;
   background:linear-gradient(to top,rgba(8,10,8,.55) 0%,transparent 100%)}
-.hero-marks{display:flex;align-items:center;justify-content:center;gap:clamp(18px,3vw,42px);
-  width:100%;opacity:.14;pointer-events:none;overflow:hidden;height:30px}
-.hero-marks svg{width:24px;height:24px;flex:none;color:var(--gold-light)}
+.hero-marks{width:100%;overflow:hidden;height:34px;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.marks-track{display:flex;align-items:center;gap:clamp(40px,8vw,120px);width:max-content;
+  opacity:.30;animation:marksDrift 60s linear infinite;will-change:transform}
+.marks-track img{height:30px;width:auto;flex:none;display:block}
+@keyframes marksDrift{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.marks-track{animation:none}}
 .hero-tagline{font-family:'Neue Kabel','Jost',sans-serif;font-weight:500;font-size:clamp(.86rem,2vw,1.22rem);
   letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
   text-shadow:0 2px 22px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.7);padding:0 1.2rem;line-height:1.55}
@@ -397,7 +404,8 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
 .hero-tagline .ht-l2{display:block;font-weight:200;margin-top:.32em;letter-spacing:.24em;opacity:.9}
 @media(max-width:680px){
   .hero-h{font-size:clamp(2.8rem,15vw,4.4rem)}
-  .hero-marks{gap:14px}
+  .marks-track{gap:60px}
+  .marks-track img{height:24px}
   .hero-tagline{font-size:.82rem;letter-spacing:.14em}
 }
 
@@ -619,7 +627,7 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
     <a class="nav-link" href="portfolio.html#land">Land</a>
     <a class="nav-link" href="portfolio.html#villas">Villas</a>
     <a class="nav-link" href="#about">The Soul</a>
-    <a class="nav-link" href="#portfolio">The Field</a>
+    <a class="nav-link" href="#portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
     <div class="nav-lang-wrap" id="langWrap">
@@ -631,9 +639,9 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
         <span class="caret">▾</span>
       </button>
       <ul class="lang-menu" id="langMenu" role="listbox" aria-label="Language">
-        <li role="option" data-lang="en" class="active">English</li>
-        <li role="option" data-lang="es">Español</li>
-        <li role="option" data-lang="id">Bahasa</li>
+        <li role="option" data-lang="en" class="active"><span class="lang-opt"><svg class="flag" viewBox="0 0 60 36" aria-hidden="true"><rect width="60" height="36" fill="#012169"/><path d="M0,0 60,36 M60,0 0,36" stroke="#fff" stroke-width="7.2"/><path d="M0,0 60,36 M60,0 0,36" stroke="#C8102E" stroke-width="4"/><path d="M30,0 V36 M0,18 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V36 M0,18 H60" stroke="#C8102E" stroke-width="7.2"/></svg>English</span></li>
+        <li role="option" data-lang="es"><span class="lang-opt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#c60b1e"/><rect y=".5" width="3" height="1" fill="#ffc400"/></svg>Español</span></li>
+        <li role="option" data-lang="id"><span class="lang-opt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#fff"/><rect width="3" height="1" fill="#ce1126"/></svg>Bahasa</span></li>
       </ul>
     </div>
     <a class="nav-cta" href="#contact"><span class="wa">✆</span> Let's Talk</a>
@@ -726,12 +734,12 @@ const logo   = document.getElementById('logo');
   } catch(e){}
 })();
 
-// ── Franja de marcas del hero (watermark band) ────────────────
+// ── Franja de marca del hero (watermark drift L→R) ────────────
 const marksWrap = document.getElementById('hero-marks');
 if(marksWrap){
   let s = '';
-  for(let i=0;i<16;i++) s += '<svg viewBox="0 0 80 88" fill="currentColor" aria-hidden="true"><use href="#lawang-mark"/></svg>';
-  marksWrap.innerHTML = s;
+  for(let i=0;i<14;i++) s += '<img src="assets/brand/logos/LAWANG-14.PNG" alt="" />';
+  marksWrap.innerHTML = '<div class="marks-track">' + s + s + '</div>'; // duplicado = loop sin costura
 }
 
 // ── Scroll suave de anclas dentro del contenedor .snap ────────
@@ -1052,7 +1060,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   <div class="cs-wrap">
     <div class="lw-head center reveal">
       <span class="lw-kicker">The Ecosystem</span>
-      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">Four ways, one legacy</h2>
+      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">Four ways, <span style="font-weight:200">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
       <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/images/redesign/villasCoast.jpg')">
