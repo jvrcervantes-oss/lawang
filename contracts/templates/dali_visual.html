@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perjanjian Induk Konstruksi — DALI (visual) · Lawang Tropical Properties</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     LAWANG TROPICAL PROPERTIES — DALI · versi visual (deck A4)
+     Bahasa Indonesia · Penanda: {{campo}}
+     Gambar: dari assets/dali/ (sementara, resolusi medium dari PDF) — ganti
+     dengan original beresolusi tinggi sebelum produksi.
+     RUTA imágenes = root-absoluta /contracts/assets/dali/ (compatible con
+     preview de la app, vista guardada y print).
+     ============================================================ */
+  :root{
+    --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+    --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --ink:#2E3437; --muted:#6b6c66;
+  }
+  @page{ size:A4; margin:0; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Jost',sans-serif; color:var(--ink); font-size:10.5pt; line-height:1.6; background:#e9e5db; }
+
+  /* ---- Página A4 ---- */
+  .page{ position:relative; width:210mm; min-height:297mm; margin:14px auto; background:#fff;
+    box-shadow:0 8px 40px rgba(0,0,0,.12); overflow:hidden; page-break-after:always; }
+  .page.pad{ padding:20mm 18mm; }
+  @media print{ body{ background:#fff; } .page{ margin:0; box-shadow:none; height:297mm; min-height:0; } }
+
+  /* ---- Marca / kop ---- */
+  .brand{ display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1.5px solid var(--tg); padding-bottom:10px; margin-bottom:20px; }
+  .brand .mark{ display:flex; align-items:center; gap:12px; }
+  .brand .glyph{ width:32px; height:32px; border:1.5px solid var(--tg); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; color:var(--tg);
+    font-family:'Cormorant Garamond',serif; font-size:19px; font-weight:600; }
+  .brand .wordmark{ font-family:'Cormorant Garamond',serif; font-size:19px; letter-spacing:.18em; color:var(--va); text-transform:uppercase; }
+  .brand .wordmark small{ display:block; font-family:'Jost'; font-size:7pt; letter-spacing:.32em; color:var(--muted); }
+  .brand .docref{ text-align:right; font-size:7pt; letter-spacing:.18em; color:var(--muted); text-transform:uppercase; }
+
+  /* ---- Portada ---- */
+  .cover{ color:#fff; }
+  .cover .bg{ position:absolute; inset:0; background-size:cover; background-position:center; }
+  .cover .scrim{ position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(46,52,55,.35) 0%, rgba(16,29,29,.55) 45%, rgba(10,18,18,.88) 100%); }
+  .cover .c-in{ position:relative; height:297mm; padding:26mm 22mm; display:flex; flex-direction:column; }
+  .cover .c-top{ display:flex; align-items:center; gap:12px; }
+  .cover .c-top .glyph{ width:38px; height:38px; border:1.5px solid rgba(255,255,255,.8); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; font-size:22px; }
+  .cover .c-top .wm{ font-family:'Cormorant Garamond',serif; font-size:21px; letter-spacing:.2em; text-transform:uppercase; }
+  .cover .c-top .wm small{ display:block; font-family:'Jost'; font-size:7.5pt; letter-spacing:.34em; opacity:.8; }
+  .cover .c-mid{ margin-top:auto; }
+  .cover .eyebrow{ font-size:8.5pt; letter-spacing:.4em; text-transform:uppercase; opacity:.85; margin-bottom:12px; }
+  .cover h1{ font-family:'Cormorant Garamond',serif; font-weight:500; font-size:44pt; line-height:1.02; margin:0; }
+  .cover .sub{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16pt; opacity:.92; margin-top:10px; }
+  .cover .c-foot{ margin-top:28px; font-size:8.5pt; letter-spacing:.16em; text-transform:uppercase; opacity:.78;
+    border-top:1px solid rgba(255,255,255,.25); padding-top:12px; }
+
+  /* ---- Tipografía documento ---- */
+  .eyebrow{ font-size:8pt; letter-spacing:.34em; text-transform:uppercase; color:var(--tg); margin-bottom:6px; }
+  h1.title{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:24pt; line-height:1.1; color:var(--va); margin:0 0 4px; }
+  .subtitle{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:13pt; color:var(--dl); margin-bottom:22px; }
+  h2{ font-family:'Jost'; font-weight:600; font-size:10.5pt; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--dl); margin:20px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--ss);
+    display:flex; gap:10px; align-items:baseline; }
+  h2 .n{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:13pt; color:var(--tg); font-weight:500; white-space:nowrap; }
+  h3{ font-family:'Jost'; font-weight:600; font-size:9.5pt; color:var(--tg); margin:14px 0 4px; }
+  p{ margin:0 0 9px; text-align:justify; }
+  ul.tight{ margin:4px 0 10px; padding-left:18px; } ul.tight li{ margin-bottom:4px; }
+
+  .f{ font-weight:500; color:var(--be); border-bottom:1px dotted var(--sc); padding:0 3px; white-space:nowrap; }
+  .f.block{ display:inline-block; min-width:150px; }
+  .party{ background:var(--rl); border-left:3px solid var(--tg); padding:11px 15px; margin:9px 0; border-radius:0 4px 4px 0; }
+  .party .role{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--tg); margin-bottom:3px; }
+  .opt-hint{ font-size:8pt; color:var(--muted); font-style:italic; }
+
+  table.pays{ width:100%; border-collapse:collapse; margin:10px 0 14px; font-size:9.5pt; }
+  table.pays th{ background:var(--dl); color:#fff; text-align:left; padding:7px 10px; font-weight:500; }
+  table.pays td{ padding:7px 10px; border-bottom:1px solid var(--ss); vertical-align:top; }
+  table.pays .pct{ font-family:'Cormorant Garamond',serif; font-size:13pt; color:var(--tg); font-weight:600; text-align:right; width:62px; }
+  table.pays .amt{ font-family:'Cormorant Garamond',serif; font-size:11pt; color:var(--dl); font-weight:600; white-space:nowrap; }
+
+  .price-box{ display:flex; gap:16px; margin:8px 0 12px; flex-wrap:wrap; }
+  .price-box .pc{ flex:1; min-width:170px; background:var(--rl); border:1px solid var(--ss); border-radius:4px; padding:11px 13px; }
+  .price-box .pc .lab{ font-size:7.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+  .price-box .pc .val{ font-family:'Cormorant Garamond',serif; font-size:17pt; color:var(--dl); font-weight:600; }
+  .price-box .pc .let{ font-size:8.5pt; color:var(--muted); font-style:italic; }
+
+  /* ---- Imágenes / galería ---- */
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:6mm; margin:6mm 0; }
+  .fig{ border:1px solid var(--ss); background:#fff; }
+  .fig img{ width:100%; display:block; }
+  .fig .cap{ font-size:7.5pt; letter-spacing:.14em; text-transform:uppercase; color:var(--tg); padding:5px 8px; background:var(--rl); }
+  .hero-img{ width:100%; height:120mm; object-fit:cover; display:block; border-radius:3px; }
+  .room{ display:grid; grid-template-columns:1fr 1fr; gap:6mm; align-items:center; margin:7mm 0; }
+  .room img{ width:100%; height:62mm; object-fit:cover; display:block; border-radius:3px; }
+  .room.rev{ direction:rtl; } .room.rev > *{ direction:ltr; }
+  .note{ font-size:8.5pt; color:var(--muted); background:#faf8f2; border:1px dashed var(--ss); padding:8px 12px; border-radius:4px; margin:10px 0; }
+  .draft{ position:absolute; top:8mm; right:10mm; font-size:7pt; letter-spacing:.2em; text-transform:uppercase;
+    color:#b08; background:#fff0f6; border:1px solid #f3c; border-radius:20px; padding:3px 10px; z-index:5; }
+
+  .signatures{ display:flex; gap:40px; margin-top:30px; page-break-inside:avoid; }
+  .sig{ flex:1; } .sig .img{ height:66px; border-bottom:1px solid var(--va); display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; }
+  .sig .img img{ max-height:60px; max-width:100%; }
+  .sig .who{ font-size:8pt; letter-spacing:.18em; text-transform:uppercase; color:var(--tg); margin-top:6px; }
+  .sig .nm{ font-size:9.5pt; color:var(--va); }
+  .place{ margin-top:20px; font-style:italic; color:var(--muted); font-family:'Cormorant Garamond',serif; font-size:12pt; }
+</style>
+</head>
+<body>
+
+<!-- ════════════ HALAMAN 1 · SAMPUL (COVER) ════════════ -->
+<div class="page cover">
+  <div class="bg" style="background-image:url('/contracts/assets/dali/p05_x48.jpeg')"></div>
+  <div class="scrim"></div>
+  <div class="c-in">
+    <div class="c-top">
+      <div class="glyph">L</div>
+      <div class="wm">Lawang<small>Tropical Properties</small></div>
+    </div>
+    <div class="c-mid">
+      <div class="eyebrow">Perjanjian Privat · Sumba Hills</div>
+      <h1>Perjanjian<br>Induk Konstruksi</h1>
+      <div class="sub">Vila {{proyek_nama}} — Tepi Sungai · Bali, Indonesia</div>
+    </div>
+    <div class="c-foot">PT San Dal Woods · Lawang Tropical Properties · Bali, Republik Indonesia</div>
+  </div>
+</div>
+
+<!-- ════════════ KONTRAK (Pasal 1–15) ════════════ -->
+<div class="page pad">
+  <div class="brand">
+    <div class="mark"><div class="glyph">L</div><div class="wordmark">Lawang<small>Tropical Properties</small></div></div>
+    <div class="docref">Master Construction Agreement<br>Sumba Hills · Bali</div>
+  </div>
+
+  <div class="eyebrow">Perjanjian Privat</div>
+  <h1 class="title">Perjanjian Induk Konstruksi</h1>
+  <div class="subtitle">Pembangunan vila — Proyek {{proyek_nama}} · Sumba Hills / Tepi Sungai</div>
+
+  <h2><span class="n">·</span> Tanggal &amp; Para Pihak</h2>
+  <p>Perjanjian ini dibuat dan ditandatangani pada tanggal <span class="f">{{tanggal_tandatangan}}</span> di Bali, Republik Indonesia, oleh dan antara:</p>
+
+  <div class="party">
+    <div class="role">Pengembang (Pihak Pertama)</div>
+    <strong>Tn. Pablo Cantero Gambín</strong>, dewasa, berkewarganegaraan Spanyol, dengan NPWP Indonesia
+    53.045.376.0-905.000, dalam hal ini bertindak untuk dan atas nama <strong>PT San Dal Woods</strong>,
+    berkedudukan di Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Kuta, Kab. Badung, Bali,
+    NPWP Perusahaan 1000.0000.0012.5018, pemegang sah hak <strong>Hak Guna Bangunan (HGB)</strong> atas tanah
+    yang diuraikan di bawah ini, dalam kedudukannya sebagai <span class="f">{{wakil_jabatan}}</span>
+    (selanjutnya «Pengembang»).
+  </div>
+
+  <div class="party">
+    <div class="role">Pembeli I (Pihak Kedua)</div>
+    Tn./Ny. <span class="f block">{{pembeli1_nama}}</span>, warga negara <span class="f">{{pembeli1_kebangsaan}}</span>,
+    Paspor/NIK No. <span class="f">{{pembeli1_paspor}}</span>, beralamat di <span class="f block">{{pembeli1_alamat}}</span>.
+    Telepon <span class="f">{{pembeli1_telepon}}</span> · email: <span class="f">{{pembeli1_email}}</span>.
+  </div>
+
+  <!--opt:pembeli2_nama-->
+  <div class="party">
+    <div class="role">Pembeli II <span class="opt-hint">(jika ada)</span></div>
+    Tn./Ny. <span class="f block">{{pembeli2_nama}}</span>, warga negara <span class="f">{{pembeli2_kebangsaan}}</span>,
+    Paspor/NIK No. <span class="f">{{pembeli2_paspor}}</span>, beralamat di <span class="f block">{{pembeli2_alamat}}</span>.
+    Telepon <span class="f">{{pembeli2_telepon}}</span> · email: <span class="f">{{pembeli2_email}}</span>.
+  </div>
+  <!--/opt:pembeli2_nama-->
+
+  <!--opt:ptpma_alamat-->
+  <div class="party">
+    <div class="role">Pembelian melalui badan hukum (PT PMA)</div>
+    Domisili: <span class="f block">{{ptpma_alamat}}</span> · NIB/OSS: <span class="f">{{ptpma_nib}}</span> · NPWP: <span class="f">{{ptpma_npwp}}</span>.
+  </div>
+  <!--/opt:ptpma_alamat-->
+
+  <p>Objek Perjanjian ini adalah pembangunan vila pada Proyek <span class="f">{{proyek_nama}}</span>,
+  Kavling No. <span class="f">{{parsel_no}}</span>, di dalam masterplan Sumba Hills / Tepi Sungai, Bali.
+  Para Pembeli mengakui bahwa Proyek merupakan pengembangan konstruksi vila privat dan berkehendak mengatur
+  syarat-syarat komersial, teknis, dan hukum atas pekerjaan konstruksi berdasarkan Perjanjian ini beserta Lampirannya.</p>
+
+  <h2><span class="n">Pasal 1</span> Definisi</h2>
+  <ul class="tight">
+    <li><strong>«Proyek»</strong> berarti vila, kolam renang, teras, instalasi, dan pekerjaan lain yang secara tegas tercantum dalam Lampiran A dan Lampiran B.</li>
+    <li><strong>«Harga Kontrak»</strong> berarti harga yang disepakati sebagaimana tercantum dalam Pasal 4, sudah termasuk pajak.</li>
+    <li><strong>«Penyelesaian»</strong> berarti tahap di mana Proyek secara substansial telah selesai dan layak digunakan sesuai peruntukannya, kecuali cacat kecil yang tidak menghalangi penghunian atau pengoperasian.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 2</span> Lingkup Pekerjaan</h2>
+  <ul class="tight">
+    <li>Pengembang wajib mengatur, mengelola, dan melaksanakan konstruksi Proyek secara ketat sesuai gambar, spesifikasi, dan jadwal yang disetujui, yang dilampirkan.</li>
+    <li>Hanya unsur yang secara tegas termasuk dalam Lampiran B yang menjadi bagian dari Harga Kontrak; unsur yang tidak tercantum dianggap dikecualikan, kecuali disepakati tertulis kemudian.</li>
+    <li>Tidak ada komunikasi lisan, pesan WhatsApp, atau gambar contoh yang dapat mengubah lingkup, kecuali melalui Perintah Perubahan (Variation Order) bertanda tangan kedua pihak.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 3</span> Dokumen Proyek</h2>
+  <p>Dalam hal pertentangan, urutan prioritas: (1) Perjanjian ini; (2) Lampiran A — Gambar Arsitektur; (3) Lampiran B — Spesifikasi Teknis; (4) Lampiran C — Dossier Dali; (5) Lampiran D — Penawaran Komersial.</p>
+
+  <h2><span class="n">Pasal 4</span> Harga Kontrak dan Pajak</h2>
+  <div class="price-box">
+    <div class="pc"><div class="lab">Harga total Kontrak</div><div class="val">{{harga_total_eur}} €</div><div class="let">{{harga_total_huruf}}</div></div>
+  </div>
+  <p>Harga total Kontrak dibayar oleh Pembeli kepada Pengembang sebagai berikut:</p>
+  <ul class="tight">
+    <li><strong>Deposit Pemesanan:</strong> <span class="f">{{deposit_eur}}</span> €, pada penandatanganan Kontrak Pemesanan Kavling.</li>
+    <li><strong>Pembayaran Konstruksi ke-1:</strong> <span class="f">{{bayar1_eur}}</span> €, pada saat dimulainya pekerjaan (Bulan ke-1).</li>
+    <li><strong>Pembayaran Konstruksi ke-2:</strong> <span class="f">{{bayar2_eur}}</span> €, setelah struktur bangunan selesai.</li>
+    <li><strong>Pembayaran Konstruksi ke-3:</strong> <span class="f">{{bayar3_eur}}</span> €, setelah instalasi MEP selesai (perkiraan Bulan ke-9).</li>
+    <li><strong>Pembayaran Akhir:</strong> <span class="f">{{bayar_akhir_eur}}</span> €, setelah konstruksi selesai (penutup, kolam, finishing), perkiraan Bulan ke-12, bersamaan serah terima dan akta di hadapan PPAT.</li>
+  </ul>
+  <p>Harga Kontrak bersifat tetap dan sudah termasuk pajak, kecuali perubahan peraturan yang berdampak langsung pada pekerjaan, atau perubahan yang diminta Pembeli yang disepakati tertulis.</p>
+
+  <h2><span class="n">Pasal 5</span> Syarat Pembayaran</h2>
+  <table class="pays">
+    <thead><tr><th class="pct">%</th><th>Milestone</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td class="pct">25%</td><td>Penandatanganan dan mobilisasi</td><td>Kontrak ditandatangani, faktur, dan konfirmasi ketersediaan tanah.</td></tr>
+      <tr><td class="pct">25%</td><td>Substruktur selesai</td><td>Pondasi, pelat lantai, dan pekerjaan bawah tanah selesai.</td></tr>
+      <tr><td class="pct">25%</td><td>Elektrikal, Plumbing, Penutup</td><td>Struktur utama, dinding, atap, elektrikal, plumbing, dan kolam renang.</td></tr>
+      <tr><td class="pct">25%</td><td>Penyelesaian praktis</td><td>Tahap finishing akhir selesai.</td></tr>
+    </tbody>
+  </table>
+  <ul class="tight">
+    <li>Pembayaran dilakukan pada tahap yang ditetapkan. Apabila Pembeli lalai membayar, Pengembang berhak menghentikan proyek dan mengevaluasi kenaikan biaya akibat dimulainya kembali.</li>
+    <li>Pengembang menyampaikan laporan dan foto kemajuan secara berkala, serta laporan pada penyelesaian tiap tahap.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 6</span> Jangka Waktu Pelaksanaan</h2>
+  <p>Jangka Waktu Pelaksanaan adalah <span class="f">{{jangka_bulan}}</span> bulan kalender terhitung sejak Tanggal Mulai.</p>
+
+  <h2><span class="n">Pasal 7</span> Perpanjangan Waktu</h2>
+  <p>Pengembang berhak atas perpanjangan yang wajar, maksimal 6 bulan, dalam hal: perubahan disetujui yang berdampak pada jangka waktu, keadaan kahar, keterlambatan keputusan pelanggan, keterlambatan pemasok eksternal, keterlambatan pembayaran, atau penghentian oleh pelanggan.</p>
+
+  <h2><span class="n">Pasal 8</span> Kualitas, Material, dan K3</h2>
+  <ul class="tight">
+    <li>Proyek dilaksanakan dengan praktik konstruksi yang baik, menggunakan material dalam Lampiran Spesifikasi Teknis.</li>
+    <li>Pengembang bertanggung jawab atas keselamatan di lokasi, penggunaan APD, ketertiban dan kebersihan, serta pemenuhan K3 yang berlaku.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 9</span> Asuransi dan Risiko</h2>
+  <ul class="tight">
+    <li>Pengembang memikul tanggung jawab penuh atas pekerja, subkontraktor, dan pemasok yang dikontraknya, atas risiko dan biayanya sendiri.</li>
+    <li>Pengembang menanggung: (a) asuransi pekerja/BPJS atau setara, (b) asuransi tanggung gugat pihak ketiga, dan (c) asuransi <em>contractor's all risk</em>.</li>
+    <li>Risiko kehilangan/kerusakan pekerjaan menjadi tanggungan Pengembang sampai serah terima, kecuali unsur yang telah diserahterimakan atau kerusakan oleh Pihak Kedua.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 10</span> Kewajiban Pembeli</h2>
+  <ul class="tight">
+    <li>Pembeli memberikan akses hukum ke tanah, persetujuan tepat waktu, pembayaran tepat waktu atas jumlah tersertifikasi yang tidak disengketakan, serta pasokan yang menjadi tanggungannya sesuai program proyek.</li>
+    <li>Apabila perizinan/infrastruktur eksternal menjadi tanggung jawab pemilik, keterlambatannya memberi hak Pihak Pertama atas perpanjangan dan penggantian biaya yang dapat dibuktikan, jika disepakati tegas.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 11</span> Penyelesaian dan Serah Terima</h2>
+  <p>Apabila Pengembang menganggap Proyek selesai, ia meminta inspeksi. Para Pihak menginspeksi dan menerbitkan daftar cacat dalam 7 hari kalender.</p>
+
+  <h2><span class="n">Pasal 12</span> Tanggung Jawab atas Cacat dan Garansi</h2>
+  <ul class="tight">
+    <li>Masa Tanggung Jawab atas Cacat adalah 12 bulan sejak serah terima. Pengembang memperbaiki atas bebannya setiap cacat akibat pelaksanaan tidak sesuai, material cacat yang dipasoknya, atau ketidaksesuaian dokumen kontrak.</li>
+    <li>Apabila Pelaksana tidak memperbaiki dalam waktu wajar, Pembeli dapat menugaskan pihak ketiga atas beban Pengembang.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 13</span> Penghentian dan Pengakhiran</h2>
+  <ul class="tight">
+    <li>Pembeli dapat menghentikan pekerjaan demi kepentingannya melalui pemberitahuan tertulis; Para Pihak menyepakati dengan itikad baik dampaknya atas waktu dan biaya.</li>
+    <li>Apabila salah satu Pihak wanprestasi material dan tidak memperbaikinya dalam 30 hari kalender setelah pemberitahuan tertulis, Pihak yang tidak wanprestasi dapat mengakhiri Perjanjian.</li>
+  </ul>
+
+  <h2><span class="n">Pasal 14</span> Keadaan Kahar (Force Majeure)</h2>
+  <p>Keadaan kahar adalah peristiwa di luar kendali wajar yang tidak dapat dicegah dengan kehati-hatian sepatutnya, termasuk gempa bumi, banjir, perang, kerusuhan, pembatasan akibat epidemi/pandemi, dan larangan pemerintah yang berdampak langsung pada Proyek.</p>
+
+  <h2><span class="n">Pasal 15</span> Hukum yang Berlaku</h2>
+  <p>Para Pihak tunduk pada pengadilan yang berwenang di Bali, Indonesia, atau arbitrase internasional, dengan pelepasan tegas atas yurisdiksi lain, tanpa mengurangi upaya musyawarah terlebih dahulu.</p>
+
+  <div class="place">Dibuat di Bali, Republik Indonesia, pada tanggal {{tanggal_tandatangan}}.</div>
+  <div class="signatures">
+    <div class="sig"><div class="img"><img src="{{firma_promotor}}" alt=""></div><div class="who">Pengembang (Pihak Pertama)</div><div class="nm">PT San Dal Woods · Lawang Tropical Properties</div></div>
+    <div class="sig"><div class="img"><img src="{{firma_adquiriente}}" alt=""></div><div class="who">Pembeli (Pihak Kedua)</div><div class="nm">{{pembeli1_nama}}</div></div>
+  </div>
+</div>
+
+<!-- ════════════ LAMPIRAN A · GAMBAR ARSITEKTUR ════════════ -->
+<div class="page pad">
+  <div class="draft">Draft · gambar resolusi medium</div>
+  <div class="eyebrow">Lampiran A</div>
+  <h1 class="title">Gambar Arsitektur</h1>
+  <div class="subtitle">DALI Villa · 30 m² + teras kolam 17 m²</div>
+  <div class="grid2">
+    <div class="fig"><img src="/contracts/assets/dali/planos/plano_p08.png" alt="Denah lantai"><div class="cap">Denah Lantai · Potongan A–A</div></div>
+    <div class="fig"><img src="/contracts/assets/dali/planos/plano_p09.png" alt="Potongan B-C"><div class="cap">Potongan B–B · C–C</div></div>
+    <div class="fig"><img src="/contracts/assets/dali/planos/plano_p10.png" alt="Potongan D / denah atap"><div class="cap">Potongan D–D · Denah Atap</div></div>
+    <div class="fig"><img src="/contracts/assets/dali/planos/plano_p11.png" alt="Detail"><div class="cap">Detail Bangunan</div></div>
+  </div>
+  <div class="note">Gambar dirender dari berkas sumber (vektor). Untuk produksi, ganti dengan ekspor resolusi tinggi (PDF/SVG/PNG ≥2000 px) dan, bila perlu, label dalam Bahasa Indonesia.</div>
+</div>
+
+<!-- ════════════ LAMPIRAN B · SPESIFIKASI TEKNIS ════════════ -->
+<div class="page pad">
+  <div class="eyebrow">Lampiran B</div>
+  <h1 class="title">Spesifikasi Teknis</h1>
+  <div class="subtitle">DALI Villa · Tepi Sungai · Sumba Hills</div>
+  <div class="room">
+    <div>
+      <h3>Bangunan terdiri dari</h3>
+      <ul class="tight"><li>Bangunan utama sesuai desain</li><li>Kolam renang sesuai desain</li><li>Teras luar</li></ul>
+      <h3>Tidak termasuk</h3>
+      <ul class="tight"><li>Furnitur dan peralatan rumah tangga</li><li>Termasuk sambungan listrik dan air dari gerbang utama</li></ul>
+    </div>
+    <img src="/contracts/assets/dali/p22_x195.jpeg" alt="Detail sanitasi">
+  </div>
+  <h3>Pekerjaan sanitasi <span class="opt-hint">(suplai, pemasangan, penyangga, aksesori)</span></h3>
+  <ul class="tight">
+    <li>Toilet Toto CW (one piece) · Jet washer Germant Brilliant + keran · Tempat tisu toilet</li>
+    <li>Wastafel lengkap + keran Germant Brilliant (GB) · P-Trap wastafel · Shower mixer GB · Floor drain GB</li>
+    <li>Bak cuci dapur Modena, keran Germant Brilliant · Keran outdoor taman &amp; carport (Ex. Onda)</li>
+  </ul>
+  <h3>Pekerjaan tambahan</h3>
+  <ul class="tight"><li>Pembersihan umum di lokasi setelah bangunan selesai.</li></ul>
+</div>
+
+<!-- ════════════ LAMPIRAN C · BROSUR DALI ════════════ -->
+<div class="page">
+  <img class="hero-img" src="/contracts/assets/dali/p24_x210.jpeg" alt="DALI villa">
+  <div class="pad" style="padding-top:14mm">
+    <div class="eyebrow">Lampiran C · Brosur</div>
+    <h1 class="title">DALI</h1>
+    <div class="subtitle">«Membangun rumah dengan niat.»</div>
+    <div class="price-box">
+      <div class="pc"><div class="lab">Bangunan</div><div class="val">30 m²</div></div>
+      <div class="pc"><div class="lab">Teras kolam</div><div class="val">17 m²</div></div>
+      <div class="pc"><div class="lab">Ruang · Mandi</div><div class="val">1 · 1</div><div class="let">Studio room · Dapur</div></div>
+    </div>
+    <p>DALI adalah studio room yang dikelilingi alam, dibangun dengan material lokal autentik — ruang yang dibuat
+    untuk berbagi hidup. «Tempat untuk disebut rumah selamanya.»</p>
+    <div class="grid2">
+      <div class="fig"><img src="/contracts/assets/dali/p25_x215.jpeg" alt=""><div class="cap">Ruang dalam</div></div>
+      <div class="fig"><img src="/contracts/assets/dali/p25_x217.jpeg" alt=""><div class="cap">Dapur</div></div>
+      <div class="fig"><img src="/contracts/assets/dali/p26_x221.jpeg" alt=""><div class="cap">Kamar mandi</div></div>
+      <div class="fig"><img src="/contracts/assets/dali/p26_x222.jpeg" alt=""><div class="cap">Material autentik</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ LAMPIRAN D · PENAWARAN KOMERSIAL ════════════ -->
+<div class="page pad">
+  <div class="eyebrow">Lampiran D</div>
+  <h1 class="title">Penawaran Komersial</h1>
+  <div class="subtitle">Lawang Tropical Properties · DALI Villa</div>
+  <p>Penawaran Komersial ini merupakan bagian dari Perjanjian Induk Konstruksi dan menetapkan struktur harga dan
+  pembayaran umum untuk tipologi vila terpilih. Konstruksi vila lengkap, termasuk finishing berkualitas tinggi,
+  desain interior, kolam renang, dan lanskap. Total dibagi empat (4) angsuran sama besar 25%, setiap tiga (3) bulan.</p>
+  <div class="price-box"><div class="pc"><div class="lab">Total harga kontrak</div><div class="val">{{harga_total_eur}} €</div></div></div>
+  <table class="pays">
+    <thead><tr><th>Tahap</th><th class="pct">%</th><th>Jumlah</th><th>Waktu</th></tr></thead>
+    <tbody>
+      <tr><td>Deposit</td><td class="pct">—</td><td class="amt">{{deposit_eur}} €</td><td>Saat pemesanan</td></tr>
+      <tr><td>Pembayaran 1</td><td class="pct">25%</td><td class="amt">{{bayar1_eur}} €</td><td>Saat penandatanganan</td></tr>
+      <tr><td>Pembayaran 2</td><td class="pct">25%</td><td class="amt">{{bayar2_eur}} €</td><td>+ 3 bulan</td></tr>
+      <tr><td>Pembayaran 3</td><td class="pct">25%</td><td class="amt">{{bayar3_eur}} €</td><td>+ 6 bulan</td></tr>
+      <tr><td>Pembayaran Akhir</td><td class="pct">25%</td><td class="amt">{{bayar_akhir_eur}} €</td><td>Serah terima</td></tr>
+    </tbody>
+  </table>
+  <h3>Catatan</h3>
+  <ul class="tight">
+    <li>Pembayaran terkait kemajuan konstruksi dan milestone jadwal sesuai Perjanjian.</li>
+    <li>Penawaran ini tidak mengikat kecuali dimasukkan ke dalam kontrak yang ditandatangani.</li>
+    <li>Setiap variasi lingkup/material/desain dapat menyebabkan penyesuaian Harga Kontrak.</li>
+    <li>Pajak sudah termasuk sebagaimana Pasal 4.</li>
+  </ul>
+</div>
+
+<!-- ════════════ PAKET DEKORASI & AMENITIES ════════════ -->
+<div class="page pad">
+  <div class="draft">Draft · gambar resolusi medium</div>
+  <div class="eyebrow">Opsional · Lampiran F</div>
+  <h1 class="title">Paket Dekorasi</h1>
+  <div class="subtitle">«Anda pilih vila Anda. Kami urus sisanya.»</div>
+  <div class="price-box"><div class="pc"><div class="lab">Mulai dari</div><div class="val">+ 5.000 €</div><div class="let">Ditambahkan ke harga vila. Semua diurus.</div></div></div>
+  <p>Sejak Anda menandatangani, tim kami memilih, mendatangkan, dan memasang setiap elemen yang dibutuhkan vila
+  Anda — furnitur, tekstil, pencahayaan, dapur, kamar mandi. Saat Anda menerima kunci, rumah telah lengkap,
+  tertata, dan siap. Satu investasi, tanpa repot — dikurasi dengan material Indonesia, untuk iklim tropis, dan
+  siap disewakan sejak hari pertama.</p>
+
+  <div class="room"><img src="/contracts/assets/dali/p31_x319.jpeg" alt="">
+    <div><h3>Ruang Tamu &amp; Makan</h3><ul class="tight"><li>Sofa modular (AC-01)</li><li>Meja kopi kayu solid (AC-02)</li><li>Meja makan 4–6 kursi (AC-03)</li><li>Lampu statement hangat (AC-04)</li></ul></div>
+  </div>
+  <div class="room rev"><img src="/contracts/assets/dali/p32_x326.jpeg" alt="">
+    <div><h3>Kamar Tidur</h3><ul class="tight"><li>Ranjang utama struktur solid (DR-01)</li><li>Kasur hotel medium-firm (DR-02)</li><li>Seprai 300 TC + pelindung (DR-03)</li><li>Tirai blackout + sheer (DR-04)</li></ul></div>
+  </div>
+  <div class="room"><img src="/contracts/assets/dali/p33_x336.jpeg" alt="">
+    <div><h3>Kamar Mandi &amp; Toilet</h3><ul class="tight"><li>Set handuk katun lembut (BA-01)</li><li>Set amenity esensial (BA-02)</li><li>Cermin proporsional (BA-03)</li><li>Pengering rambut &amp; kebutuhan tamu (BA-04)</li></ul></div>
+  </div>
+  <div class="room rev"><img src="/contracts/assets/dali/p34_x346.jpeg" alt="">
+    <div><h3>Dapur</h3><ul class="tight"><li>Kulkas dengan freezer (KT-01)</li><li>Peralatan masak &amp; utensil (KT-02)</li><li>Peralatan makan lengkap (KT-03)</li><li>Stasiun kopi &amp; teh (KT-04)</li></ul></div>
+  </div>
+  <div class="note">Tersedia untuk semua tipologi vila. Harga akhir bervariasi sesuai ukuran vila. Gambar bersifat sementara (dari PDF) — ganti dengan foto original beresolusi tinggi.</div>
+</div>
+
+</body>
+</html>

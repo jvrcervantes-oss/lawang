@@ -46,7 +46,7 @@ if ($action === 'view') {
   // Snapshot HTML del contrato (el usuario imprime → PDF desde el navegador)
   header('Content-Type: text/html; charset=utf-8');
   header('X-Content-Type-Options: nosniff');
-  header("Content-Security-Policy: default-src 'none'; img-src data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com");
+  header("Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com");
   readfile($path);
   exit;
 }
