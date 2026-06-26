@@ -10,9 +10,9 @@
 <meta property="og:url" content="https://lawang.id/">
 <meta property="og:title" content="Lawang Estate · Bali">
 <meta property="og:description" content="Curated tropical properties in Bali and Sumba, Indonesia.">
-<meta property="og:image" content="https://lawang.id/assets/images/aerial-1.jpg">
+<meta property="og:image" content="https://lawang.id/assets/img/scenes/aerial-1.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://lawang.id/assets/images/aerial-1.jpg">
+<meta name="twitter:image" content="https://lawang.id/assets/img/scenes/aerial-1.jpg">
 
 <!-- Structured data — para Google rich results y motores de IA (ChatGPT/Gemini/Perplexity) -->
 <script type="application/ld+json">
@@ -42,17 +42,17 @@
      fallback. ⚠️ DEMO de fonnts.com: The Seasons corrompe & - + 4 → no usar esos
      glifos en texto serif; números/precios van en Neue Kabel (sans, OK). -->
 <style>
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-LightItalic.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Regular.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-LightItalic.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Regular.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
 </style>
 <!-- [v3] Experiencia cinemática retirada (reunión con cliente). Ahora: navegación por secciones con scroll-snap. GSAP ya no es necesario. -->
 <style>
@@ -354,7 +354,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-panel{cursor:crosshair}
 .hero-layer{position:absolute;background-position:center;background-size:cover;will-change:transform;transition:transform .12s linear}
 .hero-layer.l-bg{inset:-5%;width:110%;height:110%;z-index:1;
-  background-image:url('assets/brand/logos/headerweb.png')}
+  background-image:url('assets/img/brand/header-web.png')}
 /* El fondo es un cinemagraph (vídeo) — anula la regla global heredada video{opacity:0} */
 video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:none}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
@@ -363,7 +363,7 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   background:linear-gradient(180deg,rgba(8,10,8,.5),transparent 22%,transparent 50%,rgba(8,10,8,.72))}
 /* Plano frontal = misma imagen, enmascarada para conservar solo el marco de vegetación */
 .hero-layer.l-fg{inset:-16%;width:132%;height:132%;z-index:4;
-  background-image:url('assets/brand/logos/headerweb.png');filter:saturate(1.05) brightness(.82);
+  background-image:url('assets/img/brand/header-web.png');filter:saturate(1.05) brightness(.82);
   -webkit-mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%);
           mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%)}
 @media(prefers-reduced-motion:reduce){.hero-layer{transition:none}}
@@ -613,8 +613,8 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
   <div id="logo">
     <div id="logo-inner">
       <div id="logo-mark">
-        <img class="lm-linen" src="assets/images/redesign/logo-mark-linen.png" alt="Lawang">
-        <img class="lm-green" src="assets/images/redesign/logo-mark-green.png" alt="" aria-hidden="true">
+        <img class="lm-linen" src="assets/img/brand/logo-mark-linen.png" alt="Lawang">
+        <img class="lm-green" src="assets/img/brand/logo-mark-green.png" alt="" aria-hidden="true">
       </div>
       <div id="logo-text">
         <div id="logo-wordmark">Lawang</div>
@@ -737,7 +737,7 @@ const logo   = document.getElementById('logo');
 const marksWrap = document.getElementById('hero-marks');
 if(marksWrap){
   let s = '';
-  for(let i=0;i<30;i++) s += '<img src="assets/brand/logos/LAWANG-14.png" alt="" />';
+  for(let i=0;i<30;i++) s += '<img src="assets/img/brand/lawang-14.png" alt="" />';
   marksWrap.innerHTML = '<div class="marks-track">' + s + '</div>'; // fila fija centrada
 }
 
@@ -899,7 +899,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .cs-btn-pill { border-radius:40px; }
 
 /* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
-.lw-divisions { background:linear-gradient(rgba(243,238,228,.42),rgba(243,238,228,.42)), url('assets/images/redesign/bg-divisions.jpg') center/cover no-repeat; }
+.lw-divisions { background:linear-gradient(rgba(243,238,228,.42),rgba(243,238,228,.42)), url('assets/img/backgrounds/bg-divisions.jpg') center/cover no-repeat; }
 .lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.6rem; margin-top:clamp(26px,4vh,48px); }
 .lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
   height:clamp(320px,52vh,520px); box-shadow:0 24px 50px -30px rgba(46,52,55,.5); }
@@ -914,10 +914,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-show-sub { font-family:var(--csa); font-size:10px; font-weight:500; letter-spacing:.26em; text-transform:uppercase; color:rgba(245,240,230,.82); }
 
 /* ════ 3 · CURATED PORTFOLIO (#portfolio) — 4 col ════ */
-.lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/images/redesign/bg-portfolio.jpg') center/cover no-repeat; }
+.lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/backgrounds/bg-portfolio.jpg') center/cover no-repeat; }
 .lw-pf-top { position:relative; overflow:hidden; border-radius:16px; background:var(--ca); color:var(--cb);
   padding:clamp(34px,5vw,60px) clamp(28px,4vw,54px); }
-.lw-pf-top::before { content:""; position:absolute; inset:0; background:url('assets/images/redesign/aerialJungle.jpg') center/cover;
+.lw-pf-top::before { content:""; position:absolute; inset:0; background:url('assets/img/scenes/line-land.jpg') center/cover;
   mix-blend-mode:soft-light; opacity:.9; pointer-events:none; }
 .lw-pf-top > * { position:relative; z-index:1; }
 .lw-pf-top .lw-kicker { color:#E6EDDD; }
@@ -962,7 +962,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 /* ════ 4 · ALL IN ONE — Services (#services) ════ */
 .lw-services { position:relative; background:var(--ca); }
-.lw-services::before { content:""; position:absolute; inset:0; background:url('assets/images/redesign/bg-services.jpg') center/cover; mix-blend-mode:soft-light; opacity:.42; pointer-events:none; }
+.lw-services::before { content:""; position:absolute; inset:0; background:url('assets/img/backgrounds/bg-services.jpg') center/cover; mix-blend-mode:soft-light; opacity:.42; pointer-events:none; }
 .lw-services > .cs-wrap { position:relative; z-index:1; }
 .lw-services .lw-kicker { color:#E6EDDD; }
 .lw-services .lw-title { color:var(--cb); }
@@ -986,7 +986,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-step:hover .lw-step-num { color:var(--cb); }
 
 /* ════ 5 · WHO WE ARE + WHY HERE — About (#about) ════ */
-.lw-about { background:linear-gradient(rgba(245,240,230,.5),rgba(245,240,230,.5)), url('assets/images/redesign/bg-about.jpg') center/cover no-repeat; }
+.lw-about { background:linear-gradient(rgba(245,240,230,.5),rgba(245,240,230,.5)), url('assets/img/backgrounds/bg-about.jpg') center/cover no-repeat; }
 .lw-about-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:center; }
 .lw-stats { display:flex; gap:clamp(1.8rem,3vw,2.8rem); flex-wrap:wrap; margin-top:30px; }
 .lw-stat { display:flex; flex-direction:column; gap:6px; }
@@ -1004,7 +1004,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 #content-sections > section.lw-expedition { display:block; padding:0; min-height:auto; background:var(--cb); justify-content:flex-start; }
 .lw-exp-tl { position:relative; overflow:hidden; background:var(--ca); color:var(--cb);
   padding:clamp(4.5rem,9vh,7rem) 0 clamp(3.5rem,7vh,5rem); }
-.lw-exp-tlbg { position:absolute; inset:0; background:url('assets/images/redesign/bg-expedition.jpg') center/cover; mix-blend-mode:soft-light; opacity:.9; pointer-events:none; }
+.lw-exp-tlbg { position:absolute; inset:0; background:url('assets/img/backgrounds/bg-expedition.jpg') center/cover; mix-blend-mode:soft-light; opacity:.9; pointer-events:none; }
 .lw-tl-inner { position:relative; }
 .lw-tl-inner .lw-kicker { color:#E6EDDD; }
 .lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.8vw,3.4rem); line-height:1.05;
@@ -1101,24 +1101,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">Four ways, <span style="font-weight:200">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
-      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/images/redesign/villasCoast.jpg')">
+      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/scenes/line-signature.jpg')">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/images/redesign/creamSignature.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/brand/cream-signature.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Prime Investments</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/images/redesign/aerialJungle.jpg');transition-delay:80ms">
+      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/img/scenes/line-land.jpg');transition-delay:80ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/images/redesign/creamLand.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/brand/cream-land.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Land</span><span class="lw-show-sub">Legacy</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/images/redesign/djiRicefield.jpg');transition-delay:140ms">
+      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/img/scenes/line-villas.jpg');transition-delay:140ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/images/redesign/creamVillas.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/brand/cream-villas.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Tropical</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/images/redesign/balianBeach.jpg');transition-delay:200ms">
+      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/img/scenes/line-resorts.jpg');transition-delay:200ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/images/redesign/creamResorts.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/brand/cream-resorts.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Beachfront</span></div>
       </a>
     </div>
@@ -1136,8 +1136,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
     <div class="lw-pf-grid reveal" id="lwGrid" style="transition-delay:140ms">
       <article class="lw-prop">
         <a href="portfolio.html#signature">
-          <div class="lw-prop-media" style="--img:url('assets/images/redesign/djiRicefield.jpg')">
-            <span class="lw-prop-line"><img src="assets/images/redesign/creamSignature.png" alt="">Signature</span>
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-villas.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-signature.png" alt="">Signature</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1153,8 +1153,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#land">
-          <div class="lw-prop-media" style="--img:url('assets/images/redesign/aerial1.jpg')">
-            <span class="lw-prop-line"><img src="assets/images/redesign/creamLand.png" alt="">Land</span>
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/portfolio-aerial.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-land.png" alt="">Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1170,8 +1170,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#villas">
-          <div class="lw-prop-media" style="--img:url('assets/images/redesign/villasCoast.jpg')">
-            <span class="lw-prop-line"><img src="assets/images/redesign/creamVillas.png" alt="">Villas</span>
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-signature.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-villas.png" alt="">Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1187,8 +1187,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#resorts">
-          <div class="lw-prop-media" style="--img:url('assets/images/redesign/balianBeach.jpg')">
-            <span class="lw-prop-line"><img src="assets/images/redesign/creamResorts.png" alt="">Resorts</span>
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-resorts.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-resorts.png" alt="">Resorts</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1301,7 +1301,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   <div class="lw-feat-wrap">
     <div class="lw-feat-grid">
       <div class="lw-feat-media reveal">
-        <img src="assets/images/redesign/villasCoast.jpg" alt="Featured project — Ridge House Estate">
+        <img src="assets/img/scenes/line-signature.jpg" alt="Featured project — Ridge House Estate">
         <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t">Ridge House Estate</span></div>
       </div>
       <div class="reveal" style="transition-delay:120ms">
@@ -1318,7 +1318,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 <!-- ════ 7 · CONTACT + FOOTER (fusión) ════ -->
 <section class="lw-contact" id="contact">
-  <img class="lw-ct-totem" src="assets/images/redesign/tikiTotem.png" alt="" aria-hidden="true" draggable="false">
+  <img class="lw-ct-totem" src="assets/img/brand/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
   <div class="lw-ct-top">
     <div class="lw-ct-grid">
       <div class="reveal">

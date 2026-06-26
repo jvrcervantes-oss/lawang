@@ -454,7 +454,7 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
         <div class="form-section">
           <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Image (site plan / map) shown in the "Location &amp; Surroundings" section. Leave empty to show a placeholder.</span></h4>
           <div class="form-group">
-            <input type="text" id="f-mapImage" placeholder="/images/map-balian.jpg or https://...">
+            <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://...">
           </div>
         </div>
 
@@ -818,7 +818,7 @@ function addHomeRow(m) {
     '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
     '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
     '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
-    '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/images/model.jpg">' +
+    '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/assets/img/properties/model.jpg">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
 }
@@ -848,7 +848,7 @@ function addImageSlot(url) {
       '<img class="img-slot-thumb" src="' + esc(url) + '" alt="" style="opacity:' + (url?'1':'0') + '" onerror="this.style.opacity=0">' +
       '<div class="img-slot-spinner hidden"></div>' +
     '</div>' +
-    '<input type="text" value="' + esc(url) + '" placeholder="https://... or /images/photo.jpg" oninput="syncSlot(this)">' +
+    '<input type="text" value="' + esc(url) + '" placeholder="https://... or /assets/img/properties/photo.jpg" oninput="syncSlot(this)">' +
     '<button type="button" class="img-slot-upload" onclick="uploadForSlot(this)" title="Upload file">↑</button>' +
     '<button type="button" class="img-slot-pick" onclick="pickForSlot(this)">Pick</button>' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';

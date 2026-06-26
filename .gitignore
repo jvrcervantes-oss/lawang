@@ -10,3 +10,6 @@ Marketing and Design/
 brand_identity.md
 inventario_assets.md
 PRODUCT.md
+
+# Archivo local de assets huérfanos (refactor) — no desplegar
+assets/_archive/

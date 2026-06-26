@@ -11,17 +11,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-LightItalic.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
-@font-face{font-family:'The Seasons';src:url('assets/fonts/redesign/TheSeasons-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Regular.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:'Neue Kabel';src:url('assets/fonts/redesign/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-LightItalic.otf') format('opentype');font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Regular.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
 
 /* ── RESET & PAGE BASE ───────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
@@ -294,7 +294,7 @@ article:hover .view-cta { gap:9px; }
     <h1>Lawang — Property Portfolio in Bali & Sumba</h1>
     <p>Signature homes, land parcels, villas and resort units across Bali and Sumba, Indonesia. Freehold and leasehold opportunities with managed rental income.</p>
     <article class="seo-prop">
-      <img src="/images/20260604_5fb11d5c956a.png" alt="Ridge House — Balian Hills, Bali" loading="lazy" width="800" height="600">
+      <img src="/assets/img/properties/20260604_5fb11d5c956a.png" alt="Ridge House — Balian Hills, Bali" loading="lazy" width="800" height="600">
       <h3><a href="#property/balian-ridge-house">Ridge House</a></h3>
       <p class="seo-region">Balian Hills, Bali</p>
       <p class="seo-price">From €290,000</p>
@@ -724,9 +724,20 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
   function Marketplace() {
     const t = useT();
     const { PROPERTIES, LINES } = window.LAWANG;
-    const [line, setLine] = useState("all");
+    // Línea inicial desde el hash (index.html enlaza #land/#villas/#signature/#resorts).
+    // Alias: "villas" (plural, en los enlaces) → "villa" (valor real de la propiedad).
+    const lineFromHash = () => { var h = (location.hash || "").replace(/^#/, "").toLowerCase(); return ({ villas:"villa", villa:"villa", signature:"signature", land:"land", resorts:"resorts" })[h] || "all"; };
+    const [line, setLine] = useState(lineFromHash);
     const [region, setRegion] = useState("all");
     const [layout, setLayout] = useState("grid");
+    // Reacciona a cambios de hash (salvo cuando es una ficha #property/<id>, que gestiona el overlay).
+    React.useEffect(() => {
+      const onHash = () => { if (!location.hash.startsWith("#property/")) setLine(lineFromHash()); };
+      window.addEventListener("hashchange", onHash);
+      return () => window.removeEventListener("hashchange", onHash);
+    }, []);
+    // Cambiar de filtro refleja la vista en la URL (estándar de routing del estudio), sin ensuciar el historial.
+    const chooseLine = (l) => { setLine(l); if (l === "all") history.replaceState(null, "", location.pathname + location.search); else history.replaceState(null, "", "#" + l); };
     const featured = PROPERTIES.find((p) => p.featured && p.visible !== false);
     const filtered = useMemo(() => PROPERTIES.filter((p) =>
       p.visible !== false &&
@@ -744,7 +755,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:1, marginTop:22, background:"var(--line)", border:"1px solid var(--line)", borderRadius:8, overflow:"hidden" }}>
             {LINES.map((l, i) => (
               <Reveal key={l} delay={i * 70}>
-                <button onClick={() => { setLine(l); document.getElementById("pf-grid")?.scrollIntoView({ behavior:"smooth", block:"start" }); }}
+                <button onClick={() => { chooseLine(l); document.getElementById("pf-grid")?.scrollIntoView({ behavior:"smooth", block:"start" }); }}
                   style={{ textAlign:"left", width:"100%", height:"100%", background: line===l ? "var(--tg,#485B37)" : "var(--bone)", color: line===l ? "var(--bone)" : "var(--ink)", border:0, cursor:"pointer", padding:"15px 18px 16px", transition:"background .3s,color .3s" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:11 }}>
                     <svg style={{ width:26, height:26, flexShrink:0, color: line===l ? "rgba(245,240,230,0.9)" : "var(--clay,#485B37)", fill:"currentColor" }} aria-hidden="true">
@@ -769,8 +780,8 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
         <section className="wrap" id="pf-grid" style={{ scrollMarginTop:90 }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap", paddingBottom:18, borderBottom:"1px solid var(--line)", marginBottom:24 }}>
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-              <FilterChip active={line==="all"} onClick={() => setLine("all")}>{t("mk.all")}</FilterChip>
-              {LINES.map((l) => <FilterChip key={l} active={line===l} onClick={() => setLine(l)}>{t(LINE_KEYS[l])}</FilterChip>)}
+              <FilterChip active={line==="all"} onClick={() => chooseLine("all")}>{t("mk.all")}</FilterChip>
+              {LINES.map((l) => <FilterChip key={l} active={line===l} onClick={() => chooseLine(l)}>{t(LINE_KEYS[l])}</FilterChip>)}
               <span style={{ width:1, background:"var(--line)", margin:"0 6px" }} />
               <FilterChip active={region==="all"} onClick={() => setRegion("all")}>{t("mk.all")}</FilterChip>
               <FilterChip active={region==="bali"} onClick={() => setRegion("bali")}>Bali</FilterChip>

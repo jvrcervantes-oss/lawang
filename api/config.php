@@ -15,6 +15,6 @@ if (!file_exists($hashFile) || trim(file_get_contents($hashFile)) === '') {
 define('ADMIN_PASS_HASH', trim(file_get_contents($hashFile)));
 
 define('DATA_FILE',    dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data.json');
-define('IMAGES_DIR',   dirname(__DIR__) . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR);
-define('IMAGES_URL',   '/images/');
+define('IMAGES_DIR',   dirname(__DIR__) . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'properties' . DIRECTORY_SEPARATOR);
+define('IMAGES_URL',   '/assets/img/properties/');
 define('MAX_UPLOAD_MB', 8);
