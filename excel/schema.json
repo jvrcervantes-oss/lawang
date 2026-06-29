@@ -1,0 +1,29 @@
+{
+  "_doc": "Modelo de datos del plan financiero por fases (Lamborghini Wild Coast Sumba / Lawang). Cada campo se inyecta en la hoja 'Assumptions' de la plantilla. Las hojas 'Calculations' y el 'Dashboard' se recalculan solas al abrir en Excel. Las celdas marcadas como porcentaje van en decimal (3% -> 0.03).",
+  "plantilla": "plantilla/Lamborghini_Phase_Template.xlsx",
+  "hoja_inputs": "Assumptions",
+  "campos": [
+    { "key": "num_villas",                "cell": "B2",  "label": "Nº villas (fase)",                       "tipo": "int" },
+    { "key": "precio_villa",              "cell": "B3",  "label": "Precio de venta por villa (EUR)",        "tipo": "eur" },
+    { "key": "superficie_villa",          "cell": "B4",  "label": "Superficie por villa (m2)",              "tipo": "num" },
+    { "key": "coste_construccion_villa",  "cell": "B5",  "label": "Coste construcción por villa (EUR)",     "tipo": "eur" },
+    { "key": "suelo_total",               "cell": "B6",  "label": "Superficie total del proyecto (m2)",     "tipo": "num" },
+    { "key": "precio_suelo_m2",           "cell": "B7",  "label": "Precio/valor objetivo del suelo (EUR/m2)","tipo": "eur" },
+    { "key": "coste_adquisicion_suelo",   "cell": "B8",  "label": "Coste adquisición del suelo (EUR)",      "tipo": "eur" },
+    { "key": "urbanizacion",              "cell": "B9",  "label": "Urbanización & infraestructura (EUR)",   "tipo": "eur" },
+    { "key": "licencias",                 "cell": "B10", "label": "Licencias & permisos (EUR)",             "tipo": "eur" },
+    { "key": "pct_nick_maltese",          "cell": "B11", "label": "Nick Maltese Studio (% s/ construcción)","tipo": "pct" },
+    { "key": "arquitecto_local",          "cell": "B12", "label": "Arquitecto local & ingeniería (EUR)",    "tipo": "eur" },
+    { "key": "otros_tecnicos",            "cell": "B13", "label": "Otros profesionales técnicos (EUR)",     "tipo": "eur" },
+    { "key": "marketing",                 "cell": "B14", "label": "Marketing & branding (EUR)",             "tipo": "eur" },
+    { "key": "pct_comisiones",            "cell": "B15", "label": "Comisiones comerciales (% s/ ventas)",   "tipo": "pct" },
+    { "key": "legal_notaria",             "cell": "B16", "label": "Gastos legales & notaría (EUR)",         "tipo": "eur" },
+    { "key": "gastos_admin",              "cell": "B17", "label": "Gastos administrativos (EUR)",           "tipo": "eur" },
+    { "key": "pct_seguros",               "cell": "B18", "label": "Seguros & contingencias (% s/ ventas)",  "tipo": "pct" },
+    { "key": "pct_tonino",                "cell": "B19", "label": "Tonino Lamborghini (% s/ beneficio)",    "tipo": "pct" },
+    { "key": "pct_introductor",           "cell": "B20", "label": "Introductor de marca (% s/ beneficio)",  "tipo": "pct" },
+    { "key": "pct_preventas",             "cell": "B21", "label": "Preventas (% s/ ventas)",                "tipo": "pct" },
+    { "key": "pct_aportacion_socios",     "cell": "B22", "label": "Aportación socios (% s/ ventas)",        "tipo": "pct" },
+    { "key": "pct_deuda",                 "cell": "B23", "label": "Deuda / crédito puente (% s/ ventas)",   "tipo": "pct" }
+  ]
+}
