@@ -1,11 +1,11 @@
 /* ════════════════════════════════════════════════════════════
    Lawang — Property Card render (FUENTE ÚNICA compartida)
    window.LawangCard.render(p, opts) -> HTML string de una .lw-prop
-   opts: { lang:'en'|'es', cur:'EUR'|'USD'|'AUD', rates:{...}, hrefBase:'' }
+   opts: { lang:'en'|'es', cur:'EUR'|'USD'|'AUD', rates:{...}, hrefBase:'', imgBase:'' }
    Independiente del stack: lo usan index.html y portfolio.html.
    ════════════════════════════════════════════════════════════ */
 (function () {
-  var LINE_ICON  = { signature:'icon-signature', land:'icon-land', villa:'icon-villas', resorts:'icon-resorts' };
+  var LINE_CREAM = { signature:'cream-signature', land:'cream-land', villa:'cream-villas', resorts:'cream-resorts' };
   var LINE_LABEL = {
     signature:{ en:'Signature', es:'Signature' },
     land:     { en:'Land',      es:'Terrenos' },
@@ -19,6 +19,13 @@
     'status.ready':        { c:'built',  en:'Built',             es:'Construida' },
     'status.construction': { c:'constr', en:'Under construction',es:'En construcción' }
   };
+  var VIEW_LABEL = {
+    beach:    { en:'Beachfront', es:'Frente al mar' },
+    cliff:    { en:'Clifftop',   es:'Acantilado' },
+    jungle:   { en:'Jungle',     es:'Selva' },
+    ricefield:{ en:'Rice fields',es:'Arrozales' },
+    river:    { en:'Riverside',  es:'Río' }
+  };
   var SYMS = { EUR:'€', USD:'$', AUD:'A$' };
   var DEFAULT_RATES = { EUR:1, USD:1.08, AUD:1.65 };
 
@@ -27,6 +34,15 @@
     if (p.line === 'resorts') return 'dusk';
     if (p.line === 'land') return 'jungle';
     return 'sunset';
+  }
+  // Tipo de vista inferido del texto de la propiedad (no hay campo 'view' en data.json)
+  function viewFor(p) {
+    var s = (((p.sub && p.sub.en) || '') + ' ' + ((p.desc && p.desc.en) || '') + ' ' + ((p.title && p.title.en) || '')).toLowerCase();
+    if (/clifftop|cliff|bluff/.test(s)) return 'cliff';
+    if (/rivermouth|riverside|river|valley/.test(s)) return 'river';
+    if (/beachfront|beach|surf|seafront|ocean/.test(s)) return 'beach';
+    if (/rice|paddy/.test(s)) return 'ricefield';
+    return 'jungle';
   }
   function money(eur, cur, rates) {
     rates = rates || DEFAULT_RATES;
@@ -52,8 +68,9 @@
     var href = base + '#property/' + esc(p.id);
     var ten = (TENURE[p.tenure] || TENURE['tenure.freehold']);
     var st = STATUS[p.status] || { c:'plan', en:'', es:'' };
-    var icon = LINE_ICON[p.line] || 'icon-signature';
+    var creamIco = LINE_CREAM[p.line] || 'cream-signature';
     var lineLabel = pick(LINE_LABEL[p.line], lang);
+    var view = viewFor(p);
     var keys = (p.imgKeys && p.imgKeys.length) ? p.imgKeys : (p.images || []);
     var img0 = keys.length ? imgUrl(keys[0]) : null;
 
@@ -67,7 +84,8 @@
     return '<article class="lw-prop"><a href="' + href + '">'
       + '<div class="lw-prop-media ph-' + themeFor(p) + '">'
       + (img0 ? '<img class="lw-prop-img" src="' + esc(img0) + '" alt="" loading="lazy" onerror="this.remove()">' : '')
-      + '<span class="lw-prop-line"><svg aria-hidden="true"><use href="#' + icon + '"/></svg>' + esc(lineLabel) + '</span></div>'
+      + '<span class="lw-prop-view"><img src="assets/img/backgrounds/' + view + '.png" alt="" loading="lazy">' + esc(pick(VIEW_LABEL[view], lang)) + '</span>'
+      + '<span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/brand/' + creamIco + '.png" alt="" loading="lazy">' + esc(lineLabel) + '</span></div>'
       + '<div class="lw-prop-body"><div class="lw-prop-head"><span class="lw-prop-loc">' + esc(p.region) + '</span>'
       + '<div class="lw-prop-pills"><span class="pf-pill ten">' + esc(ten[lang] || ten.en) + '</span>'
       + '<span class="pf-pill ' + st.c + '">' + esc(st[lang] || st.en) + '</span></div></div>'
@@ -78,5 +96,5 @@
       + '<span class="lw-prop-cta">' + (lang === 'es' ? 'Ver detalle' : 'View details') + ' <span class="arr">→</span></span></div></div></a></article>';
   }
 
-  window.LawangCard = { render: render, themeFor: themeFor, money: money };
+  window.LawangCard = { render: render, themeFor: themeFor, money: money, viewFor: viewFor, VIEW_LABEL: VIEW_LABEL };
 })();
