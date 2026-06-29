@@ -413,6 +413,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
+<link rel="stylesheet" href="assets/lawang-card.css">
+<script src="assets/lawang-card.js"></script>
 </head>
 <body>
 
@@ -786,37 +788,15 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 (function(){
   const grid = document.getElementById('lwGrid');
   if(!grid) return;
-  const LINE_ICON  = { signature:'icon-signature', land:'icon-land', villa:'icon-villas', resorts:'icon-resorts' };
-  const LINE_LABEL = { signature:'Signature', land:'Land', villa:'Villas', resorts:'Resorts' };
-  const STATUS = { 'status.offplan':['Off-plan','plan'], 'status.land':['Titled land','plan'], 'status.ready':['Built','built'], 'status.construction':['Under construction','constr'] };
-  const themeFor = p => p.regionKey==='sumba' ? (p.line==='land'?'ocean':'sand') : (p.line==='resorts'?'dusk':(p.line==='land'?'jungle':'sunset'));
-  const money = eur => '€' + Number(eur||0).toLocaleString('en-US');
-  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const imgUrl = k => (typeof k==='string' && /^(https?:|\/|\.)/.test(k)) ? k : null;
-  function card(p){
-    const title = (p.title&&(p.title.en||p.title.es))||'';
-    const sub   = (p.sub&&(p.sub.en||p.sub.es))||'';
-    const tenure = p.tenure==='tenure.leasehold' ? 'Leasehold' : 'Freehold';
-    const st = STATUS[p.status] || ['','plan'];
-    const img0 = (p.imgKeys&&p.imgKeys.length) ? imgUrl(p.imgKeys[0]) : null;
-    let meta = '';
-    if(p.beds  > 0) meta += '<span>'+p.beds+' bedrooms</span>';
-    if(p.built > 0) meta += '<span>'+p.built+' m²</span>';
-    if(p.land  > 0) meta += '<span>'+p.land+' m² land area</span>';
-    return '<article class="lw-prop"><a href="portfolio.html#property/'+esc(p.id)+'">'
-      + '<div class="lw-prop-media ph-'+themeFor(p)+'">'
-      + (img0 ? '<img class="lw-prop-img" src="'+esc(img0)+'" alt="" loading="lazy" onerror="this.remove()">' : '')
-      + '<span class="lw-prop-line"><svg aria-hidden="true"><use href="#'+(LINE_ICON[p.line]||'icon-signature')+'"/></svg>'+esc(LINE_LABEL[p.line]||'')+'</span></div>'
-      + '<div class="lw-prop-body"><div class="lw-prop-head"><span class="lw-prop-loc">'+esc(p.region)+'</span>'
-      + '<div class="lw-prop-pills"><span class="pf-pill ten">'+tenure+'</span><span class="pf-pill '+st[1]+'">'+esc(st[0])+'</span></div></div>'
-      + '<h3 class="lw-prop-title">'+esc(title)+'</h3><p class="lw-prop-sub">'+esc(sub)+'</p>'
-      + '<div class="lw-prop-meta">'+meta+'</div>'
-      + '<div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>'+money(p.priceEUR)+'</span>'
-      + '<span class="lw-prop-cta">View details <span class="arr">→</span></span></div></div></a></article>';
-  }
+  // Render con el MÓDULO COMPARTIDO (assets/lawang-card.js) — misma card que portfolio.html.
   fetch('data.json?_=' + Date.now())
     .then(r => r.json())
-    .then(d => { const ps = (d && d.properties) || []; if(ps.length) grid.innerHTML = ps.map(card).join(''); })
+    .then(d => {
+      const ps = (d && d.properties) || [];
+      if(ps.length && window.LawangCard) grid.innerHTML = ps.map(function(p){
+        return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'portfolio.html' });
+      }).join('');
+    })
     .catch(() => {});
 }());
 
@@ -960,42 +940,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 @media(max-width:780px){ .lw-pf-arrow { width:52px; height:52px; font-size:32px; } .lw-pf-arrow.prev{left:2px} .lw-pf-arrow.next{right:2px} }
 @media(max-width:560px){ .lw-pf-grid > .lw-prop { flex-basis:86%; } }
 /* Tarjeta unificada con portfolio.html (double-bezel) */
-.lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
-  transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
-.lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
-.lw-prop > a { display:flex; flex-direction:column; height:100%; background:#EBE4D6; border-radius:8px; overflow:hidden; text-decoration:none; color:var(--ci); cursor:none; }
-.lw-prop-media { position:relative; aspect-ratio:4/3; overflow:hidden; background:#2a2018; }
-.lw-prop-media.ph-jungle { background:radial-gradient(120% 100% at 20% 0%,#8F9B7A 0%,transparent 55%),radial-gradient(120% 120% at 90% 30%,#364429 0%,transparent 60%),linear-gradient(160deg,#485B37 0%,#1e2c14 100%); }
-.lw-prop-media.ph-sunset { background:radial-gradient(120% 90% at 75% 18%,#BEB3A5 0%,transparent 50%),radial-gradient(140% 120% at 20% 80%,#42210B 0%,transparent 60%),linear-gradient(155deg,#6B4A2E 0%,#2E1A08 100%); }
-.lw-prop-media.ph-ocean { background:radial-gradient(120% 100% at 30% 10%,#5A9A9C 0%,transparent 55%),radial-gradient(120% 120% at 85% 80%,#0D3A3D 0%,transparent 60%),linear-gradient(160deg,#104C4F 0%,#082832 100%); }
-.lw-prop-media.ph-sand { background:radial-gradient(120% 100% at 25% 15%,#F5F0E6 0%,transparent 55%),radial-gradient(120% 120% at 90% 85%,#8F9B7A 0%,transparent 60%),linear-gradient(160deg,#BEB3A5 0%,#485B37 100%); }
-.lw-prop-media.ph-dusk { background:radial-gradient(120% 100% at 70% 12%,#8F9B7A 0%,transparent 50%),radial-gradient(130% 120% at 15% 85%,#2E3437 0%,transparent 62%),linear-gradient(160deg,#485B37 0%,#0A0C09 100%); }
-.lw-prop-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; transition:transform .7s cubic-bezier(.16,1,.3,1); }
-.lw-prop:hover .lw-prop-img { transform:scale(1.05); }
-.lw-prop-media::after { content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
-  background:linear-gradient(180deg,rgba(26,22,15,.154) 0%,transparent 30%,transparent 55%,rgba(26,22,15,.352) 100%); }
-.lw-prop-line { position:absolute; left:14px; bottom:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
-  font-family:var(--csa); font-size:10.5px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:rgba(244,239,228,.72); }
-.lw-prop-line::before { content:""; width:16px; height:1px; background:rgba(244,239,228,.6); }
-.lw-prop-line svg { width:15px; height:15px; flex-shrink:0; fill:currentColor; }
-.lw-prop-body { padding:22px 24px 26px; display:flex; flex-direction:column; gap:12px; flex:1; }
-.lw-prop-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.lw-prop-loc { font-family:var(--csa); font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#8F9B7A; }
-.lw-prop-pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-.pf-pill { display:inline-flex; align-items:center; gap:7px; padding:3px 9px; border-radius:999px; font-family:var(--csa);
-  font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; border:1px solid #D4CCBA; color:#8F9B7A; background:rgba(255,255,255,.4); white-space:nowrap; }
-.pf-pill.ten { background:#EDF1E8; color:#364429; border-color:rgba(72,91,55,.28); }
-.pf-pill.built { background:#485B37; color:#F5F0E6; border-color:#485B37; }
-.pf-pill.constr { background:#42210B; color:#F5F0E6; border-color:#42210B; }
-.pf-pill.plan { background:transparent; color:#8F9B7A; border-color:#D4CCBA; }
-.lw-prop-title { font-family:var(--csa); font-weight:400; font-size:24px; color:var(--ci); margin:0; line-height:1.1; }
-.lw-prop-sub { font-family:var(--csa); font-size:14.5px; color:#8F9B7A; line-height:1.5; margin:0; }
-.lw-prop-meta { font-family:var(--csa); font-size:12.5px; color:#8F9B7A; display:flex; gap:18px; flex-wrap:wrap; margin-top:4px; }
-.lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
-.lw-prop-price { font-family:var(--csa); font-weight:400; font-size:24px; color:var(--ci); }
-.lw-prop-price .from { font-size:.62em; opacity:.6; margin-right:6px; }
-.lw-prop-cta { font-family:var(--csa); font-size:13px; font-weight:600; color:#485B37; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; transition:gap .3s; }
-.lw-prop:hover .lw-prop-cta { gap:9px; }
+/* Card de propiedad: estilos en assets/lawang-card.css (FUENTE ÚNICA, compartida con portfolio.html) */
 
 /* ════ 4 · ALL IN ONE — Services (#services) ════ */
 .lw-services { position:relative; background:var(--ca); overflow:hidden; }

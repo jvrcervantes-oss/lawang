@@ -1,0 +1,41 @@
+/* ════════════════════════════════════════════════════════════
+   Lawang — Property Card (FUENTE ÚNICA compartida)
+   Usado por index.html (teaser) y portfolio.html (marketplace).
+   Valores explícitos (sin variables de stack) para que sea portable.
+   ════════════════════════════════════════════════════════════ */
+.lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
+  transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
+.lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
+.lw-prop > a { display:flex; flex-direction:column; height:100%; background:#EBE4D6; border-radius:8px; overflow:hidden; text-decoration:none; color:#2E3437; }
+.lw-prop-media { position:relative; aspect-ratio:4/3; overflow:hidden; background:#2a2018; }
+.lw-prop-media.ph-jungle { background:radial-gradient(120% 100% at 20% 0%,#8F9B7A 0%,transparent 55%),radial-gradient(120% 120% at 90% 30%,#364429 0%,transparent 60%),linear-gradient(160deg,#485B37 0%,#1e2c14 100%); }
+.lw-prop-media.ph-sunset { background:radial-gradient(120% 90% at 75% 18%,#BEB3A5 0%,transparent 50%),radial-gradient(140% 120% at 20% 80%,#42210B 0%,transparent 60%),linear-gradient(155deg,#6B4A2E 0%,#2E1A08 100%); }
+.lw-prop-media.ph-ocean { background:radial-gradient(120% 100% at 30% 10%,#5A9A9C 0%,transparent 55%),radial-gradient(120% 120% at 85% 80%,#0D3A3D 0%,transparent 60%),linear-gradient(160deg,#104C4F 0%,#082832 100%); }
+.lw-prop-media.ph-sand { background:radial-gradient(120% 100% at 25% 15%,#F5F0E6 0%,transparent 55%),radial-gradient(120% 120% at 90% 85%,#8F9B7A 0%,transparent 60%),linear-gradient(160deg,#BEB3A5 0%,#485B37 100%); }
+.lw-prop-media.ph-dusk { background:radial-gradient(120% 100% at 70% 12%,#8F9B7A 0%,transparent 50%),radial-gradient(130% 120% at 15% 85%,#2E3437 0%,transparent 62%),linear-gradient(160deg,#485B37 0%,#0A0C09 100%); }
+.lw-prop-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; transition:transform .7s cubic-bezier(.16,1,.3,1); }
+.lw-prop:hover .lw-prop-img { transform:scale(1.05); }
+.lw-prop-media::after { content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:linear-gradient(180deg,rgba(26,22,15,.154) 0%,transparent 30%,transparent 55%,rgba(26,22,15,.352) 100%); }
+.lw-prop-line { position:absolute; left:14px; bottom:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
+  font-family:'Neue Kabel','Jost',sans-serif; font-size:10.5px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:rgba(244,239,228,.72); }
+.lw-prop-line::before { content:""; width:16px; height:1px; background:rgba(244,239,228,.6); }
+.lw-prop-line svg { width:15px; height:15px; flex-shrink:0; fill:currentColor; }
+.lw-prop-body { padding:22px 24px 26px; display:flex; flex-direction:column; gap:12px; flex:1; }
+.lw-prop-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.lw-prop-loc { font-family:'Neue Kabel','Jost',sans-serif; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#8F9B7A; }
+.lw-prop-pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.pf-pill { display:inline-flex; align-items:center; gap:7px; padding:3px 9px; border-radius:999px; font-family:'Neue Kabel','Jost',sans-serif;
+  font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; border:1px solid #D4CCBA; color:#8F9B7A; background:rgba(255,255,255,.4); white-space:nowrap; }
+.pf-pill.ten { background:#EDF1E8; color:#364429; border-color:rgba(72,91,55,.28); }
+.pf-pill.built { background:#485B37; color:#F5F0E6; border-color:#485B37; }
+.pf-pill.constr { background:#42210B; color:#F5F0E6; border-color:#42210B; }
+.pf-pill.plan { background:transparent; color:#8F9B7A; border-color:#D4CCBA; }
+.lw-prop-title { font-family:'Neue Kabel','Jost',sans-serif; font-weight:400; font-size:24px; color:#2E3437; margin:0; line-height:1.1; }
+.lw-prop-sub { font-family:'Neue Kabel','Jost',sans-serif; font-size:14.5px; color:#8F9B7A; line-height:1.5; margin:0; }
+.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:12.5px; color:#8F9B7A; display:flex; gap:18px; flex-wrap:wrap; margin-top:4px; }
+.lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
+.lw-prop-price { font-family:'Neue Kabel','Jost',sans-serif; font-weight:400; font-size:24px; color:#2E3437; }
+.lw-prop-price .from { font-size:.62em; opacity:.6; margin-right:6px; }
+.lw-prop-cta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13px; font-weight:600; color:#485B37; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; transition:gap .3s; }
+.lw-prop:hover .lw-prop-cta { gap:9px; }
