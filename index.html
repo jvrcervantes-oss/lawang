@@ -908,9 +908,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-prop:hover .lw-prop-cta .arr { transform:translateX(4px); }
 
 /* ════ 4 · ALL IN ONE — Services (#services) ════ */
-.lw-services { position:relative; background:var(--ca); }
-.lw-services::before { content:""; position:absolute; inset:0; background:url('assets/img/backgrounds/bg-services.jpg') center/cover; mix-blend-mode:soft-light; opacity:.42; pointer-events:none; }
-.lw-services > .cs-wrap { position:relative; z-index:1; }
+.lw-services { position:relative; background:var(--ca); overflow:hidden; }
+.lw-svc-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:1; z-index:0; pointer-events:none; }
+.lw-services::before { content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,24,16,.64),rgba(18,24,16,.5) 45%,rgba(18,24,16,.68)); }
+.lw-services > .cs-wrap { position:relative; z-index:2; }
 .lw-services .lw-kicker { color:#E6EDDD; }
 .lw-services .lw-title { color:var(--cb); }
 /* Servicios → pipeline integrado (cadena extremo a extremo) */
@@ -1155,6 +1157,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 <!-- ════ 4 · WHAT WE DO ════ -->
 <section class="lw-services" id="services">
+  <video class="lw-svc-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/services-teaser-poster.jpg">
+    <source src="assets/video/services-teaser.mp4" type="video/mp4">
+  </video>
   <div class="cs-wrap">
     <div class="lw-head reveal">
       <span class="lw-kicker">All in one</span>
