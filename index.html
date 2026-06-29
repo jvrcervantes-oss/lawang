@@ -780,6 +780,33 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   });
 })();
 
+// ── Carrusel de proyectos: flechas + autoplay cada 5s ─────────
+(function(){
+  const grid = document.getElementById('lwGrid');
+  if(!grid) return;
+  const prev = document.querySelector('.lw-pf-arrow.prev');
+  const next = document.querySelector('.lw-pf-arrow.next');
+  const step = () => {
+    const card = grid.querySelector('.lw-prop');
+    const gap = parseFloat(getComputedStyle(grid).columnGap) || 22;
+    return card ? card.getBoundingClientRect().width + gap : grid.clientWidth;
+  };
+  const atEnd   = () => grid.scrollLeft + grid.clientWidth >= grid.scrollWidth - 4;
+  const atStart = () => grid.scrollLeft <= 4;
+  function go(dir){
+    if(dir > 0 && atEnd())        grid.scrollTo({ left:0, behavior:'smooth' });
+    else if(dir < 0 && atStart()) grid.scrollTo({ left:grid.scrollWidth, behavior:'smooth' });
+    else                          grid.scrollBy({ left:dir*step(), behavior:'smooth' });
+  }
+  let timer = setInterval(() => go(1), 5000);
+  const restart = () => { clearInterval(timer); timer = setInterval(() => go(1), 5000); };
+  prev && prev.addEventListener('click', () => { go(-1); restart(); });
+  next && next.addEventListener('click', () => { go(1);  restart(); });
+  const wrap = grid.closest('.lw-pf-carousel') || grid;
+  wrap.addEventListener('mouseenter', () => clearInterval(timer));
+  wrap.addEventListener('mouseleave', restart);
+}());
+
 }); // end DOMContentLoaded
 </script>
 
@@ -849,6 +876,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 /* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
 .lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/backgrounds/bg-ecosystem.jpg') center/cover no-repeat; }
+.lw-divisions > .cs-wrap { max-width:1480px; }
 .lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(1.9rem,2.8vw,3rem); margin-top:clamp(26px,4vh,48px); }
 .lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
   height:clamp(360px,62vh,600px); box-shadow:0 24px 50px -30px rgba(46,52,55,.5); }
@@ -876,44 +904,53 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 @media(min-width:760px){ .lw-pf-title2 { white-space:nowrap; } }
 .lw-pf-title2 b { font-weight:400; }
 .lw-pf-title2 .thin { font-weight:200; }
+.lw-pf-carousel { position:relative; }
 .lw-pf-grid { display:flex; gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); overflow-x:auto; scroll-snap-type:x mandatory;
-  padding-bottom:16px; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:rgba(72,91,55,.4) transparent; }
+  scroll-behavior:smooth; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.lw-pf-grid::-webkit-scrollbar { display:none; }
 .lw-pf-grid > .lw-prop { flex:0 0 calc((100% - 2.8rem)/3); scroll-snap-align:start; }
-.lw-pf-grid::-webkit-scrollbar { height:6px; }
-.lw-pf-grid::-webkit-scrollbar-thumb { background:rgba(72,91,55,.32); border-radius:99px; }
-.lw-pf-grid::-webkit-scrollbar-track { background:rgba(72,91,55,.08); border-radius:99px; }
+.lw-pf-arrow { position:absolute; top:calc((100% - clamp(18px,2.4vh,30px)) / 2 + clamp(18px,2.4vh,30px)/2); top:50%; transform:translateY(-50%);
+  z-index:5; width:52px; height:52px; border-radius:999px; display:grid; place-items:center; cursor:pointer;
+  border:1px solid rgba(72,91,55,.22); background:rgba(245,240,230,.92); color:#485B37; font-family:var(--cse); font-size:30px; line-height:0;
+  box-shadow:0 18px 40px -18px rgba(32,24,15,.4); transition:background .25s,color .25s,transform .25s; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.lw-pf-arrow:hover { background:#485B37; color:#F5F0E6; }
+.lw-pf-arrow.prev { left:clamp(-12px,-1vw,-6px); }
+.lw-pf-arrow.next { right:clamp(-12px,-1vw,-6px); }
 @media(max-width:1100px){ .lw-pf-grid > .lw-prop { flex-basis:calc((100% - 1.4rem)/2); } }
+@media(max-width:780px){ .lw-pf-arrow { width:42px; height:42px; font-size:24px; } .lw-pf-arrow.prev{left:2px} .lw-pf-arrow.next{right:2px} }
 @media(max-width:560px){ .lw-pf-grid > .lw-prop { flex-basis:86%; } }
 /* Tarjeta unificada con portfolio.html (double-bezel) */
 .lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
   transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
-.lw-prop:hover { transform:translateY(-6px); box-shadow:0 34px 74px -34px rgba(32,24,15,.46); }
-.lw-prop > a { display:flex; flex-direction:column; height:100%; background:var(--cb2); border-radius:8px; overflow:hidden; text-decoration:none; color:inherit; cursor:none; }
-.lw-prop-media { position:relative; aspect-ratio:4/3; overflow:hidden; background:var(--img) center/cover no-repeat; }
-.lw-prop-media::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(26,22,15,.12) 0%,transparent 32%,transparent 56%,rgba(26,22,15,.34) 100%); }
-.lw-prop-line { position:absolute; left:14px; bottom:12px; z-index:2; display:inline-flex; align-items:center; gap:7px;
-  font-family:var(--csa); font-size:10px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:rgba(244,239,228,.92); }
-.lw-prop-line::before { content:""; width:15px; height:1px; background:rgba(244,239,228,.6); }
-.lw-prop-line img { width:15px; height:15px; opacity:.95; }
-.lw-prop-body { padding:20px 22px 24px; display:flex; flex-direction:column; gap:11px; flex:1; }
+.lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
+.lw-prop > a { display:flex; flex-direction:column; height:100%; background:#EBE4D6; border-radius:8px; overflow:hidden; text-decoration:none; color:var(--ci); cursor:none; }
+.lw-prop-media { position:relative; aspect-ratio:4/3; overflow:hidden; background:#2a2018; }
+.lw-prop-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; transition:transform .7s cubic-bezier(.16,1,.3,1); }
+.lw-prop:hover .lw-prop-img { transform:scale(1.05); }
+.lw-prop-media::after { content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:linear-gradient(180deg,rgba(26,22,15,.154) 0%,transparent 30%,transparent 55%,rgba(26,22,15,.352) 100%); }
+.lw-prop-line { position:absolute; left:14px; bottom:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--csa); font-size:10.5px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:rgba(244,239,228,.72); }
+.lw-prop-line::before { content:""; width:16px; height:1px; background:rgba(244,239,228,.6); }
+.lw-prop-line svg { width:15px; height:15px; flex-shrink:0; fill:currentColor; }
+.lw-prop-body { padding:22px 24px 26px; display:flex; flex-direction:column; gap:12px; flex:1; }
 .lw-prop-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.lw-prop-loc { font-family:var(--csa); font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ci3); }
+.lw-prop-loc { font-family:var(--csa); font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#8F9B7A; }
 .lw-prop-pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-.pf-pill { display:inline-flex; align-items:center; padding:3px 9px; border-radius:999px; font-family:var(--csa);
-  font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--cl); white-space:nowrap; }
+.pf-pill { display:inline-flex; align-items:center; gap:7px; padding:3px 9px; border-radius:999px; font-family:var(--csa);
+  font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; border:1px solid #D4CCBA; color:#8F9B7A; background:rgba(255,255,255,.4); white-space:nowrap; }
 .pf-pill.ten { background:#EDF1E8; color:#364429; border-color:rgba(72,91,55,.28); }
-.pf-pill.built { background:var(--ca); color:var(--cb); border-color:var(--ca); }
-.pf-pill.constr { background:#42210B; color:var(--cb); border-color:#42210B; }
-.pf-pill.plan { background:transparent; color:var(--ci3); border-color:var(--cl); }
-.lw-prop-title { font-family:var(--cse); font-weight:300; font-size:clamp(22px,1.7vw,27px); color:var(--ci); margin:0; line-height:1.05; }
-.lw-prop-sub { font-family:var(--csa); font-size:13.5px; color:var(--ci3); line-height:1.5; margin:0; }
-.lw-prop-meta { font-family:var(--csa); font-size:12.5px; color:var(--ci3); display:flex; gap:16px; flex-wrap:wrap; }
-.lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid var(--cl); }
-.lw-prop-price { font-family:var(--csa); font-weight:700; font-size:1.12rem; color:var(--ci); }
-.lw-prop-price .from { font-size:.62em; font-weight:500; color:var(--ci3); margin-right:5px; }
-.lw-prop-cta { font-family:var(--csa); font-size:13px; font-weight:600; color:var(--ca); white-space:nowrap; }
-.lw-prop-cta .arr { display:inline-block; transition:transform .25s; }
-.lw-prop:hover .lw-prop-cta .arr { transform:translateX(4px); }
+.pf-pill.built { background:#485B37; color:#F5F0E6; border-color:#485B37; }
+.pf-pill.constr { background:#42210B; color:#F5F0E6; border-color:#42210B; }
+.pf-pill.plan { background:transparent; color:#8F9B7A; border-color:#D4CCBA; }
+.lw-prop-title { font-family:var(--cse); font-weight:300; font-size:28px; color:var(--ci); margin:0; line-height:1.05; }
+.lw-prop-sub { font-family:var(--csa); font-size:14.5px; color:#8F9B7A; line-height:1.5; margin:0; }
+.lw-prop-meta { font-family:var(--csa); font-size:12.5px; color:#8F9B7A; display:flex; gap:18px; flex-wrap:wrap; margin-top:4px; }
+.lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
+.lw-prop-price { font-family:var(--cse); font-weight:400; font-size:24px; color:var(--ci); }
+.lw-prop-price .from { font-family:var(--csa); font-size:.55em; font-weight:400; color:#8F9B7A; margin-right:6px; letter-spacing:.04em; }
+.lw-prop-cta { font-family:var(--csa); font-size:13px; font-weight:600; color:#485B37; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; transition:gap .3s; }
+.lw-prop:hover .lw-prop-cta { gap:9px; }
 
 /* ════ 4 · ALL IN ONE — Services (#services) ════ */
 .lw-services { position:relative; background:var(--ca); overflow:hidden; }
@@ -1103,12 +1140,14 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <span class="lw-kicker">Choose your legacy</span>
       <h2 class="lw-pf-statement">The places you choose need to reflect what you value</h2>
     </div>
-    <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Prime investments,</b> <span class="thin">curated projects</span></p>
-    <div class="lw-pf-grid reveal" id="lwGrid" style="transition-delay:140ms">
+    <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Prime investments</b></p>
+    <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
+      <button class="lw-pf-arrow prev" type="button" aria-label="Previous projects">‹</button>
+      <div class="lw-pf-grid" id="lwGrid">
       <article class="lw-prop">
         <a href="portfolio.html#signature">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-villas.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-signature.png" alt="">Signature</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-villas.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-signature"/></svg>Signature</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1124,8 +1163,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#land">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/portfolio-aerial.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-land.png" alt="">Land</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/portfolio-aerial.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-land"/></svg>Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1141,8 +1180,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#villas">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-signature.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-villas.png" alt="">Villas</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-signature.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-villas"/></svg>Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1158,8 +1197,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#resorts">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-resorts.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-resorts.png" alt="">Resorts</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-resorts.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-resorts"/></svg>Resorts</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1175,8 +1214,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#signature">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-signature.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-signature.png" alt="">Signature</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-signature.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-signature"/></svg>Signature</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1192,8 +1231,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#land">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/aerial-wide.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-land.png" alt="">Land</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/aerial-wide.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-land"/></svg>Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1209,8 +1248,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </article>
       <article class="lw-prop">
         <a href="portfolio.html#villas">
-          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-villas.jpg')">
-            <span class="lw-prop-line"><img src="assets/img/brand/cream-villas.png" alt="">Villas</span>
+          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-villas.jpg" alt="" loading="lazy">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-villas"/></svg>Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
@@ -1224,6 +1263,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
           </div>
         </a>
       </article>
+      </div>
+      <button class="lw-pf-arrow next" type="button" aria-label="Next projects">›</button>
     </div>
   </div>
 </section>
