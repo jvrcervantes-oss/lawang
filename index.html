@@ -955,7 +955,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 #content-sections > section.lw-expedition { display:block; padding:0; min-height:auto; background:var(--cb); justify-content:flex-start; }
 .lw-exp-tl { position:relative; overflow:hidden; background:var(--ca); color:var(--cb);
   padding:clamp(4.5rem,9vh,7rem) 0 clamp(3.5rem,7vh,5rem); }
-.lw-exp-tlbg { position:absolute; inset:0; background:url('assets/img/backgrounds/bg-expedition.jpg') center/cover; mix-blend-mode:soft-light; opacity:.9; pointer-events:none; }
+.lw-exp-tlbg { position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(180deg,rgba(20,30,16,.58),rgba(20,30,16,.5) 45%,rgba(20,30,16,.66)), url('assets/img/backgrounds/bg-theexpedition.jpg') center/cover; }
 .lw-tl-inner { position:relative; }
 .lw-tl-inner .lw-kicker { color:#E6EDDD; }
 .lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.8vw,3.4rem); line-height:1.05;
