@@ -780,6 +780,46 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   });
 })();
 
+// ── Curated Portfolio: tarjetas desde data.json (fuente ÚNICA, compartida con portfolio.html) ─
+//   Las tarjetas estáticas del HTML son sólo fallback (SEO / sin-JS / local file://).
+//   En producción, data.json manda y re-renderiza la rejilla -> editar data.json actualiza ambas webs.
+(function(){
+  const grid = document.getElementById('lwGrid');
+  if(!grid) return;
+  const LINE_ICON  = { signature:'icon-signature', land:'icon-land', villa:'icon-villas', resorts:'icon-resorts' };
+  const LINE_LABEL = { signature:'Signature', land:'Land', villa:'Villas', resorts:'Resorts' };
+  const STATUS = { 'status.offplan':['Off-plan','plan'], 'status.land':['Titled land','plan'], 'status.ready':['Built','built'], 'status.construction':['Under construction','constr'] };
+  const themeFor = p => p.regionKey==='sumba' ? (p.line==='land'?'ocean':'sand') : (p.line==='resorts'?'dusk':(p.line==='land'?'jungle':'sunset'));
+  const money = eur => '€' + Number(eur||0).toLocaleString('en-US');
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const imgUrl = k => (typeof k==='string' && /^(https?:|\/|\.)/.test(k)) ? k : null;
+  function card(p){
+    const title = (p.title&&(p.title.en||p.title.es))||'';
+    const sub   = (p.sub&&(p.sub.en||p.sub.es))||'';
+    const tenure = p.tenure==='tenure.leasehold' ? 'Leasehold' : 'Freehold';
+    const st = STATUS[p.status] || ['','plan'];
+    const img0 = (p.imgKeys&&p.imgKeys.length) ? imgUrl(p.imgKeys[0]) : null;
+    let meta = '';
+    if(p.beds  > 0) meta += '<span>'+p.beds+' bedrooms</span>';
+    if(p.built > 0) meta += '<span>'+p.built+' m²</span>';
+    if(p.land  > 0) meta += '<span>'+p.land+' m² land area</span>';
+    return '<article class="lw-prop"><a href="portfolio.html#property/'+esc(p.id)+'">'
+      + '<div class="lw-prop-media ph-'+themeFor(p)+'">'
+      + (img0 ? '<img class="lw-prop-img" src="'+esc(img0)+'" alt="" loading="lazy" onerror="this.remove()">' : '')
+      + '<span class="lw-prop-line"><svg aria-hidden="true"><use href="#'+(LINE_ICON[p.line]||'icon-signature')+'"/></svg>'+esc(LINE_LABEL[p.line]||'')+'</span></div>'
+      + '<div class="lw-prop-body"><div class="lw-prop-head"><span class="lw-prop-loc">'+esc(p.region)+'</span>'
+      + '<div class="lw-prop-pills"><span class="pf-pill ten">'+tenure+'</span><span class="pf-pill '+st[1]+'">'+esc(st[0])+'</span></div></div>'
+      + '<h3 class="lw-prop-title">'+esc(title)+'</h3><p class="lw-prop-sub">'+esc(sub)+'</p>'
+      + '<div class="lw-prop-meta">'+meta+'</div>'
+      + '<div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>'+money(p.priceEUR)+'</span>'
+      + '<span class="lw-prop-cta">View details <span class="arr">→</span></span></div></div></a></article>';
+  }
+  fetch('data.json?_=' + Date.now())
+    .then(r => r.json())
+    .then(d => { const ps = (d && d.properties) || []; if(ps.length) grid.innerHTML = ps.map(card).join(''); })
+    .catch(() => {});
+}());
+
 // ── Carrusel de proyectos: flechas + autoplay cada 5s ─────────
 (function(){
   const grid = document.getElementById('lwGrid');
@@ -948,7 +988,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .pf-pill.built { background:#485B37; color:#F5F0E6; border-color:#485B37; }
 .pf-pill.constr { background:#42210B; color:#F5F0E6; border-color:#42210B; }
 .pf-pill.plan { background:transparent; color:#8F9B7A; border-color:#D4CCBA; }
-.lw-prop-title { font-family:var(--cse); font-weight:300; font-size:28px; color:var(--ci); margin:0; line-height:1.05; }
+.lw-prop-title { font-family:var(--csa); font-weight:400; font-size:24px; color:var(--ci); margin:0; line-height:1.1; }
 .lw-prop-sub { font-family:var(--csa); font-size:14.5px; color:#8F9B7A; line-height:1.5; margin:0; }
 .lw-prop-meta { font-family:var(--csa); font-size:12.5px; color:#8F9B7A; display:flex; gap:18px; flex-wrap:wrap; margin-top:4px; }
 .lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
@@ -1142,10 +1182,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg">
         <source src="assets/video/legacy.mp4" type="video/mp4">
       </video>
-      <span class="lw-kicker">Choose your legacy</span>
-      <h2 class="lw-pf-statement">The places you choose need to reflect what you value</h2>
+      <span class="lw-kicker">Prime Investments</span>
+      <h2 class="lw-pf-statement"><b>The places you choose</b><br>need to reflect what you value</h2>
     </div>
-    <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Prime investments</b></p>
+    <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Active Developments</b></p>
     <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
       <button class="lw-pf-arrow prev" type="button" aria-label="Previous projects">‹</button>
       <div class="lw-pf-grid" id="lwGrid">

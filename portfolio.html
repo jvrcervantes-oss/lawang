@@ -677,7 +677,7 @@ window.L = { AppCtx, useApp, useT, Reveal, Ph, themeFor, Price };
                 <span className="pill" style={{ padding:"3px 9px", fontSize:9.5, ...statusStyle(p.status) }}>{t(p.status)}</span>
               </div>
             </div>
-            <h3 className="serif" style={{ fontSize:28, fontWeight:300, lineHeight:1.05 }}>{p.title[lang] || p.title.en}</h3>
+            <h3 style={{ fontFamily:"var(--sans)", fontSize:24, fontWeight:400, lineHeight:1.1 }}>{p.title[lang] || p.title.en}</h3>
             <p style={{ fontSize:14.5, color:"var(--ink-2)", lineHeight:1.5, margin:0 }}>{p.sub[lang] || p.sub.en}</p>
             <div style={{ display:"flex", gap:18, marginTop:4, fontSize:12.5, color:"var(--ink-2)", flexWrap:"wrap" }}>
               {p.beds > 0 && <span>{p.beds} {t("pd.spec.beds").toLowerCase()}</span>}
