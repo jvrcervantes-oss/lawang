@@ -133,12 +133,12 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
 #logo.show{opacity:1;transform:none}
 #logo-inner{display:flex;align-items:center}
-#logo-inner img{height:38px;width:auto;display:block}
+#logo-inner img{height:78px;width:auto;display:block}
 #logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
 #logo-inner .ll-dark{display:none}
 #logo.dark .ll-white{display:none}
 #logo.dark .ll-dark{display:block}
-@media(max-width:680px){ #logo-inner img{height:30px} }
+@media(max-width:680px){ #logo-inner img{height:56px} }
 
 /* ── TOPBAR estilo referencia (logo | links centro | acciones) ── */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:150;
@@ -369,7 +369,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 2.5%,#000 97.5%,transparent);
           mask-image:linear-gradient(90deg,transparent,#000 2.5%,#000 97.5%,transparent)}
 .marks-track{display:flex;align-items:center;justify-content:center;gap:clamp(14px,2.4vw,32px);
-  width:100%;opacity:.27}
+  width:100%;opacity:.15}
 .marks-track img{height:54px;width:auto;flex:none;display:block}
 .hero-tagline{font-family:'Neue Kabel','Jost',sans-serif;font-weight:500;font-size:clamp(.86rem,2vw,1.22rem);
   letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
@@ -846,7 +846,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .cs-btn-pill { border-radius:40px; }
 
 /* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
-.lw-divisions { background:linear-gradient(rgba(243,238,228,.42),rgba(243,238,228,.42)), url('assets/img/backgrounds/bg-ecosystem.jpg') center/cover no-repeat; }
+.lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/backgrounds/bg-ecosystem.jpg') center/cover no-repeat; }
 .lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.6rem; margin-top:clamp(26px,4vh,48px); }
 .lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
   height:clamp(320px,52vh,520px); box-shadow:0 24px 50px -30px rgba(46,52,55,.5); }
