@@ -20,7 +20,6 @@ from pathlib import Path
 try:
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.drawing.image import Image as XLImage
     from openpyxl.utils import get_column_letter
 except ImportError:
     sys.exit("Falta openpyxl. Instala con:  pip install openpyxl")
@@ -122,17 +121,7 @@ def render(d, m, out):
     band(r, "OWN · THE · ETERNITY", F(9, True, CANOPY), fill=LAGOON, h=20,
          align=Alignment(horizontal="right", vertical="center", indent=1)); r += 1
 
-    # --- Portada (imagen banner DEBAJO del título) ------------------------------
-    img_path = BASE / "assets" / "portada_sumba.png"
-    ws.row_dimensions[r].height = 6; r += 1               # aire bajo banda
-    if img_path.exists():
-        img = XLImage(str(img_path))
-        img.width, img.height = 686, 384                  # 16:9, ancho B:E aprox
-        ws.add_image(img, f"B{r}")
-        for rr in range(r, r + 12):
-            ws.row_dimensions[rr].height = 24             # 12×24pt = 288pt = 384px
-        r += 12
-    r += 1                                                # aire bajo imagen
+    ws.row_dimensions[r].height = 10; r += 1              # aire bajo la banda de título
 
     # --- Helpers de sección ------------------------------------------------------
     def section(title):
