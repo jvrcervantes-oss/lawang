@@ -132,28 +132,13 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 /* Nav */
 #logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
 #logo.show{opacity:1;transform:none}
-#logo-inner{display:flex;align-items:center;gap:10px}
-#logo-mark{
-  flex-shrink:0;display:flex;align-items:center;
-  filter:drop-shadow(0 1px 6px rgba(0,0,0,0.4));
-}
-#logo-mark img{height:30px;width:auto;display:block}
-#logo-mark .lm-green{display:none}
-#logo-text{display:flex;flex-direction:column;gap:2px}
-#logo-wordmark{
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:1.05rem;
-  letter-spacing:0.4em;color:#fff;text-transform:uppercase;line-height:1;
-  text-shadow:0 1px 8px rgba(0,0,0,0.4);
-}
-#logo-sub{
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:200;font-size:0.38rem;
-  letter-spacing:0.5em;color:rgba(255,255,255,0.5);text-transform:uppercase;
-}
-#logo.dark #logo-mark{filter:none}
-#logo.dark #logo-mark .lm-linen{display:none}
-#logo.dark #logo-mark .lm-green{display:block}
-#logo.dark #logo-wordmark{color:var(--va);text-shadow:none}
-#logo.dark #logo-sub{color:var(--sc)}
+#logo-inner{display:flex;align-items:center}
+#logo-inner img{height:38px;width:auto;display:block}
+#logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
+#logo-inner .ll-dark{display:none}
+#logo.dark .ll-white{display:none}
+#logo.dark .ll-dark{display:block}
+@media(max-width:680px){ #logo-inner img{height:30px} }
 
 /* ── TOPBAR estilo referencia (logo | links centro | acciones) ── */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:150;
@@ -603,14 +588,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <header id="topbar" class="show">
   <div id="logo">
     <div id="logo-inner">
-      <div id="logo-mark">
-        <img class="lm-linen" src="assets/img/brand/logo-mark-linen.png" alt="Lawang">
-        <img class="lm-green" src="assets/img/brand/logo-mark-green.png" alt="" aria-hidden="true">
-      </div>
-      <div id="logo-text">
-        <div id="logo-wordmark">Lawang</div>
-        <div id="logo-sub">Estate · Bali</div>
-      </div>
+      <img class="ll-white" src="assets/img/brand/lawang-logo.png" alt="Lawang Tropical Properties">
+      <img class="ll-dark" src="assets/img/brand/lawang-logo-dark.png" alt="" aria-hidden="true">
     </div>
   </div>
   <nav id="nav">
