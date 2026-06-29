@@ -597,7 +597,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <nav id="nav">
     <a class="nav-link" href="portfolio.html#land">Land</a>
     <a class="nav-link" href="portfolio.html#villas">Villas</a>
-    <a class="nav-link" href="#about">The Soul</a>
+    <a class="nav-link" href="#services">The Soul</a>
     <a class="nav-link" href="#portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
@@ -735,7 +735,7 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
 });
 
 // ── Topbar: sólido al salir del hero + sección activa ─────────
-const sections = ['home','lines','portfolio','services','about','expedition','contact']
+const sections = ['home','lines','portfolio','services','why','expedition','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
 
@@ -866,8 +866,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/backgrounds/bg-portfolio.jpg') center/cover no-repeat; }
 .lw-pf-top { position:relative; overflow:hidden; border-radius:16px; background:var(--ca); color:var(--cb);
   padding:clamp(34px,5vw,60px) clamp(28px,4vw,54px); }
-.lw-pf-top::before { content:""; position:absolute; inset:0; background:url('assets/img/scenes/line-land.jpg') center/cover;
-  mix-blend-mode:soft-light; opacity:.9; pointer-events:none; }
+.lw-pf-top > .lw-pf-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:1; z-index:-1; pointer-events:none; }
+.lw-pf-top::before { content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:linear-gradient(180deg,rgba(20,30,16,.5),rgba(16,24,14,.4) 45%,rgba(14,22,12,.64)); }
 .lw-pf-top > * { position:relative; z-index:1; }
 .lw-pf-top .lw-kicker { color:#E6EDDD; }
 .lw-pf-statement { font-family:var(--csa); font-weight:300; font-size:clamp(26px,3.4vw,46px); line-height:1.14; letter-spacing:-.01em; color:var(--cb); margin:16px 0 0; max-width:24ch; }
@@ -936,20 +937,30 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-step:hover .lw-step-node { transform:rotate(45deg) scale(1.55); background:var(--cal); }
 .lw-step:hover .lw-step-num { color:var(--cb); }
 
-/* ════ 5 · WHO WE ARE + WHY HERE — About (#about) ════ */
-.lw-about { background:linear-gradient(rgba(245,240,230,.5),rgba(245,240,230,.5)), url('assets/img/backgrounds/bg-about.jpg') center/cover no-repeat; }
-.lw-about-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:center; }
+/* ════ 4b · WHO WE ARE (fusionado en #services) + 5 · WHY HERE (#why) ════ */
+.lw-svc-intro { display:grid; grid-template-columns:1.5fr 1fr; gap:clamp(2rem,5vw,4.5rem); align-items:end; }
+.lw-svc-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.5vw,3.3rem); line-height:1.06; letter-spacing:.01em; color:var(--cb); margin:14px 0 0; max-width:18ch; }
+.lw-svc-h em { font-style:normal; color:var(--cal); }
+.lw-svc-stats { display:flex; gap:clamp(1.4rem,2.6vw,2.6rem); flex-wrap:wrap; }
+.lw-services .lw-stat-n { color:var(--cb); }
+.lw-services .lw-stat-l { color:rgba(245,240,230,.7); }
+.lw-pipe-eyebrow { display:flex; align-items:center; gap:12px; font-family:var(--csa); font-size:11px; font-weight:600;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--cal); margin-bottom:clamp(20px,3vh,32px); }
+.lw-pipe-eyebrow::before { content:""; width:30px; height:1px; background:currentColor; opacity:.5; }
+.lw-why-sec { background:linear-gradient(rgba(245,240,230,.72),rgba(245,240,230,.72)), url('assets/img/backgrounds/bg-about.jpg') center/cover no-repeat; }
+.lw-why-sec .lw-kicker { color:var(--ca); }
+.lw-why-h { font-family:var(--cse); font-weight:300; font-size:clamp(2.2rem,4vw,3.6rem); line-height:1.04; letter-spacing:.01em; color:var(--ca); margin:14px 0 0; }
+.lw-why-h .amp { color:var(--cal); }
+.lw-why-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(1.6rem,3vw,3rem); margin-top:clamp(40px,6vh,72px); }
+.lw-why-card { border-top:1px solid var(--cl); padding-top:clamp(18px,2.4vh,26px); }
+.wy-num { display:block; font-family:var(--cse); font-size:clamp(2rem,3vw,2.8rem); color:var(--cal); line-height:1; margin-bottom:14px; }
+.wy-h { font-family:var(--cse); font-weight:400; font-size:clamp(1.3rem,1.8vw,1.6rem); color:var(--ci); margin:0; }
+.wy-p { font-family:var(--csa); font-size:.95rem; line-height:1.65; color:var(--ci3); margin:10px 0 0; max-width:34ch; }
 .lw-stats { display:flex; gap:clamp(1.8rem,3vw,2.8rem); flex-wrap:wrap; margin-top:30px; }
 .lw-stat { display:flex; flex-direction:column; gap:6px; }
 .lw-stat-n { font-family:var(--csa); font-weight:200; font-size:clamp(40px,4.4vw,62px); color:var(--ci); line-height:1; }
 .lw-stat-n sup { font-size:.4em; font-weight:300; color:var(--cal); top:-.7em; }
 .lw-stat-l { font-family:var(--csa); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ci3); }
-.lw-why { background:var(--cbr); border:1px solid var(--cl); border-radius:18px; padding:clamp(1.9rem,3vw,2.8rem); }
-.lw-why-list { margin-top:18px; }
-.lw-why-item { display:flex; gap:18px; padding:18px 0; border-top:1px solid var(--cl); }
-.lw-why-n { font-family:var(--cse); font-size:1.15rem; color:var(--cal); width:30px; flex:none; line-height:1.5; }
-.lw-why-item h4 { font-family:var(--cse); font-weight:400; font-size:1.25rem; color:var(--ci); margin:0; }
-.lw-why-item p { font-family:var(--csa); font-size:.875rem; line-height:1.6; color:var(--ci3); margin:5px 0 0; }
 
 /* ════ 6 · THE EXPEDITION + FEATURED (fusion, #expedition) ════ */
 #content-sections > section.lw-expedition { display:block; padding:0; min-height:auto; background:var(--cb); justify-content:flex-start; }
@@ -1023,7 +1034,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 @media(max-width:980px){
   .lw-show-grid { grid-template-columns:1fr 1fr; }
   .lw-pf-grid { grid-template-columns:1fr 1fr; }
-  .lw-about-grid, .lw-feat-grid, .lw-ct-grid { grid-template-columns:1fr; }
+  .lw-svc-intro, .lw-why-grid, .lw-feat-grid, .lw-ct-grid { grid-template-columns:1fr; }
   .lw-tl-grid { grid-template-columns:repeat(2,1fr); }
   .lw-ft-grid { grid-template-columns:1fr 1fr; }
 }
@@ -1081,6 +1092,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 <section class="lw-portfolio" id="portfolio">
   <div class="cs-wrap">
     <div class="lw-pf-top reveal">
+      <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg">
+        <source src="assets/video/legacy.mp4" type="video/mp4">
+      </video>
       <span class="lw-kicker">Choose your legacy</span>
       <h2 class="lw-pf-statement">The places you choose need to reflect what you value</h2>
     </div>
@@ -1164,12 +1178,20 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
     <source src="assets/video/services-teaser.mp4" type="video/mp4">
   </video>
   <div class="cs-wrap">
-    <div class="lw-head reveal">
-      <span class="lw-kicker">All in one</span>
-      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">From land to <span style="font-weight:200">legacy</span></h2>
-      <p class="lw-svc-lead">One partner for the entire journey — sourcing, legal structure, construction and returns, under a single name.</p>
+    <div class="lw-svc-intro reveal">
+      <div class="lw-svc-id">
+        <span class="lw-kicker">Who We Are</span>
+        <h2 class="lw-svc-h">A strategic partner for <em>territorial assets</em></h2>
+        <p class="lw-svc-lead">Lawang structures territorial opportunities with intelligence, long-term vision and financial discipline — across Bali and Sumba.</p>
+      </div>
+      <div class="lw-svc-stats">
+        <div class="lw-stat"><span class="lw-stat-n">6<sup>+</sup></span><span class="lw-stat-l">Years</span></div>
+        <div class="lw-stat"><span class="lw-stat-n">30<sup>+</sup></span><span class="lw-stat-l">Land Plots</span></div>
+        <div class="lw-stat"><span class="lw-stat-n">350<sup>+</sup></span><span class="lw-stat-l">Projects</span></div>
+      </div>
     </div>
     <div class="lw-pipe">
+      <div class="lw-pipe-eyebrow reveal">All in one — from land to legacy</div>
       <div class="lw-pipe-track">
         <div class="lw-step reveal" style="transition-delay:60ms">
           <span class="lw-step-node"></span>
@@ -1208,31 +1230,17 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   </div>
 </section>
 
-<!-- ════ 5 · WHO WE ARE + WHY HERE ════ -->
-<section class="lw-about" id="about">
-  <div class="cs-wrap lw-about-grid">
-    <div class="reveal">
-      <div class="lw-head">
-        <span class="lw-kicker">Who We Are</span>
-        <h2 class="lw-title" style="font-size:clamp(28px,3.6vw,46px)">A strategic partner for territorial assets</h2>
-      </div>
-      <p class="lw-p">Lawang is a strategic asset investment, structuring and development partner in Indonesia. We structure territorial opportunities with intelligence, long-term vision, and financial discipline — across Bali and Sumba.</p>
-      <div class="lw-stats">
-        <div class="lw-stat"><span class="lw-stat-n">6<sup>+</sup></span><span class="lw-stat-l">Years</span></div>
-        <div class="lw-stat"><span class="lw-stat-n">30<sup>+</sup></span><span class="lw-stat-l">Land Plots</span></div>
-        <div class="lw-stat"><span class="lw-stat-n">350<sup>+</sup></span><span class="lw-stat-l">Projects</span></div>
-      </div>
+<!-- ════ 5 · WHY HERE (sección suelta) ════ -->
+<section class="lw-why-sec" id="why">
+  <div class="cs-wrap">
+    <div class="lw-head reveal">
+      <span class="lw-kicker">Why Here?</span>
+      <h2 class="lw-why-h">Why Bali <span class="amp">·</span> Sumba</h2>
     </div>
-    <div class="lw-why reveal" style="transition-delay:120ms">
-      <div class="lw-head">
-        <span class="lw-kicker">Why Here?</span>
-        <h3 class="lw-title" style="font-size:clamp(26px,3.2vw,38px)">Why Bali · Sumba</h3>
-      </div>
-      <div class="lw-why-list">
-        <div class="lw-why-item"><span class="lw-why-n">01</span><div><h4>Verified expansion</h4><p>We operate only within territories with measured, proven growth dynamics.</p></div></div>
-        <div class="lw-why-item"><span class="lw-why-n">02</span><div><h4>Legal and fiscal layer</h4><p>Every acquisition is structured and verified before it reaches you.</p></div></div>
-        <div class="lw-why-item"><span class="lw-why-n">03</span><div><h4>End to end delivery</h4><p>From land to development, one ecosystem holds the whole journey.</p></div></div>
-      </div>
+    <div class="lw-why-grid reveal" style="transition-delay:100ms">
+      <div class="lw-why-card"><span class="wy-num">01</span><h4 class="wy-h">Verified expansion</h4><p class="wy-p">We operate only within territories with measured, proven growth dynamics.</p></div>
+      <div class="lw-why-card"><span class="wy-num">02</span><h4 class="wy-h">Legal and fiscal layer</h4><p class="wy-p">Every acquisition is structured and verified before it reaches you.</p></div>
+      <div class="lw-why-card"><span class="wy-num">03</span><h4 class="wy-h">End to end delivery</h4><p class="wy-p">From land to development, one ecosystem holds the whole journey.</p></div>
     </div>
   </div>
 </section>
@@ -1306,7 +1314,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </div>
       <div class="lw-ft-col">
         <h5>Company</h5>
-        <a href="#about">The Soul</a>
+        <a href="#services">The Soul</a>
         <a href="#services">What We Do</a>
         <a href="#expedition">The Expedition</a>
         <a href="#portfolio">Choose your Legacy</a>
