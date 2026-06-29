@@ -849,9 +849,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 /* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
 .lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/backgrounds/bg-ecosystem.jpg') center/cover no-repeat; }
-.lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.6rem; margin-top:clamp(26px,4vh,48px); }
+.lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(1.9rem,2.8vw,3rem); margin-top:clamp(26px,4vh,48px); }
 .lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
-  height:clamp(320px,52vh,520px); box-shadow:0 24px 50px -30px rgba(46,52,55,.5); }
+  height:clamp(360px,62vh,600px); box-shadow:0 24px 50px -30px rgba(46,52,55,.5); }
 .lw-show-media { position:absolute; inset:0; background:var(--img) center/cover no-repeat; transition:transform .9s cubic-bezier(.16,1,.3,1); }
 .lw-show:hover .lw-show-media { transform:scale(1.05); }
 .lw-show-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,12,9,.86),rgba(10,12,9,.04) 52%,rgba(10,12,9,.26)); }
@@ -862,7 +862,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-show-title { font-family:var(--csa); font-weight:500; font-size:clamp(24px,1.9vw,34px); color:var(--cb); line-height:1; letter-spacing:.04em; text-transform:uppercase; }
 .lw-show-sub { font-family:var(--csa); font-size:10px; font-weight:300; letter-spacing:.26em; text-transform:uppercase; color:rgba(245,240,230,.82); }
 
-/* ════ 3 · CURATED PORTFOLIO (#portfolio) — 4 col ════ */
+/* ════ 3 · CURATED PORTFOLIO (#portfolio) — 3 visibles + scroll horizontal ════ */
 .lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/backgrounds/bg-portfolio.jpg') center/cover no-repeat; }
 .lw-pf-top { position:relative; overflow:hidden; border-radius:16px; background:var(--ca); color:var(--cb);
   padding:clamp(34px,5vw,60px) clamp(28px,4vw,54px); }
@@ -876,9 +876,14 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 @media(min-width:760px){ .lw-pf-title2 { white-space:nowrap; } }
 .lw-pf-title2 b { font-weight:400; }
 .lw-pf-title2 .thin { font-weight:200; }
-.lw-pf-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); }
-@media(max-width:1100px){ .lw-pf-grid{ grid-template-columns:repeat(2,1fr); } }
-@media(max-width:560px){ .lw-pf-grid{ grid-template-columns:1fr; } }
+.lw-pf-grid { display:flex; gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); overflow-x:auto; scroll-snap-type:x mandatory;
+  padding-bottom:16px; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:rgba(72,91,55,.4) transparent; }
+.lw-pf-grid > .lw-prop { flex:0 0 calc((100% - 2.8rem)/3); scroll-snap-align:start; }
+.lw-pf-grid::-webkit-scrollbar { height:6px; }
+.lw-pf-grid::-webkit-scrollbar-thumb { background:rgba(72,91,55,.32); border-radius:99px; }
+.lw-pf-grid::-webkit-scrollbar-track { background:rgba(72,91,55,.08); border-radius:99px; }
+@media(max-width:1100px){ .lw-pf-grid > .lw-prop { flex-basis:calc((100% - 1.4rem)/2); } }
+@media(max-width:560px){ .lw-pf-grid > .lw-prop { flex-basis:86%; } }
 /* Tarjeta unificada con portfolio.html (double-bezel) */
 .lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
   transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
@@ -1165,6 +1170,57 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
             <p class="lw-prop-sub">Income-producing beachfront hospitality asset.</p>
             <div class="lw-prop-meta"><span>12 keys</span><span>Beachfront</span></div>
             <div class="lw-prop-foot"><span class="lw-prop-price">On request</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+          </div>
+        </a>
+      </article>
+      <article class="lw-prop">
+        <a href="portfolio.html#signature">
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-signature.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-signature.png" alt="">Signature</span>
+          </div>
+          <div class="lw-prop-body">
+            <div class="lw-prop-head">
+              <span class="lw-prop-loc">Wanukaka · Sumba</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill constr">Under construction</span></div>
+            </div>
+            <h3 class="lw-prop-title">Wanukaka Cliff House</h3>
+            <p class="lw-prop-sub">Signature estate above an untouched surf bay.</p>
+            <div class="lw-prop-meta"><span>4 bd</span><span>520 m²</span><span>Ocean view</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 690,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+          </div>
+        </a>
+      </article>
+      <article class="lw-prop">
+        <a href="portfolio.html#land">
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/aerial-wide.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-land.png" alt="">Land</span>
+          </div>
+          <div class="lw-prop-body">
+            <div class="lw-prop-head">
+              <span class="lw-prop-loc">Tarimbang · Sumba</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Titled land</span></div>
+            </div>
+            <h3 class="lw-prop-title">Savannah Coastal Plot</h3>
+            <p class="lw-prop-sub">Titled coastal parcel inside an emerging corridor.</p>
+            <div class="lw-prop-meta"><span>2,400 m²</span><span>Beachfront</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 165,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+          </div>
+        </a>
+      </article>
+      <article class="lw-prop">
+        <a href="portfolio.html#villas">
+          <div class="lw-prop-media" style="--img:url('assets/img/scenes/line-villas.jpg')">
+            <span class="lw-prop-line"><img src="assets/img/brand/cream-villas.png" alt="">Villas</span>
+          </div>
+          <div class="lw-prop-body">
+            <div class="lw-prop-head">
+              <span class="lw-prop-loc">Kerewe · Sumba</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Leasehold</span><span class="pf-pill plan">Off-plan</span></div>
+            </div>
+            <h3 class="lw-prop-title">Surf Point Villas</h3>
+            <p class="lw-prop-sub">Boutique villa cluster steps from the lineup.</p>
+            <div class="lw-prop-meta"><span>3 bd</span><span>Private pool</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 420,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
