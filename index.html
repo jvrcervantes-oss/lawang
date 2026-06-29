@@ -10,9 +10,9 @@
 <meta property="og:url" content="https://lawang.id/">
 <meta property="og:title" content="Lawang Estate · Bali">
 <meta property="og:description" content="Curated tropical properties in Bali and Sumba, Indonesia.">
-<meta property="og:image" content="https://lawang.id/assets/img/scenes/aerial-1.jpg">
+<meta property="og:image" content="https://lawang.id/assets/img/aerial-1.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://lawang.id/assets/img/scenes/aerial-1.jpg">
+<meta name="twitter:image" content="https://lawang.id/assets/img/aerial-1.jpg">
 
 <!-- Structured data — para Google rich results y motores de IA (ChatGPT/Gemini/Perplexity) -->
 <script type="application/ld+json">
@@ -340,7 +340,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/backgrounds/HeaderWeb.jpg')}
+  background-image:url('assets/img/HeaderWeb.jpg')}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 .hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
@@ -592,8 +592,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <header id="topbar" class="show">
   <div id="logo">
     <div id="logo-inner">
-      <img class="ll-white" src="assets/img/brand/lawang-logo-v2.png" alt="Lawang Tropical Properties">
-      <img class="ll-dark" src="assets/img/brand/lawang-logo-v2-dark.png" alt="" aria-hidden="true">
+      <img class="ll-white" src="assets/img/lawang-logo-v2.png" alt="Lawang Tropical Properties">
+      <img class="ll-dark" src="assets/img/lawang-logo-v2-dark.png" alt="" aria-hidden="true">
     </div>
   </div>
   <nav id="nav">
@@ -688,7 +688,7 @@ const logo   = document.getElementById('logo');
 const marksWrap = document.getElementById('hero-marks');
 if(marksWrap){
   let s = '';
-  for(let i=0;i<30;i++) s += '<img src="assets/img/brand/lawang-14.png" alt="" />';
+  for(let i=0;i<30;i++) s += '<img src="assets/img/lawang-14.png" alt="" />';
   marksWrap.innerHTML = '<div class="marks-track">' + s + '</div>'; // fila fija centrada
 }
 
@@ -895,7 +895,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .cs-btn-pill { border-radius:40px; }
 
 /* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
-.lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/backgrounds/bg-ecosystem.jpg') center/cover no-repeat; }
+.lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/bg-ecosystem.jpg') center/cover no-repeat; }
 .lw-divisions > .cs-wrap { max-width:1480px; }
 .lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(1.9rem,2.8vw,3rem); margin-top:clamp(26px,4vh,48px); }
 .lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
@@ -911,7 +911,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-show-sub { font-family:var(--csa); font-size:10px; font-weight:300; letter-spacing:.26em; text-transform:uppercase; color:rgba(245,240,230,.82); }
 
 /* ════ 3 · CURATED PORTFOLIO (#portfolio) — 3 visibles + scroll horizontal ════ */
-.lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/backgrounds/bg-portfolio.jpg') center/cover no-repeat; }
+.lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/bg-portfolio.jpg') center/cover no-repeat; }
 .lw-pf-top { position:relative; overflow:hidden; border-radius:16px; background:var(--ca); color:var(--cb); text-align:right;
   padding:clamp(34px,5vw,60px) clamp(28px,4vw,54px); }
 .lw-pf-top > .lw-pf-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:1; z-index:-1; pointer-events:none; }
@@ -979,7 +979,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-pipe-eyebrow { display:flex; align-items:center; gap:12px; font-family:var(--csa); font-size:11px; font-weight:600;
   letter-spacing:.28em; text-transform:uppercase; color:var(--cal); margin-bottom:clamp(20px,3vh,32px); }
 .lw-pipe-eyebrow::before { content:""; width:30px; height:1px; background:currentColor; opacity:.5; }
-.lw-why-sec { background:linear-gradient(rgba(245,240,230,.72),rgba(245,240,230,.72)), url('assets/img/backgrounds/bg-about.jpg') center/cover no-repeat; }
+.lw-why-sec { background:linear-gradient(rgba(245,240,230,.72),rgba(245,240,230,.72)), url('assets/img/bg-about.jpg') center/cover no-repeat; }
 .lw-why-sec .lw-kicker { color:var(--ca); }
 .lw-why-h { font-family:var(--cse); font-weight:300; font-size:clamp(2.2rem,4vw,3.6rem); line-height:1.04; letter-spacing:.01em; color:var(--ca); margin:14px 0 0; }
 .lw-why-h .amp { color:var(--cal); }
@@ -999,7 +999,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-exp-tl { position:relative; overflow:hidden; background:var(--ca); color:var(--cb);
   padding:clamp(4.5rem,9vh,7rem) 0 clamp(3.5rem,7vh,5rem); }
 .lw-exp-tlbg { position:absolute; inset:0; pointer-events:none;
-  background:url('assets/img/backgrounds/bg-theexpedition.jpg') center/cover; }
+  background:url('assets/img/bg-theexpedition.jpg') center/cover; }
 .lw-tl-inner { position:relative; }
 .lw-tl-inner .lw-kicker { color:#E6EDDD; }
 .lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.8vw,3.4rem); line-height:1.05;
@@ -1096,24 +1096,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">Four ways, <span style="font-weight:200">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
-      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/backgrounds/CardSignatures.jpg')">
+      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/CardSignatures.jpg')">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/brand/cream-signature.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-signature.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Prime Investments</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/img/backgrounds/CardLand.jpg');transition-delay:80ms">
+      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/img/CardLand.jpg');transition-delay:80ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/brand/cream-land.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-land.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Land</span><span class="lw-show-sub">Legacy</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/img/backgrounds/CardVillas.jpg');transition-delay:140ms">
+      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/img/CardVillas.jpg');transition-delay:140ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/brand/cream-villas.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-villas.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Tropical</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/img/backgrounds/CardResorts.jpg');transition-delay:200ms">
+      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/img/CardResorts.jpg');transition-delay:200ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/brand/cream-resorts.png" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-resorts.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Beachfront</span></div>
       </a>
     </div>
@@ -1368,7 +1368,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   <div class="lw-feat-wrap">
     <div class="lw-feat-grid">
       <div class="lw-feat-media reveal">
-        <img src="assets/img/scenes/line-signature.jpg" alt="Featured project — Ridge House Estate">
+        <img src="assets/img/line-signature.jpg" alt="Featured project — Ridge House Estate">
         <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t">Ridge House Estate</span></div>
       </div>
       <div class="reveal" style="transition-delay:120ms">
@@ -1385,7 +1385,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 
 <!-- ════ 7 · CONTACT + FOOTER (fusión) ════ -->
 <section class="lw-contact" id="contact">
-  <img class="lw-ct-totem" src="assets/img/brand/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
+  <img class="lw-ct-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
   <div class="lw-ct-top">
     <div class="lw-ct-grid">
       <div class="reveal">

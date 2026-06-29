@@ -84,8 +84,8 @@
     return '<article class="lw-prop"><a href="' + href + '">'
       + '<div class="lw-prop-media ph-' + themeFor(p) + '">'
       + (img0 ? '<img class="lw-prop-img" src="' + esc(img0) + '" alt="" loading="lazy" onerror="this.remove()">' : '')
-      + '<span class="lw-prop-view"><img src="assets/img/backgrounds/' + view + '.png" alt="" loading="lazy">' + esc(pick(VIEW_LABEL[view], lang)) + '</span>'
-      + '<span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/brand/' + creamIco + '.png" alt="" loading="lazy">' + esc(lineLabel) + '</span></div>'
+      + '<span class="lw-prop-view"><img src="assets/img/' + view + '.png" alt="" loading="lazy">' + esc(pick(VIEW_LABEL[view], lang)) + '</span>'
+      + '<span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/' + creamIco + '.png" alt="" loading="lazy">' + esc(lineLabel) + '</span></div>'
       + '<div class="lw-prop-body"><div class="lw-prop-head"><span class="lw-prop-loc">' + esc(p.region) + '</span>'
       + '<div class="lw-prop-pills"><span class="pf-pill ten">' + esc(ten[lang] || ten.en) + '</span>'
       + '<span class="pf-pill ' + st.c + '">' + esc(st[lang] || st.en) + '</span></div></div>'
