@@ -796,7 +796,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   function go(dir){
     if(dir > 0 && atEnd())        grid.scrollTo({ left:0, behavior:'smooth' });
     else if(dir < 0 && atStart()) grid.scrollTo({ left:grid.scrollWidth, behavior:'smooth' });
-    else                          grid.scrollBy({ left:dir*step(), behavior:'smooth' });
+    else                          grid.scrollBy({ left:dir*step()*3, behavior:'smooth' });  // mueve 3 propiedades
   }
   let timer = setInterval(() => go(1), 5000);
   const restart = () => { clearInterval(timer); timer = setInterval(() => go(1), 5000); };
@@ -910,14 +910,14 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-pf-grid::-webkit-scrollbar { display:none; }
 .lw-pf-grid > .lw-prop { flex:0 0 calc((100% - 2.8rem)/3); scroll-snap-align:start; }
 .lw-pf-arrow { position:absolute; top:calc((100% - clamp(18px,2.4vh,30px)) / 2 + clamp(18px,2.4vh,30px)/2); top:50%; transform:translateY(-50%);
-  z-index:5; width:52px; height:52px; border-radius:999px; display:grid; place-items:center; cursor:pointer;
-  border:1px solid rgba(72,91,55,.22); background:rgba(245,240,230,.92); color:#485B37; font-family:var(--cse); font-size:30px; line-height:0;
+  z-index:5; width:64px; height:64px; border-radius:999px; display:grid; place-items:center; cursor:pointer;
+  border:1px solid rgba(72,91,55,.22); background:rgba(245,240,230,.92); color:#485B37; font-family:var(--cse); font-size:40px; line-height:0;
   box-shadow:0 18px 40px -18px rgba(32,24,15,.4); transition:background .25s,color .25s,transform .25s; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
 .lw-pf-arrow:hover { background:#485B37; color:#F5F0E6; }
 .lw-pf-arrow.prev { left:clamp(-12px,-1vw,-6px); }
 .lw-pf-arrow.next { right:clamp(-12px,-1vw,-6px); }
 @media(max-width:1100px){ .lw-pf-grid > .lw-prop { flex-basis:calc((100% - 1.4rem)/2); } }
-@media(max-width:780px){ .lw-pf-arrow { width:42px; height:42px; font-size:24px; } .lw-pf-arrow.prev{left:2px} .lw-pf-arrow.next{right:2px} }
+@media(max-width:780px){ .lw-pf-arrow { width:52px; height:52px; font-size:32px; } .lw-pf-arrow.prev{left:2px} .lw-pf-arrow.next{right:2px} }
 @media(max-width:560px){ .lw-pf-grid > .lw-prop { flex-basis:86%; } }
 /* Tarjeta unificada con portfolio.html (double-bezel) */
 .lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
@@ -925,6 +925,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
 .lw-prop > a { display:flex; flex-direction:column; height:100%; background:#EBE4D6; border-radius:8px; overflow:hidden; text-decoration:none; color:var(--ci); cursor:none; }
 .lw-prop-media { position:relative; aspect-ratio:4/3; overflow:hidden; background:#2a2018; }
+.lw-prop-media.ph-jungle { background:radial-gradient(120% 100% at 20% 0%,#8F9B7A 0%,transparent 55%),radial-gradient(120% 120% at 90% 30%,#364429 0%,transparent 60%),linear-gradient(160deg,#485B37 0%,#1e2c14 100%); }
+.lw-prop-media.ph-sunset { background:radial-gradient(120% 90% at 75% 18%,#BEB3A5 0%,transparent 50%),radial-gradient(140% 120% at 20% 80%,#42210B 0%,transparent 60%),linear-gradient(155deg,#6B4A2E 0%,#2E1A08 100%); }
+.lw-prop-media.ph-ocean { background:radial-gradient(120% 100% at 30% 10%,#5A9A9C 0%,transparent 55%),radial-gradient(120% 120% at 85% 80%,#0D3A3D 0%,transparent 60%),linear-gradient(160deg,#104C4F 0%,#082832 100%); }
+.lw-prop-media.ph-sand { background:radial-gradient(120% 100% at 25% 15%,#F5F0E6 0%,transparent 55%),radial-gradient(120% 120% at 90% 85%,#8F9B7A 0%,transparent 60%),linear-gradient(160deg,#BEB3A5 0%,#485B37 100%); }
+.lw-prop-media.ph-dusk { background:radial-gradient(120% 100% at 70% 12%,#8F9B7A 0%,transparent 50%),radial-gradient(130% 120% at 15% 85%,#2E3437 0%,transparent 62%),linear-gradient(160deg,#485B37 0%,#0A0C09 100%); }
 .lw-prop-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; transition:transform .7s cubic-bezier(.16,1,.3,1); }
 .lw-prop:hover .lw-prop-img { transform:scale(1.05); }
 .lw-prop-media::after { content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
@@ -947,8 +952,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-prop-sub { font-family:var(--csa); font-size:14.5px; color:#8F9B7A; line-height:1.5; margin:0; }
 .lw-prop-meta { font-family:var(--csa); font-size:12.5px; color:#8F9B7A; display:flex; gap:18px; flex-wrap:wrap; margin-top:4px; }
 .lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
-.lw-prop-price { font-family:var(--cse); font-weight:400; font-size:24px; color:var(--ci); }
-.lw-prop-price .from { font-family:var(--csa); font-size:.55em; font-weight:400; color:#8F9B7A; margin-right:6px; letter-spacing:.04em; }
+.lw-prop-price { font-family:var(--csa); font-weight:400; font-size:24px; color:var(--ci); }
+.lw-prop-price .from { font-size:.62em; opacity:.6; margin-right:6px; }
 .lw-prop-cta { font-family:var(--csa); font-size:13px; font-weight:600; color:#485B37; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; transition:gap .3s; }
 .lw-prop:hover .lw-prop-cta { gap:9px; }
 
@@ -1145,121 +1150,138 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <button class="lw-pf-arrow prev" type="button" aria-label="Previous projects">‹</button>
       <div class="lw-pf-grid" id="lwGrid">
       <article class="lw-prop">
-        <a href="portfolio.html#signature">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-villas.jpg" alt="" loading="lazy">
+        <a href="portfolio.html#property/balian-ridge-house">
+          <div class="lw-prop-media ph-sunset"><img class="lw-prop-img" src="/assets/img/properties/20260604_5fb11d5c956a.png" alt="" loading="lazy" onerror="this.remove()">
             <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-signature"/></svg>Signature</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
-              <span class="lw-prop-loc">Tabanan · Bali</span>
-              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill built">Built</span></div>
+              <span class="lw-prop-loc">Balian Hills, Bali</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
             </div>
-            <h3 class="lw-prop-title">Ridge House Estate</h3>
-            <p class="lw-prop-sub">Income-ready signature estate over the valley.</p>
-            <div class="lw-prop-meta"><span>3 bd</span><span>450 m²</span><span>Ocean view</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 485,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+            <h3 class="lw-prop-title">Ridge House</h3>
+            <p class="lw-prop-sub">A cantilevered three-bed perched over the Balian river valley.</p>
+            <div class="lw-prop-meta"><span>4 bedrooms</span><span>240 m²</span><span>600 m² land area</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€290,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
       <article class="lw-prop">
-        <a href="portfolio.html#land">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/portfolio-aerial.jpg" alt="" loading="lazy">
+        <a href="portfolio.html#property/balian-parcel-a">
+          <div class="lw-prop-media ph-jungle">
             <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-land"/></svg>Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
-              <span class="lw-prop-loc">Tampaksiring · Bali</span>
+              <span class="lw-prop-loc">Balian Hills, Bali</span>
               <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Titled land</span></div>
             </div>
-            <h3 class="lw-prop-title">Jungle Plateau Plot</h3>
-            <p class="lw-prop-sub">Titled parcel inside a verified expansion corridor.</p>
-            <div class="lw-prop-meta"><span>1,200 m²</span><span>Valley view</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 210,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+            <h3 class="lw-prop-title">Estate Parcel A</h3>
+            <p class="lw-prop-sub">Titled 400 m² ridge plot inside the Balian master plan.</p>
+            <div class="lw-prop-meta"><span>400 m² land area</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€20,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
       <article class="lw-prop">
-        <a href="portfolio.html#villas">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-signature.jpg" alt="" loading="lazy">
+        <a href="portfolio.html#property/villa-tipo-lontar">
+          <div class="lw-prop-media ph-sunset">
             <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-villas"/></svg>Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
-              <span class="lw-prop-loc">Uluwatu · Bali</span>
-              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill constr">Under construction</span></div>
+              <span class="lw-prop-loc">Balian Hills, Bali</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
             </div>
-            <h3 class="lw-prop-title">Cliffside Villa Seri</h3>
-            <p class="lw-prop-sub">Cliffside villa typology with private infinity pool.</p>
-            <div class="lw-prop-meta"><span>4 bd</span><span>Infinity pool</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 1.18 M</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+            <h3 class="lw-prop-title">Typology — Lontar</h3>
+            <p class="lw-prop-sub">Our most compact one-bed. Build cost only, on your plot.</p>
+            <div class="lw-prop-meta"><span>1 bedrooms</span><span>75 m²</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€60,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
       <article class="lw-prop">
-        <a href="portfolio.html#resorts">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-resorts.jpg" alt="" loading="lazy">
+        <a href="portfolio.html#property/sumba-bayhouse">
+          <div class="lw-prop-media ph-sand">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-signature"/></svg>Signature</span>
+          </div>
+          <div class="lw-prop-body">
+            <div class="lw-prop-head">
+              <span class="lw-prop-loc">Sumba</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
+            </div>
+            <h3 class="lw-prop-title">Bay House</h3>
+            <p class="lw-prop-sub">Four-bedroom beachfront on Sumba's empty south coast.</p>
+            <div class="lw-prop-meta"><span>4 bedrooms</span><span>320 m²</span><span>1100 m² land area</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€420,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
+          </div>
+        </a>
+      </article>
+      <article class="lw-prop">
+        <a href="portfolio.html#property/balian-surf-resort">
+          <div class="lw-prop-media ph-dusk">
             <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-resorts"/></svg>Resorts</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
-              <span class="lw-prop-loc">Balian · Bali</span>
+              <span class="lw-prop-loc">Balian Hills, Bali</span>
               <div class="lw-prop-pills"><span class="pf-pill ten">Leasehold</span><span class="pf-pill plan">Off-plan</span></div>
             </div>
-            <h3 class="lw-prop-title">Balian Beach Resort</h3>
-            <p class="lw-prop-sub">Income-producing beachfront hospitality asset.</p>
-            <div class="lw-prop-meta"><span>12 keys</span><span>Beachfront</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price">On request</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+            <h3 class="lw-prop-title">Rivermouth Resort — Unit</h3>
+            <p class="lw-prop-sub">Buy-to-let villa unit in a managed surf resort. Income from day one.</p>
+            <div class="lw-prop-meta"><span>1 bedrooms</span><span>55 m²</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€95,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
       <article class="lw-prop">
-        <a href="portfolio.html#signature">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-signature.jpg" alt="" loading="lazy">
-            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-signature"/></svg>Signature</span>
-          </div>
-          <div class="lw-prop-body">
-            <div class="lw-prop-head">
-              <span class="lw-prop-loc">Wanukaka · Sumba</span>
-              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill constr">Under construction</span></div>
-            </div>
-            <h3 class="lw-prop-title">Wanukaka Cliff House</h3>
-            <p class="lw-prop-sub">Signature estate above an untouched surf bay.</p>
-            <div class="lw-prop-meta"><span>4 bd</span><span>520 m²</span><span>Ocean view</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 690,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
-          </div>
-        </a>
-      </article>
-      <article class="lw-prop">
-        <a href="portfolio.html#land">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/aerial-wide.jpg" alt="" loading="lazy">
+        <a href="portfolio.html#property/sumba-land-bluff">
+          <div class="lw-prop-media ph-ocean">
             <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-land"/></svg>Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
-              <span class="lw-prop-loc">Tarimbang · Sumba</span>
+              <span class="lw-prop-loc">Sumba</span>
               <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Titled land</span></div>
             </div>
-            <h3 class="lw-prop-title">Savannah Coastal Plot</h3>
-            <p class="lw-prop-sub">Titled coastal parcel inside an emerging corridor.</p>
-            <div class="lw-prop-meta"><span>2,400 m²</span><span>Beachfront</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 165,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+            <h3 class="lw-prop-title">Bluff Parcel</h3>
+            <p class="lw-prop-sub">1,000 m² clifftop plot above a world-class right-hander.</p>
+            <div class="lw-prop-meta"><span>1000 m² land area</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€38,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
       <article class="lw-prop">
-        <a href="portfolio.html#villas">
-          <div class="lw-prop-media"><img class="lw-prop-img" src="assets/img/scenes/line-villas.jpg" alt="" loading="lazy">
+        <a href="portfolio.html#property/villa-tipo-banyan">
+          <div class="lw-prop-media ph-sunset">
             <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-villas"/></svg>Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-head">
-              <span class="lw-prop-loc">Kerewe · Sumba</span>
+              <span class="lw-prop-loc">Balian Hills, Bali</span>
+              <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
+            </div>
+            <h3 class="lw-prop-title">Typology — Banyan</h3>
+            <p class="lw-prop-sub">Two-bed family typology with double-height living.</p>
+            <div class="lw-prop-meta"><span>2 bedrooms</span><span>145 m²</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€130,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
+          </div>
+        </a>
+      </article>
+      <article class="lw-prop">
+        <a href="portfolio.html#property/sumba-resort-villa">
+          <div class="lw-prop-media ph-sand">
+            <span class="lw-prop-line"><svg aria-hidden="true"><use href="#icon-resorts"/></svg>Resorts</span>
+          </div>
+          <div class="lw-prop-body">
+            <div class="lw-prop-head">
+              <span class="lw-prop-loc">Sumba</span>
               <div class="lw-prop-pills"><span class="pf-pill ten">Leasehold</span><span class="pf-pill plan">Off-plan</span></div>
             </div>
-            <h3 class="lw-prop-title">Surf Point Villas</h3>
-            <p class="lw-prop-sub">Boutique villa cluster steps from the lineup.</p>
-            <div class="lw-prop-meta"><span>3 bd</span><span>Private pool</span></div>
-            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>$ 420,000</span><span class="lw-prop-cta">View <span class="arr">→</span></span></div>
+            <h3 class="lw-prop-title">Lagoon Resort — Villa</h3>
+            <p class="lw-prop-sub">Two-bed managed villa in a boutique Sumba beach resort.</p>
+            <div class="lw-prop-meta"><span>2 bedrooms</span><span>130 m²</span></div>
+            <div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">From</span>€210,000</span><span class="lw-prop-cta">View details <span class="arr">→</span></span></div>
           </div>
         </a>
       </article>
