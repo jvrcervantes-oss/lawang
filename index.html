@@ -350,23 +350,14 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   overflow:hidden;background:var(--obsidian);color:var(--ivory);text-align:center;
   padding:clamp(6rem,14vh,9rem) clamp(1.4rem,5vw,4rem) clamp(5rem,12vh,7rem);
 }
-/* ── Diorama 2.5D: la escena (PortadaLawang) separada en planos ── */
-.hero-panel{cursor:crosshair}
-.hero-layer{position:absolute;background-position:center;background-size:cover;will-change:transform;transition:transform .12s linear}
-.hero-layer.l-bg{inset:-5%;width:110%;height:110%;z-index:1;
-  background-image:url('assets/img/brand/header-web.png')}
-/* El fondo es un cinemagraph (vídeo) — anula la regla global heredada video{opacity:0} */
-video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:none}
+/* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
+.hero-layer{position:absolute;background-position:center;background-size:cover}
+.hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
+  background-image:url('assets/img/backgrounds/HeaderWeb.jpg')}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 .hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
   background:linear-gradient(180deg,rgba(8,10,8,.5),transparent 22%,transparent 50%,rgba(8,10,8,.72))}
-/* Plano frontal = misma imagen, enmascarada para conservar solo el marco de vegetación */
-.hero-layer.l-fg{inset:-16%;width:132%;height:132%;z-index:4;
-  background-image:url('assets/img/brand/header-web.png');filter:saturate(1.05) brightness(.82);
-  -webkit-mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%);
-          mask-image:radial-gradient(ellipse 60% 66% at 50% 47%, transparent 42%, #000 80%)}
-@media(prefers-reduced-motion:reduce){.hero-layer{transition:none}}
 .hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform}
 .hero-eyebrow{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:clamp(.6rem,1.3vw,.82rem);
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.92);
@@ -652,16 +643,15 @@ video.hero-layer.l-bg{object-fit:cover;opacity:1;pointer-events:none;transition:
 
 <!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
-  <div class="hero-layer l-bg" data-depth="8"></div>
+  <div class="hero-layer l-bg"></div>
   <div class="hero-mist"></div>
   <div class="hero-vignette"></div>
-  <div class="hero-inner" data-depth="-5">
+  <div class="hero-inner">
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
     <div class="hero-tagline"><span class="ht-l1">We are a Real Estate Investment and <b>Project Developer</b></span><span class="ht-l2">at the heart of Bali</span></div>
     <a class="hero-discover" href="#soul"><span class="ar">↓</span> Discover Lawang <span class="ar">↓</span></a>
   </div>
-  <div class="hero-layer l-fg" data-depth="26"></div>
   <div class="hero-band">
     <div class="hero-marks" id="hero-marks" aria-hidden="true"></div>
   </div>
@@ -677,28 +667,6 @@ document.addEventListener('DOMContentLoaded', function(){
 const snap   = document.getElementById('snap');
 const topbar = document.getElementById('topbar');
 const logo   = document.getElementById('logo');
-
-// ── Hero diorama 2.5D — parallax por capas con el cursor ──────
-(function(){
-  const stage = document.querySelector('.hero-panel');
-  if(!stage || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-  const layers = [...stage.querySelectorAll('[data-depth]')];
-  let tx=0, ty=0, cx=0, cy=0;
-  stage.addEventListener('pointermove', e => {
-    const r = stage.getBoundingClientRect();
-    tx = ((e.clientX - r.left) / r.width  - .5) * 2;   // -1..1
-    ty = ((e.clientY - r.top ) / r.height - .5) * 2;
-  });
-  stage.addEventListener('pointerleave', () => { tx=0; ty=0; });
-  (function loop(){
-    cx += (tx - cx) * .06;  cy += (ty - cy) * .06;
-    for(const l of layers){
-      const d = +l.dataset.depth;
-      l.style.transform = `translate3d(${(-cx*d).toFixed(2)}px, ${(-cy*d).toFixed(2)}px, 0)`;
-    }
-    requestAnimationFrame(loop);
-  })();
-})();
 
 // ── Selector de idioma (desplegable) ──────────────────────────
 (function(){
@@ -1101,22 +1069,22 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase">Four ways, <span style="font-weight:200">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
-      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/scenes/line-signature.jpg')">
+      <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/backgrounds/CardSignatures.jpg')">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/brand/cream-signature.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Prime Investments</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/img/scenes/line-land.jpg');transition-delay:80ms">
+      <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/img/backgrounds/CardLand.jpg');transition-delay:80ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/brand/cream-land.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Land</span><span class="lw-show-sub">Legacy</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/img/scenes/line-villas.jpg');transition-delay:140ms">
+      <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/img/backgrounds/CardVillas.png');transition-delay:140ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/brand/cream-villas.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Tropical</span></div>
       </a>
-      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/img/scenes/line-resorts.jpg');transition-delay:200ms">
+      <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/img/backgrounds/CardResorts.png');transition-delay:200ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/brand/cream-resorts.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Beachfront</span></div>
