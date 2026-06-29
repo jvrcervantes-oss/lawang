@@ -956,7 +956,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-exp-tl { position:relative; overflow:hidden; background:var(--ca); color:var(--cb);
   padding:clamp(4.5rem,9vh,7rem) 0 clamp(3.5rem,7vh,5rem); }
 .lw-exp-tlbg { position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(180deg,rgba(20,30,16,.58),rgba(20,30,16,.5) 45%,rgba(20,30,16,.66)), url('assets/img/backgrounds/bg-theexpedition.jpg') center/cover; }
+  background:url('assets/img/backgrounds/bg-theexpedition.jpg') center/cover; }
 .lw-tl-inner { position:relative; }
 .lw-tl-inner .lw-kicker { color:#E6EDDD; }
 .lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.8vw,3.4rem); line-height:1.05;
@@ -999,10 +999,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
   border-bottom:1px solid rgba(245,240,230,.28); padding:13px 2px; outline:none; width:100%; }
 .lw-field::placeholder { color:rgba(245,240,230,.42); }
 .lw-field:focus { border-color:var(--cal); }
-.lw-ft { position:relative; z-index:1; padding:clamp(2.6rem,5vh,3.6rem) 0 2rem;
+.lw-ft { position:relative; z-index:1; border-top:1px solid rgba(245,240,230,.12); padding:clamp(2.6rem,5vh,3.6rem) 0 2rem;
   max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
-.lw-ft::before { content:""; position:absolute; top:0; bottom:0; left:50%; width:100vw; transform:translateX(-50%);
-  background:#2E3437; border-top:1px solid rgba(245,240,230,.12); z-index:-1; }
 .lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
 .lw-ft-logo { font-family:var(--cse); font-size:24px; letter-spacing:.06em; }
 .lw-ft-sub { font-family:var(--csa); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--css); margin-top:4px; }
