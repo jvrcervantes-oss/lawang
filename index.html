@@ -904,15 +904,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-show:hover .lw-show-media { transform:scale(1.05); }
 .lw-show-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(8,11,7,.92) 0%,rgba(8,11,7,.62) 24%,rgba(8,11,7,.10) 54%,rgba(8,11,7,.30) 100%); }
 .lw-show-frame { position:absolute; inset:clamp(11px,1.2vw,15px); border:1px solid rgba(245,240,230,.38); border-radius:clamp(10px,1vw,13px); pointer-events:none; z-index:2; }
-/* Plaqueta del icono arriba-centro, rompiendo la línea del marco (ref CardExample.jpeg) */
-.lw-show-badge { position:absolute; top:clamp(4px,.8vh,9px); left:50%; transform:translateX(-50%); z-index:4;
-  display:flex; align-items:center; justify-content:center; padding:clamp(6px,.8vh,9px) clamp(13px,1.4vw,18px);
-  border:1px solid rgba(245,240,230,.42); border-radius:7px; background:rgba(12,17,10,.42);
-  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
-.lw-show-icon { width:clamp(38px,3.2vw,50px); height:auto; display:block; opacity:.96; filter:drop-shadow(0 3px 8px rgba(0,0,0,.45)); }
+.lw-show-icon { position:absolute; top:22px; left:50%; transform:translateX(-50%); width:62px; height:auto; opacity:.98; z-index:3;
+  filter:drop-shadow(0 6px 16px rgba(0,0,0,.6)); }
 .lw-show-cap { position:absolute; left:0; right:0; bottom:0; padding:0 clamp(16px,1.6vw,26px) clamp(20px,2.6vh,30px);
   display:flex; flex-direction:column; align-items:center; gap:clamp(6px,1vh,10px); z-index:3; text-align:center; }
-.lw-show-title { font-family:var(--cse); font-weight:600; font-size:clamp(26px,2.3vw,40px); color:var(--cb); line-height:.95; letter-spacing:.015em; text-transform:uppercase; }
+.lw-show-title { font-family:var(--csa); font-weight:500; font-size:clamp(26px,2.3vw,40px); color:var(--cb); line-height:.95; letter-spacing:.04em; text-transform:uppercase; }
 .lw-show-sub { font-family:var(--csa); font-weight:300; font-size:clamp(12px,1vw,16px); letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.92); margin-top:-1px; }
 .lw-show-cta { margin-top:clamp(12px,1.8vh,20px); align-self:stretch; border:1px solid rgba(245,240,230,.4); border-radius:999px;
   padding:10px 14px; font-family:var(--csa); font-weight:400; font-size:clamp(8.5px,.72vw,10.5px); letter-spacing:.14em; line-height:1.35;
@@ -1135,22 +1131,22 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
     <div class="lw-show-grid">
       <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/CardSignatures.jpg')">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <span class="lw-show-badge"><img class="lw-show-icon" src="assets/img/cream-signature.png" alt="" draggable="false"></span>
+        <img class="lw-show-icon" src="assets/img/cream-signature.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Villa Communities</span><span class="lw-show-cta">Discover Architecture and Landscape.</span></div>
       </a>
       <a class="lw-show reveal" href="portfolio.html#land" style="--img:url('assets/img/CardLand.jpg');transition-delay:80ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <span class="lw-show-badge"><img class="lw-show-icon" src="assets/img/cream-land.png" alt="" draggable="false"></span>
+        <img class="lw-show-icon" src="assets/img/cream-land.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Land</span><span class="lw-show-sub">Territorial Plots</span><span class="lw-show-cta">Discover Location and Legacy.</span></div>
       </a>
       <a class="lw-show reveal" href="portfolio.html#villas" style="--img:url('assets/img/CardVillas.jpg');transition-delay:140ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <span class="lw-show-badge"><img class="lw-show-icon" src="assets/img/cream-villas.png" alt="" draggable="false"></span>
+        <img class="lw-show-icon" src="assets/img/cream-villas.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Tropical Residences</span><span class="lw-show-cta">Discover Design and Living.</span></div>
       </a>
       <a class="lw-show reveal" href="portfolio.html#resorts" style="--img:url('assets/img/CardResorts.jpg');transition-delay:200ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <span class="lw-show-badge"><img class="lw-show-icon" src="assets/img/cream-resorts.png" alt="" draggable="false"></span>
+        <img class="lw-show-icon" src="assets/img/cream-resorts.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Beachfront Retreats</span><span class="lw-show-cta">Discover Coast and Hospitality.</span></div>
       </a>
     </div>
