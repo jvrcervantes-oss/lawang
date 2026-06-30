@@ -83,11 +83,11 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 
 /* ── SNAP SCROLLER · 1 pantalla = 1 sección (estilo Burger) ── */
 .snap{height:100vh;height:100dvh;overflow-y:scroll;overflow-x:hidden;
-  scroll-snap-type:y mandatory;scroll-behavior:smooth;position:relative;z-index:1;
+  scroll-snap-type:y proximity;scroll-behavior:smooth;position:relative;z-index:1;
   scrollbar-width:none;-ms-overflow-style:none}
 .snap::-webkit-scrollbar{display:none}
 .snap > section,
-#content-sections > section{ scroll-snap-align:start; scroll-snap-stop:always; }
+#content-sections > section{ scroll-snap-align:start; }
 @media(prefers-reduced-motion:reduce){.snap{scroll-behavior:auto;scroll-snap-type:y proximity}}
 
 #cursor{position:fixed;width:6px;height:6px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference}
