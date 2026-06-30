@@ -955,7 +955,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-bt .bt-3 { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.07em; font-size:.44em; line-height:1.1; margin-top:.12em; }
 
 /* Bloque Strategic Partner (fondo selva bg-strategic.jpg) */
-.lw-strat { position:relative; overflow:hidden; padding:clamp(3.5rem,8vh,6.5rem) 0 clamp(3rem,6vh,5rem); }
+.lw-strat { position:relative; overflow:hidden; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; justify-content:center; padding:clamp(5.5rem,10vh,7rem) 0 clamp(3rem,6vh,5rem); }
 .lw-strat-bg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center/cover; }
 .lw-strat-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(108deg,rgba(8,12,7,.88) 0%,rgba(8,12,7,.58) 46%,rgba(8,12,7,.30) 100%); }
 .lw-strat-inner { position:relative; z-index:1; color:var(--cb); }
@@ -1004,8 +1004,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-pipe-eyebrow { display:flex; align-items:center; gap:12px; font-family:var(--csa); font-size:11px; font-weight:600;
   letter-spacing:.28em; text-transform:uppercase; color:var(--cal); margin-bottom:clamp(20px,3vh,32px); }
 .lw-pipe-eyebrow::before { content:""; width:30px; height:1px; background:currentColor; opacity:.5; }
-.lw-why-sec { background:linear-gradient(rgba(245,240,230,.72),rgba(245,240,230,.72)), url('assets/img/bg-about.jpg') center/cover no-repeat; }
-.lw-why-sec .lw-kicker { color:var(--ca); }
+#content-sections > section.lw-why-sec { display:block; padding:0; min-height:auto; background:var(--cb); justify-content:flex-start; }
+.lw-why-body { background:linear-gradient(rgba(245,240,230,.72),rgba(245,240,230,.72)), url('assets/img/bg-about.jpg') center/cover no-repeat; padding:clamp(3.5rem,8vh,6rem) 0 clamp(4rem,9vh,7rem); }
+.lw-why-body .lw-kicker { color:var(--ca); }
 .lw-why-h { font-family:var(--cse); font-weight:300; font-size:clamp(2.2rem,4vw,3.6rem); line-height:1.04; letter-spacing:.01em; color:var(--ca); margin:14px 0 0; }
 .lw-why-h .amp { color:var(--cal); }
 .lw-why-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(1.6rem,3vw,3rem); margin-top:clamp(40px,6vh,72px); }
@@ -1323,6 +1324,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </div>
     </div>
   </div>
+</section>
+
+<!-- ════ 5 · ALL IN ONE (banda) + WHY HERE — juntas ════ -->
+<section class="lw-why-sec" id="why">
   <div class="lw-exp-tl">
     <div class="lw-exp-tlbg" aria-hidden="true"></div>
     <div class="cs-wrap lw-tl-inner">
@@ -1336,19 +1341,17 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       </div>
     </div>
   </div>
-</section>
-
-<!-- ════ 5 · WHY HERE (sección suelta) ════ -->
-<section class="lw-why-sec" id="why">
-  <div class="cs-wrap">
-    <div class="lw-head reveal">
-      <span class="lw-kicker">Why Here?</span>
-      <h2 class="lw-why-h">Why Bali <span class="amp">·</span> Sumba</h2>
-    </div>
-    <div class="lw-why-grid reveal" style="transition-delay:100ms">
-      <div class="lw-why-card"><span class="wy-num">01</span><h4 class="wy-h">Verified expansion</h4><p class="wy-p">We operate only within territories with measured, proven growth dynamics.</p></div>
-      <div class="lw-why-card"><span class="wy-num">02</span><h4 class="wy-h">Legal and fiscal layer</h4><p class="wy-p">Every acquisition is structured and verified before it reaches you.</p></div>
-      <div class="lw-why-card"><span class="wy-num">03</span><h4 class="wy-h">End to end delivery</h4><p class="wy-p">From land to development, one ecosystem holds the whole journey.</p></div>
+  <div class="lw-why-body">
+    <div class="cs-wrap">
+      <div class="lw-head reveal">
+        <span class="lw-kicker">Why Here?</span>
+        <h2 class="lw-why-h">Why Bali <span class="amp">·</span> Sumba</h2>
+      </div>
+      <div class="lw-why-grid reveal" style="transition-delay:100ms">
+        <div class="lw-why-card"><span class="wy-num">01</span><h4 class="wy-h">Verified expansion</h4><p class="wy-p">We operate only within territories with measured, proven growth dynamics.</p></div>
+        <div class="lw-why-card"><span class="wy-num">02</span><h4 class="wy-h">Legal and fiscal layer</h4><p class="wy-p">Every acquisition is structured and verified before it reaches you.</p></div>
+        <div class="lw-why-card"><span class="wy-num">03</span><h4 class="wy-h">End to end delivery</h4><p class="wy-p">From land to development, one ecosystem holds the whole journey.</p></div>
+      </div>
     </div>
   </div>
 </section>
