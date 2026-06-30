@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260630160848">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260630165258">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -215,7 +215,7 @@ article:hover .view-cta { gap:9px; }
   background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(190,179,165,.3); }
 #topbar > *{ pointer-events:auto }
 #topbar #logo-inner{ display:flex;align-items:center }
-#topbar #logo-inner img{ height:24px;width:auto;display:block }
+#topbar #logo-inner img{ height:23px;width:auto;display:block }
 #nav{ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:clamp(1.2rem,2.6vw,2.4rem);
   background:rgba(255,255,255,.5);border:1px solid rgba(72,91,55,.28);border-radius:40px;padding:.6rem 1.7rem; }
 .nav-link{ position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;color:rgba(26,22,18,.72);
@@ -246,11 +246,11 @@ article:hover .view-cta { gap:9px; }
 .nav-cur{ display:inline-flex;border:1px solid rgba(72,91,55,.38);border-radius:30px;overflow:hidden }
 .nav-cur button{ appearance:none;border:0;background:transparent;color:rgba(26,22,18,.6);font-family:'Neue Kabel','Jost',sans-serif;font-size:.62rem;font-weight:600;padding:5px 11px;cursor:pointer;transition:background .2s,color .2s }
 .nav-cur button.on{ background:var(--tg);color:var(--bone) }
-.nav-cta{ display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;border:1px solid rgba(72,91,55,.5);padding:8px 20px 8px 9px;border-radius:30px;
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;color:var(--tg);text-transform:uppercase;cursor:pointer;background:transparent;transition:all .35s }
+.nav-cta{ display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;border:1px solid var(--tg);padding:8px 20px 8px 9px;border-radius:30px;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;color:var(--rl);text-transform:uppercase;cursor:pointer;background:var(--tg);transition:all .35s }
 .nav-cta .wa{ width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;line-height:1 }
 .nav-cta .wa svg{ width:13px;height:13px;display:block }
-.nav-cta:hover{ background:var(--tg);color:var(--rl);border-color:var(--tg) }
+.nav-cta:hover{ background:#3a4a2c;color:var(--rl);border-color:#3a4a2c }
 @media(max-width:1000px){ #nav{ display:none } }
 @media(max-width:560px){ .nav-cta span:not(.wa){ display:none } #topbar #logo-inner img{ height:20px } }
 /* Gallery thumbnails in property detail */
@@ -589,8 +589,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260630160848"></script>
-<script src="assets/portfolio-app.js?v=20260630160848"></script>
+<script src="assets/lawang-card.js?v=20260630165258"></script>
+<script src="assets/portfolio-app.js?v=20260630165258"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
