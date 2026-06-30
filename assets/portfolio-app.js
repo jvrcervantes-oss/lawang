@@ -118,6 +118,12 @@
       + '<button class="filter-chip" data-act="region:sumba" style="'+chipStyle(S.region==="sumba")+'">Sumba</button>';
 
     var cards = filtered.map(function(p){ return window.LawangCard.render(p, { lang:S.lang, cur:S.cur, rates:L.RATES, hrefBase:"" }); }).join("");
+    var emptyState = '<div style="grid-column:1/-1;padding:60px 24px;text-align:center;color:var(--ink-2)">'
+      + (L.PROPERTIES.length===0
+          ? '<p style="font-size:15px;margin:0 0 6px">'+(S.lang==="es"?"No se pudieron cargar las propiedades.":"Properties could not be loaded.")+'</p>'
+            + '<p style="font-size:13px;opacity:.7;margin:0">'+(S.lang==="es"?"Abre la página servida por HTTP (no como archivo local) o reintenta.":"Open the page over HTTP (not as a local file) or try again.")+'</p>'
+          : '<p style="font-size:15px;margin:0">'+(S.lang==="es"?"No hay propiedades con estos filtros.":"No properties match these filters.")+'</p>')
+      + '</div>';
 
     var gridCols = S.layout==="list" ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))";
     var gap = S.layout==="list" ? "20px" : "28px";
@@ -138,7 +144,7 @@
       +       '<div class="seg" style="color:var(--ink)"><button class="'+(S.layout==="grid"?"on":"")+'" data-act="layout:grid"><span style="color:'+(S.layout==="grid"?"var(--bone)":"inherit")+'">▦</span></button>'
       +       '<button class="'+(S.layout==="list"?"on":"")+'" data-act="layout:list"><span style="color:'+(S.layout==="list"?"var(--bone)":"inherit")+'">≡</span></button></div></div>'
       +   '</div>'
-      +   '<div style="display:grid;grid-template-columns:'+gridCols+';gap:'+gap+';padding-bottom:100px">'+cards+'</div>'
+      +   '<div style="display:grid;grid-template-columns:'+gridCols+';gap:'+gap+';padding-bottom:100px">'+(cards||emptyState)+'</div>'
       + '</section></div>';
   }
   function chipStyle(active){ return 'appearance:none;border:1px solid '+(active?"var(--ink)":"var(--line)")+';background:'+(active?"var(--ink)":"transparent")+';color:'+(active?"var(--bone)":"var(--ink-2)")+';border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap'; }
@@ -532,5 +538,5 @@
     if(data.settings){ if(data.settings.rates){ L.RATES=data.settings.rates; L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=data.settings; }
     L.PROPERTIES.forEach(function(p){ p.imgKeys=(p.images&&p.images.length)?p.images:[]; });
     fetch('https://open.er-api.com/v6/latest/EUR').then(function(r){return r.json();}).then(function(d){ if(d.result==='success'){ L.RATES={EUR:1,USD:d.rates.USD,AUD:d.rates.AUD}; L.EUR_TO_USD=d.rates.USD; } }).catch(function(){}).finally(start);
-  }).catch(start);
+  }).catch(function(err){ console.error('Lawang: no se pudo cargar data.json — el portfolio se mostrará vacío.', err); start(); });
 })();
