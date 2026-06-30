@@ -532,7 +532,25 @@
     render();
   }
 
-  fetch('data.json?_=' + Date.now()).then(function(r){return r.json();}).then(function(data){
+  // El CDN de Hostinger puede servir un data.json truncado para el patron ?_=.
+  // Probamos varias formas de query (no-store) y validamos antes de aceptar.
+  function fetchDataResilient(){
+    var rnd=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2);};
+    var shapes=['?cb='+rnd()+'&r='+rnd(),'?nocache='+rnd()+'&v='+rnd(),'?_='+rnd()];
+    var i=0;
+    function attempt(){
+      return fetch('data.json'+shapes[i],{cache:'no-store'})
+        .then(function(r){return r.text();})
+        .then(function(txt){
+          var d=JSON.parse(txt);
+          if(d&&typeof d==='object'&&Array.isArray(d.properties)) return d;
+          throw new Error('estructura invalida o truncada ('+txt.length+' bytes)');
+        })
+        .catch(function(e){ i++; if(i<shapes.length) return attempt(); throw e; });
+    }
+    return attempt();
+  }
+  fetchDataResilient().then(function(data){
     if(data.properties) L.PROPERTIES = data.properties;
     if(data.downloads)  L.DOWNLOADS  = data.downloads;
     if(data.settings){ if(data.settings.rates){ L.RATES=data.settings.rates; L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=data.settings; }

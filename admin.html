@@ -614,14 +614,49 @@ async function doLogout() {
 }
 
 /* ─── DATA ──────────────────────────────────────────────────── */
+var LOAD_OK = false;
+
+// El CDN de Hostinger puede servir un data.json truncado para el patrón ?_=.
+// Probamos varias formas de query (no-store) y validamos la estructura; nos
+// quedamos con la primera respuesta integra.
+async function fetchDataResilient() {
+  var rnd = function(){ return Date.now().toString(36) + Math.random().toString(36).slice(2); };
+  var shapes = ['?cb=' + rnd() + '&r=' + rnd(), '?nocache=' + rnd() + '&v=' + rnd(), '?_=' + rnd()];
+  var lastErr = null;
+  for (var i = 0; i < shapes.length; i++) {
+    try {
+      var r = await fetch('data.json' + shapes[i], { cache: 'no-store' });
+      var txt = await r.text();
+      var d = JSON.parse(txt);
+      if (d && typeof d === 'object' && Array.isArray(d.properties)) return d;
+      lastErr = new Error('estructura invalida o respuesta truncada (' + txt.length + ' bytes)');
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('no se pudo cargar data.json');
+}
+
 async function loadData() {
-  var r = await fetch('data.json?_=' + Date.now());
-  DATA = await r.json();
+  try {
+    DATA = await fetchDataResilient();
+    LOAD_OK = true;
+  } catch (e) {
+    LOAD_OK = false;
+    if (!DATA || !DATA.properties) DATA = { properties: [], downloads: [], settings: {} };
+    console.error('admin: loadData fallo', e);
+    toast('No se pudo cargar data.json (caché del CDN). NO publiques: borrarías los datos. Recarga.', 'err');
+  }
   renderProperties();
   renderSettings();
 }
 
 async function publishData() {
+  if (!LOAD_OK) {
+    toast('Carga incompleta — publicar borraria los datos del servidor. Recarga la pagina primero.', 'err');
+    return;
+  }
+  if (!DATA.properties || DATA.properties.length === 0) {
+    if (!confirm('Vas a publicar SIN propiedades. Esto deja el portfolio vacio. ¿Seguro?')) return;
+  }
   try {
     var r = await fetch('api/save.php', {
       method:'POST', credentials:'include',
