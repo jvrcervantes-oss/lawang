@@ -308,6 +308,17 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
             <label>Full region label <span class="hint">e.g. "Balian Hills, Bali"</span></label>
             <input type="text" id="f-region" placeholder="Balian Hills, Bali">
           </div>
+          <div class="form-group">
+            <label>View / Setting <span class="hint">controls the icon &amp; badge on the card and detail page</span></label>
+            <select id="f-view">
+              <option value="">Auto (guess from text)</option>
+              <option value="beach">Beachfront</option>
+              <option value="cliff">Clifftop</option>
+              <option value="jungle">Jungle</option>
+              <option value="ricefield">Rice fields</option>
+              <option value="river">Riverside</option>
+            </select>
+          </div>
           <div class="form-row-2">
             <div class="form-group">
               <label>Status</label>
@@ -758,6 +769,7 @@ function propertyToForm(p) {
   set('f-line',        p.line        || 'signature');
   set('f-regionKey',   p.regionKey   || 'bali');
   set('f-region',      p.region      || '');
+  set('f-view',        p.view        || '');
   set('f-status',      p.status      || 'status.offplan');
   set('f-handover',    p.handover    || '');
   set('f-featured',    p.featured    || false);
@@ -1003,6 +1015,7 @@ function formToProperty() {
     line:        get('f-line'),
     region:      get('f-region'),
     regionKey:   regionKey,
+    view:        get('f-view'),
     featured:    get('f-featured'),
     priceEUR:    parseFloat(get('f-priceEUR'))    || 0,
     beds:        parseInt(get('f-beds'))           || 0,

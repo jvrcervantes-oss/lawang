@@ -35,8 +35,10 @@
     if (p.line === 'land') return 'jungle';
     return 'sunset';
   }
-  // Tipo de vista inferido del texto de la propiedad (no hay campo 'view' en data.json)
+  // Vista de la propiedad: si el admin la fijó (p.view) se respeta; si está en
+  // "Auto" se infiere del texto de la propiedad.
   function viewFor(p) {
+    if (p.view && VIEW_LABEL[p.view]) return p.view;
     var s = (((p.sub && p.sub.en) || '') + ' ' + ((p.desc && p.desc.en) || '') + ' ' + ((p.title && p.title.en) || '')).toLowerCase();
     if (/clifftop|cliff|bluff/.test(s)) return 'cliff';
     if (/rivermouth|riverside|river|valley/.test(s)) return 'river';
