@@ -794,15 +794,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   const grid = document.getElementById('lwGrid');
   if(!grid) return;
   // Render con el MÓDULO COMPARTIDO (assets/lawang-card.js) — misma card que portfolio.html.
-  fetch('data.json?_=' + Date.now())
-    .then(r => r.json())
-    .then(d => {
-      const ps = (d && d.properties) || [];
-      if(ps.length && window.LawangCard) grid.innerHTML = ps.map(function(p){
-        return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'portfolio.html' });
-      }).join('');
-    })
-    .catch(() => {});
+  // Cargador resiliente: el CDN de Hostinger sirve a veces un data.json truncado para el
+  // patrón ?_=. Probamos varias formas de query (no-store) y validamos antes de re-render.
+  function rnd(){ return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+  var shapes = ['?cb=' + rnd() + '&r=' + rnd(), '?nocache=' + rnd() + '&v=' + rnd(), '?_=' + rnd()];
+  var i = 0;
+  (function attempt(){
+    fetch('data.json' + shapes[i], { cache:'no-store' })
+      .then(function(res){ return res.text(); })
+      .then(function(txt){
+        var d = JSON.parse(txt);
+        if(!d || !Array.isArray(d.properties)) throw new Error('truncado/invalido (' + txt.length + ' bytes)');
+        var ps = d.properties.filter(function(p){ return p.visible !== false; });
+        if(ps.length && window.LawangCard) grid.innerHTML = ps.map(function(p){
+          return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'portfolio.html' });
+        }).join('');
+      })
+      .catch(function(){ i++; if(i < shapes.length) return attempt(); /* mantiene el fallback estático */ });
+  })();
 }());
 
 // ── Carrusel de proyectos: flechas + autoplay cada 5s ─────────
