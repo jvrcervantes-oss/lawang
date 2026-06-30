@@ -918,6 +918,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
 .lw-pf-top::before { content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
   background:linear-gradient(180deg,rgba(20,30,16,.5),rgba(16,24,14,.4) 45%,rgba(14,22,12,.64)); }
 .lw-pf-top > * { position:relative; z-index:1; }
+/* Filete fino igual que las cards de Ecosystem (.lw-show-frame) */
+.lw-pf-top::after { content:""; position:absolute; inset:10px; border:1px solid rgba(245,240,230,.34); border-radius:10px; pointer-events:none; z-index:2; }
 .lw-pf-top .lw-kicker { color:#E6EDDD; }
 .lw-pf-statement { font-size:clamp(26px,3.4vw,46px); color:var(--cb); margin:16px 0 0 auto; text-align:right; align-items:flex-end; }
 .lw-pf-title2 { font-family:var(--csa); text-transform:uppercase; font-weight:400; font-size:clamp(22px,3vw,42px); line-height:1.05; letter-spacing:.005em; color:var(--ci); margin:clamp(30px,4.5vh,56px) 0 0; }
@@ -1153,7 +1155,6 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.st
       <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg?v=2">
         <source src="assets/video/legacy.mp4?v=2" type="video/mp4">
       </video>
-      <span class="lw-kicker">Prime Investments</span>
       <h2 class="lw-pf-statement lw-bt"><span class="bt-1">The</span><span class="bt-2">Places you choose</span><span class="bt-3">need to reflect what you value</span></h2>
     </div>
     <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Active Developments</b></p>
