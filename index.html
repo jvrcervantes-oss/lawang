@@ -947,6 +947,12 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-pf-title2 .thin { font-weight:200; font-size:.72em; letter-spacing:.02em; }
 
 /* ════ THE SERVICES — From land to legacy (hero con foto de fondo) ════ */
+/* The Seasons (OTF de marca) SOLO para este titulo — scope propio para no
+   afectar al resto del sitio (donde "4"/"+" de la demo se corromperian). */
+@font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Light.otf') format('opentype'); font-weight:300; font-style:normal; font-display:swap; }
+@font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-LightItalic.otf') format('opentype'); font-weight:300; font-style:italic; font-display:swap; }
+@font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype'); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype'); font-weight:400; font-style:italic; font-display:swap; }
 .lw-theservices { position:relative; overflow:hidden; color:var(--rl);
   background:url('assets/img/bg-theservices.png?v=1') center/cover no-repeat;
   justify-content:stretch; }
@@ -961,7 +967,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-ts-head { text-align:center; margin-top:clamp(2.5rem,24vh,270px); }
 .lw-ts-head .lw-kicker { color:#EEF3E7; font-size:clamp(.72rem,1vw,.86rem); letter-spacing:.42em;
   text-shadow:0 2px 14px rgba(0,0,0,.85), 0 1px 3px rgba(0,0,0,.9); }
-.lw-ts-title { font-family:var(--cse); font-weight:400; text-transform:uppercase; white-space:nowrap;
+.lw-ts-title { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; white-space:nowrap;
   font-size:clamp(2.4rem,5.4vw,5.2rem); line-height:1.02; letter-spacing:.02em; margin:.55rem 0 0;
   text-shadow:0 3px 28px rgba(0,0,0,.9), 0 2px 8px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.8); }
 .lw-ts-title em { font-style:italic; }
