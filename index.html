@@ -1180,6 +1180,107 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   .lw-show-grid, .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
   .lw-stats { gap:1.6rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SECCIONES 5 · 6 · 7 — reconstruccion segun assets/guide/ (alta fidelidad)
+   ═══════════════════════════════════════════════════════════════ */
+/* Neue Kabel (OTF de marca) SOLO para titulares marcados "NEUE" — familia
+   propia para no afectar al resto (donde "4"/"+" de la demo se corromperian). */
+@font-face { font-family:'Kabel NK'; src:url('assets/fonts/NeueKabel-Light.otf') format('opentype'); font-weight:300; font-style:normal; font-display:swap; }
+@font-face { font-family:'Kabel NK'; src:url('assets/fonts/NeueKabel-Regular.otf') format('opentype'); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:'Kabel NK'; src:url('assets/fonts/NeueKabel-Medium.otf') format('opentype'); font-weight:500; font-style:normal; font-display:swap; }
+@font-face { font-family:'Kabel NK'; src:url('assets/fonts/NeueKabel-Bold.otf') format('opentype'); font-weight:700; font-style:normal; font-display:swap; }
+
+/* ── 5 · Strategic Partner en TARJETA ── */
+#content-sections > section.lw-services { background:var(--rl); padding:clamp(3.5rem,7vh,6rem) 0 0; }
+.lw-strat-card { position:relative; overflow:hidden; border-radius:22px; min-height:clamp(340px,50vh,500px);
+  display:flex; box-shadow:0 34px 66px -34px rgba(32,24,15,.55); }
+.lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center/cover; }
+.lw-strat-cardbg::after { content:""; position:absolute; inset:0;
+  background:linear-gradient(100deg,rgba(8,12,7,.9) 0%,rgba(8,12,7,.55) 44%,rgba(8,12,7,.12) 100%); }
+.lw-strat-card::after { content:""; position:absolute; inset:14px; border:1px solid rgba(245,240,230,.34);
+  border-radius:13px; pointer-events:none; z-index:2; }
+.lw-strat-cardinner { position:relative; z-index:1; flex:1; display:flex; justify-content:space-between;
+  gap:2rem; padding:clamp(1.8rem,3.6vw,3.2rem); color:var(--cb); }
+.lw-strat-left { display:flex; flex-direction:column; justify-content:space-between; gap:clamp(1.6rem,4vh,2.6rem); }
+.lw-strat-card .lw-strat-title { padding-left:clamp(16px,1.6vw,24px); border-left:1px solid rgba(245,240,230,.55); margin:0; }
+.lw-strat-card .lw-strat-stats { justify-content:flex-start; margin-top:0; gap:clamp(1.4rem,2.6vw,2.6rem); }
+.lw-strat-right { display:flex; flex-direction:column; align-items:flex-end; gap:clamp(.7rem,1.5vh,1.05rem); }
+.lw-pill-c { font-family:var(--csa); font-weight:700; font-size:clamp(.62rem,.95vw,.75rem); letter-spacing:.12em;
+  text-transform:uppercase; color:#2a3118; padding:12px 26px; border-radius:999px; white-space:nowrap;
+  background:linear-gradient(120deg,rgba(240,235,205,.94),rgba(214,206,162,.84));
+  border:1px solid rgba(247,242,221,.9);
+  box-shadow:inset 0 1px 0 rgba(255,252,235,.6), 0 8px 24px -10px rgba(0,0,0,.55); }
+@media(max-width:780px){
+  .lw-strat-cardinner { flex-direction:column; }
+  .lw-strat-right { flex-direction:row; flex-wrap:wrap; align-items:flex-start; }
+}
+
+/* ── 5 · Why Here → BALI & SUMBA (centrado + totem + 3 columnas) ── */
+.lw-why-body { position:relative; }
+.lw-why-totem { position:absolute; left:-1%; top:50%; transform:translateY(-50%); height:86%; width:auto;
+  opacity:.05; pointer-events:none; z-index:0; }
+.lw-why-body .cs-wrap { position:relative; z-index:1; }
+.lw-why-h.lw-why-h { font-family:var(--csa); font-weight:700; text-transform:uppercase; letter-spacing:.02em;
+  font-size:clamp(2.4rem,5vw,4.4rem); color:var(--ci); text-align:center; }
+.lw-why-h .amp { color:var(--cal); font-weight:400; }
+.lw-why-cols { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(1.6rem,3vw,3rem);
+  margin-top:clamp(40px,7vh,80px); }
+.lw-why-col { text-align:left; }
+.lw-why-ch { font-family:var(--csa); font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+  font-size:clamp(1rem,1.25vw,1.18rem); color:var(--ca); margin:0; }
+.lw-why-cp { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.05em;
+  font-size:clamp(1rem,1.25vw,1.18rem); color:var(--cal); margin:2px 0 0; }
+@media(max-width:780px){ .lw-why-cols { grid-template-columns:1fr; gap:22px; text-align:center; } .lw-why-col{text-align:center} }
+
+/* ── 6 · Epic Indonesia (full-bleed) ── */
+#content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
+  background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-epicindonesia.jpg') center/cover; z-index:0; }
+.lw-epic-bg::after { content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(18,42,60,.08) 0%,rgba(10,20,15,.06) 45%,rgba(8,14,10,.55) 100%); }
+.lw-epic-own { position:absolute; top:clamp(-2%,1vh,3%); left:50%; transform:translateX(-50%); z-index:1;
+  font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.02em;
+  font-size:clamp(13rem,32vw,40rem); line-height:.8; color:rgba(255,255,255,.13); pointer-events:none; white-space:nowrap; }
+.lw-epic-inner { position:relative; z-index:2; width:100%; display:flex; flex-direction:column;
+  justify-content:space-between; min-height:min(90vh,900px); }
+.lw-epic-top { text-align:center; margin-top:clamp(3rem,10vh,7rem); }
+.lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
+  font-size:clamp(2.6rem,6.4vw,5.6rem); line-height:1; color:#12403a; margin:0;
+  text-shadow:0 2px 22px rgba(255,255,255,.3); }
+.lw-epic-sub { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.14em;
+  font-size:clamp(.9rem,1.5vw,1.4rem); color:#12403a; margin:.7rem 0 0; }
+.lw-epic-sub b { font-weight:700; }
+.lw-epic-proc { text-align:center; }
+.lw-epic-kick { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.42em;
+  font-size:clamp(.7rem,1vw,.86rem); color:rgba(245,240,230,.9); text-shadow:0 1px 10px rgba(0,0,0,.5); }
+.lw-epic-h { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.04em;
+  font-size:clamp(2.4rem,6vw,5.4rem); line-height:1; color:#fff; margin:.5rem 0 0; text-shadow:0 2px 24px rgba(0,0,0,.5); }
+.lw-epic-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem;
+  margin-top:clamp(2rem,5vh,3.6rem); padding-bottom:clamp(2rem,5vh,4rem); }
+.lw-epic-step { text-align:left; }
+.lw-epic-step-n { display:block; font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.28em;
+  font-size:clamp(.86rem,1.1vw,1.02rem); color:rgba(245,240,230,.82); text-shadow:0 1px 8px rgba(0,0,0,.65); }
+.lw-epic-step-t { display:block; font-family:var(--csa); font-weight:600; text-transform:uppercase; letter-spacing:.08em;
+  font-size:clamp(1.3rem,1.8vw,1.7rem); color:#fff; margin:.35rem 0 0; text-shadow:0 2px 10px rgba(0,0,0,.75); }
+@media(max-width:780px){ .lw-epic-steps { grid-template-columns:1fr 1fr; gap:26px 1.4rem; } .lw-epic-own{font-size:44vw} }
+
+/* ── 7 · Featured project (contorno linea + NEUE) ── */
+.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(3rem,7vh,6rem) 0; }
+.lw-feat-media.lw-feat-outline::before { content:""; position:absolute; inset:14px; z-index:2; pointer-events:none;
+  border:1px solid rgba(245,240,230,.65); border-radius:10px; }
+.lw-feat-title2 { font-family:'Kabel NK',var(--csa); font-weight:400; font-size:clamp(2rem,3.4vw,3.2rem);
+  line-height:1.06; color:var(--ci); margin:14px 0 0; }
+.lw-feat-cap-t.lw-feat-cap-neue { font-family:'Kabel NK',var(--csa); font-weight:500; text-transform:none; }
+
+/* ── 7 · Contact NEUE + logo + T&C ── */
+.lw-ct-h.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-weight:400; letter-spacing:.02em; }
+.lw-ct-italic.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-style:italic; font-weight:300; }
+.lw-ft-logo-img { height:34px; width:auto; display:block; }
+.lw-ft-tc { font-family:var(--csa); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:rgba(245,240,230,.72); text-decoration:none; cursor:none; padding:9px 18px; border:1px solid rgba(245,240,230,.22);
+  border-radius:999px; transition:all .25s; }
+.lw-ft-tc:hover { color:#0A0C09; background:var(--cb); border-color:var(--cb); }
 </style>
 
 <!-- Content sections wrapper -->
@@ -1404,90 +1505,100 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   </div>
 </section>
 
-<!-- ════ 4 · WHAT WE DO ════ -->
+<!-- ════ 5a · STRATEGIC PARTNER (tarjeta) ════ -->
 <section class="lw-services" id="services">
-  <div class="lw-strat">
-    <div class="lw-strat-bg" aria-hidden="true"></div>
-    <div class="cs-wrap lw-strat-inner">
-      <h2 class="lw-bt lw-strat-title reveal">
-        <span class="bt-1">The</span>
-        <span class="bt-2">Strategic Partner</span>
-        <span class="bt-3">for territorial assets</span>
-      </h2>
-      <div class="lw-strat-pills reveal" style="transition-delay:80ms">
-        <span class="lw-pill-g">Territorial Opportunities</span>
-        <span class="lw-pill-g">Long-term Vision</span>
-        <span class="lw-pill-g">Financial Discipline</span>
-      </div>
-      <div class="lw-strat-stats reveal" style="transition-delay:140ms">
-        <div class="lw-sstat"><span class="lw-sstat-n">500K<sup>+</sup></span><span class="lw-sstat-l">SQM Land</span></div>
-        <div class="lw-sstat"><span class="lw-sstat-n">30<sup>+</sup></span><span class="lw-sstat-l">Projects</span></div>
-        <div class="lw-sstat"><span class="lw-sstat-n">6<sup>+</sup></span><span class="lw-sstat-l">Years</span></div>
+  <div class="cs-wrap">
+    <div class="lw-strat-card reveal">
+      <div class="lw-strat-cardbg" aria-hidden="true"></div>
+      <div class="lw-strat-cardinner">
+        <div class="lw-strat-left">
+          <h2 class="lw-bt lw-strat-title">
+            <span class="bt-1">The</span>
+            <span class="bt-2">Strategic Partner</span>
+            <span class="bt-3">for territorial assets</span>
+          </h2>
+          <div class="lw-strat-stats">
+            <div class="lw-sstat"><span class="lw-sstat-n">500K<sup>+</sup></span><span class="lw-sstat-l">SQM Land</span></div>
+            <div class="lw-sstat"><span class="lw-sstat-n">30<sup>+</sup></span><span class="lw-sstat-l">Projects</span></div>
+            <div class="lw-sstat"><span class="lw-sstat-n">6<sup>+</sup></span><span class="lw-sstat-l">Years</span></div>
+          </div>
+        </div>
+        <div class="lw-strat-right">
+          <span class="lw-pill-c">Long-term Vision</span>
+          <span class="lw-pill-c">Financial Discipline</span>
+          <span class="lw-pill-c">Territorial Opportunities</span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ════ 5 · WHY HERE ════ -->
+<!-- ════ 5b · WHY HERE → BALI & SUMBA ════ -->
 <section class="lw-why-sec" id="why">
   <div class="lw-why-body">
+    <img class="lw-why-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
     <div class="cs-wrap">
-      <div class="lw-head reveal">
+      <div class="lw-head center reveal">
         <span class="lw-kicker">Why Here?</span>
-        <h2 class="lw-why-h">Why Bali <span class="amp">·</span> Sumba</h2>
+        <h2 class="lw-why-h">Bali <span class="amp">&amp;</span> Sumba</h2>
       </div>
-      <div class="lw-why-grid reveal" style="transition-delay:100ms">
-        <div class="lw-why-card"><span class="wy-num">01</span><h4 class="wy-h">Verified expansion</h4><p class="wy-p">We operate only within territories with measured, proven growth dynamics.</p></div>
-        <div class="lw-why-card"><span class="wy-num">02</span><h4 class="wy-h">Legal and fiscal layer</h4><p class="wy-p">Every acquisition is structured and verified before it reaches you.</p></div>
-        <div class="lw-why-card"><span class="wy-num">03</span><h4 class="wy-h">End to end delivery</h4><p class="wy-p">From land to development, one ecosystem holds the whole journey.</p></div>
+      <div class="lw-why-cols reveal" style="transition-delay:100ms">
+        <div class="lw-why-col"><h4 class="lw-why-ch">The Economy</h4><p class="lw-why-cp">That cannot be stopped</p></div>
+        <div class="lw-why-col"><h4 class="lw-why-ch">Land That Appreciates</h4><p class="lw-why-cp">Before the world arrives</p></div>
+        <div class="lw-why-col"><h4 class="lw-why-ch">A Legal Framework Built</h4><p class="lw-why-cp">For the international investor</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ════ 6 · THE EXPEDITION + FEATURED (fusión) ════ -->
-<section class="lw-expedition" id="expedition">
-  <div class="lw-exp-tl">
-    <div class="lw-exp-tlbg" aria-hidden="true"></div>
-    <div class="cs-wrap lw-tl-inner">
-      <span class="lw-kicker reveal">The Expedition</span>
-      <h2 class="lw-tl-h reveal">A territorial journey</h2>
-      <div class="lw-tl-grid">
-        <div class="lw-tl-item reveal" style="transition-delay:60ms"><span class="lw-tl-y">2019</span><h4>Founded in Bali</h4><p>Lawang is established as a territorial investment partner.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:120ms"><span class="lw-tl-y">2021</span><h4>First land portfolio</h4><p>Verified expansion corridors secured across Tabanan.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:180ms"><span class="lw-tl-y">2023</span><h4>Signature launched</h4><p>Prime, income-ready estates enter the ecosystem.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:240ms"><span class="lw-tl-y">2025</span><h4>Sumba expansion</h4><p>The ecosystem extends east to verified Sumba territory.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:300ms"><span class="lw-tl-y">2026</span><h4>Built to last</h4><p>A territorial presence across two islands and beyond.</p></div>
+<!-- ════ 6 · EPIC INDONESIA ════ -->
+<section class="lw-epic" id="expedition">
+  <div class="lw-epic-bg" aria-hidden="true"></div>
+  <div class="lw-epic-own" aria-hidden="true">Own</div>
+  <div class="cs-wrap lw-epic-inner">
+    <div class="lw-epic-top reveal">
+      <h2 class="lw-epic-country">Indonesia</h2>
+      <p class="lw-epic-sub">Where Growth <b>Is Unstoppable</b></p>
+    </div>
+    <div class="lw-epic-proc reveal">
+      <span class="lw-epic-kick">The Process</span>
+      <h3 class="lw-epic-h">The Way to Own</h3>
+      <div class="lw-epic-steps">
+        <div class="lw-epic-step reveal" style="transition-delay:60ms"><span class="lw-epic-step-n">01 · You</span><span class="lw-epic-step-t">Discover</span></div>
+        <div class="lw-epic-step reveal" style="transition-delay:120ms"><span class="lw-epic-step-n">02 · You</span><span class="lw-epic-step-t">Secure</span></div>
+        <div class="lw-epic-step reveal" style="transition-delay:180ms"><span class="lw-epic-step-n">03 · You</span><span class="lw-epic-step-t">Build</span></div>
+        <div class="lw-epic-step reveal" style="transition-delay:240ms"><span class="lw-epic-step-n">04 · You</span><span class="lw-epic-step-t">Earn</span></div>
       </div>
     </div>
   </div>
-  <div class="lw-feat-wrap">
+</section>
+
+<!-- ════ 7 · FEATURED PROJECT + CONTACT + FOOTER ════ -->
+<section class="lw-contact" id="contact">
+  <!-- Featured project (fondo lino) -->
+  <div class="lw-featured-block">
     <div class="lw-feat-grid">
-      <div class="lw-feat-media reveal">
+      <div class="lw-feat-media lw-feat-outline reveal">
         <img src="assets/img/line-signature.jpg" alt="Featured project — Ridge House Estate">
-        <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t">Ridge House Estate</span></div>
+        <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t lw-feat-cap-neue">Ridge House Estate</span></div>
       </div>
       <div class="reveal" style="transition-delay:120ms">
-        <span class="lw-kicker">Featured Project</span>
-        <h2 class="lw-title" style="font-size:clamp(2rem,3.2vw,3rem);margin-top:14px">A position, not a transaction</h2>
+        <span class="lw-kicker" style="color:var(--ca)">Featured Project</span>
+        <h2 class="lw-feat-title2">A position, not a transaction</h2>
         <p class="lw-p" style="max-width:46ch">A signature estate within a verified expansion corridor — structured, legally clear, and built to last. A position in the territory, not a transaction.</p>
         <div class="lw-badges"><span class="lw-badge2 fh">Freehold</span><span class="lw-badge2 lg">Signature</span><span class="lw-badge2 ol">450 m²</span></div>
         <div class="lw-feat-price"><span class="lw-feat-amt">$ 485,000</span><span class="lw-feat-note">Freehold</span></div>
-        <a class="cs-btn cs-btn-green" href="#contact">View Project <span class="arr">→</span></a>
+        <a class="cs-btn cs-btn-green" href="#contact-form">View Project <span class="arr">→</span></a>
       </div>
     </div>
   </div>
-</section>
-
-<!-- ════ 7 · CONTACT + FOOTER (fusión) ════ -->
-<section class="lw-contact" id="contact">
   <img class="lw-ct-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
-  <div class="lw-ct-top">
+  <div class="lw-ct-top" id="contact-form">
     <div class="lw-ct-grid">
       <div class="reveal">
         <span class="lw-kicker">The Tropical Partner</span>
-        <h2 class="lw-ct-h">Own The Eternity</h2>
-        <p class="lw-ct-italic">You have thought about staying.</p>
+        <h2 class="lw-ct-h lw-ct-neue">Own The Eternity</h2>
+        <p class="lw-ct-italic lw-ct-neue">You have thought about staying.</p>
         <p class="lw-ct-note">Tell us what kind of legacy you value. Our team will reach out with verified opportunities.</p>
       </div>
       <form class="lw-ct-form reveal" id="lwForm" style="transition-delay:120ms">
@@ -1501,8 +1612,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   <div class="lw-ft">
     <div class="lw-ft-grid">
       <div>
-        <div class="lw-ft-logo">Lawang</div>
-        <div class="lw-ft-sub">Tropical Properties</div>
+        <img class="lw-ft-logo-img" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties">
+        <div class="lw-ft-sub" style="margin-top:10px">Tropical Properties</div>
         <p class="lw-ft-tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>
       </div>
       <div class="lw-ft-col">
@@ -1529,7 +1640,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   </div>
   <div class="lw-ft-bottom">
     <span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>
-    <span class="lw-ft-copy">Balian Hills, Bali · Sumba Island</span>
+    <a class="lw-ft-tc" href="terminos.html">Terms &amp; Conditions</a>
   </div>
 </section>
 
