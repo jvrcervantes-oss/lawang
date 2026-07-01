@@ -133,12 +133,12 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
 #logo.show{opacity:1;transform:none}
 #logo-inner{display:flex;align-items:center}
-#logo-inner img{height:26px;width:auto;display:block;transition:height .3s}
+#logo-inner img{height:23.4px;width:auto;display:block;transition:height .3s}
 #logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
 #logo-inner .ll-dark{display:none}
 #logo.dark .ll-white{display:none}
 #logo.dark .ll-dark{display:block}
-@media(max-width:680px){ #logo-inner img{height:20px} }
+@media(max-width:680px){ #logo-inner img{height:18px} }
 
 /* ── TOPBAR estilo referencia (logo | links centro | acciones) ── */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:150;
@@ -150,8 +150,8 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   box-shadow:0 1px 0 rgba(190,179,165,.3);
   padding-top:clamp(.38rem,.94vh,.6rem);padding-bottom:clamp(.38rem,.94vh,.6rem)}
-#topbar.solid #logo-inner img{height:23px}
-@media(max-width:680px){ #topbar.solid #logo-inner img{height:17px} }
+#topbar.solid #logo-inner img{height:20.7px}
+@media(max-width:680px){ #topbar.solid #logo-inner img{height:15.3px} }
 
 #nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   display:flex;align-items:center;gap:clamp(1.2rem,2.6vw,2.4rem);
@@ -205,14 +205,14 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid .lang-menu li.active{color:var(--tg)}
 #topbar.solid .lang-menu li.active::after{color:var(--tg)}
 .nav-cta{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;
-  border:1px solid rgba(190,179,165,.7);padding:8px 20px 8px 9px;border-radius:30px;
+  border:1px solid var(--tg);padding:8px 20px 8px 9px;border-radius:30px;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
-  color:var(--gold-light);text-transform:uppercase;cursor:none;
-  background:rgba(20,18,14,.25);transition:all .35s}
+  color:var(--rl);text-transform:uppercase;cursor:none;
+  background:var(--tg);transition:all .35s}
 .nav-cta .wa{width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;
   display:flex;align-items:center;justify-content:center;color:#fff;line-height:1}
 .nav-cta .wa svg{width:13px;height:13px;display:block}
-.nav-cta:hover{background:var(--gold);color:var(--obsidian);border-color:var(--gold)}
+.nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
 #topbar.solid .nav-cta{color:var(--rl);border-color:var(--tg);background:var(--tg)}
 #topbar.solid .nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
 @media(max-width:900px){#nav{display:none}.nav-lang{display:none}}
@@ -350,7 +350,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.92);
   margin-bottom:-.4rem}
 .hero-h{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:400;
-  font-size:clamp(3.2rem,10vw,9rem);line-height:.94;letter-spacing:.06em;text-transform:uppercase;
+  font-size:clamp(3rem,8vw,7rem);line-height:.94;letter-spacing:.04em;text-transform:uppercase;
   color:var(--ivory)}
 .hero-discover{display:inline-flex;align-items:center;gap:1rem;margin-top:1rem;
   padding:14px 30px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
@@ -943,8 +943,42 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-pf-statement { font-size:clamp(26px,3.4vw,46px); color:var(--cb); margin:16px 0 0 auto; text-align:right; align-items:flex-end; }
 .lw-pf-title2 { font-family:var(--csa); text-transform:uppercase; font-weight:400; font-size:clamp(22px,3vw,42px); line-height:1.05; letter-spacing:.005em; color:var(--ci); margin:clamp(30px,4.5vh,56px) 0 0; }
 @media(min-width:760px){ .lw-pf-title2 { white-space:nowrap; } }
-.lw-pf-title2 b { font-weight:400; }
-.lw-pf-title2 .thin { font-weight:200; }
+.lw-pf-title2 b { font-weight:600; }
+.lw-pf-title2 .thin { font-weight:200; font-size:.72em; letter-spacing:.02em; }
+
+/* ════ THE SERVICES — From land to legacy (hero con foto de fondo) ════ */
+.lw-theservices { position:relative; overflow:hidden; color:var(--rl);
+  background:url('assets/img/bg-theservices.png?v=1') center/cover no-repeat;
+  justify-content:stretch; }
+.lw-ts-overlay { position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,24,16,.30) 0%,rgba(18,24,16,.10) 42%,rgba(14,20,13,.74) 100%); }
+.lw-ts-inner { position:relative; z-index:1; display:flex; flex-direction:column;
+  justify-content:space-between; gap:clamp(2rem,7vh,4.5rem); min-height:min(80vh,760px); }
+.lw-ts-head { text-align:center; margin-top:clamp(1rem,5vh,3rem); }
+.lw-ts-head .lw-kicker { color:#E6EDDD; }
+.lw-ts-title { font-family:var(--cse); font-weight:300; text-transform:uppercase;
+  font-size:clamp(2.2rem,6vw,5rem); line-height:1; letter-spacing:.04em; margin:.45rem 0 0;
+  text-shadow:0 2px 26px rgba(0,0,0,.38); }
+.lw-ts-title em { font-style:italic; }
+.lw-ts-cols { display:grid; grid-template-columns:repeat(4,1fr); }
+.lw-ts-col { padding:0 clamp(14px,1.8vw,30px); border-left:1px solid rgba(245,240,230,.26); }
+.lw-ts-col:first-child { border-left:0; padding-left:0; }
+.lw-ts-ico { display:block; width:26px; height:26px; margin-bottom:14px; color:var(--gold-light); }
+.lw-ts-ico svg { width:100%; height:100%; display:block; }
+.lw-ts-h { font-family:'Neue Kabel','Jost',sans-serif; font-weight:300; text-transform:uppercase;
+  font-size:clamp(.86rem,1.1vw,1.02rem); letter-spacing:.14em; margin:0 0 9px; color:#fff; }
+.lw-ts-h b { font-weight:700; }
+.lw-ts-p { font-family:'Neue Kabel','Jost',sans-serif; font-weight:300; font-size:.82rem;
+  line-height:1.5; letter-spacing:.04em; color:rgba(245,240,230,.84); margin:0; max-width:22ch; }
+@media(max-width:780px){
+  .lw-ts-cols { grid-template-columns:1fr 1fr; gap:28px 0; }
+  .lw-ts-col:nth-child(3){ border-left:0; padding-left:0; }
+}
+@media(max-width:460px){
+  .lw-ts-cols { grid-template-columns:1fr; }
+  .lw-ts-col { border-left:0; padding-left:0; border-top:1px solid rgba(245,240,230,.20); padding-top:18px; }
+  .lw-ts-col:first-child { border-top:0; padding-top:0; }
+}
 .lw-pf-carousel { position:relative; }
 .lw-pf-grid { display:flex; gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); overflow-x:auto; scroll-snap-type:x mandatory;
   scroll-behavior:smooth; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
@@ -1140,7 +1174,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   <div class="cs-wrap">
     <div class="lw-head center reveal">
       <span class="lw-kicker">The Ecosystem</span>
-      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase"><em style="font-style:italic">Four ways,</em> <span style="font-weight:200">one legacy</span></h2>
+      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase"><em style="font-style:normal">Four ways,</em> <span style="font-weight:200">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
       <a class="lw-show reveal" href="portfolio.html#signature" style="--img:url('assets/img/CardSignatures.jpg')">
@@ -1171,12 +1205,12 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 <section class="lw-portfolio" id="portfolio">
   <div class="cs-wrap">
     <div class="lw-pf-top reveal">
-      <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg?v=2">
-        <source src="assets/video/legacy.mp4?v=2" type="video/mp4">
+      <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg?v=3">
+        <source src="assets/video/legacy.mp4?v=3" type="video/mp4">
       </video>
       <h2 class="lw-pf-statement lw-bt"><span class="bt-1">The</span><span class="bt-2">Places you choose</span><span class="bt-3">need to reflect what you value</span></h2>
     </div>
-    <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Active Developments</b></p>
+    <p class="lw-pf-title2 reveal" style="transition-delay:80ms"><b>Project Collection,</b> <span class="thin">Tropical Properties</span></p>
     <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
       <button class="lw-pf-arrow prev" type="button" aria-label="Previous projects">‹</button>
       <div class="lw-pf-grid" id="lwGrid">
@@ -1322,6 +1356,39 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   </div>
 </section>
 
+<!-- ════ 3b · THE SERVICES — From land to legacy ════ -->
+<section class="lw-theservices" id="the-services">
+  <div class="lw-ts-overlay" aria-hidden="true"></div>
+  <div class="cs-wrap lw-ts-inner">
+    <div class="lw-ts-head reveal">
+      <span class="lw-kicker">The Services</span>
+      <h2 class="lw-ts-title">From land <em>to legacy</em></h2>
+    </div>
+    <div class="lw-ts-cols">
+      <div class="lw-ts-col reveal" style="transition-delay:60ms">
+        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3l7 16-7-4-7 4z"/></svg></span>
+        <h4 class="lw-ts-h"><b>Territorial</b> Sourcing</h4>
+        <p class="lw-ts-p">Verified expansion corridors, and long-term upside.</p>
+      </div>
+      <div class="lw-ts-col reveal" style="transition-delay:120ms">
+        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M9 14l-1 7 4-2 4 2-1-7"/></svg></span>
+        <h4 class="lw-ts-h"><b>Legal</b> and Structure</h4>
+        <p class="lw-ts-p">Every acquisition with full fiscal clarity.</p>
+      </div>
+      <div class="lw-ts-col reveal" style="transition-delay:180ms">
+        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3 12l9-7 9 7"/><path d="M6 11v8h12v-8"/></svg></span>
+        <h4 class="lw-ts-h"><b>Development</b> and Build</h4>
+        <p class="lw-ts-p">Structural integrity and deep territorial knowledge.</p>
+      </div>
+      <div class="lw-ts-col reveal" style="transition-delay:240ms">
+        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5 20V9M12 20V4M19 20v-8"/></svg></span>
+        <h4 class="lw-ts-h"><b>Management</b> and Returns</h4>
+        <p class="lw-ts-p">Our curated network of local management partners.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ════ 4 · WHAT WE DO ════ -->
 <section class="lw-services" id="services">
   <div class="lw-strat">
@@ -1346,21 +1413,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   </div>
 </section>
 
-<!-- ════ 5 · ALL IN ONE (banda) + WHY HERE — juntas ════ -->
+<!-- ════ 5 · WHY HERE ════ -->
 <section class="lw-why-sec" id="why">
-  <div class="lw-exp-tl">
-    <div class="lw-exp-tlbg" aria-hidden="true"></div>
-    <div class="cs-wrap lw-tl-inner">
-      <span class="lw-kicker reveal">All in one</span>
-      <h2 class="lw-tl-h reveal">From land to legacy</h2>
-      <div class="lw-tl-grid lw-aio-grid">
-        <div class="lw-tl-item reveal" style="transition-delay:60ms"><span class="lw-tl-y">01</span><h4>Territorial sourcing</h4><p>We secure land inside verified expansion corridors, vetted for title, access and long-term upside.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:120ms"><span class="lw-tl-y">02</span><h4>Legal and structure</h4><p>Every acquisition verified and structured — leasehold or PT PMA freehold, with full fiscal clarity.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:180ms"><span class="lw-tl-y">03</span><h4>Development and build</h4><p>Tepi Sungai, our construction division, delivers each villa with structural integrity and territorial context.</p></div>
-        <div class="lw-tl-item reveal" style="transition-delay:240ms"><span class="lw-tl-y">04</span><h4>Rental and returns</h4><p>Once delivered, we manage occupancy and yield so the asset keeps performing year after year.</p></div>
-      </div>
-    </div>
-  </div>
   <div class="lw-why-body">
     <div class="cs-wrap">
       <div class="lw-head reveal">
