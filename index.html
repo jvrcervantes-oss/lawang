@@ -1193,8 +1193,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 /* ── 5 · Strategic Partner + Why Here JUNTOS en 1 scroll (100vh) ── */
 #content-sections > section.lw-services { background:var(--rl); min-height:100vh; min-height:100dvh;
+  position:relative; overflow:hidden;
   display:flex; flex-direction:column; justify-content:center; gap:clamp(1.8rem,4vh,3.4rem);
   padding:clamp(5rem,8vh,6.5rem) 0 clamp(2rem,4vh,3rem); }
+#content-sections > section.lw-services > .cs-wrap { position:relative; z-index:1; }
 .lw-strat-card { position:relative; overflow:hidden; border-radius:22px; min-height:clamp(260px,30vh,330px);
   display:flex; box-shadow:0 34px 66px -34px rgba(32,24,15,.55); }
 .lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center 42%/cover; }
@@ -1207,12 +1209,14 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-strat-left { display:flex; flex-direction:column; justify-content:space-between; gap:clamp(1.6rem,4vh,2.6rem); }
 .lw-strat-card .lw-strat-title { padding-left:clamp(16px,1.6vw,24px); border-left:1px solid rgba(245,240,230,.55); margin:0; }
 .lw-strat-card .lw-strat-stats { justify-content:flex-start; margin-top:0; gap:clamp(1.4rem,2.6vw,2.6rem); }
-.lw-strat-right { display:flex; flex-direction:column; align-items:flex-end; gap:clamp(.7rem,1.5vh,1.05rem); }
+.lw-strat-right { display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:clamp(.75rem,1.7vh,1.15rem); }
 .lw-pill-c { font-family:var(--csa); font-weight:700; font-size:clamp(.62rem,.95vw,.75rem); letter-spacing:.12em;
-  text-transform:uppercase; color:#2a3118; padding:12px 26px; border-radius:999px; white-space:nowrap;
-  background:linear-gradient(120deg,rgba(240,235,205,.94),rgba(214,206,162,.84));
-  border:1px solid rgba(247,242,221,.9);
-  box-shadow:inset 0 1px 0 rgba(255,252,235,.6), 0 8px 24px -10px rgba(0,0,0,.55); }
+  text-transform:uppercase; color:#26301a; padding:12px 26px; border-radius:999px; white-space:nowrap;
+  background:linear-gradient(120deg,rgba(243,238,214,.55),rgba(214,206,162,.4));
+  border:1px solid rgba(247,242,221,.55); backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+  box-shadow:inset 0 1px 0 rgba(255,252,235,.4), 0 10px 26px -12px rgba(0,0,0,.5); }
+.lw-pill-c:nth-child(2) { margin-right:clamp(16px,2.4vw,42px); }
+.lw-pill-c:nth-child(3) { margin-right:clamp(32px,4.6vw,84px); }
 @media(max-width:780px){
   .lw-strat-cardinner { flex-direction:column; }
   .lw-strat-right { flex-direction:row; flex-wrap:wrap; align-items:flex-start; }
@@ -1220,8 +1224,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 /* ── 5 · Why Here → BALI & SUMBA (centrado + totem + 3 columnas) ── */
 .lw-why-body { position:relative; }
-.lw-why-totem { position:absolute; left:-1%; top:50%; transform:translateY(-50%); height:86%; width:auto;
-  opacity:.05; pointer-events:none; z-index:0; }
+.lw-why-totem { position:absolute; left:clamp(-70px,-3vw,-24px); top:50%; transform:translateY(-50%);
+  height:min(58vh,500px); width:auto; opacity:.14; pointer-events:none; z-index:0; }
 .lw-why-body .cs-wrap { position:relative; z-index:1; }
 .lw-why-body .lw-kicker { color:var(--ci2); font-weight:400; font-size:clamp(.72rem,1vw,.86rem); letter-spacing:.36em; }
 .lw-why-h.lw-why-h { font-family:var(--csa); font-weight:600; text-transform:uppercase; letter-spacing:.03em;
