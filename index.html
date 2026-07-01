@@ -975,7 +975,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   padding-bottom:clamp(.5rem,2vh,1.5rem); }
 .lw-ts-col { padding:0 clamp(14px,1.8vw,30px); border-left:1px solid rgba(245,240,230,.32); }
 .lw-ts-col:first-child { border-left:0; padding-left:0; }
-.lw-ts-ico { display:block; width:30px; height:30px; margin-bottom:16px; color:var(--gold-light);
+.lw-ts-ico { display:block; height:40px; width:auto; margin-bottom:16px;
   filter:drop-shadow(0 2px 8px rgba(0,0,0,.9)); }
 .lw-ts-ico svg { width:100%; height:100%; display:block; }
 .lw-ts-h { font-family:'Neue Kabel','Jost',sans-serif; font-weight:400; text-transform:uppercase;
@@ -1191,8 +1191,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 @font-face { font-family:'Kabel NK'; src:url('assets/fonts/NeueKabel-Medium.otf') format('opentype'); font-weight:500; font-style:normal; font-display:swap; }
 @font-face { font-family:'Kabel NK'; src:url('assets/fonts/NeueKabel-Bold.otf') format('opentype'); font-weight:700; font-style:normal; font-display:swap; }
 
-/* ── 5 · Strategic Partner en TARJETA ── */
-#content-sections > section.lw-services { background:var(--rl); padding:clamp(3.5rem,7vh,6rem) 0 0; }
+/* ── 5 · Strategic Partner en TARJETA (1 scroll entero) ── */
+#content-sections > section.lw-services { background:var(--rl); min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; justify-content:center; padding:clamp(6rem,11vh,8rem) 0 clamp(3rem,6vh,5rem); }
 .lw-strat-card { position:relative; overflow:hidden; border-radius:22px; min-height:clamp(260px,30vh,330px);
   display:flex; box-shadow:0 34px 66px -34px rgba(32,24,15,.55); }
 .lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center 42%/cover; }
@@ -1483,22 +1484,22 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
     </div>
     <div class="lw-ts-cols">
       <div class="lw-ts-col reveal" style="transition-delay:60ms">
-        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3l7 16-7-4-7 4z"/></svg></span>
+        <img class="lw-ts-ico" src="assets/img/icon-services-territorial.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Territorial</b> Sourcing</h4>
         <p class="lw-ts-p">Verified expansion corridors, and long-term upside.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:120ms">
-        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M9 14l-1 7 4-2 4 2-1-7"/></svg></span>
+        <img class="lw-ts-ico" src="assets/img/icon-services-legal.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Legal</b> and Structure</h4>
         <p class="lw-ts-p">Every acquisition with full fiscal clarity.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:180ms">
-        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3 12l9-7 9 7"/><path d="M6 11v8h12v-8"/></svg></span>
+        <img class="lw-ts-ico" src="assets/img/icon-services-development.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Development</b> and Build</h4>
         <p class="lw-ts-p">Structural integrity and deep territorial knowledge.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:240ms">
-        <span class="lw-ts-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5 20V9M12 20V4M19 20v-8"/></svg></span>
+        <img class="lw-ts-ico" src="assets/img/icon-services-management.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Management</b> and Returns</h4>
         <p class="lw-ts-p">Our curated network of local management partners.</p>
       </div>
