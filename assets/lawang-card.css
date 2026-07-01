@@ -23,7 +23,7 @@
   filter:drop-shadow(0 1px 3px rgba(20,16,11,.55)); }
 .lw-prop-view { position:absolute; right:12px; top:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
   font-family:'Neue Kabel','Jost',sans-serif; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,239,228,.95);
-  background:rgba(20,16,11,.34); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); padding:6px 13px 6px 9px; border-radius:999px; }
+  background:rgba(72,91,55,.92); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); padding:6px 13px 6px 9px; border-radius:999px; box-shadow:0 4px 14px -4px rgba(20,16,11,.5); }
 .lw-prop-view img { width:auto; height:19px; flex-shrink:0; object-fit:contain; }
 .lw-prop-body { padding:22px 24px 26px; display:flex; flex-direction:column; gap:12px; flex:1; }
 .lw-prop-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
