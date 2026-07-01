@@ -953,21 +953,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-ts-inner { position:relative; z-index:1; display:flex; flex-direction:column;
   justify-content:space-between; gap:clamp(2rem,7vh,4.5rem); min-height:min(80vh,760px); }
 .lw-ts-head { text-align:center; margin-top:clamp(1rem,5vh,3rem); }
-.lw-ts-head .lw-kicker { color:#E6EDDD; }
+.lw-ts-head .lw-kicker { color:#E6EDDD; text-shadow:0 1px 10px rgba(0,0,0,.55); }
 .lw-ts-title { font-family:var(--cse); font-weight:300; text-transform:uppercase;
   font-size:clamp(2.2rem,6vw,5rem); line-height:1; letter-spacing:.04em; margin:.45rem 0 0;
-  text-shadow:0 2px 26px rgba(0,0,0,.38); }
+  text-shadow:0 2px 30px rgba(0,0,0,.55), 0 1px 4px rgba(0,0,0,.45); }
 .lw-ts-title em { font-style:italic; }
 .lw-ts-cols { display:grid; grid-template-columns:repeat(4,1fr); }
 .lw-ts-col { padding:0 clamp(14px,1.8vw,30px); border-left:1px solid rgba(245,240,230,.26); }
 .lw-ts-col:first-child { border-left:0; padding-left:0; }
-.lw-ts-ico { display:block; width:26px; height:26px; margin-bottom:14px; color:var(--gold-light); }
+.lw-ts-ico { display:block; width:26px; height:26px; margin-bottom:14px; color:var(--gold-light);
+  filter:drop-shadow(0 1px 6px rgba(0,0,0,.6)); }
 .lw-ts-ico svg { width:100%; height:100%; display:block; }
 .lw-ts-h { font-family:'Neue Kabel','Jost',sans-serif; font-weight:300; text-transform:uppercase;
-  font-size:clamp(.86rem,1.1vw,1.02rem); letter-spacing:.14em; margin:0 0 9px; color:#fff; }
+  font-size:clamp(.86rem,1.1vw,1.02rem); letter-spacing:.14em; margin:0 0 9px; color:#fff;
+  text-shadow:0 1px 8px rgba(0,0,0,.6), 0 1px 2px rgba(0,0,0,.5); }
 .lw-ts-h b { font-weight:700; }
 .lw-ts-p { font-family:'Neue Kabel','Jost',sans-serif; font-weight:300; font-size:.82rem;
-  line-height:1.5; letter-spacing:.04em; color:rgba(245,240,230,.84); margin:0; max-width:22ch; }
+  line-height:1.5; letter-spacing:.04em; color:rgba(245,240,230,.9); margin:0; max-width:22ch;
+  text-shadow:0 1px 6px rgba(0,0,0,.6); }
 @media(max-width:780px){
   .lw-ts-cols { grid-template-columns:1fr 1fr; gap:28px 0; }
   .lw-ts-col:nth-child(3){ border-left:0; padding-left:0; }
