@@ -950,8 +950,6 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-theservices { position:relative; overflow:hidden; color:var(--rl);
   background:url('assets/img/bg-theservices.png?v=1') center/cover no-repeat;
   justify-content:stretch; }
-.lw-ts-overlay { position:absolute; inset:0; z-index:0; pointer-events:none;
-  background:linear-gradient(180deg,rgba(18,24,16,.30) 0%,rgba(18,24,16,.10) 42%,rgba(14,20,13,.74) 100%); }
 .lw-ts-inner { position:relative; z-index:1; display:flex; flex-direction:column;
   justify-content:space-between; gap:clamp(2rem,7vh,4.5rem); min-height:min(80vh,760px); }
 .lw-ts-head { text-align:center; margin-top:clamp(1rem,5vh,3rem); }
@@ -1358,7 +1356,6 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 <!-- ════ 3b · THE SERVICES — From land to legacy ════ -->
 <section class="lw-theservices" id="the-services">
-  <div class="lw-ts-overlay" aria-hidden="true"></div>
   <div class="cs-wrap lw-ts-inner">
     <div class="lw-ts-head reveal">
       <span class="lw-kicker">The Services</span>
