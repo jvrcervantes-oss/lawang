@@ -1193,15 +1193,15 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 /* ── 5 · Strategic Partner en TARJETA ── */
 #content-sections > section.lw-services { background:var(--rl); padding:clamp(3.5rem,7vh,6rem) 0 0; }
-.lw-strat-card { position:relative; overflow:hidden; border-radius:22px; min-height:clamp(340px,50vh,500px);
+.lw-strat-card { position:relative; overflow:hidden; border-radius:22px; min-height:clamp(260px,30vh,330px);
   display:flex; box-shadow:0 34px 66px -34px rgba(32,24,15,.55); }
-.lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center/cover; }
+.lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center 42%/cover; }
 .lw-strat-cardbg::after { content:""; position:absolute; inset:0;
-  background:linear-gradient(100deg,rgba(8,12,7,.9) 0%,rgba(8,12,7,.55) 44%,rgba(8,12,7,.12) 100%); }
+  background:linear-gradient(100deg,rgba(8,12,7,.9) 0%,rgba(8,12,7,.6) 30%,rgba(8,12,7,.16) 60%,rgba(8,12,7,0) 80%); }
 .lw-strat-card::after { content:""; position:absolute; inset:14px; border:1px solid rgba(245,240,230,.34);
   border-radius:13px; pointer-events:none; z-index:2; }
 .lw-strat-cardinner { position:relative; z-index:1; flex:1; display:flex; justify-content:space-between;
-  gap:2rem; padding:clamp(1.8rem,3.6vw,3.2rem); color:var(--cb); }
+  gap:2rem; padding:clamp(1.5rem,2.8vh,2.4rem) clamp(1.8rem,3.6vw,3.4rem); color:var(--cb); }
 .lw-strat-left { display:flex; flex-direction:column; justify-content:space-between; gap:clamp(1.6rem,4vh,2.6rem); }
 .lw-strat-card .lw-strat-title { padding-left:clamp(16px,1.6vw,24px); border-left:1px solid rgba(245,240,230,.55); margin:0; }
 .lw-strat-card .lw-strat-stats { justify-content:flex-start; margin-top:0; gap:clamp(1.4rem,2.6vw,2.6rem); }
@@ -1221,16 +1221,17 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-why-totem { position:absolute; left:-1%; top:50%; transform:translateY(-50%); height:86%; width:auto;
   opacity:.05; pointer-events:none; z-index:0; }
 .lw-why-body .cs-wrap { position:relative; z-index:1; }
-.lw-why-h.lw-why-h { font-family:var(--csa); font-weight:700; text-transform:uppercase; letter-spacing:.02em;
-  font-size:clamp(2.4rem,5vw,4.4rem); color:var(--ci); text-align:center; }
-.lw-why-h .amp { color:var(--cal); font-weight:400; }
+.lw-why-body .lw-kicker { color:var(--ci2); font-weight:400; font-size:clamp(.72rem,1vw,.86rem); letter-spacing:.36em; }
+.lw-why-h.lw-why-h { font-family:var(--csa); font-weight:600; text-transform:uppercase; letter-spacing:.03em;
+  font-size:clamp(2.4rem,5vw,4.4rem); color:var(--ci); text-align:center; margin-top:18px; }
+.lw-why-h .amp { color:inherit; font-weight:400; }
 .lw-why-cols { display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(1.6rem,3vw,3rem);
-  margin-top:clamp(40px,7vh,80px); }
+  margin-top:clamp(44px,8vh,90px); }
 .lw-why-col { text-align:left; }
-.lw-why-ch { font-family:var(--csa); font-weight:800; text-transform:uppercase; letter-spacing:.06em;
-  font-size:clamp(1rem,1.25vw,1.18rem); color:var(--ca); margin:0; }
-.lw-why-cp { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.05em;
-  font-size:clamp(1rem,1.25vw,1.18rem); color:var(--cal); margin:2px 0 0; }
+.lw-why-ch { font-family:var(--csa); font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  font-size:clamp(1rem,1.25vw,1.18rem); color:var(--ca); margin:0; line-height:1.32; }
+.lw-why-cp { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.05em;
+  font-size:clamp(1rem,1.25vw,1.18rem); color:var(--cal); margin:7px 0 0; line-height:1.32; }
 @media(max-width:780px){ .lw-why-cols { grid-template-columns:1fr; gap:22px; text-align:center; } .lw-why-col{text-align:center} }
 
 /* ── 6 · Epic Indonesia (full-bleed) ── */
@@ -1244,7 +1245,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   font-size:clamp(13rem,32vw,40rem); line-height:.8; color:rgba(255,255,255,.13); pointer-events:none; white-space:nowrap; }
 .lw-epic-inner { position:relative; z-index:2; width:100%; display:flex; flex-direction:column;
   justify-content:space-between; min-height:min(90vh,900px); }
-.lw-epic-top { text-align:center; margin-top:clamp(3rem,10vh,7rem); }
+.lw-epic-top { text-align:center; margin-top:clamp(5.5rem,16vh,11rem); }
 .lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
   font-size:clamp(2.6rem,6.4vw,5.6rem); line-height:1; color:#12403a; margin:0;
   text-shadow:0 2px 22px rgba(255,255,255,.3); }
