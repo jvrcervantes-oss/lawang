@@ -1224,7 +1224,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 /* ── 5 · Why Here → BALI & SUMBA (centrado + totem + 3 columnas) ── */
 .lw-why-body { position:relative; }
-.lw-why-totem { position:absolute; left:clamp(-70px,-3vw,-24px); top:50%; transform:translateY(-50%);
+.lw-why-totem { position:absolute; left:max(calc((100vw - 1200px)/2), 16px); top:50%; transform:translateY(-50%);
   height:min(58vh,500px); width:auto; opacity:.14; pointer-events:none; z-index:0; }
 .lw-why-body .cs-wrap { position:relative; z-index:1; }
 .lw-why-body .lw-kicker { color:var(--ci2); font-weight:400; font-size:clamp(.72rem,1vw,.86rem); letter-spacing:.36em; }
