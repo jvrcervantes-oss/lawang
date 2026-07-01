@@ -9,6 +9,10 @@
   var LINES = (L && L.LINES) || ["signature","land","villa","resorts"];
   var LINE_KEYS  = { signature:"line.signature", land:"line.land", villa:"line.villa", resorts:"line.resorts" };
   var LINE_ICONS = { signature:"icon-signature", land:"icon-land", villa:"icon-villas", resorts:"icon-resorts" };
+  // Iconos de marca (PNG cream) — mismos que usa la card. En card inactiva (fondo bone)
+  // se tiñen a Territorial Green vía filtro; en activa (fondo verde) van en cream original.
+  var LINE_CREAM = { signature:"cream-signature", land:"cream-land", villa:"cream-villas", resorts:"cream-resorts" };
+  var CREAM_TINT = "filter:brightness(0) saturate(100%) invert(28%) sepia(22%) saturate(560%) hue-rotate(50deg) brightness(94%) contrast(90%);";
 
   var LAND_PLACEHOLDER = [ {size:400,priceEUR:95000}, {size:600,priceEUR:135000}, {size:1000,priceEUR:210000} ];
   var HOME_PLACEHOLDER = [ {name:"Lontar",beds:2,built:120,priceEUR:215000}, {name:"Banyan",beds:3,built:180,priceEUR:285000}, {name:"Frangipani",beds:4,built:240,priceEUR:360000} ];
@@ -106,9 +110,9 @@
       var on = S.line===l;
       return '<div class="reveal" style="transition-delay:'+(i*70)+'ms">'
         + '<button data-act="line:'+l+'" style="text-align:left;width:100%;height:100%;background:'+(on?"var(--tg,#485B37)":"var(--bone)")+';color:'+(on?"var(--bone)":"var(--ink)")+';border:0;cursor:pointer;padding:15px 18px 16px;transition:background .3s,color .3s">'
-        +   '<div style="display:flex;align-items:center;gap:11px"><svg style="width:26px;height:26px;flex-shrink:0;color:'+(on?"rgba(245,240,230,0.9)":"var(--clay,#485B37)")+';fill:currentColor" aria-hidden="true"><use href="#'+LINE_ICONS[l]+'"/></svg>'
+        +   '<div style="display:flex;align-items:center;gap:12px"><img src="assets/img/'+LINE_CREAM[l]+'.png" alt="" loading="lazy" style="width:38px;height:38px;flex-shrink:0;object-fit:contain;'+(on?"":CREAM_TINT)+'">'
         +   '<div><div style="font-size:9px;font-weight:600;letter-spacing:.18em;color:'+(on?"rgba(245,240,230,0.6)":"var(--clay,#485B37)")+';text-transform:uppercase">'+String(i+1).padStart(2,"0")+'</div>'
-        +   '<div class="serif" style="font-size:19px;font-weight:400;line-height:1.05">'+t(LINE_KEYS[l])+'</div></div></div>'
+        +   '<div style="font-family:var(--sans);font-size:18px;font-weight:500;letter-spacing:.01em;line-height:1.05">'+t(LINE_KEYS[l])+'</div></div></div>'
         +   '<p style="font-size:12px;line-height:1.4;margin-top:9px;margin-bottom:0;opacity:.74">'+t(lineDescs[l])+'</p>'
         + '</button></div>';
     }).join("");
