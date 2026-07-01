@@ -13,3 +13,6 @@ PRODUCT.md
 
 # Archivo local de assets huérfanos (refactor) — no desplegar
 assets/_archive/
+
+# Referencias del cliente (PNGs enormes del diseño) — solo local
+assets/guide/
