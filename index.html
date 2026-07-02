@@ -78,7 +78,7 @@
   --obsidian:   #0A0C09;   /* Near-black with green undertone */
   --stone:      #2E3437;   /* Volcanic Ash */
 
-  --menu-h:     35px;      /* Altura de TODO el menú (logo + barra nav + CTA) */
+  --menu-h:     35px;      /* Altura de la barra de nav + botón CTA (el logo va aparte, 24px) */
 
   /* ── SISTEMA TIPOGRÁFICO LAWANG · escala fluida (móvil↔desktop) ──
      9 tamaños, fuente única. No crear intermedios. Pesos: 400 base,
@@ -149,7 +149,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
 #logo.show{opacity:1;transform:none}
 #logo-inner{display:flex;align-items:center;text-decoration:none}
-#logo-inner img{height:var(--menu-h);width:auto;display:block;transition:height .3s}
+#logo-inner img{height:24px;width:auto;display:block;transition:height .3s}
 #logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
 #logo-inner .ll-dark{display:none}
 #logo.dark .ll-white{display:none}
@@ -166,7 +166,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   box-shadow:0 1px 0 rgba(190,179,165,.3);
   padding-top:clamp(.57rem,1.4vh,.9rem);padding-bottom:clamp(.38rem,.94vh,.6rem)}
-#topbar.solid #logo-inner img{height:var(--menu-h)}
+#topbar.solid #logo-inner img{height:24px}
 @media(max-width:680px){ #topbar.solid #logo-inner img{height:18px} }
 
 #nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
