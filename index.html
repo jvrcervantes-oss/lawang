@@ -143,20 +143,20 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 /* ── TOPBAR estilo referencia (logo | links centro | acciones) ── */
 #topbar{position:fixed;top:0;left:0;right:0;z-index:150;
   display:flex;align-items:center;justify-content:space-between;
-  padding:clamp(.45rem,1.1vh,.7rem) clamp(1.4rem,4vw,3.4rem);
+  padding:clamp(.68rem,1.65vh,1.05rem) clamp(1.4rem,4vw,3.4rem) clamp(.45rem,1.1vh,.7rem);
   opacity:0;transition:opacity .5s ease,background .3s,box-shadow .3s,padding .3s;pointer-events:none}
 #topbar.show{opacity:1}
 #topbar > *{pointer-events:auto}
 #topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   box-shadow:0 1px 0 rgba(190,179,165,.3);
-  padding-top:clamp(.38rem,.94vh,.6rem);padding-bottom:clamp(.38rem,.94vh,.6rem)}
+  padding-top:clamp(.57rem,1.4vh,.9rem);padding-bottom:clamp(.38rem,.94vh,.6rem)}
 #topbar.solid #logo-inner img{height:23.4px}
 @media(max-width:680px){ #topbar.solid #logo-inner img{height:18px} }
 
 #nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  display:flex;align-items:center;gap:clamp(1.2rem,2.6vw,2.4rem);
+  display:flex;align-items:center;gap:clamp(1.44rem,3.12vw,2.88rem);
   background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;
-  padding:.6rem 1.7rem;opacity:1;z-index:1;
+  padding:.6rem 2.04rem;opacity:1;z-index:1;
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
 #topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
 .nav-link{position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
@@ -353,7 +353,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-h{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:400;
   font-size:clamp(3rem,8vw,7rem);line-height:.94;letter-spacing:.04em;text-transform:uppercase;
   color:var(--ivory)}
-.hero-discover{display:inline-flex;align-items:center;gap:1rem;margin-top:1rem;
+.hero-cta-row{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;margin-top:clamp(2.4rem,6vh,4rem)}
+.hero-discover{display:inline-flex;align-items:center;gap:1rem;
   padding:14px 30px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
   background:rgba(20,18,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.32em;
@@ -634,10 +635,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
     <div class="hero-tagline"><span class="ht-l1">We are a Real Estate Investment and Project Developer</span><span class="ht-l2">at the heart of Bali</span></div>
-    <a class="hero-discover" href="#lines"><span class="ar">↓</span> Discover Lawang <span class="ar">↓</span></a>
-  </div>
-  <div class="hero-band">
-    <div class="hero-marks" id="hero-marks" aria-hidden="true"></div>
+    <div class="hero-cta-row">
+      <a class="hero-discover" href="#lines"><span class="ar">↓</span> Discover Lawang <span class="ar">↓</span></a>
+      <a class="hero-discover" href="portfolio.html">Invest with us <span class="ar">→</span></a>
+    </div>
   </div>
 </section>
 
@@ -1153,6 +1154,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
   max-width:var(--cmx); margin:2.2rem auto 0; padding:1.5rem var(--cpd) 0; border-top:1px solid rgba(245,240,230,.1); position:relative; z-index:1; }
 .lw-ft-copy { font-family:var(--csa); font-size:11px; color:rgba(245,240,230,.4); letter-spacing:.04em; }
+.lw-ft-wrap { background:var(--tg); padding-bottom:1.8rem; position:relative; z-index:1; }
+.lw-ft-wrap .lw-ft { border-top:none; }
 
 /* ── Toast ───────────────────────────────────────────────────── */
 #lw-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(160%);
@@ -1617,6 +1620,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
       </form>
     </div>
   </div>
+  <div class="lw-ft-wrap">
   <div class="lw-ft">
     <div class="lw-ft-grid">
       <div>
@@ -1650,6 +1654,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
     <span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>
     <a class="lw-ft-tc" href="terminos.html">Terms &amp; Conditions</a>
   </div>
+  </div><!-- end .lw-ft-wrap -->
 </section>
 
 </div><!-- end #content-sections -->
