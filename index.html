@@ -132,7 +132,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 /* Nav */
 #logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
 #logo.show{opacity:1;transform:none}
-#logo-inner{display:flex;align-items:center}
+#logo-inner{display:flex;align-items:center;text-decoration:none}
 #logo-inner img{height:23.4px;width:auto;display:block;transition:height .3s}
 #logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
 #logo-inner .ll-dark{display:none}
@@ -414,8 +414,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260701113922">
-<script src="assets/lawang-card.js?v=20260701113922"></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260702105057">
+<script src="assets/lawang-card.js?v=20260702105057"></script>
 </head>
 <body>
 
@@ -592,10 +592,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <!-- ════════ TOPBAR (fijo, fuera del scroller) ════════ -->
 <header id="topbar" class="show">
   <div id="logo">
-    <div id="logo-inner">
+    <a id="logo-inner" href="#home" aria-label="Lawang — inicio">
       <img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties">
       <img class="ll-dark" src="assets/img/lawang-logo-v3-dark.png" alt="" aria-hidden="true">
-    </div>
+    </a>
   </div>
   <nav id="nav">
     <a class="nav-link" href="portfolio.html#land">Land</a>
