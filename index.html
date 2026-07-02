@@ -204,17 +204,18 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid .lang-menu li:hover{background:rgba(72,91,55,.1);color:var(--tg)}
 #topbar.solid .lang-menu li.active{color:var(--tg)}
 #topbar.solid .lang-menu li.active::after{color:var(--tg)}
+/* Arriba de la hero: ghost transparente. Se colorea (verde) al iniciar el scroll (#topbar.scrolled). */
 .nav-cta{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;
-  border:1px solid var(--tg);padding:8px 20px 8px 9px;border-radius:30px;
+  border:1px solid rgba(245,240,230,.5);padding:8px 20px 8px 9px;border-radius:30px;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
   color:var(--rl);text-transform:uppercase;cursor:none;
-  background:var(--tg);transition:all .35s}
+  background:transparent;transition:all .35s}
 .nav-cta .wa{width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;
   display:flex;align-items:center;justify-content:center;color:#fff;line-height:1}
 .nav-cta .wa svg{width:13px;height:13px;display:block}
-.nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
-#topbar.solid .nav-cta{color:var(--rl);border-color:var(--tg);background:var(--tg)}
-#topbar.solid .nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
+.nav-cta:hover{background:rgba(245,240,230,.14);color:var(--rl);border-color:rgba(245,240,230,.78)}
+#topbar.scrolled .nav-cta,#topbar.solid .nav-cta{color:var(--rl);border-color:var(--tg);background:var(--tg)}
+#topbar.scrolled .nav-cta:hover,#topbar.solid .nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
 @media(max-width:900px){#nav{display:none}.nav-lang{display:none}}
 
 /* Scene text */
@@ -745,6 +746,7 @@ function onScroll() {
   // Al pasar el hero, la barra se vuelve sólida/clara y el logo oscuro
   const past = snap.scrollTop > window.innerHeight * 0.6;
   topbar.classList.toggle('solid', past);
+  topbar.classList.toggle('scrolled', snap.scrollTop > 8); // CTA se colorea al iniciar el scroll
   logo.classList.toggle('dark', past);
 
   // Sección activa (según posición en viewport dentro del scroller)
