@@ -341,8 +341,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/HeaderWeb.jpg')}
-.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+  background-image:url('assets/img/hero-gateway.jpg')}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 .hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
@@ -629,9 +628,6 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
   <div class="hero-layer l-bg"></div>
-  <video class="hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/img/HeaderWeb.jpg">
-    <source src="assets/video/hero.mp4?v=1" type="video/mp4">
-  </video>
   <div class="hero-mist"></div>
   <div class="hero-vignette"></div>
   <div class="hero-inner">
