@@ -77,7 +77,10 @@
   --ivory:      #F5F0E6;   /* Raw Linen */
   --obsidian:   #0A0C09;   /* Near-black with green undertone */
   --stone:      #2E3437;   /* Volcanic Ash */
+
+  --menu-h:     23.4px;    /* Altura del logo = altura de TODO el menú (barra nav + CTA) */
 }
+@media(max-width:680px){ :root{ --menu-h:18px; } }
 html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Neue Kabel','Jost',sans-serif;cursor:none}
 @media(hover:none){html,body{cursor:auto}}
 
@@ -133,7 +136,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #logo{ position:relative;opacity:1;transform:none;pointer-events:auto;flex:none; }
 #logo.show{opacity:1;transform:none}
 #logo-inner{display:flex;align-items:center;text-decoration:none}
-#logo-inner img{height:23.4px;width:auto;display:block;transition:height .3s}
+#logo-inner img{height:var(--menu-h);width:auto;display:block;transition:height .3s}
 #logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
 #logo-inner .ll-dark{display:none}
 #logo.dark .ll-white{display:none}
@@ -150,13 +153,13 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid{background:rgba(247,244,239,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   box-shadow:0 1px 0 rgba(190,179,165,.3);
   padding-top:clamp(.57rem,1.4vh,.9rem);padding-bottom:clamp(.38rem,.94vh,.6rem)}
-#topbar.solid #logo-inner img{height:23.4px}
+#topbar.solid #logo-inner img{height:var(--menu-h)}
 @media(max-width:680px){ #topbar.solid #logo-inner img{height:18px} }
 
 #nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   display:flex;align-items:center;gap:clamp(1.44rem,3.12vw,2.88rem);
   background:rgba(20,18,14,.22);border:1px solid rgba(190,179,165,.45);border-radius:40px;
-  padding:.6rem 2.04rem;opacity:1;z-index:1;
+  height:var(--menu-h);padding:0 2.04rem;opacity:1;z-index:1;
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
 #topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
 .nav-link{position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;
@@ -205,14 +208,14 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #topbar.solid .lang-menu li.active{color:var(--tg)}
 #topbar.solid .lang-menu li.active::after{color:var(--tg)}
 /* Arriba de la hero: ghost transparente. Se colorea (verde) al iniciar el scroll (#topbar.scrolled). */
-.nav-cta{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;
-  border:1px solid rgba(245,240,230,.5);padding:8px 20px 8px 9px;border-radius:30px;
+.nav-cta{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;
+  border:1px solid rgba(245,240,230,.5);height:var(--menu-h);padding:0 16px 0 7px;border-radius:30px;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;
   color:var(--rl);text-transform:uppercase;cursor:none;
   background:transparent;transition:all .35s}
-.nav-cta .wa{width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;
+.nav-cta .wa{width:17px;height:17px;border-radius:50%;background:#25D366;flex:none;
   display:flex;align-items:center;justify-content:center;color:#fff;line-height:1}
-.nav-cta .wa svg{width:13px;height:13px;display:block}
+.nav-cta .wa svg{width:11px;height:11px;display:block}
 .nav-cta:hover{background:rgba(245,240,230,.14);color:var(--rl);border-color:rgba(245,240,230,.78)}
 #topbar.scrolled .nav-cta,#topbar.solid .nav-cta{color:var(--rl);border-color:var(--tg);background:var(--tg)}
 #topbar.scrolled .nav-cta:hover,#topbar.solid .nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
