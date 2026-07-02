@@ -362,6 +362,9 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 .hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
   background:linear-gradient(180deg,rgba(8,10,8,.5),transparent 22%,transparent 50%,rgba(8,10,8,.72))}
+/* Velo radial suave tras el titular — recupera legibilidad sobre el sol central sin ensuciar la foto */
+.hero-scrim{position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:radial-gradient(120% 78% at 50% 42%,rgba(8,10,8,.52) 0%,rgba(8,10,8,.3) 36%,transparent 68%)}
 .hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform}
 .hero-eyebrow{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:var(--fs-heading-s);
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.92);
@@ -647,6 +650,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div class="hero-layer l-bg"></div>
   <div class="hero-mist"></div>
   <div class="hero-vignette"></div>
+  <div class="hero-scrim"></div>
   <div class="hero-inner">
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
