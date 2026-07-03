@@ -358,9 +358,12 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/Header.jpg')}
+  background-image:url('assets/img/header-web-2.jpg')}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
+/* Capa negra de abajo hacia arriba — legibilidad del titular + tagline */
+.hero-scrim{position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.5) 24%,rgba(0,0,0,.16) 48%,transparent 70%)}
 .hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform;margin-top:clamp(7vh,14vh,18vh)}
 .hero-eyebrow{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:var(--fs-heading-s);
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.92);
@@ -642,6 +645,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <section class="hero-panel" id="home">
   <div class="hero-layer l-bg"></div>
   <div class="hero-mist"></div>
+  <div class="hero-scrim"></div>
   <div class="hero-inner">
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
