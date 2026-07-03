@@ -361,18 +361,13 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   background-image:url('assets/img/Header.jpg')}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
-.hero-vignette{position:absolute;inset:0;z-index:3;pointer-events:none;
-  background:linear-gradient(180deg,rgba(8,10,8,.5),transparent 22%,transparent 50%,rgba(8,10,8,.72))}
-/* Velo radial suave tras el titular — recupera legibilidad sobre el sol central sin ensuciar la foto */
-.hero-scrim{position:absolute;inset:0;z-index:4;pointer-events:none;
-  background:radial-gradient(120% 78% at 50% 42%,rgba(8,10,8,.52) 0%,rgba(8,10,8,.3) 36%,transparent 68%)}
 .hero-inner{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;gap:1.4rem;will-change:transform;margin-top:clamp(7vh,14vh,18vh)}
 .hero-eyebrow{font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:var(--fs-heading-s);
   letter-spacing:.42em;text-transform:uppercase;color:rgba(245,240,230,.92);
-  margin-bottom:-.4rem}
+  margin-bottom:-.4rem;text-shadow:0 2px 14px rgba(0,0,0,.55)}
 .hero-h{font-family:'The Seasons','Cormorant Garamond',serif;font-weight:400;
   font-size:var(--fs-display-xl);line-height:.94;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--ivory)}
+  color:var(--ivory);text-shadow:0 3px 26px rgba(0,0,0,.5)}
 .hero-cta-row{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;margin-top:clamp(2.4rem,6vh,4rem)}
 .hero-discover{display:inline-flex;align-items:center;gap:1rem;
   padding:14px 30px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
@@ -396,7 +391,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   width:100%;opacity:.15}
 .marks-track img{height:54px;width:auto;flex:none;display:block}
 .hero-tagline{position:absolute;left:0;right:0;bottom:clamp(1.4rem,4vh,3rem);z-index:5;margin:0;
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:var(--fs-body-l);
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:var(--fs-heading-s);
   letter-spacing:.2em;text-transform:uppercase;color:var(--ivory);text-align:center;
   padding:0 1.2rem;line-height:1.55;text-shadow:0 2px 14px rgba(0,0,0,.7)}
 .hero-tagline b{font-weight:800;color:#fff}
@@ -647,8 +642,6 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <section class="hero-panel" id="home">
   <div class="hero-layer l-bg"></div>
   <div class="hero-mist"></div>
-  <div class="hero-vignette"></div>
-  <div class="hero-scrim"></div>
   <div class="hero-inner">
     <div class="hero-eyebrow">What if you could</div>
     <h1 class="hero-h">Own Eternity</h1>
