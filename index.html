@@ -196,7 +196,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 #nav-actions{display:flex;align-items:center;gap:clamp(1rem,2vw,1.7rem);flex:none}
 .nav-lang-wrap{position:relative}
 .nav-lang{display:inline-flex;align-items:center;gap:.5rem;
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:14px;letter-spacing:.16em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:12px;letter-spacing:.16em;
   text-transform:uppercase;color:rgba(245,240,230,.78);background:none;border:none;cursor:none;
   text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .3s;white-space:nowrap}
 .nav-lang .globe{width:14px;height:14px;flex:none;opacity:.85}
@@ -229,7 +229,7 @@ video.ending{opacity:0;transition:opacity 0.65s ease}
 /* Arriba de la hero: ghost transparente. Se colorea (verde) al iniciar el scroll (#topbar.scrolled). */
 .nav-cta{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;
   border:1px solid rgba(245,240,230,.5);height:var(--menu-h);padding:0 18px 0 7px;border-radius:30px;
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:14px;letter-spacing:.14em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:12px;letter-spacing:.14em;
   color:var(--rl);text-transform:uppercase;cursor:none;
   background:transparent;transition:all .35s}
 .nav-cta .wa{width:22px;height:22px;border-radius:50%;background:#25D366;flex:none;
@@ -630,7 +630,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <nav id="nav">
     <a class="nav-link" href="portfolio.html#land">The Land</a>
     <a class="nav-link" href="portfolio.html#villas">The Villas</a>
-    <a class="nav-link" href="#services">The Soul</a>
+    <a class="nav-link" href="#whoweare">The Soul</a>
     <a class="nav-link" href="#portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
@@ -656,7 +656,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <section class="hero-panel" id="home">
   <!-- Hero media: vídeo (8.3MB, 1600p) sobre imagen poster. En móvil el vídeo se oculta (solo poster). -->
   <div class="hero-layer l-bg"></div>
-  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="metadata" poster="assets/img/hero-poster.jpg">
+  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="auto" poster="assets/img/hero-poster.jpg">
     <source src="assets/video/hero.mp4?v=1" type="video/mp4">
   </video>
   <div class="hero-mist"></div>
@@ -672,6 +672,19 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     </div>
   </div>
 </section>
+
+<script>
+// Autoplay robusto del vídeo del hero (algunos navegadores no arrancan solo con el atributo)
+(function(){
+  var v = document.querySelector('.hero-layer.l-vid');
+  if(!v) return;
+  v.muted = true; v.playsInline = true;
+  var kick = function(){ var p = v.play(); if(p && p.catch) p.catch(function(){}); };
+  kick();
+  v.addEventListener('loadeddata', kick, { once:true });
+  v.addEventListener('canplay', kick, { once:true });
+})();
+</script>
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -1647,24 +1660,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   </div>
 </section>
 
-<!-- ════ 5a · THE SOUL → Why Here (Strategic Partner retirado 6-jul: duplicaba las cifras de #whoweare) ════ -->
-<section class="lw-services" id="services">
-  <!-- Why Here → Bali & Sumba -->
-  <div class="lw-why-body" id="why">
-    <img class="lw-why-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
-    <div class="cs-wrap">
-      <div class="lw-head center reveal">
-        <span class="lw-kicker">Why Here?</span>
-        <h2 class="lw-why-h">Bali <span class="amp">&amp;</span> Sumba</h2>
-      </div>
-      <div class="lw-why-cols reveal" style="transition-delay:100ms">
-        <div class="lw-why-col"><h4 class="lw-why-ch">The Economy</h4><p class="lw-why-cp">That cannot be stopped</p></div>
-        <div class="lw-why-col"><h4 class="lw-why-ch">Land That Appreciates</h4><p class="lw-why-cp">Before the world arrives</p></div>
-        <div class="lw-why-col"><h4 class="lw-why-ch">A Legal Framework Built</h4><p class="lw-why-cp">For the international investor</p></div>
-      </div>
-    </div>
-  </div>
-</section>
+<!-- Sección Why Here → Bali & Sumba ELIMINADA (6-jul, petición cliente). El id #services queda libre;
+     "The Soul" (nav + footer) repunta a #whoweare. -->
 
 <!-- ════ 6 · EPIC INDONESIA ════ -->
 <section class="lw-epic" id="expedition">
@@ -1741,15 +1738,15 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
       </div>
       <div class="lw-ft-col">
         <h5>Company</h5>
-        <a href="#services">The Soul</a>
-        <a href="#services">What We Do</a>
+        <a href="#whoweare">The Soul</a>
+        <a href="#the-services">What We Do</a>
         <a href="#expedition">The Expedition</a>
         <a href="#portfolio">Choose your Legacy</a>
       </div>
       <div class="lw-ft-col">
         <h5>Divisions</h5>
-        <a href="#services">Tepi Sungai</a>
-        <a href="#services">Balian Hills</a>
+        <a href="#portfolio">Tepi Sungai</a>
+        <a href="#portfolio">Balian Hills</a>
         <a href="portfolio.html#signature">Riverfront II®</a>
       </div>
     </div>
