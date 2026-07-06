@@ -380,8 +380,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-h .hh-iso{height:clamp(34px,7vw,80px);width:auto;margin:0 .22em;vertical-align:middle;
   filter:drop-shadow(0 3px 22px rgba(0,0,0,.5))}
 /* Subtítulo + CTA agrupados bajo el título (izquierda) */
-.hero-foot{position:static;display:flex;flex-direction:column;align-items:flex-start;
-  gap:clamp(1.3rem,2.8vh,2rem);padding:0}
+.hero-foot{position:static;display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;
+  gap:clamp(1.5rem,4vw,3.5rem);padding:0;width:100%}
 .hero-sub{margin:0;max-width:none;color:var(--ivory);line-height:1.34;text-shadow:0 2px 14px rgba(0,0,0,.7)}
 .hero-sub b{display:block;font-weight:700;font-size:clamp(18px,1.95vw,25px)}          /* Neue Kabel Bold · 25pt */
 .hero-sub .hero-sub-2{display:block;margin-top:.3em;font-weight:400;font-size:clamp(15px,1.72vw,22px);color:rgba(245,240,230,.9)} /* Neue Kabel Book · 22pt */
@@ -409,6 +409,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 @media(max-width:820px){
   .hero-sub{max-width:none}
   .hero-inner{margin-top:clamp(4vh,9vh,12vh)}
+  .hero-foot{flex-direction:column;align-items:flex-start;gap:1.4rem}
 }
 @media(max-width:680px){
   .marks-track{gap:14px}
@@ -657,14 +658,14 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <!-- Hero media: vídeo (8.3MB, 1600p) sobre imagen poster. En móvil el vídeo se oculta (solo poster). -->
   <div class="hero-layer l-bg"></div>
   <video class="hero-layer l-vid" autoplay muted loop playsinline preload="auto" poster="assets/img/hero-poster.jpg">
-    <source src="assets/video/hero.mp4?v=1" type="video/mp4">
+    <source src="assets/video/hero-loop.mp4" type="video/mp4">
   </video>
   <div class="hero-mist"></div>
   <div class="hero-scrim"></div>
   <div class="hero-inner">
     <h1 class="hero-h">
-      <span class="hh-l1"><span class="hh-thin">Turn</span> <span class="hh-bold">Capital</span></span>
-      <span class="hh-l2"><span class="hh-thin">Into</span><img class="hh-iso" src="assets/img/lawang-14.png" alt=""><span class="hh-bold">Legacy</span></span>
+      <span class="hh-l1"><span class="hh-thin">Turn</span> <span class="hh-bold">Capital</span><img class="hh-iso" src="assets/img/lawang-14.png" alt=""></span>
+      <span class="hh-l2"><span class="hh-thin">Into</span> <span class="hh-bold">Legacy</span></span>
     </h1>
     <div class="hero-foot">
       <p class="hero-sub"><b>We help international investors build lasting wealth in Indonesia.</b><span class="hero-sub-2">through strategy, structure, and presence on the ground.</span></p>
@@ -1087,6 +1088,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-wa-banner::before { content:""; position:absolute; inset:0; z-index:1;
   background:linear-gradient(90deg, rgba(10,14,8,.72) 0%, rgba(10,14,8,.42) 46%, rgba(10,14,8,.12) 100%); }
 .lw-wa-banner-inner { position:relative; z-index:2; padding:clamp(24px,4vw,54px); color:var(--cb); }
+.lw-wa-banner-eyebrow { display:block; font-family:var(--csa); font-weight:500; font-size:var(--fs-caption);
+  letter-spacing:.26em; text-transform:uppercase; color:rgba(245,240,230,.92); margin-bottom:1em; }
 .lw-wa-banner-kick { display:block; font-family:var(--csa); font-weight:400; font-size:var(--fs-caption);
   letter-spacing:.28em; text-transform:uppercase; color:rgba(245,240,230,.85); }
 .lw-wa-banner-word { display:block; font-family:var(--cse); font-weight:400; font-size:var(--fs-display-l);
@@ -1366,32 +1369,38 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
 .lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-epicindonesia.jpg') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
-  background:linear-gradient(180deg,rgba(18,42,60,.08) 0%,rgba(10,20,15,.06) 45%,rgba(8,14,10,.55) 100%); }
-.lw-epic-own { position:absolute; top:clamp(-2%,1vh,3%); left:50%; transform:translateX(-50%); z-index:1;
-  font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.02em;
-  font-size:clamp(13rem,32vw,40rem); line-height:.8; color:rgba(255,255,255,.13); pointer-events:none; white-space:nowrap; }
+  background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
+.lw-epic-totem { position:absolute; top:50%; left:50%; transform:translate(-50%,-54%); z-index:1;
+  height:min(60vh,600px); width:auto; opacity:.10; pointer-events:none; }
 .lw-epic-inner { position:relative; z-index:2; width:100%; display:flex; flex-direction:column;
-  justify-content:space-between; min-height:min(90vh,900px); }
-.lw-epic-top { text-align:center; margin-top:clamp(5.5rem,16vh,11rem); }
+  justify-content:space-between; min-height:min(92vh,940px); padding-bottom:clamp(2.2rem,5vh,4rem); }
+.lw-epic-top { text-align:center; margin-top:clamp(6rem,20vh,13rem); }
 .lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
-  font-size:var(--fs-heading-xl); line-height:1; color:#12403a; margin:0;
-  text-shadow:0 2px 22px rgba(255,255,255,.3); }
-.lw-epic-sub { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.14em;
-  font-size:var(--fs-heading-s); color:#12403a; margin:.7rem 0 0; }
+  font-size:var(--fs-display-l); line-height:1; color:#fff; margin:0; text-shadow:0 3px 30px rgba(0,0,0,.5); }
+.lw-epic-sub { font-family:var(--csa); font-weight:300; text-transform:uppercase; letter-spacing:.16em;
+  font-size:var(--fs-heading-s); color:rgba(255,255,255,.94); margin:1rem 0 0; text-shadow:0 2px 16px rgba(0,0,0,.55); }
 .lw-epic-sub b { font-weight:700; }
-.lw-epic-proc { text-align:center; }
-.lw-epic-kick { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.42em;
-  font-size:var(--fs-caption); color:rgba(245,240,230,.9); text-shadow:0 1px 10px rgba(0,0,0,.5); }
-.lw-epic-h { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.04em;
-  font-size:var(--fs-heading-xl); line-height:1; color:#fff; margin:.5rem 0 0; text-shadow:0 2px 24px rgba(0,0,0,.5); }
-.lw-epic-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:1.4rem;
-  margin-top:clamp(2rem,5vh,3.6rem); padding-bottom:clamp(2rem,5vh,4rem); }
-.lw-epic-step { text-align:center; }
-.lw-epic-step-n { display:block; font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.28em;
-  font-size:var(--fs-caption); color:rgba(245,240,230,.82); text-shadow:0 1px 8px rgba(0,0,0,.65); }
-.lw-epic-step-t { display:block; font-family:var(--csa); font-weight:600; text-transform:uppercase; letter-spacing:.08em;
-  font-size:var(--fs-heading-s); color:#fff; margin:.35rem 0 0; text-shadow:0 2px 10px rgba(0,0,0,.75); }
-@media(max-width:780px){ .lw-epic-steps { grid-template-columns:1fr 1fr; gap:26px 1.4rem; } .lw-epic-own{font-size:44vw} }
+/* 3 columnas al pie (ref PDF pág.6): The Archipelago · Bali · Sumba */
+.lw-epic-cols { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:clamp(1.6rem,3vw,3.4rem); align-items:start; }
+.lw-epic-col { border-left:1px solid rgba(245,240,230,.34); padding-left:clamp(16px,1.8vw,30px); }
+.lw-epic-col:first-child { border-left:0; padding-left:0; }
+.lw-epic-col-h { font-family:var(--csa); font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+  font-size:var(--fs-heading-s); color:#fff; margin:0 0 12px; text-shadow:0 2px 12px rgba(0,0,0,.6); }
+.lw-epic-col-p { font-family:var(--csa); font-weight:400; font-size:var(--fs-body-l); line-height:1.6;
+  letter-spacing:.02em; color:rgba(245,240,230,.9); margin:0; text-shadow:0 1px 10px rgba(0,0,0,.6); }
+.lw-epic-col-p b { font-weight:700; color:#fff; }
+.lw-epic-col-link { display:inline-flex; align-items:center; gap:.5em; margin-top:14px; font-family:var(--csa);
+  font-weight:600; font-size:var(--fs-caption); letter-spacing:.14em; text-transform:uppercase; color:#fff;
+  text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:1px; cursor:none;
+  text-shadow:0 1px 10px rgba(0,0,0,.6); }
+.lw-epic-col-link .arr { transition:transform .25s; }
+.lw-epic-col-link:hover .arr { transform:translateX(4px); }
+@media(max-width:820px){
+  .lw-epic-cols { grid-template-columns:1fr; gap:24px; }
+  .lw-epic-col { border-left:0; padding-left:0; border-top:1px solid rgba(245,240,230,.2); padding-top:18px; }
+  .lw-epic-col:first-child { border-top:0; padding-top:0; }
+  .lw-epic-totem{ height:38vh; }
+}
 
 /* ── 7 · Featured project (contorno linea + NEUE) ── */
 .lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(3rem,7vh,6rem) 0; }
@@ -1400,6 +1409,27 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-feat-title2 { font-family:'Kabel NK',var(--csa); font-weight:400; font-size:var(--fs-heading-m);
   line-height:1.06; color:var(--ci); margin:14px 0 0; }
 .lw-feat-cap-t.lw-feat-cap-neue { font-family:'Kabel NK',var(--csa); font-weight:500; text-transform:none; }
+/* Featured rework (ref PDF pág.7): nuestra imagen + "Investment from" + ficha centrada */
+.lw-feat-invest { position:absolute; left:24px; bottom:22px; z-index:3; display:flex; flex-direction:column; gap:4px; }
+.lw-feat-invest-l { font-family:var(--csa); font-size:var(--fs-caption); font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
+.lw-feat-invest-amt { font-family:'Seasons TS',var(--cse); font-weight:400; font-size:var(--fs-heading-m); line-height:1; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.5); }
+.lw-feat-card { text-align:center; display:flex; flex-direction:column; align-items:center; }
+.lw-feat-card-ico { display:block; width:66px; height:52px; background-color:var(--ca);
+  -webkit-mask:url('assets/img/cream-land.png') center/contain no-repeat;
+          mask:url('assets/img/cream-land.png') center/contain no-repeat; margin-bottom:18px; }
+.lw-feat-card-name { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
+  font-size:var(--fs-display-l); line-height:1; color:var(--ci); margin:0; }
+.lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.22em;
+  font-size:var(--fs-caption); color:var(--ca); margin-top:12px; }
+.lw-feat-card-specs { display:flex; flex-direction:column; gap:5px; margin-top:clamp(18px,3vh,30px); }
+.lw-feat-card-specs.alt { margin-top:clamp(12px,2vh,20px); }
+.lw-feat-card-specs span { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.12em;
+  font-size:var(--fs-body-l); color:var(--ci2); }
+.lw-feat-card-btns { display:flex; gap:14px; margin-top:clamp(22px,4vh,36px); flex-wrap:wrap; justify-content:center; }
+/* "Download Dossier": botón hueso invisible sobre lino → outline oscuro */
+.lw-feat-card-btns .cs-btn-bone { background:transparent; color:var(--ci); border:1px solid rgba(46,52,55,.4); }
+.lw-feat-card-btns .cs-btn-bone:hover { background:var(--ci); color:var(--cb); border-color:var(--ci); }
+@media(max-width:820px){ .lw-feat-card-name{ font-size:var(--fs-heading-xl); } }
 
 /* ── 7 · Contact NEUE + logo + T&C ── */
 .lw-ct-h.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-weight:400; letter-spacing:.02em; }
@@ -1640,12 +1670,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 <!-- ════ 4c · WHO WE ARE + CIFRAS (fondo blanco) ════ -->
 <section class="lw-whoweare" id="whoweare">
   <div class="cs-wrap">
-    <div class="lw-wa-head reveal">
-      <span class="lw-kicker">Who We Are</span>
-    </div>
-    <div class="lw-wa-banner reveal" style="transition-delay:80ms">
+    <div class="lw-wa-banner reveal">
       <img class="lw-wa-banner-img" src="assets/img/aerial-1.jpg" alt="Aerial view of a Lawang villa community" loading="lazy">
       <div class="lw-wa-banner-inner">
+        <span class="lw-wa-banner-eyebrow">Who We Are</span>
         <span class="lw-wa-banner-kick">One word defines us</span>
         <span class="lw-wa-banner-word">Freehold</span>
       </div>
@@ -1666,20 +1694,26 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 <!-- ════ 6 · EPIC INDONESIA ════ -->
 <section class="lw-epic" id="expedition">
   <div class="lw-epic-bg" aria-hidden="true"></div>
-  <div class="lw-epic-own" aria-hidden="true">Own</div>
+  <img class="lw-epic-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
   <div class="cs-wrap lw-epic-inner">
     <div class="lw-epic-top reveal">
       <h2 class="lw-epic-country">Indonesia</h2>
-      <p class="lw-epic-sub">Where Growth <b>Is Unstoppable</b></p>
+      <p class="lw-epic-sub"><b>Come for the land.</b> Stay for who you become</p>
     </div>
-    <div class="lw-epic-proc reveal">
-      <span class="lw-epic-kick">The Process</span>
-      <h3 class="lw-epic-h">The Way to Own</h3>
-      <div class="lw-epic-steps">
-        <div class="lw-epic-step reveal" style="transition-delay:60ms"><span class="lw-epic-step-n">01 · You</span><span class="lw-epic-step-t">Discover</span></div>
-        <div class="lw-epic-step reveal" style="transition-delay:120ms"><span class="lw-epic-step-n">02 · You</span><span class="lw-epic-step-t">Secure</span></div>
-        <div class="lw-epic-step reveal" style="transition-delay:180ms"><span class="lw-epic-step-n">03 · You</span><span class="lw-epic-step-t">Build</span></div>
-        <div class="lw-epic-step reveal" style="transition-delay:240ms"><span class="lw-epic-step-n">04 · You</span><span class="lw-epic-step-t">Earn</span></div>
+    <div class="lw-epic-cols">
+      <div class="lw-epic-col reveal">
+        <h4 class="lw-epic-col-h">The Archipelago</h4>
+        <p class="lw-epic-col-p">is the largest economy in Southeast Asia, <b>growing at 5%+ GDP. A G20 member.</b> And a legal framework designed for the international investor.</p>
+      </div>
+      <div class="lw-epic-col reveal" style="transition-delay:80ms">
+        <h4 class="lw-epic-col-h">Bali</h4>
+        <p class="lw-epic-col-p">The island everyone chose.<br>The valley few have found.</p>
+        <a class="lw-epic-col-link" href="portfolio.html">Explore Balian <span class="arr">→</span></a>
+      </div>
+      <div class="lw-epic-col reveal" style="transition-delay:160ms">
+        <h4 class="lw-epic-col-h">Sumba</h4>
+        <p class="lw-epic-col-p">An island frozen in time.<br>Where the wild still decides.</p>
+        <a class="lw-epic-col-link" href="portfolio.html">Discover the Expedition <span class="arr">→</span></a>
       </div>
     </div>
   </div>
@@ -1691,16 +1725,28 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   <div class="lw-featured-block">
     <div class="lw-feat-grid">
       <div class="lw-feat-media lw-feat-outline reveal">
-        <img src="assets/img/line-signature.jpg" alt="Featured project — Ridge House Estate">
-        <div class="lw-feat-cap"><span class="lw-feat-cap-loc">Tabanan · Bali</span><span class="lw-feat-cap-t lw-feat-cap-neue">Ridge House Estate</span></div>
+        <img src="assets/img/line-signature.jpg" alt="Palm Field — Balian, Bali">
+        <div class="lw-feat-invest">
+          <span class="lw-feat-invest-l">Investment from</span>
+          <span class="lw-feat-invest-amt">From €95,000.</span>
+        </div>
       </div>
-      <div class="reveal" style="transition-delay:120ms">
-        <span class="lw-kicker" style="color:var(--ca)">Featured Project</span>
-        <h2 class="lw-feat-title2">A position, not a transaction</h2>
-        <p class="lw-p" style="max-width:46ch">A signature estate within a verified expansion corridor — structured, legally clear, and built to last. A position in the territory, not a transaction.</p>
-        <div class="lw-badges"><span class="lw-badge2 fh">Freehold</span><span class="lw-badge2 lg">Signature</span><span class="lw-badge2 ol">450 m²</span></div>
-        <div class="lw-feat-price"><span class="lw-feat-amt">$ 485,000</span><span class="lw-feat-note">Freehold</span></div>
-        <a class="cs-btn cs-btn-green" href="#contact-form">View Project <span class="arr">→</span></a>
+      <div class="lw-feat-card reveal" style="transition-delay:120ms">
+        <span class="lw-feat-card-ico" aria-hidden="true"></span>
+        <h2 class="lw-feat-card-name">Palm Field</h2>
+        <span class="lw-feat-card-loc">Balian · Bali · Indonesia</span>
+        <div class="lw-feat-card-specs">
+          <span>700 meters from the ocean</span>
+          <span>2 min to the beach</span>
+        </div>
+        <div class="lw-feat-card-specs alt">
+          <span>Private tropical villas</span>
+          <span>Land included from 250 m²</span>
+        </div>
+        <div class="lw-feat-card-btns">
+          <a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a>
+          <a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a>
+        </div>
       </div>
     </div>
   </div>
