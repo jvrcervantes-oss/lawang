@@ -19,3 +19,7 @@ assets/guide/
 
 # descargas incompletas
 *.crdownload
+
+# másters pesados del hero (solo local)
+assets/img/Hero.png
+assets/img/Hero2.png
