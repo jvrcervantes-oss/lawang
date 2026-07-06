@@ -1,0 +1,63 @@
+<!-- PORTADA (partial) — el motor la inyecta al inicio de cualquier contrato.
+     Usa las variables de /contracts/assets/brand.css (con fallback). Clases
+     namespaced .lwcov* para no colisionar con el CSS de la plantilla.
+     Marcadores {{...}} los rellena app.html (incluye contrato_tipo/titulo). -->
+<style>
+  .lwcov{ position:relative; width:210mm; height:297mm; margin:0 auto; overflow:hidden;
+    color:#fff; background:var(--brand-deep,#104C4F); page-break-after:always;
+    font-family:var(--font-body,'Jost',sans-serif); }
+  .lwcov .g{ position:absolute; inset:0; }
+  .lwcov .grad{ background:
+    radial-gradient(130% 80% at 50% 8%, color-mix(in srgb, var(--brand-primary,#485B37) 55%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-deep,#104C4F) 88%, white) 0%, var(--brand-deep,#104C4F) 46%, color-mix(in srgb, var(--brand-deep,#104C4F) 72%, black) 100%); }
+  .lwcov .curves{ mix-blend-mode:multiply; opacity:var(--curves-opacity,.12); }
+  .lwcov .curves path{ stroke:color-mix(in srgb, var(--brand-deep,#104C4F) 55%, black); }
+  .lwcov .mark{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
+    width:150mm; opacity:var(--mark-opacity,.10); }
+  .lwcov .grain{ opacity:var(--grain-opacity,.14); filter:contrast(calc(1 + var(--grain-contrast,.55))); mix-blend-mode:overlay; }
+  .lwcov .in{ position:relative; height:100%; padding:26mm 22mm; display:flex; flex-direction:column;
+    align-items:center; text-align:center; }
+  .lwcov .top{ display:flex; align-items:center; gap:12px; }
+  .lwcov .glyph{ width:40px; height:40px; border:1.5px solid rgba(255,255,255,.85); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-serif,'Cormorant Garamond',serif); font-size:22px; }
+  .lwcov .wm{ font-family:var(--font-serif,'Cormorant Garamond',serif); font-size:20px; letter-spacing:.22em; text-transform:uppercase; }
+  .lwcov .wm small{ display:block; font-family:var(--font-body,'Jost',sans-serif); font-size:7.5pt; letter-spacing:.34em; opacity:.82; }
+  .lwcov .mid{ margin:auto 0; }
+  .lwcov .eyebrow{ font-size:9pt; letter-spacing:.42em; text-transform:uppercase; opacity:.85; margin-bottom:18px; }
+  .lwcov h1{ font-family:var(--font-display,'Jost',sans-serif); font-weight:500; font-size:40pt; line-height:1.05; margin:0; letter-spacing:.01em; }
+  .lwcov .sub{ font-family:var(--font-serif,'Cormorant Garamond',serif); font-style:italic; font-size:15pt; opacity:.9; margin-top:14px; }
+  .lwcov .foot{ width:100%; font-size:8.5pt; letter-spacing:.16em; text-transform:uppercase; opacity:.8;
+    border-top:1px solid rgba(255,255,255,.28); padding-top:12px; display:flex; justify-content:space-between; }
+  @media print{ .lwcov{ margin:0; } }
+</style>
+<div class="lwcov">
+  <div class="g grad"></div>
+  <svg class="g curves" viewBox="0 0 210 297" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke-width="1.1">
+      <path d="M-10,40 Q60,10 110,45 T230,50"/><path d="M-10,70 Q60,40 110,75 T230,80"/>
+      <path d="M-10,100 Q60,70 110,105 T230,110"/><path d="M-10,130 Q60,100 110,135 T230,140"/>
+      <path d="M-10,160 Q60,130 110,165 T230,170"/><path d="M-10,190 Q60,160 110,195 T230,200"/>
+      <path d="M-10,220 Q60,190 110,225 T230,230"/><path d="M-10,250 Q60,220 110,255 T230,260"/>
+    </g>
+  </svg>
+  <svg class="mark" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="lwmg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8F9B7A"/><stop offset="1" stop-color="#485B37"/></linearGradient></defs>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="url(#lwmg)" stroke-width="2.5"/>
+    <text x="50" y="66" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="46" fill="url(#lwmg)">L</text>
+    <text x="50" y="104" text-anchor="middle" font-family="Jost,sans-serif" font-size="7" letter-spacing="3" fill="url(#lwmg)">MOANITO</text>
+  </svg>
+  <svg class="g grain" xmlns="http://www.w3.org/2000/svg">
+    <filter id="lwgr"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/></filter>
+    <rect width="100%" height="100%" filter="url(#lwgr)"/></svg>
+  <div class="in">
+    <div class="top"><span class="glyph">L</span><span class="wm">Lawang<small>Tropical Properties</small></span></div>
+    <div class="mid">
+      <div class="eyebrow">{{contrato_tipo}} · {{contrato_num}}</div>
+      <h1>{{contrato_titulo}}</h1>
+      <div class="sub">{{proyecto_nombre}} · {{parcela_codigo}}</div>
+    </div>
+    <div class="foot"><span>{{vendedor_entidad}}</span><span>{{fecha_firma}}</span></div>
+  </div>
+</div>

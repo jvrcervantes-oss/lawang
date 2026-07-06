@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Términos y Condiciones — Lawang</title>
+<style>
+  @page{ size:A4; margin:0; }
+  body{ font-family:'Jost',sans-serif; color:var(--ink,#2E3437); font-size:10.5pt; line-height:1.6; margin:0; }
+  .doc{ padding:20mm 18mm; }
+  h2{ font-family:'Jost'; font-size:10.5pt; letter-spacing:.08em; text-transform:uppercase; color:var(--brand-deep,#104C4F);
+    border-bottom:1px solid var(--ss,#BEB3A5); padding-bottom:4px; margin:20px 0 8px; }
+  .f{ font-weight:500; color:var(--brand-accent,#42210B); border-bottom:1px dotted var(--sc,#8F9B7A); padding:0 3px; }
+  .pending{ border:1px dashed var(--sc,#8F9B7A); background:#fbf9f3; border-radius:6px; padding:14px 16px; color:#7a5; margin:16px 0;
+    font-size:9.5pt; }
+  .pending b{ color:var(--brand-accent,#42210B); }
+  ul{ padding-left:18px; } li{ margin-bottom:5px; }
+</style>
+</head>
+<body>
+  <div class="doc">
+    <h2>Marco legal · {{proyecto_nombre}}</h2>
+    <p>Documento marco de <span class="f">{{vendedor_entidad}}</span> (NPWP {{vendedor_npwp}}) aplicable a las reservas y compraventas del proyecto {{proyecto_nombre}} ({{region}}).</p>
+
+    <h2>Contenido previsto</h2>
+    <ul>
+      <li>Estatutos y política general</li>
+      <li>Términos y condiciones</li>
+      <li>Condiciones de pérdida de reserva</li>
+      <li>Definiciones (PPJB / AJB / PPAT / BPN / HGB)</li>
+    </ul>
+
+    <div class="pending"><b>⚠ Contenido legal pendiente.</b> Plantilla marco con marca, portada y marcadores listos. El <b>articulado legal</b> (estatutos, T&amp;C, política de pérdida de reserva) se inserta como boilerplate bloqueado cuando el cliente entregue el texto definitivo revisado por su abogado.</div>
+  </div>
+</body>
+</html>

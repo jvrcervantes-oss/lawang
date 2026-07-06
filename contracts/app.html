@@ -6,130 +6,96 @@
 <title>Lawang · Generador de Contratos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/brand.css">
 <style>
-  :root{
-    --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
-    --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --muted:#6b6c66;
-    --line:#e4ddcf;
-  }
+  :root{ --line:#e4ddcf; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; padding:0; }
-  body{
-    font-family:'Jost',sans-serif; color:var(--va); background:var(--rl);
-    font-size:16px; line-height:1.5;
-  }
+  body{ font-family:var(--font-body,'Jost',sans-serif); color:var(--va); background:var(--rl); font-size:16px; line-height:1.5; }
+
   /* ---------- App shell ---------- */
-  .topbar{
-    position:sticky; top:0; z-index:20; background:#fff;
-    border-bottom:1px solid var(--line);
-    display:flex; align-items:center; gap:12px; padding:14px 18px;
-    padding-top:max(14px, env(safe-area-inset-top));
-  }
-  .topbar .glyph{
-    width:34px; height:34px; border:1.5px solid var(--tg); border-radius:50%;
-    display:grid; place-items:center; color:var(--tg);
-    font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600;
-  }
-  .topbar h1{ font-family:'Cormorant Garamond',serif; font-size:19px; letter-spacing:.16em;
-    text-transform:uppercase; margin:0; color:var(--va); }
+  .topbar{ position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; padding:14px 18px; padding-top:max(14px, env(safe-area-inset-top)); }
+  .topbar .glyph{ width:34px; height:34px; border:1.5px solid var(--tg); border-radius:50%;
+    display:grid; place-items:center; color:var(--tg); font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; }
+  .topbar h1{ font-family:'Cormorant Garamond',serif; font-size:19px; letter-spacing:.16em; text-transform:uppercase; margin:0; color:var(--va); }
   .topbar h1 small{ display:block; font-family:'Jost'; font-size:10px; letter-spacing:.28em; color:var(--muted); }
+  .topbar .spacer{ flex:1; }
+  .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:8px; padding:2px; }
+  .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; padding:5px 9px; border-radius:6px; color:var(--muted); cursor:pointer; }
+  .lang-toggle button.on{ background:var(--tg); color:#fff; }
 
   .wrap{ max-width:680px; margin:0 auto; padding:18px 16px 120px; }
 
-  /* ---------- Plantilla seleccionada ---------- */
-  .tpl-card{
-    background:#fff; border:1px solid var(--line); border-radius:14px;
-    padding:16px 18px; margin-bottom:18px; display:flex; align-items:center; gap:14px;
-  }
-  .tpl-card .ico{ width:44px; height:44px; border-radius:10px; background:var(--dl);
-    display:grid; place-items:center; color:#fff; font-size:20px; flex:none; }
+  /* ---------- Selector de plantilla ---------- */
+  .tpl-card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:18px;
+    display:flex; align-items:center; gap:14px; }
+  .tpl-card .ico{ width:44px; height:44px; border-radius:10px; background:var(--dl); display:grid; place-items:center; color:#fff; font-size:20px; flex:none; }
+  .tpl-card .meta{ flex:1; min-width:0; }
   .tpl-card .meta b{ display:block; font-size:15px; }
-  .tpl-card .meta span{ font-size:12.5px; color:var(--muted); }
-  .tpl-card .badge{ margin-left:auto; font-size:11px; color:var(--tg);
-    border:1px solid var(--sc); border-radius:20px; padding:3px 10px; }
+  .tpl-card .meta span{ font-size:12px; color:var(--muted); }
+  .tpl-card select{ font:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); flex:none; max-width:44%; }
 
-  /* ---------- Secciones del formulario ---------- */
-  .section{ background:#fff; border:1px solid var(--line); border-radius:14px;
-    margin-bottom:14px; overflow:hidden; }
-  .section > header{
-    display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer;
-    user-select:none;
-  }
-  .section > header .num{ font-family:'Cormorant Garamond',serif; font-style:italic;
-    color:var(--tg); font-size:18px; width:22px; }
-  .section > header h2{ font-size:13px; letter-spacing:.06em; text-transform:uppercase;
-    margin:0; color:var(--dl); font-weight:600; flex:1; }
+  /* ---------- Secciones ---------- */
+  .tier-label{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--sc);
+    margin:18px 4px 8px; padding-top:12px; border-top:1px dashed var(--line); }
+  .tier-label.first{ border-top:none; padding-top:0; margin-top:2px; }
+  .section{ background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:14px; overflow:hidden; }
+  .section > header{ display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer; user-select:none; }
+  .section > header .num{ font-family:'Cormorant Garamond',serif; font-style:italic; color:var(--tg); font-size:18px; width:22px; }
+  .section > header h2{ font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:0; color:var(--dl); font-weight:600; flex:1; }
   .section > header .chev{ color:var(--muted); transition:transform .2s; font-size:13px; }
   .section.collapsed > header .chev{ transform:rotate(-90deg); }
   .section .body{ padding:4px 16px 16px; }
   .section.collapsed .body{ display:none; }
 
-  /* toggle opcional */
   .opt-toggle{ display:flex; align-items:center; gap:8px; margin-left:auto; font-size:12px; color:var(--muted); }
   .switch{ position:relative; width:42px; height:24px; flex:none; }
   .switch input{ opacity:0; width:0; height:0; }
   .slider{ position:absolute; inset:0; background:var(--ss); border-radius:24px; transition:.2s; }
-  .slider:before{ content:""; position:absolute; height:18px; width:18px; left:3px; top:3px;
-    background:#fff; border-radius:50%; transition:.2s; }
+  .slider:before{ content:""; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
   .switch input:checked + .slider{ background:var(--tg); }
   .switch input:checked + .slider:before{ transform:translateX(18px); }
   .section.optional.off .body{ display:none; }
   .section.optional.off{ opacity:.85; }
 
-  /* campos */
   .field{ margin:12px 0; }
-  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px;
-    letter-spacing:.02em; }
-  .field input, .field textarea, .field select{
-    width:100%; font-family:inherit; font-size:16px; color:var(--va);
-    padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fdfcf9;
-  }
-  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--tg);
-    box-shadow:0 0 0 3px rgba(72,91,55,.12); }
-  .field .hint{ font-size:11px; color:var(--muted); margin-top:4px; }
+  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; letter-spacing:.02em; }
+  .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
+    padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fdfcf9; }
+  .field input:focus, .field textarea:focus, .field select:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   @media (max-width:460px){ .grid2{ grid-template-columns:1fr; } }
 
+  .note-blocked{ font-size:11.5px; color:var(--muted); background:#fbf9f3; border:1px dashed var(--ss); border-radius:10px; padding:12px 14px; margin:8px 4px 0; }
+  .note-blocked b{ color:var(--be); }
+  .note-blocked ul{ margin:6px 0 0; padding-left:16px; } .note-blocked li{ margin-bottom:2px; }
+
   /* firma */
-  .sigpad-wrap{ border:1px dashed var(--ss); border-radius:10px; background:#fff;
-    position:relative; touch-action:none; }
+  .sigpad-wrap{ border:1px dashed var(--ss); border-radius:10px; background:#fff; position:relative; touch-action:none; }
   .sigpad-wrap canvas{ width:100%; height:150px; display:block; border-radius:10px; }
-  .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center;
-    color:var(--ss); font-size:13px; pointer-events:none; }
+  .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center; color:var(--ss); font-size:13px; pointer-events:none; }
   .sigpad-wrap.signed .ph{ display:none; }
   .sig-actions{ display:flex; justify-content:flex-end; margin-top:6px; }
-  .link-btn{ background:none; border:none; color:var(--tg); font-size:12.5px; cursor:pointer;
-    text-decoration:underline; padding:4px; }
+  .link-btn{ background:none; border:none; color:var(--tg); font-size:12.5px; cursor:pointer; text-decoration:underline; padding:4px; }
 
   /* barra inferior */
-  .actionbar{
-    position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff;
-    border-top:1px solid var(--line); padding:12px 16px;
-    padding-bottom:max(12px, env(safe-area-inset-bottom));
-    display:flex; gap:10px; align-items:center;
-  }
-  .actionbar .prog{ flex:1; font-size:12px; color:var(--muted); }
-  .actionbar .prog b{ color:var(--tg); }
-  .btn{ font-family:inherit; font-size:15px; font-weight:500; border-radius:10px;
-    padding:13px 20px; border:none; cursor:pointer; }
+  .actionbar{ position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff; border-top:1px solid var(--line);
+    padding:12px 16px; padding-bottom:max(12px, env(safe-area-inset-bottom)); display:flex; gap:10px; align-items:center; }
+  .actionbar .prog{ flex:1; font-size:12px; color:var(--muted); } .actionbar .prog b{ color:var(--tg); }
+  .btn{ font-family:inherit; font-size:15px; font-weight:500; border-radius:10px; padding:13px 20px; border:none; cursor:pointer; }
   .btn.primary{ background:var(--dl); color:#fff; }
   .btn.primary:disabled{ background:var(--ss); cursor:not-allowed; }
   .btn.ghost{ background:none; border:1px solid var(--line); color:var(--va); }
 
-  /* preview overlay */
-  .overlay{ position:fixed; inset:0; z-index:50; background:rgba(46,52,55,.55);
-    display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:14px; }
+  .overlay{ position:fixed; inset:0; z-index:50; background:rgba(46,52,55,.55); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:14px; }
   .overlay.open{ display:flex; }
-  .preview{ background:#fff; width:100%; max-width:820px; border-radius:14px; overflow:hidden;
-    margin:auto; }
-  .preview .pv-bar{ display:flex; align-items:center; gap:10px; padding:12px 16px;
-    border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; z-index:2; }
+  .preview{ background:#fff; width:100%; max-width:820px; border-radius:14px; overflow:hidden; margin:auto; }
+  .preview .pv-bar{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; z-index:2; }
   .preview .pv-bar b{ font-size:14px; flex:1; }
   .preview iframe{ width:100%; height:70vh; border:none; }
 
-  .toast{ position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-    background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px;
-    z-index:60; opacity:0; transition:.3s; pointer-events:none; }
+  .toast{ position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; z-index:60; opacity:0; transition:.3s; pointer-events:none; }
   .toast.show{ opacity:1; }
 </style>
 </head>
@@ -137,6 +103,8 @@
   <div class="topbar">
     <div class="glyph">L</div>
     <h1>Contratos<small>LAWANG TROPICAL PROPERTIES</small></h1>
+    <div class="spacer"></div>
+    <div class="lang-toggle" id="langToggle"></div>
   </div>
 
   <div class="wrap">
@@ -144,12 +112,12 @@
       <div class="ico">📄</div>
       <div class="meta">
         <b id="tplName">Contrato de Reserva de Proyecto</b>
-        <span id="tplDesc">PPJB · pacto preliminar de compraventa</span>
+        <span id="tplDesc">—</span>
       </div>
-      <div class="badge">Plantilla</div>
+      <select id="tplPick" aria-label="Tipo de contrato"></select>
     </div>
 
-    <form id="form"><!-- secciones generadas por JS --></form>
+    <form id="form"><!-- generado por JS --></form>
   </div>
 
   <div class="actionbar">
@@ -173,126 +141,142 @@
 
 <script>
 /* ============================================================
-   GENERADOR DE CONTRATOS — prototipo cliente
-   Flujo: cargar plantilla -> auto-detectar {{marcadores}} ->
-   formulario -> rellenar -> previsualizar -> PDF (print)
-   En producción: api/generar.php hace el merge + mPDF + guarda.
+   GENERADOR DE CONTRATOS — Lawang
+   Fase 2/3: 4 tipos · diccionario de marcadores en 3 niveles
+   (tokens.json) · toggle de idioma · portada+marca inyectadas.
+   Fase 4 (UI): nº contrato, estado, email — persistencia/envío
+   los hace el backend cuando exista (BD+SMTP del cliente).
+   Merge cliente = api/generar.php en producción.
    ============================================================ */
-const TEMPLATE_URL = 'templates/ppjb_reserva.html';
+const TEMPLATES = [
+  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html',
+    name:{es:'Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'},
+    tipo:{es:'RESERVA DE PARCELA',en:'PLOT RESERVATION',id:'RESERVASI KAVLING'},
+    titulo:{es:'Contrato de Reserva de Parcela',en:'Plot Reservation Agreement',id:'Perjanjian Reservasi Kavling'}, ready:false },
+  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html',
+    name:{es:'Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'},
+    tipo:{es:'RESERVA DE PROYECTO',en:'PROJECT RESERVATION',id:'RESERVASI PROYEK'},
+    titulo:{es:'Contrato de Reserva de Proyecto',en:'Project Reservation Agreement',id:'Perjanjian Reservasi Proyek'}, ready:true },
+  { slug:'dali_construccion', file:'templates/dali_construccion.html',
+    name:{es:'Construcción',en:'Construction',id:'Konstruksi'},
+    tipo:{es:'CONSTRUCCIÓN',en:'CONSTRUCTION',id:'KONSTRUKSI'},
+    titulo:{es:'Contrato de Construcción',en:'Construction Agreement',id:'Perjanjian Konstruksi'}, ready:true },
+  { slug:'marco_legal',      file:'templates/marco_legal.html',
+    name:{es:'Marco legal / T&C',en:'Legal framework / T&C',id:'Kerangka hukum'},
+    tipo:{es:'MARCO LEGAL',en:'LEGAL FRAMEWORK',id:'KERANGKA HUKUM'},
+    titulo:{es:'Términos y Condiciones',en:'Terms & Conditions',id:'Syarat & Ketentuan'}, ready:false },
+];
+const TIERS = {
+  siempre:      {es:'Datos de la operación',en:'Operation data',id:'Data operasi'},
+  por_proyecto: {es:'Datos del proyecto (precargados)',en:'Project data (preset)',id:'Data proyek (preset)'},
+  gestion:      {es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'},
+  firmas:       {es:'Firmas',en:'Signatures',id:'Tanda tangan'},
+};
+const LANGS = [['es','ES'],['en','EN'],['id','ID']];
 
-/* Metadatos de campos (etiqueta, tipo, sección, opcional).
-   Cualquier {{marcador}} no listado aquí se añade igual con
-   etiqueta automática -> el sistema sirve para cualquier contrato. */
+/* fallback si tokens.json no carga (mantiene la app usable) */
 const FALLBACK_SECTIONS = [
-  { id:'comprador', title:'Adquiriente I', fields:[
-    ['adq1_nombre','Nombre y apellidos','text'],
-    ['adq1_nacionalidad','Nacionalidad','text'],
-    ['adq1_pasaporte','Pasaporte','text'],
-  ]},
-  { id:'comprador2', title:'Adquiriente II', optional:true, fields:[
-    ['adq2_nombre','Nombre y apellidos','text'],
-    ['adq2_nacionalidad','Nacionalidad','text'],
-    ['adq2_pasaporte','Pasaporte','text'],
-  ]},
-  { id:'comprador3', title:'Adquiriente III', optional:true, fields:[
-    ['adq3_nombre','Nombre y apellidos','text'],
-    ['adq3_nacionalidad','Nacionalidad','text'],
-    ['adq3_pasaporte','Pasaporte','text'],
-  ]},
-  { id:'ptpma', title:'Entidad jurídica (PT PMA)', optional:true, fields:[
-    ['ptpma_domicilio','Domicilio social','text'],
-    ['ptpma_nib','NIB / OSS','text'],
-    ['ptpma_npwp','NPWP','text'],
-  ]},
-  { id:'proyecto', title:'Proyecto y parcela', fields:[
-    ['proyecto_nombre','Nombre del proyecto','text'],
-    ['parcela_num','Número de parcela','text'],
-    ['vendedor_cargo','Cargo del representante del vendedor','text','Director'],
-  ]},
-  { id:'precio', title:'Precio', fields:[
-    ['precio_total_eur','Precio total (€)','number'],
-    ['precio_total_letras','Precio total en letras','text'],
-    ['precio_reserva_eur','Precio de reserva (€)','number'],
-    ['precio_reserva_letras','Reserva en letras','text'],
-  ]},
-  { id:'plazo', title:'Plazo y fecha', fields:[
-    ['plazo_meses','Plazo de ejecución (meses)','number'],
-    ['fecha_firma','Fecha de firma','date'],
-  ]},
-  { id:'firmas', title:'Firmas', fields:[
-    ['firma_adquiriente','Firma del adquiriente','signature'],
-    ['firma_promotor','Firma del promotor','signature'],
-  ]},
+  { id:'comprador', tier:'siempre', title:{es:'Adquiriente I'}, fields:[
+    ['adq1_nombre',{es:'Nombre y apellidos'},'text'],
+    ['adq1_pasaporte',{es:'Pasaporte'},'text'] ]},
+  { id:'firmas', tier:'firmas', title:{es:'Firmas'}, fields:[
+    ['firma_adquiriente',{es:'Firma del adquiriente'},'signature'],
+    ['firma_promotor',{es:'Firma del vendedor'},'signature'] ]},
 ];
 
-let SECTIONS = FALLBACK_SECTIONS;   // se sustituye por las del manifiesto si hay backend
+let LANG = 'es';
+let TOKENS = null;
+let SECTIONS = FALLBACK_SECTIONS;
+let CURRENT = TEMPLATES[1];       // Reserva de Proyecto por defecto
 let templateHTML = '';
-let BACKEND = false;                 // ¿hay servidor PHP detrás?
-let CSRF = null;
-let CURRENT_SLUG = 'ppjb_reserva';
-const pads = {}; // canvas signature pads
+let COVER_HTML = '';
+let BACKEND = false, CSRF = null;
+const pads = {};
 
-/* ---------- utilidades ---------- */
 const $ = s => document.querySelector(s);
+function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
 function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || ''; }
 
 /* ---------- construir formulario ---------- */
 function fieldHTML(f){
-  const [key,label,type,def] = f;
-  const val = def ? `value="${def}"` : '';
+  const [key,labelObj,type,extra] = f;
+  const label = L(labelObj);
+  const def = pdef(key);
   if(type==='signature'){
     return `<div class="field" data-key="${key}">
       <label>${label}</label>
-      <div class="sigpad-wrap" id="pad-${key}">
-        <canvas></canvas><div class="ph">Firma con el dedo aquí</div>
-      </div>
-      <div class="sig-actions"><button type="button" class="link-btn" data-clear="${key}">Borrar firma</button></div>
+      <div class="sigpad-wrap" id="pad-${key}"><canvas></canvas><div class="ph">✍︎</div></div>
+      <div class="sig-actions"><button type="button" class="link-btn" data-clear="${key}">Borrar</button></div>
     </div>`;
   }
-  if(type==='textarea'){
-    return `<div class="field"><label>${label}</label><textarea name="${key}" rows="2"></textarea></div>`;
+  if(type==='select'){
+    const opts=(extra||[]).map(o=>`<option ${o===def?'selected':''}>${o}</option>`).join('');
+    return `<div class="field"><label>${label}</label><select name="${key}"><option value=""></option>${opts}</select></div>`;
   }
+  if(type==='textarea'){
+    return `<div class="field" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
+  }
+  const t = (type==='money'||type==='number') ? 'number' : (type==='date'?'date':'text');
+  const step = type==='money' ? 'step="0.01"' : '';
   return `<div class="field"><label>${label}</label>
-    <input name="${key}" type="${type||'text'}" ${val} autocomplete="off"></div>`;
+    <input name="${key}" type="${t}" ${step} value="${def}" autocomplete="off"></div>`;
 }
 
 function buildForm(){
   const form = $('#form');
-  form.innerHTML = SECTIONS.map((s,i)=>{
-    const optional = s.optional ? `<div class="opt-toggle">añadir
-        <label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
+  let html=''; let lastTier=null; let idx=0; let firstTier=true;
+  SECTIONS.forEach(s=>{
+    if(s.tier!==lastTier){
+      html += `<div class="tier-label${firstTier?' first':''}" data-tier="${s.tier}">${L(TIERS[s.tier]||{es:s.tier})}</div>`;
+      lastTier=s.tier; firstTier=false;
+    }
+    idx++;
+    const optional = s.optional ? `<div class="opt-toggle">+<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const collapsed = s.optional ? 'collapsed optional off' : '';
-    const grid = (s.id.startsWith('comprador')||s.id==='ptpma'||s.id==='precio'||s.id==='plazo');
+    const grid = ['comprador','comprador2','comprador3','sociedad','dinero','vendedor','apendices','gestion'].includes(s.id);
     const body = s.fields.map(fieldHTML).join('');
-    return `<section class="section ${collapsed}" data-sec="${s.id}">
-      <header><span class="num">${i+1}</span><h2>${s.title}</h2>${optional}<span class="chev">▾</span></header>
-      <div class="body"><div class="${grid?'grid2':''}">${body}</div></div>
-    </section>`;
-  }).join('');
+    html += `<section class="section ${collapsed}" data-sec="${s.id}">
+      <header><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
+      <div class="body"><div class="${grid?'grid2':''}">${body}</div></div></section>`;
+  });
+  // nota de boilerplate bloqueado (honesto: lo que va fijo en la plantilla)
+  if(TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length){
+    html += `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
+      <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>`;
+  }
+  form.innerHTML = html;
 
-  // colapsar/expandir
   form.querySelectorAll('.section > header').forEach(h=>{
-    h.addEventListener('click', e=>{
-      if(e.target.closest('.opt-toggle')) return;
-      h.parentElement.classList.toggle('collapsed');
-    });
+    h.addEventListener('click', e=>{ if(e.target.closest('.opt-toggle')) return; h.parentElement.classList.toggle('collapsed'); });
   });
-  // toggles opcionales
   form.querySelectorAll('[data-opt]').forEach(chk=>{
-    chk.addEventListener('change', ()=>{
-      const sec = form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
-      sec.classList.toggle('off', !chk.checked);
-      sec.classList.toggle('collapsed', !chk.checked);
-    });
+    chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
+      sec.classList.toggle('off', !chk.checked); sec.classList.toggle('collapsed', !chk.checked); updateProgress(); });
   });
-  // firmas
   form.querySelectorAll('.sigpad-wrap').forEach(initPad);
   form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>clearPad(b.dataset.clear)));
-  // progreso
   form.addEventListener('input', updateProgress);
   updateProgress();
+}
+
+/* cambia solo las ETIQUETAS al toggle de idioma → conserva valores y firmas */
+function applyLang(){
+  SECTIONS.forEach(s=>{
+    const sec=$(`[data-sec="${s.id}"]`); if(!sec) return;
+    sec.querySelector('h2').textContent = L(s.title);
+    s.fields.forEach(f=>{
+      const el = sec.querySelector(`[name="${f[0]}"]`);
+      const lab = el ? el.closest('.field').querySelector('label')
+                     : sec.querySelector(`.field[data-key="${f[0]}"] label`);
+      if(lab) lab.textContent = L(f[1]);
+    });
+  });
+  document.querySelectorAll('.tier-label[data-tier]').forEach(el=> el.textContent = L(TIERS[el.dataset.tier]||{es:el.dataset.tier}));
+  document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
+  if($('#overlay').classList.contains('open')) generate();  // re-render preview en el nuevo idioma
 }
 
 /* ---------- pad de firma ---------- */
@@ -305,125 +289,139 @@ function initPad(wrap){
     ctx.strokeStyle='#104C4F'; pads[key]={cv,ctx,empty:true}; }
   resize();
   let drawing=false, last=null;
-  const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
-    return {x:t.clientX-r.left, y:t.clientY-r.top}; };
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; };
   const start=e=>{ drawing=true; last=pos(e); e.preventDefault(); };
   const move=e=>{ if(!drawing)return; const p=pos(e); const c=pads[key].ctx;
     c.beginPath(); c.moveTo(last.x,last.y); c.lineTo(p.x,p.y); c.stroke(); last=p;
     pads[key].empty=false; wrap.classList.add('signed'); e.preventDefault(); };
   const end=()=>{ drawing=false; };
-  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move);
-  window.addEventListener('mouseup',end);
-  cv.addEventListener('touchstart',start,{passive:false});
-  cv.addEventListener('touchmove',move,{passive:false});
-  cv.addEventListener('touchend',end);
+  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
 }
 function clearPad(key){ const p=pads[key]; if(!p)return; p.ctx.clearRect(0,0,p.cv.width,p.cv.height);
   p.empty=true; document.getElementById('pad-'+key).classList.remove('signed'); }
 
-/* ---------- progreso ---------- */
+/* ---------- progreso / recolección ---------- */
 function activeKeys(){
   const keys=[];
-  SECTIONS.forEach(s=>{
-    const sec=$(`[data-sec="${s.id}"]`);
-    if(s.optional && sec.classList.contains('off')) return;
-    s.fields.forEach(f=>keys.push(f[0]));
-  });
+  SECTIONS.forEach(s=>{ const sec=$(`[data-sec="${s.id}"]`);
+    if(s.optional && sec && sec.classList.contains('off')) return;
+    s.fields.forEach(f=>keys.push(f[0])); });
   return keys;
 }
 function collect(){
   const data={};
-  activeKeys().forEach(k=>{
-    const pad=pads[k];
+  activeKeys().forEach(k=>{ const pad=pads[k];
     if(pad){ data[k]= pad.empty ? '' : pad.cv.toDataURL('image/png'); return; }
-    const el=$(`[name="${k}"]`); data[k]= el? el.value.trim() : '';
-  });
+    const el=$(`[name="${k}"]`); data[k]= el ? el.value.trim() : ''; });
   return data;
 }
 function updateProgress(){
-  const keys=activeKeys().filter(k=>!k.startsWith('firma'));
+  // cuenta solo el nivel "siempre" no-opcional (los preset y gestión no bloquean)
+  const req = SECTIONS.filter(s=>s.tier==='siempre' && !s.optional).flatMap(s=>s.fields.map(f=>f[0]));
   const data=collect();
-  const done=keys.filter(k=>data[k]).length;
-  $('#cDone').textContent=done; $('#cTotal').textContent=keys.length;
-  $('#btnGen').disabled = done < keys.length;
+  const done=req.filter(k=>data[k]).length;
+  $('#cDone').textContent=done; $('#cTotal').textContent=req.length;
 }
 
 /* ---------- generar (merge cliente) ---------- */
+function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function injectBrandAndCover(html, data){
+  const covData = { ...data, contrato_tipo:L(CURRENT.tipo), contrato_titulo:L(CURRENT.titulo) };
+  const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
+  const head = `<link rel="stylesheet" href="assets/brand.css">`
+    + `<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">`
+    + `<style>[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
+  if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
+  else html = '<head>'+head+'</head>'+html;
+  if(/<body[^>]*>/.test(html)) html = html.replace(/<body([^>]*)>/, `<body$1>${cov}`);
+  else html = cov + html;
+  return html;
+}
 function generate(){
   const data=collect();
-  let html=templateHTML;
-  // ocultar bloques opcionales no rellenados (por comentarios <!--opt:KEY-->…<!--/opt:KEY-->,
-  // idéntico al servidor). Quita el bloque si el valor KEY está vacío.
-  html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=>
-    (k in data && data[k]!=='') ? m : '');
-  // sustituir marcadores (firma vacía -> '' para no dejar imagen rota)
-  html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{
-    const filled = (k in data && data[k]!=='');
+  let html=injectBrandAndCover(templateHTML, data);
+  html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
+  html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
-    return filled ? esc(data[k],k) : '—';
-  });
-  // mostrar
+    return filled ? esc(data[k],k) : '—'; });
   const f=$('#pvFrame'); f.srcdoc=html; $('#overlay').classList.add('open');
 }
-function esc(v,k){ if(k.startsWith('firma')) return v; // data URI, no escapar
-  return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ---------- eventos ---------- */
+/* ---------- cobertura genérica de marcadores del template ---------- */
+function ensureCoverage(html){
+  const inTpl=[...new Set([...html.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]))]
+    .filter(k=>k!=='campo' && !['contrato_tipo','contrato_titulo','contrato_num'].includes(k));
+  const known=new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
+  const missing=inTpl.filter(k=>!known.has(k));
+  // limpia grupo 'otros' previo
+  SECTIONS = SECTIONS.filter(s=>s.id!=='otros');
+  if(missing.length){
+    // insertar tras el último bloque de nivel "siempre" → no duplica su etiqueta
+    let ins = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
+    ins = ins<0 ? SECTIONS.length : ins+1;
+    SECTIONS.splice(ins, 0,
+      { id:'otros', tier:'siempre', title:{es:'Otros campos (de esta plantilla)',en:'Other fields',id:'Lainnya'},
+        fields:missing.map(k=>[k,{es:humanize(k)},'text']) });
+  }
+}
+
+/* ---------- selector de plantilla ---------- */
+async function loadTemplate(slug){
+  CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
+  $('#tplName').textContent = L(CURRENT.titulo);
+  $('#tplDesc').textContent = CURRENT.ready
+    ? {es:'Plantilla lista',en:'Ready',id:'Siap'}[LANG]
+    : {es:'Estructura lista · texto legal pendiente',en:'Structure ready · legal text pending',id:'Struktur siap · teks hukum menyusul'}[LANG];
+  try{ templateHTML = await fetch(CURRENT.file).then(r=>r.text()); }
+  catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
+  ensureCoverage(templateHTML);
+}
+function buildPicker(){
+  const sel=$('#tplPick');
+  sel.innerHTML = TEMPLATES.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
+  sel.addEventListener('change', async ()=>{ await loadTemplate(sel.value); buildForm(); });
+}
+function buildLangToggle(){
+  const box=$('#langToggle');
+  box.innerHTML = LANGS.map(([code,lbl])=>`<button data-l="${code}" class="${code===LANG?'on':''}">${lbl}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ LANG=b.dataset.l;
+    $('#tplName').textContent=L(CURRENT.titulo);
+    buildPicker(); applyLang(); }));
+}
+
+/* ---------- PDF / backend ---------- */
 $('#btnGen').addEventListener('click', generate);
 $('#btnEdit').addEventListener('click', ()=>$('#overlay').classList.remove('open'));
 $('#btnPdf').addEventListener('click', downloadPdf);
-
+$('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos?')) location.reload(); });
 function printPreview(){ const w=$('#pvFrame').contentWindow; w.focus(); w.print(); }
-
 async function downloadPdf(){
-  // Sin backend (prototipo): solo imprimir el preview → Guardar como PDF
   if(!BACKEND){ printPreview(); return; }
-  // Con backend: guardar el registro del contrato en el servidor y luego imprimir
   const btn=$('#btnPdf'); btn.disabled=true; btn.textContent='Guardando…';
   try{
-    const r=await fetch('api/generar.php',{
-      method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF||''},
-      body:JSON.stringify({slug:CURRENT_SLUG, data:collect()})
-    });
+    const r=await fetch('api/generar.php',{ method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF':CSRF||''},
+      body:JSON.stringify({slug:CURRENT.slug, lang:LANG, data:collect()}) });
     const d=await r.json();
     if(d.ok){ toast('Contrato guardado · abre Guardar como PDF'); printPreview(); }
     else{ toast(d.error||'Error al guardar'); }
   }catch(_){ toast('No se pudo conectar'); }
   btn.disabled=false; btn.textContent='Descargar PDF';
 }
-$('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos?')) location.reload(); });
 
-/* ---------- cobertura de marcadores (genérico para cualquier contrato) ---------- */
-function ensureCoverage(html){
-  const inTpl=[...new Set([...html.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]))].filter(k=>k!=='campo');
-  const known=new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
-  const missing=inTpl.filter(k=>!known.has(k));
-  if(missing.length){
-    SECTIONS.splice(SECTIONS.length-1,0,{ id:'otros', title:'Otros campos',
-      fields:missing.map(k=>[k,humanize(k),'text']) });
-  }
-}
-
-/* ---------- init: detecta backend (PHP) o cae a modo standalone ---------- */
+/* ---------- init ---------- */
 async function init(){
-  // 1) ¿hay backend? (api/auth.php responde)
+  try{ COVER_HTML = await fetch('templates/_portada.html').then(r=>r.text()); }catch(_){ COVER_HTML=''; }
+  try{ TOKENS = await fetch('tokens.json').then(r=>r.json()); if(TOKENS.sections && TOKENS.sections.length) SECTIONS = TOKENS.sections; }catch(_){}
+  // ¿backend PHP con login? (si no, modo standalone — el actual en producción hasta montar BD)
   try{
     const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
-    BACKEND = true; CSRF = me.csrf;
-    if(!me.agent){ location.href='login.html'; return; }   // requiere login
-    const tpl = await fetch('api/plantillas.php?action=get&slug='+CURRENT_SLUG).then(r=>r.json());
-    if(!tpl.ok) throw 0;
-    if(Array.isArray(tpl.sections) && tpl.sections.length) SECTIONS = tpl.sections;
-    templateHTML = tpl.html;
-    $('#tplName').textContent = tpl.name || $('#tplName').textContent;
-  }catch(_){
-    // 2) modo standalone (prototipo, sin PHP): usa fallback + archivo de plantilla
-    BACKEND = false;
-    try{ templateHTML = await fetch(TEMPLATE_URL).then(r=>r.text()); }
-    catch(e){ $('#form').innerHTML='<p style="color:#a33">No se pudo cargar la plantilla. Sirve la app por HTTP.</p>'; return; }
-  }
-  ensureCoverage(templateHTML);
-  buildForm();
+    BACKEND=true; CSRF=me.csrf; if(!me.agent){ location.href='login.html'; return; }
+  }catch(_){ BACKEND=false; }
+  await loadTemplate(CURRENT.slug);
+  buildPicker(); buildLangToggle(); buildForm();
 }
 init();
 </script>
