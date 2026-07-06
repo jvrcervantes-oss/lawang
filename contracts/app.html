@@ -95,6 +95,16 @@
 
   .toast{ position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; z-index:60; opacity:0; transition:.3s; pointer-events:none; }
   .toast.show{ opacity:1; }
+
+  /* ---------- modo slide (una sección por pantalla) ---------- */
+  .progwrap{ height:4px; background:var(--line); border-radius:4px; margin:2px 2px 14px; overflow:hidden; }
+  .progwrap .bar{ height:100%; background:var(--tg); width:0; transition:width .3s ease; }
+  #form.slides .section{ display:none; }
+  #form.slides .section.current{ display:block; animation:slidein .26s ease; }
+  @keyframes slidein{ from{ opacity:0; transform:translateX(16px); } to{ opacity:1; transform:none; } }
+  #form.slides .section > header{ cursor:default; }
+  .slide-eyebrow{ font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--sc); padding:14px 16px 0; }
+  .reset{ color:var(--muted); text-decoration:underline; cursor:pointer; font-size:12px; margin-left:10px; }
 </style>
 </head>
 <body>
@@ -115,13 +125,14 @@
       <select id="tplPick" aria-label="Tipo de contrato"></select>
     </div>
 
+    <div class="progwrap"><div class="bar" id="progBar"></div></div>
     <form id="form"><!-- generado por JS --></form>
   </div>
 
   <div class="actionbar">
-    <div class="prog">Completados <b><span id="cDone">0</span>/<span id="cTotal">0</span></b></div>
-    <button type="button" class="btn ghost" id="btnReset">Limpiar</button>
-    <button type="button" class="btn primary" id="btnGen">Generar contrato</button>
+    <button type="button" class="btn ghost" id="btnBack">← Atrás</button>
+    <div class="prog"><b id="slideCount">1 / 1</b><a class="reset" id="btnReset">Limpiar</a></div>
+    <button type="button" class="btn primary" id="btnNext">Siguiente →</button>
   </div>
 
   <div class="overlay" id="overlay">
@@ -219,48 +230,62 @@ function fieldHTML(f){
     <input name="${key}" type="${t}" ${step} value="${def}" autocomplete="off"></div>`;
 }
 
+let slideEls=[]; let curSlide=0;
 function buildForm(){
-  const form = $('#form');
-  let html=''; let lastTier=null; let idx=0; let firstTier=true;
+  const form = $('#form'); form.classList.add('slides');
+  const total = SECTIONS.length;
+  let html=''; let idx=0;
   SECTIONS.forEach(s=>{
-    if(s.tier!==lastTier){
-      html += `<div class="tier-label${firstTier?' first':''}" data-tier="${s.tier}">${L(TIERS[s.tier]||{es:s.tier})}</div>`;
-      lastTier=s.tier; firstTier=false;
-    }
     idx++;
-    const optional = s.optional ? `<div class="opt-toggle">+<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
-    const collapsed = s.optional ? 'collapsed optional off' : '';
+    const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
+    const cls = s.optional ? 'optional off' : '';
     const grid = ['comprador','comprador2','comprador3','sociedad','dinero','vendedor','apendices','gestion'].includes(s.id);
     const body = s.fields.map(fieldHTML).join('');
-    html += `<section class="section ${collapsed}" data-sec="${s.id}">
-      <header><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
-      <div class="body"><div class="${grid?'grid2':''}">${body}</div></div></section>`;
+    // el boilerplate bloqueado se muestra en la última slide (firmas)
+    const note = (s.id==='firmas' && TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length)
+      ? `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
+          <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>` : '';
+    html += `<section class="section ${cls}" data-sec="${s.id}" data-tier="${s.tier}">
+      <div class="slide-eyebrow">${L(TIERS[s.tier]||{es:s.tier})} · ${idx}/${total}</div>
+      <header><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}</header>
+      <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}</div></section>`;
   });
-  // nota de boilerplate bloqueado (honesto: lo que va fijo en la plantilla)
-  if(TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length){
-    html += `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
-      <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>`;
-  }
   form.innerHTML = html;
+  slideEls = [...form.querySelectorAll('.section')];
 
-  form.querySelectorAll('.section > header').forEach(h=>{
-    h.addEventListener('click', e=>{ if(e.target.closest('.opt-toggle')) return; h.parentElement.classList.toggle('collapsed'); });
-  });
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
-      sec.classList.toggle('off', !chk.checked); sec.classList.toggle('collapsed', !chk.checked); updateProgress(); });
+      sec.classList.toggle('off', !chk.checked); });
   });
-  form.querySelectorAll('.sigpad-wrap').forEach(initPad);
   form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>clearPad(b.dataset.clear)));
-  form.addEventListener('input', updateProgress);
-  updateProgress();
+  curSlide = 0; gotoSlide(0);
+}
+
+/* pads de firma: inicializar SOLO cuando su slide es visible (si no, el canvas mide 0) */
+function ensurePads(sec){ sec.querySelectorAll('.sigpad-wrap:not([data-init])').forEach(w=>{ w.setAttribute('data-init','1'); initPad(w); }); }
+
+function gotoSlide(i){
+  if(!slideEls.length) return;
+  curSlide = Math.max(0, Math.min(slideEls.length-1, i));
+  slideEls.forEach((el,idx)=> el.classList.toggle('current', idx===curSlide));
+  const sec = slideEls[curSlide]; if(sec) ensurePads(sec);
+  $('#progBar').style.width = ((curSlide+1)/slideEls.length*100)+'%';
+  $('#slideCount').textContent = `${curSlide+1} / ${slideEls.length}`;
+  $('#btnBack').disabled = curSlide===0;
+  const last = curSlide===slideEls.length-1;
+  $('#btnNext').textContent = last ? L({es:'Generar contrato',en:'Generate',id:'Buat kontrak'})
+                                   : L({es:'Siguiente →',en:'Next →',id:'Lanjut →'});
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 /* cambia solo las ETIQUETAS al toggle de idioma → conserva valores y firmas */
 function applyLang(){
-  SECTIONS.forEach(s=>{
-    const sec=$(`[data-sec="${s.id}"]`); if(!sec) return;
+  const total = slideEls.length;
+  slideEls.forEach((sec,idx)=>{
+    const s = SECTIONS.find(x=>x.id===sec.dataset.sec); if(!s) return;
     sec.querySelector('h2').textContent = L(s.title);
+    const eb = sec.querySelector('.slide-eyebrow');
+    if(eb) eb.textContent = `${L(TIERS[s.tier]||{es:s.tier})} · ${idx+1}/${total}`;
     s.fields.forEach(f=>{
       const el = sec.querySelector(`[name="${f[0]}"]`);
       const lab = el ? el.closest('.field').querySelector('label')
@@ -268,9 +293,9 @@ function applyLang(){
       if(lab) lab.textContent = L(f[1]);
     });
   });
-  document.querySelectorAll('.tier-label[data-tier]').forEach(el=> el.textContent = L(TIERS[el.dataset.tier]||{es:el.dataset.tier}));
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
-  if($('#overlay').classList.contains('open')) generate();  // re-render preview en el nuevo idioma
+  gotoSlide(curSlide);  // refresca etiquetas de navegación en el nuevo idioma
+  if($('#overlay').classList.contains('open')) generate();
 }
 
 /* ---------- pad de firma ---------- */
@@ -310,13 +335,7 @@ function collect(){
     const el=$(`[name="${k}"]`); data[k]= el ? el.value.trim() : ''; });
   return data;
 }
-function updateProgress(){
-  // cuenta solo el nivel "siempre" no-opcional (los preset y gestión no bloquean)
-  const req = SECTIONS.filter(s=>s.tier==='siempre' && !s.optional).flatMap(s=>s.fields.map(f=>f[0]));
-  const data=collect();
-  const done=req.filter(k=>data[k]).length;
-  $('#cDone').textContent=done; $('#cTotal').textContent=req.length;
-}
+function updateProgress(){ /* la barra de progreso refleja la posición del slide (gotoSlide) */ }
 
 /* ---------- generar (merge cliente) ---------- */
 function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -386,8 +405,11 @@ function buildLangToggle(){
     buildPicker(); applyLang(); }));
 }
 
+/* ---------- navegación de slides ---------- */
+$('#btnBack').addEventListener('click', ()=> gotoSlide(curSlide-1));
+$('#btnNext').addEventListener('click', ()=>{ if(curSlide===slideEls.length-1) generate(); else gotoSlide(curSlide+1); });
+
 /* ---------- PDF / backend ---------- */
-$('#btnGen').addEventListener('click', generate);
 $('#btnEdit').addEventListener('click', ()=>$('#overlay').classList.remove('open'));
 $('#btnPdf').addEventListener('click', downloadPdf);
 $('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos?')) location.reload(); });
