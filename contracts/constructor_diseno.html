@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Constructor de diseño de contratos — Lawang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--green:#485B37;--lagoon:#104C4F;--earth:#42210B;--gold:#9A7B3C;--ink:#2E3437;--mut:#6f6a60;--line:#e3ddce;--bg:#F5F0E6;--card:#fffdf8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Jost',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .head{max-width:1000px;margin:0 auto;padding:40px 24px 0}
+  .back{display:inline-block;color:#a49c8c;text-decoration:none;font-weight:600;font-size:14px;margin-bottom:10px}
+  h1{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:clamp(30px,5vw,46px);margin:0 0 8px;letter-spacing:-.3px}
+  .head p{margin:0;color:var(--mut);max-width:72ch}
+  .steps{max-width:1000px;margin:24px auto 0;padding:0 24px;display:flex;gap:8px;flex-wrap:wrap}
+  .stp{flex:1;min-width:98px;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;transition:.18s}
+  .stp .num{width:22px;height:22px;border-radius:50%;background:#ece7db;color:#8a8474;display:grid;place-items:center;font-size:12px;flex:none}
+  .stp.active{border-color:var(--green);color:var(--ink);box-shadow:0 8px 20px -14px rgba(72,91,55,.7)}
+  .stp.active .num{background:var(--green);color:#fff}
+  .stp.done .num{background:var(--gold);color:#fff}
+  .stp.done .num::after{content:"\2713"}
+  .stp.done .num span{display:none}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 24px 40px}
+  .panel{display:none;animation:fade .25s ease}
+  .panel.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .ptitle{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:28px;margin:6px 0 2px;letter-spacing:-.2px}
+  .ptitle .sub{font-family:'Jost',sans-serif;font-weight:400;color:var(--mut);font-size:16px}
+  .phelp{color:var(--mut);font-size:14.5px;margin:0 0 18px;max-width:74ch}
+  .glabel{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#a49c8c;margin:22px 0 10px}
+  .fgrid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:6px}
+  @media(min-width:680px){.fgrid{grid-template-columns:1fr 1fr}}
+  .field label{display:block;font-size:13px;font-weight:600;color:#4a463d;margin-bottom:5px}
+  .field input,.field textarea{width:100%;font:inherit;font-size:15px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);transition:.15s}
+  .field textarea{resize:vertical;min-height:80px}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(72,91,55,.14)}
+  .field.wide{grid-column:1/-1}
+  .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .opts.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .opts.chips{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .opt{text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 15px;cursor:pointer;transition:.16s;position:relative;font:inherit;color:inherit;display:flex;flex-direction:column;gap:4px}
+  .opt:hover{border-color:#c9c1ad;transform:translateY(-2px)}
+  .opt.sel{border-color:var(--green);background:linear-gradient(180deg,#fffdf8,#f3f4ec);box-shadow:0 12px 26px -18px rgba(72,91,55,.8)}
+  .opt.sel::after{content:"\2713";position:absolute;top:10px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+  .opt .ot{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:19px;padding-right:22px;line-height:1.15}
+  .opt .od{font-size:13px;color:var(--mut);line-height:1.45}
+  .opt .oex{font-size:11.5px;color:var(--green);font-weight:600;margin-top:2px}
+  .nav{display:flex;justify-content:space-between;gap:12px;margin-top:26px}
+  .btn{font:inherit;font-weight:600;font-size:15px;border-radius:999px;padding:12px 26px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:.15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 12px 26px -16px rgba(72,91,55,.9)}
+  .btn:disabled{opacity:.4;cursor:default;transform:none}
+  pre#brief{background:#20241f;color:#eae6d8;border-radius:16px;padding:22px 24px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;line-height:1.7;overflow:auto;white-space:pre-wrap;border:1px solid #333;max-height:60vh}
+  .briefbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .hint{font-size:13px;color:var(--mut)}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="head">
+  <a class="back" href="app.html">← Volver a la app de contratos</a>
+  <h1>Constructor de diseño de contratos</h1>
+  <p>Responde haciendo clic. Con esto definimos cómo quieres crear tus contratos con tu diseño de marca. Al final genera un resumen: cópialo y envíanoslo — con eso montamos la herramienta.</p>
+</div>
+
+<div class="steps" id="stepper"></div>
+
+<div class="wrap">
+
+  <!-- 0 Libertad -->
+  <section class="panel on" data-step="0">
+    <div class="ptitle">1 · Nivel de libertad <span class="sub">— la decisión grande</span></div>
+    <p class="phelp">¿Cuánto quieres poder cambiar del diseño? Define toda la herramienta. Elige una.</p>
+    <div class="opts two" id="opts_libertad"></div>
+    <div class="fgrid">
+      <div class="field"><label>¿Quién usará la herramienta?</label><input id="f_usuarios" placeholder="El dueño / agentes de venta / admin"></div>
+      <div class="field"><label>¿Cuántos estilos de contrato distintos necesitas?</label><input id="f_estilos" placeholder="Ej: 1 look de marca único"></div>
+    </div>
+  </section>
+
+  <!-- 1 Marca -->
+  <section class="panel" data-step="1">
+    <div class="ptitle">2 · Tu marca</div>
+    <p class="phelp">Los ingredientes visuales del documento.</p>
+    <div class="glabel">Paleta de color</div>
+    <div class="opts" id="opts_paleta"></div>
+    <div class="glabel">Tipografía</div>
+    <div class="opts" id="opts_tipografia"></div>
+    <div class="glabel">Marca de agua / textura de fondo</div>
+    <div class="opts" id="opts_agua"></div>
+    <div class="fgrid">
+      <div class="field wide"><label>Notas de marca (otros colores, referencias, lo que quieras aportar)</label><textarea id="f_marca_notas" placeholder="Ej: usar el tiki-totem en portada; color acento burdeos para títulos…"></textarea></div>
+    </div>
+  </section>
+
+  <!-- 2 Documento -->
+  <section class="panel" data-step="2">
+    <div class="ptitle">3 · El documento</div>
+    <p class="phelp">Formato y estructura de página.</p>
+    <div class="glabel">Formato de página</div>
+    <div class="opts chips" id="opts_formato"></div>
+    <div class="glabel">Portada</div>
+    <div class="opts" id="opts_portada"></div>
+    <div class="glabel">Anexos que acompañan el contrato (marca los que apliquen)</div>
+    <div class="opts" id="opts_anexos"></div>
+    <div class="fgrid">
+      <div class="field wide"><label>¿Qué va en la cabecera y el pie de página?</label><input id="f_cabecera" placeholder="Logo pequeño · nº de página · nº de contrato · 'Confidencial' · web…"></div>
+    </div>
+  </section>
+
+  <!-- 3 Contenido -->
+  <section class="panel" data-step="3">
+    <div class="ptitle">4 · Contenido y cláusulas</div>
+    <p class="phelp">De dónde salen los textos y qué se puede cambiar.</p>
+    <div class="glabel">Origen del texto</div>
+    <div class="opts two" id="opts_origen"></div>
+    <div class="glabel">Idioma — modo</div>
+    <div class="opts two" id="opts_modoidioma"></div>
+    <div class="glabel">Idiomas necesarios</div>
+    <div class="opts chips" id="opts_idiomas"></div>
+    <div class="glabel">Cláusulas opcionales (se muestran/ocultan según el caso)</div>
+    <div class="opts" id="opts_opcionales"></div>
+    <div class="fgrid">
+      <div class="field wide"><label>¿Qué texto es FIJO (legal, no editable) y qué es EDITABLE en cada contrato?</label><textarea id="f_fijo" placeholder="Ej: las 26 cláusulas son fijas; solo cambian nombres, precio y forma de pago…"></textarea></div>
+    </div>
+  </section>
+
+  <!-- 4 Campos -->
+  <section class="panel" data-step="4">
+    <div class="ptitle">5 · Datos que cambian</div>
+    <p class="phelp">Los campos que se rellenan al generar cada contrato.</p>
+    <div class="fgrid">
+      <div class="field wide"><label>Enumera los datos que cambian en cada contrato</label><textarea id="f_campos" placeholder="Nombre(s) del comprador · precio · forma de pago · plazos · propiedad/villa · superficie · fechas…"></textarea></div>
+    </div>
+    <div class="glabel">Tipos de campo que vas a necesitar</div>
+    <div class="opts" id="opts_tipos"></div>
+    <div class="glabel">¿Cálculos automáticos?</div>
+    <div class="opts two" id="opts_calculos"></div>
+    <div class="fgrid">
+      <div class="field wide"><label>Si hay cálculos, describe las reglas</label><input id="f_reglas" placeholder="Ej: saldo = precio − depósito; IVA 11% sobre subtotal…"></div>
+    </div>
+  </section>
+
+  <!-- 5 Firma -->
+  <section class="panel" data-step="5">
+    <div class="ptitle">6 · Firma</div>
+    <p class="phelp">Cómo se formaliza el documento.</p>
+    <div class="glabel">¿Quién firma?</div>
+    <div class="opts chips" id="opts_firmantes"></div>
+    <div class="glabel">Método de firma</div>
+    <div class="opts" id="opts_metodo"></div>
+    <div class="glabel">Extras</div>
+    <div class="opts" id="opts_extras"></div>
+    <div class="glabel">Valor legal — importante</div>
+    <div class="opts two" id="opts_legal"></div>
+  </section>
+
+  <!-- 6 Salida -->
+  <section class="panel" data-step="6">
+    <div class="ptitle">7 · Salida y gestión</div>
+    <p class="phelp">Qué hace la herramienta con el contrato terminado. Marca todo lo que quieras.</p>
+    <div class="opts" id="opts_salida"></div>
+  </section>
+
+  <!-- 7 Assets -->
+  <section class="panel" data-step="7">
+    <div class="ptitle">8 · Lo que aportas tú</div>
+    <p class="phelp">Para que el resultado se vea profesional (no de borrador) necesitamos estos materiales. Marca los que puedes entregar.</p>
+    <div class="opts" id="opts_assets"></div>
+    <div class="fgrid">
+      <div class="field wide"><label>Cualquier otra cosa que debamos saber</label><textarea id="f_notas" placeholder="Notas libres…"></textarea></div>
+    </div>
+  </section>
+
+  <!-- 8 Brief -->
+  <section class="panel" data-step="8">
+    <div class="ptitle">9 · Resumen generado</div>
+    <p class="phelp">Listo. Cópialo y envíanoslo — con esto montamos tu constructor de contratos.</p>
+    <div class="briefbar">
+      <button class="btn primary" id="copy">Copiar resumen</button>
+      <span class="hint">Se actualiza con cada respuesta.</span>
+    </div>
+    <pre id="brief">—</pre>
+  </section>
+
+  <div class="nav">
+    <button class="btn" id="prev" disabled>← Atrás</button>
+    <button class="btn primary" id="next">Siguiente →</button>
+  </div>
+
+</div>
+
+<div id="toast">Copiado ✓</div>
+
+<script>
+/* ---- opciones ---- */
+const LIBERTAD=[
+  ["Presets + variables","Elijo entre 1-3 diseños de contrato ya maquetados con mi marca y solo cambio logo, colores, fuente, marca de agua y los datos. No muevo elementos.","Recomendado — más rápido y económico"],
+  ["Bloques montables","Compongo el contrato eligiendo secciones de una biblioteca (portada, cláusulas, anexo de planos, oferta…) y las ordeno. Cada bloque ya viene diseñado.",""],
+  ["Editor libre","Muevo y redimensiono elementos en un lienzo, tipo Canva. Máxima libertad, mayor coste.",""]
+];
+const PALETA=[
+  ["Marca Lawang","La oficial: Territorial Green, Deep Lagoon, Burnt Earth, Raw Linen.",""],
+  ["Otra paleta","Prefiero otros colores — los indico en las notas de marca.",""]
+];
+const TIPOGRAFIA=[
+  ["Google Fonts (actual)","Cormorant Garamond + Jost. Ya listas, gratis, sin licencia pendiente.",""],
+  ["Fuentes con licencia","The Seasons + Neue Kabel. Tengo o compraré la licencia web.",""]
+];
+const AGUA=[
+  ["Solo en la portada","Marca de agua / tiki-totem únicamente en la primera página.",""],
+  ["En todas las páginas","Textura sutil de fondo en todo el documento.",""],
+  ["Sin marca de agua","Documento limpio, sin fondo.",""]
+];
+const FORMATO=[["A4","210 × 297 mm",""],["A5","148 × 210 mm · libreto",""],["Carta","216 × 279 mm · US",""]];
+const PORTADA=[
+  ["Portada full-bleed","Primera página con imagen a sangre completa + título, nº y partes.",""],
+  ["Portada sencilla","Primera página sobria: logo, título y datos, sin foto.",""],
+  ["Sin portada","El contrato empieza directo en la cláusula 1.",""]
+];
+const ANEXOS=[
+  ["Planos","Plantas y planos de la propiedad.",""],
+  ["Especificaciones técnicas","Materiales, acabados, medidas.",""],
+  ["Brochure / galería","Fotos y renders de la villa.",""],
+  ["Oferta comercial","Desglose de precio y condiciones.",""],
+  ["Paquete de decoración","AC, mobiliario, amenities.",""],
+  ["Índice / tabla de contenidos","Página de índice automática.",""]
+];
+const ORIGEN=[
+  ["Precargo cada contrato","Yo entrego el texto ya redactado y la herramienta lo maqueta.","Como funciona ahora"],
+  ["Banco de cláusulas","Biblioteca de cláusulas reutilizables que activo/desactivo por contrato.",""]
+];
+const MODOIDIOMA=[
+  ["Una versión por idioma","Elijo el idioma al generar y sale en ese idioma.",""],
+  ["Bilingüe en el mismo doc","Dos idiomas a la vez (dos columnas o bloques).",""]
+];
+const IDIOMAS=[["Inglés","",""],["Español","",""],["Bahasa Indonesia","",""]];
+const OPCIONALES=[
+  ["Adquiriente II / III","Compradores adicionales.",""],
+  ["PT PMA","Cláusula de sociedad extranjera.",""],
+  ["Avalista / garante","",""],
+  ["Financiación / pago aplazado","",""],
+  ["Arras / penalización","",""]
+];
+const TIPOS=[
+  ["Texto libre","Nombres, direcciones…",""],
+  ["Moneda","Precios (IDR / EUR / USD).",""],
+  ["Fecha","Firma, entrega, plazos.",""],
+  ["Desplegable","Opciones fijas (villa, forma de pago).",""],
+  ["Sí / No","Casillas que muestran u ocultan partes.",""]
+];
+const CALCULOS=[
+  ["Sí, con cálculos","Sumas de pagos, %, impuestos, saldo restante. Indico las reglas.",""],
+  ["No, todo manual","Los importes los escribo yo, sin cálculo automático.",""]
+];
+const FIRMANTES=[["Comprador I","",""],["Comprador II / III","",""],["Promotor","",""],["Testigo","",""]];
+const METODO=[
+  ["En pantalla","Firma con el dedo o el ratón (como ahora).",""],
+  ["Subir imagen","Subo una foto/escaneo de la firma.",""],
+  ["Ambas","Cualquiera de las dos.",""]
+];
+const EXTRAS=[
+  ["Iniciales por página","",""],
+  ["Casillas 'he leído y acepto'","",""],
+  ["Fecha y lugar de firma","",""],
+  ["Sello de empresa","",""]
+];
+const LEGAL=[
+  ["Firma manuscrita en el PDF","Suficiente para uso privado / interno. Sin certificación.","Más simple"],
+  ["Firma digital certificada","Validez legal reforzada (timestamp / eIDAS). Mayor alcance técnico.",""]
+];
+const SALIDA=[
+  ["PDF","Documento final en PDF (ya soportado).",""],
+  ["Word editable","Además del PDF, salida .docx.",""],
+  ["Numeración automática","Cada contrato con nº correlativo.",""],
+  ["Estados","Borrador / enviado / firmado.",""],
+  ["Guardado y auditoría","Registro de cada contrato para re-descarga (ya soportado).",""],
+  ["Envío por email","Mandar el PDF al cliente final desde la herramienta.",""],
+  ["App instalable (PWA)","Instalar en el móvil como app.",""]
+];
+const ASSETS=[
+  ["Logo / marca en vector","SVG / AI / PDF o PNG ≥2000px.",""],
+  ["Fuentes con licencia","Archivos de The Seasons + Neue Kabel.",""],
+  ["Imagen de portada","Foto/render en alta resolución.",""],
+  ["Fotos / renders / planos","En alta resolución (no los placeholders actuales).",""],
+  ["Textos legales definitivos","Revisados por abogado.",""]
+];
+
+/* ---- estado ---- */
+const state={
+  libertad:"",paleta:"",tipografia:"",agua:"",
+  formato:"",portada:"",anexos:new Set(),
+  origen:"",modo_idioma:"",idiomas:new Set(),opcionales:new Set(),
+  tipos:new Set(),calculos:"",
+  firmantes:new Set(),firma_metodo:"",firma_extras:new Set(),firma_legal:"",
+  salida:new Set(),assets:new Set()
+};
+const STEP_TITLES=["Libertad","Marca","Documento","Contenido","Campos","Firma","Salida","Assets","Resumen"];
+const LAST=STEP_TITLES.length-1;
+let cur=0;
+
+/* ---- stepper ---- */
+const stepper=document.getElementById('stepper');
+STEP_TITLES.forEach((t,i)=>{
+  const d=document.createElement('div');d.className='stp';d.dataset.i=i;
+  d.innerHTML=`<span class="num"><span>${i+1}</span></span>${t}`;
+  d.onclick=()=>goto(i);
+  stepper.appendChild(d);
+});
+
+/* ---- render ---- */
+function optCard(n,d,ex,sel,onclick){
+  const b=document.createElement('button');b.className='opt'+(sel?' sel':'');
+  const dd=d?`<span class="od">${d}</span>`:'';
+  const ee=ex?`<span class="oex">${ex}</span>`:'';
+  b.innerHTML=`<span class="ot">${n}</span>${dd}${ee}`;b.onclick=onclick;return b;
+}
+function renderSingle(cid,arr,key){
+  const c=document.getElementById(cid);c.innerHTML='';
+  arr.forEach(([n,d,ex])=>c.appendChild(optCard(n,d,ex,state[key]===n,()=>{
+    state[key]=state[key]===n?"":n;renderSingle(cid,arr,key);build();
+  })));
+}
+function renderMulti(cid,arr,key){
+  const c=document.getElementById(cid);c.innerHTML='';const set=state[key];
+  arr.forEach(([n,d,ex])=>c.appendChild(optCard(n,d,ex,set.has(n),()=>{
+    set.has(n)?set.delete(n):set.add(n);renderMulti(cid,arr,key);build();
+  })));
+}
+const SINGLES=[['opts_libertad',LIBERTAD,'libertad'],['opts_paleta',PALETA,'paleta'],['opts_tipografia',TIPOGRAFIA,'tipografia'],['opts_agua',AGUA,'agua'],['opts_formato',FORMATO,'formato'],['opts_portada',PORTADA,'portada'],['opts_origen',ORIGEN,'origen'],['opts_modoidioma',MODOIDIOMA,'modo_idioma'],['opts_calculos',CALCULOS,'calculos'],['opts_metodo',METODO,'firma_metodo'],['opts_legal',LEGAL,'firma_legal']];
+const MULTIS=[['opts_anexos',ANEXOS,'anexos'],['opts_idiomas',IDIOMAS,'idiomas'],['opts_opcionales',OPCIONALES,'opcionales'],['opts_tipos',TIPOS,'tipos'],['opts_firmantes',FIRMANTES,'firmantes'],['opts_extras',EXTRAS,'firma_extras'],['opts_salida',SALIDA,'salida'],['opts_assets',ASSETS,'assets']];
+
+/* ---- navegación ---- */
+const panels=[...document.querySelectorAll('.panel')];
+function goto(i){
+  cur=Math.max(0,Math.min(LAST,i));
+  panels.forEach(p=>p.classList.toggle('on',+p.dataset.step===cur));
+  [...stepper.children].forEach((s,idx)=>{
+    s.classList.toggle('active',idx===cur);
+    s.classList.toggle('done',idx<cur);
+  });
+  document.getElementById('prev').disabled=cur===0;
+  const next=document.getElementById('next');
+  next.textContent=cur===LAST?'Listo':'Siguiente →';
+  next.disabled=cur===LAST;
+  if(cur===LAST)build();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.getElementById('prev').onclick=()=>goto(cur-1);
+document.getElementById('next').onclick=()=>goto(cur+1);
+
+/* ---- generar resumen ---- */
+function v(id){return document.getElementById(id).value.trim();}
+function setTxt(s){return s.size?[...s].join(', '):'—';}
+function build(){
+  const L=[];
+  L.push('# BRIEF — Constructor de diseño de contratos (Lawang)');
+  L.push('> Respondido por el cliente · '+new Date().toLocaleDateString('es-ES'));
+  L.push('');
+  L.push('## 1 · Nivel de libertad');
+  L.push('- **Modo:** '+(state.libertad||'— (a decidir)'));
+  L.push('- **Quién lo usará:** '+(v('f_usuarios')||'—'));
+  L.push('- **Nº de estilos de contrato:** '+(v('f_estilos')||'—'));
+  L.push('');
+  L.push('## 2 · Marca');
+  L.push('- **Paleta:** '+(state.paleta||'—'));
+  L.push('- **Tipografía:** '+(state.tipografia||'—'));
+  L.push('- **Marca de agua:** '+(state.agua||'—'));
+  if(v('f_marca_notas'))L.push('- **Notas de marca:** '+v('f_marca_notas'));
+  L.push('');
+  L.push('## 3 · Documento');
+  L.push('- **Formato:** '+(state.formato||'—'));
+  L.push('- **Portada:** '+(state.portada||'—'));
+  L.push('- **Anexos:** '+setTxt(state.anexos));
+  if(v('f_cabecera'))L.push('- **Cabecera/pie:** '+v('f_cabecera'));
+  L.push('');
+  L.push('## 4 · Contenido y cláusulas');
+  L.push('- **Origen del texto:** '+(state.origen||'—'));
+  L.push('- **Idioma:** '+(state.modo_idioma||'—')+' — '+setTxt(state.idiomas));
+  L.push('- **Cláusulas opcionales:** '+setTxt(state.opcionales));
+  if(v('f_fijo'))L.push('- **Fijo vs editable:** '+v('f_fijo'));
+  L.push('');
+  L.push('## 5 · Campos variables');
+  L.push('- **Datos que cambian:** '+(v('f_campos')||'—'));
+  L.push('- **Tipos de campo:** '+setTxt(state.tipos));
+  L.push('- **Cálculos automáticos:** '+(state.calculos||'—'));
+  if(v('f_reglas'))L.push('- **Reglas de cálculo:** '+v('f_reglas'));
+  L.push('');
+  L.push('## 6 · Firma');
+  L.push('- **Firmantes:** '+setTxt(state.firmantes));
+  L.push('- **Método:** '+(state.firma_metodo||'—'));
+  L.push('- **Extras:** '+setTxt(state.firma_extras));
+  L.push('- **Valor legal:** '+(state.firma_legal||'—'));
+  L.push('');
+  L.push('## 7 · Salida y gestión');
+  L.push('- **Opciones:** '+setTxt(state.salida));
+  L.push('');
+  L.push('## 8 · Assets que entrega el cliente');
+  L.push(state.assets.size?('- '+[...state.assets].join('\n- ')):'- —');
+  if(v('f_notas')){L.push('');L.push('## Notas');L.push(v('f_notas'));}
+  L.push('');
+  L.push('---');
+  L.push('→ **AxisWorks:** con esto tokenizamos la marca sobre las plantillas y montamos el constructor. Si el modo es «Presets + variables», es incremental sobre el motor actual (app.html + templates.json + backend PHP).');
+  document.getElementById('brief').textContent=L.join('\n');
+}
+['f_usuarios','f_estilos','f_marca_notas','f_cabecera','f_fijo','f_campos','f_reglas','f_notas']
+  .forEach(id=>document.getElementById(id).addEventListener('input',build));
+
+document.getElementById('copy').onclick=()=>{
+  navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('brief').textContent);
+  const t=document.getElementById('toast');t.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1400);
+};
+
+/* init */
+SINGLES.forEach(([c,a,k])=>renderSingle(c,a,k));
+MULTIS.forEach(([c,a,k])=>renderMulti(c,a,k));
+goto(0);build();
+</script>
+</body>
+</html>
