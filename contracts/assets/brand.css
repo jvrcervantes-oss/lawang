@@ -31,9 +31,12 @@
   --font-serif:   'Cormorant Garamond', serif;
   --font-body:    'Jost', sans-serif;
 
-  /* — Emblema / moanito (slot intercambiable) —
-     Cuando llegue el vector: --brand-mark:url(brand/moanito.svg); */
-  --brand-mark: none;
+  /* — Emblema / moanito + logos (slots intercambiables) —
+     Assets reales del cliente en assets/brand/. Para cambiarlos,
+     repunta estas URLs (rutas relativas a este brand.css). */
+  --brand-mark:      url(brand/tiki-totem.png);        /* moanito, fondo de portada */
+  --brand-logo:      url(brand/lawang-logo-v3.png);    /* lockup blanco (fondo oscuro) */
+  --brand-logo-dark: url(brand/lawang-logo-v3-dark.png); /* lockup oscuro (fondo claro) */
 
   /* — Portada · perillas de textura (calíbralas al ver el render) — */
   --grain-opacity: .14;   /* "intensidad 14" del brief (0–1) */

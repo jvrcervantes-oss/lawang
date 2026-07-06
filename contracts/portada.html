@@ -41,8 +41,9 @@
   .curves path{ stroke:color-mix(in srgb, var(--brand-deep) 55%, black); }
 
   /* — capa 3: moanito de fondo, baja opacidad — */
-  .mark{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
-    width:150mm; opacity:var(--mark-opacity); pointer-events:none; }
+  .mark{ position:absolute; left:50%; top:48%; transform:translate(-50%,-50%);
+    height:215mm; width:auto; opacity:var(--mark-opacity); pointer-events:none; }
+  .logo{ height:30px; width:auto; }
 
   /* — capa 4: grano — */
   .grain{ position:absolute; inset:0; opacity:var(--grain-opacity);
@@ -85,17 +86,8 @@
       </g>
     </svg>
 
-    <!-- moanito de fondo (placeholder monograma — swap por --brand-mark) -->
-    <svg class="mark" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
-      <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#8F9B7A"/><stop offset="1" stop-color="#485B37"/>
-      </linearGradient></defs>
-      <circle cx="50" cy="50" r="34" fill="none" stroke="url(#mg)" stroke-width="2.5"/>
-      <text x="50" y="66" text-anchor="middle" font-family="Cormorant Garamond, serif"
-        font-size="46" fill="url(#mg)">L</text>
-      <text x="50" y="104" text-anchor="middle" font-family="Jost, sans-serif"
-        font-size="7" letter-spacing="3" fill="url(#mg)">MOANITO</text>
-    </svg>
+    <!-- moanito real (tiki-totem del cliente) -->
+    <img class="mark" src="assets/brand/tiki-totem.png" alt="">
 
     <!-- grano -->
     <svg class="grain" xmlns="http://www.w3.org/2000/svg">
@@ -106,8 +98,7 @@
 
     <div class="c-in">
       <div class="c-top">
-        <span class="glyph">L</span>
-        <span class="wm">Lawang<small>Tropical Properties</small></span>
+        <img class="logo" src="assets/brand/lawang-logo-v3.png" alt="Lawang">
       </div>
 
       <div class="c-mid">

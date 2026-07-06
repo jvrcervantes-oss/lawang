@@ -16,10 +16,8 @@
   /* ---------- App shell ---------- */
   .topbar{ position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
     display:flex; align-items:center; gap:12px; padding:14px 18px; padding-top:max(14px, env(safe-area-inset-top)); }
-  .topbar .glyph{ width:34px; height:34px; border:1.5px solid var(--tg); border-radius:50%;
-    display:grid; place-items:center; color:var(--tg); font-family:'Cormorant Garamond',serif; font-size:20px; font-weight:600; }
-  .topbar h1{ font-family:'Cormorant Garamond',serif; font-size:19px; letter-spacing:.16em; text-transform:uppercase; margin:0; color:var(--va); }
-  .topbar h1 small{ display:block; font-family:'Jost'; font-size:10px; letter-spacing:.28em; color:var(--muted); }
+  .topbar .brandlogo{ height:24px; width:auto; }
+  .topbar .tbtitle{ font-family:'Cormorant Garamond',serif; font-size:17px; letter-spacing:.12em; text-transform:uppercase; margin:0; color:var(--muted); font-weight:500; }
   .topbar .spacer{ flex:1; }
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:8px; padding:2px; }
   .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; padding:5px 9px; border-radius:6px; color:var(--muted); cursor:pointer; }
@@ -101,8 +99,8 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="glyph">L</div>
-    <h1>Contratos<small>LAWANG TROPICAL PROPERTIES</small></h1>
+    <img class="brandlogo" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
+    <h1 class="tbtitle">· Contratos</h1>
     <div class="spacer"></div>
     <div class="lang-toggle" id="langToggle"></div>
   </div>
