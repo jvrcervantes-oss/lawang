@@ -1,55 +1,46 @@
 <!-- PORTADA (partial) — el motor la inyecta al inicio de cualquier contrato.
-     Usa las variables de /contracts/assets/brand.css (con fallback). Clases
-     namespaced .lwcov* para no colisionar con el CSS de la plantilla.
-     Marcadores {{...}} los rellena app.html (incluye contrato_tipo/titulo). -->
+     Diseño según la referencia real del cliente (ContratoSumba.pdf):
+     fondo del color del tipo de contrato, moanito (tiki) tono-sobre-tono
+     anclado abajo, emblema botánico en la esquina, título abajo-izquierda
+     (fino + bold) + regla + proyecto en serif espaciada.
+     Color de fondo = var(--brand-deep) (app.html lo fija por tipo).
+     Assets en assets/brand/. Clases .lwcov* namespaced. Marcadores {{...}}. -->
 <style>
   .lwcov{ position:relative; width:210mm; height:297mm; margin:0 auto; overflow:hidden;
-    color:#fff; background:var(--brand-deep,#104C4F); page-break-after:always;
-    font-family:var(--font-body,'Jost',sans-serif); }
+    color:var(--brand-paper,#F5F0E6); background:var(--brand-deep,#42210B);
+    page-break-after:always; font-family:var(--font-body,'Jost',sans-serif); }
   .lwcov .g{ position:absolute; inset:0; }
   .lwcov .grad{ background:
-    radial-gradient(130% 80% at 50% 8%, color-mix(in srgb, var(--brand-primary,#485B37) 55%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, var(--brand-deep,#104C4F) 88%, white) 0%, var(--brand-deep,#104C4F) 46%, color-mix(in srgb, var(--brand-deep,#104C4F) 72%, black) 100%); }
-  .lwcov .curves{ mix-blend-mode:multiply; opacity:var(--curves-opacity,.12); }
-  .lwcov .curves path{ stroke:color-mix(in srgb, var(--brand-deep,#104C4F) 55%, black); }
-  .lwcov .mark{ position:absolute; left:50%; top:48%; transform:translate(-50%,-50%);
-    height:215mm; width:auto; opacity:var(--mark-opacity,.12); }
-  .lwcov .grain{ opacity:var(--grain-opacity,.14); filter:contrast(calc(1 + var(--grain-contrast,.55))); mix-blend-mode:overlay; }
-  .lwcov .in{ position:relative; height:100%; padding:26mm 22mm; display:flex; flex-direction:column;
-    align-items:center; text-align:center; }
-  .lwcov .top{ display:flex; align-items:center; gap:12px; }
-  .lwcov .logo{ height:30px; width:auto; }
-  .lwcov .mid{ margin:auto 0; }
-  .lwcov .eyebrow{ font-size:9pt; letter-spacing:.42em; text-transform:uppercase; opacity:.85; margin-bottom:18px; }
-  .lwcov h1{ font-family:var(--font-display,'Jost',sans-serif); font-weight:500; font-size:40pt; line-height:1.05; margin:0; letter-spacing:.01em; }
-  .lwcov .sub{ font-family:var(--font-serif,'Cormorant Garamond',serif); font-style:italic; font-size:15pt; opacity:.9; margin-top:14px; }
-  .lwcov .foot{ width:100%; font-size:8.5pt; letter-spacing:.16em; text-transform:uppercase; opacity:.8;
-    border-top:1px solid rgba(255,255,255,.28); padding-top:12px; display:flex; justify-content:space-between; }
+    radial-gradient(120% 85% at 50% 10%, color-mix(in srgb, var(--brand-primary,#8F9B7A) 20%, transparent), transparent 55%),
+    linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--brand-deep,#42210B) 60%, black) 100%); }
+  .lwcov .moai{ position:absolute; left:50%; bottom:-3%; transform:translateX(-50%);
+    height:74%; width:auto; opacity:.075; filter:brightness(0) invert(1); }
+  .lwcov .emblem{ position:absolute; top:15mm; right:18mm; width:19mm; opacity:.92; }
+  .lwcov .grain{ opacity:var(--grain-opacity,.12); filter:contrast(1.3); mix-blend-mode:overlay; }
+  .lwcov .num{ position:absolute; top:17mm; left:22mm; font-size:8pt; letter-spacing:.24em; text-transform:uppercase; opacity:.7; }
+  .lwcov .in{ position:absolute; left:0; right:0; bottom:26mm; padding:0 22mm; }
+  .lwcov .t1{ font-family:var(--font-display,'Jost',sans-serif); font-weight:300; font-size:29pt; line-height:1;
+    letter-spacing:.03em; text-transform:uppercase; }
+  .lwcov .t2{ font-family:var(--font-display,'Jost',sans-serif); font-weight:700; font-size:29pt; line-height:1.06;
+    letter-spacing:.01em; text-transform:uppercase; }
+  .lwcov .rule{ height:1px; width:100%; margin:15px 0; background:color-mix(in srgb, var(--brand-paper,#F5F0E6) 50%, transparent); }
+  .lwcov .sub{ font-family:var(--font-serif,'Cormorant Garamond',serif); font-size:14pt; letter-spacing:.3em;
+    text-transform:uppercase; opacity:.82; }
   @media print{ .lwcov{ margin:0; } }
 </style>
 <div class="lwcov">
   <div class="g grad"></div>
-  <svg class="g curves" viewBox="0 0 210 297" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke-width="1.1">
-      <path d="M-10,40 Q60,10 110,45 T230,50"/><path d="M-10,70 Q60,40 110,75 T230,80"/>
-      <path d="M-10,100 Q60,70 110,105 T230,110"/><path d="M-10,130 Q60,100 110,135 T230,140"/>
-      <path d="M-10,160 Q60,130 110,165 T230,170"/><path d="M-10,190 Q60,160 110,195 T230,200"/>
-      <path d="M-10,220 Q60,190 110,225 T230,230"/><path d="M-10,250 Q60,220 110,255 T230,260"/>
-    </g>
-  </svg>
-  <img class="mark" src="assets/brand/tiki-totem.png" alt="">
-
+  <img class="moai" src="assets/brand/tiki-totem.png" alt="">
+  <img class="emblem" src="assets/brand/emblem.png" alt="">
   <svg class="g grain" xmlns="http://www.w3.org/2000/svg">
     <filter id="lwgr"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
       <feColorMatrix type="saturate" values="0"/></filter>
     <rect width="100%" height="100%" filter="url(#lwgr)"/></svg>
+  <div class="num">{{contrato_num}}</div>
   <div class="in">
-    <div class="top"><img class="logo" src="assets/brand/lawang-logo-v3.png" alt="Lawang"></div>
-    <div class="mid">
-      <div class="eyebrow">{{contrato_tipo}} · {{contrato_num}}</div>
-      <h1>{{contrato_titulo}}</h1>
-      <div class="sub">{{proyecto_nombre}} · {{parcela_codigo}}</div>
-    </div>
-    <div class="foot"><span>{{vendedor_entidad}}</span><span>{{fecha_firma}}</span></div>
+    <div class="t1">{{cov_l1}}</div>
+    <div class="t2">{{cov_l2}}</div>
+    <div class="rule"></div>
+    <div class="sub">{{proyecto_nombre}}</div>
   </div>
 </div>

@@ -147,22 +147,18 @@
    Merge cliente = api/generar.php en producción.
    ============================================================ */
 const TEMPLATES = [
-  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html',
+  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
     name:{es:'Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'},
-    tipo:{es:'RESERVA DE PARCELA',en:'PLOT RESERVATION',id:'RESERVASI KAVLING'},
-    titulo:{es:'Contrato de Reserva de Parcela',en:'Plot Reservation Agreement',id:'Perjanjian Reservasi Kavling'}, ready:false },
-  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html',
+    l2:{es:'de Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'}, ready:false },
+  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
     name:{es:'Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'},
-    tipo:{es:'RESERVA DE PROYECTO',en:'PROJECT RESERVATION',id:'RESERVASI PROYEK'},
-    titulo:{es:'Contrato de Reserva de Proyecto',en:'Project Reservation Agreement',id:'Perjanjian Reservasi Proyek'}, ready:true },
-  { slug:'dali_construccion', file:'templates/dali_construccion.html',
+    l2:{es:'de Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'}, ready:true },
+  { slug:'dali_construccion', file:'templates/dali_construccion.html', cover:'#42210B',
     name:{es:'Construcción',en:'Construction',id:'Konstruksi'},
-    tipo:{es:'CONSTRUCCIÓN',en:'CONSTRUCTION',id:'KONSTRUKSI'},
-    titulo:{es:'Contrato de Construcción',en:'Construction Agreement',id:'Perjanjian Konstruksi'}, ready:true },
-  { slug:'marco_legal',      file:'templates/marco_legal.html',
+    l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
+  { slug:'marco_legal',      file:'templates/marco_legal.html', cover:'#2E3437',
     name:{es:'Marco legal / T&C',en:'Legal framework / T&C',id:'Kerangka hukum'},
-    tipo:{es:'MARCO LEGAL',en:'LEGAL FRAMEWORK',id:'KERANGKA HUKUM'},
-    titulo:{es:'Términos y Condiciones',en:'Terms & Conditions',id:'Syarat & Ketentuan'}, ready:false },
+    l2:{es:'Términos y Condiciones',en:'Terms & Conditions',id:'Syarat & Ketentuan'}, ready:false },
 ];
 const TIERS = {
   siempre:      {es:'Datos de la operación',en:'Operation data',id:'Data operasi'},
@@ -326,11 +322,12 @@ function updateProgress(){
 function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function injectBrandAndCover(html, data){
-  const covData = { ...data, contrato_tipo:L(CURRENT.tipo), contrato_titulo:L(CURRENT.titulo) };
+  const l1 = {es:'Contrato',en:'Contract',id:'Perjanjian'}[LANG] || 'Contrato';
+  const covData = { ...data, cov_l1:l1, cov_l2:L(CURRENT.l2) };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
   const head = `<link rel="stylesheet" href="assets/brand.css">`
-    + `<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">`
-    + `<style>[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
+    + `<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
+    + `<style>:root{--brand-deep:${CURRENT.cover||'#104C4F'}}[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
   else html = '<head>'+head+'</head>'+html;
   if(/<body[^>]*>/.test(html)) html = html.replace(/<body([^>]*)>/, `<body$1>${cov}`);
@@ -368,7 +365,7 @@ function ensureCoverage(html){
 /* ---------- selector de plantilla ---------- */
 async function loadTemplate(slug){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
-  $('#tplName').textContent = L(CURRENT.titulo);
+  $('#tplName').textContent = L(CURRENT.name);
   $('#tplDesc').textContent = CURRENT.ready
     ? {es:'Plantilla lista',en:'Ready',id:'Siap'}[LANG]
     : {es:'Estructura lista · texto legal pendiente',en:'Structure ready · legal text pending',id:'Struktur siap · teks hukum menyusul'}[LANG];
@@ -385,7 +382,7 @@ function buildLangToggle(){
   const box=$('#langToggle');
   box.innerHTML = LANGS.map(([code,lbl])=>`<button data-l="${code}" class="${code===LANG?'on':''}">${lbl}</button>`).join('');
   box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ LANG=b.dataset.l;
-    $('#tplName').textContent=L(CURRENT.titulo);
+    $('#tplName').textContent=L(CURRENT.name);
     buildPicker(); applyLang(); }));
 }
 
