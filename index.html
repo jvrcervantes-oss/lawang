@@ -122,14 +122,10 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 .frame.active{opacity:1;z-index:1}
 .frame.behind{opacity:1;z-index:2}
 
-video{
-  position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;opacity:0;z-index:3;
-  pointer-events:none;
-  transition:opacity 0.4s ease;
-}
-video.active{opacity:1}
-video.ending{opacity:0;transition:opacity 0.65s ease}
+/* [ELIMINADO 6-jul] Regla global legacy `video{opacity:0}` del cinemático retirado:
+   ocultaba TODOS los <video> salvo .active (clase que ya no usa nadie) → dejaba el
+   vídeo del hero reproduciéndose pero invisible. Cada <video> actual lleva su estilo
+   propio (.hero-layer.l-vid y .lw-pf-video). */
 
 #overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,8,8,0.18) 0%,rgba(8,8,8,0) 30%,rgba(8,8,8,0) 42%,rgba(8,8,8,0.68) 100%);z-index:4;pointer-events:none}
 #scene-scrim{position:absolute;bottom:0;left:0;right:0;height:58vh;background:linear-gradient(to bottom,transparent 0%,rgba(6,6,6,0.65) 100%);z-index:5;pointer-events:none}
@@ -364,7 +360,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
   background-image:url('assets/img/hero-poster.jpg')}
-.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;background:#0A0C09}
+.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:1;background:#0A0C09}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 /* Capa negra de abajo hacia arriba — legibilidad del titular + tagline */
