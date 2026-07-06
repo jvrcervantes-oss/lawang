@@ -1011,8 +1011,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-ts-inner { position:relative; z-index:1; display:flex; flex-direction:column;
   justify-content:flex-start; min-height:min(86vh,800px); }
 .lw-ts-head { text-align:center; margin-top:clamp(2rem,17vh,190px); }
-.lw-ts-head .lw-kicker { color:#EEF3E7; font-size:var(--fs-caption); letter-spacing:.42em; }
-.lw-ts-head .lw-kicker::before { display:none; }
+/* Mismo tamaño/fuente/tracking que el resto de eyebrows (base .lw-kicker); solo cambia el color */
+.lw-ts-head .lw-kicker { color:#EEF3E7; }
+.lw-ts-head .lw-kicker::before,
+.lw-wa-head .lw-kicker::before,
+.lw-featured-block .lw-kicker::before { display:none; }
 .lw-ts-title { font-family:var(--csa); font-weight:400; text-transform:uppercase; white-space:nowrap;
   font-size:var(--fs-heading-xl); line-height:1.02; letter-spacing:.04em; margin:.55rem 0 0; }
 .lw-ts-title .tl-a { font-weight:700; }
@@ -1045,7 +1048,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-whoweare .lw-kicker { color:var(--ca); }
 .lw-wa-head { text-align:center; }
 .lw-wa-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(1.4rem,3vw,3rem);
-  margin-top:clamp(28px,5vh,54px); }
+  margin-top:clamp(34px,6vh,64px); }
 .lw-wa-stat { display:flex; flex-direction:column; align-items:center; text-align:center;
   border-left:1px solid rgba(46,52,55,.14); padding:0 clamp(10px,1.6vw,26px); }
 .lw-wa-stat:first-child { border-left:0; }
@@ -1055,9 +1058,12 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   text-transform:uppercase; color:var(--ci); margin-top:8px; }
 .lw-wa-s { font-family:var(--csa); font-weight:400; font-size:var(--fs-caption); letter-spacing:.16em;
   text-transform:uppercase; color:rgba(46,52,55,.55); margin-top:5px; }
-.lw-wa-banner { position:relative; margin-top:clamp(34px,6vh,64px); border-radius:16px; overflow:hidden;
+.lw-wa-banner { position:relative; margin-top:clamp(28px,5vh,54px); border-radius:16px; overflow:hidden;
   min-height:clamp(200px,32vh,300px); display:flex; align-items:center; }
 .lw-wa-banner-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+/* Filete blanco inset, igual que .lw-pf-top y las cards */
+.lw-wa-banner::after { content:""; position:absolute; inset:10px; border:1px solid rgba(245,240,230,.34);
+  border-radius:10px; pointer-events:none; z-index:3; }
 .lw-wa-banner::before { content:""; position:absolute; inset:0; z-index:1;
   background:linear-gradient(90deg, rgba(10,14,8,.72) 0%, rgba(10,14,8,.42) 46%, rgba(10,14,8,.12) 100%); }
 .lw-wa-banner-inner { position:relative; z-index:2; padding:clamp(24px,4vw,54px); color:var(--cb); }
@@ -1617,13 +1623,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
     <div class="lw-wa-head reveal">
       <span class="lw-kicker">Who We Are</span>
     </div>
-    <div class="lw-wa-stats reveal" style="transition-delay:80ms">
-      <div class="lw-wa-stat"><span class="lw-wa-n">500K<sup>+</sup></span><span class="lw-wa-l">SQM Land</span><span class="lw-wa-s">Chosen by hand</span></div>
-      <div class="lw-wa-stat"><span class="lw-wa-n">6<sup>+</sup></span><span class="lw-wa-l">Years</span><span class="lw-wa-s">Building wisdom</span></div>
-      <div class="lw-wa-stat"><span class="lw-wa-n">100<sup>+</sup></span><span class="lw-wa-l">Investors</span><span class="lw-wa-s">Who chose to stay</span></div>
-      <div class="lw-wa-stat"><span class="lw-wa-n">30<sup>+</sup></span><span class="lw-wa-l">Projects</span><span class="lw-wa-s">Built to last</span></div>
-    </div>
-    <div class="lw-wa-banner reveal" style="transition-delay:140ms">
+    <div class="lw-wa-banner reveal" style="transition-delay:80ms">
       <img class="lw-wa-banner-img" src="assets/img/aerial-1.jpg" alt="Aerial view of a Lawang villa community" loading="lazy">
       <div class="lw-wa-banner-inner">
         <span class="lw-wa-banner-kick">One word defines us</span>
@@ -1631,36 +1631,18 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
       </div>
       <a class="lw-wa-banner-cta" href="portfolio.html">Explore Tropical Territories <span class="arr">→</span></a>
     </div>
+    <div class="lw-wa-stats reveal" style="transition-delay:140ms">
+      <div class="lw-wa-stat"><span class="lw-wa-n">500K<sup>+</sup></span><span class="lw-wa-l">SQM Land</span><span class="lw-wa-s">Chosen by hand</span></div>
+      <div class="lw-wa-stat"><span class="lw-wa-n">6<sup>+</sup></span><span class="lw-wa-l">Years</span><span class="lw-wa-s">Building wisdom</span></div>
+      <div class="lw-wa-stat"><span class="lw-wa-n">100<sup>+</sup></span><span class="lw-wa-l">Investors</span><span class="lw-wa-s">Who chose to stay</span></div>
+      <div class="lw-wa-stat"><span class="lw-wa-n">30<sup>+</sup></span><span class="lw-wa-l">Projects</span><span class="lw-wa-s">Built to last</span></div>
+    </div>
   </div>
 </section>
 
-<!-- ════ 5a · STRATEGIC PARTNER (tarjeta) ════ -->
+<!-- ════ 5a · THE SOUL → Why Here (Strategic Partner retirado 6-jul: duplicaba las cifras de #whoweare) ════ -->
 <section class="lw-services" id="services">
-  <div class="cs-wrap">
-    <div class="lw-strat-card reveal">
-      <div class="lw-strat-cardbg" aria-hidden="true"></div>
-      <div class="lw-strat-cardinner">
-        <div class="lw-strat-left">
-          <h2 class="lw-bt lw-strat-title">
-            <span class="bt-1">The</span>
-            <span class="bt-2">Strategic Partner</span>
-            <span class="bt-3">for territorial assets</span>
-          </h2>
-          <div class="lw-strat-stats">
-            <div class="lw-sstat"><span class="lw-sstat-n">500K<sup>+</sup></span><span class="lw-sstat-l">SQM Land</span></div>
-            <div class="lw-sstat"><span class="lw-sstat-n">30<sup>+</sup></span><span class="lw-sstat-l">Projects</span></div>
-            <div class="lw-sstat"><span class="lw-sstat-n">6<sup>+</sup></span><span class="lw-sstat-l">Years</span></div>
-          </div>
-        </div>
-        <div class="lw-strat-right">
-          <span class="lw-pill-c">Long-term Vision</span>
-          <span class="lw-pill-c">Financial Discipline</span>
-          <span class="lw-pill-c">Territorial Opportunities</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Why Here → Bali & Sumba (mismo scroll que Strategic Partner) -->
+  <!-- Why Here → Bali & Sumba -->
   <div class="lw-why-body" id="why">
     <img class="lw-why-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
     <div class="cs-wrap">
