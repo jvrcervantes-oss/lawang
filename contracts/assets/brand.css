@@ -1,0 +1,43 @@
+/* ================================================================
+   LAWANG · VARIABLES DE MARCA  (design tokens de los contratos)
+   ----------------------------------------------------------------
+   FUENTE ÚNICA. Cambia SOLO aquí y se reskin-ea toda la familia de
+   contratos (portada + las 4 plantillas). Es lo que el cliente pidió:
+   "las paletas cromáticas y logos quiero que sean cambiables".
+   ================================================================ */
+:root{
+  /* — Paleta oficial (Brand Identity Guide) — */
+  --tg:#485B37;  /* Territorial Green */
+  --dl:#104C4F;  /* Deep Lagoon */
+  --be:#42210B;  /* Burnt Earth */
+  --sc:#8F9B7A;  /* Soft Canopy */
+  --va:#2E3437;  /* Volcanic Ash (texto) */
+  --ss:#BEB3A5;  /* Stone Sand */
+  --rl:#F5F0E6;  /* Raw Linen (papel) */
+  --ink:#2E3437; --muted:#6b6c66;
+
+  /* — Roles semánticos: usa ESTOS en las plantillas, no los de arriba.
+       Para cambiar de paleta, repunta estos 4 a otros hex y listo. — */
+  --brand-primary: var(--tg);
+  --brand-deep:    var(--dl);
+  --brand-accent:  var(--be);
+  --brand-paper:   var(--rl);
+
+  /* — Tipografía —
+     Neue Kabel (licenciada) llega después: al añadir su @font-face,
+     cambia --font-display a 'Neue Kabel'. Jost es el sustituto
+     geométrico (Kabel es geométrica, Jost es su proxy más cercano). */
+  --font-display: 'Jost', sans-serif;
+  --font-serif:   'Cormorant Garamond', serif;
+  --font-body:    'Jost', sans-serif;
+
+  /* — Emblema / moanito (slot intercambiable) —
+     Cuando llegue el vector: --brand-mark:url(brand/moanito.svg); */
+  --brand-mark: none;
+
+  /* — Portada · perillas de textura (calíbralas al ver el render) — */
+  --grain-opacity: .14;   /* "intensidad 14" del brief (0–1) */
+  --grain-contrast: .55;  /* "contraste 55" del brief (0–1) */
+  --curves-opacity: .12;  /* líneas curvas en multiply */
+  --mark-opacity: .10;    /* moanito de fondo, baja opacidad */
+}
