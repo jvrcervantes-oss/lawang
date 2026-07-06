@@ -16,3 +16,6 @@ assets/_archive/
 
 # Referencias del cliente (PNGs enormes del diseño) — solo local
 assets/guide/
+
+# descargas incompletas
+*.crdownload
