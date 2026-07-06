@@ -364,8 +364,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
   background-image:url('assets/img/hero-poster.jpg')}
-.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover}
-.hero-layer.l-vid:empty{display:none}
+.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;background:#0A0C09}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 /* Capa negra de abajo hacia arriba — legibilidad del titular + tagline */
@@ -380,7 +379,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-h .hh-iso{height:clamp(34px,7vw,80px);width:auto;margin:0 .22em;vertical-align:middle;
   filter:drop-shadow(0 3px 22px rgba(0,0,0,.5))}
 /* Subtítulo + CTA agrupados bajo el título (izquierda) */
-.hero-foot{position:static;display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;
+.hero-foot{position:static;display:flex;flex-direction:row;align-items:center;justify-content:space-between;
   gap:clamp(1.5rem,4vw,3.5rem);padding:0;width:100%}
 .hero-sub{margin:0;max-width:none;color:var(--ivory);line-height:1.34;text-shadow:0 2px 14px rgba(0,0,0,.7)}
 .hero-sub b{display:block;font-weight:700;font-size:clamp(18px,1.95vw,25px)}          /* Neue Kabel Bold · 25pt */
@@ -664,8 +663,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div class="hero-scrim"></div>
   <div class="hero-inner">
     <h1 class="hero-h">
-      <span class="hh-l1"><span class="hh-thin">Turn</span> <span class="hh-bold">Capital</span><img class="hh-iso" src="assets/img/lawang-14.png" alt=""></span>
-      <span class="hh-l2"><span class="hh-thin">Into</span> <span class="hh-bold">Legacy</span></span>
+      <span class="hh-l1"><span class="hh-thin">Turn</span> <span class="hh-bold">Capital</span></span>
+      <span class="hh-l2"><img class="hh-iso" src="assets/img/lawang-14.png" alt=""><span class="hh-thin">Into</span> <span class="hh-bold">Legacy</span></span>
     </h1>
     <div class="hero-foot">
       <p class="hero-sub"><b>We help international investors build lasting wealth in Indonesia.</b><span class="hero-sub-2">through strategy, structure, and presence on the ground.</span></p>
@@ -675,15 +674,19 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </section>
 
 <script>
-// Autoplay robusto del vídeo del hero (algunos navegadores no arrancan solo con el atributo)
+// Autoplay robusto del vídeo del hero: intenta arrancar en carga y, si el navegador
+// bloquea el autoplay, lo arranca al primer gesto del usuario (red de seguridad).
 (function(){
   var v = document.querySelector('.hero-layer.l-vid');
   if(!v) return;
-  v.muted = true; v.playsInline = true;
-  var kick = function(){ var p = v.play(); if(p && p.catch) p.catch(function(){}); };
+  v.muted = true; v.playsInline = true; v.setAttribute('muted','');
+  var kick = function(){ try { var p = v.play(); if(p && p.catch) p.catch(function(){}); } catch(e){} };
+  ['loadeddata','canplay','loadedmetadata'].forEach(function(ev){ v.addEventListener(ev, kick, { once:true }); });
+  if (v.readyState >= 2) kick(); else v.load();
   kick();
-  v.addEventListener('loadeddata', kick, { once:true });
-  v.addEventListener('canplay', kick, { once:true });
+  var gestures = ['pointerdown','touchstart','keydown','scroll','wheel'];
+  var onGesture = function(){ kick(); if(!v.paused){ gestures.forEach(function(g){ window.removeEventListener(g, onGesture, true); }); } };
+  gestures.forEach(function(g){ window.addEventListener(g, onGesture, { capture:true, passive:true }); });
 })();
 </script>
 
@@ -889,6 +892,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   const wrap = grid.closest('.lw-pf-carousel') || grid;
   wrap.addEventListener('mouseenter', () => clearInterval(timer));
   wrap.addEventListener('mouseleave', restart);
+}());
+
+// ── Carrusel de Featured Projects ──
+(function(){
+  const track = document.getElementById('lwFeatTrack');
+  if(!track) return;
+  const car = track.closest('.lw-feat-carousel');
+  const prev = car && car.querySelector('.lw-feat-arrow.prev');
+  const next = car && car.querySelector('.lw-feat-arrow.next');
+  const atEnd   = () => track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+  const atStart = () => track.scrollLeft <= 4;
+  const go = (dir) => {
+    if(dir > 0 && atEnd())        track.scrollTo({ left:0, behavior:'smooth' });
+    else if(dir < 0 && atStart()) track.scrollTo({ left:track.scrollWidth, behavior:'smooth' });
+    else                          track.scrollBy({ left:dir*track.clientWidth, behavior:'smooth' });
+  };
+  prev && prev.addEventListener('click', () => go(-1));
+  next && next.addEventListener('click', () => go(1));
 }());
 
 }); // end DOMContentLoaded
@@ -1370,11 +1391,12 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-epicindonesia.jpg') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
-.lw-epic-totem { position:absolute; top:50%; left:50%; transform:translate(-50%,-54%); z-index:1;
-  height:min(60vh,600px); width:auto; opacity:.10; pointer-events:none; }
+.lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:1;
+  height:min(50vh,500px); width:auto; opacity:.16; pointer-events:none;
+  filter:brightness(0) invert(1); }  /* tiki en blanco */
 .lw-epic-inner { position:relative; z-index:2; width:100%; display:flex; flex-direction:column;
   justify-content:space-between; min-height:min(92vh,940px); padding-bottom:clamp(2.2rem,5vh,4rem); }
-.lw-epic-top { text-align:center; margin-top:clamp(6rem,20vh,13rem); }
+.lw-epic-top { text-align:center; margin-top:clamp(9rem,36vh,22rem); }
 .lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
   font-size:var(--fs-display-l); line-height:1; color:#fff; margin:0; text-shadow:0 3px 30px rgba(0,0,0,.5); }
 .lw-epic-sub { font-family:var(--csa); font-weight:300; text-transform:uppercase; letter-spacing:.16em;
@@ -1414,9 +1436,26 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-feat-invest-l { font-family:var(--csa); font-size:var(--fs-caption); font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
 .lw-feat-invest-amt { font-family:'Seasons TS',var(--cse); font-weight:400; font-size:var(--fs-heading-m); line-height:1; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.5); }
 .lw-feat-card { text-align:center; display:flex; flex-direction:column; align-items:center; }
-.lw-feat-card-ico { display:block; width:66px; height:52px; background-color:var(--ca);
-  -webkit-mask:url('assets/img/cream-land.png') center/contain no-repeat;
-          mask:url('assets/img/cream-land.png') center/contain no-repeat; margin-bottom:18px; }
+.lw-feat-card-ico { display:block; width:66px; height:52px; background-color:var(--ca); margin-bottom:18px;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
+  -webkit-mask-size:contain; mask-size:contain; }
+.lw-feat-card-ico.ico-land { -webkit-mask-image:url('assets/img/cream-land.png'); mask-image:url('assets/img/cream-land.png'); }
+.lw-feat-card-ico.ico-signature { -webkit-mask-image:url('assets/img/cream-signature.png'); mask-image:url('assets/img/cream-signature.png'); }
+.lw-feat-card-ico.ico-resorts { -webkit-mask-image:url('assets/img/cream-resorts.png'); mask-image:url('assets/img/cream-resorts.png'); }
+/* Carrusel de proyectos destacados */
+.lw-feat-carousel { position:relative; }
+.lw-feat-track { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.lw-feat-track::-webkit-scrollbar { display:none; }
+.lw-feat-track > .lw-feat-grid { flex:0 0 100%; scroll-snap-align:start; }
+.lw-feat-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:5; width:56px; height:56px;
+  border-radius:999px; display:grid; place-items:center; cursor:none; border:1px solid rgba(72,91,55,.22);
+  background:rgba(245,240,230,.94); color:#485B37; font-family:var(--csa); font-size:22px; font-weight:700; line-height:1;
+  box-shadow:0 18px 40px -18px rgba(32,24,15,.4); transition:background .25s,color .25s; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.lw-feat-arrow:hover { background:var(--ca); color:var(--cb); }
+.lw-feat-arrow.prev { left:-6px; }
+.lw-feat-arrow.next { right:-6px; }
+@media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
 .lw-feat-card-name { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
   font-size:var(--fs-display-l); line-height:1; color:var(--ci); margin:0; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.22em;
@@ -1723,31 +1762,57 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 <section class="lw-contact" id="contact">
   <!-- Featured project (fondo lino) -->
   <div class="lw-featured-block">
-    <div class="lw-feat-grid">
-      <div class="lw-feat-media lw-feat-outline reveal">
-        <img src="assets/img/line-signature.jpg" alt="Palm Field — Balian, Bali">
-        <div class="lw-feat-invest">
-          <span class="lw-feat-invest-l">Investment from</span>
-          <span class="lw-feat-invest-amt">From €95,000.</span>
+    <div class="lw-feat-carousel reveal">
+      <button class="lw-feat-arrow prev" type="button" aria-label="Previous project">❮</button>
+      <div class="lw-feat-track" id="lwFeatTrack">
+
+        <div class="lw-feat-grid">
+          <div class="lw-feat-media lw-feat-outline">
+            <img src="assets/img/line-signature.jpg" alt="Palm Field — Balian, Bali" loading="lazy">
+            <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €95,000.</span></div>
+          </div>
+          <div class="lw-feat-card">
+            <span class="lw-feat-card-ico ico-land" aria-hidden="true"></span>
+            <h2 class="lw-feat-card-name">Palm Field</h2>
+            <span class="lw-feat-card-loc">Balian · Bali · Indonesia</span>
+            <div class="lw-feat-card-specs"><span>700 meters from the ocean</span><span>2 min to the beach</span></div>
+            <div class="lw-feat-card-specs alt"><span>Private tropical villas</span><span>Land included from 250 m²</span></div>
+            <div class="lw-feat-card-btns"><a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a><a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a></div>
+          </div>
         </div>
+
+        <div class="lw-feat-grid">
+          <div class="lw-feat-media lw-feat-outline">
+            <img src="assets/img/CardSignatures.jpg" alt="Ridge House — Tabanan, Bali" loading="lazy">
+            <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €290,000.</span></div>
+          </div>
+          <div class="lw-feat-card">
+            <span class="lw-feat-card-ico ico-signature" aria-hidden="true"></span>
+            <h2 class="lw-feat-card-name">Ridge House</h2>
+            <span class="lw-feat-card-loc">Tabanan · Bali · Indonesia</span>
+            <div class="lw-feat-card-specs"><span>Cantilevered over the river valley</span><span>Jungle &amp; ricefield views</span></div>
+            <div class="lw-feat-card-specs alt"><span>Three-bed signature villa</span><span>Land included from 600 m²</span></div>
+            <div class="lw-feat-card-btns"><a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a><a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a></div>
+          </div>
+        </div>
+
+        <div class="lw-feat-grid">
+          <div class="lw-feat-media lw-feat-outline">
+            <img src="assets/img/CardResorts.jpg" alt="Bay House — Sumba" loading="lazy">
+            <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €420,000.</span></div>
+          </div>
+          <div class="lw-feat-card">
+            <span class="lw-feat-card-ico ico-resorts" aria-hidden="true"></span>
+            <h2 class="lw-feat-card-name">Bay House</h2>
+            <span class="lw-feat-card-loc">Sumba · Indonesia</span>
+            <div class="lw-feat-card-specs"><span>Beachfront on the empty south coast</span><span>2 min to the sand</span></div>
+            <div class="lw-feat-card-specs alt"><span>Four-bed beachfront villa</span><span>Land included from 1,100 m²</span></div>
+            <div class="lw-feat-card-btns"><a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a><a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a></div>
+          </div>
+        </div>
+
       </div>
-      <div class="lw-feat-card reveal" style="transition-delay:120ms">
-        <span class="lw-feat-card-ico" aria-hidden="true"></span>
-        <h2 class="lw-feat-card-name">Palm Field</h2>
-        <span class="lw-feat-card-loc">Balian · Bali · Indonesia</span>
-        <div class="lw-feat-card-specs">
-          <span>700 meters from the ocean</span>
-          <span>2 min to the beach</span>
-        </div>
-        <div class="lw-feat-card-specs alt">
-          <span>Private tropical villas</span>
-          <span>Land included from 250 m²</span>
-        </div>
-        <div class="lw-feat-card-btns">
-          <a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a>
-          <a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a>
-        </div>
-      </div>
+      <button class="lw-feat-arrow next" type="button" aria-label="Next project">❯</button>
     </div>
   </div>
   <img class="lw-ct-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
