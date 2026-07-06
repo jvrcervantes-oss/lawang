@@ -359,6 +359,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
   background-image:url('assets/img/header-web-2.jpg')}
+.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover}
+.hero-layer.l-vid:empty{display:none}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 /* Capa negra de abajo hacia arriba — legibilidad del titular + tagline */
@@ -624,17 +626,16 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div id="nav-actions">
     <div class="nav-lang-wrap" id="langWrap">
       <button class="nav-lang" id="langBtn" type="button" aria-haspopup="listbox" aria-expanded="false">
-        <span class="lang-flag" id="langFlag"><svg class="flag" viewBox="0 0 60 36" aria-hidden="true"><rect width="60" height="36" fill="#012169"/><path d="M0,0 60,36 M60,0 0,36" stroke="#fff" stroke-width="7.2"/><path d="M0,0 60,36 M60,0 0,36" stroke="#C8102E" stroke-width="4"/><path d="M30,0 V36 M0,18 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V36 M0,18 H60" stroke="#C8102E" stroke-width="7.2"/></svg></span>
         <span id="langCurrent">English</span>
         <span class="caret">▾</span>
       </button>
       <ul class="lang-menu" id="langMenu" role="listbox" aria-label="Language">
-        <li role="option" data-lang="en" class="active"><span class="lang-opt"><svg class="flag" viewBox="0 0 60 36" aria-hidden="true"><rect width="60" height="36" fill="#012169"/><path d="M0,0 60,36 M60,0 0,36" stroke="#fff" stroke-width="7.2"/><path d="M0,0 60,36 M60,0 0,36" stroke="#C8102E" stroke-width="4"/><path d="M30,0 V36 M0,18 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V36 M0,18 H60" stroke="#C8102E" stroke-width="7.2"/></svg>English</span></li>
-        <li role="option" data-lang="es"><span class="lang-opt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#c60b1e"/><rect y=".5" width="3" height="1" fill="#ffc400"/></svg>Español</span></li>
-        <li role="option" data-lang="id"><span class="lang-opt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#fff"/><rect width="3" height="1" fill="#ce1126"/></svg>Bahasa</span></li>
+        <li role="option" data-lang="en" class="active"><span class="lang-opt">English</span></li>
+        <li role="option" data-lang="es"><span class="lang-opt">Español</span></li>
+        <li role="option" data-lang="id"><span class="lang-opt">Bahasa</span></li>
       </ul>
     </div>
-    <a class="nav-cta" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp"><span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span> Let's Talk</a>
+    <a class="nav-cta" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp"><span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span> Ask Us Anything</a>
   </div>
 </header>
 
@@ -643,7 +644,11 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 <!-- ════════ HERO (panel 1 — estilo referencia 1.jpeg) ════════ -->
 <section class="hero-panel" id="home">
+  <!-- Hero media. Ahora se ve la imagen placeholder (.l-bg). Cuando llegue el vídeo del cliente:
+       añadir dentro del <video> → <source src="assets/video/hero.mp4?v=1" type="video/mp4">
+       y .l-vid dejará de estar :empty, mostrándose sobre la imagen. -->
   <div class="hero-layer l-bg"></div>
+  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="metadata" poster="assets/img/header-web-2.jpg"></video>
   <div class="hero-mist"></div>
   <div class="hero-scrim"></div>
   <div class="hero-inner">
@@ -964,16 +969,21 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 @media(min-width:760px){ .lw-pf-title2 { white-space:nowrap; } }
 .lw-pf-title2 b { font-weight:600; }
 .lw-pf-title2 .thin { font-weight:500; font-size:.72em; letter-spacing:.02em; }
-/* "Places you choose" sin itálica (scope portfolio; NO afecta a Strategic Partner) */
-.lw-pf-statement.lw-bt .bt-2 { font-style:normal; }
+/* Banner statement "We don't list properties / We select them" (thin + bold) */
+.lw-pf-statement.lw-select { display:flex; flex-direction:column; gap:.06em; font-family:var(--csa);
+  text-transform:uppercase; line-height:1.02; letter-spacing:.01em; }
+.lw-pf-statement.lw-select .ln-thin { font-weight:300; }
+.lw-pf-statement.lw-select .ln-bold { font-weight:700; }
 /* Ubicación de la card del slider con más grosor (solo home) */
 .lw-portfolio .lw-prop-loc { font-weight:800; }
 /* Fila título + botón "View all developments" */
 .lw-pf-title2-row { display:flex; align-items:baseline; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; margin:clamp(30px,4.5vh,56px) 0 0; }
 .lw-pf-title2-row .lw-pf-title2 { margin:0; }
-.lw-pf-viewall { font-family:var(--csa); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--ca); text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:1px; white-space:nowrap; cursor:none; transition:color .2s; }
-.lw-pf-viewall:hover { color:var(--cal); }
+/* Botón pill estilo "See all projects" (burnt earth, ref PDF) */
+.lw-pf-viewall { display:inline-flex; align-items:center; gap:.5em; font-family:var(--csa); font-size:11px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--cb); background:var(--be); text-decoration:none;
+  padding:12px 22px; border-radius:999px; white-space:nowrap; cursor:none; transition:background .2s,transform .2s; }
+.lw-pf-viewall:hover { background:#5c3110; transform:translateY(-1px); }
 .lw-pf-viewall .arr { display:inline-block; transition:transform .25s; }
 .lw-pf-viewall:hover .arr { transform:translateX(4px); }
 
@@ -995,32 +1005,26 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
     linear-gradient(to top, rgba(8,12,7,.88) 0%, rgba(8,12,7,.55) 16%, rgba(8,12,7,0) 40%); }
 .lw-ts-inner { position:relative; z-index:1; display:flex; flex-direction:column;
   justify-content:flex-start; min-height:min(86vh,800px); }
-.lw-ts-head { text-align:center; margin-top:clamp(2.5rem,24vh,270px); }
-.lw-ts-head .lw-kicker { color:#EEF3E7; font-size:var(--fs-caption); letter-spacing:.42em;
-  text-shadow:0 2px 14px rgba(0,0,0,.85), 0 1px 3px rgba(0,0,0,.9); }
+.lw-ts-head { text-align:center; margin-top:clamp(2rem,17vh,190px); }
+.lw-ts-head .lw-kicker { color:#EEF3E7; font-size:var(--fs-caption); letter-spacing:.42em; }
 .lw-ts-head .lw-kicker::before { display:none; }
 .lw-ts-title { font-family:var(--csa); font-weight:400; text-transform:uppercase; white-space:nowrap;
-  font-size:var(--fs-heading-xl); line-height:1.02; letter-spacing:.04em; margin:.55rem 0 0;
-  text-shadow:0 3px 28px rgba(0,0,0,.9), 0 2px 8px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.8); }
+  font-size:var(--fs-heading-xl); line-height:1.02; letter-spacing:.04em; margin:.55rem 0 0; }
 .lw-ts-title .tl-a { font-weight:700; }
 .lw-ts-title .tl-b { font-weight:300; }
 .lw-ts-sub { font-family:var(--csa); font-weight:300; font-size:var(--fs-body-l); letter-spacing:.14em;
-  text-transform:uppercase; color:rgba(238,243,231,.82); margin:.7rem 0 0;
-  text-shadow:0 2px 12px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,.9); }
+  text-transform:uppercase; color:rgba(238,243,231,.82); margin:.7rem 0 0; }
 .lw-ts-cols { display:grid; grid-template-columns:repeat(4,1fr); margin-top:auto;
   padding-bottom:clamp(.5rem,2vh,1.5rem); }
 .lw-ts-col { padding:0 clamp(14px,1.8vw,30px); border-left:1px solid rgba(245,240,230,.32); }
 .lw-ts-col:first-child { border-left:0; padding-left:0; }
-.lw-ts-ico { display:block; height:40px; width:auto; margin-bottom:16px;
-  filter:drop-shadow(0 2px 8px rgba(0,0,0,.9)); }
+.lw-ts-ico { display:block; height:40px; width:auto; margin-bottom:16px; }
 .lw-ts-ico svg { width:100%; height:100%; display:block; }
 .lw-ts-h { font-family:'Neue Kabel','Jost',sans-serif; font-weight:400; text-transform:uppercase;
-  font-size:var(--fs-heading-s); letter-spacing:.13em; margin:0 0 10px; color:#fff;
-  text-shadow:0 2px 12px rgba(0,0,0,.95), 0 1px 3px rgba(0,0,0,.9); }
+  font-size:var(--fs-heading-s); letter-spacing:.13em; margin:0 0 10px; color:#fff; }
 .lw-ts-h b { font-weight:700; }
 .lw-ts-p { font-family:'Neue Kabel','Jost',sans-serif; font-weight:400; font-size:var(--fs-body-l);
-  line-height:1.5; letter-spacing:.03em; color:rgba(248,244,236,.96); margin:0; max-width:24ch;
-  text-shadow:0 2px 10px rgba(0,0,0,.95), 0 1px 3px rgba(0,0,0,.9); }
+  line-height:1.5; letter-spacing:.03em; color:rgba(248,244,236,.96); margin:0; max-width:24ch; }
 @media(max-width:780px){
   .lw-ts-title { white-space:normal; }
   .lw-ts-cols { grid-template-columns:1fr 1fr; gap:28px 0; }
@@ -1031,6 +1035,46 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   .lw-ts-col { border-left:0; padding-left:0; border-top:1px solid rgba(245,240,230,.20); padding-top:18px; }
   .lw-ts-col:first-child { border-top:0; padding-top:0; }
 }
+/* ════ WHO WE ARE + CIFRAS (fondo blanco, ref PDF pág.5 sin banda central) ════ */
+#content-sections > section.lw-whoweare { background:#fff; justify-content:center; }
+.lw-whoweare .lw-kicker { color:var(--ca); }
+.lw-wa-head { text-align:center; }
+.lw-wa-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(1.4rem,3vw,3rem);
+  margin-top:clamp(28px,5vh,54px); }
+.lw-wa-stat { display:flex; flex-direction:column; align-items:center; text-align:center;
+  border-left:1px solid rgba(46,52,55,.14); padding:0 clamp(10px,1.6vw,26px); }
+.lw-wa-stat:first-child { border-left:0; }
+.lw-wa-n { font-family:var(--csa); font-weight:700; font-size:var(--fs-heading-l); line-height:1; color:var(--ci); }
+.lw-wa-n sup { font-size:.42em; font-weight:400; color:var(--cal); top:-.7em; }
+.lw-wa-l { font-family:var(--csa); font-weight:600; font-size:var(--fs-body-l); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ci); margin-top:8px; }
+.lw-wa-s { font-family:var(--csa); font-weight:400; font-size:var(--fs-caption); letter-spacing:.16em;
+  text-transform:uppercase; color:rgba(46,52,55,.55); margin-top:5px; }
+.lw-wa-banner { position:relative; margin-top:clamp(34px,6vh,64px); border-radius:16px; overflow:hidden;
+  min-height:clamp(200px,32vh,300px); display:flex; align-items:center; }
+.lw-wa-banner-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+.lw-wa-banner::before { content:""; position:absolute; inset:0; z-index:1;
+  background:linear-gradient(90deg, rgba(10,14,8,.72) 0%, rgba(10,14,8,.42) 46%, rgba(10,14,8,.12) 100%); }
+.lw-wa-banner-inner { position:relative; z-index:2; padding:clamp(24px,4vw,54px); color:var(--cb); }
+.lw-wa-banner-kick { display:block; font-family:var(--csa); font-weight:400; font-size:var(--fs-caption);
+  letter-spacing:.28em; text-transform:uppercase; color:rgba(245,240,230,.85); }
+.lw-wa-banner-word { display:block; font-family:var(--cse); font-weight:400; font-size:var(--fs-display-l);
+  letter-spacing:.06em; text-transform:uppercase; line-height:1; margin-top:.2em; }
+.lw-wa-banner-cta { position:absolute; right:clamp(20px,3vw,44px); bottom:clamp(20px,3vw,40px); z-index:2;
+  display:inline-flex; align-items:center; gap:.6em; font-family:var(--csa); font-size:11px; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--cb); background:rgba(20,18,14,.32);
+  border:1px solid rgba(245,240,230,.5); padding:12px 22px; border-radius:999px; text-decoration:none;
+  -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); transition:background .2s,border-color .2s; }
+.lw-wa-banner-cta:hover { background:var(--be); border-color:var(--be); }
+.lw-wa-banner-cta .arr { transition:transform .25s; }
+.lw-wa-banner-cta:hover .arr { transform:translateX(4px); }
+@media(max-width:780px){
+  .lw-wa-stats { grid-template-columns:1fr 1fr; gap:26px 0; }
+  .lw-wa-stat:nth-child(3){ border-left:0; }
+  .lw-wa-banner { flex-direction:column; align-items:flex-start; }
+  .lw-wa-banner-cta { position:static; align-self:flex-start; margin:0 clamp(24px,4vw,54px) clamp(24px,4vw,40px); }
+}
+
 .lw-pf-carousel { position:relative; }
 .lw-pf-grid { display:flex; gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); overflow-x:auto; scroll-snap-type:x mandatory;
   scroll-behavior:smooth; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
@@ -1378,11 +1422,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
       <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg?v=3">
         <source src="assets/video/legacy.mp4?v=3" type="video/mp4">
       </video>
-      <h2 class="lw-pf-statement lw-bt"><span class="bt-1">The</span><span class="bt-2">Places you choose</span><span class="bt-3">need to reflect what you value</span></h2>
+      <h2 class="lw-pf-statement lw-select"><span class="ln-thin">We don't list properties.</span><span class="ln-bold">We select them.</span></h2>
     </div>
     <div class="lw-pf-title2-row reveal" style="transition-delay:80ms">
-      <p class="lw-pf-title2"><b>Project Collection,</b> <span class="thin">Tropical Properties</span></p>
-      <a class="lw-pf-viewall" href="portfolio.html">View all developments <span class="arr">→</span></a>
+      <p class="lw-pf-title2"><b>The Collection</b></p>
+      <a class="lw-pf-viewall" href="portfolio.html">See all projects <span class="arr">→</span></a>
     </div>
     <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
       <button class="lw-pf-arrow prev" type="button" aria-label="Previous projects">❮</button>
@@ -1558,6 +1602,29 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
         <h4 class="lw-ts-h"><b>Management</b> and Returns</h4>
         <p class="lw-ts-p">Our curated network of local management partners.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 4c · WHO WE ARE + CIFRAS (fondo blanco) ════ -->
+<section class="lw-whoweare" id="whoweare">
+  <div class="cs-wrap">
+    <div class="lw-wa-head reveal">
+      <span class="lw-kicker">Who We Are</span>
+    </div>
+    <div class="lw-wa-stats reveal" style="transition-delay:80ms">
+      <div class="lw-wa-stat"><span class="lw-wa-n">500K<sup>+</sup></span><span class="lw-wa-l">SQM Land</span><span class="lw-wa-s">Chosen by hand</span></div>
+      <div class="lw-wa-stat"><span class="lw-wa-n">6<sup>+</sup></span><span class="lw-wa-l">Years</span><span class="lw-wa-s">Building wisdom</span></div>
+      <div class="lw-wa-stat"><span class="lw-wa-n">100<sup>+</sup></span><span class="lw-wa-l">Investors</span><span class="lw-wa-s">Who chose to stay</span></div>
+      <div class="lw-wa-stat"><span class="lw-wa-n">30<sup>+</sup></span><span class="lw-wa-l">Projects</span><span class="lw-wa-s">Built to last</span></div>
+    </div>
+    <div class="lw-wa-banner reveal" style="transition-delay:140ms">
+      <img class="lw-wa-banner-img" src="assets/img/aerial-1.jpg" alt="Aerial view of a Lawang villa community" loading="lazy">
+      <div class="lw-wa-banner-inner">
+        <span class="lw-wa-banner-kick">One word defines us</span>
+        <span class="lw-wa-banner-word">Freehold</span>
+      </div>
+      <a class="lw-wa-banner-cta" href="portfolio.html">Explore Tropical Territories <span class="arr">→</span></a>
     </div>
   </div>
 </section>
