@@ -345,6 +345,7 @@ function injectBrandAndCover(html, data){
   const covData = { ...data, cov_l1:l1, cov_l2:L(CURRENT.l2) };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
   const head = `<link rel="stylesheet" href="assets/brand.css">`
+    + `<link rel="stylesheet" href="assets/contract.css">`
     + `<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
     + `<style>:root{--brand-deep:${CURRENT.cover||'#104C4F'}}[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');

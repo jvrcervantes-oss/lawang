@@ -3,33 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <title>Términos y Condiciones — Lawang</title>
-<style>
-  @page{ size:A4; margin:0; }
-  body{ font-family:'Jost',sans-serif; color:var(--ink,#2E3437); font-size:10.5pt; line-height:1.6; margin:0; }
-  .doc{ padding:20mm 18mm; }
-  h2{ font-family:'Jost'; font-size:10.5pt; letter-spacing:.08em; text-transform:uppercase; color:var(--brand-deep,#104C4F);
-    border-bottom:1px solid var(--ss,#BEB3A5); padding-bottom:4px; margin:20px 0 8px; }
-  .f{ font-weight:500; color:var(--brand-accent,#42210B); border-bottom:1px dotted var(--sc,#8F9B7A); padding:0 3px; }
-  .pending{ border:1px dashed var(--sc,#8F9B7A); background:#fbf9f3; border-radius:6px; padding:14px 16px; color:#7a5; margin:16px 0;
-    font-size:9.5pt; }
-  .pending b{ color:var(--brand-accent,#42210B); }
-  ul{ padding-left:18px; } li{ margin-bottom:5px; }
-</style>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
   <div class="doc">
-    <h2>Marco legal · {{proyecto_nombre}}</h2>
-    <p>Documento marco de <span class="f">{{vendedor_entidad}}</span> (NPWP {{vendedor_npwp}}) aplicable a las reservas y compraventas del proyecto {{proyecto_nombre}} ({{region}}).</p>
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
-    <h2>Contenido previsto</h2>
+    <div class="doc-title"><span class="light">Marco legal</span><span class="bold">Términos y Condiciones</span></div>
+    <div class="doc-date">{{proyecto_nombre}} · {{region}}</div>
+
+    <p>Documento marco de <span class="term">{{vendedor_entidad}}</span> (NPWP {{vendedor_npwp}}), aplicable a las reservas y compraventas del proyecto <span class="f">{{proyecto_nombre}}</span> ({{region}}) y a sus contratos asociados.</p>
+
+    <h2>Artículo 1 — Definiciones</h2>
+    <p>A efectos del presente marco se entenderá por PPJB el pacto preliminar de compraventa; por AJB la escritura de transmisión; por PPAT el fedatario público competente; por BPN la agencia nacional del catastro; y por HGB el título de derecho de construcción.</p>
+
+    <h2>Artículo 2 — Contenido previsto</h2>
     <ul>
-      <li>Estatutos y política general</li>
-      <li>Términos y condiciones</li>
-      <li>Condiciones de pérdida de reserva</li>
-      <li>Definiciones (PPJB / AJB / PPAT / BPN / HGB)</li>
+      <li>Estatutos y política general del desarrollo.</li>
+      <li>Términos y condiciones de reserva y compraventa.</li>
+      <li>Condiciones de pérdida de reserva y penalizaciones.</li>
+      <li>Ley aplicable, jurisdicción y notificaciones.</li>
     </ul>
 
-    <div class="pending"><b>⚠ Contenido legal pendiente.</b> Plantilla marco con marca, portada y marcadores listos. El <b>articulado legal</b> (estatutos, T&amp;C, política de pérdida de reserva) se inserta como boilerplate bloqueado cuando el cliente entregue el texto definitivo revisado por su abogado.</div>
+    <h2>Artículo 3 — Pérdida de reserva</h2>
+    <p>Las condiciones concretas de pérdida de reserva se detallarán aquí conforme al texto legal definitivo aportado por el cliente.</p>
+
+    <div class="pending"><b>⚠ Contenido legal pendiente.</b> Plantilla marco con marca, portada y estilo interior listos. El articulado legal (estatutos, T&amp;C, política de pérdida de reserva) se inserta como boilerplate bloqueado cuando el cliente entregue el texto definitivo revisado por su abogado.</div>
   </div>
 </body>
 </html>

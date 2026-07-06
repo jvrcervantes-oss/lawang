@@ -3,31 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <title>Contrato de Reserva de Parcela — Lawang</title>
-<style>
-  @page{ size:A4; margin:0; }
-  body{ font-family:'Jost',sans-serif; color:var(--ink,#2E3437); font-size:10.5pt; line-height:1.6; margin:0; }
-  .doc{ padding:20mm 18mm; }
-  h2{ font-family:'Jost'; font-size:10.5pt; letter-spacing:.08em; text-transform:uppercase; color:var(--brand-deep,#104C4F);
-    border-bottom:1px solid var(--ss,#BEB3A5); padding-bottom:4px; margin:20px 0 8px; }
-  .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37); padding:11px 15px; margin:9px 0; }
-  .party .role{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--brand-primary,#485B37); }
-  .f{ font-weight:500; color:var(--brand-accent,#42210B); border-bottom:1px dotted var(--sc,#8F9B7A); padding:0 3px; }
-  .pending{ border:1px dashed var(--sc,#8F9B7A); background:#fbf9f3; border-radius:6px; padding:14px 16px; color:#7a5; margin:16px 0;
-    font-size:9.5pt; }
-  .pending b{ color:var(--brand-accent,#42210B); }
-</style>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
   <div class="doc">
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
+
+    <div class="doc-title"><span class="light">Contrato</span><span class="bold">de Reserva de Parcela</span></div>
+    <div class="doc-date">{{proyecto_nombre}} · {{parcela_codigo}} · {{fecha_firma}}</div>
+
     <h2>Partes</h2>
-    <div class="party"><div class="role">Vendedor</div>{{vendedor_entidad}} · NPWP {{vendedor_npwp}} · {{vendedor_representante}} ({{vendedor_cargo}})</div>
-    <div class="party"><div class="role">Adquiriente</div>{{adq1_nombre}} · {{adq1_nacionalidad}} · Pasaporte {{adq1_pasaporte}}</div>
+    <div class="party"><div class="role">Vendedor</div><span class="term">{{vendedor_entidad}}</span> · NPWP {{vendedor_npwp}} · {{vendedor_representante}} ({{vendedor_cargo}})</div>
+    <div class="party"><div class="role">Adquiriente</div><span class="term">{{adq1_nombre}}</span> · {{adq1_nacionalidad}} · Pasaporte {{adq1_pasaporte}}</div>
 
-    <h2>Objeto — Parcela</h2>
-    <p>Reserva de la parcela <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> ({{region}}), superficie <span class="f">{{tipologia_villa}}</span>.</p>
-    <p>Precio total: <span class="f">{{precio_total}} €</span> · Reserva: <span class="f">{{precio_reserva}} €</span> · Firma: {{lugar_firma}}, {{fecha_firma}}.</p>
+    <h2>Artículo 1 — Objeto</h2>
+    <p>Reserva de la parcela <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> ({{region}}), de superficie <span class="f">{{tipologia_villa}}</span>, para su posterior compraventa conforme al presente contrato y sus apéndices.</p>
 
-    <div class="pending"><b>⚠ Contenido legal pendiente.</b> Esta plantilla lleva ya la marca, la portada y los marcadores del diccionario. Las <b>cláusulas de reserva de parcela</b> (boilerplate bloqueado: objeto, condiciones, penalización por pérdida de reserva, ley aplicable…) se insertan cuando el cliente entregue el texto legal definitivo.</div>
+    <h2>Artículo 2 — Precio y reserva</h2>
+    <p>El precio total de la parcela es de <span class="f">{{precio_total}} €</span>. El importe de reserva es de <span class="f">{{precio_reserva}} €</span>, pagadero a la firma del presente contrato en la cuenta indicada ({{cuenta_titular}} · {{cuenta_banco}}). Lugar y fecha de firma: {{lugar_firma}}, {{fecha_firma}}.</p>
+    <table class="pays">
+      <thead><tr><th class="n">#</th><th>Descripción</th><th class="pct">%</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>Reserva a la firma</td><td class="pct">—</td></tr>
+        <tr><td class="n">2</td><td>Saldo según calendario de pagos</td><td class="pct">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="pending"><b>⚠ Contenido legal pendiente.</b> Esta plantilla lleva ya la marca, la portada y el estilo interior. Las cláusulas de reserva de parcela (objeto, condiciones previas, pérdida de reserva, otorgamiento del AJB, ley aplicable…) se insertan cuando el cliente entregue el texto legal definitivo.</div>
   </div>
 </body>
 </html>
