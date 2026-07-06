@@ -7,14 +7,14 @@
 <title>Constructor de diseño de contratos — Lawang</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{--green:#485B37;--lagoon:#104C4F;--earth:#42210B;--gold:#9A7B3C;--ink:#2E3437;--mut:#6f6a60;--line:#e3ddce;--bg:#F5F0E6;--card:#fffdf8}
   *{box-sizing:border-box}
   body{margin:0;font-family:'Jost',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
   .head{max-width:1000px;margin:0 auto;padding:40px 24px 0}
   .back{display:inline-block;color:#a49c8c;text-decoration:none;font-weight:600;font-size:14px;margin-bottom:10px}
-  h1{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:clamp(30px,5vw,46px);margin:0 0 8px;letter-spacing:-.3px}
+  h1{font-family:'Jost',sans-serif;font-weight:700;font-size:clamp(30px,5vw,46px);margin:0 0 8px;letter-spacing:-.3px}
   .head p{margin:0;color:var(--mut);max-width:72ch}
   .steps{max-width:1000px;margin:24px auto 0;padding:0 24px;display:flex;gap:8px;flex-wrap:wrap}
   .stp{flex:1;min-width:98px;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;transition:.18s}
@@ -28,7 +28,7 @@
   .panel{display:none;animation:fade .25s ease}
   .panel.on{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  .ptitle{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:28px;margin:6px 0 2px;letter-spacing:-.2px}
+  .ptitle{font-family:'Jost',sans-serif;font-weight:700;font-size:28px;margin:6px 0 2px;letter-spacing:-.2px}
   .ptitle .sub{font-family:'Jost',sans-serif;font-weight:400;color:var(--mut);font-size:16px}
   .phelp{color:var(--mut);font-size:14.5px;margin:0 0 18px;max-width:74ch}
   .glabel{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#a49c8c;margin:22px 0 10px}
@@ -46,7 +46,7 @@
   .opt:hover{border-color:#c9c1ad;transform:translateY(-2px)}
   .opt.sel{border-color:var(--green);background:linear-gradient(180deg,#fffdf8,#f3f4ec);box-shadow:0 12px 26px -18px rgba(72,91,55,.8)}
   .opt.sel::after{content:"\2713";position:absolute;top:10px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
-  .opt .ot{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:19px;padding-right:22px;line-height:1.15}
+  .opt .ot{font-family:'Jost',sans-serif;font-weight:700;font-size:19px;padding-right:22px;line-height:1.15}
   .opt .od{font-size:13px;color:var(--mut);line-height:1.45}
   .opt .oex{font-size:11.5px;color:var(--green);font-weight:600;margin-top:2px}
   .nav{display:flex;justify-content:space-between;gap:12px;margin-top:26px}
@@ -210,8 +210,8 @@ const PALETA=[
   ["Otra paleta","Prefiero otros colores — los indico en las notas de marca.",""]
 ];
 const TIPOGRAFIA=[
-  ["Google Fonts (actual)","Cormorant Garamond + Jost. Ya listas, gratis, sin licencia pendiente.",""],
-  ["Fuentes con licencia","The Seasons + Neue Kabel. Tengo o compraré la licencia web.",""]
+  ["Jost (actual)","Proxy geométrico de Neue Kabel. Ya listo, gratis, sin licencia pendiente.",""],
+  ["Neue Kabel (licencia)","La tipografía de marca. Tengo o compraré la licencia web.",""]
 ];
 const AGUA=[
   ["Solo en la portada","Marca de agua / tiki-totem únicamente en la primera página.",""],
@@ -286,7 +286,7 @@ const SALIDA=[
 ];
 const ASSETS=[
   ["Logo / marca en vector","SVG / AI / PDF o PNG ≥2000px.",""],
-  ["Fuentes con licencia","Archivos de The Seasons + Neue Kabel.",""],
+  ["Fuentes con licencia","Archivos de Neue Kabel.",""],
   ["Imagen de portada","Foto/render en alta resolución.",""],
   ["Fotos / renders / planos","En alta resolución (no los placeholders actuales).",""],
   ["Textos legales definitivos","Revisados por abogado.",""]

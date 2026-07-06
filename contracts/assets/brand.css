@@ -23,12 +23,12 @@
   --brand-accent:  var(--be);
   --brand-paper:   var(--rl);
 
-  /* — Tipografía —
+  /* — Tipografía — UNA sola fuente: Neue Kabel (The Seasons eliminada).
      Neue Kabel (licenciada) llega después: al añadir su @font-face,
-     cambia --font-display a 'Neue Kabel'. Jost es el sustituto
-     geométrico (Kabel es geométrica, Jost es su proxy más cercano). */
+     cambia SOLO --font-display a 'Neue Kabel'. Jost es el proxy geométrico.
+     --font-serif se conserva por compatibilidad pero apunta a Neue (no serif). */
   --font-display: 'Jost', sans-serif;
-  --font-serif:   'Cormorant Garamond', serif;
+  --font-serif:   'Jost', sans-serif;
   --font-body:    'Jost', sans-serif;
 
   /* — Emblema / moanito + logos (slots intercambiables) —

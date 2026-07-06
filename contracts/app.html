@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lawang · Generador de Contratos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css">
 <style>
   :root{ --line:#e4ddcf; }
@@ -17,7 +17,7 @@
   .topbar{ position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
     display:flex; align-items:center; gap:12px; padding:14px 18px; padding-top:max(14px, env(safe-area-inset-top)); }
   .topbar .brandlogo{ height:24px; width:auto; }
-  .topbar .tbtitle{ font-family:'Cormorant Garamond',serif; font-size:17px; letter-spacing:.12em; text-transform:uppercase; margin:0; color:var(--muted); font-weight:500; }
+  .topbar .tbtitle{ font-family:'Jost',sans-serif; font-size:17px; letter-spacing:.12em; text-transform:uppercase; margin:0; color:var(--muted); font-weight:500; }
   .topbar .spacer{ flex:1; }
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:8px; padding:2px; }
   .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; padding:5px 9px; border-radius:6px; color:var(--muted); cursor:pointer; }
@@ -40,7 +40,7 @@
   .tier-label.first{ border-top:none; padding-top:0; margin-top:2px; }
   .section{ background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:14px; overflow:hidden; }
   .section > header{ display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer; user-select:none; }
-  .section > header .num{ font-family:'Cormorant Garamond',serif; font-style:italic; color:var(--tg); font-size:18px; width:22px; }
+  .section > header .num{ font-family:'Jost',sans-serif; font-style:italic; color:var(--tg); font-size:18px; width:22px; }
   .section > header h2{ font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:0; color:var(--dl); font-weight:600; flex:1; }
   .section > header .chev{ color:var(--muted); transition:transform .2s; font-size:13px; }
   .section.collapsed > header .chev{ transform:rotate(-90deg); }
@@ -326,7 +326,7 @@ function injectBrandAndCover(html, data){
   const covData = { ...data, cov_l1:l1, cov_l2:L(CURRENT.l2) };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
   const head = `<link rel="stylesheet" href="assets/brand.css">`
-    + `<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
+    + `<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
     + `<style>:root{--brand-deep:${CURRENT.cover||'#104C4F'}}[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
   else html = '<head>'+head+'</head>'+html;
