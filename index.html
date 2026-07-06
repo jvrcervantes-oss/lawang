@@ -368,24 +368,28 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.5) 24%,rgba(0,0,0,.16) 48%,transparent 70%)}
 .hero-inner{position:relative;z-index:5;width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(1.2rem,2.6vh,1.9rem);will-change:transform;margin-top:0}
 .hero-h{font-family:'Neue Kabel','Jost',sans-serif;color:var(--ivory);text-transform:uppercase;
-  margin:0;line-height:.88;letter-spacing:.005em;text-shadow:0 3px 26px rgba(0,0,0,.5)}
+  margin:0;line-height:.88;letter-spacing:.07em;text-shadow:0 3px 26px rgba(0,0,0,.5)}  /* kerning 70 */
 .hero-h .hh-l1,.hero-h .hh-l2{display:block;white-space:nowrap}
-.hero-h .hh-thin{font-weight:450;font-size:clamp(40px,8.2vw,90px)}   /* Neue Kabel Regular · 90pt */
-.hero-h .hh-bold{font-weight:500;font-size:clamp(56px,11.6vw,130px)} /* Neue Kabel Medium · 130pt */
-.hero-h .hh-iso{height:clamp(30px,6vw,68px);width:auto;margin:0 .2em 0 0;vertical-align:0.16em;
+.hero-h .hh-thin{font-weight:450;font-size:clamp(32px,6.56vw,72px)}   /* Neue Kabel Regular (−20%) */
+.hero-h .hh-bold{font-weight:500;font-size:clamp(45px,9.28vw,104px)} /* Neue Kabel Medium (−20%) */
+.hero-h .hh-iso{height:clamp(24px,4.8vw,54px);width:auto;margin:0 .2em 0 0;vertical-align:0.16em;opacity:.5;
   filter:drop-shadow(0 3px 22px rgba(0,0,0,.5))}
 /* Subtítulo (izq) + CTA (der) en la misma línea, abajo */
 .hero-foot{position:static;display:flex;flex-direction:row;align-items:center;justify-content:space-between;
   gap:clamp(1.5rem,4vw,3.5rem);padding:0;width:100%}
-.hero-sub{margin:0;max-width:min(56ch,56vw);color:var(--ivory);line-height:1.34;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.7)}
-.hero-sub b{display:block;font-weight:700;font-size:clamp(18px,1.95vw,25px)}          /* Neue Kabel Bold · 25pt */
-.hero-sub .hero-sub-2{display:block;margin-top:.3em;font-weight:400;font-size:clamp(15px,1.72vw,22px);color:rgba(245,240,230,.9)} /* Neue Kabel Book · 22pt */
-.hero-discover{display:inline-flex;align-items:center;gap:.7rem;flex:none;
-  padding:15px 30px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
+.hero-sub{margin:0;max-width:none;color:var(--ivory);line-height:1.34;text-transform:uppercase;letter-spacing:.07em;text-shadow:0 2px 14px rgba(0,0,0,.7)}  /* kerning 70 */
+.hero-sub b{display:block;white-space:nowrap;font-weight:700;font-size:clamp(14px,1.56vw,20px)}          /* Neue Kabel Bold (−20%), 1 renglón */
+.hero-sub .hero-sub-2{display:block;white-space:nowrap;margin-top:.3em;font-weight:400;font-size:clamp(12px,1.38vw,18px);color:rgba(245,240,230,.9)} /* Neue Kabel Book (−20%), 1 renglón */
+.hero-discover{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:.7rem;flex:none;
+  padding:14px 26px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
   background:rgba(20,18,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-  font-family:'Neue Kabel','Jost',sans-serif;font-weight:700;font-size:19px;letter-spacing:.1em;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:500;font-size:15px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--rl);text-decoration:none;cursor:none;white-space:nowrap;
   transition:background .3s,border-color .3s,color .3s,transform .3s}
+/* Textura del botón (lighten 69%) */
+.hero-discover::before{content:"";position:absolute;inset:0;background:url('assets/img/TexturasBotones.png') center/cover;
+  mix-blend-mode:lighten;opacity:.69;pointer-events:none}
+.hero-discover .hd-in{position:relative;z-index:1;display:inline-flex;align-items:center;gap:.7rem}
 .hero-discover .ar{font-size:1.5em;line-height:0;opacity:1;font-weight:700;transition:transform .3s}
 .hero-discover:hover{background:rgba(190,179,165,.16);border-color:rgba(190,179,165,.85);color:#fff}
 .hero-discover:hover .ar:last-child{transform:translateY(4px)}
@@ -403,6 +407,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .marks-track img{height:54px;width:auto;flex:none;display:block}
 @media(max-width:820px){
   .hero-sub{max-width:none}
+  .hero-sub b,.hero-sub .hero-sub-2{white-space:normal}  /* móvil: permitir envolver (evita overflow) */
   .hero-inner{margin-top:clamp(4vh,9vh,12vh)}
   .hero-foot{flex-direction:column;align-items:flex-start;gap:1.4rem}
 }
@@ -664,7 +669,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     </h1>
     <div class="hero-foot">
       <p class="hero-sub"><b>We help international investors build lasting wealth in Indonesia.</b><span class="hero-sub-2">through strategy, structure, and presence on the ground.</span></p>
-      <a class="hero-discover" href="#lines"><span class="ar">↓</span> Explore Tropical Territories <span class="ar">↓</span></a>
+      <a class="hero-discover" href="#lines"><span class="hd-in"><span class="ar">↓</span> Explore Tropical Territories <span class="ar">↓</span></span></a>
     </div>
   </div>
 </section>
