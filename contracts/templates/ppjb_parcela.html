@@ -6,30 +6,44 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
+  <!-- Texto en 3 idiomas: el motor muestra el activo (data-lang) y oculta el resto. -->
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
-    <div class="doc-title"><span class="light">Contrato</span><span class="bold">de Reserva de Parcela</span></div>
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Contrato</span><span data-lang="en">Contract</span><span data-lang="id">Perjanjian</span></span>
+      <span class="bold"><span data-lang="es">de Reserva de Parcela</span><span data-lang="en">of Plot Reservation</span><span data-lang="id">Reservasi Kavling</span></span>
+    </div>
     <div class="doc-date">{{proyecto_nombre}} · {{parcela_codigo}} · {{fecha_firma}}</div>
 
-    <h2>Partes</h2>
-    <div class="party"><div class="role">Vendedor</div><span class="term">{{vendedor_entidad}}</span> · NPWP {{vendedor_npwp}} · {{vendedor_representante}} ({{vendedor_cargo}})</div>
-    <div class="party"><div class="role">Adquiriente</div><span class="term">{{adq1_nombre}}</span> · {{adq1_nacionalidad}} · Pasaporte {{adq1_pasaporte}}</div>
+    <h2><span data-lang="es">Partes</span><span data-lang="en">Parties</span><span data-lang="id">Para Pihak</span></h2>
+    <div class="party"><div class="role"><span data-lang="es">Vendedor</span><span data-lang="en">Seller</span><span data-lang="id">Penjual</span></div><span class="term">{{vendedor_entidad}}</span> · NPWP {{vendedor_npwp}} · {{vendedor_representante}} ({{vendedor_cargo}})</div>
+    <div class="party"><div class="role"><span data-lang="es">Adquiriente</span><span data-lang="en">Buyer</span><span data-lang="id">Pembeli</span></div><span class="term">{{adq1_nombre}}</span> · {{adq1_nacionalidad}} · <span data-lang="es">Pasaporte</span><span data-lang="en">Passport</span><span data-lang="id">Paspor</span> {{adq1_pasaporte}}</div>
 
-    <h2>Artículo 1 — Objeto</h2>
-    <p>Reserva de la parcela <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> ({{region}}), de superficie <span class="f">{{tipologia_villa}}</span>, para su posterior compraventa conforme al presente contrato y sus apéndices.</p>
+    <h2><span data-lang="es">Artículo 1 — Objeto</span><span data-lang="en">Article 1 — Object</span><span data-lang="id">Pasal 1 — Objek</span></h2>
+    <p data-lang="es">Reserva de la parcela <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> ({{region}}), de superficie <span class="f">{{tipologia_villa}}</span>, para su posterior compraventa conforme al presente contrato y sus apéndices.</p>
+    <p data-lang="en">Reservation of plot <span class="f">{{parcela_codigo}}</span> of the <span class="f">{{proyecto_nombre}}</span> project ({{region}}), with an area of <span class="f">{{tipologia_villa}}</span>, for its subsequent sale under this agreement and its appendices.</p>
+    <p data-lang="id">Reservasi kavling <span class="f">{{parcela_codigo}}</span> proyek <span class="f">{{proyecto_nombre}}</span> ({{region}}), dengan luas <span class="f">{{tipologia_villa}}</span>, untuk jual beli selanjutnya berdasarkan perjanjian ini dan lampirannya.</p>
 
-    <h2>Artículo 2 — Precio y reserva</h2>
-    <p>El precio total de la parcela es de <span class="f">{{precio_total}} €</span>. El importe de reserva es de <span class="f">{{precio_reserva}} €</span>, pagadero a la firma del presente contrato en la cuenta indicada ({{cuenta_titular}} · {{cuenta_banco}}). Lugar y fecha de firma: {{lugar_firma}}, {{fecha_firma}}.</p>
+    <h2><span data-lang="es">Artículo 2 — Precio y reserva</span><span data-lang="en">Article 2 — Price and reservation</span><span data-lang="id">Pasal 2 — Harga dan reservasi</span></h2>
+    <p data-lang="es">El precio total de la parcela es de <span class="f">{{precio_total}} €</span>. El importe de reserva es de <span class="f">{{precio_reserva}} €</span>, pagadero a la firma en la cuenta indicada ({{cuenta_titular}} · {{cuenta_banco}}). Lugar y fecha de firma: {{lugar_firma}}, {{fecha_firma}}.</p>
+    <p data-lang="en">The total price of the plot is <span class="f">{{precio_total}} €</span>. The reservation amount is <span class="f">{{precio_reserva}} €</span>, payable on signing to the indicated account ({{cuenta_titular}} · {{cuenta_banco}}). Place and date of signature: {{lugar_firma}}, {{fecha_firma}}.</p>
+    <p data-lang="id">Harga total kavling adalah <span class="f">{{precio_total}} €</span>. Jumlah reservasi adalah <span class="f">{{precio_reserva}} €</span>, dibayar saat penandatanganan ke rekening yang ditunjuk ({{cuenta_titular}} · {{cuenta_banco}}). Tempat dan tanggal tanda tangan: {{lugar_firma}}, {{fecha_firma}}.</p>
     <table class="pays">
-      <thead><tr><th class="n">#</th><th>Descripción</th><th class="pct">%</th></tr></thead>
+      <thead><tr><th class="n">#</th>
+        <th><span data-lang="es">Descripción</span><span data-lang="en">Description</span><span data-lang="id">Deskripsi</span></th>
+        <th class="pct">%</th></tr></thead>
       <tbody>
-        <tr><td class="n">1</td><td>Reserva a la firma</td><td class="pct">—</td></tr>
-        <tr><td class="n">2</td><td>Saldo según calendario de pagos</td><td class="pct">—</td></tr>
+        <tr><td class="n">1</td><td><span data-lang="es">Reserva a la firma</span><span data-lang="en">Reservation on signing</span><span data-lang="id">Reservasi saat tanda tangan</span></td><td class="pct">—</td></tr>
+        <tr><td class="n">2</td><td><span data-lang="es">Saldo según calendario de pagos</span><span data-lang="en">Balance per payment schedule</span><span data-lang="id">Sisa sesuai jadwal pembayaran</span></td><td class="pct">—</td></tr>
       </tbody>
     </table>
 
-    <div class="pending"><b>⚠ Contenido legal pendiente.</b> Esta plantilla lleva ya la marca, la portada y el estilo interior. Las cláusulas de reserva de parcela (objeto, condiciones previas, pérdida de reserva, otorgamiento del AJB, ley aplicable…) se insertan cuando el cliente entregue el texto legal definitivo.</div>
+    <div class="pending">
+      <span data-lang="es"><b>⚠ Contenido legal pendiente.</b> Esta plantilla lleva ya la marca, la portada y el estilo interior. Las cláusulas de reserva de parcela se insertan cuando el cliente entregue el texto legal definitivo.</span>
+      <span data-lang="en"><b>⚠ Legal text pending.</b> This template already has the brand, cover and interior style. The plot reservation clauses will be inserted once the client provides the final legal text.</span>
+      <span data-lang="id"><b>⚠ Teks hukum menyusul.</b> Templat ini sudah memiliki merek, sampul, dan gaya interior. Klausul reservasi kavling akan dimasukkan setelah klien memberikan teks hukum final.</span>
+    </div>
   </div>
 </body>
 </html>
