@@ -222,7 +222,13 @@ function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
 function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
-function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || ''; }
+function pdef(key){
+  // defaults por plantilla primero (p.ej. descripciones de hitos, distintas en
+  // Reserva y Construcción), después los globales del proyecto
+  const t = TOKENS && TOKENS.templateDefaults && TOKENS.templateDefaults[CURRENT.slug];
+  if(t && key in t) return t[key];
+  return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
+}
 
 /* ============================================================
    PANEL DISEÑO — modelo, persistencia y CSS inyectado
