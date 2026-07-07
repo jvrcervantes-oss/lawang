@@ -15,6 +15,10 @@
   height:150mm; width:auto; opacity:.05; z-index:0; pointer-events:none; }
 .doc > *:not(.doc-watermark){ position:relative; z-index:1; }
 
+/* logo de cabecera del interior (oculto por defecto; el panel Diseño lo activa
+   inyectándolo como primer hijo de .doc y dándole background). */
+.doc-brand-logo{ display:none; }
+
 /* apertura: "Contrato" fino + tipo en bold (como la portada) */
 .doc-title{ margin:0 0 2px; font-family:var(--font-display,'Jost',sans-serif); text-transform:uppercase; }
 .doc-title .light{ display:block; font-weight:300; font-size:20pt; letter-spacing:.05em; line-height:1; color:var(--muted,#6b6c66); }

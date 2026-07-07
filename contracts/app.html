@@ -8,43 +8,54 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css">
 <style>
-  :root{ --line:#e4ddcf; }
+  :root{ --line:#e4ddcf; --tbh:56px; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ margin:0; padding:0; }
+  html,body{ margin:0; padding:0; height:100%; }
   body{ font-family:var(--font-body,'Jost',sans-serif); color:var(--va); background:var(--rl); font-size:16px; line-height:1.5; }
 
-  /* ---------- App shell ---------- */
-  .topbar{ position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
-    display:flex; align-items:center; gap:12px; padding:14px 18px; padding-top:max(14px, env(safe-area-inset-top)); }
+  /* ---------- topbar ---------- */
+  .topbar{ position:sticky; top:0; z-index:40; background:#fff; border-bottom:1px solid var(--line); height:var(--tbh);
+    display:flex; align-items:center; gap:12px; padding:0 16px; padding-top:env(safe-area-inset-top); }
   .topbar .brandlogo{ height:24px; width:auto; }
-  .topbar .tbtitle{ font-family:'Jost',sans-serif; font-size:17px; letter-spacing:.12em; text-transform:uppercase; margin:0; color:var(--muted); font-weight:500; }
+  .topbar .tbtitle{ font-size:16px; letter-spacing:.12em; text-transform:uppercase; margin:0; color:var(--muted); font-weight:500; }
   .topbar .spacer{ flex:1; }
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:8px; padding:2px; }
   .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; padding:5px 9px; border-radius:6px; color:var(--muted); cursor:pointer; }
   .lang-toggle button.on{ background:var(--tg); color:#fff; }
+  .tb-link{ background:none; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:12.5px; color:var(--va); padding:6px 11px; cursor:pointer; }
+  .tb-link:hover{ border-color:var(--tg); }
 
-  .wrap{ max-width:680px; margin:0 auto; padding:18px 16px 120px; }
+  /* ---------- escenario en dos columnas ---------- */
+  .stage{ display:flex; height:calc(100dvh - var(--tbh)); }
+  .pane-form{ flex:1 1 50%; min-width:0; overflow:auto; padding:18px 16px 40px; }
+  .pane-form .inner{ max-width:640px; margin:0 auto; }
+  .pane-preview{ flex:1 1 50%; min-width:0; display:flex; flex-direction:column; background:#ece4d6; border-left:1px solid var(--line); }
+  .pv-bar{ display:flex; align-items:center; gap:10px; padding:10px 14px; background:#fff; border-bottom:1px solid var(--line); }
+  .pv-bar b{ font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); flex:1; }
+  .pv-scroll{ flex:1; overflow:auto; padding:16px; display:flex; justify-content:center; }
+  #pvFrame{ width:100%; max-width:820px; height:100%; min-height:400px; border:none; background:#fff; box-shadow:0 6px 30px rgba(46,52,55,.18); border-radius:6px; }
+  .pv-close{ display:none; }
 
-  /* ---------- Selector de plantilla ---------- */
-  .tpl-card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:18px;
-    display:flex; align-items:center; gap:14px; }
-  .tpl-card .ico{ width:44px; height:44px; border-radius:10px; background:var(--dl); display:grid; place-items:center; color:#fff; font-size:20px; flex:none; }
+  /* ---------- selector de plantilla ---------- */
+  .tpl-card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px;
+    display:flex; align-items:center; gap:12px; }
+  .tpl-card .ico{ width:40px; height:40px; border-radius:10px; background:var(--dl); display:grid; place-items:center; color:#fff; font-size:18px; flex:none; }
   .tpl-card .meta{ flex:1; min-width:0; }
-  .tpl-card .meta b{ display:block; font-size:15px; }
+  .tpl-card .meta b{ display:block; font-size:14px; }
   .tpl-card .meta span{ font-size:12px; color:var(--muted); }
   .tpl-card select{ font:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); flex:none; max-width:44%; }
 
-  /* ---------- Secciones ---------- */
+  /* ---------- secciones (acordeón) ---------- */
   .tier-label{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--sc);
-    margin:18px 4px 8px; padding-top:12px; border-top:1px dashed var(--line); }
-  .tier-label.first{ border-top:none; padding-top:0; margin-top:2px; }
-  .section{ background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:14px; overflow:hidden; }
-  .section > header{ display:flex; align-items:center; gap:10px; padding:14px 16px; cursor:pointer; user-select:none; }
-  .section > header .num{ font-family:'Jost',sans-serif; font-style:italic; color:var(--tg); font-size:18px; width:22px; }
+    margin:16px 4px 8px; padding-top:10px; border-top:1px dashed var(--line); }
+  .tier-label.first{ border-top:none; padding-top:0; }
+  .section{ background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:12px; overflow:hidden; }
+  .section > header{ display:flex; align-items:center; gap:10px; padding:13px 15px; cursor:pointer; user-select:none; }
+  .section > header .num{ font-style:italic; color:var(--tg); font-size:17px; width:20px; }
   .section > header h2{ font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:0; color:var(--dl); font-weight:600; flex:1; }
   .section > header .chev{ color:var(--muted); transition:transform .2s; font-size:13px; }
   .section.collapsed > header .chev{ transform:rotate(-90deg); }
-  .section .body{ padding:4px 16px 16px; }
+  .section .body{ padding:2px 15px 14px; }
   .section.collapsed .body{ display:none; }
 
   .opt-toggle{ display:flex; align-items:center; gap:8px; margin-left:auto; font-size:12px; color:var(--muted); }
@@ -57,54 +68,61 @@
   .section.optional.off .body{ display:none; }
   .section.optional.off{ opacity:.85; }
 
-  .field{ margin:12px 0; }
-  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; letter-spacing:.02em; }
+  .field{ margin:11px 0; }
+  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; }
   .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
-    padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fdfcf9; }
+    padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:#fdfcf9; }
   .field input:focus, .field textarea:focus, .field select:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  @media (max-width:460px){ .grid2{ grid-template-columns:1fr; } }
+  @media (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
 
-  .note-blocked{ font-size:11.5px; color:var(--muted); background:#fbf9f3; border:1px dashed var(--ss); border-radius:10px; padding:12px 14px; margin:8px 4px 0; }
+  .note-blocked{ font-size:11.5px; color:var(--muted); background:#fbf9f3; border:1px dashed var(--ss); border-radius:10px; padding:11px 13px; margin:8px 0 0; }
   .note-blocked b{ color:var(--be); }
   .note-blocked ul{ margin:6px 0 0; padding-left:16px; } .note-blocked li{ margin-bottom:2px; }
 
   /* firma */
   .sigpad-wrap{ border:1px dashed var(--ss); border-radius:10px; background:#fff; position:relative; touch-action:none; }
-  .sigpad-wrap canvas{ width:100%; height:150px; display:block; border-radius:10px; }
+  .sigpad-wrap canvas{ width:100%; height:140px; display:block; border-radius:10px; }
   .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center; color:var(--ss); font-size:13px; pointer-events:none; }
   .sigpad-wrap.signed .ph{ display:none; }
   .sig-actions{ display:flex; justify-content:flex-end; margin-top:6px; }
   .link-btn{ background:none; border:none; color:var(--tg); font-size:12.5px; cursor:pointer; text-decoration:underline; padding:4px; }
 
-  /* barra inferior */
-  .actionbar{ position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff; border-top:1px solid var(--line);
-    padding:12px 16px; padding-bottom:max(12px, env(safe-area-inset-bottom)); display:flex; gap:10px; align-items:center; }
-  .actionbar .prog{ flex:1; font-size:12px; color:var(--muted); } .actionbar .prog b{ color:var(--tg); }
-  .btn{ font-family:inherit; font-size:15px; font-weight:500; border-radius:10px; padding:13px 20px; border:none; cursor:pointer; }
+  .btn{ font-family:inherit; font-size:14px; font-weight:500; border-radius:10px; padding:10px 16px; border:none; cursor:pointer; }
   .btn.primary{ background:var(--dl); color:#fff; }
   .btn.primary:disabled{ background:var(--ss); cursor:not-allowed; }
   .btn.ghost{ background:none; border:1px solid var(--line); color:var(--va); }
 
-  .overlay{ position:fixed; inset:0; z-index:50; background:rgba(46,52,55,.55); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:14px; }
-  .overlay.open{ display:flex; }
-  .preview{ background:#fff; width:100%; max-width:820px; border-radius:14px; overflow:hidden; margin:auto; }
-  .preview .pv-bar{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; z-index:2; }
-  .preview .pv-bar b{ font-size:14px; flex:1; }
-  .preview iframe{ width:100%; height:70vh; border:none; }
-
-  .toast{ position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; z-index:60; opacity:0; transition:.3s; pointer-events:none; }
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; z-index:80; opacity:0; transition:.3s; pointer-events:none; }
   .toast.show{ opacity:1; }
 
-  /* ---------- modo slide (una sección por pantalla) ---------- */
-  .progwrap{ height:4px; background:var(--line); border-radius:4px; margin:2px 2px 14px; overflow:hidden; }
-  .progwrap .bar{ height:100%; background:var(--tg); width:0; transition:width .3s ease; }
-  #form.slides .section{ display:none; }
-  #form.slides .section.current{ display:block; animation:slidein .26s ease; }
-  @keyframes slidein{ from{ opacity:0; transform:translateX(16px); } to{ opacity:1; transform:none; } }
-  #form.slides .section > header{ cursor:default; }
-  .slide-eyebrow{ font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--sc); padding:14px 16px 0; }
-  .reset{ color:var(--muted); text-decoration:underline; cursor:pointer; font-size:12px; margin-left:10px; }
+  /* ---------- panel Diseño ---------- */
+  .section.design > header h2{ color:var(--be); }
+  .section.design .num{ font-style:normal; }
+  .dz{ border-top:1px dashed var(--line); padding:12px 0 4px; }
+  .dz:first-child{ border-top:none; }
+  .dz-h{ font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--dl); margin-bottom:8px; }
+  .dz-row{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px; color:var(--muted); }
+  .dz-row > span{ width:78px; flex:none; }
+  .dz-row select, .dz-row input[type=range], .dz-row input[type=color]{ flex:1; }
+  .dz-row input[type=range]{ accent-color:var(--tg); }
+  .dz-row input[type=color]{ height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .up{ display:inline-flex; align-items:center; gap:6px; background:var(--rl); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:12.5px; color:var(--va); cursor:pointer; }
+  .up input{ display:none; }
+  .dz-th{ height:34px; width:34px; object-fit:contain; border:1px solid var(--line); border-radius:6px; background:#fff; }
+
+  /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
+  .fab{ display:none; position:fixed; z-index:45; right:16px; bottom:calc(16px + env(safe-area-inset-bottom));
+    background:var(--dl); color:#fff; border:none; border-radius:30px; padding:14px 20px; font:inherit; font-size:15px; box-shadow:0 8px 24px rgba(16,76,79,.35); cursor:pointer; }
+  @media (max-width:900px){
+    .stage{ flex-direction:column; height:auto; }
+    .pane-form{ overflow:visible; height:auto; padding-bottom:96px; }
+    .pane-preview{ position:fixed; inset:0; z-index:60; transform:translateY(100%); transition:transform .3s ease;
+      border-left:none; height:100dvh; }
+    .pane-preview.open{ transform:none; }
+    .pv-close{ display:inline-flex; }
+    .fab{ display:inline-flex; }
+  }
 </style>
 </head>
 <body>
@@ -112,50 +130,49 @@
     <img class="brandlogo" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
     <h1 class="tbtitle">· Contratos</h1>
     <div class="spacer"></div>
+    <button type="button" class="tb-link" id="btnReset">Limpiar</button>
     <div class="lang-toggle" id="langToggle"></div>
   </div>
 
-  <div class="wrap">
-    <div class="tpl-card">
-      <div class="ico">📄</div>
-      <div class="meta">
-        <b id="tplName">Contrato de Reserva de Proyecto</b>
-        <span id="tplDesc">—</span>
+  <div class="stage">
+    <!-- IZQUIERDA · campos -->
+    <div class="pane-form">
+      <div class="inner">
+        <div class="tpl-card">
+          <div class="ico">📄</div>
+          <div class="meta">
+            <b id="tplName">Contrato de Reserva de Proyecto</b>
+            <span id="tplDesc">—</span>
+          </div>
+          <select id="tplPick" aria-label="Tipo de contrato"></select>
+        </div>
+        <form id="form"><!-- generado por JS --></form>
       </div>
-      <select id="tplPick" aria-label="Tipo de contrato"></select>
     </div>
 
-    <div class="progwrap"><div class="bar" id="progBar"></div></div>
-    <form id="form"><!-- generado por JS --></form>
-  </div>
-
-  <div class="actionbar">
-    <button type="button" class="btn ghost" id="btnBack">← Atrás</button>
-    <div class="prog"><b id="slideCount">1 / 1</b><a class="reset" id="btnReset">Limpiar</a></div>
-    <button type="button" class="btn primary" id="btnNext">Siguiente →</button>
-  </div>
-
-  <div class="overlay" id="overlay">
-    <div class="preview">
+    <!-- DERECHA · preview viva -->
+    <div class="pane-preview" id="pane">
       <div class="pv-bar">
-        <b>Contrato generado</b>
-        <button class="btn ghost" id="btnEdit">Editar</button>
+        <b id="pvTitle">Vista previa</b>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
+        <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
       </div>
-      <iframe id="pvFrame"></iframe>
+      <div class="pv-scroll"><iframe id="pvFrame" title="Vista previa del contrato"></iframe></div>
     </div>
   </div>
 
+  <button type="button" class="fab" id="fab">Vista previa ⤢</button>
   <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
    GENERADOR DE CONTRATOS — Lawang
-   Fase 2/3: 4 tipos · diccionario de marcadores en 3 niveles
-   (tokens.json) · toggle de idioma · portada+marca inyectadas.
-   Fase 4 (UI): nº contrato, estado, email — persistencia/envío
-   los hace el backend cuando exista (BD+SMTP del cliente).
-   Merge cliente = api/generar.php en producción.
+   · Layout dos columnas: campos ↔ preview viva (re-render en vivo).
+   · Panel Diseño: color de portada + logo/isotipo/marca de agua
+     con posiciones predefinidas, tamaño y opacidad. Persiste en
+     localStorage (marca del cliente, sobrevive recarga).
+   · Diccionario de marcadores en 3 niveles (tokens.json) · idioma.
+   · Merge cliente = api/generar.php en producción.
    ============================================================ */
 const TEMPLATES = [
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
@@ -179,7 +196,6 @@ const TIERS = {
 };
 const LANGS = [['es','ES'],['en','EN'],['id','ID']];
 
-/* fallback si tokens.json no carga (mantiene la app usable) */
 const FALLBACK_SECTIONS = [
   { id:'comprador', tier:'siempre', title:{es:'Adquiriente I'}, fields:[
     ['adq1_nombre',{es:'Nombre y apellidos'},'text'],
@@ -205,7 +221,136 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
 function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || ''; }
 
-/* ---------- construir formulario ---------- */
+/* ============================================================
+   PANEL DISEÑO — modelo, persistencia y CSS inyectado
+   ============================================================ */
+const DESIGN_DEFAULT = {
+  coverColor:'',                                    // '' = color del tipo de contrato
+  coverLogo:{ src:'', pos:'top-center',   size:38,  op:1   },
+  coverMark:{ src:'', pos:'bottom-center', size:74,  op:.075 },  // src '' = tiki por defecto
+  docLogo:  { src:'', pos:'left',          size:26,  op:1   },
+  docMark:  { src:'', pos:'center',        size:150, op:.05  },
+};
+let DESIGN = loadDesign();
+function loadDesign(){
+  try{ const s=JSON.parse(localStorage.getItem('lawang_contract_design'));
+    return s ? deepMerge(structuredClone(DESIGN_DEFAULT), s) : structuredClone(DESIGN_DEFAULT);
+  }catch(_){ return structuredClone(DESIGN_DEFAULT); }
+}
+function deepMerge(base, over){ for(const k in over){ (over[k] && typeof over[k]==='object' && !Array.isArray(over[k]))
+  ? deepMerge(base[k]=base[k]||{}, over[k]) : (base[k]=over[k]); } return base; }
+function saveDesign(){ try{ localStorage.setItem('lawang_contract_design', JSON.stringify(DESIGN)); }catch(_){} }
+
+const COVER_POS = {
+  'top-left':'top:14mm;left:18mm;', 'top-center':'top:14mm;left:50%;transform:translateX(-50%);', 'top-right':'top:14mm;right:18mm;',
+  'center':'top:50%;left:50%;transform:translate(-50%,-50%);',
+  'bottom-left':'bottom:20mm;left:18mm;', 'bottom-center':'left:0;right:0;bottom:-3%;', 'bottom-right':'bottom:20mm;right:18mm;',
+  'fullbleed':'inset:0;',
+};
+const DOC_POS = {
+  center:'left:50%;top:44%;transform:translate(-50%,-50%);',
+  top:'left:50%;top:10%;transform:translateX(-50%);',
+  bottom:'left:50%;bottom:10%;transform:translateX(-50%);',
+};
+const SLOTS = {
+  coverLogo:{ label:{es:'Logo · portada',en:'Logo · cover',id:'Logo · sampul'}, kind:'cover', unit:'mm', min:10, max:90 },
+  coverMark:{ label:{es:'Isotipo de fondo · portada',en:'Background mark · cover',id:'Latar · sampul'}, kind:'mark', unit:'%', min:20, max:120 },
+  docLogo:  { label:{es:'Logo de cabecera · interior',en:'Header logo · body',id:'Logo kepala · isi'}, kind:'doclogo', unit:'mm', min:10, max:60 },
+  docMark:  { label:{es:'Marca de agua · interior',en:'Watermark · body',id:'Cap air · isi'}, kind:'docmark', unit:'mm', min:60, max:220 },
+};
+const POS_OPTS = {
+  cover:[['top-left','Sup. izq.'],['top-center','Sup. centro'],['top-right','Sup. der.'],['center','Centro'],['bottom-left','Inf. izq.'],['bottom-center','Inf. centro'],['bottom-right','Inf. der.']],
+  mark:[['bottom-center','Abajo'],['center','Centro'],['top-center','Arriba'],['fullbleed','A sangre']],
+  doclogo:[['left','Izquierda'],['center','Centro'],['right','Derecha']],
+  docmark:[['center','Centro'],['top','Arriba'],['bottom','Abajo']],
+};
+
+/* CSS que reskin-ea portada+interior según DESIGN (se inyecta en el <head> del doc) */
+function designStyle(){
+  const d=DESIGN;
+  const color = d.coverColor || CURRENT.cover || '#104C4F';
+  let css = `:root{--brand-deep:${color};}`;
+
+  // portada · isotipo de fondo (moanito). Custom → sin filtro de blanqueo.
+  const markSrc = d.coverMark.src || 'assets/brand/tiki-totem.png';
+  css += `.lwcov .moai{${COVER_POS[d.coverMark.pos]||COVER_POS['bottom-center']}`
+       + `height:${d.coverMark.pos==='fullbleed'?'auto':d.coverMark.size+'%'};`
+       + `background-image:url("${markSrc}");background-position:${d.coverMark.pos==='fullbleed'?'center':'center bottom'};`
+       + `background-size:${d.coverMark.pos==='fullbleed'?'cover':'contain'};`
+       + `opacity:${d.coverMark.op};${d.coverMark.src?'filter:none;':''}}`;
+
+  // portada · logo
+  if(d.coverLogo.src){
+    css += `.lwcov .cov-logo{display:block;${COVER_POS[d.coverLogo.pos]||COVER_POS['top-center']}`
+         + `width:${d.coverLogo.size}mm;height:${d.coverLogo.size}mm;`
+         + `background-image:url("${d.coverLogo.src}");opacity:${d.coverLogo.op};}`;
+  }
+  // interior · marca de agua (funciona en plantillas con .doc)
+  if(d.docMark.src){
+    css += `.doc-watermark{display:none;}`;
+    css += `.doc::before{content:"";position:absolute;${DOC_POS[d.docMark.pos]||DOC_POS.center}`
+         + `height:${d.docMark.size}mm;width:100%;background:url("${d.docMark.src}") no-repeat center/contain;`
+         + `opacity:${d.docMark.op};z-index:0;pointer-events:none;}`;
+  }
+  // interior · logo de cabecera
+  if(d.docLogo.src){
+    css += `.doc-brand-logo{display:block;height:${d.docLogo.size}mm;opacity:${d.docLogo.op};margin:0 0 8mm;`
+         + `background:url("${d.docLogo.src}") no-repeat ${d.docLogo.pos}/contain;}`;
+  }
+  return css;
+}
+
+function buildDesignPanel(){
+  const rows = Object.entries(SLOTS).map(([key,cfg])=>{
+    const s=DESIGN[key]; const opts=POS_OPTS[cfg.kind];
+    return `<div class="dz" data-slot="${key}">
+      <div class="dz-h">${L(cfg.label)}</div>
+      <div class="dz-row">
+        <label class="up">${s.src?'Cambiar imagen':'Subir imagen'}<input type="file" accept="image/*" data-df="${key}"></label>
+        ${s.src?`<img class="dz-th" src="${s.src}" alt=""><button type="button" class="link-btn" data-dclear="${key}">Quitar</button>`:''}
+      </div>
+      <div class="dz-row"><span>Posición</span><select data-dp="${key}">${opts.map(o=>`<option value="${o[0]}" ${s.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+      <div class="dz-row"><span>Tamaño</span><input type="range" min="${cfg.min}" max="${cfg.max}" value="${s.size}" data-dsize="${key}"></div>
+      <div class="dz-row"><span>Opacidad</span><input type="range" min="0" max="100" value="${Math.round(s.op*100)}" data-dop="${key}"></div>
+    </div>`;
+  }).join('');
+  const color = DESIGN.coverColor || CURRENT.cover;
+  return `<section class="section design collapsed" id="designPanel">
+    <header data-acc><span class="num">🎨</span><h2>Diseño / Marca</h2><span class="chev">▾</span></header>
+    <div class="body">
+      <div class="dz">
+        <div class="dz-h">Color de portada</div>
+        <div class="dz-row"><span>Color</span><input type="color" id="coverColor" value="${color}">
+          <button type="button" class="link-btn" id="coverColorReset">Color del tipo</button></div>
+      </div>
+      ${rows}
+    </div>
+  </section>`;
+}
+
+/* eventos del panel (delegados) */
+function wireDesignPanel(){
+  const panel=$('#designPanel'); if(!panel) return;
+  $('#coverColor').addEventListener('input',e=>{ DESIGN.coverColor=e.target.value; saveDesign(); render(); });
+  $('#coverColorReset').addEventListener('click',()=>{ DESIGN.coverColor=''; saveDesign(); $('#coverColor').value=CURRENT.cover; render(); });
+  panel.addEventListener('change',e=>{
+    const f=e.target.closest('[data-df]'); if(f && f.files[0]){ readImg(f.files[0], src=>{ DESIGN[f.dataset.df].src=src; saveDesign(); rebuildDesign(); render(); }); return; }
+    const p=e.target.closest('[data-dp]'); if(p){ DESIGN[p.dataset.dp].pos=p.value; saveDesign(); render(); }
+  });
+  panel.addEventListener('input',e=>{
+    const sz=e.target.closest('[data-dsize]'); if(sz){ DESIGN[sz.dataset.dsize].size=+sz.value; saveDesign(); render(); return; }
+    const op=e.target.closest('[data-dop]'); if(op){ DESIGN[op.dataset.dop].op=+op.value/100; saveDesign(); render(); }
+  });
+  panel.addEventListener('click',e=>{
+    const c=e.target.closest('[data-dclear]'); if(c){ DESIGN[c.dataset.dclear].src=''; saveDesign(); rebuildDesign(); render(); }
+  });
+}
+function rebuildDesign(){ const old=$('#designPanel'); if(old){ old.outerHTML=buildDesignPanel(); wireDesignPanel(); wireAccordions(); } }
+function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
+
+/* ============================================================
+   FORMULARIO
+   ============================================================ */
 function fieldHTML(f){
   const [key,labelObj,type,extra] = f;
   const label = L(labelObj);
@@ -230,62 +375,59 @@ function fieldHTML(f){
     <input name="${key}" type="${t}" ${step} value="${def}" autocomplete="off"></div>`;
 }
 
-let slideEls=[]; let curSlide=0;
 function buildForm(){
-  const form = $('#form'); form.classList.add('slides');
-  const total = SECTIONS.length;
-  let html=''; let idx=0;
+  const form = $('#form');
+  let html = buildDesignPanel();          // panel Diseño primero
+  let lastTier=null, idx=0;
   SECTIONS.forEach(s=>{
     idx++;
+    if(s.tier!==lastTier){ html += `<div class="tier-label ${lastTier===null?'first':''}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; lastTier=s.tier; }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const cls = s.optional ? 'optional off' : '';
     const grid = ['comprador','comprador2','comprador3','sociedad','dinero','vendedor','apendices','gestion'].includes(s.id);
     const body = s.fields.map(fieldHTML).join('');
-    // el boilerplate bloqueado se muestra en la última slide (firmas)
     const note = (s.id==='firmas' && TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length)
       ? `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
           <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>` : '';
     html += `<section class="section ${cls}" data-sec="${s.id}" data-tier="${s.tier}">
-      <div class="slide-eyebrow">${L(TIERS[s.tier]||{es:s.tier})} · ${idx}/${total}</div>
-      <header><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}</header>
+      <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
       <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}</div></section>`;
   });
   form.innerHTML = html;
-  slideEls = [...form.querySelectorAll('.section')];
 
+  wireDesignPanel();
+  wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
-      sec.classList.toggle('off', !chk.checked); });
+      sec.classList.toggle('off', !chk.checked); if(chk.checked) ensurePads(sec); render(); });
   });
-  form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>clearPad(b.dataset.clear)));
-  curSlide = 0; gotoSlide(0);
+  form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>{ clearPad(b.dataset.clear); render(); }));
+  form.querySelectorAll('input[name],textarea[name],select[name]').forEach(el=> el.addEventListener('input', renderDebounced));
+  form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', render));
+  ensurePads(form);   // secciones visibles al arrancar
+  render();
 }
 
-/* pads de firma: inicializar SOLO cuando su slide es visible (si no, el canvas mide 0) */
-function ensurePads(sec){ sec.querySelectorAll('.sigpad-wrap:not([data-init])').forEach(w=>{ w.setAttribute('data-init','1'); initPad(w); }); }
-
-function gotoSlide(i){
-  if(!slideEls.length) return;
-  curSlide = Math.max(0, Math.min(slideEls.length-1, i));
-  slideEls.forEach((el,idx)=> el.classList.toggle('current', idx===curSlide));
-  const sec = slideEls[curSlide]; if(sec) ensurePads(sec);
-  $('#progBar').style.width = ((curSlide+1)/slideEls.length*100)+'%';
-  $('#slideCount').textContent = `${curSlide+1} / ${slideEls.length}`;
-  $('#btnBack').disabled = curSlide===0;
-  const last = curSlide===slideEls.length-1;
-  $('#btnNext').textContent = last ? L({es:'Generar contrato',en:'Generate',id:'Buat kontrak'})
-                                   : L({es:'Siguiente →',en:'Next →',id:'Lanjut →'});
-  window.scrollTo({top:0, behavior:'smooth'});
+/* acordeón: click en la cabecera pliega/despliega (e inicializa pads al abrir) */
+function wireAccordions(){
+  document.querySelectorAll('#form [data-acc]').forEach(h=>{
+    if(h._acc) return; h._acc=1;
+    h.addEventListener('click', e=>{
+      if(e.target.closest('.switch')||e.target.closest('.opt-toggle')) return;  // no plegar al togglear opcional
+      const sec=h.closest('.section'); sec.classList.toggle('collapsed');
+      if(!sec.classList.contains('collapsed')) ensurePads(sec);
+    });
+  });
 }
 
-/* cambia solo las ETIQUETAS al toggle de idioma → conserva valores y firmas */
+/* pads de firma: init sólo cuando el canvas es visible (si no, mide 0) */
+function ensurePads(root){ root.querySelectorAll('.section:not(.collapsed):not(.off) .sigpad-wrap:not([data-init])').forEach(w=>{ w.setAttribute('data-init','1'); initPad(w); }); }
+
+/* toggle de idioma → re-etiqueta campos, conserva valores y firmas */
 function applyLang(){
-  const total = slideEls.length;
-  slideEls.forEach((sec,idx)=>{
-    const s = SECTIONS.find(x=>x.id===sec.dataset.sec); if(!s) return;
+  SECTIONS.forEach(s=>{
+    const sec=$(`[data-sec="${s.id}"]`); if(!sec) return;
     sec.querySelector('h2').textContent = L(s.title);
-    const eb = sec.querySelector('.slide-eyebrow');
-    if(eb) eb.textContent = `${L(TIERS[s.tier]||{es:s.tier})} · ${idx+1}/${total}`;
     s.fields.forEach(f=>{
       const el = sec.querySelector(`[name="${f[0]}"]`);
       const lab = el ? el.closest('.field').querySelector('label')
@@ -293,9 +435,9 @@ function applyLang(){
       if(lab) lab.textContent = L(f[1]);
     });
   });
+  document.querySelectorAll('#form .tier-label').forEach((el,i)=>{}); // (las tier-labels se regeneran al reconstruir; aquí basta con el idioma actual)
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
-  gotoSlide(curSlide);  // refresca etiquetas de navegación en el nuevo idioma
-  if($('#overlay').classList.contains('open')) generate();
+  render();
 }
 
 /* ---------- pad de firma ---------- */
@@ -313,14 +455,14 @@ function initPad(wrap){
   const move=e=>{ if(!drawing)return; const p=pos(e); const c=pads[key].ctx;
     c.beginPath(); c.moveTo(last.x,last.y); c.lineTo(p.x,p.y); c.stroke(); last=p;
     pads[key].empty=false; wrap.classList.add('signed'); e.preventDefault(); };
-  const end=()=>{ drawing=false; };
+  const end=()=>{ if(drawing){ drawing=false; renderDebounced(); } };
   cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
   cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
 }
 function clearPad(key){ const p=pads[key]; if(!p)return; p.ctx.clearRect(0,0,p.cv.width,p.cv.height);
   p.empty=true; document.getElementById('pad-'+key).classList.remove('signed'); }
 
-/* ---------- progreso / recolección ---------- */
+/* ---------- recolección ---------- */
 function activeKeys(){
   const keys=[];
   SECTIONS.forEach(s=>{ const sec=$(`[data-sec="${s.id}"]`);
@@ -335,9 +477,8 @@ function collect(){
     const el=$(`[name="${k}"]`); data[k]= el ? el.value.trim() : ''; });
   return data;
 }
-function updateProgress(){ /* la barra de progreso refleja la posición del slide (gotoSlide) */ }
 
-/* ---------- generar (merge cliente) ---------- */
+/* ---------- merge cliente ---------- */
 function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function injectBrandAndCover(html, data){
@@ -347,33 +488,40 @@ function injectBrandAndCover(html, data){
   const head = `<link rel="stylesheet" href="assets/brand.css">`
     + `<link rel="stylesheet" href="assets/contract.css">`
     + `<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
-    + `<style>:root{--brand-deep:${CURRENT.cover||'#104C4F'}}[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
+    + `<style>[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
   else html = '<head>'+head+'</head>'+html;
-  if(/<body[^>]*>/.test(html)) html = html.replace(/<body([^>]*)>/, `<body$1>${cov}`);
-  else html = cov + html;
+  // logo de cabecera interior: primer hijo de la primera .doc (plantillas con .doc)
+  html = html.replace(/(<div class="doc"[^>]*>)/, `$1<div class="doc-brand-logo" aria-hidden="true"></div>`);
+  // El CSS de diseño va DESPUÉS de la portada: _portada.html lleva su <style> inline
+  // en el body; para ganar el desempate de especificidad debe ir más abajo en el documento
+  // (también gana a contract.css del <head> para las reglas del interior).
+  const design = `${cov}<style>${designStyle()}</style>`;
+  if(/<body[^>]*>/.test(html)) html = html.replace(/<body([^>]*)>/, `<body$1>${design}`);
+  else html = design + html;
   return html;
 }
-function generate(){
+function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(templateHTML, data);
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
     return filled ? esc(data[k],k) : '—'; });
-  const f=$('#pvFrame'); f.srcdoc=html; $('#overlay').classList.add('open');
+  return html;
 }
+/* re-render de la preview viva (siempre visible) */
+function render(){ $('#pvFrame').srcdoc = buildDoc(); }
+let _rt=null; function renderDebounced(){ clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
-/* ---------- cobertura genérica de marcadores del template ---------- */
+/* ---------- cobertura genérica de marcadores ---------- */
 function ensureCoverage(html){
   const inTpl=[...new Set([...html.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]))]
     .filter(k=>k!=='campo' && !['contrato_tipo','contrato_titulo','contrato_num'].includes(k));
   const known=new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
   const missing=inTpl.filter(k=>!known.has(k));
-  // limpia grupo 'otros' previo
   SECTIONS = SECTIONS.filter(s=>s.id!=='otros');
   if(missing.length){
-    // insertar tras el último bloque de nivel "siempre" → no duplica su etiqueta
     let ins = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
     ins = ins<0 ? SECTIONS.length : ins+1;
     SECTIONS.splice(ins, 0,
@@ -396,24 +544,23 @@ async function loadTemplate(slug){
 function buildPicker(){
   const sel=$('#tplPick');
   sel.innerHTML = TEMPLATES.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
-  sel.addEventListener('change', async ()=>{ await loadTemplate(sel.value); buildForm(); });
+  sel.addEventListener('change', async ()=>{ await loadTemplate(sel.value); buildForm();
+    if(DESIGN.coverColor===''){ const c=$('#coverColor'); if(c) c.value=CURRENT.cover; } });
 }
 function buildLangToggle(){
   const box=$('#langToggle');
   box.innerHTML = LANGS.map(([code,lbl])=>`<button data-l="${code}" class="${code===LANG?'on':''}">${lbl}</button>`).join('');
   box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ LANG=b.dataset.l;
-    $('#tplName').textContent=L(CURRENT.name);
-    buildPicker(); applyLang(); }));
+    $('#tplName').textContent=L(CURRENT.name); buildPicker(); buildForm(); applyLang(); }));
 }
 
-/* ---------- navegación de slides ---------- */
-$('#btnBack').addEventListener('click', ()=> gotoSlide(curSlide-1));
-$('#btnNext').addEventListener('click', ()=>{ if(curSlide===slideEls.length-1) generate(); else gotoSlide(curSlide+1); });
+/* ---------- preview móvil (overlay) ---------- */
+$('#fab').addEventListener('click', ()=>{ render(); $('#pane').classList.add('open'); });
+$('#btnClose').addEventListener('click', ()=> $('#pane').classList.remove('open'));
 
 /* ---------- PDF / backend ---------- */
-$('#btnEdit').addEventListener('click', ()=>$('#overlay').classList.remove('open'));
 $('#btnPdf').addEventListener('click', downloadPdf);
-$('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos?')) location.reload(); });
+$('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos? (el diseño de marca se conserva)')) location.reload(); });
 function printPreview(){ const w=$('#pvFrame').contentWindow; w.focus(); w.print(); }
 async function downloadPdf(){
   if(!BACKEND){ printPreview(); return; }
@@ -433,7 +580,6 @@ async function downloadPdf(){
 async function init(){
   try{ COVER_HTML = await fetch('templates/_portada.html').then(r=>r.text()); }catch(_){ COVER_HTML=''; }
   try{ TOKENS = await fetch('tokens.json').then(r=>r.json()); if(TOKENS.sections && TOKENS.sections.length) SECTIONS = TOKENS.sections; }catch(_){}
-  // ¿backend PHP con login? (si no, modo standalone — el actual en producción hasta montar BD)
   try{
     const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
     BACKEND=true; CSRF=me.csrf; if(!me.agent){ location.href='login.html'; return; }
