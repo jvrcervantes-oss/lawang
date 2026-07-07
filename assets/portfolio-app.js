@@ -82,7 +82,7 @@
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg><span>'+langName+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
       +   '<div class="nav-cur">'+cb('EUR','€')+cb('USD','$')+cb('AUD','A$')+'</div>'
-      +   '<a class="nav-cta" href="'+waUrl+'" target="_blank" rel="noopener">'+wa+' Let\'s Talk</a>'
+      +   '<a class="nav-cta" href="'+waUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> '+t("cta.ask")+'</a>'
       + '</div></header>';
   }
 
@@ -106,15 +106,23 @@
     var featured = L.PROPERTIES.find(function(p){return p.featured && p.visible!==false;});
     var filtered = L.PROPERTIES.filter(function(p){ return p.visible!==false && (S.line==="all"||p.line===S.line) && (S.region==="all"||p.regionKey===S.region); });
 
-    var lineCards = LINES.map(function(l,i){
-      var on = S.line===l;
-      return '<div class="reveal" style="transition-delay:'+(i*70)+'ms">'
-        + '<button data-act="line:'+l+'" style="text-align:left;width:100%;height:100%;background:'+(on?"var(--tg,#485B37)":"var(--bone)")+';color:'+(on?"var(--bone)":"var(--ink)")+';border:0;cursor:pointer;padding:15px 18px 16px;transition:background .3s,color .3s">'
-        +   '<div style="display:flex;align-items:center;gap:12px"><img src="assets/img/'+LINE_CREAM[l]+'.png" alt="" loading="lazy" style="width:38px;height:38px;flex-shrink:0;object-fit:contain;'+(on?"":CREAM_TINT)+'">'
-        +   '<div><div style="font-size:9px;font-weight:600;letter-spacing:.18em;color:'+(on?"rgba(245,240,230,0.6)":"var(--clay,#485B37)")+';text-transform:uppercase">'+String(i+1).padStart(2,"0")+'</div>'
-        +   '<div style="font-family:var(--sans);font-size:18px;font-weight:500;letter-spacing:.01em;line-height:1.05">'+t(LINE_KEYS[l])+'</div></div></div>'
-        +   '<p style="font-size:12px;line-height:1.4;margin-top:9px;margin-bottom:0;opacity:.74">'+t(lineDescs[l])+'</p>'
-        + '</button></div>';
+    // Portada: 3 categorías destacadas con foto de fondo (Signature / Land Legacy / Resorts).
+    // Villas sigue disponible en el nav y en los chips de filtro.
+    var HERO_CATS = [
+      { line:"signature", img:"CardSignatures.jpg" },
+      { line:"land",      img:"CardLand.jpg" },
+      { line:"resorts",   img:"CardResorts.jpg" }
+    ];
+    var lineCards = HERO_CATS.map(function(c,i){
+      var on = S.line===c.line;
+      return '<button class="lw-cat reveal" data-act="line:'+c.line+'" style="transition-delay:'+(i*70)+'ms;position:relative;border:0;cursor:pointer;padding:0;border-radius:14px;overflow:hidden;min-height:clamp(120px,13vw,168px);display:flex;align-items:center;box-shadow:'+(on?"0 0 0 2px var(--clay)":"none")+'">'
+        + '<img src="assets/img/'+c.img+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+        + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.74) 0%,rgba(20,16,11,.4) 55%,rgba(20,16,11,.12) 100%)"></span>'
+        + '<span style="position:relative;display:flex;align-items:center;gap:15px;padding:0 clamp(16px,2vw,26px);text-align:left;color:#F5F0E6">'
+        +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(38px,4vw,52px);height:auto;flex:none;object-fit:contain">'
+        +   '<span><span style="display:block;font-family:var(--serif);font-weight:300;font-size:clamp(21px,2.4vw,32px);line-height:1;letter-spacing:.01em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
+        +     '<span style="display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.86;margin-top:8px">'+t("cat."+c.line+".sub")+'</span></span>'
+        + '</span></button>';
     }).join("");
 
     var chips = '<button class="filter-chip" data-act="line:all" style="'+chipStyle(S.line==="all")+'">'+t("mk.all")+'</button>'
@@ -138,10 +146,14 @@
     var showFeatured = featured && (S.line==="all"||S.line===featured.line) && (S.region==="all"||S.region===featured.regionKey);
 
     return '<div style="background:var(--bone)">'
-      + '<section class="wrap" style="padding-top:clamp(22px,3vw,42px);padding-bottom:22px">'
-      +   '<div class="reveal"><div class="eyebrow-row"><span class="kicker">'+t("mk.kicker")+'</span></div>'
-      +   '<h1 class="display" style="font-size:clamp(28px,4vw,52px);margin-top:12px;max-width:18ch">'+t("mk.title")+'</h1></div>'
-      +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;margin-top:22px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden">'+lineCards+'</div>'
+      + '<section class="wrap" style="padding-top:clamp(30px,4vw,58px);padding-bottom:26px">'
+      +   '<div class="reveal" style="text-align:center">'
+      +     '<span class="kicker" style="display:inline-block">'+t("mk.kicker")+'</span>'
+      +     '<h1 class="display" style="margin:14px auto 0;font-weight:300;line-height:.98;text-transform:uppercase">'
+      +       '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(17px,2.3vw,30px);letter-spacing:.14em">'+t("mk.title1")+'</span>'
+      +       '<span style="display:block;font-size:clamp(40px,7vw,92px);letter-spacing:.02em;margin-top:4px">'+t("mk.title2")+'</span>'
+      +     '</h1></div>'
+      +   '<div class="lw-cat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:clamp(24px,3vw,40px)">'+lineCards+'</div>'
       + '</section>'
       + (showFeatured ? '<section class="wrap">'+featuredHTML(featured)+'</section>' : "")
       + '<section class="wrap" id="pf-grid" style="scroll-margin-top:90px">'
@@ -151,10 +163,45 @@
       +       '<div class="seg" style="color:var(--ink)"><button class="'+(S.layout==="grid"?"on":"")+'" data-act="layout:grid"><span style="color:'+(S.layout==="grid"?"var(--bone)":"inherit")+'">▦</span></button>'
       +       '<button class="'+(S.layout==="list"?"on":"")+'" data-act="layout:list"><span style="color:'+(S.layout==="list"?"var(--bone)":"inherit")+'">≡</span></button></div></div>'
       +   '</div>'
-      +   '<div style="display:grid;grid-template-columns:'+gridCols+';gap:'+gap+';padding-bottom:100px">'+(cards||emptyState)+'</div>'
-      + '</section></div>';
+      +   '<div style="display:grid;grid-template-columns:'+gridCols+';gap:'+gap+';padding-bottom:clamp(40px,5vw,64px)">'+(cards||emptyState)+'</div>'
+      + '</section>'
+      + footerHTML()
+      + '</div>';
   }
   function chipStyle(active){ return 'appearance:none;border:1px solid '+(active?"var(--ink)":"var(--line)")+';background:'+(active?"var(--ink)":"transparent")+';color:'+(active?"var(--bone)":"var(--ink-2)")+';border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap'; }
+
+  // ════ FOOTER (banda de reserva + barra de contacto) ════
+  function footerHTML(){
+    var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
+    var email=(L.SETTINGS&&L.SETTINGS.email)||'hello@lawang.id';
+    var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(t("reserve.msg")||"Hello LAWANG");
+    var tel='+'+waNum.replace(/^(\d{2})(\d{3})(\d{4})(\d+)$/,'$1 $2-$3-$4');
+    var icoPhone='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+    var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
+    return '<section class="wrap" style="padding-block:clamp(30px,5vw,72px)">'
+      + '<a href="'+waUrl+'" target="_blank" rel="noopener" class="lw-reserve" style="display:block;position:relative;border-radius:16px;overflow:hidden;min-height:clamp(300px,34vw,440px);text-decoration:none">'
+      +   '<img src="assets/img/bg-ecosystem.jpg" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+      +   '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,16,12,.8) 0%,rgba(18,16,12,.35) 55%,rgba(18,16,12,.05) 100%)"></span>'
+      +   '<span style="position:relative;display:flex;flex-direction:column;justify-content:center;height:100%;min-height:inherit;padding:clamp(26px,5vw,62px);color:#F5F0E6;max-width:680px">'
+      +     '<span style="border-left:2px solid rgba(245,240,230,.55);padding-left:clamp(18px,2vw,28px)">'
+      +       '<span class="kicker" style="color:rgba(245,240,230,.82);display:block;margin-bottom:10px">'+t("ft.reserve.k")+'</span>'
+      +       '<span class="display" style="display:block;font-size:clamp(30px,4.4vw,58px);line-height:1.02;text-transform:uppercase;font-weight:300">'+t("ft.reserve.t1")+' <span style="font-style:italic;text-transform:none">'+t("ft.reserve.t2")+'</span></span>'
+      +     '</span>'
+      +     '<span style="font-size:clamp(14px,1.5vw,16px);opacity:.9;margin-top:20px;max-width:520px;padding-left:clamp(18px,2vw,28px);line-height:1.6">'+t("ft.reserve.sub")+'</span>'
+      +     '<span style="margin-top:26px;padding-left:clamp(18px,2vw,28px)"><span class="btn btn-light">'+t("ft.reserve.cta")+' <span class="arr">→</span></span></span>'
+      +   '</span>'
+      + '</a>'
+      + '</section>'
+      + '<footer style="background:var(--tg);color:var(--bone)">'
+      +   '<div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-block:22px">'
+      +     '<div style="font-family:var(--sans);font-size:clamp(12px,1.4vw,15px);letter-spacing:.05em;text-transform:uppercase">'+t("ft.tag1")+' <b style="font-weight:700">'+t("ft.tag2")+'</b></div>'
+      +     '<div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">'
+      +       '<a href="tel:+'+waNum+'" style="color:var(--bone);display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14px">'+icoPhone+tel+'</a>'
+      +       '<a href="mailto:'+esc(email)+'" style="color:var(--bone);display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14px">'+icoMail+esc(email)+'</a>'
+      +     '</div>'
+      +   '</div>'
+      + '</footer>';
+  }
 
   // ════ FICHA — sub-bloques ════
   function galleryHTML(p){

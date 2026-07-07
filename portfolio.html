@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260707121106">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260707143743">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -192,6 +192,10 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .pf-topbar { background:#104C4F; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(20px,4vw,52px); height:64px; position:sticky; top:0; z-index:100; border-bottom:1px solid rgba(58,102,69,0.3); }
 
 /* ── PROPERTY OVERLAY ────────────────────────────────────── */
+.lw-cat { transition:box-shadow .3s, transform .16s var(--ease-press); }
+.lw-cat:hover { box-shadow:0 0 0 2px var(--clay); }
+.lw-cat:active { transform:scale(.99); }
+@media(max-width:820px){ .lw-cat-grid { grid-template-columns:1fr !important; } }
 #pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain; }
 #pf-overlay .pf-overlay-bar { position:sticky; top:0; z-index:2; height:60px; display:flex; align-items:center; justify-content:space-between; background:rgba(241,236,225,.94); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); padding:0 clamp(20px,5vw,72px); }
 
@@ -454,6 +458,22 @@ article:hover .view-cta { gap:9px; }
     "intro.stat3.v":{"en":"Balian Hills & Sumba","es":"Balian Hills y Sumba"},
     "mk.kicker":{"en":"The Portfolio","es":"The Portfolio"},
     "mk.title":{"en":"Four ways to own a piece of Indonesia.","es":"Cuatro formas de poseer un trozo de Indonesia."},
+    "mk.title1":{"en":"Own a piece of","es":"Posee un trozo de","id":"Miliki sebagian dari"},
+    "mk.title2":{"en":"Indonesia","es":"Indonesia","id":"Indonesia"},
+    "cta.ask":{"en":"Ask us anything","es":"Pregúntanos lo que sea","id":"Tanya apa saja"},
+    "cat.signature":{"en":"Signature","es":"Signature","id":"Signature"},
+    "cat.signature.sub":{"en":"Villa Communities","es":"Comunidades de villas","id":"Komunitas Villa"},
+    "cat.land":{"en":"Land Legacy","es":"Land Legacy","id":"Land Legacy"},
+    "cat.land.sub":{"en":"Premium Parcels","es":"Parcelas premium","id":"Kavling Premium"},
+    "cat.resorts":{"en":"Resorts","es":"Resorts","id":"Resorts"},
+    "cat.resorts.sub":{"en":"Prime Hospitality","es":"Hospitalidad de primer nivel","id":"Hospitality Utama"},
+    "ft.reserve.k":{"en":"The process","es":"El proceso","id":"Prosesnya"},
+    "ft.reserve.t1":{"en":"The reservation process","es":"El proceso de reserva","id":"Proses reservasi"},
+    "ft.reserve.t2":{"en":"with Lawang","es":"con Lawang","id":"bersama Lawang"},
+    "ft.reserve.sub":{"en":"From first conversation to title deed — transparent milestones, refundable deposits and construction certifications at every stage.","es":"De la primera conversación a la escritura — hitos transparentes, depósitos reembolsables y certificaciones de construcción en cada fase.","id":"Dari percakapan pertama hingga sertifikat — tahapan transparan, deposit yang dapat dikembalikan, dan sertifikasi konstruksi di setiap tahap."},
+    "ft.reserve.cta":{"en":"Start your reservation","es":"Inicia tu reserva","id":"Mulai reservasi Anda"},
+    "ft.tag1":{"en":"Discover beyond the projects.","es":"Descubre más allá de los proyectos.","id":"Temukan lebih dari sekadar proyek."},
+    "ft.tag2":{"en":"Ask why investors stay.","es":"Pregunta por qué los inversores se quedan.","id":"Tanyakan mengapa investor bertahan."},
     "mk.all":{"en":"All","es":"Todo"},
     "mk.featured":{"en":"Featured release","es":"Lanzamiento destacado"},
     "mk.results":{"en":"listings","es":"propiedades"},
@@ -594,8 +614,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260707121106"></script>
-<script src="assets/portfolio-app.js?v=20260707121106"></script>
+<script src="assets/lawang-card.js?v=20260707143743"></script>
+<script src="assets/portfolio-app.js?v=20260707143743"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
