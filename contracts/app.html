@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css">
+<!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{ --line:#e4ddcf; --tbh:56px; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -183,6 +185,9 @@ const TEMPLATES = [
   { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
     name:{es:'Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'},
     l2:{es:'de Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'}, ready:true },
+  { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
+    name:{es:'Construcción · DALI',en:'Construction · DALI',id:'Konstruksi · DALI'},
+    l2:{es:'de Construcción · DALI',en:'Construction · DALI',id:'Konstruksi · DALI'}, ready:true },
 ];
 const TIERS = {
   siempre:      {es:'Datos de la operación',en:'Operation data',id:'Data operasi'},
@@ -376,6 +381,100 @@ function rebuildDesign(){ const old=$('#designPanel'); if(old){ old.outerHTML=bu
 function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
 
 /* ============================================================
+   ANEXOS — se definen (PDF o imágenes → imágenes de página), se marcan
+   "incluir" y se añaden al final del contrato como páginas NO editables.
+   ============================================================ */
+let ANNEXES = loadAnnexes();
+let annexSeq = 1 + ANNEXES.reduce((m,a)=>Math.max(m, parseInt(String(a.id||'').replace('ax',''))||0), 0);
+function loadAnnexes(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]; }catch(_){ return []; } }
+function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES)); }
+  catch(_){ toast('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
+function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function pdfToImages(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const out=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i);
+    const base = page.getViewport({scale:1});
+    const vp = page.getViewport({scale: Math.min(1400/base.width, 2)});
+    const cv = document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
+    await page.render({canvasContext:cv.getContext('2d'), viewport:vp}).promise;
+    out.push(cv.toDataURL('image/jpeg', .82));
+  }
+  return out;
+}
+function compressImage(file){
+  return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{ URL.revokeObjectURL(url); const s=Math.min(1400/img.naturalWidth,1);
+      const cv=document.createElement('canvas'); cv.width=Math.round(img.naturalWidth*s); cv.height=Math.round(img.naturalHeight*s);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); res([cv.toDataURL('image/jpeg',.82)]); };
+    img.onerror=rej; img.src=url; });
+}
+async function fileToAnnexPages(file){
+  if(file.type==='application/pdf' || /\.pdf$/i.test(file.name)){
+    if(!window.pdfjsLib) throw new Error('pdf.js no cargó'); return await pdfToImages(file);
+  }
+  return await compressImage(file);
+}
+
+function buildAnnexPanel(){
+  const rows = ANNEXES.map((a,i)=>`
+    <div class="dz" data-anx="${a.id}">
+      <div class="dz-row">
+        <input class="anx-title" data-anxtitle="${a.id}" value="${escAttr(a.title)}" aria-label="Título del anexo" style="flex:1;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${a.pages.length} pág.</span>
+        <button type="button" class="link-btn" data-anxdel="${a.id}">Quitar</button>
+      </div>
+      <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${a.id}" ${a.on?'checked':''}><span class="slider"></span></label>
+        <span>Incluir en el contrato</span></div>
+    </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">Aún no hay anexos. Sube un PDF o imágenes para definirlos.</div>`;
+  return `<section class="section design collapsed" id="annexPanel">
+    <header data-acc><span class="num">📎</span><h2>Anexos</h2><span class="chev">▾</span></header>
+    <div class="body">
+      ${rows}
+      <div class="dz"><label class="up" id="anxUpLabel">+ Añadir anexo (PDF o imágenes)<input type="file" id="anxFile" accept="application/pdf,image/*" multiple></label></div>
+    </div>
+  </section>`;
+}
+function wireAnnexPanel(){
+  const p=$('#annexPanel'); if(!p) return;
+  $('#anxFile').addEventListener('change', async e=>{
+    const files=[...e.target.files]; if(!files.length) return;
+    const lbl=$('#anxUpLabel'); const t0=lbl.textContent; lbl.textContent='Procesando…';
+    for(const f of files){
+      try{ const pages=await fileToAnnexPages(f); ANNEXES.push({id:'ax'+(annexSeq++), title:f.name.replace(/\.[^.]+$/,''), pages, on:true}); }
+      catch(err){ toast('No se pudo procesar '+f.name); }
+    }
+    lbl.textContent=t0; saveAnnexes(); rebuildAnnex(); render();
+  });
+  p.addEventListener('change', e=>{
+    const on=e.target.closest('[data-anxon]'); if(on){ const a=ANNEXES.find(x=>x.id===on.dataset.anxon); if(a){ a.on=on.checked; saveAnnexes(); render(); } return; }
+    const t=e.target.closest('[data-anxtitle]'); if(t){ const a=ANNEXES.find(x=>x.id===t.dataset.anxtitle); if(a){ a.title=t.value; saveAnnexes(); render(); } }
+  });
+  p.addEventListener('click', e=>{
+    const d=e.target.closest('[data-anxdel]'); if(d){ ANNEXES=ANNEXES.filter(x=>x.id!==d.dataset.anxdel); saveAnnexes(); rebuildAnnex(); render(); }
+  });
+}
+function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buildAnnexPanel(); wireAnnexPanel(); wireAccordions(); } }
+
+/* páginas de anexos incluidos, al final del contrato (portada de anexo + imágenes de página) */
+function annexHTML(){
+  const on=ANNEXES.filter(a=>a.on && a.pages && a.pages.length);
+  if(!on.length) return '';
+  const lbl=L({es:'Anexo',en:'Annex',id:'Lampiran'});
+  let h='<div class="annexes">';
+  on.forEach((a,i)=>{
+    h+=`<section class="annex-cover"><div class="annex-label">${escAttr(lbl)} ${i+1}</div><div class="annex-name">${escAttr(a.title)}</div></section>`;
+    a.pages.forEach(src=>{ h+=`<section class="annex-page"><img src="${src}" alt=""></section>`; });
+  });
+  return h+'</div>';
+}
+
+/* ============================================================
    FORMULARIO
    ============================================================ */
 function fieldHTML(f){
@@ -404,7 +503,7 @@ function fieldHTML(f){
 
 function buildForm(){
   const form = $('#form');
-  let html = buildDesignPanel();          // panel Diseño primero
+  let html = buildDesignPanel() + buildAnnexPanel();   // paneles Diseño y Anexos primero
   let lastTier=null, idx=0;
   SECTIONS.forEach(s=>{
     idx++;
@@ -423,6 +522,7 @@ function buildForm(){
   form.innerHTML = html;
 
   wireDesignPanel();
+  wireAnnexPanel();
   wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
@@ -515,9 +615,10 @@ function injectBrandAndCover(html, data){
   // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
   // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
   const base = location.href.replace(/[^/]*(?:\?.*)?$/,'');
+  const v='?v='+Date.now();   // cache-buster: los CSS cambian con el deploy → nunca servir cacheados
   const head = `<base href="${base}">`
-    + `<link rel="stylesheet" href="assets/brand.css">`
-    + `<link rel="stylesheet" href="assets/contract.css">`
+    + `<link rel="stylesheet" href="assets/brand.css${v}">`
+    + `<link rel="stylesheet" href="assets/contract.css${v}">`
     + `<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
     + `<style>${langCSS()}</style>`
     // Impresión/PDF: A4 con márgenes en TODAS las páginas (@page, no el padding del .doc,
@@ -531,6 +632,13 @@ function injectBrandAndCover(html, data){
     + `@page cover{margin:0}`
     + `.lwcov{page:cover}`
     + `@media print{.doc{padding:0!important;overflow:visible!important}}`
+    // Anexos: cada página a sangre (A4 completo), no editables. z-index sobre la marca de agua fija.
+    + `.annex-cover,.annex-page{page:cover;page-break-before:always;width:210mm;height:297mm;position:relative;z-index:2;box-sizing:border-box;overflow:hidden}`
+    + `.annex-cover{background:var(--brand-deep,#104C4F);color:var(--brand-paper,#F5F0E6);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}`
+    + `.annex-cover .annex-label{font-size:13pt;letter-spacing:.3em;text-transform:uppercase;opacity:.85}`
+    + `.annex-cover .annex-name{font-size:24pt;font-weight:700;margin-top:10px;padding:0 24mm;font-family:var(--font-display,'Jost',sans-serif)}`
+    + `.annex-page{background:#fff;display:flex;align-items:center;justify-content:center}`
+    + `.annex-page img{max-width:100%;max-height:100%;display:block}`
     + `</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
   else html = '<head>'+head+'</head>'+html;
@@ -552,6 +660,9 @@ function buildDoc(){
     if(k.startsWith('firma')) return filled ? data[k] : '';
     return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
   });
+  // anexos incluidos → páginas al final del contrato
+  const ax=annexHTML();
+  if(ax) html = html.includes('</body>') ? html.replace('</body>', ax+'</body>') : html+ax;
   return html;
 }
 /* re-render de la preview viva (siempre visible) */

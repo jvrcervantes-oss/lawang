@@ -50,6 +50,30 @@
         ]}
       ],
       "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
+    },
+    {
+      "slug": "ppjb_construccion",
+      "name": "Contrato de Construcción · DALI",
+      "desc": "Contrato maestro de construcción de villa",
+      "file": "ppjb_construccion.html",
+      "sections": [
+        { "id": "comprador", "title": "Adquiriente I", "fields": [
+          ["adq1_nombre", "Nombre y apellidos", "text"],
+          ["adq1_nacionalidad", "Nacionalidad", "text"],
+          ["adq1_pasaporte", "Pasaporte / CIF", "text"],
+          ["adq1_domicilio", "Domicilio", "text"],
+          ["adq1_telefono", "Teléfono", "text"],
+          ["adq1_email", "Email", "text"]
+        ]},
+        { "id": "fecha", "title": "Fecha", "fields": [
+          ["fecha_firma", "Fecha de firma", "date"]
+        ]},
+        { "id": "firmas", "title": "Firmas", "fields": [
+          ["firma_adquiriente", "Firma del adquiriente", "signature"],
+          ["firma_promotor", "Firma del promotor", "signature"]
+        ]}
+      ],
+      "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
     }
   ]
 }
