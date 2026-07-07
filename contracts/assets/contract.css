@@ -35,11 +35,12 @@
 .doc p{ margin:0 0 9px; text-align:justify; }
 .doc ul,.doc ol{ margin:6px 0 12px; padding-left:20px; } .doc li{ margin-bottom:5px; }
 .doc .term{ font-weight:700; color:var(--brand-accent,#42210B); }
-/* campo rellenable: caja amplia para escribir A MANO; vacío = en blanco (sin "—") */
-.doc .f{ font-weight:600; color:var(--brand-accent,#42210B); border:1px solid var(--ss,#BEB3A5);
-  border-radius:3px; background:#fcfbf7;
-  display:inline-block; min-width:230px; min-height:13mm; padding:3px 14px; margin:3px 4px;
-  text-align:center; vertical-align:bottom; line-height:13mm; }
+/* campo rellenable: amplio para escribir A MANO. Vacío → 15 guiones bajos (línea
+   para escribir); relleno → el valor en negrita. */
+.doc .f{ font-weight:600; color:var(--brand-accent,#42210B);
+  display:inline-block; min-width:150px; min-height:11mm; padding:0 6px; margin:2px 3px;
+  text-align:center; vertical-align:bottom; line-height:11mm; }
+.doc .f:empty::before{ content:"_______________"; color:var(--muted,#6b6c66); font-weight:400; letter-spacing:.02em; }
 
 /* bloque de partes */
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);
