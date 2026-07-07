@@ -115,7 +115,7 @@
     ];
     var lineCards = HERO_CATS.map(function(c,i){
       var on = S.line===c.line;
-      return '<button class="lw-cat reveal" data-act="line:'+c.line+'" style="transition-delay:'+(i*70)+'ms;position:relative;border:0;cursor:pointer;padding:0;border-radius:14px;overflow:hidden;min-height:clamp(120px,13vw,168px);display:flex;align-items:center;box-shadow:'+(on?"0 0 0 2px var(--clay)":"none")+'">'
+      return '<button class="lw-cat reveal'+(on?" on":"")+'" data-act="line:'+c.line+'" style="transition-delay:'+(i*70)+'ms;position:relative;border:0;cursor:pointer;padding:0;border-radius:14px;overflow:hidden;min-height:clamp(120px,13vw,168px);display:flex;align-items:center">'
         + '<img src="assets/img/'+c.img+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
         + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.74) 0%,rgba(20,16,11,.4) 55%,rgba(20,16,11,.12) 100%)"></span>'
         + '<span style="position:relative;display:flex;align-items:center;gap:15px;padding:0 clamp(16px,2vw,26px);text-align:left;color:#F5F0E6">'
@@ -180,7 +180,7 @@
     var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
     return '<section class="wrap" style="padding-block:clamp(30px,5vw,72px)">'
       + '<a href="'+waUrl+'" target="_blank" rel="noopener" class="lw-reserve" style="display:block;position:relative;border-radius:16px;overflow:hidden;min-height:clamp(300px,34vw,440px);text-decoration:none">'
-      +   '<img src="assets/img/bg-ecosystem.jpg" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+      +   '<img src="assets/img/aerial-1.jpg" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
       +   '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,16,12,.8) 0%,rgba(18,16,12,.35) 55%,rgba(18,16,12,.05) 100%)"></span>'
       +   '<span style="position:relative;display:flex;flex-direction:column;justify-content:center;height:100%;min-height:inherit;padding:clamp(26px,5vw,62px);color:#F5F0E6;max-width:680px">'
       +     '<span style="border-left:2px solid rgba(245,240,230,.55);padding-left:clamp(18px,2vw,28px)">'
