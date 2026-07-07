@@ -36,11 +36,17 @@
 .doc ul,.doc ol{ margin:6px 0 12px; padding-left:20px; } .doc li{ margin-bottom:5px; }
 .doc .term{ font-weight:700; color:var(--brand-accent,#42210B); }
 /* campo rellenable: LÍNEA inferior con hueco para escribir A MANO.
-   Vacío → solo la línea; relleno → el valor apoyado sobre ella. */
+   Vacío → solo la línea; relleno → el valor apoyado sobre ella. El ancho se
+   adapta al tipo de dato (el motor añade .f-xs/sm/md/lg): un % o una fecha no
+   necesitan tanto sitio como un nombre o un domicilio. */
 .doc .f{ font-weight:600; color:var(--brand-accent,#42210B);
   display:inline-flex; align-items:flex-end; justify-content:center;
-  min-width:140px; min-height:9mm; padding:0 8px; margin:2px 3px;
+  min-width:110px; min-height:9mm; padding:0 8px; margin:2px 3px;
   border-bottom:1px solid var(--sc,#8F9B7A); vertical-align:bottom; }
+.doc .f-xs{ min-width:44px; }    /* %, nº de meses */
+.doc .f-sm{ min-width:80px; }    /* precio, número, fecha, superficie */
+.doc .f-md{ min-width:150px; }   /* nacionalidad, pasaporte, teléfono, código */
+.doc .f-lg{ min-width:250px; }   /* nombre, domicilio, email, importe en letras */
 
 /* bloque de partes */
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);

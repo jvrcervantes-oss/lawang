@@ -216,7 +216,19 @@ let templateHTML = '';
 let COVER_HTML = '';
 let BACKEND = false, CSRF = null;
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
+const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
+
+/* ancho del hueco según el dato: un % o fecha no necesita tanto sitio como un nombre */
+function sizeClass(key){
+  const t = FIELDTYPE[key] || 'text';
+  if(/(_pct$)/.test(key) || key==='plazo_meses') return 'f-xs';
+  if(t==='money' || t==='number' || t==='date') return 'f-sm';
+  if(/(nombre|domicilio|email|razon|representante)/.test(key)) return 'f-lg';
+  if(/(tipologia|superficie|codigo|parcela_codigo)/.test(key)) return 'f-sm';
+  if(/(nacionalidad|pasaporte|telefono|nib|npwp|master|comp_|cargo)/.test(key)) return 'f-md';
+  return 'f-md';
+}
 
 const $ = s => document.querySelector(s);
 function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
@@ -690,6 +702,8 @@ function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(templateHTML, data);
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
+  // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
+  html=html.replace(/<span class="f">(\{\{([a-z0-9_]+)\}\})<\/span>/g,(m,mk,k)=>`<span class="f ${sizeClass(k)}">${mk}</span>`);
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
@@ -802,6 +816,8 @@ async function init(){
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
   try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }catch(_){}  // deriveSections() filtra por plantilla
+  // mapa marcador → tipo (para dimensionar el hueco de cada campo)
+  ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
   try{
     const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
     BACKEND=true; CSRF=me.csrf; if(!me.agent){ location.href='login.html'; return; }
