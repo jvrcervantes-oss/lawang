@@ -6,7 +6,9 @@
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-  <!-- Texto en 3 idiomas: el motor muestra el activo (data-lang) y oculta el resto. -->
+  <!-- Texto trilingüe: el motor muestra el idioma activo (data-lang) y oculta el resto.
+       ES = texto EXACTO del cliente (ContratoReservaParcela.pdf). EN/ID = traducción de
+       trabajo pendiente de revisión legal oficial. Marcadores {{...}} = campos del form. -->
   <div class="doc">
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
@@ -14,36 +16,248 @@
       <span class="light"><span data-lang="es">Contrato</span><span data-lang="en">Contract</span><span data-lang="id">Perjanjian</span></span>
       <span class="bold"><span data-lang="es">de Reserva de Parcela</span><span data-lang="en">of Plot Reservation</span><span data-lang="id">Reservasi Kavling</span></span>
     </div>
-    <div class="doc-date">{{proyecto_nombre}} · {{parcela_codigo}} · {{fecha_firma}}</div>
+    <div class="doc-date">
+      <span data-lang="es">En Bali – Indonesia, a fecha {{fecha_firma}}</span>
+      <span data-lang="en">In Bali – Indonesia, dated {{fecha_firma}}</span>
+      <span data-lang="id">Di Bali – Indonesia, tertanggal {{fecha_firma}}</span>
+    </div>
 
-    <h2><span data-lang="es">Partes</span><span data-lang="en">Parties</span><span data-lang="id">Para Pihak</span></h2>
-    <div class="party"><div class="role"><span data-lang="es">Vendedor</span><span data-lang="en">Seller</span><span data-lang="id">Penjual</span></div><span class="term">{{vendedor_entidad}}</span> · NPWP {{vendedor_npwp}} · {{vendedor_representante}} ({{vendedor_cargo}})</div>
-    <div class="party"><div class="role"><span data-lang="es">Adquiriente</span><span data-lang="en">Buyer</span><span data-lang="id">Pembeli</span></div><span class="term">{{adq1_nombre}}</span> · {{adq1_nacionalidad}} · <span data-lang="es">Pasaporte</span><span data-lang="en">Passport</span><span data-lang="id">Paspor</span> {{adq1_pasaporte}}</div>
+    <!-- ============ REUNIDOS / EXPONEN ============ -->
+    <h2><span data-lang="es">Reunidos</span><span data-lang="en">Appearing parties</span><span data-lang="id">Para Pihak yang Hadir</span></h2>
 
-    <h2><span data-lang="es">Artículo 1 — Objeto</span><span data-lang="en">Article 1 — Object</span><span data-lang="id">Pasal 1 — Objek</span></h2>
-    <p data-lang="es">Reserva de la parcela <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> ({{region}}), de superficie <span class="f">{{tipologia_villa}}</span>, para su posterior compraventa conforme al presente contrato y sus apéndices.</p>
-    <p data-lang="en">Reservation of plot <span class="f">{{parcela_codigo}}</span> of the <span class="f">{{proyecto_nombre}}</span> project ({{region}}), with an area of <span class="f">{{tipologia_villa}}</span>, for its subsequent sale under this agreement and its appendices.</p>
-    <p data-lang="id">Reservasi kavling <span class="f">{{parcela_codigo}}</span> proyek <span class="f">{{proyecto_nombre}}</span> ({{region}}), dengan luas <span class="f">{{tipologia_villa}}</span>, untuk jual beli selanjutnya berdasarkan perjanjian ini dan lampirannya.</p>
+    <div class="party">
+      <div class="role"><span data-lang="es">Promotor</span><span data-lang="en">Developer</span><span data-lang="id">Pengembang</span></div>
+      <p data-lang="es"><b>PROMOTOR:</b> D. Pablo Cantero Gambín, mayor de edad, de nacionalidad Española, con documento de identidad indonesio NPWP 53.045.376.0-905.000, en nombre y representación de PT Balian Hills Resort, sociedad de nacionalidad Indonesia con domicilio social en Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Kode Pos: 80361 Indonesia y número de Identificación de Empresa NPWP 1000.0000.0012.5018, propietario legítimo con título Hak Guna Bangunan (HGB) del terreno descrito más adelante.</p>
+      <p data-lang="en"><b>DEVELOPER:</b> Mr. Pablo Cantero Gambín, of legal age, Spanish nationality, holder of Indonesian tax ID NPWP 53.045.376.0-905.000, in the name and on behalf of PT Balian Hills Resort, an Indonesian company with registered office at Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Kode Pos: 80361 Indonesia, and Company Registration Number NPWP 1000.0000.0012.5018, lawful owner under Hak Guna Bangunan (HGB) title of the land described below.</p>
+      <p data-lang="id"><b>PENGEMBANG:</b> Tn. Pablo Cantero Gambín, dewasa, berkewarganegaraan Spanyol, dengan identitas pajak Indonesia NPWP 53.045.376.0-905.000, atas nama dan mewakili PT Balian Hills Resort, perusahaan berkewarganegaraan Indonesia yang berkedudukan di Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Kode Pos: 80361 Indonesia, dengan Nomor Identitas Perusahaan NPWP 1000.0000.0012.5018, pemilik sah dengan sertifikat Hak Guna Bangunan (HGB) atas tanah yang diuraikan di bawah ini.</p>
+    </div>
 
-    <h2><span data-lang="es">Artículo 2 — Precio y reserva</span><span data-lang="en">Article 2 — Price and reservation</span><span data-lang="id">Pasal 2 — Harga dan reservasi</span></h2>
-    <p data-lang="es">El precio total de la parcela es de <span class="f">{{precio_total}} €</span>. El importe de reserva es de <span class="f">{{precio_reserva}} €</span>, pagadero a la firma en la cuenta indicada ({{cuenta_titular}} · {{cuenta_banco}}). Lugar y fecha de firma: {{lugar_firma}}, {{fecha_firma}}.</p>
-    <p data-lang="en">The total price of the plot is <span class="f">{{precio_total}} €</span>. The reservation amount is <span class="f">{{precio_reserva}} €</span>, payable on signing to the indicated account ({{cuenta_titular}} · {{cuenta_banco}}). Place and date of signature: {{lugar_firma}}, {{fecha_firma}}.</p>
-    <p data-lang="id">Harga total kavling adalah <span class="f">{{precio_total}} €</span>. Jumlah reservasi adalah <span class="f">{{precio_reserva}} €</span>, dibayar saat penandatanganan ke rekening yang ditunjuk ({{cuenta_titular}} · {{cuenta_banco}}). Tempat dan tanggal tanda tangan: {{lugar_firma}}, {{fecha_firma}}.</p>
-    <table class="pays">
-      <thead><tr><th class="n">#</th>
-        <th><span data-lang="es">Descripción</span><span data-lang="en">Description</span><span data-lang="id">Deskripsi</span></th>
-        <th class="pct">%</th></tr></thead>
+    <div class="party">
+      <div class="role"><span data-lang="es">Adquiriente I</span><span data-lang="en">Buyer I</span><span data-lang="id">Pembeli I</span></div>
+      <p data-lang="es"><b>ADQUIRIENTE I:</b> <span class="f">{{adq1_nombre}}</span>, nacional de <span class="f">{{adq1_nacionalidad}}</span>, con pasaporte nº P <span class="f">{{adq1_pasaporte}}</span> y domicilio en <span class="f">{{adq1_domicilio}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span> a efecto de notificaciones.</p>
+      <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, national of <span class="f">{{adq1_nacionalidad}}</span>, holder of passport no. P <span class="f">{{adq1_pasaporte}}</span>, residing at <span class="f">{{adq1_domicilio}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes.</p>
+      <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, warga negara <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. P <span class="f">{{adq1_pasaporte}}</span>, beralamat di <span class="f">{{adq1_domicilio}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan.</p>
+    </div>
+
+    <!--opt:adq2_nombre-->
+    <div class="party">
+      <div class="role"><span data-lang="es">Adquiriente II</span><span data-lang="en">Buyer II</span><span data-lang="id">Pembeli II</span></div>
+      <p data-lang="es"><b>ADQUIRIENTE II:</b> <span class="f">{{adq2_nombre}}</span>, nacional de <span class="f">{{adq2_nacionalidad}}</span>, con pasaporte nº P <span class="f">{{adq2_pasaporte}}</span>, a efecto de notificaciones.</p>
+      <p data-lang="en"><b>BUYER II:</b> <span class="f">{{adq2_nombre}}</span>, national of <span class="f">{{adq2_nacionalidad}}</span>, holder of passport no. P <span class="f">{{adq2_pasaporte}}</span>, for notification purposes.</p>
+      <p data-lang="id"><b>PEMBELI II:</b> <span class="f">{{adq2_nombre}}</span>, warga negara <span class="f">{{adq2_nacionalidad}}</span>, pemegang paspor no. P <span class="f">{{adq2_pasaporte}}</span>, untuk keperluan pemberitahuan.</p>
+    </div>
+    <!--/opt:adq2_nombre-->
+
+    <!--opt:adq3_nombre-->
+    <div class="party">
+      <div class="role"><span data-lang="es">Adquiriente III</span><span data-lang="en">Buyer III</span><span data-lang="id">Pembeli III</span></div>
+      <p data-lang="es"><b>ADQUIRIENTE III:</b> <span class="f">{{adq3_nombre}}</span>, nacional de <span class="f">{{adq3_nacionalidad}}</span>, con pasaporte nº P <span class="f">{{adq3_pasaporte}}</span>, a efecto de notificaciones.</p>
+      <p data-lang="en"><b>BUYER III:</b> <span class="f">{{adq3_nombre}}</span>, national of <span class="f">{{adq3_nacionalidad}}</span>, holder of passport no. P <span class="f">{{adq3_pasaporte}}</span>, for notification purposes.</p>
+      <p data-lang="id"><b>PEMBELI III:</b> <span class="f">{{adq3_nombre}}</span>, warga negara <span class="f">{{adq3_nacionalidad}}</span>, pemegang paspor no. P <span class="f">{{adq3_pasaporte}}</span>, untuk keperluan pemberitahuan.</p>
+    </div>
+    <!--/opt:adq3_nombre-->
+
+    <h2><span data-lang="es">Exponen</span><span data-lang="en">Recitals</span><span data-lang="id">Pertimbangan</span></h2>
+    <p data-lang="es"><b>I.-</b> Que el PROMOTOR es titular de las parcelas sobre las que está promoviendo el proyecto Balian Hills™. El Adquiriente declara que conoce y acepta la situación jurídica y física que presenta, al habérsele puesto a su disposición cualquier documentación solicitada relativa al proyecto y la parcela.</p>
+    <p data-lang="en"><b>I.-</b> That the DEVELOPER owns the plots on which the Balian Hills™ project is being developed. The Buyer declares that it is aware of and accepts the legal and physical situation presented, having been provided with any requested documentation relating to the project and the plot.</p>
+    <p data-lang="id"><b>I.-</b> Bahwa PENGEMBANG adalah pemilik kavling-kavling tempat proyek Balian Hills™ dikembangkan. Pembeli menyatakan mengetahui dan menerima keadaan hukum dan fisik yang ada, setelah disediakan setiap dokumen yang diminta terkait proyek dan kavling.</p>
+
+    <p data-lang="es"><b>II.-</b> Dentro del proyecto Balian Hills™, el Promotor está desarrollando parcelas de uso residencial así como parcelas de uso hotelero y servicios turísticos.</p>
+    <p data-lang="en"><b>II.-</b> Within the Balian Hills™ project, the Developer is developing plots for residential use as well as plots for hotel use and tourism services.</p>
+    <p data-lang="id"><b>II.-</b> Dalam proyek Balian Hills™, Pengembang mengembangkan kavling untuk penggunaan hunian serta kavling untuk penggunaan hotel dan jasa pariwisata.</p>
+
+    <p data-lang="es"><b>III.-</b> Dentro del proyecto Balian Hills™, el Promotor es titular de la parcela máster <span class="f">{{parcela_master}}</span>, de uso residencial, de la cual se segregan las parcelas objeto del presente Contrato, debidamente identificadas, delimitadas y detalladas en el Anexo, que se adjuntan al mismo y forman parte integrante de éste. La suma total de las superficies adquiridas asciende a <span class="f">{{superficie_total}}</span>, incluyendo la parte proporcional de viales y zonas comunes.</p>
+    <p data-lang="en"><b>III.-</b> Within the Balian Hills™ project, the Developer owns the master plot <span class="f">{{parcela_master}}</span>, of residential use, from which the plots subject to this Agreement are segregated, duly identified, delimited and detailed in the Annex, which is attached hereto and forms an integral part hereof. The total sum of the acquired areas amounts to <span class="f">{{superficie_total}}</span>, including the proportional share of roads and common areas.</p>
+    <p data-lang="id"><b>III.-</b> Dalam proyek Balian Hills™, Pengembang adalah pemilik kavling induk <span class="f">{{parcela_master}}</span>, untuk penggunaan hunian, yang darinya dipecah kavling-kavling objek Perjanjian ini, yang diidentifikasi, dibatasi, dan dirinci dalam Lampiran, yang dilampirkan dan merupakan bagian tak terpisahkan darinya. Jumlah total luas yang diperoleh adalah <span class="f">{{superficie_total}}</span>, termasuk bagian proporsional jalan dan area bersama.</p>
+
+    <p data-lang="es"><b>IV.-</b> LEASEHOLD 90 AÑOS (PERSONA FÍSICA) o FREEHOLD HGB (SOCIEDAD INDONESIA).</p>
+    <p data-lang="en"><b>IV.-</b> LEASEHOLD 90 YEARS (INDIVIDUAL) or FREEHOLD HGB (INDONESIAN COMPANY).</p>
+    <p data-lang="id"><b>IV.-</b> HAK SEWA 90 TAHUN (PERSEORANGAN) atau FREEHOLD HGB (PERUSAHAAN INDONESIA).</p>
+
+    <p data-lang="es"><b>V.-</b> Que el Adquiriente ha manifestado al Promotor su interés en adquirir la citada parcela por lo que a tal efecto las Partes celebran el presente Contrato (el «Contrato») con arreglo a las siguientes:</p>
+    <p data-lang="en"><b>V.-</b> That the Buyer has expressed to the Developer its interest in acquiring the aforementioned plot, and to that effect the Parties enter into this Agreement (the "Agreement") in accordance with the following:</p>
+    <p data-lang="id"><b>V.-</b> Bahwa Pembeli telah menyatakan kepada Pengembang minatnya untuk memperoleh kavling tersebut, dan untuk itu Para Pihak membuat Perjanjian ini ("Perjanjian") berdasarkan hal-hal berikut:</p>
+
+    <!-- ============ CLÁUSULAS ============ -->
+    <h2><span data-lang="es">Cláusula 1 — Objeto</span><span data-lang="en">Clause 1 — Object</span><span data-lang="id">Pasal 1 — Objek</span></h2>
+    <p data-lang="es">El Promotor otorga al Adquiriente, quien acepta, la/s parcela/s <span class="f">{{parcela_codigo}}</span> libres de cargas y gravámenes, con carreteras de acceso, agua y luz.* La acometida desde el acceso hasta la parcela deberá ser pagada por el adquiriente. El adquiriente podrá elegir entre los siguientes títulos:</p>
+    <p data-lang="en">The Developer grants to the Buyer, who accepts, the plot(s) <span class="f">{{parcela_codigo}}</span> free of liens and encumbrances, with access roads, water and electricity.* The connection from the access point to the plot shall be paid by the buyer. The buyer may choose between the following titles:</p>
+    <p data-lang="id">Pengembang memberikan kepada Pembeli, yang menerima, kavling <span class="f">{{parcela_codigo}}</span> bebas dari beban dan sitaan, dengan jalan akses, air dan listrik.* Sambungan dari titik akses ke kavling wajib dibayar oleh pembeli. Pembeli dapat memilih salah satu dari sertifikat berikut:</p>
+    <ul data-lang="es">
+      <li>a) Un arrendamiento de larga duración (Hak Sewa) por un periodo de 90 años dividido en 3 contratos de 30 años –persona física extranjera; o</li>
+      <li>b) Un título de propiedad Freehold (Hak Milik) adquirido a través de una sociedad indonesia (PT PMA Indonesia), donde la titularidad del terreno recae legalmente en la sociedad y el comprador mantiene pleno control mediante acuerdos internos, estructura corporativa y poderes notariales.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>a) A long-term lease (Hak Sewa) for a period of 90 years divided into 3 contracts of 30 years –foreign individual; or</li>
+      <li>b) A Freehold ownership title (Hak Milik) acquired through an Indonesian company (PT PMA Indonesia), where legal ownership of the land rests with the company and the buyer retains full control through internal agreements, corporate structure and notarial powers of attorney.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>a) Sewa jangka panjang (Hak Sewa) untuk jangka waktu 90 tahun yang dibagi menjadi 3 kontrak 30 tahun –orang asing perseorangan; atau</li>
+      <li>b) Sertifikat kepemilikan Freehold (Hak Milik) yang diperoleh melalui perusahaan Indonesia (PT PMA Indonesia), di mana kepemilikan sah atas tanah berada pada perusahaan dan pembeli mempertahankan kendali penuh melalui perjanjian internal, struktur korporasi, dan surat kuasa notaris.</li>
+    </ul>
+    <p data-lang="es">Este esquema permite a un extranjero asegurar la propiedad perpetua mediante una entidad indonesia, cumpliendo la normativa vigente y garantizando seguridad jurídica a largo plazo.</p>
+    <p data-lang="en">This scheme allows a foreigner to secure perpetual ownership through an Indonesian entity, complying with current regulations and ensuring long-term legal certainty.</p>
+    <p data-lang="id">Skema ini memungkinkan orang asing mengamankan kepemilikan abadi melalui entitas Indonesia, sesuai peraturan yang berlaku dan menjamin kepastian hukum jangka panjang.</p>
+
+    <h2><span data-lang="es">Cláusula 2 — Precio y forma de pago</span><span data-lang="en">Clause 2 — Price and payment terms</span><span data-lang="id">Pasal 2 — Harga dan cara pembayaran</span></h2>
+    <p data-lang="es">La superficie total de la parcela es de <span class="f">{{tipologia_villa}}</span> m², resultando en el importe total de <span class="f">{{precio_total}} €</span> que el Adquiriente se obliga a abonar al Promotor de la siguiente manera:</p>
+    <p data-lang="en">The total area of the plot is <span class="f">{{tipologia_villa}}</span> m², resulting in a total amount of <span class="f">{{precio_total}} €</span> which the Buyer undertakes to pay the Developer as follows:</p>
+    <p data-lang="id">Luas total kavling adalah <span class="f">{{tipologia_villa}}</span> m², menghasilkan jumlah total <span class="f">{{precio_total}} €</span> yang wajib dibayar Pembeli kepada Pengembang sebagai berikut:</p>
+    <ul data-lang="es">
+      <li><b>1. Reserva:</b> €5.000 (cinco mil euros) por parcela a la firma del presente contrato privado.</li>
+      <li><b>2. Pago final:</b> El resto del precio, simultáneamente con la firma ante notario (PPAT) y entrega del terreno con un periodo máximo de tres meses posteriores a la fecha de firma del presente contrato.</li>
+    </ul>
+    <ul data-lang="en">
+      <li><b>1. Reservation:</b> €5,000 (five thousand euros) per plot upon signing this private agreement.</li>
+      <li><b>2. Final payment:</b> The remainder of the price, simultaneously with the signing before a notary (PPAT) and handover of the land, within a maximum period of three months after the date of signing this agreement.</li>
+    </ul>
+    <ul data-lang="id">
+      <li><b>1. Reservasi:</b> €5.000 (lima ribu euro) per kavling saat penandatanganan perjanjian privat ini.</li>
+      <li><b>2. Pembayaran akhir:</b> Sisa harga, bersamaan dengan penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal tiga bulan setelah tanggal penandatanganan perjanjian ini.</li>
+    </ul>
+    <p data-lang="es">Las cantidades entregadas a cuenta, en sus respectivos vencimientos, deberán ser ingresadas en la cuenta bancaria anexada del notario designado por el promotor.</p>
+    <p data-lang="en">The amounts paid on account, at their respective due dates, shall be deposited into the attached bank account of the notary appointed by the developer.</p>
+    <p data-lang="id">Jumlah yang dibayarkan atas rekening, pada tanggal jatuh tempo masing-masing, harus disetorkan ke rekening bank terlampir dari notaris yang ditunjuk oleh pengembang.</p>
+
+    <h2><span data-lang="es">Cláusula 3 — Entrega y formalización</span><span data-lang="en">Clause 3 — Delivery and formalization</span><span data-lang="id">Pasal 3 — Serah terima dan formalisasi</span></h2>
+    <p data-lang="es">La entrega de la posesión material del terreno se realizará en el acto de firma ante notario (PPAT). Esta entrega se podrá realizar en cualquier momento desde que la parcela sea accesible por carretera desde la vía pública y disponga de suministro de agua y electricidad. El promotor se compromete a completar la urbanización en un plazo máximo de 3 meses desde la firma del presente contrato.</p>
+    <p data-lang="en">The delivery of material possession of the land shall take place at the act of signing before a notary (PPAT). This delivery may take place at any time once the plot is accessible by road from the public way and has water and electricity supply. The developer undertakes to complete the urbanization within a maximum period of 3 months from the signing of this agreement.</p>
+    <p data-lang="id">Serah terima penguasaan fisik tanah dilakukan pada saat penandatanganan di hadapan notaris (PPAT). Serah terima ini dapat dilakukan kapan saja setelah kavling dapat diakses melalui jalan dari jalan umum serta memiliki pasokan air dan listrik. Pengembang berkomitmen menyelesaikan pembangunan kawasan dalam jangka waktu maksimal 3 bulan sejak penandatanganan perjanjian ini.</p>
+    <p data-lang="es">Los gastos e impuestos que se originen o deriven de la presente operación y de la parcelación de la firma ante notario serán asumidos por el Adquiriente, de acuerdo con la legislación de Indonesia vigente.</p>
+    <p data-lang="en">The costs and taxes originating from or arising out of this transaction and from the parcelling at the signing before a notary shall be borne by the Buyer, in accordance with current Indonesian law.</p>
+    <p data-lang="id">Biaya dan pajak yang timbul dari transaksi ini dan dari pemecahan kavling pada penandatanganan di hadapan notaris ditanggung oleh Pembeli, sesuai hukum Indonesia yang berlaku.</p>
+
+    <h2><span data-lang="es">Cláusula 4 — Derechos del adquiriente</span><span data-lang="en">Clause 4 — Buyer's rights</span><span data-lang="id">Pasal 4 — Hak-hak pembeli</span></h2>
+    <p data-lang="es">El Adquiriente podrá usar, edificar, desarrollar y disfrutar del terreno, obtener licencias y subarrendar o ceder sus derechos con autorización escrita del Promotor y conforme a la ley, en los siguientes términos:</p>
+    <p data-lang="en">The Buyer may use, build, develop and enjoy the land, obtain licenses and sublease or assign its rights with the written authorization of the Developer and in accordance with the law, under the following terms:</p>
+    <p data-lang="id">Pembeli dapat menggunakan, membangun, mengembangkan, dan menikmati tanah, memperoleh izin, serta menyewakan kembali atau mengalihkan haknya dengan izin tertulis dari Pengembang dan sesuai hukum, dengan ketentuan berikut:</p>
+    <p data-lang="es"><b>5.1 Uso de la parcela.</b> El Adquiriente tiene el derecho de posesión y uso de la parcela y la construcción sin más limitaciones que las establecidas en la Ley Indonesia, así como las establecidas en este contrato y conforme a los estatutos y normas estéticas y urbanísticas.</p>
+    <p data-lang="en"><b>5.1 Use of the plot.</b> The Buyer has the right of possession and use of the plot and the construction with no limitations other than those established under Indonesian Law, as well as those established in this agreement and in accordance with the bylaws and aesthetic and urban-planning rules.</p>
+    <p data-lang="id"><b>5.1 Penggunaan kavling.</b> Pembeli memiliki hak kepemilikan dan penggunaan kavling serta bangunan tanpa batasan selain yang ditetapkan dalam Hukum Indonesia, serta yang ditetapkan dalam perjanjian ini dan sesuai anggaran dasar serta aturan estetika dan tata kota.</p>
+    <p data-lang="es"><b>5.2 Alquiler.</b> El Adquiriente tiene derecho a alquilar la parcela tanto en alquiler turístico como en larga estancia sin más limitaciones que las establecidas en la Ley Indonesia.</p>
+    <p data-lang="en"><b>5.2 Rental.</b> The Buyer has the right to rent the plot for both tourist rental and long-stay rental with no limitations other than those established under Indonesian Law.</p>
+    <p data-lang="id"><b>5.2 Penyewaan.</b> Pembeli berhak menyewakan kavling baik untuk sewa wisata maupun tinggal jangka panjang tanpa batasan selain yang ditetapkan dalam Hukum Indonesia.</p>
+    <p data-lang="es"><b>5.3 Construcción y reformas.</b> La parcela forma parte de un Resort, donde el paisajismo, la uniformidad estética y las vistas son un valor común a mantener por parte de todos los miembros. Por ello, se exige un diseño de vivienda que cumpla con las normas estéticas y urbanísticas del complejo.</p>
+    <p data-lang="en"><b>5.3 Construction and renovations.</b> The plot forms part of a Resort, where landscaping, aesthetic uniformity and views are a common value to be maintained by all members. Therefore, a dwelling design compliant with the complex's aesthetic and urban-planning rules is required.</p>
+    <p data-lang="id"><b>5.3 Pembangunan dan renovasi.</b> Kavling merupakan bagian dari Resort, di mana lanskap, keseragaman estetika, dan pemandangan adalah nilai bersama yang harus dijaga oleh semua anggota. Oleh karena itu, diperlukan desain hunian yang sesuai dengan aturan estetika dan tata kota kompleks.</p>
+    <p data-lang="es"><b>5.4 Venta o cesión de derechos.</b> El Adquiriente puede ceder o vender sus derechos en cualquier momento. El Adquiriente debe informar al nuevo comprador de todas las obligaciones del cedente, que se compromete a aprobar y reconoce y acepta la normativa y estatutos aprobados en el complejo.</p>
+    <p data-lang="en"><b>5.4 Sale or assignment of rights.</b> The Buyer may assign or sell its rights at any time. The Buyer must inform the new buyer of all the assignor's obligations, which the new buyer undertakes to approve and acknowledges and accepts the rules and bylaws approved in the complex.</p>
+    <p data-lang="id"><b>5.4 Penjualan atau pengalihan hak.</b> Pembeli dapat mengalihkan atau menjual haknya kapan saja. Pembeli wajib memberitahukan kepada pembeli baru seluruh kewajiban pihak yang mengalihkan, yang disetujui, diakui, dan diterima oleh pembeli baru sesuai aturan dan anggaran dasar yang disahkan di kompleks.</p>
+
+    <h2><span data-lang="es">Cláusula 5 — Obligaciones del adquiriente</span><span data-lang="en">Clause 5 — Buyer's obligations</span><span data-lang="id">Pasal 5 — Kewajiban pembeli</span></h2>
+    <p data-lang="es">El Adquiriente se obliga a:</p>
+    <p data-lang="en">The Buyer undertakes to:</p>
+    <p data-lang="id">Pembeli berkewajiban untuk:</p>
+    <ul data-lang="es">
+      <li>a) Cumplir las leyes y regulaciones de Indonesia.</li>
+      <li>b) Pagar impuestos, tasas y gastos derivados del terreno.</li>
+      <li>c) No destinar el terreno a actividades ilegales.</li>
+      <li>e) Mantener la parcela en condiciones de salubridad y habitabilidad, con el debido ornato, sin menoscabar el valor de sus vecinos y el Resort.</li>
+      <li>f) Cumplir con las normas estéticas y urbanísticas.</li>
+      <li>g) Cumplir con los Estatutos de la Comunidad de Propietarios en caso de su constitución futura.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>a) Comply with the laws and regulations of Indonesia.</li>
+      <li>b) Pay taxes, fees and expenses arising from the land.</li>
+      <li>c) Not use the land for illegal activities.</li>
+      <li>e) Maintain the plot in conditions of health and habitability, with due upkeep, without impairing the value of its neighbours and the Resort.</li>
+      <li>f) Comply with the aesthetic and urban-planning rules.</li>
+      <li>g) Comply with the Bylaws of the Owners' Association should it be established in the future.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>a) Mematuhi hukum dan peraturan Indonesia.</li>
+      <li>b) Membayar pajak, retribusi, dan biaya yang timbul dari tanah.</li>
+      <li>c) Tidak menggunakan tanah untuk kegiatan ilegal.</li>
+      <li>e) Menjaga kavling dalam kondisi sehat dan layak huni, dengan perawatan semestinya, tanpa merugikan nilai tetangga dan Resort.</li>
+      <li>f) Mematuhi aturan estetika dan tata kota.</li>
+      <li>g) Mematuhi Anggaran Dasar Perhimpunan Pemilik apabila kelak dibentuk.</li>
+    </ul>
+
+    <h2><span data-lang="es">Cláusula 6 — Obligaciones del promotor</span><span data-lang="en">Clause 6 — Developer's obligations</span><span data-lang="id">Pasal 6 — Kewajiban pengembang</span></h2>
+    <ul data-lang="es">
+      <li>a) Cumplir las leyes y regulaciones de Indonesia.</li>
+      <li>b) Construir los accesos al Resort y a la parcela objeto de este contrato antes de la entrega de posesión.</li>
+      <li>c) Facilitar las infraestructuras de electricidad y abastecimiento de agua del complejo en el momento de la entrega. *El adquirente deberá pagar la acometida desde la subestación en la entrada del resort hasta su parcela.</li>
+      <li>d) Comparecer ante notario para la formalización del leasing o transmisión de titularidad.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>a) Comply with the laws and regulations of Indonesia.</li>
+      <li>b) Build the accesses to the Resort and to the plot subject to this agreement before the handover of possession.</li>
+      <li>c) Provide the complex's electricity and water supply infrastructure at the time of handover. *The buyer shall pay the connection from the substation at the resort entrance to its plot.</li>
+      <li>d) Appear before a notary for the formalization of the lease or transfer of ownership.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>a) Mematuhi hukum dan peraturan Indonesia.</li>
+      <li>b) Membangun akses ke Resort dan ke kavling objek perjanjian ini sebelum serah terima penguasaan.</li>
+      <li>c) Menyediakan infrastruktur listrik dan pasokan air kompleks pada saat serah terima. *Pembeli wajib membayar sambungan dari gardu di pintu masuk resort hingga kavlingnya.</li>
+      <li>d) Hadir di hadapan notaris untuk formalisasi sewa atau pengalihan kepemilikan.</li>
+    </ul>
+
+    <h2><span data-lang="es">Cláusula 7 — Incumplimiento</span><span data-lang="en">Clause 7 — Breach</span><span data-lang="id">Pasal 7 — Wanprestasi</span></h2>
+    <p data-lang="es">El incumplimiento por el Adquiriente de su obligación de comparecer al otorgamiento de la escritura pública cuando así sea requerida por el Vendedor, dará derecho al Promotor de resolver el presente Contrato, con derecho a percibir una indemnización equivalente a las cantidades hasta entonces satisfechas por el Adquiriente. A tal fin, el notario retendrá los mencionados pagos hasta entonces satisfechos, y ello en concepto de arras penitenciales.</p>
+    <p data-lang="en">The Buyer's failure to comply with its obligation to appear for the granting of the public deed when so required by the Seller shall entitle the Developer to terminate this Agreement, with the right to receive compensation equivalent to the amounts paid by the Buyer up to that point. To that end, the notary shall retain the aforementioned payments made up to that point, as penitential earnest money (arras penitenciales).</p>
+    <p data-lang="id">Kegagalan Pembeli memenuhi kewajibannya untuk hadir pada pembuatan akta otentik ketika diminta oleh Penjual memberikan hak kepada Pengembang untuk mengakhiri Perjanjian ini, dengan hak menerima ganti rugi setara jumlah yang telah dibayarkan Pembeli sampai saat itu. Untuk itu, notaris menahan pembayaran-pembayaran tersebut, sebagai uang jaminan penalti (arras penitenciales).</p>
+    <p data-lang="es">En el supuesto que por causas imputables al Promotor la entrega de la posesión de la parcela no se hiciera dentro del plazo pactado, el Adquiriente podrá optar por resolver el presente Contrato o exigir el cumplimiento de dicha obligación de entrega. En caso de que opte por la resolución contractual ante el incumplimiento del Promotor, éste deberá reintegrar a aquélla las cantidades recibidas como consecuencia de este contrato, ya sea el importe recibido en rupias indonesias (IDR) o en Euros (€), incrementadas en el interés establecido legalmente en España, un interés por la demora del Euríbor + 5% con carácter anual, sin que el interesado pueda reclamar cantidad alguna por ningún otro concepto.</p>
+    <p data-lang="en">Should the delivery of possession of the plot not take place within the agreed term for reasons attributable to the Developer, the Buyer may elect to terminate this Agreement or demand performance of that delivery obligation. If it opts for contractual termination due to the Developer's breach, the Developer shall reimburse the Buyer the amounts received as a result of this agreement, whether received in Indonesian rupiah (IDR) or in Euros (€), increased by the interest legally established in Spain, a late-payment interest of Euribor + 5% per annum, without the interested party being able to claim any amount on any other account.</p>
+    <p data-lang="id">Apabila serah terima penguasaan kavling tidak terjadi dalam jangka waktu yang disepakati karena sebab yang dapat dipersalahkan kepada Pengembang, Pembeli dapat memilih untuk mengakhiri Perjanjian ini atau menuntut pemenuhan kewajiban serah terima tersebut. Jika memilih pengakhiran kontrak karena wanprestasi Pengembang, Pengembang wajib mengembalikan kepada Pembeli jumlah yang diterima akibat perjanjian ini, baik dalam rupiah Indonesia (IDR) maupun Euro (€), ditambah bunga yang ditetapkan secara hukum di Spanyol, yaitu bunga keterlambatan Euribor + 5% per tahun, tanpa pihak yang bersangkutan dapat menuntut jumlah apa pun atas dasar lain.</p>
+
+    <h2><span data-lang="es">Cláusula 8 — Zonas comunes y gastos</span><span data-lang="en">Clause 8 — Common areas and expenses</span><span data-lang="id">Pasal 8 — Area bersama dan biaya</span></h2>
+    <p data-lang="es">El Adquiriente reconoce que el terreno forma parte de una urbanización con calles, accesos e instalaciones comunes. Se podrá obligar a participar proporcionalmente en los gastos futuros de mantenimiento, reparación y mejora de dichas zonas, conforme a lo acordado por el Complejo Inmobiliario Privado, si los vecinos decidiesen llevar a cabo su construcción.</p>
+    <p data-lang="en">The Buyer acknowledges that the land forms part of an urbanization with common streets, accesses and facilities. It may be required to participate proportionally in the future costs of maintenance, repair and improvement of said areas, in accordance with what is agreed by the Private Real Estate Complex, should the neighbours decide to carry out its construction.</p>
+    <p data-lang="id">Pembeli mengakui bahwa tanah merupakan bagian dari kawasan dengan jalan, akses, dan fasilitas bersama. Pembeli dapat diwajibkan turut serta secara proporsional dalam biaya pemeliharaan, perbaikan, dan peningkatan area tersebut di masa depan, sesuai kesepakatan Kompleks Properti Privat, apabila para tetangga memutuskan melaksanakan pembangunannya.</p>
+
+    <h2><span data-lang="es">Cláusula 9 — Miscelánea</span><span data-lang="en">Clause 9 — Miscellaneous</span><span data-lang="id">Pasal 9 — Lain-lain</span></h2>
+    <p data-lang="es">Las partes reconocen y aceptan que el presente contrato y anexos constituye el único y completo acuerdo alcanzado entre ellas en relación con su objeto, y deja sin efecto y sustituye a cualquier negociación, entendimiento, manifestación, comunicación, documento, plano, oferta o acuerdo anterior, ya sea verbal o escrito, relacionado con la materia aquí regulada. Cualquier modificación o adición al presente contrato sólo será válida si se realiza por escrito y con la firma de ambas partes. El Promotor se reserva el derecho a ceder su posición jurídica en el presente contrato. Si alguna de las cláusulas del presente contrato fuere declarada nula o inaplicable, dicha cláusula se considerará excluida del contrato, sin que implique la nulidad del mismo. En este caso las partes harán cuanto esté a su alcance para encontrar una solución equivalente que sea válida y que refleje debidamente sus intenciones.</p>
+    <p data-lang="en">The parties acknowledge and accept that this agreement and its annexes constitute the sole and complete agreement reached between them in relation to its subject matter, and supersede and replace any prior negotiation, understanding, representation, communication, document, drawing, offer or agreement, whether verbal or written, relating to the matter regulated herein. Any modification or addition to this agreement shall only be valid if made in writing and signed by both parties. The Developer reserves the right to assign its legal position under this agreement. Should any clause of this agreement be declared null or unenforceable, such clause shall be deemed excluded from the agreement, without this implying its nullity. In such case the parties shall do everything in their power to find an equivalent solution that is valid and duly reflects their intentions.</p>
+    <p data-lang="id">Para pihak mengakui dan menerima bahwa perjanjian ini beserta lampirannya merupakan satu-satunya dan keseluruhan kesepakatan yang dicapai di antara mereka terkait objeknya, dan membatalkan serta menggantikan setiap negosiasi, pemahaman, pernyataan, komunikasi, dokumen, gambar, penawaran, atau kesepakatan sebelumnya, baik lisan maupun tertulis, terkait hal yang diatur di sini. Setiap perubahan atau penambahan pada perjanjian ini hanya sah jika dibuat tertulis dan ditandatangani kedua pihak. Pengembang berhak mengalihkan kedudukan hukumnya dalam perjanjian ini. Apabila salah satu pasal perjanjian ini dinyatakan batal atau tidak dapat diberlakukan, pasal tersebut dianggap dikecualikan dari perjanjian, tanpa mengakibatkan batalnya perjanjian. Dalam hal itu para pihak berupaya sekuat tenaga menemukan solusi setara yang sah dan mencerminkan maksud mereka.</p>
+
+    <h2><span data-lang="es">Cláusula 10 — Jurisdicción</span><span data-lang="en">Clause 10 — Jurisdiction</span><span data-lang="id">Pasal 10 — Yurisdiksi</span></h2>
+    <p data-lang="es">Las partes se someten a los tribunales competentes de Bali, Indonesia, con renuncia expresa a cualquier otro fuero que pudiera corresponderles, así como a la ley de Indonesia, sin perjuicio de intentar previamente una resolución amistosa.</p>
+    <p data-lang="en">The parties submit to the competent courts of Bali, Indonesia, with express waiver of any other jurisdiction that might correspond to them, as well as to the law of Indonesia, without prejudice to first attempting an amicable resolution.</p>
+    <p data-lang="id">Para pihak tunduk pada pengadilan yang berwenang di Bali, Indonesia, dengan pelepasan tegas atas yurisdiksi lain yang mungkin berlaku bagi mereka, serta pada hukum Indonesia, tanpa mengesampingkan upaya penyelesaian damai terlebih dahulu.</p>
+
+    <!-- ============ NORMATIVAS URBANÍSTICAS ============ -->
+    <h2><span data-lang="es">Normativas urbanísticas</span><span data-lang="en">Urban-planning regulations</span><span data-lang="id">Peraturan tata kota</span></h2>
+    <p data-lang="es">Balian Hills se rige por normativas urbanísticas enfocadas en la sostenibilidad, diseñadas para integrar villas de lujo con el entorno natural. Entre las regulaciones clave se incluye la prohibición de construir por encima de las crestas para preservar las vistas, así como el uso extensivo de materiales locales.</p>
+    <p data-lang="en">Balian Hills is governed by urban-planning regulations focused on sustainability, designed to integrate luxury villas with the natural environment. Key regulations include the prohibition of building above the ridgelines to preserve views, as well as the extensive use of local materials.</p>
+    <p data-lang="id">Balian Hills diatur oleh peraturan tata kota yang berfokus pada keberlanjutan, dirancang untuk memadukan vila mewah dengan lingkungan alam. Peraturan utama mencakup larangan membangun di atas garis punggung bukit untuk menjaga pemandangan, serta penggunaan material lokal secara luas.</p>
+    <p data-lang="es"><b>Integridad de las vistas.</b> Se prohíbe que las estructuras superen las líneas de cresta para preservar las vistas panorámicas del amanecer y el atardecer. La altura máxima de la villa estará limitada a una planta y tres metros, salvo en áreas específicamente designadas donde no se afecten las vistas de los vecinos.</p>
+    <p data-lang="en"><b>Integrity of views.</b> Structures are prohibited from exceeding the ridgelines to preserve the panoramic sunrise and sunset views. The maximum villa height shall be limited to one storey and three metres, except in specifically designated areas where neighbours' views are not affected.</p>
+    <p data-lang="id"><b>Integritas pemandangan.</b> Struktur dilarang melampaui garis punggung bukit untuk menjaga pemandangan panorama matahari terbit dan terbenam. Tinggi maksimal vila dibatasi satu lantai dan tiga meter, kecuali di area yang ditetapkan khusus yang tidak memengaruhi pemandangan tetangga.</p>
+    <p data-lang="es"><b>Ocupación del suelo.</b> Se trata de un desarrollo de baja densidad, por lo que un máximo del 50% del terreno puede ser construido. Es obligatorio mantener al menos un 50% de áreas verdes.</p>
+    <p data-lang="en"><b>Land occupancy.</b> This is a low-density development, so a maximum of 50% of the land may be built on. It is mandatory to maintain at least 50% green areas.</p>
+    <p data-lang="id"><b>Okupansi lahan.</b> Ini adalah pengembangan kepadatan rendah, sehingga maksimal 50% lahan dapat dibangun. Wajib mempertahankan setidaknya 50% area hijau.</p>
+    <p data-lang="es"><b>Estilo arquitectónico tropical.</b> Los proyectos priorizan un diseño sostenible y de alto nivel, utilizando piedras y maderas de origen local. Las cubiertas deben respetar las tradiciones balinesas, con inclinaciones de 35° y materiales naturales como alang-alang o sirap. Paleta de colores: desde blanco #FFFFFF hasta crema #FDFBD4.</p>
+    <p data-lang="en"><b>Tropical architectural style.</b> Projects prioritize a sustainable, high-end design, using locally sourced stone and wood. Roofs must respect Balinese traditions, with 35° pitches and natural materials such as alang-alang or sirap. Colour palette: from white #FFFFFF to cream #FDFBD4.</p>
+    <p data-lang="id"><b>Gaya arsitektur tropis.</b> Proyek memprioritaskan desain berkelanjutan dan berkualitas tinggi, menggunakan batu dan kayu lokal. Atap harus menghormati tradisi Bali, dengan kemiringan 35° dan material alami seperti alang-alang atau sirap. Palet warna: dari putih #FFFFFF hingga krem #FDFBD4.</p>
+    <p data-lang="es"><b>Planificación del proyecto.</b> El master plan incluye un valle central destinado a amenidades, como restaurantes e instalaciones deportivas. Proceso de desarrollo de villas: nuestros arquitectos y el comité estético deben aprobar cualquier diseño personalizado; la licencia PBG es obligatoria antes del inicio de la construcción; los proyectos son gestionados por un equipo especializado, enfocado en la calidad y en el uso de materiales duraderos adecuados para el clima tropical. Post-construcción: contribución obligatoria a la asociación de propietarios (Home Owners Association, HOA).</p>
+    <p data-lang="en"><b>Project planning.</b> The master plan includes a central valley for amenities such as restaurants and sports facilities. Villa development process: our architects and the aesthetic committee must approve any custom design; the PBG permit is mandatory before construction begins; projects are managed by a specialized team focused on quality and the use of durable materials suitable for the tropical climate. Post-construction: mandatory contribution to the Home Owners Association (HOA).</p>
+    <p data-lang="id"><b>Perencanaan proyek.</b> Master plan mencakup lembah pusat untuk fasilitas seperti restoran dan sarana olahraga. Proses pengembangan vila: arsitek kami dan komite estetika harus menyetujui setiap desain khusus; izin PBG wajib sebelum konstruksi dimulai; proyek dikelola oleh tim khusus yang berfokus pada kualitas dan penggunaan material tahan lama yang sesuai iklim tropis. Pasca-konstruksi: iuran wajib kepada asosiasi pemilik rumah (Home Owners Association, HOA).</p>
+
+    <!-- ============ FIRMAS ============ -->
+    <h2><span data-lang="es">Firmas</span><span data-lang="en">Signatures</span><span data-lang="id">Tanda tangan</span></h2>
+    <p data-lang="es">Y en prueba de conformidad con cuanto antecede, las Partes firman el presente Contrato en el lugar y fecha indicados en el encabezado.</p>
+    <p data-lang="en">And in witness of agreement with all the foregoing, the Parties sign this Agreement at the place and date indicated in the heading.</p>
+    <p data-lang="id">Dan sebagai bukti kesepakatan atas segala hal di atas, Para Pihak menandatangani Perjanjian ini di tempat dan tanggal yang tercantum pada bagian kepala.</p>
+
+    <table class="pays" style="margin-top:14px">
       <tbody>
-        <tr><td class="n">1</td><td><span data-lang="es">Reserva a la firma</span><span data-lang="en">Reservation on signing</span><span data-lang="id">Reservasi saat tanda tangan</span></td><td class="pct">—</td></tr>
-        <tr><td class="n">2</td><td><span data-lang="es">Saldo según calendario de pagos</span><span data-lang="en">Balance per payment schedule</span><span data-lang="id">Sisa sesuai jadwal pembayaran</span></td><td class="pct">—</td></tr>
+        <tr>
+          <td>
+            <div class="role"><span data-lang="es">El Promotor</span><span data-lang="en">The Developer</span><span data-lang="id">Pengembang</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_promotor}}" alt="" style="max-height:22mm;max-width:100%"></div>
+          </td>
+          <td>
+            <div class="role"><span data-lang="es">El Adquiriente</span><span data-lang="en">The Buyer</span><span data-lang="id">Pembeli</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
+          </td>
+        </tr>
       </tbody>
     </table>
 
-    <div class="pending">
-      <span data-lang="es"><b>⚠ Contenido legal pendiente.</b> Esta plantilla lleva ya la marca, la portada y el estilo interior. Las cláusulas de reserva de parcela se insertan cuando el cliente entregue el texto legal definitivo.</span>
-      <span data-lang="en"><b>⚠ Legal text pending.</b> This template already has the brand, cover and interior style. The plot reservation clauses will be inserted once the client provides the final legal text.</span>
-      <span data-lang="id"><b>⚠ Teks hukum menyusul.</b> Templat ini sudah memiliki merek, sampul, dan gaya interior. Klausul reservasi kavling akan dimasukkan setelah klien memberikan teks hukum final.</span>
-    </div>
+    <!-- Nota de traducción: solo se muestra en EN/ID (no en el original ES). -->
+    <div class="pending" data-lang="en"><b>⚠ Working translation.</b> The Spanish text is the client's official source; this English version is a working translation pending official legal review.</div>
+    <div class="pending" data-lang="id"><b>⚠ Terjemahan kerja.</b> Teks Spanyol adalah sumber resmi klien; versi Indonesia ini adalah terjemahan kerja yang menunggu peninjauan hukum resmi.</div>
   </div>
 </body>
 </html>

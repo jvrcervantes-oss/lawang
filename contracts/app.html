@@ -537,7 +537,7 @@ async function loadTemplate(slug){
   $('#tplDesc').textContent = CURRENT.ready
     ? {es:'Plantilla lista',en:'Ready',id:'Siap'}[LANG]
     : {es:'Estructura lista · texto legal pendiente',en:'Structure ready · legal text pending',id:'Struktur siap · teks hukum menyusul'}[LANG];
-  try{ templateHTML = await fetch(CURRENT.file).then(r=>r.text()); }
+  try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   ensureCoverage(templateHTML);
 }
@@ -578,8 +578,9 @@ async function downloadPdf(){
 
 /* ---------- init ---------- */
 async function init(){
-  try{ COVER_HTML = await fetch('templates/_portada.html').then(r=>r.text()); }catch(_){ COVER_HTML=''; }
-  try{ TOKENS = await fetch('tokens.json').then(r=>r.json()); if(TOKENS.sections && TOKENS.sections.length) SECTIONS = TOKENS.sections; }catch(_){}
+  const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
+  try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
+  try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); if(TOKENS.sections && TOKENS.sections.length) SECTIONS = TOKENS.sections; }catch(_){}
   try{
     const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
     BACKEND=true; CSRF=me.csrf; if(!me.agent){ location.href='login.html'; return; }
