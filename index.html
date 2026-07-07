@@ -447,8 +447,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260707144556">
-<script src="assets/lawang-card.js?v=20260707144556"></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260707175906">
+<script src="assets/lawang-card.js?v=20260707175906"></script>
 </head>
 <body>
 
@@ -633,7 +633,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <nav id="nav">
     <a class="nav-link" href="portfolio.html#land">The Land</a>
     <a class="nav-link" href="portfolio.html#villas">The Villas</a>
-    <a class="nav-link" href="#whoweare">The Soul</a>
+    <a class="nav-link" href="#expedition">The Soul</a>
     <a class="nav-link" href="#portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
@@ -792,7 +792,7 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
 });
 
 // ── Topbar: sólido al salir del hero + sección activa ─────────
-const sections = ['home','lines','portfolio','services','why','expedition','contact']
+const sections = ['home','lines','portfolio','the-services','expedition','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
 
@@ -803,9 +803,11 @@ function onScroll() {
   topbar.classList.toggle('scrolled', snap.scrollTop > 8); // CTA se colorea al iniciar el scroll
   logo.classList.toggle('dark', past);
 
-  // Sección activa (según posición en viewport dentro del scroller)
+  // Sección activa: la que CRUZA la línea de ancla (no la última que la pasó),
+  // así en secciones sin enlace de menú no queda ninguna marcada.
   let current = null;
-  sections.forEach(s => { if(s.getBoundingClientRect().top <= window.innerHeight * 0.4) current = s.id; });
+  const anchor = window.innerHeight * 0.4;
+  sections.forEach(s => { const r = s.getBoundingClientRect(); if(r.top <= anchor && r.bottom > anchor) current = s.id; });
   navLinks.forEach(l => {
     const href = l.getAttribute('href') || '';
     l.classList.toggle('active', !!current && href === '#' + current);
@@ -1046,7 +1048,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype'); font-weight:400; font-style:italic; font-display:swap; }
 .lw-theservices { position:relative; overflow:hidden; color:var(--rl);
   background:url('assets/img/bg-theservices.png?v=1') center/cover no-repeat;
-  justify-content:stretch; }
+  justify-content:stretch; text-transform:uppercase; }
 /* Velo localizado SOLO detrás del texto (radial en el titulo + banda inferior
    para las columnas). La imagen sigue raw; solo se oscurece donde hay texto. */
 .lw-theservices::before { content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
@@ -1400,8 +1402,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-epic-inner { position:relative; z-index:2; width:100%; display:flex; flex-direction:column;
   justify-content:space-between; min-height:min(92vh,940px); padding-bottom:clamp(2.2rem,5vh,4rem); }
 .lw-epic-top { text-align:center; margin-top:clamp(9rem,36vh,22rem); }
-.lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
-  font-size:var(--fs-display-l); line-height:1; color:#fff; margin:0; text-shadow:0 3px 30px rgba(0,0,0,.5); }
+.lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.04em;
+  font-size:clamp(64px,17vw,260px); line-height:.92; color:#fff; margin:0; text-shadow:0 3px 30px rgba(0,0,0,.5); }
 .lw-epic-sub { font-family:var(--csa); font-weight:300; text-transform:uppercase; letter-spacing:.16em;
   font-size:var(--fs-heading-s); color:rgba(255,255,255,.94); margin:1rem 0 0; text-shadow:0 2px 16px rgba(0,0,0,.55); }
 .lw-epic-sub b { font-weight:700; }
@@ -1710,7 +1712,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 </section>
 
 <!-- ════ 4c · WHO WE ARE + CIFRAS (fondo blanco) ════ -->
-<section class="lw-whoweare" id="whoweare">
+<!-- OCULTA temporalmente para salir a producción (sección sin terminar) — reactivar quitando display:none -->
+<section class="lw-whoweare" id="whoweare" style="display:none">
   <div class="cs-wrap">
     <div class="lw-wa-banner reveal">
       <img class="lw-wa-banner-img" src="assets/img/aerial-1.jpg" alt="Aerial view of a Lawang villa community" loading="lazy">
@@ -1740,7 +1743,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   <div class="cs-wrap lw-epic-inner">
     <div class="lw-epic-top reveal">
       <h2 class="lw-epic-country">Indonesia</h2>
-      <p class="lw-epic-sub"><b>Come for the land.</b> Stay for who you become</p>
+      <p class="lw-epic-sub"><b>Where growth is unstoppable.</b></p>
     </div>
     <div class="lw-epic-cols">
       <div class="lw-epic-col reveal">
@@ -1852,7 +1855,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
       </div>
       <div class="lw-ft-col">
         <h5>Company</h5>
-        <a href="#whoweare">The Soul</a>
+        <a href="#expedition">The Soul</a>
         <a href="#the-services">What We Do</a>
         <a href="#expedition">The Expedition</a>
         <a href="#portfolio">Choose your Legacy</a>
