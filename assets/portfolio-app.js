@@ -373,6 +373,24 @@
     return bare?'<div>'+inner+'</div>':'<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)">'+inner+'</div>';
   }
 
+  // Reserva por WhatsApp con el resumen configurado (parcela/modelo/extras/total/depósito)
+  function reserveWaUrl(p, cfg){
+    var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
+    var plan=(p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
+    var pct=(plan&&plan[0]&&plan[0].pct)||0;
+    var total=cfg.configuredEUR!=null?cfg.configuredEUR:p.priceEUR;
+    var parcel=(cfg.landOptions&&cfg.landOptions[cfg.parcelIdx])||null;
+    var model=(cfg.models&&cfg.models[cfg.modelIdx])||null;
+    var selExtras=(cfg.extrasList||[]).filter(function(e,i){return S.extrasSel[i];});
+    var lines=[t("reserve.msg"),"","• "+pick(p.title)];
+    if(parcel) lines.push("• "+t("cfg.step.land")+" · "+parcel.size+" m² ("+money(parcel.priceEUR)+")");
+    if(model)  lines.push("• "+model.name+" ("+money(model.priceEUR)+")");
+    if(selExtras.length) lines.push("• "+t("cfg.step.extras")+": "+selExtras.map(function(e){return e.name;}).join(", "));
+    lines.push("", t("fin.total")+": "+money(total));
+    if(pct) lines.push(t("glance.deposit")+" ("+pct+"%): "+money(Math.round(total*pct/100)));
+    return 'https://wa.me/'+waNum+'?text='+encodeURIComponent(lines.join("\n"));
+  }
+
   function configuratorHTML(p, cfg){
     var steps=[];
     if(cfg.landOptions) steps.push({id:"land",label:t("cfg.step.land"),title:t("land.title"),sub:t("land.sub"),required:true,done:cfg.parcelIdx>=0,content:parcelStepHTML(p,cfg,true)});
@@ -390,7 +408,10 @@
     var stepHead = sObj.id!=="pay" ? '<div style="margin-bottom:18px"><h4 class="serif" style="font-size:clamp(20px,2vw,25px);font-weight:300">'+sObj.title+'</h4>'+(sObj.sub?'<p style="font-size:14px;color:var(--ink-2);margin-top:6px;max-width:46ch">'+sObj.sub+'</p>':"")+'</div>' : "";
     var nextBtn = !isLast
       ? '<button '+(canNext?'data-act="step:'+(idx+1)+'"':'disabled')+' style="background:'+(canNext?"var(--clay)":"var(--line)")+';color:var(--bone);border:none;border-radius:999px;padding:11px 26px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:'+(canNext?"pointer":"default")+'">'+((sObj.id==="extras"&&cfg.extrasTotal===0)?t("cfg.skip"):t("cfg.next"))+' →</button>'
-      : '<button data-act="cfg-reset" style="background:none;border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-2)">↺ '+t("cfg.restart")+'</button>';
+      : '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
+        + '<button data-act="cfg-reset" style="background:none;border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-2)">↺ '+t("cfg.restart")+'</button>'
+        + '<a href="'+reserveWaUrl(p,cfg)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;border-radius:999px;padding:12px 26px;font-family:var(--sans);font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px -6px rgba(37,211,102,.6)"><svg viewBox="0 0 24 24" fill="currentColor" style="width:17px;height:17px"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg>'+t("reserve.cta")+' →</a>'
+        + '</div>';
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("cfg.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:22px;max-width:46ch">'+t("cfg.sub")+'</p>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:26px">'+prog+totalChip+'</div>'
       + '<div class="cfg-step">'+stepHead+sObj.content+'</div>'
