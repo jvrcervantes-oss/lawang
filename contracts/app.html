@@ -224,6 +224,7 @@ function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDe
    ============================================================ */
 const DESIGN_DEFAULT = {
   coverColor:'',                                    // '' = color del tipo de contrato
+  transLayout:'stacked',                            // 'stacked' (idioma + Bahasa apilados) | 'cols' (2 columnas, 1 por idioma)
   coverLogo:{ src:'', pos:'top-center',   size:38,  op:1   },
   coverMark:{ src:'', pos:'bottom-center', size:74,  op:.075 },  // src '' = tiki por defecto
   docLogo:  { src:'', pos:'left',          size:26,  op:1   },
@@ -263,6 +264,25 @@ const POS_OPTS = {
   docmark:[['center','Centro'],['top','Arriba'],['bottom','Abajo']],
 };
 
+/* CSS de idioma: Bahasa (id) SIEMPRE visible + el idioma seleccionado (es|en).
+   - 'stacked': id forzado a bloque bajo cada elemento (traducción paralela, color 2º).
+   - 'cols'  : párrafos y listas en 2 columnas (idioma izq. / Bahasa der.); los
+     rótulos (h2, título, roles, tabla) siguen apilados para no romperse. */
+function langCSS(){
+  let css = `[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}`
+    + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}`;
+  if(DESIGN.transLayout==='cols'){
+    // SOLO el idioma seleccionado + id pasan a columnas (no tocar los ocultos, que
+    // si no se re-muestran al ser este selector más específico que el display:none).
+    const L2=`.doc p[data-lang="${LANG}"],.doc ul[data-lang="${LANG}"]`;
+    const IDs=`.doc p[data-lang="id"],.doc ul[data-lang="id"]`;
+    css += `${L2},${IDs}{display:inline-block!important;width:48.5%;vertical-align:top;box-sizing:border-box}`
+         + `${L2}{padding-right:2.5%}`
+         + `.doc .f{min-width:90px}`;   // los campos se estrechan para caber en la columna
+  }
+  return css;
+}
+
 /* CSS que reskin-ea portada+interior según DESIGN (se inyecta en el <head> del doc) */
 function designStyle(){
   const d=DESIGN;
@@ -286,7 +306,8 @@ function designStyle(){
   // interior · marca de agua (funciona en plantillas con .doc)
   if(d.docMark.src){
     css += `.doc-watermark{display:none;}`;
-    css += `.doc::before{content:"";position:absolute;${DOC_POS[d.docMark.pos]||DOC_POS.center}`
+    // position:fixed → marca de agua en CADA página (impresión) y persistente en el visor
+    css += `.doc::before{content:"";position:fixed;${DOC_POS[d.docMark.pos]||DOC_POS.center}`
          + `height:${d.docMark.size}mm;width:100%;background:url("${d.docMark.src}") no-repeat center/contain;`
          + `opacity:${d.docMark.op};z-index:0;pointer-events:none;}`;
   }
@@ -321,6 +342,13 @@ function buildDesignPanel(){
         <div class="dz-row"><span>Color</span><input type="color" id="coverColor" value="${color}">
           <button type="button" class="link-btn" id="coverColorReset">Color del tipo</button></div>
       </div>
+      <div class="dz">
+        <div class="dz-h">Formato de traducción</div>
+        <div class="dz-row"><span>Bahasa</span><select id="transLayout">
+          <option value="stacked" ${DESIGN.transLayout==='stacked'?'selected':''}>Apilado (debajo)</option>
+          <option value="cols" ${DESIGN.transLayout==='cols'?'selected':''}>2 columnas (1 por idioma)</option>
+        </select></div>
+      </div>
       ${rows}
     </div>
   </section>`;
@@ -331,6 +359,7 @@ function wireDesignPanel(){
   const panel=$('#designPanel'); if(!panel) return;
   $('#coverColor').addEventListener('input',e=>{ DESIGN.coverColor=e.target.value; saveDesign(); render(); });
   $('#coverColorReset').addEventListener('click',()=>{ DESIGN.coverColor=''; saveDesign(); $('#coverColor').value=CURRENT.cover; render(); });
+  $('#transLayout').addEventListener('change',e=>{ DESIGN.transLayout=e.target.value; saveDesign(); render(); });
   panel.addEventListener('change',e=>{
     const f=e.target.closest('[data-df]'); if(f && f.files[0]){ readImg(f.files[0], src=>{ DESIGN[f.dataset.df].src=src; saveDesign(); rebuildDesign(); render(); }); return; }
     const p=e.target.closest('[data-dp]'); if(p){ DESIGN[p.dataset.dp].pos=p.value; saveDesign(); render(); }
@@ -483,14 +512,14 @@ function injectBrandAndCover(html, data){
   const l1 = {es:'Contrato',en:'Contract',id:'Perjanjian'}[LANG] || 'Contrato';
   const covData = { ...data, cov_l1:l1, cov_l2:L(CURRENT.l2) };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
-  const head = `<link rel="stylesheet" href="assets/brand.css">`
+  // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
+  // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
+  const base = location.href.replace(/[^/]*(?:\?.*)?$/,'');
+  const head = `<base href="${base}">`
+    + `<link rel="stylesheet" href="assets/brand.css">`
     + `<link rel="stylesheet" href="assets/contract.css">`
     + `<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">`
-    // Bahasa (id) SIEMPRE visible; el idioma seleccionado (es|en) la acompaña.
-    // id se fuerza a bloque → cae en su propia línea (traducción paralela) bajo cada
-    // bloque/rótulo, en color secundario. Así el contrato es siempre bilingüe con ID.
-    + `<style>[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}`
-    + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}</style>`
+    + `<style>${langCSS()}</style>`
     // Impresión/PDF: A4 con márgenes en TODAS las páginas (@page, no el padding del .doc,
     // que no se repite por página) + portada a sangre (página nombrada 'cover') +
     // forzar colores/fondos/imágenes de fondo (print-color-adjust:exact; el navegador
@@ -576,7 +605,22 @@ $('#btnClose').addEventListener('click', ()=> $('#pane').classList.remove('open'
 /* ---------- PDF / backend ---------- */
 $('#btnPdf').addEventListener('click', downloadPdf);
 $('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos? (el diseño de marca se conserva)')) location.reload(); });
-function printPreview(){ const w=$('#pvFrame').contentWindow; w.focus(); w.print(); }
+/* Imprime/exporta desde un iframe DEDICADO (no el del visor, que se recarga en vivo
+   con cada tecla → imprimir a mitad de recarga daba PDF dañado). Construye el doc
+   fresco y espera a carga + fuentes + imágenes antes de imprimir. */
+function printPreview(){
+  const old=document.getElementById('printFrame'); if(old) old.remove();
+  const f=document.createElement('iframe'); f.id='printFrame'; f.setAttribute('aria-hidden','true');
+  f.style.cssText='position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:0;';
+  f.srcdoc = buildDoc();
+  f.onload = ()=>{
+    const w=f.contentWindow, d=f.contentDocument;
+    const imgs=[...d.images].filter(i=>!i.complete).map(i=>new Promise(r=>{ i.onload=i.onerror=r; }));
+    const fonts=(d.fonts && d.fonts.ready) ? d.fonts.ready : Promise.resolve();
+    Promise.all([fonts, ...imgs]).then(()=> setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} }, 200));
+  };
+  document.body.appendChild(f);
+}
 async function downloadPdf(){
   if(!BACKEND){ printPreview(); return; }
   const btn=$('#btnPdf'); btn.disabled=true; btn.textContent='Guardando…';
