@@ -2,338 +2,357 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Contrato Privado de Reserva de Proyecto — Lawang Tropical Properties</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  /* ============================================================
-     LAWANG TROPICAL PROPERTIES — Plantilla de contrato (PPJB)
-     Marcadores: {{campo}}  ·  Render idéntico en cualquier visor
-     Paleta de marca oficial (Brand Identity Guide)
-     ============================================================ */
-  :root{
-    --tg:#485B37;  /* Territorial Green */
-    --dl:#104C4F;  /* Deep Lagoon */
-    --be:#42210B;  /* Burnt Earth */
-    --sc:#8F9B7A;  /* Soft Canopy */
-    --va:#2E3437;  /* Volcanic Ash (texto) */
-    --ss:#BEB3A5;  /* Stone Sand */
-    --rl:#F5F0E6;  /* Raw Linen (fondo) */
-    --ink:#2E3437;
-    --muted:#6b6c66;
-  }
-  @page{ size:A4; margin:22mm 20mm 24mm 20mm; }
-
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; }
-  body{
-    font-family:'Jost',sans-serif;
-    color:var(--ink);
-    font-size:10.5pt;
-    line-height:1.6;
-    background:#e9e5db;        /* solo para ver "papel" en pantalla */
-  }
-  /* Hoja A4 simulada en pantalla; en print ocupa la página */
-  .sheet{
-    width:210mm;
-    min-height:297mm;
-    margin:14px auto;
-    padding:22mm 20mm 24mm 20mm;
-    background:#fff;
-    box-shadow:0 8px 40px rgba(0,0,0,.12);
-  }
-  @media print{
-    body{ background:#fff; }
-    .sheet{ width:auto; min-height:0; margin:0; padding:0; box-shadow:none; }
-  }
-
-  /* ---------- Marca / cabecera ---------- */
-  .brand{
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1.5px solid var(--tg);
-    padding-bottom:10px; margin-bottom:26px;
-  }
-  .brand .mark{ display:flex; align-items:center; gap:12px; }
-  .brand .glyph{
-    width:34px; height:34px; border:1.5px solid var(--tg); border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    color:var(--tg); font-family:'Jost',sans-serif; font-size:20px; font-weight:600;
-  }
-  .brand .wordmark{ font-family:'Jost',sans-serif; font-size:20px; letter-spacing:.18em; color:var(--va); text-transform:uppercase; }
-  .brand .wordmark small{ display:block; font-family:'Jost'; font-size:7.5pt; letter-spacing:.32em; color:var(--muted); }
-  .brand .docref{ text-align:right; font-size:7.5pt; letter-spacing:.18em; color:var(--muted); text-transform:uppercase; }
-
-  /* ---------- Titulares ---------- */
-  .eyebrow{ font-size:8pt; letter-spacing:.34em; text-transform:uppercase; color:var(--tg); margin-bottom:6px; }
-  h1.title{
-    font-family:'Jost',sans-serif; font-weight:600; font-size:26pt; line-height:1.1;
-    color:var(--va); margin:0 0 4px;
-  }
-  .subtitle{ font-family:'Jost',sans-serif; font-style:italic; font-size:13pt; color:var(--dl); margin-bottom:30px; }
-
-  h2{
-    font-family:'Jost'; font-weight:600; font-size:10.5pt; letter-spacing:.08em; text-transform:uppercase;
-    color:var(--dl); margin:24px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--ss);
-    display:flex; gap:10px; align-items:baseline;
-  }
-  h2 .n{ font-family:'Jost',sans-serif; font-style:italic; font-size:13pt; color:var(--tg); font-weight:500; }
-  h3{ font-family:'Jost'; font-weight:600; font-size:9.5pt; color:var(--tg); margin:14px 0 4px; }
-  p{ margin:0 0 9px; text-align:justify; }
-  ol.clauses{ counter-reset:cl; list-style:none; padding:0; margin:0; }
-  ul.tight{ margin:4px 0 10px; padding-left:18px; }
-  ul.tight li{ margin-bottom:4px; }
-
-  /* ---------- Campos rellenables ---------- */
-  .f{ font-weight:500; color:var(--be); border-bottom:1px dotted var(--sc); padding:0 3px; white-space:nowrap; }
-  .f.block{ display:inline-block; min-width:160px; }
-
-  /* ---------- Bloques de partes ---------- */
-  .party{
-    background:var(--rl); border-left:3px solid var(--tg);
-    padding:12px 16px; margin:10px 0; border-radius:0 4px 4px 0;
-  }
-  .party .role{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--tg); margin-bottom:3px; }
-  .opt-hint{ font-size:8pt; color:var(--muted); font-style:italic; }
-
-  /* ---------- Tabla de fases de pago ---------- */
-  table.pays{ width:100%; border-collapse:collapse; margin:10px 0 14px; font-size:9.5pt; }
-  table.pays th{ background:var(--dl); color:#fff; text-align:left; padding:7px 10px; font-weight:500; letter-spacing:.04em; }
-  table.pays td{ padding:7px 10px; border-bottom:1px solid var(--ss); }
-  table.pays tr:last-child td{ border-bottom:1px solid var(--dl); }
-  table.pays .pct{ font-family:'Jost',sans-serif; font-size:13pt; color:var(--tg); font-weight:600; text-align:right; width:60px; }
-
-  /* ---------- Precio destacado ---------- */
-  .price-box{ display:flex; gap:18px; margin:8px 0 12px; }
-  .price-box .pc{ flex:1; background:var(--rl); border:1px solid var(--ss); border-radius:4px; padding:12px 14px; }
-  .price-box .pc .lab{ font-size:7.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
-  .price-box .pc .val{ font-family:'Jost',sans-serif; font-size:18pt; color:var(--dl); font-weight:600; }
-  .price-box .pc .let{ font-size:8.5pt; color:var(--muted); font-style:italic; }
-
-  /* ---------- Firmas ---------- */
-  .signatures{ display:flex; gap:40px; margin-top:34px; page-break-inside:avoid; }
-  .sig{ flex:1; }
-  .sig .img{ height:70px; border-bottom:1px solid var(--va); display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; }
-  .sig .img img{ max-height:64px; max-width:100%; }
-  .sig .who{ font-size:8pt; letter-spacing:.18em; text-transform:uppercase; color:var(--tg); margin-top:6px; }
-  .sig .nm{ font-size:9.5pt; color:var(--va); }
-  .place{ margin-top:22px; font-style:italic; color:var(--muted); font-family:'Jost',sans-serif; font-size:12pt; }
-
-  .note{ font-size:8.5pt; color:var(--muted); background:#faf8f2; border:1px dashed var(--ss); padding:8px 12px; border-radius:4px; margin:10px 0; }
-</style>
+<title>Contrato de Reserva de Proyecto — Lawang</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
-<div class="sheet">
+  <!-- Texto trilingüe: el motor muestra el idioma activo (data-lang) y oculta el resto.
+       ES = texto EXACTO del cliente (ContratoReservaProyecto.pdf). EN/ID = traducción de
+       trabajo pendiente de revisión legal oficial. Marcadores {{...}} = campos del form. -->
+  <div class="doc">
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
 
-  <!-- ============ CABECERA DE MARCA ============ -->
-  <div class="brand">
-    <div class="mark">
-      <div class="glyph">L</div>
-      <div class="wordmark">Lawang<small>Tropical Properties</small></div>
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Contrato Privado</span><span data-lang="en">Private Agreement</span><span data-lang="id">Perjanjian Privat</span></span>
+      <span class="bold"><span data-lang="es">de Reserva de Proyecto</span><span data-lang="en">of Project Reservation</span><span data-lang="id">Reservasi Proyek</span></span>
     </div>
-    <div class="docref">Binding Sale &amp; Purchase Agreement · PPJB<br>Bali · República de Indonesia</div>
-  </div>
-
-  <div class="eyebrow">Contrato Privado</div>
-  <h1 class="title">Reserva de Proyecto</h1>
-  <div class="subtitle">Pacto preliminar de compraventa (PPJB) — {{proyecto_nombre}}</div>
-
-  <!-- ============ EXPONEN / PARTES ============ -->
-  <h2><span class="n">·</span> Exponen</h2>
-
-  <div class="party">
-    <div class="role">Promotor / Vendedor</div>
-    <strong>LAWANG TROPICAL PROPERTIES</strong>, sociedad constituida conforme a las leyes de Indonesia,
-    con domicilio en Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Kuta, Kab. Badung, Bali,
-    NPWP 1000 0000 0619 8026, debidamente representada por D. Pablo Cantero Gambín, con NPWP personal
-    53.045.376.0-905.000, en su calidad de <span class="f">{{vendedor_cargo}}</span> (en adelante, el «Vendedor»).
-  </div>
-
-  <div class="party">
-    <div class="role">Adquiriente I</div>
-    Identificado con nombre y apellidos <span class="f block">{{adq1_nombre}}</span>,
-    de nacionalidad <span class="f">{{adq1_nacionalidad}}</span> y pasaporte <span class="f">{{adq1_pasaporte}}</span>.
-  </div>
-
-  <!--opt:adq2_nombre-->
-  <div class="party data-optional" data-when="adq2_nombre">
-    <div class="role">Adquiriente II <span class="opt-hint">(si aplica)</span></div>
-    Identificado con nombre y apellidos <span class="f block">{{adq2_nombre}}</span>,
-    de nacionalidad <span class="f">{{adq2_nacionalidad}}</span> y pasaporte <span class="f">{{adq2_pasaporte}}</span>.
-  </div>
-  <!--/opt:adq2_nombre-->
-
-  <!--opt:adq3_nombre-->
-  <div class="party data-optional" data-when="adq3_nombre">
-    <div class="role">Adquiriente III <span class="opt-hint">(si aplica)</span></div>
-    Identificado con nombre y apellidos <span class="f block">{{adq3_nombre}}</span>,
-    de nacionalidad <span class="f">{{adq3_nacionalidad}}</span> y pasaporte <span class="f">{{adq3_pasaporte}}</span>.
-  </div>
-  <!--/opt:adq3_nombre-->
-
-  <!--opt:ptpma_domicilio-->
-  <div class="party data-optional" data-when="ptpma_domicilio">
-    <div class="role">Adquisición mediante entidad jurídica (PT PMA)</div>
-    Domicilio social: <span class="f block">{{ptpma_domicilio}}</span> · NIB / OSS: <span class="f">{{ptpma_nib}}</span> · NPWP: <span class="f">{{ptpma_npwp}}</span>.
-    <div class="opt-hint" style="margin-top:6px">Si a la fecha de firma la PT PMA aún no está constituida o no tiene NIB/NPWP, el Inversor firma este PPJB en su propio nombre obligándose a «hacer adquirir» el derecho a la PT PMA Compradora al momento del AJB, conforme a la Cláusula de Condiciones Previas. Vendedor e Inversor/Comprador, conjuntamente, las «Partes».</div>
-  </div>
-  <!--/opt:ptpma_domicilio-->
-
-  <!-- ============ ANTECEDENTES ============ -->
-  <h2><span class="n">·</span> Antecedentes y descripción</h2>
-  <p>El Vendedor es titular legítimo del derecho HGB sobre <span class="f">{{proyecto_nombre}}</span> (en adelante, «El PROYECTO»), complejo privado con infraestructura común, accesos, servicios y planificación urbanística definida, ubicado en la región de Bali, Indonesia. Se encuentra en curso el proceso de subdivisión y/o segregación interna destinado a la individualización de las parcelas conforme al masterplan aprobado.</p>
-  <p>El Inversor declara conocer que, conforme al marco general de derechos sobre la tierra en Indonesia, la adquisición por inversión extranjera se instrumenta típicamente mediante HGB y que la transmisión efectiva se perfecciona mediante AJB ante PPAT y su registro en BPN. En virtud de lo anterior, las Partes acuerdan formalizar la compraventa mediante el presente PPJB, que vincula a las Partes y obliga a otorgar el AJB una vez cumplidas las condiciones previas.</p>
-
-  <h3>Definiciones (resumen operativo)</h3>
-  <ul class="tight">
-    <li><strong>PPJB:</strong> contrato vinculante de obligación de compraventa.</li>
-    <li><strong>AJB:</strong> Akta Jual Beli (escritura/acto de compraventa) ante PPAT.</li>
-    <li><strong>PPAT:</strong> Pejabat Pembuat Akta Tanah (funcionario habilitado para actos de transferencia).</li>
-    <li><strong>BPN/ATR:</strong> autoridad de registro y administración de tierras.</li>
-    <li><strong>HGB:</strong> Hak Guna Bangunan. &nbsp; <strong>IDR:</strong> Rupia indonesia.</li>
-  </ul>
-
-  <!-- ============ CLÁUSULAS ============ -->
-  <h2><span class="n">1</span> Objeto</h2>
-  <p>El Vendedor se obliga a vender y transferir, y el Comprador se obliga a comprar y adquirir, el derecho sobre la parcela/proyecto descrita a continuación: nombre del proyecto <span class="f">{{proyecto_nombre}}</span> y número de parcela <span class="f">{{parcela_num}}</span>.</p>
-
-  <h2><span class="n">2</span> Estado jurídico y alcance de la adquisición</h2>
-  <p>El Vendedor declara que ostenta título suficiente y facultad de disposición sobre la Parcela Máster y que la Parcela objeto de este PPJB forma parte del desarrollo del complejo y será individualizada conforme a la documentación técnica y registral.</p>
-  <p>La adquisición se estructura como HGB. Las Partes acuerdan que cualquier mención comercial a «freehold» se entenderá como control a largo plazo mediante HGB corporativo, sin que ello implique Hak Milik. Queda expresamente prohibido incorporar o interpretar este PPJB como un «nominee arrangement» o estructura de titularidad simulada.</p>
-
-  <h2><span class="n">3</span> Precio, moneda y ajustes</h2>
-  <div class="price-box">
-    <div class="pc">
-      <div class="lab">Precio total de El PROYECTO</div>
-      <div class="val">{{precio_total_eur}} €</div>
-      <div class="let">{{precio_total_letras}}</div>
+    <div class="doc-date">
+      <span data-lang="es">PPJB / IND — Binding Sale &amp; Purchase Agreement</span>
+      <span data-lang="en">PPJB / IND — Binding Sale &amp; Purchase Agreement</span>
+      <span data-lang="id">PPJB / IND — Binding Sale &amp; Purchase Agreement</span>
     </div>
-    <div class="pc">
-      <div class="lab">Precio de reserva</div>
-      <div class="val">{{precio_reserva_eur}} €</div>
-      <div class="let">{{precio_reserva_letras}}</div>
+
+    <!-- ============ EXPONEN ============ -->
+    <h2><span data-lang="es">Exponen</span><span data-lang="en">Recitals</span><span data-lang="id">Pertimbangan</span></h2>
+
+    <div class="party">
+      <div class="role"><span data-lang="es">Promotor / Vendedor</span><span data-lang="en">Developer / Seller</span><span data-lang="id">Pengembang / Penjual</span></div>
+      <p data-lang="es"><b>PROMOTOR:</b> LAWANG TROPICAL PROPERTIES, sociedad constituida conforme a las leyes de Indonesia, con domicilio en Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia, NPWP 1000 0000 0619 8026, debidamente representada por D. Pablo Cantero Gambín, con NPWP personal 53.045.376.0-905.000, en su calidad de Director / Authorized Representative (en adelante, el «Vendedor»).</p>
+      <p data-lang="en"><b>DEVELOPER:</b> LAWANG TROPICAL PROPERTIES, a company incorporated under the laws of Indonesia, with address at Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia, NPWP 1000 0000 0619 8026, duly represented by Mr. Pablo Cantero Gambín, with personal NPWP 53.045.376.0-905.000, in his capacity as Director / Authorized Representative (hereinafter, the "Seller").</p>
+      <p data-lang="id"><b>PENGEMBANG:</b> LAWANG TROPICAL PROPERTIES, perusahaan yang didirikan berdasarkan hukum Indonesia, beralamat di Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia, NPWP 1000 0000 0619 8026, diwakili secara sah oleh Tn. Pablo Cantero Gambín, dengan NPWP pribadi 53.045.376.0-905.000, dalam kapasitasnya sebagai Direktur / Perwakilan Berwenang (selanjutnya disebut "Penjual").</p>
     </div>
+
+    <div class="party">
+      <div class="role"><span data-lang="es">Adquiriente I</span><span data-lang="en">Buyer I</span><span data-lang="id">Pembeli I</span></div>
+      <p data-lang="es"><b>ADQUIRIENTE I:</b> Identificado con nombre y apellidos <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span> y pasaporte <span class="f">{{adq1_pasaporte}}</span>.</p>
+      <p data-lang="en"><b>BUYER I:</b> Identified with full name <span class="f">{{adq1_nombre}}</span>, of nationality <span class="f">{{adq1_nacionalidad}}</span> and passport <span class="f">{{adq1_pasaporte}}</span>.</p>
+      <p data-lang="id"><b>PEMBELI I:</b> Diidentifikasi dengan nama lengkap <span class="f">{{adq1_nombre}}</span>, berkewarganegaraan <span class="f">{{adq1_nacionalidad}}</span> dan paspor <span class="f">{{adq1_pasaporte}}</span>.</p>
+    </div>
+
+    <!--opt:adq2_nombre-->
+    <div class="party">
+      <div class="role"><span data-lang="es">Adquiriente II</span><span data-lang="en">Buyer II</span><span data-lang="id">Pembeli II</span></div>
+      <p data-lang="es"><b>ADQUIRIENTE II:</b> Identificado con nombre y apellidos <span class="f">{{adq2_nombre}}</span>, de nacionalidad <span class="f">{{adq2_nacionalidad}}</span> y pasaporte <span class="f">{{adq2_pasaporte}}</span>.</p>
+      <p data-lang="en"><b>BUYER II:</b> Identified with full name <span class="f">{{adq2_nombre}}</span>, of nationality <span class="f">{{adq2_nacionalidad}}</span> and passport <span class="f">{{adq2_pasaporte}}</span>.</p>
+      <p data-lang="id"><b>PEMBELI II:</b> Diidentifikasi dengan nama lengkap <span class="f">{{adq2_nombre}}</span>, berkewarganegaraan <span class="f">{{adq2_nacionalidad}}</span> dan paspor <span class="f">{{adq2_pasaporte}}</span>.</p>
+    </div>
+    <!--/opt:adq2_nombre-->
+
+    <!--opt:adq3_nombre-->
+    <div class="party">
+      <div class="role"><span data-lang="es">Adquiriente III</span><span data-lang="en">Buyer III</span><span data-lang="id">Pembeli III</span></div>
+      <p data-lang="es"><b>ADQUIRIENTE III:</b> Identificado con nombre y apellidos <span class="f">{{adq3_nombre}}</span>, de nacionalidad <span class="f">{{adq3_nacionalidad}}</span> y pasaporte <span class="f">{{adq3_pasaporte}}</span>.</p>
+      <p data-lang="en"><b>BUYER III:</b> Identified with full name <span class="f">{{adq3_nombre}}</span>, of nationality <span class="f">{{adq3_nacionalidad}}</span> and passport <span class="f">{{adq3_pasaporte}}</span>.</p>
+      <p data-lang="id"><b>PEMBELI III:</b> Diidentifikasi dengan nama lengkap <span class="f">{{adq3_nombre}}</span>, berkewarganegaraan <span class="f">{{adq3_nacionalidad}}</span> dan paspor <span class="f">{{adq3_pasaporte}}</span>.</p>
+    </div>
+    <!--/opt:adq3_nombre-->
+
+    <!--opt:comp_npwp-->
+    <div class="party">
+      <div class="role"><span data-lang="es">Comprador — Entidad jurídica (PT PMA)</span><span data-lang="en">Buyer — Legal entity (PT PMA)</span><span data-lang="id">Pembeli — Badan hukum (PT PMA)</span></div>
+      <p data-lang="es">Alternativamente, si la adquisición se realiza a través de una entidad jurídica (incluyendo una PT PMA indonesia), la parte compradora será la siguiente: Domicilio social: <span class="f">{{comp_domicilio}}</span>, NIB / OSS: <span class="f">{{comp_nib}}</span>, NPWP: <span class="f">{{comp_npwp}}</span>.</p>
+      <p data-lang="en">Alternatively, if the acquisition is made through a legal entity (including an Indonesian PT PMA), the buying party shall be as follows: Registered address: <span class="f">{{comp_domicilio}}</span>, NIB / OSS: <span class="f">{{comp_nib}}</span>, NPWP: <span class="f">{{comp_npwp}}</span>.</p>
+      <p data-lang="id">Sebagai alternatif, jika perolehan dilakukan melalui badan hukum (termasuk PT PMA Indonesia), pihak pembeli adalah sebagai berikut: Alamat terdaftar: <span class="f">{{comp_domicilio}}</span>, NIB / OSS: <span class="f">{{comp_nib}}</span>, NPWP: <span class="f">{{comp_npwp}}</span>.</p>
+    </div>
+    <!--/opt:comp_npwp-->
+
+    <p data-lang="es"><b>Nota:</b> Si a la fecha de firma la PT PMA aún no está constituida o no tiene NIB/NPWP, el Inversor firma este PPJB en su propio nombre obligándose a «hacer adquirir» el derecho a la PT PMA Compradora al momento del AJB, conforme a la Cláusula 6. Vendedor e Inversor/Comprador, conjuntamente, las «Partes».</p>
+    <p data-lang="en"><b>Note:</b> If at the date of signing the PT PMA is not yet incorporated or does not have NIB/NPWP, the Investor signs this PPJB in its own name, undertaking to "cause the acquisition of" the right by the Buyer PT PMA at the time of the AJB, in accordance with Clause 6. Seller and Investor/Buyer, jointly, the "Parties".</p>
+    <p data-lang="id"><b>Catatan:</b> Jika pada tanggal penandatanganan PT PMA belum didirikan atau belum memiliki NIB/NPWP, Investor menandatangani PPJB ini atas namanya sendiri, dengan kewajiban "mengupayakan perolehan" hak oleh PT PMA Pembeli pada saat AJB, sesuai Pasal 6. Penjual dan Investor/Pembeli, bersama-sama, disebut "Para Pihak".</p>
+
+    <!-- ============ ANTECEDENTES ============ -->
+    <h2><span data-lang="es">I. Titularidad del terreno y descripción del proyecto</span><span data-lang="en">I. Land ownership and project description</span><span data-lang="id">I. Kepemilikan tanah dan deskripsi proyek</span></h2>
+    <p data-lang="es">Que el PROMOTOR es titular legítimo del terreno donde se desarrolla el Proyecto <span class="f">{{proyecto_nombre}}</span>, complejo privado con infraestructura común, accesos, servicios y planificación urbanística definida.</p>
+    <p data-lang="en">That the DEVELOPER is the legitimate owner of the land on which the Project <span class="f">{{proyecto_nombre}}</span> is developed, a private complex with common infrastructure, accesses, services and defined urban planning.</p>
+    <p data-lang="id">Bahwa PENGEMBANG adalah pemilik sah tanah tempat Proyek <span class="f">{{proyecto_nombre}}</span> dikembangkan, sebuah kompleks privat dengan infrastruktur bersama, akses, layanan, dan perencanaan tata kota yang terdefinisi.</p>
+
+    <h2><span data-lang="es">II. Descripción del producto inmobiliario</span><span data-lang="en">II. Description of the real-estate product</span><span data-lang="id">II. Deskripsi produk properti</span></h2>
+    <p data-lang="es">Que dentro del Proyecto <span class="f">{{proyecto_nombre}}</span> (en adelante «El PROYECTO»), el PROMOTOR está desarrollando un producto inmobiliario consistente en parcela + villa individuales construidas sobre subparcelas delimitadas dentro del masterplan.</p>
+    <p data-lang="en">That within the Project <span class="f">{{proyecto_nombre}}</span> (hereinafter "The PROJECT"), the DEVELOPER is developing a real-estate product consisting of individual plot + villa built on delimited sub-plots within the masterplan.</p>
+    <p data-lang="id">Bahwa dalam Proyek <span class="f">{{proyecto_nombre}}</span> (selanjutnya "PROYEK"), PENGEMBANG mengembangkan produk properti berupa kavling + vila individual yang dibangun di atas sub-kavling yang dibatasi dalam masterplan.</p>
+
+    <h2><span data-lang="es">III. Antecedentes</span><span data-lang="en">III. Background</span><span data-lang="id">III. Latar belakang</span></h2>
+    <ul data-lang="es">
+      <li>A. El Vendedor es titular legítimo del derecho HGB sobre «El PROYECTO», ubicado en la región de Bali, Indonesia, sobre el cual se desarrolla el proyecto. Asimismo, se encuentra en curso el proceso de subdivisión y/o segregación interna destinado a la individualización de las parcelas conforme al masterplan aprobado.</li>
+      <li>B. El Inversor declara conocer que, conforme al marco general de derechos sobre la tierra en Indonesia, la adquisición por inversión extranjera se instrumenta típicamente mediante HGB y que la transmisión efectiva se perfecciona mediante AJB ante PPAT y su registro en BPN.</li>
+      <li>C. En virtud de lo anterior, las Partes acuerdan formalizar la compraventa mediante el presente PPJB, que vincula a las Partes y obliga a otorgar el AJB una vez cumplidas las condiciones previas establecidas.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>A. The Seller is the legitimate holder of the HGB right over "The PROJECT", located in the region of Bali, Indonesia, on which the project is developed. Furthermore, the process of internal subdivision and/or segregation aimed at individualizing the plots in accordance with the approved masterplan is underway.</li>
+      <li>B. The Investor declares its awareness that, under the general framework of land rights in Indonesia, acquisition by foreign investment is typically structured through HGB, and that effective transfer is perfected via AJB before a PPAT and its registration at BPN.</li>
+      <li>C. By virtue of the foregoing, the Parties agree to formalize the sale through this PPJB, which binds the Parties and obliges them to grant the AJB once the established conditions precedent are met.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>A. Penjual adalah pemegang sah hak HGB atas "PROYEK", yang berlokasi di wilayah Bali, Indonesia, tempat proyek dikembangkan. Selain itu, proses pemecahan dan/atau pemisahan internal untuk individualisasi kavling sesuai masterplan yang disetujui sedang berlangsung.</li>
+      <li>B. Investor menyatakan mengetahui bahwa, sesuai kerangka umum hak atas tanah di Indonesia, perolehan melalui investasi asing umumnya dilakukan melalui HGB, dan bahwa peralihan efektif disempurnakan melalui AJB di hadapan PPAT dan pendaftarannya di BPN.</li>
+      <li>C. Berdasarkan hal di atas, Para Pihak sepakat memformalkan jual beli melalui PPJB ini, yang mengikat Para Pihak dan mewajibkan pembuatan AJB setelah kondisi prasyarat yang ditetapkan terpenuhi.</li>
+    </ul>
+
+    <h2><span data-lang="es">IV. Definiciones (resumen operativo)</span><span data-lang="en">IV. Definitions (operational summary)</span><span data-lang="id">IV. Definisi (ringkasan operasional)</span></h2>
+    <ul data-lang="es">
+      <li><span class="term">PPJB:</span> contrato vinculante de obligación de compraventa.</li>
+      <li><span class="term">AJB:</span> Akta Jual Beli (escritura/acto de compraventa) ante PPAT.</li>
+      <li><span class="term">PPAT:</span> Pejabat Pembuat Akta Tanah (funcionario habilitado para actos de transferencia).</li>
+      <li><span class="term">BPN/ATR:</span> autoridad de registro y administración de tierras.</li>
+      <li><span class="term">HGB:</span> Hak Guna Bangunan.</li>
+      <li><span class="term">IDR:</span> Rupia indonesia.</li>
+    </ul>
+    <ul data-lang="en">
+      <li><span class="term">PPJB:</span> binding agreement of the obligation to sell and purchase.</li>
+      <li><span class="term">AJB:</span> Akta Jual Beli (deed/act of sale) before a PPAT.</li>
+      <li><span class="term">PPAT:</span> Pejabat Pembuat Akta Tanah (officer authorized for transfer acts).</li>
+      <li><span class="term">BPN/ATR:</span> land registration and administration authority.</li>
+      <li><span class="term">HGB:</span> Hak Guna Bangunan.</li>
+      <li><span class="term">IDR:</span> Indonesian rupiah.</li>
+    </ul>
+    <ul data-lang="id">
+      <li><span class="term">PPJB:</span> perjanjian mengikat atas kewajiban jual beli.</li>
+      <li><span class="term">AJB:</span> Akta Jual Beli di hadapan PPAT.</li>
+      <li><span class="term">PPAT:</span> Pejabat Pembuat Akta Tanah (pejabat berwenang untuk akta peralihan).</li>
+      <li><span class="term">BPN/ATR:</span> otoritas pendaftaran dan administrasi pertanahan.</li>
+      <li><span class="term">HGB:</span> Hak Guna Bangunan.</li>
+      <li><span class="term">IDR:</span> Rupiah Indonesia.</li>
+    </ul>
+
+    <!-- ============ CLÁUSULAS ============ -->
+    <h2><span data-lang="es">1. Objeto</span><span data-lang="en">1. Object</span><span data-lang="id">1. Objek</span></h2>
+    <p data-lang="es">1.1 El Vendedor se obliga a vender y transferir, y el Comprador se obliga a comprar y adquirir, el derecho sobre la parcela/proyecto descrita a continuación. Nombre del proyecto: <span class="f">{{proyecto_nombre}}</span> y número de parcela: <span class="f">{{parcela_codigo}}</span>.</p>
+    <p data-lang="en">1.1 The Seller undertakes to sell and transfer, and the Buyer undertakes to buy and acquire, the right over the plot/project described below. Project name: <span class="f">{{proyecto_nombre}}</span> and plot number: <span class="f">{{parcela_codigo}}</span>.</p>
+    <p data-lang="id">1.1 Penjual berkewajiban menjual dan mengalihkan, dan Pembeli berkewajiban membeli dan memperoleh, hak atas kavling/proyek yang diuraikan di bawah ini. Nama proyek: <span class="f">{{proyecto_nombre}}</span> dan nomor kavling: <span class="f">{{parcela_codigo}}</span>.</p>
+
+    <h2><span data-lang="es">2. Estado jurídico y alcance de la adquisición</span><span data-lang="en">2. Legal status and scope of acquisition</span><span data-lang="id">2. Status hukum dan lingkup perolehan</span></h2>
+    <p data-lang="es">2.1 El Vendedor declara que ostenta título suficiente y facultad de disposición sobre la Parcela Máster y que la Parcela objeto de este PPJB forma parte del desarrollo del complejo y será individualizada conforme a la documentación técnica y registral.</p>
+    <p data-lang="en">2.1 The Seller declares that it holds sufficient title and power of disposal over the Master Plot, and that the Plot subject to this PPJB forms part of the complex's development and will be individualized in accordance with technical and registry documentation.</p>
+    <p data-lang="id">2.1 Penjual menyatakan memiliki alas hak yang cukup dan kewenangan untuk mengalihkan Kavling Induk, dan bahwa Kavling objek PPJB ini merupakan bagian dari pengembangan kompleks dan akan diindividualisasikan sesuai dokumentasi teknis dan pendaftaran.</p>
+    <p data-lang="es">2.2 La adquisición se estructura como HGB. Las Partes acuerdan que cualquier mención comercial a «freehold» se entenderá como control a largo plazo mediante HGB corporativo, sin que ello implique Hak Milik.</p>
+    <p data-lang="en">2.2 The acquisition is structured as HGB. The Parties agree that any commercial reference to "freehold" shall be understood as long-term control through corporate HGB, without implying Hak Milik.</p>
+    <p data-lang="id">2.2 Perolehan disusun sebagai HGB. Para Pihak sepakat bahwa setiap penyebutan komersial "freehold" dipahami sebagai kendali jangka panjang melalui HGB korporasi, tanpa menyiratkan Hak Milik.</p>
+    <p data-lang="es">2.3 Queda expresamente prohibido incorporar o interpretar este PPJB como un «nominee arrangement» o estructura de titularidad simulada. El Comprador declara que la adquisición se realizará mediante estructura permitida legal y documentación corporativa válida.</p>
+    <p data-lang="en">2.3 It is expressly prohibited to incorporate or interpret this PPJB as a "nominee arrangement" or simulated ownership structure. The Buyer declares that the acquisition will be carried out through a legally permitted structure and valid corporate documentation.</p>
+    <p data-lang="id">2.3 Dilarang tegas memasukkan atau menafsirkan PPJB ini sebagai "nominee arrangement" atau struktur kepemilikan yang disimulasikan. Pembeli menyatakan bahwa perolehan dilakukan melalui struktur yang diizinkan secara hukum dan dokumentasi korporasi yang sah.</p>
+
+    <h2><span data-lang="es">3. Precio, moneda y ajustes</span><span data-lang="en">3. Price, currency and adjustments</span><span data-lang="id">3. Harga, mata uang dan penyesuaian</span></h2>
+    <p data-lang="es">3.1 El Precio total de «El PROYECTO» es: <span class="f">{{precio_total}}</span> EUR (<span class="f"></span>), en adelante, el «Precio».</p>
+    <p data-lang="en">3.1 The total Price of "The PROJECT" is: <span class="f">{{precio_total}}</span> EUR (<span class="f"></span>), hereinafter, the "Price".</p>
+    <p data-lang="id">3.1 Harga total "PROYEK" adalah: <span class="f">{{precio_total}}</span> EUR (<span class="f"></span>), selanjutnya disebut "Harga".</p>
+    <p data-lang="es">3.2 El Precio de reserva de «El PROYECTO» será de <span class="f">{{precio_reserva}}</span> EUR (<span class="f"></span>).</p>
+    <p data-lang="en">3.2 The reservation Price of "The PROJECT" shall be <span class="f">{{precio_reserva}}</span> EUR (<span class="f"></span>).</p>
+    <p data-lang="id">3.2 Harga reservasi "PROYEK" adalah <span class="f">{{precio_reserva}}</span> EUR (<span class="f"></span>).</p>
+    <p data-lang="es">3.3 El Precio de reserva se descontará del primer pago de la firma del proyecto. El calendario de pagos será el siguiente:</p>
+    <p data-lang="en">3.3 The reservation Price shall be deducted from the first payment upon signing the project. The payment schedule shall be as follows:</p>
+    <p data-lang="id">3.3 Harga reservasi akan dipotong dari pembayaran pertama saat penandatanganan proyek. Jadwal pembayaran adalah sebagai berikut:</p>
+    <table class="pays">
+      <thead><tr><th class="n">#</th>
+        <th><span data-lang="es">Descripción</span><span data-lang="en">Description</span><span data-lang="id">Deskripsi</span></th>
+        <th class="pct">%</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td><span data-lang="es">Firma y movilización</span><span data-lang="en">Signing and mobilization</span><span data-lang="id">Penandatanganan dan mobilisasi</span></td><td class="pct">25%</td></tr>
+        <tr><td class="n">2</td><td><span data-lang="es">Fase Cimentación y Subsuelo</span><span data-lang="en">Foundations and substructure phase</span><span data-lang="id">Tahap Pondasi dan Struktur Bawah</span></td><td class="pct">25%</td></tr>
+        <tr><td class="n">3</td><td><span data-lang="es">Fase Electricidad, Fontanería y Cerramientos</span><span data-lang="en">Electrical, plumbing and enclosures phase</span><span data-lang="id">Tahap Listrik, Pipa dan Dinding</span></td><td class="pct">25%</td></tr>
+        <tr><td class="n">4</td><td><span data-lang="es">Fase Terminación práctica – acabados finales</span><span data-lang="en">Practical completion phase – final finishes</span><span data-lang="id">Tahap Penyelesaian praktis – finishing akhir</span></td><td class="pct">25%</td></tr>
+      </tbody>
+    </table>
+
+    <h2><span data-lang="es">4. Retrasos en el pago</span><span data-lang="en">4. Payment delays</span><span data-lang="id">4. Keterlambatan pembayaran</span></h2>
+    <p data-lang="es">El retraso o incumplimiento de cualquier pago facultará al Constructor y/o Vendedor para suspender temporalmente la obra, pudiendo repercutirse al Comprador los costes derivados de su reactivación o de posibles incrementos operativos. El Constructor facilitará periódicamente reportes e imágenes del avance de obra correspondientes a cada etapa constructiva.</p>
+    <p data-lang="en">Delay or default in any payment shall entitle the Builder and/or Seller to temporarily suspend the works, and the costs arising from their reactivation or from possible operational increases may be passed on to the Buyer. The Builder shall periodically provide reports and images of the construction progress corresponding to each construction stage.</p>
+    <p data-lang="id">Keterlambatan atau wanprestasi pembayaran memberikan hak kepada Pembangun dan/atau Penjual untuk menghentikan pekerjaan sementara, dan biaya akibat pengaktifan kembali atau kemungkinan kenaikan operasional dapat dibebankan kepada Pembeli. Pembangun akan secara berkala menyediakan laporan dan gambar kemajuan konstruksi untuk setiap tahap.</p>
+
+    <h2><span data-lang="es">5. Condiciones previas</span><span data-lang="en">5. Conditions precedent</span><span data-lang="id">5. Kondisi prasyarat</span></h2>
+    <p data-lang="es">La obligación de otorgar el AJB quedará sujeta a que se cumplan, como mínimo, las siguientes condiciones:</p>
+    <p data-lang="en">The obligation to grant the AJB shall be subject to the fulfilment of, at minimum, the following conditions:</p>
+    <p data-lang="id">Kewajiban membuat AJB tunduk pada terpenuhinya, minimal, kondisi berikut:</p>
+    <ul data-lang="es">
+      <li>5.1 Constitución/operatividad de la estructura permitida legal, incluyendo escritura, NIB/OSS y NPWP (si aún no existen).</li>
+      <li>5.2 Subdivisión/individualización de la Parcela o, en su defecto, disponibilidad documental suficiente para transferir el derecho conforme a la práctica del PPAT y BPN (incluyendo mapas, mediciones y documentación del lote).</li>
+      <li>5.3 Pago de impuestos y tasas asociados a la transferencia (Cláusula 8) y emisión de recibos oficiales requeridos por el PPAT.</li>
+      <li>5.4 Si alguna condición previa no se cumple por causas no imputables al Comprador, las Partes acordarán una prórroga razonable de 30 días. Si el incumplimiento se prolonga más allá de 30 días, aplicará el régimen de resolución de la Cláusula 10.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>5.1 Incorporation/operability of the legally permitted structure, including deed, NIB/OSS and NPWP (if not yet existing).</li>
+      <li>5.2 Subdivision/individualization of the Plot or, failing that, sufficient documentary availability to transfer the right in accordance with PPAT and BPN practice (including maps, measurements and lot documentation).</li>
+      <li>5.3 Payment of taxes and fees associated with the transfer (Clause 8) and issuance of official receipts required by the PPAT.</li>
+      <li>5.4 If any condition precedent is not met for reasons not attributable to the Buyer, the Parties shall agree a reasonable 30-day extension. If the failure extends beyond 30 days, the termination regime of Clause 10 shall apply.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>5.1 Pendirian/operasionalisasi struktur yang diizinkan secara hukum, termasuk akta, NIB/OSS dan NPWP (jika belum ada).</li>
+      <li>5.2 Pemecahan/individualisasi Kavling atau, jika tidak, ketersediaan dokumen yang cukup untuk mengalihkan hak sesuai praktik PPAT dan BPN (termasuk peta, pengukuran, dan dokumentasi lot).</li>
+      <li>5.3 Pembayaran pajak dan retribusi terkait peralihan (Pasal 8) dan penerbitan kuitansi resmi yang diminta PPAT.</li>
+      <li>5.4 Jika ada kondisi prasyarat tidak terpenuhi karena sebab yang bukan kesalahan Pembeli, Para Pihak menyepakati perpanjangan wajar 30 hari. Jika kegagalan berlanjut lebih dari 30 hari, berlaku ketentuan pengakhiran Pasal 10.</li>
+    </ul>
+
+    <h2><span data-lang="es">6. Entrega, posesión y estado de la parcela</span><span data-lang="en">6. Delivery, possession and condition of the plot</span><span data-lang="id">6. Serah terima, penguasaan dan kondisi kavling</span></h2>
+    <p data-lang="es">6.1 La posesión legal y material se entenderá entregada en el momento de la firma del AJB, sin perjuicio de que el acceso físico y obras generales de urbanización se completen conforme al cronograma del proyecto.</p>
+    <p data-lang="en">6.1 Legal and material possession shall be deemed delivered at the moment of signing the AJB, without prejudice to physical access and general urbanization works being completed according to the project schedule.</p>
+    <p data-lang="id">6.1 Penguasaan hukum dan fisik dianggap diserahkan pada saat penandatanganan AJB, tanpa mengesampingkan akses fisik dan pekerjaan pembangunan kawasan umum yang diselesaikan sesuai jadwal proyek.</p>
+    <p data-lang="es">6.2 El Vendedor se obliga a que, a la fecha de entrega o dentro del plazo operativo del proyecto, la Parcela cuente con: acceso rodado general dentro del complejo; infraestructura general de agua y electricidad del complejo en la entrada o puntos comunes; urbanización y áreas comunes ejecutadas conforme al diseño general del proyecto; y finalización sustancial del proyecto y de las infraestructuras principales necesarias para su correcta operatividad y acceso.</p>
+    <p data-lang="en">6.2 The Seller undertakes that, by the delivery date or within the project's operational term, the Plot shall have: general vehicular access within the complex; general water and electricity infrastructure of the complex at the entrance or common points; urbanization and common areas executed in accordance with the project's general design; and substantial completion of the project and of the main infrastructure necessary for its correct operability and access.</p>
+    <p data-lang="id">6.2 Penjual menjamin bahwa, pada tanggal serah terima atau dalam jangka operasional proyek, Kavling memiliki: akses kendaraan umum di dalam kompleks; infrastruktur air dan listrik umum kompleks di pintu masuk atau titik bersama; pembangunan kawasan dan area bersama sesuai desain umum proyek; serta penyelesaian substansial proyek dan infrastruktur utama yang diperlukan untuk operasi dan akses yang benar.</p>
+
+    <h2><span data-lang="es">7. Otorgamiento del AJB ante PPAT y registro en BPN</span><span data-lang="en">7. Granting of the AJB before PPAT and registration at BPN</span><span data-lang="id">7. Pembuatan AJB di hadapan PPAT dan pendaftaran di BPN</span></h2>
+    <ul data-lang="es">
+      <li>7.1 Las Partes se obligan a comparecer ante el PPAT designado por el Vendedor (o de común acuerdo) para otorgar el AJB.</li>
+      <li>7.2 El AJB se firmará una vez cumplidas las Condiciones Previas. El Comprador aportará los documentos corporativos de la PT PMA Compradora, poderes, autorizaciones internas y cualquier requisito solicitado por PPAT.</li>
+      <li>7.3 Tras la firma del AJB, el PPAT gestionará (o coordinará) la presentación para registro ante BPN, para la emisión/actualización del certificado a nombre de la PT PMA Compradora.</li>
+      <li>7.4 En caso de requerirse documentos adicionales por BPN, las Partes cooperarán de buena fe para su obtención dentro de plazos razonables.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>7.1 The Parties undertake to appear before the PPAT designated by the Seller (or by mutual agreement) to grant the AJB.</li>
+      <li>7.2 The AJB shall be signed once the Conditions Precedent are met. The Buyer shall provide the corporate documents of the Buyer PT PMA, powers of attorney, internal authorizations and any requirement requested by the PPAT.</li>
+      <li>7.3 After signing the AJB, the PPAT shall manage (or coordinate) the filing for registration at BPN, for the issuance/update of the certificate in the name of the Buyer PT PMA.</li>
+      <li>7.4 Should BPN require additional documents, the Parties shall cooperate in good faith to obtain them within reasonable timeframes.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>7.1 Para Pihak wajib hadir di hadapan PPAT yang ditunjuk Penjual (atau atas kesepakatan bersama) untuk membuat AJB.</li>
+      <li>7.2 AJB ditandatangani setelah Kondisi Prasyarat terpenuhi. Pembeli menyediakan dokumen korporasi PT PMA Pembeli, surat kuasa, otorisasi internal, dan setiap persyaratan yang diminta PPAT.</li>
+      <li>7.3 Setelah penandatanganan AJB, PPAT mengurus (atau mengoordinasikan) pengajuan pendaftaran ke BPN, untuk penerbitan/pembaruan sertifikat atas nama PT PMA Pembeli.</li>
+      <li>7.4 Apabila BPN meminta dokumen tambahan, Para Pihak bekerja sama dengan itikad baik untuk memperolehnya dalam jangka waktu wajar.</li>
+    </ul>
+
+    <h2><span data-lang="es">8. Impuestos, tasas y gastos</span><span data-lang="en">8. Taxes, fees and expenses</span><span data-lang="id">8. Pajak, retribusi dan biaya</span></h2>
+    <p data-lang="es">8.1 Las Partes acuerdan, conforme a práctica habitual local, que: el Comprador asumirá el BPHTB (Acquisition Duty) y los costes de registro aplicables al adquirente; el Vendedor asumirá el PPh (income tax / final tax) aplicable al vendedor, si corresponde.</p>
+    <p data-lang="en">8.1 The Parties agree, in accordance with usual local practice, that: the Buyer shall bear the BPHTB (Acquisition Duty) and the registration costs applicable to the acquirer; the Seller shall bear the PPh (income tax / final tax) applicable to the seller, if applicable.</p>
+    <p data-lang="id">8.1 Para Pihak sepakat, sesuai praktik lokal yang lazim, bahwa: Pembeli menanggung BPHTB (Bea Perolehan) dan biaya pendaftaran yang berlaku bagi pihak yang memperoleh; Penjual menanggung PPh (pajak penghasilan / pajak final) yang berlaku bagi penjual, jika ada.</p>
+    <p data-lang="es">8.2 Las Partes asumirán además: honorarios de PPAT/Notario (o conforme a tarifa máxima permitida por regulación vigente); costes de traducción oficial si fueran requeridos por PPAT/BPN; y costes bancarios, a cargo del emisor de cada transferencia.</p>
+    <p data-lang="en">8.2 The Parties shall further bear: PPAT/Notary fees (or in accordance with the maximum tariff permitted by current regulation); official translation costs if required by PPAT/BPN; and bank costs, borne by the issuer of each transfer.</p>
+    <p data-lang="id">8.2 Para Pihak juga menanggung: honorarium PPAT/Notaris (atau sesuai tarif maksimal yang diizinkan peraturan yang berlaku); biaya terjemahan resmi jika diminta PPAT/BPN; dan biaya bank, ditanggung oleh pengirim setiap transfer.</p>
+
+    <h2><span data-lang="es">9. Declaraciones y garantías</span><span data-lang="en">9. Representations and warranties</span><span data-lang="id">9. Pernyataan dan jaminan</span></h2>
+    <p data-lang="es"><b>9.1 Del Vendedor.</b> El Vendedor declara y garantiza que: a) es titular del derecho objeto de transferencia y tiene facultad para obligarse y transferir; b) a su leal saber y entender, el derecho no está sujeto a disputa judicial activa ni bloqueo registral que impida la transferencia; c) no ha prometido ni vendido la misma Parcela a terceros; d) proveerá al PPAT los documentos de título necesarios para la firma del AJB; e) cooperará razonablemente para la subdivisión e individualización del lote.</p>
+    <p data-lang="en"><b>9.1 By the Seller.</b> The Seller represents and warrants that: a) it holds the right subject to transfer and has the power to bind itself and transfer; b) to the best of its knowledge, the right is not subject to active judicial dispute or registry block preventing the transfer; c) it has not promised or sold the same Plot to third parties; d) it will provide the PPAT with the title documents necessary for signing the AJB; e) it will reasonably cooperate for the subdivision and individualization of the lot.</p>
+    <p data-lang="id"><b>9.1 Oleh Penjual.</b> Penjual menyatakan dan menjamin bahwa: a) merupakan pemegang hak objek peralihan dan berwenang mengikatkan diri serta mengalihkan; b) sepanjang pengetahuannya, hak tersebut tidak dalam sengketa peradilan aktif atau blokir pendaftaran yang menghalangi peralihan; c) tidak menjanjikan atau menjual Kavling yang sama kepada pihak ketiga; d) akan menyediakan dokumen alas hak kepada PPAT untuk penandatanganan AJB; e) akan bekerja sama secara wajar untuk pemecahan dan individualisasi lot.</p>
+    <p data-lang="es"><b>9.2 Del Comprador / Inversor.</b> El Comprador declara y garantiza que: a) posee capacidad y fondos suficientes para completar la compra; b) la estructura legal constituida operará conforme a leyes indonesias; c) entiende el régimen de HGB y que la estructura no constituye simulación/nominee; d) ha realizado o ha tenido oportunidad de realizar due diligence y solicitar documentación.</p>
+    <p data-lang="en"><b>9.2 By the Buyer / Investor.</b> The Buyer represents and warrants that: a) it has sufficient capacity and funds to complete the purchase; b) the legal structure incorporated will operate in accordance with Indonesian laws; c) it understands the HGB regime and that the structure does not constitute simulation/nominee; d) it has carried out or had the opportunity to carry out due diligence and to request documentation.</p>
+    <p data-lang="id"><b>9.2 Oleh Pembeli / Investor.</b> Pembeli menyatakan dan menjamin bahwa: a) memiliki kapasitas dan dana yang cukup untuk menyelesaikan pembelian; b) struktur hukum yang didirikan akan beroperasi sesuai hukum Indonesia; c) memahami rezim HGB dan bahwa struktur bukan simulasi/nominee; d) telah melakukan atau memiliki kesempatan melakukan uji tuntas dan meminta dokumentasi.</p>
+
+    <h2><span data-lang="es">10. Incumplimiento, resolución y penalidades</span><span data-lang="en">10. Breach, termination and penalties</span><span data-lang="id">10. Wanprestasi, pengakhiran dan penalti</span></h2>
+    <p data-lang="es"><b>10.1 Incumplimiento del Comprador.</b> Si el Comprador no completa el pago del Precio o no comparece a firmar el AJB en la fecha acordada, tras requerimiento fehaciente y un plazo de subsanación de 30 días, el Vendedor podrá resolver el PPJB y: a) retener el depósito como penalidad/arras (salvo que sea ilegal retenerlo en el caso específico, en cuyo caso se aplicará la penalidad máxima permitida); y b) reclamar daños adicionales si exceden lo retenido, cuando sean demostrables y permitidos.</p>
+    <p data-lang="en"><b>10.1 Buyer's breach.</b> If the Buyer fails to complete payment of the Price or does not appear to sign the AJB on the agreed date, after reliable demand and a 30-day cure period, the Seller may terminate the PPJB and: a) retain the deposit as penalty/earnest money (unless it is illegal to retain it in the specific case, in which case the maximum permitted penalty shall apply); and b) claim additional damages if they exceed the amount retained, when demonstrable and permitted.</p>
+    <p data-lang="id"><b>10.1 Wanprestasi Pembeli.</b> Jika Pembeli tidak menyelesaikan pembayaran Harga atau tidak hadir menandatangani AJB pada tanggal yang disepakati, setelah teguran resmi dan masa perbaikan 30 hari, Penjual dapat mengakhiri PPJB dan: a) menahan deposit sebagai penalti/uang jaminan (kecuali menahannya ilegal dalam kasus tertentu, di mana berlaku penalti maksimal yang diizinkan); dan b) menuntut ganti rugi tambahan jika melebihi yang ditahan, bila dapat dibuktikan dan diizinkan.</p>
+    <p data-lang="es"><b>10.2 Incumplimiento del Vendedor.</b> Si el Vendedor no puede transferir en las fechas pactadas y por causa imputable a él (p. ej. doble venta, falta de título, bloqueo por su culpa) y no subsana en 60 días, el Comprador podrá resolver y el Vendedor deberá devolver todas las cantidades recibidas bajo este PPJB.</p>
+    <p data-lang="en"><b>10.2 Seller's breach.</b> If the Seller cannot transfer on the agreed dates for reasons attributable to it (e.g. double sale, lack of title, block through its fault) and does not cure within 60 days, the Buyer may terminate and the Seller shall return all amounts received under this PPJB.</p>
+    <p data-lang="id"><b>10.2 Wanprestasi Penjual.</b> Jika Penjual tidak dapat mengalihkan pada tanggal yang disepakati karena sebab yang dapat dipersalahkan kepadanya (mis. penjualan ganda, tidak ada alas hak, blokir karena kesalahannya) dan tidak memperbaiki dalam 60 hari, Pembeli dapat mengakhiri dan Penjual wajib mengembalikan seluruh jumlah yang diterima berdasarkan PPJB ini.</p>
+    <p data-lang="es"><b>10.3 Retraso por causas administrativas.</b> Retrasos derivados de trámite PPAT/BPN o requisitos administrativos, sin culpa de las Partes, no constituirán incumplimiento; las Partes prorrogarán plazos razonables.</p>
+    <p data-lang="en"><b>10.3 Delay due to administrative causes.</b> Delays arising from PPAT/BPN processing or administrative requirements, without fault of the Parties, shall not constitute a breach; the Parties shall extend reasonable timeframes.</p>
+    <p data-lang="id"><b>10.3 Keterlambatan karena sebab administratif.</b> Keterlambatan akibat proses PPAT/BPN atau persyaratan administratif, tanpa kesalahan Para Pihak, tidak merupakan wanprestasi; Para Pihak memperpanjang jangka waktu secara wajar.</p>
+
+    <h2><span data-lang="es">11. Cesión</span><span data-lang="en">11. Assignment</span><span data-lang="id">11. Pengalihan</span></h2>
+    <p data-lang="es">11.1 El Vendedor podrá ceder su posición contractual a una sociedad vinculada al proyecto, siempre que dicha cesión no reduzca garantías del Comprador.</p>
+    <p data-lang="en">11.1 The Seller may assign its contractual position to a company related to the project, provided that such assignment does not reduce the Buyer's guarantees.</p>
+    <p data-lang="id">11.1 Penjual dapat mengalihkan kedudukan kontraktualnya kepada perusahaan yang terafiliasi dengan proyek, sepanjang pengalihan tersebut tidak mengurangi jaminan Pembeli.</p>
+    <p data-lang="es">11.2 El Comprador podrá ceder este PPJB a la PT PMA Compradora (o a otra PT PMA controlada por el Inversor) previa notificación y entrega de documentos corporativos al PPAT, manteniendo responsabilidad solidaria hasta la firma del AJB, salvo aceptación expresa del Vendedor.</p>
+    <p data-lang="en">11.2 The Buyer may assign this PPJB to the Buyer PT PMA (or to another PT PMA controlled by the Investor) upon prior notice and delivery of corporate documents to the PPAT, retaining joint and several liability until the signing of the AJB, unless expressly accepted by the Seller.</p>
+    <p data-lang="id">11.2 Pembeli dapat mengalihkan PPJB ini kepada PT PMA Pembeli (atau PT PMA lain yang dikendalikan Investor) setelah pemberitahuan dan penyerahan dokumen korporasi kepada PPAT, dengan tetap bertanggung jawab secara tanggung renteng hingga penandatanganan AJB, kecuali diterima secara tegas oleh Penjual.</p>
+
+    <h2><span data-lang="es">12. Confidencialidad</span><span data-lang="en">12. Confidentiality</span><span data-lang="id">12. Kerahasiaan</span></h2>
+    <p data-lang="es">Las Partes se obligan a mantener confidenciales el Precio y condiciones, salvo obligación legal, requerimiento de autoridad, o para asesores/PPAT/BPN bajo deber de confidencialidad.</p>
+    <p data-lang="en">The Parties undertake to keep the Price and conditions confidential, except for legal obligation, authority requirement, or for advisors/PPAT/BPN under a duty of confidentiality.</p>
+    <p data-lang="id">Para Pihak berkewajiban menjaga kerahasiaan Harga dan syarat-syarat, kecuali kewajiban hukum, permintaan otoritas, atau untuk penasihat/PPAT/BPN yang terikat kewajiban kerahasiaan.</p>
+
+    <h2><span data-lang="es">13. Notificaciones</span><span data-lang="en">13. Notices</span><span data-lang="id">13. Pemberitahuan</span></h2>
+    <p data-lang="es">Toda notificación se realizará por email y/o domicilio indicado en el encabezado. Se considerará recibida: email, al día hábil siguiente de envío, salvo rebote; mensajería, en fecha de entrega acreditada.</p>
+    <p data-lang="en">All notices shall be made by email and/or the address indicated in the heading. It shall be deemed received: email, on the business day following dispatch, unless bounced; courier, on the accredited delivery date.</p>
+    <p data-lang="id">Setiap pemberitahuan dilakukan melalui email dan/atau alamat yang tercantum pada bagian kepala. Dianggap diterima: email, pada hari kerja berikutnya setelah pengiriman, kecuali gagal terkirim; kurir, pada tanggal pengiriman yang terbukti.</p>
+
+    <h2><span data-lang="es">14. Ley aplicable y jurisdicción</span><span data-lang="en">14. Governing law and jurisdiction</span><span data-lang="id">14. Hukum yang berlaku dan yurisdiksi</span></h2>
+    <p data-lang="es">14.1 Este PPJB se rige por las leyes de la República de Indonesia. 14.2 Las Partes se someten a los tribunales competentes de Bali, Indonesia, sin perjuicio de intentar una resolución amistosa.</p>
+    <p data-lang="en">14.1 This PPJB is governed by the laws of the Republic of Indonesia. 14.2 The Parties submit to the competent courts of Bali, Indonesia, without prejudice to attempting an amicable resolution.</p>
+    <p data-lang="id">14.1 PPJB ini diatur oleh hukum Republik Indonesia. 14.2 Para Pihak tunduk pada pengadilan yang berwenang di Bali, Indonesia, tanpa mengesampingkan upaya penyelesaian damai.</p>
+
+    <h2><span data-lang="es">15. Integridad, modificaciones y separabilidad</span><span data-lang="en">15. Entirety, amendments and severability</span><span data-lang="id">15. Keutuhan, perubahan dan keterpisahan</span></h2>
+    <p data-lang="es">15.1 Este PPJB y sus anexos constituyen el acuerdo íntegro. 15.2 Cualquier modificación deberá constar por escrito y firmada por ambas Partes. 15.3 Si alguna cláusula fuera inválida, el resto permanecerá vigente; las Partes sustituirán la cláusula por otra válida de efecto equivalente.</p>
+    <p data-lang="en">15.1 This PPJB and its annexes constitute the entire agreement. 15.2 Any amendment must be in writing and signed by both Parties. 15.3 Should any clause be invalid, the rest shall remain in force; the Parties shall replace the clause with another valid one of equivalent effect.</p>
+    <p data-lang="id">15.1 PPJB ini beserta lampirannya merupakan keseluruhan perjanjian. 15.2 Setiap perubahan harus tertulis dan ditandatangani kedua Pihak. 15.3 Jika suatu pasal tidak sah, sisanya tetap berlaku; Para Pihak menggantinya dengan pasal sah yang berdaya sama.</p>
+
+    <h2><span data-lang="es">16. Alcance de los trabajos</span><span data-lang="en">16. Scope of works</span><span data-lang="id">16. Lingkup pekerjaan</span></h2>
+    <p data-lang="es">El Vendedor deberá organizar, gestionar y ejecutar la construcción del Proyecto estrictamente conforme a los planos, especificaciones y calendario aprobados, adjuntados como Apéndices. Solo los elementos expresamente listados como incluidos en el Apéndice B forman parte del Precio del Contrato. Cualquier elemento omitido en los Apéndices se considera excluido, salvo acuerdo posterior por escrito. Ningún comunicado verbal, mensaje de WhatsApp, imagen de muestra o conversación en obra podrá modificar el alcance, salvo que se formalice mediante una Orden de Variación firmada por ambas partes.</p>
+    <p data-lang="en">The Seller shall organize, manage and execute the construction of the Project strictly in accordance with the approved drawings, specifications and schedule, attached as Appendices. Only the items expressly listed as included in Appendix B form part of the Contract Price. Any item omitted in the Appendices is deemed excluded, unless subsequently agreed in writing. No verbal communication, WhatsApp message, sample image or on-site conversation may modify the scope, unless formalized through a Variation Order signed by both parties.</p>
+    <p data-lang="id">Penjual wajib mengatur, mengelola, dan melaksanakan konstruksi Proyek secara ketat sesuai gambar, spesifikasi, dan jadwal yang disetujui, dilampirkan sebagai Lampiran. Hanya item yang secara tegas tercantum sebagai termasuk dalam Lampiran B yang menjadi bagian Harga Kontrak. Setiap item yang tidak tercantum dalam Lampiran dianggap dikecualikan, kecuali disepakati kemudian secara tertulis. Tidak ada komunikasi lisan, pesan WhatsApp, gambar contoh, atau percakapan di lapangan yang dapat mengubah lingkup, kecuali diformalkan melalui Perintah Variasi yang ditandatangani kedua pihak.</p>
+
+    <h2><span data-lang="es">17. Documentos del proyecto</span><span data-lang="en">17. Project documents</span><span data-lang="id">17. Dokumen proyek</span></h2>
+    <p data-lang="es">En caso de contradicción, se aplicará el siguiente orden de prelación: el presente Contrato; Apéndice A – Planos Arquitectónicos; Apéndice B – Especificaciones Técnicas; Apéndice C – Dossier; Apéndice D – Oferta Comercial; Apéndice E – Cuenta de Pago.</p>
+    <p data-lang="en">In case of contradiction, the following order of precedence shall apply: this Contract; Appendix A – Architectural Drawings; Appendix B – Technical Specifications; Appendix C – Dossier; Appendix D – Commercial Offer; Appendix E – Payment Account.</p>
+    <p data-lang="id">Dalam hal terjadi pertentangan, berlaku urutan prioritas berikut: Kontrak ini; Lampiran A – Gambar Arsitektur; Lampiran B – Spesifikasi Teknis; Lampiran C – Dosier; Lampiran D – Penawaran Komersial; Lampiran E – Rekening Pembayaran.</p>
+
+    <h2><span data-lang="es">18. Plazo de ejecución</span><span data-lang="en">18. Execution term</span><span data-lang="id">18. Jangka waktu pelaksanaan</span></h2>
+    <p data-lang="es">El Plazo de Ejecución es de <span class="f">{{plazo_meses}}</span> meses naturales a partir de la Fecha de Inicio. La Fecha de Inicio comenzará a computar cuando se haya recibido el primer pago por parte del Adquiriente.</p>
+    <p data-lang="en">The Execution Term is <span class="f">{{plazo_meses}}</span> calendar months from the Start Date. The Start Date shall begin to count once the first payment has been received from the Buyer.</p>
+    <p data-lang="id">Jangka Waktu Pelaksanaan adalah <span class="f">{{plazo_meses}}</span> bulan kalender sejak Tanggal Mulai. Tanggal Mulai dihitung ketika pembayaran pertama telah diterima dari Pembeli.</p>
+
+    <h2><span data-lang="es">19. Prórroga del plazo</span><span data-lang="en">19. Term extension</span><span data-lang="id">19. Perpanjangan jangka waktu</span></h2>
+    <p data-lang="es">El Vendedor tendrá derecho a una prórroga razonable del plazo, con un máximo de 6 meses, únicamente en los siguientes casos: variaciones aprobadas que afecten al plazo, fuerza mayor, demoras en decisiones del cliente, retrasos en permisos expresamente bajo la responsabilidad del cliente, o suspensión ordenada por el cliente.</p>
+    <p data-lang="en">The Seller shall be entitled to a reasonable extension of the term, up to a maximum of 6 months, only in the following cases: approved variations affecting the term, force majeure, delays in client decisions, permit delays expressly under the client's responsibility, or suspension ordered by the client.</p>
+    <p data-lang="id">Penjual berhak atas perpanjangan waktu yang wajar, maksimal 6 bulan, hanya dalam hal berikut: variasi yang disetujui yang memengaruhi jangka waktu, keadaan kahar, keterlambatan keputusan klien, keterlambatan izin yang secara tegas menjadi tanggung jawab klien, atau penghentian yang diperintahkan klien.</p>
+
+    <h2><span data-lang="es">20. Calidad, materiales y SST</span><span data-lang="en">20. Quality, materials and OHS</span><span data-lang="id">20. Kualitas, material dan K3</span></h2>
+    <p data-lang="es">El Proyecto deberá ejecutarse de manera adecuada y con buena práctica constructiva, utilizando materiales descritos en el Anexo Especificaciones Técnicas. El Vendedor es responsable de la seguridad en obra, el uso de EPP por los trabajadores, el orden y la limpieza, y el cumplimiento de los requisitos K3 / SST aplicables durante los trabajos.</p>
+    <p data-lang="en">The Project shall be executed properly and with good construction practice, using materials described in the Technical Specifications Annex. The Seller is responsible for site safety, the use of PPE by workers, order and cleanliness, and compliance with the applicable K3 / OHS requirements during the works.</p>
+    <p data-lang="id">Proyek harus dilaksanakan dengan baik dan sesuai praktik konstruksi yang benar, menggunakan material yang diuraikan dalam Lampiran Spesifikasi Teknis. Penjual bertanggung jawab atas keselamatan di lokasi, penggunaan APD oleh pekerja, ketertiban dan kebersihan, serta kepatuhan terhadap persyaratan K3 yang berlaku selama pekerjaan.</p>
+
+    <h2><span data-lang="es">21. Seguros y riesgos</span><span data-lang="en">21. Insurance and risks</span><span data-lang="id">21. Asuransi dan risiko</span></h2>
+    <p data-lang="es">El Vendedor asume plena responsabilidad sobre todos los trabajadores, subcontratistas y proveedores contratados por ella, y los coordinará bajo su propio riesgo y coste. El Vendedor mantendrá a su cargo: (a) seguro de trabajadores / BPJS o cobertura obligatoria equivalente, (b) seguro de responsabilidad civil frente a terceros, y (c) seguro todo riesgo del contratista. El riesgo de pérdida o daño en las obras recae sobre el Constructor hasta la entrega, excepto para los elementos ya entregados o los daños causados por la Segunda Parte.</p>
+    <p data-lang="en">The Seller assumes full responsibility for all workers, subcontractors and suppliers hired by it, and shall coordinate them at its own risk and cost. The Seller shall maintain at its expense: (a) workers' insurance / BPJS or equivalent mandatory coverage, (b) third-party civil liability insurance, and (c) contractor's all-risk insurance. The risk of loss or damage to the works rests with the Builder until delivery, except for items already delivered or damage caused by the Second Party.</p>
+    <p data-lang="id">Penjual memikul tanggung jawab penuh atas semua pekerja, subkontraktor, dan pemasok yang dipekerjakannya, dan mengoordinasikannya atas risiko dan biayanya sendiri. Penjual menanggung atas bebannya: (a) asuransi pekerja / BPJS atau perlindungan wajib setara, (b) asuransi tanggung jawab perdata terhadap pihak ketiga, dan (c) asuransi contractor's all-risk. Risiko kehilangan atau kerusakan pekerjaan berada pada Pembangun hingga serah terima, kecuali untuk item yang sudah diserahkan atau kerusakan yang disebabkan Pihak Kedua.</p>
+
+    <h2><span data-lang="es">22. Obligaciones del adquirente</span><span data-lang="en">22. Buyer's obligations</span><span data-lang="id">22. Kewajiban pembeli</span></h2>
+    <p data-lang="es">El Adquiriente proporcionará acceso legal al terreno, aprobaciones en plazo, pago puntual de los importes certificados no disputados, y todos los suministros a cargo del propietario en las etapas establecidas en el programa del proyecto. Cuando los permisos, la preparación del terreno o la infraestructura externa sean responsabilidad del propietario, el retraso en dichas materias dará derecho a la Primera Parte a una prórroga adecuada y a la recuperación de costes demostrables, si expresamente se acuerda.</p>
+    <p data-lang="en">The Buyer shall provide legal access to the land, timely approvals, punctual payment of undisputed certified amounts, and all owner-supplied provisions at the stages established in the project program. Where permits, land preparation or external infrastructure are the owner's responsibility, delay in such matters shall entitle the First Party to an appropriate extension and to the recovery of demonstrable costs, if expressly agreed.</p>
+    <p data-lang="id">Pembeli menyediakan akses legal ke tanah, persetujuan tepat waktu, pembayaran tepat waktu atas jumlah tersertifikasi yang tidak disengketakan, dan semua pasokan yang menjadi tanggungan pemilik pada tahap yang ditetapkan dalam program proyek. Apabila izin, persiapan lahan, atau infrastruktur eksternal menjadi tanggung jawab pemilik, keterlambatan dalam hal tersebut memberi hak kepada Pihak Pertama atas perpanjangan yang sesuai dan penggantian biaya yang dapat dibuktikan, jika disepakati secara tegas.</p>
+
+    <h2><span data-lang="es">23. Terminación y entrega</span><span data-lang="en">23. Completion and delivery</span><span data-lang="id">23. Penyelesaian dan serah terima</span></h2>
+    <p data-lang="es">Cuando el Vendedor considere el Proyecto terminado, solicitará una inspección. Las Partes inspeccionarán el Proyecto y emitirán una lista de defectos en el plazo de 7 días naturales.</p>
+    <p data-lang="en">When the Seller considers the Project complete, it shall request an inspection. The Parties shall inspect the Project and issue a list of defects within 7 calendar days.</p>
+    <p data-lang="id">Ketika Penjual menganggap Proyek selesai, ia akan meminta inspeksi. Para Pihak menginspeksi Proyek dan menerbitkan daftar cacat dalam 7 hari kalender.</p>
+
+    <h2><span data-lang="es">24. Responsabilidad por defectos y garantía</span><span data-lang="en">24. Defect liability and warranty</span><span data-lang="id">24. Tanggung jawab cacat dan garansi</span></h2>
+    <p data-lang="es">El Período de Responsabilidad por Defectos es de 12 meses desde la entrega. El Vendedor subsanará a su cargo cualquier defecto derivado de ejecución no conforme, materiales defectuosos suministrados por ella, o incumplimiento de los documentos contractuales. Si el Vendedor no subsanara los defectos notificados en un plazo razonable, el Adquiriente podrá encargar su corrección a terceros a cargo del Constructor.</p>
+    <p data-lang="en">The Defect Liability Period is 12 months from delivery. The Seller shall remedy at its own cost any defect arising from non-conforming execution, defective materials supplied by it, or breach of the contractual documents. If the Seller fails to remedy the notified defects within a reasonable time, the Buyer may commission their correction by third parties at the Builder's cost.</p>
+    <p data-lang="id">Masa Tanggung Jawab Cacat adalah 12 bulan sejak serah terima. Penjual memperbaiki atas biayanya sendiri setiap cacat akibat pelaksanaan yang tidak sesuai, material cacat yang dipasoknya, atau pelanggaran dokumen kontraktual. Jika Penjual gagal memperbaiki cacat yang diberitahukan dalam waktu wajar, Pembeli dapat menugaskan perbaikannya kepada pihak ketiga atas biaya Pembangun.</p>
+
+    <h2><span data-lang="es">25. Suspensión y resolución</span><span data-lang="en">25. Suspension and termination</span><span data-lang="id">25. Penghentian dan pengakhiran</span></h2>
+    <p data-lang="es">El Adquiriente podrá suspender los trabajos por conveniencia mediante notificación escrita, en cuyo caso las Partes acordarán de buena fe los efectos resultantes en plazo y coste. Si cualquiera de las Partes incumple materialmente el presente Contrato y no subsana el incumplimiento en el plazo de 30 días naturales tras notificación escrita, la Parte no incumplidora podrá resolver el Contrato.</p>
+    <p data-lang="en">The Buyer may suspend the works for convenience by written notice, in which case the Parties shall agree in good faith the resulting effects on term and cost. If either Party materially breaches this Contract and fails to cure the breach within 30 calendar days after written notice, the non-breaching Party may terminate the Contract.</p>
+    <p data-lang="id">Pembeli dapat menghentikan pekerjaan demi kenyamanan melalui pemberitahuan tertulis, dan dalam hal itu Para Pihak menyepakati dengan itikad baik akibatnya terhadap jangka waktu dan biaya. Jika salah satu Pihak melanggar Kontrak ini secara material dan tidak memperbaikinya dalam 30 hari kalender setelah pemberitahuan tertulis, Pihak yang tidak melanggar dapat mengakhiri Kontrak.</p>
+
+    <h2><span data-lang="es">26. Fuerza mayor</span><span data-lang="en">26. Force majeure</span><span data-lang="id">26. Keadaan kahar</span></h2>
+    <p data-lang="es">Se entiende por fuerza mayor los eventos ajenos a un control razonable que no hubieran podido prevenirse con la debida diligencia, incluyendo terremotos, inundaciones, guerra, disturbios, restricciones por epidemia/pandemia y prohibición gubernamental que afecte directamente al Proyecto.</p>
+    <p data-lang="en">Force majeure means events beyond reasonable control that could not have been prevented with due diligence, including earthquakes, floods, war, riots, epidemic/pandemic restrictions and governmental prohibition directly affecting the Project.</p>
+    <p data-lang="id">Keadaan kahar berarti peristiwa di luar kendali wajar yang tidak dapat dicegah dengan kehati-hatian yang semestinya, termasuk gempa bumi, banjir, perang, kerusuhan, pembatasan epidemi/pandemi, dan larangan pemerintah yang langsung memengaruhi Proyek.</p>
+
+    <h2><span data-lang="es">27. Ley aplicable</span><span data-lang="en">27. Governing law</span><span data-lang="id">27. Hukum yang berlaku</span></h2>
+    <p data-lang="es">En Bali, República de Indonesia, a fecha <span class="f">{{fecha_firma}}</span>. Las partes se someten a los tribunales competentes de Bali, Indonesia o al arbitraje internacional, con renuncia expresa a cualquier otro fuero que pudiera corresponderles, sin perjuicio de intentar previamente una resolución amistosa.</p>
+    <p data-lang="en">In Bali, Republic of Indonesia, dated <span class="f">{{fecha_firma}}</span>. The parties submit to the competent courts of Bali, Indonesia or to international arbitration, with express waiver of any other jurisdiction that might correspond to them, without prejudice to first attempting an amicable resolution.</p>
+    <p data-lang="id">Di Bali, Republik Indonesia, tertanggal <span class="f">{{fecha_firma}}</span>. Para pihak tunduk pada pengadilan yang berwenang di Bali, Indonesia atau arbitrase internasional, dengan pelepasan tegas atas yurisdiksi lain yang mungkin berlaku, tanpa mengesampingkan upaya penyelesaian damai terlebih dahulu.</p>
+
+    <!-- ============ FIRMAS ============ -->
+    <h2><span data-lang="es">Firmas</span><span data-lang="en">Signatures</span><span data-lang="id">Tanda tangan</span></h2>
+    <table class="pays" style="margin-top:14px">
+      <tbody>
+        <tr>
+          <td>
+            <div class="role"><span data-lang="es">El Promotor</span><span data-lang="en">The Developer</span><span data-lang="id">Pengembang</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_promotor}}" alt="" style="max-height:22mm;max-width:100%"></div>
+          </td>
+          <td>
+            <div class="role"><span data-lang="es">El Adquiriente</span><span data-lang="en">The Buyer</span><span data-lang="id">Pembeli</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pending" data-lang="en"><b>⚠ Working translation.</b> The Spanish text is the client's official source; this English version is a working translation pending official legal review.</div>
+    <div class="pending" data-lang="id"><b>⚠ Terjemahan kerja.</b> Teks Spanyol adalah sumber resmi klien; versi Indonesia ini adalah terjemahan kerja yang menunggu peninjauan hukum resmi.</div>
   </div>
-  <p>El Precio de reserva se descontará del primer pago de la firma del proyecto. El calendario de pagos será el siguiente:</p>
-  <table class="pays">
-    <thead><tr><th>Fase</th><th>Descripción</th><th class="pct">%</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Firma y movilización</td><td class="pct">25%</td></tr>
-      <tr><td>2</td><td>Fase Cimentación y Subsuelo</td><td class="pct">25%</td></tr>
-      <tr><td>3</td><td>Fase Electricidad, Fontanería y Cerramientos</td><td class="pct">25%</td></tr>
-      <tr><td>4</td><td>Fase Terminación práctica — acabados finales</td><td class="pct">25%</td></tr>
-    </tbody>
-  </table>
-  <p>El retraso o incumplimiento de cualquier pago facultará al Constructor y/o Vendedor para suspender temporalmente la obra, pudiendo repercutirse al Comprador los costes derivados de su reactivación. El Constructor facilitará periódicamente reportes e imágenes del avance de obra.</p>
-
-  <h2><span class="n">4</span> Condiciones previas</h2>
-  <p>La obligación de otorgar el AJB quedará sujeta a que se cumplan, como mínimo, las siguientes condiciones:</p>
-  <ul class="tight">
-    <li>Constitución/operatividad de la estructura permitida legal, incluyendo escritura, NIB/OSS y NPWP (si aún no existen).</li>
-    <li>Subdivisión/individualización de la Parcela o disponibilidad documental suficiente para transferir el derecho conforme a la práctica del PPAT y BPN (mapas, mediciones y documentación del lote).</li>
-    <li>Pago de impuestos y tasas asociados a la transferencia y emisión de recibos oficiales requeridos por el PPAT.</li>
-  </ul>
-  <p>Si alguna condición previa no se cumple por causas no imputables al Comprador, las Partes acordarán una prórroga razonable de 30 días. Si el incumplimiento se prolonga más allá de 30 días, aplicará el régimen de resolución correspondiente.</p>
-
-  <h2><span class="n">5</span> Entrega, posesión y estado de la parcela</h2>
-  <p>La posesión legal y material se entenderá entregada en el momento de la firma del AJB, sin perjuicio de que el acceso físico y obras generales de urbanización se completen conforme al cronograma del proyecto. El Vendedor se obliga a que, a la fecha de entrega o dentro del plazo operativo, la Parcela cuente con: acceso rodado general dentro del complejo; infraestructura general de agua y electricidad en la entrada o puntos comunes; urbanización y áreas comunes ejecutadas conforme al diseño general; y finalización sustancial de las infraestructuras principales necesarias para su correcta operatividad y acceso.</p>
-
-  <h2><span class="n">6</span> Otorgamiento del AJB ante PPAT y registro en BPN</h2>
-  <p>Las Partes se obligan a comparecer ante el PPAT designado por el Vendedor (o de común acuerdo) para otorgar el AJB, una vez cumplidas las Condiciones Previas. El Comprador aportará los documentos corporativos de la PT PMA Compradora, poderes y autorizaciones internas. Tras la firma del AJB, el PPAT gestionará la presentación para registro ante BPN, para la emisión/actualización del certificado a nombre de la PT PMA Compradora. En caso de requerirse documentos adicionales por BPN, las Partes cooperarán de buena fe dentro de plazos razonables.</p>
-
-  <h2><span class="n">7</span> Impuestos, tasas y gastos</h2>
-  <ul class="tight">
-    <li>El Comprador asumirá el BPHTB (Acquisition Duty) y los costes de registro aplicables al adquirente.</li>
-    <li>El Vendedor asumirá el PPh (income/final tax) aplicable al vendedor, si corresponde.</li>
-    <li>Honorarios de PPAT/Notario conforme a tarifa máxima permitida; costes de traducción oficial si los requiere PPAT/BPN; costes bancarios a cargo del emisor de cada transferencia.</li>
-  </ul>
-
-  <h2><span class="n">8</span> Declaraciones y garantías</h2>
-  <h3>Del Vendedor</h3>
-  <ul class="tight">
-    <li>Es titular del derecho objeto de transferencia y tiene facultad para obligarse y transferir.</li>
-    <li>A su leal saber y entender, el derecho no está sujeto a disputa judicial activa ni bloqueo registral que impida la transferencia.</li>
-    <li>No ha prometido ni vendido la misma Parcela a terceros; proveerá al PPAT los documentos de título necesarios; cooperará razonablemente para la subdivisión e individualización del lote.</li>
-  </ul>
-  <h3>Del Comprador / Inversor</h3>
-  <ul class="tight">
-    <li>Posee capacidad y fondos suficientes para completar la compra.</li>
-    <li>La estructura legal constituida operará conforme a leyes indonesias; entiende el régimen de HGB y que la estructura no constituye simulación/nominee.</li>
-    <li>Ha realizado o ha tenido oportunidad de realizar due diligence y solicitar documentación.</li>
-  </ul>
-
-  <h2><span class="n">9</span> Incumplimiento, resolución y penalidades</h2>
-  <p><strong>Incumplimiento del Comprador:</strong> si no completa el pago del Precio o no comparece a firmar el AJB en la fecha acordada, tras requerimiento fehaciente y un plazo de subsanación de 30 días, el Vendedor podrá resolver el PPJB y retener el depósito como penalidad/arras (salvo que sea ilegal retenerlo), y reclamar daños adicionales si exceden lo retenido, cuando sean demostrables y permitidos.</p>
-  <p><strong>Incumplimiento del Vendedor:</strong> si no puede transferir en las fechas pactadas por causa imputable a él (p. ej. doble venta, falta de título) y no subsana en 60 días, el Comprador podrá resolver y el Vendedor deberá devolver todas las cantidades recibidas bajo este PPJB.</p>
-  <p><strong>Retraso administrativo:</strong> los retrasos derivados de trámite PPAT/BPN sin culpa de las Partes no constituirán incumplimiento; las Partes prorrogarán plazos razonables.</p>
-
-  <h2><span class="n">10</span> Cesión</h2>
-  <p>El Vendedor podrá ceder su posición contractual a una sociedad vinculada al proyecto, siempre que no reduzca garantías del Comprador. El Comprador podrá ceder este PPJB a la PT PMA Compradora (o a otra PT PMA controlada por el Inversor) previa notificación y entrega de documentos corporativos al PPAT, manteniendo responsabilidad solidaria hasta la firma del AJB, salvo aceptación expresa del Vendedor.</p>
-
-  <h2><span class="n">11</span> Confidencialidad</h2>
-  <p>Las Partes se obligan a mantener confidenciales el Precio y condiciones, salvo obligación legal, requerimiento de autoridad, o para asesores/PPAT/BPN bajo deber de confidencialidad.</p>
-
-  <h2><span class="n">12</span> Notificaciones</h2>
-  <p>Toda notificación se realizará por email y/o domicilio indicado en el encabezado. Se considerará recibida: por email, al día hábil siguiente del envío, salvo rebote; por mensajería, en la fecha de entrega acreditada.</p>
-
-  <h2><span class="n">13</span> Ley aplicable y jurisdicción</h2>
-  <p>Este PPJB se rige por las leyes de la República de Indonesia. Las Partes se someten a los tribunales competentes de Bali, Indonesia, sin perjuicio de intentar una resolución amistosa.</p>
-
-  <h2><span class="n">14</span> Integridad, modificaciones y separabilidad</h2>
-  <p>Este PPJB y sus anexos constituyen el acuerdo íntegro. Cualquier modificación deberá constar por escrito y firmada por ambas Partes. Si alguna cláusula fuera inválida, el resto permanecerá vigente; las Partes la sustituirán por otra válida de efecto equivalente.</p>
-
-  <h2><span class="n">15</span> Alcance de los trabajos</h2>
-  <p>El Vendedor deberá organizar, gestionar y ejecutar la construcción del Proyecto estrictamente conforme a los planos, especificaciones y calendario aprobados, adjuntados como Apéndices. Solo los elementos expresamente listados como incluidos en el Apéndice B forman parte del Precio del Contrato; cualquier elemento omitido se considera excluido, salvo acuerdo posterior por escrito. Ningún comunicado verbal, mensaje de WhatsApp o imagen de muestra podrá modificar el alcance, salvo Orden de Variación firmada por ambas partes.</p>
-
-  <h2><span class="n">16</span> Documentos del proyecto</h2>
-  <p>En caso de contradicción se aplicará el siguiente orden de prelación: (1) el presente Contrato; (2) Apéndice A — Planos Arquitectónicos; (3) Apéndice B — Especificaciones Técnicas; (4) Apéndice C — Dossier; (5) Apéndice D — Oferta Comercial; (6) Apéndice E — Cuenta de Pago.</p>
-
-  <h2><span class="n">17</span> Plazo de ejecución</h2>
-  <p>El Plazo de Ejecución es de <span class="f">{{plazo_meses}}</span> meses naturales a partir de la Fecha de Inicio. La Fecha de Inicio comenzará a computar cuando se haya recibido el primer pago por parte del Adquiriente.</p>
-
-  <h2><span class="n">18</span> Prórroga del plazo</h2>
-  <p>El Vendedor tendrá derecho a una prórroga razonable del plazo, con un máximo de 6 meses, únicamente en los siguientes casos: variaciones aprobadas que afecten al plazo, fuerza mayor, demoras en decisiones del cliente, retrasos en permisos bajo responsabilidad del cliente, o suspensión ordenada por el cliente.</p>
-
-  <h2><span class="n">19</span> Calidad, materiales y SST</h2>
-  <p>El Proyecto deberá ejecutarse con buena práctica constructiva, utilizando los materiales descritos en el Anexo de Especificaciones Técnicas. El Vendedor es responsable de la seguridad en obra, el uso de EPP por los trabajadores, el orden y la limpieza, y el cumplimiento de los requisitos K3/SST aplicables.</p>
-
-  <h2><span class="n">20</span> Seguros y riesgos</h2>
-  <p>El Vendedor asume plena responsabilidad sobre todos los trabajadores, subcontratistas y proveedores contratados por ella. Mantendrá a su cargo: (a) seguro de trabajadores/BPJS o cobertura obligatoria equivalente; (b) seguro de responsabilidad civil frente a terceros; y (c) seguro todo riesgo del contratista. El riesgo de pérdida o daño en las obras recae sobre el Constructor hasta la entrega, excepto para los elementos ya entregados.</p>
-
-  <h2><span class="n">21</span> Obligaciones del adquirente</h2>
-  <p>El Adquiriente proporcionará acceso legal al terreno, aprobaciones en plazo, pago puntual de los importes certificados no disputados, y los suministros a su cargo en las etapas del programa. Cuando los permisos o la infraestructura externa sean responsabilidad del propietario, el retraso dará derecho al Vendedor a una prórroga adecuada y a la recuperación de costes demostrables, si se acuerda expresamente.</p>
-
-  <h2><span class="n">22</span> Terminación y entrega</h2>
-  <p>Cuando el Vendedor considere el Proyecto terminado, solicitará una inspección. Las Partes inspeccionarán el Proyecto y emitirán una lista de defectos en el plazo de 7 días naturales.</p>
-
-  <h2><span class="n">23</span> Responsabilidad por defectos y garantía</h2>
-  <p>El Período de Responsabilidad por Defectos es de 12 meses desde la entrega. El Vendedor subsanará a su cargo cualquier defecto derivado de ejecución no conforme, materiales defectuosos suministrados por ella, o incumplimiento de los documentos contractuales. Si no subsanara en plazo razonable, el Adquiriente podrá encargar su corrección a terceros a cargo del Constructor.</p>
-
-  <h2><span class="n">24</span> Suspensión y resolución</h2>
-  <p>El Adquiriente podrá suspender los trabajos por conveniencia mediante notificación escrita, en cuyo caso las Partes acordarán de buena fe los efectos en plazo y coste. Si cualquiera de las Partes incumple materialmente el Contrato y no subsana en 30 días naturales tras notificación escrita, la Parte no incumplidora podrá resolver el Contrato.</p>
-
-  <h2><span class="n">25</span> Fuerza mayor</h2>
-  <p>Se entiende por fuerza mayor los eventos ajenos a un control razonable que no hubieran podido prevenirse con la debida diligencia, incluyendo terremotos, inundaciones, guerra, disturbios, restricciones por epidemia/pandemia y prohibición gubernamental que afecte directamente al Proyecto.</p>
-
-  <h2><span class="n">26</span> Arbitraje y fuero</h2>
-  <p>Las Partes se someten a los tribunales competentes de Bali, Indonesia, o al arbitraje internacional, con renuncia expresa a cualquier otro fuero, sin perjuicio de intentar previamente una resolución amistosa.</p>
-
-  <!-- ============ FIRMAS ============ -->
-  <div class="place">En Bali, República de Indonesia, a {{fecha_firma}}.</div>
-  <div class="signatures">
-    <div class="sig">
-      <div class="img"><img src="{{firma_promotor}}" alt=""></div>
-      <div class="who">El Promotor</div>
-      <div class="nm">Lawang Tropical Properties</div>
-    </div>
-    <div class="sig">
-      <div class="img"><img src="{{firma_adquiriente}}" alt=""></div>
-      <div class="who">El Adquiriente</div>
-      <div class="nm">{{adq1_nombre}}</div>
-    </div>
-  </div>
-
-</div>
 </body>
 </html>

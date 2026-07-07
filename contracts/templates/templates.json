@@ -1,44 +1,21 @@
 {
+  "_nota": "Manifiesto del backend (api/generar.php valida el slug aquí y usa name + meta_fields). El origen de los CAMPOS del formulario es tokens.json; estas 'sections' son un fallback mínimo del backend. Solo 2 plantillas activas.",
   "templates": [
     {
-      "slug": "ppjb_reserva",
-      "name": "Contrato de Reserva de Proyecto",
-      "desc": "PPJB · pacto preliminar de compraventa",
-      "file": "ppjb_reserva.html",
+      "slug": "ppjb_parcela",
+      "name": "Contrato de Reserva de Parcela",
+      "desc": "PPJB · reserva de parcela",
+      "file": "ppjb_parcela.html",
       "sections": [
         { "id": "comprador", "title": "Adquiriente I", "fields": [
           ["adq1_nombre", "Nombre y apellidos", "text"],
           ["adq1_nacionalidad", "Nacionalidad", "text"],
           ["adq1_pasaporte", "Pasaporte", "text"]
         ]},
-        { "id": "comprador2", "title": "Adquiriente II", "optional": true, "fields": [
-          ["adq2_nombre", "Nombre y apellidos", "text"],
-          ["adq2_nacionalidad", "Nacionalidad", "text"],
-          ["adq2_pasaporte", "Pasaporte", "text"]
-        ]},
-        { "id": "comprador3", "title": "Adquiriente III", "optional": true, "fields": [
-          ["adq3_nombre", "Nombre y apellidos", "text"],
-          ["adq3_nacionalidad", "Nacionalidad", "text"],
-          ["adq3_pasaporte", "Pasaporte", "text"]
-        ]},
-        { "id": "ptpma", "title": "Entidad jurídica (PT PMA)", "optional": true, "fields": [
-          ["ptpma_domicilio", "Domicilio social", "text"],
-          ["ptpma_nib", "NIB / OSS", "text"],
-          ["ptpma_npwp", "NPWP", "text"]
-        ]},
-        { "id": "proyecto", "title": "Proyecto y parcela", "fields": [
+        { "id": "parcela", "title": "Parcela y precio", "fields": [
           ["proyecto_nombre", "Nombre del proyecto", "text"],
-          ["parcela_num", "Número de parcela", "text"],
-          ["vendedor_cargo", "Cargo del representante del vendedor", "text", "Director"]
-        ]},
-        { "id": "precio", "title": "Precio", "fields": [
-          ["precio_total_eur", "Precio total (€)", "number"],
-          ["precio_total_letras", "Precio total en letras", "text"],
-          ["precio_reserva_eur", "Precio de reserva (€)", "number"],
-          ["precio_reserva_letras", "Reserva en letras", "text"]
-        ]},
-        { "id": "plazo", "title": "Plazo y fecha", "fields": [
-          ["plazo_meses", "Plazo de ejecución (meses)", "number"],
+          ["parcela_codigo", "Código de parcela", "text"],
+          ["precio_total", "Precio total (€)", "number"],
           ["fecha_firma", "Fecha de firma", "date"]
         ]},
         { "id": "firmas", "title": "Firmas", "fields": [
@@ -49,108 +26,30 @@
       "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
     },
     {
-      "slug": "dali_construccion",
-      "name": "Perjanjian Induk Konstruksi — DALI",
-      "desc": "Kontrak konstruksi vila (Bahasa Indonesia) · Sumba Hills / Tepi Sungai",
-      "file": "dali_construccion.html",
+      "slug": "ppjb_reserva",
+      "name": "Contrato de Reserva de Proyecto",
+      "desc": "PPJB · reserva de proyecto",
+      "file": "ppjb_reserva.html",
       "sections": [
-        { "id": "pembeli1", "title": "Pembeli I", "fields": [
-          ["pembeli1_nama", "Nama lengkap", "text"],
-          ["pembeli1_kebangsaan", "Kewarganegaraan", "text"],
-          ["pembeli1_paspor", "Paspor / NIK", "text"],
-          ["pembeli1_alamat", "Alamat", "text"],
-          ["pembeli1_telepon", "Telepon", "text"],
-          ["pembeli1_email", "Email", "text"]
+        { "id": "comprador", "title": "Adquiriente I", "fields": [
+          ["adq1_nombre", "Nombre y apellidos", "text"],
+          ["adq1_nacionalidad", "Nacionalidad", "text"],
+          ["adq1_pasaporte", "Pasaporte", "text"]
         ]},
-        { "id": "pembeli2", "title": "Pembeli II", "optional": true, "fields": [
-          ["pembeli2_nama", "Nama lengkap", "text"],
-          ["pembeli2_kebangsaan", "Kewarganegaraan", "text"],
-          ["pembeli2_paspor", "Paspor / NIK", "text"],
-          ["pembeli2_alamat", "Alamat", "text"],
-          ["pembeli2_telepon", "Telepon", "text"],
-          ["pembeli2_email", "Email", "text"]
+        { "id": "proyecto", "title": "Proyecto y precio", "fields": [
+          ["proyecto_nombre", "Nombre del proyecto", "text"],
+          ["parcela_codigo", "Número de parcela", "text"],
+          ["precio_total", "Precio total (€)", "number"],
+          ["precio_reserva", "Precio de reserva (€)", "number"],
+          ["plazo_meses", "Plazo de ejecución (meses)", "number"],
+          ["fecha_firma", "Fecha de firma", "date"]
         ]},
-        { "id": "ptpma", "title": "Badan hukum (PT PMA)", "optional": true, "fields": [
-          ["ptpma_alamat", "Domisili / alamat", "text"],
-          ["ptpma_nib", "NIB / OSS", "text"],
-          ["ptpma_npwp", "NPWP", "text"]
-        ]},
-        { "id": "proyek", "title": "Proyek & kavling", "fields": [
-          ["proyek_nama", "Nama proyek / tipologi", "text", "DALI"],
-          ["parsel_no", "Nomor kavling", "text"],
-          ["wakil_jabatan", "Jabatan wakil Pengembang", "text", "Direktur"]
-        ]},
-        { "id": "harga", "title": "Harga & pembayaran", "fields": [
-          ["harga_total_eur", "Harga total (€)", "number"],
-          ["harga_total_huruf", "Harga total (huruf)", "text"],
-          ["deposit_eur", "Deposit pemesanan (€)", "number", "5000"],
-          ["bayar1_eur", "Pembayaran 1 (€)", "number"],
-          ["bayar2_eur", "Pembayaran 2 (€)", "number"],
-          ["bayar3_eur", "Pembayaran 3 (€)", "number"],
-          ["bayar_akhir_eur", "Pembayaran akhir (€)", "number"]
-        ]},
-        { "id": "plazo", "title": "Jangka waktu & tanggal", "fields": [
-          ["jangka_bulan", "Jangka pelaksanaan (bulan)", "number", "12"],
-          ["tanggal_tandatangan", "Tanggal penandatanganan", "date"]
-        ]},
-        { "id": "firmas", "title": "Tanda tangan", "fields": [
-          ["firma_adquiriente", "Tanda tangan Pembeli", "signature"],
-          ["firma_promotor", "Tanda tangan Pengembang", "signature"]
+        { "id": "firmas", "title": "Firmas", "fields": [
+          ["firma_adquiriente", "Firma del adquiriente", "signature"],
+          ["firma_promotor", "Firma del promotor", "signature"]
         ]}
       ],
-      "meta_fields": { "buyer": "pembeli1_nama", "project": "proyek_nama" }
-    },
-    {
-      "slug": "dali_visual",
-      "name": "Perjanjian Induk Konstruksi — DALI (visual)",
-      "desc": "Versi deck A4 dengan sampul, gambar arsitektur, brosur & paket dekorasi",
-      "file": "dali_visual.html",
-      "sections": [
-        { "id": "pembeli1", "title": "Pembeli I", "fields": [
-          ["pembeli1_nama", "Nama lengkap", "text"],
-          ["pembeli1_kebangsaan", "Kewarganegaraan", "text"],
-          ["pembeli1_paspor", "Paspor / NIK", "text"],
-          ["pembeli1_alamat", "Alamat", "text"],
-          ["pembeli1_telepon", "Telepon", "text"],
-          ["pembeli1_email", "Email", "text"]
-        ]},
-        { "id": "pembeli2", "title": "Pembeli II", "optional": true, "fields": [
-          ["pembeli2_nama", "Nama lengkap", "text"],
-          ["pembeli2_kebangsaan", "Kewarganegaraan", "text"],
-          ["pembeli2_paspor", "Paspor / NIK", "text"],
-          ["pembeli2_alamat", "Alamat", "text"],
-          ["pembeli2_telepon", "Telepon", "text"],
-          ["pembeli2_email", "Email", "text"]
-        ]},
-        { "id": "ptpma", "title": "Badan hukum (PT PMA)", "optional": true, "fields": [
-          ["ptpma_alamat", "Domisili / alamat", "text"],
-          ["ptpma_nib", "NIB / OSS", "text"],
-          ["ptpma_npwp", "NPWP", "text"]
-        ]},
-        { "id": "proyek", "title": "Proyek & kavling", "fields": [
-          ["proyek_nama", "Nama proyek / tipologi", "text", "DALI"],
-          ["parsel_no", "Nomor kavling", "text"],
-          ["wakil_jabatan", "Jabatan wakil Pengembang", "text", "Direktur"]
-        ]},
-        { "id": "harga", "title": "Harga & pembayaran", "fields": [
-          ["harga_total_eur", "Harga total (€)", "number"],
-          ["harga_total_huruf", "Harga total (huruf)", "text"],
-          ["deposit_eur", "Deposit pemesanan (€)", "number", "5000"],
-          ["bayar1_eur", "Pembayaran 1 (€)", "number"],
-          ["bayar2_eur", "Pembayaran 2 (€)", "number"],
-          ["bayar3_eur", "Pembayaran 3 (€)", "number"],
-          ["bayar_akhir_eur", "Pembayaran akhir (€)", "number"]
-        ]},
-        { "id": "plazo", "title": "Jangka waktu & tanggal", "fields": [
-          ["jangka_bulan", "Jangka pelaksanaan (bulan)", "number", "12"],
-          ["tanggal_tandatangan", "Tanggal penandatanganan", "date"]
-        ]},
-        { "id": "firmas", "title": "Tanda tangan", "fields": [
-          ["firma_adquiriente", "Tanda tangan Pembeli", "signature"],
-          ["firma_promotor", "Tanda tangan Pengembang", "signature"]
-        ]}
-      ],
-      "meta_fields": { "buyer": "pembeli1_nama", "project": "proyek_nama" }
+      "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
     }
   ]
 }

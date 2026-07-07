@@ -33,7 +33,10 @@
 .doc p{ margin:0 0 9px; text-align:justify; }
 .doc ul,.doc ol{ margin:6px 0 12px; padding-left:20px; } .doc li{ margin-bottom:5px; }
 .doc .term{ font-weight:700; color:var(--brand-accent,#42210B); }
-.doc .f{ font-weight:600; color:var(--brand-accent,#42210B); border-bottom:1px dotted var(--sc,#8F9B7A); padding:0 3px; white-space:nowrap; }
+/* campo rellenable: línea amplia para escribir a mano; vacío = en blanco (sin "—") */
+.doc .f{ font-weight:600; color:var(--brand-accent,#42210B); border-bottom:1px solid var(--sc,#8F9B7A);
+  display:inline-block; min-width:150px; min-height:1.5em; padding:2px 10px; margin:0 2px;
+  text-align:center; vertical-align:bottom; line-height:1.6; }
 
 /* bloque de partes */
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);

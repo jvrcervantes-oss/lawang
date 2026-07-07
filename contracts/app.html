@@ -177,16 +177,10 @@
 const TEMPLATES = [
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
     name:{es:'Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'},
-    l2:{es:'de Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'}, ready:false },
+    l2:{es:'de Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'}, ready:true },
   { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
     name:{es:'Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'},
     l2:{es:'de Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'}, ready:true },
-  { slug:'dali_construccion', file:'templates/dali_construccion.html', cover:'#42210B',
-    name:{es:'Construcción',en:'Construction',id:'Konstruksi'},
-    l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
-  { slug:'marco_legal',      file:'templates/marco_legal.html', cover:'#2E3437',
-    name:{es:'Marco legal / T&C',en:'Legal framework / T&C',id:'Kerangka hukum'},
-    l2:{es:'Términos y Condiciones',en:'Terms & Conditions',id:'Syarat & Ketentuan'}, ready:false },
 ];
 const TIERS = {
   siempre:      {es:'Datos de la operación',en:'Operation data',id:'Data operasi'},
@@ -507,7 +501,8 @@ function buildDoc(){
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
-    return filled ? esc(data[k],k) : '—'; });
+    return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
+  });
   return html;
 }
 /* re-render de la preview viva (siempre visible) */
