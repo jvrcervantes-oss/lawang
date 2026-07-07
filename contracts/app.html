@@ -490,7 +490,19 @@ function injectBrandAndCover(html, data){
     // id se fuerza a bloque → cae en su propia línea (traducción paralela) bajo cada
     // bloque/rótulo, en color secundario. Así el contrato es siempre bilingüe con ID.
     + `<style>[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}`
-    + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}</style>`;
+    + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}</style>`
+    // Impresión/PDF: A4 con márgenes en TODAS las páginas (@page, no el padding del .doc,
+    // que no se repite por página) + portada a sangre (página nombrada 'cover') +
+    // forzar colores/fondos/imágenes de fondo (print-color-adjust:exact; el navegador
+    // no imprime backgrounds por defecto → sin esto se pierden color de portada, cabecera
+    // de tabla, marca de agua e isotipos). Sobreescribe el @page{margin:0} de la plantilla.
+    + `<style>`
+    + `*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}`
+    + `@page{size:A4;margin:18mm}`
+    + `@page cover{margin:0}`
+    + `.lwcov{page:cover}`
+    + `@media print{.doc{padding:0!important;overflow:visible!important}}`
+    + `</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
   else html = '<head>'+head+'</head>'+html;
   // logo de cabecera interior: primer hijo de la primera .doc (plantillas con .doc)
