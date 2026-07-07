@@ -478,11 +478,17 @@
   }
 
   // ════ RENDER ════
-  var root;
+  var root, renderedOverlay = null;
   function render(){
+    // Conserva el scroll del overlay al re-renderizar por una acción (parcela, modelo, extra,
+    // paso, idioma, moneda…). Solo si seguimos en la MISMA propiedad; al abrir/cambiar/cerrar empieza arriba.
+    var prevEl = document.getElementById("pf-overlay");
+    var savedY = (prevEl && renderedOverlay === S.overlay) ? prevEl.scrollTop : null;
     root.innerHTML = topbarHTML() + marketplaceHTML() + (S.overlay ? overlayHTML(S.overlay) : "");
     document.body.style.overflow = S.overlay ? "hidden" : "";
     if(!S.overlay) document.title = "The Portfolio · Lawang Tropical Properties";
+    if(savedY != null){ var now = document.getElementById("pf-overlay"); if(now) now.scrollTop = savedY; }
+    renderedOverlay = S.overlay;
     requestAnimationFrame(function(){ root.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); }); });
   }
 
