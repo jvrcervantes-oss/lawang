@@ -35,12 +35,12 @@
 .doc p{ margin:0 0 9px; text-align:justify; }
 .doc ul,.doc ol{ margin:6px 0 12px; padding-left:20px; } .doc li{ margin-bottom:5px; }
 .doc .term{ font-weight:700; color:var(--brand-accent,#42210B); }
-/* campo rellenable: amplio para escribir A MANO. Vacío → 15 guiones bajos (línea
-   para escribir); relleno → el valor en negrita. */
+/* campo rellenable: LÍNEA inferior con hueco para escribir A MANO.
+   Vacío → solo la línea; relleno → el valor apoyado sobre ella. */
 .doc .f{ font-weight:600; color:var(--brand-accent,#42210B);
-  display:inline-block; min-width:150px; min-height:11mm; padding:0 6px; margin:2px 3px;
-  text-align:center; vertical-align:bottom; line-height:11mm; }
-.doc .f:empty::before{ content:"_______________"; color:var(--muted,#6b6c66); font-weight:400; letter-spacing:.02em; }
+  display:inline-flex; align-items:flex-end; justify-content:center;
+  min-width:140px; min-height:9mm; padding:0 8px; margin:2px 3px;
+  border-bottom:1px solid var(--sc,#8F9B7A); vertical-align:bottom; }
 
 /* bloque de partes */
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);

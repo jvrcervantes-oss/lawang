@@ -229,7 +229,6 @@ function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDe
    ============================================================ */
 const DESIGN_DEFAULT = {
   coverColor:'',                                    // '' = color del tipo de contrato
-  transLayout:'stacked',                            // 'stacked' (idioma + Bahasa apilados) | 'cols' (2 columnas, 1 por idioma)
   coverLogo:{ src:'', pos:'top-center',   size:38,  op:1   },
   coverMark:{ src:'', pos:'bottom-center', size:74,  op:.075 },  // src '' = tiki por defecto
   docLogo:  { src:'', pos:'left',          size:26,  op:1   },
@@ -269,23 +268,18 @@ const POS_OPTS = {
   docmark:[['center','Centro'],['top','Arriba'],['bottom','Abajo']],
 };
 
-/* CSS de idioma: Bahasa (id) SIEMPRE visible + el idioma seleccionado (es|en).
-   - 'stacked': id forzado a bloque bajo cada elemento (traducción paralela, color 2º).
-   - 'cols'  : párrafos y listas en 2 columnas (idioma izq. / Bahasa der.); los
-     rótulos (h2, título, roles, tabla) siguen apilados para no romperse. */
+/* CSS de idioma: Bahasa (id) SIEMPRE visible + el idioma seleccionado (es|en),
+   en 2 COLUMNAS (idioma izq. / Bahasa der.). Los rótulos (h2, título, roles,
+   celdas de tabla) siguen apilados para no romperse.
+   Nota: las reglas de columna apuntan SOLO a LANG e id — un selector genérico
+   [data-lang] re-mostraría el idioma oculto por especificidad. */
 function langCSS(){
-  let css = `[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}`
-    + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}`;
-  if(DESIGN.transLayout==='cols'){
-    // SOLO el idioma seleccionado + id pasan a columnas (no tocar los ocultos, que
-    // si no se re-muestran al ser este selector más específico que el display:none).
-    const L2=`.doc p[data-lang="${LANG}"],.doc ul[data-lang="${LANG}"]`;
-    const IDs=`.doc p[data-lang="id"],.doc ul[data-lang="id"]`;
-    css += `${L2},${IDs}{display:inline-block!important;width:48.5%;vertical-align:top;box-sizing:border-box}`
-         + `${L2}{padding-right:2.5%}`
-         + `.doc .f{min-width:90px}`;   // los campos se estrechan para caber en la columna
-  }
-  return css;
+  const L2=`.doc p[data-lang="${LANG}"],.doc ul[data-lang="${LANG}"]`;
+  const IDs=`.doc p[data-lang="id"],.doc ul[data-lang="id"]`;
+  return `[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}`
+    + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}`
+    + `${L2},${IDs}{display:inline-block!important;width:48.5%;vertical-align:top;box-sizing:border-box}`
+    + `${L2}{padding-right:2.5%}`;
 }
 
 /* CSS que reskin-ea portada+interior según DESIGN (se inyecta en el <head> del doc) */
@@ -347,13 +341,6 @@ function buildDesignPanel(){
         <div class="dz-row"><span>Color</span><input type="color" id="coverColor" value="${color}">
           <button type="button" class="link-btn" id="coverColorReset">Color del tipo</button></div>
       </div>
-      <div class="dz">
-        <div class="dz-h">Formato de traducción</div>
-        <div class="dz-row"><span>Bahasa</span><select id="transLayout">
-          <option value="stacked" ${DESIGN.transLayout==='stacked'?'selected':''}>Apilado (debajo)</option>
-          <option value="cols" ${DESIGN.transLayout==='cols'?'selected':''}>2 columnas (1 por idioma)</option>
-        </select></div>
-      </div>
       ${rows}
     </div>
   </section>`;
@@ -364,7 +351,6 @@ function wireDesignPanel(){
   const panel=$('#designPanel'); if(!panel) return;
   $('#coverColor').addEventListener('input',e=>{ DESIGN.coverColor=e.target.value; saveDesign(); render(); });
   $('#coverColorReset').addEventListener('click',()=>{ DESIGN.coverColor=''; saveDesign(); $('#coverColor').value=CURRENT.cover; render(); });
-  $('#transLayout').addEventListener('change',e=>{ DESIGN.transLayout=e.target.value; saveDesign(); render(); });
   panel.addEventListener('change',e=>{
     const f=e.target.closest('[data-df]'); if(f && f.files[0]){ readImg(f.files[0], src=>{ DESIGN[f.dataset.df].src=src; saveDesign(); rebuildDesign(); render(); }); return; }
     const p=e.target.closest('[data-dp]'); if(p){ DESIGN[p.dataset.dp].pos=p.value; saveDesign(); render(); }
@@ -510,7 +496,7 @@ function buildForm(){
     if(s.tier!==lastTier){ html += `<div class="tier-label ${lastTier===null?'first':''}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; lastTier=s.tier; }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const cls = s.optional ? 'optional off' : '';
-    const grid = ['comprador','comprador2','comprador3','sociedad','dinero','vendedor','apendices','gestion'].includes(s.id);
+    const grid = ['comprador','comprador2','comprador3','sociedad','dinero','pagos','gestion','otros'].includes(s.id);
     const body = s.fields.map(fieldHTML).join('');
     const note = (s.id==='firmas' && TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length)
       ? `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
@@ -562,7 +548,6 @@ function applyLang(){
       if(lab) lab.textContent = L(f[1]);
     });
   });
-  document.querySelectorAll('#form .tier-label').forEach((el,i)=>{}); // (las tier-labels se regeneran al reconstruir; aquí basta con el idioma actual)
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
   render();
 }
@@ -630,7 +615,9 @@ function injectBrandAndCover(html, data){
     + `*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}`
     + `@page{size:A4;margin:18mm}`
     + `@page cover{margin:0}`
-    + `.lwcov{page:cover}`
+    // z-index:2 → la portada (opaca, página completa) tapa la marca de agua fija
+    // del interior (z-index:0), que si no se pintaría también sobre la portada.
+    + `.lwcov{page:cover;position:relative;z-index:2}`
     + `@media print{.doc{padding:0!important;overflow:visible!important}}`
     // Anexos: cada página a sangre (A4 completo), no editables. z-index sobre la marca de agua fija.
     + `.annex-cover,.annex-page{page:cover;page-break-before:always;width:210mm;height:297mm;position:relative;z-index:2;box-sizing:border-box;overflow:hidden}`
@@ -669,13 +656,18 @@ function buildDoc(){
 function render(){ $('#pvFrame').srcdoc = buildDoc(); }
 let _rt=null; function renderDebounced(){ clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
-/* ---------- cobertura genérica de marcadores ---------- */
-function ensureCoverage(html){
-  const inTpl=[...new Set([...html.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]))]
-    .filter(k=>k!=='campo' && !['contrato_tipo','contrato_titulo','contrato_num'].includes(k));
-  const known=new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
-  const missing=inTpl.filter(k=>!known.has(k));
-  SECTIONS = SECTIONS.filter(s=>s.id!=='otros');
+/* ---------- secciones del formulario = SOLO campos con impacto ----------
+   Un campo se muestra únicamente si su marcador {{...}} aparece en la plantilla
+   activa o en la portada. Lo que no imprime nada, no se pregunta. Los marcadores
+   sin campo en tokens.json caen en el grupo automático "otros". */
+function deriveSections(){
+  const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
+  const inDoc = new Set([...(templateHTML+COVER_HTML).matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]));
+  inDoc.delete('cov_l1'); inDoc.delete('cov_l2');   // los calcula el motor, no son campos
+  SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
+                .filter(s=>s.fields.length);
+  const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
+  const missing = [...inDoc].filter(k=>!known.has(k));
   if(missing.length){
     let ins = SECTIONS.map(s=>s.tier).lastIndexOf('siempre');
     ins = ins<0 ? SECTIONS.length : ins+1;
@@ -694,7 +686,7 @@ async function loadTemplate(slug){
     : {es:'Estructura lista · texto legal pendiente',en:'Structure ready · legal text pending',id:'Struktur siap · teks hukum menyusul'}[LANG];
   try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
-  ensureCoverage(templateHTML);
+  deriveSections();
 }
 function buildPicker(){
   const sel=$('#tplPick');
@@ -750,7 +742,7 @@ async function downloadPdf(){
 async function init(){
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
-  try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); if(TOKENS.sections && TOKENS.sections.length) SECTIONS = TOKENS.sections; }catch(_){}
+  try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }catch(_){}  // deriveSections() filtra por plantilla
   try{
     const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
     BACKEND=true; CSRF=me.csrf; if(!me.agent){ location.href='login.html'; return; }
