@@ -215,6 +215,7 @@ let CURRENT = TEMPLATES[1];       // Reserva de Proyecto por defecto
 let templateHTML = '';
 let COVER_HTML = '';
 let BACKEND = false, CSRF = null;
+let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
 const pads = {};
 
 const $ = s => document.querySelector(s);
@@ -222,13 +223,7 @@ function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
 function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
-function pdef(key){
-  // defaults por plantilla primero (p.ej. descripciones de hitos, distintas en
-  // Reserva y Construcción), después los globales del proyecto
-  const t = TOKENS && TOKENS.templateDefaults && TOKENS.templateDefaults[CURRENT.slug];
-  if(t && key in t) return t[key];
-  return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
-}
+function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || ''; }
 
 /* ============================================================
    PANEL DISEÑO — modelo, persistencia y CSS inyectado
@@ -500,9 +495,15 @@ function buildForm(){
   SECTIONS.forEach(s=>{
     idx++;
     if(s.tier!==lastTier){ html += `<div class="tier-label ${lastTier===null?'first':''}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; lastTier=s.tier; }
+    if(s.special==='hitos'){
+      html += `<section class="section" data-sec="pagos" data-tier="${s.tier}">
+        <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2><span class="chev">▾</span></header>
+        <div class="body">${hitosBodyHTML()}</div></section>`;
+      return;
+    }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const cls = s.optional ? 'optional off' : '';
-    const grid = ['comprador','comprador2','comprador3','sociedad','dinero','pagos','gestion','otros'].includes(s.id);
+    const grid = ['comprador','comprador2','comprador3','sociedad','dinero','gestion','otros'].includes(s.id);
     const body = s.fields.map(fieldHTML).join('');
     const note = (s.id==='firmas' && TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length)
       ? `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
@@ -512,6 +513,17 @@ function buildForm(){
       <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}</div></section>`;
   });
   form.innerHTML = html;
+
+  // hitos: delegación (una sola vez; el form persiste entre rebuilds)
+  if(!form._hitosWired){ form._hitosWired = true;
+    form.addEventListener('input', e=>{ const el=e.target.closest('[data-hkey]'); if(!el) return;
+      const h=HITOS[+el.dataset.hi]; if(h){ h[el.dataset.hkey]=el.value; renderDebounced(); } });
+    form.addEventListener('click', e=>{
+      const del=e.target.closest('[data-hdel]');
+      if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); render(); return; }
+      if(e.target.closest('#hitoAdd')){ HITOS.push({pct:'',es:'',en:'',id:''}); refreshHitos(); render(); }
+    });
+  }
 
   wireDesignPanel();
   wireAnnexPanel();
@@ -525,6 +537,34 @@ function buildForm(){
   form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', render));
   ensurePads(form);   // secciones visibles al arrancar
   render();
+}
+
+/* ---------- hitos: UI de la tabla de pagos dinámica ---------- */
+function hitosBodyHTML(){
+  const rows = HITOS.map((h,i)=>`
+    <div class="dz" data-hito="${i}">
+      <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Hito',en:'Milestone',id:'Tahap'})} ${i+1}</span>
+        <span class="spacer" style="flex:1"></span>
+        <button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
+      <div class="grid2">
+        <div class="field"><label>%</label><input type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"></div>
+        <div class="field"><label>${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"></div>
+        <div class="field"><label>${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"></div>
+        <div class="field"><label>${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"></div>
+      </div>
+    </div>`).join('');
+  const total = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0),0);
+  return rows + `<div class="dz-row" style="margin-top:10px">
+    <button type="button" class="btn ghost" id="hitoAdd">+ ${L({es:'Añadir hito',en:'Add milestone',id:'Tambah tahap'})}</button>
+    <span class="spacer" style="flex:1"></span>
+    <span style="font-size:12px;color:${Math.round(total)===100?'var(--muted)':'var(--be)'}">Σ ${total}%</span>
+  </div>`;
+}
+function refreshHitos(){ const b=$('[data-sec="pagos"] .body'); if(b) b.innerHTML=hitosBodyHTML(); }
+function hitosRowsHTML(){
+  return HITOS.map((h,i)=>`<tr><td class="n">${i+1}</td><td>`
+    + `<span data-lang="es">${esc(String(h.es||''))}</span><span data-lang="en">${esc(String(h.en||''))}</span><span data-lang="id">${esc(String(h.id||''))}</span>`
+    + `</td><td class="pct">${esc(String(h.pct||''))}%</td></tr>`).join('');
 }
 
 /* acordeón: click en la cabecera pliega/despliega (e inicializa pads al abrir) */
@@ -555,6 +595,7 @@ function applyLang(){
     });
   });
   document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
+  refreshHitos();   // re-etiqueta la UI de hitos (los valores viven en HITOS, no se pierden)
   render();
 }
 
@@ -648,6 +689,7 @@ function injectBrandAndCover(html, data){
 function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(templateHTML, data);
+  html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
@@ -680,6 +722,17 @@ function deriveSections(){
     SECTIONS.splice(ins, 0,
       { id:'otros', tier:'siempre', title:{es:'Otros campos (de esta plantilla)',en:'Other fields',id:'Lainnya'},
         fields:missing.map(k=>[k,{es:humanize(k)},'text']) });
+  }
+  // tabla de pagos dinámica: si la plantilla trae <!--hitos-->, sección especial
+  // con lista añadir/quitar (el nº de hitos varía por contrato: 3, 4, 7…)
+  if(templateHTML.includes('<!--hitos-->')){
+    let ins = SECTIONS.findIndex(s=>s.tier==='gestion'||s.tier==='firmas');
+    if(ins<0) ins = SECTIONS.length;
+    SECTIONS.splice(ins, 0, { id:'pagos', tier:'por_proyecto', special:'hitos',
+      title:{es:'Calendario de pagos (hitos)',en:'Payment schedule (milestones)',id:'Jadwal pembayaran (tahapan)'}, fields:[] });
+    HITOS = ((TOKENS && TOKENS.hitosDefaults && TOKENS.hitosDefaults[CURRENT.slug]) ||
+      [{pct:'25',es:'',en:'',id:''},{pct:'25',es:'',en:'',id:''},{pct:'25',es:'',en:'',id:''},{pct:'25',es:'',en:'',id:''}])
+      .map(h=>({...h}));
   }
 }
 
@@ -736,7 +789,7 @@ async function downloadPdf(){
   try{
     const r=await fetch('api/generar.php',{ method:'POST',
       headers:{'Content-Type':'application/json','X-CSRF':CSRF||''},
-      body:JSON.stringify({slug:CURRENT.slug, lang:LANG, data:collect()}) });
+      body:JSON.stringify({slug:CURRENT.slug, lang:LANG, data:{...collect(), _hitos:JSON.stringify(HITOS)}}) });
     const d=await r.json();
     if(d.ok){ toast('Contrato guardado · abre Guardar como PDF'); printPreview(); }
     else{ toast(d.error||'Error al guardar'); }
