@@ -903,22 +903,30 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   wrap.addEventListener('mouseleave', restart);
 }());
 
-// ── Carrusel de Featured Projects ──
+// ── Galería de imágenes del proyecto destacado (1 solo proyecto) ──
 (function(){
-  const track = document.getElementById('lwFeatTrack');
-  if(!track) return;
-  const car = track.closest('.lw-feat-carousel');
+  const gal = document.getElementById('palmGallery');
+  if(!gal) return;
+  const imgs = Array.prototype.slice.call(gal.querySelectorAll('img'));
+  const dots = document.getElementById('palmDots');
+  const car = gal.closest('.lw-feat-carousel');
   const prev = car && car.querySelector('.lw-feat-arrow.prev');
   const next = car && car.querySelector('.lw-feat-arrow.next');
-  const atEnd   = () => track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
-  const atStart = () => track.scrollLeft <= 4;
-  const go = (dir) => {
-    if(dir > 0 && atEnd())        track.scrollTo({ left:0, behavior:'smooth' });
-    else if(dir < 0 && atStart()) track.scrollTo({ left:track.scrollWidth, behavior:'smooth' });
-    else                          track.scrollBy({ left:dir*track.clientWidth, behavior:'smooth' });
-  };
-  prev && prev.addEventListener('click', () => go(-1));
-  next && next.addEventListener('click', () => go(1));
+  let i = 0;
+  imgs.forEach(function(_, n){
+    const b = document.createElement('button');
+    b.type = 'button';
+    if(n === 0) b.className = 'active';
+    b.addEventListener('click', function(){ show(n); });
+    if(dots) dots.appendChild(b);
+  });
+  function show(n){
+    i = (n + imgs.length) % imgs.length;
+    imgs.forEach(function(im,k){ im.classList.toggle('active', k === i); });
+    if(dots) Array.prototype.forEach.call(dots.children, function(d,k){ d.classList.toggle('active', k === i); });
+  }
+  prev && prev.addEventListener('click', function(){ show(i-1); });
+  next && next.addEventListener('click', function(){ show(i+1); });
 }());
 
 }); // end DOMContentLoaded
@@ -1072,7 +1080,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-ts-title .tl-a { font-weight:600; }   /* "From land": negrita pero más ligera (era 700) */
 .lw-ts-title .tl-b { font-weight:300; }
 .lw-ts-sub { font-family:var(--csa); font-weight:300; font-size:calc(var(--fs-body-l) * 1.5); letter-spacing:.14em;
-  text-transform:uppercase; color:rgba(238,243,231,.82); margin:clamp(.85rem,1.5vh,1.15rem) 0 0; }
+  text-transform:uppercase; color:rgba(238,243,231,.82); margin:clamp(.85rem,1.5vh,1.15rem) 0 0; text-shadow:0 2px 12px rgba(0,0,0,.45); }
 .lw-ts-cols { display:grid; grid-template-columns:repeat(4,1fr); margin-top:auto;
   padding-bottom:clamp(.5rem,2vh,1.5rem); }
 .lw-ts-col { padding:0 clamp(14px,1.8vw,30px); border-left:1px solid rgba(245,240,230,.32); }
@@ -1271,7 +1279,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 /* ════ 7 · CONTACT + FOOTER (fusion, #contact) ════ */
 #content-sections > section.lw-contact { display:block; padding:0; min-height:100vh; background:var(--obsidian); color:var(--cb); position:relative; overflow:hidden; justify-content:flex-start; }
-.lw-ct-totem { position:absolute; right:-3%; top:42%; transform:translateY(-50%); height:118%; width:auto; opacity:.06; pointer-events:none; z-index:0; }
+.lw-ct-totem { position:absolute; right:-1%; bottom:0; height:64%; width:auto; opacity:.07; pointer-events:none; z-index:0; }
 .lw-ct-top { position:relative; z-index:1; padding:clamp(1.4rem,3vh,2.2rem) 0 clamp(1.4rem,3vh,2.2rem); }
 .lw-ct-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:start; max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
 .lw-ct-grid .lw-kicker { color:var(--cal); }
@@ -1413,7 +1421,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 /* ── 6 · Epic Indonesia (full-bleed) ── */
 #content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
-.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-epicindonesia.jpg') center/cover; z-index:0; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
 .lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:3;
@@ -1431,11 +1439,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-epic-cols { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:clamp(1.6rem,3vw,3.4rem); align-items:start; }
 .lw-epic-col { border-left:1px solid rgba(245,240,230,.34); padding-left:clamp(16px,1.8vw,30px); }
 .lw-epic-col:first-child { border-left:0; padding-left:0; }
-.lw-epic-col-h { font-family:var(--csa); font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+.lw-epic-col-h { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.1em;
   font-size:var(--fs-heading-s); color:#fff; margin:0 0 12px; text-shadow:0 2px 12px rgba(0,0,0,.6); }
-.lw-epic-col-p { font-family:var(--csa); font-weight:400; font-size:var(--fs-body-l); line-height:1.6;
-  letter-spacing:.02em; color:rgba(245,240,230,.9); margin:0; text-shadow:0 1px 10px rgba(0,0,0,.6); }
-.lw-epic-col-p b { font-weight:700; color:#fff; }
+.lw-epic-col-p { font-family:var(--csa); font-weight:500; font-size:var(--fs-body-l); line-height:1.7;
+  letter-spacing:.06em; text-transform:uppercase; color:rgba(245,240,230,.9); margin:0; text-shadow:0 1px 10px rgba(0,0,0,.6); }
+.lw-epic-col-p b { font-weight:500; color:#fff; }
 .lw-epic-col-link { display:inline-flex; align-items:center; gap:.5em; margin-top:14px; font-family:var(--csa);
   font-weight:600; font-size:var(--fs-caption); letter-spacing:.14em; text-transform:uppercase; color:#fff;
   text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:1px; cursor:none;
@@ -1459,7 +1467,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 /* Featured rework (ref PDF pág.7): nuestra imagen + "Investment from" + ficha centrada */
 .lw-feat-invest { position:absolute; left:24px; bottom:22px; z-index:3; display:flex; flex-direction:column; gap:4px; }
 .lw-feat-invest-l { font-family:var(--csa); font-size:var(--fs-caption); font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
-.lw-feat-invest-amt { font-family:'Seasons TS',var(--cse); font-weight:400; font-size:var(--fs-heading-m); line-height:1; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.5); }
+.lw-feat-invest-amt { font-family:'Kabel NK',var(--csa); font-weight:500; font-size:var(--fs-heading-m); line-height:1; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.5); }
 .lw-feat-card { text-align:center; display:flex; flex-direction:column; align-items:center; }
 .lw-feat-card-ico { display:block; width:66px; height:52px; background-color:var(--ca); margin-bottom:18px;
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
@@ -1481,14 +1489,26 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-feat-arrow.prev { left:-6px; }
 .lw-feat-arrow.next { right:-6px; }
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
-.lw-feat-card-name { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
-  font-size:var(--fs-heading-xl); line-height:1; color:var(--ci); margin:0; }
+.lw-feat-card-logo { display:block; height:clamp(52px,7vh,78px); width:auto; max-width:80%; margin:0 auto; object-fit:contain; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.22em;
-  font-size:var(--fs-caption); color:var(--ca); margin-top:12px; }
-.lw-feat-card-specs { display:flex; flex-direction:column; gap:5px; margin-top:clamp(10px,1.6vh,16px); }
-.lw-feat-card-specs.alt { margin-top:clamp(8px,1.2vh,12px); }
-.lw-feat-card-specs span { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.12em;
-  font-size:var(--fs-body-l); color:var(--ci2); }
+  font-size:var(--fs-caption); color:var(--ca); margin-top:14px; }
+/* Datos como checklist con icono ✓ (fuente algo menor) */
+.lw-feat-card-specs { list-style:none; padding:0; display:flex; flex-direction:column; gap:9px;
+  margin:clamp(14px,2.2vh,20px) 0 0; text-align:left; }
+.lw-feat-card-specs li { position:relative; padding-left:27px; font-family:var(--csa); font-weight:400;
+  text-transform:uppercase; letter-spacing:.09em; font-size:var(--fs-body); line-height:1.35; color:var(--ci2); }
+.lw-feat-card-specs li::before { content:"✓"; position:absolute; left:0; top:0; display:inline-flex; align-items:center; justify-content:center;
+  width:17px; height:17px; border-radius:50%; background:#485B37; color:#F5F0E6; font-size:10px; font-weight:700; }
+/* Galería de imágenes del proyecto único (cross-fade) */
+.lw-feat-gallery { position:absolute; inset:0; z-index:1; }
+.lw-feat-gallery img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .6s ease; }
+.lw-feat-gallery img.active { opacity:1; }
+.lw-feat-media .lw-feat-arrow { z-index:4; }
+.lw-feat-media .lw-feat-arrow.prev { left:14px; }
+.lw-feat-media .lw-feat-arrow.next { right:14px; }
+.lw-feat-dots { position:absolute; z-index:4; right:20px; bottom:20px; display:flex; gap:7px; }
+.lw-feat-dots button { width:8px; height:8px; padding:0; border:none; border-radius:50%; background:rgba(245,240,230,.5); cursor:none; transition:background .25s, transform .25s; }
+.lw-feat-dots button.active { background:#fff; transform:scale(1.25); }
 .lw-feat-card-btns { display:flex; gap:14px; margin-top:clamp(14px,2.4vh,22px); flex-wrap:wrap; justify-content:center; }
 /* "Download Dossier": botón hueso invisible sobre lino → outline oscuro */
 .lw-feat-card-btns .cs-btn-bone { background:transparent; color:var(--ci); border:1px solid rgba(46,52,55,.4); }
@@ -1497,6 +1517,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 /* ── 7 · Contact NEUE + logo + T&C ── */
 .lw-ct-h.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-weight:400; letter-spacing:.02em; }
+.lw-ct-h.lw-ct-seasons { font-family:'Seasons TS',var(--cse); font-weight:400; letter-spacing:.04em; white-space:nowrap; }
 .lw-ct-italic.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-style:italic; font-weight:300; }
 .lw-ft-logo-img { height:34px; width:auto; display:block; }
 .lw-ft-tc { font-family:var(--csa); font-size:var(--fs-caption); font-weight:600; letter-spacing:.14em; text-transform:uppercase;
@@ -1504,22 +1525,56 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   border-radius:999px; transition:all .25s; }
 .lw-ft-tc:hover { color:#0A0C09; background:var(--cb); border-color:var(--cb); }
 
-/* ── WhatsApp flotante (sticky, aparece al scrollear) ── */
+/* ── WhatsApp flotante (sticky, aparece al scrollear; hover → Monito) ── */
 #wa-float { position:fixed; right:clamp(16px,2.4vw,28px); bottom:clamp(16px,2.4vw,28px); z-index:9000;
-  width:58px; height:58px; border-radius:999px; background:#25D366; display:grid; place-items:center;
+  height:58px; border-radius:999px; background:#25D366; display:inline-flex; align-items:center;
   filter:drop-shadow(0 10px 24px rgba(18,80,40,.42)); cursor:none; text-decoration:none;
   opacity:0; visibility:hidden; transform:translateY(16px) scale(.85);
-  transition:opacity .35s ease, transform .35s cubic-bezier(.16,1,.3,1), visibility .35s; }
+  transition:opacity .35s ease, transform .35s cubic-bezier(.16,1,.3,1), visibility .35s, background .3s; }
 #wa-float.show { opacity:1; visibility:visible; transform:translateY(0) scale(1);
   animation:wa-pulse 5s ease-out infinite; }
-#wa-float:hover { background:#1ebe5b; transform:translateY(0) scale(1.07); }
-#wa-float svg { width:32px; height:32px; display:block; }
+#wa-float:hover { background:#128C7E; }
+#wa-float .wa-ico { position:relative; width:58px; height:58px; flex:none; display:grid; place-items:center; }
+#wa-float .wa-wa { width:32px; height:32px; display:block; transition:opacity .3s ease; }
+#wa-float .wa-monito { position:absolute; top:8px; left:8px; width:42px; height:42px; object-fit:contain;
+  opacity:0; transform:scale(.5); transition:opacity .3s ease, transform .3s cubic-bezier(.16,1,.3,1); }
+#wa-float .wa-label { max-width:0; overflow:hidden; white-space:nowrap; opacity:0;
+  font-family:var(--csa); font-weight:600; font-size:13px; letter-spacing:.02em; color:#fff;
+  transition:max-width .42s cubic-bezier(.16,1,.3,1), opacity .3s ease, padding .42s cubic-bezier(.16,1,.3,1); }
+#wa-float:hover .wa-label { max-width:260px; opacity:1; padding:0 4px 0 20px; }
+#wa-float:hover .wa-wa { opacity:0; }
+#wa-float:hover .wa-monito { opacity:1; transform:scale(1); }
 @keyframes wa-pulse {
   0%   { box-shadow:0 0 0 0 rgba(37,211,102,.55); }
   8%   { box-shadow:0 0 0 15px rgba(37,211,102,0); }
   100% { box-shadow:0 0 0 0 rgba(37,211,102,0); }
 }
 @media(prefers-reduced-motion:reduce){ #wa-float.show{ animation:none; } }
+
+/* ── Modal legal (T&C + Privacy) ── */
+.lw-ft-legal { display:flex; gap:1.4rem; flex-wrap:wrap; }
+.legal-modal { position:fixed; inset:0; z-index:10000; display:none; }
+.legal-modal.open { display:block; }
+.legal-backdrop { position:absolute; inset:0; background:rgba(6,9,6,.72); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+.legal-dialog { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:min(720px,92vw); max-height:86vh; display:flex; flex-direction:column; background:var(--rl); color:var(--va);
+  border-radius:16px; overflow:hidden; box-shadow:0 40px 100px -30px rgba(0,0,0,.7); }
+.legal-close { position:absolute; top:14px; right:16px; z-index:2; width:38px; height:38px; border-radius:999px; border:none;
+  background:rgba(46,52,55,.08); color:var(--va); font-size:24px; line-height:1; cursor:none; transition:background .2s; }
+.legal-close:hover { background:rgba(46,52,55,.18); }
+.legal-tabs { display:flex; gap:6px; padding:20px clamp(20px,4vw,40px) 0; flex-wrap:wrap; }
+.legal-tab { background:none; border:none; cursor:none; font-family:var(--csa); font-weight:600; font-size:var(--fs-caption);
+  letter-spacing:.1em; text-transform:uppercase; color:rgba(46,52,55,.5); padding:8px 0; border-bottom:2px solid transparent; transition:color .2s,border-color .2s; }
+.legal-tab.active { color:var(--tg); border-color:var(--tg); }
+.legal-tab + .legal-tab { margin-left:22px; }
+.legal-body { overflow-y:auto; padding:22px clamp(20px,4vw,40px) clamp(24px,4vw,40px); }
+.legal-panel[hidden] { display:none; }
+.legal-h { font-family:var(--cse); font-weight:400; font-size:var(--fs-heading-m); color:var(--tg); margin:0 0 4px; }
+.legal-meta { font-family:var(--csa); font-size:var(--fs-caption); letter-spacing:.06em; text-transform:uppercase; color:rgba(46,52,55,.5); margin:0 0 18px; }
+.legal-panel h3 { font-family:var(--csa); font-weight:700; font-size:var(--fs-body-l); letter-spacing:.02em; color:var(--va); margin:20px 0 6px; }
+.legal-panel p { font-family:var(--csa); font-weight:400; font-size:var(--fs-body); line-height:1.7; color:rgba(46,52,55,.82); margin:0 0 6px; }
+.legal-panel a { color:var(--tg); text-decoration:underline; }
+.legal-note { margin-top:18px !important; font-style:italic; color:rgba(46,52,55,.55) !important; }
 </style>
 
 <!-- Content sections wrapper -->
@@ -1780,12 +1835,12 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   <div class="cs-wrap lw-epic-inner">
     <div class="lw-epic-top reveal">
       <h2 class="lw-epic-country">Indonesia</h2>
-      <p class="lw-epic-sub"><b>Where growth is unstoppable.</b></p>
+      <p class="lw-epic-sub">Where growth is unstoppable.</p>
     </div>
     <div class="lw-epic-cols">
       <div class="lw-epic-col reveal">
         <h4 class="lw-epic-col-h">The Archipelago</h4>
-        <p class="lw-epic-col-p">is the largest economy in Southeast Asia, <b>growing at 5%+ GDP. A G20 member.</b> And a legal framework designed for the international investor.</p>
+        <p class="lw-epic-col-p">is the largest economy in Southeast Asia, growing at 5%+ GDP. A G20 member. And a legal framework designed for the international investor.</p>
       </div>
       <div class="lw-epic-col reveal" style="transition-delay:80ms">
         <h4 class="lw-epic-col-h">Bali</h4>
@@ -1806,56 +1861,33 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   <!-- Featured project (fondo lino) -->
   <div class="lw-featured-block">
     <div class="lw-feat-carousel reveal">
-      <button class="lw-feat-arrow prev" type="button" aria-label="Previous project">❮</button>
-      <div class="lw-feat-track" id="lwFeatTrack">
-
-        <div class="lw-feat-grid">
-          <div class="lw-feat-media lw-feat-outline">
-            <img src="assets/img/line-signature.jpg" alt="Palm Field — Balian, Bali" loading="lazy">
-            <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €95,000.</span></div>
+      <div class="lw-feat-grid">
+        <div class="lw-feat-media lw-feat-outline">
+          <div class="lw-feat-gallery" id="palmGallery">
+            <img src="assets/img/line-signature.jpg" alt="Palm Field — Balian, Bali" class="active" loading="lazy">
+            <img src="assets/img/CardSignatures.jpg" alt="Palm Field — villa community" loading="lazy">
+            <img src="assets/img/aerial-1.jpg" alt="Palm Field — aerial view" loading="lazy">
           </div>
-          <div class="lw-feat-card">
-            <span class="lw-feat-card-ico ico-land" aria-hidden="true"></span>
-            <h2 class="lw-feat-card-name">Palm Field</h2>
-            <span class="lw-feat-card-loc">Balian · Bali · Indonesia</span>
-            <div class="lw-feat-card-specs"><span>700 meters from the ocean</span><span>2 min to the beach</span></div>
-            <div class="lw-feat-card-specs alt"><span>Private tropical villas</span><span>Land included from 250 m²</span></div>
-            <div class="lw-feat-card-btns"><a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a><a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a></div>
+          <button class="lw-feat-arrow prev" type="button" aria-label="Previous image">❮</button>
+          <button class="lw-feat-arrow next" type="button" aria-label="Next image">❯</button>
+          <div class="lw-feat-dots" id="palmDots" aria-hidden="true"></div>
+          <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €95,000.</span></div>
+        </div>
+        <div class="lw-feat-card">
+          <img class="lw-feat-card-logo" src="assets/img/logo-palmfield.png" alt="Palm Field" loading="lazy">
+          <span class="lw-feat-card-loc">Balian · Bali · Indonesia</span>
+          <ul class="lw-feat-card-specs">
+            <li>700 meters from the ocean</li>
+            <li>2 min to the beach</li>
+            <li>Private tropical villas</li>
+            <li>Land included from 250 m²</li>
+          </ul>
+          <div class="lw-feat-card-btns">
+            <a class="cs-btn cs-btn-bone" href="#contact-form">Ask an Advisor</a>
+            <a class="cs-btn cs-btn-green" href="assets/docs/palm-field-dossier.pdf" download>Download the Dossier</a>
           </div>
         </div>
-
-        <div class="lw-feat-grid">
-          <div class="lw-feat-media lw-feat-outline">
-            <img src="assets/img/CardSignatures.jpg" alt="Ridge House — Tabanan, Bali" loading="lazy">
-            <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €290,000.</span></div>
-          </div>
-          <div class="lw-feat-card">
-            <span class="lw-feat-card-ico ico-signature" aria-hidden="true"></span>
-            <h2 class="lw-feat-card-name">Ridge House</h2>
-            <span class="lw-feat-card-loc">Tabanan · Bali · Indonesia</span>
-            <div class="lw-feat-card-specs"><span>Cantilevered over the river valley</span><span>Jungle &amp; ricefield views</span></div>
-            <div class="lw-feat-card-specs alt"><span>Three-bed signature villa</span><span>Land included from 600 m²</span></div>
-            <div class="lw-feat-card-btns"><a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a><a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a></div>
-          </div>
-        </div>
-
-        <div class="lw-feat-grid">
-          <div class="lw-feat-media lw-feat-outline">
-            <img src="assets/img/CardResorts.jpg" alt="Bay House — Sumba" loading="lazy">
-            <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €420,000.</span></div>
-          </div>
-          <div class="lw-feat-card">
-            <span class="lw-feat-card-ico ico-resorts" aria-hidden="true"></span>
-            <h2 class="lw-feat-card-name">Bay House</h2>
-            <span class="lw-feat-card-loc">Sumba · Indonesia</span>
-            <div class="lw-feat-card-specs"><span>Beachfront on the empty south coast</span><span>2 min to the sand</span></div>
-            <div class="lw-feat-card-specs alt"><span>Four-bed beachfront villa</span><span>Land included from 1,100 m²</span></div>
-            <div class="lw-feat-card-btns"><a class="cs-btn cs-btn-bone" href="#contact-form">Download Dossier</a><a class="cs-btn cs-btn-green" href="#contact-form">Ask an Advisor</a></div>
-          </div>
-        </div>
-
       </div>
-      <button class="lw-feat-arrow next" type="button" aria-label="Next project">❯</button>
     </div>
   </div>
   <img class="lw-ct-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
@@ -1863,9 +1895,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
     <div class="lw-ct-grid">
       <div class="reveal">
         <span class="lw-kicker">The Tropical Partner</span>
-        <h2 class="lw-ct-h lw-ct-neue">Own The Eternity</h2>
-        <p class="lw-ct-italic lw-ct-neue">You have thought about staying.</p>
-        <p class="lw-ct-note">Tell us what kind of legacy you value. Our team will reach out with verified opportunities.</p>
+        <h2 class="lw-ct-h lw-ct-seasons">Own Eternity</h2>
+        <p class="lw-ct-italic lw-ct-neue">Some places you visit. Others you keep.</p>
+        <p class="lw-ct-note">Share the legacy you have in mind and our advisors will return with hand-verified opportunities across Bali &amp; Sumba — no lists, only what truly fits.</p>
         <div class="lw-ct-direct">
           <a class="lw-ct-cti" href="tel:+6281138319862"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+62 811-3831-9862</a>
           <a class="lw-ct-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
@@ -1928,7 +1960,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
       <a class="lw-ft-cti" href="tel:+6281138319862"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+62 811-3831-9862</a>
       <a class="lw-ft-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
     </div>
-    <a class="lw-ft-tc" href="terminos.html">Terms &amp; Conditions</a>
+    <div class="lw-ft-legal">
+      <a class="lw-ft-tc" href="#" data-legal="terms">Terms &amp; Conditions</a>
+      <a class="lw-ft-tc" href="#" data-legal="privacy">Privacy Policy</a>
+    </div>
   </div>
   </div><!-- end .lw-ft-wrap -->
 </section>
@@ -1938,9 +1973,85 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 </main><!-- end .snap -->
 
 <!-- WhatsApp flotante (aparece al hacer scroll, pulso cada 5s) -->
-<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp">
-  <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
+<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Meet Monito, your tropical partner — chat on WhatsApp">
+  <span class="wa-label">Meet Monito, your tropical partner</span>
+  <span class="wa-ico">
+    <svg class="wa-wa" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
+    <img class="wa-monito" src="assets/img/moanito-face.png" alt="" aria-hidden="true">
+  </span>
 </a>
+
+<!-- Modal legal: Términos & Condiciones + Política de datos (placeholder legal, revisar con asesoría) -->
+<div id="legal-modal" class="legal-modal" aria-hidden="true">
+  <div class="legal-backdrop" data-close></div>
+  <div class="legal-dialog" role="dialog" aria-modal="true" aria-labelledby="legal-heading">
+    <button class="legal-close" type="button" data-close aria-label="Close">&times;</button>
+    <div class="legal-tabs" role="tablist">
+      <button class="legal-tab active" type="button" data-tab="terms" role="tab">Terms &amp; Conditions</button>
+      <button class="legal-tab" type="button" data-tab="privacy" role="tab">Privacy &amp; Data Policy</button>
+    </div>
+    <div class="legal-body">
+      <section class="legal-panel active" id="legal-terms" role="tabpanel">
+        <h2 id="legal-heading" class="legal-h">Terms &amp; Conditions</h2>
+        <p class="legal-meta">Last updated: July 2026 · Lawang Tropical Properties</p>
+        <h3>1. Who we are</h3>
+        <p>Lawang Tropical Properties ("Lawang", "we", "us") curates, structures and develops real-estate opportunities in Bali and Sumba, Indonesia. These terms govern your use of this website and the information presented on it.</p>
+        <h3>2. Informational purpose only</h3>
+        <p>All content — including prices, areas, renders, availability, delivery dates and projected returns — is indicative, may change without notice and does not constitute a binding offer, financial advice or a guarantee of return. Nothing here creates a contractual relationship until a signed reservation or purchase agreement is executed.</p>
+        <h3>3. Property &amp; ownership</h3>
+        <p>Foreign ownership in Indonesia is subject to specific legal structures (e.g. leasehold or a PT&nbsp;PMA company). Any structure is arranged with independent notaries and legal counsel. Buyers are responsible for their own due diligence and for obtaining independent legal and tax advice before committing.</p>
+        <h3>4. Reservations &amp; payments</h3>
+        <p>Reservation fees, payment schedules and hand-over conditions are defined in the individual reservation and purchase agreement for each project and prevail over any figure shown on this site.</p>
+        <h3>5. Intellectual property</h3>
+        <p>The brand, logo, texts, images and designs on this site belong to Lawang or its licensors and may not be reproduced without written permission.</p>
+        <h3>6. Liability</h3>
+        <p>To the extent permitted by law, Lawang is not liable for decisions taken on the basis of the indicative information published here. External links are provided for convenience and are outside our control.</p>
+        <h3>7. Governing law</h3>
+        <p>These terms are governed by the laws of the Republic of Indonesia. Disputes will be submitted to the competent courts of the relevant jurisdiction.</p>
+        <p class="legal-note">This is placeholder wording pending review by qualified legal counsel.</p>
+      </section>
+      <section class="legal-panel" id="legal-privacy" role="tabpanel" hidden>
+        <h2 class="legal-h">Privacy &amp; Data Policy</h2>
+        <p class="legal-meta">Last updated: July 2026 · Lawang Tropical Properties</p>
+        <h3>1. Data we collect</h3>
+        <p>When you contact us — through our forms, WhatsApp, email or phone — we collect the data you choose to share: name, email, phone number and the message or preferences you send us.</p>
+        <h3>2. How we use it</h3>
+        <p>We use your data solely to respond to your enquiry, send you the information or dossiers you request and follow up on curated opportunities. We do not sell your data.</p>
+        <h3>3. Legal basis</h3>
+        <p>We process your data on the basis of your consent and our legitimate interest in responding to your enquiry. You can withdraw consent at any time.</p>
+        <h3>4. Sharing</h3>
+        <p>Your data may be shared with our internal advisory team and, where strictly necessary to progress a transaction, with notaries or legal partners bound by confidentiality. We use reputable service providers (e.g. email and messaging) to communicate with you.</p>
+        <h3>5. Retention</h3>
+        <p>We keep your data only as long as needed to serve your enquiry or as required by law, after which it is deleted.</p>
+        <h3>6. Your rights</h3>
+        <p>You may request access, correction or deletion of your data, or object to its processing, by writing to <a href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>
+        <h3>7. Cookies</h3>
+        <p>This site uses only the storage strictly needed to remember your language preference. It does not run third-party advertising trackers.</p>
+        <p class="legal-note">This is placeholder wording pending review by qualified legal counsel.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Modal legal (T&C + Privacy) ──
+(function(){
+  const modal = document.getElementById('legal-modal');
+  if(!modal) return;
+  const tabs = modal.querySelectorAll('.legal-tab');
+  const panels = { terms: document.getElementById('legal-terms'), privacy: document.getElementById('legal-privacy') };
+  function setTab(name){
+    tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.tab === name); });
+    Object.keys(panels).forEach(function(k){ const on = k === name; panels[k].classList.toggle('active', on); panels[k].hidden = !on; });
+  }
+  function open(name){ setTab(name || 'terms'); modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+  function close(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+  document.querySelectorAll('[data-legal]').forEach(function(a){ a.addEventListener('click', function(e){ e.preventDefault(); open(a.dataset.legal); }); });
+  modal.querySelectorAll('[data-close]').forEach(function(el){ el.addEventListener('click', close); });
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ setTab(t.dataset.tab); }); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && modal.classList.contains('open')) close(); });
+})();
+</script>
 
 </body>
 </html>
