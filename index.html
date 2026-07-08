@@ -178,7 +178,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
   height:var(--menu-h);padding:0 1.5rem;opacity:1;z-index:1;
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
 #topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
-.nav-link{position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:clamp(10.5px,0.92vw,13.3px);letter-spacing:.13em;
+.nav-link{position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:.64rem;letter-spacing:.13em;
   color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:none;
   transition:color .3s,letter-spacing .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
 .nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;
@@ -361,8 +361,9 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/hero-poster.jpg')}
-.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:1;background:#0A0C09}
+  background-image:url('assets/img/Hero2.png')}
+/* Vídeo del hero OCULTO por ahora (petición cliente) — se restaura quitando display:none */
+.hero-layer.l-vid{display:none;inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:1;background:#0A0C09}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 /* Capa negra de abajo hacia arriba — legibilidad del titular + tagline */
@@ -909,15 +910,12 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   if(!gal) return;
   const imgs = Array.prototype.slice.call(gal.querySelectorAll('img'));
   const dots = document.getElementById('palmDots');
-  const car = gal.closest('.lw-feat-carousel');
-  const prev = car && car.querySelector('.lw-feat-arrow.prev');
-  const next = car && car.querySelector('.lw-feat-arrow.next');
-  let i = 0;
+  let i = 0, timer = null;
   imgs.forEach(function(_, n){
     const b = document.createElement('button');
     b.type = 'button';
     if(n === 0) b.className = 'active';
-    b.addEventListener('click', function(){ show(n); });
+    b.addEventListener('click', function(){ show(n); restart(); });
     if(dots) dots.appendChild(b);
   });
   function show(n){
@@ -925,8 +923,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
     imgs.forEach(function(im,k){ im.classList.toggle('active', k === i); });
     if(dots) Array.prototype.forEach.call(dots.children, function(d,k){ d.classList.toggle('active', k === i); });
   }
-  prev && prev.addEventListener('click', function(){ show(i-1); });
-  next && next.addEventListener('click', function(){ show(i+1); });
+  function restart(){ clearInterval(timer); timer = setInterval(function(){ show(i+1); }, 5000); }
+  restart();  // auto-avance cada 5s (sin flechas)
 }());
 
 }); // end DOMContentLoaded
@@ -1077,10 +1075,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-featured-block .lw-kicker::before { display:none; }
 .lw-ts-title { font-family:var(--csa); font-weight:400; text-transform:uppercase; white-space:nowrap;
   font-size:var(--fs-heading-xl); line-height:1.02; letter-spacing:.04em; margin:clamp(1.1rem,3.5vh,2.4rem) 0 0; }
-.lw-ts-title .tl-a { font-weight:600; }   /* "From land": negrita pero más ligera (era 700) */
-.lw-ts-title .tl-b { font-weight:300; }
+.lw-ts-title .tl-a { font-weight:400; font-style:normal; }   /* "From land" = mismo tipo que "Four ways," (.lw-title em, Neue 400) */
+.lw-ts-title .tl-b { font-weight:200; }   /* "to legacy" = mismo que "one legacy" (200) */
 .lw-ts-sub { font-family:var(--csa); font-weight:300; font-size:calc(var(--fs-body-l) * 1.5); letter-spacing:.14em;
-  text-transform:uppercase; color:rgba(238,243,231,.82); margin:clamp(.85rem,1.5vh,1.15rem) 0 0; text-shadow:0 2px 12px rgba(0,0,0,.45); }
+  text-transform:uppercase; color:#fff; margin:clamp(.85rem,1.5vh,1.15rem) 0 0; text-shadow:0 2px 12px rgba(0,0,0,.45); }
 .lw-ts-cols { display:grid; grid-template-columns:repeat(4,1fr); margin-top:auto;
   padding-bottom:clamp(.5rem,2vh,1.5rem); }
 .lw-ts-col { padding:0 clamp(14px,1.8vw,30px); border-left:1px solid rgba(245,240,230,.32); }
@@ -1421,7 +1419,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 /* ── 6 · Epic Indonesia (full-bleed) ── */
 #content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
-.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg') center/cover; z-index:0; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=2') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
 .lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:3;
@@ -1440,8 +1438,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-epic-col { border-left:1px solid rgba(245,240,230,.34); padding-left:clamp(16px,1.8vw,30px); }
 .lw-epic-col:first-child { border-left:0; padding-left:0; }
 .lw-epic-col-h { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.1em;
-  font-size:var(--fs-heading-s); color:#fff; margin:0 0 12px; text-shadow:0 2px 12px rgba(0,0,0,.6); }
-.lw-epic-col-p { font-family:var(--csa); font-weight:500; font-size:var(--fs-body-l); line-height:1.7;
+  font-size:calc(var(--fs-heading-s) * .8); color:#fff; margin:0 0 12px; text-shadow:0 2px 12px rgba(0,0,0,.6); }
+.lw-epic-col-p { font-family:var(--csa); font-weight:500; font-size:calc(var(--fs-body-l) * .8); line-height:1.7;
   letter-spacing:.06em; text-transform:uppercase; color:rgba(245,240,230,.9); margin:0; text-shadow:0 1px 10px rgba(0,0,0,.6); }
 .lw-epic-col-p b { font-weight:500; color:#fff; }
 .lw-epic-col-link { display:inline-flex; align-items:center; gap:.5em; margin-top:14px; font-family:var(--csa);
@@ -1458,7 +1456,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 }
 
 /* ── 7 · Featured project (contorno linea + NEUE) ── */
-.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(1rem,2vh,1.6rem) 0; }
+.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(2.6rem,6vh,4.4rem) 0; }
 .lw-feat-media.lw-feat-outline::before { content:""; position:absolute; inset:14px; z-index:2; pointer-events:none;
   border:1px solid rgba(245,240,230,.65); border-radius:10px; }
 .lw-feat-title2 { font-family:'Kabel NK',var(--csa); font-weight:400; font-size:var(--fs-heading-m);
@@ -1467,7 +1465,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 /* Featured rework (ref PDF pág.7): nuestra imagen + "Investment from" + ficha centrada */
 .lw-feat-invest { position:absolute; left:24px; bottom:22px; z-index:3; display:flex; flex-direction:column; gap:4px; }
 .lw-feat-invest-l { font-family:var(--csa); font-size:var(--fs-caption); font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,230,.85); }
-.lw-feat-invest-amt { font-family:'Kabel NK',var(--csa); font-weight:500; font-size:var(--fs-heading-m); line-height:1; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.5); }
+.lw-feat-invest-amt { font-family:'Kabel NK',var(--csa); font-weight:500; font-size:var(--fs-heading-s); line-height:1; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.5); }
 .lw-feat-card { text-align:center; display:flex; flex-direction:column; align-items:center; }
 .lw-feat-card-ico { display:block; width:66px; height:52px; background-color:var(--ca); margin-bottom:18px;
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
@@ -1489,16 +1487,16 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-feat-arrow.prev { left:-6px; }
 .lw-feat-arrow.next { right:-6px; }
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
-.lw-feat-card-logo { display:block; height:clamp(52px,7vh,78px); width:auto; max-width:80%; margin:0 auto; object-fit:contain; }
-.lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.22em;
-  font-size:var(--fs-caption); color:var(--ca); margin-top:14px; }
-/* Datos como checklist con icono ✓ (fuente algo menor) */
-.lw-feat-card-specs { list-style:none; padding:0; display:flex; flex-direction:column; gap:9px;
-  margin:clamp(14px,2.2vh,20px) 0 0; text-align:left; }
-.lw-feat-card-specs li { position:relative; padding-left:27px; font-family:var(--csa); font-weight:400;
-  text-transform:uppercase; letter-spacing:.09em; font-size:var(--fs-body); line-height:1.35; color:var(--ci2); }
-.lw-feat-card-specs li::before { content:"✓"; position:absolute; left:0; top:0; display:inline-flex; align-items:center; justify-content:center;
-  width:17px; height:17px; border-radius:50%; background:#485B37; color:#F5F0E6; font-size:10px; font-weight:700; }
+.lw-feat-card-logo { display:block; height:clamp(40px,5.2vh,58px); width:auto; max-width:72%; margin:0 auto; object-fit:contain; }
+.lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.2em;
+  font-size:calc(var(--fs-caption) * .92); color:var(--ca); margin-top:12px; }
+/* Datos como checklist con icono ✓ (fuente menor) */
+.lw-feat-card-specs { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px;
+  margin:clamp(12px,2vh,16px) 0 0; text-align:left; }
+.lw-feat-card-specs li { position:relative; padding-left:24px; font-family:var(--csa); font-weight:400;
+  text-transform:uppercase; letter-spacing:.08em; font-size:var(--fs-caption); line-height:1.3; color:var(--ci2); }
+.lw-feat-card-specs li::before { content:"✓"; position:absolute; left:0; top:-1px; display:inline-flex; align-items:center; justify-content:center;
+  width:15px; height:15px; border-radius:50%; background:#485B37; color:#F5F0E6; font-size:9px; font-weight:700; }
 /* Galería de imágenes del proyecto único (cross-fade) */
 .lw-feat-gallery { position:absolute; inset:0; z-index:1; }
 .lw-feat-gallery img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .6s ease; }
@@ -1831,11 +1829,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 <!-- ════ 6 · EPIC INDONESIA ════ -->
 <section class="lw-epic" id="expedition">
   <div class="lw-epic-bg" aria-hidden="true"></div>
-  <img class="lw-epic-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
   <div class="cs-wrap lw-epic-inner">
     <div class="lw-epic-top reveal">
       <h2 class="lw-epic-country">Indonesia</h2>
-      <p class="lw-epic-sub">Where growth is unstoppable.</p>
+      <p class="lw-epic-sub">Where growth <b>is unstoppable.</b></p>
     </div>
     <div class="lw-epic-cols">
       <div class="lw-epic-col reveal">
@@ -1868,10 +1865,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
             <img src="assets/img/CardSignatures.jpg" alt="Palm Field — villa community" loading="lazy">
             <img src="assets/img/aerial-1.jpg" alt="Palm Field — aerial view" loading="lazy">
           </div>
-          <button class="lw-feat-arrow prev" type="button" aria-label="Previous image">❮</button>
-          <button class="lw-feat-arrow next" type="button" aria-label="Next image">❯</button>
           <div class="lw-feat-dots" id="palmDots" aria-hidden="true"></div>
-          <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment from</span><span class="lw-feat-invest-amt">From €95,000.</span></div>
+          <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment</span><span class="lw-feat-invest-amt">FROM €95,000.</span></div>
         </div>
         <div class="lw-feat-card">
           <img class="lw-feat-card-logo" src="assets/img/logo-palmfield.png" alt="Palm Field" loading="lazy">
@@ -1973,8 +1968,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 </main><!-- end .snap -->
 
 <!-- WhatsApp flotante (aparece al hacer scroll, pulso cada 5s) -->
-<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Meet Monito, your tropical partner — chat on WhatsApp">
-  <span class="wa-label">Meet Monito, your tropical partner</span>
+<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Meet Moanito! Your tropical partner — chat on WhatsApp">
+  <span class="wa-label">Meet Moanito! Your tropical partner</span>
   <span class="wa-ico">
     <svg class="wa-wa" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
     <img class="wa-monito" src="assets/img/moanito-face.png" alt="" aria-hidden="true">

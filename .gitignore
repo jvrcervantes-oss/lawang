@@ -20,6 +20,6 @@ assets/guide/
 # descargas incompletas
 *.crdownload
 
-# másters pesados del hero (solo local)
+# máster pesado del hero (solo local)
 assets/img/Hero.png
-assets/img/Hero2.png
+# Hero2.png SÍ se versiona: es el fondo del hero (alta calidad, petición cliente)
