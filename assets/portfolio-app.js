@@ -123,7 +123,7 @@
         + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.74) 0%,rgba(20,16,11,.4) 55%,rgba(20,16,11,.12) 100%)"></span>'
         + '<span style="position:relative;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,1.7vw,22px);text-align:left;color:#F5F0E6">'
         +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(32px,3.4vw,44px);height:auto;flex:none;object-fit:contain">'
-        +   '<span><span style="display:block;font-family:var(--serif);font-weight:300;font-size:clamp(18px,2vw,27px);line-height:1;letter-spacing:.01em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
+        +   '<span><span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(18px,2vw,27px);line-height:1;letter-spacing:.01em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
         +     '<span style="display:block;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.86;margin-top:7px">'+t("cat."+c.line+".sub")+'</span></span>'
         + '</span></button>';
     }).join("");
@@ -154,7 +154,7 @@
       +     '<span class="kicker" style="display:inline-block">'+t("mk.kicker")+'</span>'
       +     '<h1 class="display" style="margin:11px auto 0;font-weight:300;line-height:.98;text-transform:uppercase">'
       +       '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(17px,2.3vw,30px);letter-spacing:.14em">'+t("mk.title1")+'</span>'
-      +       '<span style="display:block;font-size:clamp(40px,7vw,92px);letter-spacing:.02em;margin-top:4px">'+t("mk.title2")+'</span>'
+      +       '<span class="hero-serif" style="display:block;font-size:clamp(40px,7vw,92px);letter-spacing:.02em;margin-top:4px">'+t("mk.title2")+'</span>'
       +     '</h1></div>'
       +   '<div class="lw-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:clamp(19px,2.4vw,32px)">'+lineCards+'</div>'
       + '</section>'

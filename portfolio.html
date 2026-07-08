@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260708170000">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708165315">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -104,10 +104,11 @@ body { background: var(--bone) url('assets/img/bg-ecommerce.webp') top center / 
 
 /* ── TYPOGRAPHY ──────────────────────────────────────────── */
 .kicker  { font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--clay); }
-.display { font-family:var(--serif); font-weight:300; line-height:0.98; letter-spacing:-0.015em; text-wrap:balance; }
-.serif   { font-family:var(--serif); }
-/* Números del proceso: Cormorant (serif real) — The Seasons demo corrompe el "4" */
-.proc-num{ font-family:"Cormorant Garamond",Georgia,serif; font-weight:400; }
+/* Todo portfolio.html en Neue; el único serif es el "INDONESIA" del hero (.hero-serif) */
+.display { font-family:var(--sans); font-weight:300; line-height:0.98; letter-spacing:-0.005em; text-wrap:balance; }
+.serif   { font-family:var(--sans); }
+.proc-num{ font-family:var(--sans); font-weight:400; }
+.hero-serif { font-family:var(--serif) !important; }
 .italic  { font-style:italic; }
 h1,h2,h3{ margin:0; font-weight:300; }
 
@@ -652,8 +653,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260708170000"></script>
-<script src="assets/portfolio-app.js?v=20260708170000"></script>
+<script src="assets/lawang-card.js?v=20260708165315"></script>
+<script src="assets/portfolio-app.js?v=20260708165315"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
