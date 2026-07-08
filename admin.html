@@ -256,31 +256,6 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
         <button class="btn-primary" onclick="changePassword()">Change password</button>
       </div>
     </div>
-
-    <div class="settings-card" style="margin-top:22px">
-      <h3>Downloads by product line <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Documentos que salen como fallback en las propiedades de cada línea (si la propiedad no tiene descargas propias).</span></h3>
-      <div class="form-group">
-        <label>Line</label>
-        <select id="dl-line-select" onchange="renderLineDownloads()">
-          <option value="signature">Signature</option>
-          <option value="land">Land</option>
-          <option value="villa">Villa</option>
-          <option value="resorts">Resorts</option>
-        </select>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 60px 80px 3fr 28px;gap:8px;margin:4px 0;padding:0 2px">
-        <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Name</div>
-        <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Ext</div>
-        <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Size</div>
-        <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">URL</div>
-        <div></div>
-      </div>
-      <div id="line-downloads-list"></div>
-      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-        <button type="button" class="btn-ghost" style="font-size:12px" onclick="addLineDownloadRow(null)">+ Add document</button>
-        <button type="button" class="btn-primary" onclick="saveLineDownloads()">Save downloads</button>
-      </div>
-    </div>
   </section>
 
   <!-- IMAGES -->
@@ -368,23 +343,6 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
           <div class="cb-group">
             <input type="checkbox" id="f-featured">
             <label for="f-featured">Featured release <span class="muted">(highlighted at top of portfolio)</span></label>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Home page — Featured <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Marca UNA propiedad para el bloque destacado de la portada (index.html). Al marcar ésta se desmarcan las demás.</span></h4>
-          <div class="cb-group">
-            <input type="checkbox" id="f-homeFeatured">
-            <label for="f-homeFeatured">Feature this project on the home page <span class="muted">(solo una)</span></label>
-          </div>
-          <div class="form-group">
-            <label>Project logo URL <span class="hint">opcional; si se deja vacío se usa el título como texto</span></label>
-            <input type="text" id="f-logo" placeholder="/assets/img/logo-palmfield.png">
-          </div>
-          <div class="form-group">
-            <label>Highlights <span class="hint">lista de checks del bloque de la home · hasta 5</span></label>
-            <div id="f-highlights-list"></div>
-            <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHighlightRow('')">+ Add highlight</button>
           </div>
         </div>
 
@@ -709,7 +667,6 @@ async function loadData() {
   }
   renderProperties();
   renderSettings();
-  renderLineDownloads();
 }
 
 async function publishData() {
@@ -781,7 +738,7 @@ function renderProperties() {
     var name = (p.title && p.title.en) || p.id;
     var hidden = p.visible === false;
     return '<div class="prop-row' + (hidden ? ' is-hidden' : '') + '">' +
-      '<div><div class="prop-name">' + esc(name) + (hidden ? '<span class="prop-hidden-badge">hidden</span>' : '') + (p.homeFeatured ? '<span class="prop-hidden-badge" style="background:var(--tg);color:#fff">HOME</span>' : '') + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
+      '<div><div class="prop-name">' + esc(name) + (hidden ? '<span class="prop-hidden-badge">hidden</span>' : '') + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
       '<div><span class="line-badge line-' + esc(p.line) + '">' + esc(p.line) + '</span></div>' +
       '<div class="prop-price">' + fmtPrice(p.priceEUR) + '</div>' +
       '<div class="muted">' + esc((p.status||'').replace('status.','')) + '</div>' +
@@ -825,8 +782,6 @@ function propertyToForm(p) {
   set('f-status',      p.status      || 'status.offplan');
   set('f-handover',    p.handover    || '');
   set('f-featured',    p.featured    || false);
-  set('f-homeFeatured', p.homeFeatured === true);
-  set('f-logo',        p.logo        || '');
   set('f-priceEUR',    p.priceEUR    || '');
   set('f-tenure',      p.tenure      || 'tenure.freehold');
   set('f-leaseYears',  p.leaseYears  || '');
@@ -871,10 +826,6 @@ function propertyToForm(p) {
   // Extras
   document.getElementById('f-extras-list').innerHTML = '';
   (p.extras || []).forEach(function(e){ addExtraRow(e); });
-  // Highlights (home featured)
-  var hlContainer = document.getElementById('f-highlights-list');
-  hlContainer.innerHTML = '';
-  ((p.highlights && p.highlights.length) ? p.highlights : []).forEach(function(t){ addHighlightRow(t); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -1076,9 +1027,6 @@ function formToProperty() {
     regionKey:   regionKey,
     view:        get('f-view'),
     featured:    get('f-featured'),
-    homeFeatured: get('f-homeFeatured'),
-    logo:        get('f-logo'),
-    highlights:  Array.prototype.slice.call(document.querySelectorAll('#f-highlights-list .hl-item')).map(function(row){ return row.querySelector('.hl-text').value.trim(); }).filter(Boolean),
     priceEUR:    parseFloat(get('f-priceEUR'))    || 0,
     beds:        parseInt(get('f-beds'))           || 0,
     baths:       parseInt(get('f-baths'))          || 0,
@@ -1133,7 +1081,6 @@ function saveProperty() {
   if (!p.title.en) { toast('Please enter a title in English.', 'err'); return; }
   var idx = DATA.properties.findIndex(function(x){ return x.id === p.id; });
   if (idx >= 0) DATA.properties[idx] = p; else DATA.properties.push(p);
-  if (p.homeFeatured) DATA.properties.forEach(function(x){ if (x.id !== p.id) x.homeFeatured = false; });  // solo una destacada en la home
   closePropertyForm();
   renderProperties();
   markDirty();
@@ -1161,44 +1108,6 @@ function saveSettings() {
   DATA.settings.email    = document.getElementById('s-email').value.trim();
   markDirty();
   toast('Contact saved. Click Publish changes to go live.', 'info');
-}
-
-/* ─── DOWNLOADS POR LÍNEA (fallback global) ─────────────────── */
-function renderLineDownloads() {
-  var sel = document.getElementById('dl-line-select');
-  if (!sel) return;
-  var line = sel.value;
-  document.getElementById('line-downloads-list').innerHTML = '';
-  var arr = (DATA.downloads && DATA.downloads[line]) || [];
-  if (!arr.length) addLineDownloadRow(null);
-  else arr.forEach(function(d){ addLineDownloadRow(d); });
-}
-function addLineDownloadRow(item) {
-  item = item || {};
-  var div = document.createElement('div');
-  div.className = 'dl-line-item';
-  div.style.cssText = 'display:grid;grid-template-columns:2fr 60px 80px 3fr 28px;gap:8px;margin-bottom:6px';
-  div.innerHTML =
-    '<input type="text" class="dl-name" value="' + esc(item.name||'') + '" placeholder="Property Brochure">' +
-    '<input type="text" class="dl-ext"  value="' + esc(item.ext||'PDF') + '" placeholder="PDF">' +
-    '<input type="text" class="dl-size" value="' + esc(item.size||'') + '" placeholder="2.4 MB">' +
-    '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="/docs/brochure.pdf">' +
-    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
-  document.getElementById('line-downloads-list').appendChild(div);
-}
-function saveLineDownloads() {
-  var line = document.getElementById('dl-line-select').value;
-  if (!DATA.downloads) DATA.downloads = {};
-  DATA.downloads[line] = Array.prototype.slice.call(document.querySelectorAll('#line-downloads-list .dl-line-item')).map(function(row){
-    return {
-      name: row.querySelector('.dl-name').value.trim(),
-      ext:  row.querySelector('.dl-ext').value.trim() || 'PDF',
-      size: row.querySelector('.dl-size').value.trim(),
-      url:  row.querySelector('.dl-url').value.trim()
-    };
-  }).filter(function(d){ return d.name; });
-  markDirty();
-  toast('Downloads for "' + line + '" saved. Click Publish changes to go live.', 'info');
 }
 
 async function changePassword() {
@@ -1261,17 +1170,6 @@ function addDownloadRow(item) {
     '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="/docs/brochure.pdf">' +
     '<button class="dl-upload" type="button" onclick="uploadDocForRow(this)" title="Upload file">↑</button>' +
     '<button class="dl-remove" type="button" onclick="this.parentNode.remove()" title="Remove">✕</button>';
-  container.appendChild(div);
-}
-
-function addHighlightRow(text) {
-  var container = document.getElementById('f-highlights-list');
-  var div = document.createElement('div');
-  div.className = 'hl-item';
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 28px;gap:8px;margin-bottom:6px';
-  div.innerHTML =
-    '<input type="text" class="hl-text" value="' + esc(text||'') + '" placeholder="700 meters from the ocean">' +
-    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
 }
 
