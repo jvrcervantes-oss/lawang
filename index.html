@@ -1273,7 +1273,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 #content-sections > section.lw-contact { display:block; padding:0; min-height:100vh; background:var(--obsidian); color:var(--cb); position:relative; overflow:hidden; justify-content:flex-start; }
 .lw-ct-totem { position:absolute; right:-3%; top:42%; transform:translateY(-50%); height:118%; width:auto; opacity:.06; pointer-events:none; z-index:0; }
 .lw-ct-top { position:relative; z-index:1; padding:clamp(1.4rem,3vh,2.2rem) 0 clamp(1.4rem,3vh,2.2rem); }
-.lw-ct-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:center; max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
+.lw-ct-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:start; max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
 .lw-ct-grid .lw-kicker { color:var(--cal); }
 .lw-ct-h { font-family:var(--cse); font-weight:400; font-size:var(--fs-heading-xl); line-height:1;
   letter-spacing:.04em; text-transform:uppercase; color:var(--cb); margin:10px 0 0; }
@@ -1289,6 +1289,24 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   border-bottom:1px solid rgba(245,240,230,.28); padding:13px 2px; outline:none; width:100%; }
 .lw-field::placeholder { color:rgba(245,240,230,.42); }
 .lw-field:focus { border-color:var(--cal); }
+/* FAQ (columna derecha de Tropical Partner) */
+.lw-ct-faq .cs-faq-item { border-top:1px solid rgba(245,240,230,.16); }
+.lw-ct-faq .cs-faq-item:last-child { border-bottom:1px solid rgba(245,240,230,.16); }
+.lw-ct-faq .faq-q { width:100%; display:flex; align-items:center; justify-content:space-between; gap:18px;
+  background:none; border:none; cursor:none; text-align:left; color:var(--cb);
+  font-family:var(--csa); font-weight:500; font-size:var(--fs-body-l); letter-spacing:.02em; text-transform:uppercase;
+  padding:clamp(14px,2vh,20px) 0; transition:color .25s; }
+.lw-ct-faq .faq-q:hover { color:var(--cal); }
+.lw-ct-faq .faq-ic { position:relative; width:14px; height:14px; flex:none; }
+.lw-ct-faq .faq-ic::before, .lw-ct-faq .faq-ic::after { content:""; position:absolute; background:var(--cal); transition:transform .3s ease, opacity .3s ease; }
+.lw-ct-faq .faq-ic::before { top:6px; left:0; width:14px; height:2px; }
+.lw-ct-faq .faq-ic::after { top:0; left:6px; width:2px; height:14px; }
+.lw-ct-faq .cs-faq-item.open .faq-ic::after { transform:scaleY(0); opacity:0; }
+.lw-ct-faq .faq-a { display:grid; grid-template-rows:0fr; transition:grid-template-rows .38s cubic-bezier(.16,1,.3,1); }
+.lw-ct-faq .faq-a > div { min-height:0; overflow:hidden; }
+.lw-ct-faq .cs-faq-item.open .faq-a { grid-template-rows:1fr; }
+.lw-ct-faq .faq-a p { font-family:var(--csa); font-size:var(--fs-body); line-height:1.6; color:rgba(245,240,230,.6);
+  margin:0 0 clamp(14px,2vh,20px); max-width:46ch; }
 .lw-ft { position:relative; z-index:1; border-top:1px solid rgba(245,240,230,.12); padding:clamp(2.6rem,5vh,3.6rem) 0 2rem;
   max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
 .lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
@@ -1306,15 +1324,8 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; cursor:none; transition:color .2s; }
 .lw-ft-cti:hover { color:#fff; }
 .lw-ft-cti svg { width:15px; height:15px; flex:none; opacity:.9; }
-.lw-ft-wrap { background:var(--tg); padding-bottom:1.8rem; position:relative; z-index:1; }
+.lw-ft-wrap { background:transparent; padding-bottom:1.8rem; position:relative; z-index:1; }
 .lw-ft-wrap .lw-ft { border-top:none; }
-
-/* ── Toast ───────────────────────────────────────────────────── */
-#lw-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(160%);
-  background:var(--va); color:var(--rl); padding:14px 24px; border-radius:40px; font-family:'Neue Kabel','Jost',sans-serif;
-  font-size:.78rem; letter-spacing:.06em; z-index:300; box-shadow:0 30px 60px -28px rgba(10,12,9,.55);
-  transition:transform .5s cubic-bezier(.16,1,.3,1); display:flex; align-items:center; gap:10px; pointer-events:none; }
-#lw-toast.show { transform:translateX(-50%) translateY(0); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media(max-width:980px){
@@ -1860,12 +1871,25 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
           <a class="lw-ct-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
         </div>
       </div>
-      <form class="lw-ct-form reveal" id="lwForm" style="transition-delay:120ms">
-        <input class="lw-field" type="text" placeholder="Full name" required>
-        <input class="lw-field" type="email" placeholder="Email address" required>
-        <input class="lw-field" type="text" placeholder="What are you looking for? (Land · Villa · Signature)">
-        <button class="cs-btn cs-btn-bone cs-btn-pill" type="submit" style="align-self:flex-start;margin-top:6px">Let's Talk <span class="arr">→</span></button>
-      </form>
+      <!-- FAQ (placeholder — sustituir por preguntas/respuestas reales) -->
+      <div class="lw-ct-faq reveal" style="transition-delay:120ms">
+        <div class="cs-faq-item open">
+          <button class="faq-q" type="button">Can foreigners own property in Bali &amp; Sumba?<span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p>Placeholder answer. Ownership is structured through leasehold or a PT&nbsp;PMA company — our team walks you through the compliant path for each project.</p></div></div>
+        </div>
+        <div class="cs-faq-item">
+          <button class="faq-q" type="button">What is the minimum investment?<span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p>Placeholder answer. Entry points start from €95,000 for land and vary by line and location.</p></div></div>
+        </div>
+        <div class="cs-faq-item">
+          <button class="faq-q" type="button">How does the buying process work?<span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p>Placeholder answer. Reservation, due diligence, notarial deed and handover — fully guided and documented end to end.</p></div></div>
+        </div>
+        <div class="cs-faq-item">
+          <button class="faq-q" type="button">Do you handle rental management?<span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p>Placeholder answer. Yes — our curated network of local partners manages villas post-handover.</p></div></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="lw-ft-wrap">
@@ -1913,28 +1937,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 </main><!-- end .snap -->
 
-<!-- Toast (formulario / CTA) -->
-<div id="lw-toast">✆&nbsp;&nbsp;Thank you — our team will reach out shortly.</div>
-
 <!-- WhatsApp flotante (aparece al hacer scroll, pulso cada 5s) -->
 <a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp">
   <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
 </a>
-
-<script>
-// ── [v6] Contact form toast ────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function(){
-  var toast = document.getElementById('lw-toast');
-  function showToast(){
-    if(!toast) return;
-    toast.classList.add('show');
-    clearTimeout(window.__lwToastT);
-    window.__lwToastT = setTimeout(function(){ toast.classList.remove('show'); }, 3200);
-  }
-  var form = document.getElementById('lwForm');
-  if(form) form.addEventListener('submit', function(e){ e.preventDefault(); form.reset(); showToast(); });
-});
-</script>
 
 </body>
 </html>
