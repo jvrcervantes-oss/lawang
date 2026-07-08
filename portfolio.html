@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260708131642">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708132951">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -106,6 +106,8 @@ body { background: var(--bone) url('assets/img/bg-ecommerce.png') top center / 1
 .kicker  { font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--clay); }
 .display { font-family:var(--serif); font-weight:300; line-height:0.98; letter-spacing:-0.015em; text-wrap:balance; }
 .serif   { font-family:var(--serif); }
+/* Números del proceso: Cormorant (serif real) — The Seasons demo corrompe el "4" */
+.proc-num{ font-family:"Cormorant Garamond",Georgia,serif; font-weight:400; }
 .italic  { font-style:italic; }
 h1,h2,h3{ margin:0; font-weight:300; }
 
@@ -229,6 +231,14 @@ article:hover .view-cta { gap:9px; }
 #topbar > *{ pointer-events:auto }
 #topbar #logo-inner{ display:flex;align-items:center;text-decoration:none }
 #topbar #logo-inner img{ height:23px;width:auto;display:block }
+/* Logo idéntico al de index.html: header siempre solid → versión verde --pg (máscara del PNG, ratio ≈7.19) */
+#topbar #logo-inner .ll-white{ filter:drop-shadow(0 1px 6px rgba(0,0,0,.35)) }
+#topbar #logo-inner .ll-dark{ display:none;height:23px;width:165px;background-color:#587040;
+  -webkit-mask:url('assets/img/lawang-logo-v3-dark.png') left center/contain no-repeat;
+          mask:url('assets/img/lawang-logo-v3-dark.png') left center/contain no-repeat }
+#topbar #logo.dark .ll-white{ display:none }
+#topbar #logo.dark .ll-dark{ display:block }
+@media(max-width:560px){ #topbar #logo-inner .ll-dark{ height:20px;width:144px } }
 #nav{ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:clamp(1.2rem,2.6vw,2.4rem);
   background:rgba(255,255,255,.5);border:1px solid rgba(72,91,55,.28);border-radius:40px;padding:.6rem 1.7rem; }
 .nav-link{ position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.22em;color:rgba(26,22,18,.72);
@@ -479,6 +489,21 @@ article:hover .view-cta { gap:9px; }
     "ft.reserve.t2":{"en":"with Lawang","es":"con Lawang","id":"bersama Lawang"},
     "ft.reserve.sub":{"en":"From first conversation to title deed — transparent milestones, refundable deposits and construction certifications at every stage.","es":"De la primera conversación a la escritura — hitos transparentes, depósitos reembolsables y certificaciones de construcción en cada fase.","id":"Dari percakapan pertama hingga sertifikat — tahapan transparan, deposit yang dapat dikembalikan, dan sertifikasi konstruksi di setiap tahap."},
     "ft.reserve.cta":{"en":"Start your reservation","es":"Inicia tu reserva","id":"Mulai reservasi Anda"},
+    "proc.title":{"en":"Seven steps to ownership","es":"Siete pasos hasta la propiedad"},
+    "proc.s1.t":{"en":"Confirmation","es":"Confirmación"},
+    "proc.s1.d":{"en":"Reservation contract and power of attorney formalized.","es":"Formalización del contrato de reserva y poder notarial."},
+    "proc.s2.t":{"en":"€5,000 Deposit","es":"Pago Depósito 5.000€"},
+    "proc.s2.d":{"en":"Payment receipt confirmed with the notary.","es":"Confirmación de recepción del pago con el notario."},
+    "proc.s3.t":{"en":"Welcome","es":"Bienvenida"},
+    "proc.s3.d":{"en":"Welcome email, album invitation and access to the neighbours' community.","es":"Email de bienvenida, invitación al álbum y a la comunidad de vecinos."},
+    "proc.s4.t":{"en":"Notary Appointment","es":"Cita Notario"},
+    "proc.s4.d":{"en":"Set the balance-payment date and the public purchase deed.","es":"Fijar fecha de pago del balance y escritura pública de compra."},
+    "proc.s5.t":{"en":"Deed","es":"Escritura"},
+    "proc.s5.d":{"en":"Sign the public deed before the notary; title or lease transferred.","es":"Firma de la escritura pública ante notario y transmisión de titularidad o lease."},
+    "proc.s6.t":{"en":"Balance Payment","es":"Pago balance"},
+    "proc.s6.d":{"en":"Balance paid within 48h of receiving the deed.","es":"Pago del balance máximo 48h tras recepción de la escritura."},
+    "proc.s7.t":{"en":"Build","es":"Construye"},
+    "proc.s7.d":{"en":"Generate passive income on top of land appreciation.","es":"Genera ingresos pasivos adicionales a la apreciación del suelo."},
     "ft.tag1":{"en":"Discover beyond the projects.","es":"Descubre más allá de los proyectos.","id":"Temukan lebih dari sekadar proyek."},
     "ft.tag2":{"en":"Ask why investors stay.","es":"Pregunta por qué los inversores se quedan.","id":"Tanyakan mengapa investor bertahan."},
     "mk.all":{"en":"All","es":"Todo"},
@@ -621,8 +646,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260708131642"></script>
-<script src="assets/portfolio-app.js?v=20260708131642"></script>
+<script src="assets/lawang-card.js?v=20260708132951"></script>
+<script src="assets/portfolio-app.js?v=20260708132951"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
