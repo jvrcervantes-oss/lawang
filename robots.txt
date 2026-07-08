@@ -17,4 +17,4 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
-Sitemap: https://lawang.id/sitemap.xml
+Sitemap: https://lawangproperties.com/sitemap.xml
