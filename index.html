@@ -109,8 +109,8 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 #content-sections > section{ scroll-snap-align:start; scroll-snap-stop:always; }
 @media(prefers-reduced-motion:reduce){.snap{scroll-behavior:auto;scroll-snap-type:y proximity}}
 
-#cursor{position:fixed;top:0;left:0;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;will-change:transform}
-#cursor-ring{position:fixed;top:0;left:0;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;border:1px solid rgba(190,179,165,0.4);pointer-events:none;z-index:9998;will-change:transform}
+#cursor{position:fixed;top:0;left:0;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:100001;will-change:transform}
+#cursor-ring{position:fixed;top:0;left:0;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;border:1px solid rgba(190,179,165,0.4);pointer-events:none;z-index:100000;will-change:transform}
 
 /* ── CINEMATIC STAGE (fixed, always behind) ── */
 #stage{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;z-index:1}
@@ -1946,13 +1946,13 @@ initFeatGallery();
         <h5>Company</h5>
         <a href="#expedition">The Soul</a>
         <a href="#the-services">What We Do</a>
-        <a href="#expedition">The Expedition</a>
+        <a href="portfolio.html">The Expedition</a>
         <a href="#portfolio">Choose your Legacy</a>
       </div>
       <div class="lw-ft-col">
         <h5>Divisions</h5>
-        <a href="#portfolio">Tepi Sungai</a>
-        <a href="#portfolio">Balian Hills</a>
+        <a href="portfolio.html">Tepi Sungai</a>
+        <a href="portfolio.html">Balian Hills</a>
         <a href="portfolio.html#signature">Riverfront II®</a>
       </div>
     </div>
