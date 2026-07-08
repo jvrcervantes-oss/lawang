@@ -11,3 +11,9 @@ _originales/
 
 # Vía .docx abandonada (pivote a plantilla HTML) — 11MB de binarios obsoletos
 private/plantillas/
+
+# Material fuente del cliente y exports de prueba — NO versionar ni desplegar
+# (contratos fuente = confidenciales; se servían en público desde /contracts/)
+/*.pdf
+/Firma.png
+Logo Lawang-*
