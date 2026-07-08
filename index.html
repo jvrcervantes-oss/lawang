@@ -448,8 +448,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260708093318">
-<script src="assets/lawang-card.js?v=20260708093318"></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708123134">
+<script src="assets/lawang-card.js?v=20260708123134"></script>
 </head>
 <body>
 
@@ -1419,7 +1419,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 /* ── 6 · Epic Indonesia (full-bleed) ── */
 #content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
-.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=2') center/cover; z-index:0; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=3') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
 .lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:3;
@@ -1456,7 +1456,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 }
 
 /* ── 7 · Featured project (contorno linea + NEUE) ── */
-.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(2.6rem,6vh,4.4rem) 0; }
+.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(4.6rem,10vh,7.2rem) 0 clamp(2.6rem,6vh,4.4rem); }
 .lw-feat-media.lw-feat-outline::before { content:""; position:absolute; inset:14px; z-index:2; pointer-events:none;
   border:1px solid rgba(245,240,230,.65); border-radius:10px; }
 .lw-feat-title2 { font-family:'Kabel NK',var(--csa); font-weight:400; font-size:var(--fs-heading-m);
@@ -1487,7 +1487,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-feat-arrow.prev { left:-6px; }
 .lw-feat-arrow.next { right:-6px; }
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
-.lw-feat-card-logo { display:block; height:clamp(40px,5.2vh,58px); width:auto; max-width:72%; margin:0 auto; object-fit:contain; }
+.lw-feat-card-logo { display:block; height:clamp(60px,7.8vh,87px); width:auto; max-width:88%; margin:0 auto; object-fit:contain; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.2em;
   font-size:calc(var(--fs-caption) * .92); color:var(--ca); margin-top:12px; }
 /* Datos como checklist con icono ✓ (fuente menor) */
@@ -1537,7 +1537,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 #wa-float .wa-monito { position:absolute; top:8px; left:8px; width:42px; height:42px; object-fit:contain;
   opacity:0; transform:scale(.5); transition:opacity .3s ease, transform .3s cubic-bezier(.16,1,.3,1); }
 #wa-float .wa-label { max-width:0; overflow:hidden; white-space:nowrap; opacity:0;
-  font-family:var(--csa); font-weight:600; font-size:13px; letter-spacing:.02em; color:#fff;
+  font-family:var(--csa); font-weight:600; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:#fff;
   transition:max-width .42s cubic-bezier(.16,1,.3,1), opacity .3s ease, padding .42s cubic-bezier(.16,1,.3,1); }
 #wa-float:hover .wa-label { max-width:260px; opacity:1; padding:0 4px 0 20px; }
 #wa-float:hover .wa-wa { opacity:0; }

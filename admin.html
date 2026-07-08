@@ -357,9 +357,16 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
               <label>Tenure</label>
               <select id="f-tenure">
                 <option value="tenure.freehold">Freehold (Hak Milik)</option>
-                <option value="tenure.leasehold">Leasehold — 30 yrs</option>
+                <option value="tenure.leasehold">Leasehold</option>
               </select>
             </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Lease years <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(solo leasehold)</span></label>
+              <input type="number" id="f-leaseYears" min="0" placeholder="30">
+            </div>
+            <div class="form-group"></div>
           </div>
         </div>
 
@@ -777,6 +784,7 @@ function propertyToForm(p) {
   set('f-featured',    p.featured    || false);
   set('f-priceEUR',    p.priceEUR    || '');
   set('f-tenure',      p.tenure      || 'tenure.freehold');
+  set('f-leaseYears',  p.leaseYears  || '');
   set('f-beds',        p.beds        != null ? p.beds : '');
   set('f-baths',       p.baths       != null ? p.baths : '');
   set('f-built',       p.built       || '');
@@ -1041,6 +1049,7 @@ function formToProperty() {
     showExtras:  get('f-showExtras'),
     extras:      extras,
     tenure:      get('f-tenure'),
+    leaseYears:  parseInt(get('f-leaseYears')) || null,
     status:      get('f-status'),
     handover:    get('f-handover'),
     images:      images,

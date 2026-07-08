@@ -241,7 +241,7 @@
 
   function techSpecsHTML(p){
     var isF = p.tenure==="tenure.freehold";
-    var specs = [ {l:t("glance.tenure"), v:isF?"Freehold HGB":"Leasehold 30yr"} ];
+    var specs = [ {l:t("glance.tenure"), v:isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr")} ];
     if(p.built>0) specs.push({l:t("glance.villa"), v:p.built+" m²"});
     if(p.land>0)  specs.push({l:t("glance.land"),  v:p.land+" m²"});
     if(p.beds>0)  specs.push({l:t("pd.spec.beds"), v:p.beds});
@@ -309,10 +309,10 @@
       +   '<div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">'+t("glance.location")+'</span><span style="font-size:13px;font-weight:600">'+esc(p.region)+'</span></div>'
       +   units
       +   '<div style="padding:14px 20px"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">Legal</div>'
-      +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.tenure")+'</span><span style="'+val+';font-weight:600;color:'+(isF?"var(--tg)":"inherit")+'">'+(isF?"Freehold HGB":"Leasehold 30yr")+'</span></div>'
+      +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.tenure")+'</span><span style="'+val+';font-weight:600;color:'+(isF?"var(--tg)":"inherit")+'">'+(isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr"))+'</span></div>'
       +     (isF?'<div style="'+row+'"><span style="'+lbl+'">'+t("glance.ptpma")+'</span><span style="'+val+'">Included · ~€1,000</span></div>':"")
       +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.delivery")+'</span><span style="'+val+'">'+(p.handover!=="—"?esc(p.handover):"On request")+'</span></div>'
-      +     '<div style="'+row+';border-bottom:none"><span style="'+lbl+'">'+t("glance.status")+'</span><span style="'+val+'">'+t(p.status)+'</span></div></div>'
+      +     (p.status?'<div style="'+row+';border-bottom:none"><span style="'+lbl+'">'+t("glance.status")+'</span><span style="'+val+'">'+t(p.status)+'</span></div>':'')+'</div>'
       + '</div>'
       + '<div style="background:var(--tg);border-radius:8px;overflow:hidden"><div style="padding:18px 20px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,0.5);margin-bottom:6px">'+t("wa.title")+'</div><p style="font-size:12.5px;color:rgba(245,240,230,0.7);margin-bottom:0;line-height:1.5">'+t("wa.sub")+'</p></div>'
       +   '<div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:10px"><a href="'+waUrl+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;padding:12px 20px;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:var(--sans)">✓ '+t("wa.cta")+'</a>'
