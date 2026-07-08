@@ -435,6 +435,10 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
             <input type="text" id="f-sub-en" placeholder="A cantilevered three-bed...">
           </div>
           <div class="form-group">
+            <label>Card meta <span class="hint">optional · replaces the "land m²" chip on the card</span></label>
+            <input type="text" id="f-metaText-en" placeholder="e.g. Ready Q4 2026">
+          </div>
+          <div class="form-group">
             <label>Description <span class="hint">2–3 sentences for the detail page</span></label>
             <textarea id="f-desc-en" rows="4" placeholder="Ridge House reads the land..."></textarea>
           </div>
@@ -449,6 +453,10 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
           <div class="form-group">
             <label>Subtítulo</label>
             <input type="text" id="f-sub-es" placeholder="Una vivienda de tres dormitorios...">
+          </div>
+          <div class="form-group">
+            <label>Meta de card <span class="hint">opcional · sustituye el dato "land m²" de la card</span></label>
+            <input type="text" id="f-metaText-es" placeholder="ej. Listo Q4 2026">
           </div>
           <div class="form-group">
             <label>Descripción</label>
@@ -805,6 +813,8 @@ function propertyToForm(p) {
   set('f-title-es', (p.title && p.title.es) || '');
   set('f-sub-en',   (p.sub   && p.sub.en)   || '');
   set('f-sub-es',   (p.sub   && p.sub.es)   || '');
+  set('f-metaText-en', (p.metaText ? (typeof p.metaText==='string' ? p.metaText : (p.metaText.en||'')) : ''));
+  set('f-metaText-es', (p.metaText && typeof p.metaText==='object' ? (p.metaText.es||'') : ''));
   set('f-desc-en',  (p.desc  && p.desc.en)  || '');
   set('f-desc-es',  (p.desc  && p.desc.es)  || '');
   // Images
@@ -1056,6 +1066,7 @@ function formToProperty() {
     videos:      videos,
     title:     { en: get('f-title-en'), es: get('f-title-es') },
     sub:       { en: get('f-sub-en'),   es: get('f-sub-es')   },
+    metaText:  (get('f-metaText-en') || get('f-metaText-es')) ? { en: get('f-metaText-en'), es: get('f-metaText-es') } : null,
     desc:      { en: get('f-desc-en'),  es: get('f-desc-es')  },
     downloads: Array.from(document.querySelectorAll('#f-downloads-list .dl-item')).map(function(row) {
       return {
