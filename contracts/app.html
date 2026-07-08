@@ -474,6 +474,66 @@ function annexHTML(){
 }
 
 /* ============================================================
+   CLÁUSULAS ADICIONALES — texto propio que se inyecta antes de las
+   firmas (marcador <!--extra-clauses--> en la plantilla). Cada cláusula:
+   título + cuerpo en ES / EN / Bahasa. El idioma que quede vacío no se
+   imprime. Persisten en localStorage (como anexos y diseño).
+   ============================================================ */
+let CLAUSES = loadClauses();
+let clauseSeq = 1 + CLAUSES.reduce((m,c)=>Math.max(m, parseInt(String(c.id||'').replace('cl',''))||0), 0);
+function loadClauses(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_clauses'))||[]; }catch(_){ return []; } }
+function saveClauses(){ try{ localStorage.setItem('lawang_contract_clauses', JSON.stringify(CLAUSES)); }catch(_){} }
+
+function buildClausePanel(){
+  const box=(c,pfx,ta)=>['es','en','id'].map(l=>{
+    const v=escAttr(c[pfx+'_'+l]||''); const ph=(pfx==='t'?'Título':'Texto')+' · '+l.toUpperCase();
+    const st='font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fdfcf9;width:100%';
+    return ta ? `<textarea data-cl="${c.id}" data-clk="${pfx}_${l}" rows="2" placeholder="${ph}" style="${st};resize:vertical">${v}</textarea>`
+              : `<input data-cl="${c.id}" data-clk="${pfx}_${l}" value="${v}" placeholder="${ph}" style="${st}">`;
+  }).join('');
+  const g='display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px';
+  const rows = CLAUSES.map((c,i)=>`
+    <div class="dz" data-clause="${c.id}">
+      <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Cláusula',en:'Clause',id:'Pasal'})} ${i+1}</span>
+        <span class="spacer" style="flex:1"></span>
+        <label class="switch"><input type="checkbox" data-clon="${c.id}" ${c.on!==false?'checked':''}><span class="slider"></span></label>
+        <button type="button" class="link-btn" data-cldel="${c.id}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
+      <div class="dz-row" style="display:block"><div style="font-size:11.5px;color:var(--muted);margin-bottom:4px">${L({es:'Título (ES · EN · Bahasa)',en:'Title (ES · EN · Bahasa)',id:'Judul (ES · EN · Bahasa)'})}</div>
+        <div style="${g}">${box(c,'t',false)}</div></div>
+      <div class="dz-row" style="display:block"><div style="font-size:11.5px;color:var(--muted);margin:6px 0 4px">${L({es:'Texto (ES · EN · Bahasa)',en:'Text (ES · EN · Bahasa)',id:'Teks (ES · EN · Bahasa)'})}</div>
+        <div style="${g}">${box(c,'b',true)}</div></div>
+    </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Sin cláusulas adicionales. Añade una para insertar texto propio antes de las firmas.',en:'No additional clauses yet. Add one to insert your own text before the signatures.',id:'Belum ada pasal tambahan.'})}</div>`;
+  return `<section class="section design collapsed" id="clausePanel">
+    <header data-acc><span class="num">📝</span><h2>${L({es:'Cláusulas adicionales',en:'Additional clauses',id:'Pasal tambahan'})}</h2><span class="chev">▾</span></header>
+    <div class="body">${rows}
+      <div class="dz"><button type="button" class="btn ghost" id="clauseAdd">+ ${L({es:'Añadir cláusula',en:'Add clause',id:'Tambah pasal'})}</button></div>
+    </div></section>`;
+}
+function wireClausePanel(){
+  const p=$('#clausePanel'); if(!p) return;
+  p.addEventListener('input', e=>{ const el=e.target.closest('[data-cl]'); if(!el) return;
+    const c=CLAUSES.find(x=>x.id===el.dataset.cl); if(c){ c[el.dataset.clk]=el.value; saveClauses(); renderDebounced(); } });
+  p.addEventListener('change', e=>{ const on=e.target.closest('[data-clon]'); if(on){ const c=CLAUSES.find(x=>x.id===on.dataset.clon); if(c){ c.on=on.checked; saveClauses(); render(); } } });
+  p.addEventListener('click', e=>{
+    if(e.target.closest('#clauseAdd')){ CLAUSES.push({id:'cl'+(clauseSeq++), on:true}); saveClauses(); rebuildClause(); render(); return; }
+    const d=e.target.closest('[data-cldel]'); if(d){ CLAUSES=CLAUSES.filter(x=>x.id!==d.dataset.cldel); saveClauses(); rebuildClause(); render(); }
+  });
+}
+function rebuildClause(){ const old=$('#clausePanel'); if(old){ old.outerHTML=buildClausePanel(); wireClausePanel(); wireAccordions(); } }
+
+/* HTML de las cláusulas incluidas → sustituye <!--extra-clauses--> en la plantilla.
+   Respeta el layout trilingüe (data-lang): idioma activo + Bahasa en 2 columnas. */
+function clausesHTML(){
+  let h='';
+  CLAUSES.filter(c=>c.on!==false).forEach(c=>{
+    const title=['es','en','id'].filter(l=>c['t_'+l]).map(l=>`<span data-lang="${l}">${esc(String(c['t_'+l]))}</span>`).join('');
+    const body =['es','en','id'].filter(l=>c['b_'+l]).map(l=>`<p data-lang="${l}">${esc(String(c['b_'+l])).replace(/\n/g,'<br>')}</p>`).join('');
+    if(title||body) h+=(title?`<h2>${title}</h2>`:'')+body;
+  });
+  return h;
+}
+
+/* ============================================================
    FORMULARIO
    ============================================================ */
 function fieldHTML(f){
@@ -502,7 +562,7 @@ function fieldHTML(f){
 
 function buildForm(){
   const form = $('#form');
-  let html = buildDesignPanel() + buildAnnexPanel();   // paneles Diseño y Anexos primero
+  let html = buildDesignPanel() + buildAnnexPanel() + buildClausePanel();   // paneles Diseño, Anexos y Cláusulas primero
   let lastTier=null, idx=0;
   SECTIONS.forEach(s=>{
     idx++;
@@ -539,6 +599,7 @@ function buildForm(){
 
   wireDesignPanel();
   wireAnnexPanel();
+  wireClausePanel();
   wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
@@ -702,6 +763,7 @@ function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(templateHTML, data);
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
+  html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
   html=html.replace(/<span class="f">(\{\{([a-z0-9_]+)\}\})<\/span>/g,(m,mk,k)=>`<span class="f ${sizeClass(k)}">${mk}</span>`);
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
