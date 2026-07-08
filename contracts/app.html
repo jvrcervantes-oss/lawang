@@ -246,6 +246,7 @@ function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDe
 const DESIGN_DEFAULT = {
   coverColor:'',                                    // '' = color del tipo de contrato
   coverLogo:{ src:'', pos:'top-center',   size:38,  op:1   },
+  coverEmblem:{ src:'', pos:'top-right',  size:19,  op:.92 },  // src '' = emblema por defecto
   coverMark:{ src:'', pos:'bottom-center', size:74,  op:.075 },  // src '' = tiki por defecto
   docLogo:  { src:'', pos:'left',          size:26,  op:1   },
   docMark:  { src:'', pos:'center',        size:150, op:.05  },
@@ -273,6 +274,7 @@ const DOC_POS = {
 };
 const SLOTS = {
   coverLogo:{ label:{es:'Logo · portada',en:'Logo · cover',id:'Logo · sampul'}, kind:'cover', unit:'mm', min:10, max:90 },
+  coverEmblem:{ label:{es:'Emblema · portada',en:'Emblem · cover',id:'Lambang · sampul'}, kind:'cover', unit:'mm', min:8, max:60 },
   coverMark:{ label:{es:'Isotipo de fondo · portada',en:'Background mark · cover',id:'Latar · sampul'}, kind:'mark', unit:'%', min:20, max:120 },
   docLogo:  { label:{es:'Logo de cabecera · interior',en:'Header logo · body',id:'Logo kepala · isi'}, kind:'doclogo', unit:'mm', min:10, max:60 },
   docMark:  { label:{es:'Marca de agua · interior',en:'Watermark · body',id:'Cap air · isi'}, kind:'docmark', unit:'mm', min:60, max:220 },
@@ -318,6 +320,11 @@ function designStyle(){
          + `width:${d.coverLogo.size}mm;height:${d.coverLogo.size}mm;`
          + `background-image:url("${d.coverLogo.src}");opacity:${d.coverLogo.op};}`;
   }
+  // portada · emblema botánico de la esquina (editable). src '' = emblema por defecto.
+  const emblemSrc = d.coverEmblem.src || 'assets/brand/emblem.png';
+  css += `.lwcov .emblem{display:block;${COVER_POS[d.coverEmblem.pos]||COVER_POS['top-right']}`
+       + `width:${d.coverEmblem.size}mm;height:${d.coverEmblem.size}mm;`
+       + `background:url("${emblemSrc}") no-repeat center/contain;opacity:${d.coverEmblem.op};}`;
   // interior · marca de agua (funciona en plantillas con .doc)
   if(d.docMark.src){
     css += `.doc-watermark{display:none;}`;
