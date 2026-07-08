@@ -377,10 +377,20 @@ function designStyle(){
          + `height:${d.docMark.size}mm;width:100%;background:url("${d.docMark.src}") no-repeat center/contain;`
          + `opacity:${d.docMark.op};z-index:0;pointer-events:none;}`;
   }
-  // interior · logo de cabecera
+  // interior · logo de cabecera EN CADA PÁGINA. position:fixed → Chromium lo
+  // repite en todas las páginas al imprimir (igual que la marca de agua). Va en
+  // la banda del margen superior; se agranda @page margin-top para que el cuerpo
+  // no lo pise. z-index:1 = sobre la marca de agua (0) pero DEBAJO de la portada
+  // y los anexos (2, opacos) → no aparece en portada ni en las páginas de anexo.
   if(d.docLogo.src){
-    css += `.doc-brand-logo{display:block;height:${d.docLogo.size}mm;opacity:${d.docLogo.op};margin:0 0 8mm;`
-         + `background:url("${d.docLogo.src}") no-repeat ${d.docLogo.pos}/contain;}`;
+    // tabla envolvente con thead repetible (ver applyEditsAndTag). La celda del
+    // thead lleva el logo + un aire inferior; la del cuerpo, el contenido normal.
+    css += `.doc-runhead{width:100%;border-collapse:collapse;}`
+         + `.doc-runhead>tbody>tr>td,.doc-runhead>thead>tr>td{padding:0;}`
+         + `.doc-runhead>thead>tr>td{padding-bottom:6mm;}`
+         + `.doc-runhead>thead{display:table-header-group;}`     // repite en cada página impresa
+         + `.doc-brand-logo{display:block;height:${d.docLogo.size}mm;`
+         + `background:url("${d.docLogo.src}") no-repeat ${d.docLogo.pos}/contain;opacity:${d.docLogo.op};}`;
   }
   return css;
 }
@@ -633,6 +643,19 @@ function applyEditsAndTag(html){
       if(ov[i]!=null) el.innerHTML = ov[i];
     }
   });
+  // Logo de cabecera EN CADA PÁGINA: se envuelve el cuerpo del .doc en una tabla
+  // con <thead> repetible. Chromium (y todos los navegadores) repiten el thead de
+  // una tabla en cada página impresa Y le reservan su espacio → cabecera en todas
+  // las páginas sin pisar el texto. Queda dentro de .doc → NO sale en portada ni
+  // anexos (van fuera). En pantalla se pinta una vez arriba (comportamiento normal).
+  const docEl = DESIGN.docLogo.src ? doc.querySelector('.doc') : null;
+  if(docEl && !docEl.querySelector('.doc-runhead')){
+    const tbl = doc.createElement('table'); tbl.className='doc-runhead';
+    tbl.innerHTML = '<thead><tr><td><div class="doc-brand-logo" aria-hidden="true"></div></td></tr></thead><tbody><tr><td class="doc-runbody"></td></tr></tbody>';
+    const body = tbl.querySelector('.doc-runbody');
+    while(docEl.firstChild) body.appendChild(docEl.firstChild);
+    docEl.appendChild(tbl);
+  }
   return doc.documentElement.outerHTML;
 }
 
@@ -876,8 +899,8 @@ function injectBrandAndCover(html, data){
     + `</style>`;
   if(html.includes('</head>')) html = html.replace('</head>', head+'</head>');
   else html = '<head>'+head+'</head>'+html;
-  // logo de cabecera interior: primer hijo de la primera .doc (plantillas con .doc)
-  html = html.replace(/(<div class="doc"[^>]*>)/, `$1<div class="doc-brand-logo" aria-hidden="true"></div>`);
+  // (el logo de cabecera interior se inyecta en applyEditsAndTag envolviendo el
+  //  cuerpo en una tabla con <thead> repetible → sale en cada página impresa)
   // El CSS de diseño va DESPUÉS de la portada: _portada.html lleva su <style> inline
   // en el body; para ganar el desempate de especificidad debe ir más abajo en el documento
   // (también gana a contract.css del <head> para las reglas del interior).
