@@ -797,6 +797,7 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
 const sections = ['home','lines','the-services','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
+const waFloat = document.getElementById('wa-float');
 
 function onScroll() {
   // Al pasar el hero, la barra se vuelve sólida/clara y el logo oscuro
@@ -804,6 +805,7 @@ function onScroll() {
   topbar.classList.toggle('solid', past);
   topbar.classList.toggle('scrolled', snap.scrollTop > 8); // CTA se colorea al iniciar el scroll
   logo.classList.toggle('dark', past);
+  if(waFloat) waFloat.classList.toggle('show', past); // WhatsApp flotante: aparece al salir del hero
 
   // Sección activa: la que CRUZA la línea de ancla (no la última que la pasó),
   // así en secciones sin enlace de menú no queda ninguna marcada.
@@ -1277,6 +1279,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   letter-spacing:.04em; text-transform:uppercase; color:var(--cb); margin:10px 0 0; }
 .lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:var(--fs-body-l); color:rgba(245,240,230,.7); margin:10px 0 0; }
 .lw-ct-note { font-family:var(--csa); font-size:var(--fs-body-l); line-height:1.65; color:rgba(245,240,230,.6); max-width:40ch; margin:8px 0 0; }
+.lw-ct-direct { display:flex; flex-wrap:wrap; gap:10px 26px; margin-top:clamp(14px,2vh,20px); }
+.lw-ct-cti { display:inline-flex; align-items:center; gap:9px; font-family:var(--csa); font-weight:500;
+  font-size:var(--fs-caption); letter-spacing:.06em; color:rgba(245,240,230,.9); text-decoration:none; cursor:none; transition:color .25s; }
+.lw-ct-cti svg { width:17px; height:17px; flex-shrink:0; color:var(--cal); }
+.lw-ct-cti:hover { color:var(--cb); }
 .lw-ct-form { display:flex; flex-direction:column; gap:1.5rem; }
 .lw-field { font-family:var(--csa); font-size:var(--fs-body); color:var(--cb); background:transparent; border:none;
   border-bottom:1px solid rgba(245,240,230,.28); padding:13px 2px; outline:none; width:100%; }
@@ -1485,6 +1492,23 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   color:rgba(245,240,230,.72); text-decoration:none; cursor:none; padding:9px 18px; border:1px solid rgba(245,240,230,.22);
   border-radius:999px; transition:all .25s; }
 .lw-ft-tc:hover { color:#0A0C09; background:var(--cb); border-color:var(--cb); }
+
+/* ── WhatsApp flotante (sticky, aparece al scrollear) ── */
+#wa-float { position:fixed; right:clamp(16px,2.4vw,28px); bottom:clamp(16px,2.4vw,28px); z-index:9000;
+  width:58px; height:58px; border-radius:999px; background:#25D366; display:grid; place-items:center;
+  filter:drop-shadow(0 10px 24px rgba(18,80,40,.42)); cursor:none; text-decoration:none;
+  opacity:0; visibility:hidden; transform:translateY(16px) scale(.85);
+  transition:opacity .35s ease, transform .35s cubic-bezier(.16,1,.3,1), visibility .35s; }
+#wa-float.show { opacity:1; visibility:visible; transform:translateY(0) scale(1);
+  animation:wa-pulse 5s ease-out infinite; }
+#wa-float:hover { background:#1ebe5b; transform:translateY(0) scale(1.07); }
+#wa-float svg { width:32px; height:32px; display:block; }
+@keyframes wa-pulse {
+  0%   { box-shadow:0 0 0 0 rgba(37,211,102,.55); }
+  8%   { box-shadow:0 0 0 15px rgba(37,211,102,0); }
+  100% { box-shadow:0 0 0 0 rgba(37,211,102,0); }
+}
+@media(prefers-reduced-motion:reduce){ #wa-float.show{ animation:none; } }
 </style>
 
 <!-- Content sections wrapper -->
@@ -1831,6 +1855,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
         <h2 class="lw-ct-h lw-ct-neue">Own The Eternity</h2>
         <p class="lw-ct-italic lw-ct-neue">You have thought about staying.</p>
         <p class="lw-ct-note">Tell us what kind of legacy you value. Our team will reach out with verified opportunities.</p>
+        <div class="lw-ct-direct">
+          <a class="lw-ct-cti" href="tel:+6281138319862"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+62 811-3831-9862</a>
+          <a class="lw-ct-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
+        </div>
       </div>
       <form class="lw-ct-form reveal" id="lwForm" style="transition-delay:120ms">
         <input class="lw-field" type="text" placeholder="Full name" required>
@@ -1887,6 +1915,11 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 
 <!-- Toast (formulario / CTA) -->
 <div id="lw-toast">✆&nbsp;&nbsp;Thank you — our team will reach out shortly.</div>
+
+<!-- WhatsApp flotante (aparece al hacer scroll, pulso cada 5s) -->
+<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
+</a>
 
 <script>
 // ── [v6] Contact form toast ────────────────────────────────────
