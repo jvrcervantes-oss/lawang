@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260708142145">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708143114">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -198,13 +198,16 @@ h1,h2,h3{ margin:0; font-weight:300; }
 /* ── PROPERTY OVERLAY ────────────────────────────────────── */
 /* Tarjetas de categoría — entrada .reveal (opacity/transform/filter) + hover animado */
 .lw-cat { transition:opacity .8s var(--ease), transform .8s var(--ease), filter .8s var(--ease), box-shadow .35s var(--ease); }
+/* Filete fino blanco interior, igual que las cards de propiedad */
+.lw-cat::after { content:""; position:absolute; inset:clamp(9px,1vw,13px); border:1px solid rgba(245,240,230,.42); border-radius:10px; pointer-events:none; z-index:2; }
 .lw-cat.on { box-shadow:0 0 0 2px var(--clay); }
 .lw-cat:hover { box-shadow:0 18px 40px -20px rgba(20,16,11,.55), 0 0 0 2px var(--clay); }
 .lw-cat > img { transition:transform .7s var(--ease); will-change:transform; }
 .lw-cat:hover > img { transform:scale(1.08); }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
 .lw-cat:hover > span:last-child { transform:translateX(7px); }
-@media(max-width:820px){ .lw-cat-grid { grid-template-columns:1fr !important; } }
+@media(max-width:1024px){ .lw-cat-grid { grid-template-columns:repeat(2,1fr) !important; } }
+@media(max-width:560px){ .lw-cat-grid { grid-template-columns:1fr !important; } }
 #pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain; }
 #pf-overlay .pf-overlay-bar { position:sticky; top:0; z-index:2; height:60px; display:flex; align-items:center; justify-content:space-between; background:rgba(241,236,225,.94); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); padding:0 clamp(20px,5vw,72px); }
 
@@ -482,6 +485,8 @@ article:hover .view-cta { gap:9px; }
     "cat.signature.sub":{"en":"Villa Communities","es":"Comunidades de villas","id":"Komunitas Villa"},
     "cat.land":{"en":"Land Legacy","es":"Land Legacy","id":"Land Legacy"},
     "cat.land.sub":{"en":"Premium Parcels","es":"Parcelas premium","id":"Kavling Premium"},
+    "cat.villa":{"en":"Villas","es":"Villas","id":"Villa"},
+    "cat.villa.sub":{"en":"Private Villas","es":"Villas privadas","id":"Villa Pribadi"},
     "cat.resorts":{"en":"Resorts","es":"Resorts","id":"Resorts"},
     "cat.resorts.sub":{"en":"Prime Hospitality","es":"Hospitalidad de primer nivel","id":"Hospitality Utama"},
     "ft.reserve.k":{"en":"The process","es":"El proceso","id":"Prosesnya"},
@@ -647,8 +652,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260708142145"></script>
-<script src="assets/portfolio-app.js?v=20260708142145"></script>
+<script src="assets/lawang-card.js?v=20260708143114"></script>
+<script src="assets/portfolio-app.js?v=20260708143114"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

@@ -91,7 +91,7 @@
     if(!p || !((p.imgKeys&&p.imgKeys.length)||(p.images&&p.images.length))) return "";
     var key = (p.imgKeys&&p.imgKeys[0]) || (p.images&&p.images[0]);
     return '<div class="lw-featured" data-go="'+esc(p.id)+'" style="cursor:pointer;position:relative;border-radius:10px;overflow:hidden;margin-bottom:26px">'
-      + ph({key:key, w:2000, theme:themeFor(p), kb:true, ratio:"21/6", tint:0, style:"min-height:210px"})
+      + ph({key:key, w:2000, theme:themeFor(p), kb:true, ratio:"21/5.1", tint:0, style:"min-height:178px"})
       + '<div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(22,18,12,.88) 0%,rgba(22,18,12,.5) 48%,rgba(22,18,12,.0) 100%)"></div>'
       + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(20px,3vw,38px);color:var(--bone);max-width:600px">'
       +   '<span class="pill clay" style="align-self:flex-start;margin-bottom:12px">'+t("mk.featured")+'</span>'
@@ -109,22 +109,22 @@
     var featured = (S.line==="all") ? featCands[0] : featCands.find(function(p){return p.line===S.line;});
     var filtered = L.PROPERTIES.filter(function(p){ return p.visible!==false && (S.line==="all"||p.line===S.line) && (S.region==="all"||p.regionKey===S.region); });
 
-    // Portada: 3 categorías destacadas con foto de fondo (Signature / Land Legacy / Resorts).
-    // Villas sigue disponible en el nav y en los chips de filtro.
+    // Portada: 4 categorías destacadas con foto de fondo (Signature / Land / Villas / Resorts).
     var HERO_CATS = [
       { line:"signature", img:"CardSignatures.jpg" },
       { line:"land",      img:"CardLand.jpg" },
+      { line:"villa",     img:"CardVillas.jpg" },
       { line:"resorts",   img:"CardResorts.jpg" }
     ];
     var lineCards = HERO_CATS.map(function(c,i){
       var on = S.line===c.line;
-      return '<button class="lw-cat reveal'+(on?" on":"")+'" data-act="line:'+c.line+'" style="transition-delay:'+(i*70)+'ms;position:relative;border:0;cursor:pointer;padding:0;border-radius:14px;overflow:hidden;min-height:clamp(120px,13vw,168px);display:flex;align-items:center">'
+      return '<button class="lw-cat reveal'+(on?" on":"")+'" data-act="line:'+c.line+'" style="transition-delay:'+(i*70)+'ms;position:relative;border:0;cursor:pointer;padding:0;border-radius:14px;overflow:hidden;min-height:clamp(102px,11vw,143px);display:flex;align-items:center">'
         + '<img src="assets/img/'+c.img+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
         + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.74) 0%,rgba(20,16,11,.4) 55%,rgba(20,16,11,.12) 100%)"></span>'
-        + '<span style="position:relative;display:flex;align-items:center;gap:15px;padding:0 clamp(16px,2vw,26px);text-align:left;color:#F5F0E6">'
-        +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(38px,4vw,52px);height:auto;flex:none;object-fit:contain">'
-        +   '<span><span style="display:block;font-family:var(--serif);font-weight:300;font-size:clamp(21px,2.4vw,32px);line-height:1;letter-spacing:.01em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
-        +     '<span style="display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.86;margin-top:8px">'+t("cat."+c.line+".sub")+'</span></span>'
+        + '<span style="position:relative;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,1.7vw,22px);text-align:left;color:#F5F0E6">'
+        +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(32px,3.4vw,44px);height:auto;flex:none;object-fit:contain">'
+        +   '<span><span style="display:block;font-family:var(--serif);font-weight:300;font-size:clamp(18px,2vw,27px);line-height:1;letter-spacing:.01em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
+        +     '<span style="display:block;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.86;margin-top:7px">'+t("cat."+c.line+".sub")+'</span></span>'
         + '</span></button>';
     }).join("");
 
@@ -149,14 +149,14 @@
     var showFeatured = !!featured;
 
     return '<div style="background:var(--bone)">'
-      + '<section class="wrap" style="padding-top:clamp(30px,4vw,58px);padding-bottom:26px">'
+      + '<section class="wrap" style="padding-top:clamp(24px,3.2vw,46px);padding-bottom:26px">'
       +   '<div class="reveal" style="text-align:center">'
       +     '<span class="kicker" style="display:inline-block">'+t("mk.kicker")+'</span>'
-      +     '<h1 class="display" style="margin:14px auto 0;font-weight:300;line-height:.98;text-transform:uppercase">'
+      +     '<h1 class="display" style="margin:11px auto 0;font-weight:300;line-height:.98;text-transform:uppercase">'
       +       '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(17px,2.3vw,30px);letter-spacing:.14em">'+t("mk.title1")+'</span>'
       +       '<span style="display:block;font-size:clamp(40px,7vw,92px);letter-spacing:.02em;margin-top:4px">'+t("mk.title2")+'</span>'
       +     '</h1></div>'
-      +   '<div class="lw-cat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:clamp(24px,3vw,40px)">'+lineCards+'</div>'
+      +   '<div class="lw-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:clamp(19px,2.4vw,32px)">'+lineCards+'</div>'
       + '</section>'
       + (showFeatured ? '<section class="wrap">'+featuredHTML(featured)+'</section>' : "")
       + '<section class="wrap" id="pf-grid" style="scroll-margin-top:90px">'
