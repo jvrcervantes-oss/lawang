@@ -450,8 +450,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260708170118">
-<script src="assets/lawang-card.js?v=20260708170118"></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708170829">
+<script src="assets/lawang-card.js?v=20260708170829"></script>
 </head>
 <body>
 
@@ -875,9 +875,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
         // The Collection = grid 3×3: los marcados "inCollection" en el admin (máx 9); si no hay ninguno, las 9 primeras visibles
         var coll = ps.filter(function(p){ return p.inCollection; });
         var pick = (coll.length ? coll : ps).slice(0, 9);
-        if(pick.length && window.LawangCard) grid.innerHTML = pick.map(function(p){
+        if(pick.length && window.LawangCard){ grid.innerHTML = pick.map(function(p){
           return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'portfolio.html' });
-        }).join('');
+        }).join(''); if(window.lwColSync) window.lwColSync(); }
         var hf = ps.filter(function(p){ return p.homeFeatured; })[0];
         if(hf && typeof applyHomeFeatured === 'function') applyHomeFeatured(hf);  // Featured de la home desde admin
       })
@@ -885,7 +885,25 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   })();
 }());
 
-// The Collection ahora es un grid 3×3 estático (sin carrusel/flechas/autoplay).
+// The Collection = scroll horizontal 3-en-3. Snap nativo (CSS); las flechas
+// avanzan una página (ancho visible) y se ocultan sin overflow o en los extremos.
+(function(){
+  var grid = document.getElementById('lwGrid'),
+      prev = document.getElementById('lwPrev'),
+      next = document.getElementById('lwNext');
+  if(!grid || !prev || !next) return;
+  function sync(){
+    var over = grid.scrollWidth - grid.clientWidth - 2;  // tolerancia sub-pixel
+    prev.classList.toggle('is-hidden', over <= 0 || grid.scrollLeft <= 2);
+    next.classList.toggle('is-hidden', over <= 0 || grid.scrollLeft >= over);
+  }
+  prev.addEventListener('click', function(){ grid.scrollBy({ left:-grid.clientWidth, behavior:'smooth' }); });
+  next.addEventListener('click', function(){ grid.scrollBy({ left: grid.clientWidth, behavior:'smooth' }); });
+  grid.addEventListener('scroll', sync, { passive:true });
+  window.addEventListener('resize', sync);
+  window.lwColSync = sync;  // re-evaluar tras re-render desde data.json
+  sync();
+}());
 
 // ── Galería del proyecto destacado (auto-avance 5s; reinicializable) ──
 var featTimer = null;
@@ -1161,10 +1179,14 @@ function applyHomeFeatured(p){
 }
 
 .lw-pf-carousel { position:relative; }
-/* The Collection = grid 3×3 (máx. 9 proyectos, elegidos desde el admin) */
-.lw-pf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); }
-.lw-pf-grid > .lw-prop { min-width:0; }
+/* The Collection = scroll horizontal 3-en-3 (máx. 9 proyectos, elegidos desde el admin) */
+.lw-pf-grid { display:flex; gap:1.4rem; margin-top:clamp(18px,2.4vh,30px);
+  overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
+  scrollbar-width:none; -ms-overflow-style:none; }
+.lw-pf-grid::-webkit-scrollbar { display:none; }
+.lw-pf-grid > .lw-prop { flex:0 0 calc((100% - 2*1.4rem)/3); min-width:0; scroll-snap-align:start; }
 .lw-pf-grid > .lw-prop:nth-child(n+10) { display:none; }  /* nunca más de 9 */
+.lw-pf-arrow.is-hidden { display:none; }
 .lw-pf-arrow { position:absolute; top:50%; transform:translateY(-50%);
   z-index:5; width:46px; height:46px; border-radius:999px; display:grid; place-items:center; cursor:pointer;
   border:1px solid rgba(72,91,55,.22); background:rgba(245,240,230,.92); color:#485B37;
@@ -1173,9 +1195,8 @@ function applyHomeFeatured(p){
 .lw-pf-arrow:hover { background:#485B37; color:#F5F0E6; }
 .lw-pf-arrow.prev { left:clamp(-30px,-2.2vw,-18px); }   /* más fuera de las tarjetas */
 .lw-pf-arrow.next { right:clamp(-30px,-2.2vw,-18px); }
-@media(max-width:1100px){ .lw-pf-grid { grid-template-columns:1fr 1fr; } }
-@media(max-width:620px){ .lw-pf-grid { grid-template-columns:1fr; } }
-@media(max-width:560px){ .lw-pf-grid > .lw-prop { flex-basis:86%; } }
+@media(max-width:1100px){ .lw-pf-grid > .lw-prop { flex:0 0 calc((100% - 1.4rem)/2); } }
+@media(max-width:620px){ .lw-pf-grid > .lw-prop { flex:0 0 100%; } }
 /* Tarjeta unificada con portfolio.html (double-bezel) */
 /* Card de propiedad: estilos en assets/lawang-card.css (FUENTE ÚNICA, compartida con portfolio.html) */
 
@@ -1642,6 +1663,8 @@ function applyHomeFeatured(p){
       <a class="lw-pf-viewall" href="portfolio.html">See all projects <span class="arr">→</span></a>
     </div>
     <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
+      <button class="lw-pf-arrow prev is-hidden" id="lwPrev" type="button" aria-label="Previous properties">‹</button>
+      <button class="lw-pf-arrow next is-hidden" id="lwNext" type="button" aria-label="Next properties">›</button>
       <div class="lw-pf-grid" id="lwGrid">
       <article class="lw-prop">
         <a href="portfolio.html#property/balian-ridge-house">
