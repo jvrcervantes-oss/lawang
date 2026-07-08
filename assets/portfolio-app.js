@@ -103,7 +103,10 @@
 
   function marketplaceHTML(){
     var lineDescs = { signature:"line.signature.d", land:"line.land.d", villa:"line.villa.d", resorts:"line.resorts.d" };
-    var featured = L.PROPERTIES.find(function(p){return p.featured && p.visible!==false;});
+    // Featured por línea: cada línea puede tener su propia propiedad destacada.
+    // En vista "Todas" se muestra el primer featured (Signature por orden de precio).
+    var featCands = L.PROPERTIES.filter(function(p){return p.featured && p.visible!==false && (S.region==="all"||p.regionKey===S.region);});
+    var featured = (S.line==="all") ? featCands[0] : featCands.find(function(p){return p.line===S.line;});
     var filtered = L.PROPERTIES.filter(function(p){ return p.visible!==false && (S.line==="all"||p.line===S.line) && (S.region==="all"||p.regionKey===S.region); });
 
     // Portada: 3 categorías destacadas con foto de fondo (Signature / Land Legacy / Resorts).
@@ -143,7 +146,7 @@
     var gridCols = S.layout==="list" ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))";
     var gap = S.layout==="list" ? "20px" : "28px";
 
-    var showFeatured = featured && (S.line==="all"||S.line===featured.line) && (S.region==="all"||S.region===featured.regionKey);
+    var showFeatured = !!featured;
 
     return '<div style="background:var(--bone)">'
       + '<section class="wrap" style="padding-top:clamp(30px,4vw,58px);padding-bottom:26px">'

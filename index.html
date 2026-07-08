@@ -448,8 +448,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260708123134">
-<script src="assets/lawang-card.js?v=20260708123134"></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708131642">
+<script src="assets/lawang-card.js?v=20260708131642"></script>
 </head>
 <body>
 
@@ -872,8 +872,6 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
         if(ps.length && window.LawangCard) grid.innerHTML = ps.map(function(p){
           return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'portfolio.html' });
         }).join('');
-        var hf = ps.filter(function(p){ return p.homeFeatured; })[0];
-        if(hf && typeof applyHomeFeatured === 'function') applyHomeFeatured(hf);  // Featured de la home desde admin
       })
       .catch(function(){ i++; if(i < shapes.length) return attempt(); /* mantiene el fallback estático */ });
   })();
@@ -932,34 +930,6 @@ function initFeatGallery(){
   if(imgs.length > 1) restart();  // sin flechas: solo auto-avanza si hay >1 imagen
 }
 initFeatGallery();
-
-// ── Featured de la home desde data.json (propiedad marcada homeFeatured en el admin) ──
-function applyHomeFeatured(p){
-  if(!p) return;
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  var title = (p.title && p.title.en) || 'Featured project';
-  var gal = document.getElementById('palmGallery');
-  var imgs = (p.images||[]).filter(Boolean);
-  if(gal && imgs.length){
-    gal.innerHTML = imgs.map(function(src,n){ return '<img src="'+esc(src)+'" alt="'+esc(title)+'"'+(n===0?' class="active"':'')+' loading="lazy">'; }).join('');
-  }
-  var logoEl = document.querySelector('.lw-feat-card-logo');
-  if(logoEl){
-    if(p.logo){ logoEl.src = p.logo; logoEl.alt = title; }
-    else { var h=document.createElement('h2'); h.className='lw-feat-card-name'; h.textContent=title; logoEl.replaceWith(h); }
-  }
-  var locEl = document.querySelector('.lw-feat-card-loc');
-  if(locEl && p.region) locEl.textContent = p.region;
-  var ul = document.querySelector('.lw-feat-card-specs');
-  var hl = (p.highlights||[]).filter(Boolean);
-  if(ul && hl.length) ul.innerHTML = hl.slice(0,5).map(function(t){ return '<li>'+esc(t)+'</li>'; }).join('');
-  var amt = document.querySelector('.lw-feat-invest-amt');
-  if(amt && p.priceEUR) amt.textContent = 'FROM €' + Number(p.priceEUR).toLocaleString('en-US') + '.';
-  var dossier = (p.downloads||[]).filter(function(d){ return d && d.url; })[0];
-  var dlBtn = document.querySelector('.lw-feat-card-btns .cs-btn-green');
-  if(dlBtn && dossier) dlBtn.setAttribute('href', dossier.url);
-  initFeatGallery();
-}
 
 }); // end DOMContentLoaded
 </script>
@@ -1522,8 +1492,6 @@ function applyHomeFeatured(p){
 .lw-feat-arrow.next { right:-6px; }
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
 .lw-feat-card-logo { display:block; height:clamp(60px,7.8vh,87px); width:auto; max-width:88%; margin:0 auto; object-fit:contain; }
-/* Fallback cuando la propiedad destacada no tiene logo: título en serif de marca */
-.lw-feat-card-name { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em; font-size:var(--fs-heading-l); line-height:1; color:var(--ci); margin:0; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.2em;
   font-size:calc(var(--fs-caption) * .92); color:var(--ca); margin-top:12px; }
 /* Datos como checklist con icono ✓ (fuente menor) */

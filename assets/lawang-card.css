@@ -3,8 +3,11 @@
    Usado por index.html (teaser) y portfolio.html (marketplace).
    Valores explícitos (sin variables de stack) para que sea portable.
    ════════════════════════════════════════════════════════════ */
-.lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
+.lw-prop { position:relative; padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
   transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
+/* Filete fino blanco interior — igual que las cards Ecosystem de index (.lw-show-frame) */
+.lw-prop::after { content:""; position:absolute; inset:clamp(11px,1.2vw,15px); border:1px solid rgba(245,240,230,.38);
+  border-radius:clamp(10px,1vw,13px); pointer-events:none; z-index:4; }
 .lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
 .lw-prop > a { display:flex; flex-direction:column; height:546px; background:#EBE4D6; border-radius:8px; overflow:hidden; text-decoration:none; color:#2E3437; }
 /* Reparto 50/50 exacto: media y body ocupan exactamente la mitad (foto rellena con cover;
