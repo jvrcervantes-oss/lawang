@@ -872,7 +872,10 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
         var d = JSON.parse(txt);
         if(!d || !Array.isArray(d.properties)) throw new Error('truncado/invalido (' + txt.length + ' bytes)');
         var ps = d.properties.filter(function(p){ return p.visible !== false; });
-        if(ps.length && window.LawangCard) grid.innerHTML = ps.map(function(p){
+        // The Collection = grid 3×3: los marcados "inCollection" en el admin (máx 9); si no hay ninguno, las 9 primeras visibles
+        var coll = ps.filter(function(p){ return p.inCollection; });
+        var pick = (coll.length ? coll : ps).slice(0, 9);
+        if(pick.length && window.LawangCard) grid.innerHTML = pick.map(function(p){
           return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'portfolio.html' });
         }).join('');
         var hf = ps.filter(function(p){ return p.homeFeatured; })[0];
@@ -882,32 +885,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   })();
 }());
 
-// ── Carrusel de proyectos: flechas + autoplay cada 5s ─────────
-(function(){
-  const grid = document.getElementById('lwGrid');
-  if(!grid) return;
-  const prev = document.querySelector('.lw-pf-arrow.prev');
-  const next = document.querySelector('.lw-pf-arrow.next');
-  const step = () => {
-    const card = grid.querySelector('.lw-prop');
-    const gap = parseFloat(getComputedStyle(grid).columnGap) || 22;
-    return card ? card.getBoundingClientRect().width + gap : grid.clientWidth;
-  };
-  const atEnd   = () => grid.scrollLeft + grid.clientWidth >= grid.scrollWidth - 4;
-  const atStart = () => grid.scrollLeft <= 4;
-  function go(dir){
-    if(dir > 0 && atEnd())        grid.scrollTo({ left:0, behavior:'smooth' });
-    else if(dir < 0 && atStart()) grid.scrollTo({ left:grid.scrollWidth, behavior:'smooth' });
-    else                          grid.scrollBy({ left:dir*step()*3, behavior:'smooth' });  // mueve 3 propiedades
-  }
-  let timer = setInterval(() => go(1), 5000);
-  const restart = () => { clearInterval(timer); timer = setInterval(() => go(1), 5000); };
-  prev && prev.addEventListener('click', () => { go(-1); restart(); });
-  next && next.addEventListener('click', () => { go(1);  restart(); });
-  const wrap = grid.closest('.lw-pf-carousel') || grid;
-  wrap.addEventListener('mouseenter', () => clearInterval(timer));
-  wrap.addEventListener('mouseleave', restart);
-}());
+// The Collection ahora es un grid 3×3 estático (sin carrusel/flechas/autoplay).
 
 // ── Galería del proyecto destacado (auto-avance 5s; reinicializable) ──
 var featTimer = null;
@@ -1183,10 +1161,10 @@ function applyHomeFeatured(p){
 }
 
 .lw-pf-carousel { position:relative; }
-.lw-pf-grid { display:flex; gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); overflow-x:auto; scroll-snap-type:x mandatory;
-  scroll-behavior:smooth; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-.lw-pf-grid::-webkit-scrollbar { display:none; }
-.lw-pf-grid > .lw-prop { flex:0 0 calc((100% - 2.8rem)/3); scroll-snap-align:start; }
+/* The Collection = grid 3×3 (máx. 9 proyectos, elegidos desde el admin) */
+.lw-pf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.4rem; margin-top:clamp(18px,2.4vh,30px); }
+.lw-pf-grid > .lw-prop { min-width:0; }
+.lw-pf-grid > .lw-prop:nth-child(n+10) { display:none; }  /* nunca más de 9 */
 .lw-pf-arrow { position:absolute; top:50%; transform:translateY(-50%);
   z-index:5; width:46px; height:46px; border-radius:999px; display:grid; place-items:center; cursor:pointer;
   border:1px solid rgba(72,91,55,.22); background:rgba(245,240,230,.92); color:#485B37;
@@ -1195,8 +1173,8 @@ function applyHomeFeatured(p){
 .lw-pf-arrow:hover { background:#485B37; color:#F5F0E6; }
 .lw-pf-arrow.prev { left:clamp(-30px,-2.2vw,-18px); }   /* más fuera de las tarjetas */
 .lw-pf-arrow.next { right:clamp(-30px,-2.2vw,-18px); }
-@media(max-width:1100px){ .lw-pf-grid > .lw-prop { flex-basis:calc((100% - 1.4rem)/2); } }
-@media(max-width:780px){ .lw-pf-arrow { width:40px; height:40px; font-size:16px; } .lw-pf-arrow.prev{left:2px} .lw-pf-arrow.next{right:2px} }
+@media(max-width:1100px){ .lw-pf-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:620px){ .lw-pf-grid { grid-template-columns:1fr; } }
 @media(max-width:560px){ .lw-pf-grid > .lw-prop { flex-basis:86%; } }
 /* Tarjeta unificada con portfolio.html (double-bezel) */
 /* Card de propiedad: estilos en assets/lawang-card.css (FUENTE ÚNICA, compartida con portfolio.html) */
@@ -1664,7 +1642,6 @@ function applyHomeFeatured(p){
       <a class="lw-pf-viewall" href="portfolio.html">See all projects <span class="arr">→</span></a>
     </div>
     <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
-      <button class="lw-pf-arrow prev" type="button" aria-label="Previous projects">❮</button>
       <div class="lw-pf-grid" id="lwGrid">
       <article class="lw-prop">
         <a href="portfolio.html#property/balian-ridge-house">
@@ -1803,7 +1780,6 @@ function applyHomeFeatured(p){
         </a>
       </article>
       </div>
-      <button class="lw-pf-arrow next" type="button" aria-label="Next projects">❯</button>
     </div>
   </div>
 </section>

@@ -347,10 +347,14 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
         </div>
 
         <div class="form-section">
-          <h4>Home page — Featured <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Marca UNA propiedad para el bloque destacado de la portada (index.html). Al marcar ésta se desmarcan las demás.</span></h4>
+          <h4>Home page <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Presencia de esta propiedad en la portada (index.html).</span></h4>
+          <div class="cb-group">
+            <input type="checkbox" id="f-inCollection">
+            <label for="f-inCollection">Show in <strong>"The Collection"</strong> grid <span class="muted">(rejilla 3×3 de la home · máx. 9 · si marcas más, salen las 9 primeras)</span></label>
+          </div>
           <div class="cb-group">
             <input type="checkbox" id="f-homeFeatured">
-            <label for="f-homeFeatured">Feature this project on the home page <span class="muted">(solo una)</span></label>
+            <label for="f-homeFeatured">Feature this project in the big <strong>Featured</strong> block <span class="muted">(solo una)</span></label>
           </div>
           <div class="form-group">
             <label>Project logo URL <span class="hint">opcional; si se deja vacío se usa el título como texto</span></label>
@@ -763,7 +767,7 @@ function renderProperties() {
     var name = (p.title && p.title.en) || p.id;
     var hidden = p.visible === false;
     return '<div class="prop-row' + (hidden ? ' is-hidden' : '') + '">' +
-      '<div><div class="prop-name">' + esc(name) + (hidden ? '<span class="prop-hidden-badge">hidden</span>' : '') + (p.homeFeatured ? '<span class="prop-hidden-badge" style="background:var(--tg);color:#fff">HOME</span>' : '') + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
+      '<div><div class="prop-name">' + esc(name) + (hidden ? '<span class="prop-hidden-badge">hidden</span>' : '') + (p.inCollection ? '<span class="prop-hidden-badge" style="background:var(--be);color:#fff">COLL</span>' : '') + (p.homeFeatured ? '<span class="prop-hidden-badge" style="background:var(--tg);color:#fff">HOME</span>' : '') + '</div><div class="prop-region">' + esc(p.region||'') + '</div></div>' +
       '<div><span class="line-badge line-' + esc(p.line) + '">' + esc(p.line) + '</span></div>' +
       '<div class="prop-price">' + fmtPrice(p.priceEUR) + '</div>' +
       '<div class="muted">' + esc((p.status||'').replace('status.','')) + '</div>' +
@@ -774,7 +778,12 @@ function renderProperties() {
       '</div>' +
     '</div>';
   }).join('');
-  el.innerHTML = '<div class="prop-table">' +
+  var collN = DATA.properties.filter(function(p){ return p.inCollection; }).length;
+  var collNote = '<p class="muted" style="margin:0 0 12px;font-size:12px">' +
+    '<strong style="color:' + (collN>9?'#b3402e':'var(--tg)') + '">' + collN + '</strong> marcada' + (collN===1?'':'s') + ' para <strong>The Collection</strong> (la home muestra 9 · rejilla 3×3)' +
+    (collN>9 ? ' — <span style="color:#b3402e">tienes más de 9; sólo salen las 9 primeras</span>' : '') +
+    (collN===0 ? ' — <span class="muted">ninguna marcada → la home muestra las 9 primeras por defecto</span>' : '') + '</p>';
+  el.innerHTML = collNote + '<div class="prop-table">' +
     '<div class="prop-table-head"><div>Property</div><div>Line</div><div>Price</div><div>Status</div><div>★</div><div></div></div>' +
     rows + '</div>';
 }
@@ -807,6 +816,7 @@ function propertyToForm(p) {
   set('f-status',      p.status      || 'status.offplan');
   set('f-handover',    p.handover    || '');
   set('f-featured',    p.featured    || false);
+  set('f-inCollection', p.inCollection === true);
   set('f-homeFeatured', p.homeFeatured === true);
   set('f-logo',        p.logo        || '');
   set('f-priceEUR',    p.priceEUR    || '');
@@ -1060,6 +1070,7 @@ function formToProperty() {
     regionKey:   regionKey,
     view:        get('f-view'),
     featured:    get('f-featured'),
+    inCollection: get('f-inCollection'),
     homeFeatured: get('f-homeFeatured'),
     logo:        get('f-logo'),
     highlights:  Array.prototype.slice.call(document.querySelectorAll('#f-highlights-list .hl-item')).map(function(row){ return row.querySelector('.hl-text').value.trim(); }).filter(Boolean),
