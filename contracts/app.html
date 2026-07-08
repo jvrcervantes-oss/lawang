@@ -95,6 +95,7 @@
   .btn.primary{ background:var(--dl); color:#fff; }
   .btn.primary:disabled{ background:var(--ss); cursor:not-allowed; }
   .btn.ghost{ background:none; border:1px solid var(--line); color:var(--va); }
+  .btn.ghost.editing{ background:var(--tg); border-color:var(--tg); color:#fff; }
 
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; z-index:80; opacity:0; transition:.3s; pointer-events:none; }
   .toast.show{ opacity:1; }
@@ -158,6 +159,8 @@
     <div class="pane-preview" id="pane">
       <div class="pv-bar">
         <b id="pvTitle">Vista previa</b>
+        <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
+        <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
       </div>
@@ -534,6 +537,57 @@ function clausesHTML(){
 }
 
 /* ============================================================
+   EDICIÓN DEL TEXTO FIJO — el usuario reescribe cualquier PÁRRAFO de
+   boilerplate (los que NO llevan {{marcador}}) directamente en la vista
+   previa. Se guardan como "overrides" por plantilla + posición (data-eid)
+   y se reaplican en cada render. Los párrafos con datos ({{...}}) se editan
+   por campos, no aquí. ponytail: eid = ordinal del bloque; si algún día se
+   reordena el .html de la plantilla, "Restaurar original" realinea.
+   ============================================================ */
+let OVERRIDES = loadOverrides();
+let EDITING = false;
+function loadOverrides(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_overrides'))||{}; }catch(_){ return {}; } }
+function saveOverrides(){ try{ localStorage.setItem('lawang_contract_overrides', JSON.stringify(OVERRIDES)); }catch(_){} }
+
+/* etiqueta cada bloque de texto con data-eid, marca editables los que no
+   tienen marcador y aplica los overrides guardados de la plantilla activa */
+function applyEditsAndTag(html){
+  const ov = OVERRIDES[CURRENT.slug] || {};
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('.doc p, .doc li').forEach((el,i)=>{
+    el.setAttribute('data-eid', i);
+    if(!/\{\{/.test(el.innerHTML)){
+      el.setAttribute('data-editable','1');
+      if(ov[i]!=null) el.innerHTML = ov[i];
+    }
+  });
+  return doc.documentElement.outerHTML;
+}
+
+function editBtnIdle(){ const b=$('#btnEdit'); if(b){ b.textContent='✎ Editar texto'; b.classList.remove('editing'); } const r=$('#btnEditReset'); if(r) r.style.display='none'; }
+function enterEdit(){
+  const d=$('#pvFrame').contentDocument; if(!d) return;
+  EDITING=true;
+  d.querySelectorAll('[data-editable]').forEach(el=>{ el.contentEditable='true';
+    el.style.outline='1px dashed rgba(72,91,55,.55)'; el.style.outlineOffset='2px'; });
+  d.addEventListener('input', captureEdit, true);
+  const b=$('#btnEdit'); b.textContent='✓ Hecho'; b.classList.add('editing');
+  $('#btnEditReset').style.display='inline-flex';
+  toast('Edición ON · reescribe los párrafos remarcados; los datos ({{…}}) se editan por campos');
+}
+function captureEdit(e){
+  const el=e.target.closest('[data-eid][data-editable]'); if(!el) return;
+  (OVERRIDES[CURRENT.slug] || (OVERRIDES[CURRENT.slug]={}))[el.getAttribute('data-eid')] = el.innerHTML;
+  saveOverrides();
+}
+function exitEdit(){ EDITING=false; editBtnIdle(); render(); }
+function toggleEdit(){ EDITING ? exitEdit() : enterEdit(); }
+function resetOverrides(){
+  if(!confirm('¿Restaurar el texto original de esta plantilla? Se pierden tus ediciones de texto (los campos y cláusulas no se tocan).')) return;
+  delete OVERRIDES[CURRENT.slug]; saveOverrides(); EDITING=false; editBtnIdle(); render(); toast('Texto original restaurado');
+}
+
+/* ============================================================
    FORMULARIO
    ============================================================ */
 function fieldHTML(f){
@@ -561,6 +615,7 @@ function fieldHTML(f){
 }
 
 function buildForm(){
+  if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
   const form = $('#form');
   let html = buildDesignPanel() + buildAnnexPanel() + buildClausePanel();   // paneles Diseño, Anexos y Cláusulas primero
   let lastTier=null, idx=0;
@@ -761,7 +816,7 @@ function injectBrandAndCover(html, data){
 }
 function buildDoc(){
   const data=collect();
-  let html=injectBrandAndCover(templateHTML, data);
+  let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
   html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
@@ -776,9 +831,10 @@ function buildDoc(){
   if(ax) html = html.includes('</body>') ? html.replace('</body>', ax+'</body>') : html+ax;
   return html;
 }
-/* re-render de la preview viva (siempre visible) */
-function render(){ $('#pvFrame').srcdoc = buildDoc(); }
-let _rt=null; function renderDebounced(){ clearTimeout(_rt); _rt=setTimeout(render, 260); }
+/* re-render de la preview viva (siempre visible). En modo edición NO se
+   re-renderiza: reconstruir el srcdoc borraría lo que el usuario escribe. */
+function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
+let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
 /* ---------- secciones del formulario = SOLO campos con impacto ----------
    Un campo se muestra únicamente si su marcador {{...}} aparece en la plantilla
@@ -839,6 +895,10 @@ function buildLangToggle(){
 /* ---------- preview móvil (overlay) ---------- */
 $('#fab').addEventListener('click', ()=>{ render(); $('#pane').classList.add('open'); });
 $('#btnClose').addEventListener('click', ()=> $('#pane').classList.remove('open'));
+
+/* ---------- edición de texto fijo ---------- */
+$('#btnEdit').addEventListener('click', toggleEdit);
+$('#btnEditReset').addEventListener('click', resetOverrides);
 
 /* ---------- PDF / backend ---------- */
 $('#btnPdf').addEventListener('click', downloadPdf);
