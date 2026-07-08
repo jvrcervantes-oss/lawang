@@ -115,6 +115,43 @@
   .up input{ display:none; }
   .dz-th{ height:34px; width:34px; object-fit:contain; border:1px solid var(--line); border-radius:6px; background:#fff; }
 
+  /* ---------- panel Diseño (rework moderno) ---------- */
+  .dsec{ display:flex; align-items:center; gap:10px; margin:18px 2px 10px;
+    font-size:10.5px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--sc); }
+  .dsec::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .dsec:first-of-type{ margin-top:6px; }
+  /* fila escalar: color / degradado / textura */
+  .drow{ display:flex; align-items:center; gap:12px; margin:11px 2px; }
+  .drow .dlab{ width:96px; flex:none; font-size:12.5px; color:var(--muted); }
+  .drow input[type=range]{ flex:1; accent-color:var(--tg); height:4px; }
+  .drow .dval{ width:40px; flex:none; text-align:right; font-size:12px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dswatch{ width:44px; height:30px; flex:none; padding:2px; border:1px solid var(--line); border-radius:9px; background:#fff; cursor:pointer; }
+  /* tarjeta de asset */
+  .dcard{ border:1px solid var(--line); border-radius:16px; padding:13px 14px; margin:11px 0;
+    background:linear-gradient(180deg,#fff,#fdfcf8); box-shadow:0 1px 2px rgba(46,52,55,.04); }
+  .dcard.empty{ opacity:.9; }
+  .dcard.empty .dcard-ctl{ opacity:.4; pointer-events:none; }
+  .dcard-head{ display:flex; align-items:center; gap:12px; }
+  .dthumb{ width:48px; height:48px; flex:none; border-radius:11px; border:1px solid var(--line);
+    background:#fff no-repeat center/contain; display:grid; place-items:center; color:var(--ss); font-size:20px; }
+  .dcard-title{ flex:1; min-width:0; }
+  .dcard-title b{ display:block; font-size:13px; font-weight:600; color:var(--dl); }
+  .dcard-title span{ font-size:11px; color:var(--muted); }
+  .dbtn{ font:inherit; font-size:12px; border:1px solid var(--line); background:#fff; color:var(--va);
+    border-radius:9px; padding:8px 12px; cursor:pointer; white-space:nowrap; transition:border-color .15s,color .15s; }
+  .dbtn:hover{ border-color:var(--tg); color:var(--tg); }
+  .dbtn.ghost{ color:var(--muted); border-style:dashed; }
+  .dbtn.upload{ position:relative; overflow:hidden; }
+  .dbtn.upload input[type=file]{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+  .dcard-ctl{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:13px; }
+  .dctl{ display:flex; flex-direction:column; gap:6px; }
+  .dctl.full{ grid-column:1/-1; }
+  .dctl > label{ display:flex; justify-content:space-between; align-items:baseline;
+    font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .dctl > label .v{ font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dctl select{ font:inherit; font-size:12.5px; padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--va); }
+  .dctl input[type=range]{ accent-color:var(--tg); height:4px; margin:5px 0 2px; }
+
   /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
   .fab{ display:none; position:fixed; z-index:45; right:16px; bottom:calc(16px + env(safe-area-inset-bottom));
     background:var(--dl); color:#fff; border:none; border-radius:30px; padding:14px 20px; font:inherit; font-size:15px; box-shadow:0 8px 24px rgba(16,76,79,.35); cursor:pointer; }
@@ -245,12 +282,16 @@ function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDe
    ============================================================ */
 const DESIGN_DEFAULT = {
   coverColor:'',                                    // '' = color del tipo de contrato
+  coverGrad:  1,                                    // opacidad del degradado de profundidad
+  coverGrain: .12,                                  // opacidad de la textura/grano
   coverLogo:{ src:'', pos:'top-center',   size:38,  op:1   },
-  coverEmblem:{ src:'', pos:'top-right',  size:19,  op:.92 },  // src '' = emblema por defecto
+  coverEmblem:{ src:'', pos:'top-right',  size:19,  op:.92 },  // src '' = SIN emblema (no hay default)
   coverMark:{ src:'', pos:'bottom-center', size:74,  op:.075 },  // src '' = tiki por defecto
   docLogo:  { src:'', pos:'left',          size:26,  op:1   },
   docMark:  { src:'', pos:'center',        size:150, op:.05  },
 };
+/* slots que pintan algo SIN necesidad de subir imagen (tienen default propio) */
+const DEFAULT_SLOTS = { coverMark:'assets/brand/tiki-totem.png' };
 let DESIGN = loadDesign();
 function loadDesign(){
   try{ const s=JSON.parse(localStorage.getItem('lawang_contract_design'));
@@ -320,11 +361,14 @@ function designStyle(){
          + `width:${d.coverLogo.size}mm;height:${d.coverLogo.size}mm;`
          + `background-image:url("${d.coverLogo.src}");opacity:${d.coverLogo.op};}`;
   }
-  // portada · emblema botánico de la esquina (editable). src '' = emblema por defecto.
-  const emblemSrc = d.coverEmblem.src || 'assets/brand/emblem.png';
-  css += `.lwcov .emblem{display:block;${COVER_POS[d.coverEmblem.pos]||COVER_POS['top-right']}`
-       + `width:${d.coverEmblem.size}mm;height:${d.coverEmblem.size}mm;`
-       + `background:url("${emblemSrc}") no-repeat center/contain;opacity:${d.coverEmblem.op};}`;
+  // portada · profundidad (degradado) y textura (grano), editables
+  css += `.lwcov .grad{opacity:${d.coverGrad};}.lwcov .grain{opacity:${d.coverGrain};}`;
+  // portada · emblema de la esquina — SOLO si el usuario sube una imagen (sin default)
+  if(d.coverEmblem.src){
+    css += `.lwcov .emblem{display:block;${COVER_POS[d.coverEmblem.pos]||COVER_POS['top-right']}`
+         + `width:${d.coverEmblem.size}mm;height:${d.coverEmblem.size}mm;`
+         + `background:url("${d.coverEmblem.src}") no-repeat center/contain;opacity:${d.coverEmblem.op};}`;
+  }
   // interior · marca de agua (funciona en plantillas con .doc)
   if(d.docMark.src){
     css += `.doc-watermark{display:none;}`;
@@ -342,36 +386,56 @@ function designStyle(){
 }
 
 function buildDesignPanel(){
-  const rows = Object.entries(SLOTS).map(([key,cfg])=>{
-    const s=DESIGN[key]; const opts=POS_OPTS[cfg.kind];
-    return `<div class="dz" data-slot="${key}">
-      <div class="dz-h">${L(cfg.label)}</div>
-      <div class="dz-row">
-        <label class="up">${s.src?'Cambiar imagen':'Subir imagen'}<input type="file" accept="image/*" data-df="${key}"></label>
-        ${s.src?`<img class="dz-th" src="${s.src}" alt=""><button type="button" class="link-btn" data-dclear="${key}">Quitar</button>`:''}
+  const d=DESIGN, pct=v=>Math.round(v*100);
+  const color = d.coverColor || CURRENT.cover;
+
+  // tarjeta de un asset (logo / emblema / isotipo / marca de agua)
+  const card=(key)=>{
+    const s=d[key], cfg=SLOTS[key], opts=POS_OPTS[cfg.kind];
+    const def=DEFAULT_SLOTS[key], active=!!(s.src||def);
+    const thumb = s.src ? `background-image:url("${s.src}")` : (def?`background-image:url("${def}")`:'');
+    const state = s.src ? 'Imagen propia' : (def?'Por defecto':'Sin imagen · sube una');
+    return `<div class="dcard ${active?'':'empty'}" data-slot="${key}">
+      <div class="dcard-head">
+        <div class="dthumb" style="${thumb}">${thumb?'':'▦'}</div>
+        <div class="dcard-title"><b>${L(cfg.label)}</b><span>${state}</span></div>
+        <label class="dbtn upload">${s.src?'Cambiar':'Subir'}<input type="file" accept="image/*" data-df="${key}"></label>
+        ${s.src?`<button type="button" class="dbtn ghost" data-dclear="${key}">Quitar</button>`:''}
       </div>
-      <div class="dz-row"><span>Posición</span><select data-dp="${key}">${opts.map(o=>`<option value="${o[0]}" ${s.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
-      <div class="dz-row"><span>Tamaño</span><input type="range" min="${cfg.min}" max="${cfg.max}" value="${s.size}" data-dsize="${key}"></div>
-      <div class="dz-row"><span>Opacidad</span><input type="range" min="0" max="100" value="${Math.round(s.op*100)}" data-dop="${key}"></div>
+      <div class="dcard-ctl">
+        <div class="dctl"><label>Posición</label>
+          <select data-dp="${key}">${opts.map(o=>`<option value="${o[0]}" ${s.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+        <div class="dctl"><label>Tamaño <span class="v">${s.size}${cfg.unit}</span></label>
+          <input type="range" min="${cfg.min}" max="${cfg.max}" value="${s.size}" data-dsize="${key}" data-unit="${cfg.unit}"></div>
+        <div class="dctl full"><label>Opacidad <span class="v">${pct(s.op)}%</span></label>
+          <input type="range" min="0" max="100" value="${pct(s.op)}" data-dop="${key}"></div>
+      </div>
     </div>`;
-  }).join('');
-  const color = DESIGN.coverColor || CURRENT.cover;
+  };
+
   return `<section class="section design collapsed" id="designPanel">
     <header data-acc><span class="num">🎨</span><h2>Diseño / Marca</h2><span class="chev">▾</span></header>
     <div class="body">
-      <div class="dz">
-        <div class="dz-h">Color de portada</div>
-        <div class="dz-row"><span>Color</span><input type="color" id="coverColor" value="${color}">
-          <button type="button" class="link-btn" id="coverColorReset">Color del tipo</button></div>
-      </div>
-      ${rows}
+      <div class="dsec">Portada</div>
+      <div class="drow"><span class="dlab">Color de fondo</span>
+        <input type="color" class="dswatch" id="coverColor" value="${color}">
+        <button type="button" class="dbtn ghost" id="coverColorReset">Color del tipo</button></div>
+      <div class="drow"><span class="dlab">Degradado</span>
+        <input type="range" min="0" max="100" value="${pct(d.coverGrad)}" data-dscalar="coverGrad"><span class="dval">${pct(d.coverGrad)}%</span></div>
+      <div class="drow"><span class="dlab">Textura</span>
+        <input type="range" min="0" max="40" value="${pct(d.coverGrain)}" data-dscalar="coverGrain"><span class="dval">${pct(d.coverGrain)}%</span></div>
+      ${card('coverLogo')}${card('coverEmblem')}${card('coverMark')}
+      <div class="dsec">Interior</div>
+      ${card('docLogo')}${card('docMark')}
     </div>
   </section>`;
 }
 
-/* eventos del panel (delegados) */
+/* eventos del panel (delegados). rebuild solo al subir/quitar imagen (cambia
+   la estructura de la tarjeta); pos/tamaño/opacidad/escalares = solo re-render. */
 function wireDesignPanel(){
   const panel=$('#designPanel'); if(!panel) return;
+  const readout=(el,txt)=>{ const box=el.closest('.dctl,.drow'); const v=box&&box.querySelector('.v,.dval'); if(v) v.textContent=txt; };
   $('#coverColor').addEventListener('input',e=>{ DESIGN.coverColor=e.target.value; saveDesign(); render(); });
   $('#coverColorReset').addEventListener('click',()=>{ DESIGN.coverColor=''; saveDesign(); $('#coverColor').value=CURRENT.cover; render(); });
   panel.addEventListener('change',e=>{
@@ -379,8 +443,9 @@ function wireDesignPanel(){
     const p=e.target.closest('[data-dp]'); if(p){ DESIGN[p.dataset.dp].pos=p.value; saveDesign(); render(); }
   });
   panel.addEventListener('input',e=>{
-    const sz=e.target.closest('[data-dsize]'); if(sz){ DESIGN[sz.dataset.dsize].size=+sz.value; saveDesign(); render(); return; }
-    const op=e.target.closest('[data-dop]'); if(op){ DESIGN[op.dataset.dop].op=+op.value/100; saveDesign(); render(); }
+    const sz=e.target.closest('[data-dsize]'); if(sz){ DESIGN[sz.dataset.dsize].size=+sz.value; readout(sz, sz.value+(sz.dataset.unit||'')); saveDesign(); render(); return; }
+    const op=e.target.closest('[data-dop]'); if(op){ DESIGN[op.dataset.dop].op=+op.value/100; readout(op, op.value+'%'); saveDesign(); render(); return; }
+    const sc=e.target.closest('[data-dscalar]'); if(sc){ DESIGN[sc.dataset.dscalar]=+sc.value/100; readout(sc, sc.value+'%'); saveDesign(); render(); }
   });
   panel.addEventListener('click',e=>{
     const c=e.target.closest('[data-dclear]'); if(c){ DESIGN[c.dataset.dclear].src=''; saveDesign(); rebuildDesign(); render(); }

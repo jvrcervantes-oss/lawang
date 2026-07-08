@@ -20,10 +20,9 @@
     opacity:.075; filter:brightness(0) invert(1); }
   /* slot de logo (oculto por defecto; el panel Diseño lo activa) */
   .lwcov .cov-logo{ display:none; position:absolute; background:no-repeat center/contain; }
-  /* emblema botánico de la esquina — div con background para poder
-     intercambiarlo/recolocarlo desde el panel Diseño (como el moanito). */
-  .lwcov .emblem{ position:absolute; top:15mm; right:18mm; width:19mm; height:19mm; opacity:.92;
-    background:url(assets/brand/emblem.png) no-repeat center/contain; }
+  /* emblema de la esquina — oculto por defecto; SOLO aparece si el usuario
+     sube una imagen desde el panel Diseño (que inyecta su CSS). */
+  .lwcov .emblem{ display:none; position:absolute; background:no-repeat center/contain; }
   /* grano: el <svg> es un elemento reemplazado → inset:0 NO lo estira,
      se quedaba en su tamaño intrínseco (300×150) pintando un recuadro
      en la esquina. width/height:100% lo hacen cubrir toda la portada. */
