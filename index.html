@@ -361,8 +361,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/Hero2.png')}
-/* Vídeo del hero: la puerta (l-bg = Hero2.png) es el frame inicial; el vídeo aparece con
+  background-image:url('assets/img/Hero2.jpg')}
+/* Vídeo del hero: la puerta (l-bg = Hero2.jpg) es el frame inicial; el vídeo aparece con
    fade cuando está listo para reproducirse (clase .ready al evento 'playing'). */
 .hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:0;background:transparent;transition:opacity .9s ease}
 .hero-layer.l-vid.ready{opacity:1}
@@ -662,8 +662,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <section class="hero-panel" id="home">
   <!-- Hero media: vídeo (8.3MB, 1600p) sobre imagen poster. En móvil el vídeo se oculta (solo poster). -->
   <div class="hero-layer l-bg"></div>
-  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="auto" poster="assets/img/hero-poster.jpg">
-    <source src="assets/video/hero-loop-hq.mp4" type="video/mp4">
+  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="metadata" poster="assets/img/hero-poster.jpg">
+    <source src="assets/video/hero-loop-hq.mp4?v=2" type="video/mp4">
   </video>
   <div class="hero-mist"></div>
   <div class="hero-scrim"></div>
@@ -1072,7 +1072,7 @@ function applyHomeFeatured(p){
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype'); font-weight:400; font-style:normal; font-display:swap; }
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype'); font-weight:400; font-style:italic; font-display:swap; }
 .lw-theservices { position:relative; overflow:hidden; color:var(--rl);
-  background:url('assets/img/bg-theservices.png?v=1') center/cover no-repeat;
+  background:url('assets/img/bg-theservices.jpg?v=2') center/cover no-repeat;
   justify-content:stretch; text-transform:uppercase; }
 /* Velo localizado SOLO detrás del texto (radial en el titulo + banda inferior
    para las columnas). La imagen sigue raw; solo se oscurece donde hay texto. */
@@ -1434,7 +1434,7 @@ function applyHomeFeatured(p){
 /* ── 6 · Epic Indonesia (full-bleed) ── */
 #content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
-.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=3') center/cover; z-index:0; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=4') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
 .lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:3;
