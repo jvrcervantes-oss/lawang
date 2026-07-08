@@ -362,8 +362,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
   background-image:url('assets/img/Hero2.png')}
-/* Vídeo del hero OCULTO por ahora (petición cliente) — se restaura quitando display:none */
-.hero-layer.l-vid{display:none;inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:1;background:#0A0C09}
+/* Vídeo del hero: la puerta (l-bg = Hero2.png) es el frame inicial; el vídeo aparece con
+   fade cuando está listo para reproducirse (clase .ready al evento 'playing'). */
+.hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:0;background:transparent;transition:opacity .9s ease}
+.hero-layer.l-vid.ready{opacity:1}
 .hero-mist{position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.45;
   background:radial-gradient(120% 60% at 50% 34%,rgba(214,206,190,.42),transparent 56%);filter:blur(7px)}
 /* Capa negra de abajo hacia arriba — legibilidad del titular + tagline */
@@ -684,6 +686,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   var v = document.querySelector('.hero-layer.l-vid');
   if(!v) return;
   v.muted = true; v.playsInline = true; v.setAttribute('muted','');
+  v.addEventListener('playing', function(){ v.classList.add('ready'); }, { once:true });  // fade-in cuando arranca de verdad
   var kick = function(){ try { var p = v.play(); if(p && p.catch) p.catch(function(){}); } catch(e){} };
   ['loadeddata','canplay','loadedmetadata'].forEach(function(ev){ v.addEventListener(ev, kick, { once:true }); });
   if (v.readyState >= 2) kick(); else v.load();
@@ -1491,7 +1494,7 @@ initFeatGallery();
 .lw-feat-arrow.prev { left:-6px; }
 .lw-feat-arrow.next { right:-6px; }
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
-.lw-feat-card-logo { display:block; height:clamp(60px,7.8vh,87px); width:auto; max-width:88%; margin:0 auto; object-fit:contain; }
+.lw-feat-card-logo { display:block; height:clamp(120px,15.6vh,174px); width:auto; max-width:100%; margin:0 auto; object-fit:contain; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.2em;
   font-size:calc(var(--fs-caption) * .92); color:var(--ca); margin-top:12px; }
 /* Datos como checklist con icono ✓ (fuente menor) */
@@ -1513,6 +1516,7 @@ initFeatGallery();
 .lw-feat-dots button.active { background:#fff; transform:scale(1.25); }
 .lw-feat-card-btns { display:flex; gap:14px; margin-top:clamp(14px,2.4vh,22px); flex-wrap:wrap; justify-content:center; }
 /* "Download Dossier": botón hueso invisible sobre lino → outline oscuro */
+.lw-feat-card-btns .cs-btn { border-radius:999px; }  /* pill redondo como el resto de la web */
 .lw-feat-card-btns .cs-btn-bone { background:transparent; color:var(--ci); border:1px solid rgba(46,52,55,.4); }
 .lw-feat-card-btns .cs-btn-bone:hover { background:var(--ci); color:var(--cb); border-color:var(--ci); }
 @media(max-width:820px){ .lw-feat-card-name{ font-size:var(--fs-heading-xl); } }
