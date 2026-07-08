@@ -95,12 +95,12 @@
       + '<span class="lw-prop-view"><img src="assets/img/' + view + '-ico.png" alt="" loading="lazy">' + esc(pick(VIEW_LABEL[view], lang)) + '</span>'
       + '<span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/' + creamIco + '.png" alt="" loading="lazy">' + esc(lineLabel) + '</span></div>'
       + '<div class="lw-prop-body"><div class="lw-prop-head"><span class="lw-prop-loc">' + esc(p.region) + '</span>'
-      + '<div class="lw-prop-pills"><span class="pf-pill ten">' + esc(ten[lang] || ten.en) + '</span>'
+      + '<div class="lw-prop-pills">' + (p.tenure ? '<span class="pf-pill ten">' + esc(ten[lang] || ten.en) + '</span>' : '')
       + ((st[lang] || st.en) ? '<span class="pf-pill ' + st.c + '">' + esc(st[lang] || st.en) + '</span>' : '') + '</div></div>'
       + '<h3 class="lw-prop-title">' + esc(pick(p.title, lang)) + '</h3>'
       + '<p class="lw-prop-sub">' + esc(pick(p.sub, lang)) + '</p>'
       + '<div class="lw-prop-meta">' + meta + '</div>'
-      + '<div class="lw-prop-foot"><span class="lw-prop-price"><span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) + '</span>'
+      + '<div class="lw-prop-foot"><span class="lw-prop-price">' + (p.priceEUR > 0 ? '<span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : 'Price on request')) + '</span>'
       + '<span class="lw-prop-cta">' + (lang === 'es' ? 'Ver detalle' : 'View details') + ' <span class="arr">→</span></span></div></div></a></article>';
   }
 

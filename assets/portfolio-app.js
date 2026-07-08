@@ -34,7 +34,7 @@
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;","&gt;":"&gt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function pick(o){ return o ? (o[S.lang] || o.en) : ""; }
   function themeFor(p){ if(p.regionKey==="sumba") return p.line==="land"?"ocean":"sand"; if(p.line==="resorts") return "dusk"; if(p.line==="land") return "jungle"; return "sunset"; }
-  function priceHTML(eur, from){ return (from?'<span style="font-size:.62em;opacity:.6;margin-right:6px">'+t("mk.from")+'</span>':'') + money(eur); }
+  function priceHTML(eur, from){ if(!eur) return '<span style="opacity:.7">'+t("mk.onrequest")+'</span>'; return (from?'<span style="font-size:.62em;opacity:.6;margin-right:6px">'+t("mk.from")+'</span>':'') + money(eur); }
   function statusPillStyle(s){
     if(s==="status.ready")        return "background:var(--clay);color:var(--bone);border-color:var(--clay)";
     if(s==="status.construction") return "background:var(--be);color:var(--bone);border-color:var(--be)";
