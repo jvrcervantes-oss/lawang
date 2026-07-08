@@ -1270,13 +1270,13 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 /* ════ 7 · CONTACT + FOOTER (fusion, #contact) ════ */
 #content-sections > section.lw-contact { display:block; padding:0; min-height:100vh; background:var(--obsidian); color:var(--cb); position:relative; overflow:hidden; justify-content:flex-start; }
 .lw-ct-totem { position:absolute; right:-3%; top:42%; transform:translateY(-50%); height:118%; width:auto; opacity:.06; pointer-events:none; z-index:0; }
-.lw-ct-top { position:relative; z-index:1; padding:clamp(2.5rem,5vh,4rem) 0 clamp(3rem,6vh,4.5rem); }
+.lw-ct-top { position:relative; z-index:1; padding:clamp(1.4rem,3vh,2.2rem) 0 clamp(1.4rem,3vh,2.2rem); }
 .lw-ct-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2.5rem,6vw,5.5rem); align-items:center; max-width:var(--cmx); margin:0 auto; padding-inline:var(--cpd); }
 .lw-ct-grid .lw-kicker { color:var(--cal); }
-.lw-ct-h { font-family:var(--cse); font-weight:400; font-size:var(--fs-display-l); line-height:1;
-  letter-spacing:.04em; text-transform:uppercase; color:var(--cb); margin:14px 0 0; }
-.lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:var(--fs-body-l); color:rgba(245,240,230,.7); margin:16px 0 0; }
-.lw-ct-note { font-family:var(--csa); font-size:var(--fs-body-l); line-height:1.75; color:rgba(245,240,230,.6); max-width:40ch; margin:12px 0 0; }
+.lw-ct-h { font-family:var(--cse); font-weight:400; font-size:var(--fs-heading-xl); line-height:1;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--cb); margin:10px 0 0; }
+.lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:var(--fs-body-l); color:rgba(245,240,230,.7); margin:10px 0 0; }
+.lw-ct-note { font-family:var(--csa); font-size:var(--fs-body-l); line-height:1.65; color:rgba(245,240,230,.6); max-width:40ch; margin:8px 0 0; }
 .lw-ct-form { display:flex; flex-direction:column; gap:1.5rem; }
 .lw-field { font-family:var(--csa); font-size:var(--fs-body); color:var(--cb); background:transparent; border:none;
   border-bottom:1px solid rgba(245,240,230,.28); padding:13px 2px; outline:none; width:100%; }
@@ -1432,7 +1432,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 }
 
 /* ── 7 · Featured project (contorno linea + NEUE) ── */
-.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(2rem,4vh,3rem) 0; }
+.lw-featured-block { position:relative; z-index:1; background:var(--rl); padding:clamp(1rem,2vh,1.6rem) 0; }
 .lw-feat-media.lw-feat-outline::before { content:""; position:absolute; inset:14px; z-index:2; pointer-events:none;
   border:1px solid rgba(245,240,230,.65); border-radius:10px; }
 .lw-feat-title2 { font-family:'Kabel NK',var(--csa); font-weight:400; font-size:var(--fs-heading-m);
@@ -1464,14 +1464,14 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 .lw-feat-arrow.next { right:-6px; }
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
 .lw-feat-card-name { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em;
-  font-size:var(--fs-display-l); line-height:1; color:var(--ci); margin:0; }
+  font-size:var(--fs-heading-xl); line-height:1; color:var(--ci); margin:0; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.22em;
   font-size:var(--fs-caption); color:var(--ca); margin-top:12px; }
-.lw-feat-card-specs { display:flex; flex-direction:column; gap:5px; margin-top:clamp(18px,3vh,30px); }
-.lw-feat-card-specs.alt { margin-top:clamp(12px,2vh,20px); }
+.lw-feat-card-specs { display:flex; flex-direction:column; gap:5px; margin-top:clamp(10px,1.6vh,16px); }
+.lw-feat-card-specs.alt { margin-top:clamp(8px,1.2vh,12px); }
 .lw-feat-card-specs span { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.12em;
   font-size:var(--fs-body-l); color:var(--ci2); }
-.lw-feat-card-btns { display:flex; gap:14px; margin-top:clamp(22px,4vh,36px); flex-wrap:wrap; justify-content:center; }
+.lw-feat-card-btns { display:flex; gap:14px; margin-top:clamp(14px,2.4vh,22px); flex-wrap:wrap; justify-content:center; }
 /* "Download Dossier": botón hueso invisible sobre lino → outline oscuro */
 .lw-feat-card-btns .cs-btn-bone { background:transparent; color:var(--ci); border:1px solid rgba(46,52,55,.4); }
 .lw-feat-card-btns .cs-btn-bone:hover { background:var(--ci); color:var(--cb); border-color:var(--ci); }
