@@ -447,8 +447,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260707181356">
-<script src="assets/lawang-card.js?v=20260707181356"></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260708093318">
+<script src="assets/lawang-card.js?v=20260708093318"></script>
 </head>
 <body>
 
@@ -792,7 +792,9 @@ document.querySelectorAll('#content-sections .faq-q').forEach(btn => {
 });
 
 // ── Topbar: sólido al salir del hero + sección activa ─────────
-const sections = ['home','lines','portfolio','the-services','expedition','contact']
+// ponytail: portfolio/expedition fuera del scrollspy a propósito — no queremos que
+// "The Portfolio" (en The Collection) ni "The Soul" (en Indonesia) se marquen activos.
+const sections = ['home','lines','the-services','contact']
   .map(id => document.getElementById(id)).filter(Boolean);
 const navLinks = document.querySelectorAll('#nav .nav-link');
 
@@ -1403,7 +1405,7 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
   justify-content:space-between; min-height:min(92vh,940px); padding-bottom:clamp(2.2rem,5vh,4rem); }
 .lw-epic-top { text-align:center; margin-top:clamp(9rem,36vh,22rem); }
 .lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.04em;
-  font-size:clamp(64px,17vw,260px); line-height:.92; color:#fff; margin:0; text-shadow:0 3px 30px rgba(0,0,0,.5); }
+  font-size:clamp(32px,8.5vw,130px); line-height:.92; color:#fff; margin:0; text-align:center; text-shadow:0 3px 30px rgba(0,0,0,.5); }
 .lw-epic-sub { font-family:var(--csa); font-weight:300; text-transform:uppercase; letter-spacing:.16em;
   font-size:var(--fs-heading-s); color:rgba(255,255,255,.94); margin:1rem 0 0; text-shadow:0 2px 16px rgba(0,0,0,.55); }
 .lw-epic-sub b { font-weight:700; }
