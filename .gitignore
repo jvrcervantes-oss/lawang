@@ -6,6 +6,7 @@ api/.passhash
 # Local only
 Backups/
 Marketing and Design/
+Marketing/
 *.md
 brand_identity.md
 inventario_assets.md
