@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260709112418">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260709114704">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -303,6 +303,48 @@ article:hover .view-cta { gap:9px; }
 /* PropertySidebar CTA buttons */
 .sidebar-cta { transition:transform .16s var(--ease-press),background .22s,color .22s,border-color .22s,opacity .22s !important; }
 .sidebar-cta:active { transform:scale(0.97) !important; }
+
+/* ── Footer completo (portado de index.html; tokens traducidos a los de portfolio) ── */
+.pf-footer { background:var(--tg); color:var(--bone); margin-top:clamp(24px,4vw,48px); }
+.pf-footer .lw-ft { max-width:var(--wrap); margin:0 auto; padding:clamp(2.6rem,5vh,3.6rem) var(--gut) 2rem; }
+.lw-ft-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:2.4rem; }
+.lw-ft-logo-img { height:34px; width:auto; display:block; }
+.lw-ft-sub { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); letter-spacing:.3em; text-transform:uppercase; color:#BEB3A5; }
+.lw-ft-tag { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
+.lw-ft-col h5 { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#BEB3A5; margin-bottom:14px; }
+.lw-ft-col a { display:block; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.72); margin-bottom:10px; transition:color .2s; text-decoration:none; }
+.lw-ft-col a:hover { color:#fff; }
+.pf-footer .lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; max-width:var(--wrap); margin:0 auto; padding:1.5rem var(--gut); border-top:1px solid rgba(245,240,230,.1); }
+.lw-ft-copy { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.4); letter-spacing:.04em; }
+.lw-ft-contact { display:flex; gap:1.6rem; flex-wrap:wrap; align-items:center; }
+.lw-ft-cti { display:inline-flex; align-items:center; gap:8px; font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; transition:color .2s; }
+.lw-ft-cti:hover { color:#fff; }
+.lw-ft-cti svg { width:15px; height:15px; flex:none; opacity:.9; }
+.lw-ft-legal { display:flex; gap:1.4rem; flex-wrap:wrap; }
+.lw-ft-tc { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,230,.72); text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22); border-radius:999px; transition:all .25s; }
+.lw-ft-tc:hover { color:#0A0C09; background:var(--rl); border-color:var(--rl); }
+@media(max-width:900px){ .lw-ft-grid { grid-template-columns:1fr 1fr; } }
+
+/* ── Modal legal (T&C + Privacy), portado de index.html ── */
+.legal-modal { position:fixed; inset:0; z-index:10000; display:none; }
+.legal-modal.open { display:block; }
+.legal-backdrop { position:absolute; inset:0; background:rgba(6,9,6,.72); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+.legal-dialog { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(720px,92vw); max-height:86vh; display:flex; flex-direction:column; background:var(--rl); color:var(--va); border-radius:16px; overflow:hidden; box-shadow:0 40px 100px -30px rgba(0,0,0,.7); }
+.legal-close { position:absolute; top:14px; right:16px; z-index:2; width:38px; height:38px; border-radius:999px; border:none; background:rgba(46,52,55,.08); color:var(--va); font-size:24px; line-height:1; cursor:pointer; transition:background .2s; }
+.legal-close:hover { background:rgba(46,52,55,.18); }
+.legal-tabs { display:flex; gap:6px; padding:20px clamp(20px,4vw,40px) 0; flex-wrap:wrap; }
+.legal-tab { background:none; border:none; cursor:pointer; font-family:var(--sans); font-weight:600; font-size:clamp(12px,1.1vw,13px); letter-spacing:.1em; text-transform:uppercase; color:rgba(46,52,55,.5); padding:8px 0; border-bottom:2px solid transparent; transition:color .2s,border-color .2s; }
+.legal-tab.active { color:var(--tg); border-color:var(--tg); }
+.legal-tab + .legal-tab { margin-left:22px; }
+.legal-body { overflow-y:auto; padding:22px clamp(20px,4vw,40px) clamp(24px,4vw,40px); }
+.legal-panel[hidden] { display:none; }
+/* Cormorant (no var(--serif)): The Seasons demo corrompe el "&" de "Terms & Conditions" */
+.legal-h { font-family:'Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(24px,3vw,32px); color:var(--tg); margin:0 0 4px; }
+.legal-meta { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); letter-spacing:.06em; text-transform:uppercase; color:rgba(46,52,55,.5); margin:0 0 18px; }
+.legal-panel h3 { font-family:var(--sans); font-weight:700; font-size:clamp(15px,1.5vw,17px); letter-spacing:.02em; color:var(--va); margin:20px 0 6px; }
+.legal-panel p { font-family:var(--sans); font-weight:400; font-size:clamp(13px,1.4vw,15px); line-height:1.7; color:rgba(46,52,55,.82); margin:0 0 6px; }
+.legal-panel a { color:var(--tg); text-decoration:underline; }
+.legal-note { margin-top:18px !important; font-style:italic; color:rgba(46,52,55,.55) !important; }
 </style>
 </head>
 <body>
@@ -667,8 +709,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260709112418"></script>
-<script src="assets/portfolio-app.js?v=20260709112418"></script>
+<script src="assets/lawang-card.js?v=20260709114704"></script>
+<script src="assets/portfolio-app.js?v=20260709114704"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
@@ -690,6 +732,78 @@ article:hover .view-cta { gap:9px; }
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMagnetic);
   else initMagnetic();
+})();
+</script>
+
+<!-- Modal legal: Términos & Condiciones + Política de datos (placeholder legal, revisar con asesoría) -->
+<div id="legal-modal" class="legal-modal" aria-hidden="true">
+  <div class="legal-backdrop" data-close></div>
+  <div class="legal-dialog" role="dialog" aria-modal="true" aria-labelledby="legal-heading">
+    <button class="legal-close" type="button" data-close aria-label="Close">&times;</button>
+    <div class="legal-tabs" role="tablist">
+      <button class="legal-tab active" type="button" data-tab="terms" role="tab">Terms &amp; Conditions</button>
+      <button class="legal-tab" type="button" data-tab="privacy" role="tab">Privacy &amp; Data Policy</button>
+    </div>
+    <div class="legal-body">
+      <section class="legal-panel active" id="legal-terms" role="tabpanel">
+        <h2 id="legal-heading" class="legal-h">Terms &amp; Conditions</h2>
+        <p class="legal-meta">Last updated: July 2026 · Lawang Tropical Properties</p>
+        <h3>1. Who we are</h3>
+        <p>Lawang Tropical Properties ("Lawang", "we", "us") curates, structures and develops real-estate opportunities in Bali and Sumba, Indonesia. These terms govern your use of this website and the information presented on it.</p>
+        <h3>2. Informational purpose only</h3>
+        <p>All content — including prices, areas, renders, availability, delivery dates and projected returns — is indicative, may change without notice and does not constitute a binding offer, financial advice or a guarantee of return. Nothing here creates a contractual relationship until a signed reservation or purchase agreement is executed.</p>
+        <h3>3. Property &amp; ownership</h3>
+        <p>Foreign ownership in Indonesia is subject to specific legal structures (e.g. leasehold or a PT&nbsp;PMA company). Any structure is arranged with independent notaries and legal counsel. Buyers are responsible for their own due diligence and for obtaining independent legal and tax advice before committing.</p>
+        <h3>4. Reservations &amp; payments</h3>
+        <p>Reservation fees, payment schedules and hand-over conditions are defined in the individual reservation and purchase agreement for each project and prevail over any figure shown on this site.</p>
+        <h3>5. Intellectual property</h3>
+        <p>The brand, logo, texts, images and designs on this site belong to Lawang or its licensors and may not be reproduced without written permission.</p>
+        <h3>6. Liability</h3>
+        <p>To the extent permitted by law, Lawang is not liable for decisions taken on the basis of the indicative information published here. External links are provided for convenience and are outside our control.</p>
+        <h3>7. Governing law</h3>
+        <p>These terms are governed by the laws of the Republic of Indonesia. Disputes will be submitted to the competent courts of the relevant jurisdiction.</p>
+        <p class="legal-note">This is placeholder wording pending review by qualified legal counsel.</p>
+      </section>
+      <section class="legal-panel" id="legal-privacy" role="tabpanel" hidden>
+        <h2 class="legal-h">Privacy &amp; Data Policy</h2>
+        <p class="legal-meta">Last updated: July 2026 · Lawang Tropical Properties</p>
+        <h3>1. Data we collect</h3>
+        <p>When you contact us — through our forms, WhatsApp, email or phone — we collect the data you choose to share: name, email, phone number and the message or preferences you send us.</p>
+        <h3>2. How we use it</h3>
+        <p>We use your data solely to respond to your enquiry, send you the information or dossiers you request and follow up on curated opportunities. We do not sell your data.</p>
+        <h3>3. Legal basis</h3>
+        <p>We process your data on the basis of your consent and our legitimate interest in responding to your enquiry. You can withdraw consent at any time.</p>
+        <h3>4. Sharing</h3>
+        <p>Your data may be shared with our internal advisory team and, where strictly necessary to progress a transaction, with notaries or legal partners bound by confidentiality. We use reputable service providers (e.g. email and messaging) to communicate with you.</p>
+        <h3>5. Retention</h3>
+        <p>We keep your data only as long as needed to serve your enquiry or as required by law, after which it is deleted.</p>
+        <h3>6. Your rights</h3>
+        <p>You may request access, correction or deletion of your data, or object to its processing, by writing to <a href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>
+        <h3>7. Cookies</h3>
+        <p>This site uses only the storage strictly needed to remember your language preference. It does not run third-party advertising trackers.</p>
+        <p class="legal-note">This is placeholder wording pending review by qualified legal counsel.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Modal legal (T&C + Privacy) — trigger delegado: el footer lo pinta portfolio-app.js ──
+(function(){
+  var modal = document.getElementById('legal-modal');
+  if(!modal) return;
+  var tabs = modal.querySelectorAll('.legal-tab');
+  var panels = { terms: document.getElementById('legal-terms'), privacy: document.getElementById('legal-privacy') };
+  function setTab(name){
+    tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.tab === name); });
+    Object.keys(panels).forEach(function(k){ var on = k === name; panels[k].classList.toggle('active', on); panels[k].hidden = !on; });
+  }
+  function open(name){ setTab(name || 'terms'); modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+  function close(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+  document.addEventListener('click', function(e){ var a = e.target.closest('[data-legal]'); if(a){ e.preventDefault(); open(a.dataset.legal); } });
+  modal.querySelectorAll('[data-close]').forEach(function(el){ el.addEventListener('click', close); });
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ setTab(t.dataset.tab); }); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && modal.classList.contains('open')) close(); });
 })();
 </script>
 </body>

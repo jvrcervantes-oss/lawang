@@ -194,22 +194,27 @@
     return '<nav aria-label="Pagination" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:clamp(32px,4vw,48px)">'+out+'</nav>';
   }
 
-  // ════ THE PROCESS (7 pasos, de la reserva a las llaves) ════
+  // ════ THE PROCESS + Seven steps (unificado y compacto) ════
   function stepsHTML(){
+    var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
+    var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(t("reserve.msg")||"Hello LAWANG");
     var items="";
     for(var n=1;n<=7;n++){
-      items += '<li style="display:flex;gap:clamp(16px,1.9vw,26px);padding:clamp(16px,1.9vw,24px) 0;border-top:1px solid var(--line)">'
-        + '<span class="proc-num" style="flex:none;font-size:clamp(24px,2.6vw,34px);color:var(--clay);line-height:1;min-width:clamp(36px,3vw,50px)">'+(n<10?"0":"")+n+'</span>'
-        + '<span style="display:block">'
-        +   '<span style="display:block;font-family:var(--sans);font-weight:700;font-size:clamp(15px,1.5vw,18px);color:var(--ink)">'+t("proc.s"+n+".t")+'</span>'
-        +   '<span style="display:block;font-size:clamp(13px,1.4vw,15px);color:var(--ink-2);margin-top:5px;line-height:1.55">'+t("proc.s"+n+".d")+'</span>'
-        + '</span></li>';
+      items += '<div style="padding:16px 16px 18px;border-top:2px solid var(--clay);background:var(--bone-2);border-radius:0 0 8px 8px">'
+        + '<span class="proc-num" style="display:block;font-size:clamp(20px,2vw,26px);color:var(--clay);line-height:1;margin-bottom:9px">'+(n<10?"0":"")+n+'</span>'
+        + '<span style="display:block;font-family:var(--sans);font-weight:700;font-size:14px;color:var(--ink);margin-bottom:4px">'+t("proc.s"+n+".t")+'</span>'
+        + '<span style="display:block;font-size:12.5px;color:var(--ink-2);line-height:1.5">'+t("proc.s"+n+".d")+'</span>'
+        + '</div>';
     }
-    return '<section class="wrap" id="process" style="padding-block:clamp(34px,5vw,70px);scroll-margin-top:90px">'
-      + '<div class="reveal" style="max-width:780px;margin:0 auto">'
-      +   '<h2 class="display" style="text-align:center;font-size:clamp(28px,4.2vw,52px);text-transform:uppercase;font-weight:300;line-height:1;margin-bottom:clamp(22px,3vw,40px)">'+t("proc.title")+'</h2>'
-      +   '<ol style="list-style:none;margin:0;padding:0;border-bottom:1px solid var(--line)">'+items+'</ol>'
-      + '</div></section>';
+    return '<section class="wrap" id="process" style="padding-block:clamp(34px,5vw,64px);scroll-margin-top:90px">'
+      + '<div class="reveal" style="text-align:center;max-width:660px;margin:0 auto clamp(24px,3vw,38px)">'
+      +   '<span class="kicker" style="display:inline-block">'+t("ft.reserve.k")+'</span>'
+      +   '<h2 class="display" style="font-size:clamp(28px,4.2vw,48px);text-transform:uppercase;font-weight:300;line-height:1;margin:10px 0 0">'+t("proc.title")+'</h2>'
+      +   '<p style="font-size:clamp(14px,1.5vw,16px);color:var(--ink-2);line-height:1.6;margin:14px 0 0">'+t("ft.reserve.sub")+'</p>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:14px">'+items+'</div>'
+      + '<div style="text-align:center;margin-top:clamp(26px,3.4vw,40px)"><a href="'+waUrl+'" target="_blank" rel="noopener" class="btn btn-clay">'+t("ft.reserve.cta")+' <span class="arr">→</span></a></div>'
+      + '</section>';
   }
 
   // ════ FOOTER (banda de reserva + barra de contacto) ════
@@ -220,27 +225,33 @@
     var tel='+'+waNum.replace(/^(\d{2})(\d{3})(\d{4})(\d+)$/,'$1 $2-$3-$4');
     var icoPhone='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
     var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
-    return '<section class="wrap" style="padding-block:clamp(30px,5vw,72px)">'
-      + '<a href="'+waUrl+'" target="_blank" rel="noopener" class="lw-reserve" style="display:block;position:relative;border-radius:16px;overflow:hidden;min-height:clamp(300px,34vw,440px);text-decoration:none">'
-      +   '<img src="assets/img/aerial-1.jpg" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
-      +   '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,16,12,.8) 0%,rgba(18,16,12,.35) 55%,rgba(18,16,12,.05) 100%)"></span>'
-      +   '<span style="position:relative;display:flex;flex-direction:column;justify-content:center;height:100%;min-height:inherit;padding:clamp(26px,5vw,62px);color:#F5F0E6;max-width:680px">'
-      +     '<span style="border-left:2px solid rgba(245,240,230,.55);padding-left:clamp(18px,2vw,28px)">'
-      +       '<span class="kicker" style="color:rgba(245,240,230,.82);display:block;margin-bottom:10px">'+t("ft.reserve.k")+'</span>'
-      +       '<span class="display" style="display:block;font-size:clamp(30px,4.4vw,58px);line-height:1.02;text-transform:uppercase;font-weight:300">'+t("ft.reserve.t1")+' <span style="font-style:italic;text-transform:none">'+t("ft.reserve.t2")+'</span></span>'
-      +     '</span>'
-      +     '<span style="font-size:clamp(14px,1.5vw,16px);opacity:.9;margin-top:20px;max-width:520px;padding-left:clamp(18px,2vw,28px);line-height:1.6">'+t("ft.reserve.sub")+'</span>'
-      +     '<span style="margin-top:26px;padding-left:clamp(18px,2vw,28px)"><span class="btn btn-light">'+t("ft.reserve.cta")+' <span class="arr">→</span></span></span>'
-      +   '</span>'
-      + '</a>'
-      + '</section>'
-      + stepsHTML()
-      + '<footer style="background:var(--tg);color:var(--bone)">'
-      +   '<div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-block:22px">'
-      +     '<div style="font-family:var(--sans);font-size:clamp(12px,1.4vw,15px);letter-spacing:.05em;text-transform:uppercase">'+t("ft.tag1")+' <b style="font-weight:700">'+t("ft.tag2")+'</b></div>'
-      +     '<div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">'
-      +       '<a href="tel:+'+waNum+'" style="color:var(--bone);display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14px">'+icoPhone+tel+'</a>'
-      +       '<a href="mailto:'+esc(email)+'" style="color:var(--bone);display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14px">'+icoMail+esc(email)+'</a>'
+    // Proceso (unificado + compacto) + footer completo portado de index.html
+    return stepsHTML()
+      + '<footer class="pf-footer">'
+      +   '<div class="lw-ft">'
+      +     '<div class="lw-ft-grid">'
+      +       '<div>'
+      +         '<img class="lw-ft-logo-img" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties">'
+      +         '<div class="lw-ft-sub" style="margin-top:10px">Tropical Properties</div>'
+      +         '<p class="lw-ft-tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>'
+      +       '</div>'
+      +       '<div class="lw-ft-col"><h5>Portfolio</h5>'
+      +         '<a href="#signature">Signature</a><a href="#land">Land</a><a href="#villas">Villas</a><a href="#resorts">Resorts</a></div>'
+      +       '<div class="lw-ft-col"><h5>Company</h5>'
+      +         '<a href="index.html#expedition">The Soul</a><a href="index.html#the-services">What We Do</a><a href="index.html">The Estate</a><a href="#all">Choose your Legacy</a></div>'
+      +       '<div class="lw-ft-col"><h5>Divisions</h5>'
+      +         '<a href="#all">Tepi Sungai</a><a href="#all">Balian Hills</a><a href="#signature">Riverfront II®</a></div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="lw-ft-bottom">'
+      +     '<span class="lw-ft-copy">© 2026 Lawang Tropical Properties · Indonesia</span>'
+      +     '<div class="lw-ft-contact">'
+      +       '<a class="lw-ft-cti" href="tel:+'+waNum+'">'+icoPhone+tel+'</a>'
+      +       '<a class="lw-ft-cti" href="mailto:'+esc(email)+'">'+icoMail+esc(email)+'</a>'
+      +     '</div>'
+      +     '<div class="lw-ft-legal">'
+      +       '<a class="lw-ft-tc" href="#" data-legal="terms">Terms &amp; Conditions</a>'
+      +       '<a class="lw-ft-tc" href="#" data-legal="privacy">Privacy Policy</a>'
       +     '</div>'
       +   '</div>'
       + '</footer>';
