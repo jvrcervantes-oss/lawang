@@ -18,5 +18,3 @@ User-agent: ClaudeBot
 Allow: /
 
 Sitemap: https://lawangproperties.com/sitemap.xml
-
-# deploy-check webhook-live-1057
