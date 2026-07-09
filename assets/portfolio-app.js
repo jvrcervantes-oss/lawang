@@ -21,7 +21,7 @@
   // ── Estado global ──────────────────────────────────────────
   var S = {
     lang:"en", cur:"EUR",
-    line:"all", region:"all", layout:"grid", langOpen:false,
+    line:"all", region:"all", layout:"grid", langOpen:false, page:1,
     overlay:null,
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
@@ -135,7 +135,14 @@
       + '<button class="filter-chip" data-act="region:bali" style="'+chipStyle(S.region==="bali")+'">Bali</button>'
       + '<button class="filter-chip" data-act="region:sumba" style="'+chipStyle(S.region==="sumba")+'">Sumba</button>';
 
-    var cards = filtered.map(function(p){ return window.LawangCard.render(p, { lang:S.lang, cur:S.cur, rates:L.RATES, hrefBase:"" }); }).join("");
+    // Paginación: máx 9 propiedades por página.
+    var PER_PAGE = 9;
+    var totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+    if(S.page > totalPages) S.page = totalPages;
+    if(S.page < 1) S.page = 1;
+    var pageStart = (S.page - 1) * PER_PAGE;
+    var pageItems = filtered.slice(pageStart, pageStart + PER_PAGE);
+    var cards = pageItems.map(function(p){ return window.LawangCard.render(p, { lang:S.lang, cur:S.cur, rates:L.RATES, hrefBase:"" }); }).join("");
     var emptyState = '<div style="grid-column:1/-1;padding:60px 24px;text-align:center;color:var(--ink-2)">'
       + (L.PROPERTIES.length===0
           ? '<p style="font-size:15px;margin:0 0 6px">'+(S.lang==="es"?"No se pudieron cargar las propiedades.":"Properties could not be loaded.")+'</p>'
@@ -159,19 +166,33 @@
       +   '<div class="lw-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:clamp(19px,2.4vw,32px)">'+lineCards+'</div>'
       + '</section>'
       + (showFeatured ? '<section class="wrap">'+featuredHTML(featured)+'</section>' : "")
-      + '<section class="wrap" id="pf-grid" style="scroll-margin-top:90px">'
+      + '<section class="wrap" id="pf-grid" style="scroll-margin-top:90px;padding-bottom:clamp(40px,5vw,64px)">'
       +   '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:24px">'
       +     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+chips+'</div>'
       +     '<div style="display:flex;align-items:center;gap:14px"><span style="font-size:13px;color:var(--ink-2)">'+filtered.length+' '+t("mk.results")+'</span>'
       +       '<div class="seg" style="color:var(--ink)"><button class="'+(S.layout==="grid"?"on":"")+'" data-act="layout:grid"><span style="color:'+(S.layout==="grid"?"var(--bone)":"inherit")+'">▦</span></button>'
       +       '<button class="'+(S.layout==="list"?"on":"")+'" data-act="layout:list"><span style="color:'+(S.layout==="list"?"var(--bone)":"inherit")+'">≡</span></button></div></div>'
       +   '</div>'
-      +   '<div style="display:grid;grid-template-columns:'+gridCols+';gap:'+gap+';padding-bottom:clamp(40px,5vw,64px)">'+(cards||emptyState)+'</div>'
+      +   '<div style="display:grid;grid-template-columns:'+gridCols+';gap:'+gap+'">'+(cards||emptyState)+'</div>'
+      +   paginationHTML(S.page, totalPages)
       + '</section>'
       + footerHTML()
       + '</div>';
   }
   function chipStyle(active){ return 'appearance:none;border:1px solid '+(active?"var(--ink)":"var(--line)")+';background:'+(active?"var(--ink)":"transparent")+';color:'+(active?"var(--bone)":"var(--ink-2)")+';border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap'; }
+  // ponytail: sin ellipsis — el portfolio no llega a tantas páginas; añadir truncado si algún día supera ~10
+  function paginationHTML(page, totalPages){
+    if(totalPages<=1) return "";
+    var cell=function(label,target,o){ o=o||{};
+      var col = o.active?"var(--bone)":(o.disabled?"var(--line)":"var(--ink-2)");
+      var st='appearance:none;border:1px solid '+(o.active?"var(--ink)":"var(--line)")+';background:'+(o.active?"var(--ink)":"transparent")+';color:'+col+';border-radius:999px;min-width:42px;height:42px;padding:0 14px;font-size:14px;font-weight:600;font-family:var(--sans);cursor:'+(o.disabled?"default":"pointer")+';display:inline-flex;align-items:center;justify-content:center';
+      return '<button '+(o.disabled?"disabled":'data-act="page:'+target+'"')+' style="'+st+'"'+(o.active?' aria-current="page"':'')+' aria-label="'+(o.label||("Page "+target))+'">'+label+'</button>';
+    };
+    var out=cell("‹",page-1,{disabled:page<=1,label:"Previous page"});
+    for(var i=1;i<=totalPages;i++) out+=cell(String(i),i,{active:i===page});
+    out+=cell("›",page+1,{disabled:page>=totalPages,label:"Next page"});
+    return '<nav aria-label="Pagination" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:clamp(32px,4vw,48px)">'+out+'</nav>';
+  }
 
   // ════ THE PROCESS (7 pasos, de la reserva a las llaves) ════
   function stepsHTML(){
@@ -574,7 +595,7 @@
     else { if(S.overlay){ S.overlay=null; } S.line=lineFromHash(); render(); }
   }
 
-  function chooseLine(l){ S.line=l; if(l==="all") history.replaceState(null,"",location.pathname+location.search); else history.replaceState(null,"","#"+l); render(); }
+  function chooseLine(l){ S.line=l; S.page=1; if(l==="all") history.replaceState(null,"",location.pathname+location.search); else history.replaceState(null,"","#"+l); render(); }
 
   function handleAct(act, el){
     var k=act.split(":"); var cmd=k[0]; var val=k.slice(1).join(":");
@@ -582,7 +603,8 @@
     else if(cmd==="lang-toggle"){ S.langOpen=!S.langOpen; render(); }
     else if(cmd==="cur"){ S.cur=val; render(); }
     else if(cmd==="line"){ chooseLine(val); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
-    else if(cmd==="region"){ S.region=val; render(); }
+    else if(cmd==="region"){ S.region=val; S.page=1; render(); }
+    else if(cmd==="page"){ S.page=parseInt(val,10)||1; render(); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="layout"){ S.layout=val; render(); }
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; render(); }
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
