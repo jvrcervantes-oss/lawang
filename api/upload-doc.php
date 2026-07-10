@@ -26,9 +26,15 @@ if (!in_array($ext, $allowed)) {
     exit;
 }
 
-if ($file['size'] > 20 * 1024 * 1024) {
+if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'File exceeds 20 MB limit.']);
+    echo json_encode(['ok' => false, 'error' => 'File exceeds the server upload limit.']);
+    exit;
+}
+
+if ($file['size'] > MAX_DOC_UPLOAD_MB * 1024 * 1024) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'File exceeds ' . MAX_DOC_UPLOAD_MB . ' MB limit.']);
     exit;
 }
 

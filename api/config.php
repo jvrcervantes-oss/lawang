@@ -18,3 +18,4 @@ define('DATA_FILE',    dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data.json');
 define('IMAGES_DIR',   dirname(__DIR__) . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'properties' . DIRECTORY_SEPARATOR);
 define('IMAGES_URL',   '/assets/img/properties/');
 define('MAX_UPLOAD_MB', 8);
+define('MAX_DOC_UPLOAD_MB', 50);

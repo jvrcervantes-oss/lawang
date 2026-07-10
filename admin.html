@@ -513,9 +513,10 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
             <input type="checkbox" id="f-showLandOptions">
             <label for="f-showLandOptions">Show "Choose your plot" step <span class="muted">(if on with no plots below, sample placeholders are shown)</span></label>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1.4fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Size m²</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €/m²</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Total €</div>
             <div></div>
           </div>
           <div id="f-land-list"></div>
@@ -528,12 +529,13 @@ body{font-family:'Jost',sans-serif;font-size:14px;background:var(--rl);color:var
             <input type="checkbox" id="f-showHomeModels">
             <label for="f-showHomeModels">Show "Choose your home" section <span class="muted">(if on with no models below, sample placeholders are shown)</span></label>
           </div>
-          <div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+          <div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Model</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Beds</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">m²</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Image URL</div>
+            <div></div>
             <div></div>
           </div>
           <div id="f-homes-list"></div>
@@ -896,15 +898,27 @@ function addVideoSlot(url) {
 
 function addLandRow(o) {
   o = o || {};
+  var ppm2 = o.pricePerM2 != null ? o.pricePerM2
+    : (o.size && o.priceEUR ? Math.round(o.priceEUR / o.size) : '');  // back-fill filas antiguas (solo tenían el total)
   var container = document.getElementById('f-land-list');
   var div = document.createElement('div');
   div.className = 'land-row';
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr 28px;gap:8px;margin-bottom:6px';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1.2fr 28px;gap:8px;margin-bottom:6px;align-items:center';
   div.innerHTML =
-    '<input type="number" class="ld-size"  value="' + esc(o.size != null ? o.size : '')         + '" min="0" placeholder="600">' +
-    '<input type="number" class="ld-price" value="' + esc(o.priceEUR != null ? o.priceEUR : '') + '" min="0" placeholder="135000">' +
+    '<input type="number" class="ld-size"  value="' + esc(o.size != null ? o.size : '') + '" min="0" placeholder="600" oninput="updateLandTotal(this)">' +
+    '<input type="number" class="ld-ppm2"  value="' + esc(ppm2) + '" min="0" placeholder="225" oninput="updateLandTotal(this)">' +
+    '<output class="ld-total muted" style="font-size:13px">—</output>' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
+  updateLandTotal(div.querySelector('.ld-size'));
+}
+
+function updateLandTotal(el) {
+  var row   = el.closest('.land-row');
+  var size  = parseFloat(row.querySelector('.ld-size').value) || 0;
+  var ppm2  = parseFloat(row.querySelector('.ld-ppm2').value) || 0;
+  var total = size * ppm2;
+  row.querySelector('.ld-total').textContent = total ? '€' + Math.round(total).toLocaleString('en-US') : '—';
 }
 
 function addHomeRow(m) {
@@ -912,15 +926,37 @@ function addHomeRow(m) {
   var container = document.getElementById('f-homes-list');
   var div = document.createElement('div');
   div.className = 'home-row';
-  div.style.cssText = 'display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px;gap:8px;margin-bottom:6px';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px 28px;gap:8px;margin-bottom:6px';
   div.innerHTML =
     '<input type="text"   class="hm-name"  value="' + esc(m.name || '')               + '" placeholder="Lontar">' +
     '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
     '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
     '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
     '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/assets/img/properties/model.jpg">' +
+    '<button type="button" class="img-slot-upload" onclick="uploadForHome(this)" title="Upload file">↑</button>' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
+}
+
+async function uploadForHome(btn) {
+  var input = btn.parentNode.querySelector('.hm-image');
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.onchange = async function() {
+    if (!fileInput.files.length) return;
+    var file = fileInput.files[0];
+    btn.disabled = true; var origLabel = btn.textContent; btn.textContent = '…';
+    var fd = new FormData(); fd.append('image', file);
+    try {
+      var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
+      var d = await r.json();
+      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); toast('Image uploaded.', 'ok'); }
+      else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
+    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+    finally { btn.disabled = false; btn.textContent = origLabel; }
+  };
+  fileInput.click();
 }
 
 function addExtraRow(e) {
@@ -1040,9 +1076,12 @@ function formToProperty() {
     var v = inp.value.trim(); if (v) videos.push(v);
   });
   var landOptions = Array.from(document.querySelectorAll('#f-land-list .land-row')).map(function(row){
+    var size = parseInt(row.querySelector('.ld-size').value) || 0;
+    var ppm2 = parseFloat(row.querySelector('.ld-ppm2').value) || 0;
     return {
-      size:     parseInt(row.querySelector('.ld-size').value)    || 0,
-      priceEUR: parseFloat(row.querySelector('.ld-price').value) || 0
+      size:        size,
+      pricePerM2:  ppm2,
+      priceEUR:    Math.round(size * ppm2)  // total, es lo que consume el configurador (portfolio-app.js)
     };
   }).filter(function(o){ return o.size > 0; });
   var homeModels = Array.from(document.querySelectorAll('#f-homes-list .home-row')).map(function(row){
