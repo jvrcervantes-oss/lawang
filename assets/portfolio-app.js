@@ -529,9 +529,8 @@
   }
 
   function mapBlockHTML(p){
-    var body = p.mapImage
-      ? '<img src="'+esc(p.mapImage)+'" alt="'+t("map.title")+'" style="width:100%;border-radius:10px;display:block;border:1px solid var(--line)">'
-      : '<div style="aspect-ratio:16/9;border-radius:10px;border:1px dashed var(--line);background:var(--bone-2);display:grid;place-items:center"><div style="text-align:center;color:var(--ink-2)"><svg viewBox="0 0 24 24" style="width:30px;height:30px;fill:none;stroke:var(--ink-2);stroke-width:1.4;opacity:.7" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><div style="font-size:13px;letter-spacing:.06em;margin-top:10px">'+t("map.soon")+'</div><div style="font-size:14px;color:var(--ink);margin-top:4px;font-weight:600">'+esc(p.region)+'</div></div></div>';
+    if(!p.mapImage) return '';  // sin mapa cargado en el admin -> no se muestra nada al cliente
+    var body = '<img src="'+esc(p.mapImage)+'" alt="'+t("map.title")+'" style="width:100%;border-radius:10px;display:block;border:1px solid var(--line)">';
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:20px">'+t("map.title")+'</div>'+body+'</div>';
   }
 
