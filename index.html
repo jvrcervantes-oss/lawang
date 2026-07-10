@@ -392,7 +392,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/Hero2.jpg')}
+  background-image:url('assets/img/Hero2.jpg?v=2')}
 /* Vídeo del hero: la puerta (l-bg = Hero2.jpg) es el frame inicial; el vídeo aparece con
    fade cuando está listo para reproducirse (clase .ready al evento 'playing'). */
 .hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:0;background:transparent;transition:opacity .9s ease}
@@ -1524,7 +1524,7 @@ function applyHomeFeatured(p){
 /* ── 6 · Epic Indonesia (full-bleed) ── */
 #content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
-.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=4') center/cover; z-index:0; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=5') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
 .lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:3;
