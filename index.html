@@ -98,7 +98,7 @@
 }
 @media(max-width:680px){ :root{ --menu-h:18px; } }
 html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Neue Kabel','Jost',sans-serif;cursor:none}
-@media(hover:none){html,body{cursor:auto}}
+@media(hover:none){html,body{cursor:auto}#cursor,#cursor-ring{display:none}}
 
 /* ── SNAP SCROLLER · 1 pantalla = 1 sección (estilo Burger) ── */
 .snap{height:100vh;height:100dvh;overflow-y:scroll;overflow-x:hidden;
@@ -1139,7 +1139,7 @@ function applyHomeFeatured(p){
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype'); font-weight:400; font-style:normal; font-display:swap; }
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype'); font-weight:400; font-style:italic; font-display:swap; }
 .lw-theservices { position:relative; overflow:hidden; color:var(--rl);
-  background:url('assets/img/bg-theservices.jpg?v=2') center/cover no-repeat;
+  background:url('assets/img/bg-theservices.jpg?v=3') center/cover no-repeat;
   justify-content:stretch; text-transform:uppercase; }
 /* Velo localizado SOLO detrás del texto (radial en el titulo + banda inferior
    para las columnas). La imagen sigue raw; solo se oscurece donde hay texto. */
@@ -1176,6 +1176,8 @@ function applyHomeFeatured(p){
   .lw-ts-title { white-space:normal; }
   .lw-ts-cols { grid-template-columns:1fr 1fr; gap:28px 0; }
   .lw-ts-col:nth-child(3){ border-left:0; padding-left:0; }
+  /* Sección más baja en móvil: la sección tan alta+estrecha forzaba un zoom enorme del bg (cover) */
+  .lw-ts-inner { min-height:64vh; }
 }
 @media(max-width:460px){
   /* The Services: slider horizontal solo en móvil (desktop/tablet siguen en grid) */
@@ -1443,10 +1445,19 @@ function applyHomeFeatured(p){
   .lw-pf-grid, .lw-tl-grid, .lw-ft-grid { grid-template-columns:1fr; }
   .lw-stats { gap:1.6rem; }
   /* Tropical Ecosystem: slider horizontal solo en móvil (desktop/tablet siguen en grid) */
-  .lw-show-grid { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
+  .lw-show-grid { display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scroll-behavior:smooth;
     scrollbar-width:none; -ms-overflow-style:none; gap:1.2rem; }
   .lw-show-grid::-webkit-scrollbar { display:none; }
   .lw-show-grid > .lw-show { flex:0 0 82%; scroll-snap-align:start; height:clamp(360px,58vh,520px); }
+  /* Footer compacto en móvil: 2 columnas de enlaces en vez de 1, menos aire vertical */
+  .lw-ft-grid { grid-template-columns:1fr 1fr; gap:1.6rem 1.2rem; }
+  .lw-ft-grid > div:first-child { grid-column:1 / -1; }
+  .lw-ft { padding-top:1.6rem; padding-bottom:1rem; }
+  .lw-ft-tag { margin-top:8px; }
+  .lw-ft-col h5 { margin-bottom:8px; }
+  .lw-ft-col a { margin-bottom:6px; }
+  .lw-ft-bottom { margin-top:1.2rem; padding-top:1rem; gap:.7rem; }
+  .lw-ft-wrap { padding-bottom:1rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1997,7 +2008,7 @@ function applyHomeFeatured(p){
         </div>
       </div>
       <div class="lw-ct-faq reveal" style="transition-delay:120ms">
-        <div class="cs-faq-item open">
+        <div class="cs-faq-item">
           <button class="faq-q" type="button">Do your projects have a building permit (PBG)?<span class="faq-ic" aria-hidden="true"></span></button>
           <div class="faq-a"><div><p>Yes. Every Lawang project is built under a valid <b>PBG</b> (Persetujuan Bangunan Gedung) — the building approval that replaced the old IMB in 2021. A PBG is only issued once the technical drawings comply with the local spatial plan, so it certifies that the construction is legal from day one. On completion the building also receives its <b>SLF</b> (Sertifikat Laik Fungsi), confirming it is fit for use. You never inherit an unpermitted structure.</p></div></div>
         </div>

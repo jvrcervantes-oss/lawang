@@ -324,6 +324,15 @@ article:hover .view-cta { gap:9px; }
 .lw-ft-tc { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,230,.72); text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22); border-radius:999px; transition:all .25s; }
 .lw-ft-tc:hover { color:#0A0C09; background:var(--rl); border-color:var(--rl); }
 @media(max-width:900px){ .lw-ft-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:560px){
+  /* Footer compacto en móvil */
+  .pf-footer .lw-ft { padding-top:1.6rem; padding-bottom:1rem; }
+  .lw-ft-grid { gap:1.4rem 1rem; }
+  .lw-ft-tag { margin-top:8px; }
+  .lw-ft-col h5 { margin-bottom:8px; }
+  .lw-ft-col a { margin-bottom:6px; }
+  .pf-footer .lw-ft-bottom { padding-top:1rem; gap:.7rem; }
+}
 
 /* ── Modal legal (T&C + Privacy), portado de index.html ── */
 .legal-modal { position:fixed; inset:0; z-index:10000; display:none; }
