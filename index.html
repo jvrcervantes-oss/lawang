@@ -233,7 +233,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 .nav-cta .wa{width:22px;height:22px;border-radius:50%;background:#25D366;flex:none;
   display:flex;align-items:center;justify-content:center;color:#fff;line-height:1}
 .nav-cta .wa svg{width:14px;height:14px;display:block}
-@media(max-width:680px){ .nav-cta .wa{width:16px;height:16px} .nav-cta .wa svg{width:10px;height:10px} }
+@media(max-width:680px){ .nav-cta .wa{width:30px;height:30px} .nav-cta .wa svg{width:17px;height:17px} }
 .nav-cta:hover{background:rgba(245,240,230,.14);color:var(--rl);border-color:rgba(245,240,230,.78)}
 #topbar.scrolled .nav-cta,#topbar.solid .nav-cta{color:var(--rl);border-color:var(--pg);background:var(--pg)}
 #topbar.scrolled .nav-cta:hover,#topbar.solid .nav-cta:hover{background:#3a4a2c;color:var(--rl);border-color:#3a4a2c}
@@ -437,6 +437,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   .hero-sub b,.hero-sub .hero-sub-2{white-space:normal}  /* móvil: permitir envolver (evita overflow) */
   .hero-inner{margin-top:clamp(4vh,9vh,12vh)}
   .hero-foot{flex-direction:column;align-items:flex-start;gap:1.4rem}
+  .hero-discover{align-self:center}
 }
 @media(max-width:680px){
   .marks-track{gap:14px}
@@ -1168,8 +1169,12 @@ function applyHomeFeatured(p){
   .lw-ts-col:nth-child(3){ border-left:0; padding-left:0; }
 }
 @media(max-width:460px){
-  .lw-ts-cols { grid-template-columns:1fr; }
-  .lw-ts-col { border-left:0; padding-left:0; border-top:1px solid rgba(245,240,230,.20); padding-top:18px; }
+  /* The Services: slider horizontal solo en móvil (desktop/tablet siguen en grid) */
+  .lw-ts-cols { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
+    scrollbar-width:none; -ms-overflow-style:none; gap:0; }
+  .lw-ts-cols::-webkit-scrollbar { display:none; }
+  .lw-ts-col { flex:0 0 82%; scroll-snap-align:start;
+    border-left:0; padding-left:0; border-top:1px solid rgba(245,240,230,.20); padding-top:18px; }
   .lw-ts-col:first-child { border-top:0; padding-top:0; }
 }
 /* ════ WHO WE ARE + CIFRAS (fondo blanco, ref PDF pág.5 sin banda central) ════ */
