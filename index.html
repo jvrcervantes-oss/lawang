@@ -256,7 +256,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
   .nav-lang{color:rgba(26,22,18,.62);text-shadow:none}
   .nav-lang:hover{color:var(--pg)}
   .nav-burger{display:flex}
-  #nav{display:none;position:absolute;top:100%;left:0;right:0;transform:none;
+  #nav,#topbar.solid #nav{display:none;position:absolute;top:100%;left:0;right:0;transform:none;
     flex-direction:column;align-items:flex-start;gap:0;border-radius:0;padding:.4rem 0;height:auto;
     background:#f7f4ef;border:none;box-shadow:0 18px 30px -18px rgba(0,0,0,.35)}
   #topbar.nav-open #nav{display:flex}
@@ -266,7 +266,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
   #nav .nav-link::after{display:none}
   .nav-cta .cta-label{display:none}
   .nav-cta{padding-right:7px;border-color:transparent}
-  #topbar.scrolled .nav-cta,#topbar.solid .nav-cta{border-color:transparent}
+  #topbar.scrolled .nav-cta,#topbar.solid .nav-cta{border-color:transparent;background:transparent}
 }
 
 /* Scene text */
