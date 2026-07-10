@@ -123,8 +123,8 @@
         + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.74) 0%,rgba(20,16,11,.4) 55%,rgba(20,16,11,.12) 100%)"></span>'
         + '<span style="position:relative;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,1.7vw,22px);text-align:left;color:#F5F0E6">'
         +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(32px,3.4vw,44px);height:auto;flex:none;object-fit:contain">'
-        +   '<span><span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(18px,2vw,27px);line-height:1;letter-spacing:.01em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
-        +     '<span style="display:block;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.86;margin-top:7px">'+t("cat."+c.line+".sub")+'</span></span>'
+        +   '<span><span style="display:block;font-family:var(--sans);font-weight:500;font-size:clamp(18px,2vw,27px);line-height:1;letter-spacing:.04em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
+        +     '<span style="display:block;font-family:var(--sans);font-size:10px;font-weight:450;letter-spacing:.2em;text-transform:uppercase;opacity:.86;margin-top:7px">'+t("cat."+c.line+".sub")+'</span></span>'
         + '</span></button>';
     }).join("");
 
