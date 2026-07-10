@@ -957,9 +957,9 @@ document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {pa
 // ── Galería del proyecto destacado (auto-avance 5s; reinicializable) ──
 var featTimer = null;
 function initFeatGallery(){
-  var gal = document.getElementById('palmGallery');
+  var gal = document.getElementById('featGallery');
   if(!gal) return;
-  var dots = document.getElementById('palmDots');
+  var dots = document.getElementById('featDots');
   var imgs = Array.prototype.slice.call(gal.querySelectorAll('img'));
   clearInterval(featTimer);
   if(dots) dots.innerHTML = '';
@@ -979,33 +979,40 @@ function initFeatGallery(){
   function restart(){ clearInterval(featTimer); featTimer = setInterval(function(){ show(i+1); }, 5000); }
   if(imgs.length > 1) restart();  // sin flechas: solo auto-avanza si hay >1 imagen
 }
-initFeatGallery();
 
 // ── Featured de la home desde data.json (propiedad marcada homeFeatured en el admin) ──
+// Sin propiedad marcada -> el bloque se queda oculto (display:none del HTML). No hay datos de relleno.
 function applyHomeFeatured(p){
   if(!p) return;
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  var title = (p.title && p.title.en) || 'Featured project';
-  var gal = document.getElementById('palmGallery');
+  var block = document.getElementById('featuredBlock');
+  var title = (p.title && p.title.en) || '';
+  var gal = document.getElementById('featGallery');
   var imgs = (p.images||[]).filter(Boolean);
-  if(gal && imgs.length){
-    gal.innerHTML = imgs.map(function(src,n){ return '<img src="'+esc(src)+'" alt="'+esc(title)+'"'+(n===0?' class="active"':'')+' loading="lazy">'; }).join('');
-  }
+  if(gal) gal.innerHTML = imgs.map(function(src,n){ return '<img src="'+esc(src)+'" alt="'+esc(title)+'"'+(n===0?' class="active"':'')+' loading="lazy">'; }).join('');
   var logoEl = document.querySelector('.lw-feat-card-logo');
   if(logoEl){
     if(p.logo){ logoEl.src = p.logo; logoEl.alt = title; }
     else { var h=document.createElement('h2'); h.className='lw-feat-card-name'; h.textContent=title; logoEl.replaceWith(h); }
   }
   var locEl = document.querySelector('.lw-feat-card-loc');
-  if(locEl && p.region) locEl.textContent = p.region;
+  if(locEl) locEl.textContent = p.region || '';
   var ul = document.querySelector('.lw-feat-card-specs');
   var hl = (p.highlights||[]).filter(Boolean);
-  if(ul && hl.length) ul.innerHTML = hl.slice(0,5).map(function(t){ return '<li>'+esc(t)+'</li>'; }).join('');
+  if(ul) ul.innerHTML = hl.slice(0,5).map(function(t){ return '<li>'+esc(t)+'</li>'; }).join('');
+  var investEl = document.querySelector('.lw-feat-invest');
   var amt = document.querySelector('.lw-feat-invest-amt');
-  if(amt && p.priceEUR) amt.textContent = 'FROM €' + Number(p.priceEUR).toLocaleString('en-US') + '.';
+  if(investEl && amt){
+    if(p.priceEUR){ amt.textContent = 'FROM €' + Number(p.priceEUR).toLocaleString('en-US') + '.'; investEl.style.display = ''; }
+    else { investEl.style.display = 'none'; }
+  }
   var dossier = (p.downloads||[]).filter(function(d){ return d && d.url; })[0];
   var dlBtn = document.querySelector('.lw-feat-card-btns .cs-btn-green');
-  if(dlBtn && dossier) dlBtn.setAttribute('href', dossier.url);
+  if(dlBtn){
+    if(dossier){ dlBtn.setAttribute('href', dossier.url); dlBtn.style.display = ''; }
+    else { dlBtn.style.display = 'none'; }
+  }
+  if(block) block.style.display = '';
   initFeatGallery();
 }
 
@@ -1964,31 +1971,23 @@ function applyHomeFeatured(p){
 
 <!-- ════ 7 · FEATURED PROJECT + CONTACT + FOOTER ════ -->
 <section class="lw-contact" id="contact">
-  <!-- Featured project (fondo lino) -->
-  <div class="lw-featured-block">
+  <!-- Featured project (fondo lino) — vacío por defecto; solo se muestra y rellena si hay
+       una propiedad marcada "Feature this project in the big Featured block" en el admin. -->
+  <div class="lw-featured-block" id="featuredBlock" style="display:none">
     <div class="lw-feat-carousel reveal">
       <div class="lw-feat-grid">
         <div class="lw-feat-media lw-feat-outline">
-          <div class="lw-feat-gallery" id="palmGallery">
-            <img src="assets/img/line-signature.jpg" alt="Palm Field — Balian, Bali" class="active" loading="lazy">
-            <img src="assets/img/CardSignatures.jpg" alt="Palm Field — villa community" loading="lazy">
-            <img src="assets/img/aerial-1.jpg" alt="Palm Field — aerial view" loading="lazy">
-          </div>
-          <div class="lw-feat-dots" id="palmDots" aria-hidden="true"></div>
-          <div class="lw-feat-invest"><span class="lw-feat-invest-l">Investment</span><span class="lw-feat-invest-amt">FROM €95,000.</span></div>
+          <div class="lw-feat-gallery" id="featGallery"></div>
+          <div class="lw-feat-dots" id="featDots" aria-hidden="true"></div>
+          <div class="lw-feat-invest" style="display:none"><span class="lw-feat-invest-l">Investment</span><span class="lw-feat-invest-amt"></span></div>
         </div>
         <div class="lw-feat-card">
-          <img class="lw-feat-card-logo" src="assets/img/logo-palmfield.png" alt="Palm Field" loading="lazy">
-          <span class="lw-feat-card-loc">Balian · Bali · Indonesia</span>
-          <ul class="lw-feat-card-specs">
-            <li>700 meters from the ocean</li>
-            <li>2 min to the beach</li>
-            <li>Private tropical villas</li>
-            <li>Land included from 250 m²</li>
-          </ul>
+          <img class="lw-feat-card-logo" src="" alt="" loading="lazy">
+          <span class="lw-feat-card-loc"></span>
+          <ul class="lw-feat-card-specs"></ul>
           <div class="lw-feat-card-btns">
             <a class="cs-btn cs-btn-bone" href="#contact-form">Ask an Advisor</a>
-            <a class="cs-btn cs-btn-green" href="assets/docs/palm-field-dossier.pdf" download>Download the Dossier</a>
+            <a class="cs-btn cs-btn-green" href="#" download style="display:none">Download the Dossier</a>
           </div>
         </div>
       </div>
