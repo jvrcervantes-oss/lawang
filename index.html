@@ -679,10 +679,14 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 </header>
 <script>
 (function(){
-  var tb=document.getElementById('topbar'), b=document.getElementById('navBurger');
+  var tb=document.getElementById('topbar'), b=document.getElementById('navBurger'),
+      logoEl=document.getElementById('logo'), snapEl=document.getElementById('snap');
   b.addEventListener('click',function(){
     var open=tb.classList.toggle('nav-open');
     b.setAttribute('aria-expanded',open?'true':'false');
+    var past=snapEl&&snapEl.scrollTop>8;
+    tb.classList.toggle('solid', open||past);
+    if(logoEl) logoEl.classList.toggle('dark', open||past);
   });
   document.querySelectorAll('#nav .nav-link').forEach(function(a){
     a.addEventListener('click',function(){ tb.classList.remove('nav-open'); b.setAttribute('aria-expanded','false'); });
