@@ -108,6 +108,9 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 .snap > section,
 #content-sections > section{ scroll-snap-align:start; scroll-snap-stop:always; }
 @media(prefers-reduced-motion:reduce){.snap{scroll-behavior:auto;scroll-snap-type:y proximity}}
+/* iOS WebKit: scroll-snap:mandatory + scroll-behavior:smooth chocan entre sí (bug conocido de Safari) ->
+   el swipe táctil se queda a medias o no avanza de sección. En touch, dejamos que el snap nativo mande. */
+@media(hover:none){.snap{scroll-behavior:auto}}
 
 #cursor{position:fixed;top:0;left:0;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:100001;will-change:transform}
 #cursor-ring{position:fixed;top:0;left:0;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;border:1px solid rgba(190,179,165,0.4);pointer-events:none;z-index:100000;will-change:transform}
