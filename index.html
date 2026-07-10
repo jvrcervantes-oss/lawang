@@ -247,6 +247,14 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 #topbar.nav-open .nav-burger span:nth-child(2){opacity:0}
 #topbar.nav-open .nav-burger span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
 @media(max-width:900px){
+  /* Móvil: topbar siempre sólido (no el "ghost" transparente de desktop sobre el hero) */
+  #topbar{background:rgba(247,244,239,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 1px 0 rgba(190,179,165,.3)}
+  #logo-inner .ll-white{display:none}
+  #logo-inner .ll-dark{display:block}
+  .nav-burger span{background:rgba(26,22,18,.8);box-shadow:none}
+  .nav-lang{color:rgba(26,22,18,.62);text-shadow:none}
+  .nav-lang:hover{color:var(--pg)}
   .nav-burger{display:flex}
   #nav{display:none;position:absolute;top:100%;left:0;right:0;transform:none;
     flex-direction:column;align-items:flex-start;gap:0;border-radius:0;padding:.4rem 0;height:auto;
