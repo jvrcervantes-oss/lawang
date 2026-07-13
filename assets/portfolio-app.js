@@ -553,9 +553,10 @@
     document.title = pick(p.title)+" · Lawang";
     var cfg = configState(p);
     var isSignature = p.line==="signature";
+    var isDeliveredNotForSale = isSignature && !p.priceEUR;  // signature sin precio = ya vendida/showcase; con precio sigue disponible
     var hasConfigurator = !isSignature && !!(cfg.landOptions||cfg.models||cfg.extrasList);
     var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
-    var leftMain = isSignature ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
+    var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
     var subText = pick(p.sub);
     var subHTML = subText ? '<p style="font-size:18px;color:var(--ink-2);margin-top:14px;max-width:50ch">'+esc(subText)+'</p>' : "";
     var descText = pick(p.desc);
