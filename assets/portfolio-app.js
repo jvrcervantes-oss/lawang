@@ -315,7 +315,7 @@
         + '<div style="font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,240,230,0.38);margin-bottom:8px;font-family:var(--sans)">'+esc(sp.l)+'</div>'
         + '<div style="font-family:var(--sans);font-size:1rem;font-weight:500;color:rgba(245,240,230,0.88);line-height:1.2">'+(sp.html!=null?sp.html:esc(sp.v))+'</div></div>';
     }).join("");
-    return '<div style="background:#104C4F;border-radius:8px;margin-top:28px;overflow:hidden"><div class="tech-specs-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">'+cells+'</div></div>';
+    return '<div style="background:var(--dl);border-radius:8px;margin-top:28px;overflow:hidden"><div class="tech-specs-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">'+cells+'</div></div>';
   }
 
   function downloadsHTML(files, p){
@@ -352,15 +352,18 @@
     var row='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);gap:12px';
     var lbl='font-size:12.5px;color:var(--ink-2);font-weight:500;flex-shrink:0';
     var val='font-size:13px;text-align:right';
-    var curRows = ["EUR","USD","AUD"].map(function(c){ return '<div style="font-size:12px;color:var(--ink-2)"><span style="font-weight:600">'+c+'</span> '+money(p.priceEUR,c)+'</div>'; }).join("");
+    var hasPrice = !!p.priceEUR;
+    var curRows = hasPrice ? ["EUR","USD","AUD"].map(function(c){ return '<div style="font-size:12px;color:var(--ink-2)"><span style="font-weight:600">'+c+'</span> '+money(p.priceEUR,c)+'</div>'; }).join("") : "";
+    var priceNoteHTML = hasPrice ? '<div style="font-size:11px;color:var(--ink-2);margin-top:6px;opacity:.65">'+t("pd.pricenote")+'</div>' : "";
     var units = (p.unitsAvailable!=null&&p.unitsAvailable!=="") ? '<div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between"><span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">'+t("glance.units")+'</span><span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600"><span style="width:7px;height:7px;border-radius:999px;background:'+(Number(p.unitsAvailable)>0?"var(--tg)":"var(--ink-2)")+'"></span>'+esc(p.unitsAvailable)+(p.unitsTotal?" / "+esc(p.unitsTotal):"")+'</span></div>' : "";
+    var locationRow = p.region ? '<div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">'+t("glance.location")+'</span><span style="font-size:13px;font-weight:600">'+esc(p.region)+'</span></div>' : "";
     return '<div style="display:flex;flex-direction:column;gap:14px">'
       + '<div style="background:var(--bone-2);border:1px solid var(--line);border-radius:10px;overflow:hidden">'
       +   '<div style="padding:22px 20px 18px;border-bottom:1px solid var(--line)"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">'+t("glance.entry")+'</div>'
       +     '<div class="serif" style="font-size:clamp(28px,2.8vw,36px);font-weight:400;line-height:1">'+priceHTML(p.priceEUR,true)+'</div>'
-      +     '<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">'+curRows+'</div>'
-      +     '<div style="font-size:11px;color:var(--ink-2);margin-top:6px;opacity:.65">'+t("pd.pricenote")+'</div></div>'
-      +   '<div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">'+t("glance.location")+'</span><span style="font-size:13px;font-weight:600">'+esc(p.region)+'</span></div>'
+      +     (curRows?'<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">'+curRows+'</div>':'')
+      +     priceNoteHTML+'</div>'
+      +   locationRow
       +   units
       +   '<div style="padding:14px 20px"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">Legal</div>'
       +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.tenure")+'</span><span style="'+val+';font-weight:600;color:'+(isF?"var(--tg)":"inherit")+'">'+(isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr"))+'</span></div>'
@@ -547,6 +550,10 @@
     var hasConfigurator = !isSignature && !!(cfg.landOptions||cfg.models||cfg.extrasList);
     var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
     var leftMain = isSignature ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
+    var subText = pick(p.sub);
+    var subHTML = subText ? '<p style="font-size:18px;color:var(--ink-2);margin-top:14px;max-width:50ch">'+esc(subText)+'</p>' : "";
+    var descText = pick(p.desc);
+    var overviewHTML = descText ? '<div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(descText)+'</p></div>' : "";
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
       + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px">'+esc(pick(x.title))+'</p><p style="font-size:13px;color:var(--ink-2);margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
       + '</div></div>' : "";
@@ -554,12 +561,12 @@
       + breadcrumbsHTML(p)
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:30px"><div style="flex:1 1 380px;min-width:0">'
       +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);font-family:var(--sans)">'+t(LINE_KEYS[p.line])+'</span><span style="width:1px;height:12px;background:var(--line)"></span><span style="font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-family:var(--sans)">'+t(p.status)+'</span></div>'
-      +   '<h1 class="display" style="font-size:clamp(34px,5vw,64px)">'+esc(pick(p.title))+'</h1><p style="font-size:18px;color:var(--ink-2);margin-top:14px;max-width:50ch">'+esc(pick(p.sub))+'</p></div>'
+      +   '<h1 class="display" style="font-size:clamp(34px,5vw,64px)">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
       +   '<div style="flex-shrink:0;text-align:right"><div class="serif" style="font-size:clamp(28px,2.8vw,38px);font-weight:400;line-height:1">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
       + techSpecsHTML(p)
       + '<div class="pdp-cols" style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);margin-top:56px;align-items:start">'
-      +   '<div><div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(pick(p.desc))+'</p></div>'
+      +   '<div>'+overviewHTML
       +     mapBlockHTML(p)+leftMain+'</div>'
       +   '<div style="position:sticky;top:80px">'+sidebarHTML(p)+'</div>'
       + '</div>'+alsoHTML
