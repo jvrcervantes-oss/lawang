@@ -409,7 +409,9 @@
 
   function paymentPlanHTML(p, priceEUR){
     var price = priceEUR!=null?priceEUR:p.priceEUR;
+    if(!price || !isFinite(price)) return "";  // sin precio no hay % que calcular -> ocultar en vez de mostrar NaN
     var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
+    if(!steps || !steps.length) return "";
     var rows = steps.map(function(s,i){ return '<div style="display:grid;grid-template-columns:44px 1fr auto;gap:16px;align-items:start;padding:18px 0;border-bottom:1px solid var(--line)">'
       + '<div style="font-family:var(--sans);font-size:22px;font-weight:300;color:var(--clay);line-height:1;padding-top:4px;opacity:'+(i===0?1:0.45)+'">'+s.step+'</div>'
       + '<div><div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(s.label)+'</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">'+esc(s.note)+'</div></div>'
@@ -473,7 +475,11 @@
         + selExtras.map(function(e){return '<div style="'+bRow+';color:var(--ink-2)"><span>+ '+esc(e.name)+'</span><span>'+money(Number(e.priceEUR)||0)+'</span></div>';}).join("")
         + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:6px;border-top:1px solid rgba(72,91,55,.22)"><span style="font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em">'+t("fin.total")+'</span><span style="font-family:var(--sans);font-size:20px;font-weight:700">'+money(configuredEUR)+'</span></div></div>';
     }
-    var inner=(bare?"":'<div class="kicker" style="margin-bottom:24px">'+t("fin.title")+'</div>')+breakdown+paymentPlanHTML(p,configuredEUR)+(p.nightlyRate>0?investmentCalcHTML(p,configuredEUR):"");
+    var paymentPlan = paymentPlanHTML(p,configuredEUR);
+    var investmentCalc = p.nightlyRate>0 ? investmentCalcHTML(p,configuredEUR) : "";
+    var body = breakdown+paymentPlan+investmentCalc;
+    if(!body) return "";  // sin desglose, sin plan de pagos y sin ROI -> no hay nada que mostrar en este bloque
+    var inner=(bare?"":'<div class="kicker" style="margin-bottom:24px">'+t("fin.title")+'</div>')+body;
     return bare?'<div>'+inner+'</div>':'<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)">'+inner+'</div>';
   }
 
