@@ -252,6 +252,7 @@
       +     '<div class="lw-ft-legal">'
       +       '<a class="lw-ft-tc" href="#" data-legal="terms">Terms &amp; Conditions</a>'
       +       '<a class="lw-ft-tc" href="#" data-legal="privacy">Privacy Policy</a>'
+      +       '<a class="lw-ft-tc" href="accessibility.html">Accessibility</a>'
       +     '</div>'
       +   '</div>'
       + '</footer>';
@@ -334,7 +335,7 @@
       var locked = files.map(function(f){ return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;opacity:.5"><div style="width:26px;height:26px;background:var(--tg-light);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--tg)">'+(f.ext||"PDF")+'</div><div style="font-size:13px">'+esc(f.name)+'</div></div>'; }).join("");
       inner = '<form data-act="dl-submit"><div style="margin-bottom:14px">'+locked+'</div>'
         + '<p style="font-size:12.5px;color:var(--ink);font-weight:600;line-height:1.4;margin-bottom:10px">'+t("dl.gate.title")+'</p>'
-        + '<input type="email" id="dl-email" value="'+esc(S.dlEmail)+'" placeholder="you@email.com" aria-label="Email" style="width:100%;padding:10px 12px;border:1px solid '+(S.dlErr?"#b3402e":"var(--line)")+';border-radius:6px;font-size:14px;font-family:var(--sans);outline:none;margin-bottom:'+(S.dlErr?"6px":"10px")+';background:white;box-sizing:border-box">'
+        + '<input type="email" id="dl-email" value="'+esc(S.dlEmail)+'" placeholder="you@email.com" aria-label="Email" style="width:100%;padding:10px 12px;border:1px solid '+(S.dlErr?"#b3402e":"var(--line)")+';border-radius:6px;font-size:14px;font-family:var(--sans);margin-bottom:'+(S.dlErr?"6px":"10px")+';background:white;box-sizing:border-box">'
         + (S.dlErr?'<div style="font-size:11.5px;color:#b3402e;margin-bottom:10px">'+t("dl.gate.invalid")+'</div>':"")
         + '<button type="submit" style="width:100%;background:var(--clay);color:var(--bone);border:none;border-radius:6px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans)">'+t("dl.gate.cta")+' →</button>'
         + '<p style="font-size:11px;color:var(--ink-2);line-height:1.5;margin-top:10px;opacity:.85">'+t("dl.gate.note")+'</p></form>';
@@ -666,6 +667,8 @@
       render();
     });
     window.addEventListener("hashchange", onHash);
+    // a11y: cerrar la ficha de propiedad con Escape (misma UX que el modal legal)
+    document.addEventListener("keydown", function(e){ if(e.key==="Escape" && S.overlay) closeProperty(); });
     document.addEventListener("click", function(e){
       if(S.langOpen && !e.target.closest(".nav-lang-wrap")){ S.langOpen=false; render(); }
     });
