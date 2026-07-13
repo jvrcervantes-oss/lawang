@@ -41,12 +41,15 @@
    necesitan tanto sitio como un nombre o un domicilio. */
 .doc .f{ font-weight:600; color:var(--brand-accent,#42210B);
   display:inline-flex; align-items:flex-end; justify-content:center;
-  min-width:110px; min-height:9mm; padding:0 8px; margin:2px 3px;
+  min-width:70px; min-height:9mm; padding:0 8px; margin:2px 3px;
   border-bottom:1px solid var(--sc,#8F9B7A); vertical-align:bottom; }
-.doc .f-xs{ min-width:44px; }    /* %, nº de meses */
-.doc .f-sm{ min-width:80px; }    /* precio, número, fecha, superficie */
-.doc .f-md{ min-width:150px; }   /* nacionalidad, pasaporte, teléfono, código */
-.doc .f-lg{ min-width:250px; }   /* nombre, domicilio, email, importe en letras */
+/* anchos reducidos: cada párrafo vive en una columna a mitad de página (idioma
+   activo + Bahasa Indonesia lado a lado, ver langCSS en app.html) — un mínimo
+   pensado para página completa deja el hueco casi tan ancho como la columna. */
+.doc .f-xs{ min-width:30px; }    /* %, nº de meses */
+.doc .f-sm{ min-width:55px; }    /* precio, número, fecha, superficie */
+.doc .f-md{ min-width:95px; }    /* nacionalidad, pasaporte, teléfono, código */
+.doc .f-lg{ min-width:145px; }   /* nombre, domicilio, email, importe en letras */
 
 /* bloque de partes */
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);
