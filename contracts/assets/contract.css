@@ -66,6 +66,10 @@
 .doc table.pays .pct{ font-weight:700; color:var(--brand-deep,#104C4F); text-align:right; white-space:nowrap; }
 .doc table.pays .n{ color:var(--muted,#6b6c66); width:26px; text-align:center; }
 
+/* tabla de firmas: 2 columnas iguales (auto-layout las descuadraba si una firma iba vacía) */
+.doc table.sigs{ table-layout:fixed; }
+.doc table.sigs td{ width:50%; }
+
 /* nota de pendiente (scaffolds) */
 .doc .pending{ border:1px dashed var(--sc,#8F9B7A); background:#fbf9f3; border-radius:6px;
   padding:14px 16px; color:#7a5f2e; margin:18px 0; font-size:9.5pt; }
