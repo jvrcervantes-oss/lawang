@@ -38,6 +38,21 @@
           ["adq1_nacionalidad", "Nacionalidad", "text"],
           ["adq1_pasaporte", "Pasaporte", "text"]
         ]},
+        { "id": "comprador2", "title": "Adquiriente II", "fields": [
+          ["adq2_nombre", "Nombre y apellidos", "text"],
+          ["adq2_nacionalidad", "Nacionalidad", "text"],
+          ["adq2_pasaporte", "Pasaporte", "text"]
+        ]},
+        { "id": "comprador3", "title": "Adquiriente III", "fields": [
+          ["adq3_nombre", "Nombre y apellidos", "text"],
+          ["adq3_nacionalidad", "Nacionalidad", "text"],
+          ["adq3_pasaporte", "Pasaporte", "text"]
+        ]},
+        { "id": "sociedad", "title": "Compra vía sociedad (PT PMA)", "fields": [
+          ["comp_domicilio", "Domicilio social", "text"],
+          ["comp_nib", "NIB / OSS", "text"],
+          ["comp_npwp", "NPWP", "text"]
+        ]},
         { "id": "proyecto", "title": "Proyecto y precio", "fields": [
           ["proyecto_nombre", "Nombre del proyecto", "text"],
           ["parcela_codigo", "Número de parcela", "text"],

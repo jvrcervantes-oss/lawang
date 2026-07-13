@@ -23,6 +23,10 @@
     </div>
 
     <!-- ============ REUNIDOS / EXPONEN ============ -->
+    <!-- El nombre del proyecto ya es dinámico ({{proyecto_nombre}}), pero esta empresa
+         (PT Balian Hills Resort) y su NPWP siguen fijos. Si algún día se reserva una
+         parcela en Sumba Hills o Tabanan, hace falta la razón social y el NPWP reales
+         de la promotora de ese proyecto antes de usar esta plantilla para él. -->
     <h2><span data-lang="es">Reunidos</span><span data-lang="en">Appearing parties</span><span data-lang="id">Para Pihak yang Hadir</span></h2>
 
     <div class="party">
@@ -34,41 +38,41 @@
 
     <div class="party">
       <div class="role"><span data-lang="es">Adquiriente I</span><span data-lang="en">Buyer I</span><span data-lang="id">Pembeli I</span></div>
-      <p data-lang="es"><b>ADQUIRIENTE I:</b> <span class="f">{{adq1_nombre}}</span>, nacional de <span class="f">{{adq1_nacionalidad}}</span>, con pasaporte nº P <span class="f">{{adq1_pasaporte}}</span> y domicilio en <span class="f">{{adq1_domicilio}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span> a efecto de notificaciones.</p>
-      <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, national of <span class="f">{{adq1_nacionalidad}}</span>, holder of passport no. P <span class="f">{{adq1_pasaporte}}</span>, residing at <span class="f">{{adq1_domicilio}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes.</p>
-      <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, warga negara <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. P <span class="f">{{adq1_pasaporte}}</span>, beralamat di <span class="f">{{adq1_domicilio}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan.</p>
+      <p data-lang="es"><b>ADQUIRIENTE I:</b> <span class="f">{{adq1_nombre}}</span>, nacional de <span class="f">{{adq1_nacionalidad}}</span>, con pasaporte nº <span class="f">{{adq1_pasaporte}}</span> y domicilio en <span class="f">{{adq1_domicilio}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span> a efecto de notificaciones.</p>
+      <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, national of <span class="f">{{adq1_nacionalidad}}</span>, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, residing at <span class="f">{{adq1_domicilio}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes.</p>
+      <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, warga negara <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq1_pasaporte}}</span>, beralamat di <span class="f">{{adq1_domicilio}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan.</p>
     </div>
 
     <!--opt:adq2_nombre-->
     <div class="party">
       <div class="role"><span data-lang="es">Adquiriente II</span><span data-lang="en">Buyer II</span><span data-lang="id">Pembeli II</span></div>
-      <p data-lang="es"><b>ADQUIRIENTE II:</b> <span class="f">{{adq2_nombre}}</span>, nacional de <span class="f">{{adq2_nacionalidad}}</span>, con pasaporte nº P <span class="f">{{adq2_pasaporte}}</span>, a efecto de notificaciones.</p>
-      <p data-lang="en"><b>BUYER II:</b> <span class="f">{{adq2_nombre}}</span>, national of <span class="f">{{adq2_nacionalidad}}</span>, holder of passport no. P <span class="f">{{adq2_pasaporte}}</span>, for notification purposes.</p>
-      <p data-lang="id"><b>PEMBELI II:</b> <span class="f">{{adq2_nombre}}</span>, warga negara <span class="f">{{adq2_nacionalidad}}</span>, pemegang paspor no. P <span class="f">{{adq2_pasaporte}}</span>, untuk keperluan pemberitahuan.</p>
+      <p data-lang="es"><b>ADQUIRIENTE II:</b> <span class="f">{{adq2_nombre}}</span>, nacional de <span class="f">{{adq2_nacionalidad}}</span>, con pasaporte nº <span class="f">{{adq2_pasaporte}}</span>, a efecto de notificaciones.</p>
+      <p data-lang="en"><b>BUYER II:</b> <span class="f">{{adq2_nombre}}</span>, national of <span class="f">{{adq2_nacionalidad}}</span>, holder of passport no. <span class="f">{{adq2_pasaporte}}</span>, for notification purposes.</p>
+      <p data-lang="id"><b>PEMBELI II:</b> <span class="f">{{adq2_nombre}}</span>, warga negara <span class="f">{{adq2_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq2_pasaporte}}</span>, untuk keperluan pemberitahuan.</p>
     </div>
     <!--/opt:adq2_nombre-->
 
     <!--opt:adq3_nombre-->
     <div class="party">
       <div class="role"><span data-lang="es">Adquiriente III</span><span data-lang="en">Buyer III</span><span data-lang="id">Pembeli III</span></div>
-      <p data-lang="es"><b>ADQUIRIENTE III:</b> <span class="f">{{adq3_nombre}}</span>, nacional de <span class="f">{{adq3_nacionalidad}}</span>, con pasaporte nº P <span class="f">{{adq3_pasaporte}}</span>, a efecto de notificaciones.</p>
-      <p data-lang="en"><b>BUYER III:</b> <span class="f">{{adq3_nombre}}</span>, national of <span class="f">{{adq3_nacionalidad}}</span>, holder of passport no. P <span class="f">{{adq3_pasaporte}}</span>, for notification purposes.</p>
-      <p data-lang="id"><b>PEMBELI III:</b> <span class="f">{{adq3_nombre}}</span>, warga negara <span class="f">{{adq3_nacionalidad}}</span>, pemegang paspor no. P <span class="f">{{adq3_pasaporte}}</span>, untuk keperluan pemberitahuan.</p>
+      <p data-lang="es"><b>ADQUIRIENTE III:</b> <span class="f">{{adq3_nombre}}</span>, nacional de <span class="f">{{adq3_nacionalidad}}</span>, con pasaporte nº <span class="f">{{adq3_pasaporte}}</span>, a efecto de notificaciones.</p>
+      <p data-lang="en"><b>BUYER III:</b> <span class="f">{{adq3_nombre}}</span>, national of <span class="f">{{adq3_nacionalidad}}</span>, holder of passport no. <span class="f">{{adq3_pasaporte}}</span>, for notification purposes.</p>
+      <p data-lang="id"><b>PEMBELI III:</b> <span class="f">{{adq3_nombre}}</span>, warga negara <span class="f">{{adq3_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq3_pasaporte}}</span>, untuk keperluan pemberitahuan.</p>
     </div>
     <!--/opt:adq3_nombre-->
 
     <h2><span data-lang="es">Exponen</span><span data-lang="en">Recitals</span><span data-lang="id">Pertimbangan</span></h2>
-    <p data-lang="es"><b>I.-</b> Que el PROMOTOR es titular de las parcelas sobre las que está promoviendo el proyecto Balian Hills™. El Adquiriente declara que conoce y acepta la situación jurídica y física que presenta, al habérsele puesto a su disposición cualquier documentación solicitada relativa al proyecto y la parcela.</p>
-    <p data-lang="en"><b>I.-</b> That the DEVELOPER owns the plots on which the Balian Hills™ project is being developed. The Buyer declares that it is aware of and accepts the legal and physical situation presented, having been provided with any requested documentation relating to the project and the plot.</p>
-    <p data-lang="id"><b>I.-</b> Bahwa PENGEMBANG adalah pemilik kavling-kavling tempat proyek Balian Hills™ dikembangkan. Pembeli menyatakan mengetahui dan menerima keadaan hukum dan fisik yang ada, setelah disediakan setiap dokumen yang diminta terkait proyek dan kavling.</p>
+    <p data-lang="es"><b>I.-</b> Que el PROMOTOR es titular de las parcelas sobre las que está promoviendo el proyecto <span class="f">{{proyecto_nombre}}</span>. El Adquiriente declara que conoce y acepta la situación jurídica y física que presenta, al habérsele puesto a su disposición cualquier documentación solicitada relativa al proyecto y la parcela.</p>
+    <p data-lang="en"><b>I.-</b> That the DEVELOPER owns the plots on which the <span class="f">{{proyecto_nombre}}</span> project is being developed. The Buyer declares that it is aware of and accepts the legal and physical situation presented, having been provided with any requested documentation relating to the project and the plot.</p>
+    <p data-lang="id"><b>I.-</b> Bahwa PENGEMBANG adalah pemilik kavling-kavling tempat proyek <span class="f">{{proyecto_nombre}}</span> dikembangkan. Pembeli menyatakan mengetahui dan menerima keadaan hukum dan fisik yang ada, setelah disediakan setiap dokumen yang diminta terkait proyek dan kavling.</p>
 
-    <p data-lang="es"><b>II.-</b> Dentro del proyecto Balian Hills™, el Promotor está desarrollando parcelas de uso residencial así como parcelas de uso hotelero y servicios turísticos.</p>
-    <p data-lang="en"><b>II.-</b> Within the Balian Hills™ project, the Developer is developing plots for residential use as well as plots for hotel use and tourism services.</p>
-    <p data-lang="id"><b>II.-</b> Dalam proyek Balian Hills™, Pengembang mengembangkan kavling untuk penggunaan hunian serta kavling untuk penggunaan hotel dan jasa pariwisata.</p>
+    <p data-lang="es"><b>II.-</b> Dentro del proyecto <span class="f">{{proyecto_nombre}}</span>, el Promotor está desarrollando parcelas de uso residencial así como parcelas de uso hotelero y servicios turísticos.</p>
+    <p data-lang="en"><b>II.-</b> Within the <span class="f">{{proyecto_nombre}}</span> project, the Developer is developing plots for residential use as well as plots for hotel use and tourism services.</p>
+    <p data-lang="id"><b>II.-</b> Dalam proyek <span class="f">{{proyecto_nombre}}</span>, Pengembang mengembangkan kavling untuk penggunaan hunian serta kavling untuk penggunaan hotel dan jasa pariwisata.</p>
 
-    <p data-lang="es"><b>III.-</b> Dentro del proyecto Balian Hills™, el Promotor es titular de la parcela máster <span class="f">{{parcela_master}}</span>, de uso residencial, de la cual se segregan las parcelas objeto del presente Contrato, debidamente identificadas, delimitadas y detalladas en el Anexo, que se adjuntan al mismo y forman parte integrante de éste. La suma total de las superficies adquiridas asciende a <span class="f">{{superficie_total}}</span>, incluyendo la parte proporcional de viales y zonas comunes.</p>
-    <p data-lang="en"><b>III.-</b> Within the Balian Hills™ project, the Developer owns the master plot <span class="f">{{parcela_master}}</span>, of residential use, from which the plots subject to this Agreement are segregated, duly identified, delimited and detailed in the Annex, which is attached hereto and forms an integral part hereof. The total sum of the acquired areas amounts to <span class="f">{{superficie_total}}</span>, including the proportional share of roads and common areas.</p>
-    <p data-lang="id"><b>III.-</b> Dalam proyek Balian Hills™, Pengembang adalah pemilik kavling induk <span class="f">{{parcela_master}}</span>, untuk penggunaan hunian, yang darinya dipecah kavling-kavling objek Perjanjian ini, yang diidentifikasi, dibatasi, dan dirinci dalam Lampiran, yang dilampirkan dan merupakan bagian tak terpisahkan darinya. Jumlah total luas yang diperoleh adalah <span class="f">{{superficie_total}}</span>, termasuk bagian proporsional jalan dan area bersama.</p>
+    <p data-lang="es"><b>III.-</b> Dentro del proyecto <span class="f">{{proyecto_nombre}}</span>, el Promotor es titular de la parcela máster <span class="f">{{parcela_master}}</span>, de uso residencial, de la cual se segregan las parcelas objeto del presente Contrato, debidamente identificadas, delimitadas y detalladas en el Anexo, que se adjuntan al mismo y forman parte integrante de éste. La suma total de las superficies adquiridas asciende a <span class="f">{{superficie_total}}</span> m², incluyendo la parte proporcional de viales y zonas comunes.</p>
+    <p data-lang="en"><b>III.-</b> Within the <span class="f">{{proyecto_nombre}}</span> project, the Developer owns the master plot <span class="f">{{parcela_master}}</span>, of residential use, from which the plots subject to this Agreement are segregated, duly identified, delimited and detailed in the Annex, which is attached hereto and forms an integral part hereof. The total sum of the acquired areas amounts to <span class="f">{{superficie_total}}</span> sqm, including the proportional share of roads and common areas.</p>
+    <p data-lang="id"><b>III.-</b> Dalam proyek <span class="f">{{proyecto_nombre}}</span>, Pengembang adalah pemilik kavling induk <span class="f">{{parcela_master}}</span>, untuk penggunaan hunian, yang darinya dipecah kavling-kavling objek Perjanjian ini, yang diidentifikasi, dibatasi, dan dirinci dalam Lampiran, yang dilampirkan dan merupakan bagian tak terpisahkan darinya. Jumlah total luas yang diperoleh adalah <span class="f">{{superficie_total}}</span> m², termasuk bagian proporsional jalan dan area bersama.</p>
 
     <p data-lang="es"><b>IV.-</b> LEASEHOLD 90 AÑOS (PERSONA FÍSICA) o FREEHOLD HGB (SOCIEDAD INDONESIA).</p>
     <p data-lang="en"><b>IV.-</b> LEASEHOLD 90 YEARS (INDIVIDUAL) or FREEHOLD HGB (INDONESIAN COMPANY).</p>
@@ -100,9 +104,9 @@
     <p data-lang="id">Skema ini memungkinkan orang asing mengamankan kepemilikan abadi melalui entitas Indonesia, sesuai peraturan yang berlaku dan menjamin kepastian hukum jangka panjang.</p>
 
     <h2><span data-lang="es">Cláusula 2 — Precio y forma de pago</span><span data-lang="en">Clause 2 — Price and payment terms</span><span data-lang="id">Pasal 2 — Harga dan cara pembayaran</span></h2>
-    <p data-lang="es">La superficie total de la parcela es de <span class="f f-num6">{{tipologia_villa}}</span> m², el precio por metro cuadrado es de <span class="f f-num6">{{precio_m2}}</span> €, resultando en el importe total de <span class="f f-num6">{{precio_total}}</span> EUR que el Adquiriente se obliga a abonar al Promotor de la siguiente manera:</p>
-    <p data-lang="en">The total area of the plot is <span class="f f-num6">{{tipologia_villa}}</span> m², the price per square meter is <span class="f f-num6">{{precio_m2}}</span> €, resulting in a total amount of <span class="f f-num6">{{precio_total}}</span> EUR which the Buyer undertakes to pay the Developer as follows:</p>
-    <p data-lang="id">Luas total kavling adalah <span class="f f-num6">{{tipologia_villa}}</span> m², harga per meter persegi adalah <span class="f f-num6">{{precio_m2}}</span> €, menghasilkan jumlah total <span class="f f-num6">{{precio_total}}</span> EUR yang wajib dibayar Pembeli kepada Pengembang sebagai berikut:</p>
+    <p data-lang="es">La superficie total de la parcela es de <span class="f f-num6">{{tipologia_villa}}</span> m², el precio por metro cuadrado es de <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resultando en el importe total de <span class="f f-num6">{{precio_total}}</span> {{moneda}} que el Adquiriente se obliga a abonar al Promotor de la siguiente manera:</p>
+    <p data-lang="en">The total area of the plot is <span class="f f-num6">{{tipologia_villa}}</span> m², the price per square meter is <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resulting in a total amount of <span class="f f-num6">{{precio_total}}</span> {{moneda}} which the Buyer undertakes to pay the Developer as follows:</p>
+    <p data-lang="id">Luas total kavling adalah <span class="f f-num6">{{tipologia_villa}}</span> m², harga per meter persegi adalah <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, menghasilkan jumlah total <span class="f f-num6">{{precio_total}}</span> {{moneda}} yang wajib dibayar Pembeli kepada Pengembang sebagai berikut:</p>
     <ul data-lang="es">
       <li><b>1. Reserva:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} por parcela a la firma del presente contrato privado.</li>
       <li><b>2. Pago final:</b> El resto del precio, simultáneamente con la firma ante notario (PPAT) y entrega del terreno con un periodo máximo de tres meses posteriores a la fecha de firma del presente contrato.</li>
@@ -152,25 +156,25 @@
       <li>a) Cumplir las leyes y regulaciones de Indonesia.</li>
       <li>b) Pagar impuestos, tasas y gastos derivados del terreno.</li>
       <li>c) No destinar el terreno a actividades ilegales.</li>
-      <li>e) Mantener la parcela en condiciones de salubridad y habitabilidad, con el debido ornato, sin menoscabar el valor de sus vecinos y el Resort.</li>
-      <li>f) Cumplir con las normas estéticas y urbanísticas.</li>
-      <li>g) Cumplir con los Estatutos de la Comunidad de Propietarios en caso de su constitución futura.</li>
+      <li>d) Mantener la parcela en condiciones de salubridad y habitabilidad, con el debido ornato, sin menoscabar el valor de sus vecinos y el Resort.</li>
+      <li>e) Cumplir con las normas estéticas y urbanísticas.</li>
+      <li>f) Cumplir con los Estatutos de la Comunidad de Propietarios en caso de su constitución futura.</li>
     </ul>
     <ul data-lang="en">
       <li>a) Comply with the laws and regulations of Indonesia.</li>
       <li>b) Pay taxes, fees and expenses arising from the land.</li>
       <li>c) Not use the land for illegal activities.</li>
-      <li>e) Maintain the plot in conditions of health and habitability, with due upkeep, without impairing the value of its neighbours and the Resort.</li>
-      <li>f) Comply with the aesthetic and urban-planning rules.</li>
-      <li>g) Comply with the Bylaws of the Owners' Association should it be established in the future.</li>
+      <li>d) Maintain the plot in conditions of health and habitability, with due upkeep, without impairing the value of its neighbours and the Resort.</li>
+      <li>e) Comply with the aesthetic and urban-planning rules.</li>
+      <li>f) Comply with the Bylaws of the Owners' Association should it be established in the future.</li>
     </ul>
     <ul data-lang="id">
       <li>a) Mematuhi hukum dan peraturan Indonesia.</li>
       <li>b) Membayar pajak, retribusi, dan biaya yang timbul dari tanah.</li>
       <li>c) Tidak menggunakan tanah untuk kegiatan ilegal.</li>
-      <li>e) Menjaga kavling dalam kondisi sehat dan layak huni, dengan perawatan semestinya, tanpa merugikan nilai tetangga dan Resort.</li>
-      <li>f) Mematuhi aturan estetika dan tata kota.</li>
-      <li>g) Mematuhi Anggaran Dasar Perhimpunan Pemilik apabila kelak dibentuk.</li>
+      <li>d) Menjaga kavling dalam kondisi sehat dan layak huni, dengan perawatan semestinya, tanpa merugikan nilai tetangga dan Resort.</li>
+      <li>e) Mematuhi aturan estetika dan tata kota.</li>
+      <li>f) Mematuhi Anggaran Dasar Perhimpunan Pemilik apabila kelak dibentuk.</li>
     </ul>
 
     <h2><span data-lang="es">Cláusula 6 — Obligaciones del promotor</span><span data-lang="en">Clause 6 — Developer's obligations</span><span data-lang="id">Pasal 6 — Kewajiban pengembang</span></h2>
@@ -217,6 +221,8 @@
     <p data-lang="id">Para pihak tunduk pada pengadilan yang berwenang di Bali, Indonesia, dengan pelepasan tegas atas yurisdiksi lain yang mungkin berlaku bagi mereka, serta pada hukum Indonesia, tanpa mengesampingkan upaya penyelesaian damai terlebih dahulu.</p>
 
     <!-- ============ NORMATIVAS URBANÍSTICAS ============ -->
+    <!-- Contenido fijo del reglamento de Balian Hills (crestas, altura, HOA). Si esta
+         plantilla se usa para otro proyecto, revisar si sus normativas son las mismas. -->
     <h2><span data-lang="es">Normativas urbanísticas</span><span data-lang="en">Urban-planning regulations</span><span data-lang="id">Peraturan tata kota</span></h2>
     <p data-lang="es">Balian Hills se rige por normativas urbanísticas enfocadas en la sostenibilidad, diseñadas para integrar villas de lujo con el entorno natural. Entre las regulaciones clave se incluye la prohibición de construir por encima de las crestas para preservar las vistas, así como el uso extensivo de materiales locales.</p>
     <p data-lang="en">Balian Hills is governed by urban-planning regulations focused on sustainability, designed to integrate luxury villas with the natural environment. Key regulations include the prohibition of building above the ridgelines to preserve views, as well as the extensive use of local materials.</p>
