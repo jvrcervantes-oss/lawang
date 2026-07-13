@@ -15,6 +15,8 @@
         { "id": "parcela", "title": "Parcela y precio", "fields": [
           ["proyecto_nombre", "Nombre del proyecto", "text"],
           ["parcela_codigo", "Código de parcela", "text"],
+          ["tipologia_villa", "Superficie de la parcela (m²)", "text"],
+          ["precio_m2", "Precio por m² (€)", "number"],
           ["precio_total", "Precio total (€)", "number"],
           ["fecha_firma", "Fecha de firma", "date"]
         ]},

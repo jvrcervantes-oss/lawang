@@ -47,6 +47,7 @@
    activo + Bahasa Indonesia lado a lado, ver langCSS en app.html) — un mínimo
    pensado para página completa deja el hueco casi tan ancho como la columna. */
 .doc .f-xs{ min-width:30px; }    /* %, nº de meses */
+.doc .f-num6{ min-width:48px; }  /* hueco fijo ~6 caracteres, para nºs cortos en línea */
 .doc .f-sm{ min-width:55px; }    /* precio, número, fecha, superficie */
 .doc .f-md{ min-width:95px; }    /* nacionalidad, pasaporte, teléfono, código */
 .doc .f-lg{ min-width:145px; }   /* nombre, domicilio, email, importe en letras */
