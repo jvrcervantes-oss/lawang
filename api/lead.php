@@ -25,7 +25,12 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 // Recorta campos para evitar inyección de CSV / payloads enormes
 $clean = function ($s) {
     $s = preg_replace('/[\r\n]+/', ' ', $s);
-    return mb_substr($s, 0, 200);
+    $s = mb_substr($s, 0, 200);
+    // Anti inyección de fórmula CSV (Excel ejecuta celdas que empiezan por = + - @)
+    if ($s !== '' && strpos('=+-@', $s[0]) !== false) {
+        $s = "'" . $s;
+    }
+    return $s;
 };
 $source   = $clean($source);
 $property = $clean($property);

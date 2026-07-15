@@ -14,9 +14,7 @@
   var LINE_CREAM = { signature:"cream-signature", land:"cream-land", villa:"cream-villas", resorts:"cream-resorts" };
   var CREAM_TINT = "filter:brightness(0) saturate(100%) invert(28%) sepia(22%) saturate(560%) hue-rotate(50deg) brightness(94%) contrast(90%);";
 
-  var LAND_PLACEHOLDER = [ {size:400,priceEUR:95000}, {size:600,priceEUR:135000}, {size:1000,priceEUR:210000} ];
-  var HOME_PLACEHOLDER = [ {name:"Lontar",beds:2,built:120,priceEUR:215000}, {name:"Banyan",beds:3,built:180,priceEUR:285000}, {name:"Frangipani",beds:4,built:240,priceEUR:360000} ];
-  var EXTRAS_PLACEHOLDER = [ {name:"Private pool",priceEUR:28000}, {name:"Sauna",priceEUR:12000}, {name:"Outdoor kitchen",priceEUR:8500}, {name:"Airbnb rental kit",priceEUR:6500}, {name:"Solar energy package",priceEUR:9000} ];
+  // Sin datos reales no se muestra el configurador — nunca precios inventados (auditoría 15-jul).
 
   // ── Estado global ──────────────────────────────────────────
   var S = {
@@ -40,9 +38,9 @@
     if(s==="status.construction") return "background:var(--be);color:var(--bone);border-color:var(--be)";
     return "background:transparent;color:var(--ink-2);border-color:var(--line)";
   }
-  function resolveLand(p){ return (p.showLandOptions===true || (p.landOptions&&p.landOptions.length)) ? ((p.landOptions&&p.landOptions.length)?p.landOptions:LAND_PLACEHOLDER) : null; }
-  function resolveHomes(p){ return (p.showHomeModels===true || (p.homeModels&&p.homeModels.length)) ? ((p.homeModels&&p.homeModels.length)?p.homeModels:HOME_PLACEHOLDER) : null; }
-  function resolveExtras(p){ return (p.showExtras===true || (p.extras&&p.extras.length)) ? ((p.extras&&p.extras.length)?p.extras:EXTRAS_PLACEHOLDER) : null; }
+  function resolveLand(p){ return (p.landOptions && p.landOptions.length) ? p.landOptions : null; }
+  function resolveHomes(p){ return (p.homeModels && p.homeModels.length) ? p.homeModels : null; }
+  function resolveExtras(p){ return (p.extras && p.extras.length) ? p.extras : null; }
   function propById(id){ return L.PROPERTIES.find(function(x){return x.id===id;}); }
 
   // Placeholder de imagen (gradiente temático + img + tinte) — equivalente al <Ph> de React
