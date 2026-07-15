@@ -54,7 +54,7 @@
     var tint = (o.tint!=null?o.tint:0.18);
     var h = '<div class="ph '+(o.kb?"ph-kb ":"")+(url?"ph-photo":"ph-horizon")+'" style="'+st+'">';
     h += '<div class="ph-grad ph-'+theme+'"></div>';
-    if(url) h += '<img class="ph-img" src="'+esc(url)+'" alt="" style="opacity:1" onerror="this.style.display=\'none\'">';
+    if(url) h += '<img class="ph-img" src="'+esc(url)+'" alt="'+esc(o.label||"")+'" loading="lazy" style="opacity:1" onerror="this.style.display=\'none\'">';
     if(url && tint>0) h += '<div class="ph-tint" style="background:linear-gradient(180deg,rgba(26,22,15,'+(tint*0.7)+') 0%,transparent 30%,transparent 55%,rgba(26,22,15,'+(tint*1.6)+') 100%)"></div>';
     if(o.label) h += '<div class="ph-label">'+o.label+'</div>';
     h += '</div>';
@@ -444,7 +444,7 @@
   function chooseHomeHTML(p, cfg, bare){
     if(!cfg.models) return "";
     var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px">'+cfg.models.map(function(m,i){var on=i===cfg.modelIdx;
-      return '<button data-act="model:'+i+'" style="text-align:left;padding:0;border:2px solid '+(on?"var(--clay)":"var(--line)")+';border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2)"><div style="position:relative;aspect-ratio:4/3">'+(m.image?'<img src="'+esc(m.image)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+(on?'<span style="position:absolute;top:8px;right:8px;background:var(--clay);color:var(--bone);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px">'+t("home.selected")+'</span>':"")+'</div><div style="padding:12px 14px 14px"><div class="serif" style="font-size:19px">'+esc(m.name)+'</div><div style="font-size:12px;color:var(--ink-2);margin-top:4px">'+m.beds+' '+t("home.beds")+' · '+m.built+' m²</div><div style="font-size:14px;font-weight:600;margin-top:8px">'+priceHTML(m.priceEUR,true)+'</div></div></button>';
+      return '<button data-act="model:'+i+'" style="text-align:left;padding:0;border:2px solid '+(on?"var(--clay)":"var(--line)")+';border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2)"><div style="position:relative;aspect-ratio:4/3">'+(m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+(on?'<span style="position:absolute;top:8px;right:8px;background:var(--clay);color:var(--bone);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px">'+t("home.selected")+'</span>':"")+'</div><div style="padding:12px 14px 14px"><div class="serif" style="font-size:19px">'+esc(m.name)+'</div><div style="font-size:12px;color:var(--ink-2);margin-top:4px">'+m.beds+' '+t("home.beds")+' · '+m.built+' m²</div><div style="font-size:14px;font-weight:600;margin-top:8px">'+priceHTML(m.priceEUR,true)+'</div></div></button>';
     }).join("")+'</div>';
     if(bare) return grid;
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("home.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:24px;max-width:46ch">'+t("home.sub")+'</p>'+grid+'</div>';
@@ -540,7 +540,7 @@
 
   function mapBlockHTML(p){
     if(!p.mapImage) return '';  // sin mapa cargado en el admin -> no se muestra nada al cliente
-    var body = '<img src="'+esc(p.mapImage)+'" alt="'+t("map.title")+'" style="width:100%;border-radius:10px;display:block;border:1px solid var(--line)">';
+    var body = '<img src="'+esc(p.mapImage)+'" alt="'+t("map.title")+'" loading="lazy" style="width:100%;border-radius:10px;display:block;border:1px solid var(--line)">';
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:20px">'+t("map.title")+'</div>'+body+'</div>';
   }
 

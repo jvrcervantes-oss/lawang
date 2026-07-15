@@ -10,4 +10,4 @@
 
 ## Sections
 - [Portfolio](https://lawangproperties.com/portfolio.html): the full collection of available properties.
-- [Signature](https://lawangproperties.com/signature.html): the flagship / primary estate listings.
+- [Signature](https://lawangproperties.com/portfolio.html#signature): the flagship / primary estate listings.
