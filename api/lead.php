@@ -1,6 +1,6 @@
 <?php
 /**
- * lead.php — captura de leads (verja de descargas + formularios de interés, ej. QR Sumba Hills).
+ * lead.php — captura de email (verja de descargas de la ficha de producto).
  * Añade una fila a private/leads.csv. Sin dependencias externas.
  */
 header('Content-Type: application/json; charset=utf-8');
@@ -12,8 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $email    = isset($_POST['email'])    ? trim($_POST['email'])    : '';
-$name     = isset($_POST['name'])     ? trim($_POST['name'])     : '';
-$whatsapp = isset($_POST['whatsapp']) ? trim($_POST['whatsapp']) : '';
 $source   = isset($_POST['source'])   ? trim($_POST['source'])   : '';
 $property = isset($_POST['property']) ? trim($_POST['property']) : '';
 
@@ -29,8 +27,6 @@ $clean = function ($s) {
     $s = preg_replace('/[\r\n]+/', ' ', $s);
     return mb_substr($s, 0, 200);
 };
-$name     = $clean($name);
-$whatsapp = $clean(preg_replace('/[^\d+]/', '', $whatsapp));
 $source   = $clean($source);
 $property = $clean($property);
 
@@ -47,13 +43,11 @@ if ($fh === false) {
     exit;
 }
 if ($new) {
-    fputcsv($fh, ['timestamp', 'email', 'name', 'whatsapp', 'source', 'property', 'ip']);
+    fputcsv($fh, ['timestamp', 'email', 'source', 'property', 'ip']);
 }
 fputcsv($fh, [
     date('c'),
     $email,
-    $name,
-    $whatsapp,
     $source,
     $property,
     $_SERVER['REMOTE_ADDR'] ?? '',
