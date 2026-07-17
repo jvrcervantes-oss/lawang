@@ -144,7 +144,7 @@
     }).join("");
 
     // Guía Collection: dos grupos etiquetados — Property (verde) y Destination (tierra)
-    var groupLabel = function(pre, word, preColor){ return '<div style="font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:'+(preColor||'var(--ink-2)')+';margin-bottom:10px">'+pre+' <b style="font-weight:700;color:var(--ink)">'+word+' ⌄</b></div>'; };
+    var groupLabel = function(pre, word, color){ return '<div style="font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:'+(color||'var(--ink-2)')+';margin-bottom:10px">'+pre+' <b style="font-weight:700;color:'+(color||'var(--ink)')+'">'+word+' ⌄</b></div>'; };
     var propChips = '<button class="filter-chip" data-act="line:all" style="'+chipStyle(S.line==="all")+'">'+t("mk.all")+'</button>'
       + LINES.map(function(l){ return '<button class="filter-chip" data-act="line:'+l+'" style="'+chipStyle(S.line===l)+'">'+t(LINE_KEYS[l])+'</button>'; }).join("");
     var destChips = '<button class="filter-chip" data-act="region:all" style="'+chipStyle(S.region==="all","var(--be)")+'">'+t("mk.all")+'</button>'
