@@ -46,6 +46,21 @@
     <p data-lang="en">The buyers acknowledge that the Project is a private villa construction development and wish to regulate the commercial, technical and legal terms of the construction works under this Agreement and its Appendices.</p>
     <p data-lang="id">Para pembeli mengakui bahwa Proyek merupakan pengembangan konstruksi vila privat dan bermaksud mengatur syarat komersial, teknis, dan hukum pekerjaan konstruksi berdasarkan Perjanjian ini beserta Lampirannya.</p>
 
+    <!-- ============ IDENTIFICACIÓN DEL PROYECTO ============ -->
+    <h2><span data-lang="es">Identificación del proyecto</span><span data-lang="en">Project identification</span><span data-lang="id">Identifikasi proyek</span></h2>
+    <p data-lang="es"><b>Nombre del Proyecto:</b> <span class="f f-lg">{{proyecto_nombre}}</span></p>
+    <p data-lang="en"><b>Project Name:</b> <span class="f f-lg">{{proyecto_nombre}}</span></p>
+    <p data-lang="id"><b>Nama Proyek:</b> <span class="f f-lg">{{proyecto_nombre}}</span></p>
+    <p data-lang="es"><b>Tipología de Vivienda:</b> <span class="f f-lg">{{tipologia_construccion}}</span></p>
+    <p data-lang="en"><b>Housing Typology:</b> <span class="f f-lg">{{tipologia_construccion}}</span></p>
+    <p data-lang="id"><b>Tipologi Hunian:</b> <span class="f f-lg">{{tipologia_construccion}}</span></p>
+    <p data-lang="es"><b>Ubicación:</b> <span class="f f-lg">{{ubicacion_proyecto}}</span></p>
+    <p data-lang="en"><b>Location:</b> <span class="f f-lg">{{ubicacion_proyecto}}</span></p>
+    <p data-lang="id"><b>Lokasi:</b> <span class="f f-lg">{{ubicacion_proyecto}}</span></p>
+    <p data-lang="es"><b>Documentación Técnica:</b> Apéndice A: Planos Arquitectónicos · Apéndice B: Especificaciones Técnicas · Apéndice C: Dossier de Proyecto · Apéndice D: Oferta Comercial.</p>
+    <p data-lang="en"><b>Technical Documentation:</b> Appendix A: Architectural Drawings · Appendix B: Technical Specifications · Appendix C: Project Dossier · Appendix D: Commercial Offer.</p>
+    <p data-lang="id"><b>Dokumentasi Teknis:</b> Lampiran A: Gambar Arsitektur · Lampiran B: Spesifikasi Teknis · Lampiran C: Dosier Proyek · Lampiran D: Penawaran Komersial.</p>
+
     <!-- ============ ARTÍCULOS ============ -->
     <h2><span data-lang="es">Artículo 1 — Definiciones</span><span data-lang="en">Article 1 — Definitions</span><span data-lang="id">Pasal 1 — Definisi</span></h2>
     <ul data-lang="es">
@@ -96,35 +111,35 @@
     <p data-lang="id">Perjanjian ini dibuat dalam bahasa Spanyol, Inggris dan bahasa Indonesia. Dalam hal terjadi perbedaan antar versi, versi bahasa Spanyol yang berlaku di antara Para Pihak; namun demikian, untuk keperluan UU No. 24/2009 tentang kewajiban penggunaan bahasa Indonesia, versi bahasa Indonesia adalah yang disampaikan kepada otoritas dan lembaga pendaftaran Indonesia, dan wajib merupakan terjemahan yang setia dari versi bahasa Spanyol.</p>
 
     <h2><span data-lang="es">Artículo 4 — Precio del contrato e impuestos</span><span data-lang="en">Article 4 — Contract price and taxes</span><span data-lang="id">Pasal 4 — Harga kontrak dan pajak</span></h2>
-    <p data-lang="es">El precio total es de <span class="f">{{precio_total}}</span> {{moneda}}<!--opt:precio_total_letras--> (<span class="f f-lg">{{precio_total_letras}}</span>)<!--/opt:precio_total_letras-->, que el Adquiriente se obliga a abonar al Constructor de la siguiente manera:</p>
-    <p data-lang="en">The total price is <span class="f">{{precio_total}}</span> {{moneda}}<!--opt:precio_total_letras--> (<span class="f f-lg">{{precio_total_letras}}</span>)<!--/opt:precio_total_letras-->, which the Buyer undertakes to pay the Builder as follows:</p>
-    <p data-lang="id">Harga total adalah <span class="f">{{precio_total}}</span> {{moneda}}<!--opt:precio_total_letras--> (<span class="f f-lg">{{precio_total_letras}}</span>)<!--/opt:precio_total_letras-->, yang wajib dibayar Pembeli kepada Kontraktor sebagai berikut:</p>
+    <p data-lang="es">La tipología de vivienda regulada en el presente Contrato es el modelo <span class="f f-lg">{{tipologia_construccion}}</span> cuyo precio total construcción corresponde a <span class="f">{{precio_total}}</span> IDR<!--opt:precio_total_letras--> (<span class="f f-lg">{{precio_total_letras}}</span>)<!--/opt:precio_total_letras-->, que el Adquiriente se obliga a abonar de la siguiente manera:</p>
+    <p data-lang="en">The housing typology regulated under this Agreement is model <span class="f f-lg">{{tipologia_construccion}}</span>, whose total construction price is <span class="f">{{precio_total}}</span> IDR<!--opt:precio_total_letras--> (<span class="f f-lg">{{precio_total_letras}}</span>)<!--/opt:precio_total_letras-->, which the Buyer undertakes to pay as follows:</p>
+    <p data-lang="id">Tipologi hunian yang diatur dalam Perjanjian ini adalah model <span class="f f-lg">{{tipologia_construccion}}</span> dengan harga total konstruksi sebesar <span class="f">{{precio_total}}</span> IDR<!--opt:precio_total_letras--> (<span class="f f-lg">{{precio_total_letras}}</span>)<!--/opt:precio_total_letras-->, yang wajib dibayar Pembeli sebagai berikut:</p>
     <ul data-lang="es">
-      <li><b>Depósito de Reserva:</b> <span class="f">{{pago_reserva}}</span> {{moneda}}, pagaderos a la firma del Contrato de Reserva de la Parcela.</li>
-      <li><b>1er Pago Construcción:</b> <span class="f">{{pago_c1}}</span> {{moneda}}, pagaderos al inicio de las obras, Mes 1 desde la firma del presente contrato.</li>
-      <li><b>2do Pago Construcción:</b> <span class="f">{{pago_c2}}</span> {{moneda}}, pagaderos una vez finalizada la estructura de la vivienda.</li>
-      <li><b>3er Pago Construcción:</b> <span class="f">{{pago_c3}}</span> {{moneda}}, pagaderos tras la finalización de las instalaciones mecánicas, eléctricas y de fontanería (MEP), estimado para el Mes 9.</li>
-      <li><b>Pago final:</b> <span class="f">{{pago_final}}</span> {{moneda}}, pagaderos una vez finalizada la construcción de la villa, incluyendo cerramientos, piscina y acabados finales, estimado para el Mes 12, coincidiendo con la entrega de la unidad y la firma de la escritura de transmisión ante PPAT.</li>
+      <li><b>1er Pago Construcción:</b> 25% pagaderos al inicio de las obras, estimada el <span class="f">{{fecha_pago1}}</span>.</li>
+      <li><b>2do Pago Construcción:</b> 25% pagadero a los 90 días hábiles contados desde la Fecha de Inicio de Ejecución.</li>
+      <li><b>3er Pago Construcción:</b> 25% pagadero a los 150 días hábiles contados desde la Fecha de Inicio de Ejecución.</li>
+      <li><b>Pago Final:</b> 25% pagadero a los 210 días hábiles contados desde la Fecha de Inicio de Ejecución.</li>
     </ul>
     <ul data-lang="en">
-      <li><b>Reservation Deposit:</b> <span class="f">{{pago_reserva}}</span> {{moneda}}, payable on signing the Plot Reservation Agreement.</li>
-      <li><b>1st Construction Payment:</b> <span class="f">{{pago_c1}}</span> {{moneda}}, payable at the start of works, Month 1 from the signing of this agreement.</li>
-      <li><b>2nd Construction Payment:</b> <span class="f">{{pago_c2}}</span> {{moneda}}, payable once the structure of the dwelling is completed.</li>
-      <li><b>3rd Construction Payment:</b> <span class="f">{{pago_c3}}</span> {{moneda}}, payable after completion of the mechanical, electrical and plumbing (MEP) installations, estimated for Month 9.</li>
-      <li><b>Final Payment:</b> <span class="f">{{pago_final}}</span> {{moneda}}, payable once construction of the villa is completed, including enclosures, pool and final finishes, estimated for Month 12, coinciding with handover of the unit and signing of the transfer deed before a PPAT.</li>
+      <li><b>1st Construction Payment:</b> 25%, payable at the start of works, estimated on <span class="f">{{fecha_pago1}}</span>.</li>
+      <li><b>2nd Construction Payment:</b> 25%, payable 90 business days from the Execution Start Date.</li>
+      <li><b>3rd Construction Payment:</b> 25%, payable 150 business days from the Execution Start Date.</li>
+      <li><b>Final Payment:</b> 25%, payable 210 business days from the Execution Start Date.</li>
     </ul>
     <ul data-lang="id">
-      <li><b>Deposit Reservasi:</b> <span class="f">{{pago_reserva}}</span> {{moneda}}, dibayar saat penandatanganan Perjanjian Reservasi Kavling.</li>
-      <li><b>Pembayaran Konstruksi ke-1:</b> <span class="f">{{pago_c1}}</span> {{moneda}}, dibayar pada awal pekerjaan, Bulan 1 sejak penandatanganan perjanjian ini.</li>
-      <li><b>Pembayaran Konstruksi ke-2:</b> <span class="f">{{pago_c2}}</span> {{moneda}}, dibayar setelah struktur bangunan selesai.</li>
-      <li><b>Pembayaran Konstruksi ke-3:</b> <span class="f">{{pago_c3}}</span> {{moneda}}, dibayar setelah penyelesaian instalasi mekanikal, elektrikal, dan perpipaan (MEP), diperkirakan Bulan 9.</li>
-      <li><b>Pembayaran akhir:</b> <span class="f">{{pago_final}}</span> {{moneda}}, dibayar setelah konstruksi vila selesai, termasuk dinding, kolam renang, dan finishing akhir, diperkirakan Bulan 12, bersamaan dengan serah terima unit dan penandatanganan akta peralihan di hadapan PPAT.</li>
+      <li><b>Pembayaran Konstruksi ke-1:</b> 25%, dibayar pada awal pekerjaan, diperkirakan pada <span class="f">{{fecha_pago1}}</span>.</li>
+      <li><b>Pembayaran Konstruksi ke-2:</b> 25%, dibayar 90 hari kerja sejak Tanggal Mulai Pelaksanaan.</li>
+      <li><b>Pembayaran Konstruksi ke-3:</b> 25%, dibayar 150 hari kerja sejak Tanggal Mulai Pelaksanaan.</li>
+      <li><b>Pembayaran Akhir:</b> 25%, dibayar 210 hari kerja sejak Tanggal Mulai Pelaksanaan.</li>
     </ul>
-    <p data-lang="es">El Precio del Contrato es fijo y con impuestos incluidos, excepto en caso de cambios normativos que afecten directamente a la obra, o modificaciones solicitadas por el Cliente acordadas expresamente por escrito.</p>
-    <p data-lang="en">The Contract Price is fixed and taxes included, except in the event of regulatory changes directly affecting the works, or modifications requested by the Client expressly agreed in writing.</p>
-    <p data-lang="id">Harga Kontrak bersifat tetap dan sudah termasuk pajak, kecuali dalam hal perubahan peraturan yang langsung memengaruhi pekerjaan, atau modifikasi yang diminta Klien yang disepakati secara tertulis.</p>
+    <p data-lang="es"><b>Términos del precio:</b> El Precio del Contrato es fijo, excepto en caso de cambios normativos que afecten directamente a la obra, o modificaciones solicitadas por el Cliente acordadas expresamente por escrito. El Precio del Contrato se fija en Rupias Indonesias (IDR) <span class="f">{{precio_total}}</span>, conforme a la Ley de Moneda de Indonesia (UU 7/2011). A efectos meramente informativos, dicho importe equivale aproximadamente a <span class="f f-lg">{{equivalente_aprox}}</span> al tipo de cambio de referencia de Bank Indonesia de fecha <span class="f">{{fecha_tipo_cambio}}</span>, sin que esta referencia genere obligación de pago en la divisa IDR.</p>
+    <p data-lang="en"><b>Price terms:</b> The Contract Price is fixed, except in the event of regulatory changes directly affecting the works, or modifications requested by the Client expressly agreed in writing. The Contract Price is fixed in Indonesian Rupiah (IDR) <span class="f">{{precio_total}}</span>, in accordance with the Indonesian Currency Law (UU 7/2011). For purely informational purposes, this amount is approximately equivalent to <span class="f f-lg">{{equivalente_aprox}}</span> at the Bank Indonesia reference exchange rate of <span class="f">{{fecha_tipo_cambio}}</span>, without this reference creating any payment obligation in the IDR currency.</p>
+    <p data-lang="id"><b>Ketentuan harga:</b> Harga Kontrak bersifat tetap, kecuali dalam hal perubahan peraturan yang langsung memengaruhi pekerjaan, atau modifikasi yang diminta Klien yang disepakati secara tertulis. Harga Kontrak ditetapkan dalam Rupiah Indonesia (IDR) <span class="f">{{precio_total}}</span>, sesuai Undang-Undang Mata Uang Indonesia (UU 7/2011). Semata-mata untuk keperluan informasi, jumlah ini kurang lebih setara dengan <span class="f f-lg">{{equivalente_aprox}}</span> pada kurs referensi Bank Indonesia tanggal <span class="f">{{fecha_tipo_cambio}}</span>, tanpa referensi ini menimbulkan kewajiban pembayaran dalam mata uang IDR.</p>
+    <p data-lang="es"><b>Condición de impuestos — Impuestos incluidos:</b> El Precio del Contrato incluye todos los impuestos (IVA, PPN, etc.). No hay costos adicionales por impuestos.</p>
+    <p data-lang="en"><b>Tax condition — Taxes included:</b> The Contract Price includes all taxes (VAT, PPN, etc.). There are no additional tax costs.</p>
+    <p data-lang="id"><b>Ketentuan pajak — Pajak sudah termasuk:</b> Harga Kontrak sudah termasuk semua pajak (PPN, dll.). Tidak ada biaya pajak tambahan.</p>
 
-    <h2><span data-lang="es">Artículo 5 — Condiciones de pago</span><span data-lang="en">Article 5 — Payment terms</span><span data-lang="id">Pasal 5 — Ketentuan pembayaran</span></h2>
+    <h2><span data-lang="es">Artículo 5 — Cronograma de ejecución</span><span data-lang="en">Article 5 — Execution schedule</span><span data-lang="id">Pasal 5 — Jadwal pelaksanaan</span></h2>
     <table class="pays">
       <thead><tr><th class="n">#</th>
         <th><span data-lang="es">Hito / Descripción</span><span data-lang="en">Milestone / Description</span><span data-lang="id">Tahapan / Deskripsi</span></th>
@@ -147,9 +162,9 @@
     </ul>
 
     <h2><span data-lang="es">Artículo 6 — Plazo de ejecución</span><span data-lang="en">Article 6 — Execution term</span><span data-lang="id">Pasal 6 — Jangka waktu pelaksanaan</span></h2>
-    <p data-lang="es">El Plazo de Ejecución es de 12 meses naturales a partir de la Fecha de Inicio.</p>
-    <p data-lang="en">The Execution Term is 12 calendar months from the Start Date.</p>
-    <p data-lang="id">Jangka Waktu Pelaksanaan adalah 12 bulan kalender sejak Tanggal Mulai.</p>
+    <p data-lang="es">El Plazo de Ejecución del Proyecto es de 12 meses naturales contados desde la Fecha de Inicio de Ejecución. El Constructor se compromete a mantener un ritmo de construcción continuo y diligente para cumplir con este plazo. Cualquier prórroga estará sujeta a lo establecido en el Artículo 7.</p>
+    <p data-lang="en">The Execution Term of the Project is 12 calendar months from the Execution Start Date. The Builder undertakes to maintain a continuous and diligent pace of construction to meet this term. Any extension shall be subject to the provisions of Article 7.</p>
+    <p data-lang="id">Jangka Waktu Pelaksanaan Proyek adalah 12 bulan kalender sejak Tanggal Mulai Pelaksanaan. Kontraktor berkomitmen untuk mempertahankan laju konstruksi yang berkelanjutan dan tekun untuk memenuhi jangka waktu ini. Setiap perpanjangan tunduk pada ketentuan Pasal 7.</p>
 
     <h2><span data-lang="es">Artículo 7 — Prórroga del plazo</span><span data-lang="en">Article 7 — Term extension</span><span data-lang="id">Pasal 7 — Perpanjangan jangka waktu</span></h2>
     <p data-lang="es">El Constructor tendrá derecho a una prórroga razonable del plazo, con un máximo de 6 meses, en los siguientes casos: variaciones aprobadas que afecten al plazo, fuerza mayor, demoras en decisiones del cliente, demoras en proveedores externos, retrasos en pagos, o suspensión por el cliente.</p>
@@ -159,10 +174,10 @@
     <p data-lang="en">Once the extension has elapsed, the Buyer may claim from the Builder the repurchase of the sub-plot and of the construction for the amounts disbursed up to that point, within a maximum period of 90 days, without the Buyer being entitled to claim any amount on any other account.</p>
     <p data-lang="id">Setelah perpanjangan berakhir, Pembeli dapat menuntut Kontraktor untuk membeli kembali sub-kavling dan konstruksinya sebesar jumlah yang telah dikeluarkan sampai saat itu, dalam jangka waktu maksimal 90 hari, tanpa Pembeli dapat menuntut jumlah apa pun atas dasar lain.</p>
 
-    <h2><span data-lang="es">Artículo 8 — Calidad, materiales y SST</span><span data-lang="en">Article 8 — Quality, materials and OHS</span><span data-lang="id">Pasal 8 — Kualitas, material dan K3</span></h2>
-    <p data-lang="es">El Proyecto deberá ejecutarse de manera adecuada y con buena práctica constructiva, utilizando materiales descritos en el Anexo Especificaciones Técnicas. El Constructor es responsable de la seguridad en obra, el uso de EPP por los trabajadores, el orden y la limpieza, y el cumplimiento de los requisitos K3 / SST aplicables durante los trabajos.</p>
-    <p data-lang="en">The Project shall be executed properly and with good construction practice, using materials described in the Technical Specifications Annex. The Builder is responsible for site safety, the use of PPE by workers, order and cleanliness, and compliance with the applicable K3 / OHS requirements during the works.</p>
-    <p data-lang="id">Proyek harus dilaksanakan dengan baik dan sesuai praktik konstruksi yang benar, menggunakan material yang diuraikan dalam Lampiran Spesifikasi Teknis. Kontraktor bertanggung jawab atas keselamatan di lokasi, penggunaan APD oleh pekerja, ketertiban dan kebersihan, serta kepatuhan terhadap persyaratan K3 yang berlaku selama pekerjaan.</p>
+    <h2><span data-lang="es">Artículo 8 — Calidad y materiales</span><span data-lang="en">Article 8 — Quality and materials</span><span data-lang="id">Pasal 8 — Kualitas dan material</span></h2>
+    <p data-lang="es">El Proyecto deberá ejecutarse de manera adecuada y con buena práctica constructiva, utilizando materiales descritos en el Anexo Especificaciones Técnicas. El Constructor es responsable de la seguridad en obra, el uso de EPP por los trabajadores, el orden y la limpieza, y el cumplimiento de los requisitos aplicables durante los trabajos.</p>
+    <p data-lang="en">The Project shall be executed properly and with good construction practice, using materials described in the Technical Specifications Annex. The Builder is responsible for site safety, the use of PPE by workers, order and cleanliness, and compliance with the applicable requirements during the works.</p>
+    <p data-lang="id">Proyek harus dilaksanakan dengan baik dan sesuai praktik konstruksi yang benar, menggunakan material yang diuraikan dalam Lampiran Spesifikasi Teknis. Kontraktor bertanggung jawab atas keselamatan di lokasi, penggunaan APD oleh pekerja, ketertiban dan kebersihan, serta kepatuhan terhadap persyaratan yang berlaku selama pekerjaan.</p>
 
     <h2><span data-lang="es">Artículo 9 — Seguros y riesgos</span><span data-lang="en">Article 9 — Insurance and risks</span><span data-lang="id">Pasal 9 — Asuransi dan risiko</span></h2>
     <p data-lang="es">El Constructor asume plena responsabilidad sobre todos los trabajadores, subcontratistas y proveedores contratados por ella, y los coordinará bajo su propio riesgo y coste. El Constructor mantendrá a su cargo: (a) seguro de trabajadores / BPJS o cobertura obligatoria equivalente, (b) seguro de responsabilidad civil frente a terceros, y (c) seguro todo riesgo del contratista. El riesgo de pérdida o daño en las obras recae sobre el Constructor hasta la entrega, excepto para los elementos ya entregados o los daños causados por la Segunda Parte.</p>
@@ -183,24 +198,49 @@
     <p data-lang="id">Ketika Kontraktor menganggap Proyek selesai, ia akan meminta inspeksi. Para Pihak menginspeksi Proyek dan menerbitkan daftar cacat dalam 7 hari kalender.</p>
 
     <h2><span data-lang="es">Artículo 12 — Responsabilidad por defectos y garantía</span><span data-lang="en">Article 12 — Defect liability and warranty</span><span data-lang="id">Pasal 12 — Tanggung jawab cacat dan garansi</span></h2>
-    <p data-lang="es">El Período de Responsabilidad por Defectos es de 12 meses desde la entrega. El Constructor subsanará a su cargo cualquier defecto derivado de ejecución no conforme, materiales defectuosos suministrados por ella, o incumplimiento de los documentos contractuales. Si el Constructor no subsanara los defectos notificados en un plazo razonable, el Adquiriente podrá encargar su corrección a terceros a cargo del Constructor.</p>
-    <p data-lang="en">The Defect Liability Period is 12 months from delivery. The Builder shall remedy at its own cost any defect arising from non-conforming execution, defective materials supplied by it, or breach of the contractual documents. If the Builder fails to remedy the notified defects within a reasonable time, the Buyer may commission their correction by third parties at the Builder's cost.</p>
-    <p data-lang="id">Masa Tanggung Jawab Cacat adalah 12 bulan sejak serah terima. Kontraktor memperbaiki atas biayanya sendiri setiap cacat akibat pelaksanaan yang tidak sesuai, material cacat yang dipasoknya, atau pelanggaran dokumen kontraktual. Jika Kontraktor gagal memperbaiki cacat yang diberitahukan dalam waktu wajar, Pembeli dapat menugaskan perbaikannya kepada pihak ketiga atas biaya Kontraktor.</p>
+    <p data-lang="es">El Período de Responsabilidad por Defectos es de 12 (doce) meses desde la Terminación para acabados, instalaciones y elementos no estructurales. Para los elementos estructurales del Proyecto (cimentación, estructura portante y cubierta), el Constructor responderá durante un plazo de 5 años desde la Terminación, conforme al estándar de responsabilidad por fallo de edificación de la legislación indonesia de construcción (UU 2/2017).</p>
+    <p data-lang="en">The Defect Liability Period is 12 (twelve) months from Completion for finishes, installations and non-structural elements. For the Project's structural elements (foundations, load-bearing structure and roof), the Builder shall be liable for a period of 5 years from Completion, in accordance with the building-failure liability standard under Indonesian construction law (UU 2/2017).</p>
+    <p data-lang="id">Masa Tanggung Jawab Cacat adalah 12 (dua belas) bulan sejak Penyelesaian untuk finishing, instalasi, dan elemen non-struktural. Untuk elemen struktural Proyek (pondasi, struktur penahan beban, dan atap), Kontraktor bertanggung jawab selama 5 tahun sejak Penyelesaian, sesuai standar tanggung jawab kegagalan bangunan menurut hukum konstruksi Indonesia (UU 2/2017).</p>
+    <p data-lang="es">Si el Constructor no subsanara los defectos notificados en un plazo razonable, el Adquiriente podrá encargar su corrección a terceros a cargo del Constructor.</p>
+    <p data-lang="en">If the Builder fails to remedy the notified defects within a reasonable time, the Buyer may commission their correction by third parties at the Builder's cost.</p>
+    <p data-lang="id">Jika Kontraktor gagal memperbaiki cacat yang diberitahukan dalam waktu wajar, Pembeli dapat menugaskan perbaikannya kepada pihak ketiga atas biaya Kontraktor.</p>
 
     <h2><span data-lang="es">Artículo 13 — Suspensión y resolución</span><span data-lang="en">Article 13 — Suspension and termination</span><span data-lang="id">Pasal 13 — Penghentian dan pengakhiran</span></h2>
     <p data-lang="es">El Adquiriente podrá suspender los trabajos por conveniencia mediante notificación escrita, en cuyo caso las Partes acordarán de buena fe los efectos resultantes en plazo y coste. Si cualquiera de las Partes incumple materialmente el presente Contrato y no subsana el incumplimiento en el plazo de 30 días naturales tras notificación escrita, la Parte no incumplidora podrá resolver el Contrato.</p>
     <p data-lang="en">The Buyer may suspend the works for convenience by written notice, in which case the Parties shall agree in good faith the resulting effects on term and cost. If either Party materially breaches this Agreement and fails to cure the breach within 30 calendar days after written notice, the non-breaching Party may terminate the Agreement.</p>
     <p data-lang="id">Pembeli dapat menghentikan pekerjaan demi kenyamanan melalui pemberitahuan tertulis, dan dalam hal itu Para Pihak menyepakati dengan itikad baik akibatnya terhadap jangka waktu dan biaya. Jika salah satu Pihak melanggar Perjanjian ini secara material dan tidak memperbaikinya dalam 30 hari kalender setelah pemberitahuan tertulis, Pihak yang tidak melanggar dapat mengakhiri Perjanjian.</p>
 
-    <h2><span data-lang="es">Artículo 14 — Fuerza mayor</span><span data-lang="en">Article 14 — Force majeure</span><span data-lang="id">Pasal 14 — Keadaan kahar</span></h2>
-    <p data-lang="es">Se entiende por fuerza mayor los eventos ajenos a un control razonable que no hubieran podido prevenirse con la debida diligencia, incluyendo terremotos, inundaciones, guerra, disturbios, restricciones por epidemia/pandemia y prohibición gubernamental que afecte directamente al Proyecto.</p>
-    <p data-lang="en">Force majeure means events beyond reasonable control that could not have been prevented with due diligence, including earthquakes, floods, war, riots, epidemic/pandemic restrictions and governmental prohibition directly affecting the Project.</p>
-    <p data-lang="id">Keadaan kahar berarti peristiwa di luar kendali wajar yang tidak dapat dicegah dengan kehati-hatian yang semestinya, termasuk gempa bumi, banjir, perang, kerusuhan, pembatasan epidemi/pandemi, dan larangan pemerintah yang langsung memengaruhi Proyek.</p>
+    <h2><span data-lang="es">Artículo 14 — Ley aplicable</span><span data-lang="en">Article 14 — Governing law</span><span data-lang="id">Pasal 14 — Hukum yang berlaku</span></h2>
+    <p data-lang="es">El presente Contrato se rige por las leyes de la República de Indonesia. Cualquier controversia se resolverá, en primer lugar, mediante negociación amistosa entre las Partes durante 30 (treinta) días naturales desde su notificación escrita. De no alcanzarse acuerdo, la controversia se someterá a arbitraje administrado bajo las reglas del Singapore International Arbitration Centre (SIAC), con sede en Singapur, ante un árbitro único, en idioma español e inglés, siendo el laudo definitivo y vinculante, con renuncia expresa a cualquier otro fuero — sin perjuicio de la jurisdicción exclusiva que la ley indonesia pueda atribuir a los tribunales locales en materias de derechos reales sobre el terreno.</p>
+    <p data-lang="en">This Agreement is governed by the laws of the Republic of Indonesia. Any dispute shall first be resolved through amicable negotiation between the Parties for 30 (thirty) calendar days from written notice thereof. If no agreement is reached, the dispute shall be submitted to arbitration administered under the rules of the Singapore International Arbitration Centre (SIAC), seated in Singapore, before a sole arbitrator, in the Spanish and English languages, with the award being final and binding, with express waiver of any other jurisdiction — without prejudice to the exclusive jurisdiction that Indonesian law may attribute to local courts in matters of real property rights over the land.</p>
+    <p data-lang="id">Perjanjian ini diatur oleh hukum Republik Indonesia. Setiap perselisihan akan diselesaikan terlebih dahulu melalui negosiasi damai antara Para Pihak selama 30 (tiga puluh) hari kalender sejak pemberitahuan tertulis. Apabila tidak tercapai kesepakatan, perselisihan akan diajukan ke arbitrase yang diselenggarakan berdasarkan aturan Singapore International Arbitration Centre (SIAC), berkedudukan di Singapura, di hadapan seorang arbiter tunggal, dalam bahasa Spanyol dan Inggris, dengan putusan yang bersifat final dan mengikat, dengan pelepasan tegas atas yurisdiksi lain — tanpa mengesampingkan yurisdiksi eksklusif yang mungkin diberikan oleh hukum Indonesia kepada pengadilan setempat dalam hal hak kebendaan atas tanah.</p>
 
-    <h2><span data-lang="es">Artículo 15 — Ley aplicable</span><span data-lang="en">Article 15 — Governing law</span><span data-lang="id">Pasal 15 — Hukum yang berlaku</span></h2>
-    <p data-lang="es">Las partes se someten a los tribunales competentes de Bali, Indonesia o al arbitraje internacional, con renuncia expresa a cualquier otro fuero que pudiera corresponderles, sin perjuicio de intentar previamente una resolución amistosa.</p>
-    <p data-lang="en">The parties submit to the competent courts of Bali, Indonesia or to international arbitration, with express waiver of any other jurisdiction that might correspond to them, without prejudice to first attempting an amicable resolution.</p>
-    <p data-lang="id">Para pihak tunduk pada pengadilan yang berwenang di Bali, Indonesia atau arbitrase internasional, dengan pelepasan tegas atas yurisdiksi lain yang mungkin berlaku, tanpa mengesampingkan upaya penyelesaian damai terlebih dahulu.</p>
+    <h2><span data-lang="es">Artículo 15 — Miscelánea</span><span data-lang="en">Article 15 — Miscellaneous</span><span data-lang="id">Pasal 15 — Lain-lain</span></h2>
+    <p data-lang="es">Las partes reconocen y aceptan que el presente contrato y anexos constituye el único y completo acuerdo alcanzado entre ellas en relación con su objeto, y deja sin efecto y sustituye a cualquier negociación, entendimiento, manifestación, comunicación, documento, plano, oferta o acuerdo anterior, ya sea verbal o escrito, relacionado con la materia aquí regulada. Cualquier modificación o adición al presente contrato solo será válida si se realiza por escrito y con la firma de ambas partes.</p>
+    <p data-lang="en">The parties acknowledge and accept that this agreement and its annexes constitute the sole and complete agreement reached between them in relation to its subject matter, and supersede and replace any prior negotiation, understanding, representation, communication, document, drawing, offer or agreement, whether verbal or written, relating to the matter regulated herein. Any modification or addition to this agreement shall only be valid if made in writing and signed by both parties.</p>
+    <p data-lang="id">Para pihak mengakui dan menerima bahwa perjanjian ini beserta lampirannya merupakan satu-satunya dan keseluruhan kesepakatan yang dicapai di antara mereka terkait objeknya, dan membatalkan serta menggantikan setiap negosiasi, pemahaman, pernyataan, komunikasi, dokumen, gambar, penawaran, atau kesepakatan sebelumnya, baik lisan maupun tertulis, terkait hal yang diatur di sini. Setiap perubahan atau penambahan pada perjanjian ini hanya sah jika dibuat tertulis dan ditandatangani kedua pihak.</p>
+    <p data-lang="es">El Promotor se reserva el derecho a ceder su posición jurídica en el presente contrato. Si alguna de las cláusulas del presente contrato fuere declarada nula o inaplicable, dicha cláusula se considerará excluida del contrato, sin que implique la nulidad del mismo. En este caso las partes harán cuanto esté a su alcance para encontrar una solución equivalente que sea válida y que refleje debidamente sus intenciones.</p>
+    <p data-lang="en">The Developer reserves the right to assign its legal position under this agreement. Should any clause of this agreement be declared null or unenforceable, such clause shall be deemed excluded from the agreement, without this implying its nullity. In such case the parties shall do everything in their power to find an equivalent solution that is valid and duly reflects their intentions.</p>
+    <p data-lang="id">Pengembang berhak mengalihkan kedudukan hukumnya dalam perjanjian ini. Apabila salah satu pasal perjanjian ini dinyatakan batal atau tidak dapat diberlakukan, pasal tersebut dianggap dikecualikan dari perjanjian, tanpa mengakibatkan batalnya perjanjian. Dalam hal itu para pihak berupaya sekuat tenaga menemukan solusi setara yang sah dan mencerminkan maksud mereka.</p>
+
+    <h2><span data-lang="es">Artículo 16 — Excepciones</span><span data-lang="en">Article 16 — Exceptions</span><span data-lang="id">Pasal 16 — Pengecualian</span></h2>
+    <!--extra-clauses-->
+
+    <p data-lang="es">El presente Contrato está vinculado al Contrato de Reserva de la Parcela / PPJB de fecha <span class="f">{{fecha_reserva_vinculada}}</span> relativo a la adquisición de la subparcela sobre la que se ejecuta el Proyecto. La resolución de cualquiera de los dos contratos por causa imputable al Constructor dará derecho al Adquiriente a resolver el otro sin penalización.</p>
+    <p data-lang="en">This Agreement is linked to the Plot Reservation Agreement / PPJB dated <span class="f">{{fecha_reserva_vinculada}}</span> relating to the acquisition of the sub-plot on which the Project is executed. Termination of either agreement for cause attributable to the Builder shall entitle the Buyer to terminate the other without penalty.</p>
+    <p data-lang="id">Perjanjian ini terkait dengan Perjanjian Reservasi Kavling / PPJB tertanggal <span class="f">{{fecha_reserva_vinculada}}</span> terkait perolehan sub-kavling tempat Proyek dilaksanakan. Pengakhiran salah satu perjanjian karena sebab yang dapat dipersalahkan kepada Kontraktor memberikan hak kepada Pembeli untuk mengakhiri perjanjian lainnya tanpa penalti.</p>
+
+    <p data-lang="es"><b>Notificaciones:</b> Toda notificación bajo este Contrato se realizará por escrito a las direcciones indicadas en el encabezamiento, surtiendo efecto desde su recepción acreditada.</p>
+    <p data-lang="en"><b>Notifications:</b> Any notice under this Agreement shall be made in writing to the addresses indicated in the heading, taking effect from proven receipt.</p>
+    <p data-lang="id"><b>Pemberitahuan:</b> Setiap pemberitahuan berdasarkan Perjanjian ini akan dilakukan secara tertulis ke alamat yang tercantum pada bagian kepala, berlaku sejak terbukti diterima.</p>
+
+    <p data-lang="es"><b>Cesión:</b> ninguna Parte podrá ceder su posición contractual sin consentimiento previo y por escrito de la otra, salvo cesión del Adquiriente a una sociedad de su propiedad o a terceros compradores en caso de reventa, que solo requerirá notificación.</p>
+    <p data-lang="en"><b>Assignment:</b> no Party may assign its contractual position without the other's prior written consent, except assignment by the Buyer to a company it owns or to third-party purchasers in case of resale, which shall only require notification.</p>
+    <p data-lang="id"><b>Pengalihan:</b> tidak ada Pihak yang dapat mengalihkan posisi kontraktualnya tanpa persetujuan tertulis sebelumnya dari pihak lain, kecuali pengalihan oleh Pembeli kepada perusahaan miliknya atau kepada pembeli pihak ketiga dalam hal penjualan kembali, yang hanya memerlukan pemberitahuan.</p>
+
+    <p data-lang="es"><b>Confidencialidad:</b> las Partes mantendrán confidencial el contenido económico de este Contrato, salvo obligación legal o frente a sus asesores.</p>
+    <p data-lang="en"><b>Confidentiality:</b> the Parties shall keep the economic content of this Agreement confidential, except as legally required or vis-à-vis their advisors.</p>
+    <p data-lang="id"><b>Kerahasiaan:</b> Para Pihak akan menjaga kerahasiaan isi ekonomi Perjanjian ini, kecuali diwajibkan secara hukum atau terhadap penasihat mereka.</p>
 
     <h2><span data-lang="es">Apéndices</span><span data-lang="en">Appendices</span><span data-lang="id">Lampiran</span></h2>
     <ul data-lang="es">
@@ -216,8 +256,6 @@
       <li>Lampiran C – Brosur Rumah</li><li>Lampiran D – Penawaran Komersial</li><li>Lampiran E – Rekening Pembayaran</li>
     </ul>
 
-    <!--extra-clauses-->
-
     <!-- ============ FIRMAS ============ -->
     <h2><span data-lang="es">Firmas</span><span data-lang="en">Signatures</span><span data-lang="id">Tanda tangan</span></h2>
     <p data-lang="es">Y en prueba de conformidad con cuanto antecede, las Partes firman el presente Contrato en el lugar y fecha indicados en el encabezado.</p>
@@ -229,6 +267,7 @@
           <td>
             <div class="role"><span data-lang="es">El Constructor</span><span data-lang="en">The Builder</span><span data-lang="id">Kontraktor</span></div>
             <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div>
+            <p style="margin-top:4px;font-size:9pt">I Made Monjong Adhi Nugruah<br><span data-lang="es">Gerente de construcción</span><span data-lang="en">Construction Manager</span><span data-lang="id">Manajer Konstruksi</span></p>
           </td>
           <td>
             <div class="role"><span data-lang="es">El Adquiriente</span><span data-lang="en">The Buyer</span><span data-lang="id">Pembeli</span></div>
