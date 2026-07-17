@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carta de Reserva — Lawang</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
+</head>
+<body>
+  <!-- Texto trilingüe. ES = texto EXACTO del cliente (17-jul-2026). EN/ID = traducción
+       de trabajo pendiente de revisión legal oficial. Identidad: I Made Monjong Adhi
+       Nugruah / PT Lawang Tropical Properties / NPWP 1000.0000.0012.5018 (unificada
+       con el resto de la suite, sustituye a Pablo Cantero Gambín). Datos bancarios =
+       EJEMPLO del cliente, confirmar los reales antes de usar en producción. -->
+  <div class="doc">
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
+
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Carta de</span><span data-lang="en">Letter of</span><span data-lang="id">Surat</span></span>
+      <span class="bold"><span data-lang="es">Reserva</span><span data-lang="en">Reservation</span><span data-lang="id">Pemesanan</span></span>
+    </div>
+    <div class="doc-date">
+      <span data-lang="es">N.º de Referencia: <span class="f">{{referencia_num}}</span> · Fecha: <span class="f">{{fecha_firma}}</span></span>
+      <span data-lang="en">Reference No.: <span class="f">{{referencia_num}}</span> · Date: <span class="f">{{fecha_firma}}</span></span>
+      <span data-lang="id">No. Referensi: <span class="f">{{referencia_num}}</span> · Tanggal: <span class="f">{{fecha_firma}}</span></span>
+    </div>
+
+    <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span><span data-lang="id">Para Pihak</span></h2>
+    <div class="party">
+      <div class="role"><span data-lang="es">Primera Parte</span><span data-lang="en">First Party</span><span data-lang="id">Pihak Pertama</span></div>
+      <p data-lang="es">1. PT LAWANG TROPICAL PROPERTIES, sociedad constituida conforme a las leyes de la República de Indonesia, con domicilio registrado en Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia, NPWP 1000.0000.0012.5018. En este acto representada por D. I Made Monjong Adhi Nugruah, actuando en su calidad de Gerente, de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002 (en adelante, la «Primera Parte»).</p>
+      <p data-lang="en">1. PT LAWANG TROPICAL PROPERTIES, a company incorporated under the laws of the Republic of Indonesia, with registered address at Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia, NPWP 1000.0000.0012.5018. Represented herein by Mr. I Made Monjong Adhi Nugruah, acting as Manager, Indonesian nationality, holder of Indonesian identity document ID 5171021704720002 (hereinafter, the "First Party").</p>
+      <p data-lang="id">1. PT LAWANG TROPICAL PROPERTIES, perusahaan yang didirikan berdasarkan hukum Republik Indonesia, beralamat terdaftar di Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia, NPWP 1000.0000.0012.5018. Dalam hal ini diwakili oleh Tn. I Made Monjong Adhi Nugruah, bertindak sebagai Manajer, berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002 (selanjutnya disebut "Pihak Pertama").</p>
+    </div>
+    <div class="party">
+      <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span><span data-lang="id">Pihak Kedua</span></div>
+      <p data-lang="es">2. <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, titular del pasaporte n.º <span class="f">{{adq1_pasaporte}}</span>, con domicilio en <span class="f">{{adq1_domicilio}}</span>. En este acto actuando en nombre propio (en adelante, la «Segunda Parte»).</p>
+      <p data-lang="en">2. <span class="f">{{adq1_nombre}}</span>, of <span class="f">{{adq1_nacionalidad}}</span> nationality, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, with address at <span class="f">{{adq1_domicilio}}</span>. Acting herein in its own name (hereinafter, the "Second Party").</p>
+      <p data-lang="id">2. <span class="f">{{adq1_nombre}}</span>, berkewarganegaraan <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq1_pasaporte}}</span>, beralamat di <span class="f">{{adq1_domicilio}}</span>. Dalam hal ini bertindak atas nama sendiri (selanjutnya disebut "Pihak Kedua").</p>
+    </div>
+    <p data-lang="es">La Primera Parte y la Segunda Parte se denominan conjuntamente las «Partes».</p>
+    <p data-lang="en">The First Party and the Second Party are jointly referred to as the "Parties".</p>
+    <p data-lang="id">Pihak Pertama dan Pihak Kedua secara bersama-sama disebut sebagai "Para Pihak".</p>
+
+    <h2><span data-lang="es">Antecedentes</span><span data-lang="en">Background</span><span data-lang="id">Latar Belakang</span></h2>
+    <ol data-lang="es">
+      <li>La Segunda Parte ha realizado una Reserva de la Unidad en el Proyecto <span class="f">{{proyecto_nombre}}</span>, y ha decidido seleccionar la Parcela / Unidad número <span class="f">{{parcela_codigo}}</span>.</li>
+      <li>La Segunda Parte deberá abonar la Cuota de Reserva de la Unidad por un importe de <span class="f">{{cuota_reserva_eur}}</span> EUR, la cual se pagará el <span class="f">{{fecha_pago_reserva}}</span>. Esta reserva fija el precio acordado de la parcela más la propiedad en <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
+      <li>Este pago constituye un depósito no reembolsable, con una validez de 1 (un) mes.</li>
+      <li>Transcurrido dicho plazo de 1 (un) mes, la Segunda Parte deberá abonar el primer pago correspondiente al 25% (veinticinco por ciento) del Precio Total de la Unidad, descontando el importe de <span class="f">{{cuota_reserva_eur}}</span> EUR ya abonado en concepto de Cuota de Reserva, que equivaldría a <span class="f f-lg">{{precio_reserva}}</span> IDR.</li>
+      <li>Esta Carta de Reserva podrá utilizarse para efectuar reclamos relativos a la Unidad seleccionada y a su precio, en caso de que el precio de la Unidad haya seguido los precios de mercado o haya experimentado un incremento de precio.</li>
+      <li>El método de pago de la Unidad Reservada únicamente podrá realizarse mediante transferencia bancaria a la cuenta bancaria indicada más abajo.</li>
+    </ol>
+    <ol data-lang="en">
+      <li>The Second Party has made a Reservation of the Unit in the <span class="f">{{proyecto_nombre}}</span> Project, and has decided to select Plot / Unit number <span class="f">{{parcela_codigo}}</span>.</li>
+      <li>The Second Party shall pay the Unit Reservation Fee in the amount of <span class="f">{{cuota_reserva_eur}}</span> EUR, payable on <span class="f">{{fecha_pago_reserva}}</span>. This reservation fixes the agreed price of the plot plus the property at <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
+      <li>This payment constitutes a non-refundable deposit, valid for 1 (one) month.</li>
+      <li>Upon expiry of said 1 (one) month period, the Second Party shall pay the first installment corresponding to 25% (twenty-five percent) of the Total Price of the Unit, deducting the amount of <span class="f">{{cuota_reserva_eur}}</span> EUR already paid as Reservation Fee, which would be equivalent to <span class="f f-lg">{{precio_reserva}}</span> IDR.</li>
+      <li>This Reservation Letter may be used to raise claims relating to the selected Unit and its price, in case the price of the Unit has followed market prices or has experienced a price increase.</li>
+      <li>Payment for the Reserved Unit may only be made by bank transfer to the bank account indicated below.</li>
+    </ol>
+    <ol data-lang="id">
+      <li>Pihak Kedua telah melakukan Reservasi atas Unit dalam Proyek <span class="f">{{proyecto_nombre}}</span>, dan telah memutuskan untuk memilih Kavling / Unit nomor <span class="f">{{parcela_codigo}}</span>.</li>
+      <li>Pihak Kedua wajib membayar Biaya Reservasi Unit sebesar <span class="f">{{cuota_reserva_eur}}</span> EUR, yang akan dibayarkan pada <span class="f">{{fecha_pago_reserva}}</span>. Reservasi ini menetapkan harga yang disepakati untuk kavling beserta propertinya sebesar <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
+      <li>Pembayaran ini merupakan deposit yang tidak dapat dikembalikan, berlaku selama 1 (satu) bulan.</li>
+      <li>Setelah jangka waktu 1 (satu) bulan tersebut berakhir, Pihak Kedua wajib membayar pembayaran pertama sebesar 25% (dua puluh lima persen) dari Harga Total Unit, dikurangi jumlah <span class="f">{{cuota_reserva_eur}}</span> EUR yang telah dibayarkan sebagai Biaya Reservasi, yang setara dengan <span class="f f-lg">{{precio_reserva}}</span> IDR.</li>
+      <li>Surat Pemesanan ini dapat digunakan untuk mengajukan klaim terkait Unit yang dipilih dan harganya, apabila harga Unit telah mengikuti harga pasar atau mengalami kenaikan harga.</li>
+      <li>Metode pembayaran Unit yang Dipesan hanya dapat dilakukan melalui transfer bank ke rekening bank yang tercantum di bawah ini.</li>
+    </ol>
+
+    <h2><span data-lang="es">Datos bancarios de Lawang Tropical Properties</span><span data-lang="en">Bank details of Lawang Tropical Properties</span><span data-lang="id">Rincian bank Lawang Tropical Properties</span></h2>
+    <!-- EJEMPLO pasado por el cliente 17-jul — confirmar cuenta real antes de producción. -->
+    <table class="pays">
+      <tbody>
+        <tr><td><span data-lang="es">Banco</span><span data-lang="en">Bank</span><span data-lang="id">Bank</span></td><td>PT Bank Central Asia Tbk (BCA)</td></tr>
+        <tr><td><span data-lang="es">Número de cuenta</span><span data-lang="en">Account number</span><span data-lang="id">Nomor rekening</span></td><td>457-301-8820</td></tr>
+        <tr><td><span data-lang="es">Código Swift</span><span data-lang="en">Swift code</span><span data-lang="id">Kode Swift</span></td><td>CENAIDJA</td></tr>
+        <tr><td><span data-lang="es">Titular</span><span data-lang="en">Account holder</span><span data-lang="id">Pemegang rekening</span></td><td>LAWANG TROPICAL PROPERTIES</td></tr>
+        <tr><td><span data-lang="es">Domicilio del titular</span><span data-lang="en">Account holder address</span><span data-lang="id">Alamat pemegang rekening</span></td><td>Jl. Sunset Road No. 89, Pertokoan Sunset Indah I No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Indonesia</td></tr>
+        <tr><td><span data-lang="es">Domicilio del banco (sucursal)</span><span data-lang="en">Bank address (branch)</span><span data-lang="id">Alamat bank (cabang)</span></td><td>KCU Sunset Road, Jl. Sunset Road No. 100, Kuta, Kabupaten Badung, Bali 80361, Indonesia</td></tr>
+      </tbody>
+    </table>
+    <p data-lang="es"><i>* Cuenta de ejemplo — a confirmar con los datos bancarios reales de Lawang Tropical Properties antes de su uso.</i></p>
+    <p data-lang="en"><i>* Example account — to be confirmed with the real bank details of Lawang Tropical Properties before use.</i></p>
+    <p data-lang="id"><i>* Contoh rekening — untuk dikonfirmasi dengan data bank Lawang Tropical Properties yang sebenarnya sebelum digunakan.</i></p>
+
+    <!--extra-clauses-->
+
+    <h2><span data-lang="es">Suscrito como acuerdo</span><span data-lang="en">Agreed and signed</span><span data-lang="id">Disepakati dan ditandatangani</span></h2>
+    <table class="pays sigs" style="margin-top:14px">
+      <tbody>
+        <tr>
+          <td>
+            <div class="role"><span data-lang="es">Primera Parte — PT Lawang Tropical Properties</span><span data-lang="en">First Party — PT Lawang Tropical Properties</span><span data-lang="id">Pihak Pertama — PT Lawang Tropical Properties</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre: I Made Monjong Adhi Nugruah — Cargo: Gerente</span><span data-lang="en">Name: I Made Monjong Adhi Nugruah — Position: Manager</span><span data-lang="id">Nama: I Made Monjong Adhi Nugruah — Jabatan: Manajer</span></p>
+          </td>
+          <td>
+            <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span><span data-lang="id">Pihak Kedua</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre: <span class="f">{{adq1_nombre}}</span></span><span data-lang="en">Name: <span class="f">{{adq1_nombre}}</span></span><span data-lang="id">Nama: <span class="f">{{adq1_nombre}}</span></span></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

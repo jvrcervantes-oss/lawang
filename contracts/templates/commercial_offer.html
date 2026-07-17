@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Commercial Offer — Lawang</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
+</head>
+<body>
+  <!-- Página única de marca — Apéndice D del Contrato de Construcción.
+       ES/EN/ID = traducción de trabajo pendiente de revisión legal oficial.
+       Reusa precio_total/moneda/pago_reserva/pago_c1/c2/c3/final del Contrato de Construcción. -->
+  <div class="doc">
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
+
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Apéndice D</span><span data-lang="en">Appendix D</span><span data-lang="id">Lampiran D</span></span>
+      <span class="bold"><span data-lang="es">Oferta Comercial</span><span data-lang="en">Commercial Offer</span><span data-lang="id">Penawaran Komersial</span></span>
+    </div>
+    <div class="doc-date"><span data-lang="es">Fecha:</span><span data-lang="en">Date:</span><span data-lang="id">Tanggal:</span> <span class="f">{{fecha_firma}}</span></div>
+
+    <div class="party">
+      <p data-lang="es"><b>PT LAWANG TROPICAL PROPERTIES</b><br>Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Kode Pos: 80361 Indonesia<br>NPWP 1000.0000.0012.5018</p>
+      <p data-lang="en"><b>PT LAWANG TROPICAL PROPERTIES</b><br>Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Kode Pos: 80361 Indonesia<br>NPWP 1000.0000.0012.5018</p>
+      <p data-lang="id"><b>PT LAWANG TROPICAL PROPERTIES</b><br>Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No.3B, Desa/Kelurahan Kuta, Kec. Kuta, Kab. Badung, Provinsi Bali, Kode Pos: 80361 Indonesia<br>NPWP 1000.0000.0012.5018</p>
+    </div>
+
+    <p data-lang="es">Esta Oferta Comercial forma parte del Contrato Maestro de Construcción y define la estructura general de precio y pago aplicable a la tipología de villa seleccionada.</p>
+    <p data-lang="en">This Commercial Offer forms part of the Master Construction Agreement and defines the general pricing and payment structure applicable to the selected villa typology.</p>
+    <p data-lang="id">Penawaran Komersial ini merupakan bagian dari Perjanjian Induk Konstruksi dan menetapkan struktur harga dan pembayaran umum yang berlaku untuk tipologi vila yang dipilih.</p>
+
+    <h2><span data-lang="es">Proyecto</span><span data-lang="en">Project</span><span data-lang="id">Proyek</span></h2>
+    <p data-lang="es"><span class="f f-lg">{{villa_nombre}}</span> — <span class="f f-xs">{{villa_m2}}</span> m² + <span class="f f-xs">{{villa_terraza_m2}}</span> m² terraza</p>
+    <p data-lang="en"><span class="f f-lg">{{villa_nombre}}</span> — <span class="f f-xs">{{villa_m2}}</span> m² + <span class="f f-xs">{{villa_terraza_m2}}</span> m² terrace</p>
+    <p data-lang="id"><span class="f f-lg">{{villa_nombre}}</span> — <span class="f f-xs">{{villa_m2}}</span> m² + <span class="f f-xs">{{villa_terraza_m2}}</span> m² teras</p>
+
+    <h2><span data-lang="es">Precio total del contrato</span><span data-lang="en">Total contract price</span><span data-lang="id">Total harga kontrak</span></h2>
+    <p><span class="f f-lg">{{precio_total}}</span> {{moneda}}</p>
+
+    <h2><span data-lang="es">Alcance de los trabajos</span><span data-lang="en">Scope of work</span><span data-lang="id">Lingkup pekerjaan</span></h2>
+    <p data-lang="es">Construcción completa de la villa, incluyendo acabados de alta calidad, diseño de interiores, piscina y paisajismo.</p>
+    <p data-lang="en">Full villa construction, including high-quality finishes, interior design, swimming pool, and landscaping.</p>
+    <p data-lang="id">Konstruksi vila lengkap, termasuk finishing berkualitas tinggi, desain interior, kolam renang, dan lansekap.</p>
+
+    <h2><span data-lang="es">Estructura de pagos</span><span data-lang="en">Payment structure</span><span data-lang="id">Struktur pembayaran</span></h2>
+    <p data-lang="es">El importe total se abona conforme al siguiente calendario, alineado con los hitos de construcción del Artículo 4 del Contrato:</p>
+    <p data-lang="en">The total amount is paid according to the following schedule, aligned with the construction milestones of Article 4 of the Agreement:</p>
+    <p data-lang="id">Jumlah total dibayar sesuai jadwal berikut, selaras dengan tahapan konstruksi pada Pasal 4 Perjanjian:</p>
+    <table class="pays">
+      <thead><tr>
+        <th><span data-lang="es">Etapa de pago</span><span data-lang="en">Payment stage</span><span data-lang="id">Tahap pembayaran</span></th>
+        <th><span data-lang="es">Importe</span><span data-lang="en">Amount</span><span data-lang="id">Jumlah</span></th>
+        <th><span data-lang="es">Momento</span><span data-lang="en">Timing</span><span data-lang="id">Waktu</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td><span data-lang="es">Depósito de reserva</span><span data-lang="en">Reservation deposit</span><span data-lang="id">Deposit reservasi</span></td>
+          <td><span class="f">{{pago_reserva}}</span> {{moneda}}</td>
+          <td><span data-lang="es">A la firma</span><span data-lang="en">Upon signing</span><span data-lang="id">Saat penandatanganan</span></td></tr>
+        <tr><td><span data-lang="es">1er pago construcción</span><span data-lang="en">1st construction payment</span><span data-lang="id">Pembayaran konstruksi ke-1</span></td>
+          <td><span class="f">{{pago_c1}}</span> {{moneda}}</td>
+          <td><span data-lang="es">Inicio de obras</span><span data-lang="en">Start of works</span><span data-lang="id">Awal pekerjaan</span></td></tr>
+        <tr><td><span data-lang="es">2do pago construcción</span><span data-lang="en">2nd construction payment</span><span data-lang="id">Pembayaran konstruksi ke-2</span></td>
+          <td><span class="f">{{pago_c2}}</span> {{moneda}}</td>
+          <td><span data-lang="es">Estructura terminada</span><span data-lang="en">Structure completed</span><span data-lang="id">Struktur selesai</span></td></tr>
+        <tr><td><span data-lang="es">3er pago construcción</span><span data-lang="en">3rd construction payment</span><span data-lang="id">Pembayaran konstruksi ke-3</span></td>
+          <td><span class="f">{{pago_c3}}</span> {{moneda}}</td>
+          <td><span data-lang="es">MEP terminado</span><span data-lang="en">MEP completed</span><span data-lang="id">MEP selesai</span></td></tr>
+        <tr><td><span data-lang="es">Pago final</span><span data-lang="en">Final payment</span><span data-lang="id">Pembayaran akhir</span></td>
+          <td><span class="f">{{pago_final}}</span> {{moneda}}</td>
+          <td><span data-lang="es">Entrega</span><span data-lang="en">Handover</span><span data-lang="id">Serah terima</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2><span data-lang="es">Notas</span><span data-lang="en">Notes</span><span data-lang="id">Catatan</span></h2>
+    <ul data-lang="es">
+      <li>Los pagos están vinculados al avance de la obra y a los hitos del calendario definidos en el Contrato.</li>
+      <li>Esta Oferta Comercial no es vinculante salvo que se incorpore a un contrato firmado.</li>
+      <li>Cualquier variación de alcance, materiales o diseño podrá ajustar el Precio del Contrato.</li>
+      <li>Los impuestos están incluidos conforme al Artículo 4 del Contrato.</li>
+    </ul>
+    <ul data-lang="en">
+      <li>Payments are linked to construction progress and timeline milestones as defined in the Agreement.</li>
+      <li>This Commercial Offer is non-binding unless incorporated into a signed contract.</li>
+      <li>Any variation to scope, materials, or design may result in adjustments to the Contract Price.</li>
+      <li>Taxes are included as specified under Article 4 of the Agreement.</li>
+    </ul>
+    <ul data-lang="id">
+      <li>Pembayaran terkait dengan kemajuan konstruksi dan tahapan jadwal sebagaimana ditetapkan dalam Perjanjian.</li>
+      <li>Penawaran Komersial ini tidak mengikat kecuali digabungkan ke dalam kontrak yang ditandatangani.</li>
+      <li>Setiap perubahan lingkup, material, atau desain dapat mengakibatkan penyesuaian Harga Kontrak.</li>
+      <li>Pajak sudah termasuk sebagaimana ditetapkan dalam Pasal 4 Perjanjian.</li>
+    </ul>
+
+    <!--extra-clauses-->
+  </div>
+</body>
+</html>
