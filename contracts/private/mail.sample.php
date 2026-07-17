@@ -17,6 +17,13 @@
  * Los valores de host/puerto son los estándar de Hostinger — verifícalos en
  * hPanel → Correos → [admin@lawangproperties.com] → Configurar el cliente de
  * correo, por si tu plan usa otros.
+ *
+ * pdf_service_url/pdf_service_secret: el servicio de render HTML→PDF con
+ * Chromium real (infraestructura/contracts-pdf-service, desplegado en
+ * Railway) — genera el PDF exacto del preview sin que el usuario tenga que
+ * descargarlo y adjuntarlo a mano. Si se deja en blanco, send_email.php
+ * sigue aceptando el adjunto manual (pdf_base64) como hasta ahora — no
+ * hace falta rellenar esto para que el envío de email siga funcionando.
  */
 return [
   'smtp_host'   => 'smtp.hostinger.com',
@@ -26,4 +33,8 @@ return [
   'smtp_pass'   => 'CAMBIAR_POR_LA_REAL',
   'from_email'  => 'admin@lawangproperties.com',
   'from_name'   => 'Lawang Tropical Properties',
+
+  // deja estos dos en blanco ('') hasta que el servicio esté desplegado en Railway
+  'pdf_service_url'    => '',   // ej. https://contracts-pdf-service-production.up.railway.app
+  'pdf_service_secret' => '',   // el mismo valor que RENDER_SECRET en Railway
 ];

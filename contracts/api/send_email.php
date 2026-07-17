@@ -43,23 +43,19 @@ $subject  = trim((string)($in['subject'] ?? 'Contrato — Lawang Tropical Proper
 $message  = trim((string)($in['message'] ?? ''));
 $filename = preg_replace('/[^A-Za-z0-9_\-.]/', '_', (string)($in['filename'] ?? 'contrato.pdf'));
 $pdfB64   = (string)($in['pdf_base64'] ?? '');
+$html     = (string)($in['html'] ?? '');
 
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fail('Destinatario no válido'); }
 if (mb_strlen($subject) > 200) { fail('Asunto demasiado largo'); }
 if (mb_strlen($message) > 5000) { fail('Mensaje demasiado largo'); }
-if ($pdfB64 === '') { fail('Falta el PDF'); }
+if ($pdfB64 === '' && $html === '') { fail('Falta el PDF o el HTML a renderizar'); }
 // 100MB reales ≈ 134MB en base64 — límite subido a petición explícita. Aviso real:
 // la práctica totalidad de servidores de correo (Gmail incluido) rechazan adjuntos
 // por encima de ~25MB sea cual sea este límite; esto solo evita cargas absurdas.
 if (strlen($pdfB64) > 140 * 1024 * 1024) { fail('El PDF es demasiado grande'); }
+if (strlen($html) > 25 * 1024 * 1024) { fail('El HTML es demasiado grande'); }
 
-$pdfBytes = base64_decode($pdfB64, true);
-if ($pdfBytes === false || substr($pdfBytes, 0, 4) !== '%PDF') { fail('El adjunto no es un PDF válido'); }
-
-// ---- remitente: SMTP autenticado si hay credenciales configuradas en
-// private/mail.php (admin@lawangproperties.com), si no, mail() nativo con
-// sales@lawangproperties.com como hasta ahora. Los dos caminos comparten el
-// mismo cuerpo MIME — solo cambia cómo se entrega. ----
+// ---- config de private/mail.php (SMTP + servicio de render), si existe ----
 $mailConfig = null;
 $mailConfigPath = __DIR__ . '/../private/mail.php';
 if (is_file($mailConfigPath)) {
@@ -67,6 +63,43 @@ if (is_file($mailConfigPath)) {
   if (is_array($cfg) && !empty($cfg['smtp_pass']) && $cfg['smtp_pass'] !== 'CAMBIAR_POR_LA_REAL') {
     $mailConfig = $cfg;
   }
+}
+
+// ---- PDF: renderizado con Chromium real (Railway) si hay HTML + servicio
+// configurado; si eso falla o no está configurado, cae al adjunto manual
+// (pdf_base64) cuando el cliente lo mandó como respaldo. ----
+$pdfBytes = null;
+if ($html !== '' && $mailConfig && !empty($mailConfig['pdf_service_url']) && !empty($mailConfig['pdf_service_secret'])) {
+  $pdfBytes = render_pdf_via_service($html, $mailConfig['pdf_service_url'], $mailConfig['pdf_service_secret']);
+}
+if ($pdfBytes === null && $pdfB64 !== '') {
+  $decoded = base64_decode($pdfB64, true);
+  if ($decoded !== false && substr($decoded, 0, 4) === '%PDF') {
+    $pdfBytes = $decoded;
+  }
+}
+if ($pdfBytes === null) {
+  fail('No se pudo generar ni adjuntar el PDF (servicio de render no disponible y no se adjuntó uno manualmente)', 502);
+}
+
+function render_pdf_via_service(string $html, string $url, string $secret): ?string {
+  $ch = curl_init(rtrim($url, '/') . '/render-pdf');
+  curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => json_encode(['html' => $html], JSON_UNESCAPED_UNICODE),
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-Render-Secret: ' . $secret],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 40,
+  ]);
+  $resp = curl_exec($ch);
+  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $err  = curl_error($ch);
+  curl_close($ch);
+  if ($resp === false || $code !== 200 || substr((string) $resp, 0, 4) !== '%PDF') {
+    error_log("render_pdf_via_service falló (HTTP {$code}): " . ($err ?: substr((string) $resp, 0, 300)));
+    return null;
+  }
+  return $resp;
 }
 
 $from     = $mailConfig['from_email'] ?? 'sales@lawangproperties.com';
