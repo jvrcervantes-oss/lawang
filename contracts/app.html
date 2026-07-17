@@ -445,14 +445,31 @@ const POS_OPTS = {
    en 2 COLUMNAS (idioma izq. / Bahasa der.). Los rótulos (h2, título, roles,
    celdas de tabla) siguen apilados para no romperse.
    Nota: las reglas de columna apuntan SOLO a LANG e id — un selector genérico
-   [data-lang] re-mostraría el idioma oculto por especificidad. */
+   [data-lang] re-mostraría el idioma oculto por especificidad.
+   float, NO inline-block: Chromium no parte un inline-block entre páginas al
+   imprimir/PDF — si un bloque bilingüe (sobre todo <ul>/<ol> con varios
+   ítems) no cabía en lo que quedaba de hoja, saltaba ENTERO a la siguiente,
+   dejando la mitad de la página en blanco (bug real, visto en PDF generado).
+   Un float SÍ es una caja de bloque normal que Chromium puede cortar por
+   líneas entre páginas. Contrapartida asumida: las columnas ya no quedan
+   perfectamente alineadas fila a fila si una traducción es más larga que la
+   otra — normal en bilingües reales, y muchísimo más leve que la página en
+   blanco. Ver contract.css (clear:both en h2/.party/table.pays/.pending)
+   para que lo que NO es columna de idioma corte el float y recupere el
+   ancho completo. */
 function langCSS(){
-  const L2=`.doc p[data-lang="${LANG}"],.doc ul[data-lang="${LANG}"]`;
-  const IDs=`.doc p[data-lang="id"],.doc ul[data-lang="id"]`;
+  const L2=`.doc p[data-lang="${LANG}"],.doc ul[data-lang="${LANG}"],.doc ol[data-lang="${LANG}"]`;
+  const IDs=`.doc p[data-lang="id"],.doc ul[data-lang="id"],.doc ol[data-lang="id"]`;
   return `[data-lang]{display:none!important}[data-lang="${LANG}"]{display:revert!important}`
     + `[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}`
-    + `${L2},${IDs}{display:inline-block!important;width:48.5%;vertical-align:top;box-sizing:border-box}`
-    + `${L2}{padding-right:4.5%}`;
+    // clear:left/right (no solo float) — sin esto los floats se empaquetan
+    // horizontalmente en cualquier hueco libre (comportamiento normal de
+    // CSS float) y un bloque LANG podía colarse al lado del ID anterior en
+    // vez de apilarse bajo el bloque LANG anterior. clear fuerza dos
+    // columnas realmente independientes, cada una apilada contra sí misma.
+    + `${L2},${IDs}{float:left;width:48.5%;box-sizing:border-box}`
+    + `${IDs}{float:right;clear:right}`
+    + `${L2}{padding-right:4.5%;clear:left}`;
 }
 
 /* CSS que reskin-ea portada+interior según DESIGN (se inyecta en el <head> del doc) */

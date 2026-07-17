@@ -27,10 +27,14 @@
 .doc-title .bold{ font-weight:700; font-size:26pt; letter-spacing:.01em; line-height:1.05; color:var(--brand-deep,#104C4F); }
 .doc-date{ font-size:8.5pt; letter-spacing:.28em; text-transform:uppercase; color:var(--muted,#6b6c66); margin:14px 0 22px; }
 
-/* etiquetas de sección: "ARTÍCULO N — …" bold, color de marca, espaciado */
+/* etiquetas de sección: "ARTÍCULO N — …" bold, color de marca, espaciado.
+   break-inside:avoid → el título lleva 2 líneas (idioma activo + Bahasa) en
+   UN solo elemento; sin esto Chromium podía partirlo entre dos páginas
+   (línea 1 al fondo de una hoja, línea 2 al principio de la siguiente), lo
+   que además descuadraba las columnas flotadas que venían justo después. */
 .doc h2{ font-weight:700; font-size:9.5pt; letter-spacing:.09em; text-transform:uppercase;
-  color:var(--brand-deep,#104C4F); margin:22px 0 9px; }
-.doc h3{ font-weight:600; font-size:9.5pt; color:var(--brand-primary,#485B37); margin:14px 0 4px; }
+  color:var(--brand-deep,#104C4F); margin:22px 0 9px; break-inside:avoid; }
+.doc h3{ font-weight:600; font-size:9.5pt; color:var(--brand-primary,#485B37); margin:14px 0 4px; break-inside:avoid; }
 
 .doc p{ margin:0 0 9px; text-align:justify; }
 /* párrafos/items con campos rellenables: el min-height:9mm de .f estira la
@@ -60,6 +64,13 @@
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);
   padding:11px 15px; margin:9px 0; border-radius:0 4px 4px 0; }
 .doc .party .role{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--brand-primary,#485B37); margin-bottom:3px; }
+
+/* columnas de idioma en FLOAT (ver langCSS() en app.html): lo que no es una
+   columna de idioma corta el float y recupera el ancho completo, y .party
+   necesita su propio clearfix — si no, la tarjeta (fondo/borde) colapsa a la
+   altura del rótulo porque sus párrafos bilingües quedan flotados dentro. */
+.doc h2, .doc h3, .doc .party, .doc table.pays, .doc .pending{ clear:both; }
+.doc .party::after{ content:""; display:table; clear:both; }
 
 /* tabla de pagos: cabecera color de marca + filas taupe */
 .doc table.pays{ width:100%; border-collapse:collapse; margin:12px 0 16px; font-size:9.5pt; }
