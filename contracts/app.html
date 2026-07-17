@@ -877,8 +877,10 @@ function collect(){
 function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function injectBrandAndCover(html, data){
-  const l1 = {es:'Contrato',en:'Contract',id:'Perjanjian'}[LANG] || 'Contrato';
-  const covData = { ...data, cov_l1:l1, cov_l2:L(CURRENT.l2) };
+  // Título de portada: un renglón por idioma (ES/EN/ID), usa el nombre completo
+  // de la plantilla en cada idioma — no el toggle activo (la portada ya no
+  // cambia de idioma con el toggle, muestra los 3 siempre).
+  const covData = { ...data, cov_t_es:CURRENT.name.es, cov_t_en:CURRENT.name.en||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
   // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
   // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
@@ -951,7 +953,7 @@ let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt);
 function deriveSections(){
   const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
   const inDoc = new Set([...(templateHTML+COVER_HTML).matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]));
-  inDoc.delete('cov_l1'); inDoc.delete('cov_l2');   // los calcula el motor, no son campos
+  inDoc.delete('cov_t_es'); inDoc.delete('cov_t_en'); inDoc.delete('cov_t_id');   // los calcula el motor, no son campos
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
