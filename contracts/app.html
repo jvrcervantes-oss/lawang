@@ -9,6 +9,10 @@
 <link rel="stylesheet" href="assets/brand.css">
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
+     proyecto Lawang clientes/pagos). Publishable key: pensada para ir en el navegador,
+     no es un secreto — el control de acceso real vive en las políticas RLS. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{ --line:#e4ddcf; --tbh:56px; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -162,6 +166,29 @@
     .pv-close{ display:inline-flex; }
     .fab{ display:inline-flex; }
   }
+
+  /* ---------- panel "Contratos guardados" ---------- */
+  .cp-overlay{ display:none; position:fixed; inset:0; z-index:80; background:rgba(46,52,55,.45);
+    align-items:center; justify-content:center; padding:24px; }
+  .cp-overlay.open{ display:flex; }
+  .cp-modal{ background:#fff; border-radius:12px; width:min(760px,100%); max-height:min(600px,86vh);
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  .cp-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .cp-head b{ font-size:15px; letter-spacing:.02em; }
+  #cpSearch{ margin:12px 18px 0; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:13.5px; }
+  .cp-cols{ display:grid; grid-template-columns:1fr .8fr 1.4fr 1.2fr 1fr .9fr; gap:8px; padding:12px 18px 6px;
+    font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
+  .cp-row{ display:grid; grid-template-columns:1fr .8fr 1.4fr 1.2fr 1fr .9fr; gap:8px; padding:9px 0;
+    border-top:1px solid var(--line); font-size:13px; cursor:pointer; }
+  .cp-row:hover{ background:var(--rl); }
+  .cp-row .cp-num{ font-weight:600; color:var(--tg); }
+  .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
+  @media (max-width:640px){
+    .cp-cols{ display:none; }
+    .cp-row{ grid-template-columns:1fr; gap:2px; }
+    .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }
+  }
 </style>
 </head>
 <body>
@@ -169,6 +196,7 @@
     <img class="brandlogo" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
     <h1 class="tbtitle">· Contratos</h1>
     <div class="spacer"></div>
+    <button type="button" class="tb-link" id="btnContracts">Contratos guardados</button>
     <button type="button" class="tb-link" id="btnReset">Limpiar</button>
     <span class="lang-hint" title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
@@ -196,6 +224,7 @@
         <b id="pvTitle">Vista previa</b>
         <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
         <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
+        <button class="btn ghost" id="btnSave" style="display:none">Guardar en base de datos</button>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
       </div>
@@ -205,6 +234,22 @@
 
   <button type="button" class="fab" id="fab">Vista previa ⤢</button>
   <div class="toast" id="toast"></div>
+
+  <!-- Panel "Contratos guardados" — lista lo que hay en Supabase (solo Parcela/Construcción,
+       que son los 2 tipos con numeración). Click en una fila reabre ese contrato en el form. -->
+  <div class="cp-overlay" id="cpOverlay">
+    <div class="cp-modal">
+      <div class="cp-head">
+        <b>Contratos guardados</b>
+        <button type="button" class="tb-link" id="cpClose">Cerrar</button>
+      </div>
+      <input type="search" id="cpSearch" placeholder="Buscar por número, comprador o proyecto…">
+      <div class="cp-cols">
+        <span>Nº</span><span>Tipo</span><span>Comprador</span><span>Proyecto</span><span>Precio</span><span>Fecha</span>
+      </div>
+      <div class="cp-list" id="cpList"></div>
+    </div>
+  </div>
 
 <script>
 /* ============================================================
@@ -271,6 +316,19 @@ let BACKEND = false, CSRF = null;
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
+
+/* ---------- Supabase: guardado + numeración automática de contratos ----------
+   Independiente del backend PHP/MySQL (BACKEND/api/generar.php, fase-4 sin desplegar).
+   Solo aplica a los 2 tipos con numeración acordada; el resto de plantillas no
+   muestran el botón de guardado. El número (RPXXXXX/CCXXXXX) lo asigna un trigger
+   en Postgres con una secuencia por prefijo — no hay condición de carrera aunque
+   varias personas guarden a la vez (nextval() es atómico a nivel de motor). */
+const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const CONTRACT_TIPO = { ppjb_parcela:'reserva_parcela', ppjb_construccion:'construccion' };
+let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
+let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
 /* ancho del hueco según el dato: un % o fecha no necesita tanto sitio como un nombre */
 function sizeClass(key){
@@ -772,6 +830,7 @@ function buildForm(){
   form.querySelectorAll('input[name],textarea[name],select[name]').forEach(el=> el.addEventListener('input', renderDebounced));
   form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', render));
   ensurePads(form);   // secciones visibles al arrancar
+  updateSaveButton(); // muestra/oculta "Guardar en base de datos" según la plantilla
   render();
 }
 
@@ -1002,7 +1061,8 @@ async function loadTemplate(slug){
 function buildPicker(){
   const sel=$('#tplPick');
   sel.innerHTML = TEMPLATES.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
-  sel.addEventListener('change', async ()=>{ await loadTemplate(sel.value); buildForm();
+  sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; await loadTemplate(sel.value); buildForm();
+    updateSaveButton();
     if(DESIGN.coverColor===''){ const c=$('#coverColor'); if(c) c.value=CURRENT.cover; } });
 }
 function buildLangToggle(){
@@ -1051,6 +1111,136 @@ async function downloadPdf(){
     else{ toast(d.error||'Error al guardar'); }
   }catch(_){ toast('No se pudo conectar'); }
   btn.disabled=false; btn.textContent='Descargar PDF';
+}
+
+/* ============================================================
+   SUPABASE — guardado + numeración automática (RPXXXXX/CCXXXXX)
+   Solo para ppjb_parcela/ppjb_construccion (los 2 tipos acordados).
+   ============================================================ */
+function updateSaveButton(){
+  const btn=$('#btnSave'); if(!btn) return;
+  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  btn.style.display = tipo ? '' : 'none';
+  if(!tipo) return;
+  btn.textContent = SAVED_CONTRACT ? ('Actualizar (' + SAVED_CONTRACT.numero + ')') : 'Guardar en base de datos';
+}
+
+function contractPayload(){
+  const data = collect();
+  return {
+    tipo: CONTRACT_TIPO[CURRENT.slug],
+    comprador_nombre: data.adq1_nombre || null,
+    proyecto_nombre: data.proyecto_nombre || null,
+    precio_total: data.precio_total ? Number(String(data.precio_total).replace(/[^\d.-]/g,'')) || null : null,
+    moneda: data.moneda || null,
+    fecha_firma: data.fecha_firma || null,
+    // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
+    // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
+    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES, clauses: CLAUSES,
+              overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
+  };
+}
+
+async function guardarContrato(){
+  if(!sb){ toast('Supabase no disponible'); return; }
+  const tipo = CONTRACT_TIPO[CURRENT.slug];
+  if(!tipo) return;
+  const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const payload = contractPayload();
+    const q = (SAVED_CONTRACT && SAVED_CONTRACT.id)
+      ? sb.from('contratos').update(payload).eq('id', SAVED_CONTRACT.id).select('id,numero').single()
+      : sb.from('contratos').insert(payload).select('id,numero').single();
+    const { data, error } = await q;
+    if(error) throw error;
+    SAVED_CONTRACT = { id:data.id, numero:data.numero };
+    const numEl = document.querySelector('[name="contrato_num"]');
+    if(numEl){ numEl.value = data.numero; }
+    toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
+    render();
+  }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
+  btn.disabled=false; updateSaveButton();
+}
+$('#btnSave').addEventListener('click', guardarContrato);
+
+/* ---------- panel "Contratos guardados" ---------- */
+async function openContractsPanel(){
+  $('#cpOverlay').classList.add('open');
+  $('#cpSearch').value = '';
+  const list=$('#cpList'); list.innerHTML = 'Cargando…';
+  if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
+  const { data, error } = await sb.from('contratos')
+    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at')
+    .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
+  if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
+  CP_ROWS = data || [];
+  renderCpList(CP_ROWS);
+}
+function cpTipoLabel(t){ return t==='reserva_parcela' ? 'Parcela' : 'Construcción'; }
+function renderCpList(rows){
+  const list=$('#cpList');
+  if(!rows.length){ list.innerHTML='<p class="cp-empty">Sin contratos guardados.</p>'; return; }
+  list.innerHTML = rows.map(r=>`
+    <div class="cp-row" data-id="${r.id}">
+      <span class="cp-num" data-l="Nº">${r.numero||'—'}</span>
+      <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
+      <span data-l="Comprador">${escAttr(r.comprador_nombre||'—')}</span>
+      <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
+      <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
+      <span data-l="Fecha">${r.fecha_firma||''}</span>
+    </div>`).join('');
+}
+$('#cpSearch').addEventListener('input', e=>{
+  const q=e.target.value.toLowerCase();
+  renderCpList(!q ? CP_ROWS : CP_ROWS.filter(r=>
+    [r.numero,r.comprador_nombre,r.proyecto_nombre].some(v=>(v||'').toLowerCase().includes(q))));
+});
+$('#cpList').addEventListener('click', async e=>{
+  const row=e.target.closest('.cp-row'); if(!row) return;
+  $('#cpOverlay').classList.remove('open');
+  await openSavedContract(row.dataset.id);
+});
+$('#btnContracts').addEventListener('click', openContractsPanel);
+$('#cpClose').addEventListener('click', ()=> $('#cpOverlay').classList.remove('open'));
+
+/* rellena el form ya construido con los valores guardados (inverso de collect()) */
+function populateForm(fields){
+  Object.entries(fields || {}).forEach(([k,v])=>{
+    if(v===null || v===undefined || v==='') return;
+    const el=document.querySelector(`[name="${k}"]`);
+    if(el){ el.value=v; return; }
+    if(k.startsWith('firma') && pads[k]){
+      const p=pads[k], img=new Image();
+      img.onload=()=>{ p.ctx.clearRect(0,0,p.cv.width,p.cv.height); p.ctx.drawImage(img,0,0,p.cv.width,p.cv.height);
+        p.empty=false; const wrap=document.getElementById('pad-'+k); if(wrap) wrap.classList.add('signed'); };
+      img.src=v;
+    }
+  });
+  // reactiva secciones opcionales (Adquiriente II/III, sociedad) si traían datos
+  document.querySelectorAll('[data-opt]').forEach(chk=>{
+    const sec=document.querySelector(`[data-sec="${chk.dataset.opt}"]`); if(!sec) return;
+    const hasData=[...sec.querySelectorAll('[name]')].some(i=>fields[i.name]);
+    if(hasData){ chk.checked=true; sec.classList.remove('off'); ensurePads(sec); }
+  });
+}
+
+async function openSavedContract(id){
+  if(!sb) return;
+  const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
+  if(error || !data){ toast('No se pudo abrir el contrato'); return; }
+  const slug = data.tipo==='reserva_parcela' ? 'ppjb_parcela' : 'ppjb_construccion';
+  await loadTemplate(slug);
+  $('#tplPick').value = slug;
+  buildForm();
+  const d = data.datos || {};
+  if(d.design){ DESIGN = d.design; saveDesign(); }
+  if(d.annexes){ ANNEXES = d.annexes; saveAnnexes(); }
+  if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
+  populateForm(d.fields || {});
+  HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
+  SAVED_CONTRACT = { id:data.id, numero:data.numero };
+  refreshHitos(); updateSaveButton(); render();
+  toast('Contrato ' + data.numero + ' cargado');
 }
 
 /* ---------- init ---------- */
