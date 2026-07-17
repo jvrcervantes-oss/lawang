@@ -144,14 +144,14 @@
     }).join("");
 
     // Guía Collection: dos grupos etiquetados — Property (verde) y Destination (tierra)
-    var groupLabel = function(pre, word){ return '<div style="font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">'+pre+' <b style="font-weight:700;color:var(--ink)">'+word+' ⌄</b></div>'; };
+    var groupLabel = function(pre, word, preColor){ return '<div style="font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:'+(preColor||'var(--ink-2)')+';margin-bottom:10px">'+pre+' <b style="font-weight:700;color:var(--ink)">'+word+' ⌄</b></div>'; };
     var propChips = '<button class="filter-chip" data-act="line:all" style="'+chipStyle(S.line==="all")+'">'+t("mk.all")+'</button>'
       + LINES.map(function(l){ return '<button class="filter-chip" data-act="line:'+l+'" style="'+chipStyle(S.line===l)+'">'+t(LINE_KEYS[l])+'</button>'; }).join("");
     var destChips = '<button class="filter-chip" data-act="region:all" style="'+chipStyle(S.region==="all","var(--be)")+'">'+t("mk.all")+'</button>'
       + '<button class="filter-chip" data-act="region:bali" style="'+chipStyle(S.region==="bali","var(--be)")+'">Bali</button>'
       + '<button class="filter-chip" data-act="region:sumba" style="'+chipStyle(S.region==="sumba","var(--be)")+'">Sumba</button>';
     var chips = '<div>'+groupLabel(t("mk.browse"),t("mk.property"))+'<div style="display:flex;gap:8px;flex-wrap:wrap">'+propChips+'</div></div>'
-      + '<div>'+groupLabel(t("mk.explore"),t("mk.destination"))+'<div style="display:flex;gap:8px;flex-wrap:wrap">'+destChips+'</div></div>';
+      + '<div>'+groupLabel(t("mk.explore"),t("mk.destination"),"var(--be)")+'<div style="display:flex;gap:8px;flex-wrap:wrap">'+destChips+'</div></div>';
 
     // Paginación: máx 9 propiedades por página.
     var PER_PAGE = 9;
