@@ -28,9 +28,6 @@
   };
   var SYMS = { EUR:'€', USD:'$', AUD:'A$' };
   var DEFAULT_RATES = { EUR:1, USD:1.08, AUD:1.65 };
-  // Iconos stock (placeholder hasta recibir los vectores de marca del cliente)
-  var ICO_AREA = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
-  var ICO_BED  = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 20v-2M21 20v-2M6 10V8a2 2 0 0 1 2-2h3v4"/></svg>';
 
   function themeFor(p) {
     if (p.regionKey === 'sumba') return p.line === 'land' ? 'ocean' : 'sand';
@@ -79,29 +76,35 @@
     var keys = (p.imgKeys && p.imgKeys.length) ? p.imgKeys : (p.images || []);
     var img0 = keys.length ? imgUrl(keys[0]) : null;
 
-    // Orden solicitado: m² · dormitorios · texto plano (editable por el cliente vía p.metaText)
+    // Specs sin iconos (guía Collection): "345 m² · 3 rooms · 965 m² land"
     var meta = '';
-    if (p.built > 0) meta += '<span class="lw-m"><b>' + p.built + '</b> m²' + ICO_AREA + '</span>';
-    if (p.beds  > 0) meta += '<span class="lw-m"><b>' + p.beds + '</b>' + ICO_BED + '</span>';
+    if (p.built > 0) meta += '<span class="lw-m"><b>' + p.built + '</b> m²</span>';
+    if (p.beds  > 0) meta += '<span class="lw-m"><b>' + p.beds + '</b> ' + (lang === 'es' ? 'hab' : (p.beds > 1 ? 'rooms' : 'room')) + '</span>';
     var extra = p.metaText ? (typeof p.metaText === 'string' ? p.metaText : pick(p.metaText, lang))
                            : (p.land > 0 ? p.land + ' m² ' + (lang === 'es' ? 'parcela' : 'land') : '');
     if (extra) meta += '<span class="lw-m lw-m-txt">' + esc(extra) + '</span>';
 
     var fromTxt = lang === 'es' ? 'Desde' : 'From';
 
+    // Ubicación en dos tonos (guía): "SOUTH BUWIT," bold + "TABANAN" ligero
+    var region = String(p.region || '');
+    var ci = region.indexOf(',');
+    var locHTML = ci >= 0 ? '<b>' + esc(region.slice(0, ci + 1)) + '</b> ' + esc(region.slice(ci + 1).trim())
+                          : '<b>' + esc(region) + '</b>';
+
     return '<article class="lw-prop"><a href="' + href + '">'
       + '<div class="lw-prop-media ph-' + themeFor(p) + '">'
       + (img0 ? '<img class="lw-prop-img" src="' + esc(img0) + '" alt="" loading="lazy" onerror="this.remove()">' : '')
       + '<span class="lw-prop-view"><img src="assets/img/' + view + '-ico.png" alt="" loading="lazy">' + esc(pick(VIEW_LABEL[view], lang)) + '</span>'
       + '<span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/' + creamIco + '.png" alt="" loading="lazy">' + esc(lineLabel) + '</span></div>'
-      + '<div class="lw-prop-body"><div class="lw-prop-head"><span class="lw-prop-loc">' + esc(p.region) + '</span>'
+      + '<div class="lw-prop-body">'
       + '<div class="lw-prop-pills">' + (p.tenure ? '<span class="pf-pill ten">' + esc(ten[lang] || ten.en) + '</span>' : '')
-      + ((st[lang] || st.en) ? '<span class="pf-pill ' + st.c + '">' + esc(st[lang] || st.en) + '</span>' : '') + '</div></div>'
+      + ((st[lang] || st.en) ? '<span class="pf-pill ' + st.c + '">' + esc(st[lang] || st.en) + '</span>' : '') + '</div>'
+      + '<span class="lw-prop-loc">' + locHTML + '</span>'
       + '<h3 class="lw-prop-title">' + esc(pick(p.title, lang)) + '</h3>'
       + '<p class="lw-prop-sub">' + esc(pick(p.sub, lang)) + '</p>'
       + '<div class="lw-prop-meta">' + meta + '</div>'
-      + '<div class="lw-prop-foot"><span class="lw-prop-price">' + (p.priceEUR > 0 ? '<span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : 'Price on request')) + '</span>'
-      + '<span class="lw-prop-cta">' + (lang === 'es' ? 'Ver detalle' : 'View details') + ' <span class="arr">→</span></span></div></div></a></article>';
+      + '<div class="lw-prop-foot"><span class="lw-prop-price">' + (p.priceEUR > 0 ? '<span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : 'Price on request')) + '</span></div></div></a></article>';
   }
 
   window.LawangCard = { render: render, themeFor: themeFor, money: money, viewFor: viewFor, VIEW_LABEL: VIEW_LABEL };

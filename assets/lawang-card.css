@@ -6,10 +6,10 @@
 .lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
   transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
 .lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
-.lw-prop > a { display:flex; flex-direction:column; height:546px; background:#EBE4D6; border-radius:8px; overflow:hidden; text-decoration:none; color:#2E3437; }
-/* Reparto 50/50 exacto: media y body ocupan exactamente la mitad (foto rellena con cover;
-   el pie va anclado abajo con margin-top:auto, así nunca se recorta el precio/CTA) */
-.lw-prop-media { position:relative; flex:0 0 50%; min-height:0; overflow:hidden; background:#2a2018; }
+.lw-prop > a { display:flex; flex-direction:column; height:546px; background:#FDFAF5; border-radius:8px; overflow:hidden; text-decoration:none; color:#2E3437; }
+/* Guía Collection: imagen inset (margen cream + radio propio), ~52/48 a favor de la foto;
+   el pie va anclado abajo con margin-top:auto, así nunca se recorta el precio */
+.lw-prop-media { position:relative; flex:0 0 52%; min-height:0; overflow:hidden; background:#2a2018; margin:8px 8px 0; border-radius:7px; }
 .lw-prop-media.ph-jungle { background:radial-gradient(120% 100% at 20% 0%,#8F9B7A 0%,transparent 55%),radial-gradient(120% 120% at 90% 30%,#364429 0%,transparent 60%),linear-gradient(160deg,#485B37 0%,#1e2c14 100%); }
 .lw-prop-media.ph-sunset { background:radial-gradient(120% 90% at 75% 18%,#BEB3A5 0%,transparent 50%),radial-gradient(140% 120% at 20% 80%,#42210B 0%,transparent 60%),linear-gradient(155deg,#6B4A2E 0%,#2E1A08 100%); }
 .lw-prop-media.ph-ocean { background:radial-gradient(120% 100% at 30% 10%,#5A9A9C 0%,transparent 55%),radial-gradient(120% 120% at 85% 80%,#0D3A3D 0%,transparent 60%),linear-gradient(160deg,#104C4F 0%,#082832 100%); }
@@ -23,30 +23,29 @@
   font-family:'Neue Kabel','Jost',sans-serif; font-size:11.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(244,239,228,.9); }
 .lw-prop-line .lw-line-ico { width:30px; height:30px; flex-shrink:0; object-fit:contain;
   filter:drop-shadow(0 1px 3px rgba(20,16,11,.55)); }
+/* Chip de vista outlined/glassy (guía): borde claro + fondo translúcido oscuro */
 .lw-prop-view { position:absolute; right:12px; top:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
   font-family:'Neue Kabel','Jost',sans-serif; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,239,228,.95);
-  background:rgba(72,91,55,.92); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); padding:6px 13px 6px 9px; border-radius:999px; box-shadow:0 4px 14px -4px rgba(20,16,11,.5); }
+  background:rgba(20,16,11,.32); border:1px solid rgba(245,240,230,.7); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); padding:5px 13px 5px 9px; border-radius:999px; box-shadow:0 4px 14px -4px rgba(20,16,11,.4); }
 .lw-prop-view img { width:auto; height:19px; flex-shrink:0; object-fit:contain; }
-.lw-prop-body { padding:22px 24px 26px; display:flex; flex-direction:column; gap:12px; flex:0 0 50%; min-height:0; }
-.lw-prop-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.lw-prop-loc { font-family:'Neue Kabel','Jost',sans-serif; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#485B37; }
-.lw-prop-pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.lw-prop-body { padding:18px 24px 24px; display:flex; flex-direction:column; gap:10px; flex:1 1 auto; min-height:0; }
+.lw-prop-loc { font-family:'Neue Kabel','Jost',sans-serif; font-size:12px; font-weight:400; letter-spacing:.06em; text-transform:uppercase; color:#5d6b52; }
+.lw-prop-loc b { font-weight:700; color:#485B37; }
+.lw-prop-pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-start; }
 .pf-pill { display:inline-flex; align-items:center; gap:7px; padding:3px 9px; border-radius:999px; font-family:'Neue Kabel','Jost',sans-serif;
   font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; border:1px solid #D4CCBA; color:#2b2b2b; background:rgba(255,255,255,.4); white-space:nowrap; }
 .pf-pill.ten { background:#EDF1E8; color:#2b2b2b; border-color:rgba(72,91,55,.28); }
 .pf-pill.built { background:#485B37; color:#F5F0E6; border-color:#485B37; }
 .pf-pill.constr { background:#42210B; color:#F5F0E6; border-color:#42210B; }
 .pf-pill.plan { background:transparent; color:#2b2b2b; border-color:#D4CCBA; }
-.lw-prop-title { font-family:'Neue Kabel','Jost',sans-serif; font-weight:700; font-size:24px; color:#2E3437; margin:0; line-height:1.1; }
-.lw-prop-sub { font-family:'Neue Kabel','Jost',sans-serif; font-size:14.5px; color:#2b2b2b; line-height:1.5; margin:0; }
+/* Título uppercase Burnt Earth + sub uppercase Deep Lagoon (guía Collection) */
+.lw-prop-title { font-family:'Neue Kabel','Jost',sans-serif; font-weight:500; font-size:29px; letter-spacing:.04em; text-transform:uppercase; color:#42210B; margin:0; line-height:1.05; }
+.lw-prop-sub { font-family:'Neue Kabel','Jost',sans-serif; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#104C4F; line-height:1.5; margin:0; }
 .lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#7B7B7B; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:4px; }
-.lw-prop-meta .lw-m { display:inline-flex; align-items:center; gap:6px; font-weight:500; }
+.lw-prop-meta .lw-m { display:inline-flex; align-items:center; gap:5px; font-weight:500; }
 .lw-prop-meta .lw-m b { font-weight:700; }
-.lw-prop-meta .lw-m .lw-mi { width:16px; height:16px; flex-shrink:0; color:#7B7B7B; }
 .lw-prop-meta .lw-m + .lw-m::before { content:"·"; margin-right:10px; color:#B8B2A6; }
 .lw-prop-meta .lw-m-txt { color:#7B7B7B; }
-.lw-prop-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
-.lw-prop-price { font-family:'Neue Kabel','Jost',sans-serif; font-weight:400; font-size:24px; color:#324820; }
-.lw-prop-price .from { font-size:.62em; opacity:.6; margin-right:6px; }
-.lw-prop-cta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13px; font-weight:600; color:#485B37; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; transition:gap .3s; }
-.lw-prop:hover .lw-prop-cta { gap:9px; }
+.lw-prop-foot { display:flex; align-items:center; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
+.lw-prop-price { font-family:'Neue Kabel','Jost',sans-serif; font-weight:600; font-size:28px; color:#324820; }
+.lw-prop-price .from { font-size:.5em; font-weight:500; letter-spacing:.08em; text-transform:uppercase; opacity:.6; margin-right:8px; }
