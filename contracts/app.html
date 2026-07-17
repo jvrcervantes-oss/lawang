@@ -259,8 +259,10 @@
     </div>
   </div>
 
-  <!-- Modal "Enviar por email" — genera el PDF en el navegador (html2pdf.js) y lo
-       manda por api/send_email.php (PHP nativo, sin backend nuevo que montar). -->
+  <!-- Modal "Enviar por email" — manda el HTML de la vista previa a
+       api/send_email.php, que lo renderiza a PDF con el servicio Puppeteer
+       (Chromium real en Railway). Si ese servicio no está configurado o
+       falla, cae automáticamente al PDF adjuntado a mano (opcional, plegado). -->
   <div class="cp-overlay" id="emOverlay">
     <div class="cp-modal" style="width:min(480px,100%)">
       <div class="cp-head">
@@ -268,11 +270,14 @@
         <button type="button" class="tb-link" id="emClose">Cerrar</button>
       </div>
       <div class="em-body">
-        <p class="em-note">1. Pulsa <b>Descargar PDF</b> y guárdalo. 2. Adjúntalo aquí y envíalo — así el PDF que recibe el cliente es exactamente el mismo que ves en la vista previa, sin pérdida de calidad.</p>
-        <label>PDF del contrato<input type="file" id="emFile" accept="application/pdf" required></label>
+        <p class="em-note">Se envía tal cual está la vista previa — no hace falta descargar ni adjuntar nada.</p>
         <label>Destinatario<input type="email" id="emTo" placeholder="cliente@email.com" required></label>
         <label>Asunto<input type="text" id="emSubject"></label>
         <label>Mensaje<textarea id="emMessage" rows="5"></textarea></label>
+        <details class="em-manual">
+          <summary class="tb-link">O adjúntalo tú mismo (opcional)</summary>
+          <label>PDF del contrato<input type="file" id="emFile" accept="application/pdf"></label>
+        </details>
         <button type="button" class="btn primary" id="emSend" style="width:100%">Enviar</button>
       </div>
     </div>
@@ -1283,16 +1288,15 @@ async function openSavedContract(id){
 
 /* ============================================================
    EMAIL — manda por api/send_email.php (PHP standalone, sin MySQL,
-   remitente fijo) el PDF que el usuario adjunta a mano.
-   ponytail: se probó generar el PDF en el navegador con html2pdf.js/
-   html2canvas y falla con las reglas color-mix() que usa todo el CSS
-   de marca (brand.css/_portada.html) — es una limitación real de esa
-   librería, no un bug de la plantilla. En vez de parchear color por
-   color, se reusa el PDF que YA sale perfecto del flujo nativo
-   (printPreview) y el usuario solo lo adjunta — 0 pérdida de calidad,
-   2 clics en vez de 1. Si algún día hace falta un solo clic, la vía
-   fiable es renderizar el PDF en un backend con navegador real
-   (headless Chrome), no una librería de canvas en el cliente. */
+   remitente fijo) el HTML de la vista previa (buildDoc()); el servidor
+   lo renderiza a PDF con contracts-pdf-service (Puppeteer/Chromium real
+   en Railway). El adjunto manual sigue disponible como respaldo (plegado
+   en el modal) por si el servicio no está desplegado/configurado todavía.
+   ponytail: se probó generar el PDF en el propio navegador con html2pdf.js/
+   html2canvas y con html-to-image — ambas fallan con este documento
+   (color-mix() de brand.css una, CORS de Google Fonts la otra). Limitación
+   real de esas librerías con CSS moderno, no arreglable parcheando; de ahí
+   el salto a un navegador real en servidor. */
 function blobToBase64(blob){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -1315,17 +1319,20 @@ async function enviarEmail(){
   const to=$('#emTo').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
   const file=$('#emFile').files[0];
-  if(!file){ toast('Adjunta primero el PDF del contrato'); return; }
-  if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
+  if(file && file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
   // 100MB por petición explícita — ojo: la mayoría de servidores de correo (Gmail
   // incluido) rechazan adjuntos por encima de ~25MB pase lo que pase aquí; este
   // límite solo evita que el navegador intente subir algo absurdo.
-  if(file.size > 100*1024*1024){ toast('El PDF supera los 100MB'); return; }
+  if(file && file.size > 100*1024*1024){ toast('El PDF supera los 100MB'); return; }
   const btn=$('#emSend'); btn.disabled=true; btn.textContent='Enviando…';
   try{
-    const base64 = await blobToBase64(file);
+    // se manda siempre el HTML de la vista previa (el servidor lo renderiza con
+    // el servicio Puppeteer); si además se adjuntó un PDF a mano, va también
+    // como pdf_base64 — el servidor lo usa de respaldo si el render falla.
+    const payload = { to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:'contrato.pdf', html: buildDoc() };
+    if(file){ payload.filename = file.name; payload.pdf_base64 = await blobToBase64(file); }
     const r = await fetch('api/send_email.php', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:file.name, pdf_base64:base64 }) });
+      body: JSON.stringify(payload) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
     if(d.ok){ toast('Email enviado a ' + to); $('#emOverlay').classList.remove('open'); }
     else{ toast(d.error || 'No se pudo enviar'); }
