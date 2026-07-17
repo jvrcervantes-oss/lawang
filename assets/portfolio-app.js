@@ -32,7 +32,8 @@
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;","&gt;":"&gt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function pick(o){ return o ? (o[S.lang] || o.en) : ""; }
   function themeFor(p){ if(p.regionKey==="sumba") return p.line==="land"?"ocean":"sand"; if(p.line==="resorts") return "dusk"; if(p.line==="land") return "jungle"; return "sunset"; }
-  function priceHTML(eur, from){ if(!eur) return '<span style="opacity:.7">'+t("mk.onrequest")+'</span>'; return (from?'<span style="font-size:.62em;opacity:.6;margin-right:6px">'+t("mk.from")+'</span>':'') + money(eur); }
+  // "FROM" en versalitas pequeñas — misma regla que la card (.lw-prop-price .from)
+  function priceHTML(eur, from){ if(!eur) return '<span style="opacity:.7">'+t("mk.onrequest")+'</span>'; return (from?'<span style="font-size:.5em;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-right:8px">'+t("mk.from")+'</span>':'') + money(eur); }
   function statusPillStyle(s){
     if(s==="status.ready")        return "background:var(--clay);color:var(--bone);border-color:var(--clay)";
     if(s==="status.construction") return "background:var(--be);color:var(--bone);border-color:var(--be)";
@@ -402,7 +403,7 @@
     return '<div style="display:flex;flex-direction:column;gap:14px">'
       + '<div style="background:var(--bone-2);border:1px solid var(--line);border-radius:10px;overflow:hidden">'
       +   '<div style="padding:22px 20px 18px;border-bottom:1px solid var(--line)"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">'+t("glance.entry")+'</div>'
-      +     '<div class="serif" style="font-size:clamp(28px,2.8vw,36px);font-weight:400;line-height:1">'+priceHTML(p.priceEUR,true)+'</div>'
+      +     '<div class="serif" style="font-size:clamp(28px,2.8vw,36px);font-weight:600;line-height:1;color:#324820">'+priceHTML(p.priceEUR,true)+'</div>'
       +     (curRows?'<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">'+curRows+'</div>':'')
       +     priceNoteHTML+'</div>'
       +   locationRow
@@ -439,7 +440,7 @@
         + '<tr style="border-bottom:1px solid var(--line)"><td style="padding:8px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)">Break-even</td>'+occs.map(function(o){return '<td style="padding:8px 8px;text-align:right;font-size:13px;color:var(--ink-2)">'+beYr(o)+' yr</td>';}).join("")+'</tr>'
         + '</tbody></table></div>';
     }
-    return '<div style="margin-top:40px;padding-top:36px;border-top:1px solid var(--line)"><h4 class="serif" style="font-size:clamp(20px,2vw,25px);font-weight:300;margin-bottom:20px">'+t("inv.title")+'</h4>'
+    return '<div style="margin-top:40px;padding-top:36px;border-top:1px solid var(--line)"><h4 class="serif" style="font-size:clamp(19px,1.9vw,23px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B;margin-bottom:20px">'+t("inv.title")+'</h4>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:24px">'
       +   '<div style="background:var(--tg-light);padding:20px 18px"><div style="font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin-bottom:8px">ROI 30 yr · 80% occ.</div><div style="font-family:var(--sans);font-size:34px;font-weight:500;color:var(--tg);line-height:1">'+roi30(0.80)+'%</div></div>'
       +   '<div style="background:var(--tg-light);padding:20px 18px"><div style="font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin-bottom:8px">Break-even · 80% occ.</div><div style="font-family:var(--sans);font-size:34px;font-weight:500;color:var(--tg);line-height:1">'+beYr(0.80)+' <span style="font-size:18px;opacity:.6">yr</span></div></div>'
@@ -458,7 +459,7 @@
       + '<div style="font-family:var(--sans);font-size:22px;font-weight:300;color:var(--clay);line-height:1;padding-top:4px;opacity:'+(i===0?1:0.45)+'">'+s.step+'</div>'
       + '<div><div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(s.label)+'</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">'+esc(s.note)+'</div></div>'
       + '<div style="text-align:right"><div style="font-family:var(--sans);font-size:16px;font-weight:600">'+money(Math.round(price*s.pct/100))+'</div><div style="font-size:11px;color:var(--ink-2);margin-top:2px">'+s.pct+'%</div></div></div>'; }).join("");
-    return '<div><h4 class="serif" style="font-size:clamp(20px,2vw,25px);font-weight:300;margin-bottom:22px">'+t("pay.title")+'</h4>'+rows
+    return '<div><h4 class="serif" style="font-size:clamp(19px,1.9vw,23px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B;margin-bottom:22px">'+t("pay.title")+'</h4>'+rows
       + '<div style="display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid var(--ink)"><span style="font-weight:700;font-size:14px">Total</span><span style="font-family:var(--sans);font-size:18px;font-weight:700">'+money(price)+'</span></div>'
       + '<p style="font-size:11.5px;color:var(--ink-2);margin-top:14px;line-height:1.65">PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>';
   }
@@ -557,7 +558,7 @@
         +'<button '+(ok?'data-act="step:'+i+'"':'disabled')+' style="display:inline-flex;align-items:center;gap:8px;border:1px solid '+(on?"var(--clay)":"var(--line)")+';background:'+(on?"var(--clay)":"transparent")+';color:'+(on?"var(--bone)":(ok?"var(--ink)":"var(--ink-2)"))+';border-radius:999px;padding:6px 14px 6px 7px;font-family:var(--sans);font-size:12.5px;font-weight:600;cursor:'+(ok?"pointer":"default")+';opacity:'+(ok?1:0.5)+'"><span style="width:20px;height:20px;border-radius:999px;display:grid;place-items:center;font-size:11px;font-weight:700;background:'+(on?"rgba(255,255,255,.22)":(complete?"var(--clay)":"var(--bone-2)"))+';color:'+((on||complete)?"var(--bone)":"var(--ink-2)")+'">'+(complete?"✓":(i+1))+'</span>'+st.label+'</button>';
     }).join("");
     var totalChip = cfg.configuredEUR>0 ? '<div style="margin-left:auto;text-align:right"><div style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">'+t("fin.total")+'</div><div style="font-family:var(--sans);font-size:19px;font-weight:700;line-height:1">'+money(cfg.configuredEUR)+'</div></div>' : "";
-    var stepHead = sObj.id!=="pay" ? '<div style="margin-bottom:18px"><h4 class="serif" style="font-size:clamp(20px,2vw,25px);font-weight:300">'+sObj.title+'</h4>'+(sObj.sub?'<p style="font-size:14px;color:var(--ink-2);margin-top:6px;max-width:46ch">'+sObj.sub+'</p>':"")+'</div>' : "";
+    var stepHead = sObj.id!=="pay" ? '<div style="margin-bottom:18px"><h4 class="serif" style="font-size:clamp(19px,1.9vw,23px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+sObj.title+'</h4>'+(sObj.sub?'<p style="font-size:14px;color:var(--ink-2);margin-top:6px;max-width:46ch">'+sObj.sub+'</p>':"")+'</div>' : "";
     var nextBtn = !isLast
       ? '<button '+(canNext?'data-act="step:'+(idx+1)+'"':'disabled')+' style="background:'+(canNext?"var(--clay)":"var(--line)")+';color:var(--bone);border:none;border-radius:999px;padding:11px 26px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:'+(canNext?"pointer":"default")+'">'+((sObj.id==="extras"&&cfg.extrasTotal===0)?t("cfg.skip"):t("cfg.next"))+' →</button>'
       : '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
@@ -600,18 +601,19 @@
     var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
     var subText = pick(p.sub);
-    var subHTML = subText ? '<p style="font-size:18px;color:var(--ink-2);margin-top:14px;max-width:50ch">'+esc(subText)+'</p>' : "";
+    // Sub = regla de card (.lw-prop-sub): Neue Kabel, uppercase, w600, negro
+    var subHTML = subText ? '<p style="font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#1A1A1A;line-height:1.5;margin-top:14px;max-width:50ch">'+esc(subText)+'</p>' : "";
     var descText = pick(p.desc);
     var overviewHTML = descText ? '<div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(descText)+'</p></div>' : "";
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
-      + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px">'+esc(pick(x.title))+'</p><p style="font-size:13px;color:var(--ink-2);margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
+      + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(x.title))+'</p><p style="font-size:13px;font-weight:600;color:#324820;margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
       + '</div></div>' : "";
     return '<div style="padding-top:clamp(32px,4vw,56px);padding-bottom:80px"><div class="wrap">'
       + breadcrumbsHTML(p)
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:30px"><div style="flex:1 1 380px;min-width:0">'
       +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);font-family:var(--sans)">'+t(LINE_KEYS[p.line])+'</span><span style="width:1px;height:12px;background:var(--line)"></span><span style="font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-family:var(--sans)">'+t(p.status)+'</span></div>'
-      +   '<h1 class="display" style="font-size:clamp(34px,5vw,64px)">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
-      +   '<div style="flex-shrink:0;text-align:right"><div class="serif" style="font-size:clamp(28px,2.8vw,38px);font-weight:400;line-height:1">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
+      +   '<h1 class="display" style="font-size:clamp(34px,5vw,64px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
+      +   '<div style="flex-shrink:0;text-align:right"><div class="serif" style="font-size:clamp(28px,2.8vw,38px);font-weight:600;line-height:1;color:#324820">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
       + techSpecsHTML(p)
       + '<div class="pdp-cols" style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);margin-top:56px;align-items:start">'
