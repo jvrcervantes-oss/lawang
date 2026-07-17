@@ -19,7 +19,7 @@
   // ── Estado global ──────────────────────────────────────────
   var S = {
     lang:"en", cur:"EUR",
-    line:"all", region:"all", layout:"grid", langOpen:false, page:1,
+    line:"all", region:"all", layout:"grid", langOpen:false, page:1, featIdx:0,
     overlay:null,
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
@@ -85,18 +85,31 @@
   }
 
   // ════ MARKETPLACE ════
-  function featuredHTML(p){
+  // Ubicación en dos líneas (guía): "BALI · INDONESIA" + zona (parte antes de la coma de p.region)
+  function regionLabelHTML(p, sizeBig){
+    var island = p.regionKey==="sumba" ? "Sumba" : "Bali";
+    var area = String(p.region||"").split(",")[0];
+    return '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.1vw,15px);letter-spacing:.22em;text-transform:uppercase;opacity:.92">'+esc(island)+' · Indonesia</span>'
+      + '<span style="display:block;font-family:var(--sans);font-weight:400;font-size:'+(sizeBig?'clamp(15px,1.6vw,21px)':'clamp(13px,1.3vw,17px)')+';letter-spacing:.24em;text-transform:uppercase;margin-top:7px">'+esc(area)+'</span>';
+  }
+
+  // Featured según guía Collection: marco fino interior, ubicación arriba-dcha, sub uppercase, dots
+  function featuredHTML(p, list){
     if(!p || !((p.imgKeys&&p.imgKeys.length)||(p.images&&p.images.length))) return "";
     var key = (p.imgKeys&&p.imgKeys[0]) || (p.images&&p.images[0]);
-    return '<div class="lw-featured" data-go="'+esc(p.id)+'" style="cursor:pointer;position:relative;border-radius:10px;overflow:hidden;margin-bottom:26px">'
-      + ph({key:key, w:2000, theme:themeFor(p), kb:true, ratio:"21/5.1", tint:0, style:"min-height:178px"})
-      + '<div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(22,18,12,.88) 0%,rgba(22,18,12,.5) 48%,rgba(22,18,12,.0) 100%)"></div>'
-      + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(20px,3vw,38px);color:var(--bone);max-width:600px">'
-      +   '<span class="pill clay" style="align-self:flex-start;margin-bottom:12px">'+t("mk.featured")+'</span>'
-      +   '<h3 class="display" style="font-size:clamp(26px,3.6vw,44px)">'+esc(pick(p.title))+'</h3>'
-      +   '<p style="font-size:15px;opacity:.9;margin-top:8px;max-width:460px">'+esc(pick(p.sub))+'</p>'
-      +   '<div style="display:flex;gap:18px;align-items:center;margin-top:16px"><span class="serif" style="font-size:25px">'+priceHTML(p.priceEUR,true)+'</span><button class="btn btn-light">'+t("mk.view")+' <span class="arr">→</span></button></div>'
-      + '</div></div>';
+    var dots = (list&&list.length>1) ? '<div style="position:absolute;right:clamp(20px,3vw,38px);bottom:clamp(18px,2.6vw,30px);z-index:4;display:flex;gap:8px">'
+      + list.map(function(x,i){ return '<button data-act="feat:'+i+'" aria-label="Featured '+(i+1)+'" style="width:9px;height:9px;border-radius:999px;border:1px solid rgba(245,240,230,.85);background:'+(x.id===p.id?'var(--bone)':'transparent')+';cursor:pointer;padding:0"></button>'; }).join("")
+      + '</div>' : "";
+    return '<div class="lw-featured" data-go="'+esc(p.id)+'" style="cursor:pointer;position:relative;border-radius:12px;overflow:hidden;margin-bottom:26px">'
+      + ph({key:key, w:2000, theme:themeFor(p), kb:true, ratio:"21/6", tint:0, style:"min-height:200px"})
+      + '<div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(22,18,12,.82) 0%,rgba(22,18,12,.42) 48%,rgba(22,18,12,.05) 100%)"></div>'
+      + '<span style="position:absolute;inset:clamp(12px,1.4vw,18px);border:1px solid rgba(245,240,230,.5);border-radius:8px;pointer-events:none;z-index:3"></span>'
+      + '<div style="position:absolute;top:clamp(24px,3vw,40px);right:clamp(24px,3.4vw,44px);z-index:2;text-align:right;color:var(--bone)">'+regionLabelHTML(p,true)+'</div>'
+      + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(24px,3.4vw,44px);color:var(--bone);max-width:640px">'
+      +   '<span class="pill" style="align-self:flex-start;margin-bottom:14px;border-color:rgba(245,240,230,.55);color:var(--bone);background:rgba(22,18,12,.28)">'+t("mk.featured")+'</span>'
+      +   '<h3 style="font-family:var(--sans);font-weight:300;font-size:clamp(30px,4.4vw,58px);line-height:.98;letter-spacing:.06em;text-transform:uppercase">'+esc(pick(p.title))+'</h3>'
+      +   '<p style="font-family:var(--sans);font-weight:600;font-size:clamp(12px,1.3vw,17px);letter-spacing:.1em;text-transform:uppercase;opacity:.95;margin-top:10px;max-width:560px">'+esc(pick(p.sub))+'</p>'
+      + '</div>'+dots+'</div>';
   }
 
   function marketplaceHTML(){
@@ -104,34 +117,41 @@
     // Featured por línea: cada línea puede tener su propia propiedad destacada.
     // En vista "Todas" se muestra el primer featured (Signature por orden de precio).
     var featCands = L.PROPERTIES.filter(function(p){return p.featured && p.visible!==false && (S.region==="all"||p.regionKey===S.region);});
-    var featured = (S.line==="all") ? featCands[0] : featCands.find(function(p){return p.line===S.line;});
+    var featList = (S.line==="all") ? featCands : featCands.filter(function(p){return p.line===S.line;});
+    if(S.featIdx >= featList.length) S.featIdx = 0;
+    var featured = featList[S.featIdx];
     var filtered = L.PROPERTIES.filter(function(p){ return p.visible!==false && (S.line==="all"||p.line===S.line) && (S.region==="all"||p.regionKey===S.region); });
 
     // Portada: 4 categorías destacadas con foto de fondo (Signature / Land / Villas / Resorts).
+    // Guía Collection (jul-2026): imágenes ecommerce_card_* · nombre de línea fino arriba,
+    // subtítulo en bold debajo, icono cream a la derecha.
     var HERO_CATS = [
-      { line:"signature", img:"CardSignatures.jpg" },
-      { line:"land",      img:"CardLand.jpg" },
-      { line:"villa",     img:"CardVillas.jpg" },
-      { line:"resorts",   img:"CardResorts.jpg" }
+      { line:"signature", img:"ecommerce_card_signature.jpg" },
+      { line:"land",      img:"ecommerce_card_land.jpg" },
+      { line:"villa",     img:"ecommerce_card_residences.jpg" },
+      { line:"resorts",   img:"ecommerce_card_resort.jpg" }
     ];
     var lineCards = HERO_CATS.map(function(c,i){
       var on = S.line===c.line;
       return '<button class="lw-cat reveal'+(on?" on":"")+'" data-act="line:'+c.line+'" style="transition-delay:'+(i*70)+'ms;position:relative;border:0;cursor:pointer;padding:0;border-radius:14px;overflow:hidden;min-height:clamp(102px,11vw,143px);display:flex;align-items:center">'
         + '<img src="assets/img/'+c.img+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
-        + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.74) 0%,rgba(20,16,11,.4) 55%,rgba(20,16,11,.12) 100%)"></span>'
-        + '<span style="position:relative;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,1.7vw,22px);text-align:left;color:#F5F0E6">'
-        +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(32px,3.4vw,44px);height:auto;flex:none;object-fit:contain">'
-        +   '<span><span style="display:block;font-family:var(--sans);font-weight:500;font-size:clamp(18px,2vw,27px);line-height:1;letter-spacing:.04em;text-transform:uppercase">'+t("cat."+c.line)+'</span>'
-        +     '<span style="display:block;font-family:var(--sans);font-size:10px;font-weight:450;letter-spacing:.2em;text-transform:uppercase;opacity:.86;margin-top:7px">'+t("cat."+c.line+".sub")+'</span></span>'
+        + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.72) 0%,rgba(20,16,11,.44) 55%,rgba(20,16,11,.2) 100%)"></span>'
+        + '<span style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:0 clamp(14px,1.7vw,22px);text-align:left;color:#F5F0E6">'
+        +   '<span style="min-width:0"><span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(13px,1.4vw,18px);line-height:1;letter-spacing:.22em;text-transform:uppercase;opacity:.88">'+t("cat."+c.line)+'</span>'
+        +     '<span style="display:block;font-family:var(--sans);font-size:clamp(13px,1.5vw,19px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:8px">'+t("cat."+c.line+".sub")+'</span></span>'
+        +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(30px,3.2vw,42px);height:auto;flex:none;object-fit:contain">'
         + '</span></button>';
     }).join("");
 
-    var chips = '<button class="filter-chip" data-act="line:all" style="'+chipStyle(S.line==="all")+'">'+t("mk.all")+'</button>'
-      + LINES.map(function(l){ return '<button class="filter-chip" data-act="line:'+l+'" style="'+chipStyle(S.line===l)+'">'+t(LINE_KEYS[l])+'</button>'; }).join("")
-      + '<span style="width:1px;background:var(--line);margin:0 6px"></span>'
-      + '<button class="filter-chip" data-act="region:all" style="'+chipStyle(S.region==="all")+'">'+t("mk.all")+'</button>'
-      + '<button class="filter-chip" data-act="region:bali" style="'+chipStyle(S.region==="bali")+'">Bali</button>'
-      + '<button class="filter-chip" data-act="region:sumba" style="'+chipStyle(S.region==="sumba")+'">Sumba</button>';
+    // Guía Collection: dos grupos etiquetados — Property (verde) y Destination (tierra)
+    var groupLabel = function(pre, word){ return '<div style="font-family:var(--sans);font-size:11px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">'+pre+' <b style="font-weight:700;color:var(--ink)">'+word+' ⌄</b></div>'; };
+    var propChips = '<button class="filter-chip" data-act="line:all" style="'+chipStyle(S.line==="all")+'">'+t("mk.all")+'</button>'
+      + LINES.map(function(l){ return '<button class="filter-chip" data-act="line:'+l+'" style="'+chipStyle(S.line===l)+'">'+t(LINE_KEYS[l])+'</button>'; }).join("");
+    var destChips = '<button class="filter-chip" data-act="region:all" style="'+chipStyle(S.region==="all","var(--be)")+'">'+t("mk.all")+'</button>'
+      + '<button class="filter-chip" data-act="region:bali" style="'+chipStyle(S.region==="bali","var(--be)")+'">Bali</button>'
+      + '<button class="filter-chip" data-act="region:sumba" style="'+chipStyle(S.region==="sumba","var(--be)")+'">Sumba</button>';
+    var chips = '<div>'+groupLabel(t("mk.browse"),t("mk.property"))+'<div style="display:flex;gap:8px;flex-wrap:wrap">'+propChips+'</div></div>'
+      + '<div>'+groupLabel(t("mk.explore"),t("mk.destination"))+'<div style="display:flex;gap:8px;flex-wrap:wrap">'+destChips+'</div></div>';
 
     // Paginación: máx 9 propiedades por página.
     var PER_PAGE = 9;
@@ -156,18 +176,19 @@
     return '<div style="background:var(--bone)">'
       + '<section class="wrap" style="padding-top:clamp(24px,3.2vw,46px);padding-bottom:26px">'
       +   '<div class="reveal" style="text-align:center">'
-      +     '<span class="kicker" style="display:inline-block">'+t("mk.kicker")+'</span>'
-      +     '<h1 class="display" style="margin:11px auto 0;font-weight:300;line-height:.98;text-transform:uppercase">'
+      +     '<h1 class="display" style="margin:0 auto;font-weight:300;line-height:.98;text-transform:uppercase">'
       +       '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(17px,2.3vw,30px);letter-spacing:.14em">'+t("mk.title1")+'</span>'
       +       '<span class="hero-serif" style="display:block;font-size:clamp(40px,7vw,92px);letter-spacing:.02em;margin-top:4px">'+t("mk.title2")+'</span>'
-      +     '</h1></div>'
+      +     '</h1>'
+      // Guía Collection: el kicker va DEBAJO del título, gris claro y muy espaciado
+      +     '<span style="display:inline-block;margin-top:10px;font-family:var(--sans);font-size:clamp(12px,1.4vw,18px);font-weight:300;letter-spacing:.3em;text-transform:uppercase;color:var(--ss)">'+t("mk.kicker")+'</span></div>'
       +   '<div class="lw-cat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:clamp(19px,2.4vw,32px)">'+lineCards+'</div>'
       + '</section>'
-      + (showFeatured ? '<section class="wrap">'+featuredHTML(featured)+'</section>' : "")
+      + (showFeatured ? '<section class="wrap">'+featuredHTML(featured, featList)+'</section>' : "")
       + '<section class="wrap" id="pf-grid" style="scroll-margin-top:90px;padding-bottom:clamp(40px,5vw,64px)">'
-      +   '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:24px">'
-      +     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+chips+'</div>'
-      +     '<div style="display:flex;align-items:center;gap:14px"><span style="font-size:13px;color:var(--ink-2)">'+filtered.length+' '+t("mk.results")+'</span>'
+      +   '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:clamp(20px,3vw,44px);flex-wrap:wrap;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:24px">'
+      +     chips
+      +     '<div style="display:flex;align-items:center;gap:14px;margin-left:auto"><span style="font-size:13px;color:var(--ink-2)">'+filtered.length+' '+t("mk.results")+'</span>'
       +       '<div class="seg" style="color:var(--ink)"><button class="'+(S.layout==="grid"?"on":"")+'" data-act="layout:grid"><span style="color:'+(S.layout==="grid"?"var(--bone)":"inherit")+'">▦</span></button>'
       +       '<button class="'+(S.layout==="list"?"on":"")+'" data-act="layout:list"><span style="color:'+(S.layout==="list"?"var(--bone)":"inherit")+'">≡</span></button></div></div>'
       +   '</div>'
@@ -177,13 +198,15 @@
       + footerHTML()
       + '</div>';
   }
-  function chipStyle(active){ return 'appearance:none;border:1px solid '+(active?"var(--ink)":"var(--line)")+';background:'+(active?"var(--ink)":"transparent")+';color:'+(active?"var(--bone)":"var(--ink-2)")+';border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap'; }
+  // accent: color del grupo (verde por defecto; tierra --be para Destination, según guía)
+  function chipStyle(active, accent){ accent = accent || "var(--clay)"; return 'appearance:none;border:1px solid '+(active?accent:"var(--line)")+';background:'+(active?accent:"transparent")+';color:'+(active?"var(--bone)":accent)+';border-radius:999px;padding:8px 16px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:var(--sans);white-space:nowrap'; }
   // ponytail: sin ellipsis — el portfolio no llega a tantas páginas; añadir truncado si algún día supera ~10
   function paginationHTML(page, totalPages){
     if(totalPages<=1) return "";
+    // Guía Collection: números planos, activo subrayado, chevrones sin caja
     var cell=function(label,target,o){ o=o||{};
-      var col = o.active?"var(--bone)":(o.disabled?"var(--line)":"var(--ink-2)");
-      var st='appearance:none;border:1px solid '+(o.active?"var(--ink)":"var(--line)")+';background:'+(o.active?"var(--ink)":"transparent")+';color:'+col+';border-radius:999px;min-width:42px;height:42px;padding:0 14px;font-size:14px;font-weight:600;font-family:var(--sans);cursor:'+(o.disabled?"default":"pointer")+';display:inline-flex;align-items:center;justify-content:center';
+      var col = o.active?"var(--ink)":(o.disabled?"var(--line)":"var(--ink-2)");
+      var st='appearance:none;border:none;background:transparent;color:'+col+';min-width:36px;height:40px;padding:0 8px;font-size:15px;font-weight:'+(o.active?700:500)+';font-family:var(--sans);cursor:'+(o.disabled?"default":"pointer")+';display:inline-flex;align-items:center;justify-content:center;text-decoration:'+(o.active?"underline":"none")+';text-underline-offset:6px';
       return '<button '+(o.disabled?"disabled":'data-act="page:'+target+'"')+' style="'+st+'"'+(o.active?' aria-current="page"':'')+' aria-label="'+(o.label||("Page "+target))+'">'+label+'</button>';
     };
     var out=cell("‹",page-1,{disabled:page<=1,label:"Previous page"});
@@ -223,8 +246,32 @@
     var tel='+'+waNum.replace(/^(\d{2})(\d{3})(\d{4})(\d+)$/,'$1 $2-$3-$4');
     var icoPhone='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
     var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
-    // Proceso (unificado + compacto) + footer completo portado de index.html
+    // Banner "The way to Own Eternity" (guía Collection): aérea + marco fino + ubicación
+    var ownEternity = '<section class="wrap" style="padding-bottom:clamp(28px,4vw,52px)">'
+      + '<div style="position:relative;border-radius:12px;overflow:hidden">'
+      +   '<img src="assets/img/aerial-1.jpg" alt="Aerial view of the Balian coastline, Bali" loading="lazy" style="width:100%;aspect-ratio:21/7;min-height:230px;object-fit:cover;display:block">'
+      +   '<div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(16,40,42,.55) 0%,rgba(16,40,42,.18) 50%,rgba(16,40,42,.05) 100%)"></div>'
+      +   '<span style="position:absolute;inset:clamp(12px,1.4vw,18px);border:1px solid rgba(245,240,230,.5);border-radius:8px;pointer-events:none;z-index:3"></span>'
+      +   '<div style="position:absolute;top:clamp(24px,3vw,40px);right:clamp(24px,3.4vw,44px);z-index:2;text-align:right;color:var(--bone)">'
+      +     '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.1vw,15px);letter-spacing:.22em;text-transform:uppercase;opacity:.92">Bali · Indonesia</span>'
+      +     '<span style="display:block;font-family:var(--sans);font-weight:400;font-size:clamp(15px,1.6vw,21px);letter-spacing:.24em;text-transform:uppercase;margin-top:7px">Balian</span></div>'
+      +   '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(24px,3.4vw,48px);color:var(--bone)">'
+      +     '<span style="font-family:var(--sans);font-weight:700;font-size:clamp(15px,1.8vw,24px);letter-spacing:.1em;text-transform:uppercase">'+t("own.k")+'</span>'
+      +     '<span class="hero-serif" style="font-size:clamp(34px,5.6vw,74px);line-height:1;letter-spacing:.03em;text-transform:uppercase;margin-top:6px">'+t("own.t")+'</span>'
+      +   '</div>'
+      + '</div></section>';
+    // Franja de contacto sobre el footer (guía): claim + teléfono + email
+    var contactStrip = '<div style="border-top:1px solid var(--line)">'
+      + '<div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:20px">'
+      +   '<span style="font-family:var(--sans);font-size:clamp(12px,1.2vw,15px);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)">'+t("ft.tag1")+' <b style="font-weight:700">'+t("ft.tag2")+'</b></span>'
+      +   '<div style="display:flex;gap:clamp(16px,2.4vw,34px);flex-wrap:wrap;align-items:center">'
+      +     '<a href="tel:+'+waNum+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoPhone+tel+'</a>'
+      +     '<a href="mailto:'+esc(email)+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoMail+esc(email)+'</a>'
+      +   '</div></div></div>';
+    // Proceso (unificado + compacto) + banner + franja de contacto + footer completo portado de index.html
     return stepsHTML()
+      + ownEternity
+      + contactStrip
       + '<footer class="pf-footer">'
       +   '<div class="lw-ft">'
       +     '<div class="lw-ft-grid">'
@@ -618,7 +665,7 @@
     else { if(S.overlay){ S.overlay=null; } S.line=lineFromHash(); render(); }
   }
 
-  function chooseLine(l){ S.line=l; S.page=1; if(l==="all") history.replaceState(null,"",location.pathname+location.search); else history.replaceState(null,"","#"+l); render(); }
+  function chooseLine(l){ S.line=l; S.page=1; S.featIdx=0; if(l==="all") history.replaceState(null,"",location.pathname+location.search); else history.replaceState(null,"","#"+l); render(); }
 
   function handleAct(act, el){
     var k=act.split(":"); var cmd=k[0]; var val=k.slice(1).join(":");
@@ -626,7 +673,8 @@
     else if(cmd==="lang-toggle"){ S.langOpen=!S.langOpen; render(); }
     else if(cmd==="cur"){ S.cur=val; render(); }
     else if(cmd==="line"){ chooseLine(val); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
-    else if(cmd==="region"){ S.region=val; S.page=1; render(); }
+    else if(cmd==="region"){ S.region=val; S.page=1; S.featIdx=0; render(); }
+    else if(cmd==="feat"){ S.featIdx=parseInt(val,10)||0; render(); }
     else if(cmd==="page"){ S.page=parseInt(val,10)||1; render(); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="layout"){ S.layout=val; render(); }
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; render(); }
@@ -642,15 +690,18 @@
 
   function bindEvents(){
     root.addEventListener("click", function(e){
-      var go = e.target.closest("[data-go]");
-      if(go){ openProperty(go.getAttribute("data-go")); return; }
+      // data-act ANTES que data-go: los dots del featured (data-act="feat:N") viven
+      // dentro del banner clicable (data-go) y no deben abrir la propiedad.
       var a = e.target.closest("[data-act]");
       if(a){
         if(a.tagName==="A") return;            // enlaces nativos (mailto, wa, index)
         if(a.closest("form")) { /* submit lo gestiona el form */ }
         e.preventDefault();
         handleAct(a.getAttribute("data-act"), a);
+        return;
       }
+      var go = e.target.closest("[data-go]");
+      if(go){ openProperty(go.getAttribute("data-go")); return; }
     });
     root.addEventListener("submit", function(e){
       var f=e.target.closest('[data-act="dl-submit"]');
