@@ -1317,7 +1317,10 @@ async function enviarEmail(){
   const file=$('#emFile').files[0];
   if(!file){ toast('Adjunta primero el PDF del contrato'); return; }
   if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
-  if(file.size > 10*1024*1024){ toast('El PDF supera los 10MB'); return; }
+  // 100MB por petición explícita — ojo: la mayoría de servidores de correo (Gmail
+  // incluido) rechazan adjuntos por encima de ~25MB pase lo que pase aquí; este
+  // límite solo evita que el navegador intente subir algo absurdo.
+  if(file.size > 100*1024*1024){ toast('El PDF supera los 100MB'); return; }
   const btn=$('#emSend'); btn.disabled=true; btn.textContent='Enviando…';
   try{
     const base64 = await blobToBase64(file);

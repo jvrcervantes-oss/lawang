@@ -14,6 +14,11 @@
  */
 declare(strict_types=1);
 
+// límite de 100MB (ver más abajo) puede pasar el memory_limit por defecto de
+// hosting compartido (128M) al decodificar base64 + montar el MIME; intento
+// subirlo, si el hosting no lo permite simplemente no tiene efecto.
+@ini_set('memory_limit', '256M');
+
 header('Content-Type: application/json; charset=utf-8');
 
 function fail(string $msg, int $code = 400): void {
@@ -43,7 +48,10 @@ if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fail('Destinatario no válido'); 
 if (mb_strlen($subject) > 200) { fail('Asunto demasiado largo'); }
 if (mb_strlen($message) > 5000) { fail('Mensaje demasiado largo'); }
 if ($pdfB64 === '') { fail('Falta el PDF'); }
-if (strlen($pdfB64) > 15 * 1024 * 1024) { fail('El PDF es demasiado grande'); }
+// 100MB reales ≈ 134MB en base64 — límite subido a petición explícita. Aviso real:
+// la práctica totalidad de servidores de correo (Gmail incluido) rechazan adjuntos
+// por encima de ~25MB sea cual sea este límite; esto solo evita cargas absurdas.
+if (strlen($pdfB64) > 140 * 1024 * 1024) { fail('El PDF es demasiado grande'); }
 
 $pdfBytes = base64_decode($pdfB64, true);
 if ($pdfBytes === false || substr($pdfBytes, 0, 4) !== '%PDF') { fail('El adjunto no es un PDF válido'); }
