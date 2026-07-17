@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-build_seo.py — Inyector de fallback SEO estático para Lawang (portfolio.html)
+build_seo.py — Inyector de fallback SEO estático para Lawang (thecollection.html)
 
-PROBLEMA: portfolio.html es una SPA React (Babel en navegador). Las fichas de
+PROBLEMA: thecollection.html es una SPA React (Babel en navegador). Las fichas de
 propiedad se cargan desde data.json y se pintan en cliente. Los crawlers que NO
 ejecutan JS (GPTBot, PerplexityBot, ClaudeBot y Google en su peor caso) ven la
 pagina VACIA -> no indexan ni precios ni descripciones.
@@ -25,7 +25,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data.json"
-HTML = HERE / "portfolio.html"
+HTML = HERE / "thecollection.html"
 
 START = "<!-- SEO_FALLBACK_START (auto-generado por build_seo.py — NO editar a mano) -->"
 END = "<!-- SEO_FALLBACK_END -->"
@@ -115,7 +115,7 @@ def build_block(data, labels):
 
 def main():
     if not DATA.exists() or not HTML.exists():
-        sys.exit(f"[build_seo] No encuentro data.json o portfolio.html en {HERE}")
+        sys.exit(f"[build_seo] No encuentro data.json o thecollection.html en {HERE}")
 
     data = json.loads(DATA.read_text(encoding="utf-8"))
     html_text = HTML.read_text(encoding="utf-8")
@@ -141,7 +141,7 @@ def main():
 
     HTML.write_text(new_text, encoding="utf-8")
     n = len(data.get("properties", []))
-    print(f"[build_seo] Fallback SEO {action}: {n} propiedades en <noscript> de portfolio.html")
+    print(f"[build_seo] Fallback SEO {action}: {n} propiedades en <noscript> de thecollection.html")
 
 
 if __name__ == "__main__":

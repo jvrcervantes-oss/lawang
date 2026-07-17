@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════
    Lawang — Property Card (FUENTE ÚNICA compartida)
-   Usado por index.html (teaser) y portfolio.html (marketplace).
+   Usado por index.html (teaser) y thecollection.html (marketplace).
    Valores explícitos (sin variables de stack) para que sea portable.
    ════════════════════════════════════════════════════════════ */
 .lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;

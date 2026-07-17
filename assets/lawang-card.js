@@ -2,7 +2,7 @@
    Lawang — Property Card render (FUENTE ÚNICA compartida)
    window.LawangCard.render(p, opts) -> HTML string de una .lw-prop
    opts: { lang:'en'|'es', cur:'EUR'|'USD'|'AUD', rates:{...}, hrefBase:'', imgBase:'' }
-   Independiente del stack: lo usan index.html y portfolio.html.
+   Independiente del stack: lo usan index.html y thecollection.html.
    ════════════════════════════════════════════════════════════ */
 (function () {
   var LINE_CREAM = { signature:'cream-signature', land:'cream-land', villa:'cream-villas', resorts:'cream-resorts' };
@@ -69,7 +69,7 @@
     var lang = opts.lang || 'en';
     var cur = opts.cur || 'EUR';
     var rates = opts.rates || DEFAULT_RATES;
-    var base = opts.hrefBase != null ? opts.hrefBase : '';   // '' = misma página (portfolio); 'portfolio.html' = index
+    var base = opts.hrefBase != null ? opts.hrefBase : '';   // '' = misma página (portfolio); 'thecollection.html' = index
     var href = base + '#property/' + esc(p.id);
     var ten = (TENURE[p.tenure] || TENURE['tenure.freehold']);
     var st = STATUS[p.status] || { c:'plan', en:'', es:'' };

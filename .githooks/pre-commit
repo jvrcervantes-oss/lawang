@@ -4,7 +4,7 @@
 changed=$(git diff --cached --name-only | grep -E 'assets/(lawang-card\.(js|css)|portfolio-app\.js)$' || true)
 [ -z "$changed" ] && exit 0
 ver=$(date +%Y%m%d%H%M%S)
-for f in index.html portfolio.html; do
+for f in index.html thecollection.html; do
   [ -f "$f" ] || continue
   sed -i -E "s#(lawang-card\.css|lawang-card\.js|portfolio-app\.js)\?v=[0-9A-Za-z]+#\1?v=$ver#g" "$f"
   git add "$f"
