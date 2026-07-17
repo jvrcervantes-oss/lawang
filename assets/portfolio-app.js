@@ -75,7 +75,7 @@
     var wa='<span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span>';
     return '<header id="topbar" class="show solid">'
       + '<div id="logo" class="dark"><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
-      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Portfolio',S.line==='all')+'</nav>'
+      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Portfolio',false)+'</nav>'
       + '<div id="nav-actions">'
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg><span>'+langName+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
@@ -215,27 +215,38 @@
     return '<nav aria-label="Pagination" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:clamp(32px,4vw,48px)">'+out+'</nav>';
   }
 
-  // ════ THE PROCESS + Seven steps (unificado y compacto) ════
+  // ════ THE PROCESS + Seven steps — SOBRE la imagen aérea (guía Collection) ════
+  // Las 7 tarjetas van montadas sobre el fondo aéreo con overlay oscuro; sustituye
+  // al antiguo banner "Own Eternity" separado (el proceso ES ahora el contenido de esa imagen).
   function stepsHTML(){
     var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
     var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(t("reserve.msg")||"Hello LAWANG");
     var items="";
     for(var n=1;n<=7;n++){
-      items += '<div style="padding:16px 16px 18px;border-top:2px solid var(--clay);background:var(--bone-2);border-radius:0 0 8px 8px">'
-        + '<span class="proc-num" style="display:block;font-size:clamp(20px,2vw,26px);color:var(--clay);line-height:1;margin-bottom:9px">'+(n<10?"0":"")+n+'</span>'
-        + '<span style="display:block;font-family:var(--sans);font-weight:700;font-size:14px;color:var(--ink);margin-bottom:4px">'+t("proc.s"+n+".t")+'</span>'
-        + '<span style="display:block;font-size:12.5px;color:var(--ink-2);line-height:1.5">'+t("proc.s"+n+".d")+'</span>'
+      items += '<div class="proc-card" style="padding:16px 16px 18px;border-top:2px solid var(--ss);background:rgba(20,16,11,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:0 0 8px 8px">'
+        + '<span class="proc-num" style="display:block;font-size:clamp(20px,2vw,26px);color:var(--ss);line-height:1;margin-bottom:9px">'+(n<10?"0":"")+n+'</span>'
+        + '<span style="display:block;font-family:var(--sans);font-weight:700;font-size:14px;color:var(--bone);margin-bottom:4px">'+t("proc.s"+n+".t")+'</span>'
+        + '<span style="display:block;font-size:12.5px;color:rgba(245,240,230,.78);line-height:1.5">'+t("proc.s"+n+".d")+'</span>'
         + '</div>';
     }
-    return '<section class="wrap" id="process" style="padding-block:clamp(34px,5vw,64px);scroll-margin-top:90px">'
-      + '<div class="reveal" style="text-align:center;max-width:660px;margin:0 auto clamp(24px,3vw,38px)">'
-      +   '<span class="kicker" style="display:inline-block">'+t("ft.reserve.k")+'</span>'
-      +   '<h2 class="display" style="font-size:clamp(28px,4.2vw,48px);text-transform:uppercase;font-weight:300;line-height:1;margin:10px 0 0">'+t("proc.title")+'</h2>'
-      +   '<p style="font-size:clamp(14px,1.5vw,16px);color:var(--ink-2);line-height:1.6;margin:14px 0 0">'+t("ft.reserve.sub")+'</p>'
-      + '</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:14px">'+items+'</div>'
-      + '<div style="text-align:center;margin-top:clamp(26px,3.4vw,40px)"><a href="'+waUrl+'" target="_blank" rel="noopener" class="btn btn-clay">'+t("ft.reserve.cta")+' <span class="arr">→</span></a></div>'
-      + '</section>';
+    return '<section class="wrap" id="process" style="padding-block:clamp(28px,4vw,52px);scroll-margin-top:90px">'
+      + '<div style="position:relative;border-radius:12px;overflow:hidden">'
+      +   '<img src="assets/img/aerial-1.jpg" alt="Aerial view of the Balian coastline, Bali" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+      +   '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,40,42,.82) 0%,rgba(16,40,42,.7) 45%,rgba(10,22,20,.86) 100%)"></div>'
+      +   '<span style="position:absolute;inset:clamp(12px,1.4vw,18px);border:1px solid rgba(245,240,230,.35);border-radius:8px;pointer-events:none;z-index:3"></span>'
+      +   '<div style="position:absolute;top:clamp(20px,2.6vw,34px);right:clamp(22px,3vw,40px);z-index:2;text-align:right;color:var(--bone)">'
+      +     '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.1vw,15px);letter-spacing:.22em;text-transform:uppercase;opacity:.9">Bali · Indonesia</span>'
+      +     '<span style="display:block;font-family:var(--sans);font-weight:400;font-size:clamp(15px,1.6vw,21px);letter-spacing:.24em;text-transform:uppercase;margin-top:6px">Balian</span></div>'
+      +   '<div style="position:relative;z-index:2;padding:clamp(30px,5vw,62px) clamp(20px,4vw,56px)">'
+      +     '<div class="reveal" style="text-align:center;max-width:660px;margin:0 auto clamp(24px,3vw,38px)">'
+      +       '<span class="kicker" style="display:inline-block;color:var(--ss)">'+t("ft.reserve.k")+'</span>'
+      +       '<h2 class="display" style="font-size:clamp(28px,4.2vw,48px);text-transform:uppercase;font-weight:300;line-height:1;margin:10px 0 0;color:var(--bone)">'+t("proc.title")+'</h2>'
+      +       '<p style="font-size:clamp(14px,1.5vw,16px);color:rgba(245,240,230,.82);line-height:1.6;margin:14px 0 0">'+t("ft.reserve.sub")+'</p>'
+      +     '</div>'
+      +     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:14px">'+items+'</div>'
+      +     '<div style="text-align:center;margin-top:clamp(26px,3.4vw,40px)"><a href="'+waUrl+'" target="_blank" rel="noopener" class="btn btn-light">'+t("ft.reserve.cta")+' <span class="arr">→</span></a></div>'
+      +   '</div>'
+      + '</div></section>';
   }
 
   // ════ FOOTER (banda de reserva + barra de contacto) ════
@@ -246,20 +257,6 @@
     var tel='+'+waNum.replace(/^(\d{2})(\d{3})(\d{4})(\d+)$/,'$1 $2-$3-$4');
     var icoPhone='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
     var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
-    // Banner "The way to Own Eternity" (guía Collection): aérea + marco fino + ubicación
-    var ownEternity = '<section class="wrap" style="padding-bottom:clamp(28px,4vw,52px)">'
-      + '<div style="position:relative;border-radius:12px;overflow:hidden">'
-      +   '<img src="assets/img/aerial-1.jpg" alt="Aerial view of the Balian coastline, Bali" loading="lazy" style="width:100%;aspect-ratio:21/7;min-height:230px;object-fit:cover;display:block">'
-      +   '<div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(16,40,42,.55) 0%,rgba(16,40,42,.18) 50%,rgba(16,40,42,.05) 100%)"></div>'
-      +   '<span style="position:absolute;inset:clamp(12px,1.4vw,18px);border:1px solid rgba(245,240,230,.5);border-radius:8px;pointer-events:none;z-index:3"></span>'
-      +   '<div style="position:absolute;top:clamp(24px,3vw,40px);right:clamp(24px,3.4vw,44px);z-index:2;text-align:right;color:var(--bone)">'
-      +     '<span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.1vw,15px);letter-spacing:.22em;text-transform:uppercase;opacity:.92">Bali · Indonesia</span>'
-      +     '<span style="display:block;font-family:var(--sans);font-weight:400;font-size:clamp(15px,1.6vw,21px);letter-spacing:.24em;text-transform:uppercase;margin-top:7px">Balian</span></div>'
-      +   '<div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(24px,3.4vw,48px);color:var(--bone)">'
-      +     '<span style="font-family:var(--sans);font-weight:700;font-size:clamp(15px,1.8vw,24px);letter-spacing:.1em;text-transform:uppercase">'+t("own.k")+'</span>'
-      +     '<span class="hero-serif" style="font-size:clamp(34px,5.6vw,74px);line-height:1;letter-spacing:.03em;text-transform:uppercase;margin-top:6px">'+t("own.t")+'</span>'
-      +   '</div>'
-      + '</div></section>';
     // Franja de contacto sobre el footer (guía): claim + teléfono + email
     var contactStrip = '<div style="border-top:1px solid var(--line)">'
       + '<div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:20px">'
@@ -268,9 +265,8 @@
       +     '<a href="tel:+'+waNum+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoPhone+tel+'</a>'
       +     '<a href="mailto:'+esc(email)+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoMail+esc(email)+'</a>'
       +   '</div></div></div>';
-    // Proceso (unificado + compacto) + banner + franja de contacto + footer completo portado de index.html
+    // Proceso (sobre la aérea) + franja de contacto + footer completo portado de index.html
     return stepsHTML()
-      + ownEternity
       + contactStrip
       + '<footer class="pf-footer">'
       +   '<div class="lw-ft">'

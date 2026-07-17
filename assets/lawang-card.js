@@ -28,6 +28,10 @@
   };
   var SYMS = { EUR:'€', USD:'$', AUD:'A$' };
   var DEFAULT_RATES = { EUR:1, USD:1.08, AUD:1.65 };
+  // Iconos de specs (área construida / dormitorios / parcela)
+  var ICO_AREA = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+  var ICO_BED  = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 20v-2M21 20v-2M6 10V8a2 2 0 0 1 2-2h3v4"/></svg>';
+  var ICO_LAND = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5ZM3 16l9 5 9-5"/></svg>';
 
   function themeFor(p) {
     if (p.regionKey === 'sumba') return p.line === 'land' ? 'ocean' : 'sand';
@@ -76,13 +80,13 @@
     var keys = (p.imgKeys && p.imgKeys.length) ? p.imgKeys : (p.images || []);
     var img0 = keys.length ? imgUrl(keys[0]) : null;
 
-    // Specs sin iconos (guía Collection): "345 m² · 3 rooms · 965 m² land"
+    // Specs con icono: área construida · dormitorios · parcela
     var meta = '';
-    if (p.built > 0) meta += '<span class="lw-m"><b>' + p.built + '</b> m²</span>';
-    if (p.beds  > 0) meta += '<span class="lw-m"><b>' + p.beds + '</b> ' + (lang === 'es' ? 'hab' : (p.beds > 1 ? 'rooms' : 'room')) + '</span>';
+    if (p.built > 0) meta += '<span class="lw-m">' + ICO_AREA + '<b>' + p.built + '</b> m²</span>';
+    if (p.beds  > 0) meta += '<span class="lw-m">' + ICO_BED + '<b>' + p.beds + '</b> ' + (lang === 'es' ? 'hab' : (p.beds > 1 ? 'rooms' : 'room')) + '</span>';
     var extra = p.metaText ? (typeof p.metaText === 'string' ? p.metaText : pick(p.metaText, lang))
                            : (p.land > 0 ? p.land + ' m² ' + (lang === 'es' ? 'parcela' : 'land') : '');
-    if (extra) meta += '<span class="lw-m lw-m-txt">' + esc(extra) + '</span>';
+    if (extra) meta += '<span class="lw-m lw-m-txt">' + ICO_LAND + esc(extra) + '</span>';
 
     var fromTxt = lang === 'es' ? 'Desde' : 'From';
 
