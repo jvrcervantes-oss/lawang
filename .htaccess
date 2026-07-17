@@ -1,1 +1,2 @@
-Redirect 301 /portfolio.html /thecollection.html
+# 302 temporal: /portfolio.html sera la futura pagina de la promotora — ELIMINAR esta linea al crearla
+Redirect 302 /portfolio.html /thecollection.html
