@@ -184,6 +184,13 @@
   .cp-row:hover{ background:var(--rl); }
   .cp-row .cp-num{ font-weight:600; color:var(--tg); }
   .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
+
+  /* ---------- modal "Enviar por email" ---------- */
+  .em-body{ padding:14px 18px 18px; display:flex; flex-direction:column; gap:12px; }
+  .em-body label{ display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--muted); }
+  .em-body input, .em-body textarea{ font:inherit; font-size:13.5px; padding:9px 11px; border:1px solid var(--line);
+    border-radius:8px; color:var(--va); resize:vertical; }
+  .em-note{ font-size:11.5px; color:var(--muted); margin:0; }
   @media (max-width:640px){
     .cp-cols{ display:none; }
     .cp-row{ grid-template-columns:1fr; gap:2px; }
@@ -225,6 +232,7 @@
         <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
         <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
         <button class="btn ghost" id="btnSave" style="display:none">Guardar en base de datos</button>
+        <button class="btn ghost" id="btnEmail">Enviar por email</button>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
       </div>
@@ -251,6 +259,25 @@
     </div>
   </div>
 
+  <!-- Modal "Enviar por email" — genera el PDF en el navegador (html2pdf.js) y lo
+       manda por api/send_email.php (PHP nativo, sin backend nuevo que montar). -->
+  <div class="cp-overlay" id="emOverlay">
+    <div class="cp-modal" style="width:min(480px,100%)">
+      <div class="cp-head">
+        <b>Enviar por email</b>
+        <button type="button" class="tb-link" id="emClose">Cerrar</button>
+      </div>
+      <div class="em-body">
+        <p class="em-note">1. Pulsa <b>Descargar PDF</b> y guárdalo. 2. Adjúntalo aquí y envíalo — así el PDF que recibe el cliente es exactamente el mismo que ves en la vista previa, sin pérdida de calidad.</p>
+        <label>PDF del contrato<input type="file" id="emFile" accept="application/pdf" required></label>
+        <label>Destinatario<input type="email" id="emTo" placeholder="cliente@email.com" required></label>
+        <label>Asunto<input type="text" id="emSubject"></label>
+        <label>Mensaje<textarea id="emMessage" rows="5"></textarea></label>
+        <button type="button" class="btn primary" id="emSend" style="width:100%">Enviar</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 /* ============================================================
    GENERADOR DE CONTRATOS — Lawang
@@ -266,8 +293,8 @@ const TEMPLATES = [
     name:{es:'Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'},
     l2:{es:'de Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'}, ready:true },
   { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
-    name:{es:'Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'},
-    l2:{es:'de Reserva de Proyecto',en:'Project Reservation',id:'Reservasi Proyek'}, ready:true },
+    name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
+    l2:{es:'General',en:'General',id:'Umum'}, ready:true },
   { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
     name:{es:'Construcción · DALI',en:'Construction · DALI',id:'Konstruksi · DALI'},
     l2:{es:'de Construcción · DALI',en:'Construction · DALI',id:'Konstruksi · DALI'}, ready:true },
@@ -278,8 +305,8 @@ const TEMPLATES = [
     name:{es:'Carta de Reserva',en:'Reservation Letter',id:'Surat Pemesanan'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
   { slug:'commercial_collaboration', file:'templates/commercial_collaboration.html', cover:'#485B37',
-    name:{es:'Colaboración Comercial (Referral)',en:'Commercial Collaboration (Referral)',id:'Kolaborasi Komersial (Referral)'},
-    l2:{es:'Colaboración Comercial y Referidos',en:'Commercial Collaboration and Referral',id:'Kolaborasi Komersial dan Referral'}, ready:true },
+    name:{es:'Acuerdo Comercial',en:'Commercial Agreement',id:'Perjanjian Komersial'},
+    l2:{es:'Acuerdo Comercial y Referidos',en:'Commercial Agreement and Referral',id:'Perjanjian Komersial dan Referral'}, ready:true },
   { slug:'colaborador_operativo', file:'templates/colaborador_operativo.html', cover:'#104C4F',
     name:{es:'Protocolo Operativo (Colaborador)',en:'Operational Protocol (Collaborator)',id:'Protokol Operasional (Kolaborator)'},
     l2:{es:'Organización Operativa y Comisiones',en:'Operational Organization and Commissions',id:'Organisasi Operasional dan Komisi'}, ready:true },
@@ -326,7 +353,18 @@ const pads = {};
 const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-const CONTRACT_TIPO = { ppjb_parcela:'reserva_parcela', ppjb_construccion:'construccion' };
+const CONTRACT_TIPO = {
+  ppjb_parcela:'reserva_parcela', ppjb_construccion:'construccion', ppjb_reserva:'contrato_general',
+  commercial_offer:'commercial_offer', carta_reserva:'carta_reserva',
+  commercial_collaboration:'acuerdo_comercial', colaborador_operativo:'protocolo_operativo',
+  // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
+};
+const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
+const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
+  carta_reserva:'CR', acuerdo_comercial:'AC', protocolo_operativo:'PO' };
+const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
+  commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', acuerdo_comercial:'Acuerdo Comercial',
+  protocolo_operativo:'Protocolo Operativo' };
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
@@ -1129,7 +1167,7 @@ function contractPayload(){
   const data = collect();
   return {
     tipo: CONTRACT_TIPO[CURRENT.slug],
-    comprador_nombre: data.adq1_nombre || null,
+    comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
     proyecto_nombre: data.proyecto_nombre || null,
     precio_total: data.precio_total ? Number(String(data.precio_total).replace(/[^\d.-]/g,'')) || null : null,
     moneda: data.moneda || null,
@@ -1176,7 +1214,7 @@ async function openContractsPanel(){
   CP_ROWS = data || [];
   renderCpList(CP_ROWS);
 }
-function cpTipoLabel(t){ return t==='reserva_parcela' ? 'Parcela' : 'Construcción'; }
+function cpTipoLabel(t){ return TIPO_LABEL[t] || t; }
 function renderCpList(rows){
   const list=$('#cpList');
   if(!rows.length){ list.innerHTML='<p class="cp-empty">Sin contratos guardados.</p>'; return; }
@@ -1228,7 +1266,7 @@ async function openSavedContract(id){
   if(!sb) return;
   const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
   if(error || !data){ toast('No se pudo abrir el contrato'); return; }
-  const slug = data.tipo==='reserva_parcela' ? 'ppjb_parcela' : 'ppjb_construccion';
+  const slug = TIPO_SLUG[data.tipo]; if(!slug){ toast('Tipo de contrato desconocido'); return; }
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
@@ -1242,6 +1280,56 @@ async function openSavedContract(id){
   refreshHitos(); updateSaveButton(); render();
   toast('Contrato ' + data.numero + ' cargado');
 }
+
+/* ============================================================
+   EMAIL — manda por api/send_email.php (PHP standalone, sin MySQL,
+   remitente fijo) el PDF que el usuario adjunta a mano.
+   ponytail: se probó generar el PDF en el navegador con html2pdf.js/
+   html2canvas y falla con las reglas color-mix() que usa todo el CSS
+   de marca (brand.css/_portada.html) — es una limitación real de esa
+   librería, no un bug de la plantilla. En vez de parchear color por
+   color, se reusa el PDF que YA sale perfecto del flujo nativo
+   (printPreview) y el usuario solo lo adjunta — 0 pérdida de calidad,
+   2 clics en vez de 1. Si algún día hace falta un solo clic, la vía
+   fiable es renderizar el PDF en un backend con navegador real
+   (headless Chrome), no una librería de canvas en el cliente. */
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onloadend=()=> resolve(String(reader.result).split(',')[1]);
+    reader.onerror=reject;
+    reader.readAsDataURL(blob);
+  });
+}
+function openEmailModal(){
+  const numero = SAVED_CONTRACT ? SAVED_CONTRACT.numero : null;
+  $('#emFile').value = '';
+  $('#emSubject').value = (numero ? `Contrato ${numero}` : `Contrato — ${L(CURRENT.name)}`) + ' — Lawang Tropical Properties';
+  $('#emMessage').value = `Buenos días,\n\nAdjunto el documento${numero ? ' ('+numero+')' : ''} para su revisión.\n\nUn saludo,\nLawang Tropical Properties`;
+  $('#emOverlay').classList.add('open');
+}
+$('#btnEmail').addEventListener('click', openEmailModal);
+$('#emClose').addEventListener('click', ()=> $('#emOverlay').classList.remove('open'));
+
+async function enviarEmail(){
+  const to=$('#emTo').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
+  const file=$('#emFile').files[0];
+  if(!file){ toast('Adjunta primero el PDF del contrato'); return; }
+  if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
+  if(file.size > 10*1024*1024){ toast('El PDF supera los 10MB'); return; }
+  const btn=$('#emSend'); btn.disabled=true; btn.textContent='Enviando…';
+  try{
+    const base64 = await blobToBase64(file);
+    const r = await fetch('api/send_email.php', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:file.name, pdf_base64:base64 }) });
+    const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
+    if(d.ok){ toast('Email enviado a ' + to); $('#emOverlay').classList.remove('open'); }
+    else{ toast(d.error || 'No se pudo enviar'); }
+  }catch(err){ toast('Error: ' + (err.message || err)); }
+  btn.disabled=false; btn.textContent='Enviar';
+}
+$('#emSend').addEventListener('click', enviarEmail);
 
 /* ---------- init ---------- */
 async function init(){
