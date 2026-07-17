@@ -2,8 +2,11 @@
 /**
  * Envía un contrato por email con el PDF adjunto.
  * Standalone a propósito: NO usa bootstrap.php (exige MySQL/config.php de la
- * fase-4 sin desplegar) — solo necesita mail() de PHP, que Hostinger ya sirve
- * para el dominio. Remitente SIEMPRE fijo (nunca lo decide quien llama).
+ * fase-4 sin desplegar). Remitente SIEMPRE fijo (nunca lo decide quien llama):
+ *   - si existe private/mail.php con contraseña real → SMTP autenticado
+ *     (admin@lawangproperties.com, vía lib/SmtpMailer.php, sin dependencias)
+ *   - si no → mail() nativo de PHP con sales@lawangproperties.com, igual que
+ *     hasta ahora (fallback automático, no rompe nada si aún no se configuró)
  *
  * Sin autenticación (la app tampoco la tiene hoy): el único filtro es que la
  * petición venga del propio origen. No es a prueba de un atacante decidido
@@ -45,15 +48,23 @@ if (strlen($pdfB64) > 15 * 1024 * 1024) { fail('El PDF es demasiado grande'); }
 $pdfBytes = base64_decode($pdfB64, true);
 if ($pdfBytes === false || substr($pdfBytes, 0, 4) !== '%PDF') { fail('El adjunto no es un PDF válido'); }
 
-// ---- remitente fijo (nunca viene del cliente) ----
-$from     = 'sales@lawangproperties.com';
-$fromName = 'Lawang Tropical Properties';
+// ---- remitente: SMTP autenticado si hay credenciales configuradas en
+// private/mail.php (admin@lawangproperties.com), si no, mail() nativo con
+// sales@lawangproperties.com como hasta ahora. Los dos caminos comparten el
+// mismo cuerpo MIME — solo cambia cómo se entrega. ----
+$mailConfig = null;
+$mailConfigPath = __DIR__ . '/../private/mail.php';
+if (is_file($mailConfigPath)) {
+  $cfg = require $mailConfigPath;
+  if (is_array($cfg) && !empty($cfg['smtp_pass']) && $cfg['smtp_pass'] !== 'CAMBIAR_POR_LA_REAL') {
+    $mailConfig = $cfg;
+  }
+}
+
+$from     = $mailConfig['from_email'] ?? 'sales@lawangproperties.com';
+$fromName = $mailConfig['from_name'] ?? 'Lawang Tropical Properties';
 
 $boundary = 'lwc_' . bin2hex(random_bytes(16));
-$headers  = "From: {$fromName} <{$from}>\r\n"
-  . "Reply-To: {$from}\r\n"
-  . "MIME-Version: 1.0\r\n"
-  . "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
 
 $body  = "--{$boundary}\r\n";
 $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
@@ -66,11 +77,31 @@ $body .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
 $body .= chunk_split(base64_encode($pdfBytes)) . "\r\n";
 $body .= "--{$boundary}--";
 
+if ($mailConfig) {
+  require_once __DIR__ . '/lib/SmtpMailer.php';
+  try {
+    $smtp = new SmtpMailer(
+      $mailConfig['smtp_host'], (int) $mailConfig['smtp_port'], $mailConfig['smtp_secure'],
+      $mailConfig['smtp_user'], $mailConfig['smtp_pass']
+    );
+    $smtp->send($from, $fromName, $to, $subject, $body, $boundary);
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+  } catch (Throwable $e) {
+    fail('No se pudo enviar por SMTP: ' . $e->getMessage(), 500);
+  }
+  exit;
+}
+
+// ---- fallback: mail() nativo (sin private/mail.php configurado todavía) ----
+$headers = "From: {$fromName} <{$from}>\r\n"
+  . "Reply-To: {$from}\r\n"
+  . "MIME-Version: 1.0\r\n"
+  . "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
 $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
 $ok = mail($to, $encodedSubject, $body, $headers, "-f{$from}");
 
 if ($ok) {
   echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
 } else {
-  fail('El servidor no pudo enviar el correo (revisar que Hostinger tenga mail() habilitado para este dominio)', 500);
+  fail('El servidor no pudo enviar el correo (revisar que Hostinger tenga mail() habilitado para este dominio, o configurar private/mail.php para usar SMTP)', 500);
 }

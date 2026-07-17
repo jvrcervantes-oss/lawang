@@ -1,5 +1,6 @@
 # Secretos y archivos generados — nunca en git
 private/config.php
+private/mail.php
 private/contratos/
 vendor/
 
