@@ -74,6 +74,11 @@
   .switch input:checked + .slider:before{ transform:translateX(18px); }
   .section.optional.off .body{ display:none; }
   .section.optional.off{ opacity:.85; }
+  /* Contrato bloqueado (PDF firmado ya subido): una sola clase corta toda
+     edición del panel de campos (inputs, firmas, anexos, cláusulas,
+     adquirientes…) sin tener que deshabilitar elemento a elemento — incluye
+     los canvas de firma, que pointer-events también bloquea. */
+  #form.locked{ pointer-events:none; opacity:.6; }
 
   .field{ margin:11px 0; }
   .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; }
@@ -242,6 +247,10 @@
         <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
         <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
         <button class="btn ghost" id="btnSave" style="display:none">Guardar en base de datos</button>
+        <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF que ha devuelto el cliente firmado y bloquea el contrato para que no se pueda seguir editando">🔒 Subir firmado</button>
+        <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
+        <span id="lockBadge" style="display:none;font-size:12px;color:var(--be,#a3342b);align-items:center;gap:6px;font-weight:600">🔒 Bloqueado</span>
+        <button class="btn ghost" id="btnDownloadSigned" style="display:none">Descargar PDF firmado</button>
         <button class="btn ghost" id="btnEmail">Enviar por email</button>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
@@ -1219,7 +1228,7 @@ async function loadTemplate(slug){
 function buildPicker(){
   const sel=$('#tplPick');
   sel.innerHTML = TEMPLATES.map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
-  sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; await loadTemplate(sel.value); buildForm();
+  sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; LOCKED=false; LOCKED_PDF_PATH=null; await loadTemplate(sel.value); buildForm();
     updateSaveButton();
     if(DESIGN.coverColor===''){ const c=$('#coverColor'); if(c) c.value=CURRENT.cover; } });
 }
@@ -1263,16 +1272,54 @@ function printPreview(){
 async function downloadPdf(){ printPreview(); }
 
 /* ============================================================
-   SUPABASE — guardado + numeración automática (RPXXXXX/CCXXXXX)
-   Solo para ppjb_parcela/ppjb_construccion (los 2 tipos acordados).
+   SUPABASE — guardado + numeración automática, y bloqueo tras firma
    ============================================================ */
+let LOCKED = false, LOCKED_PDF_PATH = null;   // true una vez subido el PDF firmado (columna `bloqueado`)
+let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — independiente del bloqueo
+
 function updateSaveButton(){
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];
-  btn.style.display = tipo ? '' : 'none';
-  if(!tipo) return;
+  const form=$('#form'); if(form) form.classList.toggle('locked', LOCKED);
+  const badge=$('#lockBadge'); if(badge) badge.style.display = LOCKED ? 'inline-flex' : 'none';
+  const dlBtn=$('#btnDownloadSigned'); if(dlBtn) dlBtn.style.display = (LOCKED && LOCKED_PDF_PATH) ? '' : 'none';
+  const editBtn=$('#btnEdit'); if(editBtn) editBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
+  if(LOCKED){ const r=$('#btnEditReset'); if(r) r.style.display='none'; }
+
+  const lockBtn=$('#btnLockUpload');
+  if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; return; }
+  btn.style.display = LOCKED ? 'none' : '';
+  if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   btn.textContent = SAVED_CONTRACT ? ('Actualizar (' + SAVED_CONTRACT.numero + ')') : 'Guardar en base de datos';
 }
+
+async function subirPdfFirmado(file){
+  if(!sb || !SAVED_CONTRACT){ toast('Guarda el contrato antes de subir el firmado'); return; }
+  if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
+  const btn=$('#btnLockUpload'); btn.disabled=true; btn.textContent='Subiendo…';
+  try{
+    const path = SAVED_CONTRACT.numero + '.pdf';
+    const { error: upErr } = await sb.storage.from('contratos-firmados').upload(path, file, { upsert:true, contentType:'application/pdf' });
+    if(upErr) throw upErr;
+    const { error: updErr } = await sb.from('contratos').update({ bloqueado:true, pdf_firmado_path:path }).eq('id', SAVED_CONTRACT.id);
+    if(updErr) throw updErr;   // si esto falla, el PDF ya subió pero el contrato sigue editable — se puede reintentar sin duplicar (upsert)
+    LOCKED = true; LOCKED_PDF_PATH = path;
+    toast('Contrato bloqueado · PDF firmado guardado');
+    updateSaveButton();
+  }catch(err){ toast('No se pudo bloquear: ' + (err.message || err)); }
+  btn.disabled=false; btn.textContent='🔒 Subir firmado';
+}
+$('#btnLockUpload').addEventListener('click', ()=> $('#lockFileInput').click());
+$('#lockFileInput').addEventListener('change', e=>{
+  const f=e.target.files[0]; e.target.value='';
+  if(f) subirPdfFirmado(f);
+});
+$('#btnDownloadSigned').addEventListener('click', async ()=>{
+  if(!sb || !LOCKED_PDF_PATH) return;
+  const { data, error } = await sb.storage.from('contratos-firmados').createSignedUrl(LOCKED_PDF_PATH, 300);
+  if(error || !data){ toast('No se pudo generar el enlace de descarga'); return; }
+  window.open(data.signedUrl, '_blank');
+});
 
 function contractPayload(){
   const data = collect();
@@ -1292,6 +1339,7 @@ function contractPayload(){
 
 async function guardarContrato(){
   if(!sb){ toast('Supabase no disponible'); return; }
+  if(LOCKED){ toast('Contrato bloqueado, no se puede guardar'); return; }   // el botón ya se oculta; la RLS también lo bloquearía
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   if(!tipo) return;
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
@@ -1319,7 +1367,7 @@ async function openContractsPanel(){
   const list=$('#cpList'); list.innerHTML = 'Cargando…';
   if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
   const { data, error } = await sb.from('contratos')
-    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at')
+    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado')
     .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
   if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
   CP_ROWS = data || [];
@@ -1331,7 +1379,7 @@ function renderCpList(rows){
   if(!rows.length){ list.innerHTML='<p class="cp-empty">Sin contratos guardados.</p>'; return; }
   list.innerHTML = rows.map(r=>`
     <div class="cp-row" data-id="${r.id}">
-      <span class="cp-num" data-l="Nº">${r.numero||'—'}</span>
+      <span class="cp-num" data-l="Nº">${r.bloqueado?'🔒 ':''}${r.numero||'—'}</span>
       <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
       <span data-l="Comprador">${escAttr(r.comprador_nombre||'—')}</span>
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
@@ -1365,7 +1413,7 @@ function populateForm(fields){
       img.src=v;
     }
   });
-  // reactiva secciones opcionales (Adquiriente II/III, sociedad) si traían datos
+  // reactiva secciones opcionales (ej. sociedad) si traían datos
   document.querySelectorAll('[data-opt]').forEach(chk=>{
     const sec=document.querySelector(`[data-sec="${chk.dataset.opt}"]`); if(!sec) return;
     const hasData=[...sec.querySelectorAll('[name]')].some(i=>fields[i.name]);
@@ -1389,8 +1437,9 @@ async function openSavedContract(id){
   populateForm(d.fields || {});
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
+  LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   refreshHitos(); updateSaveButton(); render();
-  toast('Contrato ' + data.numero + ' cargado');
+  toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
 }
 
 /* ============================================================
@@ -1471,9 +1520,10 @@ async function init(){
   // Metadata → {"role":"admin"}. Es un ocultamiento de UI (el override de
   // texto solo afecta a localStorage/impresión de quien lo usa, no escribe
   // nada compartido), no una barrera de datos — no hace falta más que esto.
-  if((session.user.user_metadata||{}).role !== 'admin'){
-    const b=$('#btnEdit'); if(b) b.style.display='none';
-  }
+  // Global (no un display= puntual) porque updateSaveButton() recalcula la
+  // visibilidad del botón en cada guardado/cambio de plantilla y también
+  // necesita saber si además está bloqueado por firma.
+  CAN_EDIT_TEXT = (session.user.user_metadata||{}).role === 'admin';
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
