@@ -967,7 +967,11 @@ function fieldHTML(f){
     </div>`;
   }
   if(type==='select'){
-    const opts=(extra||[]).map(o=>`<option ${o===def?'selected':''}>${o}</option>`).join('');
+    // extra: array de strings ("EUR") o de pares [valor, etiqueta] cuando el
+    // valor guardado (usado por <!--if:campo=valor--> en la plantilla) tiene
+    // que ser un slug estable y la etiqueta visible puede ser más larga.
+    const opts=(extra||[]).map(o=>{ const [v,lbl]=Array.isArray(o)?o:[o,o];
+      return `<option value="${escAttr(v)}" ${v===def?'selected':''}>${lbl}</option>`; }).join('');
     return `<div class="field"><label>${label}</label><select name="${key}"><option value=""></option>${opts}</select></div>`;
   }
   if(type==='textarea'){
@@ -1207,6 +1211,10 @@ function buildDoc(){
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
   html=html.replace(/<span class="f">(\{\{([a-z0-9_]+)\}\})<\/span>/g,(m,mk,k)=>`<span class="f ${sizeClass(k)}">${mk}</span>`);
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
+  // bloque que solo imprime si un campo vale EXACTAMENTE X (a diferencia de
+  // opt:, que solo mira si el campo está relleno) — usado para el régimen
+  // de tenencia según nacionalidad del comprador (ver regimen_tenencia).
+  html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (data[k]===v) ? m : '');
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
     return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
@@ -1228,6 +1236,9 @@ let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt);
 function deriveSections(){
   const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
   const inDoc = new Set([...(templateHTML+COVER_HTML).matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]));
+  // <!--if:campo=valor--> también cuenta como "el campo aparece en la
+  // plantilla", aunque no sea un marcador {{...}} (ver buildDoc()).
+  [...templateHTML.matchAll(/<!--if:([a-z0-9_]+)=[a-z0-9_]+-->/g)].forEach(m=>inDoc.add(m[1]));
   inDoc.delete('cov_t_es'); inDoc.delete('cov_t_en'); inDoc.delete('cov_t_id');   // los calcula el motor, no son campos
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
