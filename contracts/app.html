@@ -751,6 +751,87 @@ function wireClausePanel(){
 }
 function rebuildClause(){ const old=$('#clausePanel'); if(old){ old.outerHTML=buildClausePanel(); wireClausePanel(); wireAccordions(); } }
 
+/* ============================================================
+   ADQUIRIENTES ADICIONALES — Adquiriente I sigue siendo el campo fijo de
+   siempre; a partir del II la lista es dinámica y sin tope (antes eran 2
+   secciones fijas, II y III). Solo aparece si la plantilla activa trae el
+   marcador <!--compradores-extra-->. Mismo patrón que Anexos/Cláusulas
+   (localStorage, sin namespacing por plantilla). Cada plantilla conserva su
+   propia redacción de la cláusula "Adquiriente N" (ver COMPRADOR_FRASE).
+   ============================================================ */
+let COMPRADORES = loadCompradores();
+let compradorSeq = 1 + COMPRADORES.reduce((m,c)=>Math.max(m, parseInt(String(c.id||'').replace('bc',''))||0), 0);
+function loadCompradores(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_compradores'))||[]; }catch(_){ return []; } }
+function saveCompradores(){ try{ localStorage.setItem('lawang_contract_compradores', JSON.stringify(COMPRADORES)); }catch(_){} }
+function romano(n){ const vals=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let r='',x=n;
+  for(const [v,s] of vals){ while(x>=v){ r+=s; x-=v; } } return r; }
+
+function buildCompradorPanel(){
+  const rows = COMPRADORES.map((c,i)=>`
+    <div class="dz" data-comprador="${c.id}">
+      <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Adquiriente',en:'Buyer',id:'Pembeli'})} ${romano(i+2)}</span>
+        <span class="spacer" style="flex:1"></span>
+        <button type="button" class="link-btn" data-cdel="${c.id}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
+      <div class="grid2">
+        <div class="field"><label>${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
+        <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" value="${escAttr(c.nacionalidad)}"></div>
+        <div class="field"><label>${L({es:'Nº pasaporte / CIF',en:'Passport no.',id:'No. paspor'})}</label><input data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
+      </div>
+    </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
+  return `<section class="section design collapsed" id="compradorPanel">
+    <header data-acc><span class="num">＋</span><h2>${L({es:'Adquirientes adicionales',en:'Additional buyers',id:'Pembeli tambahan'})}</h2><span class="chev">▾</span></header>
+    <div class="body">${rows}
+      <div class="dz"><button type="button" class="btn ghost" id="compradorAdd">+ ${L({es:'Añadir adquiriente',en:'Add buyer',id:'Tambah pembeli'})}</button></div>
+    </div></section>`;
+}
+function wireCompradorPanel(){
+  const p=$('#compradorPanel'); if(!p) return;
+  p.addEventListener('input', e=>{ const el=e.target.closest('[data-ci]'); if(!el) return;
+    const c=COMPRADORES.find(x=>x.id===el.dataset.ci); if(c){ c[el.dataset.ckey]=el.value; saveCompradores(); renderDebounced(); } });
+  p.addEventListener('click', e=>{
+    if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:''}); saveCompradores(); rebuildComprador(); render(); return; }
+    const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); }
+  });
+}
+function rebuildComprador(){ const old=$('#compradorPanel'); if(old){ old.outerHTML=buildCompradorPanel(); wireCompradorPanel(); wireAccordions(); } }
+
+/* redacción propia de cada plantilla para "Adquiriente N" (antes hardcoded
+   para II/III únicamente) — se generaliza a cualquier N conservando el
+   texto exacto que el cliente ya aprobó por plantilla. */
+const COMPRADOR_FRASE = {
+  ppjb_reserva: {
+    es:(n,nom,nac,pas)=>`<b>ADQUIRIENTE ${n}:</b> Identificado con nombre y apellidos <span class="f">${nom}</span>, de nacionalidad <span class="f">${nac}</span> y pasaporte <span class="f">${pas}</span>.`,
+    en:(n,nom,nac,pas)=>`<b>BUYER ${n}:</b> Identified with full name <span class="f">${nom}</span>, of nationality <span class="f">${nac}</span> and passport <span class="f">${pas}</span>.`,
+    id:(n,nom,nac,pas)=>`<b>PEMBELI ${n}:</b> Diidentifikasi dengan nama lengkap <span class="f">${nom}</span>, berkewarganegaraan <span class="f">${nac}</span> dan paspor <span class="f">${pas}</span>.`,
+  },
+  ppjb_parcela: {
+    es:(n,nom,nac,pas)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${nom}</span>, nacional de <span class="f">${nac}</span>, con pasaporte nº <span class="f">${pas}</span>, a efecto de notificaciones.`,
+    en:(n,nom,nac,pas)=>`<b>BUYER ${n}:</b> <span class="f">${nom}</span>, national of <span class="f">${nac}</span>, holder of passport no. <span class="f">${pas}</span>, for notification purposes.`,
+    id:(n,nom,nac,pas)=>`<b>PEMBELI ${n}:</b> <span class="f">${nom}</span>, warga negara <span class="f">${nac}</span>, pemegang paspor no. <span class="f">${pas}</span>, untuk keperluan pemberitahuan.`,
+  },
+  ppjb_construccion: {
+    es:(n,nom,nac,pas)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${nom}</span>, nacional de <span class="f">${nac}</span>, con Pasaporte/CIF nº <span class="f">${pas}</span>, a efecto de notificaciones.`,
+    en:(n,nom,nac,pas)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${nom}</span>, national of <span class="f">${nac}</span>, with Passport/Tax ID no. <span class="f">${pas}</span>, for notification purposes.`,
+    id:(n,nom,nac,pas)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${nom}</span>, warga negara <span class="f">${nac}</span>, dengan Paspor/NPWP no. <span class="f">${pas}</span>, untuk keperluan pemberitahuan.`,
+  },
+};
+function compradoresExtraHTML(){
+  const frase = COMPRADOR_FRASE[CURRENT.slug]; if(!frase) return '';
+  let h='';
+  COMPRADORES.forEach((c,i)=>{
+    if(!c.nombre && !c.nacionalidad && !c.pasaporte) return;   // vacío = no imprime, igual que el resto de opcionales
+    const num=romano(i+2);
+    const nom=esc(c.nombre||''), nac=esc(c.nacionalidad||''), pas=esc(c.pasaporte||'');
+    h+=`<div class="party">
+      <div class="role"><span data-lang="es">Adquiriente ${num}</span><span data-lang="en">Buyer ${num}</span><span data-lang="id">Pembeli ${num}</span></div>
+      <p data-lang="es">${frase.es(num,nom,nac,pas)}</p>
+      <p data-lang="en">${frase.en(num,nom,nac,pas)}</p>
+      <p data-lang="id">${frase.id(num,nom,nac,pas)}</p>
+    </div>`;
+  });
+  return h;
+}
+
 /* HTML de las cláusulas incluidas → sustituye <!--extra-clauses--> en la plantilla.
    Respeta el layout trilingüe (data-lang): idioma activo + Bahasa en 2 columnas. */
 function clausesHTML(){
@@ -857,7 +938,8 @@ function fieldHTML(f){
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
   const form = $('#form');
-  let html = buildDesignPanel() + buildAnnexPanel() + buildClausePanel();   // paneles Diseño, Anexos y Cláusulas primero
+  let html = buildDesignPanel() + buildAnnexPanel() + buildClausePanel()   // paneles Diseño, Anexos y Cláusulas primero
+    + (templateHTML.includes('<!--compradores-extra-->') ? buildCompradorPanel() : '');   // solo si la plantilla lo imprime
   let lastTier=null, idx=0;
   SECTIONS.forEach(s=>{
     idx++;
@@ -870,7 +952,7 @@ function buildForm(){
     }
     const optional = s.optional ? `<div class="opt-toggle">${L({es:'añadir',en:'add',id:'tambah'})}<label class="switch"><input type="checkbox" data-opt="${s.id}"><span class="slider"></span></label></div>` : '';
     const cls = s.optional ? 'optional off' : '';
-    const grid = ['comprador','comprador2','comprador3','sociedad','dinero','gestion','otros'].includes(s.id);
+    const grid = ['comprador','sociedad','dinero','gestion','otros'].includes(s.id);
     const body = s.fields.map(fieldHTML).join('');
     const note = (s.id==='firmas' && TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length)
       ? `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
@@ -895,6 +977,7 @@ function buildForm(){
   wireDesignPanel();
   wireAnnexPanel();
   wireClausePanel();
+  wireCompradorPanel();
   wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
@@ -1070,6 +1153,7 @@ function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
+  html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
   html=html.replace(/<span class="f">(\{\{([a-z0-9_]+)\}\})<\/span>/g,(m,mk,k)=>`<span class="f ${sizeClass(k)}">${mk}</span>`);
@@ -1202,7 +1286,7 @@ function contractPayload(){
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES, clauses: CLAUSES,
-              overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
+              compradores: COMPRADORES, overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
   };
 }
 
@@ -1301,6 +1385,7 @@ async function openSavedContract(id){
   if(d.design){ DESIGN = d.design; saveDesign(); }
   if(d.annexes){ ANNEXES = d.annexes; saveAnnexes(); }
   if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
+  if(d.compradores){ COMPRADORES = d.compradores.map(c=>({...c})); saveCompradores(); rebuildComprador(); }
   populateForm(d.fields || {});
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
