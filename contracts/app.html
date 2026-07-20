@@ -165,6 +165,15 @@
     .pane-preview.open{ transform:none; }
     .pv-close{ display:inline-flex; }
     .fab{ display:inline-flex; }
+    /* topbar: con "Salir" sumado a los 3 botones + selector de idioma ya no
+       cabe todo en una fila a partir de aquí — quita lo prescindible
+       (el rótulo "BAHASA +" es solo informativo, el toggle ES/EN se entiende
+       solo) y encoge botones/título antes de dejar que algo se parta en dos
+       líneas. */
+    .topbar{ gap:6px; padding:0 10px; }
+    .topbar .tbtitle{ font-size:13px; }
+    .lang-hint{ display:none; }
+    .tb-link{ padding:6px 8px; font-size:12px; }
   }
 
   /* ---------- panel "Contratos guardados" ---------- */
@@ -303,8 +312,8 @@ const TEMPLATES = [
     name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
     l2:{es:'General',en:'General',id:'Umum'}, ready:true },
   { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
-    name:{es:'Construcción · DALI',en:'Construction · DALI',id:'Konstruksi · DALI'},
-    l2:{es:'de Construcción · DALI',en:'Construction · DALI',id:'Konstruksi · DALI'}, ready:true },
+    name:{es:'Construcción',en:'Construction',id:'Konstruksi'},
+    l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
   { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#8F9B7A',
     name:{es:'Oferta Comercial (Apéndice D)',en:'Commercial Offer (Appendix D)',id:'Penawaran Komersial (Lampiran D)'},
     l2:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'}, ready:true },
@@ -1371,6 +1380,15 @@ async function init(){
   if(!sb){ toast('Supabase no disponible'); return; }
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ location.href='login.html'; return; }
+
+  // "Editar texto" solo para agentes marcados como admin — se asigna en
+  // Supabase Dashboard → Authentication → Users → editar usuario → User
+  // Metadata → {"role":"admin"}. Es un ocultamiento de UI (el override de
+  // texto solo afecta a localStorage/impresión de quien lo usa, no escribe
+  // nada compartido), no una barrera de datos — no hace falta más que esto.
+  if((session.user.user_metadata||{}).role !== 'admin'){
+    const b=$('#btnEdit'); if(b) b.style.display='none';
+  }
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
