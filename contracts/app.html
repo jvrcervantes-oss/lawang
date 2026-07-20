@@ -1,12 +1,3 @@
-<?php
-// Gate de sesión REAL a nivel de servidor: si no hay agente autenticado, esta
-// petición nunca llega a servir el HTML/JS (ni la key pública de Supabase que
-// contiene). Antes, app.html era un archivo estático y el login solo
-// redirigía desde el cliente — cualquiera con la URL podía hacer
-// `curl app.html` y leer la key igualmente. Esto sí lo cierra.
-require __DIR__ . '/api/bootstrap.php';
-if (!current_agent()) { header('Location: login.html'); exit; }
-?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -214,6 +205,7 @@ if (!current_agent()) { header('Location: login.html'); exit; }
     <div class="spacer"></div>
     <button type="button" class="tb-link" id="btnContracts">Contratos guardados</button>
     <button type="button" class="tb-link" id="btnReset">Limpiar</button>
+    <button type="button" class="tb-link" id="btnLogout" title="Cerrar sesión">Salir</button>
     <span class="lang-hint" title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
   </div>
@@ -358,9 +350,11 @@ let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se i
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
 
-/* ---------- Supabase: guardado + numeración automática de contratos ----------
-   Único backend de persistencia — el PHP/MySQL (api/auth.php) ya solo gestiona
-   el login que da acceso a esta página, no guarda contratos.
+/* ---------- Supabase: único backend — Auth (login) + datos (guardado) ----------
+   No hay PHP/MySQL: el login de abajo (init()) es sb.auth.getSession()/
+   signInWithPassword (ver login.html), y la RLS de `contratos` exige role
+   authenticated — sin sesión de Supabase Auth no hay ni lectura ni escritura,
+   aunque se tenga la key pública (ver contracts_rls_requiere_authenticated).
    Cubre los 7 tipos numerados (ver CONTRACT_TIPO/TIPO_PREFIX abajo); Estatutos
    no lleva número ni guardado (plantilla fija, sin campos). El número
    (RPXXXXX/CCXXXXX/…) lo asigna un trigger en Postgres con una secuencia por
@@ -1021,7 +1015,7 @@ function injectBrandAndCover(html, data){
   // cambia de idioma con el toggle, muestra los 3 siempre).
   const covData = { ...data, cov_t_es:CURRENT.name.es, cov_t_en:CURRENT.name.en||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
-  // <base> = directorio de app.php → los recursos relativos (css/imgs/fuentes)
+  // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
   // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
   const base = location.href.replace(/[^/]*(?:\?.*)?$/,'');
   const v='?v='+Date.now();   // cache-buster: los CSS cambian con el deploy → nunca servir cacheados
@@ -1360,15 +1354,29 @@ async function enviarEmail(){
 }
 $('#emSend').addEventListener('click', enviarEmail);
 
+/* ---------- sesión (Supabase Auth) ----------
+   La página en sí sigue siendo estática — lo que de verdad protege los datos
+   es la política RLS de `contratos` (exige role authenticated, ver migración
+   contratos_rls_requiere_authenticated). Este chequeo es solo para no dejar
+   al agente mirando un formulario que no podrá guardar: sin sesión, redirige
+   a login.html antes de montar nada. */
+$('#btnLogout').addEventListener('click', async ()=>{
+  if(!sb) return;
+  await sb.auth.signOut();
+  location.href='login.html';
+});
+
 /* ---------- init ---------- */
 async function init(){
+  if(!sb){ toast('Supabase no disponible'); return; }
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ location.href='login.html'; return; }
+
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
   try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }catch(_){}  // deriveSections() filtra por plantilla
   // mapa marcador → tipo (para dimensionar el hueco de cada campo)
   ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
-  // Sesión: la comprueba app.php en servidor ANTES de servir esta página
-  // (ver cabecera PHP del archivo) — si esto se está ejecutando, ya hay agente.
   await loadTemplate(CURRENT.slug);
   buildPicker(); buildLangToggle(); buildForm();
 }

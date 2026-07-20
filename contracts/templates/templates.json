@@ -1,5 +1,5 @@
 {
-  "_nota": "Manifiesto de referencia para un futuro constructor (ver constructor_diseno.html) — la app viva (app.php) no lo lee: su lista de plantillas está en el array TEMPLATES del propio JS. El origen de los CAMPOS del formulario es tokens.json. Los 7 tipos numerados están activos.",
+  "_nota": "Manifiesto de referencia para un futuro constructor (ver constructor_diseno.html) — la app viva (app.html) no lo lee: su lista de plantillas está en el array TEMPLATES del propio JS. El origen de los CAMPOS del formulario es tokens.json. Los 7 tipos numerados están activos.",
   "templates": [
     {
       "slug": "ppjb_parcela",

@@ -1,16 +1,18 @@
 <?php
 /**
  * Envía un contrato por email con el PDF adjunto.
- * Standalone a propósito: NO usa bootstrap.php (exige MySQL/config.php de la
- * fase-4 sin desplegar). Remitente SIEMPRE fijo (nunca lo decide quien llama):
+ * Standalone a propósito: no hay backend PHP en este proyecto (login y datos
+ * viven en Supabase Auth/RLS, ver DEPLOY.md), así que este endpoint no tiene
+ * sesión de la que tirar. Remitente SIEMPRE fijo (nunca lo decide quien llama):
  *   - si existe private/mail.php con contraseña real → SMTP autenticado
  *     (admin@lawangproperties.com, vía lib/SmtpMailer.php, sin dependencias)
  *   - si no → mail() nativo de PHP con sales@lawangproperties.com, igual que
  *     hasta ahora (fallback automático, no rompe nada si aún no se configuró)
  *
- * Sin autenticación (la app tampoco la tiene hoy): el único filtro es que la
- * petición venga del propio origen. No es a prueba de un atacante decidido
- * con curl -- si esto pasa a tener volumen real de uso, añadir auth de verdad.
+ * Sin autenticación (a diferencia del resto de la app, que sí exige login
+ * real desde jul-2026): el único filtro es que la petición venga del propio
+ * origen. No es a prueba de un atacante decidido con curl -- si esto pasa a
+ * tener volumen real de uso, añadir auth de verdad.
  */
 declare(strict_types=1);
 

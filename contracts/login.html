@@ -6,6 +6,7 @@
 <title>Lawang · Acceso</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{ --tg:#485B37; --dl:#104C4F; --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --muted:#6b6c66; --line:#e4ddcf; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -44,19 +45,22 @@
   </form>
 <script>
 const $=s=>document.querySelector(s);
-// si ya hay sesión, ir directo a la app
-fetch('api/auth.php?action=me').then(r=>r.json()).then(d=>{ if(d.agent) location.href='app.php'; }).catch(()=>{});
+// misma key publicable que app.html — no es secreta, el control real vive en
+// las políticas RLS de Supabase (exigen role authenticated desde jul-2026).
+const sb = window.supabase.createClient(
+  'https://vtulllundrfennhjddhc.supabase.co',
+  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+);
+// si ya hay sesión válida, ir directo a la app
+sb.auth.getSession().then(({data:{session}})=>{ if(session) location.href='app.html'; });
+
 $('#f').addEventListener('submit', async e=>{
   e.preventDefault(); $('#btn').disabled=true; $('#err').textContent='';
-  try{
-    const r=await fetch('api/auth.php?action=login',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email:$('#email').value, password:$('#password').value})
-    });
-    const d=await r.json();
-    if(d.ok){ location.href='app.php'; }
-    else{ $('#err').textContent=d.error||'Error'; $('#btn').disabled=false; }
-  }catch(_){ $('#err').textContent='No se pudo conectar'; $('#btn').disabled=false; }
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('#email').value, password: $('#password').value
+  });
+  if(!error){ location.href='app.html'; }
+  else{ $('#err').textContent = error.message==='Invalid login credentials' ? 'Credenciales incorrectas' : error.message; $('#btn').disabled=false; }
 });
 </script>
 </body>
