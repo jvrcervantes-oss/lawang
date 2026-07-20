@@ -1376,6 +1376,19 @@ $('#btnEditReset').addEventListener('click', resetOverrides);
 /* ---------- PDF / backend ---------- */
 $('#btnPdf').addEventListener('click', downloadPdf);
 $('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos? (el diseño de marca se conserva)')) location.reload(); });
+
+/* nombre de archivo estándar de PDF: NUMERACIÓN_NOMBRE+APELLIDOS_TIPO+DE+CONTRATO.PDF
+   (numeración real de BD si ya está guardado; si no, lo que haya en el campo readonly).
+   Se usa tanto para el "Guardar como PDF" del navegador (título del documento
+   impreso, que Chrome/Edge usan como nombre sugerido) como para el adjunto del
+   email cuando no se sube un PDF firmado a mano. */
+function sanitizeFilenamePart(s){ return String(s||'').trim().replace(/[\\/:*?"<>|]+/g,''); }
+function pdfFilename(){
+  const numero = sanitizeFilenamePart((SAVED_CONTRACT && SAVED_CONTRACT.numero) || (($('[name="contrato_num"]')||{}).value) || 'SIN-NUMERO');
+  const nombre = sanitizeFilenamePart(collect().adq1_nombre || 'SIN-NOMBRE').replace(/\s+/g,'+');
+  const tipo = sanitizeFilenamePart((CURRENT.name && CURRENT.name.es) || '').replace(/\s+/g,'+');
+  return `${numero}_${nombre}_${tipo}.pdf`.toUpperCase();
+}
 /* Imprime el VISOR: lo reconstruye fresco y espera a que TERMINE de cargar
    (carga + fuentes + imágenes) antes de abrir el diálogo → evita el PDF dañado
    por imprimir a mitad de recarga. Nonce para forzar el evento load aunque el
@@ -1386,6 +1399,7 @@ function printPreview(){
   fr.addEventListener('load', function h(){
     fr.removeEventListener('load', h);
     const w=fr.contentWindow, d=fr.contentDocument;
+    d.title = pdfFilename();   // nombre sugerido al "Guardar como PDF" del navegador
     const imgs=[...d.images].filter(i=>!i.complete).map(i=>new Promise(r=>{ i.onload=i.onerror=r; }));
     const fonts=(d.fonts && d.fonts.ready) ? d.fonts.ready : Promise.resolve();
     Promise.all([fonts, ...imgs]).then(()=> setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} }, 200));
@@ -1611,7 +1625,7 @@ async function enviarEmail(){
     // se manda siempre el HTML de la vista previa (el servidor lo renderiza con
     // el servicio Puppeteer); si además se adjuntó un PDF a mano, va también
     // como pdf_base64 — el servidor lo usa de respaldo si el render falla.
-    const payload = { to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:'contrato.pdf', html: buildDoc() };
+    const payload = { to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:pdfFilename(), html: buildDoc() };
     if(file){ payload.filename = file.name; payload.pdf_base64 = await blobToBase64(file); }
     const r = await fetch('api/send_email.php', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(payload) });
