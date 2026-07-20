@@ -1399,10 +1399,21 @@ function printPreview(){
   fr.addEventListener('load', function h(){
     fr.removeEventListener('load', h);
     const w=fr.contentWindow, d=fr.contentDocument;
-    d.title = pdfFilename();   // nombre sugerido al "Guardar como PDF" del navegador
+    const fname = pdfFilename();
+    d.title = fname;   // título del propio iframe (por si Chrome/Edge lo usa al imprimir ese frame)
+    // el iframe de vista previa es srcdoc (sin URL real) — Chrome/Edge, para el
+    // nombre sugerido de "Guardar como PDF", a veces recurren al título de la
+    // pestaña de nivel superior en vez del título de un frame srcdoc; se fija
+    // también aquí y se restaura al cerrar el diálogo (print() bloquea hasta
+    // entonces) para no dejar el título de la app cambiado permanentemente.
+    const prevTitle = document.title;
+    document.title = fname;
     const imgs=[...d.images].filter(i=>!i.complete).map(i=>new Promise(r=>{ i.onload=i.onerror=r; }));
     const fonts=(d.fonts && d.fonts.ready) ? d.fonts.ready : Promise.resolve();
-    Promise.all([fonts, ...imgs]).then(()=> setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){} }, 200));
+    Promise.all([fonts, ...imgs]).then(()=> setTimeout(()=>{
+      try{ w.focus(); w.print(); }catch(_){}
+      document.title = prevTitle;
+    }, 200));
   }, {once:true});
   fr.srcdoc = buildDoc() + '<!--p'+(++_printNonce)+'-->';
 }

@@ -43,7 +43,10 @@ if (!is_array($in)) { fail('JSON inválido'); }
 $to       = trim((string)($in['to'] ?? ''));
 $subject  = trim((string)($in['subject'] ?? 'Contrato — Lawang Tropical Properties'));
 $message  = trim((string)($in['message'] ?? ''));
-$filename = preg_replace('/[^A-Za-z0-9_\-.]/', '_', (string)($in['filename'] ?? 'contrato.pdf'));
+// \p{L}/\p{N} (Unicode) en vez de A-Za-z0-9: si no, cada tilde del nombre del
+// comprador (José, García…) y cada "+" del separador de palabras se comía la
+// regex ASCII y dejaba el adjunto con guiones bajos ilegibles.
+$filename = preg_replace('/[^\p{L}\p{N}+_\-.]/u', '_', (string)($in['filename'] ?? 'contrato.pdf'));
 $pdfB64   = (string)($in['pdf_base64'] ?? '');
 $html     = (string)($in['html'] ?? '');
 
