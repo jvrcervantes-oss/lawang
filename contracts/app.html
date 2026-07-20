@@ -938,6 +938,11 @@ function fieldHTML(f){
   if(type==='textarea'){
     return `<div class="field" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
   }
+  if(type==='readonly'){
+    // lo asigna el trigger de Supabase (guardarContrato() escribe .value) — nunca lo teclea el agente.
+    return `<div class="field"><label>${label}</label>
+      <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
+  }
   const t = (type==='money'||type==='number') ? 'number' : (type==='date'?'date':'text');
   const step = type==='money' ? 'step="0.01"' : '';
   return `<div class="field"><label>${label}</label>
@@ -1189,6 +1194,7 @@ function deriveSections(){
   const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
   const inDoc = new Set([...(templateHTML+COVER_HTML).matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]));
   inDoc.delete('cov_t_es'); inDoc.delete('cov_t_en'); inDoc.delete('cov_t_id');   // los calcula el motor, no son campos
+  inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
@@ -1203,8 +1209,9 @@ function deriveSections(){
   // tabla de pagos dinámica: si la plantilla trae <!--hitos-->, sección especial
   // con lista añadir/quitar (el nº de hitos varía por contrato: 3, 4, 7…)
   if(templateHTML.includes('<!--hitos-->')){
-    let ins = SECTIONS.findIndex(s=>s.tier==='gestion'||s.tier==='firmas');
-    if(ins<0) ins = SECTIONS.length;
+    // justo DESPUÉS de "Gestión del contrato" (va primera a propósito), no antes
+    let ins = SECTIONS.findIndex(s=>s.tier==='gestion');
+    ins = ins<0 ? SECTIONS.length : ins+1;
     SECTIONS.splice(ins, 0, { id:'pagos', tier:'por_proyecto', special:'hitos',
       title:{es:'Calendario de pagos (hitos)',en:'Payment schedule (milestones)',id:'Jadwal pembayaran (tahapan)'}, fields:[] });
     HITOS = ((TOKENS && TOKENS.hitosDefaults && TOKENS.hitosDefaults[CURRENT.slug]) ||
@@ -1379,7 +1386,7 @@ function renderCpList(rows){
   if(!rows.length){ list.innerHTML='<p class="cp-empty">Sin contratos guardados.</p>'; return; }
   list.innerHTML = rows.map(r=>`
     <div class="cp-row" data-id="${r.id}">
-      <span class="cp-num" data-l="Nº">${r.bloqueado?'🔒 ':''}${r.numero||'—'}</span>
+      <span class="cp-num" data-l="Nº" title="${r.bloqueado?'Bloqueado — PDF firmado ya subido':''}">${r.bloqueado?'🔒 Bloqueado · ':''}${r.numero||'—'}</span>
       <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
       <span data-l="Comprador">${escAttr(r.comprador_nombre||'—')}</span>
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
