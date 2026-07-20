@@ -430,14 +430,39 @@ const DESIGN_DEFAULT = {
 /* slots que pintan algo SIN necesidad de subir imagen (tienen default propio) */
 const DEFAULT_SLOTS = { coverMark:'assets/brand/tiki-totem.png' };
 let DESIGN = loadDesign();
-function loadDesign(){
-  try{ const s=JSON.parse(localStorage.getItem('lawang_contract_design'));
+/* Caché local por plantilla — solo para no perder una edición sin guardar
+   si recargas la página a medias. La fuente real es Supabase
+   (contratos_diseno), cargada en loadTemplate(): ver loadSharedDesign()/
+   saveSharedDesign() más abajo. */
+function loadDesign(slug){
+  try{ const s=JSON.parse(localStorage.getItem('lawang_contract_design_'+(slug||(typeof CURRENT!=='undefined'&&CURRENT.slug)||'')));
     return s ? deepMerge(structuredClone(DESIGN_DEFAULT), s) : structuredClone(DESIGN_DEFAULT);
   }catch(_){ return structuredClone(DESIGN_DEFAULT); }
 }
 function deepMerge(base, over){ for(const k in over){ (over[k] && typeof over[k]==='object' && !Array.isArray(over[k]))
   ? deepMerge(base[k]=base[k]||{}, over[k]) : (base[k]=over[k]); } return base; }
-function saveDesign(){ try{ localStorage.setItem('lawang_contract_design', JSON.stringify(DESIGN)); }catch(_){} }
+function saveDesign(){ try{ localStorage.setItem('lawang_contract_design_'+CURRENT.slug, JSON.stringify(DESIGN)); }catch(_){} }
+
+/* Diseño COMPARTIDO por tipo de plantilla (tabla contratos_diseno, jul-2026).
+   "Guardar como diseño de esta plantilla" lo sube; cualquier agente que
+   abra ese tipo de contrato lo recibe como punto de partida. */
+async function loadSharedDesign(slug){
+  if(!sb) return null;
+  const { data } = await sb.from('contratos_diseno').select('design').eq('slug', slug).maybeSingle();
+  return data ? data.design : null;
+}
+async function saveSharedDesign(){
+  if(!sb) return;
+  const btn=$('#btnSaveDesign'); const t0=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
+  try{
+    const { error } = await sb.from('contratos_diseno')
+      .upsert({ slug:CURRENT.slug, design:DESIGN, updated_at:new Date().toISOString() });
+    if(error) throw error;
+    toast('Diseño guardado como plantilla — ya lo ven todos los agentes');
+  }catch(err){ toast('No se pudo guardar el diseño: ' + (err.message||err)); }
+  if(btn){ btn.disabled=false; btn.textContent=t0; }
+}
 
 const COVER_POS = {
   'top-left':'top:14mm;left:18mm;', 'top-center':'top:14mm;left:50%;transform:translateX(-50%);', 'top-right':'top:14mm;right:18mm;',
@@ -580,6 +605,10 @@ function buildDesignPanel(){
   return `<section class="section design collapsed" id="designPanel">
     <header data-acc><span class="num">🎨</span><h2>Diseño / Marca</h2><span class="chev">▾</span></header>
     <div class="body">
+      <div class="dz" style="border-top:none;padding-top:0">
+        <button type="button" class="btn ghost" id="btnSaveDesign" style="width:100%">Guardar como diseño de esta plantilla</button>
+        <p style="font-size:11px;color:var(--muted);margin:6px 2px 0">Lo verán todos los agentes al abrir "${L(CURRENT.name)}" — no solo tú.</p>
+      </div>
       <div class="dsec">Portada</div>
       <div class="drow"><span class="dlab">Color de fondo</span>
         <input type="color" class="dswatch" id="coverColor" value="${color}">
@@ -602,6 +631,7 @@ function wireDesignPanel(){
   const readout=(el,txt)=>{ const box=el.closest('.dctl,.drow'); const v=box&&box.querySelector('.v,.dval'); if(v) v.textContent=txt; };
   $('#coverColor').addEventListener('input',e=>{ DESIGN.coverColor=e.target.value; saveDesign(); render(); });
   $('#coverColorReset').addEventListener('click',()=>{ DESIGN.coverColor=''; saveDesign(); $('#coverColor').value=CURRENT.cover; render(); });
+  $('#btnSaveDesign').addEventListener('click', saveSharedDesign);
   panel.addEventListener('change',e=>{
     const f=e.target.closest('[data-df]'); if(f && f.files[0]){ readImg(f.files[0], src=>{ DESIGN[f.dataset.df].src=src; saveDesign(); rebuildDesign(); render(); }); return; }
     const p=e.target.closest('[data-dp]'); if(p){ DESIGN[p.dataset.dp].pos=p.value; saveDesign(); render(); }
@@ -1231,6 +1261,10 @@ async function loadTemplate(slug){
   try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   deriveSections();
+  // Diseño: Supabase compartido (la plantilla "real") > caché local de este
+  // navegador (edición sin guardar) > default de fábrica.
+  const shared = await loadSharedDesign(slug);
+  DESIGN = shared ? deepMerge(structuredClone(DESIGN_DEFAULT), shared) : loadDesign(slug);
 }
 function buildPicker(){
   const sel=$('#tplPick');
@@ -1522,15 +1556,12 @@ async function init(){
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ location.href='login.html'; return; }
 
-  // "Editar texto" solo para agentes marcados como admin — se asigna en
-  // Supabase Dashboard → Authentication → Users → editar usuario → User
-  // Metadata → {"role":"admin"}. Es un ocultamiento de UI (el override de
-  // texto solo afecta a localStorage/impresión de quien lo usa, no escribe
-  // nada compartido), no una barrera de datos — no hace falta más que esto.
-  // Global (no un display= puntual) porque updateSaveButton() recalcula la
-  // visibilidad del botón en cada guardado/cambio de plantilla y también
-  // necesita saber si además está bloqueado por firma.
-  CAN_EDIT_TEXT = (session.user.user_metadata||{}).role === 'admin';
+  // "Editar texto" restaurado para todos los agentes (pedido explícito del
+  // usuario, 20-jul — antes estaba limitado a role:"admin"). Se deja el
+  // flag CAN_EDIT_TEXT en vez de borrar el mecanismo entero: si se quiere
+  // volver a restringir más adelante basta con cambiar esta línea de nuevo
+  // a `(session.user.user_metadata||{}).role === 'admin'`.
+  CAN_EDIT_TEXT = true;
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
