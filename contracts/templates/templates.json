@@ -1,5 +1,5 @@
 {
-  "_nota": "Manifiesto del backend (api/generar.php valida el slug aquí y usa name + meta_fields). El origen de los CAMPOS del formulario es tokens.json; estas 'sections' son un fallback mínimo del backend. Solo 2 plantillas activas.",
+  "_nota": "Manifiesto de referencia para un futuro constructor (ver constructor_diseno.html) — la app viva (app.php) no lo lee: su lista de plantillas está en el array TEMPLATES del propio JS. El origen de los CAMPOS del formulario es tokens.json. Los 7 tipos numerados están activos.",
   "templates": [
     {
       "slug": "ppjb_parcela",

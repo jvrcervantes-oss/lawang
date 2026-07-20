@@ -45,7 +45,7 @@
 <script>
 const $=s=>document.querySelector(s);
 // si ya hay sesión, ir directo a la app
-fetch('api/auth.php?action=me').then(r=>r.json()).then(d=>{ if(d.agent) location.href='app.html'; }).catch(()=>{});
+fetch('api/auth.php?action=me').then(r=>r.json()).then(d=>{ if(d.agent) location.href='app.php'; }).catch(()=>{});
 $('#f').addEventListener('submit', async e=>{
   e.preventDefault(); $('#btn').disabled=true; $('#err').textContent='';
   try{
@@ -54,7 +54,7 @@ $('#f').addEventListener('submit', async e=>{
       body:JSON.stringify({email:$('#email').value, password:$('#password').value})
     });
     const d=await r.json();
-    if(d.ok){ location.href='app.html'; }
+    if(d.ok){ location.href='app.php'; }
     else{ $('#err').textContent=d.error||'Error'; $('#btn').disabled=false; }
   }catch(_){ $('#err').textContent='No se pudo conectar'; $('#btn').disabled=false; }
 });

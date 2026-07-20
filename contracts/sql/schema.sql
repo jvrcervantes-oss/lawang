@@ -1,9 +1,15 @@
 -- ============================================================
 -- Lawang Contracts — esquema MySQL
 -- Ejecutar una vez en phpMyAdmin (Hostinger) sobre la BD del proyecto.
+--
+-- Esta BD ya NO guarda contratos (eso vive en Supabase, tabla `contratos`,
+-- todos los tipos numerados). Su único trabajo es el LOGIN: app.php exige
+-- sesión de un agente de esta tabla antes de servir la página (y con ella,
+-- la key pública de Supabase que necesita el navegador).
 -- ============================================================
 
--- Agentes que pueden generar contratos (sin auto-registro; alta manual)
+-- Agentes que pueden entrar a la herramienta (sin auto-registro; alta manual
+-- vía tools/make_admin.php)
 CREATE TABLE IF NOT EXISTS agents (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name          VARCHAR(120)  NOT NULL,
@@ -14,23 +20,4 @@ CREATE TABLE IF NOT EXISTS agents (
   created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_agents_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Contratos generados (metadatos + ruta al PDF en private/contratos/)
-CREATE TABLE IF NOT EXISTS contracts (
-  id            CHAR(36)      NOT NULL,            -- uuid v4
-  template_slug VARCHAR(80)   NOT NULL,
-  template_name VARCHAR(160)  NOT NULL,
-  agent_id      INT UNSIGNED  NOT NULL,
-  buyer_name    VARCHAR(200)  NULL,
-  project_name  VARCHAR(200)  NULL,
-  signed        TINYINT(1)    NOT NULL DEFAULT 0,  -- ¿llevaba firma en pantalla?
-  data_json     LONGTEXT      NOT NULL,            -- valores rellenados (sin imágenes de firma)
-  doc_file      VARCHAR(120)  NOT NULL,            -- snapshot HTML en private/contratos/ (el PDF lo hace el navegador)
-  doc_bytes     INT UNSIGNED  NULL,
-  created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_contracts_agent (agent_id, created_at),
-  KEY idx_contracts_tpl (template_slug),
-  CONSTRAINT fk_contracts_agent FOREIGN KEY (agent_id) REFERENCES agents (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

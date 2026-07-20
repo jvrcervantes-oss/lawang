@@ -1,3 +1,12 @@
+<?php
+// Gate de sesión REAL a nivel de servidor: si no hay agente autenticado, esta
+// petición nunca llega a servir el HTML/JS (ni la key pública de Supabase que
+// contiene). Antes, app.html era un archivo estático y el login solo
+// redirigía desde el cliente — cualquiera con la URL podía hacer
+// `curl app.html` y leer la key igualmente. Esto sí lo cierra.
+require __DIR__ . '/api/bootstrap.php';
+if (!current_agent()) { header('Location: login.html'); exit; }
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -291,7 +300,8 @@
      con posiciones predefinidas, tamaño y opacidad. Persiste en
      localStorage (marca del cliente, sobrevive recarga).
    · Diccionario de marcadores en 3 niveles (tokens.json) · idioma.
-   · Merge cliente = api/generar.php en producción.
+   · Merge y PDF: siempre en cliente (ver printPreview()); el guardado del
+     registro va a Supabase (guardarContrato()), no a un backend propio.
    ============================================================ */
 const TEMPLATES = [
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
@@ -344,17 +354,18 @@ let SECTIONS = FALLBACK_SECTIONS;
 let CURRENT = TEMPLATES[1];       // Reserva de Proyecto por defecto
 let templateHTML = '';
 let COVER_HTML = '';
-let BACKEND = false, CSRF = null;
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
 
 /* ---------- Supabase: guardado + numeración automática de contratos ----------
-   Independiente del backend PHP/MySQL (BACKEND/api/generar.php, fase-4 sin desplegar).
-   Solo aplica a los 2 tipos con numeración acordada; el resto de plantillas no
-   muestran el botón de guardado. El número (RPXXXXX/CCXXXXX) lo asigna un trigger
-   en Postgres con una secuencia por prefijo — no hay condición de carrera aunque
-   varias personas guarden a la vez (nextval() es atómico a nivel de motor). */
+   Único backend de persistencia — el PHP/MySQL (api/auth.php) ya solo gestiona
+   el login que da acceso a esta página, no guarda contratos.
+   Cubre los 7 tipos numerados (ver CONTRACT_TIPO/TIPO_PREFIX abajo); Estatutos
+   no lleva número ni guardado (plantilla fija, sin campos). El número
+   (RPXXXXX/CCXXXXX/…) lo asigna un trigger en Postgres con una secuencia por
+   prefijo — no hay condición de carrera aunque varias personas guarden a la
+   vez (nextval() es atómico a nivel de motor). */
 const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
@@ -1010,7 +1021,7 @@ function injectBrandAndCover(html, data){
   // cambia de idioma con el toggle, muestra los 3 siempre).
   const covData = { ...data, cov_t_es:CURRENT.name.es, cov_t_en:CURRENT.name.en||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
-  // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
+  // <base> = directorio de app.php → los recursos relativos (css/imgs/fuentes)
   // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
   const base = location.href.replace(/[^/]*(?:\?.*)?$/,'');
   const v='?v='+Date.now();   // cache-buster: los CSS cambian con el deploy → nunca servir cacheados
@@ -1159,19 +1170,10 @@ function printPreview(){
   }, {once:true});
   fr.srcdoc = buildDoc() + '<!--p'+(++_printNonce)+'-->';
 }
-async function downloadPdf(){
-  if(!BACKEND){ printPreview(); return; }
-  const btn=$('#btnPdf'); btn.disabled=true; btn.textContent='Guardando…';
-  try{
-    const r=await fetch('api/generar.php',{ method:'POST',
-      headers:{'Content-Type':'application/json','X-CSRF':CSRF||''},
-      body:JSON.stringify({slug:CURRENT.slug, lang:LANG, data:{...collect(), _hitos:JSON.stringify(HITOS)}}) });
-    const d=await r.json();
-    if(d.ok){ toast('Contrato guardado · abre Guardar como PDF'); printPreview(); }
-    else{ toast(d.error||'Error al guardar'); }
-  }catch(_){ toast('No se pudo conectar'); }
-  btn.disabled=false; btn.textContent='Descargar PDF';
-}
+/* El guardado en registro va por Supabase (guardarContrato(), botón aparte);
+   este botón solo abre el diálogo de impresión del navegador — "Descargar PDF"
+   es el nombre de la acción para el agente, no una descarga automática real. */
+async function downloadPdf(){ printPreview(); }
 
 /* ============================================================
    SUPABASE — guardado + numeración automática (RPXXXXX/CCXXXXX)
@@ -1365,10 +1367,8 @@ async function init(){
   try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }catch(_){}  // deriveSections() filtra por plantilla
   // mapa marcador → tipo (para dimensionar el hueco de cada campo)
   ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
-  try{
-    const me = await fetch('api/auth.php?action=me').then(r=>r.ok?r.json():Promise.reject());
-    BACKEND=true; CSRF=me.csrf; if(!me.agent){ location.href='login.html'; return; }
-  }catch(_){ BACKEND=false; }
+  // Sesión: la comprueba app.php en servidor ANTES de servir esta página
+  // (ver cabecera PHP del archivo) — si esto se está ejecutando, ya hay agente.
   await loadTemplate(CURRENT.slug);
   buildPicker(); buildLangToggle(); buildForm();
 }
