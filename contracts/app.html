@@ -853,6 +853,11 @@ const COMPRADOR_FRASE = {
     en:(n,nom,nac,pas)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${nom}</span>, national of <span class="f">${nac}</span>, with Passport/Tax ID no. <span class="f">${pas}</span>, for notification purposes.`,
     id:(n,nom,nac,pas)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${nom}</span>, warga negara <span class="f">${nac}</span>, dengan Paspor/NPWP no. <span class="f">${pas}</span>, untuk keperluan pemberitahuan.`,
   },
+  carta_reserva: {
+    es:(n,nom,nac,pas)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${nom}</span>, de nacionalidad <span class="f">${nac}</span>, titular del pasaporte n.º <span class="f">${pas}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
+    en:(n,nom,nac,pas)=>`<b>BUYER ${n}:</b> <span class="f">${nom}</span>, of <span class="f">${nac}</span> nationality, holder of passport no. <span class="f">${pas}</span>, likewise acting in its own name together with the Second Party.`,
+    id:(n,nom,nac,pas)=>`<b>PEMBELI ${n}:</b> <span class="f">${nom}</span>, berkewarganegaraan <span class="f">${nac}</span>, pemegang paspor no. <span class="f">${pas}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
+  },
 };
 function compradoresExtraHTML(){
   const frase = COMPRADOR_FRASE[CURRENT.slug]; if(!frase) return '';
