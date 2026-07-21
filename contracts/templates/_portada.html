@@ -10,6 +10,9 @@
     color:var(--brand-paper,#F5F0E6); background:var(--brand-deep,#42210B);
     page-break-after:always; font-family:var(--font-body,'Jost',sans-serif); }
   .lwcov .g{ position:absolute; inset:0; }
+  /* imagen de fondo de portada (oculta por defecto; el panel Diseño la activa).
+     Va la primera → queda por debajo del degradado/moanito/contenido, sobre el color base. */
+  .lwcov .cover-bg{ display:none; background:no-repeat center/cover; }
   .lwcov .grad{ background:
     radial-gradient(120% 85% at 50% 10%, color-mix(in srgb, var(--brand-primary,#8F9B7A) 20%, transparent), transparent 55%),
     linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--brand-deep,#42210B) 60%, black) 100%); }
@@ -47,6 +50,7 @@
   @media print{ .lwcov{ margin:0; } }
 </style>
 <div class="lwcov">
+  <div class="g cover-bg" aria-hidden="true"></div>
   <div class="g grad"></div>
   <div class="moai" aria-hidden="true"></div>
   <div class="cov-logo" aria-hidden="true"></div>

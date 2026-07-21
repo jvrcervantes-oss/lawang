@@ -122,42 +122,42 @@
   .up{ display:inline-flex; align-items:center; gap:6px; background:var(--rl); border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:12.5px; color:var(--va); cursor:pointer; }
   .up input{ display:none; }
 
-  /* ---------- panel Diseño (rework moderno) ---------- */
-  .dsec{ display:flex; align-items:center; gap:10px; margin:18px 2px 10px;
-    font-size:10.5px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--sc); }
+  /* ---------- panel Diseño (rework moderno · compacto) ---------- */
+  .dsec{ display:flex; align-items:center; gap:8px; margin:12px 2px 7px;
+    font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--sc); }
   .dsec::after{ content:""; flex:1; height:1px; background:var(--line); }
-  .dsec:first-of-type{ margin-top:6px; }
+  .dsec:first-of-type{ margin-top:4px; }
   /* fila escalar: color / degradado / textura */
-  .drow{ display:flex; align-items:center; gap:12px; margin:11px 2px; }
-  .drow .dlab{ width:96px; flex:none; font-size:12.5px; color:var(--muted); }
+  .drow{ display:flex; align-items:center; gap:10px; margin:7px 2px; }
+  .drow .dlab{ width:88px; flex:none; font-size:12px; color:var(--muted); }
   .drow input[type=range]{ flex:1; accent-color:var(--tg); height:4px; }
-  .drow .dval{ width:40px; flex:none; text-align:right; font-size:12px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
-  .dswatch{ width:44px; height:30px; flex:none; padding:2px; border:1px solid var(--line); border-radius:9px; background:#fff; cursor:pointer; }
+  .drow .dval{ width:36px; flex:none; text-align:right; font-size:11.5px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dswatch{ width:40px; height:26px; flex:none; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
   /* tarjeta de asset */
-  .dcard{ border:1px solid var(--line); border-radius:16px; padding:13px 14px; margin:11px 0;
-    background:linear-gradient(180deg,#fff,#fdfcf8); box-shadow:0 1px 2px rgba(46,52,55,.04); }
+  .dcard{ border:1px solid var(--line); border-radius:11px; padding:8px 10px; margin:7px 0;
+    background:linear-gradient(180deg,#fff,#fdfcf8); }
   .dcard.empty{ opacity:.9; }
   .dcard.empty .dcard-ctl{ opacity:.4; pointer-events:none; }
-  .dcard-head{ display:flex; align-items:center; gap:12px; }
-  .dthumb{ width:48px; height:48px; flex:none; border-radius:11px; border:1px solid var(--line);
-    background:#fff no-repeat center/contain; display:grid; place-items:center; color:var(--ss); font-size:20px; }
+  .dcard-head{ display:flex; align-items:center; gap:9px; }
+  .dthumb{ width:34px; height:34px; flex:none; border-radius:8px; border:1px solid var(--line);
+    background:#fff no-repeat center/contain; display:grid; place-items:center; color:var(--ss); font-size:15px; }
   .dcard-title{ flex:1; min-width:0; }
-  .dcard-title b{ display:block; font-size:13px; font-weight:600; color:var(--dl); }
-  .dcard-title span{ font-size:11px; color:var(--muted); }
-  .dbtn{ font:inherit; font-size:12px; border:1px solid var(--line); background:#fff; color:var(--va);
-    border-radius:9px; padding:8px 12px; cursor:pointer; white-space:nowrap; transition:border-color .15s,color .15s; }
+  .dcard-title b{ display:block; font-size:12px; font-weight:600; color:var(--dl); line-height:1.25; }
+  .dcard-title span{ font-size:10.5px; color:var(--muted); }
+  .dbtn{ font:inherit; font-size:11.5px; border:1px solid var(--line); background:#fff; color:var(--va);
+    border-radius:8px; padding:5px 9px; cursor:pointer; white-space:nowrap; transition:border-color .15s,color .15s; }
   .dbtn:hover{ border-color:var(--tg); color:var(--tg); }
   .dbtn.ghost{ color:var(--muted); border-style:dashed; }
   .dbtn.upload{ position:relative; overflow:hidden; }
   .dbtn.upload input[type=file]{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
-  .dcard-ctl{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:13px; }
-  .dctl{ display:flex; flex-direction:column; gap:6px; }
+  .dcard-ctl{ display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin-top:8px; }
+  .dctl{ display:flex; flex-direction:column; gap:3px; }
   .dctl.full{ grid-column:1/-1; }
   .dctl > label{ display:flex; justify-content:space-between; align-items:baseline;
-    font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-  .dctl > label .v{ font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--dl); font-variant-numeric:tabular-nums; }
-  .dctl select{ font:inherit; font-size:12.5px; padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--va); }
-  .dctl input[type=range]{ accent-color:var(--tg); height:4px; margin:5px 0 2px; }
+    font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .dctl > label .v{ font-size:11.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dctl select{ font:inherit; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); }
+  .dctl input[type=range]{ accent-color:var(--tg); height:4px; margin:3px 0 1px; }
 
   /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
   .fab{ display:none; position:fixed; z-index:45; right:16px; bottom:calc(16px + env(safe-area-inset-bottom));
@@ -419,6 +419,7 @@ function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDe
    ============================================================ */
 const DESIGN_DEFAULT = {
   coverColor:'',                                    // '' = color del tipo de contrato
+  coverBg:    { src:'', pos:'cover',                   op:1   },  // imagen de fondo de portada (sobre el color; '' = solo color)
   coverGrad:  1,                                    // opacidad del degradado de profundidad
   coverGrain: .12,                                  // opacidad de la textura/grano
   coverLogo:{ src:'', pos:'top-center',   size:38,  op:1   },
@@ -541,6 +542,11 @@ function designStyle(){
          + `width:${d.coverLogo.size}mm;height:${d.coverLogo.size}mm;`
          + `background-image:url("${d.coverLogo.src}");opacity:${d.coverLogo.op};}`;
   }
+  // portada · imagen de fondo (sobre el color base; el usuario elige color O imagen)
+  if(d.coverBg && d.coverBg.src){
+    const fit=d.coverBg.pos, bg = fit==='repeat' ? 'center/auto repeat' : `center/${fit} no-repeat`;
+    css += `.lwcov .cover-bg{display:block;background:url("${d.coverBg.src}") ${bg};opacity:${d.coverBg.op};}`;
+  }
   // portada · profundidad (degradado) y textura (grano), editables
   css += `.lwcov .grad{opacity:${d.coverGrad};}.lwcov .grain{opacity:${d.coverGrain};}`;
   // portada · emblema de la esquina — SOLO si el usuario sube una imagen (sin default)
@@ -563,21 +569,17 @@ function designStyle(){
   // no lo pise. z-index:1 = sobre la marca de agua (0) pero DEBAJO de la portada
   // y los anexos (2, opacos) → no aparece en portada ni en las páginas de anexo.
   if(d.docLogo.src){
-    // tabla envolvente con thead repetible (ver applyEditsAndTag). La celda del
-    // thead lleva el logo + un aire inferior; la del cuerpo, el contenido normal.
-    css += `.doc-runhead{width:100%;border-collapse:collapse;}`
-         + `.doc-runhead>tbody>tr>td,.doc-runhead>thead>tr>td{padding:0;}`
-         + `.doc-runhead>thead>tr>td{padding-bottom:6mm;}`
-         + `.doc-runhead>thead{display:table-header-group;}`     // repite en cada página impresa
+    // la tabla envolvente .doc-runhead ya existe siempre (ver applyEditsAndTag + CSS del
+    // head); aquí solo se pinta el logo en la celda del thead + un aire bajo él.
+    css += `.doc-runhead>thead>tr>td{padding-bottom:6mm;}`
          + `.doc-brand-logo{display:block;height:${d.docLogo.size}mm;`
          + `background:url("${d.docLogo.src}") no-repeat ${d.docLogo.pos}/contain;opacity:${d.docLogo.op};}`;
   }
   // interior · IMAGEN DE FONDO por página (antes blanco). Mismo truco fijo que la
   // marca de agua → se repite en cada página impresa; z-index:-1 la deja detrás
   // del texto (z-index:1) y de la marca de agua (0). pos: cover|contain|repeat.
-  // ponytail: Chromium recorta los position:fixed al área DENTRO de los márgenes
-  // de @page (18mm) → el fondo llena la zona imprimible, no sangra al borde;
-  // sangrado real exigiría @page margin:0 + rehacer márgenes como padding.
+  // Sangra a borde de folio: @page va a margen 0 y los márgenes de texto los reserva
+  // la tabla .doc-runhead (thead/tfoot), así el fijo cubre todo el A4 (ver CSS del head).
   if(d.docBg.src){
     const fit = d.docBg.pos;
     const bg  = fit==='repeat' ? 'center/auto repeat' : `center/${fit} no-repeat`;
@@ -615,23 +617,23 @@ function buildDesignPanel(){
     </div>`;
   };
 
-  // tarjeta especial para el fondo de página interior: sin "Tamaño" (no aplica a
+  // tarjeta de fondo de página (portada o interior): sin "Tamaño" (no aplica a
   // un fondo), Ajuste = cover/contain/mosaico. Reusa el wiring genérico (data-df/dp/dop).
-  const bgCard=()=>{
-    const s=d.docBg, thumb = s.src ? `background-image:url("${s.src}")` : '';
+  const bgCard=(key,label)=>{
+    const s=d[key], thumb = s.src ? `background-image:url("${s.src}")` : '';
     const fits=[['cover','Rellenar'],['contain','Ajustar'],['repeat','Mosaico']];
-    return `<div class="dcard ${s.src?'':'empty'}" data-slot="docBg">
+    return `<div class="dcard ${s.src?'':'empty'}" data-slot="${key}">
       <div class="dcard-head">
         <div class="dthumb" style="${thumb}">${thumb?'':'▦'}</div>
-        <div class="dcard-title"><b>Fondo de página · interior</b><span>${s.src?'Imagen propia':'Sin imagen · sube una'}</span></div>
-        <label class="dbtn upload">${s.src?'Cambiar':'Subir'}<input type="file" accept="image/*" data-df="docBg"></label>
-        ${s.src?`<button type="button" class="dbtn ghost" data-dclear="docBg">Quitar</button>`:''}
+        <div class="dcard-title"><b>${label}</b><span>${s.src?'Imagen propia':'Sin imagen · sube una'}</span></div>
+        <label class="dbtn upload">${s.src?'Cambiar':'Subir'}<input type="file" accept="image/*" data-df="${key}"></label>
+        ${s.src?`<button type="button" class="dbtn ghost" data-dclear="${key}">Quitar</button>`:''}
       </div>
       <div class="dcard-ctl">
         <div class="dctl"><label>Ajuste</label>
-          <select data-dp="docBg">${fits.map(o=>`<option value="${o[0]}" ${s.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+          <select data-dp="${key}">${fits.map(o=>`<option value="${o[0]}" ${s.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
         <div class="dctl full"><label>Opacidad <span class="v">${pct(s.op)}%</span></label>
-          <input type="range" min="0" max="100" value="${pct(s.op)}" data-dop="docBg"></div>
+          <input type="range" min="0" max="100" value="${pct(s.op)}" data-dop="${key}"></div>
       </div>
     </div>`;
   };
@@ -651,10 +653,11 @@ function buildDesignPanel(){
         <input type="range" min="0" max="100" value="${pct(d.coverGrad)}" data-dscalar="coverGrad"><span class="dval">${pct(d.coverGrad)}%</span></div>
       <div class="drow"><span class="dlab">Textura</span>
         <input type="range" min="0" max="40" value="${pct(d.coverGrain)}" data-dscalar="coverGrain"><span class="dval">${pct(d.coverGrain)}%</span></div>
+      ${bgCard('coverBg','Fondo de página · portada')}
       ${card('coverLogo')}${card('coverEmblem')}${card('coverMark')}
       <div class="dsec">Interior</div>
       ${card('docLogo')}${card('docMark')}
-      ${bgCard()}
+      ${bgCard('docBg','Fondo de página · interior')}
     </div>
   </section>`;
 }
@@ -978,10 +981,13 @@ function applyEditsAndTag(html){
   // una tabla en cada página impresa Y le reservan su espacio → cabecera en todas
   // las páginas sin pisar el texto. Queda dentro de .doc → NO sale en portada ni
   // anexos (van fuera). En pantalla se pinta una vez arriba (comportamiento normal).
-  const docEl = DESIGN.docLogo.src ? doc.querySelector('.doc') : null;
+  // SIEMPRE se envuelve (no solo con logo): el thead reserva el margen superior y el
+  // tfoot el inferior en cada página impresa (con @page a margen 0), y así el fondo de
+  // página puede sangrar a borde. Si hay logo, va en la celda del thead (repetible).
+  const docEl = doc.querySelector('.doc');
   if(docEl && !docEl.querySelector('.doc-runhead')){
     const tbl = doc.createElement('table'); tbl.className='doc-runhead';
-    tbl.innerHTML = '<thead><tr><td><div class="doc-brand-logo" aria-hidden="true"></div></td></tr></thead><tbody><tr><td class="doc-runbody"></td></tr></tbody>';
+    tbl.innerHTML = '<thead><tr><td><div class="doc-brand-logo" aria-hidden="true"></div></td></tr></thead><tbody><tr><td class="doc-runbody"></td></tr></tbody><tfoot><tr><td></td></tr></tfoot>';
     const body = tbl.querySelector('.doc-runbody');
     while(docEl.firstChild) body.appendChild(docEl.firstChild);
     docEl.appendChild(tbl);
@@ -1314,12 +1320,20 @@ function injectBrandAndCover(html, data){
     // de tabla, marca de agua e isotipos). Sobreescribe el @page{margin:0} de la plantilla.
     + `<style>`
     + `*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}`
-    + `@page{size:A4;margin:18mm}`
+    // @page SIN margen → el fondo fijo del interior (.doc::after) y la marca de agua
+    // sangran a borde de folio. Los márgenes de TEXTO se reservan en cada página con la
+    // tabla envolvente .doc-runhead: thead = margen superior (+ logo repetible), tfoot =
+    // margen inferior; los laterales con el padding horizontal del .doc (sí se repite).
+    + `@page{size:A4;margin:0}`
     + `@page cover{margin:0}`
     // z-index:2 → la portada (opaca, página completa) tapa la marca de agua fija
     // del interior (z-index:0), que si no se pintaría también sobre la portada.
     + `.lwcov{page:cover;position:relative;z-index:2}`
-    + `@media print{.doc{padding:0!important;overflow:visible!important}}`
+    + `.doc-runhead{width:100%;border-collapse:collapse}`
+    + `.doc-runhead>tbody>tr>td,.doc-runhead>thead>tr>td,.doc-runhead>tfoot>tr>td{padding:0}`
+    + `.doc-runhead>thead{display:table-header-group}.doc-runhead>tfoot{display:table-footer-group}`
+    + `@media print{.doc{padding:0 18mm!important;overflow:visible!important}`
+    +   `.doc-runhead>thead>tr>td{padding-top:18mm}.doc-runhead>tfoot>tr>td{height:18mm}}`
     // Anexos: cada página a sangre (A4 completo), no editables. z-index sobre la marca de agua fija.
     + `.annex-cover,.annex-page{page:cover;page-break-before:always;width:210mm;height:297mm;position:relative;z-index:2;box-sizing:border-box;overflow:hidden}`
     + `.annex-cover{background:var(--brand-deep,#104C4F);color:var(--brand-paper,#F5F0E6);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}`
