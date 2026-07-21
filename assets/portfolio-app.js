@@ -373,44 +373,74 @@
       var moreOv = (i===show-1 && total>show) ? '<div style="position:absolute;inset:0;background:rgba(20,16,11,.5);display:grid;place-items:center;z-index:3"><span style="font-family:var(--sans);font-size:clamp(22px,2.6vw,34px);color:var(--bone);font-weight:500">+'+(total-show)+'</span></div>' : "";
       tiles += '<button class="pdp-g3-tile'+(i>0?' pdp-g3-extra':'')+'" data-act="gal:'+((active+1)%total)+'" aria-label="'+tl("Next photo","Siguiente foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2);aspect-ratio:4/3">'+tileInner(m)+badge+moreOv+'</button>';
     }
-    var arrow = function(dir,to){ return '<button data-act="gal:'+to+'" aria-label="'+(dir<0?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="flex:none;width:clamp(36px,3.4vw,46px);height:clamp(36px,3.4vw,46px);border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.6);color:var(--ink);font-size:22px;line-height:0;cursor:pointer;display:grid;place-items:center;font-family:var(--sans)">'+(dir<0?"‹":"›")+'</button>'; };
-    var lArrow = total>1 ? arrow(-1, ((active-1)%total+total)%total) : "";
-    var rArrow = total>1 ? arrow(1, (active+1)%total) : "";
-    return '<div style="display:flex;align-items:center;gap:clamp(6px,1.4vw,18px)">'+lArrow
-      + '<div class="pdp-gal3" style="flex:1;min-width:0;display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
-      + rArrow+'</div>';
+    // Flechas superpuestas sobre los bordes de las imágenes (no ocupan ancho): la fila usa el 100% del ancho.
+    var arrow = function(side,to){ return '<button data-act="gal:'+to+'" aria-label="'+(side==="left"?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="position:absolute;'+side+':14px;top:50%;transform:translateY(-50%);z-index:5;width:clamp(40px,3.2vw,50px);height:clamp(40px,3.2vw,50px);border-radius:999px;border:none;background:rgba(255,255,255,.85);color:var(--ink);font-size:24px;line-height:0;cursor:pointer;display:grid;place-items:center;font-family:var(--sans);box-shadow:0 6px 18px -6px rgba(20,16,11,.45);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)">'+(side==="left"?"‹":"›")+'</button>'; };
+    var arrows = total>1 ? (arrow("left", ((active-1)%total+total)%total) + arrow("right", (active+1)%total)) : "";
+    return '<div style="position:relative;margin-top:clamp(20px,2.5vw,30px)">'
+      + '<div class="pdp-gal3" style="display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
+      + arrows+'</div>';
   }
 
-  // Franja de specs — tarjeta CLARA horizontal (guía Ficha, jul-2026): etiqueta verde con filete,
-  //    valor grande en Burnt Earth; último cell opcional en verde con el metaText (highlight).
+  // Franja de specs — tarjeta CLARA (guía Ficha, jul-2026): SOLO 6 campos según referencia —
+  //    Tenure, Delivery, Status, Units, Available, Highlight. Etiqueta verde con filete, valor
+  //    grande Burnt Earth; el highlight (metaText) en verde.
   function techSpecsHTML(p){
     var isF = p.tenure==="tenure.freehold";
     var specs = [];
-    // Vista inferida (texto; sin icono cream — la tarjeta ahora es clara)
-    if(window.LawangCard){
-      var vw = window.LawangCard.viewFor(p);
-      specs.push({ l:tl("View","Vista"), v:(window.LawangCard.VIEW_LABEL[vw]||{})[S.lang] || vw });
-    }
     specs.push({l:t("glance.tenure"), v:isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr")});
-    if(p.handover && p.handover!=="—") specs.push({l:t("glance.delivery"), v:p.handover});
+    specs.push({l:t("glance.delivery"), v:(p.handover&&p.handover!=="—")?p.handover:tl("On request","A consultar")});
     if(p.status) specs.push({l:t("glance.status"), v:t(p.status)});
     if(p.unitsTotal) specs.push({l:t("glance.units"), v:(p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / "+p.unitsTotal:String(p.unitsTotal))});
-    if(p.built>0) specs.push({l:t("glance.villa"), v:p.built+" m²"});
-    if(p.land>0)  specs.push({l:t("glance.land"),  v:p.land+" m²"});
-    if(p.beds>0)  specs.push({l:t("pd.spec.beds"), v:p.beds});
-    if(p.baths>0) specs.push({l:t("pd.spec.baths"),v:p.baths});
-    if(p.pool)    specs.push({l:t("spec.pool"),    v:p.poolType||"Yes"});
-    if(p.garage)  specs.push({l:t("spec.garage"),  v:p.garageDesc||"Yes"});
-    if(p.furnished&&p.furnished!=="None") specs.push({l:t("spec.furnished"), v:p.furnished});
+    // Available: menor parcela disponible → si no hay parcelas, área construida → terreno
+    var avail = null;
+    if(p.landOptions&&p.landOptions.length){ var sz=p.landOptions.map(function(o){return Number(o.size)||0;}).filter(Boolean); if(sz.length) avail=tl("From ","Desde ")+Math.min.apply(null,sz)+" m²"; }
+    if(!avail && p.built>0) avail = p.built+" m²";
+    if(!avail && p.land>0)  avail = p.land+" m²";
+    if(avail) specs.push({l:tl("Available","Disponible"), v:avail});
     if(pick(p.metaText)) specs.push({l:tl("Highlight","Destacado"), v:pick(p.metaText), hi:true});
     if(specs.length===0) return "";
     var cells = specs.map(function(sp){
       var val = sp.hi ? 'var(--tg)' : 'var(--be)';
-      return '<div style="padding:18px 20px">'
+      return '<div style="flex:1 1 110px;padding:20px 22px">'
         + '<div style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);border-bottom:1.5px solid rgba(72,91,55,.32);padding-bottom:6px;margin-bottom:11px;font-family:var(--sans)">'+esc(sp.l)+'</div>'
-        + '<div style="font-family:var(--sans);font-size:clamp(17px,1.5vw,21px);font-weight:600;color:'+val+';line-height:1.15">'+esc(sp.v)+'</div></div>';
+        + '<div style="font-family:var(--sans);font-size:clamp(18px,1.6vw,23px);font-weight:600;color:'+val+';line-height:1.15">'+esc(sp.v)+'</div></div>';
     }).join("");
-    return '<div class="tech-specs-grid" style="margin-top:clamp(24px,3vw,34px);background:rgba(255,255,255,.5);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
+    // flex-wrap → las celdas se estiran para llenar el ancho (con 3 o con 6), sin huecos
+    return '<div class="tech-specs-grid" style="height:100%;background:rgba(255,255,255,.5);border:1px solid var(--line);border-radius:14px;display:flex;flex-wrap:wrap;align-content:flex-start;box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
+  }
+
+  // Tarjeta verde "Talk to the team" (WhatsApp + Enquire) + gate de descargas — va a la DERECHA
+  //    de las specs (referencia Ficha p2). Movida aquí desde el sidebar.
+  function talkToTeamHTML(p){
+    var waNum = (L.SETTINGS&&L.SETTINGS.whatsapp)||"6281138319862";
+    var email = (L.SETTINGS&&L.SETTINGS.email)||"sales@lawangproperties.com";
+    var waUrl = "https://wa.me/"+waNum+"?text="+encodeURIComponent("Hello! I'm interested in "+pick(p.title)+". Can we schedule a call?");
+    var files = (p.downloads&&p.downloads.length)?p.downloads:null;
+    return '<div style="display:flex;flex-direction:column;gap:14px">'
+      + '<div style="background:var(--tg);border-radius:14px;overflow:hidden"><div style="padding:18px 20px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,0.5);margin-bottom:6px">'+t("wa.title")+'</div><p style="font-size:12.5px;color:rgba(245,240,230,0.7);margin-bottom:0;line-height:1.5">'+t("wa.sub")+'</p></div>'
+      +   '<div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:10px"><a href="'+waUrl+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;padding:12px 20px;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:var(--sans)">✓ '+t("wa.cta")+'</a>'
+      +   '<a href="mailto:'+esc(email)+'" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:11px 20px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--sans)">'+t("pd.enquire")+' →</a></div></div>'
+      + (files?downloadsHTML(files,p):"")
+      + '</div>';
+  }
+
+  // Banda specs + talk-to-team (referencia Ficha p2): specs a la izquierda, contacto a la derecha.
+  function specsBandHTML(p){
+    var specs = techSpecsHTML(p);
+    if(!specs) return "";
+    return '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px);display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:clamp(14px,1.6vw,22px);align-items:stretch">'
+      + '<div>'+specs+'</div>'
+      + '<div>'+talkToTeamHTML(p)+'</div>'
+      + '</div>';
+  }
+
+  // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
+  function fullBleedImageHTML(p){
+    var key = (p.imgKeys&&p.imgKeys[2]) || (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
+    if(!key) return "";
+    return '<div style="margin:clamp(48px,6vw,84px) 0;overflow:hidden;background:#1a160f">'
+      + '<img src="'+esc(imgUrl(key,2600))+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="display:block;width:100%;height:clamp(360px,82vh,780px);object-fit:cover" onerror="this.style.display=\'none\'">'
+      + '</div>';
   }
 
   function downloadsHTML(files, p){
@@ -439,11 +469,6 @@
 
   function sidebarHTML(p){
     var isF = p.tenure==="tenure.freehold";
-    var waNum = (L.SETTINGS&&L.SETTINGS.whatsapp)||"34600000000";
-    var email = (L.SETTINGS&&L.SETTINGS.email)||"sales@lawangproperties.com";
-    var title = pick(p.title);
-    var waUrl = "https://wa.me/"+waNum+"?text="+encodeURIComponent("Hello! I'm interested in "+title+". Can we schedule a call?");
-    var files = (p.downloads&&p.downloads.length)?p.downloads:null;
     var row='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);gap:12px';
     var lbl='font-size:12.5px;color:var(--ink-2);font-weight:500;flex-shrink:0';
     var val='font-size:13px;text-align:right';
@@ -465,12 +490,9 @@
       +     (isF?'<div style="'+row+'"><span style="'+lbl+'">'+t("glance.ptpma")+'</span><span style="'+val+'">Included · ~€1,000</span></div>':"")
       +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.delivery")+'</span><span style="'+val+'">'+(p.handover!=="—"?esc(p.handover):"On request")+'</span></div>'
       +     (p.status?'<div style="'+row+';border-bottom:none"><span style="'+lbl+'">'+t("glance.status")+'</span><span style="'+val+'">'+t(p.status)+'</span></div>':'')+'</div>'
-      + '</div>'
-      + '<div style="background:var(--tg);border-radius:8px;overflow:hidden"><div style="padding:18px 20px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,0.5);margin-bottom:6px">'+t("wa.title")+'</div><p style="font-size:12.5px;color:rgba(245,240,230,0.7);margin-bottom:0;line-height:1.5">'+t("wa.sub")+'</p></div>'
-      +   '<div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:10px"><a href="'+waUrl+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;padding:12px 20px;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:var(--sans)">✓ '+t("wa.cta")+'</a>'
-      +   '<a href="mailto:'+esc(email)+'" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:11px 20px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--sans)">'+t("pd.enquire")+' →</a></div></div>'
-      + (files?downloadsHTML(files,p):"")
-      + '</div>';
+      + '</div>'   // cierra entry-card
+      + '</div>';  // cierra el contenedor flex-col del sidebar
+    // Talk-to-team + descargas se movieron a la banda de specs (specsBandHTML) según la referencia.
   }
 
   function investmentCalcHTML(p, priceEUR){
@@ -660,24 +682,31 @@
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
       + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(x.title))+'</p><p style="font-size:13px;font-weight:600;color:#324820;margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
       + '</div></div>' : "";
+    // Back link "← The Collection" (repuesto por petición; el menú del topbar sigue arriba)
+    var backLink = '<button data-act="close" style="display:inline-flex;align-items:center;gap:9px;background:none;border:0;cursor:pointer;color:var(--ink-2);font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:0;margin-bottom:18px"><span style="font-size:17px;font-weight:300;line-height:0">←</span> '+t("crumb.portfolio")+'</button>';
     return '<div style="padding-bottom:80px">'
       + heroHTML(p)
-      + '<div class="wrap" style="padding-top:clamp(34px,4.5vw,60px)">'
+      + '<div class="wrap" style="padding-top:clamp(28px,3.5vw,48px)">'
+      + backLink
       + breadcrumbsHTML(p)
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:30px"><div style="flex:1 1 380px;min-width:0">'
       +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);font-family:var(--sans)">'+t(LINE_KEYS[p.line])+'</span><span style="width:1px;height:12px;background:var(--line)"></span><span style="font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-family:var(--sans)">'+t(p.status)+'</span></div>'
       +   '<h1 class="display" style="font-size:clamp(36px,5.2vw,66px);font-weight:400;letter-spacing:.03em;text-transform:uppercase;color:#42210B;line-height:1">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
       +   '<div style="flex-shrink:0;text-align:right"><div class="serif" style="font-size:clamp(28px,2.8vw,38px);font-weight:600;line-height:1;color:#324820">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
-      + techSpecsHTML(p)
+      + specsBandHTML(p)
       + '<div class="pdp-cols" style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);margin-top:56px;align-items:start">'
       +   '<div>'+overviewHTML
       +     mapBlockHTML(p)+leftMain+'</div>'
       +   '<div style="position:sticky;top:80px">'+sidebarHTML(p)+'</div>'
       + '</div>'
+      + '</div>'  // /wrap
+      + fullBleedImageHTML(p)  // imagen a pantalla completa, edge-to-edge (fuera del wrap)
+      + '<div class="wrap">'
       + statementBannerHTML(p)
       + alsoHTML
-      + '</div></div>';
+      + '</div>'
+      + '</div>';
   }
 
   // ════ OVERLAY (ficha sobre el marketplace) ════
