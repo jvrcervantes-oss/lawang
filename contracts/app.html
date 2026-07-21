@@ -517,9 +517,12 @@ function langCSS(){
     // CSS float) y un bloque LANG podía colarse al lado del ID anterior en
     // vez de apilarse bajo el bloque LANG anterior. clear fuerza dos
     // columnas realmente independientes, cada una apilada contra sí misma.
-    + `${L2},${IDs}{float:left;width:48.5%;box-sizing:border-box}`
-    + `${IDs}{float:right;clear:right}`
-    + `${L2}{padding-right:4.5%;clear:left}`;
+    // columnas simétricas 49%/49% (2% de canalón) → cada idioma ocupa la mitad
+    // de la zona de texto, sin el padding asimétrico que antes desperdiciaba
+    // espacio a la izquierda. float izq/der + clear = dos columnas independientes.
+    + `${L2},${IDs}{width:49%;box-sizing:border-box}`
+    + `${L2}{float:left;clear:left}`
+    + `${IDs}{float:right;clear:right}`;
 }
 
 /* CSS que reskin-ea portada+interior según DESIGN (se inyecta en el <head> del doc) */
@@ -1157,6 +1160,10 @@ const CUENTAS_BANCARIAS = {
     titular:'SANDAL WOODS LIMITED', banco:'DBS Bank (Hong Kong) Limited', cuenta:'478798116354',
     codigo:'DHBKHKHH', direccion:"11th Floor, The Center, 99 Queen's Road Central, Central, Hong Kong",
     extra:'Código de banco: 016' },
+  sandalwoods_dbs_sg: { label:'Sandal Woods Limited — DBS Bank Ltd (Singapur)',
+    titular:'Sandal Woods Limited', banco:'DBS Bank Ltd', cuenta:'885571532066',
+    codigo:'DBSSSGSG', direccion:'12 Marina Boulevard, DBS Asia Central, Marina Bay Financial Centre Tower 3, Singapore 018982',
+    extra:'Bank code: 7171' },
   contractor_lawang: { label:'Contratista — Lawang (I Putu Hady Diyatmika · BCA)',
     titular:'I Putu Hady Diyatmika, ST', banco:'Bank Central Asia (BCA)', cuenta:'1420040632',
     codigo:'CENAIDJA', direccion:'Menara BCA, Grand Indonesia, Jl. MH Thamrin No. 1, Jakarta 10310, Indonesia', extra:'' },
@@ -1188,7 +1195,10 @@ const CUENTAS_BANCARIAS = {
     titular:'A.A. Putu Kartika Adi', banco:'Bank Mandiri', cuenta:'1750038383831',
     codigo:'BMRIIDJAXXX', direccion:'Jalan Jenderal Sudirman Kav 54-55, Jakarta 12190, Indonesia', extra:'' },
 };
-const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label]);
+const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
+  .sort((a,b)=>a[1].localeCompare(b[1],'es'));   // orden alfabético por etiqueta
+// Construcción usa SOLO la cuenta de Sandal Woods (Singapur); el resto de contratos, todas.
+function bankOptionsFor(slug){ return slug==='ppjb_construccion' ? BANK_OPTIONS.filter(o=>o[0]==='sandalwoods_dbs_sg') : BANK_OPTIONS; }
 /* etiqueta legible del régimen de tenencia (el select guarda un código; el contrato
    imprime esto — ver buildDoc). Los bloques <!--if:regimen_tenencia=CODE--> siguen
    usando el código crudo, no se ven afectados. */
@@ -1429,7 +1439,7 @@ function deriveSections(){
     ins = ins<0 ? SECTIONS.length : ins+1;
     SECTIONS.splice(ins, 0, { id:'banco', tier:'por_proyecto',
       title:{es:'Cuenta bancaria',en:'Bank account',id:'Rekening bank'},
-      fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', BANK_OPTIONS]] });
+      fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', bankOptionsFor(CURRENT.slug)]] });
   }
 }
 
