@@ -426,6 +426,7 @@ const DESIGN_DEFAULT = {
   coverMark:{ src:'', pos:'bottom-center', size:74,  op:.075 },  // src '' = tiki por defecto
   docLogo:  { src:'', pos:'left',          size:26,  op:1   },
   docMark:  { src:'', pos:'center',        size:150, op:.05  },
+  docBg:    { src:'', pos:'cover',                   op:1   },  // fondo de página interior (en vez de blanco)
 };
 /* slots que pintan algo SIN necesidad de subir imagen (tienen default propio) */
 const DEFAULT_SLOTS = { coverMark:'assets/brand/tiki-totem.png' };
@@ -571,6 +572,18 @@ function designStyle(){
          + `.doc-brand-logo{display:block;height:${d.docLogo.size}mm;`
          + `background:url("${d.docLogo.src}") no-repeat ${d.docLogo.pos}/contain;opacity:${d.docLogo.op};}`;
   }
+  // interior · IMAGEN DE FONDO por página (antes blanco). Mismo truco fijo que la
+  // marca de agua → se repite en cada página impresa; z-index:-1 la deja detrás
+  // del texto (z-index:1) y de la marca de agua (0). pos: cover|contain|repeat.
+  // ponytail: Chromium recorta los position:fixed al área DENTRO de los márgenes
+  // de @page (18mm) → el fondo llena la zona imprimible, no sangra al borde;
+  // sangrado real exigiría @page margin:0 + rehacer márgenes como padding.
+  if(d.docBg.src){
+    const fit = d.docBg.pos;
+    const bg  = fit==='repeat' ? 'center/auto repeat' : `center/${fit} no-repeat`;
+    css += `.doc::after{content:"";position:fixed;inset:0;background:url("${d.docBg.src}") ${bg};`
+         + `opacity:${d.docBg.op};z-index:-1;pointer-events:none;}`;
+  }
   return css;
 }
 
@@ -602,6 +615,27 @@ function buildDesignPanel(){
     </div>`;
   };
 
+  // tarjeta especial para el fondo de página interior: sin "Tamaño" (no aplica a
+  // un fondo), Ajuste = cover/contain/mosaico. Reusa el wiring genérico (data-df/dp/dop).
+  const bgCard=()=>{
+    const s=d.docBg, thumb = s.src ? `background-image:url("${s.src}")` : '';
+    const fits=[['cover','Rellenar'],['contain','Ajustar'],['repeat','Mosaico']];
+    return `<div class="dcard ${s.src?'':'empty'}" data-slot="docBg">
+      <div class="dcard-head">
+        <div class="dthumb" style="${thumb}">${thumb?'':'▦'}</div>
+        <div class="dcard-title"><b>Fondo de página · interior</b><span>${s.src?'Imagen propia':'Sin imagen · sube una'}</span></div>
+        <label class="dbtn upload">${s.src?'Cambiar':'Subir'}<input type="file" accept="image/*" data-df="docBg"></label>
+        ${s.src?`<button type="button" class="dbtn ghost" data-dclear="docBg">Quitar</button>`:''}
+      </div>
+      <div class="dcard-ctl">
+        <div class="dctl"><label>Ajuste</label>
+          <select data-dp="docBg">${fits.map(o=>`<option value="${o[0]}" ${s.pos===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+        <div class="dctl full"><label>Opacidad <span class="v">${pct(s.op)}%</span></label>
+          <input type="range" min="0" max="100" value="${pct(s.op)}" data-dop="docBg"></div>
+      </div>
+    </div>`;
+  };
+
   return `<section class="section design collapsed" id="designPanel">
     <header data-acc><span class="num">🎨</span><h2>Diseño / Marca</h2><span class="chev">▾</span></header>
     <div class="body">
@@ -620,6 +654,7 @@ function buildDesignPanel(){
       ${card('coverLogo')}${card('coverEmblem')}${card('coverMark')}
       <div class="dsec">Interior</div>
       ${card('docLogo')}${card('docMark')}
+      ${bgCard()}
     </div>
   </section>`;
 }
@@ -816,6 +851,10 @@ function buildCompradorPanel(){
         <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" value="${escAttr(c.nacionalidad)}"></div>
         <div class="field"><label>${L({es:'Nº pasaporte / CIF',en:'Passport no.',id:'No. paspor'})}</label><input data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
       </div>
+      <div class="field" style="margin-top:10px"><label>${L({es:'Firma (opcional)',en:'Signature (optional)',id:'Tanda tangan (opsional)'})}</label>
+        <div class="sigpad-wrap" id="pad-firma_${c.id}"><canvas></canvas><div class="ph">✍︎</div></div>
+        <div class="sig-actions"><button type="button" class="link-btn" data-csig="${c.id}">${L({es:'Borrar',en:'Clear',id:'Hapus'})}</button></div>
+      </div>
     </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
   return `<section class="section design collapsed" id="compradorPanel">
     <header data-acc><span class="num">＋</span><h2>${L({es:'Adquirientes adicionales',en:'Additional buyers',id:'Pembeli tambahan'})}</h2><span class="chev">▾</span></header>
@@ -828,7 +867,8 @@ function wireCompradorPanel(){
   p.addEventListener('input', e=>{ const el=e.target.closest('[data-ci]'); if(!el) return;
     const c=COMPRADORES.find(x=>x.id===el.dataset.ci); if(c){ c[el.dataset.ckey]=el.value; saveCompradores(); renderDebounced(); } });
   p.addEventListener('click', e=>{
-    if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:''}); saveCompradores(); rebuildComprador(); render(); return; }
+    if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', firma:''}); saveCompradores(); rebuildComprador(); render(); return; }
+    const cs=e.target.closest('[data-csig]'); if(cs){ const id=cs.dataset.csig; clearPad('firma_'+id); const c=COMPRADORES.find(x=>x.id===id); if(c){ c.firma=''; saveCompradores(); } render(); return; }
     const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); }
   });
 }
@@ -871,6 +911,23 @@ function compradoresExtraHTML(){
       <p data-lang="es">${frase.es(num,nom,nac,pas)}</p>
       <p data-lang="en">${frase.en(num,nom,nac,pas)}</p>
       <p data-lang="id">${frase.id(num,nom,nac,pas)}</p>
+    </div>`;
+  });
+  return h;
+}
+/* firmas de los adquirientes extra → se apilan bajo la del Adquiriente I en el
+   bloque de firmas (marcador <!--firmas-adquirientes--> en la plantilla). Mismo
+   maquetado que la celda de firma de la plantilla: rótulo + línea/imagen + nombre.
+   Solo imprime los que tengan identidad (igual que compradoresExtraHTML). */
+function compradoresFirmasHTML(){
+  let h='';
+  COMPRADORES.forEach((c,i)=>{
+    if(!c.nombre && !c.nacionalidad && !c.pasaporte) return;
+    const num=romano(i+2);
+    h+=`<div style="margin-top:9mm">
+      <div class="role"><span data-lang="es">Adquiriente ${num}</span><span data-lang="en">Buyer ${num}</span><span data-lang="id">Pembeli ${num}</span></div>
+      <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="${c.firma||''}" alt="" style="max-height:22mm;max-width:100%"></div>
+      <p style="margin-top:4px;font-size:9pt">${esc(c.nombre||'')}</p>
     </div>`;
   });
   return h;
@@ -1171,6 +1228,17 @@ function applyLang(){
 }
 
 /* ---------- pad de firma ---------- */
+/* pinta un dataURL en un pad ya inicializado (restaurar firma guardada) */
+function drawToPad(key, dataURL){
+  const p=pads[key]; if(!p || !dataURL) return;
+  const img=new Image();
+  img.onload=()=>{ p.ctx.clearRect(0,0,p.cv.width,p.cv.height); p.ctx.drawImage(img,0,0,p.cv.width,p.cv.height);
+    p.empty=false; const wrap=document.getElementById('pad-'+key); if(wrap) wrap.classList.add('signed'); };
+  img.src=dataURL;
+}
+/* pad de un adquiriente extra (id 'firma_bcN') → su firma vive en COMPRADORES[].firma
+   (persiste en localStorage + Supabase, igual que el resto de sus datos). */
+function compradorDePad(key){ return key.startsWith('firma_bc') ? COMPRADORES.find(c=>c.id===key.slice(6)) : null; }
 function initPad(wrap){
   const key = wrap.id.replace('pad-','');
   const cv = wrap.querySelector('canvas');
@@ -1179,13 +1247,16 @@ function initPad(wrap){
     const ctx=cv.getContext('2d'); ctx.scale(ratio,ratio); ctx.lineWidth=2; ctx.lineCap='round';
     ctx.strokeStyle='#104C4F'; pads[key]={cv,ctx,empty:true}; }
   resize();
+  const cbuyer=compradorDePad(key); if(cbuyer && cbuyer.firma) drawToPad(key, cbuyer.firma);   // restaurar firma del adquiriente extra
   let drawing=false, last=null;
   const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; };
   const start=e=>{ drawing=true; last=pos(e); e.preventDefault(); };
   const move=e=>{ if(!drawing)return; const p=pos(e); const c=pads[key].ctx;
     c.beginPath(); c.moveTo(last.x,last.y); c.lineTo(p.x,p.y); c.stroke(); last=p;
     pads[key].empty=false; wrap.classList.add('signed'); e.preventDefault(); };
-  const end=()=>{ if(drawing){ drawing=false; renderDebounced(); } };
+  const end=()=>{ if(drawing){ drawing=false;
+    const c=compradorDePad(key); if(c){ c.firma = pads[key].empty?'':cv.toDataURL('image/png'); saveCompradores(); }
+    renderDebounced(); } };
   cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
   cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
 }
@@ -1264,6 +1335,7 @@ function buildDoc(){
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
   html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
+  html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
   html=html.replace('<!--datos-bancarios-->', datosBancariosHTML());   // tabla de la cuenta bancaria elegida
   html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
@@ -1557,12 +1629,7 @@ function populateForm(fields){
     if(v===null || v===undefined || v==='') return;
     const el=document.querySelector(`[name="${k}"]`);
     if(el){ el.value=v; return; }
-    if(k.startsWith('firma') && pads[k]){
-      const p=pads[k], img=new Image();
-      img.onload=()=>{ p.ctx.clearRect(0,0,p.cv.width,p.cv.height); p.ctx.drawImage(img,0,0,p.cv.width,p.cv.height);
-        p.empty=false; const wrap=document.getElementById('pad-'+k); if(wrap) wrap.classList.add('signed'); };
-      img.src=v;
-    }
+    if(k.startsWith('firma')) drawToPad(k, v);
   });
   // reactiva secciones opcionales (ej. sociedad) si traían datos
   document.querySelectorAll('[data-opt]').forEach(chk=>{
