@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260721172714">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260721181535">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -328,6 +328,8 @@ article:hover .view-cta { gap:9px; }
   .pdp-cols > div:last-child{ position:static !important; }
   .pdp-gal3 .pdp-g3-extra{ display:none; }  /* galería 3-col → 1 imagen a ancho completo en móvil */
   .pdp-specs-band{ grid-template-columns:1fr !important; }  /* specs + talk-to-team → apilado en móvil */
+  .pdp-aerial{ aspect-ratio:4/3 !important; }               /* aéreo más alto en móvil */
+  .pdp-aerial .pdp-hs{ display:none !important; }           /* hotspots ocultos en móvil (override del display:flex inline) */
 }
 /* Gallery thumbnails in property detail */
 #pf-overlay .gallery-thumb { transition:transform .18s var(--ease-press),border-color .2s; }
@@ -760,8 +762,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260721172714"></script>
-<script src="assets/portfolio-app.js?v=20260721172714-v3b"></script>
+<script src="assets/lawang-card.js?v=20260721181535"></script>
+<script src="assets/portfolio-app.js?v=20260721181535-aerial"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

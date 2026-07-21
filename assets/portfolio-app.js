@@ -443,6 +443,52 @@
       + '</div>';
   }
 
+  // ── Aéreo con hotspots (guía Ficha p3): imagen full-bleed + puntos con línea y etiqueta (2 líneas:
+  //    fina + negrita) + "Entry price" abajo-dcha. Datos por propiedad; sin data.json (gitignored) ni
+  //    admin, los flagship viven en AERIALS. La razón/coord de cada punto es contenido de marketing.
+  var AERIALS = {
+    "palm-field": {
+      image: "assets/img/palm-field-aerial.jpg",
+      ratio: "2806/1504",
+      entryPriceEUR: 95000,
+      hotspots: [
+        { x:31, y:30, side:"left",  en:{l1:"Gentle", l2:"natural slopes"},          es:{l1:"Pendientes", l2:"naturales suaves"} },
+        { x:43, y:24, side:"top",   en:{l1:"Private", l2:"Parking"},                 es:{l1:"Parking", l2:"privado"} },
+        { x:64, y:45, side:"right", en:{l1:"High-value", l2:"Investment Area"},      es:{l1:"Zona de alta", l2:"revalorización"} },
+        { x:36, y:53, side:"left",  en:{l1:"Your own", l2:"FREEHOLD villa"},         es:{l1:"Tu propia", l2:"villa en FREEHOLD"} },
+        { x:43, y:79, side:"left",  en:{l1:"Lifestyle based on", l2:"Safety & comfort"}, es:{l1:"Un estilo de vida de", l2:"seguridad y confort"} }
+      ]
+    }
+  };
+
+  function aerialHotspotsHTML(p){
+    var a = p.aerial || AERIALS[p.id];
+    if(!a || !a.image) return "";
+    var dot = function(h){ return '<span class="pdp-hs" style="position:absolute;left:'+h.x+'%;top:'+h.y+'%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:999px;border:2px solid #fff;background:rgba(255,255,255,.18);box-shadow:0 0 0 4px rgba(10,14,10,.14);z-index:4"></span>'; };
+    var labelTxt = function(h){ var o=h[S.lang]||h.en||{}; return '<span style="font-weight:400">'+esc(o.l1)+'</span><br><b style="font-weight:700">'+esc(o.l2)+'</b>'; };
+    var line = 'height:1px;background:rgba(255,255,255,.8);width:clamp(56px,7vw,120px);flex:none';
+    var lab = 'font-family:var(--sans);color:#fff;font-size:clamp(14px,1.35vw,19px);line-height:1.25;text-shadow:0 1px 12px rgba(0,0,0,.55)';
+    var spots = (a.hotspots||[]).map(function(h){
+      var d = dot(h);
+      if(h.side==="top"){
+        return d + '<div class="pdp-hs" style="position:absolute;left:'+h.x+'%;top:'+h.y+'%;transform:translate(-50%,-100%);padding-bottom:16px;text-align:center;z-index:4;white-space:nowrap"><div style="'+lab+'">'+labelTxt(h)+'</div></div>';
+      }
+      if(h.side==="right"){
+        return d + '<div class="pdp-hs" style="position:absolute;top:'+h.y+'%;left:'+h.x+'%;transform:translateY(-50%);display:flex;align-items:center;z-index:4;white-space:nowrap;padding-left:9px"><div style="'+line+'"></div><div style="'+lab+';text-align:left;padding-left:14px">'+labelTxt(h)+'</div></div>';
+      }
+      // left (por defecto): etiqueta a la izquierda, línea hacia el punto
+      return d + '<div class="pdp-hs" style="position:absolute;top:'+h.y+'%;right:calc(100% - '+h.x+'%);transform:translateY(-50%);display:flex;align-items:center;z-index:4;white-space:nowrap;padding-right:9px"><div style="'+lab+';text-align:right;padding-right:14px">'+labelTxt(h)+'</div><div style="'+line+'"></div></div>';
+    }).join("");
+    var price = a.entryPriceEUR ? '<div style="position:absolute;right:clamp(22px,4vw,64px);bottom:clamp(34px,7vh,86px);text-align:right;color:#fff;z-index:4;text-shadow:0 2px 16px rgba(0,0,0,.5)">'
+      + '<div style="font-family:var(--sans);font-size:clamp(12px,1.2vw,16px);font-weight:500;letter-spacing:.18em;text-transform:uppercase;display:inline-flex;align-items:center;gap:9px">'+tl("Entry price","Precio de entrada")+' <span style="font-size:1.2em;font-weight:300">›</span></div>'
+      + '<div class="display" style="font-size:clamp(38px,6.2vw,86px);font-weight:300;letter-spacing:.02em;line-height:1;margin-top:8px">'+priceHTML(a.entryPriceEUR,true)+'</div></div>' : "";
+    return '<div class="pdp-aerial" style="position:relative;width:100%;aspect-ratio:'+(a.ratio||"16/9")+';max-height:92vh;overflow:hidden;background:#1a160f;margin:clamp(48px,6vw,84px) 0">'
+      + '<img src="'+esc(a.image)+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+      + '<div style="position:absolute;inset:0;z-index:2;background:linear-gradient(90deg,rgba(10,14,10,.4) 0%,rgba(10,14,10,.08) 26%,transparent 50%),linear-gradient(0deg,rgba(10,14,10,.55) 0%,rgba(10,14,10,.05) 26%,transparent 45%)"></div>'
+      + spots + price
+      + '</div>';
+  }
+
   function downloadsHTML(files, p){
     var head = '<div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:12px">'+t("dl.title")+'</div>';
     var inner;
@@ -701,7 +747,7 @@
       +   '<div style="position:sticky;top:80px">'+sidebarHTML(p)+'</div>'
       + '</div>'
       + '</div>'  // /wrap
-      + fullBleedImageHTML(p)  // imagen a pantalla completa, edge-to-edge (fuera del wrap)
+      + (aerialHotspotsHTML(p) || fullBleedImageHTML(p))  // aéreo con hotspots si hay datos; si no, imagen full-bleed
       + '<div class="wrap">'
       + statementBannerHTML(p)
       + alsoHTML
