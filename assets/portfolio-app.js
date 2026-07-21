@@ -31,6 +31,9 @@
   function money(eur, cur){ return L.money(eur, cur || S.cur); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;","&gt;":"&gt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function pick(o){ return o ? (o[S.lang] || o.en) : ""; }
+  function tl(en,es){ return S.lang==="es" ? es : en; }  // etiqueta bilingüe puntual (evita tocar el DICT por un string suelto)
+  function firstImg(p){ return (p.imgKeys&&p.imgKeys[0]) || (p.images&&p.images[0]) || null; }
+  function imgUrl(key,w){ return key ? (L.img ? L.img(key,w||1600) : key) : null; }
   function themeFor(p){ if(p.regionKey==="sumba") return p.line==="land"?"ocean":"sand"; if(p.line==="resorts") return "dusk"; if(p.line==="land") return "jungle"; return "sunset"; }
   // "FROM" en versalitas pequeñas — misma regla que la card (.lw-prop-price .from)
   function priceHTML(eur, from){ if(!eur) return '<span style="opacity:.7">'+t("mk.onrequest")+'</span>'; return (from?'<span style="font-size:.5em;font-weight:500;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-right:8px">'+t("mk.from")+'</span>':'') + money(eur); }
@@ -301,6 +304,54 @@
   }
 
   // ════ FICHA — sub-bloques ════
+  // ── Hero a pantalla completa (guía Ficha, jul-2026): imagen full-bleed del producto,
+  //    marca, título display, pill de release, tagline y ubicación. Cae a gradiente temático sin foto.
+  function heroHTML(p){
+    var key = firstImg(p);
+    var theme = themeFor(p);
+    var island = p.regionKey==="sumba" ? "Sumba" : "Bali";
+    var area = String(p.region||"").split(",")[0].trim();
+    var loc = (area ? area+" · " : "") + island + " · Indonesia";
+    var release = (p.featured || p.homeFeatured) ? '<span class="pill" style="align-self:center;margin:0 auto 22px;border-color:rgba(245,240,230,.55);color:var(--bone);background:rgba(20,16,11,.28);backdrop-filter:blur(3px)">'+tl("Featured Release","Lanzamiento destacado")+'</span>' : "";
+    var bg = key
+      ? '<img src="'+esc(imgUrl(key,2400))+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
+      : '';
+    return '<section class="pdp-hero" style="position:relative;min-height:clamp(540px,84vh,820px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#1a160f">'
+      + '<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0;opacity:'+(key?0:1)+'"></div>'
+      + bg
+      + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,11,.5) 0%,rgba(20,16,11,.12) 30%,rgba(20,16,11,.32) 66%,rgba(20,16,11,.8) 100%)"></div>'
+      + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1000px">'
+      +   '<svg viewBox="0 0 80 88" aria-hidden="true" style="width:clamp(38px,4.4vw,52px);height:auto;margin:0 auto 26px;display:block;fill:var(--bone);opacity:.95"><use href="#lawang-mark"/></svg>'
+      +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
+      +   '<div style="margin-top:clamp(24px,3.4vh,38px)">'+release+'</div>'
+      +   (pick(p.sub) ? '<p style="font-family:var(--sans);font-weight:400;font-size:clamp(15px,2vw,24px);letter-spacing:.06em;text-transform:uppercase;line-height:1.35;margin:0 auto;max-width:22ch">'+esc(pick(p.sub))+'</p>' : '')
+      +   '<p style="font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.2vw,15px);letter-spacing:.28em;text-transform:uppercase;opacity:.9;margin-top:clamp(22px,3vh,34px)">'+esc(loc)+'</p>'
+      + '</div>'
+      + '<div aria-hidden="true" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:2;color:var(--bone);opacity:.7;font-size:22px;line-height:1">⌄</div>'
+      + '</section>';
+  }
+
+  // ── Banner statement full-width entre configurador y "more in this line" (guía Ficha).
+  //    Solo se pinta si la propiedad tiene imagen; el texto sale del nº de unidades o del metaText.
+  function statementBannerHTML(p){
+    var key = (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
+    if(!key) return "";  // sin imagen no hay banner (nunca banda vacía)
+    var n = Number(p.unitsTotal)||0;
+    var line1 = n>0 ? (n+" "+tl("Villas","Villas")).toUpperCase() : (pick(p.metaText)||"").toUpperCase();
+    if(!line1) return "";
+    return '<div style="margin-top:clamp(48px,6vw,80px)"><div style="position:relative;border-radius:14px;overflow:hidden;min-height:clamp(200px,26vw,300px);display:flex;align-items:center;background:#1a160f">'
+      + '<img src="'+esc(imgUrl(key,2000))+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
+      + '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.8) 0%,rgba(20,16,11,.45) 55%,rgba(20,16,11,.12) 100%)"></div>'
+      + '<div style="position:relative;z-index:2;padding:clamp(28px,5vw,64px);color:var(--bone)">'
+      +   '<div class="display" style="font-size:clamp(30px,5vw,58px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:1">'+esc(line1)+'</div>'
+      +   '<div style="font-family:var(--sans);font-size:clamp(15px,2.2vw,26px);font-weight:300;letter-spacing:.14em;text-transform:uppercase;margin-top:6px;opacity:.9">'+esc(tl("One Tropical Residence","Una residencia tropical"))+'</div>'
+      + '</div>'
+      + '</div></div>';
+  }
+
+  // ── Galería 3-columnas iguales (guía Ficha, jul-2026): fila de hasta 3 imágenes del mismo
+  //    tamaño, flechas a los lados que avanzan la ventana, contador y "+N" en la última visible.
+  //    En móvil (.pdp-gal3, ≤720px) solo se ve la primera a ancho completo.
   function galleryHTML(p){
     var media = [];
     (p.imgKeys||[]).forEach(function(k){ media.push({type:"image",key:k}); });
@@ -308,37 +359,41 @@
     if(media.length===0) return "";
     var total = media.length;
     var active = ((S.gallery%total)+total)%total;
-    var curM = media[active];
     var theme = themeFor(p);
-    var arrowBtn = function(side,act,label){ return '<button data-act="'+act+'" aria-label="'+label+'" style="position:absolute;top:50%;'+side+':12px;transform:translateY(-50%);z-index:4;width:38px;height:38px;border-radius:999px;border:none;cursor:pointer;background:rgba(20,16,11,.42);color:var(--bone);font-size:20px;line-height:0;display:grid;place-items:center;backdrop-filter:blur(3px);font-family:var(--sans)">'+(side==="left"?"‹":"›")+'</button>'; };
-    var mainInner = curM.type==="video"
-      ? '<video src="'+esc(curM.src)+'"'+(curM.poster?' poster="'+esc(curM.poster)+'"':'')+' controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#000"></video>'
-      : ph({key:curM.key, w:2000, theme:theme, kb:true, tint:0.12, style:"position:absolute;inset:0"});
-    var main = '<div style="position:relative;grid-column:1;grid-row:1 / span 2;border-radius:10px;overflow:hidden;background:var(--bone-2)">'
-      + '<div style="position:absolute;inset:0">'+mainInner+'</div>'
-      + (total>1 ? (arrowBtn("left","gal:"+( ((active-1)%total+total)%total ),"Previous")+arrowBtn("right","gal:"+((active+1)%total),"Next")
-          + '<div style="position:absolute;right:14px;bottom:13px;z-index:4;background:rgba(20,16,11,.5);color:var(--bone);font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:4px 11px;border-radius:999px;backdrop-filter:blur(3px)">'+String(active+1).padStart(2,"0")+' <span style="opacity:.55">/ '+String(total).padStart(2,"0")+'</span></div>') : "")
-      + '</div>';
-    // side previews
-    var sideCount = Math.min(2, total-1);
-    var sides = "";
-    for(var s=1;s<=sideCount;s++){
-      var idx=(active+s)%total; var k=s-1; var isLast=(k===sideCount-1); var extra=total-1-sideCount;
-      var span = sideCount===1 ? "1 / span 2" : (k===0?"1":"2");
-      var m=media[idx];
-      var prev = m.type==="video"
-        ? (m.poster?'<img src="'+esc(m.poster)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0"></div>')+'<div style="position:absolute;inset:0;display:grid;place-items:center;z-index:2"><span style="width:26px;height:26px;border-radius:999px;background:rgba(20,16,11,.55);display:grid;place-items:center"><span style="width:0;height:0;margin-left:2px;border-left:8px solid var(--bone);border-top:5px solid transparent;border-bottom:5px solid transparent"></span></span></div>'
-        : ph({key:m.key, theme:theme, tint:0.12, style:"position:absolute;inset:0"});
-      sides += '<button class="pdp-tile pdp-side" data-act="gal:'+idx+'" style="grid-column:2;grid-row:'+span+'">'+prev
-        + (isLast&&extra>0 ? '<div style="position:absolute;inset:0;background:rgba(20,16,11,.52);display:grid;place-items:center;z-index:3"><span style="font-family:var(--sans);font-size:clamp(20px,2.4vw,30px);color:var(--bone);font-weight:500">+'+extra+'</span></div>' : "")
-        + '</button>';
+    var playIco = '<div style="position:absolute;inset:0;display:grid;place-items:center;z-index:2"><span style="width:34px;height:34px;border-radius:999px;background:rgba(20,16,11,.55);display:grid;place-items:center"><span style="width:0;height:0;margin-left:3px;border-left:11px solid var(--bone);border-top:7px solid transparent;border-bottom:7px solid transparent"></span></span></div>';
+    var tileInner = function(m){ return m.type==="video"
+      ? (m.poster?'<img src="'+esc(m.poster)+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0"></div>')+playIco
+      : ph({key:m.key, w:1600, theme:theme, tint:0.12, style:"position:absolute;inset:0"}); };
+    var show = Math.min(3, total);
+    var tiles = "";
+    for(var i=0;i<show;i++){
+      var idx=(active+i)%total; var m=media[idx];
+      var badge = (i===0 && total>1) ? '<div style="position:absolute;left:13px;bottom:12px;z-index:4;background:rgba(20,16,11,.5);color:var(--bone);font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:4px 11px;border-radius:999px;backdrop-filter:blur(3px)">'+String(active+1).padStart(2,"0")+' <span style="opacity:.55">/ '+String(total).padStart(2,"0")+'</span></div>' : "";
+      var moreOv = (i===show-1 && total>show) ? '<div style="position:absolute;inset:0;background:rgba(20,16,11,.5);display:grid;place-items:center;z-index:3"><span style="font-family:var(--sans);font-size:clamp(22px,2.6vw,34px);color:var(--bone);font-weight:500">+'+(total-show)+'</span></div>' : "";
+      tiles += '<button class="pdp-g3-tile'+(i>0?' pdp-g3-extra':'')+'" data-act="gal:'+((active+1)%total)+'" aria-label="'+tl("Next photo","Siguiente foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2);aspect-ratio:4/3">'+tileInner(m)+badge+moreOv+'</button>';
     }
-    return '<div><div class="pdp-mosaic" style="box-shadow:0 30px 80px -42px rgba(27,26,21,.45);border-radius:10px">'+main+sides+'</div></div>';
+    var arrow = function(dir,to){ return '<button data-act="gal:'+to+'" aria-label="'+(dir<0?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="flex:none;width:clamp(36px,3.4vw,46px);height:clamp(36px,3.4vw,46px);border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.6);color:var(--ink);font-size:22px;line-height:0;cursor:pointer;display:grid;place-items:center;font-family:var(--sans)">'+(dir<0?"‹":"›")+'</button>'; };
+    var lArrow = total>1 ? arrow(-1, ((active-1)%total+total)%total) : "";
+    var rArrow = total>1 ? arrow(1, (active+1)%total) : "";
+    return '<div style="display:flex;align-items:center;gap:clamp(6px,1.4vw,18px)">'+lArrow
+      + '<div class="pdp-gal3" style="flex:1;min-width:0;display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
+      + rArrow+'</div>';
   }
 
+  // Franja de specs — tarjeta CLARA horizontal (guía Ficha, jul-2026): etiqueta verde con filete,
+  //    valor grande en Burnt Earth; último cell opcional en verde con el metaText (highlight).
   function techSpecsHTML(p){
     var isF = p.tenure==="tenure.freehold";
-    var specs = [ {l:t("glance.tenure"), v:isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr")} ];
+    var specs = [];
+    // Vista inferida (texto; sin icono cream — la tarjeta ahora es clara)
+    if(window.LawangCard){
+      var vw = window.LawangCard.viewFor(p);
+      specs.push({ l:tl("View","Vista"), v:(window.LawangCard.VIEW_LABEL[vw]||{})[S.lang] || vw });
+    }
+    specs.push({l:t("glance.tenure"), v:isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr")});
+    if(p.handover && p.handover!=="—") specs.push({l:t("glance.delivery"), v:p.handover});
+    if(p.status) specs.push({l:t("glance.status"), v:t(p.status)});
+    if(p.unitsTotal) specs.push({l:t("glance.units"), v:(p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / "+p.unitsTotal:String(p.unitsTotal))});
     if(p.built>0) specs.push({l:t("glance.villa"), v:p.built+" m²"});
     if(p.land>0)  specs.push({l:t("glance.land"),  v:p.land+" m²"});
     if(p.beds>0)  specs.push({l:t("pd.spec.beds"), v:p.beds});
@@ -346,19 +401,15 @@
     if(p.pool)    specs.push({l:t("spec.pool"),    v:p.poolType||"Yes"});
     if(p.garage)  specs.push({l:t("spec.garage"),  v:p.garageDesc||"Yes"});
     if(p.furnished&&p.furnished!=="None") specs.push({l:t("spec.furnished"), v:p.furnished});
-    // Vista inferida (icono cream sobre fondo oscuro)
-    if(window.LawangCard){
-      var vw = window.LawangCard.viewFor(p);
-      var vwLabel = (window.LawangCard.VIEW_LABEL[vw]||{})[S.lang] || vw;
-      specs.unshift({ l:(S.lang==="es"?"Vista":"View"), html:'<img src="assets/img/'+vw+'.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:-3px;margin-right:7px;opacity:.92">'+esc(vwLabel) });
-    }
+    if(pick(p.metaText)) specs.push({l:tl("Highlight","Destacado"), v:pick(p.metaText), hi:true});
     if(specs.length===0) return "";
-    var cells = specs.map(function(sp,i){
-      return '<div style="padding:20px 18px;border-right:'+(i===specs.length-1?"none":"1px solid rgba(255,255,255,0.07)")+';border-bottom:1px solid rgba(255,255,255,0.06)">'
-        + '<div style="font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,240,230,0.38);margin-bottom:8px;font-family:var(--sans)">'+esc(sp.l)+'</div>'
-        + '<div style="font-family:var(--sans);font-size:1rem;font-weight:500;color:rgba(245,240,230,0.88);line-height:1.2">'+(sp.html!=null?sp.html:esc(sp.v))+'</div></div>';
+    var cells = specs.map(function(sp){
+      var val = sp.hi ? 'var(--tg)' : 'var(--be)';
+      return '<div style="padding:18px 20px">'
+        + '<div style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);border-bottom:1.5px solid rgba(72,91,55,.32);padding-bottom:6px;margin-bottom:11px;font-family:var(--sans)">'+esc(sp.l)+'</div>'
+        + '<div style="font-family:var(--sans);font-size:clamp(17px,1.5vw,21px);font-weight:600;color:'+val+';line-height:1.15">'+esc(sp.v)+'</div></div>';
     }).join("");
-    return '<div style="background:var(--dl);border-radius:8px;margin-top:28px;overflow:hidden"><div class="tech-specs-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">'+cells+'</div></div>';
+    return '<div class="tech-specs-grid" style="margin-top:clamp(24px,3vw,34px);background:rgba(255,255,255,.5);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
   }
 
   function downloadsHTML(files, p){
@@ -608,7 +659,9 @@
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
       + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(x.title))+'</p><p style="font-size:13px;font-weight:600;color:#324820;margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
       + '</div></div>' : "";
-    return '<div style="padding-top:clamp(32px,4vw,56px);padding-bottom:80px"><div class="wrap">'
+    return '<div style="padding-bottom:80px">'
+      + heroHTML(p)
+      + '<div class="wrap" style="padding-top:clamp(34px,4.5vw,60px)">'
       + breadcrumbsHTML(p)
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:30px"><div style="flex:1 1 380px;min-width:0">'
       +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);font-family:var(--sans)">'+t(LINE_KEYS[p.line])+'</span><span style="width:1px;height:12px;background:var(--line)"></span><span style="font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-family:var(--sans)">'+t(p.status)+'</span></div>'
@@ -620,7 +673,9 @@
       +   '<div>'+overviewHTML
       +     mapBlockHTML(p)+leftMain+'</div>'
       +   '<div style="position:sticky;top:80px">'+sidebarHTML(p)+'</div>'
-      + '</div>'+alsoHTML
+      + '</div>'
+      + statementBannerHTML(p)
+      + alsoHTML
       + '</div></div>';
   }
 

@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260717155636">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260721122930">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -312,13 +312,15 @@ article:hover .view-cta { gap:9px; }
 @media(max-width:720px){
   .pdp-cols{ grid-template-columns:1fr !important; }
   .pdp-cols > div:last-child{ position:static !important; }
+  .pdp-gal3 .pdp-g3-extra{ display:none; }  /* galería 3-col → 1 imagen a ancho completo en móvil */
 }
 /* Gallery thumbnails in property detail */
 #pf-overlay .gallery-thumb { transition:transform .18s var(--ease-press),border-color .2s; }
 #pf-overlay .gallery-thumb:hover { transform:scale(1.04); }
-/* TechSpecs cells hover */
-.tech-specs-grid > div { transition:background .22s; }
-.tech-specs-grid > div:hover { background:rgba(255,255,255,0.07) !important; }
+/* TechSpecs cells — tarjeta clara: divisor tenue entre celdas + hover cálido */
+.tech-specs-grid > div { transition:background .22s; border-left:1px solid var(--line); }
+.tech-specs-grid > div:first-child { border-left:0; }
+.tech-specs-grid > div:hover { background:rgba(72,91,55,0.05) !important; }
 /* PropertySidebar CTA buttons */
 .sidebar-cta { transition:transform .16s var(--ease-press),background .22s,color .22s,border-color .22s,opacity .22s !important; }
 .sidebar-cta:active { transform:scale(0.97) !important; }
@@ -743,8 +745,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260717155636"></script>
-<script src="assets/portfolio-app.js?v=20260717155636"></script>
+<script src="assets/lawang-card.js?v=20260721122930"></script>
+<script src="assets/portfolio-app.js?v=20260721122930-ficha"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
