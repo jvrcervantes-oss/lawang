@@ -64,7 +64,8 @@
   }
 
   // ════ TOPBAR ════
-  function topbarHTML(){
+  // ghost=true → variante "fantasma" para la ficha: transparente sobre el hero, se colorea al scroll (JS)
+  function topbarHTML(ghost){
     var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
     // Mismo mensaje pre-rellenado que el CTA del index.html
     var waMsg='?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8';
@@ -77,9 +78,9 @@
     var flagES='<svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#c60b1e"/><rect y=".5" width="3" height="1" fill="#ffc400"/></svg>';
     var flagID='<svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#fff"/><rect width="3" height="1" fill="#ce1126"/></svg>';
     var wa='<span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span>';
-    return '<header id="topbar" class="show solid">'
-      + '<div id="logo" class="dark"><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
-      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Portfolio',false)+'</nav>'
+    return '<header id="topbar" class="show '+(ghost?'pdp':'solid')+'">'
+      + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
+      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Collection',false)+'</nav>'
       + '<div id="nav-actions">'
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg><span>'+langName+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
@@ -652,8 +653,8 @@
     var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
     var subText = pick(p.sub);
-    // Sub = regla de card (.lw-prop-sub): Neue Kabel, uppercase, w600, negro
-    var subHTML = subText ? '<p style="font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#1A1A1A;line-height:1.5;margin-top:14px;max-width:50ch">'+esc(subText)+'</p>' : "";
+    // Sub bajo el título: uppercase editorial, peso medio (armoniza con la ligereza del hero, no el w600 pesado)
+    var subHTML = subText ? '<p style="font-family:var(--sans);font-size:clamp(13px,1.15vw,15px);font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);line-height:1.55;margin-top:16px;max-width:52ch">'+esc(subText)+'</p>' : "";
     var descText = pick(p.desc);
     var overviewHTML = descText ? '<div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(descText)+'</p></div>' : "";
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
@@ -665,7 +666,7 @@
       + breadcrumbsHTML(p)
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:30px"><div style="flex:1 1 380px;min-width:0">'
       +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);font-family:var(--sans)">'+t(LINE_KEYS[p.line])+'</span><span style="width:1px;height:12px;background:var(--line)"></span><span style="font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-family:var(--sans)">'+t(p.status)+'</span></div>'
-      +   '<h1 class="display" style="font-size:clamp(34px,5vw,64px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
+      +   '<h1 class="display" style="font-size:clamp(36px,5.2vw,66px);font-weight:400;letter-spacing:.03em;text-transform:uppercase;color:#42210B;line-height:1">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
       +   '<div style="flex-shrink:0;text-align:right"><div class="serif" style="font-size:clamp(28px,2.8vw,38px);font-weight:600;line-height:1;color:#324820">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
       + techSpecsHTML(p)
@@ -680,14 +681,10 @@
   }
 
   // ════ OVERLAY (ficha sobre el marketplace) ════
+  // El menú es el MISMO topbar del index/marketplace (variante ghost): transparente sobre el hero,
+  // se colorea al hacer scroll (syncPdpNav). Navegar por él (#all/#land…) cierra la ficha vía onHash.
   function overlayHTML(id){
-    function tg(active){ return 'appearance:none;border:0;background:'+(active?"var(--tg)":"transparent")+';color:'+(active?"#fff":"var(--ink-2)")+';font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.04em;padding:5px 10px;cursor:pointer'; }
-    var wrap='display:inline-flex;border-radius:6px;border:1px solid var(--line);overflow:hidden';
-    return '<div id="pf-overlay"><div class="pf-overlay-bar">'
-      + '<button data-act="close" style="background:none;border:0;cursor:pointer;color:var(--ink-2);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;display:inline-flex;align-items:center;gap:10px;padding:8px 0;font-family:var(--sans)"><span style="font-size:16px;font-weight:300;letter-spacing:0">←</span> The Portfolio</button>'
-      + '<div style="display:flex;align-items:center;gap:10px"><div style="'+wrap+'"><button data-act="lang:en" style="'+tg(S.lang==="en")+'">EN</button><button data-act="lang:es" style="'+tg(S.lang==="es")+'">ES</button></div>'
-      + '<div style="'+wrap+'"><button data-act="cur:EUR" style="'+tg(S.cur==="EUR")+'">€</button><button data-act="cur:USD" style="'+tg(S.cur==="USD")+'">$</button><button data-act="cur:AUD" style="'+tg(S.cur==="AUD")+'">A$</button></div></div>'
-      + '</div>'+propertyHTML(id)+'</div>';
+    return '<div id="pf-overlay">'+topbarHTML(true)+propertyHTML(id)+'</div>';
   }
 
   // ════ RENDER ════
@@ -697,12 +694,25 @@
     // paso, idioma, moneda…). Solo si seguimos en la MISMA propiedad; al abrir/cambiar/cerrar empieza arriba.
     var prevEl = document.getElementById("pf-overlay");
     var savedY = (prevEl && renderedOverlay === S.overlay) ? prevEl.scrollTop : null;
-    root.innerHTML = topbarHTML() + marketplaceHTML() + (S.overlay ? overlayHTML(S.overlay) : "");
+    // La ficha lleva su propio topbar (ghost) DENTRO del overlay → no pintar el del marketplace
+    // detrás (evita id="topbar" duplicado).
+    root.innerHTML = (S.overlay ? "" : topbarHTML()) + marketplaceHTML() + (S.overlay ? overlayHTML(S.overlay) : "");
     document.body.style.overflow = S.overlay ? "hidden" : "";
-    if(!S.overlay) document.title = "The Portfolio · Lawang Tropical Properties";
+    if(!S.overlay) document.title = "The Collection · Lawang Tropical Properties";
     if(savedY != null){ var now = document.getElementById("pf-overlay"); if(now) now.scrollTop = savedY; }
     renderedOverlay = S.overlay;
+    if(S.overlay){ var ov = document.getElementById("pf-overlay"); if(ov){ syncPdpNav(ov); ov.addEventListener("scroll", function(){ syncPdpNav(ov); }, {passive:true}); } }
     requestAnimationFrame(function(){ root.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); }); });
+  }
+  // Topbar de la ficha: transparente arriba, .solid al pasar ~el hero, .scrolled (CTA verde) al iniciar scroll.
+  function syncPdpNav(ov){
+    var tb = ov.querySelector("#topbar.pdp"); if(!tb) return;
+    var hero = ov.querySelector(".pdp-hero");
+    var solidAt = hero ? hero.offsetHeight*0.72 : 220;
+    var y = ov.scrollTop;
+    tb.classList.toggle("solid", y > solidAt);
+    tb.classList.toggle("scrolled", y > 8);
+    var lg = tb.querySelector("#logo"); if(lg) lg.classList.toggle("dark", y > solidAt);
   }
 
   // ════ ROUTING + EVENTOS ════

@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Portfolio · Lawang Tropical Properties</title>
+<title>The Collection · Lawang Tropical Properties</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <link rel="canonical" href="https://lawangproperties.com/thecollection.html">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lawangproperties.com/thecollection.html">
-<meta property="og:title" content="The Portfolio · Lawang Tropical Properties">
+<meta property="og:title" content="The Collection · Lawang Tropical Properties">
 <meta property="og:description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <meta property="og:image" content="https://lawangproperties.com/assets/img/aerial-1.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -19,7 +19,7 @@
 {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  "name": "The Portfolio · Lawang Tropical Properties",
+  "name": "The Collection · Lawang Tropical Properties",
   "url": "https://lawangproperties.com/thecollection.html",
   "description": "Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.",
   "isPartOf": { "@type": "WebSite", "name": "Lawang Tropical Properties", "url": "https://lawangproperties.com/" }
@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260721122930">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260721142959">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -308,6 +308,19 @@ article:hover .view-cta { gap:9px; }
   #topbar{ padding-inline:1rem }
 }
 @media(max-width:560px){ #topbar #logo-inner img{ height:20px } #topbar #logo-inner .ll-dark{ height:20px;width:144px } }
+/* ── Ficha: topbar "fantasma" (#topbar.pdp) — transparente sobre el hero, se colorea al scroll (como el index) ── */
+#topbar.pdp{ background:transparent; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; transition:background .35s,box-shadow .35s; }
+#topbar.pdp:not(.solid) #nav{ background:rgba(20,18,14,.22); border-color:rgba(190,179,165,.45); }
+#topbar.pdp:not(.solid) .nav-link{ color:rgba(245,240,230,.92); text-shadow:0 1px 8px rgba(0,0,0,.55); }
+#topbar.pdp:not(.solid) .nav-link:hover{ color:#fff; }
+#topbar.pdp:not(.solid) .nav-link::after{ background:var(--ss); }
+#topbar.pdp:not(.solid) .nav-lang{ color:rgba(245,240,230,.82); text-shadow:0 1px 8px rgba(0,0,0,.55); }
+#topbar.pdp:not(.solid) .nav-lang:hover{ color:#fff; }
+#topbar.pdp:not(.solid) .nav-cur{ border-color:rgba(245,240,230,.5); }
+#topbar.pdp:not(.solid) .nav-cur button{ color:rgba(245,240,230,.82); }
+#topbar.pdp:not(.solid) .nav-cta{ background:transparent; border-color:rgba(245,240,230,.5); color:var(--rl); }
+#topbar.pdp:not(.solid) .nav-cta:hover{ background:rgba(245,240,230,.14); border-color:rgba(245,240,230,.8); }
+#topbar.pdp.solid{ background:rgba(247,244,239,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); box-shadow:0 1px 0 rgba(190,179,165,.3); }
 /* Móvil: ficha de propiedad a 1 columna (el grid viene inline desde portfolio-app.js) */
 @media(max-width:720px){
   .pdp-cols{ grid-template-columns:1fr !important; }
@@ -619,7 +632,7 @@ article:hover .view-cta { gap:9px; }
     "line.land.d":{"en":"Titled, due-diligenced parcels in our master-planned estates.","es":"Parcelas tituladas y verificadas en nuestros desarrollos."},
     "line.villa.d":{"en":"Repeatable villa designs you build on your own plot.","es":"Diseños de villa replicables para construir en tu parcela."},
     "line.resorts.d":{"en":"Income-producing hospitality, fully managed.","es":"Hospitalidad con renta, gestión integral."},
-    "pd.back":{"en":"Back to The Portfolio","es":"Volver a The Portfolio"},
+    "pd.back":{"en":"Back to The Collection","es":"Volver a The Collection"},
     "pd.overview":{"en":"Overview","es":"Resumen"},
     "pd.specs":{"en":"Specifications","es":"Especificaciones"},
     "pd.spec.land":{"en":"Land area","es":"Superficie parcela"},
@@ -675,7 +688,7 @@ article:hover .view-cta { gap:9px; }
     "wa.sub":          {"en":"We answer within a few hours.","es":"Respondemos en pocas horas."},
     "wa.cta":          {"en":"WhatsApp us","es":"Escríbenos por WhatsApp"},
     "crumb.home":      {"en":"Lawang","es":"Lawang"},
-    "crumb.portfolio": {"en":"The Portfolio","es":"The Portfolio"},
+    "crumb.portfolio": {"en":"The Collection","es":"The Collection"},
     "map.title":       {"en":"Location & Surroundings","es":"Ubicación y entorno"},
     "map.soon":        {"en":"Site map coming soon","es":"Plano de ubicación próximamente"},
     "home.title":      {"en":"Choose your home","es":"Elige tu villa"},
@@ -745,8 +758,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260721122930"></script>
-<script src="assets/portfolio-app.js?v=20260721122930-ficha"></script>
+<script src="assets/lawang-card.js?v=20260721142959"></script>
+<script src="assets/portfolio-app.js?v=20260721142959-nav2"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
