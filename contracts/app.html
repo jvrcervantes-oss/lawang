@@ -817,10 +817,12 @@ function rebuildAnnex(){ const old=$('#annexPanel'); if(old){ old.outerHTML=buil
 function annexHTML(){
   const on=ANNEXES.filter(a=>a.on && a.pages && a.pages.length);
   if(!on.length) return '';
-  const lbl=L({es:'Anexo',en:'Annex',id:'Lampiran'});
+  // Trilingüe, no L(): el rótulo del anexo es parte del documento y el bahasa
+  // tiene que salir siempre, igual que en el resto del contrato.
+  const lbl=(n)=>`<span data-lang="es">Anexo ${n}</span><span data-lang="en">Annex ${n}</span><span data-lang="id">Lampiran ${n}</span>`;
   let h='<div class="annexes">';
   on.forEach((a,i)=>{
-    h+=`<section class="annex-cover"><div class="annex-label">${escAttr(lbl)} ${i+1}</div><div class="annex-name">${escAttr(a.title)}</div></section>`;
+    h+=`<section class="annex-cover"><div class="annex-label">${lbl(i+1)}</div><div class="annex-name">${escAttr(a.title)}</div></section>`;
     a.pages.forEach(src=>{ h+=`<section class="annex-page"><img src="${src}" alt=""></section>`; });
   });
   return h+'</div>';
@@ -1247,17 +1249,17 @@ const CUENTAS_BANCARIAS = {
   sandalwoods_dbs: { label:'Sandal Woods Limited — DBS Bank (Hong Kong)',
     titular:'SANDAL WOODS LIMITED', banco:'DBS Bank (Hong Kong) Limited', cuenta:'478798116354',
     codigo:'DHBKHKHH', direccion:"11th Floor, The Center, 99 Queen's Road Central, Central, Hong Kong",
-    extra:'Código de banco: 016' },
+    extra:{es:'Código de banco: 016',en:'Bank code: 016',id:'Kode bank: 016'} },
   sandalwoods_dbs_sg: { label:'Sandal Woods Limited — DBS Bank Ltd (Singapur)',
     titular:'Sandal Woods Limited', banco:'DBS Bank Ltd', cuenta:'885571532066',
     codigo:'DBSSSGSG', direccion:'12 Marina Boulevard, DBS Asia Central, Marina Bay Financial Centre Tower 3, Singapore 018982',
-    extra:'Bank code: 7171' },
+    extra:{es:'Código de banco: 7171',en:'Bank code: 7171',id:'Kode bank: 7171'} },
   contractor_lawang: { label:'Contratista — Lawang (I Putu Hady Diyatmika · BCA)',
     titular:'I Putu Hady Diyatmika, ST', banco:'Bank Central Asia (BCA)', cuenta:'1420040632',
     codigo:'CENAIDJA', direccion:'Menara BCA, Grand Indonesia, Jl. MH Thamrin No. 1, Jakarta 10310, Indonesia', extra:'' },
   land_balian_usd: { label:'Terreno — Balian Hills, USD (Lead Bank)',
     titular:'Santiago del Cerro Villena', banco:'Lead Bank', cuenta:'212789850974',
-    codigo:'101019644 (ABA Routing)', direccion:'1801 Main St., Kansas City, MO 64108, USA', extra:'Tipo de cuenta: Checking' },
+    codigo:'101019644 (ABA Routing)', direccion:'1801 Main St., Kansas City, MO 64108, USA', extra:{es:'Tipo de cuenta: Checking',en:'Account type: Checking',id:'Jenis rekening: Checking'} },
   land_balian_eur: { label:'Terreno — Balian Hills, EUR (OCBC)',
     titular:'PT Balian Hills Resort', banco:'OCBC', cuenta:'160800028963',
     codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar Barat, Denpasar, Bali 80114, Indonesia', extra:'' },
@@ -1267,7 +1269,7 @@ const CUENTAS_BANCARIAS = {
   contractor_sumba_eur: { label:'Constructor — Sumba, EUR (Achmad Zaeni · Bank Mandiri)',
     titular:'ACHMAD ZAENI', banco:'Bank Mandiri — sucursal Waingapu, Sumba Timur', cuenta:'1810004920345',
     codigo:'BMRIIDJAXXX', direccion:'Jl. Ahmad Yani No. 75, Kamalaputi, Kota Waingapu, 87116, Sumba Timur, Nusa Tenggara Timur, Indonesia',
-    extra:'Teléfono del beneficiario: +62 818 558 667 · Teléfono del banco: +62 387 61111' },
+    extra:{es:'Teléfono del beneficiario: +62 818 558 667 · Teléfono del banco: +62 387 61111',en:'Beneficiary phone: +62 818 558 667 · Bank phone: +62 387 61111',id:'Telepon penerima: +62 818 558 667 · Telepon bank: +62 387 61111'} },
   contractor_tepisungai: { label:'Contratista — Tepi Sungai (OCBC)',
     titular:'PT Tepi Sungai', banco:'OCBC', cuenta:'167800024140',
     codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar, Bali, Indonesia', extra:'' },
@@ -1314,13 +1316,22 @@ function datosBancariosHTML(){
   const key = collect().cuenta_bancaria;
   const c = CUENTAS_BANCARIAS[key];
   if(!c) return '';
-  const row=(esL,enL,idL,val)=> !val ? '' : `<tr><td><span data-lang="es">${esL}</span><span data-lang="en">${enL}</span><span data-lang="id">${idL}</span></td><td>${esc(String(val))}</td></tr>`;
+  // val puede ser un dato (número de cuenta, dirección…) o un texto con palabras.
+  // Si lleva palabras se pasa como {es,en,id} y se imprime en los tres idiomas,
+  // como la etiqueta: si no, al cambiar a inglés la fila salía en español.
+  const celda = v => (v && typeof v === 'object')
+    ? `<span data-lang="es">${esc(String(v.es||''))}</span><span data-lang="en">${esc(String(v.en||v.es||''))}</span><span data-lang="id">${esc(String(v.id||v.es||''))}</span>`
+    : esc(String(v));
+  const row=(esL,enL,idL,val)=> !val ? '' : `<tr><td><span data-lang="es">${esL}</span><span data-lang="en">${enL}</span><span data-lang="id">${idL}</span></td><td>${celda(val)}</td></tr>`;
   // Cuentas de notario (clave notario_*) = depósito en garantía (ESCROW). Se añade
   // una fila que lo declara. ponytail: título/valor por defecto — el cliente puede
   // afinar el texto exacto aquí sin tocar nada más.
   const esNotario = key.startsWith('notario_');
   const filaNotario = esNotario
-    ? row('Naturaleza de la cuenta','Account type','Jenis rekening','Cuenta ESCROW de notario designado — depósito en garantía')
+    ? row('Naturaleza de la cuenta','Account type','Jenis rekening', {
+        es:'Cuenta ESCROW de notario designado — depósito en garantía',
+        en:'ESCROW account of the appointed notary — funds held in guarantee',
+        id:'Rekening ESCROW notaris yang ditunjuk — dana ditahan sebagai jaminan' })
     : '';
   return `<h2><span data-lang="es">Datos bancarios</span><span data-lang="en">Bank details</span><span data-lang="id">Rincian bank</span></h2>
     <table class="pays"><tbody>
