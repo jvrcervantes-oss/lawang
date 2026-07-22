@@ -532,10 +532,11 @@ function langCSS(){
     // CSS float) y un bloque LANG podía colarse al lado del ID anterior en
     // vez de apilarse bajo el bloque LANG anterior. clear fuerza dos
     // columnas realmente independientes, cada una apilada contra sí misma.
-    // columnas simétricas 49%/49% (2% de canalón) → cada idioma ocupa la mitad
-    // de la zona de texto, sin el padding asimétrico que antes desperdiciaba
-    // espacio a la izquierda. float izq/der + clear = dos columnas independientes.
-    + `${L2},${IDs}{width:49%;box-sizing:border-box}`
+    // columnas simétricas 47%/47% → 6% de canalón (~10mm sobre la caja de texto
+    // A4 con márgenes de 18mm). Con el 2% anterior (3,5mm) las dos lenguas se
+    // leían como un solo bloque; este aire es lo que las separa de un vistazo.
+    // float izq/der + clear = dos columnas independientes.
+    + `${L2},${IDs}{width:47%;box-sizing:border-box}`
     + `${L2}{float:left;clear:left}`
     + `${IDs}{float:right;clear:right}`
     // Los RÓTULOS (h2/h3) también en dos columnas: el idioma base centrado en su
@@ -544,8 +545,8 @@ function langCSS(){
     // elemento — las reglas de arriba solo alcanzan a p/ul/ol de nivel de bloque.
     // El ::after es obligatorio: sin él el h2 queda con altura 0 (solo floats
     // dentro) y su margen inferior se come el arranque de la cláusula.
-    + `.doc h2>[data-lang="${LANG}"],.doc h3>[data-lang="${LANG}"]{float:left;clear:left;width:49%;box-sizing:border-box;text-align:center}`
-    + `.doc h2>[data-lang="id"],.doc h3>[data-lang="id"]{float:right;clear:right;width:49%;box-sizing:border-box;text-align:center}`
+    + `.doc h2>[data-lang="${LANG}"],.doc h3>[data-lang="${LANG}"]{float:left;clear:left;width:47%;box-sizing:border-box;text-align:center}`
+    + `.doc h2>[data-lang="id"],.doc h3>[data-lang="id"]{float:right;clear:right;width:47%;box-sizing:border-box;text-align:center}`
     + `.doc h2::after,.doc h3::after{content:"";display:table;clear:both}`;
 }
 
