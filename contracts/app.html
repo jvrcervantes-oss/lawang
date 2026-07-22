@@ -1078,6 +1078,13 @@ function fieldHTML(f){
   if(type==='textarea'){
     return `<div class="field" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
   }
+  if(type==='readonly'){
+    // Nº de contrato: lo asigna el trigger de Supabase al guardar (guardarContrato()
+    // escribe .value) y NO se teclea a mano — dejarlo editable permite firmar un
+    // contrato con un número que no es el de la base de datos.
+    return `<div class="field"><label>${label}</label>
+      <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
+  }
   const t = (type==='money'||type==='number') ? 'number' : (type==='date'?'date':'text');
   const step = type==='money' ? 'step="0.01"' : '';
   return `<div class="field"><label>${label}</label>
