@@ -1,0 +1,26 @@
+# Carpeta de subidas del panel (api/upload.php escribe aquí).
+# Aunque upload.php valida extensión final + MIME real y re-encoda con GD, esta carpeta
+# nunca debe poder EJECUTAR nada: es la segunda barrera que pide el playbook del estudio
+# (contexto/seguridad_2026.md). Ojo: aquí NO se puede fallar — un directiva no soportada
+# devuelve 500 en toda la carpeta y tumba las fotos de todas las fichas. De ahí la doble
+# sintaxis (Apache 2.4 usa Require; 2.2 usa Order/Deny) y el resto entre <IfModule>.
+<FilesMatch "\.(ph(p[0-9]?|tml|ar)|cgi|pl|py|sh|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Por si el servidor tiene mod_php con un AddHandler laxo
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>

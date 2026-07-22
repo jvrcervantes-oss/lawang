@@ -289,7 +289,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
       <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none"
              onchange="handleFileSelect(this.files)">
       <p>Drop images here or <button type="button" onclick="event.stopPropagation();document.getElementById('file-input').click()">click to browse</button></p>
-      <p class="muted" style="margin-top:4px">JPG, PNG or WebP · max 8 MB per file</p>
+      <p class="muted" style="margin-top:4px">JPG, PNG or WebP · max 25 MB per file — upload the original, it is resized and optimised automatically</p>
     </div>
     <div id="images-grid" class="images-grid"></div>
   </section>
