@@ -8,7 +8,6 @@
   var L = window.LAWANG;
   var LINES = (L && L.LINES) || ["signature","land","villa","resorts"];
   var LINE_KEYS  = { signature:"line.signature", land:"line.land", villa:"line.villa", resorts:"line.resorts" };
-  var LINE_ICONS = { signature:"icon-signature", land:"icon-land", villa:"icon-villas", resorts:"icon-resorts" };
   // Iconos de marca (PNG cream) — mismos que usa la card. En card inactiva (fondo bone)
   // se tiñen a Territorial Green vía filtro; en activa (fondo verde) van en cream original.
   var LINE_CREAM = { signature:"cream-signature", land:"cream-land", villa:"cream-villas", resorts:"cream-resorts" };
