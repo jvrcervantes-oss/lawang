@@ -314,21 +314,25 @@
      registro va a Supabase (guardarContrato()), no a un backend propio.
    ============================================================ */
 const TEMPLATES = [
-  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
-    name:{es:'Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'},
-    l2:{es:'de Reserva de Parcela',en:'Plot Reservation',id:'Reservasi Kavling'}, ready:true },
-  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
-    name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
-    l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
-  { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
-    name:{es:'Contrato Maestro de Construcción',en:'Master Construction Agreement',id:'Kontrak Induk Konstruksi'},
-    l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
-  { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#8F9B7A',
-    name:{es:'Oferta Comercial (Apéndice D)',en:'Commercial Offer (Appendix D)',id:'Penawaran Komersial (Lampiran D)'},
-    l2:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'}, ready:true },
+  // El orden de este array ES el orden del desplegable (buildPicker solo filtra
+  // los disabled) y TEMPLATES[0] es la plantilla que se abre al entrar. Los tres
+  // primeros son la secuencia real de una venta: se reserva, se bloquea la
+  // parcela y se firma la obra.
   { slug:'carta_reserva', file:'templates/carta_reserva.html', cover:'#2E3437',
     name:{es:'Carta de Reserva',en:'Reservation Letter',id:'Surat Pemesanan'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
+  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
+    name:{es:'Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'},
+    l2:{es:'de Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'}, ready:true },
+  { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
+    name:{es:'Contrato Maestro de Construcción',en:'Master Construction Agreement',id:'Kontrak Induk Konstruksi'},
+    l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
+  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
+    name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
+    l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
+  { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#8F9B7A',
+    name:{es:'Oferta Comercial (Apéndice D)',en:'Commercial Offer (Appendix D)',id:'Penawaran Komersial (Lampiran D)'},
+    l2:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'}, ready:true },
   { slug:'commercial_collaboration', file:'templates/commercial_collaboration.html', cover:'#485B37',
     name:{es:'Acuerdo Comercial',en:'Commercial Agreement',id:'Perjanjian Komersial'},
     l2:{es:'Acuerdo Comercial y Referidos',en:'Commercial Agreement and Referral',id:'Perjanjian Komersial dan Referral'}, ready:true },
@@ -371,7 +375,7 @@ const FALLBACK_SECTIONS = [
 let LANG = 'es';
 let TOKENS = null;
 let SECTIONS = FALLBACK_SECTIONS;
-let CURRENT = TEMPLATES[0];       // Reserva de Parcela por defecto (Contrato General quedó deshabilitado)
+let CURRENT = TEMPLATES[0];       // Carta de Reserva por defecto: es el primer papel de una venta
 let templateHTML = '';
 let COVER_HTML = '';
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
