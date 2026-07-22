@@ -73,11 +73,6 @@
    ellas no se leen como dos partes distintas sino como un solo bloque. */
 .doc .party{ background:var(--brand-paper,#F5F0E6); border-left:3px solid var(--brand-primary,#485B37);
   padding:10px 14px; margin:14px 0; border-radius:0 4px 4px 0; }
-/* Canalón entre idiomas DENTRO de la tarjeta: langCSS da 47%/47%, pero ese 6%
-   se calcula sobre la caja de la tarjeta, que es más estrecha que la página, y
-   el hueco real se quedaba en la mitad que en el cuerpo del contrato — el
-   español y el bahasa se leían pegados. Aquí se fija en 44%/44%. */
-.doc .party p[data-lang]{ width:44%!important; }
 .doc .party .role{ font-size:8pt; letter-spacing:.2em; text-transform:uppercase; color:var(--brand-primary,#485B37); margin-bottom:2px; }
 /* el bloque de partes es identificación, no prosa: va más apretado que el cuerpo */
 .doc .party p{ line-height:1.45; margin-bottom:4px; }

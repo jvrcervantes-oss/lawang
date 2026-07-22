@@ -1019,7 +1019,10 @@ function applyEditsAndTag(html){
     el.setAttribute('data-eid', i);
     if(!/\{\{/.test(el.innerHTML)){
       el.setAttribute('data-editable','1');
-      if(ov[i]!=null) el.innerHTML = ov[i];
+      // Se sanea también AL APLICAR, no solo al capturar: los overrides que ya
+      // quedaron guardados con el idioma vecino dentro (ver limpiaEdicion) se
+      // imprimen bien sin tener que tocar el contrato en la base de datos.
+      if(ov[i]!=null){ el.innerHTML = ov[i]; el.innerHTML = limpiaEdicion(el); }
     }
   });
   // Logo de cabecera EN CADA PÁGINA: se envuelve el cuerpo del .doc en una tabla
@@ -1052,9 +1055,22 @@ function enterEdit(){
   $('#btnEditReset').style.display='inline-flex';
   toast('Edición ON · reescribe los párrafos remarcados; los datos ({{…}}) se editan por campos');
 }
+/* Al editar en pantalla, un borrado al principio o al final del párrafo hace que
+   Chromium FUSIONE el bloque vecino dentro del que se está editando. Como las dos
+   lenguas son bloques hermanos flotados (ver langCSS), el párrafo español se
+   tragaba entero al bahasa y quedaba guardado así: al reimprimirlo salían los dos
+   idiomas mezclados en un mismo bloque. Pasó de verdad — contrato CR00003.
+   Al capturar se tira lo que lleve un data-lang distinto del propio párrafo; lo
+   que no tiene data-lang propio (los pies de firma) se deja tal cual. */
+function limpiaEdicion(el){
+  const propio = el.getAttribute('data-lang');
+  const tmp = el.cloneNode(true);
+  if(propio) tmp.querySelectorAll('[data-lang]').forEach(n=>{ if(n.getAttribute('data-lang')!==propio) n.remove(); });
+  return tmp.innerHTML;
+}
 function captureEdit(e){
   const el=e.target.closest('[data-eid][data-editable]'); if(!el) return;
-  (OVERRIDES[CURRENT.slug] || (OVERRIDES[CURRENT.slug]={}))[el.getAttribute('data-eid')] = el.innerHTML;
+  (OVERRIDES[CURRENT.slug] || (OVERRIDES[CURRENT.slug]={}))[el.getAttribute('data-eid')] = limpiaEdicion(el);
   saveOverrides();
 }
 function exitEdit(){ EDITING=false; editBtnIdle(); render(); }
