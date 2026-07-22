@@ -7,6 +7,10 @@ _demo_ppjb.html
 templates/_demo_*.html
 _originales/
 .playwright-mcp/
+__pycache__/
+# harness de verificación (copia de app.html con Supabase stubeado) y su salida
+_test_app.html
+_preview_doc.html
 
 # Vía .docx abandonada (pivote a plantilla HTML) — 11MB de binarios obsoletos
 private/plantillas/
@@ -16,3 +20,10 @@ private/plantillas/
 /*.pdf
 /Firma.png
 Logo Lawang-*
+
+# Informes INTERNOS del estudio sobre los contratos (revision legal, coherencia,
+# resumen de cambios). El repo es publico y esta carpeta se sirve en /contracts/
+# → nunca versionar: seria analisis de riesgo legal del cliente leible por cualquiera.
+informe_*.html
+resumen_cambios_*.html
+revision_legal_*.html

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Carta de Reserva — Lawang</title>
+<title>Carta de Reserva — LAWANG</title>
 <style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
 </head>
 <body>
@@ -23,11 +23,7 @@
       <span class="light"><span data-lang="es">Carta de</span><span data-lang="en">Letter of</span><span data-lang="id">Surat</span></span>
       <span class="bold"><span data-lang="es">Reserva</span><span data-lang="en">Reservation</span><span data-lang="id">Pemesanan</span></span>
     </div>
-    <div class="doc-date">
-      <span data-lang="es">N.º de Referencia: <span class="f">{{referencia_num}}</span> · Fecha: <span class="f">{{fecha_firma}}</span> · Nº de contrato: <span class="f">{{contrato_num}}</span></span>
-      <span data-lang="en">Reference No.: <span class="f">{{referencia_num}}</span> · Date: <span class="f">{{fecha_firma}}</span> · Contract no.: <span class="f">{{contrato_num}}</span></span>
-      <span data-lang="id">No. Referensi: <span class="f">{{referencia_num}}</span> · Tanggal: <span class="f">{{fecha_firma}}</span> · No. kontrak: <span class="f">{{contrato_num}}</span></span>
-    </div>
+    <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="es"> · Nº de Referencia: <span class="f f-md">{{referencia_num}}</span></span><span data-lang="en"> · Reference No.: <span class="f f-md">{{referencia_num}}</span></span><span data-lang="id"> · No. Referensi: <span class="f f-md">{{referencia_num}}</span></span></div>
 
     <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span><span data-lang="id">Para Pihak</span></h2>
     <div class="party">
@@ -41,11 +37,16 @@
       <p data-lang="es">2. <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, titular del pasaporte n.º <span class="f">{{adq1_pasaporte}}</span>, con domicilio en <span class="f">{{adq1_domicilio}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span>, en régimen de tenencia <span class="f">{{regimen_tenencia}}</span>. En este acto actuando en nombre propio (en adelante, la «Segunda Parte»).</p>
       <p data-lang="en">2. <span class="f">{{adq1_nombre}}</span>, of <span class="f">{{adq1_nacionalidad}}</span> nationality, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, with address at <span class="f">{{adq1_domicilio}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span>, under tenure regime <span class="f">{{regimen_tenencia}}</span>. Acting herein in its own name (hereinafter, the "Second Party").</p>
       <p data-lang="id">2. <span class="f">{{adq1_nombre}}</span>, berkewarganegaraan <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq1_pasaporte}}</span>, beralamat di <span class="f">{{adq1_domicilio}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span>, dengan rezim kepemilikan <span class="f">{{regimen_tenencia}}</span>. Dalam hal ini bertindak atas nama sendiri (selanjutnya disebut "Pihak Kedua").</p>
+      <!--opt:comp_razon-->
+      <p data-lang="es"><b>Actuando como sociedad:</b> el ADQUIRIENTE firma en nombre y representación de la sociedad <span class="f f-lg">{{comp_razon}}</span> (PT PMA), con domicilio social en <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> y NPWP <span class="f f-md">{{comp_npwp}}</span>. La adquisición se formaliza a nombre de dicha sociedad.</p>
+      <p data-lang="en"><b>Acting as a company:</b> the BUYER signs in the name and on behalf of the company <span class="f f-lg">{{comp_razon}}</span> (PT PMA), with registered office at <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> and NPWP <span class="f f-md">{{comp_npwp}}</span>. The acquisition is formalised in the name of said company.</p>
+      <p data-lang="id"><b>Bertindak sebagai perusahaan:</b> PEMBELI menandatangani atas nama dan mewakili perusahaan <span class="f f-lg">{{comp_razon}}</span> (PT PMA), berkedudukan di <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> dan NPWP <span class="f f-md">{{comp_npwp}}</span>. Perolehan diformalkan atas nama perusahaan tersebut.</p>
+      <!--/opt:comp_razon-->
     </div>
     <!--compradores-extra-->
-    <p data-lang="es">La Primera Parte, la Segunda Parte y, en su caso, los Adquirientes adicionales identificados anteriormente se denominan conjuntamente las «Partes».</p>
-    <p data-lang="en">The First Party, the Second Party and, where applicable, the additional Buyers identified above are jointly referred to as the "Parties".</p>
-    <p data-lang="id">Pihak Pertama, Pihak Kedua, dan, jika ada, Pembeli tambahan yang diidentifikasi di atas secara bersama-sama disebut sebagai "Para Pihak".</p>
+    <p data-lang="es">La Primera Parte, la Segunda Parte y, en su caso, los ADQUIRIENTES adicionales identificados anteriormente se denominan conjuntamente las «Partes».</p>
+    <p data-lang="en">The First Party, the Second Party and, where applicable, the additional BUYERS identified above are jointly referred to as the "Parties".</p>
+    <p data-lang="id">Pihak Pertama, Pihak Kedua, dan, jika ada, PEMBELI tambahan yang diidentifikasi di atas secara bersama-sama disebut sebagai "Para Pihak".</p>
 
     <h2><span data-lang="es">Antecedentes</span><span data-lang="en">Background</span><span data-lang="id">Latar Belakang</span></h2>
     <ol data-lang="es">
@@ -82,7 +83,7 @@
       <tbody>
         <tr>
           <td>
-            <div class="role"><span data-lang="es">Primera Parte — PT Lawang Tropical Properties</span><span data-lang="en">First Party — PT Lawang Tropical Properties</span><span data-lang="id">Pihak Pertama — PT Lawang Tropical Properties</span></div>
+            <div class="role"><span data-lang="es">Primera Parte — PT LAWANG TROPICAL PROPERTIES</span><span data-lang="en">First Party — PT LAWANG TROPICAL PROPERTIES</span><span data-lang="id">Pihak Pertama — PT LAWANG TROPICAL PROPERTIES</span></div>
             <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div>
             <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre: I Made Monjong Adhi Nugruah — Cargo: Director</span><span data-lang="en">Name: I Made Monjong Adhi Nugruah — Position: Director</span><span data-lang="id">Nama: I Made Monjong Adhi Nugruah — Jabatan: Direktur</span></p>
           </td>

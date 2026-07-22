@@ -479,9 +479,14 @@ async function saveSharedDesign(){
 const COVER_POS = {
   'top-left':'top:14mm;left:18mm;', 'top-center':'top:14mm;left:50%;transform:translateX(-50%);', 'top-right':'top:14mm;right:18mm;',
   'center':'top:50%;left:50%;transform:translate(-50%,-50%);',
-  'bottom-left':'bottom:20mm;left:18mm;', 'bottom-center':'left:0;right:0;bottom:-3%;', 'bottom-right':'bottom:20mm;right:18mm;',
+  'bottom-left':'bottom:10mm;left:18mm;', 'bottom-center':'bottom:10mm;left:50%;transform:translateX(-50%);', 'bottom-right':'bottom:10mm;right:18mm;',
   'fullbleed':'inset:0;',
 };
+/* El isotipo de fondo (moanito) se ancla A SANGRE por los lados, no como una
+   pieza centrada de ancho fijo → necesita su propio 'bottom-center'. Antes
+   compartía el de COVER_POS y por eso el logo inferior no podía acercarse al
+   margen sin descolocar el isotipo. */
+const MARK_POS = { ...COVER_POS, 'bottom-center':'left:0;right:0;bottom:-3%;' };
 const DOC_POS = {
   center:'left:50%;top:44%;transform:translate(-50%,-50%);',
   top:'left:50%;top:10%;transform:translateX(-50%);',
@@ -543,7 +548,7 @@ function designStyle(){
 
   // portada · isotipo de fondo (moanito). Custom → sin filtro de blanqueo.
   const markSrc = d.coverMark.src || 'assets/brand/tiki-totem.png';
-  css += `.lwcov .moai{${COVER_POS[d.coverMark.pos]||COVER_POS['bottom-center']}`
+  css += `.lwcov .moai{${MARK_POS[d.coverMark.pos]||MARK_POS['bottom-center']}`
        + `height:${d.coverMark.pos==='fullbleed'?'auto':d.coverMark.size+'%'};`
        + `background-image:url("${markSrc}");background-position:${d.coverMark.pos==='fullbleed'?'center':'center bottom'};`
        + `background-size:${d.coverMark.pos==='fullbleed'?'cover':'contain'};`
@@ -551,8 +556,15 @@ function designStyle(){
 
   // portada · logo
   if(d.coverLogo.src){
+    // La caja del logo es cuadrada pero el lockup es apaisado → con
+    // background-position:center quedaba flotando en mitad de la caja, lejos del
+    // borde, y encima pisaba el título. Anclando el dibujo al lado de su propia
+    // posición, el logo se pega de verdad al margen que el usuario ha elegido.
+    const anchor = d.coverLogo.pos.startsWith('bottom') ? 'center bottom'
+                 : d.coverLogo.pos.startsWith('top')    ? 'center top' : 'center';
     css += `.lwcov .cov-logo{display:block;${COVER_POS[d.coverLogo.pos]||COVER_POS['top-center']}`
          + `width:${d.coverLogo.size}mm;height:${d.coverLogo.size}mm;`
+         + `background-position:${anchor};`
          + `background-image:url("${d.coverLogo.src}");opacity:${d.coverLogo.op};}`;
   }
   // portada · imagen de fondo (sobre el color base; el usuario elige color O imagen)
@@ -1056,11 +1068,6 @@ function fieldHTML(f){
   if(type==='textarea'){
     return `<div class="field" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
   }
-  if(type==='readonly'){
-    // lo asigna el trigger de Supabase (guardarContrato() escribe .value) — nunca lo teclea el agente.
-    return `<div class="field"><label>${label}</label>
-      <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
-  }
   const t = (type==='money'||type==='number') ? 'number' : (type==='date'?'date':'text');
   const step = type==='money' ? 'step="0.01"' : '';
   return `<div class="field"><label>${label}</label>
@@ -1070,12 +1077,16 @@ function fieldHTML(f){
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
   const form = $('#form');
-  let html = buildDesignPanel() + buildAnnexPanel() + buildClausePanel()   // paneles Diseño, Anexos y Cláusulas primero
+  const order = FORM_ORDER[CURRENT.slug];
+  const anexosAlFinal = !!(order && order.includes('anexos'));
+  let html = buildDesignPanel() + (anexosAlFinal ? '' : buildAnnexPanel()) + buildClausePanel()   // paneles Diseño, Anexos y Cláusulas primero
     + (templateHTML.includes('<!--compradores-extra-->') ? buildCompradorPanel() : '');   // solo si la plantilla lo imprime
-  let lastTier=null, idx=0;
+  // un rótulo por tier la PRIMERA vez que aparece: con FORM_ORDER los tiers ya
+  // no son contiguos y comparar solo con el anterior repetía el mismo rótulo.
+  const seenTiers = new Set(); let idx=0;
   SECTIONS.forEach(s=>{
     idx++;
-    if(s.tier!==lastTier){ html += `<div class="tier-label ${lastTier===null?'first':''}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; lastTier=s.tier; }
+    if(!seenTiers.has(s.tier)){ html += `<div class="tier-label ${seenTiers.size?'':'first'}">${L(TIERS[s.tier]||{es:s.tier})}</div>`; seenTiers.add(s.tier); }
     if(s.special==='hitos'){
       html += `<section class="section" data-sec="pagos" data-tier="${s.tier}">
         <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2><span class="chev">▾</span></header>
@@ -1093,6 +1104,7 @@ function buildForm(){
       <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
       <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}</div></section>`;
   });
+  if(anexosAlFinal) html += buildAnnexPanel();
   form.innerHTML = html;
 
   // hitos: delegación (una sola vez; el form persiste entre rebuilds)
@@ -1152,9 +1164,12 @@ function hitosRowsHTML(){
   // corre justo después de insertar estas filas (ver buildDoc: hitos → luego {{...}}).
   return HITOS.map((h,i)=>{
     const monto = (h.monto||'') ? `${esc(String(h.monto))} {{moneda}}` : '';
+    // % vacío o 0 → celda en blanco, sin "0%". Un hito puede ser un importe
+    // cerrado (la reserva) sin porcentaje del total que lo represente.
+    const pct = (String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(String(h.pct))+'%';
     return `<tr><td class="n">${i+1}</td><td>`
     + `<span data-lang="es">${esc(String(h.es||''))}</span><span data-lang="en">${esc(String(h.en||''))}</span><span data-lang="id">${esc(String(h.id||''))}</span>`
-    + `</td><td class="pct">${esc(String(h.pct||''))}%</td>`
+    + `</td><td class="pct">${pct}</td>`
     + `<td class="amt">${monto}</td>`
     + `<td class="timing">${esc(String(h.timing||''))}</td></tr>`;
   }).join('');
@@ -1319,11 +1334,14 @@ function collect(){
 function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function injectBrandAndCover(html, data){
-  // Título de portada: un renglón por idioma (ES/EN/ID), usa el nombre completo
-  // de la plantilla en cada idioma — no el toggle activo (la portada ya no
-  // cambia de idioma con el toggle, muestra los 3 siempre).
-  const covData = { ...data, cov_t_es:CURRENT.name.es, cov_t_en:CURRENT.name.en||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
-  const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=> (k in covData && covData[k]!=='') ? esc(covData[k],k) : '');
+  // Título de portada: cov_t = idioma BASE (el del toggle, ES o EN) y va sobre
+  // la regla; cov_t_id = traducción Bahasa, que la portada coloca arriba a la
+  // izquierda. Ambos salen del nombre de la plantilla, no de un campo del form.
+  const covData = { ...data, cov_t:CURRENT.name[LANG]||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
+  const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{
+    if(!(k in covData) || covData[k]==='') return '';
+    return k==='proyecto_nombre' ? esc(covData[k]).toUpperCase() : esc(covData[k],k);   // mismo criterio que el cuerpo
+  });
   // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
   // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
   const base = location.href.replace(/[^/]*(?:\?.*)?$/,'');
@@ -1392,6 +1410,7 @@ function buildDoc(){
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return filled ? data[k] : '';
     if(k==='regimen_tenencia') return filled ? esc(REGIMEN_LABEL[data[k]]||data[k]) : '';   // código → etiqueta legible
+    if(k==='proyecto_nombre') return filled ? esc(data[k]).toUpperCase() : '';   // el nombre de proyecto va SIEMPRE en mayúsculas
     return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
   });
   // anexos incluidos → páginas al final del contrato
@@ -1404,6 +1423,17 @@ function buildDoc(){
 function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
 let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
+/* Orden del formulario por plantilla (petición del cliente). Un id que no
+   aparezca aquí se va al final conservando su orden de tokens.json. El
+   pseudo-id 'anexos' no es una sección: marca que el panel de Anexos, que
+   normalmente va arriba con Diseño y Cláusulas, baje al final del formulario.
+   'sociedad' (PT PMA) va pegada a 'comprador' porque es el mismo adquiriente
+   firmando como empresa, y 'gestion' (el nº) se queda arriba del todo. */
+const FORM_ORDER = {
+  ppjb_construccion: ['gestion','comprador','sociedad','parcela','proyecto_construccion',
+                      'pagos','dinero','banco','anexos'],
+};
+
 /* ---------- secciones del formulario = SOLO campos con impacto ----------
    Un campo se muestra únicamente si su marcador {{...}} aparece en la plantilla
    activa o en la portada. Lo que no imprime nada, no se pregunta. Los marcadores
@@ -1414,7 +1444,7 @@ function deriveSections(){
   // <!--if:campo=valor--> también cuenta como "el campo aparece en la
   // plantilla", aunque no sea un marcador {{...}} (ver buildDoc()).
   [...templateHTML.matchAll(/<!--if:([a-z0-9_]+)=[a-z0-9_]+-->/g)].forEach(m=>inDoc.add(m[1]));
-  inDoc.delete('cov_t_es'); inDoc.delete('cov_t_en'); inDoc.delete('cov_t_id');   // los calcula el motor, no son campos
+  inDoc.delete('cov_t'); inDoc.delete('cov_t_id');   // los calcula el motor, no son campos
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
@@ -1450,6 +1480,14 @@ function deriveSections(){
     SECTIONS.splice(ins, 0, { id:'banco', tier:'por_proyecto',
       title:{es:'Cuenta bancaria',en:'Bank account',id:'Rekening bank'},
       fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', bankOptionsFor(CURRENT.slug)]] });
+  }
+  // orden pedido por el cliente para esta plantilla (los no listados, primero)
+  const order = FORM_ORDER[CURRENT.slug];
+  if(order){
+    const rank = id => { const i = order.indexOf(id); return i<0 ? order.length : i; };
+    SECTIONS = SECTIONS.map((s,i)=>({s,i}))
+      .sort((a,b)=> (rank(a.s.id)-rank(b.s.id)) || (a.i-b.i))
+      .map(x=>x.s);
   }
 }
 
