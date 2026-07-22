@@ -537,7 +537,16 @@ function langCSS(){
     // espacio a la izquierda. float izq/der + clear = dos columnas independientes.
     + `${L2},${IDs}{width:49%;box-sizing:border-box}`
     + `${L2}{float:left;clear:left}`
-    + `${IDs}{float:right;clear:right}`;
+    + `${IDs}{float:right;clear:right}`
+    // Los RÓTULOS (h2/h3) también en dos columnas: el idioma base centrado en su
+    // columna y el Bahasa centrado en la suya, en vez de apilados a lo ancho de
+    // la página. Van aparte porque sus data-lang son <span> dentro de UN solo
+    // elemento — las reglas de arriba solo alcanzan a p/ul/ol de nivel de bloque.
+    // El ::after es obligatorio: sin él el h2 queda con altura 0 (solo floats
+    // dentro) y su margen inferior se come el arranque de la cláusula.
+    + `.doc h2>[data-lang="${LANG}"],.doc h3>[data-lang="${LANG}"]{float:left;clear:left;width:49%;box-sizing:border-box;text-align:center}`
+    + `.doc h2>[data-lang="id"],.doc h3>[data-lang="id"]{float:right;clear:right;width:49%;box-sizing:border-box;text-align:center}`
+    + `.doc h2::after,.doc h3::after{content:"";display:table;clear:both}`;
 }
 
 /* CSS que reskin-ea portada+interior según DESIGN (se inyecta en el <head> del doc) */
@@ -1077,8 +1086,7 @@ function fieldHTML(f){
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
   const form = $('#form');
-  const order = FORM_ORDER[CURRENT.slug];
-  const anexosAlFinal = !!(order && order.includes('anexos'));
+  const anexosAlFinal = FORM_ORDER.includes('anexos');
   let html = buildDesignPanel() + (anexosAlFinal ? '' : buildAnnexPanel()) + buildClausePanel()   // paneles Diseño, Anexos y Cláusulas primero
     + (templateHTML.includes('<!--compradores-extra-->') ? buildCompradorPanel() : '');   // solo si la plantilla lo imprime
   // un rótulo por tier la PRIMERA vez que aparece: con FORM_ORDER los tiers ya
@@ -1423,16 +1431,16 @@ function buildDoc(){
 function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
 let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
-/* Orden del formulario por plantilla (petición del cliente). Un id que no
-   aparezca aquí se va al final conservando su orden de tokens.json. El
-   pseudo-id 'anexos' no es una sección: marca que el panel de Anexos, que
-   normalmente va arriba con Diseño y Cláusulas, baje al final del formulario.
-   'sociedad' (PT PMA) va pegada a 'comprador' porque es el mismo adquiriente
-   firmando como empresa, y 'gestion' (el nº) se queda arriba del todo. */
-const FORM_ORDER = {
-  ppjb_construccion: ['gestion','comprador','sociedad','parcela','proyecto_construccion',
-                      'pagos','dinero','banco','anexos'],
-};
+/* Orden del formulario, el MISMO para todos los contratos (petición del
+   cliente). Un id que no aparezca aquí — sea de la plantilla que sea — se va al
+   final conservando su orden de tokens.json, así que añadir una sección nueva
+   no obliga a tocar esta lista. El pseudo-id 'anexos' no es una sección: marca
+   que el panel de Anexos, que normalmente va arriba con Diseño y Cláusulas,
+   baje al final del formulario. 'sociedad' (PT PMA) va pegada a 'comprador'
+   porque es el mismo adquiriente firmando como empresa, y 'gestion' (el nº) se
+   queda arriba del todo. */
+const FORM_ORDER = ['gestion','comprador','sociedad','parcela','proyecto_construccion',
+                    'pagos','dinero','banco','anexos'];
 
 /* ---------- secciones del formulario = SOLO campos con impacto ----------
    Un campo se muestra únicamente si su marcador {{...}} aparece en la plantilla
@@ -1481,14 +1489,11 @@ function deriveSections(){
       title:{es:'Cuenta bancaria',en:'Bank account',id:'Rekening bank'},
       fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', bankOptionsFor(CURRENT.slug)]] });
   }
-  // orden pedido por el cliente para esta plantilla (los no listados, primero)
-  const order = FORM_ORDER[CURRENT.slug];
-  if(order){
-    const rank = id => { const i = order.indexOf(id); return i<0 ? order.length : i; };
-    SECTIONS = SECTIONS.map((s,i)=>({s,i}))
-      .sort((a,b)=> (rank(a.s.id)-rank(b.s.id)) || (a.i-b.i))
-      .map(x=>x.s);
-  }
+  // orden pedido por el cliente, igual en todos los contratos (los no listados, al final)
+  const rank = id => { const i = FORM_ORDER.indexOf(id); return i<0 ? FORM_ORDER.length : i; };
+  SECTIONS = SECTIONS.map((s,i)=>({s,i}))
+    .sort((a,b)=> (rank(a.s.id)-rank(b.s.id)) || (a.i-b.i))
+    .map(x=>x.s);
 }
 
 /* ---------- selector de plantilla ---------- */
