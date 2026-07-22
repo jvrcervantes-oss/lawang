@@ -1476,6 +1476,9 @@ function idrEquiv(html, data){
 function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
+  // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
+  // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
+  html=html.replace(/<!--seccion-hitos-->([\s\S]*?)<!--\/seccion-hitos-->/g, (m,dentro)=> HITOS.length ? dentro : '');
   html=html.replace('<!--hitos-->', hitosRowsHTML());   // tabla de pagos dinámica
   html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
