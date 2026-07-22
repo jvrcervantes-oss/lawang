@@ -19,7 +19,7 @@
   // ── Estado global ──────────────────────────────────────────
   var S = {
     lang:"en", cur:"EUR",
-    line:"all", region:"all", layout:"grid", langOpen:false, page:1, featIdx:0,
+    line:"all", region:"all", layout:"grid", langOpen:false, curOpen:false, page:1, featIdx:0,
     overlay:null,
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
@@ -72,19 +72,24 @@
     var waUrl='https://wa.me/'+waNum+waMsg;
     var langName={en:'English',es:'Español',id:'Bahasa'}[S.lang]||'English';
     var nl=function(href,label,active){ return '<a class="nav-link'+(active?' active':'')+'" href="'+href+'">'+label+'</a>'; };
-    var cb=function(c,sym){ return '<button data-act="cur:'+c+'" class="'+(S.cur===c?'on':'')+'">'+sym+'</button>'; };
+    // Moneda: mismo desplegable que el idioma (guía Ficha) — antes eran 3 botones segmentados
+    var ci=function(code,sym){ return '<li role="option" data-act="cur:'+code+'"'+(S.cur===code?' class="active"':'')+'><span class="lang-opt"><span class="cur-sym">'+sym+'</span>'+code+'</span></li>'; };
     var li=function(code,flag,name){ return '<li role="option" data-act="lang:'+code+'"'+(S.lang===code?' class="active"':'')+'><span class="lang-opt">'+flag+name+'</span></li>'; };
     var flagEN='<svg class="flag" viewBox="0 0 60 36" aria-hidden="true"><rect width="60" height="36" fill="#012169"/><path d="M0,0 60,36 M60,0 0,36" stroke="#fff" stroke-width="7.2"/><path d="M0,0 60,36 M60,0 0,36" stroke="#C8102E" stroke-width="4"/><path d="M30,0 V36 M0,18 H60" stroke="#fff" stroke-width="12"/><path d="M30,0 V36 M0,18 H60" stroke="#C8102E" stroke-width="7.2"/></svg>';
     var flagES='<svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#c60b1e"/><rect y=".5" width="3" height="1" fill="#ffc400"/></svg>';
     var flagID='<svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#fff"/><rect width="3" height="1" fill="#ce1126"/></svg>';
     var wa='<span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span>';
+    // En la ficha, al hacer scroll el logo cede su sitio al "‹ The Collection" (guía Ficha p1/p2).
+    var pdpBack = ghost ? '<button class="pdp-back" data-act="close"><span class="pb-chev" aria-hidden="true">‹</span><svg viewBox="0 0 80 88" aria-hidden="true" class="pb-mark"><use href="#lawang-mark"/></svg><span>'+t("crumb.portfolio")+'</span></button>' : '';
     return '<header id="topbar" class="show '+(ghost?'pdp':'solid')+'">'
       + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
+      + pdpBack
       + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Collection',false)+'</nav>'
       + '<div id="nav-actions">'
-      +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg><span>'+langName+'</span><span class="caret">▾</span></button>'
+      +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><span>'+langName+'</span><span class="lang-abbr">'+S.lang.toUpperCase()+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
-      +   '<div class="nav-cur">'+cb('EUR','€')+cb('USD','$')+cb('AUD','A$')+'</div>'
+      +   '<div class="nav-lang-wrap nav-cur-wrap" id="curWrap"><button class="nav-lang" data-act="cur-toggle" aria-haspopup="listbox" aria-expanded="'+(S.curOpen?'true':'false')+'" aria-label="Currency"><span>'+S.cur+'</span><span class="caret">▾</span></button>'
+      +     '<ul class="lang-menu'+(S.curOpen?' open':'')+'" role="listbox">'+ci('EUR','€')+ci('USD','$')+ci('AUD','A$')+'</ul></div>'
       +   '<a class="nav-cta" href="'+waUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span>'+t("cta.ask")+'</span></a>'
       + '</div></header>';
   }
@@ -255,7 +260,11 @@
   }
 
   // ════ FOOTER (banda de reserva + barra de contacto) ════
-  function footerHTML(){
+  // Marketplace: proceso de 7 pasos + footer. La ficha usa solo footerCoreHTML() — repetir
+  // el bloque #process dentro del overlay duplicaría el id y una sección entera de la home.
+  function footerHTML(){ return stepsHTML() + footerCoreHTML(); }
+
+  function footerCoreHTML(){
     var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
     var email=(L.SETTINGS&&L.SETTINGS.email)||'sales@lawangproperties.com';
     var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent(t("reserve.msg")||"Hello LAWANG");
@@ -270,9 +279,8 @@
       +     '<a href="tel:+'+waNum+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoPhone+tel+'</a>'
       +     '<a href="mailto:'+esc(email)+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoMail+esc(email)+'</a>'
       +   '</div></div></div>';
-    // Proceso (sobre la aérea) + franja de contacto + footer completo portado de index.html
-    return stepsHTML()
-      + contactStrip
+    // Franja de contacto + footer completo portado de index.html
+    return contactStrip
       + '<footer class="pf-footer">'
       +   '<div class="lw-ft">'
       +     '<div class="lw-ft-grid">'
@@ -321,6 +329,8 @@
       + '<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0;opacity:'+(key?0:1)+'"></div>'
       + bg
       + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,11,.5) 0%,rgba(20,16,11,.12) 30%,rgba(20,16,11,.32) 66%,rgba(20,16,11,.8) 100%)"></div>'
+      // Migas dentro del hero, bajo el topbar (guía Ficha p1)
+      + '<div style="position:absolute;top:clamp(84px,10.5vh,116px);left:0;right:0;z-index:3"><div class="wrap">'+breadcrumbsHTML(p,true)+'</div></div>'
       + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1000px">'
       +   '<svg viewBox="0 0 80 88" aria-hidden="true" style="width:clamp(38px,4.4vw,52px);height:auto;margin:0 auto 26px;display:block;fill:var(--bone);opacity:.95"><use href="#lawang-mark"/></svg>'
       +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
@@ -744,11 +754,15 @@
       + '</div></div>';
   }
 
-  function breadcrumbsHTML(p){
-    var sep='<span aria-hidden="true" style="opacity:.4;margin:0 9px">›</span>';
-    var lk=function(label,act){ return '<button data-act="'+act+'" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;letter-spacing:.08em;color:var(--ink-2)">'+esc(label)+'</button>'; };
-    return '<nav aria-label="Breadcrumb" style="font-family:var(--sans);font-size:11.5px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;display:flex;flex-wrap:wrap;align-items:center;margin-bottom:22px">'
-      + lk(t("crumb.home"),"go-home")+sep+lk(t("crumb.portfolio"),"close")+sep+lk(t(LINE_KEYS[p.line]),"close")+sep+'<span style="color:var(--ink);letter-spacing:.08em">'+esc(pick(p.title))+'</span></nav>';
+  // ghost=true → migas sobre el hero (guía Ficha p1): crema, esquina superior izquierda del hero
+  function breadcrumbsHTML(p, ghost){
+    var col   = ghost ? 'rgba(245,240,230,.78)' : 'var(--ink-2)';
+    var colOn = ghost ? 'var(--bone)' : 'var(--ink)';
+    var shadow= ghost ? 'text-shadow:0 1px 10px rgba(0,0,0,.55);' : '';
+    var sep='<span aria-hidden="true" style="opacity:.55;margin:0 11px">›</span>';
+    var lk=function(label,act){ return '<button data-act="'+act+'" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;letter-spacing:.16em;color:'+col+'">'+esc(label)+'</button>'; };
+    return '<nav aria-label="Breadcrumb" style="font-family:var(--sans);font-size:clamp(10px,1vw,12.5px);font-weight:400;text-transform:uppercase;letter-spacing:.16em;display:flex;flex-wrap:wrap;align-items:center;'+shadow+(ghost?'':'margin-bottom:22px')+'">'
+      + lk(t("crumb.home"),"go-home")+sep+lk(t("crumb.portfolio"),"close")+sep+lk(t(LINE_KEYS[p.line]),"close")+sep+'<span style="color:'+colOn+';letter-spacing:.16em;font-weight:'+(ghost?'600':'500')+'">'+esc(pick(p.title))+'</span></nav>';
   }
 
   function mapBlockHTML(p){
@@ -773,24 +787,24 @@
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
     var territory = territoryHTML(p);  // si hay territorio, el mapa va ahí y no se repite arriba
     var subText = pick(p.sub);
-    // Sub bajo el título: uppercase editorial, peso medio (armoniza con la ligereza del hero, no el w600 pesado)
-    var subHTML = subText ? '<p style="font-family:var(--sans);font-size:clamp(13px,1.15vw,15px);font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);line-height:1.55;margin-top:16px;max-width:52ch">'+esc(subText)+'</p>' : "";
+    // Sub bajo el título: uppercase ligera y grande, como en la guía (Ficha p2), no el w500 pequeño
+    var subHTML = subText ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:46ch">'+esc(subText)+'</p>' : "";
     var descText = pick(p.desc);
     var overviewHTML = descText ? '<div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(descText)+'</p></div>' : "";
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
       + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(x.title))+'</p><p style="font-size:13px;font-weight:600;color:#324820;margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
       + '</div></div>' : "";
-    // Back link "← The Collection" (repuesto por petición; el menú del topbar sigue arriba)
-    var backLink = '<button data-act="close" style="display:inline-flex;align-items:center;gap:9px;background:none;border:0;cursor:pointer;color:var(--ink-2);font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:0;margin-bottom:18px"><span style="font-size:17px;font-weight:300;line-height:0">←</span> '+t("crumb.portfolio")+'</button>';
-    return '<div style="padding-bottom:80px">'
+    // Cabecera según guía Ficha p2: título ligero y ancho a la izquierda; a la derecha
+    // "LÍNEA › ESTADO" en gris sobre el precio. Migas y "volver" viven ahora en hero y topbar.
+    return '<div>'   // sin padding inferior: el footer cierra la página
       + heroHTML(p)
-      + '<div class="wrap" style="padding-top:clamp(28px,3.5vw,48px)">'
-      + backLink
-      + breadcrumbsHTML(p)
-      + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:30px"><div style="flex:1 1 380px;min-width:0">'
-      +   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);font-family:var(--sans)">'+t(LINE_KEYS[p.line])+'</span><span style="width:1px;height:12px;background:var(--line)"></span><span style="font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-family:var(--sans)">'+t(p.status)+'</span></div>'
-      +   '<h1 class="display" style="font-size:clamp(36px,5.2vw,66px);font-weight:400;letter-spacing:.03em;text-transform:uppercase;color:#42210B;line-height:1">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
-      +   '<div style="flex-shrink:0;text-align:right"><div class="serif" style="font-size:clamp(28px,2.8vw,38px);font-weight:600;line-height:1;color:#324820">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
+      + '<div class="wrap" style="padding-top:clamp(36px,4.5vw,64px)">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
+      +   '<h1 class="display" style="font-size:clamp(38px,5.8vw,74px);font-weight:300;letter-spacing:.055em;text-transform:uppercase;color:var(--ink);line-height:1">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
+      +   '<div style="flex-shrink:0;text-align:right">'
+      +     '<div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;font-family:var(--sans);font-size:clamp(11px,1.05vw,14px);font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-bottom:clamp(10px,1.2vw,16px)"><span>'+t(LINE_KEYS[p.line])+'</span>'
+      +       (p.status ? '<span aria-hidden="true" style="opacity:.55">›</span><span style="opacity:.8">'+t(p.status)+'</span>' : '')+'</div>'
+      +     '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
       + specsBandHTML(p)
       + '<div class="pdp-cols" style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);margin-top:56px;align-items:start">'
@@ -806,6 +820,7 @@
       + statementBannerHTML(p)
       + alsoHTML
       + '</div>'
+      + footerCoreHTML()   // mismo footer del marketplace (guía Ficha p6): franja de contacto + footer verde
       + '</div>';
   }
 
@@ -862,8 +877,9 @@
   function handleAct(act, el){
     var k=act.split(":"); var cmd=k[0]; var val=k.slice(1).join(":");
     if(cmd==="lang"){ S.lang=val; S.langOpen=false; render(); }
-    else if(cmd==="lang-toggle"){ S.langOpen=!S.langOpen; render(); }
-    else if(cmd==="cur"){ S.cur=val; render(); }
+    else if(cmd==="lang-toggle"){ S.langOpen=!S.langOpen; S.curOpen=false; render(); }
+    else if(cmd==="cur"){ S.cur=val; S.curOpen=false; render(); }
+    else if(cmd==="cur-toggle"){ S.curOpen=!S.curOpen; S.langOpen=false; render(); }
     else if(cmd==="line"){ chooseLine(val); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="region"){ S.region=val; S.page=1; S.featIdx=0; render(); }
     else if(cmd==="feat"){ S.featIdx=parseInt(val,10)||0; render(); }
@@ -911,7 +927,7 @@
     // a11y: cerrar la ficha de propiedad con Escape (misma UX que el modal legal)
     document.addEventListener("keydown", function(e){ if(e.key==="Escape" && S.overlay) closeProperty(); });
     document.addEventListener("click", function(e){
-      if(S.langOpen && !e.target.closest(".nav-lang-wrap")){ S.langOpen=false; render(); }
+      if((S.langOpen||S.curOpen) && !e.target.closest(".nav-lang-wrap")){ S.langOpen=false; S.curOpen=false; render(); }
     });
   }
 

@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260722112910">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260722115919">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -274,7 +274,7 @@ article:hover .view-cta { gap:9px; }
 .nav-lang-wrap{ position:relative }
 .nav-lang{ display:inline-flex;align-items:center;gap:.5rem;font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.58rem;letter-spacing:.2em;
   text-transform:uppercase;color:rgba(26,22,18,.62);background:none;border:none;cursor:pointer;white-space:nowrap }
-.nav-lang .globe{ width:14px;height:14px;flex:none;opacity:.85 }
+.nav-lang .lang-abbr{ display:none }  /* solo en móvil, donde el nombre completo se oculta */
 .nav-lang .caret{ font-size:.62rem;opacity:.7;transition:transform .28s }
 .nav-lang[aria-expanded="true"] .caret{ transform:rotate(180deg) }
 .nav-lang:hover{ color:var(--tg) }
@@ -289,9 +289,9 @@ article:hover .view-cta { gap:9px; }
 .lang-menu li.active::after{ content:'✓';font-size:.78rem;color:var(--tg) }
 .lang-opt{ display:inline-flex;align-items:center;gap:.6rem }
 .flag{ width:21px;height:14px;flex:none;border-radius:2px;display:block;box-shadow:0 0 0 1px rgba(0,0,0,.10) }
-.nav-cur{ display:inline-flex;border:1px solid rgba(72,91,55,.38);border-radius:30px;overflow:hidden }
-.nav-cur button{ appearance:none;border:0;background:transparent;color:rgba(26,22,18,.6);font-family:'Neue Kabel','Jost',sans-serif;font-size:.62rem;font-weight:600;padding:5px 11px;cursor:pointer;transition:background .2s,color .2s }
-.nav-cur button.on{ background:var(--tg);color:var(--bone) }
+/* Moneda: mismo desplegable que el idioma (guía Ficha). Menú más estrecho y símbolo delante del código. */
+.nav-cur-wrap .lang-menu{ min-width:118px }
+.nav-cur-wrap .cur-sym{ display:inline-block;min-width:1.4em;font-weight:600;color:var(--tg) }
 .nav-cta{ display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;border:1px solid var(--tg);padding:8px 20px 8px 9px;border-radius:30px;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.6rem;letter-spacing:.22em;color:var(--rl);text-transform:uppercase;cursor:pointer;background:var(--tg);transition:all .35s }
 .nav-cta .wa{ width:20px;height:20px;border-radius:50%;background:#25D366;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;line-height:1 }
@@ -303,7 +303,8 @@ article:hover .view-cta { gap:9px; }
   .nav-cta span:not(.wa){ display:none }
   .nav-cta{ padding:8px 9px }
   .nav-lang > span:not(.caret){ display:none }
-  .nav-cur button{ padding:5px 8px }
+  .nav-lang > span.lang-abbr{ display:inline }                  /* sin globo, el idioma se abrevia a EN/ES/ID */
+  .nav-cur-wrap .nav-lang > span:not(.caret){ display:inline }  /* EUR/USD/AUD cabe: se mantiene visible */
   #nav-actions{ gap:.6rem }
   #topbar{ padding-inline:1rem }
 }
@@ -317,8 +318,17 @@ article:hover .view-cta { gap:9px; }
 #topbar.pdp:not(.solid) .nav-link::after{ background:var(--ss); }
 #topbar.pdp:not(.solid) .nav-lang{ color:rgba(245,240,230,.82); text-shadow:0 1px 8px rgba(0,0,0,.55); }
 #topbar.pdp:not(.solid) .nav-lang:hover{ color:#fff; }
-#topbar.pdp:not(.solid) .nav-cur{ border-color:rgba(245,240,230,.5); }
-#topbar.pdp:not(.solid) .nav-cur button{ color:rgba(245,240,230,.82); }
+/* Ficha: al hacer scroll el logo cede el sitio al "‹ The Collection" (guía Ficha) */
+#topbar.pdp .pdp-back{ display:none;align-items:center;gap:.55rem;background:none;border:0;padding:0;cursor:pointer;
+  font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(245,240,230,.92);text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .25s }
+#topbar.pdp .pdp-back .pb-chev{ font-size:1.15rem;line-height:0;font-weight:300;opacity:.85 }
+#topbar.pdp .pdp-back .pb-mark{ width:17px;height:auto;fill:currentColor;flex:none }
+#topbar.pdp .pdp-back:hover{ color:#fff }
+#topbar.pdp.scrolled .pdp-back{ display:inline-flex }
+#topbar.pdp.scrolled #logo{ display:none }
+#topbar.pdp.solid .pdp-back{ color:var(--tg);text-shadow:none }
+#topbar.pdp.solid .pdp-back:hover{ color:var(--va) }
 #topbar.pdp:not(.solid) .nav-cta{ background:transparent; border-color:rgba(245,240,230,.5); color:var(--rl); }
 #topbar.pdp:not(.solid) .nav-cta:hover{ background:rgba(245,240,230,.14); border-color:rgba(245,240,230,.8); }
 #topbar.pdp.solid{ background:rgba(247,244,239,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); box-shadow:0 1px 0 rgba(190,179,165,.3); }
@@ -764,8 +774,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260722112910"></script>
-<script src="assets/portfolio-app.js?v=20260722112910-aerial"></script>
+<script src="assets/lawang-card.js?v=20260722115919"></script>
+<script src="assets/portfolio-app.js?v=20260722115919-aerial"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
