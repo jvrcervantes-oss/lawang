@@ -1226,6 +1226,13 @@ const CUENTAS_BANCARIAS = {
   land_balian_eur: { label:'Terreno — Balian Hills, EUR (OCBC)',
     titular:'PT Balian Hills Resort', banco:'OCBC', cuenta:'160800028963',
     codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar Barat, Denpasar, Bali 80114, Indonesia', extra:'' },
+  notario_sandy_sumba: { label:'Notario — Sandy Tandean, Sumba (BNI)',
+    titular:'BPK SANDY TANDEAN', banco:'Bank Negara Indonesia (BNI)', cuenta:'0044860851',
+    codigo:'BNINIDJA', direccion:'Jl. Sumatera No.33, Todekisar, Kec. Kota Lama, 85111, Kota Kupang, Nusa Tenggara Timur, Indonesia', extra:'' },
+  contractor_sumba_eur: { label:'Constructor — Sumba, EUR (Achmad Zaeni · Bank Mandiri)',
+    titular:'ACHMAD ZAENI', banco:'Bank Mandiri — sucursal Waingapu, Sumba Timur', cuenta:'1810004920345',
+    codigo:'BMRIIDJAXXX', direccion:'Jl. Ahmad Yani No. 75, Kamalaputi, Kota Waingapu, 87116, Sumba Timur, Nusa Tenggara Timur, Indonesia',
+    extra:'Teléfono del beneficiario: +62 818 558 667 · Teléfono del banco: +62 387 61111' },
   contractor_tepisungai: { label:'Contratista — Tepi Sungai (OCBC)',
     titular:'PT Tepi Sungai', banco:'OCBC', cuenta:'167800024140',
     codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar, Bali, Indonesia', extra:'' },
@@ -1255,8 +1262,12 @@ const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
 // declaración "depósito en garantía", que solo tiene sentido donde el contrato
 // pacta escrow notarial (Reserva de Parcela). Ofrecerlas en los demás invita a
 // mandar el dinero al sitio equivocado con una cláusula que nadie pactó.
+// Construcción cobra por tres vías: la cuenta de Sandal Woods (Singapur) y, para
+// las operaciones de Sumba, el escrow del notario y la cuenta del constructor en
+// euros (añadidas 22-jul a petición del cliente).
+const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'notario_sandy_sumba', 'contractor_sumba_eur'];
 function bankOptionsFor(slug){
-  if(slug==='ppjb_construccion') return BANK_OPTIONS.filter(o=>o[0]==='sandalwoods_dbs_sg');
+  if(slug==='ppjb_construccion') return BANK_OPTIONS.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
   if(slug==='ppjb_parcela') return BANK_OPTIONS;
   return BANK_OPTIONS.filter(o=>!o[0].startsWith('notario_'));
 }
