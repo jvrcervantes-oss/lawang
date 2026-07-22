@@ -92,6 +92,14 @@
 .doc table.pays .pct{ font-weight:700; color:var(--brand-deep,#104C4F); text-align:right; white-space:nowrap; }
 .doc table.pays .n{ color:var(--muted,#6b6c66); width:26px; text-align:center; }
 
+/* "Identificación del proyecto" respira más que el resto de secciones: es una
+   ficha, no un artículo, y pegada al texto de arriba y de abajo no se lee como bloque */
+.doc h2:has(+ .id-proyecto){ margin-top:26px; }
+.doc table.pays.id-proyecto{ margin-bottom:30px; }
+
+/* equivalencia en IDR junto a cada importe (la calcula idrEquiv en app.html) */
+.doc .idr-eq{ color:var(--muted,#6b6c66); white-space:nowrap; }
+
 /* tabla de firmas: 2 columnas iguales (auto-layout las descuadraba si una firma iba vacía) */
 .doc table.sigs{ table-layout:fixed; }
 .doc table.sigs td{ width:50%; }

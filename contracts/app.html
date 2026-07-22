@@ -321,7 +321,7 @@ const TEMPLATES = [
     name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
     l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
   { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
-    name:{es:'Construcción',en:'Construction',id:'Konstruksi'},
+    name:{es:'Contrato Maestro de Construcción',en:'Master Construction Agreement',id:'Kontrak Induk Konstruksi'},
     l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
   { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#8F9B7A',
     name:{es:'Oferta Comercial (Apéndice D)',en:'Commercial Offer (Appendix D)',id:'Penawaran Komersial (Lampiran D)'},
@@ -1179,7 +1179,8 @@ function hitosRowsHTML(){
   // {{moneda}} literal: se resuelve en el pase genérico de marcadores que buildDoc()
   // corre justo después de insertar estas filas (ver buildDoc: hitos → luego {{...}}).
   return HITOS.map((h,i)=>{
-    const monto = (h.monto||'') ? `${esc(String(h.monto))} {{moneda}}` : '';
+    // .mny marca "esto es un importe" para que idrEquiv() le añada la equivalencia en IDR
+    const monto = (h.monto||'') ? `<span class="mny">${esc(String(h.monto))}</span> {{moneda}}` : '';
     // % vacío o 0 → celda en blanco, sin "0%". Un hito puede ser un importe
     // cerrado (la reserva) sin porcentaje del total que lo represente.
     const pct = (String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(String(h.pct))+'%';
@@ -1408,6 +1409,36 @@ function injectBrandAndCover(html, data){
   else html = design + html;
   return html;
 }
+/* ---------- equivalencia en IDR (petición del cliente, 22-jul) ----------
+   El contrato se firma en la moneda elegida y al lado de cada importe se
+   imprime su equivalente en rupias al tipo de cambio pactado (campo
+   tipo_cambio_idr). Sin tipo de cambio no se imprime NADA: un número de
+   cambio inventado en un contrato es peor que no ponerlo. */
+function parseImporte(s){
+  s = String(s==null?'':s).replace(/[^\d.,]/g,'');
+  if(!/\d/.test(s)) return null;
+  const d = s.lastIndexOf('.'), c = s.lastIndexOf(',');
+  let sep = d>c ? '.' : (c>d ? ',' : '');
+  // Un separador repetido (1.000.000) o seguido de exactamente 3 dígitos
+  // (79.000 / 1,500) agrupa miles; solo si no cumple ninguna de las dos es
+  // decimal (79.000,50 → ','). ponytail: "79.500" queriendo decir 79 con 5
+  // décimas se leería como 79.500 — en estos contratos no se escriben así.
+  const resto = s.slice(s.lastIndexOf(sep)+1);
+  if(sep && (s.split(sep).length>2 || /^\d{3}$/.test(resto))) sep='';
+  const n = parseFloat(sep ? s.replace(/[.,]/g, m=> m===sep?'.':'') : s.replace(/[.,]/g,''));
+  return isFinite(n) ? n : null;
+}
+function idrEquiv(html, data){
+  const cur = data.moneda, tasa = parseImporte(data.tipo_cambio_idr);
+  if(!cur || cur==='IDR' || !tasa) return html;
+  // .f = hueco de marcador, .mny = importe de la tabla de pagos. En ambos casos
+  // el código de moneda va justo detrás (viene de {{moneda}}, ya sustituido).
+  return html.replace(/(<span class="(?:f|mny)[^"]*">)([^<]*)(<\/span>\s*)(EUR|USD|AUD)\b/g,
+    (m, ini, val, fin, mon)=>{
+      const n = parseImporte(val);
+      return n===null ? m : `${ini}${val}${fin}${mon} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
+    });
+}
 function buildDoc(){
   const data=collect();
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
@@ -1429,6 +1460,7 @@ function buildDoc(){
     if(k==='proyecto_nombre') return filled ? esc(data[k]).toUpperCase() : '';   // el nombre de proyecto va SIEMPRE en mayúsculas
     return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
   });
+  html=idrEquiv(html, data);   // "79.000 EUR" → "79.000 EUR (≈ 1.343.000.000 IDR)"
   // anexos incluidos → páginas al final del contrato
   const ax=annexHTML();
   if(ax) html = html.includes('</body>') ? html.replace('</body>', ax+'</body>') : html+ax;
@@ -1461,6 +1493,12 @@ function deriveSections(){
   // plantilla", aunque no sea un marcador {{...}} (ver buildDoc()).
   [...templateHTML.matchAll(/<!--if:([a-z0-9_]+)=[a-z0-9_]+-->/g)].forEach(m=>inDoc.add(m[1]));
   inDoc.delete('cov_t'); inDoc.delete('cov_t_id');   // los calcula el motor, no son campos
+  // Estos dos no tienen marcador propio en la plantilla y aun así se preguntan:
+  // el proyecto porque identifica el contrato en la lista de guardados (desde el
+  // 22-jul ya no se imprime en la portada), y el tipo de cambio porque el motor
+  // lo usa para la equivalencia en IDR de cada importe (ver idrEquiv).
+  inDoc.add('proyecto_nombre');
+  if(inDoc.has('moneda')) inDoc.add('tipo_cambio_idr');
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
