@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260722150900">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260722160106">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -323,7 +323,8 @@ article:hover .view-cta { gap:9px; }
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;
   color:rgba(245,240,230,.92);text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .25s }
 #topbar.pdp .pdp-back .pb-chev{ font-size:1.15rem;line-height:0;font-weight:300;opacity:.85 }
-#topbar.pdp .pdp-back .pb-mark{ width:17px;height:auto;fill:currentColor;flex:none }
+#topbar.pdp .pdp-back .pb-mark{ width:18px;flex:none }
+#topbar.pdp:not(.solid) .pdp-back .pb-mark{ filter:drop-shadow(0 1px 6px rgba(0,0,0,.55)) }
 #topbar.pdp .pdp-back:hover{ color:#fff }
 /* Guía Ficha: el "‹ The Collection" manda desde arriba — en la ficha el logo no aparece nunca */
 #topbar.pdp .pdp-back{ display:inline-flex }
@@ -342,6 +343,12 @@ article:hover .view-cta { gap:9px; }
 .pdp-hero-ghost{ position:absolute; top:clamp(96px,12vh,132px); left:clamp(34px,4.4vw,80px); z-index:1; pointer-events:none;
   font-family:var(--sans); font-weight:300; font-size:clamp(30px,5.4vw,66px); letter-spacing:.05em; text-transform:uppercase;
   color:rgba(245,240,230,.14); line-height:1; white-space:nowrap }
+/* ── Isotipo real de marca (assets/img/isotipo.png, blanco sobre transparente) ──────────────
+   Va como MÁSCARA en vez de <img> para que tome el color del contexto: crema sobre el hero y
+   Burnt Earth sobre el topbar claro. Ratio del arte recortado 261/280. */
+.lw-iso{ display:block; aspect-ratio:261/280; background-color:currentColor;
+  -webkit-mask:url('assets/img/isotipo.png') center/contain no-repeat;
+          mask:url('assets/img/isotipo.png') center/contain no-repeat }
 /* La ficha respira más ancho que el marketplace (en la guía el contenido casi toca los bordes y
    solo el footer se queda en 1280) — de ahí un contenedor propio en vez de tocar --wrap global. */
 .pdp-wrap{ max-width:1760px }
@@ -445,18 +452,8 @@ article:hover .view-cta { gap:9px; }
 <!-- ═══ SVG BRAND ASSETS ════════════════════════════════════ -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
   <defs>
-    <symbol id="lawang-mark" viewBox="0 0 80 88">
-      <rect x="8" y="4" width="64" height="10" rx="2"/>
-      <rect x="8" y="14" width="16" height="34" rx="1"/>
-      <rect x="56" y="14" width="16" height="34" rx="1"/>
-      <rect x="24" y="20" width="32" height="7" rx="1.5"/>
-      <rect x="24" y="30" width="14" height="16" rx="1.5"/>
-      <rect x="42" y="30" width="14" height="16" rx="1.5"/>
-      <rect x="24" y="49" width="32" height="7" rx="1.5"/>
-      <rect x="8" y="48" width="16" height="32" rx="1"/>
-      <rect x="56" y="48" width="16" height="32" rx="1"/>
-      <rect x="8" y="74" width="64" height="10" rx="2"/>
-    </symbol>
+    <!-- #lawang-mark retirado 22-jul-2026: era una recreación geométrica de relleno. El isotipo
+         real vive en assets/img/isotipo.png y se pinta como máscara CSS (.lw-iso). -->
     <symbol id="icon-signature" viewBox="0 0 100 70">
       <path d="M50 60 C38 60 18 50 14 34 C12 24 18 16 28 18 C37 20 44 34 50 46 C56 34 63 20 72 18 C82 16 88 24 86 34 C82 50 62 60 50 60Z"/>
     </symbol>
@@ -807,8 +804,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260722150900"></script>
-<script src="assets/portfolio-app.js?v=20260722150900-aerial"></script>
+<script src="assets/lawang-card.js?v=20260722160106"></script>
+<script src="assets/portfolio-app.js?v=20260722160106-aerial"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
