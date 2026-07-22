@@ -836,7 +836,7 @@ function buildClausePanel(){
   const g='display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px';
   const rows = CLAUSES.map((c,i)=>`
     <div class="dz" data-clause="${c.id}">
-      <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Cláusula',en:'Clause',id:'Pasal'})} ${i+1}</span>
+      <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Artículo',en:'Article',id:'Pasal'})} ${i+1}</span>
         <span class="spacer" style="flex:1"></span>
         <label class="switch"><input type="checkbox" data-clon="${c.id}" ${c.on!==false?'checked':''}><span class="slider"></span></label>
         <button type="button" class="link-btn" data-cldel="${c.id}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
@@ -844,11 +844,11 @@ function buildClausePanel(){
         <div style="${g}">${box(c,'t',false)}</div></div>
       <div class="dz-row" style="display:block"><div style="font-size:11.5px;color:var(--muted);margin:6px 0 4px">${L({es:'Texto (ES · EN · Bahasa)',en:'Text (ES · EN · Bahasa)',id:'Teks (ES · EN · Bahasa)'})}</div>
         <div style="${g}">${box(c,'b',true)}</div></div>
-    </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Sin cláusulas adicionales. Añade una para insertar texto propio antes de las firmas.',en:'No additional clauses yet. Add one to insert your own text before the signatures.',id:'Belum ada pasal tambahan.'})}</div>`;
+    </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Sin artículos adicionales. Añade uno para insertar texto propio antes de las firmas.',en:'No additional articles yet. Add one to insert your own text before the signatures.',id:'Belum ada pasal tambahan.'})}</div>`;
   return `<section class="section design collapsed" id="clausePanel">
-    <header data-acc><span class="num">📝</span><h2>${L({es:'Cláusulas adicionales',en:'Additional clauses',id:'Pasal tambahan'})}</h2><span class="chev">▾</span></header>
+    <header data-acc><span class="num">📝</span><h2>${L({es:'Artículos adicionales',en:'Additional articles',id:'Pasal tambahan'})}</h2><span class="chev">▾</span></header>
     <div class="body">${rows}
-      <div class="dz"><button type="button" class="btn ghost" id="clauseAdd">+ ${L({es:'Añadir cláusula',en:'Add clause',id:'Tambah pasal'})}</button></div>
+      <div class="dz"><button type="button" class="btn ghost" id="clauseAdd">+ ${L({es:'Añadir artículo',en:'Add article',id:'Tambah pasal'})}</button></div>
     </div></section>`;
 }
 function wireClausePanel(){
