@@ -318,13 +318,13 @@ const TEMPLATES = [
   // los disabled) y TEMPLATES[0] es la plantilla que se abre al entrar. Los tres
   // primeros son la secuencia real de una venta: se reserva, se bloquea la
   // parcela y se firma la obra.
-  { slug:'carta_reserva', file:'templates/carta_reserva.html', cover:'#2E3437',
+  { slug:'carta_reserva', file:'templates/carta_reserva.html', cover:'#2E3437', num:1,
     name:{es:'Carta de Reserva',en:'Reservation Letter',id:'Surat Pemesanan'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
-  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37',
+  { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37', num:2,
     name:{es:'Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'},
     l2:{es:'de Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'}, ready:true },
-  { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B',
+  { slug:'ppjb_construccion', file:'templates/ppjb_construccion.html', cover:'#42210B', num:3,
     name:{es:'Contrato Maestro de Construcción',en:'Master Construction Agreement',id:'Kontrak Induk Konstruksi'},
     l2:{es:'de Construcción',en:'Construction',id:'Konstruksi'}, ready:true },
   { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
@@ -1593,7 +1593,9 @@ async function loadTemplate(slug){
 }
 function buildPicker(){
   const sel=$('#tplPick');
-  sel.innerHTML = TEMPLATES.filter(t=>!t.disabled).map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
+  // El número va SOLO en el desplegable, no en t.name: ese nombre se imprime en
+  // la portada del contrato y da nombre al PDF, y ahí un "2." no pinta nada.
+  sel.innerHTML = TEMPLATES.filter(t=>!t.disabled).map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
   sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; LOCKED=false; LOCKED_PDF_PATH=null; await loadTemplate(sel.value); buildForm();
     updateSaveButton();
     if(DESIGN.coverColor===''){ const c=$('#coverColor'); if(c) c.value=CURRENT.cover; } });
