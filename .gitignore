@@ -24,3 +24,6 @@ assets/guide/
 # máster pesado del hero (solo local)
 assets/img/Hero.png
 # Hero2.png SÍ se versiona: es el fondo del hero (alta calidad, petición cliente)
+
+# Documentos legales reales del cliente (contratos/NDA firmados) — repo PUBLICO, nunca versionar
+legal/
