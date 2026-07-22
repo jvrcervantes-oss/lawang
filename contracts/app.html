@@ -537,7 +537,14 @@ function langCSS(){
     // leían como un solo bloque; este aire es lo que las separa de un vistazo.
     // float izq/der + clear = dos columnas independientes.
     + `${L2},${IDs}{width:47%;box-sizing:border-box}`
-    + `${L2}{float:left;clear:left}`
+    // clear:both en la columna base (no clear:left) — cada pareja arranca una
+    // fila nueva. Con clear:left cada columna se apilaba contra sí misma y, en
+    // cuanto un párrafo español era más largo que su bahasa, la pareja se iba
+    // desalineando y el desfase se acumulaba: al final del contrato el Pasal 3
+    // quedaba a la altura del Artículo 2 (visible en el Artículo 15, el último).
+    // Coste: un hueco en blanco cuando una versión es más corta. Barato al lado
+    // de que el lector no pueda emparejar las cláusulas.
+    + `${L2}{float:left;clear:both}`
     + `${IDs}{float:right;clear:right}`
     // Los RÓTULOS (h2/h3) también en dos columnas: el idioma base centrado en su
     // columna y el Bahasa centrado en la suya, en vez de apilados a lo ancho de
