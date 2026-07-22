@@ -90,7 +90,7 @@
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
       +   '<div class="nav-lang-wrap nav-cur-wrap" id="curWrap"><button class="nav-lang" data-act="cur-toggle" aria-haspopup="listbox" aria-expanded="'+(S.curOpen?'true':'false')+'" aria-label="Currency"><span>'+S.cur+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.curOpen?' open':'')+'" role="listbox">'+ci('EUR','€')+ci('USD','$')+ci('AUD','A$')+'</ul></div>'
-      +   '<a class="nav-cta" href="'+waUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span>'+t("cta.ask")+'</span></a>'
+      +   '<a class="nav-cta" href="'+waUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span>'+(ghost?tl("Request details","Solicitar detalles"):t("cta.ask"))+'</span></a>'
       + '</div></header>';
   }
 
@@ -325,21 +325,36 @@
     var bg = key
       ? '<img src="'+esc(imgUrl(key,2400))+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
       : '';
+    // Guía Ficha p1: el claim va en DOS niveles — el sub de la propiedad en fino y, debajo,
+    // el destacado (metaText) grande en negrita. Sin metaText se queda solo el sub, sin inventar línea.
+    var claim = pick(p.sub)
+      ? '<p style="font-family:var(--sans);font-weight:400;font-size:clamp(14px,1.7vw,26px);letter-spacing:.045em;text-transform:uppercase;line-height:1.3;margin:0 auto;max-width:34ch">'+esc(pick(p.sub))+'</p>' : '';
+    if(pick(p.metaText)) claim += '<p class="display" style="font-weight:600;font-size:clamp(26px,4.2vw,52px);letter-spacing:.02em;text-transform:uppercase;line-height:1.08;margin:clamp(6px,1vh,12px) auto 0;max-width:22ch">'+esc(pick(p.metaText))+'</p>';
     return '<section class="pdp-hero" style="position:relative;min-height:clamp(540px,84vh,820px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#1a160f">'
       + '<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0;opacity:'+(key?0:1)+'"></div>'
       + bg
       + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,11,.5) 0%,rgba(20,16,11,.12) 30%,rgba(20,16,11,.32) 66%,rgba(20,16,11,.8) 100%)"></div>'
+      // Marca de agua "THE COLLECTION" y marco interior de filete: los dos rasgos del hero de la guía
+      + '<div aria-hidden="true" class="pdp-hero-ghost">'+esc(t("crumb.portfolio"))+'</div>'
+      + '<span aria-hidden="true" class="pdp-hero-frame"></span>'
       // Migas dentro del hero, bajo el topbar (guía Ficha p1)
-      + '<div style="position:absolute;top:clamp(84px,10.5vh,116px);left:0;right:0;z-index:3"><div class="wrap">'+breadcrumbsHTML(p,true)+'</div></div>'
-      + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1000px">'
+      + '<div style="position:absolute;top:clamp(84px,10.5vh,116px);left:0;right:0;z-index:3"><div class="wrap pdp-wrap">'+breadcrumbsHTML(p,true)+'</div></div>'
+      + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1100px">'
       +   '<svg viewBox="0 0 80 88" aria-hidden="true" style="width:clamp(38px,4.4vw,52px);height:auto;margin:0 auto 26px;display:block;fill:var(--bone);opacity:.95"><use href="#lawang-mark"/></svg>'
       +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
       +   '<div style="margin-top:clamp(24px,3.4vh,38px)">'+release+'</div>'
-      +   (pick(p.sub) ? '<p style="font-family:var(--sans);font-weight:400;font-size:clamp(15px,2vw,24px);letter-spacing:.06em;text-transform:uppercase;line-height:1.35;margin:0 auto;max-width:22ch">'+esc(pick(p.sub))+'</p>' : '')
+      +   claim
       +   '<p style="font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.2vw,15px);letter-spacing:.28em;text-transform:uppercase;opacity:.9;margin-top:clamp(22px,3vh,34px)">'+esc(loc)+'</p>'
       + '</div>'
-      + '<div aria-hidden="true" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:2;color:var(--bone);opacity:.7;font-size:22px;line-height:1">⌄</div>'
       + '</section>';
+  }
+
+  // Burbuja flotante de WhatsApp (guía Ficha p1, esquina inferior derecha) — visible en toda la ficha.
+  function waFloatHTML(p){
+    var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
+    var waUrl='https://wa.me/'+waNum+'?text='+encodeURIComponent("Hello! I'm interested in "+pick(p.title)+".");
+    return '<a class="pdp-wa-float" href="'+waUrl+'" target="_blank" rel="noopener" aria-label="WhatsApp">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg></a>';
   }
 
   // ── Banner statement full-width entre configurador y "more in this line" (guía Ficha).
@@ -407,16 +422,22 @@
     if(!avail && p.built>0) avail = p.built+" m²";
     if(!avail && p.land>0)  avail = p.land+" m²";
     if(avail) specs.push({l:tl("Available","Disponible"), v:avail});
-    if(pick(p.metaText)) specs.push({l:tl("Highlight","Destacado"), v:pick(p.metaText), hi:true});
+    // El metaText es ahora el claim grande del hero; la 6ª celda la ocupa el dato legal que
+    // antes vivía en el sidebar (eliminado según la guía): la PT PMA de las freehold.
+    // El importe orientativo de la PT PMA sigue detallado en la nota del plan de pagos; aquí basta
+    // "Included" para que el valor quepa en una línea como en la guía.
+    if(isF) specs.push({l:t("glance.ptpma"), v:tl("Included","Incluida"), hi:true});
     if(specs.length===0) return "";
     var cells = specs.map(function(sp){
       var val = sp.hi ? 'var(--tg)' : 'var(--be)';
-      return '<div style="flex:1 1 110px;padding:20px 22px">'
-        + '<div style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);border-bottom:1.5px solid rgba(72,91,55,.32);padding-bottom:6px;margin-bottom:11px;font-family:var(--sans)">'+esc(sp.l)+'</div>'
-        + '<div style="font-family:var(--sans);font-size:clamp(18px,1.6vw,23px);font-weight:600;color:'+val+';line-height:1.15">'+esc(sp.v)+'</div></div>';
+      // flex:auto + nowrap → cada valor en una sola línea y el sobrante se reparte (guía Ficha p2)
+      return '<div style="flex:1 1 auto;padding:22px 24px">'
+        + '<div style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);border-bottom:1.5px solid rgba(72,91,55,.32);padding-bottom:6px;margin-bottom:11px;font-family:var(--sans);white-space:nowrap">'+esc(sp.l)+'</div>'
+        + '<div style="font-family:var(--sans);font-size:clamp(18px,1.6vw,23px);font-weight:600;color:'+val+';line-height:1.15;white-space:nowrap">'+esc(sp.v)+'</div></div>';
     }).join("");
-    // flex-wrap → las celdas se estiran para llenar el ancho (con 3 o con 6), sin huecos
-    return '<div class="tech-specs-grid" style="height:100%;background:rgba(255,255,255,.5);border:1px solid var(--line);border-radius:14px;display:flex;flex-wrap:wrap;align-content:flex-start;box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
+    // Tarjeta blanca que abraza su contenido (guía Ficha p2): sin height:100% — estirarla dejaba
+    // un hueco blanco enorme cuando la columna de contacto era más alta.
+    return '<div class="tech-specs-grid" style="background:#fff;border-radius:14px;display:flex;flex-wrap:wrap;box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
   }
 
   // Tarjeta verde "Talk to the team" (WhatsApp + Enquire) + gate de descargas — va a la DERECHA
@@ -426,10 +447,15 @@
     var email = (L.SETTINGS&&L.SETTINGS.email)||"sales@lawangproperties.com";
     var waUrl = "https://wa.me/"+waNum+"?text="+encodeURIComponent("Hello! I'm interested in "+pick(p.title)+". Can we schedule a call?");
     var files = (p.downloads&&p.downloads.length)?p.downloads:null;
+    // Guía Ficha p2: el 2º botón de la tarjeta verde es "UNLOCK DOWNLOADS" y lleva al gate de email
+    // que vive justo debajo. Sin descargas cargadas no hay nada que desbloquear → vuelve a "Enquire".
+    var second = (files && !S.dlUnlocked)
+      ? '<button data-act="dl-focus" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:13px 20px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">'+t("dl.gate.cta")+'</button>'
+      : '<a href="mailto:'+esc(email)+'" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:11px 20px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--sans)">'+t("pd.enquire")+' →</a>';
     return '<div style="display:flex;flex-direction:column;gap:14px">'
       + '<div style="background:var(--tg);border-radius:14px;overflow:hidden"><div style="padding:18px 20px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,0.5);margin-bottom:6px">'+t("wa.title")+'</div><p style="font-size:12.5px;color:rgba(245,240,230,0.7);margin-bottom:0;line-height:1.5">'+t("wa.sub")+'</p></div>'
       +   '<div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:10px"><a href="'+waUrl+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;padding:12px 20px;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:var(--sans)">✓ '+t("wa.cta")+'</a>'
-      +   '<a href="mailto:'+esc(email)+'" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:11px 20px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--sans)">'+t("pd.enquire")+' →</a></div></div>'
+      +   second+'</div></div>'
       + (files?downloadsHTML(files,p):"")
       + '</div>';
   }
@@ -438,7 +464,7 @@
   function specsBandHTML(p){
     var specs = techSpecsHTML(p);
     if(!specs) return "";
-    return '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px);display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:clamp(14px,1.6vw,22px);align-items:stretch">'
+    return '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px);display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:clamp(14px,1.6vw,22px);align-items:start">'
       + '<div>'+specs+'</div>'
       + '<div>'+talkToTeamHTML(p)+'</div>'
       + '</div>';
@@ -515,39 +541,38 @@
         + (lbl ? '<span class="pdp-pin-l" style="font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:rgba(20,16,11,.6);padding:3px 9px;border-radius:999px;white-space:nowrap;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)">'+esc(lbl)+'</span>' : '')
         + '</span>';
     }).join("");
-    var mapHTML = p.mapImage
-      ? '<div style="position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--bone-2);min-height:280px">'
-        + '<img src="'+esc(p.mapImage)+'" alt="'+esc(tl("Location map","Mapa de situación"))+'" loading="lazy" style="display:block;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
-        + pins + '</div>'
-      : '';
+    var mapHTML = mapMediaHTML(p.mapImage, pins);
     var bulletsHTML = bullets.length
       ? '<ul style="list-style:none;margin:clamp(24px,3vw,34px) 0 0;padding:0;display:flex;flex-direction:column;gap:14px">'
         + bullets.map(function(b){ return '<li style="display:flex;gap:14px;align-items:flex-start"><span aria-hidden="true" style="width:22px;height:1px;background:var(--tg);flex:none;margin-top:11px;opacity:.7"></span><span style="font-family:var(--sans);font-size:clamp(14px,1.25vw,16px);font-weight:500;letter-spacing:.04em;line-height:1.5;color:var(--ink)">'+esc(b)+'</span></li>'; }).join("")
         + '</ul>'
       : '';
-    return '<section style="margin-top:clamp(56px,7vw,96px)"><div class="pdp-territory" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(28px,4.5vw,64px);align-items:center">'
-      + '<div>'
-      +   '<div class="kicker">'+esc(pick(tr.title) || tl("The Territory","El territorio"))+'</div>'
-      +   (body ? '<p style="font-family:var(--sans);font-size:clamp(16px,1.6vw,20px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(body)+'</p>' : '')
+    // Guía Ficha p4: kicker fijo "THE TERRITORY" + titular verde grande (el tr.title del admin),
+    // narrativa, bullets y mapa DEBAJO — la columna entera es el bloque derecho de la ficha.
+    return '<section class="pdp-territory">'
+      +   '<div class="kicker">'+tl("The Territory","El territorio")+'</div>'
+      +   (pick(tr.title) ? '<h3 class="pdp-block-h">'+esc(pick(tr.title))+'</h3>' : '')
+      +   (body ? '<p style="font-family:var(--sans);font-size:clamp(15px,1.45vw,18px);font-weight:300;line-height:1.7;margin-top:18px;color:var(--ink)">'+esc(body)+'</p>' : '')
       +   bulletsHTML
-      + '</div>'
-      + '<div>'+mapHTML+'</div>'
-      + '</div></section>';
+      +   (mapHTML ? '<div style="margin-top:clamp(24px,3vw,34px)">'+mapHTML+'</div>' : '')
+      + '</section>';
   }
 
   // ── DESIGNED TO LAST (guía Ficha p5): principios del producto, en columnas. Editable en admin.
   function principlesHTML(p){
     var items = (p.principles||[]).filter(function(x){ return pick(x.title) || pick(x.text); });
     if(!items.length) return "";
+    // Guía Ficha p4: lista con viñeta — título verde en negrita y el texto debajo, en una columna.
     var cells = items.map(function(x){
-      return '<div style="flex:1 1 200px;min-width:0">'
-        + '<div class="serif" style="font-size:clamp(19px,1.9vw,24px);font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:#42210B;line-height:1.15">'+esc(pick(x.title))+'</div>'
-        + '<div style="width:34px;height:1px;background:var(--tg);margin:14px 0 12px;opacity:.6"></div>'
-        + '<p style="font-family:var(--sans);font-size:clamp(13.5px,1.2vw,15px);font-weight:300;line-height:1.6;color:var(--ink-2)">'+esc(pick(x.text))+'</p></div>';
+      return '<li style="display:flex;gap:11px;align-items:flex-start">'
+        + '<span aria-hidden="true" style="color:var(--tg);line-height:1.4;flex:none">•</span><span style="min-width:0">'
+        + '<span style="display:block;font-family:var(--sans);font-size:clamp(14px,1.3vw,16px);font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--tg);line-height:1.4">'+esc(pick(x.title))+'</span>'
+        + '<span style="display:block;font-family:var(--sans);font-size:clamp(13.5px,1.25vw,16px);font-weight:300;line-height:1.6;color:var(--ink);margin-top:3px">'+esc(pick(x.text))+'</span>'
+        + '</span></li>';
     }).join("");
-    return '<section style="margin-top:clamp(56px,7vw,96px);padding-top:clamp(32px,4vw,48px);border-top:1px solid var(--line)">'
-      + '<div class="kicker" style="margin-bottom:clamp(24px,3vw,36px)">'+esc(tl("Designed to last","Diseñado para durar"))+'</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:clamp(24px,3.5vw,48px)">'+cells+'</div></section>';
+    return '<section style="margin-top:clamp(40px,5vw,64px)">'
+      + '<div class="kicker" style="margin-bottom:clamp(18px,2.2vw,26px)">'+esc(tl("Designed to last","Diseñado para durar"))+'</div>'
+      + '<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(14px,1.8vw,20px)">'+cells+'</ul></section>';
   }
 
   function downloadsHTML(files, p){
@@ -574,33 +599,8 @@
     return '<div style="padding:18px;background:var(--bone);border:1px solid var(--line);border-radius:8px">'+head+inner+'</div>';
   }
 
-  function sidebarHTML(p){
-    var isF = p.tenure==="tenure.freehold";
-    var row='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);gap:12px';
-    var lbl='font-size:12.5px;color:var(--ink-2);font-weight:500;flex-shrink:0';
-    var val='font-size:13px;text-align:right';
-    var hasPrice = !!p.priceEUR;
-    var curRows = hasPrice ? ["EUR","USD","AUD"].map(function(c){ return '<div style="font-size:12px;color:var(--ink-2)"><span style="font-weight:600">'+c+'</span> '+money(p.priceEUR,c)+'</div>'; }).join("") : "";
-    var priceNoteHTML = hasPrice ? '<div style="font-size:11px;color:var(--ink-2);margin-top:6px;opacity:.65">'+t("pd.pricenote")+'</div>' : "";
-    var units = (p.unitsAvailable!=null&&p.unitsAvailable!=="") ? '<div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between"><span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">'+t("glance.units")+'</span><span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600"><span style="width:7px;height:7px;border-radius:999px;background:'+(Number(p.unitsAvailable)>0?"var(--tg)":"var(--ink-2)")+'"></span>'+esc(p.unitsAvailable)+(p.unitsTotal?" / "+esc(p.unitsTotal):"")+'</span></div>' : "";
-    var locationRow = p.region ? '<div style="padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)">'+t("glance.location")+'</span><span style="font-size:13px;font-weight:600">'+esc(p.region)+'</span></div>' : "";
-    return '<div style="display:flex;flex-direction:column;gap:14px">'
-      + '<div style="background:var(--bone-2);border:1px solid var(--line);border-radius:10px;overflow:hidden">'
-      +   '<div style="padding:22px 20px 18px;border-bottom:1px solid var(--line)"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">'+t("glance.entry")+'</div>'
-      +     '<div class="serif" style="font-size:clamp(28px,2.8vw,36px);font-weight:600;line-height:1;color:#324820">'+priceHTML(p.priceEUR,true)+'</div>'
-      +     (curRows?'<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">'+curRows+'</div>':'')
-      +     priceNoteHTML+'</div>'
-      +   locationRow
-      +   units
-      +   '<div style="padding:14px 20px"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:10px">Legal</div>'
-      +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.tenure")+'</span><span style="'+val+';font-weight:600;color:'+(isF?"var(--tg)":"inherit")+'">'+(isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr"))+'</span></div>'
-      +     (isF?'<div style="'+row+'"><span style="'+lbl+'">'+t("glance.ptpma")+'</span><span style="'+val+'">Included · ~€1,000</span></div>':"")
-      +     '<div style="'+row+'"><span style="'+lbl+'">'+t("glance.delivery")+'</span><span style="'+val+'">'+(p.handover!=="—"?esc(p.handover):"On request")+'</span></div>'
-      +     (p.status?'<div style="'+row+';border-bottom:none"><span style="'+lbl+'">'+t("glance.status")+'</span><span style="'+val+'">'+t(p.status)+'</span></div>':'')+'</div>'
-      + '</div>'   // cierra entry-card
-      + '</div>';  // cierra el contenedor flex-col del sidebar
-    // Talk-to-team + descargas se movieron a la banda de specs (specsBandHTML) según la referencia.
-  }
+  // El sidebar "Entry price / Location / Legal" desapareció con el calco de la guía (jul-2026):
+  // el precio ya vive en la cabecera y en el aéreo, y lo legal pasó a la franja de specs.
 
   function investmentCalcHTML(p, priceEUR){
     var price = priceEUR!=null?priceEUR:p.priceEUR;
@@ -746,7 +746,16 @@
         + '<button data-act="cfg-reset" style="background:none;border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-2)">↺ '+t("cfg.restart")+'</button>'
         + '<a href="'+reserveWaUrl(p,cfg)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;border-radius:999px;padding:12px 26px;font-family:var(--sans);font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px -6px rgba(37,211,102,.6)"><svg viewBox="0 0 24 24" fill="currentColor" style="width:17px;height:17px"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg>'+t("reserve.cta")+' →</a>'
         + '</div>';
-    return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("cfg.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:22px;max-width:46ch">'+t("cfg.sub")+'</p>'
+    // Guía Ficha p4: kicker "THE MASTERPLAN" + titular verde grande. El titular se construye con
+    // datos reales (nº de parcelas y la más pequeña); sin parcelas cargadas cae al título genérico.
+    var head = t("cfg.title");
+    if(cfg.landOptions && cfg.landOptions.length){
+      var sizes = cfg.landOptions.map(function(o){ return Number(o.size)||0; }).filter(Boolean);
+      if(sizes.length) head = cfg.landOptions.length+" "+tl("plots","parcelas")+". "+tl("From","Desde")+" "+Math.min.apply(null,sizes)+" m².";
+    }
+    return '<div style="margin-top:clamp(40px,5vw,64px)"><div class="kicker">'+tl("The Masterplan","El masterplan")+'</div>'
+      + '<h3 class="pdp-block-h">'+esc(head)+'</h3>'
+      + '<p style="font-size:14.5px;color:var(--ink-2);margin:14px 0 22px;max-width:46ch">'+t("cfg.sub")+'</p>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:26px">'+prog+totalChip+'</div>'
       + '<div class="cfg-step">'+stepHead+sObj.content+'</div>'
       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:30px;padding-top:20px;border-top:1px solid var(--line)">'
@@ -759,16 +768,44 @@
     var col   = ghost ? 'rgba(245,240,230,.78)' : 'var(--ink-2)';
     var colOn = ghost ? 'var(--bone)' : 'var(--ink)';
     var shadow= ghost ? 'text-shadow:0 1px 10px rgba(0,0,0,.55);' : '';
-    var sep='<span aria-hidden="true" style="opacity:.55;margin:0 11px">›</span>';
-    var lk=function(label,act){ return '<button data-act="'+act+'" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;letter-spacing:.16em;color:'+col+'">'+esc(label)+'</button>'; };
+    var sep='<span aria-hidden="true" style="opacity:.75;margin:0 11px">›</span>';
+    // uppercase explícito: el reset de <button> del tema pisa el text-transform heredado del <nav>
+    var lk=function(label,act){ return '<button data-act="'+act+'" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;text-transform:uppercase;letter-spacing:.16em;color:'+col+'">'+esc(label)+'</button>'; };
     return '<nav aria-label="Breadcrumb" style="font-family:var(--sans);font-size:clamp(10px,1vw,12.5px);font-weight:400;text-transform:uppercase;letter-spacing:.16em;display:flex;flex-wrap:wrap;align-items:center;'+shadow+(ghost?'':'margin-bottom:22px')+'">'
       + lk(t("crumb.home"),"go-home")+sep+lk(t("crumb.portfolio"),"close")+sep+lk(t(LINE_KEYS[p.line]),"close")+sep+'<span style="color:'+colOn+';letter-spacing:.16em;font-weight:'+(ghost?'600':'500')+'">'+esc(pick(p.title))+'</span></nav>';
   }
 
+  // El campo "mapImage" del admin recibe indistintamente una imagen subida o un enlace de Google Maps
+  // (el cliente pegó https://maps.app.goo.gl/… en Palm Field y salía un <img> roto en producción).
+  // Se decide por la forma del valor: imagen → <img>; cualquier otra URL → botón al mapa; vacío → nada.
+  function mapMediaHTML(url, pins){
+    url = String(url||"").trim();
+    if(!url) return '';
+    if(/\.(jpe?g|png|webp|avif|gif|svg)(\?|#|$)/i.test(url) || url.indexOf("/assets/")===0){
+      return '<div class="pdp-map" style="position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--bone-2);min-height:280px">'
+        + '<img src="'+esc(url)+'" alt="'+esc(tl("Location map","Mapa de situación"))+'" loading="lazy" style="display:block;width:100%;height:100%;object-fit:cover" onerror="var b=this.closest(\'.pdp-map\'); if(b) b.remove();">'
+        + (pins||'') + '</div>';
+    }
+    if(!/^https?:\/\//i.test(url)) return '';  // ni imagen ni URL navegable -> no se enseña nada roto
+    return '<a class="pdp-map" href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:13px 20px;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--tg);text-decoration:none;background:var(--bone-2)">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;flex:none" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+      + esc(tl("View on Google Maps","Ver en Google Maps"))+' <span aria-hidden="true">↗</span></a>';
+  }
+
   function mapBlockHTML(p){
-    if(!p.mapImage) return '';  // sin mapa cargado en el admin -> no se muestra nada al cliente
-    var body = '<img src="'+esc(p.mapImage)+'" alt="'+t("map.title")+'" loading="lazy" style="width:100%;border-radius:10px;display:block;border:1px solid var(--line)">';
+    var body = mapMediaHTML(p.mapImage);
+    if(!body) return '';  // sin mapa cargado en el admin -> no se muestra nada al cliente
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:20px">'+t("map.title")+'</div>'+body+'</div>';
+  }
+
+  // ── Banner "El proceso de reserva" antes del footer (guía Ficha p6): imagen, filete vertical y
+  //    dos líneas. Lleva al bloque #process del marketplace (cierra la ficha y baja hasta él).
+  function processBannerHTML(){
+    return '<div class="pdp-process-banner" data-act="go-process" role="button" tabindex="0">'
+      + '<img src="assets/img/aerial-1.jpg" alt="" loading="lazy">'
+      + '<span class="pdp-pb-veil"></span>'
+      + '<span class="pdp-pb-txt"><span class="pdp-pb-1">'+t("ft.reserve.k")+'</span><span class="pdp-pb-2">'+t("proc.title")+'</span></span>'
+      + '</div>';
   }
 
   function signatureNoteHTML(p){
@@ -787,8 +824,11 @@
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
     var territory = territoryHTML(p);  // si hay territorio, el mapa va ahí y no se repite arriba
     var subText = pick(p.sub);
-    // Sub bajo el título: uppercase ligera y grande, como en la guía (Ficha p2), no el w500 pequeño
-    var subHTML = subText ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:46ch">'+esc(subText)+'</p>' : "";
+    // Sub bajo el título: uppercase ligera y grande y, en negrita al final, el régimen de tenencia
+    // ("… FREEHOLD LAND.") tal cual la guía Ficha p2. El dato sale de p.tenure, no se escribe a mano.
+    var tenureTag = p.tenure==="tenure.freehold" ? tl("Freehold land.","Suelo en freehold.")
+                  : (p.tenure ? tl("Leasehold "+(p.leaseYears||30)+" yr.","Leasehold "+(p.leaseYears||30)+" años.") : "");
+    var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:52ch">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
     var descText = pick(p.desc);
     var overviewHTML = descText ? '<div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(descText)+'</p></div>' : "";
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
@@ -798,7 +838,7 @@
     // "LÍNEA › ESTADO" en gris sobre el precio. Migas y "volver" viven ahora en hero y topbar.
     return '<div>'   // sin padding inferior: el footer cierra la página
       + heroHTML(p)
-      + '<div class="wrap" style="padding-top:clamp(36px,4.5vw,64px)">'
+      + '<div class="wrap pdp-wrap" style="padding-top:clamp(36px,4.5vw,64px)">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
       +   '<h1 class="display" style="font-size:clamp(38px,5.8vw,74px);font-weight:300;letter-spacing:.055em;text-transform:uppercase;color:var(--ink);line-height:1">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
       +   '<div style="flex-shrink:0;text-align:right">'
@@ -807,20 +847,22 @@
       +     '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
       + specsBandHTML(p)
-      + '<div class="pdp-cols" style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);margin-top:56px;align-items:start">'
-      +   '<div>'+overviewHTML
-      +     (territory ? "" : mapBlockHTML(p))+leftMain+'</div>'
-      +   '<div style="position:sticky;top:80px">'+sidebarHTML(p)+'</div>'
-      + '</div>'
+      + (overviewHTML ? '<div style="margin-top:clamp(28px,3.4vw,44px);max-width:96ch">'+overviewHTML+'</div>' : "")
       + '</div>'  // /wrap
       + (aerialHotspotsHTML(p) || fullBleedImageHTML(p))  // aéreo con hotspots si hay datos; si no, imagen full-bleed
-      + '<div class="wrap">'
-      + territory
-      + principlesHTML(p)
+      + '<div class="wrap pdp-wrap">'
+      // Guía Ficha p4: masterplan/configurador + "Designed to last" a la izquierda, "The Territory"
+      // con su mapa a la derecha. Sin territorio cargado la izquierda ocupa todo el ancho.
+      + '<div class="pdp-cols'+(territory?'':' pdp-cols-solo')+'" style="display:grid;grid-template-columns:'+(territory?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)')+';gap:clamp(28px,5vw,72px);align-items:start">'
+      +   '<div>'+leftMain+principlesHTML(p)+'</div>'
+      +   (territory ? '<div>'+territory+'</div>' : mapBlockHTML(p))
+      + '</div>'
       + statementBannerHTML(p)
       + alsoHTML
+      + processBannerHTML()
       + '</div>'
       + footerCoreHTML()   // mismo footer del marketplace (guía Ficha p6): franja de contacto + footer verde
+      + waFloatHTML(p)
       + '</div>';
   }
 
@@ -894,6 +936,10 @@
     else if(cmd==="cfg-reset"){ S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; render(); }
     else if(cmd==="close"){ closeProperty(); }
     else if(cmd==="go-home"){ window.location.href="index.html"; }
+    // Botón "Unlock downloads" de la tarjeta verde: baja al gate y enfoca el email (guía Ficha p2)
+    else if(cmd==="dl-focus"){ var inp=document.getElementById("dl-email"); if(inp){ inp.scrollIntoView({behavior:"smooth",block:"center"}); inp.focus({preventScroll:true}); } }
+    // Banner del proceso: cierra la ficha y baja al bloque #process del marketplace
+    else if(cmd==="go-process"){ closeProperty(); var pr=document.getElementById("process"); if(pr) pr.scrollIntoView({behavior:"smooth",block:"start"}); }
   }
 
   function bindEvents(){
