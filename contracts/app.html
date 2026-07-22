@@ -1084,24 +1084,38 @@ function fieldHTML(f){
     // que ser un slug estable y la etiqueta visible puede ser más larga.
     const opts=(extra||[]).map(o=>{ const [v,lbl]=Array.isArray(o)?o:[o,o];
       return `<option value="${escAttr(v)}" ${v===def?'selected':''}>${lbl}</option>`; }).join('');
-    return `<div class="field"><label>${label}</label><select name="${key}"><option value=""></option>${opts}</select></div>`;
+    return `<div class="field" data-key="${key}"><label>${label}</label><select name="${key}"><option value=""></option>${opts}</select></div>`;
   }
   if(type==='textarea'){
-    return `<div class="field" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
+    return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
   }
   if(type==='readonly'){
     // Nº de contrato: lo asigna el trigger de Supabase al guardar (guardarContrato()
     // escribe .value) y NO se teclea a mano — dejarlo editable permite firmar un
     // contrato con un número que no es el de la base de datos.
-    return `<div class="field"><label>${label}</label>
+    return `<div class="field" data-key="${key}"><label>${label}</label>
       <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
   }
   const t = (type==='money'||type==='number') ? 'number' : (type==='date'?'date':'text');
   const step = type==='money' ? 'step="0.01"' : '';
-  return `<div class="field"><label>${label}</label>
+  return `<div class="field" data-key="${key}"><label>${label}</label>
     <input name="${key}" type="${t}" ${step} value="${def}" autocomplete="off"></div>`;
 }
 
+/* Campos que solo se preguntan según lo que valga otro campo — el equivalente
+   en el formulario de los bloques <!--if:campo=valor--> de las plantillas. Si el
+   campo que manda no está en esta plantilla, la regla no aplica: precio_reserva
+   se sigue preguntando en la Carta, que no tiene forma de pago. */
+const CAMPO_SI = { precio_reserva: ['modalidad_pago', 'reserva'] };
+function aplicarReglasCampos(){
+  const form = $('#form'); if(!form) return;
+  Object.entries(CAMPO_SI).forEach(([key, [manda, valor]])=>{
+    const caja = form.querySelector(`.field[data-key="${key}"]`);
+    const jefe = form.querySelector(`[name="${manda}"]`);
+    if(!caja || !jefe) return;
+    caja.style.display = (jefe.value === valor) ? '' : 'none';
+  });
+}
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
   const form = $('#form');
@@ -1159,8 +1173,9 @@ function buildForm(){
       sec.classList.toggle('off', !chk.checked); if(chk.checked) ensurePads(sec); render(); });
   });
   form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>{ clearPad(b.dataset.clear); render(); }));
-  form.querySelectorAll('input[name],textarea[name],select[name]').forEach(el=> el.addEventListener('input', renderDebounced));
-  form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', render));
+  form.querySelectorAll('input[name],textarea[name],select[name]').forEach(el=> el.addEventListener('input', ()=>{ aplicarReglasCampos(); renderDebounced(); }));
+  form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', ()=>{ aplicarReglasCampos(); render(); }));
+  aplicarReglasCampos();   // estado inicial de los campos condicionados
   ensurePads(form);   // secciones visibles al arrancar
   updateSaveButton(); // muestra/oculta "Guardar en base de datos" según la plantilla
   render();
