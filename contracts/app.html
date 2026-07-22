@@ -1095,7 +1095,11 @@ function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
   const form = $('#form');
   const anexosAlFinal = FORM_ORDER.includes('anexos');
-  let html = buildDesignPanel() + (anexosAlFinal ? '' : buildAnnexPanel()) + buildClausePanel()   // paneles Diseño, Anexos y Cláusulas primero
+  // El panel de Cláusulas solo si la plantilla las imprime: sin el marcador, lo
+  // que el agente escribiera ahí desaparecía sin decir nada (mismo criterio que
+  // el panel de Compradores, que ya iba condicionado).
+  let html = buildDesignPanel() + (anexosAlFinal ? '' : buildAnnexPanel())
+    + (templateHTML.includes('<!--extra-clauses-->') ? buildClausePanel() : '')
     + (templateHTML.includes('<!--compradores-extra-->') ? buildCompradorPanel() : '');   // solo si la plantilla lo imprime
   // un rótulo por tier la PRIMERA vez que aparece: con FORM_ORDER los tiers ya
   // no son contiguos y comparar solo con el anterior repetía el mismo rótulo.
@@ -1239,8 +1243,16 @@ const CUENTAS_BANCARIAS = {
 };
 const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
   .sort((a,b)=>a[1].localeCompare(b[1],'es'));   // orden alfabético por etiqueta
-// Construcción usa SOLO la cuenta de Sandal Woods (Singapur); el resto de contratos, todas.
-function bankOptionsFor(slug){ return slug==='ppjb_construccion' ? BANK_OPTIONS.filter(o=>o[0]==='sandalwoods_dbs_sg') : BANK_OPTIONS; }
+// Construcción usa SOLO la cuenta de Sandal Woods (Singapur). Las cuentas de
+// notario son de ESCROW: al elegir una, datosBancariosHTML imprime sola la
+// declaración "depósito en garantía", que solo tiene sentido donde el contrato
+// pacta escrow notarial (Reserva de Parcela). Ofrecerlas en los demás invita a
+// mandar el dinero al sitio equivocado con una cláusula que nadie pactó.
+function bankOptionsFor(slug){
+  if(slug==='ppjb_construccion') return BANK_OPTIONS.filter(o=>o[0]==='sandalwoods_dbs_sg');
+  if(slug==='ppjb_parcela') return BANK_OPTIONS;
+  return BANK_OPTIONS.filter(o=>!o[0].startsWith('notario_'));
+}
 /* etiqueta legible del régimen de tenencia (el select guarda un código; el contrato
    imprime esto — ver buildDoc). Los bloques <!--if:regimen_tenencia=CODE--> siguen
    usando el código crudo, no se ven afectados. */
@@ -1786,7 +1798,16 @@ async function openSavedContract(id){
   if(d.annexes){ ANNEXES = d.annexes; saveAnnexes(); }
   if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
   if(d.compradores){ COMPRADORES = d.compradores.map(c=>({...c})); saveCompradores(); rebuildComprador(); }
-  populateForm(d.fields || {});
+  // Las ediciones del texto fijo se guardaban pero no se restauraban: un contrato
+  // con boilerplate retocado se reabría (o se abría desde otro equipo) con el
+  // texto original y sin avisar. Se restauran solo las de ESTA plantilla.
+  OVERRIDES[slug] = d.overrides || {}; saveOverrides();
+  // Campos que cambiaron de nombre al unificar la suite (22-jul): el valor sigue
+  // en el jsonb del contrato guardado, así que se trae al campo nuevo.
+  const f = { ...(d.fields || {}) };
+  if(f.cuota_reserva_eur && !f.precio_reserva) f.precio_reserva = f.cuota_reserva_eur;
+  if(f.plazo_meses && !f.plazo_pago_final_meses && slug==='ppjb_parcela') f.plazo_pago_final_meses = f.plazo_meses;
+  populateForm(f);
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;

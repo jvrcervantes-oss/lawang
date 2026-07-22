@@ -61,9 +61,9 @@
 
     <!-- ============ ARTÍCULOS ============ -->
     <h2><span data-lang="es">Artículo 1 — Objeto</span><span data-lang="en">Article 1 — Object</span><span data-lang="id">Pasal 1 — Objek</span></h2>
-    <p data-lang="es">El PROMOTOR se compromete a ceder los derechos sobre la parcela objeto del Contrato descrito anteriormente, libre de cargas y gravámenes.</p>
-    <p data-lang="en">The DEVELOPER undertakes to transfer the rights over the plot subject to the Agreement described above, free of liens and encumbrances.</p>
-    <p data-lang="id">PENGEMBANG berkomitmen untuk mengalihkan hak-hak atas kavling objek Perjanjian sebagaimana diuraikan di atas, bebas dari beban dan sitaan.</p>
+    <p data-lang="es">El PROMOTOR se compromete a ceder los derechos sobre la parcela nº <span class="f">{{parcela_codigo}}</span>, objeto del Contrato y descrita anteriormente, libre de cargas y gravámenes.</p>
+    <p data-lang="en">The DEVELOPER undertakes to transfer the rights over plot no. <span class="f">{{parcela_codigo}}</span>, subject to the Agreement and described above, free of liens and encumbrances.</p>
+    <p data-lang="id">PENGEMBANG berkomitmen untuk mengalihkan hak-hak atas kavling no. <span class="f">{{parcela_codigo}}</span>, objek Perjanjian sebagaimana diuraikan di atas, bebas dari beban dan sitaan.</p>
 
     <h2><span data-lang="es">Artículo 2 — Duración</span><span data-lang="en">Article 2 — Term</span><span data-lang="id">Pasal 2 — Jangka Waktu</span></h2>
     <p data-lang="es">La duración de los derechos de esta parcela depende del régimen de tenencia aplicable al ADQUIRIENTE, determinado por su nacionalidad conforme a la legislación agraria de Indonesia:</p>
@@ -98,15 +98,15 @@
     <p data-lang="id">Luas total kavling adalah <span class="f f-num6">{{tipologia_villa}}</span> m², dengan harga per meter persegi <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, menghasilkan harga beli total <span class="f f-num6">{{precio_total}}</span> {{moneda}}.</p>
     <ul data-lang="es">
       <li><b>1. Reserva:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} a la firma del presente contrato privado.</li>
-      <li><b>2. Pago final:</b> el resto del precio, con la firma ante notario (PPAT) y entrega del terreno, en un periodo máximo de <span class="f f-xs">{{plazo_meses}}</span> meses posteriores a la firma de este Contrato de reserva.</li>
+      <li><b>2. Pago final:</b> el resto del precio, con la firma ante notario (PPAT) y entrega del terreno, en un periodo máximo de <span class="f f-xs">{{plazo_pago_final_meses}}</span> meses posteriores a la firma de este Contrato de reserva.</li>
     </ul>
     <ul data-lang="en">
       <li><b>1. Reservation:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} upon signing this private agreement.</li>
-      <li><b>2. Final payment:</b> the remainder of the price, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <span class="f f-xs">{{plazo_meses}}</span> months after signing this Reservation Agreement.</li>
+      <li><b>2. Final payment:</b> the remainder of the price, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <span class="f f-xs">{{plazo_pago_final_meses}}</span> months after signing this Reservation Agreement.</li>
     </ul>
     <ul data-lang="id">
       <li><b>1. Reservasi:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} saat penandatanganan perjanjian privat ini.</li>
-      <li><b>2. Pembayaran akhir:</b> sisa harga, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <span class="f f-xs">{{plazo_meses}}</span> bulan setelah penandatanganan Perjanjian Reservasi ini.</li>
+      <li><b>2. Pembayaran akhir:</b> sisa harga, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <span class="f f-xs">{{plazo_pago_final_meses}}</span> bulan setelah penandatanganan Perjanjian Reservasi ini.</li>
     </ul>
     <p data-lang="es">La reserva deberá ser ingresada a la cuenta ESCROW del notario de Indonesia designado por el PROMOTOR.</p>
     <p data-lang="en">The reservation amount shall be deposited into the ESCROW account of the Indonesian notary appointed by the DEVELOPER.</p>
