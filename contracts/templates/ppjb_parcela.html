@@ -97,20 +97,37 @@
     <p data-lang="en">The total area of the plot is <span class="f f-num6">{{tipologia_villa}}</span> m², with a price per square meter of <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, resulting in a total purchase price of <span class="f f-num6">{{precio_total}}</span> {{moneda}}.</p>
     <p data-lang="id">Luas total kavling adalah <span class="f f-num6">{{tipologia_villa}}</span> m², dengan harga per meter persegi <span class="f f-num6">{{precio_m2}}</span> {{moneda}}, menghasilkan harga beli total <span class="f f-num6">{{precio_total}}</span> {{moneda}}.</p>
     <ul data-lang="es">
+<!--if:modalidad_pago=reserva-->
       <li><b>1. Reserva:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} a la firma del presente contrato privado.</li>
       <li><b>2. Pago final:</b> el resto del precio, con la firma ante notario (PPAT) y entrega del terreno, en un periodo máximo de <span class="f f-xs">{{plazo_pago_final_meses}}</span> meses posteriores a la firma de este Contrato de reserva.</li>
+<!--/if:modalidad_pago-->
+<!--if:modalidad_pago=pago_total-->
+      <li><b>1. Pago total:</b> <span class="f f-num6">{{precio_total}}</span> {{moneda}}, con la firma ante notario (PPAT) y entrega del terreno, en un periodo máximo de <span class="f f-xs">{{plazo_pago_final_meses}}</span> meses posteriores a la firma de este Contrato.</li>
+<!--/if:modalidad_pago-->
     </ul>
     <ul data-lang="en">
+<!--if:modalidad_pago=reserva-->
       <li><b>1. Reservation:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} upon signing this private agreement.</li>
-      <li><b>2. Final payment:</b> the remainder of the price, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <span class="f f-xs">{{plazo_pago_final_meses}}</span> months after signing this Reservation Agreement.</li>
+      <li><b>2. Final payment:</b> the remainder of the price, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <span class="f f-xs">{{plazo_pago_final_meses}}</span> months after signing this Agreement.</li>
+<!--/if:modalidad_pago-->
+<!--if:modalidad_pago=pago_total-->
+      <li><b>1. Full payment:</b> <span class="f f-num6">{{precio_total}}</span> {{moneda}}, upon signing before a notary (PPAT) and handover of the land, within a maximum period of <span class="f f-xs">{{plazo_pago_final_meses}}</span> months after signing this Agreement.</li>
+<!--/if:modalidad_pago-->
     </ul>
     <ul data-lang="id">
+<!--if:modalidad_pago=reserva-->
       <li><b>1. Reservasi:</b> <span class="f">{{precio_reserva}}</span> {{moneda}} saat penandatanganan perjanjian privat ini.</li>
-      <li><b>2. Pembayaran akhir:</b> sisa harga, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <span class="f f-xs">{{plazo_pago_final_meses}}</span> bulan setelah penandatanganan Perjanjian Reservasi ini.</li>
+      <li><b>2. Pembayaran akhir:</b> sisa harga, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <span class="f f-xs">{{plazo_pago_final_meses}}</span> bulan setelah penandatanganan Perjanjian ini.</li>
+<!--/if:modalidad_pago-->
+<!--if:modalidad_pago=pago_total-->
+      <li><b>1. Pembayaran penuh:</b> <span class="f f-num6">{{precio_total}}</span> {{moneda}}, saat penandatanganan di hadapan notaris (PPAT) dan serah terima tanah, dalam jangka waktu maksimal <span class="f f-xs">{{plazo_pago_final_meses}}</span> bulan setelah penandatanganan Perjanjian ini.</li>
+<!--/if:modalidad_pago-->
     </ul>
+<!--if:modalidad_pago=reserva-->
     <p data-lang="es">La reserva deberá ser ingresada a la cuenta ESCROW del notario de Indonesia designado por el PROMOTOR.</p>
     <p data-lang="en">The reservation amount shall be deposited into the ESCROW account of the Indonesian notary appointed by the DEVELOPER.</p>
     <p data-lang="id">Jumlah reservasi harus disetorkan ke rekening ESCROW notaris Indonesia yang ditunjuk oleh PENGEMBANG.</p>
+<!--/if:modalidad_pago-->
 
     <p data-lang="es"><b>Términos del precio:</b> El Precio del Contrato es fijo, excepto en caso de cambios normativos que afecten directamente a la obra, o modificaciones solicitadas por el Cliente acordadas expresamente por escrito. El Precio del Contrato se expresa en <span class="f f-xs">{{moneda}}</span>. Conforme a la Ley de Moneda de Indonesia (UU 7/2011), los pagos que deban realizarse en territorio indonesio se efectuarán en Rupias Indonesias (IDR) aplicando el tipo de cambio pactado por las Partes de 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR, tomado de la referencia de Bank Indonesia de fecha <span class="f f-sm">{{fecha_tipo_cambio}}</span>. Las equivalencias en IDR que figuran junto a cada importe se calculan a ese mismo tipo y tienen carácter informativo.</p>
     <p data-lang="en"><b>Price terms:</b> The Contract Price is fixed, except in the event of regulatory changes directly affecting the works, or modifications requested by the Client and expressly agreed in writing. The Contract Price is expressed in <span class="f f-xs">{{moneda}}</span>. Pursuant to the Indonesian Currency Law (UU 7/2011), payments to be made within Indonesian territory shall be settled in Indonesian Rupiah (IDR) at the exchange rate agreed by the Parties of 1 <span class="f f-xs">{{moneda}}</span> = <span class="f f-sm">{{tipo_cambio_idr}}</span> IDR, taken from the Bank Indonesia reference dated <span class="f f-sm">{{fecha_tipo_cambio}}</span>. The IDR equivalents shown next to each amount are calculated at that same rate and are for information purposes only.</p>
