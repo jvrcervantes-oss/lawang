@@ -524,8 +524,90 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="form-section">
           <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Image (site plan / map) shown in the "Location &amp; Surroundings" section. Leave empty to show a placeholder.</span></h4>
           <div class="form-group">
-            <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://...">
+            <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://..." oninput="syncPreview('pins')">
           </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Aerial view <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Full-width aerial photo with labelled points and entry price. Click a row's ◎ then click the photo to place the point.</span></h4>
+          <div style="display:grid;grid-template-columns:1fr 28px 180px;gap:8px;align-items:center">
+            <input type="text" id="f-aerial-image" placeholder="/assets/img/properties/aerial.jpg or https://..." oninput="syncPreview('aerial')">
+            <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-aerial-image','aerial')" title="Upload file">↑</button>
+            <input type="number" id="f-aerial-entry" min="0" placeholder="Entry price €">
+          </div>
+          <div class="pt-wrap" id="aerial-wrap" style="position:relative;display:none;margin:10px 0;max-width:660px">
+            <img id="aerial-preview" src="" alt="Aerial preview" style="display:block;width:100%;border-radius:8px;cursor:crosshair" onclick="placePoint(event,'aerial')" onerror="this.parentNode.style.display='none'">
+            <div id="aerial-dots" style="position:absolute;inset:0;pointer-events:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 56px 78px 1fr 1fr 1fr 1fr 28px 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">X %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Y %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Side</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">EN line 1</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">EN line 2</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">ES línea 1</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">ES línea 2</div>
+            <div></div><div></div>
+          </div>
+          <div id="f-aerial-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHotspotRow()">+ Add point</button>
+        </div>
+
+        <div class="form-section">
+          <h4>The Territory <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Narrative + bullets next to the location map above. When filled, the map moves here (it is not shown twice).</span></h4>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="f-territory-title-en">Section title EN <span class="muted">(default: "The Territory")</span></label>
+              <input type="text" id="f-territory-title-en" placeholder="The Territory">
+            </div>
+            <div class="form-group">
+              <label for="f-territory-title-es">Section title ES</label>
+              <input type="text" id="f-territory-title-es" placeholder="El territorio">
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="f-territory-body-en">Narrative EN</label>
+              <textarea id="f-territory-body-en" rows="4" placeholder="Twelve minutes from the new toll road..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="f-territory-body-es">Narrative ES</label>
+              <textarea id="f-territory-body-es" rows="4" placeholder="A doce minutos de la nueva autopista..."></textarea>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;margin:10px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Bullet EN</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Bullet ES</div>
+            <div></div>
+          </div>
+          <div id="f-territory-bullets"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addBulletRow()">+ Add bullet</button>
+          <div class="pt-wrap" id="pins-wrap" style="position:relative;display:none;margin:14px 0 0;max-width:660px">
+            <img id="pins-preview" src="" alt="Map preview" style="display:block;width:100%;border-radius:8px;cursor:crosshair" onclick="placePoint(event,'pins')" onerror="this.parentNode.style.display='none'">
+            <div id="pins-dots" style="position:absolute;inset:0;pointer-events:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 56px 1fr 1fr 28px 28px;gap:8px;margin:10px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">X %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Y %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Pin label EN</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Pin label ES</div>
+            <div></div><div></div>
+          </div>
+          <div id="f-territory-pins"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addPinRow()">+ Add map pin</button>
+        </div>
+
+        <div class="form-section">
+          <h4>Designed to last <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Product principles shown as columns near the end of the detail page.</span></h4>
+          <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr 1.6fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Title EN</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Text EN</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Title ES</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Text ES</div>
+            <div></div>
+          </div>
+          <div id="f-principles-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addPrincipleRow()">+ Add principle</button>
         </div>
 
         <div class="form-section">
@@ -929,6 +1011,27 @@ function propertyToForm(p) {
   dlContainer.innerHTML = '';
   var dls = (p.downloads && p.downloads.length) ? p.downloads : [];
   dls.forEach(function(item){ addDownloadRow(item); });
+  // Ficha: aéreo con hotspots
+  var aer = p.aerial || {};
+  set('f-aerial-image', aer.image || '');
+  set('f-aerial-entry', aer.entryPriceEUR != null ? aer.entryPriceEUR : '');
+  document.getElementById('f-aerial-list').innerHTML = '';
+  (aer.hotspots || []).forEach(function(h){ addHotspotRow(h); });
+  // Ficha: The Territory
+  var terr = p.territory || {};
+  set('f-territory-title-en', (terr.title && terr.title.en) || '');
+  set('f-territory-title-es', (terr.title && terr.title.es) || '');
+  set('f-territory-body-en',  (terr.body  && terr.body.en)  || '');
+  set('f-territory-body-es',  (terr.body  && terr.body.es)  || '');
+  document.getElementById('f-territory-bullets').innerHTML = '';
+  (terr.bullets || []).forEach(function(b){ addBulletRow(b); });
+  document.getElementById('f-territory-pins').innerHTML = '';
+  (terr.pins || []).forEach(function(pin){ addPinRow(pin); });
+  // Ficha: Designed to last
+  document.getElementById('f-principles-list').innerHTML = '';
+  (p.principles || []).forEach(function(pr){ addPrincipleRow(pr); });
+  ARMED.aerial = null; ARMED.pins = null;
+  syncPreview('aerial'); syncPreview('pins');
   // Payment plan
   var ppContainer = document.getElementById('f-payplan-list');
   ppContainer.innerHTML = '';
@@ -1023,6 +1126,150 @@ function addExtraRow(e) {
     '<input type="number" class="ex-price" value="' + esc(e.priceEUR != null ? e.priceEUR : '') + '" min="0" placeholder="28000">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
+}
+
+/* ── Ficha: aéreo con hotspots · The Territory · Designed to last ─────────────
+   Los puntos (hotspots del aéreo y pines del mapa) se colocan PINCHANDO la vista previa:
+   ◎ arma la fila y el clic sobre la imagen escribe X/Y. Teclear porcentajes a ojo no es usable. */
+var ARMED = { aerial:null, pins:null };
+var PT_LIST = { aerial:'f-aerial-list', pins:'f-territory-pins' };
+
+function syncPreview(group) {
+  var srcEl = document.getElementById(group === 'aerial' ? 'f-aerial-image' : 'f-mapImage');
+  var wrap  = document.getElementById(group + '-wrap');
+  var img   = document.getElementById(group + '-preview');
+  if (!srcEl || !wrap || !img) return;
+  var src = srcEl.value.trim();
+  wrap.style.display = src ? 'block' : 'none';
+  if (src && img.getAttribute('src') !== src) img.src = src;
+  redrawDots(group);
+}
+
+function redrawDots(group) {
+  var box = document.getElementById(group + '-dots');
+  if (!box) return;
+  box.innerHTML = '';
+  document.querySelectorAll('#' + PT_LIST[group] + ' .pt-row').forEach(function(row, i) {
+    var x = row.querySelector('.pt-x').value, y = row.querySelector('.pt-y').value;
+    if (x === '' || y === '') return;
+    var d = document.createElement('span');
+    d.textContent = i + 1;
+    d.style.cssText = 'position:absolute;left:' + x + '%;top:' + y + '%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:999px;background:#485B37;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff';
+    box.appendChild(d);
+  });
+}
+
+function armPoint(btn, group) {
+  var row = btn.parentNode;
+  if (ARMED[group]) ARMED[group].style.outline = '';
+  ARMED[group] = row;
+  row.style.outline = '2px solid #485B37';
+  syncPreview(group);
+  var wrap = document.getElementById(group + '-wrap');
+  if (wrap.style.display === 'none') { toast('Add the image URL first.', 'err'); return; }
+  wrap.scrollIntoView({ block: 'nearest' });
+  toast('Now click on the image to place this point.', 'info');
+}
+
+function placePoint(ev, group) {
+  var row = ARMED[group];
+  if (!row) { toast('Pick a row first with ◎.', 'info'); return; }
+  var r = ev.currentTarget.getBoundingClientRect();
+  if (!r.width || !r.height) { toast('The image has not loaded yet.', 'err'); return; }  // sin tamaño, el cálculo sería NaN y borraría las coordenadas
+  row.querySelector('.pt-x').value = Math.round((ev.clientX - r.left) / r.width  * 1000) / 10;
+  row.querySelector('.pt-y').value = Math.round((ev.clientY - r.top)  / r.height * 1000) / 10;
+  row.style.outline = ''; ARMED[group] = null;
+  redrawDots(group);
+}
+
+function removePointRow(btn, group) {
+  if (ARMED[group] === btn.parentNode) ARMED[group] = null;
+  btn.parentNode.remove();
+  redrawDots(group);
+}
+
+function addHotspotRow(h) {
+  h = h || {}; var en = h.en || {}, es = h.es || {};
+  var div = document.createElement('div');
+  div.className = 'pt-row';
+  div.style.cssText = 'display:grid;grid-template-columns:56px 56px 78px 1fr 1fr 1fr 1fr 28px 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="number" class="pt-x" value="' + esc(h.x != null ? h.x : '') + '" min="0" max="100" step="0.1" oninput="redrawDots(\'aerial\')">' +
+    '<input type="number" class="pt-y" value="' + esc(h.y != null ? h.y : '') + '" min="0" max="100" step="0.1" oninput="redrawDots(\'aerial\')">' +
+    '<select class="pt-side">' +
+      ['left','right','top'].map(function(s){ return '<option value="' + s + '"' + (h.side === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') +
+    '</select>' +
+    '<input type="text" class="pt-en1" value="' + esc(en.l1 || '') + '" placeholder="Your own">' +
+    '<input type="text" class="pt-en2" value="' + esc(en.l2 || '') + '" placeholder="FREEHOLD villa">' +
+    '<input type="text" class="pt-es1" value="' + esc(es.l1 || '') + '" placeholder="Tu propia">' +
+    '<input type="text" class="pt-es2" value="' + esc(es.l2 || '') + '" placeholder="villa en FREEHOLD">' +
+    '<button type="button" class="img-slot-upload" onclick="armPoint(this,\'aerial\')" title="Place on the photo">◎</button>' +
+    '<button type="button" class="img-slot-del" onclick="removePointRow(this,\'aerial\')">✕</button>';
+  document.getElementById('f-aerial-list').appendChild(div);
+  redrawDots('aerial');
+}
+
+function addPinRow(pin) {
+  pin = pin || {};
+  var div = document.createElement('div');
+  div.className = 'pt-row';
+  div.style.cssText = 'display:grid;grid-template-columns:56px 56px 1fr 1fr 28px 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="number" class="pt-x" value="' + esc(pin.x != null ? pin.x : '') + '" min="0" max="100" step="0.1" oninput="redrawDots(\'pins\')">' +
+    '<input type="number" class="pt-y" value="' + esc(pin.y != null ? pin.y : '') + '" min="0" max="100" step="0.1" oninput="redrawDots(\'pins\')">' +
+    '<input type="text" class="pt-en" value="' + esc(pin.en || '') + '" placeholder="Ngurah Rai Airport · 45 min">' +
+    '<input type="text" class="pt-es" value="' + esc(pin.es || '') + '" placeholder="Aeropuerto Ngurah Rai · 45 min">' +
+    '<button type="button" class="img-slot-upload" onclick="armPoint(this,\'pins\')" title="Place on the map">◎</button>' +
+    '<button type="button" class="img-slot-del" onclick="removePointRow(this,\'pins\')">✕</button>';
+  document.getElementById('f-territory-pins').appendChild(div);
+  redrawDots('pins');
+}
+
+function addBulletRow(b) {
+  b = b || {};
+  var div = document.createElement('div');
+  div.className = 'tb-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="text" class="tb-en" value="' + esc(b.en || '') + '" placeholder="12 min to the new toll road">' +
+    '<input type="text" class="tb-es" value="' + esc(b.es || '') + '" placeholder="12 min a la nueva autopista">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  document.getElementById('f-territory-bullets').appendChild(div);
+}
+
+function addPrincipleRow(pr) {
+  pr = pr || {}; var ti = pr.title || {}, tx = pr.text || {};
+  var div = document.createElement('div');
+  div.className = 'pr-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1.6fr 1fr 1.6fr 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="text" class="pr-ten" value="' + esc(ti.en || '') + '" placeholder="Comfort first">' +
+    '<input type="text" class="pr-xen" value="' + esc(tx.en || '') + '" placeholder="Cross ventilation, deep eaves...">' +
+    '<input type="text" class="pr-tes" value="' + esc(ti.es || '') + '" placeholder="El confort primero">' +
+    '<input type="text" class="pr-xes" value="' + esc(tx.es || '') + '" placeholder="Ventilación cruzada, aleros...">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  document.getElementById('f-principles-list').appendChild(div);
+}
+
+async function uploadToField(btn, inputId, group) {
+  var input = document.getElementById(inputId);
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.onchange = async function() {
+    if (!fileInput.files.length) return;
+    var file = fileInput.files[0];
+    btn.disabled = true; var origLabel = btn.textContent; btn.textContent = '…';
+    var fd = new FormData(); fd.append('image', file);
+    try {
+      var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
+      var d = await r.json();
+      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); if (group) syncPreview(group); toast('Image uploaded.', 'ok'); }
+      else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
+    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+    finally { btn.disabled = false; btn.textContent = origLabel; }
+  };
+  fileInput.click();
 }
 
 function addImageSlot(url) {
@@ -1154,7 +1401,49 @@ function formToProperty() {
   }).filter(function(e){ return e.name; });
   var unitsAvailableRaw = get('f-unitsAvailable');
   var unitsTotalRaw     = get('f-unitsTotal');
+  // Ficha: aéreo con hotspots. Un punto sin etiqueta EN no se guarda (nada de puntos mudos en la web).
+  var hotspots = Array.from(document.querySelectorAll('#f-aerial-list .pt-row')).map(function(row){
+    return {
+      x:    parseFloat(row.querySelector('.pt-x').value) || 0,
+      y:    parseFloat(row.querySelector('.pt-y').value) || 0,
+      side: row.querySelector('.pt-side').value,
+      en:   { l1: row.querySelector('.pt-en1').value.trim(), l2: row.querySelector('.pt-en2').value.trim() },
+      es:   { l1: row.querySelector('.pt-es1').value.trim(), l2: row.querySelector('.pt-es2').value.trim() }
+    };
+  }).filter(function(h){ return h.en.l1 || h.en.l2; });
+  var aerialImage = get('f-aerial-image').trim();
+  // Ficha: The Territory
+  var tBullets = Array.from(document.querySelectorAll('#f-territory-bullets .tb-row')).map(function(row){
+    return { en: row.querySelector('.tb-en').value.trim(), es: row.querySelector('.tb-es').value.trim() };
+  }).filter(function(b){ return b.en || b.es; });
+  var tPins = Array.from(document.querySelectorAll('#f-territory-pins .pt-row')).map(function(row){
+    return {
+      x:  parseFloat(row.querySelector('.pt-x').value) || 0,
+      y:  parseFloat(row.querySelector('.pt-y').value) || 0,
+      en: row.querySelector('.pt-en').value.trim(),
+      es: row.querySelector('.pt-es').value.trim()
+    };
+  });
+  var tBodyEn = get('f-territory-body-en').trim(), tBodyEs = get('f-territory-body-es').trim();
+  var principles = Array.from(document.querySelectorAll('#f-principles-list .pr-row')).map(function(row){
+    return {
+      title: { en: row.querySelector('.pr-ten').value.trim(), es: row.querySelector('.pr-tes').value.trim() },
+      text:  { en: row.querySelector('.pr-xen').value.trim(), es: row.querySelector('.pr-xes').value.trim() }
+    };
+  }).filter(function(pr){ return pr.title.en || pr.title.es; });
   return {
+    aerial: (aerialImage || hotspots.length) ? {
+      image: aerialImage,
+      entryPriceEUR: parseFloat(get('f-aerial-entry')) || 0,
+      hotspots: hotspots
+    } : null,
+    territory: (tBodyEn || tBodyEs || tBullets.length) ? {
+      title:   { en: get('f-territory-title-en').trim(), es: get('f-territory-title-es').trim() },
+      body:    { en: tBodyEn, es: tBodyEs },
+      bullets: tBullets,
+      pins:    tPins
+    } : null,
+    principles: principles,
     id:          id,
     visible:     get('f-visible'),
     line:        get('f-line'),

@@ -444,8 +444,9 @@
   }
 
   // ── Aéreo con hotspots (guía Ficha p3): imagen full-bleed + puntos con línea y etiqueta (2 líneas:
-  //    fina + negrita) + "Entry price" abajo-dcha. Datos por propiedad; sin data.json (gitignored) ni
-  //    admin, los flagship viven en AERIALS. La razón/coord de cada punto es contenido de marketing.
+  //    fina + negrita) + "Entry price" abajo-dcha. Datos por propiedad desde el admin (p.aerial).
+  //    AERIALS es el fallback del flagship palm-field, cargado antes de que existiera el campo en admin:
+  //    en cuanto el cliente lo introduzca en admin.html, p.aerial manda y esta constante puede morir.
   var AERIALS = {
     "palm-field": {
       image: "assets/img/palm-field-aerial.jpg",
@@ -487,6 +488,56 @@
       + '<div style="position:absolute;inset:0;z-index:2;background:linear-gradient(90deg,rgba(10,14,10,.4) 0%,rgba(10,14,10,.08) 26%,transparent 50%),linear-gradient(0deg,rgba(10,14,10,.55) 0%,rgba(10,14,10,.05) 26%,transparent 45%)"></div>'
       + spots + price
       + '</div>';
+  }
+
+  // ── THE TERRITORY (guía Ficha p4): narrativa + bullets a la izquierda, mapa con pines a la derecha.
+  //    Contenido por propiedad, editable en admin.html (p.territory). El mapa reutiliza p.mapImage
+  //    (mismo campo que el cliente ya rellenaba) → cuando hay territorio, el bloque "Location" no se repite.
+  function territoryHTML(p){
+    var tr = p.territory || {};
+    var body = pick(tr.body);
+    var bullets = (tr.bullets||[]).map(pick).filter(Boolean);
+    if(!body && !bullets.length) return "";
+    var pins = (tr.pins||[]).map(function(pin){
+      var lbl = pick(pin);
+      return '<span class="pdp-pin" style="position:absolute;left:'+(Number(pin.x)||0)+'%;top:'+(Number(pin.y)||0)+'%;transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;gap:8px">'
+        + '<span style="width:11px;height:11px;border-radius:999px;background:var(--bone);border:2px solid var(--tg);box-shadow:0 2px 8px rgba(20,16,11,.45);flex:none"></span>'
+        + (lbl ? '<span class="pdp-pin-l" style="font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:rgba(20,16,11,.6);padding:3px 9px;border-radius:999px;white-space:nowrap;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)">'+esc(lbl)+'</span>' : '')
+        + '</span>';
+    }).join("");
+    var mapHTML = p.mapImage
+      ? '<div style="position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--bone-2);min-height:280px">'
+        + '<img src="'+esc(p.mapImage)+'" alt="'+esc(tl("Location map","Mapa de situación"))+'" loading="lazy" style="display:block;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
+        + pins + '</div>'
+      : '';
+    var bulletsHTML = bullets.length
+      ? '<ul style="list-style:none;margin:clamp(24px,3vw,34px) 0 0;padding:0;display:flex;flex-direction:column;gap:14px">'
+        + bullets.map(function(b){ return '<li style="display:flex;gap:14px;align-items:flex-start"><span aria-hidden="true" style="width:22px;height:1px;background:var(--tg);flex:none;margin-top:11px;opacity:.7"></span><span style="font-family:var(--sans);font-size:clamp(14px,1.25vw,16px);font-weight:500;letter-spacing:.04em;line-height:1.5;color:var(--ink)">'+esc(b)+'</span></li>'; }).join("")
+        + '</ul>'
+      : '';
+    return '<section style="margin-top:clamp(56px,7vw,96px)"><div class="pdp-territory" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(28px,4.5vw,64px);align-items:center">'
+      + '<div>'
+      +   '<div class="kicker">'+esc(pick(tr.title) || tl("The Territory","El territorio"))+'</div>'
+      +   (body ? '<p style="font-family:var(--sans);font-size:clamp(16px,1.6vw,20px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(body)+'</p>' : '')
+      +   bulletsHTML
+      + '</div>'
+      + '<div>'+mapHTML+'</div>'
+      + '</div></section>';
+  }
+
+  // ── DESIGNED TO LAST (guía Ficha p5): principios del producto, en columnas. Editable en admin.
+  function principlesHTML(p){
+    var items = (p.principles||[]).filter(function(x){ return pick(x.title) || pick(x.text); });
+    if(!items.length) return "";
+    var cells = items.map(function(x){
+      return '<div style="flex:1 1 200px;min-width:0">'
+        + '<div class="serif" style="font-size:clamp(19px,1.9vw,24px);font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:#42210B;line-height:1.15">'+esc(pick(x.title))+'</div>'
+        + '<div style="width:34px;height:1px;background:var(--tg);margin:14px 0 12px;opacity:.6"></div>'
+        + '<p style="font-family:var(--sans);font-size:clamp(13.5px,1.2vw,15px);font-weight:300;line-height:1.6;color:var(--ink-2)">'+esc(pick(x.text))+'</p></div>';
+    }).join("");
+    return '<section style="margin-top:clamp(56px,7vw,96px);padding-top:clamp(32px,4vw,48px);border-top:1px solid var(--line)">'
+      + '<div class="kicker" style="margin-bottom:clamp(24px,3vw,36px)">'+esc(tl("Designed to last","Diseñado para durar"))+'</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:clamp(24px,3.5vw,48px)">'+cells+'</div></section>';
   }
 
   function downloadsHTML(files, p){
@@ -720,6 +771,7 @@
     var hasConfigurator = !isSignature && !!(cfg.landOptions||cfg.models||cfg.extrasList);
     var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
+    var territory = territoryHTML(p);  // si hay territorio, el mapa va ahí y no se repite arriba
     var subText = pick(p.sub);
     // Sub bajo el título: uppercase editorial, peso medio (armoniza con la ligereza del hero, no el w600 pesado)
     var subHTML = subText ? '<p style="font-family:var(--sans);font-size:clamp(13px,1.15vw,15px);font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);line-height:1.55;margin-top:16px;max-width:52ch">'+esc(subText)+'</p>' : "";
@@ -743,12 +795,14 @@
       + specsBandHTML(p)
       + '<div class="pdp-cols" style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);margin-top:56px;align-items:start">'
       +   '<div>'+overviewHTML
-      +     mapBlockHTML(p)+leftMain+'</div>'
+      +     (territory ? "" : mapBlockHTML(p))+leftMain+'</div>'
       +   '<div style="position:sticky;top:80px">'+sidebarHTML(p)+'</div>'
       + '</div>'
       + '</div>'  // /wrap
       + (aerialHotspotsHTML(p) || fullBleedImageHTML(p))  // aéreo con hotspots si hay datos; si no, imagen full-bleed
       + '<div class="wrap">'
+      + territory
+      + principlesHTML(p)
       + statementBannerHTML(p)
       + alsoHTML
       + '</div>'
