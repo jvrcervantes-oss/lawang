@@ -328,7 +328,7 @@
     // Guía Ficha p1: el claim va en DOS niveles — el sub de la propiedad en fino y, debajo,
     // el destacado (metaText) grande en negrita. Sin metaText se queda solo el sub, sin inventar línea.
     var claim = pick(p.sub)
-      ? '<p style="font-family:var(--sans);font-weight:400;font-size:clamp(14px,1.7vw,26px);letter-spacing:.045em;text-transform:uppercase;line-height:1.3;margin:0 auto;max-width:34ch">'+esc(pick(p.sub))+'</p>' : '';
+      ? '<p style="font-family:var(--sans);font-weight:400;font-size:clamp(14px,1.7vw,26px);letter-spacing:.045em;text-transform:uppercase;line-height:1.3;margin:0 auto;max-width:54ch">'+esc(pick(p.sub))+'</p>' : '';
     if(pick(p.metaText)) claim += '<p class="display" style="font-weight:600;font-size:clamp(26px,4.2vw,52px);letter-spacing:.02em;text-transform:uppercase;line-height:1.08;margin:clamp(6px,1vh,12px) auto 0;max-width:22ch">'+esc(pick(p.metaText))+'</p>';
     return '<section class="pdp-hero" style="position:relative;min-height:clamp(540px,84vh,820px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#1a160f">'
       + '<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0;opacity:'+(key?0:1)+'"></div>'
