@@ -8,8 +8,9 @@
 <body>
   <!-- Texto trilingüe. ES = texto EXACTO del cliente (17-jul-2026). EN/ID = traducción
        de trabajo pendiente de revisión legal oficial. Identidad: I Made Monjong Adhi
-       Nugruah / PT Lawang Tropical Properties / NPWP 1000.0000.0012.5018 (unificada
-       con el resto de la suite, sustituye a Pablo Cantero Gambín). Datos bancarios:
+       Nugruah / PT TEPI SUNGAI, titular de la marca LAWANG TROPICAL PROPERTIES /
+       NPWP 1000.0000.0619.8026 (unificada con el resto de la suite el 21-jul-2026,
+       sustituye a Pablo Cantero Gambín). Datos bancarios:
        desde 20-jul-2026 el placeholder de más abajo resuelve un desplegable de
        CUENTAS_BANCARIAS (ver app.html) — el agente elige la cuenta de cobro entre
        las reales confirmadas por el cliente, ya no hay una fija en la plantilla.
@@ -23,7 +24,7 @@
       <span class="light"><span data-lang="es">Carta de</span><span data-lang="en">Letter of</span><span data-lang="id">Surat</span></span>
       <span class="bold"><span data-lang="es">Reserva</span><span data-lang="en">Reservation</span><span data-lang="id">Pemesanan</span></span>
     </div>
-    <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="es"> · Nº de Referencia: <span class="f f-md">{{referencia_num}}</span></span><span data-lang="en"> · Reference No.: <span class="f f-md">{{referencia_num}}</span></span><span data-lang="id"> · No. Referensi: <span class="f f-md">{{referencia_num}}</span></span></div>
+    <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
 
     <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span><span data-lang="id">Para Pihak</span></h2>
     <div class="party">
@@ -50,22 +51,22 @@
 
     <h2><span data-lang="es">Antecedentes</span><span data-lang="en">Background</span><span data-lang="id">Latar Belakang</span></h2>
     <ol data-lang="es">
-      <li>La Segunda Parte ha realizado una Reserva de la Unidad en el Proyecto <span class="f">{{proyecto_nombre}}</span>, y ha decidido seleccionar la Parcela / Unidad número <span class="f">{{parcela_codigo}}</span>.</li>
-      <li>La Segunda Parte abonará la Cuota de Reserva de la Unidad, por importe de <span class="f">{{cuota_reserva_eur}}</span> {{moneda}}, con fecha <span class="f">{{fecha_pago_reserva}}</span>. Con esta reserva queda fijado el precio acordado de la parcela más la propiedad en <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
+      <li>La Segunda Parte ha realizado una Reserva de la Unidad en el Proyecto <span class="f">{{proyecto_nombre}}</span>, y ha decidido seleccionar la Unidad número <span class="f">{{parcela_codigo}}</span>.</li>
+      <li>La Segunda Parte abonará la Cuota de Reserva de la Unidad, por importe de <span class="f">{{cuota_reserva_eur}}</span> {{moneda}}, con fecha <span class="f">{{fecha_pago_reserva}}</span>. Con esta reserva queda fijado el precio acordado de la Unidad en <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
       <li>La Cuota de Reserva no es reembolsable en caso de desistimiento de la Segunda Parte y se imputa como pago a cuenta del Precio Total de la Unidad. Mantiene reservada la Unidad durante <span class="f f-xs">{{validez_meses}}</span> mes(es) desde esa fecha.</li>
       <li>Esta Carta de Reserva podrá utilizarse para efectuar reclamos relativos a la Unidad seleccionada y a su precio, en caso de que el precio de la Unidad haya seguido los precios de mercado o haya experimentado un incremento de precio.</li>
       <li>El método de pago de la Unidad Reservada únicamente podrá realizarse mediante transferencia bancaria a la cuenta bancaria indicada más abajo.</li>
     </ol>
     <ol data-lang="en">
-      <li>The Second Party has made a Reservation of the Unit in the <span class="f">{{proyecto_nombre}}</span> Project, and has decided to select Plot / Unit number <span class="f">{{parcela_codigo}}</span>.</li>
-      <li>The Second Party shall pay the Unit Reservation Fee, in the amount of <span class="f">{{cuota_reserva_eur}}</span> {{moneda}}, on <span class="f">{{fecha_pago_reserva}}</span>. This reservation fixes the agreed price of the plot plus the property at <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
+      <li>The Second Party has made a Reservation of the Unit in the <span class="f">{{proyecto_nombre}}</span> Project, and has decided to select Unit number <span class="f">{{parcela_codigo}}</span>.</li>
+      <li>The Second Party shall pay the Unit Reservation Fee, in the amount of <span class="f">{{cuota_reserva_eur}}</span> {{moneda}}, on <span class="f">{{fecha_pago_reserva}}</span>. This reservation fixes the agreed price of the Unit at <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
       <li>The Reservation Fee is non-refundable should the Second Party withdraw, and is applied as a payment on account of the Total Price of the Unit. It holds the Unit reserved for <span class="f f-xs">{{validez_meses}}</span> month(s) from that date.</li>
       <li>This Reservation Letter may be used to raise claims relating to the selected Unit and its price, in case the price of the Unit has followed market prices or has experienced a price increase.</li>
       <li>Payment for the Reserved Unit may only be made by bank transfer to the bank account indicated below.</li>
     </ol>
     <ol data-lang="id">
-      <li>Pihak Kedua telah melakukan Reservasi atas Unit dalam Proyek <span class="f">{{proyecto_nombre}}</span>, dan telah memutuskan untuk memilih Kavling / Unit nomor <span class="f">{{parcela_codigo}}</span>.</li>
-      <li>Pihak Kedua wajib membayar Biaya Reservasi Unit sebesar <span class="f">{{cuota_reserva_eur}}</span> {{moneda}} pada tanggal <span class="f">{{fecha_pago_reserva}}</span>. Reservasi ini menetapkan harga yang disepakati untuk kavling beserta propertinya sebesar <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
+      <li>Pihak Kedua telah melakukan Reservasi atas Unit dalam Proyek <span class="f">{{proyecto_nombre}}</span>, dan telah memutuskan untuk memilih Unit nomor <span class="f">{{parcela_codigo}}</span>.</li>
+      <li>Pihak Kedua wajib membayar Biaya Reservasi Unit sebesar <span class="f">{{cuota_reserva_eur}}</span> {{moneda}} pada tanggal <span class="f">{{fecha_pago_reserva}}</span>. Reservasi ini menetapkan harga yang disepakati untuk Unit sebesar <span class="f f-lg">{{precio_total}}</span> {{moneda}}.</li>
       <li>Biaya Reservasi tidak dapat dikembalikan apabila Pihak Kedua membatalkan, dan diperhitungkan sebagai pembayaran atas Harga Total Unit. Biaya ini menahan Unit tetap dipesan selama <span class="f f-xs">{{validez_meses}}</span> bulan sejak tanggal tersebut.</li>
       <li>Surat Pemesanan ini dapat digunakan untuk mengajukan klaim terkait Unit yang dipilih dan harganya, apabila harga Unit telah mengikuti harga pasar atau mengalami kenaikan harga.</li>
       <li>Metode pembayaran Unit yang Dipesan hanya dapat dilakukan melalui transfer bank ke rekening bank yang tercantum di bawah ini.</li>
