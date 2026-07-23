@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260723112108">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260723114716">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -363,8 +363,19 @@ article:hover .view-cta { gap:9px; }
   display:flex; flex-wrap:wrap; justify-content:center; row-gap:6px; padding:0 clamp(16px,4vw,60px);
   color:var(--bone); font-family:var(--sans); font-weight:500; font-size:clamp(10.5px,1vw,13px);
   letter-spacing:.2em; text-transform:uppercase; }
-.pdp-hero-feats span{ padding:0 clamp(10px,1.5vw,20px); white-space:nowrap; }
+.pdp-hero-feats span{ display:inline-flex; align-items:center; gap:8px; padding:0 clamp(10px,1.5vw,20px); white-space:nowrap; }
 .pdp-hero-feats span + span{ border-left:1px solid rgba(245,240,230,.4); }
+.pdp-hero-feats svg{ width:16px; height:16px; flex:none; opacity:.9; }
+/* ── Ficha: lightbox de la galería (click en foto = ampliar) ── */
+.pdp-lb{ position:fixed; inset:0; z-index:400; background:rgba(20,16,11,.93); display:flex; align-items:center; justify-content:center; }
+.pdp-lb-media img,.pdp-lb-media video{ display:block; max-width:92vw; max-height:86vh; border-radius:6px;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.7); }
+.pdp-lb-close{ position:absolute; top:16px; right:16px; width:42px; height:42px; border-radius:999px; border:none;
+  background:rgba(245,240,230,.14); color:var(--bone); font-size:26px; line-height:1; cursor:pointer;
+  display:grid; place-items:center; font-family:var(--sans); transition:background .18s; }
+.pdp-lb-close:hover{ background:rgba(245,240,230,.28); }
+.pdp-lb-count{ position:absolute; bottom:16px; left:50%; transform:translateX(-50%); color:var(--bone);
+  font-family:var(--sans); font-size:12px; font-weight:500; letter-spacing:.18em; }
 /* ── Ficha: flechas de la galería — chevron SVG grande en círculo compacto ── */
 .pdp-gal-arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:5;
   width:clamp(36px,2.8vw,42px); height:clamp(36px,2.8vw,42px); border-radius:999px; border:none; padding:0;
@@ -767,8 +778,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260723112108"></script>
-<script src="assets/portfolio-app.js?v=20260723112108-aerial"></script>
+<script src="assets/lawang-card.js?v=20260723114716"></script>
+<script src="assets/portfolio-app.js?v=20260723114716-aerial"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

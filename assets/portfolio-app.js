@@ -23,7 +23,7 @@
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
   };
-  function resetDetail(){ S.gallery=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
+  function resetDetail(){ S.gallery=0; S.lightbox=null; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
 
   // ── Helpers ────────────────────────────────────────────────
   function t(key){ var e = L.DICT[key]; if(!e) return key; return (e[S.lang] != null ? e[S.lang] : e.en); }
@@ -315,19 +315,30 @@
   // ── Hero a pantalla completa (guía Ficha, jul-2026): imagen full-bleed del producto,
   //    marca, título display, pill de release, tagline y ubicación. Cae a gradiente temático sin foto.
   // Fila de características bajo el hero (petición cliente jul-2026): habitaciones, baños,
-  // superficies y amenities booleanas. Solo pinta lo que la propiedad tiene — data-driven.
+  // superficies y amenities booleanas, cada una con su icono. Solo pinta lo que la propiedad
+  // tiene — data-driven. Iconos = trazos SVG inline en currentColor (mismo criterio que el resto
+  // de la marca: nada de librerías de iconos por 7 dibujos).
+  var FEAT_ICONS = {
+    beds:      '<path d="M3 18v-7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7"/><path d="M3 18h18"/><path d="M7 9V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>',
+    baths:     '<path d="M4 12h16v2.5a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 14.5Z"/><path d="M6 12V6a2 2 0 0 1 4 0"/><path d="M7 21l-1-2M17 21l1-2"/>',
+    built:     '<path d="m3 11 9-7 9 7"/><path d="M5 9.6V20h14V9.6"/>',
+    land:      '<path d="M4 4h16v16H4z" stroke-dasharray="3.2 2.6"/>',
+    pool:      '<path d="M2 18c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M15 5v9M19 5v9M15 8h4"/>',
+    garage:    '<path d="m3 9 9-5 9 5"/><path d="M5 8.4V20h14V8.4"/><path d="M8 13h8M8 16h8"/>',
+    furnished: '<path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0Z"/><path d="M5 18v2"/><path d="M19 18v2"/>'
+  };
   function heroFeatsHTML(p){
     var f = [];
-    if(p.beds>0)  f.push(p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones"));
-    if(p.baths>0) f.push(p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños"));
-    if(p.built>0) f.push(p.built+" m² "+tl("Built","Construidos"));
-    if(p.land>0)  f.push(p.land+" m² "+tl("Land","Terreno"));
-    if(p.poolType||p.pool) f.push(tl("Pool","Piscina"));
-    if(p.garage)    f.push(tl("Garage","Garaje"));
-    if(p.furnished) f.push(tl("Furnished","Amueblada"));
+    if(p.beds>0)  f.push({i:"beds",  t:p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones")});
+    if(p.baths>0) f.push({i:"baths", t:p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños")});
+    if(p.built>0) f.push({i:"built", t:p.built+" m² "+tl("Built","Construidos")});
+    if(p.land>0)  f.push({i:"land",  t:p.land+" m² "+tl("Land","Terreno")});
+    if(p.poolType||p.pool) f.push({i:"pool", t:tl("Pool","Piscina")});
+    if(p.garage)    f.push({i:"garage",    t:tl("Garage","Garaje")});
+    if(p.furnished) f.push({i:"furnished", t:tl("Furnished","Amueblada")});
     if(f.length===0) return "";
     return '<div class="pdp-hero-feats" aria-label="'+tl("Key features","Características")+'">'
-      + f.map(function(x){ return '<span>'+esc(x)+'</span>'; }).join("")
+      + f.map(function(x){ return '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+FEAT_ICONS[x.i]+'</svg>'+esc(x.t)+'</span>'; }).join("")
       + '</div>';
   }
 
@@ -396,13 +407,23 @@
       + '</div></div>';
   }
 
-  // ── Galería 3-columnas iguales (guía Ficha, jul-2026): fila de hasta 3 imágenes del mismo
-  //    tamaño, flechas a los lados que avanzan la ventana, contador y "+N" en la última visible.
-  //    En móvil (.pdp-gal3, ≤720px) solo se ve la primera a ancho completo.
-  function galleryHTML(p){
+  // Lista unificada de media de la galería (fotos + vídeos) — la usan la fila de 3 y el lightbox.
+  function mediaList(p){
     var media = [];
     (p.imgKeys||[]).forEach(function(k){ media.push({type:"image",key:k}); });
     (p.videos||[]).forEach(function(v){ var o=(typeof v==="string")?{src:v}:(v||{}); var src=o.src||o.url||""; if(src) media.push({type:"video",src:src,poster:o.poster||""}); });
+    return media;
+  }
+  // Chevron SVG de navegación (galería + lightbox): el glifo de texto era incentrable.
+  function chevSVG(side){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(side==="left"?"M14.5 5.5 8 12l6.5 6.5":"M9.5 5.5 16 12l-6.5 6.5")+'"/></svg>'; }
+
+  // ── Galería 3-columnas iguales (guía Ficha, jul-2026): fila de hasta 3 imágenes del mismo
+  //    tamaño, flechas a los lados que avanzan la ventana, contador y "+N" en la última visible.
+  //    En móvil (.pdp-gal3, ≤720px) solo se ve la primera a ancho completo.
+  //    Click en una foto = AMPLIARLA en el lightbox (petición cliente 23-jul: "avanzan pero no
+  //    se agrandan") — avanzar es cosa de las flechas y del swipe.
+  function galleryHTML(p){
+    var media = mediaList(p);
     if(media.length===0) return "";
     var total = media.length;
     var active = ((S.gallery%total)+total)%total;
@@ -417,13 +438,10 @@
       var idx=(active+i)%total; var m=media[idx];
       var badge = (i===0 && total>1) ? '<div style="position:absolute;left:13px;bottom:12px;z-index:4;background:rgba(20,16,11,.5);color:var(--bone);font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:4px 11px;border-radius:999px;backdrop-filter:blur(3px)">'+String(active+1).padStart(2,"0")+' <span style="opacity:.55">/ '+String(total).padStart(2,"0")+'</span></div>' : "";
       var moreOv = (i===show-1 && total>show) ? '<div style="position:absolute;inset:0;background:rgba(20,16,11,.5);display:grid;place-items:center;z-index:3"><span style="font-family:var(--sans);font-size:clamp(22px,2.6vw,34px);color:var(--bone);font-weight:500">+'+(total-show)+'</span></div>' : "";
-      tiles += '<button class="pdp-g3-tile'+(i>0?' pdp-g3-extra':'')+'" data-act="gal:'+((active+1)%total)+'" aria-label="'+tl("Next photo","Siguiente foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2);aspect-ratio:4/3">'+tileInner(m)+badge+moreOv+'</button>';
+      tiles += '<button class="pdp-g3-tile'+(i>0?' pdp-g3-extra':'')+'" data-act="lightbox:'+idx+'" aria-label="'+tl("View photo","Ver foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:zoom-in;background:var(--bone-2);aspect-ratio:4/3">'+tileInner(m)+badge+moreOv+'</button>';
     }
     // Flechas superpuestas sobre los bordes de las imágenes (no ocupan ancho): la fila usa el 100% del ancho.
-    // Chevron SVG en vez de glifo de texto: el "‹" a 24px medía 8px reales dentro del círculo de 50
-    // y era imposible de centrar con line-height — con SVG el tamaño y el centrado son exactos.
-    var chev = function(side){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(side==="left"?"M14.5 5.5 8 12l6.5 6.5":"M9.5 5.5 16 12l-6.5 6.5")+'"/></svg>'; };
-    var arrow = function(side,to){ return '<button class="pdp-gal-arrow" data-act="gal:'+to+'" aria-label="'+(side==="left"?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="'+side+':12px">'+chev(side)+'</button>'; };
+    var arrow = function(side,to){ return '<button class="pdp-gal-arrow" data-act="gal:'+to+'" aria-label="'+(side==="left"?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="'+side+':12px">'+chevSVG(side)+'</button>'; };
     var prev = ((active-1)%total+total)%total, next = (active+1)%total;
     var arrows = total>1 ? (arrow("left", prev) + arrow("right", next)) : "";
     // data-prev/data-next: los usa el swipe táctil delegado de bindEvents. gal-anim: fundido al
@@ -434,6 +452,26 @@
     return '<div style="position:relative;margin-top:clamp(20px,2.5vw,30px)">'
       + '<div class="pdp-gal3'+anim+'"'+(total>1?' data-prev="'+prev+'" data-next="'+next+'"':'')+' style="display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
       + arrows+'</div>';
+  }
+
+  // ── Lightbox de la galería: foto/vídeo a tamaño grande sobre fondo oscuro. Se abre pinchando
+  //    una miniatura; navega con flechas, swipe y teclado; cierra con ×, Escape o el fondo.
+  function lightboxHTML(p){
+    var media = mediaList(p); var total = media.length;
+    if(!total || S.lightbox==null) return "";
+    var i = ((S.lightbox%total)+total)%total; var m = media[i];
+    var prev = ((i-1)%total+total)%total, next = (i+1)%total;
+    var inner = m.type==="video"
+      ? '<video src="'+esc(m.src)+'"'+(m.poster?' poster="'+esc(m.poster)+'"':'')+' controls autoplay playsinline></video>'
+      : '<img src="'+esc(imgUrl(m.key,2400))+'" alt="">';
+    return '<div class="pdp-lb" data-act="lb-close"'+(total>1?' data-prev="'+prev+'" data-next="'+next+'"':'')+' role="dialog" aria-modal="true" aria-label="'+tl("Photo viewer","Visor de fotos")+'">'
+      // lb-noop: para el closest() de la delegación — un click sobre la foto/vídeo no cierra
+      + '<div class="pdp-lb-media" data-act="lb-noop">'+inner+'</div>'
+      + (total>1 ? '<button class="pdp-gal-arrow" data-act="lightbox:'+prev+'" aria-label="'+tl("Previous","Anterior")+'" style="left:14px">'+chevSVG("left")+'</button>'
+                 + '<button class="pdp-gal-arrow" data-act="lightbox:'+next+'" aria-label="'+tl("Next","Siguiente")+'" style="right:14px">'+chevSVG("right")+'</button>' : '')
+      + '<button class="pdp-lb-close" data-act="lb-close" aria-label="'+tl("Close","Cerrar")+'">×</button>'
+      + '<div class="pdp-lb-count">'+String(i+1).padStart(2,"0")+' / '+String(total).padStart(2,"0")+'</div>'
+      + '</div>';
   }
 
   // Franja de specs — tarjeta CLARA (guía Ficha, jul-2026): SOLO 6 campos según referencia —
@@ -893,6 +931,7 @@
       + '</div>'
       + footerCoreHTML()   // mismo footer del marketplace (guía Ficha p6): franja de contacto + footer verde
       + waFloatHTML(p)
+      + lightboxHTML(p)
       + '</div>';
   }
 
@@ -958,6 +997,9 @@
     else if(cmd==="page"){ S.page=parseInt(val,10)||1; render(); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="layout"){ S.layout=val; render(); }
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
+    else if(cmd==="lightbox"){ S.lightbox=parseInt(val,10)||0; render(); }
+    else if(cmd==="lb-close"){ S.lightbox=null; render(); }
+    // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
     else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }
     else if(cmd==="model"){ S.modelIdx=parseInt(val,10); render(); }
@@ -999,24 +1041,37 @@
       try{ fetch("api/lead.php",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"email="+encodeURIComponent(v)+"&source=downloads&property="+encodeURIComponent(pid||"")}).catch(function(){}); }catch(_){}
       render();
     });
-    // Swipe táctil en la galería de la ficha (en móvil las flechas no bastan: el gesto natural
-    // en un carrusel es arrastrar). Delegado en root porque la galería se re-crea en cada render.
-    var galTouchX = null;
+    // Swipe táctil en la galería y en el lightbox (en móvil las flechas no bastan: el gesto
+    // natural en un carrusel es arrastrar). Delegado en root porque ambos se re-crean al render.
+    var galSwipe = null;
     root.addEventListener("touchstart", function(e){
-      var g = e.target.closest(".pdp-gal3");
-      galTouchX = (g && g.hasAttribute("data-next")) ? e.touches[0].clientX : null;
+      var g = e.target.closest(".pdp-lb,.pdp-gal3");
+      galSwipe = (g && g.hasAttribute("data-next")) ? {el:g, x:e.touches[0].clientX} : null;
     }, {passive:true});
     root.addEventListener("touchend", function(e){
-      if(galTouchX==null) return;
-      var dx = e.changedTouches[0].clientX - galTouchX; galTouchX = null;
+      if(!galSwipe) return;
+      var g = galSwipe.el, dx = e.changedTouches[0].clientX - galSwipe.x; galSwipe = null;
       if(Math.abs(dx) < 45) return;   // umbral: no confundir tap/scroll vertical con swipe
-      var g = document.querySelector(".pdp-gal3"); if(!g) return;
       var to = dx < 0 ? g.getAttribute("data-next") : g.getAttribute("data-prev");
-      if(to!=null){ S.gallery = parseInt(to,10)||0; S.galAnim = true; render(); }
+      if(to==null) return;
+      if(g.classList.contains("pdp-lb")) S.lightbox = parseInt(to,10)||0;
+      else { S.gallery = parseInt(to,10)||0; S.galAnim = true; }
+      render();
     }, {passive:true});
     window.addEventListener("hashchange", onHash);
-    // a11y: cerrar la ficha de propiedad con Escape (misma UX que el modal legal)
-    document.addEventListener("keydown", function(e){ if(e.key==="Escape" && S.overlay) closeProperty(); });
+    // a11y: Escape cierra el lightbox si está abierto (si no, la ficha); flechas navegan el lightbox
+    document.addEventListener("keydown", function(e){
+      if(S.lightbox!=null){
+        if(e.key==="Escape"){ S.lightbox=null; render(); return; }
+        if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
+          var lb=document.querySelector(".pdp-lb"); if(!lb) return;
+          var to=lb.getAttribute(e.key==="ArrowRight"?"data-next":"data-prev");
+          if(to!=null){ S.lightbox=parseInt(to,10)||0; render(); }
+        }
+        return;
+      }
+      if(e.key==="Escape" && S.overlay) closeProperty();
+    });
     document.addEventListener("click", function(e){
       if((S.langOpen||S.curOpen) && !e.target.closest(".nav-lang-wrap")){ S.langOpen=false; S.curOpen=false; render(); }
     });
