@@ -11,6 +11,9 @@ __pycache__/
 # harness de verificación (copia de app.html con Supabase stubeado) y su salida
 _test_app.html
 _preview_doc.html
+# rediseño v2 del panel — SOLO local, que lo vea el usuario antes de decidir; nunca desplegar
+app.v2.html
+_repro_num.html
 
 # Vía .docx abandonada (pivote a plantilla HTML) — 11MB de binarios obsoletos
 private/plantillas/
