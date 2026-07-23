@@ -23,7 +23,7 @@
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
   };
-  function resetDetail(){ S.gallery=0; S.lightbox=null; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
+  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
 
   // ── Helpers ────────────────────────────────────────────────
   function t(key){ var e = L.DICT[key]; if(!e) return key; return (e[S.lang] != null ? e[S.lang] : e.en); }
@@ -268,17 +268,9 @@
     var tel='+'+waNum.replace(/^(\d{2})(\d{3})(\d{4})(\d+)$/,'$1 $2-$3-$4');
     var icoPhone='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
     var icoMail='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>';
-    // Franja de contacto sobre el footer (guía): claim + teléfono + email
-    var contactStrip = '<div style="border-top:1px solid var(--line)">'
-      + '<div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:20px">'
-      +   '<span style="font-family:var(--sans);font-size:clamp(12px,1.2vw,15px);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)">'+t("ft.tag1")+' <b style="font-weight:700">'+t("ft.tag2")+'</b></span>'
-      +   '<div style="display:flex;gap:clamp(16px,2.4vw,34px);flex-wrap:wrap;align-items:center">'
-      +     '<a href="tel:+'+waNum+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoPhone+tel+'</a>'
-      +     '<a href="mailto:'+esc(email)+'" style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:14px;color:var(--ink)">'+icoMail+esc(email)+'</a>'
-      +   '</div></div></div>';
-    // Franja de contacto + footer completo portado de index.html
-    return contactStrip
-      + '<footer class="pf-footer">'
+    // Franja "discover beyond… / ask why investors stay" eliminada (revisión cliente 23-jul).
+    // El teléfono/email siguen en la parte baja del footer (lw-ft-bottom) y en la burbuja de WhatsApp.
+    return '<footer class="pf-footer">'
       +   '<div class="lw-ft">'
       +     '<div class="lw-ft-grid">'
       +       '<div>'
@@ -415,23 +407,8 @@
       + '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg></a>';
   }
 
-  // ── Banner statement full-width entre configurador y "more in this line" (guía Ficha).
-  //    Solo se pinta si la propiedad tiene imagen; el texto sale del nº de unidades o del metaText.
-  function statementBannerHTML(p){
-    var key = (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
-    if(!key) return "";  // sin imagen no hay banner (nunca banda vacía)
-    var n = Number(p.unitsTotal)||0;
-    var line1 = n>0 ? (n+" "+tl("Villas","Villas")).toUpperCase() : (pick(p.metaText)||"").toUpperCase();
-    if(!line1) return "";
-    return '<div style="margin-top:clamp(48px,6vw,80px)"><div style="position:relative;border-radius:14px;overflow:hidden;min-height:clamp(200px,26vw,300px);display:flex;align-items:center;background:#1a160f">'
-      + '<img src="'+esc(imgUrl(key,2000))+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
-      + '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.8) 0%,rgba(20,16,11,.45) 55%,rgba(20,16,11,.12) 100%)"></div>'
-      + '<div style="position:relative;z-index:2;padding:clamp(28px,5vw,64px);color:var(--bone)">'
-      +   '<div class="display" style="font-size:clamp(30px,5vw,58px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:1">'+esc(line1)+'</div>'
-      +   '<div style="font-family:var(--sans);font-size:clamp(15px,2.2vw,26px);font-weight:300;letter-spacing:.14em;text-transform:uppercase;margin-top:6px;opacity:.9">'+esc(tl("One Tropical Residence","Una residencia tropical"))+'</div>'
-      + '</div>'
-      + '</div></div>';
-  }
+  // (banner statement "N villas / one residence" eliminado — revisión cliente 23-jul; su hueco lo
+  //  ocupa ahora el sistema de pestañas)
 
   // Lista unificada de media de la galería (fotos + vídeos) — la usan la fila de 3 y el lightbox.
   function mediaList(p){
@@ -558,12 +535,46 @@
   //  la burbuja flotante de WhatsApp y el CTA del topbar)
   // Revisión cliente 23-jul: fuera la tarjeta verde "Talk to the team" — la banda blanca ocupa
   // todo el ancho. El gate de descargas (que vivía en esa columna) se conserva debajo.
-  function specsBandHTML(p){
-    var specs = techSpecsHTML(p);
+  // ── Card de información (revisión cliente 23-jul): a la DERECHA de la tabla blanca, bajo el
+  //    carrusel. Overview + toda la ficha técnica que tengamos + mapa (si hay) + descargar dossier
+  //    (con la puerta de email). Sustituye a la vieja tarjeta verde de contacto.
+  function infoCardHTML(p){
+    var overview = pick(p.desc);
+    var rows = [];
+    var add = function(ico, val){ if(val) rows.push({ico:ico, v:val}); };
+    if(p.beds>0)  add("beds",  p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones"));
+    if(p.baths>0) add("baths", p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños"));
+    if(p.built>0) add("built", p.built+" m² "+tl("built","construidos"));
+    if(p.land>0)  add("land",  p.land+" m² "+tl("land","de parcela"));
+    if(p.poolType||p.pool) add("pool", (typeof p.poolType==="string"&&p.poolType)?p.poolType:tl("Pool","Piscina"));
+    if(p.garage)  add("garage", (typeof p.garageDesc==="string"&&p.garageDesc)?p.garageDesc:tl("Garage","Garaje"));
+    if(p.furnished) add("furnished", (typeof p.furnished==="string"&&p.furnished)?p.furnished:tl("Furnished","Amueblada"));
+    if(p.style)   add("type", p.style);
+    add("type", t(LINE_KEYS[p.line]));  // tipo de propiedad (línea)
+    if(p.tenure)  add("tenure", p.tenure==="tenure.freehold"?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+" yr"));
+    if(p.status)  add("tenure", t(p.status));
+    if(p.handover && p.handover!=="—") add("built", tl("Delivery","Entrega")+": "+p.handover);
+    if(p.unitsTotal) add("type", (p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / ":"")+p.unitsTotal+" "+tl("units","unidades"));
+    var specsGrid = rows.length ? '<div class="pdp-ic-specs">'+rows.map(function(r){
+        return '<div class="pdp-ic-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(FEAT_ICONS[r.ico]||FEAT_ICONS.type)+'</svg><span>'+esc(r.v)+'</span></div>';
+      }).join("")+'</div>' : "";
+    var map = mapMediaHTML(p.mapImage);
     var files = (p.downloads&&p.downloads.length)?p.downloads:null;
-    var dl = files ? '<div style="margin-top:clamp(14px,1.6vw,22px);max-width:560px">'+downloadsHTML(files,p)+'</div>' : "";
-    if(!specs && !dl) return "";
-    return '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px)">'+(specs||"")+dl+'</div>';
+    var dossier = files ? '<div style="margin-top:clamp(18px,2.2vw,26px)">'+downloadsHTML(files,p)+'</div>' : "";
+    if(!overview && !specsGrid && !map && !dossier) return "";
+    return '<div class="pdp-infocard">'
+      + (overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-ic-lead">'+esc(overview)+'</p>' : "")
+      + specsGrid
+      + (map ? '<div style="margin-top:clamp(16px,2vw,22px)">'+map+'</div>' : "")
+      + dossier
+      + '</div>';
+  }
+
+  // ── Tabla blanca de texto libre (revisión cliente 23-jul): a lo ANCHO, justo bajo el carrusel.
+  //    Debajo va el 2-col [configurador/payment | card de info] que arma propertyHTML.
+  function specsBandHTML(p){
+    var table = techSpecsHTML(p);
+    return table ? '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px)">'+table+'</div>' : "";
   }
 
   // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
@@ -622,54 +633,8 @@
       + '</div>';
   }
 
-  // ── THE TERRITORY (guía Ficha p4): narrativa + bullets a la izquierda, mapa con pines a la derecha.
-  //    Contenido por propiedad, editable en admin.html (p.territory). El mapa reutiliza p.mapImage
-  //    (mismo campo que el cliente ya rellenaba) → cuando hay territorio, el bloque "Location" no se repite.
-  function territoryHTML(p){
-    var tr = p.territory || {};
-    var body = pick(tr.body);
-    var bullets = (tr.bullets||[]).map(pick).filter(Boolean);
-    if(!body && !bullets.length) return "";
-    var pins = (tr.pins||[]).map(function(pin){
-      var lbl = pick(pin);
-      return '<span class="pdp-pin" style="position:absolute;left:'+(Number(pin.x)||0)+'%;top:'+(Number(pin.y)||0)+'%;transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;gap:8px">'
-        + '<span style="width:11px;height:11px;border-radius:999px;background:var(--bone);border:2px solid var(--tg);box-shadow:0 2px 8px rgba(20,16,11,.45);flex:none"></span>'
-        + (lbl ? '<span class="pdp-pin-l" style="font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:rgba(20,16,11,.6);padding:3px 9px;border-radius:999px;white-space:nowrap;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)">'+esc(lbl)+'</span>' : '')
-        + '</span>';
-    }).join("");
-    var mapHTML = mapMediaHTML(p.mapImage, pins);
-    var bulletsHTML = bullets.length
-      ? '<ul style="list-style:none;margin:clamp(24px,3vw,34px) 0 0;padding:0;display:flex;flex-direction:column;gap:14px">'
-        + bullets.map(function(b){ return '<li style="display:flex;gap:14px;align-items:flex-start"><span aria-hidden="true" style="width:22px;height:1px;background:var(--tg);flex:none;margin-top:11px;opacity:.7"></span><span style="font-family:var(--sans);font-size:clamp(14px,1.25vw,16px);font-weight:500;letter-spacing:.04em;line-height:1.5;color:var(--ink)">'+esc(b)+'</span></li>'; }).join("")
-        + '</ul>'
-      : '';
-    // Guía Ficha p4: kicker fijo "THE TERRITORY" + titular verde grande (el tr.title del admin),
-    // narrativa, bullets y mapa DEBAJO — la columna entera es el bloque derecho de la ficha.
-    return '<section class="pdp-territory">'
-      +   '<div class="kicker">'+tl("The Territory","El territorio")+'</div>'
-      +   (pick(tr.title) ? '<h3 class="pdp-block-h">'+esc(pick(tr.title))+'</h3>' : '')
-      +   (body ? '<p style="font-family:var(--sans);font-size:clamp(15px,1.45vw,18px);font-weight:300;line-height:1.7;margin-top:18px;color:var(--ink)">'+esc(body)+'</p>' : '')
-      +   bulletsHTML
-      +   (mapHTML ? '<div style="margin-top:clamp(24px,3vw,34px)">'+mapHTML+'</div>' : '')
-      + '</section>';
-  }
-
-  // ── DESIGNED TO LAST (guía Ficha p5): principios del producto, en columnas. Editable en admin.
-  function principlesHTML(p){
-    var items = (p.principles||[]).filter(function(x){ return pick(x.title) || pick(x.text); });
-    if(!items.length) return "";
-    // Guía Ficha p4: lista con viñeta — título verde en negrita y el texto debajo, en una columna.
-    var cells = items.map(function(x){
-      return '<li style="display:flex;gap:11px;align-items:flex-start">'
-        + '<span aria-hidden="true" style="color:var(--tg);line-height:1.4;flex:none">•</span><span style="min-width:0">'
-        + '<span style="display:block;font-family:var(--sans);font-size:clamp(14px,1.3vw,16px);font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--tg);line-height:1.4">'+esc(pick(x.title))+'</span>'
-        + '<span style="display:block;font-family:var(--sans);font-size:clamp(13.5px,1.25vw,16px);font-weight:300;line-height:1.6;color:var(--ink);margin-top:3px">'+esc(pick(x.text))+'</span>'
-        + '</span></li>';
-    }).join("");
-    return '<section style="margin-top:clamp(40px,5vw,64px)">'
-      + '<div class="kicker" style="margin-bottom:clamp(18px,2.2vw,26px)">'+esc(tl("Designed to last","Diseñado para durar"))+'</div>'
-      + '<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(14px,1.8vw,20px)">'+cells+'</ul></section>';
-  }
+  // (territoryHTML y principlesHTML "Designed to last" eliminados — revisión cliente 23-jul; su
+  //  contenido lo sustituye el sistema de pestañas de tabsSectionHTML)
 
   function downloadsHTML(files, p){
     var head = '<div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:12px">'+t("dl.title")+'</div>';
@@ -888,24 +853,43 @@
       + esc(tl("View on Google Maps","Ver en Google Maps"))+' <span aria-hidden="true">↗</span></a>';
   }
 
-  function mapBlockHTML(p){
-    var body = mapMediaHTML(p.mapImage);
-    if(!body) return '';  // sin mapa cargado en el admin -> no se muestra nada al cliente
-    return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:20px">'+t("map.title")+'</div>'+body+'</div>';
-  }
-
-  // ── Banner "El proceso de reserva" antes del footer (guía Ficha p6): imagen, filete vertical y
-  //    dos líneas. Lleva al bloque #process del marketplace (cierra la ficha y baja hasta él).
-  function processBannerHTML(){
-    return '<div class="pdp-process-banner" data-act="go-process" role="button" tabindex="0">'
-      + '<img src="assets/img/aerial-1.jpg" alt="" loading="lazy">'
-      + '<span class="pdp-pb-veil"></span>'
-      + '<span class="pdp-pb-txt"><span class="pdp-pb-1">'+t("ft.reserve.k")+'</span><span class="pdp-pb-2">'+t("proc.title")+'</span></span>'
-      + '</div>';
-  }
+  // (mapBlockHTML y processBannerHTML eliminados — revisión cliente 23-jul; el mapa vive ahora en
+  //  la card de info y la franja del proceso se retiró)
 
   function signatureNoteHTML(p){
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div style="display:inline-flex;align-items:center;gap:8px;background:var(--dl);color:var(--bone);border-radius:999px;padding:7px 16px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:999px;background:var(--bone)"></span> '+t("sig.delivered")+'</div><p style="font-size:15px;color:var(--ink-2);line-height:1.6;margin-top:18px;max-width:52ch">'+t("sig.note")+'</p></div>';
+  }
+
+  // ── Sección de pestañas / "Designed to last" (revisión cliente 23-jul): 50/50 — imagen a sangre
+  //    (información de la tierra) a la izquierda, sistema de cards con pestañas a la derecha. El cliente
+  //    define N pestañas (título+texto+imagen, en admin). Pinchar un título cambia el contenido; la
+  //    imagen de la izquierda es la de la pestaña activa si la tiene, si no la imagen 50/50 por defecto.
+  function tabsSectionHTML(p){
+    var tabs = (p.tabs||[]).filter(function(tb){ return pick(tb.title)||pick(tb.body)||tb.image; });
+    if(!tabs.length) return "";
+    var idx = Math.min(Math.max(S.tab||0,0), tabs.length-1);
+    var active = tabs[idx];
+    var leftKey = active.image || p.splitImage || (p.imgKeys&&p.imgKeys[0]) || null;
+    var leftUrl = leftKey ? imgUrl(leftKey, 1800) : null;
+    var headers = tabs.map(function(tb,i){
+      return '<button class="pdp-tab'+(i===idx?' on':'')+'" data-act="tab:'+i+'">'+esc(pick(tb.title)||(tl("Tab","Pestaña")+" "+(i+1)))+'</button>';
+    }).join("");
+    var panel = (pick(active.title)?'<h3 class="pdp-block-h">'+esc(pick(active.title))+'</h3>':'')
+      + (pick(active.body)?'<p class="pdp-tab-body">'+esc(pick(active.body))+'</p>':'');
+    return '<section class="pdp-tabs-section">'
+      + '<div class="pdp-tabs-img">'+(leftUrl?'<img src="'+esc(leftUrl)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+'</div>'
+      + '<div class="pdp-tabs-panel"><div class="pdp-tabs-head">'+headers+'</div><div class="pdp-tab-content">'+panel+'</div></div>'
+      + '</section>';
+  }
+
+  // ── Imagen a sangre bajada (revisión cliente 23-jul): campo dedicado p.bleedImage; si está vacío,
+  //    cae a la lógica actual (aéreo con hotspots o foto de galería).
+  function bleedSectionHTML(p){
+    if(p.bleedImage){
+      var url = imgUrl(p.bleedImage, 2600);
+      if(url) return '<div style="margin:clamp(48px,6vw,84px) 0;overflow:hidden;background:#1a160f"><img src="'+esc(url)+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="display:block;width:100%;height:clamp(360px,82vh,780px);object-fit:cover" onerror="this.style.display=\'none\'"></div>';
+    }
+    return aerialHotspotsHTML(p) || fullBleedImageHTML(p);
   }
 
   function propertyHTML(id){
@@ -918,17 +902,15 @@
     var hasConfigurator = !isSignature && !!(cfg.landOptions||cfg.models||cfg.extrasList);
     var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
-    var territory = territoryHTML(p);  // si hay territorio, el mapa va ahí y no se repite arriba
     var subText = pick(p.sub);
     // Sub bajo el título: uppercase ligera y grande y, en negrita al final, el régimen de tenencia
     // ("… FREEHOLD LAND.") tal cual la guía Ficha p2. El dato sale de p.tenure, no se escribe a mano.
     var tenureTag = p.tenure==="tenure.freehold" ? tl("Freehold land.","Suelo en freehold.")
                   : (p.tenure ? tl("Leasehold "+(p.leaseYears||30)+" yr.","Leasehold "+(p.leaseYears||30)+" años.") : "");
     var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:52ch">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
-    var descText = pick(p.desc);
-    var overviewHTML = descText ? '<div><div class="kicker">'+t("pd.overview")+'</div><p style="font-family:var(--sans);font-size:clamp(17px,1.7vw,21px);font-weight:300;line-height:1.65;margin-top:18px;color:var(--ink)">'+esc(descText)+'</p></div>' : "";
-    var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
-      + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(x.title))+'</p><p style="font-size:13px;font-weight:600;color:#324820;margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
+    // "More in this line": mismas cards del marketplace/index (LawangCard) — revisión cliente 23-jul.
+    var alsoHTML = also.length>0 ? '<div style="margin-top:clamp(56px,7vw,90px);padding-top:clamp(36px,4vw,52px);border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+t("pd.also")+'</div><div class="pdp-also-grid">'
+      + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,{lang:S.lang,cur:S.cur,rates:L.RATES}) : ''; }).join("")
       + '</div></div>' : "";
     // Cabecera (revisión cliente 23-jul): las migas bajan del hero aquí; el título ya no se
     // repite (vive en el hero) — queda solo el subtítulo. A la derecha "LÍNEA › ESTADO" + precio.
@@ -942,22 +924,21 @@
       +       (p.status ? '<span aria-hidden="true" style="opacity:.55">›</span><span style="opacity:.8">'+t(p.status)+'</span>' : '')+'</div>'
       +     '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
+      // Revisión cliente 23-jul: tabla blanca de texto libre a lo ancho + 2 columnas debajo
+      // (izq: configurador/payment plan · dcha: card overview+técnica+dossier).
       + specsBandHTML(p)
-      + (overviewHTML ? '<div style="margin-top:clamp(28px,3.4vw,44px);max-width:96ch">'+overviewHTML+'</div>' : "")
+      + (leftMain
+          ? '<div class="pdp-main-2col" style="margin-top:clamp(28px,3.4vw,44px)"><div>'+leftMain+'</div><div>'+infoCardHTML(p)+'</div></div>'
+          : '<div style="margin-top:clamp(28px,3.4vw,44px)">'+infoCardHTML(p)+'</div>')
       + '</div>'  // /wrap
-      + (aerialHotspotsHTML(p) || fullBleedImageHTML(p))  // aéreo con hotspots si hay datos; si no, imagen full-bleed
+      // Sección 50/50: imagen (información de la tierra) + sistema de pestañas ("designed to last")
+      + tabsSectionHTML(p)
+      // Sección de imagen a sangre (la que estaba arriba, bajada aquí)
+      + bleedSectionHTML(p)
       + '<div class="wrap pdp-wrap">'
-      // Guía Ficha p4: masterplan/configurador + "Designed to last" a la izquierda, "The Territory"
-      // con su mapa a la derecha. Sin territorio cargado la izquierda ocupa todo el ancho.
-      + '<div class="pdp-cols'+(territory?'':' pdp-cols-solo')+'" style="display:grid;grid-template-columns:'+(territory?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)')+';gap:clamp(28px,5vw,72px);align-items:start">'
-      +   '<div>'+leftMain+principlesHTML(p)+'</div>'
-      +   (territory ? '<div>'+territory+'</div>' : mapBlockHTML(p))
-      + '</div>'
-      + statementBannerHTML(p)
       + alsoHTML
-      + processBannerHTML()
       + '</div>'
-      + footerCoreHTML()   // mismo footer del marketplace (guía Ficha p6): franja de contacto + footer verde
+      + footerCoreHTML()   // mismo footer del marketplace: franja de contacto + footer verde
       + waFloatHTML(p)
       + lightboxHTML(p)
       + '</div>';
@@ -1027,6 +1008,7 @@
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
     else if(cmd==="lightbox"){ S.lightbox=parseInt(val,10)||0; render(); }
     else if(cmd==="lb-close"){ S.lightbox=null; render(); }
+    else if(cmd==="tab"){ S.tab=parseInt(val,10)||0; render(); }   // pestañas de la sección "designed to last"
     // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
     else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }
@@ -1036,8 +1018,6 @@
     else if(cmd==="cfg-reset"){ S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; render(); }
     else if(cmd==="close"){ closeProperty(); }
     else if(cmd==="go-home"){ window.location.href="index.html"; }
-    // Banner del proceso: cierra la ficha y baja al bloque #process del marketplace
-    else if(cmd==="go-process"){ closeProperty(); var pr=document.getElementById("process"); if(pr) pr.scrollIntoView({behavior:"smooth",block:"start"}); }
   }
 
   function bindEvents(){

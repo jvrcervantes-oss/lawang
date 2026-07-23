@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260723141811">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260723171213">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -187,6 +187,11 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .cfg-step{ animation:cfgFade .32s var(--ease); }
 @keyframes cfgFade{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
 @media(prefers-reduced-motion:reduce){ .cfg-step{ animation:none; } }
+/* Configurador más bonito (revisión cliente 23-jul): el paso vive en un panel claro contenido,
+   con un poco de aire y sombra suave — en vez de flotar suelto sobre el fondo crema. */
+.cfg-step{ background:#fff; border:1px solid rgba(190,179,165,.4); border-radius:14px;
+  padding:clamp(20px,2.4vw,30px); box-shadow:0 24px 56px -44px rgba(27,26,21,.4); }
+.cfg-step .serif{ margin-top:2px; }
 
 /* ── SCROLL REVEAL ───────────────────────────────────────── */
 .reveal    { opacity:0; transform:translateY(28px); filter:blur(4px); transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease); }
@@ -389,23 +394,40 @@ article:hover .view-cta { gap:9px; }
   display:grid; place-items:center; box-shadow:0 10px 26px -8px rgba(20,16,11,.55); transition:transform .2s }
 .pdp-wa-float svg{ width:58%; height:58%; display:block }
 .pdp-wa-float:hover{ transform:scale(1.06) }
-/* Banner "El proceso de reserva" antes del footer (guía Ficha p6) */
-.pdp-process-banner{ position:relative; margin-top:clamp(48px,6vw,80px); border-radius:14px; overflow:hidden; cursor:pointer;
-  min-height:clamp(190px,24vw,290px); display:flex; align-items:center; background:#1a160f }
-.pdp-process-banner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
-.pdp-pb-veil{ position:absolute; inset:0; background:linear-gradient(90deg,rgba(20,16,11,.78) 0%,rgba(20,16,11,.34) 58%,rgba(20,16,11,.08) 100%) }
-.pdp-pb-txt{ position:relative; z-index:2; color:var(--rl); padding:clamp(26px,4vw,58px); padding-left:clamp(38px,5vw,74px);
-  border-left:1px solid rgba(245,240,230,.65); margin-left:clamp(20px,3vw,46px) }
-.pdp-pb-1{ display:block; font-family:var(--sans); font-weight:300; font-size:clamp(22px,3.4vw,44px); letter-spacing:.06em; text-transform:uppercase; line-height:1.1 }
-.pdp-pb-2{ display:block; font-family:var(--sans); font-weight:700; font-style:italic; font-size:clamp(24px,3.8vw,50px); letter-spacing:.02em; text-transform:uppercase; line-height:1.1; margin-top:2px }
-/* Móvil: ficha de propiedad a 1 columna (el grid viene inline desde portfolio-app.js) */
+/* ── Ficha: 2 columnas bajo la tabla (izq configurador/payment · dcha card info) — revisión 23-jul ── */
+.pdp-main-2col{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:clamp(24px,3.5vw,52px); align-items:start; }
+/* Card de información (overview + ficha técnica + dossier) */
+.pdp-infocard{ background:#fff; border-radius:14px; padding:clamp(22px,2.4vw,34px); box-shadow:0 20px 50px -38px rgba(27,26,21,.4); position:sticky; top:clamp(84px,10vh,110px); }
+.pdp-ic-lead{ font-family:var(--sans); font-size:clamp(14px,1.35vw,16.5px); font-weight:300; line-height:1.65; color:var(--ink); margin:14px 0 0; }
+.pdp-ic-specs{ display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; margin-top:clamp(20px,2.4vw,28px); padding-top:clamp(18px,2vw,24px); border-top:1px solid var(--line); }
+.pdp-ic-spec{ display:flex; align-items:center; gap:10px; font-family:var(--sans); font-size:13.5px; font-weight:500; color:var(--ink); }
+.pdp-ic-spec svg{ width:19px; height:19px; flex:none; color:var(--tg); }
+.pdp-ic-spec span{ min-width:0; }
+/* ── Ficha: sección 50/50 imagen + pestañas ("designed to last") — revisión 23-jul ── */
+.pdp-tabs-section{ display:grid; grid-template-columns:1fr 1fr; align-items:stretch; margin:clamp(48px,6vw,84px) 0; min-height:clamp(420px,52vw,640px); }
+.pdp-tabs-img{ position:relative; overflow:hidden; background:#1a160f; }
+.pdp-tabs-img img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.pdp-tabs-panel{ display:flex; flex-direction:column; justify-content:center; padding:clamp(28px,4.5vw,72px); background:var(--rl); }
+.pdp-tabs-head{ display:flex; flex-wrap:wrap; gap:8px 22px; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:clamp(20px,2.4vw,30px); }
+.pdp-tab{ background:none; border:none; padding:6px 0; cursor:pointer; font-family:var(--sans); font-size:clamp(11px,1.1vw,13px); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); position:relative; transition:color .2s; }
+.pdp-tab::after{ content:""; position:absolute; left:0; right:0; bottom:-15px; height:2px; background:var(--tg); transform:scaleX(0); transition:transform .22s; }
+.pdp-tab:hover{ color:var(--ink); }
+.pdp-tab.on{ color:var(--tg); }
+.pdp-tab.on::after{ transform:scaleX(1); }
+.pdp-tab-body{ font-family:var(--sans); font-size:clamp(15px,1.5vw,18px); font-weight:300; line-height:1.7; color:var(--ink); margin:16px 0 0; }
+/* ── Ficha: "More in this line" con las cards del marketplace (LawangCard) ── */
+.pdp-also-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(clamp(240px,28vw,320px),1fr)); gap:clamp(18px,2vw,26px); padding-bottom:40px; }
+/* Móvil: ficha de propiedad a 1 columna */
+@media(max-width:860px){
+  .pdp-main-2col{ grid-template-columns:1fr; }
+  .pdp-infocard{ position:static; }                         /* sin sticky apilada */
+  .pdp-tabs-section{ grid-template-columns:1fr; min-height:0; }
+  .pdp-tabs-img{ min-height:clamp(240px,58vw,360px); }
+}
 @media(max-width:720px){
-  .pdp-cols{ grid-template-columns:1fr !important; }
   .pdp-aerial{ aspect-ratio:4/3 !important; }               /* aéreo más alto en móvil */
   .pdp-aerial .pdp-hs{ display:none !important; }           /* hotspots ocultos en móvil (override del display:flex inline) */
-  .pdp-pin-l{ display:none !important; }                    /* pines del mapa: solo el punto, sin etiqueta */
-  .pdp-hero-ghost{ display:none; }                          /* la marca de agua no cabe en móvil */
-  .pdp-pb-txt{ padding-left:clamp(20px,6vw,34px); margin-left:16px; }
+  .pdp-ic-specs{ grid-template-columns:1fr; }               /* ficha técnica en una columna */
 }
 /* Gallery thumbnails in property detail */
 #pf-overlay .gallery-thumb { transition:transform .18s var(--ease-press),border-color .2s; }
@@ -775,8 +797,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260723141811"></script>
-<script src="assets/portfolio-app.js?v=20260723141811-aerial"></script>
+<script src="assets/lawang-card.js?v=20260723171213"></script>
+<script src="assets/portfolio-app.js?v=20260723171213-aerial"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

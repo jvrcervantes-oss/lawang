@@ -536,6 +536,30 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
+          <h4>Section images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imágenes a sangre de la ficha. La primera es la de la sección 50/50 (izquierda, información de la tierra); la segunda es la banda a sangre de más abajo. Deja vacío para que use el aéreo/galería.</span></h4>
+          <div class="form-group">
+            <label>Split image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(sección 50/50, izquierda)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+              <input type="text" id="f-splitImage" placeholder="/assets/img/properties/land.jpg or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-splitImage')" title="Upload file">↑</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(banda a sangre inferior)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+              <input type="text" id="f-bleedImage" placeholder="/assets/img/properties/hero-wide.jpg or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Tabs / Designed to last <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Sistema de pestañas de la sección 50/50 (derecha). Añade cuantas quieras: cada una lleva título, texto e imagen (la imagen sustituye a la de la izquierda al abrir esa pestaña).</span></h4>
+          <div id="f-tabs-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTabRow()">+ Add tab</button>
+        </div>
+
+        <div class="form-section">
           <h4>Videos <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">MP4 URLs shown in the gallery carousel after the photos. Paste a direct link (e.g. /assets/videos/tour.mp4 or https://...).</span></h4>
           <div id="f-videos-list"></div>
           <button type="button" class="btn-secondary" style="margin-top:8px" onclick="addVideoSlot('')">+ Add video</button>
@@ -574,7 +598,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>The Territory <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Narrative + bullets next to the location map above. When filled, the map moves here (it is not shown twice).</span></h4>
+          <h4>The Territory <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400;color:#b06a4f">⚠ Ya NO se muestra en la ficha (23-jul) — usa "Tabs / Designed to last" para este contenido. Se conserva por si se recupera.</span></h4>
           <div class="form-row-2">
             <div class="form-group">
               <label for="f-territory-title-en">Section title EN <span class="muted">(default: "The Territory")</span></label>
@@ -618,7 +642,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Designed to last <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Product principles shown as columns near the end of the detail page.</span></h4>
+          <h4>Designed to last (old) <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400;color:#b06a4f">⚠ Ya NO se muestra en la ficha (23-jul) — sustituido por "Tabs / Designed to last". Se conserva por si se recupera.</span></h4>
           <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr 1.6fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Title EN</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Text EN</div>
@@ -1032,6 +1056,12 @@ function propertyToForm(p) {
   var tsContainer = document.getElementById('f-techspecs-list');
   tsContainer.innerHTML = '';
   ((p.techSpecs && p.techSpecs.length) ? p.techSpecs : []).forEach(function(sp){ addTechSpecRow(sp.l, sp.v); });
+  // Imágenes de sección (50/50 + banda a sangre) y pestañas
+  set('f-splitImage', p.splitImage || '');
+  set('f-bleedImage', p.bleedImage || '');
+  var tabsContainer = document.getElementById('f-tabs-list');
+  tabsContainer.innerHTML = '';
+  ((p.tabs && p.tabs.length) ? p.tabs : []).forEach(function(tb){ addTabRow(tb); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -1493,6 +1523,15 @@ function formToProperty() {
     techSpecs:   Array.prototype.slice.call(document.querySelectorAll('#f-techspecs-list .ts-item')).map(function(row){
                    return { l: row.querySelector('.ts-label').value.trim(), v: row.querySelector('.ts-value').value.trim() };
                  }).filter(function(sp){ return sp.l || sp.v; }),
+    splitImage:  get('f-splitImage'),
+    bleedImage:  get('f-bleedImage'),
+    tabs:        Array.prototype.slice.call(document.querySelectorAll('#f-tabs-list .tab-item')).map(function(row){
+                   return {
+                     title: { en: row.querySelector('.tab-title-en').value.trim(), es: row.querySelector('.tab-title-es').value.trim() },
+                     body:  { en: row.querySelector('.tab-body-en').value.trim(),  es: row.querySelector('.tab-body-es').value.trim() },
+                     image: row.querySelector('.tab-image').value.trim()
+                   };
+                 }).filter(function(tb){ return tb.title.en||tb.title.es||tb.body.en||tb.body.es||tb.image; }),
     garage:      get('f-garage'),
     garageDesc:  get('f-garageDesc'),
     furnished:   get('f-furnished'),
@@ -1655,6 +1694,48 @@ function addTechSpecRow(label, value) {
     '<input type="text" class="ts-value" value="' + esc(value||'') + '" placeholder="Value (Freehold HGB)">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
+}
+
+function addTabRow(tab) {
+  tab = tab || {}; var tt = tab.title || {}, bb = tab.body || {};
+  var container = document.getElementById('f-tabs-list');
+  var div = document.createElement('div');
+  div.className = 'tab-item';
+  div.style.cssText = 'border:1px solid #e5e0d8;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px';
+  div.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px">'
+    + '<input type="text" class="tab-title-en" value="' + esc(tt.en||'') + '" placeholder="Title EN">'
+    + '<input type="text" class="tab-title-es" value="' + esc(tt.es||'') + '" placeholder="Título ES">'
+    + '<button type="button" class="img-slot-del" onclick="this.closest(\'.tab-item\').remove()">✕</button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<textarea class="tab-body-en" rows="3" placeholder="Text EN">' + esc(bb.en||'') + '</textarea>'
+    + '<textarea class="tab-body-es" rows="3" placeholder="Texto ES">' + esc(bb.es||'') + '</textarea>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">'
+    + '<input type="text" class="tab-image" value="' + esc(tab.image||'') + '" placeholder="Image URL (opcional — sustituye la imagen 50/50 al abrir esta pestaña)">'
+    + '<button type="button" class="img-slot-upload" onclick="uploadToTabImage(this)" title="Upload file">↑</button>'
+    + '</div>';
+  container.appendChild(div);
+}
+
+async function uploadToTabImage(btn) {
+  var input = btn.closest('.tab-item').querySelector('.tab-image');
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.onchange = async function() {
+    if (!fileInput.files.length) return;
+    var file = fileInput.files[0]; btn.disabled = true; var o = btn.textContent; btn.textContent = '…';
+    var fd = new FormData(); fd.append('image', file);
+    try {
+      var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
+      var d = await r.json();
+      if (d.ok) { input.value = d.url; toast('Image uploaded.', 'ok'); }
+      else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
+    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+    finally { btn.disabled = false; btn.textContent = o; }
+  };
+  fileInput.click();
 }
 
 async function uploadDocForRow(btn) {
