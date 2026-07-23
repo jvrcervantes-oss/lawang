@@ -314,6 +314,23 @@
   // ════ FICHA — sub-bloques ════
   // ── Hero a pantalla completa (guía Ficha, jul-2026): imagen full-bleed del producto,
   //    marca, título display, pill de release, tagline y ubicación. Cae a gradiente temático sin foto.
+  // Fila de características bajo el hero (petición cliente jul-2026): habitaciones, baños,
+  // superficies y amenities booleanas. Solo pinta lo que la propiedad tiene — data-driven.
+  function heroFeatsHTML(p){
+    var f = [];
+    if(p.beds>0)  f.push(p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones"));
+    if(p.baths>0) f.push(p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños"));
+    if(p.built>0) f.push(p.built+" m² "+tl("Built","Construidos"));
+    if(p.land>0)  f.push(p.land+" m² "+tl("Land","Terreno"));
+    if(p.poolType||p.pool) f.push(tl("Pool","Piscina"));
+    if(p.garage)    f.push(tl("Garage","Garaje"));
+    if(p.furnished) f.push(tl("Furnished","Amueblada"));
+    if(f.length===0) return "";
+    return '<div class="pdp-hero-feats" aria-label="'+tl("Key features","Características")+'">'
+      + f.map(function(x){ return '<span>'+esc(x)+'</span>'; }).join("")
+      + '</div>';
+  }
+
   function heroHTML(p){
     var key = firstImg(p);
     var theme = themeFor(p);
@@ -339,12 +356,17 @@
       // Migas dentro del hero, bajo el topbar (guía Ficha p1)
       + '<div style="position:absolute;top:clamp(84px,10.5vh,116px);left:0;right:0;z-index:3"><div class="wrap pdp-wrap">'+breadcrumbsHTML(p,true)+'</div></div>'
       + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1100px">'
-      +   '<span class="lw-iso" aria-hidden="true" style="width:clamp(46px,5.2vw,64px);margin:0 auto 26px;color:var(--bone);opacity:.95"></span>'
+      +   (p.isotype
+            // Isotipo propio del proyecto (Sumba, Palm Field…), cargado desde el admin. Se pinta
+            // como <img> tal cual (puede ser a color); sin él, cae al isotipo de Lawang (máscara).
+            ? '<img src="'+esc(p.isotype)+'" alt="" style="display:block;height:clamp(52px,6vw,78px);width:auto;max-width:240px;margin:0 auto 26px;object-fit:contain" onerror="this.style.display=\'none\'">'
+            : '<span class="lw-iso" aria-hidden="true" style="width:clamp(46px,5.2vw,64px);margin:0 auto 26px;color:var(--bone);opacity:.95"></span>')
       +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
       +   '<div style="margin-top:clamp(24px,3.4vh,38px)">'+release+'</div>'
       +   claim
       +   '<p style="font-family:var(--sans);font-weight:300;font-size:clamp(11px,1.2vw,15px);letter-spacing:.28em;text-transform:uppercase;opacity:.9;margin-top:clamp(22px,3vh,34px)">'+esc(loc)+'</p>'
       + '</div>'
+      + heroFeatsHTML(p)
       + '</section>';
   }
 
@@ -398,10 +420,19 @@
       tiles += '<button class="pdp-g3-tile'+(i>0?' pdp-g3-extra':'')+'" data-act="gal:'+((active+1)%total)+'" aria-label="'+tl("Next photo","Siguiente foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2);aspect-ratio:4/3">'+tileInner(m)+badge+moreOv+'</button>';
     }
     // Flechas superpuestas sobre los bordes de las imágenes (no ocupan ancho): la fila usa el 100% del ancho.
-    var arrow = function(side,to){ return '<button data-act="gal:'+to+'" aria-label="'+(side==="left"?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="position:absolute;'+side+':14px;top:50%;transform:translateY(-50%);z-index:5;width:clamp(40px,3.2vw,50px);height:clamp(40px,3.2vw,50px);border-radius:999px;border:none;background:rgba(255,255,255,.85);color:var(--ink);font-size:24px;line-height:0;cursor:pointer;display:grid;place-items:center;font-family:var(--sans);box-shadow:0 6px 18px -6px rgba(20,16,11,.45);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)">'+(side==="left"?"‹":"›")+'</button>'; };
-    var arrows = total>1 ? (arrow("left", ((active-1)%total+total)%total) + arrow("right", (active+1)%total)) : "";
+    // Chevron SVG en vez de glifo de texto: el "‹" a 24px medía 8px reales dentro del círculo de 50
+    // y era imposible de centrar con line-height — con SVG el tamaño y el centrado son exactos.
+    var chev = function(side){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(side==="left"?"M14.5 5.5 8 12l6.5 6.5":"M9.5 5.5 16 12l-6.5 6.5")+'"/></svg>'; };
+    var arrow = function(side,to){ return '<button class="pdp-gal-arrow" data-act="gal:'+to+'" aria-label="'+(side==="left"?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="'+side+':12px">'+chev(side)+'</button>'; };
+    var prev = ((active-1)%total+total)%total, next = (active+1)%total;
+    var arrows = total>1 ? (arrow("left", prev) + arrow("right", next)) : "";
+    // data-prev/data-next: los usa el swipe táctil delegado de bindEvents. gal-anim: fundido al
+    // navegar, para que se VEA que las fotos avanzaron (avanzar de 1 en 1 repite 2 de las 3 en
+    // pantalla y sin transición parecía que el carrusel no hacía nada).
+    var anim = S.galAnim ? ' gal-anim' : '';
+    S.galAnim = false;
     return '<div style="position:relative;margin-top:clamp(20px,2.5vw,30px)">'
-      + '<div class="pdp-gal3" style="display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
+      + '<div class="pdp-gal3'+anim+'"'+(total>1?' data-prev="'+prev+'" data-next="'+next+'"':'')+' style="display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
       + arrows+'</div>';
   }
 
@@ -926,7 +957,7 @@
     else if(cmd==="feat"){ S.featIdx=parseInt(val,10)||0; render(); }
     else if(cmd==="page"){ S.page=parseInt(val,10)||1; render(); var g=document.getElementById("pf-grid"); if(g) g.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="layout"){ S.layout=val; render(); }
-    else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; render(); }
+    else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
     else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }
     else if(cmd==="model"){ S.modelIdx=parseInt(val,10); render(); }
@@ -968,6 +999,21 @@
       try{ fetch("api/lead.php",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"email="+encodeURIComponent(v)+"&source=downloads&property="+encodeURIComponent(pid||"")}).catch(function(){}); }catch(_){}
       render();
     });
+    // Swipe táctil en la galería de la ficha (en móvil las flechas no bastan: el gesto natural
+    // en un carrusel es arrastrar). Delegado en root porque la galería se re-crea en cada render.
+    var galTouchX = null;
+    root.addEventListener("touchstart", function(e){
+      var g = e.target.closest(".pdp-gal3");
+      galTouchX = (g && g.hasAttribute("data-next")) ? e.touches[0].clientX : null;
+    }, {passive:true});
+    root.addEventListener("touchend", function(e){
+      if(galTouchX==null) return;
+      var dx = e.changedTouches[0].clientX - galTouchX; galTouchX = null;
+      if(Math.abs(dx) < 45) return;   // umbral: no confundir tap/scroll vertical con swipe
+      var g = document.querySelector(".pdp-gal3"); if(!g) return;
+      var to = dx < 0 ? g.getAttribute("data-next") : g.getAttribute("data-prev");
+      if(to!=null){ S.gallery = parseInt(to,10)||0; S.galAnim = true; render(); }
+    }, {passive:true});
     window.addEventListener("hashchange", onHash);
     // a11y: cerrar la ficha de propiedad con Escape (misma UX que el modal legal)
     document.addEventListener("keydown", function(e){ if(e.key==="Escape" && S.overlay) closeProperty(); });

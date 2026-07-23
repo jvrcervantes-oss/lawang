@@ -382,6 +382,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <input type="text" id="f-logo" placeholder="/assets/img/logo-palmfield.png">
           </div>
           <div class="form-group">
+            <label>Isotype / project mark <span class="hint">opcional; marca propia del proyecto (PNG con fondo transparente) — sustituye al isotipo de Lawang en el hero de la ficha</span></label>
+            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+              <input type="text" id="f-isotype" placeholder="/assets/img/properties/mark-palmfield.png or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-isotype')" title="Upload file">↑</button>
+            </div>
+          </div>
+          <div class="form-group">
             <label>Highlights <span class="hint">lista de checks del bloque de la home · hasta 5</span></label>
             <div id="f-highlights-list"></div>
             <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHighlightRow('')">+ Add highlight</button>
@@ -956,6 +963,7 @@ function propertyToForm(p) {
   set('f-inCollection', p.inCollection === true);
   set('f-homeFeatured', p.homeFeatured === true);
   set('f-logo',        p.logo        || '');
+  set('f-isotype',     p.isotype     || '');
   set('f-priceEUR',    p.priceEUR    || '');
   set('f-tenure',      p.tenure      || 'tenure.freehold');
   set('f-leaseYears',  p.leaseYears  || '');
@@ -1454,6 +1462,7 @@ function formToProperty() {
     inCollection: get('f-inCollection'),
     homeFeatured: get('f-homeFeatured'),
     logo:        get('f-logo'),
+    isotype:     get('f-isotype'),
     highlights:  Array.prototype.slice.call(document.querySelectorAll('#f-highlights-list .hl-item')).map(function(row){ return row.querySelector('.hl-text').value.trim(); }).filter(Boolean),
     priceEUR:    parseFloat(get('f-priceEUR'))    || 0,
     beds:        parseInt(get('f-beds'))           || 0,
