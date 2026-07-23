@@ -559,9 +559,10 @@
         return '<div class="pdp-ic-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(FEAT_ICONS[r.ico]||FEAT_ICONS.type)+'</svg><span>'+esc(r.v)+'</span></div>';
       }).join("")+'</div>' : "";
     var map = mapMediaHTML(p.mapImage);
-    var files = (p.downloads&&p.downloads.length)?p.downloads:null;
-    var dossier = files ? '<div style="margin-top:clamp(18px,2.2vw,26px)">'+downloadsHTML(files,p)+'</div>' : "";
-    if(!overview && !specsGrid && !map && !dossier) return "";
+    // Dossier: SIEMPRE presente (petición cliente 23-jul: "añade descargar el dossier, lo teníamos
+    // hecho"). Con archivos → gate de email que los desbloquea; sin archivos → gate que capta el
+    // email como lead y confirma envío. downloadsHTML degrada solo si files está vacío.
+    var dossier = '<div style="margin-top:clamp(18px,2.2vw,26px)">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>';
     return '<div class="pdp-infocard">'
       + (overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-ic-lead">'+esc(overview)+'</p>' : "")
       + specsGrid
@@ -570,11 +571,17 @@
       + '</div>';
   }
 
-  // ── Tabla blanca de texto libre (revisión cliente 23-jul): a lo ANCHO, justo bajo el carrusel.
-  //    Debajo va el 2-col [configurador/payment | card de info] que arma propertyHTML.
+  // ── Sección A (revisión cliente 23-jul, refinada): tabla blanca de texto libre a la IZQUIERDA
+  //    + card de info (overview + ficha técnica + dossier) a la DERECHA. El configurador/payment
+  //    plan va a lo ancho DEBAJO (lo arma propertyHTML).
   function specsBandHTML(p){
     var table = techSpecsHTML(p);
-    return table ? '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px)">'+table+'</div>' : "";
+    var card = infoCardHTML(p);
+    if(!table && !card) return "";
+    return '<div class="pdp-info-2col" style="margin-top:clamp(24px,3vw,34px)">'
+      + '<div>'+(table||"")+'</div>'
+      + '<div>'+(card||"")+'</div>'
+      + '</div>';
   }
 
   // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
@@ -637,9 +644,14 @@
   //  contenido lo sustituye el sistema de pestañas de tabsSectionHTML)
 
   function downloadsHTML(files, p){
-    var head = '<div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:12px">'+t("dl.title")+'</div>';
+    files = files || [];
+    var head = '<div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:12px">'+tl("Dossier","Dossier")+'</div>';
     var inner;
-    if(S.dlUnlocked){
+    if(S.dlUnlocked && !files.length){
+      // Sin archivos cargados aún: el email quedó captado como lead; se confirma el envío manual.
+      inner = '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tg);margin-bottom:8px"><span style="width:7px;height:7px;border-radius:999px;background:var(--tg)"></span> '+tl("Request received","Solicitud recibida")+'</div>'
+        + '<p style="font-size:12.5px;color:var(--ink-2);line-height:1.5;margin:0">'+tl("Thank you — we'll email the full dossier to you shortly.","Gracias — te enviaremos el dossier completo por email en breve.")+'</p>';
+    } else if(S.dlUnlocked){
       var rows = files.map(function(f,i){
         var dl = f.url ? '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" download style="border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--tg);font-family:var(--sans);text-decoration:none">↓</a>'
                        : '<span style="border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--ink-2);font-family:var(--sans)">↓</span>';
@@ -649,8 +661,8 @@
       }).join("");
       inner = '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tg);margin-bottom:8px"><span style="width:7px;height:7px;border-radius:999px;background:var(--tg)"></span> '+t("dl.unlocked")+'</div>'+rows;
     } else {
-      var locked = files.map(function(f){ return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;opacity:.5"><div style="width:26px;height:26px;background:var(--tg-light);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--tg)">'+(f.ext||"PDF")+'</div><div style="font-size:13px">'+esc(f.name)+'</div></div>'; }).join("");
-      inner = '<form data-act="dl-submit"><div style="margin-bottom:14px">'+locked+'</div>'
+      var locked = files.length ? '<div style="margin-bottom:14px">'+files.map(function(f){ return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;opacity:.5"><div style="width:26px;height:26px;background:var(--tg-light);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--tg)">'+(f.ext||"PDF")+'</div><div style="font-size:13px">'+esc(f.name)+'</div></div>'; }).join("")+'</div>' : "";
+      inner = '<form data-act="dl-submit">'+locked
         + '<p style="font-size:12.5px;color:var(--ink);font-weight:600;line-height:1.4;margin-bottom:10px">'+t("dl.gate.title")+'</p>'
         + '<input type="email" id="dl-email" value="'+esc(S.dlEmail)+'" placeholder="you@email.com" aria-label="Email" style="width:100%;padding:10px 12px;border:1px solid '+(S.dlErr?"#b3402e":"var(--line)")+';border-radius:6px;font-size:14px;font-family:var(--sans);margin-bottom:'+(S.dlErr?"6px":"10px")+';background:white;box-sizing:border-box">'
         + (S.dlErr?'<div style="font-size:11.5px;color:#b3402e;margin-bottom:10px">'+t("dl.gate.invalid")+'</div>':"")
@@ -924,12 +936,10 @@
       +       (p.status ? '<span aria-hidden="true" style="opacity:.55">›</span><span style="opacity:.8">'+t(p.status)+'</span>' : '')+'</div>'
       +     '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
-      // Revisión cliente 23-jul: tabla blanca de texto libre a lo ancho + 2 columnas debajo
-      // (izq: configurador/payment plan · dcha: card overview+técnica+dossier).
+      // Revisión cliente 23-jul (refinada): 2-col [tabla blanca | card overview+técnica+dossier];
+      // el configurador/payment plan va a lo ANCHO debajo.
       + specsBandHTML(p)
-      + (leftMain
-          ? '<div class="pdp-main-2col" style="margin-top:clamp(28px,3.4vw,44px)"><div>'+leftMain+'</div><div>'+infoCardHTML(p)+'</div></div>'
-          : '<div style="margin-top:clamp(28px,3.4vw,44px)">'+infoCardHTML(p)+'</div>')
+      + (leftMain ? '<div class="pdp-leftmain">'+leftMain+'</div>' : "")
       + '</div>'  // /wrap
       // Sección 50/50: imagen (información de la tierra) + sistema de pestañas ("designed to last")
       + tabsSectionHTML(p)
