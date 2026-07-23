@@ -1425,6 +1425,11 @@ function collect(){
   activeKeys().forEach(k=>{ const pad=pads[k];
     if(pad){ data[k]= pad.empty ? '' : pad.cv.toDataURL('image/png'); return; }
     const el=$(`[name="${k}"]`); data[k]= el ? el.value.trim() : ''; });
+  // El nº de contrato es autoritativo en SAVED_CONTRACT (columna `numero` de la
+  // fila, la asigna el trigger de Postgres). No vive en datos.fields, así que al
+  // reabrir un contrato el input readonly se recrea vacío → tomarlo de aquí para
+  // que el documento imprima el número en vez de un hueco en blanco.
+  if(SAVED_CONTRACT && SAVED_CONTRACT.numero) data.contrato_num = SAVED_CONTRACT.numero;
   return data;
 }
 
