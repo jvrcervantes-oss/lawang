@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260723172957">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260723173837">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -394,10 +394,10 @@ article:hover .view-cta { gap:9px; }
   display:grid; place-items:center; box-shadow:0 10px 26px -8px rgba(20,16,11,.55); transition:transform .2s }
 .pdp-wa-float svg{ width:58%; height:58%; display:block }
 .pdp-wa-float:hover{ transform:scale(1.06) }
-/* ── Ficha: 2 columnas bajo el carrusel (izq tabla blanca · dcha card info) — revisión 23-jul ── */
-.pdp-info-2col{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:clamp(24px,3.5vw,52px); align-items:start; }
-/* Configurador / payment plan a lo ancho debajo, con ancho máximo cómodo de lectura */
-.pdp-leftmain{ max-width:1040px; }
+/* ── Ficha: 2 columnas bajo el carrusel — izq 60% (tabla + configurador/payment) · dcha 40% (card) ── */
+.pdp-info-2col{ display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:clamp(24px,3.5vw,52px); align-items:start; }
+/* Configurador / payment plan encajado en el hueco bajo la tabla (col izq). Trae su propio
+   margen superior (border-top del payment plan / margin del configurador) → sin margen extra aquí. */
 /* Card de información (overview + ficha técnica + dossier) */
 .pdp-infocard{ background:#fff; border-radius:14px; padding:clamp(22px,2.4vw,34px); box-shadow:0 20px 50px -38px rgba(27,26,21,.4); }
 .pdp-ic-lead{ font-family:var(--sans); font-size:clamp(14px,1.35vw,16.5px); font-weight:300; line-height:1.65; color:var(--ink); margin:14px 0 0; }
@@ -798,8 +798,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260723172957"></script>
-<script src="assets/portfolio-app.js?v=20260723172957-aerial"></script>
+<script src="assets/lawang-card.js?v=20260723173837"></script>
+<script src="assets/portfolio-app.js?v=20260723173837-aerial"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

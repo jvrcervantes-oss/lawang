@@ -571,19 +571,6 @@
       + '</div>';
   }
 
-  // ── Sección A (revisión cliente 23-jul, refinada): tabla blanca de texto libre a la IZQUIERDA
-  //    + card de info (overview + ficha técnica + dossier) a la DERECHA. El configurador/payment
-  //    plan va a lo ancho DEBAJO (lo arma propertyHTML).
-  function specsBandHTML(p){
-    var table = techSpecsHTML(p);
-    var card = infoCardHTML(p);
-    if(!table && !card) return "";
-    return '<div class="pdp-info-2col" style="margin-top:clamp(24px,3vw,34px)">'
-      + '<div>'+(table||"")+'</div>'
-      + '<div>'+(card||"")+'</div>'
-      + '</div>';
-  }
-
   // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
   function fullBleedImageHTML(p){
     var key = (p.imgKeys&&p.imgKeys[2]) || (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
@@ -924,22 +911,22 @@
     var alsoHTML = also.length>0 ? '<div style="margin-top:clamp(56px,7vw,90px);padding-top:clamp(36px,4vw,52px);border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+t("pd.also")+'</div><div class="pdp-also-grid">'
       + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,{lang:S.lang,cur:S.cur,rates:L.RATES}) : ''; }).join("")
       + '</div></div>' : "";
-    // Cabecera (revisión cliente 23-jul): las migas bajan del hero aquí; el título ya no se
-    // repite (vive en el hero) — queda solo el subtítulo. A la derecha "LÍNEA › ESTADO" + precio.
+    // Cabecera: migas + subtítulo a la izquierda; a la derecha SOLO el precio (revisión cliente
+    // 23-jul: fuera "LÍNEA › ESTADO" de encima del precio).
     return '<div>'   // sin padding inferior: el footer cierra la página
       + heroHTML(p)
       + '<div class="wrap pdp-wrap" style="padding-top:clamp(36px,4.5vw,64px)">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
       +   breadcrumbsHTML(p,false)+subHTML+'</div>'
       +   '<div style="flex-shrink:0;text-align:right">'
-      +     '<div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;font-family:var(--sans);font-size:clamp(11px,1.05vw,14px);font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-bottom:clamp(10px,1.2vw,16px)"><span>'+t(LINE_KEYS[p.line])+'</span>'
-      +       (p.status ? '<span aria-hidden="true" style="opacity:.55">›</span><span style="opacity:.8">'+t(p.status)+'</span>' : '')+'</div>'
       +     '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
       + galleryHTML(p)
-      // Revisión cliente 23-jul (refinada): 2-col [tabla blanca | card overview+técnica+dossier];
-      // el configurador/payment plan va a lo ANCHO debajo.
-      + specsBandHTML(p)
-      + (leftMain ? '<div class="pdp-leftmain">'+leftMain+'</div>' : "")
+      // Revisión cliente 23-jul: 2-col — izq 60% tabla blanca + configurador/payment plan en el
+      // hueco de abajo · dcha 40% card overview+técnica+dossier.
+      + '<div class="pdp-info-2col" style="margin-top:clamp(24px,3vw,34px)">'
+      +   '<div>'+techSpecsHTML(p)+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
+      +   '<div>'+infoCardHTML(p)+'</div>'
+      + '</div>'
       + '</div>'  // /wrap
       // Sección 50/50: imagen (información de la tierra) + sistema de pestañas ("designed to last")
       + tabsSectionHTML(p)
