@@ -31,6 +31,9 @@
   .lang-hint{ font-size:11px; letter-spacing:.04em; color:var(--sc); text-transform:uppercase; font-weight:600; }
   .tb-link{ background:none; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:12.5px; color:var(--va); padding:6px 11px; cursor:pointer; }
   .tb-link:hover{ border-color:var(--tg); }
+  /* selector de contrato en la barra estática: siempre accesible al hacer scroll del formulario */
+  .tb-select{ font:inherit; font-size:13px; font-weight:600; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--rl); color:var(--va); min-width:170px; max-width:280px; cursor:pointer; }
+  .tb-select:hover{ border-color:var(--tg); }
 
   /* ---------- escenario en dos columnas ---------- */
   .stage{ display:flex; height:calc(100dvh - var(--tbh)); }
@@ -43,14 +46,6 @@
   #pvFrame{ width:100%; max-width:820px; height:100%; min-height:400px; border:none; background:#fff; box-shadow:0 6px 30px rgba(46,52,55,.18); border-radius:6px; }
   .pv-close{ display:none; }
 
-  /* ---------- selector de plantilla ---------- */
-  .tpl-card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px;
-    display:flex; align-items:center; gap:12px; }
-  .tpl-card .ico{ width:40px; height:40px; border-radius:10px; background:var(--dl); display:grid; place-items:center; color:#fff; font-size:18px; flex:none; }
-  .tpl-card .meta{ flex:1; min-width:0; }
-  .tpl-card .meta b{ display:block; font-size:14px; }
-  .tpl-card .meta span{ font-size:12px; color:var(--muted); }
-  .tpl-card select{ font:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); flex:none; max-width:44%; }
 
   /* ---------- secciones (acordeón) ---------- */
   .tier-label{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--sc);
@@ -216,6 +211,7 @@
   <div class="topbar">
     <img class="brandlogo" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
     <h1 class="tbtitle">· Contratos</h1>
+    <select id="tplPick" class="tb-select" aria-label="Tipo de contrato"></select>
     <div class="spacer"></div>
     <button type="button" class="tb-link" id="btnContracts">Contratos guardados</button>
     <button type="button" class="tb-link" id="btnReset">Limpiar</button>
@@ -228,14 +224,6 @@
     <!-- IZQUIERDA · campos -->
     <div class="pane-form">
       <div class="inner">
-        <div class="tpl-card">
-          <div class="ico">📄</div>
-          <div class="meta">
-            <b id="tplName">Contrato de Reserva de Proyecto</b>
-            <span id="tplDesc">—</span>
-          </div>
-          <select id="tplPick" aria-label="Tipo de contrato"></select>
-        </div>
         <form id="form"><!-- generado por JS --></form>
       </div>
     </div>
@@ -1642,10 +1630,6 @@ function deriveSections(){
 /* ---------- selector de plantilla ---------- */
 async function loadTemplate(slug){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
-  $('#tplName').textContent = L(CURRENT.name);
-  $('#tplDesc').textContent = CURRENT.ready
-    ? {es:'Plantilla lista',en:'Ready',id:'Siap'}[LANG]
-    : {es:'Estructura lista · texto legal pendiente',en:'Structure ready · legal text pending',id:'Struktur siap · teks hukum menyusul'}[LANG];
   try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   deriveSections();
@@ -1667,7 +1651,7 @@ function buildLangToggle(){
   const box=$('#langToggle');
   box.innerHTML = LANGS.map(([code,lbl])=>`<button data-l="${code}" class="${code===LANG?'on':''}">${lbl}</button>`).join('');
   box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ LANG=b.dataset.l;
-    $('#tplName').textContent=L(CURRENT.name); buildPicker(); buildForm(); applyLang(); }));
+    buildPicker(); buildForm(); applyLang(); }));   // buildPicker re-localiza el nombre en el select
 }
 
 /* ---------- preview móvil (overlay) ---------- */
