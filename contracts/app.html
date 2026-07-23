@@ -1254,6 +1254,10 @@ const CUENTAS_BANCARIAS = {
     titular:'Sandal Woods Limited', banco:'DBS Bank Ltd', cuenta:'885571532066',
     codigo:'DBSSSGSG', direccion:'12 Marina Boulevard, DBS Asia Central, Marina Bay Financial Centre Tower 3, Singapore 018982',
     extra:{es:'Código de banco: 7171',en:'Bank code: 7171',id:'Kode bank: 7171'} },
+  sandalwoods_danamon_eur: { label:'PT San Dal Woods — Bank Danamon, EUR (Badung)',
+    titular:'PT San Dal Woods', banco:'PT Bank Danamon Indonesia, Tbk — sucursal Badung Kerobokan', cuenta:'3692536026',
+    codigo:'BDINIDJAXXX', direccion:'Jalan Raya Kerobokan No. 24, Banjar Taman Kerobokan, Badung, Bali, Indonesia 80361',
+    extra:{es:'Código de banco: 011 · Código de sucursal: 0380',en:'Bank code: 011 · Branch code: 0380',id:'Kode bank: 011 · Kode cabang: 0380'} },
   contractor_lawang: { label:'Contratista — Lawang (I Putu Hady Diyatmika · BCA)',
     titular:'I Putu Hady Diyatmika, ST', banco:'Bank Central Asia (BCA)', cuenta:'1420040632',
     codigo:'CENAIDJA', direccion:'Menara BCA, Grand Indonesia, Jl. MH Thamrin No. 1, Jakarta 10310, Indonesia', extra:'' },
@@ -1299,10 +1303,11 @@ const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
 // declaración "depósito en garantía", que solo tiene sentido donde el contrato
 // pacta escrow notarial (Reserva de Parcela). Ofrecerlas en los demás invita a
 // mandar el dinero al sitio equivocado con una cláusula que nadie pactó.
-// Construcción cobra por tres vías: la cuenta de Sandal Woods (Singapur) y, para
+// Construcción cobra por cuatro vías: la cuenta de Sandal Woods (Singapur), la de
+// San Dal Woods en Danamon EUR (23-jul, disponible en todos los contratos) y, para
 // las operaciones de Sumba, el escrow del notario y la cuenta del constructor en
 // euros (añadidas 22-jul a petición del cliente).
-const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'notario_sandy_sumba', 'contractor_sumba_eur'];
+const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'notario_sandy_sumba', 'contractor_sumba_eur'];
 function bankOptionsFor(slug){
   if(slug==='ppjb_construccion') return BANK_OPTIONS.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
   if(slug==='ppjb_parcela') return BANK_OPTIONS;
@@ -1565,6 +1570,12 @@ const FORM_ORDER = ['gestion','comprador','sociedad','parcela','proyecto_constru
    Un campo se muestra únicamente si su marcador {{...}} aparece en la plantilla
    activa o en la portada. Lo que no imprime nada, no se pregunta. Los marcadores
    sin campo en tokens.json caen en el grupo automático "otros". */
+/* mismo campo, palabra distinta según contrato: en el Bloqueo de Parcela el precio
+   es del suelo, no "del proyecto" (petición del cliente, 23-jul). El campo lo
+   comparten 5 plantillas, por eso la etiqueta global no se toca. */
+const ETIQUETAS_POR_PLANTILLA = {
+  ppjb_parcela: { precio_total: {es:'Precio total del suelo',en:'Total land price',id:'Harga total tanah'} }
+};
 function deriveSections(){
   const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
   const inDoc = new Set([...(templateHTML+COVER_HTML).matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m=>m[1]));
@@ -1581,6 +1592,8 @@ function deriveSections(){
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
+  const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
+  if(relabel) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> relabel[f[0]] ? [f[0], relabel[f[0]], ...f.slice(2)] : f); });
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
   const missing = [...inDoc].filter(k=>!known.has(k));
   if(missing.length){
