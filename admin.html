@@ -439,6 +439,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           </div>
           <div class="form-row-2">
             <div class="form-group">
+              <label>Land colour / zoning <span class="hint">solo línea Land — sale en las características del hero (ej. "Yellow zone")</span></label>
+              <input type="text" id="f-landColor" placeholder="Yellow zone">
+            </div>
+            <div class="form-group"></div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
               <label>Units available <span class="hint">shown in sidebar; leave empty to hide</span></label>
               <input type="number" id="f-unitsAvailable" min="0" placeholder="4">
             </div>
@@ -520,6 +527,12 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <button type="button" class="btn-secondary" onclick="addImageSlot('')">+ Add image</button>
             <button type="button" class="btn-ghost" onclick="openImagePicker(null)">📁 Pick from uploaded images</button>
           </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Specs band <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tabla blanca horizontal de la ficha. Si añades filas aquí, MANDAN ellas (texto libre: etiqueta + valor); si lo dejas vacío, la tabla se construye sola (tenure, delivery, status…).</span></h4>
+          <div id="f-techspecs-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTechSpecRow('','')">+ Add cell</button>
         </div>
 
         <div class="form-section">
@@ -980,6 +993,7 @@ function propertyToForm(p) {
   set('f-showHomeModels', p.showHomeModels === true);
   set('f-showExtras',  p.showExtras  === true);
   set('f-poolType',    p.poolType    || '');
+  set('f-landColor',   p.landColor   || '');
   set('f-furnished',   p.furnished   || '');
   set('f-garage',      p.garage      || false);
   set('f-garageDesc',  p.garageDesc  || '');
@@ -1014,6 +1028,10 @@ function propertyToForm(p) {
   var hlContainer = document.getElementById('f-highlights-list');
   hlContainer.innerHTML = '';
   ((p.highlights && p.highlights.length) ? p.highlights : []).forEach(function(t){ addHighlightRow(t); });
+  // Specs band (celdas libres de la tabla blanca)
+  var tsContainer = document.getElementById('f-techspecs-list');
+  tsContainer.innerHTML = '';
+  ((p.techSpecs && p.techSpecs.length) ? p.techSpecs : []).forEach(function(sp){ addTechSpecRow(sp.l, sp.v); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -1471,6 +1489,10 @@ function formToProperty() {
     land:        parseInt(get('f-land'))           || 0,
     pool:        !!(get('f-poolType')),
     poolType:    get('f-poolType'),
+    landColor:   get('f-landColor'),
+    techSpecs:   Array.prototype.slice.call(document.querySelectorAll('#f-techspecs-list .ts-item')).map(function(row){
+                   return { l: row.querySelector('.ts-label').value.trim(), v: row.querySelector('.ts-value').value.trim() };
+                 }).filter(function(sp){ return sp.l || sp.v; }),
     garage:      get('f-garage'),
     garageDesc:  get('f-garageDesc'),
     furnished:   get('f-furnished'),
@@ -1619,6 +1641,18 @@ function addHighlightRow(text) {
   div.style.cssText = 'display:grid;grid-template-columns:1fr 28px;gap:8px;margin-bottom:6px';
   div.innerHTML =
     '<input type="text" class="hl-text" value="' + esc(text||'') + '" placeholder="700 meters from the ocean">' +
+    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  container.appendChild(div);
+}
+
+function addTechSpecRow(label, value) {
+  var container = document.getElementById('f-techspecs-list');
+  var div = document.createElement('div');
+  div.className = 'ts-item';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="text" class="ts-label" value="' + esc(label||'') + '" placeholder="Label (TENURE)">' +
+    '<input type="text" class="ts-value" value="' + esc(value||'') + '" placeholder="Value (Freehold HGB)">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
 }

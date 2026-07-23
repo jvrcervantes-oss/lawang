@@ -26,8 +26,8 @@
     ricefield:{ en:'Rice fields',es:'Arrozales' },
     river:    { en:'Riverside',  es:'Río' }
   };
-  var SYMS = { EUR:'€', USD:'$', AUD:'A$' };
-  var DEFAULT_RATES = { EUR:1, USD:1.08, AUD:1.65 };
+  var SYMS = { EUR:'€', USD:'$', AUD:'A$', IDR:'Rp ' };
+  var DEFAULT_RATES = { EUR:1, USD:1.08, AUD:1.65, IDR:17500 };
   // Iconos de specs (área construida / dormitorios / parcela)
   var ICO_AREA = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
   var ICO_BED  = '<svg class="lw-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 20v-2M21 20v-2M6 10V8a2 2 0 0 1 2-2h3v4"/></svg>';

@@ -78,17 +78,15 @@
     var flagES='<svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#c60b1e"/><rect y=".5" width="3" height="1" fill="#ffc400"/></svg>';
     var flagID='<svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#fff"/><rect width="3" height="1" fill="#ce1126"/></svg>';
     var wa='<span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span>';
-    // En la ficha, al hacer scroll el logo cede su sitio al "‹ The Collection" (guía Ficha p1/p2).
-    var pdpBack = ghost ? '<button class="pdp-back" data-act="close"><span class="pb-chev" aria-hidden="true">‹</span><span class="lw-iso pb-mark" aria-hidden="true"></span><span>'+t("crumb.portfolio")+'</span></button>' : '';
+    // Revisión cliente 23-jul: el logo de Lawang se queda siempre en el menú (fuera el "‹ The Collection").
     return '<header id="topbar" class="show '+(ghost?'pdp':'solid')+'">'
       + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
-      + pdpBack
       + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Collection',false)+'</nav>'
       + '<div id="nav-actions">'
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><span>'+langName+'</span><span class="lang-abbr">'+S.lang.toUpperCase()+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
       +   '<div class="nav-lang-wrap nav-cur-wrap" id="curWrap"><button class="nav-lang" data-act="cur-toggle" aria-haspopup="listbox" aria-expanded="'+(S.curOpen?'true':'false')+'" aria-label="Currency"><span>'+S.cur+'</span><span class="caret">▾</span></button>'
-      +     '<ul class="lang-menu'+(S.curOpen?' open':'')+'" role="listbox">'+ci('EUR','€')+ci('USD','$')+ci('AUD','A$')+'</ul></div>'
+      +     '<ul class="lang-menu'+(S.curOpen?' open':'')+'" role="listbox">'+ci('EUR','€')+ci('USD','$')+ci('AUD','A$')+ci('IDR','Rp')+'</ul></div>'
       +   '<a class="nav-cta" href="'+waUrl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span>'+(ghost?tl("Request details","Solicitar detalles"):t("cta.ask"))+'</span></a>'
       + '</div></header>';
   }
@@ -323,19 +321,37 @@
     baths:     '<path d="M4 12h16v2.5a4.5 4.5 0 0 1-4.5 4.5h-7A4.5 4.5 0 0 1 4 14.5Z"/><path d="M6 12V6a2 2 0 0 1 4 0"/><path d="M7 21l-1-2M17 21l1-2"/>',
     built:     '<path d="m3 11 9-7 9 7"/><path d="M5 9.6V20h14V9.6"/>',
     land:      '<path d="M4 4h16v16H4z" stroke-dasharray="3.2 2.6"/>',
-    pool:      '<path d="M2 18c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M15 5v9M19 5v9M15 8h4"/>',
-    garage:    '<path d="m3 9 9-5 9 5"/><path d="M5 8.4V20h14V8.4"/><path d="M8 13h8M8 16h8"/>',
-    furnished: '<path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0Z"/><path d="M5 18v2"/><path d="M19 18v2"/>'
+    type:      '<path d="M20.6 13.4 12 22 2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8Z"/><circle cx="7" cy="7" r="1.5"/>',
+    color:     '<path d="M12 2s6 7 6 11.5A6 6 0 0 1 6 13.5C6 9 12 2 12 2Z"/>',
+    tenure:    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>',
+    priceM2:   '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>'
   };
+  // Revisión cliente 23-jul: juego fijo de características. Normal: habitaciones, baños,
+  // m² construidos, m² parcela y tipo. Land: tipo, color del terreno (zonificación, campo
+  // nuevo del admin), m² parcela, tenure y precio por m².
   function heroFeatsHTML(p){
     var f = [];
-    if(p.beds>0)  f.push({i:"beds",  t:p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones")});
-    if(p.baths>0) f.push({i:"baths", t:p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños")});
-    if(p.built>0) f.push({i:"built", t:p.built+" m² "+tl("Built","Construidos")});
-    if(p.land>0)  f.push({i:"land",  t:p.land+" m² "+tl("Land","Terreno")});
-    if(p.poolType||p.pool) f.push({i:"pool", t:tl("Pool","Piscina")});
-    if(p.garage)    f.push({i:"garage",    t:tl("Garage","Garaje")});
-    if(p.furnished) f.push({i:"furnished", t:tl("Furnished","Amueblada")});
+    var typeLabel = t(LINE_KEYS[p.line]);
+    if(p.line==="land"){
+      f.push({i:"type", t:typeLabel});
+      if(p.landColor) f.push({i:"color", t:p.landColor});
+      if(p.land>0)    f.push({i:"land",  t:p.land+" m² "+tl("Land","Terreno")});
+      f.push({i:"tenure", t:(p.tenure==="tenure.freehold"?"Freehold HGB":"Leasehold "+(p.leaseYears||30)+" yr")});
+      // Precio por m²: parcela más barata del configurador o, si no hay, precio/superficie
+      var ppm2 = null;
+      if(p.landOptions&&p.landOptions.length){
+        var rr=p.landOptions.map(function(o){ var s=Number(o.size)||0, pr=Number(o.priceEUR)||0; return (s>0&&pr>0)?pr/s:null; }).filter(Boolean);
+        if(rr.length) ppm2 = Math.min.apply(null,rr);
+      }
+      if(!ppm2 && p.priceEUR>0 && p.land>0) ppm2 = p.priceEUR/p.land;
+      if(ppm2) f.push({i:"priceM2", t:money(Math.round(ppm2))+"/m²"});
+    } else {
+      if(p.beds>0)  f.push({i:"beds",  t:p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones")});
+      if(p.baths>0) f.push({i:"baths", t:p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños")});
+      if(p.built>0) f.push({i:"built", t:p.built+" m² "+tl("Built","Construidos")});
+      if(p.land>0)  f.push({i:"land",  t:p.land+" m² "+tl("Land","Terreno")});
+      f.push({i:"type", t:typeLabel});
+    }
     if(f.length===0) return "";
     return '<div class="pdp-hero-feats" aria-label="'+tl("Key features","Características")+'">'
       + f.map(function(x){ return '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+FEAT_ICONS[x.i]+'</svg>'+esc(x.t)+'</span>'; }).join("")
@@ -377,11 +393,9 @@
       + '<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0;opacity:'+(key?0:1)+'"></div>'
       + bg
       + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,11,.5) 0%,rgba(20,16,11,.12) 30%,rgba(20,16,11,.32) 66%,rgba(20,16,11,.8) 100%)"></div>'
-      // Marca de agua "THE COLLECTION" y marco interior de filete: los dos rasgos del hero de la guía
-      + '<div aria-hidden="true" class="pdp-hero-ghost">'+esc(t("crumb.portfolio"))+'</div>'
+      // Marco interior de filete (guía). Marca de agua y migas retiradas del hero (revisión
+      // cliente 23-jul): las migas viven ahora en la sección de info, bajo el hero.
       + '<span aria-hidden="true" class="pdp-hero-frame"></span>'
-      // Migas dentro del hero, bajo el topbar (guía Ficha p1)
-      + '<div style="position:absolute;top:clamp(84px,10.5vh,116px);left:0;right:0;z-index:3"><div class="wrap pdp-wrap">'+breadcrumbsHTML(p,true)+'</div></div>'
       + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1100px">'
       +   heroMarkHTML(p)
       +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
@@ -429,11 +443,9 @@
   // Chevron SVG de navegación (galería + lightbox): el glifo de texto era incentrable.
   function chevSVG(side){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(side==="left"?"M14.5 5.5 8 12l6.5 6.5":"M9.5 5.5 16 12l-6.5 6.5")+'"/></svg>'; }
 
-  // ── Galería 3-columnas iguales (guía Ficha, jul-2026): fila de hasta 3 imágenes del mismo
-  //    tamaño, flechas a los lados que avanzan la ventana, contador y "+N" en la última visible.
-  //    En móvil (.pdp-gal3, ≤720px) solo se ve la primera a ancho completo.
-  //    Click en una foto = AMPLIARLA en el lightbox (petición cliente 23-jul: "avanzan pero no
-  //    se agrandan") — avanzar es cosa de las flechas y del swipe.
+  // ── Galería (revisión cliente 23-jul): 2 fotos GRANDES + tira de miniaturas debajo, para
+  //    ver de un vistazo cuántas fotos hay. Click en cualquiera = lightbox; las flechas y el
+  //    swipe avanzan la ventana. En móvil: 1 grande + miniaturas deslizables.
   function galleryHTML(p){
     var media = mediaList(p);
     if(media.length===0) return "";
@@ -441,29 +453,42 @@
     var active = ((S.gallery%total)+total)%total;
     var theme = themeFor(p);
     var playIco = '<div style="position:absolute;inset:0;display:grid;place-items:center;z-index:2"><span style="width:34px;height:34px;border-radius:999px;background:rgba(20,16,11,.55);display:grid;place-items:center"><span style="width:0;height:0;margin-left:3px;border-left:11px solid var(--bone);border-top:7px solid transparent;border-bottom:7px solid transparent"></span></span></div>';
-    var tileInner = function(m){ return m.type==="video"
+    var tileInner = function(m,w){ return m.type==="video"
       ? (m.poster?'<img src="'+esc(m.poster)+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0"></div>')+playIco
-      : ph({key:m.key, w:1600, theme:theme, tint:0.12, style:"position:absolute;inset:0"}); };
-    var show = Math.min(3, total);
-    var tiles = "";
-    for(var i=0;i<show;i++){
-      var idx=(active+i)%total; var m=media[idx];
+      : ph({key:m.key, w:w||1600, theme:theme, tint:0.12, style:"position:absolute;inset:0"}); };
+    var tileBtn = function(idx, cls, inner, extra){
+      return '<button class="'+cls+'" data-act="lightbox:'+idx+'" aria-label="'+tl("View photo","Ver foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:zoom-in;background:var(--bone-2);aspect-ratio:4/3">'+inner+(extra||'')+'</button>';
+    };
+    // 2 grandes: la activa y la siguiente
+    var bigs = "";
+    var nBig = Math.min(2, total);
+    for(var i=0;i<nBig;i++){
+      var idx=(active+i)%total;
       var badge = (i===0 && total>1) ? '<div style="position:absolute;left:13px;bottom:12px;z-index:4;background:rgba(20,16,11,.5);color:var(--bone);font-family:var(--sans);font-size:11.5px;font-weight:600;letter-spacing:.1em;padding:4px 11px;border-radius:999px;backdrop-filter:blur(3px)">'+String(active+1).padStart(2,"0")+' <span style="opacity:.55">/ '+String(total).padStart(2,"0")+'</span></div>' : "";
-      var moreOv = (i===show-1 && total>show) ? '<div style="position:absolute;inset:0;background:rgba(20,16,11,.5);display:grid;place-items:center;z-index:3"><span style="font-family:var(--sans);font-size:clamp(22px,2.6vw,34px);color:var(--bone);font-weight:500">+'+(total-show)+'</span></div>' : "";
-      tiles += '<button class="pdp-g3-tile'+(i>0?' pdp-g3-extra':'')+'" data-act="lightbox:'+idx+'" aria-label="'+tl("View photo","Ver foto")+'" style="position:relative;flex:1 1 0;min-width:0;border:0;padding:0;margin:0;border-radius:10px;overflow:hidden;cursor:zoom-in;background:var(--bone-2);aspect-ratio:4/3">'+tileInner(m)+badge+moreOv+'</button>';
+      bigs += tileBtn(idx, 'pdp-g3-tile'+(i>0?' pdp-g3-extra':''), tileInner(media[idx],1600), badge);
     }
-    // Flechas superpuestas sobre los bordes de las imágenes (no ocupan ancho): la fila usa el 100% del ancho.
+    // Miniaturas: el resto de fotos en orden, hasta 6 visibles, "+N" en la última si hay más
+    var thumbs = "";
+    var restCount = total - nBig;
+    var showTh = Math.min(6, restCount);
+    for(var j=0;j<showTh;j++){
+      var tIdx=(active+nBig+j)%total;
+      var moreOv = (j===showTh-1 && restCount>showTh) ? '<div style="position:absolute;inset:0;background:rgba(20,16,11,.5);display:grid;place-items:center;z-index:3"><span style="font-family:var(--sans);font-size:clamp(15px,1.5vw,20px);color:var(--bone);font-weight:500">+'+(restCount-showTh)+'</span></div>' : "";
+      thumbs += tileBtn(tIdx, 'pdp-g3-tile pdp-g3-thumb', tileInner(media[tIdx],700), moreOv);
+    }
     var arrow = function(side,to){ return '<button class="pdp-gal-arrow" data-act="gal:'+to+'" aria-label="'+(side==="left"?tl("Previous","Anterior"):tl("Next","Siguiente"))+'" style="'+side+':12px">'+chevSVG(side)+'</button>'; };
     var prev = ((active-1)%total+total)%total, next = (active+1)%total;
     var arrows = total>1 ? (arrow("left", prev) + arrow("right", next)) : "";
-    // data-prev/data-next: los usa el swipe táctil delegado de bindEvents. gal-anim: fundido al
-    // navegar, para que se VEA que las fotos avanzaron (avanzar de 1 en 1 repite 2 de las 3 en
-    // pantalla y sin transición parecía que el carrusel no hacía nada).
     var anim = S.galAnim ? ' gal-anim' : '';
     S.galAnim = false;
-    return '<div style="position:relative;margin-top:clamp(20px,2.5vw,30px)">'
-      + '<div class="pdp-gal3'+anim+'"'+(total>1?' data-prev="'+prev+'" data-next="'+next+'"':'')+' style="display:flex;gap:clamp(8px,1vw,12px)">'+tiles+'</div>'
-      + arrows+'</div>';
+    // Las flechas van DENTRO de la fila de grandes (position:relative) para centrarse en ella,
+    // no en el bloque grandes+miniaturas.
+    return '<div style="margin-top:clamp(20px,2.5vw,30px)">'
+      + '<div class="pdp-gal2'+anim+'"'+(total>1?' data-prev="'+prev+'" data-next="'+next+'"':'')+'>'
+      +   '<div class="pdp-gal2-big" style="position:relative">'+bigs+arrows+'</div>'
+      +   (thumbs?'<div class="pdp-gal2-thumbs">'+thumbs+'</div>':'')
+      + '</div>'
+      + '</div>';
   }
 
   // ── Lightbox de la galería: foto/vídeo a tamaño grande sobre fondo oscuro. Se abre pinchando
@@ -490,6 +515,13 @@
   //    Tenure, Delivery, Status, Units, Available, Highlight. Etiqueta verde con filete, valor
   //    grande Burnt Earth; el highlight (metaText) en verde.
   function techSpecsHTML(p){
+    // Revisión cliente 23-jul: si el admin trae celdas propias (p.techSpecs = [{l,v}]), mandan
+    // ellas — texto libre. Sin ellas, la banda se construye sola como hasta ahora (fallback
+    // para las propiedades que el cliente aún no ha tocado).
+    if(p.techSpecs && p.techSpecs.length){
+      var custom = p.techSpecs.filter(function(sp){ return sp && (sp.l||sp.v); });
+      if(custom.length) return specCellsHTML(custom.map(function(sp){ return {l:sp.l||"", v:sp.v||"", hi:!!sp.hi}; }));
+    }
     var isF = p.tenure==="tenure.freehold";
     var specs = [];
     specs.push({l:t("glance.tenure"), v:isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr")});
@@ -508,46 +540,30 @@
     // "Included" para que el valor quepa en una línea como en la guía.
     if(isF) specs.push({l:t("glance.ptpma"), v:tl("Included","Incluida"), hi:true});
     if(specs.length===0) return "";
+    return specCellsHTML(specs);
+  }
+  // Tarjeta blanca que abraza su contenido (guía Ficha p2): sin height:100% — estirarla dejaba
+  // un hueco blanco enorme. flex:auto + nowrap → cada valor en una línea y el sobrante se reparte.
+  function specCellsHTML(specs){
     var cells = specs.map(function(sp){
       var val = sp.hi ? 'var(--tg)' : 'var(--be)';
-      // flex:auto + nowrap → cada valor en una sola línea y el sobrante se reparte (guía Ficha p2)
       return '<div style="flex:1 1 auto;padding:22px 24px">'
         + '<div style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);border-bottom:1.5px solid rgba(72,91,55,.32);padding-bottom:6px;margin-bottom:11px;font-family:var(--sans);white-space:nowrap">'+esc(sp.l)+'</div>'
         + '<div style="font-family:var(--sans);font-size:clamp(18px,1.6vw,23px);font-weight:600;color:'+val+';line-height:1.15;white-space:nowrap">'+esc(sp.v)+'</div></div>';
     }).join("");
-    // Tarjeta blanca que abraza su contenido (guía Ficha p2): sin height:100% — estirarla dejaba
-    // un hueco blanco enorme cuando la columna de contacto era más alta.
     return '<div class="tech-specs-grid" style="background:#fff;border-radius:14px;display:flex;flex-wrap:wrap;box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
   }
 
-  // Tarjeta verde "Talk to the team" (WhatsApp + Enquire) + gate de descargas — va a la DERECHA
-  //    de las specs (referencia Ficha p2). Movida aquí desde el sidebar.
-  function talkToTeamHTML(p){
-    var waNum = (L.SETTINGS&&L.SETTINGS.whatsapp)||"6281138319862";
-    var email = (L.SETTINGS&&L.SETTINGS.email)||"sales@lawangproperties.com";
-    var waUrl = "https://wa.me/"+waNum+"?text="+encodeURIComponent("Hello! I'm interested in "+pick(p.title)+". Can we schedule a call?");
-    var files = (p.downloads&&p.downloads.length)?p.downloads:null;
-    // Guía Ficha p2: el 2º botón de la tarjeta verde es "UNLOCK DOWNLOADS" y lleva al gate de email
-    // que vive justo debajo. Sin descargas cargadas no hay nada que desbloquear → vuelve a "Enquire".
-    var second = (files && !S.dlUnlocked)
-      ? '<button data-act="dl-focus" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:13px 20px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--sans)">'+t("dl.gate.cta")+'</button>'
-      : '<a href="mailto:'+esc(email)+'" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(245,240,230,0.1);border:1px solid rgba(245,240,230,0.25);color:var(--bone);padding:11px 20px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--sans)">'+t("pd.enquire")+' →</a>';
-    return '<div style="display:flex;flex-direction:column;gap:14px">'
-      + '<div style="background:var(--tg);border-radius:14px;overflow:hidden"><div style="padding:18px 20px 14px"><div style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,0.5);margin-bottom:6px">'+t("wa.title")+'</div><p style="font-size:12.5px;color:rgba(245,240,230,0.7);margin-bottom:0;line-height:1.5">'+t("wa.sub")+'</p></div>'
-      +   '<div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:10px"><a href="'+waUrl+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;padding:12px 20px;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:var(--sans)">✓ '+t("wa.cta")+'</a>'
-      +   second+'</div></div>'
-      + (files?downloadsHTML(files,p):"")
-      + '</div>';
-  }
-
-  // Banda specs + talk-to-team (referencia Ficha p2): specs a la izquierda, contacto a la derecha.
+  // (tarjeta verde "Talk to the team" eliminada — revisión cliente 23-jul; el contacto queda en
+  //  la burbuja flotante de WhatsApp y el CTA del topbar)
+  // Revisión cliente 23-jul: fuera la tarjeta verde "Talk to the team" — la banda blanca ocupa
+  // todo el ancho. El gate de descargas (que vivía en esa columna) se conserva debajo.
   function specsBandHTML(p){
     var specs = techSpecsHTML(p);
-    if(!specs) return "";
-    return '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px);display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:clamp(14px,1.6vw,22px);align-items:start">'
-      + '<div>'+specs+'</div>'
-      + '<div>'+talkToTeamHTML(p)+'</div>'
-      + '</div>';
+    var files = (p.downloads&&p.downloads.length)?p.downloads:null;
+    var dl = files ? '<div style="margin-top:clamp(14px,1.6vw,22px);max-width:560px">'+downloadsHTML(files,p)+'</div>' : "";
+    if(!specs && !dl) return "";
+    return '<div class="pdp-specs-band" style="margin-top:clamp(24px,3vw,34px)">'+(specs||"")+dl+'</div>';
   }
 
   // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
@@ -914,13 +930,13 @@
     var alsoHTML = also.length>0 ? '<div style="margin-top:80px;padding-top:48px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:28px">'+t("pd.also")+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;padding-bottom:40px">'
       + also.map(function(x){ return '<div class="lw-also" data-go="'+esc(x.id)+'" style="padding:3px;background:rgba(72,91,55,0.05);border:1px solid rgba(72,91,55,0.11);border-radius:11px;cursor:pointer"><div style="background:var(--bone-2);border-radius:8px;overflow:hidden">'+ph({key:(x.imgKeys&&x.imgKeys[0]),theme:themeFor(x),ratio:"4/3",tint:0.2})+'<div style="padding:16px 18px"><p class="serif" style="font-size:20px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+esc(pick(x.title))+'</p><p style="font-size:13px;font-weight:600;color:#324820;margin-top:6px">'+priceHTML(x.priceEUR,true)+'</p></div></div></div>'; }).join("")
       + '</div></div>' : "";
-    // Cabecera según guía Ficha p2: título ligero y ancho a la izquierda; a la derecha
-    // "LÍNEA › ESTADO" en gris sobre el precio. Migas y "volver" viven ahora en hero y topbar.
+    // Cabecera (revisión cliente 23-jul): las migas bajan del hero aquí; el título ya no se
+    // repite (vive en el hero) — queda solo el subtítulo. A la derecha "LÍNEA › ESTADO" + precio.
     return '<div>'   // sin padding inferior: el footer cierra la página
       + heroHTML(p)
       + '<div class="wrap pdp-wrap" style="padding-top:clamp(36px,4.5vw,64px)">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
-      +   '<h1 class="display" style="font-size:clamp(38px,5.8vw,74px);font-weight:300;letter-spacing:.055em;text-transform:uppercase;color:var(--ink);line-height:1">'+esc(pick(p.title))+'</h1>'+subHTML+'</div>'
+      +   breadcrumbsHTML(p,false)+subHTML+'</div>'
       +   '<div style="flex-shrink:0;text-align:right">'
       +     '<div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;font-family:var(--sans);font-size:clamp(11px,1.05vw,14px);font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);margin-bottom:clamp(10px,1.2vw,16px)"><span>'+t(LINE_KEYS[p.line])+'</span>'
       +       (p.status ? '<span aria-hidden="true" style="opacity:.55">›</span><span style="opacity:.8">'+t(p.status)+'</span>' : '')+'</div>'
@@ -1020,8 +1036,6 @@
     else if(cmd==="cfg-reset"){ S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; render(); }
     else if(cmd==="close"){ closeProperty(); }
     else if(cmd==="go-home"){ window.location.href="index.html"; }
-    // Botón "Unlock downloads" de la tarjeta verde: baja al gate y enfoca el email (guía Ficha p2)
-    else if(cmd==="dl-focus"){ var inp=document.getElementById("dl-email"); if(inp){ inp.scrollIntoView({behavior:"smooth",block:"center"}); inp.focus({preventScroll:true}); } }
     // Banner del proceso: cierra la ficha y baja al bloque #process del marketplace
     else if(cmd==="go-process"){ closeProperty(); var pr=document.getElementById("process"); if(pr) pr.scrollIntoView({behavior:"smooth",block:"start"}); }
   }
@@ -1057,7 +1071,7 @@
     // natural en un carrusel es arrastrar). Delegado en root porque ambos se re-crean al render.
     var galSwipe = null;
     root.addEventListener("touchstart", function(e){
-      var g = e.target.closest(".pdp-lb,.pdp-gal3");
+      var g = e.target.closest(".pdp-lb,.pdp-gal2");
       galSwipe = (g && g.hasAttribute("data-next")) ? {el:g, x:e.touches[0].clientX} : null;
     }, {passive:true});
     root.addEventListener("touchend", function(e){
@@ -1120,8 +1134,9 @@
   fetchDataResilient().then(function(data){
     if(data.properties) L.PROPERTIES = data.properties;
     if(data.downloads)  L.DOWNLOADS  = data.downloads;
-    if(data.settings){ if(data.settings.rates){ L.RATES=data.settings.rates; L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=data.settings; }
+    // merge sobre los defaults: si data.json trae solo USD/AUD, IDR conserva su tasa por defecto
+    if(data.settings){ if(data.settings.rates){ L.RATES=Object.assign({},L.RATES,data.settings.rates); L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=data.settings; }
     L.PROPERTIES.forEach(function(p){ p.imgKeys=(p.images&&p.images.length)?p.images:[]; });
-    fetch('https://open.er-api.com/v6/latest/EUR').then(function(r){return r.json();}).then(function(d){ if(d.result==='success'){ L.RATES={EUR:1,USD:d.rates.USD,AUD:d.rates.AUD}; L.EUR_TO_USD=d.rates.USD; } }).catch(function(){}).finally(start);
+    fetch('https://open.er-api.com/v6/latest/EUR').then(function(r){return r.json();}).then(function(d){ if(d.result==='success'){ var fresh={EUR:1,USD:d.rates.USD,AUD:d.rates.AUD}; if(d.rates.IDR) fresh.IDR=d.rates.IDR; L.RATES=Object.assign({},L.RATES,fresh); L.EUR_TO_USD=d.rates.USD; } }).catch(function(){}).finally(start);
   }).catch(function(err){ console.error('Lawang: no se pudo cargar data.json — el portfolio se mostrará vacío.', err); start(); });
 })();
