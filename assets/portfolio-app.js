@@ -342,6 +342,22 @@
       + '</div>';
   }
 
+  // Marca del hero de la ficha, en cascada (petición cliente 23-jul):
+  // 1) isotipo propio del proyecto (p.isotype, cargado desde el admin) como <img> tal cual;
+  // 2) icono de la vista (cliff/river/jungle/beach/ricefield) — mismo criterio y PNGs que la
+  //    card (LawangCard.viewFor respeta p.view del admin o lo infiere del texto). Va como
+  //    máscara para teñirse de crema, igual que hacía el isotipo de Lawang;
+  // 3) isotipo de Lawang solo si la librería de la card no está (defensivo).
+  function heroMarkHTML(p){
+    if(p.isotype) return '<img src="'+esc(p.isotype)+'" alt="" style="display:block;height:clamp(52px,6vw,78px);width:auto;max-width:240px;margin:0 auto 26px;object-fit:contain" onerror="this.style.display=\'none\'">';
+    if(window.LawangCard && LawangCard.viewFor){
+      var vw = LawangCard.viewFor(p);
+      var m = 'url(assets/img/'+vw+'-ico.png) center/contain no-repeat';
+      return '<span aria-hidden="true" style="display:block;width:clamp(56px,6.5vw,84px);aspect-ratio:1;margin:0 auto 26px;background-color:var(--bone);-webkit-mask:'+m+';mask:'+m+';opacity:.95"></span>';
+    }
+    return '<span class="lw-iso" aria-hidden="true" style="width:clamp(46px,5.2vw,64px);margin:0 auto 26px;color:var(--bone);opacity:.95"></span>';
+  }
+
   function heroHTML(p){
     var key = firstImg(p);
     var theme = themeFor(p);
@@ -367,11 +383,7 @@
       // Migas dentro del hero, bajo el topbar (guía Ficha p1)
       + '<div style="position:absolute;top:clamp(84px,10.5vh,116px);left:0;right:0;z-index:3"><div class="wrap pdp-wrap">'+breadcrumbsHTML(p,true)+'</div></div>'
       + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1100px">'
-      +   (p.isotype
-            // Isotipo propio del proyecto (Sumba, Palm Field…), cargado desde el admin. Se pinta
-            // como <img> tal cual (puede ser a color); sin él, cae al isotipo de Lawang (máscara).
-            ? '<img src="'+esc(p.isotype)+'" alt="" style="display:block;height:clamp(52px,6vw,78px);width:auto;max-width:240px;margin:0 auto 26px;object-fit:contain" onerror="this.style.display=\'none\'">'
-            : '<span class="lw-iso" aria-hidden="true" style="width:clamp(46px,5.2vw,64px);margin:0 auto 26px;color:var(--bone);opacity:.95"></span>')
+      +   heroMarkHTML(p)
       +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
       +   '<div style="margin-top:clamp(24px,3.4vh,38px)">'+release+'</div>'
       +   claim

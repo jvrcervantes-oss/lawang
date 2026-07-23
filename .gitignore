@@ -27,3 +27,6 @@ assets/img/Hero.png
 
 # Documentos legales reales del cliente (contratos/NDA firmados) — repo PUBLICO, nunca versionar
 legal/
+
+# Documentación administrativa del cliente — mismo motivo que legal/
+appeal/
