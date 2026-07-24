@@ -242,19 +242,27 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
 .lw-cat:hover > span:last-child { transform:translateX(7px); }
 @media(max-width:1024px){ .lw-cat-grid { grid-template-columns:repeat(2,1fr) !important; } }
-/* ── Ficha: scroll normal y fiable (refactor 24-jul) ──
-   FUERA el scroll-snap y el alto forzado de 100vh. En un overlay que se repinta en cada acción y con
-   secciones de alto variable, el snap peleaba con el scroll (efecto imán, saltos entre secciones,
-   contenido recortado) — 5 revisiones sin cuajar. Ahora es un scroll normal: cada sección fluye con
-   aire vertical y el hero ocupa la pantalla. Sin snap no hay nada que "tire" del scroll. */
-#pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain;
-  scroll-behavior:smooth; }
-@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; } }
-.pdp-sec{ padding-block:clamp(40px,7vh,88px); }
-.pdp-hero.pdp-sec{ min-height:100vh; min-height:100dvh; padding:0; }
+/* ── Ficha: MISMO scroll que index.html (petición cliente 24-jul) ──
+   Réplica literal de `.snap` y `#content-sections > section` del index: contenedor con scroll-snap
+   MANDATORY + secciones a pantalla completa que encajan de una en una. `safe center` centra el
+   contenido pero cae a "arriba" (sin recortar) cuando una sección es más alta que la pantalla —
+   equivale a los `justify-content:flex-start` que el index pone a mano en sus secciones largas. */
+#pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone);
+  overflow-y:scroll; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+  scroll-snap-type:y mandatory; scroll-behavior:smooth;
+  scrollbar-width:none; -ms-overflow-style:none; }
+#pf-overlay::-webkit-scrollbar{ display:none; }
+@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; scroll-snap-type:y proximity; } }
+/* iOS WebKit: mandatory + smooth chocan (bug Safari) → en táctil manda el snap nativo */
+@media(hover:none){ #pf-overlay{ scroll-behavior:auto; } }
+.pdp-sec{ scroll-snap-align:start; scroll-snap-stop:always; min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; justify-content:safe center;
+  padding-block:clamp(5.5rem,10vh,7rem) clamp(2rem,5vh,3rem); }
+.pdp-sec:not(.pdp-hero) > *{ width:100%; }
+.pdp-hero.pdp-sec{ padding:0; }
 /* Sección 50/50 a sangre: sin padding, su propio margen la separa */
 .pdp-sec-flush{ padding-block:0; }
-/* Última: otros proyectos + footer */
+/* Última: otros proyectos + footer (su .wrap trae el espaciado) */
 .pdp-sec-last{ padding-block:0; }
 .pdp-sec-last > .pdp-wrap{ padding-top:clamp(40px,6vh,90px); padding-bottom:clamp(28px,4vh,56px); }
 #pf-overlay .pf-overlay-bar { position:sticky; top:0; z-index:2; height:60px; display:flex; align-items:center; justify-content:space-between; background:rgba(241,236,225,.94); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); padding:0 clamp(20px,5vw,72px); }
@@ -875,7 +883,7 @@ article:hover .view-cta { gap:9px; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260724154749"></script>
-<script src="assets/portfolio-app.js?v=20260724-rf"></script>
+<script src="assets/portfolio-app.js?v=20260724-idx"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
