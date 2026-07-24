@@ -23,7 +23,7 @@
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
   };
-  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
+  function resetDetail(){ S.gallery=0; S.lightbox=null; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
 
   // ── Helpers ────────────────────────────────────────────────
   function t(key){ var e = L.DICT[key]; if(!e) return key; return (e[S.lang] != null ? e[S.lang] : e.en); }
@@ -643,7 +643,7 @@
   }
 
   // (territoryHTML y principlesHTML "Designed to last" eliminados — revisión cliente 23-jul; su
-  //  contenido lo sustituye el sistema de pestañas de tabsSectionHTML)
+  //  contenido lo sustituye la sección 50/50 de splitSectionHTML)
 
   function downloadsHTML(files, p){
     files = files || [];
@@ -874,26 +874,28 @@
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div style="display:inline-flex;align-items:center;gap:8px;background:var(--dl);color:var(--bone);border-radius:999px;padding:7px 16px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:999px;background:var(--bone)"></span> '+t("sig.delivered")+'</div><p style="font-size:15px;color:var(--ink-2);line-height:1.6;margin-top:18px;max-width:52ch">'+t("sig.note")+'</p></div>';
   }
 
-  // ── Sección de pestañas / "Designed to last" (revisión cliente 23-jul): 50/50 — imagen a sangre
-  //    (información de la tierra) a la izquierda, sistema de cards con pestañas a la derecha. El cliente
-  //    define N pestañas (título+texto+imagen, en admin). Pinchar un título cambia el contenido; la
-  //    imagen de la izquierda es la de la pestaña activa si la tiene, si no la imagen 50/50 por defecto.
-  function tabsSectionHTML(p){
-    var tabs = (p.tabs||[]).filter(function(tb){ return pick(tb.title)||pick(tb.body)||tb.image; });
-    if(!tabs.length) return "";
-    var idx = Math.min(Math.max(S.tab||0,0), tabs.length-1);
-    var active = tabs[idx];
-    var leftKey = active.image || p.splitImage || (p.imgKeys&&p.imgKeys[0]) || null;
-    var leftUrl = leftKey ? imgUrl(leftKey, 1800) : null;
-    var headers = tabs.map(function(tb,i){
-      return '<button class="pdp-tab'+(i===idx?' on':'')+'" data-act="tab:'+i+'">'+esc(pick(tb.title)||(tl("Tab","Pestaña")+" "+(i+1)))+'</button>';
-    }).join("");
-    var panel = (pick(active.title)?'<h3 class="pdp-block-h">'+esc(pick(active.title))+'</h3>':'')
-      + (pick(active.body)?'<p class="pdp-tab-body">'+esc(pick(active.body))+'</p>':'');
-    return '<section class="pdp-tabs-section">'
-      + '<div class="pdp-tabs-img">'+(leftUrl?'<img src="'+esc(leftUrl)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+'</div>'
-      + '<div class="pdp-tabs-panel"><div class="pdp-tabs-head">'+headers+'</div><div class="pdp-tab-content">'+panel+'</div></div>'
-      + '</section>';
+  // ── Sección 50/50 (revisión cliente 24-jul): a la IZQUIERDA imagen + título; a la DERECHA el
+  //    sistema de tarjetas, todas visibles a la vez. Antes eran pestañas (clic = cambia contenido):
+  //    el cliente las quiere todas a la vista, así que las pestañas se retiran.
+  //    Datos de admin: p.splitImage (imagen), p.splitTitle (título) y p.cards[] (título + texto).
+  function splitSectionHTML(p){
+    var cards = (p.cards||[]).filter(function(c){ return pick(c.title)||pick(c.body); });
+    var title = pick(p.splitTitle);
+    if(!cards.length && !title) return "";   // sin contenido no se pinta media sección vacía
+    var key = p.splitImage || (p.imgKeys&&p.imgKeys[0]) || null;
+    var url = key ? imgUrl(key, 1800) : null;
+    var left = '<div class="pdp-split-img">'
+      + (url ? '<img src="'+esc(url)+'" alt="'+esc(title||pick(p.title))+'" loading="lazy" onerror="this.style.display=\'none\'">'
+             : '<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')
+      + (title ? '<h2 class="pdp-split-title">'+esc(title)+'</h2>' : '')
+      + '</div>';
+    var right = '<div class="pdp-split-cards">'+cards.map(function(c){
+      return '<article class="pdp-card">'
+        + (pick(c.title) ? '<h3>'+esc(pick(c.title))+'</h3>' : '')
+        + (pick(c.body)  ? '<p>'+esc(pick(c.body))+'</p>'   : '')
+        + '</article>';
+    }).join("")+'</div>';
+    return '<section class="pdp-split-section">'+left+right+'</section>';
   }
 
   // ── Imagen a sangre bajada (revisión cliente 23-jul): campo dedicado p.bleedImage; si está vacío,
@@ -943,8 +945,8 @@
       +   '<div>'+infoCardHTML(p)+plan3dHTML(p)+'</div>'
       + '</div>'
       + '</div>'  // /wrap
-      // Sección 50/50: imagen (información de la tierra) + sistema de pestañas ("designed to last")
-      + tabsSectionHTML(p)
+      // Sección 50/50: imagen + título a la izquierda, tarjetas a la derecha
+      + splitSectionHTML(p)
       // Sección de imagen a sangre (la que estaba arriba, bajada aquí)
       + bleedSectionHTML(p)
       + '<div class="wrap pdp-wrap">'
@@ -1020,7 +1022,6 @@
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
     else if(cmd==="lightbox"){ S.lightbox=parseInt(val,10)||0; render(); }
     else if(cmd==="lb-close"){ S.lightbox=null; render(); }
-    else if(cmd==="tab"){ S.tab=parseInt(val,10)||0; render(); }   // pestañas de la sección "designed to last"
     // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
     else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }

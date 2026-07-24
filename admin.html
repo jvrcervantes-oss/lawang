@@ -545,6 +545,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             </div>
           </div>
           <div class="form-group">
+            <label>Split title <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(título sobre esa imagen, abajo a la izquierda)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <input type="text" id="f-splitTitle-en" placeholder="Title EN (ej. The land)">
+              <input type="text" id="f-splitTitle-es" placeholder="Título ES (ej. La tierra)">
+            </div>
+          </div>
+          <div class="form-group">
             <label>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(banda a sangre inferior)</span></label>
             <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
               <input type="text" id="f-bleedImage" placeholder="/assets/img/properties/hero-wide.jpg or https://...">
@@ -561,9 +568,9 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Tabs / Designed to last <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Sistema de pestañas de la sección 50/50 (derecha). Añade cuantas quieras: cada una lleva título, texto e imagen (la imagen sustituye a la de la izquierda al abrir esa pestaña).</span></h4>
-          <div id="f-tabs-list"></div>
-          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTabRow()">+ Add tab</button>
+          <h4>Cards / Designed to last <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tarjetas de la sección 50/50 (derecha). Todas se ven a la vez: cada una lleva título y texto. La imagen y el título de la izquierda se ponen arriba, en "Section images".</span></h4>
+          <div id="f-cards-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addCardRow()">+ Add card</button>
         </div>
 
         <div class="form-section">
@@ -1063,13 +1070,16 @@ function propertyToForm(p) {
   var tsContainer = document.getElementById('f-techspecs-list');
   tsContainer.innerHTML = '';
   ((p.techSpecs && p.techSpecs.length) ? p.techSpecs : []).forEach(function(sp){ addTechSpecRow(sp.l, sp.v); });
-  // Imágenes de sección (50/50 + banda a sangre) y pestañas
+  // Imágenes de sección (50/50 + banda a sangre) y tarjetas
   set('f-splitImage', p.splitImage || '');
+  set('f-splitTitle-en', (p.splitTitle && p.splitTitle.en) || '');
+  set('f-splitTitle-es', (p.splitTitle && p.splitTitle.es) || '');
   set('f-bleedImage', p.bleedImage || '');
   set('f-plan3dImage', p.plan3dImage || '');
-  var tabsContainer = document.getElementById('f-tabs-list');
-  tabsContainer.innerHTML = '';
-  ((p.tabs && p.tabs.length) ? p.tabs : []).forEach(function(tb){ addTabRow(tb); });
+  var cardsContainer = document.getElementById('f-cards-list');
+  cardsContainer.innerHTML = '';
+  // p.tabs = nombre viejo del mismo dato (pestañas, retiradas el 24-jul); se lee por si quedara alguno
+  ((p.cards && p.cards.length) ? p.cards : (p.tabs || [])).forEach(function(c){ addCardRow(c); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -1532,15 +1542,15 @@ function formToProperty() {
                    return { l: row.querySelector('.ts-label').value.trim(), v: row.querySelector('.ts-value').value.trim() };
                  }).filter(function(sp){ return sp.l || sp.v; }),
     splitImage:  get('f-splitImage'),
+    splitTitle:  { en: get('f-splitTitle-en'), es: get('f-splitTitle-es') },
     bleedImage:  get('f-bleedImage'),
     plan3dImage: get('f-plan3dImage'),
-    tabs:        Array.prototype.slice.call(document.querySelectorAll('#f-tabs-list .tab-item')).map(function(row){
+    cards:       Array.prototype.slice.call(document.querySelectorAll('#f-cards-list .card-item')).map(function(row){
                    return {
-                     title: { en: row.querySelector('.tab-title-en').value.trim(), es: row.querySelector('.tab-title-es').value.trim() },
-                     body:  { en: row.querySelector('.tab-body-en').value.trim(),  es: row.querySelector('.tab-body-es').value.trim() },
-                     image: row.querySelector('.tab-image').value.trim()
+                     title: { en: row.querySelector('.card-title-en').value.trim(), es: row.querySelector('.card-title-es').value.trim() },
+                     body:  { en: row.querySelector('.card-body-en').value.trim(),  es: row.querySelector('.card-body-es').value.trim() }
                    };
-                 }).filter(function(tb){ return tb.title.en||tb.title.es||tb.body.en||tb.body.es||tb.image; }),
+                 }).filter(function(c){ return c.title.en||c.title.es||c.body.en||c.body.es; }),
     garage:      get('f-garage'),
     garageDesc:  get('f-garageDesc'),
     furnished:   get('f-furnished'),
@@ -1705,46 +1715,25 @@ function addTechSpecRow(label, value) {
   container.appendChild(div);
 }
 
-function addTabRow(tab) {
-  tab = tab || {}; var tt = tab.title || {}, bb = tab.body || {};
-  var container = document.getElementById('f-tabs-list');
+// Tarjeta de la sección 50/50 (derecha). Sin imagen propia: la imagen de esa sección es una sola,
+// la de la izquierda (f-splitImage) — revisión cliente 24-jul.
+function addCardRow(card) {
+  card = card || {}; var tt = card.title || {}, bb = card.body || {};
+  var container = document.getElementById('f-cards-list');
   var div = document.createElement('div');
-  div.className = 'tab-item';
+  div.className = 'card-item';
   div.style.cssText = 'border:1px solid #e5e0d8;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px';
   div.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px">'
-    + '<input type="text" class="tab-title-en" value="' + esc(tt.en||'') + '" placeholder="Title EN">'
-    + '<input type="text" class="tab-title-es" value="' + esc(tt.es||'') + '" placeholder="Título ES">'
-    + '<button type="button" class="img-slot-del" onclick="this.closest(\'.tab-item\').remove()">✕</button>'
+    + '<input type="text" class="card-title-en" value="' + esc(tt.en||'') + '" placeholder="Title EN">'
+    + '<input type="text" class="card-title-es" value="' + esc(tt.es||'') + '" placeholder="Título ES">'
+    + '<button type="button" class="img-slot-del" onclick="this.closest(\'.card-item\').remove()">✕</button>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<textarea class="tab-body-en" rows="3" placeholder="Text EN">' + esc(bb.en||'') + '</textarea>'
-    + '<textarea class="tab-body-es" rows="3" placeholder="Texto ES">' + esc(bb.es||'') + '</textarea>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">'
-    + '<input type="text" class="tab-image" value="' + esc(tab.image||'') + '" placeholder="Image URL (opcional — sustituye la imagen 50/50 al abrir esta pestaña)">'
-    + '<button type="button" class="img-slot-upload" onclick="uploadToTabImage(this)" title="Upload file">↑</button>'
+    + '<textarea class="card-body-en" rows="3" placeholder="Text EN">' + esc(bb.en||'') + '</textarea>'
+    + '<textarea class="card-body-es" rows="3" placeholder="Texto ES">' + esc(bb.es||'') + '</textarea>'
     + '</div>';
   container.appendChild(div);
-}
-
-async function uploadToTabImage(btn) {
-  var input = btn.closest('.tab-item').querySelector('.tab-image');
-  var fileInput = document.createElement('input');
-  fileInput.type = 'file'; fileInput.accept = 'image/jpeg,image/png,image/webp';
-  fileInput.onchange = async function() {
-    if (!fileInput.files.length) return;
-    var file = fileInput.files[0]; btn.disabled = true; var o = btn.textContent; btn.textContent = '…';
-    var fd = new FormData(); fd.append('image', file);
-    try {
-      var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
-      var d = await r.json();
-      if (d.ok) { input.value = d.url; toast('Image uploaded.', 'ok'); }
-      else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
-    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
-    finally { btn.disabled = false; btn.textContent = o; }
-  };
-  fileInput.click();
 }
 
 async function uploadDocForRow(btn) {
