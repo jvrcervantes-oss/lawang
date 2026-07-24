@@ -171,6 +171,11 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
 .form-section:has([id$="-list"]),.form-section:has(#aerial-wrap),.form-section:has(#images-grid){column-span:all}
 .form-section:last-child{border-bottom:none;margin-bottom:0}
 .form-section h4{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--sc);margin-bottom:16px}
+/* Separador de zona: el orden del formulario sigue el de la ficha en la web (revisión cliente 24-jul).
+   Ocupa todo el ancho y corta las columnas, agrupando las secciones de cada zona bajo su cabecera. */
+.fs-banner{column-span:all;margin:2px 0 16px;padding:11px 16px;background:var(--dl);color:#fff;border-radius:9px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.fs-banner:first-child{margin-top:0}
+.fs-banner small{display:block;font-weight:400;letter-spacing:.02em;text-transform:none;opacity:.82;margin-top:3px;font-size:11.5px}
 .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:820px){ #prop-form{column-width:auto;columns:1} .slide-panel{width:100vw;height:100vh;border-radius:0} }
 .form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
@@ -313,6 +318,8 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
     </div>
     <div class="slide-body">
       <form id="prop-form" onsubmit="return false">
+
+        <div class="fs-banner">① Datos de la propiedad <small>Alimentan el hero, la tarjeta y la portada: identidad, precio, características, textos y presencia en la home.</small></div>
 
         <div class="form-section">
           <h4>Identity</h4>
@@ -524,6 +531,8 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           </div>
         </div>
 
+        <div class="fs-banner">② Galería de fotos <small>El carrusel de la ficha (2 grandes + miniaturas) y los vídeos, que van después de las fotos.</small></div>
+
         <div class="form-section">
           <h4>Images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Up to 8 photos. Paste a URL directly or pick from uploaded images.</span></h4>
           <div id="f-images-list"></div>
@@ -534,102 +543,20 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Specs band <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tabla blanca horizontal de la ficha. Si añades filas aquí, MANDAN ellas (texto libre: etiqueta + valor); si lo dejas vacío, la tabla se construye sola (tenure, delivery, status…).</span></h4>
-          <div id="f-techspecs-list"></div>
-          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTechSpecRow('','')">+ Add cell</button>
-        </div>
-
-        <div class="form-section">
-          <h4>Section images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imágenes a sangre de la ficha. La primera es la de la sección 50/50 (izquierda); la segunda es la banda a sangre de más abajo. Deja vacío para que use el aéreo/galería.</span></h4>
-          <div class="form-group">
-            <label>Split image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(sección 50/50, izquierda)</span></label>
-            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-splitImage" placeholder="/assets/img/properties/land.jpg or https://...">
-              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-splitImage')" title="Upload file">↑</button>
-              <button type="button" class="img-slot-pick" onclick="pickToField('f-splitImage')">Pick</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Split title <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(título sobre esa imagen, abajo a la izquierda)</span></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <input type="text" id="f-splitTitle-en" placeholder="Title EN (ej. The land)">
-              <input type="text" id="f-splitTitle-es" placeholder="Título ES (ej. La tierra)">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Split subtitle <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(bajo el título, en la misma imagen)</span></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <input type="text" id="f-splitSub-en" placeholder="Subtitle EN (ej. Bali · 4.2 hectares)">
-              <input type="text" id="f-splitSub-es" placeholder="Subtítulo ES (ej. Bali · 4,2 hectáreas)">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(banda a sangre inferior)</span></label>
-            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-bleedImage" placeholder="/assets/img/properties/hero-wide.jpg or https://...">
-              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
-              <button type="button" class="img-slot-pick" onclick="pickToField('f-bleedImage')">Pick</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>3D site plan <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(planta 3D del territorio — sale a la derecha, junto al masterplan)</span></label>
-            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-plan3dImage" placeholder="/assets/img/properties/plan-3d.jpg or https://...">
-              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-plan3dImage')" title="Upload file">↑</button>
-              <button type="button" class="img-slot-pick" onclick="pickToField('f-plan3dImage')">Pick</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Tipos de vivienda / pestañas <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Columna derecha de la sección 50/50. Una pestaña por modelo (Dali, Dune…): el visitante pulsa el nombre y ve el título, el subtítulo, las fotos (la primera grande, el resto en miniaturas debajo) y el texto de ESE modelo.</span></h4>
-          <div id="f-tabs-list"></div>
-          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTabRow()">+ Add tipo de vivienda</button>
-        </div>
-
-        <div class="form-section">
           <h4>Videos <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">MP4 URLs shown in the gallery carousel after the photos. Paste a direct link (e.g. /assets/videos/tour.mp4 or https://...).</span></h4>
           <div id="f-videos-list"></div>
           <button type="button" class="btn-secondary" style="margin-top:8px" onclick="addVideoSlot('')">+ Add video</button>
         </div>
 
-        <div class="form-section">
-          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Pega un <b>enlace de Google Maps</b> (vale el corto <code>maps.app.goo.gl</code> de "Compartir") o sube una imagen de plano. Al pegar el enlace se localiza solo y se muestra el <b>mapa embebido</b>. Vacío = nada.</span></h4>
-          <div class="form-group">
-            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-mapImage" placeholder="https://maps.app.goo.gl/… o una imagen /assets/img/…" onblur="resolveMapField()">
-              <button type="button" class="img-slot-upload" onclick="resolveMapField()" title="Localizar el enlace de Google Maps">🗺️</button>
-              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage')" title="Subir imagen de plano">↑</button>
-              <button type="button" class="img-slot-pick" onclick="pickToField('f-mapImage')">Pick</button>
-            </div>
-          </div>
-        </div>
+        <div class="fs-banner">③ Tabla de datos <small>La banda blanca horizontal justo debajo de las fotos.</small></div>
 
         <div class="form-section">
-          <h4>Aerial view <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Full-width aerial photo with labelled points and entry price. Click a row's ◎ then click the photo to place the point.</span></h4>
-          <div style="display:grid;grid-template-columns:1fr auto auto 180px;gap:6px;align-items:center">
-            <input type="text" id="f-aerial-image" placeholder="/assets/img/properties/aerial.jpg or https://..." oninput="syncPreview('aerial')">
-            <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-aerial-image','aerial')" title="Upload file">↑</button>
-            <button type="button" class="img-slot-pick" onclick="pickToField('f-aerial-image','aerial')">Pick</button>
-            <input type="number" id="f-aerial-entry" min="0" placeholder="Entry price €">
-          </div>
-          <div class="pt-wrap" id="aerial-wrap" style="position:relative;display:none;margin:10px 0;max-width:660px">
-            <img id="aerial-preview" src="" alt="Aerial preview" style="display:block;width:100%;border-radius:8px;cursor:crosshair" onclick="placePoint(event,'aerial')" onerror="this.parentNode.style.display='none'">
-            <div id="aerial-dots" style="position:absolute;inset:0;pointer-events:none"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:56px 56px 78px 1fr 1fr 1fr 1fr 28px 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">X %</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Y %</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Side</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">EN line 1</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">EN line 2</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">ES línea 1</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">ES línea 2</div>
-            <div></div><div></div>
-          </div>
-          <div id="f-aerial-list"></div>
-          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHotspotRow()">+ Add point</button>
+          <h4>Specs band <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tabla blanca horizontal de la ficha. Si añades filas aquí, MANDAN ellas (texto libre: etiqueta + valor); si lo dejas vacío, la tabla se construye sola (tenure, delivery, status…).</span></h4>
+          <div id="f-techspecs-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTechSpecRow('','')">+ Add cell</button>
         </div>
+
+        <div class="fs-banner">④ Configurador / Masterplan <small>Columna izquierda del detalle: parcela → vivienda → extras → plan de pagos. Todo opcional.</small></div>
 
         <div class="form-section">
           <h4>Land plots <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Primer paso del configurador (Land): elegir parcela por m². Se muestra solo si añades parcelas.</span></h4>
@@ -671,12 +598,6 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Downloads <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">PDFs shown on this property's detail page. Leave URL empty to show "Coming soon".</span></h4>
-          <div id="f-downloads-list"></div>
-          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addDownloadRow()">+ Add document</button>
-        </div>
-
-        <div class="form-section">
           <h4>Payment Plan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Leave empty to use the default plan for this property line.</span></h4>
           <div style="display:grid;grid-template-columns:56px 2fr 3fr 28px;gap:8px;margin-bottom:4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">%</div>
@@ -689,6 +610,110 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <button type="button" class="btn-ghost" style="font-size:12px" onclick="addPaymentStep()">+ Add step</button>
             <span class="pp-pct-hint" id="pp-pct-hint"></span>
           </div>
+        </div>
+
+        <div class="fs-banner">⑤ Ficha de información <small>Columna derecha del detalle: mapa de situación, dossier descargable y planta 3D.</small></div>
+
+        <div class="form-section">
+          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Pega un <b>enlace de Google Maps</b> (vale el corto <code>maps.app.goo.gl</code> de "Compartir") o sube una imagen de plano. Al pegar el enlace se localiza solo y se muestra el <b>mapa embebido</b>. Vacío = nada.</span></h4>
+          <div class="form-group">
+            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center">
+              <input type="text" id="f-mapImage" placeholder="https://maps.app.goo.gl/… o una imagen /assets/img/…" onblur="resolveMapField()">
+              <button type="button" class="img-slot-upload" onclick="resolveMapField()" title="Localizar el enlace de Google Maps">🗺️</button>
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage')" title="Subir imagen de plano">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-mapImage')">Pick</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Downloads <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">PDFs shown on this property's detail page. Leave URL empty to show "Coming soon".</span></h4>
+          <div id="f-downloads-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addDownloadRow()">+ Add document</button>
+        </div>
+
+        <div class="form-section">
+          <h4>Planta 3D del territorio <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Sale a la derecha del detalle, junto al masterplan.</span></h4>
+          <div class="form-group">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
+              <input type="text" id="f-plan3dImage" placeholder="/assets/img/properties/plan-3d.jpg or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-plan3dImage')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-plan3dImage')">Pick</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="fs-banner">⑥ Sección 50/50 <small>Izquierda: una imagen con título y subtítulo. Derecha: los tipos de vivienda en pestañas.</small></div>
+
+        <div class="form-section">
+          <h4>Imagen + título (izquierda) <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Lado izquierdo de la sección 50/50: una imagen con título y subtítulo encima.</span></h4>
+          <div class="form-group">
+            <label>Split image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(sección 50/50, izquierda)</span></label>
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
+              <input type="text" id="f-splitImage" placeholder="/assets/img/properties/land.jpg or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-splitImage')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-splitImage')">Pick</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Split title <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(título sobre esa imagen, abajo a la izquierda)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <input type="text" id="f-splitTitle-en" placeholder="Title EN (ej. The land)">
+              <input type="text" id="f-splitTitle-es" placeholder="Título ES (ej. La tierra)">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Split subtitle <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(bajo el título, en la misma imagen)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <input type="text" id="f-splitSub-en" placeholder="Subtitle EN (ej. Bali · 4.2 hectares)">
+              <input type="text" id="f-splitSub-es" placeholder="Subtítulo ES (ej. Bali · 4,2 hectáreas)">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Tipos de vivienda / pestañas <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Columna derecha de la sección 50/50. Una pestaña por modelo (Dali, Dune…): el visitante pulsa el nombre y ve el título, el subtítulo, las fotos (la primera grande, el resto en miniaturas debajo) y el texto de ESE modelo.</span></h4>
+          <div id="f-tabs-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTabRow()">+ Add tipo de vivienda</button>
+        </div>
+
+        <div class="fs-banner">⑦ Imagen a sangre <small>La banda de imagen ancha del final de la ficha; el aéreo con puntos es la alternativa.</small></div>
+
+        <div class="form-section">
+          <h4>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Banda de imagen ancha bajo la sección 50/50. Si la dejas vacía, se usa el aéreo o una foto de la galería.</span></h4>
+          <div class="form-group">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
+              <input type="text" id="f-bleedImage" placeholder="/assets/img/properties/hero-wide.jpg or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-bleedImage')">Pick</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Aerial view <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Foto aérea a lo ancho con puntos etiquetados y precio de entrada — alternativa a la imagen a sangre. Pulsa el ◎ de una fila y luego pincha en la foto para colocar el punto.</span></h4>
+          <div style="display:grid;grid-template-columns:1fr auto auto 180px;gap:6px;align-items:center">
+            <input type="text" id="f-aerial-image" placeholder="/assets/img/properties/aerial.jpg or https://..." oninput="syncPreview('aerial')">
+            <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-aerial-image','aerial')" title="Upload file">↑</button>
+            <button type="button" class="img-slot-pick" onclick="pickToField('f-aerial-image','aerial')">Pick</button>
+            <input type="number" id="f-aerial-entry" min="0" placeholder="Entry price €">
+          </div>
+          <div class="pt-wrap" id="aerial-wrap" style="position:relative;display:none;margin:10px 0;max-width:660px">
+            <img id="aerial-preview" src="" alt="Aerial preview" style="display:block;width:100%;border-radius:8px;cursor:crosshair" onclick="placePoint(event,'aerial')" onerror="this.parentNode.style.display='none'">
+            <div id="aerial-dots" style="position:absolute;inset:0;pointer-events:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 56px 78px 1fr 1fr 1fr 1fr 28px 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">X %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Y %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Side</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">EN line 1</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">EN line 2</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">ES línea 1</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">ES línea 2</div>
+            <div></div><div></div>
+          </div>
+          <div id="f-aerial-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHotspotRow()">+ Add point</button>
         </div>
 
       </form>
