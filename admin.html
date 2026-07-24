@@ -591,11 +591,12 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imagen (plano/mapa) O un enlace de Google Maps. Con enlace geolocalizable (el de la barra de direcciones con coordenadas, o "Compartir → Insertar un mapa") se muestra el <b>mapa embebido</b>; un enlace corto <code>maps.app.goo.gl</code> se muestra como botón. Vacío = nada.</span></h4>
+          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Pega un <b>enlace de Google Maps</b> (vale el corto <code>maps.app.goo.gl</code> de "Compartir") o sube una imagen de plano. Al pegar el enlace se localiza solo y se muestra el <b>mapa embebido</b>. Vacío = nada.</span></h4>
           <div class="form-group">
-            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://..." oninput="syncPreview('pins')">
-              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage','pins')" title="Upload file">↑</button>
+            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center">
+              <input type="text" id="f-mapImage" placeholder="https://maps.app.goo.gl/… o una imagen /assets/img/…" oninput="syncPreview('pins')" onblur="resolveMapField()">
+              <button type="button" class="img-slot-upload" onclick="resolveMapField()" title="Localizar el enlace de Google Maps">🗺️</button>
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage','pins')" title="Subir imagen de plano">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-mapImage','pins')">Pick</button>
             </div>
           </div>
@@ -1474,6 +1475,37 @@ function pickToField(inputId, group) {
     input.value = url;
     if (group) syncPreview(group);
   });
+}
+
+// Localiza un enlace de Google Maps y lo deja geolocalizable (coordenadas) para que la web muestre el
+// mapa embebido. El enlace corto maps.app.goo.gl no trae coordenadas y no se puede resolver desde el
+// navegador (CORS) → lo resuelve el servidor (api/resolve-map.php) siguiendo el redirect.
+var MAP_RESOLVING = false;
+async function resolveMapField() {
+  var input = document.getElementById('f-mapImage');
+  if (!input) return;
+  var url = (input.value || '').trim();
+  if (!url || !/^https?:\/\//i.test(url) || MAP_RESOLVING) return;
+  // Ya geolocalizable (coords / embed) o no es Google Maps → nada que hacer.
+  if (/@(-?\d+\.\d+),(-?\d+\.\d+)|!3d(-?\d+\.\d+)!4d|[?&](?:q|ll|center)=(-?\d+\.\d+),|output=embed|\/maps\/embed/i.test(url)) return;
+  if (!/(maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps|maps\.google\.)/i.test(url)) return;
+  MAP_RESOLVING = true;
+  try {
+    toast('Localizando el mapa…', 'ok');
+    var r = await fetch('api/resolve-map.php?url=' + encodeURIComponent(url), { credentials: 'include' });
+    var d = await r.json();
+    if (d.ok && d.lat && d.lng) {
+      input.value = 'https://www.google.com/maps?q=' + d.lat + ',' + d.lng;
+      syncPreview('pins');
+      toast('Mapa localizado ✓ — se mostrará embebido.', 'ok');
+    } else {
+      toast('No pude localizar ese enlace; en la web saldrá como botón. Prueba con la URL de la barra de direcciones de Google Maps.', 'err');
+    }
+  } catch (e) {
+    toast('No se pudo resolver el enlace del mapa.', 'err');
+  } finally {
+    MAP_RESOLVING = false;
+  }
 }
 
 /* Fila de imagen dentro de una lista (fotos de una pestaña): input + subir + elegir + borrar.
