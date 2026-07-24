@@ -967,9 +967,9 @@
                   : (p.tenure ? tl("Leasehold "+(p.leaseYears||30)+" yr.","Leasehold "+(p.leaseYears||30)+" años.") : "");
     var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:52ch">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
     // "More in this line": mismas cards del marketplace/index (LawangCard) — revisión cliente 23-jul.
-    var alsoHTML = also.length>0 ? '<div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+(alsoIsFallback?t("pd.also.any"):t("pd.also"))+'</div><div class="pdp-also-grid">'
+    var alsoHTML = also.length>0 ? '<div style="margin-top:clamp(38px,5vh,72px)"><div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+(alsoIsFallback?t("pd.also.any"):t("pd.also"))+'</div><div class="pdp-also-grid">'
       + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,{lang:S.lang,cur:S.cur,rates:L.RATES}) : ''; }).join("")
-      + '</div>' : "";
+      + '</div></div>' : "";
     // Cabecera: migas + subtítulo a la izquierda; a la derecha SOLO el precio (revisión cliente
     // 23-jul: fuera "LÍNEA › ESTADO" de encima del precio).
     var headerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
@@ -984,20 +984,17 @@
     return '<div>'
       + heroHTML(p)
       + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+'</div>')
-      // Detalle: izq 60% tabla blanca · dcha 40% card overview+técnica+dossier
+      // Detalle (revisión cliente 24-jul: el masterplan va DENTRO de esta sección, no en la suya):
+      // izq 60% tabla blanca + configurador/payment plan · dcha 40% card + planta 3D del territorio.
       + sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
-          + '<div>'+techSpecsHTML(p)+'</div><div>'+infoCardHTML(p)+'</div></div></div>')
-      // Masterplan: configurador/payment plan a la izquierda, planta 3D del territorio a la derecha
-      + (leftMain ? sec('<div class="wrap pdp-wrap">'
-          + (plan3d ? '<div class="pdp-info-2col"><div class="pdp-leftmain">'+leftMain+'</div><div>'+plan3d+'</div></div>'
-                    : '<div class="pdp-leftmain">'+leftMain+'</div>')
-          + '</div>') : "")
+          + '<div>'+techSpecsHTML(p)+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
+          + '<div>'+infoCardHTML(p)+plan3d+'</div></div></div>')
       + (split ? sec(split, "pdp-sec-flush") : "")
       + (bleed ? sec(bleed, "pdp-sec-flush") : "")
-      + sec('<div class="wrap pdp-wrap">'+processBannerHTML()+'</div>')
-      // Última sección = otros proyectos + footer juntos. El footer TIENE que ir dentro de una
-      // sección con snap: colgando fuera, el snap obligatorio no dejaría llegar hasta él.
-      + sec('<div class="wrap pdp-wrap">'+alsoHTML+'</div>'+footerCoreHTML(), "pdp-sec-last")
+      // Última sección: banner del proceso + cross-selling + footer juntos (revisión cliente 24-jul).
+      // El footer TIENE que ir dentro de una sección con snap: colgando fuera, el snap obligatorio
+      // no dejaría llegar hasta él.
+      + sec('<div class="wrap pdp-wrap">'+processBannerHTML()+alsoHTML+'</div>'+footerCoreHTML(), "pdp-sec-last")
       + waFloatHTML(p)
       + lightboxHTML(p)
       + '</div>';
@@ -1012,6 +1009,25 @@
     return '<div id="pf-overlay">'+topbarHTML(true)+propertyHTML(id)+'</div>';
   }
 
+  // ── Scroll del marketplace: el listado se repinta ENTERO (innerHTML) en cada acción — idioma,
+  //    moneda, vista, filtro — y al colapsar la altura el navegador manda el scroll a 0. Lo mismo
+  //    pasa al recargar: el contenido llega de data.json después del load, así que la restauración
+  //    nativa no tiene dónde agarrarse. Se guarda a mano en sessionStorage.
+  var MK_Y_KEY = "lw_mk_scroll";
+  function saveMkScroll(){
+    if(S.overlay) return;
+    try { sessionStorage.setItem(MK_Y_KEY, String(Math.round(window.scrollY))); } catch(e){}
+  }
+  function savedMkScroll(){
+    try { return parseInt(sessionStorage.getItem(MK_Y_KEY), 10) || 0; } catch(e){ return 0; }
+  }
+  function isReloadOrBack(){
+    try {
+      var nav = performance.getEntriesByType("navigation")[0];
+      return !!nav && (nav.type === "reload" || nav.type === "back_forward");
+    } catch(e){ return false; }
+  }
+
   // ════ RENDER ════
   var root, renderedOverlay = null;
   function render(){
@@ -1019,12 +1035,14 @@
     // paso, idioma, moneda…). Solo si seguimos en la MISMA propiedad; al abrir/cambiar/cerrar empieza arriba.
     var prevEl = document.getElementById("pf-overlay");
     var savedY = (prevEl && renderedOverlay === S.overlay) ? prevEl.scrollTop : null;
+    var winY = S.overlay ? null : window.scrollY;
     // La ficha lleva su propio topbar (ghost) DENTRO del overlay → no pintar el del marketplace
     // detrás (evita id="topbar" duplicado).
     root.innerHTML = (S.overlay ? "" : topbarHTML()) + marketplaceHTML() + (S.overlay ? overlayHTML(S.overlay) : "");
     document.body.style.overflow = S.overlay ? "hidden" : "";
     if(!S.overlay) document.title = "The Collection · Lawang Tropical Properties";
     if(savedY != null){ var now = document.getElementById("pf-overlay"); if(now) now.scrollTop = savedY; }
+    if(winY) window.scrollTo(0, winY);
     renderedOverlay = S.overlay;
     if(S.overlay){ var ov = document.getElementById("pf-overlay"); if(ov){ syncPdpNav(ov); ov.addEventListener("scroll", function(){ syncPdpNav(ov); }, {passive:true}); } }
     requestAnimationFrame(function(){ root.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); }); });
@@ -1155,6 +1173,15 @@
     if(!S.overlay) S.line = lineFromHash();
     bindEvents();
     render();
+    // Recarga (o volver atrás): devolver al visitante donde estaba en el listado, no al principio.
+    // Se hace después de pintar (antes no hay altura a la que saltar). Solo en recarga/atrás: si
+    // llega desde el index se empieza arriba, que es lo que espera.
+    if(!S.overlay && isReloadOrBack()){
+      var y = savedMkScroll();
+      if(y > 0) requestAnimationFrame(function(){ window.scrollTo(0, y); });
+    }
+    if("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.addEventListener("scroll", saveMkScroll, {passive:true});
   }
 
   // El CDN de Hostinger puede servir un data.json truncado para el patron ?_=.
