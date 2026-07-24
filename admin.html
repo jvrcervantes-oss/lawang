@@ -295,13 +295,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
   <section id="panel-images" class="panel">
     <div class="panel-bar">
       <h2>Images</h2>
-      <p class="muted">Upload property photos. Copy the URL and paste it into the property image fields.</p>
+      <p class="muted">Sube fotos aquí; luego elígelas con "Pick" en cada propiedad.</p>
     </div>
     <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
       <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none"
              onchange="handleFileSelect(this.files)">
       <p>Drop images here or <button type="button" onclick="event.stopPropagation();document.getElementById('file-input').click()">click to browse</button></p>
-      <p class="muted" style="margin-top:4px">JPG, PNG or WebP · max 25 MB per file — upload the original, it is resized and optimised automatically</p>
+      <p class="muted" style="margin-top:4px">JPG, PNG o WebP · máx. 25 MB · se optimizan solas.</p>
     </div>
     <div id="images-grid" class="images-grid"></div>
   </section>
@@ -346,7 +346,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <input type="text" id="f-region" placeholder="Balian Hills, Bali">
           </div>
           <div class="form-group">
-            <label>View / Setting <span class="hint">controls the icon &amp; badge on the card and detail page</span></label>
+            <label>View / Setting <span class="hint">controla el icono y la etiqueta de la propiedad</span></label>
             <select id="f-view">
               <option value="">Auto (guess from text)</option>
               <option value="beach">Beachfront</option>
@@ -382,25 +382,25 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Home page <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Presencia de esta propiedad en la portada (index.html).</span></h4>
+          <h4>Home page <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Presencia en la portada.</span></h4>
           <div class="cb-group">
             <input type="checkbox" id="f-inCollection">
-            <label for="f-inCollection">Show in <strong>"The Collection"</strong> grid <span class="muted">(rejilla 3×3 de la home · máx. 9 · si marcas más, salen las 9 primeras)</span></label>
+            <label for="f-inCollection">Show in <strong>"The Collection"</strong> grid <span class="muted">(rejilla de la home · máx. 9)</span></label>
           </div>
           <div class="cb-group">
             <input type="checkbox" id="f-homeFeatured">
             <label for="f-homeFeatured">Feature this project in the big <strong>Featured</strong> block <span class="muted">(solo una)</span></label>
           </div>
           <div class="form-group">
-            <label>Isotype / project mark <span class="hint">opcional; marca propia del proyecto (PNG con fondo transparente) — sustituye al isotipo de Lawang en el hero de la ficha</span></label>
+            <label>Isotype / project mark <span class="hint">marca propia del proyecto (PNG transparente) · opcional</span></label>
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-isotype" placeholder="/assets/img/properties/mark-palmfield.png or https://...">
+              <input type="text" id="f-isotype" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-isotype')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-isotype')">Pick</button>
             </div>
           </div>
           <div class="form-group">
-            <label>Highlights <span class="hint">lista de checks del bloque de la home · hasta 5</span></label>
+            <label>Highlights <span class="hint">hasta 5</span></label>
             <div id="f-highlights-list"></div>
             <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHighlightRow('')">+ Add highlight</button>
           </div>
@@ -444,24 +444,24 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
               <input type="text" id="f-style" placeholder="Contemporary Balinese">
             </div>
             <div class="form-group">
-              <label>Nightly rate EUR <span class="hint">ROI calculator</span></label>
+              <label>Nightly rate EUR <span class="hint">rentabilidad</span></label>
               <input type="number" id="f-nightlyRate" min="0" placeholder="180">
             </div>
           </div>
           <div class="form-row-2">
             <div class="form-group">
-              <label>Land colour / zoning <span class="hint">solo línea Land — sale en las características del hero (ej. "Yellow zone")</span></label>
+              <label>Land colour / zoning <span class="hint">solo Land · ej. "Yellow zone"</span></label>
               <input type="text" id="f-landColor" placeholder="Yellow zone">
             </div>
             <div class="form-group"></div>
           </div>
           <div class="form-row-2">
             <div class="form-group">
-              <label>Units available <span class="hint">shown in sidebar; leave empty to hide</span></label>
+              <label>Units available <span class="hint">opcional</span></label>
               <input type="number" id="f-unitsAvailable" min="0" placeholder="4">
             </div>
             <div class="form-group">
-              <label>Units total <span class="hint">optional, shows as "4 / 12"</span></label>
+              <label>Units total <span class="hint">opcional · sale como "4 / 12"</span></label>
               <input type="number" id="f-unitsTotal" min="0" placeholder="12">
             </div>
           </div>
@@ -502,11 +502,11 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <input type="text" id="f-sub-en" placeholder="A cantilevered three-bed...">
           </div>
           <div class="form-group">
-            <label>Card meta <span class="hint">optional · replaces the "land m²" chip on the card</span></label>
+            <label>Card meta <span class="hint">opcional · sustituye el m² de la tarjeta</span></label>
             <input type="text" id="f-metaText-en" placeholder="e.g. Ready Q4 2026">
           </div>
           <div class="form-group">
-            <label>Description <span class="hint">2–3 sentences for the detail page</span></label>
+            <label>Description <span class="hint">2–3 frases para la ficha</span></label>
             <textarea id="f-desc-en" rows="4" placeholder="Ridge House reads the land..."></textarea>
           </div>
         </div>
@@ -522,7 +522,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <input type="text" id="f-sub-es" placeholder="Una vivienda de tres dormitorios...">
           </div>
           <div class="form-group">
-            <label>Meta de card <span class="hint">opcional · sustituye el dato "land m²" de la card</span></label>
+            <label>Meta de card <span class="hint">opcional · sustituye el m² de la tarjeta</span></label>
             <input type="text" id="f-metaText-es" placeholder="ej. Listo Q4 2026">
           </div>
           <div class="form-group">
@@ -534,7 +534,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="fs-banner">② Galería de fotos <small>El carrusel de la ficha (2 grandes + miniaturas) y los vídeos, que van después de las fotos.</small></div>
 
         <div class="form-section">
-          <h4>Images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Up to 8 photos. Paste a URL directly or pick from uploaded images.</span></h4>
+          <h4>Images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Hasta 8 fotos.</span></h4>
           <div id="f-images-list"></div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
             <button type="button" class="btn-secondary" onclick="addImageSlot('')">+ Add image</button>
@@ -543,7 +543,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Videos <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">MP4 URLs shown in the gallery carousel after the photos. Paste a direct link (e.g. /assets/videos/tour.mp4 or https://...).</span></h4>
+          <h4>Videos <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Vídeos MP4 del carrusel, tras las fotos.</span></h4>
           <div id="f-videos-list"></div>
           <button type="button" class="btn-secondary" style="margin-top:8px" onclick="addVideoSlot('')">+ Add video</button>
         </div>
@@ -551,7 +551,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="fs-banner">③ Tabla de datos <small>La banda blanca horizontal justo debajo de las fotos.</small></div>
 
         <div class="form-section">
-          <h4>Specs band <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tabla blanca horizontal de la ficha. Si añades filas aquí, MANDAN ellas (texto libre: etiqueta + valor); si lo dejas vacío, la tabla se construye sola (tenure, delivery, status…).</span></h4>
+          <h4>Specs band <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tabla de datos bajo las fotos. Si la dejas vacía, se construye sola.</span></h4>
           <div id="f-techspecs-list"></div>
           <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTechSpecRow('','')">+ Add cell</button>
         </div>
@@ -559,7 +559,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="fs-banner">④ Configurador / Masterplan <small>Columna izquierda del detalle: parcela → vivienda → extras → plan de pagos. Todo opcional.</small></div>
 
         <div class="form-section">
-          <h4>Land plots <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Primer paso del configurador (Land): elegir parcela por m². Se muestra solo si añades parcelas.</span></h4>
+          <h4>Land plots <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Parcelas por m². Se muestra solo si añades alguna.</span></h4>
           <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Size m²</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €/m²</div>
@@ -571,7 +571,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Choose your home <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Modelos de vivienda elegibles en la ficha. Se muestra solo si añades modelos.</span></h4>
+          <h4>Choose your home <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Modelos de vivienda. Se muestra solo si añades alguno.</span></h4>
           <div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr auto auto 28px;gap:6px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Model</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Beds</div>
@@ -587,7 +587,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Extras &amp; Add-ons <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Extras con precio (sauna, piscina, kit Airbnb…). Se muestra solo si añades alguno.</span></h4>
+          <h4>Extras &amp; Add-ons <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Extras con precio (sauna, piscina…).</span></h4>
           <div style="display:grid;grid-template-columns:3fr 1.2fr 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Extra</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
@@ -598,7 +598,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Payment Plan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Leave empty to use the default plan for this property line.</span></h4>
+          <h4>Payment Plan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Vacío = plan por defecto de la línea.</span></h4>
           <div style="display:grid;grid-template-columns:56px 2fr 3fr 28px;gap:8px;margin-bottom:4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">%</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Label</div>
@@ -615,10 +615,10 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="fs-banner">⑤ Ficha de información <small>Columna derecha del detalle: mapa de situación, dossier descargable y planta 3D.</small></div>
 
         <div class="form-section">
-          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Pega un <b>enlace de Google Maps</b> (vale el corto <code>maps.app.goo.gl</code> de "Compartir") o sube una imagen de plano. Al pegar el enlace se localiza solo y se muestra el <b>mapa embebido</b>. Vacío = nada.</span></h4>
+          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Pega un <b>enlace de Google Maps</b> (vale el de "Compartir") y se muestra el mapa embebido. O sube una imagen de plano.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-mapImage" placeholder="https://maps.app.goo.gl/… o una imagen /assets/img/…" onblur="resolveMapField()">
+              <input type="text" id="f-mapImage" placeholder="Pega el enlace de Google Maps…" onblur="resolveMapField()">
               <button type="button" class="img-slot-upload" onclick="resolveMapField()" title="Localizar el enlace de Google Maps">🗺️</button>
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage')" title="Subir imagen de plano">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-mapImage')">Pick</button>
@@ -627,16 +627,16 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Downloads <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">PDFs shown on this property's detail page. Leave URL empty to show "Coming soon".</span></h4>
+          <h4>Downloads <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">PDFs de la ficha. URL vacía = "Coming soon".</span></h4>
           <div id="f-downloads-list"></div>
           <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addDownloadRow()">+ Add document</button>
         </div>
 
         <div class="form-section">
-          <h4>Planta 3D del territorio <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Sale a la derecha del detalle, junto al masterplan.</span></h4>
+          <h4>Planta 3D del territorio <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. A la derecha, junto al masterplan.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-plan3dImage" placeholder="/assets/img/properties/plan-3d.jpg or https://...">
+              <input type="text" id="f-plan3dImage" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-plan3dImage')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-plan3dImage')">Pick</button>
             </div>
@@ -646,11 +646,11 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="fs-banner">⑥ Sección 50/50 <small>Izquierda: una imagen con título y subtítulo. Derecha: los tipos de vivienda en pestañas.</small></div>
 
         <div class="form-section">
-          <h4>Imagen + título (izquierda) <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Lado izquierdo de la sección 50/50: una imagen con título y subtítulo encima.</span></h4>
+          <h4>Imagen + título (izquierda) <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Izquierda de la 50/50: imagen con título y subtítulo.</span></h4>
           <div class="form-group">
             <label>Split image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(sección 50/50, izquierda)</span></label>
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-splitImage" placeholder="/assets/img/properties/land.jpg or https://...">
+              <input type="text" id="f-splitImage" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-splitImage')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-splitImage')">Pick</button>
             </div>
@@ -672,7 +672,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Tipos de vivienda / pestañas <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Columna derecha de la sección 50/50. Una pestaña por modelo (Dali, Dune…): el visitante pulsa el nombre y ve el título, el subtítulo, las fotos (la primera grande, el resto en miniaturas debajo) y el texto de ESE modelo.</span></h4>
+          <h4>Tipos de vivienda / pestañas <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Derecha de la 50/50. Una pestaña por modelo (Dali, Dune…).</span></h4>
           <div id="f-tabs-list"></div>
           <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTabRow()">+ Add tipo de vivienda</button>
         </div>
@@ -680,10 +680,10 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="fs-banner">⑦ Imagen a sangre <small>La banda de imagen ancha del final de la ficha; el aéreo con puntos es la alternativa.</small></div>
 
         <div class="form-section">
-          <h4>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Banda de imagen ancha bajo la sección 50/50. Si la dejas vacía, se usa el aéreo o una foto de la galería.</span></h4>
+          <h4>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imagen ancha del final. Vacía = usa el aéreo o galería.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-bleedImage" placeholder="/assets/img/properties/hero-wide.jpg or https://...">
+              <input type="text" id="f-bleedImage" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-bleedImage')">Pick</button>
             </div>
@@ -691,9 +691,9 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Aerial view <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Foto aérea a lo ancho con puntos etiquetados y precio de entrada — alternativa a la imagen a sangre. Pulsa el ◎ de una fila y luego pincha en la foto para colocar el punto.</span></h4>
+          <h4>Aerial view <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Foto aérea con puntos, alternativa a la imagen a sangre. Pulsa ◎ y luego la foto para situar cada punto.</span></h4>
           <div style="display:grid;grid-template-columns:1fr auto auto 180px;gap:6px;align-items:center">
-            <input type="text" id="f-aerial-image" placeholder="/assets/img/properties/aerial.jpg or https://..." oninput="syncPreview('aerial')">
+            <input type="text" id="f-aerial-image" placeholder="URL de la imagen (o usa ↑ / Pick)" oninput="syncPreview('aerial')">
             <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-aerial-image','aerial')" title="Upload file">↑</button>
             <button type="button" class="img-slot-pick" onclick="pickToField('f-aerial-image','aerial')">Pick</button>
             <input type="number" id="f-aerial-entry" min="0" placeholder="Entry price €">
@@ -1083,7 +1083,7 @@ function addVideoSlot(url) {
   div.className = 'img-slot';
   div.innerHTML =
     '<span class="drag-handle" title="Video" style="cursor:default">▶</span>' +
-    '<input type="text" value="' + esc(url) + '" placeholder="/assets/videos/tour.mp4 or https://...mp4">' +
+    '<input type="text" value="' + esc(url) + '" placeholder="URL del vídeo (.mp4)">' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
 }
@@ -1125,7 +1125,7 @@ function addHomeRow(m) {
       '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
       '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
       '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
-      '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/assets/img/properties/model.jpg">' +
+      '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="URL (o ↑ / Pick)">' +
       '<button type="button" class="img-slot-upload" onclick="uploadForHome(this)" title="Upload file">↑</button>' +
       '<button type="button" class="img-slot-pick" onclick="pickForHome(this)">Pick</button>' +
       '<button type="button" class="img-slot-del" onclick="this.closest(\'.home-row\').remove()">✕</button>' +
@@ -1292,7 +1292,7 @@ function addImageSlot(url) {
       '<img class="img-slot-thumb" src="' + esc(url) + '" alt="" style="opacity:' + (url?'1':'0') + '" onerror="this.style.opacity=0">' +
       '<div class="img-slot-spinner hidden"></div>' +
     '</div>' +
-    '<input type="text" value="' + esc(url) + '" placeholder="https://... or /assets/img/properties/photo.jpg" oninput="syncSlot(this)">' +
+    '<input type="text" value="' + esc(url) + '" placeholder="URL de la imagen (o usa ↑ / Pick)" oninput="syncSlot(this)">' +
     '<button type="button" class="img-slot-upload" onclick="uploadForSlot(this)" title="Upload file">↑</button>' +
     '<button type="button" class="img-slot-pick" onclick="pickForSlot(this)">Pick</button>' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
@@ -1412,7 +1412,7 @@ async function resolveMapField() {
    Los botones se apoyan en el <input> hermano, así la fila no necesita id. */
 function imageRowHTML(cls, url) {
   return '<div class="img-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px">'
-    + '<input type="text" class="' + cls + '" value="' + esc(url || '') + '" placeholder="/assets/img/properties/foto.jpg or https://...">'
+    + '<input type="text" class="' + cls + '" value="' + esc(url || '') + '" placeholder="URL de la imagen (o usa ↑ / Pick)">'
     + '<button type="button" class="img-slot-upload" onclick="uploadToRow(this)" title="Upload file">↑</button>'
     + '<button type="button" class="img-slot-pick" onclick="pickToRow(this)">Pick</button>'
     + '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>'
@@ -1675,7 +1675,7 @@ function addDownloadRow(item) {
     '<input type="text" class="dl-name" value="' + esc(item.name||'') + '" placeholder="Document name">' +
     '<input type="text" class="dl-ext"  value="' + esc(item.ext||'PDF') + '" placeholder="PDF">' +
     '<input type="text" class="dl-size" value="' + esc(item.size||'') + '" placeholder="2.4 MB">' +
-    '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="/docs/brochure.pdf">' +
+    '<input type="text" class="dl-url"  value="' + esc(item.url||'') + '" placeholder="URL del PDF">' +
     '<button class="dl-upload" type="button" onclick="uploadDocForRow(this)" title="Upload file">↑</button>' +
     '<button class="dl-remove" type="button" onclick="this.parentNode.remove()" title="Remove">✕</button>';
   container.appendChild(div);
