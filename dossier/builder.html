@@ -90,6 +90,12 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .slot .rm{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(32,36,31,.72);color:#fff;font-size:13px;cursor:pointer;display:none;z-index:5}
 .slot:hover .rm{display:block}
 .slot.empty .rm{display:none}
+/* hueco de logo: como un slot normal pero contain y sin fondo */
+.slot.logoslot{background-size:contain;background-repeat:no-repeat;background-position:center;background-color:transparent}
+.slot.logoslot.empty::before{content:"+ Logo";font-size:12px;border-width:1.5px}
+/* las capas de texto dejan pasar el clic al fondo; solo lo editable lo captura */
+.pg-cover .mid,.pg-statement .mid,.pg-feature .txt,.pg-back .mid{pointer-events:none}
+.pg-cover .mid [data-e],.pg-statement .mid [data-e],.pg-feature .txt [data-e],.pg-back .mid [data-e],.pg-back .mid .slot{pointer-events:auto}
 
 /* ============ elementos libres ============ */
 .free{position:absolute;z-index:10;cursor:grab}
@@ -109,7 +115,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 /* portada */
 .pg-cover .slot.bg{position:absolute;inset:0}
 .pg-cover .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,25,20,.28),rgba(16,25,20,.14) 45%,rgba(16,25,20,.62));pointer-events:none}
-.pg-cover .logo{position:absolute;top:12mm;left:0;right:0;margin:auto;height:17mm;z-index:4;filter:drop-shadow(0 2px 10px rgba(0,0,0,.3))}
+.pg-cover .logoslot{position:absolute;top:12mm;left:50%;transform:translateX(-50%);width:90mm;height:17mm;z-index:4;filter:drop-shadow(0 2px 10px rgba(0,0,0,.3))}
 .pg-cover .mid{position:absolute;left:0;right:0;top:47%;transform:translateY(-50%);text-align:center;color:#fff;z-index:4;padding:0 20mm}
 .pg-cover .kick{opacity:.92}
 .pg-cover .title{font:500 76px/1.02 var(--serif);letter-spacing:10px;text-transform:uppercase;margin:6mm 0 5mm}
@@ -189,7 +195,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .pg-back .slot.bg{position:absolute;inset:0;opacity:.22}
 .pg-back .slot.bg.empty::before{opacity:0}
 .pg-back .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:3}
-.pg-back .logo{height:24mm;margin-bottom:9mm}
+.pg-back .logoslot{width:100mm;height:24mm;margin-bottom:9mm}
 .pg-back .contact{font:300 14px/2 var(--sans);letter-spacing:2px}
 .pg-back .legal{position:absolute;bottom:10mm;left:0;right:0;text-align:center;font:500 9px var(--sans);letter-spacing:3px;text-transform:uppercase;opacity:.6;z-index:3}
 
@@ -307,7 +313,7 @@ const TYPES={
     d:{kick:'WELCOME TO', title:'PALM FIELD', claim:'Presence, without excess. Intention, without explanation. Experience, without effort.', foot:'2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS'},
     imgs:['bg'],
     tpl:p=>`<div class="slot bg" data-i="bg"></div><div class="shade"></div>
-      <img class="logo" src="${LOGO_LIGHT}" alt="" onerror="this.remove()">
+      <div class="slot logoslot" data-i="logo"></div>
       <div class="mid"><div class="kick" data-e="kick"></div><div class="title" data-e="title"></div><div class="claim" data-e="claim"></div></div>
       <div class="foot" data-e="foot"></div>`
   },
@@ -373,7 +379,7 @@ const TYPES={
     d:{contact:'lawangproperties.com<br>hello@lawangproperties.com', legal:'© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED'},
     imgs:['bg'],
     tpl:p=>`<div class="slot bg" data-i="bg"></div>
-      <div class="mid"><img class="logo" src="${LOGO_LIGHT}" alt="" onerror="this.remove()"><div class="contact" data-e="contact"></div></div>
+      <div class="mid"><div class="slot logoslot" data-i="logo"></div><div class="contact" data-e="contact"></div></div>
       <div class="legal" data-e="legal"></div>`
   }
 };
@@ -384,7 +390,9 @@ let state=null, uid=1, curPage=null, sel=null; /* sel={p,f,node} */
 const LS_KEY='lawang_dossier_builder';
 
 function newPage(type){
-  return {id:'p'+(uid++), type, d:JSON.parse(JSON.stringify(TYPES[type].d)), img:{}, free:[]};
+  const p={id:'p'+(uid++), type, d:JSON.parse(JSON.stringify(TYPES[type].d)), img:{}, free:[]};
+  if(type==='cover'||type==='back')p.img.logo=LOGO_LIGHT; // precargado; el ✕ lo deja en '' (quitado)
+  return p;
 }
 function defaultProject(){
   return {title:'Dossier', sizeKey:'a4l', size:{w:297,h:210},
@@ -393,7 +401,11 @@ function defaultProject(){
 function migrate(s){
   s.size=s.size&&s.size.w?s.size:{w:297,h:210};
   s.sizeKey=s.sizeKey||'a4l';
-  (s.pages||[]).forEach(p=>{p.free=p.free||[];p.img=p.img||{};p.d=p.d||{};});
+  (s.pages||[]).forEach(p=>{
+    p.free=p.free||[];p.img=p.img||{};p.d=p.d||{};
+    // dossiers de la v1: el logo pasó a ser slot — precargar solo si nunca existió ('' = quitado a propósito)
+    if((p.type==='cover'||p.type==='back')&&p.img.logo===undefined)p.img.logo=LOGO_LIGHT;
+  });
   return s;
 }
 function maxUid(s){
@@ -464,7 +476,7 @@ function render(){
       el.classList.toggle('empty',!src);
       el.style.backgroundImage=src?`url(${src})`:'';
       const rm=document.createElement('button');rm.className='rm';rm.textContent='✕';rm.title='Quitar imagen';
-      rm.onclick=e=>{e.stopPropagation();delete p.img[el.dataset.i];render();persist();};
+      rm.onclick=e=>{e.stopPropagation();p.img[el.dataset.i]='';render();persist();};
       el.appendChild(rm);
       el.onclick=e=>{if(e.target===rm)return;pickImage(cb=>{p.img[el.dataset.i]=cb;render();persist();});};
     });
@@ -473,9 +485,13 @@ function render(){
     // nº de página (no en portada/contraportada)
     if(p.type!=='cover'&&p.type!=='back'){
       const dark=(p.type==='statement');
-      const no=document.createElement('div');no.className='pageno';no.textContent=String(idx+1).padStart(2,'0');
-      const tag=document.createElement('div');tag.className='brandtag';tag.textContent='LAWANG · TROPICAL PROPERTIES';
+      const no=document.createElement('div');no.className='pageno';
+      no.innerHTML=p.d._no??String(idx+1).padStart(2,'0');
+      const tag=document.createElement('div');tag.className='brandtag';
+      tag.innerHTML=p.d._tag??'LAWANG · TROPICAL PROPERTIES';
       if(dark){no.style.color='#F5F0E6';tag.style.color='#F5F0E6';}
+      // también editables (vaciar = quitarlos); se guardan como cualquier data-e
+      [['_no',no],['_tag',tag]].forEach(([k,el])=>{el.dataset.e=k;el.contentEditable=true;el.spellcheck=false;});
       page.append(tag,no);
     }
     page.addEventListener('pointerdown',e=>{
