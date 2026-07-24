@@ -144,8 +144,10 @@
         + '<img src="assets/img/'+c.img+'" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
         + '<span style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,11,.72) 0%,rgba(20,16,11,.44) 55%,rgba(20,16,11,.2) 100%)"></span>'
         + '<span style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:0 clamp(14px,1.7vw,22px);text-align:left;color:#F5F0E6">'
-        +   '<span style="min-width:0"><span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(13px,1.4vw,18px);line-height:1;letter-spacing:.22em;text-transform:uppercase;opacity:.88">'+t("cat."+c.line)+'</span>'
-        +     '<span style="display:block;font-family:var(--sans);font-size:clamp(13px,1.5vw,19px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:8px">'+t("cat."+c.line+".sub")+'</span></span>'
+        // Ambas líneas en UNA sola línea (revisión cliente 23-jul): el subtítulo más largo
+        // ("Hospitalidad de primer nivel") rompía en dos renglones → tipo más pequeña + nowrap.
+        +   '<span style="min-width:0"><span style="display:block;font-family:var(--sans);font-weight:300;font-size:clamp(12px,1.15vw,16px);line-height:1;letter-spacing:.2em;text-transform:uppercase;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t("cat."+c.line)+'</span>'
+        +     '<span style="display:block;font-family:var(--sans);font-size:clamp(9.5px,.88vw,14px);font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t("cat."+c.line+".sub")+'</span></span>'
         +   '<img src="assets/img/'+LINE_CREAM[c.line]+'.png" alt="" loading="lazy" style="width:clamp(30px,3.2vw,42px);height:auto;flex:none;object-fit:contain">'
         + '</span></button>';
     }).join("");
@@ -571,6 +573,19 @@
       + '</div>';
   }
 
+  // ── Planta 3D del territorio (revisión cliente 23-jul): va en la columna derecha, a la altura
+  //    del masterplan/configurador de la izquierda. Campo p.plan3dImage del admin; si está vacío no
+  //    se pinta nada (nunca un placeholder).
+  function plan3dHTML(p){
+    if(!p.plan3dImage) return "";
+    var url = imgUrl(p.plan3dImage, 1600);
+    if(!url) return "";
+    return '<figure class="pdp-plan3d">'
+      + '<div class="kicker">'+tl("The Territory","El territorio")+'</div>'
+      + '<img src="'+esc(url)+'" alt="'+esc(tl("3D site plan","Planta 3D"))+' · '+esc(pick(p.title))+'" loading="lazy" onerror="var f=this.closest(\'.pdp-plan3d\'); if(f) f.remove();">'
+      + '</figure>';
+  }
+
   // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
   function fullBleedImageHTML(p){
     var key = (p.imgKeys&&p.imgKeys[2]) || (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
@@ -925,7 +940,7 @@
       // hueco de abajo · dcha 40% card overview+técnica+dossier.
       + '<div class="pdp-info-2col" style="margin-top:clamp(24px,3vw,34px)">'
       +   '<div>'+techSpecsHTML(p)+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
-      +   '<div>'+infoCardHTML(p)+'</div>'
+      +   '<div>'+infoCardHTML(p)+plan3dHTML(p)+'</div>'
       + '</div>'
       + '</div>'  // /wrap
       // Sección 50/50: imagen (información de la tierra) + sistema de pestañas ("designed to last")

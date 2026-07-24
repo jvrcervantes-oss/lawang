@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260723173837">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260724094956">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -227,7 +227,8 @@ h1,h2,h3{ margin:0; font-weight:300; }
 /* Filete fino blanco interior, igual que las cards de propiedad */
 .lw-cat::after { content:""; position:absolute; inset:clamp(9px,1vw,13px); border:1px solid rgba(245,240,230,.42); border-radius:10px; pointer-events:none; z-index:2; }
 .lw-cat.on { box-shadow:0 0 0 2px var(--clay); }
-.lw-cat:hover { box-shadow:0 18px 40px -20px rgba(20,16,11,.55), 0 0 0 2px var(--clay); }
+/* Solo sombra al pasar el ratón: el anillo verde se reserva para la categoría activa (.on) */
+.lw-cat:hover { box-shadow:0 18px 40px -20px rgba(20,16,11,.55); }
 .lw-cat > img { transition:transform .7s var(--ease); will-change:transform; }
 .lw-cat:hover > img { transform:scale(1.08); }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
@@ -396,6 +397,10 @@ article:hover .view-cta { gap:9px; }
 .pdp-wa-float:hover{ transform:scale(1.06) }
 /* ── Ficha: 2 columnas bajo el carrusel — izq 60% (tabla + configurador/payment) · dcha 40% (card) ── */
 .pdp-info-2col{ display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:clamp(24px,3.5vw,52px); align-items:start; }
+/* Planta 3D del territorio — columna derecha, a la altura del masterplan de la izquierda */
+.pdp-plan3d{ margin:clamp(18px,2.2vw,26px) 0 0; }
+.pdp-plan3d .kicker{ margin-bottom:10px; }
+.pdp-plan3d img{ display:block; width:100%; height:auto; border-radius:14px; border:1px solid var(--line); background:var(--bone-2); }
 /* Configurador / payment plan encajado en el hueco bajo la tabla (col izq). Trae su propio
    margen superior (border-top del payment plan / margin del configurador) → sin margen extra aquí. */
 /* Card de información (overview + ficha técnica + dossier) */
@@ -628,7 +633,7 @@ article:hover .view-cta { gap:9px; }
     "cat.villa":{"en":"Villas","es":"Villas","id":"Villa"},
     "cat.villa.sub":{"en":"Private Residences","es":"Residencias privadas","id":"Residensi Pribadi"},
     "cat.resorts":{"en":"Resort","es":"Resort","id":"Resort"},
-    "cat.resorts.sub":{"en":"Prime Hospitality","es":"Hospitalidad de primer nivel","id":"Hospitality Utama"},
+    "cat.resorts.sub":{"en":"Prime Hospitality","es":"Hospitalidad premium","id":"Hospitality Utama"},
     "mk.browse":{"en":"Browse by","es":"Filtrar por","id":"Telusuri"},
     "mk.property":{"en":"Property","es":"Propiedad","id":"Properti"},
     "mk.explore":{"en":"Explore by","es":"Explorar por","id":"Jelajahi"},
@@ -798,8 +803,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260723173837"></script>
-<script src="assets/portfolio-app.js?v=20260723173837-aerial"></script>
+<script src="assets/lawang-card.js?v=20260724094956"></script>
+<script src="assets/portfolio-app.js?v=20260724094956-plan3d"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

@@ -551,6 +551,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
             </div>
           </div>
+          <div class="form-group">
+            <label>3D site plan <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(planta 3D del territorio — sale a la derecha, junto al masterplan)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+              <input type="text" id="f-plan3dImage" placeholder="/assets/img/properties/plan-3d.jpg or https://...">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-plan3dImage')" title="Upload file">↑</button>
+            </div>
+          </div>
         </div>
 
         <div class="form-section">
@@ -1059,6 +1066,7 @@ function propertyToForm(p) {
   // Imágenes de sección (50/50 + banda a sangre) y pestañas
   set('f-splitImage', p.splitImage || '');
   set('f-bleedImage', p.bleedImage || '');
+  set('f-plan3dImage', p.plan3dImage || '');
   var tabsContainer = document.getElementById('f-tabs-list');
   tabsContainer.innerHTML = '';
   ((p.tabs && p.tabs.length) ? p.tabs : []).forEach(function(tb){ addTabRow(tb); });
@@ -1525,6 +1533,7 @@ function formToProperty() {
                  }).filter(function(sp){ return sp.l || sp.v; }),
     splitImage:  get('f-splitImage'),
     bleedImage:  get('f-bleedImage'),
+    plan3dImage: get('f-plan3dImage'),
     tabs:        Array.prototype.slice.call(document.querySelectorAll('#f-tabs-list .tab-item')).map(function(row){
                    return {
                      title: { en: row.querySelector('.tab-title-en').value.trim(), es: row.querySelector('.tab-title-es').value.trim() },
