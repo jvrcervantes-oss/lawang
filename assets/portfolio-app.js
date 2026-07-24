@@ -828,12 +828,16 @@
       var sizes = cfg.landOptions.map(function(o){ return Number(o.size)||0; }).filter(Boolean);
       if(sizes.length) head = cfg.landOptions.length+" "+tl("plots","parcelas")+". "+tl("From","Desde")+" "+Math.min.apply(null,sizes)+" m².";
     }
-    return '<div style="margin-top:clamp(40px,5vw,64px)"><div class="kicker">'+tl("The Masterplan","El masterplan")+'</div>'
-      + '<h3 class="pdp-block-h">'+esc(head)+'</h3>'
-      + '<p style="font-size:14.5px;color:var(--ink-2);margin:14px 0 22px;max-width:46ch">'+t("cfg.sub")+'</p>'
-      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:26px">'+prog+totalChip+'</div>'
+    // Revisión cliente 24-jul: TODO el configurador (cabecera "The Masterplan / N plots / Choose
+    // step by step" + stepper Plot·Villa·Plan + paso + navegación) vive dentro de UNA sola tarjeta.
+    // Antes la cabecera y el stepper flotaban sueltos y solo el paso estaba en su caja.
+    return '<div class="cfg-card">'
+      + '<div class="kicker">'+tl("The Masterplan","El masterplan")+'</div>'
+      + '<h3 class="pdp-block-h cfg-title">'+esc(head)+'</h3>'
+      + '<p class="cfg-sub">'+t("cfg.sub")+'</p>'
+      + '<div class="cfg-prog">'+prog+totalChip+'</div>'
       + '<div class="cfg-step">'+stepHead+sObj.content+'</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:30px;padding-top:20px;border-top:1px solid var(--line)">'
+      + '<div class="cfg-nav">'
       +   '<button '+(idx===0?'disabled':'data-act="step:'+(idx-1)+'"')+' style="background:none;border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:'+(idx===0?"default":"pointer")+';opacity:'+(idx===0?0.4:1)+';color:var(--ink)">← '+t("cfg.back")+'</button>'+nextBtn
       + '</div></div>';
   }
