@@ -1027,24 +1027,66 @@
       return !!nav && (nav.type === "reload" || nav.type === "back_forward");
     } catch(e){ return false; }
   }
+  // Scroll DENTRO de la ficha abierta (overlay). Como es un contenedor con scroll-snap (el visitante
+  // descansa al inicio de una sección), se guarda y restaura por ÍNDICE de sección, no por píxel:
+  //   · el índice siempre cae en un punto de snap, así que el navegador no lo arranca al reactivar
+  //     mandatory (el restore por píxel reenganchaba al borde y en los dobles-render caía a 0);
+  //   · el offsetTop se recalcula sobre el DOM nuevo, así que un cambio de altura no lo descuadra.
+  var OV_SEC_KEY = "lw_pdp_sec";
+  function currentOvSec(ov){
+    // Sección cuyo inicio está MÁS CERCA del scroll actual (no la de arriba a secas): el snap suele
+    // dejar el scroll unos px por debajo del borde, y "la última con offsetTop<=y" recogía la anterior.
+    var secs = ov.querySelectorAll(".pdp-sec"); var y = ov.scrollTop, best = 0, bestD = Infinity;
+    for(var i=0;i<secs.length;i++){ var d = Math.abs(secs[i].offsetTop - y); if(d < bestD){ bestD = d; best = i; } }
+    return best;
+  }
+  function saveOvSec(ov){
+    if(!S.overlay || !ov) return;
+    try { sessionStorage.setItem(OV_SEC_KEY, JSON.stringify({id:S.overlay, idx:currentOvSec(ov)})); } catch(e){}
+  }
+  function savedOvSec(id){
+    try { var o=JSON.parse(sessionStorage.getItem(OV_SEC_KEY)||"null"); return (o&&o.id===id)?o.idx:0; } catch(e){ return 0; }
+  }
+  // El overlay se acaba de recrear con innerHTML: el set SÍNCRONO de scrollTop se lo come el
+  // navegador. Se aplica en el frame siguiente (layout ya hecho) y con el snap apagado un tick para
+  // que mandatory no lo mueva. Sin esto, cambiar de parcela / modelo / pestaña subía la ficha arriba.
+  function restoreOvSec(ov, idx){
+    if(!ov || idx<=0) return;
+    requestAnimationFrame(function(){
+      var secs = ov.querySelectorAll(".pdp-sec"); if(!secs.length) return;
+      var s = secs[Math.min(idx, secs.length-1)];
+      ov.style.scrollSnapType = "none";
+      ov.scrollTop = s.offsetTop;
+      requestAnimationFrame(function(){ ov.style.scrollSnapType = ""; });
+    });
+  }
 
   // ════ RENDER ════
   var root, renderedOverlay = null;
   function render(){
-    // Conserva el scroll del overlay al re-renderizar por una acción (parcela, modelo, extra,
-    // paso, idioma, moneda…). Solo si seguimos en la MISMA propiedad; al abrir/cambiar/cerrar empieza arriba.
-    var prevEl = document.getElementById("pf-overlay");
-    var savedY = (prevEl && renderedOverlay === S.overlay) ? prevEl.scrollTop : null;
+    // Re-render de la MISMA ficha (parcela, modelo, pestaña, idioma, moneda, galería…): se actualiza
+    // SOLO el contenido del overlay CONSERVANDO el elemento #pf-overlay. Así el navegador mantiene su
+    // scrollTop; recrearlo entero (como hace el rebuild de abajo) lo reseteaba a 0 y la ficha saltaba
+    // hacia arriba en cada cambio.
+    var prevOv = document.getElementById("pf-overlay");
+    if(S.overlay && renderedOverlay === S.overlay && prevOv){
+      var y = prevOv.scrollTop;
+      prevOv.innerHTML = topbarHTML(true) + propertyHTML(S.overlay);
+      prevOv.scrollTop = y;   // el elemento persiste; el scroll se conserva, esto lo reafirma
+      syncPdpNav(prevOv);
+      requestAnimationFrame(function(){ prevOv.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); }); });
+      return;
+    }
+    // Rebuild completo: abrir/cerrar la ficha, cambiar de propiedad o pintar el marketplace.
     var winY = S.overlay ? null : window.scrollY;
     // La ficha lleva su propio topbar (ghost) DENTRO del overlay → no pintar el del marketplace
     // detrás (evita id="topbar" duplicado).
     root.innerHTML = (S.overlay ? "" : topbarHTML()) + marketplaceHTML() + (S.overlay ? overlayHTML(S.overlay) : "");
     document.body.style.overflow = S.overlay ? "hidden" : "";
     if(!S.overlay) document.title = "The Collection · Lawang Tropical Properties";
-    if(savedY != null){ var now = document.getElementById("pf-overlay"); if(now) now.scrollTop = savedY; }
     if(winY) window.scrollTo(0, winY);
     renderedOverlay = S.overlay;
-    if(S.overlay){ var ov = document.getElementById("pf-overlay"); if(ov){ syncPdpNav(ov); ov.addEventListener("scroll", function(){ syncPdpNav(ov); }, {passive:true}); } }
+    if(S.overlay){ var ov = document.getElementById("pf-overlay"); if(ov){ syncPdpNav(ov); ov.addEventListener("scroll", function(){ syncPdpNav(ov); saveOvSec(ov); }, {passive:true}); } }
     requestAnimationFrame(function(){ root.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); }); });
   }
   // Topbar de la ficha: transparente arriba, .solid al pasar ~el hero, .scrolled (CTA verde) al iniciar scroll.
@@ -1173,12 +1215,17 @@
     if(!S.overlay) S.line = lineFromHash();
     bindEvents();
     render();
-    // Recarga (o volver atrás): devolver al visitante donde estaba en el listado, no al principio.
+    // Recarga (o volver atrás): devolver al visitante donde estaba, no al principio.
     // Se hace después de pintar (antes no hay altura a la que saltar). Solo en recarga/atrás: si
     // llega desde el index se empieza arriba, que es lo que espera.
-    if(!S.overlay && isReloadOrBack()){
-      var y = savedMkScroll();
-      if(y > 0) requestAnimationFrame(function(){ window.scrollTo(0, y); });
+    if(isReloadOrBack()){
+      if(S.overlay){
+        var oIdx = savedOvSec(S.overlay);
+        if(oIdx > 0){ var ov = document.getElementById("pf-overlay"); if(ov) restoreOvSec(ov, oIdx); }
+      } else {
+        var y = savedMkScroll();
+        if(y > 0) requestAnimationFrame(function(){ window.scrollTo(0, y); });
+      }
     }
     if("scrollRestoration" in history) history.scrollRestoration = "manual";
     window.addEventListener("scroll", saveMkScroll, {passive:true});

@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260724121925">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260724131200">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -389,10 +389,12 @@ article:hover .view-cta { gap:9px; }
   font-family:var(--sans); font-size:12px; font-weight:500; letter-spacing:.18em; }
 /* ── Ficha: galería 2 grandes + tira de miniaturas (revisión cliente 23-jul: ver más fotos de un vistazo) ── */
 .pdp-gal2-big{ display:flex; gap:clamp(8px,1vw,12px); }
-.pdp-gal2-thumbs{ display:flex; gap:clamp(6px,.8vw,10px); margin-top:clamp(6px,.8vw,10px); }
+/* Miniaturas en rejilla FIJA de 6: con pocas fotos (2-3) no se estiran hasta el tamaño de las
+   grandes — se quedan pequeñas y alineadas a la izquierda (revisión cliente 24-jul). */
+.pdp-gal2-thumbs{ display:grid; grid-template-columns:repeat(6,1fr); gap:clamp(6px,.8vw,10px); margin-top:clamp(6px,.8vw,10px); }
 @media(max-width:720px){
   .pdp-gal2-big .pdp-g3-extra{ display:none; }              /* móvil: 1 foto grande */
-  .pdp-gal2-thumbs{ overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .pdp-gal2-thumbs{ display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
   .pdp-gal2-thumbs::-webkit-scrollbar{ display:none; }
   .pdp-gal2-thumbs .pdp-g3-thumb{ flex:0 0 27% !important; }  /* !important: pisa el flex:1 inline — deslizables, se ve que hay más */
 }
@@ -846,8 +848,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260724121925"></script>
-<script src="assets/portfolio-app.js?v=20260724121925-snap"></script>
+<script src="assets/lawang-card.js?v=20260724131200"></script>
+<script src="assets/portfolio-app.js?v=20260724131200-scroll"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
