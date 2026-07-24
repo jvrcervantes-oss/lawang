@@ -383,9 +383,10 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           </div>
           <div class="form-group">
             <label>Isotype / project mark <span class="hint">opcional; marca propia del proyecto (PNG con fondo transparente) — sustituye al isotipo de Lawang en el hero de la ficha</span></label>
-            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
               <input type="text" id="f-isotype" placeholder="/assets/img/properties/mark-palmfield.png or https://...">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-isotype')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-isotype')">Pick</button>
             </div>
           </div>
           <div class="form-group">
@@ -536,12 +537,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Section images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imágenes a sangre de la ficha. La primera es la de la sección 50/50 (izquierda, información de la tierra); la segunda es la banda a sangre de más abajo. Deja vacío para que use el aéreo/galería.</span></h4>
+          <h4>Section images <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imágenes a sangre de la ficha. La primera es la de la sección 50/50 (izquierda); la segunda es la banda a sangre de más abajo. Deja vacío para que use el aéreo/galería.</span></h4>
           <div class="form-group">
             <label>Split image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(sección 50/50, izquierda)</span></label>
-            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
               <input type="text" id="f-splitImage" placeholder="/assets/img/properties/land.jpg or https://...">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-splitImage')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-splitImage')">Pick</button>
             </div>
           </div>
           <div class="form-group">
@@ -552,25 +554,34 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             </div>
           </div>
           <div class="form-group">
+            <label>Split subtitle <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(bajo el título, en la misma imagen)</span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <input type="text" id="f-splitSub-en" placeholder="Subtitle EN (ej. Bali · 4.2 hectares)">
+              <input type="text" id="f-splitSub-es" placeholder="Subtítulo ES (ej. Bali · 4,2 hectáreas)">
+            </div>
+          </div>
+          <div class="form-group">
             <label>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(banda a sangre inferior)</span></label>
-            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
               <input type="text" id="f-bleedImage" placeholder="/assets/img/properties/hero-wide.jpg or https://...">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-bleedImage')">Pick</button>
             </div>
           </div>
           <div class="form-group">
             <label>3D site plan <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(planta 3D del territorio — sale a la derecha, junto al masterplan)</span></label>
-            <div style="display:grid;grid-template-columns:1fr 28px;gap:8px;align-items:center">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
               <input type="text" id="f-plan3dImage" placeholder="/assets/img/properties/plan-3d.jpg or https://...">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-plan3dImage')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-plan3dImage')">Pick</button>
             </div>
           </div>
         </div>
 
         <div class="form-section">
-          <h4>Cards / Designed to last <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Tarjetas de la sección 50/50 (derecha). Todas se ven a la vez: cada una lleva título y texto. La imagen y el título de la izquierda se ponen arriba, en "Section images".</span></h4>
-          <div id="f-cards-list"></div>
-          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addCardRow()">+ Add card</button>
+          <h4>Tipos de vivienda / pestañas <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Columna derecha de la sección 50/50. Una pestaña por modelo (Dali, Dune…): el visitante pulsa el nombre y ve el título, el subtítulo, las fotos (la primera grande, el resto en miniaturas debajo) y el texto de ESE modelo.</span></h4>
+          <div id="f-tabs-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addTabRow()">+ Add tipo de vivienda</button>
         </div>
 
         <div class="form-section">
@@ -582,15 +593,20 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         <div class="form-section">
           <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Image (site plan / map) shown in the "Location &amp; Surroundings" section. Leave empty to show a placeholder.</span></h4>
           <div class="form-group">
-            <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://..." oninput="syncPreview('pins')">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
+              <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://..." oninput="syncPreview('pins')">
+              <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage','pins')" title="Upload file">↑</button>
+              <button type="button" class="img-slot-pick" onclick="pickToField('f-mapImage','pins')">Pick</button>
+            </div>
           </div>
         </div>
 
         <div class="form-section">
           <h4>Aerial view <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Optional. Full-width aerial photo with labelled points and entry price. Click a row's ◎ then click the photo to place the point.</span></h4>
-          <div style="display:grid;grid-template-columns:1fr 28px 180px;gap:8px;align-items:center">
+          <div style="display:grid;grid-template-columns:1fr auto auto 180px;gap:6px;align-items:center">
             <input type="text" id="f-aerial-image" placeholder="/assets/img/properties/aerial.jpg or https://..." oninput="syncPreview('aerial')">
             <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-aerial-image','aerial')" title="Upload file">↑</button>
+            <button type="button" class="img-slot-pick" onclick="pickToField('f-aerial-image','aerial')">Pick</button>
             <input type="number" id="f-aerial-entry" min="0" placeholder="Entry price €">
           </div>
           <div class="pt-wrap" id="aerial-wrap" style="position:relative;display:none;margin:10px 0;max-width:660px">
@@ -1070,16 +1086,18 @@ function propertyToForm(p) {
   var tsContainer = document.getElementById('f-techspecs-list');
   tsContainer.innerHTML = '';
   ((p.techSpecs && p.techSpecs.length) ? p.techSpecs : []).forEach(function(sp){ addTechSpecRow(sp.l, sp.v); });
-  // Imágenes de sección (50/50 + banda a sangre) y tarjetas
+  // Imágenes de sección (50/50 + banda a sangre) y pestañas de tipo de vivienda
   set('f-splitImage', p.splitImage || '');
   set('f-splitTitle-en', (p.splitTitle && p.splitTitle.en) || '');
   set('f-splitTitle-es', (p.splitTitle && p.splitTitle.es) || '');
+  set('f-splitSub-en', (p.splitSub && p.splitSub.en) || '');
+  set('f-splitSub-es', (p.splitSub && p.splitSub.es) || '');
   set('f-bleedImage', p.bleedImage || '');
   set('f-plan3dImage', p.plan3dImage || '');
-  var cardsContainer = document.getElementById('f-cards-list');
-  cardsContainer.innerHTML = '';
-  // p.tabs = nombre viejo del mismo dato (pestañas, retiradas el 24-jul); se lee por si quedara alguno
-  ((p.cards && p.cards.length) ? p.cards : (p.tabs || [])).forEach(function(c){ addCardRow(c); });
+  var tabsContainer = document.getElementById('f-tabs-list');
+  tabsContainer.innerHTML = '';
+  // p.cards = nombre que tuvo este mismo dato unas horas el 24-jul; se lee por si quedara alguno
+  ((p.tabs && p.tabs.length) ? p.tabs : (p.cards || [])).forEach(function(tb){ addTabRow(tb); });
   // Downloads
   var dlContainer = document.getElementById('f-downloads-list');
   dlContainer.innerHTML = '';
@@ -1156,7 +1174,7 @@ function addHomeRow(m) {
   var container = document.getElementById('f-homes-list');
   var div = document.createElement('div');
   div.className = 'home-row';
-  div.style.cssText = 'display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px 28px;gap:8px;margin-bottom:6px';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr auto auto 28px;gap:6px;margin-bottom:6px';
   div.innerHTML =
     '<input type="text"   class="hm-name"  value="' + esc(m.name || '')               + '" placeholder="Lontar">' +
     '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
@@ -1164,8 +1182,14 @@ function addHomeRow(m) {
     '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
     '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/assets/img/properties/model.jpg">' +
     '<button type="button" class="img-slot-upload" onclick="uploadForHome(this)" title="Upload file">↑</button>' +
+    '<button type="button" class="img-slot-pick" onclick="pickForHome(this)">Pick</button>' +
     '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
   container.appendChild(div);
+}
+
+function pickForHome(btn) {
+  var input = btn.parentNode.querySelector('.hm-image');
+  openImagePicker(function(url) { input.value = url; });
 }
 
 async function uploadForHome(btn) {
@@ -1433,6 +1457,53 @@ function pickForSlot(btn) {
   });
 }
 
+/* Elegir de la biblioteca para un campo suelto (isotipo, split, bleed, plan 3D, mapa, aéreo…).
+   Gemelo de uploadToField: subir y elegir tienen que estar en TODOS los campos de imagen. */
+function pickToField(inputId, group) {
+  openImagePicker(function(url) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    input.value = url;
+    if (group) syncPreview(group);
+  });
+}
+
+/* Fila de imagen dentro de una lista (fotos de una pestaña): input + subir + elegir + borrar.
+   Los botones se apoyan en el <input> hermano, así la fila no necesita id. */
+function imageRowHTML(cls, url) {
+  return '<div class="img-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px">'
+    + '<input type="text" class="' + cls + '" value="' + esc(url || '') + '" placeholder="/assets/img/properties/foto.jpg or https://...">'
+    + '<button type="button" class="img-slot-upload" onclick="uploadToRow(this)" title="Upload file">↑</button>'
+    + '<button type="button" class="img-slot-pick" onclick="pickToRow(this)">Pick</button>'
+    + '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>'
+    + '</div>';
+}
+
+function pickToRow(btn) {
+  var input = btn.parentNode.querySelector('input[type="text"]');
+  openImagePicker(function(url) { input.value = url; });
+}
+
+async function uploadToRow(btn) {
+  var input = btn.parentNode.querySelector('input[type="text"]');
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.accept = 'image/jpeg,image/png,image/webp';
+  fileInput.onchange = async function() {
+    if (!fileInput.files.length) return;
+    var file = fileInput.files[0];
+    btn.disabled = true; var orig = btn.textContent; btn.textContent = '…';
+    var fd = new FormData(); fd.append('image', file);
+    try {
+      var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
+      var d = await r.json();
+      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); toast('Image uploaded.', 'ok'); }
+      else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
+    } catch(e) { toast('Upload error: ' + file.name, 'err'); }
+    finally { btn.disabled = false; btn.textContent = orig; }
+  };
+  fileInput.click();
+}
+
 function formToProperty() {
   function get(id) {
     var el = document.getElementById(id); if (!el) return '';
@@ -1543,14 +1614,17 @@ function formToProperty() {
                  }).filter(function(sp){ return sp.l || sp.v; }),
     splitImage:  get('f-splitImage'),
     splitTitle:  { en: get('f-splitTitle-en'), es: get('f-splitTitle-es') },
+    splitSub:    { en: get('f-splitSub-en'),   es: get('f-splitSub-es') },
     bleedImage:  get('f-bleedImage'),
     plan3dImage: get('f-plan3dImage'),
-    cards:       Array.prototype.slice.call(document.querySelectorAll('#f-cards-list .card-item')).map(function(row){
+    tabs:        Array.prototype.slice.call(document.querySelectorAll('#f-tabs-list .tab-item')).map(function(row){
                    return {
-                     title: { en: row.querySelector('.card-title-en').value.trim(), es: row.querySelector('.card-title-es').value.trim() },
-                     body:  { en: row.querySelector('.card-body-en').value.trim(),  es: row.querySelector('.card-body-es').value.trim() }
+                     title:  { en: row.querySelector('.tab-title-en').value.trim(), es: row.querySelector('.tab-title-es').value.trim() },
+                     sub:    { en: row.querySelector('.tab-sub-en').value.trim(),   es: row.querySelector('.tab-sub-es').value.trim() },
+                     body:   { en: row.querySelector('.tab-body-en').value.trim(),  es: row.querySelector('.tab-body-es').value.trim() },
+                     images: Array.prototype.slice.call(row.querySelectorAll('.tab-image')).map(function(i){ return i.value.trim(); }).filter(Boolean)
                    };
-                 }).filter(function(c){ return c.title.en||c.title.es||c.body.en||c.body.es; }),
+                 }).filter(function(tb){ return tb.title.en||tb.title.es||tb.body.en||tb.body.es||tb.images.length; }),
     garage:      get('f-garage'),
     garageDesc:  get('f-garageDesc'),
     furnished:   get('f-furnished'),
@@ -1715,25 +1789,40 @@ function addTechSpecRow(label, value) {
   container.appendChild(div);
 }
 
-// Tarjeta de la sección 50/50 (derecha). Sin imagen propia: la imagen de esa sección es una sola,
-// la de la izquierda (f-splitImage) — revisión cliente 24-jul.
-function addCardRow(card) {
-  card = card || {}; var tt = card.title || {}, bb = card.body || {};
-  var container = document.getElementById('f-cards-list');
+// Pestaña de la sección 50/50 (derecha) = un tipo de vivienda (Dali, Dune…): nombre, subtítulo,
+// fotos (la 1ª sale grande, el resto en miniaturas) y texto — revisión cliente 24-jul.
+function addTabRow(tab) {
+  tab = tab || {};
+  var tt = tab.title || {}, ss = tab.sub || {}, bb = tab.body || {};
+  var imgs = (tab.images && tab.images.length) ? tab.images : [''];
+  var container = document.getElementById('f-tabs-list');
   var div = document.createElement('div');
-  div.className = 'card-item';
+  div.className = 'tab-item';
   div.style.cssText = 'border:1px solid #e5e0d8;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px';
   div.innerHTML =
     '<div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px">'
-    + '<input type="text" class="card-title-en" value="' + esc(tt.en||'') + '" placeholder="Title EN">'
-    + '<input type="text" class="card-title-es" value="' + esc(tt.es||'') + '" placeholder="Título ES">'
-    + '<button type="button" class="img-slot-del" onclick="this.closest(\'.card-item\').remove()">✕</button>'
+    + '<input type="text" class="tab-title-en" value="' + esc(tt.en||'') + '" placeholder="Nombre EN (ej. Dali)">'
+    + '<input type="text" class="tab-title-es" value="' + esc(tt.es||'') + '" placeholder="Nombre ES (ej. Dali)">'
+    + '<button type="button" class="img-slot-del" onclick="this.closest(\'.tab-item\').remove()">✕</button>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<textarea class="card-body-en" rows="3" placeholder="Text EN">' + esc(bb.en||'') + '</textarea>'
-    + '<textarea class="card-body-es" rows="3" placeholder="Texto ES">' + esc(bb.es||'') + '</textarea>'
+    + '<input type="text" class="tab-sub-en" value="' + esc(ss.en||'') + '" placeholder="Subtitle EN (ej. 2 bedrooms · 180 m²)">'
+    + '<input type="text" class="tab-sub-es" value="' + esc(ss.es||'') + '" placeholder="Subtítulo ES (ej. 2 dormitorios · 180 m²)">'
+    + '</div>'
+    + '<div class="tab-images"><div class="muted" style="font-size:11px;margin-bottom:5px">Fotos — la primera sale grande, el resto en miniaturas debajo</div>'
+    +   imgs.map(function(u){ return imageRowHTML('tab-image', u); }).join('')
+    + '</div>'
+    + '<button type="button" class="btn-ghost" style="align-self:flex-start;font-size:12px" onclick="addTabImage(this)">+ Add foto</button>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<textarea class="tab-body-en" rows="3" placeholder="Text EN (opcional)">' + esc(bb.en||'') + '</textarea>'
+    + '<textarea class="tab-body-es" rows="3" placeholder="Texto ES (opcional)">' + esc(bb.es||'') + '</textarea>'
     + '</div>';
   container.appendChild(div);
+}
+
+function addTabImage(btn) {
+  var list = btn.closest('.tab-item').querySelector('.tab-images');
+  list.insertAdjacentHTML('beforeend', imageRowHTML('tab-image', ''));
 }
 
 async function uploadDocForRow(btn) {

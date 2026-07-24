@@ -23,7 +23,7 @@
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
   };
-  function resetDetail(){ S.gallery=0; S.lightbox=null; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
+  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.tabImg=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
 
   // ── Helpers ────────────────────────────────────────────────
   function t(key){ var e = L.DICT[key]; if(!e) return key; return (e[S.lang] != null ? e[S.lang] : e.en); }
@@ -874,28 +874,54 @@
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div style="display:inline-flex;align-items:center;gap:8px;background:var(--dl);color:var(--bone);border-radius:999px;padding:7px 16px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:999px;background:var(--bone)"></span> '+t("sig.delivered")+'</div><p style="font-size:15px;color:var(--ink-2);line-height:1.6;margin-top:18px;max-width:52ch">'+t("sig.note")+'</p></div>';
   }
 
-  // ── Sección 50/50 (revisión cliente 24-jul): a la IZQUIERDA imagen + título; a la DERECHA el
-  //    sistema de tarjetas, todas visibles a la vez. Antes eran pestañas (clic = cambia contenido):
-  //    el cliente las quiere todas a la vista, así que las pestañas se retiran.
-  //    Datos de admin: p.splitImage (imagen), p.splitTitle (título) y p.cards[] (título + texto).
+  // ── Sección 50/50 (revisión cliente 24-jul). IZQUIERDA: una imagen con título y subtítulo encima,
+  //    nada más. DERECHA: los tipos de vivienda en pestañas (Dali, Dune…) — se pulsa un nombre y se
+  //    ven SU título, subtítulo, fotos (la activa grande + miniaturas debajo) y texto.
+  //    Admin: p.splitImage · p.splitTitle · p.splitSub · p.tabs[{title,sub,body,images[]}].
   function splitSectionHTML(p){
-    var cards = (p.cards||[]).filter(function(c){ return pick(c.title)||pick(c.body); });
-    var title = pick(p.splitTitle);
-    if(!cards.length && !title) return "";   // sin contenido no se pinta media sección vacía
+    var tabs = (p.tabs||p.cards||[]).filter(function(tb){ return pick(tb.title)||pick(tb.body)||(tb.images&&tb.images.length); });
+    var title = pick(p.splitTitle), sub = pick(p.splitSub);
+    if(!tabs.length && !title) return "";   // sin contenido no se pinta media sección vacía
     var key = p.splitImage || (p.imgKeys&&p.imgKeys[0]) || null;
     var url = key ? imgUrl(key, 1800) : null;
     var left = '<div class="pdp-split-img">'
       + (url ? '<img src="'+esc(url)+'" alt="'+esc(title||pick(p.title))+'" loading="lazy" onerror="this.style.display=\'none\'">'
              : '<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')
-      + (title ? '<h2 class="pdp-split-title">'+esc(title)+'</h2>' : '')
+      + ((title||sub) ? '<div class="pdp-split-cap">'
+          + (title ? '<h2>'+esc(title)+'</h2>' : '')
+          + (sub   ? '<p>'+esc(sub)+'</p>'     : '')
+          + '</div>' : '')
       + '</div>';
-    var right = '<div class="pdp-split-cards">'+cards.map(function(c){
-      return '<article class="pdp-card">'
-        + (pick(c.title) ? '<h3>'+esc(pick(c.title))+'</h3>' : '')
-        + (pick(c.body)  ? '<p>'+esc(pick(c.body))+'</p>'   : '')
-        + '</article>';
-    }).join("")+'</div>';
-    return '<section class="pdp-split-section">'+left+right+'</section>';
+    return '<section class="pdp-split-section">'+left+tabsPanelHTML(p,tabs)+'</section>';
+  }
+
+  // Panel derecho: cabecera de pestañas + contenido de la activa. Una sola pestaña → sin cabecera
+  // (un botón solitario que no lleva a ninguna parte solo estorba).
+  function tabsPanelHTML(p, tabs){
+    if(!tabs.length) return '<div class="pdp-split-panel"></div>';
+    var i = Math.min(Math.max(S.tab||0,0), tabs.length-1);
+    var tb = tabs[i];
+    var head = tabs.length>1 ? '<div class="pdp-tabs-head">'+tabs.map(function(x,n){
+      return '<button class="pdp-tab'+(n===i?' on':'')+'" data-act="tab:'+n+'">'+esc(pick(x.title)||(tl("Type","Tipo")+" "+(n+1)))+'</button>';
+    }).join("")+'</div>' : "";
+    var imgs = (tb.images||[]).filter(Boolean);
+    var j = Math.min(Math.max(S.tabImg||0,0), Math.max(imgs.length-1,0));
+    var media = "";
+    if(imgs.length){
+      media = '<div class="pdp-tab-main"><img src="'+esc(imgUrl(imgs[j],1600))+'" alt="'+esc(pick(tb.title))+'" loading="lazy" onerror="this.style.display=\'none\'"></div>';
+      if(imgs.length>1){
+        media += '<div class="pdp-tab-thumbs">'+imgs.map(function(u,n){
+          return '<button class="pdp-tab-thumb'+(n===j?' on':'')+'" data-act="tabimg:'+n+'" aria-label="'+tl("Photo","Foto")+' '+(n+1)+'"><img src="'+esc(imgUrl(u,420))+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"></button>';
+        }).join("")+'</div>';
+      }
+    }
+    return '<div class="pdp-split-panel">'+head
+      + '<div class="pdp-tab-body">'
+      +   (pick(tb.title) ? '<h3>'+esc(pick(tb.title))+'</h3>' : '')
+      +   (pick(tb.sub)   ? '<p class="pdp-tab-sub">'+esc(pick(tb.sub))+'</p>' : '')
+      +   media
+      +   (pick(tb.body)  ? '<p class="pdp-tab-text">'+esc(pick(tb.body))+'</p>' : '')
+      + '</div></div>';
   }
 
   // ── Imagen a sangre bajada (revisión cliente 23-jul): campo dedicado p.bleedImage; si está vacío,
@@ -1021,6 +1047,9 @@
     else if(cmd==="layout"){ S.layout=val; render(); }
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
     else if(cmd==="lightbox"){ S.lightbox=parseInt(val,10)||0; render(); }
+    // Tipos de vivienda (sección 50/50): cambiar de pestaña arranca sus fotos por la primera
+    else if(cmd==="tab"){ S.tab=parseInt(val,10)||0; S.tabImg=0; render(); }
+    else if(cmd==="tabimg"){ S.tabImg=parseInt(val,10)||0; render(); }
     else if(cmd==="lb-close"){ S.lightbox=null; render(); }
     // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
