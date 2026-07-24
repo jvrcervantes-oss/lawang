@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260724152505">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260724154749">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -242,18 +242,23 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
 .lw-cat:hover > span:last-child { transform:translateX(7px); }
 @media(max-width:1024px){ .lw-cat-grid { grid-template-columns:repeat(2,1fr) !important; } }
-/* ── Ficha: secciones (revisión cliente 24-jul: el scroll-snap hacía "efecto imán") ──
-   FUERA el scroll-snap y el alto forzado de 100vh: scroll normal y cada sección ocupa lo que ocupa
-   su contenido. Solo el hero es a pantalla completa. Las secciones respiran con padding vertical. */
+/* ── Ficha: 1 pantalla = 1 sección (revisión cliente 24-jul: volver a ese scroll) ──
+   Cada sección ocupa el alto de la pantalla y encaja al soltar el scroll. Snap PROXIMITY (no
+   mandatory): encaja cuando ya estás cerca de un borde pero NO tira como un imán, así una sección
+   más alta que la pantalla (payment plan) se lee del tirón sin saltar. */
 #pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain;
-  scroll-behavior:smooth; }
-@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; } }
-.pdp-sec{ padding-block:clamp(28px,5vh,60px); }
-.pdp-hero.pdp-sec{ min-height:100vh; min-height:100dvh; padding-block:0; }
-/* Sección 50/50 a sangre: sin padding, su propio margen la separa */
-.pdp-sec-flush{ padding-block:0; }
-/* Última: otros proyectos + footer */
-.pdp-sec-last{ padding-block:0; }
+  scroll-snap-type:y proximity; scroll-behavior:smooth; }
+@media(hover:none){ #pf-overlay{ scroll-behavior:auto; } }
+@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; scroll-snap-type:none; } }
+.pdp-sec{ scroll-snap-align:start; min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; justify-content:center; }
+/* El `margin:0 auto` de .wrap encoge con flex; ancho explícito (el hero coloca sus hijos absolutos) */
+.pdp-sec:not(.pdp-hero) > *{ width:100%; }
+.pdp-hero.pdp-sec{ padding:0; }
+/* Sección 50/50 a sangre: sin el centrado, ocupa a su manera */
+.pdp-sec-flush{ justify-content:flex-start; }
+/* Última: otros proyectos + footer, anclados abajo */
+.pdp-sec-last{ justify-content:flex-end; }
 .pdp-sec-last > .pdp-wrap{ padding-top:clamp(40px,6vh,90px); padding-bottom:clamp(28px,4vh,56px); }
 #pf-overlay .pf-overlay-bar { position:sticky; top:0; z-index:2; height:60px; display:flex; align-items:center; justify-content:space-between; background:rgba(241,236,225,.94); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); padding:0 clamp(20px,5vw,72px); }
 
@@ -869,8 +874,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260724152505"></script>
-<script src="assets/portfolio-app.js?v=20260724152505-5x"></script>
+<script src="assets/lawang-card.js?v=20260724154749"></script>
+<script src="assets/portfolio-app.js?v=20260724154749-p2"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

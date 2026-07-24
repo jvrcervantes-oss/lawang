@@ -1175,16 +1175,23 @@ function addHomeRow(m) {
   var container = document.getElementById('f-homes-list');
   var div = document.createElement('div');
   div.className = 'home-row';
-  div.style.cssText = 'display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr auto auto 28px;gap:6px;margin-bottom:6px';
+  div.style.cssText = 'border:1px solid #e5e0d8;border-radius:8px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px';
   div.innerHTML =
-    '<input type="text"   class="hm-name"  value="' + esc(m.name || '')               + '" placeholder="Lontar">' +
-    '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
-    '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
-    '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
-    '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/assets/img/properties/model.jpg">' +
-    '<button type="button" class="img-slot-upload" onclick="uploadForHome(this)" title="Upload file">↑</button>' +
-    '<button type="button" class="img-slot-pick" onclick="pickForHome(this)">Pick</button>' +
-    '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>';
+    '<div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr auto auto 28px;gap:6px">' +
+      '<input type="text"   class="hm-name"  value="' + esc(m.name || '')               + '" placeholder="Lontar">' +
+      '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
+      '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
+      '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
+      '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="/assets/img/properties/model.jpg">' +
+      '<button type="button" class="img-slot-upload" onclick="uploadForHome(this)" title="Upload file">↑</button>' +
+      '<button type="button" class="img-slot-pick" onclick="pickForHome(this)">Pick</button>' +
+      '<button type="button" class="img-slot-del" onclick="this.closest(\'.home-row\').remove()">✕</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">' +
+      '<input type="number" class="hm-kitchen" value="' + esc(m.kitchen != null ? m.kitchen : '')         + '" min="0" placeholder="Cocina m²">' +
+      '<input type="number" class="hm-living"  value="' + esc(m.living != null ? m.living : '')           + '" min="0" placeholder="Salón m²">' +
+      '<input type="number" class="hm-pool"    value="' + esc(m.poolTerrace != null ? m.poolTerrace : '') + '" min="0" placeholder="Terraza piscina m²">' +
+    '</div>';
   container.appendChild(div);
 }
 
@@ -1532,11 +1539,14 @@ function formToProperty() {
   }).filter(function(o){ return o.size > 0; });
   var homeModels = Array.from(document.querySelectorAll('#f-homes-list .home-row')).map(function(row){
     return {
-      name:     row.querySelector('.hm-name').value.trim(),
-      beds:     parseInt(row.querySelector('.hm-beds').value)   || 0,
-      built:    parseInt(row.querySelector('.hm-built').value)  || 0,
-      priceEUR: parseFloat(row.querySelector('.hm-price').value) || 0,
-      image:    row.querySelector('.hm-image').value.trim()
+      name:        row.querySelector('.hm-name').value.trim(),
+      beds:        parseInt(row.querySelector('.hm-beds').value)   || 0,
+      built:       parseInt(row.querySelector('.hm-built').value)  || 0,
+      priceEUR:    parseFloat(row.querySelector('.hm-price').value) || 0,
+      image:       row.querySelector('.hm-image').value.trim(),
+      kitchen:     parseInt(row.querySelector('.hm-kitchen').value) || 0,
+      living:      parseInt(row.querySelector('.hm-living').value)  || 0,
+      poolTerrace: parseInt(row.querySelector('.hm-pool').value)    || 0
     };
   }).filter(function(m){ return m.name; });
   var extras = Array.from(document.querySelectorAll('#f-extras-list .extra-row')).map(function(row){

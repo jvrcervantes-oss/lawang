@@ -739,10 +739,20 @@
     if(bare) return grid;
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("land.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:24px;max-width:46ch">'+t("land.sub")+'</p>'+grid+'</div>';
   }
+  // Áreas opcionales por modelo (revisión cliente 24-jul): cocina, salón y terraza de piscina en m².
+  // Solo se muestran las que el cliente rellena en el admin.
+  function homeAreas(m){
+    var a=[];
+    if(m.kitchen>0)     a.push(tl("Kitchen","Cocina")+" "+m.kitchen);
+    if(m.living>0)      a.push(tl("Living","Salón")+" "+m.living);
+    if(m.poolTerrace>0) a.push(tl("Pool terrace","Terraza piscina")+" "+m.poolTerrace);
+    return a.length ? a.join(" · ")+" m²" : "";
+  }
   function chooseHomeHTML(p, cfg, bare){
     if(!cfg.models) return "";
-    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px">'+cfg.models.map(function(m,i){var on=i===cfg.modelIdx;
-      return '<button data-act="model:'+i+'" style="text-align:left;padding:0;border:2px solid '+(on?"var(--clay)":"var(--line)")+';border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bone-2)"><div style="position:relative;aspect-ratio:4/3">'+(m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+(on?'<span style="position:absolute;top:8px;right:8px;background:var(--clay);color:var(--bone);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px">'+t("home.selected")+'</span>':"")+'</div><div style="padding:12px 14px 14px"><div class="serif" style="font-size:19px">'+esc(m.name)+'</div><div style="font-size:12px;color:var(--ink-2);margin-top:4px">'+m.beds+' '+t("home.beds")+' · '+m.built+' m²</div><div style="font-size:14px;font-weight:600;margin-top:8px">'+priceHTML(m.priceEUR,true)+'</div></div></button>';
+    // Fotos más grandes (revisión cliente 24-jul): tarjetas anchas (min 260px) → 1-2 por fila.
+    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">'+cfg.models.map(function(m,i){var on=i===cfg.modelIdx;var areas=homeAreas(m);
+      return '<button data-act="model:'+i+'" style="text-align:left;padding:0;border:2px solid '+(on?"var(--clay)":"var(--line)")+';border-radius:12px;overflow:hidden;cursor:pointer;background:var(--bone-2)"><div style="position:relative;aspect-ratio:4/3">'+(m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+(on?'<span style="position:absolute;top:10px;right:10px;background:var(--clay);color:var(--bone);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px">'+t("home.selected")+'</span>':"")+'</div><div style="padding:14px 16px 16px"><div class="serif" style="font-size:21px">'+esc(m.name)+'</div><div style="font-size:12.5px;color:var(--ink-2);margin-top:5px">'+m.beds+' '+t("home.beds")+' · '+m.built+' m²</div>'+(areas?'<div style="font-size:11.5px;color:var(--ink-2);margin-top:5px;line-height:1.45">'+esc(areas)+'</div>':"")+'<div style="font-size:15px;font-weight:600;margin-top:9px">'+priceHTML(m.priceEUR,true)+'</div></div></button>';
     }).join("")+'</div>';
     if(bare) return grid;
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("home.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:24px;max-width:46ch">'+t("home.sub")+'</p>'+grid+'</div>';
