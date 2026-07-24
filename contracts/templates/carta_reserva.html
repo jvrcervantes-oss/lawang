@@ -8,7 +8,7 @@
 <body>
   <!-- Texto trilingüe. ES = texto EXACTO del cliente (17-jul-2026). EN/ID = traducción
        de trabajo pendiente de revisión legal oficial. Identidad: I Made Monjong Adhi
-       Nugruah / PT TEPI SUNGAI, titular de la marca LAWANG TROPICAL PROPERTIES /
+       Nugruah / {{prom_razon}}, titular de la marca LAWANG TROPICAL PROPERTIES /
        NPWP 1000.0000.0619.8026 (unificada con el resto de la suite el 21-jul-2026,
        sustituye a Pablo Cantero Gambín). Datos bancarios:
        desde 20-jul-2026 el placeholder de más abajo resuelve un desplegable de
@@ -29,9 +29,9 @@
     <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span><span data-lang="id">Para Pihak</span></h2>
     <div class="party">
       <div class="role"><span data-lang="es">Primera Parte</span><span data-lang="en">First Party</span><span data-lang="id">Pihak Pertama</span></div>
-      <p data-lang="es">1. PT TEPI SUNGAI, sociedad constituida conforme a las leyes de la República de Indonesia, propietaria de la marca registrada en Indonesia LAWANG TROPICAL PROPERTIES, con domicilio registrado en Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, NPWP 1000.0000.0619.8026. En este acto representada por D. I Made Monjong Adhi Nugruah, actuando en su calidad de Director, de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002 (en adelante, la «Primera Parte»).</p>
-      <p data-lang="en">1. PT TEPI SUNGAI, a company incorporated under the laws of the Republic of Indonesia, owner of the trademark registered in Indonesia LAWANG TROPICAL PROPERTIES, with registered address at Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, NPWP 1000.0000.0619.8026. Represented herein by Mr. I Made Monjong Adhi Nugruah, acting as Director, Indonesian nationality, holder of Indonesian identity document ID 5171021704720002 (hereinafter, the "First Party").</p>
-      <p data-lang="id">1. PT TEPI SUNGAI, perusahaan yang didirikan berdasarkan hukum Republik Indonesia, pemilik merek dagang terdaftar di Indonesia LAWANG TROPICAL PROPERTIES, beralamat terdaftar di Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia, NPWP 1000.0000.0619.8026. Dalam hal ini diwakili oleh Tn. I Made Monjong Adhi Nugruah, bertindak sebagai Direktur, berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002 (selanjutnya disebut "Pihak Pertama").</p>
+      <p data-lang="es">1. {{prom_razon}}, sociedad constituida conforme a las leyes de la República de Indonesia,<!--opt:prom_marca--> propietaria de la marca registrada en Indonesia {{prom_marca}},<!--/opt:prom_marca--> con domicilio registrado en {{prom_domicilio}}, NPWP {{prom_npwp}}. En este acto representada por D. {{prom_rep}}, actuando en su calidad de Director, {{prom_cred_es}} (en adelante, la «Primera Parte»).</p>
+      <p data-lang="en">1. {{prom_razon}}, a company incorporated under the laws of the Republic of Indonesia,<!--opt:prom_marca--> owner of the trademark registered in Indonesia {{prom_marca}},<!--/opt:prom_marca--> with registered address at {{prom_domicilio}}, NPWP {{prom_npwp}}. Represented herein by Mr. {{prom_rep}}, acting as Director, {{prom_cred_en}} (hereinafter, the "First Party").</p>
+      <p data-lang="id">1. {{prom_razon}}, perusahaan yang didirikan berdasarkan hukum Republik Indonesia,<!--opt:prom_marca--> pemilik merek dagang terdaftar di Indonesia {{prom_marca}},<!--/opt:prom_marca--> beralamat terdaftar di {{prom_domicilio}}, NPWP {{prom_npwp}}. Dalam hal ini diwakili oleh Tn. {{prom_rep}}, bertindak sebagai Direktur, {{prom_cred_id}} (selanjutnya disebut "Pihak Pertama").</p>
     </div>
     <div class="party">
       <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span><span data-lang="id">Pihak Kedua</span></div>
@@ -95,9 +95,9 @@
       <tbody>
         <tr>
           <td>
-            <div class="role"><span data-lang="es">Primera Parte — PT TEPI SUNGAI</span><span data-lang="en">First Party — PT TEPI SUNGAI</span><span data-lang="id">Pihak Pertama — PT TEPI SUNGAI</span></div>
-            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div>
-            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre</span><span data-lang="en">Name</span> / Nama: I Made Monjong Adhi Nugruah — <span data-lang="es">Cargo</span><span data-lang="en">Position</span> / Jabatan: Director / Direktur</p>
+            <div class="role"><span data-lang="es">Primera Parte — {{prom_razon}}</span><span data-lang="en">First Party — {{prom_razon}}</span><span data-lang="id">Pihak Pertama — {{prom_razon}}</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><!--if:sociedad_firmante=tepi_sungai--><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"><!--/if:sociedad_firmante--></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre</span><span data-lang="en">Name</span> / Nama: {{prom_rep}} — <span data-lang="es">Cargo</span><span data-lang="en">Position</span> / Jabatan: Director / Direktur</p>
           </td>
           <td>
             <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span><span data-lang="id">Pihak Kedua</span></div>

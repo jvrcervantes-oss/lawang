@@ -494,7 +494,15 @@ function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
 function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
-function pdef(key){ return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || ''; }
+// La sociedad firmante por defecto es global (Tepi Sungai, en projectDefaults), salvo
+// las plantillas cuya identidad fiscal ya era de otra sociedad: ppjb_reserva llevaba
+// NPWP/domicilio de San Dal Woods (bajo el nombre inexistente "PT Lawang Tropical
+// Properties"), así que arranca en San Dal Woods para no alterar su identidad real.
+const SOCIEDAD_DEFAULT = { ppjb_reserva: 'san_dal_woods' };
+function pdef(key){
+  if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
+  return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
+}
 
 /* ============================================================
    PANEL DISEÑO — modelo, persistencia y CSS inyectado
@@ -1381,6 +1389,42 @@ function bankOptionsFor(slug){
   if(slug==='ppjb_parcela') return BANK_OPTIONS;
   return BANK_OPTIONS.filter(o=>!o[0].startsWith('notario_'));
 }
+/* ---------- sociedad firmante (Promotor/Constructor): desplegable por contrato ----------
+   Las plantillas tokenizadas traen la identidad como {{prom_razon}}, {{prom_marca}}
+   (envuelta en <!--opt:prom_marca--> → si la sociedad no tiene marca, la cláusula
+   desaparece), {{prom_domicilio}}, {{prom_npwp}}, {{prom_rep}} y el crédito del
+   firmante por idioma {{prom_cred_es/en/id}} (nacionalidad + documento, que cambia
+   según sea ID indonesio o pasaporte extranjero). El select 'sociedad_firmante'
+   elige la sociedad; applyPromotor() rellena esos marcadores en buildDoc. La firma
+   gráfica de Lawang solo sale para Tepi Sungai (<!--if:sociedad_firmante=tepi_sungai-->
+   en las plantillas); las demás dejan línea en blanco para firmar a mano.
+   Añadir una sociedad = un bloque más aquí, cero cambios en plantillas. */
+const SOCIEDADES = {
+  tepi_sungai: {
+    label: 'PT Tepi Sungai (marca «Lawang Tropical Properties»)',
+    razon: 'PT TEPI SUNGAI', marca: 'LAWANG TROPICAL PROPERTIES',
+    domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
+    npwp: '1000.0000.0619.8026', rep: 'I Made Monjong Adhi Nugruah',
+    cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
+            en: 'Indonesian nationality, holder of Indonesian identity document ID 5171021704720002',
+            id: 'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002' } },
+  san_dal_woods: {
+    label: 'PT San Dal Woods',
+    razon: 'PT SAN DAL WOODS', marca: '',
+    domicilio: 'Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No. 3B RT. 000 RW. 000, Kuta, Kuta, Kab. Badung, Bali',
+    npwp: '1000.0000.0012.5018', rep: 'Pablo Cantero Gambín',
+    cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',
+            en: 'Spanish nationality, holder of Spanish passport no. PAL648254',
+            id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
+};
+const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sungai primero (default)
+function applyPromotor(data){
+  const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sungai)
+  const soc = SOCIEDADES[key] || SOCIEDADES.tepi_sungai;
+  data.prom_razon=soc.razon; data.prom_marca=soc.marca||''; data.prom_domicilio=soc.domicilio;
+  data.prom_npwp=soc.npwp; data.prom_rep=soc.rep;
+  data.prom_cred_es=soc.cred.es; data.prom_cred_en=soc.cred.en; data.prom_cred_id=soc.cred.id;
+}
 /* etiqueta legible del régimen de tenencia (el select guarda un código; el contrato
    imprime esto — ver buildDoc). Los bloques <!--if:regimen_tenencia=CODE--> siguen
    usando el código crudo, no se ven afectados. */
@@ -1595,6 +1639,7 @@ function idrEquiv(html, data){
 }
 function buildDoc(){
   const data=collect();
+  applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sungai)
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
@@ -1663,6 +1708,8 @@ function deriveSections(){
   inDoc.add('proyecto_nombre');
   if(inDoc.has('moneda')) inDoc.add('tipo_cambio_idr');
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
+  [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea
+  inDoc.delete('sociedad_firmante');   // tiene su propia sección (añadida abajo), que no caiga en "otros"
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
@@ -1699,6 +1746,15 @@ function deriveSections(){
     SECTIONS.splice(ins, 0, { id:'banco', tier:'por_proyecto',
       title:{es:'Cuenta bancaria',en:'Bank account',id:'Rekening bank'},
       fields:[['cuenta_bancaria', {es:'Cuenta bancaria de destino',en:'Destination bank account',id:'Rekening bank tujuan'}, 'select', bankOptionsFor(CURRENT.slug)]] });
+  }
+  // sociedad firmante (Promotor): va DENTRO de "Gestión del contrato" (sección 1,
+  // petición del cliente) como un campo más, si la plantilla trae la identidad
+  // tokenizada ({{prom_razon}}). Se elige por contrato; default por plantilla (pdef).
+  if(templateHTML.includes('{{prom_razon}}')){
+    const campo = ['sociedad_firmante',{es:'Sociedad firmante (Promotor)',en:'Signing company (Developer)',id:'Perusahaan penandatangan'},'select',SOCIEDAD_OPTIONS];
+    const g = SECTIONS.find(s=>s.id==='gestion');
+    if(g) g.fields.push(campo);
+    else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
   }
   // orden pedido por el cliente, igual en todos los contratos (los no listados, al final)
   const rank = id => { const i = FORM_ORDER.indexOf(id); return i<0 ? FORM_ORDER.length : i; };
