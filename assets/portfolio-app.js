@@ -383,7 +383,7 @@
     var claim = pick(p.sub)
       ? '<p style="font-family:var(--sans);font-weight:400;font-size:clamp(14px,1.7vw,26px);letter-spacing:.045em;text-transform:uppercase;line-height:1.3;margin:0 auto;max-width:54ch">'+esc(pick(p.sub))+'</p>' : '';
     if(pick(p.metaText)) claim += '<p class="display" style="font-weight:600;font-size:clamp(26px,4.2vw,52px);letter-spacing:.02em;text-transform:uppercase;line-height:1.08;margin:clamp(6px,1vh,12px) auto 0;max-width:22ch">'+esc(pick(p.metaText))+'</p>';
-    return '<section class="pdp-hero" style="position:relative;min-height:clamp(540px,84vh,820px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#1a160f">'
+    return '<section class="pdp-hero pdp-sec" style="position:relative;display:flex;flex-direction:row;align-items:center;justify-content:center;overflow:hidden;background:#1a160f">'
       + '<div class="ph-grad ph-'+theme+'" style="position:absolute;inset:0;opacity:'+(key?0:1)+'"></div>'
       + bg
       + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,11,.5) 0%,rgba(20,16,11,.12) 30%,rgba(20,16,11,.32) 66%,rgba(20,16,11,.8) 100%)"></div>'
@@ -867,8 +867,17 @@
       + esc(tl("View on Google Maps","Ver en Google Maps"))+' <span aria-hidden="true">↗</span></a>';
   }
 
-  // (mapBlockHTML y processBannerHTML eliminados — revisión cliente 23-jul; el mapa vive ahora en
-  //  la card de info y la franja del proceso se retiró)
+  // (mapBlockHTML eliminado — revisión cliente 23-jul; el mapa vive ahora en la card de info)
+
+  // Banner al proceso de compra: cierra la ficha y baja a los 7 pasos (#process, del marketplace).
+  // Se retiró el 23-jul y el cliente lo pidió de vuelta el 24-jul.
+  function processBannerHTML(){
+    return '<div class="pdp-process-banner" data-act="go-process" role="button" tabindex="0">'
+      + '<img src="assets/img/aerial-1.jpg" alt="" loading="lazy">'
+      + '<span class="pdp-pb-veil"></span>'
+      + '<span class="pdp-pb-txt"><span class="pdp-pb-1">'+t("ft.reserve.k")+'</span><span class="pdp-pb-2">'+t("proc.title")+'</span></span>'
+      + '</div>';
+  }
 
   function signatureNoteHTML(p){
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div style="display:inline-flex;align-items:center;gap:8px;background:var(--dl);color:var(--bone);border-radius:999px;padding:7px 16px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:999px;background:var(--bone)"></span> '+t("sig.delivered")+'</div><p style="font-size:15px;color:var(--ink-2);line-height:1.6;margin-top:18px;max-width:52ch">'+t("sig.note")+'</p></div>';
@@ -942,7 +951,14 @@
     var isSignature = p.line==="signature";
     var isDeliveredNotForSale = isSignature && !p.priceEUR;  // signature sin precio = ya vendida/showcase; con precio sigue disponible
     var hasConfigurator = !isSignature && !!(cfg.landOptions||cfg.models||cfg.extrasList);
-    var also = L.PROPERTIES.filter(function(x){return x.line===p.line&&x.id!==p.id;}).slice(0,3);
+    // "More in this line": si no queda nada más en la misma línea, no se deja el hueco vacío —
+    // se enseñan otros proyectos de la web, los de la misma isla primero (revisión cliente 24-jul).
+    var visible = L.PROPERTIES.filter(function(x){ return x.visible!==false && x.id!==p.id; });
+    var sameLine = visible.filter(function(x){ return x.line===p.line; });
+    var alsoIsFallback = sameLine.length===0;
+    var also = (alsoIsFallback
+      ? visible.slice().sort(function(a,b){ return (b.regionKey===p.regionKey?1:0)-(a.regionKey===p.regionKey?1:0); })
+      : sameLine).slice(0,3);
     var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
     var subText = pick(p.sub);
     // Sub bajo el título: uppercase ligera y grande y, en negrita al final, el régimen de tenencia
@@ -951,38 +967,43 @@
                   : (p.tenure ? tl("Leasehold "+(p.leaseYears||30)+" yr.","Leasehold "+(p.leaseYears||30)+" años.") : "");
     var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:52ch">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
     // "More in this line": mismas cards del marketplace/index (LawangCard) — revisión cliente 23-jul.
-    var alsoHTML = also.length>0 ? '<div style="margin-top:clamp(56px,7vw,90px);padding-top:clamp(36px,4vw,52px);border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+t("pd.also")+'</div><div class="pdp-also-grid">'
+    var alsoHTML = also.length>0 ? '<div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+(alsoIsFallback?t("pd.also.any"):t("pd.also"))+'</div><div class="pdp-also-grid">'
       + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,{lang:S.lang,cur:S.cur,rates:L.RATES}) : ''; }).join("")
-      + '</div></div>' : "";
+      + '</div>' : "";
     // Cabecera: migas + subtítulo a la izquierda; a la derecha SOLO el precio (revisión cliente
     // 23-jul: fuera "LÍNEA › ESTADO" de encima del precio).
-    return '<div>'   // sin padding inferior: el footer cierra la página
+    var headerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
+      + breadcrumbsHTML(p,false)+subHTML+'</div>'
+      + '<div style="flex-shrink:0;text-align:right">'
+      + '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>';
+    var plan3d = plan3dHTML(p);
+    var split  = splitSectionHTML(p);
+    var bleed  = bleedSectionHTML(p);
+    // Navegación por secciones con scroll-snap, igual que index.html: 1 pantalla = 1 sección.
+    // sec() envuelve; las secciones sin contenido no se pintan (no hay pantallas en blanco).
+    return '<div>'
       + heroHTML(p)
-      + '<div class="wrap pdp-wrap" style="padding-top:clamp(36px,4.5vw,64px)">'
-      + '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:clamp(20px,4vw,48px);flex-wrap:wrap;margin-bottom:clamp(26px,3vw,38px)"><div style="flex:1 1 380px;min-width:0">'
-      +   breadcrumbsHTML(p,false)+subHTML+'</div>'
-      +   '<div style="flex-shrink:0;text-align:right">'
-      +     '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>'
-      + galleryHTML(p)
-      // Revisión cliente 23-jul: 2-col — izq 60% tabla blanca + configurador/payment plan en el
-      // hueco de abajo · dcha 40% card overview+técnica+dossier.
-      + '<div class="pdp-info-2col" style="margin-top:clamp(24px,3vw,34px)">'
-      +   '<div>'+techSpecsHTML(p)+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
-      +   '<div>'+infoCardHTML(p)+plan3dHTML(p)+'</div>'
-      + '</div>'
-      + '</div>'  // /wrap
-      // Sección 50/50: imagen + título a la izquierda, tarjetas a la derecha
-      + splitSectionHTML(p)
-      // Sección de imagen a sangre (la que estaba arriba, bajada aquí)
-      + bleedSectionHTML(p)
-      + '<div class="wrap pdp-wrap">'
-      + alsoHTML
-      + '</div>'
-      + footerCoreHTML()   // mismo footer del marketplace: franja de contacto + footer verde
+      + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+'</div>')
+      // Detalle: izq 60% tabla blanca · dcha 40% card overview+técnica+dossier
+      + sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
+          + '<div>'+techSpecsHTML(p)+'</div><div>'+infoCardHTML(p)+'</div></div></div>')
+      // Masterplan: configurador/payment plan a la izquierda, planta 3D del territorio a la derecha
+      + (leftMain ? sec('<div class="wrap pdp-wrap">'
+          + (plan3d ? '<div class="pdp-info-2col"><div class="pdp-leftmain">'+leftMain+'</div><div>'+plan3d+'</div></div>'
+                    : '<div class="pdp-leftmain">'+leftMain+'</div>')
+          + '</div>') : "")
+      + (split ? sec(split, "pdp-sec-flush") : "")
+      + (bleed ? sec(bleed, "pdp-sec-flush") : "")
+      + sec('<div class="wrap pdp-wrap">'+processBannerHTML()+'</div>')
+      // Última sección = otros proyectos + footer juntos. El footer TIENE que ir dentro de una
+      // sección con snap: colgando fuera, el snap obligatorio no dejaría llegar hasta él.
+      + sec('<div class="wrap pdp-wrap">'+alsoHTML+'</div>'+footerCoreHTML(), "pdp-sec-last")
       + waFloatHTML(p)
       + lightboxHTML(p)
       + '</div>';
   }
+
+  function sec(inner, extra){ return '<section class="pdp-sec'+(extra?" "+extra:"")+'">'+inner+'</section>'; }
 
   // ════ OVERLAY (ficha sobre el marketplace) ════
   // El menú es el MISMO topbar del index/marketplace (variante ghost): transparente sobre el hero,
@@ -1048,6 +1069,7 @@
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
     else if(cmd==="lightbox"){ S.lightbox=parseInt(val,10)||0; render(); }
     // Tipos de vivienda (sección 50/50): cambiar de pestaña arranca sus fotos por la primera
+    else if(cmd==="go-process"){ closeProperty(); var pr=document.getElementById("process"); if(pr) pr.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="tab"){ S.tab=parseInt(val,10)||0; S.tabImg=0; render(); }
     else if(cmd==="tabimg"){ S.tabImg=parseInt(val,10)||0; render(); }
     else if(cmd==="lb-close"){ S.lightbox=null; render(); }

@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260724104022">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260724115727">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -234,7 +234,25 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
 .lw-cat:hover > span:last-child { transform:translateX(7px); }
 @media(max-width:1024px){ .lw-cat-grid { grid-template-columns:repeat(2,1fr) !important; } }
-#pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain; }
+/* ── Ficha: navegación por secciones con scroll-snap, igual que index.html (revisión 24-jul) ──
+   1 pantalla = 1 sección. Una sección más alta que la pantalla queda EXENTA del snap por spec
+   (área de snap mayor que el snapport), así que el contenido largo se sigue leyendo del tirón. */
+#pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain;
+  scroll-snap-type:y mandatory; scroll-behavior:smooth; }
+/* iOS WebKit: mandatory + smooth chocan y el swipe se queda a medias — en táctil manda el snap nativo */
+@media(hover:none){ #pf-overlay{ scroll-behavior:auto; } }
+@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; scroll-snap-type:y proximity; } }
+.pdp-sec{ scroll-snap-align:start; scroll-snap-stop:always; min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; justify-content:center; }
+/* El `margin:0 auto` de .wrap anula el stretch del flex y lo encoge a su contenido (las cards de
+   "More in this line" se apilaban en 1 columna). Ancho explícito; el hero va aparte (hijos absolutos). */
+.pdp-sec:not(.pdp-hero) > *{ width:100%; }
+/* Secciones a sangre (50/50 e imagen ancha): sin márgenes propios, ocupan la pantalla entera */
+.pdp-sec-flush > *{ margin:0 !important; flex:1 1 auto; }
+.pdp-sec-flush > .pdp-split-section{ min-height:0; }
+/* Última: otros proyectos + footer. Suelen sumar más de una pantalla y eso está bien */
+.pdp-sec-last{ justify-content:flex-end; }
+.pdp-sec-last > .pdp-wrap{ padding-top:clamp(40px,6vh,90px); padding-bottom:clamp(28px,4vh,56px); }
 #pf-overlay .pf-overlay-bar { position:sticky; top:0; z-index:2; height:60px; display:flex; align-items:center; justify-content:space-between; background:rgba(241,236,225,.94); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); padding:0 clamp(20px,5vw,72px); }
 
 /* ── RESPONSIVE ──────────────────────────────────────────── */
@@ -437,6 +455,15 @@ article:hover .view-cta { gap:9px; }
 .pdp-tab-thumb:hover{ opacity:.85; }
 .pdp-tab-thumb.on{ opacity:1; border-color:var(--tg); }
 .pdp-tab-text{ margin:clamp(14px,1.8vw,20px) 0 0; font-family:var(--sans); font-size:clamp(13.5px,1.15vw,15.5px); font-weight:300; line-height:1.65; color:var(--ink); }
+/* ── Ficha: banner al proceso de compra (rescatado 24-jul) ── */
+.pdp-process-banner{ position:relative; border-radius:14px; overflow:hidden; cursor:pointer;
+  min-height:clamp(190px,34vh,420px); display:flex; align-items:center; background:#1a160f }
+.pdp-process-banner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
+.pdp-pb-veil{ position:absolute; inset:0; background:linear-gradient(90deg,rgba(20,16,11,.78) 0%,rgba(20,16,11,.34) 58%,rgba(20,16,11,.08) 100%) }
+.pdp-pb-txt{ position:relative; z-index:2; color:var(--rl); padding:clamp(26px,4vw,58px); padding-left:clamp(38px,5vw,74px);
+  border-left:1px solid rgba(245,240,230,.65); margin-left:clamp(20px,3vw,46px) }
+.pdp-pb-1{ display:block; font-family:var(--sans); font-weight:300; font-size:clamp(22px,3.4vw,44px); letter-spacing:.06em; text-transform:uppercase; line-height:1.1 }
+.pdp-pb-2{ display:block; font-family:var(--sans); font-weight:700; font-style:italic; font-size:clamp(24px,3.8vw,50px); letter-spacing:.02em; text-transform:uppercase; line-height:1.1; margin-top:2px }
 /* ── Ficha: "More in this line" — máx 3 cards del marketplace (LawangCard), CENTRADAS ── */
 .pdp-also-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,320px)); gap:clamp(18px,2vw,26px); justify-content:center; padding-bottom:40px; }
 /* Móvil: ficha de propiedad a 1 columna */
@@ -706,6 +733,7 @@ article:hover .view-cta { gap:9px; }
     "pd.enquire":{"en":"Enquire about this property","es":"Solicitar información"},
     "pd.pricenote":{"en":"Indicative price.","es":"Precio orientativo."},
     "pd.also":{"en":"More in this line","es":"Más en esta línea"},
+    "pd.also.any":{"en":"Elsewhere in the collection","es":"Otros proyectos de la colección","id":"Proyek lain dalam koleksi"},
     "tenure.freehold":{"en":"Freehold (Hak Milik)","es":"Freehold (Hak Milik)"},
     "tenure.leasehold":{"en":"Leasehold — 30 yrs","es":"Leasehold — 30 años"},
     "status.ready":{"en":"Built","es":"Construida"},
@@ -818,8 +846,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260724104022"></script>
-<script src="assets/portfolio-app.js?v=20260724104022-plan3d"></script>
+<script src="assets/lawang-card.js?v=20260724115727"></script>
+<script src="assets/portfolio-app.js?v=20260724115727-snap"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
