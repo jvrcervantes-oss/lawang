@@ -706,12 +706,13 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
             <input type="checkbox" id="f-showHomeModels">
             <label for="f-showHomeModels">Show "Choose your home" section <span class="muted">(if on with no models below, sample placeholders are shown)</span></label>
           </div>
-          <div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr 28px 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+          <div style="display:grid;grid-template-columns:2fr 64px 72px 1.4fr 2fr auto auto 28px;gap:6px;margin:6px 0 4px;padding:0 2px">
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Model</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Beds</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">m²</div>
             <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Price €</div>
-            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Image URL</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Image</div>
+            <div></div>
             <div></div>
             <div></div>
           </div>
@@ -1932,9 +1933,13 @@ function closeImagePicker() {
 }
 
 function pickImage(url) {
+  // Capturar el callback ANTES de cerrar: closeImagePicker() pone PICK_CB=null, así que leerlo
+  // después mandaba TODA selección al fallback (addImageSlot = carrusel). Por eso "Pick" en un
+  // modelo de casa / split / mapa metía la foto en el carrusel en vez del campo destino.
+  var cb = PICK_CB;
   closeImagePicker();
-  if (PICK_CB) { PICK_CB(url); }
-  else { addImageSlot(url); } // fallback: add new slot
+  if (cb) { cb(url); }
+  else { addImageSlot(url); } // sin destino (botón "Pick from uploaded images" del carrusel): nueva foto
 }
 
 /* ─── UTILS ─────────────────────────────────────────────────── */
