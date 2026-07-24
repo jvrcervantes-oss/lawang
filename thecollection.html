@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260724132702">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260724152505">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -242,26 +242,18 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
 .lw-cat:hover > span:last-child { transform:translateX(7px); }
 @media(max-width:1024px){ .lw-cat-grid { grid-template-columns:repeat(2,1fr) !important; } }
-/* ── Ficha: navegación por secciones con scroll-snap (revisión 24-jul) ──
-   PROXIMITY, no mandatory: el snap solo tira cuando el visitante YA está cerca de un borde. Con
-   mandatory, una sección más alta que la pantalla (payment plan) saltaba a la siguiente al scrollear
-   un poco dentro de ella. Con proximity esas secciones se leen del tirón y las de pantalla completa
-   siguen encajando al soltar. Sin scroll-snap-stop:always por lo mismo (forzaba parar en cada borde). */
+/* ── Ficha: secciones (revisión cliente 24-jul: el scroll-snap hacía "efecto imán") ──
+   FUERA el scroll-snap y el alto forzado de 100vh: scroll normal y cada sección ocupa lo que ocupa
+   su contenido. Solo el hero es a pantalla completa. Las secciones respiran con padding vertical. */
 #pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone); overflow-y:auto; overscroll-behavior:contain;
-  scroll-snap-type:y proximity; scroll-behavior:smooth; }
-/* iOS WebKit: snap + smooth chocan y el swipe se queda a medias — en táctil manda el snap nativo */
-@media(hover:none){ #pf-overlay{ scroll-behavior:auto; } }
+  scroll-behavior:smooth; }
 @media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; } }
-.pdp-sec{ scroll-snap-align:start; min-height:100vh; min-height:100dvh;
-  display:flex; flex-direction:column; justify-content:center; }
-/* El `margin:0 auto` de .wrap anula el stretch del flex y lo encoge a su contenido (las cards de
-   "More in this line" se apilaban en 1 columna). Ancho explícito; el hero va aparte (hijos absolutos). */
-.pdp-sec:not(.pdp-hero) > *{ width:100%; }
-/* Secciones a sangre (50/50 e imagen ancha): sin márgenes propios, ocupan la pantalla entera */
-.pdp-sec-flush > *{ margin:0 !important; flex:1 1 auto; }
-.pdp-sec-flush > .pdp-split-section{ min-height:0; }
-/* Última: otros proyectos + footer. Suelen sumar más de una pantalla y eso está bien */
-.pdp-sec-last{ justify-content:flex-end; }
+.pdp-sec{ padding-block:clamp(28px,5vh,60px); }
+.pdp-hero.pdp-sec{ min-height:100vh; min-height:100dvh; padding-block:0; }
+/* Sección 50/50 a sangre: sin padding, su propio margen la separa */
+.pdp-sec-flush{ padding-block:0; }
+/* Última: otros proyectos + footer */
+.pdp-sec-last{ padding-block:0; }
 .pdp-sec-last > .pdp-wrap{ padding-top:clamp(40px,6vh,90px); padding-bottom:clamp(28px,4vh,56px); }
 #pf-overlay .pf-overlay-bar { position:sticky; top:0; z-index:2; height:60px; display:flex; align-items:center; justify-content:space-between; background:rgba(241,236,225,.94); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); padding:0 clamp(20px,5vw,72px); }
 
@@ -431,9 +423,11 @@ article:hover .view-cta { gap:9px; }
 .pdp-plan3d{ margin:clamp(18px,2.2vw,26px) 0 0; }
 .pdp-plan3d .kicker{ margin-bottom:10px; }
 .pdp-plan3d img{ display:block; width:100%; height:auto; border-radius:14px; border:1px solid var(--line); background:var(--bone-2); }
-/* Configurador / payment plan bajo la tabla blanca (col izq): separación clara de la tabla
-   (antes quedaban pegados — la tarjeta .cfg-card ya no trae margen propio). */
-.pdp-leftmain{ margin-top:clamp(28px,3.6vw,52px); }
+/* La tabla blanca se movió a la sección de fotos (revisión cliente 24-jul); el configurador/payment
+   plan es ahora lo primero de su columna → sin margen superior. */
+.pdp-leftmain{ margin-top:0; }
+/* Tabla blanca de datos, ahora bajo la galería de fotos (subida desde el detalle) */
+.pdp-specs-below{ margin-top:clamp(24px,3vw,40px); }
 /* Card de información (overview + ficha técnica + dossier) */
 .pdp-infocard{ background:#fff; border-radius:14px; padding:clamp(22px,2.4vw,34px); box-shadow:0 20px 50px -38px rgba(27,26,21,.4); }
 .pdp-ic-lead{ font-family:var(--sans); font-size:clamp(14px,1.35vw,16.5px); font-weight:300; line-height:1.65; color:var(--ink); margin:14px 0 0; }
@@ -471,7 +465,19 @@ article:hover .view-cta { gap:9px; }
 .pdp-tab-thumb img{ display:block; width:100%; height:100%; object-fit:cover; }
 .pdp-tab-thumb:hover{ opacity:.85; }
 .pdp-tab-thumb.on{ opacity:1; border-color:var(--tg); }
-.pdp-tab-text{ margin:clamp(14px,1.8vw,20px) 0 0; font-family:var(--sans); font-size:clamp(13.5px,1.15vw,15.5px); font-weight:300; line-height:1.65; color:var(--ink); }
+.pdp-tab-text{ margin:clamp(12px,1.5vw,18px) 0 0; font-family:var(--sans); font-size:clamp(13.5px,1.15vw,15.5px); font-weight:300; line-height:1.65; color:var(--ink); }
+/* Iconos de configuración del tipo de vivienda (los mismos 5 del hero), en la pestaña 50/50 */
+.pdp-tab-feats{ display:flex; flex-wrap:wrap; gap:9px 18px; margin-top:clamp(16px,2vw,22px); padding-top:clamp(14px,1.8vw,20px); border-top:1px solid var(--line); }
+.pdp-tab-feats span{ display:inline-flex; align-items:center; gap:8px; font-family:var(--sans); font-size:13px; font-weight:600; color:var(--va); white-space:nowrap; }
+.pdp-tab-feats svg{ width:17px; height:17px; flex:none; color:var(--be); }
+/* Imagen a sangre inferior — contenida con margen (revisión cliente 24-jul: fuera el borde a borde
+   y la franja oscura que quedaba debajo cuando la sección medía 100vh). */
+.pdp-bleed-img{ display:block; width:100%; height:clamp(300px,58vh,600px); object-fit:cover; border-radius:16px; }
+/* Mapa embebido de Google Maps (cuando el enlace es geolocalizable) */
+.pdp-map-embed{ border-radius:14px; overflow:hidden; border:1px solid var(--line); background:var(--bone-2); }
+.pdp-map-embed iframe{ display:block; width:100%; height:clamp(240px,32vh,340px); border:0; }
+.pdp-map-open{ display:inline-flex; align-items:center; gap:6px; margin-top:9px; font-family:var(--sans); font-size:12.5px; font-weight:600; letter-spacing:.02em; color:var(--tg); text-decoration:none; }
+.pdp-map-open:hover{ color:var(--be); }
 /* ── Ficha: banner al proceso de compra (rescatado 24-jul) ── */
 .pdp-process-banner{ position:relative; border-radius:14px; overflow:hidden; cursor:pointer;
   min-height:clamp(190px,34vh,420px); display:flex; align-items:center; background:#1a160f }
@@ -863,8 +869,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260724132702"></script>
-<script src="assets/portfolio-app.js?v=20260724-fx"></script>
+<script src="assets/lawang-card.js?v=20260724152505"></script>
+<script src="assets/portfolio-app.js?v=20260724152505-5x"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

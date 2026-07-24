@@ -591,7 +591,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Image (site plan / map) shown in the "Location &amp; Surroundings" section. Leave empty to show a placeholder.</span></h4>
+          <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imagen (plano/mapa) O un enlace de Google Maps. Con enlace geolocalizable (el de la barra de direcciones con coordenadas, o "Compartir → Insertar un mapa") se muestra el <b>mapa embebido</b>; un enlace corto <code>maps.app.goo.gl</code> se muestra como botón. Vacío = nada.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
               <input type="text" id="f-mapImage" placeholder="/assets/img/properties/map-balian.jpg or https://..." oninput="syncPreview('pins')">
@@ -1619,13 +1619,15 @@ function formToProperty() {
     bleedImage:  get('f-bleedImage'),
     plan3dImage: get('f-plan3dImage'),
     tabs:        Array.prototype.slice.call(document.querySelectorAll('#f-tabs-list .tab-item')).map(function(row){
+                   var num = function(sel){ var v = parseInt(row.querySelector(sel).value, 10); return isNaN(v)?0:v; };
                    return {
                      title:  { en: row.querySelector('.tab-title-en').value.trim(), es: row.querySelector('.tab-title-es').value.trim() },
                      sub:    { en: row.querySelector('.tab-sub-en').value.trim(),   es: row.querySelector('.tab-sub-es').value.trim() },
                      body:   { en: row.querySelector('.tab-body-en').value.trim(),  es: row.querySelector('.tab-body-es').value.trim() },
+                     beds:   num('.tab-beds'), baths: num('.tab-baths'), built: num('.tab-built'), land: num('.tab-land'),
                      images: Array.prototype.slice.call(row.querySelectorAll('.tab-image')).map(function(i){ return i.value.trim(); }).filter(Boolean)
                    };
-                 }).filter(function(tb){ return tb.title.en||tb.title.es||tb.body.en||tb.body.es||tb.images.length; }),
+                 }).filter(function(tb){ return tb.title.en||tb.title.es||tb.body.en||tb.body.es||tb.images.length||tb.beds||tb.baths||tb.built||tb.land; }),
     garage:      get('f-garage'),
     garageDesc:  get('f-garageDesc'),
     furnished:   get('f-furnished'),
@@ -1809,6 +1811,13 @@ function addTabRow(tab) {
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
     + '<input type="text" class="tab-sub-en" value="' + esc(ss.en||'') + '" placeholder="Subtitle EN (ej. 2 bedrooms · 180 m²)">'
     + '<input type="text" class="tab-sub-es" value="' + esc(ss.es||'') + '" placeholder="Subtítulo ES (ej. 2 dormitorios · 180 m²)">'
+    + '</div>'
+    + '<div class="muted" style="font-size:11px;margin:2px 0 -2px">Configuración (iconos, como en el hero): habitaciones · baños · m² construidos · m² parcela</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">'
+    + '<input type="number" class="tab-beds"  min="0" value="' + esc(tab.beds!=null?tab.beds:'')   + '" placeholder="Habs">'
+    + '<input type="number" class="tab-baths" min="0" value="' + esc(tab.baths!=null?tab.baths:'') + '" placeholder="Baños">'
+    + '<input type="number" class="tab-built" min="0" value="' + esc(tab.built!=null?tab.built:'') + '" placeholder="m² const.">'
+    + '<input type="number" class="tab-land"  min="0" value="' + esc(tab.land!=null?tab.land:'')   + '" placeholder="m² parcela">'
     + '</div>'
     + '<div class="tab-images"><div class="muted" style="font-size:11px;margin-bottom:5px">Fotos — la primera sale grande, el resto en miniaturas debajo</div>'
     +   imgs.map(function(u){ return imageRowHTML('tab-image', u); }).join('')

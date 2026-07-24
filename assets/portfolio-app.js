@@ -854,9 +854,25 @@
       + lk(t("crumb.home"),"go-home")+sep+lk(t("crumb.portfolio"),"close")+sep+lk(t(LINE_KEYS[p.line]),"close")+sep+'<span style="color:'+colOn+';letter-spacing:.16em;font-weight:'+(ghost?'600':'500')+'">'+esc(pick(p.title))+'</span></nav>';
   }
 
-  // El campo "mapImage" del admin recibe indistintamente una imagen subida o un enlace de Google Maps
-  // (el cliente pegó https://maps.app.goo.gl/… en Palm Field y salía un <img> roto en producción).
-  // Se decide por la forma del valor: imagen → <img>; cualquier otra URL → botón al mapa; vacío → nada.
+  // Construye el src de un iframe de Google Maps embebido (sin API key) a partir de un enlace, cuando
+  // es geolocalizable: ya es un embed → tal cual; con coordenadas (@lat,lng · !3d..!4d.. · q=lat,lng)
+  // → maps?q=lat,lng&output=embed; con nombre de lugar (/maps/place/NAME) → q=NAME. Un enlace corto
+  // (maps.app.goo.gl) no trae datos que extraer desde el navegador → null (cae al botón).
+  function googleMapsEmbedSrc(url){
+    if(/\/maps\/embed/i.test(url) || /[?&]output=embed/i.test(url)) return url;
+    if(!/(google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(url)) return null;
+    var m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+         || url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)
+         || url.match(/[?&]q=(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+    if(m) return 'https://maps.google.com/maps?q='+m[1]+','+m[2]+'&z=15&output=embed';
+    var pm = url.match(/\/maps\/place\/([^\/@]+)/);
+    if(pm){ try { return 'https://maps.google.com/maps?q='+encodeURIComponent(decodeURIComponent(pm[1].replace(/\+/g,' ')))+'&z=15&output=embed'; } catch(e){} }
+    return null;
+  }
+
+  // El campo "mapImage" del admin recibe una imagen subida o un enlace de Google Maps. Decide por la
+  // forma del valor: imagen → <img>; enlace de Maps geolocalizable → iframe EMBEBIDO (revisión cliente
+  // 24-jul); enlace corto/otra URL → botón "Abrir en Google Maps"; vacío → nada.
   function mapMediaHTML(url, pins){
     url = String(url||"").trim();
     if(!url) return '';
@@ -866,6 +882,12 @@
         + (pins||'') + '</div>';
     }
     if(!/^https?:\/\//i.test(url)) return '';  // ni imagen ni URL navegable -> no se enseña nada roto
+    var embed = googleMapsEmbedSrc(url);
+    if(embed){
+      return '<div class="pdp-map"><div class="pdp-map-embed"><iframe src="'+esc(embed)+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen title="'+esc(tl("Location map","Mapa de situación"))+'"></iframe></div>'
+        + '<a class="pdp-map-open" href="'+esc(url)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+        + esc(tl("Open in Google Maps","Abrir en Google Maps"))+' ↗</a></div>';
+    }
     return '<a class="pdp-map" href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:13px 20px;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--tg);text-decoration:none;background:var(--bone-2)">'
       + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;flex:none" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
       + esc(tl("View on Google Maps","Ver en Google Maps"))+' <span aria-hidden="true">↗</span></a>';
@@ -928,21 +950,42 @@
         }).join("")+'</div>';
       }
     }
+    // Orden (revisión cliente 24-jul): título · subtítulo · TEXTO · fotos · iconos de configuración.
     return '<div class="pdp-split-panel">'+head
       + '<div class="pdp-tab-body">'
       +   (pick(tb.title) ? '<h3>'+esc(pick(tb.title))+'</h3>' : '')
       +   (pick(tb.sub)   ? '<p class="pdp-tab-sub">'+esc(pick(tb.sub))+'</p>' : '')
-      +   media
       +   (pick(tb.body)  ? '<p class="pdp-tab-text">'+esc(pick(tb.body))+'</p>' : '')
+      +   media
+      +   tabFeatsHTML(p, tb)
       + '</div></div>';
+  }
+
+  // Iconos de configuración del tipo de vivienda: los MISMOS 5 del hero (habitaciones, baños, m²
+  // construidos, m² parcela y tipo). Los valores de hab/baños/m² salen de la pestaña (cada modelo
+  // tiene los suyos); el tipo es el de la propiedad. Sin datos, no se pinta la fila.
+  function tabFeatsHTML(p, tb){
+    var f = [];
+    if(tb.beds>0)  f.push({i:"beds",  t:tb.beds+" "+tl(tb.beds===1?"Bedroom":"Bedrooms", tb.beds===1?"Habitación":"Habitaciones")});
+    if(tb.baths>0) f.push({i:"baths", t:tb.baths+" "+tl(tb.baths===1?"Bathroom":"Bathrooms", tb.baths===1?"Baño":"Baños")});
+    if(tb.built>0) f.push({i:"built", t:tb.built+" m² "+tl("Built","Construidos")});
+    if(tb.land>0)  f.push({i:"land",  t:tb.land+" m² "+tl("Land","Terreno")});
+    f.push({i:"type", t:t(LINE_KEYS[p.line])});
+    if(f.length<=1) return "";   // solo el tipo → no aporta, no se pinta
+    return '<div class="pdp-tab-feats">'
+      + f.map(function(x){ return '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+FEAT_ICONS[x.i]+'</svg>'+esc(x.t)+'</span>'; }).join("")
+      + '</div>';
   }
 
   // ── Imagen a sangre bajada (revisión cliente 23-jul): campo dedicado p.bleedImage; si está vacío,
   //    cae a la lógica actual (aéreo con hotspots o foto de galería).
+  // Revisión cliente 24-jul: imagen CONTENIDA (con margen, dentro del .wrap del que la envuelve) y
+  // esquinas redondeadas — antes iba a sangre y, cuando la sección medía 100vh, dejaba una franja
+  // oscura debajo (el fondo #1a160f asomaba bajo la foto). Sin fondo oscuro ni alto fijo desmedido.
   function bleedSectionHTML(p){
     if(p.bleedImage){
       var url = imgUrl(p.bleedImage, 2600);
-      if(url) return '<div style="margin:clamp(48px,6vw,84px) 0;overflow:hidden;background:#1a160f"><img src="'+esc(url)+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="display:block;width:100%;height:clamp(360px,82vh,780px);object-fit:cover" onerror="this.style.display=\'none\'"></div>';
+      if(url) return '<img class="pdp-bleed-img" src="'+esc(url)+'" alt="'+esc(pick(p.title))+'" loading="lazy" onerror="this.style.display=\'none\'">';
     }
     return aerialHotspotsHTML(p) || fullBleedImageHTML(p);
   }
@@ -983,21 +1026,19 @@
     var plan3d = plan3dHTML(p);
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
-    // Navegación por secciones con scroll-snap, igual que index.html: 1 pantalla = 1 sección.
-    // sec() envuelve; las secciones sin contenido no se pintan (no hay pantallas en blanco).
+    var techTable = techSpecsHTML(p);   // sube a la sección de fotos (revisión cliente 24-jul)
+    // Secciones de la ficha (sin scroll-snap: se leen del tirón).
     return '<div>'
       + heroHTML(p)
-      + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+'</div>')
-      // Detalle (revisión cliente 24-jul: el masterplan va DENTRO de esta sección, no en la suya):
-      // izq 60% tabla blanca + configurador/payment plan · dcha 40% card + planta 3D del territorio.
+      // Fotos: cabecera + galería + la tabla blanca de datos (subida aquí desde el detalle)
+      + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+(techTable?'<div class="pdp-specs-below">'+techTable+'</div>':"")+'</div>')
+      // Detalle: izq configurador/payment plan (masterplan) · dcha card + planta 3D del territorio
       + sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
-          + '<div>'+techSpecsHTML(p)+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
+          + '<div>'+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
           + '<div>'+infoCardHTML(p)+plan3d+'</div></div></div>')
       + (split ? sec(split, "pdp-sec-flush") : "")
-      + (bleed ? sec(bleed, "pdp-sec-flush") : "")
-      // Última sección: banner del proceso + cross-selling + footer juntos (revisión cliente 24-jul).
-      // El footer TIENE que ir dentro de una sección con snap: colgando fuera, el snap obligatorio
-      // no dejaría llegar hasta él.
+      + (bleed ? sec('<div class="wrap pdp-wrap">'+bleed+'</div>') : "")
+      // Última sección: banner del proceso + cross-selling + footer juntos.
       + sec('<div class="wrap pdp-wrap">'+processBannerHTML()+alsoHTML+'</div>'+footerCoreHTML(), "pdp-sec-last")
       + waFloatHTML(p)
       + lightboxHTML(p)
