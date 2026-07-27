@@ -214,6 +214,35 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .pg-text .title{font:500 34px/1.15 var(--serif);margin:3mm 0 7mm;max-width:200mm}
 .pg-text .body{font:300 13.5px/1.75 var(--sans);column-count:2;column-gap:12mm;max-height:70%;overflow:hidden}
 
+/* tabla de partidas (memorias de calidades, presupuestos, BOQ) */
+.pg-tabla{--tc:#42210B;--bc:#D9C7B6;--hc:#F0DFB4;display:flex;flex-direction:column;
+          padding:11mm 12mm 8mm;background:#fff;color:#2B1A0E}
+.pg-tabla .tbl-head{background:var(--tc);color:#fff;padding:4mm 5mm;margin-bottom:4mm}
+.pg-tabla .tbl-head .t1{font:700 11.5pt var(--sans);letter-spacing:.06em}
+.pg-tabla .tbl-head .t2{font:400 7pt/1.45 var(--sans);letter-spacing:.08em;opacity:.85}
+.pg-tabla .tbl-head .sec{font:500 9.5pt var(--sans);letter-spacing:.1em;margin-top:2.2mm;
+                         padding-top:2mm;border-top:.4mm solid rgba(255,255,255,.35)}
+.pg-tabla .tbl-th{display:flex;background:var(--tc);color:#fff;font:500 7pt var(--sans);
+                  letter-spacing:.12em;text-transform:uppercase;padding:1.6mm 2mm}
+.pg-tabla .tbl-th .c1{width:14mm;flex:none;text-align:center}
+.pg-tabla .tbl-th .c2{flex:1;text-align:center}
+.pg-tabla .tbl-body{font:300 6.4pt/1.15 var(--sans)}
+.pg-tabla .trow{display:flex;position:relative;border-bottom:.12mm solid #F4EFE9}
+.pg-tabla .trow .c1{width:14mm;flex:none;text-align:center;font-weight:500;color:var(--tc);padding:.28mm 2mm}
+.pg-tabla .trow .c2{flex:1;padding:.28mm 2mm}
+.pg-tabla .trow.k-band{background:var(--bc);font-weight:700;color:var(--tc)}
+.pg-tabla .trow.k-band .c1,.pg-tabla .trow.k-band .c2{padding:.9mm 2mm}
+.pg-tabla .trow.k-hl{background:var(--hc)}
+.pg-tabla .trow.k-sep{background:var(--bc);height:2.4mm;border:none}
+.pg-tabla .trow.k-close{background:var(--tc);height:4mm;border:none}
+.pg-tabla .tbl-foot{margin-top:auto;padding-top:4mm;display:flex;justify-content:space-between;
+                    font:300 6.5pt var(--sans);color:#6B4526;border-top:.2mm solid #CBB9A6}
+.pg-tabla .rtools{position:absolute;right:1mm;top:0;display:none;gap:1px;z-index:8}
+.pg-tabla .trow:hover .rtools{display:flex}
+.pg-tabla .rtools button{font:600 9px var(--sans);border:none;background:rgba(32,36,31,.8);
+                         color:#fff;width:17px;height:14px;cursor:pointer;border-radius:2px;line-height:1}
+.pg-tabla .rtools button:hover{background:var(--tc)}
+
 /* contraportada */
 .pg-back{background:var(--va);color:var(--rl)}
 .pg-back .slot.bg{position:absolute;inset:0;opacity:.22}
@@ -226,12 +255,15 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 /* ============ impresión ============ */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  #topbar,#sidebar,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.slot .up,.free .rs,.guides{display:none!important}
+  #topbar,#sidebar,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.slot .up,.free .rs,.guides,.rtools{display:none!important}
   #stage{margin:0;padding:0}
   #pages{zoom:1}
   .sheetwrap{margin:0;width:auto}
   .page{box-shadow:none!important;page-break-after:always;break-after:page}
-  .slot.empty::before{content:none}
+  /* un hueco sin imagen no debe dejar rastro impreso: ni su gris de marcador ni
+     su rótulo (el de logo gana por especificidad, hay que nombrarlo aparte) */
+  .slot.empty{background-color:transparent!important}
+  .slot.empty::before,.slot.logoslot.empty::before{content:none!important;border:none!important}
   .free.sel{outline:none}
   .page [data-e][contenteditable]:hover,.page [data-e][contenteditable]:focus{box-shadow:none}
 }
@@ -351,6 +383,7 @@ const SIZES={
   sq:{name:'Cuadrado · 210×210',w:210,h:210},
   s169:{name:'Pantalla 16:9 · 339×190',w:338.7,h:190.5},
   us:{name:'Carta US apaisada · 279×216',w:279.4,h:215.9},
+  usp:{name:'Carta US vertical · 216×279',w:215.9,h:279.4},
   custom:{name:'Personalizado…',w:0,h:0}
 };
 
@@ -426,6 +459,21 @@ const TYPES={
     imgs:[],
     tpl:p=>`<div class="kick" data-e="kick"></div><div class="title" data-e="title"></div><div class="body" data-e="body"></div>`
   },
+  tabla:{
+    name:'Tabla / partidas', desc:'Dos columnas (referencia + descripción) para memorias de calidades, presupuestos o BOQ. Cada fila se edita, se mueve y cambia de estilo.',
+    d:{t1:'DETAIL DESCRIPTION', t2:'CABANA VILLA<br>BALIAN - TABANAN', sec:'STRUCTURE WORKS',
+       h1:'Ref', h2:'Description', fl:'', fr:''},
+    imgs:[],
+    rows:[{ref:'I',desc:'PRIMERA SECCIÓN',k:'band'},
+          {ref:'1',desc:'Partida de ejemplo — haz clic para editarla',k:''},
+          {ref:'',desc:'- detalle de la partida',k:''},
+          {ref:'',desc:'',k:'close'}],
+    tpl:p=>`<div class="tbl-head"><div class="t1" data-e="t1"></div>
+        <div class="t2" data-e="t2"></div><div class="sec" data-e="sec"></div></div>
+      <div class="tbl-th"><span class="c1" data-e="h1"></span><span class="c2" data-e="h2"></span></div>
+      <div class="tbl-body" data-rows></div>
+      <div class="tbl-foot"><span data-e="fl"></span><span data-e="fr"></span></div>`
+  },
   back:{
     name:'Contraportada', desc:'Cierre oscuro con logo, contacto y línea legal.',
     d:{contact:'lawangproperties.com<br>hello@lawangproperties.com', legal:'© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED'},
@@ -435,14 +483,17 @@ const TYPES={
       <div class="legal" data-e="legal"></div>`
   }
 };
-const PAGE_BG_DEFAULT={statement:'#104C4F',back:'#2E3437'};
+const PAGE_BG_DEFAULT={statement:'#104C4F',back:'#2E3437',tabla:'#FFFFFF'};
+/* colores propios de la página de tabla, cambiables desde su etiqueta */
+const TBL_COLS=[['tc','Tabla','#42210B'],['bc','Bandas','#D9C7B6'],['hc','Resalte','#F0DFB4']];
 
 /* ---------- estado ---------- */
 let state=null, uid=1, curPage=null, sel=null; /* sel={p,f,node} */
 const LS_KEY='lawang_dossier_builder';
 
 function newPage(type){
-  const p={id:'p'+(uid++), type, d:JSON.parse(JSON.stringify(TYPES[type].d)), img:{}, free:[]};
+  const p={id:'p'+(uid++), type, d:JSON.parse(JSON.stringify(TYPES[type].d)), img:{}, free:[],
+           rows:JSON.parse(JSON.stringify(TYPES[type].rows||[]))};
   if(type==='cover'||type==='back')p.img.logo=LOGO_LIGHT; // precargado; el ✕ lo deja en '' (quitado)
   return p;
 }
@@ -454,7 +505,7 @@ function migrate(s){
   s.size=s.size&&s.size.w?s.size:{w:297,h:210};
   s.sizeKey=s.sizeKey||'a4l';
   (s.pages||[]).forEach(p=>{
-    p.free=p.free||[];p.img=p.img||{};p.d=p.d||{};
+    p.free=p.free||[];p.img=p.img||{};p.d=p.d||{};p.rows=p.rows||[];
     // dossiers de la v1: el logo pasó a ser slot — precargar solo si nunca existió ('' = quitado a propósito)
     if((p.type==='cover'||p.type==='back')&&p.img.logo===undefined)p.img.logo=LOGO_LIGHT;
   });
@@ -535,10 +586,22 @@ function render(){
       el.append(up,rm);
       el.onclick=e=>{if(e.target===rm||e.target===up)return;pickImage(cb=>{p.img[el.dataset.i]=cb;render();persist();});};
     });
+    // filas de la página de tabla
+    const $rows=page.querySelector('[data-rows]');
+    if($rows){
+      applyTblCols(p,page);
+      renderRows(p,$rows);
+      TBL_COLS.forEach(([k,lab,def])=>{
+        const t=document.createElement('span');t.className='bgl';t.textContent=lab;
+        const inp=document.createElement('input');inp.type='color';inp.value=p[k]||def;
+        inp.oninput=()=>{p[k]=inp.value;applyTblCols(p,page);persist();};
+        label.append(t,inp);
+      });
+    }
     // elementos libres
     p.free.forEach(f=>page.appendChild(freeNode(p,f)));
-    // nº de página (no en portada/contraportada)
-    if(p.type!=='cover'&&p.type!=='back'){
+    // nº de página (la tabla lleva su propio pie; portada y contraportada no llevan)
+    if(p.type!=='cover'&&p.type!=='back'&&p.type!=='tabla'){
       const dark=(p.type==='statement');
       const no=document.createElement('div');no.className='pageno';
       no.innerHTML=p.d._no??String(idx+1).padStart(2,'0');
@@ -560,7 +623,68 @@ function render(){
   renderList();
   if(!curPage&&state.pages[0])curPage=state.pages[0].id;
   markCur();
+  fitTables();
   if(selKeep)selectById(selKeep.pid,selKeep.fid);
+}
+
+/* ================= PÁGINA DE TABLA =================
+   Las filas viven en p.rows (no en p.d, que es plano) — cada una es
+   {ref,desc,k} donde k = '' | band | hl | sep | close. Todo editable:
+   celdas con clic, y en cada fila unos botones para añadir, mover,
+   cambiar de estilo y eliminar. */
+const ROW_K=['','band','hl','sep','close'];
+const ROW_K_NOM={'':'normal','band':'sección','hl':'resaltada','sep':'separador','close':'barra de cierre'};
+
+function applyTblCols(p,page){
+  TBL_COLS.forEach(([k,,def])=>page.style.setProperty('--'+k,p[k]||def));
+}
+function renderRows(p,box){
+  box.innerHTML='';
+  p.rows.forEach((r,i)=>{
+    const row=document.createElement('div');
+    row.className='trow'+(r.k?' k-'+r.k:'');row.dataset.ri=i;
+    if(r.k!=='sep'&&r.k!=='close'){
+      [['ref','c1'],['desc','c2']].forEach(([campo,cls])=>{
+        const c=document.createElement('span');c.className=cls;
+        c.dataset.r=i+'.'+campo;c.contentEditable=true;c.spellcheck=false;
+        c.innerHTML=r[campo]||'';
+        row.appendChild(c);
+      });
+    }
+    row.appendChild(rowTools(p,i));
+    box.appendChild(row);
+  });
+}
+function rowTools(p,i){
+  const t=document.createElement('span');t.className='rtools';t.contentEditable=false;
+  const b=(txt,tip,fn)=>{
+    const el=document.createElement('button');el.textContent=txt;el.title=tip;
+    el.onmousedown=e=>e.preventDefault();       // no robar el caret al editar
+    el.onclick=e=>{e.stopPropagation();fn();persist();render();};
+    return el;
+  };
+  t.append(
+    b('＋','Añadir fila debajo',()=>p.rows.splice(i+1,0,{ref:'',desc:'',k:''})),
+    b('▤','Estilo: normal → sección → resaltada → separador → barra',()=>{
+      const r=p.rows[i];r.k=ROW_K[(ROW_K.indexOf(r.k||'')+1)%ROW_K.length];
+      toast('Fila '+(i+1)+': '+ROW_K_NOM[r.k]);}),
+    b('↑','Subir',()=>{if(i>0)[p.rows[i-1],p.rows[i]]=[p.rows[i],p.rows[i-1]];}),
+    b('↓','Bajar',()=>{if(i<p.rows.length-1)[p.rows[i+1],p.rows[i]]=[p.rows[i],p.rows[i+1]];}),
+    b('✕','Eliminar fila',()=>p.rows.splice(i,1)));
+  return t;
+}
+/* La página tiene alto fijo y no reflowea: si la tabla no cabe se recortaría en
+   silencio al imprimir. Se encoge el cuerpo hasta que entra. */
+function fitTables(){
+  document.querySelectorAll('.page.pg-tabla').forEach(pg=>{
+    const body=pg.querySelector('.tbl-body'), pie=pg.querySelector('.tbl-foot');
+    if(!body||!pie)return;
+    body.style.fontSize='';
+    let fs=parseFloat(getComputedStyle(body).fontSize), n=0;
+    while(body.getBoundingClientRect().bottom>pie.getBoundingClientRect().top-1&&fs>3&&n++<120){
+      fs-=0.25;body.style.fontSize=fs.toFixed(2)+'px';
+    }
+  });
 }
 
 function renderList(){
@@ -568,7 +692,7 @@ function renderList(){
   state.pages.forEach((p,idx)=>{
     const t=TYPES[p.type];
     const div=document.createElement('div');div.className='pitem';div.dataset.id=p.id;
-    const firstText=Object.values(p.d)[Object.keys(p.d).findIndex(k=>['title','name','big','contact'].includes(k))]??Object.values(p.d)[0]??'';
+    const firstText=Object.values(p.d)[Object.keys(p.d).findIndex(k=>['title','name','big','sec','contact'].includes(k))]??Object.values(p.d)[0]??'';
     div.innerHTML=`<div class="pt">${idx+1} · ${t.name}</div><div class="pn">${String(firstText).replace(/<[^>]*>/g,' ')||'—'}</div>`;
     const acts=document.createElement('div');acts.className='acts';
     [['↑','Subir',()=>move(idx,-1)],['↓','Bajar',()=>move(idx,1)],['⧉','Duplicar',()=>dup(idx)],['✕','Eliminar',()=>del(idx)]]
@@ -589,6 +713,13 @@ function del(i){if(!confirm('¿Eliminar la página '+(i+1)+'?'))return;const pid
 
 /* ---------- edición de textos de plantilla ---------- */
 $pages.addEventListener('input',e=>{
+  const rEl=e.target.closest('[data-r]');            // celda de tabla
+  if(rEl){
+    const page=rEl.closest('.page');const p=state.pages.find(x=>x.id===page.dataset.id);
+    const [i,campo]=rEl.dataset.r.split('.');
+    if(p&&p.rows[i]){p.rows[i][campo]=rEl.innerHTML;persist();}
+    return;
+  }
   const el=e.target.closest('[data-e]');
   if(el){
     const page=el.closest('.page');const p=state.pages.find(x=>x.id===page.dataset.id);
