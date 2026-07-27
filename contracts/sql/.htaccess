@@ -1,0 +1,2 @@
+# Artefactos de desarrollo (SQL de RLS). La app nunca los pide. Nunca servibles por web.
+Require all denied

@@ -7,10 +7,17 @@ if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'config.php') {
 define('LAWANG_ADMIN', true);
 
 // Password stored as bcrypt hash in .passhash file.
-// Default password: lawang2026 — change it from the admin panel on first login.
+// FALLA CERRADO: si .passhash falta o está vacío NO se recrea con una clave por defecto
+// (antes ponía 'lawang2026', pública en este repo → cualquier wipe del fichero reabría el
+// admin con clave conocida; ya pasó una vez en la migración de dominio). Se responde 500 y
+// se corta. Para provisionar de cero (instalación nueva), sembrar el hash a mano una vez:
+//   php -r "file_put_contents('.passhash', password_hash('LA_QUE_SEA', PASSWORD_BCRYPT));"
 $hashFile = __DIR__ . DIRECTORY_SEPARATOR . '.passhash';
 if (!file_exists($hashFile) || trim(file_get_contents($hashFile)) === '') {
-    file_put_contents($hashFile, password_hash('lawang2026', PASSWORD_BCRYPT));
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => 'Admin not provisioned']);
+    exit;
 }
 define('ADMIN_PASS_HASH', trim(file_get_contents($hashFile)));
 

@@ -1,2 +1,14 @@
 # 302 temporal: /portfolio.html sera la futura pagina de la promotora — ELIMINAR esta linea al crearla
 Redirect 302 /portfolio.html /thecollection.html
+
+# Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
+# (p.ej. sumbahills.lawangproperties.com) cuyo SSL no controlamos aqui; incluirlos podria
+# forzar HTTPS y romperlos. No se toca la CSP existente (la web tiene inline scripts/estilos;
+# una CSP estricta necesitaria nonces y romperia paginas).
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>
