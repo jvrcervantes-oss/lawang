@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260727163621">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260727164544">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -367,24 +367,23 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .lw-cat > span:last-child { transition:transform .4s var(--ease); }
 .lw-cat:hover > span:last-child { transform:translateX(7px); }
 @media(max-width:1024px){ .lw-cat-grid { grid-template-columns:repeat(2,1fr) !important; } }
-/* ── Ficha: MISMO scroll que index.html (petición cliente 24-jul) ──
-   Réplica literal de `.snap` y `#content-sections > section` del index: contenedor con scroll-snap
-   MANDATORY + secciones a pantalla completa que encajan de una en una. `safe center` centra el
-   contenido pero cae a "arriba" (sin recortar) cuando una sección es más alta que la pantalla —
-   equivale a los `justify-content:flex-start` que el index pone a mano en sus secciones largas. */
+/* ── Ficha: scroll continuo ──
+   Hasta el 27-jul esto replicaba el `.snap` del index: scroll-snap MANDATORY + cada sección a
+   pantalla completa, o sea "una sección = un scroll". Fuera (petición cliente 27-jul): la ficha se
+   lee del tirón. Con el snap se va también el min-height:100vh — era lo que estiraba cada sección
+   a pantalla entera y dejaba huecos enormes cuando el contenido no llegaba. Cada sección mide
+   ahora lo que ocupa. El hero SÍ sigue a pantalla completa: es un hero. */
 #pf-overlay { position:fixed; inset:0; z-index:9000; background:var(--bone);
   overflow-y:scroll; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-  scroll-snap-type:y mandatory; scroll-behavior:smooth;
+  scroll-behavior:smooth;
   scrollbar-width:none; -ms-overflow-style:none; }
 #pf-overlay::-webkit-scrollbar{ display:none; }
-@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; scroll-snap-type:y proximity; } }
-/* iOS WebKit: mandatory + smooth chocan (bug Safari) → en táctil manda el snap nativo */
+@media(prefers-reduced-motion:reduce){ #pf-overlay{ scroll-behavior:auto; } }
 @media(hover:none){ #pf-overlay{ scroll-behavior:auto; } }
-.pdp-sec{ scroll-snap-align:start; scroll-snap-stop:always; min-height:100vh; min-height:100dvh;
-  display:flex; flex-direction:column; justify-content:safe center;
-  padding-block:clamp(5.5rem,10vh,7rem) clamp(2rem,5vh,3rem); }
+.pdp-sec{ display:flex; flex-direction:column; justify-content:safe center;
+  padding-block:clamp(2.5rem,6vh,4.5rem); }
 .pdp-sec:not(.pdp-hero) > *{ width:100%; }
-.pdp-hero.pdp-sec{ padding:0; }
+.pdp-hero.pdp-sec{ padding:0; min-height:100vh; min-height:100dvh; }
 /* Sección 50/50 a sangre: sin padding, su propio margen la separa */
 .pdp-sec-flush{ padding-block:0; }
 /* Última: otros proyectos + footer (su .wrap trae el espaciado) */
@@ -1045,8 +1044,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260727163621"></script>
-<script src="assets/portfolio-app.js?v=20260727163621-idx"></script>
+<script src="assets/lawang-card.js?v=20260727164544"></script>
+<script src="assets/portfolio-app.js?v=20260727164544-idx"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

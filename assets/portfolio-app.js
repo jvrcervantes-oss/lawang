@@ -833,8 +833,27 @@
     var investmentCalc = p.nightlyRate>0 ? investmentCalcHTML(p,configuredEUR) : "";
     var body = breakdown+paymentPlan+investmentCalc;
     if(!body) return "";  // sin desglose, sin plan de pagos y sin ROI -> no hay nada que mostrar en este bloque
-    var inner=(bare?"":'<div class="kicker" style="margin-bottom:24px">'+t("fin.title")+'</div>')+body;
-    return bare?'<div>'+inner+'</div>':'<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)">'+inner+'</div>';
+    if(bare) return '<div>'+body+'</div>';   // dentro del configurador: es el último paso, ya tiene tarjeta
+    // Propiedad SIN configurador (ni parcelas ni modelos ni extras): el plan de pagos es lo único
+    // que ocupa la columna izquierda. Hasta el 27-jul salía suelto sobre el fondo crema, con un
+    // filete arriba, mientras la columna derecha sí era tarjeta blanca: parecía media ficha sin
+    // terminar. Ahora usa la MISMA tarjeta que el masterplan (.cfg-card + cabecera .cfg-head).
+    // Sin contador de pasos ni total: no hay pasos que contar y el precio ya está en la cabecera
+    // de la ficha, repetirlo aquí sería decir dos veces lo mismo.
+    // El titular se construye con datos reales (nº de plazos y % de la reserva), igual que el del
+    // masterplan sale del nº de parcelas. No se pone t("pay.title") porque el plan ya trae ese
+    // mismo rótulo como subtítulo dentro del cuerpo y quedaría escrito dos veces seguidas.
+    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
+    var head = "";
+    if(steps && steps.length){
+      head = steps.length+" "+tl(steps.length===1?"payment":"payments", steps.length===1?"pago":"pagos")+".";
+      if(steps[0] && steps[0].pct) head += " "+steps[0].pct+"% "+tl("on reservation","en la reserva")+".";
+    }
+    return '<div class="cfg-card">'
+      + '<header class="cfg-head"><div class="cfg-head-l">'
+      +   '<div class="kicker">'+t("fin.title")+'</div>'
+      +   (head?'<h3 class="cfg-title">'+esc(head)+'</h3>':"")+'</div></header>'
+      + '<div class="cfg-step">'+body+'</div></div>';
   }
 
   // Reserva por WhatsApp con el resumen configurado (parcela/modelo/extras/total/depósito)
@@ -1147,37 +1166,34 @@
       return !!nav && (nav.type === "reload" || nav.type === "back_forward");
     } catch(e){ return false; }
   }
-  // Scroll DENTRO de la ficha abierta (overlay). Como es un contenedor con scroll-snap (el visitante
-  // descansa al inicio de una sección), se guarda y restaura por ÍNDICE de sección, no por píxel:
-  //   · el índice siempre cae en un punto de snap, así que el navegador no lo arranca al reactivar
-  //     mandatory (el restore por píxel reenganchaba al borde y en los dobles-render caía a 0);
-  //   · el offsetTop se recalcula sobre el DOM nuevo, así que un cambio de altura no lo descuadra.
+  // Scroll DENTRO de la ficha abierta (overlay). Se guarda la sección en la que está el visitante Y
+  // los píxeles que lleva recorridos DENTRO de ella. Mientras hubo scroll-snap bastaba el índice
+  // (siempre descansaba al principio de una sección); retirado el snap (27-jul) se puede parar en
+  // cualquier punto, y con solo el índice cada re-render le mandaba al principio de la sección.
+  // Píxel puro tampoco vale: al elegir parcela o cambiar de paso, la tarjeta del masterplan cambia
+  // de alto y el mismo píxel deja de ser el mismo sitio. Sección + delta aguanta las dos cosas.
   var OV_SEC_KEY = "lw_pdp_sec";
-  function currentOvSec(ov){
-    // Sección cuyo inicio está MÁS CERCA del scroll actual (no la de arriba a secas): el snap suele
-    // dejar el scroll unos px por debajo del borde, y "la última con offsetTop<=y" recogía la anterior.
-    var secs = ov.querySelectorAll(".pdp-sec"); var y = ov.scrollTop, best = 0, bestD = Infinity;
-    for(var i=0;i<secs.length;i++){ var d = Math.abs(secs[i].offsetTop - y); if(d < bestD){ bestD = d; best = i; } }
-    return best;
+  function currentOvPos(ov){
+    var secs = ov.querySelectorAll(".pdp-sec"); var y = ov.scrollTop, best = 0;
+    for(var i=0;i<secs.length;i++){ if(secs[i].offsetTop <= y + 1) best = i; else break; }
+    return { idx: best, delta: Math.round(y - (secs[best] ? secs[best].offsetTop : 0)) };
   }
   function saveOvSec(ov){
     if(!S.overlay || !ov) return;
-    try { sessionStorage.setItem(OV_SEC_KEY, JSON.stringify({id:S.overlay, idx:currentOvSec(ov)})); } catch(e){}
+    try { var p = currentOvPos(ov); sessionStorage.setItem(OV_SEC_KEY, JSON.stringify({id:S.overlay, idx:p.idx, delta:p.delta})); } catch(e){}
   }
   function savedOvSec(id){
-    try { var o=JSON.parse(sessionStorage.getItem(OV_SEC_KEY)||"null"); return (o&&o.id===id)?o.idx:0; } catch(e){ return 0; }
+    try { var o=JSON.parse(sessionStorage.getItem(OV_SEC_KEY)||"null"); return (o&&o.id===id)?{idx:o.idx||0, delta:o.delta||0}:null; } catch(e){ return null; }
   }
   // El overlay se acaba de recrear con innerHTML: el set SÍNCRONO de scrollTop se lo come el
-  // navegador. Se aplica en el frame siguiente (layout ya hecho) y con el snap apagado un tick para
-  // que mandatory no lo mueva. Sin esto, cambiar de parcela / modelo / pestaña subía la ficha arriba.
-  function restoreOvSec(ov, idx){
-    if(!ov || idx<=0) return;
+  // navegador. Se aplica en el frame siguiente, con el layout ya hecho. Sin esto, cambiar de
+  // parcela / modelo / pestaña subía la ficha arriba.
+  function restoreOvSec(ov, pos){
+    if(!ov || !pos || (pos.idx<=0 && pos.delta<=0)) return;
     requestAnimationFrame(function(){
       var secs = ov.querySelectorAll(".pdp-sec"); if(!secs.length) return;
-      var s = secs[Math.min(idx, secs.length-1)];
-      ov.style.scrollSnapType = "none";
-      ov.scrollTop = s.offsetTop;
-      requestAnimationFrame(function(){ ov.style.scrollSnapType = ""; });
+      var s = secs[Math.min(pos.idx, secs.length-1)];
+      ov.scrollTop = s.offsetTop + pos.delta;
     });
   }
 
@@ -1340,8 +1356,8 @@
     // llega desde el index se empieza arriba, que es lo que espera.
     if(isReloadOrBack()){
       if(S.overlay){
-        var oIdx = savedOvSec(S.overlay);
-        if(oIdx > 0){ var ov = document.getElementById("pf-overlay"); if(ov) restoreOvSec(ov, oIdx); }
+        var oPos = savedOvSec(S.overlay);
+        if(oPos){ var ov = document.getElementById("pf-overlay"); if(ov) restoreOvSec(ov, oPos); }
       } else {
         var y = savedMkScroll();
         if(y > 0) requestAnimationFrame(function(){ window.scrollTo(0, y); });
