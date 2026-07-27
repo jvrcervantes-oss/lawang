@@ -51,15 +51,19 @@ const sb = window.supabase.createClient(
   'https://vtulllundrfennhjddhc.supabase.co',
   'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
 );
+// destino tras entrar: ?next=/ruta/ (solo rutas internas, nunca URL externa)
+const _n = new URLSearchParams(location.search).get('next') || '';
+const DEST = /^\/[^/\\]/.test(_n) ? _n : 'app.html';
+
 // si ya hay sesión válida, ir directo a la app
-sb.auth.getSession().then(({data:{session}})=>{ if(session) location.href='app.html'; });
+sb.auth.getSession().then(({data:{session}})=>{ if(session) location.href=DEST; });
 
 $('#f').addEventListener('submit', async e=>{
   e.preventDefault(); $('#btn').disabled=true; $('#err').textContent='';
   const { error } = await sb.auth.signInWithPassword({
     email: $('#email').value, password: $('#password').value
   });
-  if(!error){ location.href='app.html'; }
+  if(!error){ location.href=DEST; }
   else{ $('#err').textContent = error.message==='Invalid login credentials' ? 'Credenciales incorrectas' : error.message; $('#btn').disabled=false; }
 });
 </script>

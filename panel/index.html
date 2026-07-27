@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Lawang · Herramientas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  /* tokens de marca — mismos que contracts/assets/brand.css */
+  :root{ --tg:#485B37; --dl:#104C4F; --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6;
+         --muted:#6b6c66; --line:#e4ddcf; --card:#fffdf8;
+         --serif:'Cormorant Garamond',serif; --sans:'Jost',sans-serif; }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ font-family:var(--sans); background:var(--rl); color:var(--va); min-height:100vh;
+        display:flex; flex-direction:column; }
+  body[hidden]{ display:none; }
+
+  header{ border-bottom:1px solid var(--line); background:#fffdf8; }
+  .bar{ max-width:1080px; margin:0 auto; padding:20px 24px; display:flex; align-items:center; gap:14px; }
+  .glyph{ width:40px; height:40px; border:1.5px solid var(--tg); border-radius:50%; display:grid; place-items:center;
+          color:var(--tg); font-size:21px; font-weight:600; flex:none; }
+  .bar h1{ font-size:15px; letter-spacing:.18em; text-transform:uppercase; margin:0; font-weight:500; }
+  .bar small{ display:block; font-size:10px; letter-spacing:.26em; color:var(--muted); margin-top:3px; }
+  .spacer{ flex:1; }
+  #who{ font-size:12.5px; color:var(--muted); }
+  #out{ font-family:inherit; font-size:12.5px; color:var(--muted); background:none; border:1px solid var(--line);
+        border-radius:999px; padding:7px 15px; cursor:pointer; }
+  #out:hover{ border-color:var(--tg); color:var(--tg); }
+
+  main{ flex:1; max-width:1080px; width:100%; margin:0 auto; padding:44px 24px 64px; }
+  .lede{ font-family:var(--serif); font-size:30px; font-weight:400; margin:0 0 6px; }
+  .lede + p{ margin:0 0 34px; color:var(--muted); font-size:14px; }
+
+  .grid{ display:grid; gap:18px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+  .tool{ display:flex; flex-direction:column; gap:8px; background:var(--card); border:1px solid var(--line);
+         border-radius:16px; padding:24px 22px 22px; text-decoration:none; color:inherit; min-height:172px;
+         transition:.16s ease; }
+  a.tool:hover{ border-color:var(--tg); transform:translateY(-2px); box-shadow:0 12px 32px rgba(46,52,55,.09); }
+  .tool .ico{ font-size:22px; line-height:1; margin-bottom:4px; }
+  .tool h2{ font-family:var(--serif); font-size:23px; font-weight:600; margin:0; }
+  .tool p{ margin:0; font-size:13.5px; color:var(--muted); line-height:1.5; flex:1; }
+  .tag{ align-self:flex-start; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+        border-radius:999px; padding:4px 10px; }
+  .tag.on{ background:rgba(72,91,55,.11); color:var(--tg); }
+  .tag.wip{ background:rgba(190,179,165,.28); color:#7a6f60; }
+  .tool.soon{ border-style:dashed; background:transparent; }
+  .tool.soon h2{ color:var(--muted); }
+  .slot{ display:grid; place-items:center; border:1px dashed var(--line); border-radius:16px; min-height:172px;
+         color:var(--ss); font-size:12px; letter-spacing:.18em; text-transform:uppercase; }
+</style>
+</head>
+<body hidden>
+  <header>
+    <div class="bar">
+      <div class="glyph">L</div>
+      <div>
+        <h1>Herramientas</h1>
+        <small>LAWANG TROPICAL PROPERTIES</small>
+      </div>
+      <div class="spacer"></div>
+      <span id="who"></span>
+      <button id="out">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="lede">Panel interno</p>
+    <p>Documentos comerciales y de venta de Lawang, en un solo sitio.</p>
+    <div class="grid" id="grid"></div>
+  </main>
+
+<script>
+// Añadir una herramienta = una entrada aquí. `href` vacío = todavía no existe.
+const TOOLS = [
+  { ico:'✒️', name:'Contratos',  desc:'Reservas, PPJB, construcción y anexos. Rellena, firma en pantalla y guarda en base de datos.', href:'/contracts/app.html' },
+  { ico:'📖', name:'Dossier',    desc:'Constructor de dossiers de producto en A4 apaisado, listos para imprimir o enviar.',            href:'/dossier/builder.html' },
+  { ico:'🧾', name:'Facturas',   desc:'Emisión y numeración de facturas.',  href:'' },
+  { ico:'🧮', name:'Recibos',    desc:'Justificantes de pago y señales.',   href:'' },
+];
+
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.getElementById('grid').innerHTML = TOOLS.map(t => {
+  const body = `<div class="ico">${t.ico}</div><h2>${esc(t.name)}</h2><p>${esc(t.desc)}</p>` +
+    (t.href ? '<span class="tag on">Abrir</span>' : '<span class="tag wip">En construcción</span>');
+  return t.href
+    ? `<a class="tool" href="${esc(t.href)}">${body}</a>`
+    : `<div class="tool soon">${body}</div>`;
+}).join('') + '<div class="slot">Próxima herramienta</div>';
+
+// mismo proyecto y key publicable que contracts/login.html — el candado real es RLS
+const sb = window.supabase.createClient(
+  'https://vtulllundrfennhjddhc.supabase.co',
+  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+);
+sb.auth.getSession().then(({data:{session}}) => {
+  if (!session) { location.replace('/contracts/login.html?next=/panel/'); return; }
+  document.getElementById('who').textContent = session.user.email;
+  document.body.hidden = false;
+});
+document.getElementById('out').onclick = async () => {
+  await sb.auth.signOut();
+  location.replace('/contracts/login.html');
+};
+</script>
+</body>
+</html>
