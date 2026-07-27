@@ -81,7 +81,7 @@
     // Revisión cliente 23-jul: el logo de Lawang se queda siempre en el menú (fuera el "‹ The Collection").
     return '<header id="topbar" class="show '+(ghost?'pdp':'solid')+'">'
       + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
-      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Collection',false)+'</nav>'
+      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Portfolio',false)+'</nav>'
       + '<div id="nav-actions">'
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><span>'+langName+'</span><span class="lang-abbr">'+S.lang.toUpperCase()+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
@@ -399,7 +399,10 @@
       // Marco interior de filete (guía). Marca de agua y migas retiradas del hero (revisión
       // cliente 23-jul): las migas viven ahora en la sección de info, bajo el hero.
       + '<span aria-hidden="true" class="pdp-hero-frame"></span>'
-      + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(60px,9vh,100px);max-width:1100px">'
+      // El padding inferior reserva sitio a la fila de caracteristicas, que desde el 27-jul es 3x
+      // mas grande y sube dentro del recuadro: con los 60-100px de antes se solapaba con la linea
+      // de localizacion.
+      + '<div style="position:relative;z-index:2;text-align:center;color:var(--bone);padding:clamp(80px,12vh,140px) clamp(20px,6vw,64px) clamp(170px,23vh,250px);max-width:1100px">'
       +   heroMarkHTML(p)
       +   '<h1 class="display" style="font-size:clamp(46px,8.4vw,104px);font-weight:300;letter-spacing:.06em;text-transform:uppercase;line-height:.96;margin:0">'+esc(pick(p.title))+'</h1>'
       +   '<div style="margin-top:clamp(24px,3.4vh,38px)">'+release+'</div>'

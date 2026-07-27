@@ -6,10 +6,15 @@
 .lw-prop { padding:3px; background:rgba(72,91,55,.05); border:1px solid rgba(72,91,55,.11); border-radius:11px;
   transition:transform .38s cubic-bezier(.16,1,.3,1), box-shadow .38s cubic-bezier(.16,1,.3,1); }
 .lw-prop:hover { transform:translateY(-6px) scale(1.007); box-shadow:0 36px 80px -36px rgba(32,24,15,.48); }
-.lw-prop > a { display:flex; flex-direction:column; height:546px; background:#FDFAF5; border-radius:8px; overflow:hidden; text-decoration:none; color:#2E3437; }
-/* Guía Collection: imagen inset (margen cream + radio propio). La foto es flexible y ABSORBE
-   la variación de texto del body (con suelo de 150px): el precio siempre queda dentro de la card */
-.lw-prop-media { position:relative; flex:1 1 auto; min-height:150px; overflow:hidden; background:#2a2018; margin:8px 8px 0; border-radius:7px; }
+.lw-prop > a { display:flex; flex-direction:column; height:577px; background:#FDFAF5; border-radius:8px; overflow:hidden; text-decoration:none; color:#2E3437; }
+/* Guía Collection: imagen inset (margen cream + radio propio).
+   27-jul: la foto pasa a ALTURA FIJA. Antes era flex:1 1 auto y absorbía la variación de texto del
+   body, así que cada tarjeta enseñaba la foto de un tamaño distinto (medido: 239 a 270 px en la
+   misma fila). Ahora manda la foto y es el body el que flexa; el texto se reserva su altura abajo
+   (título 2 líneas, sub 2 líneas, meta 1) para que el body sea constante y nada se recorte.
+   Alto de tarjeta 546 -> 577 px: la foto se queda en los 270 px de la más grande, no en los 239
+   de la más pequeña. */
+.lw-prop-media { position:relative; flex:0 0 270px; overflow:hidden; background:#2a2018; margin:8px 8px 0; border-radius:7px; }
 .lw-prop-media.ph-jungle { background:radial-gradient(120% 100% at 20% 0%,#8F9B7A 0%,transparent 55%),radial-gradient(120% 120% at 90% 30%,#364429 0%,transparent 60%),linear-gradient(160deg,#485B37 0%,#1e2c14 100%); }
 .lw-prop-media.ph-sunset { background:radial-gradient(120% 90% at 75% 18%,#BEB3A5 0%,transparent 50%),radial-gradient(140% 120% at 20% 80%,#42210B 0%,transparent 60%),linear-gradient(155deg,#6B4A2E 0%,#2E1A08 100%); }
 .lw-prop-media.ph-ocean { background:radial-gradient(120% 100% at 30% 10%,#5A9A9C 0%,transparent 55%),radial-gradient(120% 120% at 85% 80%,#0D3A3D 0%,transparent 60%),linear-gradient(160deg,#104C4F 0%,#082832 100%); }
@@ -28,7 +33,7 @@
   font-family:'Neue Kabel','Jost',sans-serif; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,239,228,.95);
   background:rgba(20,16,11,.32); border:1px solid rgba(245,240,230,.7); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); padding:5px 13px 5px 9px; border-radius:999px; box-shadow:0 4px 14px -4px rgba(20,16,11,.4); }
 .lw-prop-view img { width:auto; height:19px; flex-shrink:0; object-fit:contain; }
-.lw-prop-body { padding:18px 24px 24px; display:flex; flex-direction:column; gap:10px; flex:0 0 auto; }
+.lw-prop-body { padding:18px 24px 24px; display:flex; flex-direction:column; gap:10px; flex:1 1 auto; min-height:0; }
 .lw-prop-loc { font-family:'Neue Kabel','Jost',sans-serif; font-size:12px; font-weight:400; letter-spacing:.06em; text-transform:uppercase; color:#5d6b52; }
 .lw-prop-loc b { font-weight:700; color:#485B37; }
 .lw-prop-pills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
@@ -39,12 +44,14 @@
 .pf-pill.constr { background:#42210B; color:#F5F0E6; border-color:#42210B; }
 .pf-pill.plan { background:transparent; color:#2b2b2b; border-color:#D4CCBA; }
 /* Título uppercase Burnt Earth + sub uppercase Deep Lagoon (guía Collection) */
-/* Título y sub a máx. 2 líneas: acota el body para que la foto nunca baje del suelo de 150px */
+/* Título y sub a EXACTAMENTE 2 líneas (máximo por clamp, mínimo por min-height) y meta a 1: así el
+   body mide siempre lo mismo y la foto de arriba puede tener altura fija. Con 1 sola línea de
+   título queda un hueco reservado — es lo que alinea el sub, la meta y el precio entre tarjetas. */
 .lw-prop-title { font-family:'Neue Kabel','Jost',sans-serif; font-weight:500; font-size:29px; letter-spacing:.04em; text-transform:uppercase; color:#42210B; margin:0; line-height:1.05;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.1em; }
 .lw-prop-sub { font-family:'Neue Kabel','Jost',sans-serif; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#1A1A1A; line-height:1.5; margin:0;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#7B7B7B; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:4px; }
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:3em; }
+.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#7B7B7B; display:flex; align-items:center; gap:10px; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; margin-top:4px; }
 .lw-prop-meta .lw-m { display:inline-flex; align-items:center; gap:5px; font-weight:500; }
 .lw-prop-meta .lw-m b { font-weight:700; }
 .lw-prop-meta .lw-m .lw-mi { width:16px; height:16px; flex-shrink:0; color:#7B7B7B; }

@@ -97,8 +97,7 @@
   --fs-caption:    clamp(12px, 11.65px + 0.09vw, 13px); /* Etiquetas/metadatos   */
 }
 @media(max-width:680px){ :root{ --menu-h:18px; } }
-html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Neue Kabel','Jost',sans-serif;cursor:none}
-@media(hover:none){html,body{cursor:auto}#cursor,#cursor-ring{display:none}}
+html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font-family:'Neue Kabel','Jost',sans-serif}
 
 /* ── SNAP SCROLLER · 1 pantalla = 1 sección (estilo Burger) ── */
 .snap{height:100vh;height:100dvh;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;
@@ -112,8 +111,6 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
    el swipe táctil se queda a medias o no avanza de sección. En touch, dejamos que el snap nativo mande. */
 @media(hover:none){.snap{scroll-behavior:auto}}
 
-#cursor{position:fixed;top:0;left:0;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:100001;will-change:transform}
-#cursor-ring{position:fixed;top:0;left:0;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;border:1px solid rgba(190,179,165,0.4);pointer-events:none;z-index:100000;will-change:transform}
 
 /* ── CINEMATIC STAGE (fixed, always behind) ── */
 #stage{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;z-index:1}
@@ -182,7 +179,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:background .3s,border-color .3s}
 #topbar.solid #nav{background:rgba(255,255,255,.5);border-color:rgba(72,91,55,.28)}
 .nav-link{position:relative;font-family:'Neue Kabel','Jost',sans-serif;font-weight:300;font-size:.64rem;letter-spacing:.13em;
-  color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:none;
+  color:rgba(245,240,230,.92);text-transform:uppercase;text-decoration:none;cursor:pointer;
   transition:color .3s,letter-spacing .3s;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
 .nav-link::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:1.5px;
   background:var(--gold);transform:scaleX(0);transform-origin:center;
@@ -198,7 +195,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 .nav-lang-wrap{position:relative}
 .nav-lang{display:inline-flex;align-items:center;gap:.5rem;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:12px;letter-spacing:.16em;
-  text-transform:uppercase;color:rgba(245,240,230,.78);background:none;border:none;cursor:none;
+  text-transform:uppercase;color:rgba(245,240,230,.78);background:none;border:none;cursor:pointer;
   text-shadow:0 1px 8px rgba(0,0,0,.55);transition:color .3s;white-space:nowrap}
 .nav-lang .globe{width:14px;height:14px;flex:none;opacity:.85}
 .nav-lang .lang-flag{display:inline-flex;flex:none}
@@ -216,7 +213,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 .lang-menu.open{opacity:1;visibility:visible;transform:none}
 .lang-menu li{display:flex;align-items:center;justify-content:space-between;gap:1rem;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;
-  color:rgba(245,240,230,.8);padding:10px 13px;border-radius:9px;cursor:none;transition:background .2s,color .2s}
+  color:rgba(245,240,230,.8);padding:10px 13px;border-radius:9px;cursor:pointer;transition:background .2s,color .2s}
 .lang-menu li:hover{background:rgba(190,179,165,.18);color:#fff}
 .lang-menu li.active{color:var(--gold-light)}
 .lang-menu li.active::after{content:'✓';font-size:.78rem;color:var(--gold)}
@@ -231,7 +228,7 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 .nav-cta{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;
   border:1px solid rgba(245,240,230,.5);height:var(--menu-h);padding:0 18px 0 7px;border-radius:30px;
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:400;font-size:12px;letter-spacing:.14em;
-  color:var(--rl);text-transform:uppercase;cursor:none;
+  color:var(--rl);text-transform:uppercase;cursor:pointer;
   background:transparent;transition:all .35s}
 .nav-cta .wa{width:22px;height:22px;border-radius:50%;background:#25D366;flex:none;
   display:flex;align-items:center;justify-content:center;color:#fff;line-height:1}
@@ -423,7 +420,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   padding:14px 26px;border:1px solid rgba(190,179,165,.55);border-radius:40px;
   background:rgba(20,18,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
   font-family:'Neue Kabel','Jost',sans-serif;font-weight:500;font-size:15px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--rl);text-decoration:none;cursor:none;white-space:nowrap;
+  text-transform:uppercase;color:var(--rl);text-decoration:none;cursor:pointer;white-space:nowrap;
   transition:background .3s,border-color .3s,color .3s,transform .3s}
 /* Textura del botón (lighten 69%) */
 .hero-discover::before{content:"";position:absolute;inset:0;background:url('assets/img/TexturasBotones.png') center/cover;
@@ -485,14 +482,12 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* Nav estilo referencia */
 #nav{transition:background .3s,opacity .3s}
 </style>
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260727162245">
-<script src="assets/lawang-card.js?v=20260727162245" defer></script>
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260727163621">
+<script src="assets/lawang-card.js?v=20260727163621" defer></script>
 </head>
 <body>
 
 
-<div id="cursor"></div>
-<div id="cursor-ring"></div>
 
 <!-- ════════ TOPBAR (fijo, fuera del scroller) ════════ -->
 <header id="topbar" class="show">
@@ -717,17 +712,7 @@ function onScroll() {
 snap.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
-// ── Cursor personalizado ──────────────────────────────────────
-const cur = document.getElementById('cursor');
-const ring = document.getElementById('cursor-ring');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; }, {passive:true});
-(function loop(){
-  cur.style.transform = 'translate3d('+mx+'px,'+my+'px,0)';
-  rx+=(mx-rx)*0.18; ry+=(my-ry)*0.18;
-  ring.style.transform = 'translate3d('+rx+'px,'+ry+'px,0)';
-  requestAnimationFrame(loop);
-})();
+// (cursor personalizado retirado 27-jul: se usa el del sistema)
 
 // ── Magnetic nav CTA ──────────────────────────────────────────
 (function() {
@@ -916,7 +901,7 @@ function applyHomeFeatured(p){
 /* ── Buttons ─────────────────────────────────────────────────── */
 .cs-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 30px;
   font-family:var(--csa); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase;
-  border:1px solid transparent; text-decoration:none; cursor:none;
+  border:1px solid transparent; text-decoration:none; cursor:pointer;
   transition:transform .16s cubic-bezier(.23,1,.32,1), background .22s, color .22s, border-color .22s; }
 .cs-btn:active { transform:scale(.97); }
 .cs-btn .arr { transition:transform .28s cubic-bezier(.16,1,.3,1); }
@@ -977,7 +962,7 @@ function applyHomeFeatured(p){
 /* Botón pill "See all projects" (burnt earth) — más pequeño, centrado con The Collection */
 .lw-pf-viewall { display:inline-flex; align-items:center; gap:.5em; font-family:var(--csa); font-size:13px; font-weight:400;
   letter-spacing:.08em; text-transform:uppercase; color:var(--cb); background:var(--be); text-decoration:none;
-  padding:10px 20px; border-radius:999px; white-space:nowrap; cursor:none; transition:background .2s,transform .2s; }  /* Neue Kabel Book */
+  padding:10px 20px; border-radius:999px; white-space:nowrap; cursor:pointer; transition:background .2s,transform .2s; }  /* Neue Kabel Book */
 .lw-pf-viewall:hover { background:#5c3110; transform:translateY(-1px); }
 .lw-pf-viewall .arr { display:inline-block; transition:transform .25s; }
 .lw-pf-viewall:hover .arr { transform:translateX(4px); }
@@ -1228,9 +1213,11 @@ function applyHomeFeatured(p){
 .lw-ct-italic { font-family:var(--cse); font-style:italic; font-size:calc(var(--fs-body-l) * .8); color:rgba(245,240,230,.7); margin:8px 0 0; }
 .lw-ct-note { font-family:var(--csa); font-size:calc(var(--fs-body-l) * .8); line-height:1.65; color:rgba(245,240,230,.6); max-width:40ch; margin:6px 0 0; }
 .lw-ct-direct { display:flex; flex-wrap:wrap; gap:8px 21px; margin-top:calc(clamp(14px,2vh,20px) * .8); }
-.lw-ct-cti { display:inline-flex; align-items:center; gap:7px; font-family:var(--csa); font-weight:500;
-  font-size:calc(var(--fs-caption) * .8); letter-spacing:.06em; color:rgba(245,240,230,.9); text-decoration:none; cursor:none; transition:color .25s; }
-.lw-ct-cti svg { width:14px; height:14px; flex-shrink:0; color:var(--cal); }
+/* +30% igual que el contacto de la barra inferior (petición cliente 27-jul): son los mismos
+   teléfono y email, en el mismo pie — a distinto cuerpo se leían como dos cosas distintas. */
+.lw-ct-cti { display:inline-flex; align-items:center; gap:9px; font-family:var(--csa); font-weight:500;
+  font-size:calc(var(--fs-caption) * 1.04); letter-spacing:.06em; color:rgba(245,240,230,.9); text-decoration:none; cursor:pointer; transition:color .25s; }
+.lw-ct-cti svg { width:18px; height:18px; flex-shrink:0; color:var(--cal); }
 .lw-ct-cti:hover { color:var(--cb); }
 .lw-ct-form { display:flex; flex-direction:column; gap:1.5rem; }
 .lw-field { font-family:var(--csa); font-size:var(--fs-body); color:var(--cb); background:transparent; border:none;
@@ -1242,7 +1229,7 @@ function applyHomeFeatured(p){
 .lw-ct-faq .cs-faq-item { border-top:1px solid rgba(245,240,230,.16); }
 .lw-ct-faq .cs-faq-item:last-child { border-bottom:1px solid rgba(245,240,230,.16); }
 .lw-ct-faq .faq-q { width:100%; display:flex; align-items:center; justify-content:space-between; gap:14px;
-  background:none; border:none; cursor:none; text-align:left; color:var(--cb);
+  background:none; border:none; cursor:pointer; text-align:left; color:var(--cb);
   font-family:var(--csa); font-weight:500; font-size:calc(var(--fs-body-l) * .8); letter-spacing:.02em; text-transform:uppercase;
   padding:calc(clamp(14px,2vh,20px) * .8) 0; transition:color .25s; }
 .lw-ct-faq .faq-q:hover { color:var(--cal); }
@@ -1263,16 +1250,18 @@ function applyHomeFeatured(p){
 .lw-ft-sub { font-family:var(--csa); font-size:var(--fs-caption); letter-spacing:.3em; text-transform:uppercase; color:var(--css); margin-top:4px; }
 .lw-ft-tag { font-family:var(--csa); font-size:var(--fs-caption); opacity:.5; line-height:1.7; max-width:34ch; margin-top:14px; }
 .lw-ft-col h5 { font-family:var(--csa); font-size:var(--fs-caption); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--cal); margin-bottom:14px; }
-.lw-ft-col a { display:block; font-family:var(--csa); font-size:var(--fs-caption); color:rgba(245,240,230,.72); margin-bottom:10px; transition:color .2s; cursor:none; text-decoration:none; }
+.lw-ft-col a { display:block; font-family:var(--csa); font-size:var(--fs-caption); color:rgba(245,240,230,.72); margin-bottom:10px; transition:color .2s; cursor:pointer; text-decoration:none; }
 .lw-ft-col a:hover { color:#fff; }
 .lw-ft-bottom { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
   max-width:var(--cmx); margin:2.2rem auto 0; padding:1.5rem var(--cpd) 0; border-top:1px solid rgba(245,240,230,.1); position:relative; z-index:1; }
 .lw-ft-copy { font-family:var(--csa); font-size:var(--fs-caption); color:rgba(245,240,230,.4); letter-spacing:.04em; }
 .lw-ft-contact { display:flex; gap:1.6rem; flex-wrap:wrap; align-items:center; }
-.lw-ft-cti { display:inline-flex; align-items:center; gap:8px; font-family:var(--csa); font-size:var(--fs-caption);
-  color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; cursor:none; transition:color .2s; }
+/* Teléfono y email del pie, un 30% más grandes (petición cliente 27-jul): escalados sobre el token
+   --fs-caption en vez de tocarlo, que lo comparten copyright, legales y media docena de bloques. */
+.lw-ft-cti { display:inline-flex; align-items:center; gap:10px; font-family:var(--csa); font-size:calc(var(--fs-caption) * 1.3);
+  color:rgba(245,240,230,.82); text-decoration:none; letter-spacing:.04em; transition:color .2s; }
 .lw-ft-cti:hover { color:#fff; }
-.lw-ft-cti svg { width:15px; height:15px; flex:none; opacity:.9; }
+.lw-ft-cti svg { width:19.5px; height:19.5px; flex:none; opacity:.9; }
 .lw-ft-wrap { background:transparent; padding-bottom:1.8rem; position:relative; z-index:1; }
 .lw-ft-wrap .lw-ft { border-top:none; }
 
@@ -1401,7 +1390,7 @@ function applyHomeFeatured(p){
 .lw-epic-col-p b { font-weight:500; color:#fff; }
 .lw-epic-col-link { display:inline-flex; align-items:center; gap:.5em; margin-top:14px; font-family:var(--csa);
   font-weight:600; font-size:var(--fs-caption); letter-spacing:.14em; text-transform:uppercase; color:#fff;
-  text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:1px; cursor:none;
+  text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:1px; cursor:pointer;
   text-shadow:0 1px 10px rgba(0,0,0,.6); }
 .lw-epic-col-link .arr { transition:transform .25s; }
 .lw-epic-col-link:hover .arr { transform:translateX(4px); }
@@ -1438,7 +1427,7 @@ function applyHomeFeatured(p){
 .lw-feat-track::-webkit-scrollbar { display:none; }
 .lw-feat-track > .lw-feat-grid { flex:0 0 100%; scroll-snap-align:start; }
 .lw-feat-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:5; width:56px; height:56px;
-  border-radius:999px; display:grid; place-items:center; cursor:none; border:1px solid rgba(72,91,55,.22);
+  border-radius:999px; display:grid; place-items:center; cursor:pointer; border:1px solid rgba(72,91,55,.22);
   background:rgba(245,240,230,.94); color:#485B37; font-family:var(--csa); font-size:22px; font-weight:700; line-height:1;
   box-shadow:0 18px 40px -18px rgba(32,24,15,.4); transition:background .25s,color .25s; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
 .lw-feat-arrow:hover { background:var(--ca); color:var(--cb); }
@@ -1465,7 +1454,7 @@ function applyHomeFeatured(p){
 .lw-feat-media .lw-feat-arrow.prev { left:14px; }
 .lw-feat-media .lw-feat-arrow.next { right:14px; }
 .lw-feat-dots { position:absolute; z-index:4; right:20px; bottom:20px; display:flex; gap:7px; }
-.lw-feat-dots button { width:20px; height:20px; padding:0; border:6px solid transparent; background-clip:padding-box; border-radius:50%; background-color:rgba(245,240,230,.5); cursor:none; transition:background-color .25s, transform .25s; }
+.lw-feat-dots button { width:20px; height:20px; padding:0; border:6px solid transparent; background-clip:padding-box; border-radius:50%; background-color:rgba(245,240,230,.5); cursor:pointer; transition:background-color .25s, transform .25s; }
 .lw-feat-dots button.active { background-color:#fff; transform:scale(1.25); }
 .lw-feat-card-btns { display:flex; gap:14px; margin-top:clamp(14px,2.4vh,22px); flex-wrap:wrap; justify-content:center; }
 /* "Download Dossier": botón hueso invisible sobre lino → outline oscuro */
@@ -1480,14 +1469,14 @@ function applyHomeFeatured(p){
 .lw-ct-italic.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-style:italic; font-weight:300; }
 .lw-ft-logo-img { height:34px; width:auto; display:block; }
 .lw-ft-tc { font-family:var(--csa); font-size:var(--fs-caption); font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-  color:rgba(245,240,230,.72); text-decoration:none; cursor:none; padding:9px 18px; border:1px solid rgba(245,240,230,.22);
+  color:rgba(245,240,230,.72); text-decoration:none; cursor:pointer; padding:9px 18px; border:1px solid rgba(245,240,230,.22);
   border-radius:999px; transition:all .25s; }
 .lw-ft-tc:hover { color:#0A0C09; background:var(--cb); border-color:var(--cb); }
 
 /* ── WhatsApp flotante (sticky, aparece al scrollear; hover → Monito) ── */
 #wa-float { position:fixed; right:clamp(16px,2.4vw,28px); bottom:clamp(16px,2.4vw,28px); z-index:9000;
   height:58px; border-radius:999px; background:#25D366; display:inline-flex; align-items:center;
-  filter:drop-shadow(0 10px 24px rgba(18,80,40,.42)); cursor:none; text-decoration:none;
+  filter:drop-shadow(0 10px 24px rgba(18,80,40,.42)); cursor:pointer; text-decoration:none;
   opacity:0; visibility:hidden; transform:translateY(16px) scale(.85);
   transition:opacity .35s ease, transform .35s cubic-bezier(.16,1,.3,1), visibility .35s, background .3s; }
 #wa-float.show { opacity:1; visibility:visible; transform:translateY(0) scale(1);
@@ -1519,10 +1508,10 @@ function applyHomeFeatured(p){
   width:min(720px,92vw); max-height:86vh; display:flex; flex-direction:column; background:var(--rl); color:var(--va);
   border-radius:16px; overflow:hidden; box-shadow:0 40px 100px -30px rgba(0,0,0,.7); }
 .legal-close { position:absolute; top:14px; right:16px; z-index:2; width:38px; height:38px; border-radius:999px; border:none;
-  background:rgba(46,52,55,.08); color:var(--va); font-size:24px; line-height:1; cursor:none; transition:background .2s; }
+  background:rgba(46,52,55,.08); color:var(--va); font-size:24px; line-height:1; cursor:pointer; transition:background .2s; }
 .legal-close:hover { background:rgba(46,52,55,.18); }
 .legal-tabs { display:flex; gap:6px; padding:20px clamp(20px,4vw,40px) 0; flex-wrap:wrap; }
-.legal-tab { background:none; border:none; cursor:none; font-family:var(--csa); font-weight:600; font-size:var(--fs-caption);
+.legal-tab { background:none; border:none; cursor:pointer; font-family:var(--csa); font-weight:600; font-size:var(--fs-caption);
   letter-spacing:.1em; text-transform:uppercase; color:rgba(46,52,55,.5); padding:8px 0; border-bottom:2px solid transparent; transition:color .2s,border-color .2s; }
 .legal-tab.active { color:var(--tg); border-color:var(--tg); }
 .legal-tab + .legal-tab { margin-left:22px; }

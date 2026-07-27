@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260727162245">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260727163621">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -487,9 +487,12 @@ article:hover .view-cta { gap:9px; }
 #topbar.pdp .nav-cta svg{ display:none }
 #topbar.pdp.solid{ background:rgba(247,244,239,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); box-shadow:0 1px 0 rgba(190,179,165,.3); }
 
-/* ── Ficha: hero de la guía — marco de filete interior + marca de agua "The Collection" ── */
-.pdp-hero-frame{ position:absolute; top:clamp(74px,9.5vh,108px); left:clamp(20px,2.8vw,54px); right:clamp(20px,2.8vw,54px); bottom:0;
-  border:1px solid rgba(245,240,230,.3); border-bottom:0; border-radius:10px 10px 0 0; pointer-events:none; z-index:1 }
+/* ── Ficha: hero de la guía — marco de filete interior ──
+   27-jul: el marco pasa a ser un RECUADRO cerrado. Antes iba a bottom:0 y sin borde inferior, así
+   que se salía por abajo de la pantalla y se leía como dos líneas sueltas, no como un marco. */
+.pdp-hero-frame{ position:absolute; top:clamp(74px,9.5vh,108px); left:clamp(20px,2.8vw,54px); right:clamp(20px,2.8vw,54px);
+  bottom:clamp(20px,2.8vw,54px);
+  border:1px solid rgba(245,240,230,.3); border-radius:10px; pointer-events:none; z-index:1 }
 /* (marca de agua "The Collection" del hero retirada — revisión cliente 23-jul) */
 /* ── Isotipo real de marca (assets/img/isotipo.png, blanco sobre transparente) ──────────────
    Va como MÁSCARA en vez de <img> para que tome el color del contexto: crema sobre el hero y
@@ -500,14 +503,19 @@ article:hover .view-cta { gap:9px; }
 /* La ficha respira más ancho que el marketplace (en la guía el contenido casi toca los bordes y
    solo el footer se queda en 1280) — de ahí un contenedor propio en vez de tocar --wrap global. */
 .pdp-wrap{ max-width:1760px }
-/* ── Ficha: fila de características al pie del hero (habitaciones, baños, piscina…) ── */
-.pdp-hero-feats{ position:absolute; left:0; right:0; bottom:clamp(16px,2.8vh,30px); z-index:2;
-  display:flex; flex-wrap:wrap; justify-content:center; row-gap:6px; padding:0 clamp(16px,4vw,60px);
-  color:var(--bone); font-family:var(--sans); font-weight:500; font-size:clamp(10.5px,1vw,13px);
-  letter-spacing:.2em; text-transform:uppercase; }
-.pdp-hero-feats span{ display:inline-flex; align-items:center; gap:8px; padding:0 clamp(10px,1.5vw,20px); white-space:nowrap; }
-.pdp-hero-feats span + span{ border-left:1px solid rgba(245,240,230,.4); }
-.pdp-hero-feats svg{ width:16px; height:16px; flex:none; opacity:.9; }
+/* ── Ficha: fila de características al pie del hero (habitaciones, baños, piscina…) ──
+   27-jul: x3 de tamaño (13 -> 39 px), centradas y despegadas del borde inferior, dentro del
+   recuadro. Los filetes verticales que las separaban desaparecen: a este cuerpo la fila se parte
+   en dos líneas y una raya a media altura entre bloques enormes se lee como un error. El tracking
+   baja de .2em a .07em — a 39px, .2em son casi 8px de aire entre letras y rompe la palabra.
+   Iconos y espaciados en em para que escalen con el texto en vez de quedarse minúsculos. */
+.pdp-hero-feats{ position:absolute; left:0; right:0; bottom:clamp(64px,11vh,132px); z-index:2;
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center; row-gap:.35em;
+  padding:0 clamp(34px,6vw,90px);
+  color:var(--bone); font-family:var(--sans); font-weight:500; font-size:clamp(22px,3vw,39px);
+  letter-spacing:.07em; line-height:1.1; text-transform:uppercase; text-shadow:0 2px 18px rgba(20,16,11,.5); }
+.pdp-hero-feats span{ display:inline-flex; align-items:center; gap:.4em; padding:0 .55em; white-space:nowrap; }
+.pdp-hero-feats svg{ width:.86em; height:.86em; flex:none; opacity:.9; }
 /* ── Ficha: lightbox de la galería (click en foto = ampliar) ── */
 .pdp-lb{ position:fixed; inset:0; z-index:400; background:rgba(20,16,11,.93); display:flex; align-items:center; justify-content:center; }
 .pdp-lb-media img,.pdp-lb-media video{ display:block; max-width:92vw; max-height:86vh; border-radius:6px;
@@ -1037,8 +1045,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260727162245"></script>
-<script src="assets/portfolio-app.js?v=20260727162245-idx"></script>
+<script src="assets/lawang-card.js?v=20260727163621"></script>
+<script src="assets/portfolio-app.js?v=20260727163621-idx"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
