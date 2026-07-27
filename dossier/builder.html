@@ -44,6 +44,9 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .sbtn{font:600 13px var(--sans);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;min-width:32px;height:30px;cursor:pointer;transition:.12s}
 .sbtn:hover{border-color:var(--tg);color:var(--tg)}
 .sbtn.on{background:var(--tg);border-color:var(--tg);color:#fff}
+.sbtn.wide{padding:0 13px}
+#seltools .tplname{font:600 12.5px var(--sans);color:var(--tg);margin-right:4px}
+#seltools .tplhint{font-size:12px;color:#a49c8c}
 .sw{width:20px;height:20px;border-radius:50%;border:1.5px solid #00000022;cursor:pointer;padding:0}
 
 #sidebar{position:fixed;top:54px;left:0;bottom:0;width:250px;background:var(--card);border-right:1px solid var(--line);overflow-y:auto;padding:12px;z-index:40}
@@ -99,9 +102,11 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .page [data-e][contenteditable]:focus{box-shadow:inset 0 0 0 1.5px var(--tg)}
 .slot{position:relative;cursor:pointer;background-size:cover;background-position:center;background-color:#e7e1d2}
 .slot.empty::before{content:"+ Imagen";position:absolute;inset:0;display:grid;place-items:center;font:600 15px var(--sans);color:#a49c8c;border:2px dashed #cfc7b4;letter-spacing:1px}
-.slot .rm{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(32,36,31,.72);color:#fff;font-size:13px;cursor:pointer;display:none;z-index:5}
-.slot:hover .rm{display:block}
-.slot.empty .rm{display:none}
+.slot .rm,.slot .up{position:absolute;top:8px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(32,36,31,.72);color:#fff;font-size:13px;cursor:pointer;display:none;z-index:5}
+.slot .rm{right:8px}
+.slot .up{right:38px;font-size:14px}
+.slot:hover .rm,.slot:hover .up{display:block}
+.slot.empty .rm,.slot.empty .up{display:none}
 /* hueco de logo: como un slot normal pero contain y sin fondo */
 .slot.logoslot{background-size:contain;background-repeat:no-repeat;background-position:center;background-color:transparent}
 .slot.logoslot.empty::before{content:"+ Logo";font-size:12px;border-width:1.5px}
@@ -113,7 +118,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .free{position:absolute;z-index:10;cursor:grab}
 .free:active{cursor:grabbing}
 .free.kind-text{min-height:5mm;white-space:pre-wrap;word-break:break-word}
-.free.kind-img{background-size:cover;background-position:center}
+.free.kind-img{background-size:cover;background-repeat:no-repeat;background-position:center}
 .free.sel{outline:1.5px dashed var(--tg);outline-offset:1px}
 .free .rs{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:var(--tg);border:2px solid #fff;cursor:nwse-resize;display:none;z-index:12}
 .free.sel .rs{display:block}
@@ -221,7 +226,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 /* ============ impresión ============ */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  #topbar,#sidebar,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.free .rs,.guides{display:none!important}
+  #topbar,#sidebar,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.slot .up,.free .rs,.guides{display:none!important}
   #stage{margin:0;padding:0}
   #pages{zoom:1}
   .sheetwrap{margin:0;width:auto}
@@ -256,6 +261,11 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 
 <!-- barra contextual del elemento libre seleccionado -->
 <div id="seltools">
+  <span data-for="tpl">
+    <b class="tplname">Elemento de plantilla</b>
+    <button class="sbtn wide" onclick="unpinTpl()" title="Sacarlo de la maqueta: pasa a moverse, girar, redimensionarse y borrarse como cualquier otro elemento">✥ Liberar</button>
+    <span class="tplhint">— libéralo para poder moverlo</span>
+  </span>
   <span data-for="text">
     <select id="st_font"><option value="sans">Jost</option><option value="serif">Cormorant</option></select>
     <input type="number" id="st_size" min="6" max="300" step="1" title="Tamaño (px)">
@@ -269,12 +279,18 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
     <label>Interl.</label><input type="number" id="st_lh" min=".7" max="3" step=".1" title="Interlineado">
   </span>
   <span data-for="rect"><label>Relleno</label><input type="color" id="st_fill"></span>
+  <span data-for="img"><label>Encaje</label>
+    <select id="st_fit" title="Rellenar recorta para cubrir el marco · Ajustar muestra la imagen entera (lo que necesita un logo)">
+      <option value="cover">Rellenar</option><option value="contain">Ajustar</option></select>
+  </span>
   <span data-for="imgrect"><label>Opacidad</label><input type="number" id="st_op" min="5" max="100" step="5"></span>
-  <label>Giro</label><input type="number" id="st_rot" min="-180" max="180" step="1" title="Rotación (grados)">
-  <button class="sbtn" onclick="layerSel(1)" title="Traer al frente">⬆</button>
-  <button class="sbtn" onclick="layerSel(-1)" title="Enviar atrás">⬇</button>
-  <button class="sbtn" onclick="dupSel()" title="Duplicar">⧉</button>
-  <button class="sbtn" onclick="delSel()" title="Eliminar (Supr)">🗑</button>
+  <span data-for="free">
+    <label>Giro</label><input type="number" id="st_rot" min="-180" max="180" step="1" title="Rotación (grados)">
+    <button class="sbtn" onclick="layerSel(1)" title="Traer al frente">⬆</button>
+    <button class="sbtn" onclick="layerSel(-1)" title="Enviar atrás">⬇</button>
+    <button class="sbtn" onclick="dupSel()" title="Duplicar">⧉</button>
+    <button class="sbtn" onclick="delSel()" title="Eliminar (Supr)">🗑</button>
+  </span>
 </div>
 
 <div id="sidebar">
@@ -288,7 +304,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 <div id="modal" onclick="if(event.target===this)closeModal()">
   <div class="box">
     <h2>Añadir página</h2>
-    <p>Elige un punto de partida. Todo es editable: textos con clic, imágenes en su hueco, y encima puedes añadir textos, imágenes y bloques libres (arrastrar, girar, redimensionar). La «Blanca» es lienzo puro.</p>
+    <p>Elige un punto de partida. Nada queda fijo: los textos se editan con clic, las imágenes se cambian en su hueco, y cualquier elemento de la maqueta —incluido el logo— se saca de ella con <b>✥ Liberar</b> para moverlo, girarlo y redimensionarlo a mano. Encima puedes añadir textos, imágenes y bloques libres. La «Blanca» es lienzo puro.</p>
     <div id="typegrid"></div>
   </div>
 </div>
@@ -513,8 +529,11 @@ function render(){
       el.style.backgroundImage=src?`url(${src})`:'';
       const rm=document.createElement('button');rm.className='rm';rm.textContent='✕';rm.title='Quitar imagen';
       rm.onclick=e=>{e.stopPropagation();p.img[el.dataset.i]='';render();persist();};
-      el.appendChild(rm);
-      el.onclick=e=>{if(e.target===rm)return;pickImage(cb=>{p.img[el.dataset.i]=cb;render();persist();});};
+      const up=document.createElement('button');up.className='up';up.textContent='✥';
+      up.title='Liberar: sacarla de la maqueta para moverla, girarla y redimensionarla a mano';
+      up.onclick=e=>{e.stopPropagation();unpinTpl(p,el);};
+      el.append(up,rm);
+      el.onclick=e=>{if(e.target===rm||e.target===up)return;pickImage(cb=>{p.img[el.dataset.i]=cb;render();persist();});};
     });
     // elementos libres
     p.free.forEach(f=>page.appendChild(freeNode(p,f)));
@@ -532,7 +551,9 @@ function render(){
     }
     page.addEventListener('pointerdown',e=>{
       setCur(p.id);
-      if(!e.target.closest('.free'))deselect();
+      if(e.target.closest('.free'))return;
+      const t=e.target.closest('[data-e]');       // texto de plantilla: ofrecer "Liberar"
+      if(t)selectTpl(p,t); else deselect();
     });
     wrap.append(label,page);$pages.appendChild(wrap);
   });
@@ -607,7 +628,7 @@ function freeDefaults(kind){
   if(kind==='text')return {kind,x:cx-45,y:cy-6,w:90,html:'Doble clic para editar',
     style:{font:'sans',size:20,weight:400,italic:0,upper:0,color:'#2E3437',align:'left',ls:0,lh:1.4,rot:0,op:100}};
   if(kind==='rect')return {kind,x:cx-40,y:cy-20,w:80,h:40,style:{fill:'#485B37',rot:0,op:100}};
-  return {kind,x:cx-50,y:cy-35,w:100,h:70,style:{rot:0,op:100}};
+  return {kind,x:cx-50,y:cy-35,w:100,h:70,style:{rot:0,op:100,fit:'cover'}};
 }
 function addFree(kind){
   const p=state.pages.find(x=>x.id===curPage)||state.pages[0];
@@ -656,6 +677,7 @@ function applyFreeStyle(node,f){
     node.style.lineHeight=s.lh||1.4;
   }
   if(f.kind==='rect')node.style.background=s.fill||'#485B37';
+  if(f.kind==='img')node.style.backgroundSize=s.fit||'cover';
 }
 function findFree(node){
   const page=node.closest('.page');
@@ -677,18 +699,80 @@ function deselect(){
     if(sel.node.isContentEditable){sel.node.contentEditable=false;}
     sel.node.classList.remove('sel');
   }
-  sel=null;hideTools();
+  sel=null;tplSel=null;hideTools();
+}
+
+/* ================= LIBERAR ELEMENTOS DE PLANTILLA =================
+   Regla del dueño: nada puede quedar fijo. Las maquetas colocan sus textos e
+   imágenes con CSS, así que no se arrastran; "Liberar" las saca de la maqueta y
+   las convierte en un elemento libre en su MISMA posición, tamaño y aspecto.
+   A partir de ahí se mueve, gira, redimensiona, se pone en capas y se borra. */
+let tplSel=null; /* {p,node} */
+const rgb2hex=c=>{
+  const m=(c||'').match(/\d+/g);
+  return m?'#'+m.slice(0,3).map(n=>(+n).toString(16).padStart(2,'0')).join(''):'#2E3437';
+};
+function selectTpl(p,node){
+  deselect();
+  tplSel={p,node};
+  $tools.querySelector('.tplname').textContent='Plantilla · '+(node.dataset.e||'');
+  showTools();
+}
+function unpinTpl(p,node){
+  if(!p){if(!tplSel)return;p=tplSel.p;node=tplSel.node;}
+  const isImg=node.dataset.i!=null, key=isImg?node.dataset.i:node.dataset.e;
+  if(isImg&&!p.img[key]){toast('Ese hueco está vacío: ponle una imagen antes de liberarla');return;}
+  if(!isImg&&!node.innerHTML.trim()){toast('Ese texto está vacío: escríbelo antes de liberarlo');return;}
+
+  // medir con el zoom del editor a 1: si no, el tamaño de fuente heredado sale escalado
+  const root=document.documentElement, z0=root.style.getPropertyValue('--zoom');
+  root.style.setProperty('--zoom','1');
+  const page=node.closest('.page');
+  const pr=page.getBoundingClientRect(), r=node.getBoundingClientRect(), cs=getComputedStyle(node);
+  const k=pr.width/state.size.w;                     // px CSS por mm (sin zoom)
+  const box={x:mm2((r.left-pr.left)/k),y:mm2((r.top-pr.top)/k),w:mm2(r.width/k),h:mm2(r.height/k)};
+  const st={fontSize:parseFloat(cs.fontSize)||20, lineHeight:parseFloat(cs.lineHeight),
+    family:cs.fontFamily, weight:parseInt(cs.fontWeight)||400, style:cs.fontStyle,
+    transform:cs.textTransform, color:cs.color, align:cs.textAlign,
+    ls:parseFloat(cs.letterSpacing)||0, bgSize:cs.backgroundSize};
+  if(z0)root.style.setProperty('--zoom',z0); else root.style.removeProperty('--zoom');
+
+  const f={id:'f'+(uid++),x:box.x,y:box.y,w:box.w};
+  if(isImg){
+    f.kind='img';f.h=box.h;f.src=p.img[key];
+    f.style={rot:0,op:100,fit:st.bgSize.includes('contain')?'contain':'cover'};
+    p.img[key]='';
+  }else{
+    f.kind='text';f.html=node.innerHTML;
+    f.style={font:/Cormorant/.test(st.family)?'serif':'sans',
+      size:Math.round(st.fontSize), weight:st.weight,
+      italic:st.style==='italic'?1:0, upper:st.transform==='uppercase'?1:0,
+      color:rgb2hex(st.color), align:st.align==='start'?'left':(st.align||'left'),
+      ls:Math.round(st.ls*10)/10,
+      lh:st.lineHeight?Math.round(st.lineHeight/st.fontSize*100)/100:1.4,
+      rot:0, op:100};
+    p.d[key]='';
+  }
+  p.free.push(f);tplSel=null;
+  render();persist();selectById(p.id,f.id);
+  toast('Liberado ✓ ya se mueve, gira, redimensiona y borra');
 }
 
 /* ---------- barra contextual ---------- */
 const $tools=document.getElementById('seltools');
 function showTools(){
-  const f=sel.f,s=f.style;
   $tools.classList.add('on');
+  if(!sel){   // modo plantilla: solo se ofrece Liberar
+    $tools.querySelectorAll('[data-for]').forEach(el=>
+      el.style.display=el.dataset.for==='tpl'?'inline-flex':'none');
+    return;
+  }
+  const f=sel.f,s=f.style;
   $tools.querySelectorAll('[data-for]').forEach(el=>{
     const k=el.dataset.for;
-    el.style.display=(k===f.kind||(k==='imgrect'&&f.kind!=='text'))?'inline-flex':'none';
+    el.style.display=(k===f.kind||k==='free'||(k==='imgrect'&&f.kind!=='text'))?'inline-flex':'none';
   });
+  if(f.kind==='img')st_fit.value=s.fit||'cover';
   if(f.kind==='text'){
     st_font.value=s.font||'sans';st_size.value=s.size||20;st_weight.value=s.weight||400;
     st_italic.classList.toggle('on',!!s.italic);st_upper.classList.toggle('on',!!s.upper);
@@ -709,6 +793,7 @@ st_upper.onclick=()=>{updSel(s=>s.upper=s.upper?0:1);st_upper.classList.toggle('
 st_color.oninput=()=>updSel(s=>s.color=st_color.value);
 st_fill.oninput=()=>updSel(s=>s.fill=st_fill.value);
 st_op.oninput=()=>updSel(s=>s.op=+st_op.value);
+st_fit.onchange=()=>updSel(s=>s.fit=st_fit.value);
 st_rot.oninput=()=>updSel(s=>s.rot=+st_rot.value);
 st_ls.oninput=()=>updSel(s=>s.ls=+st_ls.value);
 st_lh.oninput=()=>updSel(s=>s.lh=+st_lh.value);
