@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Firmar documento · Lawang Tropical Properties</title>
+<style>
+  :root{ --tg:#485B37; --dl:#104C4F; --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --paper:#fff; --r:14px; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Jost',system-ui,-apple-system,Segoe UI,sans-serif;color:var(--va);
+       background:var(--rl);line-height:1.5;-webkit-text-size-adjust:100%}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 64px}
+  header.top{display:flex;align-items:center;gap:12px;padding:6px 2px 18px}
+  .brand{font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-size:15px;color:var(--tg)}
+  .brand small{display:block;font-weight:400;letter-spacing:.28em;font-size:9.5px;color:#8F9B7A;margin-top:2px}
+  h1{font-size:19px;font-weight:600;margin:0 0 4px}
+  .sub{color:#6b6c66;font-size:13px;margin-bottom:16px}
+  .card{background:var(--paper);border:1px solid #e7e1d5;border-radius:var(--r);overflow:hidden}
+  .doc-frame{width:100%;height:62vh;min-height:360px;border:0;display:block;background:#fff}
+  .panel{margin-top:18px;background:var(--paper);border:1px solid #e7e1d5;border-radius:var(--r);padding:18px}
+  label{display:block;font-size:12.5px;font-weight:600;margin:0 0 6px;color:var(--va)}
+  input[type=text]{width:100%;padding:11px 12px;border:1px solid #d8d2c4;border-radius:10px;font:inherit;background:#fff}
+  .sigwrap{margin-top:14px;position:relative;border:1px dashed #b9b1a0;border-radius:12px;background:#fffef9;
+           height:180px;touch-action:none;overflow:hidden}
+  .sigwrap canvas{width:100%;height:100%;display:block;cursor:crosshair}
+  .sigwrap .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+               color:#c4bcab;font-size:14px;pointer-events:none;letter-spacing:.05em}
+  .sigwrap.drawn .ph{display:none}
+  .sigrow{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .link{background:none;border:0;color:var(--tg);font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;padding:4px}
+  .accept{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-size:13px;color:var(--va)}
+  .accept input{margin-top:3px;width:18px;height:18px;flex:none}
+  .btn{margin-top:18px;width:100%;padding:14px;border:0;border-radius:12px;background:var(--tg);color:#fff;
+       font:inherit;font-weight:600;font-size:15px;letter-spacing:.02em;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .msg{padding:40px 20px;text-align:center}
+  .msg .big{font-size:40px;margin-bottom:10px}
+  .msg h2{margin:0 0 6px;font-size:20px}
+  .msg p{color:#6b6c66;margin:0}
+  .hide{display:none!important}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--va);color:#fff;
+         padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;transition:.2s;z-index:20;max-width:90vw}
+  .toast.show{opacity:1}
+  @media(max-width:520px){ .doc-frame{height:54vh} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Lawang<small>Tropical Properties</small></div>
+  </header>
+
+  <!-- estado: cargando -->
+  <div id="loading" class="card"><div class="msg"><div class="big">…</div><p>Cargando documento… / Loading…</p></div></div>
+
+  <!-- estado: error -->
+  <div id="error" class="card hide"><div class="msg"><div class="big">⚠️</div><h2 id="errTitle">Enlace no válido</h2><p id="errMsg"></p></div></div>
+
+  <!-- estado: firma -->
+  <div id="signview" class="hide">
+    <h1 id="docTitle">Documento para firmar</h1>
+    <div class="sub" id="docSub">Revisa el documento y firma abajo. / Review the document and sign below.</div>
+    <div class="card">
+      <iframe id="docFrame" class="doc-frame" sandbox="allow-same-origin" title="Documento"></iframe>
+    </div>
+
+    <div class="panel">
+      <label for="fName">Nombre completo / Full name</label>
+      <input type="text" id="fName" autocomplete="name" placeholder="Tu nombre / Your name">
+
+      <label style="margin-top:14px">Firma / Signature</label>
+      <div class="sigwrap" id="sigwrap">
+        <canvas id="sig"></canvas>
+        <div class="ph">Firma aquí con el dedo o el ratón · Sign here</div>
+      </div>
+      <div class="sigrow">
+        <span style="font-size:12px;color:#8F9B7A">Firma electrónica remota</span>
+        <button class="link" id="clearSig" type="button">Borrar / Clear</button>
+      </div>
+
+      <label class="accept"><input type="checkbox" id="accept">
+        <span>He leído el documento y acepto su contenido. / I have read the document and accept its content.</span></label>
+
+      <button class="btn" id="signBtn" disabled>Firmar y enviar / Sign &amp; submit</button>
+    </div>
+  </div>
+
+  <!-- estado: firmado -->
+  <div id="done" class="card hide"><div class="msg"><div class="big">✅</div>
+    <h2>Documento firmado</h2>
+    <p>Gracias. Tu firma se ha registrado correctamente.<br>Thank you. Your signature has been recorded.</p></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+const ANON = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
+const FN = SUPABASE_URL + '/functions/v1/';
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+
+const $ = s => document.querySelector(s);
+function show(id){ for(const k of ['loading','error','signview','done']) $('#'+k).classList.toggle('hide', k!==id); }
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
+function fail(title,msg){ $('#errTitle').textContent=title; $('#errMsg').textContent=msg||''; show('error'); }
+
+async function callFn(name, body){
+  const r = await fetch(FN+name, { method:'POST',
+    headers:{ 'content-type':'application/json', 'apikey':ANON, 'authorization':'Bearer '+ANON },
+    body: JSON.stringify(body) });
+  const d = await r.json().catch(()=>({error:'respuesta'}));
+  return { ok:r.ok, status:r.status, d };
+}
+const ERR = {
+  no_encontrado:['Enlace no válido','Este enlace de firma no existe. / This signing link does not exist.'],
+  expirado:['Enlace caducado','Este enlace ha caducado. Pide uno nuevo. / This link has expired. Please request a new one.'],
+  ya_firmado:['Ya firmado','Este documento ya fue firmado. / This document was already signed.'],
+  no_disponible:['No disponible','Este enlace ya no está disponible. / This link is no longer available.'],
+};
+
+async function load(){
+  if(!TOKEN){ fail('Enlace no válido','Falta el código de firma. / Missing signing code.'); return; }
+  const { ok, d } = await callFn('firma-get', { token:TOKEN });
+  if(!ok || d.error){ const e=ERR[d.error]||['No se pudo cargar','Inténtalo más tarde. / Try again later.']; fail(e[0],e[1]); return; }
+  // pinta el contrato (solo lectura) en el iframe
+  $('#docFrame').srcdoc = d.html;
+  if(d.numero) $('#docTitle').textContent = 'Documento ' + d.numero;
+  if(d.firmante_nombre) $('#fName').value = d.firmante_nombre;
+  show('signview');
+  initPad(); refreshBtn();
+}
+
+/* ---- pad de firma ---- */
+let drawing=false, drawn=false, ctx, cv;
+function initPad(){
+  cv = $('#sig');
+  const rect = cv.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  cv.width = Math.round(rect.width*ratio); cv.height = Math.round(rect.height*ratio);
+  ctx = cv.getContext('2d'); ctx.scale(ratio,ratio);
+  ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#1a2b1a';
+  const pos = e => { const r=cv.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return [p.clientX-r.left, p.clientY-r.top]; };
+  const start = e => { drawing=true; const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); };
+  const move = e => { if(!drawing)return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke();
+                      if(!drawn){ drawn=true; $('#sigwrap').classList.add('drawn'); refreshBtn(); } e.preventDefault(); };
+  const end = () => { drawing=false; };
+  cv.addEventListener('pointerdown',start); cv.addEventListener('pointermove',move);
+  window.addEventListener('pointerup',end);
+}
+$('#clearSig').addEventListener('click', ()=>{ if(ctx){ ctx.clearRect(0,0,cv.width,cv.height); drawn=false; $('#sigwrap').classList.remove('drawn'); refreshBtn(); } });
+$('#accept').addEventListener('change', refreshBtn);
+$('#fName').addEventListener('input', refreshBtn);
+function refreshBtn(){ $('#signBtn').disabled = !(drawn && $('#accept').checked && $('#fName').value.trim().length>1); }
+
+$('#signBtn').addEventListener('click', async ()=>{
+  const btn=$('#signBtn'); if(btn.disabled) return;
+  btn.disabled=true; btn.textContent='Firmando… / Signing…';
+  try{
+    const signature = cv.toDataURL('image/png');
+    const { ok, d } = await callFn('firma-submit', { token:TOKEN, signature, typedName:$('#fName').value.trim() });
+    if(ok && d.ok){ show('done'); return; }
+    if(d.error==='ya_firmado'||d.error==='no_disponible'){ const e=ERR[d.error]; fail(e[0],e[1]); return; }
+    toast('No se pudo firmar. Inténtalo de nuevo. / Could not sign. Try again.');
+    btn.disabled=false; btn.textContent='Firmar y enviar / Sign & submit';
+  }catch(err){
+    toast('Error de conexión. / Connection error.');
+    btn.disabled=false; btn.textContent='Firmar y enviar / Sign & submit';
+  }
+});
+
+load();
+</script>
+</body>
+</html>

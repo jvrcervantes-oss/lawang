@@ -328,6 +328,7 @@
         <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
         <span id="lockBadge" style="display:none;font-size:12px;color:var(--be,#a3342b);align-items:center;gap:6px;font-weight:600">🔒 Bloqueado</span>
         <button class="btn ghost" id="btnDownloadSigned" style="display:none">Descargar PDF firmado</button>
+        <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Genera un enlace para que el comprador firme a distancia; al firmar, el PDF firmado entra solo en la base de datos y bloquea el contrato">✍︎ Enviar a firma</button>
         <button class="btn ghost" id="btnEmail">Enviar por email</button>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
@@ -352,6 +353,33 @@
         <span>Nº</span><span>Tipo</span><span>Comprador</span><span>Proyecto</span><span>Precio</span><span>Fecha</span><span>Creado por</span>
       </div>
       <div class="cp-list" id="cpList"></div>
+    </div>
+  </div>
+
+  <!-- Modal "Enviar a firma" — genera un enlace único (firmar.html?t=…) para que
+       el comprador firme a distancia. Al firmar, la Edge Function firma-submit
+       renderiza el PDF con contract-pdf (Puppeteer) y lo mete bloqueado en la BD. -->
+  <div class="cp-overlay" id="fmOverlay">
+    <div class="cp-modal" style="width:min(480px,100%)">
+      <div class="cp-head">
+        <b>Enviar a firma</b>
+        <button type="button" class="tb-link" id="fmClose">Cerrar</button>
+      </div>
+      <div class="em-body">
+        <p class="em-note">Genera un enlace único. El comprador lo abre, revisa el contrato y firma. Al firmar, el PDF firmado entra solo en la base de datos y el contrato queda bloqueado.</p>
+        <label>Nombre del comprador<input type="text" id="fmName" placeholder="Nombre y apellidos"></label>
+        <label>Email del comprador (opcional)<input type="email" id="fmEmail" placeholder="cliente@email.com"></label>
+        <button class="btn primary" id="fmGen" style="margin-top:6px">Generar enlace de firma</button>
+        <div id="fmResult" style="display:none;margin-top:14px">
+          <label>Enlace de firma<input type="text" id="fmLink" readonly onclick="this.select()"></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn ghost" id="fmCopy" type="button">Copiar</button>
+            <a class="btn ghost" id="fmWa" target="_blank" rel="noopener">WhatsApp</a>
+            <a class="btn ghost" id="fmMail">Email</a>
+          </div>
+          <p class="em-note" style="margin-top:10px">Caduca en 30 días. Mándaselo tú por el canal que prefieras.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1579,6 +1607,7 @@ function idrEquiv(html, data){
       return n===null ? m : `${ini}${val}${fin}${mon} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
     });
 }
+let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota → el hueco de firma sale como centinela %%FIRMA_ADQUIRIENTE%% que firma-submit rellena con la firma real
 function buildDoc(){
   const data=collect();
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sungai)
@@ -1599,7 +1628,7 @@ function buildDoc(){
   // de tenencia según nacionalidad del comprador (ver regimen_tenencia).
   html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (data[k]===v) ? m : '');
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
-    if(k.startsWith('firma')) return filled ? data[k] : '';
+    if(k.startsWith('firma')) return (SIGN_MODE && k==='firma_adquiriente') ? '%%FIRMA_ADQUIRIENTE%%' : (filled ? data[k] : '');
     if(k==='regimen_tenencia') return filled ? esc(REGIMEN_LABEL[data[k]]||data[k]) : '';   // código → etiqueta legible
     if(k==='proyecto_nombre') return filled ? esc(data[k]).toUpperCase() : '';   // el nombre de proyecto va SIEMPRE en mayúsculas
     return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
@@ -1804,10 +1833,11 @@ function updateSaveButton(){
   const editBtn=$('#btnEdit'); if(editBtn) editBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
   if(LOCKED){ const r=$('#btnEditReset'); if(r) r.style.display='none'; }
 
-  const lockBtn=$('#btnLockUpload');
-  if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; return; }
+  const lockBtn=$('#btnLockUpload'), firmaBtn=$('#btnEnviarFirma');
+  if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; if(firmaBtn) firmaBtn.style.display='none'; return; }
   btn.style.display = LOCKED ? 'none' : '';
   if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
+  if(firmaBtn) firmaBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   btn.textContent = SAVED_CONTRACT ? ('Actualizar (' + SAVED_CONTRACT.numero + ')') : 'Guardar en base de datos';
 }
 
@@ -2019,6 +2049,57 @@ async function enviarEmail(){
   btn.disabled=false; btn.textContent='Enviar';
 }
 $('#emSend').addEventListener('click', enviarEmail);
+
+/* ---------- Enviar a firma (firma remota, 100% automática) ----------
+   Genera un enlace único: sube un SNAPSHOT del contrato (buildSnapshot, con el
+   hueco de firma como centinela) al bucket contratos-firmados/pendientes/ y crea
+   una fila en contrato_firmas. El comprador abre firmar.html?t=<token>, firma, y
+   la Edge Function firma-submit renderiza el PDF (contract-pdf) y lo mete
+   bloqueado en la BD. El token crudo va SOLO en la URL; en la tabla se guarda su
+   hash SHA-256 (no reconstruible). */
+function buildSnapshot(){ SIGN_MODE=true; try{ return buildDoc(); } finally{ SIGN_MODE=false; } }
+async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function randToken(){ const a=new Uint8Array(32); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+
+function openFirmaModal(){
+  if(!SAVED_CONTRACT){ toast('Guarda el contrato antes de enviarlo a firma'); return; }
+  const data = collect();
+  $('#fmName').value = data.adq1_nombre || '';
+  $('#fmEmail').value = data.adq1_email || '';
+  $('#fmResult').style.display='none';
+  $('#fmOverlay').classList.add('open');
+}
+$('#btnEnviarFirma').addEventListener('click', openFirmaModal);
+$('#fmClose').addEventListener('click', ()=> $('#fmOverlay').classList.remove('open'));
+
+$('#fmGen').addEventListener('click', async ()=>{
+  if(!sb || !SAVED_CONTRACT) return;
+  const nombre=$('#fmName').value.trim();
+  if(nombre.length<2){ toast('Pon el nombre del comprador'); return; }
+  const email=$('#fmEmail').value.trim();
+  const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
+  try{
+    const token=randToken();
+    const hash=await sha256hex(token);
+    const path='pendientes/'+hash+'.html';
+    const up=await sb.storage.from('contratos-firmados').upload(path, new Blob([buildSnapshot()],{type:'text/html'}), {upsert:true, contentType:'text/html'});
+    if(up.error) throw up.error;
+    const ins=await sb.from('contrato_firmas').insert({ contrato_id:SAVED_CONTRACT.id, token_hash:hash,
+      firmante_nombre:nombre, firmante_email:email||null, firmante_rol:'adquiriente_1', snapshot_path:path });
+    if(ins.error) throw ins.error;
+    const base=location.href.replace(/[^/]*(?:\?.*)?$/,'');
+    const link=base+'firmar.html?t='+token;
+    $('#fmLink').value=link;
+    const msg='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link;
+    $('#fmWa').href='https://wa.me/?text='+encodeURIComponent(msg);
+    $('#fmMail').href='mailto:'+(email||'')+'?subject='+encodeURIComponent('Firma de documento — Lawang Tropical Properties')+'&body='+encodeURIComponent(msg);
+    $('#fmResult').style.display='';
+    toast('Enlace de firma generado');
+  }catch(err){ toast('No se pudo generar: '+(err.message||err)); }
+  btn.disabled=false; btn.textContent='Generar enlace de firma';
+});
+$('#fmCopy').addEventListener('click', ()=>{ const i=$('#fmLink'); i.select();
+  (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast('Enlace copiado'),()=>toast('Selecciona y copia a mano')); });
 
 /* ---------- sesión (Supabase Auth) ----------
    La página en sí sigue siendo estática — lo que de verdad protege los datos
