@@ -332,14 +332,20 @@
   // Revisión cliente 23-jul: juego fijo de características. Normal: habitaciones, baños,
   // m² construidos, m² parcela y tipo. Land: tipo, color del terreno (zonificación, campo
   // nuevo del admin), m² parcela, tenure y precio por m².
+  // Rework 27-jul: cada dato pasa de una linea suelta ("3 Bedrooms") a un bloque de tres pisos —
+  // icono arriba, CIFRA grande en medio, etiqueta debajo. La cifra se separa del texto en vez de
+  // repetirse: "345" arriba y "M² BUILT" debajo, no "345" arriba y "345 m² Built" debajo. Los datos
+  // que no llevan numero (tipo de propiedad, regimen, color de zonificacion) van solo con icono y
+  // etiqueta; la fila los alinea por abajo para que todas las etiquetas queden en la misma linea.
   function heroFeatsHTML(p){
     var f = [];
+    var add = function(i, n, l){ f.push({i:i, n:(n==null||n==="")?"":String(n), l:l}); };
     var typeLabel = t(LINE_KEYS[p.line]);
     if(p.line==="land"){
-      f.push({i:"type", t:typeLabel});
-      if(p.landColor) f.push({i:"color", t:p.landColor});
-      if(p.land>0)    f.push({i:"land",  t:p.land+" m² "+tl("Land","Terreno")});
-      f.push({i:"tenure", t:(p.tenure==="tenure.freehold"?"Freehold HGB":"Leasehold "+(p.leaseYears||30)+" yr")});
+      add("type", null, typeLabel);
+      if(p.landColor) add("color", null, p.landColor);
+      if(p.land>0)    add("land", p.land, "m² "+tl("Land","Terreno"));
+      add("tenure", null, (p.tenure==="tenure.freehold"?"Freehold HGB":"Leasehold "+(p.leaseYears||30)+" yr"));
       // Precio por m²: parcela más barata del configurador o, si no hay, precio/superficie
       var ppm2 = null;
       if(p.landOptions&&p.landOptions.length){
@@ -347,17 +353,22 @@
         if(rr.length) ppm2 = Math.min.apply(null,rr);
       }
       if(!ppm2 && p.priceEUR>0 && p.land>0) ppm2 = p.priceEUR/p.land;
-      if(ppm2) f.push({i:"priceM2", t:money(Math.round(ppm2))+"/m²"});
+      if(ppm2) add("priceM2", money(Math.round(ppm2)), tl("per m²","por m²"));
     } else {
-      if(p.beds>0)  f.push({i:"beds",  t:p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones")});
-      if(p.baths>0) f.push({i:"baths", t:p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños")});
-      if(p.built>0) f.push({i:"built", t:p.built+" m² "+tl("Built","Construidos")});
-      if(p.land>0)  f.push({i:"land",  t:p.land+" m² "+tl("Land","Terreno")});
-      f.push({i:"type", t:typeLabel});
+      if(p.beds>0)  add("beds",  p.beds, tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones"));
+      if(p.baths>0) add("baths", p.baths, tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños"));
+      if(p.built>0) add("built", p.built, "m² "+tl("Built","Construidos"));
+      if(p.land>0)  add("land",  p.land, "m² "+tl("Land","Terreno"));
+      add("type", null, typeLabel);
     }
     if(f.length===0) return "";
     return '<div class="pdp-hero-feats" aria-label="'+tl("Key features","Características")+'">'
-      + f.map(function(x){ return '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+FEAT_ICONS[x.i]+'</svg>'+esc(x.t)+'</span>'; }).join("")
+      + f.map(function(x){
+          return '<span class="pdp-hf">'
+            + '<svg class="pdp-hf-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+FEAT_ICONS[x.i]+'</svg>'
+            + (x.n ? '<b class="pdp-hf-n">'+esc(x.n)+'</b>' : '')
+            + '<em class="pdp-hf-l">'+esc(x.l)+'</em></span>';
+        }).join("")
       + '</div>';
   }
 
