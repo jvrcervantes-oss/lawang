@@ -30,3 +30,6 @@ legal/
 
 # Documentación administrativa del cliente — mismo motivo que legal/
 appeal/
+
+# Lanzador de previsualizacion local (herramienta de desarrollo, no se publica)
+preview.cmd

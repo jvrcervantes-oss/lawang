@@ -318,7 +318,16 @@
     type:      '<path d="M20.6 13.4 12 22 2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8Z"/><circle cx="7" cy="7" r="1.5"/>',
     color:     '<path d="M12 2s6 7 6 11.5A6 6 0 0 1 6 13.5C6 9 12 2 12 2Z"/>',
     tenure:    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>',
-    priceM2:   '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>'
+    priceM2:   '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    // Añadidos en el rework de la ficha técnica (27-jul): antes piscina, garaje, amueblado, estado,
+    // entrega y unidades caían todos al icono genérico "type" y la hoja parecía copiada seis veces.
+    pool:      '<path d="M3 18c1.6 0 1.6-1.2 3.2-1.2S7.8 18 9.4 18s1.6-1.2 3.2-1.2S14.2 18 15.8 18s1.6-1.2 3.2-1.2S20.6 18 21 18"/><path d="M7 15V5.5A1.5 1.5 0 0 1 10 5.5"/><path d="M15 15V5.5A1.5 1.5 0 0 1 18 5.5"/><path d="M7 9.5h8"/>',
+    garage:    '<path d="M3 21V8.5L12 4l9 4.5V21"/><path d="M7 21v-6h10v6"/><path d="M7 17.5h10"/>',
+    furnished: '<path d="M4 17v-5.5A2.5 2.5 0 0 1 6.5 9h11a2.5 2.5 0 0 1 2.5 2.5V17"/><path d="M2 17h20v3H2z"/><path d="M6.5 9V6.5A1.5 1.5 0 0 1 8 5h8a1.5 1.5 0 0 1 1.5 1.5V9"/>',
+    style:     '<path d="M12 2.6 14.6 9l6.4.5-4.9 4.2 1.5 6.3L12 16.6 6.4 20l1.5-6.3L3 9.5 9.4 9Z"/>',
+    status:    '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.3 2.4 2.4 4.6-4.9"/>',
+    delivery:  '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    units:     '<rect x="3" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2"/>'
   };
   // Revisión cliente 23-jul: juego fijo de características. Normal: habitaciones, baños,
   // m² construidos, m² parcela y tipo. Land: tipo, color del terreno (zonificación, campo
@@ -540,50 +549,69 @@
   // ── Card de información (revisión cliente 23-jul): a la DERECHA de la tabla blanca, bajo el
   //    carrusel. Overview + toda la ficha técnica que tengamos + mapa (si hay) + descargar dossier
   //    (con la puerta de email). Sustituye a la vieja tarjeta verde de contacto.
+  // Rework 27-jul: deja de ser una bolsa de chips iguales. Ahora es una HOJA DE DATOS — overview,
+  // pares etiqueta/valor con filete (antes el valor iba solo, sin decir de qué era), y el dossier
+  // como pie de la hoja. El mapa salió de aquí: se ahogaba en la esquina de una tarjeta estrecha y
+  // ahora vive en su propia banda "The Territory" junto a la planta 3D (territoryHTML).
   function infoCardHTML(p){
     var overview = pick(p.desc);
     var rows = [];
-    var add = function(ico, val){ if(val) rows.push({ico:ico, v:val}); };
-    if(p.beds>0)  add("beds",  p.beds+" "+tl(p.beds===1?"Bedroom":"Bedrooms", p.beds===1?"Habitación":"Habitaciones"));
-    if(p.baths>0) add("baths", p.baths+" "+tl(p.baths===1?"Bathroom":"Bathrooms", p.baths===1?"Baño":"Baños"));
-    if(p.built>0) add("built", p.built+" m² "+tl("built","construidos"));
-    if(p.land>0)  add("land",  p.land+" m² "+tl("land","de parcela"));
-    if(p.poolType||p.pool) add("pool", (typeof p.poolType==="string"&&p.poolType)?p.poolType:tl("Pool","Piscina"));
-    if(p.garage)  add("garage", (typeof p.garageDesc==="string"&&p.garageDesc)?p.garageDesc:tl("Garage","Garaje"));
-    if(p.furnished) add("furnished", (typeof p.furnished==="string"&&p.furnished)?p.furnished:tl("Furnished","Amueblada"));
-    if(p.style)   add("type", p.style);
-    add("type", t(LINE_KEYS[p.line]));  // tipo de propiedad (línea)
-    if(p.tenure)  add("tenure", p.tenure==="tenure.freehold"?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+" yr"));
-    if(p.status)  add("tenure", t(p.status));
-    if(p.handover && p.handover!=="—") add("built", tl("Delivery","Entrega")+": "+p.handover);
-    if(p.unitsTotal) add("type", (p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / ":"")+p.unitsTotal+" "+tl("units","unidades"));
-    var specsGrid = rows.length ? '<div class="pdp-ic-specs">'+rows.map(function(r){
-        return '<div class="pdp-ic-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(FEAT_ICONS[r.ico]||FEAT_ICONS.type)+'</svg><span>'+esc(r.v)+'</span></div>';
-      }).join("")+'</div>' : "";
-    var map = mapMediaHTML(p.mapImage);
+    var add = function(ico, l, v){ if(v!==null && v!==undefined && v!=="") rows.push({ico:ico, l:l, v:String(v)}); };
+    if(p.beds>0)  add("beds",  tl("Bedrooms","Habitaciones"), p.beds);
+    if(p.baths>0) add("baths", tl("Bathrooms","Baños"), p.baths);
+    if(p.built>0) add("built", tl("Built area","Construido"), p.built+" m²");
+    if(p.land>0)  add("land",  tl("Plot","Parcela"), p.land+" m²");
+    if(p.poolType||p.pool) add("pool", tl("Pool","Piscina"), (typeof p.poolType==="string"&&p.poolType)?p.poolType:tl("Private","Privada"));
+    if(p.garage)  add("garage", tl("Garage","Garaje"), (typeof p.garageDesc==="string"&&p.garageDesc)?p.garageDesc:tl("Yes","Sí"));
+    if(p.furnished) add("furnished", tl("Furnishing","Amueblado"), (typeof p.furnished==="string"&&p.furnished)?p.furnished:tl("Furnished","Amueblada"));
+    if(p.style)   add("style", tl("Style","Estilo"), p.style);
+    add("type", tl("Property type","Tipo"), t(LINE_KEYS[p.line]));
+    if(p.tenure)  add("tenure", tl("Tenure","Régimen"), p.tenure==="tenure.freehold"?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+" yr"));
+    if(p.status)  add("status", tl("Status","Estado"), t(p.status));
+    if(p.handover && p.handover!=="—") add("delivery", tl("Delivery","Entrega"), p.handover);
+    if(p.unitsTotal) add("units", tl("Units","Unidades"), (p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / ":"")+p.unitsTotal);
+    var sheet = rows.length ? '<div class="pdp-spec-hd">'+tl("Technical sheet","Ficha técnica")+'</div><dl class="pdp-spec-list">'+rows.map(function(r){
+        return '<div class="pdp-spec-row"><dt><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(FEAT_ICONS[r.ico]||FEAT_ICONS.type)+'</svg>'+esc(r.l)+'</dt><dd>'+esc(r.v)+'</dd></div>';
+      }).join("")+'</dl>' : "";
     // Dossier: SIEMPRE presente (petición cliente 23-jul: "añade descargar el dossier, lo teníamos
     // hecho"). Con archivos → gate de email que los desbloquea; sin archivos → gate que capta el
     // email como lead y confirma envío. downloadsHTML degrada solo si files está vacío.
-    var dossier = '<div style="margin-top:clamp(18px,2.2vw,26px)">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>';
-    return '<div class="pdp-infocard">'
-      + (overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-ic-lead">'+esc(overview)+'</p>' : "")
-      + specsGrid
-      + (map ? '<div style="margin-top:clamp(16px,2vw,22px)">'+map+'</div>' : "")
+    var dossier = '<div class="pdp-spec-dossier">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>';
+    return '<aside class="pdp-spec">'
+      + (overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-spec-lead">'+esc(overview)+'</p>' : "")
+      + sheet
       + dossier
-      + '</div>';
+      + '</aside>';
   }
 
-  // ── Planta 3D del territorio (revisión cliente 23-jul): va en la columna derecha, a la altura
-  //    del masterplan/configurador de la izquierda. Campo p.plan3dImage del admin; si está vacío no
-  //    se pinta nada (nunca un placeholder).
-  function plan3dHTML(p){
-    if(!p.plan3dImage) return "";
-    var url = imgUrl(p.plan3dImage, 1600);
-    if(!url) return "";
-    return '<figure class="pdp-plan3d">'
-      + '<div class="kicker">'+tl("The Territory","El territorio")+'</div>'
-      + '<img src="'+esc(url)+'" alt="'+esc(tl("3D site plan","Planta 3D"))+' · '+esc(pick(p.title))+'" loading="lazy" onerror="var f=this.closest(\'.pdp-plan3d\'); if(f) f.remove();">'
-      + '</figure>';
+  // ── Banda "The Territory" (rework 27-jul): el mapa dejó de ser una miniatura dentro de la ficha
+  //    técnica y la planta 3D (p.plan3dImage) dejó de colgar huérfana debajo de la columna derecha.
+  //    Van juntos y a ancho completo; con uno solo cargado, ese ocupa la banda entera. Sin ninguno
+  //    de los dos no se pinta nada (nunca un placeholder).
+  function territoryHTML(p){
+    var map  = mapMediaHTML(p.mapImage);
+    var plan = p.plan3dImage ? imgUrl(p.plan3dImage, 1600) : null;
+    if(!map && !plan) return "";
+    // Enlace de Maps no geolocalizable: mapMediaHTML devuelve un BOTÓN, no un mapa. Estirarlo a
+    // caja de 460px daría un rectángulo vacío con un botón deformado → va suelto bajo la rejilla.
+    var mapIsLink = /pdp-map-link/.test(map);
+    var cards = [];
+    if(plan){
+      cards.push('<figure class="pdp-terr-card pdp-terr-plan">'
+        + '<div class="pdp-terr-media"><img src="'+esc(plan)+'" alt="'+esc(tl("3D site plan","Planta 3D"))+' · '+esc(pick(p.title))+'" loading="lazy" onerror="var f=this.closest(\'.pdp-terr-card\'); if(f) f.remove();"></div>'
+        + '<figcaption>'+tl("3D site plan","Planta 3D")+'</figcaption></figure>');
+    }
+    if(map && !mapIsLink){
+      cards.push('<figure class="pdp-terr-card">'
+        + '<div class="pdp-terr-media">'+map+'</div>'
+        + '<figcaption>'+tl("Location","Ubicación")+(p.region?' · '+esc(p.region):'')+'</figcaption></figure>');
+    }
+    return '<section class="pdp-terr'+(cards.length>1?'':' pdp-terr-solo')+'">'
+      + '<div class="pdp-terr-head"><div class="kicker">'+tl("The Territory","El territorio")+'</div>'
+      + '<h3 class="pdp-terr-h">'+esc(p.region||pick(p.title))+'</h3></div>'
+      + (cards.length ? '<div class="pdp-terr-grid">'+cards.join("")+'</div>' : "")
+      + (mapIsLink ? '<div class="pdp-terr-link">'+map+'</div>' : "")
+      + '</section>';
   }
 
   // Imagen full-bleed a pantalla completa (referencia Ficha p3): ancho total, sin márgenes (fuera del .wrap).
@@ -647,7 +675,9 @@
 
   function downloadsHTML(files, p){
     files = files || [];
-    var head = '<div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);margin-bottom:12px">'+tl("Dossier","Dossier")+'</div>';
+    // Rework 27-jul: sin caja propia. Vivía en un recuadro con borde DENTRO de la tarjeta blanca
+    // (caja dentro de caja); ahora es el pie de la hoja de datos y lo separa un filete (.pdp-spec-dossier).
+    var head = '<div class="pdp-spec-hd">'+tl("Dossier","Dossier")+'</div>';
     var inner;
     if(S.dlUnlocked && !files.length){
       // Sin archivos cargados aún: el email quedó captado como lead; se confirma el envío manual.
@@ -671,7 +701,7 @@
         + '<button type="submit" style="width:100%;background:var(--clay);color:var(--bone);border:none;border-radius:6px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans)">'+t("dl.gate.cta")+' →</button>'
         + '<p style="font-size:11px;color:var(--ink-2);line-height:1.5;margin-top:10px;opacity:.85">'+t("dl.gate.note")+'</p></form>';
     }
-    return '<div style="padding:18px;background:var(--bone);border:1px solid var(--line);border-radius:8px">'+head+inner+'</div>';
+    return head+inner;
   }
 
   // El sidebar "Entry price / Location / Legal" desapareció con el calco de la guía (jul-2026):
@@ -696,7 +726,7 @@
         + '<tr style="border-bottom:1px solid var(--line)"><td style="padding:8px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)">Break-even</td>'+occs.map(function(o){return '<td style="padding:8px 8px;text-align:right;font-size:13px;color:var(--ink-2)">'+beYr(o)+' yr</td>';}).join("")+'</tr>'
         + '</tbody></table></div>';
     }
-    return '<div style="margin-top:40px;padding-top:36px;border-top:1px solid var(--line)"><h4 class="serif" style="font-size:clamp(19px,1.9vw,23px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B;margin-bottom:20px">'+t("inv.title")+'</h4>'
+    return '<div style="margin-top:40px;padding-top:36px;border-top:1px solid var(--line)"><h4 class="cfg-h">'+t("inv.title")+'</h4>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:24px">'
       +   '<div style="background:var(--tg-light);padding:20px 18px"><div style="font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin-bottom:8px">ROI 30 yr · 80% occ.</div><div style="font-family:var(--sans);font-size:34px;font-weight:500;color:var(--tg);line-height:1">'+roi30(0.80)+'%</div></div>'
       +   '<div style="background:var(--tg-light);padding:20px 18px"><div style="font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin-bottom:8px">Break-even · 80% occ.</div><div style="font-family:var(--sans);font-size:34px;font-weight:500;color:var(--tg);line-height:1">'+beYr(0.80)+' <span style="font-size:18px;opacity:.6">yr</span></div></div>'
@@ -715,7 +745,7 @@
       + '<div style="font-family:var(--sans);font-size:22px;font-weight:300;color:var(--clay);line-height:1;padding-top:4px;opacity:'+(i===0?1:0.45)+'">'+s.step+'</div>'
       + '<div><div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(s.label)+'</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">'+esc(s.note)+'</div></div>'
       + '<div style="text-align:right"><div style="font-family:var(--sans);font-size:16px;font-weight:600">'+money(Math.round(price*s.pct/100))+'</div><div style="font-size:11px;color:var(--ink-2);margin-top:2px">'+s.pct+'%</div></div></div>'; }).join("");
-    return '<div><h4 class="serif" style="font-size:clamp(19px,1.9vw,23px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B;margin-bottom:22px">'+t("pay.title")+'</h4>'+rows
+    return '<div><h4 class="cfg-h">'+t("pay.title")+'</h4>'+rows
       + '<div style="display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid var(--ink)"><span style="font-weight:700;font-size:14px">Total</span><span style="font-family:var(--sans);font-size:18px;font-weight:700">'+money(price)+'</span></div>'
       + '<p style="font-size:11.5px;color:var(--ink-2);margin-top:14px;line-height:1.65">PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>';
   }
@@ -731,13 +761,18 @@
     return {landOptions:landOptions,models:models,extrasList:extrasList,parcelIdx:safeParcel,modelIdx:safeModel,parcelEUR:parcelEUR,homeEUR:homeEUR,extrasTotal:extrasTotal,configuredEUR:configuredEUR};
   }
 
-  function parcelStepHTML(p, cfg, bare){
+  // Rework 27-jul: las opciones del configurador pasan de estilos inline a clases (.cfg-opt*). La
+  // selección ya no se anuncia con una línea de texto extra que descuadraba la altura de las
+  // tarjetas — es la propia tarjeta la que se marca (borde verde + palomita en la esquina).
+  // Se retiró el parámetro `bare`: la única variante viva era la del configurador.
+  function parcelStepHTML(p, cfg){
     if(!cfg.landOptions) return "";
-    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">'+cfg.landOptions.map(function(o,i){var on=i===cfg.parcelIdx;
-      return '<button data-act="parcel:'+i+'" style="text-align:left;padding:16px 16px 18px;border:2px solid '+(on?"var(--clay)":"var(--line)")+';border-radius:10px;cursor:pointer;background:'+(on?"var(--tg-light)":"var(--bone-2)")+'"><div style="font-family:var(--sans);font-size:24px;font-weight:600;line-height:1">'+o.size+' <span style="font-size:13px;font-weight:500">m²</span></div><div style="font-size:14px;font-weight:600;margin-top:10px">'+priceHTML(o.priceEUR,true)+'</div>'+(on?'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--clay);margin-top:8px">✓ '+t("home.selected")+'</div>':"")+'</button>';
+    return '<div class="cfg-plots">'+cfg.landOptions.map(function(o,i){var on=i===cfg.parcelIdx;
+      return '<button class="cfg-opt cfg-plot'+(on?" on":"")+'" data-act="parcel:'+i+'" aria-pressed="'+(on?"true":"false")+'">'
+        + '<span class="cfg-plot-size">'+o.size+' <em>m²</em></span>'
+        + '<span class="cfg-plot-price">'+priceHTML(o.priceEUR,true)+'</span>'
+        + '<span class="cfg-tick" aria-label="'+esc(t("home.selected"))+'">✓</span></button>';
     }).join("")+'</div>';
-    if(bare) return grid;
-    return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("land.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:24px;max-width:46ch">'+t("land.sub")+'</p>'+grid+'</div>';
   }
   // Áreas opcionales por modelo (revisión cliente 24-jul): cocina, salón y terraza de piscina en m².
   // Solo se muestran las que el cliente rellena en el admin.
@@ -748,24 +783,31 @@
     if(m.poolTerrace>0) a.push(tl("Pool terrace","Terraza piscina")+" "+m.poolTerrace);
     return a.length ? a.join(" · ")+" m²" : "";
   }
-  function chooseHomeHTML(p, cfg, bare){
+  function chooseHomeHTML(p, cfg){
     if(!cfg.models) return "";
     // Fotos más grandes (revisión cliente 24-jul): tarjetas anchas (min 260px) → 1-2 por fila.
-    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">'+cfg.models.map(function(m,i){var on=i===cfg.modelIdx;var areas=homeAreas(m);
-      return '<button data-act="model:'+i+'" style="text-align:left;padding:0;border:2px solid '+(on?"var(--clay)":"var(--line)")+';border-radius:12px;overflow:hidden;cursor:pointer;background:var(--bone-2)"><div style="position:relative;aspect-ratio:4/3">'+(m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">':'<div class="ph-grad ph-'+themeFor(p)+'" style="position:absolute;inset:0"></div>')+(on?'<span style="position:absolute;top:10px;right:10px;background:var(--clay);color:var(--bone);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px">'+t("home.selected")+'</span>':"")+'</div><div style="padding:14px 16px 16px"><div class="serif" style="font-size:21px">'+esc(m.name)+'</div><div style="font-size:12.5px;color:var(--ink-2);margin-top:5px">'+m.beds+' '+t("home.beds")+' · '+m.built+' m²</div>'+(areas?'<div style="font-size:11.5px;color:var(--ink-2);margin-top:5px;line-height:1.45">'+esc(areas)+'</div>':"")+'<div style="font-size:15px;font-weight:600;margin-top:9px">'+priceHTML(m.priceEUR,true)+'</div></div></button>';
+    return '<div class="cfg-homes">'+cfg.models.map(function(m,i){var on=i===cfg.modelIdx;var areas=homeAreas(m);
+      return '<button class="cfg-opt cfg-home'+(on?" on":"")+'" data-act="model:'+i+'" aria-pressed="'+(on?"true":"false")+'">'
+        + '<span class="cfg-home-media">'
+        +   (m.image?'<img src="'+esc(m.image)+'" alt="'+esc(m.name)+'" loading="lazy">':'<span class="ph-grad ph-'+themeFor(p)+'"></span>')
+        +   '<span class="cfg-tick" aria-label="'+esc(t("home.selected"))+'">✓</span></span>'
+        + '<span class="cfg-home-body">'
+        +   '<span class="cfg-home-name">'+esc(m.name)+'</span>'
+        +   '<span class="cfg-home-meta">'+m.beds+' '+t("home.beds")+' · '+m.built+' m²</span>'
+        +   (areas?'<span class="cfg-home-areas">'+esc(areas)+'</span>':"")
+        +   '<span class="cfg-home-price">'+priceHTML(m.priceEUR,true)+'</span>'
+        + '</span></button>';
     }).join("")+'</div>';
-    if(bare) return grid;
-    return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("home.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:24px;max-width:46ch">'+t("home.sub")+'</p>'+grid+'</div>';
   }
-  function extrasBlockHTML(p, cfg, bare){
+  function extrasBlockHTML(p, cfg){
     if(!cfg.extrasList) return "";
-    var list='<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden">'+cfg.extrasList.map(function(e,i){var on=!!S.extrasSel[i];
-      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border-bottom:'+(i<cfg.extrasList.length-1?"1px solid var(--line)":"none")+';background:'+(on?"var(--tg-light)":"transparent")+'"><div style="min-width:0"><div style="font-size:14.5px;font-weight:600">'+esc(e.name)+'</div>'+(e.note?'<div style="font-size:12px;color:var(--ink-2);margin-top:2px">'+esc(e.note)+'</div>':"")+'</div><div style="display:flex;align-items:center;gap:14px;flex-shrink:0"><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+(e.priceEUR?money(e.priceEUR):"—")+'</span><button data-act="extra:'+i+'" style="border:1px solid '+(on?"var(--clay)":"var(--line)")+';background:'+(on?"var(--clay)":"transparent")+';color:'+(on?"var(--bone)":"var(--ink)")+';border-radius:999px;padding:6px 16px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">'+(on?("✓ "+t("extras.added")):t("extras.add"))+'</button></div></div>';
+    var list='<div class="cfg-extras">'+cfg.extrasList.map(function(e,i){var on=!!S.extrasSel[i];
+      return '<div class="cfg-extra'+(on?" on":"")+'">'
+        + '<div class="cfg-extra-txt"><span class="cfg-extra-name">'+esc(e.name)+'</span>'+(e.note?'<span class="cfg-extra-note">'+esc(e.note)+'</span>':"")+'</div>'
+        + '<div class="cfg-extra-act"><span class="cfg-extra-price">'+(e.priceEUR?money(e.priceEUR):"—")+'</span>'
+        + '<button class="cfg-extra-btn'+(on?" on":"")+'" data-act="extra:'+i+'" aria-pressed="'+(on?"true":"false")+'">'+(on?("✓ "+t("extras.added")):("+ "+t("extras.add")))+'</button></div></div>';
     }).join("")+'</div>';
-    var totalBar = cfg.extrasTotal>0 ? '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:2px solid var(--ink)"><span style="font-weight:700;font-size:13.5px;text-transform:uppercase;letter-spacing:.06em">'+t("extras.total")+'</span><span style="font-family:var(--sans);font-size:18px;font-weight:700">+'+money(cfg.extrasTotal)+'</span></div>' : "";
-    var body=list+totalBar;
-    if(bare) return body;
-    return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div class="kicker" style="margin-bottom:8px">'+t("extras.title")+'</div><p style="font-size:14.5px;color:var(--ink-2);margin-bottom:20px;max-width:46ch">'+t("extras.sub")+'</p>'+body+'</div>';
+    return list + (cfg.extrasTotal>0 ? '<div class="cfg-extras-total"><span>'+t("extras.total")+'</span><b>+'+money(cfg.extrasTotal)+'</b></div>' : "");
   }
 
   function financialsHTML(p, cfg, bare){
@@ -810,46 +852,64 @@
     return 'https://wa.me/'+waNum+'?text='+encodeURIComponent(lines.join("\n"));
   }
 
+  // ── THE MASTERPLAN (rework 27-jul) ──────────────────────────────────────────────────────────
+  // Antes: tarjeta blanca con titular verde en mayúsculas, un rosario de píldoras como stepper y el
+  // total colgado al final de esa fila. El paso en el que estabas y lo que llevabas configurado se
+  // leían mal, y la píldora activa competía en peso con el titular.
+  // Ahora: cabecera editorial (kicker + titular serif + total vivo a la derecha), un RAÍL numerado
+  // con la barra de progreso real debajo, el paso y un pie con la navegación. Una sola tarjeta.
   function configuratorHTML(p, cfg){
     var steps=[];
-    if(cfg.landOptions) steps.push({id:"land",label:t("cfg.step.land"),title:t("land.title"),sub:t("land.sub"),required:true,done:cfg.parcelIdx>=0,content:parcelStepHTML(p,cfg,true)});
-    if(cfg.models)      steps.push({id:"home",label:t("cfg.step.home"),title:t("home.title"),sub:t("home.sub"),required:true,done:cfg.modelIdx>=0,content:chooseHomeHTML(p,cfg,true)});
-    if(cfg.extrasList)  steps.push({id:"extras",label:t("cfg.step.extras"),title:t("extras.title"),sub:t("extras.sub"),required:false,done:true,content:extrasBlockHTML(p,cfg,true)});
+    if(cfg.landOptions) steps.push({id:"land",label:t("cfg.step.land"),title:t("land.title"),sub:t("land.sub"),required:true,done:cfg.parcelIdx>=0,content:parcelStepHTML(p,cfg)});
+    if(cfg.models)      steps.push({id:"home",label:t("cfg.step.home"),title:t("home.title"),sub:t("home.sub"),required:true,done:cfg.modelIdx>=0,content:chooseHomeHTML(p,cfg)});
+    if(cfg.extrasList)  steps.push({id:"extras",label:t("cfg.step.extras"),title:t("extras.title"),sub:t("extras.sub"),required:false,done:true,content:extrasBlockHTML(p,cfg)});
     steps.push({id:"pay",label:t("cfg.step.pay"),title:t("fin.title"),sub:null,required:false,done:true,content:financialsHTML(p,cfg,true)});
     var idx=Math.min(S.step,steps.length-1); var sObj=steps[idx]; var isLast=idx>=steps.length-1;
     var reachable=function(i){ return i===0 || steps.slice(0,i).every(function(x){return !x.required||x.done;}); };
     var canNext=!sObj.required||sObj.done;
-    var prog=steps.map(function(st,i){var on=i===idx;var ok=reachable(i);var complete=st.required&&st.done&&i!==idx;
-      return (i>0?'<span style="width:14px;height:1px;background:var(--line)"></span>':"")
-        +'<button '+(ok?'data-act="step:'+i+'"':'disabled')+' style="display:inline-flex;align-items:center;gap:8px;border:1px solid '+(on?"var(--clay)":"var(--line)")+';background:'+(on?"var(--clay)":"transparent")+';color:'+(on?"var(--bone)":(ok?"var(--ink)":"var(--ink-2)"))+';border-radius:999px;padding:6px 14px 6px 7px;font-family:var(--sans);font-size:12.5px;font-weight:600;cursor:'+(ok?"pointer":"default")+';opacity:'+(ok?1:0.5)+'"><span style="width:20px;height:20px;border-radius:999px;display:grid;place-items:center;font-size:11px;font-weight:700;background:'+(on?"rgba(255,255,255,.22)":(complete?"var(--clay)":"var(--bone-2)"))+';color:'+((on||complete)?"var(--bone)":"var(--ink-2)")+'">'+(complete?"✓":(i+1))+'</span>'+st.label+'</button>';
+    // Raíl: un número por paso sobre una línea continua. La línea se rellena hasta el paso actual —
+    // el visitante ve cuánto le queda, que era justo lo que las píldoras no contaban.
+    var frac = steps.length>1 ? (idx/(steps.length-1)) : 1;
+    var rail = steps.map(function(st,i){
+      // ✓ = ya resuelto: o se ha pasado por él, o es obligatorio y está elegido. Antes solo contaba
+      // lo segundo, así que "Extras" seguía con su número gris tras cruzarlo y parecía saltado.
+      var on=i===idx, ok=reachable(i), complete=i!==idx && (i<idx || (st.required&&st.done));
+      return '<li class="cfg-rail-i'+(on?" on":"")+(complete?" done":"")+(ok?"":" off")+'">'
+        + '<button '+(ok?'data-act="step:'+i+'"':'disabled')+(on?' aria-current="step"':'')+'>'
+        + '<span class="cfg-rail-n">'+(complete?"✓":(i+1))+'</span>'
+        + '<span class="cfg-rail-t">'+st.label+'</span></button></li>';
     }).join("");
-    var totalChip = cfg.configuredEUR>0 ? '<div style="margin-left:auto;text-align:right"><div style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">'+t("fin.total")+'</div><div style="font-family:var(--sans);font-size:19px;font-weight:700;line-height:1">'+money(cfg.configuredEUR)+'</div></div>' : "";
-    var stepHead = sObj.id!=="pay" ? '<div style="margin-bottom:18px"><h4 class="serif" style="font-size:clamp(19px,1.9vw,23px);font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#42210B">'+sObj.title+'</h4>'+(sObj.sub?'<p style="font-size:14px;color:var(--ink-2);margin-top:6px;max-width:46ch">'+sObj.sub+'</p>':"")+'</div>' : "";
+    var stepHead = sObj.id!=="pay" ? '<div class="cfg-step-h"><h4 class="cfg-h">'+sObj.title+'</h4>'+(sObj.sub?'<p>'+sObj.sub+'</p>':"")+'</div>' : "";
     var nextBtn = !isLast
-      ? '<button '+(canNext?'data-act="step:'+(idx+1)+'"':'disabled')+' style="background:'+(canNext?"var(--clay)":"var(--line)")+';color:var(--bone);border:none;border-radius:999px;padding:11px 26px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:'+(canNext?"pointer":"default")+'">'+((sObj.id==="extras"&&cfg.extrasTotal===0)?t("cfg.skip"):t("cfg.next"))+' →</button>'
-      : '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
-        + '<button data-act="cfg-reset" style="background:none;border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-2)">↺ '+t("cfg.restart")+'</button>'
-        + '<a href="'+reserveWaUrl(p,cfg)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;border-radius:999px;padding:12px 26px;font-family:var(--sans);font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px -6px rgba(37,211,102,.6)"><svg viewBox="0 0 24 24" fill="currentColor" style="width:17px;height:17px"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg>'+t("reserve.cta")+' →</a>'
+      ? '<button class="cfg-btn cfg-btn-go" '+(canNext?'data-act="step:'+(idx+1)+'"':'disabled')+'>'+((sObj.id==="extras"&&cfg.extrasTotal===0)?t("cfg.skip"):t("cfg.next"))+' <span aria-hidden="true">→</span></button>'
+      : '<div class="cfg-foot-end">'
+        + '<button class="cfg-btn cfg-btn-ghost" data-act="cfg-reset">↺ '+t("cfg.restart")+'</button>'
+        + '<a class="cfg-btn cfg-btn-wa" href="'+reserveWaUrl(p,cfg)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg>'+t("reserve.cta")+' <span aria-hidden="true">→</span></a>'
         + '</div>';
-    // Guía Ficha p4: kicker "THE MASTERPLAN" + titular verde grande. El titular se construye con
-    // datos reales (nº de parcelas y la más pequeña); sin parcelas cargadas cae al título genérico.
+    // El titular se construye con datos reales (nº de parcelas y la más pequeña); sin parcelas
+    // cargadas cae al título genérico.
     var head = t("cfg.title");
     if(cfg.landOptions && cfg.landOptions.length){
       var sizes = cfg.landOptions.map(function(o){ return Number(o.size)||0; }).filter(Boolean);
       if(sizes.length) head = cfg.landOptions.length+" "+tl("plots","parcelas")+". "+tl("From","Desde")+" "+Math.min.apply(null,sizes)+" m².";
     }
-    // Revisión cliente 24-jul: TODO el configurador (cabecera "The Masterplan / N plots / Choose
-    // step by step" + stepper Plot·Villa·Plan + paso + navegación) vive dentro de UNA sola tarjeta.
-    // Antes la cabecera y el stepper flotaban sueltos y solo el paso estaba en su caja.
+    // El contador de paso se pinta SIEMPRE (con la configuración a cero también hay que saber dónde
+    // se está); el total solo cuando hay algo elegido — un "Total 0 €" no es un dato, es ruido.
+    var totalBox = '<div class="cfg-total'+(cfg.configuredEUR>0?'':' cfg-total-bare')+'">'
+      + (cfg.configuredEUR>0 ? '<span class="cfg-total-l">'+t("fin.total")+'</span><span class="cfg-total-v">'+money(cfg.configuredEUR)+'</span>' : "")
+      + '<span class="cfg-total-s">'+tl("Step","Paso")+' '+(idx+1)+' / '+steps.length+'</span></div>';
     return '<div class="cfg-card">'
-      + '<div class="kicker">'+tl("The Masterplan","El masterplan")+'</div>'
-      + '<h3 class="pdp-block-h cfg-title">'+esc(head)+'</h3>'
-      + '<p class="cfg-sub">'+t("cfg.sub")+'</p>'
-      + '<div class="cfg-prog">'+prog+totalChip+'</div>'
+      + '<header class="cfg-head"><div class="cfg-head-l">'
+      +   '<div class="kicker">'+tl("The Masterplan","El masterplan")+'</div>'
+      +   '<h3 class="cfg-title">'+esc(head)+'</h3>'
+      +   '<p class="cfg-sub">'+t("cfg.sub")+'</p></div>'
+      +   totalBox
+      + '</header>'
+      + '<ol class="cfg-rail" style="--cfg-f:'+frac.toFixed(4)+'">'+rail+'</ol>'
       + '<div class="cfg-step">'+stepHead+sObj.content+'</div>'
-      + '<div class="cfg-nav">'
-      +   '<button '+(idx===0?'disabled':'data-act="step:'+(idx-1)+'"')+' style="background:none;border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:'+(idx===0?"default":"pointer")+';opacity:'+(idx===0?0.4:1)+';color:var(--ink)">← '+t("cfg.back")+'</button>'+nextBtn
-      + '</div></div>';
+      + '<footer class="cfg-foot">'
+      +   '<button class="cfg-btn cfg-btn-ghost" '+(idx===0?'disabled':'data-act="step:'+(idx-1)+'"')+'><span aria-hidden="true">←</span> '+t("cfg.back")+'</button>'+nextBtn
+      + '</footer></div>';
   }
 
   // ghost=true → migas sobre el hero (guía Ficha p1): crema, esquina superior izquierda del hero
@@ -898,7 +958,7 @@
         + '<a class="pdp-map-open" href="'+esc(url)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
         + esc(tl("Open in Google Maps","Abrir en Google Maps"))+' ↗</a></div>';
     }
-    return '<a class="pdp-map" href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:13px 20px;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--tg);text-decoration:none;background:var(--bone-2)">'
+    return '<a class="pdp-map pdp-map-link" href="'+esc(url)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:13px 20px;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--tg);text-decoration:none;background:var(--bone-2)">'
       + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;flex:none" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
       + esc(tl("View on Google Maps","Ver en Google Maps"))+' <span aria-hidden="true">↗</span></a>';
   }
@@ -1033,7 +1093,7 @@
       + breadcrumbsHTML(p,false)+subHTML+'</div>'
       + '<div style="flex-shrink:0;text-align:right">'
       + '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>';
-    var plan3d = plan3dHTML(p);
+    var terr   = territoryHTML(p);   // mapa + planta 3D, banda propia (rework 27-jul)
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
     var techTable = techSpecsHTML(p);   // sube a la sección de fotos (revisión cliente 24-jul)
@@ -1042,10 +1102,12 @@
       + heroHTML(p)
       // Fotos: cabecera + galería + la tabla blanca de datos (subida aquí desde el detalle)
       + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+(techTable?'<div class="pdp-specs-below">'+techTable+'</div>':"")+'</div>')
-      // Detalle: izq configurador/payment plan (masterplan) · dcha card + planta 3D del territorio
+      // Detalle: izq configurador/payment plan (masterplan) · dcha hoja de datos (ficha técnica)
       + sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
           + '<div>'+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
-          + '<div>'+infoCardHTML(p)+plan3d+'</div></div></div>')
+          + '<div>'+infoCardHTML(p)+'</div></div></div>')
+      // El territorio (mapa + planta 3D) a ancho completo, justo después de los datos
+      + (terr ? sec('<div class="wrap pdp-wrap">'+terr+'</div>') : "")
       + (split ? sec(split, "pdp-sec-flush") : "")
       + (bleed ? sec('<div class="wrap pdp-wrap">'+bleed+'</div>') : "")
       // Última sección: banner del proceso + cross-selling + footer juntos.

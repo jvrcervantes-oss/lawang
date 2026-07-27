@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260724154749">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260727162245">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -183,23 +183,148 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .pdp-mosaic .pdp-side:hover img, .pdp-mosaic .pdp-side:hover .ph { transform:scale(1.05); }
 @media(max-width:720px){ .pdp-mosaic{ grid-template-columns:1fr; grid-template-rows:1fr; aspect-ratio:4/3; } .pdp-mosaic .pdp-side{ display:none; } }
 
-/* ── CONFIGURADOR ─────────────────────────────────────────────
-   Revisión cliente 24-jul: TODO el configurador (cabecera + stepper + paso + navegación) vive en
-   UNA sola tarjeta clara. Antes la cabecera y el stepper flotaban sueltos sobre el fondo crema y
-   solo el paso tenía caja (caja dentro de caja). */
-.cfg-card{ background:#fff; border:1px solid rgba(190,179,165,.45); border-radius:18px;
-  padding:clamp(22px,2.6vw,36px); box-shadow:0 30px 70px -50px rgba(27,26,21,.45); }
-.cfg-card > .kicker{ margin-bottom:12px; }
-.cfg-title{ font-size:clamp(20px,2.3vw,30px) !important; }
-.cfg-sub{ font-family:var(--sans); font-size:14.5px; color:var(--ink-2); margin:12px 0 0; max-width:46ch; }
-.cfg-prog{ display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  margin:clamp(20px,2.4vw,28px) 0; padding-bottom:clamp(18px,2vw,24px); border-bottom:1px solid var(--line); }
-.cfg-step{ animation:cfgFade .32s var(--ease); }   /* solo el fade — ya no es una caja anidada */
+/* ── THE MASTERPLAN — configurador (rework 27-jul) ─────────────
+   Antes: titular verde en mayúsculas compitiendo con un rosario de píldoras como stepper, y el
+   total colgado al final de esa misma fila. No se leía ni en qué paso estabas ni cuánto quedaba.
+   Ahora: cabecera editorial (kicker + titular serif + total vivo a la derecha) · RAÍL numerado con
+   la barra de progreso real · paso · pie de navegación. Sigue siendo UNA sola tarjeta. */
+.cfg-card{ background:#fff; border:1px solid rgba(190,179,165,.45); border-radius:20px;
+  padding:clamp(22px,2.6vw,40px); box-shadow:0 30px 70px -50px rgba(27,26,21,.45); }
+.cfg-head{ display:flex; align-items:flex-start; gap:clamp(18px,3vw,40px); flex-wrap:wrap; }
+.cfg-head-l{ flex:1 1 300px; min-width:0; }
+.cfg-head .kicker{ margin-bottom:10px; }
+/* En Neue Kabel, NO en The Seasons: el OTF de la marca es la versión DEMO y sustituye "-", "4",
+   "+", "&" y "%" por una flor con la palabra DEMO. Un titular como "34 plots. From 250 m²." o un
+   "Add-ons" salían rotos. Mismo criterio que el resto de thecollection.html (.serif → var(--sans)). */
+.cfg-title{ font-family:var(--sans); font-weight:300; font-size:clamp(26px,3vw,42px); line-height:1.06;
+  letter-spacing:-.005em; color:var(--tg); margin:0; text-wrap:balance; }
+.cfg-sub{ font-family:var(--sans); font-size:clamp(13.5px,1.15vw,15px); font-weight:300; line-height:1.6;
+  color:var(--ink-2); margin:12px 0 0; max-width:46ch; }
+/* Total vivo: cambia al elegir parcela/villa/extras — es el dato que el visitante persigue */
+.cfg-total{ flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+  padding-left:clamp(16px,2vw,26px); border-left:1px solid var(--line); }
+.cfg-total-l{ font-family:var(--sans); font-size:9.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-2); }
+.cfg-total-v{ font-family:var(--sans); font-size:clamp(24px,2.4vw,34px); font-weight:600; line-height:1.05;
+  color:var(--be); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.cfg-total-s{ font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--tg); margin-top:4px; }
+/* Sin nada configurado solo queda el contador de paso: el filete separador se quedaba flotando solo */
+.cfg-total-bare{ border-left:0; padding-left:0; }
+
+/* Raíl de pasos: línea continua que se rellena hasta el paso actual (--cfg-f = fracción 0–1).
+   Los círculos llevan un halo blanco que tapa la línea por debajo, así no hace falta recortarla. */
+.cfg-rail{ list-style:none; display:flex; justify-content:space-between; position:relative;
+  margin:clamp(24px,3vw,36px) 0 0; padding:0 0 clamp(20px,2.4vw,28px); border-bottom:1px solid var(--line); }
+.cfg-rail::before,.cfg-rail::after{ content:""; position:absolute; left:17px; top:16px; height:2px; border-radius:2px; }
+.cfg-rail::before{ right:17px; background:var(--bone-2); }
+.cfg-rail::after{ width:calc((100% - 34px) * var(--cfg-f,0)); background:var(--tg); transition:width .45s var(--ease); }
+.cfg-rail-i{ flex:1 1 0; min-width:0; position:relative; z-index:1; }
+.cfg-rail-i:last-child{ flex:0 0 auto; }
+.cfg-rail-i button{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; width:100%;
+  background:none; border:0; padding:0; cursor:pointer; text-align:left; }
+.cfg-rail-i:last-child button{ align-items:flex-end; text-align:right; }
+.cfg-rail-i.off button{ cursor:default; }
+.cfg-rail-n{ width:34px; height:34px; border-radius:999px; display:grid; place-items:center; flex:none;
+  background:var(--bone); border:2px solid var(--bone-2); box-shadow:0 0 0 5px #fff;
+  font-family:var(--sans); font-size:13px; font-weight:700; color:var(--ink-2);
+  transition:background .25s,border-color .25s,color .25s,transform .2s var(--ease-press); }
+.cfg-rail-t{ font-family:var(--sans); font-size:clamp(10.5px,1vw,12.5px); font-weight:600; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink-2); transition:color .25s; }
+.cfg-rail-i.done .cfg-rail-n{ background:var(--tg); border-color:var(--tg); color:var(--bone); }
+.cfg-rail-i.done .cfg-rail-t{ color:var(--ink); }
+.cfg-rail-i.on .cfg-rail-n{ background:var(--be); border-color:var(--be); color:var(--rl); transform:scale(1.06); }
+.cfg-rail-i.on .cfg-rail-t{ color:var(--be); }
+.cfg-rail-i.off{ opacity:.42; }
+.cfg-rail-i button:not([disabled]):hover .cfg-rail-n{ border-color:var(--tg); }
+
+/* Paso */
+.cfg-step{ animation:cfgFade .32s var(--ease); padding-top:clamp(22px,2.6vw,32px); }
 @keyframes cfgFade{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
-@media(prefers-reduced-motion:reduce){ .cfg-step{ animation:none; } }
-.cfg-step .serif{ margin-top:2px; }
-.cfg-nav{ display:flex; justify-content:space-between; align-items:center; gap:12px;
-  margin-top:clamp(22px,2.6vw,30px); padding-top:clamp(16px,2vw,20px); border-top:1px solid var(--line); }
+@media(prefers-reduced-motion:reduce){ .cfg-step{ animation:none; } .cfg-rail::after{ transition:none; } }
+.cfg-h{ font-family:var(--sans); font-weight:300; font-size:clamp(20px,2vw,28px); line-height:1.12;
+  letter-spacing:0; color:var(--be); margin:0 0 clamp(16px,2vw,22px); }
+.cfg-step-h{ margin-bottom:clamp(18px,2.2vw,26px); }
+.cfg-step-h .cfg-h{ margin-bottom:0; }
+.cfg-step-h p{ font-family:var(--sans); font-size:14px; font-weight:300; line-height:1.6; color:var(--ink-2); margin:8px 0 0; max-width:52ch; }
+
+/* Opciones del configurador: parcelas, villas y extras. La selección ya no se anuncia con una
+   línea de texto que descuadraba la altura de las tarjetas — se marca la tarjeta entera. */
+.cfg-opt{ position:relative; text-align:left; cursor:pointer; background:var(--rl); border:1px solid var(--line);
+  border-radius:14px; padding:0; overflow:hidden;
+  transition:border-color .2s,background .2s,box-shadow .3s var(--ease),transform .18s var(--ease-press); }
+.cfg-opt:hover{ border-color:var(--sc); box-shadow:0 16px 34px -26px rgba(27,26,21,.7); }
+.cfg-opt:active{ transform:scale(.99); }
+.cfg-opt.on{ border-color:var(--tg); background:var(--tg-light); box-shadow:0 0 0 1px var(--tg) inset; }
+.cfg-tick{ position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:999px; z-index:2;
+  background:var(--tg); color:var(--bone); display:grid; place-items:center; font-size:13px; font-weight:700;
+  opacity:0; transform:scale(.7); transition:opacity .2s,transform .24s var(--ease); }
+.cfg-opt.on .cfg-tick{ opacity:1; transform:none; }
+
+.cfg-plots{ display:grid; grid-template-columns:repeat(auto-fill,minmax(136px,1fr)); gap:10px; }
+.cfg-plot{ display:flex; flex-direction:column; gap:9px; padding:18px 16px 16px; }
+.cfg-plot-size{ font-family:var(--sans); font-size:26px; font-weight:600; line-height:1; color:var(--ink); }
+.cfg-plot-size em{ font-style:normal; font-size:13px; font-weight:500; color:var(--ink-2); }
+.cfg-plot-price{ font-family:var(--sans); font-size:14px; font-weight:600; color:var(--be); }
+.cfg-plot.on .cfg-plot-size{ color:var(--tg-dark); }
+
+.cfg-homes{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.cfg-home{ display:flex; flex-direction:column; }
+.cfg-home-media{ position:relative; display:block; aspect-ratio:4/3; background:var(--bone-2); overflow:hidden; }
+.cfg-home-media img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .6s var(--ease); }
+.cfg-home:hover .cfg-home-media img{ transform:scale(1.04); }
+.cfg-home-body{ display:flex; flex-direction:column; gap:5px; padding:14px 16px 16px; }
+.cfg-home-name{ font-family:var(--sans); font-size:21px; font-weight:400; line-height:1.15; color:var(--ink); }
+.cfg-home-meta{ font-family:var(--sans); font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--tg); }
+.cfg-home-areas{ font-family:var(--sans); font-size:12px; font-weight:300; line-height:1.5; color:var(--ink-2); }
+.cfg-home-price{ font-family:var(--sans); font-size:16px; font-weight:600; color:var(--be); margin-top:4px; }
+
+.cfg-extras{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--rl); }
+.cfg-extra{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; transition:background .2s; }
+.cfg-extra + .cfg-extra{ border-top:1px solid var(--line); }
+.cfg-extra.on{ background:var(--tg-light); }
+.cfg-extra-txt{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cfg-extra-name{ font-family:var(--sans); font-size:14.5px; font-weight:600; color:var(--ink); }
+.cfg-extra-note{ font-family:var(--sans); font-size:12px; font-weight:300; color:var(--ink-2); }
+.cfg-extra-act{ display:flex; align-items:center; gap:14px; flex:none; }
+.cfg-extra-price{ font-family:var(--sans); font-size:15px; font-weight:600; color:var(--be); }
+.cfg-extra-btn{ border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px;
+  padding:7px 16px; font-family:var(--sans); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+  transition:background .2s,color .2s,border-color .2s; }
+.cfg-extra-btn:hover{ border-color:var(--tg); color:var(--tg); }
+.cfg-extra-btn.on{ background:var(--tg); border-color:var(--tg); color:var(--bone); }
+.cfg-extras-total{ display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  margin-top:14px; padding-top:12px; border-top:2px solid var(--ink); font-family:var(--sans); }
+.cfg-extras-total span{ font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.cfg-extras-total b{ font-size:18px; font-weight:700; }
+
+/* Pie de navegación */
+.cfg-foot{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+  margin-top:clamp(24px,2.8vw,34px); padding-top:clamp(18px,2vw,22px); border-top:1px solid var(--line); }
+.cfg-foot-end{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-left:auto; }
+.cfg-btn{ display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:11px 24px;
+  font-family:var(--sans); font-size:13px; font-weight:700; cursor:pointer; border:1px solid transparent;
+  text-decoration:none; transition:background .22s,color .22s,border-color .22s,transform .16s var(--ease-press); }
+.cfg-btn:active{ transform:scale(.97); }
+/* Deshabilitado legible: con opacity .35 sobre fondo claro el "Continue" desaparecía y parecía roto */
+.cfg-btn[disabled]{ cursor:default; }
+.cfg-btn-ghost{ background:none; border-color:var(--line); color:var(--ink); font-weight:600; }
+.cfg-btn-ghost:not([disabled]):hover{ border-color:var(--ink); }
+.cfg-btn-ghost[disabled]{ color:var(--ink-2); border-color:var(--bone-2); }
+.cfg-btn-go{ background:var(--tg); color:var(--bone); }
+.cfg-btn-go:not([disabled]):hover{ background:var(--tg-dark); }
+.cfg-btn-go[disabled]{ background:var(--bone-2); color:var(--ink-2); }
+.cfg-btn-wa{ background:#25D366; color:#fff; box-shadow:0 8px 20px -8px rgba(37,211,102,.65); }
+.cfg-btn-wa svg{ width:17px; height:17px; flex:none; }
+/* Móvil: sin sitio para 4 etiquetas en fila — los pasos pasan a rejilla y la línea sobra */
+@media(max-width:560px){
+  .cfg-rail{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px 12px; }
+  .cfg-rail::before,.cfg-rail::after{ display:none; }
+  .cfg-rail-i:last-child{ flex:none; }
+  .cfg-rail-i:last-child button{ align-items:flex-start; text-align:left; }
+  .cfg-rail-i button{ flex-direction:row; align-items:center; gap:10px; }
+  .cfg-total{ border-left:0; padding-left:0; align-items:flex-start; }
+  .cfg-foot,.cfg-foot-end{ flex-direction:column; align-items:stretch; }
+  .cfg-btn{ justify-content:center; }
+}
 
 /* ── SCROLL REVEAL ───────────────────────────────────────── */
 .reveal    { opacity:0; transform:translateY(28px); filter:blur(4px); transition:opacity .85s var(--ease),transform .85s var(--ease),filter .85s var(--ease); }
@@ -375,12 +500,6 @@ article:hover .view-cta { gap:9px; }
 /* La ficha respira más ancho que el marketplace (en la guía el contenido casi toca los bordes y
    solo el footer se queda en 1280) — de ahí un contenedor propio en vez de tocar --wrap global. */
 .pdp-wrap{ max-width:1760px }
-/* Sin "The Territory" cargado el masterplan queda solo: se limita el ancho para que las parcelas
-   sigan leyéndose en rejilla como en la guía, en vez de estirarse a 8 en fila. */
-.pdp-cols-solo > div{ max-width:62ch }
-/* Titular de bloque (The Masterplan / The Territory) — verde, grande, guía Ficha p4 */
-.pdp-block-h{ font-family:var(--sans); font-weight:700; font-size:clamp(21px,2.5vw,34px); letter-spacing:.005em; line-height:1.15;
-  text-transform:uppercase; color:var(--tg); margin:12px 0 0 }
 /* ── Ficha: fila de características al pie del hero (habitaciones, baños, piscina…) ── */
 .pdp-hero-feats{ position:absolute; left:0; right:0; bottom:clamp(16px,2.8vh,30px); z-index:2;
   display:flex; flex-wrap:wrap; justify-content:center; row-gap:6px; padding:0 clamp(16px,4vw,60px);
@@ -432,26 +551,61 @@ article:hover .view-cta { gap:9px; }
 .pdp-wa-float:hover{ transform:scale(1.06) }
 /* ── Ficha: 2 columnas bajo el carrusel — izq 60% (tabla + configurador/payment) · dcha 40% (card) ── */
 .pdp-info-2col{ display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:clamp(24px,3.5vw,52px); align-items:start; }
-/* Planta 3D del territorio — columna derecha, a la altura del masterplan de la izquierda */
-.pdp-plan3d{ margin:clamp(18px,2.2vw,26px) 0 0; }
-.pdp-plan3d .kicker{ margin-bottom:10px; }
-.pdp-plan3d img{ display:block; width:100%; height:auto; border-radius:14px; border:1px solid var(--line); background:var(--bone-2); }
 /* La tabla blanca se movió a la sección de fotos (revisión cliente 24-jul); el configurador/payment
    plan es ahora lo primero de su columna → sin margen superior. */
 .pdp-leftmain{ margin-top:0; }
 /* Tabla blanca de datos, ahora bajo la galería de fotos (subida desde el detalle) */
 .pdp-specs-below{ margin-top:clamp(24px,3vw,40px); }
-/* Card de información (overview + ficha técnica + dossier) */
-.pdp-infocard{ background:#fff; border-radius:14px; padding:clamp(22px,2.4vw,34px); box-shadow:0 20px 50px -38px rgba(27,26,21,.4); }
-.pdp-ic-lead{ font-family:var(--sans); font-size:clamp(14px,1.35vw,16.5px); font-weight:300; line-height:1.65; color:var(--ink); margin:14px 0 0; }
-/* Ficha técnica (revisión cliente 24-jul: no gustaban los colores). Antes iconos verdes sueltos +
-   texto oscuro. Ahora cada dato en un chip cálido de piedra: fondo Stone Sand muy tenue, icono en
-   Burnt Earth (el mismo marrón de los valores de la tabla blanca) y texto Volcanic Ash. */
-.pdp-ic-specs{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:clamp(20px,2.4vw,28px); padding-top:clamp(18px,2vw,24px); border-top:1px solid var(--line); }
-.pdp-ic-spec{ display:flex; align-items:center; gap:11px; font-family:var(--sans); font-size:13.5px; font-weight:600; color:var(--va);
-  background:rgba(190,179,165,.16); border:1px solid rgba(190,179,165,.34); border-radius:11px; padding:11px 13px; }
-.pdp-ic-spec svg{ width:18px; height:18px; flex:none; color:var(--be); }
-.pdp-ic-spec span{ min-width:0; }
+
+/* ── FICHA TÉCNICA — hoja de datos (rework 27-jul) ─────────────
+   Antes: chips de piedra en rejilla 2×N con el valor SIN etiqueta ("Private pool", "34" y "2028"
+   uno detrás de otro, sin decir de qué eran) y el mapa metido en la esquina de la misma tarjeta.
+   Ahora: pares etiqueta/valor con filete, como la hoja de datos de un dossier. El mapa se fue a
+   su propia banda (.pdp-terr) y el dossier es el pie de la hoja, ya no una caja dentro de la caja. */
+.pdp-spec{ display:block; background:#fff; border:1px solid rgba(190,179,165,.45); border-radius:20px;
+  padding:clamp(22px,2.4vw,34px); box-shadow:0 30px 70px -50px rgba(27,26,21,.45); }
+.pdp-spec-lead{ font-family:var(--sans); font-size:clamp(14px,1.3vw,16px); font-weight:300; line-height:1.7;
+  color:var(--ink); margin:13px 0 0; }
+.pdp-spec-hd{ font-family:var(--sans); font-size:9.5px; font-weight:700; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--clay); margin-bottom:4px; }
+.pdp-spec > .pdp-spec-hd{ margin-top:clamp(24px,2.6vw,32px); padding-top:clamp(20px,2.2vw,26px); border-top:1px solid var(--line); }
+.pdp-spec > .pdp-spec-hd:first-child{ margin-top:0; padding-top:0; border-top:0; }
+.pdp-spec-list{ margin:12px 0 0; }
+.pdp-spec-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:11px 0;
+  border-bottom:1px solid rgba(212,204,186,.5); }
+.pdp-spec-row:last-child{ border-bottom:0; padding-bottom:0; }
+.pdp-spec-row dt{ display:flex; align-items:center; gap:10px; min-width:0; font-family:var(--sans);
+  font-size:11.5px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); }
+.pdp-spec-row dt svg{ width:17px; height:17px; flex:none; color:var(--sc); transition:color .2s; }
+.pdp-spec-row:hover dt svg{ color:var(--tg); }
+.pdp-spec-row dd{ margin:0; font-family:var(--sans); font-size:15px; font-weight:600; color:var(--be);
+  text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.pdp-spec-dossier{ margin-top:clamp(24px,2.6vw,32px); padding-top:clamp(20px,2.2vw,26px); border-top:1px solid var(--line); }
+
+/* ── THE TERRITORY — mapa + planta 3D a ancho completo (rework 27-jul) ──
+   El mapa medía 280px en una columna estrecha y la planta 3D colgaba huérfana debajo de la ficha
+   técnica. Ahora comparten banda; con solo uno de los dos cargado, ese ocupa el ancho entero. */
+.pdp-terr-head{ margin-bottom:clamp(18px,2.2vw,26px); }
+.pdp-terr-h{ font-family:var(--sans); font-weight:300; font-size:clamp(26px,3vw,44px); line-height:1.05;
+  letter-spacing:-.005em; color:var(--ink); margin:9px 0 0; }
+.pdp-terr-grid{ display:grid; grid-template-columns:1fr 1fr; gap:clamp(14px,2vw,26px); align-items:stretch; }
+.pdp-terr-solo .pdp-terr-grid{ grid-template-columns:1fr; }
+.pdp-terr-card{ margin:0; display:flex; flex-direction:column; gap:11px; min-width:0; }
+.pdp-terr-media{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line);
+  background:var(--bone-2); height:clamp(280px,42vh,460px); }
+.pdp-terr-media img{ width:100%; height:100%; object-fit:cover; }
+/* La planta 3D es un plano: recortarla a "cover" se come parcelas. Se ve entera sobre papel crema. */
+.pdp-terr-plan .pdp-terr-media{ background:var(--rl); }
+.pdp-terr-plan .pdp-terr-media img{ object-fit:contain; }
+.pdp-terr-card figcaption{ font-family:var(--sans); font-size:11.5px; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-2); }
+/* mapMediaHTML trae sus propias alturas y bordes (venía de la columna estrecha): aquí llena la caja */
+.pdp-terr-media .pdp-map{ position:absolute !important; inset:0; border:0 !important; border-radius:0 !important; min-height:0 !important; }
+.pdp-terr-media .pdp-map-embed{ height:100%; border:0; border-radius:0; }
+.pdp-terr-media .pdp-map-embed iframe{ height:100%; }
+.pdp-terr-media .pdp-map-open{ position:absolute; right:12px; bottom:12px; margin:0; background:rgba(255,255,255,.94);
+  padding:8px 14px; border-radius:999px; box-shadow:0 8px 20px -10px rgba(20,16,11,.5); }
+.pdp-terr-link{ margin-top:clamp(14px,1.8vw,20px); }
 /* ── Ficha: sección 50/50 — izq. imagen + título · dcha. tarjetas (revisión cliente 24-jul) ── */
 .pdp-split-section{ display:grid; grid-template-columns:1fr 1fr; align-items:stretch; margin:clamp(40px,5vw,72px) 0; min-height:clamp(380px,44vw,560px); }
 .pdp-split-img{ position:relative; overflow:hidden; background:#1a160f; }
@@ -507,11 +661,12 @@ article:hover .view-cta { gap:9px; }
   .pdp-info-2col{ grid-template-columns:1fr; }
   .pdp-split-section{ grid-template-columns:1fr; min-height:0; }
   .pdp-split-img{ min-height:clamp(280px,62vw,400px); }
+  .pdp-terr-grid{ grid-template-columns:1fr; }              /* mapa y planta 3D apilados */
 }
 @media(max-width:720px){
   .pdp-aerial{ aspect-ratio:4/3 !important; }               /* aéreo más alto en móvil */
   .pdp-aerial .pdp-hs{ display:none !important; }           /* hotspots ocultos en móvil (override del display:flex inline) */
-  .pdp-ic-specs{ grid-template-columns:1fr; }               /* ficha técnica en una columna */
+  .pdp-spec-row{ align-items:flex-start; }                  /* etiquetas largas: valor arriba, no centrado */
 }
 /* Gallery thumbnails in property detail */
 #pf-overlay .gallery-thumb { transition:transform .18s var(--ease-press),border-color .2s; }
@@ -882,8 +1037,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260724154749"></script>
-<script src="assets/portfolio-app.js?v=20260724-idx"></script>
+<script src="assets/lawang-card.js?v=20260727162245"></script>
+<script src="assets/portfolio-app.js?v=20260727162245-idx"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
