@@ -78,6 +78,18 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .tcard:hover{border-color:var(--tg);transform:translateY(-2px);box-shadow:0 12px 26px -18px rgba(72,91,55,.8)}
 .tcard .tt{font-weight:700;font-size:16px}
 .tcard .td{font-size:12.5px;color:var(--mut);line-height:1.45;margin-top:3px}
+/* ============ modal de exportación ============ */
+#pmodal{position:fixed;inset:0;background:rgba(32,36,31,.55);display:none;place-items:center;z-index:61}
+#pmodal.on{display:grid}
+#pmodal .box{width:min(540px,92vw)}
+#pmodal ol{margin:0 0 20px;padding-left:20px;font-size:14.5px;line-height:2.1;color:var(--ink)}
+#pmodal ol em{font-style:normal;color:var(--tg);font-weight:600}
+#pmodal .ck{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);cursor:pointer}
+#pmodal .pact{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.mbtn{font:600 13px var(--sans);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:9px 18px;cursor:pointer;transition:.15s}
+.mbtn:hover{border-color:var(--tg);color:var(--tg)}
+.mbtn.primary{background:var(--tg);border-color:var(--tg);color:#fff}
+.mbtn.primary:hover{background:#57703f;color:#fff}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:99}
 #toast.show{opacity:1}
 
@@ -106,6 +118,13 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .free .rs{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:var(--tg);border:2px solid #fff;cursor:nwse-resize;display:none;z-index:12}
 .free.sel .rs{display:block}
 .free[contenteditable]{cursor:text}
+
+/* guías de alineación: solo se ven mientras se arrastra */
+.guides{position:absolute;inset:0;pointer-events:none;z-index:30}
+.guides i{position:absolute;background:#E0417B;display:none}
+.guides i.gv{top:0;bottom:0;width:.4mm;margin-left:-.2mm}
+.guides i.gh{left:0;right:0;height:.4mm;margin-top:-.2mm}
+.guides i.on{display:block}
 
 /* ============ maquetas de página (marca Lawang) ============ */
 .page .kick{font:600 12px/1.4 var(--sans);letter-spacing:4px;text-transform:uppercase}
@@ -202,7 +221,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 /* ============ impresión ============ */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  #topbar,#sidebar,#modal,#toast,#seltools,.plabel,.slot .rm,.free .rs{display:none!important}
+  #topbar,#sidebar,#modal,#pmodal,#toast,#seltools,.plabel,.slot .rm,.free .rs,.guides{display:none!important}
   #stage{margin:0;padding:0}
   #pages{zoom:1}
   .sheetwrap{margin:0;width:auto}
@@ -271,6 +290,23 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
     <h2>Añadir página</h2>
     <p>Elige un punto de partida. Todo es editable: textos con clic, imágenes en su hueco, y encima puedes añadir textos, imágenes y bloques libres (arrastrar, girar, redimensionar). La «Blanca» es lienzo puro.</p>
     <div id="typegrid"></div>
+  </div>
+</div>
+
+<div id="pmodal" onclick="if(event.target===this)closePrint()">
+  <div class="box">
+    <h2>Exportar a PDF</h2>
+    <p>Se abre el diálogo de impresión del navegador. Con estos tres ajustes el PDF sale idéntico a lo que ves:</p>
+    <ol>
+      <li>Destino → <em>Guardar como PDF</em></li>
+      <li>Márgenes → <em>Ninguno</em></li>
+      <li>Gráficos de fondo → <em>activado</em> (dentro de «Más ajustes»)</li>
+    </ol>
+    <label class="ck"><input type="checkbox" id="pnoask"> No volver a mostrar este aviso</label>
+    <div class="pact">
+      <button class="mbtn" onclick="closePrint()">Cancelar</button>
+      <button class="mbtn primary" onclick="doPrint()">Abrir diálogo de impresión</button>
+    </div>
   </div>
 </div>
 
@@ -593,7 +629,8 @@ function freeNode(p,f){
   return d;
 }
 function makeRs(){
-  const rs=document.createElement('span');rs.className='rs';rs.title='Redimensionar';
+  const rs=document.createElement('span');rs.className='rs';
+  rs.title='Redimensionar · Shift cambia la proporción · Alt desactiva la imantación';
   rs.contentEditable=false;
   return rs;
 }
@@ -690,6 +727,52 @@ function dupSel(){if(!sel)return;const {p,f}=sel;const c=JSON.parse(JSON.stringi
 function layerSel(dir){if(!sel)return;const {p,f}=sel;const i=p.free.indexOf(f),j=i+dir;
   if(j<0||j>=p.free.length)return;[p.free[i],p.free[j]]=[p.free[j],p.free[i]];render();persist();selectById(p.id,f.id);}
 
+/* ---------- guías magnéticas ----------
+   Se imanta a los bordes y al centro de la página y a los bordes/centro de los
+   demás elementos de la misma página. Alt mientras se arrastra lo desactiva.
+   Los objetivos se calculan del DOM (no del estado) para que los textos, que no
+   guardan alto, aporten también su altura real. */
+const SNAP=1.6; /* mm */
+function guideLayer(page){
+  let l=page.querySelector('.guides');
+  if(!l){l=document.createElement('div');l.className='guides';
+    l.innerHTML='<i class="gv"></i><i class="gh"></i>';page.appendChild(l);}
+  return l;
+}
+function drawGuides(page,gv,gh){
+  const l=guideLayer(page);
+  const v=l.querySelector('.gv'), h=l.querySelector('.gh');
+  v.classList.toggle('on',gv!=null); if(gv!=null)v.style.left=gv+'mm';
+  h.classList.toggle('on',gh!=null); if(gh!=null)h.style.top=gh+'mm';
+}
+function clearGuides(){document.querySelectorAll('.guides i').forEach(i=>i.classList.remove('on'));}
+function collectSnap(page,exceptNode,k){
+  const pr=page.getBoundingClientRect();
+  const vs=[0,state.size.w/2,state.size.w], hs=[0,state.size.h/2,state.size.h];
+  page.querySelectorAll('.free').forEach(n=>{
+    if(n===exceptNode)return;
+    const r=n.getBoundingClientRect();
+    const x=(r.left-pr.left)/k, y=(r.top-pr.top)/k, w=r.width/k, h=r.height/k;
+    vs.push(x,x+w/2,x+w); hs.push(y,y+h/2,y+h);
+  });
+  return {vs,hs};
+}
+function nearest(v,list){
+  let best=null;
+  for(const t of list){const d=Math.abs(v-t);if(d<=SNAP&&(!best||d<best.d))best={d,t};}
+  return best;
+}
+/* imanta un lado del elemento (izq/centro/der) al objetivo más cercano */
+function magnet(v,size,list){
+  let best=null;
+  for(const o of [0,size/2,size]){
+    const s=nearest(v+o,list);
+    if(s&&(!best||s.d<best.d))best={d:s.d,v:s.t-o,g:s.t};
+  }
+  return best;
+}
+const mm2=n=>Math.round(n*100)/100;
+
 /* ---------- arrastrar / redimensionar / editar ---------- */
 let drag=null;
 $pages.addEventListener('pointerdown',e=>{
@@ -701,25 +784,44 @@ $pages.addEventListener('pointerdown',e=>{
   const page=node.closest('.page');
   const k=page.getBoundingClientRect().width/state.size.w; // px de pantalla por mm (incluye zoom)
   const resizing=!!e.target.closest('.rs');
-  drag={sf,k,resizing,x0:e.clientX,y0:e.clientY,fx:sf.f.x,fy:sf.f.y,fw:sf.f.w,fh:sf.f.h};
+  drag={sf,k,resizing,page,x0:e.clientX,y0:e.clientY,
+        fx:sf.f.x,fy:sf.f.y,fw:sf.f.w,fh:sf.f.h,
+        hm:node.getBoundingClientRect().height/k,   // alto real (los textos no lo guardan)
+        snap:collectSnap(page,node,k)};
   node.setPointerCapture(e.pointerId);
   e.preventDefault();
 });
 $pages.addEventListener('pointermove',e=>{
   if(!drag)return;
-  const {sf,k,resizing}=drag;
+  const {sf,k,resizing,snap}=drag;
   const dx=(e.clientX-drag.x0)/k, dy=(e.clientY-drag.y0)/k;
+  const free=e.altKey;                              // Alt: sin imantación
+  let gv=null,gh=null;
   if(resizing){
-    sf.f.w=Math.max(5,drag.fw+dx);
-    if(sf.f.h!=null)sf.f.h=Math.max(5,drag.fh+dy);
-    sf.node.style.width=sf.f.w+'mm';
-    if(sf.f.h!=null)sf.node.style.height=sf.f.h+'mm';
+    let w=Math.max(5,drag.fw+dx);
+    let h=drag.fh!=null?Math.max(5,drag.fh+dy):null;
+    // las imágenes mantienen proporción por defecto (Shift la libera); el resto al revés
+    const lock=(sf.f.kind==='img')!==e.shiftKey;
+    if(lock&&h!=null&&drag.fw>0){
+      h=Math.max(5,w*(drag.fh/drag.fw));
+    }else if(!free){
+      const sx=nearest(sf.f.x+w,snap.vs); if(sx){w=Math.max(5,sx.t-sf.f.x);gv=sx.t;}
+      if(h!=null){const sy=nearest(sf.f.y+h,snap.hs); if(sy){h=Math.max(5,sy.t-sf.f.y);gh=sy.t;}}
+    }
+    sf.f.w=mm2(w);sf.node.style.width=sf.f.w+'mm';
+    if(h!=null){sf.f.h=mm2(h);sf.node.style.height=sf.f.h+'mm';}
   }else{
-    sf.f.x=drag.fx+dx;sf.f.y=drag.fy+dy;
+    let x=drag.fx+dx, y=drag.fy+dy;
+    if(!free){
+      const sx=magnet(x,sf.f.w,snap.vs); if(sx){x=sx.v;gv=sx.g;}
+      const sy=magnet(y,drag.hm,snap.hs); if(sy){y=sy.v;gh=sy.g;}
+    }
+    sf.f.x=mm2(x);sf.f.y=mm2(y);
     sf.node.style.left=sf.f.x+'mm';sf.node.style.top=sf.f.y+'mm';
   }
+  drawGuides(drag.page,gv,gh);
 });
-$pages.addEventListener('pointerup',()=>{if(drag){persist();drag=null;}});
+$pages.addEventListener('pointerup',()=>{if(drag){clearGuides();persist();drag=null;}});
 $pages.addEventListener('dblclick',e=>{
   const node=e.target.closest('.free.kind-text');
   if(node){
@@ -779,9 +881,24 @@ $jsonfile.onchange=()=>{
 };
 document.getElementById('ptitle').addEventListener('input',persist);
 
-/* ---------- exportar PDF ---------- */
+/* ---------- exportar PDF ----------
+   ponytail: sigue siendo la impresión del navegador (vectorial, texto real). No hay
+   forma de saltarse su diálogo sin rasterizar la página con una librería, y eso
+   degradaría el deck. Lo que sí se arregla es el fallo real: los tres ajustes que,
+   mal puestos, sacaban el PDF con márgenes o sin fondos. */
+const PRINT_TIP_KEY='lawang_dossier_printtip';
 function exportPDF(){
   deselect();
+  let skip=false; try{skip=localStorage.getItem(PRINT_TIP_KEY)==='off';}catch(_){}
+  if(skip)return doPrint();
+  document.getElementById('pmodal').classList.add('on');
+}
+function closePrint(){document.getElementById('pmodal').classList.remove('on');}
+function doPrint(){
+  if(document.getElementById('pnoask').checked){
+    try{localStorage.setItem(PRINT_TIP_KEY,'off');}catch(_){}
+  }
+  closePrint();
   const prev=document.title;
   document.title=snapshot().title;           // nombre sugerido del PDF
   window.print();
