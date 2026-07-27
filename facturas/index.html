@@ -58,6 +58,17 @@
   .addbtn{ font:inherit; font-size:12.5px; color:var(--tg); background:none; border:1px dashed var(--tg);
            border-radius:999px; padding:7px 14px; cursor:pointer; }
 
+  /* lo que trae el contrato elegido */
+  #delContrato:empty{ display:none; }
+  #delContrato{ margin-top:10px; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:#f7f4ea; }
+  #delContrato .t{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  #delContrato .arrastrado{ font-size:12px; color:var(--muted); margin:5px 0 0; line-height:1.5; }
+  .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
+         border-radius:9px; padding:6px 10px; cursor:pointer; }
+  .hito:hover{ border-color:var(--tg); color:var(--dl); }
+  .hito b{ color:var(--dl); }
+
   /* ---------- vista previa ---------- */
   .pane-preview{ overflow:auto; background:#eae5d8; display:flex; flex-direction:column; }
   .pv-bar{ position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:10px 14px;
@@ -165,6 +176,7 @@
             <legend>Factura</legend>
             <label>Partir de un contrato guardado (opcional)</label>
             <select id="selContrato"><option value="">— sin contrato —</option></select>
+            <div id="delContrato"></div>
             <div class="row2">
               <div><label>Fecha de emisión</label><input type="date" name="fecha_emision"></div>
               <div><label>Vencimiento (opcional)</label><input type="date" name="fecha_vencimiento"></div>
@@ -265,11 +277,12 @@ let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
 /* ---------- selects que salen de entities.js ---------- */
 $('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
   .map(([k,s]) => `<option value="${k}">${esc(s.label)}</option>`).join('');
-// Las cuentas de notario son escrow de una operación concreta, no destino de
-// una factura de la sociedad: fuera del desplegable.
+// Van TODAS, incluidas las de notario (escrow): si el contrato pactó cobrar en
+// una cuenta concreta, la factura tiene que decir esa misma. La etiqueta ya
+// avisa de cuál es cuál.
 $('#selCuenta').innerHTML = '<option value="">— sin datos bancarios —</option>' +
-  Object.entries(CUENTAS_BANCARIAS).filter(([k]) => !k.startsWith('notario_'))
-    .map(([k,c]) => [k, c.label]).sort((a,b) => a[1].localeCompare(b[1],'es'))
+  Object.entries(CUENTAS_BANCARIAS).map(([k,c]) => [k, c.label])
+    .sort((a,b) => a[1].localeCompare(b[1],'es'))
     .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('');
 
 $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
@@ -394,24 +407,89 @@ $('#btnPrint').onclick = () => {
   document.title = antes;
 };
 
-/* ---------- prefill desde un contrato guardado ---------- */
+/* ---------- prefill desde un contrato guardado ----------
+   La lista va con columnas ligeras a propósito: el `datos` de un contrato llega
+   a 2,6 MB (los anexos van dentro en base64), así que traerlo de los 60 sería
+   descargar decenas de megas para llenar un desplegable. Al elegir uno se pide
+   solo ESE, y de su jsonb únicamente `fields` y `hitos`. */
 async function cargarContratos(){
   const { data, error } = await sb.from('contratos')
-    .select('numero,comprador_nombre,proyecto_nombre,moneda,precio_total')
+    .select('id,numero,comprador_nombre,proyecto_nombre')
     .order('created_at', { ascending:false }).limit(60);
   if(error || !data) return;
   const sel = $('#selContrato');
   sel.innerHTML = '<option value="">— sin contrato —</option>' + data.filter(c => c.numero).map(c =>
-    `<option value="${esc(c.numero)}" data-c="${esc(c.comprador_nombre||'')}" data-p="${esc(c.proyecto_nombre||'')}" data-m="${esc(c.moneda||'')}">
-      ${esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}</option>`).join('');
-  sel.onchange = () => {
-    const o = sel.selectedOptions[0]; if(!o || !sel.value) return;
-    $('[name="contrato_numero"]').value = sel.value;
-    if(o.dataset.c) $('[name="cliente_nombre"]').value = o.dataset.c;
-    if(o.dataset.p) $('[name="proyecto_nombre"]').value = o.dataset.p;
-    if(o.dataset.m) $('[name="moneda"]').value = o.dataset.m;
-    render();   // los importes NO se copian: una factura es un cobro parcial, no el precio del contrato
+    `<option value="${esc(c.id)}">${esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}${c.proyecto_nombre ? ' · ' + esc(c.proyecto_nombre) : ''}</option>`).join('');
+  sel.onchange = () => sel.value ? traerContrato(sel.value) : ($('#delContrato').innerHTML = '');
+}
+
+async function traerContrato(id){
+  const caja = $('#delContrato');
+  caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+  // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
+  // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
+  let { data, error } = await sb.from('contratos')
+    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos').eq('id', id).single();
+  if(error){
+    ({ data, error } = await sb.from('contratos').select('numero,moneda,precio_total,datos').eq('id', id).single());
+    if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; }
+  }
+  if(error || !data){ caja.innerHTML = `<div class="t">No se pudo cargar el contrato: ${esc((error&&error.message)||'')}</div>`; return; }
+
+  const f = data.campos || {};
+  const puesto = [];
+  const poner = (name, valor, etiqueta) => {
+    if(!valor) return;
+    const el = document.querySelector(`[name="${name}"]`); if(!el) return;
+    el.value = valor; puesto.push(etiqueta);
   };
+
+  // Compradores: la factura va a nombre de todos los que firman, no solo del primero.
+  const nombres = [f.adq1_nombre, f.adq2_nombre, f.adq3_nombre].filter(Boolean).join(' · ');
+  // Documento: el pasaporte/NPWP de cada comprador, en el mismo orden que los nombres.
+  const docs = [f.adq1_pasaporte, f.adq2_pasaporte, f.adq3_pasaporte].filter(Boolean).join(' · ');
+  // Unidad concreta si el contrato la fija (parcela, villa o tipología).
+  const unidad = [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa].filter(Boolean).join(' — ');
+
+  poner('contrato_numero', data.numero, 'contrato');
+  poner('cliente_nombre', nombres, 'nombre');
+  poner('cliente_documento', docs, 'documento');
+  poner('cliente_domicilio', f.adq1_domicilio, 'domicilio');
+  poner('cliente_email', f.adq1_email, 'email');
+  poner('proyecto_nombre', unidad, 'proyecto');
+  poner('moneda', data.moneda || f.moneda, 'moneda');
+  if(f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante]) poner('sociedad', f.sociedad_firmante, 'sociedad');
+  if(f.cuenta_bancaria && CUENTAS_BANCARIAS[f.cuenta_bancaria]) poner('cuenta', f.cuenta_bancaria, 'cuenta de cobro');
+
+  // Hitos de pago del contrato: cada uno puede convertirse en un concepto de la
+  // factura. NO se añaden solos — una factura cobra el hito que toca, no los cuatro.
+  const moneda = ($('[name="moneda"]')||{}).value;
+  const precio = parseImporte(data.precio_total || f.precio_total);
+  const hitos = (data.hitos || []).map(h => {
+    const pct = parseImporte(h.pct);
+    const monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
+    return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
+  }).filter(h => h.texto || h.monto);
+
+  caja.innerHTML = `<div class="t">Del contrato ${esc(data.numero || '')}</div>
+    <p class="arrastrado">${puesto.length ? 'Traído: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
+      ${precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
+    ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
+        `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
+      ).join('')}</div>
+      <p class="arrastrado">Pulsa un hito para añadirlo como concepto. Solo el que cobras en esta factura.</p>` : ''}`;
+
+  caja.querySelectorAll('[data-h]').forEach(b => b.onclick = () => {
+    const h = hitos[+b.dataset.h];
+    const desc = [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
+               + (h.timing ? ' — ' + h.timing : '');
+    if(LINEAS.length === 1 && !LINEAS[0].descripcion && !LINEAS[0].importe) LINEAS = [];
+    LINEAS.push({ descripcion: desc, importe: h.monto ? String(h.monto).replace('.', ',') : '' });
+    pintarLineas(); render();
+    toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+  });
+
+  render();
 }
 
 /* ---------- guardar ---------- */
@@ -452,6 +530,7 @@ $('#btnNueva').onclick = () => {
   SAVED = null; $('#form').reset(); LINEAS = [{ descripcion:'', importe:'' }];
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
+  $('#selContrato').value = ''; $('#delContrato').innerHTML = '';
   pintarLineas(); render();
 };
 
