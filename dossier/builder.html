@@ -834,13 +834,19 @@ function clearGuides(){document.querySelectorAll('.guides i').forEach(i=>i.class
 function collectSnap(page,exceptNode,k){
   const pr=page.getBoundingClientRect();
   const vs=[0,state.size.w/2,state.size.w], hs=[0,state.size.h/2,state.size.h];
-  page.querySelectorAll('.free').forEach(n=>{
+  // libres Y elementos de plantilla: con solo los libres, al liberar el primer
+  // elemento no hay nada con lo que alinearlo — el resto de la página es maqueta
+  page.querySelectorAll('.free,[data-e],[data-i]').forEach(n=>{
     if(n===exceptNode)return;
     const r=n.getBoundingClientRect();
+    if(r.width<1||r.height<1)return;          // los que quedaron vacíos al liberarlos
     const x=(r.left-pr.left)/k, y=(r.top-pr.top)/k, w=r.width/k, h=r.height/k;
     vs.push(x,x+w/2,x+w); hs.push(y,y+h/2,y+h);
   });
-  return {vs,hs};
+  // a décimas de mm: quita el ruido de subpíxel del rect (un borde a 20mm medía
+  // 19,99) y deja los objetivos en cifras limpias. 0,05mm de error es irrelevante impreso.
+  const uniq=a=>[...new Set(a.map(v=>Math.round(v*10)/10))];
+  return {vs:uniq(vs),hs:uniq(hs)};
 }
 function nearest(v,list){
   let best=null;
@@ -888,6 +894,9 @@ $pages.addEventListener('pointermove',e=>{
     // las imágenes mantienen proporción por defecto (Shift la libera); el resto al revés
     const lock=(sf.f.kind==='img')!==e.shiftKey;
     if(lock&&h!=null&&drag.fw>0){
+      // con proporción bloqueada se imanta el ancho y el alto se deriva: así el
+      // borde se pega igual que en un bloque, sin deformar la imagen
+      if(!free){const sx=nearest(sf.f.x+w,snap.vs); if(sx){w=Math.max(5,sx.t-sf.f.x);gv=sx.t;}}
       h=Math.max(5,w*(drag.fh/drag.fw));
     }else if(!free){
       const sx=nearest(sf.f.x+w,snap.vs); if(sx){w=Math.max(5,sx.t-sf.f.x);gv=sx.t;}
