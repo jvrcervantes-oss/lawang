@@ -137,7 +137,7 @@ const HOY = new Date(); HOY.setHours(0,0,0,0);
 const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
 
-let SB = null, OPS = [], SEL = null;
+let SB = null, OPS = [], SEL = null, POR_CLIENTE = {};
 
 /* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
    creó la tabla). Aquí solo se traducen para mostrar. */
@@ -164,6 +164,15 @@ async function cargar(){
   const firmas   = s.error ? [] : (s.data || []);
   const vinculos = cc.error ? [] : (cc.data || []);
   const docsKyc  = dc.error ? [] : (dc.data || []);
+
+  /* Qué contratos tiene cada persona. Un comprador encadena reserva, PPJB y
+     obra: estando en uno hace falta saltar a los otros sin volver al listado.
+     Se calcula una vez aquí, no por ficha. */
+  POR_CLIENTE = {};
+  vinculos.forEach(v => {
+    if(!v.clients) return;
+    (POR_CLIENTE[v.clients.id] = POR_CLIENTE[v.clients.id] || []).push(v.contrato_id);
+  });
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
   if(s.error) toast('No se pudieron leer las firmas: ' + s.error.message);
 
@@ -291,19 +300,28 @@ function pintarDetalle(){
   const bloqueFichas = fichas.length ? `
     <section>
       <h3>Comprador${fichas.length > 1 ? 'es' : ''}</h3>
-      <table><thead><tr><th>Nombre</th><th>Rol</th><th>Contacto</th><th>KYC</th></tr></thead><tbody>
+      <table><thead><tr><th>Nombre</th><th>Rol</th><th>Contacto</th><th>KYC</th><th>Sus otros contratos</th></tr></thead><tbody>
       ${fichas.map(v => {
         const c = v.clients;
         const ok = c.kyc_status === 'verified';
         // el nombre ES el enlace, y lleva a SU ficha, no a la lista: pulsar
         // "Abrir en Compradores" y aterrizar en un listado obliga a buscar a
         // la persona que ya estabas mirando
+        // sus OTROS contratos: la venta encadena reserva, PPJB y obra, y desde
+        // uno hay que poder saltar a los demás sin volver al listado
+        const otros = (POR_CLIENTE[c.id] || [])
+          .filter(cid => cid !== op.id)
+          .map(cid => OPS.find(o => o.id === cid))
+          .filter(Boolean);
         return `<tr>
           <td><a class="enl" href="/compradores/?id=${encodeURIComponent(c.id)}">${esc(c.full_name || 'Sin nombre')}</a>
               <div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
           <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
           <td>${esc(c.email || c.phone || '—')}</td>
           <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rejected' ? 'alerta' : 'espera')}">${esc(KYC_ES[c.kyc_status] || c.kyc_status || 'pendiente')}</span></td>
+          <td>${otros.length
+            ? otros.map(o => `<a class="enl" href="/operaciones/?contrato=${encodeURIComponent(o.id)}" title="${esc(o.proyecto_nombre || '')}">${esc(o.numero || 'sin nº')}</a>`).join(' · ')
+            : '<span class="nota">—</span>'}</td>
         </tr>`;
       }).join('')}
       </tbody></table>

@@ -2289,15 +2289,34 @@ $('#fmGen').addEventListener('click', async ()=>{
   // de firma se queda sin el dato con el que se identifica al firmante.
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Pon un email válido del comprador'); return; }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
+  const ROL = 'adquiriente_1';
   try{
+    /* Generar un enlace ANULA el anterior de ese contrato y ese rol.
+       Antes cada pulsación dejaba vivo el enlace previo, 30 días, con su token
+       válido: CR00005 acumuló 4 en tres minutos y RP00015 otros 4. Cualquiera
+       de los viejos podía producir un documento firmado paralelo.
+       Desde el 28-jul la base lo impide con un índice único parcial
+       (`contrato_firmas_un_pendiente_por_rol`), así que sin esta anulación
+       previa el insert falla directamente con clave duplicada. */
+    const anul = await sb.from('contrato_firmas')
+      .update({ estado:'anulado' })
+      .eq('contrato_id', SAVED_CONTRACT.id)
+      .eq('firmante_rol', ROL)
+      .eq('estado', 'pendiente')
+      .select('id');
+    if(anul.error) throw anul.error;
+    const anulados = (anul.data || []).length;
+
     const token=randToken();
     const hash=await sha256hex(token);
     const path='pendientes/'+hash+'.html';
     const up=await sb.storage.from('contratos-firmados').upload(path, new Blob([buildSnapshot()],{type:'text/html'}), {upsert:true, contentType:'text/html'});
     if(up.error) throw up.error;
     const ins=await sb.from('contrato_firmas').insert({ contrato_id:SAVED_CONTRACT.id, token_hash:hash,
-      firmante_nombre:nombre, firmante_email:email||null, firmante_rol:'adquiriente_1', snapshot_path:path });
+      firmante_nombre:nombre, firmante_email:email||null, firmante_rol:ROL, snapshot_path:path });
     if(ins.error) throw ins.error;
+    if(anulados) toast(anulados === 1 ? 'El enlace anterior queda anulado'
+                                      : anulados + ' enlaces anteriores quedan anulados');
     const base=location.href.replace(/[^/]*(?:\?.*)?$/,'');
     const link=base+'firmar.html?t='+token;
     $('#fmLink').value=link;
