@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/lawang-card.css?v=20260728114121">
+<link rel="stylesheet" href="assets/lawang-card.css?v=20260728161313">
 <style>
 /* ── BRAND FONTS (locales, mismas que index.html) ────────── */
 @font-face{font-family:'The Seasons';src:url('assets/fonts/TheSeasons-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
@@ -721,25 +721,7 @@ article:hover .view-cta { gap:9px; }
 }
 
 /* ── Modal legal (T&C + Privacy), portado de index.html ── */
-.legal-modal { position:fixed; inset:0; z-index:10000; display:none; }
-.legal-modal.open { display:block; }
-.legal-backdrop { position:absolute; inset:0; background:rgba(6,9,6,.72); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
-.legal-dialog { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(720px,92vw); max-height:86vh; display:flex; flex-direction:column; background:var(--rl); color:var(--va); border-radius:16px; overflow:hidden; box-shadow:0 40px 100px -30px rgba(0,0,0,.7); }
-.legal-close { position:absolute; top:14px; right:16px; z-index:2; width:38px; height:38px; border-radius:999px; border:none; background:rgba(46,52,55,.08); color:var(--va); font-size:24px; line-height:1; cursor:pointer; transition:background .2s; }
-.legal-close:hover { background:rgba(46,52,55,.18); }
-.legal-tabs { display:flex; gap:6px; padding:20px clamp(20px,4vw,40px) 0; flex-wrap:wrap; }
-.legal-tab { background:none; border:none; cursor:pointer; font-family:var(--sans); font-weight:600; font-size:clamp(12px,1.1vw,13px); letter-spacing:.1em; text-transform:uppercase; color:rgba(46,52,55,.5); padding:8px 0; border-bottom:2px solid transparent; transition:color .2s,border-color .2s; }
-.legal-tab.active { color:var(--tg); border-color:var(--tg); }
-.legal-tab + .legal-tab { margin-left:22px; }
-.legal-body { overflow-y:auto; padding:22px clamp(20px,4vw,40px) clamp(24px,4vw,40px); }
-.legal-panel[hidden] { display:none; }
 /* Cormorant (no var(--serif)): The Seasons demo corrompe el "&" de "Terms & Conditions" */
-.legal-h { font-family:'Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(24px,3vw,32px); color:var(--tg); margin:0 0 4px; }
-.legal-meta { font-family:var(--sans); font-size:clamp(12px,1.1vw,13px); letter-spacing:.06em; text-transform:uppercase; color:rgba(46,52,55,.5); margin:0 0 18px; }
-.legal-panel h3 { font-family:var(--sans); font-weight:700; font-size:clamp(15px,1.5vw,17px); letter-spacing:.02em; color:var(--va); margin:20px 0 6px; }
-.legal-panel p { font-family:var(--sans); font-weight:400; font-size:clamp(13px,1.4vw,15px); line-height:1.7; color:rgba(46,52,55,.82); margin:0 0 6px; }
-.legal-panel a { color:var(--tg); text-decoration:underline; }
-.legal-note { margin-top:18px !important; font-style:italic; color:rgba(46,52,55,.55) !important; }
 </style>
 </head>
 <body>
@@ -754,84 +736,444 @@ article:hover .view-cta { gap:9px; }
     <h1>Lawang — Property Portfolio in Bali & Sumba</h1>
     <p>Signature homes, land parcels, villas and resort units across Bali and Sumba, Indonesia. Freehold and leasehold opportunities with managed rental income.</p>
     <article class="seo-prop">
-      <img src="/assets/img/properties/20260604_5fb11d5c956a.png" alt="Ridge House — Balian Hills, Bali" loading="lazy" width="800" height="600">
-      <h3><a href="#property/balian-ridge-house">Ridge House</a></h3>
-      <p class="seo-region">Balian Hills, Bali</p>
-      <p class="seo-price">From €290,000</p>
-      <p class="seo-specs">4 bed · 3 bath · 240 m² built · 600 m² land</p>
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik) · Handover Q4 2026</p>
-      <p class="seo-sub">A cantilevered three-bed perched over the Balian river valley.</p>
-      <p class="seo-desc">Ridge House reads the land. Living spaces float toward the valley while the bedrooms tuck into the slope for cool, quiet nights. A 14-metre infinity pool catches the last of the sun.</p>
+      <img src="/assets/img/properties/tirta-hikari-1.jpg" alt="Tirta Hikari — South Buwit, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/tirta-hikari">Tirta Hikari</a></h3>
+      <p class="seo-region">South Buwit, Tabanan</p>
+      <p class="seo-price">From €930,000</p>
+      <p class="seo-specs">3 bed · 4 bath · 345 m² built · 965 m² land</p>
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">A boutique collection of just three freehold villas</p>
+      <p class="seo-desc">Lawang&#x27;s flagship: only three freehold villas in South Buwit, minutes from Seseh and Canggu. Joglo-inspired contemporary architecture with a wellness focus — sauna and ice bath — an infinity pool and jungle-and-river views.</p>
     </article>
     <article class="seo-prop">
       
-      <h3><a href="#property/balian-parcel-a">Estate Parcel A</a></h3>
-      <p class="seo-region">Balian Hills, Bali</p>
-      <p class="seo-price">From €20,000</p>
-      <p class="seo-specs">400 m² land</p>
-      <p class="seo-meta">Titled land · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Titled 400 m² ridge plot inside the Balian master plan.</p>
-      <p class="seo-desc">An entry-level, fully due-diligenced parcel with road access, power and water to the boundary. Build with a Lawang typology or your own architect.</p>
+      <h3><a href="#property/joglo-kembar-ii">Joglo Kembar II</a></h3>
+      <p class="seo-region">Tangkuban, Denpasar</p>
+      <p class="seo-price">From €700,000</p>
+      <p class="seo-specs">5 bed · 5 bath</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">A premium single villa facing the rice fields</p>
+      <p class="seo-desc">A one-off premium villa in Tangkuban (West Denpasar) with traditional Joglo architecture overlooking rice fields. Five bedrooms, fully furnished, pool and paddy views, 3 m private access.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/villa-tipo-lontar">Typology — Lontar</a></h3>
-      <p class="seo-region">Balian Hills, Bali</p>
-      <p class="seo-price">From €60,000</p>
-      <p class="seo-specs">1 bed · 1 bath · 75 m² built</p>
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik) · Handover 8 months</p>
-      <p class="seo-sub">Our most compact one-bed. Build cost only, on your plot.</p>
-      <p class="seo-desc">The Lontar is the easiest way into a Lawang home: a single-bedroom pavilion with a plunge pool and a timber-screened deck, delivered in eight months on a plot you already own.</p>
+      <img src="/assets/img/properties/riverfront-i-1.jpg" alt="Riverfront I — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/riverfront-i">Riverfront I</a></h3>
+      <p class="seo-region">Kaba-Kaba, Tabanan</p>
+      <p class="seo-price">From €320,000</p>
+      <p class="seo-specs">2 bed · 3 bath · 180 m² built · 300 m² land</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">A boutique of four riverside villas near Canggu</p>
+      <p class="seo-desc">A boutique of four private riverside villas in Kaba-Kaba, near Canggu. Double-height living and a private infinity pool, with river and garden views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/sumba-bayhouse">Bay House</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €420,000</p>
-      <p class="seo-specs">4 bed · 4 bath · 320 m² built · 1100 m² land</p>
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik) · Handover 2027</p>
-      <p class="seo-sub">Four-bedroom beachfront on Sumba&#x27;s empty south coast.</p>
-      <p class="seo-desc">Steps from a private stretch of sand, Bay House is built for the off-grid life — solar, rainwater and thick coral-stone walls that stay cool through the day.</p>
+      <img src="/assets/img/properties/20260727_15776f4ef2ff91e19f28b730ef00f94c.jpg" alt="Riverfront II — Big House — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/riverfront-ii-big">Riverfront II — Big House</a></h3>
+      <p class="seo-region">Kaba-Kaba, Tabanan</p>
+      <p class="seo-price">From €280,000</p>
+      <p class="seo-specs">3 bed · 3 bath · 125 m² built · 450 m² land</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">The large unit of the Riverfront II compound, with private pool</p>
+      <p class="seo-desc">The large &#x27;Big House&#x27; unit within the Riverfront II compound in Kaba-Kaba, with a private pool and extra privacy. River, jungle and pool views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/balian-surf-resort">Rivermouth Resort — Unit</a></h3>
-      <p class="seo-region">Balian Hills, Bali</p>
-      <p class="seo-price">From €95,000</p>
-      <p class="seo-specs">1 bed · 1 bath · 55 m² built</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs · Handover Q2 2027</p>
-      <p class="seo-sub">Buy-to-let villa unit in a managed surf resort. Income from day one.</p>
-      <p class="seo-desc">Own one branded unit in a fully managed surf resort at the Balian rivermouth. Lawang runs the bookings, the upkeep and the front desk; you collect a share of the yield.</p>
+      <img src="/assets/img/properties/tangkuban-village-1.jpg" alt="Tangkuban Village — Seminyak, Denpasar" loading="lazy" width="800" height="600">
+      <h3><a href="#property/tangkuban-village">Tangkuban Village</a></h3>
+      <p class="seo-region">Seminyak, Denpasar</p>
+      <p class="seo-price">From €250,000</p>
+      <p class="seo-specs">3 bed · 3 bath · 160 m² built · 300 m² land</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">A modern villa in high-demand Seminyak</p>
+      <p class="seo-desc">A modern villa in Seminyak (Padangsambian, Denpasar), a high-demand area close to the beach and restaurants. Rice-field and pool views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/sumba-land-bluff">Bluff Parcel</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €38,000</p>
-      <p class="seo-specs">1000 m² land</p>
-      <p class="seo-meta">Titled land · Freehold (Hak Milik)</p>
-      <p class="seo-sub">1,000 m² clifftop plot above a world-class right-hander.</p>
-      <p class="seo-desc">A rare titled clifftop parcel on Sumba with a 180° ocean view and a private path to the sand. For a one-off home that will never have a neighbour to the front.</p>
+      <img src="/assets/img/properties/riverfront-iii-1.jpg" alt="Riverfront III — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/riverfront-iii">Riverfront III</a></h3>
+      <p class="seo-region">Kaba-Kaba, Tabanan</p>
+      <p class="seo-price">From €250,000</p>
+      <p class="seo-specs">3 bed · 3 bath · 106 m² built · 230 m² land</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">Four exclusive three-bedroom villas by the river and jungle</p>
+      <p class="seo-desc">Four exclusive three-bedroom villas (plus study) in Kaba-Kaba, in a river-and-jungle setting. Fully furnished, carport, with river, jungle and pool views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/villa-tipo-banyan">Typology — Banyan</a></h3>
-      <p class="seo-region">Balian Hills, Bali</p>
-      <p class="seo-price">From €130,000</p>
-      <p class="seo-specs">2 bed · 2 bath · 145 m² built</p>
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik) · Handover 10 months</p>
-      <p class="seo-sub">Two-bed family typology with double-height living.</p>
-      <p class="seo-desc">The Banyan grows with you: two bedrooms today, a guest pavilion later. A double-height living space pulls cross-breeze through the heart of the home.</p>
+      <img src="/assets/img/properties/pura-dalem-1.jpg" alt="Pura Dalem — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/pura-dalem">Pura Dalem</a></h3>
+      <p class="seo-region">Kaba-Kaba, Tabanan</p>
+      <p class="seo-price">From €240,000</p>
+      <p class="seo-specs">3 bed · 3 bath · 130 m² built · 180 m² land</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">Contemporary villas in a quiet setting near Canggu</p>
+      <p class="seo-desc">Contemporary villas in Kaba-Kaba (Kediri, Tabanan), a quiet setting near Canggu. Carport, with pool and garden views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/sumba-resort-villa">Lagoon Resort — Villa</a></h3>
-      <p class="seo-region">Sumba</p>
+      <img src="/assets/img/properties/riverfront-ii-small-1.jpg" alt="Riverfront II — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/riverfront-ii-small">Riverfront II</a></h3>
+      <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €210,000</p>
-      <p class="seo-specs">2 bed · 2 bath · 130 m² built</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs · Handover 2027</p>
-      <p class="seo-sub">Two-bed managed villa in a boutique Sumba beach resort.</p>
-      <p class="seo-desc">A larger managed villa for buyers who want both yield and a genuine bolthole — block out your own weeks, rent the rest through Lawang.</p>
+      <p class="seo-specs">2 bed · 2 bath · 106 m² built · 200 m² land</p>
+      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
+      <p class="seo-sub">Six two-bedroom villas sharing an infinity pool over the river</p>
+      <p class="seo-desc">Six contemporary two-bedroom villas that share a communal infinity pool over the river, in Kaba-Kaba. Fully furnished, carport, with river, pool and garden views.</p>
+    </article>
+    <article class="seo-prop">
+      <img src="/assets/img/properties/rurung-anyar-1.jpg" alt="Rurung Anyar — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/rurung-anyar">Rurung Anyar</a></h3>
+      <p class="seo-region">Kaba-Kaba, Tabanan</p>
+      <p class="seo-price">From €200,000</p>
+      <p class="seo-specs">2 bed · 3 bath · 117 m² built · 208 m² land</p>
+      <p class="seo-meta">Leasehold — 30 yrs</p>
+      <p class="seo-sub">Contemporary tropical villas in a quiet Kaba-Kaba setting</p>
+      <p class="seo-desc">Contemporary tropical villas in Kaba-Kaba (Tabanan), a quiet setting. Carport, with pool and garden views.</p>
+    </article>
+    <article class="seo-prop">
+      <img src="/assets/img/properties/cube-1.jpg" alt="Cube — Uluwatu / Balangan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/cube">Cube</a></h3>
+      <p class="seo-region">Uluwatu / Balangan</p>
+      <p class="seo-price">From €199,000</p>
+      <p class="seo-specs">3 bed · 2 bath · 184 m² built · 250 m² land</p>
+      <p class="seo-meta">Leasehold — 30 yrs</p>
+      <p class="seo-sub">A spacious three-bedroom villa in Uluwatu / Balangan</p>
+      <p class="seo-desc">A spacious three-bedroom villa in Uluwatu/Balangan, geared to families or groups. Fully furnished, with pool and garden views.</p>
+    </article>
+    <article class="seo-prop">
+      <img src="/assets/img/properties/river-1.jpg" alt="River — Uluwatu / Balangan" loading="lazy" width="800" height="600">
+      <h3><a href="#property/river">River</a></h3>
+      <p class="seo-region">Uluwatu / Balangan</p>
+      <p class="seo-price">From €167,000</p>
+      <p class="seo-specs">1 bed · 1 bath · 84 m² built · 150 m² land</p>
+      <p class="seo-meta">Leasehold — 30 yrs</p>
+      <p class="seo-sub">A modern loft villa near beaches and the airport</p>
+      <p class="seo-desc">A modern loft villa in Uluwatu/Balangan, near beaches and the airport — ideal for couples or digital nomads. Fully furnished, with pool, garden and river views.</p>
+    </article>
+    <article class="seo-prop">
+      <img src="/assets/img/properties/aqua-1.jpg" alt="Aqua — Uluwatu, Jimbaran" loading="lazy" width="800" height="600">
+      <h3><a href="#property/aqua">Aqua</a></h3>
+      <p class="seo-region">Uluwatu, Jimbaran</p>
+      <p class="seo-price">From €155,000</p>
+      <p class="seo-specs">1 bed · 1 bath · 84 m² built · 150 m² land</p>
+      <p class="seo-meta">Leasehold — 30 yrs</p>
+      <p class="seo-sub">An accessible-entry loft villa in high-demand Uluwatu</p>
+      <p class="seo-desc">A modern loft villa in Uluwatu (Jimbaran) with an accessible entry price in a high-demand tourist area. Fully furnished, with pool and garden views.</p>
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w0">W0</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w1">W1</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w1-1">W1.1</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w2">W2</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w3">W3</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w3-1">W3.1</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w3-2">W3.2</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w4">W4</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w5">W5</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w6">W6</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w7">W7</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w8">W8</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w9">W9</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w10">W10</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w11">W11</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w12">W12</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w13">W13</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w14">W14</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w15">W15</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/w16">W16</a></h3>
+      <p class="seo-region">Balian, Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s1">S1</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s2">S2</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s3">S3</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s4">S4</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s5">S5</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s6">S6</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s7">S7</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s8">S8</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/s9">S9</a></h3>
+      <p class="seo-region">Sumba</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/g1">G1</a></h3>
+      <p class="seo-region">Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      
+      <h3><a href="#property/g2">G2</a></h3>
+      <p class="seo-region">Bali</p>
+      <p class="seo-price">From €0</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
+      <p class="seo-sub">Land only</p>
+      
+    </article>
+    <article class="seo-prop">
+      <img src="/assets/img/properties/20260710_fcf0f11a4340.png" alt="Palm Field — Balian Hills, Bali" loading="lazy" width="800" height="600">
+      <h3><a href="#property/palm-field-bali">Palm Field</a></h3>
+      <p class="seo-region">Balian Hills, Bali</p>
+      <p class="seo-price">From €31,250</p>
+      
+      <p class="seo-meta">Off-plan · Freehold (Hak Milik) · Handover Q1 2027</p>
+      <p class="seo-sub">Tropical villas in the Bali jungle</p>
+      
     </article>
   </section>
 </noscript>
@@ -1048,8 +1390,8 @@ article:hover .view-cta { gap:9px; }
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
-<script src="assets/lawang-card.js?v=20260728114121"></script>
-<script src="assets/portfolio-app.js?v=20260728114121-idx"></script>
+<script src="assets/lawang-card.js?v=20260728161313"></script>
+<script src="assets/portfolio-app.js?v=20260728161313-idx"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
@@ -1074,76 +1416,13 @@ article:hover .view-cta { gap:9px; }
 })();
 </script>
 
-<!-- Modal legal: Términos & Condiciones + Política de datos (placeholder legal, revisar con asesoría) -->
-<div id="legal-modal" class="legal-modal" aria-hidden="true">
-  <div class="legal-backdrop" data-close></div>
-  <div class="legal-dialog" role="dialog" aria-modal="true" aria-labelledby="legal-heading">
-    <button class="legal-close" type="button" data-close aria-label="Close">&times;</button>
-    <div class="legal-tabs" role="tablist">
-      <button class="legal-tab active" type="button" data-tab="terms" role="tab">Terms &amp; Conditions</button>
-      <button class="legal-tab" type="button" data-tab="privacy" role="tab">Privacy &amp; Data Policy</button>
-    </div>
-    <div class="legal-body">
-      <section class="legal-panel active" id="legal-terms" role="tabpanel">
-        <h2 id="legal-heading" class="legal-h">Terms &amp; Conditions</h2>
-        <p class="legal-meta">Last updated: July 2026 · Lawang Tropical Properties</p>
-        <h3>1. Who we are</h3>
-        <p>Lawang Tropical Properties ("Lawang", "we", "us") curates, structures and develops real-estate opportunities in Bali and Sumba, Indonesia. These terms govern your use of this website and the information presented on it.</p>
-        <h3>2. Informational purpose only</h3>
-        <p>All content — including prices, areas, renders, availability, delivery dates and projected returns — is indicative, may change without notice and does not constitute a binding offer, financial advice or a guarantee of return. Nothing here creates a contractual relationship until a signed reservation or purchase agreement is executed.</p>
-        <h3>3. Property &amp; ownership</h3>
-        <p>Foreign ownership in Indonesia is subject to specific legal structures (e.g. leasehold or a PT&nbsp;PMA company). Any structure is arranged with independent notaries and legal counsel. Buyers are responsible for their own due diligence and for obtaining independent legal and tax advice before committing.</p>
-        <h3>4. Reservations &amp; payments</h3>
-        <p>Reservation fees, payment schedules and hand-over conditions are defined in the individual reservation and purchase agreement for each project and prevail over any figure shown on this site.</p>
-        <h3>5. Intellectual property</h3>
-        <p>The brand, logo, texts, images and designs on this site belong to Lawang or its licensors and may not be reproduced without written permission.</p>
-        <h3>6. Liability</h3>
-        <p>To the extent permitted by law, Lawang is not liable for decisions taken on the basis of the indicative information published here. External links are provided for convenience and are outside our control.</p>
-        <h3>7. Governing law</h3>
-        <p>These terms are governed by the laws of the Republic of Indonesia. Disputes will be submitted to the competent courts of the relevant jurisdiction.</p>
-        <p class="legal-note">This is placeholder wording pending review by qualified legal counsel.</p>
-      </section>
-      <section class="legal-panel" id="legal-privacy" role="tabpanel" hidden>
-        <h2 class="legal-h">Privacy &amp; Data Policy</h2>
-        <p class="legal-meta">Last updated: July 2026 · Lawang Tropical Properties</p>
-        <h3>1. Data we collect</h3>
-        <p>When you contact us — through our forms, WhatsApp, email or phone — we collect the data you choose to share: name, email, phone number and the message or preferences you send us.</p>
-        <h3>2. How we use it</h3>
-        <p>We use your data solely to respond to your enquiry, send you the information or dossiers you request and follow up on curated opportunities. We do not sell your data.</p>
-        <h3>3. Legal basis</h3>
-        <p>We process your data on the basis of your consent and our legitimate interest in responding to your enquiry. You can withdraw consent at any time.</p>
-        <h3>4. Sharing</h3>
-        <p>Your data may be shared with our internal advisory team and, where strictly necessary to progress a transaction, with notaries or legal partners bound by confidentiality. We use reputable service providers (e.g. email and messaging) to communicate with you.</p>
-        <h3>5. Retention</h3>
-        <p>We keep your data only as long as needed to serve your enquiry or as required by law, after which it is deleted.</p>
-        <h3>6. Your rights</h3>
-        <p>You may request access, correction or deletion of your data, or object to its processing, by writing to <a href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>
-        <h3>7. Cookies</h3>
-        <p>This site uses only the storage strictly needed to remember your language preference. It does not run third-party advertising trackers.</p>
-        <p class="legal-note">This is placeholder wording pending review by qualified legal counsel.</p>
-      </section>
-    </div>
-  </div>
-</div>
-
+<!-- Aviso de cookies + Meta Pixel bajo consentimiento. El texto legal vive en /legal -->
+<script src="assets/consent.js" defer></script>
 <script>
-// ── Modal legal (T&C + Privacy) — trigger delegado: el footer lo pinta portfolio-app.js ──
-(function(){
-  var modal = document.getElementById('legal-modal');
-  if(!modal) return;
-  var tabs = modal.querySelectorAll('.legal-tab');
-  var panels = { terms: document.getElementById('legal-terms'), privacy: document.getElementById('legal-privacy') };
-  function setTab(name){
-    tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.tab === name); });
-    Object.keys(panels).forEach(function(k){ var on = k === name; panels[k].classList.toggle('active', on); panels[k].hidden = !on; });
-  }
-  function open(name){ setTab(name || 'terms'); modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
-  function close(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
-  document.addEventListener('click', function(e){ var a = e.target.closest('[data-legal]'); if(a){ e.preventDefault(); open(a.dataset.legal); } });
-  modal.querySelectorAll('[data-close]').forEach(function(el){ el.addEventListener('click', close); });
-  tabs.forEach(function(t){ t.addEventListener('click', function(){ setTab(t.dataset.tab); }); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && modal.classList.contains('open')) close(); });
-})();
+// Clic al WhatsApp = intención alta. lwTrack no envía nada sin consentimiento.
+document.addEventListener('click', function(e){
+  if(e.target.closest('[href*="wa.me"]') && window.lwTrack) window.lwTrack('Contact', {content_name:'whatsapp'});
+});
 </script>
 </body>
 </html>
