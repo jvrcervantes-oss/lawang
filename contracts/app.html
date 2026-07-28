@@ -1926,7 +1926,12 @@ async function subirPdfFirmado(file){
   if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
   const btn=$('#btnLockUpload'); btn.disabled=true; btn.textContent='Subiendo…';
   try{
-    const path = SAVED_CONTRACT.numero + '.pdf';
+    // `_manual` en la ruta: antes esto subía a `<numero>.pdf`, que es EXACTAMENTE
+    // la ruta que usaba la firma remota (edge/firma-submit) — una subida manual
+    // machacaba el PDF firmado a distancia, y al revés, sin avisar. Con el sufijo,
+    // reintentar una subida manual sigue pisando su propio fichero (que es lo que
+    // se quiere) pero ya no puede tocar el de una firma electrónica.
+    const path = SAVED_CONTRACT.numero + '_manual.pdf';
     const { error: upErr } = await sb.storage.from('contratos-firmados').upload(path, file, { upsert:true, contentType:'application/pdf' });
     if(upErr) throw upErr;
     const { error: updErr } = await sb.from('contratos').update({ bloqueado:true, pdf_firmado_path:path }).eq('id', SAVED_CONTRACT.id);
@@ -1982,8 +1987,87 @@ async function guardarContrato(){
     if(numEl){ numEl.value = data.numero; }
     toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
     render();
+    sincronizarCompradores(data.id);   // a posteriori y sin await: ver abajo
   }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
   btn.disabled=false; updateSaveButton();
+}
+
+/* ---------- alta automática del comprador ----------
+   Los mismos 9 compradores estaban reteclados en 19 contratos, cada uno con su
+   propia copia del pasaporte y el email. Ahora, al guardar, la persona se da de
+   alta en `clients` (o se reconoce si ya existe) y se enlaza al contrato por
+   `contrato_compradores`, que es N:M porque un contrato puede ir a varios
+   nombres y una persona firma varios contratos.
+
+   Corre DESPUÉS del guardado y sin `await`: el contrato es el documento y no
+   puede fallar porque el índice de personas falle. Si esto revienta, el
+   contrato ya está guardado y solo se avisa.
+
+   Clave de identidad: el pasaporte normalizado. Si no lo hay, el email. Sin
+   ninguno de los dos NO se crea ficha: un "cliente" sin identificador se
+   duplicaría en cuanto alguien escriba el nombre distinto, y limpiar eso
+   después cuesta más que no crearlo. */
+function compradoresDelFormulario(){
+  const d = collect();
+  const lista = [];
+  // formato multi-comprador (el nuevo)
+  (COMPRADORES || []).forEach((c, i) => {
+    if(!String(c.nombre||'').trim()) return;
+    lista.push({ rol:'adquiriente_' + Math.min(i+1, 3), nombre:c.nombre, pasaporte:c.pasaporte,
+                 email:c.email, telefono:c.telefono, domicilio:c.domicilio, nacionalidad:c.nacionalidad });
+  });
+  // formato viejo adq1_*, que sigue vivo en 15 de los 19 contratos
+  if(!lista.length && String(d.adq1_nombre||'').trim()){
+    lista.push({ rol:'adquiriente_1', nombre:d.adq1_nombre, pasaporte:d.adq1_pasaporte,
+                 email:d.adq1_email, telefono:d.adq1_telefono, domicilio:d.adq1_domicilio,
+                 nacionalidad:d.adq1_nacionalidad });
+  }
+  return lista;
+}
+
+const normPasaporte = v => String(v||'').trim().toLowerCase();
+
+async function sincronizarCompradores(contratoId){
+  const lista = compradoresDelFormulario();
+  if(!sb || !contratoId || !lista.length) return;
+  let altas = 0, enlaces = 0;
+  try{
+    for(const p of lista){
+      const pas = normPasaporte(p.pasaporte);
+      const mail = String(p.email||'').trim().toLowerCase();
+      if(!pas && !mail) continue;   // sin identificador no se crea ficha
+
+      // ¿existe ya esa persona?
+      let q = sb.from('clients').select('id');
+      q = pas ? q.ilike('passport_number', p.pasaporte.trim()) : q.ilike('email', mail);
+      const { data: hallado } = await q.limit(1);
+      let clientId = hallado && hallado[0] && hallado[0].id;
+
+      if(!clientId){
+        const { data: creado, error } = await sb.from('clients').insert({
+          full_name: String(p.nombre||'').trim(),
+          email: mail || null,
+          phone: String(p.telefono||'').trim() || null,
+          nationality: String(p.nacionalidad||'').trim() || null,
+          passport_number: String(p.pasaporte||'').trim() || null,
+          address: String(p.domicilio||'').trim() || null,
+          kyc_status: 'pendiente',
+        }).select('id').single();
+        if(error) throw error;
+        clientId = creado.id; altas++;
+      }
+
+      const { error: eLink } = await sb.from('contrato_compradores')
+        .upsert({ contrato_id:contratoId, client_id:clientId, rol:p.rol }, { onConflict:'contrato_id,rol' });
+      if(eLink) throw eLink;
+      enlaces++;
+    }
+    if(altas)  toast(altas + (altas===1 ? ' comprador dado de alta' : ' compradores dados de alta'));
+    else if(enlaces) toast('Comprador enlazado a su ficha');
+  }catch(err){
+    // el contrato YA está guardado: esto es el índice de personas, no el documento
+    toast('Contrato guardado, pero la ficha del comprador no: ' + (err.message || err));
+  }
 }
 $('#btnSave').addEventListener('click', guardarContrato);
 

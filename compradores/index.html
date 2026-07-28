@@ -113,16 +113,20 @@ const KYC = [['pendiente','Pendiente'],['en_revision','En revisión'],['aprobado
 const DOCS = [['pasaporte','Pasaporte'],['npwp','NPWP'],['visado','Visado'],['justificante_fondos','Justificante de fondos'],['otro','Otro']];
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
-let SB=null, CLIENTES=[], DOCUMENTOS=[], SEL=null;
+let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], SEL=null;
 
 async function cargar(){
-  const [c, d] = await Promise.all([
+  const [c, d, v] = await Promise.all([
     SB.from('clients').select('*').order('full_name'),
     SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
+    // qué contratos ha firmado cada persona. Si la migración aún no está,
+    // falla sola y la ficha simplemente no muestra el bloque.
+    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado)'),
   ]);
   if(c.error) throw c.error;
   CLIENTES = c.data || [];
   DOCUMENTOS = d.error ? [] : (d.data || []);
+  VINCULOS = v.error ? [] : (v.data || []);
   if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
 }
 
@@ -203,6 +207,23 @@ function pintarFicha(){
     </fieldset>
 
     ${nuevo ? '<p class="nota">Los documentos se suben después de crear la ficha.</p>' : `
+    <fieldset>
+      <legend>Contratos firmados</legend>
+      ${(() => {
+        const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos);
+        if(!suyos.length) return '<p class="nota">Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.</p>';
+        return `<table><thead><tr><th>Contrato</th><th>Proyecto</th><th>Rol</th><th>Estado</th></tr></thead><tbody>
+          ${suyos.map(v => `<tr>
+            <td>${esc(v.contratos.numero || 'sin nº')}<div class="nota">${esc(v.contratos.tipo || '')}</div></td>
+            <td>${esc(v.contratos.proyecto_nombre || '—')}</td>
+            <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
+            <td>${v.contratos.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
+          </tr>`).join('')}
+        </tbody></table>
+        <p class="nota"><a href="/operaciones/" style="color:var(--dl)">Ver la operación completa →</a></p>`;
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
     <fieldset>
       <legend>Documentación</legend>
       <table>

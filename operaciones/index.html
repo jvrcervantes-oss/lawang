@@ -143,14 +143,18 @@ let SB = null, OPS = [], SEL = null;
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
-  const [c, f, s] = await Promise.all([
+  const [c, f, s, cc] = await Promise.all([
     SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,created_at,hitos:datos->hitos').order('created_at',{ascending:false}).limit(300),
     SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
+    // fichas reales de comprador. Si la tabla todavía no existe (migración sin
+    // correr), esto falla solo y la ficha cae al nombre suelto del contrato.
+    SB.from('contrato_compradores').select('contrato_id,rol,clients(id,full_name,email,phone,passport_number,kyc_status)'),
   ]);
   if(c.error) throw c.error;
   const facturas = f.error ? [] : (f.data || []);
   const firmas   = s.error ? [] : (s.data || []);
+  const vinculos = cc.error ? [] : (cc.data || []);
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
   if(s.error) toast('No se pudieron leer las firmas: ' + s.error.message);
 
@@ -161,6 +165,8 @@ async function cargar(){
     facturas: facturas.filter(x => x.contrato_id ? x.contrato_id === ct.id
                                                  : (x.contrato_numero && ct.numero && x.contrato_numero === ct.numero)),
     firmas: firmas.filter(x => x.contrato_id === ct.id),
+    compradores: vinculos.filter(v => v.contrato_id === ct.id && v.clients)
+                         .sort((a,b) => String(a.rol).localeCompare(String(b.rol))),
   }));
 }
 
@@ -239,10 +245,41 @@ function pintarDetalle(){
       <td>${esc(s.firmante_rol || '—')}</td><td>${fFecha(s.creado_en)}</td><td>${est}</td></tr>`;
   }).join('') : '<tr><td colspan="4" class="nota">No se ha enviado a firma remota.</td></tr>';
 
+  /* El nombre viene de la ficha real si existe; si no, del texto del contrato.
+     Con la ficha se puede además decir cómo va su KYC, que es lo que el nombre
+     suelto nunca supo. */
+  const fichas = op.compradores || [];
+  const titulo = fichas.length ? fichas.map(v => v.clients.full_name).filter(Boolean).join(' · ')
+                              : (op.comprador_nombre || 'Sin comprador');
+  const bloqueFichas = fichas.length ? `
+    <section>
+      <h3>Comprador${fichas.length > 1 ? 'es' : ''}</h3>
+      <table><thead><tr><th>Nombre</th><th>Rol</th><th>Contacto</th><th>KYC</th></tr></thead><tbody>
+      ${fichas.map(v => {
+        const c = v.clients;
+        const ok = c.kyc_status === 'aprobado';
+        return `<tr>
+          <td>${esc(c.full_name || '—')}<div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
+          <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
+          <td>${esc(c.email || c.phone || '—')}</td>
+          <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rechazado' ? 'alerta' : 'espera')}">${esc(c.kyc_status || 'pendiente')}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+      <p class="nota"><a class="enl" href="/compradores/">Abrir en Compradores →</a></p>
+    </section>` : `
+    <section>
+      <h3>Comprador</h3>
+      <p class="nota">Este contrato todavía no tiene ficha de comprador enlazada: el nombre
+        vive solo como texto dentro del contrato. Se crea sola al volver a guardarlo en Contratos.</p>
+    </section>`;
+
   $('#panelDet').innerHTML = `
-    <h2 class="tit">${esc(op.comprador_nombre || 'Sin comprador')}</h2>
+    <h2 class="tit">${esc(titulo)}</h2>
     <p class="sub">${esc(op.proyecto_nombre || 'Sin proyecto')} · Contrato <b>${esc(op.numero || 'sin nº')}</b>
       · ${op.bloqueado ? 'firmado y bloqueado' : 'sin firmar'}${op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''}</p>
+
+    ${bloqueFichas}
 
     <section>
       <h3>Estado de cuenta</h3>
