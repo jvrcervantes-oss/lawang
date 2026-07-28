@@ -33,3 +33,6 @@ appeal/
 
 # Lanzador de previsualizacion local (herramienta de desarrollo, no se publica)
 preview.cmd
+
+# estado de servidor del rate-limit (IPs + marcas de tiempo): nunca al repo
+private/

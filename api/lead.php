@@ -11,6 +11,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Freno de caudal: este endpoint es publico por diseno (lo llama el formulario), asi que
+// nada impedia meter miles de filas en Supabase y disparar otros tantos correos SMTP.
+// 8 envios por IP cada 10 min: de sobra para una persona, inutil para un bucle.
+require_once __DIR__ . '/throttle.php';
+$__ip = $_SERVER['REMOTE_ADDR'] ?? 'sin-ip';
+if (lawang_throttle_blocked('lead_' . $__ip, 8, 600)) {
+    http_response_code(429);
+    header('Retry-After: 600');
+    echo json_encode(['ok' => false, 'error' => 'too_many']);
+    exit;
+}
+lawang_throttle_register('lead_' . $__ip, 600);
+
 $email    = isset($_POST['email'])    ? trim($_POST['email'])    : '';
 $source   = isset($_POST['source'])   ? trim($_POST['source'])   : '';
 $property = isset($_POST['property']) ? trim($_POST['property']) : '';

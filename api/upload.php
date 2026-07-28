@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 session_start();
+lawang_require_same_origin();  // el 401 de abajo mira la sesion; esto mira DE DONDE viene la peticion
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 
