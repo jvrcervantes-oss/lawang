@@ -119,7 +119,17 @@ Deno.serve(async (req) => {
     const pdf = new Uint8Array(await rr.arrayBuffer());
     if (pdf.length < 5 || String.fromCharCode(...pdf.slice(0, 4)) !== '%PDF') throw new Error('render no devolvió PDF');
 
-    const path = (numero || claimed.id) + '.pdf';
+    // La ruta la decide la FIRMA, no el contrato. Antes era `<numero>.pdf`, que
+    // rompía de dos formas distintas y en silencio (28-jul-2026):
+    //   · dos adquirientes del mismo contrato -> el 2º machacaba el PDF del 1º
+    //     y solo sobrevivía la última firma;
+    //   · "Subir firmado" en app.html usaba ESA MISMA ruta, así que una subida
+    //     manual pisaba el PDF firmado a distancia, y al revés.
+    // `claimed.id` es además la "Referencia de firma" impresa en la página de
+    // auditoría del propio PDF: el nombre del fichero es rastreable al registro.
+    // `upsert:true` se mantiene a propósito: ahora la ruta es única por firma,
+    // así que reescribir solo puede pisar el reintento de ESA misma firma.
+    const path = `${numero || 'contrato'}_${claimed.id}.pdf`;
     const up = await sb.storage.from('contratos-firmados').upload(path, pdf, { contentType: 'application/pdf', upsert: true });
     if (up.error) throw up.error;
 
@@ -127,6 +137,7 @@ Deno.serve(async (req) => {
     await sb.from('contratos').update({ bloqueado: true, pdf_firmado_path: path }).eq('id', claimed.contrato_id);
     await sb.from('contrato_firmas').update({
       estado: 'firmado', firmado_en: new Date().toISOString(), firmante_ip: ip, firmante_user_agent: ua,
+      pdf_path: path,  // cada firma guarda SU pdf; `contratos.pdf_firmado_path` solo apunta al último
     }).eq('id', claimed.id);
 
     return json({ ok: true, numero });
