@@ -80,7 +80,8 @@ def preparar(carpeta, destino):
 
 
 def colocar(doc, med, imgs, ruta_rel):
-    """Una imagen por pagina con hueco, en orden y sin repetir hasta agotarlas."""
+    """Una imagen por pagina con hueco, en orden y SIN repetir (decision del dueño,
+    28-jul): que sobren renders no importa; repetir el mismo dos veces canta."""
     uid = 9000
     huecos = []
     for p in doc['pages']:
@@ -92,8 +93,13 @@ def colocar(doc, med, imgs, ruta_rel):
             huecos.append((p, m, alto))
     if not imgs:
         return 0
+    # con menos renders que huecos, los que se quedan en blanco son los MAS
+    # pequeños: ahi la imagen saldria como un sello y el hueco no se nota tanto
+    if len(huecos) > len(imgs):
+        keep = sorted(sorted(range(len(huecos)), key=lambda i: -huecos[i][2])[:len(imgs)])
+        huecos = [huecos[i] for i in keep]
     for i, (p, m, alto) in enumerate(huecos):
-        nombre, ratio = imgs[i % len(imgs)]
+        nombre, ratio = imgs[i]
         w = m['w']
         h = min(alto, w / ratio)
         w = h * ratio                                  # sin deformar: manda el lado que se agote antes
@@ -158,6 +164,13 @@ def autocheck():
     assert f['y'] + f['h'] <= med['p1']['abajo'] - AIRE + .01, 'baja sobre el pie'
     assert f['x'] >= med['p1']['x'] - .01 and f['w'] <= med['p1']['w'] + .01, 'se sale de ancho'
     assert not doc['pages'][1]['free'] and not doc['pages'][2]['free']
+
+    # menos renders que huecos: se sirve al mas grande y NO se repite
+    doc = {'pages': [{'id': 'p1', 'free': []}, {'id': 'p2', 'free': []}]}
+    med = {'p1': {'x': 10, 'w': 190, 'arriba': 200, 'abajo': 260},    # 44 mm libres
+           'p2': {'x': 10, 'w': 190, 'arriba': 60, 'abajo': 260}}     # 184 mm libres
+    assert colocar(doc, med, [('a.jpg', 1.87)], 'r') == 1
+    assert not doc['pages'][0]['free'] and doc['pages'][1]['free'], 'debe ganar el hueco grande'
     print('autocheck ok')
 
 
