@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css">
+<link rel="stylesheet" href="assets/topbar.css">
+<script src="assets/topbar.js" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -18,7 +20,7 @@
 <script src="assets/entities.js"></script>
 <style>
   :root{
-    --line:#e4ddcf; --tbh:60px;
+    --line:#e4ddcf; --tbh:56px;
     /* superficies cálidas sobre el papel Raw Linen */
     --card:#fffdf8; --field-bg:#fdfcf9; --hair:#ece4d6;
     /* profundidad discreta — sombras cálidas, nunca negras duras */
@@ -39,13 +41,11 @@
   .pane-form::-webkit-scrollbar-thumb, .pv-scroll::-webkit-scrollbar-thumb, .cp-list::-webkit-scrollbar-thumb{ background:var(--ss); border-radius:20px; border:2px solid transparent; background-clip:content-box; }
 
   /* ---------- topbar · barra de vidrio esmerilado, fija ---------- */
-  .topbar{ position:sticky; top:0; z-index:40; height:var(--tbh);
-    background:rgba(255,253,248,.82); backdrop-filter:saturate(1.2) blur(14px); -webkit-backdrop-filter:saturate(1.2) blur(14px);
-    border-bottom:1px solid var(--line); box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px -14px rgba(46,52,55,.5);
-    display:flex; align-items:center; gap:12px; padding:0 18px; padding-top:env(safe-area-inset-top); }
-  .topbar .brandlogo{ height:26px; width:auto; opacity:.95; }
-  .topbar .tbtitle{ font-size:14px; letter-spacing:.22em; text-transform:uppercase; margin:0; color:var(--muted); font-weight:500; }
-  .topbar .spacer{ flex:1; }
+  /* Solo posicionamiento: el aspecto vive en assets/topbar.css, compartido con
+     Facturas y Dossier. Aquí sticky (las otras dos van fixed) porque .stage
+     calcula su alto con calc(100dvh - --tbh). */
+  .topbar{ position:sticky; top:0; z-index:40;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px -14px rgba(46,52,55,.5); }
   /* toggle de idioma como segmento con pastilla deslizante */
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:9px; padding:3px; box-shadow:inset 0 1px 2px rgba(46,52,55,.05); }
   .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px; color:var(--muted); cursor:pointer; transition:color .2s var(--ease), background .2s var(--ease); }
@@ -57,19 +57,9 @@
   .tb-link:hover{ border-color:var(--tg); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
   .tb-link:active{ transform:translateY(0); }
   a.tb-link{ text-decoration:none; display:inline-block; }   /* el "← Panel" es enlace, no botón */
-  .tb-who{ font-size:12px; color:var(--muted); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .tb-who::before{ content:"👤 "; }
-  @media (max-width:900px){ .tb-who{ display:none; } }
   /* Salir en tono tierra al pasar por encima — es la salida, no una acción de trabajo */
   #btnLogout:hover{ border-color:var(--be); color:var(--be); }
   /* selector de contrato en la barra estática: siempre accesible al hacer scroll del formulario */
-  .tb-select{ font:inherit; font-size:13px; font-weight:600; padding:7px 30px 7px 12px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--dl); min-width:180px; max-width:280px; cursor:pointer;
-    appearance:none; -webkit-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%23485B37' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 11px center;
-    transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
-  .tb-select:hover{ border-color:var(--tg); }
-  .tb-select:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
 
   /* ---------- escenario en dos columnas ---------- */
   .stage{ display:flex; height:calc(100dvh - var(--tbh)); }
@@ -315,18 +305,27 @@
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <img class="brandlogo" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
-    <h1 class="tbtitle">· Contratos</h1>
-    <select id="tplPick" class="tb-select" aria-label="Tipo de contrato"></select>
-    <div class="spacer"></div>
-    <span class="tb-who" id="who" title="Sesión iniciada"></span>
-    <button type="button" class="tb-link" id="btnContracts">Contratos guardados</button>
-    <button type="button" class="tb-link" id="btnReset">Limpiar</button>
-    <a class="tb-link" href="/intranet/" title="Volver a la intranet de herramientas">← Intranet</a>
-    <button type="button" class="tb-link" id="btnLogout" title="Cerrar sesión">Salir</button>
+  <!-- Barra unificada de la suite: mismo orden y mismos componentes en
+       Contratos, Facturas y Dossier. Estilos en assets/topbar.css. -->
+  <div class="topbar lw-topbar">
+    <a class="lw-home" href="/intranet/">← Intranet</a>
+    <img class="lw-brand" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
+    <h1 class="lw-title">Contratos</h1>
+    <span class="lw-sep"></span>
+    <select id="tplPick" class="lw-select" aria-label="Tipo de contrato"></select>
     <span class="lang-hint" title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
+    <div class="lw-spacer"></div>
+    <span class="lw-who" id="who" title="Sesión iniciada"></span>
+    <details class="lw-menu" id="tbMenu">
+      <summary class="lw-btn" title="Menú" aria-label="Menú">⋯</summary>
+      <div class="lw-menu-list">
+        <button type="button" class="lw-btn" id="btnContracts">📁 Contratos guardados</button>
+        <button type="button" class="lw-btn" id="btnReset">↺ Limpiar</button>
+        <hr>
+        <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+      </div>
+    </details>
   </div>
 
   <div class="stage">
@@ -1925,14 +1924,8 @@ async function abrirPdfFirmado(){
 }
 let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — independiente del bloqueo
 
-/* Cierre del menú ⋯. <details> se abre solo, pero no se cierra ni al elegir una
-   acción ni al pinchar fuera — sin esto se queda abierto tapando la preview. */
-(function(){
-  const menu=$('#pvMenu'); if(!menu) return;
-  menu.addEventListener('click', e=>{ if(e.target.closest('.pv-menu-list .btn')) menu.open=false; });
-  document.addEventListener('click', e=>{ if(menu.open && !menu.contains(e.target)) menu.open=false; });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && menu.open) menu.open=false; });
-})();
+/* El cierre de los menús ⋯ (barra superior y barra de preview) lo lleva
+   assets/topbar.js, compartido con Facturas y Dossier. */
 
 function updateSaveButton(){
   const btn=$('#btnSave'); if(!btn) return;

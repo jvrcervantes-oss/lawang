@@ -1,0 +1,110 @@
+/* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
+   Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
+   enlaces en sitios distintos y "← Intranet" perdido entre los demás botones.
+   Vive aquí y no copiada en cada app por lo mismo que entities.js: tres copias
+   de una barra vuelven a divergir en cuanto alguien toca una.
+
+   Estructura fija, en este orden:
+     [← Intranet] [logo] TÍTULO · SECCIÓN | <controles propios> | spacer | 👤 | [⋯]
+   Lo propio de cada herramienta va en un `.lw-menu` (desplegable por sección),
+   nunca suelto en la barra: es lo que la salvó de volver a llenarse de botones.
+
+   POSICIONAMIENTO NO: cada app mantiene el suyo (sticky en Contratos, fixed en
+   Facturas y Dossier) porque cada una compensa el alto de forma distinta.
+   Aquí solo van aspecto y comportamiento. El alto sale de --tbh de cada app. */
+
+.lw-topbar{
+  height:var(--tbh,56px); display:flex; align-items:center; gap:10px;
+  padding:0 14px; padding-top:env(safe-area-inset-top);
+  background:rgba(255,253,248,.9);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line,#e4ddcf);
+  font-family:var(--sans,'Jost',system-ui,sans-serif);
+  color:var(--va,#2E3437);
+}
+
+/* Vuelta al hub: primero, a la izquierda y en verde de marca. Es la única
+   acción de la barra que saca de la herramienta, y antes se confundía con el
+   resto de enlaces del extremo derecho. */
+.lw-home{
+  display:inline-flex; align-items:center; gap:6px; flex:none;
+  font:inherit; font-size:12.5px; font-weight:600; letter-spacing:.02em;
+  text-decoration:none; cursor:pointer; white-space:nowrap;
+  background:var(--tg,#485B37); color:#fff; border:1px solid var(--tg,#485B37);
+  border-radius:999px; padding:7px 15px;
+  box-shadow:0 1px 2px rgba(72,91,55,.28), 0 6px 16px -8px rgba(72,91,55,.5);
+  transition:transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.lw-home:hover{ background:#3c4d2d; transform:translateY(-1px);
+  box-shadow:0 2px 5px rgba(72,91,55,.3), 0 10px 22px -8px rgba(72,91,55,.55); }
+.lw-home:active{ transform:translateY(0) scale(.97); }
+
+.lw-brand{ height:24px; width:auto; opacity:.95; flex:none; }
+.lw-title{ margin:0; font-size:13px; font-weight:500; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--muted,#6b6c66); white-space:nowrap; }
+.lw-spacer{ flex:1; }
+.lw-sep{ width:1px; height:24px; background:var(--line,#e4ddcf); flex:none; }
+.lw-who{ font-size:12px; color:var(--muted,#6b6c66); max-width:190px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lw-who::before{ content:"👤 "; }
+
+/* botón de barra (ghost) y su variante de acción principal */
+.lw-btn{
+  font:inherit; font-size:12.5px; font-weight:500; color:var(--va,#2E3437);
+  background:linear-gradient(180deg,#fff,var(--card,#fffdf8));
+  border:1px solid var(--line,#e4ddcf); border-radius:9px;
+  padding:7px 13px; cursor:pointer; white-space:nowrap; text-decoration:none;
+  display:inline-flex; align-items:center; gap:6px;
+  box-shadow:0 1px 2px rgba(46,52,55,.05);
+  transition:transform .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.lw-btn:hover{ border-color:var(--tg,#485B37); color:var(--dl,#104C4F);
+  box-shadow:0 2px 6px rgba(46,52,55,.09); transform:translateY(-1px); }
+.lw-btn:active{ transform:translateY(0) scale(.97); }
+.lw-btn.primary{ background:var(--dl,#104C4F); color:#fff; border-color:var(--dl,#104C4F);
+  box-shadow:0 1px 2px rgba(16,76,79,.3), 0 6px 16px -8px rgba(16,76,79,.5); }
+.lw-btn.primary:hover{ background:#0d5b5f; color:#fff; }
+
+.lw-select{
+  font:inherit; font-size:13px; font-weight:600; color:var(--dl,#104C4F);
+  background:var(--card,#fffdf8); border:1px solid var(--line,#e4ddcf);
+  border-radius:9px; padding:7px 12px; cursor:pointer; max-width:260px;
+}
+.lw-select:hover{ border-color:var(--tg,#485B37); }
+.lw-select:focus{ outline:none; border-color:var(--tg,#485B37);
+  box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+
+/* campo de texto en barra (el nombre del dossier) */
+.lw-input{
+  font:inherit; font-size:13.5px; font-weight:600; color:var(--va,#2E3437);
+  background:transparent; border:none; border-bottom:1px dashed var(--ss,#BEB3A5);
+  padding:4px 2px; width:150px;
+}
+.lw-input:focus{ outline:none; border-bottom-color:var(--tg,#485B37); }
+
+/* ---- desplegable de sección (<details> nativo: sin JS de apertura) ---- */
+.lw-menu{ position:relative; flex:none; }
+.lw-menu > summary{ list-style:none; cursor:pointer; }
+.lw-menu > summary::-webkit-details-marker{ display:none; }
+.lw-menu[open] > summary{ border-color:var(--tg,#485B37); color:var(--dl,#104C4F); }
+.lw-menu-list{
+  position:absolute; right:0; top:calc(100% + 6px); z-index:60; min-width:232px;
+  background:var(--card,#fffdf8); border:1px solid var(--line,#e4ddcf);
+  border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:2px;
+  box-shadow:0 14px 36px -10px rgba(46,52,55,.34), 0 2px 6px rgba(46,52,55,.08);
+}
+.lw-menu-list.left{ right:auto; left:0; }
+/* dentro del menú los botones son filas de lista, no botones sueltos */
+.lw-menu-list .lw-btn{
+  width:100%; justify-content:flex-start; text-align:left;
+  border:none; background:none; box-shadow:none; padding:9px 12px; border-radius:7px;
+}
+.lw-menu-list .lw-btn:hover{ background:rgba(72,91,55,.09); color:var(--dl,#104C4F);
+  transform:none; box-shadow:none; }
+.lw-menu-list hr{ border:none; border-top:1px solid var(--line,#e4ddcf); margin:4px 2px; }
+
+@media (max-width:860px){
+  .lw-topbar{ gap:7px; padding:0 10px; }
+  .lw-title{ font-size:11.5px; letter-spacing:.14em; }
+  .lw-who{ display:none; }
+}
