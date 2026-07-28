@@ -1640,8 +1640,16 @@ function buildDoc(){
   return html;
 }
 /* re-render de la preview viva (siempre visible). En modo edición NO se
-   re-renderiza: reconstruir el srcdoc borraría lo que el usuario escribe. */
-function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
+   re-renderiza: reconstruir el srcdoc borraría lo que el usuario escribe.
+   Si el contrato está bloqueado, la preview NO se reconstruye: se muestra el PDF
+   firmado real (ver showSignedPdf, más abajo). */
+function render(){
+  if(EDITING) return;
+  const fr=$('#pvFrame');
+  if(sb && LOCKED && LOCKED_PDF_PATH){ showSignedPdf(); return; }
+  fr.removeAttribute('src');            // pudo quedar apuntando al PDF de un contrato anterior
+  fr.srcdoc = buildDoc();
+}
 let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
 /* Orden del formulario, el MISMO para todos los contratos (petición del
@@ -1816,12 +1824,49 @@ function printPreview(){
 /* El guardado en registro va por Supabase (guardarContrato(), botón aparte);
    este botón solo abre el diálogo de impresión del navegador — "Descargar PDF"
    es el nombre de la acción para el agente, no una descarga automática real. */
-async function downloadPdf(){ printPreview(); }
+async function downloadPdf(){
+  // Un contrato bloqueado no se reimprime: printPreview() reconstruye desde
+  // `datos`, que no tiene la firma, y saldría un PDF sin firmar con aspecto de
+  // definitivo. Se entrega el firmado real.
+  if(sb && LOCKED && LOCKED_PDF_PATH){ return abrirPdfFirmado(); }
+  printPreview();
+}
 
 /* ============================================================
    SUPABASE — guardado + numeración automática, y bloqueo tras firma
    ============================================================ */
 let LOCKED = false, LOCKED_PDF_PATH = null;   // true una vez subido el PDF firmado (columna `bloqueado`)
+
+/* ---- PDF firmado: es EL documento, no una copia ----------------------------
+   La firma remota la inyecta `firma-submit` en el snapshot que se convierte en
+   PDF, y nunca vuelve a `contratos.datos`. Por eso reconstruir la preview desde
+   el jsonb pintaba el contrato SIN firma en uno ya firmado, y hacía dudar de si
+   la firma se había perdido (reportado 28-jul-2026: "en el preview no está la
+   firma, si me lo descargo sí").
+   ponytail: se descartó guardar la firma en `contratos.datos` — esa tabla ya es
+   97% blobs base64, y duplicar el documento legal en el jsonb crea dos verdades
+   que se pueden contradecir. La fuente única es el PDF del bucket. */
+let _signedUrl=null, _signedFor=null;
+async function signedPdfUrl(){
+  if(!sb || !LOCKED_PDF_PATH) return null;
+  if(_signedFor===LOCKED_PDF_PATH && _signedUrl) return _signedUrl;
+  const { data } = await sb.storage.from('contratos-firmados').createSignedUrl(LOCKED_PDF_PATH, 3600);
+  if(!data) return null;
+  _signedUrl=data.signedUrl; _signedFor=LOCKED_PDF_PATH;
+  return _signedUrl;
+}
+async function showSignedPdf(){
+  const fr=$('#pvFrame'), url=await signedPdfUrl();
+  // sin enlace (red caída, permiso) mejor la reconstrucción que un panel en blanco
+  if(!url){ fr.removeAttribute('src'); fr.srcdoc=buildDoc(); return; }
+  fr.removeAttribute('srcdoc');         // con ambos puestos, srcdoc gana sobre src
+  fr.src = url;
+}
+async function abrirPdfFirmado(){
+  const url = await signedPdfUrl();
+  if(!url){ toast('No se pudo generar el enlace de descarga'); return; }
+  window.open(url, '_blank');
+}
 let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — independiente del bloqueo
 
 function updateSaveButton(){
@@ -1862,12 +1907,7 @@ $('#lockFileInput').addEventListener('change', e=>{
   const f=e.target.files[0]; e.target.value='';
   if(f) subirPdfFirmado(f);
 });
-$('#btnDownloadSigned').addEventListener('click', async ()=>{
-  if(!sb || !LOCKED_PDF_PATH) return;
-  const { data, error } = await sb.storage.from('contratos-firmados').createSignedUrl(LOCKED_PDF_PATH, 300);
-  if(error || !data){ toast('No se pudo generar el enlace de descarga'); return; }
-  window.open(data.signedUrl, '_blank');
-});
+$('#btnDownloadSigned').addEventListener('click', abrirPdfFirmado);
 
 function contractPayload(){
   const data = collect();
