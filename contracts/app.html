@@ -82,6 +82,22 @@
     background:rgba(255,253,248,.9); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line); }
   .pv-bar b{ font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); flex:1; min-width:96px; }
+  /* Menú "⋯" de acciones secundarias. <details> nativo a propósito: sin JS de
+     apertura, sin dependencias, y el teclado lo abre solo. */
+  .pv-menu{ position:relative; }
+  .pv-menu > summary{ list-style:none; cursor:pointer; display:inline-flex; align-items:center;
+    justify-content:center; min-width:46px; letter-spacing:.12em; }
+  .pv-menu > summary::-webkit-details-marker{ display:none; }
+  .pv-menu[open] > summary{ border-color:var(--tg); color:var(--dl); }
+  .pv-menu-list{ position:absolute; right:0; top:calc(100% + 6px); z-index:50; min-width:236px;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm); padding:6px;
+    box-shadow:0 14px 36px -10px rgba(46,52,55,.34), 0 2px 6px rgba(46,52,55,.08);
+    display:flex; flex-direction:column; gap:2px; }
+  /* dentro del menú los botones son filas, no botones sueltos: sin borde, sin
+     sombra y alineados a la izquierda, que es como se lee una lista */
+  .pv-menu-list .btn{ width:100%; justify-content:flex-start; text-align:left; border:none;
+    background:none; box-shadow:none; padding:9px 12px; }
+  .pv-menu-list .btn:hover{ background:rgba(72,91,55,.09); color:var(--dl); transform:none; box-shadow:none; }
   .pv-scroll{ flex:1; overflow:auto; padding:22px 20px; display:flex; justify-content:center; }
   #pvFrame{ width:100%; max-width:820px; height:100%; min-height:400px; border:none; background:#fff;
     box-shadow:0 1px 2px rgba(46,52,55,.08), 0 18px 48px -12px rgba(46,52,55,.32); border-radius:8px; }
@@ -323,18 +339,30 @@
 
     <!-- DERECHA · preview viva -->
     <div class="pane-preview" id="pane">
+      <!-- La barra llegaba a 7 botones del mismo peso: nada decía cuál era la
+           acción de esa fase. Ahora solo quedan fuera la acción que toca ahora
+           (Guardar, o Descargar firmado si está bloqueado) y Descargar PDF; el
+           resto vive en el menú ⋯, que además absorbe las funciones que se vayan
+           añadiendo sin volver a apelotonar la barra. -->
       <div class="pv-bar">
         <b id="pvTitle">Vista previa</b>
-        <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
-        <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
-        <button class="btn ghost" id="btnSave" style="display:none">Guardar en base de datos</button>
-        <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF que ha devuelto el cliente firmado y bloquea el contrato para que no se pueda seguir editando">🔒 Subir firmado</button>
-        <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
         <span id="lockBadge" style="display:none;font-size:12px;color:var(--be,#a3342b);align-items:center;gap:6px;font-weight:600">🔒 Bloqueado</span>
+        <button class="btn ghost" id="btnSave" style="display:none">Guardar en base de datos</button>
         <button class="btn ghost" id="btnDownloadSigned" style="display:none">Descargar PDF firmado</button>
-        <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Genera un enlace para que el comprador firme a distancia; al firmar, el PDF firmado entra solo en la base de datos y bloquea el contrato">✍︎ Enviar a firma</button>
-        <button class="btn ghost" id="btnEmail">Enviar por email</button>
         <button class="btn primary" id="btnPdf">Descargar PDF</button>
+
+        <details class="pv-menu" id="pvMenu">
+          <summary class="btn ghost" title="Más acciones" aria-label="Más acciones">⋯</summary>
+          <div class="pv-menu-list">
+            <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
+            <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Restaurar texto original</button>
+            <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Genera un enlace para que el comprador firme a distancia; al firmar, el PDF firmado entra solo en la base de datos y bloquea el contrato">✍︎ Enviar a firma</button>
+            <button class="btn ghost" id="btnEmail">✉ Enviar por email</button>
+            <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF que ha devuelto el cliente firmado y bloquea el contrato para que no se pueda seguir editando">🔒 Subir firmado</button>
+          </div>
+        </details>
+
+        <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
       </div>
       <div class="pv-scroll"><iframe id="pvFrame" title="Vista previa del contrato"></iframe></div>
@@ -1172,7 +1200,19 @@ function applyEditsAndTag(html){
   return doc.documentElement.outerHTML;
 }
 
-function editBtnIdle(){ const b=$('#btnEdit'); if(b){ b.textContent='✎ Editar texto'; b.classList.remove('editing'); } const r=$('#btnEditReset'); if(r) r.style.display='none'; }
+/* En edición, los dos botones de texto salen del menú ⋯ a la barra. Si no, el
+   modo edición se entra desde el menú y su salida ("✓ Hecho" es el propio
+   #btnEdit) se queda escondida detrás de un desplegable cerrado: un modo sin
+   salida visible. Se mueve el nodo, no se duplica — así el listener y el estado
+   siguen siendo los mismos. */
+function edicionEnBarra(on){
+  const bar=$('.pv-bar'), lista=$('.pv-menu-list'), menu=$('#pvMenu');
+  const b=$('#btnEdit'), r=$('#btnEditReset');
+  if(!bar || !lista || !menu || !b || !r) return;
+  if(on){ bar.insertBefore(b, menu); bar.insertBefore(r, menu); }
+  else  { lista.insertBefore(b, lista.firstChild); lista.insertBefore(r, b.nextSibling); }
+}
+function editBtnIdle(){ const b=$('#btnEdit'); if(b){ b.textContent='✎ Editar texto'; b.classList.remove('editing'); } const r=$('#btnEditReset'); if(r) r.style.display='none'; edicionEnBarra(false); }
 function enterEdit(){
   const d=$('#pvFrame').contentDocument; if(!d) return;
   EDITING=true;
@@ -1181,6 +1221,7 @@ function enterEdit(){
   d.addEventListener('input', captureEdit, true);
   const b=$('#btnEdit'); b.textContent='✓ Hecho'; b.classList.add('editing');
   $('#btnEditReset').style.display='inline-flex';
+  edicionEnBarra(true);
   toast('Edición ON · reescribe los párrafos remarcados; los datos ({{…}}) se editan por campos');
 }
 /* Al editar en pantalla, un borrado al principio o al final del párrafo hace que
@@ -1865,6 +1906,15 @@ async function abrirPdfFirmado(){
   window.open(url, '_blank');
 }
 let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — independiente del bloqueo
+
+/* Cierre del menú ⋯. <details> se abre solo, pero no se cierra ni al elegir una
+   acción ni al pinchar fuera — sin esto se queda abierto tapando la preview. */
+(function(){
+  const menu=$('#pvMenu'); if(!menu) return;
+  menu.addEventListener('click', e=>{ if(e.target.closest('.pv-menu-list .btn')) menu.open=false; });
+  document.addEventListener('click', e=>{ if(menu.open && !menu.contains(e.target)) menu.open=false; });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && menu.open) menu.open=false; });
+})();
 
 function updateSaveButton(){
   const btn=$('#btnSave'); if(!btn) return;
