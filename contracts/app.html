@@ -1255,10 +1255,15 @@ function fieldHTML(f){
     return `<div class="field" data-key="${key}"><label>${label}</label>
       <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
   }
-  const t = (type==='money'||type==='number') ? 'number' : (type==='date'?'date':'text');
-  const step = type==='money' ? 'step="0.01"' : '';
+  // Dinero NO va en <input type="number">: ahí el punto ES el separador decimal,
+  // así que "44.000" (cuarenta y cuatro mil) vale 44 y el contrato sale con ese
+  // importe sin que salte ningún error. Pasa a texto y se normaliza al salir del
+  // campo con parseImporte, que sí entiende 44.000 / 44,000 / 44000.
+  const esDinero = type==='money';
+  const t = esDinero ? 'text' : (type==='number' ? 'number' : (type==='date'?'date':'text'));
+  const attrs = esDinero ? 'inputmode="decimal" data-money' : '';
   return `<div class="field" data-key="${key}"><label>${label}</label>
-    <input name="${key}" type="${t}" ${step} value="${def}" autocomplete="off"></div>`;
+    <input name="${key}" type="${t}" ${attrs} value="${def}" autocomplete="off"></div>`;
 }
 
 /* Campos que solo se preguntan según lo que valga otro campo — el equivalente
@@ -1610,6 +1615,21 @@ function injectBrandAndCover(html, data){
    imprime su equivalente en rupias al tipo de cambio pactado (campo
    tipo_cambio_idr). Sin tipo de cambio no se imprime NADA: un número de
    cambio inventado en un contrato es peor que no ponerlo. */
+/* Formato canónico español: 44000 → "44.000", 44000.5 → "44.000,50".
+   Se aplica al SALIR del campo, para que lo que se ve sea lo que se guarda y el
+   agente no tenga que adivinar cómo lo interpretó la app. */
+function fmtImporte(n){
+  return n.toLocaleString('es-ES', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+}
+document.addEventListener('blur', e => {
+  const el = e.target;
+  if(!el || !el.matches || !el.matches('[data-money]')) return;
+  const n = parseImporte(el.value);
+  const antes = el.value;
+  el.value = n === null ? '' : fmtImporte(n);
+  if(el.value !== antes){ render(); }
+}, true);   // captura: blur no burbujea
+
 function parseImporte(s){
   s = String(s==null?'':s).replace(/[^\d.,]/g,'');
   if(!/\d/.test(s)) return null;
@@ -1930,7 +1950,11 @@ function contractPayload(){
     tipo: CONTRACT_TIPO[CURRENT.slug],
     comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
     proyecto_nombre: data.proyecto_nombre || null,
-    precio_total: data.precio_total ? Number(String(data.precio_total).replace(/[^\d.-]/g,'')) || null : null,
+    // parseImporte, NO un replace a mano: el que había aquí quitaba la coma pero
+    // dejaba el punto, así que "44.000" se guardaba como 44 en la base de datos
+    // mientras el contrato impreso seguía diciendo 44.000. Un parser por fichero
+    // es un parser de más.
+    precio_total: parseImporte(data.precio_total),
     moneda: data.moneda || null,
     fecha_firma: data.fecha_firma || null,
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +

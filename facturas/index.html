@@ -316,7 +316,7 @@ function pintarLineas(){
   $('#lineas').innerHTML = LINEAS.map((l,i) => `
     <div class="linea">
       <div><label>Descripción</label><input data-l="${i}" data-k="descripcion" value="${esc(l.descripcion)}"></div>
-      <div><label>Importe</label><input data-l="${i}" data-k="importe" inputmode="decimal" value="${esc(l.importe)}"></div>
+      <div><label>Importe</label><input data-l="${i}" data-k="importe" inputmode="decimal" data-money value="${esc(l.importe)}"></div>
       <button type="button" class="xbtn" data-del="${i}" title="Quitar">×</button>
     </div>`).join('');
   marcarHitosUsados();
@@ -357,6 +357,20 @@ function collect(){
   return d;
 }
 $('#selTipo').addEventListener('change', render);
+
+/* Al salir de un campo de importe se reescribe en formato canónico ("44.000",
+   "44.000,50"): lo que se ve pasa a ser exactamente lo que se guarda, en vez de
+   quedar a merced de cómo escribió cada uno los separadores. */
+document.addEventListener('blur', e => {
+  const el = e.target;
+  if(!el || !el.matches || !el.matches('[data-money]')) return;
+  const n = parseImporte(el.value);
+  const txt = n ? n.toLocaleString('es-ES', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '';
+  if(txt === el.value) return;
+  el.value = txt;
+  const i = el.dataset.l;
+  if(i != null){ LINEAS[+i].importe = txt; render(); }
+}, true);   // captura: blur no burbujea
 
 /* ?tipo=recibi|proforma abre la app ya puesta en ese documento. La intranet usa
    esto para la tarjeta "Recibos": es la MISMA herramienta, no una segunda que
