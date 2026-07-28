@@ -379,9 +379,13 @@
         <button class="btn primary" id="fmGen" style="margin-top:6px">Generar enlace de firma</button>
         <div id="fmResult" style="display:none;margin-top:14px">
           <label>Enlace de firma<input type="text" id="fmLink" readonly onclick="this.select()"></label>
+          <!-- Editable: el mensaje se genera con un texto por defecto, pero cada
+               comprador tiene su tono y su idioma. WhatsApp y email usan lo que
+               haya AQUÍ en el momento del clic, no el texto original. -->
+          <label>Mensaje<textarea id="fmMsg" rows="5"></textarea></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-            <button class="btn ghost" id="fmCopy" type="button">Copiar</button>
-            <a class="btn ghost" id="fmWa" target="_blank" rel="noopener">WhatsApp</a>
+            <button class="btn ghost" id="fmCopy" type="button">Copiar enlace</button>
+            <button class="btn ghost" id="fmWa" type="button">WhatsApp</button>
             <!-- Era un <a href="mailto:">: en un equipo sin cliente de correo de
                  escritorio el clic no hacía nada. Ahora envía por el servidor. -->
             <button class="btn ghost" id="fmMail" type="button">Enviar por email</button>
@@ -2126,10 +2130,9 @@ $('#fmGen').addEventListener('click', async ()=>{
     const base=location.href.replace(/[^/]*(?:\?.*)?$/,'');
     const link=base+'firmar.html?t='+token;
     $('#fmLink').value=link;
-    const msg='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link
+    $('#fmMsg').value='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link
       +'\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties';
-    $('#fmWa').href='https://wa.me/?text='+encodeURIComponent(msg);
-    FIRMA_ENVIO = { to:email, message:msg };   // lo consume el botón "Enviar por email"
+    FIRMA_ENVIO = { to:email, link:link };   // lo consumen WhatsApp y "Enviar por email"
     $('#fmResult').style.display='';
     toast('Enlace de firma generado');
   }catch(err){ toast('No se pudo generar: '+(err.message||err)); }
@@ -2143,13 +2146,31 @@ $('#fmCopy').addEventListener('click', ()=>{ const i=$('#fmLink'); i.select();
    el contrato aquí mandaría un documento sin firmar con aspecto de definitivo, y
    el comprador ya lo lee en el navegador antes de firmar. */
 let FIRMA_ENVIO = null;
+
+/* El texto es editable, así que se lee en el momento del clic. Si al reescribirlo
+   se ha borrado el enlace, el mensaje no sirve para nada — y eso no da error por
+   sí solo: el comprador recibiría un correo amable sin forma de firmar. */
+function firmaMensaje(){
+  const msg = $('#fmMsg').value.trim();
+  if(!msg){ toast('El mensaje está vacío'); return null; }
+  if(FIRMA_ENVIO && msg.indexOf(FIRMA_ENVIO.link) === -1){ toast('El mensaje ya no incluye el enlace de firma'); return null; }
+  return msg;
+}
+
+$('#fmWa').addEventListener('click', ()=>{
+  if(!FIRMA_ENVIO){ toast('Genera primero el enlace'); return; }
+  const msg = firmaMensaje(); if(!msg) return;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
+});
+
 $('#fmMail').addEventListener('click', async ()=>{
   if(!FIRMA_ENVIO){ toast('Genera primero el enlace'); return; }
+  const msg = firmaMensaje(); if(!msg) return;
   const btn=$('#fmMail'); btn.disabled=true; btn.textContent='Enviando…';
   try{
     const r = await fetch('api/send_email.php', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ to:FIRMA_ENVIO.to, subject:'Firma de documento — Lawang Tropical Properties',
-                             message:FIRMA_ENVIO.message, attach:false }) });
+                             message:msg, attach:false }) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
     if(d.ok) toast('Enlace enviado a ' + FIRMA_ENVIO.to);
     else toast(d.error || 'No se pudo enviar');
