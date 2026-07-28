@@ -80,8 +80,8 @@
     var wa='<span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span>';
     // Revisión cliente 23-jul: el logo de Lawang se queda siempre en el menú (fuera el "‹ The Collection").
     return '<header id="topbar" class="show '+(ghost?'pdp':'solid')+'">'
-      + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="index.html" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
-      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('index.html#expedition','The Soul',false)+nl('#all','The Portfolio',false)+'</nav>'
+      + '<div id="logo"'+(ghost?'':' class="dark"')+'><a id="logo-inner" href="/" aria-label="Lawang — inicio"><img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties"><span class="ll-dark" aria-hidden="true"></span></a></div>'
+      + '<nav id="nav">'+nl('#land','The Land',S.line==='land')+nl('#villas','The Villas',S.line==='villa')+nl('/#expedition','The Soul',false)+nl('#all','The Portfolio',false)+'</nav>'
       + '<div id="nav-actions">'
       +   '<div class="nav-lang-wrap" id="langWrap"><button class="nav-lang" data-act="lang-toggle" aria-haspopup="listbox" aria-expanded="'+(S.langOpen?'true':'false')+'"><span>'+langName+'</span><span class="lang-abbr">'+S.lang.toUpperCase()+'</span><span class="caret">▾</span></button>'
       +     '<ul class="lang-menu'+(S.langOpen?' open':'')+'" id="langMenu" role="listbox">'+li('en',flagEN,'English')+li('es',flagES,'Español')+li('id',flagID,'Bahasa')+'</ul></div>'
@@ -283,7 +283,7 @@
       +       '<div class="lw-ft-col"><h5>Portfolio</h5>'
       +         '<a href="#signature">Signature</a><a href="#land">Land</a><a href="#villas">Villas</a><a href="#resorts">Resorts</a></div>'
       +       '<div class="lw-ft-col"><h5>Company</h5>'
-      +         '<a href="index.html#expedition">The Soul</a><a href="index.html#the-services">What We Do</a><a href="index.html">The Estate</a><a href="#all">Choose your Legacy</a></div>'
+      +         '<a href="/#expedition">The Soul</a><a href="/#the-services">What We Do</a><a href="/">The Estate</a><a href="#all">Choose your Legacy</a></div>'
       +       '<div class="lw-ft-col"><h5>Divisions</h5>'
       +         '<a href="#all">Tepi Sungai</a><a href="#all">Balian Hills</a><a href="#signature">Riverfront II®</a></div>'
       +     '</div>'
@@ -297,7 +297,7 @@
       +     '<div class="lw-ft-legal">'
       +       '<a class="lw-ft-tc" href="#" data-legal="terms">Terms &amp; Conditions</a>'
       +       '<a class="lw-ft-tc" href="#" data-legal="privacy">Privacy Policy</a>'
-      +       '<a class="lw-ft-tc" href="accessibility.html">Accessibility</a>'
+      +       '<a class="lw-ft-tc" href="/accessibility">Accessibility</a>'
       +     '</div>'
       +   '</div>'
       + '</footer>';
@@ -1288,7 +1288,7 @@
     else if(cmd==="step"){ S.step=parseInt(val,10); render(); }
     else if(cmd==="cfg-reset"){ S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; render(); }
     else if(cmd==="close"){ closeProperty(); }
-    else if(cmd==="go-home"){ window.location.href="index.html"; }
+    else if(cmd==="go-home"){ window.location.href="/"; }
   }
 
   function bindEvents(){

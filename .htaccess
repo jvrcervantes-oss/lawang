@@ -1,8 +1,33 @@
-# 302 temporal: /portfolio.html sera la futura pagina de la promotora — ELIMINAR esta linea al crearla
-Redirect 302 /portfolio.html /thecollection.html
-
 # 28-jul-2026: /panel/ renombrado a /intranet/. 301 para los marcadores del equipo.
 RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
+
+# URLs limpias en las paginas publicas: /thecollection, no /thecollection.html.
+# Solo raiz y solo GET a proposito: las subcarpetas (api/, contracts/, facturas/, intranet/)
+# son apps internas con logins y formularios, y un 301 convierte un POST en GET — ahi no se toca.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # /portfolio.html: alias temporal hasta que exista la pagina de la promotora — ELIMINAR al crearla.
+  # Va como RewriteRule y no como "Redirect" de mod_alias porque mod_rewrite corre ANTES:
+  # con mod_alias, la regla 1 de abajo se lo comia y mandaba a /portfolio (404).
+  RewriteRule ^portfolio\.html$ /thecollection [R=302,L,NE]
+
+  # 1) La URL con extension redirige a la limpia: una sola URL indexable, sin contenido duplicado.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} "\s/+index\.html[\s?]" [NC]
+  RewriteRule ^ / [R=301,L,NE]
+
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} "\s/+([^/\s?]+?)\.(html|php)[\s?]" [NC]
+  RewriteRule ^ /%1 [R=301,L,NE]
+
+  # 2) La URL limpia sirve el fichero real sin que el navegador vea la extension.
+  #    ^([^/.]+)$ = solo raiz y sin puntos, asi data.json / robots.txt / assets no entran aqui.
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^([^/.]+)$ $1.html [L]
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^([^/.]+)$ $1.php [L]
+</IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
 # (p.ej. sumbahills.lawangproperties.com) cuyo SSL no controlamos aqui; incluirlos podria

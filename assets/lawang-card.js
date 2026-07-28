@@ -70,7 +70,7 @@
     var lang = opts.lang || 'en';
     var cur = opts.cur || 'EUR';
     var rates = opts.rates || DEFAULT_RATES;
-    var base = opts.hrefBase != null ? opts.hrefBase : '';   // '' = misma página (portfolio); 'thecollection.html' = index
+    var base = opts.hrefBase != null ? opts.hrefBase : '';   // '' = misma página (portfolio); '/thecollection' = index
     var href = base + '#property/' + esc(p.id);
     var ten = (TENURE[p.tenure] || TENURE['tenure.freehold']);
     var st = STATUS[p.status] || { c:'plan', en:'', es:'' };
