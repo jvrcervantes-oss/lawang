@@ -219,13 +219,14 @@ function pintarFicha(){
         if(!suyos.length) return '<p class="nota">Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.</p>';
         return `<table><thead><tr><th>Contrato</th><th>Proyecto</th><th>Rol</th><th>Estado</th></tr></thead><tbody>
           ${suyos.map(v => `<tr>
-            <td>${esc(v.contratos.numero || 'sin nº')}<div class="nota">${esc(v.contratos.tipo || '')}</div></td>
+            <td><a href="/operaciones/?contrato=${encodeURIComponent(v.contratos.id)}" style="color:var(--dl)">${esc(v.contratos.numero || 'sin nº')}</a>
+                <div class="nota">${esc(v.contratos.tipo || '')}</div></td>
             <td>${esc(v.contratos.proyecto_nombre || '—')}</td>
             <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
             <td>${v.contratos.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
           </tr>`).join('')}
         </tbody></table>
-        <p class="nota"><a href="/operaciones/" style="color:var(--dl)">Ver la operación completa →</a></p>`;
+        <p class="nota">Pulsa un número de contrato para ver su operación completa.</p>`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
@@ -327,7 +328,22 @@ window.LW_AUTH.then(async ({ sb, session }) => {
   SB = sb;
   $('#who').textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
-  try{ await cargar(); pintarLista(); }
+  try{
+    await cargar();
+    /* ?id=<client_id> abre esa ficha directamente. Lo usa Operaciones: llegar
+       desde la ficha de una venta a un listado y tener que buscar a la persona
+       que ya estabas mirando es un viaje de ida sin vuelta. */
+    const pedido = new URLSearchParams(location.search).get('id');
+    if(pedido && CLIENTES.some(c => c.id === pedido)){
+      SEL = pedido;
+      pintarLista(); pintarFicha();
+      $('#stage').classList.add('abierta');
+      $('#ficha').scrollTop = 0;
+    }else{
+      if(pedido) toast('Ese comprador ya no existe');
+      pintarLista();
+    }
+  }
   catch(err){ $('#listaC').innerHTML = '<p class="nota" style="padding:18px">No se pudo cargar: ' + esc(err.message||err) + '</p>'; }
 });
 </script>

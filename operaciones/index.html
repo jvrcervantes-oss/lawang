@@ -262,15 +262,19 @@ function pintarDetalle(){
       ${fichas.map(v => {
         const c = v.clients;
         const ok = c.kyc_status === 'verified';
+        // el nombre ES el enlace, y lleva a SU ficha, no a la lista: pulsar
+        // "Abrir en Compradores" y aterrizar en un listado obliga a buscar a
+        // la persona que ya estabas mirando
         return `<tr>
-          <td>${esc(c.full_name || '—')}<div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
+          <td><a class="enl" href="/compradores/?id=${encodeURIComponent(c.id)}">${esc(c.full_name || 'Sin nombre')}</a>
+              <div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
           <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
           <td>${esc(c.email || c.phone || '—')}</td>
           <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rejected' ? 'alerta' : 'espera')}">${esc(KYC_ES[c.kyc_status] || c.kyc_status || 'pendiente')}</span></td>
         </tr>`;
       }).join('')}
       </tbody></table>
-      <p class="nota"><a class="enl" href="/compradores/">Abrir en Compradores →</a></p>
+      <p class="nota">Pulsa un nombre para abrir su ficha y su documentación.</p>
     </section>` : `
     <section>
       <h3>Comprador</h3>
@@ -396,6 +400,14 @@ $('#btnRecargar').addEventListener('click', () => arrancar(true));
 async function arrancar(recarga){
   try{
     await cargar();
+    /* ?contrato=<id> abre esa operación directamente. Lo usa Compradores desde
+       la lista de contratos de una persona. Solo la primera carga: en una
+       recarga manual se respeta lo que el usuario tenga elegido. */
+    if(!recarga){
+      const pedido = new URLSearchParams(location.search).get('contrato');
+      if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; $('#stage').classList.add('abierta'); }
+      else if(pedido) toast('Ese contrato ya no existe');
+    }
     pintarLista(); pintarDetalle();
     if($('#panelVenc').classList.contains('on')) pintarVencimientos();
     if(recarga) toast('Datos actualizados');
