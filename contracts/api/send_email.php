@@ -50,10 +50,17 @@ $filename = preg_replace('/[^\p{L}\p{N}+_\-.]/u', '_', (string)($in['filename'] 
 $pdfB64   = (string)($in['pdf_base64'] ?? '');
 $html     = (string)($in['html'] ?? '');
 
+// `attach:false` = correo de solo texto, sin adjunto. Lo usa el envío del enlace
+// de firma: ahí el documento se lee en el navegador (el snapshot que firma el
+// comprador), así que adjuntar el contrato sin firmar duplicaría el documento y
+// mandaría un PDF con pinta de definitivo que nadie ha firmado.
+$attach = ($in['attach'] ?? true) !== false;
+
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fail('Destinatario no válido'); }
 if (mb_strlen($subject) > 200) { fail('Asunto demasiado largo'); }
 if (mb_strlen($message) > 5000) { fail('Mensaje demasiado largo'); }
-if ($pdfB64 === '' && $html === '') { fail('Falta el PDF o el HTML a renderizar'); }
+if (!$attach && $message === '') { fail('Un correo sin adjunto necesita mensaje'); }
+if ($attach && $pdfB64 === '' && $html === '') { fail('Falta el PDF o el HTML a renderizar'); }
 // 100MB reales ≈ 134MB en base64 — límite subido a petición explícita. Aviso real:
 // la práctica totalidad de servidores de correo (Gmail incluido) rechazan adjuntos
 // por encima de ~25MB sea cual sea este límite; esto solo evita cargas absurdas.
@@ -74,17 +81,19 @@ if (is_file($mailConfigPath)) {
 // configurado; si eso falla o no está configurado, cae al adjunto manual
 // (pdf_base64) cuando el cliente lo mandó como respaldo. ----
 $pdfBytes = null;
-if ($html !== '' && $mailConfig && !empty($mailConfig['pdf_service_url']) && !empty($mailConfig['pdf_service_secret'])) {
-  $pdfBytes = render_pdf_via_service($html, $mailConfig['pdf_service_url'], $mailConfig['pdf_service_secret']);
-}
-if ($pdfBytes === null && $pdfB64 !== '') {
-  $decoded = base64_decode($pdfB64, true);
-  if ($decoded !== false && substr($decoded, 0, 4) === '%PDF') {
-    $pdfBytes = $decoded;
+if ($attach) {
+  if ($html !== '' && $mailConfig && !empty($mailConfig['pdf_service_url']) && !empty($mailConfig['pdf_service_secret'])) {
+    $pdfBytes = render_pdf_via_service($html, $mailConfig['pdf_service_url'], $mailConfig['pdf_service_secret']);
   }
-}
-if ($pdfBytes === null) {
-  fail('No se pudo generar ni adjuntar el PDF (servicio de render no disponible y no se adjuntó uno manualmente)', 502);
+  if ($pdfBytes === null && $pdfB64 !== '') {
+    $decoded = base64_decode($pdfB64, true);
+    if ($decoded !== false && substr($decoded, 0, 4) === '%PDF') {
+      $pdfBytes = $decoded;
+    }
+  }
+  if ($pdfBytes === null) {
+    fail('No se pudo generar ni adjuntar el PDF (servicio de render no disponible y no se adjuntó uno manualmente)', 502);
+  }
 }
 
 function render_pdf_via_service(string $html, string $url, string $secret): ?string {
@@ -112,15 +121,20 @@ $fromName = $mailConfig['from_name'] ?? 'Lawang Tropical Properties';
 
 $boundary = 'lwc_' . bin2hex(random_bytes(16));
 
+// multipart/mixed con una sola parte de texto es correo válido, así que el
+// camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez
+// de abrir una segunda forma de construir el mensaje.
 $body  = "--{$boundary}\r\n";
 $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
 $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
 $body .= $message . "\r\n\r\n";
-$body .= "--{$boundary}\r\n";
-$body .= "Content-Type: application/pdf; name=\"{$filename}\"\r\n";
-$body .= "Content-Transfer-Encoding: base64\r\n";
-$body .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
-$body .= chunk_split(base64_encode($pdfBytes)) . "\r\n";
+if ($pdfBytes !== null) {
+  $body .= "--{$boundary}\r\n";
+  $body .= "Content-Type: application/pdf; name=\"{$filename}\"\r\n";
+  $body .= "Content-Transfer-Encoding: base64\r\n";
+  $body .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
+  $body .= chunk_split(base64_encode($pdfBytes)) . "\r\n";
+}
 $body .= "--{$boundary}--";
 
 if ($mailConfig) {

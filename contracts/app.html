@@ -174,8 +174,12 @@
   #btnLockUpload:hover{ border-color:var(--be); color:var(--be); }
   #btnDownloadSigned:hover{ border-color:var(--dl); color:var(--dl); }
 
+  /* z-index 200: por encima de los modales (.cp-overlay, 80). Compartían el 80 y,
+     al ir los overlays después en el DOM, ganaban ellos — el aviso salía DETRÁS
+     del modal y no se veía justo cuando más falta hace (errores al guardar, al
+     generar el enlace de firma…). Cualquier capa nueva debe quedar por debajo. */
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(8px); background:var(--va); color:#fff;
-    padding:11px 20px; border-radius:30px; font-size:13px; z-index:80; opacity:0; box-shadow:0 10px 30px rgba(46,52,55,.35);
+    padding:11px 20px; border-radius:30px; font-size:13px; z-index:200; opacity:0; box-shadow:0 10px 30px rgba(46,52,55,.35);
     transition:opacity .3s var(--ease-out), transform .3s var(--ease-out); pointer-events:none; }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
@@ -368,16 +372,21 @@
       <div class="em-body">
         <p class="em-note">Genera un enlace único. El comprador lo abre, revisa el contrato y firma. Al firmar, el PDF firmado entra solo en la base de datos y el contrato queda bloqueado.</p>
         <label>Nombre del comprador<input type="text" id="fmName" placeholder="Nombre y apellidos"></label>
-        <label>Email del comprador (opcional)<input type="email" id="fmEmail" placeholder="cliente@email.com"></label>
+        <!-- El email dejó de ser opcional (28-jul): sin él no se puede mandar el
+             enlace desde aquí, y además queda en el registro de firma como parte
+             de la trazabilidad de quién firmó. -->
+        <label>Email del comprador<input type="email" id="fmEmail" placeholder="cliente@email.com" required></label>
         <button class="btn primary" id="fmGen" style="margin-top:6px">Generar enlace de firma</button>
         <div id="fmResult" style="display:none;margin-top:14px">
           <label>Enlace de firma<input type="text" id="fmLink" readonly onclick="this.select()"></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button class="btn ghost" id="fmCopy" type="button">Copiar</button>
             <a class="btn ghost" id="fmWa" target="_blank" rel="noopener">WhatsApp</a>
-            <a class="btn ghost" id="fmMail">Email</a>
+            <!-- Era un <a href="mailto:">: en un equipo sin cliente de correo de
+                 escritorio el clic no hacía nada. Ahora envía por el servidor. -->
+            <button class="btn ghost" id="fmMail" type="button">Enviar por email</button>
           </div>
-          <p class="em-note" style="margin-top:10px">Caduca en 30 días. Mándaselo tú por el canal que prefieras.</p>
+          <p class="em-note" style="margin-top:10px">Caduca en 30 días.</p>
         </div>
       </div>
     </div>
@@ -1641,15 +1650,11 @@ function buildDoc(){
 }
 /* re-render de la preview viva (siempre visible). En modo edición NO se
    re-renderiza: reconstruir el srcdoc borraría lo que el usuario escribe.
-   Si el contrato está bloqueado, la preview NO se reconstruye: se muestra el PDF
-   firmado real (ver showSignedPdf, más abajo). */
-function render(){
-  if(EDITING) return;
-  const fr=$('#pvFrame');
-  if(sb && LOCKED && LOCKED_PDF_PATH){ showSignedPdf(); return; }
-  fr.removeAttribute('src');            // pudo quedar apuntando al PDF de un contrato anterior
-  fr.srcdoc = buildDoc();
-}
+   La preview es SIEMPRE la reconstrucción HTML, también en contratos firmados:
+   se probó meter ahí el visor del PDF firmado y el usuario lo rechazó (28-jul).
+   Consecuencia asumida: en un contrato firmado la preview NO enseña la firma
+   —vive dentro del PDF, no en `contratos.datos`—; se ve con "Descargar PDF". */
+function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
 let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
 /* Orden del formulario, el MISMO para todos los contratos (petición del
@@ -1837,15 +1842,10 @@ async function downloadPdf(){
    ============================================================ */
 let LOCKED = false, LOCKED_PDF_PATH = null;   // true una vez subido el PDF firmado (columna `bloqueado`)
 
-/* ---- PDF firmado: es EL documento, no una copia ----------------------------
-   La firma remota la inyecta `firma-submit` en el snapshot que se convierte en
-   PDF, y nunca vuelve a `contratos.datos`. Por eso reconstruir la preview desde
-   el jsonb pintaba el contrato SIN firma en uno ya firmado, y hacía dudar de si
-   la firma se había perdido (reportado 28-jul-2026: "en el preview no está la
-   firma, si me lo descargo sí").
-   ponytail: se descartó guardar la firma en `contratos.datos` — esa tabla ya es
-   97% blobs base64, y duplicar el documento legal en el jsonb crea dos verdades
-   que se pueden contradecir. La fuente única es el PDF del bucket. */
+/* El PDF firmado es EL documento: la firma la inyecta `firma-submit` en el
+   snapshot que se convierte en PDF y nunca vuelve a `contratos.datos`. Por eso
+   "Descargar PDF" sobre un contrato bloqueado entrega ESTE fichero y no una
+   reimpresión de buildDoc(), que saldría sin firma y con aspecto de definitivo. */
 let _signedUrl=null, _signedFor=null;
 async function signedPdfUrl(){
   if(!sb || !LOCKED_PDF_PATH) return null;
@@ -1854,13 +1854,6 @@ async function signedPdfUrl(){
   if(!data) return null;
   _signedUrl=data.signedUrl; _signedFor=LOCKED_PDF_PATH;
   return _signedUrl;
-}
-async function showSignedPdf(){
-  const fr=$('#pvFrame'), url=await signedPdfUrl();
-  // sin enlace (red caída, permiso) mejor la reconstrucción que un panel en blanco
-  if(!url){ fr.removeAttribute('src'); fr.srcdoc=buildDoc(); return; }
-  fr.removeAttribute('srcdoc');         // con ambos puestos, srcdoc gana sobre src
-  fr.src = url;
 }
 async function abrirPdfFirmado(){
   const url = await signedPdfUrl();
@@ -2117,6 +2110,9 @@ $('#fmGen').addEventListener('click', async ()=>{
   const nombre=$('#fmName').value.trim();
   if(nombre.length<2){ toast('Pon el nombre del comprador'); return; }
   const email=$('#fmEmail').value.trim();
+  // obligatorio desde el 28-jul: sin email no hay envío desde aquí, y el registro
+  // de firma se queda sin el dato con el que se identifica al firmante.
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Pon un email válido del comprador'); return; }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   try{
     const token=randToken();
@@ -2130,9 +2126,10 @@ $('#fmGen').addEventListener('click', async ()=>{
     const base=location.href.replace(/[^/]*(?:\?.*)?$/,'');
     const link=base+'firmar.html?t='+token;
     $('#fmLink').value=link;
-    const msg='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link;
+    const msg='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link
+      +'\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties';
     $('#fmWa').href='https://wa.me/?text='+encodeURIComponent(msg);
-    $('#fmMail').href='mailto:'+(email||'')+'?subject='+encodeURIComponent('Firma de documento — Lawang Tropical Properties')+'&body='+encodeURIComponent(msg);
+    FIRMA_ENVIO = { to:email, message:msg };   // lo consume el botón "Enviar por email"
     $('#fmResult').style.display='';
     toast('Enlace de firma generado');
   }catch(err){ toast('No se pudo generar: '+(err.message||err)); }
@@ -2140,6 +2137,25 @@ $('#fmGen').addEventListener('click', async ()=>{
 });
 $('#fmCopy').addEventListener('click', ()=>{ const i=$('#fmLink'); i.select();
   (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast('Enlace copiado'),()=>toast('Selecciona y copia a mano')); });
+
+/* Envío del enlace de firma por correo, por el mismo api/send_email.php que el
+   resto de la app pero con `attach:false`: va SOLO el enlace, sin PDF. Adjuntar
+   el contrato aquí mandaría un documento sin firmar con aspecto de definitivo, y
+   el comprador ya lo lee en el navegador antes de firmar. */
+let FIRMA_ENVIO = null;
+$('#fmMail').addEventListener('click', async ()=>{
+  if(!FIRMA_ENVIO){ toast('Genera primero el enlace'); return; }
+  const btn=$('#fmMail'); btn.disabled=true; btn.textContent='Enviando…';
+  try{
+    const r = await fetch('api/send_email.php', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ to:FIRMA_ENVIO.to, subject:'Firma de documento — Lawang Tropical Properties',
+                             message:FIRMA_ENVIO.message, attach:false }) });
+    const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
+    if(d.ok) toast('Enlace enviado a ' + FIRMA_ENVIO.to);
+    else toast(d.error || 'No se pudo enviar');
+  }catch(err){ toast('Error: ' + (err.message || err)); }
+  btn.disabled=false; btn.textContent='Enviar por email';
+});
 
 /* ---------- sesión (Supabase Auth) ----------
    La página en sí sigue siendo estática — lo que de verdad protege los datos
