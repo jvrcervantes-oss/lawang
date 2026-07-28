@@ -357,6 +357,14 @@ function collect(){
   return d;
 }
 $('#selTipo').addEventListener('change', render);
+
+/* ?tipo=recibi|proforma abre la app ya puesta en ese documento. La intranet usa
+   esto para la tarjeta "Recibos": es la MISMA herramienta, no una segunda que
+   emitiría con sus propias reglas y su propia numeración. */
+(function(){
+  const t = new URLSearchParams(location.search).get('tipo');
+  if(t && TIPOS[t]) $('#selTipo').value = t;
+})();
 $('#form').addEventListener('input', render);
 $('#form').addEventListener('change', render);
 

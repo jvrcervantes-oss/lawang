@@ -76,10 +76,15 @@
 <script>
 // Añadir una herramienta = una entrada aquí. `href` vacío = todavía no existe.
 const TOOLS = [
+  { ico:'📊', name:'Operaciones', desc:'Cómo va cada venta: cuenta, documentos, firmas y vencimientos.', href:'/operaciones/' },
   { ico:'✒️', name:'Contratos',  desc:'Reservas, PPJB, construcción y anexos.',        href:'/contracts/app.html' },
-  { ico:'📖', name:'Dossier',    desc:'Dossiers de producto en A4 apaisado.',          href:'/dossier/builder.html' },
   { ico:'🧾', name:'Facturas',   desc:'Facturas, proformas y recibís, con su serie.',  href:'/facturas/' },
-  { ico:'🧮', name:'Recibos',    desc:'Justificantes de pago y señales.',              href:'' },
+  // misma herramienta que Facturas, abierta ya en "Recibí": una segunda app
+  // emitiría con sus propias reglas y su propia numeración
+  { ico:'🧮', name:'Recibos',    desc:'Justificantes de pago y señales.',              href:'/facturas/?tipo=recibi' },
+  { ico:'📖', name:'Dossier',    desc:'Dossiers de producto en A4 apaisado.',          href:'/dossier/builder.html' },
+  { ico:'🏘️', name:'Unidades',   desc:'Inventario de parcelas y villas, con su estado de venta.', href:'' },
+  { ico:'🪪', name:'Compradores', desc:'Ficha y documentación KYC, con caducidades.',  href:'' },
 ];
 
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

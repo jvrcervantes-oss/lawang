@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Lawang · Operaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css">
+<script src="/contracts/assets/topbar.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js"></script>
+<!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
+<script src="/facturas/totales.js"></script>
+<style>
+  :root{ --line:#e4ddcf; --card:#fffdf8; --tbh:56px; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl,#F5F0E6); color:var(--ink,#2E3437); }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+
+  .stage{ display:grid; grid-template-columns:minmax(320px,380px) 1fr; height:100%; padding-top:var(--tbh); }
+  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .detalle{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .detalle{ display:block; } }
+
+  /* ---------- lista ---------- */
+  .lista{ overflow:auto; border-right:1px solid var(--line); background:var(--rl,#F5F0E6); }
+  .lista .cab{ position:sticky; top:0; background:var(--rl,#F5F0E6); padding:16px 18px 10px; border-bottom:1px solid var(--line); }
+  .buscar{ width:100%; font:inherit; font-size:13.5px; padding:9px 11px; border:1px solid var(--line);
+           border-radius:9px; background:var(--card); color:inherit; }
+  .buscar:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .op{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
+       border-bottom:1px solid var(--line); padding:13px 18px; cursor:pointer; }
+  .op:hover{ background:#efeade; }
+  .op.sel{ background:#e7e1d2; box-shadow:inset 3px 0 0 var(--tg); }
+  .op .n{ font-size:12px; letter-spacing:.1em; color:var(--tg); font-weight:600; }
+  .op .c{ font-size:14px; margin:2px 0 0; }
+  .op .p{ font-size:12px; color:var(--muted); }
+  .op .badges{ margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; }
+
+  /* ---------- detalle ---------- */
+  .detalle{ overflow:auto; padding:26px 30px 80px; }
+  .vacio-panel{ display:grid; place-items:center; height:100%; color:var(--ss,#BEB3A5); font-size:13px;
+                letter-spacing:.16em; text-transform:uppercase; }
+  h2.tit{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:27px; font-weight:600; margin:0 0 2px; }
+  .sub{ color:var(--muted); font-size:13.5px; margin:0 0 18px; }
+  section{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; }
+  section > h3{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+                margin:0 0 12px; font-weight:500; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+      font-weight:500; padding:0 8px 7px 0; }
+  td{ padding:7px 8px 7px 0; border-top:1px solid var(--line); vertical-align:top; }
+  td.num, th.num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .cifras{ display:flex; gap:26px; flex-wrap:wrap; }
+  .cifra .k{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .cifra .v{ font-size:19px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .cifra .v.gris{ color:var(--ss,#BEB3A5); font-weight:400; font-size:15px; }
+
+  .tag{ display:inline-block; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+        border-radius:999px; padding:3px 9px; white-space:nowrap; }
+  .tag.ok{    background:rgba(72,91,55,.13);  color:var(--tg); }
+  .tag.espera{background:rgba(190,179,165,.3); color:#7a6f60; }
+  .tag.alerta{background:rgba(163,52,43,.12);  color:#a3342b; }
+  .tag.info{  background:rgba(16,76,79,.1);    color:var(--dl); }
+
+  a.enl{ color:var(--dl); text-decoration:none; border-bottom:1px solid rgba(16,76,79,.3); }
+  a.enl:hover{ border-bottom-color:var(--dl); }
+  .nota{ font-size:12px; color:var(--muted); margin:10px 0 0; line-height:1.5; }
+  .falta{ color:#a3342b; }
+
+  /* pestañas */
+  .tabs{ display:flex; gap:6px; }
+  .tab{ font:inherit; font-size:12.5px; font-weight:500; background:none; border:1px solid transparent;
+        border-radius:999px; padding:6px 14px; cursor:pointer; color:var(--muted); }
+  .tab.on{ background:var(--card); border-color:var(--line); color:var(--dl); }
+  .panel{ display:none; }
+  .panel.on{ display:block; }
+  .venc{ padding:26px 30px 80px; overflow:auto; grid-column:1 / -1; }
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--va,#2E3437);
+    color:#fff; padding:11px 20px; border-radius:30px; font-size:13px; z-index:200; opacity:0;
+    transition:opacity .3s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+  <div class="topbar lw-topbar">
+    <a class="lw-home" href="/intranet/">← Intranet</a>
+    <img class="lw-brand" src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
+    <h1 class="lw-title">Operaciones</h1>
+    <span class="lw-sep"></span>
+    <div class="tabs">
+      <button class="tab on" data-tab="ops">Operaciones</button>
+      <button class="tab" data-tab="venc">Vencimientos</button>
+    </div>
+    <div class="lw-spacer"></div>
+    <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnRecargar">↻ Recargar</button>
+    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="lista panel on" id="panelOps">
+      <div class="cab"><input class="buscar" id="q" placeholder="Buscar comprador, proyecto o nº…"></div>
+      <div id="listaOps">Cargando…</div>
+    </div>
+    <div class="detalle panel on" id="panelDet"><div class="vacio-panel">Elige una operación</div></div>
+    <div class="venc panel" id="panelVenc">Cargando…</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   OPERACIONES — la vista que cruza lo que ya existe.
+
+   No crea tablas: lee `contratos`, `facturas` y `contrato_firmas` y las junta
+   por operación. Antes cada herramienta era una isla y para saber cómo iba una
+   venta había que abrir tres sitios (o la base de datos).
+
+   Cubre de una vez lo que iban a ser cuatro herramientas sueltas:
+   estado de cuenta, ficha de la operación, vencimientos y registro de firmas.
+   Son la misma consulta mirada desde ángulos distintos; cuatro apps habrían
+   repetido cuatro veces el mismo cruce y habrían divergido.
+
+   SOLO LECTURA a propósito: aquí no se emite ni se corrige nada. Emitir se hace
+   en su herramienta, y desde aquí se enlaza. Una vista que además escribe acaba
+   siendo una segunda forma de crear documentos, con sus propias reglas.
+   ============================================================ */
+const $  = s => document.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2600); };
+
+const HOY = new Date(); HOY.setHours(0,0,0,0);
+const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
+
+let SB = null, OPS = [], SEL = null;
+
+/* ---------- carga ----------
+   Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
+   los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
+async function cargar(){
+  const [c, f, s] = await Promise.all([
+    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,created_at,hitos:datos->hitos').order('created_at',{ascending:false}).limit(300),
+    SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
+    SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
+  ]);
+  if(c.error) throw c.error;
+  const facturas = f.error ? [] : (f.data || []);
+  const firmas   = s.error ? [] : (s.data || []);
+  if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
+  if(s.error) toast('No se pudieron leer las firmas: ' + s.error.message);
+
+  OPS = (c.data || []).map(ct => ({
+    ...ct,
+    // las facturas viejas no tienen contrato_id (la columna es del 28-jul):
+    // se enlazan también por el nº impreso para no perderlas de vista
+    facturas: facturas.filter(x => x.contrato_id ? x.contrato_id === ct.id
+                                                 : (x.contrato_numero && ct.numero && x.contrato_numero === ct.numero)),
+    firmas: firmas.filter(x => x.contrato_id === ct.id),
+  }));
+}
+
+/* ---------- dinero ----------
+   parseImporte / fmtMoneda / redondear salen de /facturas/totales.js: la misma
+   aritmética que emite las facturas, para que un total no cuadre distinto según
+   dónde se mire. */
+function importeHito(h, precio, moneda){
+  const m = parseImporte(h.monto);
+  if(m) return { n:m, exacto:true };
+  const p = parseImporte(h.pct);
+  if(p && precio) return { n:redondear(precio * p / 100, moneda), exacto:false };
+  return { n:null, exacto:false };
+}
+const textoHito = h => h.es || h.en || h.id || 'Hito sin nombre';
+
+function cuenta(op){
+  const moneda = op.moneda || 'EUR';
+  const precio = parseImporte(op.precio_total);
+  const hitos  = Array.isArray(op.hitos) ? op.hitos : [];
+  const vivas  = op.facturas.filter(x => !x.anulada && x.tipo !== 'proforma');
+  const facturado = redondear(vivas.reduce((a,x) => a + parseImporte(x.total), 0), moneda);
+  return { moneda, precio, hitos, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null };
+}
+
+/* ---------- lista ---------- */
+function pintarLista(){
+  const q = $('#q').value.trim().toLowerCase();
+  const vis = OPS.filter(o => !q || [o.numero,o.comprador_nombre,o.proyecto_nombre].some(v => String(v||'').toLowerCase().includes(q)));
+  $('#listaOps').innerHTML = vis.length ? vis.map(o => {
+    const b = [];
+    if(o.bloqueado) b.push('<span class="tag ok">Firmado</span>');
+    else b.push('<span class="tag espera">Sin firmar</span>');
+    if(o.firmas.some(x => x.estado === 'pendiente')) b.push('<span class="tag info">Firma enviada</span>');
+    if(o.facturas.filter(x=>!x.anulada).length) b.push('<span class="tag info">' + o.facturas.filter(x=>!x.anulada).length + ' doc.</span>');
+    return `<button class="op ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}">
+      <div class="n">${esc(o.numero || 'sin nº')}</div>
+      <p class="c">${esc(o.comprador_nombre || 'Sin comprador')}</p>
+      <div class="p">${esc(o.proyecto_nombre || '—')}</div>
+      <div class="badges">${b.join('')}</div>
+    </button>`;
+  }).join('') : '<p class="nota" style="padding:18px">Ninguna operación coincide.</p>';
+}
+
+/* ---------- ficha ---------- */
+function pintarDetalle(){
+  const op = OPS.find(o => o.id === SEL);
+  if(!op){ $('#panelDet').innerHTML = '<div class="vacio-panel">Elige una operación</div>'; return; }
+  const c = cuenta(op);
+  const fmt = n => n == null ? '—' : fmtMoneda(n, c.moneda);
+
+  const filasHitos = c.hitos.length ? c.hitos.map(h => {
+    const imp = importeHito(h, c.precio, c.moneda);
+    return `<tr>
+      <td>${esc(textoHito(h))}${h.timing ? ' <span class="nota">· ' + esc(h.timing) + '</span>' : ''}</td>
+      <td class="num">${h.pct ? esc(h.pct) + '%' : '—'}</td>
+      <td class="num">${imp.n == null ? '<span class="falta">sin importe</span>'
+                       : fmt(imp.n) + (imp.exacto ? '' : ' <span class="nota">(calculado)</span>')}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="3" class="nota">El contrato no fijó hitos de pago.</td></tr>';
+
+  const filasFact = op.facturas.length ? op.facturas.map(f => `<tr>
+      <td>${esc(f.numero || '—')} <span class="nota">${esc({factura:'Factura',proforma:'Proforma',recibi:'Recibí'}[f.tipo] || f.tipo || '')}</span></td>
+      <td>${fFecha(f.fecha_emision)}</td>
+      <td class="num">${esc(fmtMoneda(parseImporte(f.total), f.moneda || c.moneda))}</td>
+      <td>${f.anulada ? '<span class="tag alerta">Anulada</span>' : (f.tipo === 'proforma' ? '<span class="tag espera">No suma</span>' : '<span class="tag ok">Emitida</span>')}</td>
+    </tr>`).join('') : '<tr><td colspan="4" class="nota">Todavía no se ha emitido ningún documento.</td></tr>';
+
+  const filasFirmas = op.firmas.length ? op.firmas.map(s => {
+    const d = dias(s.expira_en);
+    let est = '<span class="tag espera">Pendiente</span>';
+    if(s.estado === 'firmado') est = '<span class="tag ok">Firmado ' + fFecha(s.firmado_en) + '</span>';
+    else if(d != null && d < 0) est = '<span class="tag alerta">Caducado</span>';
+    else if(d != null && d <= 5) est = '<span class="tag alerta">Caduca en ' + d + ' d</span>';
+    return `<tr><td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
+      <td>${esc(s.firmante_rol || '—')}</td><td>${fFecha(s.creado_en)}</td><td>${est}</td></tr>`;
+  }).join('') : '<tr><td colspan="4" class="nota">No se ha enviado a firma remota.</td></tr>';
+
+  $('#panelDet').innerHTML = `
+    <h2 class="tit">${esc(op.comprador_nombre || 'Sin comprador')}</h2>
+    <p class="sub">${esc(op.proyecto_nombre || 'Sin proyecto')} · Contrato <b>${esc(op.numero || 'sin nº')}</b>
+      · ${op.bloqueado ? 'firmado y bloqueado' : 'sin firmar'}${op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''}</p>
+
+    <section>
+      <h3>Estado de cuenta</h3>
+      <div class="cifras">
+        <div class="cifra"><div class="k">Precio pactado</div>
+          <div class="v ${c.precio ? '' : 'gris'}">${c.precio ? fmt(c.precio) : 'sin fijar'}</div></div>
+        <div class="cifra"><div class="k">Emitido</div><div class="v">${fmt(c.facturado)}</div></div>
+        <div class="cifra"><div class="k">Pendiente</div>
+          <div class="v ${c.pendiente == null ? 'gris' : ''}">${c.pendiente == null ? 'no calculable' : fmt(c.pendiente)}</div></div>
+      </div>
+      ${c.precio ? '' : '<p class="nota falta">Sin precio total en el contrato no se puede calcular el pendiente ni convertir los hitos en %. Se rellena en Contratos.</p>'}
+      <table style="margin-top:14px">
+        <thead><tr><th>Hito de pago</th><th class="num">%</th><th class="num">Importe</th></tr></thead>
+        <tbody>${filasHitos}</tbody>
+      </table>
+      <p class="nota">Las proformas no suman al emitido: no son documento fiscal.</p>
+    </section>
+
+    <section>
+      <h3>Documentos emitidos</h3>
+      <table><thead><tr><th>Nº</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th></tr></thead>
+        <tbody>${filasFact}</tbody></table>
+      <p class="nota"><a class="enl" href="/facturas/">Emitir uno nuevo →</a></p>
+    </section>
+
+    <section>
+      <h3>Firmas</h3>
+      <table><thead><tr><th>Firmante</th><th>Rol</th><th>Enviado</th><th>Estado</th></tr></thead>
+        <tbody>${filasFirmas}</tbody></table>
+    </section>
+
+    <section>
+      <h3>Contrato</h3>
+      <p class="nota">
+        ${op.pdf_firmado_path ? '<b>PDF firmado guardado.</b> Se descarga desde Contratos, con enlace temporal.' : 'Todavía no hay PDF firmado.'}
+        <br><a class="enl" href="/contracts/app.html">Abrir en Contratos →</a>
+      </p>
+    </section>`;
+}
+
+/* ---------- vencimientos ----------
+   Dos relojes distintos en una sola pantalla: dinero que debería haber entrado
+   y enlaces de firma que se van a apagar. Los dos se pierden de vista solos. */
+function pintarVencimientos(){
+  const fact = [];
+  OPS.forEach(o => o.facturas.forEach(f => {
+    if(f.anulada || f.tipo === 'proforma' || !f.venc) return;
+    fact.push({ ...f, op:o, d: dias(f.venc) });
+  }));
+  fact.sort((a,b) => (a.d ?? 9e9) - (b.d ?? 9e9));
+
+  const firmas = [];
+  OPS.forEach(o => o.firmas.forEach(s => {
+    if(s.estado !== 'pendiente') return;
+    firmas.push({ ...s, op:o, d: dias(s.expira_en) });
+  }));
+  firmas.sort((a,b) => (a.d ?? 9e9) - (b.d ?? 9e9));
+
+  const tagDias = d => d == null ? '—'
+    : d < 0  ? '<span class="tag alerta">vencido hace ' + (-d) + ' d</span>'
+    : d === 0 ? '<span class="tag alerta">vence hoy</span>'
+    : d <= 15 ? '<span class="tag espera">en ' + d + ' d</span>'
+    : '<span class="tag info">en ' + d + ' d</span>';
+
+  $('#panelVenc').innerHTML = `
+    <section>
+      <h3>Cobros — documentos con vencimiento</h3>
+      <table><thead><tr><th>Nº</th><th>Comprador</th><th>Vence</th><th class="num">Importe</th><th>Aviso</th></tr></thead>
+      <tbody>${fact.length ? fact.map(f => `<tr>
+        <td>${esc(f.numero || '—')}</td>
+        <td>${esc(f.op.comprador_nombre || f.cliente_nombre || '—')}<div class="nota">${esc(f.op.numero || '')}</div></td>
+        <td>${fFecha(f.venc)}</td>
+        <td class="num">${esc(fmtMoneda(parseImporte(f.total), f.moneda || 'EUR'))}</td>
+        <td>${tagDias(f.d)}</td></tr>`).join('')
+        : '<tr><td colspan="5" class="nota">Ninguna factura tiene fecha de vencimiento puesta.</td></tr>'}</tbody></table>
+      <p class="nota">Solo salen las que llevan vencimiento; es un campo opcional en Facturas.
+        Una factura sin fecha no aparece aquí y no la reclama nadie.</p>
+    </section>
+
+    <section>
+      <h3>Firmas — enlaces pendientes</h3>
+      <table><thead><tr><th>Firmante</th><th>Contrato</th><th>Caduca</th><th>Aviso</th></tr></thead>
+      <tbody>${firmas.length ? firmas.map(s => `<tr>
+        <td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
+        <td>${esc(s.op.numero || '—')}<div class="nota">${esc(s.op.comprador_nombre || '')}</div></td>
+        <td>${fFecha(s.expira_en)}</td>
+        <td>${tagDias(s.d)}</td></tr>`).join('')
+        : '<tr><td colspan="4" class="nota">No hay enlaces de firma pendientes.</td></tr>'}</tbody></table>
+      <p class="nota">Un enlace caducado no se recupera: se genera otro desde Contratos.</p>
+    </section>`;
+}
+
+/* ---------- eventos ---------- */
+$('#listaOps').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if(!b) return;
+  SEL = b.dataset.id; pintarLista(); pintarDetalle();
+  $('#stage').classList.add('abierta');
+});
+$('#q').addEventListener('input', pintarLista);
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  const ops = t.dataset.tab === 'ops';
+  $('#panelOps').classList.toggle('on', ops);
+  $('#panelDet').classList.toggle('on', ops);
+  $('#panelVenc').classList.toggle('on', !ops);
+  if(!ops) pintarVencimientos();
+}));
+$('#btnRecargar').addEventListener('click', () => arrancar(true));
+
+async function arrancar(recarga){
+  try{
+    await cargar();
+    pintarLista(); pintarDetalle();
+    if($('#panelVenc').classList.contains('on')) pintarVencimientos();
+    if(recarga) toast('Datos actualizados');
+  }catch(err){
+    $('#listaOps').innerHTML = '<p class="nota falta" style="padding:18px">No se pudieron cargar: ' + esc(err.message || err) + '</p>';
+  }
+}
+
+/* guard.js ya comprobó la sesión y destapó la página; aquí solo se reusa su
+   cliente para no abrir un segundo. */
+window.LW_AUTH.then(({ sb, session }) => {
+  SB = sb;
+  $('#who').textContent = session.user.email;
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
+  arrancar(false);
+});
+</script>
+</body>
+</html>
