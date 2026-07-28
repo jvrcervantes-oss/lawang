@@ -358,6 +358,7 @@
             <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Restaurar texto original</button>
             <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
             <button class="btn ghost" id="btnEmail">✉ Enviar por email</button>
+            <button class="btn ghost" id="btnDerivar">⎘ Nuevo contrato con estos datos</button>
             <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
           </div>
         </details>
@@ -420,6 +421,23 @@
           </div>
           <p class="em-note" style="margin-top:10px">Caduca en 30 días.</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Nuevo contrato con estos datos" — la secuencia real de una venta
+       (reserva → bloqueo de parcela → obra) reusa los mismos datos del
+       comprador; sin esto hay que reteclearlos en cada documento. -->
+  <div class="cp-overlay" id="dvOverlay">
+    <div class="cp-modal" style="width:min(460px,100%)">
+      <div class="cp-head">
+        <b>Nuevo contrato con estos datos</b>
+        <button type="button" class="tb-link" id="dvClose">Cerrar</button>
+      </div>
+      <div class="em-body">
+        <p class="em-note">Se copian comprador, proyecto, unidad, importes e hitos. No se copian el número, la fecha de firma ni las firmas.</p>
+        <label>Contrato a generar<select id="dvTpl"></select></label>
+        <button class="btn primary" id="dvGo" style="margin-top:6px">Generar</button>
       </div>
     </div>
   </div>
@@ -2081,6 +2099,51 @@ async function openSavedContract(id){
   refreshHitos(); updateSaveButton(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
 }
+
+/* ---------- Nuevo contrato a partir del que hay abierto ----------
+   Una venta encadena varios documentos sobre el MISMO comprador y la misma
+   unidad (reserva → bloqueo de parcela → obra). Esto los rellena de una vez.
+   Se deriva de lo que hay EN PANTALLA, así que sirve igual sobre un contrato
+   guardado, uno bloqueado por firma o un borrador a medias. */
+function abrirDerivar(){
+  const sel = $('#dvTpl');
+  sel.innerHTML = TEMPLATES.filter(t=>!t.disabled)
+    .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}</option>`).join('');
+  $('#dvOverlay').classList.add('open');
+}
+async function derivarContrato(slug){
+  const origen = (SAVED_CONTRACT && SAVED_CONTRACT.numero) || 'el borrador actual';
+  const f = collect();
+  // Fuera lo que pertenece SOLO al documento de origen: el número lo pone la BD
+  // al guardar el nuevo, y la fecha de firma es de otro día.
+  delete f.contrato_num;
+  delete f.fecha_firma;
+  // Guardia, hoy sin efecto: `deriveSections` saca `firma_adquiriente` del form
+  // (línea en blanco para firma física), así que collect() no devuelve firmas.
+  // Se deja porque si algún día vuelve el pad, arrastrar la firma daría un
+  // contrato nuevo ya "firmado" por alguien que no lo ha visto — un documento
+  // falso, no un atajo. Una línea contra eso vale lo que cuesta.
+  Object.keys(f).forEach(k => { if(k.startsWith('firma')) delete f[k]; });
+  const compradores = COMPRADORES.map(c=>({...c}));
+  const hitos = Array.isArray(HITOS) ? HITOS.map(h=>({...h})) : [];
+
+  // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
+  // un contrato nuevo sin guardar, no una edición del anterior
+  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  await loadTemplate(slug);
+  $('#tplPick').value = slug;
+  buildForm();
+  COMPRADORES = compradores; saveCompradores(); rebuildComprador();
+  populateForm(f);
+  HITOS = hitos;
+  refreshHitos(); updateSaveButton(); render();
+  $('#dvOverlay').classList.remove('open');
+  toast('Contrato nuevo con los datos de ' + origen + ' · sin número hasta que lo guardes');
+}
+$('#btnDerivar').addEventListener('click', abrirDerivar);
+$('#dvClose').addEventListener('click', ()=> $('#dvOverlay').classList.remove('open'));
+$('#dvOverlay').addEventListener('click', e=>{ if(e.target===$('#dvOverlay')) $('#dvOverlay').classList.remove('open'); });
+$('#dvGo').addEventListener('click', ()=> derivarContrato($('#dvTpl').value));
 
 /* ============================================================
    EMAIL — manda por api/send_email.php (PHP standalone, sin MySQL,
