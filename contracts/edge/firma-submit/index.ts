@@ -9,13 +9,24 @@ const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 const RENDER_URL = Deno.env.get('RENDER_URL') || 'https://contracts-pdf-service-production.up.railway.app';
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Origen restringido: con '*' cualquier web podia lanzar la firma desde su
+// pagina. El token sigue siendo la credencial, pero esto cierra el paso a que
+// un tercero monte una pantalla de firma que parezca nuestra.
+const ORIGENES = [
+  'https://lawangproperties.com',
+  'https://www.lawangproperties.com',
+  'https://sumbahills.lawangproperties.com',
+];
+const corsFor = (req: Request) => {
+  const o = req.headers.get('origin') ?? '';
+  const ok = ORIGENES.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);
+  return {
+    'Access-Control-Allow-Origin': ok ? o : ORIGENES[0],
+    'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin', // sin esto una CDN cachea el header de un origen y se lo sirve a otro
+  };
 };
-const json = (o: unknown, s = 200) =>
-  new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
 
 async function sha256hex(s: string): Promise<string> {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -47,6 +58,9 @@ function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: str
 }
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
+  const json = (o: unknown, s = 200) =>
+    new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
   if (!RENDER_SECRET) return json({ error: 'config' }, 500);

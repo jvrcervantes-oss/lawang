@@ -5,13 +5,24 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Origen restringido: con '*' cualquier web podia empotrar el contrato real del
+// comprador y hacerlo pasar por suya. El token sigue siendo la credencial, pero
+// no hay motivo para que un tercero pueda leer la respuesta desde su pagina.
+const ORIGENES = [
+  'https://lawangproperties.com',
+  'https://www.lawangproperties.com',
+  'https://sumbahills.lawangproperties.com',
+];
+const corsFor = (req: Request) => {
+  const o = req.headers.get('origin') ?? '';
+  const ok = ORIGENES.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);
+  return {
+    'Access-Control-Allow-Origin': ok ? o : ORIGENES[0],
+    'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin', // sin esto una CDN cachea el header de un origen y se lo sirve a otro
+  };
 };
-const json = (o: unknown, s = 200) =>
-  new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
 
 async function sha256hex(s: string): Promise<string> {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -19,6 +30,9 @@ async function sha256hex(s: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
+  const json = (o: unknown, s = 200) =>
+    new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
   try {
