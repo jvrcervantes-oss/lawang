@@ -2051,7 +2051,7 @@ async function sincronizarCompradores(contratoId){
           nationality: String(p.nacionalidad||'').trim() || null,
           passport_number: String(p.pasaporte||'').trim() || null,
           address: String(p.domicilio||'').trim() || null,
-          kyc_status: 'pendiente',
+          kyc_status: 'pending',
         }).select('id').single();
         if(error) throw error;
         clientId = creado.id; altas++;

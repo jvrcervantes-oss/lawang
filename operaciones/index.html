@@ -139,6 +139,10 @@ const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
 
 let SB = null, OPS = [], SEL = null;
 
+/* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
+   creó la tabla). Aquí solo se traducen para mostrar. */
+const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aprobado', rejected:'Rechazado' };
+
 /* ---------- carga ----------
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
@@ -257,12 +261,12 @@ function pintarDetalle(){
       <table><thead><tr><th>Nombre</th><th>Rol</th><th>Contacto</th><th>KYC</th></tr></thead><tbody>
       ${fichas.map(v => {
         const c = v.clients;
-        const ok = c.kyc_status === 'aprobado';
+        const ok = c.kyc_status === 'verified';
         return `<tr>
           <td>${esc(c.full_name || '—')}<div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
           <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
           <td>${esc(c.email || c.phone || '—')}</td>
-          <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rechazado' ? 'alerta' : 'espera')}">${esc(c.kyc_status || 'pendiente')}</span></td>
+          <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rejected' ? 'alerta' : 'espera')}">${esc(KYC_ES[c.kyc_status] || c.kyc_status || 'pendiente')}</span></td>
         </tr>`;
       }).join('')}
       </tbody></table>

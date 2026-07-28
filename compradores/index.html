@@ -109,8 +109,13 @@ const HOY = new Date(); HOY.setHours(0,0,0,0);
 const fFecha = f => f ? new Date(String(f).slice(0,10)+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const dias = f => f ? Math.round((new Date(String(f).slice(0,10)+'T00:00:00') - HOY)/86400000) : null;
 
-const KYC = [['pendiente','Pendiente'],['en_revision','En revisión'],['aprobado','Aprobado'],['rechazado','Rechazado']];
-const DOCS = [['pasaporte','Pasaporte'],['npwp','NPWP'],['visado','Visado'],['justificante_fondos','Justificante de fondos'],['otro','Otro']];
+/* ⚠️ Las CLAVES son las que acepta el CHECK de la tabla (en inglés, de cuando
+   se creó el 14-jul). Solo las etiquetas van en español. Traducir la clave
+   rompe el guardado entero, y el error solo aparece al escribir. */
+const KYC = [['pending','Pendiente'],['submitted','En revisión'],['verified','Aprobado'],['rejected','Rechazado']];
+const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
+              ['proof_of_funds','Justificante de fondos'],['proof_of_address','Justificante de domicilio'],
+              ['signed_contract','Contrato firmado'],['other','Otro']];
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], SEL=null;
@@ -151,7 +156,7 @@ function pintarLista(){
       <div class="n">${esc(c.full_name || 'Sin nombre')}</div>
       <div class="m">${esc(c.email || c.nationality || '—')}</div>
       <div class="r">
-        <span class="tag ${c.kyc_status==='aprobado'?'ok':(c.kyc_status==='rechazado'?'mal':'espera')}">${esc(etiqueta(KYC,c.kyc_status||'pendiente'))}</span>
+        <span class="tag ${c.kyc_status==='verified'?'ok':(c.kyc_status==='rejected'?'mal':'espera')}">${esc(etiqueta(KYC,c.kyc_status||'pending'))}</span>
         <span class="tag neutro">${n} doc.</span>
         ${a ? `<span class="tag ${a[0]}">${esc(a[1])}</span>` : ''}
       </div></button>`;
@@ -161,7 +166,7 @@ function pintarLista(){
 
 function pintarFicha(){
   const nuevo = SEL === 'nuevo';
-  const c = nuevo ? { kyc_status:'pendiente' } : CLIENTES.find(x => x.id === SEL);
+  const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
   if(!c){ $('#ficha').innerHTML = '<div class="vacio">Elige un comprador</div>'; return; }
   const docs = nuevo ? [] : DOCUMENTOS.filter(d => d.client_id === c.id);
 
@@ -197,7 +202,7 @@ function pintarFicha(){
       </div>
       <div class="row">
         <div><label>Fecha de nacimiento</label><input id="f-nac-fecha" type="date" value="${esc(c.date_of_birth||'')}"></div>
-        <div><label>Estado KYC</label><select id="f-kyc">${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pendiente')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div><label>Estado KYC</label><select id="f-kyc">${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
       <label>Domicilio</label><textarea id="f-dom">${esc(c.address||'')}</textarea>
       <label>Notas</label><textarea id="f-notas">${esc(c.notes||'')}</textarea>
@@ -292,7 +297,7 @@ async function subir(clientId){
       client_id: clientId,
       doc_type: $('#d-tipo').value,
       storage_path: path,
-      status: 'recibido',
+      status: 'pending',
       caduca_el: $('#d-caduca').value || null,
     });
     if(ins.error) throw ins.error;   // el fichero ya subió; reintentar no duplica la fila

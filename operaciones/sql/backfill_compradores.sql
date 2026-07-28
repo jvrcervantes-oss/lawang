@@ -18,6 +18,17 @@
 -- "Jose Pedro" sin identificador — probablemente Jose Pedro Oton Urbano, pero
 -- eso lo confirma una persona, no una consulta.
 
+-- ── 0. Ampliar los tipos de documento admitidos ───────────────────────
+-- El CHECK original solo permitía passport / proof_of_address /
+-- signed_contract / other. En Indonesia hacen falta NPWP y visado, y el
+-- justificante de fondos es parte del KYC: sin esto, /compradores/ no puede
+-- subirlos. Se AMPLÍA la lista, no se sustituye: los valores viejos siguen
+-- siendo válidos.
+alter table public.documents drop constraint if exists documents_doc_type_check;
+alter table public.documents add  constraint documents_doc_type_check
+  check (doc_type in ('passport','npwp','visa','proof_of_funds',
+                      'proof_of_address','signed_contract','other'));
+
 -- ── 1. La persona de cada contrato, con su clave de identidad ──────────
 create temporary table _p on commit drop as
 select
@@ -45,7 +56,7 @@ order by clave, created_at desc;
 
 -- ── 3. Alta de las que no existen todavía ──────────────────────────────
 insert into public.clients (full_name, email, phone, nationality, passport_number, address, kyc_status)
-select p.nombre, p.email, p.telefono, p.nacionalidad, p.pasaporte, p.domicilio, 'pendiente'
+select p.nombre, p.email, p.telefono, p.nacionalidad, p.pasaporte, p.domicilio, 'pending'
 from _persona p
 where not exists (
   select 1 from public.clients c
