@@ -40,8 +40,10 @@ comment on column public.contrato_firmas.pdf_path is
 -- Impide de raíz lo que provocó los 4 enlaces duplicados de RP00015: dos
 -- tokens `pendiente` para el mismo rol del mismo contrato. Regenerar un enlace
 -- pasa a exigir anular el anterior, que es justo lo que se quiere.
+-- ⚠️ La columna es `firmante_rol`, NO `rol`: `rol` es la de
+-- `contrato_compradores`. Son tablas distintas y se llaman distinto.
 create unique index if not exists contrato_firmas_un_pendiente_por_rol
-  on public.contrato_firmas (contrato_id, rol)
+  on public.contrato_firmas (contrato_id, firmante_rol)
   where estado = 'pendiente';
 
 -- ── COMPROBACIÓN ──────────────────────────────────────────────────────
