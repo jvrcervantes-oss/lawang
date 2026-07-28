@@ -147,18 +147,23 @@ const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aproba
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
-  const [c, f, s, cc] = await Promise.all([
+  const [c, f, s, cc, dc] = await Promise.all([
     SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,created_at,hitos:datos->hitos').order('created_at',{ascending:false}).limit(300),
     SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
     // correr), esto falla solo y la ficha cae al nombre suelto del contrato.
     SB.from('contrato_compradores').select('contrato_id,rol,clients(id,full_name,email,phone,passport_number,kyc_status)'),
+    // documentación del comprador (KYC). Se ata por `client_id`, no por
+    // contrato: el pasaporte es de la persona, no de una venta, y sirve para
+    // todas las que tenga.
+    SB.from('documents').select('id,client_id,contrato_id,doc_type,storage_path,status,uploaded_at,caduca_el'),
   ]);
   if(c.error) throw c.error;
   const facturas = f.error ? [] : (f.data || []);
   const firmas   = s.error ? [] : (s.data || []);
   const vinculos = cc.error ? [] : (cc.data || []);
+  const docsKyc  = dc.error ? [] : (dc.data || []);
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
   if(s.error) toast('No se pudieron leer las firmas: ' + s.error.message);
 
@@ -171,6 +176,11 @@ async function cargar(){
     firmas: firmas.filter(x => x.contrato_id === ct.id),
     compradores: vinculos.filter(v => v.contrato_id === ct.id && v.clients)
                          .sort((a,b) => String(a.rol).localeCompare(String(b.rol))),
+    // documentos de SUS compradores + los atados expresamente a este contrato
+    docs: (() => {
+      const suyos = vinculos.filter(v => v.contrato_id === ct.id && v.clients).map(v => v.clients.id);
+      return docsKyc.filter(d => d.contrato_id === ct.id || suyos.includes(d.client_id));
+    })(),
   }));
 }
 
@@ -253,6 +263,29 @@ function pintarDetalle(){
      Con la ficha se puede además decir cómo va su KYC, que es lo que el nombre
      suelto nunca supo. */
   const fichas = op.compradores || [];
+  /* Documentación KYC. El nombre del comprador va en cada fila porque en un
+     contrato a dos nombres hay que saber de quién falta el pasaporte. */
+  const DOC_ES = { passport:'Pasaporte', npwp:'NPWP', visa:'Visado',
+    proof_of_funds:'Justificante de fondos', proof_of_address:'Justificante de domicilio',
+    signed_contract:'Contrato firmado', other:'Otro' };
+  const nombreDe = id => (fichas.find(v => v.clients.id === id) || {clients:{}}).clients.full_name || '—';
+  const filasDocs = (op.docs || []).length ? op.docs.map(d => {
+    const dd = dias(d.caduca_el);
+    let cad = '<span class="tag espera">sin fecha</span>';
+    if(d.caduca_el) cad = dd < 0 ? `<span class="tag alerta">caducado hace ${-dd} d</span>`
+                       : dd <= 60 ? `<span class="tag espera">${fFecha(d.caduca_el)}</span>`
+                       : `<span class="tag ok">${fFecha(d.caduca_el)}</span>`;
+    return `<tr>
+      <td>${esc(DOC_ES[d.doc_type] || d.doc_type || '—')}</td>
+      <td>${esc(nombreDe(d.client_id))}</td>
+      <td>${fFecha(d.uploaded_at)}</td>
+      <td>${cad}</td></tr>`;
+  }).join('')
+    : `<tr><td colspan="4" class="nota">${fichas.length
+        ? 'Ningún documento subido todavía para ' + (fichas.length > 1 ? 'estos compradores' : 'este comprador') + '.'
+        : 'Sin ficha de comprador enlazada no hay documentación que mostrar.'}</td></tr>`;
+
+
   const titulo = fichas.length ? fichas.map(v => v.clients.full_name).filter(Boolean).join(' · ')
                               : (op.comprador_nombre || 'Sin comprador');
   const bloqueFichas = fichas.length ? `
@@ -317,6 +350,14 @@ function pintarDetalle(){
       <h3>Firmas</h3>
       <table><thead><tr><th>Firmante</th><th>Rol</th><th>Enviado</th><th>Estado</th></tr></thead>
         <tbody>${filasFirmas}</tbody></table>
+    </section>
+
+    <section>
+      <h3>Documentación del comprador</h3>
+      <table><thead><tr><th>Documento</th><th>De</th><th>Subido</th><th>Caduca</th></tr></thead>
+        <tbody>${filasDocs}</tbody></table>
+      <p class="nota">El pasaporte y el KYC son de la <b>persona</b>, no de una venta: salen en todas
+        sus operaciones. Se suben desde <a class="enl" href="/compradores/">Compradores</a>.</p>
     </section>
 
     <section>
