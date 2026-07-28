@@ -97,6 +97,8 @@
   .doc .titulo{ text-align:right; }
   .doc .titulo h2{ font-family:var(--font-display); font-size:20pt; font-weight:600; margin:0 0 2mm;
                    letter-spacing:.04em; color:var(--brand-deep); }
+  .doc .titulo-en{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase;
+                   color:var(--brand-primary); margin:-1mm 0 2.5mm; }
   .doc .titulo .num{ font-size:12pt; font-weight:600; letter-spacing:.06em; }
   .doc .titulo .meta{ font-size:9pt; color:#4a4f4a; margin-top:2mm; }
   .doc h3{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--brand-primary);
@@ -154,6 +156,15 @@
     <a class="lw-home" href="/intranet/">← Intranet</a>
     <img class="lw-brand" src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
     <h1 class="lw-title">Facturas</h1>
+    <span class="lw-sep"></span>
+    <!-- Mismo sitio que el tipo de contrato en Contratos: es la primera
+         decisión (qué documento haces), no un campo más del formulario. -->
+    <select id="selTipo" class="lw-select" aria-label="Tipo de documento"
+            title="Cada tipo lleva su propia serie: INV, PRO, REC">
+      <option value="factura">Factura</option>
+      <option value="proforma">Factura proforma</option>
+      <option value="recibi">Recibí</option>
+    </select>
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
     <button type="button" class="lw-btn" id="btnList">📁 Facturas guardadas</button>
@@ -175,13 +186,6 @@
 
           <fieldset>
             <legend>Documento</legend>
-            <label>Tipo</label>
-            <select name="tipo" id="selTipo">
-              <option value="factura">Factura</option>
-              <option value="proforma">Factura proforma</option>
-              <option value="recibi">Recibí</option>
-            </select>
-            <p class="hint" id="hintTipo">Series independientes: INV, PRO, REC.</p>
             <label>Partir de un contrato guardado (opcional)</label>
             <select id="selContrato"><option value="">— sin contrato —</option></select>
             <div id="delContrato"></div>
@@ -285,10 +289,13 @@ let CONTRATO_ID = null;   // contrato del que sale la factura (FK real, no solo 
 
 /* Los tres tipos comparten formulario y plantilla; solo cambia el rótulo del
    documento. La serie del número la decide el trigger en base de datos, no aquí. */
+/* ES e EN separados, no "A · B" en una línea: a 20pt "Factura proforma ·
+   Proforma invoice" con white-space:nowrap se salía del papel. Van apilados,
+   igual que el bloque del emisor (razón social grande, marca pequeña encima). */
 const TIPOS = {
-  factura:  { doc:'Factura · Invoice' },
-  proforma: { doc:'Factura proforma · Proforma invoice' },
-  recibi:   { doc:'Recibí · Receipt' },
+  factura:  { es:'Factura',          en:'Invoice' },
+  proforma: { es:'Factura proforma', en:'Proforma invoice' },
+  recibi:   { es:'Recibí',           en:'Receipt' },
 };
 
 /* ---------- selects que salen de entities.js ---------- */
@@ -345,9 +352,11 @@ $('#btnAddLinea').onclick = () => { LINEAS.push({ descripcion:'', importe:'' });
 function collect(){
   const d = {};
   $('#form').querySelectorAll('[name]').forEach(el => d[el.name] = el.value.trim());
+  d.tipo = $('#selTipo').value;   // vive en la barra superior, fuera del <form>
   d.lineas = LINEAS;
   return d;
 }
+$('#selTipo').addEventListener('change', render);
 $('#form').addEventListener('input', render);
 $('#form').addEventListener('change', render);
 
@@ -393,7 +402,8 @@ function render(){
         </div>
       </div>
       <div class="titulo">
-        <h2>${esc((TIPOS[d.tipo] || TIPOS.factura).doc)}</h2>
+        <h2>${esc((TIPOS[d.tipo] || TIPOS.factura).es)}</h2>
+        <div class="titulo-en">${esc((TIPOS[d.tipo] || TIPOS.factura).en)}</div>
         <div class="num">${esc(numero)}</div>
         <div class="meta">
           ${d.fecha_emision ? `Fecha · Date: ${esc(fecha(d.fecha_emision))}<br>` : ''}
@@ -432,9 +442,8 @@ function render(){
   // PRO000xx rotulado "Factura". Se emite otro documento, no se reetiqueta este.
   const st = $('#selTipo');
   st.disabled = !!SAVED;
-  $('#hintTipo').textContent = SAVED
-    ? 'El tipo no se cambia una vez emitido el número.'
-    : 'Cada tipo lleva su propia serie: INV, PRO y REC.';
+  st.title = SAVED ? 'El tipo no se cambia una vez emitido el número'
+                   : 'Cada tipo lleva su propia serie: INV, PRO, REC';
 }
 
 /* ---------- PDF: lo genera el navegador, igual que en Contratos ---------- */
@@ -578,7 +587,9 @@ $('#btnSave').onclick = async () => {
 
 $('#btnNueva').onclick = () => {
   if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
-  SAVED = null; CONTRATO_ID = null; $('#form').reset(); LINEAS = [{ descripcion:'', importe:'' }];
+  // el selector de tipo vive fuera del <form>, así que reset() no lo toca
+  SAVED = null; CONTRATO_ID = null; $('#form').reset(); $('#selTipo').value = 'factura';
+  LINEAS = [{ descripcion:'', importe:'' }];
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
   $('#selContrato').value = ''; $('#delContrato').innerHTML = '';
@@ -621,7 +632,7 @@ $('#ovList').onclick = e => { if(e.target === $('#ovList')) $('#ovList').classLi
 function abrir(f){
   const d = (f.datos && f.datos.fields) || {};
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
-  $('[name="tipo"]').value = f.tipo || d.tipo || 'factura';
+  $('#selTipo').value = f.tipo || d.tipo || 'factura';
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas : [{ descripcion:'', importe:'' }];
   SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
   CONTRATO_ID = f.contrato_id || null;
