@@ -20,6 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // POST — login or logout
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Solo en POST: el GET de arriba se limita a decir si hay sesion, no cambia nada.
+    // Sin esto, una web ajena podia disparar el login (o el logout) del panel.
+    lawang_require_same_origin();
     $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
     if (($body['action'] ?? '') === 'logout') {
