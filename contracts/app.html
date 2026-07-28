@@ -2007,29 +2007,42 @@ async function guardarContrato(){
    ninguno de los dos NO se crea ficha: un "cliente" sin identificador se
    duplicaría en cuanto alguien escriba el nombre distinto, y limpiar eso
    después cuesta más que no crearlo. */
+/* ⚠️ `COMPRADORES` son los adquirientes ADICIONALES: el Adquiriente I vive
+   siempre en los campos `adq1_*` y COMPRADORES[0] es el II (por eso el resto
+   del fichero usa `romano(i+2)`).
+   La primera versión de esto (28-jul) trataba COMPRADORES[0] como
+   `adquiriente_1` y solo miraba `adq1_*` cuando no había adicionales: en un
+   contrato a dos nombres, el comprador PRINCIPAL no se daba de alta y la ficha
+   creada era la del segundo con la etiqueta del primero. */
 function compradoresDelFormulario(){
   const d = collect();
   const lista = [];
-  // formato multi-comprador (el nuevo)
-  (COMPRADORES || []).forEach((c, i) => {
-    if(!String(c.nombre||'').trim()) return;
-    lista.push({ rol:'adquiriente_' + Math.min(i+1, 3), nombre:c.nombre, pasaporte:c.pasaporte,
-                 email:c.email, telefono:c.telefono, domicilio:c.domicilio, nacionalidad:c.nacionalidad });
-  });
-  // formato viejo adq1_*, que sigue vivo en 15 de los 19 contratos
-  if(!lista.length && String(d.adq1_nombre||'').trim()){
+  if(String(d.adq1_nombre||'').trim()){
     lista.push({ rol:'adquiriente_1', nombre:d.adq1_nombre, pasaporte:d.adq1_pasaporte,
                  email:d.adq1_email, telefono:d.adq1_telefono, domicilio:d.adq1_domicilio,
                  nacionalidad:d.adq1_nacionalidad });
   }
-  return lista;
+  let fuera = 0;
+  (COMPRADORES || []).forEach((c, i) => {
+    if(!String(c.nombre||'').trim()) return;
+    // `contrato_compradores.rol` solo admite hasta adquiriente_3. Con más, la
+    // clave (contrato_id, rol) chocaría y el upsert PISARÍA al anterior en
+    // silencio: mejor dejarlo fuera y decirlo.
+    if(i + 2 > 3){ fuera++; return; }
+    lista.push({ rol:'adquiriente_' + (i + 2), nombre:c.nombre, pasaporte:c.pasaporte,
+                 email:c.email, telefono:c.telefono, domicilio:c.domicilio, nacionalidad:c.nacionalidad });
+  });
+  // el aviso NO se lanza aquí: el toast del resultado lo pisaría y el operador
+  // nunca vería que se ha quedado alguien fuera. Va en el mensaje final.
+  return { lista, fuera };
 }
 
 const normPasaporte = v => String(v||'').trim().toLowerCase();
 
 async function sincronizarCompradores(contratoId){
-  const lista = compradoresDelFormulario();
-  if(!sb || !contratoId || !lista.length) return;
+  const { lista, fuera } = compradoresDelFormulario();
+  const sobran = fuera ? ' · ' + fuera + ' adquiriente(s) más allá del III se quedan sin ficha' : '';
+  if(!sb || !contratoId || !lista.length){ if(fuera) toast('Aviso:' + sobran.slice(2)); return; }
   let altas = 0, enlaces = 0;
   try{
     for(const p of lista){
@@ -2062,8 +2075,8 @@ async function sincronizarCompradores(contratoId){
       if(eLink) throw eLink;
       enlaces++;
     }
-    if(altas)  toast(altas + (altas===1 ? ' comprador dado de alta' : ' compradores dados de alta'));
-    else if(enlaces) toast('Comprador enlazado a su ficha');
+    if(altas)  toast(altas + (altas===1 ? ' comprador dado de alta' : ' compradores dados de alta') + sobran);
+    else if(enlaces) toast('Comprador enlazado a su ficha' + sobran);
   }catch(err){
     // el contrato YA está guardado: esto es el índice de personas, no el documento
     toast('Contrato guardado, pero la ficha del comprador no: ' + (err.message || err));

@@ -18,7 +18,7 @@ STUB = """<script>
 /* stub de Supabase — solo para verificación local, ver tools/harness.py */
 window.supabase = { createClient: function(){
   var res = function(){ return Promise.resolve({ data:null, error:null }); };
-  var q = {}; ['select','eq','neq','order','limit','insert','update','upsert','delete','ilike']
+  var q = {}; ['select','eq','neq','order','limit','insert','update','upsert','delete','ilike','in','is','gt','lt','gte','lte','not','or','range']
     .forEach(function(m){ q[m] = function(){ return q; }; });
   q.single = q.maybeSingle = res;
   q.then = function(f){ return Promise.resolve({ data:[], error:null }).then(f); };
