@@ -18,6 +18,29 @@ where c.id = f.contrato_id
   and c.bloqueado = true
   and f.estado = 'pendiente';
 
+-- ── 1b. Enlaces DUPLICADOS del mismo rol, aunque el contrato siga abierto ──
+-- Medido: 12 pendientes en total, con 3 grupos duplicados (CR00005 x4,
+-- RP00015 x4, RP00016 x2). En los tres casos **el destinatario es el mismo
+-- email**: son regeneraciones y dobles clics, no firmantes distintos. Por eso
+-- quedarse con el más reciente es seguro.
+-- Se hace ANTES del índice único porque si no, el índice no se puede crear.
+-- ⚠️ Consecuencia: si a alguien se le mandó un enlace ANTERIOR, deja de
+-- funcionar. Hay que reenviarle el vigente. Tras esto quedan 3 vivos:
+--   CC00007 · Juan Ramón Sánchez García
+--   CR00005 · Rubén Carrasco
+--   RP00016 · Juan Ramón Sánchez García
+update public.contrato_firmas f
+set estado = 'anulado'
+where f.estado = 'pendiente'
+  and exists (
+    select 1 from public.contrato_firmas g
+    where g.contrato_id = f.contrato_id
+      and g.firmante_rol = f.firmante_rol
+      and g.estado = 'pendiente'
+      and (g.creado_en > f.creado_en
+           or (g.creado_en = f.creado_en and g.id > f.id))   -- desempate estable
+  );
+
 -- ── 2. Columnas para la cadena ────────────────────────────────────────
 -- `orden`: posición del firmante. Se podría deducir parseando el rol, pero un
 -- entero ordena sin depender del formato del texto y deja sitio a roles que no
@@ -50,7 +73,8 @@ create unique index if not exists contrato_firmas_un_pendiente_por_rol
 select
   (select count(*) from public.contrato_firmas f join public.contratos c on c.id=f.contrato_id
      where c.bloqueado = true and f.estado = 'pendiente')                     as enlaces_vivos_sobre_firmados,
+  (select count(*) from public.contrato_firmas where estado='pendiente')      as enlaces_vivos_total,
   (select count(*) from information_schema.columns
      where table_name='contrato_firmas' and column_name in ('orden','pdf_path')) as columnas_nuevas,
   (select count(*) from pg_indexes where indexname='contrato_firmas_un_pendiente_por_rol') as indice;
--- esperado: 0 · 2 · 1
+-- esperado: 0 · 3 · 2 · 1
