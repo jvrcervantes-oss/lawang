@@ -137,8 +137,16 @@ Deno.serve(async (req) => {
     await sb.from('contratos').update({ bloqueado: true, pdf_firmado_path: path }).eq('id', claimed.contrato_id);
     await sb.from('contrato_firmas').update({
       estado: 'firmado', firmado_en: new Date().toISOString(), firmante_ip: ip, firmante_user_agent: ua,
-      pdf_path: path,  // cada firma guarda SU pdf; `contratos.pdf_firmado_path` solo apunta al último
     }).eq('id', claimed.id);
+
+    // `pdf_path` va en un update APARTE y a propósito: es informativo (cada firma
+    // guarda SU pdf; `contratos.pdf_firmado_path` solo apunta al último), mientras
+    // que el de arriba es la transición de estado, que es la crítica.
+    // Si fueran el mismo update y la columna no existiera todavía, PostgREST
+    // rechazaría el lote ENTERO y la firma se quedaría en 'procesando' —
+    // irreintentable— mientras la función devuelve ok:true. Separados, el dato
+    // que falta es solo eso: un dato que falta.
+    await sb.from('contrato_firmas').update({ pdf_path: path }).eq('id', claimed.id);
 
     return json({ ok: true, numero });
   } catch (e) {
