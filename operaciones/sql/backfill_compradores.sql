@@ -22,11 +22,22 @@
 -- sin identificador — probablemente Jose Pedro Oton Urbano, pero eso lo
 -- confirma una persona, no una consulta.
 
--- ── 0. Tipos de documento (ya aplicado; se deja por idempotencia) ──────
+-- ── 0. Ajustes de esquema previos ─────────────────────────────────────
+-- (a) Tipos de documento: el CHECK original no admitía NPWP ni visado, que en
+--     Indonesia hacen falta. Se AMPLÍA, no se sustituye.
 alter table public.documents drop constraint if exists documents_doc_type_check;
 alter table public.documents add  constraint documents_doc_type_check
   check (doc_type in ('passport','npwp','visa','proof_of_funds',
                       'proof_of_address','signed_contract','other'));
+
+-- (b) `clients.email` era NOT NULL. Un comprador identificado por PASAPORTE y
+--     sin email es legítimo y existe de verdad: Jose Luis Pinilla Rocha
+--     (PAW317343) no tiene email en ningún contrato. Con la columna obligatoria
+--     habría que inventarle uno, y un email inventado en la ficha de un cliente
+--     acaba recibiendo un correo real algún día.
+--     Relajar un NOT NULL no destruye datos: las filas que ya tienen email
+--     siguen igual. El nombre sí sigue siendo obligatorio.
+alter table public.clients alter column email drop not null;
 
 -- ── 1. Alta de las personas que faltan ────────────────────────────────
 with p as (
