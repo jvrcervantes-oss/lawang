@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Lawang · Unidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="/contracts/assets/topbar.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js"></script>
+<script src="/facturas/totales.js"></script>
+<style>
+  :root{ --line:#E2DACA; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:56px; }
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+  .stage{ display:grid; grid-template-columns:minmax(320px,400px) 1fr; height:100%; padding-top:var(--tbh); }
+  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
+
+  .lista{ overflow:auto; border-right:1px solid var(--line); }
+  .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2; }
+  .buscar{ width:100%; font:inherit; font-size:13.5px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--card); }
+  .buscar:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .filtros{ display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; }
+  .f{ font:inherit; font-size:11.5px; letter-spacing:.04em; background:none; border:1px solid var(--line);
+      border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--texto-2); }
+  .f.on{ background:var(--va); border-color:var(--va); color:#fff; }
+
+  .u{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
+      border-bottom:1px solid var(--line); padding:12px 18px; cursor:pointer; }
+  .u:hover{ background:#EDE7D9; }
+  .u.sel{ background:#E7E1D2; box-shadow:inset 3px 0 0 var(--tg); }
+  .u .c{ font-size:14.5px; font-weight:600; }
+  .u .p{ font-size:12.5px; color:var(--texto-2); margin-top:2px; }
+  .u .r{ display:flex; align-items:center; gap:8px; margin-top:6px; }
+
+  .ficha{ overflow:auto; padding:26px 30px 90px; }
+  .vacio{ display:grid; place-items:center; height:100%; color:#BEB3A5; font-size:13px; letter-spacing:.14em; text-transform:uppercase; }
+  h2.t{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:30px; font-weight:600; margin:0 0 4px; }
+  .sub{ color:var(--texto-2); font-size:13.5px; margin:0 0 20px; }
+  fieldset{ border:1px solid var(--line); border-radius:14px; background:var(--card); padding:16px 18px 18px; margin:0 0 16px; }
+  legend{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--texto-2); padding:0 8px; }
+  label{ display:block; font-size:12px; color:var(--texto-2); margin:12px 0 4px; }
+  label:first-of-type{ margin-top:2px; }
+  input,select,textarea{ width:100%; font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:#FDFCF9; color:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  textarea{ min-height:64px; resize:vertical; }
+  .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .btn{ font:inherit; font-size:13px; font-weight:500; border-radius:999px; padding:9px 17px; cursor:pointer;
+        border:1px solid var(--line); background:var(--card); color:inherit; }
+  .btn:hover{ border-color:var(--tg); }
+  .btn.primary{ background:var(--dl); border-color:var(--dl); color:#fff; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+
+  .tag{ display:inline-block; font-size:10.5px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; border-radius:999px; padding:3px 10px; }
+  .e-disponible{    background:rgba(72,91,55,.13);   color:#3B4B2D; }
+  .e-reservada{     background:rgba(190,179,165,.34);color:#6A5A3C; }
+  .e-vendida{       background:rgba(16,76,79,.12);   color:#0D4245; }
+  .e-bloqueada{     background:rgba(163,52,43,.12);  color:#A3342B; }
+  .e-no_disponible{ background:rgba(46,52,55,.09);   color:#5A6062; }
+
+  .aviso{ font-size:12.5px; line-height:1.5; color:#6A5A3C; background:rgba(190,179,165,.24);
+          border-radius:9px; padding:9px 11px; margin:10px 0 0; }
+  .nota{ font-size:12px; color:var(--texto-2); margin:9px 0 0; line-height:1.5; }
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2E3437; color:#fff;
+          padding:11px 20px; border-radius:30px; font-size:13px; z-index:200; opacity:0; transition:opacity .3s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+  <div class="topbar lw-topbar">
+    <a class="lw-home" href="/intranet/">← Intranet</a>
+    <img class="lw-brand" src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
+    <h1 class="lw-title">Unidades</h1>
+    <div class="lw-spacer"></div>
+    <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnNueva">+ Nueva unidad</button>
+    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="lista">
+      <div class="cab">
+        <input class="buscar" id="q" placeholder="Buscar código o proyecto…">
+        <div class="filtros" id="filtros"></div>
+      </div>
+      <div id="listaU">Cargando…</div>
+    </div>
+    <div class="ficha" id="ficha"><div class="vacio">Elige una unidad</div></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   UNIDADES — inventario de lo que se vende.
+
+   El objetivo real no es listar parcelas: es NO VENDER DOS VECES LA MISMA.
+   Por eso el estado manda sobre todo lo demás y sale en la lista, en la
+   ficha y en el aviso al enlazar contrato. La lista de estados es cerrada
+   en base de datos (constraint), no aquí: si fuera texto libre, "vendida",
+   "Vendida" y "VENDIDA" serían tres estados y ninguno serviría de guardia.
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); };
+
+const ESTADOS = [
+  ['disponible','Disponible'], ['reservada','Reservada'], ['vendida','Vendida'],
+  ['bloqueada','Bloqueada'],   ['no_disponible','No disponible'],
+];
+const TIPOS = [['parcela','Parcela'],['villa','Villa'],['apartamento','Apartamento'],['local','Local']];
+const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
+
+let SB=null, UNIDADES=[], CONTRATOS=[], SEL=null, FILTRO='';
+
+async function cargar(){
+  const [u, c] = await Promise.all([
+    SB.from('unidades').select('*').order('codigo'),
+    SB.from('contratos').select('id,numero,comprador_nombre').order('created_at',{ascending:false}).limit(200),
+  ]);
+  if(u.error) throw u.error;
+  UNIDADES = u.data || [];
+  CONTRATOS = c.error ? [] : (c.data || []);
+}
+
+function pintarFiltros(){
+  const cuenta = e => UNIDADES.filter(u => u.estado === e).length;
+  $('#filtros').innerHTML =
+    `<button class="f ${FILTRO===''?'on':''}" data-e="">Todas ${UNIDADES.length}</button>` +
+    ESTADOS.map(([e,l]) => `<button class="f ${FILTRO===e?'on':''}" data-e="${e}">${l} ${cuenta(e)}</button>`).join('');
+}
+
+function pintarLista(){
+  const q = $('#q').value.trim().toLowerCase();
+  const vis = UNIDADES.filter(u =>
+    (!FILTRO || u.estado === FILTRO) &&
+    (!q || [u.codigo,u.proyecto].some(v => String(v||'').toLowerCase().includes(q))));
+  $('#listaU').innerHTML = vis.length ? vis.map(u => `
+    <button class="u ${SEL===u.id?'sel':''}" data-id="${esc(u.id)}">
+      <div class="c">${esc(u.codigo)}</div>
+      <div class="p">${esc(u.proyecto || 'sin proyecto')} · ${esc((TIPOS.find(t=>t[0]===u.tipo)||['',u.tipo])[1])}</div>
+      <div class="r">
+        <span class="tag e-${esc(u.estado)}">${esc(nombreEstado(u.estado))}</span>
+        ${u.precio ? '<span class="p">' + esc(fmtMoneda(parseImporte(u.precio), u.moneda||'EUR')) + '</span>' : ''}
+      </div>
+    </button>`).join('')
+    : `<p class="nota" style="padding:18px">${UNIDADES.length ? 'Ninguna unidad coincide.' : 'Todavía no hay unidades. Créala con “+ Nueva unidad”.'}</p>`;
+}
+
+function pintarFicha(){
+  const u = SEL === 'nueva' ? { estado:'disponible', tipo:'parcela', moneda:'EUR' } : UNIDADES.find(x => x.id === SEL);
+  if(!u){ $('#ficha').innerHTML = '<div class="vacio">Elige una unidad</div>'; return; }
+  const nueva = SEL === 'nueva';
+  const ct = CONTRATOS.find(c => c.id === u.contrato_id);
+
+  $('#ficha').innerHTML = `
+    <h2 class="t">${nueva ? 'Nueva unidad' : esc(u.codigo)}</h2>
+    <p class="sub">${nueva ? 'El código es el mismo texto que imprime el contrato.'
+      : esc(u.proyecto || 'sin proyecto') + ' · ' + esc(nombreEstado(u.estado))}</p>
+
+    <fieldset>
+      <legend>Identificación</legend>
+      <label>Código</label>
+      <input id="f-codigo" value="${esc(u.codigo||'')}" placeholder="Ej. PF-A12">
+      <p class="nota">Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.</p>
+      <div class="row">
+        <div><label>Proyecto</label><input id="f-proyecto" value="${esc(u.proyecto||'')}" placeholder="Palm Field"></div>
+        <div><label>Tipo</label><select id="f-tipo">${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}</select></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Estado de venta</legend>
+      <label>Estado</label>
+      <select id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select>
+      <label>Contrato asociado</label>
+      <select id="f-contrato">
+        <option value="">— sin contrato —</option>
+        ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||'sin nº')} — ${esc(c.comprador_nombre||'sin nombre')}</option>`).join('')}
+      </select>
+      <div id="avisoEstado"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Datos</legend>
+      <div class="row">
+        <div><label>Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
+        <div><label>Precio</label><input id="f-precio" inputmode="decimal" data-money value="${u.precio ? esc(fmtNum(parseImporte(u.precio))) : ''}"></div>
+      </div>
+      <label>Moneda</label>
+      <select id="f-moneda">${['EUR','USD','AUD','IDR'].map(m=>`<option ${u.moneda===m?'selected':''}>${m}</option>`).join('')}</select>
+      <label>Notas</label>
+      <textarea id="f-notas">${esc(u.notas||'')}</textarea>
+    </fieldset>
+
+    <div class="acciones">
+      <button class="btn primary" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
+      ${nueva ? '' : '<button class="btn" id="btnCancelar">Descartar cambios</button>'}
+    </div>`;
+
+  avisoEstado();
+  $('#f-estado').addEventListener('change', avisoEstado);
+  $('#f-contrato').addEventListener('change', avisoEstado);
+  $('#btnGuardar').addEventListener('click', () => guardar(nueva ? null : u.id));
+  const bc = $('#btnCancelar'); if(bc) bc.addEventListener('click', pintarFicha);
+}
+
+/* El aviso es el guardia: dice en voz alta lo que la base de datos no puede
+   saber (que ESTA unidad ya está comprometida con OTRO contrato). */
+function avisoEstado(){
+  const est = $('#f-estado').value, cid = $('#f-contrato').value;
+  const otras = UNIDADES.filter(u => u.contrato_id && u.contrato_id === cid && u.id !== SEL);
+  const msgs = [];
+  if((est === 'vendida' || est === 'reservada') && !cid)
+    msgs.push('Marcada como ' + nombreEstado(est).toLowerCase() + ' pero sin contrato asociado: no se podrá saber de quién es.');
+  if(otras.length)
+    msgs.push('Ese contrato ya está asociado a ' + otras.map(o=>o.codigo).join(', ') + '. Si no es una operación de varias unidades, revísalo.');
+  $('#avisoEstado').innerHTML = msgs.length ? `<p class="aviso">${msgs.map(esc).join('<br>')}</p>` : '';
+}
+
+const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
+
+async function guardar(id){
+  const codigo = $('#f-codigo').value.trim();
+  if(codigo.length < 1){ toast('El código no puede quedar vacío'); return; }
+  const fila = {
+    codigo,
+    proyecto: $('#f-proyecto').value.trim() || null,
+    tipo: $('#f-tipo').value,
+    estado: $('#f-estado').value,
+    contrato_id: $('#f-contrato').value || null,
+    superficie_m2: parseImporte($('#f-sup').value) || null,
+    precio: parseImporte($('#f-precio').value) || null,
+    moneda: $('#f-moneda').value,
+    notas: $('#f-notas').value.trim() || null,
+  };
+  const btn = $('#btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const q = id ? SB.from('unidades').update(fila).eq('id', id).select().single()
+                 : SB.from('unidades').insert(fila).select().single();
+    const { data, error } = await q;
+    if(error) throw error;
+    await cargar();
+    SEL = data.id;
+    pintarFiltros(); pintarLista(); pintarFicha();
+    toast(id ? 'Unidad actualizada' : 'Unidad creada');
+  }catch(err){
+    // el unique de `codigo` es la última defensa contra duplicar una parcela
+    const m = String(err.message||err).includes('unidades_codigo_key')
+      ? 'Ya existe una unidad con ese código.' : (err.message || err);
+    toast('No se pudo guardar: ' + m);
+    btn.disabled = false; btn.textContent = id ? 'Guardar cambios' : 'Crear unidad';
+  }
+}
+
+/* importes en formato canónico al salir del campo, igual que en contratos */
+document.addEventListener('blur', e => {
+  const el = e.target;
+  if(!el || !el.matches || !el.matches('[data-money]')) return;
+  const n = parseImporte(el.value);
+  el.value = n ? fmtNum(n) : '';
+}, true);
+
+$('#listaU').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if(!b) return;
+  SEL = b.dataset.id; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta');
+});
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('[data-e]'); if(!b) return;
+  FILTRO = b.dataset.e; pintarFiltros(); pintarLista();
+});
+$('#q').addEventListener('input', pintarLista);
+$('#btnNueva').addEventListener('click', () => { SEL='nueva'; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta'); });
+
+window.LW_AUTH.then(async ({ sb, session }) => {
+  SB = sb;
+  $('#who').textContent = session.user.email;
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
+  try{ await cargar(); pintarFiltros(); pintarLista(); }
+  catch(err){ $('#listaU').innerHTML = '<p class="nota" style="padding:18px">No se pudo cargar: ' + esc(err.message||err) + '</p>'; }
+});
+</script>
+</body>
+</html>
