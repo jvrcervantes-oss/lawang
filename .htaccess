@@ -1,6 +1,9 @@
 # 302 temporal: /portfolio.html sera la futura pagina de la promotora — ELIMINAR esta linea al crearla
 Redirect 302 /portfolio.html /thecollection.html
 
+# 28-jul-2026: /panel/ renombrado a /intranet/. 301 para los marcadores del equipo.
+RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
+
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
 # (p.ej. sumbahills.lawangproperties.com) cuyo SSL no controlamos aqui; incluirlos podria
 # forzar HTTPS y romperlos. No se toca la CSP existente (la web tiene inline scripts/estilos;

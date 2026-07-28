@@ -97,7 +97,7 @@ const sb = window.supabase.createClient(
   'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
 );
 sb.auth.getSession().then(({data:{session}}) => {
-  if (!session) { location.replace('/contracts/login.html?next=/panel/'); return; }
+  if (!session) { location.replace('/contracts/login.html?next=/intranet/'); return; }
   document.getElementById('who').textContent = session.user.email;
   document.body.hidden = false;
 });
