@@ -356,9 +356,9 @@
           <div class="pv-menu-list">
             <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
             <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Restaurar texto original</button>
-            <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Genera un enlace para que el comprador firme a distancia; al firmar, el PDF firmado entra solo en la base de datos y bloquea el contrato">✍︎ Enviar a firma</button>
+            <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
             <button class="btn ghost" id="btnEmail">✉ Enviar por email</button>
-            <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF que ha devuelto el cliente firmado y bloquea el contrato para que no se pueda seguir editando">🔒 Subir firmado</button>
+            <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
           </div>
         </details>
 
@@ -398,7 +398,7 @@
         <button type="button" class="tb-link" id="fmClose">Cerrar</button>
       </div>
       <div class="em-body">
-        <p class="em-note">Genera un enlace único. El comprador lo abre, revisa el contrato y firma. Al firmar, el PDF firmado entra solo en la base de datos y el contrato queda bloqueado.</p>
+        <p class="em-note">El comprador firma desde el enlace. El PDF firmado entra solo y bloquea el contrato.</p>
         <label>Nombre del comprador<input type="text" id="fmName" placeholder="Nombre y apellidos"></label>
         <!-- El email dejó de ser opcional (28-jul): sin él no se puede mandar el
              enlace desde aquí, y además queda en el registro de firma como parte
@@ -435,7 +435,7 @@
         <button type="button" class="tb-link" id="emClose">Cerrar</button>
       </div>
       <div class="em-body">
-        <p class="em-note">Se envía tal cual está la vista previa — no hace falta descargar ni adjuntar nada.</p>
+        <p class="em-note">Se envía la vista previa tal cual.</p>
         <label>Destinatario<input type="email" id="emTo" placeholder="cliente@email.com" required></label>
         <label>Asunto<input type="text" id="emSubject"></label>
         <label>Mensaje<textarea id="emMessage" rows="5"></textarea></label>

@@ -76,10 +76,10 @@
 <script>
 // Añadir una herramienta = una entrada aquí. `href` vacío = todavía no existe.
 const TOOLS = [
-  { ico:'✒️', name:'Contratos',  desc:'Reservas, PPJB, construcción y anexos. Rellena, firma en pantalla y guarda en base de datos.', href:'/contracts/app.html' },
-  { ico:'📖', name:'Dossier',    desc:'Constructor de dossiers de producto en A4 apaisado, listos para imprimir o enviar.',            href:'/dossier/builder.html' },
-  { ico:'🧾', name:'Facturas',   desc:'Emisión y numeración de facturas (INV00001), con los datos del contrato y la cuenta de cobro.', href:'/facturas/' },
-  { ico:'🧮', name:'Recibos',    desc:'Justificantes de pago y señales.',   href:'' },
+  { ico:'✒️', name:'Contratos',  desc:'Reservas, PPJB, construcción y anexos.',        href:'/contracts/app.html' },
+  { ico:'📖', name:'Dossier',    desc:'Dossiers de producto en A4 apaisado.',          href:'/dossier/builder.html' },
+  { ico:'🧾', name:'Facturas',   desc:'Facturas, proformas y recibís, con su serie.',  href:'/facturas/' },
+  { ico:'🧮', name:'Recibos',    desc:'Justificantes de pago y señales.',              href:'' },
 ];
 
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

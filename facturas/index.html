@@ -67,6 +67,8 @@
   .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
          border-radius:9px; padding:6px 10px; cursor:pointer; }
   .hito:hover{ border-color:var(--tg); color:var(--dl); }
+  .hito.usado{ opacity:.45; text-decoration:line-through; cursor:not-allowed; }
+  .hito.usado:hover{ border-color:var(--line); color:inherit; }
   .hito b{ color:var(--dl); }
 
   /* ---------- vista previa ---------- */
@@ -169,11 +171,18 @@
             <select name="sociedad" id="selSociedad"></select>
             <label>Cuenta donde se cobra</label>
             <select name="cuenta" id="selCuenta"></select>
-            <p class="hint">Sin cuenta seleccionada la factura no imprime datos bancarios: mejor eso que una cuenta adivinada.</p>
+            <p class="hint">Sin cuenta, el documento no imprime datos bancarios.</p>
           </fieldset>
 
           <fieldset>
-            <legend>Factura</legend>
+            <legend>Documento</legend>
+            <label>Tipo</label>
+            <select name="tipo" id="selTipo">
+              <option value="factura">Factura</option>
+              <option value="proforma">Factura proforma</option>
+              <option value="recibi">Recibí</option>
+            </select>
+            <p class="hint" id="hintTipo">Series independientes: INV, PRO, REC.</p>
             <label>Partir de un contrato guardado (opcional)</label>
             <select id="selContrato"><option value="">— sin contrato —</option></select>
             <div id="delContrato"></div>
@@ -186,7 +195,7 @@
                 <select name="moneda">
                   <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
                 </select></div>
-              <div><label>Nº de factura</label><input name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
+              <div><label>Nº de documento</label><input name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
             </div>
             <label>Contrato de referencia</label>
             <input name="contrato_numero" placeholder="Ej. RP00008 — opcional">
@@ -218,7 +227,7 @@
               <div><label>Etiqueta</label><input name="imp_etiqueta" placeholder="Ej. PPN"></div>
               <div><label>Porcentaje</label><input name="imp_pct" inputmode="decimal" placeholder="Ej. 11"></div>
             </div>
-            <p class="hint">En blanco = la factura no lleva impuesto. El tipo que aplica en cada caso lo confirma el cliente; aquí no se rellena ninguno por defecto.</p>
+            <p class="hint">En blanco, el documento no lleva impuesto.</p>
           </fieldset>
 
           <fieldset>
@@ -273,6 +282,15 @@ $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replac
 /* ---------- estado ---------- */
 let LINEAS = [{ descripcion:'', importe:'' }];
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
+let CONTRATO_ID = null;   // contrato del que sale la factura (FK real, no solo el nº impreso)
+
+/* Los tres tipos comparten formulario y plantilla; solo cambia el rótulo del
+   documento. La serie del número la decide el trigger en base de datos, no aquí. */
+const TIPOS = {
+  factura:  { doc:'Factura · Invoice' },
+  proforma: { doc:'Factura proforma · Proforma invoice' },
+  recibi:   { doc:'Recibí · Receipt' },
+};
 
 /* ---------- selects que salen de entities.js ---------- */
 $('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
@@ -295,6 +313,22 @@ function pintarLineas(){
       <div><label>Importe</label><input data-l="${i}" data-k="importe" inputmode="decimal" value="${esc(l.importe)}"></div>
       <button type="button" class="xbtn" data-del="${i}" title="Quitar">×</button>
     </div>`).join('');
+  marcarHitosUsados();
+}
+
+/* Un hito ya cobrado no se vuelve a cobrar: el botón queda tachado y sin efecto.
+   El estado se DERIVA de los conceptos que hay ahora mismo, no de una lista
+   aparte de "ya pulsados" — así, si se borra la línea, el hito vuelve a estar
+   disponible sin tener que sincronizar nada. */
+const descHito = h => [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
+                    + (h.timing ? ' — ' + h.timing : '');
+function marcarHitosUsados(){
+  document.querySelectorAll('#delContrato [data-h]').forEach(b => {
+    const usado = LINEAS.some(l => (l.descripcion || '').trim() === b.dataset.desc);
+    b.disabled = usado;
+    b.classList.toggle('usado', usado);
+    b.title = usado ? 'Ya está en este documento' : '';
+  });
 }
 $('#lineas').addEventListener('input', e => {
   const el = e.target; if(el.dataset.l == null) return;
@@ -360,7 +394,7 @@ function render(){
         </div>
       </div>
       <div class="titulo">
-        <h2>Factura · Invoice</h2>
+        <h2>${esc((TIPOS[d.tipo] || TIPOS.factura).doc)}</h2>
         <div class="num">${esc(numero)}</div>
         <div class="meta">
           ${d.fecha_emision ? `Fecha · Date: ${esc(fecha(d.fecha_emision))}<br>` : ''}
@@ -395,6 +429,13 @@ function render(){
     <div class="pie">${esc(soc.razon)}${soc.marca ? ' · ' + esc(soc.marca) : ''} · NPWP ${esc(soc.npwp)} · ${esc(soc.domicilio)}</div>`;
 
   $('#btnSave').textContent = SAVED ? 'Actualizar (' + SAVED.numero + ')' : 'Guardar en base de datos';
+  // el número ya emitido lleva el prefijo del tipo: cambiarlo después dejaría un
+  // PRO000xx rotulado "Factura". Se emite otro documento, no se reetiqueta este.
+  const st = $('#selTipo');
+  st.disabled = !!SAVED;
+  $('#hintTipo').textContent = SAVED
+    ? 'El tipo no se cambia una vez emitido el número.'
+    : 'Cada tipo lleva su propia serie: INV, PRO y REC.';
 }
 
 /* ---------- PDF: lo genera el navegador, igual que en Contratos ---------- */
@@ -420,10 +461,15 @@ async function cargarContratos(){
   const sel = $('#selContrato');
   sel.innerHTML = '<option value="">— sin contrato —</option>' + data.filter(c => c.numero).map(c =>
     `<option value="${esc(c.id)}">${esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}${c.proyecto_nombre ? ' · ' + esc(c.proyecto_nombre) : ''}</option>`).join('');
-  sel.onchange = () => sel.value ? traerContrato(sel.value) : ($('#delContrato').innerHTML = '');
+  sel.onchange = () => {
+    CONTRATO_ID = sel.value || null;
+    if(sel.value) traerContrato(sel.value);
+    else $('#delContrato').innerHTML = '';
+  };
 }
 
 async function traerContrato(id){
+  CONTRATO_ID = id;
   const caja = $('#delContrato');
   caja.innerHTML = '<div class="t">Cargando contrato…</div>';
   // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
@@ -477,17 +523,19 @@ async function traerContrato(id){
     ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
         `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
       ).join('')}</div>
-      <p class="arrastrado">Pulsa un hito para añadirlo como concepto. Solo el que cobras en esta factura.</p>` : ''}`;
+      <p class="arrastrado">Pulsa el hito que cobras en este documento.</p>` : ''}`;
 
-  caja.querySelectorAll('[data-h]').forEach(b => b.onclick = () => {
+  caja.querySelectorAll('[data-h]').forEach(b => {
     const h = hitos[+b.dataset.h];
-    const desc = [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
-               + (h.timing ? ' — ' + h.timing : '');
-    if(LINEAS.length === 1 && !LINEAS[0].descripcion && !LINEAS[0].importe) LINEAS = [];
-    LINEAS.push({ descripcion: desc, importe: h.monto ? String(h.monto).replace('.', ',') : '' });
-    pintarLineas(); render();
-    toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+    b.dataset.desc = descHito(h);
+    b.onclick = () => {
+      if(LINEAS.length === 1 && !LINEAS[0].descripcion && !LINEAS[0].importe) LINEAS = [];
+      LINEAS.push({ descripcion: b.dataset.desc, importe: h.monto ? String(h.monto).replace('.', ',') : '' });
+      pintarLineas(); render();
+      toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+    };
   });
+  marcarHitosUsados();
 
   render();
 }
@@ -497,10 +545,14 @@ function payload(){
   const d = collect();
   const t = calcTotales(d.lineas, d.moneda, { pct:d.imp_pct });
   return {
+    tipo: d.tipo || 'factura',
     sociedad: d.sociedad || null,
     cliente_nombre: d.cliente_nombre || null,
     proyecto_nombre: d.proyecto_nombre || null,
     contrato_numero: d.contrato_numero || null,
+    // el nº de contrato es texto que se imprime; `contrato_id` es el enlace real
+    // con el que el contrato sabe qué facturas cuelgan de él
+    contrato_id: CONTRATO_ID,
     total: t.total,
     moneda: d.moneda || null,
     fecha_emision: d.fecha_emision || null,
@@ -527,7 +579,7 @@ $('#btnSave').onclick = async () => {
 
 $('#btnNueva').onclick = () => {
   if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
-  SAVED = null; $('#form').reset(); LINEAS = [{ descripcion:'', importe:'' }];
+  SAVED = null; CONTRATO_ID = null; $('#form').reset(); LINEAS = [{ descripcion:'', importe:'' }];
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
   $('#selContrato').value = ''; $('#delContrato').innerHTML = '';
@@ -539,7 +591,7 @@ $('#btnList').onclick = async () => {
   $('#ovList').classList.add('open');
   const box = $('#listBody'); box.innerHTML = 'Cargando…';
   const { data, error } = await sb.from('facturas')
-    .select('id,numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos')
+    .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos')
     .order('created_at', { ascending:false }).limit(200);
   if(error){ box.textContent = 'No se pudo cargar: ' + error.message; return; }
   if(!data.length){ box.textContent = 'Todavía no hay facturas guardadas.'; return; }
@@ -570,8 +622,11 @@ $('#ovList').onclick = e => { if(e.target === $('#ovList')) $('#ovList').classLi
 function abrir(f){
   const d = (f.datos && f.datos.fields) || {};
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
+  $('[name="tipo"]').value = f.tipo || d.tipo || 'factura';
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas : [{ descripcion:'', importe:'' }];
   SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
+  CONTRATO_ID = f.contrato_id || null;
+  $('#selContrato').value = CONTRATO_ID || '';
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
   $('#ovList').classList.remove('open');
   pintarLineas(); render();

@@ -296,7 +296,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 <div id="seltools">
   <span data-for="tpl">
     <b class="tplname">Elemento de plantilla</b>
-    <button class="sbtn wide" onclick="unpinTpl()" title="Sacarlo de la maqueta: pasa a moverse, girar, redimensionarse y borrarse como cualquier otro elemento">✥ Liberar</button>
+    <button class="sbtn wide" onclick="unpinTpl()" title="Sacarlo de la maqueta: se mueve y redimensiona como cualquier elemento">✥ Liberar</button>
     <span class="tplhint">— libéralo para poder moverlo</span>
   </span>
   <span data-for="text">
@@ -313,7 +313,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   </span>
   <span data-for="rect"><label>Relleno</label><input type="color" id="st_fill"></span>
   <span data-for="img"><label>Encaje</label>
-    <select id="st_fit" title="Rellenar recorta para cubrir el marco · Ajustar muestra la imagen entera (lo que necesita un logo)">
+    <select id="st_fit" title="Rellenar recorta · Ajustar muestra la imagen entera">
       <option value="cover">Rellenar</option><option value="contain">Ajustar</option></select>
   </span>
   <span data-for="imgrect"><label>Opacidad</label><input type="number" id="st_op" min="5" max="100" step="5"></span>
