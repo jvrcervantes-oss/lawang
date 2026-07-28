@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lawang · Generador de Contratos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1205,10 +1206,48 @@ function enterEdit(){
    idiomas mezclados en un mismo bloque. Pasó de verdad — contrato CR00003.
    Al capturar se tira lo que lleve un data-lang distinto del propio párrafo; lo
    que no tiene data-lang propio (los pies de firma) se deja tal cual. */
+/* Saneado de lo que devuelve contentEditable.
+
+   Sin esto el navegador GRABA su propio maquetado dentro del contrato: al
+   escribir, Chrome inyecta `<span style="font-size:10.5pt">`, y al pegar desde
+   Word entran `<div>`, `<font>`, colores y tablas anidadas. Como el override se
+   guarda como innerHTML y se reaplica en cada render, ese tamaño fijo queda
+   grabado para siempre — y dentro de una celda de tabla descuadra el documento
+   entero. Ese era el "al editar texto se rompen las tablas".
+
+   Se conserva solo lo que el contrato usa de verdad: negrita, cursiva,
+   subrayado, salto de línea y los `<span data-lang>` del sistema trilingüe.
+   Todo lo demás se desenvuelve conservando el texto: nunca se pierde lo escrito,
+   solo el maquetado que el navegador se inventó.
+
+   Se aplica al capturar Y al pintar (ver applyEditsAndTag), así que los
+   contratos que ya tengan overrides sucios se enderezan solos al abrirlos, sin
+   tocar la base de datos. */
+const EDIT_TAGS_OK = new Set(['B','STRONG','I','EM','U','BR','SPAN']);
+function saneaNodo(nodo, doc){
+  [...nodo.childNodes].forEach(hijo => {
+    if(hijo.nodeType === 3) return;                       // texto: intacto
+    if(hijo.nodeType !== 1){ hijo.remove(); return; }      // comentarios y demás, fuera
+    saneaNodo(hijo, doc);
+    const tag = hijo.tagName;
+    const esLangSpan = tag === 'SPAN' && hijo.hasAttribute('data-lang');
+    if(!EDIT_TAGS_OK.has(tag) || (tag === 'SPAN' && !esLangSpan)){
+      // DIV y P vienen de pulsar Enter: se sustituyen por un salto real en vez
+      // de dejar un bloque dentro de un párrafo de celda.
+      if(tag === 'DIV' || tag === 'P') hijo.parentNode.insertBefore(doc.createElement('br'), hijo);
+      while(hijo.firstChild) hijo.parentNode.insertBefore(hijo.firstChild, hijo);
+      hijo.remove();
+      return;
+    }
+    // atributos: solo sobrevive data-lang. style, class, color, align… fuera.
+    [...hijo.attributes].forEach(a => { if(a.name !== 'data-lang') hijo.removeAttribute(a.name); });
+  });
+}
 function limpiaEdicion(el){
   const propio = el.getAttribute('data-lang');
   const tmp = el.cloneNode(true);
   if(propio) tmp.querySelectorAll('[data-lang]').forEach(n=>{ if(n.getAttribute('data-lang')!==propio) n.remove(); });
+  saneaNodo(tmp, el.ownerDocument || document);
   return tmp.innerHTML;
 }
 function captureEdit(e){

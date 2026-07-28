@@ -133,20 +133,44 @@ Deno.serve(async (req) => {
     const up = await sb.storage.from('contratos-firmados').upload(path, pdf, { contentType: 'application/pdf', upsert: true });
     if (up.error) throw up.error;
 
-    // bloquea el contrato (mismo efecto que "Subir firmado" manual) y cierra la firma
-    await sb.from('contratos').update({ bloqueado: true, pdf_firmado_path: path }).eq('id', claimed.contrato_id);
-    await sb.from('contrato_firmas').update({
+    // ── Cierre del ciclo ────────────────────────────────────────────────
+    // TODO update se comprueba. `.update()` de supabase-js NO lanza: devuelve
+    // `{ error }`. Sin mirarlo, un fallo aquí dejaba al comprador con un PDF
+    // sellado como firmado mientras el registro decía otra cosa, y la función
+    // respondía ok:true. Documento y registro contradiciéndose es el peor
+    // escenario probatorio posible; peor que fallar de forma visible.
+    // Si algo falla se lanza: el `catch` devuelve el token a 'pendiente' y el
+    // comprador puede reintentar. El PDF se sube con upsert, así que el
+    // reintento lo reescribe sin duplicar.
+
+    // 1) marcar la firma ANTES de bloquear el contrato. Si fallara el bloqueo,
+    //    queda una firma registrada sin contrato bloqueado — detectable y
+    //    reparable. Al revés (contrato bloqueado sin firma registrada) es un
+    //    contrato cerrado del que nadie sabe quién lo firmó.
+    const marcada = await sb.from('contrato_firmas').update({
       estado: 'firmado', firmado_en: new Date().toISOString(), firmante_ip: ip, firmante_user_agent: ua,
     }).eq('id', claimed.id);
+    if (marcada.error) throw new Error('no se pudo registrar la firma: ' + marcada.error.message);
 
-    // `pdf_path` va en un update APARTE y a propósito: es informativo (cada firma
-    // guarda SU pdf; `contratos.pdf_firmado_path` solo apunta al último), mientras
-    // que el de arriba es la transición de estado, que es la crítica.
-    // Si fueran el mismo update y la columna no existiera todavía, PostgREST
-    // rechazaría el lote ENTERO y la firma se quedaría en 'procesando' —
-    // irreintentable— mientras la función devuelve ok:true. Separados, el dato
-    // que falta es solo eso: un dato que falta.
-    await sb.from('contrato_firmas').update({ pdf_path: path }).eq('id', claimed.id);
+    // 2) bloquear el contrato (mismo efecto que "Subir firmado" manual)
+    const bloqueo = await sb.from('contratos')
+      .update({ bloqueado: true, pdf_firmado_path: path })
+      .eq('id', claimed.contrato_id);
+    if (bloqueo.error) throw new Error('no se pudo bloquear el contrato: ' + bloqueo.error.message);
+
+    // 3) `pdf_path` es informativo (cada firma guarda SU pdf; el de `contratos`
+    //    solo apunta al último) y va en su propio update: si la columna no
+    //    existiera todavía, PostgREST rechazaría el lote ENTERO y tumbaría la
+    //    transición de estado, que es la crítica.
+    //    Aquí NO se lanza: la firma ya es válida sin este dato. Pero se deja
+    //    rastro en los logs de la función, porque un fallo silencioso era
+    //    justamente el problema: el comentario decía "es solo un dato que
+    //    falta" y nadie se enteraba de que faltaba.
+    const ruta = await sb.from('contrato_firmas').update({ pdf_path: path }).eq('id', claimed.id);
+    if (ruta.error) {
+      console.error('firma', claimed.id, 'firmada pero SIN pdf_path:', ruta.error.message,
+                    '— el PDF está en', path);
+    }
 
     return json({ ok: true, numero });
   } catch (e) {
