@@ -17,7 +17,9 @@ EDGE = r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BUILDER = os.path.join(AQUI, '..', 'builder.html')
 
-HUECO_MIN = 45.0   # mm de alto libre por debajo del cual no merece la pena la imagen
+# Por debajo de 85 mm la imagen sale muy por debajo del ancho de columna (191 mm)
+# y canta al lado de las demas; mejor dejar ese hueco limpio (28-jul, visto en Dream).
+HUECO_MIN = 85.0
 AIRE = 8.0         # mm de respiro entre la tabla y la imagen, y entre imagen y pie
 ANCHO_PX = 1800    # las paginas son de 216 mm; a 300 dpi sobran
 
@@ -70,7 +72,16 @@ def preparar(carpeta, destino):
     for n in sorted(os.listdir(carpeta)):
         if not n.lower().endswith(('.png', '.jpg', '.jpeg')):
             continue
-        im = Image.open(os.path.join(carpeta, n)).convert('RGB')
+        im = Image.open(os.path.join(carpeta, n))
+        if im.mode in ('RGBA', 'LA', 'P'):
+            # los floor plans vienen con fondo transparente: convert('RGB') a secas
+            # tira el alfa y el papel del plano sale NEGRO sobre la pagina blanca
+            im = im.convert('RGBA')
+            fondo = Image.new('RGB', im.size, 'white')
+            fondo.paste(im, mask=im.split()[-1])
+            im = fondo
+        else:
+            im = im.convert('RGB')
         if im.width > ANCHO_PX:
             im = im.resize((ANCHO_PX, round(im.height * ANCHO_PX / im.width)), Image.LANCZOS)
         d = re.sub(r'\W+', '_', os.path.splitext(n)[0]) + '.jpg'
