@@ -36,3 +36,6 @@ preview.cmd
 
 # estado de servidor del rate-limit (IPs + marcas de tiempo): nunca al repo
 private/
+
+# Prototipos no publicados (landings de modelo pendientes de precio y OK)
+_preview/
