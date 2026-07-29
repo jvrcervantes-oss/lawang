@@ -76,6 +76,11 @@
 
   a.enl{ color:var(--dl); text-decoration:none; border-bottom:1px solid rgba(16,76,79,.3); }
   a.enl:hover{ border-bottom-color:var(--dl); }
+  /* la acción principal de cada documento: el PDF firmado se buscaba y estaba
+     en un párrafo de texto al final de la ficha */
+  a.enl.fuerte{ display:inline-block; border:1px solid var(--dl); border-radius:999px;
+                padding:5px 13px; font-size:12.5px; font-weight:600; white-space:nowrap; }
+  a.enl.fuerte:hover{ background:var(--dl); color:#fff; }
   .nota{ font-size:12px; color:var(--muted); margin:10px 0 0; line-height:1.5; }
   .falta{ color:#a3342b; }
 
@@ -160,7 +165,10 @@ const TIPO_ES = { reserva_parcela:'Bloqueo de Parcela', construccion:'Construcci
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
   const [c, f, s, cc, dc] = await Promise.all([
-    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,hitos:datos->hitos').order('created_at',{ascending:false}).limit(300),
+    // `adq1` y `compradores` se piden para poder avisar de las fichas de
+    // comprador que faltan. Son campos pequeños del jsonb; sigue sin pedirse
+    // `datos` entero, que pesa MB por los anexos en base64.
+    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
     SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
@@ -230,6 +238,16 @@ function importeHito(h, precio, moneda){
 }
 const textoHito = h => h.es || h.en || h.id || 'Hito sin nombre';
 
+/* Compradores nombrados en el contrato vs fichas realmente creadas. El alta es
+   automática al guardar, pero se cae sin ruido si la persona no tiene pasaporte
+   ni email, si el contrato se guardó antes de que existiera la sincronización,
+   o (hasta el 29-jul) si era el cuarto adquiriente en adelante. */
+function compradoresNombrados(o){
+  return (String(o.adq1 || '').trim() ? 1 : 0)
+    + (Array.isArray(o.extras) ? o.extras.filter(x => String((x||{}).nombre || '').trim()).length : 0);
+}
+const fichasQueFaltan = o => Math.max(0, compradoresNombrados(o) - (o.compradores || []).length);
+
 function cuenta(op){
   const moneda = op.moneda || 'EUR';
   const precio = parseImporte(op.precio_total);
@@ -253,6 +271,9 @@ function pintarLista(){
     if(o.firmas.some(x => x.estado === 'pendiente')) b.push('<span class="tag info">Firma enviada</span>');
     if(o.facturas.filter(x=>!x.anulada).length) b.push('<span class="tag info">' + o.facturas.filter(x=>!x.anulada).length + ' doc.</span>');
     if(o.hijos.length) b.push('<span class="tag info">+' + o.hijos.length + ' contrato' + (o.hijos.length>1?'s':'') + '</span>');
+    // el alta de comprador es automática pero se cae en silencio en 3 casos:
+    // se avisa en la LISTA para no tener que entrar operación por operación
+    if(fichasQueFaltan(o)) b.push('<span class="tag alerta">Falta ficha</span>');
     return `<button class="op ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}">
       <div class="n">${esc(o.numero || 'sin nº')}</div>
       <p class="c">${esc(o.comprador_nombre || 'Sin comprador')}</p>
@@ -279,14 +300,52 @@ function pintarDetalle(){
     </tr>`;
   }).join('') : '<tr><td colspan="3" class="nota">El contrato no fijó hitos de pago.</td></tr>';
 
-  const filasFact = op.facturas.length ? op.facturas.map(f => `<tr>
-      <td><a class="enl" href="/facturas/?id=${encodeURIComponent(f.id)}" data-doc="1"
-             title="Ver el documento aquí mismo">${esc(f.numero || 'borrador')}</a>
-          <span class="nota">${esc({factura:'Factura',proforma:'Proforma',recibi:'Recibí'}[f.tipo] || f.tipo || '')}</span></td>
-      <td>${fFecha(f.fecha_emision)}</td>
-      <td class="num">${esc(fmtMoneda(parseImporte(f.total), f.moneda || c.moneda))}</td>
-      <td>${f.anulada ? '<span class="tag alerta">Anulada</span>' : (f.tipo === 'proforma' ? '<span class="tag espera">No suma</span>' : '<span class="tag ok">Emitida</span>')}</td>
-    </tr>`).join('') : '<tr><td colspan="4" class="nota">Todavía no se ha emitido ningún documento.</td></tr>';
+  /* TODOS los documentos de la operación en UNA tabla: contratos (con su PDF
+     firmado, si lo hay) y lo emitido en Facturas. Antes vivían en dos secciones
+     separadas y el PDF firmado —el documento que más se busca— estaba escondido
+     en un párrafo de texto al final de la ficha. */
+  const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+  const docsOperacion = [];
+  (op.padre ? [op.padre, ...op.padre.hijos] : [op, ...op.hijos]).forEach(ct => {
+    docsOperacion.push({
+      clase:'contrato', numero: ct.numero || 'sin nº', tipo: TIPO_ES[ct.tipo] || ct.tipo || 'Contrato',
+      fecha: ct.fecha_firma, importe: parseImporte(ct.precio_total), moneda: ct.moneda || c.moneda,
+      firmado: !!ct.bloqueado, pdf: ct.pdf_firmado_path || null, opId: ct.id,
+    });
+    (ct.facturas || []).forEach(f => docsOperacion.push({
+      clase:'factura', numero: f.numero || 'borrador', tipo: TIPO_DOC[f.tipo] || f.tipo || 'Documento',
+      fecha: f.fecha_emision, importe: parseImporte(f.total), moneda: f.moneda || c.moneda,
+      anulada: f.anulada, proforma: f.tipo === 'proforma', id: f.id,
+    }));
+  });
+
+  const filasDocumentos = docsOperacion.map(d => {
+    // la acción de cada fila: el contrato firmado abre su PDF; la factura, el
+    // documento; un contrato sin firmar no tiene nada que enseñar todavía
+    const accion = d.clase === 'contrato'
+      ? (d.pdf ? `<a class="enl fuerte" href="#" data-pdf="${esc(d.pdf)}">Ver PDF firmado</a>`
+               : `<a class="enl" href="/contracts/app.html?contrato=${encodeURIComponent(d.opId)}">Abrir en Contratos</a>`)
+      : `<a class="enl fuerte" href="/facturas/?id=${encodeURIComponent(d.id)}" data-doc="1">Ver documento</a>`;
+    const estado = d.clase === 'contrato'
+      ? (d.firmado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>')
+      : (d.anulada ? '<span class="tag alerta">Anulada</span>'
+                   : (d.proforma ? '<span class="tag espera">No suma</span>' : '<span class="tag ok">Emitida</span>'));
+    return `<tr>
+      <td><b>${esc(d.numero)}</b><div class="nota">${esc(d.tipo)}</div></td>
+      <td>${d.clase === 'contrato' ? '<span class="tag info">Contrato</span>' : '<span class="tag">Facturación</span>'}</td>
+      <td>${fFecha(d.fecha)}</td>
+      <td class="num">${d.importe ? esc(fmtMoneda(d.importe, d.moneda)) : '—'}</td>
+      <td>${estado}</td>
+      <td>${accion}</td>
+    </tr>`;
+  }).join('');
+
+  /* Fichas de comprador que faltan. El alta es automática al guardar el
+     contrato, pero se cae en tres casos y hasta ahora ninguno se veía desde
+     aquí: comprador sin pasaporte ni email, contrato guardado antes de que la
+     sincronización existiera, y (hasta el 29-jul) más de tres adquirientes. */
+  const enElContrato = compradoresNombrados(op);
+  const faltanFichas = fichasQueFaltan(op);
 
   const filasFirmas = op.firmas.length ? op.firmas.map(s => {
     const d = dias(s.expira_en);
@@ -382,11 +441,16 @@ function pintarDetalle(){
       }).join('')}
       </tbody></table>
       <p class="nota">Pulsa un nombre para abrir su ficha y su documentación.</p>
+      ${faltanFichas ? `<p class="nota falta"><b>Faltan ${faltanFichas} ficha${faltanFichas>1?'s':''} de comprador.</b>
+        El contrato nombra a ${enElContrato} y solo ${(op.compradores||[]).length} tiene${(op.compradores||[]).length===1?'':'n'} ficha.
+        Suele ser porque a esa persona le falta pasaporte y email (sin uno de los dos no se crea ficha, para no duplicarla).
+        Se corrige rellenando ese dato en Contratos y volviendo a guardar.</p>` : ''}
     </section>` : `
     <section>
       <h3>Comprador</h3>
-      <p class="nota">Este contrato todavía no tiene ficha de comprador enlazada: el nombre
-        vive solo como texto dentro del contrato. Se crea sola al volver a guardarlo en Contratos.</p>
+      <p class="nota${enElContrato ? ' falta' : ''}">Este contrato todavía no tiene ficha de comprador enlazada: el nombre
+        vive solo como texto dentro del contrato. Se crea sola al volver a guardarlo en Contratos
+        ${enElContrato ? ' — siempre que el comprador tenga pasaporte o email.' : '.'}</p>
     </section>`;
 
   $('#panelDet').innerHTML = `
@@ -416,10 +480,11 @@ function pintarDetalle(){
     </section>
 
     <section>
-      <h3>Documentos emitidos</h3>
-      <table><thead><tr><th>Nº</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th></tr></thead>
-        <tbody>${filasFact}</tbody></table>
-      <p class="nota"><a class="enl" href="/facturas/">Emitir uno nuevo →</a></p>
+      <h3>Documentos de la operación</h3>
+      <table><thead><tr><th>Nº</th><th>Clase</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th><th>Ver</th></tr></thead>
+        <tbody>${filasDocumentos}</tbody></table>
+      <p class="nota">Contratos y facturación de esta venta, juntos.
+        <a class="enl" href="/facturas/">Emitir uno nuevo →</a></p>
     </section>
 
     <section>
@@ -436,15 +501,7 @@ function pintarDetalle(){
         sus operaciones. Se suben desde <a class="enl" href="/compradores/">Compradores</a>.</p>
     </section>
 
-    <section>
-      <h3>Contrato</h3>
-      <p class="nota">
-        ${op.pdf_firmado_path
-          ? `<b>PDF firmado guardado.</b> <a class="enl" href="#" data-pdf="${esc(op.pdf_firmado_path)}">Verlo aquí →</a>`
-          : 'Todavía no hay PDF firmado.'}
-        <br><a class="enl" href="/contracts/app.html">Abrir en Contratos →</a>
-      </p>
-    </section>`;
+    `;
 }
 
 /* ---------- vencimientos ----------

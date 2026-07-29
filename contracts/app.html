@@ -2100,10 +2100,11 @@ function compradoresDelFormulario(){
   let fuera = 0;
   (COMPRADORES || []).forEach((c, i) => {
     if(!String(c.nombre||'').trim()) return;
-    // `contrato_compradores.rol` solo admite hasta adquiriente_3. Con más, la
-    // clave (contrato_id, rol) chocaría y el upsert PISARÍA al anterior en
-    // silencio: mejor dejarlo fuera y decirlo.
-    if(i + 2 > 3){ fuera++; return; }
+    // El CHECK de `contrato_compradores.rol` admite adquiriente_1..9 desde el
+    // 29-jul (antes solo hasta el 3, y el cuarto se perdía: CC00008 tenía 4
+    // adquirientes y 3 fichas). Por encima de 9 no se inventa un rol: la clave
+    // (contrato_id, rol) chocaría y el upsert PISARÍA al anterior en silencio.
+    if(i + 2 > 9){ fuera++; return; }
     lista.push({ rol:'adquiriente_' + (i + 2), nombre:c.nombre, pasaporte:c.pasaporte,
                  email:c.email, telefono:c.telefono, domicilio:c.domicilio, nacionalidad:c.nacionalidad });
   });
@@ -2118,12 +2119,16 @@ async function sincronizarCompradores(contratoId){
   const { lista, fuera } = compradoresDelFormulario();
   const sobran = fuera ? ' · ' + fuera + ' adquiriente(s) más allá del III se quedan sin ficha' : '';
   if(!sb || !contratoId || !lista.length){ if(fuera) toast('Aviso:' + sobran.slice(2)); return; }
-  let altas = 0, enlaces = 0;
+  let altas = 0, enlaces = 0, sinIdentificar = [];
   try{
     for(const p of lista){
       const pas = normPasaporte(p.pasaporte);
       const mail = String(p.email||'').trim().toLowerCase();
-      if(!pas && !mail) continue;   // sin identificador no se crea ficha
+      // sin identificador no se crea ficha (un "cliente" sin pasaporte ni email
+      // se duplica en cuanto alguien escriba el nombre distinto). Antes esto se
+      // saltaba EN SILENCIO y el operador creía tener la ficha: ahora se dice
+      // con nombre y apellidos.
+      if(!pas && !mail){ sinIdentificar.push(String(p.nombre||'').trim() || p.rol); continue; }
 
       // ¿existe ya esa persona?
       let q = sb.from('clients').select('id');
@@ -2150,8 +2155,11 @@ async function sincronizarCompradores(contratoId){
       if(eLink) throw eLink;
       enlaces++;
     }
-    if(altas)  toast(altas + (altas===1 ? ' comprador dado de alta' : ' compradores dados de alta') + sobran);
-    else if(enlaces) toast('Comprador enlazado a su ficha' + sobran);
+    const sinId = sinIdentificar.length
+      ? ' · SIN ficha por falta de pasaporte y email: ' + sinIdentificar.join(', ') : '';
+    if(altas)  toast(altas + (altas===1 ? ' comprador dado de alta' : ' compradores dados de alta') + sobran + sinId);
+    else if(enlaces) toast('Comprador enlazado a su ficha' + sobran + sinId);
+    else if(sinIdentificar.length) toast('Contrato guardado' + sinId);
   }catch(err){
     // el contrato YA está guardado: esto es el índice de personas, no el documento
     toast('Contrato guardado, pero la ficha del comprador no: ' + (err.message || err));
@@ -2547,6 +2555,12 @@ async function init(){
   ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
   await loadTemplate(CURRENT.slug);
   buildPicker(); buildLangToggle(); buildForm();
+
+  // ?contrato=<id> abre ESE contrato al entrar. Lo usa el enlace "Abrir en
+  // Contratos" de Operaciones, que antes abría la herramienta en blanco y
+  // obligaba a buscar a mano el contrato que ya estabas mirando.
+  const pedido = new URLSearchParams(location.search).get('contrato');
+  if(pedido) await openSavedContract(pedido);
 }
 init();
 </script>
