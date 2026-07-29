@@ -1994,9 +1994,13 @@ async function subirPdfFirmado(file){
     // reintentar una subida manual sigue pisando su propio fichero (que es lo que
     // se quiere) pero ya no puede tocar el de una firma electrónica.
     const path = SAVED_CONTRACT.numero + '_manual.pdf';
+    // hash del PDF también en la subida manual: mismo valor probatorio que la
+    // firma remota (UU ITE 11/2008) — el bucket con upsert no prueba integridad,
+    // el hash del registro sí
+    const pdfHash = await sha256hex(new Uint8Array(await file.arrayBuffer()));
     const { error: upErr } = await sb.storage.from('contratos-firmados').upload(path, file, { upsert:true, contentType:'application/pdf' });
     if(upErr) throw upErr;
-    const { error: updErr } = await sb.from('contratos').update({ bloqueado:true, pdf_firmado_path:path }).eq('id', SAVED_CONTRACT.id);
+    const { error: updErr } = await sb.from('contratos').update({ bloqueado:true, pdf_firmado_path:path, pdf_firmado_hash:pdfHash }).eq('id', SAVED_CONTRACT.id);
     if(updErr) throw updErr;   // si esto falla, el PDF ya subió pero el contrato sigue editable — se puede reintentar sin duplicar (upsert)
     LOCKED = true; LOCKED_PDF_PATH = path;
     toast('Contrato bloqueado · PDF firmado guardado');
@@ -2358,7 +2362,7 @@ $('#emSend').addEventListener('click', enviarEmail);
    bloqueado en la BD. El token crudo va SOLO en la URL; en la tabla se guarda su
    hash SHA-256 (no reconstruible). */
 function buildSnapshot(){ SIGN_MODE=true; try{ return buildDoc(); } finally{ SIGN_MODE=false; } }
-async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', typeof s==='string' ? new TextEncoder().encode(s) : s); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function randToken(){ const a=new Uint8Array(32); crypto.getRandomValues(a); return [...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 
 function openFirmaModal(){

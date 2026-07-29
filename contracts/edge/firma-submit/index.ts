@@ -28,8 +28,8 @@ const corsFor = (req: Request) => {
   };
 };
 
-async function sha256hex(s: string): Promise<string> {
-  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+async function sha256hex(s: string | Uint8Array): Promise<string> {
+  const b = await crypto.subtle.digest('SHA-256', typeof s === 'string' ? new TextEncoder().encode(s) : s);
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 const esc = (s: string) =>
@@ -130,6 +130,10 @@ Deno.serve(async (req) => {
     // `upsert:true` se mantiene a propósito: ahora la ruta es única por firma,
     // así que reescribir solo puede pisar el reintento de ESA misma firma.
     const path = `${numero || 'contrato'}_${claimed.id}.pdf`;
+    // hash ANTES de subir: con el bucket en upsert, el registro es la única
+    // prueba de integridad del documento (UU ITE 11/2008 la exige para que el
+    // PDF valga como evidencia).
+    const pdfHash = await sha256hex(pdf);
     const up = await sb.storage.from('contratos-firmados').upload(path, pdf, { contentType: 'application/pdf', upsert: true });
     if (up.error) throw up.error;
 
@@ -154,7 +158,7 @@ Deno.serve(async (req) => {
 
     // 2) bloquear el contrato (mismo efecto que "Subir firmado" manual)
     const bloqueo = await sb.from('contratos')
-      .update({ bloqueado: true, pdf_firmado_path: path })
+      .update({ bloqueado: true, pdf_firmado_path: path, pdf_firmado_hash: pdfHash })
       .eq('id', claimed.contrato_id);
     if (bloqueo.error) throw new Error('no se pudo bloquear el contrato: ' + bloqueo.error.message);
 
@@ -166,10 +170,10 @@ Deno.serve(async (req) => {
     //    rastro en los logs de la función, porque un fallo silencioso era
     //    justamente el problema: el comentario decía "es solo un dato que
     //    falta" y nadie se enteraba de que faltaba.
-    const ruta = await sb.from('contrato_firmas').update({ pdf_path: path }).eq('id', claimed.id);
+    const ruta = await sb.from('contrato_firmas').update({ pdf_path: path, pdf_hash: pdfHash }).eq('id', claimed.id);
     if (ruta.error) {
-      console.error('firma', claimed.id, 'firmada pero SIN pdf_path:', ruta.error.message,
-                    '— el PDF está en', path);
+      console.error('firma', claimed.id, 'firmada pero SIN pdf_path/pdf_hash:', ruta.error.message,
+                    '— el PDF está en', path, 'con sha256', pdfHash);
     }
 
     return json({ ok: true, numero });
