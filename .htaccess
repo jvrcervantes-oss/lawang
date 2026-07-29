@@ -54,7 +54,11 @@ RedirectMatch 404 (?i)/\.git
   # que si no ha cambiado sigue siendo un 304 barato.
   # Se listan por NOMBRE (FilesMatch ignora la ruta): son ficheros unicos en el
   # sitio y cambian el comportamiento de todas las herramientas a la vez.
-  <FilesMatch "^(guard|visor|topbar|totales)\.(js|css)$">
+  # `consent` entra aquí porque el MISMO fallo se dio dos veces el 29-jul: otra
+  # sesion desplego el pixel de Meta y el CDN seguia sirviendo el consent.js
+  # viejo (commit 6e5105b). Un JS compartido cacheado 7 dias no es un problema
+  # de rendimiento, es un despliegue que no llega.
+  <FilesMatch "^(guard|visor|topbar|totales|consent)\.(js|css)$">
     Header set Cache-Control "no-cache, must-revalidate"
     # el servidor emite ademas un Expires a 7 dias. Cache-Control manda sobre
     # Expires por norma, asi que no rompe nada, pero deja unas cabeceras que se
