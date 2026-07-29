@@ -2173,6 +2173,7 @@ async function openContractsPanel(){
   $('#cpSearch').value = '';
   const list=$('#cpList'); list.innerHTML = 'Cargando…';
   if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
+  await cargarEquipo();   // para mostrar el nombre del autor en vez del email
   const { data, error } = await sb.from('contratos')
     .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por')
     .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
@@ -2181,6 +2182,20 @@ async function openContractsPanel(){
   renderCpList(CP_ROWS);
 }
 function cpTipoLabel(t){ return TIPO_LABEL[t] || t; }
+
+/* `contratos.creado_por` guarda el EMAIL, y así se queda: es la identidad con
+   la que la RLS decide quién puede editar su propio documento (`es_suyo()`
+   compara con auth.email()). Guardar ahí el nombre dejaría al autor sin poder
+   editar lo suyo. Lo que cambia es lo que se ENSEÑA: si esa persona tiene
+   nombre en su ficha, se muestra el nombre. */
+let EQUIPO = null;   // email → nombre
+async function cargarEquipo(){
+  if(EQUIPO || !sb) return;
+  const { data } = await sb.from('usuarios').select('email, nombre');
+  EQUIPO = {};
+  (data || []).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
+}
+const autorVisible = e => (EQUIPO && EQUIPO[e]) || e || '—';
 function renderCpList(rows){
   const list=$('#cpList');
   if(!rows.length){ list.innerHTML='<p class="cp-empty">Sin contratos guardados.</p>'; return; }
@@ -2192,13 +2207,16 @@ function renderCpList(rows){
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
       <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
       <span data-l="Fecha">${r.fecha_firma||''}</span>
-      <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(r.creado_por||'—')}</span>
+      <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}</span>
     </div>`).join('');
 }
 $('#cpSearch').addEventListener('input', e=>{
   const q=e.target.value.toLowerCase();
   renderCpList(!q ? CP_ROWS : CP_ROWS.filter(r=>
-    [r.numero,r.comprador_nombre,r.proyecto_nombre,r.creado_por].some(v=>(v||'').toLowerCase().includes(q))));
+    // se busca por las dos cosas: quien tiene el email en la cabeza lo escribe,
+    // y quien ve el nombre en pantalla busca por el nombre
+    [r.numero,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)]
+      .some(v=>(v||'').toLowerCase().includes(q))));
 });
 $('#cpList').addEventListener('click', async e=>{
   const row=e.target.closest('.cp-row'); if(!row) return;

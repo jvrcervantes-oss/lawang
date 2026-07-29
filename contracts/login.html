@@ -53,8 +53,12 @@ const sb = window.supabase.createClient(
   'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
 );
 // destino tras entrar: ?next=/ruta/ (solo rutas internas, nunca URL externa)
+// Sin `next`, se entra por la INTRANET y no por Contratos: la suite ya son
+// siete herramientas y aterrizar en una concreta obligaba a salir de ella para
+// ir a cualquier otra. Con `next` (lo pone el guard al rebotar) se respeta el
+// destino que se pedía, que es lo que espera quien pincha un enlace directo.
 const _n = new URLSearchParams(location.search).get('next') || '';
-const DEST = /^\/[^/\\]/.test(_n) ? _n : 'app.html';
+const DEST = /^\/[^/\\]/.test(_n) ? _n : '/intranet/';
 
 // si ya hay sesión válida, ir directo a la app
 sb.auth.getSession().then(({data:{session}})=>{ if(session) location.href=DEST; });
