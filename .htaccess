@@ -56,5 +56,10 @@ RedirectMatch 404 (?i)/\.git
   # sitio y cambian el comportamiento de todas las herramientas a la vez.
   <FilesMatch "^(guard|visor|topbar|totales)\.(js|css)$">
     Header set Cache-Control "no-cache, must-revalidate"
+    # el servidor emite ademas un Expires a 7 dias. Cache-Control manda sobre
+    # Expires por norma, asi que no rompe nada, pero deja unas cabeceras que se
+    # contradicen: quien diagnostique el proximo problema de cache las leera y
+    # perdera el tiempo. Fuera.
+    Header unset Expires
   </FilesMatch>
 </IfModule>
