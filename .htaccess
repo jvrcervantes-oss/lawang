@@ -44,4 +44,17 @@ RedirectMatch 404 (?i)/\.git
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
   Header always set Strict-Transport-Security "max-age=31536000"
+
+  # Piezas COMPARTIDAS de la suite interna: el servidor las servia con
+  # max-age=604800 (7 dias). El 29-jul eso dejo a los agentes con un guard.js
+  # viejo que no entregaba la ficha de permisos: el panel de usuarios les decia
+  # que no eran administradores aunque lo fueran, y el fallo no se ve en un
+  # `curl` con ?v= (que trae el fichero real) sino solo en un navegador que ya
+  # tenia el viejo. `no-cache` NO desactiva la cache: obliga a revalidar, asi
+  # que si no ha cambiado sigue siendo un 304 barato.
+  # Se listan por NOMBRE (FilesMatch ignora la ruta): son ficheros unicos en el
+  # sitio y cambian el comportamiento de todas las herramientas a la vez.
+  <FilesMatch "^(guard|visor|topbar|totales)\.(js|css)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
 </IfModule>

@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/contracts/assets/topbar.css">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js" data-herramienta="usuarios"></script>
+<script src="/contracts/assets/guard.js?v=20260729" data-herramienta="usuarios"></script>
 <style>
   :root{ --line:#E2DACA; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:56px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -296,12 +296,21 @@ LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   $('#who').textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
-  YO = ficha;
-  // El guard ya redirige a quien no tenga la herramienta, pero un agente con
-  // 'usuarios' en su lista y sin rol de admin llegaría hasta aquí y solo vería
-  // su propia fila (la RLS). Mejor decirlo que enseñar una pantalla vacía.
-  if(!ficha || !['super_admin','admin'].includes(ficha.rol)){
-    $('#stage').innerHTML = '<div class="vacio" style="grid-column:1/-1">Solo un administrador gestiona usuarios</div>';
+
+  /* La ficha se consulta AQUÍ si el guard no la trae. No es redundancia: el
+     29-jul un guard.js cacheado por el servidor (max-age 7 días) seguía siendo
+     la versión que no devolvía `ficha`, y este panel le decía al super_admin
+     que no era administrador. Depender de que un asset compartido esté fresco
+     para decidir un permiso es frágil; preguntarlo cuesta una consulta. */
+  YO = ficha || (await sb.from('usuarios').select('rol, herramientas, activo, nombre')
+                   .eq('user_id', session.user.id).maybeSingle()).data;
+
+  // Un agente con 'usuarios' en su lista pero sin rol de admin llegaría hasta
+  // aquí y solo vería su propia fila (la RLS). Mejor decirlo que enseñar una
+  // pantalla vacía.
+  if(!YO || !['super_admin','admin'].includes(YO.rol)){
+    $('#stage').innerHTML = '<div class="vacio" style="grid-column:1/-1">Solo un administrador gestiona usuarios'
+      + (YO ? ' · tu rol es «' + esc(YO.rol) + '»' : '') + '</div>';
     return;
   }
   await cargar();
