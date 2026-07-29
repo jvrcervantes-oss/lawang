@@ -143,13 +143,16 @@ let SB = null, OPS = [], SEL = null, POR_CLIENTE = {};
 /* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
    creó la tabla). Aquí solo se traducen para mostrar. */
 const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aprobado', rejected:'Rechazado' };
+const TIPO_ES = { reserva_parcela:'Bloqueo de Parcela', construccion:'Construcción', contrato_general:'Contrato General',
+  commercial_offer:'Oferta Comercial', carta_reserva:'Carta de Reserva', acuerdo_comercial:'Acuerdo Comercial',
+  protocolo_operativo:'Protocolo Operativo' };
 
 /* ---------- carga ----------
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
   const [c, f, s, cc, dc] = await Promise.all([
-    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,created_at,hitos:datos->hitos').order('created_at',{ascending:false}).limit(300),
+    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,hitos:datos->hitos').order('created_at',{ascending:false}).limit(300),
     SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
@@ -192,6 +195,18 @@ async function cargar(){
       return docsKyc.filter(d => d.contrato_id === ct.id || suyos.includes(d.client_id));
     })(),
   }));
+
+  /* Contratos vinculados (contratos.contrato_padre_id, puesto en Contratos al
+     elegir la reserva/PPJB desde la Construcción): la misma venta deja de salir
+     como dos filas. El hijo desaparece de la lista y vive dentro de la ficha
+     del padre; si el padre no está entre los cargados, el hijo se queda como
+     fila normal antes que desaparecer de la vista. */
+  const porId = {};
+  OPS.forEach(o => { porId[o.id] = o; o.hijos = []; o.padre = null; });
+  OPS.forEach(o => {
+    const p = o.contrato_padre_id && porId[o.contrato_padre_id];
+    if(p && p !== o){ o.padre = p; p.hijos.push(o); }
+  });
 }
 
 /* ---------- dinero ----------
@@ -219,13 +234,17 @@ function cuenta(op){
 /* ---------- lista ---------- */
 function pintarLista(){
   const q = $('#q').value.trim().toLowerCase();
-  const vis = OPS.filter(o => !q || [o.numero,o.comprador_nombre,o.proyecto_nombre].some(v => String(v||'').toLowerCase().includes(q)));
+  // el hijo no es fila: buscar por su número o comprador debe traer la
+  // operación entera, o sea la fila del padre
+  const vis = OPS.filter(o => !o.padre).filter(o => !q ||
+    [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre].some(v => String(v||'').toLowerCase().includes(q))));
   $('#listaOps').innerHTML = vis.length ? vis.map(o => {
     const b = [];
     if(o.bloqueado) b.push('<span class="tag ok">Firmado</span>');
     else b.push('<span class="tag espera">Sin firmar</span>');
     if(o.firmas.some(x => x.estado === 'pendiente')) b.push('<span class="tag info">Firma enviada</span>');
     if(o.facturas.filter(x=>!x.anulada).length) b.push('<span class="tag info">' + o.facturas.filter(x=>!x.anulada).length + ' doc.</span>');
+    if(o.hijos.length) b.push('<span class="tag info">+' + o.hijos.length + ' contrato' + (o.hijos.length>1?'s':'') + '</span>');
     return `<button class="op ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}">
       <div class="n">${esc(o.numero || 'sin nº')}</div>
       <p class="c">${esc(o.comprador_nombre || 'Sin comprador')}</p>
@@ -298,6 +317,32 @@ function pintarDetalle(){
 
   const titulo = fichas.length ? fichas.map(v => v.clients.full_name).filter(Boolean).join(' · ')
                               : (op.comprador_nombre || 'Sin comprador');
+
+  /* La misma venta en varios documentos (reserva/PPJB + obra): se enseñan
+     juntos y se salta entre ellos sin volver al listado. Cada contrato conserva
+     su propio estado de cuenta — sumar los precios inventaría un total que
+     ningún documento dice. El facturado de la operación sí es un hecho. */
+  const cadena = op.padre ? [op.padre, ...op.padre.hijos] : (op.hijos.length ? [op, ...op.hijos] : null);
+  const bloqueCadena = cadena ? `
+    <section>
+      <h3>Contratos de la operación</h3>
+      <table><thead><tr><th>Nº</th><th>Tipo</th><th class="num">Precio</th><th class="num">Emitido</th><th>Estado</th></tr></thead><tbody>
+      ${cadena.map(x => {
+        const cx = cuenta(x);
+        return `<tr>
+          <td>${x.id === op.id
+            ? '<b>' + esc(x.numero || 'sin nº') + '</b> <span class="nota">(abierta)</span>'
+            : `<a class="enl" href="?contrato=${encodeURIComponent(x.id)}" data-op="${esc(x.id)}">${esc(x.numero || 'sin nº')}</a>`}</td>
+          <td>${esc(TIPO_ES[x.tipo] || x.tipo || '—')}</td>
+          <td class="num">${cx.precio ? esc(fmtMoneda(cx.precio, cx.moneda)) : '—'}</td>
+          <td class="num">${esc(fmtMoneda(cx.facturado, cx.moneda))}</td>
+          <td>${x.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+      <p class="nota">Vinculados desde Contratos («Nº del Contrato de Reserva/PPJB vinculado» en la Construcción).
+        Cada contrato mantiene su estado de cuenta; no se suman los precios entre documentos.</p>
+    </section>` : '';
   const bloqueFichas = fichas.length ? `
     <section>
       <h3>Comprador${fichas.length > 1 ? 'es' : ''}</h3>
@@ -338,6 +383,8 @@ function pintarDetalle(){
     <h2 class="tit">${esc(titulo)}</h2>
     <p class="sub">${esc(op.proyecto_nombre || 'Sin proyecto')} · Contrato <b>${esc(op.numero || 'sin nº')}</b>
       · ${op.bloqueado ? 'firmado y bloqueado' : 'sin firmar'}${op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''}</p>
+
+    ${bloqueCadena}
 
     ${bloqueFichas}
 
@@ -445,6 +492,13 @@ $('#listaOps').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if(!b) return;
   SEL = b.dataset.id; pintarLista(); pintarDetalle();
   $('#stage').classList.add('abierta');
+});
+// saltar entre los contratos de una operación sin recargar la página — el href
+// con ?contrato= queda de respaldo (abrir en pestaña nueva sigue funcionando)
+$('#panelDet').addEventListener('click', e => {
+  const a = e.target.closest('[data-op]'); if(!a) return;
+  e.preventDefault();
+  SEL = a.dataset.op; pintarLista(); pintarDetalle();
 });
 $('#q').addEventListener('input', pintarLista);
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {

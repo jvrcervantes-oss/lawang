@@ -544,6 +544,22 @@ const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', co
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
+/* Contratos a los que una Construcción puede vincularse: el campo
+   num_reserva_vinculada deja de ser texto libre y pasa a desplegable con los
+   contratos de reserva/PPJB reales guardados. El VALOR es el número (es lo que
+   se imprime en el documento); contractPayload lo resuelve a id para
+   contratos.contrato_padre_id, que es lo que Operaciones usa para juntar
+   reserva y obra en una sola operación. */
+const TIPOS_VINCULABLES = ['reserva_parcela','carta_reserva','contrato_general'];
+let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
+async function cargarVinculables(){
+  if(VINCULABLES || !sb) return;
+  const { data, error } = await sb.from('contratos')
+    .select('id,numero,tipo,comprador_nombre,proyecto_nombre')
+    .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
+  if(!error) VINCULABLES = data || [];
+}
+
 /* ancho del hueco según el dato: un % o fecha no necesita tanto sitio como un nombre */
 function sizeClass(key){
   const t = FIELDTYPE[key] || 'text';
@@ -1776,6 +1792,12 @@ function deriveSections(){
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
   if(relabel) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> relabel[f[0]] ? [f[0], relabel[f[0]], ...f.slice(2)] : f); });
+  // nº de reserva/PPJB vinculado → desplegable con los contratos guardados. Si
+  // la lista no cargó (sin red), el campo se queda como texto libre y no bloquea.
+  if(inDoc.has('num_reserva_vinculada') && (VINCULABLES||[]).length){
+    const opts = VINCULABLES.map(c=>[c.numero, c.numero+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+    SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> f[0]==='num_reserva_vinculada' ? [f[0], f[1], 'select', opts] : f); });
+  }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
   const missing = [...inDoc].filter(k=>!known.has(k));
   if(missing.length){
@@ -1830,6 +1852,7 @@ async function loadTemplate(slug){
   CURRENT = TEMPLATES.find(t=>t.slug===slug) || TEMPLATES[0];
   try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
+  if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
   deriveSections();
   // Diseño: Supabase compartido (la plantilla "real") > caché local de este
   // navegador (edición sin guardar) > default de fábrica.
@@ -2001,6 +2024,10 @@ function contractPayload(){
     precio_total: parseImporte(data.precio_total),
     moneda: data.moneda || null,
     fecha_firma: data.fecha_firma || null,
+    // vínculo con la reserva/PPJB de la misma venta: el número elegido en el
+    // desplegable se resuelve a su id. Un valor viejo tecleado a mano que no
+    // case con ningún contrato guardado imprime igual pero no vincula (null).
+    contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id || null,
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES, clauses: CLAUSES,
@@ -2169,7 +2196,15 @@ function populateForm(fields){
   Object.entries(fields || {}).forEach(([k,v])=>{
     if(v===null || v===undefined || v==='') return;
     const el=document.querySelector(`[name="${k}"]`);
-    if(el){ el.value=v; return; }
+    if(el){
+      // un select cuyo valor guardado ya no está entre las opciones (contrato
+      // vinculado tecleado a mano, cuenta retirada…) lo perdería en silencio:
+      // se añade como opción para que sobreviva tal cual se guardó
+      if(el.tagName==='SELECT' && ![...el.options].some(o=>o.value===String(v))){
+        const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o);
+      }
+      el.value=v; return;
+    }
     if(k.startsWith('firma')) drawToPad(k, v);
   });
   // reactiva secciones opcionales (ej. sociedad) si traían datos
@@ -2234,6 +2269,11 @@ async function derivarContrato(slug){
   // contrato nuevo ya "firmado" por alguien que no lo ha visto — un documento
   // falso, no un atajo. Una línea contra eso vale lo que cuesta.
   Object.keys(f).forEach(k => { if(k.startsWith('firma')) delete f[k]; });
+  // derivar una reserva/PPJB guardada hacia la Construcción es exactamente el
+  // caso para el que existe el vínculo: se deja puesto sin que haya que buscarlo
+  if(slug==='ppjb_construccion' && SAVED_CONTRACT && SAVED_CONTRACT.numero
+     && TIPOS_VINCULABLES.includes(CONTRACT_TIPO[CURRENT.slug]))
+    f.num_reserva_vinculada = SAVED_CONTRACT.numero;
   const compradores = COMPRADORES.map(c=>({...c}));
   const hitos = Array.isArray(HITOS) ? HITOS.map(h=>({...h})) : [];
 
