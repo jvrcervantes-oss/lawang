@@ -47,9 +47,12 @@
                 letter-spacing:.16em; text-transform:uppercase; }
   h2.tit{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:27px; font-weight:600; margin:0 0 2px; }
   .sub{ color:var(--muted); font-size:13.5px; margin:0 0 18px; }
-  section{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; }
-  section > h3{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
-                margin:0 0 12px; font-weight:500; }
+  section{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; overflow:hidden; }
+  /* título de sección = banda de marca a lo ancho de la tarjeta (los márgenes
+     negativos la llevan hasta el borde; el overflow:hidden del section recorta
+     las esquinas contra el radio de la tarjeta) */
+  section > h3{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--rl,#F5F0E6);
+                background:var(--dl,#104C4F); margin:-16px -18px 14px; padding:10px 18px; font-weight:600; }
   table{ width:100%; border-collapse:collapse; font-size:13.5px; }
   th{ text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
       font-weight:500; padding:0 8px 7px 0; }
@@ -84,6 +87,17 @@
     color:#fff; padding:11px 20px; border-radius:30px; font-size:13px; z-index:200; opacity:0;
     transition:opacity .3s; pointer-events:none; }
   .toast.show{ opacity:1; }
+
+  /* visor de documentos: el documento se ve AQUÍ, sin cambiar de ventana */
+  .doc-overlay{ position:fixed; inset:0; background:rgba(46,52,55,.5); z-index:120;
+    display:none; align-items:center; justify-content:center; padding:22px; }
+  .doc-overlay.open{ display:flex; }
+  .doc-modal{ background:var(--card); border-radius:14px; width:min(1080px,100%); height:min(88vh,100%);
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.28); }
+  .doc-head{ display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); }
+  .doc-head b{ font-size:13px; letter-spacing:.06em; }
+  .doc-head .lw-btn{ margin-left:auto; }
+  .doc-modal iframe{ flex:1; border:none; width:100%; background:#fff; }
 </style>
 </head>
 <body>
@@ -112,6 +126,17 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <div class="doc-overlay" id="docOverlay">
+    <div class="doc-modal">
+      <div class="doc-head">
+        <b id="docTitle">Documento</b>
+        <a class="enl" id="docAbrir" href="#" target="_blank" rel="noopener">Abrir en su herramienta →</a>
+        <button type="button" class="lw-btn" id="docClose">Cerrar</button>
+      </div>
+      <iframe id="docFrame" title="Documento"></iframe>
+    </div>
+  </div>
 
 <script>
 /* ============================================================
@@ -272,7 +297,9 @@ function pintarDetalle(){
   }).join('') : '<tr><td colspan="3" class="nota">El contrato no fijó hitos de pago.</td></tr>';
 
   const filasFact = op.facturas.length ? op.facturas.map(f => `<tr>
-      <td>${esc(f.numero || '—')} <span class="nota">${esc({factura:'Factura',proforma:'Proforma',recibi:'Recibí'}[f.tipo] || f.tipo || '')}</span></td>
+      <td><a class="enl" href="/facturas/?id=${encodeURIComponent(f.id)}" data-doc="1"
+             title="Ver el documento aquí mismo">${esc(f.numero || 'borrador')}</a>
+          <span class="nota">${esc({factura:'Factura',proforma:'Proforma',recibi:'Recibí'}[f.tipo] || f.tipo || '')}</span></td>
       <td>${fFecha(f.fecha_emision)}</td>
       <td class="num">${esc(fmtMoneda(parseImporte(f.total), f.moneda || c.moneda))}</td>
       <td>${f.anulada ? '<span class="tag alerta">Anulada</span>' : (f.tipo === 'proforma' ? '<span class="tag espera">No suma</span>' : '<span class="tag ok">Emitida</span>')}</td>
@@ -429,7 +456,9 @@ function pintarDetalle(){
     <section>
       <h3>Contrato</h3>
       <p class="nota">
-        ${op.pdf_firmado_path ? '<b>PDF firmado guardado.</b> Se descarga desde Contratos, con enlace temporal.' : 'Todavía no hay PDF firmado.'}
+        ${op.pdf_firmado_path
+          ? `<b>PDF firmado guardado.</b> <a class="enl" href="#" data-pdf="${esc(op.pdf_firmado_path)}">Verlo aquí →</a>`
+          : 'Todavía no hay PDF firmado.'}
         <br><a class="enl" href="/contracts/app.html">Abrir en Contratos →</a>
       </p>
     </section>`;
@@ -495,11 +524,36 @@ $('#listaOps').addEventListener('click', e => {
 });
 // saltar entre los contratos de una operación sin recargar la página — el href
 // con ?contrato= queda de respaldo (abrir en pestaña nueva sigue funcionando)
-$('#panelDet').addEventListener('click', e => {
-  const a = e.target.closest('[data-op]'); if(!a) return;
-  e.preventDefault();
-  SEL = a.dataset.op; pintarLista(); pintarDetalle();
+$('#panelDet').addEventListener('click', async e => {
+  const a = e.target.closest('[data-op]');
+  if(a){ e.preventDefault(); SEL = a.dataset.op; pintarLista(); pintarDetalle(); return; }
+  // documento emitido → visor embebido (la app de Facturas con ese doc abierto)
+  const doc = e.target.closest('[data-doc]');
+  if(doc){ e.preventDefault(); abrirVisor(doc.getAttribute('href'), doc.textContent.trim()); return; }
+  // PDF firmado del contrato → URL firmada de corta vida en el mismo visor
+  const pdf = e.target.closest('[data-pdf]');
+  if(pdf){
+    e.preventDefault();
+    const { data, error } = await SB.storage.from('contratos-firmados').createSignedUrl(pdf.dataset.pdf, 3600);
+    if(error || !data){ toast('No se pudo abrir el PDF: ' + (error && error.message || 'sin URL')); return; }
+    abrirVisor(data.signedUrl, 'PDF firmado');
+  }
 });
+
+/* ---------- visor de documentos ---------- */
+function abrirVisor(url, titulo){
+  $('#docTitle').textContent = titulo || 'Documento';
+  $('#docAbrir').href = url;
+  $('#docFrame').src = url;
+  $('#docOverlay').classList.add('open');
+}
+function cerrarVisor(){
+  $('#docOverlay').classList.remove('open');
+  $('#docFrame').src = 'about:blank';   // corta la carga y libera la app embebida
+}
+$('#docClose').addEventListener('click', cerrarVisor);
+$('#docOverlay').addEventListener('click', e => { if(e.target === $('#docOverlay')) cerrarVisor(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('#docOverlay').classList.contains('open')) cerrarVisor(); });
 $('#q').addEventListener('input', pintarLista);
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));

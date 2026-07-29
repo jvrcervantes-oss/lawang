@@ -280,6 +280,20 @@ sb.auth.getSession().then(({data:{session}}) => {
   $('#who').textContent = session.user.email;
   document.body.hidden = false;
   cargarContratos();
+  // deep-link ?id=<factura>: abre ese documento guardado directamente — lo usa
+  // el visor embebido de Operaciones (y vale como enlace compartible interno).
+  // Va aquí y no al final del script: antes de restaurarse la sesión la
+  // consulta saldría como anon y la RLS devolvería vacío.
+  const pedido = new URLSearchParams(location.search).get('id');
+  if(pedido){
+    sb.from('facturas')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos')
+      .eq('id', pedido).maybeSingle()
+      .then(({ data, error }) => {
+        if(error || !data){ toast('No se encontró ese documento'); return; }
+        abrir(data);
+      });
+  }
 });
 $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
 
