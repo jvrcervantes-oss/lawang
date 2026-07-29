@@ -122,3 +122,29 @@ create policy "agentes con la herramienta actualizan unidades" on public.unidade
 drop policy if exists "agentes crean unidades" on public.unidades;
 create policy "agentes con la herramienta crean unidades" on public.unidades
   for insert to authenticated with check (public.es_agente() and public.puede('unidades'));
+
+-- ── Permisos de ejecución ────────────────────────────────────────────────
+-- Postgres concede EXECUTE a PUBLIC al crear una función, y `anon` lo hereda:
+-- revocar solo de `anon` no hace nada. Hay que quitarlo de PUBLIC y devolverlo.
+-- ⚠️ `authenticated` LO NECESITA: las policies evalúan estas funciones con los
+-- privilegios de la sesión; sin EXECUTE, cada comprobación de RLS fallaría con
+-- "permission denied" y la suite entera quedaría fuera.
+revoke execute on function public.es_agente()   from public;
+revoke execute on function public.es_admin()    from public;
+revoke execute on function public.puede(text)   from public;
+revoke execute on function public.es_suyo(text) from public;
+grant  execute on function public.es_agente()   to authenticated, service_role;
+grant  execute on function public.es_admin()    to authenticated, service_role;
+grant  execute on function public.puede(text)   to authenticated, service_role;
+grant  execute on function public.es_suyo(text) to authenticated, service_role;
+
+-- ── Cómo se verificó (29-jul-2026), para repetirlo ───────────────────────
+-- La conexión del MCP es PROPIETARIA de las tablas y por tanto BYPASEA la RLS:
+-- un `select count(*)` desde ahí devuelve todo aunque la política esté mal, así
+-- que no prueba nada. Hay que asumir el rol de verdad, y `set_config('role',…)`
+-- dentro de un LATERAL no basta: se necesita `SET LOCAL ROLE authenticated`
+-- dentro de una función plpgsql temporal (creada, usada y BORRADA).
+-- Resultado sobre el contrato RP00016 (autor admin@):
+--   sales@ → 0 filas (denegado) · su autor → 1 · super_admin → 1 · desactivado → 0
+-- Y en lectura: un agente ve 1 ficha de usuario (la suya), el super_admin las 7,
+-- y un usuario desactivado ve 0 contratos y 0 facturas.
