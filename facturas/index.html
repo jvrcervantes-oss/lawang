@@ -286,8 +286,20 @@ const sb = window.supabase.createClient(
   'https://vtulllundrfennhjddhc.supabase.co',
   'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
 );
-sb.auth.getSession().then(({data:{session}}) => {
+sb.auth.getSession().then(async ({data:{session}}) => {
   if(!session){ location.replace('/contracts/login.html?next=/facturas/'); return; }
+  const modoVista = new URLSearchParams(location.search).has('vista');
+  const { data: ficha } = await sb.from('usuarios')
+    .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
+  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/contracts/login.html?desactivado=1'); return; }
+  // El permiso 'facturas' gobierna EMITIR. En modo vista (el visor de
+  // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
+  // consultar lo emitido está abierto a todo el equipo, igual que en la RLS,
+  // donde el filtro por herramienta está en la escritura y no en la lectura.
+  if(!modoVista && ficha && !['super_admin','admin'].includes(ficha.rol)
+     && !(ficha.herramientas||[]).includes('facturas')){
+    location.replace('/intranet/?sin_permiso=facturas'); return;
+  }
   $('#who').textContent = session.user.email;
   document.body.hidden = false;
   cargarContratos();

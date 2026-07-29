@@ -2521,6 +2521,16 @@ async function init(){
   if(!sb){ toast('Supabase no disponible'); return; }
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ location.href='login.html'; return; }
+  // permiso por herramienta (ver public.usuarios): sin ficha se entra igual
+  // —cuentas anteriores al panel—, desactivado o sin 'contratos' se rebota.
+  // La RLS ya impide guardar; esto evita enseñar una herramienta que fallaría
+  // al pulsar Guardar, que es la peor forma de enterarse.
+  const { data: ficha } = await sb.from('usuarios')
+    .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
+  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.href='login.html?desactivado=1'; return; }
+  if(ficha && !['super_admin','admin'].includes(ficha.rol) && !(ficha.herramientas||[]).includes('contratos')){
+    location.replace('/intranet/?sin_permiso=contratos'); return;
+  }
   const who=$('#who'); if(who){ who.textContent = session.user.email || ''; who.title = 'Sesión iniciada como ' + (session.user.email||''); }
 
   // "Editar texto" restaurado para todos los agentes (pedido explícito del

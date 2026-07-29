@@ -18,11 +18,24 @@
 
    La página queda oculta hasta confirmar sesión — si no, la herramienta se
    pinta entera durante un instante antes de redirigir, y eso se lee y se
-   fotografía. */
+   fotografía.
+
+   PERMISO POR HERRAMIENTA (29-jul-2026). Declararlo en la propia etiqueta:
+     <script src="/contracts/assets/guard.js" data-herramienta="contratos"></script>
+   Si el usuario tiene ficha en `public.usuarios` y esa herramienta no está en
+   su lista, se le devuelve a la intranet. Sin ficha (cuentas anteriores al
+   panel) se permite: mismo criterio de compatibilidad que las funciones SQL.
+   ⚠️ Esto decide lo que se VE. Lo que de verdad impide escribir es la RLS
+   (`puede('herramienta')` en las policies) — esto solo evita enseñar una
+   herramienta que luego fallaría al guardar. */
 (function () {
   var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
   var LOGIN  = '/contracts/login.html';
+  var HUB    = '/intranet/';
+
+  var propia = document.currentScript;
+  var HERRAMIENTA = propia && propia.getAttribute('data-herramienta');
 
   var raiz = document.documentElement;
   raiz.style.visibility = 'hidden';
@@ -38,8 +51,26 @@
       sb.auth.getSession().then(function (r) {
         var sesion = r && r.data && r.data.session;
         if (!sesion) { alLogin(); return; }
-        raiz.style.visibility = '';
-        resolve({ sb: sb, session: sesion });
+        // la ficha manda qué herramientas ve. La RLS de `usuarios` ya limita
+        // esta consulta a la fila propia (o a todas, si es admin).
+        sb.from('usuarios').select('rol, herramientas, activo, nombre')
+          .eq('user_id', sesion.user.id).maybeSingle()
+          .then(function (f) {
+            var ficha = (f && f.data) || null;
+            if (ficha && !ficha.activo) { alLogin(); return; }   // desactivado = fuera
+            var admin = ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin');
+            if (HERRAMIENTA && ficha && !admin &&
+                (ficha.herramientas || []).indexOf(HERRAMIENTA) === -1) {
+              location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));
+              return;
+            }
+            raiz.style.visibility = '';
+            resolve({ sb: sb, session: sesion, ficha: ficha });
+          })
+          .catch(function () {   // sin poder leer la ficha se entra igual: la RLS sigue protegiendo los datos
+            raiz.style.visibility = '';
+            resolve({ sb: sb, session: sesion, ficha: null });
+          });
       }).catch(alLogin);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', comprobar);

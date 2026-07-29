@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js"></script>
+<script src="/contracts/assets/guard.js" data-herramienta="unidades"></script>
 <script src="/facturas/totales.js"></script>
 <style>
   :root{ --line:#E2DACA; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:56px; }
@@ -60,12 +60,14 @@
   .btn.primary{ background:var(--dl); border-color:var(--dl); color:#fff; }
   .btn:disabled{ opacity:.5; cursor:default; }
 
-  .tag{ display:inline-block; font-size:10.5px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; border-radius:999px; padding:3px 10px; }
-  .e-disponible{    background:rgba(72,91,55,.13);   color:#3B4B2D; }
-  .e-reservada{     background:rgba(190,179,165,.34);color:#6A5A3C; }
-  .e-vendida{       background:rgba(16,76,79,.12);   color:#0D4245; }
-  .e-bloqueada{     background:rgba(163,52,43,.12);  color:#A3342B; }
-  .e-no_disponible{ background:rgba(46,52,55,.09);   color:#5A6062; }
+  /* estado en color sólido (mismo criterio que Operaciones y Compradores): AA >4.5:1 */
+  .tag{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+        border-radius:999px; padding:4px 10px; color:#fff; background:#5A6062; }
+  .e-disponible{    background:#3F5230; }
+  .e-reservada{     background:#8C5E10; }
+  .e-vendida{       background:#104C4F; }
+  .e-bloqueada{     background:#9E2F26; }
+  .e-no_disponible{ background:#5A6062; }
 
   .aviso{ font-size:12.5px; line-height:1.5; color:#6A5A3C; background:rgba(190,179,165,.24);
           border-radius:9px; padding:9px 11px; margin:10px 0 0; }

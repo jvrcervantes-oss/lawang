@@ -14,7 +14,7 @@
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="/contracts/assets/visor.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js"></script>
+<script src="/contracts/assets/guard.js" data-herramienta="operaciones"></script>
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
 <script src="/facturas/totales.js"></script>
 <style>
@@ -64,12 +64,15 @@
   .cifra .v{ font-size:19px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
   .cifra .v.gris{ color:var(--ss,#BEB3A5); font-weight:400; font-size:15px; }
 
-  .tag{ display:inline-block; font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-        border-radius:999px; padding:3px 9px; white-space:nowrap; }
-  .tag.ok{    background:rgba(72,91,55,.13);  color:var(--tg); }
-  .tag.espera{background:rgba(190,179,165,.3); color:#7a6f60; }
-  .tag.alerta{background:rgba(163,52,43,.12);  color:#a3342b; }
-  .tag.info{  background:rgba(16,76,79,.1);    color:var(--dl); }
+  /* Estados en color SÓLIDO con texto claro: el lavado pálido de antes se leía
+     como decoración y había que buscar el estado. Los 5 pasan contraste AA
+     (>4.5:1) sobre blanco. Mismos colores en Unidades y Compradores. */
+  .tag{ display:inline-block; font-size:10px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+        border-radius:999px; padding:4px 10px; white-space:nowrap; color:#fff; background:#5A6062; }
+  .tag.ok{    background:#3F5230; }
+  .tag.espera{background:#8C5E10; }
+  .tag.alerta{background:#9E2F26; }
+  .tag.info{  background:#104C4F; }
 
   a.enl{ color:var(--dl); text-decoration:none; border-bottom:1px solid rgba(16,76,79,.3); }
   a.enl:hover{ border-bottom-color:var(--dl); }

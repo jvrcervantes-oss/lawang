@@ -243,29 +243,39 @@ footer .sep{ border-top:1px solid var(--line); padding-top:16px; }
 /* Añadir una herramienta = una entrada en su sección.
    `href` vacío = todavía no existe, y `falta` explica qué le falta: un estado
    vacío que no dice qué hacer es una tarjeta muerta.
-   `icon` = clase de Phosphor (familia única, un solo grosor). */
+   `icon` = clase de Phosphor (familia única, un solo grosor).
+   `herr` = herramienta de `public.usuarios.herramientas`: quien no la tenga no
+   ve la tarjeta. Sin ficha en esa tabla (cuentas anteriores al panel) se ven
+   todas, igual que antes. */
 const SECCIONES = [
   { titulo:'Seguimiento', tools:[
-    { name:'Operaciones', icon:'ph-chart-line-up', destacada:true, href:'/operaciones/',
+    { name:'Operaciones', icon:'ph-chart-line-up', destacada:true, href:'/operaciones/', herr:'operaciones',
       desc:'Cómo va cada venta: estado de cuenta, documentos emitidos, firmas y vencimientos.' },
   ]},
   { titulo:'Documentación', tools:[
-    { name:'Contratos', icon:'ph-file-text', href:'/contracts/app.html',
+    { name:'Contratos', icon:'ph-file-text', href:'/contracts/app.html', herr:'contratos',
       desc:'Reservas, PPJB, construcción y anexos.' },
-    { name:'Dossier',   icon:'ph-book-open',  href:'/dossier/builder.html',
+    { name:'Dossier',   icon:'ph-book-open',  href:'/dossier/builder.html', herr:'dossier',
       desc:'Dossiers de producto en A4 apaisado.' },
   ]},
   { titulo:'Administración', tools:[
-    { name:'Facturas', icon:'ph-receipt',    href:'/facturas/',
+    { name:'Facturas', icon:'ph-receipt',    href:'/facturas/', herr:'facturas',
       desc:'Facturas, proformas y recibís, cada tipo con su serie.' },
-    { name:'Recibos',  icon:'ph-hand-coins', href:'/facturas/?tipo=recibi',
+    { name:'Recibos',  icon:'ph-hand-coins', href:'/facturas/?tipo=recibi', herr:'facturas',
       desc:'Justificantes de pago y señales.' },
   ]},
   { titulo:'Base de datos', tools:[
-    { name:'Unidades',    icon:'ph-house-line', href:'/unidades/',
+    { name:'Unidades',    icon:'ph-house-line', href:'/unidades/', herr:'unidades',
       desc:'Inventario de parcelas y villas con su estado de venta.' },
-    { name:'Compradores', icon:'ph-identification-card', href:'/compradores/',
+    { name:'Compradores', icon:'ph-identification-card', href:'/compradores/', herr:'compradores',
       desc:'Ficha del comprador y documentación KYC, con caducidades.' },
+  ]},
+  { titulo:'Equipo', tools:[
+    // soloAdmin: la compatibilidad "sin ficha = ve todo" no puede alcanzar al
+    // panel de permisos. Una cuenta antigua sin fila en `usuarios` vería la
+    // tarjeta, entraría y se encontraría una pantalla que le niega el paso.
+    { name:'Usuarios', icon:'ph-users-three', href:'/usuarios/', herr:'usuarios', soloAdmin:true,
+      desc:'Quién entra, con qué rol y qué herramientas ve cada uno.' },
   ]},
 ];
 
@@ -283,24 +293,50 @@ const tarjeta = t => {
     : `<div class="${clases}">${cuerpo}</div>`;
 };
 
-document.getElementById('secciones').innerHTML = SECCIONES.map(s => {
-  const listas = s.tools.filter(t => t.href).length;
-  const cuenta = listas === s.tools.length ? '' :
-    `<span class="cuenta">${listas} de ${s.tools.length} lista${s.tools.length > 1 ? 's' : ''}</span>`;
-  return `<section class="seccion">
-    <h2>${esc(s.titulo)}${cuenta}</h2>
-    <div class="grid${s.tools.length === 1 ? ' una' : ''}">${s.tools.map(tarjeta).join('')}</div>
-  </section>`;
-}).join('');
+/* Se pinta con las herramientas que tenga el usuario. `ficha` null (cuenta sin
+   fila en `usuarios`) = se ve todo, igual que antes del panel de permisos. */
+function pintarSecciones(ficha){
+  const admin = ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin');
+  const puede = t => t.soloAdmin ? !!admin
+                   : (!ficha || admin || !t.herr || (ficha.herramientas || []).includes(t.herr));
+  document.getElementById('secciones').innerHTML = SECCIONES.map(s => {
+    const tools = s.tools.filter(puede);
+    if (!tools.length) return '';                       // sección entera sin permiso: no se anuncia
+    const listas = tools.filter(t => t.href).length;
+    const cuenta = listas === tools.length ? '' :
+      `<span class="cuenta">${listas} de ${tools.length} lista${tools.length > 1 ? 's' : ''}</span>`;
+    return `<section class="seccion">
+      <h2>${esc(s.titulo)}${cuenta}</h2>
+      <div class="grid${tools.length === 1 ? ' una' : ''}">${tools.map(tarjeta).join('')}</div>
+    </section>`;
+  }).join('');
+}
 
 /* mismo proyecto y key publicable que contracts/login.html — el candado real es la RLS */
 const sb = window.supabase.createClient(
   'https://vtulllundrfennhjddhc.supabase.co',
   'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
 );
-sb.auth.getSession().then(({ data: { session } }) => {
+sb.auth.getSession().then(async ({ data: { session } }) => {
   if (!session) { location.replace('/contracts/login.html?next=/intranet/'); return; }
   document.getElementById('who').textContent = session.user.email;
+  const { data: ficha } = await sb.from('usuarios')
+    .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
+  if (ficha && !ficha.activo) {           // desactivado: se le cierra la sesión, no se le enseña un hub vacío
+    await sb.auth.signOut();
+    location.replace('/contracts/login.html?desactivado=1');
+    return;
+  }
+  pintarSecciones(ficha || null);
+  // aviso al volver rebotado de una herramienta sin permiso (guard.js)
+  const sin = new URLSearchParams(location.search).get('sin_permiso');
+  if (sin) {
+    const p = document.createElement('p');
+    p.className = 'falta';
+    p.style.cssText = 'max-width:760px;margin:0 auto 18px;text-align:center';
+    p.textContent = 'No tienes acceso a «' + sin + '». Pídeselo a un administrador.';
+    document.querySelector('main .intro').after(p);
+  }
   document.body.hidden = false;
 });
 document.getElementById('out').onclick = async () => {
