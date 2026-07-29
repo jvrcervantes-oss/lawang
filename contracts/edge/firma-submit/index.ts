@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       .update({ estado: 'procesando' })
       .eq('token_hash', hash)
       .eq('estado', 'pendiente')
-      .select('id, contrato_id, expira_en, snapshot_path, firmante_nombre, firmante_email, contratos(numero)')
+      .select('id, contrato_id, expira_en, snapshot_path, firmante_nombre, firmante_email, firmante_rol, contratos(numero)')
       .maybeSingle();
     if (!claimed) return json({ error: 'no_disponible' }, 409); // no existe, ya usado, o en proceso
     claimedId = claimed.id;
@@ -98,16 +98,78 @@ Deno.serve(async (req) => {
     const { data: file, error: dlErr } = await sb.storage.from('contratos-firmados').download(claimed.snapshot_path);
     if (dlErr || !file) throw new Error('snapshot no disponible');
     let html = await file.text();
-    html = html.replaceAll('%%FIRMA_ADQUIRIENTE%%', signature); // firma real dentro del <img src>
-    const audit = auditPage({
-      nombre: typedName || claimed.firmante_nombre || '',
-      email: claimed.firmante_email || '',
-      fechaISO: new Date().toISOString(),
-      ip,
-      numero,
-      ref: claimed.id,
-    });
-    html = html.includes('</body>') ? html.replace('</body>', audit + '</body>') : html + audit;
+
+    // ── Firma en cadena: cada rol tiene SU centinela ────────────────────
+    // adquiriente_1 → %%FIRMA_ADQUIRIENTE%% (histórico) · adquiriente_N → %%FIRMA_ADQ_N%%
+    const rol = String(claimed.firmante_rol || 'adquiriente_1');
+    const sent = rol === 'adquiriente_1' ? '%%FIRMA_ADQUIRIENTE%%' : `%%FIRMA_ADQ_${rol.split('_')[1]}%%`;
+    if (html.includes(sent)) {
+      html = html.replaceAll(sent, signature); // firma real dentro del <img src>
+      // la auditoría se APILA: una página por firmante, en orden de firma
+      const audit = auditPage({
+        nombre: typedName || claimed.firmante_nombre || '',
+        email: claimed.firmante_email || '',
+        fechaISO: new Date().toISOString(),
+        ip,
+        numero,
+        ref: claimed.id,
+      });
+      html = html.includes('</body>') ? html.replace('</body>', audit + '</body>') : html + audit;
+    } else if (!html.includes(claimed.id)) {
+      // sin centinela Y sin rastro de esta firma en el snapshot = documento sin
+      // hueco para este rol (snapshot de antes de la cadena) — mejor fallar en
+      // voz alta que producir un "firmado" sin la firma. Se regenera desde la app.
+      throw new Error('el documento no tiene hueco de firma para ' + rol + ' — regenera el enlace desde la app');
+    }
+    // (si el snapshot ya lleva la referencia de esta firma es un REINTENTO tras
+    // un fallo a mitad: la firma ya está estampada, se sigue sin duplicarla)
+
+    // ── ¿Es la última firma de la cadena? ───────────────────────────────
+    // Firmantes esperados = Adquiriente I (si tiene nombre) + adicionales con
+    // identidad, leídos del propio contrato. Columnas concretas, nunca datos
+    // entero: el jsonb pesa MB por los anexos en base64.
+    const { data: ct, error: ctErr } = await sb.from('contratos')
+      .select('adq1:datos->fields->>adq1_nombre, extras:datos->compradores')
+      .eq('id', claimed.contrato_id).single();
+    if (ctErr || !ct) throw new Error('no se pudo leer el contrato: ' + (ctErr?.message ?? 'sin fila'));
+    const extras = Array.isArray((ct as any).extras) ? (ct as any).extras : [];
+    const conDatos = (c: unknown) => ['nombre', 'nacionalidad', 'pasaporte', 'domicilio', 'telefono', 'email']
+      .some((k) => String((c as Record<string, unknown>)?.[k] ?? '').trim() !== '');
+    const total = Math.max(1, (String((ct as any).adq1 ?? '').trim() ? 1 : 0) + extras.filter(conDatos).length);
+    const { count: yaFirmadas, error: cntErr } = await sb.from('contrato_firmas')
+      .select('id', { count: 'exact', head: true })
+      .eq('contrato_id', claimed.contrato_id).eq('estado', 'firmado');
+    if (cntErr) throw new Error('no se pudo contar las firmas: ' + cntErr.message);
+    const esUltima = (yaFirmadas ?? 0) + 1 >= total;
+
+    if (!esUltima) {
+      // ── Firma INTERMEDIA: no hay PDF ni bloqueo todavía ───────────────
+      // 1) guardar el documento CON esta firma como snapshot vivo del contrato
+      //    (path fijo por contrato_id) — es lo que recibirá el siguiente
+      //    firmante. Si esto falla se lanza: un "ok" con el snapshot sin
+      //    guardar significaría que el siguiente firma un documento al que le
+      //    falta una firma, y nadie se enteraría (el fallo que FIRMA_EN_CADENA
+      //    marca como el peor). El catch devuelve el token a pendiente y el
+      //    reintento es limpio (el snapshot original sigue intacto).
+      const snapPath = `pendientes/${claimed.contrato_id}.html`;
+      const save = await sb.storage.from('contratos-firmados')
+        .upload(snapPath, new Blob([html], { type: 'text/html' }), { contentType: 'text/html', upsert: true });
+      if (save.error) throw new Error('no se pudo guardar el documento firmado: ' + save.error.message);
+      // 2) marcar la firma (si falla, el catch devuelve el token a pendiente;
+      //    el reintento detecta la firma ya estampada por la referencia y no
+      //    la duplica — ver guard de arriba)
+      const media = await sb.from('contrato_firmas').update({
+        estado: 'firmado', firmado_en: new Date().toISOString(), firmante_ip: ip, firmante_user_agent: ua,
+      }).eq('id', claimed.id);
+      if (media.error) throw new Error('no se pudo registrar la firma: ' + media.error.message);
+      // 3) anular pendientes sueltos (regeneraciones viejas) — informativo, la
+      //    app ya anula al generar el siguiente enlace; solo se deja rastro
+      const barrida = await sb.from('contrato_firmas').update({ estado: 'anulado' })
+        .eq('contrato_id', claimed.contrato_id).eq('estado', 'pendiente');
+      if (barrida.error) console.error('pendientes sin anular en', claimed.contrato_id, ':', barrida.error.message);
+      return json({ ok: true, numero, faltan: total - ((yaFirmadas ?? 0) + 1) });
+    }
+    // ── ÚLTIMA firma: renderizar, sellar y bloquear (flujo original) ─────
 
     // render con Chromium real (mismo servicio que el email de contratos)
     const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
@@ -176,7 +238,13 @@ Deno.serve(async (req) => {
                     '— el PDF está en', path, 'con sha256', pdfHash);
     }
 
-    return json({ ok: true, numero });
+    // 4) cadena completa → ningún enlace debe sobrevivir (regla: al completarse
+    //    la última firma se anulan TODOS los pendientes del contrato)
+    const barridaFinal = await sb.from('contrato_firmas').update({ estado: 'anulado' })
+      .eq('contrato_id', claimed.contrato_id).eq('estado', 'pendiente');
+    if (barridaFinal.error) console.error('pendientes sin anular al cerrar', claimed.contrato_id, ':', barridaFinal.error.message);
+
+    return json({ ok: true, numero, faltan: 0 });
   } catch (e) {
     // deja el token reutilizable para que el comprador pueda reintentar
     if (claimedId) await sb.from('contrato_firmas').update({ estado: 'pendiente' }).eq('id', claimedId);

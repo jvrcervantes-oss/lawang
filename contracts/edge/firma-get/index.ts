@@ -54,9 +54,10 @@ Deno.serve(async (req) => {
     const { data: file, error } = await sb.storage.from('contratos-firmados').download(row.snapshot_path);
     if (error || !file) return json({ error: 'sin_snapshot' }, 500);
     let html = await file.text();
-    // en pantalla la zona de firma va vacía (es donde firmará); el centinela solo
-    // lo rellena firma-submit con la firma real.
-    html = html.replaceAll('%%FIRMA_ADQUIRIENTE%%', '');
+    // en pantalla las zonas de firma pendientes van vacías; los centinelas
+    // (%%FIRMA_ADQUIRIENTE%% del I, %%FIRMA_ADQ_n%% de los demás — firma en
+    // cadena) solo los rellena firma-submit con la firma real de cada turno.
+    html = html.replace(/%%FIRMA_ADQ(?:UIRIENTE|_\d+)%%/g, '');
 
     const c = (row as any).contratos;
     return json({ html, numero: c?.numero ?? null, tipo: c?.tipo ?? null, firmante_nombre: row.firmante_nombre ?? null });
