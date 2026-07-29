@@ -1255,9 +1255,13 @@
   function openProperty(id){ location.hash = "property/"+id; }
   function closeProperty(){ history.replaceState(null,"",location.pathname+location.search); S.overlay=null; render(); }
 
+  // Ficha de propiedad vista = semilla del público BOFU de Meta. No envía nada sin
+  // consentimiento y, sin PIXEL_ID en consent.js, lwTrack ni siquiera existe.
+  function trackView(pid){ if(pid && window.lwTrack) window.lwTrack("ViewContent", {content_ids:[pid], content_type:"product"}); }
+
   function onHash(){
     var pid = parseHash();
-    if(pid){ if(pid!==S.overlay){ S.overlay=pid; resetDetail(); render(); } }
+    if(pid){ if(pid!==S.overlay){ S.overlay=pid; resetDetail(); render(); trackView(pid); } }
     else { if(S.overlay){ S.overlay=null; } S.line=lineFromHash(); render(); }
   }
 
@@ -1317,6 +1321,9 @@
       S.dlErr=false; S.dlUnlocked=true;
       var pid=S.overlay;
       try{ fetch("api/lead.php",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"email="+encodeURIComponent(v)+"&source=downloads&property="+encodeURIComponent(pid||"")}).catch(function(){}); }catch(_){}
+      // ponytail: Lead solo por píxel. El CAPI server-side desde lead.php (mejor match quality,
+      // sobrevive a adblock) necesita PIXEL_ID + access token del owner — ver §0b C.
+      if(window.lwTrack) window.lwTrack("Lead", {content_name:"buyers-guide", content_ids:[pid||""]});
       render();
     });
     // Swipe táctil en la galería y en el lightbox (en móvil las flechas no bastan: el gesto
@@ -1363,6 +1370,7 @@
     if(!S.overlay) S.line = lineFromHash();
     bindEvents();
     render();
+    trackView(S.overlay);   // enlace directo a una ficha: el otro camino es onHash()
     // Recarga (o volver atrás): devolver al visitante donde estaba, no al principio.
     // Se hace después de pintar (antes no hay altura a la que saltar). Solo en recarga/atrás: si
     // llega desde el index se empieza arriba, que es lo que espera.
