@@ -9,5 +9,5 @@
 - Website: https://lawangproperties.com
 
 ## Sections
-- [Portfolio](https://lawangproperties.com/thecollection.html): the full collection of available properties.
-- [Signature](https://lawangproperties.com/thecollection.html#signature): the flagship / primary estate listings.
+- [Portfolio](https://lawangproperties.com/thecollection): the full collection of available properties.
+- [Signature](https://lawangproperties.com/thecollection#signature): the flagship / primary estate listings.

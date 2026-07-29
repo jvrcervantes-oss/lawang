@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
-Disallow: /admin.html
+Disallow: /admin
 
 # AI / LLM crawlers — explicitly allowed so the brand can appear in
 # ChatGPT, Gemini, Perplexity and Claude answers.
