@@ -33,6 +33,16 @@
   .buscar{ width:100%; font:inherit; font-size:13.5px; padding:9px 11px; border:1px solid var(--line);
            border-radius:9px; background:var(--card); color:inherit; }
   .buscar:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  /* mismos chips que Unidades: el contador va DENTRO del filtro para saber
+     cuánto hay antes de pulsarlo */
+  .filtros{ display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; }
+  .f{ font:inherit; font-size:11.5px; letter-spacing:.04em; background:none; border:1px solid var(--line);
+      border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--muted); }
+  .f:hover{ border-color:var(--tg); }
+  .f.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
+  .f.vacio{ opacity:.45; }
+  .f-sel{ font:inherit; font-size:12px; padding:6px 9px; border:1px solid var(--line); border-radius:9px;
+          background:var(--card); color:inherit; margin-top:7px; width:100%; }
   .op{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
        border-bottom:1px solid var(--line); padding:13px 18px; cursor:pointer; }
   .op:hover{ background:#efeade; }
@@ -117,7 +127,11 @@
 
   <div class="stage" id="stage">
     <div class="lista panel on" id="panelOps">
-      <div class="cab"><input class="buscar" id="q" placeholder="Buscar comprador, proyecto o nº…"></div>
+      <div class="cab">
+        <input class="buscar" id="q" placeholder="Buscar comprador, proyecto o nº…">
+        <div class="filtros" id="filtros"></div>
+        <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+      </div>
       <div id="listaOps">Cargando…</div>
     </div>
     <div class="detalle panel on" id="panelDet"><div class="vacio-panel">Elige una operación</div></div>
@@ -257,12 +271,52 @@ function cuenta(op){
   return { moneda, precio, hitos, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null };
 }
 
+/* ---------- filtros ----------
+   Lo que de verdad se busca aquí no es "una operación" sino "las que me
+   reclaman algo": las que están sin firmar, las que deben dinero, las que
+   tienen un enlace de firma esperando o les falta la ficha del comprador.
+   Por eso los filtros son por SITUACIÓN y no por tipo de contrato. Cada uno
+   lleva su contador: así se sabe si hay algo ahí antes de pulsarlo, y un
+   filtro vacío se atenúa en vez de esconderse (que no esté no es lo mismo que
+   no exista). Se combinan con el buscador y con el proyecto. */
+const FILTROS = [
+  ['',            'Todas',            () => true],
+  ['sin_firmar',  'Sin firmar',       o => !o.bloqueado],
+  ['firmado',     'Firmadas',         o => !!o.bloqueado],
+  ['debe',        'Con pendiente',    o => { const c = cuenta(o); return c.pendiente != null && c.pendiente > 0; }],
+  ['firma_viva',  'Firma enviada',    o => o.firmas.some(f => f.estado === 'pendiente')],
+  ['sin_factura', 'Sin facturar',     o => !o.facturas.some(f => !f.anulada && f.tipo !== 'proforma')],
+  ['falta_ficha', 'Falta ficha',      o => fichasQueFaltan(o) > 0],
+];
+let FILTRO = '', PROYECTO = '';
+const pasaFiltro = o => (FILTROS.find(f => f[0] === FILTRO) || FILTROS[0])[2](o);
+
+function pintarFiltros(){
+  const raiz = OPS.filter(o => !o.padre);
+  $('#filtros').innerHTML = FILTROS.map(([k, etiqueta, prueba]) => {
+    const n = raiz.filter(prueba).length;
+    return `<button class="f ${FILTRO===k?'on':''} ${n?'':'vacio'}" data-f="${k}">${etiqueta} ${n}</button>`;
+  }).join('');
+  // el desplegable de proyecto se construye de los datos, no de una lista fija:
+  // si mañana entra un proyecto nuevo aparece solo
+  const sel = $('#fProyecto');
+  const proyectos = [...new Set(raiz.map(o => o.proyecto_nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const previo = sel.value;
+  sel.innerHTML = '<option value="">Todos los proyectos</option>'
+    + proyectos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.value = proyectos.includes(previo) ? previo : '';
+  PROYECTO = sel.value;
+}
+
 /* ---------- lista ---------- */
 function pintarLista(){
   const q = $('#q').value.trim().toLowerCase();
   // el hijo no es fila: buscar por su número o comprador debe traer la
   // operación entera, o sea la fila del padre
-  const vis = OPS.filter(o => !o.padre).filter(o => !q ||
+  const vis = OPS.filter(o => !o.padre)
+    .filter(pasaFiltro)
+    .filter(o => !PROYECTO || o.proyecto_nombre === PROYECTO)
+    .filter(o => !q ||
     [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre].some(v => String(v||'').toLowerCase().includes(q))));
   $('#listaOps').innerHTML = vis.length ? vis.map(o => {
     const b = [];
@@ -280,7 +334,11 @@ function pintarLista(){
       <div class="p">${esc(o.proyecto_nombre || '—')}</div>
       <div class="badges">${b.join('')}</div>
     </button>`;
-  }).join('') : '<p class="nota" style="padding:18px">Ninguna operación coincide.</p>';
+  }).join('')
+    // decir POR QUÉ no hay nada: con filtros puestos, "ninguna coincide" deja
+    // al operador pensando que no existe el dato cuando solo está filtrado
+    : `<p class="nota" style="padding:18px">Ninguna operación coincide.
+        ${(FILTRO || PROYECTO || q) ? '<a class="enl" href="#" id="limpiaFiltros">Quitar los filtros</a>' : ''}</p>`;
 }
 
 /* ---------- ficha ---------- */
@@ -586,6 +644,20 @@ $('#panelDet').addEventListener('click', async e => {
   }
 });
 $('#q').addEventListener('input', pintarLista);
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if(!b) return;
+  FILTRO = b.dataset.f; pintarFiltros(); pintarLista();
+});
+$('#fProyecto').addEventListener('change', e => { PROYECTO = e.target.value; pintarLista(); });
+$('#listaOps').addEventListener('click', e => {
+  if(e.target.id !== 'limpiaFiltros') return;
+  e.preventDefault();
+  // hay que vaciar el <select> además de la variable: pintarFiltros() reconstruye
+  // las opciones y REPONE la selección que siga en el DOM, así que sin esto el
+  // proyecto elegido volvía y "quitar los filtros" solo quitaba la mitad
+  FILTRO = ''; PROYECTO = ''; $('#q').value = ''; $('#fProyecto').value = '';
+  pintarFiltros(); pintarLista();
+});
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
   const ops = t.dataset.tab === 'ops';
@@ -607,7 +679,7 @@ async function arrancar(recarga){
       if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; $('#stage').classList.add('abierta'); }
       else if(pedido) toast('Ese contrato ya no existe');
     }
-    pintarLista(); pintarDetalle();
+    pintarFiltros(); pintarLista(); pintarDetalle();
     if($('#panelVenc').classList.contains('on')) pintarVencimientos();
     if(recarga) toast('Datos actualizados');
   }catch(err){
