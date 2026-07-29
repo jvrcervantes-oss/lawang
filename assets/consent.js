@@ -3,15 +3,15 @@
  *
  * Una sola copia para todas las páginas: index, thecollection y legal.
  *
- * PENDIENTE (owner): pegar el ID del píxel en PIXEL_ID cuando exista el conjunto
- * de datos en Events Manager. Mientras esté vacío este fichero NO hace nada:
- * ni banner ni píxel. Pedir consentimiento para algo que no se carga sería pedirlo
- * en falso, y además molesta al visitante sin motivo.
+ * PIXEL_ID activo desde el 29-jul-2026. Si se vacía, este fichero deja de hacer
+ * nada —ni banner ni píxel— a propósito: pedir consentimiento para algo que no se
+ * carga sería pedirlo en falso, y además molesta al visitante sin motivo.
+ * La declaración del píxel en /legal tiene que seguir viva mientras esto tenga valor.
  */
 (function () {
   'use strict';
 
-  var PIXEL_ID = '';               // ← ID del conjunto de datos de Meta (Events Manager)
+  var PIXEL_ID = '1010261027348950';  // Meta dataset "Lawang" (portfolio PT TEPI SUN GAI)
   var KEY = 'lw-consent';          // 'granted' | 'denied'
 
   if (!PIXEL_ID) return;
