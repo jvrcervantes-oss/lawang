@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css">
 <script src="/contracts/assets/topbar.js" defer></script>
+<script src="/contracts/assets/visor.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js"></script>
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
@@ -87,17 +88,7 @@
     color:#fff; padding:11px 20px; border-radius:30px; font-size:13px; z-index:200; opacity:0;
     transition:opacity .3s; pointer-events:none; }
   .toast.show{ opacity:1; }
-
-  /* visor de documentos: el documento se ve AQUÍ, sin cambiar de ventana */
-  .doc-overlay{ position:fixed; inset:0; background:rgba(46,52,55,.5); z-index:120;
-    display:none; align-items:center; justify-content:center; padding:22px; }
-  .doc-overlay.open{ display:flex; }
-  .doc-modal{ background:var(--card); border-radius:14px; width:min(1080px,100%); height:min(88vh,100%);
-    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.28); }
-  .doc-head{ display:flex; align-items:center; gap:14px; padding:10px 16px; border-bottom:1px solid var(--line); }
-  .doc-head b{ font-size:13px; letter-spacing:.06em; }
-  .doc-head .lw-btn{ margin-left:auto; }
-  .doc-modal iframe{ flex:1; border:none; width:100%; background:#fff; }
+  /* el visor de documentos es la pieza compartida /contracts/assets/visor.js */
 </style>
 </head>
 <body>
@@ -126,17 +117,6 @@
   </div>
 
   <div class="toast" id="toast"></div>
-
-  <div class="doc-overlay" id="docOverlay">
-    <div class="doc-modal">
-      <div class="doc-head">
-        <b id="docTitle">Documento</b>
-        <a class="enl" id="docAbrir" href="#" target="_blank" rel="noopener">Abrir en su herramienta →</a>
-        <button type="button" class="lw-btn" id="docClose">Cerrar</button>
-      </div>
-      <iframe id="docFrame" title="Documento"></iframe>
-    </div>
-  </div>
 
 <script>
 /* ============================================================
@@ -527,33 +507,24 @@ $('#listaOps').addEventListener('click', e => {
 $('#panelDet').addEventListener('click', async e => {
   const a = e.target.closest('[data-op]');
   if(a){ e.preventDefault(); SEL = a.dataset.op; pintarLista(); pintarDetalle(); return; }
-  // documento emitido → visor embebido (la app de Facturas con ese doc abierto)
+  // documento emitido → visor compartido en modo SOLO DOCUMENTO (&vista=1):
+  // desde aquí se consulta, no se edita; «Abrir completo» lleva a la herramienta
   const doc = e.target.closest('[data-doc]');
-  if(doc){ e.preventDefault(); abrirVisor(doc.getAttribute('href'), doc.textContent.trim()); return; }
+  if(doc){
+    e.preventDefault();
+    const href = doc.getAttribute('href');
+    LW_VISOR.abrir(href + '&vista=1', doc.textContent.trim(), href);
+    return;
+  }
   // PDF firmado del contrato → URL firmada de corta vida en el mismo visor
   const pdf = e.target.closest('[data-pdf]');
   if(pdf){
     e.preventDefault();
     const { data, error } = await SB.storage.from('contratos-firmados').createSignedUrl(pdf.dataset.pdf, 3600);
     if(error || !data){ toast('No se pudo abrir el PDF: ' + (error && error.message || 'sin URL')); return; }
-    abrirVisor(data.signedUrl, 'PDF firmado');
+    LW_VISOR.abrir(data.signedUrl, 'PDF firmado');
   }
 });
-
-/* ---------- visor de documentos ---------- */
-function abrirVisor(url, titulo){
-  $('#docTitle').textContent = titulo || 'Documento';
-  $('#docAbrir').href = url;
-  $('#docFrame').src = url;
-  $('#docOverlay').classList.add('open');
-}
-function cerrarVisor(){
-  $('#docOverlay').classList.remove('open');
-  $('#docFrame').src = 'about:blank';   // corta la carga y libera la app embebida
-}
-$('#docClose').addEventListener('click', cerrarVisor);
-$('#docOverlay').addEventListener('click', e => { if(e.target === $('#docOverlay')) cerrarVisor(); });
-document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('#docOverlay').classList.contains('open')) cerrarVisor(); });
 $('#q').addEventListener('input', pintarLista);
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));

@@ -35,7 +35,7 @@ async function sha256hex(s: string | Uint8Array): Promise<string> {
 const esc = (s: string) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-// página final de auditoría (bilingüe), a sangre de página nueva
+// página final de auditoría (trilingüe ES/EN/ID), a sangre de página nueva
 function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: string; numero: string; ref: string }) {
   const fecha = d.fechaISO.replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
   const rows = [
@@ -49,10 +49,12 @@ function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: str
   return `<div style="page-break-before:always;padding:26mm 20mm;font-family:'Jost',system-ui,sans-serif;color:#2E3437">
     <div style="font-size:13pt;letter-spacing:.28em;text-transform:uppercase;color:#485B37;font-weight:600">Registro de firma electrónica</div>
     <div style="font-size:10pt;letter-spacing:.24em;text-transform:uppercase;color:#8F9B7A;margin-top:2mm">Electronic Signature Record</div>
+    <div style="font-size:10pt;letter-spacing:.24em;text-transform:uppercase;color:#8F9B7A;margin-top:1mm">Catatan Tanda Tangan Elektronik</div>
     <table style="border-collapse:collapse;font-size:11pt;margin-top:12mm">${rows}</table>
     <p style="font-size:8.5pt;color:#6b6c66;margin-top:16mm;line-height:1.6;max-width:150mm">
       Este documento fue firmado electrónicamente y a distancia por la persona identificada arriba, que declaró haber leído y aceptado su contenido. El presente registro deja constancia de dicha aceptación, la fecha/hora y la dirección IP desde la que se realizó.<br><br>
-      This document was signed electronically and remotely by the person identified above, who declared having read and accepted its content. This record evidences such acceptance, the date/time and the IP address from which it was made.
+      This document was signed electronically and remotely by the person identified above, who declared having read and accepted its content. This record evidences such acceptance, the date/time and the IP address from which it was made.<br><br>
+      Dokumen ini ditandatangani secara elektronik dan jarak jauh oleh orang yang diidentifikasi di atas, yang menyatakan telah membaca dan menerima isinya. Catatan ini membuktikan penerimaan tersebut, beserta tanggal/waktu dan alamat IP dari mana tanda tangan dilakukan.
     </p>
   </div>`;
 }

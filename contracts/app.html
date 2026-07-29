@@ -1059,7 +1059,7 @@ function buildCompradorPanel(){
       <div class="grid2">
         <div class="field"><label>${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
         <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" value="${escAttr(c.nacionalidad)}"></div>
-        <div class="field"><label>${L({es:'Nº pasaporte / CIF',en:'Passport no.',id:'No. paspor'})}</label><input data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
+        <div class="field"><label>${L({es:'Nº pasaporte / identificación fiscal',en:'Passport / Tax ID no.',id:'No. paspor / Nomor Identifikasi Pajak'})}</label><input data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
         <div class="field"><label>${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
         <div class="field"><label>${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label><input data-ci="${c.id}" data-ckey="telefono" value="${escAttr(c.telefono||'')}"></div>
         <div class="field"><label>${L({es:'Email',en:'Email',id:'Email'})}</label><input data-ci="${c.id}" data-ckey="email" value="${escAttr(c.email||'')}"></div>
@@ -1100,13 +1100,13 @@ const COMPRADOR_FRASE = {
     id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span> untuk keperluan pemberitahuan.`,
   },
   ppjb_construccion: {
-    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/CIF nº <span class="f">${f.pas}</span> y domicilio en <span class="f">${f.dom}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/Nº de identificación fiscal <span class="f">${f.pas}</span> y domicilio en <span class="f">${f.dom}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
     en:(n,f)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, with Passport/Tax ID no. <span class="f">${f.pas}</span> and address at <span class="f">${f.dom}</span>. Telephone <span class="f">${f.tel}</span> and notification email: <span class="f">${f.email}</span>.`,
-    id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, dengan Paspor/NPWP no. <span class="f">${f.pas}</span> dan beralamat di <span class="f">${f.dom}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, dengan Paspor/Nomor Identifikasi Pajak no. <span class="f">${f.pas}</span> dan beralamat di <span class="f">${f.dom}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
   },
   carta_reserva: {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
-    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, with address at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in its own name together with the Second Party.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, with address at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
     id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
 };
@@ -1510,8 +1510,8 @@ function datosBancariosHTML(){
   const filaNotario = esNotario
     ? row('Naturaleza de la cuenta','Account type','Jenis rekening', {
         es:'Cuenta ESCROW de notario designado — depósito en garantía',
-        en:'ESCROW account of the appointed notary — funds held in guarantee',
-        id:'Rekening ESCROW notaris yang ditunjuk — dana ditahan sebagai jaminan' })
+        en:'ESCROW account of the appointed notary — funds held in escrow',
+        id:'Rekening ESCROW notaris yang ditunjuk — dana dititipkan pada rekening penampungan (escrow)' })
     : '';
   return `<h2><span data-lang="es">Datos bancarios</span><span data-lang="en">Bank details</span><span data-lang="id">Rincian bank</span></h2>
     <table class="pays"><tbody>

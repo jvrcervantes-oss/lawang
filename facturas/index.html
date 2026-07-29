@@ -148,6 +148,17 @@
     .pv-scroll{ padding:0; display:block; }
     .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
   }
+
+  /* modo vista (?vista=1) — SOLO el documento: lo carga el visor pop-up de
+     Operaciones/Compradores. Se ocultan formulario, topbar y guardado; queda
+     la vista previa a todo el ancho con "Descargar PDF" (consultar incluye
+     llevarse el papel). La media query de móvil oculta .pane-preview en
+     <900px — aquí se fuerza visible, porque en modo vista el documento ES la
+     página. */
+  body.modo-vista .topbar, body.modo-vista .pane-form,
+  body.modo-vista #btnSave, body.modo-vista #btnNueva{ display:none !important; }
+  body.modo-vista .stage{ grid-template-columns:1fr; padding-top:0; }
+  body.modo-vista .pane-preview{ display:flex !important; }
 </style>
 </head>
 <body hidden>
@@ -284,6 +295,11 @@ sb.auth.getSession().then(({data:{session}}) => {
   // el visor embebido de Operaciones (y vale como enlace compartible interno).
   // Va aquí y no al final del script: antes de restaurarse la sesión la
   // consulta saldría como anon y la RLS devolvería vacío.
+  // ?vista=1 (junto a ?id=): modo SOLO DOCUMENTO — sin formulario, sin topbar,
+  // sin guardar. Es lo que carga el visor pop-up de Operaciones/Compradores:
+  // desde ahí se consulta, no se edita. "Descargar PDF" se conserva (consultar
+  // incluye llevarse el papel).
+  if(new URLSearchParams(location.search).has('vista')) document.body.classList.add('modo-vista');
   const pedido = new URLSearchParams(location.search).get('id');
   if(pedido){
     sb.from('facturas')
