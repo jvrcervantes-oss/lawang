@@ -110,10 +110,19 @@ const SOCIEDADES = {
   san_dal_woods: {
     label: 'PT SAN DAL WOODS',
     razon: 'PT SAN DAL WOODS', marca: '',
-    logo: '/contracts/assets/brand/sandalwoods-logo.png',
-    logoAlto: '28.1mm',            // 15mm +25% (13:15h) y +50% sobre eso (14:10h), owner
-    logo2: '/contracts/assets/brand/sandalwoods-wordmark.png',        // lockup «SANDALWOODS» bajo el isotipo
-    logo2Ancho: '38mm',                                              // 680×78 px → ~4,4mm de alto a este ancho
+    /* Lockup único: el owner juntó isotipo y palabra en una sola imagen
+       (`swnewlogo.png`, 30-jul 15:40h). Se sirve una copia con el FONDO QUITADO:
+       el original viene con el crema viejo (#F8F7F2) opaco, que sobre el folio
+       actual (#E7E3D2) se veía como un rectángulo más claro pegado encima; el
+       multiply tampoco lo salva, porque ese crema no es blanco y tiñe.
+       La copia va además RECORTADA a la tinta (el original traía 20px de aire
+       por lado): así el alto que se pide aquí es el alto que se ve, y el logo se
+       puede alinear con el título del documento sin adivinar el margen interno.
+       479×227 px (ratio 2,11): a 24mm de alto son 50,6mm de ancho, lo que cabe
+       al lado de los datos del emisor. Subirlo es una línea, pero cada mm de
+       alto se lo come el presupuesto de UNA página (facturas/index.html). */
+    logo: '/contracts/assets/brand/sandalwoods-lockup.png',
+    logoAlto: '24mm',
     folio: '#E7E3D2',              // crema, +10% de fuerza sobre el #f8f7f2 inicial (-10% de luminosidad)
     // Tinta del documento cuando emite esta sociedad. `primary` es el marrón
     // exacto del SWlogo (muestreado del PNG: #662906) y `deep` el Burnt Earth

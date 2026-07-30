@@ -117,8 +117,16 @@
      28mm, la cabecera se comía 63mm de folio y la factura se iba a la segunda
      página con dos conceptos. Al lado son ~40mm y el logo no pierde tamaño. */
   .doc .emisor-bloque{ display:flex; align-items:flex-start; gap:7mm; min-width:0; }
-  .doc .marcas{ flex:none; }
-  .doc .emisor{ font-size:9pt; line-height:1.45; color:#4a4f4a; max-width:74mm; padding-top:1mm; }
+  /* El logo se alinea con la TINTA del titulo del documento (Recibí/Factura),
+     no con su caja: la caja de linea del h2 empieza 2,6mm por encima de donde
+     empieza la letra, asi que sin este empujon el logo se ve mas alto que el
+     titulo. Medido en navegador con las metricas reales de la fuente; la imagen
+     va recortada a su tinta para que aqui no haya que adivinar nada. */
+  .doc .marcas{ flex:none; margin-top:2.6mm; }
+  /* 62mm y no 74: el lockup de San Dal Woods es apaisado (26mm de alto son 50mm
+     de ancho) y con el emisor más ancho la dirección del domicilio se partía en
+     cuatro líneas, que es justo el alto que se acababa de recuperar. */
+  .doc .emisor{ font-size:9pt; line-height:1.45; color:#4a4f4a; max-width:62mm; padding-top:1mm; }
   .doc .emisor b{ display:block; font-size:11pt; color:var(--brand-deep); letter-spacing:.02em; }
   .doc .marca{ font-size:8pt; letter-spacing:.22em; text-transform:uppercase; color:var(--brand-primary); }
   .doc .titulo{ text-align:right; }
