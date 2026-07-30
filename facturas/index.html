@@ -106,8 +106,13 @@
      (blanco × color = color) y la tinta se mantiene. Es lo que evita el
      rectángulo pegado del logo sin alfa; el de Lawang ya trae alfa y le da
      igual. Va en el <img>, no en el .head: el .head no tiene fondo propio, así
-     que mezcla contra el papel. */
-  .doc .head img{ height:15mm; mix-blend-mode:multiply; }
+     que mezcla contra el papel.
+     El alto sale de la sociedad (`--logo-alto`, ver entities.js): San Dal Woods
+     lo pidió un 25% mayor. */
+  .doc .head img{ height:var(--logo-alto,15mm); mix-blend-mode:multiply; display:block; }
+  /* segundo logo (lockup de palabra) bajo el isotipo: se alinea a la izquierda
+     con él y manda el ANCHO, no el alto, porque es una tira apaisada. */
+  .doc .head .logo2{ height:auto; width:var(--logo2-ancho,34mm); margin-top:2.5mm; }
   .doc .emisor{ font-size:9pt; line-height:1.45; color:#4a4f4a; max-width:85mm; }
   .doc .emisor b{ display:block; font-size:11pt; color:var(--brand-deep); letter-spacing:.02em; }
   .doc .marca{ font-size:8pt; letter-spacing:.22em; text-transform:uppercase; color:var(--brand-primary); }
@@ -163,6 +168,10 @@
     .pane-preview{ overflow:visible; background:#fff; }
     .pv-scroll{ padding:0; display:block; }
     .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
+    /* El folio y la cabecera de la tabla SON fondos: sin esto, el navegador los
+       tira a la basura cuando "Gráficos de fondo" está desmarcado y el documento
+       sale en blanco con los rótulos ilegibles. */
+    .sheet, .doc, .doc th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 
   /* modo vista (?vista=1) — SOLO el documento: lo carga el visor pop-up de
@@ -485,11 +494,19 @@ function render(){
   const doc = $('#doc');
   doc.style.setProperty('--brand-primary', (soc.tinta && soc.tinta.primary) || '');
   doc.style.setProperty('--brand-deep',    (soc.tinta && soc.tinta.deep)    || '');
+  doc.style.setProperty('--logo-alto',   soc.logoAlto   || '');
+  doc.style.setProperty('--logo2-ancho', soc.logo2Ancho || '');
+  /* El folio va en `.sheet`, que es el papel y está FUERA de #doc: ponerlo en
+     #doc pintaría el color solo bajo el contenido y dejaría los márgenes
+     blancos. Cadena vacía = vuelve el #fff de la variable global. */
+  const hoja = document.querySelector('.sheet');
+  if(hoja) hoja.style.setProperty('--folio', soc.folio || '');
 
   doc.innerHTML = `
     <div class="head">
       <div>
         ${soc.logo ? `<img src="${esc(soc.logo)}" alt="">` : ''}
+        ${soc.logo2 ? `<img class="logo2" src="${esc(soc.logo2)}" alt="">` : ''}
         <div class="emisor" style="margin-top:5mm">
           <b>${esc(soc.razon)}</b>
           ${soc.marca ? `<span class="marca">${esc(soc.marca)}</span>` : ''}

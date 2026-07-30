@@ -74,16 +74,28 @@ const CUENTAS_BANCARIAS = {
    `razon`/`marca`/`domicilio`/`npwp`/`rep` alimentan tanto los marcadores
    {{prom_*}} de las plantillas de contrato como la cabecera del emisor en las
    facturas. `cred` (nacionalidad + documento del representante) solo la usan
-   los contratos. `logo` es la cabecera del documento: cada sociedad emite con
-   su propia marca, y una factura de PT San Dal Woods con el logo de Lawang
-   dice que emite otra empresa (30-jul-2026). Lo usan hoy las facturas; los
-   contratos siguen con su logo fijo en cada plantilla.
-   Añadir una sociedad = un bloque más aquí, nada más. */
+   los contratos.
+
+   Identidad del documento por sociedad (30-jul-2026) — cada sociedad emite con
+   su marca, no con la de Lawang, y una factura de PT San Dal Woods con el logo
+   de Lawang dice que la emite otra empresa:
+     `logo`      cabecera del documento
+     `logoAlto`  alto del logo (por defecto 15mm)
+     `logo2`     segundo logo debajo del primero (el lockup de palabra), opcional
+     `logo2Ancho` ancho de ese segundo logo
+     `folio`     color del papel
+     `tinta`     {primary, deep} = todo lo coloreado del documento
+   Lo usan hoy las facturas (los contratos llevan su logo fijo en cada
+   plantilla). Añadir una sociedad = un bloque más aquí, nada más. */
 const SOCIEDADES = {
   tepi_sungai: {
     label: 'PT Tepi Sungai (marca «Lawang Tropical Properties»)',
     razon: 'PT TEPI SUNGAI', marca: 'LAWANG TROPICAL PROPERTIES',
     logo: '/contracts/assets/brand/lawang-logo-v3-dark.png',
+    // verde muy claro: el equivalente en la gama de marca al crema de San Dal
+    // Woods, pedido por el owner el 30-jul. Misma luminosidad (~97%), tono
+    // desplazado al verde del Territorial Green.
+    folio: '#F3F7F0',
     domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
     npwp: '1000.0000.0619.8026', rep: 'I Made Monjong Adhi Nugruah',
     cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
@@ -93,6 +105,10 @@ const SOCIEDADES = {
     label: 'PT San Dal Woods',
     razon: 'PT SAN DAL WOODS', marca: '',
     logo: '/contracts/assets/brand/sandalwoods-logo.png',
+    logoAlto: '18.75mm',                                             // 15mm + 25% (owner, 30-jul)
+    logo2: '/contracts/assets/brand/sandalwoods-wordmark.png',        // lockup «SANDALWOODS» bajo el isotipo
+    logo2Ancho: '38mm',                                              // 680×78 px → ~4,4mm de alto a este ancho
+    folio: '#f8f7f2',
     // Tinta del documento cuando emite esta sociedad. `primary` es el marrón
     // exacto del SWlogo (muestreado del PNG: #662906) y `deep` el Burnt Earth
     // de la guía de marca, más oscuro, para los titulares. Sin `tinta` el
