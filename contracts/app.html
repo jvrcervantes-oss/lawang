@@ -2314,7 +2314,15 @@ async function openSavedContract(id){
   $('#tplPick').value = slug;
   buildForm();
   const d = data.datos || {};
-  if(d.design){ DESIGN = d.design; saveDesign(); }
+  /* El diseño guardado se fusiona SOBRE los valores por defecto, igual que en
+     loadDesign() y loadTemplate(). Asignarlo crudo era el fallo del 30-jul: los
+     contratos guardados antes de que existiera `docBg` (CG00004, CG00005,
+     CG00007, CO00004, RP00007) traen un `design` sin esa clave, y designStyle()
+     revienta con "Cannot read properties of undefined (reading 'src')" al
+     abrirlos — se lleva por delante el render entero y deja la herramienta a
+     medias con SAVED_CONTRACT apuntando al contrato anterior. Cada clave nueva
+     que se añada a DESIGN_DEFAULT repetiría el fallo sin esta fusión. */
+  if(d.design){ DESIGN = deepMerge(structuredClone(DESIGN_DEFAULT), d.design); saveDesign(); }
   if(d.annexes){ ANNEXES = d.annexes; saveAnnexes(); }
   if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
   if(d.compradores){ COMPRADORES = d.compradores.map(c=>({...c})); saveCompradores(); rebuildComprador(); }
@@ -2510,6 +2518,23 @@ $('#fmGen').addEventListener('click', async ()=>{
        viejos podía producir un documento firmado paralelo. El índice único
        parcial `contrato_firmas_un_pendiente_por_rol` (28-jul) lo impide en la
        base; sin esta anulación previa el insert fallaría por clave duplicada. */
+    /* Snapshot FIJO por contrato (no por token): firma-submit lo reescribe con
+       cada firma intermedia, así el siguiente firmante recibe el documento CON
+       las firmas anteriores. Solo se reconstruye desde la app al ARRANCAR la
+       cadena — reconstruirlo a mitad borraría las firmas ya estampadas.
+
+       VA ANTES DE ANULAR, y no después (orden invertido el 30-jul). Al reenviar
+       el enlace de RP00021 la subida falló y el enlace anterior YA estaba
+       anulado: el contrato se quedó sin ningún enlace vivo. El paso que puede
+       fallar (renderizar el documento y subirlo) se hace primero; solo cuando
+       hay documento nuevo se toca lo que ya funcionaba. Reescribir el snapshot
+       con `firmados===0` es inofensivo: todavía no hay ninguna firma estampada. */
+    const path='pendientes/'+SAVED_CONTRACT.id+'.html';
+    if(FIRMA_NEXT.firmados===0){
+      const up=await sb.storage.from('contratos-firmados').upload(path, new Blob([buildSnapshot()],{type:'text/html'}), {upsert:true, contentType:'text/html'});
+      if(up.error) throw up.error;
+    }
+
     const anul = await sb.from('contrato_firmas')
       .update({ estado:'anulado' })
       .eq('contrato_id', SAVED_CONTRACT.id)
@@ -2520,15 +2545,6 @@ $('#fmGen').addEventListener('click', async ()=>{
 
     const token=randToken();
     const hash=await sha256hex(token);
-    /* Snapshot FIJO por contrato (no por token): firma-submit lo reescribe con
-       cada firma intermedia, así el siguiente firmante recibe el documento CON
-       las firmas anteriores. Solo se reconstruye desde la app al ARRANCAR la
-       cadena — reconstruirlo a mitad borraría las firmas ya estampadas. */
-    const path='pendientes/'+SAVED_CONTRACT.id+'.html';
-    if(FIRMA_NEXT.firmados===0){
-      const up=await sb.storage.from('contratos-firmados').upload(path, new Blob([buildSnapshot()],{type:'text/html'}), {upsert:true, contentType:'text/html'});
-      if(up.error) throw up.error;
-    }
     const ins=await sb.from('contrato_firmas').insert({ contrato_id:SAVED_CONTRACT.id, token_hash:hash,
       firmante_nombre:nombre, firmante_email:email||null, firmante_rol:ROL, orden:FIRMA_NEXT.orden, snapshot_path:path });
     if(ins.error) throw ins.error;
