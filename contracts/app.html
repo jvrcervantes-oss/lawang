@@ -950,18 +950,23 @@ function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result);
    ============================================================ */
 let ANNEXES = loadAnnexes();
 let annexSeq = 1 + ANNEXES.reduce((m,a)=>Math.max(m, parseInt(String(a.id||'').replace('ax',''))||0), 0);
-function loadAnnexes(){ try{ return (JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]).filter(a=>!a.auto); }catch(_){ return []; } }
-/* El anexo automático NO se persiste (ni aquí ni en el jsonb del contrato): son
-   ~27 páginas en base64, 6-8 MB, que no caben en localStorage y engordarían cada
-   fila de `contratos`. Se vuelve a derivar de tipologia_construccion al abrir. */
-function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.filter(a=>!a.auto))); }
+function loadAnnexes(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]; }catch(_){ return []; } }
+/* Del anexo automático se guarda la FICHA, nunca las páginas: 27 páginas en
+   base64 son 6-8 MB que no caben en localStorage y engordarían cada fila de
+   `contratos` (ya son 97% blobs). Las imágenes se re-derivan del PDF al abrir;
+   lo que sí viaja es `on` (si se excluyó a propósito) y `sha` (qué versión del
+   pack se anexó de verdad), que no se pueden reconstruir de ninguna otra parte. */
+const sinPaginas = a => a.auto ? {...a, pages:[]} : a;
+function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.map(sinPaginas))); }
   catch(_){ toast('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
 function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 async function pdfToImages(file){
-  const buf = await file.arrayBuffer();
+  // acepta File/Blob o un ArrayBuffer ya leído (el anexo automático necesita el
+  // buffer aparte para calcular su hash antes de que pdf.js se lo quede)
+  const buf = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data:buf}).promise;
   const out=[];
   for(let i=1;i<=pdf.numPages;i++){
@@ -994,7 +999,12 @@ async function fileToAnnexPages(file){
    una lista a mano: el fichero es `assets/anexos/<Tipología>.pdf`, así que una
    tipología nueva solo necesita su PDF ahí y su opción en tokens.json. Si el PDF
    no existe (Dream, Dune, Trinity, Temple a 30-jul-2026) no hay anexo automático
-   y el agente puede seguir subiéndolo a mano como siempre. */
+   y el agente puede seguir subiéndolo a mano como siempre.
+
+   En `assets/anexos/` SOLO van packs de anexo. Los folletos comerciales viven en
+   `assets/folletos/` desde el 30-jul: compartían carpeta, y renombrar uno a
+   `Dune.pdf` habría metido su "Desde 66.000€" dentro de todos los PPJB firmados
+   de Dune. Una carpeta que se lee por convención de nombre no admite vecinos. */
 let AUTO_ANX = '';    // tipología cuyo anexo está puesto o pedido (evita un fetch por tecla)
 let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado propio y no
                       // inferido de ANNEXES: si el PDF no existe, "sin anexo" y "aún
@@ -1005,17 +1015,29 @@ async function syncAutoAnnex(){
   const tip = el ? el.value.trim() : '';       // sin campo (otra plantilla) → se quita el anexo
   if(tip === AUTO_ANX) return;
   AUTO_ANX = tip;
+  // La entrada guardada (sin páginas) trae dos cosas que NO se pueden re-derivar:
+  // si el agente apagó "Incluir en el contrato", y el hash del PDF que se anexó
+  // de verdad. Sin esto, un anexo excluido a propósito volvía a entrar solo al
+  // reabrir, al derivar un contrato hijo o al rearrancar la cadena de firma.
+  const guardado = ANNEXES.find(a=>a.auto===tip);
   ANNEXES = ANNEXES.filter(a=>!a.auto);
   if(!tip){ AUTO_CARGA=''; saveAnnexes(); rebuildAnnex(); render(); return; }
   AUTO_CARGA = tip; rebuildAnnex();
   try{
     const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
     if(!r.ok) throw new Error(r.status);
-    const pages = await pdfToImages(await r.blob());
+    const buf = await r.arrayBuffer();
+    const sha = await sha256hex(buf);           // antes de pdf.js: se queda el buffer
+    const pages = await pdfToImages(buf);
     if(AUTO_ANX !== tip) return;               // cambió de tipología mientras se convertía
-    ANNEXES = [{ id:'axauto', auto:tip, title:'Planos y Especificaciones · '+tip, pages, on:true },
+    ANNEXES = [{ id:'axauto', auto:tip, sha, title:'Planos y Especificaciones · '+tip,
+                 pages, on: guardado ? guardado.on !== false : true },
                ...ANNEXES.filter(a=>!a.auto)];
-    toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
+    // El PDF del servidor es mutable: si cambió desde que se guardó el contrato,
+    // el anexo que se ve ya NO es el que se firmó. Se avisa, no se oculta.
+    if(guardado && guardado.sha && guardado.sha !== sha)
+      toast('OJO: el pack de '+tip+' ha cambiado desde que se guardó este contrato');
+    else toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
   }catch(_){
     if(AUTO_ANX === tip) toast('Sin anexo automático para '+tip+' — súbelo a mano si lo necesitas');
   }
@@ -1026,7 +1048,9 @@ async function syncAutoAnnex(){
 function buildAnnexPanel(){
   const cargando = AUTO_CARGA
     ? `<div class="dz" style="color:var(--muted);font-size:12.5px">Preparando el anexo de ${escAttr(AUTO_CARGA)}…</div>` : '';
-  const rows = cargando + ANNEXES.map((a,i)=> a.auto ? `
+  // un anexo sin páginas no se pinta: es la ficha guardada del automático, que
+  // aún no ha rehidratado (si no, parpadea un "0 pág." al abrir un contrato)
+  const rows = cargando + ANNEXES.filter(a=>a.pages && a.pages.length).map((a,i)=> a.auto ? `
     <div class="dz" data-anx="${a.id}">
       <div class="dz-row">
         <span style="flex:1;font-size:13px">${escAttr(a.title)}</span>
@@ -2154,7 +2178,7 @@ function contractPayload(){
     contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id || null,
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
-    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.filter(a=>!a.auto), clauses: CLAUSES,
+    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
               compradores: COMPRADORES, overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
   };
 }
@@ -2427,7 +2451,7 @@ async function openSavedContract(id){
      medias con SAVED_CONTRACT apuntando al contrato anterior. Cada clave nueva
      que se añada a DESIGN_DEFAULT repetiría el fallo sin esta fusión. */
   if(d.design){ DESIGN = deepMerge(structuredClone(DESIGN_DEFAULT), d.design); saveDesign(); }
-  if(d.annexes){ ANNEXES = d.annexes.filter(a=>!a.auto); saveAnnexes(); rebuildAnnex(); }
+  if(d.annexes){ ANNEXES = d.annexes.map(sinPaginas); saveAnnexes(); rebuildAnnex(); }
   if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
   if(d.compradores){ COMPRADORES = d.compradores.map(c=>({...c})); saveCompradores(); rebuildComprador(); }
   // Las ediciones del texto fijo se guardaban pero no se restauraban: un contrato
@@ -2444,7 +2468,9 @@ async function openSavedContract(id){
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
-  // automático de la tipología guardada (no viaja en el jsonb, se reconstruye)
+  // automático de la tipología guardada (solo viaja su ficha, no las páginas).
+  // AUTO_ANX a cero o el anexo del contrato ANTERIOR daría por bueno el nuevo.
+  AUTO_ANX = '';
   aplicarReglasCampos();
   refreshHitos(); updateSaveButton(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
@@ -2616,6 +2642,15 @@ $('#fmGen').addEventListener('click', async ()=>{
   // de firma se queda sin el dato con el que se identifica al firmante.
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Pon un email válido del comprador'); return; }
   if(!FIRMA_NEXT){ toast('Reabre el modal de firma'); return; }
+  /* El snapshot que se sube es el documento que el comprador firma, y se genera
+     UNA vez (firmados===0). Si el anexo automático todavía se está convirtiendo,
+     saldría a firma un contrato cuyos Art. 2 y 3 invocan Apéndices que no van
+     dentro. Bloquea mientras carga; si la tipología no trajo pack, avisa y deja
+     decidir (Dream/Dune/Trinity/Temple se suben a mano y eso es legítimo). */
+  if(AUTO_CARGA){ toast('Espera: se está preparando el anexo de '+AUTO_CARGA); return; }
+  const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
+  if(tipSel && !ANNEXES.some(a=>a.on && a.pages && a.pages.length) &&
+     !confirm('Este contrato es de tipología '+tipSel+' y va SIN ningún anexo adjunto.\n\nLos Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones). ¿Generar el enlace de firma igualmente?')) return;
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   const ROL = FIRMA_NEXT.rol;
   try{
