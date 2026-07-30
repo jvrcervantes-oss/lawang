@@ -41,8 +41,11 @@ $nombre  = $m['nombre'];
 <link rel="canonical" href="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="<?= lw_e($nombre) ?> · Villa llave en mano en Bali">
+<meta property="og:description" content="Villa de obra nueva de <?= (int) $m['dormitorios'] ?> <?= $m['dormitorios'] == 1 ? 'dormitorio' : 'dormitorios' ?> en Bali, construida sobre la parcela que elijas.">
+<meta property="og:url" content="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
 <meta property="og:image" content="https://lawangproperties.com<?= lw_e($hero) ?>">
 <meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -312,9 +315,13 @@ footer a{text-decoration:none}
 <section style="background:var(--bone-2)">
   <div class="wrap">
     <p class="eyebrow">Alcance de obra</p>
-    <h2 class="sec-h">Qué entra en el precio<br>y qué no.</h2>
+    <h2 class="sec-h">Qué entra en la obra<br>y qué no.</h2>
+    <!-- El titular decia "que entra en el precio" mientras la lista solo cubre la
+         construccion: el lead llegaba a la llamada creyendo que el terreno y los gastos
+         de compraventa iban dentro. Un "no incluido" incompleto es una reclamacion. -->
     <p class="lede">Tal cual figura en el pliego del contratista. Sin letra pequeña:
-      lo que no está incluido está escrito igual de grande.</p>
+      lo que no está incluido está escrito igual de grande. La parcela y los gastos de
+      compraventa (impuestos, notaría y licencias) van aparte y se detallan en la propuesta.</p>
 
     <div class="cols">
       <div class="card">
@@ -391,7 +398,10 @@ footer a{text-decoration:none}
 <footer>
   <div class="wrap">
     <span>Lawang Estate · Bali, Indonesia</span>
-    <span><a href="/legal">Aviso legal y privacidad</a></span>
+    <span><a href="/legal">Aviso legal y privacidad</a> ·
+      <!-- Retirar el consentimiento tiene que ser tan facil como darlo (RGPD art. 7.3),
+           y la politica ya promete este enlace. Sin el, "Rechazar" era irreversible. -->
+      <a href="#" onclick="window.lwConsentReopen&&window.lwConsentReopen();return false">Preferencias de cookies</a></span>
   </div>
 </footer>
 
@@ -440,6 +450,12 @@ footer a{text-decoration:none}
     var body = new FormData(form);
     body.append('source', 'landing-modelo');
     body.append('property', MODELO);
+    // Atribución: sin esto el lead entra sin anuncio de origen y el coste por lead de la
+    // pauta no se puede calcular ni la venta subir como conversión offline.
+    var q = new URLSearchParams(location.search), camp = [];
+    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid']
+      .forEach(function (k) { if (q.get(k)) camp.push(k + '=' + q.get(k)); });
+    body.append('campana', camp.join('&'));
 
     fetch('/api/lead.php', {method: 'POST', body: body})
       .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })

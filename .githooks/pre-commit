@@ -14,10 +14,14 @@ changed=$(git diff --cached --name-only | grep -E '^assets/.+\.(js|css)$' || tru
 ver=$(date +%Y%m%d%H%M%S)
 # La lista de PAGINAS era el mismo bug que la de assets: index/thecollection/legal a mano,
 # y la landing /modelo/<id> (30-jul) habria quedado fuera sin que nadie lo notara. Ahora
-# entra cualquier fichero versionado que referencie un asset con ?v=.
+# se descubren solas — pero SOLO las que referencian el asset que ha cambiado. Refrescar
+# las 9 que llevan cualquier ?v= metia en el commit ediciones a medias de la suite interna
+# (usuarios/, unidades/, operaciones/): un `git add` que el autor no pidio.
+# basename + el punto como [.] (literal, no comodin); varios assets van con |
+pat=$(echo "$changed" | sed -E 's#.*/##' | sed 's#\.#[.]#g' | paste -sd'|' -)
 n=0
-for f in $(grep -rlE 'assets/[A-Za-z0-9_.-]+\.(js|css)\?v=' $(git ls-files '*.html' '*.php') 2>/dev/null); do
-  sed -i -E "s#(assets/[A-Za-z0-9_.-]+\.(js|css))\?v=[0-9A-Za-z]+#\1?v=$ver#g" "$f"
+for f in $(grep -rlE "assets/($pat)\?v=" $(git ls-files '*.html' '*.php') 2>/dev/null); do
+  sed -i -E "s#(assets/($pat))\?v=[0-9A-Za-z]+#\1?v=$ver#g" "$f"
   git add "$f"
   n=$((n+1))
 done

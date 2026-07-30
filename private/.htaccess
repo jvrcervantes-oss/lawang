@@ -1,0 +1,13 @@
+# private/ guarda estado de servidor y datos personales: contadores del rate-limit con IPs
+# y los CSVs de leads (nombre, telefono, email, IP). Nunca se sirve.
+#
+# El .htaccess de la raiz ya lo tapa con un RedirectMatch 404, pero esa regla vive en OTRO
+# fichero: una migracion de hosting, un AllowOverride distinto o un despliegue parcial la
+# dejan fuera y la carpeta queda publicada sin que nadie se entere. Esta viaja con ella.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

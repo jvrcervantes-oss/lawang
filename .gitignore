@@ -39,8 +39,10 @@ appeal/
 # Lanzador de previsualizacion local (herramienta de desarrollo, no se publica)
 preview.cmd
 
-# estado de servidor del rate-limit (IPs + marcas de tiempo): nunca al repo
-private/
+# estado de servidor del rate-limit (IPs + marcas de tiempo) y CSVs de leads: nunca al repo.
+# Excepcion: su .htaccess, que es la unica proteccion que viaja CON la carpeta.
+private/*
+!private/.htaccess
 
 # Prototipos no publicados (landings de modelo pendientes de precio y OK)
 _preview/

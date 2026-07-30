@@ -6,6 +6,11 @@ RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
 RedirectMatch 404 (?i)/private/
 RedirectMatch 404 (?i)/\.git
 
+# Piezas internas de la landing de modelo: datos y funciones, nunca una pagina.
+# lib.php y modelos.php respondian 200 con cuerpo vacio; test_modelo.php ya se corta solo
+# por SAPI, pero cortarlo aqui tambien no cuesta nada.
+RedirectMatch 404 (?i)/modelo/(lib|modelos|test_modelo)\.php$
+
 # URLs limpias en las paginas publicas: /thecollection, no /thecollection.html.
 # Solo raiz y solo GET a proposito: las subcarpetas (api/, contracts/, facturas/, intranet/)
 # son apps internas con logins y formularios, y un 301 convierte un POST en GET — ahi no se toca.
@@ -32,6 +37,13 @@ RedirectMatch 404 (?i)/\.git
   RewriteRule ^([^/.]+)$ $1.html [L]
   RewriteCond %{REQUEST_FILENAME}.php -f
   RewriteRule ^([^/.]+)$ $1.php [L]
+
+  # 2b) La landing de modelo, con su extension, tambien redirige a la URL limpia: la regla 1
+  #     solo casa rutas de raiz, asi que /modelo/index.php?m=dali servia un duplicado con 200.
+  #     La `?` final descarta la query original para no arrastrar ?m= a la URL limpia.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} "\s/+modelo/index\.php\?m=([A-Za-z0-9-]+)" [NC]
+  RewriteRule ^ /modelo/%1? [R=301,L,NE]
 
   # 3) Landings de modelo: /modelo/dali sirve modelo/index.php?m=dali. Va DESPUES de las
   #    reglas de raiz a proposito: aquellas solo casan rutas sin barra, asi que no se comen

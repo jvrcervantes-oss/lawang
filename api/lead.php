@@ -26,16 +26,22 @@ if (trim(isset($_POST['website']) ? $_POST['website'] : '') !== '') {
 
 // Freno de caudal: este endpoint es publico por diseno (lo llama el formulario), asi que
 // nada impedia meter miles de filas en Supabase y disparar otros tantos correos SMTP.
-// 8 envios por IP cada 10 min: de sobra para una persona, inutil para un bucle.
+// Cubo separado por formulario, y mas holgado en el de llamada: la pauta va a moviles
+// españoles bajo CGNAT, donde cientos de visitantes comparten IP publica. Con el cubo
+// compartido de 8, el 9º visitante de la campaña recibia un 429 sin haber enviado nada.
 require_once __DIR__ . '/throttle.php';
-$__ip = $_SERVER['REMOTE_ADDR'] ?? 'sin-ip';
-if (lawang_throttle_blocked('lead_' . $__ip, 8, 600)) {
+$__ip     = $_SERVER['REMOTE_ADDR'] ?? 'sin-ip';
+$__llamada = trim(isset($_POST['name']) ? $_POST['name'] : '') !== ''
+          || trim(isset($_POST['phone']) ? $_POST['phone'] : '') !== '';
+$__cubo   = ($__llamada ? 'llamada_' : 'lead_') . $__ip;
+$__tope   = $__llamada ? 15 : 8;
+if (lawang_throttle_blocked($__cubo, $__tope, 600)) {
     http_response_code(429);
     header('Retry-After: 600');
     echo json_encode(['ok' => false, 'error' => 'too_many']);
     exit;
 }
-lawang_throttle_register('lead_' . $__ip, 600);
+lawang_throttle_register($__cubo, 600);
 
 $email    = isset($_POST['email'])    ? trim($_POST['email'])    : '';
 $source   = isset($_POST['source'])   ? trim($_POST['source'])   : '';
@@ -60,6 +66,12 @@ $clean = function ($s) {
 };
 $source   = $clean($source);
 $property = $clean($property);
+// El email tambien: `filter_var` da por bueno un local-part que empieza por = + - @
+// (ej. "=cmd|'/c calc'!A0"@x.com) y ventas abre este CSV en Excel.
+$email    = $clean($email);
+// Atribucion de campaña. Sin esto no hay coste por lead por anuncio ni forma de subir
+// la conversion offline cuando la venta se cierre por telefono semanas despues.
+$campana  = $clean(isset($_POST['campana']) ? trim($_POST['campana']) : '');
 
 // private/ no es servible por web (fuera del docroot lógico); se crea si falta
 $dir = __DIR__ . '/../private';
@@ -95,17 +107,22 @@ if ($name !== '' || $phone !== '') {
     $enviado = @mail(
         'sales@lawangproperties.com',
         'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
-        "Modelo: $property\nNombre: $name\nEmail: $email\nTelefono: $phone\nOrigen: $source\nFecha: " . date('c'),
+        "Modelo: $property\nNombre: $name\nEmail: $email\nTelefono: $phone\n"
+        . "Origen: $source\nCampana: $campana\nFecha: " . date('c'),
         // From de un buzón del propio dominio: con un remitente ajeno el correo cae en spam.
         "From: no-reply@lawangproperties.com\r\nReply-To: $email\r\n"
-        . "Content-Type: text/plain; charset=UTF-8\r\n"
+        . "Content-Type: text/plain; charset=UTF-8\r\n",
+        // Envelope sender. Sin -f, Hostinger manda con el usuario del sistema como
+        // remitente de sobre, el SPF de lawangproperties.com falla y el aviso cae en
+        // spam. Mismo parametro que usa contracts/api/send_email.php.
+        '-fno-reply@lawangproperties.com'
     ) ? 'si' : 'NO';
 
     if ($new) {
-        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'consentimiento', 'ip', 'avisado']);
+        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'campana', 'consentimiento', 'ip', 'avisado']);
     }
     fputcsv($fh, [
-        date('c'), $name, $email, $phone, $property, $source, 'si',
+        date('c'), $name, $email, $phone, $property, $source, $campana, 'si',
         isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
         $enviado,
     ]);
