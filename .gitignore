@@ -21,6 +21,11 @@ assets/guide/
 # descargas incompletas
 *.crdownload
 
+# Renders de los modelos: al repo SOLO la version web/ (1600px, ~300 KB). Los originales
+# de 2816px pesan 48 MB y no los sirve nadie. La landing /modelo/<id> lee la carpeta web/.
+assets/img/buildings/*/*
+!assets/img/buildings/*/web
+
 # máster pesado del hero (solo local)
 assets/img/Hero.png
 # Hero2.png SÍ se versiona: es el fondo del hero (alta calidad, petición cliente)

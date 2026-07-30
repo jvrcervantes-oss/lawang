@@ -1,13 +1,26 @@
 <?php
 /**
- * lead.php — captura de email (verja de descargas de la ficha de producto).
- * Añade una fila a private/leads.csv. Sin dependencias externas.
+ * lead.php — captura de contacto. Dos formularios, dos ficheros:
+ *   · verja de descargas de la ficha de producto  → private/leads.csv       (solo email)
+ *   · "Solicitar llamada" de /modelo/<id>         → private/leads_llamada.csv (nombre+tel+consentimiento)
+ *
+ * Ficheros separados a propósito: son datos de forma distinta y el histórico de leads.csv
+ * lleva una cabecera de 5 columnas en producción. Meter filas de 8 bajo esa cabecera deja
+ * un CSV que se lee mal justo el día que empiece a entrar volumen desde la pauta.
+ * Sin dependencias externas.
  */
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'method']);
+    exit;
+}
+
+// Trampa de bots: el campo va oculto por CSS, un humano no lo ve. Si viene relleno se
+// responde "ok" y no se guarda nada — un 4xx le diría al bot qué corregir.
+if (trim(isset($_POST['website']) ? $_POST['website'] : '') !== '') {
+    echo json_encode(['ok' => true]);
     exit;
 }
 
@@ -51,6 +64,58 @@ $property = $clean($property);
 // private/ no es servible por web (fuera del docroot lógico); se crea si falta
 $dir = __DIR__ . '/../private';
 if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
+
+// ── Solicitud de llamada (landing /modelo/<id>) ────────────────────────────────
+// Se distingue por traer nombre o teléfono. Aquí los tres campos son obligatorios:
+// un lead de ticket alto sin teléfono no se puede trabajar, y sin consentimiento
+// expreso no se puede contactar a un residente en la UE (RGPD).
+$name  = $clean(isset($_POST['name'])  ? trim($_POST['name'])  : '');
+$phone = $clean(isset($_POST['phone']) ? trim($_POST['phone']) : '');
+
+if ($name !== '' || $phone !== '') {
+    $consent = isset($_POST['consent']) && $_POST['consent'] === '1';
+    if ($name === '' || $phone === '' || !$consent) {
+        http_response_code(422);
+        echo json_encode(['ok' => false, 'error' => 'campos']);
+        exit;
+    }
+
+    $file = $dir . '/leads_llamada.csv';
+    $new  = !file_exists($file);
+    $fh   = @fopen($file, 'a');
+    if ($fh === false) {
+        http_response_code(500);
+        echo json_encode(['ok' => false, 'error' => 'write']);
+        exit;
+    }
+
+    // Aviso a ventas. Un formulario que solo escribe en un CSV que nadie abre no es
+    // captación: el lead se enfría en el disco. Se guarda si el envío salió o no,
+    // que es lo único que permite darse cuenta de que el correo dejó de salir.
+    $enviado = @mail(
+        'sales@lawangproperties.com',
+        'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
+        "Modelo: $property\nNombre: $name\nEmail: $email\nTelefono: $phone\nOrigen: $source\nFecha: " . date('c'),
+        // From de un buzón del propio dominio: con un remitente ajeno el correo cae en spam.
+        "From: no-reply@lawangproperties.com\r\nReply-To: $email\r\n"
+        . "Content-Type: text/plain; charset=UTF-8\r\n"
+    ) ? 'si' : 'NO';
+
+    if ($new) {
+        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'consentimiento', 'ip', 'avisado']);
+    }
+    fputcsv($fh, [
+        date('c'), $name, $email, $phone, $property, $source, 'si',
+        isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
+        $enviado,
+    ]);
+    fclose($fh);
+
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+// ── Verja de descargas (solo email) ────────────────────────────────────────────
 $file = $dir . '/leads.csv';
 
 $new = !file_exists($file);

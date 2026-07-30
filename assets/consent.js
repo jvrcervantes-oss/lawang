@@ -91,16 +91,27 @@
       '@media(max-width:520px){#lw-consent-bar .lw-cbtns{flex:1 1 100%}#lw-consent-bar button{flex:1}}';
     document.head.appendChild(css);
 
+    // Idioma del banner = idioma de la página. La pauta de Meta va a España y en una
+    // landing en español un aviso en inglés baja la aceptación: sin aceptación no hay
+    // píxel, y sin píxel no hay medición ni públicos. Es dinero, no cortesía.
+    var es = (document.documentElement.lang || '').toLowerCase().indexOf('es') === 0;
+    var t = es ? {
+      p: 'Usamos cookies para medir el rendimiento de nuestra publicidad. No se carga nada hasta que aceptas. ',
+      l: 'Política de Privacidad', no: 'Rechazar', si: 'Aceptar'
+    } : {
+      p: 'We use cookies to measure how our advertising performs. Nothing is loaded until you accept. ',
+      l: 'Privacy &amp; Data Policy', no: 'Decline', si: 'Accept'
+    };
+
     var bar = document.createElement('div');
     bar.id = 'lw-consent-bar';
     bar.setAttribute('role', 'dialog');
     bar.setAttribute('aria-label', 'Cookie preferences');
     bar.innerHTML =
-      '<p>We use cookies to measure how our advertising performs. Nothing is loaded until you accept. ' +
-      '<a href="/legal#privacy">Privacy &amp; Data Policy</a></p>' +
+      '<p>' + t.p + '<a href="/legal#privacy">' + t.l + '</a></p>' +
       '<div class="lw-cbtns">' +
-      '<button type="button" id="lw-consent-no">Decline</button>' +
-      '<button type="button" id="lw-consent-yes">Accept</button>' +
+      '<button type="button" id="lw-consent-no">' + t.no + '</button>' +
+      '<button type="button" id="lw-consent-yes">' + t.si + '</button>' +
       '</div>';
     document.body.appendChild(bar);
 

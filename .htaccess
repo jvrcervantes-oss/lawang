@@ -32,6 +32,11 @@ RedirectMatch 404 (?i)/\.git
   RewriteRule ^([^/.]+)$ $1.html [L]
   RewriteCond %{REQUEST_FILENAME}.php -f
   RewriteRule ^([^/.]+)$ $1.php [L]
+
+  # 3) Landings de modelo: /modelo/dali sirve modelo/index.php?m=dali. Va DESPUES de las
+  #    reglas de raiz a proposito: aquellas solo casan rutas sin barra, asi que no se comen
+  #    esta. Un modelo inexistente o sin renders lo manda index.php a /thecollection.
+  RewriteRule ^modelo/([A-Za-z0-9-]+)/?$ /modelo/index.php?m=$1 [L,QSA]
 </IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
