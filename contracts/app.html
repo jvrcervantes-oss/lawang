@@ -65,16 +65,32 @@
   /* selector de contrato en la barra estática: siempre accesible al hacer scroll del formulario */
 
   /* ---------- escenario en dos columnas ---------- */
-  .stage{ display:flex; height:calc(100dvh - var(--tbh)); }
-  .pane-form{ flex:1 1 50%; min-width:0; overflow:auto; padding:22px 20px 48px; }
+  /* Grid con la columna del formulario ACOTADA, igual que en /facturas: al 50/50
+     el formulario dejaba 300px de aire a los lados de sus campos (su `.inner`
+     nunca pasa de 640px) mientras la barra de herramientas de la derecha se
+     partía en tres líneas. Ahora el formulario coge lo que necesita y el resto
+     es para el documento y sus botones. */
+  .stage{ display:grid; grid-template-columns:minmax(400px,560px) 1fr; height:calc(100dvh - var(--tbh)); }
+  .pane-form{ min-width:0; overflow:auto; padding:22px 20px 48px; }
   .pane-form .inner{ max-width:640px; margin:0 auto; }
   /* preview: bandeja de papel más profunda para que el documento "flote" */
-  .pane-preview{ flex:1 1 50%; min-width:0; display:flex; flex-direction:column;
+  .pane-preview{ min-width:0; display:flex; flex-direction:column;
     background:radial-gradient(120% 80% at 50% 0%, #efe7d9 0%, #e7ddcd 100%); border-left:1px solid var(--line); }
-  .pv-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:11px 16px;
+  .pv-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:9px 18px; padding:11px 16px;
     background:rgba(255,253,248,.9); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line); }
-  .pv-bar b{ font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); flex:1; min-width:96px; }
+  /* el rotulo NO crece (antes flex:1): empujaba el bloque de herramientas a una
+     linea propia incluso cuando quedaba sitio de sobra al lado. */
+  .pv-bar b{ font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); flex:none; }
+  /* Herramientas agrupadas por lo que HACEN, no por el orden en que se
+     escribieron (30-jul, owner): editar el documento, la firma automática y el
+     PDF a mano son tres flujos distintos y antes estaban mezclados en una fila
+     de nueve botones. Cada grupo no se parte por dentro; los grupos sí saltan de
+     línea como bloques. El filete separador va en el grupo siguiente, así que si
+     uno se oculta (los botones dependen del estado) el separador se va con él. */
+  .pv-grupo{ display:flex; align-items:center; gap:6px; flex:none; }
+  .pv-grupo > .g{ font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); white-space:nowrap; }
   .pv-scroll{ flex:1; overflow:auto; padding:22px 20px; display:flex; justify-content:center; }
   #pvFrame{ width:100%; max-width:820px; height:100%; min-height:400px; border:none; background:#fff;
     box-shadow:0 1px 2px rgba(46,52,55,.08), 0 18px 48px -12px rgba(46,52,55,.32); border-radius:8px; }
@@ -235,7 +251,7 @@
   .fab:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(16,76,79,.42); }
   .fab:active{ transform:translateY(0) scale(.97); }
   @media (max-width:900px){
-    .stage{ flex-direction:column; height:auto; }
+    .stage{ grid-template-columns:1fr; height:auto; }
     .pane-form{ overflow:visible; height:auto; padding-bottom:96px; }
     .pane-preview{ position:fixed; inset:0; z-index:60; transform:translateY(100%); transition:transform .3s ease;
       border-left:none; height:100dvh; }
@@ -341,15 +357,33 @@
       <div class="pv-bar">
         <b id="pvTitle">Vista previa</b>
         <span id="lockBadge" style="display:none;font-size:12px;color:var(--be,#a3342b);align-items:center;gap:6px;font-weight:600">🔒 Bloqueado</span>
-        <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
-        <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
-        <button class="btn ghost" id="btnDerivar" title="Genera otro contrato reutilizando estos datos">⎘ Nuevo con estos datos</button>
-        <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
-        <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
-        <button class="btn ghost" id="btnEmail">✉ Enviar por email</button>
-        <button class="btn ghost" id="btnSave" style="display:none">Guardar en base de datos</button>
-        <button class="btn ghost" id="btnDownloadSigned" style="display:none">Descargar PDF firmado</button>
-        <button class="btn primary" id="btnPdf">Descargar PDF</button>
+        <!-- 1. el documento en sí -->
+        <div class="pv-grupo" role="group" aria-label="Documento">
+          <span class="g">Documento</span>
+          <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
+          <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
+          <button class="btn ghost" id="btnDerivar" title="Genera otro contrato reutilizando estos datos">⎘ Duplicar</button>
+        </div>
+        <!-- 2. guardar: ni flujo de firma ni papel, es la base de datos -->
+        <div class="pv-grupo" role="group" aria-label="Base de datos">
+          <button class="btn primary" id="btnSave" style="display:none" title="Guarda el contrato en la base de datos">Guardar</button>
+        </div>
+        <!-- 3. firma remota: el comprador firma desde un enlace y el PDF firmado
+             entra solo (Edge Function firma-submit). Sin pasos a mano. -->
+        <div class="pv-grupo" role="group" aria-label="Firma automática">
+          <span class="g">Firma automática</span>
+          <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
+          <button class="btn ghost" id="btnDownloadSigned" style="display:none" title="Descargar el PDF ya firmado">PDF firmado ↓</button>
+        </div>
+        <!-- 4. el camino a mano: te llevas el PDF, lo mandas tú, y cuando vuelve
+             firmado lo subes tú. Mismo destino que el grupo anterior, pero cada
+             paso lo das tú. -->
+        <div class="pv-grupo" role="group" aria-label="PDF a mano">
+          <span class="g">A mano</span>
+          <button class="btn ghost" id="btnPdf">Descargar PDF</button>
+          <button class="btn ghost" id="btnEmail">✉ Email</button>
+          <button class="btn ghost" id="btnLockUpload" style="display:none" title="Sube el PDF firmado y bloquea el contrato">🔒 Subir firmado</button>
+        </div>
         <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
       </div>
@@ -1990,6 +2024,16 @@ let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — inde
 /* El cierre de los menús ⋯ (barra superior y barra de preview) lo lleva
    assets/topbar.js, compartido con Facturas y Dossier. */
 
+/* Un grupo cuyos botones están todos ocultos (dependen del estado del contrato)
+   dejaría en la barra su rótulo y su filete separador solos. Se llama al final de
+   updateSaveButton, que es quien decide esas visibilidades. */
+function ocultarGruposVacios(){
+  document.querySelectorAll('.pv-bar .pv-grupo').forEach(g => {
+    const visible = [...g.querySelectorAll('button')].some(b => b.style.display !== 'none');
+    g.style.display = visible ? '' : 'none';
+  });
+}
+
 function updateSaveButton(){
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];
@@ -2000,11 +2044,12 @@ function updateSaveButton(){
   if(LOCKED){ const r=$('#btnEditReset'); if(r) r.style.display='none'; }
 
   const lockBtn=$('#btnLockUpload'), firmaBtn=$('#btnEnviarFirma');
-  if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; if(firmaBtn) firmaBtn.style.display='none'; return; }
+  if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; if(firmaBtn) firmaBtn.style.display='none'; ocultarGruposVacios(); return; }
   btn.style.display = LOCKED ? 'none' : '';
   if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   if(firmaBtn) firmaBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
-  btn.textContent = SAVED_CONTRACT ? ('Actualizar (' + SAVED_CONTRACT.numero + ')') : 'Guardar en base de datos';
+  btn.textContent = SAVED_CONTRACT ? ('Actualizar ' + SAVED_CONTRACT.numero) : 'Guardar';
+  ocultarGruposVacios();   // al final: antes de aquí las visibilidades aún cambian
 }
 
 async function subirPdfFirmado(file){
