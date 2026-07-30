@@ -34,20 +34,6 @@ function lw_modelo_get($id, array $modelos, $root = null) {
     return $m;
 }
 
-/** Los otros modelos que sí tienen landing, para el cross-selling del pie. */
-function lw_modelos_publicables(array $modelos, $excluir = '', $root = null) {
-    $out = [];
-    foreach ($modelos as $id => $m) {
-        if ($id === $excluir) continue;
-        $imgs = lw_modelo_imgs($id, $root);
-        if (!$imgs) continue;
-        $m['id']   = $id;
-        $m['imgs'] = $imgs;
-        $out[$id]  = $m;
-    }
-    return $out;
-}
-
 /** "69.000 €" · null si no hay precio cerrado (nunca un número plausible). */
 function lw_precio_fmt($eur) {
     if ($eur === null || $eur === '' || !is_numeric($eur)) return null;

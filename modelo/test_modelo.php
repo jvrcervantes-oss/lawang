@@ -14,10 +14,11 @@ function ok($cond, $msg) {
     if (!$cond) { $fallos++; echo "FALLO: $msg\n"; }
 }
 
-// Un modelo con renders se publica; uno sin ellos, no (hoy: Dune/Trinity/Temple).
+// Solo Dali existe (30-jul): los demas modelos se retiraron del funnel.
 $dali = lw_modelo_get('dali', $M);
 ok($dali !== null && count($dali['imgs']) >= 5, 'dali debe ser publicable con sus renders');
-ok(lw_modelo_get('dune', $M) === null, 'dune no tiene renders: no puede servir landing');
+ok(count($M) === 1, 'el catalogo del funnel es solo Dali');
+ok(lw_modelo_get('dune', $M) === null, 'un modelo retirado no puede servir landing');
 
 // El primer render es el del hero: orden natural, dali.jpg antes que dali2.jpg.
 ok(substr($dali['imgs'][0], -8) === 'dali.jpg', 'el hero debe ser dali.jpg, no dali2.jpg');
@@ -37,11 +38,14 @@ foreach ($M as $id => $m) {
         "precio de $id debe ser null o numero");
 }
 
-// Cross-selling: nunca se enlaza a sí mismo ni a una landing que redirige.
-$otros = lw_modelos_publicables($M, 'dali');
-ok(!isset($otros['dali']), 'el cross-selling no se enlaza a si mismo');
-ok(!isset($otros['dune']), 'el cross-selling no enlaza modelos sin renders');
-foreach ($otros as $id => $o) { ok(!empty($o['imgs']), "$id en cross-selling sin imagenes"); }
+// Las fotos reales del sitio: si faltan, la seccion "La costa, no el render" sale rota.
+foreach (['costa', 'rio'] as $f) {
+    ok(is_file(dirname(__DIR__) . "/assets/img/lugar/$f.jpg"), "falta la foto real $f.jpg");
+}
+
+// El pliego que se publica tiene que estar completo por los dos lados.
+ok(!empty($dali['alcance']['incluido']) && !empty($dali['alcance']['no_incluido']),
+    'un alcance de obra sin "no incluido" es una reclamacion');
 
 echo $fallos === 0 ? "OK — todo pasa\n" : "$fallos fallo(s)\n";
 exit($fallos === 0 ? 0 : 1);
