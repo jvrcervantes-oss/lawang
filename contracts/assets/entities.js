@@ -74,11 +74,16 @@ const CUENTAS_BANCARIAS = {
    `razon`/`marca`/`domicilio`/`npwp`/`rep` alimentan tanto los marcadores
    {{prom_*}} de las plantillas de contrato como la cabecera del emisor en las
    facturas. `cred` (nacionalidad + documento del representante) solo la usan
-   los contratos. Añadir una sociedad = un bloque más aquí, nada más. */
+   los contratos. `logo` es la cabecera del documento: cada sociedad emite con
+   su propia marca, y una factura de PT San Dal Woods con el logo de Lawang
+   dice que emite otra empresa (30-jul-2026). Lo usan hoy las facturas; los
+   contratos siguen con su logo fijo en cada plantilla.
+   Añadir una sociedad = un bloque más aquí, nada más. */
 const SOCIEDADES = {
   tepi_sungai: {
     label: 'PT Tepi Sungai (marca «Lawang Tropical Properties»)',
     razon: 'PT TEPI SUNGAI', marca: 'LAWANG TROPICAL PROPERTIES',
+    logo: '/contracts/assets/brand/lawang-logo-v3-dark.png',
     domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
     npwp: '1000.0000.0619.8026', rep: 'I Made Monjong Adhi Nugruah',
     cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
@@ -87,6 +92,7 @@ const SOCIEDADES = {
   san_dal_woods: {
     label: 'PT San Dal Woods',
     razon: 'PT SAN DAL WOODS', marca: '',
+    logo: '/contracts/assets/brand/sandalwoods-logo.png',
     domicilio: 'Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No. 3B RT. 000 RW. 000, Kuta, Kuta, Kab. Badung, Bali',
     npwp: '1000.0000.0012.5018', rep: 'Pablo Cantero Gambín',
     cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',

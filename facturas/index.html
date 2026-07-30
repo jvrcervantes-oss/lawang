@@ -450,7 +450,10 @@ function render(){
   const soc = SOCIEDADES[d.sociedad] || SOCIEDADES.tepi_sungai;
   const t = calcTotales(d.lineas, d.moneda, { pct:d.imp_pct });
   const fecha = f => f ? new Date(f + 'T00:00:00').toLocaleDateString('es-ES', {day:'2-digit', month:'long', year:'numeric'}) : '';
-  const numero = (SAVED && SAVED.numero) || 'BORRADOR';
+  // Sin guardar no hay número: la línea no se pinta (antes decía «BORRADOR»,
+  // fuera por decisión del owner el 30-jul). El número lo asigna el trigger al
+  // guardar, así que un documento sin número es uno que aún no se ha emitido.
+  const numero = (SAVED && SAVED.numero) || '';
 
   const filas = d.lineas.map(l => (l.descripcion || l.importe)
     ? `<tr><td>${esc(l.descripcion)}</td><td class="imp">${fmtMoneda(parseImporte(l.importe), d.moneda)}</td></tr>` : ''
@@ -459,7 +462,7 @@ function render(){
   $('#doc').innerHTML = `
     <div class="head">
       <div>
-        <img src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="">
+        <img src="${esc(soc.logo || '/contracts/assets/brand/lawang-logo-v3-dark.png')}" alt="">
         <div class="emisor" style="margin-top:5mm">
           <b>${esc(soc.razon)}</b>
           ${soc.marca ? `<span class="marca">${esc(soc.marca)}</span>` : ''}
@@ -470,7 +473,7 @@ function render(){
       <div class="titulo">
         <h2>${esc((TIPOS[d.tipo] || TIPOS.factura).es)}</h2>
         <div class="titulo-en">${esc((TIPOS[d.tipo] || TIPOS.factura).en)}</div>
-        <div class="num">${esc(numero)}</div>
+        ${numero ? `<div class="num">${esc(numero)}</div>` : ''}
         <div class="meta">
           ${d.fecha_emision ? `Fecha · Date: ${esc(fecha(d.fecha_emision))}<br>` : ''}
           ${d.fecha_vencimiento ? `Vencimiento · Due: ${esc(fecha(d.fecha_vencimiento))}<br>` : ''}
@@ -517,7 +520,9 @@ const limpiaNombre = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').
 $('#btnPrint').onclick = () => {
   const d = collect();
   const antes = document.title;
-  document.title = `${(SAVED && SAVED.numero) || 'BORRADOR'}_${limpiaNombre(d.cliente_nombre) || 'FACTURA'}`.toUpperCase();
+  // El nombre del PDF: número si ya está emitido, y si no el tipo de documento.
+  const rotulo = (SAVED && SAVED.numero) || limpiaNombre((TIPOS[d.tipo] || TIPOS.factura).es);
+  document.title = `${rotulo}_${limpiaNombre(d.cliente_nombre) || 'SIN_NOMBRE'}`.toUpperCase();
   window.print();
   document.title = antes;
 };
