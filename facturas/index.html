@@ -20,7 +20,13 @@
 <script src="totales.js"></script>
 <script src="compradores.js"></script>
 <style>
-  :root{ --line:#e4ddcf; --card:#fffdf8; --field-bg:#fdfcf9; --tbh:56px; }
+  /* --folio = color del papel del documento. Vive aquí y en un solo sitio a
+     propósito: los logos de las sociedades vienen sin canal alfa (el de San
+     Dal Woods es marrón sobre un rectángulo BLANCO opaco), así que si el folio
+     deja de ser blanco el logo se ve pegado encima. Con `--folio` y el
+     multiply del logo (ver `.doc .head img`) el papel se puede cambiar sin que
+     aparezca ese recorte — 30-jul-2026. */
+  :root{ --line:#e4ddcf; --card:#fffdf8; --field-bg:#fdfcf9; --tbh:56px; --folio:#fff; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body); background:var(--rl); color:var(--ink); }
@@ -83,7 +89,7 @@
   .pv-scroll{ padding:22px 0 60px; display:flex; justify-content:center; }
   /* ponytail: zoom en pantalla para que el A4 quepa en el panel; la impresión
      usa el tamaño real (zoom no se aplica dentro de @media print). */
-  .sheet{ width:210mm; min-height:297mm; background:#fff; padding:18mm 16mm; zoom:.78;
+  .sheet{ width:210mm; min-height:297mm; background:var(--folio); padding:18mm 16mm; zoom:.78;
           box-shadow:0 10px 40px rgba(46,52,55,.16); }
 
   /* documento */
@@ -92,7 +98,12 @@
               border-bottom:2px solid var(--brand-primary); padding-bottom:8mm; }
   .doc .titulo{ flex:none; }
   .doc .titulo h2{ white-space:nowrap; }
-  .doc .head img{ height:15mm; }
+  /* multiply: el blanco del logo se vuelve transparente sobre cualquier folio
+     (blanco × color = color) y la tinta se mantiene. Es lo que evita el
+     rectángulo pegado del logo sin alfa; el de Lawang ya trae alfa y le da
+     igual. Va en el <img>, no en el .head: el .head no tiene fondo propio, así
+     que mezcla contra el papel. */
+  .doc .head img{ height:15mm; mix-blend-mode:multiply; }
   .doc .emisor{ font-size:9pt; line-height:1.45; color:#4a4f4a; max-width:85mm; }
   .doc .emisor b{ display:block; font-size:11pt; color:var(--brand-deep); letter-spacing:.02em; }
   .doc .marca{ font-size:8pt; letter-spacing:.22em; text-transform:uppercase; color:var(--brand-primary); }
