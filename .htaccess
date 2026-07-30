@@ -6,6 +6,11 @@ RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
 RedirectMatch 404 (?i)/private/
 RedirectMatch 404 (?i)/\.git
 
+# Las herramientas .py del proyecto (build_seo.py, publicar_data.py) viajan en el repo pero
+# el servidor no las ejecuta: las servia como text/plain, o sea el codigo fuente descargable
+# por cualquiera. No hay secretos dentro, pero regala los endpoints internos y la logica.
+RedirectMatch 404 (?i)\.py$
+
 # Piezas internas de la landing de modelo: datos y funciones, nunca una pagina.
 # lib.php y modelos.php respondian 200 con cuerpo vacio; test_modelo.php ya se corta solo
 # por SAPI, pero cortarlo aqui tambien no cuesta nada.
