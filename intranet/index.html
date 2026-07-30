@@ -9,337 +9,446 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
-<!-- Iconos: familia real (Phosphor), no emojis. El §11 del estudio los veta, y
-     dibujarlos a mano tampoco vale. Una sola familia y un solo grosor. Si el CDN
-     cae, la tarjeta se queda sin icono pero sigue siendo legible. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   INTRANET LAWANG · rediseño 28-jul-2026
+   INTRANET LAWANG · rediseño 30-jul-2026 (v3)
 
-   Qué se arregló, medido sobre la versión anterior (en Backups/
-   20260728_1600_intranet_v1_antes_rediseno.html):
+   AUTOPSIA DE LA v2 (28-jul, en Backups/) — qué falla, no qué me gusta menos:
 
-   1. FONDO Y TARJETA ERAN INDISTINGUIBLES. Raw Linen #F5F0E6 contra
-      #fffdf8 da un ratio de 1,117: las tarjetas no se leían como objetos,
-      solo las separaba un borde de 1px. Ahora la tarjeta es blanco puro y
-      el fondo baja a un lino más presente.
+   1. ERA UNA REJILLA DE TARJETAS IDÉNTICAS. Siete cajas con icono +
+      título + párrafo, todas del mismo tamaño. Es el patrón que el
+      manual del estudio prohíbe explícitamente, y con razón: siete
+      objetos iguales no tienen jerarquía, así que la vista no sabe por
+      dónde empezar y hay que LEER las siete para elegir una.
 
-   2. FALTABA EL CONTRASTE ESTRUCTURAL. La guía de marca reparte
-      60% Raw Linen / 25% Territorial Green / 10% Deep Lagoon+Burnt Earth.
-      La v1 era ~95% Raw Linen y nada más: por eso "los colores no están
-      mal pero algo falla". La cabecera en Volcanic Ash aporta ese 10% y
-      ancla la página.
+   2. FILO LATERAL DE COLOR (`a.tool::before`, 3px verdes). Prohibido en
+      el manual y por el mismo motivo: no significa nada. Marcaba "está
+      viva" en una lista donde todas lo están.
 
-   3. TIPOGRAFÍA ILEGIBLE POR TAMAÑO Y TRACKING, no por contraste.
-      El subtítulo era 10px con letter-spacing .26em. Se lee letra a
-      letra. Mínimo ahora: 11.5px y tracking .10em.
+   3. TARJETA FANTASMA: borde de 1px + sombra difusa de 28px en hover.
+      O borde o sombra definida, no las dos como decoración.
 
-   4. SERIF EN EL SITIO EQUIVOCADO. Cormorant hacía de título de tarjeta
-      a 23px, donde toca escanear rápido. La guía de marca dice que la
-      display va "reservada para H1, uso controlado": ahí se queda.
+   4. NO DECÍA NADA. Siete enlaces y ni un dato. Un hub que abres veinte
+      veces al día y que no te dice qué ha cambiado lo hace mejor la
+      barra de marcadores. Este es el cambio de fondo: cada herramienta
+      trae su estado real (contratos editables, firmas esperando,
+      documentos emitidos), consultado con los permisos de quien mira.
 
-   Modo claro fijo, sin dark mode: la identidad de Lawang es Raw Linen al
-   60% del layout. Un modo oscuro automático rompería esa proporción, que
-   es justo lo que veníamos a arreglar.
+   5. SIN TECLADO. Diez personas entran aquí a diario y solo se podía
+      apuntar y hacer clic. Ahora se escribe para filtrar, ↑↓ para
+      moverse, Enter para abrir; la primera fila ya viene enfocada.
+
+   6. EL ELEMENTO MÁS GRANDE ERA EL QUE MENOS DECÍA: "Herramientas del
+      equipo" en serif a 40px. La serif se queda en una sola palabra —
+      la marca — y el resto es Jost. En una herramienta, la tipografía
+      display en rótulos es ruido (manual: registro producto).
+
+   HONESTIDAD DE LOS DATOS: si una consulta falla, la fila NO muestra
+   "0". Un cero falso en un panel de control es peor que un hueco: el
+   hueco se pregunta, el cero se cree. Misma lección que el logo que
+   caía al de otra empresa cuando el JS venía cacheado.
+
+   Modo claro fijo: la identidad de Lawang es Raw Linen al 60% del
+   layout, y un modo oscuro automático rompe esa proporción.
    ═══════════════════════════════════════════════════════════════ */
 
 :root{
-  /* tokens de marca — hex exactos del brand guide */
-  --tg:#485B37;   /* Territorial Green */
+  /* marca — hex exactos del brand guide */
+  --tg:#485B37;   /* Territorial Green: acento, y solo acento */
   --dl:#104C4F;   /* Deep Lagoon */
   --va:#2E3437;   /* Volcanic Ash */
   --sc:#8F9B7A;   /* Soft Canopy */
   --ss:#BEB3A5;   /* Stone Sand */
-  --rl:#F1EBDD;   /* Raw Linen, un punto más presente que #F5F0E6 para que la tarjeta blanca despegue */
-  --card:#FFFFFF;
-  --line:#E2DACA;
-  --texto:#22282A;
-  --texto-2:#4A5052;   /* cuerpo: 8.0:1 sobre blanco, frente a los 5.2:1 del gris anterior */
+  --rl:#F1EBDD;   /* Raw Linen */
+  --sup:#FFFFFF;         /* superficie de trabajo */
+  --sup-2:#FAF7F0;       /* segunda capa: cabecera de grupo, fila enfocada */
+  --line:#E4DCCB;
+  --line-fuerte:#D3C8B2;
+  --ink:#21272A;         /* 14.8:1 sobre blanco */
+  --ink-2:#4A5052;       /* 8.0:1 sobre blanco */
+  --ink-3:#6B7072;       /* 5.1:1 — mínimo para texto pequeño, no bajar más */
   --serif:'Cormorant Garamond',Georgia,serif;
   --sans:'Jost',system-ui,-apple-system,sans-serif;
-  --r:14px;            /* un solo radio para todo el sistema */
-  --ease:cubic-bezier(.16,1,.3,1);
+  --r:10px;
+  --sal:cubic-bezier(.22,1,.36,1);   /* ease-out; sin rebote */
+  --z-barra:20;   /* única capa que se superpone: la barra pegajosa */
 }
 
 *{ box-sizing:border-box; }
 html,body{ margin:0; }
 body{
-  font-family:var(--sans); background:var(--rl); color:var(--texto);
-  min-height:100vh; display:flex; flex-direction:column;
-  -webkit-font-smoothing:antialiased;
+  font-family:var(--sans); font-size:15px; background:var(--rl); color:var(--ink);
+  min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
 }
 body[hidden]{ display:none; }
 
-/* ── cabecera: el ancla oscura que faltaba ───────────────────── */
-header{ background:var(--va); color:var(--rl); }
-.bar{
-  max-width:1120px; margin:0 auto; padding:18px 28px;
-  display:flex; align-items:center; gap:16px;
-}
-.marca{ display:flex; align-items:center; gap:12px; min-width:0; }
-.marca > div{ min-width:0; }   /* sin esto el texto no puede encoger y ensancha la página entera */
-.glyph{
-  width:38px; height:38px; flex:none; border-radius:50%;
-  border:1.5px solid var(--sc); color:var(--sc);
-  display:grid; place-items:center;
-  font-family:var(--serif); font-size:20px; font-weight:600; line-height:1;
-}
-.marca h1{
-  margin:0; font-size:14px; font-weight:500;
-  letter-spacing:.10em; text-transform:uppercase;   /* .26em -> .10em */
-}
-.marca small{
-  display:block; margin-top:3px; font-size:11.5px;  /* 10px -> 11.5px */
-  letter-spacing:.10em; color:var(--ss);
-}
+/* ── barra ────────────────────────────────────────────────────── */
+header{ background:var(--va); color:var(--rl); position:sticky; top:0; z-index:var(--z-barra); }
+.bar{ max-width:1060px; margin:0 auto; padding:14px 26px; display:flex; align-items:center; gap:14px; }
+/* Sin esto la barra tiene un ancho mínimo mayor que un móvil (marca + nombre +
+   rol + botón) y desborda la PÁGINA entera, no solo la barra: el texto de las
+   filas sale cortado por la derecha. Ya pasó en la v2 con el email. */
+.bar > *{ min-width:0; }
+.marca{ display:flex; align-items:baseline; gap:9px; min-width:0; }
+.marca b{ font-family:var(--serif); font-size:21px; font-weight:600; letter-spacing:.01em; line-height:1; }
+.marca span{ font-size:11.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--ss); white-space:nowrap; }
 .spacer{ flex:1; }
-#who{ font-size:13px; color:var(--ss); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:230px; }
+.yo{ display:flex; align-items:center; gap:9px; min-width:0; }
+.yo .quien{ font-size:13px; color:var(--rl); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:210px; }
+.rol{
+  flex:none; font-size:10.5px; font-weight:500; letter-spacing:.09em; text-transform:uppercase;
+  border:1px solid rgba(241,235,221,.34); border-radius:999px; padding:3px 8px; color:var(--ss);
+}
+.rol.manda{ border-color:var(--sc); color:#CBD6B6; }
 #out{
-  font:inherit; font-size:13px; font-weight:500; color:var(--rl);
-  background:transparent; border:1px solid rgba(241,235,221,.32);
-  border-radius:999px; padding:8px 17px; cursor:pointer;
-  transition:background .18s var(--ease), border-color .18s var(--ease), transform .18s var(--ease);
+  flex:none; font:inherit; font-size:13px; color:var(--rl); background:transparent;
+  border:1px solid rgba(241,235,221,.3); border-radius:999px; padding:7px 15px; cursor:pointer;
+  transition:background .16s var(--sal), border-color .16s var(--sal);
 }
 #out:hover{ background:rgba(241,235,221,.12); border-color:var(--ss); }
-#out:active{ transform:scale(.97); }
 #out:focus-visible{ outline:2px solid var(--sc); outline-offset:2px; }
 
-/* ── cuerpo ──────────────────────────────────────────────────── */
-main{ flex:1; max-width:1120px; width:100%; margin:0 auto; padding:52px 28px 72px; }
-.intro{ max-width:60ch; margin-bottom:38px; }
-.intro h2{
-  font-family:var(--serif); font-size:40px; font-weight:500; line-height:1.12;
-  margin:0 0 10px; color:var(--va); letter-spacing:.005em;
+/* ── encabezado de página ─────────────────────────────────────── */
+main{ flex:1; width:100%; max-width:1060px; margin:0 auto; padding:34px 26px 64px; }
+.lede{ display:flex; align-items:flex-end; gap:24px; margin-bottom:20px; flex-wrap:wrap; }
+.lede > div{ min-width:0; }
+.lede h1{
+  margin:0; font-size:23px; font-weight:500; letter-spacing:.005em; color:var(--ink);
+  text-wrap:balance;
 }
-.intro p{ margin:0; font-size:16px; line-height:1.6; color:var(--texto-2); }
+.lede p{ margin:0; font-size:14px; color:var(--ink-2); max-width:62ch; }
 
-/* Secciones: el hub crece y siete tarjetas sueltas ya no se leen como grupos.
-   El título de sección es una regla con etiqueta, no una tarjeta más: separa
-   sin añadir otra caja al recuento visual. */
-.seccion{ margin:0 0 34px; }
-.seccion > h2{
-  display:flex; align-items:baseline; gap:12px; margin:0 0 14px;
-  font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--tg);
+/* buscador: es el camino rápido, no un adorno. Se enfoca al cargar. */
+.buscar{ position:relative; flex:1; min-width:240px; }
+.buscar i{ position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:17px; color:var(--ink-3); }
+#q{
+  width:100%; font:inherit; font-size:14px; color:var(--ink);
+  padding:10px 84px 10px 36px; background:var(--sup);
+  border:1px solid var(--line); border-radius:999px;
+  transition:border-color .16s var(--sal), box-shadow .16s var(--sal);
 }
-.seccion > h2::after{
-  content:""; flex:1; height:1px; background:var(--line);
-}
-.seccion > h2 .cuenta{ font-size:11.5px; font-weight:400; letter-spacing:.06em; color:var(--texto-2); text-transform:none; }
-
-.grid{ display:grid; gap:16px; grid-template-columns:repeat(3,1fr); }
-.tool.destacada{ grid-column:span 2; }
-/* una sección con una sola herramienta ocupa el ancho entero: dejar celdas
-   vacías al final de una rejilla es un hueco de maquetación, no aire */
-.grid.una .tool{ grid-column:1 / -1; }
-@media (max-width:900px){ .grid{ grid-template-columns:repeat(2,1fr); } }
-@media (max-width:620px){
-  .grid{ grid-template-columns:1fr; }
-  .tool.destacada{ grid-column:span 1; }
-  .tool.destacada h3{ font-size:17.5px; }   /* en una columna ya no destaca por tamaño, y competía con el H1 */
-  main{ padding:34px 18px 52px; }
-  .intro h2{ font-size:30px; }
-  .intro p{ font-size:15px; }
-  /* La cabecera tenía un ancho mínimo mayor que 390px (marca + email + botón)
-     y eso desbordaba la PÁGINA entera, no solo la barra: el texto de las
-     tarjetas salía cortado por la derecha. El email sobra en móvil. */
-  .bar{ padding:13px 18px; gap:12px; }
-  #who{ display:none; }
-  .marca small{ font-size:11px; letter-spacing:.08em; }
-  footer{ padding:0 18px 32px; }
+#q::placeholder{ color:var(--ink-3); }
+#q:focus{ outline:none; border-color:var(--sc); box-shadow:0 0 0 3px rgba(143,155,122,.22); }
+.buscar kbd{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  font:inherit; font-size:11px; color:var(--ink-3); background:var(--sup-2);
+  border:1px solid var(--line); border-radius:6px; padding:2px 7px; pointer-events:none;
 }
 
-.tool{
-  position:relative; display:flex; flex-direction:column; gap:9px;
-  background:var(--card); border:1px solid var(--line); border-radius:var(--r);
-  padding:24px 22px 20px; min-height:158px;
-  text-decoration:none; color:inherit;
-  box-shadow:0 1px 2px rgba(46,52,55,.04);
-  transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+/* ── grupos y filas ───────────────────────────────────────────── */
+.grupo{ margin-top:26px; }
+.grupo:first-of-type{ margin-top:8px; }
+.grupo > h2{
+  margin:0 0 7px; font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3);
 }
-/* el verde de marca aparece POCO y a propósito: solo marca las que
-   están vivas, y solo como filo lateral */
-a.tool::before{
-  content:""; position:absolute; left:0; top:18px; bottom:18px; width:3px;
-  border-radius:0 3px 3px 0; background:var(--tg);
-  opacity:.85; transition:top .2s var(--ease), bottom .2s var(--ease);
+.filas{
+  background:var(--sup); border:1px solid var(--line); border-radius:var(--r); overflow:hidden;
 }
-a.tool:hover{
-  transform:translateY(-2px); border-color:var(--sc);
-  box-shadow:0 10px 28px -12px rgba(46,52,55,.28), 0 2px 6px rgba(46,52,55,.06);
+.fila{
+  display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:14px;
+  padding:14px 16px; border-top:1px solid var(--line);
+  text-decoration:none; color:inherit; position:relative;
+  transition:background .14s var(--sal);
 }
-a.tool:hover::before{ top:10px; bottom:10px; }
-a.tool:active{ transform:translateY(0) scale(.995); }
-a.tool:focus-visible{ outline:2px solid var(--tg); outline-offset:3px; }
+.fila:first-child{ border-top:none; }
+.fila:hover{ background:var(--sup-2); }
+.fila:focus-visible{ outline:none; background:var(--sup-2); box-shadow:inset 3px 0 0 var(--tg); }
+.fila.marcada{ background:var(--sup-2); box-shadow:inset 3px 0 0 var(--tg); }   /* cursor del teclado */
+.fila:active{ background:#F5F1E8; }
+.fila > i{ font-size:20px; color:var(--ink-2); justify-self:center; }
+.fila .nombre{ font-size:15px; font-weight:500; letter-spacing:.005em; }
+.fila .para{ display:block; margin-top:2px; font-size:13px; color:var(--ink-2); line-height:1.45; }
+.fila .estado{
+  display:flex; align-items:center; gap:10px; justify-self:end;
+  font-size:13px; color:var(--ink-2); text-align:right; white-space:nowrap;
+}
+.fila .cifra{ font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
+/* la única marca de color de la página: algo que espera a alguien */
+.fila .urge{ color:#7A4B14; background:#F7EEDC; border-radius:999px; padding:3px 9px; font-size:12.5px; }
+.fila .flecha{ font-size:15px; color:var(--ink-3); }
+.fila:hover .flecha, .fila.marcada .flecha{ color:var(--tg); }
 
-/* el icono acompaña al título en la misma línea: sirve para reconocer la
-   herramienta de un vistazo, no para decorar la esquina de la tarjeta */
-.tool h3{
-  margin:0; display:flex; align-items:center; gap:10px;
-  font-size:17.5px; font-weight:600; letter-spacing:.005em; color:var(--va);
-}
-.tool h3 i{ font-size:21px; line-height:1; color:var(--tg); flex:none; }
-.tool.pendiente h3 i{ color:var(--ss); }
-.tool.destacada h3{ font-size:20px; }
-.tool.destacada h3 i{ font-size:24px; }
-.tool p{ margin:0; font-size:14.5px; line-height:1.55; color:var(--texto-2); flex:1; }
+/* esqueleto mientras llegan las cifras: no un spinner en medio del contenido */
+.hueso{ display:inline-block; width:74px; height:11px; border-radius:6px; background:var(--line); opacity:.75;
+        animation:latir 1.1s ease-in-out infinite; }
+@keyframes latir{ 50%{ opacity:.35; } }
 
-.estado{
-  align-self:flex-start; font-size:11.5px; font-weight:500;
-  letter-spacing:.08em; text-transform:uppercase;
-  border-radius:999px; padding:4px 11px;
-}
-.estado.viva{ background:rgba(72,91,55,.12); color:#3B4B2D; }
-.estado.pendiente{ background:rgba(46,52,55,.07); color:#5A6062; }
+/* pendiente de construir: no es una tarjeta más, es una fila apagada que dice qué falta */
+.fila.pendiente{ cursor:default; }
+.fila.pendiente .nombre{ color:var(--ink-2); }
+.fila.pendiente > i{ color:var(--ss); }
+.fila.pendiente:hover{ background:transparent; }
+.fila .falta{ font-size:12.5px; color:#6A5A3C; }
 
-/* estado vacío de verdad: dice QUÉ falta, no solo que no está */
-.tool.pendiente{ background:transparent; border-style:dashed; box-shadow:none; }
-.tool.pendiente h3{ color:var(--texto-2); }
-.tool.pendiente .falta{
-  margin:0; font-size:12.5px; line-height:1.5; color:#6A5A3C;
-  background:rgba(190,179,165,.22); border-radius:9px; padding:8px 10px;
+.sin-nada{ padding:22px 16px; font-size:14px; color:var(--ink-2); }
+.aviso{
+  margin:0 0 18px; padding:11px 14px; font-size:13.5px; line-height:1.5; color:#6A4A14;
+  background:#F7EEDC; border:1px solid #E6D7B4; border-radius:var(--r);
 }
+footer{ width:100%; max-width:1060px; margin:0 auto; padding:0 26px 34px; font-size:12.5px; color:var(--ink-3); }
+footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
 
-footer{
-  max-width:1120px; width:100%; margin:0 auto; padding:0 28px 40px;
-  font-size:12.5px; color:var(--texto-2);
+@media (max-width:640px){
+  .bar{ padding:12px 16px; gap:10px; }
+  /* en el móvil queda la marca y el botón: quién soy y con qué rol es dato de
+     escritorio, y aquí sólo servía para empujar la página fuera de la pantalla */
+  .yo{ display:none; }
+  .marca span{ display:none; }
+  main{ padding:24px 16px 44px; }
+  footer{ padding:0 16px 28px; }
+  .lede{ gap:14px; }
+  .fila{ grid-template-columns:22px 1fr; padding:13px 14px; }
+  .fila .estado{ grid-column:2; justify-self:start; margin-top:6px; }
+  .fila .flecha{ display:none; }
+  .buscar kbd{ display:none; }
+  #q{ padding-right:16px; }
 }
-footer .sep{ border-top:1px solid var(--line); padding-top:16px; }
-
 @media (prefers-reduced-motion:reduce){
-  *{ transition:none !important; }
+  *{ transition:none !important; animation:none !important; }
 }
 </style>
 </head>
 <body hidden>
   <header>
     <div class="bar">
-      <div class="marca">
-        <div class="glyph" aria-hidden="true">L</div>
-        <div>
-          <h1>Intranet</h1>
-          <small>LAWANG TROPICAL PROPERTIES</small>
-        </div>
-      </div>
+      <div class="marca"><b>Lawang</b><span>Intranet</span></div>
       <div class="spacer"></div>
-      <span id="who"></span>
+      <div class="yo">
+        <span class="quien" id="who"></span>
+        <span class="rol" id="rol" hidden></span>
+      </div>
       <button id="out">Salir</button>
     </div>
   </header>
 
   <main>
-    <div class="intro">
-      <h2>Herramientas del equipo</h2>
-      <p>Todo lo que se emite, se firma y se cobra en Lawang, en un solo sitio.</p>
+    <div id="avisos"></div>
+    <div class="lede">
+      <div>
+        <h1>Qué necesita tu atención</h1>
+        <p>Cada herramienta trae su estado real, consultado con tus permisos.</p>
+      </div>
+      <div class="buscar">
+        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Escribe para filtrar: contratos, factura, KYC…" aria-label="Filtrar herramientas">
+        <kbd>↑↓ Enter</kbd>
+      </div>
     </div>
-    <div id="secciones"></div>
+    <div id="grupos"></div>
   </main>
 
-  <footer><div class="sep">Acceso restringido. Cada herramienta exige la misma sesión.</div></footer>
+  <footer><div>
+    <span>Acceso restringido: cada herramienta exige esta misma sesión.</span>
+    <span id="pie-datos"></span>
+  </div></footer>
 
 <script>
-/* Añadir una herramienta = una entrada en su sección.
-   `href` vacío = todavía no existe, y `falta` explica qué le falta: un estado
-   vacío que no dice qué hacer es una tarjeta muerta.
-   `icon` = clase de Phosphor (familia única, un solo grosor).
-   `herr` = herramienta de `public.usuarios.herramientas`: quien no la tenga no
-   ve la tarjeta. Sin ficha en esa tabla (cuentas anteriores al panel) se ven
-   todas, igual que antes. */
-const SECCIONES = [
-  { titulo:'Seguimiento', tools:[
-    { name:'Operaciones', icon:'ph-chart-line-up', destacada:true, href:'/operaciones/', herr:'operaciones',
-      desc:'Cómo va cada venta: estado de cuenta, documentos emitidos, firmas y vencimientos.' },
-  ]},
-  { titulo:'Documentación', tools:[
-    { name:'Contratos', icon:'ph-file-text', href:'/contracts/app.html', herr:'contratos',
-      desc:'Reservas, PPJB, construcción y anexos.' },
-    { name:'Dossier',   icon:'ph-book-open',  href:'/dossier/builder.html', herr:'dossier',
-      desc:'Dossiers de producto en A4 apaisado.' },
-  ]},
-  { titulo:'Administración', tools:[
-    { name:'Facturas', icon:'ph-receipt',    href:'/facturas/', herr:'facturas',
-      desc:'Facturas, proformas y recibís, cada tipo con su serie.' },
-    { name:'Recibos',  icon:'ph-hand-coins', href:'/facturas/?tipo=recibi', herr:'facturas',
-      desc:'Justificantes de pago y señales.' },
-  ]},
-  { titulo:'Base de datos', tools:[
-    { name:'Unidades',    icon:'ph-house-line', href:'/unidades/', herr:'unidades',
-      desc:'Inventario de parcelas y villas con su estado de venta.' },
-    { name:'Compradores', icon:'ph-identification-card', href:'/compradores/', herr:'compradores',
-      desc:'Ficha del comprador y documentación KYC, con caducidades.' },
-  ]},
-  { titulo:'Equipo', tools:[
-    // soloAdmin: la compatibilidad "sin ficha = ve todo" no puede alcanzar al
-    // panel de permisos. Una cuenta antigua sin fila en `usuarios` vería la
-    // tarjeta, entraría y se encontraría una pantalla que le niega el paso.
-    { name:'Usuarios', icon:'ph-users-three', href:'/usuarios/', herr:'usuarios', soloAdmin:true,
-      desc:'Quién entra, con qué rol y qué herramientas ve cada uno.' },
-  ]},
+/* ── catálogo de herramientas ──────────────────────────────────────────
+   Añadir una = una entrada aquí. `herr` es la herramienta de
+   `public.usuarios.herramientas`: quien no la tenga no ve la fila (sin ficha
+   en esa tabla se ven todas, igual que antes del panel de permisos).
+   `estado` recibe las cifras ya consultadas y devuelve [texto, urgente], o
+   null si la consulta que necesita no contestó — mejor un hueco que un cero
+   inventado. Sin `estado` (el Dossier trabaja contra ficheros locales, no
+   contra la base) la fila no espera ninguna cifra y no pinta esqueleto. */
+const HERRAMIENTAS = [
+  { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/operaciones/', herr:'operaciones',
+    para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
+    claves:'ventas seguimiento estado cuenta vencimientos',
+    estado:d => d.firmasPendientes == null ? null
+      : [d.firmasPendientes ? d.firmasPendientes + (d.firmasPendientes === 1 ? ' firma esperando' : ' firmas esperando') : 'Sin firmas pendientes',
+         d.firmasPendientes > 0] },
+
+  { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/app.html', herr:'contratos',
+    para:'Reservas, PPJB, construcción y anexos.',
+    claves:'contratos ppjb reserva construccion anexos',
+    estado:d => d.contratos == null ? null
+      : [d.contratos + ' guardados · ' + d.contratosEditables + ' editables', false] },
+  { grupo:'Documentación', nombre:'Dossier', icon:'ph-book-open', href:'/dossier/builder.html', herr:'dossier',
+    para:'Dossiers de producto en A4 apaisado.',
+    claves:'dossier pdf maqueta producto' },   // sin `estado`: no vive en la base de datos
+
+  { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/facturas/', herr:'facturas',
+    para:'Facturas, proformas y recibís, cada tipo con su serie.',
+    claves:'facturas proforma serie inv cobro impuesto',
+    estado:d => d.facturas == null ? null
+      : [d.facturas + ' emitidas' + (d.facturasAnuladas ? ' · ' + d.facturasAnuladas + ' anuladas' : ''), false] },
+  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/facturas/?tipo=recibi', herr:'facturas',
+    para:'Justificantes de pago y señales.',
+    claves:'recibi recibos justificante señal pago',
+    estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
+
+  { grupo:'Base de datos', nombre:'Unidades', icon:'ph-house-line', href:'/unidades/', herr:'unidades',
+    para:'Inventario de parcelas y villas con su estado de venta.',
+    claves:'unidades parcelas villas inventario disponible',
+    estado:d => d.unidades == null ? null
+      : d.unidades === 0 ? ['Sin inventario cargado', true]
+      : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
+  { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/compradores/', herr:'compradores',
+    para:'Ficha del comprador y documentación KYC, con caducidades.',
+    claves:'compradores kyc pasaporte fichas clientes caducidad',
+    estado:d => d.compradores == null ? null : [d.compradores + ' fichas', false] },
+
+  { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/usuarios/', herr:'usuarios', soloAdmin:true,
+    para:'Quién entra, con qué rol y qué herramientas ve cada uno.',
+    claves:'usuarios permisos roles equipo acceso',
+    estado:d => d.usuarios == null ? null
+      : [d.usuarios + ' con acceso' + (d.usuariosInactivos ? ' · ' + d.usuariosInactivos + ' desactivados' : ''), false] },
 ];
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = s => document.querySelector(s);
 
-const tarjeta = t => {
-  const clases = 'tool' + (t.destacada ? ' destacada' : '') + (t.href ? '' : ' pendiente');
-  const cuerpo =
-    `<h3><i class="ph ${esc(t.icon)}" aria-hidden="true"></i>${esc(t.name)}</h3><p>${esc(t.desc)}</p>` +
-    (t.href
-      ? '<span class="estado viva">Abrir</span>'
-      : `<p class="falta">${esc(t.falta || '')}</p><span class="estado pendiente">En construcción</span>`);
-  return t.href
-    ? `<a class="${clases}" href="${esc(t.href)}">${cuerpo}</a>`
-    : `<div class="${clases}">${cuerpo}</div>`;
-};
+let FICHA = null, CIFRAS = null, VISIBLES = [], CURSOR = 0;
 
-/* Se pinta con las herramientas que tenga el usuario. `ficha` null (cuenta sin
-   fila en `usuarios`) = se ve todo, igual que antes del panel de permisos. */
-function pintarSecciones(ficha){
-  const admin = ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin');
-  const puede = t => t.soloAdmin ? !!admin
-                   : (!ficha || admin || !t.herr || (ficha.herramientas || []).includes(t.herr));
-  document.getElementById('secciones').innerHTML = SECCIONES.map(s => {
-    const tools = s.tools.filter(puede);
-    if (!tools.length) return '';                       // sección entera sin permiso: no se anuncia
-    const listas = tools.filter(t => t.href).length;
-    const cuenta = listas === tools.length ? '' :
-      `<span class="cuenta">${listas} de ${tools.length} lista${tools.length > 1 ? 's' : ''}</span>`;
-    return `<section class="seccion">
-      <h2>${esc(s.titulo)}${cuenta}</h2>
-      <div class="grid${tools.length === 1 ? ' una' : ''}">${tools.map(tarjeta).join('')}</div>
-    </section>`;
-  }).join('');
+/* ── qué se le enseña a cada uno ───────────────────────────────────── */
+const esAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
+const permitida = t => t.soloAdmin ? esAdmin(FICHA)
+  : (!FICHA || esAdmin(FICHA) || !t.herr || (FICHA.herramientas || []).includes(t.herr));
+
+/* ── pintado ───────────────────────────────────────────────────────
+   Se pinta ANTES de que lleguen las cifras, con hueso en su sitio: la lista
+   de herramientas no depende de la base de datos y esperar por ella dejaría
+   la página en blanco por un timeout de red. */
+function pintar(filtro){
+  const q = (filtro || '').trim().toLowerCase();
+  const casa = t => !q || (t.nombre + ' ' + t.para + ' ' + t.claves).toLowerCase().includes(q);
+  const lista = HERRAMIENTAS.filter(permitida).filter(casa);
+  VISIBLES = lista;
+
+  if(!lista.length){
+    $('#grupos').innerHTML = '<div class="filas"><p class="sin-nada">Ninguna herramienta coincide con «' + esc(filtro) + '».</p></div>';
+    return;
+  }
+  const grupos = [];
+  lista.forEach(t => {
+    const g = grupos.find(x => x.titulo === t.grupo) || (grupos.push({ titulo:t.grupo, tools:[] }), grupos[grupos.length-1]);
+    g.tools.push(t);
+  });
+  $('#grupos').innerHTML = grupos.map(g => `
+    <section class="grupo">
+      <h2>${esc(g.titulo)}</h2>
+      <div class="filas">${g.tools.map(fila).join('')}</div>
+    </section>`).join('');
+  marcar(0);
 }
 
-/* mismo proyecto y key publicable que contracts/login.html — el candado real es la RLS */
+function fila(t){
+  const i = VISIBLES.indexOf(t);
+  const est = (CIFRAS && t.estado) ? t.estado(CIFRAS) : null;
+  const derecha = !t.estado ? ''                                   // no cuenta nada: ni cifra ni esqueleto
+    : !CIFRAS ? '<span class="hueso" aria-hidden="true"></span>'   // esperando la consulta
+    : est ? `<span class="${est[1] ? 'urge' : 'cifra'}">${esc(est[0])}</span>` : '';
+  return `<a class="fila" href="${esc(t.href)}" data-i="${i}">
+    <i class="ph ${esc(t.icon)}" aria-hidden="true"></i>
+    <span><span class="nombre">${esc(t.nombre)}</span><span class="para">${esc(t.para)}</span></span>
+    <span class="estado">${derecha}<i class="ph ph-arrow-right flecha" aria-hidden="true"></i></span>
+  </a>`;
+}
+
+/* ── teclado: escribir filtra, ↑↓ mueve, Enter abre ───────────────── */
+function marcar(i){
+  const filas = [...document.querySelectorAll('.fila')];
+  if(!filas.length) return;
+  CURSOR = Math.max(0, Math.min(i, filas.length - 1));
+  filas.forEach((f, n) => f.classList.toggle('marcada', n === CURSOR));
+}
+$('#q').addEventListener('input', e => pintar(e.target.value));
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault(); marcar(CURSOR + (e.key === 'ArrowDown' ? 1 : -1));
+    document.querySelectorAll('.fila')[CURSOR].scrollIntoView({ block:'nearest' });
+  }else if(e.key === 'Enter'){
+    const f = document.querySelectorAll('.fila')[CURSOR];
+    if(f && f.href) location.href = f.href;
+  }else if(e.key === 'Escape' && $('#q').value){
+    $('#q').value = ''; pintar('');
+  }else if(e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement !== $('#q')){
+    $('#q').focus();   // escribir en cualquier sitio va al filtro, como en cualquier lista buena
+  }
+});
+document.addEventListener('mousemove', e => {
+  const f = e.target.closest && e.target.closest('.fila');
+  if(f) marcar(+f.dataset.i);
+}, { passive:true });
+
+/* ── cifras: una ronda de `count` en paralelo ──────────────────────
+   `head:true` no trae filas, solo el número: son ocho contadores, no ocho
+   listados. Cada uno se resuelve por separado a propósito — si la RLS tapa
+   una tabla para este usuario, esa fila se queda sin cifra y las demás
+   siguen. Un `Promise.all` que revienta dejaría el panel entero sin datos. */
+async function contar(sb){
+  // `select('*')` con head:true no trae columnas: es el idioma de PostgREST para
+  // contar, y sirve igual en `usuarios`, cuya clave no se llama `id`.
+  const n = async (tabla, filtro) => {
+    let q = sb.from(tabla).select('*', { count:'exact', head:true });
+    if(filtro) q = filtro(q);
+    const { count, error } = await q;
+    return error ? null : (count || 0);
+  };
+  const [contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
+         recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos] = await Promise.all([
+    n('contratos'),
+    n('contratos', q => q.eq('bloqueado', false)),
+    n('contrato_firmas', q => q.eq('estado', 'pendiente')),
+    n('facturas', q => q.eq('anulada', false)),
+    n('facturas', q => q.eq('anulada', true)),
+    n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
+    n('unidades'),
+    n('unidades', q => q.eq('estado', 'disponible')),
+    n('clients'),
+    n('usuarios', q => q.eq('activo', true)),
+    n('usuarios', q => q.eq('activo', false)),
+  ]);
+  return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
+           recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos };
+}
+
+/* ── arranque ──────────────────────────────────────────────────────── */
 const sb = window.supabase.createClient(
   'https://vtulllundrfennhjddhc.supabase.co',
-  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'   // publicable: el candado real es la RLS
 );
-sb.auth.getSession().then(async ({ data: { session } }) => {
-  if (!session) { location.replace('/contracts/login.html?next=/intranet/'); return; }
-  document.getElementById('who').textContent = session.user.email;
+
+sb.auth.getSession().then(async ({ data:{ session } }) => {
+  if(!session){ location.replace('/contracts/login.html?next=/intranet/'); return; }
   const { data: ficha } = await sb.from('usuarios')
-    .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
-  if (ficha && !ficha.activo) {           // desactivado: se le cierra la sesión, no se le enseña un hub vacío
+    .select('rol, herramientas, activo, nombre').eq('user_id', session.user.id).maybeSingle();
+  if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío
     await sb.auth.signOut();
     location.replace('/contracts/login.html?desactivado=1');
     return;
   }
-  pintarSecciones(ficha || null);
-  // aviso al volver rebotado de una herramienta sin permiso (guard.js)
-  const sin = new URLSearchParams(location.search).get('sin_permiso');
-  if (sin) {
-    const p = document.createElement('p');
-    p.className = 'falta';
-    p.style.cssText = 'max-width:760px;margin:0 auto 18px;text-align:center';
-    p.textContent = 'No tienes acceso a «' + sin + '». Pídeselo a un administrador.';
-    document.querySelector('main .intro').after(p);
+  FICHA = ficha || null;
+  $('#who').textContent = (ficha && ficha.nombre) || session.user.email;
+  $('#who').title = session.user.email;
+  if(ficha){
+    const r = $('#rol');
+    r.hidden = false;
+    r.textContent = ficha.rol.replace('_', ' ');
+    r.classList.toggle('manda', esAdmin(ficha));
   }
+
+  const sin = new URLSearchParams(location.search).get('sin_permiso');
+  if(sin) $('#avisos').innerHTML = '<p class="aviso">No tienes acceso a «' + esc(sin) + '». Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.</p>';
+
+  pintar('');                 // la lista sale ya, sin esperar a la base
   document.body.hidden = false;
+  $('#q').focus();
+
+  CIFRAS = await contar(sb);
+  pintar($('#q').value);
+  const mudas = HERRAMIENTAS.filter(permitida).filter(t => t.estado && t.estado(CIFRAS) === null).length;
+  $('#pie-datos').textContent = mudas
+    ? mudas + ' herramienta(s) sin cifra: la base no contestó y no se inventa un cero.'
+    : 'Cifras al día de ' + new Date().toLocaleString('es-ES', { hour:'2-digit', minute:'2-digit' }) + '.';
 });
-document.getElementById('out').onclick = async () => {
+
+$('#out').onclick = async () => {
   await sb.auth.signOut();
   location.replace('/contracts/login.html');
 };

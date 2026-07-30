@@ -285,8 +285,31 @@
         <button class="btn" id="btnNueva">Nueva</button>
         <button class="btn primary" id="btnSave">Guardar en base de datos</button>
         <button class="btn" id="btnPrint">Descargar PDF</button>
+        <button class="btn" id="btnMail">Enviar por email</button>
       </div>
       <div class="pv-scroll"><div class="sheet"><div class="doc" id="doc"></div></div></div>
+    </div>
+  </div>
+
+  <!-- Enviar por email: mismo endpoint que los contratos
+       (/contracts/api/send_email.php), que renderiza el HTML a PDF con el
+       servicio Puppeteer y lo adjunta. El remitente lo fija el servidor. -->
+  <div class="overlay" id="ovMail">
+    <div class="modal">
+      <header>
+        <h2>Enviar por email</h2><div class="spacer"></div>
+        <button class="btn" id="btnCloseMail">Cerrar</button>
+      </header>
+      <div class="list">
+        <p class="hint" id="mailAviso" style="margin-top:0"></p>
+        <label>Para<input type="email" id="mailTo" placeholder="cliente@email.com"></label>
+        <label>Asunto<input type="text" id="mailSubject"></label>
+        <label>Mensaje<textarea id="mailMsg" rows="7"></textarea></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn primary" id="mailSend">Enviar</button>
+          <button class="btn" id="mailCancel">Cancelar</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -569,6 +592,75 @@ $('#btnPrint').onclick = () => {
   document.title = `${rotulo}_${limpiaNombre(d.cliente_nombre) || 'SIN_NOMBRE'}`.toUpperCase();
   window.print();
   document.title = antes;
+};
+
+/* ---------- enviar por email ----------
+   Mismo endpoint que los contratos: `/contracts/api/send_email.php` recoge el
+   HTML, lo renderiza a PDF con Chromium de verdad (servicio Puppeteer en
+   Railway) y lo adjunta. El remitente lo fija el servidor, nunca el cliente.
+   No se genera el PDF en el navegador a propósito: en Contratos ya se probó con
+   html2pdf.js y html-to-image y ninguna aguanta este CSS (color-mix, fuentes de
+   Google con CORS). El botón lo pulsa una persona: mandar correo a un tercero
+   real no se automatiza. */
+function documentoHTML(){
+  const hoja = document.querySelector('.sheet');
+  const css = [...document.querySelectorAll('style')].map(s => s.textContent).join('\n');
+  /* `<base>` para que las rutas absolutas del documento (logos en
+     /contracts/assets/brand/…) las resuelva el navegador del servidor, y
+     `hoja.outerHTML` para llevarse las variables de la sociedad —folio, tinta,
+     tamaño de logo— que render() escribió en el propio elemento. */
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<base href="${location.origin}/">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css">
+<style>${css}</style>
+<style>html,body{height:auto;margin:0;background:#fff}
+  .sheet{zoom:1;box-shadow:none;margin:0}</style>
+</head><body>${hoja.outerHTML}</body></html>`;
+}
+
+function abrirMail(){
+  const d = collect();
+  const tipo = (TIPOS[d.tipo] || TIPOS.factura).es;
+  const numero = SAVED && SAVED.numero;
+  /* Sin número no se manda. El número lo pone el trigger al guardar, así que un
+     documento sin él es uno que no se ha emitido: sale del estudio con pinta de
+     definitivo y sin rastro en la base de datos. Guardar es un clic. */
+  $('#mailSend').disabled = !numero;
+  $('#mailAviso').textContent = numero
+    ? `Se adjunta ${numero} en PDF, tal y como se ve en la vista previa.`
+    : 'Guarda el documento primero: sin número no se envía, porque no queda registrado como emitido.';
+  $('#mailTo').value = d.cliente_email || '';
+  $('#mailSubject').value = `${tipo}${numero ? ' ' + numero : ''} — ${SOCIEDADES[d.sociedad] ? SOCIEDADES[d.sociedad].razon : 'Lawang'}`;
+  $('#mailMsg').value = `Buenos días${d.cliente_nombre ? ' ' + d.cliente_nombre : ''},\n\n`
+    + `Adjunto ${tipo.toLowerCase()}${numero ? ' ' + numero : ''} para su revisión.\n\nUn saludo,\n`
+    + `${SOCIEDADES[d.sociedad] ? SOCIEDADES[d.sociedad].razon : 'Lawang Tropical Properties'}`;
+  $('#ovMail').classList.add('open');
+}
+$('#btnMail').onclick = abrirMail;
+const cerrarMail = () => $('#ovMail').classList.remove('open');
+$('#btnCloseMail').onclick = cerrarMail;
+$('#mailCancel').onclick = cerrarMail;
+$('#ovMail').onclick = e => { if(e.target === $('#ovMail')) cerrarMail(); };
+
+$('#mailSend').onclick = async () => {
+  const to = $('#mailTo').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
+  if(!(SAVED && SAVED.numero)){ toast('Guarda el documento antes de enviarlo'); return; }
+  const btn = $('#mailSend');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try{
+    const d = collect();
+    const r = await fetch('/contracts/api/send_email.php', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
+        filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
+        html: documentoHTML() }) });
+    const res = await r.json().catch(() => ({ ok:false, error:'Respuesta inválida del servidor' }));
+    if(res.ok){ toast('Enviado a ' + to); cerrarMail(); }
+    else toast(res.error || 'No se pudo enviar');
+  }catch(err){ toast('Error: ' + (err.message || err)); }
+  btn.disabled = false; btn.textContent = 'Enviar';
 };
 
 /* ---------- prefill desde un contrato guardado ----------

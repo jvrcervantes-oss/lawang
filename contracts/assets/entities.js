@@ -97,9 +97,11 @@ const SOCIEDADES = {
     razon: 'PT TEPI SUNGAI', marca: 'LAWANG TROPICAL PROPERTIES',
     logo: '/contracts/assets/brand/lawang-logo-v3-dark.png',
     // verde claro: el equivalente en la gama de marca al crema de SAN DAL WOODS.
-    // Subido un 10% de fuerza el 30-jul a peticion del owner (-10% de
-    // luminosidad sobre el #F3F7F0 inicial, mismo tono y misma saturacion).
-    folio: '#DAE6D0',
+    // Historia del ajuste (30-jul, owner): #F3F7F0 → #DAE6D0 (-10% de
+    // luminosidad) se pasó de fuerte, así que se queda a MEDIO camino, en -5%.
+    // El crema de San Dal Woods sí se queda con el -10%: el verde carga más a
+    // la vista que el crema al mismo nivel de luminosidad.
+    folio: '#E6EFE0',
     domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
     npwp: '1000.0000.0619.8026', rep: 'I Made Monjong Adhi Nugruah',
     cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
