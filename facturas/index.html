@@ -478,7 +478,15 @@ function render(){
     ? `<tr><td>${esc(l.descripcion)}</td><td class="imp">${fmtMoneda(parseImporte(l.importe), d.moneda)}</td></tr>` : ''
   ).join('') || `<tr><td class="vacio">Sin conceptos</td><td class="imp vacio">—</td></tr>`;
 
-  $('#doc').innerHTML = `
+  /* Tinta de la sociedad: todo lo coloreado del documento (filete de cabecera,
+     titulares, rótulos, cabecera de tabla y línea del total) sale de estas dos
+     variables, así que cambiarlas aquí repinta el documento entero. Cadena
+     vacía = se borra el override y vuelve el verde/lagoon de brand.css. */
+  const doc = $('#doc');
+  doc.style.setProperty('--brand-primary', (soc.tinta && soc.tinta.primary) || '');
+  doc.style.setProperty('--brand-deep',    (soc.tinta && soc.tinta.deep)    || '');
+
+  doc.innerHTML = `
     <div class="head">
       <div>
         ${soc.logo ? `<img src="${esc(soc.logo)}" alt="">` : ''}

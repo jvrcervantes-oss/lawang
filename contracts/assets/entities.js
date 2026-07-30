@@ -93,6 +93,11 @@ const SOCIEDADES = {
     label: 'PT San Dal Woods',
     razon: 'PT SAN DAL WOODS', marca: '',
     logo: '/contracts/assets/brand/sandalwoods-logo.png',
+    // Tinta del documento cuando emite esta sociedad. `primary` es el marrón
+    // exacto del SWlogo (muestreado del PNG: #662906) y `deep` el Burnt Earth
+    // de la guía de marca, más oscuro, para los titulares. Sin `tinta` el
+    // documento se queda con el verde/lagoon de Lawang (brand.css).
+    tinta: { primary:'#662906', deep:'#42210B' },
     domicilio: 'Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No. 3B RT. 000 RW. 000, Kuta, Kuta, Kab. Badung, Bali',
     npwp: '1000.0000.0012.5018', rep: 'Pablo Cantero Gambín',
     cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',
