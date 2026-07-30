@@ -950,8 +950,11 @@ function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result);
    ============================================================ */
 let ANNEXES = loadAnnexes();
 let annexSeq = 1 + ANNEXES.reduce((m,a)=>Math.max(m, parseInt(String(a.id||'').replace('ax',''))||0), 0);
-function loadAnnexes(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]; }catch(_){ return []; } }
-function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES)); }
+function loadAnnexes(){ try{ return (JSON.parse(localStorage.getItem('lawang_contract_annexes'))||[]).filter(a=>!a.auto); }catch(_){ return []; } }
+/* El anexo automático NO se persiste (ni aquí ni en el jsonb del contrato): son
+   ~27 páginas en base64, 6-8 MB, que no caben en localStorage y engordarían cada
+   fila de `contratos`. Se vuelve a derivar de tipologia_construccion al abrir. */
+function saveAnnexes(){ try{ localStorage.setItem('lawang_contract_annexes', JSON.stringify(ANNEXES.filter(a=>!a.auto))); }
   catch(_){ toast('Anexos demasiado grandes para guardar; se mantienen solo en esta sesión'); } }
 function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
@@ -985,8 +988,53 @@ async function fileToAnnexPages(file){
   return await compressImage(file);
 }
 
+/* ---------- Anexo automático por tipología ----------
+   Al elegir la tipología de vivienda se adjunta su pack de planos y
+   especificaciones sin que el agente suba nada. Por CONVENCIÓN de nombre, no por
+   una lista a mano: el fichero es `assets/anexos/<Tipología>.pdf`, así que una
+   tipología nueva solo necesita su PDF ahí y su opción en tokens.json. Si el PDF
+   no existe (Dream, Dune, Trinity, Temple a 30-jul-2026) no hay anexo automático
+   y el agente puede seguir subiéndolo a mano como siempre. */
+let AUTO_ANX = '';    // tipología cuyo anexo está puesto o pedido (evita un fetch por tecla)
+let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado propio y no
+                      // inferido de ANNEXES: si el PDF no existe, "sin anexo" y "aún
+                      // convirtiendo" son el mismo estado y el panel se quedaba
+                      // diciendo "Preparando…" para siempre (visto el 30-jul-2026).
+async function syncAutoAnnex(){
+  const el = document.querySelector('[name="tipologia_construccion"]');
+  const tip = el ? el.value.trim() : '';       // sin campo (otra plantilla) → se quita el anexo
+  if(tip === AUTO_ANX) return;
+  AUTO_ANX = tip;
+  ANNEXES = ANNEXES.filter(a=>!a.auto);
+  if(!tip){ AUTO_CARGA=''; saveAnnexes(); rebuildAnnex(); render(); return; }
+  AUTO_CARGA = tip; rebuildAnnex();
+  try{
+    const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
+    if(!r.ok) throw new Error(r.status);
+    const pages = await pdfToImages(await r.blob());
+    if(AUTO_ANX !== tip) return;               // cambió de tipología mientras se convertía
+    ANNEXES = [{ id:'axauto', auto:tip, title:'Planos y Especificaciones · '+tip, pages, on:true },
+               ...ANNEXES.filter(a=>!a.auto)];
+    toast('Anexo de '+tip+' adjuntado ('+pages.length+' pág.)');
+  }catch(_){
+    if(AUTO_ANX === tip) toast('Sin anexo automático para '+tip+' — súbelo a mano si lo necesitas');
+  }
+  if(AUTO_CARGA === tip) AUTO_CARGA = '';
+  saveAnnexes(); rebuildAnnex(); render();
+}
+
 function buildAnnexPanel(){
-  const rows = ANNEXES.map((a,i)=>`
+  const cargando = AUTO_CARGA
+    ? `<div class="dz" style="color:var(--muted);font-size:12.5px">Preparando el anexo de ${escAttr(AUTO_CARGA)}…</div>` : '';
+  const rows = cargando + ANNEXES.map((a,i)=> a.auto ? `
+    <div class="dz" data-anx="${a.id}">
+      <div class="dz-row">
+        <span style="flex:1;font-size:13px">${escAttr(a.title)}</span>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${a.pages.length} pág. · automático</span>
+      </div>
+      <div class="dz-row"><label class="switch"><input type="checkbox" data-anxon="${a.id}" ${a.on?'checked':''}><span class="slider"></span></label>
+        <span>Incluir en el contrato</span></div>
+    </div>` : `
     <div class="dz" data-anx="${a.id}">
       <div class="dz-row">
         <input class="anx-title" data-anxtitle="${a.id}" value="${escAttr(a.title)}" aria-label="Título del anexo" style="flex:1;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px">
@@ -1392,6 +1440,9 @@ function aplicarReglasCampos(){
     if(!caja || !jefe) return;
     caja.style.display = (jefe.value === valor) ? '' : 'none';
   });
+  // Único punto por el que pasa "un campo cambió" (input, change y estado inicial
+  // de buildForm), así que el anexo automático se engancha aquí y no en tres sitios.
+  syncAutoAnnex();
 }
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
@@ -2103,7 +2154,7 @@ function contractPayload(){
     contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id || null,
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
-    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES, clauses: CLAUSES,
+    datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.filter(a=>!a.auto), clauses: CLAUSES,
               compradores: COMPRADORES, overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
   };
 }
@@ -2376,7 +2427,7 @@ async function openSavedContract(id){
      medias con SAVED_CONTRACT apuntando al contrato anterior. Cada clave nueva
      que se añada a DESIGN_DEFAULT repetiría el fallo sin esta fusión. */
   if(d.design){ DESIGN = deepMerge(structuredClone(DESIGN_DEFAULT), d.design); saveDesign(); }
-  if(d.annexes){ ANNEXES = d.annexes; saveAnnexes(); }
+  if(d.annexes){ ANNEXES = d.annexes.filter(a=>!a.auto); saveAnnexes(); rebuildAnnex(); }
   if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
   if(d.compradores){ COMPRADORES = d.compradores.map(c=>({...c})); saveCompradores(); rebuildComprador(); }
   // Las ediciones del texto fijo se guardaban pero no se restauraban: un contrato
@@ -2392,6 +2443,9 @@ async function openSavedContract(id){
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
+  // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
+  // automático de la tipología guardada (no viaja en el jsonb, se reconstruye)
+  aplicarReglasCampos();
   refreshHitos(); updateSaveButton(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
 }
