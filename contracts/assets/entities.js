@@ -96,13 +96,13 @@ const SOCIEDADES = {
     label: 'PT Tepi Sungai (marca «Lawang Tropical Properties»)',
     razon: 'PT TEPI SUNGAI', marca: 'LAWANG TROPICAL PROPERTIES',
     logo: '/contracts/assets/brand/lawang-logo-v3-dark.png',
-    /* 7,2mm de ALTO, no los 15 por defecto (30-jul, owner): este lockup es una
-       tira de 7,2:1, así que a 15mm mide 108mm de ancho y se comía la fila
-       entera — los datos del emisor quedaban en una columna estrecha y el
-       domicilio se partía en cinco líneas. A 7,2mm son 51,8mm de ancho, el mismo
-       hueco que ocupa el lockup de San Dal Woods (50,6mm): las dos facturas
-       comparten formato de cabecera aunque los logos no se parezcan en nada. */
-    logoAlto: '5.8mm',
+    /* Este lockup es una tira de 7,2:1: al lado del emisor no cabe grande sin
+       dejarle una columna de 52mm en la que el domicilio se parte en nueve
+       líneas. Decisión del owner (30-jul, 17:10h): aquí el logo va GRANDE y el
+       emisor DEBAJO, que es lo que aprovecha el ancho de una tira. San Dal
+       Woods, cuyo lockup es 2,1:1, se queda con el emisor al lado. */
+    logoAlto: '14mm',            // 14mm × 7,2:1 = 100,7mm de ancho
+    emisorDebajo: true,
     // verde claro: el equivalente en la gama de marca al crema de SAN DAL WOODS.
     // Historia del ajuste (30-jul, owner): #F3F7F0 → #DAE6D0 (-10% de
     // luminosidad) se pasó de fuerte, así que se queda a MEDIO camino, en -5%.

@@ -99,7 +99,7 @@
   /* documento */
   .doc{ font-size:10.5pt; line-height:1.45; color:#2E3437; }
   .doc .head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10mm;
-              border-bottom:2px solid var(--brand-primary); padding-bottom:5mm; }
+              border-bottom:2px solid var(--brand-primary); padding-bottom:4.5mm; }
   .doc .titulo{ flex:none; }
   .doc .titulo h2{ white-space:nowrap; }
   /* multiply: el blanco del logo se vuelve transparente sobre cualquier folio
@@ -117,6 +117,11 @@
      28mm, la cabecera se comía 63mm de folio y la factura se iba a la segunda
      página con dos conceptos. Al lado son ~40mm y el logo no pierde tamaño. */
   .doc .emisor-bloque{ display:flex; align-items:flex-start; gap:7mm; min-width:0; }
+  /* Modo apilado (`emisorDebajo` en entities.js): el logo manda en la fila y el
+     emisor va justo debajo, a todo el ancho que le deje el título. Es lo que
+     necesita un lockup apaisado para ser grande sin estrangular el texto. */
+  .doc .emisor-bloque.apilado{ flex-direction:column; gap:2mm; }
+  .doc .emisor-bloque.apilado .emisor{ max-width:none; padding-top:0; }
   /* El logo se alinea con la TINTA del titulo del documento (Recibí/Factura),
      no con su caja: la caja de linea del h2 empieza 2,6mm por encima de donde
      empieza la letra, asi que sin este empujon el logo se ve mas alto que el
@@ -559,7 +564,7 @@ function render(){
 
   doc.innerHTML = `
     <div class="head">
-      <div class="emisor-bloque">
+      <div class="emisor-bloque${soc.emisorDebajo ? ' apilado' : ''}">
         <div class="marcas">
           ${soc.logo ? `<img src="${esc(soc.logo)}" alt="">` : ''}
           ${soc.logo2 ? `<img class="logo2" src="${esc(soc.logo2)}" alt="">` : ''}
