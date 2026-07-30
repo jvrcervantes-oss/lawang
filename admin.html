@@ -197,6 +197,12 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
 .img-slot-pick:hover{border-color:var(--sc)}
 .img-slot-del{background:transparent;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:4px;border-radius:var(--r);line-height:1;flex-shrink:0}
 .img-slot-del:hover{color:var(--danger);background:#fff5f5}
+/* Envoltorio de la miniatura de cualquier campo .img-url: ocupa el hueco que ya tenía
+   el input en su fila (grid o flex), así no hay que recalcular columnas en cada fila. */
+.img-field{display:flex;align-items:center;gap:6px}
+/* min-width explícito: sin él, el input impone su ancho mínimo intrínseco (~175px) al hueco
+   y en la fila de modelo (8 columnas) el campo se quedaba en 4px. */
+.img-field>input{flex:1 1 60px;min-width:60px}
 
 /* PICKER MODAL */
 .modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -394,7 +400,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           <div class="form-group">
             <label>Isotype / project mark <span class="hint">marca propia del proyecto (PNG transparente) · opcional</span></label>
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-isotype" placeholder="URL de la imagen (o usa ↑ / Pick)">
+              <input type="text" id="f-isotype" class="img-url" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-isotype')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-isotype')">Pick</button>
             </div>
@@ -618,7 +624,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           <h4>Location map <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Pega un <b>enlace de Google Maps</b> (vale el de "Compartir") y se muestra el mapa embebido. O sube una imagen de plano.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-mapImage" placeholder="Pega el enlace de Google Maps…" onblur="resolveMapField()">
+              <input type="text" id="f-mapImage" class="img-url" placeholder="Pega el enlace de Google Maps…" onblur="resolveMapField()">
               <button type="button" class="img-slot-upload" onclick="resolveMapField()" title="Localizar el enlace de Google Maps">🗺️</button>
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-mapImage')" title="Subir imagen de plano">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-mapImage')">Pick</button>
@@ -636,7 +642,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           <h4>Planta 3D del territorio <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. A la derecha, junto al masterplan.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-plan3dImage" placeholder="URL de la imagen (o usa ↑ / Pick)">
+              <input type="text" id="f-plan3dImage" class="img-url" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-plan3dImage')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-plan3dImage')">Pick</button>
             </div>
@@ -650,7 +656,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           <div class="form-group">
             <label>Split image <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">(sección 50/50, izquierda)</span></label>
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-splitImage" placeholder="URL de la imagen (o usa ↑ / Pick)">
+              <input type="text" id="f-splitImage" class="img-url" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-splitImage')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-splitImage')">Pick</button>
             </div>
@@ -683,7 +689,7 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           <h4>Full-bleed image <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Imagen ancha del final. Vacía = usa el aéreo o galería.</span></h4>
           <div class="form-group">
             <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
-              <input type="text" id="f-bleedImage" placeholder="URL de la imagen (o usa ↑ / Pick)">
+              <input type="text" id="f-bleedImage" class="img-url" placeholder="URL de la imagen (o usa ↑ / Pick)">
               <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-bleedImage')" title="Upload file">↑</button>
               <button type="button" class="img-slot-pick" onclick="pickToField('f-bleedImage')">Pick</button>
             </div>
@@ -1074,6 +1080,7 @@ function propertyToForm(p) {
   var pp = (p.paymentPlan && p.paymentPlan.length) ? p.paymentPlan : [];
   pp.forEach(function(step){ addPaymentStep(step); });
   updatePctHint();
+  refreshImgUrls();
 }
 
 function addVideoSlot(url) {
@@ -1125,7 +1132,7 @@ function addHomeRow(m) {
       '<input type="number" class="hm-beds"  value="' + esc(m.beds != null ? m.beds : '') + '" min="0" placeholder="3">' +
       '<input type="number" class="hm-built" value="' + esc(m.built != null ? m.built : '')+ '" min="0" placeholder="180">' +
       '<input type="number" class="hm-price" value="' + esc(m.priceEUR != null ? m.priceEUR : '') + '" min="0" placeholder="285000">' +
-      '<input type="text"   class="hm-image" value="' + esc(m.image || '')              + '" placeholder="URL (o ↑ / Pick)">' +
+      '<input type="text"   class="hm-image img-url" value="' + esc(m.image || '')         + '" placeholder="URL (o ↑ / Pick)">' +
       '<button type="button" class="img-slot-upload" onclick="uploadForHome(this)" title="Upload file">↑</button>' +
       '<button type="button" class="img-slot-pick" onclick="pickForHome(this)">Pick</button>' +
       '<button type="button" class="img-slot-del" onclick="this.closest(\'.home-row\').remove()">✕</button>' +
@@ -1156,7 +1163,7 @@ async function uploadForHome(btn) {
     try {
       var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
       var d = await r.json();
-      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); toast('Image uploaded.', 'ok'); }
+      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); refreshImgUrls(); toast('Image uploaded.', 'ok'); }
       else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
     } catch(e) { toast('Upload error: ' + file.name, 'err'); }
     finally { btn.disabled = false; btn.textContent = origLabel; }
@@ -1272,7 +1279,7 @@ async function uploadToField(btn, inputId, group) {
     try {
       var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
       var d = await r.json();
-      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); if (group) syncPreview(group); toast('Image uploaded.', 'ok'); }
+      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); refreshImgUrls(); if (group) syncPreview(group); toast('Image uploaded.', 'ok'); }
       else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
     } catch(e) { toast('Upload error: ' + file.name, 'err'); }
     finally { btn.disabled = false; btn.textContent = origLabel; }
@@ -1408,11 +1415,50 @@ async function resolveMapField() {
   }
 }
 
+/* ── Miniatura para CUALQUIER campo de URL de imagen ──────────────────────────
+   Sólo el carrusel y el aéreo tenían vista previa; isotipo, mapa, planta 3D, split,
+   sangre, modelos de casa y fotos de pestaña eran un input a pelo, y "más abajo en la
+   ficha" era justo donde faltaba. En vez de repetir el HTML del thumb en cada sitio,
+   se marca el input con .img-url y esto le pone (y mantiene) la miniatura sola.
+   El thumb se envuelve CON el input (.img-field) para heredar su hueco en la fila:
+   insertarlo como hermano descuadraba los grid de columnas fijas (fila de modelo). */
+function imgUrlThumb(input) {
+  var wrap = input.parentNode.classList.contains('img-field') ? input.parentNode : null;
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'img-field';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.innerHTML = '<div class="img-slot-thumb-wrap" style="display:none"><img class="img-slot-thumb" alt=""></div>';
+    wrap.appendChild(input);
+  }
+  return wrap.firstElementChild;
+}
+
+function syncImgUrl(input) {
+  var box = imgUrlThumb(input), img = box.firstElementChild, v = input.value.trim();
+  // El mapa puede llevar un enlace de Google Maps en vez de una imagen: si no carga, se esconde.
+  img.onerror = function() { box.style.display = 'none'; };
+  img.onload  = function() { box.style.display = ''; };
+  if (!v) { box.style.display = 'none'; return; }
+  if (img.getAttribute('src') !== v) img.src = v; else box.style.display = '';
+}
+
+function refreshImgUrls() {
+  document.querySelectorAll('input.img-url').forEach(syncImgUrl);
+}
+
+document.addEventListener('input', function(e) {
+  if (e.target.classList && e.target.classList.contains('img-url')) syncImgUrl(e.target);
+});
+// Las filas (modelos, pestañas) se crean en sitios muy distintos: se observa el DOM en vez de
+// llamar a refreshImgUrls() en cada uno — una lista a mano de call-sites es la que se queda corta.
+new MutationObserver(refreshImgUrls).observe(document.body, { childList: true, subtree: true });
+
 /* Fila de imagen dentro de una lista (fotos de una pestaña): input + subir + elegir + borrar.
    Los botones se apoyan en el <input> hermano, así la fila no necesita id. */
 function imageRowHTML(cls, url) {
   return '<div class="img-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px">'
-    + '<input type="text" class="' + cls + '" value="' + esc(url || '') + '" placeholder="URL de la imagen (o usa ↑ / Pick)">'
+    + '<input type="text" class="' + cls + ' img-url" value="' + esc(url || '') + '" placeholder="URL de la imagen (o usa ↑ / Pick)">'
     + '<button type="button" class="img-slot-upload" onclick="uploadToRow(this)" title="Upload file">↑</button>'
     + '<button type="button" class="img-slot-pick" onclick="pickToRow(this)">Pick</button>'
     + '<button type="button" class="img-slot-del" onclick="this.parentNode.remove()">✕</button>'
@@ -1436,7 +1482,7 @@ async function uploadToRow(btn) {
     try {
       var r = await fetch('api/upload.php', { method:'POST', credentials:'include', body: fd });
       var d = await r.json();
-      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); toast('Image uploaded.', 'ok'); }
+      if (d.ok) { input.value = d.url; IMGS_CACHE.unshift({ url: d.url, name: d.name }); refreshImgUrls(); toast('Image uploaded.', 'ok'); }
       else { toast('Upload failed: ' + (d.error || file.name), 'err'); }
     } catch(e) { toast('Upload error: ' + file.name, 'err'); }
     finally { btn.disabled = false; btn.textContent = orig; }
@@ -1861,6 +1907,7 @@ function pickImage(url) {
   closeImagePicker();
   if (cb) { cb(url); }
   else { addImageSlot(url); } // sin destino (botón "Pick from uploaded images" del carrusel): nueva foto
+  refreshImgUrls(); // asignar .value por código no dispara 'input': la miniatura se refresca aquí
 }
 
 /* ─── UTILS ─────────────────────────────────────────────────── */
