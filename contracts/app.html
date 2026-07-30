@@ -598,8 +598,8 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
 // La sociedad firmante por defecto es global (Tepi Sungai, en projectDefaults), salvo
 // las plantillas cuya identidad fiscal ya era de otra sociedad: ppjb_reserva llevaba
-// NPWP/domicilio de San Dal Woods (bajo el nombre inexistente "PT Lawang Tropical
-// Properties"), así que arranca en San Dal Woods para no alterar su identidad real.
+// NPWP/domicilio de SAN DAL WOODS (bajo el nombre inexistente "PT Lawang Tropical
+// Properties"), así que arranca en SAN DAL WOODS para no alterar su identidad real.
 const SOCIEDAD_DEFAULT = { ppjb_reserva: 'san_dal_woods' };
 function pdef(key){
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
@@ -1479,7 +1479,7 @@ const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
 // pacta escrow notarial (Reserva de Parcela). Ofrecerlas en los demás invita a
 // mandar el dinero al sitio equivocado con una cláusula que nadie pactó.
 // Construcción cobra por cuatro vías: la cuenta de Sandal Woods (Singapur), la de
-// San Dal Woods en Danamon EUR (23-jul, disponible en todos los contratos) y, para
+// SAN DAL WOODS en Danamon EUR (23-jul, disponible en todos los contratos) y, para
 // las operaciones de Sumba, el escrow del notario y la cuenta del constructor en
 // euros (añadidas 22-jul a petición del cliente).
 const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'notario_sandy_sumba', 'contractor_sumba_eur'];

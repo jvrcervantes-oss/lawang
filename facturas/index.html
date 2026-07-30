@@ -17,7 +17,7 @@
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
      El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
-     expire su TTL de 7 dias). Sin esto la factura de PT San Dal Woods sigue
+     expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
      saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
 <script src="/contracts/assets/entities.js?v=20260730"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
@@ -107,7 +107,7 @@
      rectángulo pegado del logo sin alfa; el de Lawang ya trae alfa y le da
      igual. Va en el <img>, no en el .head: el .head no tiene fondo propio, así
      que mezcla contra el papel.
-     El alto sale de la sociedad (`--logo-alto`, ver entities.js): San Dal Woods
+     El alto sale de la sociedad (`--logo-alto`, ver entities.js): SAN DAL WOODS
      lo pidió un 25% mayor. */
   .doc .head img{ height:var(--logo-alto,15mm); mix-blend-mode:multiply; display:block; }
   /* segundo logo (lockup de palabra) bajo el isotipo: se alinea a la izquierda
@@ -471,7 +471,7 @@ function bancoHTML(key, moneda){
 
 /* Sin `logo` en la sociedad NO se pinta ninguno, y a proposito: el fallback al
    de Lawang que habia aqui convirtio un entities.js cacheado en una factura de
-   PT San Dal Woods con la marca de otra empresa, sin que se notara. Un documento
+   PT SAN DAL WOODS con la marca de otra empresa, sin que se notara. Un documento
    sin logo salta a la vista; uno con el logo equivocado, no. */
 function render(){
   const d = collect();
