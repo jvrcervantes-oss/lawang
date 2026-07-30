@@ -79,7 +79,16 @@ $dormTxt = $dorm . ' ' . ($dorm === 1 ? 'dormitorio' : 'dormitorios');
   --serif:"Cormorant Garamond",Georgia,serif;
   --sans:"Neue Kabel",ui-sans-serif,system-ui,sans-serif;
   --wrap:1280px; --gut:clamp(20px,5vw,64px);
+  /* Curvas: las de serie (ease, ease-in-out) son demasiado blandas y hacen que todo
+     parezca "por defecto". --ease-out arranca rápido, que es lo que da sensación de
+     respuesta; --ease-soft es para lo que se mueve en pantalla sin entrar ni salir.
+     Nunca ease-in en interfaz: retrasa el arranque justo cuando el ojo está mirando. */
   --ease:cubic-bezier(.16,1,.3,1);
+  --ease-out:cubic-bezier(.23,1,.32,1);
+  --ease-soft:cubic-bezier(.32,.72,0,1);
+  /* Sombras tintadas del fondo, nunca negro puro: el negro sobre hueso ensucia. */
+  --sh-card:0 1px 2px rgba(58,52,38,.05), 0 24px 60px -32px rgba(40,48,36,.45);
+  --sh-lift:0 2px 4px rgba(58,52,38,.06), 0 34px 70px -30px rgba(40,48,36,.55);
   /* Radios: una sola regla para toda la página. Botones píldora, superficies 14 px,
      campos 10 px. Mezclar radios sin regla es lo que hace que una página parezca
      ensamblada por piezas sueltas. */
@@ -91,7 +100,15 @@ body{margin:0;background:var(--bone);color:var(--ink);font-family:var(--sans);
   font-size:16.5px;line-height:1.6;font-weight:300;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
 a{color:inherit}
-h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0}
+/* Grano de película. Va en un pseudo-elemento FIJO y sin eventos: sobre un contenedor
+   que scrollea obligaría a repintar la GPU en cada frame. Al 3,5% no se ve, se nota:
+   quita el plano digital perfecto y acerca la página al papel. */
+body::after{content:"";position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+:focus-visible{outline:2px solid var(--tg);outline-offset:3px;border-radius:4px}
+h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;
+  text-wrap:balance}
+p{text-wrap:pretty}
 .wrap{max-width:var(--wrap);margin-inline:auto;padding-inline:var(--gut)}
 .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:500;
   color:var(--sc-ink);margin:0}
@@ -110,8 +127,18 @@ section{padding-block:clamp(64px,9vw,132px)}
 /* ── Hero: split. Copy a la izquierda, conversión a la derecha. ─────────────── */
 .hero{position:relative;min-height:100svh;display:flex;align-items:center;
   padding-top:104px;padding-bottom:clamp(40px,6vw,72px);overflow:hidden}
-.hero__bg{position:absolute;inset:0}
-.hero__bg img{width:100%;height:100%;object-fit:cover}
+.hero__bg{position:absolute;inset:0;overflow:hidden}
+.hero__bg img{width:100%;height:112%;object-fit:cover;will-change:transform}
+/* Paralaje del render con animación ligada al scroll: cero JavaScript y fuera del hilo
+   principal, así que no compite con la carga. El 112% de alto es el margen que consume
+   el desplazamiento; sin él, al bajar asomaría el fondo. */
+@supports (animation-timeline:scroll()){
+  @media (prefers-reduced-motion:no-preference){
+    .hero__bg img{animation:heroPar linear both;animation-timeline:scroll();
+      animation-range:0 100svh}
+    @keyframes heroPar{to{transform:translate3d(0,-10%,0)}}
+  }
+}
 /* Dos tramos oscuros: uno arriba para la marca y otro que baja por la izquierda,
    que es donde cae el texto. Sin el segundo, la copy se lee a trompicones sobre
    la piscina. */
@@ -126,6 +153,25 @@ section{padding-block:clamp(64px,9vw,132px)}
    formulario al lado la columna es estrecha, así que el tope es 62px y no 80. */
 .hero h1{font-size:clamp(38px,4.8vw,62px);line-height:1.06;margin:.24em 0 .3em}
 .hero h1 i{font-style:italic;color:#C9D2BC;line-height:1.1;padding-bottom:.06em}
+/* Entrada del titular línea a línea, cada una subiendo desde detrás de su propia caja.
+   El padding/margen compensados evitan que el recorte se coma tildes y descendentes. */
+.ln{display:block;overflow:hidden;padding-bottom:.1em;margin-bottom:-.1em}
+.ln > span{display:block}
+@media (prefers-reduced-motion:no-preference){
+  .js .hero__copy > *,.js .form__shell{opacity:0}
+  .js .ln > span{transform:translate3d(0,105%,0)}
+  .js .hero__copy > *{animation:heroIn .8s var(--ease-out) forwards}
+  .js .ln > span{animation:lineIn .9s var(--ease-out) forwards}
+  .js .form__shell{animation:heroIn .9s var(--ease-out) .22s forwards}
+  .js .hero__copy > :nth-child(1){animation-delay:.05s}
+  .js .hero__copy > :nth-child(2){animation-delay:0s}
+  .js .hero__copy > :nth-child(3){animation-delay:.28s}
+  .js .hero__copy > :nth-child(4){animation-delay:.36s}
+  .js .ln:nth-child(1) > span{animation-delay:.10s}
+  .js .ln:nth-child(2) > span{animation-delay:.18s}
+  @keyframes heroIn{to{opacity:1}}
+  @keyframes lineIn{to{transform:translate3d(0,0,0)}}
+}
 .hero__sub{max-width:30ch;font-size:clamp(15.5px,1.4vw,18px);color:rgba(245,240,230,.94);
   margin:0;text-shadow:0 1px 16px rgba(24,28,26,.5)}
 .hero__facts{display:flex;flex-wrap:wrap;gap:0;margin-top:clamp(26px,3vw,40px)}
@@ -134,16 +180,26 @@ section{padding-block:clamp(64px,9vw,132px)}
 .hero__facts span:first-child{padding-left:0;border-left:0}
 
 /* ── Formulario ─────────────────────────────────────────────────────────────── */
+/* Doble bisel: una bandeja translúcida que sostiene la superficie del formulario, con
+   los radios concéntricos (18 = 14 + 4 de padding). Es la única pieza de la página que
+   lo lleva, porque es la única que tiene que parecer un objeto y no una sección. */
+/* Bandeja sin borde de 1 px: filete y sombra ancha en la misma pieza es el patrón
+   "tarjeta fantasma". Se elige uno. Aquí manda la sombra, que es la que despega el
+   panel de la foto, y el canto lo dibuja un brillo interior. */
+.form__shell{padding:5px;border-radius:calc(var(--r-surface) + 5px);
+  background:rgba(253,250,245,.20);backdrop-filter:blur(14px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), var(--sh-card)}
 .form{background:var(--surface);border-radius:var(--r-surface);
-  padding:clamp(24px,2.6vw,34px);box-shadow:0 30px 70px -34px rgba(24,32,26,.6)}
+  padding:clamp(24px,2.6vw,34px);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
 .form__h{font-size:27px;line-height:1.15;margin:0 0 .35em}
 .form__lede{font-size:14px;color:var(--ink-2);margin:0 0 22px}
 .field{margin-bottom:15px}
 .field label{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:#5F6763;font-weight:500;margin-bottom:6px}
+  color:#5F6763;font-weight:500;margin-bottom:6px;transition:color .2s var(--ease-out)}
+.field:focus-within label{color:var(--tg)}
 .field input{width:100%;font-family:inherit;font-size:15.5px;font-weight:300;color:var(--ink);
   background:#fff;border:1px solid var(--line);border-radius:var(--r-field);padding:12px 14px;
-  transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
+  transition:border-color .2s var(--ease-out),box-shadow .2s var(--ease-out)}
 .field input:focus{outline:none;border-color:var(--tg);box-shadow:0 0 0 3px rgba(72,91,55,.16)}
 .field input[aria-invalid="true"]{border-color:#9C3B2E;box-shadow:0 0 0 3px rgba(156,59,46,.13)}
 .field .err{display:none;font-size:12.5px;color:#8E3527;margin-top:5px}
@@ -155,19 +211,41 @@ section{padding-block:clamp(64px,9vw,132px)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .form__msg{margin:12px 0 0;font-size:13.5px;color:var(--ink-2);min-height:1.1em}
 .form__msg--err{color:#8E3527}
+/* El agradecimiento entra desde 0.96, nunca desde 0: nada en el mundo real aparece de
+   la nada. @starting-style da el estado inicial sin una sola línea de JavaScript. */
 .form__ok{font-family:var(--serif);font-size:26px;margin:0 0 .4em}
+.form--done > *{opacity:1;transform:none;
+  transition:opacity .45s var(--ease-out),transform .45s var(--ease-out)}
+@starting-style{.form--done > *{opacity:0;transform:scale(.96) translateY(6px)}}
 
-.btn{display:inline-block;border:1px solid var(--tg);background:var(--tg);color:#FBF8F2;
-  border-radius:999px;padding:15px 32px;font-family:inherit;font-size:12.5px;font-weight:500;
-  letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;
-  transition:transform .3s var(--ease),background .3s var(--ease),box-shadow .3s var(--ease)}
-.btn:hover{background:var(--tg-dark);border-color:var(--tg-dark);transform:translateY(-2px);
-  box-shadow:0 14px 30px -16px rgba(55,71,41,.8)}
-.btn:active{transform:translateY(0) scale(.985)}
+/* Botón: la flecha no va suelta al lado del texto, va dentro de su propio círculo pegado
+   al borde interior. En el hover la pastilla sube y la flecha empuja hacia fuera: la
+   tensión entre las dos es lo que hace que el botón parezca una pieza y no una etiqueta. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:14px;
+  border:1px solid var(--tg);background:var(--tg);color:#FBF8F2;
+  border-radius:999px;padding:13px 13px 13px 30px;font-family:inherit;font-size:12.5px;
+  font-weight:500;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;
+  cursor:pointer;
+  transition:transform .18s var(--ease-out),background .25s var(--ease-out),
+             box-shadow .25s var(--ease-out)}
+.btn__i{display:grid;place-items:center;width:30px;height:30px;border-radius:999px;
+  background:rgba(251,248,242,.16);flex:0 0 auto;
+  transition:transform .28s var(--ease-out),background .25s var(--ease-out)}
+.btn__i svg{width:13px;height:13px;stroke:currentColor;stroke-width:1.6;fill:none}
+.btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .btn--wide{width:100%}
 .btn--onDark{background:var(--bone);border-color:var(--bone);color:var(--ink)}
-.btn--onDark:hover{background:#fff;border-color:#fff}
+.btn--onDark .btn__i{background:rgba(42,47,49,.1)}
+/* El hover solo donde hay puntero de verdad: en táctil se dispara al tocar y deja el
+   botón "encendido" después del tap. */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover{background:var(--tg-dark);border-color:var(--tg-dark);
+    transform:translateY(-2px);box-shadow:var(--sh-lift)}
+  .btn:hover .btn__i{transform:translate(3px,-1px);background:rgba(251,248,242,.26)}
+  .btn--onDark:hover{background:#fff;border-color:#fff}
+  .btn--onDark:hover .btn__i{background:rgba(42,47,49,.16)}
+}
 
 /* ── Datos duros: sin tarjetas, filetes verticales ──────────────────────────── */
 .facts{border-top:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -196,7 +274,12 @@ section{padding-block:clamp(64px,9vw,132px)}
   margin-top:clamp(30px,3.4vw,48px)}
 .gal figure{margin:0;overflow:hidden;border-radius:var(--r-surface);background:var(--bone-2)}
 .gal img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
-.gal figure:hover img{transform:scale(1.04)}
+@media (hover:hover) and (pointer:fine){.gal figure:hover img{transform:scale(1.04)}}
+/* Las fotos no se desvanecen: se destapan de abajo arriba con clip-path, que es lo que
+   hace una cortina y no un fundido. Solo transform/clip-path, sin tocar layout. */
+.js .gal figure.rv{opacity:1;transform:none;filter:none;clip-path:inset(0 0 101% 0)}
+.js .gal figure.rv.in{clip-path:inset(0 0 0 0);
+  transition:clip-path .9s var(--ease-soft)}
 /* Cinco renders, cinco celdas, tres filas completas (4+2 · 3+3 · 6). Una celda vacía al
    final delata que la retícula se copió sin contar las fotos que hay. */
 .gal figure:nth-child(1){grid-column:span 4;aspect-ratio:16/10}
@@ -240,11 +323,22 @@ section{padding-block:clamp(64px,9vw,132px)}
 .faq summary{cursor:pointer;list-style:none;padding:20px 40px 20px 0;position:relative;
   font-size:18px;font-family:var(--serif);transition:color .25s var(--ease)}
 .faq summary::-webkit-details-marker{display:none}
-.faq summary:hover{color:var(--tg)}
+@media (hover:hover) and (pointer:fine){.faq summary:hover{color:var(--tg)}}
 .faq summary::after{content:"+";position:absolute;right:6px;top:19px;font-size:20px;
-  color:var(--sc-ink);transition:transform .3s var(--ease)}
+  color:var(--sc-ink);transition:transform .3s var(--ease-out)}
 .faq details[open] summary::after{transform:rotate(45deg)}
 .faq p{margin:0 0 22px;font-size:15px;color:var(--ink-2);max-width:64ch}
+/* Un <details> abre de golpe. Con interpolate-size y ::details-content la respuesta se
+   despliega en altura; donde el navegador no lo soporte simplemente abre como siempre. */
+@supports (interpolate-size:allow-keywords){
+  @media (prefers-reduced-motion:no-preference){
+    :root{interpolate-size:allow-keywords}
+    .faq details::details-content{block-size:0;overflow:hidden;opacity:0;
+      transition:block-size .34s var(--ease-soft),opacity .26s var(--ease-out),
+                 content-visibility .34s allow-discrete}
+    .faq details[open]::details-content{block-size:auto;opacity:1}
+  }
+}
 
 /* ── Cierre: el único bloque de color de la página ──────────────────────────── */
 .close{background:var(--dl);color:var(--bone);text-align:center}
@@ -270,9 +364,9 @@ footer a:hover{border-bottom-color:currentColor}
    El estado oculto cuelga de `.js`, que pone un script en el <head>. Si el JS falla o
    está bloqueado, el contenido se ve: una landing que esconde su copy con CSS y la
    enseña con JS es una landing en blanco el día que el JS no carga. */
-.js .rv{opacity:0;transform:translateY(22px);
-  transition:opacity .7s var(--ease),transform .7s var(--ease)}
-.js .rv.in{opacity:1;transform:none}
+.js .rv{opacity:0;transform:translateY(22px);filter:blur(5px);
+  transition:opacity .8s var(--ease-out),transform .8s var(--ease-out),filter .8s var(--ease-out)}
+.js .rv.in{opacity:1;transform:none;filter:blur(0)}
 
 @media(max-width:960px){
   .hero{min-height:auto;padding-top:96px}
@@ -288,10 +382,15 @@ footer a:hover{border-bottom-color:currentColor}
      encima de la barra fija: dos cosas peleando por el mismo sitio y el CTA tapado. */
   #lw-consent-bar{bottom:86px}
 }
+/* Movimiento reducido no es "cero animación": se quedan opacidad y color, que ayudan a
+   entender qué cambia, y se va todo lo que desplaza o escala. */
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .js .rv{opacity:1;transform:none;transition:none}
-  .btn,.gal img,.sticky{transition:none}
+  .js .rv,.js .gal figure.rv{opacity:1;transform:none;filter:none;clip-path:none;transition:none}
+  .js .hero__copy > *,.js .form__shell{opacity:1;animation:none}
+  .js .ln > span{transform:none;animation:none}
+  .btn,.btn__i,.gal img,.sticky{transition:none}
+  .btn:hover{transform:none}
 }
 </style>
 <script>document.documentElement.className += ' js';</script>
@@ -312,7 +411,10 @@ footer a:hover{border-bottom-color:currentColor}
   <div class="wrap hero__grid">
     <div class="hero__copy">
       <p class="eyebrow">Modelo <?= lw_e($nombre) ?> · Lawang Estate</p>
-      <h1>Villa llave en mano<br>en la costa de <i>Bali</i>.</h1>
+      <!-- Sin cursiva en el titular: `PRODUCT.md` rechaza expresamente la estética de
+           revista de moda (cursiva editorial, capitulares). Esto es inversión
+           inmobiliaria, no Vogue. El énfasis lo lleva el peso, no otra tipografía. -->
+      <h1><span class="ln"><span>Villa llave en mano</span></span><span class="ln"><span>en la costa de Bali.</span></span></h1>
       <p class="hero__sub"><?= lw_e($m['sub']) ?></p>
       <div class="hero__facts">
         <span><?= lw_e(ucfirst($dormTxt)) ?></span>
@@ -321,6 +423,7 @@ footer a:hover{border-bottom-color:currentColor}
       </div>
     </div>
 
+    <div class="form__shell">
     <form class="form" id="lw-form" novalidate>
       <h2 class="form__h">Reserva tu llamada</h2>
       <p class="form__lede">Te damos el presupuesto cerrado del acabado que te interese y
@@ -352,9 +455,13 @@ footer a:hover{border-bottom-color:currentColor}
           y que Lawang Estate me contacte sobre este modelo.</span>
       </label>
 
-      <button class="btn btn--wide" type="submit" id="lw-submit">Reservar mi llamada</button>
+      <button class="btn btn--wide" type="submit" id="lw-submit">
+        <span>Reservar mi llamada</span>
+        <span class="btn__i" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 13 13 3M6 3h7v7"/></svg></span>
+      </button>
       <p class="form__msg" id="lw-msg" role="status" aria-live="polite"></p>
     </form>
+    </div>
   </div>
 </section>
 
@@ -381,7 +488,7 @@ footer a:hover{border-bottom-color:currentColor}
         porque es lo único que mueve el precio final de la obra.</p>
       <div style="margin-top:clamp(24px,3vw,40px)">
         <?php foreach ($m['acabados'] as $a): ?>
-        <div class="roof rv">
+        <div class="roof">
           <h3><?= lw_e($a['n']) ?></h3>
           <p><?= lw_e($a['d']) ?></p>
         </div>
@@ -395,7 +502,7 @@ footer a:hover{border-bottom-color:currentColor}
 <?php if ($galeria): ?>
 <section style="padding-top:0">
   <div class="wrap">
-    <h2 class="sec-h rv"><?= lw_e($nombre) ?>, por dentro.</h2>
+    <h2 class="sec-h"><?= lw_e($nombre) ?>, por dentro.</h2>
     <div class="gal">
       <?php foreach ($galeria as $src): ?>
       <figure class="rv"><img src="<?= lw_e($src) ?>" alt="Villa <?= lw_e($nombre) ?>" loading="lazy"></figure>
@@ -408,17 +515,17 @@ footer a:hover{border-bottom-color:currentColor}
 <?php if ($m['alcance']): ?>
 <section class="scope">
   <div class="wrap">
-    <h2 class="sec-h rv">Qué entra en la obra<br>y qué no.</h2>
-    <p class="lede rv">Tal cual figura en el pliego del contratista. La parcela y los gastos
+    <h2 class="sec-h">Qué entra en la obra<br>y qué no.</h2>
+    <p class="lede">Tal cual figura en el pliego del contratista. La parcela y los gastos
       de compraventa van aparte y se detallan en la propuesta.</p>
     <div class="scope__grid">
-      <div class="rv">
+      <div>
         <h3>Incluido</h3>
         <ul class="list list--in">
           <?php foreach ($m['alcance']['incluido'] as $li): ?><li><?= lw_e($li) ?></li><?php endforeach; ?>
         </ul>
       </div>
-      <div class="rv">
+      <div>
         <h3>No incluido</h3>
         <ul class="list list--out">
           <?php foreach ($m['alcance']['no_incluido'] as $li): ?><li><?= lw_e($li) ?></li><?php endforeach; ?>
@@ -434,7 +541,7 @@ footer a:hover{border-bottom-color:currentColor}
     <img src="/assets/img/lugar/costa.jpg" alt="Costa oeste de Bali al atardecer, vista aérea" loading="lazy">
     <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
   </div>
-  <div class="wrap place__copy rv">
+  <div class="wrap place__copy">
     <h2 class="sec-h">La costa, no el render.</h2>
     <p class="lede">Estas dos fotografías son de la zona, tomadas con dron. Playa de arena
       volcánica, arrozales y río, en la costa oeste de Bali. En la llamada te decimos
@@ -444,19 +551,19 @@ footer a:hover{border-bottom-color:currentColor}
 
 <section style="background:var(--bone-2)">
   <div class="wrap">
-    <h2 class="sec-h rv">Cómo se compra.</h2>
+    <h2 class="sec-h">Cómo se compra.</h2>
     <div class="steps">
-      <div class="step rv">
+      <div class="step">
         <p class="step__n">01</p>
         <h3>Llamada</h3>
         <p>Media hora para ver qué parcela encaja, con qué presupuesto y en qué plazos.</p>
       </div>
-      <div class="step rv">
+      <div class="step">
         <p class="step__n">02</p>
         <h3>Presupuesto y parcela</h3>
         <p>Precio cerrado del acabado elegido, parcela concreta y calendario de pagos.</p>
       </div>
-      <div class="step rv">
+      <div class="step">
         <p class="step__n">03</p>
         <h3>Reserva y obra</h3>
         <p>Contrato de reserva, después el PPJB de compraventa, y arranca la construcción.</p>
@@ -467,9 +574,19 @@ footer a:hover{border-bottom-color:currentColor}
 
 <section>
   <div class="wrap">
-    <p class="eyebrow rv">Antes de la llamada</p>
-    <h2 class="sec-h rv">Lo que suelen preguntar.</h2>
-    <div class="faq rv">
+    <p class="eyebrow">Antes de la llamada</p>
+    <h2 class="sec-h">Lo que suelen preguntar.</h2>
+    <div class="faq">
+      <!-- La titularidad va primero por decisión de marca (`PRODUCT.md`: "Freehold first,
+           es el diferenciador más fuerte"), no por orden alfabético de dudas. -->
+      <details>
+        <summary>¿Qué compro exactamente y en qué régimen?</summary>
+        <p>La parcela más la villa construida sobre ella. Hay parcelas en freehold y otras en
+          leasehold con plazo; la titularidad de un comprador extranjero se estructura a
+          través de una sociedad indonesia, y el contrato contempla que firmes como persona o
+          como sociedad. Qué régimen tiene cada parcela concreta se ve en la llamada, con el
+          documento delante.</p>
+      </details>
       <details>
         <summary>¿Qué incluye el precio?</summary>
         <p>La obra completa según el pliego del contratista, con el acabado de cubierta que
@@ -479,8 +596,8 @@ footer a:hover{border-bottom-color:currentColor}
       <details>
         <summary>¿Puedo elegir dónde se construye?</summary>
         <p>Sí. El modelo es el mismo y se levanta sobre la parcela que elijas del catálogo.
-          Cambian la vista, la orientación y el precio del terreno. Hay parcelas en freehold
-          y en leasehold, y no todas admiten cualquier modelo: eso se concreta en la llamada.</p>
+          Cambian la vista, la orientación y el precio del terreno. No todas las parcelas
+          admiten cualquier modelo: eso se concreta en la llamada.</p>
       </details>
       <details>
         <summary>¿En qué moneda se firma?</summary>
@@ -507,7 +624,10 @@ footer a:hover{border-bottom-color:currentColor}
   <div class="wrap">
     <h2>Hablamos y te pasamos números.</h2>
     <p>Una llamada para ver parcela, presupuesto y plazos. Sin compromiso.</p>
-    <p><a class="btn btn--onDark" href="#lw-form" data-cta="cierre">Reservar mi llamada</a></p>
+    <p><a class="btn btn--onDark" href="#lw-form" data-cta="cierre">
+      <span>Reservar mi llamada</span>
+      <span class="btn__i" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 13 13 3M6 3h7v7"/></svg></span>
+    </a></p>
   </div>
 </section>
 
@@ -521,7 +641,10 @@ footer a:hover{border-bottom-color:currentColor}
 </footer>
 
 <div class="sticky" id="lw-sticky">
-  <a class="btn" href="#lw-form">Reservar mi llamada</a>
+  <a class="btn" href="#lw-form">
+    <span>Reservar mi llamada</span>
+    <span class="btn__i" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 13 13 3M6 3h7v7"/></svg></span>
+  </a>
 </div>
 
 <script src="/assets/consent.js?v=20260730" defer></script>
@@ -549,8 +672,13 @@ footer a:hover{border-bottom-color:currentColor}
   // IntersectionObserver y no un listener de scroll: el listener corre en cada frame.
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var revs = document.querySelectorAll('.rv');
+  function revelarTodo() { for (var k = 0; k < revs.length; k++) revs[k].classList.add('in'); }
+  // Red de seguridad: un renderizador que no hace scroll (captura de OG, PDF, un bot) se
+  // llevaría media página en blanco, porque el observador nunca llega a dispararse.
+  setTimeout(revelarTodo, 4000);
+  window.addEventListener('beforeprint', revelarTodo);
   if (reduce || !('IntersectionObserver' in window)) {
-    for (var i = 0; i < revs.length; i++) revs[i].classList.add('in');
+    revelarTodo();
   } else {
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (e) {
@@ -606,8 +734,11 @@ footer a:hover{border-bottom-color:currentColor}
     if (!cons.checked) return;
 
     btn.disabled = true;
-    var etiqueta = btn.textContent;
-    btn.textContent = 'Enviando';
+    btn.setAttribute('aria-busy', 'true');
+    // Solo la etiqueta: `btn.textContent` se llevaría por delante el icono.
+    var label = btn.querySelector('span:first-child');
+    var etiqueta = label.textContent;
+    label.textContent = 'Enviando';
     msg.textContent = '';
 
     var body = new FormData(form);
@@ -633,12 +764,14 @@ footer a:hover{border-bottom-color:currentColor}
         var p = document.createElement('p'); p.className = 'form__lede';
         p.textContent = 'Hemos recibido tu solicitud. Te contactamos para agendar la llamada.';
         form.textContent = '';
+        form.className = 'form form--done';
         form.appendChild(h); form.appendChild(p);
         sticky.classList.remove('on');
       })
       .catch(function (err) {
         btn.disabled = false;
-        btn.textContent = etiqueta;
+        btn.removeAttribute('aria-busy');
+        label.textContent = etiqueta;
         msg.className = 'form__msg form__msg--err';
         msg.textContent = String(err.message) === 'too_many'
           ? 'Has enviado varias solicitudes seguidas. Inténtalo dentro de un rato.'
