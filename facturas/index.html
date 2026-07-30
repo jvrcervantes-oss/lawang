@@ -18,6 +18,7 @@
 <script src="/contracts/assets/entities.js"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <script src="totales.js"></script>
+<script src="compradores.js"></script>
 <style>
   :root{ --line:#e4ddcf; --card:#fffdf8; --field-bg:#fdfcf9; --tbh:56px; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -548,10 +549,10 @@ async function traerContrato(id){
   // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
   // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
   let { data, error } = await sb.from('contratos')
-    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos').eq('id', id).single();
+    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores').eq('id', id).single();
   if(error){
     ({ data, error } = await sb.from('contratos').select('numero,moneda,precio_total,datos').eq('id', id).single());
-    if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; }
+    if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores; }
   }
   if(error || !data){ caja.innerHTML = `<div class="t">No se pudo cargar el contrato: ${esc((error&&error.message)||'')}</div>`; return; }
 
@@ -563,18 +564,20 @@ async function traerContrato(id){
     el.value = valor; puesto.push(etiqueta);
   };
 
-  // Compradores: la factura va a nombre de todos los que firman, no solo del primero.
-  const nombres = [f.adq1_nombre, f.adq2_nombre, f.adq3_nombre].filter(Boolean).join(' · ');
-  // Documento: el pasaporte/NPWP de cada comprador, en el mismo orden que los nombres.
-  const docs = [f.adq1_pasaporte, f.adq2_pasaporte, f.adq3_pasaporte].filter(Boolean).join(' · ');
+  // Compradores: la factura va a nombre de todos los que firman, no solo del
+  // primero. El II y siguientes viven en `datos.compradores[]`, no en adq2_*
+  // (ver compradores.js) — leyendo solo adq* se perdían en 5 contratos.
+  const compradores = compradoresDeContrato(f, data.extras);
+  const nombres = nombresFactura(compradores);
+  const docs = documentosFactura(compradores);
   // Unidad concreta si el contrato la fija (parcela, villa o tipología).
   const unidad = [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa].filter(Boolean).join(' — ');
 
   poner('contrato_numero', data.numero, 'contrato');
   poner('cliente_nombre', nombres, 'nombre');
   poner('cliente_documento', docs, 'documento');
-  poner('cliente_domicilio', f.adq1_domicilio, 'domicilio');
-  poner('cliente_email', f.adq1_email, 'email');
+  poner('cliente_domicilio', primerDato(compradores, 'domicilio'), 'domicilio');
+  poner('cliente_email', primerDato(compradores, 'email'), 'email');
   poner('proyecto_nombre', unidad, 'proyecto');
   poner('moneda', data.moneda || f.moneda, 'moneda');
   if(f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante]) poner('sociedad', f.sociedad_firmante, 'sociedad');
@@ -592,6 +595,7 @@ async function traerContrato(id){
 
   caja.innerHTML = `<div class="t">Del contrato ${esc(data.numero || '')}</div>
     <p class="arrastrado">${puesto.length ? 'Traído: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
+      ${compradores.length > 1 ? ' Contrato a <b>' + compradores.length + ' nombres</b>.' : ''}
       ${precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
     ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
         `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
