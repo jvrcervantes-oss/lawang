@@ -18,7 +18,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
-<script src="assets/entities.js"></script>
+<!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
+     hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
+<script src="assets/entities.js?v=20260730"></script>
 <style>
   :root{
     --line:#e4ddcf; --tbh:56px;

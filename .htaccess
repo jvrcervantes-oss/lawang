@@ -69,13 +69,17 @@ RedirectMatch 404 (?i)/modelo/(lib|modelos|test_modelo)\.php$
   # `curl` con ?v= (que trae el fichero real) sino solo en un navegador que ya
   # tenia el viejo. `no-cache` NO desactiva la cache: obliga a revalidar, asi
   # que si no ha cambiado sigue siendo un 304 barato.
-  # Se listan por NOMBRE (FilesMatch ignora la ruta): son ficheros unicos en el
-  # sitio y cambian el comportamiento de todas las herramientas a la vez.
-  # `consent` entra aquí porque el MISMO fallo se dio dos veces el 29-jul: otra
-  # sesion desplego el pixel de Meta y el CDN seguia sirviendo el consent.js
-  # viejo (commit 6e5105b). Un JS compartido cacheado 7 dias no es un problema
-  # de rendimiento, es un despliegue que no llega.
-  <FilesMatch "^(guard|visor|topbar|totales|consent)\.(js|css)$">
+  # 30-jul: SE QUITA LA LISTA A MANO. Era `^(guard|visor|topbar|totales|consent)`
+  # y el fallo cayo tres veces seguidas, siempre en el fichero que faltaba en la
+  # lista: guard.js (29-jul, agentes sin permisos), consent.js (29-jul, pixel de
+  # Meta) y entities.js (30-jul, las facturas de PT San Dal Woods salian con el
+  # logo de Lawang porque el navegador tenia la version sin el campo `logo`).
+  # Una lista de nombres a mano ES el bug: el proximo fichero nuevo tampoco
+  # estara. Ahora entra TODO el js/css del sitio.
+  # Coste real: una revalidacion por fichero en visita repetida, que responde
+  # 304 sin cuerpo. Las imagenes y los videos -- lo que de verdad pesa -- siguen
+  # con su cache de 7 dias intacta.
+  <FilesMatch "\.(js|css)$">
     Header set Cache-Control "no-cache, must-revalidate"
     # el servidor emite ademas un Expires a 7 dias. Cache-Control manda sobre
     # Expires por norma, asi que no rompe nada, pero deja unas cabeceras que se

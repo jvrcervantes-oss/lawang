@@ -14,8 +14,12 @@
 <link rel="stylesheet" href="/contracts/assets/topbar.css">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!-- sociedades emisoras y cuentas de cobro: compartido con /contracts -->
-<script src="/contracts/assets/entities.js"></script>
+<!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
+     El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
+     .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
+     expire su TTL de 7 dias). Sin esto la factura de PT San Dal Woods sigue
+     saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
+<script src="/contracts/assets/entities.js?v=20260730"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <script src="totales.js"></script>
 <script src="compradores.js"></script>
@@ -456,6 +460,10 @@ function bancoHTML(key, moneda){
     </tbody></table>`;
 }
 
+/* Sin `logo` en la sociedad NO se pinta ninguno, y a proposito: el fallback al
+   de Lawang que habia aqui convirtio un entities.js cacheado en una factura de
+   PT San Dal Woods con la marca de otra empresa, sin que se notara. Un documento
+   sin logo salta a la vista; uno con el logo equivocado, no. */
 function render(){
   const d = collect();
   const soc = SOCIEDADES[d.sociedad] || SOCIEDADES.tepi_sungai;
@@ -473,7 +481,7 @@ function render(){
   $('#doc').innerHTML = `
     <div class="head">
       <div>
-        <img src="${esc(soc.logo || '/contracts/assets/brand/lawang-logo-v3-dark.png')}" alt="">
+        ${soc.logo ? `<img src="${esc(soc.logo)}" alt="">` : ''}
         <div class="emisor" style="margin-top:5mm">
           <b>${esc(soc.razon)}</b>
           ${soc.marca ? `<span class="marca">${esc(soc.marca)}</span>` : ''}
