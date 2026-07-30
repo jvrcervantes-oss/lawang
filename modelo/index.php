@@ -128,14 +128,17 @@ section{padding-block:clamp(64px,9vw,132px)}
 .hero{position:relative;min-height:100svh;display:flex;align-items:center;
   padding-top:104px;padding-bottom:clamp(40px,6vw,72px);overflow:hidden}
 .hero__bg{position:absolute;inset:0;overflow:hidden}
-.hero__bg img{width:100%;height:112%;object-fit:cover;will-change:transform}
+.hero__bg img{width:100%;height:112%;object-fit:cover}
 /* Paralaje del render con animación ligada al scroll: cero JavaScript y fuera del hilo
    principal, así que no compite con la carga. El 112% de alto es el margen que consume
-   el desplazamiento; sin él, al bajar asomaría el fondo. */
+   el desplazamiento; sin él, al bajar asomaría el fondo.
+   `scroll(root)` y NO `scroll()`: sin argumento equivale a `nearest`, y como .hero__bg
+   lleva overflow:hidden es su propio contenedor de scroll, con scrollTop clavado en 0.
+   El efecto no se ejecutaba en ningún navegador y el recorte del 112% se pagaba igual. */
 @supports (animation-timeline:scroll()){
   @media (prefers-reduced-motion:no-preference){
-    .hero__bg img{animation:heroPar linear both;animation-timeline:scroll();
-      animation-range:0 100svh}
+    .hero__bg img{animation:heroPar linear both;animation-timeline:scroll(root);
+      animation-range:0 100svh;will-change:transform}
     @keyframes heroPar{to{transform:translate3d(0,-10%,0)}}
   }
 }
@@ -171,6 +174,11 @@ section{padding-block:clamp(64px,9vw,132px)}
   .js .ln:nth-child(2) > span{animation-delay:.18s}
   @keyframes heroIn{to{opacity:1}}
   @keyframes lineIn{to{transform:translate3d(0,0,0)}}
+  /* Seguro: si algo anula las animaciones sin activar prefers-reduced-motion (modo
+     lector, una extensión, un `animation:none` del usuario), el titular y el FORMULARIO
+     se quedarían invisibles para siempre. Al cargar la página se fuerza el estado final. */
+  .js.cargado .hero__copy > *,.js.cargado .form__shell{opacity:1}
+  .js.cargado .ln > span{transform:none}
 }
 .hero__sub{max-width:30ch;font-size:clamp(15.5px,1.4vw,18px);color:rgba(245,240,230,.94);
   margin:0;text-shadow:0 1px 16px rgba(24,28,26,.5)}
@@ -187,8 +195,14 @@ section{padding-block:clamp(64px,9vw,132px)}
    "tarjeta fantasma". Se elige uno. Aquí manda la sombra, que es la que despega el
    panel de la foto, y el canto lo dibuja un brillo interior. */
 .form__shell{padding:5px;border-radius:calc(var(--r-surface) + 5px);
-  background:rgba(253,250,245,.20);backdrop-filter:blur(14px);
+  background:rgba(253,250,245,.20);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.45), var(--sh-card)}
+/* El desenfoque solo en escritorio. En un móvil la bandeja ocupa media pantalla sobre la
+   foto del hero y desenfocar esa superficie en cada frame se paga en el primer render,
+   para un anillo visible de 5 px. Con prefijo, o iOS Safari 17 y anteriores lo pierden. */
+@media(min-width:961px){
+  .form__shell{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+}
 .form{background:var(--surface);border-radius:var(--r-surface);
   padding:clamp(24px,2.6vw,34px);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
 .form__h{font-size:27px;line-height:1.15;margin:0 0 .35em}
@@ -354,7 +368,8 @@ footer a:hover{border-bottom-color:currentColor}
 /* ── Barra fija de móvil: en el teléfono el formulario queda lejos ──────────── */
 .sticky{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;
   padding:10px 16px calc(10px + env(safe-area-inset-bottom));
-  background:rgba(245,240,230,.94);backdrop-filter:blur(12px);
+  background:rgba(245,240,230,.94);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   border-top:1px solid var(--line);transform:translateY(110%);
   transition:transform .35s var(--ease)}
 .sticky.on{transform:translateY(0)}
@@ -366,7 +381,7 @@ footer a:hover{border-bottom-color:currentColor}
    enseña con JS es una landing en blanco el día que el JS no carga. */
 .js .rv{opacity:0;transform:translateY(22px);filter:blur(5px);
   transition:opacity .8s var(--ease-out),transform .8s var(--ease-out),filter .8s var(--ease-out)}
-.js .rv.in{opacity:1;transform:none;filter:blur(0)}
+.js .rv.in{opacity:1;transform:none;filter:none}
 
 @media(max-width:960px){
   .hero{min-height:auto;padding-top:96px}
@@ -379,8 +394,10 @@ footer a:hover{border-bottom-color:currentColor}
   .gal figure{grid-column:span 1 !important;aspect-ratio:16/10 !important}
   .sticky{display:block}
   /* El aviso de cookies vive en consent.js con bottom:20px y en móvil se sentaba justo
-     encima de la barra fija: dos cosas peleando por el mismo sitio y el CTA tapado. */
-  #lw-consent-bar{bottom:86px}
+     encima de la barra fija: dos cosas peleando por el mismo sitio y el CTA tapado.
+     `body #...` y no `#...` a secas: consent.js inyecta su <style> en caliente, DESPUÉS
+     de este, y con la misma especificidad ganaba el último. Medido: seguía en 20px. */
+  body #lw-consent-bar{bottom:86px}
 }
 /* Movimiento reducido no es "cero animación": se quedan opacidad y color, que ayudan a
    entender qué cambia, y se va todo lo que desplaza o escala. */
@@ -538,7 +555,7 @@ footer a:hover{border-bottom-color:currentColor}
 
 <section class="place">
   <div class="place__band rv">
-    <img src="/assets/img/lugar/costa.jpg" alt="Costa oeste de Bali al atardecer, vista aérea" loading="lazy">
+    <img src="/assets/img/lugar/costa.jpg" alt="Desembocadura del río y playa de arena volcánica en la costa oeste de Bali, vista cenital" loading="lazy">
     <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
   </div>
   <div class="wrap place__copy">
@@ -577,15 +594,25 @@ footer a:hover{border-bottom-color:currentColor}
     <p class="eyebrow">Antes de la llamada</p>
     <h2 class="sec-h">Lo que suelen preguntar.</h2>
     <div class="faq">
-      <!-- La titularidad va primero por decisión de marca (`PRODUCT.md`: "Freehold first,
-           es el diferenciador más fuerte"), no por orden alfabético de dudas. -->
+<?php /* Comentario de PHP y no de HTML A PROPÓSITO: esto no debe viajar al navegador.
+
+         La titularidad abre el bloque por decisión de marca (PRODUCT.md: "Freehold first,
+         es el diferenciador más fuerte").
+
+         OJO AL TEXTO: Legal tumbó el 30-jul la primera versión, que decía "hay parcelas en
+         freehold" y que la titularidad de un extranjero "se estructura a través de una
+         sociedad indonesia". En España freehold se lee como pleno dominio perpetuo y en
+         Indonesia un extranjero nunca obtiene Hak Milik; y la segunda frase, suelta, se lee
+         como oferta de estructura nominee. Hasta que Legal redacte la versión definitiva,
+         esta respuesta dice solo lo que es cierto sin cualificar.
+         NO reintroducir "freehold" aquí sin el OK de Legal. */ ?>
       <details>
         <summary>¿Qué compro exactamente y en qué régimen?</summary>
-        <p>La parcela más la villa construida sobre ella. Hay parcelas en freehold y otras en
-          leasehold con plazo; la titularidad de un comprador extranjero se estructura a
-          través de una sociedad indonesia, y el contrato contempla que firmes como persona o
-          como sociedad. Qué régimen tiene cada parcela concreta se ve en la llamada, con el
-          documento delante.</p>
+        <p>La villa construida y el derecho sobre la parcela en la que se levanta. En
+          Indonesia ese derecho no funciona como la propiedad española y no todas las
+          parcelas están en el mismo régimen ni con el mismo plazo. Es la primera cosa que
+          repasamos en la llamada, parcela por parcela y con el documento delante, antes de
+          hablar de dinero.</p>
       </details>
       <details>
         <summary>¿Qué incluye el precio?</summary>
@@ -670,12 +697,19 @@ footer a:hover{border-bottom-color:currentColor}
 
   // ── Aparición al entrar en pantalla ───────────────────────────────────────
   // IntersectionObserver y no un listener de scroll: el listener corre en cada frame.
+  // Ver el comentario de `.js.cargado` en el CSS: la clase llega cuando la coreografía
+  // de entrada ya ha terminado, y a partir de ahí el estado final no depende de ella.
+  window.addEventListener('load', function () {
+    setTimeout(function () { document.documentElement.classList.add('cargado'); }, 1400);
+  });
+
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var revs = document.querySelectorAll('.rv');
   function revelarTodo() { for (var k = 0; k < revs.length; k++) revs[k].classList.add('in'); }
-  // Red de seguridad: un renderizador que no hace scroll (captura de OG, PDF, un bot) se
-  // llevaría media página en blanco, porque el observador nunca llega a dispararse.
-  setTimeout(revelarTodo, 4000);
+  // Red de seguridad para lo que no scrollea (imprimir a PDF). Había además un
+  // temporizador ciego de 4 s que desarmaba el sistema entero: quien se quedaba leyendo
+  // el hero, que es lo normal en una landing con formulario, encontraba el resto de la
+  // página ya revelada. Una red de seguridad no puede colgar de un reloj.
   window.addEventListener('beforeprint', revelarTodo);
   if (reduce || !('IntersectionObserver' in window)) {
     revelarTodo();
@@ -691,15 +725,34 @@ footer a:hover{border-bottom-color:currentColor}
       });
     }, {threshold: 0.18, rootMargin: '0px 0px -8% 0px'});
     for (var j = 0; j < revs.length; j++) io.observe(revs[j]);
+
+    // Barrido al terminar de scrollear. El observador solo avisa cuando CAMBIA el estado
+    // de intersección: si arrastras la barra de scroll de golpe, la galería pasa de
+    // "debajo, sin intersecar" a "encima, sin intersecar" sin un solo aviso, y se queda
+    // invisible para siempre. `scrollend` salta una vez al parar, no en cada frame, que
+    // es justo lo que hace inaceptable un listener de scroll normal.
+    if ('onscrollend' in window) {
+      window.addEventListener('scrollend', function () {
+        for (var q = 0; q < revs.length; q++) {
+          if (!revs[q].classList.contains('in') &&
+              revs[q].getBoundingClientRect().top < window.innerHeight) {
+            revs[q].classList.add('in');
+            io.unobserve(revs[q]);
+          }
+        }
+      }, {passive: true});
+    }
   }
 
   // ── Barra fija de móvil: aparece cuando el formulario ya no se ve ─────────
   var form = document.getElementById('lw-form');
   var sticky = document.getElementById('lw-sticky');
+  var ioSticky = null;
   if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (es) {
+    ioSticky = new IntersectionObserver(function (es) {
       sticky.classList.toggle('on', !es[0].isIntersecting);
-    }, {threshold: 0.25}).observe(form);
+    }, {threshold: 0.25});
+    ioSticky.observe(form);
   }
 
   // ── Envío ─────────────────────────────────────────────────────────────────
@@ -766,7 +819,12 @@ footer a:hover{border-bottom-color:currentColor}
         form.textContent = '';
         form.className = 'form form--done';
         form.appendChild(h); form.appendChild(p);
+        // El observador seguía vigilando el <form>, que ahora es el panel de gracias: al
+        // seguir bajando, la barra fija volvía a salir ofreciendo "Reservar mi llamada" a
+        // quien acababa de reservarla. Se desconecta y se retira la barra para siempre.
+        if (ioSticky) ioSticky.disconnect();
         sticky.classList.remove('on');
+        sticky.remove();
       })
       .catch(function (err) {
         btn.disabled = false;
