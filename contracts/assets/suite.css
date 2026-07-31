@@ -1,0 +1,219 @@
+/* ============================================================================
+   CAPA DE INTERFAZ DE LA SUITE — tabla, cajón lateral, estados y movimiento
+   31-jul-2026
+   ----------------------------------------------------------------------------
+   POR QUÉ EXISTE. El owner: «no veo que el panel esté pensado para escalar y
+   ser usado por 50 personas a la vez, no es cómodo». Tenía razón, y el problema
+   no era el color: cada herramienta traía su propia lista, su propio detalle y
+   su propia idea de qué es una fila. Con seis herramientas, eso son seis
+   maneras distintas de hacer lo mismo, y quien aprende una no sabe usar la
+   siguiente.
+
+   Aquí vive el esqueleto compartido. Cada herramienta pone SUS datos; la forma
+   de enseñarlos la pone este fichero. `topbar.css` sigue siendo la barra;
+   `brand.css` sigue siendo la marca. Esto es lo de en medio.
+
+   CRITERIOS, con su fuente — no son gustos:
+   · Alineación: texto a la izquierda, NÚMEROS A LA DERECHA, para que los
+     dígitos casen por valor posicional y dos importes se comparen de un
+     vistazo. Fechas, siempre igual en toda la tabla.
+   · Densidad en tres modos (compacta / normal / amplia) y **se recuerda por
+     persona**: quien lleva 300 parcelas no quiere el mismo aire que quien mira
+     cuatro contratos.
+   · Cabecera pegada en cuanto la tabla pasa de una pantalla; si no, se pierden
+     los rótulos justo cuando hacen falta.
+   · Zonas pulsables de 24×24 px como suelo (WCAG 2.2, criterio 2.5.8).
+   · Relleno de celda 16px horizontal / 8px vertical.
+   · CAJÓN LATERAL, no página nueva ni modal: el detalle se lee SIN perder de
+     vista la lista de la que sale, que es justo lo que pidió el owner. Un modal
+     apaga lo de detrás y obliga a decidir; eso es para confirmar y para
+     destruir, no para consultar.
+   · Movimiento corto y con `prefers-reduced-motion` respetado. Una animación
+     que se nota es una animación que estorba a la quincuagésima vez.
+   ========================================================================== */
+
+:root{
+  /* — escala de espacio: una sola, para que dos herramientas no inventen
+       márgenes distintos para lo mismo — */
+  --e1:4px; --e2:8px; --e3:12px; --e4:16px; --e5:24px; --e6:32px; --e7:48px;
+  --r-s:8px; --r-m:12px; --r-l:16px; --r-p:999px;
+
+  /* superficies y líneas, sobre la paleta de brand.css */
+  --sup-0:#F1EBDD;      /* fondo de la aplicación */
+  --sup-1:#FFFFFF;      /* tarjeta, tabla, cajón */
+  --sup-2:#F7F3E9;      /* cabecera de tabla, zonas tranquilas */
+  --sup-hover:#EFEADE;
+  --sup-sel:#E7E1D2;
+  --linea:#E2DACA;
+  --texto:#22282A;
+  --texto-2:#4A5052;
+  --texto-3:#8A8F86;
+
+  /* elevación: dos niveles y no más. Tres ya no se distinguen */
+  --sombra-1:0 1px 2px rgba(34,40,42,.06), 0 1px 1px rgba(34,40,42,.04);
+  --sombra-2:0 18px 48px -22px rgba(34,40,42,.45), 0 2px 8px rgba(34,40,42,.07);
+
+  /* movimiento */
+  --t-rapido:120ms; --t-medio:200ms; --t-cajon:260ms;
+  --curva:cubic-bezier(.22,.61,.36,1);
+
+  /* densidad — la cambia [data-densidad] en <html>, se recuerda en el navegador */
+  --fila-y:10px; --fila-x:16px; --fila-fs:13.5px;
+}
+html[data-densidad="compacta"]{ --fila-y:5px;  --fila-x:12px; --fila-fs:13px; }
+html[data-densidad="amplia"]  { --fila-y:15px; --fila-x:18px; --fila-fs:14.5px; }
+
+/* ── esqueleto de página ────────────────────────────────────────────────── */
+.sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,56px); background:var(--sup-0); }
+.sui-centro{ max-width:1240px; margin:0 auto; padding:var(--e5) var(--e5) var(--e7); }
+/* Con el cajón abierto la página no salta: se le hace sitio en pantallas anchas
+   y se superpone en las estrechas, en vez de reflowear la tabla entera. */
+@media (min-width:1500px){
+  .sui-stage.con-cajon .sui-centro{ margin-right:clamp(420px, 34vw, 560px); transition:margin var(--t-cajon) var(--curva); }
+}
+
+/* ── barra de filtros ───────────────────────────────────────────────────── */
+.sui-filtros{ display:flex; gap:var(--e2); flex-wrap:wrap; align-items:center; margin:0 0 var(--e3); }
+.sui-buscar{ flex:1 1 240px; min-width:0; font:inherit; font-size:13.5px; padding:9px 12px;
+  border:1px solid var(--linea); border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
+.sui-buscar:focus{ outline:none; border-color:var(--tg,#485B37); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+.sui-sel{ font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--linea);
+  border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
+.sui-chip{ font:inherit; font-size:12px; letter-spacing:.03em; background:none; border:1px solid var(--linea);
+  border-radius:var(--r-p); padding:6px 12px; min-height:24px; cursor:pointer; color:var(--texto-2);
+  transition:background var(--t-rapido), border-color var(--t-rapido), color var(--t-rapido); }
+.sui-chip:hover{ border-color:var(--tg,#485B37); }
+.sui-chip.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
+.sui-chip.vacio{ opacity:.45; }
+.sui-chip .n{ opacity:.7; margin-left:4px; font-variant-numeric:tabular-nums; }
+
+/* selector de densidad: tres botones, no un menú. Es un ajuste de dos clics */
+.sui-dens{ display:inline-flex; border:1px solid var(--linea); border-radius:var(--r-s); overflow:hidden; margin-left:auto; }
+.sui-dens button{ font:inherit; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  background:var(--sup-1); border:none; padding:7px 10px; min-height:24px; cursor:pointer; color:var(--texto-3); }
+.sui-dens button + button{ border-left:1px solid var(--linea); }
+.sui-dens button.on{ background:var(--va,#2E3437); color:#fff; }
+
+/* ── resumen de lo que se está viendo ───────────────────────────────────── */
+.sui-resumen{ display:flex; gap:var(--e5); flex-wrap:wrap; margin:0 0 var(--e3);
+  font-size:12.5px; color:var(--texto-2); }
+.sui-resumen b{ color:var(--texto); font-variant-numeric:tabular-nums; }
+
+/* ── tabla ──────────────────────────────────────────────────────────────── */
+.sui-tabla-caja{ overflow-x:auto; border:1px solid var(--linea); border-radius:var(--r-l);
+  background:var(--sup-1); box-shadow:var(--sombra-1); }
+table.sui-tabla{ width:100%; border-collapse:collapse; font-size:var(--fila-fs); min-width:720px; }
+table.sui-tabla thead th{
+  position:sticky; top:0; z-index:2; background:var(--sup-2);
+  text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--texto-2); font-weight:600; white-space:nowrap;
+  padding:var(--e3) var(--fila-x); border-bottom:1px solid var(--linea);
+}
+table.sui-tabla tbody td{ padding:var(--fila-y) var(--fila-x); border-bottom:1px solid var(--linea); vertical-align:middle; }
+table.sui-tabla tbody tr{ cursor:pointer; transition:background var(--t-rapido); }
+table.sui-tabla tbody tr:hover{ background:var(--sup-hover); }
+table.sui-tabla tbody tr.sel{ background:var(--sup-sel); box-shadow:inset 3px 0 0 var(--tg,#485B37); }
+table.sui-tabla tbody tr:last-child td{ border-bottom:none; }
+/* Los números a la derecha y con cifras de ancho fijo: así 95.250 y 130.875
+   casan por columna y la diferencia se ve sin leer. */
+table.sui-tabla .num, table.sui-tabla th.num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+table.sui-tabla .clave{ font-weight:600; color:var(--dl,#104C4F); letter-spacing:.04em; white-space:nowrap; }
+table.sui-tabla .flojo{ color:var(--texto-3); }
+table.sui-tabla th[data-orden]{ cursor:pointer; user-select:none; }
+table.sui-tabla th[data-orden]:hover{ color:var(--texto); }
+table.sui-tabla th .fl{ opacity:0; margin-left:5px; }
+table.sui-tabla th.asc .fl, table.sui-tabla th.desc .fl{ opacity:.75; }
+table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
+
+/* ── etiquetas de estado: color sólido, texto claro, AA sobre blanco ────── */
+.sui-tag{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  border-radius:var(--r-p); padding:4px 10px; color:#fff; background:#5A6062; white-space:nowrap; }
+.sui-tag.ok{ background:#3F5230; } .sui-tag.espera{ background:#8C5E10; }
+.sui-tag.alerta{ background:#9E2F26; } .sui-tag.info{ background:#104C4F; }
+.sui-tag.gris{ background:#5A6062; }
+
+/* ── estados de la lista: cargando / vacío / error, los tres distintos ───
+   Un vacío con cara de error manda a buscar un fallo que no existe, y un error
+   con cara de vacío esconde uno que sí. */
+.sui-esqueleto td{ padding:var(--fila-y) var(--fila-x); }
+.sui-esqueleto i{ display:block; height:11px; border-radius:var(--r-p);
+  background:linear-gradient(90deg,#EDE7D9,#F6F2E7,#EDE7D9); background-size:200% 100%;
+  animation:sui-brillo 1.1s linear infinite; }
+@keyframes sui-brillo{ from{ background-position:200% 0 } to{ background-position:-200% 0 } }
+.sui-nada{ padding:var(--e6) var(--e5); text-align:center; color:var(--texto-3); font-size:13.5px; }
+.sui-nada b{ display:block; color:var(--texto-2); font-size:14.5px; margin-bottom:6px; }
+.sui-error{ padding:var(--e4) var(--e5); color:#9E2F26; font-size:13.5px; }
+
+/* ── CAJÓN LATERAL ──────────────────────────────────────────────────────
+   No es modal: el velo deja ver la tabla y se puede cerrar pulsando fuera o
+   con Esc. En pantallas anchas ni siquiera oscurece — la lista sigue viva al
+   lado, que es exactamente lo que se pidió. */
+.sui-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.28);
+  opacity:0; pointer-events:none; transition:opacity var(--t-cajon) var(--curva); }
+.sui-velo.on{ opacity:1; pointer-events:auto; }
+@media (min-width:1500px){ .sui-velo{ background:transparent; } }
+
+.sui-cajon{
+  position:fixed; top:var(--tbh,56px); right:0; bottom:0; z-index:61;
+  width:clamp(340px, 34vw, 560px); max-width:100vw;
+  background:var(--sup-1); border-left:1px solid var(--linea); box-shadow:var(--sombra-2);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform var(--t-cajon) var(--curva);
+  overscroll-behavior:contain;
+}
+.sui-cajon.on{ transform:none; }
+.sui-cajon-cab{ display:flex; align-items:flex-start; gap:var(--e3); padding:var(--e4) var(--e5) var(--e3);
+  border-bottom:1px solid var(--linea); }
+.sui-cajon-cab h2{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:25px;
+  font-weight:600; margin:0; line-height:1.15; }
+.sui-cajon-cab .sub{ font-size:12.5px; color:var(--texto-2); margin:3px 0 0; }
+.sui-cajon-x{ margin-left:auto; flex:none; font:inherit; font-size:17px; line-height:1;
+  background:none; border:1px solid var(--linea); border-radius:var(--r-s);
+  min-width:30px; min-height:30px; cursor:pointer; color:var(--texto-2); }
+.sui-cajon-x:hover{ border-color:var(--tg,#485B37); color:var(--texto); }
+.sui-cajon-cuerpo{ overflow:auto; padding:var(--e4) var(--e5) var(--e7); flex:1; }
+.sui-cajon-pie{ border-top:1px solid var(--linea); padding:var(--e3) var(--e5);
+  display:flex; gap:var(--e2); flex-wrap:wrap; background:var(--sup-2); }
+
+/* pares dato/valor dentro del cajón */
+.sui-dl{ display:grid; grid-template-columns:auto 1fr; gap:7px var(--e5); font-size:13.5px; margin:0 0 var(--e4); }
+.sui-dl dt{ color:var(--texto-2); }
+.sui-dl dd{ margin:0; font-variant-numeric:tabular-nums; }
+.sui-bloque{ border:1px solid var(--linea); border-radius:var(--r-m); padding:var(--e3) var(--e4);
+  margin:0 0 var(--e3); background:var(--sup-2); }
+.sui-bloque h3{ margin:0 0 var(--e2); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-2); font-weight:600; }
+.sui-total{ display:flex; justify-content:space-between; gap:var(--e3); padding-top:7px;
+  border-top:1px solid var(--linea); margin-top:7px; font-weight:600; }
+
+/* ── botones ────────────────────────────────────────────────────────────── */
+.sui-btn{ font:inherit; font-size:13px; font-weight:500; border-radius:var(--r-p); padding:9px 17px;
+  min-height:24px; cursor:pointer; border:1px solid var(--linea); background:var(--sup-1); color:inherit;
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  transition:border-color var(--t-rapido), background var(--t-rapido), color var(--t-rapido); }
+.sui-btn:hover{ border-color:var(--tg,#485B37); }
+.sui-btn.primario{ background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; }
+.sui-btn.primario:hover{ background:#0d5b5f; }
+.sui-btn.peligro{ color:#9E2F26; border-color:#E0C6C2; }
+.sui-btn.peligro:hover{ background:rgba(158,47,38,.07); border-color:#9E2F26; }
+.sui-btn:disabled{ opacity:.5; cursor:default; }
+
+.sui-nota{ font-size:12px; color:var(--texto-2); line-height:1.5; margin:var(--e2) 0 0; }
+
+/* ── móvil ──────────────────────────────────────────────────────────────
+   El cajón pasa a ocupar casi todo el ancho: media pantalla en un teléfono no
+   es leer, es adivinar. Va DESPUÉS de la regla base a propósito. */
+@media (max-width:760px){
+  .sui-centro{ padding:var(--e4) var(--e3) var(--e7); }
+  .sui-cajon{ width:100%; top:auto; height:88vh; border-left:none;
+    border-top-left-radius:var(--r-l); border-top-right-radius:var(--r-l);
+    transform:translateY(100%); }
+  .sui-cajon.on{ transform:none; }
+  .sui-dens{ margin-left:0; }
+}
+
+/* ── quien pide menos movimiento, menos movimiento ──────────────────────── */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; }
+}

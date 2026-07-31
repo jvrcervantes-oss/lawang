@@ -11,100 +11,46 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=20260731" data-herramienta="documentacion"></script>
+<script src="/contracts/assets/suite.js?v=20260731"></script>
 <style>
-  :root{ --line:#E2DACA; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:56px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
-  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto); }
   .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
-  .stage{ display:grid; grid-template-columns:minmax(320px,400px) 1fr; height:100%; padding-top:var(--tbh); }
 
-  .lista{ overflow:auto; border-right:1px solid var(--line); }
-  .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2; }
-  .buscar{ width:100%; font:inherit; font-size:13.5px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--card); }
-  .buscar:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
-  .filtros{ display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; }
-  .f{ font:inherit; font-size:11.5px; letter-spacing:.04em; background:none; border:1px solid var(--line);
-      border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--texto-2); }
-  .f:hover{ border-color:var(--tg); }
-  .f.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
-  .f.vacio{ opacity:.45; }
-  .f-sel{ font:inherit; font-size:12px; padding:6px 9px; border:1px solid var(--line); border-radius:9px;
-          background:var(--card); color:inherit; margin-top:7px; width:100%; }
-
-  .grupo{ font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--texto-2);
-          padding:14px 18px 6px; background:var(--rl2); position:sticky; top:0; }
-  .d{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
-      border-bottom:1px solid var(--line); padding:12px 18px; cursor:pointer; }
-  .d:hover{ background:#EDE7D9; }
-  .d.sel{ background:#E7E1D2; box-shadow:inset 3px 0 0 var(--tg); }
-  .d .t{ font-size:14.5px; font-weight:600; }
-  .d .m{ font-size:12px; color:var(--texto-2); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-
-  .ficha{ overflow:auto; padding:26px 30px 90px; }
-  .vacio-panel{ display:grid; place-items:center; height:100%; color:#BEB3A5; font-size:13px;
-                letter-spacing:.14em; text-transform:uppercase; text-align:center; padding:0 20px; }
-  h2.t{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:30px; font-weight:600; margin:0 0 4px; }
-  .sub{ color:var(--texto-2); font-size:13.5px; margin:0 0 20px; }
-  fieldset{ border:1px solid var(--line); border-radius:14px; background:var(--card); padding:16px 18px 18px; margin:0 0 16px; }
-  legend{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--texto-2); padding:0 8px; }
-  label{ display:block; font-size:12px; color:var(--texto-2); margin:12px 0 4px; }
-  label:first-of-type{ margin-top:2px; }
-  input,select,textarea{ width:100%; font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line);
-                         border-radius:9px; background:#FDFCF9; color:inherit; }
-  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
-  textarea{ min-height:64px; resize:vertical; }
-  .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .ck{ display:flex; align-items:center; gap:8px; font-size:13px; margin-top:12px; }
-  .ck input{ width:auto; }
-  .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
-  .btn{ font:inherit; font-size:13px; font-weight:500; border-radius:999px; padding:9px 17px; cursor:pointer;
-        border:1px solid var(--line); background:var(--card); color:inherit; text-decoration:none; display:inline-flex;
-        align-items:center; gap:7px; }
-  .btn:hover{ border-color:var(--tg); }
-  .btn.primary{ background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; }
-  .btn.peligro{ color:#9E2F26; border-color:#E0C6C2; }
-  .btn:disabled{ opacity:.5; cursor:default; }
-
-  .tag{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
-        border-radius:999px; padding:4px 10px; color:#fff; background:#5A6062; }
   .c-precios{ background:#8C5E10; } .c-planos{ background:#104C4F; } .c-legal{ background:#3F5230; }
   .c-comercial{ background:#6A4B8A; } .c-tecnico{ background:#2E5F72; } .c-fotos{ background:#7A5C3A; }
   .c-otros{ background:#5A6062; }
   .conf{ font-size:11px; color:#9E2F26; font-weight:600; }
 
-  .dl{ display:grid; grid-template-columns:auto 1fr; gap:6px 18px; font-size:13.5px; margin:0; }
-  .dl dt{ color:var(--texto-2); }
-  .dl dd{ margin:0; }
+  .campo{ margin:0 0 var(--e3); }
+  .campo label{ display:block; font-size:12px; color:var(--texto-2); margin:0 0 4px; }
+  .campo input, .campo select, .campo textarea{ width:100%; font:inherit; font-size:14px; padding:9px 11px;
+    border:1px solid var(--linea); border-radius:var(--r-s); background:#FDFCF9; color:inherit; }
+  .campo input:focus, .campo select:focus, .campo textarea:focus{ outline:none;
+    border-color:var(--tg,#485B37); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+  .campo textarea{ min-height:62px; resize:vertical; }
+  .ck{ display:flex; align-items:center; gap:8px; font-size:13px; margin:var(--e3) 0 0; }
+  .ck input{ width:auto; }
 
   /* medidor de almacenamiento */
-  .uso{ border:1px solid var(--line); border-radius:14px; background:var(--card); padding:14px 16px; margin:0 0 16px; }
-  .uso h3{ margin:0 0 10px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--texto-2); font-weight:600; }
-  .barra{ height:8px; border-radius:99px; background:#E7E1D2; overflow:hidden; margin:5px 0 3px; }
+  .uso{ border:1px solid var(--linea); border-radius:var(--r-m); background:var(--sup-1);
+        padding:var(--e3) var(--e4); margin:0 0 var(--e3); }
+  .uso h3{ margin:0 0 8px; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+           color:var(--texto-2); font-weight:600; }
+  .barra{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; margin:4px 0 3px; }
   .barra i{ display:block; height:100%; background:#3F5230; }
   .barra.aviso i{ background:#8C5E10; } .barra.mal i{ background:#9E2F26; }
   .uso .n{ font-size:12.5px; color:var(--texto-2); display:flex; justify-content:space-between; gap:10px; }
-  .uso .n b{ color:#22282A; }
-  .uso .margen{ font-size:12.5px; margin-top:10px; line-height:1.5; }
-  .uso .margen.alerta{ color:#9E2F26; font-weight:600; }
+  .uso .n b{ color:var(--texto); font-variant-numeric:tabular-nums; }
 
-  .nota{ font-size:12px; color:var(--texto-2); margin:9px 0 0; line-height:1.5; }
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2E3437; color:#fff;
-          padding:11px 20px; border-radius:30px; font-size:13px; z-index:200; opacity:0; transition:opacity .3s; pointer-events:none; }
+          padding:11px 20px; border-radius:var(--r-p); font-size:13px; z-index:200; opacity:0;
+          transition:opacity var(--t-medio); pointer-events:none; }
   .toast.show{ opacity:1; }
-
-  /* En móvil las dos columnas se apilan. Las reglas van DESPUÉS de .lista/.ficha
-     a propósito: puestas antes, a igual especificidad gana la de después y no
-     aplican — el fallo que tenían Facturas y Operaciones (31-jul). */
-  @media (max-width:900px){
-    .stage{ grid-template-columns:1fr; height:auto; }
-    .lista{ border-right:none; border-bottom:1px solid var(--line); max-height:52vh; }
-    .ficha{ padding:20px 16px 80px; }
-    .row{ grid-template-columns:1fr; }
-  }
 </style>
 </head>
 <body>
@@ -114,39 +60,58 @@
     <h1 class="lw-title">Documentación</h1>
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnNuevo">+ Subir documento</button>
+    <button type="button" class="lw-btn" id="btnNuevo">+ Añadir enlace</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
 
-  <div class="stage">
-    <div class="lista">
-      <div class="cab">
-        <input class="buscar" id="q" placeholder="Buscar por título, proyecto o descripción…">
-        <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
-        <div class="filtros" id="filtros"></div>
+  <div class="sui-stage">
+    <div class="sui-centro">
+      <div class="uso" id="uso" hidden></div>
+
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="q" placeholder="Buscar título, carpeta o proyecto…">
+        <select class="sui-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+        <div class="sui-dens" id="dens"></div>
       </div>
-      <div id="listaD">Cargando…</div>
+      <div class="sui-filtros" id="arbol"></div>
+      <div class="sui-filtros" id="filtros"></div>
+
+      <div class="sui-tabla-caja">
+        <table class="sui-tabla" id="tabla">
+          <thead><tr>
+            <th data-orden="titulo">Documento</th>
+            <th data-orden="carpeta">Carpeta</th>
+            <th data-orden="categoria">Categoría</th>
+            <th>Dónde</th>
+            <th data-orden="creado_en">Añadido</th>
+          </tr></thead>
+          <tbody id="filas"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="ficha" id="ficha"></div>
   </div>
 
-  <input type="file" id="fichero" hidden>
   <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================================
-   Consulta de documentación de proyectos — 31-jul-2026
+   Documentación de proyectos — índice por CARPETAS, con enlaces externos
    ----------------------------------------------------------------------------
-   Los ficheros viven en el bucket PRIVADO `documentacion` de Supabase y se
-   abren con URL firmada que caduca. NO en el árbol del sitio: ese árbol lo
-   sirve Hostinger con 200 para cualquier fichero y el repo es público, así que
-   un PDF de precios por parcela ahí queda descargable por cualquiera y para
-   siempre en el historial de GitHub. Ver contracts/sql/documentacion.sql.
+   31-jul-2026, sobre la capa compartida `suite.css` + `suite.js`.
 
-   La fila de `documentos_proyecto` es el índice (qué es, de qué proyecto, quién
-   lo subió); el fichero es el objeto de Storage. Separados porque
-   `storage.objects` no admite columnas propias, y filtrar por convención de
-   nombre de fichero se rompe con el primer nombre raro.
+   YA NO SE SUBEN ARCHIVOS. Van todos a Google Drive o a un enlace externo, por
+   petición del owner y por una razón concreta: un dossier pasa de 50 MB, el
+   almacén de Supabase es de 1 GB PARA TODO —contratos firmados incluidos— y al
+   ritmo actual quedan unos 60 días de margen. En Drive el espacio ya está
+   pagado. Aquí queda la ficha, que es lo que hace que el documento se encuentre.
+   Lo que se subió antes de este cambio SE SIGUE ABRIENDO con enlace firmado:
+   quitarle la salida a un archivo que ya está dentro no libera nada y pierde el
+   documento.
+
+   Las CARPETAS se derivan de las rutas guardadas y no hay tabla de carpetas.
+   Ventaja: no existen carpetas vacías que nadie limpia, ni dos verdades sobre
+   dónde está un documento. Contrapartida, dicha en voz alta: una carpeta existe
+   mientras tenga algo dentro, y se crea escribiendo su ruta al añadir.
    ========================================================================== */
 const SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
 const SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
@@ -158,327 +123,291 @@ const CATEGORIAS = [
 ];
 
 const $ = s => document.querySelector(s);
-const esSuperAdmin = rol => rol === 'super_admin';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show');
                      clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 3200); };
 const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/1048576).toFixed(1) + ' MB';
 const fecha = f => f ? new Date(f).toLocaleDateString('es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
+const esSuperAdmin = rol => rol === 'super_admin';
 
-let SB = null, DOCS = [], SEL = null, PROYECTOS = [], CAT = '', PROY = '', Q = '', ROL = null;
-/* Las URL firmadas se cachean por ruta: pedir otra en cada clic gasta una
-   llamada y, sobre todo, hace que "Abrir" tarde. Caducan a los 15 minutos, que
-   es tiempo de sobra para leer un PDF y poco para que un enlace reenviado por
-   error siga sirviendo. */
+let SB=null, DOCS=[], SEL=null, PROYECTOS=[], CAT='', PROY='', CARPETA='', Q='', ROL=null;
+let CARGANDO=true, FALLO=null;
+const ORDEN = { campo:'titulo', dir:'asc' };
+/* URL firmadas cacheadas por ruta: caducan a los 15 min — tiempo de sobra para
+   leer un PDF y poco para que un enlace reenviado por error siga sirviendo. */
 const FIRMADAS = new Map();
 
 /* ---------- carga ---------- */
 async function cargar(){
+  CARGANDO = true; FALLO = null; pintar();
   const { data, error } = await SB.from('documentos_proyecto')
-    .select('id, proyecto, categoria, titulo, descripcion, path, url, mime, bytes, confidencial, creado_en, creado_por')
-    .order('proyecto').order('creado_en', { ascending:false });
-  if(error){ $('#listaD').innerHTML = '<p class="nota" style="padding:16px 18px">No se pudo leer la documentación: ' + esc(error.message) + '</p>'; return; }
+    .select('id, proyecto, carpeta, categoria, titulo, descripcion, path, url, mime, bytes, confidencial, creado_en, creado_por')
+    .order('proyecto').order('carpeta').order('titulo');
+  CARGANDO = false;
+  if(error){ FALLO = error.message; pintar(); return; }
   DOCS = data || [];
-  // Los proyectos salen del diccionario de contratos (fuente única) y se suman
-  // los que ya tengan documentos, por si alguno se subió con otro nombre.
+  // La lista de proyectos sale del diccionario de contratos (fuente única) más
+  // los que ya tengan documentos, por si alguno se guardó con otro nombre.
   let delTokens = [];
   try{
     const t = await fetch('/contracts/tokens.json?v=' + Date.now()).then(r => r.json());
-    (t.sections || []).forEach(s => (s.fields || []).forEach(f => {
+    (t.sections || []).forEach(sec => (sec.fields || []).forEach(f => {
       if(f[0] === 'proyecto_nombre' && Array.isArray(f[3])) delTokens = f[3].slice();
     }));
   }catch(_){}
   PROYECTOS = [...new Set([...delTokens, ...DOCS.map(d => d.proyecto)])].filter(Boolean).sort();
-  pintarFiltros(); pintarLista();
+  pintar();
 }
 
-function pintarFiltros(){
-  $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
-    PROYECTOS.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
-  const cuenta = c => DOCS.filter(d => (!PROY || d.proyecto === PROY) && (!c || d.categoria === c)).length;
-  $('#filtros').innerHTML =
-    `<button class="f ${CAT===''?'on':''}" data-c="">Todas (${cuenta('')})</button>` +
-    CATEGORIAS.map(([v,l]) => {
-      const n = cuenta(v);
-      return `<button class="f ${CAT===v?'on':''} ${n?'':'vacio'}" data-c="${v}">${l} (${n})</button>`;
+/* ---------- árbol de carpetas ---------- */
+function ramas(){
+  const set = new Set();
+  DOCS.filter(d => !PROY || d.proyecto === PROY).forEach(d => {
+    const partes = String(d.carpeta || '').split('/').filter(Boolean);
+    for(let i = 1; i <= partes.length; i++) set.add(partes.slice(0, i).join('/'));
+  });
+  return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+}
+const dentroDe = (d, ruta) => ruta === ''
+  || d.carpeta === ruta || String(d.carpeta || '').startsWith(ruta + '/');
+
+function pintarArbol(){
+  const base = DOCS.filter(d => !PROY || d.proyecto === PROY);
+  const n = ruta => base.filter(d => dentroDe(d, ruta)).length;
+  $('#arbol').innerHTML =
+    `<button class="sui-chip ${CARPETA===''?'on':''}" data-carp="">Todas<span class="n">${n('')}</span></button>` +
+    ramas().map(ruta => {
+      const hondo = ruta.split('/').length - 1;
+      return `<button class="sui-chip ${CARPETA===ruta?'on':''}" data-carp="${esc(ruta)}" title="${esc(ruta)}"
+        style="margin-left:${hondo * 14}px">${hondo ? '↳ ' : '📁 '}${esc(ruta.split('/').pop())}<span class="n">${n(ruta)}</span></button>`;
     }).join('');
 }
 
 function visibles(){
   const q = Q.trim().toLowerCase();
-  return DOCS.filter(d =>
-    (!PROY || d.proyecto === PROY) &&
-    (!CAT  || d.categoria === CAT) &&
-    (!q || [d.titulo, d.proyecto, d.descripcion, d.creado_por].some(v => String(v||'').toLowerCase().includes(q))));
+  const f = DOCS.filter(d =>
+    (!PROY || d.proyecto === PROY) && dentroDe(d, CARPETA) &&
+    (!CAT || d.categoria === CAT) &&
+    (!q || [d.titulo, d.proyecto, d.carpeta, d.descripcion, d.creado_por]
+            .some(v => String(v||'').toLowerCase().includes(q))));
+  return suiOrdenar(f, ORDEN, (d, c) => d[c]);
 }
 
-function pintarLista(){
-  const v = visibles();
-  if(!v.length){
-    $('#listaD').innerHTML = '<p class="nota" style="padding:18px">' +
-      (DOCS.length ? 'Nada con ese filtro.' : 'Todavía no hay documentación subida. Usa «Subir documento».') + '</p>';
+function pintar(){ pintarProyectos(); pintarArbol(); pintarFiltros(); pintarTabla(); }
+
+function pintarProyectos(){
+  $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
+    PROYECTOS.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
+}
+function pintarFiltros(){
+  const base = DOCS.filter(d => (!PROY || d.proyecto === PROY) && dentroDe(d, CARPETA));
+  const n = c => base.filter(d => !c || d.categoria === c).length;
+  $('#filtros').innerHTML =
+    `<button class="sui-chip ${CAT===''?'on':''}" data-c="">Todas<span class="n">${n('')}</span></button>` +
+    CATEGORIAS.map(([v,l]) => `<button class="sui-chip ${CAT===v?'on':''} ${n(v)?'':'vacio'}" data-c="${v}">${l}<span class="n">${n(v)}</span></button>`).join('');
+}
+
+function pintarTabla(){
+  const cuerpo = $('#filas');
+  if(CARGANDO){
+    // Esqueleto y no un "Cargando…": mantiene el alto y evita el salto cuando
+    // llegan las filas.
+    cuerpo.innerHTML = Array.from({length:5}, () => '<tr class="sui-esqueleto">' + '<td><i></i></td>'.repeat(5) + '</tr>').join('');
     return;
   }
-  // agrupada por proyecto: es como se busca ("lo de Palm Field"), no por fecha
-  let html = '', ultimo = null;
-  v.forEach(d => {
-    if(d.proyecto !== ultimo){ html += `<div class="grupo">${esc(d.proyecto)}</div>`; ultimo = d.proyecto; }
+  if(FALLO){ cuerpo.innerHTML = `<tr><td colspan="5" class="sui-error">No se pudo leer la documentación: ${esc(FALLO)}</td></tr>`; return; }
+  const vis = visibles();
+  if(!vis.length){
+    const filtrando = PROY || CARPETA || CAT || Q.trim();
+    cuerpo.innerHTML = `<tr><td colspan="5"><div class="sui-nada">
+      <b>${filtrando ? 'Nada aquí' : 'Todavía no hay documentación'}</b>
+      ${filtrando ? 'Prueba a quitar un filtro o a subir un nivel de carpeta.' : 'Añade el primer enlace con «+ Añadir enlace».'}
+    </div></td></tr>`;
+    return;
+  }
+  cuerpo.innerHTML = vis.map(d => {
     const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros','Otros'])[1];
-    html += `<button class="d ${SEL===d.id?'sel':''}" data-id="${d.id}">
-      <div class="t">${esc(d.titulo)}</div>
-      <div class="m"><span class="tag c-${esc(d.categoria)}">${esc(cat)}</span>
-        <span>${d.url ? 'Drive' : mb(d.bytes)}</span><span>${esc(fecha(d.creado_en))}</span>
-        ${d.confidencial ? '<span class="conf">confidencial</span>' : ''}</div></button>`;
-  });
-  $('#listaD').innerHTML = html;
+    return `<tr data-id="${d.id}" class="${SEL===d.id?'sel':''}">
+      <td class="clave">${esc(d.titulo)}</td>
+      <td>${d.carpeta ? esc(d.carpeta) : '<span class="flojo">raíz</span>'}</td>
+      <td><span class="sui-tag c-${esc(d.categoria)}">${esc(cat)}</span></td>
+      <td>${d.url ? 'Drive / externo' : '<span class="flojo">archivo · ' + mb(d.bytes) + '</span>'}</td>
+      <td>${esc(fecha(d.creado_en))}${d.confidencial ? ' <span class="conf">conf.</span>' : ''}</td>
+    </tr>`;
+  }).join('');
 }
 
-/* ---------- ficha ---------- */
-function pintarFicha(){
-  const d = DOCS.find(x => x.id === SEL);
-  if(!d){ $('#ficha').innerHTML = '<div class="vacio-panel">Elige un documento<br>o sube uno nuevo</div>'; medidor(); return; }
+/* ---------- cajón: ficha del documento ---------- */
+function abrirDoc(id){
+  const d = DOCS.find(x => x.id === id); if(!d) return;
+  SEL = id; pintarTabla();
   const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros','Otros'])[1];
-  const enlace = !!d.url;   // documento que vive en Drive, no en el almacén
-  $('#ficha').innerHTML = `
-    <h2 class="t">${esc(d.titulo)}</h2>
-    <p class="sub">${esc(d.proyecto)} · ${esc(cat)}</p>
-    <fieldset><legend>Documento</legend>
-      <dl class="dl">
-        ${enlace
-          ? `<dt>Dónde</dt><dd>Google Drive del estudio</dd>`
-          : `<dt>Archivo</dt><dd>${esc(String(d.path).split('/').pop())}</dd>
-             <dt>Tamaño</dt><dd>${mb(d.bytes)}</dd>
-             <dt>Tipo</dt><dd>${esc(d.mime || '—')}</dd>`}
-        <dt>Subido</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? ' por ' + esc(d.creado_por) : ''}</dd>
+  const enlace = !!d.url;
+  suiAbrirCajon({
+    titulo: esc(d.titulo),
+    sub: esc(d.proyecto) + (d.carpeta ? ' · ' + esc(d.carpeta) : '') + ' · ' + esc(cat),
+    cuerpo: `
+      <dl class="sui-dl">
+        <dt>Dónde</dt><dd>${enlace ? 'Google Drive o enlace externo' : 'Archivo en el almacén del estudio'}</dd>
+        ${enlace ? '' : `<dt>Tamaño</dt><dd>${mb(d.bytes)}</dd>`}
+        <dt>Añadido</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? ' por ' + esc(d.creado_por) : ''}</dd>
         <dt>Acceso</dt><dd>${d.confidencial ? '<span class="conf">Confidencial — no compartir fuera del estudio</span>' : 'Compartible con el cliente'}</dd>
       </dl>
-      ${d.descripcion ? `<p class="nota">${esc(d.descripcion)}</p>` : ''}
-      <div class="acciones">
-        <button class="btn primary" id="btnAbrir"><i class="ph ph-arrow-square-out"></i> Abrir${enlace ? ' en Drive' : ''}</button>
-        ${esSuperAdmin(ROL) ? '<button class="btn peligro" id="btnBorrar"><i class="ph ph-trash"></i> Borrar</button>' : ''}
-      </div>
-      <p class="nota">${enlace
-        ? 'Este documento vive en el Drive del estudio y aquí solo está su enlace, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Comprueba allí con quién está compartido.'
-        : 'El enlace que se abre es temporal (15 minutos) y va firmado: no funciona para quien no tenga sesión, y deja de funcionar solo. Reenviarlo por error no expone el fichero de forma permanente.'}</p>
-      ${esSuperAdmin(ROL) ? '' : '<p class="nota">Borrar documentación está reservado al super admin.</p>'}
-    </fieldset>`;
-  $('#btnAbrir').onclick = () => enlace ? window.open(d.url, '_blank', 'noopener') : abrir(d);
+      ${d.descripcion ? `<p class="sui-nota">${esc(d.descripcion)}</p>` : ''}
+      <p class="sui-nota">${enlace
+        ? 'El documento vive fuera de aquí, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Compruébalo allí.'
+        : 'Archivo subido antes de que la herramienta pasara a enlaces. Se abre con un enlace temporal de 15 minutos.'}</p>
+      ${esSuperAdmin(ROL) ? '' : '<p class="sui-nota">Quitar documentación está reservado al super admin.</p>'}`,
+    pie: `<button class="sui-btn primario" id="btnAbrir">Abrir${enlace ? ' en Drive' : ''}</button>
+          ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">Quitar</button>' : ''}`,
+    onCerrar: () => { SEL = null; pintarTabla(); },
+  });
+  $('#btnAbrir').onclick = () => enlace ? window.open(d.url, '_blank', 'noopener') : abrirArchivo(d);
   const bb = $('#btnBorrar'); if(bb) bb.onclick = () => borrar(d);
-  medidor();
 }
 
-async function abrir(d){
-  const b = $('#btnAbrir'); b.disabled = true;
-  try{
-    let url = FIRMADAS.get(d.path);
-    if(!url || url.expira < Date.now()){
-      const { data, error } = await SB.storage.from(BUCKET).createSignedUrl(d.path, 900);
-      if(error) throw error;
-      url = { href: data.signedUrl, expira: Date.now() + 840000 };   // se renueva un minuto antes
-      FIRMADAS.set(d.path, url);
-    }
-    window.open(url.href, '_blank', 'noopener');
-  }catch(e){ toast('No se pudo abrir: ' + (e.message || e)); }
-  b.disabled = false;
-}
-
-async function borrar(d){
-  const aviso = d.url
-    ? '¿Quitar «' + d.titulo + '» del índice?\n\nEl archivo SIGUE en Google Drive: aquí solo se borra el enlace.'
-    : '¿Borrar «' + d.titulo + '»?\n\nSe borra el fichero y su ficha. No hay papelera.';
-  if(!confirm(aviso)) return;
-  try{
-    // Primero el fichero y después la fila: al revés, un fallo al borrar el
-    // objeto dejaría un fichero huérfano ocupando sitio y sin nadie que lo
-    // liste — invisible en el panel y contando para el límite.
-    // Un documento por enlace no tiene objeto que borrar: solo su ficha.
-    if(d.path){
-      const { error: e1 } = await SB.storage.from(BUCKET).remove([d.path]);
-      if(e1) throw e1;
-    }
-    const { data: borradas, error: e2 } = await SB.from('documentos_proyecto')
-      .delete().eq('id', d.id).select('id');
-    if(e2) throw e2;
-    // La RLS no da error cuando no deja borrar: devuelve CERO filas. Sin este
-    // control, la herramienta diría "borrado" y el documento seguiría ahí.
-    if(!borradas || !borradas.length) throw new Error('no tienes permiso para borrar documentación');
-    if(d.path) FIRMADAS.delete(d.path);
-    SEL = null; await cargar(); pintarFicha();
-    toast('Documento borrado');
-  }catch(e){ toast('No se pudo borrar: ' + (e.message || e)); }
-}
-
-/* ---------- subir ---------- */
-function formSubida(){
-  SEL = null; pintarLista();
-  $('#ficha').innerHTML = `
-    <h2 class="t">Subir documento</h2>
-    <p class="sub">Va al almacén privado del estudio, no a la web.</p>
-    <fieldset><legend>Datos</legend>
-      <label>Proyecto</label>
-      <select id="sProyecto">${PROYECTOS.map(p => `<option>${esc(p)}</option>`).join('')}</select>
-      <p class="nota">La lista sale del diccionario de contratos. Si falta un proyecto, se añade allí y aparece aquí.</p>
-      <div class="row">
-        <div><label>Categoría</label>
-          <select id="sCategoria">${CATEGORIAS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
-        <div><label>Título</label><input id="sTitulo" placeholder="Ej. Parcelas y precios"></div>
-      </div>
-      <label>Descripción (opcional)</label>
-      <textarea id="sDesc" placeholder="Qué es, a qué fecha corresponde, qué versión…"></textarea>
+/* ---------- añadir enlace ---------- */
+function formEnlace(){
+  SEL = null; pintarTabla();
+  const conocidas = [...new Set(DOCS.map(d => d.carpeta).filter(Boolean))].sort();
+  suiAbrirCajon({
+    titulo: 'Añadir enlace',
+    sub: 'Un documento de Google Drive o cualquier enlace externo.',
+    cuerpo: `
+      <div class="campo"><label>Proyecto</label>
+        <select id="sProyecto">${PROYECTOS.map(p => `<option ${p===PROY?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+      <div class="campo"><label>Carpeta</label>
+        <input id="sCarpeta" list="conocidas" value="${esc(CARPETA)}" placeholder="Comercial/Dossiers">
+        <datalist id="conocidas">${conocidas.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <p class="sui-nota" style="margin-top:-6px">Los niveles se separan con barras. En blanco = raíz del proyecto.
+        Una carpeta existe mientras tenga algo dentro: se crea escribiendo aquí su ruta.</p>
+      <div class="campo"><label>Título</label><input id="sTitulo" placeholder="Ej. Dossier Palm Field"></div>
+      <div class="campo"><label>Categoría</label>
+        <select id="sCategoria">${CATEGORIAS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
+      <div class="campo"><label>Enlace</label><input id="sUrl" placeholder="https://drive.google.com/…" inputmode="url"></div>
+      <div class="campo"><label>Descripción (opcional)</label><textarea id="sDesc"></textarea></div>
       <label class="ck"><input type="checkbox" id="sConf" checked> Confidencial — no compartir fuera del estudio</label>
-    </fieldset>
-
-    <fieldset><legend>Dónde está el documento</legend>
-      <label class="ck"><input type="radio" name="dónde" id="sArchivo" checked> Subir un archivo al almacén del estudio</label>
-      <label class="ck"><input type="radio" name="dónde" id="sEnlace"> Enlazar uno de Google Drive</label>
-
-      <div id="cajaArchivo">
-        <div class="acciones">
-          <button class="btn primary" id="btnElegir"><i class="ph ph-upload-simple"></i> Elegir archivo y subir</button>
-        </div>
-        <p class="nota" id="sEstado">Máximo 50 MB por archivo.</p>
-      </div>
-
-      <div id="cajaEnlace" hidden>
-        <label>Enlace de Google Drive</label>
-        <input id="sUrl" placeholder="https://drive.google.com/…" inputmode="url">
-        <div class="acciones">
-          <button class="btn primary" id="btnGuardarEnlace"><i class="ph ph-link"></i> Guardar enlace</button>
-        </div>
-        <p class="nota">Para lo que pesa: un dossier pasa de 50 MB y el almacén de aquí es de 1 GB
-          para todo, contratos firmados incluidos. En Drive ya se paga el espacio, así que el archivo
-          va allí y aquí queda su ficha, que es lo que hace que se encuentre.
-          <b>Comprueba en Drive con quién está compartido</b>: el permiso lo pone Drive, no esta herramienta.</p>
-      </div>
-    </fieldset>`;
-  if(PROY) $('#sProyecto').value = PROY;
-  const modo = () => {
-    const arch = $('#sArchivo').checked;
-    $('#cajaArchivo').hidden = !arch;
-    $('#cajaEnlace').hidden = arch;
-  };
-  $('#sArchivo').onchange = modo; $('#sEnlace').onchange = modo;
-  $('#btnElegir').onclick = () => {
-    if(!$('#sTitulo').value.trim()){ toast('Ponle un título'); $('#sTitulo').focus(); return; }
-    $('#fichero').click();
-  };
-  $('#btnGuardarEnlace').onclick = guardarEnlace;
-  medidor();
+      <p class="sui-nota"><b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace;
+        el permiso para abrirlo lo pone Drive.</p>`,
+    pie: `<button class="sui-btn primario" id="btnGuardar">Guardar enlace</button>
+          <button class="sui-btn" id="btnCancelar">Cancelar</button>`,
+  });
+  $('#btnGuardar').onclick = guardarEnlace;
+  $('#btnCancelar').onclick = suiCerrarCajon;
 }
 
 async function guardarEnlace(){
   const titulo = $('#sTitulo').value.trim();
   const url = $('#sUrl').value.trim();
   if(!titulo){ toast('Ponle un título'); $('#sTitulo').focus(); return; }
-  // Solo http(s): un `javascript:` guardado aquí se convertiría en un clic
-  // ejecutable para el siguiente que abra la ficha.
+  // Solo http(s): un `javascript:` guardado aquí sería un clic ejecutable para
+  // el siguiente que abra la ficha.
   if(!/^https?:\/\//i.test(url)){ toast('El enlace tiene que empezar por http:// o https://'); $('#sUrl').focus(); return; }
-  const b = $('#btnGuardarEnlace'); b.disabled = true;
+  const b = $('#btnGuardar'); b.disabled = true;
   try{
     const proyecto = $('#sProyecto').value;
-    const { error } = await SB.from('documentos_proyecto').insert({
-      proyecto, categoria: $('#sCategoria').value, titulo,
-      descripcion: $('#sDesc').value.trim() || null,
-      url, confidencial: $('#sConf').checked });
+    const { data, error } = await SB.from('documentos_proyecto').insert({
+      proyecto, carpeta: $('#sCarpeta').value.trim(), categoria: $('#sCategoria').value, titulo,
+      descripcion: $('#sDesc').value.trim() || null, url, confidencial: $('#sConf').checked }).select('id');
     if(error) throw error;
+    if(!data || !data.length) throw new Error('no tienes permiso para añadir documentación');
     PROY = proyecto;
+    suiCerrarCajon();
     await cargar();
-    SEL = (DOCS.find(d => d.url === url) || {}).id || null;
-    pintarLista(); pintarFicha();
     toast('Enlace guardado');
   }catch(e){ toast('No se pudo guardar: ' + (e.message || e)); }
   b.disabled = false;
 }
 
-/* Nombre de fichero seguro: sin acentos ni caracteres que Storage trata como
-   separador de ruta. La marca de tiempo evita que dos versiones del mismo
-   documento se pisen — subir la lista de precios de agosto no puede borrar la
-   de julio sin que nadie lo note. */
-const slug = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
-  .replace(/[^\w.\- ]/g,'').trim().replace(/\s+/g,'_').slice(0,80) || 'documento';
-
-$('#fichero').addEventListener('change', async e => {
-  const f = e.target.files[0]; e.target.value = '';
-  if(!f) return;
-  if(f.size > 50 * 1024 * 1024){ toast('El archivo pasa de 50 MB'); return; }
-  const est = $('#sEstado'); est.textContent = 'Subiendo…';
-  const proyecto = $('#sProyecto').value;
-  const path = slug(proyecto) + '/' + Date.now() + '_' + slug(f.name);
+/* Los archivos que ya estaban subidos se siguen abriendo. */
+async function abrirArchivo(d){
   try{
-    const { error: e1 } = await SB.storage.from(BUCKET).upload(path, f, { contentType: f.type || 'application/octet-stream' });
-    if(e1) throw e1;
-    const { error: e2 } = await SB.from('documentos_proyecto').insert({
-      proyecto, categoria: $('#sCategoria').value, titulo: $('#sTitulo').value.trim(),
-      descripcion: $('#sDesc').value.trim() || null, path,
-      mime: f.type || null, bytes: f.size, confidencial: $('#sConf').checked });
-    if(e2){
-      // La fila es lo que hace visible al fichero: sin ella queda ocupando sitio
-      // y sin nadie que lo liste. Se retira el objeto y se falla en voz alta.
-      await SB.storage.from(BUCKET).remove([path]);
-      throw e2;
+    let u = FIRMADAS.get(d.path);
+    if(!u || u.expira < Date.now()){
+      const { data, error } = await SB.storage.from(BUCKET).createSignedUrl(d.path, 900);
+      if(error) throw error;
+      u = { href: data.signedUrl, expira: Date.now() + 840000 };   // se renueva un minuto antes
+      FIRMADAS.set(d.path, u);
     }
-    PROY = proyecto;
+    window.open(u.href, '_blank', 'noopener');
+  }catch(e){ toast('No se pudo abrir: ' + (e.message || e)); }
+}
+
+async function borrar(d){
+  const aviso = d.url
+    ? '¿Quitar «' + d.titulo + '» del índice?\n\nEl archivo SIGUE en Drive: aquí solo se borra el enlace.'
+    : '¿Borrar «' + d.titulo + '»?\n\nSe borra el archivo y su ficha. No hay papelera.';
+  if(!confirm(aviso)) return;
+  try{
+    // Primero el archivo y después la fila: al revés, un fallo al borrar el
+    // objeto dejaría un fichero huérfano ocupando sitio y sin nadie que lo liste.
+    if(d.path){
+      const { error } = await SB.storage.from(BUCKET).remove([d.path]);
+      if(error) throw error;
+    }
+    const { data, error } = await SB.from('documentos_proyecto').delete().eq('id', d.id).select('id');
+    if(error) throw error;
+    // La RLS no da error al denegar: devuelve CERO filas. Sin este control la
+    // herramienta diría "quitado" y el documento seguiría ahí.
+    if(!data || !data.length) throw new Error('no tienes permiso para quitar documentación');
+    if(d.path) FIRMADAS.delete(d.path);
+    suiCerrarCajon();
     await cargar();
-    SEL = (DOCS.find(d => d.path === path) || {}).id || null;
-    pintarLista(); pintarFicha();
-    toast('Subido');
-  }catch(err){ est.textContent = 'No se pudo subir: ' + (err.message || err); toast('No se pudo subir'); }
-});
+    toast('Quitado');
+  }catch(e){ toast('No se pudo quitar: ' + (e.message || e)); }
+}
 
 /* ---------- medidor de almacenamiento ----------
-   La pregunta del owner era "¿qué pasa si se llena?". Lo que pasa es que las
-   SUBIDAS FALLAN: Supabase no borra nada, rechaza la escritura. Por eso la cifra
-   se enseña donde se sube, y no solo en un informe que hay que ir a buscar. */
-let USO = null;
+   Se queda aunque ya no se suba nada: los contratos firmados siguen llenándolo,
+   y esta es la pantalla donde tiene sentido ver POR QUÉ los documentos van a
+   Drive y no aquí. */
 async function medidor(){
-  if(USO === null){
-    const { data } = await SB.rpc('uso_almacenamiento');
-    USO = data || false;
-  }
-  if(!USO) return;
-  const f = USO.ficheros, b = USO.base, margen = USO.dias_de_margen;
+  const { data } = await SB.rpc('uso_almacenamiento');
+  if(!data) return;
+  const f = data.ficheros, b = data.base, margen = data.dias_de_margen;
   const clase = p => p >= 90 ? 'mal' : p >= 70 ? 'aviso' : '';
-  const box = document.createElement('div');
-  box.className = 'uso';
-  box.innerHTML = `
-    <h3>Almacenamiento</h3>
+  $('#uso').hidden = false;
+  $('#uso').innerHTML = `
+    <h3>Almacenamiento del sistema</h3>
     <div class="n"><span>Archivos</span><span><b>${mb(f.bytes)}</b> de ${mb(f.limite)} · ${f.pct}%</span></div>
     <div class="barra ${clase(f.pct)}"><i style="width:${Math.min(100, f.pct)}%"></i></div>
-    <div class="n" style="margin-top:10px"><span>Base de datos</span><span><b>${mb(b.bytes)}</b> de ${mb(b.limite)} · ${b.pct}%</span></div>
+    <div class="n" style="margin-top:8px"><span>Base de datos</span><span><b>${mb(b.bytes)}</b> de ${mb(b.limite)} · ${b.pct}%</span></div>
     <div class="barra ${clase(b.pct)}"><i style="width:${Math.min(100, b.pct)}%"></i></div>
-    <p class="margen ${margen != null && margen <= 60 ? 'alerta' : ''}">
-      ${margen == null ? 'Sin ritmo medible todavía.'
-        : 'Al ritmo actual (' + USO.ritmo_mb_dia + ' MB/día) quedan <b>' + margen + ' días</b> de archivos.'}
-    </p>
-    <p class="nota">Cuando se llena, Supabase no borra nada: <b>rechaza las subidas</b>. Un aviso automático
-      sale por email al pasar del 75% o al bajar de 30 días de margen.</p>`;
-  $('#ficha').prepend(box);
+    <p class="sui-nota">${margen == null ? 'Sin ritmo medible todavía.'
+      : 'Al ritmo actual (' + data.ritmo_mb_dia + ' MB/día) quedan <b>' + margen + ' días</b>.'}
+      Por eso la documentación va por enlace a Drive: este espacio lo necesitan los contratos firmados.</p>`;
 }
 
 /* ---------- eventos ---------- */
-$('#q').addEventListener('input', e => { Q = e.target.value; pintarLista(); });
-$('#fProyecto').addEventListener('change', e => { PROY = e.target.value; pintarFiltros(); pintarLista(); });
+$('#q').addEventListener('input', e => { Q = e.target.value; pintarTabla(); });
+$('#fProyecto').addEventListener('change', e => { PROY = e.target.value; CARPETA = ''; pintar(); });
+$('#arbol').addEventListener('click', e => {
+  const b = e.target.closest('[data-carp]'); if(!b) return;
+  CARPETA = b.dataset.carp; pintar();
+});
 $('#filtros').addEventListener('click', e => {
   const b = e.target.closest('[data-c]'); if(!b) return;
-  CAT = b.dataset.c; pintarFiltros(); pintarLista();
+  CAT = b.dataset.c; pintarFiltros(); pintarTabla();
 });
-$('#listaD').addEventListener('click', e => {
-  const b = e.target.closest('[data-id]'); if(!b) return;
-  SEL = b.dataset.id; pintarLista(); pintarFicha();
+$('#filas').addEventListener('click', e => {
+  const tr = e.target.closest('[data-id]'); if(!tr) return;
+  abrirDoc(tr.dataset.id);
 });
-$('#btnNuevo').addEventListener('click', formSubida);
+$('#btnNuevo').addEventListener('click', formEnlace);
 
-/* guard.js ya comprobó la sesión y destapó la página; aquí solo se reusa su
-   cliente para no abrir un segundo. */
+suiMontarCajon();
+suiMontarDensidad($('#dens'));
+suiOrdenable($('#tabla'), ORDEN, (d, c) => d[c], pintarTabla);
+
+/* guard.js ya comprobó la sesión y leyó la ficha: se reusa su cliente y su rol
+   en vez de abrir un segundo y volver a preguntar. */
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb || window.supabase.createClient(SB_URL, SB_KEY);
-  // guard.js ya leyó la ficha del usuario: se reusa su rol en vez de volver a
-  // preguntarlo. Decide qué botones se ven; el candado es la RLS.
   ROL = ficha ? ficha.rol : null;
   const who = $('#who'); if(who && session) who.textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await SB.auth.signOut(); location.replace('/contracts/login.html'); };
   await cargar();
-  pintarFicha();
+  medidor();
 });
 </script>
 </body>
