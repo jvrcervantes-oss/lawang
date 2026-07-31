@@ -21,6 +21,7 @@
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
 <script src="assets/entities.js?v=20260730"></script>
+<script src="assets/huella.js?v=20260731"></script>
 <style>
   :root{
     --line:#e4ddcf; --tbh:56px;
@@ -1290,31 +1291,63 @@ function clausesHTML(){
 /* ============================================================
    EDICIÓN DEL TEXTO FIJO — el usuario reescribe cualquier PÁRRAFO de
    boilerplate (los que NO llevan {{marcador}}) directamente en la vista
-   previa. Se guardan como "overrides" por plantilla + posición (data-eid)
-   y se reaplican en cada render. Los párrafos con datos ({{...}}) se editan
-   por campos, no aquí. ponytail: eid = ordinal del bloque; si algún día se
-   reordena el .html de la plantilla, "Restaurar original" realinea.
+   previa. Se guardan como "overrides" por plantilla + identidad del párrafo
+   (data-eid) y se reaplican en cada render. Los párrafos con datos ({{...}}) se
+   editan por campos, no aquí.
+
+   🔴 LA CLAVE ES LA HUELLA DEL TEXTO, NO LA POSICIÓN (31-jul-2026).
+   Hasta hoy el eid era el ORDINAL del párrafo (0,1,2…). Cualquier retoque de la
+   plantilla —tokenizar un literal, añadir una cláusula, traducir un bloque—
+   corría de sitio todos los overrides posteriores y los aplicaba a párrafos
+   ajenos, sin decir nada. No es teórico: CR00003 tenía guardado en el eid 27 el
+   bloque de firmas ("Nombre: Pablo Cantero Gambín — Cargo: Director"), y el eid
+   27 de la plantilla de hoy es la cláusula de ley aplicable — abrir ese contrato
+   sustituía la una por la otra. Eso era "editar texto a mano rompe los
+   contratos".
+   Ahora la identidad sale del TEXTO ORIGINAL del párrafo: si ese párrafo cambia
+   en la plantilla, el override no encuentra su sitio y se avisa (edición perdida,
+   visible y recuperable) en vez de aterrizar en otro párrafo (documento falso y
+   silencioso). Perder una edición se nota; imprimir la cláusula equivocada, no.
    ============================================================ */
 let OVERRIDES = loadOverrides();
 let EDITING = false;
+let HUERFANOS = [];   // overrides de esta plantilla que ya no encuentran su párrafo
 function loadOverrides(){ try{ return JSON.parse(localStorage.getItem('lawang_contract_overrides'))||{}; }catch(_){ return {}; } }
 function saveOverrides(){ try{ localStorage.setItem('lawang_contract_overrides', JSON.stringify(OVERRIDES)); }catch(_){} }
+
+/* Las ediciones de texto pertenecen AL CONTRATO, no al navegador. Vivían en
+   localStorage por plantilla y sin caducar, así que un párrafo retocado para un
+   cliente concreto se quedaba pegado al tipo de documento y salía impreso en
+   todos los contratos siguientes de ese tipo. Se borran al empezar uno nuevo. */
+function limpiarOverrides(slug){
+  if(!slug || !OVERRIDES[slug]) return;
+  delete OVERRIDES[slug]; saveOverrides(); HUERFANOS = [];
+}
+
+/* huellaBloque() vive en assets/huella.js (con su test en node: el mismo patrón
+   que facturas/totales.js). Aquí solo se le pasa el texto del párrafo. */
 
 /* etiqueta cada bloque de texto con data-eid, marca editables los que no
    tienen marcador y aplica los overrides guardados de la plantilla activa */
 function applyEditsAndTag(html){
   const ov = OVERRIDES[CURRENT.slug] || {};
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  doc.querySelectorAll('.doc p, .doc li').forEach((el,i)=>{
-    el.setAttribute('data-eid', i);
+  const vistas = Object.create(null), usados = new Set();
+  doc.querySelectorAll('.doc p, .doc li').forEach(el=>{
+    const eid = huellaBloque(el.textContent, vistas);
+    el.setAttribute('data-eid', eid);
     if(!/\{\{/.test(el.innerHTML)){
       el.setAttribute('data-editable','1');
       // Se sanea también AL APLICAR, no solo al capturar: los overrides que ya
       // quedaron guardados con el idioma vecino dentro (ver limpiaEdicion) se
       // imprimen bien sin tener que tocar el contrato en la base de datos.
-      if(ov[i]!=null){ el.innerHTML = ov[i]; el.innerHTML = limpiaEdicion(el); }
+      if(ov[eid]!=null){ usados.add(eid); el.innerHTML = ov[eid]; el.innerHTML = limpiaEdicion(el); }
     }
   });
+  // Lo que sobra son ediciones hechas sobre una versión anterior de la plantilla
+  // (o con el esquema viejo de ordinales). NO se aplican en ningún otro sitio:
+  // eso era el fallo. Se anotan para avisar.
+  HUERFANOS = Object.keys(ov).filter(k=>!usados.has(k));
   // Logo de cabecera EN CADA PÁGINA: se envuelve el cuerpo del .doc en una tabla
   // con <thead> repetible. Chromium (y todos los navegadores) repiten el thead de
   // una tabla en cada página impresa Y le reservan su espacio → cabecera en todas
@@ -1334,7 +1367,16 @@ function applyEditsAndTag(html){
   return doc.documentElement.outerHTML;
 }
 
-function editBtnIdle(){ const b=$('#btnEdit'); if(b){ b.textContent='✎ Editar texto'; b.classList.remove('editing'); } const r=$('#btnEditReset'); if(r) r.style.display='none'; }
+/* El botón de restaurar se ve SIEMPRE que la plantilla tenga ediciones a mano,
+   no solo en modo edición: un contrato con boilerplate retocado tiene que
+   notarse de un vistazo, que es justo lo que faltaba cuando las ediciones se
+   heredaban de un contrato a otro sin que nadie las viera. */
+function hayEdiciones(){ return Object.keys((OVERRIDES && OVERRIDES[CURRENT.slug]) || {}).length; }
+function editBtnIdle(){
+  const b=$('#btnEdit'); if(b){ b.textContent='✎ Editar texto'; b.classList.remove('editing'); }
+  const n=hayEdiciones(), r=$('#btnEditReset');
+  if(r){ r.style.display = n ? 'inline-flex' : 'none'; r.title = n ? n+' párrafo(s) con texto editado a mano' : ''; }
+}
 function enterEdit(){
   const d=$('#pvFrame').contentDocument; if(!d) return;
   EDITING=true;
@@ -1401,11 +1443,17 @@ function captureEdit(e){
   (OVERRIDES[CURRENT.slug] || (OVERRIDES[CURRENT.slug]={}))[el.getAttribute('data-eid')] = limpiaEdicion(el);
   saveOverrides();
 }
+/* Aviso de ediciones que ya no encuentran su párrafo. Se llama tras cargar un
+   contrato, no en cada render: render() corre con cada tecla. */
+function avisaHuerfanos(){
+  if(!HUERFANOS.length) return;
+  toast('OJO: '+HUERFANOS.length+' edición(es) de texto guardadas en este contrato ya no encajan con la plantilla actual y NO se han aplicado — revisa el documento');
+}
 function exitEdit(){ EDITING=false; editBtnIdle(); render(); }
 function toggleEdit(){ EDITING ? exitEdit() : enterEdit(); }
 function resetOverrides(){
   if(!confirm('¿Restaurar el texto original de esta plantilla? Se pierden tus ediciones de texto (los campos y cláusulas no se tocan).')) return;
-  delete OVERRIDES[CURRENT.slug]; saveOverrides(); EDITING=false; editBtnIdle(); render(); toast('Texto original restaurado');
+  limpiarOverrides(CURRENT.slug); EDITING=false; editBtnIdle(); render(); toast('Texto original restaurado');
 }
 
 /* ============================================================
@@ -1467,6 +1515,30 @@ function aplicarReglasCampos(){
   // Único punto por el que pasa "un campo cambió" (input, change y estado inicial
   // de buildForm), así que el anexo automático se engancha aquí y no en tres sitios.
   syncAutoAnnex();
+  syncParcelaCodigo();
+}
+
+/* Código de parcela por proyecto (tokens.json → parcelaPorProyecto).
+   El campo sigue siendo de texto libre a propósito: el automatismo es una ayuda,
+   no una lista cerrada — una parcela nueva se escribe y no hay que esperar a que
+   alguien la dé de alta. Por eso solo se rellena cuando el hueco está vacío o
+   cuando todavía tiene el código que puso el propio automatismo; en cuanto el
+   agente escribe algo suyo, deja de tocarlo para siempre (AUTO_PARCELA a vacío).
+   Mismo criterio que syncAutoAnnex con la tipología. */
+let AUTO_PARCELA = '';
+function syncParcelaCodigo(){
+  const sel   = document.querySelector('[name="proyecto_nombre"]');
+  const campo = document.querySelector('[name="parcela_codigo"]');
+  if(!sel || !campo) return;
+  const actual = campo.value.trim();
+  if(actual && actual !== AUTO_PARCELA){ AUTO_PARCELA = ''; return; }   // valor escrito a mano: intocable
+  const codigo = ((TOKENS && TOKENS.parcelaPorProyecto) || {})[sel.value] || '';
+  if(codigo === actual) return;
+  // Un proyecto sin código (Sumba Hills) BORRA el que puso el automatismo: dejar
+  // el W8 de Balian Hills en un contrato de Sumba sería una parcela de otro sitio.
+  campo.value = codigo;
+  AUTO_PARCELA = codigo;
+  renderDebounced();
 }
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
@@ -1530,6 +1602,7 @@ function buildForm(){
   aplicarReglasCampos();   // estado inicial de los campos condicionados
   ensurePads(form);   // secciones visibles al arrancar
   updateSaveButton(); // muestra/oculta "Guardar en base de datos" según la plantilla
+  editBtnIdle();      // enseña "↺ Original" si esta plantilla trae ediciones a mano
   render();
 }
 
@@ -1997,8 +2070,12 @@ function buildPicker(){
   // El número va SOLO en el desplegable, no en t.name: ese nombre se imprime en
   // la portada del contrato y da nombre al PDF, y ahí un "2." no pinta nada.
   sel.innerHTML = TEMPLATES.filter(t=>!t.disabled).map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
-  sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; LOCKED=false; LOCKED_PDF_PATH=null; await loadTemplate(sel.value); buildForm();
-    updateSaveButton();
+  sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; LOCKED=false; LOCKED_PDF_PATH=null;
+    // cambiar de tipo arranca un documento nuevo: las ediciones a mano del
+    // anterior no viajan con él (ver limpiarOverrides)
+    limpiarOverrides(sel.value);
+    await loadTemplate(sel.value); buildForm();
+    updateSaveButton(); editBtnIdle();
     if(DESIGN.coverColor===''){ const c=$('#coverColor'); if(c) c.value=CURRENT.cover; } });
 }
 function buildLangToggle(){
@@ -2470,10 +2547,14 @@ async function openSavedContract(id){
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
   // automático de la tipología guardada (solo viaja su ficha, no las páginas).
   // AUTO_ANX a cero o el anexo del contrato ANTERIOR daría por bueno el nuevo.
-  AUTO_ANX = '';
+  // AUTO_PARCELA igual: sin resetear, un código que por casualidad coincida con
+  // el del contrato anterior se tomaría por "puesto por el automatismo" y se
+  // reescribiría solo — cambiando un dato ya guardado nada más abrirlo.
+  AUTO_ANX = ''; AUTO_PARCELA = '';
   aplicarReglasCampos();
-  refreshHitos(); updateSaveButton(); render();
+  refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
+  avisaHuerfanos();   // render() acaba de recalcular HUERFANOS con la plantilla de hoy
 }
 
 /* ---------- Nuevo contrato a partir del que hay abierto ----------
@@ -2511,13 +2592,18 @@ async function derivarContrato(slug){
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
+  // alguien retocó para la reserva de otra operación no tiene por qué salir
+  // impreso en la obra de esta.
+  limpiarOverrides(slug);
+  AUTO_PARCELA = '';
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
   COMPRADORES = compradores; saveCompradores(); rebuildComprador();
   populateForm(f);
   HITOS = hitos;
-  refreshHitos(); updateSaveButton(); render();
+  refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   $('#dvOverlay').classList.remove('open');
   toast('Contrato nuevo con los datos de ' + origen + ' · sin número hasta que lo guardes');
 }

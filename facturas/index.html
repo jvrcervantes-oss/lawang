@@ -250,6 +250,26 @@
             <label>Cuenta donde se cobra</label>
             <select name="cuenta" id="selCuenta"></select>
             <p class="hint">Sin cuenta, el documento no imprime datos bancarios.</p>
+            <!-- "Otros": cuenta que no está en entities.js. Se teclea aquí y sale
+                 impresa igual que una registrada, pero NO se da de alta: una
+                 cuenta que se va a usar más de una vez va a entities.js, que es
+                 la fuente única — si no, cada factura tendría su propia versión
+                 del mismo número y nadie sabría cuál es la buena. -->
+            <div id="cuentaOtros" hidden>
+              <div class="row2">
+                <div><label>Titular · Holder</label><input name="banco_titular"></div>
+                <div><label>Banco · Bank</label><input name="banco_nombre"></div>
+              </div>
+              <div class="row2">
+                <div><label>Cuenta · Account</label><input name="banco_cuenta"></div>
+                <div><label>Swift / Routing</label><input name="banco_codigo"></div>
+              </div>
+              <label>Dirección del banco · Address</label>
+              <input name="banco_direccion">
+              <label>Nota · Note (opcional)</label>
+              <input name="banco_extra">
+              <p class="hint">Si esta cuenta se va a repetir, pídenos darla de alta en la lista.</p>
+            </div>
           </fieldset>
 
           <fieldset>
@@ -429,7 +449,16 @@ $('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
 $('#selCuenta').innerHTML = '<option value="">— sin datos bancarios —</option>' +
   Object.entries(CUENTAS_BANCARIAS).map(([k,c]) => [k, c.label])
     .sort((a,b) => a[1].localeCompare(b[1],'es'))
-    .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('');
+    .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('')
+  + '<option value="otros">Otros — escribir la cuenta a mano</option>';
+
+/* Los campos de la cuenta a mano solo se ven con "Otros" elegido. Se enseñan y
+   ocultan aquí y no en render(): render() repinta el documento, no el formulario. */
+function toggleCuentaOtros(){
+  $('#cuentaOtros').hidden = $('#selCuenta').value !== 'otros';
+}
+$('#selCuenta').addEventListener('change', toggleCuentaOtros);
+toggleCuentaOtros();
 
 $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
 
@@ -512,9 +541,16 @@ const linea = v => v ? esc(v) : '<span class="vacio">—</span>';
    página con solo dos conceptos. Los cuatro datos cortos van a dos columnas y
    los dos largos (dirección del banco y nota) a ancho completo, que en media
    columna se partían en tres líneas y no ahorraban nada. */
-function bancoHTML(key, moneda){
-  const c = CUENTAS_BANCARIAS[key];
-  if(!c) return '';
+function bancoHTML(key, moneda, d){
+  // "Otros" = cuenta tecleada en el formulario. Se arma un objeto con la misma
+  // forma que los de entities.js para que el resto de la función no distinga.
+  const c = key === 'otros'
+    ? { titular:d.banco_titular, banco:d.banco_nombre, cuenta:d.banco_cuenta,
+        codigo:d.banco_codigo, direccion:d.banco_direccion, extra:d.banco_extra }
+    : CUENTAS_BANCARIAS[key];
+  // Sin ningún dato relleno no se imprime el bloque: una cabecera "Datos
+  // bancarios" con seis guiones es peor que no ponerla.
+  if(!c || !Object.values(c).some(v => (typeof v === 'object' ? (v && v.es) : v))) return '';
   const txt = v => (v && typeof v === 'object') ? (v.es || '') : (v || '');
   const dato = (l, v, ancho) => txt(v)
     ? `<div class="${ancho ? 'ancho' : ''}"><span>${l}</span>${esc(txt(v))}</div>` : '';
@@ -607,7 +643,7 @@ function render(){
       <tr class="total"><td>Total</td><td class="imp">${fmtMoneda(t.total, d.moneda)}</td></tr>
     </tbody></table>
 
-    ${bancoHTML(d.cuenta, d.moneda)}
+    ${bancoHTML(d.cuenta, d.moneda, d)}
     ${d.notas ? `<h3>Notas · Notes</h3><div class="notas">${esc(d.notas)}</div>` : ''}
 
     <div class="pie">${esc(soc.razon)}${soc.marca ? ' · ' + esc(soc.marca) : ''} · NPWP ${esc(soc.npwp)} · ${esc(soc.domicilio)}</div>`;
@@ -838,6 +874,7 @@ $('#btnNueva').onclick = () => {
   if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
   // el selector de tipo vive fuera del <form>, así que reset() no lo toca
   SAVED = null; CONTRATO_ID = null; $('#form').reset(); $('#selTipo').value = 'factura';
+  toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
@@ -888,6 +925,7 @@ function abrir(f){
   $('#selContrato').value = CONTRATO_ID || '';
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
   $('#ovList').classList.remove('open');
+  toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos
   pintarLineas(); render();
   if(f.anulada) toast('Factura anulada: se abre como borrador nuevo');
 }
