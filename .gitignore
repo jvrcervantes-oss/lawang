@@ -3,6 +3,12 @@ data.json
 /images/
 api/.passhash
 
+# private/ es del servidor: leads con datos personales y credenciales (private/ghl.php).
+# Solo el .htaccess que lo cierra viaja en el repo. Sin esto, un `git add -A` sube el CSV
+# de leads con nombre, email y telefono de gente real.
+private/*
+!private/.htaccess
+
 # Local only
 Backups/
 Marketing and Design/

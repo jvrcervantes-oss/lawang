@@ -128,6 +128,12 @@ if ($name !== '' || $phone !== '') {
     ]);
     fclose($fh);
 
+    // CRM. Va el ultimo y no rompe nada si falla: el lead ya esta en el CSV y ventas ya
+    // tiene el correo. Solo entran aqui los leads de llamada — la verja de descargas es
+    // solo un email y ensuciaria el pipeline con contactos que no se pueden trabajar.
+    require_once __DIR__ . '/ghl.php';
+    lawang_ghl_upsert($name, $email, $phone, $property, $source, $campana);
+
     echo json_encode(['ok' => true]);
     exit;
 }

@@ -603,6 +603,9 @@ p{margin:0;text-wrap:pretty}
 (function () {
   'use strict';
   var MODELO = <?= json_encode($m['id']) ?>;
+  // Calendario "Llamada Lawang" de GoHighLevel. Los huecos que ve el lead salen en su
+  // propia zona horaria; los del comercial estan definidos en la location (Asia/Singapore).
+  var CALENDARIO = 'https://api.leadconnectorhq.com/widget/booking/mfWBXvZPd703uOwOV3F0';
   var VALUE  = <?= $m['precio_desde_eur'] === null ? 'null' : (float) $m['precio_desde_eur'] ?>;
 
   // ── Píxel ──────────────────────────────────────────────────────────────────
@@ -740,7 +743,15 @@ p{margin:0;text-wrap:pretty}
       .forEach(function (k) { if (q.get(k)) camp.push(k + '=' + q.get(k)); });
     body.append('campana', camp.join('&'));
 
-    var nombre = document.getElementById('lw-nombre').value.trim().split(' ')[0];
+    var completo = document.getElementById('lw-nombre').value.trim();
+    var nombre   = completo.split(' ')[0];
+    // Se leen antes de vaciar el formulario: despues del "gracias" ya no existen.
+    var datosCal = {
+      first_name: nombre,
+      last_name: completo.split(' ').slice(1).join(' '),
+      email: document.getElementById('lw-email').value.trim(),
+      phone: document.getElementById('lw-tel').value.trim()
+    };
 
     fetch('/api/lead.php', {method: 'POST', body: body})
       .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })
@@ -753,10 +764,21 @@ p{margin:0;text-wrap:pretty}
         var p = document.createElement('p');
         p.className = 'dice';
         p.style.marginTop = '.7em';
-        p.textContent = 'Hemos recibido tu solicitud. Te contactamos para agendar la llamada.';
+        p.textContent = 'Elige tú la hora y hablamos cuando te venga bien. Si no, te llamamos nosotros.';
+        // El lead ya esta guardado; esto es el paso que de verdad vale. Nueva pestana y no
+        // iframe: el widget de GHL se redimensiona con su propio script y dentro de un
+        // <dialog> se queda cortado en movil, que es donde llega la pauta.
+        var cal = document.createElement('a');
+        cal.className = 'btn btn--ancho';
+        cal.style.marginTop = '1.4em';
+        cal.href = CALENDARIO + '?' + new URLSearchParams(datosCal).toString();
+        cal.target = '_blank';
+        cal.rel = 'noopener';
+        cal.textContent = 'Elegir hora para la llamada';
+        cal.addEventListener('click', function () { track('Schedule'); });
         form.textContent = '';
         form.className = 'gracias';
-        form.appendChild(h); form.appendChild(p);
+        form.appendChild(h); form.appendChild(p); form.appendChild(cal);
         // La barra fija seguía ofreciendo "Reservar mi llamada" a quien acababa de
         // reservarla: se desconecta el observador y se retira.
         if (ioFijo) ioFijo.disconnect();
