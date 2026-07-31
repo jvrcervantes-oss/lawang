@@ -12,9 +12,13 @@ RedirectMatch 404 (?i)/\.git
 RedirectMatch 404 (?i)\.py$
 
 # Piezas internas de la landing de modelo: datos y funciones, nunca una pagina.
-# lib.php y modelos.php respondian 200 con cuerpo vacio; test_modelo.php ya se corta solo
-# por SAPI, pero cortarlo aqui tambien no cuesta nada.
-RedirectMatch 404 (?i)/modelo/(lib|modelos|test_modelo)\.php$
+# lib.php y modelos.php respondian 200 con cuerpo vacio.
+RedirectMatch 404 (?i)/modelo/(lib|modelos)\.php$
+
+# Arneses de prueba, en cualquier carpeta y por patron. Antes iban por nombre en la linea
+# de arriba y el que llego despues (api/test_ghl.php) respondio 200 en produccion desde el
+# primer despliegue: la lista a mano ERA el bug, igual que en el hook de cache-bust.
+RedirectMatch 404 (?i)/test_[^/]+\.php$
 
 # URLs limpias en las paginas publicas: /thecollection, no /thecollection.html.
 # Solo raiz y solo GET a proposito: las subcarpetas (api/, contracts/, facturas/, intranet/)

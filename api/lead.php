@@ -128,13 +128,20 @@ if ($name !== '' || $phone !== '') {
     ]);
     fclose($fh);
 
+    // Se responde ANTES de hablar con el CRM. Dos llamadas HTTP salientes son hasta 8s de
+    // espera, y el evento `Lead` del pixel se dispara en el `.then` de este fetch: si el
+    // visitante cierra el movil durante la espera, la fila esta en el CSV pero Meta nunca
+    // ve la conversion y la campana optimiza contra un numero falso.
+    echo json_encode(['ok' => true]);
+    if (function_exists('litespeed_finish_request')) litespeed_finish_request(); // Hostinger
+    elseif (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+    else { @ob_end_flush(); @flush(); } // sin FPM el visitante espera igual, pero no se pierde nada
+
     // CRM. Va el ultimo y no rompe nada si falla: el lead ya esta en el CSV y ventas ya
     // tiene el correo. Solo entran aqui los leads de llamada — la verja de descargas es
     // solo un email y ensuciaria el pipeline con contactos que no se pueden trabajar.
     require_once __DIR__ . '/ghl.php';
     lawang_ghl_upsert($name, $email, $phone, $property, $source, $campana);
-
-    echo json_encode(['ok' => true]);
     exit;
 }
 

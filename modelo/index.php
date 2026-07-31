@@ -575,7 +575,11 @@ p{margin:0;text-wrap:pretty}
       </div>
       <div class="campo">
         <label for="lw-tel">Teléfono</label>
-        <input type="tel" id="lw-tel" name="phone" autocomplete="tel" required maxlength="40">
+        <!-- Con `type=tel` a secas vale cualquier cosa, y GHL rechaza el alta entera por el
+             telefono: se pierden tambien nombre y email, sin que el visitante vea nada.
+             Minimo 9 digitos, admite prefijo, espacios, guiones y parentesis. -->
+        <input type="tel" id="lw-tel" name="phone" autocomplete="tel" required maxlength="40"
+               pattern="[+]?[0-9\s().-]{9,}" inputmode="tel">
         <span class="err">Necesitamos un teléfono para llamarte.</span>
       </div>
 
@@ -598,7 +602,7 @@ p{margin:0;text-wrap:pretty}
   </div>
 </dialog>
 
-<script src="/assets/consent.js?v=20260730" defer></script>
+<script src="/assets/consent.js?v=20260731100255" defer></script>
 <script>
 (function () {
   'use strict';
@@ -743,15 +747,7 @@ p{margin:0;text-wrap:pretty}
       .forEach(function (k) { if (q.get(k)) camp.push(k + '=' + q.get(k)); });
     body.append('campana', camp.join('&'));
 
-    var completo = document.getElementById('lw-nombre').value.trim();
-    var nombre   = completo.split(' ')[0];
-    // Se leen antes de vaciar el formulario: despues del "gracias" ya no existen.
-    var datosCal = {
-      first_name: nombre,
-      last_name: completo.split(' ').slice(1).join(' '),
-      email: document.getElementById('lw-email').value.trim(),
-      phone: document.getElementById('lw-tel').value.trim()
-    };
+    var nombre = document.getElementById('lw-nombre').value.trim().split(' ')[0];
 
     fetch('/api/lead.php', {method: 'POST', body: body})
       .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, j: j}; }); })
@@ -771,11 +767,24 @@ p{margin:0;text-wrap:pretty}
         var cal = document.createElement('a');
         cal.className = 'btn btn--ancho';
         cal.style.marginTop = '1.4em';
-        cal.href = CALENDARIO + '?' + new URLSearchParams(datosCal).toString();
+        // Sin nombre, email ni telefono en la URL: quedarian en el historial del navegador,
+        // en los logs de leadconnectorhq.com y en el Referer que esa pagina manda a sus
+        // terceros. El dato ya viaja al CRM por API; en la URL es exposicion de mas.
+        cal.href = CALENDARIO;
         cal.target = '_blank';
-        cal.rel = 'noopener';
+        cal.rel = 'noopener noreferrer';
         cal.textContent = 'Elegir hora para la llamada';
-        cal.addEventListener('click', function () { track('Schedule'); });
+        // Evento PROPIO, no el `Schedule` estandar: esto es un clic en el boton, no una cita
+        // reservada. El widget vive en otro dominio sin pixel y nunca devuelve confirmacion,
+        // asi que emitir `Schedule` aqui le ensena al algoritmo a buscar gente que abre
+        // calendarios y se va. La cita real se cerrara por CAPI desde un workflow de GHL.
+        // Sin `value` a proposito: ya lo llevan ViewContent, InitiateCheckout y Lead, y un
+        // mismo visitante contaria la misma villa cuatro veces en cualquier columna de ROAS.
+        cal.addEventListener('click', function () {
+          if (typeof window.lwTrack === 'function') {
+            window.lwTrack('AbrioCalendario', {content_ids: [MODELO], content_type: 'product'}, true);
+          }
+        });
         form.textContent = '';
         form.className = 'gracias';
         form.appendChild(h); form.appendChild(p); form.appendChild(cal);

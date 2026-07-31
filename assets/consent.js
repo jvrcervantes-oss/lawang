@@ -38,7 +38,7 @@
     window.fbq('init', PIXEL_ID);
     window.fbq('track', 'PageView');
 
-    queue.forEach(function (ev) { window.fbq('track', ev[0], ev[1]); });
+    queue.forEach(function (ev) { window.fbq(ev[2] ? 'trackCustom' : 'track', ev[0], ev[1]); });
     queue = [];
   }
 
@@ -46,12 +46,19 @@
    * Envía un evento al píxel, o lo guarda hasta que haya consentimiento.
    * Si el visitante rechaza, el evento se descarta: nunca se envía nada sin permiso.
    *   window.lwTrack('Contact', {content_name: 'whatsapp-float'});
+   *   window.lwTrack('AbrioCalendario', {...}, true);   // evento propio
+   *
+   * El tercer argumento manda `trackCustom` en vez de `track`. Un evento propio no se
+   * puede llamar como uno estándar de Meta: si se emite `Schedule` cuando en realidad
+   * alguien solo ha ABIERTO el calendario, el algoritmo aprende a buscar gente que abre
+   * calendarios y los abandona. El nombre del evento es una promesa sobre lo que pasó.
    */
-  window.lwTrack = function (name, params) {
-    if (loaded) { window.fbq('track', name, params); return; }
-    if (localStorageGet() === 'granted') { loadPixel(); window.fbq('track', name, params); return; }
+  window.lwTrack = function (name, params, custom) {
+    var verbo = custom ? 'trackCustom' : 'track';
+    if (loaded) { window.fbq(verbo, name, params); return; }
+    if (localStorageGet() === 'granted') { loadPixel(); window.fbq(verbo, name, params); return; }
     if (localStorageGet() === 'denied') return;
-    queue.push([name, params]);
+    queue.push([name, params, custom]);
   };
 
   function localStorageGet() {

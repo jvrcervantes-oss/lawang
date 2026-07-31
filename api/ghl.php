@@ -2,13 +2,18 @@
 /**
  * ghl.php — alta del lead en GoHighLevel (CRM) desde el formulario de /modelo/<id>.
  *
- * Se llama DESPUES de escribir el CSV y de avisar a ventas, y falla en silencio: si GHL
- * esta caido o el token caduco, el lead ya esta guardado y el comercial ya tiene el correo.
- * Un CRM que devuelve 500 no puede tumbar la captacion de un clic pagado.
+ * Se llama DESPUES de escribir el CSV, de avisar a ventas y de haber respondido ya al
+ * navegador. Falla en silencio: si GHL esta caido o el token caduco, el lead ya esta
+ * guardado y el comercial ya tiene el correo. Un CRM que devuelve 500 no puede tumbar la
+ * captacion de un clic pagado.
  *
- * Credenciales fuera de git, mismo patron que private/mail.php:
- *   private/ghl.php  ->  <?php return ['pit' => 'pit-xxx', 'location' => 'vOEs...'];
- * Sin ese fichero esto no hace nada. El token lo pega el owner; nunca viaja por el repo.
+ * Credenciales fuera de git, en JSON y NO en PHP:
+ *   private/ghl.json  ->  {"pit": "pit-xxx", "location": "vOEs...", "usuario": "SbNu..."}
+ * Lo escribe el owner a mano. Un .php escrito a mano puede traer un BOM, un salto tras el
+ * cierre o un punto y coma de menos, y eso no es un valor raro: es salida suelta o un parse
+ * error que mata el request DESPUES de haber escrito el CSV y mandado el correo — el
+ * visitante veria "no hemos podido enviar" y reenviaria, duplicando fila y aviso. Un JSON
+ * mal escrito solo devuelve null.
  *
  * API v2 (LeadConnector). La v1 murio el 31-dic-2025: la cabecera Version es obligatoria
  * en toda llamada y su ausencia devuelve 401, no 400.
@@ -56,7 +61,6 @@ function lawang_ghl_post($ruta, array $cuerpo, $pit)
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode($cuerpo),
         CURLOPT_RETURNTRANSFER => true,
-        // El visitante esta esperando en la pagina: 4s de techo, no el default de 300.
         CURLOPT_TIMEOUT        => 4,
         CURLOPT_CONNECTTIMEOUT => 3,
         CURLOPT_HTTPHEADER     => [
@@ -73,18 +77,36 @@ function lawang_ghl_post($ruta, array $cuerpo, $pit)
 }
 
 /**
- * Da de alta (o actualiza) el contacto y le abre una oportunidad en el pipeline.
+ * Rastro de los leads que NO entraron al CRM. El fichero solo existe si algo fallo, asi
+ * que su presencia ES el aviso. Sin esto, con el token caducado los leads dejan de entrar
+ * en el pipeline y no hay forma de saber cuantos faltan: el `error_log` no lo mira nadie
+ * y ademas no puede llevar datos personales.
+ */
+function lawang_ghl_pendiente($email, $modelo, $paso, $code)
+{
+    $dir  = __DIR__ . '/../private';
+    $file = $dir . '/crm_pendientes.csv';
+    $new  = !file_exists($file);
+    $fh   = @fopen($file, 'a');
+    if ($fh === false) return;
+    if ($new) fputcsv($fh, ['timestamp', 'email', 'modelo', 'paso', 'http']);
+    fputcsv($fh, [date('c'), $email, $modelo, $paso, $code]);
+    fclose($fh);
+}
+
+/**
+ * Da de alta (o actualiza) el contacto y su oportunidad en el pipeline.
  * Devuelve true solo si el contacto entro. Nunca lanza.
  */
 function lawang_ghl_upsert($nombre, $email, $tel, $modeloId, $origen, $campana)
 {
-    $path = __DIR__ . '/../private/ghl.php';
+    $path = __DIR__ . '/../private/ghl.json';
     if (!is_file($path) || !function_exists('curl_init')) return false;
-    $cfg = @include $path;
+    $cfg = json_decode((string) @file_get_contents($path), true);
     if (!is_array($cfg) || empty($cfg['pit']) || empty($cfg['location'])) return false;
 
-    $partes  = preg_split('/\s+/', trim($nombre), 2);
-    $modelo  = lawang_ghl_modelo($modeloId);
+    $partes = preg_split('/\s+/', trim($nombre), 2);
+    $modelo = lawang_ghl_modelo($modeloId);
 
     $contacto = [
         'locationId' => $cfg['location'],
@@ -108,22 +130,31 @@ function lawang_ghl_upsert($nombre, $email, $tel, $modeloId, $origen, $campana)
     list($code, $out) = lawang_ghl_post('/contacts/upsert', $contacto, $cfg['pit']);
     $id = isset($out['contact']['id']) ? $out['contact']['id'] : null;
     if ($code < 200 || $code >= 300 || !$id) {
-        error_log('GHL upsert ' . $code . ' ' . substr(json_encode($out), 0, 300));
+        // Solo codigo y traceId: el cuerpo de error de GHL devuelve los valores enviados
+        // (telefono, email) y el log de PHP no tiene retencion ni borrado.
+        error_log('GHL contacto ' . $code . ' trace=' . (isset($out['traceId']) ? $out['traceId'] : '-'));
+        lawang_ghl_pendiente($email, $modelo, 'contacto', $code);
         return false;
     }
 
-    // Oportunidad: sin ella el CRM es una lista de contactos y el pipeline sale a cero,
-    // que es justo el numero que mira el owner para decidir si la pauta funciona.
-    list($c2, $o2) = lawang_ghl_post('/opportunities/', [
+    // `upsert` y no `POST /opportunities/`: el mismo lead que vuelve otro dia o llega por
+    // dos anuncios abriria una segunda oportunidad en "New Lead", y ese recuento es el
+    // unico numero con el que se juzga si la pauta funciona — inflado, decide mal el gasto.
+    $opp = [
         'pipelineId'      => GHL_PIPELINE,
         'locationId'      => $cfg['location'],
         'pipelineStageId' => GHL_ETAPA,
         'name'            => $nombre . ' — ' . $modelo,
         'status'          => 'open',
         'contactId'       => $id,
-    ], $cfg['pit']);
+    ];
+    // Sin dueno, una oportunidad sin atender es indistinguible de una recien entrada.
+    if (!empty($cfg['usuario'])) $opp['assignedTo'] = $cfg['usuario'];
+
+    list($c2, $o2) = lawang_ghl_post('/opportunities/upsert', $opp, $cfg['pit']);
     if ($c2 < 200 || $c2 >= 300) {
-        error_log('GHL opp ' . $c2 . ' ' . substr(json_encode($o2), 0, 300));
+        error_log('GHL oportunidad ' . $c2 . ' trace=' . (isset($o2['traceId']) ? $o2['traceId'] : '-'));
+        lawang_ghl_pendiente($email, $modelo, 'oportunidad', $c2);
     }
 
     return true;

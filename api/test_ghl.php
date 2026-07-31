@@ -5,6 +5,11 @@
  * Solo cubre lo que puede romper en silencio — un telefono mal formado o un modelo fuera
  * del desplegable no dan error en GHL: entran mal y nadie se entera hasta llamar.
  */
+// Este fichero vive en el webroot de una landing que paga trafico: sin esto respondia 200
+// a cualquiera que pidiera /api/test_ghl.php. El .htaccess raiz tambien lo bloquea por
+// patron; el guard viaja con el fichero y sobrevive a un despliegue que se lleve el htaccess.
+if (php_sapi_name() !== 'cli') { http_response_code(404); exit; }
+
 require_once __DIR__ . '/ghl.php';
 
 $fallos = 0;
@@ -29,8 +34,10 @@ $es('Dali', lawang_ghl_modelo('dali'), 'id del catalogo');
 $es('Sin definir', lawang_ghl_modelo('villa-x'), 'modelo desconocido cae en Sin definir');
 $es('Sin definir', lawang_ghl_modelo(''), 'vacio cae en Sin definir');
 
-// Fail-open: sin private/ghl.php no revienta, devuelve false y el lead sigue su camino.
-if (!is_file(__DIR__ . '/../private/ghl.php')) {
+$es('+34601170044', lawang_ghl_tel('(+34) 601-170-044'), 'parentesis y guiones juntos');
+
+// Fail-open: sin private/ghl.json no revienta, devuelve false y el lead sigue su camino.
+if (!is_file(__DIR__ . '/../private/ghl.json')) {
     $es(false, lawang_ghl_upsert('Ana Perez', 'a@b.com', '600000000', 'dali', 'web', ''),
         'sin credenciales devuelve false sin lanzar');
 }
