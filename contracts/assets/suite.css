@@ -72,11 +72,14 @@ html[data-densidad="amplia"]  { --fila-y:15px; --fila-x:18px; --fila-fs:14.5px; 
 /* ── esqueleto de página ────────────────────────────────────────────────── */
 .sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,56px); background:var(--sup-0); }
 .sui-centro{ max-width:1240px; margin:0 auto; padding:var(--e5) var(--e5) var(--e7); }
-/* Con el cajón abierto la página no salta: se le hace sitio en pantallas anchas
-   y se superpone en las estrechas, en vez de reflowear la tabla entera. */
-@media (min-width:1500px){
-  .sui-stage.con-cajon .sui-centro{ margin-right:clamp(420px, 34vw, 560px); transition:margin var(--t-cajon) var(--curva); }
-}
+/* Aquí vivía un desplazamiento de la página en pantallas ≥1500px: con el cajón
+   abierto se apartaba `.sui-centro` para hacerle sitio. Retirado el 31-jul-2026
+   por tres motivos, y ninguno es estético: llevaba escrito a mano el ancho VIEJO
+   del cajón, así que desde que este creció apartaba menos de lo que ocupaba;
+   Operaciones no tiene `.sui-centro` —usa su propia `.centro`—, o sea que la
+   página donde peor se veía el cajón era justo la única a la que no le aplicaba;
+   y ahora el cajón se anuncia con el velo, que es lo que se pidió. Un solo
+   comportamiento en las cuatro herramientas: el cajón se superpone y atenúa. */
 
 /* ── barra de filtros ───────────────────────────────────────────────────── */
 .sui-filtros{ display:flex; gap:var(--e2); flex-wrap:wrap; align-items:center; margin:0 0 var(--e3); }

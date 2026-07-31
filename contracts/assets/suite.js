@@ -57,7 +57,6 @@ function suiAbrirCajon({ titulo, sub, cuerpo, pie, onCerrar }){
   velo.classList.add('on');
   cajon.classList.add('on');
   cajon.setAttribute('aria-hidden', 'false');
-  document.querySelector('.sui-stage')?.classList.add('con-cajon');
   _suiCajonCerrar = onCerrar || null;
   document.getElementById('suiCajonX').onclick = suiCerrarCajon;
   // Foco al cajón: quien navega con teclado se quedaba en la tabla de detrás,
@@ -72,7 +71,6 @@ function suiCerrarCajon(){
   velo?.classList.remove('on');
   cajon.classList.remove('on');
   cajon.setAttribute('aria-hidden', 'true');
-  document.querySelector('.sui-stage')?.classList.remove('con-cajon');
   const f = _suiCajonCerrar; _suiCajonCerrar = null;
   if(f) f();
 }
