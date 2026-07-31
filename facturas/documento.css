@@ -1,0 +1,97 @@
+/* ============================================================================
+   Aspecto del DOCUMENTO de la factura — FUENTE ÚNICA
+   ----------------------------------------------------------------------------
+   Compañero de `documento.js`: aquí el aspecto, allí el marcado. Lo cargan
+   `facturas/index.html` (vista previa e impresión desde el navegador) y la
+   página autónoma que arma `documentoPagina()` para el renderizador de PDF, que
+   es de donde sale la factura que se manda sola al cerrarse una firma.
+
+   Vivía dentro del <style> de index.html. Se saca porque el documento se pinta
+   ahora en dos sitios y una copia del CSS acabaría divergiendo — el mismo motivo
+   por el que existen entities.js y totales.js. Aquí NO va el cromo de la
+   herramienta (barra, formulario, paneles): eso sigue en index.html, que es
+   donde se usa.
+   ========================================================================== */
+
+.doc{ font-size:10.5pt; line-height:1.45; color:#2E3437; }
+.doc .head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10mm;
+            border-bottom:2px solid var(--brand-primary); padding-bottom:4.5mm; }
+.doc .titulo{ flex:none; text-align:right; }
+.doc .titulo h2{ white-space:nowrap; }
+/* multiply: el blanco del logo se vuelve transparente sobre cualquier folio
+   (blanco × color = color) y la tinta se mantiene. Es lo que evita el
+   rectángulo pegado del logo sin alfa; el de Lawang ya trae alfa y le da
+   igual. Va en el <img>, no en el .head: el .head no tiene fondo propio, así
+   que mezcla contra el papel.
+   El alto sale de la sociedad (`--logo-alto`, ver entities.js): SAN DAL WOODS
+   lo pidió un 25% mayor. */
+.doc .head img{ height:var(--logo-alto,15mm); mix-blend-mode:multiply; display:block; }
+/* segundo logo (lockup de palabra) bajo el isotipo: se alinea a la izquierda
+   con él y manda el ANCHO, no el alto, porque es una tira apaisada. */
+.doc .head .logo2{ height:auto; width:var(--logo2-ancho,34mm); margin-top:2.5mm; }
+/* El emisor va AL LADO del logo, no debajo (30-jul): apilados, con el logo a
+   28mm, la cabecera se comía 63mm de folio y la factura se iba a la segunda
+   página con dos conceptos. Al lado son ~40mm y el logo no pierde tamaño. */
+.doc .emisor-bloque{ display:flex; align-items:flex-start; gap:7mm; min-width:0; }
+/* Modo apilado (`emisorDebajo` en entities.js): el logo manda en la fila y el
+   emisor va justo debajo, a todo el ancho que le deje el título. Es lo que
+   necesita un lockup apaisado para ser grande sin estrangular el texto. */
+.doc .emisor-bloque.apilado{ flex-direction:column; gap:2mm; }
+.doc .emisor-bloque.apilado .emisor{ max-width:none; padding-top:0; }
+/* El logo se alinea con la TINTA del titulo del documento (Recibí/Factura),
+   no con su caja: la caja de linea del h2 empieza 2,6mm por encima de donde
+   empieza la letra, asi que sin este empujon el logo se ve mas alto que el
+   titulo. Medido en navegador con las metricas reales de la fuente; la imagen
+   va recortada a su tinta para que aqui no haya que adivinar nada. */
+.doc .marcas{ flex:none; margin-top:2.6mm; }
+/* 62mm y no 74: el lockup de San Dal Woods es apaisado (26mm de alto son 50mm
+   de ancho) y con el emisor más ancho la dirección del domicilio se partía en
+   cuatro líneas, que es justo el alto que se acababa de recuperar. */
+.doc .emisor{ font-size:9pt; line-height:1.45; color:#4a4f4a; max-width:62mm; padding-top:1mm; }
+.doc .emisor b{ display:block; font-size:11pt; color:var(--brand-deep); letter-spacing:.02em; }
+.doc .marca{ font-size:8pt; letter-spacing:.22em; text-transform:uppercase; color:var(--brand-primary); }
+.doc .titulo h2{ font-family:var(--font-display); font-size:20pt; font-weight:600; margin:0 0 2mm;
+                 letter-spacing:.04em; color:var(--brand-deep); }
+.doc .titulo-en{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase;
+                 color:var(--brand-primary); margin:-1mm 0 2.5mm; }
+.doc .titulo .num{ font-size:12pt; font-weight:600; letter-spacing:.06em; }
+.doc .titulo .meta{ font-size:9pt; color:#4a4f4a; margin-top:2mm; }
+.doc h3{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--brand-primary);
+         margin:4.5mm 0 2mm; font-weight:500; }
+.doc .cliente{ font-size:10pt; line-height:1.5; }
+.doc table{ width:100%; border-collapse:collapse; margin-top:2mm; }
+.doc th{ text-align:left; font-size:8.5pt; letter-spacing:.14em; text-transform:uppercase; font-weight:500;
+         color:#fff; background:var(--brand-primary); padding:2.4mm 3mm; }
+.doc td{ padding:1.9mm 3mm; border-bottom:1px solid #e8e2d5; vertical-align:top; }
+.doc td.imp, .doc th.imp{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.doc .totales{ width:80mm; margin-left:auto; margin-top:4mm; }
+.doc .totales td{ border:none; padding:1.2mm 3mm; }
+.doc .totales tr.total td{ border-top:1.5px solid var(--brand-primary); font-size:12pt; font-weight:600;
+                           color:var(--brand-deep); padding-top:2.5mm; }
+/* dos columnas: ver bancoDocHTML(). `.ancho` = el dato que ocupa la fila entera */
+.doc .banco{ display:grid; grid-template-columns:1fr 1fr; gap:1.5mm 9mm; margin-top:1mm; font-size:9.5pt; }
+.doc .banco > div{ border-bottom:1px solid #f0ebe0; padding-bottom:1.1mm; }
+.doc .banco .ancho{ grid-column:1 / -1; }
+/* etiqueta y dato en la MISMA línea: apilados, las dos columnas salían más
+   altas que la tabla de una columna que venían a sustituir (6 datos × 2
+   líneas). En línea son 4 líneas en total en vez de 12. */
+.doc .banco span{ color:#6b6c66; margin-right:2.5mm; }
+.doc .notas{ font-size:9.5pt; white-space:pre-wrap; }
+.doc .pie{ margin-top:5mm; border-top:1px solid #e8e2d5; padding-top:2.5mm; font-size:8pt; color:#7b7c74; }
+.doc .vacio, .vacio{ color:#b9b2a4; }
+
+/* El folio y la cabecera de la tabla SON fondos: sin esto, el navegador los tira
+   a la basura cuando "Gráficos de fondo" está desmarcado y el documento sale en
+   blanco con los rótulos ilegibles. Fuera de @media print también, porque el
+   renderizador de PDF de servidor imprime sin ese diálogo. */
+.sheet, .doc, .doc th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+@media print{
+  /* Una factura normal cabe en una página. Si lleva MUCHOS conceptos y hay que
+     pasar a la segunda, que rompa donde tiene sentido: la cabecera de la tabla
+     se repite arriba, y ni los totales ni los datos bancarios ni las notas se
+     parten por la mitad. */
+  .doc thead{ display:table-header-group; }
+  .doc tr, .doc .totales, .doc .banco, .doc .banco > div, .doc .notas, .doc .pie{ break-inside:avoid; }
+  .doc h3{ break-after:avoid; }
+}

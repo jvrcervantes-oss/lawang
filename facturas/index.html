@@ -12,6 +12,7 @@
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
+<link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
@@ -22,6 +23,9 @@
 <script src="/contracts/assets/entities.js?v=20260730"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <script src="totales.js"></script>
+<!-- maquetacion del documento: la MISMA que arma la factura automatica del
+     primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
+<script src="documento.js?v=20260731"></script>
 <script src="compradores.js"></script>
 <style>
   /* --folio = color del papel del documento. Vive aquí y en un solo sitio a
@@ -116,74 +120,8 @@
     .pv-scroll{ overflow-x:auto; justify-content:flex-start; padding:16px 10px 60px; }
   }
 
-  /* documento */
-  .doc{ font-size:10.5pt; line-height:1.45; color:#2E3437; }
-  .doc .head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10mm;
-              border-bottom:2px solid var(--brand-primary); padding-bottom:4.5mm; }
-  .doc .titulo{ flex:none; }
-  .doc .titulo h2{ white-space:nowrap; }
-  /* multiply: el blanco del logo se vuelve transparente sobre cualquier folio
-     (blanco × color = color) y la tinta se mantiene. Es lo que evita el
-     rectángulo pegado del logo sin alfa; el de Lawang ya trae alfa y le da
-     igual. Va en el <img>, no en el .head: el .head no tiene fondo propio, así
-     que mezcla contra el papel.
-     El alto sale de la sociedad (`--logo-alto`, ver entities.js): SAN DAL WOODS
-     lo pidió un 25% mayor. */
-  .doc .head img{ height:var(--logo-alto,15mm); mix-blend-mode:multiply; display:block; }
-  /* segundo logo (lockup de palabra) bajo el isotipo: se alinea a la izquierda
-     con él y manda el ANCHO, no el alto, porque es una tira apaisada. */
-  .doc .head .logo2{ height:auto; width:var(--logo2-ancho,34mm); margin-top:2.5mm; }
-  /* El emisor va AL LADO del logo, no debajo (30-jul): apilados, con el logo a
-     28mm, la cabecera se comía 63mm de folio y la factura se iba a la segunda
-     página con dos conceptos. Al lado son ~40mm y el logo no pierde tamaño. */
-  .doc .emisor-bloque{ display:flex; align-items:flex-start; gap:7mm; min-width:0; }
-  /* Modo apilado (`emisorDebajo` en entities.js): el logo manda en la fila y el
-     emisor va justo debajo, a todo el ancho que le deje el título. Es lo que
-     necesita un lockup apaisado para ser grande sin estrangular el texto. */
-  .doc .emisor-bloque.apilado{ flex-direction:column; gap:2mm; }
-  .doc .emisor-bloque.apilado .emisor{ max-width:none; padding-top:0; }
-  /* El logo se alinea con la TINTA del titulo del documento (Recibí/Factura),
-     no con su caja: la caja de linea del h2 empieza 2,6mm por encima de donde
-     empieza la letra, asi que sin este empujon el logo se ve mas alto que el
-     titulo. Medido en navegador con las metricas reales de la fuente; la imagen
-     va recortada a su tinta para que aqui no haya que adivinar nada. */
-  .doc .marcas{ flex:none; margin-top:2.6mm; }
-  /* 62mm y no 74: el lockup de San Dal Woods es apaisado (26mm de alto son 50mm
-     de ancho) y con el emisor más ancho la dirección del domicilio se partía en
-     cuatro líneas, que es justo el alto que se acababa de recuperar. */
-  .doc .emisor{ font-size:9pt; line-height:1.45; color:#4a4f4a; max-width:62mm; padding-top:1mm; }
-  .doc .emisor b{ display:block; font-size:11pt; color:var(--brand-deep); letter-spacing:.02em; }
-  .doc .marca{ font-size:8pt; letter-spacing:.22em; text-transform:uppercase; color:var(--brand-primary); }
-  .doc .titulo{ text-align:right; }
-  .doc .titulo h2{ font-family:var(--font-display); font-size:20pt; font-weight:600; margin:0 0 2mm;
-                   letter-spacing:.04em; color:var(--brand-deep); }
-  .doc .titulo-en{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase;
-                   color:var(--brand-primary); margin:-1mm 0 2.5mm; }
-  .doc .titulo .num{ font-size:12pt; font-weight:600; letter-spacing:.06em; }
-  .doc .titulo .meta{ font-size:9pt; color:#4a4f4a; margin-top:2mm; }
-  .doc h3{ font-size:8.5pt; letter-spacing:.2em; text-transform:uppercase; color:var(--brand-primary);
-           margin:4.5mm 0 2mm; font-weight:500; }
-  .doc .cliente{ font-size:10pt; line-height:1.5; }
-  .doc table{ width:100%; border-collapse:collapse; margin-top:2mm; }
-  .doc th{ text-align:left; font-size:8.5pt; letter-spacing:.14em; text-transform:uppercase; font-weight:500;
-           color:#fff; background:var(--brand-primary); padding:2.4mm 3mm; }
-  .doc td{ padding:1.9mm 3mm; border-bottom:1px solid #e8e2d5; vertical-align:top; }
-  .doc td.imp, .doc th.imp{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
-  .doc .totales{ width:80mm; margin-left:auto; margin-top:4mm; }
-  .doc .totales td{ border:none; padding:1.2mm 3mm; }
-  .doc .totales tr.total td{ border-top:1.5px solid var(--brand-primary); font-size:12pt; font-weight:600;
-                             color:var(--brand-deep); padding-top:2.5mm; }
-  /* dos columnas: ver bancoHTML(). `.ancho` = el dato que ocupa la fila entera */
-  .doc .banco{ display:grid; grid-template-columns:1fr 1fr; gap:1.5mm 9mm; margin-top:1mm; font-size:9.5pt; }
-  .doc .banco > div{ border-bottom:1px solid #f0ebe0; padding-bottom:1.1mm; }
-  .doc .banco .ancho{ grid-column:1 / -1; }
-  /* etiqueta y dato en la MISMA línea: apilados, las dos columnas salían más
-     altas que la tabla de una columna que venían a sustituir (6 datos × 2
-     líneas). En línea son 4 líneas en total en vez de 12. */
-  .doc .banco span{ color:#6b6c66; margin-right:2.5mm; }
-  .doc .notas{ font-size:9.5pt; white-space:pre-wrap; }
-  .doc .pie{ margin-top:5mm; border-top:1px solid #e8e2d5; padding-top:2.5mm; font-size:8pt; color:#7b7c74; }
-  .vacio{ color:#b9b2a4; }
+  /* El aspecto del documento vive en documento.css, compartido con la factura
+     automatica del primer hito. Aqui solo queda el cromo de la herramienta. */
 
   /* ---------- panel de facturas guardadas ---------- */
   .overlay{ position:fixed; inset:0; background:rgba(46,52,55,.45); display:none; z-index:60; }
@@ -212,17 +150,7 @@
     .pane-preview{ overflow:visible; background:#fff; }
     .pv-scroll{ padding:0; display:block; }
     .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
-    /* El folio y la cabecera de la tabla SON fondos: sin esto, el navegador los
-       tira a la basura cuando "Gráficos de fondo" está desmarcado y el documento
-       sale en blanco con los rótulos ilegibles. */
-    .sheet, .doc, .doc th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    /* Una factura normal cabe en una página. Si lleva MUCHOS conceptos y hay que
-       pasar a la segunda, que rompa donde tiene sentido: la cabecera de la tabla
-       se repite arriba, y ni los totales ni los datos bancarios ni las notas se
-       parten por la mitad. */
-    .doc thead{ display:table-header-group; }
-    .doc tr, .doc .totales, .doc .banco, .doc .banco > div, .doc .notas, .doc .pie{ break-inside:avoid; }
-    .doc h3{ break-after:avoid; }
+    /* el resto de reglas de impresion del documento van en documento.css */
   }
 
   /* modo vista (?vista=1) — SOLO el documento: lo carga el visor pop-up de
@@ -454,11 +382,9 @@ let CONTRATO_ID = null;   // contrato del que sale la factura (FK real, no solo 
 /* ES e EN separados, no "A · B" en una línea: a 20pt "Factura proforma ·
    Proforma invoice" con white-space:nowrap se salía del papel. Van apilados,
    igual que el bloque del emisor (razón social grande, marca pequeña encima). */
-const TIPOS = {
-  factura:  { es:'Factura',          en:'Invoice' },
-  proforma: { es:'Factura proforma', en:'Proforma invoice' },
-  recibi:   { es:'Recibí',           en:'Receipt' },
-};
+/* Los rótulos viven en documento.js (TIPOS_DOC) junto al documento que los
+   imprime, y con ellos la serie que le toca a cada uno. Aquí solo se usan. */
+const TIPOS = TIPOS_DOC;
 
 /* ---------- selects que salen de entities.js ---------- */
 $('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
@@ -553,120 +479,28 @@ document.addEventListener('blur', e => {
 $('#form').addEventListener('input', render);
 $('#form').addEventListener('change', render);
 
-/* ---------- documento ---------- */
-const linea = v => v ? esc(v) : '<span class="vacio">—</span>';
-
-/* Datos bancarios en DOS columnas (30-jul): en una sola, seis filas de
-   etiqueta/valor comían 44mm de folio y empujaban la factura a la segunda
-   página con solo dos conceptos. Los cuatro datos cortos van a dos columnas y
-   los dos largos (dirección del banco y nota) a ancho completo, que en media
-   columna se partían en tres líneas y no ahorraban nada. */
-function bancoHTML(key, moneda, d){
-  // "Otros" = cuenta tecleada en el formulario. Se arma un objeto con la misma
-  // forma que los de entities.js para que el resto de la función no distinga.
-  const c = key === 'otros'
-    ? { titular:d.banco_titular, banco:d.banco_nombre, cuenta:d.banco_cuenta,
-        codigo:d.banco_codigo, direccion:d.banco_direccion, extra:d.banco_extra }
-    : CUENTAS_BANCARIAS[key];
-  // Sin ningún dato relleno no se imprime el bloque: una cabecera "Datos
-  // bancarios" con seis guiones es peor que no ponerla.
-  if(!c || !Object.values(c).some(v => (typeof v === 'object' ? (v && v.es) : v))) return '';
-  const txt = v => (v && typeof v === 'object') ? (v.es || '') : (v || '');
-  const dato = (l, v, ancho) => txt(v)
-    ? `<div class="${ancho ? 'ancho' : ''}"><span>${l}</span>${esc(txt(v))}</div>` : '';
-  return `<h3>Datos bancarios · Bank details</h3>
-    <div class="banco">
-      ${dato('Titular · Holder', c.titular)}
-      ${dato('Banco · Bank', c.banco)}
-      ${dato('Cuenta · Account', c.cuenta)}
-      ${dato('Swift / Routing', c.codigo)}
-      ${dato('Dirección · Address', c.direccion, true)}
-      ${dato('Nota · Note', c.extra, true)}
-    </div>`;
-}
-
-/* Sin `logo` en la sociedad NO se pinta ninguno, y a proposito: el fallback al
-   de Lawang que habia aqui convirtio un entities.js cacheado en una factura de
-   PT SAN DAL WOODS con la marca de otra empresa, sin que se notara. Un documento
-   sin logo salta a la vista; uno con el logo equivocado, no. */
+/* ---------- documento ----------
+   El marcado del papel lo arma `documento.js` y el aspecto lo pone
+   `documento.css`, los dos compartidos: la factura del primer hito que sale
+   sola al cerrarse una firma se pinta con ESTOS MISMOS ficheros
+   (contracts/edge/firma-submit se los baja y los ejecuta). Antes esto era una
+   plantilla inline aquí dentro; con dos emisores, una copia habría divergido
+   igual que iban a divergir las cuentas bancarias antes de entities.js. */
 function render(){
   const d = collect();
   const soc = SOCIEDADES[d.sociedad] || SOCIEDADES.tepi_sungai;
-  const t = calcTotales(d.lineas, d.moneda, { pct:d.imp_pct });
-  const fecha = f => f ? new Date(f + 'T00:00:00').toLocaleDateString('es-ES', {day:'2-digit', month:'long', year:'numeric'}) : '';
   // Sin guardar no hay número: la línea no se pinta (antes decía «BORRADOR»,
   // fuera por decisión del owner el 30-jul). El número lo asigna el trigger al
   // guardar, así que un documento sin número es uno que aún no se ha emitido.
   const numero = (SAVED && SAVED.numero) || '';
 
-  const filas = d.lineas.map(l => (l.descripcion || l.importe)
-    ? `<tr><td>${esc(l.descripcion)}</td><td class="imp">${fmtMoneda(parseImporte(l.importe), d.moneda)}</td></tr>` : ''
-  ).join('') || `<tr><td class="vacio">Sin conceptos</td><td class="imp vacio">—</td></tr>`;
-
-  /* Tinta de la sociedad: todo lo coloreado del documento (filete de cabecera,
-     titulares, rótulos, cabecera de tabla y línea del total) sale de estas dos
-     variables, así que cambiarlas aquí repinta el documento entero. Cadena
-     vacía = se borra el override y vuelve el verde/lagoon de brand.css. */
+  const v = documentoVars(soc);
   const doc = $('#doc');
-  doc.style.setProperty('--brand-primary', (soc.tinta && soc.tinta.primary) || '');
-  doc.style.setProperty('--brand-deep',    (soc.tinta && soc.tinta.deep)    || '');
-  doc.style.setProperty('--logo-alto',   soc.logoAlto   || '');
-  doc.style.setProperty('--logo2-ancho', soc.logo2Ancho || '');
-  /* El folio va en `.sheet`, que es el papel y está FUERA de #doc: ponerlo en
-     #doc pintaría el color solo bajo el contenido y dejaría los márgenes
-     blancos. Cadena vacía = vuelve el #fff de la variable global. */
+  Object.entries(v.doc).forEach(([k, val]) => doc.style.setProperty(k, val));
   const hoja = document.querySelector('.sheet');
-  if(hoja) hoja.style.setProperty('--folio', soc.folio || '');
+  if(hoja) Object.entries(v.hoja).forEach(([k, val]) => hoja.style.setProperty(k, val));
 
-  doc.innerHTML = `
-    <div class="head">
-      <div class="emisor-bloque${soc.emisorDebajo ? ' apilado' : ''}">
-        <div class="marcas">
-          ${soc.logo ? `<img src="${esc(soc.logo)}" alt="">` : ''}
-          ${soc.logo2 ? `<img class="logo2" src="${esc(soc.logo2)}" alt="">` : ''}
-        </div>
-        <div class="emisor">
-          <b>${esc(soc.razon)}</b>
-          ${soc.marca ? `<span class="marca">${esc(soc.marca)}</span>` : ''}
-          <div>${esc(soc.domicilio)}</div>
-          <div>NPWP ${esc(soc.npwp)}</div>
-        </div>
-      </div>
-      <div class="titulo">
-        <h2>${esc((TIPOS[d.tipo] || TIPOS.factura).es)}</h2>
-        <div class="titulo-en">${esc((TIPOS[d.tipo] || TIPOS.factura).en)}</div>
-        ${numero ? `<div class="num">${esc(numero)}</div>` : ''}
-        <div class="meta">
-          ${d.fecha_emision ? `Fecha · Date: ${esc(fecha(d.fecha_emision))}<br>` : ''}
-          ${d.fecha_vencimiento ? `Vencimiento · Due: ${esc(fecha(d.fecha_vencimiento))}<br>` : ''}
-          ${d.contrato_numero ? `Contrato · Contract: ${esc(d.contrato_numero)}` : ''}
-        </div>
-      </div>
-    </div>
-
-    <h3>Facturar a · Bill to</h3>
-    <div class="cliente">
-      <b>${linea(d.cliente_nombre)}</b><br>
-      ${d.cliente_documento ? esc(d.cliente_documento) + '<br>' : ''}
-      ${d.cliente_domicilio ? esc(d.cliente_domicilio).replace(/\n/g,'<br>') + '<br>' : ''}
-      ${d.cliente_email ? esc(d.cliente_email) : ''}
-      ${d.proyecto_nombre ? `<div style="margin-top:2mm">Proyecto · Project: <b>${esc(d.proyecto_nombre)}</b></div>` : ''}
-    </div>
-
-    <h3>Conceptos · Items</h3>
-    <table><thead><tr><th>Descripción · Description</th><th class="imp">Importe · Amount</th></tr></thead>
-      <tbody>${filas}</tbody></table>
-
-    <table class="totales"><tbody>
-      <tr><td>Subtotal</td><td class="imp">${fmtMoneda(t.subtotal, d.moneda)}</td></tr>
-      ${t.pct ? `<tr><td>${esc(d.imp_etiqueta || 'Impuesto · Tax')} (${esc(String(t.pct))}%)</td><td class="imp">${fmtMoneda(t.impuesto, d.moneda)}</td></tr>` : ''}
-      <tr class="total"><td>Total</td><td class="imp">${fmtMoneda(t.total, d.moneda)}</td></tr>
-    </tbody></table>
-
-    ${bancoHTML(d.cuenta, d.moneda, d)}
-    ${d.notas ? `<h3>Notas · Notes</h3><div class="notas">${esc(d.notas)}</div>` : ''}
-
-    <div class="pie">${esc(soc.razon)}${soc.marca ? ' · ' + esc(soc.marca) : ''} · NPWP ${esc(soc.npwp)} · ${esc(soc.domicilio)}</div>`;
+  doc.innerHTML = documentoHTML(d, { numero });
 
   $('#btnSave').textContent = SAVED ? 'Actualizar (' + SAVED.numero + ')' : 'Guardar en base de datos';
   // el número ya emitido lleva el prefijo del tipo: cambiarlo después dejaría un
@@ -697,21 +531,20 @@ $('#btnPrint').onclick = () => {
    html2pdf.js y html-to-image y ninguna aguanta este CSS (color-mix, fuentes de
    Google con CORS). El botón lo pulsa una persona: mandar correo a un tercero
    real no se automatiza. */
-function documentoHTML(){
-  const hoja = document.querySelector('.sheet');
-  const css = [...document.querySelectorAll('style')].map(s => s.textContent).join('\n');
-  /* `<base>` para que las rutas absolutas del documento (logos en
-     /contracts/assets/brand/…) las resuelva el navegador del servidor, y
-     `hoja.outerHTML` para llevarse las variables de la sociedad —folio, tinta,
-     tamaño de logo— que render() escribió en el propio elemento. */
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<base href="${location.origin}/">
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/contracts/assets/brand.css">
-<style>${css}</style>
-<style>html,body{height:auto;margin:0;background:#fff}
-  .sheet{zoom:1;box-shadow:none;margin:0}</style>
-</head><body>${hoja.outerHTML}</body></html>`;
+/* La página completa que se manda al renderizador de PDF la arma
+   `documentoPagina()` de documento.js — la MISMA que usa la factura automática
+   del primer hito, así que el PDF que sale por email a mano y el que sale solo
+   son idénticos.
+   Antes esto se montaba aquí clonando `.sheet` y concatenando TODOS los <style>
+   de la página. Además de duplicar, esa versión se rompió en cuanto el CSS del
+   documento salió del <style> inline a documento.css: el PDF habría salido sin
+   estilos y nadie lo habría visto hasta abrirlo. Y llamarse `documentoHTML`
+   tapaba a la función compartida del mismo nombre. */
+function paginaParaEmail(){
+  return documentoPagina(collect(), {
+    numero: (SAVED && SAVED.numero) || '',
+    base: location.origin,
+  });
 }
 
 function abrirMail(){
@@ -750,7 +583,7 @@ $('#mailSend').onclick = async () => {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
         filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
-        html: documentoHTML() }) });
+        html: paginaParaEmail() }) });
     const res = await r.json().catch(() => ({ ok:false, error:'Respuesta inválida del servidor' }));
     if(res.ok){ toast('Enviado a ' + to); cerrarMail(); }
     else toast(res.error || 'No se pudo enviar');
