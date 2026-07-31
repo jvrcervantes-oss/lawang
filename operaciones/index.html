@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="/contracts/assets/visor.js?v=20260730103319" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -25,7 +25,12 @@
   .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
 
   .stage{ display:grid; grid-template-columns:minmax(320px,380px) 1fr; height:100%; padding-top:var(--tbh); }
-  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .detalle{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .detalle{ display:block; } }
+  /* ⚠️ Esta media query va ANTES de que se defina .detalle (línea ~56): a igual
+     especificidad ganaba la regla de después, así que su `display:none` NUNCA
+     se aplicó y el master/detail de móvil llevaba escrito desde el principio sin
+     funcionar. Lo único que sí hacía era apilar las dos columnas, y eso se queda
+     aquí. Las reglas de móvil de verdad van al final de la hoja. */
+  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } }
 
   /* ---------- lista ---------- */
   .lista{ overflow:auto; border-right:1px solid var(--line); background:var(--rl,#F5F0E6); }
@@ -96,6 +101,11 @@
 
   /* pestañas */
   .tabs{ display:flex; gap:6px; }
+  /* Las pestañas viven DENTRO de la barra superior, que en móvil ya desplaza en
+     horizontal (assets/topbar.css). Aquí solo hace falta que no se aplasten al
+     repartir el ancho: medido a 390px la fila se salía 221px y las pestañas
+     quedaban ilegibles antes de quedar fuera. */
+  .tab{ flex:none; }
   .tab{ font:inherit; font-size:12.5px; font-weight:500; background:none; border:1px solid transparent;
         border-radius:999px; padding:6px 14px; cursor:pointer; color:var(--muted); }
   .tab.on{ background:var(--card); border-color:var(--line); color:var(--dl); }

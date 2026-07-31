@@ -103,8 +103,39 @@
   transform:none; box-shadow:none; }
 .lw-menu-list hr{ border:none; border-top:1px solid var(--line,#e4ddcf); margin:4px 2px; }
 
+/* ---------------------------------------------------------------------------
+   MÓVIL — 31-jul-2026.
+   La barra era un flex de UNA línea sin salida: los botones del extremo derecho
+   se quedaban fuera de la pantalla y no había forma de llegar a ellos. Medido a
+   390px: en Facturas «Salir» caía en x=574 y «Facturas guardadas» en x=412, o
+   sea que desde un móvil no se podía ni cerrar sesión. Pasaba en las SEIS
+   herramientas, porque la barra es esta. Y en Contratos, que la lleva `sticky`
+   (en flujo, no `fixed`), además ensanchaba la página entera 675px.
+
+   El arreglo va aquí y no en cada app por lo mismo que existe este fichero. Dos
+   piezas:
+   1. La barra se desplaza en horizontal. Así ningún control queda inalcanzable
+      —hoy ni en la herramienta que se añada mañana— y, al ser un contenedor con
+      scroll, su contenido deja de ensanchar la página.
+   2. Se recorta lo que no aporta: el logo comía 173px de los 390 (es apaisado,
+      `width:auto` no lo limita), y el título ya iba abreviado.
+
+   No se usa `flex-wrap`: cada app compensa el alto de la barra con su propia
+   `--tbh` y una barra de dos filas se comería el principio del contenido.
+   --------------------------------------------------------------------------- */
 @media (max-width:860px){
-  .lw-topbar{ gap:7px; padding:0 10px; }
+  .lw-topbar{
+    gap:7px; padding:0 10px;
+    overflow-x:auto; overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;                 /* la barra de scroll robaría alto */
+    overscroll-behavior-x:contain;        /* deslizar la barra no navega atrás */
+  }
+  .lw-topbar::-webkit-scrollbar{ display:none; }
+  /* Sin esto los botones se aplastarían al repartir el ancho en vez de
+     desbordar, y quedarían ilegibles en vez de alcanzables. */
+  .lw-topbar > *:not(.lw-spacer){ flex:none; }
+  .lw-brand{ display:none; }
   .lw-title{ font-size:11.5px; letter-spacing:.14em; }
   .lw-who{ display:none; }
 }

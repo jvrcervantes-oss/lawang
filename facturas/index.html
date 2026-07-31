@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
@@ -43,7 +43,15 @@
   .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
 
   .stage{ display:grid; grid-template-columns:minmax(360px,440px) 1fr; height:100%; padding-top:var(--tbh); }
-  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .pane-preview{ display:none; } }
+  /* ⚠️ Esta media query va ANTES de que se definan .pane-preview (línea ~84) y
+     .pv-scroll, así que a igualdad de especificidad gana la regla de después:
+     el `display:none` que llevaba aquí NO se aplicaba y nunca se aplicó.
+     Se ha quitado en vez de recolocarlo, porque resucitarlo dejaría el móvil sin
+     vista previa y no hay otra forma de ver la factura desde el teléfono (el
+     modo ?vista=1 lo abre el visor de escritorio). Lo que sí funciona —y es lo
+     que se queda— es apilar las dos columnas. El tamaño de la hoja para que
+     quepa se ajusta abajo, junto a .sheet, donde el orden sí manda. */
+  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } }
 
   /* ---------- formulario ---------- */
   .pane-form{ overflow:auto; border-right:1px solid var(--line); background:var(--rl); }
@@ -95,6 +103,18 @@
      usa el tamaño real (zoom no se aplica dentro de @media print). */
   .sheet{ width:210mm; min-height:297mm; background:var(--folio); padding:15mm 16mm; zoom:.78;
           box-shadow:0 10px 40px rgba(46,52,55,.16); }
+
+  /* MÓVIL (31-jul-2026): con `zoom:.78` la hoja mide 495px y a 390px de pantalla
+     se salía 60px — el margen derecho de la factura quedaba cortado, y no había
+     forma de verlo porque el panel no desplazaba en horizontal. Dos medidas, y
+     las dos hacen falta: se reduce el zoom para que quepa, y el contenedor
+     desplaza por si algún día vuelve a no caber (una hoja recortada en silencio
+     es peor que una que se pueda arrastrar). Van DESPUÉS de .sheet y .pv-scroll
+     a propósito: la media query de arriba no aplicaba justo por ir antes. */
+  @media (max-width:560px){
+    .sheet{ zoom:.58; }
+    .pv-scroll{ overflow-x:auto; justify-content:flex-start; padding:16px 10px 60px; }
+  }
 
   /* documento */
   .doc{ font-size:10.5pt; line-height:1.45; color:#2E3437; }
