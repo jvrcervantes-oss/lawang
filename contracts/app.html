@@ -513,6 +513,13 @@ const TEMPLATES = [
   { slug:'carta_reserva', file:'templates/carta_reserva.html', cover:'#2E3437', num:1,
     name:{es:'Carta de Reserva',en:'Reservation Letter',id:'Surat Pemesanan'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
+  // Variante AMPLIADA de la Carta: mismo papel en la venta, pero con todo lo que
+  // el memorándum legal del abogado del comprador (002/LPH-LM/AGP/VII/2026) echaba
+  // en falta. Es una plantilla APARTE, no un reemplazo: la Carta corta sigue emitida
+  // en contratos vivos y no se toca. Serie propia (CA) para no mezclar las dos.
+  { slug:'carta_reserva_ampliada', file:'templates/carta_reserva_ampliada.html', cover:'#2E3437',
+    name:{es:'Carta de Reserva ampliada',en:'Extended Reservation Letter',id:'Surat Pemesanan Lengkap'},
+    l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37', num:2,
     name:{es:'Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'},
     l2:{es:'de Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'}, ready:true },
@@ -590,15 +597,16 @@ const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE
 const CONTRACT_TIPO = {
   ppjb_parcela:'reserva_parcela', ppjb_construccion:'construccion', ppjb_reserva:'contrato_general',
   commercial_offer:'commercial_offer', carta_reserva:'carta_reserva',
+  carta_reserva_ampliada:'carta_reserva_ampliada',
   commercial_collaboration:'acuerdo_comercial', colaborador_operativo:'protocolo_operativo',
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
-  carta_reserva:'CR', acuerdo_comercial:'AC', protocolo_operativo:'PO' };
+  carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO' };
 const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
-  commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', acuerdo_comercial:'Acuerdo Comercial',
-  protocolo_operativo:'Protocolo Operativo' };
+  commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
+  acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo' };
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
@@ -608,7 +616,7 @@ let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
    se imprime en el documento); contractPayload lo resuelve a id para
    contratos.contrato_padre_id, que es lo que Operaciones usa para juntar
    reserva y obra en una sola operación. */
-const TIPOS_VINCULABLES = ['reserva_parcela','carta_reserva','contrato_general'];
+const TIPOS_VINCULABLES = ['reserva_parcela','carta_reserva','carta_reserva_ampliada','contrato_general'];
 let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
 async function cargarVinculables(){
   if(VINCULABLES || !sb) return;
@@ -1232,6 +1240,13 @@ const COMPRADOR_FRASE = {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> D./Dña. <span class="f">${f.nom}</span>, nacional de <span class="f">${f.nac}</span>, con Pasaporte/Nº de identificación fiscal <span class="f">${f.pas}</span> y domicilio en <span class="f">${f.dom}</span>. Teléfono <span class="f">${f.tel}</span> y email a efecto de notificaciones: <span class="f">${f.email}</span>.`,
     en:(n,f)=>`<b>BUYER ${n}:</b> Mr./Ms. <span class="f">${f.nom}</span>, national of <span class="f">${f.nac}</span>, with Passport/Tax ID no. <span class="f">${f.pas}</span> and address at <span class="f">${f.dom}</span>. Telephone <span class="f">${f.tel}</span> and notification email: <span class="f">${f.email}</span>.`,
     id:(n,f)=>`<b>PEMBELI ${n}:</b> Tn./Ny. <span class="f">${f.nom}</span>, warga negara <span class="f">${f.nac}</span>, dengan Paspor/Nomor Identifikasi Pajak no. <span class="f">${f.pas}</span> dan beralamat di <span class="f">${f.dom}</span>. Telepon <span class="f">${f.tel}</span> dan email pemberitahuan: <span class="f">${f.email}</span>.`,
+  },
+  // La ampliada usa la misma redacción que la Carta corta: mismo papel, mismo texto
+  // ya aprobado por el cliente para el adquiriente N.
+  carta_reserva_ampliada: {
+    es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
+    en:(n,f)=>`<b>BUYER ${n}:</b> <span class="f">${f.nom}</span>, of <span class="f">${f.nac}</span> nationality, holder of passport no. <span class="f">${f.pas}</span>, with address at <span class="f">${f.dom}</span>, telephone <span class="f">${f.tel}</span> and email <span class="f">${f.email}</span>, likewise acting in their own name together with the Second Party.`,
+    id:(n,f)=>`<b>PEMBELI ${n}:</b> <span class="f">${f.nom}</span>, berkewarganegaraan <span class="f">${f.nac}</span>, pemegang paspor no. <span class="f">${f.pas}</span>, beralamat di <span class="f">${f.dom}</span>, telepon <span class="f">${f.tel}</span> dan email <span class="f">${f.email}</span>, juga bertindak atas nama sendiri bersama Pihak Kedua.`,
   },
   carta_reserva: {
     es:(n,f)=>`<b>ADQUIRIENTE ${n}:</b> <span class="f">${f.nom}</span>, de nacionalidad <span class="f">${f.nac}</span>, titular del pasaporte n.º <span class="f">${f.pas}</span>, con domicilio en <span class="f">${f.dom}</span>, teléfono <span class="f">${f.tel}</span> y email <span class="f">${f.email}</span>, actuando igualmente en nombre propio junto con la Segunda Parte.`,
