@@ -137,6 +137,7 @@
   .frow .c{ flex:1; font-size:13px; }
   .frow .t{ font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
   .frow.anulada{ opacity:.55; text-decoration:line-through; }
+  .frow .btn.borrar{ color:#9E2F26; border-color:#E0C6C2; padding:6px 11px; }
 
   .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--va); color:#fff;
           font-size:13px; padding:11px 18px; border-radius:999px; z-index:80; opacity:0; pointer-events:none;
@@ -347,6 +348,10 @@ sb.auth.getSession().then(async ({data:{session}}) => {
      && !(ficha.herramientas||[]).includes('facturas')){
     location.replace('/intranet/?sin_permiso=facturas'); return;
   }
+  // Solo administradores y super admin borran facturas (petición del owner).
+  // Sale de la ficha que se acaba de leer, sin una segunda consulta. Decide
+  // qué botón se pinta; el candado es la policy de DELETE de la RLS.
+  ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
   $('#who').textContent = session.user.email;
   document.body.hidden = false;
   cargarContratos();
@@ -375,7 +380,8 @@ $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replac
 /* ---------- estado ---------- */
 let LINEAS = [{ descripcion:'', importe:'' }];
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
-let CONTRATO_ID = null;   // contrato del que sale la factura (FK real, no solo el nº impreso)
+let CONTRATO_ID = null;
+let ES_ADMIN = false;   // lo fija la comprobación de sesión con la ficha del usuario   // contrato del que sale la factura (FK real, no solo el nº impreso)
 
 /* Los tres tipos comparten formulario y plantilla; solo cambia el rótulo del
    documento. La serie del número la decide el trigger en base de datos, no aquí. */
@@ -750,6 +756,7 @@ $('#btnList').onclick = async () => {
       <span class="c">${esc(f.cliente_nombre || 'sin nombre')}${f.proyecto_nombre ? ' · ' + esc(f.proyecto_nombre) : ''}</span>
       <span class="t">${esc(fmtMoneda(f.total, f.moneda))}</span>
       ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
+      ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}
     </div>`).join('');
   box.onclick = async e => {
     const an = e.target.closest('[data-anular]');
@@ -758,6 +765,25 @@ $('#btnList').onclick = async () => {
       if(!confirm('Anular esta factura. El número no se reutiliza y ya no se podrá editar. ¿Seguro?')) return;
       const { error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular);
       toast(error ? 'No se pudo anular: ' + error.message : 'Factura anulada');
+      $('#btnList').onclick(); return;
+    }
+    /* Borrar está reservado a administradores (petición del owner, 31-jul) y NO
+       es la acción normal: lo normal es ANULAR. Borrar una factura emitida deja
+       un hueco en la serie fiscal —INV00007 sin INV00006— y eso es exactamente
+       lo que un contable no puede explicar. Se avisa en el propio diálogo. */
+    const bo = e.target.closest('[data-borrar]');
+    if(bo){
+      e.stopPropagation();
+      const f = data.find(x => x.id === bo.dataset.borrar) || {};
+      if(!confirm('¿BORRAR la factura ' + (f.numero || '') + '?\n\n'
+        + 'Lo normal es anularla: así queda el rastro y la serie no pierde un número. '
+        + 'Borrarla deja un hueco en la numeración que habrá que explicar.\n\nNo hay papelera.')) return;
+      const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
+      // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
+      // herramienta diría "borrada" y la factura seguiría ahí.
+      if(error) toast('No se pudo borrar: ' + error.message);
+      else if(!fue || !fue.length) toast('No tienes permiso para borrar facturas');
+      else { toast('Factura borrada'); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
       $('#btnList').onclick(); return;
     }
     const row = e.target.closest('[data-id]'); if(!row) return;

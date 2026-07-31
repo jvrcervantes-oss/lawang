@@ -158,13 +158,14 @@ const CATEGORIAS = [
 ];
 
 const $ = s => document.querySelector(s);
+const esSuperAdmin = rol => rol === 'super_admin';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show');
                      clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 3200); };
 const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/1048576).toFixed(1) + ' MB';
 const fecha = f => f ? new Date(f).toLocaleDateString('es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
 
-let SB = null, DOCS = [], SEL = null, PROYECTOS = [], CAT = '', PROY = '', Q = '';
+let SB = null, DOCS = [], SEL = null, PROYECTOS = [], CAT = '', PROY = '', Q = '', ROL = null;
 /* Las URL firmadas se cachean por ruta: pedir otra en cada clic gasta una
    llamada y, sobre todo, hace que "Abrir" tarde. Caducan a los 15 minutos, que
    es tiempo de sobra para leer un PDF y poco para que un enlace reenviado por
@@ -174,7 +175,7 @@ const FIRMADAS = new Map();
 /* ---------- carga ---------- */
 async function cargar(){
   const { data, error } = await SB.from('documentos_proyecto')
-    .select('id, proyecto, categoria, titulo, descripcion, path, mime, bytes, confidencial, creado_en, creado_por')
+    .select('id, proyecto, categoria, titulo, descripcion, path, url, mime, bytes, confidencial, creado_en, creado_por')
     .order('proyecto').order('creado_en', { ascending:false });
   if(error){ $('#listaD').innerHTML = '<p class="nota" style="padding:16px 18px">No se pudo leer la documentación: ' + esc(error.message) + '</p>'; return; }
   DOCS = data || [];
@@ -226,7 +227,7 @@ function pintarLista(){
     html += `<button class="d ${SEL===d.id?'sel':''}" data-id="${d.id}">
       <div class="t">${esc(d.titulo)}</div>
       <div class="m"><span class="tag c-${esc(d.categoria)}">${esc(cat)}</span>
-        <span>${mb(d.bytes)}</span><span>${esc(fecha(d.creado_en))}</span>
+        <span>${d.url ? 'Drive' : mb(d.bytes)}</span><span>${esc(fecha(d.creado_en))}</span>
         ${d.confidencial ? '<span class="conf">confidencial</span>' : ''}</div></button>`;
   });
   $('#listaD').innerHTML = html;
@@ -237,27 +238,32 @@ function pintarFicha(){
   const d = DOCS.find(x => x.id === SEL);
   if(!d){ $('#ficha').innerHTML = '<div class="vacio-panel">Elige un documento<br>o sube uno nuevo</div>'; medidor(); return; }
   const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros','Otros'])[1];
+  const enlace = !!d.url;   // documento que vive en Drive, no en el almacén
   $('#ficha').innerHTML = `
     <h2 class="t">${esc(d.titulo)}</h2>
     <p class="sub">${esc(d.proyecto)} · ${esc(cat)}</p>
     <fieldset><legend>Documento</legend>
       <dl class="dl">
-        <dt>Archivo</dt><dd>${esc(d.path.split('/').pop())}</dd>
-        <dt>Tamaño</dt><dd>${mb(d.bytes)}</dd>
-        <dt>Tipo</dt><dd>${esc(d.mime || '—')}</dd>
+        ${enlace
+          ? `<dt>Dónde</dt><dd>Google Drive del estudio</dd>`
+          : `<dt>Archivo</dt><dd>${esc(String(d.path).split('/').pop())}</dd>
+             <dt>Tamaño</dt><dd>${mb(d.bytes)}</dd>
+             <dt>Tipo</dt><dd>${esc(d.mime || '—')}</dd>`}
         <dt>Subido</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? ' por ' + esc(d.creado_por) : ''}</dd>
         <dt>Acceso</dt><dd>${d.confidencial ? '<span class="conf">Confidencial — no compartir fuera del estudio</span>' : 'Compartible con el cliente'}</dd>
       </dl>
       ${d.descripcion ? `<p class="nota">${esc(d.descripcion)}</p>` : ''}
       <div class="acciones">
-        <button class="btn primary" id="btnAbrir"><i class="ph ph-arrow-square-out"></i> Abrir</button>
-        <button class="btn peligro" id="btnBorrar"><i class="ph ph-trash"></i> Borrar</button>
+        <button class="btn primary" id="btnAbrir"><i class="ph ph-arrow-square-out"></i> Abrir${enlace ? ' en Drive' : ''}</button>
+        ${esSuperAdmin(ROL) ? '<button class="btn peligro" id="btnBorrar"><i class="ph ph-trash"></i> Borrar</button>' : ''}
       </div>
-      <p class="nota">El enlace que se abre es temporal (15 minutos) y va firmado: no funciona para
-        quien no tenga sesión, y deja de funcionar solo. Reenviarlo por error no expone el fichero de forma permanente.</p>
+      <p class="nota">${enlace
+        ? 'Este documento vive en el Drive del estudio y aquí solo está su enlace, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Comprueba allí con quién está compartido.'
+        : 'El enlace que se abre es temporal (15 minutos) y va firmado: no funciona para quien no tenga sesión, y deja de funcionar solo. Reenviarlo por error no expone el fichero de forma permanente.'}</p>
+      ${esSuperAdmin(ROL) ? '' : '<p class="nota">Borrar documentación está reservado al super admin.</p>'}
     </fieldset>`;
-  $('#btnAbrir').onclick = () => abrir(d);
-  $('#btnBorrar').onclick = () => borrar(d);
+  $('#btnAbrir').onclick = () => enlace ? window.open(d.url, '_blank', 'noopener') : abrir(d);
+  const bb = $('#btnBorrar'); if(bb) bb.onclick = () => borrar(d);
   medidor();
 }
 
@@ -277,16 +283,26 @@ async function abrir(d){
 }
 
 async function borrar(d){
-  if(!confirm('¿Borrar «' + d.titulo + '»?\n\nSe borra el fichero y su ficha. No hay papelera.')) return;
+  const aviso = d.url
+    ? '¿Quitar «' + d.titulo + '» del índice?\n\nEl archivo SIGUE en Google Drive: aquí solo se borra el enlace.'
+    : '¿Borrar «' + d.titulo + '»?\n\nSe borra el fichero y su ficha. No hay papelera.';
+  if(!confirm(aviso)) return;
   try{
     // Primero el fichero y después la fila: al revés, un fallo al borrar el
     // objeto dejaría un fichero huérfano ocupando sitio y sin nadie que lo
     // liste — invisible en el panel y contando para el límite.
-    const { error: e1 } = await SB.storage.from(BUCKET).remove([d.path]);
-    if(e1) throw e1;
-    const { error: e2 } = await SB.from('documentos_proyecto').delete().eq('id', d.id);
+    // Un documento por enlace no tiene objeto que borrar: solo su ficha.
+    if(d.path){
+      const { error: e1 } = await SB.storage.from(BUCKET).remove([d.path]);
+      if(e1) throw e1;
+    }
+    const { data: borradas, error: e2 } = await SB.from('documentos_proyecto')
+      .delete().eq('id', d.id).select('id');
     if(e2) throw e2;
-    FIRMADAS.delete(d.path);
+    // La RLS no da error cuando no deja borrar: devuelve CERO filas. Sin este
+    // control, la herramienta diría "borrado" y el documento seguiría ahí.
+    if(!borradas || !borradas.length) throw new Error('no tienes permiso para borrar documentación');
+    if(d.path) FIRMADAS.delete(d.path);
     SEL = null; await cargar(); pintarFicha();
     toast('Documento borrado');
   }catch(e){ toast('No se pudo borrar: ' + (e.message || e)); }
@@ -310,17 +326,68 @@ function formSubida(){
       <label>Descripción (opcional)</label>
       <textarea id="sDesc" placeholder="Qué es, a qué fecha corresponde, qué versión…"></textarea>
       <label class="ck"><input type="checkbox" id="sConf" checked> Confidencial — no compartir fuera del estudio</label>
-      <div class="acciones">
-        <button class="btn primary" id="btnElegir"><i class="ph ph-upload-simple"></i> Elegir archivo y subir</button>
+    </fieldset>
+
+    <fieldset><legend>Dónde está el documento</legend>
+      <label class="ck"><input type="radio" name="dónde" id="sArchivo" checked> Subir un archivo al almacén del estudio</label>
+      <label class="ck"><input type="radio" name="dónde" id="sEnlace"> Enlazar uno de Google Drive</label>
+
+      <div id="cajaArchivo">
+        <div class="acciones">
+          <button class="btn primary" id="btnElegir"><i class="ph ph-upload-simple"></i> Elegir archivo y subir</button>
+        </div>
+        <p class="nota" id="sEstado">Máximo 50 MB por archivo.</p>
       </div>
-      <p class="nota" id="sEstado">Máximo 50 MB por archivo.</p>
+
+      <div id="cajaEnlace" hidden>
+        <label>Enlace de Google Drive</label>
+        <input id="sUrl" placeholder="https://drive.google.com/…" inputmode="url">
+        <div class="acciones">
+          <button class="btn primary" id="btnGuardarEnlace"><i class="ph ph-link"></i> Guardar enlace</button>
+        </div>
+        <p class="nota">Para lo que pesa: un dossier pasa de 50 MB y el almacén de aquí es de 1 GB
+          para todo, contratos firmados incluidos. En Drive ya se paga el espacio, así que el archivo
+          va allí y aquí queda su ficha, que es lo que hace que se encuentre.
+          <b>Comprueba en Drive con quién está compartido</b>: el permiso lo pone Drive, no esta herramienta.</p>
+      </div>
     </fieldset>`;
   if(PROY) $('#sProyecto').value = PROY;
+  const modo = () => {
+    const arch = $('#sArchivo').checked;
+    $('#cajaArchivo').hidden = !arch;
+    $('#cajaEnlace').hidden = arch;
+  };
+  $('#sArchivo').onchange = modo; $('#sEnlace').onchange = modo;
   $('#btnElegir').onclick = () => {
     if(!$('#sTitulo').value.trim()){ toast('Ponle un título'); $('#sTitulo').focus(); return; }
     $('#fichero').click();
   };
+  $('#btnGuardarEnlace').onclick = guardarEnlace;
   medidor();
+}
+
+async function guardarEnlace(){
+  const titulo = $('#sTitulo').value.trim();
+  const url = $('#sUrl').value.trim();
+  if(!titulo){ toast('Ponle un título'); $('#sTitulo').focus(); return; }
+  // Solo http(s): un `javascript:` guardado aquí se convertiría en un clic
+  // ejecutable para el siguiente que abra la ficha.
+  if(!/^https?:\/\//i.test(url)){ toast('El enlace tiene que empezar por http:// o https://'); $('#sUrl').focus(); return; }
+  const b = $('#btnGuardarEnlace'); b.disabled = true;
+  try{
+    const proyecto = $('#sProyecto').value;
+    const { error } = await SB.from('documentos_proyecto').insert({
+      proyecto, categoria: $('#sCategoria').value, titulo,
+      descripcion: $('#sDesc').value.trim() || null,
+      url, confidencial: $('#sConf').checked });
+    if(error) throw error;
+    PROY = proyecto;
+    await cargar();
+    SEL = (DOCS.find(d => d.url === url) || {}).id || null;
+    pintarLista(); pintarFicha();
+    toast('Enlace guardado');
+  }catch(e){ toast('No se pudo guardar: ' + (e.message || e)); }
+  b.disabled = false;
 }
 
 /* Nombre de fichero seguro: sin acentos ni caracteres que Storage trata como
@@ -403,8 +470,11 @@ $('#btnNuevo').addEventListener('click', formSubida);
 
 /* guard.js ya comprobó la sesión y destapó la página; aquí solo se reusa su
    cliente para no abrir un segundo. */
-window.LW_AUTH.then(async ({ sb, session }) => {
+window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb || window.supabase.createClient(SB_URL, SB_KEY);
+  // guard.js ya leyó la ficha del usuario: se reusa su rol en vez de volver a
+  // preguntarlo. Decide qué botones se ven; el candado es la RLS.
+  ROL = ficha ? ficha.rol : null;
   const who = $('#who'); if(who && session) who.textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await SB.auth.signOut(); location.replace('/contracts/login.html'); };
   await cargar();

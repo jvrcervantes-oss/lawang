@@ -294,10 +294,13 @@
   .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
     font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
   .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
-  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:11px 8px;
+  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr 34px; gap:8px; padding:11px 8px;
     border-top:1px solid var(--hair); font-size:13px; cursor:pointer; border-radius:8px;
     transition:background .15s var(--ease); }
   .cp-row:hover{ background:rgba(72,91,55,.06); }
+  .cp-del{ font:inherit; font-size:13px; line-height:1; color:#a3342b; background:none;
+    border:1px solid #e0c6c2; border-radius:7px; padding:4px 7px; cursor:pointer; }
+  .cp-del:hover{ background:rgba(163,52,43,.09); }
   .cp-row .cp-num{ font-weight:600; color:var(--tg); }
   .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
 
@@ -2474,11 +2477,44 @@ function renderCpList(rows){
       <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
       <span data-l="Fecha">${r.fecha_firma||''}</span>
       <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}</span>
+      <span>${puedeBorrar(r) ? `<button type="button" class="cp-del" data-del="${r.id}" title="Borrar contrato">✕</button>` : ''}</span>
     </div>`).join('');
 }
+/* ---------- borrar un contrato (31-jul-2026) ----------
+   Regla del owner: el super admin borra cualquiera; cada operador, LOS SUYOS y
+   solo si no están bloqueados. Bloqueado = firmado y sellado, y ahí ya no es un
+   borrador que alguien se equivocó al crear: es un documento con un PDF firmado
+   y su registro de firma.
+   Esto decide qué botón se PINTA. Quien manda de verdad es la policy de DELETE
+   de la RLS (contracts/sql/borrado_y_enlaces.sql), que repite la misma condición
+   en la base — esconder un botón no impide nada a quien abra la consola. */
+let MI_ROL = null;   // MI_EMAIL ya lo declara el panel de guardados (línea ~2410)
+function puedeBorrar(r){
+  if(MI_ROL === 'super_admin') return true;
+  return !r.bloqueado && !!r.creado_por && r.creado_por === MI_EMAIL;
+}
+async function borrarContrato(id){
+  const r = (CP_ROWS || []).find(x => x.id === id) || {};
+  if(!confirm('¿Borrar el contrato ' + (r.numero || 'sin nº') + '?\n\n'
+    + 'Se van con él sus firmas y sus compradores enlazados. Las facturas y las unidades NO se '
+    + 'borran: se quedan sin el vínculo.\n\nNo hay papelera.')) return;
+  try{
+    const { data, error } = await sb.from('contratos').delete().eq('id', id).select('id');
+    if(error) throw error;
+    // La RLS no da error cuando no deja borrar: devuelve CERO filas. Sin esto,
+    // la app diría "borrado" y el contrato seguiría en la lista al recargar.
+    if(!data || !data.length) throw new Error('no tienes permiso para borrar este contrato');
+    if(SAVED_CONTRACT && SAVED_CONTRACT.id === id){ SAVED_CONTRACT = null; updateSaveButton(); }
+    toast('Contrato ' + (r.numero || '') + ' borrado');
+    await openContractsPanel();
+  }catch(e){ toast('No se pudo borrar: ' + (e.message || e)); }
+}
+
 // el buscador se combina con los chips (no los pisa): ver aplicarCpFiltros
 $('#cpSearch').addEventListener('input', aplicarCpFiltros);
 $('#cpList').addEventListener('click', async e=>{
+  const del = e.target.closest('[data-del]');
+  if(del){ e.stopPropagation(); await borrarContrato(del.dataset.del); return; }
   const row=e.target.closest('.cp-row'); if(!row) return;
   $('#cpOverlay').classList.remove('open');
   await openSavedContract(row.dataset.id);
@@ -2857,6 +2893,10 @@ async function init(){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }
   MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
+  // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
+  // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de
+  // borrar; quien manda es la policy de DELETE de la RLS.
+  MI_ROL = ficha ? ficha.rol : null;
   const who=$('#who'); if(who){ who.textContent = session.user.email || ''; who.title = 'Sesión iniciada como ' + (session.user.email||''); }
 
   // "Editar texto" restaurado para todos los agentes (pedido explícito del
