@@ -1,0 +1,6 @@
+{
+ "_nota": "Bibliotecas de paginas ya hechas que ofrece el boton \"Anadir pagina\". Anadir una = generar su .json (mismo formato que palm_field.json) y sumar su fichero a esta lista.",
+ "bibliotecas": [
+  "palm_field.json"
+ ]
+}

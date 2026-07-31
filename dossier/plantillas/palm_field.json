@@ -1,0 +1,494 @@
+{
+ "nombre": "Palm Field",
+ "nota": "Las 23 paginas del dossier real de Palm Field, listas para insertar tal cual y editar encima. Las imagenes van por RUTA relativa (dossier/palmfield/...), no en base64: por eso este fichero pesa KB y no MB, y por eso al insertar una pagina viene con su foto puesta.",
+ "size": {
+  "w": 297,
+  "h": 210
+ },
+ "sizeKey": "a4l",
+ "paginas": [
+  {
+   "nombre": "Portada del proyecto",
+   "grupo": "Portadas y cierres",
+   "resumen": "A Place Defined by Unstoppable Growth",
+   "tipo": "cover",
+   "pagina": {
+    "type": "cover",
+    "d": {
+     "kick": "WELCOME TO",
+     "title": "A Place Defined by<br>Unstoppable Growth",
+     "claim": "Presence, without excess. Intention, without explanation. Experience, without effort.",
+     "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS"
+    },
+    "img": {
+     "bg": "palmfield/01-volcano-ocean.jpg",
+     "logo": "../contracts/assets/brand/lawang-logo-v3.png"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Manifiesto — Eternity",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "WHAT IF ETERNITY COULD BE OWNED",
+   "tipo": "statement",
+   "pagina": {
+    "type": "statement",
+    "d": {
+     "big": "WHAT IF<br>ETERNITY<br>COULD BE OWNED",
+     "note": ""
+    },
+    "img": {
+     "bg": ""
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Indonesia — el archipiélago",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "The world's largest archipelago",
+   "tipo": "stats",
+   "pagina": {
+    "type": "stats",
+    "d": {
+     "kick": "INDONESIA",
+     "title": "The world's largest archipelago",
+     "intro": "Prime investment destination. Early positioning, limited by nature, not by marketing.",
+     "n1": "17,000+",
+     "l1": "Islands in the archipelago",
+     "n2": "14M",
+     "l2": "International tourists per year",
+     "n3": "Top 3",
+     "l3": "Safest country in Southeast Asia",
+     "n4": "7th",
+     "l4": "Largest economy in the world"
+    },
+    "img": {
+     "side": "palmfield/03-jungle-canopy.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Bali — la isla de los dioses",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "The Island of Gods",
+   "tipo": "stats",
+   "pagina": {
+    "type": "stats",
+    "d": {
+     "kick": "BALI",
+     "title": "The Island of Gods",
+     "intro": "Tripadvisor Travelers' Choice Award 2025.",
+     "n1": "63–80%",
+     "l1": "Occupancy",
+     "n2": "+10%",
+     "l2": "Growth annually",
+     "n3": "80%",
+     "l3": "Of Bali's economy is tourism",
+     "n4": "#1",
+     "l4": "Destination in Asia"
+    },
+    "img": {
+     "side": "palmfield/04-bali-dancer.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Balian — otra fase de Bali",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "A different phase of Bali",
+   "tipo": "plan",
+   "pagina": {
+    "type": "plan",
+    "d": {
+     "title": "A different phase of Bali",
+     "sub": "Bali 2026 · Land legacy · Balian based"
+    },
+    "img": {
+     "bg": "palmfield/05-bali-map.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Zona de inversión de alto valor",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "A high-value investment area",
+   "tipo": "feature",
+   "pagina": {
+    "type": "feature",
+    "d": {
+     "kick": "BALIAN BEACH",
+     "title": "A high-value<br>investment area",
+     "body": "A balance of wellness, surf and retreat. Internationally acclaimed as one of the best places to surf in Bali.",
+     "c1": "WELLNESS · SURF · RETREAT",
+     "c2": "BALI'S LONGEST BEACH",
+     "c3": "+40 KM OF COASTLINE"
+    },
+    "img": {
+     "bg": "palmfield/06-balian-coast.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Crecimiento planificado",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "Growth that is planned, not speculated",
+   "tipo": "feature",
+   "pagina": {
+    "type": "feature",
+    "d": {
+     "kick": "BALIAN · HIGH-VALUE INVESTMENT AREA",
+     "title": "Growth that is planned,<br>not speculated",
+     "body": "The growth of the area is not driven by speculation, rather by publicly announced planning: the North Bali International Airport (2025–2029), road connections towards the West and North of Bali, and Paramount Pictures anticipated to open around 2026.",
+     "c1": "NEW AIRPORT",
+     "c2": "NEW HIGHWAY",
+     "c3": "THEME PARK"
+    },
+    "img": {
+     "bg": "palmfield/07-balian-sunset.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Separador — Private Villas",
+   "grupo": "Portadas y cierres",
+   "resumen": "PRIVATE VILLAS",
+   "tipo": "cover",
+   "pagina": {
+    "type": "cover",
+    "d": {
+     "kick": "A PROJECT BY LAWANG",
+     "title": "PRIVATE VILLAS",
+     "claim": "Palm Field · Balian, Bali",
+     "foot": ""
+    },
+    "img": {
+     "bg": "palmfield/08-resort-night.jpg",
+     "logo": "../contracts/assets/brand/lawang-logo-v3.png"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Galería — vista, parcela, villas",
+   "grupo": "El proyecto",
+   "resumen": "The view, the plot, the villas",
+   "tipo": "gallery",
+   "pagina": {
+    "type": "gallery",
+    "d": {
+     "kick": "NEAR TO THE RIVER AND THE OCEAN · 2 MIN FROM THE BEACH",
+     "title": "The view, the plot, the villas",
+     "cap1": "THE VIEW",
+     "cap2": "THE PLOT",
+     "cap3": "THE VILLAS"
+    },
+    "img": {
+     "g1": "palmfield/09-the-view.jpg",
+     "g2": "palmfield/09-the-plot.jpg",
+     "g3": "palmfield/09-the-villas.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Paraíso tropical",
+   "grupo": "El proyecto",
+   "resumen": "Tropical paradise",
+   "tipo": "feature",
+   "pagina": {
+    "type": "feature",
+    "d": {
+     "kick": "BALIAN, BALI",
+     "title": "Tropical paradise",
+     "body": "A 105-are resort of tropical jungle on the riverside, 700 meters from the beach with ocean views.",
+     "c1": "105 ARE",
+     "c2": "ON THE RIVERSIDE",
+     "c3": "2 MINUTES FROM THE BEACH"
+    },
+    "img": {
+     "bg": "palmfield/10-plot-aerial.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Villa en propiedad (freehold)",
+   "grupo": "El proyecto",
+   "resumen": "Your own freehold villa",
+   "tipo": "feature",
+   "pagina": {
+    "type": "feature",
+    "d": {
+     "kick": "MASTERPLAN VIEW",
+     "title": "Your own<br>freehold villa",
+     "body": "Lifestyle based on safety &amp; comfort, on gentle natural slopes.<br>Coordinates · X: 275,641.995 | Y: 9,061,555.039",
+     "c1": "FREEHOLD",
+     "c2": "PRIVATE PARKING",
+     "c3": "GENTLE NATURAL SLOPES"
+    },
+    "img": {
+     "bg": "palmfield/11-masterplan-aerial.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Masterplan",
+   "grupo": "El proyecto",
+   "resumen": "Masterplan",
+   "tipo": "plan",
+   "pagina": {
+    "type": "plan",
+    "d": {
+     "title": "Masterplan",
+     "sub": "Plots available · from 250 m²  —  01 Select your plot · 02 Choose your villa · 03 Reserve &amp; enjoy"
+    },
+    "img": {
+     "bg": "palmfield/12-masterplan.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Separador — los modelos",
+   "grupo": "Portadas y cierres",
+   "resumen": "DUNE & DREAM",
+   "tipo": "statement",
+   "pagina": {
+    "type": "statement",
+    "d": {
+     "big": "DUNE &amp; DREAM",
+     "note": "Two immersive-style villas in the jungles of Bali."
+    },
+    "img": {
+     "bg": "palmfield/13-resort-river.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Ficha de villa — Dune",
+   "grupo": "Modelos de villa",
+   "resumen": "PRIVATE VILLAS",
+   "tipo": "villa",
+   "pagina": {
+    "type": "villa",
+    "d": {
+     "kick": "PRIVATE VILLAS",
+     "name": "DUNE",
+     "invfrom": "Investment from",
+     "price": "€ 95.000",
+     "areas": "BUILDING AREA · 47 m²<br>POOL TERRACE · 29 m²",
+     "s1": "1",
+     "t1": "Rooms",
+     "s2": "1",
+     "t2": "Baths",
+     "s3": "1",
+     "t3": "Kitchen",
+     "s4": "1",
+     "t4": "Living"
+    },
+    "img": {
+     "main": "palmfield/14-dune-exterior.jpg",
+     "sec": "palmfield/16-dune-a.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Plano — Dune",
+   "grupo": "Modelos de villa",
+   "resumen": "Dune · floor plan",
+   "tipo": "plan",
+   "pagina": {
+    "type": "plan",
+    "d": {
+     "title": "Dune · floor plan",
+     "sub": "Building area 47 m² · Pool terrace 29 m²"
+    },
+    "img": {
+     "bg": "palmfield/15-dune-plan.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Galería — interiores Dune",
+   "grupo": "Modelos de villa",
+   "resumen": "A place to share food & moments",
+   "tipo": "gallery",
+   "pagina": {
+    "type": "gallery",
+    "d": {
+     "kick": "DUNE",
+     "title": "A place to share food &amp; moments",
+     "cap1": "COZY LIVINGROOM",
+     "cap2": "MASTER SUITE SURROUNDED BY NATURE",
+     "cap3": "BATHROOM FULL OF LIGHT"
+    },
+    "img": {
+     "g1": "palmfield/16-dune-b.jpg",
+     "g2": "palmfield/16-dune-c.jpg",
+     "g3": "palmfield/16-dune-d.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Dream villas",
+   "grupo": "Modelos de villa",
+   "resumen": "Dream villas",
+   "tipo": "feature",
+   "pagina": {
+    "type": "feature",
+    "d": {
+     "kick": "PRIVATE VILLAS",
+     "title": "Dream villas",
+     "body": "Intentional living spaces surrounded by nature.",
+     "c1": "2 ROOMS",
+     "c2": "2 BATHS",
+     "c3": "1 KITCHEN · 1 LIVING"
+    },
+    "img": {
+     "bg": "palmfield/17-dream-evening.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Ficha de villa — Dream",
+   "grupo": "Modelos de villa",
+   "resumen": "PRIVATE VILLAS",
+   "tipo": "villa",
+   "pagina": {
+    "type": "villa",
+    "d": {
+     "kick": "PRIVATE VILLAS",
+     "name": "DREAM",
+     "invfrom": "Investment from",
+     "price": "€ 115.000",
+     "areas": "BUILDING AREA · 77 m²<br>POOL TERRACE · 46 m²",
+     "s1": "2",
+     "t1": "Rooms",
+     "s2": "2",
+     "t2": "Baths",
+     "s3": "1",
+     "t3": "Kitchen",
+     "s4": "1",
+     "t4": "Living"
+    },
+    "img": {
+     "main": "palmfield/18-dream-day.jpg",
+     "sec": "palmfield/17-dream-evening.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Plano — Dream",
+   "grupo": "Modelos de villa",
+   "resumen": "Dream · floor plan",
+   "tipo": "plan",
+   "pagina": {
+    "type": "plan",
+    "d": {
+     "title": "Dream · floor plan",
+     "sub": "Building area 77 m² · Pool terrace 46 m²"
+    },
+    "img": {
+     "bg": "palmfield/19-dream-plan.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Galería — interiores Dream",
+   "grupo": "Modelos de villa",
+   "resumen": "Seamless island kitchen, sunken livingroom",
+   "tipo": "gallery",
+   "pagina": {
+    "type": "gallery",
+    "d": {
+     "kick": "DREAM",
+     "title": "Seamless island kitchen, sunken livingroom",
+     "cap1": "SUNKEN LIVINGROOM",
+     "cap2": "SEAMLESS ISLAND KITCHEN",
+     "cap3": "BATHROOMS SURROUNDED BY NATURE"
+    },
+    "img": {
+     "g1": "palmfield/20-dream-a.jpg",
+     "g2": "palmfield/20-dream-b.jpg",
+     "g3": "palmfield/20-dream-c.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Acabados y calidades",
+   "grupo": "Modelos de villa",
+   "resumen": "Tropical minimal, comfort first",
+   "tipo": "text",
+   "pagina": {
+    "type": "text",
+    "d": {
+     "kick": "THE CONCEPT",
+     "title": "Tropical minimal, comfort first",
+     "body": "<b>Comfort first.</b> The essentials should feel right from the very first use.<br><br><b>Tropical minimal.</b> Fewer pieces, better materials, and a cleaner visual reading.<br><br><b>Operational ease.</b> Everything should be easy to clean, restock, and maintain.<br><br><b>Guest perception.</b> Small details greatly elevate the overall experience."
+    },
+    "img": {},
+    "free": []
+   }
+  },
+  {
+   "nombre": "Plataforma de suelo en Indonesia",
+   "grupo": "Intro (sirve para cualquier proyecto)",
+   "resumen": "Strategic land & asset platform in Indonesia",
+   "tipo": "stats",
+   "pagina": {
+    "type": "stats",
+    "d": {
+     "kick": "LAWANG",
+     "title": "Strategic land &amp; asset platform in Indonesia",
+     "intro": "",
+     "n1": "Investment",
+     "l1": "Land &amp; villas",
+     "n2": "Development",
+     "l2": "Signature developer",
+     "n3": "Structure",
+     "l3": "Legal &amp; operational",
+     "n4": "Commercial",
+     "l4": "Management team"
+    },
+    "img": {
+     "side": "../assets/img/palm-field-aerial.jpg"
+    },
+    "free": []
+   }
+  },
+  {
+   "nombre": "Contraportada — contacto",
+   "grupo": "Portadas y cierres",
+   "resumen": "",
+   "tipo": "back",
+   "pagina": {
+    "type": "back",
+    "d": {
+     "contact": "lawangproperties.com<br>sales@lawangproperties.com",
+     "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED"
+    },
+    "img": {
+     "bg": "palmfield/23-ceremony.jpg",
+     "logo": "../contracts/assets/brand/lawang-logo-v3.png"
+    },
+    "free": []
+   }
+  }
+ ]
+}

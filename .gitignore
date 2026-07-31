@@ -42,6 +42,15 @@ legal/
 # Documentación administrativa del cliente — mismo motivo que legal/
 appeal/
 
+# Documentación de proyectos (precios por parcela, dossiers, planos comerciales).
+# NUNCA al repo, y menos aún al árbol que despliega: este repo es PÚBLICO y
+# Hostinger sirve con 200 cualquier fichero del árbol — `guard.js` tapa páginas
+# HTML, no ficheros. Un PDF aquí es un PDF descargable por cualquiera que
+# adivine la URL, y encima queda para siempre en el historial de GitHub.
+# Su sitio es el bucket privado `documentacion` de Supabase, que se sirve con
+# URL firmada y caduca (mismo patrón que `contratos-firmados` y `kyc`).
+intranet/Documentacion/
+
 # Lanzador de previsualizacion local (herramienta de desarrollo, no se publica)
 preview.cmd
 

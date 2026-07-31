@@ -83,6 +83,15 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .tcard:hover{border-color:var(--tg);transform:translateY(-2px);box-shadow:0 12px 26px -18px rgba(72,91,55,.8)}
 .tcard .tt{font-weight:700;font-size:16px}
 .tcard .td{font-size:12.5px;color:var(--mut);line-height:1.45;margin-top:3px}
+/* biblioteca de páginas ya hechas (plantillas/) */
+#modal h3{margin:26px 0 3px;font-size:15px;letter-spacing:.13em;text-transform:uppercase;color:var(--tg)}
+#modal h3:first-of-type{margin-top:30px;border-top:1px solid var(--line);padding-top:24px}
+#modal h4{margin:16px 0 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.libgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.libgrid .tcard{padding:11px 13px}
+.libgrid .tt{font-size:14px}
+.libgrid .td{font-size:11.5px;margin-top:2px}
+.libgrid .tg{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tg);margin-top:6px}
 /* ============ modal de exportación ============ */
 #pmodal{position:fixed;inset:0;background:rgba(32,36,31,.55);display:none;place-items:center;z-index:61}
 #pmodal.on{display:grid}
@@ -365,6 +374,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
     <h2>Añadir página</h2>
     <p>Elige un punto de partida. Nada queda fijo: los textos se editan con clic, las imágenes se cambian en su hueco, y cualquier elemento de la maqueta —incluido el logo— se saca de ella con <b>✥ Liberar</b> para moverlo, girarlo y redimensionarlo a mano. Encima puedes añadir textos, imágenes y bloques libres. La «Blanca» es lienzo puro.</p>
     <div id="typegrid"></div>
+    <div id="libs"></div>
   </div>
 </div>
 
@@ -1164,11 +1174,86 @@ const $tg=document.getElementById('typegrid');
 Object.entries(TYPES).forEach(([key,t])=>{
   const b=document.createElement('button');b.className='tcard';
   b.innerHTML=`<div class="tt">${t.name}</div><div class="td">${t.desc}</div>`;
-  b.onclick=()=>{state.pages.push(newPage(key));closeModal();render();persist();
-    const last=state.pages.at(-1);setCur(last.id);
-    document.getElementById('wrap_'+last.id).scrollIntoView({behavior:'smooth'});};
+  b.onclick=()=>insertarPagina(newPage(key));
   $tg.appendChild(b);
 });
+
+/* ---------- inserción de página (una sola vía) ----------
+   La usan tanto los tipos en blanco como la biblioteca de páginas ya hechas:
+   una página insertada es una página, venga de donde venga. */
+function insertarPagina(p){
+  state.pages.push(p); closeModal(); render(); persist();
+  setCur(p.id);
+  document.getElementById('wrap_'+p.id).scrollIntoView({behavior:'smooth'});
+}
+
+/* =================================================================
+   BIBLIOTECA DE PÁGINAS YA HECHAS — plantillas/
+   -----------------------------------------------------------------
+   Los TYPES de arriba son maquetas vacías: dan la estructura y hay que
+   escribirlo todo. Esto son PÁGINAS REALES de dossiers ya entregados, con su
+   texto y su foto puestos, listas para insertar y retocar encima. Nace de que
+   la intro (Indonesia, Bali, Balian, por qué la zona) es la misma en todos los
+   proyectos y se estaba rehaciendo cada vez.
+
+   Las imágenes van por RUTA relativa (`palmfield/…`), no en base64: por eso una
+   biblioteca de 23 páginas pesa 13 KB y la página entra con su foto puesta.
+   Añadir una biblioteca nueva = generar su .json y sumarlo a plantillas/index.json.
+   ================================================================= */
+async function cargarBibliotecas(){
+  const caja=document.getElementById('libs');
+  let indice;
+  try{
+    indice=await fetch('plantillas/index.json?v='+Date.now()).then(r=>{ if(!r.ok) throw 0; return r.json(); });
+  }catch(_){ return; }   // sin biblioteca el modal sigue funcionando igual que antes
+  for(const fichero of (indice.bibliotecas||[])){
+    let lib;
+    try{ lib=await fetch('plantillas/'+fichero+'?v='+Date.now()).then(r=>r.json()); }
+    catch(_){ continue; }
+    const h3=document.createElement('h3');
+    h3.textContent='Páginas ya hechas · '+lib.nombre;
+    caja.appendChild(h3);
+    const nota=document.createElement('p');
+    nota.style.margin='6px 0 4px';
+    nota.textContent='Se insertan con su texto y su imagen; a partir de ahí se editan como cualquier otra página.';
+    caja.appendChild(nota);
+    // agrupadas para que la intro reutilizable se vea de un golpe
+    const grupos=[...new Set(lib.paginas.map(p=>p.grupo))];
+    for(const g of grupos){
+      const h4=document.createElement('h4'); h4.textContent=g; caja.appendChild(h4);
+      const grid=document.createElement('div'); grid.className='libgrid';
+      lib.paginas.filter(p=>p.grupo===g).forEach(item=>{
+        const b=document.createElement('button'); b.className='tcard';
+        b.innerHTML='<div class="tt"></div><div class="td"></div><div class="tg"></div>';
+        b.querySelector('.tt').textContent=item.nombre;
+        b.querySelector('.td').textContent=item.resumen||'';
+        b.querySelector('.tg').textContent=(TYPES[item.tipo]||{}).name||item.tipo;
+        b.onclick=()=>{
+          // copia profunda + ids nuevos: dos inserciones de la misma plantilla
+          // tienen que ser dos páginas independientes, no la misma dos veces.
+          const p=JSON.parse(JSON.stringify(item.pagina));
+          p.id='p'+(uid++);
+          p.free=(p.free||[]).map(f=>({...f, id:'f'+(uid++)}));
+          p.rows=p.rows||[];
+          insertarPagina(p);
+          toast('Página añadida: '+item.nombre);
+        };
+        grid.appendChild(b);
+      });
+      caja.appendChild(grid);
+    }
+    // El tamaño de página es del documento, no de la hoja: si el dossier abierto
+    // está en otro formato, la página insertada se estira al que haya. Se avisa
+    // en vez de cambiarlo por detrás, que descuadraría las 20 páginas anteriores.
+    if(lib.size && (lib.size.w!==state.size.w || lib.size.h!==state.size.h)){
+      const av=document.createElement('p');
+      av.style.cssText='margin:10px 0 0;color:#a3342b';
+      av.textContent='Ojo: estas páginas se diseñaron a '+lib.size.w+'×'+lib.size.h+' mm y este dossier está a '
+        +state.size.w+'×'+state.size.h+' mm. Se adaptarán al tamaño del dossier.';
+      caja.appendChild(av);
+    }
+  }
+}
 function setZoom(dz){
   const z=Math.min(1.2,Math.max(.25,parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'))+dz));
   document.documentElement.style.setProperty('--zoom',z.toFixed(2));
@@ -1184,6 +1269,7 @@ if(!state||!Array.isArray(state.pages)||!state.pages.length)state=defaultProject
 uid=maxUid(state);
 document.getElementById('ptitle').value=state.title||'Dossier';
 syncSizeSel();applySize();render();
+cargarBibliotecas();   // el modal se llena solo; si falla, quedan los tipos en blanco
 </script>
 </body>
 </html>
