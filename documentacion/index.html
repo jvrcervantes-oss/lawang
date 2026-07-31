@@ -47,6 +47,12 @@
   .uso .n{ font-size:12.5px; color:var(--texto-2); display:flex; justify-content:space-between; gap:10px; }
   .uso .n b{ color:var(--texto); font-variant-numeric:tabular-nums; }
 
+  /* Vista previa de Drive: alto fijo y sin borde. 420px es lo que deja ver una
+     portada A4 entera sin comerse el cajon; por debajo hay que desplazar dentro
+     del marco, que es lo peor de los visores incrustados. */
+  .dprev{ width:100%; height:420px; border:0; display:block; background:#EDE7D9; }
+  @media (max-width:760px){ .dprev{ height:300px; } }
+
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2E3437; color:#fff;
           padding:11px 20px; border-radius:var(--r-p); font-size:13px; z-index:200; opacity:0;
           transition:opacity var(--t-medio); pointer-events:none; }
@@ -257,64 +263,111 @@ function abrirDoc(id){
       <p class="sui-nota">${enlace
         ? 'El documento vive fuera de aquí, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Compruébalo allí.'
         : 'Archivo subido antes de que la herramienta pasara a enlaces. Se abre con un enlace temporal de 15 minutos.'}</p>
-      ${esSuperAdmin(ROL) ? '' : '<p class="sui-nota">Quitar documentación está reservado al super admin.</p>'}`,
+      ${esSuperAdmin(ROL) ? '' : '<p class="sui-nota">Quitar documentación está reservado al super admin.</p>'}
+      ${previsualizacion(d)}`,
     pie: `<button class="sui-btn primario" id="btnAbrir">Abrir${enlace ? ' en Drive' : ''}</button>
+          <button class="sui-btn" id="btnEditar">Editar</button>
           ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">Quitar</button>' : ''}`,
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
   $('#btnAbrir').onclick = () => enlace ? window.open(d.url, '_blank', 'noopener') : abrirArchivo(d);
+  $('#btnEditar').onclick = () => formDoc(d);
   const bb = $('#btnBorrar'); if(bb) bb.onclick = () => borrar(d);
 }
 
-/* ---------- añadir enlace ---------- */
-function formEnlace(){
-  SEL = null; pintarTabla();
-  const conocidas = [...new Set(DOCS.map(d => d.carpeta).filter(Boolean))].sort();
-  suiAbrirCajon({
-    titulo: 'Añadir enlace',
-    sub: 'Un documento de Google Drive o cualquier enlace externo.',
-    cuerpo: `
-      <div class="campo"><label>Proyecto</label>
-        <select id="sProyecto">${PROYECTOS.map(p => `<option ${p===PROY?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
-      <div class="campo"><label>Carpeta</label>
-        <input id="sCarpeta" list="conocidas" value="${esc(CARPETA)}" placeholder="Comercial/Dossiers">
-        <datalist id="conocidas">${conocidas.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
-      <p class="sui-nota" style="margin-top:-6px">Los niveles se separan con barras. En blanco = raíz del proyecto.
-        Una carpeta existe mientras tenga algo dentro: se crea escribiendo aquí su ruta.</p>
-      <div class="campo"><label>Título</label><input id="sTitulo" placeholder="Ej. Dossier Palm Field"></div>
-      <div class="campo"><label>Categoría</label>
-        <select id="sCategoria">${CATEGORIAS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
-      <div class="campo"><label>Enlace</label><input id="sUrl" placeholder="https://drive.google.com/…" inputmode="url"></div>
-      <div class="campo"><label>Descripción (opcional)</label><textarea id="sDesc"></textarea></div>
-      <label class="ck"><input type="checkbox" id="sConf" checked> Confidencial — no compartir fuera del estudio</label>
-      <p class="sui-nota"><b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace;
-        el permiso para abrirlo lo pone Drive.</p>`,
-    pie: `<button class="sui-btn primario" id="btnGuardar">Guardar enlace</button>
-          <button class="sui-btn" id="btnCancelar">Cancelar</button>`,
-  });
-  $('#btnGuardar').onclick = guardarEnlace;
-  $('#btnCancelar').onclick = suiCerrarCajon;
+/* ---------- vista previa de un documento de Drive ----------
+   Drive sirve una vista incrustable cambiando `/view` por `/preview` en la URL
+   del archivo. Solo funciona con enlaces de archivo (`/file/d/<id>/`): una
+   carpeta o un Doc/Sheet tienen otra forma y ahí no se fuerza nada — se enseña
+   el botón de abrir y ya.
+   ⚠️ Lo que se ve DEPENDE DE DRIVE: si el archivo no está compartido con quien
+   mira, el marco sale pidiendo permiso. Es correcto que sea así —el permiso lo
+   pone Drive, no esta herramienta— pero conviene saberlo antes de pensar que la
+   vista previa está rota. */
+function idDeDrive(url){
+  const m = String(url || '').match(/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+function previsualizacion(d){
+  const id = d.url ? idDeDrive(d.url) : null;
+  if(!id) return '';
+  return `<div class="sui-bloque" style="padding:0;overflow:hidden">
+      <iframe class="dprev" src="https://drive.google.com/file/d/${esc(id)}/preview"
+        loading="lazy" referrerpolicy="no-referrer" title="Vista previa"></iframe>
+    </div>
+    <p class="sui-nota">Vista previa servida por Drive. Si aparece pidiendo permiso,
+      es que el archivo no está compartido con tu cuenta: se arregla en Drive.</p>`;
 }
 
-async function guardarEnlace(){
+/* ---------- crear o editar ----------
+   El mismo formulario para las dos cosas: un alta es una edición de algo que
+   todavía no existe. Con dos formularios distintos, un campo nuevo se añade en
+   uno y se olvida en el otro. */
+function formDoc(d){
+  const editando = !!d;
+  if(!editando){ SEL = null; pintarTabla(); }
+  const conocidas = [...new Set(DOCS.map(x => x.carpeta).filter(Boolean))].sort();
+  const v = d || {};
+  suiAbrirCajon({
+    titulo: editando ? 'Editar documento' : 'Añadir enlace',
+    sub: editando ? esc(v.titulo) : 'Un documento de Google Drive o cualquier enlace externo.',
+    cuerpo: `
+      <div class="campo"><label>Proyecto</label>
+        <select id="sProyecto">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+      <div class="campo"><label>Carpeta</label>
+        <input id="sCarpeta" list="conocidas" value="${esc(v.carpeta != null ? v.carpeta : CARPETA)}" placeholder="Comercial/Dossiers">
+        <datalist id="conocidas">${conocidas.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <p class="sui-nota" style="margin-top:-6px">Los niveles se separan con barras. En blanco = raíz del proyecto.
+        Mover un documento de carpeta es cambiar esta ruta.</p>
+      <div class="campo"><label>Título</label><input id="sTitulo" value="${esc(v.titulo||'')}" placeholder="Ej. Dossier Palm Field"></div>
+      <div class="campo"><label>Categoría</label>
+        <select id="sCategoria">${CATEGORIAS.map(([x,l]) => `<option value="${x}" ${v.categoria===x?'selected':''}>${l}</option>`).join('')}</select></div>
+      ${v.path
+        ? `<p class="sui-nota">Este documento es un <b>archivo subido</b>, no un enlace: el fichero no se
+             cambia desde aquí. Se puede editar todo lo demás.</p>`
+        : `<div class="campo"><label>Enlace</label><input id="sUrl" value="${esc(v.url||'')}" placeholder="https://drive.google.com/…" inputmode="url"></div>`}
+      <div class="campo"><label>Descripción (opcional)</label><textarea id="sDesc">${esc(v.descripcion||'')}</textarea></div>
+      <label class="ck"><input type="checkbox" id="sConf" ${v.confidencial === false ? '' : 'checked'}> Confidencial — no compartir fuera del estudio</label>
+      <p class="sui-nota"><b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace;
+        el permiso para abrirlo lo pone Drive.</p>`,
+    pie: `<button class="sui-btn primario" id="btnGuardar">${editando ? 'Guardar cambios' : 'Guardar enlace'}</button>
+          <button class="sui-btn" id="btnCancelar">Cancelar</button>`,
+    onCerrar: () => { if(!editando){ SEL = null; pintarTabla(); } },
+  });
+  $('#btnGuardar').onclick = () => guardarDoc(d);
+  $('#btnCancelar').onclick = () => editando ? abrirDoc(d.id) : suiCerrarCajon();
+}
+
+async function guardarDoc(d){
+  const editando = !!d;
   const titulo = $('#sTitulo').value.trim();
-  const url = $('#sUrl').value.trim();
+  const campoUrl = $('#sUrl');
+  const url = campoUrl ? campoUrl.value.trim() : null;
   if(!titulo){ toast('Ponle un título'); $('#sTitulo').focus(); return; }
   // Solo http(s): un `javascript:` guardado aquí sería un clic ejecutable para
   // el siguiente que abra la ficha.
-  if(!/^https?:\/\//i.test(url)){ toast('El enlace tiene que empezar por http:// o https://'); $('#sUrl').focus(); return; }
+  if(campoUrl && !/^https?:\/\//i.test(url)){
+    toast('El enlace tiene que empezar por http:// o https://'); campoUrl.focus(); return;
+  }
   const b = $('#btnGuardar'); b.disabled = true;
   try{
-    const proyecto = $('#sProyecto').value;
-    const { data, error } = await SB.from('documentos_proyecto').insert({
-      proyecto, carpeta: $('#sCarpeta').value.trim(), categoria: $('#sCategoria').value, titulo,
-      descripcion: $('#sDesc').value.trim() || null, url, confidencial: $('#sConf').checked }).select('id');
+    const fila = {
+      proyecto: $('#sProyecto').value, carpeta: $('#sCarpeta').value.trim(),
+      categoria: $('#sCategoria').value, titulo,
+      descripcion: $('#sDesc').value.trim() || null, confidencial: $('#sConf').checked,
+    };
+    if(campoUrl) fila.url = url;   // un archivo subido conserva su `path` intacto
+    const q = editando
+      ? SB.from('documentos_proyecto').update(fila).eq('id', d.id).select('id')
+      : SB.from('documentos_proyecto').insert(fila).select('id');
+    const { data, error } = await q;
     if(error) throw error;
-    if(!data || !data.length) throw new Error('no tienes permiso para añadir documentación');
-    PROY = proyecto;
-    suiCerrarCajon();
+    // La RLS no da error al denegar: devuelve CERO filas.
+    if(!data || !data.length) throw new Error('no tienes permiso para ' + (editando ? 'editar' : 'añadir') + ' documentación');
+    PROY = fila.proyecto;
     await cargar();
-    toast('Enlace guardado');
+    if(editando){ SEL = d.id; abrirDoc(d.id); } else { suiCerrarCajon(); }
+    toast(editando ? 'Guardado' : 'Enlace guardado');
   }catch(e){ toast('No se pudo guardar: ' + (e.message || e)); }
   b.disabled = false;
 }
@@ -393,7 +446,7 @@ $('#filas').addEventListener('click', e => {
   const tr = e.target.closest('[data-id]'); if(!tr) return;
   abrirDoc(tr.dataset.id);
 });
-$('#btnNuevo').addEventListener('click', formEnlace);
+$('#btnNuevo').addEventListener('click', () => formDoc(null));
 
 suiMontarCajon();
 suiMontarDensidad($('#dens'));

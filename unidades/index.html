@@ -123,7 +123,18 @@ const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
 const nombreTipo   = t => (TIPOS.find(x => x[0] === t) || [t, t])[1];
 const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
 
-let SB=null, UNIDADES=[], CONTRATOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
+let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
+
+/* Qué se puede construir en cada parcela — decisión del cliente (31-jul): en
+   Palm Field cabe CUALQUIERA de los dos modelos en CUALQUIER parcela. Así que el
+   modelo NO es una propiedad del terreno, es la casa que elige el comprador.
+   De la parcela son la superficie y el precio de suelo; del modelo, lo que
+   cuesta construirlo. El total es la suma, y cambia si cambia la casa. */
+const modelosDe   = proyecto => MODELOS.filter(m => m.proyecto === proyecto);
+const precioModelo = (proyecto, modelo) => {
+  const m = MODELOS.find(x => x.proyecto === proyecto && x.modelo === modelo);
+  return m && m.precio_construccion != null ? Number(m.precio_construccion) : null;
+};
 const ORDEN = { campo:'codigo', dir:'asc' };
 
 /* Qué valor ordena cada columna. Los importes salen como NÚMERO, no como el
@@ -139,17 +150,19 @@ const valorDe = (u, campo) => {
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c] = await Promise.all([
+  const [u, c, m] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
     SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
+    SB.from('modelos_villa').select('proyecto, modelo, precio_construccion, moneda').order('modelo'),
   ]);
   CARGANDO = false;
   if(u.error){ FALLO = u.error.message; pintar(); return; }
   UNIDADES = u.data || [];
   CONTRATOS = c.error ? [] : (c.data || []);
+  MODELOS   = m.error ? [] : (m.data || []);
   const proyectos = [...new Set(UNIDADES.map(x => x.proyecto).filter(Boolean))].sort();
   $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
     proyectos.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
@@ -277,9 +290,20 @@ function abrirUnidad(id){
         <div class="campo"><label>Tipo</label><select id="f-tipo">${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
       <div class="dos">
-        <div class="campo"><label>Modelo de villa</label><input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="Dune, Dream…"></div>
+        <div class="campo"><label>Modelo de villa</label>
+          ${modelosDe(u.proyecto).length
+            ? `<select id="f-modelo">
+                 <option value="">— sin decidir —</option>
+                 ${modelosDe(u.proyecto).map(m => `<option value="${esc(m.modelo)}" ${u.modelo===m.modelo?'selected':''}>${
+                     esc(m.modelo)}${m.precio_construccion != null ? ' · ' + fmtNum(Number(m.precio_construccion)) + ' ' + (m.moneda||'EUR') : ''}</option>`).join('')}
+                 ${u.modelo && !modelosDe(u.proyecto).some(m => m.modelo === u.modelo)
+                   ? `<option value="${esc(u.modelo)}" selected>${esc(u.modelo)} · fuera del catálogo</option>` : ''}
+               </select>`
+            : `<input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="Dune, Dream…">`}
+        </div>
         <div class="campo"><label>Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
       </div>
+      ${escenarios(u)}
       <div class="dos">
         <div class="campo"><label>Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
         <div class="campo"><label>Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
@@ -315,8 +339,49 @@ function abrirUnidad(id){
   };
   $('#f-suelo').addEventListener('input', suma);
   $('#f-obra').addEventListener('input', suma);
+
+  /* Cambiar de modelo trae su precio de construcción del catálogo y rehace el
+     total. Se hace aquí y no al guardar para que el comercial VEA el número
+     antes de decidir: es el caso de uso entero («¿y si le pongo la Dune?»).
+     El precio se puede pisar a mano después — el catálogo es el punto de
+     partida, no una jaula. */
+  const selModelo = $('#f-modelo');
+  if(selModelo && selModelo.tagName === 'SELECT'){
+    selModelo.addEventListener('change', () => {
+      const p = precioModelo(u.proyecto, selModelo.value);
+      if(p == null) return;
+      $('#f-obra').value = fmtNum(p);
+      const s = parseImporte($('#f-suelo').value) || 0;
+      $('#f-precio').value = fmtNum(s + p);
+      $('#f-precio')._auto = s + p;
+      toast('Precio recalculado para ' + selModelo.value);
+    });
+  }
   $('#btnGuardar').addEventListener('click', () => guardar(nueva ? null : u.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
+}
+
+/* Qué costaría esta parcela con CADA modelo. Es la consecuencia directa de que
+   se pueda construir cualquiera de los dos en cualquier sitio: el comercial que
+   la enseña necesita las dos cifras a la vez, no la del modelo que alguien
+   apuntó al cargar la tabla. El suelo no cambia; solo la construcción. */
+function escenarios(u){
+  const ms = modelosDe(u.proyecto);
+  const suelo = Number(u.precio_suelo || 0);
+  if(ms.length < 2 || !suelo) return '';
+  const m = u.moneda || 'EUR';
+  return `<div class="sui-bloque">
+    <h3>Precio según el modelo</h3>
+    ${ms.map(x => {
+      const c = x.precio_construccion != null ? Number(x.precio_construccion) : null;
+      return `<div class="sui-total" style="border:none;margin:0;padding:3px 0;font-weight:400">
+        <span>${esc(x.modelo)}${u.modelo === x.modelo ? ' <b>· elegido</b>' : ''}</span>
+        <span>${c == null ? '<span class="flojo">sin precio</span>' : '<b>' + esc(fmtMoneda(suelo + c, m)) + '</b>'}</span>
+      </div>`;
+    }).join('')}
+    <p class="sui-nota">Suelo ${esc(fmtMoneda(suelo, m))}${u.superficie_m2 ? ' · ' + fmtNum(Number(u.superficie_m2)) + ' m²' : ''}.
+      Lo que cambia entre modelos es la construcción; el suelo es de la parcela.</p>
+  </div>`;
 }
 
 /* El aviso es el guardia: dice en voz alta lo que la base de datos no puede

@@ -1572,7 +1572,7 @@ async function cargarUnidadesDelProyecto(proyecto){
   UNIDADES_PROY = { proyecto, lista:[] };
   try{
     const { data, error } = await sb.from('unidades')
-      .select('codigo, modelo, superficie_m2, precio, moneda, estado, contrato_id')
+      .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
       .eq('proyecto', proyecto).order('codigo');
     if(!error) UNIDADES_PROY.lista = data || [];
   }catch(_){}
@@ -1625,8 +1625,42 @@ function wireCampoParcela(){
   const el = document.querySelector('[name="parcela_codigo"]');
   if(!el || el._wired) return;
   el._wired = true;
-  el.addEventListener('input',  ()=>{ aplicarReglasCampos(); renderDebounced(); });
-  el.addEventListener('change', ()=>{ aplicarReglasCampos(); render(); });
+  el.addEventListener('input',  ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); renderDebounced(); });
+  el.addEventListener('change', ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); render(); });
+}
+
+/* ---------- la parcela elegida trae sus datos ----------
+   Superficie, precio por m², precio total y modelo de villa están en el
+   inventario: volver a teclearlos es teclear dos veces el mismo dato, y la
+   segunda vez es cuando se equivoca uno. Se rellenan al elegir la parcela y
+   QUEDAN EDITABLES: el inventario es el punto de partida de una negociación,
+   no su resultado.
+   Solo se toca lo que está vacío o lo que puso este mismo automatismo — si el
+   comercial pactó otro precio, no se le pisa. */
+const AUTO_UNIDAD = {};
+function syncDatosDeUnidad(){
+  const sel = document.querySelector('[name="parcela_codigo"]');
+  if(!sel) return;
+  const u = (UNIDADES_PROY.lista || []).find(x => x.codigo === sel.value);
+  if(!u) return;
+  const m2 = u.superficie_m2 != null ? Number(u.superficie_m2) : null;
+  const poner = (campo, valor) => {
+    const el = document.querySelector(`[name="${campo}"]`);
+    if(!el || valor == null || valor === '') return;
+    const actual = String(el.value || '').trim();
+    if(actual && actual !== AUTO_UNIDAD[campo]) return;   // escrito a mano: intocable
+    el.value = valor;
+    AUTO_UNIDAD[campo] = valor;
+  };
+  poner('tipologia_villa', m2 != null ? String(m2) : null);            // superficie de la parcela
+  poner('precio_m2', (m2 && u.precio_suelo != null) ? fmtImporte(Number(u.precio_suelo) / m2) : null);
+  poner('precio_total', u.precio != null ? fmtImporte(Number(u.precio)) : null);
+  poner('villa_nombre', u.modelo || null);
+  poner('tipologia_construccion', u.modelo || null);
+  if(u.moneda){
+    const mon = document.querySelector('[name="moneda"]');
+    if(mon && !mon.value) mon.value = u.moneda;
+  }
 }
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma

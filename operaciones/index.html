@@ -11,10 +11,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="/contracts/assets/visor.js?v=20260730103319" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=20260730103319" data-herramienta="operaciones"></script>
+<script src="/contracts/assets/suite.js?v=20260731"></script>
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
 <script src="/facturas/totales.js"></script>
 <style>
@@ -163,7 +165,7 @@
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
 
-  <div class="stage" id="stage">
+  <div class="sui-stage" id="stage">
     <div class="lista panel on" id="panelOps">
       <div class="centro">
         <div class="cab">
@@ -174,8 +176,8 @@
           <div class="filtros" id="filtros"></div>
         </div>
         <div class="resumen" id="resumen"></div>
-        <div class="tabla-caja">
-          <table class="ops">
+        <div class="sui-tabla-caja">
+          <table class="sui-tabla" id="tabla">
             <thead><tr>
               <th>Nº</th><th>Comprador</th><th>Proyecto</th>
               <th class="num">Precio</th><th class="num">Cobrado</th><th class="num">Pendiente</th>
@@ -186,7 +188,6 @@
         </div>
       </div>
     </div>
-    <div class="detalle panel on" id="panelDet"><div class="centro"><div class="vacio-panel">Elige una operación</div></div></div>
     <div class="venc panel" id="panelVenc">Cargando…</div>
   </div>
 
@@ -381,7 +382,7 @@ function pintarLista(){
     // el alta de comprador es automática pero se cae en silencio en 3 casos:
     // se avisa en la LISTA para no tener que entrar operación por operación
     if(fichasQueFaltan(o)) b.push('<span class="tag alerta">Falta ficha</span>');
-    return `<tr data-id="${esc(o.id)}">
+    return `<tr data-id="${esc(o.id)}" class="${SEL===o.id?'sel':''}">
       <td class="n">${esc(o.numero || 'sin nº')}</td>
       <td class="c">${esc(o.comprador_nombre || 'Sin comprador')}</td>
       <td class="p">${esc(o.proyecto_nombre || '—')}</td>
@@ -413,7 +414,7 @@ function pintarLista(){
 /* ---------- ficha ---------- */
 function pintarDetalle(){
   const op = OPS.find(o => o.id === SEL);
-  if(!op){ $('#panelDet').innerHTML = '<div class="centro"><div class="vacio-panel">Elige una operación</div></div>'; return; }
+  if(!op){ suiCerrarCajon(); return; }
   const c = cuenta(op);
   const fmt = n => n == null ? '—' : fmtMoneda(n, c.moneda);
 
@@ -580,11 +581,10 @@ function pintarDetalle(){
         ${enElContrato ? ' — siempre que el comprador tenga pasaporte o email.' : '.'}</p>
     </section>`;
 
-  // La ficha ocupa el mismo ancho centrado que la tabla y sustituye a la tabla,
-  // no la acompaña: sin salida de vuelta, la tabla sería inalcanzable.
-  $('#panelDet').innerHTML = `
-    <div class="centro">
-    <button type="button" class="volver" id="btnVolver">← Volver a las operaciones</button>
+  /* El detalle va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
+     sin perder de vista la lista de la que sale. El cuerpo es el mismo HTML de
+     siempre; lo único que cambia es dónde se cuelga. */
+  const cuerpoFicha = `
     <h2 class="tit">${esc(titulo)}</h2>
     <p class="sub">${esc(op.proyecto_nombre || 'Sin proyecto')} · Contrato <b>${esc(op.numero || 'sin nº')}</b>
       · ${op.bloqueado ? 'firmado y bloqueado' : 'sin firmar'}${op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''}</p>
@@ -630,11 +630,58 @@ function pintarDetalle(){
         <tbody>${filasDocs}</tbody></table>
       <p class="nota">El pasaporte y el KYC son de la <b>persona</b>, no de una venta: salen en todas
         sus operaciones. Se suben desde <a class="enl" href="/compradores/">Compradores</a>.</p>
-    </section>
-    </div>
-    `;
-  const v = $('#btnVolver');
-  if(v) v.onclick = () => { SEL = null; $('#stage').classList.remove('abierta'); pintarLista(); pintarDetalle(); };
+    </section>`;
+  suiAbrirCajon({
+    titulo: esc(titulo),
+    sub: esc(op.proyecto_nombre || 'Sin proyecto') + ' · ' + esc(op.numero || 'sin nº')
+         + (op.bloqueado ? ' · firmado' : ' · sin firmar'),
+    cuerpo: cuerpoFicha,
+    pie: `<button class="sui-btn peligro" id="btnBorrarOp">Borrar operación</button>`,
+    onCerrar: () => { SEL = null; pintarLista(); },
+  });
+  $('#btnBorrarOp').onclick = () => borrarOperacion(op);
+}
+
+/* ---------- borrar la operación entera ----------
+   Una operación no es un contrato: es el padre, los que cuelgan de él, sus
+   enlaces de firma y sus facturas. Lo hace la función `borrar_operacion` de la
+   base porque son cuatro pasos que tienen que pasar TODOS o NINGUNO — a mitad
+   de camino queda una operación con las facturas anuladas y los contratos
+   todavía vivos, que es peor que no haber empezado.
+   Las facturas se ANULAN, no se borran: un hueco en la serie fiscal no se puede
+   explicar. Los enlaces de firma se anulan porque un token vivo de un contrato
+   borrado es un documento que alguien puede firmar sin que nadie lo vea venir. */
+async function borrarOperacion(op){
+  const n = 1 + (op.hijos ? op.hijos.length : 0);
+  const facturasVivas = op.facturas.filter(f => !f.anulada).length;
+  const firmasVivas   = op.firmas.filter(f => f.estado === 'pendiente').length;
+  const detalle = [
+    n > 1 ? n + ' contratos (' + [op.numero, ...op.hijos.map(h => h.numero)].join(', ') + ')'
+          : 'el contrato ' + (op.numero || 'sin nº'),
+    firmasVivas ? firmasVivas + ' enlace(s) de firma quedarán ANULADOS' : null,
+    facturasVivas ? facturasVivas + ' factura(s) quedarán ANULADAS (no se borran: la serie no puede tener huecos)' : null,
+    'La parcela vinculada vuelve a estar disponible.',
+  ].filter(Boolean);
+  if(!confirm('¿Borrar la operación de ' + (op.comprador_nombre || 'sin comprador') + '?\n\n'
+    + '· Se borra ' + detalle[0] + '\n'
+    + detalle.slice(1).map(x => '· ' + x).join('\n')
+    + '\n\nNo hay papelera.')) return;
+
+  const b = $('#btnBorrarOp'); if(b) b.disabled = true;
+  try{
+    const { data, error } = await SB.rpc('borrar_operacion', { p_contrato_id: op.id });
+    if(error) throw error;
+    suiCerrarCajon();
+    SEL = null;
+    await cargar();
+    toast('Operación borrada · ' + (data.contratos_borrados||0) + ' contrato(s), '
+      + (data.facturas_anuladas||0) + ' factura(s) anulada(s)');
+  }catch(e){
+    // El mensaje de la función ya viene escrito para leerse (dice qué contrato
+    // bloquea y por qué); se enseña tal cual en vez de envolverlo en jerga.
+    toast(String(e.message || e));
+    if(b) b.disabled = false;
+  }
 }
 
 /* ---------- vencimientos ----------
@@ -689,15 +736,16 @@ function pintarVencimientos(){
     </section>`;
 }
 
+suiMontarCajon();   // antes de atarle oyentes: si no, no existe todavía
+
 /* ---------- eventos ---------- */
 $('#listaOps').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if(!b) return;
   SEL = b.dataset.id; pintarLista(); pintarDetalle();
-  $('#stage').classList.add('abierta');
 });
 // saltar entre los contratos de una operación sin recargar la página — el href
 // con ?contrato= queda de respaldo (abrir en pestaña nueva sigue funcionando)
-$('#panelDet').addEventListener('click', async e => {
+document.getElementById('suiCajon').addEventListener('click', async e => {
   const a = e.target.closest('[data-op]');
   if(a){ e.preventDefault(); SEL = a.dataset.op; pintarLista(); pintarDetalle(); return; }
   // documento emitido → visor compartido en modo SOLO DOCUMENTO (&vista=1):
@@ -737,8 +785,10 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
   const ops = t.dataset.tab === 'ops';
   $('#panelOps').classList.toggle('on', ops);
-  $('#panelDet').classList.toggle('on', ops);
   $('#panelVenc').classList.toggle('on', !ops);
+  // el detalle vive en el cajón: cambiar de pestaña lo cierra, o quedaría
+  // abierto encima de los vencimientos
+  if(!ops) suiCerrarCajon();
   if(!ops) pintarVencimientos();
 }));
 $('#btnRecargar').addEventListener('click', () => arrancar(true));
@@ -751,7 +801,7 @@ async function arrancar(recarga){
        recarga manual se respeta lo que el usuario tenga elegido. */
     if(!recarga){
       const pedido = new URLSearchParams(location.search).get('contrato');
-      if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; $('#stage').classList.add('abierta'); }
+      if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; }
       else if(pedido) toast('Ese contrato ya no existe');
     }
     pintarFiltros(); pintarLista(); pintarDetalle();
@@ -764,6 +814,8 @@ async function arrancar(recarga){
 
 /* guard.js ya comprobó la sesión y destapó la página; aquí solo se reusa su
    cliente para no abrir un segundo. */
+
+
 window.LW_AUTH.then(({ sb, session }) => {
   SB = sb;
   $('#who').textContent = session.user.email;

@@ -43,7 +43,13 @@
   --sup-1:#FFFFFF;      /* tarjeta, tabla, cajón */
   --sup-2:#F7F3E9;      /* cabecera de tabla, zonas tranquilas */
   --sup-hover:#EFEADE;
-  --sup-sel:#E7E1D2;
+  /* 🔴 La fila seleccionada era #E7E1D2 y NO se distinguía: contra el hover daba
+     un contraste de 1,087 y contra el fondo de página 1,097 — o sea, el mismo
+     color. Medido, no estimado. Ahora 1,61 contra la fila normal y 1,34 contra
+     el hover, y además la selección no depende solo del fondo: lleva su filete
+     verde a la izquierda y el dato clave en tinta de marca. Tres señales, porque
+     una sola de color falla con poca luz, con la pantalla girada o con daltonismo. */
+  --sup-sel:#D6CBB2;
   --linea:#E2DACA;
   --texto:#22282A;
   --texto-2:#4A5052;
@@ -113,6 +119,8 @@ table.sui-tabla tbody td{ padding:var(--fila-y) var(--fila-x); border-bottom:1px
 table.sui-tabla tbody tr{ cursor:pointer; transition:background var(--t-rapido); }
 table.sui-tabla tbody tr:hover{ background:var(--sup-hover); }
 table.sui-tabla tbody tr.sel{ background:var(--sup-sel); box-shadow:inset 3px 0 0 var(--tg,#485B37); }
+table.sui-tabla tbody tr.sel:hover{ background:var(--sup-sel); }   /* el hover no puede aclarar la selección */
+table.sui-tabla tbody tr.sel .clave{ color:var(--tg,#485B37); }
 table.sui-tabla tbody tr:last-child td{ border-bottom:none; }
 /* Los números a la derecha y con cifras de ancho fijo: así 95.250 y 130.875
    casan por columna y la diferencia se ve sin leer. */
