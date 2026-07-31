@@ -271,6 +271,12 @@ const HERRAMIENTAS = [
   { grupo:'Documentación', nombre:'Dossier', icon:'ph-book-open', href:'/dossier/builder.html', herr:'dossier',
     para:'Dossiers de producto en A4 apaisado.',
     claves:'dossier pdf maqueta producto' },   // sin `estado`: no vive en la base de datos
+  { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/documentacion/', herr:'documentacion',
+    para:'Precios, planos y material de cada proyecto, en el almacén privado.',
+    claves:'documentacion documentos precios planos parcelas material proyecto archivo',
+    estado:d => d.documentos == null ? null
+      : d.documentos === 0 ? ['Sin documentos todavía', true]
+      : [d.documentos + ' documentos · ' + d.proyectosConDocs + ' proyectos', false] },
 
   { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/facturas/', herr:'facturas',
     para:'Facturas, proformas y recibís, cada tipo con su serie.',
@@ -391,7 +397,8 @@ async function contar(sb){
     return error ? null : (count || 0);
   };
   const [contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
-         recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos] = await Promise.all([
+         recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos,
+         documentos] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
     n('contrato_firmas', q => q.eq('estado', 'pendiente')),
@@ -403,9 +410,19 @@ async function contar(sb){
     n('clients'),
     n('usuarios', q => q.eq('activo', true)),
     n('usuarios', q => q.eq('activo', false)),
+    n('documentos_proyecto'),
   ]);
+  // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
+  // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
+  // distinct y el contador de arriba solo sabe contar filas.
+  let proyectosConDocs = null;
+  if(documentos){
+    const { data, error } = await sb.from('documentos_proyecto').select('proyecto');
+    proyectosConDocs = error ? null : new Set((data || []).map(x => x.proyecto)).size;
+  }
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
-           recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos };
+           recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos,
+           documentos, proyectosConDocs };
 }
 
 /* ── arranque ──────────────────────────────────────────────────────── */
