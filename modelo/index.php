@@ -589,8 +589,12 @@ p{margin:0;text-wrap:pretty}
 
       <label class="acepto" for="lw-consent">
         <input type="checkbox" id="lw-consent" name="consent" value="1" required>
-        <span>He leído y acepto la <a href="/legal#privacy" target="_blank" rel="noopener">Política de Privacidad</a>
-          y que Lawang Estate me contacte sobre este modelo.</span>
+        <!-- A la version ESPAÑOLA. El checkbox esta en español y remitia a un texto solo en
+             ingles: un consentimiento cuya unica explicacion esta en otro idioma es
+             atacable (art. 12.1 RGPD), y aqui es la base declarada del tratamiento. -->
+        <span>He leído y acepto la <a href="/legal-es#privacidad" target="_blank" rel="noopener">Política de Privacidad</a>
+          y que Lawang Estate guarde mis datos en su sistema de gestión de clientes para
+          contactarme sobre este modelo.</span>
       </label>
 
       <button class="btn btn--ancho" type="submit" id="lw-submit">
