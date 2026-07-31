@@ -150,7 +150,7 @@ async function repartirFirmado(o: {
   const adjunto = grande ? {} : { pdfB64: b64(o.pdf), filename: o.numero + '_firmado.pdf' };
   const cola = [
     '', '', 'Lawang Tropical Properties',
-    'PT TEPI SUNGAI · PT SAN DAL WOODS',
+    'PT TEPI SUN GAI · PT SAN DAL WOODS',
   ].join('\n');
   const pie = grande
     ? '\n\nEl documento pesa más de lo que admite el correo, así que va por enlace:\n' + enlace +

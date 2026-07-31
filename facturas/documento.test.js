@@ -88,7 +88,7 @@ assert.ok(!/src="\/[^/]/.test(pag),
   'ninguna ruta relativa: el renderizador carga el HTML desde otro sitio y no resolvería');
 
 /* ---- cuenta "Otros": se imprime lo tecleado, y sin nada no se imprime nada ---- */
-const conOtros = caja.documentoHTML({ ...campos, cuenta: 'otros', banco_titular: 'PT TEPI SUNGAI',
+const conOtros = caja.documentoHTML({ ...campos, cuenta: 'otros', banco_titular: 'PT TEPI SUN GAI',
                                       banco_cuenta: '3692536026' }, {});
 assert.ok(conOtros.includes('3692536026') && conOtros.includes('Datos bancarios'));
 assert.ok(!caja.documentoHTML({ ...campos, cuenta: 'otros' }, {}).includes('Datos bancarios'),

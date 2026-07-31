@@ -51,8 +51,8 @@ const CUENTAS_BANCARIAS = {
     titular:'ACHMAD ZAENI', banco:'Bank Mandiri — sucursal Waingapu, Sumba Timur', cuenta:'1810004920345',
     codigo:'BMRIIDJAXXX', direccion:'Jl. Ahmad Yani No. 75, Kamalaputi, Kota Waingapu, 87116, Sumba Timur, Nusa Tenggara Timur, Indonesia',
     extra:{es:'Teléfono del beneficiario: +62 818 558 667 · Teléfono del banco: +62 387 61111',en:'Beneficiary phone: +62 818 558 667 · Bank phone: +62 387 61111',id:'Telepon penerima: +62 818 558 667 · Telepon bank: +62 387 61111'} },
-  contractor_tepisungai: { label:'Contratista — Tepi Sungai (OCBC)',
-    titular:'PT Tepi Sungai', banco:'OCBC', cuenta:'167800024140',
+  contractor_tepisungai: { label:'Contratista — Tepi Sun Gai (OCBC)',
+    titular:'PT Tepi Sun Gai', banco:'OCBC', cuenta:'167800024140',
     codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar, Bali, Indonesia', extra:'' },
   notario_ayu_wulandari: { label:'Notario — Anak Agung Ayu Wulandari (BCA)',
     titular:'An. Anak Agung Ayu Wulandari', banco:'Bank Central Asia (BCA)', cuenta:'1420857361',
@@ -92,9 +92,18 @@ const CUENTAS_BANCARIAS = {
    Lo usan hoy las facturas (los contratos llevan su logo fijo en cada
    plantilla). Añadir una sociedad = un bloque más aquí, nada más. */
 const SOCIEDADES = {
+  /* ⚠️ La CLAVE es `tepi_sungai` y NO se toca: va guardada dentro de cada
+     contrato (`sociedad_firmante`) y de cada factura, y las plantillas la miran
+     en `<!--if:sociedad_firmante=tepi_sungai-->`. Renombrarla dejaría a los
+     contratos ya emitidos apuntando a una sociedad que no existe y sin logo.
+     Lo que se corrige el 31-jul-2026 es el nombre que se IMPRIME: la sociedad
+     está inscrita como «PT TEPI SUN GAI», separado, y lo emitíamos junto. Es lo
+     mismo que reclamaba el memorándum del abogado del comprador sobre CR00003.
+     Ojo al leerlo: «tepi sungai» junto es riverbank en indonesio y es el nombre
+     de la colección en la web pública — ese sí va junto y no hay que tocarlo. */
   tepi_sungai: {
-    label: 'PT Tepi Sungai (marca «Lawang Tropical Properties»)',
-    razon: 'PT TEPI SUNGAI', marca: 'LAWANG TROPICAL PROPERTIES',
+    label: 'PT Tepi Sun Gai (marca «Lawang Tropical Properties»)',
+    razon: 'PT TEPI SUN GAI', marca: 'LAWANG TROPICAL PROPERTIES',
     logo: '/contracts/assets/brand/lawang-logo-v3-dark.png',
     /* Este lockup es una tira de 7,2:1: al lado del emisor no cabe grande sin
        dejarle una columna de 52mm en la que el domicilio se parte en nueve

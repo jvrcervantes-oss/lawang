@@ -20,7 +20,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=20260730"></script>
+<script src="assets/entities.js?v=20260731"></script>
 <script src="assets/huella.js?v=20260731"></script>
 <style>
   :root{
@@ -642,7 +642,7 @@ function L(o){ return (o && (o[LANG] || o.es)) || (typeof o==='string'?o:''); }
 function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
-// La sociedad firmante por defecto es global (Tepi Sungai, en projectDefaults), salvo
+// La sociedad firmante por defecto es global (Tepi Sun Gai, en projectDefaults), salvo
 // las plantillas cuya identidad fiscal ya era de otra sociedad: ppjb_reserva llevaba
 // NPWP/domicilio de SAN DAL WOODS (bajo el nombre inexistente "PT Lawang Tropical
 // Properties"), así que arranca en SAN DAL WOODS para no alterar su identidad real.
@@ -1814,13 +1814,13 @@ function bankOptionsFor(slug){
    firmante por idioma {{prom_cred_es/en/id}} (nacionalidad + documento, que cambia
    según sea ID indonesio o pasaporte extranjero). El select 'sociedad_firmante'
    elige la sociedad; applyPromotor() rellena esos marcadores en buildDoc. La firma
-   gráfica de Lawang solo sale para Tepi Sungai (<!--if:sociedad_firmante=tepi_sungai-->
+   gráfica de Lawang solo sale para Tepi Sun Gai (<!--if:sociedad_firmante=tepi_sungai-->
    en las plantillas); las demás dejan línea en blanco para firmar a mano.
    Añadir una sociedad = un bloque más aquí, cero cambios en plantillas. */
 // (SOCIEDADES vive en assets/entities.js — compartido con /facturas)
-const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sungai primero (default)
+const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sun Gai primero (default)
 function applyPromotor(data){
-  const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sungai)
+  const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
   const soc = SOCIEDADES[key] || SOCIEDADES.tepi_sungai;
   data.prom_razon=soc.razon; data.prom_marca=soc.marca||''; data.prom_domicilio=soc.domicilio;
   data.prom_npwp=soc.npwp; data.prom_rep=soc.rep;
@@ -2056,7 +2056,7 @@ function idrEquiv(html, data){
 let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota → el hueco de firma sale como centinela %%FIRMA_ADQUIRIENTE%% que firma-submit rellena con la firma real
 function buildDoc(){
   const data=collect();
-  applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sungai)
+  applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
