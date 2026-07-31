@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731b">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731c">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="/contracts/assets/visor.js?v=20260730103319" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -91,8 +91,6 @@
   .detalle{ overflow:auto; padding:26px 30px 80px; }
   .vacio-panel{ display:grid; place-items:center; height:100%; color:var(--ss,#BEB3A5); font-size:13px;
                 letter-spacing:.16em; text-transform:uppercase; }
-  h2.tit{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:27px; font-weight:600; margin:0 0 2px; }
-  .sub{ color:var(--muted); font-size:13.5px; margin:0 0 18px; }
   section{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; overflow:hidden; }
   /* título de sección = banda de marca a lo ancho de la tarjeta (los márgenes
      negativos la llevan hasta el borde; el overflow:hidden del section recorta
@@ -584,12 +582,12 @@ function pintarDetalle(){
 
   /* El detalle va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
      sin perder de vista la lista de la que sale. El cuerpo es el mismo HTML de
-     siempre; lo único que cambia es dónde se cuelga. */
+     siempre; lo único que cambia es dónde se cuelga.
+     El título y el subtítulo NO van aquí: los pinta la cabecera del cajón. Esta
+     ficha venía de ser una página entera y se trajo con su propio encabezado
+     dentro, así que salía dos veces (31-jul-2026). La fecha de firma, que solo
+     estaba en el de dentro, se pasa al de la cabecera para no perderla. */
   const cuerpoFicha = `
-    <h2 class="tit">${esc(titulo)}</h2>
-    <p class="sub">${esc(op.proyecto_nombre || 'Sin proyecto')} · Contrato <b>${esc(op.numero || 'sin nº')}</b>
-      · ${op.bloqueado ? 'firmado y bloqueado' : 'sin firmar'}${op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''}</p>
-
     ${bloqueCadena}
 
     ${bloqueFichas}
@@ -635,7 +633,8 @@ function pintarDetalle(){
   suiAbrirCajon({
     titulo: esc(titulo),
     sub: esc(op.proyecto_nombre || 'Sin proyecto') + ' · ' + esc(op.numero || 'sin nº')
-         + (op.bloqueado ? ' · firmado' : ' · sin firmar'),
+         + (op.bloqueado ? ' · firmado y bloqueado' : ' · sin firmar')
+         + (op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''),
     cuerpo: cuerpoFicha,
     pie: `<button class="sui-btn peligro" id="btnBorrarOp">Borrar operación</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
