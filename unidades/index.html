@@ -215,7 +215,8 @@ function pintarTabla(){
     <tr data-id="${esc(u.id)}" class="${SEL===u.id?'sel':''}">
       <td class="clave">${esc(u.codigo)}</td>
       <td>${esc(u.proyecto || '—')}</td>
-      <td>${u.modelo ? esc(u.modelo) : '<span class="flojo">' + esc(nombreTipo(u.tipo)) + '</span>'}</td>
+      <td>${u.modelo ? esc(u.modelo)
+            : '<span class="flojo">' + (modelosDe(u.proyecto).length ? 'sin decidir' : esc(nombreTipo(u.tipo))) + '</span>'}</td>
       <td class="num">${u.superficie_m2 == null ? '<span class="flojo">—</span>' : esc(fmtNum(Number(u.superficie_m2)))}</td>
       <td class="num">${eur(u.precio_suelo, u.moneda)}</td>
       <td class="num">${eur(u.precio_construccion, u.moneda)}</td>
@@ -232,11 +233,16 @@ function pintarTabla(){
   const suma = k => vis.reduce((a,u) => a + (Number(u[k]) || 0), 0);
   const m = vis[0].moneda || 'EUR';
   const libres = vis.filter(u => u.estado === 'disponible').length;
+  // Las parcelas sin modelo decidido NO tienen total, así que suman 0 a la
+  // cartera. Se dice cuántas son: si no, la cifra parece que ha bajado sola y
+  // nadie sabe por qué.
+  const sinModelo = vis.filter(u => !u.modelo).length;
   $('#resumen').innerHTML =
     `<span>${vis.length} ${vis.length===1?'unidad':'unidades'} · <b>${libres}</b> disponibles</span>
      <span>Suelo <b>${esc(fmtMoneda(suma('precio_suelo'), m))}</b></span>
      <span>Construcción <b>${esc(fmtMoneda(suma('precio_construccion'), m))}</b></span>
-     <span>Cartera <b>${esc(fmtMoneda(suma('precio'), m))}</b></span>`;
+     <span>Cartera <b>${esc(fmtMoneda(suma('precio'), m))}</b>${
+       sinModelo ? ` <span class="flojo">(${sinModelo} sin modelo, sin total)</span>` : ''}</span>`;
 }
 
 /* ---------- cajón: ficha de la unidad ---------- */
@@ -349,6 +355,11 @@ function abrirUnidad(id){
   const suma = () => {
     const s = parseImporte($('#f-suelo').value), o = parseImporte($('#f-obra').value);
     const t = $('#f-precio'), actual = parseImporte(t.value);
+    // Sin construcción NO se rellena el total. Con el modelo sin decidir, el
+    // total sería solo el suelo (36.875 € en una parcela que de verdad cuesta
+    // entre 95.000 y 131.000), y esa cifra puesta en la columna «Total» es la
+    // que alguien acaba diciendo en voz alta delante de un comprador.
+    if(!o) return;
     if(!s && !o) return;
     if(!actual || Math.abs(actual - (t._auto||0)) < 0.5){ t.value = fmtNum(s + o); t._auto = s + o; }
   };
@@ -363,8 +374,21 @@ function abrirUnidad(id){
   const selModelo = $('#f-modelo');
   if(selModelo && selModelo.tagName === 'SELECT'){
     selModelo.addEventListener('change', () => {
+      /* Volver a «sin decidir» TIENE que vaciar la construcción y el total.
+         Antes se salía sin hacer nada y quedaba el precio del modelo anterior:
+         una parcela marcada como sin decidir seguía diciendo 130.875 €, que es
+         el precio de una Dream. Un total que da por supuesto un modelo que ya
+         no está elegido es peor que no tener total. Los dos escenarios siguen
+         a la vista arriba, así que no se pierde la información. */
+      if(!selModelo.value){
+        $('#f-obra').value = '';
+        $('#f-precio').value = '';
+        $('#f-precio')._auto = 0;
+        toast('Sin modelo: la construcción y el total quedan sin fijar');
+        return;
+      }
       const p = precioModelo(u.proyecto, selModelo.value);
-      if(p == null) return;
+      if(p == null) return;   // modelo fuera del catálogo: se respeta lo que haya
       $('#f-obra').value = fmtNum(p);
       const s = parseImporte($('#f-suelo').value) || 0;
       $('#f-precio').value = fmtNum(s + p);
