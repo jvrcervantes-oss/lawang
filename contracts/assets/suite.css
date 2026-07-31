@@ -161,9 +161,15 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 .sui-velo.on{ opacity:1; pointer-events:auto; }
 @media (min-width:1500px){ .sui-velo{ background:transparent; } }
 
+/* Ancho: el cajón se dimensionó pensando en fichas de dos columnas (dato/valor),
+   pero Operaciones mete dentro cinco tablas y una de ellas tiene SEIS columnas.
+   A 560px eso sale ilegible — la lista de la que salen usa `min-width:760px` para
+   la misma densidad, así que el cajón tenía la mitad de sitio para el mismo dato.
+   Como el cajón flota por encima (position:fixed), ensancharlo no reajusta nada
+   detrás: no cuesta nada dárselo. 31-jul-2026. */
 .sui-cajon{
   position:fixed; top:var(--tbh,56px); right:0; bottom:0; z-index:61;
-  width:clamp(340px, 34vw, 560px); max-width:100vw;
+  width:clamp(380px, 52vw, 1100px); max-width:100vw;
   background:var(--sup-1); border-left:1px solid var(--linea); box-shadow:var(--sombra-2);
   display:flex; flex-direction:column;
   transform:translateX(100%); transition:transform var(--t-cajon) var(--curva);
