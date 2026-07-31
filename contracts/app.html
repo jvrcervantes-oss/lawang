@@ -1518,7 +1518,9 @@ function aplicarReglasCampos(){
   // Único punto por el que pasa "un campo cambió" (input, change y estado inicial
   // de buildForm), así que el anexo automático se engancha aquí y no en tres sitios.
   syncAutoAnnex();
-  syncParcelaCodigo();
+  syncParcelaMaster();
+  const proy = document.querySelector('[name="proyecto_nombre"]');
+  if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
 }
 
 /* Código de parcela por proyecto (tokens.json → parcelaPorProyecto).
@@ -1526,22 +1528,105 @@ function aplicarReglasCampos(){
    no una lista cerrada — una parcela nueva se escribe y no hay que esperar a que
    alguien la dé de alta. Por eso solo se rellena cuando el hueco está vacío o
    cuando todavía tiene el código que puso el propio automatismo; en cuanto el
-   agente escribe algo suyo, deja de tocarlo para siempre (AUTO_PARCELA a vacío).
+   agente escribe algo suyo, deja de tocarlo para siempre (AUTO_MASTER a vacío).
    Mismo criterio que syncAutoAnnex con la tipología. */
-let AUTO_PARCELA = '';
-function syncParcelaCodigo(){
+/* 🔴 CORREGIDO EL MISMO DÍA (31-jul-2026): el código del proyecto (W8, W5, S1…)
+   va a `parcela_master`, NO a `parcela_codigo`. Lo puse mal esta mañana y el
+   contrato es explícito sobre qué es cada uno:
+     · parcela_master  → «el PROMOTOR es titular de la parcela máster
+       {{parcela_master}} con una superficie de {{superficie_total}} m² brutos»
+     · parcela_codigo  → «ceder los derechos sobre la parcela nº
+       {{parcela_codigo}}», o sea la SUBPARCELA que se vende (A1…C8)
+   Con el autorrelleno en el campo equivocado, un contrato de Palm Field habría
+   dicho que se vende la parcela «W5», que es el terreno entero del proyecto.
+   Verificado antes de corregir: 0 contratos guardados con ese error. */
+let AUTO_MASTER = '';
+function syncParcelaMaster(){
   const sel   = document.querySelector('[name="proyecto_nombre"]');
-  const campo = document.querySelector('[name="parcela_codigo"]');
+  const campo = document.querySelector('[name="parcela_master"]');
   if(!sel || !campo) return;
   const actual = campo.value.trim();
-  if(actual && actual !== AUTO_PARCELA){ AUTO_PARCELA = ''; return; }   // valor escrito a mano: intocable
+  if(actual && actual !== AUTO_MASTER){ AUTO_MASTER = ''; return; }   // escrito a mano: intocable
   const codigo = ((TOKENS && TOKENS.parcelaPorProyecto) || {})[sel.value] || '';
   if(codigo === actual) return;
   // Un proyecto sin código (Sumba Hills) BORRA el que puso el automatismo: dejar
-  // el W8 de Balian Hills en un contrato de Sumba sería una parcela de otro sitio.
+  // el W8 de Balian Hills en un contrato de Sumba sería un terreno de otro sitio.
   campo.value = codigo;
-  AUTO_PARCELA = codigo;
+  AUTO_MASTER = codigo;
   renderDebounced();
+}
+
+/* ---------- la subparcela sale del inventario ----------
+   Si el proyecto elegido tiene unidades dadas de alta en /unidades/, el código
+   de parcela deja de ser texto libre y pasa a ser un desplegable con las que
+   hay, su modelo y su precio. Las que ya tiene otro contrato salen marcadas y
+   no se pueden elegir: la base también lo impide (trigger
+   `sincroniza_unidad_contrato`), pero enseñar una opción que va a fallar al
+   guardar es hacerle perder el rato a quien la elige.
+   Si el proyecto NO tiene unidades, se queda como estaba —texto libre— por la
+   misma regla de siempre: el sistema no frena una venta esperando a que alguien
+   dé de alta el inventario. */
+let UNIDADES_PROY = { proyecto:null, lista:[] };
+async function cargarUnidadesDelProyecto(proyecto){
+  if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
+  UNIDADES_PROY = { proyecto, lista:[] };
+  try{
+    const { data, error } = await sb.from('unidades')
+      .select('codigo, modelo, superficie_m2, precio, moneda, estado, contrato_id')
+      .eq('proyecto', proyecto).order('codigo');
+    if(!error) UNIDADES_PROY.lista = data || [];
+  }catch(_){}
+  pintarSelectorParcela();
+}
+function pintarSelectorParcela(){
+  const caja = document.querySelector('.field[data-key="parcela_codigo"]');
+  if(!caja) return;
+  const campo = caja.querySelector('[name="parcela_codigo"]');
+  const valor = campo ? campo.value : '';
+  const libres = UNIDADES_PROY.lista;
+  const yaEra = campo && campo.tagName === 'SELECT';
+
+  if(!libres.length){
+    // sin inventario: texto libre. Se rehace solo si venía siendo desplegable.
+    if(yaEra){
+      campo.outerHTML = `<input name="parcela_codigo" type="text" value="${escAttr(valor)}" autocomplete="off">`;
+      caja.querySelector('.hint-unidades')?.remove();
+      wireCampoParcela();
+    }
+    return;
+  }
+  const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
+  const ops = libres.map(u => {
+    const tomada = u.contrato_id && u.contrato_id !== mio;
+    const partes = [u.codigo, u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : '',
+                    u.precio ? fmtImporte(Number(u.precio)) + ' ' + (u.moneda||'EUR') : '',
+                    tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '')];
+    return `<option value="${escAttr(u.codigo)}" ${tomada?'disabled':''} ${u.codigo===valor?'selected':''}>${
+      escAttr(partes.filter(Boolean).join(' · '))}</option>`;
+  }).join('');
+  // El valor guardado se conserva aunque ya no esté en la lista (una unidad que
+  // se borró del inventario): perderlo cambiaría lo que imprime el contrato.
+  const suelto = valor && !libres.some(u => u.codigo === valor)
+    ? `<option value="${escAttr(valor)}" selected>${escAttr(valor)} · fuera del inventario</option>` : '';
+  const html = `<select name="parcela_codigo"><option value="">— elegir parcela —</option>${suelto}${ops}</select>`;
+  if(campo) campo.outerHTML = html; else caja.insertAdjacentHTML('beforeend', html);
+  if(!caja.querySelector('.hint-unidades')){
+    const libresN = libres.filter(u => !u.contrato_id && u.estado === 'disponible').length;
+    caja.insertAdjacentHTML('beforeend',
+      `<p class="hint-unidades" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">
+         ${libres.length} unidades en el inventario · <b>${libresN} libres</b>.
+         Al guardar el contrato, la elegida queda reservada en Unidades.</p>`);
+  }
+  wireCampoParcela();
+}
+/* El campo se ha reemplazado en el DOM, así que hay que devolverle sus oyentes:
+   los de buildForm se quedaron en el elemento viejo. */
+function wireCampoParcela(){
+  const el = document.querySelector('[name="parcela_codigo"]');
+  if(!el || el._wired) return;
+  el._wired = true;
+  el.addEventListener('input',  ()=>{ aplicarReglasCampos(); renderDebounced(); });
+  el.addEventListener('change', ()=>{ aplicarReglasCampos(); render(); });
 }
 function buildForm(){
   if(EDITING){ EDITING=false; editBtnIdle(); }   // salir de edición al cambiar de plantilla/idioma
@@ -2282,7 +2367,13 @@ async function guardarContrato(){
     toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
     render();
     sincronizarCompradores(data.id);   // a posteriori y sin await: ver abajo
-  }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
+  }catch(err){
+    // El trigger `sincroniza_unidad_contrato` para el guardado si la parcela ya
+    // es de otro contrato. Ese mensaje ya viene escrito para leerse, así que se
+    // enseña tal cual en vez de envolverlo en jerga de base de datos.
+    const m = String(err.message || err);
+    toast(/ya est[aá] asignada/i.test(m) ? m : 'No se pudo guardar: ' + m);
+  }
   btn.disabled=false; updateSaveButton();
 }
 
@@ -2583,10 +2674,10 @@ async function openSavedContract(id){
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
   // automático de la tipología guardada (solo viaja su ficha, no las páginas).
   // AUTO_ANX a cero o el anexo del contrato ANTERIOR daría por bueno el nuevo.
-  // AUTO_PARCELA igual: sin resetear, un código que por casualidad coincida con
+  // AUTO_MASTER igual: sin resetear, un código que por casualidad coincida con
   // el del contrato anterior se tomaría por "puesto por el automatismo" y se
   // reescribiría solo — cambiando un dato ya guardado nada más abrirlo.
-  AUTO_ANX = ''; AUTO_PARCELA = '';
+  AUTO_ANX = ''; AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   aplicarReglasCampos();
   refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
@@ -2632,7 +2723,7 @@ async function derivarContrato(slug){
   // alguien retocó para la reserva de otra operación no tiene por qué salir
   // impreso en la obra de esta.
   limpiarOverrides(slug);
-  AUTO_PARCELA = '';
+  AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();

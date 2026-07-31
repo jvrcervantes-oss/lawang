@@ -39,6 +39,10 @@
     border-color:var(--tg,#485B37); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
   .campo textarea{ min-height:62px; resize:vertical; }
   .dos{ display:grid; grid-template-columns:1fr 1fr; gap:var(--e3); }
+  .barra{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; margin:8px 0 0; }
+  .barra i{ display:block; height:100%; background:#3F5230; }
+  a.enl{ color:var(--dl,#104C4F); text-decoration:none; border-bottom:1px solid rgba(16,76,79,.3); }
+  a.enl:hover{ border-bottom-color:var(--dl,#104C4F); }
   .aviso{ font-size:12.5px; line-height:1.5; color:#6A5A3C; background:rgba(190,179,165,.26);
           border-radius:var(--r-s); padding:9px 11px; margin:var(--e2) 0 0; }
 
@@ -81,6 +85,7 @@
             <th class="num" data-orden="precio_suelo">Suelo</th>
             <th class="num" data-orden="precio_construccion">Construcción</th>
             <th class="num" data-orden="precio">Total</th>
+            <th data-orden="contrato_numero">Contrato</th>
             <th data-orden="estado">Estado</th>
           </tr></thead>
           <tbody id="filas"></tbody>
@@ -135,7 +140,10 @@ const valorDe = (u, campo) => {
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
   const [u, c] = await Promise.all([
-    SB.from('unidades').select('*').order('proyecto').order('codigo'),
+    // `unidades_estado` es la vista que añade el contrato vinculado y lo
+    // facturado (calculado, no guardado: guardarlo sería una tercera copia
+    // que se queda vieja en cuanto se anule una factura).
+    SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
   ]);
   CARGANDO = false;
@@ -173,17 +181,17 @@ function pintarTabla(){
     // Esqueleto, no un "Cargando…": mantiene el alto de la tabla y evita el
     // salto de página cuando llegan las filas.
     cuerpo.innerHTML = Array.from({length:6}, () =>
-      '<tr class="sui-esqueleto">' + '<td><i></i></td>'.repeat(8) + '</tr>').join('');
+      '<tr class="sui-esqueleto">' + '<td><i></i></td>'.repeat(9) + '</tr>').join('');
     $('#resumen').innerHTML = ''; return;
   }
   if(FALLO){
-    cuerpo.innerHTML = `<tr><td colspan="8" class="sui-error">No se pudo leer el inventario: ${esc(FALLO)}</td></tr>`;
+    cuerpo.innerHTML = `<tr><td colspan="9" class="sui-error">No se pudo leer el inventario: ${esc(FALLO)}</td></tr>`;
     $('#resumen').innerHTML = ''; return;
   }
   const vis = visibles();
   if(!vis.length){
     const filtrando = FILTRO || PROY || $('#q').value.trim();
-    cuerpo.innerHTML = `<tr><td colspan="8"><div class="sui-nada">
+    cuerpo.innerHTML = `<tr><td colspan="9"><div class="sui-nada">
       <b>${filtrando ? 'Ninguna unidad coincide' : 'Todavía no hay unidades'}</b>
       ${filtrando ? 'Prueba a quitar algún filtro.' : 'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.'}
     </div></td></tr>`;
@@ -199,6 +207,10 @@ function pintarTabla(){
       <td class="num">${eur(u.precio_suelo, u.moneda)}</td>
       <td class="num">${eur(u.precio_construccion, u.moneda)}</td>
       <td class="num"><b>${eur(u.precio, u.moneda)}</b></td>
+      <td>${u.contrato_numero
+            ? '<span class="clave">' + esc(u.contrato_numero) + '</span>'
+              + (u.pct_cobrado != null ? ' <span class="flojo">' + u.pct_cobrado + '%</span>' : '')
+            : '<span class="flojo">—</span>'}</td>
       <td><span class="sui-tag e-${esc(u.estado)}">${esc(nombreEstado(u.estado))}</span></td>
     </tr>`).join('');
 
@@ -234,11 +246,29 @@ function abrirUnidad(id){
         ? '<p class="aviso">El total no cuadra con suelo + construcción. Revisa cuál de los tres es el bueno.</p>' : ''}
     </div>` : '';
 
+  /* Lo que el contrato ha traído a esta unidad. Es de solo lectura a propósito:
+     el vínculo lo pone el contrato al guardarse (trigger en la base), no una
+     persona desde aquí. Si se pudiera cambiar en los dos sitios, en cuanto no
+     coincidieran no habría forma de saber cuál manda. */
+  const operacion = (!nueva && u.contrato_numero) ? `
+    <div class="sui-bloque">
+      <h3>Operación</h3>
+      <dl class="sui-dl" style="margin:0">
+        <dt>Contrato</dt><dd><a class="enl" href="/operaciones/?contrato=${esc(u.contrato_numero)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
+        ${u.comprador_nombre ? `<dt>Comprador</dt><dd>${esc(u.comprador_nombre)}</dd>` : ''}
+        <dt>Cobrado</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
+          u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}</dd>
+      </dl>
+      ${u.pct_cobrado != null ? `<div class="barra"><i style="width:${Math.min(100, u.pct_cobrado)}%"></i></div>` : ''}
+      <p class="sui-nota">El estado lo lleva el contrato: al vincularse queda <b>reservada</b> y al firmarse
+        <b>vendida</b>. Si se le quita la parcela al contrato o se borra, vuelve a disponible sola.</p>
+    </div>` : '';
+
   suiAbrirCajon({
     titulo: nueva ? 'Nueva unidad' : esc(u.codigo),
     sub: nueva ? 'El código es el mismo texto que imprime el contrato.'
                : esc(u.proyecto || 'sin proyecto') + ' · ' + esc(nombreEstado(u.estado)),
-    cuerpo: desglose + `
+    cuerpo: operacion + desglose + `
       <div class="campo"><label>Código</label>
         <input id="f-codigo" value="${esc(u.codigo||'')}" placeholder="Ej. A12"></div>
       <p class="sui-nota" style="margin-top:-6px">Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.</p>
