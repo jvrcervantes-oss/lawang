@@ -309,7 +309,7 @@ function abrirUnidad(id){
         </div>
         <div class="campo"><label>Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
       </div>
-      ${escenarios(u)}
+      <div id="escenarios"></div>
       <div class="dos">
         <div class="campo"><label>Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
         <div class="campo"><label>Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
@@ -363,8 +363,12 @@ function abrirUnidad(id){
     if(!s && !o) return;
     if(!actual || Math.abs(actual - (t._auto||0)) < 0.5){ t.value = fmtNum(s + o); t._auto = s + o; }
   };
-  $('#f-suelo').addEventListener('input', suma);
+  // El suelo y la superficie también mueven las cifras del bloque de escenarios,
+  // así que lo repintan: si no, cambiar el suelo dejaba arriba los totales viejos.
+  $('#f-suelo').addEventListener('input', () => { suma(); pintarEscenarios(u); });
   $('#f-obra').addEventListener('input', suma);
+  $('#f-sup').addEventListener('input', () => pintarEscenarios(u));
+  pintarEscenarios(u);   // estado inicial
 
   /* Cambiar de modelo trae su precio de construcción del catálogo y rehace el
      total. Se hace aquí y no al guardar para que el comercial VEA el número
@@ -384,6 +388,7 @@ function abrirUnidad(id){
         $('#f-obra').value = '';
         $('#f-precio').value = '';
         $('#f-precio')._auto = 0;
+        pintarEscenarios(u);
         toast('Sin modelo: la construcción y el total quedan sin fijar');
         return;
       }
@@ -393,6 +398,7 @@ function abrirUnidad(id){
       const s = parseImporte($('#f-suelo').value) || 0;
       $('#f-precio').value = fmtNum(s + p);
       $('#f-precio')._auto = s + p;
+      pintarEscenarios(u);
       toast('Precio recalculado para ' + selModelo.value);
     });
   }
@@ -404,22 +410,35 @@ function abrirUnidad(id){
    se pueda construir cualquiera de los dos en cualquier sitio: el comercial que
    la enseña necesita las dos cifras a la vez, no la del modelo que alguien
    apuntó al cargar la tabla. El suelo no cambia; solo la construcción. */
-function escenarios(u){
+/* 🔴 Este bloque se pintaba UNA vez al abrir el cajón y se quedaba congelado.
+   Al poner el modelo en «sin decidir» los campos se vaciaban bien, pero aquí
+   arriba seguía diciendo «Dream · elegido · 130.875,00 EUR»: los campos decían
+   una cosa y el resumen otra, y el que manda a la vista es el resumen. Ahora se
+   repinta con cada cambio, y lee el modelo y el suelo DEL FORMULARIO, no de la
+   fila guardada — si no, tampoco seguiría a quien cambia el precio de suelo. */
+function pintarEscenarios(u){
+  const caja = $('#escenarios'); if(!caja) return;
   const ms = modelosDe(u.proyecto);
-  const suelo = Number(u.precio_suelo || 0);
-  if(ms.length < 2 || !suelo) return '';
-  const m = u.moneda || 'EUR';
-  return `<div class="sui-bloque">
+  const campoSuelo = $('#f-suelo'), campoModelo = $('#f-modelo');
+  const suelo = campoSuelo ? (parseImporte(campoSuelo.value) || 0) : Number(u.precio_suelo || 0);
+  const elegido = campoModelo ? campoModelo.value : u.modelo;
+  if(ms.length < 2 || !suelo){ caja.innerHTML = ''; return; }
+  const m = (($('#f-moneda') || {}).value) || u.moneda || 'EUR';
+  const m2 = $('#f-sup') ? parseImporte($('#f-sup').value) : Number(u.superficie_m2 || 0);
+  caja.innerHTML = `<div class="sui-bloque">
     <h3>Precio según el modelo</h3>
     ${ms.map(x => {
       const c = x.precio_construccion != null ? Number(x.precio_construccion) : null;
       return `<div class="sui-total" style="border:none;margin:0;padding:3px 0;font-weight:400">
-        <span>${esc(x.modelo)}${u.modelo === x.modelo ? ' <b>· elegido</b>' : ''}</span>
+        <span>${esc(x.modelo)}${elegido === x.modelo ? ' <b>· elegido</b>' : ''}</span>
         <span>${c == null ? '<span class="flojo">sin precio</span>' : '<b>' + esc(fmtMoneda(suelo + c, m)) + '</b>'}</span>
       </div>`;
     }).join('')}
-    <p class="sui-nota">Suelo ${esc(fmtMoneda(suelo, m))}${u.superficie_m2 ? ' · ' + fmtNum(Number(u.superficie_m2)) + ' m²' : ''}.
-      Lo que cambia entre modelos es la construcción; el suelo es de la parcela.</p>
+    <p class="sui-nota">${elegido
+      ? 'Suelo ' + esc(fmtMoneda(suelo, m)) + (m2 ? ' · ' + fmtNum(m2) + ' m²' : '') +
+        '. Lo que cambia entre modelos es la construcción; el suelo es de la parcela.'
+      : '<b>Sin modelo decidido</b>: esta parcela no tiene total. Arriba están las dos posibilidades; ' +
+        'el suelo (' + esc(fmtMoneda(suelo, m)) + ') es lo único fijo.'}</p>
   </div>`;
 }
 
