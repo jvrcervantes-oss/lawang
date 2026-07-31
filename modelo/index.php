@@ -785,9 +785,21 @@ p{margin:0;text-wrap:pretty}
             window.lwTrack('AbrioCalendario', {content_ids: [MODELO], content_type: 'product'}, true);
           }
         });
+        // El widget de GHL etiqueta los huecos en la zona de la CUENTA (hoy Asia/Singapore,
+        // la misma hora que Bali) y no acepta forzarla por URL — probadas ?timezone,
+        // ?timeZone y ?tz, ninguna la cambia. Sin este aviso el lead espanol abre el
+        // calendario, lee "16:00" y se va creyendo que no hay horas de mañana. Las horas
+        // son correctas en absoluto: 16:00-23:00 de Bali son las 10:00-17:00 de Madrid.
+        // Esta linea SE BORRA en cuanto el owner ponga la location en Europe/Madrid.
+        var tzAviso = document.createElement('p');
+        tzAviso.className = 'dice';
+        tzAviso.style.marginTop = '.9em';
+        tzAviso.style.fontSize = '13px';
+        tzAviso.textContent = 'El calendario abre en hora de Bali. Cámbiala a la tuya con el '
+          + 'selector de zona horaria que hay bajo el calendario.';
         form.textContent = '';
         form.className = 'gracias';
-        form.appendChild(h); form.appendChild(p); form.appendChild(cal);
+        form.appendChild(h); form.appendChild(p); form.appendChild(cal); form.appendChild(tzAviso);
         // La barra fija seguía ofreciendo "Reservar mi llamada" a quien acababa de
         // reservarla: se desconecta el observador y se retira.
         if (ioFijo) ioFijo.disconnect();
