@@ -8,6 +8,19 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const RENDER_URL = Deno.env.get('RENDER_URL') || 'https://contracts-pdf-service-production.up.railway.app';
 const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
+// El sitio sirve el envío de correo (api/send_email.php) y los ficheros
+// compartidos con los que se pinta la factura. Env var para poder apuntar a un
+// entorno de pruebas sin tocar el código.
+const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
+// Copia del contrato firmado para el estudio. Va aparte de los compradores
+// porque no es "un destinatario más": es el acuse que se archiva.
+const ESTUDIO_EMAIL = Deno.env.get('ESTUDIO_EMAIL') || 'jcervantes@lawangproperties.com';
+// Por encima de esto el PDF se manda como enlace y no como adjunto. Gmail y la
+// práctica totalidad de servidores rechazan por encima de ~25 MB, y un contrato
+// de Lawang con anexos llega a 20 MB de sobra (los anexos van en base64 dentro
+// del jsonb). Un correo rebotado por tamaño es un contrato que el cliente NO
+// recibe y de lo que nadie se entera.
+const MAX_ADJUNTO = 15 * 1024 * 1024;
 
 // Origen restringido: con '*' cualquier web podia lanzar la firma desde su
 // pagina. El token sigue siendo la credencial, pero esto cierra el paso a que
@@ -57,6 +70,216 @@ function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: str
       Dokumen ini ditandatangani secara elektronik dan jarak jauh oleh orang yang diidentifikasi di atas, yang menyatakan telah membaca dan menerima isinya. Catatan ini membuktikan penerimaan tersebut, beserta tanggal/waktu dan alamat IP dari mana tanda tangan dilakukan.
     </p>
   </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CIERRE DE CICLO — lo que pasa DESPUÉS de que el contrato quede sellado
+//  ---------------------------------------------------------------------------
+//  Nada de esta sección puede tumbar una firma. Cuando se llega aquí el PDF ya
+//  está en el bucket con su hash y el contrato ya está bloqueado: el documento
+//  es válido aunque falle el correo o la factura. Por eso cada pieza va en su
+//  try/catch y lo que falla vuelve como `avisos`, no como error.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/* Envío de correo por el endpoint del sitio (PHP con SMTP autenticado). No se
+   monta un segundo emisor aquí: el remitente, el SMTP y el formato MIME ya
+   están resueltos y probados en `contracts/api/send_email.php`. */
+async function enviarEmail(p: {
+  to: string; subject: string; message: string; filename?: string; pdfB64?: string;
+}) {
+  const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      to: p.to, subject: p.subject, message: p.message,
+      ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),
+    }),
+  });
+  const t = await r.text();
+  if (!r.ok || !t.includes('"ok":true')) throw new Error('email a ' + p.to + ': ' + t.slice(0, 200));
+}
+
+const b64 = (u8: Uint8Array) => {
+  // en trozos: `String.fromCharCode(...u8)` con un PDF de MB revienta la pila
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+/* Los ficheros que pintan la factura son los MISMOS que usa /facturas/: se
+   bajan del sitio y se ejecutan aquí. Así la factura que sale sola y la que
+   emite una persona son el mismo documento — si mañana cambia una fila en
+   documento.js, cambia en las dos. La alternativa era una segunda plantilla
+   aquí dentro, que es exactamente lo que se dejaría vieja.
+   ponytail: se ejecutan con `new Function` porque son <script> clásicos (los
+   comparte una página HTML plana). Si esto dejara de estar permitido, la
+   factura se salta con aviso y la firma sigue intacta. */
+let COMPARTIDOS: Record<string, any> | null = null;
+async function compartidos() {
+  if (COMPARTIDOS) return COMPARTIDOS;
+  const rutas = ['/contracts/assets/entities.js', '/facturas/totales.js',
+                 '/facturas/compradores.js', '/facturas/documento.js'];
+  const fuentes = await Promise.all(rutas.map(async (p) => {
+    const r = await fetch(SITIO + p + '?v=' + Date.now());
+    if (!r.ok) throw new Error('no se pudo cargar ' + p + ' (' + r.status + ')');
+    return await r.text();
+  }));
+  const caja: Record<string, any> = {};
+  new Function('caja', fuentes.join('\n;\n') +
+    '\n;Object.assign(caja,{SOCIEDADES,CUENTAS_BANCARIAS,calcTotales,fmtMoneda,parseImporte,' +
+    'compradoresDeContrato,nombresFactura,documentosFactura,primerDato,documentoPagina,TIPOS_DOC});')(caja);
+  COMPARTIDOS = caja;
+  return caja;
+}
+
+/* El contrato firmado, al estudio y a cada comprador con email. El estudio
+   siempre; los compradores, los que tengan dirección — a quien no la dio no se
+   le inventa una. */
+async function repartirFirmado(o: {
+  numero: string; pdf: Uint8Array; path: string; compradores: any[]; proyecto: string;
+}) {
+  const grande = o.pdf.length > MAX_ADJUNTO;
+  let enlace = '';
+  if (grande) {
+    // 30 días: el comprador tiene que poder volver a descargarlo sin pedirlo.
+    const { data, error } = await sb.storage.from('contratos-firmados')
+      .createSignedUrl(o.path, 30 * 24 * 3600);
+    if (error || !data) throw new Error('no se pudo firmar el enlace de descarga: ' + (error?.message ?? ''));
+    enlace = data.signedUrl;
+  }
+  const adjunto = grande ? {} : { pdfB64: b64(o.pdf), filename: o.numero + '_firmado.pdf' };
+  const cola = [
+    '', '', 'Lawang Tropical Properties',
+    'PT TEPI SUNGAI · PT SAN DAL WOODS',
+  ].join('\n');
+  const pie = grande
+    ? '\n\nEl documento pesa más de lo que admite el correo, así que va por enlace:\n' + enlace +
+      '\n(El enlace caduca en 30 días. Si lo necesitas después, escríbenos.)'
+    : '\n\nEl documento firmado va adjunto a este correo.';
+
+  const errores: string[] = [];
+  const destinos = [
+    { to: ESTUDIO_EMAIL, estudio: true },
+    ...o.compradores.filter((c) => c.email).map((c) => ({ to: c.email, nombre: c.nombre, estudio: false })),
+  ];
+  for (const d of destinos) {
+    const asunto = d.estudio
+      ? 'Contrato firmado · ' + o.numero + (o.proyecto ? ' · ' + o.proyecto : '')
+      : 'Tu contrato firmado · ' + o.numero;
+    const cuerpo = d.estudio
+      ? 'Se ha completado la firma del contrato ' + o.numero + '.' +
+        (o.proyecto ? '\nProyecto: ' + o.proyecto : '') +
+        '\nFirmantes: ' + o.compradores.map((c) => c.nombre).join(', ') +
+        '\n\nCopia para archivo.' + pie
+      : 'Hola' + ((d as any).nombre ? ' ' + String((d as any).nombre).split(' ')[0] : '') + ',' +
+        '\n\nHemos recibido tu firma. Aquí tienes tu copia del contrato ' + o.numero +
+        (o.proyecto ? ' (' + o.proyecto + ')' : '') + ', ya firmado.' +
+        '\n\nGuárdalo: es el documento con el registro de firma electrónica que acredita la operación.' +
+        pie + cola;
+    try { await enviarEmail({ to: d.to, subject: asunto, message: cuerpo, ...adjunto }); }
+    catch (e) { errores.push(String((e as Error).message)); }
+  }
+  if (errores.length) throw new Error(errores.join(' | '));
+}
+
+/* Factura del PRIMER hito del calendario de pagos. El número lo pone el trigger
+   de la base de datos (serie INV), nunca esta función: si lo calculara aquí, dos
+   firmas simultáneas emitirían el mismo número.
+   Se cobra UN hito, el primero — no los cuatro. Si el contrato no tiene
+   calendario, o el primer hito no da importe, no se emite nada y se avisa: una
+   factura con importe inventado es dinero mal pedido. */
+async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: any })
+    : Promise<{ emitida: boolean; mensaje: string }> {
+  const C = await compartidos();
+  const f = o.ct.fields || {};
+  const hitos = Array.isArray(o.ct.hitos) ? o.ct.hitos : [];
+  if (!hitos.length) return { emitida: false, mensaje: 'contrato sin calendario de pagos: no se emite factura' };
+
+  const moneda = f.moneda || o.ct.moneda || 'EUR';
+  const precio = C.parseImporte(f.precio_total) || Number(o.ct.precio_total) || 0;
+  const h = hitos[0];
+  const pct = C.parseImporte(h.pct);
+  const monto = C.parseImporte(h.monto) || (pct && precio ? Math.round(precio * pct / 100 * 100) / 100 : 0);
+  if (!monto) return { emitida: false,
+    mensaje: 'el primer hito no fija importe ni porcentaje sobre un precio conocido: no se emite factura' };
+
+  const compradores = C.compradoresDeContrato(f, o.ct.extras);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const descripcion = [h.es || h.en || 'Primer pago', pct ? '(' + pct + '% del precio acordado)' : '']
+    .filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
+  const lineas = [{ descripcion, importe: String(monto) }];
+
+  // Misma forma que produce collect() en /facturas/, para que la factura se abra
+  // ahí tal cual y se pueda corregir o anular como cualquier otra.
+  const campos: Record<string, string> = {
+    tipo: 'factura',
+    sociedad: f.sociedad_firmante && C.SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai',
+    cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
+    fecha_emision: hoy, fecha_vencimiento: '', moneda,
+    numero_visible: '', contrato_numero: o.numero,
+    cliente_nombre: C.nombresFactura(compradores),
+    cliente_documento: C.documentosFactura(compradores),
+    cliente_domicilio: C.primerDato(compradores, 'domicilio'),
+    cliente_email: C.primerDato(compradores, 'email'),
+    proyecto_nombre: [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa]
+      .filter(Boolean).join(' — '),
+    // El impuesto va vacío a propósito: qué tipo aplica en Indonesia (PPN y su
+    // porcentaje vigente) no está confirmado, y un porcentaje inventado en una
+    // factura es dinero mal calculado.
+    imp_etiqueta: '', imp_pct: '',
+    notas: 'Primer hito del contrato ' + o.numero + '. Emitida automáticamente al completarse la firma.',
+  };
+  const totales = C.calcTotales(lineas, moneda, { pct: '' });
+
+  const { data: fila, error } = await sb.from('facturas').insert({
+    tipo: 'factura', sociedad: campos.sociedad,
+    cliente_nombre: campos.cliente_nombre || null,
+    proyecto_nombre: campos.proyecto_nombre || null,
+    contrato_numero: o.numero, contrato_id: o.contratoId,
+    total: totales.total, moneda, fecha_emision: hoy,
+    datos: { fields: { ...campos, lineas }, lineas, totales },
+  }).select('id, numero').single();
+  if (error || !fila) throw new Error('no se pudo crear la factura: ' + (error?.message ?? 'sin fila'));
+
+  // El número ya emitido tiene que salir impreso en el papel que se manda.
+  campos.numero_visible = fila.numero;
+  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, base: SITIO });
+
+  const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    body: JSON.stringify({ html }),
+  });
+  if (!rr.ok) throw new Error('factura ' + fila.numero + ' creada, pero no se pudo generar su PDF: render ' + rr.status);
+  const pdf = new Uint8Array(await rr.arrayBuffer());
+  if (String.fromCharCode(...pdf.slice(0, 4)) !== '%PDF')
+    throw new Error('factura ' + fila.numero + ' creada, pero el render no devolvió un PDF');
+
+  const para = campos.cliente_email || ESTUDIO_EMAIL;
+  const importe = C.fmtMoneda(totales.total, moneda);
+  await enviarEmail({
+    to: para,
+    subject: 'Factura ' + fila.numero + ' · ' + o.numero,
+    message: 'Hola' + (compradores[0] ? ' ' + compradores[0].nombre.split(' ')[0] : '') + ',' +
+      '\n\nAdjuntamos la factura ' + fila.numero + ' correspondiente al primer pago del contrato ' +
+      o.numero + '.' +
+      '\n\nConcepto: ' + descripcion +
+      '\nImporte: ' + importe +
+      '\n\nLos datos para la transferencia están en la propia factura.' +
+      '\n\n\nLawang Tropical Properties',
+    filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+  });
+  // Copia al estudio, para que la emisión no dependa de mirar el panel.
+  if (para !== ESTUDIO_EMAIL) {
+    await enviarEmail({
+      to: ESTUDIO_EMAIL,
+      subject: 'Factura ' + fila.numero + ' emitida y enviada · ' + o.numero,
+      message: 'Factura ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
+        o.numero + ' y enviada a ' + para + '.\n\n' + descripcion,
+      filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+    });
+  }
+  return { emitida: true, mensaje: 'factura ' + fila.numero + ' emitida y enviada a ' + para };
 }
 
 Deno.serve(async (req) => {
@@ -130,8 +353,12 @@ Deno.serve(async (req) => {
     // Firmantes esperados = Adquiriente I (si tiene nombre) + adicionales con
     // identidad, leídos del propio contrato. Columnas concretas, nunca datos
     // entero: el jsonb pesa MB por los anexos en base64.
+    // Columnas concretas, JAMÁS `datos` entero: el jsonb pesa MB por los anexos
+    // en base64. `datos->fields` sí es texto plano (las firmas no viven ahí) y
+    // hace falta al completo para el correo y la factura del primer hito.
     const { data: ct, error: ctErr } = await sb.from('contratos')
-      .select('adq1:datos->fields->>adq1_nombre, extras:datos->compradores')
+      .select('adq1:datos->fields->>adq1_nombre, extras:datos->compradores, ' +
+              'fields:datos->fields, hitos:datos->hitos, precio_total, moneda, proyecto_nombre')
       .eq('id', claimed.contrato_id).single();
     if (ctErr || !ct) throw new Error('no se pudo leer el contrato: ' + (ctErr?.message ?? 'sin fila'));
     const extras = Array.isArray((ct as any).extras) ? (ct as any).extras : [];
@@ -246,7 +473,35 @@ Deno.serve(async (req) => {
       .eq('contrato_id', claimed.contrato_id).eq('estado', 'pendiente');
     if (barridaFinal.error) console.error('pendientes sin anular al cerrar', claimed.contrato_id, ':', barridaFinal.error.message);
 
-    return json({ ok: true, numero, faltan: 0 });
+    // ── A PARTIR DE AQUÍ el contrato ya es válido y está sellado ───────────
+    // Reparto del firmado y factura del primer hito. Van FUERA del camino
+    // crítico y cada uno en su try: si el correo o la factura fallan, la firma
+    // no se deshace ni se devuelve un error al comprador —que ya firmó y no
+    // puede hacer nada al respecto—. Se avisa por logs y en la respuesta.
+    const avisos: string[] = [];
+    const compradores = [
+      { nombre: String((ct as any).adq1 ?? '').trim(), email: String((ct as any).fields?.adq1_email ?? '').trim() },
+      ...extras.filter(conDatos).map((c: any) => ({ nombre: String(c.nombre ?? '').trim(), email: String(c.email ?? '').trim() })),
+    ].filter((c) => c.nombre);
+
+    try {
+      await repartirFirmado({ numero, pdf, path, compradores,
+                              proyecto: String((ct as any).proyecto_nombre ?? (ct as any).fields?.proyecto_nombre ?? '') });
+    } catch (e) {
+      const m = 'contrato ' + numero + ' firmado pero NO repartido por email: ' + (e as Error).message;
+      console.error(m); avisos.push(m);
+    }
+
+    try {
+      const r = await facturarPrimerHito({ contratoId: claimed.contrato_id, numero, ct });
+      console.log('firma', claimed.id, '·', r.mensaje);
+      if (!r.emitida) avisos.push(r.mensaje);   // no emitir puede ser lo correcto, pero nunca en silencio
+    } catch (e) {
+      const m = 'contrato ' + numero + ' firmado pero SIN factura del primer hito: ' + (e as Error).message;
+      console.error(m); avisos.push(m);
+    }
+
+    return json({ ok: true, numero, faltan: 0, ...(avisos.length ? { avisos } : {}) });
   } catch (e) {
     // deja el token reutilizable para que el comprador pueda reintentar
     if (claimedId) await sb.from('contrato_firmas').update({ estado: 'pendiente' }).eq('id', claimedId);
