@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731d">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731e">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="/contracts/assets/visor.js?v=20260730103319" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -59,7 +59,10 @@
   table.ops .n{ font-size:12.5px; letter-spacing:.08em; color:var(--tg); font-weight:600; white-space:nowrap; }
   table.ops .c{ font-weight:600; }
   table.ops .p{ font-size:12.5px; color:var(--muted); }
-  table.ops .badges{ display:flex; gap:4px; flex-wrap:wrap; }
+  /* 8px en horizontal: a 4px dos pastillas de color solido se leian como una
+     sola etiqueta partida. El hueco vertical se queda en 6 para que dos lineas
+     de etiquetas no engorden la fila. */
+  table.ops .badges{ display:flex; gap:6px 8px; flex-wrap:wrap; }
   .volver{ font:inherit; font-size:12.5px; background:none; border:none; color:var(--dl); cursor:pointer;
            padding:0; margin:0 0 14px; display:inline-flex; align-items:center; gap:6px; }
   .volver:hover{ text-decoration:underline; }

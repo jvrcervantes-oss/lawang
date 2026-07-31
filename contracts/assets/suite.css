@@ -162,8 +162,9 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    En pantallas ≥1500px el velo era transparente a propósito, para no tapar
    la lista. El efecto real era el contrario: en el monitor donde MÁS se nota
    que el cajón flota, era donde no había ninguna señal de que flotaba
-   (31-jul-2026). Se atenúa siempre, y flojo — .22 deja leer la tabla. */
-.sui-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.22);
+   (31-jul-2026). Se atenúa siempre. Empezó en .22 y se subió a .38 el mismo día: a .22
+   apenas se distinguía de la propia sombra del cajón. */
+.sui-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.38);
   opacity:0; pointer-events:none; transition:opacity var(--t-cajon) var(--curva); }
 .sui-velo.on{ opacity:1; pointer-events:auto; }
 
