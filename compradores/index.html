@@ -11,11 +11,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260731">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=20260731">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/topbar.js" defer></script>
 <script src="/contracts/assets/visor.js?v=20260730103319" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=20260730103319" data-herramienta="compradores"></script>
+<script src="/contracts/assets/suite.js?v=20260731"></script>
 <style>
   :root{ --line:#E2DACA; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:56px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -85,12 +87,26 @@
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
 
-  <div class="stage" id="stage">
-    <div class="lista">
-      <div class="cab"><input class="buscar" id="q" placeholder="Buscar nombre, email o pasaporte…"></div>
-      <div id="listaC">Cargando…</div>
+  <div class="sui-stage">
+    <div class="sui-centro">
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="q" placeholder="Buscar nombre, email o pasaporte…">
+        <div class="sui-dens" id="dens"></div>
+      </div>
+      <div class="sui-tabla-caja">
+        <table class="sui-tabla" id="tabla">
+          <thead><tr>
+            <th data-orden="full_name">Comprador</th>
+            <th data-orden="email">Contacto</th>
+            <th data-orden="nationality">Nacionalidad</th>
+            <th data-orden="passport_number">Pasaporte</th>
+            <th data-orden="kyc_status">KYC</th>
+            <th class="num">Docs.</th>
+          </tr></thead>
+          <tbody id="listaC"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="ficha" id="ficha"><div class="vacio">Elige un comprador</div></div>
   </div>
   <div class="toast" id="toast"></div>
 
@@ -122,6 +138,7 @@ const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
               ['signed_contract','Contrato firmado'],['other','Otro']];
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
+const ORDEN = { campo:'full_name', dir:'asc' };
 let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], SEL=null;
 
 async function cargar(){
@@ -151,27 +168,30 @@ function alerta(clientId){
 
 function pintarLista(){
   const q = $('#q').value.trim().toLowerCase();
-  const vis = CLIENTES.filter(c => !q ||
-    [c.full_name,c.email,c.passport_number].some(v => String(v||'').toLowerCase().includes(q)));
+  const vis = suiOrdenar(CLIENTES.filter(c => !q ||
+    [c.full_name,c.email,c.passport_number].some(v => String(v||'').toLowerCase().includes(q))),
+    ORDEN, (c, campo) => c[campo]);
   $('#listaC').innerHTML = vis.length ? vis.map(c => {
     const a = alerta(c.id);
     const n = DOCUMENTOS.filter(x => x.client_id === c.id).length;
-    return `<button class="c ${SEL===c.id?'sel':''}" data-id="${esc(c.id)}">
-      <div class="n">${esc(c.full_name || 'Sin nombre')}</div>
-      <div class="m">${esc(c.email || c.nationality || '—')}</div>
-      <div class="r">
-        <span class="tag ${c.kyc_status==='verified'?'ok':(c.kyc_status==='rejected'?'mal':'espera')}">${esc(etiqueta(KYC,c.kyc_status||'pending'))}</span>
-        <span class="tag neutro">${n} doc.</span>
-        ${a ? `<span class="tag ${a[0]}">${esc(a[1])}</span>` : ''}
-      </div></button>`;
+    return `<tr data-id="${esc(c.id)}" class="${SEL===c.id?'sel':''}">
+      <td class="clave">${esc(c.full_name || 'Sin nombre')}</td>
+      <td>${esc(c.email || '—')}${c.phone ? ' <span class="flojo">· ' + esc(c.phone) + '</span>' : ''}</td>
+      <td>${esc(c.nationality || '—')}</td>
+      <td>${esc(c.passport_number || '—')}</td>
+      <td><span class="sui-tag ${c.kyc_status==='verified'?'ok':(c.kyc_status==='rejected'?'alerta':'espera')}">${esc(etiqueta(KYC,c.kyc_status||'pending'))}</span>${
+        a ? ` <span class="sui-tag ${a[0]==='mal'?'alerta':a[0]}">${esc(a[1])}</span>` : ''}</td>
+      <td class="num ${n?'':'flojo'}">${n}</td>
+    </tr>`;
   }).join('')
-  : `<p class="nota" style="padding:18px">${CLIENTES.length ? 'Nadie coincide.' : 'Todavía no hay compradores. Créalo con “+ Nuevo comprador”.'}</p>`;
+  : `<tr><td colspan="6"><div class="sui-nada"><b>${CLIENTES.length ? 'Nadie coincide' : 'Todavía no hay compradores'}</b>${
+      CLIENTES.length ? 'Prueba con otra búsqueda.' : 'Créalo con «+ Nuevo comprador».'}</div></td></tr>`;
 }
 
 function pintarFicha(){
   const nuevo = SEL === 'nuevo';
   const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
-  if(!c){ $('#ficha').innerHTML = '<div class="vacio">Elige un comprador</div>'; return; }
+  if(!c){ suiCerrarCajon(); return; }
   const docs = nuevo ? [] : DOCUMENTOS.filter(d => d.client_id === c.id);
 
   const filas = docs.length ? docs.map(d => {
@@ -188,10 +208,9 @@ function pintarFicha(){
     </tr>`;
   }).join('') : '<tr><td colspan="4" class="nota">Sin documentos todavía.</td></tr>';
 
-  $('#ficha').innerHTML = `
-    <h2 class="t">${nuevo ? 'Nuevo comprador' : esc(c.full_name || 'Sin nombre')}</h2>
-    <p class="sub">${nuevo ? 'Los datos que aquí se guardan son los que exige el KYC.' :
-      esc([c.nationality, c.passport_number].filter(Boolean).join(' · ') || 'sin identificación')}</p>
+  /* La ficha va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
+     y se edita sin perder de vista la lista de la que sale. */
+  const cuerpoFicha = `
 
     <fieldset>
       <legend>Identidad</legend>
@@ -210,9 +229,6 @@ function pintarFicha(){
       </div>
       <label>Domicilio</label><textarea id="f-dom">${esc(c.address||'')}</textarea>
       <label>Notas</label><textarea id="f-notas">${esc(c.notes||'')}</textarea>
-      <div class="acciones" style="margin-top:14px">
-        <button class="btn primary" id="btnGuardar">${nuevo ? 'Crear comprador' : 'Guardar cambios'}</button>
-      </div>
     </fieldset>
 
     ${nuevo ? '<p class="nota">Los documentos se suben después de crear la ficha.</p>' : `
@@ -253,9 +269,21 @@ function pintarFicha(){
       </div>
     </fieldset>`}`;
 
+  suiAbrirCajon({
+    titulo: nuevo ? 'Nuevo comprador' : esc(c.full_name || 'Sin nombre'),
+    sub: nuevo ? 'Los datos que aquí se guardan son los que exige el KYC.'
+               : esc([c.nationality, c.passport_number].filter(Boolean).join(' · ') || 'sin identificación'),
+    cuerpo: cuerpoFicha,
+    pie: `<button class="sui-btn primario" id="btnGuardar">${nuevo ? 'Crear comprador' : 'Guardar cambios'}</button>
+          <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+    onCerrar: () => { SEL = null; pintarLista(); },
+  });
+
   $('#btnGuardar').addEventListener('click', () => guardar(nuevo ? null : c.id));
+  $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
-  $('#ficha').querySelectorAll('[data-ver]').forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
+  document.getElementById('suiCajon').querySelectorAll('[data-ver]')
+    .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
 }
 
 async function guardar(id){
@@ -329,6 +357,10 @@ $('#listaC').addEventListener('click', e => {
 });
 $('#q').addEventListener('input', pintarLista);
 $('#btnNuevo').addEventListener('click', () => { SEL='nuevo'; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta'); });
+
+suiMontarCajon();
+suiMontarDensidad(document.getElementById('dens'));
+suiOrdenable(document.getElementById('tabla'), ORDEN, (c, campo) => c[campo], pintarLista);
 
 window.LW_AUTH.then(async ({ sb, session }) => {
   SB = sb;

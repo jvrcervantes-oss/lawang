@@ -312,22 +312,37 @@ function abrirUnidad(id){
         <div class="campo"><label>Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):''}"></div>
         <div class="campo"><label>Moneda</label><select id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
       </div>
-      <div class="campo"><label>Estado</label>
-        <select id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
-      <div class="campo"><label>Contrato asociado</label>
-        <select id="f-contrato"><option value="">— sin contrato —</option>
-          ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||'sin nº')} — ${esc(c.comprador_nombre||'sin nombre')}</option>`).join('')}
-        </select></div>
-      <div id="avisoEstado"></div>
+      ${u.contrato_id ? `
+        <div class="campo"><label>Estado</label>
+          <input value="${esc(nombreEstado(u.estado))} · lo lleva el contrato" readonly
+                 style="background:var(--sup-2);color:var(--texto-2);cursor:not-allowed"></div>
+        <div class="campo"><label>Contrato asociado</label>
+          <input value="${esc(u.contrato_numero || 'vinculado')}" readonly
+                 style="background:var(--sup-2);color:var(--texto-2);cursor:not-allowed"></div>
+        <p class="aviso">Esta parcela está vinculada a un contrato, así que su estado y su contrato
+          <b>no se tocan desde aquí</b>: los lleva el contrato. Para soltarla, quítale la parcela al
+          contrato o bórralo, y volverá a estar disponible sola.</p>`
+      : `
+        <div class="campo"><label>Estado</label>
+          <select id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="campo"><label>Contrato asociado</label>
+          <select id="f-contrato"><option value="">— sin contrato —</option>
+            ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||'sin nº')} — ${esc(c.comprador_nombre||'sin nombre')}</option>`).join('')}
+          </select></div>
+        <div id="avisoEstado"></div>`}
       <div class="campo"><label>Notas</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
     pie: `<button class="sui-btn primario" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
 
-  avisoEstado();
-  $('#f-estado').addEventListener('change', avisoEstado);
-  $('#f-contrato').addEventListener('change', avisoEstado);
+  // Estos dos campos solo existen si la parcela NO está vinculada (ver arriba):
+  // con contrato son de solo lectura y no hay nada de lo que avisar.
+  if($('#f-estado')){
+    avisoEstado();
+    $('#f-estado').addEventListener('change', avisoEstado);
+    $('#f-contrato').addEventListener('change', avisoEstado);
+  }
   // Suelo + construcción rellenan el total mientras esté vacío o cuadre: es la
   // suma que hace el propio cliente en su tabla, y tecleada dos veces se
   // desincroniza. Si alguien pone un total distinto a mano, se respeta.
@@ -387,6 +402,7 @@ function escenarios(u){
 /* El aviso es el guardia: dice en voz alta lo que la base de datos no puede
    saber (que ESTA unidad ya está comprometida con OTRO contrato). */
 function avisoEstado(){
+  if(!$('#f-estado') || !$('#f-contrato')) return;
   const est = $('#f-estado').value, cid = $('#f-contrato').value;
   const otras = UNIDADES.filter(u => u.contrato_id && u.contrato_id === cid && u.id !== SEL);
   const msgs = [];
@@ -406,9 +422,18 @@ async function guardar(id){
     tipo: $('#f-tipo').value, modelo: $('#f-modelo').value.trim() || null,
     superficie_m2: num('#f-sup'), precio_suelo: num('#f-suelo'),
     precio_construccion: num('#f-obra'), precio: num('#f-precio'),
-    moneda: $('#f-moneda').value, estado: $('#f-estado').value,
-    contrato_id: $('#f-contrato').value || null, notas: $('#f-notas').value.trim() || null,
+    moneda: $('#f-moneda').value, notas: $('#f-notas').value.trim() || null,
   };
+  /* 🔴 `estado` y `contrato_id` solo se mandan si la parcela NO está vinculada.
+     Se mandaban SIEMPRE, y eso hacía que cambiarle el precio a una parcela
+     reservada la desvinculara del contrato y la devolviera a disponible —el
+     desplegable de contrato salía vacío y ese vacío se guardaba encima—. Una
+     parcela vendida volvía a aparecer libre por haberle corregido un importe.
+     Desde que el vínculo lo pone el contrato (trigger `sincroniza_unidad_
+     contrato`), estos dos campos tienen UN dueño, y no es esta pantalla. */
+  const est = $('#f-estado'), ctr = $('#f-contrato');
+  if(est) fila.estado = est.value;
+  if(ctr) fila.contrato_id = ctr.value || null;
   const b = $('#btnGuardar'); b.disabled = true;
   try{
     const q = id ? SB.from('unidades').update(fila).eq('id', id).select('id')
