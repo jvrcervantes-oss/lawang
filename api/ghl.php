@@ -19,6 +19,16 @@
  * en toda llamada y su ausencia devuelve 401, no 400.
  */
 
+// Es un include, no un endpoint: pedirlo directo devolvia 200 con cuerpo vacio. No filtraba
+// nada —solo define funciones— pero un fichero alcanzable es superficie que no hace falta, y
+// si un dia PHP muestra un error aqui, el error lleva rutas. Mismo guard que `config.php`.
+// Va ADEMAS de la regla del .htaccess, no en su lugar: `RedirectMatch` casa la URL y se
+// esquiva con PATH_INFO (`/api/ghl.php/x`), como se vio el 3-ago-2026 con los arneses.
+if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'ghl.php') {
+    http_response_code(404);
+    exit;
+}
+
 const GHL_BASE    = 'https://services.leadconnectorhq.com';
 const GHL_VERSION = '2021-07-28';
 

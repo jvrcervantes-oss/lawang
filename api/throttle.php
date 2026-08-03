@@ -8,6 +8,13 @@
  *   lawang_throttle_register("login_$ip", 600);
  */
 
+// Include, no endpoint. Mismo guard que `config.php` y `ghl.php`: pedirlo directo no debe
+// responder 200, y el patron del .htaccess se esquiva con PATH_INFO.
+if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'throttle.php') {
+    http_response_code(404);
+    exit;
+}
+
 function lawang_throttle_dir() {
     $dir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'ratelimit';
     if (!is_dir($dir)) @mkdir($dir, 0700, true);

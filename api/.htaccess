@@ -1,9 +1,21 @@
-# Deny direct access to config and password files
-<Files ".passhash">
-  Order allow,deny
-  Deny from all
-</Files>
-<Files "config.php">
-  Order allow,deny
-  Deny from all
-</Files>
+# Ficheros de esta carpeta que son INCLUDES, no endpoints: nadie debe poder pedirlos.
+# OJO: `auth.php` NO entra aqui aunque lo parezca por el nombre — `admin.html` lo llama
+# por fetch tres veces y bloquearlo deja el panel sin login.
+#
+# `FilesMatch` y no `RedirectMatch`: el primero casa el fichero ya resuelto y es inmune a
+# PATH_INFO. Con `RedirectMatch …\.php$`, pedir `/api/ghl.php/x` no acaba en `.php`, la regla
+# no aplica y Apache ejecuta el fichero igual — asi respondian 200 los arneses y
+# `/modelo/lib.php/x` (3-ago-2026). Ademas cada uno lleva su propio guard dentro, para que
+# esto siga cerrado si un despliegue se lleva por delante el .htaccess.
+<FilesMatch "^(config|ghl|throttle)\.php$|^\.passhash$">
+  Require all denied
+</FilesMatch>
+
+# Apache 2.2 seguia en algunos hostings compartidos; sin esto las reglas de arriba se
+# ignoran en silencio en vez de fallar.
+<IfModule !mod_authz_core.c>
+  <FilesMatch "^(config|ghl|throttle)\.php$|^\.passhash$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>
