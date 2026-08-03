@@ -605,20 +605,26 @@ p{margin:0;text-wrap:pretty}
 
       <div class="campo">
         <label for="lw-presupuesto">Presupuesto que manejas</label>
-        <!-- El rango lo declara el LEAD; no se deduce del modelo que mira. Este campo es lo
+        <?php /* Comentario de PHP y NO de HTML, misma razon que el de "freehold" mas abajo:
+             este texto cita CIFRAS DE PRECIO, y en un comentario HTML viajaria al navegador
+             y saldria en "ver codigo fuente" de una pagina que paga trafico. Lo pillo el
+             verificador el 3-ago-2026, con la version en HTML ya en produccion.
+
+             El rango lo declara el LEAD; no se deduce del modelo que mira. Este campo es lo
              que reparte el seguimiento por gama en el CRM: sin el, las tres gamas caen en la
              misma cola y habria que abrir tres campanas en Meta para lo mismo.
              Tres decisiones que no se revierten sin motivo:
              · Son RANGOS, no importes. Un importe obliga a inventar el suelo de cada tramo
                (nuestros precios no estan cerrados) y a decidir a que tramo va quien maneja
                justo la cifra de la frontera.
-             · El tramo bajo NO enseña un suelo. Poner "25.000 €" publicaba un punto de
-               entrada que no existe: la unica referencia para una Dali son 69.000 € de otro
-               operador, y captabamos gente convencida de que 25k compra una villa.
+             · El tramo bajo NO enseña un suelo. Enseñarlo publicaba un punto de entrada que
+               no existe: la unica referencia que tenemos para una Dali es la de otro
+               operador, muy por encima, y captabamos gente convencida de que con esa cifra
+               se compra una villa.
              · "Todavia no lo tengo claro" no se quita. Es lo que sostiene el `required`:
                con base 6.1.b solo cabe exigir lo necesario para atender la solicitud, y el
                presupuesto no hace falta para devolver una llamada. Sin esa salida, el campo
-               pasa a ser condicion de acceso a un servicio que no la requiere. -->
+               pasa a ser condicion de acceso a un servicio que no la requiere. */ ?>
         <select id="lw-presupuesto" name="presupuesto" required aria-describedby="lw-presupuesto-err">
           <option value="" selected disabled>Elige un rango</option>
           <option value="bajo">Menos de 100.000 €</option>
