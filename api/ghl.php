@@ -26,6 +26,7 @@ const GHL_VERSION = '2021-07-28';
 // por fieldKey: el key se puede renombrar desde la UI y el id no.
 const GHL_CF_MODELO = 'KUGzZ2Kv9t0DiUq013mk'; // SINGLE_OPTIONS: el valor DEBE estar en la lista
 const GHL_CF_ORIGEN = 'HzpYLNaXWv1EACm9dEJ0';
+const GHL_CF_TICKET = 'bkqtNBBwUPzADF5PzOBx'; // MONETORY: numero, no cadena con simbolo
 
 // Pipeline por defecto de la location y su primera etapa.
 const GHL_PIPELINE = 'z01nrWJymUar2sX7RKv5';
@@ -98,7 +99,7 @@ function lawang_ghl_pendiente($email, $modelo, $paso, $code)
  * Da de alta (o actualiza) el contacto y su oportunidad en el pipeline.
  * Devuelve true solo si el contacto entro. Nunca lanza.
  */
-function lawang_ghl_upsert($nombre, $email, $tel, $modeloId, $origen, $campana)
+function lawang_ghl_upsert($nombre, $email, $tel, $modeloId, $origen, $campana, $ticket = 0)
 {
     $path = __DIR__ . '/../private/ghl.json';
     if (!is_file($path) || !function_exists('curl_init')) return false;
@@ -123,9 +124,15 @@ function lawang_ghl_upsert($nombre, $email, $tel, $modeloId, $origen, $campana)
             ['id' => GHL_CF_ORIGEN, 'field_value' => $campana !== '' ? $campana : $origen],
         ],
     ];
-    // ponytail: ticket_estimado_eur se deja vacio a proposito. Los unicos precios que
-    // tenemos son los de OTRO operador (bonian.lawangproperties.com); meterlos aqui seria
-    // fabricar la cifra por la que luego se puja. Se rellena cuando el owner cierre precio.
+    // `ticket_estimado_eur` = suelo del rango que el LEAD elige en el formulario, nunca
+    // una cifra derivada de nuestro precio: los unicos que tenemos son los de OTRO operador
+    // (bonian.lawangproperties.com) y pujar por un numero fabricado decide mal el gasto.
+    // Un 0 ("todavia no lo tengo claro") NO se envia: en un campo de moneda un cero ordena
+    // igual que un lead sin presupuesto pero parece un dato, y el seguimiento por gama se
+    // ramifica sobre este campo. Vacio se lee como "no contestó", que es la verdad.
+    if ((int) $ticket > 0) {
+        $contacto['customFields'][] = ['id' => GHL_CF_TICKET, 'field_value' => (int) $ticket];
+    }
 
     list($code, $out) = lawang_ghl_post('/contacts/upsert', $contacto, $cfg['pit']);
     $id = isset($out['contact']['id']) ? $out['contact']['id'] : null;

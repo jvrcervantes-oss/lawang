@@ -83,6 +83,11 @@ if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
 // expreso no se puede contactar a un residente en la UE (RGPD).
 $name  = $clean(isset($_POST['name'])  ? trim($_POST['name'])  : '');
 $phone = $clean(isset($_POST['phone']) ? trim($_POST['phone']) : '');
+// Suelo del rango de presupuesto que ELIGE el lead (0 = "todavia no lo tengo claro").
+// Se castea a entero y no se limpia como texto: es lo que separa el seguimiento por gama
+// en el CRM, y un valor de fuera de la lista tiene que valer 0, no colarse como cadena.
+$ticket = (int) (isset($_POST['ticket']) ? $_POST['ticket'] : 0);
+if (!in_array($ticket, [0, 25000, 100000, 175000], true)) $ticket = 0;
 
 if ($name !== '' || $phone !== '') {
     $consent = isset($_POST['consent']) && $_POST['consent'] === '1';
@@ -108,6 +113,7 @@ if ($name !== '' || $phone !== '') {
         'sales@lawangproperties.com',
         'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
         "Modelo: $property\nNombre: $name\nEmail: $email\nTelefono: $phone\n"
+        . 'Presupuesto: ' . ($ticket > 0 ? 'desde ' . number_format($ticket, 0, ',', '.') . ' EUR' : 'sin definir') . "\n"
         . "Origen: $source\nCampana: $campana\nFecha: " . date('c'),
         // From de un buzón del propio dominio: con un remitente ajeno el correo cae en spam.
         "From: no-reply@lawangproperties.com\r\nReply-To: $email\r\n"
@@ -118,13 +124,17 @@ if ($name !== '' || $phone !== '') {
         '-fno-reply@lawangproperties.com'
     ) ? 'si' : 'NO';
 
+    // `ticket` va al FINAL y no junto a `modelo`, que es donde encajaria leyendolo. Si el
+    // fichero ya existe en produccion, su cabecera de 10 columnas esta escrita y no se
+    // reescribe: meter la columna en medio desalinearia todo lo anterior. Al final, las 10
+    // viejas siguen cuadrando y la nueva sobra en las filas antiguas.
     if ($new) {
-        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'campana', 'consentimiento', 'ip', 'avisado']);
+        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'campana', 'consentimiento', 'ip', 'avisado', 'ticket']);
     }
     fputcsv($fh, [
         date('c'), $name, $email, $phone, $property, $source, $campana, 'si',
         isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
-        $enviado,
+        $enviado, $ticket,
     ]);
     fclose($fh);
 
@@ -141,7 +151,7 @@ if ($name !== '' || $phone !== '') {
     // tiene el correo. Solo entran aqui los leads de llamada — la verja de descargas es
     // solo un email y ensuciaria el pipeline con contactos que no se pueden trabajar.
     require_once __DIR__ . '/ghl.php';
-    lawang_ghl_upsert($name, $email, $phone, $property, $source, $campana);
+    lawang_ghl_upsert($name, $email, $phone, $property, $source, $campana, $ticket);
     exit;
 }
 

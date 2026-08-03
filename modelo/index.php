@@ -276,14 +276,21 @@ p{margin:0;text-wrap:pretty}
   text-transform:uppercase;color:var(--tinta-2);margin-bottom:7px;
   transition:color .2s var(--ease)}
 .campo:focus-within label{color:var(--verde)}
-.campo input{width:100%;font-family:inherit;font-size:16px;font-weight:400;
+.campo :is(input,select){width:100%;font-family:inherit;font-size:16px;font-weight:400;
   color:var(--tinta);background:#fff;border:1px solid var(--linea);border-radius:0;
   padding:13px 14px;transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
-.campo input:focus{outline:none;border-color:var(--verde);
+/* El select nativo pinta su propia flecha y su propio radio segun el SO. Se apaga y se
+   dibuja una igual que el resto: en iOS un desplegable con esquinas redondeadas dentro de
+   campos de esquina viva se lee como un fallo de la pagina, no como estilo del sistema. */
+.campo select{-webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%235B554E' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;
+  padding-right:38px}
+.campo :is(input,select):focus{outline:none;border-color:var(--verde);
   box-shadow:0 0 0 3px rgba(31,74,61,.14)}
-.campo input[aria-invalid="true"]{border-color:#9C3B2E;box-shadow:0 0 0 3px rgba(156,59,46,.12)}
+.campo :is(input,select)[aria-invalid="true"]{border-color:#9C3B2E;box-shadow:0 0 0 3px rgba(156,59,46,.12)}
 .campo .err{display:none;font-size:12.5px;color:#8E3527;margin-top:6px}
-.campo input[aria-invalid="true"] ~ .err{display:block}
+.campo :is(input,select)[aria-invalid="true"] ~ .err{display:block}
 .acepto{display:flex;gap:11px;align-items:flex-start;font-size:13px;color:var(--tinta-2);
   line-height:1.45;margin:22px 0 22px}
 .acepto input{margin-top:2px;accent-color:var(--verde);flex:0 0 auto;width:17px;height:17px}
@@ -583,6 +590,23 @@ p{margin:0;text-wrap:pretty}
         <span class="err">Necesitamos un teléfono para llamarte.</span>
       </div>
 
+      <div class="campo">
+        <label for="lw-ticket">Presupuesto que manejas</label>
+        <!-- El rango lo declara el LEAD; no se deduce del modelo que mira. Los unicos
+             precios que tenemos son los de otro operador, asi que derivar la cifra aqui
+             seria fabricar el numero por el que luego se puja. Este campo es lo que
+             reparte el seguimiento por gama en el CRM: sin el, las tres gamas caen en la
+             misma cola y hay que separar tres campanas en Meta para lo mismo. -->
+        <select id="lw-ticket" name="ticket" required>
+          <option value="" selected disabled>Elige un rango</option>
+          <option value="25000">25.000 – 100.000 €</option>
+          <option value="100000">100.000 – 175.000 €</option>
+          <option value="175000">Más de 175.000 €</option>
+          <option value="0">Todavía no lo tengo claro</option>
+        </select>
+        <span class="err">Dinos por dónde te mueves para preparar la llamada.</span>
+      </div>
+
       <!-- Trampa de bots: un humano nunca la ve, así que si viene rellena, es un bot. -->
       <div class="trampa" aria-hidden="true"><label for="lw-web">No rellenar</label>
         <input type="text" id="lw-web" name="website" tabindex="-1" autocomplete="off"></div>
@@ -703,7 +727,7 @@ p{margin:0;text-wrap:pretty}
   var form = document.getElementById('lw-form');
   var aviso = document.getElementById('lw-aviso');
   var btn = document.getElementById('lw-submit');
-  var campos = ['lw-nombre', 'lw-email', 'lw-tel'];
+  var campos = ['lw-nombre', 'lw-email', 'lw-tel', 'lw-ticket'];
 
   function marca(el, malo) { el.setAttribute('aria-invalid', malo ? 'true' : 'false'); }
   campos.forEach(function (id) {
