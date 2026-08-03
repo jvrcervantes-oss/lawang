@@ -20,6 +20,17 @@ RedirectMatch 404 (?i)/modelo/(lib|modelos)\.php$
 # primer despliegue: la lista a mano ERA el bug, igual que en el hook de cache-bust.
 RedirectMatch 404 (?i)/test_[^/]+\.php$
 
+# ...y el `RedirectMatch` de arriba NO basta: casa la URL, no el fichero, asi que un
+# PATH_INFO detras de la extension se lo salta entero. Verificado en produccion el
+# 3-ago-2026: /api/test_lead_ticket.php/x ejecuto el arnes, y /modelo/lib.php/x y
+# /modelo/modelos.php/x devolvian 200 pese a la regla de la linea 16. `Files` casa el
+# fichero YA resuelto, que es lo que de verdad se ejecuta, y aplica a las subcarpetas.
+# Se deja tambien el RedirectMatch: da el 404 bonito en la ruta normal. Este es el cierre.
+<FilesMatch "(?i)^(test_[^/]+|lib|modelos)\.php$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
 # URLs limpias en las paginas publicas: /thecollection, no /thecollection.html.
 # Solo raiz y solo GET a proposito: las subcarpetas (api/, contracts/, facturas/, intranet/)
 # son apps internas con logins y formularios, y un 301 convierte un POST en GET — ahi no se toca.

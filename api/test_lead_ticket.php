@@ -13,6 +13,13 @@
  * test que mete filas falsas en el `leads_llamada.csv` de produccion es peor que no tener
  * test: ventas trabaja ese fichero. Un caso por proceso, porque `lead.php` acaba en exit().
  */
+// Mismo guard que api/test_ghl.php, y por el mismo motivo: el fichero vive en el webroot de
+// una landing que paga trafico. El patron del .htaccess raiz NO basta — `RedirectMatch` casa
+// la URL, asi que /api/test_lead_ticket.php/x no acaba en `.php` y se colaba: verificado en
+// produccion el 3-ago-2026 (500 = ejecuto; test_ghl.php respondio 404 porque lleva esta
+// linea). Sin ella, un anonimo dispara el runner, que lanza hasta 9 procesos php y correos
+// a ventas. El guard viaja con el fichero y sobrevive a un despliegue que se lleve el htaccess.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
 // ── Hijo: simula la peticion y deja que corra el lead.php de verdad ──────────────
 if (PHP_SAPI === 'cli' && $argc > 1) {
