@@ -2,22 +2,49 @@
 /**
  * Landing de modelo de villa — /modelo/<id> (regla de reescritura en .htaccess).
  *
- * Reescrita de cero el 30-jul-2026 con la dirección elegida por el owner:
- *   · Estructura CINEMÁTICA: una idea por pantalla, la foto manda, el texto es mínimo.
- *   · Tipografía GROTESCA ARQUITECTÓNICA: una sola familia (Archivo) y todo el contraste
- *     confiado al peso y al tamaño. Los números se leen como datos, con cifras tabulares.
- *   · Paleta TIERRA SATURADA: la teja es fondo de verdad, no un matiz. El verde hondo de
- *     Lawang se queda como acento, que es lo que ata esta página a la marca del sitio
- *     (el owner pidió evolucionar dentro de la marca, no romper con ella).
- *   · El formulario NO está en el primer pantallazo: el CTA abre un panel sobre la foto.
- *     Es lo que se decidió; el coste conocido es un clic más antes de convertir, y la
- *     contrapartida es que el panel llega con la persona ya decidida a pedir la llamada.
+ * ── 3-ago-2026 · CUARTA versión, reescrita de cero. ─────────────────────────
+ * El owner rechazó la anterior en las cuatro dimensiones a la vez (color y tipografía,
+ * estructura, mecánica de conversión y contenido) y eligió sobre opciones concretas la
+ * dirección **DOSSIER DE INVERSIÓN**. Es la lectura literal de PRODUCT.md: "como un banco
+ * privado que construye villas". Lo que eso significa aquí, y por qué:
  *
- * La teja del panel de color es #A34A26 y no el #B4552F elegido: con crema encima, aquel
- * da 4,31:1 y se queda corto para texto. #B4552F sigue vivo como acento sobre crema.
+ *   · DENSIDAD EN VEZ DE PANTALLAZOS. Fuera las 9 pantallas cinemáticas y el scroll-snap.
+ *     El lector es un inversor escéptico que compara: quiere los datos juntos y arriba,
+ *     no una idea por pantalla. La página es un documento, se puede imprimir y se lee de
+ *     arriba abajo sin gestos.
+ *   · LA FOTO ES PRUEBA, NO ESPECTÁCULO. Ninguna imagen a sangre. Todas van contenidas,
+ *     con su pie diciendo si es render o fotografía real. PRODUCT.md prohíbe expresamente
+ *     el "drone footage con sunsets"; a sangre y a pantalla completa es justo eso.
+ *   · EL FORMULARIO ESTÁ SIEMPRE VISIBLE. Columna fija (sticky) en escritorio; en móvil
+ *     entra justo detrás de la ficha técnica, a un scroll. Sustituye al <dialog> detrás
+ *     de un clic de la versión anterior, que el owner señala como el fallo de conversión.
+ *     Consecuencia medida en el píxel: `InitiateCheckout` ya no puede dispararse "al abrir
+ *     el panel" porque no hay panel — ahora salta al primer foco en un campo, que es el
+ *     equivalente real de "esta persona ha empezado".
+ *   · TIPOGRAFÍA IBM PLEX (serif titulares · sans texto · mono cifras y etiquetas). Una
+ *     superfamilia, tres voces. La mono en los datos es lo que hace que una tabla se lea
+ *     como una ficha y no como una web. Fuera Archivo y sus mayúsculas de peso 800.
+ *   · PALETA PAPEL + TINTA + UN VERDE. Desaparece la tierra saturada (teja) y el verde
+ *     hondo de la marca se queda como ÚNICO acento. Todos los pares usados pasan AA:
+ *     tinta 15,1:1 · secundario 6,0:1 · verde 8,8:1 sobre papel, y el verde en inverso
+ *     (botón) da el mismo 8,8:1.
  *
- * PRECIOS: no hay ninguno inventado. Sin precio cerrado la página no enseña cifra y se
- * marca `noindex` sola, para no indexar una ficha de producto sin producto.
+ * LO QUE NO SE TOCA AUNQUE CAMBIE EL DISEÑO — cada línea costó una corrección:
+ *   · Los textos de la FAQ son los que redactó Legal. "Freehold" NO vuelve (ver el
+ *     comentario largo en la sección de preguntas).
+ *   · El checkbox de consentimiento apunta a /legal-es (español), no a /legal.
+ *   · El desplegable de presupuesto conserva sus cuatro opciones, incluida "todavía no lo
+ *     tengo claro": es lo que sostiene que el campo pueda ser obligatorio sin convertirse
+ *     en condición de acceso (RGPD 6.1.b).
+ *   · Reglas de campos con lista separada por comas, nunca `:is()` — la pauta de Meta abre
+ *     WebViews viejas que descartan la regla entera.
+ *   · Sin precio cerrado: no se enseña cifra y la página se marca `noindex` sola.
+ *   · Sin renders: no hay landing, se redirige al catálogo.
+ *
+ * SIN DATOS QUE NO TENEMOS: no hay superficie construida, superficie de parcela ni plazo
+ * de obra en ninguna fuente del repo (en data.json los cuatro campos están a 0). En una
+ * ficha técnica esas filas son las primeras que busca un inversor, así que están pedidas
+ * al owner — pero NO se inventan ni se dejan como guion.
  */
 require __DIR__ . '/lib.php';
 $MODELOS = require __DIR__ . '/modelos.php';
@@ -34,554 +61,300 @@ $nombre  = $m['nombre'];
 $dorm    = (int) $m['dormitorios'];
 $dormTxt = $dorm . ' ' . ($dorm === 1 ? 'dormitorio' : 'dormitorios');
 
-// La composición es fija por pantalla, no una galería genérica: en una estructura
-// cinematográfica una foto decisiva vale más que cinco medianas. Con `?:` para que un
-// modelo con menos renders siga sirviendo página en vez de romperse.
-$g      = $m['imgs'];
-$hero   = $g[0];
-$dentroA = isset($g[3]) ? $g[3] : $g[0];
-$dentroB = isset($g[4]) ? $g[4] : $g[0];
-$plano   = isset($g[5]) ? $g[5] : (isset($g[1]) ? $g[1] : $g[0]);
+$g       = $m['imgs'];
+$portada = $g[0];
+$resto   = array_slice($g, 1);   // el resto va a la lámina de renders, contenidos
+
+/**
+ * Ficha técnica. Solo entra lo verificado en el pliego del contratista (anexo de obra) y
+ * en modelos.php. Cada fila es una afirmación que el comprador puede exigir por escrito.
+ */
+$ficha = [
+    ['Modelo',                 $nombre],
+    ['Dormitorios',            $dorm . ($dorm === 1 ? ' en suite' : ' en suite')],
+    ['Acabados de cubierta',   count($m['acabados']) . ' a elegir'],
+    ['Piscina',                'Overflow, piedra sukabumi'],
+    ['Terraza',                'Exterior'],
+    ['Climatización',          'Aire acondicionado y agua caliente'],
+    ['Acometida eléctrica',    'PLN 3.500 W'],
+    ['Parcela',                'A elegir del catálogo'],
+    ['Precio',                 $precio !== null ? $precio : 'Bajo consulta'],
+    ['Moneda del contrato',    'Rupia indonesia (IDR)'],
+    ['Promotor',               'PT Tepi Sun Gai'],
+];
 ?><!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= lw_e($nombre) ?> · Villa llave en mano en Bali — Lawang Estate</title>
-<meta name="description" content="<?= lw_e($nombre) ?>: villa de obra nueva de <?= lw_e($dormTxt) ?> en la costa de Bali, llave en mano y construida sobre la parcela que elijas.">
+<title><?= lw_e($nombre) ?> · Ficha de producto — Lawang Estate, Bali</title>
+<meta name="description" content="<?= lw_e($nombre) ?>: ficha técnica de la villa de obra nueva de <?= lw_e($dormTxt) ?> de Lawang Estate. Alcance de obra, acabados y proceso de compra.">
 <?php if (!$precio): ?>
 <meta name="robots" content="noindex, nofollow"><!-- sin precio cerrado no se indexa -->
 <?php endif; ?>
 <link rel="canonical" href="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="<?= lw_e($nombre) ?> · Villa llave en mano en Bali">
-<meta property="og:description" content="Villa de obra nueva de <?= lw_e($dormTxt) ?> en la costa de Bali, construida sobre la parcela que elijas.">
+<meta property="og:description" content="Ficha técnica de la villa de <?= lw_e($dormTxt) ?> de Lawang Estate: alcance de obra, acabados y proceso de compra.">
 <meta property="og:url" content="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
-<meta property="og:image" content="https://lawangproperties.com<?= lw_e($hero) ?>">
+<meta property="og:image" content="https://lawangproperties.com<?= lw_e($portada) ?>">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 
-<!-- El render del hero es el LCP: se precarga antes que nada. -->
-<link rel="preload" as="image" href="<?= lw_e($hero) ?>" fetchpriority="high">
+<!-- La foto de portada es el LCP: se precarga antes que nada. -->
+<link rel="preload" as="image" href="<?= lw_e($portada) ?>" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Tierra saturada. El verde hondo es el puente con la marca del sitio. */
-  --teja:#A34A26;        /* fondo de bloque; con crema encima da 5,17:1 */
-  --teja-vivo:#B4552F;   /* acento sobre crema, nunca texto pequeño */
-  --crema:#F7EFE6;
-  --crema-2:#EFE4D6;
-  --tinta:#23150F;
-  --tinta-2:#5F5147;     /* secundario sobre crema, 6,7:1 */
-  --verde:#1F4A3D;
-  --linea:#E2D6C8;
-  --sans:"Archivo",ui-sans-serif,system-ui,-apple-system,sans-serif;
-  --gut:clamp(20px,5vw,72px);
-  --wrap:1360px;
-  --ease:cubic-bezier(.23,1,.32,1);
-  --ease-soft:cubic-bezier(.32,.72,0,1);
+  /* Papel, tinta y un solo acento: el verde de la marca. */
+  --papel:#F4F1EA;
+  --papel2:#EAE5DA;
+  --tinta:#1A1D1B;      /* 15,1:1 sobre papel */
+  --tinta2:#575C58;     /*  6,0:1 sobre papel — secundario, sigue siendo AA */
+  --verde:#1F4A3D;      /*  8,8:1 sobre papel, y papel sobre verde da lo mismo */
+  --verde-osc:#16362C;
+  --linea:#D8D2C6;
+  --linea-fuerte:#C2B9A8;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --gut:clamp(18px,4vw,48px);
+  --barra:54px;
 }
 *{box-sizing:border-box}
-html{
-  /* Snap por proximidad y NO mandatory, y sin scroll-behavior:smooth: en este mismo
-     proyecto la combinación de smooth + mandatory ya rompió el scroll en WebKit, y con
-     mandatory una sección más alta que la pantalla (la FAQ) atrapa el gesto. */
-  scroll-snap-type:y proximity;
-}
-body{margin:0;background:var(--crema);color:var(--tinta);font-family:var(--sans);
-  font-size:17px;line-height:1.55;font-weight:300;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
-a{color:inherit}
-h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.025em;line-height:.98;
-  text-transform:uppercase;text-wrap:balance}
-p{margin:0;text-wrap:pretty}
+a{color:var(--verde)}
+p{margin:0}
+h1,h2,h3{margin:0;font-family:var(--serif);font-weight:400;letter-spacing:-.012em;
+  line-height:1.12;text-wrap:balance}
 :focus-visible{outline:2px solid var(--verde);outline-offset:3px}
 
-/* Cifras y datos: tabulares siempre. Es media identidad de la página. */
-.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+/* Etiqueta de sección: mono, no versal grotesca. Es lo que da el aire de documento. */
+.et{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta2)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dice{color:var(--tinta2);max-width:62ch;margin-top:.9em}
 
-.wrap{width:100%;max-width:var(--wrap);margin-inline:auto;padding-inline:var(--gut)}
-.esc{position:relative;min-height:100svh;display:flex;flex-direction:column;
-  justify-content:center;scroll-snap-align:start;overflow:hidden}
-.esc--auto{min-height:0;scroll-snap-align:none;padding-block:clamp(72px,10vw,140px)}
-.et{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase}
-.tit{font-size:clamp(34px,5.6vw,76px)}
-.dice{font-size:clamp(15px,1.35vw,18px);max-width:52ch;color:var(--tinta-2);
-  font-weight:300;margin-top:1.2em}
-
-/* ── Marca fija ───────────────────────────────────────────────────────────── */
-.marca{position:absolute;inset:0 0 auto;z-index:20;height:66px;display:flex;
-  align-items:center;pointer-events:none}
-.marca .wrap{display:flex;justify-content:space-between;align-items:center}
-.marca span{color:var(--crema);text-shadow:0 1px 14px rgba(24,12,6,.6);font-size:14px;font-weight:600;letter-spacing:.26em;
+/* ── Cabecera ─────────────────────────────────────────────────────────────── */
+.barra{position:sticky;top:0;z-index:30;height:var(--barra);background:var(--papel);
+  border-bottom:1px solid var(--linea);display:flex;align-items:center}
+.barra__in{width:100%;max-width:1320px;margin-inline:auto;padding-inline:var(--gut);
+  display:flex;justify-content:space-between;align-items:center;gap:16px}
+.barra b{font-weight:600;font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+.barra span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--tinta2);
   text-transform:uppercase}
-.marca em{font-style:normal;font-size:11px;font-weight:400;letter-spacing:.2em;
-  color:var(--crema);opacity:.85;text-shadow:0 1px 14px rgba(24,12,6,.6)}
 
-/* ── 01 · Hero a sangre ───────────────────────────────────────────────────── */
-.hero{justify-content:flex-end;padding-bottom:clamp(28px,5vw,64px);color:var(--crema)}
-.hero__foto{position:absolute;inset:0}
-.hero__foto img{width:100%;height:100%;object-fit:cover}
-.hero__foto::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,
-  rgba(24,12,6,.52) 0%, rgba(24,12,6,.06) 30%, rgba(24,12,6,.42) 70%, rgba(24,12,6,.88) 100%)}
-.hero .wrap{position:relative;z-index:2}
-.hero h1{font-size:clamp(34px,5.4vw,80px);max-width:14ch}
-.hero__et{color:rgba(247,239,230,.82);margin-bottom:1.6em}
-.hero .dice{color:rgba(247,239,230,.9);max-width:40ch}
-.hero__pie{display:flex;flex-wrap:wrap;align-items:flex-end;gap:clamp(20px,4vw,56px);
-  justify-content:space-between;margin-top:clamp(26px,4vw,48px)}
-.hero__datos{display:flex;flex-wrap:wrap;gap:clamp(18px,3vw,44px)}
-.hero__datos div{min-width:96px}
-.hero__datos b{display:block;font-size:clamp(20px,2.2vw,28px);font-weight:600;
-  letter-spacing:-.02em}
-.hero__datos small{display:block;font-size:10.5px;font-weight:500;letter-spacing:.18em;
-  text-transform:uppercase;color:rgba(247,239,230,.88);margin-top:4px}
+/* ── Rejilla del documento ────────────────────────────────────────────────── */
+/* Tres hijos directos: portada · formulario · resto. En escritorio el formulario ocupa la
+   segunda columna y se queda pegado; al colapsar a una columna cae por orden de documento,
+   o sea justo detrás de la ficha técnica. Sin duplicar el <form> ni reordenar con `order`. */
+.doc{width:100%;max-width:1320px;margin-inline:auto;padding:0 var(--gut) 0;
+  display:grid;grid-template-columns:minmax(0,1fr) 366px;
+  column-gap:clamp(32px,4.5vw,80px)}
+.doc > .col{grid-column:1;min-width:0}
+.doc > .rail{grid-column:2;grid-row:1 / span 2;align-self:start;
+  position:sticky;top:calc(var(--barra) + 24px);padding-top:clamp(36px,5vw,64px)}
+
+.sec{padding-block:clamp(34px,4.5vw,58px);border-top:1px solid var(--linea)}
+.sec:first-child{border-top:0}
+.sec h2{font-size:clamp(23px,2.4vw,31px);margin-top:.35em}
+
+/* ── Portada ──────────────────────────────────────────────────────────────── */
+.port{padding-top:clamp(36px,5vw,64px)}
+.port h1{font-size:clamp(31px,4.1vw,52px);margin-top:.28em;max-width:17ch}
+.port__fig{margin:clamp(26px,3.4vw,40px) 0 0}
+.port__fig img{width:100%;aspect-ratio:16/10;object-fit:cover;border:1px solid var(--linea)}
+figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--tinta2);
+  margin-top:9px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  text-transform:uppercase}
+
+/* ── Ficha técnica ────────────────────────────────────────────────────────── */
+.ficha{margin-top:clamp(28px,3.4vw,42px)}
+.ficha dl{margin:14px 0 0;display:grid;grid-template-columns:minmax(150px,.85fr) 1.15fr}
+.ficha dt,.ficha dd{margin:0;padding:11px 0;border-top:1px solid var(--linea);
+  font-size:14.5px}
+.ficha dt{color:var(--tinta2)}
+.ficha dd{font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums;
+  padding-left:16px}
+.ficha dl > :nth-last-child(-n+2){border-bottom:1px solid var(--linea)}
+.ficha__nota{font-size:13px;color:var(--tinta2);margin-top:14px;max-width:56ch}
 
 /* ── Botón ────────────────────────────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;gap:16px;border:0;cursor:pointer;
-  background:var(--verde);color:var(--crema);font-family:inherit;font-size:12.5px;
-  font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;
-  padding:19px 26px;
-  transition:transform .18s var(--ease),background .22s var(--ease)}
-.btn svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;
-  transition:transform .28s var(--ease)}
-.btn:active{transform:scale(.98)}
-.btn--crema{background:var(--crema);color:var(--tinta)}
-.btn--ancho{width:100%;justify-content:center}
-@media (hover:hover) and (pointer:fine){
-  .btn:hover{background:#163529}
-  .btn:hover svg{transform:translateX(4px)}
-  .btn--crema:hover{background:#fff}
-}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:0;
+  cursor:pointer;background:var(--verde);color:var(--papel);font-family:var(--sans);
+  font-size:14px;font-weight:600;letter-spacing:.02em;text-decoration:none;
+  padding:15px 22px;width:100%;transition:background .18s ease}
+.btn:hover{background:var(--verde-osc)}
+.btn[disabled]{opacity:.6;cursor:default}
 
-/* ── 02 · Bloque de cifras, teja entera ───────────────────────────────────── */
-.cifras{background:var(--teja);color:var(--crema)}
-.cifras .et{color:var(--crema)}
-.cifras__rej{display:grid;gap:clamp(28px,4vw,56px);margin-top:clamp(36px,5vw,64px);
-  grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
-.cifras__rej > div{border-top:1px solid rgba(247,239,230,.28);padding-top:18px}
-.cifras b{display:block;font-size:clamp(44px,6.4vw,88px);font-weight:800;
-  letter-spacing:-.045em;line-height:.9}
-.cifras small{display:block;font-size:11px;font-weight:500;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--crema);margin-top:14px;max-width:20ch}
-
-/* ── 03 · Acabados: foto a sangre + lista ─────────────────────────────────── */
-.dos{display:grid;grid-template-columns:1fr 1fr;min-height:100svh}
-.dos__foto{position:relative;background:var(--crema-2)}
-.dos__foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.dos__txt{display:flex;flex-direction:column;justify-content:center;
-  padding:clamp(48px,6vw,96px) clamp(24px,4.5vw,84px)}
-.acab{margin-top:clamp(26px,3.4vw,44px)}
-.acab__f{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:baseline;
-  padding:20px 0;border-top:1px solid var(--linea)}
-.acab__f:last-child{border-bottom:1px solid var(--linea)}
-.acab__n{font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--teja-vivo)}
-.acab__f h3{font-size:clamp(19px,1.7vw,23px);letter-spacing:-.015em}
-.acab__f p{font-size:14.5px;color:var(--tinta-2);margin-top:8px;max-width:44ch}
-
-/* ── 04 · Pantallas de foto ───────────────────────────────────────────────── */
-.foto{padding:0;justify-content:stretch}
-.foto__rej{display:grid;grid-template-columns:1fr 1fr;flex:1}
-.foto img{width:100%;height:100%;object-fit:cover;min-height:100svh}
-.foto__rej img{min-height:100svh}
-.pie{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:26px 0;
-  background:linear-gradient(0deg,rgba(24,12,6,.78),transparent)}
-.pie .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  color:rgba(247,239,230,.92);font-size:12px;font-weight:500;letter-spacing:.16em;
-  text-transform:uppercase}
-
-/* ── 05 · Alcance de obra, tabla técnica ──────────────────────────────────── */
-.obra{background:var(--crema-2)}
-.obra__rej{display:grid;gap:clamp(32px,5vw,80px);grid-template-columns:1.1fr .9fr;
-  margin-top:clamp(32px,4vw,56px)}
-.obra h3{font-size:12px;font-weight:600;letter-spacing:.18em;margin-bottom:18px}
-.obra ul{list-style:none;margin:0;padding:0}
-.obra li{display:grid;grid-template-columns:26px 1fr;gap:6px;padding:11px 0;
-  border-top:1px solid var(--linea);font-size:15px}
-.obra li:last-child{border-bottom:1px solid var(--linea)}
-.obra li i{font-style:normal;font-weight:600;color:var(--teja-vivo)}
-.obra--no li i{color:var(--tinta-2)}
-.obra__nota{font-size:13.5px;color:var(--tinta-2);margin-top:22px;max-width:46ch}
-
-/* ── 06 · El sitio ────────────────────────────────────────────────────────── */
-.sitio{color:var(--crema);justify-content:flex-end;padding-bottom:clamp(40px,6vw,88px)}
-.sitio__foto{position:absolute;inset:0;display:grid;grid-template-columns:1.35fr 1fr}
-.sitio__foto img{width:100%;height:100%;object-fit:cover}
-.sitio::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,
-  rgba(24,12,6,.10) 40%, rgba(24,12,6,.86) 100%)}
-.sitio .wrap{position:relative;z-index:2}
-.sitio .dice{color:rgba(247,239,230,.9)}
-
-/* ── 07 · Pasos, verde hondo ──────────────────────────────────────────────── */
-.pasos{background:var(--verde);color:var(--crema)}
-.pasos .et{color:rgba(247,239,230,.7)}
-.pasos__rej{display:grid;gap:clamp(28px,4vw,64px);grid-template-columns:repeat(3,1fr);
-  margin-top:clamp(38px,5vw,68px)}
-.pasos__rej > div{border-top:1px solid rgba(247,239,230,.3);padding-top:20px}
-.pasos b{display:block;font-size:clamp(30px,3.6vw,46px);font-weight:800;
-  letter-spacing:-.04em;color:rgba(247,239,230,.5)}
-.pasos h3{font-size:clamp(17px,1.6vw,21px);margin:14px 0 10px}
-.pasos p{font-size:14.5px;color:rgba(247,239,230,.82);max-width:34ch}
-
-/* ── 08 · Preguntas ───────────────────────────────────────────────────────── */
-.faq{max-width:860px;margin-top:clamp(28px,3.4vw,46px)}
-.faq details{border-top:1px solid var(--linea)}
-.faq details:last-of-type{border-bottom:1px solid var(--linea)}
-.faq summary{cursor:pointer;list-style:none;padding:22px 44px 22px 0;position:relative;
-  font-size:clamp(16px,1.5vw,19px);font-weight:500;letter-spacing:-.01em}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"";position:absolute;right:10px;top:50%;width:13px;height:13px;
-  margin-top:-6px;border-right:1.5px solid var(--teja-vivo);
-  border-bottom:1.5px solid var(--teja-vivo);transform:translateY(-3px) rotate(45deg);
-  transition:transform .28s var(--ease)}
-.faq details[open] summary::after{transform:translateY(2px) rotate(-135deg)}
-.faq p{padding:0 0 24px;font-size:15px;color:var(--tinta-2);max-width:62ch}
-@media (hover:hover) and (pointer:fine){.faq summary:hover{color:var(--teja-vivo)}}
-@supports (interpolate-size:allow-keywords){
-  @media (prefers-reduced-motion:no-preference){
-    :root{interpolate-size:allow-keywords}
-    .faq details::details-content{block-size:0;overflow:hidden;opacity:0;
-      transition:block-size .34s var(--ease-soft),opacity .26s var(--ease),
-                 content-visibility .34s allow-discrete}
-    .faq details[open]::details-content{block-size:auto;opacity:1}
-  }
-}
-
-/* ── 09 · Cierre ──────────────────────────────────────────────────────────── */
-.cierre{background:var(--teja);color:var(--crema);text-align:center}
-.cierre .tit{max-width:16ch;margin-inline:auto}
-.cierre .dice{color:var(--crema);margin-inline:auto}
-.cierre .btn{margin-top:clamp(30px,4vw,48px)}
-
-.pieweb{background:var(--tinta);color:rgba(247,239,230,.62);padding-block:30px;
-  font-size:12px;letter-spacing:.04em}
-.pieweb .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
-.pieweb a{text-decoration:none;border-bottom:1px solid transparent}
-.pieweb a:hover{border-bottom-color:currentColor}
-
-/* ── Panel del formulario ─────────────────────────────────────────────────── */
-.panel{border:0;padding:0;background:transparent;max-width:min(560px,calc(100vw - 32px));
-  width:100%;max-height:calc(100svh - 32px);color:var(--tinta)}
-.panel::backdrop{background:rgba(24,12,6,.72);backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px)}
-.panel__in{background:var(--crema);padding:clamp(26px,3.4vw,42px)}
-.panel h2{font-size:clamp(24px,2.6vw,32px)}
-.panel__x{position:absolute;top:14px;right:14px;width:38px;height:38px;border:0;
-  background:none;cursor:pointer;color:var(--tinta);font-size:22px;line-height:1;
-  font-family:inherit}
-.campo{margin-top:18px}
-.campo label{display:block;font-size:10.5px;font-weight:600;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--tinta-2);margin-bottom:7px;
-  transition:color .2s var(--ease)}
-.campo:focus-within label{color:var(--verde)}
+/* ── Columna del formulario ───────────────────────────────────────────────── */
+.caja{background:#fff;border:1px solid var(--linea-fuerte);padding:clamp(20px,2.2vw,26px)}
+.caja h2{font-size:22px}
+.caja .dice{font-size:13.5px;margin-top:.6em}
+.campo{margin-top:15px}
+.campo label{display:block;font-family:var(--mono);font-size:10.5px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--tinta2);margin-bottom:6px}
 /* Lista separada por comas y NO `:is(input,select)`: un motor que no entiende `:is()`
    descarta la regla ENTERA, y entonces no es que el desplegable se vea raro — es que los
    cuatro campos pierden ancho, borde y padding. La pauta de Meta abre el navegador in-app
    (WebView de Android sin actualizar, Safari viejo), que es justo donde eso pasa. */
-.campo input,.campo select{width:100%;font-family:inherit;font-size:16px;font-weight:400;
-  color:var(--tinta);background:#fff;border:1px solid var(--linea);border-radius:0;
-  padding:13px 14px;transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
+.campo input,.campo select{width:100%;font-family:var(--sans);font-size:16px;
+  color:var(--tinta);background:var(--papel);border:1px solid var(--linea-fuerte);
+  border-radius:0;padding:11px 12px;transition:border-color .16s ease,box-shadow .16s ease}
 /* El select nativo pinta su propia flecha y su propio radio segun el SO. Se apaga y se
    dibuja una igual que el resto: en iOS un desplegable con esquinas redondeadas dentro de
    campos de esquina viva se lee como un fallo de la pagina, no como estilo del sistema. */
 .campo select{-webkit-appearance:none;appearance:none;cursor:pointer;
-  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%235B554E' stroke-width='1.6'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;background-size:12px 8px;
-  padding-right:38px}
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23575C58' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:12px 8px;
+  padding-right:34px}
 /* En alto contraste el UA fuerza sus colores pero respeta el `background-image`: la flecha
    dibujada se queda por debajo de 3:1 y, con `appearance:none`, el campo pierde a la vez la
    flecha nativa y la nuestra — se lee como un texto que no deja escribir. Se devuelve el
    control al sistema, que es lo que el usuario de ese modo espera. */
 @media (forced-colors:active){
-  .campo select{background-image:none;-webkit-appearance:auto;appearance:auto;padding-right:14px}
+  .campo select{background-image:none;-webkit-appearance:auto;appearance:auto;padding-right:12px}
 }
 .campo input:focus,.campo select:focus{outline:none;border-color:var(--verde);
-  box-shadow:0 0 0 3px rgba(31,74,61,.14)}
+  box-shadow:0 0 0 3px rgba(31,74,61,.15)}
 .campo input[aria-invalid="true"],.campo select[aria-invalid="true"]{
-  border-color:#9C3B2E;box-shadow:0 0 0 3px rgba(156,59,46,.12)}
-.campo .err{display:none;font-size:12.5px;color:#8E3527;margin-top:6px}
+  border-color:#8E3527;box-shadow:0 0 0 3px rgba(142,53,39,.12)}
+.campo .err{display:none;font-size:12.5px;color:#8E3527;margin-top:5px}
 .campo input[aria-invalid="true"] ~ .err,
 .campo select[aria-invalid="true"] ~ .err{display:block}
-.acepto{display:flex;gap:11px;align-items:flex-start;font-size:13px;color:var(--tinta-2);
-  line-height:1.45;margin:22px 0 22px}
-.acepto input{margin-top:2px;accent-color:var(--verde);flex:0 0 auto;width:17px;height:17px}
-.acepto a{color:var(--verde)}
+.acepto{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--tinta2);
+  line-height:1.45;margin:18px 0}
+.acepto input{margin-top:2px;accent-color:var(--verde);flex:0 0 auto;width:16px;height:16px}
 .trampa{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
-.aviso{margin-top:14px;font-size:13.5px;color:var(--tinta-2);min-height:1.1em}
+.aviso{margin-top:12px;font-size:13px;color:var(--tinta2);min-height:1.1em}
 .aviso--mal{color:#8E3527}
 .gracias h2{margin-bottom:.4em}
 
-/* CTA fijo en móvil: con el formulario detrás de un clic, el clic tiene que estar
-   siempre a mano. */
+/* ── Listas técnicas (acabados, alcance, pasos) ───────────────────────────── */
+.filas{margin-top:18px}
+.fila{display:grid;grid-template-columns:38px 1fr;gap:14px;padding:15px 0;
+  border-top:1px solid var(--linea)}
+.fila:last-child{border-bottom:1px solid var(--linea)}
+.fila > .n{font-family:var(--mono);font-size:12.5px;color:var(--verde);padding-top:3px}
+.fila h3{font-family:var(--sans);font-weight:600;font-size:15.5px;letter-spacing:0}
+.fila p{font-size:14px;color:var(--tinta2);margin-top:5px;max-width:56ch}
+
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,3vw,54px);margin-top:20px}
+.dosc h3{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta2)}
+.dosc ul{list-style:none;margin:12px 0 0;padding:0}
+.dosc li{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:9px 0;
+  border-top:1px solid var(--linea);font-size:14.5px}
+.dosc li:last-child{border-bottom:1px solid var(--linea)}
+.dosc li i{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--verde);
+  padding-top:2px}
+.dosc--no li i{color:var(--tinta2)}
+.dosc__nota{font-size:13px;color:var(--tinta2);margin-top:16px;max-width:52ch}
+
+/* ── Láminas de imagen (siempre contenidas, nunca a sangre) ───────────────── */
+.laminas{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.laminas img{width:100%;aspect-ratio:4/3;object-fit:cover;border:1px solid var(--linea)}
+
+/* ── Preguntas ────────────────────────────────────────────────────────────── */
+.faq{margin-top:18px;max-width:74ch}
+.faq details{border-top:1px solid var(--linea)}
+.faq details:last-of-type{border-bottom:1px solid var(--linea)}
+.faq summary{cursor:pointer;list-style:none;padding:15px 36px 15px 0;position:relative;
+  font-size:15.5px;font-weight:500}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";position:absolute;right:6px;top:14px;font-family:var(--mono);
+  color:var(--verde);font-size:16px}
+.faq details[open] summary::after{content:"–"}
+.faq details p{padding:0 0 18px;font-size:14.5px;color:var(--tinta2);max-width:68ch}
+.faq summary:hover{color:var(--verde)}
+
+/* ── Pie ──────────────────────────────────────────────────────────────────── */
+.pieweb{border-top:1px solid var(--linea);margin-top:clamp(36px,5vw,64px);
+  padding-block:26px;font-size:12.5px;color:var(--tinta2)}
+.pieweb .in{width:100%;max-width:1320px;margin-inline:auto;padding-inline:var(--gut);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* ── Barra fija de móvil ──────────────────────────────────────────────────── */
 .fijo{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--crema);
-  border-top:1px solid var(--linea);transform:translateY(110%);
-  transition:transform .34s var(--ease-soft)}
-.fijo.on{transform:translateY(0)}
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--papel);
+  border-top:1px solid var(--linea-fuerte)}
+.fijo.off{display:none}
 
-/* ── Entradas ─────────────────────────────────────────────────────────────── */
-.js .rv{opacity:0;transform:translateY(20px);
-  transition:opacity .75s var(--ease),transform .75s var(--ease)}
-.js .rv.in{opacity:1;transform:none}
-
-@media(max-width:900px){
-  .dos,.foto__rej,.sitio__foto{grid-template-columns:1fr}
-  .dos__foto{min-height:58svh}
-  .dos{min-height:0}
-  .foto__rej img,.foto img{min-height:52svh}
-  .obra__rej{grid-template-columns:1fr}
-  .pasos__rej{grid-template-columns:1fr}
-  .sitio__foto{grid-template-rows:1fr 1fr}
-  .hero{padding-bottom:150px}
-  .hero__pie .btn{display:none}
-  .fijo{display:block;transform:translateY(0)}
+@media(max-width:1040px){
+  .doc{grid-template-columns:minmax(0,1fr)}
+  .doc > .col,.doc > .rail{grid-column:1;grid-row:auto}
+  /* Sin columna, la caja deja de estar pegada: pasa a ser una sección más del documento,
+     colocada justo detrás de la ficha técnica. */
+  .doc > .rail{position:static;padding-top:0;padding-bottom:clamp(30px,4vw,44px);
+    border-top:1px solid var(--linea);margin-top:clamp(30px,4vw,44px)}
+  .fijo{display:block}
   /* consent.js inyecta su <style> DESPUÉS de este y con la misma especificidad ganaba
      por orden: el aviso se sentaba encima de la barra fija. */
-  body #lw-consent-bar{bottom:88px}
+  body #lw-consent-bar{bottom:76px}
 }
-@media(prefers-reduced-motion:reduce){
-  html{scroll-snap-type:none}
-  .js .rv{opacity:1;transform:none;transition:none}
-  .btn,.btn svg,.fijo,.faq summary::after{transition:none}
+@media(max-width:640px){
+  .dosc,.laminas{grid-template-columns:1fr}
+  .ficha dl{grid-template-columns:1fr 1fr}
 }
-/* Sin JavaScript el panel se abre como ancla: el formulario nunca queda inalcanzable. */
-.panel:target{display:block;position:static;margin:0 auto clamp(48px,8vw,96px);
-  max-width:min(560px,calc(100vw - 32px))}
+/* A 390 px la coletilla de la cabecera queda pegada a la marca y las dos se leen como una
+   sola línea de ruido. Es decoración: se retira antes que apretar el cuerpo. */
+@media(max-width:520px){ .barra span{display:none} }
+@media print{
+  .barra,.fijo,.rail{display:none}
+  body{background:#fff}
+  .faq details{display:block}
+}
 </style>
-<script>document.documentElement.className += ' js';</script>
 </head>
 <body>
 
-<header class="marca">
-  <div class="wrap">
-    <span>Lawang</span>
-    <em>Bali, Indonesia</em>
+<!-- Sin menú ni enlace al catálogo A PROPÓSITO: es tráfico de pago, y toda salida que no
+     sea el formulario o los legales es un clic pagado que se va. -->
+<header class="barra">
+  <div class="barra__in">
+    <b>Lawang Estate</b>
+    <span>Ficha de producto · <?= lw_e($nombre) ?></span>
   </div>
 </header>
 
-<!-- 01 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc hero">
-  <div class="hero__foto">
-    <img src="<?= lw_e($hero) ?>" alt="Villa <?= lw_e($nombre) ?> de Lawang Estate, exterior con piscina" fetchpriority="high">
-  </div>
-  <div class="wrap">
-    <p class="et hero__et">Modelo <?= lw_e($nombre) ?> · Lawang Estate</p>
-    <h1>Villa llave en mano en Bali</h1>
-    <p class="dice"><?= lw_e($m['sub']) ?></p>
-    <div class="hero__pie">
-      <div class="hero__datos num">
-        <div><b><?= $dorm ?></b><small><?= $dorm === 1 ? 'Dormitorio' : 'Dormitorios' ?></small></div>
-        <div><b>3</b><small>Acabados</small></div>
-        <div><b>Overflow</b><small>Piscina</small></div>
-      </div>
-      <button class="btn" type="button" data-abre>
-        Reservar mi llamada
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
-      </button>
-    </div>
-  </div>
-</section>
+<div class="doc">
 
-<!-- 02 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc cifras">
-  <div class="wrap">
-    <p class="et rv">Lo que se compra</p>
-    <div class="cifras__rej num">
-      <div class="rv"><b><?= $dorm ?></b><small><?= $dorm === 1 ? 'Dormitorio en suite' : 'Dormitorios en suite' ?></small></div>
-      <div class="rv"><b>3</b><small>Acabados de cubierta a elegir</small></div>
-      <div class="rv"><b>3.500</b><small>Vatios de acometida eléctrica</small></div>
-      <div class="rv"><b>1</b><small>Parcela, la que elijas del catálogo</small></div>
-    </div>
-  </div>
-</section>
+<!-- ── Columna 1 · Portada y ficha ──────────────────────────────────────── -->
+<div class="col port">
+  <p class="et">Modelo <?= lw_e($nombre) ?> · Obra nueva · Bali, Indonesia</p>
+  <h1>Villa llave en mano de <?= lw_e($dormTxt) ?>, construida sobre la parcela que elijas</h1>
+  <p class="dice"><?= lw_e($m['sub']) ?></p>
 
-<?php if ($m['acabados']): ?>
-<!-- 03 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc dos" style="scroll-snap-align:start">
-  <div class="dos__foto">
-    <img src="/assets/img/modelo/dali-cubierta.jpg" alt="Cubierta de alang-alang de la villa <?= lw_e($nombre) ?>" loading="lazy" width="1100" height="1375">
-  </div>
-  <div class="dos__txt">
-    <p class="et rv">Acabados</p>
-    <h2 class="tit rv" style="margin-top:.2em">La cubierta decide el presupuesto</h2>
-    <p class="dice rv">El resto de la villa no cambia. Se elige antes de cerrar números.</p>
-    <div class="acab">
-      <?php foreach ($m['acabados'] as $i => $a): ?>
-      <div class="acab__f rv">
-        <span class="acab__n num"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
-        <div>
-          <h3><?= lw_e($a['n']) ?></h3>
-          <p><?= lw_e($a['d']) ?></p>
-        </div>
-      </div>
+  <figure class="port__fig">
+    <img src="<?= lw_e($portada) ?>" alt="Villa <?= lw_e($nombre) ?> de Lawang Estate: exterior con piscina overflow" fetchpriority="high">
+    <figcaption><span><?= lw_e($nombre) ?> · Exterior</span><span>Render de proyecto</span></figcaption>
+  </figure>
+
+  <div class="ficha">
+    <p class="et">Ficha técnica</p>
+    <dl>
+      <?php foreach ($ficha as $f): ?>
+      <dt><?= lw_e($f[0]) ?></dt><dd><?= lw_e($f[1]) ?></dd>
       <?php endforeach; ?>
-    </div>
+    </dl>
+    <p class="ficha__nota">Los datos proceden del pliego del contratista. Superficie construida,
+      superficie de parcela y plazo de obra se concretan por parcela y se entregan por escrito
+      con el presupuesto.</p>
   </div>
-</section>
-<?php endif; ?>
-
-<!-- 04 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc foto">
-  <div class="foto__rej">
-    <img src="<?= lw_e($dentroA) ?>" alt="Interior de la villa <?= lw_e($nombre) ?>" loading="lazy">
-    <img src="<?= lw_e($dentroB) ?>" alt="Baño de la villa <?= lw_e($nombre) ?>" loading="lazy">
-  </div>
-  <div class="pie"><div class="wrap"><span><?= lw_e($nombre) ?>, por dentro</span><span class="num">Render de proyecto</span></div></div>
-</section>
-
-<?php if ($m['alcance']): ?>
-<!-- 05 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc esc--auto obra">
-  <div class="wrap">
-    <p class="et rv">Alcance de obra</p>
-    <h2 class="tit rv" style="margin-top:.2em">Qué entra y qué no</h2>
-    <div class="obra__rej">
-      <div class="rv">
-        <h3>Incluido</h3>
-        <ul>
-          <?php foreach ($m['alcance']['incluido'] as $k => $li): ?>
-          <li><i class="num"><?= str_pad($k + 1, 2, '0', STR_PAD_LEFT) ?></i><span><?= lw_e($li) ?></span></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-      <div class="rv">
-        <h3>No incluido</h3>
-        <ul class="obra--no">
-          <?php foreach ($m['alcance']['no_incluido'] as $li): ?>
-          <li><i>&ndash;</i><span><?= lw_e($li) ?></span></li>
-          <?php endforeach; ?>
-        </ul>
-        <p class="obra__nota">Tal cual figura en el pliego del contratista. La parcela y los
-          gastos de compraventa (impuestos, notaría y licencias) se presupuestan aparte y se
-          detallan por escrito antes de firmar nada.</p>
-      </div>
-    </div>
-  </div>
-</section>
-<?php endif; ?>
-
-<!-- 06 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc sitio">
-  <div class="sitio__foto">
-    <img src="/assets/img/lugar/costa.jpg" alt="Desembocadura del río y playa de arena volcánica en la costa oeste de Bali, vista cenital" loading="lazy">
-    <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
-  </div>
-  <div class="wrap">
-    <p class="et rv">El sitio</p>
-    <h2 class="tit rv" style="margin-top:.2em;max-width:14ch">La costa, no el render</h2>
-    <p class="dice rv">Estas dos fotografías son de la zona, tomadas con dron. En la llamada
-      te decimos qué parcelas quedan y cómo se llega a cada una.</p>
-  </div>
-</section>
-
-<!-- 07 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc pasos">
-  <div class="wrap">
-    <p class="et rv">Cómo se compra</p>
-    <div class="pasos__rej num">
-      <div class="rv"><b>01</b><h3>Llamada</h3><p>Media hora para ver qué parcela encaja, con qué presupuesto y en qué plazos.</p></div>
-      <div class="rv"><b>02</b><h3>Presupuesto y parcela</h3><p>Precio cerrado del acabado elegido, parcela concreta y calendario de pagos.</p></div>
-      <div class="rv"><b>03</b><h3>Reserva y obra</h3><p>Contrato de reserva, después el PPJB de compraventa, y arranca la construcción.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- 08 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc esc--auto">
-  <div class="wrap">
-    <p class="et rv">Antes de la llamada</p>
-    <h2 class="tit rv" style="margin-top:.2em">Lo que suelen preguntar</h2>
-    <div class="faq rv">
-<?php /* Comentario de PHP y no de HTML A PROPÓSITO: esto no debe viajar al navegador.
-
-         La titularidad abre el bloque por decisión de marca (PRODUCT.md: "Freehold first,
-         es el diferenciador más fuerte").
-
-         OJO AL TEXTO: Legal tumbó el 30-jul la primera versión, que decía "hay parcelas en
-         freehold" y que la titularidad de un extranjero "se estructura a través de una
-         sociedad indonesia". En España freehold se lee como pleno dominio perpetuo y en
-         Indonesia un extranjero nunca obtiene Hak Milik; y la segunda frase, suelta, se lee
-         como oferta de estructura nominee. Hasta que Legal redacte la versión definitiva,
-         esta respuesta dice solo lo que es cierto sin cualificar.
-         NO reintroducir "freehold" aquí sin el OK de Legal. */ ?>
-      <details>
-        <summary>¿Qué compro exactamente y en qué régimen?</summary>
-        <p>La villa construida y el derecho sobre la parcela en la que se levanta. En
-          Indonesia ese derecho no funciona como la propiedad española y no todas las
-          parcelas están en el mismo régimen ni con el mismo plazo. Es la primera cosa que
-          repasamos en la llamada, parcela por parcela y con el documento delante, antes de
-          hablar de dinero.</p>
-      </details>
-      <details>
-        <summary>¿Qué incluye el precio?</summary>
-        <p>La obra completa según el pliego del contratista, con el acabado de cubierta que
-          elijas. La parcela y los gastos de compraventa (impuestos, notaría y licencias) se
-          presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
-      </details>
-      <details>
-        <summary>¿Puedo elegir dónde se construye?</summary>
-        <p>Sí. El modelo es el mismo y se levanta sobre la parcela que elijas del catálogo.
-          Cambian la vista, la orientación y el precio del terreno. No todas las parcelas
-          admiten cualquier modelo: eso se concreta en la llamada.</p>
-      </details>
-      <details>
-        <summary>¿En qué moneda se firma?</summary>
-        <p>El contrato se formaliza en rupias indonesias, como exige la ley indonesia para
-          operaciones dentro del país. La equivalencia en euros se incluye a título
-          informativo con el tipo de cambio de la fecha.</p>
-      </details>
-      <details>
-        <summary>¿Cómo se formaliza la compra?</summary>
-        <p>Primero un contrato de reserva sobre la parcela. Después el PPJB, que es el
-          contrato de compraventa indonesio, y el contrato de construcción. Los tres son
-          documentos propios del promotor y se revisan antes de firmar.</p>
-      </details>
-      <details>
-        <summary>¿Quién construye?</summary>
-        <p>Lawang Estate, sociedad indonesia PT Tepi Sun Gai. En la llamada te enseñamos
-          obras entregadas y las que están en marcha ahora mismo.</p>
-      </details>
-    </div>
-  </div>
-</section>
-
-<!-- 09 ───────────────────────────────────────────────────────────────────── -->
-<section class="esc cierre">
-  <div class="wrap">
-    <h2 class="tit rv">Hablamos y te pasamos números</h2>
-    <p class="dice rv">Una llamada para ver parcela, presupuesto y plazos. Sin compromiso.</p>
-    <p><button class="btn btn--crema rv" type="button" data-abre>
-      Reservar mi llamada
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
-    </button></p>
-  </div>
-</section>
-
-<footer class="pieweb">
-  <div class="wrap">
-    <span>Lawang Estate · PT Tepi Sun Gai · Bali, Indonesia</span>
-    <span><a href="/legal">Aviso legal y privacidad</a> ·
-      <!-- Retirar el consentimiento tiene que ser tan facil como darlo (RGPD art. 7.3). -->
-      <a href="#" onclick="window.lwConsentReopen&&window.lwConsentReopen();return false">Preferencias de cookies</a></span>
-  </div>
-</footer>
-
-<div class="fijo" id="lw-fijo">
-  <a class="btn btn--ancho" href="#lw-panel" data-abre>
-    Reservar mi llamada
-    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
-  </a>
 </div>
 
-<dialog class="panel" id="lw-panel" aria-labelledby="lw-panel-h">
-  <div class="panel__in" style="position:relative">
-    <button class="panel__x" type="button" data-cierra aria-label="Cerrar">&times;</button>
+<!-- ── Columna 2 · Formulario, siempre a la vista ───────────────────────── -->
+<aside class="rail" id="lw-rail">
+  <div class="caja">
     <form id="lw-form" novalidate>
-      <h2 id="lw-panel-h">Reserva tu llamada</h2>
-      <p class="dice" style="margin-top:.7em;font-size:14px">Te damos el presupuesto cerrado
-        del acabado que te interese y las parcelas disponibles donde puede construirse.</p>
+      <p class="et">Solicitud</p>
+      <h2>Reserva tu llamada</h2>
+      <p class="dice">Media hora. Te damos el presupuesto cerrado del acabado que te interese
+        y las parcelas disponibles donde puede construirse.</p>
 
       <div class="campo">
         <label for="lw-nombre">Nombre y apellidos</label>
@@ -649,14 +422,177 @@ p{margin:0;text-wrap:pretty}
           contactarme sobre este modelo.</span>
       </label>
 
-      <button class="btn btn--ancho" type="submit" id="lw-submit">
-        <span>Reservar mi llamada</span>
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
-      </button>
+      <button class="btn" type="submit" id="lw-submit"><span>Reservar mi llamada</span></button>
       <p class="aviso" id="lw-aviso" role="status" aria-live="polite"></p>
     </form>
   </div>
-</dialog>
+</aside>
+
+<!-- ── Columna 1 · Resto del documento ──────────────────────────────────── -->
+<div class="col">
+
+<?php if ($m['acabados']): ?>
+  <section class="sec">
+    <p class="et">01 · Acabados</p>
+    <h2>La cubierta es lo único que cambia el presupuesto</h2>
+    <p class="dice">El resto de la villa no varía entre las tres opciones. Se elige antes de
+      cerrar números, y el precio de cada una se entrega por escrito.</p>
+    <div class="filas">
+      <?php foreach ($m['acabados'] as $i => $a): ?>
+      <div class="fila">
+        <span class="n"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
+        <div>
+          <h3><?= lw_e($a['n']) ?></h3>
+          <p><?= lw_e($a['d']) ?></p>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <figure class="port__fig">
+      <img src="/assets/img/modelo/dali-cubierta.jpg" alt="Detalle de la cubierta de alang-alang de la villa <?= lw_e($nombre) ?>" loading="lazy">
+      <figcaption><span>Cubierta de alang-alang</span><span>Render de proyecto</span></figcaption>
+    </figure>
+  </section>
+<?php endif; ?>
+
+<?php if ($m['alcance']): ?>
+  <section class="sec">
+    <p class="et">02 · Alcance de obra</p>
+    <h2>Qué entra en el precio y qué no</h2>
+    <div class="dosc">
+      <div>
+        <h3>Incluido</h3>
+        <ul>
+          <?php foreach ($m['alcance']['incluido'] as $k => $li): ?>
+          <li><i><?= str_pad($k + 1, 2, '0', STR_PAD_LEFT) ?></i><span><?= lw_e($li) ?></span></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+      <div>
+        <h3>No incluido</h3>
+        <ul class="dosc--no">
+          <?php foreach ($m['alcance']['no_incluido'] as $li): ?>
+          <li><i>&ndash;</i><span><?= lw_e($li) ?></span></li>
+          <?php endforeach; ?>
+        </ul>
+        <p class="dosc__nota">Tal cual figura en el pliego del contratista. La parcela y los
+          gastos de compraventa (impuestos, notaría y licencias) se presupuestan aparte y se
+          detallan por escrito antes de firmar nada.</p>
+      </div>
+    </div>
+  </section>
+<?php endif; ?>
+
+<?php if ($resto): ?>
+  <section class="sec">
+    <p class="et">03 · El producto</p>
+    <h2><?= lw_e($nombre) ?>, por dentro</h2>
+    <div class="laminas">
+      <?php foreach ($resto as $i => $img): ?>
+      <img src="<?= lw_e($img) ?>" alt="Render del proyecto de la villa <?= lw_e($nombre) ?> (<?= $i + 2 ?> de <?= count($g) ?>)" loading="lazy">
+      <?php endforeach; ?>
+    </div>
+    <p class="ficha__nota">Todas las imágenes de esta sección son renders del proyecto, no
+      fotografías de una villa terminada.</p>
+  </section>
+<?php endif; ?>
+
+  <section class="sec">
+    <p class="et">04 · El sitio</p>
+    <h2>La costa, fotografiada</h2>
+    <p class="dice">Estas dos imágenes no son renders: son fotografías tomadas con dron en la
+      zona. En la llamada te decimos qué parcelas quedan y cómo se llega a cada una.</p>
+    <div class="laminas">
+      <img src="/assets/img/lugar/costa.jpg" alt="Desembocadura del río y playa de arena volcánica en la costa oeste de Bali, vista cenital" loading="lazy">
+      <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
+    </div>
+    <p class="ficha__nota">Fotografía real con dron · Costa oeste de Bali</p>
+  </section>
+
+  <section class="sec">
+    <p class="et">05 · Proceso</p>
+    <h2>Cómo se compra</h2>
+    <div class="filas">
+      <div class="fila"><span class="n">01</span><div><h3>Llamada</h3>
+        <p>Media hora para ver qué parcela encaja, con qué presupuesto y en qué plazos.</p></div></div>
+      <div class="fila"><span class="n">02</span><div><h3>Presupuesto y parcela</h3>
+        <p>Precio cerrado del acabado elegido, parcela concreta y calendario de pagos.</p></div></div>
+      <div class="fila"><span class="n">03</span><div><h3>Reserva y obra</h3>
+        <p>Contrato de reserva, después el PPJB de compraventa y el contrato de construcción, y arranca la obra.</p></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <p class="et">06 · Preguntas</p>
+    <h2>Lo que suelen preguntar antes de la llamada</h2>
+    <div class="faq">
+<?php /* Comentario de PHP y no de HTML A PROPÓSITO: esto no debe viajar al navegador.
+
+         La titularidad abre el bloque por decisión de marca (PRODUCT.md: "Freehold first,
+         es el diferenciador más fuerte").
+
+         OJO AL TEXTO: Legal tumbó el 30-jul la primera versión, que decía "hay parcelas en
+         freehold" y que la titularidad de un extranjero "se estructura a través de una
+         sociedad indonesia". En España freehold se lee como pleno dominio perpetuo y en
+         Indonesia un extranjero nunca obtiene Hak Milik; y la segunda frase, suelta, se lee
+         como oferta de estructura nominee. Hasta que Legal redacte la versión definitiva,
+         esta respuesta dice solo lo que es cierto sin cualificar.
+         NO reintroducir "freehold" aquí sin el OK de Legal. */ ?>
+      <details>
+        <summary>¿Qué compro exactamente y en qué régimen?</summary>
+        <p>La villa construida y el derecho sobre la parcela en la que se levanta. En
+          Indonesia ese derecho no funciona como la propiedad española y no todas las
+          parcelas están en el mismo régimen ni con el mismo plazo. Es la primera cosa que
+          repasamos en la llamada, parcela por parcela y con el documento delante, antes de
+          hablar de dinero.</p>
+      </details>
+      <details>
+        <summary>¿Qué incluye el precio?</summary>
+        <p>La obra completa según el pliego del contratista, con el acabado de cubierta que
+          elijas. La parcela y los gastos de compraventa (impuestos, notaría y licencias) se
+          presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
+      </details>
+      <details>
+        <summary>¿Puedo elegir dónde se construye?</summary>
+        <p>Sí. El modelo es el mismo y se levanta sobre la parcela que elijas del catálogo.
+          Cambian la vista, la orientación y el precio del terreno. No todas las parcelas
+          admiten cualquier modelo: eso se concreta en la llamada.</p>
+      </details>
+      <details>
+        <summary>¿En qué moneda se firma?</summary>
+        <p>El contrato se formaliza en rupias indonesias, como exige la ley indonesia para
+          operaciones dentro del país. La equivalencia en euros se incluye a título
+          informativo con el tipo de cambio de la fecha.</p>
+      </details>
+      <details>
+        <summary>¿Cómo se formaliza la compra?</summary>
+        <p>Primero un contrato de reserva sobre la parcela. Después el PPJB, que es el
+          contrato de compraventa indonesio, y el contrato de construcción. Los tres son
+          documentos propios del promotor y se revisan antes de firmar.</p>
+      </details>
+      <details>
+        <summary>¿Quién construye?</summary>
+        <p>Lawang Estate, sociedad indonesia PT Tepi Sun Gai. En la llamada te enseñamos
+          obras entregadas y las que están en marcha ahora mismo.</p>
+      </details>
+    </div>
+  </section>
+
+</div><!-- /col -->
+</div><!-- /doc -->
+
+<footer class="pieweb">
+  <div class="in">
+    <span>Lawang Estate · PT Tepi Sun Gai · Bali, Indonesia</span>
+    <span><a href="/legal">Aviso legal y privacidad</a> ·
+      <!-- Retirar el consentimiento tiene que ser tan facil como darlo (RGPD art. 7.3). -->
+      <a href="#" onclick="window.lwConsentReopen&&window.lwConsentReopen();return false">Preferencias de cookies</a></span>
+  </div>
+</footer>
+
+<div class="fijo" id="lw-fijo">
+  <a class="btn" href="#lw-rail">Reservar mi llamada</a>
+</div>
 
 <script src="/assets/consent.js?v=20260731100255" defer></script>
 <script>
@@ -679,84 +615,34 @@ p{margin:0;text-wrap:pretty}
   if (typeof window.lwTrack === 'function') track('ViewContent');
   else window.addEventListener('load', function () { track('ViewContent'); });
 
-  // ── Panel ─────────────────────────────────────────────────────────────────
-  var panel = document.getElementById('lw-panel');
-  var abierto = false;
-  function abrir(e) {
-    if (e) e.preventDefault();
-    if (typeof panel.showModal !== 'function') { location.hash = 'lw-panel'; return; }
-    panel.showModal();
-    // Con el formulario detrás de un clic, abrirlo ES el paso intermedio del embudo.
-    // Sin este evento solo hay "vio la página" y "dejó los datos", sin nada en medio
-    // con lo que Meta pueda optimizar.
-    if (!abierto) { track('InitiateCheckout'); abierto = true; }
-    setTimeout(function () { document.getElementById('lw-nombre').focus(); }, 80);
-  }
-  [].forEach.call(document.querySelectorAll('[data-abre]'), function (b) {
-    b.addEventListener('click', abrir);
-  });
-  [].forEach.call(document.querySelectorAll('[data-cierra]'), function (b) {
-    b.addEventListener('click', function () { panel.close(); });
-  });
-  // Clic en el fondo del diálogo: el <dialog> ocupa todo, así que se compara el punto.
-  panel.addEventListener('click', function (e) {
-    var c = panel.getBoundingClientRect();
-    if (e.clientX < c.left || e.clientX > c.right || e.clientY < c.top || e.clientY > c.bottom) panel.close();
-  });
-
-  // ── Entradas al aparecer ──────────────────────────────────────────────────
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var revs = document.querySelectorAll('.rv');
-  function revelarTodo() { for (var k = 0; k < revs.length; k++) revs[k].classList.add('in'); }
-  window.addEventListener('beforeprint', revelarTodo);
-
-  if (reduce || !('IntersectionObserver' in window)) {
-    revelarTodo();
-  } else {
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) {
-        if (!e.isIntersecting) return;
-        var sibs = Array.prototype.slice.call(e.target.parentNode.children);
-        e.target.style.transitionDelay = (Math.min(sibs.indexOf(e.target), 5) * 70) + 'ms';
-        e.target.classList.add('in');
-        io.unobserve(e.target);
-      });
-    }, {threshold: 0.15, rootMargin: '0px 0px -6% 0px'});
-    for (var j = 0; j < revs.length; j++) io.observe(revs[j]);
-
-    // El observador solo avisa cuando CAMBIA la intersección: arrastrando la barra de
-    // scroll de golpe, una sección pasa de "debajo" a "encima" sin un solo aviso y se
-    // queda invisible para siempre. `scrollend` salta una vez al parar, no por frame.
-    if ('onscrollend' in window) {
-      window.addEventListener('scrollend', function () {
-        for (var q = 0; q < revs.length; q++) {
-          if (!revs[q].classList.contains('in') &&
-              revs[q].getBoundingClientRect().top < window.innerHeight) {
-            revs[q].classList.add('in');
-            io.unobserve(revs[q]);
-          }
-        }
-      }, {passive: true});
-    }
-  }
-
-  // ── Barra fija de móvil: aparece cuando el hero sale de pantalla ──────────
-  var fijo = document.getElementById('lw-fijo');
-  var hero = document.querySelector('.hero');
-  var ioFijo = null;
-  if ('IntersectionObserver' in window) {
-    ioFijo = new IntersectionObserver(function (es) {
-      fijo.classList.toggle('on', !es[0].isIntersecting);
-    }, {threshold: 0.2});
-    ioFijo.observe(hero);
-  }
-
-  // ── Envío ─────────────────────────────────────────────────────────────────
   var form = document.getElementById('lw-form');
   var aviso = document.getElementById('lw-aviso');
   var btn = document.getElementById('lw-submit');
+  var fijo = document.getElementById('lw-fijo');
+  var rail = document.getElementById('lw-rail');
   var campos = ['lw-nombre', 'lw-email', 'lw-tel', 'lw-presupuesto'];
 
+  // ── Paso intermedio del embudo ────────────────────────────────────────────
+  // La version anterior lo emitia al abrir el <dialog>. Sin panel, el equivalente honesto
+  // de "esta persona ha empezado" es el primer foco en un campo: sin este evento Meta solo
+  // ve "vio la pagina" y "dejo los datos", y no tiene nada intermedio que optimizar.
+  var empezado = false;
+  form.addEventListener('focusin', function () {
+    if (empezado) return;
+    empezado = true;
+    track('InitiateCheckout');
+  });
+
+  // ── Barra fija de movil: se retira cuando el formulario ya esta en pantalla ──
+  var ioFijo = null;
+  if ('IntersectionObserver' in window) {
+    ioFijo = new IntersectionObserver(function (es) {
+      fijo.classList.toggle('off', es[0].isIntersecting);
+    }, {threshold: 0.25});
+    ioFijo.observe(rail);
+  }
+
+  // ── Envío ─────────────────────────────────────────────────────────────────
   function marca(el, malo) { el.setAttribute('aria-invalid', malo ? 'true' : 'false'); }
   campos.forEach(function (id) {
     var el = document.getElementById(id);
@@ -787,7 +673,6 @@ p{margin:0;text-wrap:pretty}
 
     btn.disabled = true;
     btn.setAttribute('aria-busy', 'true');
-    // Solo la etiqueta: `btn.textContent` se llevaría por delante el icono.
     var label = btn.querySelector('span');
     var etiqueta = label.textContent;
     label.textContent = 'Enviando';
@@ -815,13 +700,12 @@ p{margin:0;text-wrap:pretty}
         h.textContent = 'Gracias, ' + nombre + '.';
         var p = document.createElement('p');
         p.className = 'dice';
-        p.style.marginTop = '.7em';
         p.textContent = 'Elige tú la hora y hablamos cuando te venga bien. Si no, te llamamos nosotros.';
         // El lead ya esta guardado; esto es el paso que de verdad vale. Nueva pestana y no
-        // iframe: el widget de GHL se redimensiona con su propio script y dentro de un
-        // <dialog> se queda cortado en movil, que es donde llega la pauta.
+        // iframe: el widget de GHL se redimensiona con su propio script y dentro de una
+        // columna estrecha se queda cortado en movil, que es donde llega la pauta.
         var cal = document.createElement('a');
-        cal.className = 'btn btn--ancho';
+        cal.className = 'btn';
         cal.style.marginTop = '1.4em';
         // Sin nombre, email ni telefono en la URL: quedarian en el historial del navegador,
         // en los logs de leadconnectorhq.com y en el Referer que esa pagina manda a sus
@@ -849,7 +733,6 @@ p{margin:0;text-wrap:pretty}
         // Esta linea SE BORRA en cuanto el owner ponga la location en Europe/Madrid.
         var tzAviso = document.createElement('p');
         tzAviso.className = 'dice';
-        tzAviso.style.marginTop = '.9em';
         tzAviso.style.fontSize = '13px';
         tzAviso.textContent = 'El calendario abre en hora de Bali. Cámbiala a la tuya con el '
           + 'selector de zona horaria que hay bajo el calendario.';
