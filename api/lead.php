@@ -83,11 +83,28 @@ if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
 // expreso no se puede contactar a un residente en la UE (RGPD).
 $name  = $clean(isset($_POST['name'])  ? trim($_POST['name'])  : '');
 $phone = $clean(isset($_POST['phone']) ? trim($_POST['phone']) : '');
-// Suelo del rango de presupuesto que ELIGE el lead (0 = "todavia no lo tengo claro").
-// Se castea a entero y no se limpia como texto: es lo que separa el seguimiento por gama
-// en el CRM, y un valor de fuera de la lista tiene que valer 0, no colarse como cadena.
-$ticket = (int) (isset($_POST['ticket']) ? $_POST['ticket'] : 0);
-if (!in_array($ticket, [0, 25000, 100000, 175000], true)) $ticket = 0;
+/**
+ * Rango de presupuesto que ELIGE el lead. Es lo que separa el seguimiento por gama en el
+ * CRM, asi que no hace falta abrir una campana de Meta por cada gama.
+ *
+ * Se guarda el RANGO, no una cifra. Un importe obliga a inventar el suelo de cada tramo
+ * (nuestros precios no estan cerrados; los unicos que existen son los de otro operador),
+ * hace que dos tramos se toquen en su frontera, y en GHL un campo de moneda se pinta en
+ * la divisa de la location — que no es EUR — asi que el comercial leeria otra cantidad.
+ * El rango no tiene ninguno de los tres problemas.
+ *
+ * En el formulario viaja un codigo corto y no la etiqueta: asi se puede reescribir el texto
+ * de cara al usuario sin que un `<option>` cacheado en un navegador deje de casar con la
+ * lista. Al CSV y al CRM va la etiqueta, que es lo que lee una persona.
+ */
+$rangos = [
+    'bajo'  => 'Menos de 100.000 EUR',
+    'medio' => 'Entre 100.000 y 175.000 EUR',
+    'alto'  => 'Mas de 175.000 EUR',
+    'nose'  => 'Todavia no lo tiene claro',
+];
+$rango = isset($_POST['presupuesto']) ? (string) $_POST['presupuesto'] : '';
+if (!isset($rangos[$rango])) $rango = '';   // fuera de la lista = no contesto
 
 if ($name !== '' || $phone !== '') {
     $consent = isset($_POST['consent']) && $_POST['consent'] === '1';
@@ -98,6 +115,32 @@ if ($name !== '' || $phone !== '') {
     }
 
     $file = $dir . '/leads_llamada.csv';
+
+    // La cabecera solo se escribe cuando el fichero NACE, y en produccion ya existe con las
+    // 10 columnas de antes. Sin esto, las filas nuevas traen 11 valores bajo 10 nombres:
+    // ventas abre una columna sin titulo y cualquier lectura por cabecera (Excel, pandas)
+    // desalinea o revienta. Corre una sola vez — en cuanto la cabecera lleva `presupuesto`
+    // la condicion es falsa para siempre.
+    if (is_file($file) && ($__fh = @fopen($file, 'r'))) {
+        $__cab = fgetcsv($__fh);
+        fclose($__fh);
+        if ($__cab && !in_array('presupuesto', $__cab, true)) {
+            $__lineas = @file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($__lineas) {
+                $__lineas[0] .= ',presupuesto';
+                // Temporal + rename, nunca escritura en sitio: si el proceso muere a mitad,
+                // el CSV con los leads reales sigue entero. rename() sobre el mismo volumen
+                // es atomico, asi que ventas nunca ve el fichero a medias.
+                $__tmp = $file . '.tmp';
+                if (@file_put_contents($__tmp, implode("\n", $__lineas) . "\n", LOCK_EX) !== false) {
+                    @rename($__tmp, $file);
+                } else {
+                    @unlink($__tmp);
+                }
+            }
+        }
+    }
+
     $new  = !file_exists($file);
     $fh   = @fopen($file, 'a');
     if ($fh === false) {
@@ -113,7 +156,10 @@ if ($name !== '' || $phone !== '') {
         'sales@lawangproperties.com',
         'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
         "Modelo: $property\nNombre: $name\nEmail: $email\nTelefono: $phone\n"
-        . 'Presupuesto: ' . ($ticket > 0 ? 'desde ' . number_format($ticket, 0, ',', '.') . ' EUR' : 'sin definir') . "\n"
+        // "no contesto" y "eligio no saberlo" NO son lo mismo para quien va a llamar: el
+        // segundo es un lead trabajable que dijo algo. Colapsarlos en "sin definir" tira
+        // justo la senal que este campo venia a dar.
+        . 'Presupuesto: ' . ($rango !== '' ? $rangos[$rango] : 'no contesto') . "\n"
         . "Origen: $source\nCampana: $campana\nFecha: " . date('c'),
         // From de un buzón del propio dominio: con un remitente ajeno el correo cae en spam.
         "From: no-reply@lawangproperties.com\r\nReply-To: $email\r\n"
@@ -124,17 +170,16 @@ if ($name !== '' || $phone !== '') {
         '-fno-reply@lawangproperties.com'
     ) ? 'si' : 'NO';
 
-    // `ticket` va al FINAL y no junto a `modelo`, que es donde encajaria leyendolo. Si el
-    // fichero ya existe en produccion, su cabecera de 10 columnas esta escrita y no se
-    // reescribe: meter la columna en medio desalinearia todo lo anterior. Al final, las 10
-    // viejas siguen cuadrando y la nueva sobra en las filas antiguas.
+    // La columna nueva va al FINAL y no junto a `modelo`, que es donde encajaria leyendolo:
+    // en medio desalinearia todas las filas ya escritas.
     if ($new) {
-        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'campana', 'consentimiento', 'ip', 'avisado', 'ticket']);
+        fputcsv($fh, ['timestamp', 'nombre', 'email', 'telefono', 'modelo', 'source', 'campana', 'consentimiento', 'ip', 'avisado', 'presupuesto']);
     }
     fputcsv($fh, [
         date('c'), $name, $email, $phone, $property, $source, $campana, 'si',
         isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
-        $enviado, $ticket,
+        // La etiqueta, no el codigo: este CSV lo abre ventas, y "alto" no le dice nada.
+        $enviado, $rango !== '' ? $rangos[$rango] : '',
     ]);
     fclose($fh);
 
@@ -151,7 +196,8 @@ if ($name !== '' || $phone !== '') {
     // tiene el correo. Solo entran aqui los leads de llamada — la verja de descargas es
     // solo un email y ensuciaria el pipeline con contactos que no se pueden trabajar.
     require_once __DIR__ . '/ghl.php';
-    lawang_ghl_upsert($name, $email, $phone, $property, $source, $campana, $ticket);
+    lawang_ghl_upsert($name, $email, $phone, $property, $source, $campana,
+        $rango !== '' ? $rangos[$rango] : '');
     exit;
 }
 
