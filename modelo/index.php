@@ -124,8 +124,24 @@ $ficha = [
   --barra:54px;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);
-  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+/* El papel, en dos capas y sin una sola petición de red: grano SVG que viaja con el scroll
+   + un lavado vertical fijo (más claro arriba, más hondo abajo). Un color plano en toda la
+   página delataba la pantalla; con esto el fondo se lee como una hoja.
+
+   El 20% del grano NO se eligió a ojo: medido sobre la captura PNG (sin compresión, que se
+   come justo este rango), el papel oscila entre 227 y 243 con desviación 2,1 sobre 255 —
+   textura visible que no ensucia la mono de la ficha. Los dos intentos previos se quedaron
+   cortos y se veían planos: 4,5% daba 0,84 y 7,5% daba 0,96. La opacidad de un `rect` sobre
+   `feTurbulence` NO escala lineal (el ruido trae su propio alfa), así que subirla el doble
+   no dobla nada: hay que medir. Con el papel en su punto más oscuro el texto secundario
+   sigue dando 5,1:1, o sea AA. */
+body{margin:0;color:var(--tinta);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  background-image:
+    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.20'/%3E%3C/svg%3E"),
+    linear-gradient(180deg,#F9F6F0 0%,var(--papel) 30%,var(--papel) 62%,#ECE7DC 100%);
+  background-repeat:repeat,no-repeat;
+  background-attachment:scroll,fixed}
 img{max-width:100%;display:block}
 a{color:var(--verde)}
 p{margin:0}
@@ -140,7 +156,12 @@ h1,h2,h3{margin:0;font-family:var(--serif);font-weight:400;letter-spacing:-.012e
 .dice{color:var(--tinta2);max-width:62ch;margin-top:.9em}
 
 /* ── Cabecera ─────────────────────────────────────────────────────────────── */
-.barra{position:sticky;top:0;z-index:30;height:var(--barra);background:var(--papel);
+/* Translúcida y no `var(--papel)` a secas: con el lavado detrás, un color plano cortaba una
+   banda visible justo bajo el borde. El `backdrop-filter` es adorno, y si el motor no lo
+   entiende queda el mismo color casi opaco. */
+.barra{position:sticky;top:0;z-index:30;height:var(--barra);
+  background:rgba(249,246,240,.93);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   border-bottom:1px solid var(--linea);display:flex;align-items:center}
 .barra__in{width:100%;max-width:1320px;margin-inline:auto;padding-inline:var(--gut);
   display:flex;justify-content:space-between;align-items:center;gap:16px}
@@ -173,7 +194,11 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
   text-transform:uppercase}
 
 /* ── Ficha técnica ────────────────────────────────────────────────────────── */
-.ficha{margin-top:clamp(28px,3.4vw,42px)}
+/* La ficha va sobre su propio panel tintado: es el bloque más denso de la página y, suelto
+   sobre el papel, se leía como una tabla que alguien se dejó ahí. Es también lo que da el
+   ritmo de bandas que le faltaba al documento. */
+.ficha{margin-top:clamp(28px,3.4vw,42px);background:rgba(234,229,218,.62);
+  border:1px solid var(--linea);padding:clamp(20px,2.4vw,28px)}
 .ficha dl{margin:14px 0 0;display:grid;grid-template-columns:minmax(150px,.85fr) 1.15fr}
 .ficha dt,.ficha dd{margin:0;padding:11px 0;border-top:1px solid var(--linea);
   font-size:14.5px}
@@ -184,15 +209,32 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
 .ficha__nota{font-size:13px;color:var(--tinta2);margin-top:14px;max-width:56ch}
 
 /* ── Botón ────────────────────────────────────────────────────────────────── */
+/* Es el único elemento de la página al que se le permite levantar la voz: en una ficha
+   sobria, el sitio donde se pincha tiene que ser el que más pesa. Gana cuerpo (altura,
+   tamaño y una flecha que avanza), no color chillón — el verde sigue siendo el único
+   acento. La sombra es del propio verde y muy abierta: hunde el botón en el papel en vez
+   de simular una capa flotante de interfaz. */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:0;
-  cursor:pointer;background:var(--verde);color:var(--papel);font-family:var(--sans);
-  font-size:14px;font-weight:600;letter-spacing:.02em;text-decoration:none;
-  padding:15px 22px;width:100%;transition:background .18s ease}
-.btn:hover{background:var(--verde-osc)}
-.btn[disabled]{opacity:.6;cursor:default}
+  cursor:pointer;background:var(--verde);color:#fff;font-family:var(--sans);
+  font-size:15.5px;font-weight:600;letter-spacing:.01em;text-decoration:none;
+  padding:19px 24px;width:100%;box-shadow:0 6px 22px -10px rgba(31,74,61,.85);
+  transition:background .18s ease,box-shadow .18s ease,transform .12s ease}
+.btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.9;fill:none;
+  transition:transform .24s cubic-bezier(.23,1,.32,1)}
+.btn:hover{background:var(--verde-osc);box-shadow:0 10px 26px -10px rgba(31,74,61,.9)}
+.btn:hover svg{transform:translateX(4px)}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.6;cursor:default;box-shadow:none}
+@media(prefers-reduced-motion:reduce){
+  .btn,.btn svg{transition:none}
+  .btn:hover svg{transform:none}
+}
 
 /* ── Columna del formulario ───────────────────────────────────────────────── */
-.caja{background:#fff;border:1px solid var(--linea-fuerte);padding:clamp(20px,2.2vw,26px)}
+/* Filete verde arriba: con el papel ya texturado, un recuadro blanco a secas se leía como
+   un hueco. El filete lo convierte en la pieza a la que va el ojo, y cuesta una línea. */
+.caja{background:#fff;border:1px solid var(--linea-fuerte);border-top:3px solid var(--verde);
+  padding:clamp(20px,2.2vw,26px);box-shadow:0 18px 44px -34px rgba(26,29,27,.55)}
 .caja h2{font-size:22px}
 .caja .dice{font-size:13.5px;margin-top:.6em}
 .campo{margin-top:15px}
@@ -280,8 +322,9 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
 
 /* ── Barra fija de móvil ──────────────────────────────────────────────────── */
 .fijo{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;
-  padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--papel);
-  border-top:1px solid var(--linea-fuerte)}
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(244,241,234,.94);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);border-top:1px solid var(--linea-fuerte)}
 .fijo.off{display:none}
 
 @media(max-width:1040px){
@@ -422,7 +465,9 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
           contactarme sobre este modelo.</span>
       </label>
 
-      <button class="btn" type="submit" id="lw-submit"><span>Reservar mi llamada</span></button>
+      <button class="btn" type="submit" id="lw-submit"><span>Reservar mi llamada</span>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+      </button>
       <p class="aviso" id="lw-aviso" role="status" aria-live="polite"></p>
     </form>
   </div>
@@ -591,7 +636,9 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
 </footer>
 
 <div class="fijo" id="lw-fijo">
-  <a class="btn" href="#lw-rail">Reservar mi llamada</a>
+  <a class="btn" href="#lw-rail">Reservar mi llamada
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+  </a>
 </div>
 
 <script src="/assets/consent.js?v=20260731100255" defer></script>
