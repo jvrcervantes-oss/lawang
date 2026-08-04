@@ -59,10 +59,13 @@
   table.ops .n{ font-size:12.5px; letter-spacing:.08em; color:var(--tg); font-weight:600; white-space:nowrap; }
   table.ops .c{ font-weight:600; }
   table.ops .p{ font-size:12.5px; color:var(--muted); }
-  /* 8px en horizontal: a 4px dos pastillas de color solido se leian como una
-     sola etiqueta partida. El hueco vertical se queda en 6 para que dos lineas
+  /* SIN el `table.ops` de delante: la tabla es `.sui-tabla` desde el rediseño
+     del 31-jul, asi que esta regla no aplicaba a nada y las pastillas salian
+     PEGADAS (se unen con join('') , sin ni siquiera un espacio en blanco).
+     10px en horizontal: dos pastillas de color solido pegadas se leen como una
+     sola etiqueta partida. El hueco vertical se queda menor para que dos lineas
      de etiquetas no engorden la fila. */
-  table.ops .badges{ display:flex; gap:6px 8px; flex-wrap:wrap; }
+  .badges{ display:flex; gap:6px 10px; flex-wrap:wrap; }
   .volver{ font:inherit; font-size:12.5px; background:none; border:none; color:var(--dl); cursor:pointer;
            padding:0; margin:0 0 14px; display:inline-flex; align-items:center; gap:6px; }
   .volver:hover{ text-decoration:underline; }
@@ -88,7 +91,6 @@
   .op .n{ font-size:12px; letter-spacing:.1em; color:var(--tg); font-weight:600; }
   .op .c{ font-size:14px; margin:2px 0 0; }
   .op .p{ font-size:12px; color:var(--muted); }
-  .op .badges{ margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; }
 
   /* ---------- detalle ---------- */
   .detalle{ overflow:auto; padding:26px 30px 80px; }
@@ -171,7 +173,7 @@
       <div class="centro">
         <div class="cab">
           <div class="fila">
-            <input class="buscar" id="q" placeholder="Buscar comprador, proyecto o nº…">
+            <input class="buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
             <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
           </div>
           <div class="filtros" id="filtros"></div>
@@ -180,11 +182,11 @@
         <div class="sui-tabla-caja">
           <table class="sui-tabla" id="tabla">
             <thead><tr>
-              <th>Nº</th><th>Comprador</th><th>Proyecto</th>
+              <th>Nº</th><th>Comprador</th><th>Proyecto</th><th>Operador</th>
               <th class="num">Precio</th><th class="num">Cobrado</th><th class="num">Pendiente</th>
               <th>Situación</th>
             </tr></thead>
-            <tbody id="listaOps"><tr><td colspan="7">Cargando…</td></tr></tbody>
+            <tbody id="listaOps"><tr><td colspan="8">Cargando…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -219,7 +221,10 @@ const HOY = new Date(); HOY.setHours(0,0,0,0);
 const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
 
-let SB = null, OPS = [], SEL = null, POR_CLIENTE = {};
+let SB = null, OPS = [], SEL = null, POR_CLIENTE = {}, EQUIPO = {};
+/* Los 13 contratos anteriores a la columna `creado_por` (28-jul) no tienen
+   autor y nunca lo van a tener: no hay de dónde sacarlo. Salen con raya. */
+const operador = o => EQUIPO[o.creado_por] || o.creado_por || '—';
 
 /* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
    creó la tabla). Aquí solo se traducen para mostrar. */
@@ -233,11 +238,11 @@ const TIPO_ES = { reserva_parcela:'Bloqueo de Parcela', construccion:'Construcci
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
-  const [c, f, s, cc, dc] = await Promise.all([
+  const [c, f, s, cc, dc, eq] = await Promise.all([
     // `adq1` y `compradores` se piden para poder avisar de las fichas de
     // comprador que faltan. Son campos pequeños del jsonb; sigue sin pedirse
     // `datos` entero, que pesa MB por los anexos en base64.
-    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
+    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
     SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
@@ -247,12 +252,20 @@ async function cargar(){
     // contrato: el pasaporte es de la persona, no de una venta, y sirve para
     // todas las que tenga.
     SB.from('documents').select('id,client_id,contrato_id,doc_type,storage_path,status,uploaded_at,caduca_el'),
+    // email → nombre del equipo, solo para ENSEÑAR quién creó la operación.
+    // `contratos.creado_por` guarda el email y así se queda: es la identidad con
+    // la que la RLS decide quién edita lo suyo. Ojo: la RLS de `usuarios` deja
+    // ver todas las fichas al admin y solo la propia al resto — a un agente le
+    // saldrá el email en vez del nombre, que sigue identificando igual.
+    SB.from('usuarios').select('email,nombre'),
   ]);
   if(c.error) throw c.error;
   const facturas = f.error ? [] : (f.data || []);
   const firmas   = s.error ? [] : (s.data || []);
   const vinculos = cc.error ? [] : (cc.data || []);
   const docsKyc  = dc.error ? [] : (dc.data || []);
+  EQUIPO = {};
+  (eq.error ? [] : (eq.data || [])).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
 
   /* Qué contratos tiene cada persona. Un comprador encadena reserva, PPJB y
      obra: estando en uno hace falta saltar a los otros sin volver al listado.
@@ -372,7 +385,7 @@ function pintarLista(){
     .filter(pasaFiltro)
     .filter(o => !PROYECTO || o.proyecto_nombre === PROYECTO)
     .filter(o => !q ||
-    [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre].some(v => String(v||'').toLowerCase().includes(q))));
+    [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre,x.creado_por,operador(x)].some(v => String(v||'').toLowerCase().includes(q))));
   $('#listaOps').innerHTML = vis.length ? vis.map(o => {
     const c = cuenta(o);
     const eur = n => n == null ? '<span class="nota">—</span>' : esc(fmtMoneda(n, c.moneda));
@@ -388,6 +401,7 @@ function pintarLista(){
       <td class="n">${esc(o.numero || 'sin nº')}</td>
       <td class="c">${esc(o.comprador_nombre || 'Sin comprador')}</td>
       <td class="p">${esc(o.proyecto_nombre || '—')}</td>
+      <td class="p" title="${esc(o.creado_por || 'sin autor registrado')}">${esc(operador(o))}</td>
       <td class="num">${c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>'}</td>
       <td class="num">${c.facturado ? eur(c.facturado) : '<span class="nota">—</span>'}</td>
       <td class="num">${c.pendiente != null && c.pendiente > 0 ? '<b>' + eur(c.pendiente) + '</b>' : eur(c.pendiente)}</td>
@@ -396,7 +410,7 @@ function pintarLista(){
   }).join('')
     // decir POR QUÉ no hay nada: con filtros puestos, "ninguna coincide" deja
     // al operador pensando que no existe el dato cuando solo está filtrado
-    : `<tr><td colspan="7"><p class="nota">Ninguna operación coincide.
+    : `<tr><td colspan="8"><p class="nota">Ninguna operación coincide.
         ${(FILTRO || PROYECTO || q) ? '<a class="enl" href="#" id="limpiaFiltros">Quitar los filtros</a>' : ''}</p></td></tr>`;
 
   // Totales de lo que se está viendo, no de todo: con un filtro puesto, la suma
