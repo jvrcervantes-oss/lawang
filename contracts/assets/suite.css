@@ -53,7 +53,15 @@
   --linea:#E2DACA;
   --texto:#22282A;
   --texto-2:#4A5052;
-  --texto-3:#8A8F86;
+  /* 🔴 Era #8A8F86 y NO se leía: 3,31 sobre la tabla blanca y 2,98 sobre la
+     cabecera — por debajo del mínimo de 4,5 de la WCAG AA, y el segundo ni
+     siquiera llega al 3 que se exige a texto grande. Medido, no estimado: es el
+     color de los estados vacíos, del selector de densidad y de los datos
+     secundarios de cada fila, o sea justo lo que hay que poder leer de un
+     vistazo. Se ha bajado la luminosidad MANTENIENDO tono y saturación, así que
+     sigue siendo el mismo gris verdoso de la marca, solo legible: 5,44 sobre
+     blanco, 4,91 sobre la cabecera y 4,53 sobre la fila en hover. */
+  --texto-3:#676B63;
 
   /* elevación: dos niveles y no más. Tres ya no se distinguen */
   --sombra-1:0 1px 2px rgba(34,40,42,.06), 0 1px 1px rgba(34,40,42,.04);

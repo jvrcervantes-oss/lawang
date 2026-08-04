@@ -108,10 +108,17 @@
    La inyecta topbar.js en las siete herramientas. Es un `.lw-menu` más, así que
    hereda el cierre al pinchar fuera y con Escape sin una línea de código extra.
    --------------------------------------------------------------------------- */
+/* 🔴 EL COLOR DEL TEXTO SE DECLARA, NO SE HEREDA. La barra de las ocho
+   herramientas es clara, pero la cabecera del hub es OSCURA y le pone a sus
+   hijos `color:#F5F0E6`. El panel se hereda ese claro y lo pinta sobre su propia
+   píldora clara: contraste 1,12 sobre 21 — el nombre era invisible. Medido.
+   Mismo motivo para el panel desplegado: cuelga de la barra y heredaría igual. */
 .lw-usuario > summary{ position:relative; display:inline-flex; align-items:center; gap:7px;
   min-height:32px; padding:3px 10px 3px 3px; border-radius:999px;
-  border:1px solid var(--line,#e4ddcf); background:var(--card,#fffdf8); }
+  border:1px solid var(--line,#e4ddcf); background:var(--card,#fffdf8);
+  color:var(--va,#2E3437); }
 .lw-usuario > summary:hover{ border-color:var(--tg,#485B37); }
+.lw-usuario .lw-menu-list, .lw-usuario-panel{ color:var(--va,#2E3437); }
 .lw-usuario-ini{ display:inline-flex; align-items:center; justify-content:center;
   width:25px; height:25px; border-radius:999px; background:var(--dl,#104C4F); color:#fff;
   font-size:11.5px; font-weight:600; flex:none; }
