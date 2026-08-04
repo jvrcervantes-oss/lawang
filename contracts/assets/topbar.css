@@ -108,17 +108,36 @@
    La inyecta topbar.js en las siete herramientas. Es un `.lw-menu` más, así que
    hereda el cierre al pinchar fuera y con Escape sin una línea de código extra.
    --------------------------------------------------------------------------- */
-.lw-campana > summary{ position:relative; display:inline-flex; align-items:center;
-  justify-content:center; min-width:32px; min-height:32px; border-radius:8px;
-  border:1px solid transparent; font-size:15px; line-height:1; }
-.lw-campana > summary:hover{ border-color:var(--tg,#485B37); background:rgba(72,91,55,.08); }
+.lw-usuario > summary{ position:relative; display:inline-flex; align-items:center; gap:7px;
+  min-height:32px; padding:3px 10px 3px 3px; border-radius:999px;
+  border:1px solid var(--line,#e4ddcf); background:var(--card,#fffdf8); }
+.lw-usuario > summary:hover{ border-color:var(--tg,#485B37); }
+.lw-usuario-ini{ display:inline-flex; align-items:center; justify-content:center;
+  width:25px; height:25px; border-radius:999px; background:var(--dl,#104C4F); color:#fff;
+  font-size:11.5px; font-weight:600; flex:none; }
+.lw-usuario-nom{ font-size:12.5px; max-width:130px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:760px){ .lw-usuario-nom{ display:none; } }
+
+.lw-usuario-panel{ min-width:320px; max-width:min(400px, calc(100vw - 24px)); padding:0; }
+.lw-usuario-cab{ display:flex; flex-direction:column; gap:1px; padding:13px 14px 11px;
+  border-bottom:1px solid var(--line,#e4ddcf); }
+.lw-usuario-cab b{ font-size:13.5px; }
+.lw-usuario-cab span{ font-size:11.5px; color:var(--muted,#6b6c66); overflow:hidden;
+  text-overflow:ellipsis; }
+.lw-usuario-rol{ margin-top:5px; align-self:flex-start; font-size:10px; letter-spacing:.09em;
+  text-transform:uppercase; font-weight:600; color:var(--dl,#104C4F);
+  border:1px solid var(--line,#e4ddcf); border-radius:999px; padding:2px 8px; }
+.lw-usuario-seccion{ font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted,#6b6c66); font-weight:600; padding:11px 14px 5px; }
+.lw-usuario-salir{ width:100%; justify-content:center; border-radius:0;
+  border:none; border-top:1px solid var(--line,#e4ddcf); }
 /* El número NO es solo color: lleva su propio sitio y su forma. Un punto rojo a
    secas no dice cuántos, y con daltonismo no dice nada. */
-.lw-campana-n{ position:absolute; top:-2px; right:-3px; background:#9E2F26; color:#fff;
+.lw-campana-n{ position:absolute; top:-4px; right:-4px; background:#9E2F26; color:#fff;
   font-size:9.5px; font-weight:700; line-height:1; padding:2px 5px; border-radius:999px;
   font-variant-numeric:tabular-nums; }
-.lw-campana-lista{ min-width:320px; max-width:min(400px, calc(100vw - 24px));
-  max-height:min(70vh, 460px); overflow-y:auto; padding:4px; }
+.lw-campana-lista{ max-height:min(58vh, 380px); overflow-y:auto; padding:2px 4px 6px; }
 .lw-aviso{ display:grid; grid-template-columns:1fr auto; gap:2px 10px;
   padding:9px 11px; border-radius:7px; text-decoration:none; color:inherit; }
 .lw-aviso:hover{ background:rgba(72,91,55,.09); }

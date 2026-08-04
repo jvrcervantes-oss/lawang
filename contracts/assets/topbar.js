@@ -105,22 +105,61 @@
 
   function montar(ctx) {
     var sb = ctx.sb, ficha = ctx.ficha || {};
-    var barra = document.querySelector('.lw-topbar');
+    // `.lw-topbar` en las ocho herramientas; `[data-lw-usuario]` para el hub de
+    // la intranet, que tiene cabecera propia y no la barra compartida
+    var barra = document.querySelector('.lw-topbar') || document.querySelector('[data-lw-usuario]');
     if (!barra) return;
     var esAdmin = ficha.rol === 'admin' || ficha.rol === 'super_admin';
     var email = (ctx.session && ctx.session.user && ctx.session.user.email) || '';
     var vistoHasta = ficha.notif_visto_hasta ? new Date(ficha.notif_visto_hasta) : null;
 
     // se cuelga antes de "quién soy" si está, y si no al final de la barra
+    /* PANEL DE USUARIO — quién eres, qué te ha pasado y salir, en un solo sitio
+       y en las nueve pantallas. Antes cada herramienta pintaba su propio «👤
+       nombre» y su propio botón Salir: nueve copias de lo mismo (once `signOut`
+       contados) que había que tocar una a una para cambiar cualquier detalle.
+
+       No se edita ninguna página: el panel se INYECTA y esconde el `.lw-who` y
+       el botón de salir que la página ya trae. Se esconden y no se borran a
+       propósito — el código de cada herramienta les sigue escribiendo dentro
+       (`$('#who').textContent = ...`) y quitarlos del DOM lo rompería.
+
+       Lo que NO lleva: un selector de herramientas. El catálogo vive en
+       `/intranet/` con sus permisos, y una segunda lista aquí se quedaría vieja
+       en cuanto se añadiera una herramienta. Para eso ya está «← Intranet». */
+    var nombre = ficha.nombre || (email.split('@')[0] || 'Cuenta');
+    var ROLES = { super_admin: 'Super administrador', admin: 'Administrador', agente: 'Agente' };
+
     var caja = document.createElement('details');
-    caja.className = 'lw-menu lw-campana';
+    caja.className = 'lw-menu lw-usuario';
     caja.innerHTML =
-      '<summary class="lw-campana-btn" title="Notificaciones" aria-label="Notificaciones">' +
-        '<span aria-hidden="true">🔔</span><span class="lw-campana-n" hidden></span></summary>' +
-      '<div class="lw-menu-list lw-campana-lista"><p class="lw-campana-vacio">Cargando…</p></div>';
-    var ancla = barra.querySelector('.lw-who') || barra.querySelector('.lw-spacer');
-    if (ancla && ancla.classList.contains('lw-who')) barra.insertBefore(caja, ancla);
-    else barra.appendChild(caja);
+      '<summary class="lw-usuario-btn" title="Tu cuenta y tus avisos">' +
+        '<span class="lw-usuario-ini" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
+        '<span class="lw-usuario-nom">' + esc(nombre) + '</span>' +
+        '<span class="lw-campana-n" hidden></span></summary>' +
+      '<div class="lw-menu-list lw-usuario-panel">' +
+        '<div class="lw-usuario-cab">' +
+          '<b>' + esc(nombre) + '</b>' +
+          '<span>' + esc(email) + '</span>' +
+          (ficha.rol ? '<span class="lw-usuario-rol">' + esc(ROLES[ficha.rol] || ficha.rol) + '</span>' : '') +
+        '</div>' +
+        '<div class="lw-usuario-seccion">Notificaciones</div>' +
+        '<div class="lw-campana-lista"><p class="lw-campana-vacio">Cargando…</p></div>' +
+        '<button type="button" class="lw-btn lw-usuario-salir">Cerrar sesión</button>' +
+      '</div>';
+
+    var ancla = barra.querySelector('.lw-who');
+    if (ancla) barra.insertBefore(caja, ancla); else barra.appendChild(caja);
+
+    // la página conserva su marcado, pero deja de enseñarlo: si no, el nombre y
+    // el botón de salir salen dos veces
+    if (ancla) ancla.hidden = true;
+    var salirViejo = barra.querySelector('#btnLogout, #out, #btnSalir');
+    if (salirViejo) salirViejo.hidden = true;
+    caja.querySelector('.lw-usuario-salir').addEventListener('click', function () {
+      if (salirViejo) { salirViejo.click(); return; }   // cada herramienta sabe a dónde volver
+      sb.auth.signOut().then(function () { location.replace('/contracts/login.html'); });
+    });
 
     var contador = caja.querySelector('.lw-campana-n');
     var lista = caja.querySelector('.lw-campana-lista');
