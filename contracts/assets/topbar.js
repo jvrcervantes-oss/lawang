@@ -51,6 +51,33 @@
    el filtro por `creado_por` va explícito: sin él, un agente vería los cobros
    pendientes de toda la promotora.
    ============================================================================ */
+/* CABECERA DE LA BARRA — 4-ago-2026
+   «← Intranet», el logo y el rótulo estaban escritos a mano en las ocho
+   herramientas: ocho copias de tres líneas idénticas salvo la ruta del logo, que
+   en unas era relativa y en otras absoluta (y en el maquetador de dossiers venía
+   con un `onerror` para taparlo cuando no cargaba). Ahora las pone esta función
+   y cada página solo declara CÓMO SE LLAMA, con `data-titulo`.
+
+   Se inserta al principio de la barra y no toca nada más: los controles propios
+   de cada herramienta se quedan donde estaban y en el orden que estaban. */
+(function () {
+  var barra = document.querySelector('.lw-topbar');
+  if (barra && !barra.querySelector('.lw-home')) {
+    var cab = document.createDocumentFragment();
+    var casa = document.createElement('a');
+    casa.className = 'lw-home'; casa.href = '/intranet/'; casa.textContent = '← Intranet';
+    var logo = document.createElement('img');
+    logo.className = 'lw-brand'; logo.alt = 'Lawang';
+    logo.src = '/contracts/assets/brand/lawang-logo-v3-dark.png';
+    logo.onerror = function () { this.remove(); };   // que falte el logo no parte la barra
+    var rotulo = document.createElement('h1');
+    rotulo.className = 'lw-title';
+    rotulo.textContent = barra.dataset.titulo || (document.title.split('·').pop() || '').trim();
+    cab.appendChild(casa); cab.appendChild(logo); cab.appendChild(rotulo);
+    barra.insertBefore(cab, barra.firstChild);
+  }
+})();
+
 (function () {
   var VENC_DIAS = 15;                                // se avisa desde 15 días antes
   var LIMITE = 40;

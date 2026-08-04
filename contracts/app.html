@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css?v=c5144682">
 <link rel="stylesheet" href="assets/topbar.css?v=cf0c2ecb">
-<script src="assets/topbar.js?v=ddbaea8d" defer></script>
+<script src="assets/topbar.js?v=c697f500" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -336,10 +336,7 @@
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
        Contratos, Facturas y Dossier. Estilos en assets/topbar.css. -->
-  <div class="topbar lw-topbar">
-    <a class="lw-home" href="/intranet/">← Intranet</a>
-    <img class="lw-brand" src="assets/brand/lawang-logo-v3-dark.png" alt="Lawang">
-    <h1 class="lw-title">Contratos</h1>
+  <div class="topbar lw-topbar" data-titulo="Contratos">
     <span class="lw-sep"></span>
     <select id="tplPick" class="lw-select" aria-label="Tipo de contrato"></select>
     <span class="lang-hint" title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>

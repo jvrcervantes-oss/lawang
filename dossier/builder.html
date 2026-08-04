@@ -13,7 +13,7 @@
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/contracts/assets/guard.js?v=7b762908" data-herramienta="dossier"></script>
-<script src="../contracts/assets/topbar.js?v=ddbaea8d" defer></script>
+<script src="../contracts/assets/topbar.js?v=c697f500" defer></script>
 <style>
 /* ============ tokens de marca (mismos que contracts/assets/brand.css) ============ */
 :root{
@@ -286,10 +286,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 <!-- Barra unificada de la suite (../contracts/assets/topbar.css). Los 11 botones
      que había en fila pasan a tres desplegables por sección; fuera queda solo la
      acción final, Exportar PDF. -->
-<div id="topbar" class="lw-topbar">
-  <a class="lw-home" href="/intranet/">← Intranet</a>
-  <img class="lw-brand" src="../contracts/assets/brand/lawang-logo-v3-dark.png" alt="" onerror="this.remove()">
-  <h1 class="lw-title">Dossier</h1>
+<div id="topbar" class="lw-topbar" data-titulo="Dossier">
   <span class="lw-sep"></span>
   <input id="ptitle" class="lw-input" value="Dossier" spellcheck="false" title="Nombre del dossier (también nombra el PDF)">
 
