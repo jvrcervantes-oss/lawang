@@ -142,6 +142,10 @@
   .frow .n{ font-weight:600; font-size:13px; color:var(--dl); font-variant-numeric:tabular-nums; }
   .frow .c{ flex:1; font-size:13px; }
   .frow .t{ font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  /* quien la emitio: en gris y sin crecer, para que no le quite sitio al cliente
+     ni al importe, que es lo que se compara entre filas */
+  .frow .e{ font-size:12px; color:var(--muted); max-width:130px; overflow:hidden;
+            text-overflow:ellipsis; white-space:nowrap; }
   .frow.anulada{ opacity:.55; text-decoration:line-through; }
   .frow .btn.borrar{ color:#9E2F26; border-color:#E0C6C2; padding:6px 11px; }
 
@@ -379,7 +383,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   const pedido = new URLSearchParams(location.search).get('id');
   if(pedido){
     sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos,creado_por')
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
         if(error || !data){ toast('No se encontró ese documento'); return; }
@@ -754,9 +758,25 @@ $('#btnNueva').onclick = () => {
 };
 
 /* ---------- facturas guardadas ---------- */
+/* Quien la emitio. `facturas.creado_por` guarda el EMAIL —es la identidad con la
+   que la RLS decide quien edita lo suyo— y aqui solo se TRADUCE a nombre si esa
+   persona tiene ficha. Mismo patron que el panel de Contratos, no uno nuevo.
+   Ojo: la RLS de `usuarios` deja ver todas las fichas al admin y solo la propia
+   al resto, asi que a un agente le saldra el email. Identifica igual, y el
+   completo esta siempre en el `title`. */
+let EQUIPO = null;
+async function cargarEquipo(){
+  if(EQUIPO) return;
+  const { data } = await sb.from('usuarios').select('email, nombre');
+  EQUIPO = {};
+  (data || []).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
+}
+const emisor = f => (EQUIPO && EQUIPO[f.creado_por]) || f.creado_por || '—';
+
 $('#btnList').onclick = async () => {
   $('#ovList').classList.add('open');
   const box = $('#listBody'); box.innerHTML = 'Cargando…';
+  await cargarEquipo();   // para enseñar el nombre en vez del email
   const { data, error } = await sb.from('facturas')
     .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos')
     .order('created_at', { ascending:false }).limit(200);
@@ -767,6 +787,7 @@ $('#btnList').onclick = async () => {
       <span class="n">${esc(f.numero || '—')}</span>
       <span class="c">${esc(f.cliente_nombre || 'sin nombre')}${f.proyecto_nombre ? ' · ' + esc(f.proyecto_nombre) : ''}</span>
       <span class="t">${esc(fmtMoneda(f.total, f.moneda))}</span>
+      <span class="e" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}</span>
       ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
       ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}
     </div>`).join('');

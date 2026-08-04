@@ -301,14 +301,24 @@
   .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
     font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
   .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
-  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr 34px; gap:8px; padding:11px 8px;
-    border-top:1px solid var(--hair); font-size:13px; cursor:pointer; border-radius:8px;
-    transition:background .15s var(--ease); }
-  .cp-row:hover{ background:rgba(72,91,55,.06); }
+  /* Mismos colores que la lista de Facturas guardadas (petición del owner,
+     4-ago-2026): cada fila es una tarjeta sobre `--card` con su filete
+     `--line`, y al pasar por encima lo que cambia es el BORDE, no el fondo.
+     Antes eran filas pegadas separadas por una raya, y el hover teñía el fondo
+     de verde. Las columnas y los campos NO se tocan: son los de Contratos y
+     estaban bien. Los dos tokens ya existían aquí con el mismo valor que en
+     Facturas, así que esto no añade ningún color nuevo al sistema. */
+  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr 34px; gap:8px;
+    padding:11px 12px; margin-bottom:8px; font-size:13px; cursor:pointer;
+    border:1px solid var(--line); border-radius:11px; background:var(--card);
+    transition:border-color .15s var(--ease); }
+  .cp-row:hover{ border-color:var(--tg); }
   .cp-del{ font:inherit; font-size:13px; line-height:1; color:#a3342b; background:none;
     border:1px solid #e0c6c2; border-radius:7px; padding:4px 7px; cursor:pointer; }
   .cp-del:hover{ background:rgba(163,52,43,.09); }
-  .cp-row .cp-num{ font-weight:600; color:var(--tg); }
+  /* el nº en Deep Lagoon y con cifras de ancho fijo, como en Facturas: así dos
+     números seguidos casan por columna y se comparan sin leerlos */
+  .cp-row .cp-num{ font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
   .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
 
   /* ---------- modal "Enviar por email" ---------- */
