@@ -53,7 +53,10 @@
         if (!sesion) { alLogin(); return; }
         // la ficha manda qué herramientas ve. La RLS de `usuarios` ya limita
         // esta consulta a la fila propia (o a todas, si es admin).
-        sb.from('usuarios').select('rol, herramientas, activo, nombre')
+        // `notif_visto_hasta` lo usa la campana de topbar.js para saber qué es
+        // nuevo. Se pide aquí y no allí porque esta consulta ya se hace: pedirla
+        // dos veces sería dos viajes para la misma fila.
+        sb.from('usuarios').select('rol, herramientas, activo, nombre, notif_visto_hasta')
           .eq('user_id', sesion.user.id).maybeSingle()
           .then(function (f) {
             var ficha = (f && f.data) || null;
