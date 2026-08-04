@@ -26,10 +26,29 @@
   /* emblema de la esquina — oculto por defecto; SOLO aparece si el usuario
      sube una imagen desde el panel Diseño (que inyecta su CSS). */
   .lwcov .emblem{ display:none; position:absolute; background:no-repeat center/contain; }
-  /* grano: el <svg> es un elemento reemplazado → inset:0 NO lo estira,
-     se quedaba en su tamaño intrínseco (300×150) pintando un recuadro
-     en la esquina. width/height:100% lo hacen cubrir toda la portada. */
-  .lwcov .grain{ width:100%; height:100%; opacity:var(--grain-opacity,.12); filter:contrast(1.3); mix-blend-mode:overlay; }
+  /* GRANO — 4-ago-2026: era un `feTurbulence` que se dibujaba en vivo, y ahí se
+     iba el 99% del peso del contrato firmado. Chrome no sabe describir un filtro
+     SVG dentro de un PDF: convierte la hoja entera en un mapa de bits a
+     resolución de imprenta. MEDIDO sobre esta misma portada: 17,1 MB el PDF, y
+     con la textura de abajo 0,20 MB. Setenta veces menos.
+     Probadas antes las salidas obvias, y ninguna servía: quitar solo la mezcla
+     deja 29,6 MB y quitar solo el `contrast`, 28,6 MB. El peso lo genera el
+     `feTurbulence`, no lo que lleva encima — por eso van los tres fuera.
+
+     Es un PNG INDEXADO de 64×64 y 1,9 kB: ruido de ocho símbolos (cuatro motas
+     claras y cuatro oscuras, cada una con su alfa) en vez de 8 bits por canal,
+     que no comprime. Va incrustado y no como fichero para que el renderizador no
+     tenga que ir a buscarlo: si un asset no responde, el grano desaparece del
+     contrato y nadie se entera.
+
+     El alfa viene SOBREDIMENSIONADO a propósito: app.html sigue inyectando
+     `opacity:${coverGrain}` (.12 por defecto) y la baja a su sitio, así el
+     deslizador del panel de Diseño funciona exactamente igual que antes.
+     Calibrado midiendo, no mirando: la desviación media por píxel contra la
+     portada vieja da 0,96 frente a 0,82 sobre 255 — a esta magnitud, invisible.
+     Una versión anterior salía 19 veces más marcada y a ojo pasaba por buena. */
+  .lwcov .grain{ width:100%; height:100%; opacity:var(--grain-opacity,.12);
+    background:url("data:image/png;base64,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") repeat; }
   .lwcov .num{ position:absolute; top:17mm; left:22mm; font-size:8pt; letter-spacing:.24em; text-transform:uppercase; opacity:.7; }
   .lwcov .in{ position:absolute; left:0; right:0; bottom:26mm; padding:0 22mm; }
   /* Título: el IDIOMA BASE (el del toggle, ES o EN) va solo, grande, justo
@@ -56,10 +75,7 @@
   <div class="moai" aria-hidden="true"></div>
   <div class="cov-logo" aria-hidden="true"></div>
   <div class="emblem" aria-hidden="true"></div>
-  <svg class="g grain" xmlns="http://www.w3.org/2000/svg">
-    <filter id="lwgr"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
-      <feColorMatrix type="saturate" values="0"/></filter>
-    <rect width="100%" height="100%" filter="url(#lwgr)"/></svg>
+  <div class="g grain" aria-hidden="true"></div>
   <div class="num">{{contrato_num}}</div>
   <div class="tline tline-id">{{cov_t_id}}</div>
   <div class="in">
