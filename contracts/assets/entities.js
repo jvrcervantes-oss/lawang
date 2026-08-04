@@ -120,12 +120,14 @@ const SOCIEDADES = {
     folio: '#E6EFE0',
     domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
     npwp: '1000.0000.0619.8026',
-    /* REPRESENTANTE — cambiado el 4-ago-2026 por decisión del owner: firmaba
-       I Made Monjong Adhi Nugruah y pasa a firmar Pablo Cantero Gambín.
-       Afecta a TODAS las plantillas que emite esta sociedad, no solo al PPJB de
-       Bonian: se avisó y se confirmó. Los documentos YA emitidos no cambian —
-       llevan su PDF sellado con su huella—, solo lo que se emita desde ahora. */
-    rep: 'Pablo Cantero Gambín',
+    /* ⚠️ EL REPRESENTANTE DE ESTA SOCIEDAD ES I MADE MONJONG ADHI NUGRUAH.
+       El 4-ago-2026 lo cambié a Pablo Cantero Gambín leyendo mal al owner: dijo
+       «en este caso mete a Pablo Cantero» refiriéndose SOLO al PPJB de Bonian
+       C2, y lo apliqué aquí, que es la ficha de la que beben las NUEVE
+       plantillas. Revertido el mismo día.
+       Si algún documento concreto lo firma otra persona, va escrito EN ESE
+       documento —como está hoy en `templates/ppjb_bonian_c2.html`—, no aquí. */
+    rep: 'I Made Monjong Adhi Nugruah',
     // NIB y NPWP personal del firmante: los pide el PPJB de Bonian Beach en sus
     // antecedentes. Van aquí y no en la plantilla porque son identidad de la
     // sociedad, y la identidad tiene una sola fuente (este fichero). Opcionales:
@@ -133,15 +135,14 @@ const SOCIEDADES = {
     // sociedad no los tiene, en vez de imprimir el marcador.
     // ⚠️ `rep_npwp` es el del representante que figura ARRIBA en `rep`. Si se
     // cambia uno hay que cambiar el otro: son la misma persona.
-    // El NPWP sale del PPJB de Bonian que envió el owner (31-jul). NO estaba en
-    // la ficha de San Dal Woods: allí lo que hay de Pablo Cantero es su pasaporte
-    // español, que es otra cosa.
-    nib: '2410250046282', rep_npwp: '53.045.376.0-905.000',
-    // credenciales del firmante: las MISMAS que en San Dal Woods, porque es la
-    // misma persona. Si algún día cambian, cambian en los dos sitios.
-    cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',
-            en: 'Spanish nationality, holder of Spanish passport no. PAL648254',
-            id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
+    // `rep_npwp` va VACÍO: el NPWP 53.045.376.0-905.000 que trae el PPJB de
+    // Bonian es el de Pablo Cantero, y aquí el representante es I Made Monjong.
+    // Poner uno con el nombre del otro es peor que no poner ninguno — la frase
+    // se cierra sola gracias al <!--opt:-->.
+    nib: '2410250046282', rep_npwp: '',
+    cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
+            en: 'Indonesian nationality, holder of Indonesian identity document ID 5171021704720002',
+            id: 'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002' } },
   san_dal_woods: {
     label: 'PT SAN DAL WOODS',
     razon: 'PT SAN DAL WOODS', marca: '',
