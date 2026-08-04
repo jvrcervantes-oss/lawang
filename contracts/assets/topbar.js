@@ -157,39 +157,82 @@
     var nombre = ficha.nombre || (email.split('@')[0] || 'Cuenta');
     var ROLES = { super_admin: 'Super administrador', admin: 'Administrador', agente: 'Agente' };
 
-    var caja = document.createElement('details');
-    caja.className = 'lw-menu lw-usuario';
-    caja.innerHTML =
-      '<summary class="lw-usuario-btn" title="Tu cuenta y tus avisos">' +
-        '<span class="lw-usuario-ini" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
-        '<span class="lw-usuario-nom">' + esc(nombre) + '</span>' +
-        '<span class="lw-campana-n" hidden></span></summary>' +
-      '<div class="lw-menu-list lw-usuario-panel">' +
-        '<div class="lw-usuario-cab">' +
-          '<b>' + esc(nombre) + '</b>' +
-          '<span>' + esc(email) + '</span>' +
+    /* CAJÓN IZQUIERDO, no un desplegable. Se abre y se cierra EXACTAMENTE igual
+       que el cajón de la derecha de la suite (`.sui-cajon`): mismo velo que
+       atenúa sin tapar, misma duración (260ms), misma curva, mismo cierre con
+       Escape o pulsando fuera, y en móvil sube desde abajo en vez de entrar de
+       lado. Los valores están copiados en topbar.css y no heredados de
+       suite.css porque suite.css solo lo cargan cuatro de las nueve pantallas.
+
+       El disparador va el PRIMERO de la barra, a la izquierda, que es de donde
+       sale el panel: un botón a la derecha que abre algo por la izquierda
+       obliga a buscar con la vista lo que acaba de aparecer. */
+    var boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'lw-usuario-btn';
+    boton.setAttribute('aria-expanded', 'false');
+    boton.title = 'Tu cuenta y tus avisos';
+    boton.innerHTML =
+      '<span class="lw-usuario-ini" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
+      '<span class="lw-usuario-nom">' + esc(nombre) + '</span>' +
+      '<span class="lw-campana-n" hidden></span>';
+    barra.insertBefore(boton, barra.firstChild);
+
+    var velo = document.createElement('div');
+    velo.className = 'lw-velo';
+    var panel = document.createElement('aside');
+    panel.className = 'lw-panel';
+    panel.setAttribute('aria-label', 'Tu cuenta');
+    panel.innerHTML =
+      '<div class="lw-panel-cab">' +
+        '<span class="lw-usuario-ini grande" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
+        '<div class="lw-panel-quien"><b>' + esc(nombre) + '</b><span>' + esc(email) + '</span>' +
           (ficha.rol ? '<span class="lw-usuario-rol">' + esc(ROLES[ficha.rol] || ficha.rol) + '</span>' : '') +
         '</div>' +
+        '<button type="button" class="lw-panel-x" aria-label="Cerrar">✕</button>' +
+      '</div>' +
+      '<div class="lw-panel-cuerpo">' +
         '<div class="lw-usuario-seccion">Notificaciones</div>' +
         '<div class="lw-campana-lista"><p class="lw-campana-vacio">Cargando…</p></div>' +
-        '<button type="button" class="lw-btn lw-usuario-salir">Cerrar sesión</button>' +
-      '</div>';
-
-    var ancla = barra.querySelector('.lw-who');
-    if (ancla) barra.insertBefore(caja, ancla); else barra.appendChild(caja);
+      '</div>' +
+      '<div class="lw-panel-pie"><button type="button" class="lw-btn lw-usuario-salir">Cerrar sesión</button></div>';
+    document.body.appendChild(velo);
+    document.body.appendChild(panel);
 
     // la página conserva su marcado, pero deja de enseñarlo: si no, el nombre y
     // el botón de salir salen dos veces
+    var ancla = barra.querySelector('.lw-who');
     if (ancla) ancla.hidden = true;
     var salirViejo = barra.querySelector('#btnLogout, #out, #btnSalir');
     if (salirViejo) salirViejo.hidden = true;
-    caja.querySelector('.lw-usuario-salir').addEventListener('click', function () {
+    panel.querySelector('.lw-usuario-salir').addEventListener('click', function () {
       if (salirViejo) { salirViejo.click(); return; }   // cada herramienta sabe a dónde volver
       sb.auth.signOut().then(function () { location.replace('/contracts/login.html'); });
     });
 
-    var contador = caja.querySelector('.lw-campana-n');
-    var lista = caja.querySelector('.lw-campana-lista');
+    var contador = boton.querySelector('.lw-campana-n');
+    var abierto = false;
+    function abrir(si) {
+      abierto = si;
+      panel.classList.toggle('on', si);
+      velo.classList.toggle('on', si);
+      boton.setAttribute('aria-expanded', si ? 'true' : 'false');
+      if (si) marcarVistos();
+    }
+    // abrir el panel = dar los avisos por vistos. Se apaga el contador en el
+    // momento y se guarda la marca en el servidor: la suite se usa desde el
+    // móvil Y desde el escritorio, y en el navegador no viajaría de uno a otro.
+    function marcarVistos() {
+      if (contador.hidden) return;
+      contador.hidden = true;
+      vistoHasta = new Date();
+      sb.rpc('marcar_notificaciones_leidas');
+    }
+    boton.addEventListener('click', function () { abrir(!abierto); });
+    velo.addEventListener('click', function () { abrir(false); });
+    panel.querySelector('.lw-panel-x').addEventListener('click', function () { abrir(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && abierto) abrir(false); });
+    var lista = panel.querySelector('.lw-campana-lista');
 
     function pintar(avisos, sinLeer) {
       contador.textContent = sinLeer > 99 ? '99+' : sinLeer;
@@ -256,16 +299,6 @@
         pintar(avisos.slice(0, LIMITE), avisos.filter(function (a) { return a.nuevo; }).length);
       });
     }
-
-    // abrir el panel = darlos por vistos. Se apaga el contador en el momento y
-    // se guarda la marca en el servidor: la suite se usa desde el móvil Y desde
-    // el escritorio, y en el navegador la marca no viajaría de uno a otro.
-    caja.addEventListener('toggle', function () {
-      if (!caja.open || contador.hidden) return;
-      contador.hidden = true;
-      vistoHasta = new Date();
-      sb.rpc('marcar_notificaciones_leidas');
-    });
 
     cargar();
   }

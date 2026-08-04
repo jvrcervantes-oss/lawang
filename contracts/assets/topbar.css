@@ -110,35 +110,77 @@
    --------------------------------------------------------------------------- */
 /* 🔴 EL COLOR DEL TEXTO SE DECLARA, NO SE HEREDA. La barra de las ocho
    herramientas es clara, pero la cabecera del hub es OSCURA y le pone a sus
-   hijos `color:#F5F0E6`. El panel se hereda ese claro y lo pinta sobre su propia
-   píldora clara: contraste 1,12 sobre 21 — el nombre era invisible. Medido.
-   Mismo motivo para el panel desplegado: cuelga de la barra y heredaría igual. */
-.lw-usuario > summary{ position:relative; display:inline-flex; align-items:center; gap:7px;
-  min-height:32px; padding:3px 10px 3px 3px; border-radius:999px;
-  border:1px solid var(--line,#e4ddcf); background:var(--card,#fffdf8);
-  color:var(--va,#2E3437); }
-.lw-usuario > summary:hover{ border-color:var(--tg,#485B37); }
-.lw-usuario .lw-menu-list, .lw-usuario-panel{ color:var(--va,#2E3437); }
+   hijos `color:#F5F0E6`. El botón heredaba ese claro y lo pintaba sobre su
+   propia píldora clara: contraste 1,12 sobre 21 — invisible. Medido. */
+/* El panel esconde el «👤 nombre» y el «Salir» que cada página ya trae, poniendo
+   `hidden`. Pero `.lw-btn` declara `display:inline-flex`, y una declaración de
+   `display` en una hoja gana al `display:none` que el navegador aplica a
+   `[hidden]`: el botón viejo seguía saliendo, y quedaban dos formas de cerrar
+   sesión. Medido en captura, no supuesto. */
+.lw-topbar [hidden]{ display:none !important; }
+
+.lw-usuario-btn{ position:relative; display:inline-flex; align-items:center; gap:7px; flex:none;
+  min-height:32px; padding:3px 10px 3px 3px; border-radius:999px; cursor:pointer;
+  font:inherit; border:1px solid var(--line,#e4ddcf); background:var(--card,#fffdf8);
+  color:var(--va,#2E3437); transition:border-color 120ms; }
+.lw-usuario-btn:hover{ border-color:var(--tg,#485B37); }
 .lw-usuario-ini{ display:inline-flex; align-items:center; justify-content:center;
   width:25px; height:25px; border-radius:999px; background:var(--dl,#104C4F); color:#fff;
   font-size:11.5px; font-weight:600; flex:none; }
+.lw-usuario-ini.grande{ width:38px; height:38px; font-size:16px; }
 .lw-usuario-nom{ font-size:12.5px; max-width:130px; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:760px){ .lw-usuario-nom{ display:none; } }
 
-.lw-usuario-panel{ min-width:320px; max-width:min(400px, calc(100vw - 24px)); padding:0; }
-.lw-usuario-cab{ display:flex; flex-direction:column; gap:1px; padding:13px 14px 11px;
+/* ── CAJÓN IZQUIERDO ────────────────────────────────────────────────────────
+   Mismos valores que `.sui-cajon` de suite.css, copiados y no heredados porque
+   suite.css solo lo cargan cuatro de las nueve pantallas y el panel tiene que
+   comportarse igual en las nueve. Si algún día se unifican las hojas, esto se
+   borra y se hereda; hasta entonces, dos sitios con el MISMO número es menos
+   malo que un panel que se abre distinto según la herramienta. */
+.lw-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.38);
+  opacity:0; pointer-events:none; transition:opacity 260ms cubic-bezier(.22,.61,.36,1); }
+.lw-velo.on{ opacity:1; pointer-events:auto; }
+.lw-panel{
+  position:fixed; top:var(--tbh,56px); left:0; bottom:0; z-index:61;
+  width:clamp(300px, 26vw, 420px); max-width:100vw;
+  background:var(--card,#fffdf8); border-right:1px solid var(--line,#e4ddcf);
+  box-shadow:0 18px 48px -22px rgba(34,40,42,.45), 0 2px 8px rgba(34,40,42,.07);
+  display:flex; flex-direction:column; color:var(--va,#2E3437);
+  transform:translateX(-100%); transition:transform 260ms cubic-bezier(.22,.61,.36,1);
+  overscroll-behavior:contain;
+}
+.lw-panel.on{ transform:none; }
+.lw-panel-cab{ display:flex; align-items:flex-start; gap:11px; padding:16px 18px 13px;
   border-bottom:1px solid var(--line,#e4ddcf); }
-.lw-usuario-cab b{ font-size:13.5px; }
-.lw-usuario-cab span{ font-size:11.5px; color:var(--muted,#6b6c66); overflow:hidden;
-  text-overflow:ellipsis; }
+.lw-panel-quien{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.lw-panel-quien b{ font-size:14px; }
+.lw-panel-quien span{ font-size:11.5px; color:var(--muted,#6b6c66);
+  overflow:hidden; text-overflow:ellipsis; }
 .lw-usuario-rol{ margin-top:5px; align-self:flex-start; font-size:10px; letter-spacing:.09em;
   text-transform:uppercase; font-weight:600; color:var(--dl,#104C4F);
   border:1px solid var(--line,#e4ddcf); border-radius:999px; padding:2px 8px; }
+.lw-panel-x{ margin-left:auto; flex:none; font:inherit; font-size:15px; line-height:1;
+  background:none; border:1px solid var(--line,#e4ddcf); border-radius:8px;
+  min-width:30px; min-height:30px; cursor:pointer; color:var(--muted,#6b6c66); }
+.lw-panel-x:hover{ border-color:var(--tg,#485B37); color:var(--va,#2E3437); }
+.lw-panel-cuerpo{ flex:1; overflow-y:auto; padding-bottom:8px; }
+.lw-panel-pie{ border-top:1px solid var(--line,#e4ddcf); padding:11px 14px; }
 .lw-usuario-seccion{ font-size:10px; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--muted,#6b6c66); font-weight:600; padding:11px 14px 5px; }
-.lw-usuario-salir{ width:100%; justify-content:center; border-radius:0;
-  border:none; border-top:1px solid var(--line,#e4ddcf); }
+  color:var(--muted,#6b6c66); font-weight:600; padding:13px 18px 6px; }
+.lw-usuario-salir{ width:100%; justify-content:center; }
+
+/* En un teléfono, medio ancho no es leer: sube desde abajo y ocupa casi todo,
+   igual que hace el cajón de la derecha. */
+@media (max-width:760px){
+  .lw-panel{ width:100%; top:auto; height:86vh; border-right:none;
+    border-top-left-radius:16px; border-top-right-radius:16px;
+    transform:translateY(100%); }
+  .lw-panel.on{ transform:none; }
+}
+@media (prefers-reduced-motion:reduce){
+  .lw-velo, .lw-panel{ transition-duration:.01ms; }
+}
 /* El número NO es solo color: lleva su propio sitio y su forma. Un punto rojo a
    secas no dice cuántos, y con daltonismo no dice nada. */
 .lw-campana-n{ position:absolute; top:-4px; right:-4px; background:#9E2F26; color:#fff;
