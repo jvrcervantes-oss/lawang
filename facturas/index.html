@@ -11,9 +11,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260804">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=20260804b">
 <link rel="stylesheet" href="documento.css?v=20260731">
-<script src="/contracts/assets/topbar.js?v=20260804" defer></script>
+<script src="/contracts/assets/topbar.js?v=20260804b" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
      El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
@@ -334,6 +334,9 @@ const sb = window.supabase.createClient(
   'https://vtulllundrfennhjddhc.supabase.co',
   'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
 );
+/* Igual que Contratos: esta herramienta tampoco pasa por guard.js. Se publica el
+   cliente para que la campana de la barra lo reuse en vez de abrir un segundo. */
+window.LW_SB = sb;
 sb.auth.getSession().then(async ({data:{session}}) => {
   if(!session){ location.replace('/contracts/login.html?next=/facturas/'); return; }
   const modoVista = new URLSearchParams(location.search).has('vista');

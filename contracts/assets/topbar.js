@@ -52,10 +52,37 @@
    pendientes de toda la promotora.
    ============================================================================ */
 (function () {
-  if (!window.LW_AUTH) return;                       // login y páginas sin sesión
-
   var VENC_DIAS = 15;                                // se avisa desde 15 días antes
   var LIMITE = 40;
+
+  /* 🔴 La primera versión pedía `window.LW_AUTH` y se iba en silencio si no
+     estaba. Resultado: la campana no salía en Contratos ni en Facturas, que son
+     las dos herramientas que MÁS se usan. No es que fallara — es que esas dos
+     no pasan por `guard.js`: se montan su propio cliente y su propio
+     `getSession()`. Tres puertas distintas para entrar a la misma suite.
+     Mientras esas tres puertas no sean una (ver el panel de usuario), esto
+     acepta cualquiera de ellas: `LW_AUTH` si guard.js ya resolvió, y si no el
+     cliente que la herramienta publique en `LW_SB`. */
+  function contexto() {
+    if (window.LW_AUTH) return window.LW_AUTH;
+    if (!window.LW_SB) return Promise.reject('sin cliente');
+    var sb = window.LW_SB;
+    return sb.auth.getSession().then(function (r) {
+      var s = r && r.data && r.data.session;
+      if (!s) return Promise.reject('sin sesión');
+      return sb.from('usuarios').select('rol, notif_visto_hasta')
+        .eq('user_id', s.user.id).maybeSingle()
+        .then(function (f) { return { sb: sb, session: s, ficha: (f && f.data) || null }; });
+    });
+  }
+
+  /* Y esperar al DOM: `contexto()` puede resolver mientras el navegador sigue
+     leyendo el cuerpo de la página —Contratos son 3.000 líneas—, y entonces
+     `.lw-topbar` todavía no existe y la campana no se llega a colgar de nada. */
+  function cuandoHayaDOM(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
 
   function fecha(f) {
     if (!f) return '';
@@ -73,7 +100,10 @@
   }
   var dias = function (f) { return f ? Math.round((new Date(f) - new Date()) / 86400000) : null; };
 
-  window.LW_AUTH.then(function (ctx) {
+  contexto().then(function (ctx) { cuandoHayaDOM(function () { montar(ctx); }); })
+            .catch(function () { /* sin sesión no hay campana; guard.js ya redirige */ });
+
+  function montar(ctx) {
     var sb = ctx.sb, ficha = ctx.ficha || {};
     var barra = document.querySelector('.lw-topbar');
     if (!barra) return;
@@ -172,5 +202,5 @@
     });
 
     cargar();
-  }).catch(function () { /* sin sesión no hay campana; guard.js ya redirige */ });
+  }
 })();

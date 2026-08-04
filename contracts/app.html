@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css">
-<link rel="stylesheet" href="assets/topbar.css?v=20260804">
-<script src="assets/topbar.js?v=20260804" defer></script>
+<link rel="stylesheet" href="assets/topbar.css?v=20260804b">
+<script src="assets/topbar.js?v=20260804b" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -594,6 +594,12 @@ const pads = {};
 const SUPABASE_URL = 'https://vtulllundrfennhjddhc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+/* Esta herramienta no pasa por guard.js: se monta su propia sesión (init(), más
+   abajo). Publicar el cliente deja que las piezas compartidas de la barra —hoy
+   la campana de notificaciones— lo reusen en vez de abrir un SEGUNDO cliente
+   sobre el mismo almacenamiento de sesión. Un `const` de primer nivel NO queda
+   en `window`, así que sin esta línea son invisibles la una para la otra. */
+window.LW_SB = sb;
 const CONTRACT_TIPO = {
   ppjb_parcela:'reserva_parcela', ppjb_construccion:'construccion', ppjb_reserva:'contrato_general',
   commercial_offer:'commercial_offer', carta_reserva:'carta_reserva',
