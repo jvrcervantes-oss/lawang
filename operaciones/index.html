@@ -244,7 +244,9 @@ async function cargar(){
     // `datos` entero, que pesa MB por los anexos en base64.
     SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
     SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
-    SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en').order('creado_en',{ascending:false}).limit(300),
+    // `snapshot_path` se pide solo para poder limpiar el almacenamiento al
+    // borrar una operación: ver borrarOperacion().
+    SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(300),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
     // correr), esto falla solo y la ficha cae al nombre suelto del contrato.
     SB.from('contrato_compradores').select('contrato_id,rol,clients(id,full_name,email,phone,passport_number,kyc_status)'),
@@ -692,10 +694,34 @@ async function borrarOperacion(op){
     + detalle.slice(1).map(x => '· ' + x).join('\n')
     + '\n\nNo hay papelera.')) return;
 
+  /* Los borradores de firma del ALMACENAMIENTO no los borra `borrar_operacion`:
+     una función de la base no alcanza al bucket. Sin esto se quedaban ahí para
+     siempre — medido el 4-ago-2026: 7 huérfanos de operaciones ya borradas.
+     Las rutas se recogen AHORA, antes de la RPC: después, las filas que dicen
+     dónde vive cada snapshot ya no existen.
+     Solo `pendientes/`: el PDF firmado es el documento, y no se toca ni aunque
+     la operación se borre. */
+  const rutas = [...new Set(
+    [op, ...(op.hijos || [])].flatMap(x =>
+      ['pendientes/' + x.id + '.html', ...((x.firmas || []).map(f => f.snapshot_path))]
+    ).filter(r => r && r.startsWith('pendientes/'))
+  )];
+
   const b = $('#btnBorrarOp'); if(b) b.disabled = true;
   try{
     const { data, error } = await SB.rpc('borrar_operacion', { p_contrato_id: op.id });
     if(error) throw error;
+    // DESPUÉS de que la RPC haya ido bien, nunca antes: si el borrado se para
+    // (contrato firmado y no eres super admin), la operación sigue viva y su
+    // enlace de firma tiene que seguir encontrando su documento. Es la misma
+    // lección del 30-jul con RP00021, cuando anular antes de subir dejó un
+    // contrato sin ningún enlace vivo.
+    if(rutas.length){
+      const { error: eSt } = await SB.storage.from('contratos-firmados').remove(rutas);
+      // no se reintenta ni se para: la operación YA está borrada y un fichero
+      // suelto en el bucket es basura, no un fallo que el operador deba resolver
+      if(eSt) console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', eSt.message);
+    }
     suiCerrarCajon();
     SEL = null;
     await cargar();
