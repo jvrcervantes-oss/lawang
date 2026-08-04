@@ -161,7 +161,18 @@ async function cargar(){
       if(f[0] === 'proyecto_nombre' && Array.isArray(f[3])) delTokens = f[3].slice();
     }));
   }catch(_){}
-  PROYECTOS = [...new Set([...delTokens, ...DOCS.map(d => d.proyecto)])].filter(Boolean).sort();
+  /* Los dos primeros no son promociones: son la EMPRESA. Un documento como los
+     anexos de las casas (Dali, Dream, Dune, Tropical) no es de Palm Field ni de
+     Bonian Village — vale para todas, y archivarlo dentro de una obligaba a
+     elegir una al azar y luego no encontrarlo desde las demás. Van delante y
+     fuera del orden alfabético a propósito: si se ordenan con el resto, «Lawang
+     (general)» cae entre dos promociones y parece una más.
+     La columna `proyecto` es texto libre y sin CHECK, así que esto es solo la
+     lista que se OFRECE: no hace falta tocar la base. */
+  const GENERALES = ['Lawang (general)', 'Sumba (general)'];
+  const resto = [...new Set([...delTokens, ...DOCS.map(d => d.proyecto)])]
+    .filter(p => p && !GENERALES.includes(p)).sort((a, b) => a.localeCompare(b));
+  PROYECTOS = [...GENERALES, ...resto];
   pintar();
 }
 
