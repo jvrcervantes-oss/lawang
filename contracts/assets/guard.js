@@ -10,8 +10,16 @@
    ⚠️ Esto es una PUERTA, no el candado. Una página estática siempre se puede
    leer con el navegador apagando el JS: lo que de verdad protege los datos es
    la RLS de Supabase. Sirve para páginas que no traen datos propios (el dossier
-   trabaja contra JSON local). Contratos y Facturas mantienen su propia
-   comprobación porque además necesitan el cliente de Supabase para leer.
+   trabaja contra JSON local).
+
+   DESDE EL 4-ago-2026 PASAN POR AQUÍ LAS NUEVE, Contratos y Facturas incluidas,
+   pero esas dos SIN `data-herramienta`. El motivo: su permiso lo comprueban
+   ellas y lo comprueban MEJOR —Facturas exime al modo `?vista=1`, con el que el
+   visor de Operaciones embebe un documento ya emitido para consultarlo, y eso
+   guard.js no lo sabe—. Lo que sí aporta la puerta aquí es lo que faltaba:
+   sesión, cuenta activa y UN SOLO cliente de Supabase por página, publicado en
+   `LW_SB`. Sin eso, la barra compartida (panel de usuario y campana) no tenía de
+   dónde colgarse y no salía en las dos herramientas más usadas.
 
    Falla CERRADA a propósito: si el CDN no carga o la sesión no se puede
    comprobar, se va al login. Un fallo de red no debe abrir la herramienta.
@@ -47,7 +55,12 @@
   window.LW_AUTH = new Promise(function (resolve) {
     function comprobar() {
       if (!window.supabase || !window.supabase.createClient) { alLogin(); return; }
-      var sb = window.supabase.createClient(URL_SB, KEY_SB);
+      /* UN SOLO CLIENTE POR PÁGINA (4-ago-2026). Contratos y Facturas se montaban
+         el suyo además de este, y dos clientes de supabase-js sobre el mismo
+         almacenamiento de sesión se pisan al refrescar el token. Se publica el de
+         aquí y esas herramientas lo toman en vez de crear otro. */
+      var sb = window.LW_SB || window.supabase.createClient(URL_SB, KEY_SB);
+      window.LW_SB = sb;
       sb.auth.getSession().then(function (r) {
         var sesion = r && r.data && r.data.session;
         if (!sesion) { alLogin(); return; }
