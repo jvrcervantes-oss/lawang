@@ -27,7 +27,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=66dba0f3"></script>
+<script src="assets/entities.js?v=3248183c"></script>
 <script src="assets/huella.js?v=20260731"></script>
 <style>
   :root{
@@ -546,8 +546,14 @@ const TEMPLATES = [
     name:{es:'Estatutos SandalWoods Beachfront',en:'SandalWoods Beachfront Bylaws',id:'Anggaran Dasar SandalWoods Beachfront'},
     l2:{es:'de la Comunidad · SandalWoods Beachfront Resort',en:'of the Community · SandalWoods Beachfront Resort',id:'Komunitas · SandalWoods Beachfront Resort'}, ready:true },
   // Documentos ESTÁTICOS de solo-estilo (como Estatutos): texto fijo, sin campos ni numeración (no van en CONTRACT_TIPO).
+  { slug:'ppjb_bonian', file:'templates/ppjb_bonian.html', cover:'#104C4F',
+    name:{es:'PPJB Bonian Beach',en:'PPJB Bonian Beach',id:'PPJB Bonian Beach'},
+    l2:{es:'de Reserva y Compraventa Vinculante de Parcela',en:'Reservation & Binding Sale of Plot',id:'Perjanjian Pengikatan Jual Beli'}, ready:true },
+  // La C2 estatica se queda: es el documento del 21-jul que ya se enseño, y
+  // borrarla dejaria sin abrir lo que alguien tenga guardado. La nueva es la que
+  // se usa a partir de ahora.
   { slug:'ppjb_bonian_c2', file:'templates/ppjb_bonian_c2.html', cover:'#104C4F',
-    name:{es:'PPJB Bonian Beach · Parcela C2',en:'PPJB Bonian Beach · Plot C2',id:'PPJB Bonian Beach · Kavling C2'},
+    name:{es:'PPJB Bonian Beach · Parcela C2 (v. 21-jul, estatica)',en:'PPJB Bonian Beach · Plot C2 (21-Jul, static)',id:'PPJB Bonian Beach · Kavling C2'},
     l2:{es:'de Reserva y Compraventa · Bonian Beach C2',en:'Reservation & Binding Sale · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
   { slug:'anexo_x_bonian_c2', file:'templates/anexo_x_bonian_c2.html', cover:'#8F9B7A',
     name:{es:'Anexo X · Planos y Especificaciones (Bonian C2)',en:'Annex X · Plans & Specs (Bonian C2)',id:'Lampiran X · Bonian C2'},
@@ -608,14 +614,17 @@ const CONTRACT_TIPO = {
   commercial_offer:'commercial_offer', carta_reserva:'carta_reserva',
   carta_reserva_ampliada:'carta_reserva_ampliada',
   commercial_collaboration:'acuerdo_comercial', colaborador_operativo:'protocolo_operativo',
+  ppjb_bonian:'ppjb_bonian',   // serie PB · texto fijo, datos de la operacion por campos
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
-  carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO' };
+  carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
+  ppjb_bonian:'PB' };
 const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
   commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
-  acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo' };
+  acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo',
+  ppjb_bonian:'PPJB Bonian Beach' };
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
@@ -1833,6 +1842,9 @@ function applyPromotor(data){
   const soc = SOCIEDADES[key] || SOCIEDADES.tepi_sungai;
   data.prom_razon=soc.razon; data.prom_marca=soc.marca||''; data.prom_domicilio=soc.domicilio;
   data.prom_npwp=soc.npwp; data.prom_rep=soc.rep;
+  // opcionales: si la sociedad no los tiene, el <!--opt:--> de la plantilla
+  // borra la frase entera en vez de imprimir el marcador
+  data.prom_nib=soc.nib||''; data.prom_rep_npwp=soc.rep_npwp||'';
   data.prom_cred_es=soc.cred.es; data.prom_cred_en=soc.cred.en; data.prom_cred_id=soc.cred.id;
 }
 /* etiqueta legible del régimen de tenencia (el select guarda un código; el contrato

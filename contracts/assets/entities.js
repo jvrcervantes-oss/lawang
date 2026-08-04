@@ -120,6 +120,14 @@ const SOCIEDADES = {
     folio: '#E6EFE0',
     domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
     npwp: '1000.0000.0619.8026', rep: 'I Made Monjong Adhi Nugruah',
+    // NIB y NPWP personal del firmante: los pide el PPJB de Bonian Beach en sus
+    // antecedentes. Van aquí y no en la plantilla porque son identidad de la
+    // sociedad, y la identidad tiene una sola fuente (este fichero). Opcionales:
+    // la plantilla los envuelve en <!--opt:--> y la frase se cierra sola si una
+    // sociedad no los tiene, en vez de imprimir el marcador.
+    // ⚠️ `rep_npwp` es el del representante que figura ARRIBA en `rep`. Si se
+    // cambia uno hay que cambiar el otro: son la misma persona.
+    nib: '2410250046282', rep_npwp: '',
     cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
             en: 'Indonesian nationality, holder of Indonesian identity document ID 5171021704720002',
             id: 'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002' } },
