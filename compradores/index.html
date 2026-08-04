@@ -110,6 +110,10 @@
   </div>
   <div class="toast" id="toast"></div>
 
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
 <script>
 /* ============================================================
    COMPRADORES — ficha y documentación KYC.
@@ -122,8 +126,6 @@
    y hasta ahora no había dónde anotarlo, así que nadie se enteraba.
    ============================================================ */
 const $ = s => document.querySelector(s);
-const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); };
 
 const HOY = new Date(); HOY.setHours(0,0,0,0);
 const fFecha = f => f ? new Date(String(f).slice(0,10)+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';

@@ -87,6 +87,10 @@
 
   <div class="toast" id="toast"></div>
 
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
 <script>
 /* ============================================================
    USUARIOS Y PERMISOS — panel de administración de la suite.
@@ -104,8 +108,6 @@
      que no se puede perder.
    ============================================================ */
 const $ = s => document.querySelector(s);
-const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3000); };
 
 const HERRAMIENTAS = [
   ['contratos','Contratos'], ['facturas','Facturas y recibís'], ['operaciones','Operaciones'],

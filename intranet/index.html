@@ -252,6 +252,10 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     <span id="pie-datos"></span>
   </div></footer>
 
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
 <script>
 /* ── catálogo de herramientas ──────────────────────────────────────────
    Añadir una = una entrada aquí. `herr` es la herramienta de
@@ -312,7 +316,6 @@ const HERRAMIENTAS = [
       : [d.usuarios + ' con acceso' + (d.usuariosInactivos ? ' · ' + d.usuariosInactivos + ' desactivados' : ''), false] },
 ];
 
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $ = s => document.querySelector(s);
 
 let FICHA = null, CIFRAS = null, VISIBLES = [], CURSOR = 0;

@@ -99,6 +99,10 @@
 
   <div class="toast" id="toast"></div>
 
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
 <script>
 /* ============================================================================
    Documentación de proyectos — índice por CARPETAS, con enlaces externos
@@ -129,9 +133,6 @@ const CATEGORIAS = [
 ];
 
 const $ = s => document.querySelector(s);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show');
-                     clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 3200); };
 const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/1048576).toFixed(1) + ' MB';
 const fecha = f => f ? new Date(f).toLocaleDateString('es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
 const esSuperAdmin = rol => rol === 'super_admin';

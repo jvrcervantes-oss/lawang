@@ -96,6 +96,10 @@
 
   <div class="toast" id="toast"></div>
 
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
 <script>
 /* ============================================================================
    Unidades — inventario y precios por parcela
@@ -110,9 +114,6 @@
    consultable y no haga falta abrir el PDF del cliente.
    ========================================================================== */
 const $ = s => document.querySelector(s);
-const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show');
-                     clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 2800); };
 
 const ESTADOS = [
   ['disponible','Disponible'], ['reservada','Reservada'], ['vendida','Vendida'],
