@@ -495,6 +495,14 @@ function pintarDetalle(){
     const d = dias(s.expira_en);
     let est = '<span class="tag espera">Pendiente</span>';
     if(s.estado === 'firmado') est = '<span class="tag ok">Firmado ' + fFecha(s.firmado_en) + '</span>';
+    // 🔴 `anulado` NO es `pendiente`, y aquí caía en el «Pendiente» de por
+    // defecto: los 15 enlaces anulados de producción se pintaban como enlaces
+    // VIVOS. En CR00007 —firmado y bloqueado— eso enseñaba una firma pendiente
+    // encima de la completa, o sea justo lo contrario de la regla del 28-jul
+    // (un solo enlace vivo por firmante: al generar uno nuevo se anula el
+    // anterior, y el índice `contrato_firmas_un_pendiente_por_rol` lo impone).
+    // No se ocultan: son el rastro que demuestra que solo hubo uno vivo.
+    else if(s.estado === 'anulado') est = '<span class="tag">Anulado</span>';
     else if(d != null && d < 0) est = '<span class="tag alerta">Caducado</span>';
     else if(d != null && d <= 5) est = '<span class="tag alerta">Caduca en ' + d + ' d</span>';
     return `<tr><td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
