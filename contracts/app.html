@@ -559,11 +559,12 @@ const TEMPLATES = [
   { slug:'ppjb_bonian', file:'templates/ppjb_bonian.html', cover:'#104C4F',
     name:{es:'PPJB Bonian Beach',en:'PPJB Bonian Beach',id:'PPJB Bonian Beach'},
     l2:{es:'de Reserva y Compraventa Vinculante de Parcela',en:'Reservation & Binding Sale of Plot',id:'Perjanjian Pengikatan Jual Beli'}, ready:true },
-  // La C2 estatica se queda: es el documento del 21-jul que ya se enseño, y
-  // borrarla dejaria sin abrir lo que alguien tenga guardado. La nueva es la que
-  // se usa a partir de ahora.
+  // La C2 estatica se queda: es el ejemplar concreto de la parcela C2, con sus
+  // datos escritos dentro y sin campos. Desde el 4-ago-2026 lleva el texto del
+  // 31-jul (antes el del 21-jul) — ver la cabecera de la propia plantilla.
+  // Para emitir PPJB de Bonian nuevos, la de arriba (serie PB).
   { slug:'ppjb_bonian_c2', file:'templates/ppjb_bonian_c2.html', cover:'#104C4F',
-    name:{es:'PPJB Bonian Beach · Parcela C2 (v. 21-jul, estatica)',en:'PPJB Bonian Beach · Plot C2 (21-Jul, static)',id:'PPJB Bonian Beach · Kavling C2'},
+    name:{es:'PPJB Bonian Beach · Parcela C2 (v. 31-jul, estatica)',en:'PPJB Bonian Beach · Plot C2 (31-Jul, static)',id:'PPJB Bonian Beach · Kavling C2'},
     l2:{es:'de Reserva y Compraventa · Bonian Beach C2',en:'Reservation & Binding Sale · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
   { slug:'anexo_x_bonian_c2', file:'templates/anexo_x_bonian_c2.html', cover:'#8F9B7A',
     name:{es:'Anexo X · Planos y Especificaciones (Bonian C2)',en:'Annex X · Plans & Specs (Bonian C2)',id:'Lampiran X · Bonian C2'},
