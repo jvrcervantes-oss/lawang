@@ -2415,7 +2415,7 @@ async function guardarContrato(){
     if(numEl){ numEl.value = data.numero; }
     toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
     render();
-    sincronizarCompradores(data.id);   // a posteriori y sin await: ver abajo
+    informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
   }catch(err){
     // El trigger `sincroniza_unidad_contrato` para el guardado si la parcela ya
     // es de otro contrato. Ese mensaje ya viene escrito para leerse, así que se
@@ -2428,19 +2428,22 @@ async function guardarContrato(){
 
 /* ---------- alta automática del comprador ----------
    Los mismos 9 compradores estaban reteclados en 19 contratos, cada uno con su
-   propia copia del pasaporte y el email. Ahora, al guardar, la persona se da de
-   alta en `clients` (o se reconoce si ya existe) y se enlaza al contrato por
+   propia copia del pasaporte y el email. Al guardar, la persona se da de alta
+   en `clients` (o se reconoce si ya existe) y se enlaza al contrato por
    `contrato_compradores`, que es N:M porque un contrato puede ir a varios
    nombres y una persona firma varios contratos.
 
-   Corre DESPUÉS del guardado y sin `await`: el contrato es el documento y no
-   puede fallar porque el índice de personas falle. Si esto revienta, el
-   contrato ya está guardado y solo se avisa.
+   🔴 ESO YA NO LO HACE ESTA APP (4-ago-2026). Lo hace el disparador
+   `trg_compradores_desde_datos` de la base — `contracts/sql/compradores_desde_contrato.sql`.
+   Se movió porque escrito aquí no se cumplía: al medirlo por segunda vez
+   faltaban 5 enlaces en 5 contratos. A `contratos` le escriben tres sitios (la
+   app, la función de firma y cualquier corrección por SQL) y una regla que vive
+   en uno de los tres no se cumple desde los otros dos — el mismo motivo por el
+   que el vínculo con la unidad se movió a la base el 31-jul.
+   Dejar aquí una segunda copia de la misma regla sería tener dos, y divergirían.
 
-   Clave de identidad: el pasaporte normalizado. Si no lo hay, el email. Sin
-   ninguno de los dos NO se crea ficha: un "cliente" sin identificador se
-   duplicaría en cuanto alguien escriba el nombre distinto, y limpiar eso
-   después cuesta más que no crearlo. */
+   Lo que SÍ se queda aquí es contárselo al operador en el momento: un hueco que
+   se descubre tres semanas después ya no se le puede preguntar a nadie. */
 /* ⚠️ `COMPRADORES` son los adquirientes ADICIONALES: el Adquiriente I vive
    siempre en los campos `adq1_*` y COMPRADORES[0] es el II (por eso el resto
    del fichero usa `romano(i+2)`).
@@ -2472,56 +2475,34 @@ function compradoresDelFormulario(){
   return { lista, fuera };
 }
 
-const normPasaporte = v => String(v||'').trim().toLowerCase();
-
-async function sincronizarCompradores(contratoId){
+/* Solo INFORMA: el disparador ya ha corrido dentro del propio guardado, así que
+   para cuando esto lee, `contrato_compradores` ya está como tiene que estar.
+   Se comprueba lo que hay contra lo que el formulario nombra, y se dice quién
+   se ha quedado fuera y por qué. */
+async function informarCompradores(contratoId){
   const { lista, fuera } = compradoresDelFormulario();
-  const sobran = fuera ? ' · ' + fuera + ' adquiriente(s) más allá del III se quedan sin ficha' : '';
-  if(!sb || !contratoId || !lista.length){ if(fuera) toast('Aviso:' + sobran.slice(2)); return; }
-  let altas = 0, enlaces = 0, sinIdentificar = [];
-  try{
-    for(const p of lista){
-      const pas = normPasaporte(p.pasaporte);
-      const mail = String(p.email||'').trim().toLowerCase();
-      // sin identificador no se crea ficha (un "cliente" sin pasaporte ni email
-      // se duplica en cuanto alguien escriba el nombre distinto). Antes esto se
-      // saltaba EN SILENCIO y el operador creía tener la ficha: ahora se dice
-      // con nombre y apellidos.
-      if(!pas && !mail){ sinIdentificar.push(String(p.nombre||'').trim() || p.rol); continue; }
+  const sobran = fuera ? ' · ' + fuera + ' adquiriente(s) por encima del IX se quedan sin ficha' : '';
+  if(!sb || !contratoId || !lista.length){ if(fuera) toast('Aviso:' + sobran.slice(3)); return; }
 
-      // ¿existe ya esa persona?
-      let q = sb.from('clients').select('id');
-      q = pas ? q.ilike('passport_number', p.pasaporte.trim()) : q.ilike('email', mail);
-      const { data: hallado } = await q.limit(1);
-      let clientId = hallado && hallado[0] && hallado[0].id;
+  // sin pasaporte ni email no hay ficha, y es correcto: un "cliente" sin
+  // identificador se duplica en cuanto alguien escriba el nombre distinto. Lo
+  // que no puede es pasar en silencio, que es como se perdieron cuatro.
+  const sinIdentificar = lista.filter(p => !String(p.pasaporte||'').trim() && !String(p.email||'').trim())
+                              .map(p => String(p.nombre||'').trim() || p.rol);
+  const { data, error } = await sb.from('contrato_compradores').select('rol').eq('contrato_id', contratoId);
+  if(error) return;   // el contrato está guardado; no se molesta al operador con un fallo de lectura del índice
 
-      if(!clientId){
-        const { data: creado, error } = await sb.from('clients').insert({
-          full_name: String(p.nombre||'').trim(),
-          email: mail || null,
-          phone: String(p.telefono||'').trim() || null,
-          nationality: String(p.nacionalidad||'').trim() || null,
-          passport_number: String(p.pasaporte||'').trim() || null,
-          address: String(p.domicilio||'').trim() || null,
-          kyc_status: 'pending',
-        }).select('id').single();
-        if(error) throw error;
-        clientId = creado.id; altas++;
-      }
+  const conFicha = new Set((data || []).map(r => r.rol));
+  const faltan = lista.filter(p => !conFicha.has(p.rol) && !sinIdentificar.includes(String(p.nombre||'').trim()));
+  const sinId = sinIdentificar.length
+    ? ' · SIN ficha por falta de pasaporte y email: ' + sinIdentificar.join(', ') : '';
 
-      const { error: eLink } = await sb.from('contrato_compradores')
-        .upsert({ contrato_id:contratoId, client_id:clientId, rol:p.rol }, { onConflict:'contrato_id,rol' });
-      if(eLink) throw eLink;
-      enlaces++;
-    }
-    const sinId = sinIdentificar.length
-      ? ' · SIN ficha por falta de pasaporte y email: ' + sinIdentificar.join(', ') : '';
-    if(altas)  toast(altas + (altas===1 ? ' comprador dado de alta' : ' compradores dados de alta') + sobran + sinId);
-    else if(enlaces) toast('Comprador enlazado a su ficha' + sobran + sinId);
-    else if(sinIdentificar.length) toast('Contrato guardado' + sinId);
-  }catch(err){
-    // el contrato YA está guardado: esto es el índice de personas, no el documento
-    toast('Contrato guardado, pero la ficha del comprador no: ' + (err.message || err));
+  if(faltan.length){
+    // esto ya no debería pasar: si pasa, es un fallo del disparador y hay que verlo
+    toast('⚠️ Contrato guardado, pero ' + faltan.length + ' comprador(es) sin ficha: '
+      + faltan.map(p => String(p.nombre||'').trim() || p.rol).join(', ') + sobran + sinId);
+  } else {
+    toast(conFicha.size + (conFicha.size === 1 ? ' comprador con ficha' : ' compradores con ficha') + sobran + sinId);
   }
 }
 $('#btnSave').addEventListener('click', guardarContrato);
