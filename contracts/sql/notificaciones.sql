@@ -81,7 +81,7 @@ language sql security definer set search_path = public as $$
    where user_id = (select auth.uid())
   returning notif_visto_hasta;
 $$;
-revoke execute on function public.marcar_notificaciones_leidas() from public;
+revoke execute on function public.marcar_notificaciones_leidas() from public, anon;
 grant execute on function public.marcar_notificaciones_leidas() to authenticated;
 
 -- ── el apuntador ────────────────────────────────────────────────────────────
@@ -93,7 +93,15 @@ language sql security definer set search_path = public as $$
   insert into public.notificaciones (tipo, titulo, detalle, destinatario, contrato_id, enlace)
   values (p_tipo, p_titulo, p_detalle, nullif(btrim(coalesce(p_destinatario,'')),''), p_contrato, p_enlace);
 $$;
-revoke execute on function public.anotar_aviso(text,text,text,text,uuid,text) from public, authenticated;
+-- 🔴 HAY QUE NOMBRAR a `anon` y `authenticated`: un `revoke ... from public` NO
+-- basta. Supabase les concede EXECUTE por privilegio por defecto del esquema, y
+-- revocar a PUBLIC no anula una concesion directa. Verificado sin sesion el
+-- 4-ago-2026: con solo el revoke a public, una llamada anonima con la clave
+-- publicable respondia 204 y FABRICABA un aviso dentro de la intranet.
+-- Los disparadores no se enteran: son SECURITY DEFINER y propiedad de postgres,
+-- asi que llaman a esta funcion como postgres y no como quien guarda.
+revoke execute on function public.anotar_aviso(text,text,text,text,uuid,text)
+  from anon, authenticated, public;
 
 -- ═══════════════════════════════════════════════════════════════
 -- DISPARADORES
