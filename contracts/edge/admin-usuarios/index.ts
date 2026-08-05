@@ -32,7 +32,9 @@ const corsFor = (req: Request) => {
   };
 };
 
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'dossier', 'usuarios'];
+// 5-ago-2026: añadidas 'documentacion' y 'obra' — la lista se había quedado
+// corta respecto al panel /usuarios/ y estas dos se perdían al crear un usuario.
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
 Deno.serve(async (req) => {
