@@ -339,7 +339,14 @@ async function guardar(id){
     pintarLista(); pintarFicha();
     toast(id ? 'Ficha actualizada' : 'Comprador creado');
   }catch(err){
-    toast('No se pudo guardar: ' + (err.message||err));
+    /* `clients.email` es UNIQUE y una familia comparte correo: el 409 de
+       Postgres llegaba crudo («duplicate key value violates unique constraint»)
+       y no decía ni qué campo era ni qué hacer. Es el mismo caso que ya obligó
+       a que la ficha se pueda crear SIN correo (ver compradores_desde_contrato). */
+    const m = /duplicate key|clients_email_key/.test(err.message || '')
+      ? 'Ya hay otra ficha con ese correo. Un correo solo puede estar en una ficha: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
+      : 'No se pudo guardar: ' + (err.message || err);
+    toast(m);
     btn.disabled=false; btn.textContent = id ? 'Guardar cambios' : 'Crear comprador';
   }
 }
@@ -375,6 +382,23 @@ async function subir(clientId){
    La Edge Function `portal-invitar` es quien crea la cuenta y manda el
    correo: aquí solo se pide con la sesión del admin. El body nunca decide
    el permiso — lo decide el JWT en el servidor. */
+
+/* Los códigos de la función son para el log, no para una persona. Sin esta
+   traducción el operador leía «ese_email_es_del_equipo» y no sabía si era un
+   fallo suyo, un bug o una decisión de diseño (pasó el 5-ago, con el propio
+   correo del super_admin). */
+const MOTIVOS_PORTAL = {
+  ese_email_es_del_equipo:
+    'Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez. ' +
+    'Para probar el portal, usa otro correo (con Gmail vale tucorreo+portal@gmail.com: llega al mismo buzón y cuenta como distinto).',
+  email_invalido:  'Ese correo no tiene una forma válida.',
+  sin_fichas:      'No se ha podido saber a qué ficha dar acceso. Recarga la página e inténtalo otra vez.',
+  no_autorizado:   'Hace falta ser administrador para invitar o revocar accesos.',
+  sin_sesion:      'Tu sesión ha caducado. Vuelve a entrar.',
+  sesion_invalida: 'Tu sesión ha caducado. Vuelve a entrar.',
+};
+const motivoPortal = e => MOTIVOS_PORTAL[e] || e;
+
 async function llamaPortal(body){
   const { data } = await SB.auth.getSession();
   const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
@@ -392,7 +416,7 @@ async function invitarPortal(c){
   const b = $('#btnPortalInv'); b.disabled = true;
   const r = await llamaPortal({ accion:'invitar', email, client_ids:[c.id] });
   b.disabled = false;
-  if(r.error){ toast('No se pudo invitar: ' + r.error); return; }
+  if(r.error){ toast(motivoPortal(r.error)); return; }
   toast(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada');
   await cargar(); pintarLista(); pintarFicha();
 }
@@ -405,7 +429,7 @@ async function revocarPortal(c){
   const b = $('#btnPortalRev'); b.disabled = true;
   const r = await llamaPortal({ accion:'revocar', email });
   b.disabled = false;
-  if(r.error){ toast('No se pudo revocar: ' + r.error); return; }
+  if(r.error){ toast(motivoPortal(r.error)); return; }
   toast('Acceso revocado');
   await cargar(); pintarLista(); pintarFicha();
 }
@@ -421,10 +445,14 @@ async function abrir(path){
 
 $('#listaC').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if(!b) return;
-  SEL = b.dataset.id; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta');
+  SEL = b.dataset.id; pintarLista(); pintarFicha();
 });
 $('#q').addEventListener('input', pintarLista);
-$('#btnNuevo').addEventListener('click', () => { SEL='nuevo'; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta'); });
+/* Ni `#stage` ni `#ficha` existen desde que la ficha vive en el CAJÓN lateral
+   (31-jul): eran de la maqueta de dos columnas anterior. Cada clic en una fila
+   lanzaba un TypeError — no se veía porque saltaba DESPUÉS de abrir el cajón,
+   así que la pantalla funcionaba y solo ensuciaba la consola. Retirados. */
+$('#btnNuevo').addEventListener('click', () => { SEL='nuevo'; pintarLista(); pintarFicha(); });
 
 suiMontarCajon();
 suiMontarDensidad(document.getElementById('dens'));
@@ -444,8 +472,6 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
     if(pedido && CLIENTES.some(c => c.id === pedido)){
       SEL = pedido;
       pintarLista(); pintarFicha();
-      $('#stage').classList.add('abierta');
-      $('#ficha').scrollTop = 0;
     }else{
       if(pedido) toast('Ese comprador ya no existe');
       pintarLista();
