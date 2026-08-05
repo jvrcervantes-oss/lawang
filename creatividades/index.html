@@ -59,8 +59,10 @@
      Con transform, offsetTop/offsetWidth siguen en píxeles de la pieza. */
   .pieza{ position:relative; overflow:hidden; color:#fff; font-family:'Kabel',sans-serif;
           background:#111 }
-  .foto{ position:absolute; inset:0 }
-  .foto img{ width:100%; height:100%; object-fit:cover; display:block }
+  /* La foto se coloca con medidas EXPLÍCITAS que calcula `encuadre()`, no con
+     object-position + transform. Ver el porqué en esa función. */
+  .foto{ position:absolute; inset:0; overflow:hidden }
+  .foto img{ position:absolute; display:block; max-width:none }
   .velo-top{ position:absolute; left:0; right:0; top:0; pointer-events:none }
   .velo-bot{ position:absolute; left:0; right:0; bottom:0; pointer-events:none }
 
@@ -147,7 +149,10 @@
               <span class="pre-et" id="elPreEt" data-check="etiqueta de precio"></span>
               <span class="pre-n" id="elPreN" data-check="precio" data-critico="1"></span>
             </div>
-            <span class="cta" id="elCta" data-check="botón" data-min="46"></span>
+            <!-- `data-fondo`: el botón es verde OPACO, así que su contraste no depende de
+                 la foto. Sin esto se medía como tinta blanca sobre la imagen de debajo. -->
+            <span class="cta" id="elCta" data-check="botón" data-min="46"
+                  data-fondo="#25D366"></span>
           </div>
           <div class="pie" id="elPie">
             <img id="elLogo" src="/assets/img/lawang-logo-v3.png" alt="">
@@ -199,13 +204,20 @@
         <label for="tSub">Subtítulo</label>
         <textarea id="tSub">Llave en mano. Nos encargamos de principio a fin.</textarea>
       </div>
-      <label class="chk"><input type="checkbox" id="usaPrecio" checked> Mostrar precio</label>
+      <label class="chk"><input type="checkbox" id="usaPrecio"> Mostrar precio</label>
       <div class="fila2">
         <div class="campo"><label for="tPreEt">Etiqueta</label>
           <input type="text" id="tPreEt" value="Desde"></div>
         <div class="campo"><label for="tPreN">Cifra</label>
-          <input type="text" id="tPreN" value="69.000 €"></div>
+          <input type="text" id="tPreN" value="" placeholder="sin fijar"></div>
       </div>
+      <!-- ⚠️ Vacío y desmarcado A PROPÓSITO (5-ago-2026). Venía con «Desde 69.000 €»
+           precargado y un valor por defecto se publica solo: basta con que nadie toque el
+           campo. Sigue ABIERTO confirmar que existe unidad real a ese precio, y la propia
+           landing (`modelo/modelos.php`) mantiene `precio_desde_eur => null` con noindex
+           por el mismo motivo. Un «desde» sin unidad disponible es publicidad engañosa. -->
+      <p class="aviso">El precio va vacío a propósito: no hay precio propio cerrado y la
+        landing tampoco lo publica. Escríbelo solo si el dato está confirmado.</p>
       <div class="fila2">
         <div class="campo"><label for="tCta">Botón</label>
           <input type="text" id="tCta" value="Escríbenos"></div>
@@ -283,14 +295,35 @@ function titularHtml(txt){
                  .replace(/\.$/, '<span style="color:'+ACENTO+'">.</span>');
 }
 
+/* 🔴 UNA sola cuenta de encuadre, para los dos sitios que la necesitan: el <img> que se
+   ve y el lienzo con el que se mide el contraste. Antes el DOM usaba
+   `object-position` + `transform:scale` y el lienzo rehacía la cuenta a mano; las dos
+   fórmulas solo coinciden con zoom 1,00× y encuadre 50%, porque el transform escala
+   respecto al CENTRO y `object-position` ya había colocado la foto. En cuanto se tocaba
+   el zoom, el guardrail medía una franja de foto distinta de la que salía en el PNG — o
+   sea, daba verde sobre píxeles que no existían. Con medidas explícitas no hay dos
+   fórmulas que puedan discrepar. */
+function encuadre(){
+  const [W,H] = FORMATOS[E.fmt], img = $('#fotoImg');
+  if (!E.src || !img.naturalWidth) return null;
+  const k = Math.max(W/img.naturalWidth, H/img.naturalHeight) * (E.zoom/100);
+  const dw = img.naturalWidth*k, dh = img.naturalHeight*k;
+  // foco 0 = borde superior, 100 = borde inferior; igual que object-position.
+  return { dx:(W-dw)/2, dy:(H-dh)*(E.foco/100), dw:dw, dh:dh };
+}
+
 // ── Pintar ────────────────────────────────────────────────────────────────────
 function pinta(){
   const [W,H] = FORMATOS[E.fmt], t = T();
   pieza.style.width = W+'px'; pieza.style.height = H+'px';
 
-  $('#fotoImg').src = E.src || '';
-  $('#fotoImg').style.objectPosition = '50% ' + E.foco + '%';
-  $('#fotoImg').style.transform = 'scale(' + (E.zoom/100) + ')';
+  const img = $('#fotoImg');
+  if (img.getAttribute('src') !== (E.src || '')) img.src = E.src || '';
+  E.crop = encuadre();
+  if (E.crop){
+    img.style.width = E.crop.dw+'px'; img.style.height = E.crop.dh+'px';
+    img.style.left  = E.crop.dx+'px'; img.style.top    = E.crop.dy+'px';
+  }
 
   const a = $('#bArriba');
   a.style.left = (E.arriba.x/100*W) + 'px';
@@ -403,17 +436,12 @@ let ctx = lienzo.getContext('2d', { willReadFrequently:true }), fondoListo = fal
 function pintaFondo(){
   const [W,H] = FORMATOS[E.fmt];
   lienzo.width = W; lienzo.height = H;
-  const img = $('#fotoImg');
   fondoListo = false;
-  if (!E.src || !img.naturalWidth) return;
-  // Mismo encaje que `object-fit:cover` + `object-position` + `scale`, para que lo que
-  // se mide sea lo que se ve. Si esto se desincroniza, el guardrail miente.
-  const z = E.zoom/100;
-  const esc0 = Math.max(W/img.naturalWidth, H/img.naturalHeight) * z;
-  const dw = img.naturalWidth*esc0, dh = img.naturalHeight*esc0;
-  const dx = (W-dw)/2, dy = (H-dh) * (E.foco/100);
+  // El MISMO objeto de encuadre que se aplicó al <img>: lo que se mide es, por
+  // construcción, lo que se ve. No hay una segunda fórmula que pueda desincronizarse.
+  if (!E.crop) return;
   ctx.clearRect(0,0,W,H);
-  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.drawImage($('#fotoImg'), E.crop.dx, E.crop.dy, E.crop.dw, E.crop.dh);
   fondoListo = true;
 }
 
@@ -421,9 +449,10 @@ const lin = c => { c/=255; return c<=.04045 ? c/12.92 : Math.pow((c+.055)/1.055,
 const lum = (r,g,b) => .2126*lin(r) + .7152*lin(g) + .0722*lin(b);
 const contraste = (a,b) => (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
 
-/* Fondo bajo una caja, ya compuesto con el velo (y con la píldora si la lleva).
-   Devuelve la luminancia del peor punto para tinta blanca. */
-function peorFondo(x, y, w, h, pastilla){
+/* Fondo bajo una caja, ya compuesto con el velo (y con la píldora traslúcida si la
+   lleva). `claro` dice de qué lado está el peor caso: con tinta clara el enemigo es el
+   punto más claro del fondo, con tinta oscura el más oscuro. */
+function peorFondo(x, y, w, h, pastilla, claro){
   if (!fondoListo) return null;
   x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y));
   w = Math.round(w); h = Math.round(h);
@@ -445,8 +474,18 @@ function peorFondo(x, y, w, h, pastilla){
   }
   if (!ls.length) return null;
   ls.sort((p,q)=>p-q);
-  return ls[Math.floor(ls.length*.9)];   // peor caso para texto blanco
+  return ls[Math.floor(ls.length * (claro ? .9 : .1))];
 }
+
+const hexALum = h => {
+  h = h.replace('#','');
+  if (h.length === 3) h = h.split('').map(c=>c+c).join('');
+  return lum(parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16));
+};
+const rgbALum = c => {
+  const n = c.match(/[\d.]+/g).slice(0,3).map(Number);
+  return lum(n[0], n[1], n[2]);
+};
 
 function diagnostico(){
   pintaFondo();
@@ -470,13 +509,23 @@ function diagnostico(){
     while (n && n !== pieza){ x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
     const w = el.offsetWidth, h = el.offsetHeight;
 
-    const l = peorFondo(x, y, w, h, el.id === 'elSitio');
+    /* 🔴 La tinta se LEE del elemento, no se supone blanca. El botón va en tinta casi
+       negra sobre verde opaco: midiéndolo como blanco-sobre-foto salían fallos donde hay
+       7:1 reales, y jamás habría detectado uno de verdad. Es el mismo fallo que ya se
+       corrigió en la versión de Python, colado otra vez al portarla. Por eso un elemento
+       con fondo PROPIO Y OPACO se compara contra ese color (`data-fondo`) y no contra la
+       foto: bajo él no hay foto que medir. */
+    const tinta = rgbALum(getComputedStyle(el).color);
+    const exigido = px >= PX_GRANDE ? 3 : 4.5;
+    const l = el.dataset.fondo ? hexALum(el.dataset.fondo)
+                               : peorFondo(x, y, w, h, el.id === 'elSitio', tinta > .18);
     if (l !== null){
-      const r = contraste(lum(255,255,255), l);
-      const exigido = px >= PX_GRANDE ? 3 : 4.5;
+      const r = contraste(tinta, l);
       if (r < exigido){
         fallos.push('<b>'+nombre+'</b>: contraste '+r.toFixed(2)+':1, por debajo del '
-          +exigido+':1 exigido. Baja el bloque o busca una zona más oscura de la foto.');
+          +exigido+':1 exigido.'
+          + (el.dataset.fondo ? ' Es su propio color de fondo, no la foto.'
+                              : ' Mueve el bloque o busca una zona más oscura de la foto.'));
       }
     }
 
@@ -497,8 +546,13 @@ function diagnostico(){
       + 'los dos: encima de la foto puede no verse, pero el texto queda ilegible.');
   }
 
+  E.fallos = fallos;
   const d = $('#diag');
-  if (!E.src){ d.innerHTML = 'Sube una imagen para medir el contraste real.'; return; }
+  if (!E.src){
+    E.fallos = ['No has subido ninguna imagen: la pieza saldría sin foto.'];
+    d.innerHTML = 'Sube una imagen para medir el contraste real.';
+    return;
+  }
   d.innerHTML = fallos.length
     ? 'Hay que corregir esto antes de pautarla:<ul><li>'+fallos.join('</li><li>')+'</li></ul>'
     : '<span class="ok">Pasa el guardrail.</span> Cuerpos, contraste y zona segura, medidos.';
@@ -562,6 +616,15 @@ function grano(c, sigma){
 }
 
 async function exportar(){
+  /* El guardrail avisa, pero descargar no puede ser un acto inocente: la tarjeta del hub
+     anuncia esta herramienta como "con la revisión incorporada", así que un PNG bajado sin
+     más se lee como validado. En la versión de Python la pieza directamente FALLABA; aquí
+     hay una persona delante, así que se le nombran los fallos y decide ella. */
+  if (E.fallos && E.fallos.length){
+    const lista = E.fallos.map(f => '· ' + f.replace(/<[^>]+>/g, '')).join('\n');
+    if (!confirm('Esta pieza no pasa la revisión:\n\n' + lista +
+                 '\n\n¿Descargarla igualmente?')) return;
+  }
   const btn = $('#btnPng'); btn.disabled = true; const antes = btn.textContent;
   btn.textContent = 'Montando…';
   try {
