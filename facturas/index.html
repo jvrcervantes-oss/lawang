@@ -369,6 +369,13 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   // qué botón se pinta; el candado es la policy de DELETE de la RLS.
   ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
   $('#who').textContent = session.user.email;
+  /* Las cuentas de cobro vienen de la base (6-ago-2026, ya no de entities.js:
+     ese fichero es público por web y por el repo de GitHub). Va DENTRO de la
+     sesión restaurada, o la consulta saldría como anon y la RLS la niega.
+     Si falla se dice en voz alta: una factura emitida sin datos bancarios es una
+     factura que el cliente no puede pagar. */
+  try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
+  catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de emitir'); }
   document.body.hidden = false;
   cargarContratos();
   // deep-link ?id=<factura>: abre ese documento guardado directamente — lo usa
@@ -414,11 +421,22 @@ $('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
 // Van TODAS, incluidas las de notario (escrow): si el contrato pactó cobrar en
 // una cuenta concreta, la factura tiene que decir esa misma. La etiqueta ya
 // avisa de cuál es cuál.
-$('#selCuenta').innerHTML = '<option value="">— sin datos bancarios —</option>' +
-  Object.entries(CUENTAS_BANCARIAS).map(([k,c]) => [k, c.label])
-    .sort((a,b) => a[1].localeCompare(b[1],'es'))
-    .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('')
-  + '<option value="otros">Otros — escribir la cuenta a mano</option>';
+//
+// Es una FUNCIÓN porque desde el 6-ago-2026 las cuentas llegan por red (tabla
+// `cuentas_bancarias` con RLS, ya no están en entities.js, que es público). Se
+// llama al arrancar, después de cargarlas; si se pintara aquí saldría un select
+// con solo "sin datos bancarios" y "Otros", y el agente escribiría a mano una
+// cuenta que sí existía.
+function pintarSelectCuentas(){
+  const valor = $('#selCuenta').value;   // no perder la elección si se repinta
+  $('#selCuenta').innerHTML = '<option value="">— sin datos bancarios —</option>' +
+    Object.entries(CUENTAS_BANCARIAS).map(([k,c]) => [k, c.label])
+      .sort((a,b) => a[1].localeCompare(b[1],'es'))
+      .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('')
+    + '<option value="otros">Otros — escribir la cuenta a mano</option>';
+  if(valor) $('#selCuenta').value = valor;
+}
+pintarSelectCuentas();
 
 /* Los campos de la cuenta a mano solo se ven con "Otros" elegido. Se enseñan y
    ocultan aquí y no en render(): render() repinta el documento, no el formulario. */

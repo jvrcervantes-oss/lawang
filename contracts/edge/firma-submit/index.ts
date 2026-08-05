@@ -128,6 +128,24 @@ async function compartidos() {
   new Function('caja', fuentes.join('\n;\n') +
     '\n;Object.assign(caja,{SOCIEDADES,CUENTAS_BANCARIAS,calcTotales,fmtMoneda,parseImporte,' +
     'compradoresDeContrato,nombresFactura,documentosFactura,primerDato,documentoPagina,TIPOS_DOC});')(caja);
+
+  /* Las cuentas de cobro ya NO vienen dentro de entities.js (6-ago-2026): ese
+     fichero se baja por HTTP público —sin sesión, es la razón de que las cuentas
+     salieran de él— así que aquí se leen de la base con service_role, que es lo
+     que esta función ya tiene. Se rellena el MISMO objeto que publicó el
+     `new Function` de arriba, no uno nuevo: documento.js lee la global
+     CUENTAS_BANCARIAS por referencia.
+     Si esto fallara, la factura del primer hito saldría sin datos bancarios; se
+     corta aquí en vez de emitirla muda, porque una factura sin dónde pagar es
+     una factura que hay que reemitir. */
+  const { data: cuentas, error: errCuentas } = await sb.from('cuentas_bancarias')
+    .select('clave,label,titular,banco,cuenta,codigo,direccion,extra').eq('activa', true);
+  if (errCuentas) throw new Error('no se pudieron leer las cuentas de cobro: ' + errCuentas.message);
+  for (const c of cuentas ?? []) {
+    caja.CUENTAS_BANCARIAS[c.clave] = { label: c.label, titular: c.titular, banco: c.banco,
+      cuenta: c.cuenta, codigo: c.codigo, direccion: c.direccion, extra: c.extra };
+  }
+
   COMPARTIDOS = caja;
   return caja;
 }

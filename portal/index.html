@@ -392,6 +392,15 @@
   /* ── datos ────────────────────────────────────────────────────────── */
   function cargar(){
     muestra('vCarga');
+    /* Las cuentas de cobro ya no viven en entities.js (6-ago-2026: ese fichero
+       se sirve sin login y está en el repo público). Se cargan de la base, donde
+       la RLS las abre a `authenticated` — el comprador lo es, y las necesita:
+       son los datos con los que paga, y documentoHTML() los imprime en SU
+       factura. Si fallan, la factura se enseña igual pero sin el bloque
+       bancario, así que se dice en voz alta en vez de dejar un hueco mudo. */
+    cargarCuentasBancarias(sb).catch(function(e){
+      console.warn('cuentas de cobro no disponibles:', e && e.message);
+    }).then(function(){
     sb.rpc('portal_situacion').then(function(r){
       if (r.error){
         muestra('vLogin');
@@ -405,6 +414,7 @@
       var r0 = leeHash();
       vasA(r0.sec, r0.doc, true);   // ruta limpia y legible desde el primer momento
     });
+    });   // cierra el then() de cargarCuentasBancarias
   }
 
   /* ── reparto de cobro entre hitos ───────────────────────────────────

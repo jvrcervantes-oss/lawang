@@ -1,5 +1,5 @@
 /* ============================================================================
-   Identidad y cuentas de cobro de Lawang — FUENTE ÚNICA
+   Identidad de Lawang (y el cargador de las cuentas de cobro) — FUENTE ÚNICA
    ----------------------------------------------------------------------------
    Lo usan `contracts/app.html` (contratos) y `facturas/index.html` (facturas).
    Vivía inline en app.html hasta el 27-jul-2026; se saca aquí porque un número
@@ -13,66 +13,52 @@
    imprimen en tres idiomas; las facturas usan solo `es`/`en`.
    ========================================================================== */
 
-/* ---------- cuentas de cobro ----------
-   En contratos: el agente elige la cuenta en el select 'cuenta_bancaria' y
-   datosBancariosHTML la resuelve a la tabla completa. Sin selección no imprime
-   nada — nunca un valor por defecto adivinado en algo tan sensible como una
-   cuenta de pago. */
-const CUENTAS_BANCARIAS = {
-  sandalwoods_dbs: { label:'Sandal Woods Limited — DBS Bank (Hong Kong)',
-    titular:'SANDAL WOODS LIMITED', banco:'DBS Bank (Hong Kong) Limited', cuenta:'478798116354',
-    codigo:'DHBKHKHH', direccion:"11th Floor, The Center, 99 Queen's Road Central, Central, Hong Kong",
-    extra:{es:'Código de banco: 016',en:'Bank code: 016',id:'Kode bank: 016'} },
-  sandalwoods_dbs_sg: { label:'Sandal Woods Limited — DBS Bank Ltd (Singapur)',
-    titular:'Sandal Woods Limited', banco:'DBS Bank Ltd', cuenta:'885571532066',
-    codigo:'DBSSSGSG', direccion:'12 Marina Boulevard, DBS Asia Central, Marina Bay Financial Centre Tower 3, Singapore 018982',
-    extra:{es:'Código de banco: 7171',en:'Bank code: 7171',id:'Kode bank: 7171'} },
-  /* `titular` se IMPRIME en los datos bancarios del documento: va con la grafía
-     registrada, tres palabras y en mayúsculas (confirmada por el owner el
-     30-jul-2026). Un titular que no coincide con el de la cuenta es una
-     transferencia devuelta. */
-  sandalwoods_danamon_eur: { label:'PT SAN DAL WOODS — Bank Danamon, EUR (Badung)',
-    titular:'PT SAN DAL WOODS', banco:'PT Bank Danamon Indonesia, Tbk — sucursal Badung Kerobokan', cuenta:'3692536026',
-    codigo:'BDINIDJAXXX', direccion:'Jalan Raya Kerobokan No. 24, Banjar Taman Kerobokan, Badung, Bali, Indonesia 80361',
-    extra:{es:'Código de banco: 011 · Código de sucursal: 0380',en:'Bank code: 011 · Branch code: 0380',id:'Kode bank: 011 · Kode cabang: 0380'} },
-  contractor_lawang: { label:'Contratista — Lawang (I Putu Hady Diyatmika · BCA)',
-    titular:'I Putu Hady Diyatmika, ST', banco:'Bank Central Asia (BCA)', cuenta:'1420040632',
-    codigo:'CENAIDJA', direccion:'Menara BCA, Grand Indonesia, Jl. MH Thamrin No. 1, Jakarta 10310, Indonesia', extra:'' },
-  land_balian_usd: { label:'Terreno — Balian Hills, USD (Lead Bank)',
-    titular:'Santiago del Cerro Villena', banco:'Lead Bank', cuenta:'212789850974',
-    codigo:'101019644 (ABA Routing)', direccion:'1801 Main St., Kansas City, MO 64108, USA', extra:{es:'Tipo de cuenta: Checking',en:'Account type: Checking',id:'Jenis rekening: Checking'} },
-  land_balian_eur: { label:'Terreno — Balian Hills, EUR (OCBC)',
-    titular:'PT Balian Hills Resort', banco:'OCBC', cuenta:'160800028963',
-    codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar Barat, Denpasar, Bali 80114, Indonesia', extra:'' },
-  notario_sandy_sumba: { label:'Notario — Sandy Tandean, Sumba (BNI)',
-    titular:'BPK SANDY TANDEAN', banco:'Bank Negara Indonesia (BNI)', cuenta:'0044860851',
-    codigo:'BNINIDJA', direccion:'Jl. Sumatera No.33, Todekisar, Kec. Kota Lama, 85111, Kota Kupang, Nusa Tenggara Timur, Indonesia', extra:'' },
-  contractor_sumba_eur: { label:'Constructor — Sumba, EUR (Achmad Zaeni · Bank Mandiri)',
-    titular:'ACHMAD ZAENI', banco:'Bank Mandiri — sucursal Waingapu, Sumba Timur', cuenta:'1810004920345',
-    codigo:'BMRIIDJAXXX', direccion:'Jl. Ahmad Yani No. 75, Kamalaputi, Kota Waingapu, 87116, Sumba Timur, Nusa Tenggara Timur, Indonesia',
-    extra:{es:'Teléfono del beneficiario: +62 818 558 667 · Teléfono del banco: +62 387 61111',en:'Beneficiary phone: +62 818 558 667 · Bank phone: +62 387 61111',id:'Telepon penerima: +62 818 558 667 · Telepon bank: +62 387 61111'} },
-  contractor_tepisungai: { label:'Contratista — Tepi Sun Gai (OCBC)',
-    titular:'PT Tepi Sun Gai', banco:'OCBC', cuenta:'167800024140',
-    codigo:'NISPIDJA', direccion:'Bank OCBC Branch Denpasar Teuku Umar, Jl. Teuku Umar No.2-4, Denpasar, Bali, Indonesia', extra:'' },
-  notario_ayu_wulandari: { label:'Notario — Anak Agung Ayu Wulandari (BCA)',
-    titular:'An. Anak Agung Ayu Wulandari', banco:'Bank Central Asia (BCA)', cuenta:'1420857361',
-    codigo:'CENAIDJA', direccion:'Menara BCA, Grand Indonesia, Jl. MH Thamrin No.1, Jakarta 10310, Indonesia', extra:'' },
-  land_sumbahills_plots: { label:'Terreno — Sumba Hills Plots (BNI)',
-    titular:'Bpk Sandy Tandean', banco:'Bank Negara Indonesia (BNI)', cuenta:'0044860851',
-    codigo:'BNINIDJAXXX', direccion:'Jl. Sumatera 33, Todekisar, Kota Kupang, Nusa Tenggara Timur 85118, Indonesia', extra:'' },
-  suite_sumbahills: { label:'Suite — Sumba Hills (Bank Mandiri)',
-    titular:'Achmad Zaeni', banco:'Bank Mandiri', cuenta:'181 000 120 5641',
-    codigo:'BMRIIDJA', direccion:'Jl. Ahmad Yani No. 75, Kamalaputi, Kota Waingapu 87116, Indonesia', extra:'Tel: +62 818 558 667' },
-  notario_ayu_satya: { label:'Notario — Ida Ayu Satya Dewi (BNI)',
-    titular:'Ida Ayu Satya Dewi', banco:'Bank Negara Indonesia (BNI)', cuenta:'1427191719',
-    codigo:'BNINIDJADPS', direccion:'BNI Building, Floor 7, Jl Jenderal Sudirman 1, Jakarta 10220, Indonesia', extra:'' },
-  notario_nyoman_wiryasa: { label:'Notario — I Nyoman Wiryasa Birawantara (BRI)',
-    titular:'I Nyoman Wiryasa Birawantara', banco:'Bank Rakyat Indonesia (BRI)', cuenta:'478501009326538',
-    codigo:'BRINIDJAXXX', direccion:'Jl Kediri Gang IV, Rt.002/001, Jembrana, Negara, Bali 82211, Indonesia', extra:'' },
-  notario_putu_kartika: { label:'Notario — A.A. Putu Kartika Adi (Mandiri)',
-    titular:'A.A. Putu Kartika Adi', banco:'Bank Mandiri', cuenta:'1750038383831',
-    codigo:'BMRIIDJAXXX', direccion:'Jalan Jenderal Sudirman Kav 54-55, Jakarta 12190, Indonesia', extra:'' },
-};
+/* ---------- cuentas de cobro — YA NO VIVEN AQUÍ (6-ago-2026) ----------
+   Los 15 números de cuenta estaban escritos en este fichero, y este fichero es
+   PÚBLICO por dos caminos a la vez: se sirve con 200 sin login (lo cargan las
+   nueve herramientas de la suite y el portal del comprador) y está en el repo
+   `jvrcervantes-oss/lawang`, que es público, legible en crudo desde el 27-jul.
+   Unas coordenadas bancarias abiertas son la materia prima de un fraude de
+   transferencia, y a diferencia de una contraseña **un número de cuenta no se
+   rota**: la única salida es que dejen de publicarse.
+
+   Ahora viven en la tabla `public.cuentas_bancarias` con RLS: SELECT solo para
+   `authenticated`, ni lectura ni escritura para `anon` (verificado con un GET
+   anónimo al REST: 401, no un `[]` ambiguo). El repo se queda público a
+   propósito — de él depende el auto-deploy de Hostinger; lo que sale del repo
+   son las cuentas, no el hosting.
+
+   SOCIEDADES se queda: es la identidad que ya va impresa en todo contrato y
+   factura que el comprador tiene en la mano, así que ocultarla no protege nada.
+
+   Cómo se usa: `await cargarCuentasBancarias(sb)` una vez al arrancar, antes de
+   pintar el select de cuentas o de imprimir un documento. Quien lea
+   CUENTAS_BANCARIAS después lo hace igual que siempre. */
+const CUENTAS_BANCARIAS = {};
+let CUENTAS_PROMESA = null;
+
+/* Rellena el objeto EN SU SITIO (Object.assign, nunca reasignar): `firma-submit`
+   y `facturas/documento.test.js` publican esta misma referencia en su `caja`
+   evaluando los cuatro ficheros compartidos de una vez, así que cambiar el
+   objeto por otro los dejaría leyendo uno vacío para siempre.
+   Si la consulta falla, LANZA y deja la promesa a null para poder reintentar: un
+   fallo silencioso aquí imprime un contrato sin datos de pago, que es
+   exactamente el error que este fichero existe para evitar. */
+function cargarCuentasBancarias(sb){
+  if(CUENTAS_PROMESA) return CUENTAS_PROMESA;
+  CUENTAS_PROMESA = (async () => {
+    const { data, error } = await sb.from('cuentas_bancarias')
+      .select('clave,label,titular,banco,cuenta,codigo,direccion,extra')
+      .eq('activa', true).order('orden');
+    if(error){ CUENTAS_PROMESA = null; throw error; }
+    (data || []).forEach(r => {
+      CUENTAS_BANCARIAS[r.clave] = { label:r.label, titular:r.titular, banco:r.banco,
+        cuenta:r.cuenta, codigo:r.codigo, direccion:r.direccion, extra:r.extra };
+    });
+    return CUENTAS_BANCARIAS;
+  })();
+  return CUENTAS_PROMESA;
+}
 
 /* ---------- sociedades emisoras ----------
    `razon`/`marca`/`domicilio`/`npwp`/`rep` alimentan tanto los marcadores

@@ -1823,12 +1823,18 @@ function hitosRowsHTML(){
 }
 
 /* ---------- cuenta bancaria: desplegable único reusado en varias plantillas ----------
-   La tabla CUENTAS_BANCARIAS vive en assets/entities.js (fuente única compartida
-   con /facturas). Cada plantilla que necesita destino de pago trae
-   <!--datos-bancarios--> (ver buildDoc); el agente elige la cuenta en el select
-   'cuenta_bancaria' y aquí se resuelve a la tabla completa. Sin selección → no
-   imprime nada: nunca un valor por defecto adivinado en algo tan sensible. */
-const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
+   Las cuentas se cargan de `public.cuentas_bancarias` con cargarCuentasBancarias()
+   (assets/entities.js) — desde el 6-ago-2026 ya NO están escritas en ese fichero,
+   que es público por web y por el repo de GitHub. Cada plantilla que necesita
+   destino de pago trae <!--datos-bancarios--> (ver buildDoc); el agente elige la
+   cuenta en el select 'cuenta_bancaria' y aquí se resuelve a la tabla completa.
+   Sin selección → no imprime nada: nunca un valor por defecto adivinado en algo
+   tan sensible.
+
+   `bankOptions()` es una FUNCIÓN y no una constante calculada al cargar: las
+   cuentas llegan por red, así que una constante de módulo se quedaba con la lista
+   vacía para toda la sesión según qué ganara la carrera. */
+const bankOptions = () => Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
   .sort((a,b)=>a[1].localeCompare(b[1],'es'));   // orden alfabético por etiqueta
 // Construcción usa SOLO la cuenta de Sandal Woods (Singapur). Las cuentas de
 // notario son de ESCROW: al elegir una, datosBancariosHTML imprime sola la
@@ -1841,9 +1847,10 @@ const BANK_OPTIONS = Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.label])
 // euros (añadidas 22-jul a petición del cliente).
 const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'notario_sandy_sumba', 'contractor_sumba_eur'];
 function bankOptionsFor(slug){
-  if(slug==='ppjb_construccion') return BANK_OPTIONS.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
-  if(slug==='ppjb_parcela') return BANK_OPTIONS;
-  return BANK_OPTIONS.filter(o=>!o[0].startsWith('notario_'));
+  const opts = bankOptions();
+  if(slug==='ppjb_construccion') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
+  if(slug==='ppjb_parcela') return opts;
+  return opts.filter(o=>!o[0].startsWith('notario_'));
 }
 /* ---------- sociedad firmante (Promotor/Constructor): desplegable por contrato ----------
    Las plantillas tokenizadas traen la identidad como {{prom_razon}}, {{prom_marca}}
@@ -3067,6 +3074,15 @@ async function init(){
   // volver a restringir más adelante basta con cambiar esta línea de nuevo
   // a `(session.user.user_metadata||{}).role === 'admin'`.
   CAN_EDIT_TEXT = true;
+
+  /* Cuentas de cobro desde `public.cuentas_bancarias` (6-ago-2026): salieron de
+     assets/entities.js porque ese fichero se sirve sin login y además está en el
+     repo público de GitHub. Va aquí, con la sesión ya restaurada y ANTES de
+     buildForm(), que es quien pinta el select de cuenta con bankOptionsFor().
+     Si falla se avisa y se sigue: el contrato se puede redactar, pero el bloque
+     de datos bancarios saldría vacío y hay que saberlo antes de imprimir. */
+  try{ await cargarCuentasBancarias(sb); }
+  catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de imprimir'); }
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }

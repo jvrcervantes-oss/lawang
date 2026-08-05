@@ -94,9 +94,21 @@ assert.ok(conOtros.includes('3692536026') && conOtros.includes('Datos bancarios'
 assert.ok(!caja.documentoHTML({ ...campos, cuenta: 'otros' }, {}).includes('Datos bancarios'),
   'una cabecera "Datos bancarios" con seis guiones es peor que no ponerla');
 
-/* ---- una cuenta dada de alta sigue saliendo de entities.js ---- */
-const claveReal = Object.keys(caja.CUENTAS_BANCARIAS)[0];
-assert.ok(caja.documentoHTML({ ...campos, cuenta: claveReal }, {})
-  .includes(caja.CUENTAS_BANCARIAS[claveReal].cuenta));
+/* ---- una cuenta dada de alta se imprime ----
+   Desde el 6-ago-2026 las cuentas NO están escritas en entities.js (era público
+   por web y por el repo de GitHub): viven en `public.cuentas_bancarias` y las
+   inyecta cargarCuentasBancarias() en el navegador, o una consulta con
+   service_role en la Edge `firma-submit`. Aquí no hay base, así que se inyecta a
+   mano en el MISMO objeto — que es justo la forma en que lo hacen los dos sitios
+   de verdad, así que probarlo así prueba el mecanismo real. */
+assert.deepStrictEqual(caja.CUENTAS_BANCARIAS, {},
+  'entities.js debe llegar SIN cuentas escritas dentro: si vuelven, vuelven a publicarse en GitHub');
+Object.assign(caja.CUENTAS_BANCARIAS, {
+  cuenta_de_prueba: { label:'Prueba — Banco X', titular:'PT TEPI SUN GAI', banco:'Banco X',
+    cuenta:'9999888877', codigo:'XXXXIDJA', direccion:'Calle Falsa 1', extra:'' },
+});
+const conAlta = caja.documentoHTML({ ...campos, cuenta: 'cuenta_de_prueba' }, {});
+assert.ok(conAlta.includes('9999888877') && conAlta.includes('Datos bancarios'),
+  'una cuenta cargada desde la base tiene que imprimirse igual que cuando estaba en el .js');
 
 console.log('documento.test.js OK');
