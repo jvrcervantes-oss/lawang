@@ -1,0 +1,98 @@
+<!-- ============================================================================
+     Correo del enlace de acceso al portal del comprador — Lawang Estate
+     ----------------------------------------------------------------------------
+     DÓNDE SE PEGA: Supabase → Authentication → Emails → plantilla "Magic Link".
+     Asunto sugerido:  Tu acceso al área de clientes · Lawang Estate
+
+     Variables de Supabase que se pueden usar: {{ .ConfirmationURL }} (el enlace),
+     {{ .Email }}, {{ .SiteURL }}, {{ .Token }} (código de 6 dígitos).
+
+     POR QUÉ ESTÁ ESCRITO ASÍ:
+     · Tablas y estilos EN LÍNEA. Gmail y Outlook descartan <style> del <head> y
+       no cargan Google Fonts: con CSS externo el correo llega sin formato.
+     · Sin imágenes. Un logo remoto sale bloqueado por defecto en la mayoría de
+       buzones, y la marca quedaría en un cuadro vacío. El nombre va como texto.
+     · Bilingüe en el mismo correo: no sabemos el idioma del comprador hasta que
+       entra, y un correo de acceso no puede llegar en el idioma equivocado.
+     · Corto a propósito: Gmail recorta los correos largos y escondería el botón.
+     · El botón lleva su enlace también en texto: hay clientes que no pintan el
+       botón, y sin la URL visible el correo sería inservible.
+     ⚠️ El remitente seguirá siendo el genérico de Supabase hasta que se configure
+     el SMTP propio (Project Settings → Authentication → SMTP).
+============================================================================ -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5F0E6;margin:0;padding:32px 12px;font-family:Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#FFFDF8;border:1px solid #E4DCCB;">
+
+        <!-- cabecera -->
+        <tr>
+          <td style="padding:34px 40px 0;text-align:center;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:27px;letter-spacing:6px;color:#485B37;">LAWANG</div>
+            <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#8F9B7A;padding-top:7px;">Estate &middot; Área de clientes</div>
+          </td>
+        </tr>
+
+        <!-- español -->
+        <tr>
+          <td style="padding:34px 40px 0;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:#2E3437;padding-bottom:12px;">Tu acceso al área de clientes</div>
+            <div style="font-size:15px;line-height:1.6;color:#2E3437;">
+              Pulsa el botón para entrar y consultar tus contratos, tus pagos, tus facturas y el avance de tu obra.
+              No hace falta contraseña: cada vez que quieras entrar pedirás un enlace nuevo desde el portal.
+            </div>
+          </td>
+        </tr>
+
+        <!-- botón -->
+        <tr>
+          <td style="padding:26px 40px 0;text-align:center;">
+            <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+              <tr>
+                <td style="background:#485B37;">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;padding:15px 38px;color:#F5F0E6;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">
+                    Entrar &middot; Sign in
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <div style="font-size:12px;color:#8F9B7A;padding-top:16px;line-height:1.6;">
+              El enlace caduca en una hora y solo se puede usar una vez.<br>
+              This link expires in one hour and can only be used once.
+            </div>
+          </td>
+        </tr>
+
+        <!-- english -->
+        <tr>
+          <td style="padding:26px 40px 0;">
+            <div style="border-top:1px solid #E4DCCB;padding-top:24px;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:#2E3437;padding-bottom:12px;">Your client area access</div>
+              <div style="font-size:15px;line-height:1.6;color:#2E3437;">
+                Use the button above to sign in and review your contracts, payments, invoices and construction progress.
+                No password needed: whenever you want to come back, request a fresh link from the portal.
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- enlace en claro + pie -->
+        <tr>
+          <td style="padding:26px 40px 34px;">
+            <div style="border-top:1px solid #E4DCCB;padding-top:20px;font-size:11.5px;line-height:1.7;color:#8F9B7A;word-break:break-all;">
+              Si el botón no funciona, copia esta dirección en tu navegador &middot; If the button does not work, paste this address into your browser:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#104C4F;">{{ .ConfirmationURL }}</a>
+            </div>
+            <div style="padding-top:18px;font-size:11.5px;line-height:1.7;color:#8F9B7A;">
+              ¿No esperabas este correo? Ignóralo, no se ha abierto ninguna cuenta a tu nombre &middot;
+              Not expecting this email? Ignore it, no account has been opened in your name.<br>
+              <a href="mailto:sales@lawangproperties.com" style="color:#104C4F;">sales@lawangproperties.com</a>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

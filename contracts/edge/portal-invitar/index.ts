@@ -35,8 +35,13 @@ const corsFor = (req: Request) => {
 
 Deno.serve(async (req) => {
   const cors = corsFor(req);
-  const json = (o: unknown, s = 200) =>
-    new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
+  // Un rechazo que solo viaja al navegador no existe: el 5-ago hubo cuatro 400
+  // seguidos y en los logs solo constaba el código, así que no se pudo saber
+  // POR QUÉ. Ahora cada salida distinta de 200 deja su motivo en el log.
+  const json = (o: unknown, s = 200) => {
+    if (s !== 200) console.error('portal-invitar ' + s + ': ' + JSON.stringify(o));
+    return new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
+  };
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
 

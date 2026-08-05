@@ -148,7 +148,7 @@ async function cargar(){
     // falla sola y la ficha simplemente no muestra el bloque.
     SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado)'),
     // accesos al portal del comprador (email → ficha)
-    SB.from('portal_accesos').select('email, client_id, activo'),
+    SB.from('portal_accesos').select('email, client_id, activo, ultimo_acceso, accesos'),
   ]);
   if(c.error) throw c.error;
   CLIENTES = c.data || [];
@@ -257,8 +257,15 @@ function pintarFicha(){
       ${(() => {
         const suyos = ACCESOS.filter(x => x.client_id === c.id);
         const activos = suyos.filter(x => x.activo);
+        /* Si entró o no es la única forma de saber si el correo llegó: un enlace
+           que nadie abre es indistinguible de uno que no se envió. */
+        const rastro = a => !a.accesos
+          ? '<span class="tag espera">sin estrenar</span>'
+          : `<span class="tag ok">${a.accesos} ${a.accesos === 1 ? 'entrada' : 'entradas'}</span>` +
+            (a.ultimo_acceso ? ` <span class="nota" style="display:inline">última: ${fFecha(a.ultimo_acceso)}</span>` : '');
         const estado = activos.length
-          ? `<p class="nota">Acceso activo para <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>. Ve sus contratos, pagos, facturas y obra en /portal/.</p>`
+          ? `<p class="nota">Acceso activo para <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>. Ve sus contratos, pagos, facturas y obra en /portal/.</p>
+             <p class="nota">${activos.map(rastro).join(' · ')}</p>`
           : suyos.length
             ? '<p class="nota">Acceso <b>revocado</b>. Se puede volver a invitar.</p>'
             : '<p class="nota">Esta ficha aún no tiene acceso al portal.</p>';
