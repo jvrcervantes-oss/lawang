@@ -29,6 +29,18 @@
      son interfaz pura, sin datos. -->
 <script src="/contracts/assets/suite.js?v=7e77b0d0"></script>
 <script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
+<!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
+     de una factura: la usan la herramienta de Facturas y la Edge Function que
+     emite la del primer hito al firmarse un contrato. El portal la carga
+     también, así que el comprador ve EXACTAMENTE el documento que emitió el
+     equipo — no una reconstrucción parecida que se queda vieja en cuanto alguien
+     toque una fila del original.
+     `entities.js` (sociedades y cuentas) ya viaja dentro de la propia factura:
+     los datos bancarios están para que el comprador pague. -->
+<link rel="stylesheet" href="/facturas/documento.css?v=20260731">
+<script src="/contracts/assets/entities.js?v=1e163266"></script>
+<script src="/facturas/totales.js"></script>
+<script src="/facturas/documento.js?v=20260731"></script>
 <style>
   :root{ --tbh:56px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -91,16 +103,21 @@
          display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out; }
   .lupa img{ max-width:96vw; max-height:92vh; border-radius:var(--r-s); }
 
-  /* ── documento dentro del cajón (factura / recibo) ─────────────────── */
-  .doc{ font-size:13.5px; color:var(--texto); }
-  .doc .doc-cab{ display:flex; justify-content:space-between; gap:var(--e5); align-items:flex-start;
-                 padding-bottom:var(--e3); border-bottom:1px solid var(--linea); }
-  .doc .soc{ font-size:15px; font-weight:600; letter-spacing:.05em; color:var(--tg); }
-  /* `doc-num` y no `num`: `.num` es de suite.css (columna numérica alineada a la
-     derecha) y `.doc .num` la pisaba dentro del documento — la cabecera IMPORTE
-     de la tabla salía a 17px en negrita. Al reutilizar una hoja compartida, los
-     estilos propios se cuelgan de clases propias. */
-  .doc .doc-num{ font-size:17px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+  /* ── la factura de verdad dentro del cajón ─────────────────────────────
+     `documento.css` maqueta una hoja A4 real. En pantalla se reduce con `zoom`
+     igual que hace la vista previa de la herramienta de Facturas; al imprimir
+     vuelve a tamaño real (el zoom no se aplica dentro de @media print). */
+  .hoja-scroll{ display:flex; justify-content:center; }
+  .sheet{ width:210mm; min-height:297mm; background:var(--folio,#fff); padding:15mm 16mm;
+          zoom:.62; box-shadow:var(--sombra-1); }
+  @media (max-width:900px){
+    .sheet{ zoom:.46; }
+    .hoja-scroll{ overflow-x:auto; justify-content:flex-start; }
+  }
+
+  /* ── documentos (documentación de la promoción y lo entregado) ─────── */
+  .docrow-cat{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-3); }
+  .caduca-mal{ color:#9E2F26; font-weight:600; }
   .doc .fec{ font-size:12.5px; color:var(--texto-2); text-align:right; font-variant-numeric:tabular-nums; }
 
   /* ── login ─────────────────────────────────────────────────────────── */
@@ -128,8 +145,13 @@
                box-shadow:none; border:none; }
     #suiCajon .sui-cajon-cab, #suiCajon .sui-cajon-pie{ display:none; }
     #suiCajon .sui-cajon-cuerpo{ overflow:visible; padding:0; }
+    /* la hoja recupera su tamaño real: es un A4 y sale como un A4 */
+    .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
+    .hoja-scroll{ display:block; overflow:visible; }
   }
-  @page{ size:A4; margin:16mm; }
+  /* Sin margen: el margen ya lo lleva la propia hoja (15/16mm), y sumar los dos
+     empujaba la factura a una segunda página. Mismo criterio que la herramienta. */
+  @page{ size:A4; margin:0; }
 </style>
 </head>
 <body>
@@ -175,6 +197,7 @@
       <section id="secContratos"></section>
       <section id="secFacturas" hidden></section>
       <section id="secObra" hidden></section>
+      <section id="secDocumentos" hidden></section>
 
       <p class="sui-nota" style="margin-top:var(--e6);text-align:center">
         <span data-t="pie">¿Dudas? Escríbenos a</span>
@@ -199,7 +222,13 @@
          login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (mira también en spam).',
          sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com y te lo abrimos.',
          area:'Área de clientes', salir:'Salir', saludo_sub:'Estado de tu operación con Lawang Estate',
-         c_contratos:'Contratos', c_facturas:'Facturas', c_obra:'Obra',
+         c_contratos:'Contratos', c_facturas:'Facturas', c_obra:'Obra', c_documentos:'Documentos',
+         d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
+         d_entregado_nota:'Son los documentos que aportaste para tu expediente. Si alguno está a punto de caducar, escríbenos y lo actualizamos.',
+         doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS',
+         caduca:'caduca el',
+         sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
+         err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma',
          precio:'Precio', unidad:'Unidad', fecha_firma:'Fecha de firma', cobrado:'Pagado hasta hoy',
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
@@ -219,7 +248,13 @@
          login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
          sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com and we will open it.',
          area:'Client area', salir:'Sign out', saludo_sub:'Status of your operation with Lawang Estate',
-         c_contratos:'Contracts', c_facturas:'Invoices', c_obra:'Construction',
+         c_contratos:'Contracts', c_facturas:'Invoices', c_obra:'Construction', c_documentos:'Documents',
+         d_promocion:'Your development’s documents', d_entregado:'What you gave us',
+         d_entregado_nota:'These are the documents you provided for your file. If any is about to expire, write to us and we will update it.',
+         doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS',
+         caduca:'expires',
+         sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
+         err_fichero:'We could not open the document. Please try again in a moment.',
          firmado:'Signed', pendiente_firma:'Awaiting signature',
          precio:'Price', unidad:'Unit', fecha_firma:'Signing date', cobrado:'Paid to date',
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
@@ -280,7 +315,7 @@
      singular y escribía `#/facturas/NUM` en plural, así que el enlace a un
      documento cambiaba la URL y no abría nada. El `#` pelado del enlace del
      correo se sustituye por la ruta limpia en cuanto supabase-js lo consume. */
-  var SECCIONES = ['contratos','facturas','obra'];
+  var SECCIONES = ['contratos','facturas','obra','documentos'];
   var RUTA = { sec:'contratos', doc:null };
 
   function leeHash(){
@@ -296,9 +331,10 @@
   }
   function aplicaRuta(){
     RUTA = leeHash();
-    document.getElementById('secContratos').hidden = RUTA.sec !== 'contratos';
-    document.getElementById('secFacturas').hidden  = RUTA.sec !== 'facturas';
-    document.getElementById('secObra').hidden      = RUTA.sec !== 'obra';
+    document.getElementById('secContratos').hidden  = RUTA.sec !== 'contratos';
+    document.getElementById('secFacturas').hidden   = RUTA.sec !== 'facturas';
+    document.getElementById('secObra').hidden       = RUTA.sec !== 'obra';
+    document.getElementById('secDocumentos').hidden = RUTA.sec !== 'documentos';
     document.querySelectorAll('#chips .sui-chip').forEach(function(b){
       b.classList.toggle('on', b.dataset.sec === RUTA.sec);
     });
@@ -411,7 +447,9 @@
       '<span>' + t('r_pagado') + ' <b>' + esc(dinero(cob, mon)) + '</b></span>' +
       '<span>' + t('r_pendiente') + ' <b>' + esc(dinero(Math.max(0, tot - cob), mon)) + '</b></span>';
 
-    var cuentas = { contratos:(d.contratos||[]).length, facturas:(d.facturas||[]).length, obra:(d.obra||[]).length };
+    var cuentas = { contratos:(d.contratos||[]).length, facturas:(d.facturas||[]).length,
+                    obra:(d.obra||[]).length,
+                    documentos:(d.documentos||[]).length + (d.kyc||[]).length };
     document.getElementById('chips').innerHTML = SECCIONES.map(function(s){
       return '<button type="button" class="sui-chip' + (cuentas[s] ? '' : ' vacio') + '" data-sec="' + s + '">' +
              esc(t('c_' + s)) + '<span class="n">' + cuentas[s] + '</span></button>';
@@ -502,6 +540,37 @@
       cargaFotos();
     }
 
+    /* documentos: lo compartido por el equipo y lo que él mismo entregó */
+    var ld = document.getElementById('secDocumentos');
+    var docs = d.documentos || [], kyc = d.kyc || [];
+    if (!docs.length && !kyc.length){
+      ld.innerHTML = nada(t('sin_docs_t'), t('sin_docs'));
+    } else {
+      var html = '';
+      if (docs.length) html +=
+        '<div class="sui-bloque" style="margin-bottom:var(--e4)"><h3>' + esc(t('d_promocion')) + '</h3>' +
+        '<table class="sui-tabla" style="min-width:0"><tbody>' + docs.map(function(x){
+          return '<tr data-doc="' + esc(x.id) + '">' +
+            '<td><span class="clave">' + esc(x.titulo) + '</span>' +
+              (x.descripcion ? '<div class="flojo">' + esc(x.descripcion) + '</div>' : '') + '</td>' +
+            '<td class="docrow-cat">' + esc(x.categoria || '') + '</td>' +
+            '<td class="flojo">' + esc(x.proyecto || '') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+      if (kyc.length) html +=
+        '<div class="sui-bloque"><h3>' + esc(t('d_entregado')) + '</h3>' +
+        '<table class="sui-tabla" style="min-width:0"><tbody>' + kyc.map(function(x){
+          var cad = x.caduca ? new Date(x.caduca) : null;
+          var vencido = cad && cad < new Date();
+          return '<tr data-kyc="' + esc(x.path) + '">' +
+            '<td><span class="clave">' + esc(t('doc_' + x.tipo) === 'doc_' + x.tipo ? x.tipo : t('doc_' + x.tipo)) + '</span></td>' +
+            '<td class="flojo">' + esc(fecha(x.subido)) + '</td>' +
+            '<td' + (vencido ? ' class="caduca-mal"' : ' class="flojo"') + '>' +
+              (x.caduca ? esc(t('caduca') + ' ' + fecha(x.caduca)) : '') + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<p class="sui-nota">' + esc(t('d_entregado_nota')) + '</p></div>';
+      ld.innerHTML = html;
+    }
+
     aplicaRuta();
   }
 
@@ -530,9 +599,32 @@
     }
     var tr = e.target.closest('tr[data-fac]');
     if (tr){ vasA('facturas', tr.getAttribute('data-fac')); return; }
+
+    /* documentación compartida: enlace externo o fichero del almacén */
+    var fd = e.target.closest('tr[data-doc]');
+    if (fd){
+      var doc = (DATOS.documentos || []).filter(function(x){ return String(x.id) === fd.getAttribute('data-doc'); })[0];
+      if (!doc) return;
+      if (doc.url){ window.open(doc.url, '_blank', 'noopener'); return; }
+      abreFichero('documentacion', doc.path);
+      return;
+    }
+    var fk = e.target.closest('tr[data-kyc]');
+    if (fk){ abreFichero('kyc', fk.getAttribute('data-kyc')); return; }
+
     var img = e.target.closest('.fotos img');
     if (img && img.src) ampliaFoto(img.src);
   });
+
+  /* Nunca una URL fija a un fichero privado: se pide una firmada de 10 minutos
+     en el momento de abrirlo (mismo criterio que el KYC de la intranet). */
+  function abreFichero(bucket, path){
+    if (!path) return;
+    sb.storage.from(bucket).createSignedUrl(path, 600).then(function(r){
+      if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank', 'noopener');
+      else toast(t('err_fichero'));
+    });
+  }
 
   function cargaFotos(){
     document.querySelectorAll('img[data-foto]').forEach(function(img){
@@ -554,43 +646,32 @@
     document.body.appendChild(l);
   }
 
-  /* ── el documento, en el CAJÓN lateral (norma de la suite) ────────── */
+  /* ── el documento REAL, en el CAJÓN lateral (norma de la suite) ─────
+     Se arma con `documentoHTML()`, la misma función que usa la herramienta de
+     Facturas y la Edge que emite la factura del primer hito. Lo que ve el
+     comprador es el documento tal y como se emitió, con su sociedad, su logo y
+     sus datos bancarios — no una versión parecida mantenida aparte. */
   function abreFactura(f){
     if (!f) return;
-    var fl = f.fields || {};
-    var lineas = f.lineas || fl.lineas || [];
-    var tt = f.totales || {};
-    var banco = [fl.banco_titular, fl.banco_nombre, fl.banco_cuenta, fl.banco_codigo, fl.banco_extra]
-                .filter(Boolean).join(' · ');
+    /* `documentoHTML` da por hecho que `lineas` es un array (las 19 facturas de
+       hoy lo traen). Se normaliza igualmente: un campo que falte en un documento
+       viejo dejaría la pantalla en blanco, y el comprador no tiene a quién
+       preguntar ni forma de saber que el fallo no es suyo. */
+    var campos = Object.assign({}, f.fields || {});
+    if (!Array.isArray(campos.lineas)) campos.lineas = Array.isArray(f.lineas) ? f.lineas : [];
+    var soc = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[campos.sociedad]) || {};
+    var v = documentoVars(soc);
+    var estilo = function(k){
+      return Object.keys(v[k]).filter(function(p){ return v[k][p]; })
+             .map(function(p){ return p + ':' + v[k][p]; }).join(';');
+    };
     suiAbrirCajon({
       titulo: esc(f.numero),
       sub: esc((t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + ' · ' + fecha(f.fecha)),
-      cuerpo:
-        '<div class="doc">' +
-          '<div class="doc-cab"><div><div class="soc">' + esc((f.sociedad || '').replace(/_/g,' ').toUpperCase()) + '</div>' +
-            '<div class="sui-nota" style="margin:2px 0 0">' + esc(f.proyecto || fl.proyecto_nombre || '') +
-              (f.contrato_numero ? ' · ' + esc(f.contrato_numero) : '') + '</div></div>' +
-            '<div><div class="doc-num">' + esc(f.numero) + '</div>' +
-              '<div class="fec">' + esc(fecha(f.fecha)) + '</div></div></div>' +
-          '<dl class="sui-dl" style="margin-top:var(--e4)">' +
-            '<dt>' + esc(t('f_cliente')) + '</dt><dd>' + esc(fl.cliente_nombre || f.cliente || '') +
-              (fl.cliente_documento ? '<br><span class="sui-nota">' + esc(fl.cliente_documento) + '</span>' : '') +
-              (fl.cliente_domicilio ? '<br><span class="sui-nota">' + esc(fl.cliente_domicilio) + '</span>' : '') + '</dd>' +
-          '</dl>' +
-          '<table class="sui-tabla" style="min-width:0"><thead><tr><th>' + esc(t('f_concepto')) + '</th>' +
-            '<th class="num">' + esc(t('f_importe')) + '</th></tr></thead><tbody>' +
-            lineas.map(function(l){
-              return '<tr style="cursor:default"><td>' + esc(l.descripcion || '') + '</td>' +
-                     '<td class="num">' + esc(dinero(num(l.importe), f.moneda)) + '</td></tr>';
-            }).join('') + '</tbody></table>' +
-          (tt.subtotal != null && tt.subtotal !== tt.total
-            ? '<div class="sui-total" style="font-weight:400"><span>' + esc(t('f_subtotal')) + '</span><span>' +
-              esc(dinero(Number(tt.subtotal), f.moneda)) + '</span></div>' : '') +
-          '<div class="sui-total"><span>' + esc(t('total')) + '</span><span>' +
-            esc(dinero(tt.total != null ? Number(tt.total) : Number(f.total), f.moneda)) + '</span></div>' +
-          (banco ? '<div class="sui-bloque" style="margin-top:var(--e4)"><h3>' + esc(t('f_banco')) + '</h3>' +
-                   '<div class="sui-nota" style="margin:0">' + esc(banco) + '</div></div>' : '') +
-        '</div>',
+      cuerpo: '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '">' +
+                '<div class="doc" style="' + estilo('doc') + '">' +
+                  documentoHTML(campos, { numero: f.numero }) +
+                '</div></div></div>',
       pie: '<button type="button" class="sui-btn primario" id="btnImprimir">' + esc(t('imprimir')) + '</button>' +
            '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
       // Cerrar el cajón devuelve la URL a la sección. Si el cierre vino de un
