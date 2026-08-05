@@ -69,6 +69,13 @@
         // `notif_visto_hasta` lo usa la campana de topbar.js para saber qué es
         // nuevo. Se pide aquí y no allí porque esta consulta ya se hace: pedirla
         // dos veces sería dos viajes para la misma fila.
+        /* Un comprador del portal (app_metadata.portal) NO es del equipo: a su
+           casa. Sin esto, la compatibilidad "sin ficha se permite" de abajo le
+           abriría las herramientas internas (vacías por RLS, pero abiertas). */
+        if ((sesion.user.app_metadata || {}).portal) {
+          location.replace('/portal/');
+          return;
+        }
         sb.from('usuarios').select('rol, herramientas, activo, nombre, notif_visto_hasta')
           .eq('user_id', sesion.user.id).maybeSingle()
           .then(function (f) {

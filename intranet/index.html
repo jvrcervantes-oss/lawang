@@ -304,6 +304,12 @@ const HERRAMIENTAS = [
     estado:d => d.unidades == null ? null
       : d.unidades === 0 ? ['Sin inventario cargado', true]
       : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
+  { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/obra/', herr:'obra',
+    para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.',
+    claves:'obra construccion fases fotos avance portal entrega',
+    estado:d => d.obraActivas == null ? null
+      : d.obraActivas === 0 ? ['Sin unidades en obra', true]
+      : [d.obraActivas + ' en obra', false] },
   { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/compradores/', herr:'compradores',
     para:'Ficha del comprador y documentación KYC, con caducidades.',
     claves:'compradores kyc pasaporte fichas clientes caducidad',
@@ -406,7 +412,7 @@ async function contar(sb){
     return error ? null : (count || 0);
   };
   const [contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
-         recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos,
+         recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
          documentos] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
@@ -416,6 +422,7 @@ async function contar(sb){
     n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
     n('unidades'),
     n('unidades', q => q.eq('estado', 'disponible')),
+    n('unidades', q => q.not('obra_fase', 'is', null).neq('obra_fase', 'entregada')),
     n('clients'),
     n('usuarios', q => q.eq('activo', true)),
     n('usuarios', q => q.eq('activo', false)),
@@ -430,7 +437,7 @@ async function contar(sb){
     proyectosConDocs = error ? null : new Set((data || []).map(x => x.proyecto)).size;
   }
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
-           recibis, unidades, unidadesLibres, compradores, usuarios, usuariosInactivos,
+           recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
            documentos, proyectosConDocs };
 }
 

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Obra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=c5144682">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=6fcc047a">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=77e676ef">
+<script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="obra"></script>
+<script src="/contracts/assets/suite.js?v=7e77b0d0"></script>
+<style>
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto); }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+
+  .campo{ margin:0 0 var(--e3); }
+  .campo label{ display:block; font-size:12px; color:var(--texto-2); margin:0 0 4px; }
+  .campo input, .campo select{ width:100%; font:inherit; font-size:14px; padding:9px 11px;
+    border:1px solid var(--linea); border-radius:var(--r-s); background:#FDFCF9; color:inherit; }
+  .campo input:focus, .campo select:focus{ outline:none;
+    border-color:var(--tg,#485B37); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+  .dos{ display:grid; grid-template-columns:1fr 1fr; gap:var(--e3); }
+
+  /* chip de fase en la tabla — misma familia visual que los estados de Unidades */
+  .chip-fase{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px;
+              letter-spacing:.04em; color:#fff; background:#5A6062; }
+  .f-entregada{ background:#104C4F; } .f-activa{ background:#3F5230; }
+  .sin-fase{ color:var(--texto-3); font-size:12.5px; font-style:italic; }
+
+  /* fotos dentro del cajón */
+  .fgrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0 0; }
+  .fitem{ border:1px solid var(--linea); border-radius:var(--r-s); overflow:hidden; background:#FDFCF9; }
+  .fitem img{ width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#E7E1D2; }
+  .fitem .fpie{ padding:7px 9px; font-size:11.5px; color:var(--texto-2); }
+  .fitem .fpie b{ display:block; font-weight:500; color:var(--texto); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fitem .facts{ display:flex; gap:6px; padding:0 9px 8px; }
+  .fitem .facts button{ flex:1; font:inherit; font-size:11px; padding:4px 0; cursor:pointer;
+    border:1px solid var(--linea); border-radius:var(--r-s); background:none; color:var(--texto-2); }
+  .fitem .facts button:hover{ border-color:var(--tg,#485B37); color:var(--tg,#485B37); }
+  .fitem.oculta img{ opacity:.35; }
+  .fitem.oculta .fpie b::after{ content:' · oculta al comprador'; color:#8C5E10; font-weight:400; }
+
+  .subir{ border:1.5px dashed var(--ss,#BEB3A5); border-radius:var(--r-s); padding:16px;
+          text-align:center; font-size:13px; color:var(--texto-2); cursor:pointer; margin-top:var(--e3); }
+  .subir:hover{ border-color:var(--tg,#485B37); color:var(--tg,#485B37); }
+  .subir.ocupado{ opacity:.5; pointer-events:none; }
+
+  .aviso{ font-size:12.5px; line-height:1.5; color:#6A5A3C; background:rgba(190,179,165,.26);
+          border-radius:var(--r-s); padding:9px 11px; margin:var(--e2) 0 0; }
+
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2E3437; color:#fff;
+          padding:11px 20px; border-radius:var(--r-p); font-size:13px; z-index:200; opacity:0;
+          transition:opacity var(--t-medio); pointer-events:none; }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+  <div class="topbar lw-topbar" data-titulo="Obra">
+    <div class="lw-spacer"></div>
+    <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+  </div>
+
+  <div class="sui-stage">
+    <div class="sui-centro">
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="q" placeholder="Buscar código, proyecto o contrato…">
+        <select class="sui-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+        <div class="sui-dens" id="dens"></div>
+      </div>
+      <div class="sui-filtros" id="filtros"></div>
+
+      <div class="sui-tabla-caja">
+        <table class="sui-tabla" id="tabla">
+          <thead><tr>
+            <th data-orden="codigo">Código</th>
+            <th data-orden="proyecto">Proyecto</th>
+            <th data-orden="contrato_numero">Contrato</th>
+            <th data-orden="obra_fase">Fase</th>
+            <th data-orden="obra_fecha_entrega">Entrega est.</th>
+            <th class="num" data-orden="fotos">Fotos</th>
+            <th data-orden="obra_actualizado">Actualizado</th>
+          </tr></thead>
+          <tbody id="filas"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="/contracts/assets/suite-comun.js?v=a3274f34"></script>
+<script>
+/* ============================================================================
+   Obra — fase, fecha de entrega y fotos por unidad
+   ----------------------------------------------------------------------------
+   Es la trastienda del portal del comprador: lo que se marca aquí es
+   EXACTAMENTE lo que el comprador ve en /portal/. Por eso cada foto tiene un
+   toggle de visibilidad — el equipo puede guardar una foto de un desperfecto
+   para el expediente sin que salga en el portal.
+
+   El guardado de fase/fecha va por la RPC `obra_actualizar`, no por UPDATE de
+   `unidades`: quien lleva la obra no tiene por qué poder tocar los precios.
+   ========================================================================== */
+const $ = s => document.querySelector(s);
+
+let SB=null, UNIDADES=[], FASES=[], FOTOS={}, SEL=null, FILTRO='con_obra', PROY='', CARGANDO=true, FALLO=null;
+const ORDEN = { campo:'codigo', dir:'asc' };
+
+const nombreFase = c => { const f = FASES.find(x => x.clave === c); return f ? f.es : (c || ''); };
+const fmtFecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '';
+
+const valorDe = (u, campo) => {
+  if(campo === 'fotos') return (FOTOS[u.id] || []).length;
+  if(campo === 'obra_fase') return u.obra_fase ? FASES.findIndex(f => f.clave === u.obra_fase) : -1;
+  return u[campo];
+};
+
+/* ---------- carga ---------- */
+async function cargar(){
+  CARGANDO = true; FALLO = null; pintar();
+  const [u, f, ff] = await Promise.all([
+    // unidades_estado trae el contrato vinculado sin joins a mano
+    SB.from('unidades_estado').select('id, codigo, proyecto, modelo, estado, contrato_id, contrato_numero, comprador_nombre, obra_fase, obra_fecha_entrega, obra_actualizado').order('proyecto').order('codigo'),
+    SB.from('obra_fases').select('*').order('orden'),
+    SB.from('obra_fotos').select('id, unidad_id, path, titulo, tomada_en, visible').order('tomada_en', { ascending:false }),
+  ]);
+  CARGANDO = false;
+  if(u.error){ FALLO = u.error.message; pintar(); return; }
+  UNIDADES = u.data || [];
+  FASES = f.error ? [] : (f.data || []);
+  FOTOS = {};
+  (ff.error ? [] : (ff.data || [])).forEach(x => { (FOTOS[x.unidad_id] = FOTOS[x.unidad_id] || []).push(x); });
+  const proyectos = [...new Set(UNIDADES.map(x => x.proyecto).filter(Boolean))].sort();
+  $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
+    proyectos.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
+  pintar();
+}
+
+/* ---------- filtros y tabla ---------- */
+const FILTROS = [
+  ['con_obra','En obra'], ['con_contrato','Con contrato'], ['todas','Todas'],
+];
+function visibles(){
+  const q = ($('#q').value || '').toLowerCase();
+  return UNIDADES.filter(u => {
+    if(PROY && u.proyecto !== PROY) return false;
+    if(FILTRO === 'con_obra' && !u.obra_fase) return false;
+    if(FILTRO === 'con_contrato' && !u.contrato_id) return false;
+    if(q && !((u.codigo||'') + ' ' + (u.proyecto||'') + ' ' + (u.contrato_numero||'') + ' ' + (u.comprador_nombre||'')).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function pintar(){
+  $('#filtros').innerHTML = FILTROS.map(([v,l]) =>
+    `<button class="sui-chip ${FILTRO===v?'on':''}" data-f="${v}">${l}</button>`).join('');
+  pintarTabla();
+}
+function pintarTabla(){
+  const filas = $('#filas');
+  if(CARGANDO){ filas.innerHTML = '<tr><td colspan="7" class="sui-vacio">Cargando…</td></tr>'; return; }
+  if(FALLO){ filas.innerHTML = `<tr><td colspan="7" class="sui-vacio">No se pudo cargar: ${esc(FALLO)}</td></tr>`; return; }
+  const vs = suiOrdenar(visibles(), ORDEN, valorDe);
+  if(!vs.length){ filas.innerHTML = '<tr><td colspan="7" class="sui-vacio">Nada que enseñar con este filtro.</td></tr>'; return; }
+  filas.innerHTML = vs.map(u => {
+    const nf = (FOTOS[u.id] || []).length;
+    const fase = u.obra_fase
+      ? `<span class="chip-fase ${u.obra_fase === 'entregada' ? 'f-entregada' : 'f-activa'}">${esc(nombreFase(u.obra_fase))}</span>`
+      : '<span class="sin-fase">sin empezar</span>';
+    return `<tr data-id="${esc(u.id)}" class="${SEL===u.id?'on':''}">
+      <td><b>${esc(u.codigo)}</b></td>
+      <td>${esc(u.proyecto || '')}</td>
+      <td>${u.contrato_numero ? esc(u.contrato_numero) + (u.comprador_nombre ? ' · ' + esc(u.comprador_nombre) : '') : '<span class="sin-fase">—</span>'}</td>
+      <td>${fase}</td>
+      <td>${esc(fmtFecha(u.obra_fecha_entrega))}</td>
+      <td class="num">${nf || ''}</td>
+      <td>${esc(fmtFecha(u.obra_actualizado))}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---------- cajón ---------- */
+function abrir(id){
+  const u = UNIDADES.find(x => x.id === id); if(!u) return;
+  SEL = id; pintarTabla();
+  const fotos = FOTOS[u.id] || [];
+  suiAbrirCajon({
+    titulo: u.codigo + (u.proyecto ? ' · ' + u.proyecto : ''),
+    sub: u.contrato_numero
+      ? 'Contrato ' + u.contrato_numero + (u.comprador_nombre ? ' — ' + u.comprador_nombre : '') + '. Lo que marques aquí lo ve el comprador en su portal.'
+      : 'Sin contrato vinculado: aún no lo ve ningún comprador.',
+    cuerpo: `
+      <div class="dos">
+        <div class="campo"><label>Fase actual</label>
+          <select id="o-fase">
+            <option value="">— sin empezar —</option>
+            ${FASES.map(f => `<option value="${esc(f.clave)}" ${u.obra_fase===f.clave?'selected':''}>${esc(f.orden)}. ${esc(f.es)}</option>`).join('')}
+          </select></div>
+        <div class="campo"><label>Entrega estimada</label>
+          <input type="date" id="o-fecha" value="${esc(u.obra_fecha_entrega || '')}"></div>
+      </div>
+      <div class="campo"><label>Fotos (${fotos.length})</label>
+        <div class="fgrid" id="fgrid">${fotos.map(f => fotoHTML(f)).join('')}</div>
+        <div class="subir" id="btnSubir">＋ Subir fotos — se optimizan solas a tamaño web</div>
+        <input type="file" id="inFotos" accept="image/*" multiple hidden>
+      </div>
+      ${u.contrato_numero ? '' : '<p class="aviso">Puedes documentar la obra igualmente: cuando la unidad se vincule a un contrato, el comprador verá el histórico completo.</p>'}`,
+    pie: `<button class="sui-btn primario" id="btnGuardar">Guardar</button>
+          <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+    onCerrar: () => { SEL = null; pintarTabla(); },
+  });
+
+  cargarMiniaturas(u.id);
+  $('#btnGuardar').addEventListener('click', () => guardar(u));
+  $('#btnCerrar').addEventListener('click', suiCerrarCajon);
+  $('#btnSubir').addEventListener('click', () => $('#inFotos').click());
+  $('#inFotos').addEventListener('change', e => subir(u, [...e.target.files]));
+  $('#fgrid').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if(!b) return;
+    accionFoto(u, b.dataset.act, b.dataset.foto);
+  });
+}
+
+function fotoHTML(f){
+  return `<div class="fitem ${f.visible ? '' : 'oculta'}" data-fid="${esc(f.id)}">
+    <img data-path="${esc(f.path)}" alt="">
+    <div class="fpie"><b>${esc(f.titulo || 'Sin título')}</b>${esc(fmtFecha(f.tomada_en))}</div>
+    <div class="facts">
+      <button data-act="titulo" data-foto="${esc(f.id)}">Título</button>
+      <button data-act="visible" data-foto="${esc(f.id)}">${f.visible ? 'Ocultar' : 'Mostrar'}</button>
+      <button data-act="borrar" data-foto="${esc(f.id)}">Borrar</button>
+    </div>
+  </div>`;
+}
+
+function cargarMiniaturas(uid){
+  document.querySelectorAll('#fgrid img[data-path]').forEach(img => {
+    const p = img.getAttribute('data-path'); img.removeAttribute('data-path');
+    SB.storage.from('obra').createSignedUrl(p, 1800).then(r => {
+      if(r.data && r.data.signedUrl) img.src = r.data.signedUrl;
+    });
+  });
+}
+
+/* ---------- acciones ---------- */
+async function guardar(u){
+  const b = $('#btnGuardar'); b.disabled = true;
+  const { error } = await SB.rpc('obra_actualizar', {
+    p_unidad: u.id,
+    p_fase: $('#o-fase').value || null,
+    p_fecha: $('#o-fecha').value || null,
+  });
+  b.disabled = false;
+  if(error){ toast('No se pudo guardar: ' + error.message); return; }
+  toast('Guardado');
+  suiCerrarCajon();
+  await cargar();
+}
+
+/* Optimización en cliente: 1600px de lado mayor, JPEG q.82 — la regla del
+   estudio para imagen web. Un DJI de 20MB no entra al bucket (límite 8MB) ni
+   hace falta: nadie amplía una foto de obra en el móvil. */
+function optimiza(file){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const M = 1600, r = Math.min(1, M / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => b ? res(b) : rej(new Error('no se pudo convertir')), 'image/jpeg', .82);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => rej(new Error('imagen ilegible'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function subir(u, files){
+  if(!files.length) return;
+  const caja = $('#btnSubir'); caja.classList.add('ocupado');
+  let ok = 0;
+  for(const f of files){
+    try{
+      const blob = await optimiza(f);
+      const nombre = Date.now() + '_' + f.name.replace(/[^a-z0-9._-]/gi, '_').replace(/\.[^.]+$/, '') + '.jpg';
+      const path = u.id + '/' + nombre;
+      const up = await SB.storage.from('obra').upload(path, blob, { contentType:'image/jpeg' });
+      if(up.error) throw up.error;
+      const ins = await SB.from('obra_fotos').insert({ unidad_id: u.id, path }).select('id');
+      if(ins.error) throw ins.error;
+      if(!ins.data || !ins.data.length) throw new Error('sin permiso para la herramienta Obra');
+      ok++;
+    }catch(e){ toast('«' + f.name + '»: ' + (e.message || e)); }
+  }
+  caja.classList.remove('ocupado');
+  if(ok) toast(ok + (ok === 1 ? ' foto subida' : ' fotos subidas'));
+  await cargar();
+  abrir(u.id);   // reabre con la lista fresca
+}
+
+async function accionFoto(u, act, fid){
+  const f = (FOTOS[u.id] || []).find(x => x.id === fid); if(!f) return;
+  if(act === 'visible'){
+    const { error } = await SB.from('obra_fotos').update({ visible: !f.visible }).eq('id', fid);
+    if(error){ toast(error.message); return; }
+  }
+  if(act === 'titulo'){
+    const t = prompt('Título de la foto (lo ve el comprador):', f.titulo || '');
+    if(t === null) return;
+    const { error } = await SB.from('obra_fotos').update({ titulo: t.trim() || null }).eq('id', fid);
+    if(error){ toast(error.message); return; }
+  }
+  if(act === 'borrar'){
+    if(!confirm('¿Borrar esta foto? Se quita también del portal del comprador.')) return;
+    const { error } = await SB.from('obra_fotos').delete().eq('id', fid);
+    if(error){ toast(error.message); return; }
+    await SB.storage.from('obra').remove([f.path]);   // si falla queda huérfano en el bucket, no en el portal
+  }
+  await cargar();
+  abrir(u.id);
+}
+
+/* ---------- eventos ---------- */
+$('#q').addEventListener('input', pintarTabla);
+$('#fProyecto').addEventListener('change', e => { PROY = e.target.value; pintar(); });
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if(!b) return;
+  FILTRO = b.dataset.f; pintar();
+});
+$('#filas').addEventListener('click', e => {
+  const tr = e.target.closest('[data-id]'); if(!tr) return;
+  abrir(tr.dataset.id);
+});
+
+suiMontarCajon();
+suiMontarDensidad($('#dens'));
+suiOrdenable($('#tabla'), ORDEN, valorDe, pintarTabla);
+
+window.LW_AUTH.then(async ({ sb, session }) => {
+  SB = sb;
+  const who = $('#who'); if(who && session) who.textContent = session.user.email;
+  $('#btnLogout').onclick = async () => { await SB.auth.signOut(); location.replace('/contracts/login.html'); };
+  await cargar();
+});
+</script>
+</body>
+</html>

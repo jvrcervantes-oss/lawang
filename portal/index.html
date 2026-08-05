@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lawang Estate — Área de clientes</title>
+<link rel="icon" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  /* Paleta de marca Lawang (Brand Identity Guide) */
+  :root{
+    --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+    --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6;
+    --ok:#3E6B4A; --warn:#8A6D3B; --linea:#E4DCCB;
+    --serif:'Cormorant Garamond',Georgia,serif; --sans:'Jost',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box; margin:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--rl); color:var(--va); font-family:var(--sans); font-weight:300;
+       font-size:16px; line-height:1.55; min-height:100vh}
+  a{color:var(--tg)}
+  button{font-family:var(--sans); cursor:pointer}
+  [hidden]{display:none!important}
+
+  .wrap{max-width:760px; margin:0 auto; padding:0 18px 72px}
+
+  /* cabecera */
+  header{padding:26px 0 18px; display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .brand{display:flex; flex-direction:column; gap:2px}
+  .brand .nom{font-family:var(--serif); font-size:24px; letter-spacing:.14em; color:var(--tg)}
+  .brand .sub{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--sc)}
+  .hbtns{display:flex; gap:8px; align-items:center}
+  .hbtn{background:none; border:1px solid var(--ss); color:var(--va); border-radius:999px;
+        padding:6px 14px; font-size:12px; letter-spacing:.08em}
+  .hbtn:hover{border-color:var(--tg); color:var(--tg)}
+
+  h1{font-family:var(--serif); font-weight:500; font-size:30px; color:var(--tg); margin:8px 0 4px}
+  .saludo{color:var(--sc); font-size:14px; letter-spacing:.06em; margin-bottom:26px}
+
+  /* secciones */
+  section{margin-bottom:38px}
+  .stit{font-size:12px; letter-spacing:.30em; text-transform:uppercase; color:var(--sc);
+        border-bottom:1px solid var(--linea); padding-bottom:8px; margin-bottom:16px}
+
+  .card{background:#FFFDF8; border:1px solid var(--linea); border-radius:0; padding:20px; margin-bottom:14px}
+  .card h3{font-family:var(--serif); font-weight:500; font-size:21px; color:var(--dl)}
+  .meta{font-size:13px; color:var(--sc); margin:2px 0 12px}
+  .kv{display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid var(--linea); font-size:14px}
+  .kv b{font-weight:500}
+  .pill{display:inline-block; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+        padding:3px 10px; border-radius:999px; border:1px solid}
+  .pill.ok{color:var(--ok); border-color:var(--ok)}
+  .pill.wip{color:var(--warn); border-color:var(--warn)}
+
+  /* barra de progreso de cobro */
+  .prog{margin:14px 0 4px}
+  .prog .bar{height:6px; background:var(--linea); overflow:hidden}
+  .prog .fill{height:100%; background:var(--tg); width:0; transition:width .6s ease}
+  .prog .leg{display:flex; justify-content:space-between; font-size:12px; color:var(--sc); margin-top:6px}
+
+  /* hitos */
+  .hitos{margin-top:12px}
+  .hito{display:flex; gap:12px; align-items:baseline; padding:8px 0; border-top:1px dashed var(--linea); font-size:14px}
+  .hito .dot{width:10px; height:10px; border-radius:50%; border:1.5px solid var(--ss); flex:none; align-self:center}
+  .hito.pagado .dot{background:var(--ok); border-color:var(--ok)}
+  .hito.parcial .dot{background:linear-gradient(90deg, var(--ok) 50%, transparent 50%); border-color:var(--ok)}
+  .hito .desc{flex:1}
+  .hito .imp{font-weight:500; white-space:nowrap}
+  .hito .est{font-size:11px; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap}
+  .hito.pagado .est{color:var(--ok)}
+  .hito.parcial .est{color:var(--warn)}
+  .hito.pendiente .est{color:var(--ss)}
+
+  .btn{background:var(--tg); color:var(--rl); border:0; padding:11px 20px; font-size:13px;
+       letter-spacing:.14em; text-transform:uppercase; margin-top:14px}
+  .btn:hover{background:var(--dl)}
+  .btn.sec{background:none; color:var(--tg); border:1px solid var(--tg)}
+  .btn[disabled]{opacity:.5; cursor:default}
+
+  /* tabla facturas */
+  .frow{display:flex; align-items:center; gap:12px; padding:13px 0; border-top:1px solid var(--linea); font-size:14px}
+  .frow:first-child{border-top:0}
+  .frow .fnum{font-weight:500; min-width:86px}
+  .frow .ftip{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--sc); min-width:64px}
+  .frow .ffec{color:var(--sc); font-size:13px}
+  .frow .fimp{margin-left:auto; font-weight:500; white-space:nowrap}
+  .frow .ver{background:none; border:1px solid var(--ss); padding:4px 12px; font-size:12px}
+  .frow .ver:hover{border-color:var(--tg); color:var(--tg)}
+
+  /* obra */
+  .fases{display:flex; flex-wrap:wrap; gap:6px; margin:12px 0}
+  .fase{font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px;
+        border:1px solid var(--linea); color:var(--ss)}
+  .fase.hecha{border-color:var(--sc); color:var(--sc)}
+  .fase.actual{background:var(--tg); border-color:var(--tg); color:var(--rl)}
+  .fotos{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px; margin-top:12px}
+  .fotos figure{margin:0}
+  .fotos img{width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:var(--linea)}
+  .fotos figcaption{font-size:11px; color:var(--sc); padding-top:4px}
+
+  .vacio{color:var(--sc); font-size:14px; font-style:italic}
+
+  /* login */
+  .login{max-width:400px; margin:10vh auto 0; text-align:center; padding:0 18px}
+  .login .nom{font-family:var(--serif); font-size:34px; letter-spacing:.14em; color:var(--tg)}
+  .login .sub{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--sc); margin-bottom:40px}
+  .login p{font-size:14px; margin-bottom:18px}
+  .login input{width:100%; padding:13px 14px; border:1px solid var(--ss); background:#FFFDF8;
+               font-family:var(--sans); font-size:15px; text-align:center; letter-spacing:.04em}
+  .login input:focus{outline:none; border-color:var(--tg)}
+  .login .btn{width:100%; margin-top:12px}
+  .avisologin{margin-top:16px; font-size:13px; min-height:20px}
+  .avisologin.err{color:#8B3A2E}
+  .avisologin.ok{color:var(--ok)}
+
+  .cargando{text-align:center; padding:16vh 0; color:var(--sc); letter-spacing:.2em; font-size:12px; text-transform:uppercase}
+
+  /* visor de factura (modal + impresión) */
+  .fmodal{position:fixed; inset:0; background:rgba(46,52,55,.55); display:flex;
+          align-items:flex-start; justify-content:center; padding:20px; overflow:auto; z-index:50}
+  .fdoc-caja{background:#fff; max-width:640px; width:100%; padding:0}
+  .fdoc-barra{display:flex; justify-content:flex-end; gap:8px; padding:10px; border-bottom:1px solid var(--linea)}
+  .fdoc{padding:34px 38px; color:#20262a}
+  .fdoc .cab{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:26px}
+  .fdoc .soc{font-family:var(--serif); font-size:20px; color:var(--tg); letter-spacing:.06em}
+  .fdoc .tipo{font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--sc)}
+  .fdoc .num{font-size:20px; font-weight:500; text-align:right}
+  .fdoc .fec{font-size:13px; color:var(--sc); text-align:right}
+  .fdoc .bloque{margin:14px 0; font-size:13.5px}
+  .fdoc .btit{font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--sc); margin-bottom:4px}
+  .fdoc table{width:100%; border-collapse:collapse; margin:18px 0 8px; font-size:13.5px}
+  .fdoc th{text-align:left; font-weight:500; font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+           color:var(--rl); background:var(--tg); padding:8px 10px}
+  .fdoc th:last-child, .fdoc td:last-child{text-align:right}
+  .fdoc td{padding:9px 10px; border-bottom:1px solid var(--linea)}
+  .fdoc .tot{display:flex; justify-content:flex-end; gap:26px; font-size:14px; padding:6px 10px}
+  .fdoc .tot.grande{font-size:17px; font-weight:500; color:var(--tg)}
+  @media print{
+    body.imprimiendo > :not(.fmodal){display:none!important}
+    body.imprimiendo .fmodal{position:static; background:none; padding:0}
+    body.imprimiendo .fdoc-barra{display:none}
+    body.imprimiendo .fdoc-caja{max-width:none; box-shadow:none}
+  }
+  @page{size:A4; margin:16mm}
+</style>
+</head>
+<body>
+
+<div id="vCarga" class="cargando">Lawang Estate</div>
+
+<!-- ── login ─────────────────────────────────────────────────────────── -->
+<div id="vLogin" class="login" hidden>
+  <div class="nom">LAWANG</div>
+  <div class="sub">Estate · Área de clientes</div>
+  <p data-t="login_intro">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.</p>
+  <form id="fLogin">
+    <input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com">
+    <button class="btn" type="submit" data-t="login_btn">Enviarme el enlace</button>
+  </form>
+  <div id="avisoLogin" class="avisologin"></div>
+</div>
+
+<!-- ── app ───────────────────────────────────────────────────────────── -->
+<div id="vApp" class="wrap" hidden>
+  <header>
+    <div class="brand">
+      <div class="nom">LAWANG</div>
+      <div class="sub" data-t="area">Área de clientes</div>
+    </div>
+    <div class="hbtns">
+      <button class="hbtn" id="btnLang">EN</button>
+      <button class="hbtn" id="btnSalir" data-t="salir">Salir</button>
+    </div>
+  </header>
+
+  <h1 id="saludoNombre"></h1>
+  <div class="saludo" data-t="saludo_sub">Estado de tu operación con Lawang Estate</div>
+
+  <section id="secContratos">
+    <div class="stit" data-t="s_contratos">Contratos</div>
+    <div id="listaContratos"></div>
+  </section>
+
+  <section id="secFacturas">
+    <div class="stit" data-t="s_facturas">Facturas y recibos</div>
+    <div class="card" id="listaFacturas"></div>
+  </section>
+
+  <section id="secObra">
+    <div class="stit" data-t="s_obra">Avance de obra</div>
+    <div id="listaObra"></div>
+  </section>
+
+  <footer style="font-size:12px;color:var(--sc);text-align:center;margin-top:40px">
+    <span data-t="pie">¿Dudas? Escríbenos a</span> <a href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
+  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS y las RPC
+  var sb = supabase.createClient(URL_SB, KEY_SB);
+
+  /* ── i18n ─────────────────────────────────────────────────────────── */
+  var T = {
+    es:{ login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.',
+         login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (también la carpeta de spam).',
+         sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com.',
+         area:'Área de clientes', salir:'Salir', saludo_sub:'Estado de tu operación con Lawang Estate',
+         s_contratos:'Contratos', s_facturas:'Facturas y recibos', s_obra:'Avance de obra',
+         hola:'Hola', firmado:'Firmado', pendiente_firma:'Pendiente de firma',
+         precio:'Precio', parcela:'Unidad', fecha_firma:'Fecha de firma',
+         pagado:'pagado', pendiente:'pendiente', parcial:'parcial', de:'de',
+         plan_pagos:'Plan de pagos', descargar:'Descargar contrato firmado',
+         ver:'Ver', imprimir:'Imprimir / PDF', cerrar:'Cerrar',
+         factura:'Factura', recibi:'Recibí', proforma:'Proforma',
+         f_cliente:'Cliente', f_proyecto:'Proyecto', f_concepto:'Concepto', f_importe:'Importe',
+         f_subtotal:'Subtotal', f_total:'Total', f_banco:'Forma de pago',
+         sin_facturas:'Aún no hay documentos emitidos.', sin_obra:'Aún no hay información de obra para tus unidades.',
+         sin_contratos:'No hay contratos vinculados a tu acceso. Escríbenos y lo revisamos.',
+         entrega_est:'Entrega estimada', actualizado:'Actualizado', pie:'¿Dudas? Escríbenos a',
+         err_carga:'No se pudo cargar tu información. Recarga la página o inténtalo más tarde.' },
+    en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link — no passwords.',
+         login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
+         sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com.',
+         area:'Client area', salir:'Sign out', saludo_sub:'Status of your operation with Lawang Estate',
+         s_contratos:'Contracts', s_facturas:'Invoices & receipts', s_obra:'Construction progress',
+         hola:'Hello', firmado:'Signed', pendiente_firma:'Awaiting signature',
+         precio:'Price', parcela:'Unit', fecha_firma:'Signing date',
+         pagado:'paid', pendiente:'pending', parcial:'partial', de:'of',
+         plan_pagos:'Payment plan', descargar:'Download signed contract',
+         ver:'View', imprimir:'Print / PDF', cerrar:'Close',
+         factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
+         f_cliente:'Client', f_proyecto:'Project', f_concepto:'Description', f_importe:'Amount',
+         f_subtotal:'Subtotal', f_total:'Total', f_banco:'Payment details',
+         sin_facturas:'No documents issued yet.', sin_obra:'No construction updates for your units yet.',
+         sin_contratos:'No contracts linked to your access. Write to us and we will check it.',
+         entrega_est:'Estimated handover', actualizado:'Updated', pie:'Questions? Write to',
+         err_carga:'Could not load your information. Reload the page or try again later.' }
+  };
+  var LANG = localStorage.getItem('lw_portal_lang') ||
+             ((navigator.language || 'es').slice(0, 2) === 'en' ? 'en' : 'es');
+  function t(k){ return (T[LANG] && T[LANG][k]) || T.es[k] || k; }
+  function aplicaLang(){
+    document.documentElement.lang = LANG;
+    document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent = t(el.getAttribute('data-t')); });
+    document.getElementById('btnLang').textContent = LANG === 'es' ? 'EN' : 'ES';
+  }
+
+  /* ── utilidades ───────────────────────────────────────────────────── */
+  function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  // Importes del estudio: "69.000" / "5000" / "20.000,50" (formato europeo)
+  function num(v){
+    if (v == null || v === '') return NaN;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(s); return isNaN(n) ? NaN : n;
+  }
+  function dinero(n, moneda){
+    if (n == null || isNaN(n)) return '—';
+    try { return new Intl.NumberFormat(LANG === 'es' ? 'es-ES' : 'en-GB',
+            { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0 }).format(n); }
+    catch (e) { return n.toLocaleString() + ' ' + (moneda || ''); }
+  }
+  function fecha(f){
+    if (!f) return '';
+    var d = new Date(f); if (isNaN(d)) return esc(f);
+    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  var DATOS = null;
+
+  /* ── arranque ─────────────────────────────────────────────────────── */
+  function muestra(vista){
+    ['vCarga','vLogin','vApp'].forEach(function(id){ document.getElementById(id).hidden = (id !== vista); });
+  }
+  aplicaLang();
+
+  sb.auth.getSession().then(function(r){
+    var ses = r && r.data && r.data.session;
+    if (!ses) { muestra('vLogin'); return; }
+    var am = (ses.user && ses.user.app_metadata) || {};
+    if (!am.portal) {
+      // Un usuario del equipo que aterrice aquí va a su casa; cualquier otro, fuera.
+      location.replace('/intranet/'); return;
+    }
+    cargar();
+  }).catch(function(){ muestra('vLogin'); });
+
+  // El enlace mágico vuelve con la sesión en el hash: supabase-js la procesa y avisa aquí.
+  sb.auth.onAuthStateChange(function(ev, ses){
+    if (ev === 'SIGNED_IN' && ses && ses.user && (ses.user.app_metadata || {}).portal &&
+        document.getElementById('vApp').hidden) { cargar(); }
+  });
+
+  /* ── login por enlace mágico ──────────────────────────────────────── */
+  document.getElementById('fLogin').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('inEmail').value.trim().toLowerCase();
+    var aviso = document.getElementById('avisoLogin');
+    aviso.className = 'avisologin'; aviso.textContent = '…';
+    sb.auth.signInWithOtp({
+      email: email,
+      options: { shouldCreateUser: false,     // solo entra quien la promotora invitó
+                 emailRedirectTo: location.origin + '/portal/' }
+    }).then(function(r){
+      if (r.error) { aviso.className = 'avisologin err'; aviso.textContent = t('sin_acceso'); }
+      else { aviso.className = 'avisologin ok'; aviso.textContent = t('enviado'); }
+    });
+  });
+
+  document.getElementById('btnSalir').addEventListener('click', function(){
+    sb.auth.signOut().then(function(){ location.reload(); });
+  });
+  document.getElementById('btnLang').addEventListener('click', function(){
+    LANG = LANG === 'es' ? 'en' : 'es';
+    localStorage.setItem('lw_portal_lang', LANG);
+    aplicaLang(); if (DATOS) pinta();
+  });
+
+  /* ── datos ────────────────────────────────────────────────────────── */
+  function cargar(){
+    muestra('vCarga');
+    sb.rpc('portal_situacion').then(function(r){
+      if (r.error) {
+        muestra('vLogin');
+        var aviso = document.getElementById('avisoLogin');
+        aviso.className = 'avisologin err'; aviso.textContent = t('err_carga');
+        return;
+      }
+      DATOS = r.data || {};
+      muestra('vApp'); pinta();
+    });
+  }
+
+  /* ── reparto de cobro entre hitos ─────────────────────────────────────
+     "Pagado" = las facturas/recibos no anulados cubren el acumulado del hito
+     (mismo criterio que las herramientas internas). El reparto es secuencial:
+     lo cobrado va tapando hitos por orden. */
+  function estadosHitos(hitos, cobrado, precio){
+    var resto = cobrado || 0;
+    return (hitos || []).map(function(h){
+      var m = num(h.monto);
+      if (isNaN(m)) { var p = num(h.pct); m = (!isNaN(p) && precio) ? precio * p / 100 : NaN; }
+      var est, cubierto = 0;
+      if (isNaN(m)) { est = 'pendiente'; }
+      else if (resto >= m - 0.005) { est = 'pagado'; cubierto = m; resto -= m; }
+      else if (resto > 0.005) { est = 'parcial'; cubierto = resto; resto = 0; }
+      else { est = 'pendiente'; }
+      return { hito:h, monto:m, estado:est, cubierto:cubierto };
+    });
+  }
+
+  /* ── pintado ──────────────────────────────────────────────────────── */
+  function pinta(){
+    var d = DATOS;
+    document.getElementById('saludoNombre').textContent =
+      t('hola') + (d.nombre ? ', ' + String(d.nombre).split(' ')[0] : '');
+
+    /* contratos */
+    var cont = document.getElementById('listaContratos');
+    if (!(d.contratos || []).length) {
+      cont.innerHTML = '<div class="vacio">' + esc(t('sin_contratos')) + '</div>';
+    } else {
+      cont.innerHTML = d.contratos.map(function(c, i){
+        var precio = (c.precio != null) ? Number(c.precio) : num(c.precio_txt);
+        var cobrado = Number(c.cobrado) || 0;
+        var pct = (precio > 0) ? Math.min(100, Math.round(cobrado / precio * 100)) : null;
+        var hs = estadosHitos(c.hitos, cobrado, precio);
+        var htmlHitos = hs.length ? '<div class="hitos"><div class="btit" style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--sc)">' + esc(t('plan_pagos')) + '</div>' +
+          hs.map(function(x){
+            var descr = x.hito[LANG] || x.hito.es || x.hito.en || '';
+            return '<div class="hito ' + x.estado + '">' +
+              '<span class="dot"></span>' +
+              '<span class="desc">' + esc(descr || (x.hito.timing || '')) +
+                (descr && x.hito.timing ? ' <span style="color:var(--sc)">· ' + esc(x.hito.timing) + '</span>' : '') + '</span>' +
+              '<span class="imp">' + (isNaN(x.monto) ? '—' : esc(dinero(x.monto, c.moneda))) + '</span>' +
+              '<span class="est">' + esc(t(x.estado)) + '</span></div>';
+          }).join('') + '</div>' : '';
+        return '<div class="card">' +
+          '<h3>' + esc(c.numero) + (c.proyecto ? ' — ' + esc(c.proyecto) : '') + '</h3>' +
+          '<div class="meta">' + (c.parcela ? esc(t('parcela')) + ': ' + esc(c.parcela) + ' · ' : '') +
+            '<span class="pill ' + (c.firmado ? 'ok' : 'wip') + '">' + esc(c.firmado ? t('firmado') : t('pendiente_firma')) + '</span></div>' +
+          '<div class="kv"><span>' + esc(t('precio')) + '</span><b>' +
+            (precio ? esc(dinero(precio, c.moneda)) : esc(c.precio_txt || '—')) + '</b></div>' +
+          (c.fecha_firma ? '<div class="kv"><span>' + esc(t('fecha_firma')) + '</span><b>' + esc(fecha(c.fecha_firma)) + '</b></div>' : '') +
+          (precio > 0 ? '<div class="prog"><div class="bar"><div class="fill" style="width:' + pct + '%"></div></div>' +
+            '<div class="leg"><span>' + esc(dinero(cobrado, c.moneda)) + ' ' + esc(t('pagado')) + '</span>' +
+            '<span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(precio, c.moneda)) + '</span></div></div>' : '') +
+          htmlHitos +
+          (c.pdf ? '<button class="btn sec" data-pdf="' + esc(c.pdf) + '">' + esc(t('descargar')) + '</button>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    /* facturas */
+    var lf = document.getElementById('listaFacturas');
+    if (!(d.facturas || []).length) {
+      lf.innerHTML = '<div class="vacio">' + esc(t('sin_facturas')) + '</div>';
+    } else {
+      lf.innerHTML = d.facturas.map(function(f, i){
+        return '<div class="frow">' +
+          '<span class="fnum">' + esc(f.numero) + '</span>' +
+          '<span class="ftip">' + esc(t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + '</span>' +
+          '<span class="ffec">' + esc(fecha(f.fecha)) + '</span>' +
+          '<span class="fimp">' + esc(dinero(Number(f.total), f.moneda)) + '</span>' +
+          '<button class="ver" data-fac="' + i + '">' + esc(t('ver')) + '</button></div>';
+      }).join('');
+    }
+
+    /* obra */
+    var lo = document.getElementById('listaObra');
+    var fases = d.fases || [];
+    if (!(d.obra || []).length) {
+      lo.innerHTML = '<div class="vacio">' + esc(t('sin_obra')) + '</div>';
+    } else {
+      lo.innerHTML = d.obra.map(function(u){
+        var idxActual = fases.findIndex(function(f){ return f.clave === u.fase; });
+        var htmlFases = fases.length ? '<div class="fases">' + fases.map(function(f, i){
+          var cls = i < idxActual ? 'hecha' : (i === idxActual ? 'actual' : '');
+          return '<span class="fase ' + cls + '">' + esc(f[LANG] || f.es) + '</span>';
+        }).join('') + '</div>' : '';
+        var htmlFotos = (u.fotos || []).length ? '<div class="fotos">' + u.fotos.map(function(ft){
+          return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="">' +
+                 '<figcaption>' + esc(ft.titulo || '') + (ft.fecha ? ' · ' + esc(fecha(ft.fecha)) : '') + '</figcaption></figure>';
+        }).join('') + '</div>' : '';
+        return '<div class="card">' +
+          '<h3>' + esc(u.unidad) + (u.proyecto ? ' — ' + esc(u.proyecto) : '') + '</h3>' +
+          '<div class="meta">' + esc(u.contrato_numero || '') + '</div>' +
+          htmlFases +
+          (u.fecha_entrega ? '<div class="kv"><span>' + esc(t('entrega_est')) + '</span><b>' + esc(fecha(u.fecha_entrega)) + '</b></div>' : '') +
+          (u.actualizado ? '<div class="kv"><span>' + esc(t('actualizado')) + '</span><b>' + esc(fecha(u.actualizado)) + '</b></div>' : '') +
+          htmlFotos +
+        '</div>';
+      }).join('');
+      cargaFotos();
+    }
+  }
+
+  /* ── ficheros privados: URL firmada de corta vida ─────────────────── */
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-pdf]');
+    if (b) {
+      b.disabled = true;
+      sb.storage.from('contratos-firmados').createSignedUrl(b.getAttribute('data-pdf'), 600)
+        .then(function(r){
+          b.disabled = false;
+          if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank');
+        });
+    }
+    var v = e.target.closest('[data-fac]');
+    if (v) abreFactura(DATOS.facturas[Number(v.getAttribute('data-fac'))]);
+  });
+
+  function cargaFotos(){
+    document.querySelectorAll('img[data-foto]').forEach(function(img){
+      var p = img.getAttribute('data-foto'); img.removeAttribute('data-foto');
+      sb.storage.from('obra').createSignedUrl(p, 3600).then(function(r){
+        if (r.data && r.data.signedUrl) img.src = r.data.signedUrl;
+      });
+    });
+  }
+
+  /* ── visor de factura (documento imprimible) ──────────────────────── */
+  function abreFactura(f){
+    if (!f) return;
+    var fl = f.fields || {};
+    var lineas = f.lineas || fl.lineas || [];
+    var tot = f.totales || {};
+    var banco = [fl.banco_titular, fl.banco_nombre, fl.banco_cuenta, fl.banco_codigo, fl.banco_extra]
+                .filter(Boolean).join(' · ');
+    var modal = document.createElement('div');
+    modal.className = 'fmodal';
+    modal.innerHTML = '<div class="fdoc-caja">' +
+      '<div class="fdoc-barra">' +
+        '<button class="ver" data-imprime>' + esc(t('imprimir')) + '</button>' +
+        '<button class="ver" data-cierra>' + esc(t('cerrar')) + '</button></div>' +
+      '<div class="fdoc">' +
+        '<div class="cab"><div><div class="soc">' + esc((f.sociedad || '').replace(/_/g, ' ').toUpperCase()) + '</div>' +
+          '<div class="tipo">' + esc(t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + '</div></div>' +
+          '<div><div class="num">' + esc(f.numero) + '</div><div class="fec">' + esc(fecha(f.fecha)) + '</div></div></div>' +
+        '<div class="bloque"><div class="btit">' + esc(t('f_cliente')) + '</div>' +
+          esc(fl.cliente_nombre || f.cliente || '') +
+          (fl.cliente_documento ? ' · ' + esc(fl.cliente_documento) : '') +
+          (fl.cliente_domicilio ? '<br>' + esc(fl.cliente_domicilio) : '') + '</div>' +
+        ((f.proyecto || fl.proyecto_nombre) ? '<div class="bloque"><div class="btit">' + esc(t('f_proyecto')) + '</div>' +
+          esc(f.proyecto || fl.proyecto_nombre) + (f.contrato_numero ? ' · ' + esc(f.contrato_numero) : '') + '</div>' : '') +
+        '<table><tr><th>' + esc(t('f_concepto')) + '</th><th>' + esc(t('f_importe')) + '</th></tr>' +
+        lineas.map(function(l){
+          return '<tr><td>' + esc(l.descripcion || '') + '</td><td>' + esc(dinero(num(l.importe), f.moneda)) + '</td></tr>';
+        }).join('') + '</table>' +
+        (tot.subtotal != null && tot.subtotal !== tot.total ?
+          '<div class="tot"><span>' + esc(t('f_subtotal')) + '</span><span>' + esc(dinero(Number(tot.subtotal), f.moneda)) + '</span></div>' : '') +
+        '<div class="tot grande"><span>' + esc(t('f_total')) + '</span><span>' +
+          esc(dinero(tot.total != null ? Number(tot.total) : Number(f.total), f.moneda)) + '</span></div>' +
+        (banco ? '<div class="bloque" style="margin-top:22px"><div class="btit">' + esc(t('f_banco')) + '</div>' + esc(banco) + '</div>' : '') +
+      '</div></div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e){
+      if (e.target === modal || e.target.closest('[data-cierra]')) { modal.remove(); return; }
+      if (e.target.closest('[data-imprime]')) {
+        document.body.classList.add('imprimiendo');
+        window.print();
+        document.body.classList.remove('imprimiendo');
+      }
+    });
+    document.addEventListener('keydown', function esc1(e){
+      if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', esc1); }
+    });
+  }
+})();
+</script>
+</body>
+</html>

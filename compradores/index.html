@@ -16,7 +16,7 @@
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js?v=7b762908" data-herramienta="compradores"></script>
+<script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=7e77b0d0"></script>
 <style>
   :root{ --line:#E2DACA; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:56px; }
@@ -138,20 +138,23 @@ const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 const ORDEN = { campo:'full_name', dir:'asc' };
-let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], SEL=null;
+let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], YO=null, SEL=null;
 
 async function cargar(){
-  const [c, d, v] = await Promise.all([
+  const [c, d, v, a] = await Promise.all([
     SB.from('clients').select('*').order('full_name'),
     SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
     // qué contratos ha firmado cada persona. Si la migración aún no está,
     // falla sola y la ficha simplemente no muestra el bloque.
     SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado)'),
+    // accesos al portal del comprador (email → ficha)
+    SB.from('portal_accesos').select('email, client_id, activo'),
   ]);
   if(c.error) throw c.error;
   CLIENTES = c.data || [];
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
+  ACCESOS = a.error ? [] : (a.data || []);
   if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
 }
 
@@ -250,6 +253,31 @@ function pintarFicha(){
     </fieldset>`}
     ${nuevo ? '' : `
     <fieldset>
+      <legend>Portal del comprador</legend>
+      ${(() => {
+        const suyos = ACCESOS.filter(x => x.client_id === c.id);
+        const activos = suyos.filter(x => x.activo);
+        const estado = activos.length
+          ? `<p class="nota">Acceso activo para <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>. Ve sus contratos, pagos, facturas y obra en /portal/.</p>`
+          : suyos.length
+            ? '<p class="nota">Acceso <b>revocado</b>. Se puede volver a invitar.</p>'
+            : '<p class="nota">Esta ficha aún no tiene acceso al portal.</p>';
+        const esAdminYo = YO && (YO.rol === 'super_admin' || YO.rol === 'admin');
+        if(!esAdminYo) return estado + '<p class="nota">Invitar o revocar lo hace un administrador.</p>';
+        return estado + `
+        <div class="row">
+          <div><label>Email de acceso</label><input id="p-email" type="email" value="${esc((activos[0] && activos[0].email) || c.email || '')}"></div>
+        </div>
+        <div class="acciones" style="margin-top:10px">
+          <button class="btn primary" id="btnPortalInv">${activos.length ? 'Reenviar enlace' : 'Invitar al portal'}</button>
+          ${activos.length ? '<button class="btn" id="btnPortalRev">Revocar acceso</button>' : ''}
+        </div>
+        <p class="nota">La invitación vincula ESTA ficha a ese email y le envía un enlace de entrada
+        (sin contraseña: cada vez que entre pedirá un enlace nuevo a su correo). Para una familia que
+        comparte correo, invita el mismo email desde cada ficha: verá todo lo de todas.</p>`;
+      })()}
+    </fieldset>
+    <fieldset>
       <legend>Documentación</legend>
       <table>
         <thead><tr><th>Documento</th><th>Subido</th><th>Caduca</th><th></th></tr></thead>
@@ -281,6 +309,8 @@ function pintarFicha(){
   $('#btnGuardar').addEventListener('click', () => guardar(nuevo ? null : c.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
+  const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
+  const br = $('#btnPortalRev'); if(br) br.addEventListener('click', () => revocarPortal(c));
   document.getElementById('suiCajon').querySelectorAll('[data-ver]')
     .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
 }
@@ -341,6 +371,45 @@ async function subir(clientId){
   }
 }
 
+/* ── portal del comprador ─────────────────────────────────────────────
+   La Edge Function `portal-invitar` es quien crea la cuenta y manda el
+   correo: aquí solo se pide con la sesión del admin. El body nunca decide
+   el permiso — lo decide el JWT en el servidor. */
+async function llamaPortal(body){
+  const { data } = await SB.auth.getSession();
+  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
+    method:'POST',
+    headers:{ 'content-type':'application/json', authorization:'Bearer ' + data.session.access_token },
+    body: JSON.stringify(body),
+  });
+  return r.json().catch(() => ({ error:'respuesta ilegible' }));
+}
+
+async function invitarPortal(c){
+  const email = ($('#p-email').value || '').trim().toLowerCase();
+  if(!email){ toast('Falta el email de acceso'); return; }
+  if(!confirm('Se enviará un correo de acceso a ' + email + ' y verá en el portal todo lo de esta ficha (contratos, pagos, facturas y obra). ¿Invitar?')) return;
+  const b = $('#btnPortalInv'); b.disabled = true;
+  const r = await llamaPortal({ accion:'invitar', email, client_ids:[c.id] });
+  b.disabled = false;
+  if(r.error){ toast('No se pudo invitar: ' + r.error); return; }
+  toast(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada');
+  await cargar(); pintarLista(); pintarFicha();
+}
+
+async function revocarPortal(c){
+  const suyos = ACCESOS.filter(x => x.client_id === c.id && x.activo);
+  if(!suyos.length) return;
+  const email = suyos[0].email;
+  if(!confirm('Revocar el acceso de ' + email + ' al portal. Dejará de ver TODAS las fichas vinculadas a ese email, no solo esta. ¿Seguir?')) return;
+  const b = $('#btnPortalRev'); b.disabled = true;
+  const r = await llamaPortal({ accion:'revocar', email });
+  b.disabled = false;
+  if(r.error){ toast('No se pudo revocar: ' + r.error); return; }
+  toast('Acceso revocado');
+  await cargar(); pintarLista(); pintarFicha();
+}
+
 async function abrir(path){
   if(!path) return;
   const { data, error } = await SB.storage.from('kyc').createSignedUrl(path, 300);
@@ -361,8 +430,9 @@ suiMontarCajon();
 suiMontarDensidad(document.getElementById('dens'));
 suiOrdenable(document.getElementById('tabla'), ORDEN, (c, campo) => c[campo], pintarLista);
 
-window.LW_AUTH.then(async ({ sb, session }) => {
+window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
+  YO = ficha;   // el rol decide si la ficha enseña los botones de invitar al portal
   $('#who').textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
   try{

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Contrato de Arrendamiento de Terreno (Hak Sewa - Notario) — LAWANG</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
+</head>
+<body>
+  <!-- Hak Sewa ante notario (Tabanan, Bali) — serie HS.
+       ES = texto EXACTO del cliente (5-ago-2026), transcrito literal con sus erratas
+       («Baca la PRIMERA PARTE» en el Art. 2, «Testafierro» en el Art. 7, apellido
+       «MESEQUER»): transformar y verificar, nunca reescribir.
+       EN/ID = traducción de trabajo fiel; el Art. 10 hace prevalecer la versión indonesia.
+       LAWANG NO ES PARTE de este contrato: firman apoderado del arrendador (línea en
+       blanco, firma en papel/notario), arrendatario (pad estándar firma_adquiriente)
+       y testigos (líneas en blanco). Sin marca de agua por el mismo motivo.
+       Marcadores {{...}} = campos del form (tokens.json, secciones hs_*). -->
+  <div class="doc">
+
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Contrato</span><span data-lang="en">Land Lease</span><span data-lang="id">Perjanjian</span></span>
+      <span class="bold"><span data-lang="es">de Arrendamiento de Terreno</span><span data-lang="en">Agreement</span><span data-lang="id">Sewa Menyewa Tanah</span></span>
+    </div>
+    <div class="doc-date"><span data-lang="es">Tabanan, Bali · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">Tabanan, Bali · Contract No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Tabanan, Bali · No. Kontrak: <span class="f f-md">{{contrato_num}}</span></span></div>
+
+    <!-- ============ COMPARECENCIA ============ -->
+    <p data-lang="es">En el día de hoy, <span class="f">{{hsn_dia_semana}}</span>, fecha <span class="f f-xs">{{hsn_dia}}</span> del mes de <span class="f">{{hsn_mes}}</span> del año Dos Mil Veintiséis (2026), en Tabanan, Bali, los abajo firmantes:</p>
+    <p data-lang="en">On this day, <span class="f">{{hsn_dia_semana}}</span>, date <span class="f f-xs">{{hsn_dia}}</span> of the month of <span class="f">{{hsn_mes}}</span> of the year Two Thousand and Twenty-Six (2026), in Tabanan, Bali, the undersigned:</p>
+    <p data-lang="id">Pada hari ini, <span class="f">{{hsn_dia_semana}}</span>, tanggal <span class="f f-xs">{{hsn_dia}}</span> bulan <span class="f">{{hsn_mes}}</span> tahun Dua Ribu Dua Puluh Enam (2026), di Tabanan, Bali, yang bertanda tangan di bawah ini:</p>
+
+    <div class="party">
+      <div class="role"><span data-lang="es">PRIMERA PARTE (ARRENDADOR)</span><span data-lang="en">FIRST PARTY (LESSOR)</span><span data-lang="id">PIHAK PERTAMA (YANG MENYEWAKAN)</span></div>
+      <p data-lang="es"><b>1. Nombre:</b> <span class="f f-lg">{{hsn_apoderado_nombre}}</span><br>Edad: <span class="f f-xs">{{hsn_apoderado_edad}}</span> años<br>Ocupación: <span class="f">{{hsn_apoderado_ocupacion}}</span><br>Dirección: <span class="f f-lg">{{hsn_apoderado_direccion}}</span>.</p>
+      <p data-lang="en"><b>1. Name:</b> <span class="f f-lg">{{hsn_apoderado_nombre}}</span><br>Age: <span class="f f-xs">{{hsn_apoderado_edad}}</span> years old<br>Occupation: <span class="f">{{hsn_apoderado_ocupacion}}</span><br>Address: <span class="f f-lg">{{hsn_apoderado_direccion}}</span>.</p>
+      <p data-lang="id"><b>1. Nama:</b> <span class="f f-lg">{{hsn_apoderado_nombre}}</span><br>Umur: <span class="f f-xs">{{hsn_apoderado_edad}}</span> tahun<br>Pekerjaan: <span class="f">{{hsn_apoderado_ocupacion}}</span><br>Alamat: <span class="f f-lg">{{hsn_apoderado_direccion}}</span>.</p>
+      <p data-lang="es">En este acto, actuando sobre la base de un Poder Especial de fecha <span class="f">{{hsn_poder_fecha}}</span>, otorgado ante Notario y adjunto al presente Contrato, como apoderado en nombre y representación de:</p>
+      <p data-lang="en">In this act, acting on the basis of a Special Power of Attorney dated <span class="f">{{hsn_poder_fecha}}</span>, granted before a Notary and attached to this Agreement, as attorney-in-fact in the name and on behalf of:</p>
+      <p data-lang="id">Dalam hal ini, bertindak berdasarkan Surat Kuasa Khusus tertanggal <span class="f">{{hsn_poder_fecha}}</span>, yang dibuat di hadapan Notaris dan dilampirkan pada Perjanjian ini, selaku kuasa untuk dan atas nama:</p>
+      <p data-lang="es"><b>Nombre del Propietario:</b> <span class="f f-lg">{{hsn_propietario_nombre}}</span><br>Edad: <span class="f f-xs">{{hsn_propietario_edad}}</span> años<br>Ocupación: <span class="f">{{hsn_propietario_ocupacion}}</span><br>Dirección: <span class="f f-lg">{{hsn_propietario_direccion}}</span>.</p>
+      <p data-lang="en"><b>Name of the Owner:</b> <span class="f f-lg">{{hsn_propietario_nombre}}</span><br>Age: <span class="f f-xs">{{hsn_propietario_edad}}</span> years old<br>Occupation: <span class="f">{{hsn_propietario_ocupacion}}</span><br>Address: <span class="f f-lg">{{hsn_propietario_direccion}}</span>.</p>
+      <p data-lang="id"><b>Nama Pemilik:</b> <span class="f f-lg">{{hsn_propietario_nombre}}</span><br>Umur: <span class="f f-xs">{{hsn_propietario_edad}}</span> tahun<br>Pekerjaan: <span class="f">{{hsn_propietario_ocupacion}}</span><br>Alamat: <span class="f f-lg">{{hsn_propietario_direccion}}</span>.</p>
+      <p data-lang="es">En lo sucesivo denominado la PRIMERA PARTE (ARRENDADOR).</p>
+      <p data-lang="en">Hereinafter referred to as the FIRST PARTY (LESSOR).</p>
+      <p data-lang="id">Selanjutnya disebut sebagai PIHAK PERTAMA (YANG MENYEWAKAN).</p>
+    </div>
+
+    <div class="party">
+      <div class="role"><span data-lang="es">SEGUNDA PARTE (ARRENDATARIO)</span><span data-lang="en">SECOND PARTY (LESSEE)</span><span data-lang="id">PIHAK KEDUA (PENYEWA)</span></div>
+      <p data-lang="es"><b>2. Nombre:</b> <span class="f f-lg">{{adq1_nombre}}</span><br>Dirección: <span class="f f-lg">{{adq1_domicilio}}</span><br>Pasaporte No.: <span class="f">{{adq1_pasaporte}}</span></p>
+      <p data-lang="en"><b>2. Name:</b> <span class="f f-lg">{{adq1_nombre}}</span><br>Address: <span class="f f-lg">{{adq1_domicilio}}</span><br>Passport No.: <span class="f">{{adq1_pasaporte}}</span></p>
+      <p data-lang="id"><b>2. Nama:</b> <span class="f f-lg">{{adq1_nombre}}</span><br>Alamat: <span class="f f-lg">{{adq1_domicilio}}</span><br>Paspor No.: <span class="f">{{adq1_pasaporte}}</span></p>
+      <p data-lang="es">En lo sucesivo denominado la SEGUNDA PARTE (ARRENDATARIO).</p>
+      <p data-lang="en">Hereinafter referred to as the SECOND PARTY (LESSEE).</p>
+      <p data-lang="id">Selanjutnya disebut sebagai PIHAK KEDUA (PENYEWA).</p>
+    </div>
+
+    <!-- ============ DECLARACIONES PREVIAS ============ -->
+    <p data-lang="es">Las Partes declaran en primer lugar lo siguiente:</p>
+    <p data-lang="en">The Parties first declare the following:</p>
+    <p data-lang="id">Para Pihak terlebih dahulu menerangkan hal-hal sebagai berikut:</p>
+
+    <p data-lang="es">Que la PRIMERA PARTE es el propietario legal y legítimo de una parcela de terreno en propiedad absoluta (Hak Milik) con Certificado NIB No. <span class="f">{{hsn_nib}}</span>, con una superficie de <span class="f f-sm">{{hsn_superficie_m2}}</span> M2 (<span class="f">{{hsn_superficie_letras}}</span>), a nombre de <span class="f">{{hsn_propietario_nombre}}</span>, ubicada en <span class="f">{{hsn_village}}</span>, Distrito de <span class="f">{{hsn_distrito}}</span>, Regencia de <span class="f">{{hsn_regencia}}</span>, Bali (en lo sucesivo denominado el «Objeto del Arrendamiento»).</p>
+    <p data-lang="en">That the FIRST PARTY is the legal and legitimate owner of a plot of land held in freehold title (Hak Milik) under NIB Certificate No. <span class="f">{{hsn_nib}}</span>, with an area of <span class="f f-sm">{{hsn_superficie_m2}}</span> M2 (<span class="f">{{hsn_superficie_letras}}</span>), in the name of <span class="f">{{hsn_propietario_nombre}}</span>, located in <span class="f">{{hsn_village}}</span>, <span class="f">{{hsn_distrito}}</span> District, <span class="f">{{hsn_regencia}}</span> Regency, Bali (hereinafter referred to as the "Lease Object").</p>
+    <p data-lang="id">Bahwa PIHAK PERTAMA adalah pemilik yang sah dan berhak atas sebidang tanah dengan status Hak Milik dengan Sertipikat NIB No. <span class="f">{{hsn_nib}}</span>, seluas <span class="f f-sm">{{hsn_superficie_m2}}</span> M2 (<span class="f">{{hsn_superficie_letras}}</span>), atas nama <span class="f">{{hsn_propietario_nombre}}</span>, terletak di <span class="f">{{hsn_village}}</span>, Kecamatan <span class="f">{{hsn_distrito}}</span>, Kabupaten <span class="f">{{hsn_regencia}}</span>, Bali (selanjutnya disebut "Objek Sewa").</p>
+
+    <p data-lang="es">Que la PRIMERA PARTE tiene la intención de arrendar el Objeto del Arrendamiento a la SEGUNDA PARTE, y la SEGUNDA PARTE acepta arrendar el Objeto del Arrendamiento de la PRIMERA PARTE.</p>
+    <p data-lang="en">That the FIRST PARTY intends to lease the Lease Object to the SECOND PARTY, and the SECOND PARTY agrees to lease the Lease Object from the FIRST PARTY.</p>
+    <p data-lang="id">Bahwa PIHAK PERTAMA bermaksud menyewakan Objek Sewa kepada PIHAK KEDUA, dan PIHAK KEDUA setuju untuk menyewa Objek Sewa dari PIHAK PERTAMA.</p>
+
+    <p data-lang="es">Por lo tanto, las Partes acuerdan obligarse en virtud del presente Contrato de Arrendamiento bajo los siguientes términos y condiciones:</p>
+    <p data-lang="en">Therefore, the Parties agree to bind themselves under this Lease Agreement under the following terms and conditions:</p>
+    <p data-lang="id">Oleh karena itu, Para Pihak sepakat untuk mengikatkan diri dalam Perjanjian Sewa Menyewa ini dengan syarat dan ketentuan sebagai berikut:</p>
+
+    <!-- ============ ARTÍCULOS ============ -->
+    <h2><span data-lang="es">Artículo 1: Contrato de Arrendamiento</span><span data-lang="en">Article 1: Lease Agreement</span><span data-lang="id">Pasal 1: Perjanjian Sewa Menyewa</span></h2>
+    <p data-lang="es">La PRIMERA PARTE acuerda por el presente arrendar el Objeto del Arrendamiento a la SEGUNDA PARTE, y la SEGUNDA PARTE acuerda por el presente aceptar el arrendamiento del Objeto del Arrendamiento de la PRIMERA PARTE libre de todo litigio, embargo, gravamen, garantía de deuda o cualquier interferencia legal por parte de terceros.</p>
+    <p data-lang="en">The FIRST PARTY hereby agrees to lease the Lease Object to the SECOND PARTY, and the SECOND PARTY hereby agrees to accept the lease of the Lease Object from the FIRST PARTY free of any litigation, seizure, encumbrance, debt security or any legal interference by third parties.</p>
+    <p data-lang="id">PIHAK PERTAMA dengan ini setuju untuk menyewakan Objek Sewa kepada PIHAK KEDUA, dan PIHAK KEDUA dengan ini setuju untuk menerima sewa Objek Sewa dari PIHAK PERTAMA, bebas dari segala sengketa, sita, beban, jaminan utang, atau segala bentuk gangguan hukum dari pihak ketiga.</p>
+
+    <h2><span data-lang="es">Artículo 2: Período de Arrendamiento y Derecho Absoluto de Prórroga</span><span data-lang="en">Article 2: Lease Period and Absolute Right of Extension</span><span data-lang="id">Pasal 2: Jangka Waktu Sewa dan Hak Mutlak Perpanjangan</span></h2>
+    <p data-lang="es">La duración de este arrendamiento se estipula y es válida por <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) años, comenzando a partir del año <span class="f f-xs">{{hsn_anio_inicio}}</span> y finalizando en el año <span class="f f-xs">{{hsn_anio_fin}}</span>.</p>
+    <p data-lang="en">The duration of this lease is stipulated and valid for <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) years, starting from the year <span class="f f-xs">{{hsn_anio_inicio}}</span> and ending in the year <span class="f f-xs">{{hsn_anio_fin}}</span>.</p>
+    <p data-lang="id">Jangka waktu sewa ini ditetapkan dan berlaku selama <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) tahun, terhitung mulai tahun <span class="f f-xs">{{hsn_anio_inicio}}</span> dan berakhir pada tahun <span class="f f-xs">{{hsn_anio_fin}}</span>.</p>
+    <!-- «Baca la PRIMERA PARTE…» es literal del original ES (errata transcrita a propósito);
+         EN/ID traducen el sentido: la PRIMERA PARTE otorga la opción. -->
+    <p data-lang="es">Baca la PRIMERA PARTE otorga una Opción de Prórroga absoluta a la SEGUNDA PARTE para extender el arrendamiento por un período adicional de otros <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) años. Esta prórroga podrá ser ejecutada por la SEGUNDA PARTE en cualquier momento durante la vigencia del arrendamiento, sin necesidad de esperar a que finalice el período de arrendamiento actual.</p>
+    <p data-lang="en">The FIRST PARTY grants an absolute Extension Option to the SECOND PARTY to extend the lease for an additional period of another <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) years. This extension may be exercised by the SECOND PARTY at any time during the term of the lease, without having to wait until the end of the current lease period.</p>
+    <p data-lang="id">PIHAK PERTAMA memberikan Opsi Perpanjangan mutlak kepada PIHAK KEDUA untuk memperpanjang sewa selama jangka waktu tambahan <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) tahun lagi. Perpanjangan ini dapat dilaksanakan oleh PIHAK KEDUA kapan saja selama berlakunya sewa, tanpa perlu menunggu berakhirnya jangka waktu sewa yang sedang berjalan.</p>
+    <p data-lang="es">Las Partes acuerdan deliberadamente que el precio del arrendamiento para la prórroga adicional de <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) años se mantendrá exactamente igual al precio inicial acordado en este Contrato, el cual es de Rp <span class="f f-sm">{{hsn_precio_rp}}</span>,- (<span class="f">{{hsn_precio_letras}}</span>). La PRIMERA PARTE o sus Herederos no tendrán derecho a exigir ninguna compensación adicional ni a rechazar dicha prórroga.</p>
+    <p data-lang="en">The Parties deliberately agree that the lease price for the additional extension of <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) years shall remain exactly the same as the initial price agreed in this Agreement, which is Rp <span class="f f-sm">{{hsn_precio_rp}}</span>,- (<span class="f">{{hsn_precio_letras}}</span>). The FIRST PARTY or its Heirs shall not be entitled to demand any additional compensation or to refuse such extension.</p>
+    <p data-lang="id">Para Pihak dengan sengaja sepakat bahwa harga sewa untuk perpanjangan tambahan <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) tahun akan tetap sama persis dengan harga awal yang disepakati dalam Perjanjian ini, yaitu Rp <span class="f f-sm">{{hsn_precio_rp}}</span>,- (<span class="f">{{hsn_precio_letras}}</span>). PIHAK PERTAMA atau para Ahli Warisnya tidak berhak menuntut kompensasi tambahan apa pun maupun menolak perpanjangan tersebut.</p>
+
+    <h2><span data-lang="es">Artículo 3: Precio del Arrendamiento y Método de Pago</span><span data-lang="en">Article 3: Lease Price and Method of Payment</span><span data-lang="id">Pasal 3: Harga Sewa dan Cara Pembayaran</span></h2>
+    <p data-lang="es">El precio del arrendamiento para la totalidad de la duración inicial de <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) años se fija en Rp <span class="f f-sm">{{hsn_precio_rp}}</span>,- (<span class="f">{{hsn_precio_letras}}</span>).</p>
+    <p data-lang="en">The lease price for the entire initial duration of <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) years is set at Rp <span class="f f-sm">{{hsn_precio_rp}}</span>,- (<span class="f">{{hsn_precio_letras}}</span>).</p>
+    <p data-lang="id">Harga sewa untuk seluruh jangka waktu awal <span class="f f-xs">{{hsn_anios}}</span> (<span class="f f-sm">{{hsn_anios_letras}}</span>) tahun ditetapkan sebesar Rp <span class="f f-sm">{{hsn_precio_rp}}</span>,- (<span class="f">{{hsn_precio_letras}}</span>).</p>
+    <p data-lang="es">Dicha cantidad ha sido pagada en su totalidad por la SEGUNDA PARTE a la PRIMERA PARTE antes de la firma de este Contrato. Las Partes acuerdan que este Contrato sirve también como recibo de pago (Kwitansi) válido y legalmente vinculante.</p>
+    <p data-lang="en">Said amount has been paid in full by the SECOND PARTY to the FIRST PARTY prior to the signing of this Agreement. The Parties agree that this Agreement also serves as a valid and legally binding receipt of payment (Kwitansi).</p>
+    <p data-lang="id">Jumlah tersebut telah dibayar lunas oleh PIHAK KEDUA kepada PIHAK PERTAMA sebelum penandatanganan Perjanjian ini. Para Pihak sepakat bahwa Perjanjian ini juga berlaku sebagai tanda terima pembayaran (Kwitansi) yang sah dan mengikat secara hukum.</p>
+
+    <h2><span data-lang="es">Artículo 4: Garantías de la Primera Parte y Zonificación del Terreno</span><span data-lang="en">Article 4: Guarantees of the First Party and Land Zoning</span><span data-lang="id">Pasal 4: Jaminan Pihak Pertama dan Zonasi Tanah</span></h2>
+    <p data-lang="es">La PRIMERA PARTE garantiza legalmente que el Objeto del Arrendamiento es verdaderamente propiedad de la propia PRIMERA PARTE (bajo el nombre de <span class="f">{{hsn_propietario_nombre}}</span>), no está involucrado en ningún caso legal, no está gravado como garantía de deuda, no está sujeto a embargo, y la PRIMERA PARTE garantiza que la SEGUNDA PARTE no experimentará ninguna interferencia legal por parte de ninguna otra persona o entidad.</p>
+    <p data-lang="en">The FIRST PARTY legally guarantees that the Lease Object is truly the property of the FIRST PARTY itself (under the name of <span class="f">{{hsn_propietario_nombre}}</span>), is not involved in any legal case, is not encumbered as debt security, is not subject to seizure, and the FIRST PARTY guarantees that the SECOND PARTY shall not experience any legal interference by any other person or entity.</p>
+    <p data-lang="id">PIHAK PERTAMA menjamin secara hukum bahwa Objek Sewa benar-benar milik PIHAK PERTAMA sendiri (atas nama <span class="f">{{hsn_propietario_nombre}}</span>), tidak terlibat dalam perkara hukum apa pun, tidak dibebani sebagai jaminan utang, tidak berada dalam sitaan, dan PIHAK PERTAMA menjamin bahwa PIHAK KEDUA tidak akan mengalami gangguan hukum apa pun dari orang atau badan lain mana pun.</p>
+    <p data-lang="es">La PRIMERA PARTE garantiza que, de acuerdo con la Ordenación Territorial oficial (RTRW/ITR), el Objeto del Arrendamiento se encuentra dentro de una zona segura para la construcción de edificaciones (Zona Residencial/Turística) y no es una Zona Verde protegida (Zona Hijau).</p>
+    <p data-lang="en">The FIRST PARTY guarantees that, in accordance with the official Spatial Planning (RTRW/ITR), the Lease Object is located within a zone safe for the construction of buildings (Residential/Tourist Zone) and is not a protected Green Zone (Zona Hijau).</p>
+    <p data-lang="id">PIHAK PERTAMA menjamin bahwa, sesuai dengan Rencana Tata Ruang resmi (RTRW/ITR), Objek Sewa berada dalam zona yang aman untuk pembangunan gedung (Zona Permukiman/Pariwisata) dan bukan merupakan Zona Hijau yang dilindungi.</p>
+
+    <h2><span data-lang="es">Artículo 5: Uso, Subarrendamiento y Registro de Servicios Públicos</span><span data-lang="en">Article 5: Use, Sublease and Registration of Utilities</span><span data-lang="id">Pasal 5: Penggunaan, Sewa Ulang, dan Pendaftaran Utilitas Umum</span></h2>
+    <p data-lang="es">El ARRENDATARIO podrá utilizar el terreno arrendado para levantar una vivienda residencial u otras edificaciones de acuerdo con la forma, tamaño y materiales utilizados según sus deseos y a expensas exclusivas de la SEGUNDA PARTE.</p>
+    <p data-lang="en">The LESSEE may use the leased land to erect a residential dwelling or other buildings in accordance with the shape, size and materials used according to its wishes and at the exclusive expense of the SECOND PARTY.</p>
+    <p data-lang="id">PENYEWA dapat menggunakan tanah yang disewa untuk mendirikan rumah tinggal atau bangunan lainnya sesuai bentuk, ukuran, dan bahan yang digunakan menurut keinginannya dan atas biaya PIHAK KEDUA sepenuhnya.</p>
+    <p data-lang="es">La PRIMERA PARTE otorga plenos derechos a la SEGUNDA PARTE para subarrendar parte o la totalidad del Objeto del Arrendamiento y las edificaciones del mismo a cualquier tercero, sin necesidad de consentimiento posterior ni de pagos/compensaciones adicionales a la PRIMERA PARTE (Arrendador).</p>
+    <p data-lang="en">The FIRST PARTY grants full rights to the SECOND PARTY to sublease part or all of the Lease Object and the buildings thereon to any third party, without the need for further consent or additional payments/compensation to the FIRST PARTY (Lessor).</p>
+    <p data-lang="id">PIHAK PERTAMA memberikan hak penuh kepada PIHAK KEDUA untuk menyewakan kembali sebagian atau seluruh Objek Sewa beserta bangunan di atasnya kepada pihak ketiga mana pun, tanpa memerlukan persetujuan lebih lanjut maupun pembayaran/kompensasi tambahan kepada PIHAK PERTAMA (Yang Menyewakan).</p>
+    <p data-lang="es">La PRIMERA PARTE acepta que la licencia de obras (PBG/IMB), el suministro de agua y las conexiones de electricidad se registrarán a nombre de la PRIMERA PARTE, pero la SEGUNDA PARTE será la única responsable de los costes de instalación y de los pagos por consumo mensual.</p>
+    <p data-lang="en">The FIRST PARTY accepts that the building permit (PBG/IMB), the water supply and the electricity connections shall be registered in the name of the FIRST PARTY, but the SECOND PARTY shall be solely responsible for the installation costs and the monthly consumption payments.</p>
+    <p data-lang="id">PIHAK PERTAMA menerima bahwa izin bangunan (PBG/IMB), pasokan air, dan sambungan listrik akan didaftarkan atas nama PIHAK PERTAMA, namun PIHAK KEDUA menjadi satu-satunya pihak yang bertanggung jawab atas biaya pemasangan dan pembayaran konsumsi bulanan.</p>
+
+    <h2><span data-lang="es">Artículo 6: Vencimiento del Contrato y Obligación Absoluta de los Herederos</span><span data-lang="en">Article 6: Expiry of the Agreement and Absolute Obligation of the Heirs</span><span data-lang="id">Pasal 6: Berakhirnya Perjanjian dan Kewajiban Mutlak Para Ahli Waris</span></h2>
+    <p data-lang="es">Si durante la vigencia de este contrato una de las Partes fallece, este contrato de arrendamiento no quedará anulado, sino que será continuado por los herederos de la parte fallecida o por los coherederos si ambas partes fallecen.</p>
+    <p data-lang="en">If during the term of this agreement one of the Parties passes away, this lease agreement shall not be annulled, but shall be continued by the heirs of the deceased party or by the co-heirs if both parties pass away.</p>
+    <p data-lang="id">Apabila selama berlakunya perjanjian ini salah satu Pihak meninggal dunia, perjanjian sewa ini tidak menjadi batal, melainkan akan dilanjutkan oleh para ahli waris pihak yang meninggal atau oleh para ahli waris bersama apabila kedua pihak meninggal dunia.</p>
+    <p data-lang="es">Los herederos de la PRIMERA PARTE están legalmente obligados a cooperar plenamente con cualquier necesidad administrativa futura de la SEGUNDA PARTE (como la firma de documentos actualizados para permisos de construcción/PBG, conexiones de servicios públicos, electricidad, agua o internet) sin exigir ninguna compensación adicional.</p>
+    <p data-lang="en">The heirs of the FIRST PARTY are legally obliged to cooperate fully with any future administrative needs of the SECOND PARTY (such as signing updated documents for building permits/PBG, utility connections, electricity, water or internet) without demanding any additional compensation.</p>
+    <p data-lang="id">Para ahli waris PIHAK PERTAMA wajib secara hukum untuk bekerja sama sepenuhnya dengan setiap kebutuhan administratif PIHAK KEDUA di masa mendatang (seperti penandatanganan dokumen terbaru untuk izin bangunan/PBG, sambungan utilitas umum, listrik, air, atau internet) tanpa menuntut kompensasi tambahan apa pun.</p>
+
+    <h2><span data-lang="es">Artículo 7: Disposiciones Especiales sobre Transferencia de Título y Cambios Normativos</span><span data-lang="en">Article 7: Special Provisions on Title Transfer and Regulatory Changes</span><span data-lang="id">Pasal 7: Ketentuan Khusus tentang Pengalihan Hak dan Perubahan Peraturan</span></h2>
+    <!-- «Testafierro» es literal del original ES (grafía habitual: «testaferro»). -->
+    <p data-lang="es"><b>Transferencia a un Testafierro (Nominee) de Ciudadanía Indonesia:</b> Si durante el período de arrendamiento la SEGUNDA PARTE decide transferir el certificado de propiedad absoluta (SHM) del Objeto del Arrendamiento a otro ciudadano indonesio designado por la SEGUNDA PARTE, la PRIMERA PARTE ejecutará la transferencia sin exigir compensación alguna, aparte de los gastos legales y notariales aplicables.</p>
+    <p data-lang="en"><b>Transfer to a Nominee of Indonesian Citizenship:</b> If during the lease period the SECOND PARTY decides to transfer the freehold title certificate (SHM) of the Lease Object to another Indonesian citizen designated by the SECOND PARTY, the FIRST PARTY shall execute the transfer without demanding any compensation, apart from the applicable legal and notary fees.</p>
+    <p data-lang="id"><b>Pengalihan kepada Nominee Warga Negara Indonesia:</b> Apabila selama jangka waktu sewa PIHAK KEDUA memutuskan untuk mengalihkan sertipikat Hak Milik (SHM) atas Objek Sewa kepada warga negara Indonesia lain yang ditunjuk oleh PIHAK KEDUA, PIHAK PERTAMA akan melaksanakan pengalihan tersebut tanpa menuntut kompensasi apa pun, selain biaya hukum dan notaris yang berlaku.</p>
+    <p data-lang="es"><b>Transferencia a una PT PMA (Empresa de Capital Extranjero):</b> Si durante el período de arrendamiento la SEGUNDA PARTE establece una nueva empresa de capital extranjero (PT PMA), la PRIMERA PARTE cooperará para transferir el certificado SHM a un certificado de Derecho de Construcción (HGB) a nombre de la empresa de la SEGUNDA PARTE sin exigir ningún pago extra además de las tasas legales oficiales del gobierno y los costes de notaría.</p>
+    <p data-lang="en"><b>Transfer to a PT PMA (Foreign Capital Company):</b> If during the lease period the SECOND PARTY establishes a new foreign capital company (PT PMA), the FIRST PARTY shall cooperate to transfer the SHM certificate into a Right to Build certificate (HGB) in the name of the SECOND PARTY's company without demanding any extra payment other than the official government legal fees and notary costs.</p>
+    <p data-lang="id"><b>Pengalihan kepada PT PMA (Perusahaan Penanaman Modal Asing):</b> Apabila selama jangka waktu sewa PIHAK KEDUA mendirikan perusahaan penanaman modal asing (PT PMA) baru, PIHAK PERTAMA akan bekerja sama untuk mengalihkan sertipikat SHM menjadi sertipikat Hak Guna Bangunan (HGB) atas nama perusahaan PIHAK KEDUA tanpa menuntut pembayaran tambahan apa pun selain biaya resmi pemerintah dan biaya notaris.</p>
+    <p data-lang="es"><b>Cambios Normativos para la Propiedad Extranjera:</b> Si durante el período de arrendamiento el gobierno de Indonesia cambia las regulaciones y permite a los ciudadanos extranjeros poseer tierras en Indonesia de forma directa, la PRIMERA PARTE está plenamente obligada a transferir el SHM —o cualquier tipo de nuevo certificado creado para tal fin— a nombre del ARRENDATARIO o de cualquier otra parte que este designe, sin exigir tasas adicionales de compensación por la tierra.</p>
+    <p data-lang="en"><b>Regulatory Changes for Foreign Ownership:</b> If during the lease period the government of Indonesia changes the regulations and allows foreign citizens to own land in Indonesia directly, the FIRST PARTY is fully obliged to transfer the SHM — or any type of new certificate created for such purpose — into the name of the LESSEE or of any other party it designates, without demanding additional compensation fees for the land.</p>
+    <p data-lang="id"><b>Perubahan Peraturan untuk Kepemilikan Asing:</b> Apabila selama jangka waktu sewa pemerintah Indonesia mengubah peraturan dan mengizinkan warga negara asing memiliki tanah di Indonesia secara langsung, PIHAK PERTAMA wajib sepenuhnya mengalihkan SHM — atau jenis sertipikat baru apa pun yang dibuat untuk tujuan tersebut — ke atas nama PENYEWA atau pihak lain mana pun yang ditunjuknya, tanpa menuntut biaya kompensasi tambahan atas tanah tersebut.</p>
+
+    <h2><span data-lang="es">Artículo 8: Impuestos, Gastos Notariales y Requisitos del NPWP</span><span data-lang="en">Article 8: Taxes, Notary Fees and NPWP Requirements</span><span data-lang="id">Pasal 8: Pajak, Biaya Notaris, dan Persyaratan NPWP</span></h2>
+    <p data-lang="es">El Impuesto sobre la Renta (PPh) aplicable a esta transacción de arrendamiento y todos los gastos de Notaría/PPAT para la redacción de esta escritura serán asumidos y pagados íntegramente por la SEGUNDA PARTE (Arrendatario).</p>
+    <p data-lang="en">The Income Tax (PPh) applicable to this lease transaction and all Notary/PPAT fees for the drafting of this deed shall be borne and paid in full by the SECOND PARTY (Lessee).</p>
+    <p data-lang="id">Pajak Penghasilan (PPh) yang berlaku atas transaksi sewa ini dan seluruh biaya Notaris/PPAT untuk pembuatan akta ini akan ditanggung dan dibayar sepenuhnya oleh PIHAK KEDUA (Penyewa).</p>
+    <p data-lang="es">La PRIMERA PARTE debe adjuntar una copia de la tarjeta de identificación fiscal NPWP del propietario de la tierra (<span class="f">{{hsn_propietario_nombre}}</span>) a esta Escritura Notarial. En caso de que el propietario de la tierra no disponga de NPWP, la PRIMERA PARTE deberá facilitar el poder notarial y los documentos necesarios para registrar uno, ya que el NPWP es un requisito indispensable para que la SEGUNDA PARTE pueda solicitar el Permiso de Construcción (PBG).</p>
+    <p data-lang="en">The FIRST PARTY must attach a copy of the NPWP tax identification card of the landowner (<span class="f">{{hsn_propietario_nombre}}</span>) to this Notarial Deed. In the event that the landowner does not have an NPWP, the FIRST PARTY shall provide the power of attorney and the documents necessary to register one, since the NPWP is an indispensable requirement for the SECOND PARTY to be able to apply for the Building Permit (PBG).</p>
+    <p data-lang="id">PIHAK PERTAMA wajib melampirkan salinan kartu Nomor Pokok Wajib Pajak (NPWP) pemilik tanah (<span class="f">{{hsn_propietario_nombre}}</span>) pada Akta Notaris ini. Apabila pemilik tanah tidak memiliki NPWP, PIHAK PERTAMA wajib menyediakan surat kuasa dan dokumen-dokumen yang diperlukan untuk mendaftarkannya, karena NPWP merupakan persyaratan mutlak agar PIHAK KEDUA dapat mengajukan Persetujuan Bangunan Gedung (PBG).</p>
+
+    <h2><span data-lang="es">Artículo 9: Garantía de Acceso Legal / Derecho de Paso</span><span data-lang="en">Article 9: Guarantee of Legal Access / Right of Way</span><span data-lang="id">Pasal 9: Jaminan Akses Hukum / Hak Lintas</span></h2>
+    <p data-lang="es">La PRIMERA PARTE garantiza plenamente que la SEGUNDA PARTE dispone de un derecho de paso permanente, seguro y libre de obstáculos hacia la vía pública más cercana accesible por vehículos de 4 ruedas.</p>
+    <p data-lang="en">The FIRST PARTY fully guarantees that the SECOND PARTY has a permanent, safe and unobstructed right of way to the nearest public road accessible by 4-wheeled vehicles.</p>
+    <p data-lang="id">PIHAK PERTAMA menjamin sepenuhnya bahwa PIHAK KEDUA memiliki hak lintas yang permanen, aman, dan bebas hambatan menuju jalan umum terdekat yang dapat dilalui kendaraan roda 4.</p>
+    <p data-lang="es">Si el Objeto del Arrendamiento se encuentra bloqueado por otras parcelas de terreno, la PRIMERA PARTE garantiza y asume la total responsabilidad de que el acceso legal a través de dichas parcelas ha sido asegurado por escrito con los vecinos colindantes, tanto para el tránsito de vehículos como para la instalación de servicios públicos generales (cableado eléctrico de la PLN, tuberías de agua e internet por fibra óptica).</p>
+    <p data-lang="en">If the Lease Object is landlocked by other plots of land, the FIRST PARTY guarantees and assumes full responsibility that legal access through said plots has been secured in writing with the adjoining neighbours, both for the transit of vehicles and for the installation of general utilities (PLN electrical wiring, water pipes and fibre-optic internet).</p>
+    <p data-lang="id">Apabila Objek Sewa terhalang oleh bidang-bidang tanah lainnya, PIHAK PERTAMA menjamin dan bertanggung jawab sepenuhnya bahwa akses hukum melalui bidang-bidang tanah tersebut telah dijamin secara tertulis dengan para tetangga yang berbatasan, baik untuk lalu lintas kendaraan maupun untuk pemasangan utilitas umum (kabel listrik PLN, pipa air, dan internet serat optik).</p>
+
+    <h2><span data-lang="es">Artículo 10: Cierre</span><span data-lang="en">Article 10: Closing</span><span data-lang="id">Pasal 10: Penutup</span></h2>
+    <p data-lang="es">Por lo tanto, este contrato de arrendamiento se realiza de buena fe para ser utilizado según corresponda. Este Acuerdo se firma en versiones en indonesio e inglés; en caso de cualquier discrepancia en el significado, prevalecerá la versión en indonesio.</p>
+    <p data-lang="en">Therefore, this lease agreement is made in good faith to be used as appropriate. This Agreement is signed in Indonesian and English versions; in the event of any discrepancy in meaning, the Indonesian version shall prevail.</p>
+    <p data-lang="id">Demikian perjanjian sewa menyewa ini dibuat dengan itikad baik untuk dipergunakan sebagaimana mestinya. Perjanjian ini ditandatangani dalam versi bahasa Indonesia dan bahasa Inggris; apabila terdapat perbedaan makna, versi bahasa Indonesia yang berlaku.</p>
+
+    <!-- ============ FIRMAS — SOLO las dos partes y testigos; Lawang NO firma ============ -->
+    <p data-lang="es" style="margin-top:16px">Tabanan, <span class="f">{{hsn_fecha_tabanan}}</span> 2026</p>
+    <p data-lang="en" style="margin-top:16px">Tabanan, <span class="f">{{hsn_fecha_tabanan}}</span> 2026</p>
+    <p data-lang="id" style="margin-top:16px">Tabanan, <span class="f">{{hsn_fecha_tabanan}}</span> 2026</p>
+
+    <table class="pays sigs" style="margin-top:14px">
+      <tbody>
+        <tr>
+          <td>
+            <div class="role"><span data-lang="es">LA PRIMERA PARTE (ARRENDADOR)</span><span data-lang="en">THE FIRST PARTY (LESSOR)</span><span data-lang="id">PIHAK PERTAMA (YANG MENYEWAKAN)</span></div>
+            <!-- línea en blanco a propósito: se firma en papel, ante notario -->
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5)"></div>
+            <p style="margin-top:4px;font-size:9pt"><span class="f">{{hsn_apoderado_nombre}}</span><br><span data-lang="es">(Como Apoderado de <span class="f">{{hsn_propietario_nombre}}</span>)</span><span data-lang="en">(As Attorney-in-fact of <span class="f">{{hsn_propietario_nombre}}</span>)</span><span data-lang="id">(Selaku Kuasa dari <span class="f">{{hsn_propietario_nombre}}</span>)</span></p>
+          </td>
+          <td>
+            <div class="role"><span data-lang="es">LA SEGUNDA PARTE (ARRENDATARIO)</span><span data-lang="en">THE SECOND PARTY (LESSEE)</span><span data-lang="id">PIHAK KEDUA (PENYEWA)</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
+            <p style="margin-top:4px;font-size:9pt"><span class="f">{{adq1_nombre}}</span></p>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding-top:8mm">
+            <div class="role"><span data-lang="es">Testigos:</span><span data-lang="en">Witnesses:</span><span data-lang="id">Saksi-saksi:</span></div>
+          </td>
+        </tr>
+        <tr>
+          <!-- líneas en blanco a propósito: los testigos firman en papel, ante notario -->
+          <td>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5)"></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Testigo 1</span><span data-lang="en">Witness 1</span><span data-lang="id">Saksi 1</span></p>
+          </td>
+          <td>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5)"></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Testigo 2</span><span data-lang="en">Witness 2</span><span data-lang="id">Saksi 2</span></p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

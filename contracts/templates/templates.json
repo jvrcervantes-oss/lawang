@@ -91,6 +91,56 @@
         ]}
       ],
       "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
+    },
+    {
+      "slug": "hak_sewa_notario",
+      "name": "Hak Sewa - Notario",
+      "desc": "Arrendamiento de terreno (Hak Sewa) ante notario · Tabanan",
+      "file": "hak_sewa_notario.html",
+      "sections": [
+        { "id": "hs_fecha", "title": "Fecha del contrato", "fields": [
+          ["hsn_dia_semana", "Día de la semana", "text"],
+          ["hsn_dia", "Día del mes (número)", "text"],
+          ["hsn_mes", "Mes (en letras)", "text"],
+          ["hsn_fecha_tabanan", "Fecha de firma en Tabanan", "text"]
+        ]},
+        { "id": "hs_primera_parte", "title": "Primera Parte (arrendador)", "fields": [
+          ["hsn_apoderado_nombre", "Apoderado — nombre", "text"],
+          ["hsn_apoderado_edad", "Apoderado — edad", "text"],
+          ["hsn_apoderado_ocupacion", "Apoderado — ocupación", "text"],
+          ["hsn_apoderado_direccion", "Apoderado — dirección", "text"],
+          ["hsn_poder_fecha", "Poder Especial — fecha", "text"],
+          ["hsn_propietario_nombre", "Propietario — nombre", "text"],
+          ["hsn_propietario_edad", "Propietario — edad", "text"],
+          ["hsn_propietario_ocupacion", "Propietario — ocupación", "text"],
+          ["hsn_propietario_direccion", "Propietario — dirección", "text"]
+        ]},
+        { "id": "comprador", "title": "Segunda Parte (arrendatario)", "fields": [
+          ["adq1_nombre", "Nombre y apellidos", "text"],
+          ["adq1_domicilio", "Dirección", "text"],
+          ["adq1_pasaporte", "Pasaporte", "text"]
+        ]},
+        { "id": "hs_terreno", "title": "Terreno", "fields": [
+          ["hsn_nib", "Nº certificado NIB", "text"],
+          ["hsn_superficie_m2", "Superficie (m²)", "text"],
+          ["hsn_superficie_letras", "Superficie en letras", "text"],
+          ["hsn_village", "Village", "text"],
+          ["hsn_distrito", "Distrito", "text"],
+          ["hsn_regencia", "Regencia", "text"]
+        ]},
+        { "id": "hs_condiciones", "title": "Precio y duración", "fields": [
+          ["hsn_precio_rp", "Precio (Rp)", "text"],
+          ["hsn_precio_letras", "Precio en letras", "text"],
+          ["hsn_anios", "Duración (años)", "text"],
+          ["hsn_anios_letras", "Duración en letras", "text"],
+          ["hsn_anio_inicio", "Año de inicio", "text"],
+          ["hsn_anio_fin", "Año de fin", "text"]
+        ]},
+        { "id": "firmas", "title": "Firmas", "fields": [
+          ["firma_adquiriente", "Firma del arrendatario (Segunda Parte)", "signature"]
+        ]}
+      ],
+      "meta_fields": { "buyer": "adq1_nombre", "project": "proyecto_nombre" }
     }
   ]
 }
