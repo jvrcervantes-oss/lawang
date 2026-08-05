@@ -9,7 +9,15 @@
 # abriéndolo en un navegador. Una lista que hay que acordarse de ampliar no es un
 # guardrail. Si añades un asset nuevo, esto ya lo cubre — pero su etiqueta en el HTML
 # tiene que llevar `?v=` desde el primer día, porque el sed solo sustituye lo que existe.
-changed=$(git diff --cached --name-only | grep -E '^assets/.+\.(js|css)$' || true)
+# ⚠️ El ancla `^assets/` dejaba fuera TODA la suite interna, que vive en
+# `contracts/assets/` (entities.js, brand.css, suite.css, topbar.js, guard.js,
+# suite.js, visor.js…). O sea: este hook presumía de genérico desde el incidente
+# de consent.js y en realidad solo cubría los assets de la web pública. Se
+# descubrió el 6-ago-2026 al sacar las cuentas bancarias de entities.js: el hook
+# no dijo nada y quien paró el push fue la capa 2 (`tools/predeploy.py`).
+# Es el mismo bug que la lista a mano, con otra cara: un ancla que excluye un
+# directorio entero sin avisar. Ahora `assets/` en cualquier profundidad.
+changed=$(git diff --cached --name-only | grep -E '(^|/)assets/.+\.(js|css)$' || true)
 [ -z "$changed" ] && exit 0
 ver=$(date +%Y%m%d%H%M%S)
 # La lista de PAGINAS era el mismo bug que la de assets: index/thecollection/legal a mano,
