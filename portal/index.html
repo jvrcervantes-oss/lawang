@@ -337,8 +337,13 @@
   }
   function dinero(n, moneda){
     if (n == null || isNaN(n)) return '—';
+    // `useGrouping:'always'` porque el español NO agrupa los números de cuatro
+    // cifras: en la columna de un plan de pagos salía «5000 €» encima de
+    // «20.000 €» y la lista parecía descuadrada. Los navegadores viejos ignoran
+    // la opción sin romperse.
     try { return new Intl.NumberFormat(LANG === 'es' ? 'es-ES' : 'en-GB',
-            { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0 }).format(n); }
+            { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0,
+              useGrouping:'always' }).format(n); }
     catch(e){ return n.toLocaleString() + ' ' + (moneda || ''); }
   }
   function fecha(f){
@@ -357,7 +362,11 @@
   /* ── RUTAS: la URL dice siempre dónde estás ───────────────────────────
      Estándar del estudio (routing con URL real): la sección viva en el hash,
      de forma que se pueda compartir, recargar y volver con el botón atrás.
-     Rutas: #/contratos · #/facturas · #/obra · #/factura/INV00001
+     Rutas: #/contratos · #/facturas · #/obra · #/facturas/INV00001
+     Una sola palabra por sección: la primera versión leía `#/factura/NUM` en
+     singular y escribía `#/facturas/NUM` en plural, así que el enlace a un
+     documento cambiaba la URL y no abría nada. Dos vocabularios para lo mismo
+     es siempre el mismo bug.
      El enlace del correo llega con `#access_token=…`; en cuanto supabase-js
      lo consume, se sustituye por la ruta limpia — antes quedaba un `/portal/#`
      colgando, que no dice nada y ensucia el historial. */
@@ -367,8 +376,8 @@
   function leeHash(){
     var h = (location.hash || '').replace(/^#\/?/, '');
     var partes = h.split('/').filter(Boolean);
-    if (partes[0] === 'factura' && partes[1]) return { sec:'facturas', doc:decodeURIComponent(partes[1]) };
-    if (SECCIONES.indexOf(partes[0]) !== -1) return { sec:partes[0], doc:null };
+    if (SECCIONES.indexOf(partes[0]) !== -1)
+      return { sec:partes[0], doc:partes[1] ? decodeURIComponent(partes[1]) : null };
     return { sec:'contratos', doc:null };
   }
   function vasA(sec, doc, reemplaza){
@@ -586,6 +595,10 @@
   document.getElementById('tabs').addEventListener('click', function(e){
     var b = e.target.closest('.tab'); if (!b) return;
     vasA(b.dataset.sec, null);
+    // Sin esto se cambia de pestaña y la nueva sección aparece empezada por la
+    // mitad, en la altura a la que estabas leyendo la anterior. Al volver con el
+    // botón atrás NO se toca el scroll: ahí conservar el sitio es lo correcto.
+    window.scrollTo({ top:0, behavior:'smooth' });
   });
 
   /* ── ficheros privados: siempre URL firmada de corta vida ─────────── */
