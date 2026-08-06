@@ -619,8 +619,17 @@ $('#mailSend').onclick = async () => {
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
     const d = collect();
+    /* Cabecera de sesión: send_email.php EXIGE credencial desde el 6-ago-2026
+       (antes le bastaba `Origin`, que un curl se salta, y con eso cualquiera
+       mandaba correo con la marca de Lawang). Sin token responde 401 y el aviso
+       lo ve quien emite — significa que su sesión ha caducado.
+       `X-Suite-Token` y no `Authorization`: Apache no siempre entrega esa última
+       a PHP según el SAPI, y el fallo sería un 401 al mandar una factura. */
+    const ses = await sb.auth.getSession();
+    const tok = ses && ses.data && ses.data.session && ses.data.session.access_token;
     const r = await fetch('/contracts/api/send_email.php', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: Object.assign({'Content-Type':'application/json'},
+                                            tok ? { 'X-Suite-Token': tok } : {}),
       body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
         filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
         html: paginaParaEmail() }) });

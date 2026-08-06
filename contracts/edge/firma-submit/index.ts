@@ -89,7 +89,14 @@ async function enviarEmail(p: {
 }) {
   const r = await fetch(SITIO + '/contracts/api/send_email.php', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    /* `X-Render-Secret` autentica esta función ante send_email.php desde el
+       6-ago-2026: ese endpoint ya no admite peticiones sin credencial (antes le
+       bastaba `Origin`, que un curl se salta). Se reusa el secreto del servicio
+       de render a propósito — esta función no tiene sesión de usuario, y crear un
+       secreto nuevo habría dejado el arreglo pendiente de que el owner lo pusiera
+       en dos sitios. Es el mismo valor que `private/mail.php.pdf_service_secret`.
+       ponytail: si se rota, se rota en los dos lados. */
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
     body: JSON.stringify({
       to: p.to, subject: p.subject, message: p.message,
       ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),

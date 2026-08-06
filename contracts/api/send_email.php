@@ -9,10 +9,27 @@
  *   - si no → mail() nativo de PHP con sales@lawangproperties.com, igual que
  *     hasta ahora (fallback automático, no rompe nada si aún no se configuró)
  *
- * Sin autenticación (a diferencia del resto de la app, que sí exige login
- * real desde jul-2026): el único filtro es que la petición venga del propio
- * origen. No es a prueba de un atacante decidido con curl -- si esto pasa a
- * tener volumen real de uso, añadir auth de verdad.
+ * AUTENTICACIÓN (6-ago-2026). Antes el único filtro era same-origin, que un
+ * `curl` sin cabecera `Origin` se salta entero: cualquiera podía usar nuestro
+ * SMTP para escribir a quien quisiera con la marca de Lawang. Eso es materia
+ * prima de phishing, no una molestia.
+ * Tres vías, porque hay tres llamantes legítimos y ninguno comparte credencial:
+ *   1. SESIÓN de la suite  — el navegador manda su access token de Supabase en
+ *      `Authorization: Bearer`; se valida contra /auth/v1/user del proyecto.
+ *      Lo usan contratos y facturas.
+ *   2. SECRETO COMPARTIDO  — la Edge `firma-submit` manda `X-Render-Secret`, que
+ *      es el MISMO secreto del servicio de render que esta config ya tiene. No
+ *      se inventa un secreto nuevo: la Edge no tiene sesión de usuario y crear
+ *      uno habría dejado esto pendiente del owner. ponytail: si algún día ese
+ *      secreto se rota por otro motivo, hay que rotarlo en los dos sitios; la
+ *      salida limpia sería un secreto propio en private/mail.php.
+ *   3. AVISO INTERNO       — sin credencial se admite SOLO correo de texto (sin
+ *      adjunto) a una dirección de NUESTRO dominio. Es lo que hace el aviso
+ *      nocturno de almacenamiento (`sql/aviso_almacenamiento.sql`, vía pg_net
+ *      desde Postgres, que no puede llevar secreto sin escribirlo en el cuerpo
+ *      de la función). Un tercero que abuse de esta vía solo consigue escribir
+ *      a nuestro propio buzón: no hay víctima externa ni suplantación.
+ * El same-origin se conserva como primera criba, pero ya no es la única.
  */
 declare(strict_types=1);
 
@@ -35,6 +52,60 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { fail('Método no permitido', 405); 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin !== '' && parse_url($origin, PHP_URL_HOST) !== ($_SERVER['HTTP_HOST'] ?? null)) {
   fail('Origen no permitido', 403);
+}
+
+// ---- config de private/mail.php (SMTP + servicio de render), si existe ----
+// Se carga ANTES de autenticar: la vía 2 compara contra `pdf_service_secret`.
+$mailConfig = null;
+$mailConfigPath = __DIR__ . '/../private/mail.php';
+if (is_file($mailConfigPath)) {
+  $cfg = require $mailConfigPath;
+  if (is_array($cfg) && !empty($cfg['smtp_pass']) && $cfg['smtp_pass'] !== 'CAMBIAR_POR_LA_REAL') {
+    $mailConfig = $cfg;
+  }
+}
+
+// ---- auth, vías 1 y 2 (las que se resuelven con cabeceras) ----
+const SUPA_URL  = 'https://vtulllundrfennhjddhc.supabase.co';
+const SUPA_ANON = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publishable: va en el front, no es secreto
+
+/** ¿El bearer es una sesión viva de la suite? Se pregunta a Supabase en vez de
+ *  verificar la firma aquí: son 10 líneas contra montar validación de JWKS en
+ *  PHP a mano, y de paso una cuenta revocada deja de valer al instante. */
+function sesion_valida(string $jwt): bool {
+  $ch = curl_init(SUPA_URL . '/auth/v1/user');
+  curl_setopt_array($ch, [
+    CURLOPT_HTTPHEADER => ['apikey: ' . SUPA_ANON, 'Authorization: Bearer ' . $jwt],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 10,
+  ]);
+  $resp = curl_exec($ch);
+  $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+  // 200 con un `id` dentro = usuario real. Un 200 sin id no debería pasar, pero
+  // dar por bueno un cuerpo que no se ha mirado es cómo se cuelan estas cosas.
+  return $code === 200 && is_string($resp) && str_contains($resp, '"id"');
+}
+
+$autorizado = false;
+$via = '';
+/* El token se lee de DOS cabeceras y `X-Suite-Token` es la que usa el front.
+   Motivo: Apache no siempre entrega `Authorization` a PHP (se pierde según el
+   SAPI y hace falta `CGIPassAuth` o una regla de rewrite). Si eso pasara aquí,
+   el correo de contratos y de facturas moriría con un 401 y el diagnóstico
+   sería "pues a mí me funcionaba". Una cabecera `X-` nunca se filtra.
+   `Authorization` se sigue aceptando para no romper a ningún llamante que ya la
+   mande — y porque es la forma estándar. */
+$bearer = trim($_SERVER['HTTP_X_SUITE_TOKEN'] ?? '');
+if ($bearer === '' && preg_match('/^Bearer\s+(.+)$/i', trim($_SERVER['HTTP_AUTHORIZATION'] ?? ''), $m)) {
+  $bearer = trim($m[1]);
+}
+$secreto = trim($_SERVER['HTTP_X_RENDER_SECRET'] ?? '');
+if ($secreto !== '' && $mailConfig && !empty($mailConfig['pdf_service_secret'])
+    && hash_equals((string) $mailConfig['pdf_service_secret'], $secreto)) {
+  $autorizado = true; $via = 'servicio';                      // vía 2: la Edge de firma
+} elseif ($bearer !== '' && $bearer !== SUPA_ANON && sesion_valida($bearer)) {
+  $autorizado = true; $via = 'sesion';                        // vía 1: equipo con login
 }
 
 $in = json_decode(file_get_contents('php://input') ?: '[]', true);
@@ -67,15 +138,28 @@ if ($attach && $pdfB64 === '' && $html === '') { fail('Falta el PDF o el HTML a 
 if (strlen($pdfB64) > 140 * 1024 * 1024) { fail('El PDF es demasiado grande'); }
 if (strlen($html) > 25 * 1024 * 1024) { fail('El HTML es demasiado grande'); }
 
-// ---- config de private/mail.php (SMTP + servicio de render), si existe ----
-$mailConfig = null;
-$mailConfigPath = __DIR__ . '/../private/mail.php';
-if (is_file($mailConfigPath)) {
-  $cfg = require $mailConfigPath;
-  if (is_array($cfg) && !empty($cfg['smtp_pass']) && $cfg['smtp_pass'] !== 'CAMBIAR_POR_LA_REAL') {
-    $mailConfig = $cfg;
-  }
+/* ---- auth, vía 3: aviso interno sin credencial ----
+   Se decide aquí y no arriba porque depende del contenido: solo pasa un correo
+   de TEXTO (sin adjunto) dirigido a NUESTRO propio dominio. Es lo que manda el
+   aviso nocturno de almacenamiento desde Postgres con pg_net, que no puede
+   llevar un secreto sin escribirlo en el cuerpo de la función.
+   Lo que esto NO permite, que es el punto: escribir a un tercero, ni adjuntar un
+   PDF con pinta de contrato. Un abuso de esta vía solo llena nuestro buzón. */
+$DOMINIO = 'lawangproperties.com';
+$interno = !$attach
+  && preg_match('/@(.+)$/', $to, $md)
+  && (strcasecmp($md[1], $DOMINIO) === 0 || str_ends_with(strtolower($md[1]), '.' . $DOMINIO));
+if (!$autorizado && $interno) { $autorizado = true; $via = 'aviso-interno'; }
+
+if (!$autorizado) {
+  // 401 y no 403: falta credencial, no es que la credencial no valga.
+  fail('No autorizado: hace falta una sesión de la suite (X-Suite-Token) '
+     . 'o el secreto del servicio. Solo los avisos internos de texto a @' . $DOMINIO . ' van sin credencial.', 401);
 }
+// Qué vía autorizó cada envío. Un solo renglón, y es el dato con el que se
+// comprueba en producción que los tres llamantes entran por donde deben — sin
+// esto, "funciona" y "funciona por la puerta de atrás" se ven igual.
+error_log('send_email: autorizado por ' . $via . ' -> ' . $to);
 
 // ---- PDF: renderizado con Chromium real (Railway) si hay HTML + servicio
 // configurado; si eso falla o no está configurado, cae al adjunto manual
