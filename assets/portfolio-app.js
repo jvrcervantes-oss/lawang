@@ -22,9 +22,9 @@
     overlay:null,
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0,
-    plotCode:null, plotFocusCode:null, plotsStatus:{}, plotsStatusFor:null
+    plotCode:null, plotFocusCode:null, plotsStatus:{}, plotsStatusFor:null, plotsStatusOk:false
   };
-  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.tabImg=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; S.plotCode=null; S.plotFocusCode=null; S.plotsStatus={}; S.plotsStatusFor=null; }
+  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.tabImg=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; S.plotCode=null; S.plotFocusCode=null; S.plotsStatus={}; S.plotsStatusFor=null; S.plotsStatusOk=false; }
 
   // ── Helpers ────────────────────────────────────────────────
   function t(key){ var e = L.DICT[key]; if(!e) return key; return (e[S.lang] != null ? e[S.lang] : e.en); }
@@ -784,8 +784,12 @@
   // vive en data.json: se pide en vivo a una función pública de Supabase que solo devuelve
   // codigo/estado/superficie_m2 de los códigos que esta misma ficha declara — nunca
   // precio/contrato_id/notas (ver operaciones/sql/unidades_estado_publico_rpc.sql). Si la
-  // petición falla o el proyecto no tiene fila en `unidades`, los pines quedan "sin dato" y
-  // SIGUEN siendo clicables: un fallo de red no debe impedir vender (degradación silenciosa).
+  // petición falla, los pines quedan "sin dato" y SIGUEN siendo clicables: un fallo de red no
+  // debe impedir vender (degradación silenciosa). Pero si la petición SÍ responde y un código
+  // concreto no aparece en la respuesta -- no tiene fila en `unidades`, típicamente un pin que el
+  // admin coloco antes de que el equipo diera de alta esa parcela -- ya no se trata como "sin
+  // dato": se bloquea (hallazgo Legal, deploy 6-ago). Lo distingue S.plotsStatusOk: solo pasa a
+  // true cuando la respuesta llegó de verdad, nunca en el catch.
   function fetchPlotsStatus(p){
     var base = L.SETTINGS && L.SETTINGS.supabaseUrl, key = L.SETTINGS && L.SETTINGS.supabaseKey;
     if(!base || !key || !p.masterplanProject || !p.masterplanPlots || !p.masterplanPlots.length) return;
@@ -799,8 +803,9 @@
     }).then(function(r){ return r.ok ? r.json() : []; }).then(function(rows){
       var map={}; (rows||[]).forEach(function(row){ map[row.codigo]=row; });
       S.plotsStatus = map;
+      S.plotsStatusOk = true;
       render();
-    }).catch(function(){ /* sin red: los pines siguen "sin dato" y clicables */ });
+    }).catch(function(){ /* sin red: los pines siguen "sin dato" y clicables (plotsStatusOk queda false) */ });
   }
   // Emparejar el m² real de la parcela con el escalón de precio del configurador (landOptions
   // viene por tamaño, no por código individual — así lo carga hoy el admin).
@@ -809,18 +814,19 @@
     for(var i=0;i<cfg.landOptions.length;i++){ if(Number(cfg.landOptions[i].size)===Number(size)) return i; }
     return -1;
   }
+  function plotClickable(estado){ return estado==="disponible" || (!estado && !S.plotsStatusOk); }
   var PLOT_ESTADO_CLASS = {disponible:"ok", reservada:"held", vendida:"gone", bloqueada:"gone", no_disponible:"gone"};
   function masterplanPickerHTML(p, cfg){
     fetchPlotsStatus(p);  // idempotente: sale al toque si ya se pidió para esta ficha
-    var focus = S.plotFocusCode, focusRow = focus ? p.masterplanPlots.filter(function(pt){return pt.code===focus;})[0] : null;
+    var focus = S.plotFocusCode;
     var focusStatus = focus ? S.plotsStatus[focus] : null;
     var focusIdx = focusStatus ? landIdxForSize(cfg, focusStatus.superficie_m2) : -1;
     var focusEstado = focusStatus ? focusStatus.estado : null;
-    var focusClickable = !focusEstado || focusEstado==="disponible";
+    var focusClickable = plotClickable(focusEstado);
     var pins = p.masterplanPlots.map(function(pt){
       var st = S.plotsStatus[pt.code], estado = st ? st.estado : null;
       var cls = estado ? (PLOT_ESTADO_CLASS[estado]||"") : "unknown";
-      var clickable = !estado || estado==="disponible";
+      var clickable = plotClickable(estado);
       var isOn = S.plotCode===pt.code, isFocus = focus===pt.code;
       return '<button class="mp-pin mp-'+cls+(isOn?" on":"")+(isFocus?" focus":"")+'" style="left:'+pt.x+'%;top:'+pt.y+'%" '
         + (clickable?'data-act="plotpin:'+esc(pt.code)+'"':'disabled')
@@ -946,7 +952,11 @@
     var model=(cfg.models&&cfg.models[cfg.modelIdx])||null;
     var selExtras=(cfg.extrasList||[]).filter(function(e,i){return S.extrasSel[i];});
     var lines=[t("reserve.msg"),"","• "+pick(p.title)];
-    if(parcel) lines.push("• "+t("cfg.step.land")+(S.plotCode?" "+S.plotCode:"")+" · "+parcel.size+" m² ("+money(parcel.priceEUR)+")");
+    // Un pin del masterplan puede no encontrar escalón exacto en landOptions (m² real de
+    // `unidades` sin correspondencia) -- eso no debe borrar la parcela del mensaje entero,
+    // solo el precio (hallazgo Administración, deploy 6-ago).
+    if(S.plotCode) lines.push("• "+t("cfg.step.land")+" "+S.plotCode+(parcel?" · "+parcel.size+" m² ("+money(parcel.priceEUR)+")":" · "+tl("price on request","precio a consultar")));
+    else if(parcel) lines.push("• "+t("cfg.step.land")+" · "+parcel.size+" m² ("+money(parcel.priceEUR)+")");
     if(model)  lines.push("• "+model.name+" ("+money(model.priceEUR)+")");
     if(selExtras.length) lines.push("• "+t("cfg.step.extras")+": "+selExtras.map(function(e){return e.name;}).join(", "));
     lines.push("", t("fin.total")+": "+money(total));
