@@ -1878,8 +1878,20 @@ function applyPromotor(data){
    imprime esto — ver buildDoc). Los bloques <!--if:regimen_tenencia=CODE--> siguen
    usando el código crudo, no se ven afectados. */
 const REGIMEN_LABEL = { hgb:'HGB (Hak Guna Bangunan)', leasehold:'Hak Sewa (Leasehold)', hak_milik:'Hak Milik (SHM)' };
-function datosBancariosHTML(){
-  const key = collect().cuenta_bancaria;
+/* Tabla de UNA cuenta, por su clave. Sale de datosBancariosHTML() para poder
+   pintar también las cuentas FIJAS de una plantilla (ver el marcador
+   <!--cuenta:CLAVE--> en buildDoc): los dos documentos del C2 de Bonian llevan
+   DOS cuentas a propósito —el escrow del notario para el hito 1 y la de empresa
+   para los hitos 2 a 8— y el select de contrato solo da una.
+   `o.titulo`: cabecera «Datos bancarios». Las plantillas que ya traen su propio
+   epígrafe numerado la piden a false.
+   `o.escrow`: la fila «Naturaleza de la cuenta … ESCROW» que se añade sola a las
+   claves `notario_*`. A false donde el texto del contrato ya lo declara en prosa
+   —como el C2— para no meter una frase nueva en un documento legal sin que nadie
+   la haya pedido.
+   `o.clase`: clase de la tabla, para respetar la maqueta de cada plantilla. */
+function tablaCuentaHTML(key, o){
+  o = o || {};
   const c = CUENTAS_BANCARIAS[key];
   if(!c) return '';
   // val puede ser un dato (número de cuenta, dirección…) o un texto con palabras.
@@ -1893,14 +1905,16 @@ function datosBancariosHTML(){
   // una fila que lo declara. ponytail: título/valor por defecto — el cliente puede
   // afinar el texto exacto aquí sin tocar nada más.
   const esNotario = key.startsWith('notario_');
-  const filaNotario = esNotario
+  const filaNotario = (esNotario && o.escrow !== false)
     ? row('Naturaleza de la cuenta','Account type','Jenis rekening', {
         es:'Cuenta ESCROW de notario designado — depósito en garantía',
         en:'ESCROW account of the appointed notary — funds held in escrow',
         id:'Rekening ESCROW notaris yang ditunjuk — dana dititipkan pada rekening penampungan (escrow)' })
     : '';
-  return `<h2><span data-lang="es">Datos bancarios</span><span data-lang="en">Bank details</span><span data-lang="id">Rincian bank</span></h2>
-    <table class="pays"><tbody>
+  const titulo = o.titulo === false ? ''
+    : `<h2><span data-lang="es">Datos bancarios</span><span data-lang="en">Bank details</span><span data-lang="id">Rincian bank</span></h2>`;
+  return `${titulo}
+    <table class="${o.clase || 'pays'}"><tbody>
       ${filaNotario}
       ${row('Titular','Account holder','Pemegang rekening', c.titular)}
       ${row('Banco','Bank','Bank', c.banco)}
@@ -1910,6 +1924,8 @@ function datosBancariosHTML(){
       ${row('Nota','Note','Catatan', c.extra)}
     </tbody></table>`;
 }
+/* la cuenta que el agente ELIGE en el select del contrato */
+function datosBancariosHTML(){ return tablaCuentaHTML(collect().cuenta_bancaria, {}); }
 
 /* acordeón: click en la cabecera pliega/despliega (e inicializa pads al abrir) */
 function wireAccordions(){
@@ -2113,6 +2129,19 @@ function buildDoc(){
   html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
   html=html.replace('<!--datos-bancarios-->', datosBancariosHTML());   // tabla de la cuenta bancaria elegida
+  /* <!--cuenta:CLAVE--> : cuenta FIJA de la plantilla, resuelta contra
+     `cuentas_bancarias`. Existe porque un documento puede pactar MÁS DE UNA
+     cuenta (el C2 de Bonian: escrow del notario para el hito 1, empresa para los
+     hitos 2 a 8) y el select del contrato solo da una.
+     Nació el 6-ago-2026 para sacar los dos números que estaban escritos a pelo
+     dentro de `ppjb_bonian_c2.html` y `anexo_y_bonian_c2.html` — dos plantillas
+     que se sirven con 200 SIN login y están en el repo público. La CLAVE no es
+     un secreto; el número lo trae la base.
+     Sin cabecera y sin la fila de escrow: esas plantillas ya traen su epígrafe
+     numerado y declaran el escrow en prosa. Si la clave no existe no imprime
+     nada — igual que el select, nunca una cuenta adivinada. */
+  html=html.replace(/<!--cuenta:([a-z0-9_]+)-->/g,
+    (_m, clave) => tablaCuentaHTML(clave, { titulo:false, escrow:false, clase:'pays kv' }));
   html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
   // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
   html=html.replace(/<span class="f">(\{\{([a-z0-9_]+)\}\})<\/span>/g,(m,mk,k)=>`<span class="f ${sizeClass(k)}">${mk}</span>`);
