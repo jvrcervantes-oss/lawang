@@ -60,6 +60,23 @@
      estás. Pasa en cuanto un comprador entra sin contratos todavía. */
   .sui-chip.on{ opacity:1; }
 
+  /* ── NAVEGACIÓN PEGADA (6-ago-2026, secciones apiladas) ─────────────────
+     Con las cuatro secciones en una sola pasada, los chips dejan de ser un
+     filtro y pasan a ser el índice: si no se quedan a la vista, a media página
+     no hay forma de saltar a «Documentos» sin subir del todo.
+     `top:0` dentro de `.sui-stage`, que es el contenedor que desplaza — no la
+     ventana. El fondo es opaco a propósito: con el papel translúcido, las filas
+     de la tabla se leían POR DEBAJO de los chips al pasar. */
+  #chips{ position:sticky; top:0; z-index:12; background:var(--sup-0);
+          padding:var(--e2) 0; margin:0 0 var(--e3); }
+  /* Y el hueco que deja la barra pegada: sin esto, desplazarse a una sección
+     deja su titular JUSTO DEBAJO de los chips y parece que no ha pasado nada.
+     `scroll-margin-top` es exactamente para esto y no hace falta calcular nada. */
+  #secContratos, #secFacturas, #secObra, #secDocumentos{ scroll-margin-top:62px; }
+  /* Aire entre secciones: apiladas sin separación se leen como una sola lista
+     larga y el índice deja de significar algo. */
+  #secFacturas, #secObra, #secDocumentos{ margin-top:var(--e6); }
+
   /* ── encabezado de página: mismo registro que la intranet ──────────────
      Rótulo en Jost, no en serif. La display se reserva a la marca; en una
      herramienta, un titular serif de 40px es ruido (manual del estudio). */
@@ -194,10 +211,18 @@
       <div class="sui-resumen" id="resumen"></div>
       <div class="sui-filtros" id="chips"></div>
 
+      <!-- Las cuatro APILADAS desde el 6-ago-2026 (antes se enseñaba una y se
+           ocultaban tres). El comprador entra a leer «cómo va lo mío» y eso se
+           responde de una pasada: su contrato, lo que ha pagado, la obra y sus
+           documentos. Cambiar de pestaña para reconstruir esa respuesta era
+           trabajo que le tocaba a él.
+           Las RUTAS se conservan enteras: el hash ya no cambia de vista, ahora
+           DESPLAZA hasta la sección. `#/facturas/INV00001` sigue abriendo ese
+           documento, que es lo que llevan los correos ya enviados. -->
       <section id="secContratos"></section>
-      <section id="secFacturas" hidden></section>
-      <section id="secObra" hidden></section>
-      <section id="secDocumentos" hidden></section>
+      <section id="secFacturas"></section>
+      <section id="secObra"></section>
+      <section id="secDocumentos"></section>
 
       <p class="sui-nota" style="margin-top:var(--e6);text-align:center">
         <span data-t="pie">¿Dudas? Escríbenos a</span>
@@ -329,15 +354,35 @@
     if (reemplaza){ history.replaceState(null, '', url); aplicaRuta(); }
     else location.hash = url;
   }
+  var SEC_ID = { contratos:'secContratos', facturas:'secFacturas', obra:'secObra', documentos:'secDocumentos' };
+
+  /* Con las secciones apiladas, «ir a una sección» es DESPLAZARSE hasta ella.
+     `PROGRAMADO` existe porque durante un desplazamiento suave el vigía de abajo
+     va viendo pasar secciones intermedias: sin la bandera reescribiría el hash
+     tres veces de camino y la última ganaría, dejando la URL en una sección por la
+     que solo se pasó. Se apaga con `scrollend` donde existe y con un plazo donde
+     no (Safari todavía no lo trae). */
+  var PROGRAMADO = false, _tProg = null;
+  function desplazaA(sec){
+    var el = document.getElementById(SEC_ID[sec] || '');
+    if (!el) return;
+    PROGRAMADO = true;
+    clearTimeout(_tProg);
+    _tProg = setTimeout(function(){ PROGRAMADO = false; }, 900);
+    el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  (function(){
+    var caja = document.querySelector('.sui-stage');
+    if (caja && 'onscrollend' in window)
+      caja.addEventListener('scrollend', function(){ PROGRAMADO = false; clearTimeout(_tProg); });
+  })();
+
   function aplicaRuta(){
     RUTA = leeHash();
-    document.getElementById('secContratos').hidden  = RUTA.sec !== 'contratos';
-    document.getElementById('secFacturas').hidden   = RUTA.sec !== 'facturas';
-    document.getElementById('secObra').hidden       = RUTA.sec !== 'obra';
-    document.getElementById('secDocumentos').hidden = RUTA.sec !== 'documentos';
     document.querySelectorAll('#chips .sui-chip').forEach(function(b){
       b.classList.toggle('on', b.dataset.sec === RUTA.sec);
     });
+    desplazaA(RUTA.sec);
     var docAbierto = suiCajonAbierto() ? document.getElementById('suiCajon').dataset.doc : null;
     if (RUTA.doc){
       if (docAbierto !== RUTA.doc){
@@ -347,6 +392,41 @@
     } else if (docAbierto) suiCerrarCajon();
   }
   window.addEventListener('hashchange', aplicaRuta);
+
+  /* ── VIGÍA: qué sección se está leyendo ──────────────────────────────────
+     Marca el chip Y actualiza la URL, con `replaceState` — así el enlace que se
+     copia sigue diciendo dónde estás, que es la norma del estudio, sin llenar el
+     historial de pasos por los que solo se pasó desplazándose.
+     Se calla en dos casos, y los dos importan:
+     · durante un desplazamiento programado (ver `PROGRAMADO`);
+     · con un documento abierto — si no, desplazarse con el cajón abierto
+       reescribiría `#/facturas/INV00001` como `#/obra` y el enlace del correo
+       dejaría de apuntar a ese documento.
+     `rootMargin` con un -45% arriba: la sección «activa» es la que ocupa el
+     tercio superior de la pantalla, no la que asoma por abajo. */
+  if (window.IntersectionObserver){
+    var vigia = new IntersectionObserver(function(entradas){
+      if (PROGRAMADO || RUTA.doc) return;
+      var visible = entradas.filter(function(e){ return e.isIntersecting; })
+        .sort(function(a,b){ return b.intersectionRatio - a.intersectionRatio; })[0];
+      if (!visible) return;
+      var sec = Object.keys(SEC_ID).filter(function(k){ return SEC_ID[k] === visible.target.id; })[0];
+      if (!sec || sec === RUTA.sec) return;
+      RUTA = { sec:sec, doc:null };
+      document.querySelectorAll('#chips .sui-chip').forEach(function(b){
+        b.classList.toggle('on', b.dataset.sec === sec);
+      });
+      try{ history.replaceState(null, '', '#/' + sec); }catch(_){}
+    /* `root` es `.sui-stage` y NO la ventana: en esta pagina el que desplaza es
+       ese contenedor (`height:100%; overflow:auto` de suite.css), asi que un
+       `rootMargin` medido contra el viewport no habria coincidido con nada. */
+    }, { root:document.querySelector('.sui-stage'),
+         rootMargin:'-45% 0px -45% 0px', threshold:[0, .01, .5] });
+    Object.keys(SEC_ID).forEach(function(k){
+      var el = document.getElementById(SEC_ID[k]);
+      if (el) vigia.observe(el);
+    });
+  }
 
   /* ── arranque ─────────────────────────────────────────────────────── */
   sb.auth.getSession().then(function(r){
