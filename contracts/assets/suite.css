@@ -107,7 +107,20 @@ html[data-densidad="amplia"]  { --fila-y:16px; --fila-x:18px; --fila-fs:14px; }
 
 /* ── esqueleto de página ────────────────────────────────────────────────── */
 .sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,64px); background:var(--sup-0); }
-.sui-centro{ max-width:1240px; margin:0 auto; padding:var(--e5) var(--e5) var(--e7); }
+/* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el
+   relleno del cuerpo es `22px 26px 30px` en la mayoria de pantallas (24 en
+   Contratos y Documentacion, 26/34 en el panel, que lo sobrescribe). */
+.sui-centro{ max-width:1308px; margin:0 auto; padding:22px 26px 30px; }
+
+/* ── CABECERA DE PAGINA — igual en las once herramientas ──────────────────
+   `h1` 21px/500 y bajada 13px, con las acciones a la derecha en la misma linea
+   de base. Estaba escrita a mano en cada pagina con valores distintos (23px aqui,
+   22 alla), que es de donde venia parte del «no se parece». */
+.sui-lede{ display:flex; align-items:baseline; justify-content:space-between;
+  flex-wrap:wrap; gap:12px; margin:0 0 16px; }
+.sui-lede h1{ margin:0; font-size:21px; font-weight:500; color:var(--texto); letter-spacing:0; }
+.sui-lede p{ margin:4px 0 0; font-size:13px; color:var(--texto-2); max-width:70ch; }
+.sui-lede .acciones{ display:flex; gap:8px; flex-wrap:wrap; }
 /* Aquí vivía un desplazamiento de la página en pantallas ≥1500px: con el cajón
    abierto se apartaba `.sui-centro` para hacerle sitio. Retirado el 31-jul-2026
    por tres motivos, y ninguno es estético: llevaba escrito a mano el ancho VIEJO
@@ -126,11 +139,11 @@ html[data-densidad="amplia"]  { --fila-y:16px; --fila-x:18px; --fila-fs:14px; }
 .sui-buscar:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
 .sui-sel{ font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--linea);
   border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
-.sui-chip{ font:inherit; font-size:12px; font-weight:500; letter-spacing:.03em; background:var(--sup-1); border:1px solid var(--linea);
-  border-radius:var(--r-p); padding:7px 13px; min-height:24px; cursor:pointer; color:var(--texto-2);
+.sui-chip{ font:inherit; font-size:12px; font-weight:500; letter-spacing:0; background:var(--sup-1); border:1px solid var(--linea);
+  border-radius:var(--r-p); padding:7px 14px; min-height:24px; cursor:pointer; color:var(--texto-2);
   transition:background var(--t-rapido), border-color var(--t-rapido), color var(--t-rapido); }
 .sui-chip:hover{ border-color:var(--dl,#104C4F); }
-.sui-chip.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
+.sui-chip.on{ background:var(--texto,#21272A); border-color:var(--texto,#21272A); color:#fff; }
 .sui-chip.vacio{ opacity:.45; }
 .sui-chip .n{ opacity:.7; margin-left:4px; font-variant-numeric:tabular-nums; }
 

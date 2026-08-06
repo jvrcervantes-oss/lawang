@@ -15,7 +15,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=66c08acf">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=882de6a8">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="creatividades"></script>
@@ -118,11 +118,21 @@
   .segm button[aria-pressed=true]{ background:#104C4F; border-color:#104C4F; color:#fff }
 
   /* ── Guardrail ──────────────────────────────────────────────────────────────── */
-  .diag{ font-size:13px; line-height:1.45 }
-  .diag .ok{ color:#3F5230; font-weight:600 }
-  .diag ul{ margin:6px 0 0; padding-left:18px }
-  .diag li{ margin:0 0 5px; color:#9E2F26 }
-  .diag li b{ font-weight:600 }
+  /* ── panel de revisión, con los valores de 6b ────────────────────────────
+     Tarjeta blanca, radio 12, `18px 20px`, título 12,5px/600, y una fila por
+     chequeo a 12,5px con `padding:6px 0` separada por filete. El veredicto va a
+     la derecha, en verde o rojo y en 600 — que es lo que hace que se lea el
+     estado sin leer la fila. */
+  .diag{ background:#fff; border:1px solid var(--linea,#E4DCCB); border-radius:12px;
+         padding:18px 20px; max-width:520px; }
+  .rev-t{ font-size:12.5px; font-weight:600; color:var(--texto,#21272A); margin-bottom:10px }
+  .rev-f{ display:flex; justify-content:space-between; gap:14px; font-size:12.5px; padding:6px 0 }
+  .rev-f + .rev-f{ border-top:1px solid var(--linea,#E4DCCB) }
+  .rev-f .bien{ color:#3F5230; font-weight:600 }
+  .rev-f .mal{ color:#9E2F26; font-weight:600 }
+  .rev-por{ margin-top:10px; padding-top:10px; border-top:1px solid var(--linea,#E4DCCB) }
+  .rev-por p{ margin:0 0 6px; font-size:12px; line-height:1.45; color:#9E2F26 }
+  .rev-por p b{ font-weight:600 }
   .aviso{ font-size:12px; color:var(--texto-2,#676B63); margin:8px 0 0; line-height:1.45 }
 </style>
 </head>
@@ -499,8 +509,8 @@ function diagnostico(){
     let minimo = el.dataset.critico ? MIN_CRITICO : MIN_PX;
     if (el.dataset.min) minimo = Math.max(38, +el.dataset.min);
     if (px < minimo){
-      fallos.push('<b>'+nombre+'</b>: '+px+' px, por debajo del mínimo de '+minimo
-        +' px (se vería a '+(px*393/W).toFixed(1)+' pt en un móvil).');
+      fallos.push({ chequeo:'cuerpo', txt:'<b>'+nombre+'</b>: '+px+' px, por debajo del mínimo de '+minimo
+        +' px (se vería a '+(px*393/W).toFixed(1)+' pt en un móvil).', dato:px+' px' });
     }
 
     // Posición absoluta dentro de la pieza (offset* no lo toca el transform de escena)
@@ -521,17 +531,18 @@ function diagnostico(){
     if (l !== null){
       const r = contraste(tinta, l);
       if (r < exigido){
-        fallos.push('<b>'+nombre+'</b>: contraste '+r.toFixed(2)+':1, por debajo del '
+        fallos.push({ chequeo:'contraste', txt:'<b>'+nombre+'</b>: contraste '+r.toFixed(2)+':1, por debajo del '
           +exigido+':1 exigido.'
           + (el.dataset.fondo ? ' Es su propio color de fondo, no la foto.'
-                              : ' Mueve el bloque o busca una zona más oscura de la foto.'));
+                              : ' Mueve el bloque o busca una zona más oscura de la foto.'),
+          dato:r.toFixed(1)+':1' });
       }
     }
 
     if (E.fmt === '9x16'){
       if (y < SEGURO.arriba || y+h > H-SEGURO.abajo || x < SEGURO.izq || x+w > W-SEGURO.der){
-        fallos.push('<b>'+nombre+'</b>: se mete en la zona donde Instagram pinta sus '
-          +'botones. No se ve en la imagen, pero el usuario no lo leerá.');
+        fallos.push({ chequeo:'zona', txt:'<b>'+nombre+'</b>: se mete en la zona donde Instagram pinta sus '
+          +'botones. No se ve en la imagen, pero el usuario no lo leerá.', dato:'invadida' });
       }
     }
   }
@@ -541,20 +552,38 @@ function diagnostico(){
      maqueta que ya se coló una vez por calcular a ojo la altura del bloque de al lado. */
   const ra = $('#bArriba').getBoundingClientRect(), rb = $('#bAbajo').getBoundingClientRect();
   if (ra.bottom > rb.top && rb.bottom > ra.top && ra.right > rb.left && rb.right > ra.left){
-    fallos.push('El bloque de texto y el de contacto <b>se solapan</b>. Arrastra uno de '
-      + 'los dos: encima de la foto puede no verse, pero el texto queda ilegible.');
+    fallos.push({ chequeo:'solape', txt:'El bloque de texto y el de contacto <b>se solapan</b>. Arrastra uno de '
+      + 'los dos: encima de la foto puede no verse, pero el texto queda ilegible.', dato:'se solapan' });
   }
 
   E.fallos = fallos;
   const d = $('#diag');
   if (!E.src){
-    E.fallos = ['No has subido ninguna imagen: la pieza saldría sin foto.'];
-    d.innerHTML = 'Sube una imagen para medir el contraste real.';
+    E.fallos = [{ chequeo:'foto', txt:'No has subido ninguna imagen: la pieza saldría sin foto.', dato:'sin foto' }];
+    d.innerHTML = '<div class="rev-t">Revisión de legibilidad</div>'
+      + '<div class="rev-f"><span>Imagen</span><span class="mal">sin subir</span></div>';
     return;
   }
-  d.innerHTML = fallos.length
-    ? 'Hay que corregir esto antes de pautarla:<ul><li>'+fallos.join('</li><li>')+'</li></ul>'
-    : '<span class="ok">Pasa el guardrail.</span> Cuerpos, contraste y zona segura, medidos.';
+  /* El mockup 6b enseña los chequeos CON NOMBRE y su veredicto al lado, no una lista
+     de fallos. Es mejor presentación del mismo dato medido: se ven los tres y cuál
+     falla, en vez de una lista que está vacía cuando todo va bien y no dice qué se
+     comprobó. Los que fallan siguen explicando POR QUÉ, debajo. */
+  const de = c => fallos.filter(x => x.chequeo === c);
+  const fila = (rot, cs) => {
+    const f = de(cs);
+    return '<div class="rev-f"><span>'+rot+'</span><span class="'+(f.length?'mal':'bien')+'">'
+      + (f.length ? esc(f[0].dato) + (f.length>1 ? ' · +'+(f.length-1) : '') : 'OK')
+      + '</span></div>';
+  };
+  const soloNueveDieciseis = E.fmt === '9x16';
+  d.innerHTML = '<div class="rev-t">Revisión de legibilidad</div>'
+    + fila('Contraste de texto', 'contraste')
+    + fila('Tamaño mínimo de texto', 'cuerpo')
+    + (soloNueveDieciseis ? fila('Zona segura (safe area)', 'zona') : '')
+    + (de('solape').length ? fila('Bloques superpuestos', 'solape') : '')
+    + (fallos.length
+        ? '<div class="rev-por">' + fallos.map(x => '<p>'+x.txt+'</p>').join('') + '</div>'
+        : '');
 }
 
 // ── Arrastre ──────────────────────────────────────────────────────────────────
@@ -620,7 +649,11 @@ async function exportar(){
      más se lee como validado. En la versión de Python la pieza directamente FALLABA; aquí
      hay una persona delante, así que se le nombran los fallos y decide ella. */
   if (E.fallos && E.fallos.length){
-    const lista = E.fallos.map(f => '· ' + f.replace(/<[^>]+>/g, '')).join('\n');
+    // `E.fallos` pasó de cadenas a objetos {chequeo, txt, dato} el 6-ago-2026, para
+    // poder agruparlos por chequeo en el panel de revisión. Este aviso lee el texto:
+    // sin `.txt` lanzaba al pulsar «Descargar PNG», que es justo el momento en que
+    // no puede fallar.
+    const lista = E.fallos.map(f => '· ' + f.txt.replace(/<[^>]+>/g, '')).join('\n');
     if (!confirm('Esta pieza no pasa la revisión:\n\n' + lista +
                  '\n\n¿Descargarla igualmente?')) return;
   }
