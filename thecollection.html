@@ -293,8 +293,47 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .mp-detail-status{ font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
   display:inline-flex; align-self:flex-start; padding:4px 10px; border-radius:999px; background:var(--bone-2); color:var(--ink-2); }
 .mp-detail-status.mp-ok{ background:var(--tg-light); color:var(--tg-dark); }
+.mp-detail-picked{ align-self:flex-start; font-family:var(--sans); font-size:12.5px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--tg-dark); display:flex; align-items:center; gap:6px; }
 .mp-hint{ margin-top:14px; font-family:var(--sans); font-size:13px; font-weight:300; color:var(--ink-2); text-align:center;
   padding:14px; border:1px dashed var(--line); border-radius:14px; }
+
+/* ── THE PAYMENT PLAN — vitrina a sangre (calco Ecomerce.pdf p.4, 6-ago) ──────────────────
+   Foto de la villa a sangre con overlay oscuro; tarjetas icono+monto+% en cascada diagonal
+   (cada paso se desplaza a la derecha y hacia abajo, como en la guía). En movil la cascada no
+   cabe: se endereza a columna vertical bajo 760px, mismo criterio que el resto de la ficha. */
+.pp-bleed{ position:relative; background-size:cover; background-position:center; background-color:#1a160f;
+  padding:clamp(48px,7vw,84px) 0 clamp(40px,6vw,64px); }
+.pp-bleed::before{ content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(10,10,8,.72) 0%,rgba(10,10,8,.42) 32%,rgba(10,10,8,.58) 100%); }
+.pp-bleed-in{ position:relative; max-width:1760px; margin:0 auto; padding:0 clamp(20px,4vw,64px); color:var(--bone); }
+.pp-h1{ font-family:var(--sans); font-weight:300; font-size:clamp(38px,5.2vw,74px); line-height:1.02; letter-spacing:-.01em;
+  color:#fff; margin:6px 0 clamp(26px,3.4vw,42px); text-wrap:balance; }
+.pp-bar{ height:2px; background:rgba(255,255,255,.28); border-radius:2px; max-width:900px; margin-bottom:clamp(28px,4vw,48px); }
+.pp-bar span{ display:block; height:100%; background:#fff; border-radius:2px; }
+.pp-steps{ display:flex; flex-direction:column; gap:clamp(14px,1.8vw,20px); max-width:900px; }
+.pp-step{ display:flex; align-items:center; gap:0; }
+.pp-step2{ margin-left:clamp(28px,7vw,120px); }
+.pp-step3{ margin-left:clamp(56px,14vw,240px); }
+.pp-step4{ margin-left:clamp(84px,21vw,360px); }
+.pp-ic{ flex:none; width:clamp(48px,5.2vw,70px); height:clamp(48px,5.2vw,70px); border-radius:14px; display:grid; place-items:center;
+  color:#fff; box-shadow:0 14px 30px -16px rgba(0,0,0,.7); position:relative; z-index:1; }
+.pp-ic svg{ width:44%; height:44%; }
+.pp-pill{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; background:rgba(18,18,15,.62); backdrop-filter:blur(6px);
+  border-radius:0 12px 12px 0; padding:clamp(10px,1.4vw,16px) clamp(16px,2.2vw,26px) clamp(10px,1.4vw,16px) clamp(20px,2.6vw,28px);
+  margin-left:-12px; }
+.pp-pill b{ font-family:var(--sans); font-size:clamp(17px,1.8vw,23px); font-weight:600; color:#fff; }
+.pp-pill em{ font-style:normal; font-family:var(--sans); font-size:12px; font-weight:500; color:rgba(255,255,255,.65); }
+.pp-pill small{ flex-basis:100%; font-family:var(--sans); font-size:11.5px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:rgba(255,255,255,.85); }
+.pp-delivery{ margin-top:clamp(40px,5.4vw,64px); padding-top:clamp(20px,2.6vw,28px); border-top:1px solid rgba(255,255,255,.25);
+  display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; }
+.pp-delivery-l b{ display:block; font-family:var(--sans); font-size:clamp(24px,2.6vw,34px); font-weight:600; color:#fff; margin-top:4px; }
+.pp-delivery p{ font-family:var(--sans); font-size:12px; font-weight:300; line-height:1.7; color:rgba(255,255,255,.65); max-width:34ch; margin:0; }
+@media(max-width:760px){
+  .pp-step2,.pp-step3,.pp-step4{ margin-left:0; }
+  .pp-pill{ margin-left:10px; border-radius:12px; }
+}
 
 .cfg-homes{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
 .cfg-home{ display:flex; flex-direction:column; }
@@ -1421,7 +1460,7 @@ article:hover .view-cta { gap:9px; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260806145246-mp"></script>
+<script src="assets/portfolio-app.js?v=20260806171548-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

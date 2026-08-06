@@ -569,14 +569,23 @@
   // pares etiqueta/valor con filete (antes el valor iba solo, sin decir de qué era), y el dossier
   // como pie de la hoja. El mapa salió de aquí: se ahogaba en la esquina de una tarjeta estrecha y
   // ahora vive en su propia banda "The Territory" junto a la planta 3D (territoryHTML).
-  function infoCardHTML(p){
+  function infoCardHTML(p, cfg){
     var overview = pick(p.desc);
     var rows = [];
     var add = function(ico, l, v){ if(v!==null && v!==undefined && v!=="") rows.push({ico:ico, l:l, v:String(v)}); };
-    if(p.beds>0)  add("beds",  tl("Bedrooms","Habitaciones"), p.beds);
+    // La ficha técnica sigue lo que se va eligiendo en el configurador (revisión 6-ago): villa
+    // elegida manda sobre hab./construido, parcela elegida en el masterplan manda sobre la
+    // parcela — con su m² REAL (Supabase), no el escalón aproximado de landOptions.
+    var model = (cfg && cfg.models && cfg.modelIdx>=0) ? cfg.models[cfg.modelIdx] : null;
+    var beds = model && model.beds ? model.beds : p.beds;
+    var built = model && model.built ? model.built : p.built;
+    var plotStatus = S.plotCode ? S.plotsStatus[S.plotCode] : null;
+    var plotM2 = (plotStatus && plotStatus.superficie_m2) ? plotStatus.superficie_m2 : p.land;
+    var plotLabel = plotM2 ? (plotM2+" m²"+(S.plotCode?" ("+S.plotCode+")":"")) : null;
+    if(beds>0)  add("beds",  tl("Bedrooms","Habitaciones"), beds);
     if(p.baths>0) add("baths", tl("Bathrooms","Baños"), p.baths);
-    if(p.built>0) add("built", tl("Built area","Construido"), p.built+" m²");
-    if(p.land>0)  add("land",  tl("Plot","Parcela"), p.land+" m²");
+    if(built>0) add("built", tl("Built area","Construido"), built+" m²");
+    if(plotM2>0)  add("land",  tl("Plot","Parcela"), plotLabel);
     if(p.poolType||p.pool) add("pool", tl("Pool","Piscina"), (typeof p.poolType==="string"&&p.poolType)?p.poolType:tl("Private","Privada"));
     if(p.garage)  add("garage", tl("Garage","Garaje"), (typeof p.garageDesc==="string"&&p.garageDesc)?p.garageDesc:tl("Yes","Sí"));
     if(p.furnished) add("furnished", tl("Furnishing","Amueblado"), (typeof p.furnished==="string"&&p.furnished)?p.furnished:tl("Furnished","Amueblada"));
@@ -644,7 +653,7 @@
   //    AERIALS es el fallback del flagship palm-field, cargado antes de que existiera el campo en admin:
   //    en cuanto el cliente lo introduzca en admin.html, p.aerial manda y esta constante puede morir.
   var AERIALS = {
-    "palm-field": {
+    "palm-field-bali": {
       image: "assets/img/palm-field-aerial.jpg",
       ratio: "2806/1504",
       entryPriceEUR: 95000,
@@ -766,6 +775,54 @@
       + '<p style="font-size:11.5px;color:var(--ink-2);margin-top:14px;line-height:1.65">PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>';
   }
 
+  // ── PAYMENT PLAN — vitrina a sangre (calco Ecomerce.pdf p.4, 6-ago) ─────────────────────
+  // Distinta de paymentPlanHTML de arriba: aquella vive DENTRO de la tarjeta blanca del
+  // configurador (resumen compacto mientras se elige); esta es una sección propia a pantalla
+  // completa que aparece SIEMPRE que hay plan+precio, con la foto de la villa a sangre y las
+  // tarjetas en cascada icono+monto+% del PDF. Ambas coexisten a propósito (decisión del
+  // usuario 6-ago): una es el resumen funcional del wizard, la otra la vitrina editorial.
+  var PAY_ICONS = [
+    '<path d="M12 3.5 20.5 18H3.5Z"/><circle cx="12" cy="12" r="1.9"/>',
+    '<path d="M14.6 12a2.6 2.6 0 1 1-2.6-2.6 1.3 1.3 0 1 1-1.3 1.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.2 10.3 7 11M4.2 13.7 7 13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>',
+    '<path d="M12 4.5 19.5 16h-15Z" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="16.7" width="17" height="1.8" rx="0.9"/><path d="M12 4.5v3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+    '<path d="M6.3 7.5h2.9l-.55 9h-1.8Z"/><path d="M10.55 6.6h2.9l-.6 9.9h-1.8Z"/><path d="M14.8 7.5h2.9l-.55 9h-1.8Z"/>'
+  ];
+  var PAY_STEP_HUES = [
+    {top:"#6b7857",bot:"#242819"}, {top:"#0a4d50",bot:"#001a1b"},
+    {top:"#4e1c05",bot:"#100500"}, {top:"#25390f",bot:"#0a1004"}
+  ];
+  function paymentPlanBleedHTML(p, cfg){
+    // cfg.configuredEUR es 0 (no null) mientras no se ha elegido parcela/villa todavia -- que es
+    // el estado en el que llega CUALQUIER visitante nuevo, porque esta seccion se ve sin haber
+    // tocado el configurador. Antes de esa eleccion se muestra el precio base del listado.
+    var price = (cfg && cfg.configuredEUR>0) ? cfg.configuredEUR : p.priceEUR;
+    if(!price || !isFinite(price)) return "";
+    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
+    if(!steps || !steps.length) return "";
+    // Foto: mismo campo/orden de fallback que bleedSectionHTML — nunca un placeholder inventado.
+    var bgKey = p.bleedImage || (p.imgKeys&&p.imgKeys[1]) || (p.imgKeys&&p.imgKeys[0]);
+    var bg = bgKey ? imgUrl(bgKey, 2400) : null;
+    var frac = 1/Math.max(steps.length*2.2, 1);  // decorativo: "arrancas el viaje", no hay estado real de comprador que leer en la web pública
+    var cards = steps.slice(0,4).map(function(s,i){
+      var hue = PAY_STEP_HUES[i]||PAY_STEP_HUES[0], icon = PAY_ICONS[i]||PAY_ICONS[0];
+      var amount = money(Math.round(price*s.pct/100));
+      return '<div class="pp-step pp-step'+(i+1)+'">'
+        + '<span class="pp-ic" style="background:linear-gradient(160deg,'+hue.top+','+hue.bot+')"><svg viewBox="0 0 24 24" fill="currentColor">'+icon+'</svg></span>'
+        + '<span class="pp-pill"><b>'+amount+'</b><em>'+s.pct+'%</em><small>'+esc(s.label)+'</small></span>'
+        + '</div>';
+    }).join("");
+    var deliveryTxt = p.handover || "";
+    return '<div class="pp-bleed"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
+      + '<div class="pp-bleed-in">'
+      + '<div class="kicker" style="color:var(--sc)">'+tl("Control your investment in","Controla tu inversión en")+'</div>'
+      + '<h2 class="pp-h1">'+t("pay.title")+'</h2>'
+      + '<div class="pp-bar"><span style="width:'+(frac*100).toFixed(1)+'%"></span></div>'
+      + '<div class="pp-steps">'+cards+'</div>'
+      + (deliveryTxt ? '<div class="pp-delivery"><div class="pp-delivery-l"><span class="kicker" style="color:rgba(245,240,230,.7)">'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>'
+        + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>' : "")
+      + '</div></div>';
+  }
+
   function configState(p){
     var landOptions=resolveLand(p), models=resolveHomes(p), extrasList=resolveExtras(p);
     var safeParcel=(landOptions&&S.parcelIdx>=0&&S.parcelIdx<landOptions.length)?S.parcelIdx:-1;
@@ -828,8 +885,10 @@
       var cls = estado ? (PLOT_ESTADO_CLASS[estado]||"") : "unknown";
       var clickable = plotClickable(estado);
       var isOn = S.plotCode===pt.code, isFocus = focus===pt.code;
+      // Un clic selecciona directamente (revisión usuario 6-ago: "no tengo que darle de nuevo a
+      // selected") — antes hacía falta un segundo clic en el botón del detalle.
       return '<button class="mp-pin mp-'+cls+(isOn?" on":"")+(isFocus?" focus":"")+'" style="left:'+pt.x+'%;top:'+pt.y+'%" '
-        + (clickable?'data-act="plotpin:'+esc(pt.code)+'"':'disabled')
+        + (clickable?'data-act="plotpick:'+esc(pt.code)+'"':'disabled')
         + ' aria-pressed="'+(isOn?"true":"false")+'"><span>'+esc(pt.code)+'</span></button>';
     }).join("");
     var detail;
@@ -843,7 +902,8 @@
         + '<div class="mp-detail-code">'+esc(focus)+'</div>'
         + '<div class="mp-detail-row"><span>'+sizeTxt+'</span><span>'+priceTxt+'</span></div>'
         + '<div class="mp-detail-status mp-'+(PLOT_ESTADO_CLASS[focusEstado]||"unknown")+'">'+esc(statusTxt)+'</div>'
-        + (focusClickable ? '<button class="cfg-btn cfg-btn-go" data-act="plotpick:'+esc(focus)+'">'+(S.plotCode===focus?"✓ "+tl("Selected","Seleccionada"):tl("Select this plot","Elegir esta parcela"))+'</button>' : '')
+        + (S.plotCode===focus ? '<span class="mp-detail-picked">✓ '+tl("Selected","Seleccionada")+'</span>'
+           : (focusClickable ? '<button class="cfg-btn cfg-btn-go" data-act="plotpick:'+esc(focus)+'">'+tl("Select this plot","Elegir esta parcela")+'</button>' : ''))
         + '</div>';
     }
     return '<div class="mp-wrap"><div class="mp-map"><img src="'+esc(p.masterplanImage)+'" alt="'+esc(tl("Site plan","Plano del proyecto"))+'" loading="lazy">'+pins+'</div>'+detail+'</div>';
@@ -1205,7 +1265,10 @@
       + breadcrumbsHTML(p,false)+subHTML+'</div>'
       + '<div style="flex-shrink:0;text-align:right">'
       + '<div style="font-family:var(--sans);font-size:clamp(30px,3.2vw,44px);font-weight:600;line-height:1;color:var(--ink);white-space:nowrap">'+priceHTML(p.priceEUR,true)+'</div></div></div>';
-    var terr   = territoryHTML(p);   // mapa + planta 3D, banda propia (rework 27-jul)
+    // territoryHTML (mapa "Location" + planta 3D) se oculta desde 6-ago: quedaba redundante con
+    // el masterplan y la imagen a sangre con puntos, que ya cubren mapa/ubicación. Función intacta
+    // por si se reactiva; solo se deja de llamar aquí (mismo patrón que Designed-to-last, 24-jul).
+    var payBleed = (isDeliveredNotForSale) ? "" : paymentPlanBleedHTML(p, cfg);
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
     var techTable = techSpecsHTML(p);   // sube a la sección de fotos (revisión cliente 24-jul)
@@ -1214,12 +1277,16 @@
       + heroHTML(p)
       // Fotos: cabecera + galería + la tabla blanca de datos (subida aquí desde el detalle)
       + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+(techTable?'<div class="pdp-specs-below">'+techTable+'</div>':"")+'</div>')
-      // Detalle: izq configurador/payment plan (masterplan) · dcha hoja de datos (ficha técnica)
+      // Detalle: izq configurador/payment plan · dcha ficha técnica (vuelta a la posición
+      // original 6-ago — el traslado a su propia sección de abajo se deshizo el mismo día).
+      // La reactividad sí se queda: infoCardHTML(p,cfg) sigue lo elegido en el configurador
+      // (villa → hab./construido, parcela del masterplan → parcela con su m² real).
       + sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
           + '<div>'+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
-          + '<div>'+infoCardHTML(p)+'</div></div></div>')
-      // El territorio (mapa + planta 3D) a ancho completo, justo después de los datos
-      + (terr ? sec('<div class="wrap pdp-wrap">'+terr+'</div>') : "")
+          + '<div>'+infoCardHTML(p,cfg)+'</div></div></div>')
+      // El plan de pagos a sangre (calco PDF p.4) — justo después del configurador, antes del
+      // masterplan/territorio, mismo orden que el PDF (config → payment → masterplan).
+      + (payBleed ? sec(payBleed, "pdp-sec-flush") : "")
       + (split ? sec(split, "pdp-sec-flush") : "")
       + (bleed ? sec('<div class="wrap pdp-wrap">'+bleed+'</div>') : "")
       // Última sección: banner del proceso + cross-selling + footer juntos.
@@ -1366,16 +1433,14 @@
     // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
     else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }
-    // Un pin del masterplan primero enseña tamaño/precio/estado (plotpin) y solo compromete
-    // la elección cuando se pulsa "Select this plot" dentro del detalle (plotpick) — pinchar
-    // el mapa no debe decidir por el visitante antes de que vea qué está eligiendo.
-    else if(cmd==="plotpin"){ S.plotFocusCode = (S.plotFocusCode===val ? null : val); render(); }
+    // Un pin del masterplan selecciona directamente (revisión 6-ago: un solo clic, sin paso
+    // intermedio de "Select this plot") y abre/actualiza el panel de detalle con su info.
     else if(cmd==="plotpick"){
       var propNow = L.PROPERTIES.filter(function(x){return x.id===S.overlay;})[0];
       var cfgNow = propNow ? configState(propNow) : null;
       var st = S.plotsStatus[val];
       var idx = (cfgNow && st) ? landIdxForSize(cfgNow, st.superficie_m2) : -1;
-      S.plotCode = val; S.parcelIdx = idx; render();
+      S.plotCode = val; S.parcelIdx = idx; S.plotFocusCode = val; render();
     }
     else if(cmd==="model"){ S.modelIdx=parseInt(val,10); render(); }
     else if(cmd==="extra"){ var i=parseInt(val,10); S.extrasSel[i]=!S.extrasSel[i]; render(); }
