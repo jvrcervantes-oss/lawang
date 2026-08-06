@@ -22,7 +22,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=855c2b49">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=c4b99afd">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -487,17 +487,23 @@ async function contar(sb){
 function pintarKpis(d, ficha){
   if(!d) return;
   const tarjetas = [
+    /* `tono` colorea el pie por SIGNIFICADO, como el mockup: ámbar lo que espera,
+       rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
+       los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
     { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/', herr:'operaciones',
       pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
-      urge:n => n > 0 },
+      tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
     { rot:'Contratos', v:d.contratos, href:'/contracts/app.html', herr:'contratos',
-      pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables' },
+      pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables',
+      tono:() => d.contratosEditables ? 'espera' : '' },
     { rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
-      pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada' },
+      pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada',
+      tono:() => d.facturasAnuladas ? 'espera' : 'bien' },
     { rot:'Unidades libres', v:d.unidadesLibres, href:'/unidades/', herr:'unidades',
       pie:() => d.unidades == null ? '' : 'de ' + d.unidades + ' en inventario' },
     { rot:'En obra', v:d.obraActivas, href:'/obra/', herr:'obra',
-      pie:n => n ? 'con fase abierta' : 'sin unidades en obra' },
+      pie:n => n ? 'con fase abierta' : 'sin unidades en obra',
+      tono:n => n ? 'bien' : '' },
   ];
   // Solo las herramientas que esta persona puede abrir: una tarjeta que lleva a
   // un sitio del que te van a echar es peor que no tenerla.
@@ -508,10 +514,11 @@ function pintarKpis(d, ficha){
     const mudo = t.v == null;
     const cls = ['lw-kpi', 'lw-fade', mudo ? 'muda' : '', (!mudo && t.urge && t.urge(t.v)) ? 'urge' : '']
       .filter(Boolean).join(' ');
+    const tono = (!mudo && t.tono) ? (t.tono(t.v) || '') : '';
     return `<a class="${cls}" href="${t.href}" style="--i:${i}">
       <span class="rot">${esc(t.rot)}</span>
       <span class="lw-cifra">${mudo ? '—' : t.v}</span>
-      <span class="pie">${mudo ? 'la base no contestó' : esc(t.pie(t.v) || '')}</span>
+      <span class="pie ${tono}">${mudo ? 'la base no contestó' : esc(t.pie(t.v) || '')}</span>
     </a>`;
   }).join('');
   $('#kpis').hidden = false;
@@ -521,8 +528,8 @@ function pintarKpis(d, ficha){
      ruido sobre algo que no puede tocar. */
   if(esAdmin(ficha) && d.usuarios != null){
     $('#kpis').insertAdjacentHTML('beforeend',
-      `<a class="lw-kpi lw-fade" href="/usuarios/" style="--i:${vistas.length}">
-        <span class="rot">Equipo</span>
+      `<a class="lw-kpi lw-fade mando" href="/usuarios/" style="--i:${vistas.length}">
+        <span class="rot">Equipo · admin</span>
         <span class="lw-cifra">${d.usuarios}</span>
         <span class="pie">${d.usuariosInactivos ? d.usuariosInactivos + ' desactivados' : 'todos activos'}</span>
       </a>`);
