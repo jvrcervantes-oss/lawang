@@ -43,14 +43,30 @@
   --sup-1:#FFFFFF;      /* tarjeta, tabla, cajón */
   --sup-2:#F7F3E9;      /* cabecera de tabla, zonas tranquilas */
   --sup-hover:#EFEADE;
-  /* 🔴 La fila seleccionada era #E7E1D2 y NO se distinguía: contra el hover daba
-     un contraste de 1,087 y contra el fondo de página 1,097 — o sea, el mismo
-     color. Medido, no estimado. Ahora 1,61 contra la fila normal y 1,34 contra
-     el hover, y además la selección no depende solo del fondo: lleva su filete
-     verde a la izquierda y el dato clave en tinta de marca. Tres señales, porque
-     una sola de color falla con poca luz, con la pantalla girada o con daltonismo. */
-  --sup-sel:#D6CBB2;
-  --linea:#E2DACA;
+  /* FILA SELECCIONADA — tres señales, nunca una.
+     Historia (31-jul-2026): era #E7E1D2 y NO se distinguía — 1,087 contra el
+     hover y 1,097 contra el fondo, o sea el mismo color. De ahí sale la regla que
+     sigue vigente: la selección lleva relleno + filete a la izquierda + el dato
+     clave en tinta de marca, porque una sola señal de color falla con poca luz,
+     con la pantalla girada o con daltonismo.
+
+     6-ago-2026, restyle del panel: el relleno se ACLARA a #EAE4D3 y el peso de la
+     señal se pasa al filete, que además cambia de verde a Deep Lagoon.
+     Los números, porque aquí ya se discutieron una vez y no se van a re-derivar:
+       relleno            vs fila blanca   filete sobre él
+       #E7E1D2 (rechazado el 31-jul)  1,30        —
+       #EAE4D3 (ahora)                1,27      7,63  ← #104C4F
+       #D6CBB2 (antes)                1,61      4,61  ← #485B37
+     Sí: el relleno nuevo contrasta MENOS que el que se rechazó por invisible. Se
+     acepta a propósito porque la selección nunca se apoyó solo en el tinte —
+     lleva filete y dato clave en tinta— y ese filete pasa de 4,61 a 7,63, que es
+     casi el doble de señal en el elemento que de verdad se ve.
+     Si en uso real se queda corto, el escalón siguiente es #DED5C0 (1,46), que
+     está en la paleta del propio mockup. */
+  --sup-sel:#EAE4D3;
+  /* Unificado con `--line` de topbar.css, que valía #e4ddcf: dos filetes que se
+     tocan y no casaban por unos puntos de hex. Una sola variable, un solo valor. */
+  --linea:#E4DCCB;
   --texto:#22282A;
   --texto-2:#4A5052;
   /* 🔴 Era #8A8F86 y NO se leía: 3,31 sobre la tabla blanca y 2,98 sobre la
@@ -70,6 +86,14 @@
   /* movimiento */
   --t-rapido:120ms; --t-medio:200ms; --t-cajon:260ms;
   --curva:cubic-bezier(.22,.61,.36,1);
+  /* Cuánto dura un aviso. UNA sola fuente: la lee el CSS de la barra de cuenta
+     atrás Y `toast()` en suite-comun.js. Si vivieran en dos sitios, alguien
+     cambia uno y la barra termina antes o después que el aviso — una barra que
+     miente es peor que no tenerla.
+     Sube de 2.800 a 4.200 ms: en la revisión de diseño el aviso se iba antes de
+     poder leerlo, y eso importa porque varios avisos de esta suite son la única
+     confirmación de que algo se guardó. */
+  --t-toast:4200ms;
 
   /* densidad — la cambia [data-densidad] en <html>, se recuerda en el navegador */
   --fila-y:10px; --fila-x:16px; --fila-fs:13.5px;
@@ -93,13 +117,13 @@ html[data-densidad="amplia"]  { --fila-y:15px; --fila-x:18px; --fila-fs:14.5px; 
 .sui-filtros{ display:flex; gap:var(--e2); flex-wrap:wrap; align-items:center; margin:0 0 var(--e3); }
 .sui-buscar{ flex:1 1 240px; min-width:0; font:inherit; font-size:13.5px; padding:9px 12px;
   border:1px solid var(--linea); border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
-.sui-buscar:focus{ outline:none; border-color:var(--tg,#485B37); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+.sui-buscar:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
 .sui-sel{ font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--linea);
   border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
 .sui-chip{ font:inherit; font-size:12px; letter-spacing:.03em; background:none; border:1px solid var(--linea);
   border-radius:var(--r-p); padding:6px 12px; min-height:24px; cursor:pointer; color:var(--texto-2);
   transition:background var(--t-rapido), border-color var(--t-rapido), color var(--t-rapido); }
-.sui-chip:hover{ border-color:var(--tg,#485B37); }
+.sui-chip:hover{ border-color:var(--dl,#104C4F); }
 .sui-chip.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
 .sui-chip.vacio{ opacity:.45; }
 .sui-chip .n{ opacity:.7; margin-left:4px; font-variant-numeric:tabular-nums; }
@@ -129,9 +153,9 @@ table.sui-tabla thead th{
 table.sui-tabla tbody td{ padding:var(--fila-y) var(--fila-x); border-bottom:1px solid var(--linea); vertical-align:middle; }
 table.sui-tabla tbody tr{ cursor:pointer; transition:background var(--t-rapido); }
 table.sui-tabla tbody tr:hover{ background:var(--sup-hover); }
-table.sui-tabla tbody tr.sel{ background:var(--sup-sel); box-shadow:inset 3px 0 0 var(--tg,#485B37); }
+table.sui-tabla tbody tr.sel{ background:var(--sup-sel); box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
 table.sui-tabla tbody tr.sel:hover{ background:var(--sup-sel); }   /* el hover no puede aclarar la selección */
-table.sui-tabla tbody tr.sel .clave{ color:var(--tg,#485B37); }
+table.sui-tabla tbody tr.sel .clave{ color:var(--dl,#104C4F); }
 table.sui-tabla tbody tr:last-child td{ border-bottom:none; }
 /* Los números a la derecha y con cifras de ancho fijo: así 95.250 y 130.875
    casan por columna y la diferencia se ve sin leer. */
@@ -199,7 +223,7 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 .sui-cajon-x{ margin-left:auto; flex:none; font:inherit; font-size:17px; line-height:1;
   background:none; border:1px solid var(--linea); border-radius:var(--r-s);
   min-width:30px; min-height:30px; cursor:pointer; color:var(--texto-2); }
-.sui-cajon-x:hover{ border-color:var(--tg,#485B37); color:var(--texto); }
+.sui-cajon-x:hover{ border-color:var(--dl,#104C4F); color:var(--texto); }
 .sui-cajon-cuerpo{ overflow:auto; padding:var(--e4) var(--e5) var(--e7); flex:1; }
 .sui-cajon-pie{ border-top:1px solid var(--linea); padding:var(--e3) var(--e5);
   display:flex; gap:var(--e2); flex-wrap:wrap; background:var(--sup-2); }
@@ -220,7 +244,7 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
   min-height:24px; cursor:pointer; border:1px solid var(--linea); background:var(--sup-1); color:inherit;
   display:inline-flex; align-items:center; gap:7px; text-decoration:none;
   transition:border-color var(--t-rapido), background var(--t-rapido), color var(--t-rapido); }
-.sui-btn:hover{ border-color:var(--tg,#485B37); }
+.sui-btn:hover{ border-color:var(--dl,#104C4F); }
 .sui-btn.primario{ background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; }
 .sui-btn.primario:hover{ background:#0d5b5f; }
 .sui-btn.peligro{ color:#9E2F26; border-color:#E0C6C2; }
@@ -241,8 +265,53 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
   .sui-dens{ margin-left:0; }
 }
 
-/* ── quien pide menos movimiento, menos movimiento ──────────────────────── */
+/* ── MOVIMIENTO COMPARTIDO (6-ago-2026, restyle del panel) ────────────────
+   Los cinco keyframes vienen literales del handoff de diseño. Viven aquí y no en
+   cada página por el mismo motivo que el resto de este fichero: seis copias de
+   una animación son seis velocidades distintas en cuanto alguien toca una.
+   Todos entran por `both`, que deja el elemento en su estado final — sin eso,
+   una tarjeta con `animation-delay` parpadea antes de empezar. */
+@keyframes lwFadeUp   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+@keyframes lwGrow     { from{ width:0 } }
+@keyframes lwSlideIn  { from{ transform:translateX(100%) } to{ transform:none } }
+@keyframes lwPop      { from{ opacity:0; transform:scale(.94) } to{ opacity:1; transform:none } }
+@keyframes lwCountdown{ from{ width:100% } to{ width:0% } }
+
+/* Entrada escalonada de tarjetas de resumen. El escalón se declara con `--i` en
+   el propio elemento (`style="--i:2"`), así que el orden lo decide quien pinta y
+   no hay que escribir una regla por tarjeta. */
+.lw-fade{ animation:lwFadeUp .6s var(--curva) both; animation-delay:calc(var(--i,0) * .06s); }
+
+/* Barras de avance. `both` + una sola pasada: el handoff pide que crezca al
+   PINTARSE, no en cada repintado — si se reanimara al filtrar, la barra estaría
+   creciendo todo el rato y dejaría de significar nada. Quien repinte la lista
+   entera obtiene la animación otra vez, que es lo correcto; quien solo cambie un
+   número dentro, no. */
+.lw-bar{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; }
+.lw-bar > i{ display:block; height:100%; background:var(--dl,#104C4F);
+  animation:lwGrow 1.1s var(--curva) both; }
+
+/* CIFRAS GRANDES en serif — y solo cifras. Ver `--font-cifra` en brand.css: los
+   títulos se quedan en Jost por decisión del owner. `tabular-nums` porque dos
+   importes uno debajo del otro tienen que casar por columna. */
+.lw-cifra{ font-family:var(--font-cifra); font-size:34px; font-weight:600; line-height:1;
+  letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--texto); }
+
+/* Botones: el handoff pide que se noten al pasar por encima, no solo que cambien
+   de borde. El `transform` se anima solo (no `top`/`margin`) para no provocar
+   recálculo de maqueta en una tabla de 300 filas. */
+.sui-btn{ transition:border-color var(--t-rapido), background var(--t-rapido),
+  color var(--t-rapido), transform .15s ease, box-shadow .15s ease; }
+.sui-btn.primario:hover{ transform:translateY(-2px); box-shadow:0 6px 16px -6px rgba(16,76,79,.55); }
+.sui-btn.primario:active{ transform:none; box-shadow:none; }
+
+/* ── quien pide menos movimiento, menos movimiento ────────────────────────
+   Este bloque ya cubría transiciones y animaciones con `*`, así que los
+   keyframes nuevos entran solos. Se le añade lo único que `*` no alcanza: dejar
+   quietos los desplazamientos de hover, que con la duración a .01ms saltarían de
+   golpe en vez de no ocurrir. */
 @media (prefers-reduced-motion:reduce){
   *, *::before, *::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important;
     transition-duration:.01ms !important; }
+  .sui-btn.primario:hover{ transform:none; }
 }

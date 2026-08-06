@@ -18,7 +18,7 @@
   padding:0 14px; padding-top:env(safe-area-inset-top);
   background:rgba(255,253,248,.9);
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--line,#e4ddcf);
+  border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
   color:var(--va,#2E3437);
 }
@@ -30,7 +30,7 @@
   display:inline-flex; align-items:center; gap:6px; flex:none;
   font:inherit; font-size:12.5px; font-weight:600; letter-spacing:.02em;
   text-decoration:none; cursor:pointer; white-space:nowrap;
-  background:var(--tg,#485B37); color:#fff; border:1px solid var(--tg,#485B37);
+  background:var(--dl,#104C4F); color:#fff; border:1px solid var(--dl,#104C4F);
   border-radius:999px; padding:7px 15px;
   box-shadow:0 1px 2px rgba(72,91,55,.28), 0 6px 16px -8px rgba(72,91,55,.5);
   transition:transform .18s ease, background .18s ease, box-shadow .18s ease;
@@ -43,7 +43,7 @@
 .lw-title{ margin:0; font-size:13px; font-weight:500; letter-spacing:.2em;
   text-transform:uppercase; color:var(--muted,#6b6c66); white-space:nowrap; }
 .lw-spacer{ flex:1; }
-.lw-sep{ width:1px; height:24px; background:var(--line,#e4ddcf); flex:none; }
+.lw-sep{ width:1px; height:24px; background:var(--linea,#E4DCCB); flex:none; }
 .lw-who{ font-size:12px; color:var(--muted,#6b6c66); max-width:190px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .lw-who::before{ content:"👤 "; }
@@ -52,13 +52,13 @@
 .lw-btn{
   font:inherit; font-size:12.5px; font-weight:500; color:var(--va,#2E3437);
   background:linear-gradient(180deg,#fff,var(--card,#fffdf8));
-  border:1px solid var(--line,#e4ddcf); border-radius:9px;
+  border:1px solid var(--linea,#E4DCCB); border-radius:9px;
   padding:7px 13px; cursor:pointer; white-space:nowrap; text-decoration:none;
   display:inline-flex; align-items:center; gap:6px;
   box-shadow:0 1px 2px rgba(46,52,55,.05);
   transition:transform .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
-.lw-btn:hover{ border-color:var(--tg,#485B37); color:var(--dl,#104C4F);
+.lw-btn:hover{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F);
   box-shadow:0 2px 6px rgba(46,52,55,.09); transform:translateY(-1px); }
 .lw-btn:active{ transform:translateY(0) scale(.97); }
 .lw-btn.primary{ background:var(--dl,#104C4F); color:#fff; border-color:var(--dl,#104C4F);
@@ -67,11 +67,11 @@
 
 .lw-select{
   font:inherit; font-size:13px; font-weight:600; color:var(--dl,#104C4F);
-  background:var(--card,#fffdf8); border:1px solid var(--line,#e4ddcf);
+  background:var(--card,#fffdf8); border:1px solid var(--linea,#E4DCCB);
   border-radius:9px; padding:7px 12px; cursor:pointer; max-width:260px;
 }
-.lw-select:hover{ border-color:var(--tg,#485B37); }
-.lw-select:focus{ outline:none; border-color:var(--tg,#485B37);
+.lw-select:hover{ border-color:var(--dl,#104C4F); }
+.lw-select:focus{ outline:none; border-color:var(--dl,#104C4F);
   box-shadow:0 0 0 3px rgba(72,91,55,.12); }
 
 /* campo de texto en barra (el nombre del dossier) */
@@ -80,16 +80,16 @@
   background:transparent; border:none; border-bottom:1px dashed var(--ss,#BEB3A5);
   padding:4px 2px; width:150px;
 }
-.lw-input:focus{ outline:none; border-bottom-color:var(--tg,#485B37); }
+.lw-input:focus{ outline:none; border-bottom-color:var(--dl,#104C4F); }
 
 /* ---- desplegable de sección (<details> nativo: sin JS de apertura) ---- */
 .lw-menu{ position:relative; flex:none; }
 .lw-menu > summary{ list-style:none; cursor:pointer; }
 .lw-menu > summary::-webkit-details-marker{ display:none; }
-.lw-menu[open] > summary{ border-color:var(--tg,#485B37); color:var(--dl,#104C4F); }
+.lw-menu[open] > summary{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F); }
 .lw-menu-list{
   position:absolute; right:0; top:calc(100% + 6px); z-index:60; min-width:232px;
-  background:var(--card,#fffdf8); border:1px solid var(--line,#e4ddcf);
+  background:var(--card,#fffdf8); border:1px solid var(--linea,#E4DCCB);
   border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:2px;
   box-shadow:0 14px 36px -10px rgba(46,52,55,.34), 0 2px 6px rgba(46,52,55,.08);
 }
@@ -101,7 +101,7 @@
 }
 .lw-menu-list .lw-btn:hover{ background:rgba(72,91,55,.09); color:var(--dl,#104C4F);
   transform:none; box-shadow:none; }
-.lw-menu-list hr{ border:none; border-top:1px solid var(--line,#e4ddcf); margin:4px 2px; }
+.lw-menu-list hr{ border:none; border-top:1px solid var(--linea,#E4DCCB); margin:4px 2px; }
 
 /* ---------------------------------------------------------------------------
    CAMPANA DE NOTIFICACIONES — 4-ago-2026
@@ -121,9 +121,9 @@
 
 .lw-usuario-btn{ position:relative; display:inline-flex; align-items:center; gap:7px; flex:none;
   min-height:32px; padding:3px 10px 3px 3px; border-radius:999px; cursor:pointer;
-  font:inherit; border:1px solid var(--line,#e4ddcf); background:var(--card,#fffdf8);
+  font:inherit; border:1px solid var(--linea,#E4DCCB); background:var(--card,#fffdf8);
   color:var(--va,#2E3437); transition:border-color 120ms; }
-.lw-usuario-btn:hover{ border-color:var(--tg,#485B37); }
+.lw-usuario-btn:hover{ border-color:var(--dl,#104C4F); }
 .lw-usuario-ini{ display:inline-flex; align-items:center; justify-content:center;
   width:25px; height:25px; border-radius:999px; background:var(--dl,#104C4F); color:#fff;
   font-size:11.5px; font-weight:600; flex:none; }
@@ -144,7 +144,7 @@
 .lw-panel{
   position:fixed; top:var(--tbh,56px); left:0; bottom:0; z-index:61;
   width:clamp(300px, 26vw, 420px); max-width:100vw;
-  background:var(--card,#fffdf8); border-right:1px solid var(--line,#e4ddcf);
+  background:var(--card,#fffdf8); border-right:1px solid var(--linea,#E4DCCB);
   box-shadow:0 18px 48px -22px rgba(34,40,42,.45), 0 2px 8px rgba(34,40,42,.07);
   display:flex; flex-direction:column; color:var(--va,#2E3437);
   transform:translateX(-100%); transition:transform 260ms cubic-bezier(.22,.61,.36,1);
@@ -152,20 +152,20 @@
 }
 .lw-panel.on{ transform:none; }
 .lw-panel-cab{ display:flex; align-items:flex-start; gap:11px; padding:16px 18px 13px;
-  border-bottom:1px solid var(--line,#e4ddcf); }
+  border-bottom:1px solid var(--linea,#E4DCCB); }
 .lw-panel-quien{ display:flex; flex-direction:column; gap:1px; min-width:0; }
 .lw-panel-quien b{ font-size:14px; }
 .lw-panel-quien span{ font-size:11.5px; color:var(--muted,#6b6c66);
   overflow:hidden; text-overflow:ellipsis; }
 .lw-usuario-rol{ margin-top:5px; align-self:flex-start; font-size:10px; letter-spacing:.09em;
   text-transform:uppercase; font-weight:600; color:var(--dl,#104C4F);
-  border:1px solid var(--line,#e4ddcf); border-radius:999px; padding:2px 8px; }
+  border:1px solid var(--linea,#E4DCCB); border-radius:999px; padding:2px 8px; }
 .lw-panel-x{ margin-left:auto; flex:none; font:inherit; font-size:15px; line-height:1;
-  background:none; border:1px solid var(--line,#e4ddcf); border-radius:8px;
+  background:none; border:1px solid var(--linea,#E4DCCB); border-radius:8px;
   min-width:30px; min-height:30px; cursor:pointer; color:var(--muted,#6b6c66); }
-.lw-panel-x:hover{ border-color:var(--tg,#485B37); color:var(--va,#2E3437); }
+.lw-panel-x:hover{ border-color:var(--dl,#104C4F); color:var(--va,#2E3437); }
 .lw-panel-cuerpo{ flex:1; overflow-y:auto; padding-bottom:8px; }
-.lw-panel-pie{ border-top:1px solid var(--line,#e4ddcf); padding:11px 14px; }
+.lw-panel-pie{ border-top:1px solid var(--linea,#E4DCCB); padding:11px 14px; }
 .lw-usuario-seccion{ font-size:10px; letter-spacing:.14em; text-transform:uppercase;
   color:var(--muted,#6b6c66); font-weight:600; padding:13px 18px 6px; }
 .lw-usuario-salir{ width:100%; justify-content:center; }
@@ -190,14 +190,17 @@
 .lw-aviso{ display:grid; grid-template-columns:1fr auto; gap:2px 10px;
   padding:9px 11px; border-radius:7px; text-decoration:none; color:inherit; }
 .lw-aviso:hover{ background:rgba(72,91,55,.09); }
-.lw-aviso + .lw-aviso{ border-top:1px solid var(--line,#e4ddcf); border-radius:0; }
+.lw-aviso + .lw-aviso{ border-top:1px solid var(--linea,#E4DCCB); border-radius:0; }
 .lw-aviso-t{ font-size:13px; font-weight:500; line-height:1.35; }
 .lw-aviso-d{ grid-column:1; font-size:11.5px; color:var(--muted,#6b6c66); line-height:1.35; }
 .lw-aviso-c{ grid-row:1; grid-column:2; font-size:11px; color:var(--muted,#6b6c66);
   white-space:nowrap; font-variant-numeric:tabular-nums; }
 /* lo no visto se marca con un filete a la izquierda, no con el fondo: sobre el
    hover un fondo claro se pierde y deja de distinguirse */
-.lw-aviso.nuevo{ box-shadow:inset 2px 0 0 var(--tg,#485B37); }
+/* mismo acento que la fila seleccionada (6-ago-2026): un filete a la izquierda
+   marca «esto es lo que miras», y eso ya no es verde. El verde queda para
+   «correcto», y un aviso sin leer no es un acierto, es una tarea. */
+.lw-aviso.nuevo{ box-shadow:inset 2px 0 0 var(--dl,#104C4F); }
 .lw-aviso.nuevo .lw-aviso-t{ font-weight:600; }
 .lw-campana-vacio{ margin:0; padding:22px 14px; text-align:center; font-size:12.5px;
   color:var(--muted,#6b6c66); }

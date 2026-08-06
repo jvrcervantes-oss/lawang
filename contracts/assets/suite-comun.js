@@ -30,11 +30,32 @@
 const esc = v => String(v == null ? '' : v)
   .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/* Cuánto dura el aviso lo dice `--t-toast` de suite.css, no este fichero
+   (6-ago-2026). La barra de cuenta atrás del aviso se anima con esa MISMA
+   variable, así que si el número viviera aquí y en el CSS, cambiar uno dejaría
+   la barra terminando antes o después que el aviso — y una barra que miente es
+   peor que no tenerla.
+   Sube de 2.800 a 4.200 ms: en la revisión de diseño el aviso se iba antes de
+   poder leerlo, y en esta suite varios avisos son la única confirmación de que
+   algo se guardó.
+   El fallback cubre a quien cargue este script sin suite.css (dossier, firmar).
+   Se lee en el PRIMER aviso y no al cargar el script: este fichero puede
+   evaluarse antes de que la hoja de estilos haya aplicado, y ahí la variable
+   saldría vacía y se quedaría en el fallback para toda la sesión. */
+let TOAST_MS = 0;
+function duracionToast(){
+  if (TOAST_MS) return TOAST_MS;
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--t-toast').trim();
+  const n = parseFloat(v);
+  TOAST_MS = !n ? 4200 : (v.endsWith('ms') ? n : n * 1000);   // acepta 4200ms y 4.2s
+  return TOAST_MS;
+}
+
 const toast = (m, ms) => {
   const t = document.querySelector('#toast');
   if (!t) return;
   t.textContent = m;
   t.classList.add('show', 'on');
   clearTimeout(t._h);
-  t._h = setTimeout(() => t.classList.remove('show', 'on'), ms || 2800);
+  t._h = setTimeout(() => t.classList.remove('show', 'on'), ms || duracionToast());
 };

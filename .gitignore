@@ -61,3 +61,8 @@ private/*
 
 # Prototipos no publicados (landings de modelo pendientes de precio y OK)
 _preview/
+
+# Material de diseno (handoffs, mockups). Va dentro de intranet/, que se
+# DESPLIEGA: sin esto los mockups quedarian servidos en
+# lawangproperties.com/intranet/... Mismo caso que Marketing/ en el repo de B2K.
+intranet/Lawang Properties UI mockups/
