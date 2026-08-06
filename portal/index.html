@@ -253,6 +253,7 @@
     es:{ login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.',
          login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (mira también en spam).',
          sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com y te lo abrimos.',
+         error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
          area:'Área de clientes', salir:'Salir', saludo_sub:'Estado de tu operación con Lawang Estate',
          c_contratos:'Contratos', c_facturas:'Facturas', c_obra:'Obra', c_documentos:'Documentos',
          d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
@@ -280,6 +281,7 @@
     en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link — no passwords.',
          login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
          sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com and we will open it.',
+         error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
          area:'Client area', salir:'Sign out', saludo_sub:'Status of your operation with Lawang Estate',
          c_contratos:'Contracts', c_facturas:'Invoices', c_obra:'Construction', c_documentos:'Documents',
          d_promocion:'Your development’s documents', d_entregado:'What you gave us',
@@ -465,7 +467,13 @@
       options: { shouldCreateUser:false, emailRedirectTo: location.origin + '/portal/' }
     }).then(function(r){
       aviso.className = 'aviso ' + (r.error ? 'mal' : 'bien');
-      aviso.textContent = r.error ? t('sin_acceso') : t('enviado');
+      /* Un error 5xx es SUPABASE fallando al enviar el correo (SMTP roto,
+         ver LAW-1 en contexto/pendientes.md) — no que el email no tenga
+         acceso. Antes de esto los dos casos mostraban el mismo texto y un
+         comprador real leía «este correo no tiene acceso al portal», que es
+         mentira: sí tiene acceso, es el envío el que falló. */
+      aviso.textContent = !r.error ? t('enviado')
+        : (r.error.status >= 500 ? t('error_envio') : t('sin_acceso'));
     });
   });
 
