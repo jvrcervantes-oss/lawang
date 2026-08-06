@@ -620,15 +620,19 @@ async function pintarRail(sb, ficha){
     const [fir, fac] = await Promise.all([
       sb.from('contrato_firmas').select('expira_en, firmante_nombre, contratos(numero)')
         .eq('estado','pendiente').order('expira_en').limit(4),
-      sb.from('facturas').select('numero, total, moneda, fecha_vencimiento')
-        .eq('anulada', false).not('fecha_vencimiento','is',null)
-        .order('fecha_vencimiento').limit(4),
+      // `fecha_vencimiento` no es una columna de `facturas`: vive en
+      // `datos->fields`, igual que la lee la campana de topbar.js. La versión
+      // anterior pedía la columna suelta y llevaba HORAS fallando con un 400
+      // silencioso (atrapado por el catch de aquí abajo) — la sección solo
+      // enseñaba vencimientos de firma, nunca de factura.
+      sb.from('facturas').select('numero, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento')
+        .limit(200),
     ]);
     const filas = [
       ...(fir.data || []).map(r => ({ d:dias(r.expira_en),
         txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (r.contratos ? ' · ' + r.contratos.numero : ''),
         val:'Pendiente', clase:'espera' })),
-      ...(fac.data || []).map(r => ({ d:dias(r.fecha_vencimiento),
+      ...(fac.data || []).filter(r => !r.anulada && r.venc).map(r => ({ d:dias(r.venc),
         txt:r.numero, val:Number(r.total).toLocaleString('es') + ' ' + (r.moneda||'EUR') })),
     ].sort((a,b) => a.d - b.d).slice(0, 6);
     if(filas.length){
