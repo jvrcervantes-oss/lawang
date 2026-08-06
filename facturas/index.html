@@ -12,6 +12,13 @@
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=81da0ec7">
+<!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
+     doce, seis se habian quedado fuera del fichero que existe justamente para
+     que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
+     Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
+     esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
+     no le mueve lo que tenia. -->
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=abd695ff">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -153,10 +160,6 @@
   .frow.anulada{ opacity:.55; text-decoration:line-through; }
   .frow .btn.borrar{ color:#9E2F26; border-color:#E0C6C2; padding:6px 11px; }
 
-  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--va); color:#fff;
-          font-size:13px; padding:11px 18px; border-radius:999px; z-index:80; opacity:0; pointer-events:none;
-          transition:opacity .2s; }
-  .toast.on{ opacity:1; }
 
   @media print{
     @page{ size:A4; margin:0; }
@@ -338,7 +341,7 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/suite-comun.js?v=2081d39f"></script>
+<script src="/contracts/assets/suite-comun.js?v=76746232"></script>
 <script>
 const $  = s => document.querySelector(s);
 

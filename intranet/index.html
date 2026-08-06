@@ -16,6 +16,13 @@
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=81da0ec7">
+<!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
+     doce, seis se habian quedado fuera del fichero que existe justamente para
+     que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
+     Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
+     esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
+     no le mueve lo que tenia. -->
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=abd695ff">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -255,7 +262,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/suite-comun.js?v=2081d39f"></script>
+<script src="/contracts/assets/suite-comun.js?v=76746232"></script>
 <script>
 /* ── catálogo de herramientas ──────────────────────────────────────────
    Añadir una = una entrada aquí. `herr` es la herramienta de

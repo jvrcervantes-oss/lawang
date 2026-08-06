@@ -10,6 +10,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../contracts/assets/topbar.css?v=81da0ec7">
+<!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
+     doce, seis se habian quedado fuera del fichero que existe justamente para
+     que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
+     Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
+     esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
+     no le mueve lo que tenia. -->
+<link rel="stylesheet" href="../contracts/assets/suite.css?v=abd695ff">
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="dossier"></script>
@@ -104,8 +111,6 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .mbtn:hover{border-color:var(--tg);color:var(--tg)}
 .mbtn.primary{background:var(--tg);border-color:var(--tg);color:#fff}
 .mbtn.primary:hover{background:#57703f;color:#fff}
-#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:99}
-#toast.show{opacity:1}
 
 /* ============ edición ============ */
 [contenteditable]{outline:none;cursor:text}
@@ -392,7 +397,10 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   </div>
 </div>
 
-<div id="toast"></div>
+<!-- `class="toast"` añadida el 6-ago-2026: el aviso pasó a `suite.css` y ahí se
+     estiliza por CLASE, como en las otras once herramientas. Este era el único
+     que se apoyaba solo en el id. -->
+<div class="toast" id="toast"></div>
 <input type="file" id="imgfile" accept="image/*" hidden>
 <input type="file" id="jsonfile" accept=".json,application/json" hidden>
 
@@ -1255,9 +1263,18 @@ function setZoom(dz){
   const z=Math.min(1.2,Math.max(.25,parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'))+dz));
   document.documentElement.style.setProperty('--zoom',z.toFixed(2));
 }
+/* Copia local, igual que en contracts/app.html: esta página no carga
+   `suite-comun.js`. La DURACIÓN sí es compartida — sale de `--t-toast`
+   (suite.css), que es la misma que anima la barra de cuenta atrás. Estaba en
+   1.600 ms contra una barra de 4.200, o sea la barra habría acabado con el aviso
+   aún en pantalla. El quitar/reflujo/poner la reinicia cuando cae un segundo
+   aviso encima del primero. */
 function toast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),1600);
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+  const v=getComputedStyle(document.documentElement).getPropertyValue('--t-toast').trim();
+  const ms=parseFloat(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v)*1000) : 4200;
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),ms);
 }
 
 /* ---------- init ---------- */

@@ -55,6 +55,14 @@ const toast = (m, ms) => {
   const t = document.querySelector('#toast');
   if (!t) return;
   t.textContent = m;
+  /* Quitar las clases, forzar un reflujo y volver a ponerlas. Sin esto, un
+     segundo aviso que llega con el primero AÚN VISIBLE no reinicia la barra de
+     cuenta atrás —las clases ya estaban puestas, así que el navegador no
+     reproduce la animación otra vez— y la barra terminaría a mitad del aviso
+     nuevo. Leer `offsetWidth` es lo que obliga al reflujo; parece una línea
+     inútil y es justo la que hace que funcione. */
+  t.classList.remove('show', 'on');
+  void t.offsetWidth;
   t.classList.add('show', 'on');
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove('show', 'on'), ms || duracionToast());

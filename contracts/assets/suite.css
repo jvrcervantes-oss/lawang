@@ -311,6 +311,39 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 .sui-btn.primario:hover{ transform:translateY(-2px); box-shadow:0 6px 16px -6px rgba(16,76,79,.55); }
 .sui-btn.primario:active{ transform:none; box-shadow:none; }
 
+/* ── AVISO (toast) — uno solo para las doce herramientas ──────────────────
+   Hasta el 6-ago-2026 cada página traía su copia: cuatro variantes distintas de
+   lo mismo (bottom 24 vs 26px, radio 30 vs 999px, z-index 80 vs 200, transición
+   .2 vs .3s) y dos nombres de clase para «visible» (`.show` y `.on`) que
+   sobreviven porque `toast()` añade los dos. Seis copias de una cosa son seis
+   comportamientos en cuanto alguien toca una.
+
+   Lo que cambia respecto a lo que había, y por qué: **15px y en negrita** con más
+   aire y una sombra que lo despega del fondo. Varios avisos de esta suite son la
+   única confirmación de que algo se guardó, y se estaban leyendo a 13px sobre una
+   tabla llena de texto de 13,5px — o sea, el aviso no destacaba de lo que había
+   detrás.
+
+   Radio 12px y no pastilla: lleva una barra recta abajo, y una pastilla se la
+   comería por los extremos. */
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(8px);
+  z-index:200; max-width:min(560px, calc(100vw - 32px));
+  background:var(--va,#2E3437); color:#fff;
+  font-size:15px; font-weight:600; line-height:1.35;
+  padding:13px 22px 16px; border-radius:var(--r-m,12px);
+  box-shadow:0 14px 40px -12px rgba(34,40,42,.6), 0 2px 8px rgba(34,40,42,.25);
+  opacity:0; pointer-events:none; overflow:hidden;
+  transition:opacity var(--t-medio,200ms) var(--curva), transform var(--t-medio,200ms) var(--curva);
+}
+.toast.show, .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+/* La cuenta atrás va en un PSEUDO-elemento, no en un hijo real: `toast()` hace
+   `textContent = m`, que borra cualquier hijo que hubiera dentro. Y su duración
+   sale de `--t-toast`, la misma que lee el temporizador — ver suite-comun.js. */
+.toast::after{ content:''; position:absolute; left:0; bottom:0; height:3px;
+  width:0; background:rgba(255,255,255,.5); }
+.toast.show::after, .toast.on::after{ animation:lwCountdown var(--t-toast,4200ms) linear both; }
+
 /* ── quien pide menos movimiento, menos movimiento ────────────────────────
    Este bloque ya cubría transiciones y animaciones con `*`, así que los
    keyframes nuevos entran solos. Se le añade lo único que `*` no alcanza: dejar
