@@ -328,8 +328,37 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    ahí la cifra caería a Georgia sin dar ningún error — se vería «casi igual»,
    que es la peor forma de fallar. La fuente se añade a esa página en el mismo
    commit en que se use la clase, no antes. */
-.lw-cifra{ font-family:var(--font-cifra); font-size:34px; font-weight:600; line-height:1;
+.lw-cifra{ font-family:var(--font-cifra, var(--serif, 'Cormorant Garamond', Georgia, serif));
+  font-size:34px; font-weight:600; line-height:1;
   letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--texto); }
+
+/* ── TARJETAS DE CIFRA (KPI) ───────────────────────────────────────────────
+   Compartidas porque el handoff las pide en el panel y en Operaciones, y dos
+   rejillas de tarjetas escritas por separado son dos rejillas que se separan.
+   `auto-fit` + `minmax`: con cinco tarjetas caben en fila en un portátil y se
+   apilan solas en el móvil, sin media query y sin decidir un número de columnas
+   que se rompe cuando alguien añade la sexta.
+   Entran escalonadas con `.lw-fade` (el escalón se pone con `--i` en cada una). */
+.lw-kpis{ display:grid; gap:var(--e3); margin:0 0 var(--e4);
+  grid-template-columns:repeat(auto-fit, minmax(178px, 1fr)); }
+.lw-kpi{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-l);
+  box-shadow:var(--sombra-1); padding:var(--e4); display:flex; flex-direction:column; gap:6px;
+  text-decoration:none; color:inherit;
+  transition:border-color var(--t-rapido), box-shadow var(--t-rapido), transform .15s ease; }
+/* Es un enlace cuando lleva a su herramienta; cuando no, un div. Lo pulsable se
+   comporta como pulsable y lo demás no finge serlo. */
+a.lw-kpi:hover{ border-color:var(--dl,#104C4F); box-shadow:var(--sombra-1), 0 8px 22px -14px rgba(16,76,79,.5);
+  transform:translateY(-2px); }
+.lw-kpi .rot{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--texto-2); font-weight:600; }
+.lw-kpi .pie{ font-size:12.5px; color:var(--texto-2); }
+/* Urgente: filete a la izquierda, no la cifra en rojo. Un número en rojo se lee
+   como «este dato está mal»; el filete dice «mira aquí» sin desteñir el dato. */
+.lw-kpi.urge{ box-shadow:var(--sombra-1), inset 3px 0 0 #9E2F26; }
+.lw-kpi.urge .rot{ color:#9E2F26; }
+/* Sin cifra: la base no contestó. Se dice, no se pinta un cero — un cero
+   inventado es peor que un hueco, porque parece un dato. */
+.lw-kpi.muda .lw-cifra{ color:var(--texto-3); }
 
 /* Botones: el handoff pide que se noten al pasar por encima, no solo que cambien
    de borde. El `transform` se anima solo (no `top`/`margin`) para no provocar

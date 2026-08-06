@@ -22,7 +22,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=0f0b54be">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=ce5e8fba">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -251,6 +251,13 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
         <kbd>↑↓ Enter</kbd>
       </div>
     </div>
+    <!-- Tarjetas de cifra y últimas operaciones (6-ago-2026, handoff de diseño).
+         Van ANTES de la lista de herramientas: al entrar, lo primero es el estado
+         del negocio; la lista es para ir a un sitio, y para eso ya está el
+         buscador con el foco puesto. Los dos contenedores nacen vacíos y con
+         `hidden`, así que si la base no contesta no queda un hueco con marco. -->
+    <div class="lw-kpis" id="kpis" hidden></div>
+    <div id="reciente" hidden></div>
     <div id="grupos"></div>
   </main>
 
@@ -451,6 +458,105 @@ async function contar(sb){
            documentos, proyectosConDocs };
 }
 
+/* ── tarjetas de cifra ─────────────────────────────────────────────────
+   Ni una consulta nueva: son las MISMAS cifras que `contar()` ya trae y que hasta
+   hoy se leían como texto pequeño dentro de cada fila de herramienta. Lo que
+   cambia es que lo que necesita atención se ve al entrar, sin recorrer once
+   filas.
+   Cinco como máximo, y elegidas por eso: son las que responden «¿tengo algo
+   parado?». El resto de cifras sigue en su fila, que es donde tiene contexto.
+   `null` = la base no contestó (la RLS tapó la tabla, o falló): se dice con un
+   guion y la tarjeta se marca `muda`. Nunca un cero. */
+function pintarKpis(d, ficha){
+  if(!d) return;
+  const tarjetas = [
+    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/', herr:'operaciones',
+      pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
+      urge:n => n > 0 },
+    { rot:'Contratos', v:d.contratos, href:'/contracts/app.html', herr:'contratos',
+      pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables' },
+    { rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
+      pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada' },
+    { rot:'Unidades libres', v:d.unidadesLibres, href:'/unidades/', herr:'unidades',
+      pie:() => d.unidades == null ? '' : 'de ' + d.unidades + ' en inventario' },
+    { rot:'En obra', v:d.obraActivas, href:'/obra/', herr:'obra',
+      pie:n => n ? 'con fase abierta' : 'sin unidades en obra' },
+  ];
+  // Solo las herramientas que esta persona puede abrir: una tarjeta que lleva a
+  // un sitio del que te van a echar es peor que no tenerla.
+  const puede = h => !h || !ficha || esAdmin(ficha) || (ficha.herramientas || []).includes(h);
+  const vistas = tarjetas.filter(t => puede(t.herr));
+  if(!vistas.length) return;
+  $('#kpis').innerHTML = vistas.map((t, i) => {
+    const mudo = t.v == null;
+    const cls = ['lw-kpi', 'lw-fade', mudo ? 'muda' : '', (!mudo && t.urge && t.urge(t.v)) ? 'urge' : '']
+      .filter(Boolean).join(' ');
+    return `<a class="${cls}" href="${t.href}" style="--i:${i}">
+      <span class="rot">${esc(t.rot)}</span>
+      <span class="lw-cifra">${mudo ? '—' : t.v}</span>
+      <span class="pie">${mudo ? 'la base no contestó' : esc(t.pie(t.v) || '')}</span>
+    </a>`;
+  }).join('');
+  $('#kpis').hidden = false;
+
+  /* Fila de administración: solo para quien manda. No es un secreto —el panel de
+     Usuarios ya comprueba el rol— pero enseñar «14 con acceso» a un agente es
+     ruido sobre algo que no puede tocar. */
+  if(esAdmin(ficha) && d.usuarios != null){
+    $('#kpis').insertAdjacentHTML('beforeend',
+      `<a class="lw-kpi lw-fade" href="/usuarios/" style="--i:${vistas.length}">
+        <span class="rot">Equipo</span>
+        <span class="lw-cifra">${d.usuarios}</span>
+        <span class="pie">${d.usuariosInactivos ? d.usuariosInactivos + ' desactivados' : 'todos activos'}</span>
+      </a>`);
+  }
+}
+
+/* ── últimas operaciones ───────────────────────────────────────────────
+   La ÚNICA consulta nueva del panel. Dos lecturas de columnas concretas —jamás
+   `datos`, que en `contratos` pesa MB por los anexos en base64— y cada una por
+   su lado: si la RLS tapa una, la otra se enseña igual.
+   Se mezclan y se ordenan por fecha porque la pregunta del que entra es «qué se
+   ha movido», no «qué contratos hay». */
+async function ultimasOperaciones(sb){
+  const [c, f] = await Promise.all([
+    sb.from('contratos').select('numero, tipo, comprador_nombre, created_at, bloqueado')
+      .order('created_at', { ascending:false }).limit(6),
+    sb.from('facturas').select('id, numero, tipo, cliente_nombre, total, moneda, created_at, anulada')
+      .order('created_at', { ascending:false }).limit(6),
+  ]);
+  const filas = [
+    ...(c.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.comprador_nombre,
+        que:'Contrato', href:'/contracts/app.html', estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
+    ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
+        que:r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura',
+        href:'/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
+        estado:r.anulada ? ['Anulada','alerta'] : ['Emitida','info'] })),
+  ].filter(r => r.fecha).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 8);
+  if(!filas.length) return;
+  const dia = s => new Date(s).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
+  $('#reciente').innerHTML =
+    `<section class="grupo"><h2>Lo último que se ha movido</h2>
+      <div class="sui-tabla-caja"><table class="sui-tabla"><tbody>` +
+      filas.map(r => `<tr data-ir="${esc(r.href)}">
+        <td class="clave">${esc(r.num || '—')}</td>
+        <td>${esc(r.que)}</td>
+        <td>${esc(r.quien || 'sin nombre')}</td>
+        <td class="num flojo">${r.importe != null ? esc(Number(r.importe).toLocaleString('es') + ' ' + (r.moneda||'')) : ''}</td>
+        <td><span class="sui-tag ${r.estado[1]}">${esc(r.estado[0])}</span></td>
+        <td class="flojo">${esc(dia(r.fecha))}</td>
+      </tr>`).join('') +
+      '</tbody></table></div></section>';
+  $('#reciente').hidden = false;
+  /* Delegacion y no `onclick` en el marcado: es como escucha el resto de la
+     suite, y un atributo con una URL dentro de una plantilla es la clase de sitio
+     donde se cuela una comilla. */
+  $('#reciente').addEventListener('click', e => {
+    const tr = e.target.closest('tr[data-ir]');
+    if(tr) location.href = tr.dataset.ir;
+  });
+}
+
 /* ── arranque ──────────────────────────────────────────────────────── */
 const sb = window.supabase.createClient(
   'https://vtulllundrfennhjddhc.supabase.co',
@@ -486,6 +592,11 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
 
   CIFRAS = await contar(sb);
   pintar($('#q').value);
+  pintarKpis(CIFRAS, ficha);
+  /* Va después y sin bloquear: si esta consulta falla, el panel ya está entero y
+     usable. Un `await` sin catch aquí habría dejado el pie de página sin escribir
+     y la sesión sin cerrar bien. */
+  ultimasOperaciones(sb).catch(e => console.warn('últimas operaciones:', e && e.message));
   const mudas = HERRAMIENTAS.filter(permitida).filter(t => t.estado && t.estado(CIFRAS) === null).length;
   $('#pie-datos').textContent = mudas
     ? mudas + ' herramienta(s) sin cifra: la base no contestó y no se inventa un cero.'
