@@ -183,8 +183,29 @@ function documentoPagina(d, opts){
     '<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">' +
     '<link rel="stylesheet" href="' + base + '/contracts/assets/brand.css">' +
     '<link rel="stylesheet" href="' + base + '/facturas/documento.css">' +
+    /* 🔴 6-ago-2026 — ESTE BLOQUE ES LA HOJA COMPLETA, no un remate.
+       El documento que se manda por correo salía «con un formateo que no tiene
+       nada que ver» con la vista previa de la herramienta (reportado por el
+       owner), y la causa era que aquí faltaban DOS declaraciones que en
+       /facturas/ las pone el <style> de la propia página:
+         · `font-family` — `brand.css` define el TOKEN `--font-body` pero no lo
+           aplica a `body`, y `documento.css` solo pone tipografía en el titular.
+           Sin esto el documento entero salía en el serif por defecto del
+           navegador (Times), no en Jost.
+         · `background` en `.sheet` — `documentoVars` calcula bien el folio de
+           cada sociedad y lo deja en `--folio`, pero NADIE lo consumía aquí: el
+           papel salía blanco. O sea que la identidad por sociedad (30-jul) se
+           perdía en TODA factura enviada por correo y en las automáticas de la
+           firma, que son justo las que ve el comprador.
+       Los valores llevan fallback porque esta página se renderiza fuera del
+       navegador y `brand.css` podría no llegar; un documento en Jost sobre papel
+       blanco es aceptable, uno en Times no.
+       Lo que NO se copia de la página, y es correcto: `zoom` y `box-shadow`, que
+       son de pantalla (el zoom además no se aplica dentro de @media print). */
     '<style>@page{size:A4;margin:0}html,body{margin:0}' +
-    '.sheet{width:210mm;min-height:297mm;padding:15mm 16mm;box-sizing:border-box}</style>' +
+    'body{font-family:var(--font-body,\'Jost\',sans-serif);color:var(--ink,#2E3437)}' +
+    '.sheet{width:210mm;min-height:297mm;padding:15mm 16mm;box-sizing:border-box;' +
+    'background:var(--folio,#fff)}</style>' +
     '</head><body>' +
     '<div class="sheet" style="' + estilo('hoja') + '">' +
       '<div class="doc" style="' + estilo('doc') + '">' + documentoHTML(d, opts) + '</div>' +

@@ -87,6 +87,24 @@ assert.ok(pag.includes('size:A4'));
 assert.ok(!/src="\/[^/]/.test(pag),
   'ninguna ruta relativa: el renderizador carga el HTML desde otro sitio y no resolvería');
 
+/* ---- la hoja que se MANDA trae papel y tipografía ----
+   El 6-ago-2026 el owner recibió una factura por correo «con un formateo que no
+   tiene nada que ver» con la de la intranet: `documentoPagina` no declaraba
+   `font-family` (salía en el serif por defecto, porque brand.css define el token
+   pero no lo aplica a body) ni `background` en `.sheet` (el folio de la sociedad
+   se calculaba y nadie lo consumía → papel blanco). Se comprueba aquí porque el
+   fallo NO se ve en la vista previa: la página le presta sus propios estilos. */
+const hojaSDW = caja.documentoPagina({ ...campos, sociedad: 'san_dal_woods' },
+                                     { numero: 'INV00001', base: 'https://lawangproperties.com' });
+assert.ok(/body\{[^}]*font-family:var\(--font-body/.test(hojaSDW),
+  'la hoja que se manda tiene que fijar la tipografía del cuerpo, o sale en Times');
+assert.ok(/\.sheet\{[^}]*background:var\(--folio/.test(hojaSDW),
+  'la hoja que se manda tiene que consumir --folio, o el papel sale blanco y se pierde la identidad de la sociedad');
+assert.ok(hojaSDW.includes('--folio:' + caja.SOCIEDADES.san_dal_woods.folio),
+  'y el folio de ESA sociedad tiene que llegar hasta el elemento');
+/* con los dos fallbacks puestos: si brand.css no cargara, Jost antes que Times */
+assert.ok(hojaSDW.includes("var(--font-body,'Jost',sans-serif)"), 'falta el fallback de tipografía');
+
 /* ---- cuenta "Otros": se imprime lo tecleado, y sin nada no se imprime nada ---- */
 const conOtros = caja.documentoHTML({ ...campos, cuenta: 'otros', banco_titular: 'PT TEPI SUN GAI',
                                       banco_cuenta: '3692536026' }, {});
