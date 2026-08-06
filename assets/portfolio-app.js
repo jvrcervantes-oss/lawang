@@ -799,8 +799,12 @@
     if(!price || !isFinite(price)) return "";
     var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
     if(!steps || !steps.length) return "";
-    // Foto: mismo campo/orden de fallback que bleedSectionHTML — nunca un placeholder inventado.
-    var bgKey = p.bleedImage || (p.imgKeys&&p.imgKeys[1]) || (p.imgKeys&&p.imgKeys[0]);
+    // Foto: la referencia (PDF p.4) es un plano cercano de la villa/piscina al atardecer, no un
+    // aéreo del complejo entero -- imgKeys[0] es casi siempre esa foto "de portada" que el cliente
+    // ya eligió como la más evocadora (comprobado contra producción: imgKeys[1] resultó ser el
+    // aéreo, un tono completamente distinto al de la guía). Reutilizar la misma foto del hero aquí,
+    // muy abajo en la página y con tratamiento oscuro distinto, no es un problema.
+    var bgKey = p.bleedImage || (p.imgKeys&&p.imgKeys[0]) || (p.imgKeys&&p.imgKeys[1]);
     var bg = bgKey ? imgUrl(bgKey, 2400) : null;
     var frac = 1/Math.max(steps.length*2.2, 1);  // decorativo: "arrancas el viaje", no hay estado real de comprador que leer en la web pública
     var cards = steps.slice(0,4).map(function(s,i){
