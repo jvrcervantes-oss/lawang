@@ -594,12 +594,14 @@ const TEMPLATES = [
   { slug:'ppjb_bonian', file:'templates/ppjb_bonian.html', cover:'#104C4F',
     name:{es:'PPJB Bonian Beach',en:'PPJB Bonian Beach',id:'PPJB Bonian Beach'},
     l2:{es:'de Reserva y Compraventa Vinculante de Parcela',en:'Reservation & Binding Sale of Plot',id:'Perjanjian Pengikatan Jual Beli'}, ready:true },
-  // La C2 estatica se queda: es el ejemplar concreto de la parcela C2, con sus
-  // datos escritos dentro y sin campos. Desde el 4-ago-2026 lleva el texto del
-  // 31-jul (antes el del 21-jul) — ver la cabecera de la propia plantilla.
-  // Para emitir PPJB de Bonian nuevos, la de arriba (serie PB).
+  // Es el ejemplar concreto de la parcela C2, con sus datos escritos dentro y
+  // sin campos de texto (el cuerpo no se edita). Desde el 4-ago-2026 lleva el
+  // texto del 31-jul (antes el del 21-jul) — ver la cabecera de la propia
+  // plantilla. Para emitir PPJB de Bonian nuevos, la de arriba (serie PB).
+  // Guardable y firmable desde el 6-ago-2026 (serie propia C2, ver
+  // set_contrato_numero): antes no tenia numero ni "Enviar a firma".
   { slug:'ppjb_bonian_c2', file:'templates/ppjb_bonian_c2.html', cover:'#104C4F',
-    name:{es:'PPJB Bonian Beach · Parcela C2 (v. 31-jul, estatica)',en:'PPJB Bonian Beach · Plot C2 (31-Jul, static)',id:'PPJB Bonian Beach · Kavling C2'},
+    name:{es:'PPJB Bonian Beach · Parcela C2',en:'PPJB Bonian Beach · Plot C2',id:'PPJB Bonian Beach · Kavling C2'},
     l2:{es:'de Reserva y Compraventa · Bonian Beach C2',en:'Reservation & Binding Sale · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
   { slug:'anexo_x_bonian_c2', file:'templates/anexo_x_bonian_c2.html', cover:'#8F9B7A',
     name:{es:'Anexo X · Planos y Especificaciones (Bonian C2)',en:'Annex X · Plans & Specs (Bonian C2)',id:'Lampiran X · Bonian C2'},
@@ -661,17 +663,21 @@ const CONTRACT_TIPO = {
   carta_reserva_ampliada:'carta_reserva_ampliada',
   commercial_collaboration:'acuerdo_comercial', colaborador_operativo:'protocolo_operativo',
   ppjb_bonian:'ppjb_bonian',   // serie PB · texto fijo, datos de la operacion por campos
+  // tipo PROPIO y no 'ppjb_bonian' (6-ago-2026): TIPO_SLUG es un mapa inverso
+  // tipo->slug, y compartir tipo con la serie PB le habria pisado la entrada —
+  // reabrir un PB guardado habria cargado la plantilla equivocada (o al reves).
+  ppjb_bonian_c2:'ppjb_bonian_c2',   // serie C2 · un solo ejemplar, texto fijo
   hak_sewa_notario:'hak_sewa_notario',   // serie HS · arrendamiento Hak Sewa ante notario
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
   carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
-  ppjb_bonian:'PB', hak_sewa_notario:'HS' };
+  ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS' };
 const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
   commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
   acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo',
-  ppjb_bonian:'PPJB Bonian Beach', hak_sewa_notario:'Hak Sewa - Notario' };
+  ppjb_bonian:'PPJB Bonian Beach', ppjb_bonian_c2:'PPJB Bonian Beach · Parcela C2', hak_sewa_notario:'Hak Sewa - Notario' };
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
@@ -1814,8 +1820,8 @@ function buildForm(){
       sec.classList.toggle('off', !chk.checked); if(chk.checked) ensurePads(sec); render(); });
   });
   form.querySelectorAll('[data-clear]').forEach(b=>b.addEventListener('click',()=>{ clearPad(b.dataset.clear); render(); }));
-  form.querySelectorAll('input[name],textarea[name],select[name]').forEach(el=> el.addEventListener('input', ()=>{ aplicarReglasCampos(); renderDebounced(); }));
-  form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', ()=>{ aplicarReglasCampos(); render(); }));
+  form.querySelectorAll('input[name],textarea[name],select[name]').forEach(el=> el.addEventListener('input', ()=>{ aplicarReglasCampos(); renderDebounced(); updateSaveButton(); }));
+  form.querySelectorAll('select[name]').forEach(el=> el.addEventListener('change', ()=>{ aplicarReglasCampos(); render(); updateSaveButton(); }));
   aplicarReglasCampos();   // estado inicial de los campos condicionados
   ensurePads(form);   // secciones visibles al arrancar
   updateSaveButton(); // muestra/oculta "Guardar en base de datos" según la plantilla
@@ -2232,7 +2238,11 @@ const FORM_ORDER = ['gestion','comprador','sociedad','parcela','proyecto_constru
    es del suelo, no "del proyecto" (petición del cliente, 23-jul). El campo lo
    comparten 5 plantillas, por eso la etiqueta global no se toca. */
 const ETIQUETAS_POR_PLANTILLA = {
-  ppjb_parcela: { precio_total: {es:'Precio total del suelo',en:'Total land price',id:'Harga total tanah'} }
+  ppjb_parcela: { precio_total: {es:'Precio total del suelo',en:'Total land price',id:'Harga total tanah'} },
+  // El C2 no tiene mas campo que este (el resto del texto va escrito dentro,
+  // fijo): es lo unico que identifica el contrato en el listado, de ahi la
+  // etiqueta explicita en vez del humanize() generico de "Otros campos".
+  ppjb_bonian_c2: { proyecto_nombre: {es:'Nombre del proyecto',en:'Project name',id:'Nama proyek'} }
 };
 function deriveSections(){
   const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
@@ -2453,7 +2463,14 @@ function updateSaveButton(){
 
   const lockBtn=$('#btnLockUpload'), firmaBtn=$('#btnEnviarFirma');
   if(!tipo){ btn.style.display='none'; if(lockBtn) lockBtn.style.display='none'; if(firmaBtn) firmaBtn.style.display='none'; ocultarGruposVacios(); return; }
-  btn.style.display = LOCKED ? 'none' : '';
+  // El C2 de Bonian no tiene mas campo que el nombre del proyecto (el resto
+  // del texto va escrito dentro, fijo): sin el, un contrato guardado seria
+  // imposible de distinguir luego en el listado. Se guarda solo despues de
+  // rellenarlo — el resto de plantillas no lleva este freno porque tienen
+  // comprador_nombre u otros campos que ya identifican la fila.
+  const proyectoFalta = CURRENT.slug === 'ppjb_bonian_c2' && !SAVED_CONTRACT
+    && !(($('[name="proyecto_nombre"]')||{}).value||'').trim();
+  btn.style.display = (LOCKED || proyectoFalta) ? 'none' : '';
   if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   if(firmaBtn) firmaBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   btn.textContent = SAVED_CONTRACT ? ('Actualizar ' + SAVED_CONTRACT.numero) : 'Guardar';
@@ -3218,6 +3235,14 @@ async function init(){
   ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
   await loadTemplate(CURRENT.slug);
   buildPicker(); buildLangToggle(); buildForm();
+  // Delegado en #form, UNA vez (6-ago-2026): los listeners por-campo que pone
+  // buildForm() se pierden en cuanto aplicarReglasCampos() reconstruye un
+  // select condicionado (p.ej. proyecto_nombre) — el nodo cambia y el listener
+  // viejo se queda colgado de un elemento que ya no está en el DOM. #form en
+  // cambio no se reemplaza nunca, así que capta el evento aunque el campo de
+  // dentro se haya vuelto a pintar.
+  $('#form').addEventListener('input', updateSaveButton);
+  $('#form').addEventListener('change', updateSaveButton);
 
   // ── que pantalla se abre (6-ago-2026) ──────────────────────────────────
   // ?contrato=<id> abre ese contrato en el editor (lo usa Operaciones y ahora
