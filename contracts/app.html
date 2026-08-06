@@ -562,6 +562,14 @@ const TEMPLATES = [
   { slug:'carta_reserva_ampliada', file:'templates/carta_reserva_ampliada.html', cover:'#2E3437',
     name:{es:'Carta de Reserva ampliada',en:'Extended Reservation Letter',id:'Surat Pemesanan Lengkap'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
+  // Otra variante APARTE (6-ago-2026), ni la corta ni la ampliada: due-diligence
+  // antes de firmar el definitivo, arbitraje BANI en Denpasar, penalizacion del
+  // 50% si el reservante desiste. Serie propia CH -- 'CR00005' que pedia el
+  // cliente ya es de otro contrato sin firmar, no se reutiliza a mano. Solo
+  // ES/ID: el propio documento (art. 8.2) se otorga nada mas en esas dos lenguas.
+  { slug:'carta_reserva_hak_sewa', file:'templates/carta_reserva_hak_sewa.html', cover:'#2E3437',
+    name:{es:'Carta de Reserva (Hak Sewa)',en:'Reservation Letter (Hak Sewa)',id:'Surat Pemesanan (Hak Sewa)'},
+    l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37', num:2,
     name:{es:'Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'},
     l2:{es:'de Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'}, ready:true },
@@ -668,16 +676,21 @@ const CONTRACT_TIPO = {
   // reabrir un PB guardado habria cargado la plantilla equivocada (o al reves).
   ppjb_bonian_c2:'ppjb_bonian_c2',   // serie C2 · un solo ejemplar, texto fijo
   hak_sewa_notario:'hak_sewa_notario',   // serie HS · arrendamiento Hak Sewa ante notario
+  // mismo motivo que ppjb_bonian_c2: tipo propio, no 'carta_reserva' ni
+  // 'carta_reserva_ampliada' — comparte tipo con cualquiera de las dos y se
+  // rompe la reapertura de la que sea.
+  carta_reserva_hak_sewa:'carta_reserva_hak_sewa',   // serie CH · due-diligence + BANI Denpasar
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
   carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
-  ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS' };
+  ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH' };
 const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
   commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
   acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo',
-  ppjb_bonian:'PPJB Bonian Beach', ppjb_bonian_c2:'PPJB Bonian Beach · Parcela C2', hak_sewa_notario:'Hak Sewa - Notario' };
+  ppjb_bonian:'PPJB Bonian Beach', ppjb_bonian_c2:'PPJB Bonian Beach · Parcela C2', hak_sewa_notario:'Hak Sewa - Notario',
+  carta_reserva_hak_sewa:'Carta de Reserva (Hak Sewa)' };
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
