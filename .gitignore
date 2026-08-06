@@ -65,4 +65,10 @@ _preview/
 # Material de diseno (handoffs, mockups). Va dentro de intranet/, que se
 # DESPLIEGA: sin esto los mockups quedarian servidos en
 # lawangproperties.com/intranet/... Mismo caso que Marketing/ en el repo de B2K.
-intranet/Lawang Properties UI mockups/
+# Cualquier carpeta de mockups/handoff dentro de intranet/, no una en concreto:
+# la segunda llego el 6-ago llamandose «...UI mockups login» y el patron exacto
+# no la cubria, asi que habria quedado servida. Una lista a mano, otra vez.
+intranet/*mockup*/
+intranet/*Mockup*/
+intranet/*handoff*/
+intranet/*Handoff*/

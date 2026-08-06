@@ -7,43 +7,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lawang · Acceso</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Cormorant Garamond entra el 6-ago-2026: el logotipo de la tarjeta pasa de una
+     «L» dentro de un círculo a la palabra «Lawang» en serif, que es como la marca
+     aparece en la barra del resto de la suite. Sin esta línea el wordmark caería a
+     Georgia y la primera pantalla que ve el equipo cada mañana sería la única con
+     otra tipografía. -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
-  :root{ --tg:#485B37; --dl:#104C4F; --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6; --muted:#6b6c66; --line:#e4ddcf; }
+  /* Filete unificado a #E4DCCB, el mismo valor que `--linea` de suite.css: esta
+     pantalla tenía #e4ddcf, unos puntos de hex por detrás, y es la única de la
+     suite que no carga la hoja compartida (a propósito: es la puerta, y no debe
+     depender de nada que pueda fallar). Se copia el valor, no se importa. */
+  :root{ --tg:#485B37; --dl:#104C4F; --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6;
+         --muted:#6b6c66; --line:#E4DCCB; --sc:#8F9B7A; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
   body{ font-family:'Jost',sans-serif; background:var(--rl); color:var(--va);
     display:grid; place-items:center; min-height:100vh; padding:20px; }
-  .card{ background:#fff; border:1px solid var(--line); border-radius:16px; width:100%; max-width:380px;
-    padding:32px 28px; box-shadow:0 10px 40px rgba(46,52,55,.08); }
-  .brand{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:24px; }
-  .glyph{ width:48px; height:48px; border:1.5px solid var(--tg); border-radius:50%; display:grid; place-items:center;
-    color:var(--tg); font-family:'Jost',sans-serif; font-size:26px; font-weight:600; }
-  .brand h1{ font-family:'Jost',sans-serif; font-size:20px; letter-spacing:.16em; text-transform:uppercase; margin:0; }
-  .brand small{ font-size:10px; letter-spacing:.28em; color:var(--muted); }
+  /* La tarjeta entra con un movimiento corto al cargar. `both` deja el estado
+     final puesto: sin él, un fallo de la animación la dejaría invisible. */
+  @keyframes lwFadeUp{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:20px; width:100%; max-width:380px;
+    padding:34px 30px; box-shadow:0 1px 3px rgba(46,52,55,.05), 0 18px 50px -20px rgba(46,52,55,.22);
+    animation:lwFadeUp .6s cubic-bezier(.22,.61,.36,1) both; }
+  .brand{ display:flex; flex-direction:column; align-items:center; gap:4px; margin-bottom:26px; }
+  /* El logotipo pasa de una «L» en un círculo a la palabra en serif: es como la
+     marca se escribe en la barra del resto de la suite, así que la puerta deja de
+     ser la única pantalla con otro tratamiento. La serif se queda en UNA palabra,
+     que es la regla del manual. */
+  .brand .wordmark{ font-family:'Cormorant Garamond',Georgia,serif; font-size:34px; font-weight:600;
+    line-height:1; letter-spacing:.005em; color:var(--dl); }
+  .brand h1{ font-family:'Jost',sans-serif; font-size:11px; letter-spacing:.22em;
+    text-transform:uppercase; margin:6px 0 0; font-weight:500; color:var(--sc); }
+  .brand small{ font-size:10px; letter-spacing:.24em; color:var(--muted); }
   label{ display:block; font-size:12.5px; color:var(--muted); margin:14px 0 5px; }
+  /* 16px en el campo y no 13,5 como el mockup: por debajo de 16px, Safari en iOS
+     hace ZOOM al enfocar un input y descuadra la pantalla. Es la única cifra del
+     handoff que no se copia, y por eso queda escrito. */
   input{ width:100%; font-family:inherit; font-size:16px; padding:12px 14px; border:1px solid var(--line);
-    border-radius:10px; background:#fdfcf9; }
-  input:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
-  button{ width:100%; margin-top:22px; font-family:inherit; font-size:15px; font-weight:500; color:#fff;
-    background:var(--dl); border:none; border-radius:10px; padding:13px; cursor:pointer; }
-  button:disabled{ background:var(--ss); }
+    border-radius:10px; background:#fdfcf9;
+    transition:border-color .15s ease, box-shadow .15s ease; }
+  input:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.15); }
+  /* Pastilla y con sombra propia, como el botón primario del resto de la suite.
+     El `transform` solo en hover; en `:active` vuelve, para que el clic se note. */
+  button{ width:100%; margin-top:22px; font-family:inherit; font-size:15px; font-weight:600; color:#fff;
+    background:var(--dl); border:1px solid var(--dl); border-radius:999px; padding:13px; cursor:pointer;
+    box-shadow:0 8px 20px -10px rgba(16,76,79,.5);
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+  button:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 12px 26px -10px rgba(16,76,79,.55); }
+  button:active:not(:disabled){ transform:none; box-shadow:0 8px 20px -10px rgba(16,76,79,.5); }
+  button:disabled{ background:var(--ss); border-color:var(--ss); box-shadow:none; }
   .err{ color:#a3342b; font-size:13px; margin-top:14px; min-height:18px; text-align:center; }
+  /* Pie hacia el portal. Existe porque un comprador que recibe un enlace y
+     aterriza aquí no tiene contraseña de equipo y se queda sin salida: la única
+     pista era volver atrás. Ahora se le dice dónde entrar. */
+  .pie{ margin:20px 0 0; font-size:11.5px; line-height:1.5; color:#8A8570; text-align:center; }
+  .pie a{ color:var(--dl); }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+    button:hover:not(:disabled){ transform:none; }
+  }
 </style>
 </head>
 <body>
   <form class="card" id="f">
     <div class="brand">
-      <div class="glyph">L</div>
-      <h1>Acceso</h1>
+      <!-- `aria-hidden` en el wordmark y el nombre real en el <h1>: para quien
+           navega con lector de pantalla, «Lawang» decorativo dos veces es ruido;
+           lo que necesita oír es de qué pantalla se trata. -->
+      <div class="wordmark" aria-hidden="true">Lawang</div>
+      <h1>Acceso · Panel interno</h1>
       <small>LAWANG TROPICAL PROPERTIES</small>
     </div>
-    <label>Email</label>
+    <label for="email">Email</label>
     <input type="email" id="email" autocomplete="username" required>
-    <label>Contraseña</label>
+    <label for="password">Contraseña</label>
     <input type="password" id="password" autocomplete="current-password" required>
     <button type="submit" id="btn">Entrar</button>
-    <div class="err" id="err"></div>
+    <div class="err" id="err" role="alert" aria-live="polite"></div>
+    <p class="pie">Acceso restringido al equipo. Si eres cliente,
+      entra en <a href="/portal/">tu área de clientes</a>.</p>
   </form>
 <script>
 const $=s=>document.querySelector(s);

@@ -84,7 +84,7 @@
   --ink-3:#6B7072;       /* 5.1:1 — mínimo para texto pequeño, no bajar más */
   --serif:'Cormorant Garamond',Georgia,serif;
   --sans:'Jost',system-ui,-apple-system,sans-serif;
-  --r:10px;
+  --r:12px;   /* 6-ago-2026: la escala de suite.css (--r-m:12px), no una propia */
   --sal:cubic-bezier(.22,1,.36,1);   /* ease-out; sin rebote */
   --z-barra:20;   /* única capa que se superpone: la barra pegajosa */
 }
@@ -98,7 +98,10 @@ body{
 body[hidden]{ display:none; }
 
 /* ── barra ────────────────────────────────────────────────────── */
-header{ background:var(--va); color:var(--rl); position:sticky; top:0; z-index:var(--z-barra); }
+/* Deep Lagoon y no Volcanic Ash (6-ago-2026): el hub era la unica pantalla de
+   las doce con la cabecera casi negra, y eso se lee como otro producto. Ahora
+   es la misma barra que el resto de la suite. */
+header{ background:var(--dl); color:var(--rl); position:sticky; top:0; z-index:var(--z-barra); }
 .bar{ max-width:1060px; margin:0 auto; padding:14px 26px; display:flex; align-items:center; gap:14px; }
 /* Sin esto la barra tiene un ancho mínimo mayor que un móvil (marca + nombre +
    rol + botón) y desborda la PÁGINA entera, no solo la barra: el texto de las
@@ -151,6 +154,12 @@ main{ flex:1; width:100%; max-width:1060px; margin:0 auto; padding:34px 26px 64p
 }
 
 /* ── grupos y filas ───────────────────────────────────────────── */
+@keyframes lwFadeUp{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+/* 0,04s por fila (handoff): con once herramientas el ultimo entra a 0,44s,
+   que se nota como una cascada y no como una espera. `both` deja el estado
+   final puesto por si la animacion no llega a correr. */
+.fila.entra{ animation:lwFadeUp .45s cubic-bezier(.22,.61,.36,1) both;
+             animation-delay:calc(var(--i,0) * .04s); }
 .grupo{ margin-top:26px; }
 .grupo:first-of-type{ margin-top:8px; }
 .grupo > h2{
@@ -373,15 +382,23 @@ function pintar(filtro){
       <div class="filas">${g.tools.map(fila).join('')}</div>
     </section>`).join('');
   marcar(0);
+  PRIMERA = false;
 }
 
+let PRIMERA = true;   // ver `entra` en fila(): la animacion es solo del primer pintado
 function fila(t){
   const i = VISIBLES.indexOf(t);
   const est = (CIFRAS && t.estado) ? t.estado(CIFRAS) : null;
   const derecha = !t.estado ? ''                                   // no cuenta nada: ni cifra ni esqueleto
     : !CIFRAS ? '<span class="hueso" aria-hidden="true"></span>'   // esperando la consulta
     : est ? `<span class="${est[1] ? 'urge' : 'cifra'}">${esc(est[0])}</span>` : '';
-  return `<a class="fila" href="${esc(t.href)}" data-i="${i}">
+  /* `--i` reusa el indice que esta funcion YA calcula para el teclado: el
+     escalonado sale gratis, sin reestructurar el bucle de pintado (que es lo
+     que el handoff pedia evitar).
+     `entra` solo en la PRIMERA pintada: `pintar()` corre en cada tecla del
+     buscador, y una lista que se vuelve a montar con animacion en cada letra
+     no es una entrada, es un parpadeo. */
+  return `<a class="fila${PRIMERA ? ' entra' : ''}" href="${esc(t.href)}" data-i="${i}" style="--i:${i}">
     <i class="ph ${esc(t.icon)}" aria-hidden="true"></i>
     <span><span class="nombre">${esc(t.nombre)}</span><span class="para">${esc(t.para)}</span></span>
     <span class="estado">${derecha}<i class="ph ph-arrow-right flecha" aria-hidden="true"></i></span>
