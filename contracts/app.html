@@ -16,7 +16,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=abd695ff">
+<link rel="stylesheet" href="assets/suite.css?v=0f0b54be">
 <script src="assets/topbar.js?v=3cb23542" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -73,11 +73,11 @@
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:9px; padding:3px; box-shadow:inset 0 1px 2px rgba(46,52,55,.05); }
   .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px; color:var(--muted); cursor:pointer; transition:color .2s var(--ease), background .2s var(--ease); }
   .lang-toggle button:hover{ color:var(--va); }
-  .lang-toggle button.on{ background:var(--tg); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.4); }
+  .lang-toggle button.on{ background:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.4); }
   .lang-hint{ font-size:11px; letter-spacing:.06em; color:var(--sc); text-transform:uppercase; font-weight:600; }
   /* acciones de la barra: pastillas de línea con micro-elevación al hover */
   .tb-link{ background:linear-gradient(180deg,#fff,var(--card)); border:1px solid var(--line); border-radius:9px; font:inherit; font-size:12.5px; font-weight:500; color:var(--va); padding:7px 13px; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease), color .18s var(--ease); }
-  .tb-link:hover{ border-color:var(--tg); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
+  .tb-link:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
   .tb-link:active{ transform:translateY(0); }
   a.tb-link{ text-decoration:none; display:inline-block; }   /* el "← Panel" es enlace, no botón */
   /* Salir en tono tierra al pasar por encima — es la salida, no una acción de trabajo */
@@ -144,7 +144,7 @@
   .slider{ position:absolute; inset:0; background:var(--ss); border-radius:24px; transition:background .25s var(--ease); box-shadow:inset 0 1px 2px rgba(46,52,55,.12); }
   .slider:before{ content:""; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%;
     transition:transform .28s var(--ease); box-shadow:0 1px 3px rgba(46,52,55,.28); }
-  .switch input:checked + .slider{ background:var(--tg); }
+  .switch input:checked + .slider{ background:var(--dl); }
   .switch input:checked + .slider:before{ transform:translateX(18px); }
   .section.optional.off .body{ display:none; }
   .section.optional.off{ opacity:.82; }
@@ -161,7 +161,7 @@
     transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
   .field input::placeholder, .field textarea::placeholder{ color:var(--ss); }
   .field input:hover, .field textarea:hover, .field select:hover{ border-color:var(--sc); }
-  .field input:focus, .field textarea:focus, .field select:focus{ outline:none; border-color:var(--tg); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.14); }
+  .field input:focus, .field textarea:focus, .field select:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.14); }
   /* nº de contrato es readonly (lo asigna la BD): se ve como campo asignado, no editable */
   .field input[readonly]{ background:rgba(190,179,165,.14); color:var(--muted); cursor:default; }
   .field input[readonly]:hover{ border-color:var(--line); }
@@ -180,7 +180,7 @@
   .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center; color:var(--ss); font-size:13px; letter-spacing:.02em; pointer-events:none; }
   .sigpad-wrap.signed .ph{ display:none; }
   .sig-actions{ display:flex; justify-content:flex-end; margin-top:7px; }
-  .link-btn{ background:none; border:none; color:var(--tg); font-size:12.5px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; padding:4px; transition:color .15s var(--ease); }
+  .link-btn{ background:none; border:none; color:var(--dl); font-size:12.5px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; padding:4px; transition:color .15s var(--ease); }
   .link-btn:hover{ color:var(--dl); }
 
   /* botones · presión física (scale al pulsar) + elevación al hover */
@@ -192,13 +192,13 @@
   .btn.primary:active{ transform:translateY(0) scale(.97); }
   .btn.primary:disabled{ background:var(--ss); box-shadow:none; cursor:not-allowed; transform:none; }
   .btn.ghost{ background:linear-gradient(180deg,#fff,var(--card)); border:1px solid var(--line); color:var(--va); box-shadow:var(--sh-sm); }
-  .btn.ghost:hover{ border-color:var(--tg); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
+  .btn.ghost:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
   .btn.ghost:active{ transform:translateY(0) scale(.97); }
-  .btn.ghost.editing{ background:var(--tg); border-color:var(--tg); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.35); }
+  .btn.ghost.editing{ background:var(--dl); border-color:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.35); }
   .btn.ghost.editing:hover{ color:#fff; }
   /* Guardar en base de datos = acción de marca (acento Territorial), un peldaño bajo el primary Descargar PDF */
-  #btnSave{ background:linear-gradient(180deg,#fbfdf7,#eef3e6); border-color:var(--sc); color:var(--tg); font-weight:600; }
-  #btnSave:hover{ background:var(--tg); border-color:var(--tg); color:#fff; box-shadow:0 2px 4px rgba(72,91,55,.28), 0 10px 22px -8px rgba(72,91,55,.5); }
+  #btnSave{ background:linear-gradient(180deg,#fbfdf7,#eef3e6); border-color:var(--sc); color:var(--dl); font-weight:600; }
+  #btnSave:hover{ background:var(--dl); border-color:var(--dl); color:#fff; box-shadow:0 2px 4px rgba(72,91,55,.28), 0 10px 22px -8px rgba(72,91,55,.5); }
   /* botón de bloqueo (subir firmado) = tono tierra, señal de acción irreversible */
   #btnLockUpload:hover{ border-color:var(--be); color:var(--be); }
   #btnDownloadSigned:hover{ border-color:var(--dl); color:var(--dl); }
@@ -217,10 +217,10 @@
   .dz-row{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px; color:var(--muted); }
   .dz-row > span{ width:78px; flex:none; }
   .dz-row select, .dz-row input[type=range], .dz-row input[type=color]{ flex:1; }
-  .dz-row input[type=range]{ accent-color:var(--tg); }
+  .dz-row input[type=range]{ accent-color:var(--dl); }
   .dz-row input[type=color]{ height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
   .up{ display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:7px 12px; font-size:12.5px; color:var(--va); cursor:pointer; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
-  .up:hover{ border-color:var(--tg); box-shadow:var(--sh-sm); }
+  .up:hover{ border-color:var(--dl); box-shadow:var(--sh-sm); }
   .up input{ display:none; }
 
   /* ---------- panel Diseño (rework moderno · compacto) ---------- */
@@ -231,7 +231,7 @@
   /* fila escalar: color / degradado / textura */
   .drow{ display:flex; align-items:center; gap:10px; margin:7px 2px; }
   .drow .dlab{ width:88px; flex:none; font-size:12px; color:var(--muted); }
-  .drow input[type=range]{ flex:1; accent-color:var(--tg); height:4px; }
+  .drow input[type=range]{ flex:1; accent-color:var(--dl); height:4px; }
   .drow .dval{ width:36px; flex:none; text-align:right; font-size:11.5px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
   .dswatch{ width:40px; height:26px; flex:none; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
   /* tarjeta de asset */
@@ -247,7 +247,7 @@
   .dcard-title span{ font-size:10.5px; color:var(--muted); }
   .dbtn{ font:inherit; font-size:11.5px; border:1px solid var(--line); background:#fff; color:var(--va);
     border-radius:8px; padding:5px 9px; cursor:pointer; white-space:nowrap; transition:border-color .15s var(--ease),color .15s var(--ease),box-shadow .15s var(--ease); }
-  .dbtn:hover{ border-color:var(--tg); color:var(--tg); box-shadow:var(--sh-sm); }
+  .dbtn:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-sm); }
   .dbtn.ghost{ color:var(--muted); border-style:dashed; }
   .dbtn.upload{ position:relative; overflow:hidden; }
   .dbtn.upload input[type=file]{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
@@ -258,7 +258,7 @@
     font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
   .dctl > label .v{ font-size:11.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--dl); font-variant-numeric:tabular-nums; }
   .dctl select{ font:inherit; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); }
-  .dctl input[type=range]{ accent-color:var(--tg); height:4px; margin:3px 0 1px; }
+  .dctl input[type=range]{ accent-color:var(--dl); height:4px; margin:3px 0 1px; }
 
   /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
   .fab{ display:none; position:fixed; z-index:45; right:16px; bottom:calc(16px + env(safe-area-inset-bottom));
@@ -298,12 +298,12 @@
   .cp-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
   .cp-head b{ font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
   #cpSearch{ margin:12px 18px 0; padding:10px 13px; border:1px solid var(--line); border-radius:var(--r-sm); font:inherit; font-size:13.5px; background:var(--field-bg); transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
-  #cpSearch:focus{ outline:none; border-color:var(--tg); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  #cpSearch:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   /* filtros del panel: mismos chips que Unidades y Operaciones */
   .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; }
   .cp-f{ font:inherit; font-size:11.5px; letter-spacing:.04em; background:none; border:1px solid var(--line);
          border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--muted); }
-  .cp-f:hover{ border-color:var(--tg); }
+  .cp-f:hover{ border-color:var(--dl); }
   .cp-f.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
   .cp-f.vacio{ opacity:.45; }
   .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
@@ -320,7 +320,7 @@
     padding:11px 12px; margin-bottom:8px; font-size:13px; cursor:pointer;
     border:1px solid var(--line); border-radius:11px; background:var(--card);
     transition:border-color .15s var(--ease); }
-  .cp-row:hover{ border-color:var(--tg); }
+  .cp-row:hover{ border-color:var(--dl); }
   .cp-del{ font:inherit; font-size:13px; line-height:1; color:#a3342b; background:none;
     border:1px solid #e0c6c2; border-radius:7px; padding:4px 7px; cursor:pointer; }
   .cp-del:hover{ background:rgba(163,52,43,.09); }
@@ -342,7 +342,7 @@
   .em-body label{ display:flex; flex-direction:column; gap:6px; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
   .em-body input, .em-body textarea{ font:inherit; font-size:14px; font-weight:400; letter-spacing:0; text-transform:none; padding:10px 12px; border:1px solid var(--line);
     border-radius:var(--r-sm); color:var(--va); background:var(--field-bg); resize:vertical; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
-  .em-body input:focus, .em-body textarea:focus{ outline:none; border-color:var(--tg); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .em-body input:focus, .em-body textarea:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   .em-note{ font-size:11.5px; color:var(--muted); margin:0; text-transform:none; letter-spacing:0; }
   @media (max-width:640px){
     .cp-cols{ display:none; }
@@ -449,7 +449,7 @@
       </div>
       <div class="em-body">
         <p class="em-note">El comprador firma desde el enlace. El PDF firmado entra solo y bloquea el contrato.</p>
-        <p id="fmQuien" style="display:none;margin:0 0 8px;font-weight:600;color:var(--tg,#485B37)"></p>
+        <p id="fmQuien" style="display:none;margin:0 0 8px;font-weight:600;color:var(--dl,#104C4F)"></p>
         <label>Nombre del comprador<input type="text" id="fmName" placeholder="Nombre y apellidos"></label>
         <!-- El email dejó de ser opcional (28-jul): sin él no se puede mandar el
              enlace desde aquí, y además queda en el registro de firma como parte

@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=81da0ec7">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=abd695ff">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=0f0b54be">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="documentacion"></script>
@@ -26,15 +26,37 @@
   .c-otros{ background:#5A6062; }
   .conf{ font-size:11px; color:#9E2F26; font-weight:600; }
 
-  .campo{ margin:0 0 var(--e3); }
-  .campo label{ display:block; font-size:12px; color:var(--texto-2); margin:0 0 4px; }
-  .campo input, .campo select, .campo textarea{ width:100%; font:inherit; font-size:14px; padding:9px 11px;
-    border:1px solid var(--linea); border-radius:var(--r-s); background:#FDFCF9; color:inherit; }
-  .campo input:focus, .campo select:focus, .campo textarea:focus{ outline:none;
-    border-color:var(--tg,#485B37); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
-  .campo textarea{ min-height:62px; resize:vertical; }
-  .ck{ display:flex; align-items:center; gap:8px; font-size:13px; margin:var(--e3) 0 0; }
-  .ck input{ width:auto; }
+
+  /* ── carpetas como TARJETA, no como chip (6-ago-2026) ──────────────────
+     Era un `.sui-chip` de 12px con el número de subíndice: con veinte carpetas
+     eso es una sopa de pastillas donde no se distingue la jerarquía ni se ve de
+     un vistazo dónde está el volumen de documentos. La tarjeta da sitio al
+     número —que es el dato que se busca— y al icono.
+     Ancho mínimo y no fijo: una carpeta se llama «Precios» o
+     «Especificaciones técnicas», y recortar el nombre para que la rejilla case
+     sería cambiar legibilidad por simetría. */
+  .carp{ display:flex; align-items:center; gap:10px; min-width:190px; text-align:left;
+         font:inherit; font-size:13.5px; color:var(--texto); cursor:pointer;
+         background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-m);
+         padding:11px 14px; min-height:24px;
+         transition:border-color var(--t-rapido), box-shadow var(--t-rapido),
+                    transform .15s ease, background var(--t-rapido); }
+  .carp:hover{ border-color:var(--dl,#104C4F); transform:translateY(-1px); box-shadow:var(--sombra-1); }
+  .carp .ic{ font-size:17px; line-height:1; flex:none; }
+  .carp .t{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* El número, con cifras de ancho fijo y a la derecha: es lo que se compara
+     entre carpetas, y con `tabular-nums` 8 y 112 casan por columna. */
+  .carp .n{ flex:none; font-variant-numeric:tabular-nums; font-weight:600;
+            font-size:12.5px; color:var(--texto-2); background:var(--sup-2);
+            border-radius:var(--r-p); padding:2px 9px; }
+  /* Seleccionada: el MISMO lenguaje que la fila seleccionada de la tabla —
+     relleno suave + filete de acento a la izquierda + dato en tinta de marca.
+     Tres señales, no una de color (ver `--sup-sel` en suite.css). */
+  .carp.on{ background:var(--sup-sel); border-color:var(--dl,#104C4F);
+            box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+  .carp.on .t{ font-weight:600; color:var(--dl,#104C4F); }
+  .carp.on .n{ background:var(--sup-1); color:var(--dl,#104C4F); }
+  @media (max-width:760px){ .carp{ min-width:0; flex:1 1 100%; } }
 
   /* medidor de almacenamiento */
   .uso{ border:1px solid var(--linea); border-radius:var(--r-m); background:var(--sup-1);
@@ -182,16 +204,32 @@ function ramas(){
 const dentroDe = (d, ruta) => ruta === ''
   || d.carpeta === ruta || String(d.carpeta || '').startsWith(ruta + '/');
 
+/* Las carpetas pasan de chip pequeño a TARJETA (6-ago-2026, handoff de diseño).
+   Es puramente visual: `ramas()` y `dentroDe()` siguen siendo los mismos, el
+   atributo `data-carp` es el mismo y quien escucha el clic no cambia — lo único
+   distinto es la forma del botón y que el número se lee de un vistazo en vez de
+   ir de subíndice.
+   La sangría por profundidad se conserva: era la única señal de que
+   «Precios/2026» está dentro de «Precios», y una rejilla plana la habría
+   perdido. Se hace con `margin-left` sobre la tarjeta, como antes. */
 function pintarArbol(){
   const base = DOCS.filter(d => !PROY || d.proyecto === PROY);
   const n = ruta => base.filter(d => dentroDe(d, ruta)).length;
+  const tarjeta = (ruta, etiqueta, hondo) =>
+    `<button class="carp ${CARPETA===ruta?'on':''}" data-carp="${esc(ruta)}"` +
+    (ruta ? ` title="${esc(ruta)}"` : '') +
+    (hondo ? ` style="margin-left:${hondo * 18}px"` : '') + '>' +
+      /* Emoji y no un icono de fuente: esta página no carga Phosphor, y traer un
+         CSS de CDN entero (con su `integrity` y su versión fijada, que es la
+         norma del estudio) para tres carpetas no se paga. El original ya usaba
+         📁; aquí solo es más grande. */
+      `<span class="ic" aria-hidden="true">${hondo ? '📂' : '📁'}</span>` +
+      `<span class="t">${esc(etiqueta)}</span>` +
+      `<span class="n">${n(ruta)}</span>` +
+    '</button>';
   $('#arbol').innerHTML =
-    `<button class="sui-chip ${CARPETA===''?'on':''}" data-carp="">Todas<span class="n">${n('')}</span></button>` +
-    ramas().map(ruta => {
-      const hondo = ruta.split('/').length - 1;
-      return `<button class="sui-chip ${CARPETA===ruta?'on':''}" data-carp="${esc(ruta)}" title="${esc(ruta)}"
-        style="margin-left:${hondo * 14}px">${hondo ? '↳ ' : '📁 '}${esc(ruta.split('/').pop())}<span class="n">${n(ruta)}</span></button>`;
-    }).join('');
+    tarjeta('', 'Todas', 0) +
+    ramas().map(ruta => tarjeta(ruta, ruta.split('/').pop(), ruta.split('/').length - 1)).join('');
 }
 
 function visibles(){

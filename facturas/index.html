@@ -18,7 +18,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=abd695ff">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=0f0b54be">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -83,7 +83,7 @@
   label:first-of-type{ margin-top:2px; }
   input,select,textarea{ width:100%; font-family:inherit; font-size:14px; color:var(--ink); padding:9px 11px;
     border:1px solid var(--line); border-radius:9px; background:var(--field-bg); }
-  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   textarea{ min-height:70px; resize:vertical; }
   .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .hint{ font-size:11.5px; color:var(--muted); margin:8px 0 0; line-height:1.45; }
@@ -104,7 +104,7 @@
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
   .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
          border-radius:9px; padding:6px 10px; cursor:pointer; }
-  .hito:hover{ border-color:var(--tg); color:var(--dl); }
+  .hito:hover{ border-color:var(--dl); color:var(--dl); }
   .hito.usado{ opacity:.45; text-decoration:line-through; cursor:not-allowed; }
   .hito.usado:hover{ border-color:var(--line); color:inherit; }
   .hito b{ color:var(--dl); }
@@ -116,7 +116,7 @@
   .pv-bar b{ font-size:12.5px; font-weight:500; color:var(--muted); }
   .btn{ font:inherit; font-size:12.5px; border-radius:999px; padding:8px 15px; cursor:pointer; border:1px solid var(--line);
         background:var(--card); color:var(--ink); }
-  .btn:hover{ border-color:var(--tg); }
+  .btn:hover{ border-color:var(--dl); }
   .btn.primary{ background:var(--dl); border-color:var(--dl); color:#fff; }
   .btn:disabled{ opacity:.5; cursor:default; }
   .pv-scroll{ padding:22px 0 60px; display:flex; justify-content:center; }
@@ -149,7 +149,7 @@
   .modal .list{ overflow:auto; padding:10px 12px 18px; }
   .frow{ display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--line);
          border-radius:11px; background:var(--card); margin-bottom:8px; cursor:pointer; }
-  .frow:hover{ border-color:var(--tg); }
+  .frow:hover{ border-color:var(--dl); }
   .frow .n{ font-weight:600; font-size:13px; color:var(--dl); font-variant-numeric:tabular-nums; }
   .frow .c{ flex:1; font-size:13px; }
   .frow .t{ font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }

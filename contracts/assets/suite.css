@@ -288,8 +288,36 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    entera obtiene la animación otra vez, que es lo correcto; quien solo cambie un
    número dentro, no. */
 .lw-bar{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; }
-.lw-bar > i{ display:block; height:100%; background:var(--dl,#104C4F);
+/* `.barra` entra en el mismo selector a propósito: Documentación (medidor de
+   almacenamiento), Unidades (avance de venta) y el portal (plan de pagos) ya
+   tenían su propia `.barra` con SUS colores y umbrales —verde/ámbar/rojo—, y esos
+   son de cada página, no compartidos. Lo único que se comparte aquí es el
+   movimiento, así que las tres lo heredan sin tocarles una línea de marcado ni
+   perder su semántica de color. */
+.lw-bar > i, .barra > i{ display:block; height:100%;
   animation:lwGrow 1.1s var(--curva) both; }
+.lw-bar > i{ background:var(--dl,#104C4F); }
+
+/* ── CAMPO DE FORMULARIO — uno para las cuatro que lo tenían copiado ──────
+   Documentación, Unidades, Obra y Creatividades traían el MISMO bloque `.campo`
+   palabra por palabra (solo variaba si la lista incluía `textarea`), y las cuatro
+   con el foco en verde. El verde ya no es «esto se puede tocar»: eso es Deep
+   Lagoon desde el reparto de color de la fase 1, y aquí se arregla en las cuatro
+   de una vez. El ANILLO se queda verde, como en el resto de la suite.
+   Sin prefijo `.sui-` a propósito: las cuatro páginas ya escriben
+   `class="campo"` en el marcado, y renombrar por pulcritud costaría cuatro
+   ficheros de cambios sin que nadie vea nada distinto. Los componentes NUEVOS sí
+   llevan prefijo. */
+.campo{ margin:0 0 var(--e3); }
+.campo label{ display:block; font-size:12px; color:var(--texto-2); margin:0 0 4px; }
+.campo input, .campo select, .campo textarea{ width:100%; font:inherit; font-size:14px;
+  padding:9px 11px; border:1px solid var(--linea); border-radius:var(--r-s);
+  background:#FDFCF9; color:inherit; }
+.campo input:focus, .campo select:focus, .campo textarea:focus{ outline:none;
+  border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+.campo textarea{ min-height:62px; resize:vertical; }
+.ck{ display:flex; align-items:center; gap:8px; font-size:13px; margin:var(--e3) 0 0; }
+.ck input{ width:auto; }
 
 /* CIFRAS GRANDES en serif — y solo cifras. Ver `--font-cifra` en brand.css: los
    títulos se quedan en Jost por decisión del owner. `tabular-nums` porque dos

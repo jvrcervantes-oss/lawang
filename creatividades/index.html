@@ -15,7 +15,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=abd695ff">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=0f0b54be">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="creatividades"></script>
@@ -106,24 +106,16 @@
            padding:14px 15px; margin:0 0 12px }
   .bloque > h3{ margin:0 0 10px; font-size:12px; letter-spacing:.09em; text-transform:uppercase;
                 color:var(--texto-2,#676B63); font-weight:600 }
-  .campo{ margin:0 0 10px }
-  .campo label{ display:block; font-size:12px; color:var(--texto-2,#676B63); margin:0 0 4px }
-  .campo input[type=text], .campo textarea, .campo select{ width:100%; font:inherit; font-size:14px;
-    padding:8px 10px; border:1px solid var(--linea,#E3DED2); border-radius:var(--r-s,7px);
-    background:#FDFCF9; color:inherit }
-  .campo textarea{ min-height:54px; resize:vertical }
-  .campo input:focus, .campo textarea:focus, .campo select:focus{ outline:none;
-    border-color:#485B37; box-shadow:0 0 0 3px rgba(72,91,55,.13) }
   .fila2{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
   .chk{ display:flex; align-items:center; gap:8px; font-size:13px; margin:0 0 8px }
   input[type=range]{ width:100% }
   .btn{ font:inherit; font-size:14px; padding:9px 14px; border-radius:999px; cursor:pointer;
         border:1px solid var(--linea,#E3DED2); background:#fff; color:inherit }
-  .btn.pri{ background:#485B37; border-color:#485B37; color:#fff; font-weight:600 }
+  .btn.pri{ background:#104C4F; border-color:#104C4F; color:#fff; font-weight:600 }
   .btn:disabled{ opacity:.5; cursor:not-allowed }
   .segm{ display:flex; gap:6px }
   .segm button{ flex:1 }
-  .segm button[aria-pressed=true]{ background:#485B37; border-color:#485B37; color:#fff }
+  .segm button[aria-pressed=true]{ background:#104C4F; border-color:#104C4F; color:#fff }
 
   /* ── Guardrail ──────────────────────────────────────────────────────────────── */
   .diag{ font-size:13px; line-height:1.45 }

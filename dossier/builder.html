@@ -16,7 +16,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="../contracts/assets/suite.css?v=abd695ff">
+<link rel="stylesheet" href="../contracts/assets/suite.css?v=0f0b54be">
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="dossier"></script>
@@ -51,8 +51,8 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 #seltools input[type=number]{width:58px}
 #seltools input[type=color]{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;cursor:pointer}
 .sbtn{font:600 13px var(--sans);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;min-width:32px;height:30px;cursor:pointer;transition:.12s}
-.sbtn:hover{border-color:var(--tg);color:var(--tg)}
-.sbtn.on{background:var(--tg);border-color:var(--tg);color:#fff}
+.sbtn:hover{border-color:var(--dl);color:var(--dl)}
+.sbtn.on{background:var(--dl);border-color:var(--dl);color:#fff}
 .sbtn.wide{padding:0 13px}
 #seltools .tplname{font:600 12.5px var(--sans);color:var(--tg);margin-right:4px}
 #seltools .tplhint{font-size:12px;color:#a49c8c}
@@ -62,14 +62,14 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 #sidebar h3{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#a49c8c;margin:4px 4px 10px}
 .pitem{border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;cursor:pointer;background:#fff;transition:.15s;position:relative}
 .pitem:hover{border-color:#c9c1ad}
-.pitem.cur{border-color:var(--tg);box-shadow:0 6px 16px -12px rgba(72,91,55,.8)}
+.pitem.cur{border-color:var(--dl);box-shadow:0 6px 16px -12px rgba(72,91,55,.8)}
 .pitem .pt{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--tg);font-weight:600}
 .pitem .pn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .pitem .acts{display:flex;gap:2px;margin-top:6px}
 .pitem .acts button{font-size:11px;border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:22px;cursor:pointer;color:#6f6a60;line-height:1}
-.pitem .acts button:hover{border-color:var(--tg);color:var(--tg)}
+.pitem .acts button:hover{border-color:var(--dl);color:var(--dl)}
 #addpage{width:100%;font:600 14px var(--sans);border:1.5px dashed #c9c1ad;background:transparent;border-radius:10px;padding:12px;cursor:pointer;color:#8a8474;transition:.15s}
-#addpage:hover{border-color:var(--tg);color:var(--tg)}
+#addpage:hover{border-color:var(--dl);color:var(--dl)}
 #stage{margin:var(--tbh) 0 0 250px;padding:26px 30px 80px;min-height:100vh}
 #pages{zoom:var(--zoom)}
 .sheetwrap{margin:0 auto 46px;width:var(--pw)}
@@ -87,7 +87,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 #modal p{margin:0 0 18px;color:var(--mut);font-size:14px}
 #typegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .tcard{text-align:left;border:1.5px solid var(--line);border-radius:13px;background:#fff;padding:14px 15px;cursor:pointer;font:inherit;transition:.15s}
-.tcard:hover{border-color:var(--tg);transform:translateY(-2px);box-shadow:0 12px 26px -18px rgba(72,91,55,.8)}
+.tcard:hover{border-color:var(--dl);transform:translateY(-2px);box-shadow:0 12px 26px -18px rgba(72,91,55,.8)}
 .tcard .tt{font-weight:700;font-size:16px}
 .tcard .td{font-size:12.5px;color:var(--mut);line-height:1.45;margin-top:3px}
 /* biblioteca de páginas ya hechas (plantillas/) */
@@ -108,8 +108,8 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 #pmodal .ck{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);cursor:pointer}
 #pmodal .pact{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
 .mbtn{font:600 13px var(--sans);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:9px 18px;cursor:pointer;transition:.15s}
-.mbtn:hover{border-color:var(--tg);color:var(--tg)}
-.mbtn.primary{background:var(--tg);border-color:var(--tg);color:#fff}
+.mbtn:hover{border-color:var(--dl);color:var(--dl)}
+.mbtn.primary{background:var(--dl);border-color:var(--dl);color:#fff}
 .mbtn.primary:hover{background:#57703f;color:#fff}
 
 /* ============ edición ============ */
@@ -135,8 +135,10 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
 .free:active{cursor:grabbing}
 .free.kind-text{min-height:5mm;white-space:pre-wrap;word-break:break-word}
 .free.kind-img{background-size:cover;background-repeat:no-repeat;background-position:center}
-.free.sel{outline:1.5px dashed var(--tg);outline-offset:1px}
-.free .rs{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:var(--tg);border:2px solid #fff;cursor:nwse-resize;display:none;z-index:12}
+/* SELECCION -> Deep Lagoon (6-ago-2026): el mismo lenguaje que la fila
+   seleccionada de las tablas. El verde queda para «correcto». */
+.free.sel{outline:1.5px dashed var(--dl);outline-offset:1px}
+.free .rs{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:var(--dl);border:2px solid #fff;cursor:nwse-resize;display:none;z-index:12}
 .free.sel .rs{display:block}
 .free[contenteditable]{cursor:text}
 
