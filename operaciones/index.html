@@ -285,7 +285,7 @@ const HOY = new Date(); HOY.setHours(0,0,0,0);
 const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
 const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
 
-let SB = null, OPS = [], SEL = null, POR_CLIENTE = {}, EQUIPO = {};
+let SB = null, OPS = [], SEL = null, POR_CLIENTE = {}, EQUIPO = {}, ES_ADMIN = false;
 /* Los 13 contratos anteriores a la columna `creado_por` (28-jul) no tienen
    autor y nunca lo van a tener: no hay de dónde sacarlo. Salen con raya. */
 const operador = o => EQUIPO[o.creado_por] || o.creado_por || '—';
@@ -656,10 +656,19 @@ function pintarDetalle(){
   const filasDocumentos = docsOperacion.map(d => {
     // la acción de cada fila: el contrato firmado abre su PDF; la factura, el
     // documento; un contrato sin firmar no tiene nada que enseñar todavía
-    const accion = d.clase === 'contrato'
+    // Proforma/recibí a 1 clic desde el propio contrato (6-ago-2026, petición
+    // del owner): Facturas ya sabe cargar cliente, proyecto e hitos de un
+    // contrato — esto solo evita el paso de ir a buscarlo a mano en su
+    // desplegable. El importe sigue saliendo del contrato, nunca de aquí.
+    // Solo administración factura desde este panel; el resto sigue viendo la
+    // operación igual.
+    const facturar = (ES_ADMIN && d.clase === 'contrato')
+      ? ` · <a class="enl" href="/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=proforma">Proforma</a>
+          · <a class="enl" href="/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=recibi">Recibí</a>` : '';
+    const accion = (d.clase === 'contrato'
       ? (d.pdf ? `<a class="enl fuerte" href="#" data-pdf="${esc(d.pdf)}">Ver PDF firmado</a>`
                : `<a class="enl" href="/contracts/app.html?contrato=${encodeURIComponent(d.opId)}">Abrir en Contratos</a>`)
-      : `<a class="enl fuerte" href="/facturas/?id=${encodeURIComponent(d.id)}" data-doc="1">Ver documento</a>`;
+      : `<a class="enl fuerte" href="/facturas/?id=${encodeURIComponent(d.id)}" data-doc="1">Ver documento</a>`) + facturar;
     const estado = d.clase === 'contrato'
       ? (d.firmado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>')
       : (d.anulada ? '<span class="tag alerta">Anulada</span>'
@@ -1066,8 +1075,12 @@ async function arrancar(recarga){
    cliente para no abrir un segundo. */
 
 
-window.LW_AUTH.then(({ sb, session }) => {
+window.LW_AUTH.then(({ sb, session, ficha }) => {
   SB = sb;
+  // Emitir proforma/recibí desde la ficha de una operación es cosa de
+  // administración (petición del owner, 6-ago-2026) — el resto de la
+  // herramienta sigue igual para todo el equipo.
+  ES_ADMIN = !!(ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin'));
   $('#who').textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
   arrancar(false);

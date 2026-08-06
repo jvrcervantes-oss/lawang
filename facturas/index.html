@@ -445,11 +445,18 @@ sb.auth.getSession().then(async ({data:{session}}) => {
                           del hub lleva a ver los emitidos, que es lo que su
                           contador promete («N emitidos»), y «+ Nueva» hereda el
                           tipo, así que emitir sigue a dos clics.
+       ?contrato=<uuid>&tipo=proforma  -> formulario en blanco con ESE contrato
+                          ya cargado (mismo `traerContrato` de siempre: cliente,
+                          proyecto e hitos con el importe que calcula el propio
+                          contrato, nunca uno escrito a mano). Es el atajo de
+                          «Emitir proforma/recibí» de la ficha de Operaciones
+                          (6-ago-2026) — un contrato a la vez, el que se pulsó.
        (nada)          -> listado */
   const par = new URLSearchParams(location.search);
   const pedido = par.get('id');
   const tipoUrl = par.get('tipo');
   if(tipoUrl && TIPOS[tipoUrl]) LTIPO = tipoUrl;
+  const contratoUrl = par.get('contrato');
 
   if(pedido){
     // El documento se abre en su pantalla; `abrir()` la cambia. Se pinta la
@@ -466,6 +473,11 @@ sb.auth.getSession().then(async ({data:{session}}) => {
         }
         abrir(data);
       });
+  } else if(contratoUrl){
+    nuevoDocumento(LTIPO || 'factura');
+    pantalla('documento');
+    $('#selContrato').value = contratoUrl;
+    traerContrato(contratoUrl);
   } else if(par.has('nueva')){
     nuevoDocumento(LTIPO || 'factura');
     pantalla('documento');
