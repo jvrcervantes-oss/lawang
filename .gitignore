@@ -72,3 +72,9 @@ intranet/*mockup*/
 intranet/*Mockup*/
 intranet/*handoff*/
 intranet/*Handoff*/
+
+# Ficheros de prueba local con doble de Supabase (sesion falsa hardcodeada,
+# ver reference_lawang_verificar_sin_sesion): NUNCA deployables. 6-ago-2026,
+# tras un aviso de seguridad porque uno se quedo sin borrar en el repo.
+contracts/_qa_*
+**/_qa_*.html
