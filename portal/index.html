@@ -16,7 +16,7 @@
      hereda tokens, densidad, tabla, cajón y barra del resto de la suite. -->
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=ce2a0586">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=882de6a8">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d9b549f4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- ⚠️ NI guard.js NI topbar.js, y no es un olvido:
      · guard.js es la puerta del EQUIPO — rebota al login interno y, desde el
@@ -27,7 +27,7 @@
      La barra se escribe a mano con las clases de topbar.css (mismo aspecto) y
      la sesión la resuelve esta página. suite.js y suite-comun.js SÍ entran:
      son interfaz pura, sin datos. -->
-<script src="/contracts/assets/suite.js?v=7e77b0d0"></script>
+<script src="/contracts/assets/suite.js?v=9f701b1b"></script>
 <script src="/contracts/assets/suite-comun.js?v=76746232"></script>
 <!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
      de una factura: la usan la herramienta de Facturas y la Edge Function que
@@ -42,7 +42,10 @@
 <script src="/facturas/totales.js"></script>
 <script src="/facturas/documento.js?v=20260731"></script>
 <style>
-  :root{ --tbh:64px; }
+  :root{ --tbh:64px;
+         /* la factura A4 va dentro del cajon a zoom .62 (~494px de hoja):
+            el ancho estandar de 420 la cortaria */
+         --cajon-w:clamp(520px, 40vw, 700px); }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto);
         -webkit-font-smoothing:antialiased; }

@@ -56,6 +56,10 @@ function suiAbrirCajon({ titulo, sub, cuerpo, pie, onCerrar }){
      ${pie ? `<div class="sui-cajon-pie">${pie}</div>` : ''}`;
   velo.classList.add('on');
   cajon.classList.add('on');
+  // El empuje del contenido (adosado, 6-ago-2026) vive en el <html>: asi alcanza
+  // a toda pagina con .sui-stage, tenga o no .sui-centro — que fue justo lo que
+  // falló en el apartado del 31-jul.
+  document.documentElement.classList.add('sui-cajon-on');
   cajon.setAttribute('aria-hidden', 'false');
   _suiCajonCerrar = onCerrar || null;
   document.getElementById('suiCajonX').onclick = suiCerrarCajon;
@@ -70,6 +74,7 @@ function suiCerrarCajon(){
   if(!cajon || !cajon.classList.contains('on')) return;
   velo?.classList.remove('on');
   cajon.classList.remove('on');
+  document.documentElement.classList.remove('sui-cajon-on');
   cajon.setAttribute('aria-hidden', 'true');
   const f = _suiCajonCerrar; _suiCajonCerrar = null;
   if(f) f();
@@ -88,6 +93,36 @@ function suiMontarCajon(){
   cajon.setAttribute('aria-hidden', 'true');
   document.body.append(velo, cajon);
   document.addEventListener('keydown', e => { if(e.key === 'Escape') suiCerrarCajon(); });
+}
+
+/* ── CONFIRMAR EN SERIO (7a) ─────────────────────────────────────────────
+   `suiConfirmar({titulo, mensaje, accion, tono}) -> Promise<boolean>`.
+   Sustituye a window.confirm() en lo destructivo. El foco arranca en CANCELAR:
+   un Enter distraido no puede borrar nada. Esc y clic en el velo son «no». */
+function suiConfirmar({ titulo, mensaje, accion, tono } = {}){
+  return new Promise(resolver => {
+    const velo = document.createElement('div');
+    velo.className = 'sui-conf-velo';
+    velo.innerHTML =
+      `<div class="sui-conf" role="alertdialog" aria-modal="true" aria-label="${(titulo||'Confirmar').replace(/"/g,'&quot;')}">
+         <h3></h3><p></p>
+         <div class="botones">
+           <button type="button" class="sui-btn" data-no>Cancelar</button>
+           <button type="button" class="sui-btn ${tono==='peligro' ? 'peligro-solido' : 'primario'}" data-si></button>
+         </div>
+       </div>`;
+    velo.querySelector('h3').textContent = titulo || 'Confirmar';
+    velo.querySelector('p').textContent = mensaje || '';
+    velo.querySelector('[data-si]').textContent = accion || 'Confirmar';
+    const cerrar = ok => { velo.remove(); document.removeEventListener('keydown', porTecla); resolver(ok); };
+    const porTecla = e => { if(e.key === 'Escape'){ e.stopPropagation(); cerrar(false); } };
+    velo.addEventListener('click', e => { if(e.target === velo) cerrar(false); });
+    velo.querySelector('[data-no]').onclick = () => cerrar(false);
+    velo.querySelector('[data-si]').onclick = () => cerrar(true);
+    document.addEventListener('keydown', porTecla);
+    document.body.appendChild(velo);
+    velo.querySelector('[data-no]').focus();
+  });
 }
 
 /* ── ORDEN DE COLUMNAS ───────────────────────────────────────────────────

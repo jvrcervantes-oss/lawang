@@ -218,9 +218,32 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    que el cajón flota, era donde no había ninguna señal de que flotaba
    (31-jul-2026). Se atenúa siempre. Empezó en .22 y se subió a .38 el mismo día: a .22
    apenas se distinguía de la propia sombra del cajón. */
+/* ── ADOSADO, no flotante (6-ago-2026, decision del owner sobre el mockup 2a) ──
+   El mockup pone lista y ficha PEGADAS (`1fr 420px`, la tabla con radio 12 0 0 12
+   y sin filete derecho) y el owner decidio aplicarlo a TODAS las herramientas.
+   Esto REVIERTE la norma del 31-jul («el cajon se superpone y atenua») con mejor
+   implementacion que la que se retiro entonces: aquel apartado llevaba el ancho
+   viejo escrito a mano y no alcanzaba a Operaciones; aqui el ancho es UNA
+   variable (`--cajon-w`) que leen el cajon y el hueco, no pueden divergir, y el
+   empuje vive en la clase `sui-cajon-on` del <html>, que pone suite.js — asi que
+   alcanza a toda pagina con `.sui-stage`, tenga o no `.sui-centro`.
+   En pantallas estrechas (≤1000px) no caben lista y ficha a la vez: ahi el cajon
+   sigue flotando con su velo, que para eso estaba bien. */
+:root{ --cajon-w:420px; }
 .sui-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.38);
   opacity:0; pointer-events:none; transition:opacity var(--t-cajon) var(--curva); }
 .sui-velo.on{ opacity:1; pointer-events:auto; }
+@media (min-width:1001px){
+  html.sui-cajon-on .sui-stage{ padding-right:var(--cajon-w); }
+  .sui-stage{ transition:padding-right var(--t-cajon) var(--curva); }
+  /* El contenido deja de centrarse y llena el hueco: es lo que hace que la tabla
+     TOQUE la ficha, como en el mockup. Y la caja de tabla pierde el radio y el
+     filete del lado del cajon, para leerse como una sola pieza. */
+  html.sui-cajon-on .sui-centro{ max-width:none; padding-right:0; }
+  html.sui-cajon-on .sui-tabla-caja{ border-radius:var(--r-m) 0 0 var(--r-m); border-right:none; }
+  /* Sin velo: la lista queda VIVA al lado, que es el punto del adosado. */
+  html.sui-cajon-on .sui-velo{ display:none; }
+}
 
 /* Ancho: el cajón se dimensionó pensando en fichas de dos columnas (dato/valor),
    pero Operaciones mete dentro cinco tablas y una de ellas tiene SEIS columnas.
@@ -230,8 +253,11 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    detrás: no cuesta nada dárselo. 31-jul-2026. */
 .sui-cajon{
   position:fixed; top:var(--tbh,64px); right:0; bottom:0; z-index:61;
-  width:clamp(380px, 52vw, 1100px); max-width:100vw;
-  background:var(--sup-1); border-left:1px solid var(--linea); box-shadow:var(--sombra-2);
+  /* 420px (mockup 2a). Las herramientas cuyo detalle lleva tablas anchas lo
+     suben con `--cajon-w` en su propia pagina — ver Operaciones y Compradores. */
+  width:var(--cajon-w,420px); max-width:100vw;
+  background:var(--sup-1); border-left:1px solid var(--linea);
+  box-shadow:0 18px 44px -20px rgba(34,40,42,.35);
   display:flex; flex-direction:column;
   transform:translateX(100%); transition:transform var(--t-cajon) var(--curva);
   overscroll-behavior:contain;
@@ -246,7 +272,7 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
   background:none; border:1px solid var(--linea); border-radius:var(--r-s);
   min-width:30px; min-height:30px; cursor:pointer; color:var(--texto-2); }
 .sui-cajon-x:hover{ border-color:var(--dl,#104C4F); color:var(--texto); }
-.sui-cajon-cuerpo{ overflow:auto; padding:var(--e4) var(--e5) var(--e7); flex:1; }
+.sui-cajon-cuerpo{ overflow:auto; padding:20px 22px var(--e7); flex:1; }
 .sui-cajon-pie{ border-top:1px solid var(--linea); padding:var(--e3) var(--e5);
   display:flex; gap:var(--e2); flex-wrap:wrap; background:var(--sup-2); }
 
@@ -486,6 +512,23 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
 .toast::after{ content:''; position:absolute; left:0; bottom:0; height:3px;
   width:0; background:rgba(255,255,255,.5); }
 .toast.show::after, .toast.on::after{ animation:lwCountdown var(--t-toast,4200ms) linear both; }
+
+/* ── CONFIRMAR EN SERIO (7a): modal para lo destructivo ───────────────────
+   Sustituye a `window.confirm()` donde la accion no tiene vuelta (borrar una
+   factura, anular). Velo que funde en .2s y dialogo que entra con lwPop, como
+   pide la demo de micro-interacciones. El boton de la accion va en rojo cuando
+   `tono` es peligro: el primario azulado diria «adelante, es lo normal». */
+.sui-conf-velo{ position:fixed; inset:0; z-index:80; background:rgba(34,40,42,.45);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  animation:lwVeloIn .2s ease both; }
+@keyframes lwVeloIn{ from{ opacity:0 } to{ opacity:1 } }
+.sui-conf{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-m);
+  box-shadow:var(--sombra-2); max-width:440px; width:100%; padding:20px 22px;
+  animation:lwPop .22s var(--curva) both; }
+.sui-conf h3{ margin:0 0 8px; font-size:14px; font-weight:600; color:var(--texto); }
+.sui-conf p{ margin:0 0 16px; font-size:13px; line-height:1.5; color:var(--texto-2); white-space:pre-line; }
+.sui-conf .botones{ display:flex; gap:8px; justify-content:flex-end; }
+.sui-conf .sui-btn.peligro-solido{ background:#9E2F26; border-color:#9E2F26; color:#fff; font-weight:600; }
 
 /* ── quien pide menos movimiento, menos movimiento ────────────────────────
    Este bloque ya cubría transiciones y animaciones con `*`, así que los

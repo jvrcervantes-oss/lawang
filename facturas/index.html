@@ -18,7 +18,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=882de6a8">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d9b549f4">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -28,6 +28,9 @@
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/guard.js?v=c3cd4743"></script>
+<!-- suiConfirmar (modal de confirmacion, 7a). suite.js no declara esc/toast,
+     asi que convive con suite-comun.js sin choque de nombres. -->
+<script src="/contracts/assets/suite.js?v=9f701b1b"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
      El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
@@ -167,19 +170,12 @@
   /* Sin `.modal` delante (6-ago-2026): el listado salio del modal y es pantalla.
    Fuera el `overflow:auto` — ahora desplaza la pagina, y una caja con scroll
    propio dentro de una pagina que tambien desplaza son dos barras peleandose. */
-  .list{ padding:10px 12px 18px; }
-  .frow{ display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--line);
-         border-radius:11px; background:var(--card); margin-bottom:8px; cursor:pointer; }
-  .frow:hover{ border-color:var(--dl); }
-  .frow .n{ font-weight:600; font-size:13px; color:var(--dl); font-variant-numeric:tabular-nums; }
-  .frow .c{ flex:1; font-size:13px; }
-  .frow .t{ font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
-  /* quien la emitio: en gris y sin crecer, para que no le quite sitio al cliente
-     ni al importe, que es lo que se compara entre filas */
-  .frow .e{ font-size:12px; color:var(--muted); max-width:130px; overflow:hidden;
-            text-overflow:ellipsis; white-space:nowrap; }
-  .frow.anulada{ opacity:.55; text-decoration:line-through; }
-  .frow .btn.borrar{ color:#9E2F26; border-color:#E0C6C2; padding:6px 11px; }
+  .list{ padding:0; }
+  .list tr.anulada td{ opacity:.55; }
+  .list tr{ cursor:pointer; }
+/* (el CSS de .frow se retiro el 6-ago: el listado es una sui-tabla) */
+  .list .btn.borrar{ color:#9E2F26; border-color:#E0C6C2; padding:6px 11px; }
+
 
 
   @media print{
@@ -984,20 +980,32 @@ function pintarListado(){
       filtrando ? 'Prueba a quitar algún filtro.' : 'Empieza con «+ Nueva».'}</div>`;
     return;
   }
-  box.innerHTML = data.map(f => `
-    <div class="frow ${f.anulada ? 'anulada' : ''}" data-id="${f.id}">
-      <span class="n">${esc(f.numero || '—')}</span>
-      <span class="c">${esc(f.cliente_nombre || 'sin nombre')}${f.proyecto_nombre ? ' · ' + esc(f.proyecto_nombre) : ''}</span>
-      <span class="t">${esc(fmtMoneda(f.total, f.moneda))}</span>
-      <span class="e" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></span>
-      ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
-      ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}
-    </div>`).join('');
+/* Tabla de verdad (2a): cabeceras 10,5px/.1em, celda 11px 16px, numero en tinta,
+     importe a la derecha con cifras de ancho fijo y etiqueta de estado — no la
+     lista de filas sueltas del modal viejo. */
+  const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','gris'], recibi:['Recibí','ok'] };
+  box.innerHTML = `<table class="sui-tabla"><thead><tr>
+      <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Proyecto</th>
+      <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th>
+    </tr></thead><tbody>` + data.map(f => {
+    const [tEt, tTono] = TIPO_ET[f.tipo] || TIPO_ET.factura;
+    return `<tr data-id="${f.id}" class="${f.anulada ? 'anulada' : ''}">
+      <td class="clave">${esc(f.numero || '—')}</td>
+      <td><span class="sui-tag ${tTono}">${tEt}</span></td>
+      <td>${esc(f.cliente_nombre || 'sin nombre')}</td>
+      <td class="flojo">${esc(f.proyecto_nombre || '—')}</td>
+      <td class="num">${esc(fmtMoneda(f.total, f.moneda))}</td>
+      <td class="flojo" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></td>
+      <td>${f.anulada ? '<span class="sui-tag alerta">Anulada</span>' : '<span class="sui-tag gris">Emitida</span>'}</td>
+      <td class="num">${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
+        ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
+    </tr>`;
+  }).join('') + '</tbody></table>';
 
   /* Reasignar autor: el módulo se lo enseña solo al super_admin. Una factura
      anulada no se puede reatribuir — la policy de UPDATE exige `anulada=false`. */
   if(window.LW_AUTORIA && LW_AUTORIA.puede(MI_FICHA)) data.forEach(f => {
-    LW_AUTORIA.montar(box.querySelector(`.frow[data-id="${f.id}"] .autoria-slot`), {
+    LW_AUTORIA.montar(box.querySelector(`tr[data-id="${f.id}"] .autoria-slot`), {
       sb, ficha:MI_FICHA, tabla:'facturas', filaId:f.id, actual:f.creado_por,
       editable:!f.anulada,
       motivoNoEditable:'Documento anulado: la base de datos no admite cambios sobre él.',
@@ -1007,7 +1015,9 @@ function pintarListado(){
     const an = e.target.closest('[data-anular]');
     if(an){
       e.stopPropagation();
-      if(!confirm('Anular esta factura. El número no se reutiliza y ya no se podrá editar. ¿Seguro?')) return;
+      if(!await suiConfirmar({ titulo:'Anular factura',
+        mensaje:'El número no se reutiliza y ya no se podrá editar. La factura queda en el registro como anulada.',
+        accion:'Anular', tono:'peligro' })) return;
       const { error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular);
       toast(error ? 'No se pudo anular: ' + error.message : 'Factura anulada');
       recargarListado(); return;
@@ -1020,9 +1030,10 @@ function pintarListado(){
     if(bo){
       e.stopPropagation();
       const f = data.find(x => x.id === bo.dataset.borrar) || {};
-      if(!confirm('¿BORRAR la factura ' + (f.numero || '') + '?\n\n'
-        + 'Lo normal es anularla: así queda el rastro y la serie no pierde un número. '
-        + 'Borrarla deja un hueco en la numeración que habrá que explicar.\n\nNo hay papelera.')) return;
+      if(!await suiConfirmar({ titulo:'Borrar la factura ' + (f.numero || ''),
+        mensaje:'Lo normal es ANULARLA: así queda el rastro y la serie no pierde un número. '
+          + 'Borrarla deja un hueco en la numeración que habrá que explicar. No hay papelera.',
+        accion:'Borrar de todos modos', tono:'peligro' })) return;
       const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
       // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
       // herramienta diría "borrada" y la factura seguiría ahí.

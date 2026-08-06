@@ -16,7 +16,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=882de6a8">
+<link rel="stylesheet" href="assets/suite.css?v=d9b549f4">
 <script src="assets/topbar.js?v=3cb23542" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -286,6 +286,25 @@
   }
 
   /* ---------- panel "Contratos guardados" ---------- */
+  /* ── MODO LISTADO (2a, 6-ago-2026) ─────────────────────────────────────
+     Contratos abria directo al EDITOR y lo emitido vivia en este modal. Peticion
+     de la revision: como Facturas — primero la lista, «+ Nuevo» abre el editor.
+     Se promueve el MISMO panel (misma carga, filtros, autoria y borrado, cero
+     logica nueva) a pantalla: en `body.modo-listado` deja de ser un modal
+     flotante y ocupa el cuerpo de la pagina con los valores del mockup. */
+  body.modo-listado .stage, body.modo-listado .fab{ display:none !important; }
+  body.modo-listado #tplPick, body.modo-listado .lang-hint,
+  body.modo-listado #langToggle, body.modo-listado .lw-sep,
+  body.modo-listado #btnReset{ display:none !important; }
+  body.modo-listado #cpOverlay{ display:block; position:static; background:none;
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+    padding:calc(var(--tbh) + 22px) 26px 30px; }
+  body.modo-listado #cpOverlay .cp-modal{ width:100%; max-width:1308px; margin:0 auto;
+    max-height:none; border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 1px 2px rgba(34,40,42,.06); animation:none; }
+  body.modo-listado #cpClose{ display:none; }
+  body.modo-listado .cp-list{ max-height:calc(100vh - 340px); }
+
   .cp-overlay{ display:none; position:fixed; inset:0; z-index:80; background:rgba(46,52,55,.42);
     backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
     align-items:center; justify-content:center; padding:24px; }
@@ -297,14 +316,14 @@
   @keyframes cpRise{ from{ opacity:0; transform:translateY(12px) scale(.985); } to{ opacity:1; transform:none; } }
   .cp-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
   .cp-head b{ font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
-  #cpSearch{ margin:12px 18px 0; padding:10px 13px; border:1px solid var(--line); border-radius:var(--r-sm); font:inherit; font-size:13.5px; background:var(--field-bg); transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  #cpSearch{ margin:12px 18px 0; padding:9px 14px; border:1px solid var(--line); border-radius:999px; font:inherit; font-size:12.5px; background:#F7F3E9; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
   #cpSearch:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   /* filtros del panel: mismos chips que Unidades y Operaciones */
   .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; }
-  .cp-f{ font:inherit; font-size:11.5px; letter-spacing:.04em; background:none; border:1px solid var(--line);
-         border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--muted); }
+  .cp-f{ font:inherit; font-size:12px; letter-spacing:.03em; background:#fff; border:1px solid var(--line);
+         border-radius:999px; padding:7px 14px; cursor:pointer; color:var(--texto-2,#4A5052); }
   .cp-f:hover{ border-color:var(--dl); }
-  .cp-f.on{ background:var(--va,#2E3437); border-color:var(--va,#2E3437); color:#fff; }
+  .cp-f.on{ background:#21272A; border-color:#21272A; color:#fff; }
   .cp-f.vacio{ opacity:.45; }
   .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
     font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
@@ -361,7 +380,8 @@
     <div class="lang-toggle" id="langToggle"></div>
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who" title="Sesión iniciada"></span>
-    <button type="button" class="lw-btn" id="btnContracts">📁 Contratos guardados</button>
+    <button type="button" class="lw-btn" id="btnContracts">← Listado</button>
+    <button type="button" class="lw-btn primary" id="btnNuevoC" hidden>+ Nuevo contrato</button>
     <button type="button" class="lw-btn" id="btnReset">↺ Limpiar</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
@@ -2752,9 +2772,29 @@ $('#cpList').addEventListener('click', async e=>{
   if(del){ e.stopPropagation(); await borrarContrato(del.dataset.del); return; }
   const row=e.target.closest('.cp-row'); if(!row) return;
   $('#cpOverlay').classList.remove('open');
+  pantallaC('editor', 'contrato=' + encodeURIComponent(row.dataset.id));
   await openSavedContract(row.dataset.id);
 });
-$('#btnContracts').addEventListener('click', openContractsPanel);
+
+/* ── pantalla: listado o editor (2a, 6-ago-2026) ─────────────────────────
+   Cada vista con su URL, la norma del estudio:
+     /contracts/app.html            el listado (la entrada)
+     /contracts/app.html?nuevo=1    el editor en blanco (lo que era la entrada)
+     /contracts/app.html?contrato=<uuid>  ese contrato abierto (el nombre ya
+                                    existia: lo usa el enlace de Operaciones)
+   `replaceState`: dentro de la herramienta se salta mucho entre lista y editor,
+   y llenar el historial dejaria el boton atras inutil. */
+function pantallaC(cual, params){
+  document.body.classList.toggle('modo-listado', cual === 'listado');
+  $('#btnContracts').hidden = cual !== 'editor';
+  $('#btnNuevoC').hidden = cual !== 'listado';
+  if(params !== undefined){
+    try{ history.replaceState(null, '', location.pathname + (params ? '?' + params : '')); }catch(_){}
+  }
+  if(cual === 'listado') openContractsPanel();
+}
+$('#btnContracts').addEventListener('click', () => pantallaC('listado', ''));
+$('#btnNuevoC').addEventListener('click', () => pantallaC('editor', 'nuevo=1'));
 $('#cpClose').addEventListener('click', ()=> $('#cpOverlay').classList.remove('open'));
 
 /* rellena el form ya construido con los valores guardados (inverso de collect()) */
@@ -3175,11 +3215,21 @@ async function init(){
   await loadTemplate(CURRENT.slug);
   buildPicker(); buildLangToggle(); buildForm();
 
-  // ?contrato=<id> abre ESE contrato al entrar. Lo usa el enlace "Abrir en
-  // Contratos" de Operaciones, que antes abría la herramienta en blanco y
-  // obligaba a buscar a mano el contrato que ya estabas mirando.
-  const pedido = new URLSearchParams(location.search).get('contrato');
-  if(pedido) await openSavedContract(pedido);
+  // ── que pantalla se abre (6-ago-2026) ──────────────────────────────────
+  // ?contrato=<id> abre ese contrato en el editor (lo usa Operaciones y ahora
+  // tambien las filas del listado). ?nuevo=1 abre el editor en blanco, que era
+  // la entrada por defecto. SIN parametros ya no: se entra por el listado, como
+  // en Facturas — a esta herramienta se viene a consultar mas que a redactar.
+  const par = new URLSearchParams(location.search);
+  const pedido = par.get('contrato');
+  if(pedido){
+    pantallaC('editor');
+    await openSavedContract(pedido);
+  } else if(par.has('nuevo')){
+    pantallaC('editor');
+  } else {
+    pantallaC('listado');
+  }
 }
 init();
 </script>

@@ -22,7 +22,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=882de6a8">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d9b549f4">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -127,7 +127,20 @@ header{ background:var(--dl); color:var(--rl); position:sticky; top:0; z-index:v
 #out:focus-visible{ outline:2px solid var(--sc); outline-offset:2px; }
 
 /* ── encabezado de página ─────────────────────────────────────── */
-main{ flex:1; width:100%; max-width:1060px; margin:0 auto; padding:34px 26px 64px; }
+/* 1308 y `26px 26px 34px`: el lienzo del mockup 1a (1360 - 2x26). */
+main{ flex:1; width:100%; max-width:1308px; margin:0 auto; padding:26px 26px 34px; }
+/* rejilla del mockup: lo reciente a la izquierda, el carril de 300px a la
+   derecha. En pantalla estrecha el carril baja, no desaparece. */
+.dosCol{ display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; margin:0 0 24px; }
+@media (max-width:900px){ .dosCol{ grid-template-columns:1fr; } }
+.panelCab{ padding:15px 20px; font-size:13px; font-weight:600; color:var(--ink); }
+.railCaja{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+.railCaja + .railCaja{ margin-top:14px; }
+.railCaja .t{ font-size:12px; font-weight:600; color:var(--ink); margin-bottom:10px; }
+.railFila{ display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:5px 0; }
+.railFila .v{ font-weight:600; font-variant-numeric:tabular-nums; }
+.railFila.tarde{ color:#9E2F26; }
+.railFila .espera{ color:#8C5E10; }
 .lede{ display:flex; align-items:flex-end; gap:24px; margin-bottom:20px; flex-wrap:wrap; }
 .lede > div{ min-width:0; }
 .lede h1{
@@ -248,16 +261,16 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 
   <main>
     <div id="avisos"></div>
+    <!-- Saludo + acciones, como 1a. El saludo lo escribe el arranque con el
+         nombre de la ficha; las dos acciones son atajos reales a crear. -->
     <div class="lede">
       <div>
-        <h1>Qué necesita tu atención</h1>
-        <p>Cada herramienta trae su estado real, consultado con tus permisos.</p>
+        <h1 id="saludo">Buenos días</h1>
+        <p id="saludoSub">Esto es lo que necesita tu atención.</p>
       </div>
-      <div class="buscar">
-        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-        <input id="q" type="search" autocomplete="off" spellcheck="false"
-               placeholder="Escribe para filtrar: contratos, factura, KYC…" aria-label="Filtrar herramientas">
-        <kbd>↑↓ Enter</kbd>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="lw-btn" href="/contracts/app.html?nuevo=1" style="font-size:13px;padding:10px 18px">+ Nuevo contrato</a>
+        <a class="lw-btn primary" href="/facturas/?nueva=1" style="font-size:13px;padding:10px 18px">+ Nueva factura</a>
       </div>
     </div>
     <!-- Tarjetas de cifra y últimas operaciones (6-ago-2026, handoff de diseño).
@@ -266,7 +279,21 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
          buscador con el foco puesto. Los dos contenedores nacen vacíos y con
          `hidden`, así que si la base no contesta no queda un hueco con marco. -->
     <div class="lw-kpis" id="kpis" hidden></div>
-    <div id="reciente" hidden></div>
+    <div class="dosCol" id="dosCol" hidden>
+      <div id="reciente"></div>
+      <div id="rail"></div>
+    </div>
+    <div class="lede" style="margin-top:4px">
+      <div>
+        <h1 style="font-size:16px">Herramientas</h1>
+      </div>
+      <div class="buscar">
+        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Escribe para filtrar: contratos, factura, KYC…" aria-label="Filtrar herramientas">
+        <kbd>↑↓ Enter</kbd>
+      </div>
+    </div>
     <div id="grupos"></div>
   </main>
 
@@ -560,8 +587,8 @@ async function ultimasOperaciones(sb){
   if(!filas.length) return;
   const dia = s => new Date(s).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
   $('#reciente').innerHTML =
-    `<section class="grupo"><h2>Lo último que se ha movido</h2>
-      <div class="sui-tabla-caja"><table class="sui-tabla"><tbody>` +
+    `<div class="sui-tabla-caja"><div class="panelCab">Operaciones recientes</div>
+      <table class="sui-tabla"><tbody>` +
       filas.map(r => `<tr data-ir="${esc(r.href)}">
         <td class="clave">${esc(r.num || '—')}</td>
         <td>${esc(r.que)}</td>
@@ -570,8 +597,8 @@ async function ultimasOperaciones(sb){
         <td><span class="sui-tag ${r.estado[1]}">${esc(r.estado[0])}</span></td>
         <td class="flojo">${esc(dia(r.fecha))}</td>
       </tr>`).join('') +
-      '</tbody></table></div></section>';
-  $('#reciente').hidden = false;
+      '</tbody></table></div>';
+  $('#dosCol').hidden = false;
   /* Delegacion y no `onclick` en el marcado: es como escucha el resto de la
      suite, y un atributo con una URL dentro de una plantilla es la clase de sitio
      donde se cuela una comilla. */
@@ -579,6 +606,54 @@ async function ultimasOperaciones(sb){
     const tr = e.target.closest('tr[data-ir]');
     if(tr) location.href = tr.dataset.ir;
   });
+}
+
+/* ── carril derecho (1a): vencimientos y, para admin, rendimiento ──────
+   Datos REALES, nada de maqueta: los vencimientos salen de los enlaces de firma
+   pendientes (expira_en) y de las facturas con fecha de vencimiento; el
+   rendimiento, de la suma de facturas vigentes por emisor. Cada consulta va por
+   su lado: si la RLS tapa una, la otra se enseña igual. */
+async function pintarRail(sb, ficha){
+  const cajas = [];
+  const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
+  try{
+    const [fir, fac] = await Promise.all([
+      sb.from('contrato_firmas').select('expira_en, firmante_nombre, contratos(numero)')
+        .eq('estado','pendiente').order('expira_en').limit(4),
+      sb.from('facturas').select('numero, total, moneda, fecha_vencimiento')
+        .eq('anulada', false).not('fecha_vencimiento','is',null)
+        .order('fecha_vencimiento').limit(4),
+    ]);
+    const filas = [
+      ...(fir.data || []).map(r => ({ d:dias(r.expira_en),
+        txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (r.contratos ? ' · ' + r.contratos.numero : ''),
+        val:'Pendiente', clase:'espera' })),
+      ...(fac.data || []).map(r => ({ d:dias(r.fecha_vencimiento),
+        txt:r.numero, val:Number(r.total).toLocaleString('es') + ' ' + (r.moneda||'EUR') })),
+    ].sort((a,b) => a.d - b.d).slice(0, 6);
+    if(filas.length){
+      cajas.push('<div class="railCaja"><div class="t">Próximos vencimientos</div>' +
+        filas.map(r => `<div class="railFila ${r.d < 0 ? 'tarde' : ''}">
+          <span>${esc(r.txt)} · ${r.d < 0 ? 'vencida hace ' + (-r.d) + ' días' : r.d === 0 ? 'hoy' : 'en ' + r.d + ' días'}</span>
+          <span class="v ${r.clase||''}">${esc(r.val)}</span></div>`).join('') + '</div>');
+    }
+  }catch(e){ console.warn('vencimientos:', e && e.message); }
+  if(esAdmin(ficha)){
+    try{
+      const { data } = await sb.from('facturas').select('creado_por, total, moneda').eq('anulada', false);
+      const por = {};
+      (data || []).forEach(r => { if(r.creado_por) por[r.creado_por] = (por[r.creado_por]||0) + (Number(r.total)||0); });
+      const eq = await sb.from('usuarios').select('email, nombre');
+      const nom = {}; (eq.data || []).forEach(u => { if(u.nombre) nom[u.email] = u.nombre; });
+      const top = Object.entries(por).sort((a,b) => b[1]-a[1]).slice(0,3);
+      if(top.length){
+        cajas.push('<div class="railCaja"><div class="t">Rendimiento del equipo · admin</div>' +
+          top.map(([em,v]) => `<div class="railFila"><span>${esc(nom[em]||em)}</span>
+            <span class="v">${v.toLocaleString('es')} €</span></div>`).join('') + '</div>');
+      }
+    }catch(e){ console.warn('rendimiento:', e && e.message); }
+  }
+  $('#rail').innerHTML = cajas.join('') || '<div class="railCaja"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
 }
 
 /* ── arranque ──────────────────────────────────────────────────────── */
@@ -598,6 +673,16 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
     return;
   }
   FICHA = ficha || null;
+  /* «Buenos días, Ana — hoy, 6 de agosto» (1a). La hora decide el saludo y el
+     nombre sale de la ficha; sin ficha, del email, sin inventar nada. */
+  {
+    const h = new Date().getHours();
+    const saludo = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const nombre = (ficha && ficha.nombre) ? ficha.nombre.split(' ')[0] : '';
+    $('#saludo').textContent = saludo + (nombre ? ', ' + nombre : '');
+    $('#saludoSub').textContent = 'Esto es lo que necesita tu atención hoy, '
+      + new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long' }) + '.';
+  }
   $('#who').textContent = (ficha && ficha.nombre) || session.user.email;
   $('#who').title = session.user.email;
   if(ficha){
@@ -621,6 +706,7 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
      usable. Un `await` sin catch aquí habría dejado el pie de página sin escribir
      y la sesión sin cerrar bien. */
   ultimasOperaciones(sb).catch(e => console.warn('últimas operaciones:', e && e.message));
+  pintarRail(sb, ficha).catch(e => console.warn('carril:', e && e.message));
   const mudas = HERRAMIENTAS.filter(permitida).filter(t => t.estado && t.estado(CIFRAS) === null).length;
   $('#pie-datos').textContent = mudas
     ? mudas + ' herramienta(s) sin cifra: la base no contestó y no se inventa un cero.'
