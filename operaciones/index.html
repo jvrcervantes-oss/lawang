@@ -146,6 +146,62 @@
   .panel.on{ display:block; }
   .venc{ padding:26px 30px 80px; overflow:auto; grid-column:1 / -1; }
   /* el visor de documentos es la pieza compartida /contracts/assets/visor.js */
+
+  /* ── TABLERO (embudo por etapa) — 6-ago-2026 ────────────────────────────
+     La revisión pidió esto por un motivo medible: la tabla plana deja de servir
+     pasadas ~100 filas. Y lo que resuelve eso NO es el tablero, es que **cada
+     columna tenga alto fijo y su propio desplazamiento**. Sin eso, un tablero con
+     300 operaciones es una tabla plana con cuatro columnas: crece hacia abajo
+     hasta que la cabecera se pierde y hay que hacer scroll de página para ver la
+     columna de al lado.
+     `min-height:0` en el cuerpo es obligatorio, no decorativo: sin él, un hijo con
+     `overflow:auto` dentro de un flex NO se encoge —crece— y el alto fijo de la
+     columna no se respeta. Es el fallo clásico de esta maqueta. */
+  .tablero{ display:grid; gap:var(--e3,12px); align-items:start;
+            grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  .col{ display:flex; flex-direction:column; min-width:0;
+        height:clamp(340px, calc(100vh - 300px), 720px);
+        background:var(--sup-2,#F7F3E9); border:1px solid var(--linea,#E4DCCB);
+        border-radius:var(--r-l,16px); overflow:hidden; }
+  .col-cab{ display:flex; align-items:center; gap:8px; padding:11px 13px;
+            border-bottom:1px solid var(--linea,#E4DCCB); background:var(--sup-1,#fff); flex:none; }
+  .col-n{ font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums;
+          color:var(--texto-2,#4A5052); }
+  .col-suma{ margin-left:auto; font-size:12px; font-variant-numeric:tabular-nums;
+             color:var(--texto-3,#676B63); white-space:nowrap; }
+  .col-cuerpo{ flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+               padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .col-vacia{ margin:0; padding:14px 4px; font-size:12.5px; color:var(--texto-3,#676B63); text-align:center; }
+
+  .tarj{ display:flex; flex-direction:column; gap:4px; text-align:left; font:inherit;
+         background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
+         border-radius:var(--r-m,12px); padding:10px 12px; cursor:pointer; color:inherit;
+         transition:border-color .12s, box-shadow .12s, transform .15s ease; }
+  .tarj:hover{ border-color:var(--dl,#104C4F); transform:translateY(-1px);
+               box-shadow:0 6px 16px -10px rgba(16,76,79,.45); }
+  /* Seleccionada: el MISMO lenguaje que la fila de la tabla y que la ficha de
+     Unidades — relleno + filete de acento + nº en tinta. Tres señales. */
+  .tarj.sel{ background:var(--sup-sel,#EAE4D3); border-color:var(--dl,#104C4F);
+             box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+  .tarj-cab{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .tarj-cab .n{ font-weight:600; letter-spacing:.04em; color:var(--dl,#104C4F); font-size:13px; }
+  .tarj-c{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tarj-p{ font-size:11.5px; color:var(--texto-3,#676B63);
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tarj-cifra{ margin-top:3px; font-size:15px; font-weight:600;
+               font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:6px; }
+  .tarj-cifra small{ font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+                     font-weight:500; color:var(--texto-3,#676B63); }
+
+  /* Móvil y pantallas estrechas: las cuatro columnas en fila son ilegibles por
+     debajo de ~1000px. Se apilan y cada una recupera alto automático — apiladas,
+     el desplazamiento por columna ya no aporta y sí estorba (dos barras de
+     scroll anidadas en un teléfono). */
+  @media (max-width:1000px){
+    .tablero{ grid-template-columns:1fr; }
+    .col{ height:auto; max-height:none; }
+    .col-cuerpo{ overflow:visible; }
+  }
 </style>
 </head>
 <body>
@@ -168,11 +224,19 @@
           <div class="fila">
             <input class="buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
             <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+            <!-- Tablero ↔ Tabla (6-ago-2026). La revisión de diseño pidió el
+                 tablero porque la tabla plana deja de servir pasadas ~100 filas;
+                 la tabla se queda como estaba, que es lo que el handoff dice. -->
+            <div class="sui-dens" id="vista">
+              <button type="button" data-vista="tabla">Tabla</button>
+              <button type="button" data-vista="tablero">Embudo</button>
+            </div>
           </div>
           <div class="filtros" id="filtros"></div>
         </div>
         <div class="resumen" id="resumen"></div>
-        <div class="sui-tabla-caja">
+        <div class="tablero" id="tablero" hidden></div>
+        <div class="sui-tabla-caja" id="caja-tabla">
           <table class="sui-tabla" id="tabla">
             <thead><tr>
               <th>Nº</th><th>Comprador</th><th>Proyecto</th><th>Operador</th>
@@ -356,6 +420,54 @@ const FILTROS = [
 let FILTRO = '', PROYECTO = '';
 const pasaFiltro = o => (FILTROS.find(f => f[0] === FILTRO) || FILTROS[0])[2](o);
 
+/* ---------- ETAPAS del embudo (Kanban) ----------
+   🔴 Los FILTROS de arriba NO sirven como columnas, y esto es el fondo del
+   asunto: son predicados que se SOLAPAN. Una misma operación está a la vez «sin
+   firmar», «con pendiente» y «falta ficha». Una columna de tablero exige que cada
+   tarjeta esté en UNA sola, o el total de las columnas no cuadra con el total de
+   operaciones y el tablero deja de ser de fiar.
+   Así que la etapa es una ESCALERA y se resuelve por orden, no una lista de
+   pruebas independientes:
+     1. Sin firmar      — no firmado y sin enlace de firma vivo
+     2. Firma enviada   — no firmado y CON enlace esperando (el balón está en el
+                          comprador; es distinto de no haber empezado)
+     3. Cobro pendiente — firmado y queda dinero por facturar
+     4. Cobro completo  — firmado y no queda nada
+   El orden importa: un contrato firmado no puede estar en «firma enviada» aunque
+   le quede un enlace pendiente sin barrer.
+   ⚠️ Firmado SIN precio fijado cae en «Cobro pendiente», no en «completo». No se
+   sabe cuánto falta, y afirmar que está cobrado cuando no se sabe es el único
+   error de los dos que cuesta dinero. La tarjeta lo dice: «sin fijar». */
+const ETAPAS = [
+  ['sin_firmar', 'Sin firmar',      'espera'],
+  ['firma_viva', 'Firma enviada',   'info'],
+  ['cobro_pend', 'Cobro pendiente', 'alerta'],
+  ['cobro_ok',   'Cobro completo',  'ok'],
+];
+function etapa(o){
+  if(!o.bloqueado) return o.firmas.some(f => f.estado === 'pendiente') ? 'firma_viva' : 'sin_firmar';
+  const c = cuenta(o);
+  if(c.precio == null || !c.precio) return 'cobro_pend';   // firmado sin precio: no se afirma que esté cobrado
+  return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
+}
+
+/* ---------- vista: tablero o tabla ----------
+   El handoff pide el tablero y deja la tabla «como la de hoy, sin tocar». Se
+   recuerda por persona, igual que la densidad y que la vista de Unidades.
+   Por defecto TABLA: es la que ya conoce el equipo, y un cambio de vista por
+   sorpresa en la herramienta con la que se sigue el dinero no se hace solo. */
+let VISTA = 'tabla';
+function vista(v){
+  if(v){ try{ localStorage.setItem('lawang_operaciones_vista', v); }catch(_){} }
+  let x = v;
+  if(!x){ try{ x = localStorage.getItem('lawang_operaciones_vista'); }catch(_){} }
+  VISTA = (x === 'tablero') ? 'tablero' : 'tabla';
+  document.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === VISTA));
+  $('#caja-tabla').hidden = VISTA !== 'tabla';
+  $('#tablero').hidden    = VISTA !== 'tablero';
+  return VISTA;
+}
+
 function pintarFiltros(){
   const raiz = OPS.filter(o => !o.padre);
   $('#filtros').innerHTML = FILTROS.map(([k, etiqueta, prueba]) => {
@@ -373,16 +485,32 @@ function pintarFiltros(){
   PROYECTO = sel.value;
 }
 
-/* ---------- lista ---------- */
-function pintarLista(){
+/* ---------- lista ----------
+   `visibles()` sale de dentro de `pintarLista()` para que el TABLERO use
+   exactamente el mismo conjunto. Es lo único que garantiza que las dos vistas
+   enseñan lo mismo: dos cadenas de filtros paralelas divergen en cuanto alguien
+   añade un chip, y entonces el tablero y la tabla dan cifras distintas sobre el
+   mismo dinero. */
+function visibles(){
   const q = $('#q').value.trim().toLowerCase();
   // el hijo no es fila: buscar por su número o comprador debe traer la
   // operación entera, o sea la fila del padre
-  const vis = OPS.filter(o => !o.padre)
+  return OPS.filter(o => !o.padre)
     .filter(pasaFiltro)
     .filter(o => !PROYECTO || o.proyecto_nombre === PROYECTO)
     .filter(o => !q ||
     [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre,x.creado_por,operador(x)].some(v => String(v||'').toLowerCase().includes(q))));
+}
+
+/* Un SOLO punto de pintado. Antes habia siete llamadas sueltas a
+   `pintarLista()` (seleccionar, cerrar el cajon, teclear, cambiar chip,
+   cambiar proyecto, recargar): con dos vistas, cada una que se olvidara de
+   repintar el tablero lo dejaba mostrando datos viejos al lado de los nuevos. */
+function pintar(){ pintarLista(); pintarTablero(); }
+
+function pintarLista(){
+  const q = $('#q').value.trim().toLowerCase();
+  const vis = visibles();
   $('#listaOps').innerHTML = vis.length ? vis.map(o => {
     const c = cuenta(o);
     const eur = n => n == null ? '<span class="nota">—</span>' : esc(fmtMoneda(n, c.moneda));
@@ -422,6 +550,66 @@ function pintarLista(){
      <span>Precio <b>${esc(fmtMoneda(tot.precio, m))}</b></span>
      <span>Cobrado <b>${esc(fmtMoneda(tot.cobrado, m))}</b></span>
      <span>Pendiente <b>${esc(fmtMoneda(tot.pendiente, m))}</b></span>`;
+}
+
+/* ---------- TABLERO (Kanban por etapa) ----------
+   Lo pidió la revisión de diseño con un motivo concreto: la tabla plana deja de
+   servir pasadas ~100 filas. La respuesta a eso NO es el tablero por sí mismo, es
+   que **cada columna tiene alto fijo y su propio desplazamiento**: con 300
+   operaciones, la columna de «Cobro pendiente» se recorre sin perder de vista las
+   otras tres, y el tablero no crece hacia abajo hasta el infinito.
+
+   Los chips de situación SIGUEN funcionando en esta vista, y no es un descuido:
+   `falta ficha` y `sin facturar` son avisos que cruzan el embudo —quieres verlos
+   repartidos por etapa, no en una etapa— y los chips de firmado/sin firmar dejan
+   dos columnas vacías, lo cual ENSEÑA lo que hace el filtro en vez de esconderlo.
+   El total de las cuatro columnas siempre cuadra con el contador del resumen,
+   porque las dos cosas salen de `visibles()`. */
+function pintarTablero(){
+  const vis = visibles();
+  const porEtapa = {};
+  ETAPAS.forEach(([k]) => porEtapa[k] = []);
+  vis.forEach(o => porEtapa[etapa(o)].push(o));
+
+  $('#tablero').innerHTML = ETAPAS.map(([k, titulo, tono]) => {
+    const ops = porEtapa[k];
+    // Suma de la columna: en «Cobro pendiente» es lo que falta por cobrar, en las
+    // demás el precio. Es el número que se busca en cada etapa, no siempre el
+    // mismo campo — un tablero que suma «precio» en la columna de cobro no
+    // responde a la pregunta de esa columna.
+    const m = (ops[0] && cuenta(ops[0]).moneda) || 'EUR';
+    const suma = ops.reduce((a, o) => { const c = cuenta(o);
+      return a + (k === 'cobro_pend' ? ((c.pendiente > 0 ? c.pendiente : 0) || 0) : (c.precio || 0)); }, 0);
+    return `<section class="col">
+      <header class="col-cab">
+        <span class="tag ${tono}">${esc(titulo)}</span>
+        <span class="col-n">${ops.length}</span>
+        <span class="col-suma">${ops.length ? esc(fmtMoneda(suma, m)) : ''}</span>
+      </header>
+      <div class="col-cuerpo">${ops.length ? ops.map(o => tarjetaOp(o, k)).join('')
+        : '<p class="col-vacia">Nada aquí</p>'}</div>
+    </section>`;
+  }).join('');
+}
+
+function tarjetaOp(o, k){
+  const c = cuenta(o);
+  const eur = n => n == null ? '—' : esc(fmtMoneda(n, c.moneda));
+  const avisos = [];
+  if(fichasQueFaltan(o)) avisos.push('<span class="tag alerta">Falta ficha</span>');
+  if(o.hijos.length) avisos.push('<span class="tag info">+' + o.hijos.length + '</span>');
+  // La cifra grande de la tarjeta es la que importa EN ESA columna: lo pendiente
+  // donde se persigue el cobro, el precio donde todavía no hay nada cobrado.
+  const cifra = k === 'cobro_pend'
+    ? (c.pendiente != null && c.pendiente > 0 ? eur(c.pendiente) : '<span class="nota">sin fijar</span>')
+    : (c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>');
+  const rotulo = k === 'cobro_pend' ? 'pendiente' : 'precio';
+  return `<button type="button" class="tarj ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}">
+    <span class="tarj-cab"><span class="n">${esc(o.numero || 'sin nº')}</span>${avisos.join('')}</span>
+    <span class="tarj-c">${esc(o.comprador_nombre || 'Sin comprador')}</span>
+    <span class="tarj-p">${esc(o.proyecto_nombre || '—')}${o.creado_por ? ' · ' + esc(operador(o)) : ''}</span>
+    <span class="tarj-cifra">${cifra}<small>${rotulo}</small></span>
+  </button>`;
 }
 
 /* ---------- ficha ---------- */
@@ -659,7 +847,7 @@ function pintarDetalle(){
          + (op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''),
     cuerpo: cuerpoFicha,
     pie: `<button class="sui-btn peligro" id="btnBorrarOp">Borrar operación</button>`,
-    onCerrar: () => { SEL = null; pintarLista(); },
+    onCerrar: () => { SEL = null; pintar(); },
   });
   $('#btnBorrarOp').onclick = () => borrarOperacion(op);
 }
@@ -783,17 +971,18 @@ function pintarVencimientos(){
 }
 
 suiMontarCajon();   // antes de atarle oyentes: si no, no existe todavía
+vista();            // recupera la vista guardada (tabla por defecto) y enseña el contenedor que toca
 
 /* ---------- eventos ---------- */
 $('#listaOps').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if(!b) return;
-  SEL = b.dataset.id; pintarLista(); pintarDetalle();
+  SEL = b.dataset.id; pintar(); pintarDetalle();
 });
 // saltar entre los contratos de una operación sin recargar la página — el href
 // con ?contrato= queda de respaldo (abrir en pestaña nueva sigue funcionando)
 document.getElementById('suiCajon').addEventListener('click', async e => {
   const a = e.target.closest('[data-op]');
-  if(a){ e.preventDefault(); SEL = a.dataset.op; pintarLista(); pintarDetalle(); return; }
+  if(a){ e.preventDefault(); SEL = a.dataset.op; pintar(); pintarDetalle(); return; }
   // documento emitido → visor compartido en modo SOLO DOCUMENTO (&vista=1):
   // desde aquí se consulta, no se edita; «Abrir completo» lleva a la herramienta
   const doc = e.target.closest('[data-doc]');
@@ -812,12 +1001,22 @@ document.getElementById('suiCajon').addEventListener('click', async e => {
     LW_VISOR.abrir(data.signedUrl, 'PDF firmado');
   }
 });
-$('#q').addEventListener('input', pintarLista);
+/* Tarjeta del tablero -> lo mismo que una fila de la tabla: selecciona y abre la
+   ficha. Delegacion, porque el tablero se repinta entero. */
+$('#tablero').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]');
+  if(b){ SEL = b.dataset.id; pintar(); pintarDetalle(); }
+});
+$('#vista').addEventListener('click', e => {
+  const b = e.target.closest('[data-vista]');
+  if(b){ vista(b.dataset.vista); pintar(); }
+});
+$('#q').addEventListener('input', pintar);
 $('#filtros').addEventListener('click', e => {
   const b = e.target.closest('[data-f]'); if(!b) return;
-  FILTRO = b.dataset.f; pintarFiltros(); pintarLista();
+  FILTRO = b.dataset.f; pintarFiltros(); pintar();
 });
-$('#fProyecto').addEventListener('change', e => { PROYECTO = e.target.value; pintarLista(); });
+$('#fProyecto').addEventListener('change', e => { PROYECTO = e.target.value; pintar(); });
 $('#listaOps').addEventListener('click', e => {
   if(e.target.id !== 'limpiaFiltros') return;
   e.preventDefault();
@@ -825,7 +1024,7 @@ $('#listaOps').addEventListener('click', e => {
   // las opciones y REPONE la selección que siga en el DOM, así que sin esto el
   // proyecto elegido volvía y "quitar los filtros" solo quitaba la mitad
   FILTRO = ''; PROYECTO = ''; $('#q').value = ''; $('#fProyecto').value = '';
-  pintarFiltros(); pintarLista();
+  pintarFiltros(); pintar();
 });
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
@@ -850,7 +1049,7 @@ async function arrancar(recarga){
       if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; }
       else if(pedido) toast('Ese contrato ya no existe');
     }
-    pintarFiltros(); pintarLista(); pintarDetalle();
+    pintarFiltros(); pintar(); pintarDetalle();
     if($('#panelVenc').classList.contains('on')) pintarVencimientos();
     if(recarga) toast('Datos actualizados');
   }catch(err){
