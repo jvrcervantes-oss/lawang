@@ -293,7 +293,13 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 
 /* CIFRAS GRANDES en serif — y solo cifras. Ver `--font-cifra` en brand.css: los
    títulos se quedan en Jost por decisión del owner. `tabular-nums` porque dos
-   importes uno debajo del otro tienen que casar por columna. */
+   importes uno debajo del otro tienen que casar por columna.
+   ⚠️ ANTES DE USARLA en una página, comprobar que esa página carga Cormorant
+   Garamond de Google Fonts. Diez de las doce herramientas ya la cargan; a
+   6-ago-2026 NO la cargan `contracts/app.html` ni `creatividades/index.html`, y
+   ahí la cifra caería a Georgia sin dar ningún error — se vería «casi igual»,
+   que es la peor forma de fallar. La fuente se añade a esa página en el mismo
+   commit en que se use la clase, no antes. */
 .lw-cifra{ font-family:var(--font-cifra); font-size:34px; font-weight:600; line-height:1;
   letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--texto); }
 
