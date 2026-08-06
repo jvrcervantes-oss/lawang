@@ -11,14 +11,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ce2a0586">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a2592450">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -30,7 +30,7 @@
 <script src="/contracts/assets/guard.js?v=c3cd4743"></script>
 <!-- suiConfirmar (modal de confirmacion, 7a). suite.js no declara esc/toast,
      asi que convive con suite-comun.js sin choque de nombres. -->
-<script src="/contracts/assets/suite.js?v=9f701b1b"></script>
+<script src="/contracts/assets/suite.js?v=eb783935"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
      El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
@@ -983,7 +983,7 @@ function pintarListado(){
 /* Tabla de verdad (2a): cabeceras 10,5px/.1em, celda 11px 16px, numero en tinta,
      importe a la derecha con cifras de ancho fijo y etiqueta de estado — no la
      lista de filas sueltas del modal viejo. */
-  const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','gris'], recibi:['Recibí','ok'] };
+  const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','morado'], recibi:['Recibí','ok'] };
   box.innerHTML = `<table class="sui-tabla"><thead><tr>
       <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Proyecto</th>
       <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th>

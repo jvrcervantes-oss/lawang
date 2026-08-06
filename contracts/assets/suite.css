@@ -95,22 +95,21 @@
      confirmación de que algo se guardó. */
   --t-toast:4200ms;
 
-  /* densidad — la cambia [data-densidad] en <html>, se recuerda en el navegador */
   /* 6-ago-2026, 2ª pasada: los valores REALES del mockup 1a/2a, extraidos de sus
      `style=` inline (ver ESPEC_VISUAL.md). La 1ª pasada solo midio colores y se
      quedo con 13,5px y celda 10/16 — de ahi la sensacion de «no es lo mismo».
-     `11px 16px` aparece 27 veces en 2a: es el relleno de celda de la casa. */
+     `11px 16px` aparece 27 veces en 2a: es el relleno de celda de la casa.
+     Densidad seleccionable (compacta/normal/amplia) RETIRADA el 6-ago-2026 a
+     petición del owner — «no hace falta»: se queda fija en estos valores. */
   --fila-y:11px; --fila-x:16px; --fila-fs:13px;
 }
-html[data-densidad="compacta"]{ --fila-y:6px;  --fila-x:12px; --fila-fs:12.5px; }
-html[data-densidad="amplia"]  { --fila-y:16px; --fila-x:18px; --fila-fs:14px; }
 
 /* ── esqueleto de página ────────────────────────────────────────────────── */
 .sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,64px); background:var(--sup-0); }
 /* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el
    relleno del cuerpo es `22px 26px 30px` en la mayoria de pantallas (24 en
    Contratos y Documentacion, 26/34 en el panel, que lo sobrescribe). */
-.sui-centro{ max-width:1308px; margin:0 auto; padding:22px 26px 30px; }
+.sui-centro{ max-width:1520px; margin:0 auto; padding:22px 26px 30px; }
 
 /* ── CABECERA DE PAGINA — igual en las once herramientas ──────────────────
    `h1` 21px/500 y bajada 13px, con las acciones a la derecha en la misma linea
@@ -197,6 +196,10 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 .sui-tag.ok{ background:#3F5230; } .sui-tag.espera{ background:#8C5E10; }
 .sui-tag.alerta{ background:#9E2F26; } .sui-tag.info{ background:#104C4F; }
 .sui-tag.gris{ background:#5A6062; }
+/* morado: solo para TIPO de documento (proforma), nunca para estado — si se
+   reusa un tono de estado (gris/info/ok) la etiqueta de tipo se confunde con
+   la de Emitida/Anulada, que es justo lo que se pidió separar (6-ago-2026). */
+.sui-tag.morado{ background:#5B4B8A; }
 
 /* ── estados de la lista: cargando / vacío / error, los tres distintos ───
    Un vacío con cara de error manda a buscar un fallo que no existe, y un error
@@ -242,8 +245,11 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
      filete del lado del cajon, para leerse como una sola pieza. */
   html.sui-cajon-on .sui-centro{ max-width:none; padding-right:0; }
   html.sui-cajon-on .sui-tabla-caja{ border-radius:var(--r-m) 0 0 var(--r-m); border-right:none; }
-  /* Sin velo: la lista queda VIVA al lado, que es el punto del adosado. */
-  html.sui-cajon-on .sui-velo{ display:none; }
+  /* El velo vuelve (6-ago-2026): sin él la lista se leía a la vez que la ficha
+     y competía por la vista. Pero SIGUE viva — `pointer-events:none` la deja
+     tan clicable como sin velo, solo que atenuada; eso es lo que pedía el
+     adosado del 6-ago y esto no lo revierte, solo arregla la legibilidad. */
+  html.sui-cajon-on .sui-velo{ pointer-events:none; }
 }
 
 /* Ancho: el cajón se dimensionó pensando en fichas de dos columnas (dato/valor),

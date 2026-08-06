@@ -15,14 +15,14 @@
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ce2a0586">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a2592450">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -128,7 +128,7 @@ header{ background:var(--dl); color:var(--rl); position:sticky; top:0; z-index:v
 
 /* ── encabezado de página ─────────────────────────────────────── */
 /* 1308 y `26px 26px 34px`: el lienzo del mockup 1a (1360 - 2x26). */
-main{ flex:1; width:100%; max-width:1308px; margin:0 auto; padding:26px 26px 34px; }
+main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 34px; }
 /* rejilla del mockup: lo reciente a la izquierda, el carril de 300px a la
    derecha. En pantalla estrecha el carril baja, no desaparece. */
 .dosCol{ display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; margin:0 0 24px; }
@@ -571,14 +571,14 @@ function pintarKpis(d, ficha){
    ha movido», no «qué contratos hay». */
 async function ultimasOperaciones(sb){
   const [c, f] = await Promise.all([
-    sb.from('contratos').select('numero, tipo, comprador_nombre, created_at, bloqueado')
+    sb.from('contratos').select('id, numero, tipo, comprador_nombre, created_at, bloqueado')
       .order('created_at', { ascending:false }).limit(6),
     sb.from('facturas').select('id, numero, tipo, cliente_nombre, total, moneda, created_at, anulada')
       .order('created_at', { ascending:false }).limit(6),
   ]);
   const filas = [
     ...(c.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.comprador_nombre,
-        que:'Contrato', href:'/contracts/app.html', estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
+        que:'Contrato', href:'/contracts/app.html?contrato=' + r.id, estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
     ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
         que:r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura',
         href:'/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,

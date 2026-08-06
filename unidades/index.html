@@ -10,13 +10,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ce2a0586">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a2592450">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="unidades"></script>
-<script src="/contracts/assets/suite.js?v=9f701b1b"></script>
+<script src="/contracts/assets/suite.js?v=eb783935"></script>
 <script src="/facturas/totales.js"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -60,7 +60,6 @@
           <button type="button" data-vista="tabla">Tabla</button>
           <button type="button" data-vista="rejilla">Rejilla</button>
         </div>
-        <div class="sui-dens" id="dens"></div>
       </div>
       <div class="sui-filtros" id="filtros"></div>
       <div class="sui-resumen" id="resumen"></div>
@@ -589,7 +588,6 @@ $('#filas').addEventListener('click', e => {
 $('#btnNueva').addEventListener('click', () => abrirUnidad('nueva'));
 
 suiMontarCajon();
-suiMontarDensidad($('#dens'));
 vista();   // recupera la vista guardada (tabla por defecto) y enseña el contenedor que toca
 suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten las dos vistas
 

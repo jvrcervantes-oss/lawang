@@ -10,14 +10,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ce2a0586">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a2592450">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="compradores"></script>
-<script src="/contracts/assets/suite.js?v=9f701b1b"></script>
+<script src="/contracts/assets/suite.js?v=eb783935"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px;
          /* la ficha lleva KYC con documentos: mas ancha que los 420 estandar */
@@ -87,7 +87,6 @@
     <div class="sui-centro">
       <div class="sui-filtros">
         <input class="sui-buscar" id="q" placeholder="Buscar nombre, email o pasaporte…">
-        <div class="sui-dens" id="dens"></div>
       </div>
       <div class="sui-tabla-caja">
         <table class="sui-tabla" id="tabla">
@@ -461,7 +460,6 @@ $('#q').addEventListener('input', pintarLista);
 $('#btnNuevo').addEventListener('click', () => { SEL='nuevo'; pintarLista(); pintarFicha(); });
 
 suiMontarCajon();
-suiMontarDensidad(document.getElementById('dens'));
 suiOrdenable(document.getElementById('tabla'), ORDEN, (c, campo) => c[campo], pintarLista);
 
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {

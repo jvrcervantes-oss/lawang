@@ -9,29 +9,6 @@
    Sin módulos, igual que entities.js y totales.js: las páginas son HTML plano.
    ========================================================================== */
 
-/* ── DENSIDAD ────────────────────────────────────────────────────────────
-   Se guarda por navegador y se aplica ANTES de pintar, para que la tabla no
-   nazca con un alto y salte al siguiente cuadro. */
-const SUI_DENS = ['compacta', 'normal', 'amplia'];
-function suiDensidad(valor){
-  if(valor){ try{ localStorage.setItem('lawang_densidad', valor); }catch(_){} }
-  let d = valor;
-  if(!d){ try{ d = localStorage.getItem('lawang_densidad'); }catch(_){} }
-  if(!SUI_DENS.includes(d)) d = 'normal';
-  document.documentElement.setAttribute('data-densidad', d);
-  document.querySelectorAll('[data-dens]').forEach(b => b.classList.toggle('on', b.dataset.dens === d));
-  return d;
-}
-function suiMontarDensidad(caja){
-  if(!caja) return;
-  caja.innerHTML = SUI_DENS.map(d =>
-    `<button type="button" data-dens="${d}" title="Densidad ${d}">${d[0].toUpperCase() + d.slice(1)}</button>`).join('');
-  caja.addEventListener('click', e => {
-    const b = e.target.closest('[data-dens]'); if(b) suiDensidad(b.dataset.dens);
-  });
-  suiDensidad();
-}
-
 /* ── CAJÓN LATERAL ───────────────────────────────────────────────────────
    No es modal a propósito (ver la cabecera de suite.css). Aun así cierra por
    Esc y por clic fuera, porque un panel que solo se cierra con su aspa se

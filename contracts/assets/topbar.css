@@ -13,6 +13,17 @@
    Facturas y Dossier) porque cada una compensa el alto de forma distinta.
    Aquí solo van aspecto y comportamiento. El alto sale de --tbh de cada app. */
 
+/* [hidden] es del navegador (origen UA) y CUALQUIER regla de autor con
+   `display` — `.tablero{display:grid}`, `.sui-rejilla{display:grid}`, incluso
+   `.lw-btn{display:inline-flex}` — le gana igual sin necesitar más
+   especificidad, porque el origen de la cascada pesa antes que ella. Sin este
+   `!important` cada pantalla con un `hidden` y una regla de layout propia
+   mostraba las dos cosas a la vez (Operaciones: tabla + embudo juntos;
+   Contratos: "+ Nuevo contrato" visible aunque debía estar oculto). Va en
+   topbar.css porque es el único fichero que cargan las 13 pantallas
+   (6-ago-2026). */
+[hidden]{ display:none !important; }
+
 .lw-topbar{
   /* 6-ago-2026, 2ª pasada: los valores EXACTOS del mockup, que son iguales en las
      once pantallas de la direccion elegida — 64px de alto, fondo BLANCO liso con

@@ -9,14 +9,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/brand.css?v=679ea61d">
-<link rel="stylesheet" href="assets/topbar.css?v=ce2a0586">
+<link rel="stylesheet" href="assets/topbar.css?v=139ba9f7">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=a2592450">
+<link rel="stylesheet" href="assets/suite.css?v=24672a58">
 <script src="assets/topbar.js?v=3cb23542" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -299,7 +299,7 @@
   body.modo-listado #cpOverlay{ display:block; position:static; background:none;
     backdrop-filter:none; -webkit-backdrop-filter:none;
     padding:calc(var(--tbh) + 22px) 26px 30px; }
-  body.modo-listado #cpOverlay .cp-modal{ width:100%; max-width:1308px; margin:0 auto;
+  body.modo-listado #cpOverlay .cp-modal{ width:100%; max-width:1520px; margin:0 auto;
     max-height:none; border:1px solid var(--line); border-radius:12px;
     box-shadow:0 1px 2px rgba(34,40,42,.06); animation:none; }
   body.modo-listado #cpClose{ display:none; }
@@ -2786,6 +2786,10 @@ $('#cpList').addEventListener('click', async e=>{
    y llenar el historial dejaria el boton atras inutil. */
 function pantallaC(cual, params){
   document.body.classList.toggle('modo-listado', cual === 'listado');
+  // el modal viejo de "Contratos guardados" se abre via openContractsPanel() y
+  // solo se cerraba con #cpClose: si no se sincroniza aqui, se queda .open al
+  // saltar a "+ Nuevo contrato" y tapa el editor entero (bug 6-ago).
+  $('#cpOverlay').classList.toggle('open', cual === 'listado');
   $('#btnContracts').hidden = cual !== 'editor';
   $('#btnNuevoC').hidden = cual !== 'listado';
   if(params !== undefined){
