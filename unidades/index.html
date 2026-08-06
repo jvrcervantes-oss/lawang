@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=81da0ec7">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=ce5e8fba">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=855c2b49">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="unidades"></script>
@@ -56,12 +56,23 @@
       <div class="sui-filtros">
         <input class="sui-buscar" id="q" placeholder="Buscar código, proyecto o modelo…">
         <select class="sui-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+        <div class="sui-dens" id="vista">
+          <button type="button" data-vista="tabla">Tabla</button>
+          <button type="button" data-vista="rejilla">Rejilla</button>
+        </div>
         <div class="sui-dens" id="dens"></div>
       </div>
       <div class="sui-filtros" id="filtros"></div>
       <div class="sui-resumen" id="resumen"></div>
 
-      <div class="sui-tabla-caja">
+      <!-- Rejilla ↔ Tabla (6-ago-2026, handoff de diseño). Dos preguntas
+           distintas: la rejilla responde «qué hay libre y de qué tipo», la tabla
+           responde «cuánto cuesta esto comparado con aquello» — y eso último solo
+           se puede en columna. Se recuerda por persona, igual que la densidad.
+           Reusa `.sui-dens`, que es el mismo objeto (tres botones, no un menú). -->
+      <div class="sui-rejilla" id="rejilla" hidden></div>
+
+      <div class="sui-tabla-caja" id="caja-tabla">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
             <th data-orden="codigo">Código</th>
@@ -165,7 +176,85 @@ function visibles(){
   return suiOrdenar(f, ORDEN, valorDe);
 }
 
-function pintar(){ pintarFiltros(); pintarTabla(); }
+/* ── vista: tabla o rejilla ────────────────────────────────────────────
+   Se recuerda por persona con el mismo mecanismo que la densidad (`localStorage`
+   envuelto en try, porque en modo privado lanza). El `try` no es ceremonia: sin
+   él, un navegador con el almacenamiento bloqueado dejaba la pantalla en blanco.
+   Por defecto TABLA: es la vista con la que esta herramienta se diseñó y la que
+   permite comparar precios. La rejilla es una elección, no el estado inicial. */
+let VISTA = 'tabla';
+function vista(v){
+  if(v){ try{ localStorage.setItem('lawang_unidades_vista', v); }catch(_){} }
+  let x = v;
+  if(!x){ try{ x = localStorage.getItem('lawang_unidades_vista'); }catch(_){} }
+  VISTA = (x === 'rejilla') ? 'rejilla' : 'tabla';
+  document.querySelectorAll('[data-vista]').forEach(b =>
+    b.classList.toggle('on', b.dataset.vista === VISTA));
+  $('#caja-tabla').hidden = VISTA !== 'tabla';
+  $('#rejilla').hidden    = VISTA !== 'rejilla';
+  return VISTA;
+}
+$('#vista').addEventListener('click', e => {
+  const b = e.target.closest('[data-vista]');
+  if(b){ vista(b.dataset.vista); pintar(); }
+});
+
+/* La rejilla NO repite ni el filtrado ni el orden: llama a `visibles()`, la misma
+   función que la tabla. Es lo único que garantiza que las dos vistas enseñan
+   exactamente el mismo conjunto — dos filtros paralelos habrían divergido en
+   cuanto alguien añadiera un chip. */
+function pintarRejilla(){
+  const caja = $('#rejilla');
+  /* Los TRES estados también aquí, y no delegados a la tabla: en modo rejilla la
+     tabla está oculta, así que un «cargando», un error de RLS o un «no hay nada»
+     se habrían quedado invisibles y la pantalla parecería vacía sin más. Es el
+     mismo criterio que ya tiene esta herramienta escrito: cargando, vacío y error
+     son tres cosas distintas y un vacío con cara de error manda a buscar un fallo
+     que no existe. `grid-column:1/-1` para que ocupen la rejilla entera. */
+  const ancho = h => `<div style="grid-column:1/-1">${h}</div>`;
+  if(CARGANDO){
+    caja.innerHTML = Array.from({length:6}, () =>
+      '<div class="sui-ficha" style="cursor:default"><i class="sui-esq-i"></i></div>').join('');
+    return;
+  }
+  if(FALLO){
+    caja.innerHTML = ancho(`<div class="sui-error">No se pudo leer el inventario: ${esc(FALLO)}</div>`);
+    return;
+  }
+  const vis = visibles();
+  if(!vis.length){
+    const filtrando = FILTRO || PROY || $('#q').value.trim();
+    caja.innerHTML = ancho(`<div class="sui-nada">
+      <b>${filtrando ? 'Ninguna unidad coincide' : 'Todavía no hay unidades'}</b>
+      ${filtrando ? 'Prueba a quitar algún filtro.' : 'Créala con «+ Nueva unidad», o cárgalas de la tabla de precios del proyecto.'}
+    </div>`);
+    return;
+  }
+  const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
+  caja.innerHTML = vis.map(u => `
+    <button type="button" class="sui-ficha ${SEL===u.id?'sel':''}" data-id="${esc(u.id)}">
+      <span class="sui-ficha-cab">
+        <span class="clave">${esc(u.codigo)}</span>
+        <span class="sui-tag e-${esc(u.estado)}">${esc(nombreEstado(u.estado))}</span>
+      </span>
+      <span class="sub">${esc(u.proyecto || 'sin proyecto')}${
+        u.modelo ? ' · ' + esc(u.modelo) : (modelosDe(u.proyecto).length ? ' · sin modelo' : '')}</span>
+      <span class="cifra">${eur(u.precio, u.moneda)}</span>
+      <span class="pie">
+        ${u.superficie_m2 != null ? '<span>' + esc(fmtNum(Number(u.superficie_m2))) + ' m²</span>' : ''}
+        ${u.contrato_numero ? '<span>' + esc(u.contrato_numero) +
+            (u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : '') + '</span>' : ''}
+      </span>
+    </button>`).join('');
+}
+/* Mismo destino que un clic en la fila de la tabla: el cajón. Delegación, para
+   que valga con la rejilla repintada. */
+$('#rejilla').addEventListener('click', e => {
+  const f = e.target.closest('[data-id]');
+  if(f) abrirUnidad(f.dataset.id);
+});
+
+function pintar(){ pintarFiltros(); pintarTabla(); pintarRejilla(); }
 
 function pintarFiltros(){
   const base = UNIDADES.filter(u => !PROY || u.proyecto === PROY);
@@ -237,7 +326,7 @@ function abrirUnidad(id){
   const nueva = id === 'nueva';
   const u = nueva ? { estado:'disponible', tipo:'parcela', moneda:'EUR' } : UNIDADES.find(x => x.id === id);
   if(!u) return;
-  SEL = id; pintarTabla();
+  SEL = id; pintar();   // las DOS vistas: en rejilla la selección también se marca
 
   const desglose = (u.precio_suelo != null || u.precio_construccion != null) ? `
     <div class="sui-bloque">
@@ -326,7 +415,7 @@ function abrirUnidad(id){
       <div class="campo"><label>Notas</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
     pie: `<button class="sui-btn primario" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
-    onCerrar: () => { SEL = null; pintarTabla(); },
+    onCerrar: () => { SEL = null; pintar(); },
   });
 
   // Estos dos campos solo existen si la parcela NO está vinculada (ver arriba):
@@ -501,7 +590,8 @@ $('#btnNueva').addEventListener('click', () => abrirUnidad('nueva'));
 
 suiMontarCajon();
 suiMontarDensidad($('#dens'));
-suiOrdenable($('#tabla'), ORDEN, valorDe, pintarTabla);
+vista();   // recupera la vista guardada (tabla por defecto) y enseña el contenedor que toca
+suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten las dos vistas
 
 window.LW_AUTH.then(async ({ sb, session }) => {
   SB = sb;
