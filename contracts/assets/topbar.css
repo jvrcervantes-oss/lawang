@@ -14,10 +14,19 @@
    Aquí solo van aspecto y comportamiento. El alto sale de --tbh de cada app. */
 
 .lw-topbar{
-  height:var(--tbh,56px); display:flex; align-items:center; gap:10px;
-  padding:0 14px; padding-top:env(safe-area-inset-top);
-  background:rgba(255,253,248,.9);
-  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  /* 6-ago-2026, 2ª pasada: los valores EXACTOS del mockup, que son iguales en las
+     once pantallas de la direccion elegida — 64px de alto, fondo BLANCO liso con
+     filete, `padding:0 26px` y `gap:18px`.
+     ⚠️ Blanca y no Deep Lagoon: esta manana se puso `#104C4F` siguiendo el 2º
+     handoff, que solo cubria dos pantallas. Medido despues sobre las 13 opciones
+     del mockup principal: ONCE la tienen blanca (`#FFFFFF`) y solo 1b —la
+     direccion oscura, descartada— y 1c difieren. Manda la mayoria de la direccion
+     elegida, no el handoff parcial.
+     Fuera el `backdrop-filter`: el mockup usa fondo liso, y un desenfoque sobre
+     una tabla que pasa por debajo se lee como suciedad. */
+  height:var(--tbh,64px); display:flex; align-items:center; gap:18px;
+  padding:0 26px; padding-top:env(safe-area-inset-top);
+  background:#FFFFFF;
   border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
   color:var(--va,#2E3437);
@@ -27,21 +36,25 @@
    acción de la barra que saca de la herramienta, y antes se confundía con el
    resto de enlaces del extremo derecho. */
 .lw-home{
+  /* `#485B37` (verde territorial) y NO Deep Lagoon: en el mockup la vuelta al hub
+     es lo unico verde de la barra, y funciona justamente porque no compite con la
+     accion principal, que es la azulada de la derecha. 12px/600, 8x14, sin sombra. */
   display:inline-flex; align-items:center; gap:6px; flex:none;
-  font:inherit; font-size:12.5px; font-weight:600; letter-spacing:.02em;
+  font:inherit; font-size:12px; font-weight:600; line-height:1;
   text-decoration:none; cursor:pointer; white-space:nowrap;
-  background:var(--dl,#104C4F); color:#fff; border:1px solid var(--dl,#104C4F);
-  border-radius:999px; padding:7px 15px;
-  box-shadow:0 1px 2px rgba(72,91,55,.28), 0 6px 16px -8px rgba(72,91,55,.5);
-  transition:transform .18s ease, background .18s ease, box-shadow .18s ease;
+  background:var(--tg,#485B37); color:#fff; border:none;
+  border-radius:999px; padding:8px 14px;
+  transition:transform .18s ease, background .18s ease;
 }
-.lw-home:hover{ background:#3c4d2d; transform:translateY(-1px);
-  box-shadow:0 2px 5px rgba(72,91,55,.3), 0 10px 22px -8px rgba(72,91,55,.55); }
+.lw-home:hover{ background:#3c4d2d; transform:translateY(-1px); }
 .lw-home:active{ transform:translateY(0) scale(.97); }
 
 .lw-brand{ height:24px; width:auto; opacity:.95; flex:none; }
-.lw-title{ margin:0; font-size:13px; font-weight:500; letter-spacing:.2em;
-  text-transform:uppercase; color:var(--muted,#6b6c66); white-space:nowrap; }
+/* El nombre de la seccion es un TITULO, no un rotulo: 13px/600 en tinta. Estaba
+   en 500, gris y con `.2em` de tracking en mayusculas, que lo convertia en
+   decoracion — en el mockup es lo segundo que se lee de la barra. */
+.lw-title{ margin:0; font-size:13px; font-weight:600; letter-spacing:0;
+  text-transform:none; color:var(--texto,#21272A); white-space:nowrap; }
 .lw-spacer{ flex:1; }
 .lw-sep{ width:1px; height:24px; background:var(--linea,#E4DCCB); flex:none; }
 .lw-who{ font-size:12px; color:var(--muted,#6b6c66); max-width:190px;
@@ -50,19 +63,20 @@
 
 /* botón de barra (ghost) y su variante de acción principal */
 .lw-btn{
-  font:inherit; font-size:12.5px; font-weight:500; color:var(--va,#2E3437);
-  background:linear-gradient(180deg,#fff,var(--card,#fffdf8));
-  border:1px solid var(--linea,#E4DCCB); border-radius:9px;
+  /* Pastilla lisa: el mockup no usa degradado ni sombra en los botones de barra.
+     12px/500 y `7px 13px` el secundario; el primario sube a 13px/600 y `9px 16px`. */
+  font:inherit; font-size:12px; font-weight:500; line-height:1; color:var(--texto-2,#4A5052);
+  background:#fff;
+  border:1px solid var(--linea,#E4DCCB); border-radius:999px;
   padding:7px 13px; cursor:pointer; white-space:nowrap; text-decoration:none;
   display:inline-flex; align-items:center; gap:6px;
-  box-shadow:0 1px 2px rgba(46,52,55,.05);
   transition:transform .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
 .lw-btn:hover{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F);
-  box-shadow:0 2px 6px rgba(46,52,55,.09); transform:translateY(-1px); }
+  transform:translateY(-1px); }
 .lw-btn:active{ transform:translateY(0) scale(.97); }
 .lw-btn.primary{ background:var(--dl,#104C4F); color:#fff; border-color:var(--dl,#104C4F);
-  box-shadow:0 1px 2px rgba(16,76,79,.3), 0 6px 16px -8px rgba(16,76,79,.5); }
+  font-size:13px; font-weight:600; padding:9px 16px; }
 .lw-btn.primary:hover{ background:#0d5b5f; color:#fff; }
 
 .lw-select{
@@ -142,7 +156,7 @@
   opacity:0; pointer-events:none; transition:opacity 260ms cubic-bezier(.22,.61,.36,1); }
 .lw-velo.on{ opacity:1; pointer-events:auto; }
 .lw-panel{
-  position:fixed; top:var(--tbh,56px); left:0; bottom:0; z-index:61;
+  position:fixed; top:var(--tbh,64px); left:0; bottom:0; z-index:61;
   width:clamp(300px, 26vw, 420px); max-width:100vw;
   background:var(--card,#fffdf8); border-right:1px solid var(--linea,#E4DCCB);
   box-shadow:0 18px 48px -22px rgba(34,40,42,.45), 0 2px 8px rgba(34,40,42,.07);

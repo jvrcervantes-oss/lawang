@@ -106,7 +106,7 @@ html[data-densidad="compacta"]{ --fila-y:6px;  --fila-x:12px; --fila-fs:12.5px; 
 html[data-densidad="amplia"]  { --fila-y:16px; --fila-x:18px; --fila-fs:14px; }
 
 /* ── esqueleto de página ────────────────────────────────────────────────── */
-.sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,56px); background:var(--sup-0); }
+.sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,64px); background:var(--sup-0); }
 .sui-centro{ max-width:1240px; margin:0 auto; padding:var(--e5) var(--e5) var(--e7); }
 /* Aquí vivía un desplazamiento de la página en pantallas ≥1500px: con el cajón
    abierto se apartaba `.sui-centro` para hacerle sitio. Retirado el 31-jul-2026
@@ -216,7 +216,7 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    Como el cajón flota por encima (position:fixed), ensancharlo no reajusta nada
    detrás: no cuesta nada dárselo. 31-jul-2026. */
 .sui-cajon{
-  position:fixed; top:var(--tbh,56px); right:0; bottom:0; z-index:61;
+  position:fixed; top:var(--tbh,64px); right:0; bottom:0; z-index:61;
   width:clamp(380px, 52vw, 1100px); max-width:100vw;
   background:var(--sup-1); border-left:1px solid var(--linea); box-shadow:var(--sombra-2);
   display:flex; flex-direction:column;

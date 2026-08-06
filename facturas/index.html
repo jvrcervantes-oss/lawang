@@ -11,14 +11,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=81da0ec7">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ce2a0586">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=c4b99afd">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=66c08acf">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -51,7 +51,7 @@
      deja de ser blanco el logo se ve pegado encima. Con `--folio` y el
      multiply del logo (ver `.doc .head img`) el papel se puede cambiar sin que
      aparezca ese recorte — 30-jul-2026. */
-  :root{ --line:#E4DCCB;   /* mismo valor que --linea de suite.css (6-ago) */ --card:#fffdf8; --field-bg:#fdfcf9; --tbh:56px; --folio:#fff; }
+  :root{ --line:#E4DCCB;   /* mismo valor que --linea de suite.css (6-ago) */ --card:#fffdf8; --field-bg:#fdfcf9; --tbh:64px; --folio:#fff; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body); background:var(--rl); color:var(--ink); }
