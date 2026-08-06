@@ -723,6 +723,30 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
           <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addHotspotRow()">+ Add point</button>
         </div>
 
+        <div class="form-section">
+          <h4>Masterplan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Plano del proyecto con las parcelas numeradas y clicables (reemplaza la lista de tamaños en el paso "Choose your plot"). El estado disponible/reservada/vendida se lee en vivo desde /unidades/ por código — aquí solo se coloca el pin, no se edita el estado. Pulsa ◎ y luego la foto para situar cada parcela.</span></h4>
+          <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
+            <input type="text" id="f-masterplanImage" class="img-url" placeholder="URL de la imagen (o usa ↑ / Pick)" oninput="syncPreview('masterplan')">
+            <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-masterplanImage','masterplan')" title="Upload file">↑</button>
+            <button type="button" class="img-slot-pick" onclick="pickToField('f-masterplanImage','masterplan')">Pick</button>
+          </div>
+          <div class="form-group" style="margin-top:8px">
+            <input type="text" id="f-masterplanProject" placeholder="Nombre EXACTO del proyecto en /unidades/ (ej. Palm Field by Balian Hills)">
+          </div>
+          <div class="pt-wrap" id="masterplan-wrap" style="position:relative;display:none;margin:10px 0;max-width:660px">
+            <img id="masterplan-preview" src="" alt="Masterplan preview" style="display:block;width:100%;border-radius:8px;cursor:crosshair" onclick="placePoint(event,'masterplan')" onerror="this.parentNode.style.display='none'">
+            <div id="masterplan-dots" style="position:absolute;inset:0;pointer-events:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 56px 100px 28px 28px;gap:8px;margin:6px 0 4px;padding:0 2px">
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">X %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Y %</div>
+            <div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase">Código</div>
+            <div></div><div></div>
+          </div>
+          <div id="f-masterplan-list"></div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px" onclick="addMasterplanPinRow()">+ Add parcela</button>
+        </div>
+
       </form>
     </div>
     <div class="slide-footer">
@@ -1075,6 +1099,13 @@ function propertyToForm(p) {
   (aer.hotspots || []).forEach(function(h){ addHotspotRow(h); });
   ARMED.aerial = null;
   syncPreview('aerial');
+  // Ficha: masterplan con pines por código de parcela
+  set('f-masterplanImage', p.masterplanImage || '');
+  set('f-masterplanProject', p.masterplanProject || '');
+  document.getElementById('f-masterplan-list').innerHTML = '';
+  (p.masterplanPlots || []).forEach(function(pt){ addMasterplanPinRow(pt); });
+  ARMED.masterplan = null;
+  syncPreview('masterplan');
   // Payment plan
   var ppContainer = document.getElementById('f-payplan-list');
   ppContainer.innerHTML = '';
@@ -1188,11 +1219,12 @@ function addExtraRow(e) {
 /* ── Ficha: aéreo con hotspots · The Territory · Designed to last ─────────────
    Los puntos (hotspots del aéreo y pines del mapa) se colocan PINCHANDO la vista previa:
    ◎ arma la fila y el clic sobre la imagen escribe X/Y. Teclear porcentajes a ojo no es usable. */
-var ARMED = { aerial:null, pins:null };
-var PT_LIST = { aerial:'f-aerial-list' };
+var ARMED = { aerial:null, masterplan:null, pins:null };
+var PT_LIST = { aerial:'f-aerial-list', masterplan:'f-masterplan-list' };
+var PT_IMG_FIELD = { aerial:'f-aerial-image', masterplan:'f-masterplanImage' };
 
 function syncPreview(group) {
-  var srcEl = document.getElementById(group === 'aerial' ? 'f-aerial-image' : 'f-mapImage');
+  var srcEl = document.getElementById(PT_IMG_FIELD[group] || 'f-mapImage');
   var wrap  = document.getElementById(group + '-wrap');
   var img   = document.getElementById(group + '-preview');
   if (!srcEl || !wrap || !img) return;
@@ -1210,8 +1242,9 @@ function redrawDots(group) {
     var x = row.querySelector('.pt-x').value, y = row.querySelector('.pt-y').value;
     if (x === '' || y === '') return;
     var d = document.createElement('span');
-    d.textContent = i + 1;
-    d.style.cssText = 'position:absolute;left:' + x + '%;top:' + y + '%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:999px;background:#485B37;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff';
+    var codeEl = row.querySelector('.pt-code');
+    d.textContent = (codeEl && codeEl.value.trim()) ? codeEl.value.trim() : (i + 1);
+    d.style.cssText = 'position:absolute;left:' + x + '%;top:' + y + '%;transform:translate(-50%,-50%);min-width:20px;height:20px;padding:0 4px;border-radius:999px;background:#485B37;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff';
     box.appendChild(d);
   });
 }
@@ -1266,6 +1299,24 @@ function addHotspotRow(h) {
   redrawDots('aerial');
 }
 
+// Pin del masterplan: solo código + posición. El estado (disponible/reservada/
+// vendida) NO se guarda aquí — se lee en vivo desde /unidades/ por código, así
+// que un pin sin el código exacto que usa el contrato/unidad simplemente no
+// encuentra estado y la web lo trata como "sin datos" (degradación silenciosa).
+function addMasterplanPinRow(pt) {
+  pt = pt || {};
+  var div = document.createElement('div');
+  div.className = 'pt-row';
+  div.style.cssText = 'display:grid;grid-template-columns:56px 56px 100px 28px 28px;gap:8px;margin-bottom:6px';
+  div.innerHTML =
+    '<input type="number" class="pt-x" value="' + esc(pt.x != null ? pt.x : '') + '" min="0" max="100" step="0.1" oninput="redrawDots(\'masterplan\')">' +
+    '<input type="number" class="pt-y" value="' + esc(pt.y != null ? pt.y : '') + '" min="0" max="100" step="0.1" oninput="redrawDots(\'masterplan\')">' +
+    '<input type="text" class="pt-code" value="' + esc(pt.code || '') + '" placeholder="A1" oninput="redrawDots(\'masterplan\')">' +
+    '<button type="button" class="img-slot-upload" onclick="armPoint(this,\'masterplan\')" title="Place on the photo">◎</button>' +
+    '<button type="button" class="img-slot-del" onclick="removePointRow(this,\'masterplan\')">✕</button>';
+  document.getElementById('f-masterplan-list').appendChild(div);
+  redrawDots('masterplan');
+}
 
 async function uploadToField(btn, inputId, group) {
   var input = document.getElementById(inputId);
@@ -1547,12 +1598,23 @@ function formToProperty() {
     };
   }).filter(function(h){ return h.en.l1 || h.en.l2; });
   var aerialImage = get('f-aerial-image').trim();
+  // Masterplan: fila sin código no sirve para nada (no habría con qué cruzar /unidades/) -> se descarta.
+  var masterplanPlots = Array.from(document.querySelectorAll('#f-masterplan-list .pt-row')).map(function(row){
+    return {
+      code: row.querySelector('.pt-code').value.trim().toUpperCase(),
+      x:    parseFloat(row.querySelector('.pt-x').value) || 0,
+      y:    parseFloat(row.querySelector('.pt-y').value) || 0
+    };
+  }).filter(function(pt){ return pt.code; });
   return {
     aerial: (aerialImage || hotspots.length) ? {
       image: aerialImage,
       entryPriceEUR: parseFloat(get('f-aerial-entry')) || 0,
       hotspots: hotspots
     } : null,
+    masterplanImage: get('f-masterplanImage'),
+    masterplanProject: get('f-masterplanProject'),
+    masterplanPlots: masterplanPlots,
     id:          id,
     visible:     get('f-visible'),
     line:        get('f-line'),

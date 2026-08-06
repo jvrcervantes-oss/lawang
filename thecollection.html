@@ -266,6 +266,36 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .cfg-plot-price{ font-family:var(--sans); font-size:14px; font-weight:600; color:var(--be); }
 .cfg-plot.on .cfg-plot-size{ color:var(--tg-dark); }
 
+/* Masterplan: plano real con pines por parcela, sustituye a .cfg-plots cuando la ficha trae
+   p.masterplanImage + p.masterplanPlots. Deliberadamente distinto de los hotspots del aéreo
+   (círculo numerado + etiqueta narrativa): aquí el pin es funcional -- código + chip de
+   estado -- y el detalle vive en un panel debajo, nunca en un globo pegado al pin (a x≈95%
+   un globo ahí se saldría del marco; un panel fijo no tiene ese problema en ningún ancho). */
+.mp-map{ position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:var(--bone-2); }
+.mp-map img{ display:block; width:100%; height:auto; }
+.mp-pin{ position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; display:flex; align-items:center;
+  justify-content:center; background:none; border:0; padding:0; cursor:pointer; }
+.mp-pin[disabled]{ cursor:default; }
+.mp-pin span{ min-width:26px; height:26px; padding:0 6px; border-radius:7px; background:var(--tg); color:var(--bone);
+  font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:.02em; display:flex; align-items:center;
+  justify-content:center; box-shadow:0 0 0 2px #fff,0 6px 14px -8px rgba(27,26,21,.6);
+  transition:transform .18s var(--ease-press),background .2s; }
+.mp-pin:hover span,.mp-pin.focus span{ transform:scale(1.14); }
+.mp-pin.on span{ background:var(--be); }
+.mp-pin.mp-held span{ background:var(--ink-2); }
+.mp-pin.mp-gone span{ background:var(--bone-2); color:var(--ink-2); text-decoration:line-through; box-shadow:0 0 0 2px #fff; }
+.mp-pin.mp-unknown span{ background:var(--rl); color:var(--ink); border:1px solid var(--line); }
+.mp-detail{ margin-top:16px; padding:16px 18px; border:1px solid var(--line); border-radius:14px; background:var(--rl);
+  display:flex; flex-direction:column; gap:10px; }
+.mp-detail-code{ font-family:var(--sans); font-size:20px; font-weight:600; color:var(--ink); }
+.mp-detail-row{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--sans);
+  font-size:15px; font-weight:600; color:var(--be); }
+.mp-detail-status{ font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  display:inline-flex; align-self:flex-start; padding:4px 10px; border-radius:999px; background:var(--bone-2); color:var(--ink-2); }
+.mp-detail-status.mp-ok{ background:var(--tg-light); color:var(--tg-dark); }
+.mp-hint{ margin-top:14px; font-family:var(--sans); font-size:13px; font-weight:300; color:var(--ink-2); text-align:center;
+  padding:14px; border:1px dashed var(--line); border-radius:14px; }
+
 .cfg-homes{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
 .cfg-home{ display:flex; flex-direction:column; }
 .cfg-home-media{ position:relative; display:block; aspect-ratio:4/3; background:var(--bone-2); overflow:hidden; }
@@ -1383,13 +1413,15 @@ article:hover .view-cta { gap:9px; }
   const IMG = {aerial:"1634671651144-adbeca8623cb"};
   // img() returns direct URL for http/relative paths; treats short keys as Unsplash IDs
   var img = function(key,w){ if(!key) return null; if(typeof key==='string'&&(key.startsWith('http')||key.startsWith('/')||key.startsWith('.'))) return key; var id=IMG[key]; return id?U(id,w):null; };
-  window.LAWANG = { DICT, PROPERTIES, LINES, money, RATES, SYMS, EUR_TO_USD, IMG, img, getPaymentPlan, DOWNLOADS, SETTINGS:{whatsapp:'6281138319862',email:'sales@lawangproperties.com'} };
+  // Publishable key: protegida por el propio grant de la funcion (solo codigo/estado/m2,
+  // nunca precio/contrato_id/notas) — ver operaciones/sql/unidades_estado_publico_rpc.sql.
+  window.LAWANG = { DICT, PROPERTIES, LINES, money, RATES, SYMS, EUR_TO_USD, IMG, img, getPaymentPlan, DOWNLOADS, SETTINGS:{whatsapp:'6281138319862',email:'sales@lawangproperties.com',supabaseUrl:'https://vtulllundrfennhjddhc.supabase.co',supabaseKey:'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'} };
 })();
 </script>
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260730103319-idx"></script>
+<script src="assets/portfolio-app.js?v=20260806140442-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

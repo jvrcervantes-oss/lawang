@@ -21,9 +21,10 @@
     line:"all", region:"all", layout:"grid", langOpen:false, curOpen:false, page:1, featIdx:0,
     overlay:null,
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
-    parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0
+    parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0,
+    plotCode:null, plotFocusCode:null, plotsStatus:{}, plotsStatusFor:null
   };
-  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.tabImg=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; }
+  function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.tabImg=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; S.plotCode=null; S.plotFocusCode=null; S.plotsStatus={}; S.plotsStatusFor=null; }
 
   // ── Helpers ────────────────────────────────────────────────
   function t(key){ var e = L.DICT[key]; if(!e) return key; return (e[S.lang] != null ? e[S.lang] : e.en); }
@@ -776,12 +777,79 @@
     return {landOptions:landOptions,models:models,extrasList:extrasList,parcelIdx:safeParcel,modelIdx:safeModel,parcelEUR:parcelEUR,homeEUR:homeEUR,extrasTotal:extrasTotal,configuredEUR:configuredEUR};
   }
 
+  // ── THE MASTERPLAN — pines por parcela con estado en vivo ───────────────────────────────
+  // Reemplaza la lista de tamaños del paso "Choose your plot" cuando la ficha trae
+  // p.masterplanImage + p.masterplanPlots (código+posición, puestos a mano desde el admin,
+  // mismo patrón que los hotspots del aéreo). El estado (disponible/reservada/vendida) NO
+  // vive en data.json: se pide en vivo a una función pública de Supabase que solo devuelve
+  // codigo/estado/superficie_m2 de los códigos que esta misma ficha declara — nunca
+  // precio/contrato_id/notas (ver operaciones/sql/unidades_estado_publico_rpc.sql). Si la
+  // petición falla o el proyecto no tiene fila en `unidades`, los pines quedan "sin dato" y
+  // SIGUEN siendo clicables: un fallo de red no debe impedir vender (degradación silenciosa).
+  function fetchPlotsStatus(p){
+    var base = L.SETTINGS && L.SETTINGS.supabaseUrl, key = L.SETTINGS && L.SETTINGS.supabaseKey;
+    if(!base || !key || !p.masterplanProject || !p.masterplanPlots || !p.masterplanPlots.length) return;
+    if(S.plotsStatusFor===p.id) return;  // ya pedido (con éxito o fallo) para esta ficha
+    S.plotsStatusFor = p.id;
+    var codes = p.masterplanPlots.map(function(pt){ return pt.code; });
+    fetch(base+'/rest/v1/rpc/unidades_estado_publico', {
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":key,"Authorization":"Bearer "+key},
+      body: JSON.stringify({p_proyecto:p.masterplanProject, p_codigos:codes})
+    }).then(function(r){ return r.ok ? r.json() : []; }).then(function(rows){
+      var map={}; (rows||[]).forEach(function(row){ map[row.codigo]=row; });
+      S.plotsStatus = map;
+      render();
+    }).catch(function(){ /* sin red: los pines siguen "sin dato" y clicables */ });
+  }
+  // Emparejar el m² real de la parcela con el escalón de precio del configurador (landOptions
+  // viene por tamaño, no por código individual — así lo carga hoy el admin).
+  function landIdxForSize(cfg, size){
+    if(!cfg.landOptions || size==null) return -1;
+    for(var i=0;i<cfg.landOptions.length;i++){ if(Number(cfg.landOptions[i].size)===Number(size)) return i; }
+    return -1;
+  }
+  var PLOT_ESTADO_CLASS = {disponible:"ok", reservada:"held", vendida:"gone", bloqueada:"gone", no_disponible:"gone"};
+  function masterplanPickerHTML(p, cfg){
+    fetchPlotsStatus(p);  // idempotente: sale al toque si ya se pidió para esta ficha
+    var focus = S.plotFocusCode, focusRow = focus ? p.masterplanPlots.filter(function(pt){return pt.code===focus;})[0] : null;
+    var focusStatus = focus ? S.plotsStatus[focus] : null;
+    var focusIdx = focusStatus ? landIdxForSize(cfg, focusStatus.superficie_m2) : -1;
+    var focusEstado = focusStatus ? focusStatus.estado : null;
+    var focusClickable = !focusEstado || focusEstado==="disponible";
+    var pins = p.masterplanPlots.map(function(pt){
+      var st = S.plotsStatus[pt.code], estado = st ? st.estado : null;
+      var cls = estado ? (PLOT_ESTADO_CLASS[estado]||"") : "unknown";
+      var clickable = !estado || estado==="disponible";
+      var isOn = S.plotCode===pt.code, isFocus = focus===pt.code;
+      return '<button class="mp-pin mp-'+cls+(isOn?" on":"")+(isFocus?" focus":"")+'" style="left:'+pt.x+'%;top:'+pt.y+'%" '
+        + (clickable?'data-act="plotpin:'+esc(pt.code)+'"':'disabled')
+        + ' aria-pressed="'+(isOn?"true":"false")+'"><span>'+esc(pt.code)+'</span></button>';
+    }).join("");
+    var detail;
+    if(!focus){
+      detail = '<p class="mp-hint">'+tl("Tap a plot to see its size, price and availability.","Toca una parcela para ver tamaño, precio y disponibilidad.")+'</p>';
+    } else {
+      var sizeTxt = focusStatus && focusStatus.superficie_m2 ? focusStatus.superficie_m2+' m²' : "—";
+      var priceTxt = focusIdx>=0 ? priceHTML(cfg.landOptions[focusIdx].priceEUR,true) : '<span style="opacity:.7">'+t("mk.onrequest")+'</span>';
+      var statusTxt = focusEstado==="reservada" ? tl("Reserved","Reservada") : (focusEstado&&focusEstado!=="disponible" ? tl("Not available","No disponible") : tl("Available","Disponible"));
+      detail = '<div class="mp-detail">'
+        + '<div class="mp-detail-code">'+esc(focus)+'</div>'
+        + '<div class="mp-detail-row"><span>'+sizeTxt+'</span><span>'+priceTxt+'</span></div>'
+        + '<div class="mp-detail-status mp-'+(PLOT_ESTADO_CLASS[focusEstado]||"unknown")+'">'+esc(statusTxt)+'</div>'
+        + (focusClickable ? '<button class="cfg-btn cfg-btn-go" data-act="plotpick:'+esc(focus)+'">'+(S.plotCode===focus?"✓ "+tl("Selected","Seleccionada"):tl("Select this plot","Elegir esta parcela"))+'</button>' : '')
+        + '</div>';
+    }
+    return '<div class="mp-wrap"><div class="mp-map"><img src="'+esc(p.masterplanImage)+'" alt="'+esc(tl("Site plan","Plano del proyecto"))+'" loading="lazy">'+pins+'</div>'+detail+'</div>';
+  }
+
   // Rework 27-jul: las opciones del configurador pasan de estilos inline a clases (.cfg-opt*). La
   // selección ya no se anuncia con una línea de texto extra que descuadraba la altura de las
   // tarjetas — es la propia tarjeta la que se marca (borde verde + palomita en la esquina).
   // Se retiró el parámetro `bare`: la única variante viva era la del configurador.
   function parcelStepHTML(p, cfg){
     if(!cfg.landOptions) return "";
+    if(p.masterplanImage && p.masterplanPlots && p.masterplanPlots.length) return masterplanPickerHTML(p, cfg);
     return '<div class="cfg-plots">'+cfg.landOptions.map(function(o,i){var on=i===cfg.parcelIdx;
       return '<button class="cfg-opt cfg-plot'+(on?" on":"")+'" data-act="parcel:'+i+'" aria-pressed="'+(on?"true":"false")+'">'
         + '<span class="cfg-plot-size">'+o.size+' <em>m²</em></span>'
@@ -878,7 +946,7 @@
     var model=(cfg.models&&cfg.models[cfg.modelIdx])||null;
     var selExtras=(cfg.extrasList||[]).filter(function(e,i){return S.extrasSel[i];});
     var lines=[t("reserve.msg"),"","• "+pick(p.title)];
-    if(parcel) lines.push("• "+t("cfg.step.land")+" · "+parcel.size+" m² ("+money(parcel.priceEUR)+")");
+    if(parcel) lines.push("• "+t("cfg.step.land")+(S.plotCode?" "+S.plotCode:"")+" · "+parcel.size+" m² ("+money(parcel.priceEUR)+")");
     if(model)  lines.push("• "+model.name+" ("+money(model.priceEUR)+")");
     if(selExtras.length) lines.push("• "+t("cfg.step.extras")+": "+selExtras.map(function(e){return e.name;}).join(", "));
     lines.push("", t("fin.total")+": "+money(total));
@@ -1288,6 +1356,17 @@
     // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
     else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }
+    // Un pin del masterplan primero enseña tamaño/precio/estado (plotpin) y solo compromete
+    // la elección cuando se pulsa "Select this plot" dentro del detalle (plotpick) — pinchar
+    // el mapa no debe decidir por el visitante antes de que vea qué está eligiendo.
+    else if(cmd==="plotpin"){ S.plotFocusCode = (S.plotFocusCode===val ? null : val); render(); }
+    else if(cmd==="plotpick"){
+      var propNow = L.PROPERTIES.filter(function(x){return x.id===S.overlay;})[0];
+      var cfgNow = propNow ? configState(propNow) : null;
+      var st = S.plotsStatus[val];
+      var idx = (cfgNow && st) ? landIdxForSize(cfgNow, st.superficie_m2) : -1;
+      S.plotCode = val; S.parcelIdx = idx; render();
+    }
     else if(cmd==="model"){ S.modelIdx=parseInt(val,10); render(); }
     else if(cmd==="extra"){ var i=parseInt(val,10); S.extrasSel[i]=!S.extrasSel[i]; render(); }
     else if(cmd==="step"){ S.step=parseInt(val,10); render(); }
@@ -1409,7 +1488,9 @@
     if(data.properties) L.PROPERTIES = data.properties;
     if(data.downloads)  L.DOWNLOADS  = data.downloads;
     // merge sobre los defaults: si data.json trae solo USD/AUD, IDR conserva su tasa por defecto
-    if(data.settings){ if(data.settings.rates){ L.RATES=Object.assign({},L.RATES,data.settings.rates); L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=data.settings; }
+    // Merge, no overwrite: SETTINGS lleva defaults inline (whatsapp, supabaseUrl/Key) que
+    // data.json no declara -- un `=` los borraba en cuanto data.json cargaba.
+    if(data.settings){ if(data.settings.rates){ L.RATES=Object.assign({},L.RATES,data.settings.rates); L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=Object.assign({},L.SETTINGS,data.settings); }
     L.PROPERTIES.forEach(function(p){ p.imgKeys=(p.images&&p.images.length)?p.images:[]; });
     fetch('https://open.er-api.com/v6/latest/EUR').then(function(r){return r.json();}).then(function(d){ if(d.result==='success'){ var fresh={EUR:1,USD:d.rates.USD,AUD:d.rates.AUD}; if(d.rates.IDR) fresh.IDR=d.rates.IDR; L.RATES=Object.assign({},L.RATES,fresh); L.EUR_TO_USD=d.rates.USD; } }).catch(function(){}).finally(start);
   }).catch(function(err){ console.error('Lawang: no se pudo cargar data.json — el portfolio se mostrará vacío.', err); start(); });
