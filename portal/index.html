@@ -189,6 +189,10 @@
       <button class="sui-btn primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <div id="avisoLogin" class="aviso"></div>
+    <p class="sui-nota" style="margin-top:var(--e4);text-align:center;font-size:12px">
+      <span data-t="team_intro">¿Eres del equipo?</span>
+      <a href="/entrar/" style="color:var(--dl)" data-t="team_link">Entra aquí</a>
+    </p>
   </div>
 </div>
 
@@ -271,6 +275,7 @@
          sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
          entrega_est:'Entrega estimada', actualizado:'Última actualización', pie:'¿Dudas? Escríbenos a',
+         team_intro:'¿Eres del equipo?', team_link:'Entra aquí',
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.' },
     en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link — no passwords.',
          login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
@@ -297,6 +302,7 @@
          sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
          entrega_est:'Estimated handover', actualizado:'Last update', pie:'Questions? Write to',
+         team_intro:'On the team?', team_link:'Sign in here',
          err_carga:'We could not load your information. Reload the page or try again later.' }
   };
   var LANG = localStorage.getItem('lw_portal_lang') ||

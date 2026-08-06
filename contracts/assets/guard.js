@@ -39,7 +39,7 @@
 (function () {
   var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
-  var LOGIN  = '/contracts/login.html';
+  var LOGIN  = '/entrar/';
   var HUB    = '/intranet/';
 
   var propia = document.currentScript;

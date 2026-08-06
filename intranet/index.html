@@ -23,7 +23,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
-<script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
+<script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -668,12 +668,12 @@ const sb = window.supabase.createClient(
 window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 
 sb.auth.getSession().then(async ({ data:{ session } }) => {
-  if(!session){ location.replace('/contracts/login.html?next=/intranet/'); return; }
+  if(!session){ location.replace('/entrar/?next=/intranet/'); return; }
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo, nombre').eq('user_id', session.user.id).maybeSingle();
   if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío
     await sb.auth.signOut();
-    location.replace('/contracts/login.html?desactivado=1');
+    location.replace('/entrar/?desactivado=1');
     return;
   }
   FICHA = ficha || null;
@@ -719,7 +719,7 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
 
 $('#out').onclick = async () => {
   await sb.auth.signOut();
-  location.replace('/contracts/login.html');
+  location.replace('/entrar/');
 };
 </script>
 </body>

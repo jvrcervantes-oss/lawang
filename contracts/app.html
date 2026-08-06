@@ -17,7 +17,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="assets/suite.css?v=24672a58">
-<script src="assets/topbar.js?v=3cb23542" defer></script>
+<script src="assets/topbar.js?v=e6cdc621" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -30,7 +30,7 @@
      que es como esta desde que se monto. Guard aqui aporta lo otro: sesion, cuenta activa y UN SOLO cliente
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
-<script src="/contracts/assets/guard.js?v=c3cd4743"></script>
+<script src="/contracts/assets/guard.js?v=4916728d"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -639,7 +639,7 @@ const pads = {};
 
 /* ---------- Supabase: único backend — Auth (login) + datos (guardado) ----------
    No hay PHP/MySQL: el login de abajo (init()) es sb.auth.getSession()/
-   signInWithPassword (ver login.html), y la RLS de `contratos` exige role
+   signInWithPassword (ver /entrar/), y la RLS de `contratos` exige role
    authenticated — sin sesión de Supabase Auth no hay ni lectura ni escritura,
    aunque se tenga la key pública (ver contracts_rls_requiere_authenticated).
    Cubre los 7 tipos numerados (ver CONTRACT_TIPO/TIPO_PREFIX abajo); Estatutos
@@ -3165,25 +3165,25 @@ $('#fmMail').addEventListener('click', async ()=>{
    es la política RLS de `contratos` (exige role authenticated, ver migración
    contratos_rls_requiere_authenticated). Este chequeo es solo para no dejar
    al agente mirando un formulario que no podrá guardar: sin sesión, redirige
-   a login.html antes de montar nada. */
+   a /entrar/ antes de montar nada. */
 $('#btnLogout').addEventListener('click', async ()=>{
   if(!sb) return;
   await sb.auth.signOut();
-  location.href='login.html';
+  location.href='/entrar/';
 });
 
 /* ---------- init ---------- */
 async function init(){
   if(!sb){ toast('Supabase no disponible'); return; }
   const { data:{ session } } = await sb.auth.getSession();
-  if(!session){ location.href='login.html'; return; }
+  if(!session){ location.href='/entrar/'; return; }
   // permiso por herramienta (ver public.usuarios): sin ficha se entra igual
   // —cuentas anteriores al panel—, desactivado o sin 'contratos' se rebota.
   // La RLS ya impide guardar; esto evita enseñar una herramienta que fallaría
   // al pulsar Guardar, que es la peor forma de enterarse.
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
-  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.href='login.html?desactivado=1'; return; }
+  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.href='/entrar/?desactivado=1'; return; }
   if(ficha && !['super_admin','admin'].includes(ficha.rol) && !(ficha.herramientas||[]).includes('contratos')){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }

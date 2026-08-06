@@ -12,10 +12,10 @@
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
-<script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
+<script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="operaciones"></script>
+<script src="/contracts/assets/guard.js?v=4916728d" data-herramienta="operaciones"></script>
 <script src="/contracts/assets/suite.js?v=eb783935"></script>
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
 <script src="/facturas/totales.js"></script>
@@ -1082,7 +1082,7 @@ window.LW_AUTH.then(({ sb, session, ficha }) => {
   // herramienta sigue igual para todo el equipo.
   ES_ADMIN = !!(ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin'));
   $('#who').textContent = session.user.email;
-  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
   arrancar(false);
 });
 </script>

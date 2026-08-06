@@ -18,9 +18,9 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
-<script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
+<script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="usuarios"></script>
+<script src="/contracts/assets/guard.js?v=4916728d" data-herramienta="usuarios"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -307,7 +307,7 @@ $('#btnNuevo').addEventListener('click', nuevoUsuario);
 LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   $('#who').textContent = session.user.email;
-  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
 
   /* La ficha se consulta AQUÍ si el guard no la trae. No es redundancia: el
      29-jul un guard.js cacheado por el servidor (max-age 7 días) seguía siendo

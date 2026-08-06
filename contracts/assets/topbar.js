@@ -207,7 +207,7 @@
     if (salirViejo) salirViejo.hidden = true;
     panel.querySelector('.lw-usuario-salir').addEventListener('click', function () {
       if (salirViejo) { salirViejo.click(); return; }   // cada herramienta sabe a dónde volver
-      sb.auth.signOut().then(function () { location.replace('/contracts/login.html'); });
+      sb.auth.signOut().then(function () { location.replace('/entrar/'); });
     });
 
     var contador = boton.querySelector('.lw-campana-n');

@@ -20,14 +20,14 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
 <link rel="stylesheet" href="documento.css?v=20260731">
-<script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
+<script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
      el permiso lo comprueba el script de esta pagina, que sabe un matiz que
      guard.js no — con `?vista=1` (Operaciones embebe la factura para
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
-<script src="/contracts/assets/guard.js?v=c3cd4743"></script>
+<script src="/contracts/assets/guard.js?v=4916728d"></script>
 <!-- suiConfirmar (modal de confirmacion, 7a). suite.js no declara esc/toast,
      asi que convive con suite-comun.js sin choque de nombres. -->
 <script src="/contracts/assets/suite.js?v=eb783935"></script>
@@ -396,12 +396,12 @@ window.LW_SB = sb;
    cliente para que la campana de la barra lo reuse en vez de abrir un segundo. */
 window.LW_SB = sb;
 sb.auth.getSession().then(async ({data:{session}}) => {
-  if(!session){ location.replace('/contracts/login.html?next=/facturas/'); return; }
+  if(!session){ location.replace('/entrar/?next=/facturas/'); return; }
   const modoVista = new URLSearchParams(location.search).has('vista');
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
   MI_FICHA = ficha || null;   // la lista de guardadas lo usa para el botón de reasignar autor
-  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/contracts/login.html?desactivado=1'); return; }
+  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/entrar/?desactivado=1'); return; }
   // El permiso 'facturas' gobierna EMITIR. En modo vista (el visor de
   // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
   // consultar lo emitido está abierto a todo el equipo, igual que en la RLS,
@@ -485,7 +485,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
     pantalla('listado');
   }
 });
-$('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
+$('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
 
 /* ---------- estado ---------- */
 let LINEAS = [{ descripcion:'', importe:'' }];

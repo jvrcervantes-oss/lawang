@@ -13,10 +13,10 @@
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/topbar.js?v=3cb23542" defer></script>
+<script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js?v=c3cd4743" data-herramienta="compradores"></script>
+<script src="/contracts/assets/guard.js?v=4916728d" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=eb783935"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px;
@@ -466,7 +466,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   YO = ficha;   // el rol decide si la ficha enseña los botones de invitar al portal
   $('#who').textContent = session.user.email;
-  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
   try{
     await cargar();
     /* ?id=<client_id> abre esa ficha directamente. Lo usa Operaciones: llegar

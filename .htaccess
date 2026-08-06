@@ -1,5 +1,8 @@
 # 28-jul-2026: /panel/ renombrado a /intranet/. 301 para los marcadores del equipo.
 RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
+# 6-ago-2026: puerta unica /entrar/ (elige equipo o cliente). 301 para lo que
+# tuviera enlazado o guardado /contracts/login.html.
+Redirect 301 /contracts/login.html /entrar/
 
 # private/ guarda estado de servidor (contadores del rate-limit del login y del
 # formulario de leads). Nunca se sirve: son ficheros con IPs y marcas de tiempo.
