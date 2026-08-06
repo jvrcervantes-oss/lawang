@@ -136,6 +136,7 @@ html[data-densidad="amplia"]  { --fila-y:16px; --fila-x:18px; --fila-fs:14px; }
    mas se repite en la suite y era lo que mas delataba la diferencia. */
 .sui-buscar{ flex:1 1 240px; min-width:0; font:inherit; font-size:12.5px; padding:9px 14px;
   border:1px solid var(--linea); border-radius:var(--r-p); background:var(--sup-2); color:inherit; }
+.sui-buscar{ transition:border-color .15s ease, box-shadow .15s ease; }
 .sui-buscar:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
 .sui-sel{ font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--linea);
   border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
@@ -361,6 +362,8 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 .campo input, .campo select, .campo textarea{ width:100%; font:inherit; font-size:14px;
   padding:9px 11px; border:1px solid var(--linea); border-radius:var(--r-s);
   background:#FDFCF9; color:inherit; }
+/* la transicion de foco de 7a: el anillo entra en .15s, no de golpe */
+.campo input, .campo select, .campo textarea{ transition:border-color .15s ease, box-shadow .15s ease; }
 .campo input:focus, .campo select:focus, .campo textarea:focus{ outline:none;
   border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
 .campo textarea{ min-height:62px; resize:vertical; }
