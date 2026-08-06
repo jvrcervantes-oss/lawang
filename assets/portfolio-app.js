@@ -569,6 +569,49 @@
   // pares etiqueta/valor con filete (antes el valor iba solo, sin decir de qué era), y el dossier
   // como pie de la hoja. El mapa salió de aquí: se ahogaba en la esquina de una tarjeta estrecha y
   // ahora vive en su propia banda "The Territory" junto a la planta 3D (territoryHTML).
+  // ── Columna junto a la galería (calco Ecomerce.pdf p.2, 6-ago) ───────────────────────────
+  // "The Villa" (badges hab/baños/construido) + "The Overview" + caja Delivery/Status/Units/
+  // Available + "The Location" con mapa y sus dos badges superpuestos. Reutiliza los mismos
+  // campos que ya alimentan infoCardHTML (nunca datos nuevos inventados) — es una presentación
+  // distinta de datos que la ficha ya tenía, no una fuente de datos nueva.
+  function gallerySidebarHTML(p, cfg){
+    var badges = [];
+    var addB = function(ico,v,l){ if(v) badges.push({ico:ico,v:v,l:l}); };
+    addB("beds",  p.beds>0?p.beds:null,             tl("Bedrooms","Habitaciones"));
+    addB("baths", p.baths>0?p.baths:null,            tl("Bathrooms","Baños"));
+    addB("built", p.built>0?(p.built+" m²"):null,    tl("Built","Construido"));
+    var badgesHTML = badges.length ? '<div class="kicker">'+tl("The Villa","La Villa")+'</div><div class="pdp-gi-badges">'+badges.map(function(b){
+      return '<div class="pdp-gi-badge"><div class="pdp-gi-badge-top"><b>'+esc(b.v)+'</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(FEAT_ICONS[b.ico]||FEAT_ICONS.type)+'</svg></div><span>'+esc(b.l)+'</span></div>';
+    }).join("")+'</div>' : "";
+
+    var overview = pick(p.desc);
+    var overviewHTML = overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-gi-overview">'+esc(overview)+'</p>' : "";
+
+    var info = [];
+    var addI = function(l,v){ if(v!=null&&v!=="") info.push({l:l,v:v}); };
+    addI(tl("Delivery","Entrega"), p.handover);
+    addI(tl("Status","Estado"), p.status?t(p.status):null);
+    addI(tl("Units","Unidades"), p.unitsTotal?((p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+"/":"")+p.unitsTotal):null);
+    var sizes = (cfg&&cfg.landOptions&&cfg.landOptions.length) ? cfg.landOptions.map(function(o){return Number(o.size)||0;}).filter(Boolean) : [];
+    var minSize = sizes.length ? Math.min.apply(null,sizes) : (p.land>0?p.land:null);
+    addI(tl("Available","Disponible"), minSize ? tl("From ","Desde ")+minSize+" m²" : null);
+    var infoHTML = info.length ? '<div class="pdp-gi-info">'+info.map(function(r){
+      return '<div class="pdp-gi-info-cell"><span class="pdp-gi-info-l">'+esc(r.l)+'</span><b>'+esc(r.v)+'</b></div>';
+    }).join("")+'</div>' : "";
+
+    var beachHi = (p.highlights||[]).filter(function(h){ return /\bmin\b/i.test(h); })[0];
+    var mapRaw = mapMediaHTML(p.mapImage);
+    var mapHTML = mapRaw ? '<div class="pdp-gi-map">'+mapRaw
+      + (beachHi ? '<span class="pdp-gi-map-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M5 17a2 2 0 0 1-2-2v-2.5L5 8h14l2 4.5V15a2 2 0 0 1-2 2M7 17v2M17 17v2M5 12.5h14"/></svg>'+esc(beachHi)+'</span>' : "")
+      + (p.tenure==="tenure.freehold" ? '<span class="pdp-gi-map-tenure"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg><span><em>'+tl("Freehold","Freehold")+'</em><b>'+tl("Land","Suelo")+'</b></span></span>' : "")
+      + '</div>' : "";
+    var locHTML = (mapHTML || p.region) ? '<div class="pdp-gi-loc-head"><div class="kicker">'+tl("The Location","La ubicación")+'</div>'
+      + (p.region?'<div class="pdp-gi-loc-region">'+esc(p.region)+'</div>':'')+'</div>'+mapHTML : "";
+
+    if(!badgesHTML && !overviewHTML && !infoHTML && !locHTML) return "";
+    return '<aside class="pdp-gi">'+badgesHTML+overviewHTML+infoHTML+locHTML+'</aside>';
+  }
+
   function infoCardHTML(p, cfg){
     var overview = pick(p.desc);
     var rows = [];
@@ -1276,11 +1319,15 @@
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
     var techTable = techSpecsHTML(p);   // sube a la sección de fotos (revisión cliente 24-jul)
+    var gallerySide = gallerySidebarHTML(p, cfg);   // calco PDF p.2, 6-ago
     // Secciones de la ficha (sin scroll-snap: se leen del tirón).
     return '<div>'
       + heroHTML(p)
-      // Fotos: cabecera + galería + la tabla blanca de datos (subida aquí desde el detalle)
-      + sec('<div class="wrap pdp-wrap">'+headerHTML+galleryHTML(p)+(techTable?'<div class="pdp-specs-below">'+techTable+'</div>':"")+'</div>')
+      // Fotos: cabecera + galería (izq) + columna villa/overview/entrega/ubicación (dcha, calco
+      // PDF p.2) + la tabla blanca de datos libre, a ancho completo debajo de las dos.
+      + sec('<div class="wrap pdp-wrap">'+headerHTML
+          + (gallerySide ? '<div class="pdp-info-2col"><div>'+galleryHTML(p)+'</div><div>'+gallerySide+'</div></div>' : galleryHTML(p))
+          + (techTable?'<div class="pdp-specs-below">'+techTable+'</div>':"")+'</div>')
       // Detalle: izq configurador/payment plan · dcha ficha técnica (vuelta a la posición
       // original 6-ago — el traslado a su propia sección de abajo se deshizo el mismo día).
       // La reactividad sí se queda: infoCardHTML(p,cfg) sigue lo elegido en el configurador

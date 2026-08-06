@@ -662,6 +662,38 @@ article:hover .view-cta { gap:9px; }
   text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .pdp-spec-dossier{ margin-top:clamp(24px,2.6vw,32px); padding-top:clamp(20px,2.2vw,26px); border-top:1px solid var(--line); }
 
+/* ── Columna junto a la galería (calco Ecomerce.pdf p.2, 6-ago): The Villa (badges) + The
+   Overview + caja Delivery/Status/Units/Available + The Location con mapa y sus dos badges. */
+.pdp-gi{ display:flex; flex-direction:column; gap:clamp(22px,2.6vw,30px); }
+.pdp-gi-badges{ display:flex; gap:10px; flex-wrap:wrap; }
+.pdp-gi-badge{ flex:1 1 100px; border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+.pdp-gi-badge-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.pdp-gi-badge-top b{ font-family:var(--sans); font-size:clamp(26px,2.6vw,34px); font-weight:700; line-height:1; color:var(--ink); }
+.pdp-gi-badge-top svg{ width:18px; height:18px; flex:none; color:var(--sc); margin-top:4px; }
+.pdp-gi-badge span{ display:block; margin-top:8px; font-family:var(--sans); font-size:10.5px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-2); }
+.pdp-gi-overview{ font-family:var(--sans); font-size:14px; font-weight:300; line-height:1.75; color:var(--ink-2); margin:10px 0 0; }
+.pdp-gi-info{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px 10px; background:#fff;
+  border:1px solid rgba(190,179,165,.45); border-radius:14px; padding:16px 18px; box-shadow:0 20px 50px -40px rgba(27,26,21,.4); }
+.pdp-gi-info-cell{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.pdp-gi-info-l{ font-family:var(--sans); font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-2); padding-bottom:5px; border-bottom:1px solid var(--line); }
+.pdp-gi-info-cell b{ font-family:var(--sans); font-size:13px; font-weight:700; color:var(--tg-dark); line-height:1.2; }
+.pdp-gi-loc-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; }
+.pdp-gi-loc-region{ font-family:var(--sans); font-size:13px; font-weight:600; text-align:right; color:var(--ink); }
+.pdp-gi-map{ position:relative; margin-top:14px; }
+.pdp-gi-map-badge{ position:absolute; top:12px; left:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
+  background:var(--tg-dark); color:var(--bone); font-family:var(--sans); font-size:11px; font-weight:600;
+  letter-spacing:.02em; padding:7px 12px; border-radius:999px; }
+.pdp-gi-map-badge svg{ width:14px; height:14px; flex:none; }
+.pdp-gi-map-tenure{ position:absolute; bottom:12px; left:14px; z-index:3; display:flex; align-items:center; gap:8px;
+  color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.6); }
+.pdp-gi-map-tenure svg{ width:26px; height:26px; flex:none; }
+.pdp-gi-map-tenure span{ display:flex; flex-direction:column; }
+.pdp-gi-map-tenure em{ font-style:normal; font-family:var(--sans); font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; opacity:.85; }
+.pdp-gi-map-tenure b{ font-family:var(--sans); font-size:15px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+@media(max-width:640px){ .pdp-gi-info{ grid-template-columns:repeat(2,1fr); } }
+
 /* ── THE TERRITORY — mapa + planta 3D a ancho completo (rework 27-jul) ──
    El mapa medía 280px en una columna estrecha y la planta 3D colgaba huérfana debajo de la ficha
    técnica. Ahora comparten banda; con solo uno de los dos cargado, ese ocupa el ancho entero. */
@@ -1460,7 +1492,7 @@ article:hover .view-cta { gap:9px; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260806173021-mp"></script>
+<script src="assets/portfolio-app.js?v=20260806175853-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
