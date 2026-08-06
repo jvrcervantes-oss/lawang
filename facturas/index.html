@@ -51,7 +51,7 @@
      deja de ser blanco el logo se ve pegado encima. Con `--folio` y el
      multiply del logo (ver `.doc .head img`) el papel se puede cambiar sin que
      aparezca ese recorte — 30-jul-2026. */
-  :root{ --line:#e4ddcf; --card:#fffdf8; --field-bg:#fdfcf9; --tbh:56px; --folio:#fff; }
+  :root{ --line:#E4DCCB;   /* mismo valor que --linea de suite.css (6-ago) */ --card:#fffdf8; --field-bg:#fdfcf9; --tbh:56px; --folio:#fff; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body); background:var(--rl); color:var(--ink); }
@@ -146,7 +146,10 @@
   .modal{ background:var(--rl); border-radius:16px; width:min(720px,92vw); max-height:82vh; display:flex; flex-direction:column; }
   .modal header{ display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); }
   .modal header h2{ font-size:14px; margin:0; letter-spacing:.1em; text-transform:uppercase; font-weight:500; }
-  .modal .list{ overflow:auto; padding:10px 12px 18px; }
+  /* Sin `.modal` delante (6-ago-2026): el listado salio del modal y es pantalla.
+   Fuera el `overflow:auto` — ahora desplaza la pagina, y una caja con scroll
+   propio dentro de una pagina que tambien desplaza son dos barras peleandose. */
+  .list{ padding:10px 12px 18px; }
   .frow{ display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--line);
          border-radius:11px; background:var(--card); margin-bottom:8px; cursor:pointer; }
   .frow:hover{ border-color:var(--dl); }
@@ -198,11 +201,41 @@
     </select>
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnList">📁 Facturas guardadas</button>
+    <!-- Se alternan según la pantalla (ver `pantalla()`): en el listado se ofrece
+         emitir, en el documento se ofrece volver. Nunca los dos a la vez, que es
+         lo que convierte una barra en un panel de mandos. -->
+    <button type="button" class="lw-btn" id="btnList" hidden>← Listado</button>
+    <button type="button" class="lw-btn" id="btnNuevaDoc">+ Nueva</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
 
-  <div class="stage">
+  <!-- ═══ LISTADO — la pantalla de entrada desde el 6-ago-2026 ═══════════════
+       Antes esta herramienta abría directamente en un formulario en blanco y lo
+       emitido vivía en un modal («📁 Facturas guardadas»). Petición de la
+       revisión: que funcione como Contratos — primero la lista, y «+ Nueva» abre
+       el formulario. El motivo es de uso, no de gusto: se entra aquí a CONSULTAR
+       un documento mucho más a menudo que a emitir uno, y lo que más se hacía
+       estaba a dos clics detrás de lo que menos.
+       El contenido es el MISMO que tenía el modal; lo que cambia es que ahora
+       tiene sitio para buscar y filtrar, que a 200 documentos hace falta. -->
+  <div class="sui-stage" id="pantallaListado" hidden>
+    <div class="sui-centro">
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="lq" placeholder="Buscar nº, cliente, proyecto o contrato…">
+        <div class="sui-dens" id="lAnuladas">
+          <button type="button" data-anul="no">Vigentes</button>
+          <button type="button" data-anul="si">Con anuladas</button>
+        </div>
+      </div>
+      <div class="sui-filtros" id="lTipos"></div>
+      <div class="sui-resumen" id="lResumen"></div>
+      <div class="sui-tabla-caja">
+        <div class="list" id="listBody">Cargando…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage" id="pantallaDoc">
     <div class="pane-form">
       <div class="inner">
         <form id="form" autocomplete="off">
@@ -327,15 +360,6 @@
     </div>
   </div>
 
-  <div class="overlay" id="ovList">
-    <div class="modal">
-      <header>
-        <h2>Facturas guardadas</h2><div class="spacer"></div>
-        <button class="btn" id="btnCloseList">Cerrar</button>
-      </header>
-      <div class="list" id="listBody">Cargando…</div>
-    </div>
-  </div>
   <div class="toast" id="toast"></div>
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
@@ -395,15 +419,44 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   // desde ahí se consulta, no se edita. "Descargar PDF" se conserva (consultar
   // incluye llevarse el papel).
   if(new URLSearchParams(location.search).has('vista')) document.body.classList.add('modo-vista');
-  const pedido = new URLSearchParams(location.search).get('id');
+
+  /* ── QUÉ PANTALLA SE ABRE ──────────────────────────────────────────────
+     Las cuatro entradas por URL siguen valiendo exactamente lo que valían; lo
+     único nuevo es que SIN parámetros ya no se abre un formulario en blanco, se
+     abre el listado.
+       ?id=            -> ese documento (y con `vista` además sin barra ni formulario)
+       ?nueva=1        -> formulario en blanco (lo que era la entrada por defecto)
+       ?tipo=recibi    -> el LISTADO filtrado a recibís. Antes preseleccionaba el
+                          tipo en un formulario nuevo; ahora la tarjeta «Recibos»
+                          del hub lleva a ver los emitidos, que es lo que su
+                          contador promete («N emitidos»), y «+ Nueva» hereda el
+                          tipo, así que emitir sigue a dos clics.
+       (nada)          -> listado */
+  const par = new URLSearchParams(location.search);
+  const pedido = par.get('id');
+  const tipoUrl = par.get('tipo');
+  if(tipoUrl && TIPOS[tipoUrl]) LTIPO = tipoUrl;
+
   if(pedido){
+    // El documento se abre en su pantalla; `abrir()` la cambia. Se pinta la
+    // pantalla de documento YA, para no enseñar el listado un instante.
+    pantalla('documento');
     sb.from('facturas')
       .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos,creado_por')
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
-        if(error || !data){ toast('No se encontró ese documento'); return; }
+        if(error || !data){
+          toast('No se encontró ese documento');
+          if(!document.body.classList.contains('modo-vista')) pantalla('listado', '');
+          return;
+        }
         abrir(data);
       });
+  } else if(par.has('nueva')){
+    nuevoDocumento(LTIPO || 'factura');
+    pantalla('documento');
+  } else {
+    pantalla('listado');
   }
 });
 $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/contracts/login.html'); };
@@ -522,8 +575,10 @@ document.addEventListener('blur', e => {
    esto para la tarjeta "Recibos": es la MISMA herramienta, no una segunda que
    emitiría con sus propias reglas y su propia numeración. */
 (function(){
-  const t = new URLSearchParams(location.search).get('tipo');
-  if(t && TIPOS[t]) $('#selTipo').value = t;
+  /* El `?tipo=` YA NO se lee aqui (6-ago-2026): ahora filtra el LISTADO, y quien
+     pone el tipo en el formulario es `nuevoDocumento(tipo)`, que lo recibe de la
+     pantalla de la que se viene. Dejarlo aqui era una segunda fuente para el
+     mismo campo, y la que se ejecutaba antes. */
 })();
 $('#form').addEventListener('input', render);
 $('#form').addEventListener('change', render);
@@ -781,16 +836,24 @@ $('#btnSave').onclick = async () => {
   btn.disabled = false; render();
 };
 
-$('#btnNueva').onclick = () => {
-  if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
+/* Extraida a funcion con nombre (6-ago-2026): la usan el boton «Nueva» de la
+   vista previa Y el «+ Nueva» de la barra del listado, que ademas le pasa el tipo
+   que se estaba filtrando. Antes era un manejador anonimo y el segundo boton
+   habria sido una copia. */
+function nuevoDocumento(tipo){
+  SAVED = null; CONTRATO_ID = null; $('#form').reset();
   // el selector de tipo vive fuera del <form>, así que reset() no lo toca
-  SAVED = null; CONTRATO_ID = null; $('#form').reset(); $('#selTipo').value = 'factura';
+  $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
   $('#selContrato').value = ''; $('#delContrato').innerHTML = '';
   pintarLineas(); render();
+}
+$('#btnNueva').onclick = () => {
+  if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
+  nuevoDocumento($('#selTipo').value);   // desde la vista previa se conserva el tipo que hubiera
 };
 
 /* ---------- facturas guardadas ---------- */
@@ -809,19 +872,100 @@ async function cargarEquipo(){
 }
 const emisor = f => (EQUIPO && EQUIPO[f.creado_por]) || f.creado_por || '—';
 
-$('#btnList').onclick = async () => {
-  $('#ovList').classList.add('open');
-  const box = $('#listBody'); box.innerHTML = 'Cargando…';
-  await cargarEquipo();   // para enseñar el nombre en vez del email
-  /* `creado_por` FALTABA en esta consulta (6-ago-2026), y la fila de abajo lo
-     usa: la columna «emisor» de la lista salía vacía y su tooltip decía «sin
-     autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
-     un dato que no existe en vez de como un dato que no se pidió. */
-  const { data, error } = await sb.from('facturas')
-    .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos')
-    .order('created_at', { ascending:false }).limit(200);
-  if(error){ box.textContent = 'No se pudo cargar: ' + error.message; return; }
-  if(!data.length){ box.textContent = 'Todavía no hay facturas guardadas.'; return; }
+/* ═══ PANTALLA: listado o documento ══════════════════════════════════════════
+   Dos vistas en la misma página, cada una con su URL — la norma del estudio es
+   que toda vista tenga dirección propia, para que se pueda recargar, guardar en
+   marcadores y volver con el botón atrás.
+     /facturas/                  el listado (la entrada)
+     /facturas/?tipo=recibi      el listado, filtrado a recibís (la tarjeta
+                                 «Recibos» del hub entra por aquí)
+     /facturas/?nueva=1          documento nuevo en blanco
+     /facturas/?id=<uuid>        ese documento abierto
+     /facturas/?id=<uuid>&vista=1  SOLO el documento, sin barra ni formulario:
+                                 es lo que empotra el visor de Operaciones
+   `replaceState` y no `pushState`: dentro de esta herramienta se salta entre
+   listado y documento muchas veces por sesión, y llenar el historial de pasos
+   intermedios convierte el botón atrás en inútil. La URL sigue siendo copiable,
+   que es para lo que hace falta.
+   ⚠️ `pushState` sobre `file://` revienta — no aplica aquí (esto siempre se sirve
+   por HTTP) pero queda dicho, que ya nos costó una vez en el panel del estudio. */
+let PANTALLA = 'listado';
+function pantalla(cual, params){
+  PANTALLA = cual;
+  $('#pantallaListado').hidden = cual !== 'listado';
+  $('#pantallaDoc').hidden     = cual !== 'documento';
+  // los botones de la barra se alternan: nunca ofrecer las dos salidas a la vez
+  $('#btnList').hidden    = cual !== 'documento';
+  $('#btnNuevaDoc').hidden = cual !== 'listado';
+  $('#selTipo').hidden     = cual !== 'documento';
+  if(params !== undefined){
+    try{ history.replaceState(null, '', location.pathname + (params ? '?' + params : '')); }catch(_){}
+  }
+  if(cual === 'listado') cargarListado();
+}
+
+/* ---------- filtros del listado ---------- */
+const TIPOS_FILTRO = [['', 'Todos'], ['factura', 'Facturas'], ['proforma', 'Proformas'], ['recibi', 'Recibís']];
+let LTIPO = '', LANUL = false, LDOCS = null;
+
+function pintarFiltrosListado(){
+  const base = LDOCS || [];
+  $('#lTipos').innerHTML = TIPOS_FILTRO.map(([k, et]) => {
+    const n = base.filter(f => (!k || f.tipo === k) && (LANUL || !f.anulada)).length;
+    return `<button class="sui-chip ${LTIPO===k?'on':''} ${n?'':'vacio'}" data-lt="${k}">${et}<span class="n">${n}</span></button>`;
+  }).join('');
+  document.querySelectorAll('[data-anul]').forEach(b =>
+    b.classList.toggle('on', (b.dataset.anul === 'si') === LANUL));
+}
+
+/* Lo que se ve, en UNA función: la usan la tabla y el resumen, así que la cifra
+   del pie nunca puede discrepar de las filas de arriba. */
+function docsVisibles(){
+  const q = ($('#lq').value || '').trim().toLowerCase();
+  return (LDOCS || []).filter(f =>
+    (LANUL || !f.anulada) &&
+    (!LTIPO || f.tipo === LTIPO) &&
+    (!q || [f.numero, f.cliente_nombre, f.proyecto_nombre, (f.datos && f.datos.fields && f.datos.fields.contrato_numero)]
+            .some(v => String(v||'').toLowerCase().includes(q))));
+}
+
+async function cargarListado(){
+  const box = $('#listBody');
+  if(!LDOCS){
+    box.innerHTML = 'Cargando…';
+    await cargarEquipo();   // para enseñar el nombre en vez del email
+    /* `creado_por` FALTABA en esta consulta (6-ago-2026), y la fila de abajo lo
+       usa: la columna «emisor» de la lista salía vacía y su tooltip decía «sin
+       autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
+       un dato que no existe en vez de como un dato que no se pidió. */
+    const { data, error } = await sb.from('facturas')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos')
+      .order('created_at', { ascending:false }).limit(200);
+    if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
+    LDOCS = data || [];
+  }
+  pintarListado();
+}
+/* Vuelve a preguntar a la base. Se llama tras anular, borrar o guardar: sin esto
+   la lista seguiría mostrando el estado anterior y parecería que no pasó nada. */
+function recargarListado(){ LDOCS = null; return cargarListado(); }
+
+function pintarListado(){
+  const box = $('#listBody');
+  pintarFiltrosListado();
+  const data = docsVisibles();
+  const tot = data.filter(f => !f.anulada).reduce((a,f) => a + (Number(f.total)||0), 0);
+  const m = (data[0] && data[0].moneda) || 'EUR';
+  $('#lResumen').innerHTML = !data.length ? '' :
+    `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
+     <span>Suma de lo vigente <b>${esc(fmtMoneda(tot, m))}</b></span>`;
+  if(!data.length){
+    const filtrando = LTIPO || LANUL || ($('#lq').value || '').trim();
+    box.innerHTML = `<div class="sui-nada"><b>${
+      filtrando ? 'Ningún documento coincide' : 'Todavía no hay documentos emitidos'}</b>${
+      filtrando ? 'Prueba a quitar algún filtro.' : 'Empieza con «+ Nueva».'}</div>`;
+    return;
+  }
   box.innerHTML = data.map(f => `
     <div class="frow ${f.anulada ? 'anulada' : ''}" data-id="${f.id}">
       <span class="n">${esc(f.numero || '—')}</span>
@@ -848,7 +992,7 @@ $('#btnList').onclick = async () => {
       if(!confirm('Anular esta factura. El número no se reutiliza y ya no se podrá editar. ¿Seguro?')) return;
       const { error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular);
       toast(error ? 'No se pudo anular: ' + error.message : 'Factura anulada');
-      $('#btnList').onclick(); return;
+      recargarListado(); return;
     }
     /* Borrar está reservado a administradores (petición del owner, 31-jul) y NO
        es la acción normal: lo normal es ANULAR. Borrar una factura emitida deja
@@ -867,15 +1011,34 @@ $('#btnList').onclick = async () => {
       if(error) toast('No se pudo borrar: ' + error.message);
       else if(!fue || !fue.length) toast('No tienes permiso para borrar facturas');
       else { toast('Factura borrada'); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
-      $('#btnList').onclick(); return;
+      recargarListado(); return;
     }
     const row = e.target.closest('[data-id]'); if(!row) return;
     const f = data.find(x => x.id === row.dataset.id); if(!f) return;
     abrir(f);
   };
+}
+
+/* ---------- eventos del listado ---------- */
+$('#lq').addEventListener('input', pintarListado);
+$('#lTipos').addEventListener('click', e => {
+  const b = e.target.closest('[data-lt]'); if(!b) return;
+  LTIPO = b.dataset.lt; pintarListado();
+});
+$('#lAnuladas').addEventListener('click', e => {
+  const b = e.target.closest('[data-anul]'); if(!b) return;
+  LANUL = b.dataset.anul === 'si'; pintarListado();
+});
+/* Volver al listado NO recarga la página: el borrador que hubiera en el
+   formulario se perdería sin avisar. Solo cambia de pantalla. */
+$('#btnList').onclick = () => pantalla('listado', LTIPO ? 'tipo=' + LTIPO : '');
+/* «+ Nueva» hereda el tipo que se esté filtrando: si estás mirando recibís, el
+   que quieres emitir es un recibí. Es lo que hace que la tarjeta «Recibos» del
+   hub siga llevando a emitir un recibí en dos clics y no en cuatro. */
+$('#btnNuevaDoc').onclick = () => {
+  nuevoDocumento(LTIPO || 'factura');
+  pantalla('documento', 'nueva=1' + (LTIPO ? '&tipo=' + LTIPO : ''));
 };
-$('#btnCloseList').onclick = () => $('#ovList').classList.remove('open');
-$('#ovList').onclick = e => { if(e.target === $('#ovList')) $('#ovList').classList.remove('open'); };
 
 function abrir(f){
   const d = (f.datos && f.datos.fields) || {};
@@ -886,9 +1049,14 @@ function abrir(f){
   CONTRATO_ID = f.contrato_id || null;
   $('#selContrato').value = CONTRATO_ID || '';
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
-  $('#ovList').classList.remove('open');
   toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos
   pintarLineas(); render();
+  /* Cambia de pantalla y deja la URL apuntando a ESTE documento, así que el
+     enlace se puede copiar y pegar — es lo que usa «Lo último que se ha movido»
+     del panel y el visor de Operaciones. En modo vista NO se toca la URL: ya
+     viene con `?id=&vista=1` y reescribirla perdería el `vista`. */
+  if(!document.body.classList.contains('modo-vista'))
+    pantalla('documento', 'id=' + encodeURIComponent(f.id));
   if(f.anulada) toast('Factura anulada: se abre como borrador nuevo');
 }
 
