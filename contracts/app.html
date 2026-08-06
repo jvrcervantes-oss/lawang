@@ -29,7 +29,11 @@
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
 <script src="assets/entities.js?v=f9016bb0"></script>
-<script src="assets/huella.js?v=20260731"></script>
+<script src="assets/huella.js?v=b511ff5e"></script>
+<!-- reasignar el autor de un documento (solo super_admin) — compartido con
+     /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
+     puede editar su propio documento. -->
+<script src="assets/autoria.js?v=20260806082008"></script>
 <style>
   :root{
     --line:#e4ddcf; --tbh:56px;
@@ -2607,7 +2611,7 @@ function cpTipoLabel(t){ return TIPO_LABEL[t] || t; }
    el buscador. Los contadores salen de las filas cargadas, así que un filtro
    sin nada se atenúa en vez de desaparecer: que no haya ninguno HOY no
    significa que ese tipo no exista. */
-let CP_TIPO = '', CP_ESTADO = '', MI_EMAIL = '';   // MI_EMAIL lo fija init() con la sesión
+let CP_TIPO = '', CP_ESTADO = '', MI_EMAIL = '', MI_FICHA = null;   // los fija init() con la sesión
 const CP_ESTADOS = [
   ['',         'Todos',      () => true],
   ['abierto',  'Editables',  r => !r.bloqueado],
@@ -2674,9 +2678,24 @@ function renderCpList(rows){
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
       <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
       <span data-l="Fecha">${r.fecha_firma||''}</span>
-      <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}</span>
+      <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}<span class="cp-autoria"></span></span>
       <span>${puedeBorrar(r) ? `<button type="button" class="cp-del" data-del="${r.id}" title="Borrar contrato">✕</button>` : ''}</span>
     </div>`).join('');
+  montarAutoria(rows);
+}
+
+/* Reasignar autor: solo lo ve el super_admin (assets/autoria.js decide). Un
+   contrato bloqueado no se puede reatribuir porque la policy de UPDATE exige
+   `bloqueado = false`; se dice ahí mismo en vez de fallar al pulsar. */
+function montarAutoria(rows){
+  if(!window.LW_AUTORIA || !LW_AUTORIA.puede(MI_FICHA)) return;
+  rows.forEach(r => {
+    const slot = $('#cpList').querySelector(`.cp-row[data-id="${r.id}"] .cp-autoria`);
+    LW_AUTORIA.montar(slot, { sb, ficha:MI_FICHA, tabla:'contratos', filaId:r.id,
+      actual:r.creado_por, editable:!r.bloqueado,
+      motivoNoEditable:'Contrato bloqueado: el PDF firmado ya está subido y la base de datos no admite cambios sobre él.',
+      onCambio:(nuevo) => { r.creado_por = nuevo; aplicarCpFiltros(); toast('Autor reasignado a ' + autorVisible(nuevo)); } });
+  });
 }
 /* ---------- borrar un contrato (31-jul-2026) ----------
    Regla del owner: el super admin borra cualquiera; cada operador, LOS SUYOS y
@@ -3106,6 +3125,7 @@ async function init(){
   if(ficha && !['super_admin','admin'].includes(ficha.rol) && !(ficha.herramientas||[]).includes('contratos')){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }
+  MI_FICHA = ficha || null;   // el panel de guardados lo usa para el botón de reasignar autor
   MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
   // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de

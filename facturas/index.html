@@ -33,6 +33,10 @@
      primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
 <script src="documento.js?v=20260731"></script>
 <script src="compradores.js"></script>
+<!-- reasignar el autor de un documento (solo super_admin) — compartido con
+     /contracts. `creado_por` es con lo que la RLS decide quién puede editar
+     su propio documento, no un adorno. -->
+<script src="/contracts/assets/autoria.js?v=20260806082008"></script>
 <style>
   /* --folio = color del papel del documento. Vive aquí y en un solo sitio a
      propósito: los logos de las sociedades vienen sin canal alfa (el de San
@@ -355,6 +359,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   const modoVista = new URLSearchParams(location.search).has('vista');
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
+  MI_FICHA = ficha || null;   // la lista de guardadas lo usa para el botón de reasignar autor
   if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/contracts/login.html?desactivado=1'); return; }
   // El permiso 'facturas' gobierna EMITIR. En modo vista (el visor de
   // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
@@ -404,7 +409,8 @@ $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replac
 let LINEAS = [{ descripcion:'', importe:'' }];
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
 let CONTRATO_ID = null;
-let ES_ADMIN = false;   // lo fija la comprobación de sesión con la ficha del usuario   // contrato del que sale la factura (FK real, no solo el nº impreso)
+let ES_ADMIN = false;   // lo fija la comprobación de sesión con la ficha del usuario
+let MI_FICHA = null;    // {rol, herramientas, activo} — la fija esa misma comprobación   // contrato del que sale la factura (FK real, no solo el nº impreso)
 
 /* Los tres tipos comparten formulario y plantilla; solo cambia el rótulo del
    documento. La serie del número la decide el trigger en base de datos, no aquí. */
@@ -804,8 +810,12 @@ $('#btnList').onclick = async () => {
   $('#ovList').classList.add('open');
   const box = $('#listBody'); box.innerHTML = 'Cargando…';
   await cargarEquipo();   // para enseñar el nombre en vez del email
+  /* `creado_por` FALTABA en esta consulta (6-ago-2026), y la fila de abajo lo
+     usa: la columna «emisor» de la lista salía vacía y su tooltip decía «sin
+     autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
+     un dato que no existe en vez de como un dato que no se pidió. */
   const { data, error } = await sb.from('facturas')
-    .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos')
+    .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos')
     .order('created_at', { ascending:false }).limit(200);
   if(error){ box.textContent = 'No se pudo cargar: ' + error.message; return; }
   if(!data.length){ box.textContent = 'Todavía no hay facturas guardadas.'; return; }
@@ -814,10 +824,20 @@ $('#btnList').onclick = async () => {
       <span class="n">${esc(f.numero || '—')}</span>
       <span class="c">${esc(f.cliente_nombre || 'sin nombre')}${f.proyecto_nombre ? ' · ' + esc(f.proyecto_nombre) : ''}</span>
       <span class="t">${esc(fmtMoneda(f.total, f.moneda))}</span>
-      <span class="e" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}</span>
+      <span class="e" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></span>
       ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
       ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}
     </div>`).join('');
+
+  /* Reasignar autor: el módulo se lo enseña solo al super_admin. Una factura
+     anulada no se puede reatribuir — la policy de UPDATE exige `anulada=false`. */
+  if(window.LW_AUTORIA && LW_AUTORIA.puede(MI_FICHA)) data.forEach(f => {
+    LW_AUTORIA.montar(box.querySelector(`.frow[data-id="${f.id}"] .autoria-slot`), {
+      sb, ficha:MI_FICHA, tabla:'facturas', filaId:f.id, actual:f.creado_por,
+      editable:!f.anulada,
+      motivoNoEditable:'Documento anulado: la base de datos no admite cambios sobre él.',
+      onCambio:(nuevo) => toast('Autor reasignado a ' + nuevo) });
+  });
   box.onclick = async e => {
     const an = e.target.closest('[data-anular]');
     if(an){
