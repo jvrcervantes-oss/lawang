@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d884117e">
 <script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -311,7 +311,11 @@ async function cargar(){
     // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
     // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
     SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
-    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
+    // `created_at` va en el select aunque no se pinte: PostgREST exige que la
+    // columna del `order` esté proyectada cuando el origen es una función (a
+    // diferencia de una tabla/vista, donde ordenar por una columna no
+    // seleccionada es normal) — hallazgo del verificador tras el push, 42703.
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,created_at,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     // `snapshot_path` se pide solo para poder limpiar el almacenamiento al
     // borrar una operación: ver borrarOperacion().
     SB.rpc('contrato_firmas_equipo').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(300),

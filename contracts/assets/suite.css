@@ -104,6 +104,23 @@
   --fila-y:11px; --fila-x:16px; --fila-fs:13px;
 }
 
+/* ── barra de scroll de toda la suite (7-ago-2026) ─────────────────────────
+   Sin esto cada navegador pinta la suya: gris, ancha, con flechas — el único
+   elemento de toda la interfaz que no sale de esta paleta. Delgada, del color
+   de los filetes (`--linea`) en reposo y de la tinta (`--dl`) al pasar el
+   ratón; sin fondo de pista ni esquina propios. `*` para que alcance a
+   cualquier contenedor con su propio scroll (cajón, columnas de Operaciones,
+   tablas anchas) sin tener que listar cada uno.
+   `.lw-topbar` ya se oculta la suya (topbar.css) por especificidad de clase
+   sobre el universal — no hace falta excluirla aquí. */
+*{ scrollbar-width:thin; scrollbar-color:var(--linea,#E4DCCB) transparent; }
+*::-webkit-scrollbar{ width:10px; height:10px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background-color:var(--linea,#E4DCCB); border-radius:999px;
+  border:2px solid transparent; background-clip:padding-box; }
+*::-webkit-scrollbar-thumb:hover{ background-color:var(--dl,#104C4F); }
+*::-webkit-scrollbar-corner{ background:transparent; }
+
 /* ── esqueleto de página ────────────────────────────────────────────────── */
 .sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,64px); background:var(--sup-0); }
 /* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el

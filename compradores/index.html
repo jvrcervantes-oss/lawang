@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=24672a58">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d884117e">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -50,6 +50,7 @@
   label:first-of-type{ margin-top:2px; }
   input,select,textarea{ width:100%; font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:#FDFCF9; color:inherit; }
   input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  input:disabled,select:disabled,textarea:disabled{ background:var(--rl2); color:var(--texto-2); cursor:default; opacity:1; }
   textarea{ min-height:60px; resize:vertical; }
   .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
@@ -137,6 +138,15 @@ const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 const ORDEN = { campo:'full_name', dir:'asc' };
 let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], YO=null, SEL=null;
+/* Editar una ficha YA EXISTENTE es solo de admin/super_admin desde el
+   7-ago-2026 (petición del owner); crear una nueva ("+ Nuevo comprador")
+   sigue abierto a cualquier agente — es alta de datos, no lo que se pidió
+   proteger. Mismo patrón que ya usan facturas/index.html y
+   documentacion/index.html para gatear acciones solo-admin. La RLS de
+   `clients` (operaciones/sql/clients_solo_admin_edita.sql) es quien de
+   verdad lo impide; esto solo evita que un agente rellene un formulario
+   que luego la base va a rechazar. */
+let ES_ADMIN = false;
 
 async function cargar(){
   const [c, d, v, a] = await Promise.all([
@@ -193,6 +203,10 @@ function pintarFicha(){
   const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
   if(!c){ suiCerrarCajon(); return; }
   const docs = nuevo ? [] : DOCUMENTOS.filter(d => d.client_id === c.id);
+  // Crear una ficha nueva sigue abierto a cualquier agente; editar una que ya
+  // existe es solo admin/super_admin (7-ago-2026, ver nota junto a ES_ADMIN).
+  const soloLectura = !nuevo && !ES_ADMIN;
+  const dis = soloLectura ? 'disabled' : '';
 
   const filas = docs.length ? docs.map(d => {
     const dd = dias(d.caduca_el);
@@ -214,21 +228,22 @@ function pintarFicha(){
 
     <fieldset>
       <legend>Identidad</legend>
-      <label>Nombre completo</label><input id="f-nombre" value="${esc(c.full_name||'')}">
+      ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
+      <label>Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
       <div class="row">
-        <div><label>Email</label><input id="f-email" type="email" value="${esc(c.email||'')}"></div>
-        <div><label>Teléfono</label><input id="f-tel" value="${esc(c.phone||'')}"></div>
+        <div><label>Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}"></div>
+        <div><label>Teléfono</label><input id="f-tel" ${dis} value="${esc(c.phone||'')}"></div>
       </div>
       <div class="row">
-        <div><label>Nacionalidad</label><input id="f-nac" value="${esc(c.nationality||'')}"></div>
-        <div><label>Pasaporte / NPWP</label><input id="f-pas" value="${esc(c.passport_number||'')}"></div>
+        <div><label>Nacionalidad</label><input id="f-nac" ${dis} value="${esc(c.nationality||'')}"></div>
+        <div><label>Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
       <div class="row">
-        <div><label>Fecha de nacimiento</label><input id="f-nac-fecha" type="date" value="${esc(c.date_of_birth||'')}"></div>
-        <div><label>Estado KYC</label><select id="f-kyc">${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div><label>Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
+        <div><label>Estado KYC</label><select id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
-      <label>Domicilio</label><textarea id="f-dom">${esc(c.address||'')}</textarea>
-      <label>Notas</label><textarea id="f-notas">${esc(c.notes||'')}</textarea>
+      <label>Domicilio</label><textarea id="f-dom" ${dis}>${esc(c.address||'')}</textarea>
+      <label>Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
 
     ${nuevo ? '<p class="nota">Los documentos se suben después de crear la ficha.</p>' : `
@@ -306,12 +321,17 @@ function pintarFicha(){
     sub: nuevo ? 'Los datos que aquí se guardan son los que exige el KYC.'
                : esc([c.nationality, c.passport_number].filter(Boolean).join(' · ') || 'sin identificación'),
     cuerpo: cuerpoFicha,
-    pie: `<button class="sui-btn primario" id="btnGuardar">${nuevo ? 'Crear comprador' : 'Guardar cambios'}</button>
-          <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+    // Sin botón de guardar en modo solo lectura: no hay nada que confirmar,
+    // y un botón deshabilitado invita a preguntar por qué en vez de explicarlo
+    // solo (mismo criterio que ya usa facturas/index.html con "Borrar").
+    pie: soloLectura
+      ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
+      : `<button class="sui-btn primario" id="btnGuardar">${nuevo ? 'Crear comprador' : 'Guardar cambios'}</button>
+         <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
   });
 
-  $('#btnGuardar').addEventListener('click', () => guardar(nuevo ? null : c.id));
+  const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
   const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
@@ -472,6 +492,7 @@ suiOrdenable(document.getElementById('tabla'), ORDEN, (c, campo) => c[campo], pi
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   YO = ficha;   // el rol decide si la ficha enseña los botones de invitar al portal
+  ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
   $('#who').textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
   try{
