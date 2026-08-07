@@ -101,7 +101,14 @@
    ========================================================================== */
 const $ = s => document.querySelector(s);
 
-let SB=null, UNIDADES=[], FASES=[], FOTOS={}, SEL=null, FILTRO='con_obra', PROY='', CARGANDO=true, FALLO=null;
+/* 🔴 Bug (7-ago-2026): arrancaba filtrando a 'con_obra' (solo unidades que YA
+   tienen fase). El único punto de entrada para añadir fase/fecha/fotos es
+   clicar una fila — no hay botón "+ nueva" — así que en un despliegue nuevo,
+   con NINGUNA unidad tocada todavía, la tabla salía siempre vacía y no había
+   nada que clicar: "no puedo añadir nada" literal. 'todas' como arranque
+   deja siempre algo que abrir; los otros dos filtros siguen ahí para
+   estrechar una vez ya hay unidades en obra. */
+let SB=null, UNIDADES=[], FASES=[], FOTOS={}, SEL=null, FILTRO='todas', PROY='', CARGANDO=true, FALLO=null;
 const ORDEN = { campo:'codigo', dir:'asc' };
 
 const nombreFase = c => { const f = FASES.find(x => x.clave === c); return f ? f.es : (c || ''); };
