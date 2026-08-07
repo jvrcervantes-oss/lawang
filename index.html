@@ -2,6 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Rescate del magic link del portal (7-ago-2026). El enlace de acceso de
+     /portal/ pide `emailRedirectTo: '.../portal/'`, pero si la lista de
+     Redirect URLs de Supabase Auth no tiene esa ruta dada de alta, GoTrue
+     cae al Site URL del proyecto (esta portada) y el token de sesión llega
+     aquí, no a /portal/ — que es donde vive el cliente de supabase-js que
+     sabe leerlo. El síntoma: el comprador ve la home pública con un
+     `#access_token=...` colgando en la URL y no puede entrar.
+     La causa real es esa lista de Supabase (fuera del repo, en el panel de
+     Auth → URL Configuration — pendiente del owner comprobarla), pero esto
+     deja el login funcionando pase lo que pase ahí: si el fragmento trae un
+     token de auth, se reenvía a /portal/ con el MISMO fragmento intacto —
+     el cliente de supabase-js de esa página lo consume igual que si hubiera
+     llegado directo. Va como PRIMER script del <head>, antes de que la
+     portada pinte nada: es una redirección, no una página que se vea. */
+<script>
+  if (/(?:^|[?&#])(?:access_token|refresh_token)=/.test(location.hash)) {
+    location.replace('/portal/' + location.hash);
+  }
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Verificacion de dominio de Meta Business. Estatico y dentro del <head> a proposito:
      si lo inyectara JavaScript, el rastreador de Meta no lo veria y la verificacion falla. -->
