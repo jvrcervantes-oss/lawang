@@ -416,7 +416,13 @@ async function guardarDoc(d){
     if(error) throw error;
     // La RLS no da error al denegar: devuelve CERO filas.
     if(!data || !data.length) throw new Error('no tienes permiso para ' + (editando ? 'editar' : 'añadir') + ' documentación');
-    PROY = fila.proyecto;
+    // 🔴 Bug (7-ago-2026): esto forzaba el filtro global de proyecto al del
+    // documento recién guardado. Si se guardaba estando en «Todos los
+    // proyectos», el árbol se reducía de golpe a esa única promoción y el
+    // resto de carpetas desaparecían — no era un `hidden` residual, era este
+    // filtro pisando la vista sin que el usuario lo pidiera. `cargar()` ya
+    // refresca DOCS; el filtro que había antes de abrir el formulario se
+    // respeta tal cual.
     await cargar();
     if(editando){ SEL = d.id; abrirDoc(d.id); } else { suiCerrarCajon(); }
     toast(editando ? 'Guardado' : 'Enlace guardado');
