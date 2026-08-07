@@ -846,8 +846,12 @@
       + '<h2 class="pp-h1">'+t("pay.title")+'</h2>'
       + '<div class="pp-bar"><span style="width:'+(frac*100).toFixed(1)+'%"></span></div>'
       + '<div class="pp-steps">'+cards+'</div>'
-      + (deliveryTxt ? '<div class="pp-delivery"><div class="pp-delivery-l"><span class="kicker" style="color:rgba(245,240,230,.7)">'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>'
-        + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>' : "")
+      // El aviso de PT PMA/financiación es legal, no decorativo (hallazgo Legal, 7-ago): va SIEMPRE
+      // que hay plan de pagos, no solo cuando además hay fecha de entrega — antes colgaba del mismo
+      // `if` que la caja de Delivery, así que una ficha sin handover se quedaba sin el aviso.
+      + '<div class="pp-delivery">'
+      + (deliveryTxt ? '<div class="pp-delivery-l"><span class="kicker" style="color:rgba(245,240,230,.7)">'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>' : '')
+      + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>'
       + '</div>'
       + techCard
       + '</div></div>';
