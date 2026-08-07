@@ -777,7 +777,7 @@
         + '<tr style="border-bottom:1px solid var(--line)"><td style="padding:8px 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)">Break-even</td>'+occs.map(function(o){return '<td style="padding:8px 8px;text-align:right;font-size:13px;color:var(--ink-2)">'+beYr(o)+' yr</td>';}).join("")+'</tr>'
         + '</tbody></table></div>';
     }
-    return '<div style="margin-top:40px;padding-top:36px;border-top:1px solid var(--line)"><h4 class="cfg-h">'+t("inv.title")+'</h4>'
+    return '<div><h4 class="cfg-h">'+t("inv.title")+'</h4>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:24px">'
       +   '<div style="background:var(--tg-light);padding:20px 18px"><div style="font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin-bottom:8px">ROI 30 yr · 80% occ.</div><div style="font-family:var(--sans);font-size:34px;font-weight:500;color:var(--tg);line-height:1">'+roi30(0.80)+'%</div></div>'
       +   '<div style="background:var(--tg-light);padding:20px 18px"><div style="font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin-bottom:8px">Break-even · 80% occ.</div><div style="font-family:var(--sans);font-size:34px;font-weight:500;color:var(--tg);line-height:1">'+beYr(0.80)+' <span style="font-size:18px;opacity:.6">yr</span></div></div>'
@@ -787,19 +787,8 @@
       + '<p style="font-size:11px;color:var(--ink-2);margin-top:14px;line-height:1.6;opacity:.7">'+t("inv.disclaimer")+'</p></div>';
   }
 
-  function paymentPlanHTML(p, priceEUR){
-    var price = priceEUR!=null?priceEUR:p.priceEUR;
-    if(!price || !isFinite(price)) return "";  // sin precio no hay % que calcular -> ocultar en vez de mostrar NaN
-    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
-    if(!steps || !steps.length) return "";
-    var rows = steps.map(function(s,i){ return '<div style="display:grid;grid-template-columns:44px 1fr auto;gap:16px;align-items:start;padding:18px 0;border-bottom:1px solid var(--line)">'
-      + '<div style="font-family:var(--sans);font-size:22px;font-weight:300;color:var(--clay);line-height:1;padding-top:4px;opacity:'+(i===0?1:0.45)+'">'+s.step+'</div>'
-      + '<div><div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(s.label)+'</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">'+esc(s.note)+'</div></div>'
-      + '<div style="text-align:right"><div style="font-family:var(--sans);font-size:16px;font-weight:600">'+money(Math.round(price*s.pct/100))+'</div><div style="font-size:11px;color:var(--ink-2);margin-top:2px">'+s.pct+'%</div></div></div>'; }).join("");
-    return '<div><h4 class="cfg-h">'+t("pay.title")+'</h4>'+rows
-      + '<div style="display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid var(--ink)"><span style="font-weight:700;font-size:14px">Total</span><span style="font-family:var(--sans);font-size:18px;font-weight:700">'+money(price)+'</span></div>'
-      + '<p style="font-size:11.5px;color:var(--ink-2);margin-top:14px;line-height:1.65">PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>';
-  }
+  // (paymentPlanHTML — retirada 7-ago: era la lista compacta de plazos dentro de la tarjeta del
+  // configurador, redundante con la cascada de paymentPlanBleedHTML de abajo. Ver configBreakdownHTML.)
 
   // ── PAYMENT PLAN — vitrina a sangre (calco Ecomerce.pdf p.4, 6-ago) ─────────────────────
   // Distinta de paymentPlanHTML de arriba: aquella vive DENTRO de la tarjeta blanca del
@@ -850,7 +839,7 @@
       + techSheetHTML(sheetRows)
       + '<div class="pdp-spec-dossier">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>'
       + '</aside>';
-    return '<div class="pp-bleed"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
+    return '<div class="pp-bleed" id="payment-plan"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
       + '<div class="pp-bleed-in">'
       + '<div class="pp-bleed-main">'
       + '<div class="kicker" style="color:var(--sc)">'+tl("Control your investment in","Controla tu inversión en")+'</div>'
@@ -1000,47 +989,23 @@
     return list + (cfg.extrasTotal>0 ? '<div class="cfg-extras-total"><span>'+t("extras.total")+'</span><b>+'+money(cfg.extrasTotal)+'</b></div>' : "");
   }
 
-  function financialsHTML(p, cfg, bare){
+  // Desglose de lo configurado (parcela/villa/extras + total) — es el recap del último paso del
+  // wizard ("Plan"). El plan de pagos en sí (cascada) y el ROI ya no van aquí: viven en la sección
+  // a sangre de abajo (paymentPlanBleedHTML) y en su propio bloque respectivamente, para no repetir
+  // dos veces "cuánto pagas y cuándo" en la misma ficha (revisión cliente 7-ago, fusión p.3+p.4).
+  function configBreakdownHTML(p, cfg){
     var configuredEUR=cfg.configuredEUR!=null?cfg.configuredEUR:p.priceEUR;
     var parcel=(cfg.landOptions&&cfg.landOptions[cfg.parcelIdx])||null;
     var model=(cfg.models&&cfg.models[cfg.modelIdx])||null;
     var selExtras=(cfg.extrasList||[]).filter(function(e,i){return S.extrasSel[i];});
-    var showBreak=!!(parcel||model||selExtras.length);
+    if(!parcel && !model && !selExtras.length) return "";
     var bRow='display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding:4px 0';
-    var breakdown="";
-    if(showBreak){
-      breakdown='<div style="background:var(--tg-light);border:1px solid rgba(72,91,55,.2);border-radius:10px;padding:16px 18px;margin-bottom:28px"><div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);margin-bottom:12px">'+t("fin.config")+'</div>'
-        + (parcel?'<div style="'+bRow+'"><span style="font-weight:600">'+t("cfg.step.land")+' · '+parcel.size+' m²</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(cfg.parcelEUR)+'</span></div>':"")
-        + (model?'<div style="'+bRow+'"><span style="font-weight:600">'+esc(model.name)+'</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(cfg.homeEUR)+'</span></div>':"")
-        + (!parcel&&!model?'<div style="'+bRow+'"><span style="font-weight:600">'+t("fin.base")+'</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(p.priceEUR)+'</span></div>':"")
-        + selExtras.map(function(e){return '<div style="'+bRow+';color:var(--ink-2)"><span>+ '+esc(e.name)+'</span><span>'+money(Number(e.priceEUR)||0)+'</span></div>';}).join("")
-        + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:6px;border-top:1px solid rgba(72,91,55,.22)"><span style="font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em">'+t("fin.total")+'</span><span style="font-family:var(--sans);font-size:20px;font-weight:700">'+money(configuredEUR)+'</span></div></div>';
-    }
-    var paymentPlan = paymentPlanHTML(p,configuredEUR);
-    var investmentCalc = p.nightlyRate>0 ? investmentCalcHTML(p,configuredEUR) : "";
-    var body = breakdown+paymentPlan+investmentCalc;
-    if(!body) return "";  // sin desglose, sin plan de pagos y sin ROI -> no hay nada que mostrar en este bloque
-    if(bare) return '<div>'+body+'</div>';   // dentro del configurador: es el último paso, ya tiene tarjeta
-    // Propiedad SIN configurador (ni parcelas ni modelos ni extras): el plan de pagos es lo único
-    // que ocupa la columna izquierda. Hasta el 27-jul salía suelto sobre el fondo crema, con un
-    // filete arriba, mientras la columna derecha sí era tarjeta blanca: parecía media ficha sin
-    // terminar. Ahora usa la MISMA tarjeta que el masterplan (.cfg-card + cabecera .cfg-head).
-    // Sin contador de pasos ni total: no hay pasos que contar y el precio ya está en la cabecera
-    // de la ficha, repetirlo aquí sería decir dos veces lo mismo.
-    // El titular se construye con datos reales (nº de plazos y % de la reserva), igual que el del
-    // masterplan sale del nº de parcelas. No se pone t("pay.title") porque el plan ya trae ese
-    // mismo rótulo como subtítulo dentro del cuerpo y quedaría escrito dos veces seguidas.
-    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
-    var head = "";
-    if(steps && steps.length){
-      head = steps.length+" "+tl(steps.length===1?"payment":"payments", steps.length===1?"pago":"pagos")+".";
-      if(steps[0] && steps[0].pct) head += " "+steps[0].pct+"% "+tl("on reservation","en la reserva")+".";
-    }
-    return '<div class="cfg-card">'
-      + '<header class="cfg-head"><div class="cfg-head-l">'
-      +   '<div class="kicker">'+t("fin.title")+'</div>'
-      +   (head?'<h3 class="cfg-title">'+esc(head)+'</h3>':"")+'</div></header>'
-      + '<div class="cfg-step">'+body+'</div></div>';
+    return '<div style="background:var(--tg-light);border:1px solid rgba(72,91,55,.2);border-radius:10px;padding:16px 18px">'
+      + '<div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);margin-bottom:12px">'+t("fin.config")+'</div>'
+      + (parcel?'<div style="'+bRow+'"><span style="font-weight:600">'+t("cfg.step.land")+' · '+parcel.size+' m²</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(cfg.parcelEUR)+'</span></div>':"")
+      + (model?'<div style="'+bRow+'"><span style="font-weight:600">'+esc(model.name)+'</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(cfg.homeEUR)+'</span></div>':"")
+      + selExtras.map(function(e){return '<div style="'+bRow+';color:var(--ink-2)"><span>+ '+esc(e.name)+'</span><span>'+money(Number(e.priceEUR)||0)+'</span></div>';}).join("")
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:6px;border-top:1px solid rgba(72,91,55,.22)"><span style="font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em">'+t("fin.total")+'</span><span style="font-family:var(--sans);font-size:20px;font-weight:700">'+money(configuredEUR)+'</span></div></div>';
   }
 
   // Reserva por WhatsApp con el resumen configurado (parcela/modelo/extras/total/depósito)
@@ -1065,6 +1030,18 @@
     return 'https://wa.me/'+waNum+'?text='+encodeURIComponent(lines.join("\n"));
   }
 
+  // Último paso del wizard ("Plan"): recap de lo elegido + salto a la sección a sangre de abajo,
+  // que es donde vive el plan de pagos y la ficha técnica completa (fusión p.3+p.4, 7-ago).
+  function payStepContentHTML(p, cfg){
+    var breakdown = configBreakdownHTML(p, cfg);
+    // Enlace nativo a propósito (sin data-act): los <a> con href real los deja pasar el delegador
+    // de clicks (son "enlaces nativos"), y #pf-overlay ya tiene scroll-behavior:smooth — no hace
+    // falta JS para que el salto sea suave.
+    return breakdown
+      + '<a class="cfg-btn cfg-btn-go" href="#payment-plan" style="margin-top:'+(breakdown?'22px':'0')+'">'
+      + tl("See payment plan","Ver plan de pagos")+' <span aria-hidden="true">↓</span></a>';
+  }
+
   // ── THE MASTERPLAN (rework 27-jul) ──────────────────────────────────────────────────────────
   // Antes: tarjeta blanca con titular verde en mayúsculas, un rosario de píldoras como stepper y el
   // total colgado al final de esa fila. El paso en el que estabas y lo que llevabas configurado se
@@ -1076,7 +1053,10 @@
     if(cfg.landOptions) steps.push({id:"land",label:t("cfg.step.land"),title:t("land.title"),sub:t("land.sub"),required:true,done:cfg.parcelIdx>=0,content:parcelStepHTML(p,cfg)});
     if(cfg.models)      steps.push({id:"home",label:t("cfg.step.home"),title:t("home.title"),sub:t("home.sub"),required:true,done:cfg.modelIdx>=0,content:chooseHomeHTML(p,cfg)});
     if(cfg.extrasList)  steps.push({id:"extras",label:t("cfg.step.extras"),title:t("extras.title"),sub:t("extras.sub"),required:false,done:true,content:extrasBlockHTML(p,cfg)});
-    steps.push({id:"pay",label:t("cfg.step.pay"),title:t("fin.title"),sub:null,required:false,done:true,content:financialsHTML(p,cfg,true)});
+    // "Plan" ya no es un resumen propio: es un recap corto + salto a la sección a sangre de abajo
+    // (paymentPlanBleedHTML, #payment-plan), que YA trae la cascada y la ficha técnica — fusión
+    // p.3+p.4 del PDF del cliente, 7-ago. Ver el handler de "step" para el scroll automático.
+    steps.push({id:"pay",label:t("cfg.step.pay"),title:t("fin.title"),sub:tl("Your configuration is ready.","Tu configuración está lista."),required:false,done:true,content:payStepContentHTML(p,cfg)});
     var idx=Math.min(S.step,steps.length-1); var sObj=steps[idx]; var isLast=idx>=steps.length-1;
     var reachable=function(i){ return i===0 || steps.slice(0,i).every(function(x){return !x.required||x.done;}); };
     var canNext=!sObj.required||sObj.done;
@@ -1092,7 +1072,7 @@
         + '<span class="cfg-rail-n">'+(complete?"✓":(i+1))+'</span>'
         + '<span class="cfg-rail-t">'+st.label+'</span></button></li>';
     }).join("");
-    var stepHead = sObj.id!=="pay" ? '<div class="cfg-step-h"><h4 class="cfg-h">'+sObj.title+'</h4>'+(sObj.sub?'<p>'+sObj.sub+'</p>':"")+'</div>' : "";
+    var stepHead = '<div class="cfg-step-h"><h4 class="cfg-h">'+sObj.title+'</h4>'+(sObj.sub?'<p>'+sObj.sub+'</p>':"")+'</div>';
     var nextBtn = !isLast
       ? '<button class="cfg-btn cfg-btn-go" '+(canNext?'data-act="step:'+(idx+1)+'"':'disabled')+'>'+((sObj.id==="extras"&&cfg.extrasTotal===0)?t("cfg.skip"):t("cfg.next"))+' <span aria-hidden="true">→</span></button>'
       : '<div class="cfg-foot-end">'
@@ -1119,7 +1099,7 @@
       +   totalBox
       + '</header>'
       + '<ol class="cfg-rail" style="--cfg-f:'+frac.toFixed(4)+'">'+rail+'</ol>'
-      + '<div class="cfg-step">'+stepHead+sObj.content+'</div>'
+      + '<div class="cfg-step" data-step-id="'+sObj.id+'">'+stepHead+sObj.content+'</div>'
       + '<footer class="cfg-foot">'
       +   '<button class="cfg-btn cfg-btn-ghost" '+(idx===0?'disabled':'data-act="step:'+(idx-1)+'"')+'><span aria-hidden="true">←</span> '+t("cfg.back")+'</button>'+nextBtn
       + '</footer></div>';
@@ -1281,7 +1261,11 @@
     var also = (alsoIsFallback
       ? visible.slice().sort(function(a,b){ return (b.regionKey===p.regionKey?1:0)-(a.regionKey===p.regionKey?1:0); })
       : sameLine).slice(0,3);
-    var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : financialsHTML(p,cfg,false));
+    // Sin configurador (precio fijo, nada que elegir) ya no hay tarjeta de resumen aquí: se va
+    // directa a la sección a sangre de abajo, que ya trae precio + cascada + ficha técnica + dossier
+    // (fusión p.3+p.4 del PDF del cliente, 7-ago) — antes esta columna y esa sección decían lo mismo
+    // dos veces seguidas.
+    var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : "");
     var subText = pick(p.sub);
     // Sub bajo el título: uppercase ligera y grande y, en negrita al final, el régimen de tenencia
     // ("… FREEHOLD LAND.") tal cual la guía Ficha p2. El dato sale de p.tenure, no se escribe a mano.
@@ -1302,6 +1286,9 @@
     // el masterplan y la imagen a sangre con puntos, que ya cubren mapa/ubicación. Función intacta
     // por si se reactiva; solo se deja de llamar aquí (mismo patrón que Designed-to-last, 24-jul).
     var payBleed = (isDeliveredNotForSale) ? "" : paymentPlanBleedHTML(p, cfg);
+    // ROI: bloque aparte, ya no colgado dentro del configurador (revisión 7-ago) — solo si la
+    // propiedad trae tarifa/noche, sea cual sea el estado del configurador.
+    var roi = (!isDeliveredNotForSale && p.nightlyRate>0) ? investmentCalcHTML(p, cfg.configuredEUR>0?cfg.configuredEUR:p.priceEUR) : "";
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
     var gallerySide = gallerySidebarHTML(p, cfg);   // calco PDF p.2, 6-ago
@@ -1313,16 +1300,18 @@
       + sec('<div class="wrap pdp-wrap">'+headerHTML
           + (gallerySide ? '<div class="pdp-info-2col"><div>'+galleryHTML(p)+'</div><div>'+gallerySide+'</div></div>' : galleryHTML(p))
           + '</div>')
-      // Detalle: izq configurador/payment plan · dcha ficha técnica (vuelta a la posición
-      // original 6-ago — el traslado a su propia sección de abajo se deshizo el mismo día).
-      // La reactividad sí se queda: infoCardHTML(p,cfg) sigue lo elegido en el configurador
-      // (villa → hab./construido, parcela del masterplan → parcela con su m² real).
-      + sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
-          + '<div>'+(leftMain?'<div class="pdp-leftmain">'+leftMain+'</div>':"")+'</div>'
-          + '<div>'+infoCardHTML(p,cfg)+'</div></div></div>')
-      // El plan de pagos a sangre (calco PDF p.4) — justo después del configurador, antes del
-      // masterplan/territorio, mismo orden que el PDF (config → payment → masterplan).
+      // Detalle: izq wizard (solo si hay algo que configurar) · dcha ficha técnica. Sin configurador
+      // esta sección entera desaparece (revisión 7-ago): no hay nada que decir aquí que la sección
+      // a sangre de abajo no diga ya. La reactividad se queda: infoCardHTML(p,cfg) sigue lo elegido
+      // en el configurador (villa → hab./construido, parcela del masterplan → parcela con su m² real).
+      + (leftMain ? sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
+          + '<div><div class="pdp-leftmain">'+leftMain+'</div></div>'
+          + '<div>'+infoCardHTML(p,cfg)+'</div></div></div>') : "")
+      // El plan de pagos a sangre (calco PDF p.4) — con configurador es el destino del último paso
+      // ("Plan"); sin configurador es directamente lo primero que se ve tras la ficha técnica de
+      // arriba. Mismo id para el salto: #payment-plan.
       + (payBleed ? sec(payBleed, "pdp-sec-flush") : "")
+      + (roi ? sec('<div class="wrap pdp-wrap"><div class="cfg-card"><div class="cfg-step">'+roi+'</div></div></div>') : "")
       + (split ? sec(split, "pdp-sec-flush") : "")
       // A sangre de verdad (revisión cliente 7-ago): sin envolver en .wrap, que la recortaba a la
       // caja de contenido. Ancho completo, alto natural — ver .pdp-bleed-img.
@@ -1482,7 +1471,13 @@
     }
     else if(cmd==="model"){ S.modelIdx=parseInt(val,10); render(); }
     else if(cmd==="extra"){ var i=parseInt(val,10); S.extrasSel[i]=!S.extrasSel[i]; render(); }
-    else if(cmd==="step"){ S.step=parseInt(val,10); render(); }
+    // Al aterrizar en el último paso ("Plan") no hay nada que elegir ahí dentro: la ficha te lleva
+    // directa a la sección a sangre de abajo, que es el paso en sí (fusión p.3+p.4, 7-ago).
+    else if(cmd==="step"){ S.step=parseInt(val,10); render();
+      if(document.querySelector('.cfg-step[data-step-id="pay"]')){
+        var pp=document.getElementById("payment-plan"); if(pp) pp.scrollIntoView({behavior:"smooth",block:"start"});
+      }
+    }
     else if(cmd==="cfg-reset"){ S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; render(); }
     else if(cmd==="close"){ closeProperty(); }
     else if(cmd==="go-home"){ window.location.href="/"; }
