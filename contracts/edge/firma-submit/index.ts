@@ -45,6 +45,13 @@ async function sha256hex(s: string | Uint8Array): Promise<string> {
   const b = await crypto.subtle.digest('SHA-256', typeof s === 'string' ? new TextEncoder().encode(s) : s);
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
+// mismo generador que app.html (randToken): 32 bytes crudos, el token va SOLO
+// en el enlace del correo — en la tabla se guarda su hash, no reconstruible.
+function randToken(): string {
+  const a = new Uint8Array(32);
+  crypto.getRandomValues(a);
+  return [...a].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
 const esc = (s: string) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -501,12 +508,15 @@ Deno.serve(async (req) => {
     const extras = Array.isArray((ct as any).extras) ? (ct as any).extras : [];
     const conDatos = (c: unknown) => ['nombre', 'nacionalidad', 'pasaporte', 'domicilio', 'telefono', 'email']
       .some((k) => String((c as Record<string, unknown>)?.[k] ?? '').trim() !== '');
-    const total = Math.max(1, (String((ct as any).adq1 ?? '').trim() ? 1 : 0) + extras.filter(conDatos).length);
-    const { count: yaFirmadas, error: cntErr } = await sb.from('contrato_firmas')
-      .select('id', { count: 'exact', head: true })
+    const adq1Nombre = String((ct as any).adq1 ?? '').trim();
+    const adq1Email = String((ct as any).fields?.adq1_email ?? '').trim();
+    const total = Math.max(1, (adq1Nombre ? 1 : 0) + extras.filter(conDatos).length);
+    const { data: firmadas, error: cntErr } = await sb.from('contrato_firmas')
+      .select('firmante_rol')
       .eq('contrato_id', claimed.contrato_id).eq('estado', 'firmado');
     if (cntErr) throw new Error('no se pudo contar las firmas: ' + cntErr.message);
-    const esUltima = (yaFirmadas ?? 0) + 1 >= total;
+    const yaFirmadas = firmadas?.length ?? 0;
+    const esUltima = yaFirmadas + 1 >= total;
 
     if (!esUltima) {
       // ── Firma INTERMEDIA: no hay PDF ni bloqueo todavía ───────────────
@@ -533,7 +543,58 @@ Deno.serve(async (req) => {
       const barrida = await sb.from('contrato_firmas').update({ estado: 'anulado' })
         .eq('contrato_id', claimed.contrato_id).eq('estado', 'pendiente');
       if (barrida.error) console.error('pendientes sin anular en', claimed.contrato_id, ':', barrida.error.message);
-      return json({ ok: true, numero, faltan: total - ((yaFirmadas ?? 0) + 1) });
+
+      // 4) siguiente firmante de la cadena: enlace generado y enviado SOLO —
+      //    hasta el 7-ago esto lo hacía un operador a mano desde la app en
+      //    cuanto veía que el anterior había firmado (FIRMA_EN_CADENA.md lo
+      //    dejó fuera a propósito: "decisión aparte"). Mismo orden y misma
+      //    plantilla de correo que el botón "Generar enlace de firma" de
+      //    app.html — esto no sustituye ese botón, solo evita tener que
+      //    pulsarlo: si algo aquí falla, el operador lo genera a mano igual.
+      const avisosCadena: string[] = [];
+      try {
+        const rolesFirmados = new Set((firmadas ?? []).map((f) => f.firmante_rol));
+        rolesFirmados.add(rol);   // la de ahora mismo: la lectura de arriba es de ANTES de marcarla
+        const cadena: { rol: string; nombre: string; email: string }[] = [];
+        if (adq1Nombre) cadena.push({ rol: 'adquiriente_1', nombre: adq1Nombre, email: adq1Email });
+        extras.forEach((c: any, i: number) => {
+          if (!conDatos(c)) return;
+          cadena.push({ rol: 'adquiriente_' + (i + 2), nombre: String(c.nombre ?? '').trim(), email: String(c.email ?? '').trim() });
+        });
+        const siguiente = cadena.find((s) => !rolesFirmados.has(s.rol));
+        if (!siguiente) {
+          avisosCadena.push('no se encontró al siguiente firmante en la cadena — revisa y genera el enlace a mano');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(siguiente.email)) {
+          avisosCadena.push(siguiente.nombre + ' (' + siguiente.rol + ') no tiene email válido en el contrato — genera y manda el enlace a mano');
+        } else {
+          const token = randToken();
+          const tHash = await sha256hex(token);
+          const orden = cadena.findIndex((s) => s.rol === siguiente.rol) + 1;
+          const insSig = await sb.from('contrato_firmas').insert({
+            contrato_id: claimed.contrato_id, token_hash: tHash,
+            firmante_nombre: siguiente.nombre, firmante_email: siguiente.email,
+            firmante_rol: siguiente.rol, orden, snapshot_path: snapPath,
+          });
+          if (insSig.error) throw new Error(insSig.error.message);
+          const link = SITIO + '/contracts/firmar.html?t=' + token;
+          // sin pdfB64: enviarEmail() ya manda `attach:false` cuando no se le da
+          // un PDF — va solo el enlace, mismo criterio que "Generar enlace de
+          // firma" en app.html (adjuntar aquí sería un documento sin firmar
+          // con aspecto de definitivo).
+          await enviarEmail({
+            to: siguiente.email,
+            subject: 'Documento para firmar · ' + numero,
+            message: 'Hola' + (siguiente.nombre ? ' ' + siguiente.nombre.split(' ')[0] : '') +
+              ', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: ' + link +
+              '\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties',
+          });
+        }
+      } catch (e) {
+        avisosCadena.push('firma registrada, pero el enlace del siguiente firmante NO se generó/envió solo: ' +
+          (e as Error).message + ' — genera y manda el enlace desde la app');
+      }
+      if (avisosCadena.length) console.error('cadena', claimed.contrato_id, ':', avisosCadena.join(' | '));
+      return json({ ok: true, numero, faltan: total - (yaFirmadas + 1), ...(avisosCadena.length ? { avisos: avisosCadena } : {}) });
     }
     // ── ÚLTIMA firma: renderizar, sellar y bloquear (flujo original) ─────
 
