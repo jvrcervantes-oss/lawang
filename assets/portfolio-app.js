@@ -622,14 +622,14 @@
       }).join("")+'</dl>' : "";
   }
   function infoCardHTML(p, cfg){
-    var overview = pick(p.desc);
+    // El overview vive SOLO en gallerySidebarHTML (columna junto a la galería, calco PDF p.2) —
+    // repetirlo aquí duplicaba el mismo párrafo dos veces en la misma ficha (revisión cliente 7-ago).
     var sheet = techSheetHTML(techSheetRows(p, cfg));
     // Dossier: SIEMPRE presente (petición cliente 23-jul: "añade descargar el dossier, lo teníamos
     // hecho"). Con archivos → gate de email que los desbloquea; sin archivos → gate que capta el
     // email como lead y confirma envío. downloadsHTML degrada solo si files está vacío.
     var dossier = '<div class="pdp-spec-dossier">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>';
     return '<aside class="pdp-spec">'
-      + (overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-spec-lead">'+esc(overview)+'</p>' : "")
       + sheet
       + dossier
       + '</aside>';
@@ -670,7 +670,7 @@
     var key = (p.imgKeys&&p.imgKeys[2]) || (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
     if(!key) return "";
     return '<div style="margin:clamp(48px,6vw,84px) 0;overflow:hidden;background:#1a160f">'
-      + '<img src="'+esc(imgUrl(key,2600))+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="display:block;width:100%;height:clamp(360px,82vh,780px);object-fit:cover" onerror="this.style.display=\'none\'">'
+      + '<img src="'+esc(imgUrl(key,2600))+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="display:block;width:100%;height:auto;max-height:92vh" onerror="this.style.display=\'none\'">'
       + '</div>';
   }
 
@@ -1180,14 +1180,6 @@
 
   // Banner al proceso de compra: cierra la ficha y baja a los 7 pasos (#process, del marketplace).
   // Se retiró el 23-jul y el cliente lo pidió de vuelta el 24-jul.
-  function processBannerHTML(){
-    return '<div class="pdp-process-banner" data-act="go-process" role="button" tabindex="0">'
-      + '<img src="assets/img/aerial-1.jpg" alt="" loading="lazy">'
-      + '<span class="pdp-pb-veil"></span>'
-      + '<span class="pdp-pb-txt"><span class="pdp-pb-1">'+t("ft.reserve.k")+'</span><span class="pdp-pb-2">'+t("proc.title")+'</span></span>'
-      + '</div>';
-  }
-
   function signatureNoteHTML(p){
     return '<div style="margin-top:56px;padding-top:40px;border-top:1px solid var(--line)"><div style="display:inline-flex;align-items:center;gap:8px;background:var(--dl);color:var(--bone);border-radius:999px;padding:7px 16px;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:999px;background:var(--bone)"></span> '+t("sig.delivered")+'</div><p style="font-size:15px;color:var(--ink-2);line-height:1.6;margin-top:18px;max-width:52ch">'+t("sig.note")+'</p></div>';
   }
@@ -1332,9 +1324,12 @@
       // masterplan/territorio, mismo orden que el PDF (config → payment → masterplan).
       + (payBleed ? sec(payBleed, "pdp-sec-flush") : "")
       + (split ? sec(split, "pdp-sec-flush") : "")
-      + (bleed ? sec('<div class="wrap pdp-wrap">'+bleed+'</div>') : "")
-      // Última sección: banner del proceso + cross-selling + footer juntos.
-      + sec('<div class="wrap pdp-wrap">'+processBannerHTML()+alsoHTML+'</div>'+footerCoreHTML(), "pdp-sec-last")
+      // A sangre de verdad (revisión cliente 7-ago): sin envolver en .wrap, que la recortaba a la
+      // caja de contenido. Ancho completo, alto natural — ver .pdp-bleed-img.
+      + (bleed ? sec(bleed, "pdp-sec-flush") : "")
+      // Última sección: cross-selling + footer. El banner "Seven steps to ownership" que enlazaba
+      // al proceso de la home se retiró (revisión cliente 7-ago): esa historia ya no se cuenta aquí.
+      + sec('<div class="wrap pdp-wrap">'+alsoHTML+'</div>'+footerCoreHTML(), "pdp-sec-last")
       + waFloatHTML(p)
       + lightboxHTML(p)
       + '</div>';
@@ -1470,7 +1465,6 @@
     else if(cmd==="gal"){ S.gallery=parseInt(val,10)||0; S.galAnim=true; render(); }
     else if(cmd==="lightbox"){ S.lightbox=parseInt(val,10)||0; render(); }
     // Tipos de vivienda (sección 50/50): cambiar de pestaña arranca sus fotos por la primera
-    else if(cmd==="go-process"){ closeProperty(); var pr=document.getElementById("process"); if(pr) pr.scrollIntoView({behavior:"smooth",block:"start"}); }
     else if(cmd==="tab"){ S.tab=parseInt(val,10)||0; S.tabImg=0; render(); }
     else if(cmd==="tabimg"){ S.tabImg=parseInt(val,10)||0; render(); }
     else if(cmd==="lb-close"){ S.lightbox=null; render(); }
