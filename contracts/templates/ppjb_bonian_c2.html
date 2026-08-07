@@ -90,6 +90,14 @@
        encargo de arriba, lleva escritos dos pasaportes, dos correos y dos
        telefonos reales. Decidido y avisado al owner. -->
   <div class="doc">
+    <!-- Campos invisibles SOLO para la firma a distancia (7-ago-2026, a petición
+         del cliente): el texto del contrato sigue 100% fijo, como pedía el
+         encargo del 4-ago de arriba — esto no imprime nada, solo le da a la app
+         un nombre/email de Adquiriente I con los que armar el enlace de firma y
+         un hueco para que "Adquirientes adicionales" pueda dar de alta a la
+         Adquiriente II. Los nombres/datos que YA están escritos en el cuerpo
+         (líneas 105-106 y 214) no se tocan. -->
+    <div style="display:none">{{adq1_nombre}} {{adq1_email}}<!--compradores-extra--></div>
     <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
     <div class="doc-foot">PT TEPI SUN GAI — Contrato de Reserva de Parcela — BORRADOR</div>
     <div class="doc-date">PT TEPI SUN GAI</div>
@@ -236,7 +244,7 @@
 
 <p style="margin-top:18px" data-lang="es">Otorgado en Bali, República de Indonesia, a 31 de julio de 2026.</p><p style="margin-top:18px" data-lang="id">Dibuat di Bali, Republik Indonesia, pada tanggal 31 Juli 2026.</p>
 
-<div class="sig-grid"><div><div class="role" style="font-weight:600">LA PRIMERA PARTE</div><p style="margin:2px 0 0">PT TEPI SUN GAI</p><div class="sig-line" style="display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Pablo Cantero Gambín<br>Cargo: Director</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Pablo Cantero Gambín<br>Jabatan: Direktur</p></div><div><div class="role" style="font-weight:600">LA SEGUNDA PARTE</div><p style="margin:2px 0 0" data-lang="es">Adquiriente I:</p><p style="margin:2px 0 0" data-lang="id">Pembeli I:</p><div class="sig-line"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Xavier Roman Eufemia</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Xavier Roman Eufemia</p><p style="margin:12px 0 0" data-lang="es">Adquiriente II:</p><p style="margin:12px 0 0" data-lang="id">Pembeli II:</p><div class="sig-line"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Andrea Köver</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Andrea Köver</p></div></div>
+<div class="sig-grid"><div><div class="role" style="font-weight:600">LA PRIMERA PARTE</div><p style="margin:2px 0 0">PT TEPI SUN GAI</p><div class="sig-line" style="display:flex;align-items:flex-end"><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Pablo Cantero Gambín<br>Cargo: Director</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Pablo Cantero Gambín<br>Jabatan: Direktur</p></div><div><div class="role" style="font-weight:600">LA SEGUNDA PARTE</div><p style="margin:2px 0 0" data-lang="es">Adquiriente I:</p><p style="margin:2px 0 0" data-lang="id">Pembeli I:</p><div class="sig-line" style="display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:20mm;max-width:100%"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Xavier Roman Eufemia</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Xavier Roman Eufemia</p><!--firmas-adquirientes--></div></div>
 
 <h2 style="page-break-before:always"><span data-lang="es">Anexo Y — Cronograma de Pagos y Cuentas Bancarias</span><span data-lang="id">Lampiran Y — Jadwal Pembayaran dan Rekening Bank</span></h2>
 <p data-lang="es">Datos bancarios de la Primera Parte (PT Tepi Sungai) a los que se realizarán las transferencias derivadas de este Contrato, conforme a la Cláusula 4.1:</p><p data-lang="id">Rincian bank Pihak Pertama (PT Tepi Sungai) yang menjadi tujuan transfer berdasarkan Perjanjian ini, sesuai Pasal 4.1:</p>
