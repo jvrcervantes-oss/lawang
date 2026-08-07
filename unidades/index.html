@@ -831,7 +831,8 @@ function parseCSV(texto){
   return filas.filter(f => f.some(c => c.trim() !== ''));
 }
 
-let CSV_FILAS_VALIDAS = [];   // lo que de verdad se sube al confirmar
+let CSV_FILAS_VALIDAS = [];      // lo que de verdad se sube al confirmar
+let CSV_CAMPOS_PRESENTES = new Set();   // qué columnas trajo ESTE CSV (ver abajo)
 
 function cerrarImportCsv(){ $('#ovCsv').classList.remove('open'); $('#fileCsv').value = ''; }
 $('#btnCsv').addEventListener('click', () => $('#fileCsv').click());
@@ -853,6 +854,10 @@ async function abrirImportCsv(file){
   const texto = await file.text();
   const filas = parseCSV(texto);
   if(!filas.length){ cuerpo.innerHTML = '<p class="aviso">El fichero está vacío.</p>'; return; }
+  // ponytail: el tope real es el de bytes (arriba); contar filas exige haber
+  // parseado ya (un salto de línea dentro de un campo entrecomillado no cuenta
+  // como fila), así que este límite llega después del parse, no antes. Con 5MB
+  // ya acotado, el coste de parsear de más es milisegundos, no una vía de DoS.
   if(filas.length - 1 > CSV_MAX_FILAS){
     cuerpo.innerHTML = `<p class="aviso">El fichero trae ${filas.length-1} filas — el máximo son ${CSV_MAX_FILAS}. Pártelo en varios.</p>`;
     return;
@@ -864,6 +869,12 @@ async function abrirImportCsv(file){
     cuerpo.innerHTML = '<p class="aviso">El CSV necesita al menos las columnas <code>codigo</code> y <code>proyecto</code>.</p>';
     return;
   }
+  // Qué columnas trae DE VERDAD este CSV (target real de unidades, no el alias
+  // de cabecera). Se usa al confirmar para NO mandar una clave que el fichero
+  // nunca trajo: `unidades.tipo` es un valor por fila, "sin dato" en el CSV no
+  // es lo mismo que "vacío a propósito", y una actualización no debe borrar lo
+  // que ya había en una columna que el CSV ni siquiera menciona.
+  CSV_CAMPOS_PRESENTES = new Set(mapa.filter(Boolean));
 
   const proyectosOk = new Set(PROYECTOS);
   const tiposOk = new Set(TIPOS.map(x => x[0]));
@@ -872,7 +883,7 @@ async function abrirImportCsv(file){
   const analizadas = filas.slice(1).map((cols, idx) => {
     const d = {}; mapa.forEach((campo, i) => { if(campo) d[campo] = (cols[i] ?? '').trim(); });
     const errores = [];
-    const codigo = d.codigo || '';
+    const codigo = antiFormula(d.codigo || '');
     const proyecto = d.proyecto || '';
     const tipo = (d.tipo || 'parcela').toLowerCase().trim();
     if(!codigo) errores.push('sin código');
@@ -883,7 +894,7 @@ async function abrirImportCsv(file){
     return {
       fila: idx + 2, // +2: encabezado + base-1
       codigo, proyecto, tipo,
-      modelo: d.modelo || null,
+      modelo: d.modelo ? antiFormula(d.modelo) : null,
       superficie_m2: num(d.superficie_m2), precio_suelo: num(d.precio_suelo),
       precio_construccion: num(d.precio_construccion), precio: num(d.precio),
       moneda: (d.moneda || 'EUR').toUpperCase(),
@@ -928,15 +939,26 @@ async function abrirImportCsv(file){
 $('#btnCsvConfirmar').addEventListener('click', async () => {
   if(!CSV_FILAS_VALIDAS.length) return;
   const btn = $('#btnCsvConfirmar'); btn.disabled = true; btn.textContent = 'Importando…';
-  // Allowlist explícito: exactamente estas claves, nunca más. Es la misma
-  // idea que ya usa guardar() para no mandar estado/contrato_id, aplicada
-  // aquí como estructura del objeto, no como un `if` que se pueda olvidar.
-  const filas = CSV_FILAS_VALIDAS.map(f => ({
-    codigo: f.codigo, proyecto: f.proyecto, tipo: f.tipo, modelo: f.modelo,
-    superficie_m2: f.superficie_m2, precio_suelo: f.precio_suelo,
-    precio_construccion: f.precio_construccion, precio: f.precio,
-    moneda: f.moneda, notas: f.notas,
-  }));
+  /* Allowlist explícito: exactamente estas claves, nunca más — la misma idea
+     que ya usa guardar() para no mandar estado/contrato_id, aplicada aquí como
+     estructura del objeto, no como un `if` que se pueda olvidar.
+     🔴 Y dentro del allowlist, solo se manda una clave si el CSV traía esa
+     columna. `upsert` hace `UPDATE ... SET` de TODAS las claves del objeto: si
+     esta fila es una actualización y se manda `precio_suelo:null` porque el
+     CSV no traía esa columna (no porque viniera vacía), se borra un precio
+     real que ya estaba guardado. Ausente en el CSV ≠ vacío a propósito.
+     `tipo` es la única excepción con valor por defecto, porque es NOT NULL en
+     la base: una alta sin esa columna necesita algo que insertar; una
+     actualización sin esa columna no toca el tipo que la unidad ya tenía. */
+  const filas = CSV_FILAS_VALIDAS.map(f => {
+    const fila = { codigo: f.codigo, proyecto: f.proyecto };
+    if(CSV_CAMPOS_PRESENTES.has('tipo') || f.esAlta) fila.tipo = f.tipo;
+    ['modelo','superficie_m2','precio_suelo','precio_construccion','precio','notas']
+      .forEach(k => { if(CSV_CAMPOS_PRESENTES.has(k)) fila[k] = f[k]; });
+    if(CSV_CAMPOS_PRESENTES.has('moneda')) fila.moneda = f.moneda;
+    else if(f.esAlta) fila.moneda = 'EUR';
+    return fila;
+  });
   const { error } = await SB.from('unidades').upsert(filas, { onConflict: 'proyecto,codigo' });
   if(error){ toast('No se pudo importar: ' + error.message); btn.disabled = false; btn.textContent = 'Confirmar importación'; return; }
   toast(`Importadas ${filas.length} unidades`);
