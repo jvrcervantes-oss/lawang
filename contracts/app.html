@@ -35,7 +35,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=f9016bb0"></script>
+<script src="assets/entities.js?v=e3d6e3e0"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
@@ -2546,11 +2546,50 @@ function contractPayload(){
   };
 }
 
+/* Proforma automática del TOTAL del proyecto, la primera vez que se guarda un
+   contrato (nunca en una actualización posterior: reeditar precio_total no
+   debe generar una segunda proforma — el índice único de la base tampoco lo
+   dejaría). No se envía aquí: la manda sola el cierre de firma
+   (contracts/edge/firma-submit → enviarProformaTotal), que además RELEE
+   precio_total en ese momento por si cambió entre hoy y la firma. Esta
+   creación es solo para que el documento exista y tenga número desde ya.
+   Sin precio_total válido no se crea nada — una proforma con importe
+   inventado o a 0 es dinero mal pedido (mismo criterio que facturarPrimerHito
+   en el cierre de firma). Si falla, el contrato ya está guardado: se avisa y
+   sigue, no se deshace el guardado por esto. */
+async function crearProformaAutomatica(contratoId, numero, payload){
+  const precio = payload.precio_total;
+  if(!precio || precio <= 0) return;
+  const f = (payload.datos && payload.datos.fields) || {};
+  const sociedad = f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai';
+  const moneda = payload.moneda || 'EUR';
+  try{
+    const { error } = await sb.from('facturas').insert({
+      tipo:'proforma', sociedad, moneda,
+      cliente_nombre: payload.comprador_nombre || null,
+      proyecto_nombre: payload.proyecto_nombre || null,
+      contrato_numero: numero, contrato_id: contratoId,
+      total: precio, fecha_emision: new Date().toISOString().slice(0,10),
+      datos: { fields: { tipo:'proforma', sociedad, moneda, contrato_numero:numero,
+                          cliente_nombre: payload.comprador_nombre || '',
+                          proyecto_nombre: payload.proyecto_nombre || '',
+                          fecha_emision: new Date().toISOString().slice(0,10),
+                          notas: 'Total del proyecto contratado en ' + numero + '. Documento informativo, sin validez fiscal.' },
+               lineas: [{ descripcion:'Total del proyecto', importe:String(precio) }] },
+    });
+    if(error) throw error;
+  }catch(e){
+    console.error('proforma automática no creada para', numero, ':', e.message || e);
+    toast('Contrato guardado, pero la proforma automática no se pudo crear: ' + (e.message || e));
+  }
+}
+
 async function guardarContrato(){
   if(!sb){ toast('Supabase no disponible'); return; }
   if(LOCKED){ toast('Contrato bloqueado, no se puede guardar'); return; }   // el botón ya se oculta; la RLS también lo bloquearía
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   if(!tipo) return;
+  const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
     const payload = contractPayload();
@@ -2565,6 +2604,7 @@ async function guardarContrato(){
     toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
     render();
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
+    if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
   }catch(err){
     // El trigger `sincroniza_unidad_contrato` para el guardado si la parcela ya
     // es de otro contrato. Ese mensaje ya viene escrito para leerse, así que se

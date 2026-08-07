@@ -307,6 +307,118 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
   return { emitida: true, mensaje: 'factura ' + fila.numero + ' emitida y enviada a ' + para };
 }
 
+/* Proforma del TOTAL del proyecto. `contracts/app.html` ya la crea al guardar
+   el contrato por primera vez (con número asignado, sin enviar); aquí se
+   RELEE precio_total y los datos del comprador —pueden haber cambiado entre
+   ese guardado y esta firma— y se manda. Si no existiera (contrato de antes
+   de este cambio, o falló su creación) se crea aquí mismo, con el mismo
+   criterio que facturarPrimerHito: sin precio_total válido no se emite nada.
+   Conviven con la factura real del primer hito a propósito (decisión del
+   dueño, 7-ago): la proforma es informativa, no exigible; el hito 1 sí vence
+   en este momento y necesita su propio documento con fuerza de cobro. */
+async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
+    : Promise<{ emitida: boolean; mensaje: string }> {
+  const C = await compartidos();
+  const f = o.ct.fields || {};
+  const moneda = f.moneda || o.ct.moneda || 'EUR';
+  const precio = C.parseImporte(f.precio_total) || Number(o.ct.precio_total) || 0;
+  if (!precio) return { emitida: false, mensaje: 'contrato sin precio_total: no se emite proforma' };
+
+  const compradores = C.compradoresDeContrato(f, o.ct.extras);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const lineas = [{ descripcion: 'Total del proyecto', importe: String(precio) }];
+  const campos: Record<string, string> = {
+    tipo: 'proforma',
+    sociedad: f.sociedad_firmante && C.SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai',
+    cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
+    fecha_emision: hoy, fecha_vencimiento: '', moneda,
+    numero_visible: '', contrato_numero: o.numero,
+    cliente_nombre: C.nombresFactura(compradores),
+    cliente_documento: C.documentosFactura(compradores),
+    cliente_domicilio: C.primerDato(compradores, 'domicilio'),
+    cliente_email: C.primerDato(compradores, 'email'),
+    proyecto_nombre: [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa]
+      .filter(Boolean).join(' — '),
+    imp_etiqueta: '', imp_pct: '',
+    notas: 'Total del proyecto contratado en ' + o.numero + '. Documento informativo, sin validez fiscal — ' +
+      'el cobro de cada pago se factura aparte, a medida que vence.',
+  };
+  const totales = C.calcTotales(lineas, moneda, { pct: '' });
+
+  // La proforma que ya se creó al guardar el contrato (o.contratoId es FK real).
+  const { data: existente, error: errBusca } = await sb.from('facturas')
+    .select('id, numero').eq('contrato_id', o.contratoId).eq('tipo', 'proforma').eq('anulada', false)
+    .order('created_at', { ascending: true }).limit(1).maybeSingle();
+  if (errBusca) throw new Error('no se pudo buscar la proforma: ' + errBusca.message);
+
+  let fila: { id: string; numero: string };
+  if (existente) {
+    // resync: el precio o los datos del comprador pudieron cambiar desde la creación
+    const upd = await sb.from('facturas').update({
+      sociedad: campos.sociedad, cliente_nombre: campos.cliente_nombre || null,
+      proyecto_nombre: campos.proyecto_nombre || null, contrato_numero: o.numero,
+      total: totales.total, moneda, fecha_emision: hoy,
+      datos: { fields: { ...campos, lineas }, lineas, totales },
+    }).eq('id', existente.id).select('id, numero').single();
+    if (upd.error || !upd.data) throw new Error('no se pudo actualizar la proforma: ' + (upd.error?.message ?? ''));
+    fila = upd.data;
+  } else {
+    const ins = await sb.from('facturas').insert({
+      tipo: 'proforma', sociedad: campos.sociedad,
+      cliente_nombre: campos.cliente_nombre || null, proyecto_nombre: campos.proyecto_nombre || null,
+      contrato_numero: o.numero, contrato_id: o.contratoId,
+      total: totales.total, moneda, fecha_emision: hoy,
+      datos: { fields: { ...campos, lineas }, lineas, totales },
+    }).select('id, numero').single();
+    if (ins.error || !ins.data) throw new Error('no se pudo crear la proforma: ' + (ins.error?.message ?? ''));
+    fila = ins.data;
+  }
+
+  campos.numero_visible = fila.numero;
+  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, base: SITIO });
+
+  const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    body: JSON.stringify({ html }),
+  });
+  if (!rr.ok) throw new Error('proforma ' + fila.numero + ' creada, pero no se pudo generar su PDF: render ' + rr.status);
+  const pdf = new Uint8Array(await rr.arrayBuffer());
+  if (String.fromCharCode(...pdf.slice(0, 4)) !== '%PDF')
+    throw new Error('proforma ' + fila.numero + ' creada, pero el render no devolvió un PDF');
+
+  const para = campos.cliente_email || ESTUDIO_EMAIL;
+  const importe = C.fmtMoneda(totales.total, moneda);
+  await enviarEmail({
+    to: para,
+    subject: 'Factura proforma ' + fila.numero + ' · ' + o.numero,
+    message: 'Hola' + (compradores[0] ? ' ' + compradores[0].nombre.split(' ')[0] : '') + ',' +
+      '\n\nAdjuntamos la factura proforma ' + fila.numero + ' con el importe total del proyecto contratado en ' +
+      o.numero + '.' +
+      '\n\nImporte total: ' + importe +
+      '\n\nEs un documento informativo, sin validez fiscal: el cobro de cada pago se factura aparte, ' +
+      'a medida que vence.' +
+      '\n\n\nLawang Tropical Properties',
+    filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+  });
+  const marcar = await sb.from('facturas')
+    .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', fila.id);
+  if (marcar.error) {
+    console.error('proforma', fila.numero, 'enviada pero SIN marcar enviada=true:', marcar.error.message);
+  }
+  // Copia al estudio, para que la emisión no dependa de mirar el panel.
+  if (para !== ESTUDIO_EMAIL) {
+    await enviarEmail({
+      to: ESTUDIO_EMAIL,
+      subject: 'Proforma ' + fila.numero + ' emitida y enviada · ' + o.numero,
+      message: 'Proforma ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
+        o.numero + ' y enviada a ' + para + '.',
+      filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+    });
+  }
+  return { emitida: true, mensaje: 'proforma ' + fila.numero + ' emitida y enviada a ' + para };
+}
+
 Deno.serve(async (req) => {
   const cors = corsFor(req);
   const json = (o: unknown, s = 200) =>
@@ -523,6 +635,15 @@ Deno.serve(async (req) => {
       if (!r.emitida) avisos.push(r.mensaje);   // no emitir puede ser lo correcto, pero nunca en silencio
     } catch (e) {
       const m = 'contrato ' + numero + ' firmado pero SIN factura del primer hito: ' + (e as Error).message;
+      console.error(m); avisos.push(m);
+    }
+
+    try {
+      const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
+      console.log('firma', claimed.id, '·', r.mensaje);
+      if (!r.emitida) avisos.push(r.mensaje);
+    } catch (e) {
+      const m = 'contrato ' + numero + ' firmado pero SIN proforma del total: ' + (e as Error).message;
       console.error(m); avisos.push(m);
     }
 

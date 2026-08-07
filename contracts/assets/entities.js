@@ -157,3 +157,15 @@ const SOCIEDADES = {
             en: 'Spanish nationality, holder of Spanish passport no. PAL648254',
             id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
 };
+
+/* ---------- etiqueta humana de `contratos.tipo` ----------
+   Copiado a propósito, no movido: ya vivía inline en operaciones/index.html
+   (TIPO_ES) desde el 5-ago y ese sitio sigue funcionando — sacarlo de ahí para
+   esta tarea habría sido tocar un fichero que nadie pidió cambiar. Esta copia
+   la usa `facturas/index.html` para el prefijo "[Parcela]"/"[Construcción]"
+   cuando combina conceptos de dos contratos vinculados (7-ago-2026). Si diverge
+   de la de operaciones, unificarlas aquí sería el momento — no antes. */
+const TIPO_ES = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
+  commercial_offer:'Oferta Comercial', carta_reserva:'Carta de Reserva',
+  carta_reserva_ampliada:'Carta de Reserva ampliada', acuerdo_comercial:'Acuerdo Comercial',
+  protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach' };

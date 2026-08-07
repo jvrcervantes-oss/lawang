@@ -36,7 +36,7 @@
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
      expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
      saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
-<script src="/contracts/assets/entities.js?v=f9016bb0"></script>
+<script src="/contracts/assets/entities.js?v=e3d6e3e0"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <script src="totales.js"></script>
 <!-- maquetacion del documento: la MISMA que arma la factura automatica del
@@ -122,6 +122,11 @@
   #delContrato{ margin-top:10px; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:#f7f4ea; }
   #delContrato .t{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
   #delContrato .arrastrado{ font-size:12px; color:var(--muted); margin:5px 0 0; line-height:1.5; }
+  /* Contrato vinculado (Parcela ↔ Construcción) del que se pueden traer
+     conceptos a la MISMA factura — 7-ago-2026. */
+  #delVinculado:empty{ display:none; }
+  #delVinculado{ margin-top:8px; }
+  #delVinculado .hitos{ margin-top:4px; }
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
   .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
          border-radius:9px; padding:6px 10px; cursor:pointer; }
@@ -287,6 +292,7 @@
             <label>Partir de un contrato guardado (opcional)</label>
             <select id="selContrato"><option value="">— sin contrato —</option></select>
             <div id="delContrato"></div>
+            <div id="delVinculado"></div>
             <div class="row2">
               <div><label>Fecha de emisión</label><input type="date" name="fecha_emision"></div>
               <div><label>Vencimiento (opcional)</label><input type="date" name="fecha_vencimiento"></div>
@@ -554,7 +560,7 @@ function pintarLineas(){
 const descHito = h => [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
                     + (h.timing ? ' — ' + h.timing : '');
 function marcarHitosUsados(){
-  document.querySelectorAll('#delContrato [data-h]').forEach(b => {
+  document.querySelectorAll('#delContrato [data-h], #delVinculado [data-vh]').forEach(b => {
     const usado = LINEAS.some(l => (l.descripcion || '').trim() === b.dataset.desc);
     b.disabled = usado;
     b.classList.toggle('usado', usado);
@@ -745,7 +751,7 @@ async function cargarContratos(){
   sel.onchange = () => {
     CONTRATO_ID = sel.value || null;
     if(sel.value) traerContrato(sel.value);
-    else $('#delContrato').innerHTML = '';
+    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; }
   };
 }
 
@@ -753,12 +759,13 @@ async function traerContrato(id){
   CONTRATO_ID = id;
   const caja = $('#delContrato');
   caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+  $('#delVinculado').innerHTML = '';
   // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
   // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
   let { data, error } = await sb.from('contratos')
-    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores').eq('id', id).single();
+    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,contrato_padre_id').eq('id', id).single();
   if(error){
-    ({ data, error } = await sb.from('contratos').select('numero,moneda,precio_total,datos').eq('id', id).single());
+    ({ data, error } = await sb.from('contratos').select('numero,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
     if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores; }
   }
   if(error || !data){ caja.innerHTML = `<div class="t">No se pudo cargar el contrato: ${esc((error&&error.message)||'')}</div>`; return; }
@@ -821,7 +828,79 @@ async function traerContrato(id){
   });
   marcarHitosUsados();
 
+  // Contrato vinculado (Parcela ↔ Construcción, contratos.contrato_padre_id):
+  // se ofrece traer sus conceptos a esta MISMA factura. La sociedad ya puesta
+  // en el formulario (poner('sociedad', ...) arriba, o el default si el
+  // contrato no fijaba una) es la que manda para el chequeo de compatibilidad.
+  pintarVinculados(id, data.contrato_padre_id || null, $('[name="sociedad"]').value, moneda);
+
   render();
+}
+
+/* ---------- combinar con un contrato vinculado ----------
+   Parcela y Construcción son ventas encadenadas (contrato_padre_id, el mismo
+   vínculo que ya usa /operaciones/ para agruparlas en pantalla) pero siguen
+   siendo DOS relaciones jurídicas separadas con el comprador — por eso cada
+   línea que se trae de aquí queda marcada con `origen_contrato_id` y con su
+   descripción prefijada por tipo, nunca mezclada sin rastro. Si las dos
+   sociedades emisoras no coinciden, no se deja combinar: sería una sociedad
+   cobrando el ingreso de otra sin ningún soporte intercompañía (revisión
+   previa, Legal + Administración, 7-ago-2026). */
+async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaPrincipal){
+  const cont = $('#delVinculado');
+  const ors = ['contrato_padre_id.eq.' + idPrincipal];
+  if(padreId) ors.push('id.eq.' + padreId);
+  const { data, error } = await sb.from('contratos')
+    .select('id,numero,tipo,precio_total,campos:datos->fields,hitos:datos->hitos')
+    .or(ors.join(','));
+  if(error || !data || !data.length){ cont.innerHTML = ''; return; }
+  cont.innerHTML = data.map(c => {
+    const socC = (c.campos || {}).sociedad_firmante || '';
+    const compatible = !socC || !sociedadPrincipal || socC === sociedadPrincipal;
+    const etiqueta = TIPO_ES[c.tipo] || c.tipo || 'Vinculado';
+    return compatible
+      ? `<button type="button" class="addbtn" data-vinc="${esc(c.id)}">+ Traer conceptos de ${esc(c.numero)} (${esc(etiqueta)})</button>`
+      : `<p class="hint">⚠️ ${esc(c.numero)} (${esc(etiqueta)}) lo emite otra sociedad — no se puede combinar en la misma factura.</p>`;
+  }).join('');
+  cont.querySelectorAll('[data-vinc]').forEach(b => {
+    const c = data.find(x => x.id === b.dataset.vinc);
+    b.onclick = () => traerVinculado(c, monedaPrincipal);
+  });
+}
+
+function traerVinculado(c, moneda){
+  const f = c.campos || {};
+  const etiqueta = TIPO_ES[c.tipo] || c.tipo || 'Vinculado';
+  moneda = moneda || ($('[name="moneda"]') || {}).value;
+  const precio = parseImporte(c.precio_total || f.precio_total);
+  const hitos = (c.hitos || []).map(h => {
+    const pct = parseImporte(h.pct);
+    const monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
+    return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
+  }).filter(h => h.texto || h.monto);
+  if(!hitos.length){ toast('Ese contrato no tiene hitos de pago que traer'); return; }
+
+  const caja = document.createElement('div');
+  caja.className = 'hitos';
+  caja.innerHTML = hitos.map((h,i) =>
+    `<button type="button" class="hito" data-vh="${i}">[${esc(etiqueta)}] ${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
+  ).join('');
+  $('#delVinculado').appendChild(caja);
+  caja.querySelectorAll('[data-vh]').forEach(b => {
+    const h = hitos[+b.dataset.vh];
+    const desc = '[' + etiqueta + '] ' + descHito(h);
+    b.dataset.desc = desc;
+    b.onclick = () => {
+      if(LINEAS.length === 1 && !LINEAS[0].descripcion && !LINEAS[0].importe) LINEAS = [];
+      LINEAS.push({ descripcion: desc, importe: h.monto ? String(h.monto).replace('.', ',') : '', origen_contrato_id: c.id });
+      pintarLineas(); render();
+      toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+    };
+  });
+  marcarHitosUsados();
+  // Ya traído: se retira su botón de "traer" para no ofrecerlo dos veces.
+  const btn = $('#delVinculado').querySelector(`[data-vinc="${c.id}"]`);
+  if(btn) btn.remove();
 }
 
 /* ---------- guardar ---------- */
@@ -873,7 +952,7 @@ function nuevoDocumento(tipo){
   LINEAS = [{ descripcion:'', importe:'' }];
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
-  $('#selContrato').value = ''; $('#delContrato').innerHTML = '';
+  $('#selContrato').value = ''; $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
   pintarLineas(); render();
 }
 $('#btnNueva').onclick = () => {
@@ -1088,6 +1167,7 @@ function abrir(f){
   SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
   CONTRATO_ID = f.contrato_id || null;
   $('#selContrato').value = CONTRATO_ID || '';
+  $('#delVinculado').innerHTML = '';
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
   toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos
   pintarLineas(); render();
