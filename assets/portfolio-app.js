@@ -1083,13 +1083,11 @@
         + '<button class="cfg-btn cfg-btn-ghost" data-act="cfg-reset">↺ '+t("cfg.restart")+'</button>'
         + '<a class="cfg-btn cfg-btn-wa" href="'+reserveWaUrl(p,cfg)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.02c-.24.68-1.42 1.3-1.95 1.35-.5.05-.96.24-3.24-.68-2.73-1.08-4.45-3.86-4.58-4.04-.13-.18-1.1-1.46-1.1-2.79s.7-1.98.94-2.25c.24-.27.53-.34.7-.34l.5.01c.16 0 .38-.06.59.45.24.57.8 1.98.87 2.12.07.14.12.31.02.49-.09.18-.14.29-.28.45l-.42.49c-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.18.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.82.87.27.14.44.2.5.31.07.11.07.63-.17 1.31z"/></svg>'+t("reserve.cta")+' <span aria-hidden="true">→</span></a>'
         + '</div>';
-    // El titular se construye con datos reales (nº de parcelas y la más pequeña); sin parcelas
-    // cargadas cae al título genérico.
-    var head = t("cfg.title");
-    if(cfg.landOptions && cfg.landOptions.length){
-      var sizes = cfg.landOptions.map(function(o){ return Number(o.size)||0; }).filter(Boolean);
-      if(sizes.length) head = cfg.landOptions.length+" "+tl("plots","parcelas")+". "+tl("From","Desde")+" "+Math.min.apply(null,sizes)+" m².";
-    }
+    // Cabecera calcada del PDF del cliente (p.3, "Control your investment in / The Smart Way" —
+    // mismo kicker que ya usa la sección a sangre de pago, 7-ago). El nº de parcelas y la más
+    // pequeña, que antes ERA el titular, no se pierde: pasa al subtítulo, que en el PDF va vacío.
+    var sizes = (cfg.landOptions && cfg.landOptions.length) ? cfg.landOptions.map(function(o){ return Number(o.size)||0; }).filter(Boolean) : [];
+    var plotsSub = sizes.length ? cfg.landOptions.length+" "+tl("plots","parcelas")+". "+tl("From","Desde")+" "+Math.min.apply(null,sizes)+" m²." : t("cfg.sub");
     // El contador de paso se pinta SIEMPRE (con la configuración a cero también hay que saber dónde
     // se está); el total solo cuando hay algo elegido — un "Total 0 €" no es un dato, es ruido.
     var totalBox = '<div class="cfg-total'+(cfg.configuredEUR>0?'':' cfg-total-bare')+'">'
@@ -1097,9 +1095,9 @@
       + '<span class="cfg-total-s">'+tl("Step","Paso")+' '+(idx+1)+' / '+steps.length+'</span></div>';
     return '<div class="cfg-card">'
       + '<header class="cfg-head"><div class="cfg-head-l">'
-      +   '<div class="kicker">'+tl("The Masterplan","El masterplan")+'</div>'
-      +   '<h3 class="cfg-title">'+esc(head)+'</h3>'
-      +   '<p class="cfg-sub">'+t("cfg.sub")+'</p></div>'
+      +   '<div class="kicker">'+tl("Control your investment in","Controla tu inversión en")+'</div>'
+      +   '<h3 class="cfg-title">'+esc(tl("The Smart Way","El camino inteligente"))+'</h3>'
+      +   '<p class="cfg-sub">'+esc(plotsSub)+'</p></div>'
       +   totalBox
       + '</header>'
       + '<ol class="cfg-rail" style="--cfg-f:'+frac.toFixed(4)+'">'+rail+'</ol>'
