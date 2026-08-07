@@ -306,7 +306,16 @@ h1,h2,h3{ margin:0; font-weight:300; }
   padding:clamp(48px,7vw,84px) 0 clamp(40px,6vw,64px); }
 .pp-bleed::before{ content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(10,10,8,.72) 0%,rgba(10,10,8,.42) 32%,rgba(10,10,8,.58) 100%); }
-.pp-bleed-in{ position:relative; max-width:1760px; margin:0 auto; padding:0 clamp(20px,4vw,64px); color:var(--bone); }
+.pp-bleed-in{ position:relative; max-width:1760px; margin:0 auto; padding:0 clamp(20px,4vw,64px); color:var(--bone);
+  display:flex; flex-wrap:wrap; justify-content:space-between; gap:clamp(32px,5vw,64px); align-items:flex-start; }
+.pp-bleed-main{ flex:1 1 560px; min-width:0; }
+/* Tarjeta clara "Technical sheet" del plan de pagos (calco Ecomerce.pdf p.4, 7-ago) — mismas filas
+   que la ficha técnica del configurador, mismo aspecto de tarjeta (.pdp-spec), flotando a la
+   derecha de la cascada de pasos igual que en el PDF del cliente. */
+.pp-techcard{ flex:0 1 380px; min-width:280px; background:#fff; border-radius:20px;
+  padding:clamp(22px,2.4vw,30px); box-shadow:0 30px 70px -40px rgba(0,0,0,.55); color:var(--ink); }
+.pp-techcard-from{ font-family:var(--sans); font-size:clamp(24px,2.4vw,30px); font-weight:600;
+  color:var(--ink); margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line); }
 .pp-h1{ font-family:var(--sans); font-weight:300; font-size:clamp(38px,5.2vw,74px); line-height:1.02; letter-spacing:-.01em;
   color:#fff; margin:6px 0 clamp(26px,3.4vw,42px); text-wrap:balance; }
 .pp-bar{ height:2px; background:rgba(255,255,255,.28); border-radius:2px; max-width:900px; margin-bottom:clamp(28px,4vw,48px); }
@@ -631,11 +640,8 @@ article:hover .view-cta { gap:9px; }
 .pdp-wa-float:hover{ transform:scale(1.06) }
 /* ── Ficha: 2 columnas bajo el carrusel — izq 60% (tabla + configurador/payment) · dcha 40% (card) ── */
 .pdp-info-2col{ display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:clamp(24px,3.5vw,52px); align-items:start; }
-/* La tabla blanca se movió a la sección de fotos (revisión cliente 24-jul); el configurador/payment
-   plan es ahora lo primero de su columna → sin margen superior. */
+/* El configurador/payment plan es lo primero de su columna → sin margen superior. */
 .pdp-leftmain{ margin-top:0; }
-/* Tabla blanca de datos, ahora bajo la galería de fotos (subida desde el detalle) */
-.pdp-specs-below{ margin-top:clamp(24px,3vw,40px); }
 
 /* ── FICHA TÉCNICA — hoja de datos (rework 27-jul) ─────────────
    Antes: chips de piedra en rejilla 2×N con el valor SIN etiqueta ("Private pool", "34" y "2028"
@@ -683,7 +689,7 @@ article:hover .view-cta { gap:9px; }
 .pdp-gi-loc-region{ font-family:var(--sans); font-size:13px; font-weight:600; text-align:right; color:var(--ink); }
 .pdp-gi-map{ position:relative; margin-top:14px; }
 .pdp-gi-map-badge{ position:absolute; top:12px; left:12px; z-index:3; display:inline-flex; align-items:center; gap:7px;
-  background:var(--tg-dark); color:var(--bone); font-family:var(--sans); font-size:11px; font-weight:600;
+  background:linear-gradient(100deg,#293f12,#687551); color:var(--bone); font-family:var(--sans); font-size:11px; font-weight:600;
   letter-spacing:.02em; padding:7px 12px; border-radius:999px; }
 .pdp-gi-map-badge svg{ width:14px; height:14px; flex:none; }
 .pdp-gi-map-tenure{ position:absolute; bottom:12px; left:14px; z-index:3; display:flex; align-items:center; gap:8px;
@@ -783,9 +789,6 @@ article:hover .view-cta { gap:9px; }
 /* Gallery thumbnails in property detail */
 #pf-overlay .gallery-thumb { transition:transform .18s var(--ease-press),border-color .2s; }
 #pf-overlay .gallery-thumb:hover { transform:scale(1.04); }
-/* TechSpecs cells — tarjeta blanca sin divisores (guía Ficha p2), solo hover cálido */
-.tech-specs-grid > div { transition:background .22s; border-radius:14px; }
-.tech-specs-grid > div:hover { background:rgba(72,91,55,0.05) !important; }
 /* PropertySidebar CTA buttons */
 .sidebar-cta { transition:transform .16s var(--ease-press),background .22s,color .22s,border-color .22s,opacity .22s !important; }
 .sidebar-cta:active { transform:scale(0.97) !important; }
@@ -1492,7 +1495,7 @@ article:hover .view-cta { gap:9px; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260806175853-mp"></script>
+<script src="assets/portfolio-app.js?v=20260807133404-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

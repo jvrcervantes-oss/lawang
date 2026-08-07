@@ -1755,6 +1755,7 @@ function aplicarReglasCampos(){
   // de buildForm), así que el anexo automático se engancha aquí y no en tres sitios.
   syncAutoAnnex();
   syncParcelaMaster();
+  syncResort();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
 }
@@ -1789,6 +1790,24 @@ function syncParcelaMaster(){
   // el W8 de Balian Hills en un contrato de Sumba sería un terreno de otro sitio.
   campo.value = codigo;
   AUTO_MASTER = codigo;
+  renderDebounced();
+}
+
+/* Resort del proyecto (7-ago): mismo patrón que syncParcelaMaster, sobre
+   TOKENS.resortPorProyecto. Antes "Bonian Village by Balian Hills" era un
+   único texto en proyecto_nombre; ahora son dos campos y este es el que
+   rellena solo el segundo al elegir el primero. */
+let AUTO_RESORT = '';
+function syncResort(){
+  const sel   = document.querySelector('[name="proyecto_nombre"]');
+  const campo = document.querySelector('[name="resort"]');
+  if(!sel || !campo) return;
+  const actual = campo.value.trim();
+  if(actual && actual !== AUTO_RESORT){ AUTO_RESORT = ''; return; }
+  const resort = ((TOKENS && TOKENS.resortPorProyecto) || {})[sel.value] || '';
+  if(resort === actual) return;
+  campo.value = resort;
+  AUTO_RESORT = resort;
   renderDebounced();
 }
 
@@ -2218,6 +2237,15 @@ function collect(){
 /* ---------- merge cliente ---------- */
 function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+/* "Bonian Village by Balian Hills" volvió a ser dos campos el 7-ago (petición
+   del cliente): proyecto_nombre imprime en mayúsculas como siempre, y el
+   resort — si se eligió uno — va detrás entre paréntesis, en su caso normal
+   para distinguirlo del nombre del proyecto de un vistazo. */
+function nombreConResort(d){
+  const nombre = esc(d.proyecto_nombre).toUpperCase();
+  const resort = (d.resort||'').trim();
+  return resort ? `${nombre} (${esc(resort)})` : nombre;
+}
 function injectBrandAndCover(html, data){
   // Título de portada: cov_t = idioma BASE (el del toggle, ES o EN) y va sobre
   // la regla; cov_t_id = traducción Bahasa, que la portada coloca arriba a la
@@ -2225,7 +2253,7 @@ function injectBrandAndCover(html, data){
   const covData = { ...data, cov_t:CURRENT.name[LANG]||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{
     if(!(k in covData) || covData[k]==='') return '';
-    return k==='proyecto_nombre' ? esc(covData[k]).toUpperCase() : esc(covData[k],k);   // mismo criterio que el cuerpo
+    return k==='proyecto_nombre' ? nombreConResort(covData) : esc(covData[k],k);   // mismo criterio que el cuerpo
   });
   // <base> = directorio de app.html → los recursos relativos (css/imgs/fuentes)
   // resuelven en cualquier contexto de impresión (iframe srcdoc, ventana o blob).
@@ -2367,7 +2395,7 @@ function buildDoc(){
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return (SIGN_MODE && k==='firma_adquiriente') ? '%%FIRMA_ADQUIRIENTE%%' : (filled ? data[k] : '');
     if(k==='regimen_tenencia') return filled ? esc(REGIMEN_LABEL[data[k]]||data[k]) : '';   // código → etiqueta legible
-    if(k==='proyecto_nombre') return filled ? esc(data[k]).toUpperCase() : '';   // el nombre de proyecto va SIEMPRE en mayúsculas
+    if(k==='proyecto_nombre') return filled ? nombreConResort(data) : '';   // el nombre de proyecto va SIEMPRE en mayúsculas
     return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
   });
   html=idrEquiv(html, data);   // "79.000 EUR" → "79.000 EUR (≈ 1.343.000.000 IDR)"
@@ -2438,8 +2466,13 @@ function deriveSections(){
   // Estos dos no tienen marcador propio en la plantilla y aun así se preguntan:
   // el proyecto porque identifica el contrato en la lista de guardados (desde el
   // 22-jul ya no se imprime en la portada), y el tipo de cambio porque el motor
-  // lo usa para la equivalencia en IDR de cada importe (ver idrEquiv).
+  // lo usa para la equivalencia en IDR de cada importe (ver idrEquiv). resort
+  // va siempre junto a proyecto_nombre (7-ago): son el mismo dato separado en
+  // dos campos desde que dejó de escribirse "Bonian Village by Balian Hills"
+  // como un único texto — ninguna plantilla trae {{resort}} como marcador
+  // propio, así que sin este añadido el campo no sobreviviría al filtro.
   inDoc.add('proyecto_nombre');
+  inDoc.add('resort');
   if(inDoc.has('moneda')) inDoc.add('tipo_cambio_idr');
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea

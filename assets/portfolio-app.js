@@ -515,54 +515,14 @@
       + '</div>';
   }
 
-  // Franja de specs — tarjeta CLARA (guía Ficha, jul-2026): SOLO 6 campos según referencia —
-  //    Tenure, Delivery, Status, Units, Available, Highlight. Etiqueta verde con filete, valor
-  //    grande Burnt Earth; el highlight (metaText) en verde.
-  function techSpecsHTML(p){
-    // Revisión cliente 23-jul: si el admin trae celdas propias (p.techSpecs = [{l,v}]), mandan
-    // ellas — texto libre. Sin ellas, la banda se construye sola como hasta ahora (fallback
-    // para las propiedades que el cliente aún no ha tocado).
-    if(p.techSpecs && p.techSpecs.length){
-      var custom = p.techSpecs.filter(function(sp){ return sp && (sp.l||sp.v); });
-      if(custom.length) return specCellsHTML(custom.map(function(sp){ return {l:sp.l||"", v:sp.v||"", hi:!!sp.hi}; }));
-    }
-    var isF = p.tenure==="tenure.freehold";
-    var specs = [];
-    specs.push({l:t("glance.tenure"), v:isF?"Freehold HGB":("Leasehold "+(p.leaseYears||30)+"yr")});
-    specs.push({l:t("glance.delivery"), v:(p.handover&&p.handover!=="—")?p.handover:tl("On request","A consultar")});
-    if(p.status) specs.push({l:t("glance.status"), v:t(p.status)});
-    if(p.unitsTotal) specs.push({l:t("glance.units"), v:(p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / "+p.unitsTotal:String(p.unitsTotal))});
-    // Available: menor parcela disponible → si no hay parcelas, área construida → terreno
-    var avail = null;
-    if(p.landOptions&&p.landOptions.length){ var sz=p.landOptions.map(function(o){return Number(o.size)||0;}).filter(Boolean); if(sz.length) avail=tl("From ","Desde ")+Math.min.apply(null,sz)+" m²"; }
-    if(!avail && p.built>0) avail = p.built+" m²";
-    if(!avail && p.land>0)  avail = p.land+" m²";
-    if(avail) specs.push({l:tl("Available","Disponible"), v:avail});
-    // El metaText es ahora el claim grande del hero; la 6ª celda la ocupa el dato legal que
-    // antes vivía en el sidebar (eliminado según la guía): la PT PMA de las freehold.
-    // El importe orientativo de la PT PMA sigue detallado en la nota del plan de pagos; aquí basta
-    // "Included" para que el valor quepa en una línea como en la guía.
-    if(isF) specs.push({l:t("glance.ptpma"), v:tl("Included","Incluida"), hi:true});
-    if(specs.length===0) return "";
-    return specCellsHTML(specs);
-  }
-  // Tarjeta blanca que abraza su contenido (guía Ficha p2): sin height:100% — estirarla dejaba
-  // un hueco blanco enorme. flex:auto + nowrap → cada valor en una línea y el sobrante se reparte.
-  function specCellsHTML(specs){
-    var cells = specs.map(function(sp){
-      var val = sp.hi ? 'var(--tg)' : 'var(--be)';
-      return '<div style="flex:1 1 auto;padding:22px 24px">'
-        + '<div style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);border-bottom:1.5px solid rgba(72,91,55,.32);padding-bottom:6px;margin-bottom:11px;font-family:var(--sans);white-space:nowrap">'+esc(sp.l)+'</div>'
-        + '<div style="font-family:var(--sans);font-size:clamp(18px,1.6vw,23px);font-weight:600;color:'+val+';line-height:1.15;white-space:nowrap">'+esc(sp.v)+'</div></div>';
-    }).join("");
-    return '<div class="tech-specs-grid" style="background:#fff;border-radius:14px;display:flex;flex-wrap:wrap;box-shadow:0 20px 50px -38px rgba(27,26,21,.4)">'+cells+'</div>';
-  }
+  // (Franja de specs a ancho completo — retirada 7-ago: se movió dentro de gallerySidebarHTML,
+  // encima de "The Location", que es donde vive en el PDF del cliente. Ver p.techSpecs ahí.)
 
   // (tarjeta verde "Talk to the team" eliminada — revisión cliente 23-jul; el contacto queda en
   //  la burbuja flotante de WhatsApp y el CTA del topbar)
-  // Revisión cliente 23-jul: fuera la tarjeta verde "Talk to the team" — la banda blanca ocupa
-  // todo el ancho. El gate de descargas (que vivía en esa columna) se conserva debajo.
-  // ── Card de información (revisión cliente 23-jul): a la DERECHA de la tabla blanca, bajo el
+  // Revisión cliente 23-jul: fuera la tarjeta verde "Talk to the team". El gate de descargas
+  // (que vivía en esa columna) se conserva debajo.
+  // ── Card de información (revisión cliente 23-jul): a la DERECHA del configurador/payment plan.
   //    carrusel. Overview + toda la ficha técnica que tengamos + mapa (si hay) + descargar dossier
   //    (con la puerta de email). Sustituye a la vieja tarjeta verde de contacto.
   // Rework 27-jul: deja de ser una bolsa de chips iguales. Ahora es una HOJA DE DATOS — overview,
@@ -587,14 +547,23 @@
     var overview = pick(p.desc);
     var overviewHTML = overview ? '<div class="kicker">'+t("pd.overview")+'</div><p class="pdp-gi-overview">'+esc(overview)+'</p>' : "";
 
+    // Si el admin trae celdas propias (p.techSpecs, texto libre) mandan ellas — MISMA prioridad
+    // que techSpecsHTML antes de que esta caja se moviera aquí (revisión cliente, 7-ago): la banda
+    // blanca vivía a ancho completo bajo las dos columnas, duplicando y desordenando lo que esta
+    // caja ya mostraba encima de "The Location". Un solo sitio, un solo dato.
     var info = [];
-    var addI = function(l,v){ if(v!=null&&v!=="") info.push({l:l,v:v}); };
-    addI(tl("Delivery","Entrega"), p.handover);
-    addI(tl("Status","Estado"), p.status?t(p.status):null);
-    addI(tl("Units","Unidades"), p.unitsTotal?((p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+"/":"")+p.unitsTotal):null);
-    var sizes = (cfg&&cfg.landOptions&&cfg.landOptions.length) ? cfg.landOptions.map(function(o){return Number(o.size)||0;}).filter(Boolean) : [];
-    var minSize = sizes.length ? Math.min.apply(null,sizes) : (p.land>0?p.land:null);
-    addI(tl("Available","Disponible"), minSize ? tl("From ","Desde ")+minSize+" m²" : null);
+    if(p.techSpecs && p.techSpecs.length){
+      info = p.techSpecs.filter(function(sp){ return sp && (sp.l||sp.v); })
+        .map(function(sp){ return {l:sp.l||"", v:sp.v||""}; });
+    } else {
+      var addI = function(l,v){ if(v!=null&&v!=="") info.push({l:l,v:v}); };
+      addI(tl("Delivery","Entrega"), p.handover);
+      addI(tl("Status","Estado"), p.status?t(p.status):null);
+      addI(tl("Units","Unidades"), p.unitsTotal?((p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+"/":"")+p.unitsTotal):null);
+      var sizes = (cfg&&cfg.landOptions&&cfg.landOptions.length) ? cfg.landOptions.map(function(o){return Number(o.size)||0;}).filter(Boolean) : [];
+      var minSize = sizes.length ? Math.min.apply(null,sizes) : (p.land>0?p.land:null);
+      addI(tl("Available","Disponible"), minSize ? tl("From ","Desde ")+minSize+" m²" : null);
+    }
     var infoHTML = info.length ? '<div class="pdp-gi-info">'+info.map(function(r){
       return '<div class="pdp-gi-info-cell"><span class="pdp-gi-info-l">'+esc(r.l)+'</span><b>'+esc(r.v)+'</b></div>';
     }).join("")+'</div>' : "";
@@ -612,18 +581,25 @@
     return '<aside class="pdp-gi">'+badgesHTML+overviewHTML+infoHTML+locHTML+'</aside>';
   }
 
-  function infoCardHTML(p, cfg){
-    var overview = pick(p.desc);
+  // Filas de la ficha técnica — compartidas entre la columna del configurador (infoCardHTML) y
+  // la tarjeta del plan de pagos (calco Ecomerce.pdf p.3 y p.4: el cliente repite la misma hoja
+  // en las dos secciones, 7-ago). La ficha sigue lo que se va eligiendo en el configurador (villa
+  // elegida manda sobre hab./construido, parcela elegida en el masterplan manda sobre la parcela
+  // — con su m² REAL de Supabase, no el escalón aproximado de landOptions); antes de elegir nada
+  // (cualquier visitante nuevo, que es como se ve esta ficha en el PDF) cae al primer modelo/
+  // primera parcela del configurador como referencia — nunca un dato inventado, son valores
+  // reales del propio configurador, solo que todavía no son LOS elegidos.
+  function techSheetRows(p, cfg){
     var rows = [];
     var add = function(ico, l, v){ if(v!==null && v!==undefined && v!=="") rows.push({ico:ico, l:l, v:String(v)}); };
-    // La ficha técnica sigue lo que se va eligiendo en el configurador (revisión 6-ago): villa
-    // elegida manda sobre hab./construido, parcela elegida en el masterplan manda sobre la
-    // parcela — con su m² REAL (Supabase), no el escalón aproximado de landOptions.
-    var model = (cfg && cfg.models && cfg.modelIdx>=0) ? cfg.models[cfg.modelIdx] : null;
-    var beds = model && model.beds ? model.beds : p.beds;
-    var built = model && model.built ? model.built : p.built;
+    var model = (cfg && cfg.models)
+      ? (cfg.modelIdx>=0 ? cfg.models[cfg.modelIdx] : cfg.models[0])
+      : null;
+    var beds = (model && model.beds) ? model.beds : p.beds;
+    var built = (model && model.built) ? model.built : p.built;
     var plotStatus = S.plotCode ? S.plotsStatus[S.plotCode] : null;
-    var plotM2 = (plotStatus && plotStatus.superficie_m2) ? plotStatus.superficie_m2 : p.land;
+    var plotFallback = (cfg && cfg.landOptions && cfg.landOptions[0]) ? Number(cfg.landOptions[0].size)||0 : 0;
+    var plotM2 = (plotStatus && plotStatus.superficie_m2) ? plotStatus.superficie_m2 : (p.land>0 ? p.land : plotFallback);
     var plotLabel = plotM2 ? (plotM2+" m²"+(S.plotCode?" ("+S.plotCode+")":"")) : null;
     if(beds>0)  add("beds",  tl("Bedrooms","Habitaciones"), beds);
     if(p.baths>0) add("baths", tl("Bathrooms","Baños"), p.baths);
@@ -638,9 +614,16 @@
     if(p.status)  add("status", tl("Status","Estado"), t(p.status));
     if(p.handover && p.handover!=="—") add("delivery", tl("Delivery","Entrega"), p.handover);
     if(p.unitsTotal) add("units", tl("Units","Unidades"), (p.unitsAvailable!=null&&p.unitsAvailable!==""?p.unitsAvailable+" / ":"")+p.unitsTotal);
-    var sheet = rows.length ? '<div class="pdp-spec-hd">'+tl("Technical sheet","Ficha técnica")+'</div><dl class="pdp-spec-list">'+rows.map(function(r){
+    return rows;
+  }
+  function techSheetHTML(rows){
+    return rows.length ? '<div class="pdp-spec-hd">'+tl("Technical sheet","Ficha técnica")+'</div><dl class="pdp-spec-list">'+rows.map(function(r){
         return '<div class="pdp-spec-row"><dt><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(FEAT_ICONS[r.ico]||FEAT_ICONS.type)+'</svg>'+esc(r.l)+'</dt><dd>'+esc(r.v)+'</dd></div>';
       }).join("")+'</dl>' : "";
+  }
+  function infoCardHTML(p, cfg){
+    var overview = pick(p.desc);
+    var sheet = techSheetHTML(techSheetRows(p, cfg));
     // Dossier: SIEMPRE presente (petición cliente 23-jul: "añade descargar el dossier, lo teníamos
     // hecho"). Con archivos → gate de email que los desbloquea; sin archivos → gate que capta el
     // email como lead y confirma envío. downloadsHTML degrada solo si files está vacío.
@@ -859,14 +842,25 @@
         + '</div>';
     }).join("");
     var deliveryTxt = p.handover || "";
+    // Tarjeta clara "Technical sheet" flotando a la derecha (calco PDF p.4, 7-ago): mismas filas
+    // que infoCardHTML — un solo generador, dos sitios donde el cliente la pide.
+    var sheetRows = techSheetRows(p, cfg);
+    var techCard = '<aside class="pp-techcard">'
+      + '<div class="pp-techcard-from">'+priceHTML(p.priceEUR,true)+'</div>'
+      + techSheetHTML(sheetRows)
+      + '<div class="pdp-spec-dossier">'+downloadsHTML((p.downloads&&p.downloads.length)?p.downloads:[],p)+'</div>'
+      + '</aside>';
     return '<div class="pp-bleed"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
       + '<div class="pp-bleed-in">'
+      + '<div class="pp-bleed-main">'
       + '<div class="kicker" style="color:var(--sc)">'+tl("Control your investment in","Controla tu inversión en")+'</div>'
       + '<h2 class="pp-h1">'+t("pay.title")+'</h2>'
       + '<div class="pp-bar"><span style="width:'+(frac*100).toFixed(1)+'%"></span></div>'
       + '<div class="pp-steps">'+cards+'</div>'
       + (deliveryTxt ? '<div class="pp-delivery"><div class="pp-delivery-l"><span class="kicker" style="color:rgba(245,240,230,.7)">'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>'
         + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>' : "")
+      + '</div>'
+      + techCard
       + '</div></div>';
   }
 
@@ -1318,16 +1312,15 @@
     var payBleed = (isDeliveredNotForSale) ? "" : paymentPlanBleedHTML(p, cfg);
     var split  = splitSectionHTML(p);
     var bleed  = bleedSectionHTML(p);
-    var techTable = techSpecsHTML(p);   // sube a la sección de fotos (revisión cliente 24-jul)
     var gallerySide = gallerySidebarHTML(p, cfg);   // calco PDF p.2, 6-ago
     // Secciones de la ficha (sin scroll-snap: se leen del tirón).
     return '<div>'
       + heroHTML(p)
       // Fotos: cabecera + galería (izq) + columna villa/overview/entrega/ubicación (dcha, calco
-      // PDF p.2) + la tabla blanca de datos libre, a ancho completo debajo de las dos.
+      // PDF p.2 — la caja Delivery/Status/Units/Available vive aquí, no aparte a ancho completo).
       + sec('<div class="wrap pdp-wrap">'+headerHTML
           + (gallerySide ? '<div class="pdp-info-2col"><div>'+galleryHTML(p)+'</div><div>'+gallerySide+'</div></div>' : galleryHTML(p))
-          + (techTable?'<div class="pdp-specs-below">'+techTable+'</div>':"")+'</div>')
+          + '</div>')
       // Detalle: izq configurador/payment plan · dcha ficha técnica (vuelta a la posición
       // original 6-ago — el traslado a su propia sección de abajo se deshizo el mismo día).
       // La reactividad sí se queda: infoCardHTML(p,cfg) sigue lo elegido en el configurador
