@@ -292,7 +292,8 @@
          precio:'Precio', unidad:'Unidad', fecha_firma:'Fecha de firma', cobrado:'Pagado hasta hoy',
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
-         descargar:'Descargar contrato firmado', imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
+         descargar:'Descargar contrato firmado', ver_contrato:'Ver contrato firmado',
+         imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
          factura:'Factura', recibi:'Recibo', proforma:'Proforma',
          f_numero:'Nº', f_tipo:'Tipo', f_fecha:'Fecha', f_total:'Importe', total:'Total',
          f_cliente:'Cliente', f_proyecto:'Proyecto', f_concepto:'Concepto', f_importe:'Importe',
@@ -328,7 +329,8 @@
          precio:'Price', unidad:'Unit', fecha_firma:'Signing date', cobrado:'Paid to date',
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
-         descargar:'Download signed contract', imprimir:'Print or save as PDF', cerrar:'Close',
+         descargar:'Download signed contract', ver_contrato:'View signed contract',
+         imprimir:'Print or save as PDF', cerrar:'Close',
          factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
          f_numero:'No.', f_tipo:'Type', f_fecha:'Date', f_total:'Amount', total:'Total',
          f_cliente:'Client', f_proyecto:'Project', f_concepto:'Description', f_importe:'Amount',
@@ -431,8 +433,13 @@
     var docAbierto = suiCajonAbierto() ? document.getElementById('suiCajon').dataset.doc : null;
     if (RUTA.doc){
       if (docAbierto !== RUTA.doc){
-        var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === RUTA.doc; })[0];
-        if (f) abreFactura(f); else vasA(RUTA.sec, null, true);
+        if (RUTA.sec === 'contratos'){
+          var c = (DATOS && DATOS.contratos || []).filter(function(x){ return x.numero === RUTA.doc; })[0];
+          if (c) abreContrato(c); else vasA(RUTA.sec, null, true);
+        } else {
+          var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === RUTA.doc; })[0];
+          if (f) abreFactura(f); else vasA(RUTA.sec, null, true);
+        }
       }
     } else if (docAbierto) suiCerrarCajon();
   }
@@ -693,8 +700,8 @@
                 '<td class="num">' + (isNaN(x.monto) ? '—' : esc(dinero(x.monto, c.moneda))) + '</td>' +
                 '<td><span class="sui-tag ' + TAG[x.estado] + '">' + esc(t(x.estado)) + '</span></td></tr>';
             }).join('') + '</tbody></table></div>' : '') +
-          (c.pdf ? '<div class="op-pie"><button type="button" class="sui-btn" data-pdf="' + esc(c.pdf) + '">' +
-                   esc(t('descargar')) + '</button></div>' : '') +
+          (c.pdf ? '<div class="op-pie"><button type="button" class="sui-btn" data-contrato="' + esc(c.numero) + '">' +
+                   esc(t('ver_contrato')) + '</button></div>' : '') +
         '</div>';
       }).join('');
     }
@@ -790,17 +797,8 @@
   });
 
   document.addEventListener('click', function(e){
-    var b = e.target.closest('[data-pdf]');
-    if (b){
-      b.disabled = true;
-      sb.storage.from('contratos-firmados').createSignedUrl(b.getAttribute('data-pdf'), 600)
-        .then(function(r){
-          b.disabled = false;
-          if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank');
-          else toast(t('err_carga'));
-        });
-      return;
-    }
+    var bc = e.target.closest('[data-contrato]');
+    if (bc){ vasA('contratos', bc.getAttribute('data-contrato')); return; }
     var tr = e.target.closest('tr[data-fac]');
     if (tr){ vasA('facturas', tr.getAttribute('data-fac')); return; }
 
@@ -890,6 +888,27 @@
       window.print();
       document.body.classList.remove('imprimiendo');
     };
+  }
+
+  /* Mismo cajón, pero el documento real de un contrato es el PDF que ya firmó
+     y guardó `firma-submit` en `contratos-firmados` — no hay un documentoHTML()
+     para contratos (son plantillas legales enteras, no una hoja de una página)
+     así que se incrusta el PDF tal cual; el visor nativo del navegador ya trae
+     imprimir/descargar/zoom, así que el cajón no necesita reconstruirlos. */
+  function abreContrato(c){
+    if (!c || !c.pdf) return;
+    sb.storage.from('contratos-firmados').createSignedUrl(c.pdf, 600).then(function(r){
+      if (!r.data || !r.data.signedUrl){ toast(t('err_carga')); return; }
+      suiAbrirCajon({
+        titulo: esc(c.numero),
+        sub: esc((c.proyecto || '') + (c.parcela ? ' · ' + t('unidad') + ' ' + c.parcela : '')),
+        cuerpo: '<iframe src="' + esc(r.data.signedUrl) + '" style="width:100%;height:100%;border:0" title="' + esc(c.numero) + '"></iframe>',
+        pie: '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
+        onCerrar: function(){ if (RUTA.doc) vasA(RUTA.sec, null); }
+      });
+      document.getElementById('suiCajon').dataset.doc = c.numero;
+      document.getElementById('btnCerrarDoc').onclick = suiCerrarCajon;
+    });
   }
 
   suiMontarCajon();
