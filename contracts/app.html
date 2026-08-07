@@ -1563,6 +1563,26 @@ function limpiarOverrides(slug){
   delete OVERRIDES[slug]; saveOverrides(); HUERFANOS = [];
 }
 
+/* Estado de un contrato en blanco (7-ago, bug reportado por el cliente):
+   Adquirientes adicionales, Anexos y Cláusulas viven en localStorage SIN
+   namespacing por contrato (mismo motivo que las ediciones de texto de arriba
+   — "sin caducar" —, mismo fallo). El cambio de tipo de plantilla y "Copiar
+   datos" ya limpiaban lo suyo cada uno por su lado; "+ Nuevo contrato" no
+   llamaba a nada de esto, así que los adquirientes/anexos/cláusulas de la
+   última plantilla abierta se colaban en el contrato en blanco siguiente —
+   un dato de un cliente apareciendo en el borrador de otro. Se deja fuera
+   DESIGN a propósito: ese sí es "por plantilla" de verdad (la marca/color del
+   tipo de documento), no algo que deba reiniciarse por contrato. */
+function resetBorrador(slug){
+  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  limpiarOverrides(slug);
+  COMPRADORES = []; saveCompradores();
+  ANNEXES = []; saveAnnexes();
+  CLAUSES = []; saveClauses();
+  ADQ1_EMAILS = [];
+  AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
+}
+
 /* huellaBloque() vive en assets/huella.js (con su test en node: el mismo patrón
    que facturas/totales.js). Aquí solo se le pasa el texto del párrafo. */
 
@@ -2603,10 +2623,10 @@ function buildPicker(){
   // El número va SOLO en el desplegable, no en t.name: ese nombre se imprime en
   // la portada del contrato y da nombre al PDF, y ahí un "2." no pinta nada.
   sel.innerHTML = TEMPLATES.filter(t=>!t.disabled).map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
-  sel.addEventListener('change', async ()=>{ SAVED_CONTRACT=null; LOCKED=false; LOCKED_PDF_PATH=null;
-    // cambiar de tipo arranca un documento nuevo: las ediciones a mano del
-    // anterior no viajan con él (ver limpiarOverrides)
-    limpiarOverrides(sel.value);
+  sel.addEventListener('change', async ()=>{
+    // cambiar de tipo arranca un documento nuevo: nada del anterior viaja con
+    // él (ver resetBorrador — ediciones de texto, adquirientes, anexos, cláusulas)
+    resetBorrador(sel.value);
     await loadTemplate(sel.value); buildForm();
     updateSaveButton(); editBtnIdle();
     if(DESIGN.coverColor===''){ const c=$('#coverColor'); if(c) c.value=CURRENT.cover; } });
@@ -3122,7 +3142,17 @@ function pantallaC(cual, params){
   if(cual === 'listado') openContractsPanel();
 }
 $('#btnContracts').addEventListener('click', () => pantallaC('listado', ''));
-$('#btnNuevoC').addEventListener('click', () => pantallaC('editor', 'nuevo=1'));
+// "+ Nuevo contrato" solo cambiaba de pantalla, sin reconstruir nada: si antes
+// se había abierto otro contrato, su formulario (adquirientes, anexos,
+// cláusulas, campos ya rellenados) se quedaba tal cual en pantalla, solo que
+// ahora parecía un borrador en blanco. resetBorrador() + buildForm() lo dejan
+// realmente en blanco — mismo tipo de plantilla que hubiera puesto (CURRENT
+// no cambia), pero sin nada del contrato anterior.
+$('#btnNuevoC').addEventListener('click', () => {
+  resetBorrador(CURRENT.slug);
+  buildForm();
+  pantallaC('editor', 'nuevo=1');
+});
 $('#cpClose').addEventListener('click', ()=> $('#cpOverlay').classList.remove('open'));
 
 /* rellena el form ya construido con los valores guardados (inverso de collect()) */
