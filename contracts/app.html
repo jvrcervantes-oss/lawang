@@ -3001,12 +3001,18 @@ async function enviarEmail(){
   if(file && file.size > 100*1024*1024){ toast('El PDF supera los 100MB'); return; }
   const btn=$('#emSend'); btn.disabled=true; btn.textContent='Enviando…';
   try{
-    // se manda siempre el HTML de la vista previa (el servidor lo renderiza con
-    // el servicio Puppeteer); si además se adjuntó un PDF a mano, va también
-    // como pdf_base64 — el servidor lo usa de respaldo si el render falla.
+    // se manda siempre el HTML de la vista previa; si además se adjuntó un PDF
+    // a mano, va también como pdf_base64 — de respaldo si el render falla.
+    // Va a la Edge Function send-contract-email, NO directo a send_email.php:
+    // el WAF de Hostinger bloquea con 403 el HTML con portada de diseño
+    // (LAW-30). La Edge renderiza el PDF vía Railway (fuera del WAF) y llama
+    // a send_email.php ya solo con el PDF — mismo patrón que firma-submit.
     const payload = { to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:pdfFilename(), html: buildDoc() };
     if(file){ payload.filename = file.name; payload.pdf_base64 = await blobToBase64(file); }
-    const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
+    const s = await sb.auth.getSession();
+    const token = s && s.data && s.data.session && s.data.session.access_token;
+    const r = await fetch(SUPABASE_URL + '/functions/v1/send-contract-email', { method:'POST',
+      headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
       body: JSON.stringify(payload) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
     if(d.ok){ toast('Email enviado a ' + to); $('#emOverlay').classList.remove('open'); }
