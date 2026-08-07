@@ -1566,8 +1566,18 @@ function limpiarOverrides(slug){
 /* huellaBloque() vive en assets/huella.js (con su test en node: el mismo patrón
    que facturas/totales.js). Aquí solo se le pasa el texto del párrafo. */
 
-/* etiqueta cada bloque de texto con data-eid, marca editables los que no
-   tienen marcador y aplica los overrides guardados de la plantilla activa */
+/* etiqueta cada bloque de texto con data-eid, marca editable TODO el bloque
+   (incluidos los que llevan campos) y aplica los overrides guardados de la
+   plantilla activa.
+   Hasta el 7-ago un párrafo con un marcador {{...}} no se podía tocar a mano
+   en absoluto — a petición del cliente ahora sí: el texto alrededor de un
+   campo se edita igual que cualquier otro, y el campo en sí queda protegido
+   dentro de su propio bloque (ver .campo-fijo en buildDoc/idrEquiv) en vez de
+   vetar el párrafo entero. Sin esa protección, guardar una edición hecha SOBRE
+   el valor ya sustituido (p.ej. el nombre de ESTE cliente) lo dejaría grabado
+   para siempre en la plantilla, imprimiéndose igual en todos los contratos
+   siguientes — por eso limpiaEdicion() lo revierte al marcador antes de
+   guardar, no al valor de hoy. */
 function applyEditsAndTag(html){
   const ov = OVERRIDES[CURRENT.slug] || {};
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -1575,13 +1585,11 @@ function applyEditsAndTag(html){
   doc.querySelectorAll('.doc p, .doc li').forEach(el=>{
     const eid = huellaBloque(el.textContent, vistas);
     el.setAttribute('data-eid', eid);
-    if(!/\{\{/.test(el.innerHTML)){
-      el.setAttribute('data-editable','1');
-      // Se sanea también AL APLICAR, no solo al capturar: los overrides que ya
-      // quedaron guardados con el idioma vecino dentro (ver limpiaEdicion) se
-      // imprimen bien sin tener que tocar el contrato en la base de datos.
-      if(ov[eid]!=null){ usados.add(eid); el.innerHTML = ov[eid]; el.innerHTML = limpiaEdicion(el); }
-    }
+    el.setAttribute('data-editable','1');
+    // Se sanea también AL APLICAR, no solo al capturar: los overrides que ya
+    // quedaron guardados con el idioma vecino dentro (ver limpiaEdicion) se
+    // imprimen bien sin tener que tocar el contrato en la base de datos.
+    if(ov[eid]!=null){ usados.add(eid); el.innerHTML = ov[eid]; el.innerHTML = limpiaEdicion(el); }
   });
   // Lo que sobra son ediciones hechas sobre una versión anterior de la plantilla
   // (o con el esquema viejo de ordinales). NO se aplican en ningún otro sitio:
@@ -1621,10 +1629,18 @@ function enterEdit(){
   EDITING=true;
   d.querySelectorAll('[data-editable]').forEach(el=>{ el.contentEditable='true';
     el.style.outline='1px dashed rgba(72,91,55,.55)'; el.style.outlineOffset='2px'; });
+  // los campos (nombres, importes, fechas…) van dentro de su párrafo editable
+  // pero contenteditable="false" impide tocarlos — un tono distinto para que
+  // se note a simple vista cuál es texto libre y cuál viene del formulario.
+  // No hace falta desmarcarlo al salir: exitEdit() llama a render(), que
+  // reconstruye el srcdoc entero y con él cualquier estilo puesto aquí.
+  d.querySelectorAll('.campo-fijo').forEach(el=>{
+    el.style.background='rgba(180,140,40,.16)'; el.style.borderRadius='3px';
+    el.style.padding='0 2px'; el.style.cursor='not-allowed'; });
   d.addEventListener('input', captureEdit, true);
   const b=$('#btnEdit'); b.textContent='✓ Hecho'; b.classList.add('editing');
   $('#btnEditReset').style.display='inline-flex';
-  toast('Edición ON · reescribe los párrafos remarcados; los datos ({{…}}) se editan por campos');
+  toast('Edición ON · reescribe el texto libre; lo resaltado en dorado son campos del formulario y no se toca aquí');
 }
 /* Al editar en pantalla, un borrado al principio o al final del párrafo hace que
    Chromium FUSIONE el bloque vecino dentro del que se está editando. Como las dos
@@ -1674,6 +1690,13 @@ function limpiaEdicion(el){
   const propio = el.getAttribute('data-lang');
   const tmp = el.cloneNode(true);
   if(propio) tmp.querySelectorAll('[data-lang]').forEach(n=>{ if(n.getAttribute('data-lang')!==propio) n.remove(); });
+  // Revertir cada campo protegido a su MARCADOR antes de guardar — no al valor
+  // sustituido de hoy (contentEditable=false impide tocarlo, pero sigue siendo
+  // el nombre/importe de ESTE contrato). saneaNodo, justo abajo, desenvuelve el
+  // <span> (no lleva data-lang) y deja el texto «{{clave}}» suelto — el mismo
+  // marcador que la plantilla original, listo para que el próximo contrato de
+  // este tipo lo rellene con SU propio dato.
+  tmp.querySelectorAll('.campo-fijo[data-campo]').forEach(n=>{ n.textContent = '{{' + n.getAttribute('data-campo') + '}}'; });
   saneaNodo(tmp, el.ownerDocument || document);
   return tmp.innerHTML;
 }
@@ -2241,6 +2264,16 @@ function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/
    del cliente): proyecto_nombre imprime en mayúsculas como siempre, y el
    resort — si se eligió uno — va detrás entre paréntesis, en su caso normal
    para distinguirlo del nombre del proyecto de un vistazo. */
+/* Envuelve el valor de un campo para que sobreviva a "Editar texto" (7-ago):
+   contenteditable="false" lo aísla dentro de un párrafo por lo demás editable
+   (ver applyEditsAndTag), y data-campo es lo que usa saltarACampo() para
+   encontrarlo. Sin esto, escribir a mano sobre el párrafo podría corromper el
+   marcador (ej. "{{adq1_nombr}}" ya no matchea nada) o, peor, guardar el
+   nombre/importe de ESTE cliente como si fuera texto fijo de la plantilla —
+   ver la nota de limpiaEdicion(), que es la otra mitad de esta protección. */
+function campoFijo(k, valueHtml){
+  return `<span class="campo-fijo" contenteditable="false" data-campo="${k}">${valueHtml}</span>`;
+}
 function nombreConResort(d){
   const nombre = esc(d.proyecto_nombre).toUpperCase();
   const resort = (d.resort||'').trim();
@@ -2342,15 +2375,23 @@ function parseImporte(s){
 function idrEquiv(html, data){
   const cur = data.moneda, tasa = parseImporte(data.tipo_cambio_idr);
   if(!cur || cur==='IDR' || !tasa) return html;
-  // .f = hueco de marcador, .mny = importe de la tabla de pagos. En ambos casos
-  // el código de moneda va justo detrás (viene de {{moneda}}, ya sustituido).
-  // el .f también puede llevar data-campo (ver buildDoc → salto de campo), de
-  // ahí el grupo opcional: sin él, un contrato con importe se quedaba sin su
-  // equivalencia en IDR en cuanto el hueco pasó a ser saltable.
-  return html.replace(/(<span class="(?:f|mny)[^"]*"(?: data-campo="[a-z0-9_]+")?>)([^<]*)(<\/span>\s*)(EUR|USD|AUD)\b/g,
-    (m, ini, val, fin, mon)=>{
+  // .f = hueco de marcador, .mny = importe de la tabla de pagos (esta última
+  // SIN .campo-fijo: viene de hitosRowsHTML, no de un {{marcador}}). El código
+  // de moneda va justo detrás, casi siempre envuelto en su propio .campo-fijo
+  // (protección de "Editar texto", 7-ago) — de ahí los grupos opcionales: sin
+  // ellos, un contrato con importe se quedaba sin equivalencia en IDR, o peor,
+  // el aviso de IDR se colaba DENTRO del span protegido en vez de detrás.
+  // El \b va PEGADO al código de moneda, antes del cierre opcional: puesto
+  // detrás del `</span>?` no hay límite de palabra entre ">" y ".", así que el
+  // motor descartaba ese cierre entero y lo dejaba suelto en el HTML.
+  return html.replace(
+    /(<span class="(?:f|mny)[^"]*">)(<span class="campo-fijo"[^>]*>)?([^<]*)(<\/span>)?(<\/span>\s*)(<span class="campo-fijo"[^>]*>)?(EUR|USD|AUD)\b(<\/span>)?/g,
+    (m, ini, cfIniA, val, cfFinA, fin, cfIniB, mon, cfFinB)=>{
       const n = parseImporte(val);
-      return n===null ? m : `${ini}${val}${fin}${mon} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
+      if(n===null) return m;
+      const valEnvuelto = (cfIniA||'') + val + (cfFinA||'');
+      const monEnvuelto = (cfIniB||'') + mon + (cfFinB||'');
+      return `${ini}${valEnvuelto}${fin}${monEnvuelto} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
     });
 }
 let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota → el hueco de firma sale como centinela %%FIRMA_ADQUIRIENTE%% que firma-submit rellena con la firma real
@@ -2379,24 +2420,31 @@ function buildDoc(){
   html=html.replace(/<!--cuenta:([a-z0-9_]+)-->/g,
     (_m, clave) => tablaCuentaHTML(clave, { titulo:false, escrow:false, clase:'pays kv' }));
   html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
-  // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg, salvo
-  // que la plantilla ya traiga su propio tamaño escrito, ej. "f f-lg") y
-  // marcarlo con data-campo: es lo que usa saltarACampo() (flecha del form) para
-  // encontrar el hueco en la vista previa. Solo los huecos con el marcador
-  // <span class="f"> en la plantilla saltan — un campo mencionado en prosa
-  // corrida, sin ese hueco, no tiene un punto fijo al que hacer scroll.
+  // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg), salvo
+  // que la plantilla ya traiga su propio tamaño escrito (ej. "f f-lg"). Ya no
+  // marca data-campo aquí: eso lo hace ahora la sustitución genérica de abajo,
+  // que envuelve el VALOR (esté o no dentro de un .f), así saltarACampo()
+  // llega también a los campos que van sueltos en prosa corrida, no solo a
+  // los que tienen hueco marcado.
   html=html.replace(/<span class="f( f-[a-z]+)?">(\{\{([a-z0-9_]+)\}\})<\/span>/g,
-    (m,extraCls,mk,k)=>`<span class="f${extraCls || ' '+sizeClass(k)}" data-campo="${k}">${mk}</span>`);
+    (m,extraCls,mk,k)=>`<span class="f${extraCls || ' '+sizeClass(k)}">${mk}</span>`);
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
   // bloque que solo imprime si un campo vale EXACTAMENTE X (a diferencia de
   // opt:, que solo mira si el campo está relleno) — usado para el régimen
   // de tenencia según nacionalidad del comprador (ver regimen_tenencia).
   html=html.replace(/<!--if:([a-z0-9_]+)=([a-z0-9_]+)-->[\s\S]*?<!--\/if:\1-->/g,(m,k,v)=> (data[k]===v) ? m : '');
+  // Cada campo con valor va envuelto en .campo-fijo: contenteditable="false" es
+  // lo que, dentro de un párrafo editable (ver applyEditsAndTag), impide tocar
+  // el dato aunque se reescriba el texto de alrededor — y data-campo es lo que
+  // usa saltarACampo() para encontrarlo en la vista previa. Las firmas quedan
+  // fuera a propósito: firma-submit busca el centinela %%FIRMA_ADQUIRIENTE%%
+  // como texto literal, y envolverlo es una complicación que no hace falta.
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
     if(k.startsWith('firma')) return (SIGN_MODE && k==='firma_adquiriente') ? '%%FIRMA_ADQUIRIENTE%%' : (filled ? data[k] : '');
-    if(k==='regimen_tenencia') return filled ? esc(REGIMEN_LABEL[data[k]]||data[k]) : '';   // código → etiqueta legible
-    if(k==='proyecto_nombre') return filled ? nombreConResort(data) : '';   // el nombre de proyecto va SIEMPRE en mayúsculas
-    return filled ? esc(data[k],k) : '';   // vacío = en blanco (writable a mano), sin "—"
+    if(!filled) return '';   // vacío = en blanco (writable a mano), sin "—"
+    if(k==='regimen_tenencia') return campoFijo(k, esc(REGIMEN_LABEL[data[k]]||data[k]));   // código → etiqueta legible
+    if(k==='proyecto_nombre') return campoFijo(k, nombreConResort(data));   // el nombre de proyecto va SIEMPRE en mayúsculas
+    return campoFijo(k, esc(data[k],k));
   });
   html=idrEquiv(html, data);   // "79.000 EUR" → "79.000 EUR (≈ 1.343.000.000 IDR)"
   // anexos incluidos → páginas al final del contrato
@@ -2414,9 +2462,11 @@ function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
 let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
 
 /* flecha de salto (pedido del cliente, 7-ago): del campo del formulario al
-   hueco donde imprime en la vista previa. Solo llega a los huecos que la
-   plantilla marca con <span class="f"> (ver buildDoc) — un campo mencionado
-   en prosa corrida, sin ese hueco, no tiene un punto fijo al que saltar. */
+   punto donde imprime en la vista previa. Llega a cualquier campo con valor,
+   esté o no dentro de un hueco <span class="f"> — el mismo .campo-fijo que
+   protege el dato en "Editar texto" (ver buildDoc/campoFijo) es lo que aquí
+   se busca por data-campo. Sin valor no hay nada que imprimir, así que
+   tampoco hay dónde saltar. */
 function saltarACampo(key){
   const fr=$('#pvFrame'); const d=fr && fr.contentDocument; if(!d) return;
   const pane=$('#pane'), fab=$('#fab');
@@ -2424,7 +2474,7 @@ function saltarACampo(key){
   // falta para que el salto tenga algo visible a lo que hacer scroll
   if(fab && getComputedStyle(fab).display!=='none' && pane && !pane.classList.contains('open')) pane.classList.add('open');
   const el = d.querySelector(`[data-campo="${key}"]`);
-  if(!el){ toast('Ese campo no tiene un hueco fijo en este contrato (vacío, o va en el texto corrido)'); return; }
+  if(!el){ toast('Ese campo está vacío en este contrato — no hay nada que imprima todavía'); return; }
   el.scrollIntoView({behavior:'smooth', block:'center'});
   const prevOutline=el.style.outline, prevOffset=el.style.outlineOffset;
   el.style.outline='2px solid #C9A227'; el.style.outlineOffset='2px';
