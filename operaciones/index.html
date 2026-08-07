@@ -137,16 +137,19 @@
   .nota{ font-size:12px; color:var(--muted); margin:10px 0 0; line-height:1.5; }
   .falta{ color:#a3342b; }
 
-  /* pestañas */
-  .tabs{ display:flex; gap:6px; }
+  /* pestañas — mismos valores que el mockup 4a: activa en #EAE4D3/#21272A,
+     inactiva en texto sin fondo. Antes usaba el marco de tarjeta (--card) que
+     el mockup reserva para el toggle Tabla/Embudo, más abajo — dos controles
+     con la misma pinta se leían como el mismo control. */
+  .tabs{ display:flex; gap:4px; }
   /* Las pestañas viven DENTRO de la barra superior, que en móvil ya desplaza en
      horizontal (assets/topbar.css). Aquí solo hace falta que no se aplasten al
      repartir el ancho: medido a 390px la fila se salía 221px y las pestañas
      quedaban ilegibles antes de quedar fuera. */
   .tab{ flex:none; }
-  .tab{ font:inherit; font-size:12.5px; font-weight:500; background:none; border:1px solid transparent;
-        border-radius:999px; padding:6px 14px; cursor:pointer; color:var(--muted); }
-  .tab.on{ background:var(--card); border-color:var(--line); color:var(--dl); }
+  .tab{ font:500 12px 'Jost',sans-serif; background:none; border:none;
+        border-radius:999px; padding:7px 13px; cursor:pointer; color:#4A5052; }
+  .tab.on{ background:#EAE4D3; color:#21272A; font-weight:600; }
   .panel{ display:none; }
   .panel.on{ display:block; }
   .venc{ padding:26px 30px 80px; overflow:auto; grid-column:1 / -1; }
@@ -164,26 +167,50 @@
      columna no se respeta. Es el fallo clásico de esta maqueta. */
   .tablero{ display:grid; gap:var(--e3,12px); align-items:start;
             grid-template-columns:repeat(4, minmax(0, 1fr)); }
+
+  /* Barra de progreso del embudo + leyenda — mockup 4a, encima del tablero.
+     Faltaba entera: `#resumen` solo daba las cifras en texto, sin el reparto
+     visual por etapa que el mockup pone primero (de un vistazo, antes de leer
+     ninguna cifra). Un segmento por etapa, ancho = % de operaciones visibles
+     en esa etapa; mismos colores que la cabecera de columna, ver ETAPA_COLOR. */
+  .barra-etapas{ margin:0 0 8px; }
+  .barra-fill{ display:flex; height:10px; border-radius:999px; overflow:hidden; }
+  .barra-fill span{ height:100%; }
+  .leyenda-etapas{ display:flex; gap:18px; flex-wrap:wrap; margin:8px 0 20px;
+                    font-size:11.5px; color:var(--texto-2,#4A5052); }
+  .leyenda-etapas i{ display:inline-block; width:8px; height:8px; border-radius:2px;
+                      margin-right:5px; vertical-align:middle; }
+
   .col{ display:flex; flex-direction:column; min-width:0;
         height:clamp(340px, calc(100vh - 300px), 720px);
         background:var(--sup-2,#F7F3E9); border:1px solid var(--linea,#E4DCCB);
         border-radius:var(--r-l,16px); overflow:hidden; }
-  .col-cab{ display:flex; align-items:center; gap:8px; padding:11px 13px;
-            border-bottom:1px solid var(--linea,#E4DCCB); background:var(--sup-1,#fff); flex:none; }
-  .col-n{ font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums;
-          color:var(--texto-2,#4A5052); }
-  .col-suma{ margin-left:auto; font-size:12px; font-variant-numeric:tabular-nums;
-             color:var(--texto-3,#676B63); white-space:nowrap; }
+  /* Cabecera de columna: rótulo en TEXTO de color, no pastilla — el mockup
+     reserva la pastilla para las alertas dentro de la tarjeta (Falta ficha),
+     y aquí competían por la misma forma. Recuento y suma en una sola línea,
+     "N · importe", como en 4a. */
+  .col-cab{ display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+            padding:10px 13px; border-bottom:1px solid var(--linea,#E4DCCB);
+            background:var(--sup-1,#fff); flex:none; }
+  .col-cab .col-rotulo{ font-size:11px; font-weight:600; letter-spacing:.08em;
+                         text-transform:uppercase; }
+  .col-suma{ font-size:11.5px; font-variant-numeric:tabular-nums;
+             color:var(--texto-2,#4A5052); white-space:nowrap; }
   .col-cuerpo{ flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain;
                padding:10px; display:flex; flex-direction:column; gap:8px; }
   .col-vacia{ margin:0; padding:14px 4px; font-size:12.5px; color:var(--texto-3,#676B63); text-align:center; }
 
+  /* Acento de columna en el borde superior de la tarjeta (3px, color de la
+     etapa vía --etapa inline) — es lo que deja ver de qué columna es una
+     tarjeta aunque se mire sola, ej. en un scroll largo. Los otros tres lados
+     se quedan en el filete fino de siempre. */
   .tarj{ display:flex; flex-direction:column; gap:4px; text-align:left; font:inherit;
          background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
+         border-top:3px solid var(--etapa,var(--linea,#E4DCCB));
          border-radius:var(--r-m,12px); padding:10px 12px; cursor:pointer; color:inherit;
          transition:border-color .12s, box-shadow .12s, transform .15s ease; }
-  .tarj:hover{ border-color:var(--dl,#104C4F); transform:translateY(-1px);
-               box-shadow:0 6px 16px -10px rgba(16,76,79,.45); }
+  .tarj:hover{ border-color:var(--dl,#104C4F); border-top-color:var(--etapa,var(--dl,#104C4F));
+               transform:translateY(-1px); box-shadow:0 6px 16px -10px rgba(16,76,79,.45); }
   /* Seleccionada: el MISMO lenguaje que la fila de la tabla y que la ficha de
      Unidades — relleno + filete de acento + nº en tinta. Tres señales. */
   .tarj.sel{ background:var(--sup-sel,#EAE4D3); border-color:var(--dl,#104C4F);
@@ -197,6 +224,10 @@
                font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:6px; }
   .tarj-cifra small{ font-size:10px; letter-spacing:.1em; text-transform:uppercase;
                      font-weight:500; color:var(--texto-3,#676B63); }
+  /* Progreso de cobro — solo en la columna "Cobro pendiente" (mockup 4a): lo
+     que ya se facturó de esa operación, sobre el precio total. */
+  .tarj-cobro{ height:5px; border-radius:999px; background:#E7E1D2; overflow:hidden; margin:2px 0; }
+  .tarj-cobro i{ display:block; height:100%; background:#3F5230; }
 
   /* Móvil y pantallas estrechas: las cuatro columnas en fila son ilegibles por
      debajo de ~1000px. Se apilan y cada una recupera alto automático — apiladas,
@@ -240,6 +271,7 @@
           <div class="filtros" id="filtros"></div>
         </div>
         <div class="resumen" id="resumen"></div>
+        <div class="barra-etapas" id="barraEtapas" hidden></div>
         <div class="tablero" id="tablero" hidden></div>
         <div class="sui-tabla-caja" id="caja-tabla">
           <table class="sui-tabla" id="tabla">
@@ -457,6 +489,13 @@ const ETAPAS = [
   ['cobro_pend', 'Cobro pendiente', 'alerta'],
   ['cobro_ok',   'Cobro completo',  'ok'],
 ];
+/* Color de cada etapa en la cabecera de columna, la barra de progreso y la
+   leyenda (mockup 4a) — DISTINTO del `.tag` de dentro de la tarjeta a
+   propósito: "Cobro pendiente" es el estado normal de mitad de proceso, no
+   una alarma, así que aquí va gris y no el rojo de `.tag.alerta` (ese rojo
+   se queda para avisos de verdad, como "Falta ficha"). Cambiar esto NO toca
+   los `.tag` compartidos con el resto de la suite. */
+const ETAPA_COLOR = { sin_firmar:'#8C5E10', firma_viva:'#104C4F', cobro_pend:'#5A6062', cobro_ok:'#3F5230' };
 function etapa(o){
   if(!o.bloqueado) return o.firmas.some(f => f.estado === 'pendiente') ? 'firma_viva' : 'sin_firmar';
   const c = cuenta(o);
@@ -476,8 +515,9 @@ function vista(v){
   if(!x){ try{ x = localStorage.getItem('lawang_operaciones_vista'); }catch(_){} }
   VISTA = (x === 'tablero') ? 'tablero' : 'tabla';
   document.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === VISTA));
-  $('#caja-tabla').hidden = VISTA !== 'tabla';
-  $('#tablero').hidden    = VISTA !== 'tablero';
+  $('#caja-tabla').hidden  = VISTA !== 'tabla';
+  $('#tablero').hidden     = VISTA !== 'tablero';
+  $('#barraEtapas').hidden = VISTA !== 'tablero';
   return VISTA;
 }
 
@@ -519,7 +559,28 @@ function visibles(){
    `pintarLista()` (seleccionar, cerrar el cajon, teclear, cambiar chip,
    cambiar proyecto, recargar): con dos vistas, cada una que se olvidara de
    repintar el tablero lo dejaba mostrando datos viejos al lado de los nuevos. */
-function pintar(){ pintarLista(); pintarTablero(); }
+function pintar(){ pintarLista(); pintarBarraEtapas(); pintarTablero(); }
+
+/* Reparto por etapa de las operaciones visibles ahora mismo, en segmentos
+   proporcionales + leyenda con el %. MISMO conjunto que pinta el tablero
+   (visibles()), así que la barra nunca puede desacompasarse de las columnas
+   de debajo. Sin operaciones no hay nada que repartir: se deja vacía en vez
+   de una barra a 0/0. */
+function pintarBarraEtapas(){
+  const vis = visibles();
+  if(!vis.length){ $('#barraEtapas').innerHTML = ''; return; }
+  const porEtapa = {}; ETAPAS.forEach(([k]) => porEtapa[k] = 0);
+  vis.forEach(o => porEtapa[etapa(o)]++);
+  $('#barraEtapas').innerHTML =
+    `<div class="barra-fill">${ETAPAS.map(([k, titulo]) => {
+      const pct = Math.round(porEtapa[k] / vis.length * 100);
+      return pct ? `<span style="width:${pct}%;background:${ETAPA_COLOR[k]}" title="${esc(titulo)}"></span>` : '';
+    }).join('')}</div>
+    <div class="leyenda-etapas">${ETAPAS.map(([k, titulo]) => {
+      const pct = Math.round(porEtapa[k] / vis.length * 100);
+      return `<span><i style="background:${ETAPA_COLOR[k]}"></i>${esc(titulo)} ${pct}%</span>`;
+    }).join('')}</div>`;
+}
 
 function pintarLista(){
   const q = $('#q').value.trim().toLowerCase();
@@ -584,7 +645,7 @@ function pintarTablero(){
   ETAPAS.forEach(([k]) => porEtapa[k] = []);
   vis.forEach(o => porEtapa[etapa(o)].push(o));
 
-  $('#tablero').innerHTML = ETAPAS.map(([k, titulo, tono]) => {
+  $('#tablero').innerHTML = ETAPAS.map(([k, titulo]) => {
     const ops = porEtapa[k];
     // Suma de la columna: en «Cobro pendiente» es lo que falta por cobrar, en las
     // demás el precio. Es el número que se busca en cada etapa, no siempre el
@@ -595,9 +656,8 @@ function pintarTablero(){
       return a + (k === 'cobro_pend' ? ((c.pendiente > 0 ? c.pendiente : 0) || 0) : (c.precio || 0)); }, 0);
     return `<section class="col">
       <header class="col-cab">
-        <span class="tag ${tono}">${esc(titulo)}</span>
-        <span class="col-n">${ops.length}</span>
-        <span class="col-suma">${ops.length ? esc(fmtMoneda(suma, m)) : ''}</span>
+        <span class="col-rotulo" style="color:${ETAPA_COLOR[k]}">${esc(titulo)}</span>
+        <span class="col-suma">${ops.length ? ops.length + ' · ' + esc(fmtMoneda(suma, m)) : '0'}</span>
       </header>
       <div class="col-cuerpo">${ops.length ? ops.map(o => tarjetaOp(o, k)).join('')
         : '<p class="col-vacia">Nada aquí</p>'}</div>
@@ -617,10 +677,15 @@ function tarjetaOp(o, k){
     ? (c.pendiente != null && c.pendiente > 0 ? eur(c.pendiente) : '<span class="nota">sin fijar</span>')
     : (c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>');
   const rotulo = k === 'cobro_pend' ? 'pendiente' : 'precio';
-  return `<button type="button" class="tarj ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}">
+  // Progreso de cobro (mockup 4a): solo tiene sentido en la columna donde se
+  // persigue el cobro, y solo si hay precio fijado sobre el que medir un %.
+  const cobro = (k === 'cobro_pend' && c.precio)
+    ? `<div class="tarj-cobro"><i style="width:${Math.min(100, Math.round(c.facturado / c.precio * 100))}%"></i></div>` : '';
+  return `<button type="button" class="tarj ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}" style="--etapa:${ETAPA_COLOR[k]}">
     <span class="tarj-cab"><span class="n">${esc(o.numero || 'sin nº')}</span>${avisos.join('')}</span>
     <span class="tarj-c">${esc(o.comprador_nombre || 'Sin comprador')}</span>
     <span class="tarj-p">${esc(o.proyecto_nombre || '—')}${o.creado_por ? ' · ' + esc(operador(o)) : ''}</span>
+    ${cobro}
     <span class="tarj-cifra">${cifra}<small>${rotulo}</small></span>
   </button>`;
 }
