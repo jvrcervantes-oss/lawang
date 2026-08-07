@@ -15,7 +15,7 @@
      token de auth, se reenvía a /portal/ con el MISMO fragmento intacto —
      el cliente de supabase-js de esa página lo consume igual que si hubiera
      llegado directo. Va como PRIMER script del <head>, antes de que la
-     portada pinte nada: es una redirección, no una página que se vea. */
+     portada pinte nada: es una redirección, no una página que se vea. -->
 <script>
   if (/(?:^|[?&#])(?:access_token|refresh_token)=/.test(location.hash)) {
     location.replace('/portal/' + location.hash);
