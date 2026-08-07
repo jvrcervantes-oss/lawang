@@ -35,7 +35,13 @@
    panel) se permite: mismo criterio de compatibilidad que las funciones SQL.
    ⚠️ Esto decide lo que se VE. Lo que de verdad impide escribir es la RLS
    (`puede('herramienta')` en las policies) — esto solo evita enseñar una
-   herramienta que luego fallaría al guardar. */
+   herramienta que luego fallaría al guardar.
+
+   VARIAS HERRAMIENTAS, con coma (7-ago-2026): `data-herramienta="dossier,creatividades"`
+   deja pasar con CUALQUIERA de las dos. Lo usa el visor de /creatividades/,
+   que enlaza a Dossier y a Creatividades de redes sin ser ninguna de las
+   dos — bloquearlo a una sola dejaría fuera a quien solo tiene la otra.
+   Con un solo valor se comporta exactamente igual que antes. */
 (function () {
   var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
@@ -44,6 +50,7 @@
 
   var propia = document.currentScript;
   var HERRAMIENTA = propia && propia.getAttribute('data-herramienta');
+  var HERRAMIENTAS_REQ = HERRAMIENTA ? HERRAMIENTA.split(',') : null;
 
   var raiz = document.documentElement;
   raiz.style.visibility = 'hidden';
@@ -82,8 +89,8 @@
             var ficha = (f && f.data) || null;
             if (ficha && !ficha.activo) { alLogin(); return; }   // desactivado = fuera
             var admin = ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin');
-            if (HERRAMIENTA && ficha && !admin &&
-                (ficha.herramientas || []).indexOf(HERRAMIENTA) === -1) {
+            if (HERRAMIENTAS_REQ && ficha && !admin &&
+                !HERRAMIENTAS_REQ.some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; })) {
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));
               return;
             }

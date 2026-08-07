@@ -328,12 +328,15 @@ const HERRAMIENTAS = [
     claves:'contratos ppjb reserva construccion anexos',
     estado:d => d.contratos == null ? null
       : [d.contratos + ' guardados · ' + d.contratosEditables + ' editables', false] },
-  { grupo:'Documentación', nombre:'Dossier', icon:'ph-book-open', href:'/dossier/builder.html', herr:'dossier',
-    para:'Dossiers de producto en A4 apaisado.',
-    claves:'dossier pdf maqueta producto' },   // sin `estado`: no vive en la base de datos
-  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/creatividades/', herr:'creatividades',
-    para:'Piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.',
-    claves:'creatividades anuncios pauta instagram facebook meta ads imagen story feed' },
+  // Dossier y Creatividades, unificadas en UNA tarjeta (7-ago-2026): antes
+  // eran dos entradas sueltas para dos herramientas de producción de
+  // contenido que casi siempre se usan seguidas. `herr` como ARRAY = ve la
+  // tarjeta quien tenga cualquiera de las dos (ver `puede()` más abajo);
+  // dentro, el visor de /creatividades/ reparte a cada herramienta, que
+  // sigue exigiendo SU permiso propio para entrar de verdad.
+  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/creatividades/', herr:['dossier','creatividades'],
+    para:'Dossiers de producto y piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.',
+    claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto' },   // sin `estado`: ninguna de las dos vive en la base de datos
   { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/documentacion/', herr:'documentacion',
     para:'Precios, planos y material de cada proyecto, en el almacén privado.',
     claves:'documentacion documentos precios planos parcelas material proyecto archivo',
@@ -381,8 +384,13 @@ let FICHA = null, CIFRAS = null, VISIBLES = [], CURSOR = 0;
 
 /* ── qué se le enseña a cada uno ───────────────────────────────────── */
 const esAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
+// `t.herr` es normalmente una herramienta ("facturas"); Creatividades unifica
+// Dossier + Creatividades bajo una tarjeta y necesita "cualquiera de las dos"
+// (7-ago-2026) — de ahí el `[].concat`, que trata un string suelto como un
+// array de uno sin tener que tocar las demás tarjetas.
 const permitida = t => t.soloAdmin ? esAdmin(FICHA)
-  : (!FICHA || esAdmin(FICHA) || !t.herr || (FICHA.herramientas || []).includes(t.herr));
+  : (!FICHA || esAdmin(FICHA) || !t.herr ||
+     [].concat(t.herr).some(h => (FICHA.herramientas || []).includes(h)));
 
 /* ── pintado ───────────────────────────────────────────────────────
    Se pinta ANTES de que lleguen las cifras, con hueso en su sitio: la lista
