@@ -2979,6 +2979,10 @@ function blobToBase64(blob){
 function openEmailModal(){
   const numero = SAVED_CONTRACT ? SAVED_CONTRACT.numero : null;
   $('#emFile').value = '';
+  // mismo dato que usa firmantesDelContrato() para la firma — Facturas ya
+  // precarga así desde d.cliente_email, aquí faltaba el equivalente.
+  const d = collect();
+  $('#emTo').value = d.adq1_email || (COMPRADORES.find(c=>c.email) || {}).email || '';
   $('#emSubject').value = (numero ? `Contrato ${numero}` : `Contrato — ${L(CURRENT.name)}`) + ' — Lawang Tropical Properties';
   $('#emMessage').value = `Buenos días,\n\nAdjunto el documento${numero ? ' ('+numero+')' : ''} para su revisión.\n\nUn saludo,\nLawang Tropical Properties`;
   $('#emOverlay').classList.add('open');
