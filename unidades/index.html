@@ -39,6 +39,32 @@
   .aviso{ font-size:12.5px; line-height:1.5; color:#6A5A3C; background:rgba(190,179,165,.26);
           border-radius:var(--r-s); padding:9px 11px; margin:var(--e2) 0 0; }
 
+  /* carpetas por proyecto — mismo objeto .sui-ficha que la rejilla, agrupado */
+  .carpeta{ display:flex; flex-direction:column; gap:4px; align-items:flex-start; }
+  .carpeta .n{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:22px; }
+  .carpeta .sub{ font-size:12.5px; color:var(--texto-2); }
+
+  /* alta de proyecto/tipo desde el propio formulario */
+  .nuevo-cat{ display:flex; gap:6px; margin-top:6px; }
+  .nuevo-cat input{ flex:1; }
+
+  /* modal de importación CSV — más ancho que el cajón lateral, hace falta
+     sitio para la vista previa en tabla */
+  .ov{ position:fixed; inset:0; background:rgba(34,40,42,.42); z-index:80;
+       display:none; align-items:flex-start; justify-content:center; padding:5vh 16px; overflow:auto; }
+  .ov.open{ display:flex; }
+  .ov-caja{ background:var(--sup-1,#fff); border-radius:var(--r-p); max-width:920px; width:100%;
+            padding:22px 24px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  .ov-caja h2{ margin:0 0 4px; font-family:var(--font-display,'Cormorant Garamond',serif); font-weight:500; }
+  .ov-caja .sub{ font-size:13px; color:var(--texto-2); margin:0 0 16px; }
+  .csv-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; margin:12px 0; }
+  .csv-tabla th,.csv-tabla td{ text-align:left; padding:5px 8px; border-bottom:1px solid var(--linea,#E7E1D2); }
+  .csv-tabla td.err{ color:#9E2F26; }
+  .csv-tabla tr.fila-err{ background:rgba(158,47,38,.06); }
+  .csv-resumen{ display:flex; gap:14px; flex-wrap:wrap; font-size:13px; margin:10px 0; }
+  .csv-resumen b{ font-weight:600; }
+  .csv-ignoradas{ font-size:12px; color:var(--texto-2); margin:6px 0 0; }
+  .ov-pie{ display:flex; gap:10px; margin-top:16px; }
 
   @media (max-width:760px){ .dos{ grid-template-columns:1fr; } }
 </style>
@@ -47,6 +73,8 @@
   <div class="topbar lw-topbar" data-titulo="Unidades">
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnCsv">Importar CSV</button>
+    <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
     <button type="button" class="lw-btn" id="btnNueva">+ Nueva unidad</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
@@ -59,6 +87,7 @@
         <div class="sui-dens" id="vista">
           <button type="button" data-vista="tabla">Tabla</button>
           <button type="button" data-vista="rejilla">Rejilla</button>
+          <button type="button" data-vista="carpetas">Carpetas</button>
         </div>
       </div>
       <div class="sui-filtros" id="filtros"></div>
@@ -70,6 +99,7 @@
            se puede en columna. Se recuerda por persona, igual que la densidad.
            Reusa `.sui-dens`, que es el mismo objeto (tres botones, no un menú). -->
       <div class="sui-rejilla" id="rejilla" hidden></div>
+      <div class="sui-rejilla" id="carpetas" hidden></div>
 
       <div class="sui-tabla-caja" id="caja-tabla">
         <table class="sui-tabla" id="tabla">
@@ -91,6 +121,21 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Importar CSV: vista previa antes de escribir nada. Nunca se manda al
+       navegador estado/contrato_id — los sigue gestionando el trigger del
+       contrato, no un CSV. -->
+  <div class="ov" id="ovCsv">
+    <div class="ov-caja">
+      <h2>Importar unidades desde CSV</h2>
+      <p class="sub">Se compara con lo que ya hay antes de escribir nada. Las columnas <code>estado</code> y <code>contrato_id</code> nunca se importan: los lleva el contrato.</p>
+      <div id="csvCuerpo"><p class="sub">Cargando…</p></div>
+      <div class="ov-pie">
+        <button type="button" class="sui-btn primario" id="btnCsvConfirmar" disabled>Confirmar importación</button>
+        <button type="button" class="sui-btn" id="btnCsvCancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
@@ -115,10 +160,27 @@ const ESTADOS = [
   ['disponible','Disponible'], ['reservada','Reservada'], ['vendida','Vendida'],
   ['bloqueada','Bloqueada'], ['no_disponible','No disponible'],
 ];
-const TIPOS = [['parcela','Parcela'],['villa','Villa'],['apartamento','Apartamento'],['local','Local']];
+/* TIPOS y PROYECTOS: catálogos reales (tablas `tipos_vivienda`/`proyectos`,
+   6-ago-2026). Antes `TIPOS` era un array a mano y `proyecto` se derivaba de
+   los valores ya guardados en `unidades` — sin ningún sitio donde darlos de
+   alta. El fallback de abajo es solo para el primer pintado antes de que
+   `cargar()` responda; en cuanto llega, se sustituye. */
+let TIPOS = [['parcela','Parcela'],['villa','Villa'],['apartamento','Apartamento'],['local','Local']];
+let PROYECTOS = [];
 const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
 const nombreTipo   = t => (TIPOS.find(x => x[0] === t) || [t, t])[1];
 const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
+
+/* Mitigación estándar de CSV/formula injection (OWASP): un valor que empieza
+   por = + - @ o tab/CR se interpreta como fórmula al reabrir la celda en
+   Excel/Sheets — el estudio ya reexporta estos datos a Excel (ver
+   reference_excel_generator_lawang), así que una celda sembrada hoy dispara
+   mañana en la máquina de quien exporte. Se antepone una comilla: el valor se
+   sigue leyendo igual, deja de ejecutarse como fórmula. */
+const antiFormula = s => {
+  const v = String(s ?? '').replace(/[\t\r]/g, ' ').trim();
+  return /^[=+\-@]/.test(v) ? "'" + v : v;
+};
 
 let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
 
@@ -147,23 +209,69 @@ const valorDe = (u, campo) => {
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c, m] = await Promise.all([
+  const [u, c, m, p, t] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
     SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
     SB.from('modelos_villa').select('proyecto, modelo, precio_construccion, moneda').order('modelo'),
+    SB.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
+    SB.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
   ]);
   CARGANDO = false;
   if(u.error){ FALLO = u.error.message; pintar(); return; }
   UNIDADES = u.data || [];
   CONTRATOS = c.error ? [] : (c.data || []);
   MODELOS   = m.error ? [] : (m.data || []);
-  const proyectos = [...new Set(UNIDADES.map(x => x.proyecto).filter(Boolean))].sort();
+  // Sin permiso o con la tabla vacía se cae al fallback de arriba en vez de
+  // dejar los desplegables en blanco.
+  if(!p.error && p.data && p.data.length) PROYECTOS = p.data.map(x => x.nombre);
+  if(!t.error && t.data && t.data.length) TIPOS = t.data.map(x => [x.clave, x.etiqueta]);
+  // Unión defensiva: si una unidad quedó con un proyecto que ya no está en el
+  // catálogo (borrado por error, o dato antiguo), sigue apareciendo en el
+  // filtro — no desaparece de la vista, solo no se puede elegir para una
+  // unidad nueva salvo que se dé de alta.
+  const proyectosFiltro = [...new Set([...PROYECTOS, ...UNIDADES.map(x => x.proyecto)].filter(Boolean))].sort();
   $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
-    proyectos.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
+    proyectosFiltro.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
   pintar();
+}
+
+/* ---------- alta de proyecto/tipo desde el propio formulario ----------
+   RLS: INSERT exige es_agente()+puede('unidades'); no hay UPDATE/DELETE para
+   agentes (solo admin puede desactivar) — un catálogo existe para que no
+   convivan "Palm Field" y "Palm Field " con espacio, y dejar editar/borrar lo
+   que dio de alta otro agente reabre ese mismo problema. */
+async function altaProyecto(nombreCrudo){
+  const nombre = antiFormula(nombreCrudo);
+  if(!nombre) return { ok:false, error:'El nombre no puede quedar vacío' };
+  const { error } = await SB.from('proyectos').insert({ nombre });
+  if(error){
+    const msg = /duplicate key|proyectos_nombre_key/.test(error.message||'')
+      ? 'Ya existe un proyecto con ese nombre.' : error.message;
+    return { ok:false, error: msg };
+  }
+  PROYECTOS = [...new Set([...PROYECTOS, nombre])].sort();
+  return { ok:true, nombre };
+}
+async function altaTipo(etiquetaCrudo){
+  const etiqueta = antiFormula(etiquetaCrudo);
+  if(!etiqueta) return { ok:false, error:'El nombre no puede quedar vacío' };
+  // la clave es la etiqueta en minúsculas/sin acentos/espacios→guión: es lo
+  // que guarda `unidades.tipo` (FK a tipos_vivienda.clave), la etiqueta es
+  // solo lo que se lee en pantalla.
+  const clave = etiqueta.normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(!clave) return { ok:false, error:'Ese nombre no da una clave válida' };
+  const { error } = await SB.from('tipos_vivienda').insert({ clave, etiqueta });
+  if(error){
+    const msg = /duplicate key|tipos_vivienda_pkey/.test(error.message||'')
+      ? 'Ya existe un tipo con esa clave.' : error.message;
+    return { ok:false, error: msg };
+  }
+  TIPOS = [...TIPOS, [clave, etiqueta]];
+  return { ok:true, clave, etiqueta };
 }
 
 function visibles(){
@@ -186,16 +294,20 @@ function vista(v){
   if(v){ try{ localStorage.setItem('lawang_unidades_vista', v); }catch(_){} }
   let x = v;
   if(!x){ try{ x = localStorage.getItem('lawang_unidades_vista'); }catch(_){} }
-  VISTA = (x === 'rejilla') ? 'rejilla' : 'tabla';
+  VISTA = ['rejilla','carpetas'].includes(x) ? x : 'tabla';
   document.querySelectorAll('[data-vista]').forEach(b =>
     b.classList.toggle('on', b.dataset.vista === VISTA));
   $('#caja-tabla').hidden = VISTA !== 'tabla';
   $('#rejilla').hidden    = VISTA !== 'rejilla';
+  $('#carpetas').hidden   = VISTA !== 'carpetas';
   return VISTA;
 }
 $('#vista').addEventListener('click', e => {
   const b = e.target.closest('[data-vista]');
-  if(b){ vista(b.dataset.vista); pintar(); }
+  if(b){
+    if(b.dataset.vista !== 'carpetas') VISTA_ANTES_CARPETAS = b.dataset.vista;
+    vista(b.dataset.vista); pintar();
+  }
 });
 
 /* La rejilla NO repite ni el filtrado ni el orden: llama a `visibles()`, la misma
@@ -253,7 +365,51 @@ $('#rejilla').addEventListener('click', e => {
   if(f) abrirUnidad(f.dataset.id);
 });
 
-function pintar(){ pintarFiltros(); pintarTabla(); pintarRejilla(); }
+/* Carpetas por proyecto — mismo patrón que Documentación (ramas()/dentroDe()
+   sobre una columna de texto), adaptado: aquí no hace falta derivar rutas con
+   `split('/')` porque `proyecto` YA es una columna plana, así que "la carpeta"
+   es directamente agrupar por su valor. No es una tabla de carpetas nueva —
+   tampoco lo es en Documentación. Abrir una carpeta = fijar el filtro de
+   proyecto que YA existe y volver a la última vista de contenido (tabla o
+   rejilla, nunca carpetas — si no, un clic no llevaría a ningún sitio). */
+let VISTA_ANTES_CARPETAS = 'tabla';
+function pintarCarpetas(){
+  const caja = $('#carpetas');
+  if(CARGANDO){
+    caja.innerHTML = Array.from({length:4}, () =>
+      '<div class="sui-ficha" style="cursor:default"><i class="sui-esq-i"></i></div>').join('');
+    return;
+  }
+  if(FALLO){
+    caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-error">No se pudo leer el inventario: ${esc(FALLO)}</div></div>`;
+    return;
+  }
+  const nombres = [...new Set([...PROYECTOS, ...UNIDADES.map(u => u.proyecto)].filter(Boolean))].sort();
+  if(!nombres.length){
+    caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-nada"><b>Todavía no hay proyectos</b>Da de alta uno desde «+ Nueva unidad».</div></div>`;
+    return;
+  }
+  const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
+  caja.innerHTML = nombres.map(nom => {
+    const us = UNIDADES.filter(u => u.proyecto === nom);
+    const libres = us.filter(u => u.estado === 'disponible').length;
+    const cartera = us.reduce((a,u) => a + (Number(u.precio) || 0), 0);
+    const m = (us[0] && us[0].moneda) || 'EUR';
+    return `<button type="button" class="sui-ficha carpeta" data-proy="${esc(nom)}">
+      <span class="n">📁 ${esc(nom)}</span>
+      <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + eur(cartera, m):''}</span>
+    </button>`;
+  }).join('');
+}
+$('#carpetas').addEventListener('click', e => {
+  const f = e.target.closest('[data-proy]'); if(!f) return;
+  PROY = f.dataset.proy;
+  $('#fProyecto').value = PROY;
+  vista(VISTA_ANTES_CARPETAS === 'carpetas' ? 'tabla' : VISTA_ANTES_CARPETAS);
+  pintar();
+});
+
+function pintar(){ pintarFiltros(); pintarTabla(); pintarRejilla(); pintarCarpetas(); }
 
 function pintarFiltros(){
   const base = UNIDADES.filter(u => !PROY || u.proyecto === PROY);
@@ -367,8 +523,28 @@ function abrirUnidad(id){
         <input id="f-codigo" value="${esc(u.codigo||'')}" placeholder="Ej. A12"></div>
       <p class="sui-nota" style="margin-top:-6px">Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.</p>
       <div class="dos">
-        <div class="campo"><label>Proyecto</label><input id="f-proyecto" value="${esc(u.proyecto||'')}"></div>
-        <div class="campo"><label>Tipo</label><select id="f-tipo">${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="campo"><label>Proyecto</label>
+          <select id="f-proyecto">
+            <option value="">— elegir —</option>
+            ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort().map(p =>
+              `<option value="${esc(p)}" ${u.proyecto===p?'selected':''}>${esc(p)}</option>`).join('')}
+            <option value="__nuevo__">+ Nuevo proyecto…</option>
+          </select>
+          <div class="nuevo-cat" id="nuevoProyectoBox" hidden>
+            <input id="f-proyecto-nuevo" placeholder="Nombre del proyecto">
+            <button type="button" class="sui-btn" id="btnAltaProyecto">Añadir</button>
+          </div>
+        </div>
+        <div class="campo"><label>Tipo</label>
+          <select id="f-tipo">
+            ${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}
+            <option value="__nuevo__">+ Nuevo tipo…</option>
+          </select>
+          <div class="nuevo-cat" id="nuevoTipoBox" hidden>
+            <input id="f-tipo-nuevo" placeholder="Nombre del tipo">
+            <button type="button" class="sui-btn" id="btnAltaTipo">Añadir</button>
+          </div>
+        </div>
       </div>
       <div class="dos">
         <div class="campo"><label>Modelo de villa</label>
@@ -415,6 +591,35 @@ function abrirUnidad(id){
     pie: `<button class="sui-btn primario" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintar(); },
+  });
+
+  // "+ Nuevo proyecto…"/"+ Nuevo tipo…": el mismo patrón para los dos —
+  // seleccionarlo revela un campo de texto; al confirmar, se da de alta en el
+  // catálogo y el select queda con la entrada nueva ya elegida.
+  const wireNuevoCat = (selId, boxId, inputId, btnId, altaFn, refrescarSelect) => {
+    const sel = $(selId), box = $(boxId), input = $(inputId), btn = $(btnId);
+    sel.addEventListener('change', () => { box.hidden = sel.value !== '__nuevo__'; if(!box.hidden) input.focus(); });
+    const confirmar = async () => {
+      const nombre = input.value.trim();
+      if(!nombre){ toast('Escribe un nombre'); return; }
+      btn.disabled = true;
+      const r = await altaFn(nombre);
+      btn.disabled = false;
+      if(!r.ok){ toast(r.error); return; }
+      refrescarSelect(sel, r);
+      box.hidden = true; input.value = '';
+      toast('Añadido');
+    };
+    btn.addEventListener('click', confirmar);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); confirmar(); } });
+  };
+  wireNuevoCat('#f-proyecto', '#nuevoProyectoBox', '#f-proyecto-nuevo', '#btnAltaProyecto', altaProyecto, (sel, r) => {
+    const o = document.createElement('option'); o.value = r.nombre; o.textContent = r.nombre;
+    sel.insertBefore(o, sel.lastElementChild); sel.value = r.nombre;
+  });
+  wireNuevoCat('#f-tipo', '#nuevoTipoBox', '#f-tipo-nuevo', '#btnAltaTipo', altaTipo, (sel, r) => {
+    const o = document.createElement('option'); o.value = r.clave; o.textContent = r.etiqueta;
+    sel.insertBefore(o, sel.lastElementChild); sel.value = r.clave;
   });
 
   // Estos dos campos solo existen si la parcela NO está vinculada (ver arriba):
@@ -534,9 +739,12 @@ function avisoEstado(){
 async function guardar(id){
   const codigo = $('#f-codigo').value.trim();
   if(!codigo){ toast('El código no puede quedar vacío'); return; }
+  const proyecto = $('#f-proyecto').value.trim();
+  if(!proyecto || proyecto === '__nuevo__'){ toast('Elige un proyecto (o da uno de alta con «+ Nuevo proyecto…»)'); return; }
+  if($('#f-tipo').value === '__nuevo__'){ toast('Da de alta el tipo nuevo antes de guardar'); return; }
   const num = el => { const v = parseImporte($(el).value); return v || null; };
   const fila = {
-    codigo, proyecto: $('#f-proyecto').value.trim() || null,
+    codigo, proyecto,
     tipo: $('#f-tipo').value, modelo: $('#f-modelo').value.trim() || null,
     superficie_m2: num('#f-sup'), precio_suelo: num('#f-suelo'),
     precio_construccion: num('#f-obra'), precio: num('#f-precio'),
@@ -573,6 +781,168 @@ async function guardar(id){
   }
   b.disabled = false;
 }
+
+/* ---------- importar CSV ----------
+   Vista previa siempre antes de escribir (precios reales). Nunca se manda
+   estado/contrato_id: la fila que se sube a Supabase se construye campo a
+   campo desde un ALLOWLIST fijo, nunca esparciendo el objeto que salió del
+   CSV — así una columna "estado" en el fichero (por accidente o a propósito)
+   no tiene ninguna vía de llegar a la base, ni aunque el parser tuviera un
+   bug. `estado`/`contrato_id` SÍ tienen un camino manual legítimo en el
+   formulario de una unidad (#f-estado/#f-contrato, para parcelas sin
+   contrato) — por eso la protección va aquí, en el propio código del import,
+   y no como un REVOKE de columna que rompería ese camino. */
+const CSV_MAX_BYTES = 5 * 1024 * 1024;
+const CSV_MAX_FILAS = 5000;
+// cabecera del CSV (minúsculas, sin acentos) → columna real de `unidades`.
+// Ninguna clave de este mapa es estado/contrato_id a propósito.
+const CSV_COLUMNAS = {
+  codigo:'codigo', proyecto:'proyecto', tipo:'tipo', modelo:'modelo',
+  superficie:'superficie_m2', superficie_m2:'superficie_m2', m2:'superficie_m2',
+  precio_suelo:'precio_suelo', suelo:'precio_suelo',
+  precio_construccion:'precio_construccion', construccion:'precio_construccion',
+  precio:'precio', precio_total:'precio', total:'precio',
+  moneda:'moneda', notas:'notas',
+};
+// quita acentos y cualquier cosa que no sea letra/número ("Superficie (m2)"
+// y "superficie_m2" casan igual) — de puntuación exacta no debería depender
+// que una columna se reconozca o se ignore.
+const normCab = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+
+/* Parser CSV propio (RFC4180: comillas, comas y saltos de línea dentro de un
+   campo entrecomillado, "" como comilla escapada) — ninguna herramienta de la
+   suite carga una librería de esto hoy, y el caso cabe en unas pocas líneas.
+   Devuelve array de arrays; la primera fila es la cabecera. */
+function parseCSV(texto){
+  const filas = []; let fila = []; let campo = ''; let enComillas = false;
+  const t = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for(let i = 0; i < t.length; i++){
+    const c = t[i];
+    if(enComillas){
+      if(c === '"'){ if(t[i+1] === '"'){ campo += '"'; i++; } else enComillas = false; }
+      else campo += c;
+    }else if(c === '"'){ enComillas = true; }
+    else if(c === ','){ fila.push(campo); campo = ''; }
+    else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
+    else campo += c;
+  }
+  if(campo !== '' || fila.length){ fila.push(campo); filas.push(fila); }
+  return filas.filter(f => f.some(c => c.trim() !== ''));
+}
+
+let CSV_FILAS_VALIDAS = [];   // lo que de verdad se sube al confirmar
+
+function cerrarImportCsv(){ $('#ovCsv').classList.remove('open'); $('#fileCsv').value = ''; }
+$('#btnCsv').addEventListener('click', () => $('#fileCsv').click());
+$('#btnCsvCancelar').addEventListener('click', cerrarImportCsv);
+$('#ovCsv').addEventListener('click', e => { if(e.target === $('#ovCsv')) cerrarImportCsv(); });
+$('#fileCsv').addEventListener('change', () => {
+  const f = $('#fileCsv').files[0]; if(f) abrirImportCsv(f);
+});
+
+async function abrirImportCsv(file){
+  $('#ovCsv').classList.add('open');
+  $('#btnCsvConfirmar').disabled = true;
+  const cuerpo = $('#csvCuerpo');
+  if(file.size > CSV_MAX_BYTES){
+    cuerpo.innerHTML = `<p class="aviso">El fichero pesa ${(file.size/1024/1024).toFixed(1)} MB — el máximo son 5 MB. Pártelo en varios.</p>`;
+    return;
+  }
+  cuerpo.innerHTML = '<p class="sub">Leyendo…</p>';
+  const texto = await file.text();
+  const filas = parseCSV(texto);
+  if(!filas.length){ cuerpo.innerHTML = '<p class="aviso">El fichero está vacío.</p>'; return; }
+  if(filas.length - 1 > CSV_MAX_FILAS){
+    cuerpo.innerHTML = `<p class="aviso">El fichero trae ${filas.length-1} filas — el máximo son ${CSV_MAX_FILAS}. Pártelo en varios.</p>`;
+    return;
+  }
+  const cabecera = filas[0].map(normCab);
+  const mapa = cabecera.map(c => CSV_COLUMNAS[c] || null);
+  const ignoradas = cabecera.filter((c,i) => !mapa[i]);
+  if(!mapa.includes('codigo') || !mapa.includes('proyecto')){
+    cuerpo.innerHTML = '<p class="aviso">El CSV necesita al menos las columnas <code>codigo</code> y <code>proyecto</code>.</p>';
+    return;
+  }
+
+  const proyectosOk = new Set(PROYECTOS);
+  const tiposOk = new Set(TIPOS.map(x => x[0]));
+  const existentes = new Set(UNIDADES.map(u => u.proyecto + ' ' + u.codigo));
+
+  const analizadas = filas.slice(1).map((cols, idx) => {
+    const d = {}; mapa.forEach((campo, i) => { if(campo) d[campo] = (cols[i] ?? '').trim(); });
+    const errores = [];
+    const codigo = d.codigo || '';
+    const proyecto = d.proyecto || '';
+    const tipo = (d.tipo || 'parcela').toLowerCase().trim();
+    if(!codigo) errores.push('sin código');
+    if(!proyecto) errores.push('sin proyecto');
+    else if(!proyectosOk.has(proyecto)) errores.push(`proyecto "${proyecto}" no está en el catálogo — créalo primero desde «+ Nueva unidad» → «+ Nuevo proyecto…»`);
+    if(!tiposOk.has(tipo)) errores.push(`tipo "${tipo}" no está en el catálogo`);
+    const num = v => { const n = parseImporte(v); return v && n ? n : null; };
+    return {
+      fila: idx + 2, // +2: encabezado + base-1
+      codigo, proyecto, tipo,
+      modelo: d.modelo || null,
+      superficie_m2: num(d.superficie_m2), precio_suelo: num(d.precio_suelo),
+      precio_construccion: num(d.precio_construccion), precio: num(d.precio),
+      moneda: (d.moneda || 'EUR').toUpperCase(),
+      notas: d.notas ? antiFormula(d.notas) : null,
+      esAlta: codigo && proyecto ? !existentes.has(proyecto + ' ' + codigo) : null,
+      errores,
+    };
+  });
+
+  CSV_FILAS_VALIDAS = analizadas.filter(f => !f.errores.length);
+  const altas = CSV_FILAS_VALIDAS.filter(f => f.esAlta).length;
+  const actualiza = CSV_FILAS_VALIDAS.length - altas;
+  const conError = analizadas.length - CSV_FILAS_VALIDAS.length;
+
+  cuerpo.innerHTML = `
+    <div class="csv-resumen">
+      <span><b>${analizadas.length}</b> filas leídas</span>
+      <span><b>${altas}</b> altas nuevas</span>
+      <span><b>${actualiza}</b> actualizan una unidad existente</span>
+      ${conError ? `<span class="csv-tabla th err" style="color:#9E2F26"><b>${conError}</b> con error, no se importan</span>` : ''}
+    </div>
+    ${ignoradas.length ? `<p class="csv-ignoradas">Columnas del CSV ignoradas (no se trackean hoy): ${ignoradas.map(esc).join(', ')}</p>` : ''}
+    <div style="max-height:340px;overflow:auto">
+      <table class="csv-tabla">
+        <thead><tr><th>Fila</th><th>Código</th><th>Proyecto</th><th>Tipo</th><th>Precio</th><th>Estado</th></tr></thead>
+        <tbody>${analizadas.map(f => `
+          <tr class="${f.errores.length ? 'fila-err' : ''}">
+            <td>${f.fila}</td><td>${esc(f.codigo||'—')}</td><td>${esc(f.proyecto||'—')}</td>
+            <td>${esc(f.tipo||'—')}</td>
+            <td>${f.precio!=null ? esc(fmtNum(f.precio)) + ' ' + esc(f.moneda) : '—'}</td>
+            <td>${f.errores.length ? '<span class="err">' + esc(f.errores.join('; ')) + '</span>'
+                 : (f.esAlta ? 'Alta nueva' : 'Actualiza')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  $('#btnCsvConfirmar').disabled = !CSV_FILAS_VALIDAS.length;
+  $('#btnCsvConfirmar').textContent = CSV_FILAS_VALIDAS.length
+    ? `Confirmar importación (${CSV_FILAS_VALIDAS.length})` : 'Nada que importar';
+}
+
+$('#btnCsvConfirmar').addEventListener('click', async () => {
+  if(!CSV_FILAS_VALIDAS.length) return;
+  const btn = $('#btnCsvConfirmar'); btn.disabled = true; btn.textContent = 'Importando…';
+  // Allowlist explícito: exactamente estas claves, nunca más. Es la misma
+  // idea que ya usa guardar() para no mandar estado/contrato_id, aplicada
+  // aquí como estructura del objeto, no como un `if` que se pueda olvidar.
+  const filas = CSV_FILAS_VALIDAS.map(f => ({
+    codigo: f.codigo, proyecto: f.proyecto, tipo: f.tipo, modelo: f.modelo,
+    superficie_m2: f.superficie_m2, precio_suelo: f.precio_suelo,
+    precio_construccion: f.precio_construccion, precio: f.precio,
+    moneda: f.moneda, notas: f.notas,
+  }));
+  const { error } = await SB.from('unidades').upsert(filas, { onConflict: 'proyecto,codigo' });
+  if(error){ toast('No se pudo importar: ' + error.message); btn.disabled = false; btn.textContent = 'Confirmar importación'; return; }
+  toast(`Importadas ${filas.length} unidades`);
+  cerrarImportCsv();
+  await cargar();
+});
 
 /* ---------- eventos ---------- */
 $('#q').addEventListener('input', pintarTabla);
