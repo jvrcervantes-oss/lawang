@@ -292,11 +292,13 @@ function pintarFicha(){
         </div>
         <div class="acciones" style="margin-top:10px">
           <button class="btn primary" id="btnPortalInv">${activos.length ? 'Reenviar enlace' : 'Invitar al portal'}</button>
+          ${activos.length ? '<button class="btn" id="btnPortalPass">Ponerle contraseña</button>' : ''}
           ${activos.length ? '<button class="btn" id="btnPortalRev">Revocar acceso</button>' : ''}
         </div>
-        <p class="nota">La invitación vincula ESTA ficha a ese email y le envía un enlace de entrada
-        (sin contraseña: cada vez que entre pedirá un enlace nuevo a su correo). Para una familia que
-        comparte correo, invita el mismo email desde cada ficha: verá todo lo de todas.</p>`;
+        <p class="nota">La invitación vincula ESTA ficha a ese email y le envía un enlace de entrada.
+        Para una familia que comparte correo, invita el mismo email desde cada ficha: verá todo lo de
+        todas. Además del enlace, se le puede poner una contraseña para entrar directamente — el
+        comprador también puede cambiarla él mismo desde dentro del portal.</p>`;
       })()}
     </fieldset>
     <fieldset>
@@ -337,6 +339,7 @@ function pintarFicha(){
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
   const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
+  const bp = $('#btnPortalPass'); if(bp) bp.addEventListener('click', () => passwordPortal(c));
   const br = $('#btnPortalRev'); if(br) br.addEventListener('click', () => revocarPortal(c));
   document.getElementById('suiCajon').querySelectorAll('[data-ver]')
     .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
@@ -430,6 +433,8 @@ const MOTIVOS_PORTAL = {
   no_autorizado:   'Hace falta ser administrador para invitar o revocar accesos.',
   sin_sesion:      'Tu sesión ha caducado. Vuelve a entrar.',
   sesion_invalida: 'Tu sesión ha caducado. Vuelve a entrar.',
+  password_corta:  'La contraseña necesita 10 caracteres o más.',
+  no_es_cuenta_de_portal: 'Ese email no tiene acceso al portal todavía — invítalo primero.',
 };
 const motivoPortal = e => MOTIVOS_PORTAL[e] || e;
 
@@ -453,6 +458,20 @@ async function invitarPortal(c){
   if(r.error){ toast(motivoPortal(r.error)); return; }
   toast(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada');
   await cargar(); pintarLista(); pintarFicha();
+}
+
+async function passwordPortal(c){
+  const suyos = ACCESOS.filter(x => x.client_id === c.id && x.activo);
+  if(!suyos.length) return;
+  const email = ($('#p-email').value || '').trim().toLowerCase() || suyos[0].email;
+  const p = prompt('Nueva contraseña para ' + email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar, solo cambiar por otra.');
+  if(p === null) return;
+  if(p.length < 10){ toast('Mínimo 10 caracteres'); return; }
+  const b = $('#btnPortalPass'); b.disabled = true;
+  const r = await llamaPortal({ accion:'password', email, password:p });
+  b.disabled = false;
+  if(r.error){ toast(motivoPortal(r.error)); return; }
+  toast('Contraseña puesta. Pásasela tú: no queda guardada en ningún sitio consultable.');
 }
 
 async function revocarPortal(c){

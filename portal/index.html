@@ -155,6 +155,14 @@
   .entrada .sui-btn{ width:100%; justify-content:center; margin-top:var(--e2); }
   .aviso{ font-size:12.5px; line-height:1.5; min-height:18px; margin-top:var(--e3); color:var(--texto-2); }
   .aviso.mal{ color:#9E2F26; } .aviso.bien{ color:#3F5230; }
+
+  /* ── cajón «Cambiar contraseña» — el resto del portal no tiene formularios
+     dentro de un cajón, así que estos campos no heredan nada de otro sitio ── */
+  .sui-cajon-cuerpo .row label{ display:block; font-size:11px; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--texto-2); margin-bottom:5px; }
+  .sui-cajon-cuerpo .row input{ width:100%; font:inherit; font-size:14px; padding:10px 12px;
+    border:1px solid var(--linea); border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
+  .sui-cajon-cuerpo .row input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
   .cargando{ display:grid; place-items:center; min-height:100%; color:var(--texto-3);
              font-size:11px; letter-spacing:.22em; text-transform:uppercase; }
 
@@ -183,12 +191,21 @@
   <div class="caja">
     <div class="marca">LAWANG</div>
     <div class="rot" data-t="area">Área de clientes</div>
-    <p data-t="login_intro">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.</p>
+    <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.</p>
     <form id="fLogin">
       <input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com">
       <button class="sui-btn primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
+    <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
+    <form id="fLoginPass" hidden>
+      <input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com">
+      <input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••">
+      <button class="sui-btn primario" type="submit" data-t="pass_btn">Entrar</button>
+    </form>
     <div id="avisoLogin" class="aviso"></div>
+    <p class="sui-nota" style="margin-top:var(--e4);text-align:center;font-size:12px">
+      <a href="#" id="togglePass" data-t="pass_toggle" style="color:var(--dl)">¿Tienes contraseña? Entra con ella</a>
+    </p>
     <p class="sui-nota" style="margin-top:var(--e4);text-align:center;font-size:12px">
       <span data-t="team_intro">¿Eres del equipo?</span>
       <a href="/entrar/" style="color:var(--dl)" data-t="team_link">Entra aquí</a>
@@ -204,6 +221,7 @@
     <h1 class="lw-title" data-t="area">Área de clientes</h1>
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnPass" data-t="cambiar_pass_btn">Contraseña</button>
     <button type="button" class="lw-btn" id="btnLang">EN</button>
     <button type="button" class="lw-btn" id="btnSalir" data-t="salir">Salir</button>
   </div>
@@ -250,10 +268,18 @@
 
   /* ── idioma ───────────────────────────────────────────────────────── */
   var T = {
-    es:{ login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.',
+    es:{ login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.',
          login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (mira también en spam).',
          sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com y te lo abrimos.',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
+         login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
+         pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
+         pass_mal:'Correo o contraseña incorrectos.',
+         cambiar_pass_btn:'Contraseña', cambiar_pass_nueva:'Nueva contraseña (mínimo 10 caracteres)',
+         cambiar_pass_repite:'Repite la contraseña',
+         cambiar_pass_nota:'La usarás junto a tu correo la próxima vez que entres — el enlace por email sigue funcionando igual.',
+         cambiar_pass_corta:'Mínimo 10 caracteres.', cambiar_pass_no_coincide:'Las dos contraseñas no coinciden.',
+         cambiar_pass_error:'No se pudo guardar', cambiar_pass_ok:'Contraseña actualizada.', guardar:'Guardar',
          area:'Área de clientes', salir:'Salir', saludo_sub:'Estado de tu operación con Lawang Estate',
          c_contratos:'Contratos', c_facturas:'Facturas', c_obra:'Obra', c_documentos:'Documentos',
          d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
@@ -278,10 +304,18 @@
          entrega_est:'Entrega estimada', actualizado:'Última actualización', pie:'¿Dudas? Escríbenos a',
          team_intro:'¿Eres del equipo?', team_link:'Entra aquí',
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.' },
-    en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link — no passwords.',
+    en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link.',
          login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
          sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com and we will open it.',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
+         login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
+         pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
+         pass_mal:'Wrong email or password.',
+         cambiar_pass_btn:'Password', cambiar_pass_nueva:'New password (10 characters minimum)',
+         cambiar_pass_repite:'Repeat password',
+         cambiar_pass_nota:'You will use it together with your email next time you sign in — the email link keeps working too.',
+         cambiar_pass_corta:'At least 10 characters.', cambiar_pass_no_coincide:'The two passwords don’t match.',
+         cambiar_pass_error:'Could not save', cambiar_pass_ok:'Password updated.', guardar:'Save',
          area:'Client area', salir:'Sign out', saludo_sub:'Status of your operation with Lawang Estate',
          c_contratos:'Contracts', c_facturas:'Invoices', c_obra:'Construction', c_documentos:'Documents',
          d_promocion:'Your development’s documents', d_entregado:'What you gave us',
@@ -476,6 +510,69 @@
         : (r.error.status >= 500 ? t('error_envio') : t('sin_acceso'));
     });
   });
+
+  /* ── entrada con contraseña (alternativa al enlace, 7-ago) ──────────── */
+  document.getElementById('togglePass').addEventListener('click', function(e){
+    e.preventDefault();
+    var modo = document.getElementById('fLoginPass').hidden;   // pasa a modo contraseña si estaba oculto
+    document.getElementById('fLogin').hidden = modo;
+    document.getElementById('loginIntroEnlace').hidden = modo;
+    document.getElementById('fLoginPass').hidden = !modo;
+    document.getElementById('loginIntroPass').hidden = !modo;
+    document.getElementById('togglePass').textContent = t(modo ? 'pass_toggle_back' : 'pass_toggle');
+    var aviso = document.getElementById('avisoLogin');
+    aviso.className = 'aviso'; aviso.textContent = '';
+  });
+  document.getElementById('fLoginPass').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('inEmailPass').value.trim().toLowerCase();
+    var password = document.getElementById('inPass').value;
+    var aviso = document.getElementById('avisoLogin');
+    aviso.className = 'aviso'; aviso.textContent = '…';
+    sb.auth.signInWithPassword({ email: email, password: password }).then(function(r){
+      // sin error: onAuthStateChange (arriba) ya dispara cargar() al ver SIGNED_IN
+      if (!r.error){ aviso.className = 'aviso'; aviso.textContent = ''; return; }
+      aviso.className = 'aviso mal'; aviso.textContent = t('pass_mal');
+    });
+  });
+
+  /* ── cambiar contraseña, ya dentro del portal ────────────────────────
+     `updateUser` actualiza la cuenta de la sesión activa — no hace falta
+     pasar por la Edge Function (esa es solo para que un ADMIN se la ponga
+     a otra persona). El enlace por email sigue funcionando igual después. */
+  function abrirCambiarPass(){
+    suiAbrirCajon({
+      titulo: t('cambiar_pass_btn'),
+      sub: '',
+      cuerpo:
+        '<div class="row"><div><label>' + esc(t('cambiar_pass_nueva')) + '</label>' +
+        '<input type="password" id="cpNueva" autocomplete="new-password"></div></div>' +
+        '<div class="row" style="margin-top:10px"><div><label>' + esc(t('cambiar_pass_repite')) + '</label>' +
+        '<input type="password" id="cpRepite" autocomplete="new-password"></div></div>' +
+        '<p class="sui-nota" style="margin-top:10px">' + esc(t('cambiar_pass_nota')) + '</p>' +
+        '<div id="cpAviso" class="aviso" style="margin-top:8px"></div>',
+      pie:
+        '<button type="button" class="sui-btn primario" id="btnCpGuardar">' + esc(t('guardar')) + '</button>' +
+        '<button type="button" class="sui-btn" id="btnCpCerrar">' + esc(t('cerrar')) + '</button>',
+      onCerrar: function(){},
+    });
+    document.getElementById('btnCpCerrar').addEventListener('click', suiCerrarCajon);
+    document.getElementById('btnCpGuardar').addEventListener('click', function(){
+      var p1 = document.getElementById('cpNueva').value;
+      var p2 = document.getElementById('cpRepite').value;
+      var aviso = document.getElementById('cpAviso');
+      if (p1.length < 10){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_corta'); return; }
+      if (p1 !== p2){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_no_coincide'); return; }
+      var btn = document.getElementById('btnCpGuardar'); btn.disabled = true;
+      sb.auth.updateUser({ password: p1 }).then(function(r){
+        btn.disabled = false;
+        if (r.error){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_error') + ': ' + r.error.message; return; }
+        aviso.className = 'aviso bien'; aviso.textContent = t('cambiar_pass_ok');
+        setTimeout(suiCerrarCajon, 1200);
+      });
+    });
+  }
+  document.getElementById('btnPass').addEventListener('click', abrirCambiarPass);
 
   document.getElementById('btnSalir').addEventListener('click', function(){
     sb.auth.signOut().then(function(){ location.replace('/portal/'); });

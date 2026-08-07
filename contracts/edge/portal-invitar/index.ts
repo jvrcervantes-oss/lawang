@@ -1,9 +1,11 @@
-// portal-invitar — da acceso al portal del comprador y envía el enlace de entrada.
+// portal-invitar — da acceso al portal del comprador, envía el enlace de
+// entrada y (7-ago) permite ponerle una contraseña como alternativa al enlace.
 //
-// Existe porque crear el usuario de Auth y marcarle `app_metadata.portal` exige
-// `service_role`, que no puede vivir en el navegador. El vínculo email→fichas
-// (portal_accesos) también se escribe aquí para que invitar sea UNA acción
-// atómica, no tres pasos que alguien deja a medias.
+// Existe porque crear el usuario de Auth, marcarle `app_metadata.portal` y
+// tocar su contraseña exige `service_role`, que no puede vivir en el
+// navegador. El vínculo email→fichas (portal_accesos) también se escribe aquí
+// para que invitar sea UNA acción atómica, no tres pasos que alguien deja a
+// medias.
 //
 // ⚠️ La autorización se decide SIEMPRE con el JWT de quien llama (admin de la
 // suite), nunca con un campo del body. verify_jwt=false: se valida dentro para
@@ -71,6 +73,22 @@ Deno.serve(async (req) => {
     if (accion === 'revocar') {
       const { error } = await admin.from('portal_accesos').update({ activo: false }).eq('email', email);
       if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    // ── contraseña: alternativa al enlace mágico, no lo sustituye ────────
+    // Mismo patrón que admin-usuarios (cuentas de equipo): el admin la escribe
+    // y se la pasa a la persona por su cuenta; aquí nunca queda en claro.
+    if (accion === 'password') {
+      const password = String(body.password ?? '');
+      if (password.length < 10) return json({ error: 'password_corta' }, 400);
+      const { data: lista, error: eLista } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (eLista) return json({ error: eLista.message }, 500);
+      const user = (lista?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === email) ?? null;
+      if (!user || !(user.app_metadata as Record<string, unknown> | null)?.portal)
+        return json({ error: 'no_es_cuenta_de_portal' }, 400);
+      const { error } = await admin.auth.admin.updateUserById(user.id, { password });
+      if (error) return json({ error: error.message }, 400);
       return json({ ok: true });
     }
 
