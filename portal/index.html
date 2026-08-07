@@ -898,12 +898,20 @@
   function abreContrato(c){
     if (!c || !c.pdf) return;
     sb.storage.from('contratos-firmados').createSignedUrl(c.pdf, 600).then(function(r){
-      if (!r.data || !r.data.signedUrl){ toast(t('err_carga')); return; }
+      /* si falla, el hash ya quedó en #/contratos/NUMERO — sin este reset un
+         reintento no dispara hashchange y el botón se queda muerto. */
+      if (!r.data || !r.data.signedUrl){ toast(t('err_carga')); vasA(RUTA.sec, null, true); return; }
       suiAbrirCajon({
         titulo: esc(c.numero),
         sub: esc((c.proyecto || '') + (c.parcela ? ' · ' + t('unidad') + ' ' + c.parcela : '')),
         cuerpo: '<iframe src="' + esc(r.data.signedUrl) + '" style="width:100%;height:100%;border:0" title="' + esc(c.numero) + '"></iframe>',
-        pie: '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
+        /* Android Chrome no renderiza PDF dentro de un iframe (marco en blanco
+           o descarga forzada) y Safari iOS solo pinta la primera página de un
+           PDF de varias — un contrato SIEMPRE tiene varias. El enlace de
+           descarga es la ruta que ya funcionaba antes de este cambio: se deja
+           como salida de emergencia en vez de apostarlo todo al iframe. */
+        pie: '<a class="sui-btn" href="' + esc(r.data.signedUrl) + '" target="_blank" rel="noopener">' + esc(t('descargar')) + '</a>' +
+             '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
         onCerrar: function(){ if (RUTA.doc) vasA(RUTA.sec, null); }
       });
       document.getElementById('suiCajon').dataset.doc = c.numero;
