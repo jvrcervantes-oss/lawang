@@ -155,7 +155,10 @@
   #form.locked{ pointer-events:none; opacity:.6; }
 
   .field{ margin:12px 0; }
-  .field label{ display:block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .field label{ display:block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; cursor:pointer; }
+  .field label:hover{ color:var(--dl); }
+  .field label::after{ content:' ↳'; opacity:0; transition:opacity .15s var(--ease); }
+  .field label:hover::after{ opacity:.65; }
   .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
     padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--field-bg);
     transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
@@ -216,6 +219,25 @@
      (7-ago) — separador propio para no confundirse con el grid2 de arriba. */
   .comprador-extra{ margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
   .comprador-extra-head{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:4px; }
+  .cli-buscar{ position:relative; padding:2px 0 12px; }
+  .cli-buscar input{ width:100%; padding:9px 14px; border:1px solid var(--line); border-radius:999px; font:inherit; font-size:12.5px; background:#F7F3E9; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .cli-buscar input:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .cli-resultados{ position:absolute; left:0; right:0; top:calc(100% - 6px); z-index:5; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 32px -12px rgba(46,52,55,.35); max-height:220px; overflow:auto; }
+  .cli-r{ padding:9px 14px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--hair); }
+  .cli-r:last-child{ border-bottom:none; }
+  .cli-r:hover{ background:#F7F3E9; }
+  .cli-r b{ color:var(--dl); }
+  .cli-r span{ color:var(--muted); }
+  .cli-vacio{ padding:9px 14px; font-size:12px; color:var(--muted); }
+  .emails-extra{ grid-column:1/-1; margin-top:4px; }
+  .chips-row{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .chip-email{ display:inline-flex; align-items:center; gap:6px; background:#F7F3E9; border:1px solid var(--line); border-radius:999px; padding:5px 6px 5px 12px; font-size:12px; }
+  .chip-email button{ border:none; background:none; cursor:pointer; color:var(--muted); font-size:14px; line-height:1; padding:2px 4px; }
+  .chip-email button:hover{ color:var(--be); }
+  .emails-extra .dz-row input{ flex:1; }
+  .em-emails-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0; }
+  .em-emails-chips button{ font:inherit; font-size:11.5px; background:#F7F3E9; border:1px solid var(--line); border-radius:999px; padding:4px 10px; cursor:pointer; color:var(--texto-2,#4A5052); }
+  .em-emails-chips button:hover{ border-color:var(--dl); color:var(--dl); }
   .dz{ border-top:1px solid var(--hair); padding:12px 0 4px; }
   .dz:first-child{ border-top:none; }
   .dz-row{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px; color:var(--muted); }
@@ -529,6 +551,7 @@
         <p class="em-note">Se envía la vista previa tal cual.</p>
         <p class="em-note" id="emAviso"></p>
         <label>Destinatario<input type="email" id="emTo" placeholder="cliente@email.com" required></label>
+        <div class="em-emails-chips" id="emChips" hidden></div>
         <label>Asunto<input type="text" id="emSubject"></label>
         <label>Mensaje<textarea id="emMessage" rows="5"></textarea></label>
         <details class="em-manual">
@@ -648,6 +671,7 @@ let CURRENT = TEMPLATES[0];       // Carta de Reserva por defecto: es el primer 
 let templateHTML = '';
 let COVER_HTML = '';
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
+let ADQ1_EMAILS = [];  // emails adicionales de Adquiriente I, además del campo base adq1_email
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
 
@@ -1332,6 +1356,90 @@ function wireCompradorPanel(){
 }
 function rebuildComprador(){ const old=$('#compradorPanel'); if(old){ old.outerHTML=buildCompradorPanel(); wireCompradorPanel(); wireAccordions(); } }
 
+/* ---------- buscador de cliente ya registrado (Adquiriente I) ----------
+   Busca en `clients` (la misma tabla que /compradores/) y precarga sus datos
+   en vez de teclearlos otra vez para alguien que ya tenemos fichado. Solo
+   busca, nunca escribe: guardar el contrato sigue sin tocar `clients`. */
+let _cliBuscarTimer=null;
+function wireClienteBuscador(){
+  const input=$('#cliBuscar'); if(!input) return;
+  const res=$('#cliResultados');
+  input.addEventListener('input', ()=>{
+    clearTimeout(_cliBuscarTimer);
+    const q=input.value.trim();
+    if(q.length<2){ res.hidden=true; res.innerHTML=''; return; }
+    _cliBuscarTimer=setTimeout(()=>buscarClientes(q), 280);
+  });
+  input.addEventListener('blur', ()=> setTimeout(()=>{ res.hidden=true; }, 150));
+  input.addEventListener('focus', ()=>{ if(res.innerHTML) res.hidden=false; });
+}
+async function buscarClientes(q){
+  const res=$('#cliResultados'); if(!res) return;
+  if(!sb){ res.hidden=true; return; }
+  const like=`%${q.replace(/[%_]/g,'')}%`;
+  const { data, error } = await sb.from('clients').select('full_name,email,phone,nationality,passport_number')
+    .or(`full_name.ilike.${like},email.ilike.${like},passport_number.ilike.${like}`).limit(8);
+  if(error){ res.hidden=true; return; }
+  if(!data || !data.length){
+    res.innerHTML=`<div class="cli-vacio">${L({es:'Sin coincidencias.',en:'No matches.',id:'Tidak ada hasil.'})}</div>`;
+    res.hidden=false; return;
+  }
+  res.innerHTML=data.map((c,i)=>`<div class="cli-r" data-ci="${i}">
+    <b>${esc(c.full_name||'—')}</b><br><span>${esc([c.email,c.passport_number].filter(Boolean).join(' · ')||'—')}</span>
+  </div>`).join('');
+  res._data=data;
+  res.hidden=false;
+  res.querySelectorAll('[data-ci]').forEach(el=> el.addEventListener('mousedown', e=>{
+    e.preventDefault();   // antes del blur del input, si no el blur cierra la lista primero
+    const c=res._data[+el.dataset.ci];
+    populateForm({ adq1_nombre:c.full_name||'', adq1_nacionalidad:c.nationality||'',
+      adq1_pasaporte:c.passport_number||'', adq1_telefono:c.phone||'', adq1_email:c.email||'' });
+    $('#cliBuscar').value=''; res.hidden=true; res.innerHTML='';
+    aplicarReglasCampos(); render(); updateSaveButton();
+  }));
+}
+
+/* ---------- emails adicionales de Adquiriente I ----------
+   El campo base (adq1_email) sigue siendo UNO; esto es solo una lista aparte
+   guardada junto al contrato (datos.adq1_emails_extra), para familias que dan
+   más de un correo. No cambia a quién se envía el contrato — eso lo sigue
+   eligiendo el agente en el pop-up de "Enviar" (ver emailsConocidos). */
+function buildEmailsExtraHTML(){
+  const chips = ADQ1_EMAILS.map((e,i)=>`<span class="chip-email">${esc(e)}<button type="button" data-edel="${i}">×</button></span>`).join('');
+  return `<div class="emails-extra" id="emailsExtraPanel">
+    <label>${L({es:'Otros emails de Adquiriente I (opcional)',en:'Other emails for Buyer I (optional)',id:'Email lain Pembeli I (opsional)'})}</label>
+    <div class="chips-row">${chips}</div>
+    <div class="dz-row"><input type="email" id="emailExtraInput" placeholder="otro@email.com">
+      <button type="button" class="btn ghost" id="emailExtraAdd">+ ${L({es:'Añadir',en:'Add',id:'Tambah'})}</button></div>
+  </div>`;
+}
+function agregarEmailExtra(){
+  const input=$('#emailExtraInput'); if(!input) return;
+  const v=input.value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ if(v) toast('Email no válido'); return; }
+  if(!ADQ1_EMAILS.includes(v)) ADQ1_EMAILS.push(v);
+  input.value='';
+  rebuildEmailsExtra();
+}
+function rebuildEmailsExtra(){
+  const old=$('#emailsExtraPanel'); if(!old) return;
+  old.outerHTML=buildEmailsExtraHTML(); wireEmailsExtra(); render();
+}
+function wireEmailsExtra(){
+  const p=$('#emailsExtraPanel'); if(!p) return;
+  p.querySelector('#emailExtraAdd').addEventListener('click', agregarEmailExtra);
+  p.querySelector('#emailExtraInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); agregarEmailExtra(); } });
+  p.querySelectorAll('[data-edel]').forEach(b=> b.addEventListener('click', ()=>{
+    ADQ1_EMAILS.splice(+b.dataset.edel, 1); rebuildEmailsExtra();
+  }));
+}
+/* todos los emails que tenemos de este contrato: base + extras + compradores
+   adicionales, sin duplicados — usado por el selector rápido del pop-up de envío */
+function emailsConocidos(){
+  const d=collect();
+  return [...new Set([d.adq1_email, ...ADQ1_EMAILS, ...COMPRADORES.map(c=>c.email)].filter(Boolean))];
+}
+
 /* redacción propia de cada plantilla para "Adquiriente N" (antes hardcoded
    para II/III únicamente) — se generaliza a cualquier N conservando el
    texto exacto que el cliente ya aprobó por plantilla. */
@@ -1821,9 +1929,19 @@ function buildForm(){
     const note = (s.id==='firmas' && TOKENS && TOKENS.bloqueado && TOKENS.bloqueado.length)
       ? `<div class="note-blocked"><b>Boilerplate bloqueado</b> — texto legal fijo en la plantilla, no editable aquí:
           <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>` : '';
+    // buscador de cliente ya registrado: solo en Adquiriente I, precarga desde
+    // `clients` en vez de teclear otra vez a alguien que ya tenemos fichado
+    const clienteBuscadorHTML = s.id==='comprador' ? `<div class="cli-buscar">
+      <input type="search" id="cliBuscar" autocomplete="off" placeholder="${L({es:'Buscar cliente ya registrado (nombre, email o pasaporte)…',en:'Search existing client (name, email or passport)…',id:'Cari klien terdaftar (nama, email, atau paspor)…'})}">
+      <div class="cli-resultados" id="cliResultados" hidden></div>
+    </div>` : '';
+    // más de un email para Adquiriente I (el base sigue siendo adq1_email):
+    // matrimonios/familias que quieren copia en dos buzones distintos
+    const hasAdq1Email = s.id==='comprador' && s.fields.some(f=>f[0]==='adq1_email');
+    const emailsExtraHTML = hasAdq1Email ? buildEmailsExtraHTML() : '';
     html += `<section class="section ${cls}" data-sec="${s.id}" data-tier="${s.tier}">
       <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
-      <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}</div></section>`;
+      <div class="body">${clienteBuscadorHTML}<div class="${grid?'grid2':''}">${body}${emailsExtraHTML}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}</div></section>`;
   });
   if(anexosAlFinal) html += buildAnnexPanel();
   form.innerHTML = html;
@@ -1838,11 +1956,21 @@ function buildForm(){
       if(e.target.closest('#hitoAdd')){ HITOS.push({pct:'',monto:'',timing:'',es:'',en:'',id:''}); refreshHitos(); render(); }
     });
   }
+  // flecha de salto: clic en la etiqueta de un campo → ese punto del contrato
+  // en la vista previa (form persiste entre rebuilds, delegación una sola vez)
+  if(!form._saltoWired){ form._saltoWired = true;
+    form.addEventListener('click', e=>{
+      const lbl = e.target.closest('.field > label'); if(!lbl) return;
+      const key = lbl.closest('.field').dataset.key; if(key) saltarACampo(key);
+    });
+  }
 
   wireDesignPanel();
   wireAnnexPanel();
   wireClausePanel();
   wireCompradorPanel();
+  wireClienteBuscador();
+  wireEmailsExtra();
   wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
@@ -2188,7 +2316,10 @@ function idrEquiv(html, data){
   if(!cur || cur==='IDR' || !tasa) return html;
   // .f = hueco de marcador, .mny = importe de la tabla de pagos. En ambos casos
   // el código de moneda va justo detrás (viene de {{moneda}}, ya sustituido).
-  return html.replace(/(<span class="(?:f|mny)[^"]*">)([^<]*)(<\/span>\s*)(EUR|USD|AUD)\b/g,
+  // el .f también puede llevar data-campo (ver buildDoc → salto de campo), de
+  // ahí el grupo opcional: sin él, un contrato con importe se quedaba sin su
+  // equivalencia en IDR en cuanto el hueco pasó a ser saltable.
+  return html.replace(/(<span class="(?:f|mny)[^"]*"(?: data-campo="[a-z0-9_]+")?>)([^<]*)(<\/span>\s*)(EUR|USD|AUD)\b/g,
     (m, ini, val, fin, mon)=>{
       const n = parseImporte(val);
       return n===null ? m : `${ini}${val}${fin}${mon} <span class="idr-eq">(≈ ${Math.round(n*tasa).toLocaleString('es-ES')} IDR)</span>`;
@@ -2220,8 +2351,14 @@ function buildDoc(){
   html=html.replace(/<!--cuenta:([a-z0-9_]+)-->/g,
     (_m, clave) => tablaCuentaHTML(clave, { titulo:false, escrow:false, clase:'pays kv' }));
   html=html.replace('<!--extra-clauses-->', clausesHTML());   // cláusulas adicionales propias
-  // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg)
-  html=html.replace(/<span class="f">(\{\{([a-z0-9_]+)\}\})<\/span>/g,(m,mk,k)=>`<span class="f ${sizeClass(k)}">${mk}</span>`);
+  // dimensionar cada hueco según su tipo de dato (añade .f-xs/sm/md/lg, salvo
+  // que la plantilla ya traiga su propio tamaño escrito, ej. "f f-lg") y
+  // marcarlo con data-campo: es lo que usa saltarACampo() (flecha del form) para
+  // encontrar el hueco en la vista previa. Solo los huecos con el marcador
+  // <span class="f"> en la plantilla saltan — un campo mencionado en prosa
+  // corrida, sin ese hueco, no tiene un punto fijo al que hacer scroll.
+  html=html.replace(/<span class="f( f-[a-z]+)?">(\{\{([a-z0-9_]+)\}\})<\/span>/g,
+    (m,extraCls,mk,k)=>`<span class="f${extraCls || ' '+sizeClass(k)}" data-campo="${k}">${mk}</span>`);
   html=html.replace(/<!--opt:([a-z0-9_]+)-->[\s\S]*?<!--\/opt:\1-->/g,(m,k)=> (k in data && data[k]!=='') ? m : '');
   // bloque que solo imprime si un campo vale EXACTAMENTE X (a diferencia de
   // opt:, que solo mira si el campo está relleno) — usado para el régimen
@@ -2247,6 +2384,24 @@ function buildDoc(){
    —vive dentro del PDF, no en `contratos.datos`—; se ve con "Descargar PDF". */
 function render(){ if(EDITING) return; $('#pvFrame').srcdoc = buildDoc(); }
 let _rt=null; function renderDebounced(){ if(EDITING) return; clearTimeout(_rt); _rt=setTimeout(render, 260); }
+
+/* flecha de salto (pedido del cliente, 7-ago): del campo del formulario al
+   hueco donde imprime en la vista previa. Solo llega a los huecos que la
+   plantilla marca con <span class="f"> (ver buildDoc) — un campo mencionado
+   en prosa corrida, sin ese hueco, no tiene un punto fijo al que saltar. */
+function saltarACampo(key){
+  const fr=$('#pvFrame'); const d=fr && fr.contentDocument; if(!d) return;
+  const pane=$('#pane'), fab=$('#fab');
+  // en móvil la preview vive en un overlay aparte (ver #fab): ábrelo si hace
+  // falta para que el salto tenga algo visible a lo que hacer scroll
+  if(fab && getComputedStyle(fab).display!=='none' && pane && !pane.classList.contains('open')) pane.classList.add('open');
+  const el = d.querySelector(`[data-campo="${key}"]`);
+  if(!el){ toast('Ese campo no tiene un hueco fijo en este contrato (vacío, o va en el texto corrido)'); return; }
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  const prevOutline=el.style.outline, prevOffset=el.style.outlineOffset;
+  el.style.outline='2px solid #C9A227'; el.style.outlineOffset='2px';
+  setTimeout(()=>{ el.style.outline=prevOutline; el.style.outlineOffset=prevOffset; }, 1400);
+}
 
 /* Orden del formulario, el MISMO para todos los contratos (petición del
    cliente). Un id que no aparezca aquí — sea de la plantilla que sea — se va al
@@ -2558,7 +2713,7 @@ function contractPayload(){
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
-              compradores: COMPRADORES, overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
+              compradores: COMPRADORES, adq1_emails_extra: ADQ1_EMAILS, overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
   };
 }
 
@@ -2943,6 +3098,7 @@ async function openSavedContract(id){
   if(f.plazo_meses && !f.plazo_pago_final_meses && slug==='ppjb_parcela') f.plazo_pago_final_meses = f.plazo_meses;
   populateForm(f);
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
+  ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : [];
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
@@ -2953,7 +3109,9 @@ async function openSavedContract(id){
   // reescribiría solo — cambiando un dato ya guardado nada más abrirlo.
   AUTO_ANX = ''; AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   aplicarReglasCampos();
-  refreshHitos(); updateSaveButton(); editBtnIdle(); render();
+  refreshHitos();
+  if($('#emailsExtraPanel')){ $('#emailsExtraPanel').outerHTML = buildEmailsExtraHTML(); wireEmailsExtra(); }
+  updateSaveButton(); editBtnIdle(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
   avisaHuerfanos();   // render() acaba de recalcular HUERFANOS con la plantilla de hoy
 }
@@ -3044,6 +3202,13 @@ function openEmailModal(){
   // precarga así desde d.cliente_email, aquí faltaba el equivalente.
   const d = collect();
   $('#emTo').value = d.adq1_email || (COMPRADORES.find(c=>c.email) || {}).email || '';
+  // más de un email conocido (comprador principal + extras + adicionales): un
+  // clic sobre el chip lo pone en Destinatario, sin tener que teclearlo de memoria
+  const conocidos = emailsConocidos();
+  const chips = $('#emChips');
+  chips.hidden = conocidos.length < 2;
+  chips.innerHTML = conocidos.map(e=>`<button type="button" data-em="${escAttr(e)}">${esc(e)}</button>`).join('');
+  chips.querySelectorAll('[data-em]').forEach(b=> b.addEventListener('click', ()=>{ $('#emTo').value = b.dataset.em; }));
   $('#emSubject').value = (numero ? `Contrato ${numero}` : `Contrato — ${L(CURRENT.name)}`) + ' — Lawang Tropical Properties';
   $('#emMessage').value = `Buenos días,\n\nAdjunto el documento${numero ? ' ('+numero+')' : ''} para su revisión.\n\nUn saludo,\nLawang Tropical Properties`;
   $('#emOverlay').classList.add('open');
