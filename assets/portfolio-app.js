@@ -1275,7 +1275,11 @@
     // ("… FREEHOLD LAND.") tal cual la guía Ficha p2. El dato sale de p.tenure, no se escribe a mano.
     var tenureTag = p.tenure==="tenure.freehold" ? tl("Freehold land.","Suelo en freehold.")
                   : (p.tenure ? tl("Leasehold "+(p.leaseYears||30)+" yr.","Leasehold "+(p.leaseYears||30)+" años.") : "");
-    var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(14px,1.5vw,21px);font-weight:300;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);line-height:1.4;margin-top:clamp(14px,1.6vw,22px);max-width:52ch">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
+    // Tamaño medido contra el PDF (7-ago): el titular ahí ocupa EXACTAMENTE el mismo ancho que la
+    // galería de fotos de debajo (2962px = 2962px, título vs galería, medido por píxeles) — no es un
+    // subtítulo pequeño, es el titular grande de la página. El `max-width:52ch` de antes no tenía
+    // relación con el ancho real de la columna; ahora crece con el contenedor, como en la referencia.
+    var subHTML = (subText||tenureTag) ? '<p style="font-family:var(--sans);font-size:clamp(22px,2.6vw,38px);font-weight:300;letter-spacing:.02em;text-transform:uppercase;color:var(--ink);line-height:1.25;margin-top:clamp(14px,1.6vw,22px);max-width:100%">'+esc(subText)+(tenureTag?(subText?" ":"")+'<b style="font-weight:700">'+esc(tenureTag)+'</b>':'')+'</p>' : "";
     // "More in this line": mismas cards del marketplace/index (LawangCard) — revisión cliente 23-jul.
     var alsoHTML = also.length>0 ? '<div style="margin-top:clamp(38px,5vh,72px)"><div class="kicker" style="margin-bottom:clamp(22px,2.6vw,32px)">'+(alsoIsFallback?t("pd.also.any"):t("pd.also"))+'</div><div class="pdp-also-grid">'
       + also.map(function(x){ return (window.LawangCard&&LawangCard.render) ? LawangCard.render(x,{lang:S.lang,cur:S.cur,rates:L.RATES}) : ''; }).join("")
