@@ -306,11 +306,15 @@ async function cargar(){
     // `adq1` y `compradores` se piden para poder avisar de las fichas de
     // comprador que faltan. Son campos pequeños del jsonb; sigue sin pedirse
     // `datos` entero, que pesa MB por los anexos en base64.
-    SB.from('contratos').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
-    SB.from('facturas').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
+    // Va por la función `contratos_equipo()` (7-ago) y no por `.from('contratos')`
+    // directo: desde que la RLS de SELECT filtra por autor, una lectura directa
+    // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
+    // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
+    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
     // `snapshot_path` se pide solo para poder limpiar el almacenamiento al
     // borrar una operación: ver borrarOperacion().
-    SB.from('contrato_firmas').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(300),
+    SB.rpc('contrato_firmas_equipo').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(300),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
     // correr), esto falla solo y la ficha cae al nombre suelto del contrato.
     SB.from('contrato_compradores').select('contrato_id,rol,clients(id,full_name,email,phone,passport_number,kyc_status)'),

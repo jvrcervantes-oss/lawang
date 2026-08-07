@@ -570,10 +570,14 @@ function pintarKpis(d, ficha){
    Se mezclan y se ordenan por fecha porque la pregunta del que entra es «qué se
    ha movido», no «qué contratos hay». */
 async function ultimasOperaciones(sb){
+  // Por las funciones `_equipo()` (7-ago) y no `.from()` directo: "recientes"
+  // es del equipo entero a propósito (mismo motivo que Operaciones), y desde
+  // que la RLS de SELECT filtra por autor una lectura directa solo traería
+  // lo del agente que mira la pantalla.
   const [c, f] = await Promise.all([
-    sb.from('contratos').select('id, numero, tipo, comprador_nombre, created_at, bloqueado')
+    sb.rpc('contratos_equipo').select('id, numero, tipo, comprador_nombre, created_at, bloqueado')
       .order('created_at', { ascending:false }).limit(6),
-    sb.from('facturas').select('id, numero, tipo, cliente_nombre, total, moneda, created_at, anulada')
+    sb.rpc('facturas_equipo').select('id, numero, tipo, cliente_nombre, total, moneda, created_at, anulada')
       .order('created_at', { ascending:false }).limit(6),
   ]);
   const filas = [
@@ -617,20 +621,26 @@ async function pintarRail(sb, ficha){
   const cajas = [];
   const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
   try{
-    const [fir, fac] = await Promise.all([
-      sb.from('contrato_firmas').select('expira_en, firmante_nombre, contratos(numero)')
+    // Por `_equipo()` (7-ago), no `.from()` directo — mismo motivo que
+    // ultimasOperaciones(). El embed `contratos(numero)` que hacía la lectura
+    // directa no está garantizado a través de una función RPC, así que el
+    // número se resuelve aparte con un mapa id→numero de contratos_equipo().
+    const [fir, fac, ctr] = await Promise.all([
+      sb.rpc('contrato_firmas_equipo').select('contrato_id, expira_en, firmante_nombre')
         .eq('estado','pendiente').order('expira_en').limit(4),
       // `fecha_vencimiento` no es una columna de `facturas`: vive en
       // `datos->fields`, igual que la lee la campana de topbar.js. La versión
       // anterior pedía la columna suelta y llevaba HORAS fallando con un 400
       // silencioso (atrapado por el catch de aquí abajo) — la sección solo
       // enseñaba vencimientos de firma, nunca de factura.
-      sb.from('facturas').select('numero, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento')
+      sb.rpc('facturas_equipo').select('numero, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento')
         .limit(200),
+      sb.rpc('contratos_equipo').select('id, numero'),
     ]);
+    const numeroDe = {}; (ctr.data || []).forEach(c => { numeroDe[c.id] = c.numero; });
     const filas = [
       ...(fir.data || []).map(r => ({ d:dias(r.expira_en),
-        txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (r.contratos ? ' · ' + r.contratos.numero : ''),
+        txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (numeroDe[r.contrato_id] ? ' · ' + numeroDe[r.contrato_id] : ''),
         val:'Pendiente', clase:'espera' })),
       ...(fac.data || []).filter(r => !r.anulada && r.venc).map(r => ({ d:dias(r.venc),
         txt:r.numero, val:Number(r.total).toLocaleString('es') + ' ' + (r.moneda||'EUR') })),
