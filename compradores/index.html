@@ -231,7 +231,9 @@ function pintarFicha(){
       ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
       <label>Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
       <div class="row">
-        <div><label>Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}"></div>
+        <div><label>Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
+          <p class="nota">Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal.
+          Eso se gestiona aparte, en «Portal del comprador» más abajo.</p></div>
         <div><label>Teléfono</label><input id="f-tel" ${dis} value="${esc(c.phone||'')}"></div>
       </div>
       <div class="row">

@@ -1,6 +1,19 @@
 -- ============================================================================
 -- Portal del comprador — 5-ago-2026
 -- ----------------------------------------------------------------------------
+-- 🔴 7-ago-2026: este fichero se había quedado DESACTUALIZADO frente a lo que
+-- de verdad corría en producción — los bloques `documentos` (documentos_proyecto,
+-- visible_portal) y `kyc` (documents por client_id) de portal_situacion() se
+-- añadieron a mano en el editor SQL de Supabase en algún momento y nunca se
+-- volvieron a guardar aquí. Una migración posterior que redefinió la función
+-- copiando el cuerpo de ESTE fichero los borró sin que nadie lo pidiera —
+-- 60 horas sin documentos ni KYC en el portal de ningún comprador, hasta que
+-- un cliente lo notó. Quedan ya incluidos abajo. La lección, no solo para este
+-- fichero: antes de `create or replace function` sobre algo que puede haber
+-- cambiado fuera de un `apply_migration`, se lee la definición VIVA
+-- (`pg_get_functiondef`), nunca se asume que el .sql del repo es la fuente
+-- de verdad. Ver [[reference_transformar_y_verificar_no_reescribir]].
+-- ----------------------------------------------------------------------------
 -- Los compradores de Lawang consultan su situación (contratos, pagos, facturas
 -- y avance de obra) en /portal/. Decisiones de diseño que hay que respetar:
 --
@@ -118,6 +131,18 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('obra', 'obra', false, 8388608, array['image/jpeg','image/png','image/webp'])
 on conflict (id) do nothing;
 
+-- ── comparación de nombre de proyecto ───────────────────────────────────────
+-- 🔴 El nombre del proyecto NO casa entre tablas: los contratos dicen «Palm
+-- Field», la documentación «Palm Field by Balian Hills». Con `=` no aparecía
+-- nada; renombrar datos de producción para que cuadraran habría sido peor.
+-- Contención en minúsculas, en los dos sentidos.
+create or replace function public.mismo_proyecto(a text, b text)
+returns boolean language sql immutable set search_path to '' as
+$$ select a is not null and b is not null and (
+     lower(btrim(a)) = lower(btrim(b))
+     or lower(btrim(a)) like '%' || lower(btrim(b)) || '%'
+     or lower(btrim(b)) like '%' || lower(btrim(a)) || '%') $$;
+
 -- ── la RPC única del portal ─────────────────────────────────────────────────
 create or replace function public.portal_situacion()
 returns jsonb
@@ -192,7 +217,10 @@ begin
       ) order by f.fecha_emision desc, f.numero desc)
       from facturas f
      where f.contrato_id in (select id from mis_ids)
-       and not coalesce(f.anulada, false)), '[]'::jsonb),
+       and not coalesce(f.anulada, false)
+       -- una proforma sin enviar es un borrador automático que el estudio
+       -- todavía no ha revisado (facturas/sql/enviada_y_portal.sql, 7-ago)
+       and (f.tipo <> 'proforma' or f.enviada)), '[]'::jsonb),
     'obra', coalesce((
       select jsonb_agg(jsonb_build_object(
         'unidad',          u.codigo,
@@ -211,6 +239,32 @@ begin
       from unidades u
       join contratos c2 on c2.id = u.contrato_id
       join mis_ids m on m.id = c2.id), '[]'::jsonb),
+    'documentos', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',          dp.id,
+        'titulo',      dp.titulo,
+        'descripcion', dp.descripcion,
+        'categoria',   dp.categoria,
+        'proyecto',    dp.proyecto,
+        'url',         dp.url,
+        'path',        dp.path
+      ) order by dp.creado_en desc)
+      from documentos_proyecto dp
+     where dp.visible_portal
+       and exists (
+         select 1 from contratos c3
+         join mis_ids m3 on m3.id = c3.id
+        where public.mismo_proyecto(dp.proyecto, c3.proyecto_nombre)
+       )), '[]'::jsonb),
+    'kyc', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'tipo',   doc.doc_type,
+        'subido', doc.uploaded_at,
+        'caduca', doc.caduca_el,
+        'path',   doc.storage_path
+      ) order by doc.uploaded_at desc)
+      from documents doc
+      join mis_clientes mc2 on mc2.client_id = doc.client_id), '[]'::jsonb),
     'fases', coalesce((
       select jsonb_agg(jsonb_build_object(
                'orden', ff.orden, 'clave', ff.clave, 'es', ff.es, 'en', ff.en)
