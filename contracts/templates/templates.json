@@ -78,7 +78,6 @@
           ["adq1_nombre", "Nombre y apellidos", "text"],
           ["adq1_nacionalidad", "Nacionalidad", "text"],
           ["adq1_pasaporte", "Pasaporte / CIF", "text"],
-          ["adq1_domicilio", "Domicilio", "text"],
           ["adq1_telefono", "Teléfono", "text"],
           ["adq1_email", "Email", "text"]
         ]},
@@ -117,7 +116,6 @@
         ]},
         { "id": "comprador", "title": "Segunda Parte (arrendatario)", "fields": [
           ["adq1_nombre", "Nombre y apellidos", "text"],
-          ["adq1_domicilio", "Dirección", "text"],
           ["adq1_pasaporte", "Pasaporte", "text"]
         ]},
         { "id": "hs_terreno", "title": "Terreno", "fields": [

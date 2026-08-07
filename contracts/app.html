@@ -212,6 +212,10 @@
   .section.design > header h2{ color:var(--be); }
   /* ficha del índice para el panel Diseño: tinte tierra en vez de sage */
   .section.design .num{ font-style:normal; background:rgba(66,33,11,.1); color:var(--be); }
+  /* Adquirientes adicionales, dentro del mismo recuadro que Adquiriente I
+     (7-ago) — separador propio para no confundirse con el grid2 de arriba. */
+  .comprador-extra{ margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
+  .comprador-extra-head{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:4px; }
   .dz{ border-top:1px solid var(--hair); padding:12px 0 4px; }
   .dz:first-child{ border-top:none; }
   .dz-row{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px; color:var(--muted); }
@@ -408,7 +412,7 @@
           <span class="g">Documento</span>
           <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
           <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
-          <button class="btn ghost" id="btnDerivar" title="Genera otro contrato reutilizando estos datos">⎘ Derivar</button>
+          <button class="btn ghost" id="btnDerivar" title="Genera otro contrato reutilizando estos datos">⎘ Copiar datos</button>
         </div>
         <!-- 2. guardar: ni flujo de firma ni papel, es la base de datos -->
         <div class="pv-grupo" role="group" aria-label="Base de datos">
@@ -462,7 +466,7 @@
        el comprador firme a distancia. Al firmar, la Edge Function firma-submit
        renderiza el PDF con contract-pdf (Puppeteer) y lo mete bloqueado en la BD. -->
   <div class="cp-overlay" id="fmOverlay">
-    <div class="cp-modal" style="width:min(480px,100%)">
+    <div class="cp-modal" style="width:min(640px,100%)">
       <div class="cp-head">
         <b>Enviar a firma</b>
         <button type="button" class="tb-link" id="fmClose">Cerrar</button>
@@ -479,12 +483,11 @@
         <div id="fmResult" style="display:none;margin-top:14px">
           <label>Enlace de firma<input type="text" id="fmLink" readonly onclick="this.select()"></label>
           <!-- Editable: el mensaje se genera con un texto por defecto, pero cada
-               comprador tiene su tono y su idioma. WhatsApp y email usan lo que
-               haya AQUÍ en el momento del clic, no el texto original. -->
+               comprador tiene su tono y su idioma. Email usa lo que haya AQUÍ en
+               el momento del clic, no el texto original. -->
           <label>Mensaje<textarea id="fmMsg" rows="5"></textarea></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button class="btn ghost" id="fmCopy" type="button">Copiar enlace</button>
-            <button class="btn ghost" id="fmWa" type="button">WhatsApp</button>
             <!-- Era un <a href="mailto:">: en un equipo sin cliente de correo de
                  escritorio el clic no hacía nada. Ahora envía por el servidor. -->
             <button class="btn ghost" id="fmMail" type="button">Enviar por email</button>
@@ -517,13 +520,14 @@
        (Chromium real en Railway). Si ese servicio no está configurado o
        falla, cae automáticamente al PDF adjuntado a mano (opcional, plegado). -->
   <div class="cp-overlay" id="emOverlay">
-    <div class="cp-modal" style="width:min(480px,100%)">
+    <div class="cp-modal" style="width:min(640px,100%)">
       <div class="cp-head">
         <b>Enviar por email</b>
         <button type="button" class="tb-link" id="emClose">Cerrar</button>
       </div>
       <div class="em-body">
         <p class="em-note">Se envía la vista previa tal cual.</p>
+        <p class="em-note" id="emAviso"></p>
         <label>Destinatario<input type="email" id="emTo" placeholder="cliente@email.com" required></label>
         <label>Asunto<input type="text" id="emSubject"></label>
         <label>Mensaje<textarea id="emMessage" rows="5"></textarea></label>
@@ -700,7 +704,8 @@ let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
    se imprime en el documento); contractPayload lo resuelve a id para
    contratos.contrato_padre_id, que es lo que Operaciones usa para juntar
    reserva y obra en una sola operación. */
-const TIPOS_VINCULABLES = ['reserva_parcela','carta_reserva','carta_reserva_ampliada','contrato_general'];
+const TIPOS_VINCULABLES = ['reserva_parcela','carta_reserva','carta_reserva_ampliada','carta_reserva_hak_sewa',
+  'hak_sewa_notario','ppjb_bonian','ppjb_bonian_c2','contrato_general'];
 let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
 async function cargarVinculables(){
   if(VINCULABLES || !sb) return;
@@ -748,6 +753,11 @@ function toast(msg){
 const SOCIEDAD_DEFAULT = { ppjb_reserva: 'san_dal_woods' };
 function pdef(key){
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
+  // Fecha de firma y fecha de tipo de cambio: el día en que se está haciendo
+  // el contrato, no una fecha fija en tokens.json (cambia cada día). Mismo
+  // mecanismo que el resto de projectDefaults — un contrato reabierto sin
+  // este dato guardado también cae aquí, igual que ya pasa con moneda='EUR'.
+  if(key==='fecha_firma' || key==='fecha_tipo_cambio') return new Date().toISOString().slice(0,10);
   return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
 }
 
@@ -1301,11 +1311,15 @@ function buildCompradorPanel(){
         <div class="field"><label>${L({es:'Email',en:'Email',id:'Email'})}</label><input data-ci="${c.id}" data-ckey="email" value="${escAttr(c.email||'')}"></div>
       </div>
     </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
-  return `<section class="section design collapsed" id="compradorPanel">
-    <header data-acc><span class="num">＋</span><h2>${L({es:'Adquirientes adicionales',en:'Additional buyers',id:'Pembeli tambahan'})}</h2><span class="chev">▾</span></header>
-    <div class="body">${rows}
-      <div class="dz"><button type="button" class="btn ghost" id="compradorAdd">+ ${L({es:'Añadir adquiriente',en:'Add buyer',id:'Tambah pembeli'})}</button></div>
-    </div></section>`;
+  // Ya no es una sección propia con acordeón: va DENTRO del recuadro de
+  // Adquiriente I, justo detrás de sus campos (pedido del cliente, 7-ago —
+  // antes vivía prepuesto por encima de todo el formulario, lejos del
+  // comprador principal al que amplía).
+  return `<div class="comprador-extra" id="compradorPanel">
+    <div class="comprador-extra-head">${L({es:'Adquirientes adicionales',en:'Additional buyers',id:'Pembeli tambahan'})}</div>
+    ${rows}
+    <div class="dz"><button type="button" class="btn ghost" id="compradorAdd">+ ${L({es:'Añadir adquiriente',en:'Add buyer',id:'Tambah pembeli'})}</button></div>
+  </div>`;
 }
 function wireCompradorPanel(){
   const p=$('#compradorPanel'); if(!p) return;
@@ -1783,9 +1797,11 @@ function buildForm(){
   // El panel de Cláusulas solo si la plantilla las imprime: sin el marcador, lo
   // que el agente escribiera ahí desaparecía sin decir nada (mismo criterio que
   // el panel de Compradores, que ya iba condicionado).
+  // "Adquirientes adicionales" ya no se antepone aquí: se inyecta dentro del
+  // recuadro de la sección 'comprador' (Adquiriente I), ver más abajo.
+  const compradorExtraHTML = templateHTML.includes('<!--compradores-extra-->') ? buildCompradorPanel() : '';
   let html = buildDesignPanel() + (anexosAlFinal ? '' : buildAnnexPanel())
-    + (templateHTML.includes('<!--extra-clauses-->') ? buildClausePanel() : '')
-    + (templateHTML.includes('<!--compradores-extra-->') ? buildCompradorPanel() : '');   // solo si la plantilla lo imprime
+    + (templateHTML.includes('<!--extra-clauses-->') ? buildClausePanel() : '');
   // un rótulo por tier la PRIMERA vez que aparece: con FORM_ORDER los tiers ya
   // no son contiguos y comparar solo con el anterior repetía el mismo rótulo.
   const seenTiers = new Set(); let idx=0;
@@ -1807,7 +1823,7 @@ function buildForm(){
           <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>` : '';
     html += `<section class="section ${cls}" data-sec="${s.id}" data-tier="${s.tier}">
       <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
-      <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}</div></section>`;
+      <div class="body"><div class="${grid?'grid2':''}">${body}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}</div></section>`;
   });
   if(anexosAlFinal) html += buildAnnexPanel();
   form.innerHTML = html;
@@ -3019,6 +3035,11 @@ function blobToBase64(blob){
 function openEmailModal(){
   const numero = SAVED_CONTRACT ? SAVED_CONTRACT.numero : null;
   $('#emFile').value = '';
+  // Mismo criterio que Facturas (abrirMail()): sin guardar no hay número, y un
+  // documento sin número no queda registrado como emitido — se deshabilita el
+  // envío en vez de dejar salir un contrato del que no hay rastro en la BD.
+  $('#emSend').disabled = !numero;
+  $('#emAviso').textContent = numero ? '' : 'Guarda el contrato primero: sin guardar no se envía.';
   // mismo dato que usa firmantesDelContrato() para la firma — Facturas ya
   // precarga así desde d.cliente_email, aquí faltaba el equivalente.
   const d = collect();
@@ -3031,6 +3052,7 @@ $('#btnEmail').addEventListener('click', openEmailModal);
 $('#emClose').addEventListener('click', ()=> $('#emOverlay').classList.remove('open'));
 
 async function enviarEmail(){
+  if(!SAVED_CONTRACT){ toast('Guarda el contrato antes de enviarlo'); return; }
   const to=$('#emTo').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
   const file=$('#emFile').files[0];
@@ -3219,12 +3241,6 @@ function firmaMensaje(){
   return msg;
 }
 
-$('#fmWa').addEventListener('click', ()=>{
-  if(!FIRMA_ENVIO){ toast('Genera primero el enlace'); return; }
-  const msg = firmaMensaje(); if(!msg) return;
-  window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank', 'noopener');
-});
-
 $('#fmMail').addEventListener('click', async ()=>{
   if(!FIRMA_ENVIO){ toast('Genera primero el enlace'); return; }
   const msg = firmaMensaje(); if(!msg) return;
@@ -3275,12 +3291,12 @@ async function init(){
   MI_ROL = ficha ? ficha.rol : null;
   const who=$('#who'); if(who){ who.textContent = session.user.email || ''; who.title = 'Sesión iniciada como ' + (session.user.email||''); }
 
-  // "Editar texto" restaurado para todos los agentes (pedido explícito del
-  // usuario, 20-jul — antes estaba limitado a role:"admin"). Se deja el
-  // flag CAN_EDIT_TEXT en vez de borrar el mecanismo entero: si se quiere
-  // volver a restringir más adelante basta con cambiar esta línea de nuevo
-  // a `(session.user.user_metadata||{}).role === 'admin'`.
-  CAN_EDIT_TEXT = true;
+  // "Editar texto" vuelve a ser solo de admin/super_admin (7-ago, pedido
+  // explícito del usuario — el 20-jul se había abierto a todos los agentes;
+  // el flag CAN_EDIT_TEXT se dejó puesto entonces para exactamente este día).
+  // Sin ficha (cuentas anteriores al panel) se permite, mismo criterio de
+  // compatibilidad que el resto de la suite.
+  CAN_EDIT_TEXT = !ficha || ['super_admin','admin'].includes(MI_ROL);
 
   /* Cuentas de cobro desde `public.cuentas_bancarias` (6-ago-2026): salieron de
      assets/entities.js porque ese fichero se sirve sin login y además está en el
