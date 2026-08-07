@@ -692,12 +692,16 @@ article:hover .view-cta { gap:9px; }
   background:linear-gradient(100deg,#293f12,#687551); color:var(--bone); font-family:var(--sans); font-size:11px; font-weight:600;
   letter-spacing:.02em; padding:7px 12px; border-radius:999px; }
 .pdp-gi-map-badge svg{ width:14px; height:14px; flex:none; }
+/* Fondo sólido (7-ago): sin él, el texto blanco+sombra se leía bien sobre la foto aérea del PDF
+   pero se confundía con las etiquetas de un mapa de Google real (calles, POIs) — se veía como
+   texto suelto flotando sobre el mapa. Mismo degradado que el badge hermano, para que ambos lean
+   igual de bien sobre cualquier fondo, foto o mapa interactivo. */
 .pdp-gi-map-tenure{ position:absolute; bottom:12px; left:14px; z-index:3; display:flex; align-items:center; gap:8px;
-  color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.6); }
-.pdp-gi-map-tenure svg{ width:26px; height:26px; flex:none; }
+  background:linear-gradient(100deg,#293f12,#687551); color:#fff; padding:8px 14px 8px 10px; border-radius:999px; }
+.pdp-gi-map-tenure svg{ width:22px; height:22px; flex:none; }
 .pdp-gi-map-tenure span{ display:flex; flex-direction:column; }
 .pdp-gi-map-tenure em{ font-style:normal; font-family:var(--sans); font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; opacity:.85; }
-.pdp-gi-map-tenure b{ font-family:var(--sans); font-size:15px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.pdp-gi-map-tenure b{ font-family:var(--sans); font-size:14px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
 @media(max-width:640px){ .pdp-gi-info{ grid-template-columns:repeat(2,1fr); } }
 
 /* ── THE TERRITORY — mapa + planta 3D a ancho completo (rework 27-jul) ──
