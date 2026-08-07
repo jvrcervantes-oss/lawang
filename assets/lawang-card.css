@@ -57,11 +57,14 @@
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:3em; }
 /* flex-shrink:0 — la fila de specs es de altura fija por diseño (1 línea). Sin esto, cualquier
    desbordamiento futuro del body la aplasta en silencio en vez de notarse. */
-.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#7B7B7B; display:flex; align-items:center; gap:10px; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; margin-top:4px; flex-shrink:0; }
+/* gap y margen del punto ajustados 7-ago: a 264px de ancho útil (tarjeta mínima 240px del grid),
+   los 3 valores (m²·rooms·m² land) con los 10px de antes sumaban 278px — el texto del último se
+   recortaba contra el overflow:hidden de arriba. Repaso móvil de la ficha de producto lo cazó. */
+.lw-prop-meta { font-family:'Neue Kabel','Jost',sans-serif; font-size:13.5px; color:#7B7B7B; display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; margin-top:4px; flex-shrink:0; }
 .lw-prop-meta .lw-m { display:inline-flex; align-items:center; gap:5px; font-weight:500; }
 .lw-prop-meta .lw-m b { font-weight:700; }
 .lw-prop-meta .lw-m .lw-mi { width:16px; height:16px; flex-shrink:0; color:#7B7B7B; }
-.lw-prop-meta .lw-m + .lw-m::before { content:"·"; margin-right:10px; color:#B8B2A6; }
+.lw-prop-meta .lw-m + .lw-m::before { content:"·"; margin-right:6px; color:#B8B2A6; }
 .lw-prop-meta .lw-m-txt { color:#7B7B7B; }
 .lw-prop-foot { display:flex; align-items:center; margin-top:auto; padding-top:14px; border-top:1px solid #D4CCBA; }
 .lw-prop-price { font-family:'Neue Kabel','Jost',sans-serif; font-weight:600; font-size:28px; color:#324820; }

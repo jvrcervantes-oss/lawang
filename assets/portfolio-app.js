@@ -714,10 +714,21 @@
     var price = a.entryPriceEUR ? '<div style="position:absolute;right:clamp(22px,4vw,64px);bottom:clamp(34px,7vh,86px);text-align:right;color:#fff;z-index:4;text-shadow:0 2px 16px rgba(0,0,0,.5)">'
       + '<div style="font-family:var(--sans);font-size:clamp(12px,1.2vw,16px);font-weight:500;letter-spacing:.18em;text-transform:uppercase;display:inline-flex;align-items:center;gap:9px">'+tl("Entry price","Precio de entrada")+' <span style="font-size:1.2em;font-weight:300">›</span></div>'
       + '<div class="display" style="font-size:clamp(38px,6.2vw,86px);font-weight:300;letter-spacing:.02em;line-height:1;margin-top:8px">'+priceHTML(a.entryPriceEUR,true)+'</div></div>' : "";
-    return '<div class="pdp-aerial" style="position:relative;width:100%;aspect-ratio:'+(a.ratio||"16/9")+';max-height:92vh;overflow:hidden;background:#1a160f;margin:clamp(48px,6vw,84px) 0">'
+    // Lista para móvil (7-ago, repaso de la ficha en móvil): la línea+etiqueta de cada punto no cabe
+    // bajo 720px (por eso se ocultaba entera con display:none, y el visitante de móvil se quedaba
+    // sin ESTE texto del cliente). El punto (span.pdp-hs) se queda visible sobre la foto; la
+    // etiqueta se repite aquí debajo, en lista — CSS decide cuál de las dos se ve, no JS.
+    var mobileList = (a.hotspots||[]).length ? '<div class="pdp-hs-list">' + a.hotspots.map(function(h){
+      var o = h[S.lang]||h.en||{};
+      return '<div class="pdp-hs-list-i">'+esc(o.l1)+' <b>'+esc(o.l2)+'</b></div>';
+    }).join("") + '</div>' : "";
+    return '<div style="margin:clamp(48px,6vw,84px) 0">'
+      + '<div class="pdp-aerial" style="position:relative;width:100%;aspect-ratio:'+(a.ratio||"16/9")+';max-height:92vh;overflow:hidden;background:#1a160f">'
       + '<img src="'+esc(a.image)+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
       + '<div style="position:absolute;inset:0;z-index:2;background:linear-gradient(90deg,rgba(10,14,10,.4) 0%,rgba(10,14,10,.08) 26%,transparent 50%),linear-gradient(0deg,rgba(10,14,10,.55) 0%,rgba(10,14,10,.05) 26%,transparent 45%)"></div>'
       + spots + price
+      + '</div>'
+      + mobileList
       + '</div>';
   }
 
