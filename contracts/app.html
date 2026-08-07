@@ -3266,8 +3266,16 @@ async function derivarContrato(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
   // alguien retocó para la reserva de otra operación no tiene por qué salir
-  // impreso en la obra de esta.
+  // impreso en la obra de esta. Igual con Anexos y Cláusulas: son propios de
+  // CADA documento (un PDF adjunto o una cláusula a medida de la reserva de
+  // origen no tienen por qué encajar en la Construcción derivada) y, como
+  // COMPRADORES/HITOS antes de este arreglo, se colaban sin querer porque
+  // viven en el mismo tipo de caché global (ver resetBorrador). Compradores e
+  // Hitos SÍ se preservan a propósito — son "el objetivo de derivar" — así
+  // que se capturan arriba y se reaplican abajo; Anexos/Cláusulas no tienen
+  // ese mismo motivo y se limpian.
   limpiarOverrides(slug);
+  ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses(); ADQ1_EMAILS = [];
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   await loadTemplate(slug);
   $('#tplPick').value = slug;
@@ -3392,7 +3400,15 @@ function randToken(){ const a=new Uint8Array(32); crypto.getRandomValues(a); ret
 /* ---------- firma en cadena (contracts/FIRMA_EN_CADENA.md) ----------
    Lista ORDENADA de firmantes: Adquiriente I (adq1_*) + los adicionales con
    identidad. El orden ES la cadena: estrictamente secuencial, el enlace del
-   siguiente no se genera hasta que el anterior ha firmado. */
+   siguiente no se genera hasta que el anterior ha firmado.
+   ⚠️ DUPLICADA a propósito en contracts/edge/firma-submit/index.ts (busca
+   "const cadena" ahí): el servidor no comparte runtime con esta página, así
+   que reconstruye la MISMA lista con el MISMO criterio para poder generar y
+   mandar el enlace del siguiente firmante solo, al cerrarse cada firma
+   intermedia (7-ago). Si se cambia el criterio de "quién cuenta como
+   firmante" aquí (por ejemplo, qué campos hacen a un comprador extra
+   "con identidad"), replicarlo también allí — no hay ningún test que
+   detecte la desincronización, solo esta nota. */
 function firmantesDelContrato(){
   const d = collect();
   const lista = [];
@@ -3612,6 +3628,13 @@ async function init(){
     pantallaC('editor');
     await openSavedContract(pedido);
   } else if(par.has('nuevo')){
+    // recargar esta URL directamente (F5, o entrar por ella a pelo) es una
+    // ejecución nueva del script, pero COMPRADORES/ANNEXES/CLAUSES se leen de
+    // localStorage al declararse (arriba del todo) — sin este reset, el mismo
+    // fallo que "+ Nuevo contrato" tenía hasta hoy (ver resetBorrador) se cuela
+    // por esta puerta también.
+    resetBorrador(CURRENT.slug);
+    buildForm();
     pantallaC('editor');
   } else {
     pantallaC('listado');

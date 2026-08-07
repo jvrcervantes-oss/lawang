@@ -741,8 +741,13 @@ $('#mailSend').onclick = async () => {
    descargar decenas de megas para llenar un desplegable. Al elegir uno se pide
    solo ESE, y de su jsonb únicamente `fields` y `hitos`. */
 async function cargarContratos(){
-  const { data, error } = await sb.from('contratos')
-    .select('id,numero,comprador_nombre,proyecto_nombre')
+  // contratos_equipo(), no .from('contratos'): la RLS por agente (7-ago) deja
+  // .from() en solo los propios, y este desplegable sirve para facturar un
+  // contrato que firmó CUALQUIER agente. created_at va en el select aunque no
+  // se use — un recurso de función exige que la columna del order() esté
+  // proyectada (PostgREST 42703 si no, ver operaciones/index.html).
+  const { data, error } = await sb.rpc('contratos_equipo')
+    .select('id,numero,comprador_nombre,proyecto_nombre,created_at')
     .order('created_at', { ascending:false }).limit(60);
   if(error || !data) return;
   const sel = $('#selContrato');
@@ -762,10 +767,11 @@ async function traerContrato(id){
   $('#delVinculado').innerHTML = '';
   // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
   // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
-  let { data, error } = await sb.from('contratos')
+  // contratos_equipo(): este contrato pudo guardarlo cualquier agente.
+  let { data, error } = await sb.rpc('contratos_equipo')
     .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,contrato_padre_id').eq('id', id).single();
   if(error){
-    ({ data, error } = await sb.from('contratos').select('numero,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
+    ({ data, error } = await sb.rpc('contratos_equipo').select('numero,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
     if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores; }
   }
   if(error || !data){ caja.innerHTML = `<div class="t">No se pudo cargar el contrato: ${esc((error&&error.message)||'')}</div>`; return; }
@@ -850,7 +856,8 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
   const cont = $('#delVinculado');
   const ors = ['contrato_padre_id.eq.' + idPrincipal];
   if(padreId) ors.push('id.eq.' + padreId);
-  const { data, error } = await sb.from('contratos')
+  // contratos_equipo(): el padre/hijo vinculado puede ser de otro agente.
+  const { data, error } = await sb.rpc('contratos_equipo')
     .select('id,numero,tipo,precio_total,campos:datos->fields,hitos:datos->hitos')
     .or(ors.join(','));
   if(error || !data || !data.length){ cont.innerHTML = ''; return; }

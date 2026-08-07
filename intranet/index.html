@@ -662,7 +662,9 @@ async function pintarRail(sb, ficha){
   }catch(e){ console.warn('vencimientos:', e && e.message); }
   if(esAdmin(ficha)){
     try{
-      const { data } = await sb.from('facturas').select('creado_por, total, moneda').eq('anulada', false);
+      // facturas_equipo(), no .from(): esta caja compara a TODO el equipo, y la
+      // RLS por agente (7-ago) deja .from() en solo las propias del admin.
+      const { data } = await sb.rpc('facturas_equipo').select('creado_por, total, moneda').eq('anulada', false);
       const por = {};
       (data || []).forEach(r => { if(r.creado_por) por[r.creado_por] = (por[r.creado_por]||0) + (Number(r.total)||0); });
       const eq = await sb.from('usuarios').select('email, nombre');
@@ -687,6 +689,11 @@ window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 
 sb.auth.getSession().then(async ({ data:{ session } }) => {
   if(!session){ location.replace('/entrar/?next=/intranet/'); return; }
+  // Un comprador del portal (app_metadata.portal) NO es del equipo: a su casa.
+  // Mismo chequeo que guard.js — sin ficha en `usuarios`, la compatibilidad
+  // "sin ficha se permite" de abajo le habría abierto el hub interno (vacío
+  // por RLS, pero visible: nombres de herramienta, KPIs, estructura).
+  if((session.user.app_metadata || {}).portal){ location.replace('/portal/'); return; }
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo, nombre').eq('user_id', session.user.id).maybeSingle();
   if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío

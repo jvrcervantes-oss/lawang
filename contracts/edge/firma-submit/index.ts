@@ -555,6 +555,9 @@ Deno.serve(async (req) => {
       try {
         const rolesFirmados = new Set((firmadas ?? []).map((f) => f.firmante_rol));
         rolesFirmados.add(rol);   // la de ahora mismo: la lectura de arriba es de ANTES de marcarla
+        // ⚠️ DUPLICADO a propósito de firmantesDelContrato() en contracts/app.html
+        // (esta función no comparte runtime con esa página). Si cambia el criterio
+        // de "quién cuenta como firmante" allí, replicarlo aquí también.
         const cadena: { rol: string; nombre: string; email: string }[] = [];
         if (adq1Nombre) cadena.push({ rol: 'adquiriente_1', nombre: adq1Nombre, email: adq1Email });
         extras.forEach((c: any, i: number) => {
