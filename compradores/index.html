@@ -347,9 +347,16 @@ async function guardar(id){
     /* `clients.email` es UNIQUE y una familia comparte correo: el 409 de
        Postgres llegaba crudo («duplicate key value violates unique constraint»)
        y no decía ni qué campo era ni qué hacer. Es el mismo caso que ya obligó
-       a que la ficha se pueda crear SIN correo (ver compradores_desde_contrato). */
+       a que la ficha se pueda crear SIN correo (ver compradores_desde_contrato).
+       PGRST116 (0 o varias filas tras el update) sale casi siempre porque la
+       sesión murió a mitad de la petición (p.ej. otra pestaña de la suite hizo
+       signOut de la misma sesión compartida) — la RLS deniega en silencio, sin
+       lanzar un 401 claro, así que un «no se puede leer un único objeto JSON»
+       crudo no dice nada útil de por qué. */
     const m = /duplicate key|clients_email_key/.test(err.message || '')
       ? 'Ya hay otra ficha con ese correo. Un correo solo puede estar en una ficha: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
+      : /PGRST116/.test(err.code || '')
+      ? 'Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.'
       : 'No se pudo guardar: ' + (err.message || err);
     toast(m);
     btn.disabled=false; btn.textContent = id ? 'Guardar cambios' : 'Crear comprador';

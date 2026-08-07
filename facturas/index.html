@@ -709,17 +709,16 @@ $('#mailSend').onclick = async () => {
   btn.disabled = true; btn.textContent = 'Enviando…';
   try{
     const d = collect();
-    /* Cabecera de sesión: send_email.php EXIGE credencial desde el 6-ago-2026
-       (antes le bastaba `Origin`, que un curl se salta, y con eso cualquiera
-       mandaba correo con la marca de Lawang). Sin token responde 401 y el aviso
-       lo ve quien emite — significa que su sesión ha caducado.
-       `X-Suite-Token` y no `Authorization`: Apache no siempre entrega esa última
-       a PHP según el SAPI, y el fallo sería un 401 al mandar una factura. */
+    /* Va a la Edge Function send-contract-email, NO directo a send_email.php:
+       el WAF de Hostinger bloquea con 403 el HTML con CSS de diseño (LAW-30,
+       ver contracts/app.html). La factura hoy no lo dispara (su CSS no tiene
+       los patrones que lo disparan), pero es la misma arquitectura frágil —
+       mismo rodeo que ya usa Contratos: la Edge renderiza el PDF vía Railway
+       (fuera del WAF) y llama a send_email.php ya solo con el PDF. */
     const ses = await sb.auth.getSession();
     const tok = ses && ses.data && ses.data.session && ses.data.session.access_token;
-    const r = await fetch('/contracts/api/send_email.php', {
-      method:'POST', headers: Object.assign({'Content-Type':'application/json'},
-                                            tok ? { 'X-Suite-Token': tok } : {}),
+    const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/send-contract-email', {
+      method:'POST', headers: { 'content-type':'application/json', authorization:'Bearer ' + (tok || '') },
       body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
         filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
         html: paginaParaEmail() }) });
