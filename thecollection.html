@@ -358,8 +358,10 @@ h1,h2,h3{ margin:0; font-weight:300; }
 /* Botón de vuelta al wizard sobre la vitrina de pago (10-ago) — el step "Plan" reemplaza la
    tarjeta del configurador entera por el calco exacto del PDF p.4 (paymentPlanBleedHTML tal cual,
    sin adaptar), así que hace falta un camino de vuelta a Parcela/Villa/Extras. absolute + .pp-bleed
-   ya es position:relative: no participa del flex de .pp-bleed-in (main+techcard), solo flota encima. */
-.pp-back{ position:absolute; top:clamp(16px,2vw,24px); left:clamp(20px,2.6vw,28px); z-index:5;
+   ya es position:relative: no participa del flex de .pp-bleed-in (main+techcard), solo flota encima.
+   top: 64px (altura real de #topbar.pdp, fixed) + margen — si no, el botón queda medio tapado
+   bajo la barra fija (visto en captura, corregido el mismo día). */
+.pp-back{ position:absolute; top:calc(64px + clamp(12px,1.6vw,20px)); left:clamp(20px,2.6vw,28px); z-index:5;
   display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); backdrop-filter:blur(6px);
   border:1px solid rgba(255,255,255,.28); color:#fff; border-radius:999px; padding:8px 16px 8px 14px;
   font-family:var(--sans); font-size:12.5px; font-weight:600; cursor:pointer; transition:background .2s var(--ease); }
