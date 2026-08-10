@@ -1288,8 +1288,12 @@
     // Se inyecta como primer hijo de .pp-bleed-in (splice de texto, no un parámetro más en
     // paymentPlanBleedHTML: esa función también sirve al caso sin configurador, que no lleva botón).
     if(onPayStep && payBleed){
+      // Hijo de .pp-bleed (ANTES de .pp-bleed-in), no dentro: .pp-bleed-in ya está desplazado hacia
+      // abajo por el padding-top de .pp-bleed (donde empieza el kicker/titular) — meter el botón
+      // dentro de .pp-bleed-in lo hacía posicionarse relativo a ESE borde, chocando con "Payment
+      // Plan" (visto en captura, corregido el mismo día).
       var payBackBtn = '<button class="pp-back" data-act="step:'+(totalCfgSteps-2)+'"><span aria-hidden="true">←</span> '+t("cfg.back")+'</button>';
-      payBleed = payBleed.replace('<div class="pp-bleed-in">', '<div class="pp-bleed-in">'+payBackBtn);
+      payBleed = payBleed.replace('<div class="pp-bleed-in">', payBackBtn+'<div class="pp-bleed-in">');
     }
     // ROI: bloque aparte, ya no colgado dentro del configurador (revisión 7-ago) — solo si la
     // propiedad trae tarifa/noche, sea cual sea el estado del configurador.
