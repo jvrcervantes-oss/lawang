@@ -669,7 +669,7 @@
   function fullBleedImageHTML(p){
     var key = (p.imgKeys&&p.imgKeys[2]) || (p.imgKeys&&p.imgKeys[1]) || firstImg(p);
     if(!key) return "";
-    return '<div style="margin:clamp(48px,6vw,84px) 0;overflow:hidden;background:#1a160f">'
+    return '<div style="overflow:hidden;background:#1a160f">'
       + '<img src="'+esc(imgUrl(key,2600))+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="display:block;width:100%;height:auto;max-height:92vh" onerror="this.style.display=\'none\'">'
       + '</div>';
   }
@@ -722,7 +722,7 @@
       var o = h[S.lang]||h.en||{};
       return '<div class="pdp-hs-list-i">'+esc(o.l1)+' <b>'+esc(o.l2)+'</b></div>';
     }).join("") + '</div>' : "";
-    return '<div style="margin:clamp(48px,6vw,84px) 0">'
+    return '<div>'
       + '<div class="pdp-aerial" style="position:relative;width:100%;aspect-ratio:'+(a.ratio||"16/9")+';max-height:92vh;overflow:hidden;background:#1a160f">'
       + '<img src="'+esc(a.image)+'" alt="'+esc(pick(p.title))+'" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
       + '<div style="position:absolute;inset:0;z-index:2;background:linear-gradient(90deg,rgba(10,14,10,.4) 0%,rgba(10,14,10,.08) 26%,transparent 50%),linear-gradient(0deg,rgba(10,14,10,.55) 0%,rgba(10,14,10,.05) 26%,transparent 45%)"></div>'
