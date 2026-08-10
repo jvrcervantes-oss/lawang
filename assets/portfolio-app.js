@@ -817,7 +817,7 @@
     {top:"#6b7857",bot:"#242819"}, {top:"#0a4d50",bot:"#001a1b"},
     {top:"#4e1c05",bot:"#100500"}, {top:"#25390f",bot:"#0a1004"}
   ];
-  function paymentPlanBleedHTML(p, cfg){
+  function paymentPlanBleedHTML(p, cfg, skipKicker){
     // cfg.configuredEUR es 0 (no null) mientras no se ha elegido parcela/villa todavia -- que es
     // el estado en el que llega CUALQUIER visitante nuevo, porque esta seccion se ve sin haber
     // tocado el configurador. Antes de esa eleccion se muestra el precio base del listado.
@@ -853,7 +853,12 @@
     return '<div class="pp-bleed" id="payment-plan"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
       + '<div class="pp-bleed-in">'
       + '<div class="pp-bleed-main">'
-      + '<div class="kicker" style="color:var(--sc)">'+tl("Control your investment in","Controla tu inversión en")+'</div>'
+      // Con configurador (land: parcela+villa), el wizard de arriba YA mostró este mismo kicker en
+      // su cabecera ("Control your investment in / The Smart Way") — repetirlo aquí, a un scroll de
+      // distancia, leía como dos secciones distintas en vez de los pasos 1-4 de un único flujo
+      // (hallazgo usuario 10-ago). Sin configurador (casa ya construida) es la única vez que se dice,
+      // así que se queda.
+      + (skipKicker ? "" : '<div class="kicker" style="color:var(--sc)">'+tl("Control your investment in","Controla tu inversión en")+'</div>')
       + '<h2 class="pp-h1">'+t("pay.title")+'</h2>'
       + '<div class="pp-bar"><span style="width:'+(frac*100).toFixed(1)+'%"></span></div>'
       + '<div class="pp-steps">'+cards+'</div>'
@@ -1302,7 +1307,7 @@
     // territoryHTML (mapa "Location" + planta 3D) se oculta desde 6-ago: quedaba redundante con
     // el masterplan y la imagen a sangre con puntos, que ya cubren mapa/ubicación. Función intacta
     // por si se reactiva; solo se deja de llamar aquí (mismo patrón que Designed-to-last, 24-jul).
-    var payBleed = (isDeliveredNotForSale) ? "" : paymentPlanBleedHTML(p, cfg);
+    var payBleed = (isDeliveredNotForSale) ? "" : paymentPlanBleedHTML(p, cfg, hasConfigurator);
     // ROI: bloque aparte, ya no colgado dentro del configurador (revisión 7-ago) — solo si la
     // propiedad trae tarifa/noche, sea cual sea el estado del configurador.
     var roi = (!isDeliveredNotForSale && p.nightlyRate>0) ? investmentCalcHTML(p, cfg.configuredEUR>0?cfg.configuredEUR:p.priceEUR) : "";
