@@ -239,7 +239,7 @@ h1,h2,h3{ margin:0; font-weight:300; }
 /* Paso */
 .cfg-step{ animation:cfgFade .32s var(--ease); padding-top:clamp(22px,2.6vw,32px); }
 @keyframes cfgFade{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
-@media(prefers-reduced-motion:reduce){ .cfg-step{ animation:none; } .cfg-rail::after{ transition:none; } }
+@media(prefers-reduced-motion:reduce){ .cfg-step{ animation:none; } .cfg-rail::after{ transition:none; } span.pdp-hs{ animation:none; } .cfg-btn-wa{ animation:none; } }
 .cfg-h{ font-family:var(--sans); font-weight:300; font-size:clamp(20px,2vw,28px); line-height:1.12;
   letter-spacing:0; color:var(--be); margin:0 0 clamp(16px,2vw,22px); }
 .cfg-step-h{ margin-bottom:clamp(18px,2.2vw,26px); }
@@ -405,7 +405,11 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .cfg-btn-go{ background:var(--tg); color:var(--bone); }
 .cfg-btn-go:not([disabled]):hover{ background:var(--tg-dark); }
 .cfg-btn-go[disabled]{ background:var(--bone-2); color:var(--ink-2); }
-.cfg-btn-wa{ background:#25D366; color:#fff; box-shadow:0 8px 20px -8px rgba(37,211,102,.65); }
+/* Latido sutil del CTA final (reservar por WhatsApp): solo el brillo, nunca el tamaño -- un botón
+   que cambia de tamaño solo invita a hacer click sin querer. Bucle infinito, mismo motivo que
+   span.pdp-hs: reiniciar fase en cada re-render no se nota. */
+@keyframes waPulse{ 0%,100%{ box-shadow:0 8px 20px -8px rgba(37,211,102,.65); } 50%{ box-shadow:0 8px 26px -6px rgba(37,211,102,.9); } }
+.cfg-btn-wa{ background:#25D366; color:#fff; box-shadow:0 8px 20px -8px rgba(37,211,102,.65); animation:waPulse 2.8s ease-in-out infinite; }
 .cfg-btn-wa svg{ width:17px; height:17px; flex:none; }
 /* Móvil: sin sitio para 4 etiquetas en fila — los pasos pasan a rejilla y la línea sobra */
 @media(max-width:560px){
@@ -796,6 +800,13 @@ article:hover .view-cta { gap:9px; }
    superpuesta no cabe — antes se ocultaba TODO el hotspot (también el punto sobre la foto) y ese
    texto no se veía en móvil. */
 .pdp-hs-list{ display:none; }
+/* Punto del aereo (span.pdp-hs, distinto del div.pdp-hs de la linea+etiqueta): late en bucle para
+   invitar al tap -- reiniciar la fase en cada re-render no se nota, es un bucle infinito, no una
+   entrada (10-ago, microanimaciones). El transform de centrado va DENTRO del keyframe: la animacion
+   pisa el `transform:translate(-50%,-50%)` inline mientras corre, asi que hay que repetirlo o el
+   punto saltaria de sitio. */
+@keyframes hsPulse{ 0%,100%{ transform:translate(-50%,-50%) scale(1); } 50%{ transform:translate(-50%,-50%) scale(1.22); } }
+span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 @media(max-width:720px){
   .pdp-aerial{ aspect-ratio:4/3 !important; }               /* aéreo más alto en móvil */
   .pdp-aerial div.pdp-hs{ display:none !important; }        /* la línea+etiqueta no cabe: ver .pdp-hs-list */
