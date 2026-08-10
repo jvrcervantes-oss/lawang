@@ -357,12 +357,15 @@ h1,h2,h3{ margin:0; font-weight:300; }
 
 /* Botón de vuelta al wizard sobre la vitrina de pago (10-ago) — el step "Plan" reemplaza la
    tarjeta del configurador entera por el calco exacto del PDF p.4 (paymentPlanBleedHTML tal cual,
-   sin adaptar), así que hace falta un camino de vuelta a Parcela/Villa/Extras. absolute + .pp-bleed
-   ya es position:relative: no participa del flex de .pp-bleed-in (main+techcard), solo flota encima.
-   top: 64px (altura real de #topbar.pdp, fixed) + margen — si no, el botón queda medio tapado
-   bajo la barra fija (visto en captura, corregido el mismo día). */
-.pp-back{ position:absolute; top:calc(64px + clamp(12px,1.6vw,20px)); left:clamp(20px,2.6vw,28px); z-index:5;
-  display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); backdrop-filter:blur(6px);
+   sin adaptar), así que hace falta un camino de vuelta a Parcela/Villa/Extras. En flujo normal
+   (NO absolute) a propósito: el hueco entre la barra fija (64px) y donde arranca el kicker/titular
+   es demasiado estrecho para flotar el botón sin chocar con uno de los dos según el viewport —
+   probado con captura real dos veces (corregido el mismo día). En flujo, empuja el contenido hacia
+   abajo unos px en vez de competir por un hueco que no existe siempre.
+   margin-left: mismo padding horizontal que .pp-bleed-in, para que quede alineado con el kicker;
+   margin-bottom: separación real antes del kicker, no un hueco prestado. */
+.pp-back{ display:inline-flex; align-items:center; gap:6px; margin:0 0 18px clamp(20px,4vw,64px);
+  background:rgba(255,255,255,.12); backdrop-filter:blur(6px);
   border:1px solid rgba(255,255,255,.28); color:#fff; border-radius:999px; padding:8px 16px 8px 14px;
   font-family:var(--sans); font-size:12.5px; font-weight:600; cursor:pointer; transition:background .2s var(--ease); }
 .pp-back:hover{ background:rgba(255,255,255,.2); }
