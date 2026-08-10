@@ -168,4 +168,5 @@ const SOCIEDADES = {
 const TIPO_ES = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
   commercial_offer:'Oferta Comercial', carta_reserva:'Carta de Reserva',
   carta_reserva_ampliada:'Carta de Reserva ampliada', acuerdo_comercial:'Acuerdo Comercial',
-  protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach' };
+  protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach',
+  poa:'POA (Poder Notarial)' };

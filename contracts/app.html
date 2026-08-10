@@ -35,7 +35,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=e3d6e3e0"></script>
+<script src="assets/entities.js?v=65848228"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
@@ -610,6 +610,11 @@ const TEMPLATES = [
   { slug:'hak_sewa_notario', file:'templates/hak_sewa_notario.html', cover:'#485B37', num:4,
     name:{es:'Hak Sewa - Notario',en:'Hak Sewa - Notario',id:'Hak Sewa - Notario'},
     l2:{es:'de Arrendamiento de Terreno',en:'Land Lease',id:'Sewa Menyewa Tanah'}, ready:true },
+  // Poder Notarial (Surat Kuasa) que acompaña al Hak Sewa — 10-ago-2026, "5. POA"
+  // tal como lo pidió el cliente. Solo bahasa (ver comentario de la plantilla).
+  { slug:'poa_notario', file:'templates/poa_notario.html', cover:'#485B37', num:5,
+    name:{es:'POA',en:'POA',id:'POA'},
+    l2:{es:'Poder Notarial',en:'Power of Attorney',id:'Surat Kuasa'}, ready:true },
   { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
     name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
     l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
@@ -708,12 +713,13 @@ const CONTRACT_TIPO = {
   // 'carta_reserva_ampliada' — comparte tipo con cualquiera de las dos y se
   // rompe la reapertura de la que sea.
   carta_reserva_hak_sewa:'carta_reserva_hak_sewa',   // serie CH · due-diligence + BANI Denpasar
+  poa_notario:'poa',   // serie PA · Poder Notarial (Surat Kuasa), exhibit del Hak Sewa
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
   carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
-  ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH' };
+  ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH', poa:'PA' };
 const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
   commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
   acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo',
@@ -1581,6 +1587,7 @@ function resetBorrador(slug){
   CLAUSES = []; saveClauses();
   ADQ1_EMAILS = [];
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
+  AUTO_APODERADO = {};
 }
 
 /* huellaBloque() vive en assets/huella.js (con su test en node: el mismo patrón
@@ -1862,14 +1869,23 @@ function syncResort(){
 
 /* Apoderado (Primera Parte) del Hak Sewa notarial (10-ago): el nombre es un
    desplegable (tokens.json → apoderadosHakSewa, hoy con una sola persona, más
-   adelante con varias) y edad/ocupación/dirección se rellenan solos al
+   adelante con varias) y edad/ocupación/dirección/NIK se rellenan solos al
    elegirlo — mismo patrón que syncParcelaMaster/syncResort. La fecha del poder
    y los datos del propietario NO se tocan aquí: son de la operación concreta,
    no de la persona, y cambian aunque el apoderado sea el mismo (ver
    _nota_hak_sewa en tokens.json). Quedan editables por si esta persona trae un
    dato distinto en un caso puntual. */
-const AUTO_APODERADO = {};
-function syncApoderadoHakSewa(){
+let AUTO_APODERADO = {};
+/* Signed URL de la KTP del apoderado (POA, 10-ago): cache por nombre, para no
+   pedir una nueva cada vez que se re-renderiza el documento (el preview corre en
+   cada tecla). buildDoc() es síncrono y no puede esperar a este fetch, así que se
+   precarga aquí —en el 'change' del desplegable, que ya es async— y se guarda en
+   esta caché; applyApoderado() en buildDoc() solo LEE lo que ya está resuelto.
+   Mismo patrón que cargarUnidadesDelProyecto() + pintarSelectorParcela(): fetch
+   async aparte, re-render cuando llega. Vacío hasta que resuelva = sin imagen
+   todavía, igual que una firma sin firmar. */
+const APODERADO_KTP_URL = {};
+async function syncApoderadoHakSewa(){
   const sel = document.querySelector('[name="hsn_apoderado_nombre"]');
   if(!sel) return;
   const datos = ((TOKENS && TOKENS.apoderadosHakSewa) || {})[sel.value];
@@ -1885,6 +1901,16 @@ function syncApoderadoHakSewa(){
   poner('hsn_apoderado_edad', datos.edad);
   poner('hsn_apoderado_ocupacion', datos.ocupacion);
   poner('hsn_apoderado_direccion', datos.direccion);
+  poner('hsn_apoderado_nik', datos.nik);
+  if(datos.ktp && sb && !APODERADO_KTP_URL[sel.value]){
+    const { data } = await sb.storage.from('kyc').createSignedUrl(datos.ktp, 3600);
+    if(data && data.signedUrl){ APODERADO_KTP_URL[sel.value] = data.signedUrl; renderDebounced(); }
+  }
+}
+/* rellena hsn_apoderado_ktp con la signed URL ya resuelta (o '' si aún no ha
+   llegado) — mismo sitio y mismo momento que applyPromotor(data). */
+function applyApoderado(data){
+  data.hsn_apoderado_ktp = APODERADO_KTP_URL[data.hsn_apoderado_nombre] || '';
 }
 
 /* ---------- la subparcela sale del inventario ----------
@@ -2311,7 +2337,16 @@ function collect(){
 }
 
 /* ---------- merge cliente ---------- */
-function esc(v,k){ if(k && k.startsWith('firma')) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Campos cuyo valor es la RUTA/URL de una imagen para un <img src="{{...}}">, no
+// texto para imprimir: van sin escapar (un & en la URL no debe salir &amp;) y sin
+// envolver en .campo-fijo (ver más abajo) porque eso rompería el atributo src.
+// Lista EXPLÍCITA (10-ago-2026) — antes era `k.startsWith('firma')`, y 'firmante'
+// (campo de gestión interna, sin relación con firmas) caía en la misma rama por
+// coincidencia de nombre: salía de esc() y de campoFijo() sin escapar. Inerte hoy
+// porque ningún documento imprime {{firmante}}, pero un vector de inyección HTML
+// listo para activarse en cuanto lo hiciera (hallazgo de Seguridad, deploy 10-ago).
+const CAMPOS_IMAGEN_CRUDA = new Set(['firma_adquiriente', 'hsn_apoderado_ktp']);
+function esc(v,k){ if(k && CAMPOS_IMAGEN_CRUDA.has(k)) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* "Bonian Village by Balian Hills" volvió a ser dos campos el 7-ago (petición
    del cliente): proyecto_nombre imprime en mayúsculas como siempre, y el
@@ -2451,6 +2486,7 @@ let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota �
 function buildDoc(){
   const data=collect();
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
+  applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
@@ -2493,7 +2529,7 @@ function buildDoc(){
   // fuera a propósito: firma-submit busca el centinela %%FIRMA_ADQUIRIENTE%%
   // como texto literal, y envolverlo es una complicación que no hace falta.
   html=html.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{ const filled=(k in data && data[k]!=='');
-    if(k.startsWith('firma')) return (SIGN_MODE && k==='firma_adquiriente') ? '%%FIRMA_ADQUIRIENTE%%' : (filled ? data[k] : '');
+    if(CAMPOS_IMAGEN_CRUDA.has(k)) return (SIGN_MODE && k==='firma_adquiriente') ? '%%FIRMA_ADQUIRIENTE%%' : (filled ? data[k] : '');
     if(!filled) return '';   // vacío = en blanco (writable a mano), sin "—"
     if(k==='regimen_tenencia') return campoFijo(k, esc(REGIMEN_LABEL[data[k]]||data[k]));   // código → etiqueta legible
     if(k==='proyecto_nombre') return campoFijo(k, nombreConResort(data));   // el nombre de proyecto va SIEMPRE en mayúsculas
@@ -2584,6 +2620,7 @@ function deriveSections(){
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea
   inDoc.delete('sociedad_firmante');   // tiene su propia sección (añadida abajo), que no caiga en "otros"
+  inDoc.delete('hsn_apoderado_ktp');   // derivado del apoderado elegido (applyApoderado) — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];

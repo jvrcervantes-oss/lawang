@@ -76,5 +76,19 @@ intranet/*Handoff*/
 # Ficheros de prueba local con doble de Supabase (sesion falsa hardcodeada,
 # ver reference_lawang_verificar_sin_sesion): NUNCA deployables. 6-ago-2026,
 # tras un aviso de seguridad porque uno se quedo sin borrar en el repo.
+# 10-ago: paso otra vez con un nombre que no coincidia con el patron (_verify_*
+# en vez de _qa_*) — se ensancha el patron en vez de anadir uno nuevo por caso.
 contracts/_qa_*
 **/_qa_*.html
+**/_verify_*.html
+**/_preview_*.html
+
+# Documentos de identidad de personas reales (KTP, pasaporte...) usados como
+# catalogo reutilizable en Contratos (ver apoderadosHakSewa en tokens.json).
+# Mismo motivo que documentacion/ arriba: este repo es PUBLICO y Hostinger
+# sirve con 200 cualquier fichero de contracts/assets/. Su sitio es el bucket
+# privado `kyc` de Supabase (URL firmada, ver applyApoderado en app.html),
+# nunca un fichero estatico del repo. 10-ago-2026: se dejo uno aqui sin
+# querer al extraerlo de un PDF, sin poder borrarlo (permiso denegado) —
+# esta linea evita que un `git add` futuro lo trague.
+contracts/assets/apoderados/

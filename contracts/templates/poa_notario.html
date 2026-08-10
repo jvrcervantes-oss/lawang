@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Surat Kuasa (POA) — LAWANG</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
+</head>
+<body>
+  <!-- Poder Notarial (Surat Kuasa) — serie POA. Exhibit que acompaña al Hak Sewa
+       ante notario (templates/hak_sewa_notario.html): es el "Poder Especial de
+       fecha {{hsn_poder_fecha}}, otorgado ante Notario y adjunto al presente
+       Contrato" que ese contrato menciona en su comparecencia. Reutiliza el
+       mismo apoderado (hsn_apoderado_*, catálogo apoderadosHakSewa en
+       tokens.json) y la misma fecha del poder — son el mismo hecho legal en dos
+       documentos.
+       Texto ES = EXACTO del cliente (10-ago-2026, Google Doc "1. POA Jaime GC"),
+       transcrito literal. SOLO EN BAHASA: es el idioma en que se otorga ante
+       notario indonesio y el cliente no dio versión en otro idioma — plantilla
+       MONOLINGÜE a propósito, sin ningún data-lang: el sistema trilingüe
+       (es/en/id en columnas) está pensado para un documento con las tres
+       versiones, y forzar aquí "id" habría sacado media página en gris a la
+       derecha con la izquierda en blanco (ver langCSS() en app.html). Si el
+       cliente trae alguna vez una versión en otro idioma de este documento
+       concreto, se añaden sus <span data-lang> entonces, no antes.
+       ⚠️ El original del cliente llama "Pemberi Kuasa" a AMBAS partes (debería
+       ser "Penerima Kuasa" para el apoderado — así lo usa el propio cuerpo del
+       documento un párrafo más abajo, en la cláusula KHUSUS). Se transcribe TAL
+       CUAL: no se corrige sin que lo pida el cliente, mismo criterio que las
+       erratas de hak_sewa_notario.html («Testafierro», «MESEQUER»). Avisado en
+       la entrega del 10-ago.
+       Firma: línea en blanco a propósito, se firma en papel/notario (mismo
+       criterio que hak_sewa_notario.html) — LAWANG no es parte de este poder.
+       Página 2: fotocopia de la KTP del apoderado, exhibit habitual en este tipo
+       de poder. La imagen NO es un dato del formulario: sale del catálogo
+       apoderadosHakSewa vía applyApoderado()/hsn_apoderado_ktp, resuelta como
+       signed URL de Supabase Storage (bucket privado `kyc`) en tiempo de render
+       — nunca como fichero estático público, a diferencia del resto de assets
+       de contracts/. -->
+  <div class="doc">
+
+    <div class="doc-title">
+      <span class="bold">SURAT KUASA</span>
+    </div>
+    <div class="doc-date">No. Kontrak: <span class="f f-md">{{contrato_num}}</span></div>
+
+    <p>Yang bertandatangan dibawah ini :</p>
+
+    <div class="party">
+      <p><b>Nama</b> : <span class="f">{{hsn_propietario_nombre}}</span><br>
+         <b>Paspor</b> : <span class="f">{{hsn_propietario_pasaporte}}</span></p>
+      <p>Selanjutnya cukup disebut &ldquo;<b>Pemberi Kuasa</b>&rdquo;</p>
+    </div>
+
+    <p>Dengan ini memberi kuasa kepada :</p>
+
+    <div class="party">
+      <p><b>Nama</b> : <span class="f">{{hsn_apoderado_nombre}}</span><br>
+         <b>NIK</b> : <span class="f">{{hsn_apoderado_nik}}</span></p>
+      <p>Selanjutnya cukup disebut &ldquo;<b>Pemberi Kuasa</b>&rdquo;</p>
+    </div>
+
+    <h2>KHUSUS</h2>
+    <p>Untuk dan atas nama Pemberi Kuasa, Penerima Kuasa berhak menghadap dimana perlu kepada pejabat-pejabat dimana saja diperlukan menghadap, memberikan keterangan-keterangan, menandatangani surat-surat, dan segala sesuatu yang berhubungan dengan pembelian dan disewa property/tanah di Pulau Bali dan Pulau Sumba serta melakukan dan mengerjakan segala tindakan hukum lainnya untuk mencapai maksud tersebut, tidak ada satupun yang dikecualikan.</p>
+
+    <p>Demikianlah surat kuasa ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
+
+    <p style="margin-top:16px">Bali, <span class="f">{{hsn_poder_fecha}}</span></p>
+    <p>Pemberi Kuasa</p>
+
+    <!-- línea en blanco a propósito: se firma en papel, ante notario -->
+    <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm"></div>
+    <p style="margin-top:4px;font-size:9pt"><span class="f">{{hsn_propietario_nombre}}</span></p>
+
+    <h2 style="page-break-before:always">Lampiran — KTP Penerima Kuasa</h2>
+    <img src="{{hsn_apoderado_ktp}}" alt="" style="max-width:150mm;display:block">
+
+  </div>
+</body>
+</html>
