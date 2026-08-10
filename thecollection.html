@@ -355,22 +355,15 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .cfg-home-areas{ font-family:var(--sans); font-size:12px; font-weight:300; line-height:1.5; color:var(--ink-2); }
 .cfg-home-price{ font-family:var(--sans); font-size:16px; font-weight:600; color:var(--be); margin-top:4px; }
 
-/* Plan de pagos DENTRO del último step del wizard (10-ago) — la MISMA vitrina a sangre del PDF
-   p.4 (foto+overlay oscuro+cascada icono/monto/%, .pp-step/.pp-ic/.pp-pill ya definidos arriba
-   para .pp-bleed), pero contenida en el ancho de la tarjeta del configurador en vez de a sangre de
-   viewport: "se transforma en eso el step 4", no una sección aparte. Los desplazamientos de la
-   cascada (.pp-step2/3/4) van en vw en la versión a sangre porque miden contra el viewport entero;
-   aquí el contenedor es mucho más estrecho, así que se pisan con px fijos más pequeños o las
-   tarjetas 3/4 se saldrían del borde derecho. */
-.cfg-pay-bleed{ position:relative; border-radius:16px; overflow:hidden; background-size:cover; background-position:center; background-color:#1a160f; }
-.cfg-pay-bleed::before{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,8,.75) 0%,rgba(10,10,8,.48) 32%,rgba(10,10,8,.64) 100%); }
-.cfg-pay-bleed-in{ position:relative; padding:clamp(24px,3.2vw,36px) clamp(20px,2.6vw,28px); color:var(--bone); }
-.cfg-pay-bleed .pp-step2{ margin-left:22px; }
-.cfg-pay-bleed .pp-step3{ margin-left:44px; }
-.cfg-pay-bleed .pp-step4{ margin-left:66px; }
-@media(max-width:560px){
-  .cfg-pay-bleed .pp-step2,.cfg-pay-bleed .pp-step3,.cfg-pay-bleed .pp-step4{ margin-left:0; }
-}
+/* Botón de vuelta al wizard sobre la vitrina de pago (10-ago) — el step "Plan" reemplaza la
+   tarjeta del configurador entera por el calco exacto del PDF p.4 (paymentPlanBleedHTML tal cual,
+   sin adaptar), así que hace falta un camino de vuelta a Parcela/Villa/Extras. absolute + .pp-bleed
+   ya es position:relative: no participa del flex de .pp-bleed-in (main+techcard), solo flota encima. */
+.pp-back{ position:absolute; top:clamp(16px,2vw,24px); left:clamp(20px,2.6vw,28px); z-index:5;
+  display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.28); color:#fff; border-radius:999px; padding:8px 16px 8px 14px;
+  font-family:var(--sans); font-size:12.5px; font-weight:600; cursor:pointer; transition:background .2s var(--ease); }
+.pp-back:hover{ background:rgba(255,255,255,.2); }
 
 .cfg-extras{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--rl); }
 .cfg-extra{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; transition:background .2s; }
@@ -1528,7 +1521,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260810114439-mp"></script>
+<script src="assets/portfolio-app.js?v=20260810120011-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

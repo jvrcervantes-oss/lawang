@@ -798,9 +798,6 @@
       + '<p style="font-size:11px;color:var(--ink-2);margin-top:14px;line-height:1.6;opacity:.7">'+t("inv.disclaimer")+'</p></div>';
   }
 
-  // (paymentPlanHTML — retirada 7-ago: era la lista compacta de plazos dentro de la tarjeta del
-  // configurador, redundante con la cascada de paymentPlanBleedHTML de abajo. Ver configBreakdownHTML.)
-
   // ── PAYMENT PLAN — vitrina a sangre (calco Ecomerce.pdf p.4, 6-ago) ─────────────────────
   // Distinta de paymentPlanHTML de arriba: aquella vive DENTRO de la tarjeta blanca del
   // configurador (resumen compacto mientras se elige); esta es una sección propia a pantalla
@@ -865,37 +862,6 @@
       + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>'
       + '</div>'
       + techCard
-      + '</div></div>';
-  }
-
-  // Versión CONTENIDA de la cascada de arriba (mismos PAY_ICONS/PAY_STEP_HUES, misma foto+overlay
-  // oscuro) para el step 4 del wizard — "se transforma en el diseño del PDF p.4", pero sin salirse
-  // del ancho de la tarjeta del configurador (10-ago). Sin techCard: la ficha técnica ya vive en la
-  // columna de al lado (infoCardHTML), no hace falta duplicarla dentro del step.
-  function payStepBleedHTML(p, cfg){
-    var price = (cfg && cfg.configuredEUR>0) ? cfg.configuredEUR : p.priceEUR;
-    if(!price || !isFinite(price)) return "";
-    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
-    if(!steps || !steps.length) return "";
-    var bgKey = p.bleedImage || (p.imgKeys&&p.imgKeys[0]) || (p.imgKeys&&p.imgKeys[1]);
-    var bg = bgKey ? imgUrl(bgKey, 2000) : null;
-    var frac = 1/Math.max(steps.length*2.2, 1);
-    var cards = steps.slice(0,4).map(function(s,i){
-      var hue = PAY_STEP_HUES[i]||PAY_STEP_HUES[0], icon = PAY_ICONS[i]||PAY_ICONS[0];
-      var amount = money(Math.round(price*s.pct/100));
-      return '<div class="pp-step pp-step'+(i+1)+'">'
-        + '<span class="pp-ic" style="background:linear-gradient(160deg,'+hue.top+','+hue.bot+')"><svg viewBox="0 0 24 24" fill="currentColor">'+icon+'</svg></span>'
-        + '<span class="pp-pill"><b>'+amount+'</b><em>'+s.pct+'%</em><small>'+esc(s.label)+'</small></span>'
-        + '</div>';
-    }).join("");
-    var deliveryTxt = p.handover || "";
-    return '<div class="cfg-pay-bleed"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
-      + '<div class="cfg-pay-bleed-in">'
-      + '<div class="pp-bar"><span style="width:'+(frac*100).toFixed(1)+'%"></span></div>'
-      + '<div class="pp-steps">'+cards+'</div>'
-      + '<div class="pp-delivery">'
-      + (deliveryTxt ? '<div class="pp-delivery-l"><span class="kicker" style="color:rgba(245,240,230,.7)">'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>' : '')
-      + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>'
       + '</div></div>';
   }
 
@@ -1035,24 +1001,6 @@
     return list + (cfg.extrasTotal>0 ? '<div class="cfg-extras-total"><span>'+t("extras.total")+'</span><b>+'+money(cfg.extrasTotal)+'</b></div>' : "");
   }
 
-  // Desglose de lo configurado (parcela/villa/extras + total) — es el recap del último paso del
-  // wizard ("Plan"), justo antes del propio plan de pagos (payStepContentHTML, mismo step). El ROI
-  // no va aquí: vive en su propio bloque aparte, para no repetir "cuánto pagas y cuándo" dos veces.
-  function configBreakdownHTML(p, cfg){
-    var configuredEUR=cfg.configuredEUR!=null?cfg.configuredEUR:p.priceEUR;
-    var parcel=(cfg.landOptions&&cfg.landOptions[cfg.parcelIdx])||null;
-    var model=(cfg.models&&cfg.models[cfg.modelIdx])||null;
-    var selExtras=(cfg.extrasList||[]).filter(function(e,i){return S.extrasSel[i];});
-    if(!parcel && !model && !selExtras.length) return "";
-    var bRow='display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding:4px 0';
-    return '<div style="background:var(--tg-light);border:1px solid rgba(72,91,55,.2);border-radius:10px;padding:16px 18px">'
-      + '<div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);margin-bottom:12px">'+t("fin.config")+'</div>'
-      + (parcel?'<div style="'+bRow+'"><span style="font-weight:600">'+t("cfg.step.land")+' · '+parcel.size+' m²</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(cfg.parcelEUR)+'</span></div>':"")
-      + (model?'<div style="'+bRow+'"><span style="font-weight:600">'+esc(model.name)+'</span><span style="font-family:var(--sans);font-size:15px;font-weight:600">'+money(cfg.homeEUR)+'</span></div>':"")
-      + selExtras.map(function(e){return '<div style="'+bRow+';color:var(--ink-2)"><span>+ '+esc(e.name)+'</span><span>'+money(Number(e.priceEUR)||0)+'</span></div>';}).join("")
-      + '<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:6px;border-top:1px solid rgba(72,91,55,.22)"><span style="font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em">'+t("fin.total")+'</span><span style="font-family:var(--sans);font-size:20px;font-weight:700">'+money(configuredEUR)+'</span></div></div>';
-  }
-
   // Reserva por WhatsApp con el resumen configurado (parcela/modelo/extras/total/depósito)
   function reserveWaUrl(p, cfg){
     var waNum=(L.SETTINGS&&L.SETTINGS.whatsapp)||'6281138319862';
@@ -1075,20 +1023,6 @@
     return 'https://wa.me/'+waNum+'?text='+encodeURIComponent(lines.join("\n"));
   }
 
-  // Último paso del wizard ("Plan"): recap de lo elegido + el plan de pagos en sí, dentro de la
-  // MISMA tarjeta del wizard — no un enlace que baja a una sección aparte más abajo en la página.
-  // El plan de pagos ES la vitrina del PDF p.4 (payStepBleedHTML: foto+iconos+cascada, calcada de
-  // paymentPlanBleedHTML) pero contenida en el ancho de la tarjeta, no a sangre de viewport —
-  // "se transforma en eso el step 4" (hallazgo usuario 10-ago, dos rondas: primero solo quitamos
-  // el título duplicado, luego hubo que fusionar el CONTENEDOR, y por último traer el diseño rico
-  // de vuelta, no una lista plana).
-  function payStepContentHTML(p, cfg){
-    var breakdown = configBreakdownHTML(p, cfg);
-    var bleed = payStepBleedHTML(p, cfg);
-    if(!bleed) return breakdown;
-    return breakdown + '<div style="margin-top:'+(breakdown?'22px':'0')+'">'+bleed+'</div>';
-  }
-
   // ── THE MASTERPLAN (rework 27-jul) ──────────────────────────────────────────────────────────
   // Antes: tarjeta blanca con titular verde en mayúsculas, un rosario de píldoras como stepper y el
   // total colgado al final de esa fila. El paso en el que estabas y lo que llevabas configurado se
@@ -1100,9 +1034,11 @@
     if(cfg.landOptions) steps.push({id:"land",label:t("cfg.step.land"),title:t("land.title"),sub:t("land.sub"),required:true,done:cfg.parcelIdx>=0,content:parcelStepHTML(p,cfg)});
     if(cfg.models)      steps.push({id:"home",label:t("cfg.step.home"),title:t("home.title"),sub:t("home.sub"),required:true,done:cfg.modelIdx>=0,content:chooseHomeHTML(p,cfg)});
     if(cfg.extrasList)  steps.push({id:"extras",label:t("cfg.step.extras"),title:t("extras.title"),sub:t("extras.sub"),required:false,done:true,content:extrasBlockHTML(p,cfg)});
-    // "Plan": recap de lo elegido + el plan de pagos en sí (cascada %+importe+entrega), dentro de
-    // esta misma tarjeta — no hay salto a otra sección (10-ago, ver payStepContentHTML).
-    steps.push({id:"pay",label:t("cfg.step.pay"),title:t("fin.title"),sub:tl("Your configuration is ready.","Tu configuración está lista."),required:false,done:true,content:payStepContentHTML(p,cfg)});
+    // "Plan": entrada solo para el RAÍL (número/etiqueta) y el recuento de pasos — su contenido real
+    // nunca se pinta desde aquí. Al llegar a este paso, propertyHTML sustituye la tarjeta entera por
+    // la vitrina a sangre calcada del PDF p.4 (ver onPayStep/leftMain ahí); esta función jamás se
+    // invoca ya con `idx` apuntando a "pay" (10-ago).
+    steps.push({id:"pay",label:t("cfg.step.pay"),title:t("fin.title"),sub:tl("Your configuration is ready.","Tu configuración está lista."),required:false,done:true,content:""});
     var idx=Math.min(S.step,steps.length-1); var sObj=steps[idx]; var isLast=idx>=steps.length-1;
     var reachable=function(i){ return i===0 || steps.slice(0,i).every(function(x){return !x.required||x.done;}); };
     var canNext=!sObj.required||sObj.done;
@@ -1312,7 +1248,13 @@
     // directa a la sección a sangre de abajo, que ya trae precio + cascada + ficha técnica + dossier
     // (fusión p.3+p.4 del PDF del cliente, 7-ago) — antes esta columna y esa sección decían lo mismo
     // dos veces seguidas.
-    var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : (hasConfigurator ? configuratorHTML(p,cfg) : "");
+    // Step "Plan" (último del wizard): la columna 2 entera SE TRANSFORMA en la vitrina a sangre
+    // calcada de la p.4 del PDF del cliente — no una versión reducida dentro de la tarjeta (hallazgo
+    // usuario 10-ago, tercera vuelta: "calca EXACTAMENTE todo lo que ves en la página 4"). Mismo
+    // cálculo de nº de pasos que configuratorHTML — si cambia allí, cambia aquí.
+    var totalCfgSteps = hasConfigurator ? (cfg.landOptions?1:0)+(cfg.models?1:0)+(cfg.extrasList?1:0)+1 : 0;
+    var onPayStep = hasConfigurator && Math.min(S.step, totalCfgSteps-1) === totalCfgSteps-1;
+    var leftMain = isDeliveredNotForSale ? signatureNoteHTML(p) : ((hasConfigurator && !onPayStep) ? configuratorHTML(p,cfg) : "");
     var subText = pick(p.sub);
     // Sub bajo el título: uppercase ligera y grande y, en negrita al final, el régimen de tenencia
     // ("… FREEHOLD LAND.") tal cual la guía Ficha p2. El dato sale de p.tenure, no se escribe a mano.
@@ -1336,10 +1278,19 @@
     // territoryHTML (mapa "Location" + planta 3D) se oculta desde 6-ago: quedaba redundante con
     // el masterplan y la imagen a sangre con puntos, que ya cubren mapa/ubicación. Función intacta
     // por si se reactiva; solo se deja de llamar aquí (mismo patrón que Designed-to-last, 24-jul).
-    // Con configurador (land) el plan de pagos ya vive DENTRO del wizard (step 4, payStepContentHTML)
-    // — esta sección a sangre solo se pinta para productos sin configurador (casa ya construida,
-    // precio fijo), que es donde sigue siendo la única vez que se cuenta (10-ago).
-    var payBleed = (isDeliveredNotForSale || hasConfigurator) ? "" : paymentPlanBleedHTML(p, cfg);
+    // payBleed: sin configurador (casa ya construida) se pinta SIEMPRE, es la única vez que se
+    // cuenta el plan de pagos. Con configurador (land) se pinta SOLO en el step "Plan" — ahí
+    // reemplaza a la tarjeta del wizard entera (ver leftMain/onPayStep arriba), no convive con ella.
+    var payBleed = isDeliveredNotForSale ? "" : ((hasConfigurator && !onPayStep) ? "" : paymentPlanBleedHTML(p, cfg));
+    // Botón de vuelta al wizard, superpuesto sobre la vitrina — SOLO existe en nuestra versión
+    // interactiva (el PDF es una página fija, no tiene "atrás"); estilo discreto para no competir
+    // con el calco. Sin esto no habría forma de volver a Parcela/Villa/Extras salvo reiniciar.
+    // Se inyecta como primer hijo de .pp-bleed-in (splice de texto, no un parámetro más en
+    // paymentPlanBleedHTML: esa función también sirve al caso sin configurador, que no lleva botón).
+    if(onPayStep && payBleed){
+      var payBackBtn = '<button class="pp-back" data-act="step:'+(totalCfgSteps-2)+'"><span aria-hidden="true">←</span> '+t("cfg.back")+'</button>';
+      payBleed = payBleed.replace('<div class="pp-bleed-in">', '<div class="pp-bleed-in">'+payBackBtn);
+    }
     // ROI: bloque aparte, ya no colgado dentro del configurador (revisión 7-ago) — solo si la
     // propiedad trae tarifa/noche, sea cual sea el estado del configurador.
     var roi = (!isDeliveredNotForSale && p.nightlyRate>0) ? investmentCalcHTML(p, cfg.configuredEUR>0?cfg.configuredEUR:p.priceEUR) : "";
@@ -1361,9 +1312,9 @@
       + (leftMain ? sec('<div class="wrap pdp-wrap"><div class="pdp-info-2col">'
           + '<div><div class="pdp-leftmain">'+leftMain+'</div></div>'
           + '<div>'+infoCardHTML(p,cfg)+'</div></div></div>') : "")
-      // El plan de pagos a sangre (calco PDF p.4) — solo sin configurador (casa ya construida):
-      // directamente lo primero que se ve tras la ficha técnica de arriba. Con configurador (land)
-      // el plan de pagos vive dentro del wizard, step 4 (payStepContentHTML) — no se repite aquí.
+      // El plan de pagos a sangre (calco EXACTO PDF p.4, 10-ago) — sin configurador es lo primero
+      // que se ve tras la ficha técnica; con configurador solo aparece en el step "Plan", donde
+      // reemplaza a la tarjeta del wizard (leftMain es "" en ese estado, ver arriba).
       + (payBleed ? sec(payBleed, "pdp-sec-flush") : "")
       + (roi ? sec('<div class="wrap pdp-wrap"><div class="cfg-card"><div class="cfg-step">'+roi+'</div></div></div>') : "")
       + (split ? sec(split, "pdp-sec-flush") : "")
