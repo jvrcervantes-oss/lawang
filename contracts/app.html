@@ -2199,6 +2199,25 @@ function applyPromotor(data){
   // borra la frase entera en vez de imprimir el marcador
   data.prom_nib=soc.nib||''; data.prom_rep_npwp=soc.rep_npwp||'';
   data.prom_cred_es=soc.cred.es; data.prom_cred_en=soc.cred.en; data.prom_cred_id=soc.cred.id;
+  // Firmante (10-ago): "Gestión del contrato" solo guardaba quién firma sin que
+  // se imprimiera en ningún sitio — a petición del cliente, ahora SÍ decide el
+  // nombre y las credenciales personales que salen en {{prom_rep}}/{{prom_cred_*}}
+  // (comparecencia + bloque de firma), igual en las nueve plantillas que ya
+  // imprimen {{prom_razon}}. Si coincide con el representante por defecto de la
+  // sociedad elegida, no hay nada que sobrescribir. Si es el otro, se buscan SUS
+  // credenciales propias (nacionalidad/documento), no las de la sociedad — mismo
+  // caso que ya anticipaba el comentario de SOCIEDADES.tepi_sungai.rep: "si algún
+  // documento concreto lo firma otra persona, va escrito EN ESE documento, no
+  // aquí". La identidad de la sociedad (razón, domicilio, NPWP, marca) no cambia:
+  // sigue siendo la que se firma, solo cambia QUIÉN la representa hoy.
+  if(data.firmante && data.firmante !== soc.rep){
+    const otraSoc = Object.values(SOCIEDADES).find(s => s.rep === data.firmante);
+    if(otraSoc){
+      data.prom_rep = otraSoc.rep;
+      data.prom_rep_npwp = otraSoc.rep_npwp || '';
+      data.prom_cred_es = otraSoc.cred.es; data.prom_cred_en = otraSoc.cred.en; data.prom_cred_id = otraSoc.cred.id;
+    }
+  }
 }
 /* etiqueta legible del régimen de tenencia (el select guarda un código; el contrato
    imprime esto — ver buildDoc). Los bloques <!--if:regimen_tenencia=CODE--> siguen

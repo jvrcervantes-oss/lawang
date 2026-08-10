@@ -357,6 +357,8 @@ function pintarRejilla(){
       <span class="cifra">${eur(u.precio, u.moneda)}</span>
       <span class="pie">
         ${u.superficie_m2 != null ? '<span>' + esc(fmtNum(Number(u.superficie_m2))) + ' m²</span>' : ''}
+        ${u.fase_masterplan ? '<span>Fase ' + esc(u.fase_masterplan) +
+            (u.zona_masterplan ? ' · Zona ' + esc(u.zona_masterplan) : '') + '</span>' : ''}
         ${u.contrato_numero ? '<span>' + esc(u.contrato_numero) +
             (u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : '') + '</span>' : ''}
       </span>
@@ -564,6 +566,11 @@ function abrirUnidad(id){
         </div>
         <div class="campo"><label>Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
       </div>
+      ${u.proyecto === 'Sumba Hills' ? `
+      <div class="dos">
+        <div class="campo"><label>Fase (masterplan)</label><input id="f-fase" value="${esc(u.fase_masterplan||'')}" placeholder="I, II…"></div>
+        <div class="campo"><label>Zona</label><input id="f-zona" value="${esc(u.zona_masterplan||'')}" placeholder="1, 2, 3…"></div>
+      </div>` : ''}
       <div id="escenarios"></div>
       <div class="dos">
         <div class="campo"><label>Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
@@ -754,6 +761,10 @@ async function guardar(id){
     precio_construccion: num('#f-obra'), precio: num('#f-precio'),
     moneda: $('#f-moneda').value, notas: $('#f-notas').value.trim() || null,
   };
+  // Fase/zona de masterplan: solo existen en el cajón para Sumba Hills (ver
+  // abrirUnidad), así que solo se mandan si el campo está en el DOM.
+  if($('#f-fase')) fila.fase_masterplan = $('#f-fase').value.trim() || null;
+  if($('#f-zona')) fila.zona_masterplan = $('#f-zona').value.trim() || null;
   /* 🔴 `estado` y `contrato_id` solo se mandan si la parcela NO está vinculada.
      Se mandaban SIEMPRE, y eso hacía que cambiarle el precio a una parcela
      reservada la desvinculara del contrato y la devolviera a disponible —el
@@ -806,13 +817,27 @@ const CSV_MAX_FILAS = 5000;
 // alias esas tres columnas se ignoraban enteras: el modelo y los dos precios
 // desaparecían al importar, silenciosamente (solo avisaba "columnas
 // ignoradas", que nadie lee fila a fila).
+// fase/zone (10-ago-2026, CSV "SUMBA PLOTS" del cliente): van a fase_masterplan/
+// zona_masterplan, NO a obra_fase — esa ya existe y es la fase de OBRA de una
+// unidad concreta (ver obra/index.html), un concepto distinto que por
+// casualidad se llama igual en el lenguaje del negocio. Columnas genéricas en
+// la tabla (no hay una tabla por proyecto), pero solo las rellena un CSV que
+// las traiga — hoy solo el de Sumba Hills. El resto de proyectos las deja NULL.
+// 10-ago-2026: mismo fallo que el de "Type"/"Land"/"Villa" del 7-ago, otra
+// vez con una cabecera distinta — el CSV "SUMBA PLOTS" del cliente trae
+// "Modelo de villa"/"Precio de suelo"/"Precio de construcción" (con preposición,
+// normCab las deja en "modelo_de_villa"/"precio_de_suelo"/"precio_de_construccion"),
+// que no casaban con ningún alias de abajo: modelo y los dos precios se habrían
+// perdido en silencio otra vez. Añadidos sus alias explícitos.
 const CSV_COLUMNAS = {
-  codigo:'codigo', proyecto:'proyecto', tipo:'tipo', modelo:'modelo', type:'modelo',
+  codigo:'codigo', proyecto:'proyecto', tipo:'tipo', modelo:'modelo', type:'modelo', modelo_de_villa:'modelo',
   superficie:'superficie_m2', superficie_m2:'superficie_m2', m2:'superficie_m2',
-  precio_suelo:'precio_suelo', suelo:'precio_suelo', land:'precio_suelo',
+  precio_suelo:'precio_suelo', suelo:'precio_suelo', land:'precio_suelo', precio_de_suelo:'precio_suelo',
   precio_construccion:'precio_construccion', construccion:'precio_construccion', villa:'precio_construccion',
+  precio_de_construccion:'precio_construccion',
   precio:'precio', precio_total:'precio', total:'precio',
   moneda:'moneda', notas:'notas',
+  fase:'fase_masterplan', zone:'zona_masterplan', zona:'zona_masterplan',
 };
 // quita acentos y cualquier cosa que no sea letra/número ("Superficie (m2)"
 // y "superficie_m2" casan igual) — de puntuación exacta no debería depender
@@ -926,6 +951,8 @@ async function abrirImportCsv(file){
       precio_construccion: num(d.precio_construccion), precio: num(d.precio),
       moneda: (d.moneda || 'EUR').toUpperCase(),
       notas: d.notas ? antiFormula(d.notas) : null,
+      fase_masterplan: d.fase_masterplan ? antiFormula(d.fase_masterplan) : null,
+      zona_masterplan: d.zona_masterplan ? antiFormula(d.zona_masterplan) : null,
       esAlta: codigo && proyecto ? !existentes.has(proyecto + ' ' + codigo) : null,
       errores,
     };
@@ -980,7 +1007,7 @@ $('#btnCsvConfirmar').addEventListener('click', async () => {
   const filas = CSV_FILAS_VALIDAS.map(f => {
     const fila = { codigo: f.codigo, proyecto: f.proyecto };
     if(CSV_CAMPOS_PRESENTES.has('tipo') || f.esAlta) fila.tipo = f.tipo;
-    ['modelo','superficie_m2','precio_suelo','precio_construccion','precio','notas']
+    ['modelo','superficie_m2','precio_suelo','precio_construccion','precio','notas','fase_masterplan','zona_masterplan']
       .forEach(k => { if(CSV_CAMPOS_PRESENTES.has(k)) fila[k] = f[k]; });
     if(CSV_CAMPOS_PRESENTES.has('moneda')) fila.moneda = f.moneda;
     else if(f.esAlta) fila.moneda = 'EUR';

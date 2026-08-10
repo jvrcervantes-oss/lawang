@@ -328,7 +328,8 @@ const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aproba
 const TIPO_ES = { reserva_parcela:'Bloqueo de Parcela', construccion:'Construcción', contrato_general:'Contrato General',
   commercial_offer:'Oferta Comercial', carta_reserva:'Carta de Reserva',
   carta_reserva_ampliada:'Carta de Reserva ampliada', acuerdo_comercial:'Acuerdo Comercial',
-  protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach' };
+  protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach',
+  poa:'POA (Poder Notarial)' };
 
 /* ---------- carga ----------
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
@@ -498,6 +499,11 @@ const ETAPAS = [
 const ETAPA_COLOR = { sin_firmar:'#8C5E10', firma_viva:'#104C4F', cobro_pend:'#5A6062', cobro_ok:'#3F5230' };
 function etapa(o){
   if(!o.bloqueado) return o.firmas.some(f => f.estado === 'pendiente') ? 'firma_viva' : 'sin_firmar';
+  // POA no es una venta y nunca va a tener precio — sin este corte se queda para
+  // siempre en "Cobro pendiente" como si le debieran dinero al estudio (hallazgo
+  // de Administración, 10-ago). Firmado y sin precio de forma DEFINITIVA (no "aún
+  // no fijado") es lo único que distingue a esta plantilla de una venta real.
+  if(o.tipo === 'poa') return 'cobro_ok';
   const c = cuenta(o);
   if(c.precio == null || !c.precio) return 'cobro_pend';   // firmado sin precio: no se afirma que esté cobrado
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
