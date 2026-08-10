@@ -51,3 +51,13 @@ create or replace view public.unidades_estado as
      LEFT JOIN LATERAL ( SELECT sum(x.total) AS facturado
            FROM facturas x
           WHERE x.contrato_id = u.contrato_id AND COALESCE(x.anulada, false) = false AND x.tipo <> 'proforma'::text) f ON true;
+
+-- 10-ago-2026 (Seguridad, hallazgo post-deploy): un CREATE OR REPLACE VIEW no
+-- conserva reloptions ni grants explícitos — sin repetir estas dos líneas (que
+-- SÍ llevaban las dos migraciones anteriores de esta vista, 31-jul y 5-ago) la
+-- vista queda SECURITY DEFINER con los grants por defecto del owner, saltándose
+-- la RLS de unidades/contratos/facturas. Repetir SIEMPRE tras cualquier futuro
+-- CREATE OR REPLACE de esta vista.
+alter view public.unidades_estado set (security_invoker = true);
+revoke all on public.unidades_estado from anon, authenticated;
+grant select on public.unidades_estado to authenticated;
