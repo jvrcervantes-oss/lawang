@@ -499,12 +499,14 @@ const ETAPAS = [
 const ETAPA_COLOR = { sin_firmar:'#8C5E10', firma_viva:'#104C4F', cobro_pend:'#5A6062', cobro_ok:'#3F5230' };
 function etapa(o){
   if(!o.bloqueado) return o.firmas.some(f => f.estado === 'pendiente') ? 'firma_viva' : 'sin_firmar';
+  const c = cuenta(o);
   // POA no es una venta y nunca va a tener precio — sin este corte se queda para
   // siempre en "Cobro pendiente" como si le debieran dinero al estudio (hallazgo
-  // de Administración, 10-ago). Firmado y sin precio de forma DEFINITIVA (no "aún
-  // no fijado") es lo único que distingue a esta plantilla de una venta real.
-  if(o.tipo === 'poa') return 'cobro_ok';
-  const c = cuenta(o);
+  // de Administración, 10-ago). Blindado contra precio (mismo hallazgo, revisión
+  // del propio fix): si algún día un 'poa' SÍ tuviera precio_total — reutilización
+  // de tipo por error, o un POA que además cobrara algo — cae al flujo normal en
+  // vez de darlo por cobrado sin comprobarlo.
+  if(o.tipo === 'poa' && !c.precio) return 'cobro_ok';
   if(c.precio == null || !c.precio) return 'cobro_pend';   // firmado sin precio: no se afirma que esté cobrado
   return (c.pendiente != null && c.pendiente > 0) ? 'cobro_pend' : 'cobro_ok';
 }
