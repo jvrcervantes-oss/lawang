@@ -1758,7 +1758,12 @@ function fieldHTML(f){
     // que ser un slug estable y la etiqueta visible puede ser más larga.
     const opts=(extra||[]).map(o=>{ const [v,lbl]=Array.isArray(o)?o:[o,o];
       return `<option value="${escAttr(v)}" ${v===def?'selected':''}>${lbl}</option>`; }).join('');
-    return `<div class="field" data-key="${key}"><label>${label}</label><select name="${key}"><option value=""></option>${opts}</select></div>`;
+    // Firmante (10-ago, petición del cliente): solo admin/super_admin lo cambia,
+    // el Agente lo ve fijo en el default. Reutiliza CAN_EDIT_TEXT porque es
+    // exactamente el mismo corte de rol que ya usa "Editar texto" — no una
+    // coincidencia nueva que haya que mantener sincronizada a mano.
+    const bloqueado = key==='firmante' && !CAN_EDIT_TEXT;
+    return `<div class="field" data-key="${key}"><label>${label}</label><select name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}</select></div>`;
   }
   if(type==='textarea'){
     return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
@@ -1799,6 +1804,7 @@ function aplicarReglasCampos(){
   syncAutoAnnex();
   syncParcelaMaster();
   syncResort();
+  syncApoderadoHakSewa();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
 }
@@ -1852,6 +1858,33 @@ function syncResort(){
   campo.value = resort;
   AUTO_RESORT = resort;
   renderDebounced();
+}
+
+/* Apoderado (Primera Parte) del Hak Sewa notarial (10-ago): el nombre es un
+   desplegable (tokens.json → apoderadosHakSewa, hoy con una sola persona, más
+   adelante con varias) y edad/ocupación/dirección se rellenan solos al
+   elegirlo — mismo patrón que syncParcelaMaster/syncResort. La fecha del poder
+   y los datos del propietario NO se tocan aquí: son de la operación concreta,
+   no de la persona, y cambian aunque el apoderado sea el mismo (ver
+   _nota_hak_sewa en tokens.json). Quedan editables por si esta persona trae un
+   dato distinto en un caso puntual. */
+const AUTO_APODERADO = {};
+function syncApoderadoHakSewa(){
+  const sel = document.querySelector('[name="hsn_apoderado_nombre"]');
+  if(!sel) return;
+  const datos = ((TOKENS && TOKENS.apoderadosHakSewa) || {})[sel.value];
+  if(!datos) return;
+  const poner = (campo, valor) => {
+    const el = document.querySelector(`[name="${campo}"]`);
+    if(!el || valor == null) return;
+    const actual = String(el.value || '').trim();
+    if(actual && actual !== AUTO_APODERADO[campo]) return;   // escrito a mano: intocable
+    el.value = valor;
+    AUTO_APODERADO[campo] = valor;
+  };
+  poner('hsn_apoderado_edad', datos.edad);
+  poner('hsn_apoderado_ocupacion', datos.ocupacion);
+  poner('hsn_apoderado_direccion', datos.direccion);
 }
 
 /* ---------- la subparcela sale del inventario ----------
@@ -2543,6 +2576,10 @@ function deriveSections(){
   // propio, así que sin este añadido el campo no sobreviviría al filtro.
   inDoc.add('proyecto_nombre');
   inDoc.add('resort');
+  // firmante (10-ago): campo de gestión interna, no imprime {{firmante}} en
+  // ningún documento — mismo motivo que resort, forzado para que sobreviva al
+  // filtro en TODAS las plantillas (petición del cliente: "en todos los contratos").
+  inDoc.add('firmante');
   if(inDoc.has('moneda')) inDoc.add('tipo_cambio_idr');
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea
