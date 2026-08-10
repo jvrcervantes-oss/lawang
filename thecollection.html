@@ -359,9 +359,11 @@ h1,h2,h3{ margin:0; font-weight:300; }
    (tarjeta clara con filas separadas por línea), no la cascada oscura a sangre de .pp-* de arriba:
    esa es solo para productos sin configurador. */
 .cfg-pay-plan{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--rl); }
-.cfg-pay-row{ display:flex; align-items:baseline; gap:12px; padding:12px 18px; }
+.cfg-pay-row{ display:flex; align-items:baseline; gap:12px; padding:12px 18px; transition:background .2s var(--ease); }
+.cfg-pay-row:hover{ background:var(--tg-light); }
 .cfg-pay-row + .cfg-pay-row{ border-top:1px solid var(--line); }
-.cfg-pay-pct{ flex:none; font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--tg); background:var(--tg-light); border-radius:999px; padding:3px 10px; }
+.cfg-pay-pct{ flex:none; font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--tg); background:var(--tg-light); border-radius:999px; padding:3px 10px; transition:transform .2s var(--ease); }
+.cfg-pay-row:hover .cfg-pay-pct{ transform:scale(1.06); }
 .cfg-pay-label{ flex:1 1 auto; font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink); }
 .cfg-pay-amt{ flex:none; font-family:var(--sans); font-size:15px; font-weight:700; color:var(--be); }
 .cfg-pay-delivery{ display:flex; justify-content:space-between; align-items:baseline; padding:12px 18px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px; color:var(--ink-2); }
@@ -1513,7 +1515,7 @@ article:hover .view-cta { gap:9px; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260810102718-mp"></script>
+<script src="assets/portfolio-app.js?v=20260810104554-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

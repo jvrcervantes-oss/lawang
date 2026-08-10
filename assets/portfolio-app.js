@@ -1123,6 +1123,9 @@
       +   totalBox
       + '</header>'
       + '<ol class="cfg-rail" style="--cfg-f:'+frac.toFixed(4)+'">'+rail+'</ol>'
+      // .cfg-step ya trae su propia animación de entrada (cfgFade, thecollection.html:240) que se
+      // dispara sola en cada nodo nuevo — no hace falta el mecanismo de .reveal aquí (habría
+      // competido con ella). Ver hallazgo de la revisión previa de Diseño, 10-ago.
       + '<div class="cfg-step" data-step-id="'+sObj.id+'">'+stepHead+sObj.content+'</div>'
       + '<footer class="cfg-foot">'
       +   '<button class="cfg-btn cfg-btn-ghost" '+(idx===0?'disabled':'data-act="step:'+(idx-1)+'"')+'><span aria-hidden="true">←</span> '+t("cfg.back")+'</button>'+nextBtn
@@ -1490,7 +1493,9 @@
     else if(cmd==="lb-close"){ S.lightbox=null; render(); }
     // lb-noop: sin rama a propósito — absorbe el click sobre la foto del lightbox sin cerrarlo
     else if(cmd==="calc-toggle"){ S.calcTable=!S.calcTable; render(); }
-    else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); render(); }
+    // Elegir parcela o villa salta de paso solo, sin pasar por "Continue" (10-ago, pedido usuario)
+    // — S.step+1 basta: render() lo pisa a Math.min(S.step, steps.length-1) si ya era el último.
+    else if(cmd==="parcel"){ S.parcelIdx=parseInt(val,10); S.step=S.step+1; render(); }
     // Un pin del masterplan selecciona directamente (revisión 6-ago: un solo clic, sin paso
     // intermedio de "Select this plot") y abre/actualiza el panel de detalle con su info.
     else if(cmd==="plotpick"){
@@ -1498,9 +1503,9 @@
       var cfgNow = propNow ? configState(propNow) : null;
       var st = S.plotsStatus[val];
       var idx = (cfgNow && st) ? landIdxForSize(cfgNow, st.superficie_m2) : -1;
-      S.plotCode = val; S.parcelIdx = idx; S.plotFocusCode = val; render();
+      S.plotCode = val; S.parcelIdx = idx; S.plotFocusCode = val; S.step=S.step+1; render();
     }
-    else if(cmd==="model"){ S.modelIdx=parseInt(val,10); render(); }
+    else if(cmd==="model"){ S.modelIdx=parseInt(val,10); S.step=S.step+1; render(); }
     else if(cmd==="extra"){ var i=parseInt(val,10); S.extrasSel[i]=!S.extrasSel[i]; render(); }
     else if(cmd==="step"){ S.step=parseInt(val,10); render(); }
     else if(cmd==="cfg-reset"){ S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; render(); }
