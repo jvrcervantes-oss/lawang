@@ -355,20 +355,22 @@ h1,h2,h3{ margin:0; font-weight:300; }
 .cfg-home-areas{ font-family:var(--sans); font-size:12px; font-weight:300; line-height:1.5; color:var(--ink-2); }
 .cfg-home-price{ font-family:var(--sans); font-size:16px; font-weight:600; color:var(--be); margin-top:4px; }
 
-/* Plan de pagos DENTRO del último step del wizard (10-ago) — mismo patrón visual que .cfg-extras
-   (tarjeta clara con filas separadas por línea), no la cascada oscura a sangre de .pp-* de arriba:
-   esa es solo para productos sin configurador. */
-.cfg-pay-plan{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--rl); }
-.cfg-pay-row{ display:flex; align-items:baseline; gap:12px; padding:12px 18px; transition:background .2s var(--ease); }
-.cfg-pay-row:hover{ background:var(--tg-light); }
-.cfg-pay-row + .cfg-pay-row{ border-top:1px solid var(--line); }
-.cfg-pay-pct{ flex:none; font-family:var(--sans); font-size:12.5px; font-weight:700; color:var(--tg); background:var(--tg-light); border-radius:999px; padding:3px 10px; transition:transform .2s var(--ease); }
-.cfg-pay-row:hover .cfg-pay-pct{ transform:scale(1.06); }
-.cfg-pay-label{ flex:1 1 auto; font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink); }
-.cfg-pay-amt{ flex:none; font-family:var(--sans); font-size:15px; font-weight:700; color:var(--be); }
-.cfg-pay-delivery{ display:flex; justify-content:space-between; align-items:baseline; padding:12px 18px; border-top:1px solid var(--line); font-family:var(--sans); font-size:13px; color:var(--ink-2); }
-.cfg-pay-delivery b{ color:var(--ink); font-size:15px; }
-.cfg-pay-note{ margin:0; padding:0 18px 16px; font-family:var(--sans); font-size:11px; color:var(--ink-2); line-height:1.6; opacity:.8; }
+/* Plan de pagos DENTRO del último step del wizard (10-ago) — la MISMA vitrina a sangre del PDF
+   p.4 (foto+overlay oscuro+cascada icono/monto/%, .pp-step/.pp-ic/.pp-pill ya definidos arriba
+   para .pp-bleed), pero contenida en el ancho de la tarjeta del configurador en vez de a sangre de
+   viewport: "se transforma en eso el step 4", no una sección aparte. Los desplazamientos de la
+   cascada (.pp-step2/3/4) van en vw en la versión a sangre porque miden contra el viewport entero;
+   aquí el contenedor es mucho más estrecho, así que se pisan con px fijos más pequeños o las
+   tarjetas 3/4 se saldrían del borde derecho. */
+.cfg-pay-bleed{ position:relative; border-radius:16px; overflow:hidden; background-size:cover; background-position:center; background-color:#1a160f; }
+.cfg-pay-bleed::before{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,8,.75) 0%,rgba(10,10,8,.48) 32%,rgba(10,10,8,.64) 100%); }
+.cfg-pay-bleed-in{ position:relative; padding:clamp(24px,3.2vw,36px) clamp(20px,2.6vw,28px); color:var(--bone); }
+.cfg-pay-bleed .pp-step2{ margin-left:22px; }
+.cfg-pay-bleed .pp-step3{ margin-left:44px; }
+.cfg-pay-bleed .pp-step4{ margin-left:66px; }
+@media(max-width:560px){
+  .cfg-pay-bleed .pp-step2,.cfg-pay-bleed .pp-step3,.cfg-pay-bleed .pp-step4{ margin-left:0; }
+}
 
 .cfg-extras{ border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--rl); }
 .cfg-extra{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; transition:background .2s; }
@@ -1526,7 +1528,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260810104554-mp"></script>
+<script src="assets/portfolio-app.js?v=20260810114439-mp"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

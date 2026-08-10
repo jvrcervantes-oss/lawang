@@ -868,6 +868,37 @@
       + '</div></div>';
   }
 
+  // Versión CONTENIDA de la cascada de arriba (mismos PAY_ICONS/PAY_STEP_HUES, misma foto+overlay
+  // oscuro) para el step 4 del wizard — "se transforma en el diseño del PDF p.4", pero sin salirse
+  // del ancho de la tarjeta del configurador (10-ago). Sin techCard: la ficha técnica ya vive en la
+  // columna de al lado (infoCardHTML), no hace falta duplicarla dentro del step.
+  function payStepBleedHTML(p, cfg){
+    var price = (cfg && cfg.configuredEUR>0) ? cfg.configuredEUR : p.priceEUR;
+    if(!price || !isFinite(price)) return "";
+    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
+    if(!steps || !steps.length) return "";
+    var bgKey = p.bleedImage || (p.imgKeys&&p.imgKeys[0]) || (p.imgKeys&&p.imgKeys[1]);
+    var bg = bgKey ? imgUrl(bgKey, 2000) : null;
+    var frac = 1/Math.max(steps.length*2.2, 1);
+    var cards = steps.slice(0,4).map(function(s,i){
+      var hue = PAY_STEP_HUES[i]||PAY_STEP_HUES[0], icon = PAY_ICONS[i]||PAY_ICONS[0];
+      var amount = money(Math.round(price*s.pct/100));
+      return '<div class="pp-step pp-step'+(i+1)+'">'
+        + '<span class="pp-ic" style="background:linear-gradient(160deg,'+hue.top+','+hue.bot+')"><svg viewBox="0 0 24 24" fill="currentColor">'+icon+'</svg></span>'
+        + '<span class="pp-pill"><b>'+amount+'</b><em>'+s.pct+'%</em><small>'+esc(s.label)+'</small></span>'
+        + '</div>';
+    }).join("");
+    var deliveryTxt = p.handover || "";
+    return '<div class="cfg-pay-bleed"'+(bg?' style="background-image:url(\''+esc(bg)+'\')"':'')+'>'
+      + '<div class="cfg-pay-bleed-in">'
+      + '<div class="pp-bar"><span style="width:'+(frac*100).toFixed(1)+'%"></span></div>'
+      + '<div class="pp-steps">'+cards+'</div>'
+      + '<div class="pp-delivery">'
+      + (deliveryTxt ? '<div class="pp-delivery-l"><span class="kicker" style="color:rgba(245,240,230,.7)">'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>' : '')
+      + '<p>PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p></div>'
+      + '</div></div>';
+  }
+
   function configState(p){
     var landOptions=resolveLand(p), models=resolveHomes(p), extrasList=resolveExtras(p);
     var safeParcel=(landOptions&&S.parcelIdx>=0&&S.parcelIdx<landOptions.length)?S.parcelIdx:-1;
@@ -1046,27 +1077,16 @@
 
   // Último paso del wizard ("Plan"): recap de lo elegido + el plan de pagos en sí, dentro de la
   // MISMA tarjeta del wizard — no un enlace que baja a una sección aparte más abajo en la página.
-  // Antes (7-ago) esto saltaba a `paymentPlanBleedHTML`, una sección a sangre distinta con su
-  // propio fondo de foto; el resultado se leía como dos secciones (hallazgo usuario 10-ago: "debe
-  // ser 1 sección fusionada donde payment plan es el step 4"). Esa sección a sangre sigue
-  // existiendo para productos SIN configurador (ver isDeliveredNotForSale/hasConfigurator en
-  // propertyHTML) — ahí sigue siendo la única vez que se cuenta el plan de pagos.
+  // El plan de pagos ES la vitrina del PDF p.4 (payStepBleedHTML: foto+iconos+cascada, calcada de
+  // paymentPlanBleedHTML) pero contenida en el ancho de la tarjeta, no a sangre de viewport —
+  // "se transforma en eso el step 4" (hallazgo usuario 10-ago, dos rondas: primero solo quitamos
+  // el título duplicado, luego hubo que fusionar el CONTENEDOR, y por último traer el diseño rico
+  // de vuelta, no una lista plana).
   function payStepContentHTML(p, cfg){
     var breakdown = configBreakdownHTML(p, cfg);
-    var price = (cfg && cfg.configuredEUR>0) ? cfg.configuredEUR : p.priceEUR;
-    var steps = (p.paymentPlan&&p.paymentPlan.length)?p.paymentPlan:L.getPaymentPlan(p);
-    if(!price || !isFinite(price) || !steps || !steps.length) return breakdown;
-    var rows = steps.slice(0,4).map(function(s){
-      return '<div class="cfg-pay-row"><span class="cfg-pay-pct">'+s.pct+'%</span><span class="cfg-pay-label">'+esc(s.label)+'</span><span class="cfg-pay-amt">'+money(Math.round(price*s.pct/100))+'</span></div>';
-    }).join("");
-    var deliveryTxt = p.handover || "";
-    return breakdown
-      + '<div class="cfg-pay-plan" style="margin-top:'+(breakdown?'22px':'0')+'">'
-      + '<div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);padding:14px 18px 8px">'+t("pay.title")+'</div>'
-      + rows
-      + (deliveryTxt ? '<div class="cfg-pay-delivery"><span>'+tl("Delivery","Entrega")+'</span><b>'+esc(deliveryTxt)+'</b></div>' : "")
-      + '<p class="cfg-pay-note">PT PMA formation (~€1,000) is coordinated separately. Financing options for qualified investors available on request.</p>'
-      + '</div>';
+    var bleed = payStepBleedHTML(p, cfg);
+    if(!bleed) return breakdown;
+    return breakdown + '<div style="margin-top:'+(breakdown?'22px':'0')+'">'+bleed+'</div>';
   }
 
   // ── THE MASTERPLAN (rework 27-jul) ──────────────────────────────────────────────────────────
