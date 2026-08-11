@@ -1334,6 +1334,10 @@ function buildCompradorPanel(){
       <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Adquiriente',en:'Buyer',id:'Pembeli'})} ${romano(i+2)}</span>
         <span class="spacer" style="flex:1"></span>
         <button type="button" class="link-btn" data-cdel="${c.id}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
+      <div class="cli-buscar">
+        <input type="search" id="cliBuscar-${c.id}" data-cli-buscar="${c.id}" autocomplete="off" placeholder="${L({es:'Buscar cliente ya registrado (nombre, email o pasaporte)…',en:'Search existing client (name, email or passport)…',id:'Cari klien terdaftar (nama, email, atau paspor)…'})}">
+        <div class="cli-resultados" id="cliResultados-${c.id}" hidden></div>
+      </div>
       <div class="grid2">
         <div class="field"><label>${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
         <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" value="${escAttr(c.nacionalidad)}"></div>
@@ -1361,31 +1365,44 @@ function wireCompradorPanel(){
     if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''}); saveCompradores(); rebuildComprador(); render(); return; }
     const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); }
   });
+  COMPRADORES.forEach(c=> wireClienteBuscadorEn($(`#cliBuscar-${c.id}`), $(`#cliResultados-${c.id}`), datos=>{
+    const row=COMPRADORES.find(x=>x.id===c.id); if(!row) return;
+    Object.assign(row, datos); saveCompradores(); rebuildComprador(); render();
+  }));
 }
 function rebuildComprador(){ const old=$('#compradorPanel'); if(old){ old.outerHTML=buildCompradorPanel(); wireCompradorPanel(); wireAccordions(); } }
 
-/* ---------- buscador de cliente ya registrado (Adquiriente I) ----------
+/* ---------- buscador de cliente ya registrado ----------
    Busca en `clients` (la misma tabla que /compradores/) y precarga sus datos
    en vez de teclearlos otra vez para alguien que ya tenemos fichado. Solo
-   busca, nunca escribe: guardar el contrato sigue sin tocar `clients`. */
-let _cliBuscarTimer=null;
+   busca, nunca escribe: guardar el contrato sigue sin tocar `clients`.
+   Genérico desde el 11-ago: Adquiriente I lo usa vía wireClienteBuscador()
+   (fijo, escribe en populateForm/adq1_*); Adquiriente II+ vía
+   wireClienteBuscadorEn() con un onPick propio por fila (COMPRADORES). */
 function wireClienteBuscador(){
-  const input=$('#cliBuscar'); if(!input) return;
-  const res=$('#cliResultados');
+  wireClienteBuscadorEn($('#cliBuscar'), $('#cliResultados'), datos=>{
+    populateForm({ adq1_nombre:datos.nombre, adq1_nacionalidad:datos.nacionalidad,
+      adq1_pasaporte:datos.pasaporte, adq1_telefono:datos.telefono, adq1_email:datos.email });
+    aplicarReglasCampos(); render(); updateSaveButton();
+  });
+}
+function wireClienteBuscadorEn(input, res, onPick){
+  if(!input || !res) return;
+  let timer=null;   // local al closure: con varias filas a la vez, un timer compartido cancelaba búsquedas cruzadas
   input.addEventListener('input', ()=>{
-    clearTimeout(_cliBuscarTimer);
+    clearTimeout(timer);
     const q=input.value.trim();
     if(q.length<2){ res.hidden=true; res.innerHTML=''; return; }
-    _cliBuscarTimer=setTimeout(()=>buscarClientes(q), 280);
+    timer=setTimeout(()=>buscarClientes(q, res, onPick, input), 280);
   });
   input.addEventListener('blur', ()=> setTimeout(()=>{ res.hidden=true; }, 150));
   input.addEventListener('focus', ()=>{ if(res.innerHTML) res.hidden=false; });
 }
-async function buscarClientes(q){
-  const res=$('#cliResultados'); if(!res) return;
+async function buscarClientes(q, res, onPick, input){
+  if(!res) return;
   if(!sb){ res.hidden=true; return; }
   const like=`%${q.replace(/[%_]/g,'')}%`;
-  const { data, error } = await sb.from('clients').select('full_name,email,phone,nationality,passport_number')
+  const { data, error } = await sb.from('clients').select('full_name,email,phone,nationality,passport_number,address')
     .or(`full_name.ilike.${like},email.ilike.${like},passport_number.ilike.${like}`).limit(8);
   if(error){ res.hidden=true; return; }
   if(!data || !data.length){
@@ -1400,10 +1417,10 @@ async function buscarClientes(q){
   res.querySelectorAll('[data-ci]').forEach(el=> el.addEventListener('mousedown', e=>{
     e.preventDefault();   // antes del blur del input, si no el blur cierra la lista primero
     const c=res._data[+el.dataset.ci];
-    populateForm({ adq1_nombre:c.full_name||'', adq1_nacionalidad:c.nationality||'',
-      adq1_pasaporte:c.passport_number||'', adq1_telefono:c.phone||'', adq1_email:c.email||'' });
-    $('#cliBuscar').value=''; res.hidden=true; res.innerHTML='';
-    aplicarReglasCampos(); render(); updateSaveButton();
+    onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
+      telefono:c.phone||'', email:c.email||'', domicilio:c.address||'' });
+    if(input) input.value='';
+    res.hidden=true; res.innerHTML='';
   }));
 }
 
@@ -1887,32 +1904,50 @@ let AUTO_APODERADO = {};
    async aparte, re-render cuando llega. Vacío hasta que resuelva = sin imagen
    todavía, igual que una firma sin firmar. */
 const APODERADO_KTP_URL = {};
+/* Dos desplegables comparten el mismo catálogo apoderadosHakSewa (11-ago):
+   hsn_apoderado_nombre (apoderado del propietario, Primera Parte) y
+   adq_apoderado_nombre (apoderado del comprador, Segunda Parte, opcional).
+   La KTP en exhibit solo la usa poa_notario.html vía hsn_apoderado_*, así que
+   el fetch de signed URL sigue atado a ese select — el otro solo autorrellena texto. */
+const APODERADO_GRUPOS = {
+  hsn_apoderado_nombre: ['hsn_apoderado_edad', 'hsn_apoderado_ocupacion', 'hsn_apoderado_direccion', 'hsn_apoderado_nik'],
+  adq_apoderado_nombre: ['adq_apoderado_edad', 'adq_apoderado_ocupacion', 'adq_apoderado_direccion', 'adq_apoderado_nik'],
+};
 async function syncApoderadoHakSewa(){
-  const sel = document.querySelector('[name="hsn_apoderado_nombre"]');
-  if(!sel) return;
-  const datos = ((TOKENS && TOKENS.apoderadosHakSewa) || {})[sel.value];
-  if(!datos) return;
-  const poner = (campo, valor) => {
-    const el = document.querySelector(`[name="${campo}"]`);
-    if(!el || valor == null) return;
-    const actual = String(el.value || '').trim();
-    if(actual && actual !== AUTO_APODERADO[campo]) return;   // escrito a mano: intocable
-    el.value = valor;
-    AUTO_APODERADO[campo] = valor;
-  };
-  poner('hsn_apoderado_edad', datos.edad);
-  poner('hsn_apoderado_ocupacion', datos.ocupacion);
-  poner('hsn_apoderado_direccion', datos.direccion);
-  poner('hsn_apoderado_nik', datos.nik);
-  if(datos.ktp && sb && !APODERADO_KTP_URL[sel.value]){
-    const { data } = await sb.storage.from('kyc').createSignedUrl(datos.ktp, 3600);
-    if(data && data.signedUrl){ APODERADO_KTP_URL[sel.value] = data.signedUrl; renderDebounced(); }
+  for(const [selName, [edadK, ocupK, dirK, nikK]] of Object.entries(APODERADO_GRUPOS)){
+    const sel = document.querySelector(`[name="${selName}"]`);
+    if(!sel || !sel.value) continue;
+    const datos = ((TOKENS && TOKENS.apoderadosHakSewa) || {})[sel.value];
+    if(!datos) continue;
+    const poner = (campo, valor) => {
+      const el = document.querySelector(`[name="${campo}"]`);
+      if(!el || valor == null) return;
+      const actual = String(el.value || '').trim();
+      if(actual && actual !== AUTO_APODERADO[campo]) return;   // escrito a mano: intocable
+      el.value = valor;
+      AUTO_APODERADO[campo] = valor;
+    };
+    poner(edadK, datos.edad);
+    poner(ocupK, datos.ocupacion);
+    poner(dirK, datos.direccion);
+    poner(nikK, datos.nik);
+    if(selName === 'hsn_apoderado_nombre' && datos.ktp && sb && !APODERADO_KTP_URL[sel.value]){
+      const { data } = await sb.storage.from('kyc').createSignedUrl(datos.ktp, 3600);
+      if(data && data.signedUrl){ APODERADO_KTP_URL[sel.value] = data.signedUrl; renderDebounced(); }
+    }
   }
 }
 /* rellena hsn_apoderado_ktp con la signed URL ya resuelta (o '' si aún no ha
    llegado) — mismo sitio y mismo momento que applyPromotor(data). */
 function applyApoderado(data){
   data.hsn_apoderado_ktp = APODERADO_KTP_URL[data.hsn_apoderado_nombre] || '';
+}
+/* Segunda Parte del Hak Sewa (11-ago): el comprador puede firmar por medio de
+   un apoderado del mismo catálogo. adq2_firmante_nombre es quien FIRMA de
+   verdad (el apoderado si lo hay, si no el propio comprador) — nunca un campo
+   del formulario, ver deriveSections. */
+function applyRepresentanteComprador(data){
+  data.adq2_firmante_nombre = data.adq_apoderado_nombre || data.adq1_nombre || '';
 }
 
 /* ---------- la subparcela sale del inventario ----------
@@ -2508,6 +2543,7 @@ function buildDoc(){
   const data=collect();
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
+  applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
   let html=injectBrandAndCover(applyEditsAndTag(templateHTML), data);
   // Sin hitos no se imprime el cronograma entero (rótulo + tabla): una tabla de
   // pagos con la cabecera y ni una fila parece un contrato a medio rellenar.
@@ -2647,6 +2683,7 @@ function deriveSections(){
   [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea
   inDoc.delete('sociedad_firmante');   // tiene su propia sección (añadida abajo), que no caiga en "otros"
   inDoc.delete('hsn_apoderado_ktp');   // derivado del apoderado elegido (applyApoderado) — nunca un campo del form
+  inDoc.delete('adq2_firmante_nombre');   // derivado (applyRepresentanteComprador) — nunca un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];

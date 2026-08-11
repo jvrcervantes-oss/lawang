@@ -1,0 +1,76 @@
+-- Renombrar un proyecto (11-ago-2026): "proyecto"/"proyecto_nombre" vive como
+-- texto libre (no FK) en unidades, contratos, facturas, documentos_proyecto y
+-- modelos_villa. Un UPDATE a mano en `proyectos.nombre` deja huérfanas las
+-- filas de las otras 5 tablas, que se quedan con el nombre viejo mientras el
+-- desplegable ya solo ofrece el nuevo. Esta función hace el cascade atómico.
+--
+-- contratos y facturas guardan además el nombre DENTRO de su columna `datos`
+-- (jsonb, datos.fields.proyecto_nombre) porque su formulario reabre ese JSON
+-- y lo vuelve a guardar entero al editar — si no se corrige ahí también, la
+-- próxima vez que alguien reabra y guarde ese registro el propio formulario
+-- reescribe el nombre viejo y revierte el rename en silencio. Se corrige SOLO
+-- en lo que aún se puede reabrir y volver a guardar (contratos.bloqueado=false,
+-- facturas no anuladas): un contrato firmado o una factura anulada conservan
+-- el nombre bajo el que se emitieron, que es su snapshot legal.
+--
+-- Nota para quien lo ejecute desde la UI: renombrar aquí NO actualiza las
+-- listas a mano de contracts/tokens.json (proyecto_nombre, parcelaPorProyecto,
+-- resortPorProyecto) ni la que deriva Documentación de ese mismo tokens.json.
+-- Sin tocarlas a mano, el proyecto renombrado desaparece del desplegable de
+-- contratos nuevos y pierde su autofill de máster/resort.
+create or replace function public.renombrar_proyecto(p_antiguo text, p_nuevo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_unidades int; v_contratos int; v_facturas int; v_documentos int; v_modelos int;
+begin
+  if not public.es_admin() then
+    raise exception 'Solo un administrador puede renombrar un proyecto';
+  end if;
+  if p_antiguo is null or trim(p_antiguo) = '' or p_nuevo is null or trim(p_nuevo) = '' then
+    raise exception 'Nombre de proyecto vacío';
+  end if;
+  if p_antiguo = p_nuevo then
+    return jsonb_build_object('sin_cambios', true);
+  end if;
+  if exists (select 1 from public.proyectos where nombre = p_nuevo) then
+    raise exception 'Ya existe un proyecto llamado "%"', p_nuevo;
+  end if;
+
+  update public.proyectos set nombre = p_nuevo where nombre = p_antiguo;
+
+  update public.unidades set proyecto = p_nuevo where proyecto = p_antiguo;
+  get diagnostics v_unidades = row_count;
+
+  update public.contratos set proyecto_nombre = p_nuevo where proyecto_nombre = p_antiguo;
+  get diagnostics v_contratos = row_count;
+  update public.contratos
+     set datos = jsonb_set(datos, '{fields,proyecto_nombre}', to_jsonb(p_nuevo))
+   where proyecto_nombre = p_nuevo and bloqueado = false
+     and datos #>> '{fields,proyecto_nombre}' = p_antiguo;
+
+  update public.facturas set proyecto_nombre = p_nuevo where proyecto_nombre = p_antiguo;
+  get diagnostics v_facturas = row_count;
+  update public.facturas
+     set datos = jsonb_set(datos, '{fields,proyecto_nombre}', to_jsonb(p_nuevo))
+   where proyecto_nombre = p_nuevo and not anulada
+     and datos #>> '{fields,proyecto_nombre}' = p_antiguo;
+
+  update public.documentos_proyecto set proyecto = p_nuevo where proyecto = p_antiguo;
+  get diagnostics v_documentos = row_count;
+
+  update public.modelos_villa set proyecto = p_nuevo where proyecto = p_antiguo;
+  get diagnostics v_modelos = row_count;
+
+  return jsonb_build_object(
+    'unidades', v_unidades, 'contratos', v_contratos, 'facturas', v_facturas,
+    'documentos_proyecto', v_documentos, 'modelos_villa', v_modelos
+  );
+end;
+$$;
+
+revoke all on function public.renombrar_proyecto(text, text) from public;
+grant execute on function public.renombrar_proyecto(text, text) to authenticated;

@@ -396,24 +396,55 @@ function pintarCarpetas(){
     return;
   }
   const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
+  // div, no button: lleva un botón de editar dentro, y un button no puede anidar otro.
   caja.innerHTML = nombres.map(nom => {
     const us = UNIDADES.filter(u => u.proyecto === nom);
     const libres = us.filter(u => u.estado === 'disponible').length;
     const cartera = us.reduce((a,u) => a + (Number(u.precio) || 0), 0);
     const m = (us[0] && us[0].moneda) || 'EUR';
-    return `<button type="button" class="sui-ficha carpeta" data-proy="${esc(nom)}">
-      <span class="n">📁 ${esc(nom)}</span>
+    return `<div class="sui-ficha carpeta" data-proy="${esc(nom)}" style="cursor:pointer">
+      <span class="n">📁 ${esc(nom)} <button type="button" data-editproy="${esc(nom)}" title="Editar nombre" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">✏️</button></span>
       <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + eur(cartera, m):''}</span>
-    </button>`;
+    </div>`;
   }).join('');
 }
 $('#carpetas').addEventListener('click', e => {
+  const ed = e.target.closest('[data-editproy]');
+  if(ed){ editarProyecto(ed.dataset.editproy); return; }
   const f = e.target.closest('[data-proy]'); if(!f) return;
   PROY = f.dataset.proy;
   $('#fProyecto').value = PROY;
   vista(VISTA_ANTES_CARPETAS === 'carpetas' ? 'tabla' : VISTA_ANTES_CARPETAS);
   pintar();
 });
+/* Editar/renombrar carpeta (11-ago): `proyecto`/`proyecto_nombre` es texto
+   libre en 5 tablas más (ver renombrar_proyecto.sql) — el rename es un RPC
+   SECURITY DEFINER que hace el cascade atómico y solo lo puede ejecutar un
+   admin (gate es_admin() dentro de la función). Antes de pedir confirmación
+   se cuenta el radio de impacto real, para no pedirle a nadie que confirme a
+   ciegas cuántas filas va a tocar. */
+async function editarProyecto(nombreActual){
+  const nuevo = antiFormula((prompt(`Nuevo nombre para "${nombreActual}":`, nombreActual) || '').trim());
+  if(!nuevo || nuevo === nombreActual) return;
+  const cuenta = (tabla, columna) => SB.from(tabla).select('id', { count:'exact', head:true }).eq(columna, nombreActual);
+  const [uds, con, fac, doc, mod] = await Promise.all([
+    cuenta('unidades', 'proyecto'), cuenta('contratos', 'proyecto_nombre'),
+    cuenta('facturas', 'proyecto_nombre'), cuenta('documentos_proyecto', 'proyecto'),
+    cuenta('modelos_villa', 'proyecto'),
+  ]);
+  const radio = [
+    uds.count ? `${uds.count} unidad(es)` : '', con.count ? `${con.count} contrato(s)` : '',
+    fac.count ? `${fac.count} factura(s)` : '', doc.count ? `${doc.count} documento(s)` : '',
+    mod.count ? `${mod.count} modelo(s) de villa` : '',
+  ].filter(Boolean).join(', ');
+  const aviso = radio ? `Se actualizará en: ${radio}.\n\n` : 'No hay nada vinculado a este nombre todavía.\n\n';
+  if(!confirm(`${aviso}Renombrar «${nombreActual}» → «${nuevo}»?\n\nRecuerda: si este proyecto aparece en contracts/tokens.json (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo NO se actualiza solo.`)) return;
+  const { error } = await SB.rpc('renombrar_proyecto', { p_antiguo: nombreActual, p_nuevo: nuevo });
+  if(error){ toast('No se pudo renombrar: ' + error.message); return; }
+  toast('Proyecto renombrado');
+  if(PROY === nombreActual) PROY = nuevo;
+  cargar();
+}
 
 function pintar(){ pintarFiltros(); pintarTabla(); pintarRejilla(); pintarCarpetas(); }
 
