@@ -219,7 +219,7 @@ const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 const ORDEN = { campo:'full_name', dir:'asc' };
-let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], YO=null, SEL=null;
+let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], YO=null, SEL=null;
 /* Editar una ficha YA EXISTENTE es solo de admin/super_admin desde el
    7-ago-2026 (petición del owner); crear una nueva ("+ Nuevo comprador")
    sigue abierto a cualquier agente — es alta de datos, no lo que se pidió
@@ -231,7 +231,7 @@ let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], YO=null, SEL=n
 let ES_ADMIN = false;
 
 async function cargar(){
-  const [c, d, v, a] = await Promise.all([
+  const [c, d, v, a, f] = await Promise.all([
     SB.from('clients').select('*').order('full_name'),
     SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
     // qué contratos ha firmado cada persona. Si la migración aún no está,
@@ -239,13 +239,20 @@ async function cargar(){
     SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado)'),
     // accesos al portal del comprador (email → ficha)
     SB.from('portal_accesos').select('email, client_id, activo, ultimo_acceso, accesos'),
+    // facturas de SUS contratos (11-ago, petición del owner: no se veían aquí,
+    // solo en /operaciones/ y en el propio /portal/ del comprador). Por
+    // facturas_equipo(), no .from() directo — mismo motivo que en Operaciones:
+    // la RLS por agente dejaría fuera las de un contrato guardado por otro.
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,total,moneda,fecha_emision,anulada'),
   ]);
   if(c.error) throw c.error;
   CLIENTES = c.data || [];
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
   ACCESOS = a.error ? [] : (a.data || []);
+  FACTURAS = f.error ? [] : (f.data || []);
   if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
+  if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
 }
 
 /* estado de caducidad de un comprador, mirando TODOS sus documentos */
@@ -376,6 +383,27 @@ function pintarFicha(){
           </tr>`).join('')}
         </tbody></table>
         <p class="nota">Pulsa un número de contrato para ver su operación completa.</p>`;
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Facturas</legend>
+      ${(() => {
+        const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+        const suyosIds = new Set(VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos.id));
+        const suyas = FACTURAS.filter(x => suyosIds.has(x.contrato_id))
+          .sort((a,b) => String(b.fecha_emision||'').localeCompare(String(a.fecha_emision||'')));
+        if(!suyosIds.size) return '<p class="nota">Sin contrato enlazado todavía, no hay a qué factura atarla.</p>';
+        if(!suyas.length) return '<p class="nota">Ninguna factura emitida todavía en sus contratos.</p>';
+        return `<table><thead><tr><th>Nº</th><th>Tipo</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>
+          ${suyas.map(x => `<tr>
+            <td><a href="/facturas/?id=${encodeURIComponent(x.id)}" style="color:var(--dl)">${esc(x.numero || 'borrador')}</a></td>
+            <td>${esc(TIPO_DOC[x.tipo] || x.tipo || '—')}</td>
+            <td>${fFecha(x.fecha_emision)}</td>
+            <td class="num">${x.total != null ? esc(Number(x.total).toLocaleString('es') + ' ' + (x.moneda||'')) : '—'}</td>
+            <td>${x.anulada ? '<span class="tag mal">Anulada</span>' : '<span class="tag ok">Vigente</span>'}</td>
+          </tr>`).join('')}
+        </tbody></table>`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
