@@ -742,7 +742,7 @@ let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
 async function cargarVinculables(){
   if(VINCULABLES || !sb) return;
   const { data, error } = await sb.from('contratos')
-    .select('id,numero,tipo,comprador_nombre,proyecto_nombre')
+    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato:datos->fields->>nombre_contrato')
     .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES = data || [];
 }
@@ -2739,7 +2739,7 @@ function deriveSections(){
   // nº de reserva/PPJB vinculado → desplegable con los contratos guardados. Si
   // la lista no cargó (sin red), el campo se queda como texto libre y no bloquea.
   if(inDoc.has('num_reserva_vinculada') && (VINCULABLES||[]).length){
-    const opts = VINCULABLES.map(c=>[c.numero, c.numero+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+    const opts = VINCULABLES.map(c=>[c.numero, c.numero+' · '+(c.nombre_contrato||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> f[0]==='num_reserva_vinculada' ? [f[0], f[1], 'select', opts] : f); });
   }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
@@ -2985,11 +2985,19 @@ function contractPayload(){
   const data = collect();
   return {
     tipo: CONTRACT_TIPO[CURRENT.slug],
-    // nombre_contrato (11-ago) manda si se rellena: es el "cambia el nombre del
-    // contrato" que pidió el cliente — útil sobre todo en tipos sin comprador
-    // claro (POA, colaborador, oferta comercial...), donde el listado salía con
-    // "sin comprador" y nada más que lo distinguiera de los demás.
-    comprador_nombre: data.nombre_contrato || data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
+    // ⚠️ 11-ago-2026, corregido el mismo día: `nombre_contrato` NO va aquí.
+    // `comprador_nombre` no es una etiqueta interna — la lee TODA la suite como
+    // la identidad real de la operación: el cajón de Operaciones la usa como
+    // título cuando no hay ficha de comprador enlazada (`op.comprador_nombre`
+    // en operaciones/index.html), y crearProformaAutomatica() de aquí abajo la
+    // imprime como "Facturar a" en la proforma automática. Meter ahí el nombre
+    // "de mentira" que el agente escribe para distinguir un POA en SU PROPIO
+    // listado hacía que ese nombre saliera como título de la operación y como
+    // cliente facturado en TODAS las demás herramientas — justo lo que reportó
+    // el cliente. `nombre_contrato` sigue viajando en `datos.fields` (más abajo)
+    // y el listado de ESTA app lo antepone solo (ver renderCpList/cargarVinculables),
+    // sin tocar la identidad compartida.
+    comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
     proyecto_nombre: data.proyecto_nombre || null,
     // parseImporte, NO un replace a mano: el que había aquí quitaba la coma pero
     // dejaba el punto, así que "44.000" se guardaba como 44 en la base de datos
@@ -3167,7 +3175,7 @@ async function openContractsPanel(){
   if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
   await cargarEquipo();   // para mostrar el nombre del autor en vez del email
   const { data, error } = await sb.from('contratos')
-    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por')
+    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por,nombre_contrato:datos->fields->>nombre_contrato')
     .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
   if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
   CP_ROWS = data || [];
@@ -3206,7 +3214,7 @@ function aplicarCpFiltros(){
   renderCpList(CP_ROWS
     .filter(r => !CP_TIPO || r.tipo === CP_TIPO)
     .filter(pruebaEstado)
-    .filter(r => !q || [r.numero,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)]
+    .filter(r => !q || [r.numero,r.nombre_contrato,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)]
       .some(v => (v||'').toLowerCase().includes(q))));
 }
 $('#cpFiltrosTipo').addEventListener('click', e => {
@@ -3245,7 +3253,7 @@ function renderCpList(rows){
     <div class="cp-row" data-id="${r.id}">
       <span class="cp-num" data-l="Nº" title="${r.bloqueado?'Bloqueado — PDF firmado ya subido':''}">${r.bloqueado?'🔒 Bloqueado · ':''}${r.numero||'—'}</span>
       <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
-      <span data-l="Comprador">${escAttr(r.comprador_nombre||'—')}</span>
+      <span data-l="Comprador">${escAttr(r.nombre_contrato||r.comprador_nombre||'—')}</span>
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
       <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
       <span data-l="Fecha">${r.fecha_firma||''}</span>
