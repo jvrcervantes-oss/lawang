@@ -599,7 +599,7 @@ async function ultimasOperaciones(sb){
   if(!filas.length) return;
   const dia = s => new Date(s).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
   $('#reciente').innerHTML =
-    `<div class="sui-tabla-caja"><div class="panelCab">Operaciones recientes</div>
+    `<div class="sui-tabla-caja lw-fade"><div class="panelCab">Operaciones recientes</div>
       <table class="sui-tabla"><tbody>` +
       filas.map(r => `<tr data-ir="${esc(r.href)}">
         <td class="clave">${esc(r.num || '—')}</td>
@@ -654,7 +654,7 @@ async function pintarRail(sb, ficha){
         txt:r.numero, val:Number(r.total).toLocaleString('es') + ' ' + (r.moneda||'EUR') })),
     ].sort((a,b) => a.d - b.d).slice(0, 6);
     if(filas.length){
-      cajas.push('<div class="railCaja"><div class="t">Próximos vencimientos</div>' +
+      cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Próximos vencimientos</div>' +
         filas.map(r => `<div class="railFila ${r.d < 0 ? 'tarde' : ''}">
           <span>${esc(r.txt)} · ${r.d < 0 ? 'vencida hace ' + (-r.d) + ' días' : r.d === 0 ? 'hoy' : 'en ' + r.d + ' días'}</span>
           <span class="v ${r.clase||''}">${esc(r.val)}</span></div>`).join('') + '</div>');
@@ -671,13 +671,13 @@ async function pintarRail(sb, ficha){
       const nom = {}; (eq.data || []).forEach(u => { if(u.nombre) nom[u.email] = u.nombre; });
       const top = Object.entries(por).sort((a,b) => b[1]-a[1]).slice(0,3);
       if(top.length){
-        cajas.push('<div class="railCaja"><div class="t">Rendimiento del equipo · admin</div>' +
+        cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Rendimiento del equipo · admin</div>' +
           top.map(([em,v]) => `<div class="railFila"><span>${esc(nom[em]||em)}</span>
             <span class="v">${v.toLocaleString('es')} €</span></div>`).join('') + '</div>');
       }
     }catch(e){ console.warn('rendimiento:', e && e.message); }
   }
-  $('#rail').innerHTML = cajas.join('') || '<div class="railCaja"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
+  $('#rail').innerHTML = cajas.join('') || '<div class="railCaja lw-fade"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
 }
 
 /* ── arranque ──────────────────────────────────────────────────────── */
