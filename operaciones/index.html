@@ -459,6 +459,21 @@ function cuenta(op){
   return { moneda, precio, hitos, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null };
 }
 
+/* Estado de cuenta COMBINADO (11-ago, petición del owner): un mismo comprador
+   con dos contratos vinculados (contrato_padre_id — típico parcela ↔
+   construcción) hasta ahora obligaba a abrir cada uno y sumar a mano. El
+   grupo es el mismo que ya arma "Documentos de la operación" (padre + sus
+   hijos, o el propio si no tiene ninguno) — mismo criterio de vinculación,
+   una sola vez. Sin hijos ni padre, `grupo` es solo `[op]` y el resultado es
+   idéntico al de cuenta(op): esta función generaliza esa, no la sustituye. */
+function cuentaGrupo(op){
+  const grupo = op.padre ? [op.padre, ...op.padre.hijos] : [op, ...op.hijos];
+  const moneda = op.moneda || 'EUR';
+  const precio = grupo.reduce((a, o) => a + (parseImporte(o.precio_total) || 0), 0) || null;
+  const facturado = redondear(grupo.reduce((a, o) => a + (o.cobrado || 0), 0), moneda);
+  return { moneda, precio, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null, grupo };
+}
+
 /* ---------- filtros ----------
    Lo que de verdad se busca aquí no es "una operación" sino "las que me
    reclaman algo": las que están sin firmar, las que deben dinero, las que
@@ -716,6 +731,7 @@ function pintarDetalle(){
   const op = OPS.find(o => o.id === SEL);
   if(!op){ suiCerrarCajon(); return; }
   const c = cuenta(op);
+  const cg = cuentaGrupo(op);
   const fmt = n => n == null ? '—' : fmtMoneda(n, c.moneda);
 
   const filasHitos = c.hitos.length ? c.hitos.map(h => {
@@ -840,7 +856,7 @@ function pintarDetalle(){
   const bloqueCadena = cadena ? `
     <section>
       <h3>Contratos de la operación</h3>
-      <table><thead><tr><th>Nº</th><th>Tipo</th><th class="num">Precio</th><th class="num">Emitido</th><th>Estado</th></tr></thead><tbody>
+      <table><thead><tr><th>Nº</th><th>Tipo</th><th class="num">Precio</th><th class="num">Cobrado</th><th>Estado</th></tr></thead><tbody>
       ${cadena.map(x => {
         const cx = cuenta(x);
         return `<tr>
@@ -855,7 +871,7 @@ function pintarDetalle(){
       }).join('')}
       </tbody></table>
       <p class="nota">Vinculados desde Contratos («Nº del Contrato de Reserva/PPJB vinculado» en la Construcción).
-        Cada contrato mantiene su estado de cuenta; no se suman los precios entre documentos.</p>
+        Aquí, cada fila por separado; el «Estado de cuenta» de más abajo ya los suma los dos.</p>
     </section>` : '';
   const bloqueFichas = fichas.length ? `
     <section>
@@ -911,20 +927,21 @@ function pintarDetalle(){
     ${bloqueFichas}
 
     <section>
-      <h3>Estado de cuenta</h3>
+      <h3>Estado de cuenta${cg.grupo.length > 1 ? ' — ' + cg.grupo.length + ' contratos' : ''}</h3>
+      ${cg.grupo.length > 1 ? `<p class="nota">Suma ${cg.grupo.map(x => esc(x.numero || 'sin nº')).join(' + ')}. El detalle de cada uno está en «Contratos de la operación», más arriba.</p>` : ''}
       <div class="cifras">
         <div class="cifra"><div class="k">Precio pactado</div>
-          <div class="v ${c.precio ? '' : 'gris'}">${c.precio ? fmt(c.precio) : 'sin fijar'}</div></div>
-        <div class="cifra"><div class="k">Emitido</div><div class="v">${fmt(c.facturado)}</div></div>
+          <div class="v ${cg.precio ? '' : 'gris'}">${cg.precio ? fmt(cg.precio) : 'sin fijar'}</div></div>
+        <div class="cifra"><div class="k">Cobrado</div><div class="v">${fmt(cg.facturado)}</div></div>
         <div class="cifra"><div class="k">Pendiente</div>
-          <div class="v ${c.pendiente == null ? 'gris' : ''}">${c.pendiente == null ? 'no calculable' : fmt(c.pendiente)}</div></div>
+          <div class="v ${cg.pendiente == null ? 'gris' : ''}">${cg.pendiente == null ? 'no calculable' : fmt(cg.pendiente)}</div></div>
       </div>
-      ${c.precio ? '' : '<p class="nota falta">Sin precio total en el contrato no se puede calcular el pendiente ni convertir los hitos en %. Se rellena en Contratos.</p>'}
+      ${cg.precio ? '' : '<p class="nota falta">Sin precio total en el contrato no se puede calcular el pendiente ni convertir los hitos en %. Se rellena en Contratos.</p>'}
       <table style="margin-top:14px">
         <thead><tr><th>Hito de pago</th><th class="num">%</th><th class="num">Importe</th></tr></thead>
         <tbody>${filasHitos}</tbody>
       </table>
-      <p class="nota">Las proformas no suman al emitido: no son documento fiscal.</p>
+      <p class="nota">Solo el recibí cuenta como cobrado — una factura o una proforma son lo que se debe, no lo pagado.</p>
     </section>
 
     <section>
