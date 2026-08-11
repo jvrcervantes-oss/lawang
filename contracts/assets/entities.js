@@ -161,6 +161,33 @@ const SOCIEDADES = {
             id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
 };
 
+/* ---------- credenciales de quien puede aparecer como "Firmante" ----------
+   El campo "Firmante" de Gestión del contrato (ver applyPromotor en app.html)
+   permite imprimir en un documento a alguien distinto del representante POR
+   DEFECTO de la sociedad elegida — hasta el 11-ago-2026 eso se resolvía
+   buscando `data.firmante` entre los `.rep` de SOCIEDADES, lo que funcionaba
+   mientras cada nombre siguiera siendo el rep actual de alguna sociedad.
+   Dejó de valerse el 11-ago-2026: al cambiar tepi_sungai.rep de I Made Monjong
+   Adhi Nugruah a I Wayan Eka Aryawan, cuatro contratos ya creados pero sin
+   firmar (CC00020, CC00019, RP00031, CR00018) quedaron guardados con
+   firmante=I Made Monjong — al reabrirlos, la búsqueda ya no encontraba a
+   nadie con ese `.rep` y el documento imprimía en silencio al representante
+   NUEVO, sin que nadie lo hubiera elegido (hallazgo Legal, confirmado con los
+   cuatro números de contrato reales). Esta tabla desacopla "quién puede
+   aparecer firmando" de "quién es HOY el rep por defecto de cada sociedad":
+   añadir aquí = una entrada más, y NUNCA se borra la de alguien que ya pudo
+   firmar o puede tener un contrato en vuelo con su nombre guardado. */
+const FIRMANTES_CRED = {
+  [SOCIEDADES.tepi_sungai.rep]: { rep_npwp: SOCIEDADES.tepi_sungai.rep_npwp, cred: SOCIEDADES.tepi_sungai.cred },
+  [SOCIEDADES.san_dal_woods.rep]: { rep_npwp: SOCIEDADES.san_dal_woods.rep_npwp, cred: SOCIEDADES.san_dal_woods.cred },
+  // retirado como rep por defecto el 11-ago-2026 — se queda aquí SOLO para que
+  // los contratos ya creados con su nombre no cambien de comparecencia solos.
+  'I Made Monjong Adhi Nugruah': { rep_npwp: '', cred: {
+    es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
+    en: 'Indonesian nationality, holder of Indonesian identity document ID 5171021704720002',
+    id: 'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002' } },
+};
+
 /* ---------- etiqueta humana de `contratos.tipo` ----------
    Copiado a propósito, no movido: ya vivía inline en operaciones/index.html
    (TIPO_ES) desde el 5-ago y ese sitio sigue funcionando — sacarlo de ahí para

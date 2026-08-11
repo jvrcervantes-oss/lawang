@@ -35,7 +35,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=f320d2c5"></script>
+<script src="assets/entities.js?v=3e0c70fc"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
@@ -2268,18 +2268,27 @@ function applyPromotor(data){
   // nombre y las credenciales personales que salen en {{prom_rep}}/{{prom_cred_*}}
   // (comparecencia + bloque de firma), igual en las nueve plantillas que ya
   // imprimen {{prom_razon}}. Si coincide con el representante por defecto de la
-  // sociedad elegida, no hay nada que sobrescribir. Si es el otro, se buscan SUS
-  // credenciales propias (nacionalidad/documento), no las de la sociedad — mismo
-  // caso que ya anticipaba el comentario de SOCIEDADES.tepi_sungai.rep: "si algún
-  // documento concreto lo firma otra persona, va escrito EN ESE documento, no
-  // aquí". La identidad de la sociedad (razón, domicilio, NPWP, marca) no cambia:
-  // sigue siendo la que se firma, solo cambia QUIÉN la representa hoy.
+  // sociedad elegida, no hay nada que sobrescribir. Si es otro, se buscan SUS
+  // credenciales propias (nacionalidad/documento) en FIRMANTES_CRED, no las de
+  // la sociedad — mismo caso que ya anticipaba el comentario de
+  // SOCIEDADES.tepi_sungai.rep: "si algún documento concreto lo firma otra
+  // persona, va escrito EN ESE documento, no aquí". La identidad de la
+  // sociedad (razón, domicilio, NPWP, marca) no cambia: sigue siendo la que se
+  // firma, solo cambia QUIÉN la representa hoy.
+  // ⚠️ 11-ago-2026: esto buscaba antes `Object.values(SOCIEDADES).find(s =>
+  // s.rep === data.firmante)` — funcionaba mientras cada nombre siguiera
+  // siendo el rep ACTUAL de alguna sociedad. Al cambiar tepi_sungai.rep, un
+  // contrato ya creado con el rep anterior dejaba de encontrar a nadie y el
+  // documento imprimía en silencio al rep nuevo (hallazgo Legal, contratos
+  // CC00020/CC00019/RP00031/CR00018). FIRMANTES_CRED (entities.js) desacopla
+  // esto: guarda a cualquiera que YA pudo aparecer firmando, no solo al rep
+  // vigente de hoy.
   if(data.firmante && data.firmante !== soc.rep){
-    const otraSoc = Object.values(SOCIEDADES).find(s => s.rep === data.firmante);
-    if(otraSoc){
-      data.prom_rep = otraSoc.rep;
-      data.prom_rep_npwp = otraSoc.rep_npwp || '';
-      data.prom_cred_es = otraSoc.cred.es; data.prom_cred_en = otraSoc.cred.en; data.prom_cred_id = otraSoc.cred.id;
+    const otro = FIRMANTES_CRED[data.firmante];
+    if(otro){
+      data.prom_rep = data.firmante;
+      data.prom_rep_npwp = otro.rep_npwp || '';
+      data.prom_cred_es = otro.cred.es; data.prom_cred_en = otro.cred.en; data.prom_cred_id = otro.cred.id;
     }
   }
 }
