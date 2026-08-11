@@ -1784,14 +1784,25 @@ function fieldHTML(f){
     // extra: array de strings ("EUR") o de pares [valor, etiqueta] cuando el
     // valor guardado (usado por <!--if:campo=valor--> en la plantilla) tiene
     // que ser un slug estable y la etiqueta visible puede ser más larga.
+    const conocidos = (extra||[]).map(o=>Array.isArray(o)?o[0]:o);
     const opts=(extra||[]).map(o=>{ const [v,lbl]=Array.isArray(o)?o:[o,o];
       return `<option value="${escAttr(v)}" ${v===def?'selected':''}>${lbl}</option>`; }).join('');
+    // Valor guardado que ya no está entre las opciones vigentes (p.ej. un
+    // "Firmante" retirado del select, pero que un contrato ya creado guardó
+    // antes de retirarse): se añade como opción extra en vez de dejar el
+    // desplegable huérfano en blanco, que perdía el dato al primer guardado
+    // sin que nadie lo tocara a mano (hallazgo Legal, 11-ago-2026 — reabrir
+    // un contrato no debe cambiar de firmante solo, pero tampoco debe ofrecer
+    // ese nombre para elegirlo en un contrato nuevo: por eso NO va en
+    // `extra`/tokens.json, solo se inyecta aquí cuando ya viene guardado).
+    const huerfano = (def && !conocidos.includes(def))
+      ? `<option value="${escAttr(def)}" selected>${esc(def)}</option>` : '';
     // Firmante (10-ago, petición del cliente): solo admin/super_admin lo cambia,
     // el Agente lo ve fijo en el default. Reutiliza CAN_EDIT_TEXT porque es
     // exactamente el mismo corte de rol que ya usa "Editar texto" — no una
     // coincidencia nueva que haya que mantener sincronizada a mano.
     const bloqueado = key==='firmante' && !CAN_EDIT_TEXT;
-    return `<div class="field" data-key="${key}"><label>${label}</label><select name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}</select></div>`;
+    return `<div class="field" data-key="${key}"><label>${label}</label><select name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
   }
   if(type==='textarea'){
     return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
