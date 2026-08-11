@@ -1077,22 +1077,28 @@ $('#btnSave').onclick = async () => {
   } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast('El documento no tiene importe'); return; }
   const btn = $('#btnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
   try{
-    const q = (SAVED && SAVED.id)
-      ? sb.from('facturas').update(payload()).eq('id', SAVED.id).select('id,numero').single()
-      : sb.from('facturas').insert(payload()).select('id,numero').single();
-    const { data, error } = await q;
-    if(error) throw error;
+    let data;
+    if(d.tipo === 'recibi'){
+      // 11-ago: contrato + justificante + al menos una aplicación ya no son
+      // solo un check de este JS — guardar_recibi() los exige otra vez en la
+      // base de datos, en la MISMA transacción que crea las aplicaciones, así
+      // que no puede quedar un recibí a medias vía un POST directo a la API.
+      const aplicaciones = APLICACIONES.map(a => ({ factura_id:a.factura_id, importe:parseImporte(a.importe) }));
+      const { data:rpcData, error } = await sb.rpc('guardar_recibi', {
+        p_id: (SAVED && SAVED.id) || null, p_factura: payload(), p_aplicaciones: aplicaciones,
+      });
+      if(error) throw error;
+      data = rpcData;
+    }else{
+      const q = (SAVED && SAVED.id)
+        ? sb.from('facturas').update(payload()).eq('id', SAVED.id).select('id,numero').single()
+        : sb.from('facturas').insert(payload()).select('id,numero').single();
+      const r = await q;
+      if(r.error) throw r.error;
+      data = r.data;
+    }
     SAVED = { id:data.id, numero:data.numero };
     $('[name="numero_visible"]').value = data.numero;
-    if(d.tipo === 'recibi'){
-      // se rehacen enteras: más simple que calcular el diff, y esta tabla
-      // solo la lee este mismo recibí (ver RLS en recibi_aplicaciones.sql)
-      const del = await sb.from('recibi_aplicaciones').delete().eq('recibi_id', data.id);
-      if(del.error) throw del.error;
-      const filas = APLICACIONES.map(a => ({ recibi_id:data.id, factura_id:a.factura_id, importe_aplicado:parseImporte(a.importe) }));
-      const ins = await sb.from('recibi_aplicaciones').insert(filas);
-      if(ins.error) throw ins.error;
-    }
     toast('Guardada como ' + data.numero);
   }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
   btn.disabled = false; render();
