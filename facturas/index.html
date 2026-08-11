@@ -729,7 +729,16 @@ $('#mailSend').onclick = async () => {
         filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
         html: paginaParaEmail() }) });
     const res = await r.json().catch(() => ({ ok:false, error:'Respuesta inválida del servidor' }));
-    if(res.ok){ toast('Enviado a ' + to); cerrarMail(); }
+    if(res.ok){
+      // 11-ago (Administración, hallazgo ALTA): sin esto `facturas.enviada` se
+      // quedaba en false para siempre en el envío manual — el único camino que
+      // la marcaba era el automático de firma-submit (proformas). Sin la
+      // columna al día, el guard "no tocar el JSONB de una factura ya enviada"
+      // de renombrar_proyecto.sql no protegía la factura normal, que es la
+      // mayoría. No bloquea el aviso de "Enviado" si falla: el email ya salió.
+      await sb.from('facturas').update({ enviada:true, fecha_envio: new Date().toISOString() }).eq('id', SAVED.id);
+      toast('Enviado a ' + to); cerrarMail();
+    }
     else toast(res.error || 'No se pudo enviar');
   }catch(err){ toast('Error: ' + (err.message || err)); }
   btn.disabled = false; btn.textContent = 'Enviar';

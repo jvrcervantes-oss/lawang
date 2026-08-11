@@ -1607,6 +1607,8 @@ function resetBorrador(slug){
   ADQ1_EMAILS = [];
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   AUTO_APODERADO = {};
+  avisoMismoApoderado = null;   // 11-ago, hallazgo Legal MEDIA: si no se resetea, cambiar a OTRO contrato que
+  // también tenga el mismo apoderado en las dos partes se queda mudo por casualidad de string
 }
 
 /* huellaBloque() vive en assets/huella.js (con su test en node: el mismo patrón
