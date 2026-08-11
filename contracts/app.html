@@ -610,11 +610,13 @@ const TEMPLATES = [
   { slug:'hak_sewa_notario', file:'templates/hak_sewa_notario.html', cover:'#485B37', num:4,
     name:{es:'Hak Sewa - Notario',en:'Hak Sewa - Notario',id:'Hak Sewa - Notario'},
     l2:{es:'de Arrendamiento de Terreno',en:'Land Lease',id:'Sewa Menyewa Tanah'}, ready:true },
-  // Poder Notarial (Surat Kuasa) que acompaña al Hak Sewa — 10-ago-2026, "5. POA"
-  // tal como lo pidió el cliente. Solo bahasa (ver comentario de la plantilla).
+  // Poder Notarial (Power of Attorney / Surat Kuasa) que acompaña al Hak Sewa —
+  // 10-ago-2026, "5.". Nombre pasó de "POA" a "Power of Attorney" (11-ago,
+  // petición del cliente) y la plantilla pasó de monolingüe a trilingüe (ES/EN
+  // traducción de trabajo de AxisWorks, ver comentario en poa_notario.html).
   { slug:'poa_notario', file:'templates/poa_notario.html', cover:'#485B37', num:5,
-    name:{es:'POA',en:'POA',id:'POA'},
-    l2:{es:'Poder Notarial',en:'Power of Attorney',id:'Surat Kuasa'}, ready:true },
+    name:{es:'Poder Notarial',en:'Power of Attorney',id:'Surat Kuasa'},
+    l2:{es:'ante Notario',en:'before a Notary',id:'di hadapan Notaris'}, ready:true },
   { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
     name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
     l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
@@ -2635,6 +2637,11 @@ function deriveSections(){
   // ningún documento — mismo motivo que resort, forzado para que sobreviva al
   // filtro en TODAS las plantillas (petición del cliente: "en todos los contratos").
   inDoc.add('firmante');
+  // nombre_contrato (11-ago): mismo motivo que firmante — campo de gestión
+  // interna en TODAS las plantillas, no imprime nada. Sustituye al nombre del
+  // comprador en el listado de guardados cuando se rellena (ver contractPayload);
+  // pensado sobre todo para tipos sin comprador claro, como el POA.
+  inDoc.add('nombre_contrato');
   if(inDoc.has('moneda')) inDoc.add('tipo_cambio_idr');
   inDoc.delete('firma_adquiriente');   // línea en blanco a propósito para firma física — nunca un campo del form
   [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea
@@ -2893,7 +2900,11 @@ function contractPayload(){
   const data = collect();
   return {
     tipo: CONTRACT_TIPO[CURRENT.slug],
-    comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
+    // nombre_contrato (11-ago) manda si se rellena: es el "cambia el nombre del
+    // contrato" que pidió el cliente — útil sobre todo en tipos sin comprador
+    // claro (POA, colaborador, oferta comercial...), donde el listado salía con
+    // "sin comprador" y nada más que lo distinguiera de los demás.
+    comprador_nombre: data.nombre_contrato || data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
     proyecto_nombre: data.proyecto_nombre || null,
     // parseImporte, NO un replace a mano: el que había aquí quitaba la coma pero
     // dejaba el punto, así que "44.000" se guardaba como 44 en la base de datos

@@ -78,8 +78,10 @@ intranet/*Handoff*/
 # tras un aviso de seguridad porque uno se quedo sin borrar en el repo.
 # 10-ago: paso otra vez con un nombre que no coincidia con el patron (_verify_*
 # en vez de _qa_*) — se ensancha el patron en vez de anadir uno nuevo por caso.
-contracts/_qa_*
-**/_qa_*.html
+# 11-ago: tercera vez, ahora _qa_double_guard.js en la RAIZ del repo (el
+# patron viejo solo cubria contracts/_qa_* y *.html) — **/_qa_* sin extension
+# ni carpeta fija, para que la cuarta vez no haga falta otra linea mas.
+**/_qa_*
 **/_verify_*.html
 **/_preview_*.html
 
