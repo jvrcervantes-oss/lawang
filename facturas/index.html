@@ -1320,6 +1320,9 @@ $('#btnNuevaDoc').onclick = () => {
 
 async function abrir(f){
   const d = (f.datos && f.datos.fields) || {};
+  // un campo que el documento anterior traía y este no, se quedaba con el
+  // valor viejo escrito encima — reset() antes de aplicar los del nuevo
+  $('#form').reset();
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
   $('#selTipo').value = f.tipo || d.tipo || 'factura';
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas : [{ descripcion:'', importe:'' }];

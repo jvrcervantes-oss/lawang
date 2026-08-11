@@ -138,6 +138,36 @@ grant  execute on function public.es_admin()    to authenticated, service_role;
 grant  execute on function public.puede(text)   to authenticated, service_role;
 grant  execute on function public.es_suyo(text) to authenticated, service_role;
 
+-- ============================================================
+-- APLICADO en producción el 11-ago-2026 por MCP (migración
+-- `usuarios_admin_no_toca_super_admin`). Registro, no hace falta volver a
+-- correrlo.
+--
+-- Auditoría de suite: `es_admin()` no distingue admin de super_admin, y la
+-- policy de UPDATE de `usuarios` solo miraba eso — un admin normal podía
+-- ascenderse a sí mismo a super_admin, o degradar a uno, con una llamada
+-- directa a la API. Los botones `disabled` del panel no son una barrera real.
+-- ============================================================
+create or replace function public.es_super_admin()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.usuarios u
+                  where u.user_id = (select auth.uid()) and u.activo
+                    and u.rol = 'super_admin')
+$$;
+
+-- `revoke ... from public` NO basta en Supabase: al crear la función ya queda
+-- un grant EXPLÍCITO a `anon`, aparte del que hereda de PUBLIC — hay que
+-- revocárselo también a él, o la función queda invocable sin sesión.
+revoke execute on function public.es_super_admin() from public;
+revoke execute on function public.es_super_admin() from anon;
+grant  execute on function public.es_super_admin() to authenticated, service_role;
+
+drop policy if exists "solo admin edita usuarios" on public.usuarios;
+create policy "admin edita, pero no toca una fila super_admin sin serlo" on public.usuarios
+  for update to authenticated
+  using   (public.es_admin() and (rol <> 'super_admin' or public.es_super_admin()))
+  with check (public.es_admin() and (rol <> 'super_admin' or public.es_super_admin()));
+
 -- ── Cómo se verificó (29-jul-2026), para repetirlo ───────────────────────
 -- La conexión del MCP es PROPIETARIA de las tablas y por tanto BYPASEA la RLS:
 -- un `select count(*)` desde ahí devuelve todo aunque la política esté mal, así
