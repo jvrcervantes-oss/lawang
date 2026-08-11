@@ -391,6 +391,7 @@ async function cargar(){
   });
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
   if(s.error) toast('No se pudieron leer las firmas: ' + s.error.message);
+  if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
 
   OPS = (c.data || []).map(ct => ({
     ...ct,
@@ -638,7 +639,7 @@ function pintarLista(){
       <td class="p">${esc(o.proyecto_nombre || '—')}</td>
       <td class="p" title="${esc(o.creado_por || 'sin autor registrado')}">${esc(operador(o))}</td>
       <td class="num">${c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>'}</td>
-      <td class="num">${c.facturado ? eur(c.facturado) : '<span class="nota">—</span>'}</td>
+      <td class="num">${eur(c.facturado)}</td>
       <td class="num">${c.pendiente != null && c.pendiente > 0 ? '<b>' + eur(c.pendiente) + '</b>' : eur(c.pendiente)}</td>
       <td><div class="badges">${b.join('')}</div></td>
     </tr>`;
@@ -1049,7 +1050,7 @@ async function borrarOperacion(op){
 function pintarVencimientos(){
   const fact = [];
   OPS.forEach(o => o.facturas.forEach(f => {
-    if(f.anulada || f.tipo === 'proforma' || !f.venc) return;
+    if(f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
     fact.push({ ...f, op:o, d: dias(f.venc) });
   }));
   fact.sort((a,b) => (a.d ?? 9e9) - (b.d ?? 9e9));

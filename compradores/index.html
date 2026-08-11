@@ -258,6 +258,8 @@ async function cargar(){
   FACTURAS = f.error ? [] : (f.data || []);
   if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
+  if(a.error) toast('No se pudieron leer los accesos al portal: ' + a.error.message);
+  if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
 }
 
 /* estado de caducidad de un comprador, mirando TODOS sus documentos */

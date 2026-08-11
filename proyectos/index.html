@@ -559,7 +559,7 @@ function abrirUnidad(id){
     <div class="sui-bloque">
       <h3>Operación</h3>
       <dl class="sui-dl" style="margin:0">
-        <dt>Contrato</dt><dd><a class="enl" href="/operaciones/?contrato=${esc(u.contrato_numero)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
+        <dt>Contrato</dt><dd><a class="enl" href="/operaciones/?contrato=${encodeURIComponent(u.contrato_id)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
         ${u.comprador_nombre ? `<dt>Comprador</dt><dd>${esc(u.comprador_nombre)}</dd>` : ''}
         <dt>Cobrado</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
           u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}</dd>

@@ -160,7 +160,7 @@ $('#signBtn').addEventListener('click', async ()=>{
     const signature = cv.toDataURL('image/png');
     const { ok, d } = await callFn('firma-submit', { token:TOKEN, signature, typedName:$('#fName').value.trim() });
     if(ok && d.ok){ show('done'); return; }
-    if(d.error==='ya_firmado'||d.error==='no_disponible'){ const e=ERR[d.error]; fail(e[0],e[1]); return; }
+    if(d.error==='ya_firmado'||d.error==='no_disponible'||d.error==='expirado'){ const e=ERR[d.error]; fail(e[0],e[1]); return; }
     toast('No se pudo firmar. Inténtalo de nuevo. / Could not sign. Try again.');
     btn.disabled=false; btn.textContent='Firmar y enviar / Sign & submit';
   }catch(err){

@@ -32,9 +32,10 @@ const corsFor = (req: Request) => {
   };
 };
 
-// 5-ago-2026: añadidas 'documentacion' y 'obra' — la lista se había quedado
-// corta respecto al panel /usuarios/ y estas dos se perdían al crear un usuario.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios'];
+// 5-ago-2026: añadidas 'documentacion' y 'obra'. 11-ago-2026: añadida
+// 'creatividades' — 3ª vez que esta lista se queda corta respecto al panel
+// /usuarios/ y una herramienta se pierde al crear un usuario (no al editar).
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
 Deno.serve(async (req) => {
