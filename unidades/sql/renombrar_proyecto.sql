@@ -9,9 +9,20 @@
 -- y lo vuelve a guardar entero al editar — si no se corrige ahí también, la
 -- próxima vez que alguien reabra y guarde ese registro el propio formulario
 -- reescribe el nombre viejo y revierte el rename en silencio. Se corrige SOLO
--- en lo que aún se puede reabrir y volver a guardar (contratos.bloqueado=false,
--- facturas no anuladas): un contrato firmado o una factura anulada conservan
--- el nombre bajo el que se emitieron, que es su snapshot legal.
+-- en lo que es puro borrador, todavía sin ningún compromiso hacia fuera:
+--   · contratos: bloqueado=false Y sin ninguna fila en contrato_firmas — en
+--     cuanto existe una fila ahí ya se generó un PDF y se mandó un enlace de
+--     firma a un tercero real, aunque falten firmas por completar. Corregido
+--     11-ago-2026 (Administración, hallazgo ALTA del primer despliegue: la
+--     condición original solo miraba `bloqueado`, que no pasa a true hasta
+--     que TODAS las firmas están completas, así que un contrato a mitad de
+--     un ciclo de firma en curso sí se tocaba).
+--   · facturas: not anulada Y not enviada — una factura enviada por email a
+--     un cliente real, aunque no esté anulada, ya no es un borrador. Corregido
+--     11-ago-2026 (Administración+Legal, mismo hallazgo visto por los dos de
+--     forma independiente: la condición original solo miraba `anulada`).
+-- Un contrato firmado, uno con firma en curso, o una factura ya enviada o
+-- anulada conservan el nombre bajo el que se emitieron: es su snapshot legal.
 --
 -- Nota para quien lo ejecute desde la UI: renombrar aquí NO actualiza las
 -- listas a mano de contracts/tokens.json (proyecto_nombre, parcelaPorProyecto,
@@ -47,16 +58,17 @@ begin
 
   update public.contratos set proyecto_nombre = p_nuevo where proyecto_nombre = p_antiguo;
   get diagnostics v_contratos = row_count;
-  update public.contratos
+  update public.contratos c
      set datos = jsonb_set(datos, '{fields,proyecto_nombre}', to_jsonb(p_nuevo))
    where proyecto_nombre = p_nuevo and bloqueado = false
-     and datos #>> '{fields,proyecto_nombre}' = p_antiguo;
+     and datos #>> '{fields,proyecto_nombre}' = p_antiguo
+     and not exists (select 1 from public.contrato_firmas cf where cf.contrato_id = c.id);
 
   update public.facturas set proyecto_nombre = p_nuevo where proyecto_nombre = p_antiguo;
   get diagnostics v_facturas = row_count;
   update public.facturas
      set datos = jsonb_set(datos, '{fields,proyecto_nombre}', to_jsonb(p_nuevo))
-   where proyecto_nombre = p_nuevo and not anulada
+   where proyecto_nombre = p_nuevo and not anulada and not enviada
      and datos #>> '{fields,proyecto_nombre}' = p_antiguo;
 
   update public.documentos_proyecto set proyecto = p_nuevo where proyecto = p_antiguo;
@@ -72,5 +84,5 @@ begin
 end;
 $$;
 
-revoke all on function public.renombrar_proyecto(text, text) from public;
+revoke all on function public.renombrar_proyecto(text, text) from public, anon;
 grant execute on function public.renombrar_proyecto(text, text) to authenticated;

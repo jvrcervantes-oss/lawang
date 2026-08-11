@@ -1936,6 +1936,23 @@ async function syncApoderadoHakSewa(){
       if(data && data.signedUrl){ APODERADO_KTP_URL[sel.value] = data.signedUrl; renderDebounced(); }
     }
   }
+  avisarMismoApoderado();
+}
+/* Aviso, no bloqueo (11-ago, hallazgo Legal ALTA): con un catálogo de una
+   sola persona, elegirla en las dos partes es fácil de hacer sin querer —
+   una misma persona representando a la vez al arrendador y al arrendatario
+   en el mismo Hak Sewa. No se impide (puede ser un caso real y válido), solo
+   se avisa. Se guarda el último valor avisado para no repetir el toast en
+   cada tecla: solo salta cuando el emparejamiento CAMBIA. */
+let avisoMismoApoderado = null;
+function avisarMismoApoderado(){
+  const a = document.querySelector('[name="hsn_apoderado_nombre"]');
+  const b = document.querySelector('[name="adq_apoderado_nombre"]');
+  const mismo = (a && b && a.value && b.value && a.value === b.value) ? a.value : null;
+  if(mismo && mismo !== avisoMismoApoderado){
+    toast(`${mismo} queda como apoderado de las DOS partes de este Hak Sewa — revisa que sea correcto`);
+  }
+  avisoMismoApoderado = mismo;
 }
 /* rellena hsn_apoderado_ktp con la signed URL ya resuelta (o '' si aún no ha
    llegado) — mismo sitio y mismo momento que applyPromotor(data). */
@@ -1945,9 +1962,17 @@ function applyApoderado(data){
 /* Segunda Parte del Hak Sewa (11-ago): el comprador puede firmar por medio de
    un apoderado del mismo catálogo. adq2_firmante_nombre es quien FIRMA de
    verdad (el apoderado si lo hay, si no el propio comprador) — nunca un campo
-   del formulario, ver deriveSections. */
+   del formulario, ver deriveSections.
+   adq_representacion (11-ago, hallazgo Legal ALTA del primer despliegue): la
+   plantilla solo imprimía el párrafo de representación si había NOMBRE de
+   apoderado, así que dejar la fecha del poder en blanco sacaba un contrato
+   que citaba "según Poder Especial de fecha ___" — una base legal incompleta.
+   Ahora el bloque entero (comparecencia + firma) exige nombre Y fecha; sin
+   los dos, el comprador firma él mismo como si no se hubiera elegido nadie. */
 function applyRepresentanteComprador(data){
-  data.adq2_firmante_nombre = data.adq_apoderado_nombre || data.adq1_nombre || '';
+  const completo = !!(data.adq_apoderado_nombre && data.adq_poder_fecha);
+  data.adq_representacion = completo ? data.adq_apoderado_nombre : '';
+  data.adq2_firmante_nombre = completo ? data.adq_apoderado_nombre : (data.adq1_nombre || '');
 }
 
 /* ---------- la subparcela sale del inventario ----------
@@ -2684,6 +2709,7 @@ function deriveSections(){
   inDoc.delete('sociedad_firmante');   // tiene su propia sección (añadida abajo), que no caiga en "otros"
   inDoc.delete('hsn_apoderado_ktp');   // derivado del apoderado elegido (applyApoderado) — nunca un campo del form
   inDoc.delete('adq2_firmante_nombre');   // derivado (applyRepresentanteComprador) — nunca un campo del form
+  inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
