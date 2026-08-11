@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=4f74545e">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=0ac1c6f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -19,11 +19,11 @@
 <script src="/contracts/assets/guard.js?v=abd4a27b" data-herramienta="compradores"></script>
 <script src="/contracts/assets/suite.js?v=eb783935"></script>
 <style>
-  :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px;
-         /* la ficha lleva KYC con documentos: mas ancha que los 420 estandar.
-            Ampliado 11-ago-2026 (petición del owner: poco espacio para trabajar)
-            al mismo ancho que Operaciones, cuya ficha tiene una densidad parecida. */
-         --cajon-w:clamp(480px, 42vw, 760px); }
+  :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
+  /* --cajon-w: sin override propio desde el 11-ago — hereda el 70vw de
+     suite.css (norma de la suite, no herramienta por herramienta). Antes
+     tenía aquí un clamp propio para igualar a Operaciones; con el 70vw
+     nuevo ya no hace falta un ancho a medida. */
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
   .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
