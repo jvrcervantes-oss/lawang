@@ -3390,6 +3390,12 @@ async function openSavedContract(id){
   // el del contrato anterior se tomaría por "puesto por el automatismo" y se
   // reescribiría solo — cambiando un dato ya guardado nada más abrirlo.
   AUTO_ANX = ''; AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
+  // Mismo motivo que AUTO_ANX/AUTO_MASTER arriba, mismo hallazgo (Legal, 11-ago):
+  // resetBorrador() ya resetea AUTO_APODERADO/avisoMismoApoderado para "contrato
+  // nuevo", pero ABRIR uno guardado no pasa por ahí — sin esto, el apoderado o el
+  // aviso de "mismo apoderado en las dos partes" del contrato ANTERIOR se cuela
+  // en el que se acaba de abrir.
+  AUTO_APODERADO = {}; avisoMismoApoderado = null;
   aplicarReglasCampos();
   refreshHitos();
   if($('#emailsExtraPanel')){ $('#emailsExtraPanel').outerHTML = buildEmailsExtraHTML(); wireEmailsExtra(); }
