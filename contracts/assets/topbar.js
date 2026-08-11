@@ -268,7 +268,7 @@
         });
 
         (r[1].data || []).forEach(function (f) {
-          if (f.anulada || f.tipo === 'proforma' || !f.venc) return;
+          if (f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
           if (!esAdmin && f.creado_por !== email) return;   // la RLS aquí no filtra: deja leer todas
           var d = dias(f.venc);
           if (d === null || d > VENC_DIAS) return;
