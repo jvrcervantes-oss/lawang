@@ -29,16 +29,16 @@
      --font-serif se conserva por compatibilidad pero apunta a Neue (no serif). */
   --font-display: 'Jost', sans-serif;
   --font-serif:   'Jost', sans-serif;
-  /* CIFRAS GRANDES, y solo eso (6-ago-2026, restyle del panel).
-     El handoff de diseño pedía Cormorant Garamond para los números de KPI y para
-     los títulos de cajón. Los TÍTULOS se quedan en Jost por decisión del owner:
-     `intranet/index.html` ya tenía escrito que «la serif se queda en una sola
-     palabra — un titular serif de 40px en una herramienta es ruido», y esa regla
-     no se deroga por un mockup. En una cifra aislada la serif no compite con la
-     marca: da jerarquía sin convertir la herramienta en una portada.
-     Token propio y NO `--font-display` a propósito: ese apunta a Jost porque es
-     el proxy de Neue Kabel, y cambiarlo movería toda la interfaz. */
-  --font-cifra:   'Cormorant Garamond', Georgia, serif;
+  /* CIFRAS GRANDES: vuelven a Neue (11-ago-2026, decisión del owner — quita la
+     serif que llevaban desde el 6-ago). Antes era un token PROPIO a propósito,
+     desacoplado de `--font-display` para que cambiar el proxy de Neue Kabel no
+     moviera también las cifras; ahora el pedido es justo lo contrario: que las
+     cifras SÍ sean Neue. Por eso pasa a apuntar a `--font-display` en vez de
+     llevar su propia familia — Jost hoy (proxy geométrico), Neue Kabel real en
+     cuanto se añada su `@font-face`, sin tocar esta línea otra vez.
+     `contracts/` (la herramienta y los documentos que imprime) queda fuera a
+     propósito — no se toca, pedido explícito del owner. */
+  --font-cifra:   var(--font-display);
   --font-body:    'Jost', sans-serif;
 
   /* — Emblema / moanito + logos (slots intercambiables) —
