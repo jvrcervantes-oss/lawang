@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=679ea61d">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=d884117e">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=4f74545e">
 <script src="/contracts/assets/topbar.js?v=e6cdc621" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -20,12 +20,12 @@
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
 <script src="/facturas/totales.js"></script>
 <style>
-  :root{ --line:#E4DCCB; --card:#fffdf8; --tbh:64px;
-         /* La ficha de una operacion mete CINCO tablas (una de seis columnas):
-            a los 420px del cajon estandar sale ilegible — ya se midio el 31-jul
-            que incluso 560 se quedaba corto. Con el adosado, ensancharla achica
-            la lista; es el trato correcto mientras la ficha este abierta. */
-         --cajon-w:clamp(480px, 42vw, 760px); }
+  :root{ --line:#E4DCCB; --card:#fffdf8; --tbh:64px; }
+  /* --cajon-w: sin override propio desde el 11-ago — hereda el 70vw de
+     suite.css (cajón flotante, ya no adosado). Antes tenía aquí un clamp
+     propio (480-760px) para que sus cinco tablas cupieran sin achicar la
+     lista de detrás; con el cajón flotando y bloqueando en vez de empujar,
+     ese cálculo ya no aplica: 70vw le sobra de largo. */
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl,#F5F0E6); color:var(--ink,#2E3437); }
