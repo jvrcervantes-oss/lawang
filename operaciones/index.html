@@ -335,7 +335,7 @@ const TIPO_ES = { reserva_parcela:'Bloqueo de Parcela', construccion:'Construcci
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
-  const [c, f, s, cc, dc, eq] = await Promise.all([
+  const [c, f, s, cc, dc, eq, cb] = await Promise.all([
     // `adq1` y `compradores` se piden para poder avisar de las fichas de
     // comprador que faltan. Son campos pequeños del jsonb; sigue sin pedirse
     // `datos` entero, que pesa MB por los anexos en base64.
@@ -365,12 +365,19 @@ async function cargar(){
     // ver todas las fichas al admin y solo la propia al resto — a un agente le
     // saldrá el email en vez del nombre, que sigue identificando igual.
     SB.from('usuarios').select('email,nombre'),
+    // "cobrado" real (11-ago, reforma del modelo de facturación): solo el
+    // recibí prueba dinero recibido, una factura es lo que se debe — ver
+    // facturas/sql/contrato_cobrado.sql. Se trae YA calculado en vez de
+    // sumar aquí `facturas` a mano, para no tener dos copias de esa lógica.
+    SB.rpc('contratos_cobrado_equipo'),
   ]);
   if(c.error) throw c.error;
   const facturas = f.error ? [] : (f.data || []);
   const firmas   = s.error ? [] : (s.data || []);
   const vinculos = cc.error ? [] : (cc.data || []);
   const docsKyc  = dc.error ? [] : (dc.data || []);
+  const COBRADO = {};
+  (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
   EQUIPO = {};
   (eq.error ? [] : (eq.data || [])).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
 
@@ -387,6 +394,7 @@ async function cargar(){
 
   OPS = (c.data || []).map(ct => ({
     ...ct,
+    cobrado: COBRADO[ct.id] || 0,
     // las facturas viejas no tienen contrato_id (la columna es del 28-jul):
     // se enlazan también por el nº impreso para no perderlas de vista
     facturas: facturas.filter(x => x.contrato_id ? x.contrato_id === ct.id
@@ -437,12 +445,17 @@ function compradoresNombrados(o){
 }
 const fichasQueFaltan = o => Math.max(0, compradoresNombrados(o) - (o.compradores || []).length);
 
+/* "facturado" (11-ago, reforma del modelo de facturación): ya NO es sumar
+   las facturas del contrato — eso es lo que se DEBE, no lo que se ha
+   cobrado. Viene de contrato_cobrado() en Supabase (solo recibís, ver
+   facturas/sql/contrato_cobrado.sql), precargado en op.cobrado por cargar().
+   El nombre del campo se mantiene ("facturado") para no tocar cada sitio
+   que ya lo lee — lo que cambió es CÓMO se calcula, no cómo se usa. */
 function cuenta(op){
   const moneda = op.moneda || 'EUR';
   const precio = parseImporte(op.precio_total);
   const hitos  = Array.isArray(op.hitos) ? op.hitos : [];
-  const vivas  = op.facturas.filter(x => !x.anulada && x.tipo !== 'proforma');
-  const facturado = redondear(vivas.reduce((a,x) => a + parseImporte(x.total), 0), moneda);
+  const facturado = redondear(op.cobrado || 0, moneda);
   return { moneda, precio, hitos, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null };
 }
 

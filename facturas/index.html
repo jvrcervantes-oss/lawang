@@ -322,10 +322,25 @@
             <input name="proyecto_nombre" placeholder="Ej. Palm Field — Cabana 2BR S2">
           </fieldset>
 
-          <fieldset>
+          <fieldset id="fsConceptos">
             <legend>Conceptos</legend>
             <div id="lineas"></div>
             <button type="button" class="addbtn" id="btnAddLinea">+ Añadir concepto</button>
+          </fieldset>
+
+          <!-- Solo para recibí (11-ago, reforma del modelo de facturación): un
+               recibí no describe conceptos sueltos, salda facturas concretas.
+               Sus "Conceptos" (arriba) se generan solos a partir de esto — ver
+               toggleTipoRecibi()/sincronizarLineasDesdeAplicaciones(). -->
+          <fieldset id="fsAplicaciones" hidden>
+            <legend>Facturas que salda este recibí</legend>
+            <label>Añadir factura</label>
+            <select id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
+            <div id="aplicaciones"></div>
+            <p class="hint" id="aplicSuma"></p>
+            <label>Justificante de pago (obligatorio)</label>
+            <input type="file" id="fJustificante" accept="image/jpeg,image/png,image/webp,application/pdf">
+            <p class="hint" id="justifEstado"></p>
           </fieldset>
 
           <fieldset>
@@ -469,7 +484,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
     // pantalla de documento YA, para no enseñar el listado un instante.
     pantalla('documento');
     sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos,creado_por')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos,creado_por,justificante_path')
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
         if(error || !data){
@@ -497,6 +512,13 @@ $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replac
 let LINEAS = [{ descripcion:'', importe:'' }];
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
 let CONTRATO_ID = null;
+/* Reforma del modelo de facturación (11-ago-2026): un recibí no describe
+   conceptos sueltos, salda facturas concretas — ver facturas/sql/recibi_aplicaciones.sql.
+   APLICACIONES = [{factura_id, numero, pendiente, importe}]; LINEAS (arriba)
+   se regenera SOLA a partir de esto para el documento impreso. */
+let APLICACIONES = [];
+let FACTURAS_ABIERTAS = [];   // [{id, numero, pendiente, contrato_numero, cliente_nombre}], para el <select> de aplicar
+let JUSTIFICANTE_PATH = null;   // path ya subido a Storage (bucket 'justificantes'), o null
 let ES_ADMIN = false;   // lo fija la comprobación de sesión con la ficha del usuario
 let MI_FICHA = null;    // {rol, herramientas, activo} — la fija esa misma comprobación   // contrato del que sale la factura (FK real, no solo el nº impreso)
 
@@ -579,6 +601,102 @@ $('#lineas').addEventListener('click', e => {
 });
 $('#btnAddLinea').onclick = () => { LINEAS.push({ descripcion:'', importe:'' }); pintarLineas(); render(); };
 
+/* ---------- recibí: aplicación a factura(s) ----------
+   Reforma del 11-ago-2026: un recibí es la única prueba de dinero cobrado, y
+   tiene que decir A QUÉ factura(s) corresponde ese dinero — puede saldar más
+   de una, o solo parte de una, de ahí la tabla puente en vez de una columna
+   1:1 (revisión previa, Administración: el caso real que originó esto era
+   justo un recibí repartido entre dos contratos). Conceptos (arriba) se oculta
+   para este tipo: los "conceptos" de un recibí SON las facturas que salda. */
+function toggleTipoRecibi(){
+  const esRecibi = $('#selTipo').value === 'recibi';
+  $('#fsConceptos').hidden = esRecibi;
+  $('#fsAplicaciones').hidden = !esRecibi;
+  if(esRecibi) cargarFacturasAbiertas();
+}
+async function cargarFacturasAbiertas(){
+  const [f, p] = await Promise.all([
+    sb.rpc('facturas_equipo').select('id,numero,contrato_numero,cliente_nombre,total,tipo,anulada'),
+    sb.rpc('facturas_pendiente_equipo'),
+  ]);
+  if(f.error || p.error){ toast('No se pudieron cargar las facturas abiertas: ' + ((f.error||p.error).message)); return; }
+  const pend = {}; p.data.forEach(x => { pend[x.factura_id] = Number(x.pendiente) || 0; });
+  FACTURAS_ABIERTAS = (f.data || [])
+    .filter(x => x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005)
+    .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id] }));
+  pintarSelectFacturaAplicar();
+}
+function pintarSelectFacturaAplicar(){
+  const usadas = new Set(APLICACIONES.map(a => a.factura_id));
+  $('#selFacturaAplicar').innerHTML = '<option value="">— elige una factura pendiente —</option>' +
+    FACTURAS_ABIERTAS.filter(x => !usadas.has(x.id)).map(x =>
+      `<option value="${esc(x.id)}">${esc(x.numero)} — ${esc(x.cliente_nombre||'sin nombre')}${x.contrato_numero ? ' · '+esc(x.contrato_numero) : ''} — pendiente ${esc(fmtMoneda(x.pendiente, $('[name="moneda"]').value))}</option>`
+    ).join('');
+}
+$('#selFacturaAplicar').addEventListener('change', e => {
+  const id = e.target.value; if(!id) return;
+  const f = FACTURAS_ABIERTAS.find(x => x.id === id); if(!f) return;
+  APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente, importe:String(f.pendiente).replace('.',',') });
+  e.target.value = '';
+  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+});
+function pintarAplicaciones(){
+  $('#aplicaciones').innerHTML = APLICACIONES.map((a,i) => `
+    <div class="linea">
+      <div><label>${esc(a.numero)}</label><input value="${esc(a.numero)}" disabled></div>
+      <div><label>Importe aplicado (pendiente ${esc(fmtMoneda(a.pendiente, $('[name="moneda"]').value))})</label>
+        <input data-a="${i}" inputmode="decimal" data-money value="${esc(a.importe)}"></div>
+      <button type="button" class="xbtn" data-adel="${i}" title="Quitar">×</button>
+    </div>`).join('');
+  const moneda = $('[name="moneda"]').value;
+  const suma = APLICACIONES.reduce((s,a) => s + (parseImporte(a.importe) || 0), 0);
+  $('#aplicSuma').textContent = APLICACIONES.length
+    ? 'Total del recibí: ' + fmtMoneda(suma, moneda) + ' (' + APLICACIONES.length + ' factura' + (APLICACIONES.length===1?'':'s') + ')'
+    : 'Añade al menos una factura.';
+}
+$('#aplicaciones').addEventListener('input', e => {
+  const el = e.target; if(el.dataset.a == null) return;
+  APLICACIONES[+el.dataset.a].importe = el.value; sincronizarLineasDesdeAplicaciones();
+});
+$('#aplicaciones').addEventListener('click', e => {
+  const b = e.target.closest('[data-adel]'); if(!b) return;
+  APLICACIONES.splice(+b.dataset.adel, 1);
+  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+});
+/* El documento impreso de un recibí lista las facturas que salda, no
+   conceptos libres — por eso LINEAS (lo que de verdad imprime documento.js)
+   se deriva de APLICACIONES en vez de teclearse aparte. */
+function sincronizarLineasDesdeAplicaciones(){
+  LINEAS = APLICACIONES.length
+    ? APLICACIONES.map(a => ({ descripcion:'Aplicado a factura ' + a.numero, importe:a.importe }))
+    : [{ descripcion:'', importe:'' }];
+  pintarAplicaciones(); render();
+}
+
+/* ---------- recibí: justificante de pago ----------
+   Sube al elegir el fichero, no al guardar el documento — mismo patrón que
+   subir() en /compradores/. Path generado en el cliente con un UUID, NUNCA
+   el nombre original del fichero: un justificante de transferencia real
+   puede llevar el nombre del cliente o el importe en el nombre de archivo
+   (revisión previa, Seguridad). Bucket privado, jamás público. */
+$('#fJustificante').addEventListener('change', async () => {
+  const f = $('#fJustificante').files[0]; if(!f) return;
+  if(f.size > 10*1024*1024){ toast('El justificante supera los 10 MB'); $('#fJustificante').value = ''; return; }
+  const ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+  const path = crypto.randomUUID() + ext;
+  $('#justifEstado').textContent = 'Subiendo…';
+  try{
+    const up = await sb.storage.from('justificantes').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
+    if(up.error) throw up.error;
+    JUSTIFICANTE_PATH = path;
+    $('#justifEstado').textContent = 'Justificante adjunto: ' + f.name;
+  }catch(err){
+    $('#justifEstado').textContent = '';
+    toast('No se pudo subir el justificante: ' + (err.message || err));
+    $('#fJustificante').value = '';
+  }
+});
+
 /* ---------- datos del formulario ---------- */
 function collect(){
   const d = {};
@@ -587,7 +705,7 @@ function collect(){
   d.lineas = LINEAS;
   return d;
 }
-$('#selTipo').addEventListener('change', render);
+$('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
 
 /* Al salir de un campo de importe se reescribe en formato canónico ("44.000",
    "44.000,50"): lo que se ve pasa a ser exactamente lo que se guarda, en vez de
@@ -935,13 +1053,28 @@ function payload(){
     total: t.total,
     moneda: d.moneda || null,
     fecha_emision: d.fecha_emision || null,
+    justificante_path: d.tipo === 'recibi' ? JUSTIFICANTE_PATH : null,
     datos: { fields:d, lineas:LINEAS, totales:t },
   };
 }
 $('#btnSave').onclick = async () => {
   const d = collect();
   if(!d.cliente_nombre){ toast('Falta el nombre del cliente'); return; }
-  if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast('La factura no tiene importe'); return; }
+  // 11-ago (reforma del modelo de facturación): factura y recibí exigen
+  // contrato — sin eso no hay a qué balance atribuir el dinero. Un balance
+  // de cliente real salió mal justo por documentos sin este dato claro.
+  if((d.tipo === 'factura' || d.tipo === 'recibi') && !CONTRATO_ID){
+    toast('Elige el contrato al que corresponde este documento'); return;
+  }
+  if(d.tipo === 'recibi'){
+    if(!APLICACIONES.length){ toast('Elige al menos una factura que salde este recibí'); return; }
+    if(!JUSTIFICANTE_PATH){ toast('Adjunta el justificante de pago'); return; }
+    for(const a of APLICACIONES){
+      const imp = parseImporte(a.importe);
+      if(!imp || imp <= 0){ toast('Falta el importe aplicado a ' + a.numero); return; }
+      if(imp > a.pendiente + 0.01){ toast(a.numero + ' solo tiene ' + fmtMoneda(a.pendiente, d.moneda) + ' pendiente'); return; }
+    }
+  } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast('El documento no tiene importe'); return; }
   const btn = $('#btnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
   try{
     const q = (SAVED && SAVED.id)
@@ -951,6 +1084,15 @@ $('#btnSave').onclick = async () => {
     if(error) throw error;
     SAVED = { id:data.id, numero:data.numero };
     $('[name="numero_visible"]').value = data.numero;
+    if(d.tipo === 'recibi'){
+      // se rehacen enteras: más simple que calcular el diff, y esta tabla
+      // solo la lee este mismo recibí (ver RLS en recibi_aplicaciones.sql)
+      const del = await sb.from('recibi_aplicaciones').delete().eq('recibi_id', data.id);
+      if(del.error) throw del.error;
+      const filas = APLICACIONES.map(a => ({ recibi_id:data.id, factura_id:a.factura_id, importe_aplicado:parseImporte(a.importe) }));
+      const ins = await sb.from('recibi_aplicaciones').insert(filas);
+      if(ins.error) throw ins.error;
+    }
     toast('Guardada como ' + data.numero);
   }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
   btn.disabled = false; render();
@@ -966,10 +1108,11 @@ function nuevoDocumento(tipo){
   $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
+  APLICACIONES = []; JUSTIFICANTE_PATH = null; $('#fJustificante').value = ''; $('#justifEstado').textContent = '';
   $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
   $('[name="numero_visible"]').value = '';
   $('#selContrato').value = ''; $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
-  pintarLineas(); render();
+  toggleTipoRecibi(); pintarLineas(); render();
 }
 $('#btnNueva').onclick = () => {
   if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
@@ -1059,7 +1202,7 @@ async function cargarListado(){
        autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
        un dato que no existe en vez de como un dato que no se pidió. */
     const { data, error } = await sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos,justificante_path')
       .order('created_at', { ascending:false }).limit(200);
     if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
     LDOCS = data || [];
@@ -1175,7 +1318,7 @@ $('#btnNuevaDoc').onclick = () => {
   pantalla('documento', 'nueva=1' + (LTIPO ? '&tipo=' + LTIPO : ''));
 };
 
-function abrir(f){
+async function abrir(f){
   const d = (f.datos && f.datos.fields) || {};
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
   $('#selTipo').value = f.tipo || d.tipo || 'factura';
@@ -1186,7 +1329,29 @@ function abrir(f){
   $('#delVinculado').innerHTML = '';
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
   toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos
-  pintarLineas(); render();
+  // Recibí (11-ago): una anulada se abre como copia (SAVED=null), así que su
+  // aplicación y justificante NO se arrastran — habría que rehacerlas si se
+  // vuelve a guardar, igual que ya pasa con el nº de factura.
+  JUSTIFICANTE_PATH = f.anulada ? null : (f.justificante_path || null);
+  $('#fJustificante').value = '';
+  $('#justifEstado').textContent = JUSTIFICANTE_PATH ? 'Justificante ya adjunto.' : '';
+  APLICACIONES = [];
+  if(f.tipo === 'recibi' && !f.anulada){
+    await cargarFacturasAbiertas();
+    const { data } = await sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', f.id);
+    (data || []).forEach(row => {
+      const abierta = FACTURAS_ABIERTAS.find(x => x.id === row.factura_id);
+      APLICACIONES.push({
+        factura_id: row.factura_id,
+        numero: abierta ? abierta.numero : row.factura_id,
+        // pendiente visible = lo que queda SIN este recibí + lo que ya aplicaba este mismo
+        pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
+        importe: String(row.importe_aplicado).replace('.', ','),
+      });
+    });
+  }
+  toggleTipoRecibi();
+  pintarLineas(); pintarAplicaciones(); render();
   /* Cambia de pantalla y deja la URL apuntando a ESTE documento, así que el
      enlace se puede copiar y pegar — es lo que usa «Lo último que se ha movido»
      del panel y el visor de Operaciones. En modo vista NO se toca la URL: ya

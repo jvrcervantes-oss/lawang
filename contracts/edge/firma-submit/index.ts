@@ -318,11 +318,14 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
    el contrato por primera vez (con número asignado, sin enviar); aquí se
    RELEE precio_total y los datos del comprador —pueden haber cambiado entre
    ese guardado y esta firma— y se manda. Si no existiera (contrato de antes
-   de este cambio, o falló su creación) se crea aquí mismo, con el mismo
-   criterio que facturarPrimerHito: sin precio_total válido no se emite nada.
-   Conviven con la factura real del primer hito a propósito (decisión del
-   dueño, 7-ago): la proforma es informativa, no exigible; el hito 1 sí vence
-   en este momento y necesita su propio documento con fuerza de cobro. */
+   de este cambio, o falló su creación) se crea aquí mismo: sin precio_total
+   válido no se emite nada.
+   Desde el 11-ago-2026 es el ÚNICO documento que sale solo al firmar — antes
+   convivía con una factura real del primer hito (facturarPrimerHito, más
+   abajo, ya sin llamarse) que "con fuerza de cobro" acabó siendo el origen
+   de un balance de cliente mal calculado. La proforma es informativa, sin
+   validez fiscal; la factura de cada hito la crea un agente a mano cuando
+   corresponde, revisada antes de salir. */
 async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
     : Promise<{ emitida: boolean; mensaje: string }> {
   const C = await compartidos();
@@ -693,14 +696,14 @@ Deno.serve(async (req) => {
       console.error(m); avisos.push(m);
     }
 
-    try {
-      const r = await facturarPrimerHito({ contratoId: claimed.contrato_id, numero, ct });
-      console.log('firma', claimed.id, '·', r.mensaje);
-      if (!r.emitida) avisos.push(r.mensaje);   // no emitir puede ser lo correcto, pero nunca en silencio
-    } catch (e) {
-      const m = 'contrato ' + numero + ' firmado pero SIN factura del primer hito: ' + (e as Error).message;
-      console.error(m); avisos.push(m);
-    }
+    // facturarPrimerHito() YA NO se llama aquí (11-ago-2026, decisión del dueño
+    // tras un balance de cliente real que salió mal): una factura automática
+    // "con fuerza de cobro" sin que un agente la revise es dinero mal pedido.
+    // Ahora solo sale la proforma informativa; la factura por hito la crea un
+    // agente a mano en /facturas/ cuando corresponde, y esa factura NO cuenta
+    // como cobrado hasta que exista un recibí que la referencie (ver
+    // facturas/sql/recibi_aplicaciones.sql). La función sigue abajo, sin
+    // llamarse, por si se retoma con revisión humana de por medio.
 
     try {
       const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
