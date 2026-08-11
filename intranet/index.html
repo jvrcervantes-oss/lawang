@@ -354,9 +354,9 @@ const HERRAMIENTAS = [
     claves:'recibi recibos justificante señal pago',
     estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
 
-  { grupo:'Base de datos', nombre:'Unidades', icon:'ph-house-line', href:'/unidades/', herr:'unidades',
-    para:'Inventario de parcelas y villas con su estado de venta.',
-    claves:'unidades parcelas villas inventario disponible',
+  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-house-line', href:'/unidades/', herr:'unidades',
+    para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
+    claves:'proyectos unidades parcelas villas inventario disponible carpetas',
     estado:d => d.unidades == null ? null
       : d.unidades === 0 ? ['Sin inventario cargado', true]
       : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },

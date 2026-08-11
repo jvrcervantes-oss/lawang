@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
-<title>Lawang · Unidades</title>
+<title>Lawang · Proyectos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
@@ -39,10 +39,16 @@
   .aviso{ font-size:12.5px; line-height:1.5; color:#6A5A3C; background:rgba(190,179,165,.26);
           border-radius:var(--r-s); padding:9px 11px; margin:var(--e2) 0 0; }
 
-  /* carpetas por proyecto — mismo objeto .sui-ficha que la rejilla, agrupado */
-  .carpeta{ display:flex; flex-direction:column; gap:4px; align-items:flex-start; }
-  .carpeta .n{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:22px; }
-  .carpeta .sub{ font-size:12.5px; color:var(--texto-2); }
+  /* carpetas por proyecto — mismo objeto .sui-ficha que la rejilla, agrupado.
+     Tarjeta propia más ancha que .sui-rejilla genérico (11-ago, petición del
+     owner): con solo nombre + resumen (sin precio/estado/m² como la rejilla
+     de unidades) sobraba tanto margen que cabían muchas por fila y el texto
+     largo (nombre de proyecto + cartera en euros) se salía de la tarjeta.
+     Grid propio en vez de tocar .sui-rejilla, que también usa #rejilla. */
+  #carpetas{ grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+  .carpeta{ display:flex; flex-direction:column; gap:6px; align-items:flex-start; padding:var(--e5,20px) var(--e4); }
+  .carpeta .n{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:26px; line-height:1.15; }
+  .carpeta .sub{ font-size:13.5px; color:var(--texto-2); }
 
   /* alta de proyecto/tipo desde el propio formulario */
   .nuevo-cat{ display:flex; gap:6px; margin-top:6px; }
@@ -74,11 +80,12 @@
 </style>
 </head>
 <body>
-  <div class="topbar lw-topbar" data-titulo="Unidades">
+  <div class="topbar lw-topbar" data-titulo="Proyectos">
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
     <button type="button" class="lw-btn" id="btnCsv">Importar CSV</button>
     <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
+    <button type="button" class="lw-btn" id="btnNuevoProyecto">+ Nuevo proyecto</button>
     <button type="button" class="lw-btn" id="btnNueva">+ Nueva unidad</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
@@ -287,18 +294,20 @@ function visibles(){
   return suiOrdenar(f, ORDEN, valorDe);
 }
 
-/* ── vista: tabla o rejilla ────────────────────────────────────────────
+/* ── vista: carpetas, tabla o rejilla ────────────────────────────────────
    Se recuerda por persona con el mismo mecanismo que la densidad (`localStorage`
    envuelto en try, porque en modo privado lanza). El `try` no es ceremonia: sin
    él, un navegador con el almacenamiento bloqueado dejaba la pantalla en blanco.
-   Por defecto TABLA: es la vista con la que esta herramienta se diseñó y la que
-   permite comparar precios. La rejilla es una elección, no el estado inicial. */
-let VISTA = 'tabla';
+   Por defecto CARPETAS (11-ago, petición del owner — antes era tabla): esta
+   herramienta pasa a llamarse Proyectos y entrar viendo las carpetas es lo que
+   corresponde a ese nombre. Tabla/rejilla siguen siendo una elección, un clic
+   más allá, para cuando lo que se busca es comparar precios dentro de un proyecto. */
+let VISTA = 'carpetas';
 function vista(v){
   if(v){ try{ localStorage.setItem('lawang_unidades_vista', v); }catch(_){} }
   let x = v;
   if(!x){ try{ x = localStorage.getItem('lawang_unidades_vista'); }catch(_){} }
-  VISTA = ['rejilla','carpetas'].includes(x) ? x : 'tabla';
+  VISTA = ['rejilla','tabla'].includes(x) ? x : 'carpetas';
   document.querySelectorAll('[data-vista]').forEach(b =>
     b.classList.toggle('on', b.dataset.vista === VISTA));
   $('#caja-tabla').hidden = VISTA !== 'tabla';
@@ -392,7 +401,7 @@ function pintarCarpetas(){
   }
   const nombres = [...new Set([...PROYECTOS, ...UNIDADES.map(u => u.proyecto)].filter(Boolean))].sort();
   if(!nombres.length){
-    caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-nada"><b>Todavía no hay proyectos</b>Da de alta uno desde «+ Nueva unidad».</div></div>`;
+    caja.innerHTML = `<div style="grid-column:1/-1"><div class="sui-nada"><b>Todavía no hay proyectos</b>Da de alta uno con «+ Nuevo proyecto», arriba.</div></div>`;
     return;
   }
   const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
@@ -971,7 +980,7 @@ async function abrirImportCsv(file){
     const tipo = (d.tipo || 'parcela').toLowerCase().trim();
     if(!codigo) errores.push('sin código');
     if(!proyectoCsv) errores.push('sin proyecto');
-    else if(!proyectoCat) errores.push(`proyecto "${proyectoCsv}" no está en el catálogo — créalo primero desde «+ Nueva unidad» → «+ Nuevo proyecto…»`);
+    else if(!proyectoCat) errores.push(`proyecto "${proyectoCsv}" no está en el catálogo — créalo primero con «+ Nuevo proyecto»`);
     if(!tiposOk.has(tipo)) errores.push(`tipo "${tipo}" no está en el catálogo`);
     const num = v => { const n = parseImporte(v); return v && n ? n : null; };
     return {
@@ -1063,9 +1072,22 @@ $('#filas').addEventListener('click', e => {
   abrirUnidad(tr.dataset.id);
 });
 $('#btnNueva').addEventListener('click', () => abrirUnidad('nueva'));
+/* "+ Nuevo proyecto" (11-ago): antes solo se podía dar de alta un proyecto
+   DESDE el desplegable de "Nueva unidad" — un rodeo para lo que ahora, con
+   Carpetas como vista de entrada, es la operación más directa de la
+   herramienta. altaProyecto() ya existía (la usa ese desplegable); esto solo
+   le pone una puerta de entrada propia, sin crear ninguna unidad de por medio. */
+$('#btnNuevoProyecto').addEventListener('click', async () => {
+  const nombre = (prompt('Nombre del proyecto nuevo:') || '').trim();
+  if(!nombre) return;
+  const r = await altaProyecto(nombre);
+  if(!r.ok){ toast(r.error); return; }
+  toast('Proyecto creado: ' + r.nombre);
+  pintar();
+});
 
 suiMontarCajon();
-vista();   // recupera la vista guardada (tabla por defecto) y enseña el contenedor que toca
+vista();   // recupera la vista guardada (carpetas por defecto) y enseña el contenedor que toca
 suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten las dos vistas
 
 window.LW_AUTH.then(async ({ sb, session }) => {
