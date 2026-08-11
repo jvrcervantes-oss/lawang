@@ -55,6 +55,22 @@
   var raiz = document.documentElement;
   raiz.style.visibility = 'hidden';
 
+  /* Indicador de carga (11-ago-2026): la puerta hace dos viajes de red seguidos
+     (sesión + ficha de usuarios.rol) antes de pintar nada, y hasta ahora esos
+     ~300-600ms eran una pantalla en blanco — se leía como que la intranet iba
+     lenta. No se toca el fail-closed (sigue sin pintarse NADA del contenido
+     real hasta confirmar sesión): esto es un `visibility:visible` propio por
+     encima del `hidden` del <html>, con la marca del estudio, nada de datos. */
+  var carga = document.createElement('div');
+  carga.id = 'lw-gate-carga';
+  carga.style.cssText = 'visibility:visible;position:fixed;inset:0;display:flex;' +
+    'align-items:center;justify-content:center;background:var(--rl,#F5F0E6);z-index:2147483647';
+  carga.innerHTML = '<div style="width:32px;height:32px;border:2.5px solid rgba(16,76,79,.16);' +
+    'border-top-color:var(--dl,#104C4F);border-radius:50%;animation:lw-gate-girar .75s linear infinite">' +
+    '</div><style>@keyframes lw-gate-girar{to{transform:rotate(360deg)}}</style>';
+  raiz.appendChild(carga);
+  function quitarCarga() { if (carga.parentNode) carga.parentNode.removeChild(carga); }
+
   function alLogin() {
     location.replace(LOGIN + '?next=' + encodeURIComponent(location.pathname + location.search));
   }
@@ -94,10 +110,12 @@
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));
               return;
             }
+            quitarCarga();
             raiz.style.visibility = '';
             resolve({ sb: sb, session: sesion, ficha: ficha });
           })
           .catch(function () {   // sin poder leer la ficha se entra igual: la RLS sigue protegiendo los datos
+            quitarCarga();
             raiz.style.visibility = '';
             resolve({ sb: sb, session: sesion, ficha: null });
           });
