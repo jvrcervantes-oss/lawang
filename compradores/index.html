@@ -219,7 +219,7 @@ const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
 const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
 
 const ORDEN = { campo:'full_name', dir:'asc' };
-let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], YO=null, SEL=null;
+let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], COBRADO={}, YO=null, SEL=null;
 /* Editar una ficha YA EXISTENTE es solo de admin/super_admin desde el
    7-ago-2026 (petición del owner); crear una nueva ("+ Nuevo comprador")
    sigue abierto a cualquier agente — es alta de datos, no lo que se pidió
@@ -231,12 +231,12 @@ let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], Y
 let ES_ADMIN = false;
 
 async function cargar(){
-  const [c, d, v, a, f] = await Promise.all([
+  const [c, d, v, a, f, cb] = await Promise.all([
     SB.from('clients').select('*').order('full_name'),
     SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
     // qué contratos ha firmado cada persona. Si la migración aún no está,
     // falla sola y la ficha simplemente no muestra el bloque.
-    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado)'),
+    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado,precio_total,moneda)'),
     // accesos al portal del comprador (email → ficha)
     SB.from('portal_accesos').select('email, client_id, activo, ultimo_acceso, accesos'),
     // facturas de SUS contratos (11-ago, petición del owner: no se veían aquí,
@@ -244,11 +244,16 @@ async function cargar(){
     // facturas_equipo(), no .from() directo — mismo motivo que en Operaciones:
     // la RLS por agente dejaría fuera las de un contrato guardado por otro.
     SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,total,moneda,fecha_emision,anulada'),
+    // "cobrado" real por contrato (reforma del modelo de facturación, 11-ago):
+    // mismo contrato_cobrado()/contratos_cobrado_equipo() que usa Operaciones,
+    // una sola fuente para no reimplementar la fórmula (solo recibí cuenta).
+    SB.rpc('contratos_cobrado_equipo'),
   ]);
   if(c.error) throw c.error;
   CLIENTES = c.data || [];
   DOCUMENTOS = d.error ? [] : (d.data || []);
   VINCULOS = v.error ? [] : (v.data || []);
+  COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
   ACCESOS = a.error ? [] : (a.data || []);
   FACTURAS = f.error ? [] : (f.data || []);
   if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
@@ -312,7 +317,6 @@ function pintarFicha(){
   const dis = soloLectura ? 'disabled' : '';
 
   const tel = partirTelefono(c.phone);
-  const nacHuerfana = c.nationality && !NACIONALIDADES.includes(c.nationality) ? c.nationality : '';
 
   const filas = docs.length ? docs.map(d => {
     const dd = dias(d.caduca_el);
@@ -342,21 +346,20 @@ function pintarFicha(){
           Eso se gestiona aparte, en «Portal del comprador» más abajo.</p></div>
         <div><label>Teléfono</label>
           <div style="display:flex;gap:6px">
-            <select id="f-tel-pre" ${dis} style="flex:0 0 132px">
-              <option value=""></option>
-              ${PREFIJOS.map(([cod,pais])=>`<option value="${cod}" ${tel.prefijo===cod?'selected':''}>${cod} · ${pais}</option>`).join('')}
-            </select>
+            <input id="f-tel-pre" list="dl-prefijo" ${dis} style="flex:0 0 132px" value="${esc(tel.prefijo||'')}" placeholder="Prefijo">
+            <datalist id="dl-prefijo">
+              ${PREFIJOS.map(([cod,pais])=>`<option value="${cod}">${cod} · ${esc(pais)}</option>`).join('')}
+            </datalist>
             <input id="f-tel-num" ${dis} style="flex:1" value="${esc(tel.numero)}" placeholder="Número">
           </div>
         </div>
       </div>
       <div class="row">
         <div><label>Nacionalidad</label>
-          <select id="f-nac" ${dis}>
-            <option value=""></option>
-            ${NACIONALIDADES.map(n=>`<option value="${n}" ${(c.nationality||'')===n?'selected':''}>${n}</option>`).join('')}
-            ${nacHuerfana ? `<option value="${esc(nacHuerfana)}" selected>${esc(nacHuerfana)}</option>` : ''}
-          </select>
+          <input id="f-nac" list="dl-nac" ${dis} value="${esc(c.nationality||'')}">
+          <datalist id="dl-nac">
+            ${NACIONALIDADES.map(n=>`<option value="${esc(n)}">`).join('')}
+          </datalist>
         </div>
         <div><label>Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
@@ -383,6 +386,28 @@ function pintarFicha(){
           </tr>`).join('')}
         </tbody></table>
         <p class="nota">Pulsa un número de contrato para ver su operación completa.</p>`;
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Estado de cuentas</legend>
+      ${(() => {
+        const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos);
+        if(!suyos.length) return '<p class="nota">Sin contrato enlazado todavía.</p>';
+        const monedas = [...new Set(suyos.map(x => x.moneda || 'EUR'))];
+        if(monedas.length > 1) return `<p class="nota falta">Sus proyectos están en monedas distintas (${monedas.join(', ')}) — no se pueden sumar en una sola cifra. El detalle de cada uno está en «Contratos firmados», más arriba.</p>`;
+        const moneda = monedas[0];
+        const precio = suyos.reduce((a,x) => a + (Number(x.precio_total)||0), 0) || null;
+        const cobrado = suyos.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
+        const pendiente = precio ? precio - cobrado : null;
+        const fmt = n => n == null ? '—' : n.toLocaleString('es') + ' ' + moneda;
+        return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')}).</p>
+        <div class="row" style="grid-template-columns:1fr 1fr 1fr">
+          <div><label>Precio pactado</label><p style="margin:0;font-size:19px;font-weight:600">${fmt(precio)}</p></div>
+          <div><label>Cobrado</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>
+          <div><label>Pendiente</label><p style="margin:0;font-size:19px;font-weight:600${pendiente>0?';color:#9E2F26':''}">${fmt(pendiente)}</p></div>
+        </div>
+        <p class="nota">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.</p>`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
