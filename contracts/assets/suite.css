@@ -392,7 +392,7 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    que es la peor forma de fallar. La fuente se añade a esa página en el mismo
    commit en que se use la clase, no antes. */
 .lw-cifra{ font-family:var(--font-cifra, var(--serif, 'Cormorant Garamond', Georgia, serif));
-  font-size:32px; font-weight:600; line-height:1;
+  font-size:32px; font-weight:700; line-height:1;
   letter-spacing:0; font-variant-numeric:tabular-nums; color:var(--dl,#104C4F); }
 
 /* ── TARJETAS DE CIFRA (KPI) ───────────────────────────────────────────────
