@@ -735,9 +735,16 @@ let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
    contratos de reserva/PPJB reales guardados. El VALOR es el número (es lo que
    se imprime en el documento); contractPayload lo resuelve a id para
    contratos.contrato_padre_id, que es lo que Operaciones usa para juntar
-   reserva y obra en una sola operación. */
-const TIPOS_VINCULABLES = ['reserva_parcela','carta_reserva','carta_reserva_ampliada','carta_reserva_hak_sewa',
-  'hak_sewa_notario','ppjb_bonian','ppjb_bonian_c2','contrato_general'];
+   reserva y obra en una sola operación.
+   Solo 'reserva_parcela' (11-ago, petición del owner: "no tiene sentido" el
+   resto) — es el único tipo que corresponde en la secuencia real de una venta
+   (comentario de más arriba: se reserva, se bloquea la parcela, se firma la
+   obra). Antes incluía también las Cartas de Reserva, Hak Sewa, los PPJB de
+   Bonian y el Contrato General, ninguno de los cuales precede a una
+   Construcción de verdad. `num_reserva_vinculada` es EXCLUSIVO de
+   ppjb_construccion.html — estrechar esta lista no afecta a ningún otro
+   documento (verificado, ningún otro template imprime ese marcador). */
+const TIPOS_VINCULABLES = ['reserva_parcela'];
 let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
 async function cargarVinculables(){
   if(VINCULABLES || !sb) return;

@@ -1168,12 +1168,19 @@ async function arrancar(recarga){
   try{
     await cargar();
     /* ?contrato=<id> abre esa operación directamente. Lo usa Compradores desde
-       la lista de contratos de una persona. Solo la primera carga: en una
-       recarga manual se respeta lo que el usuario tenga elegido. */
+       la lista de contratos de una persona. ?filtro=<clave> entra ya con ese
+       filtro puesto (11-ago, petición del owner) — lo usa el KPI "Firmas
+       esperando" del panel, que antes enlazaba aquí sin filtrar y enseñaba
+       TODOS los contratos en vez de solo los que decía. Ambos solo la
+       primera carga: en una recarga manual se respeta lo que el usuario
+       tenga elegido. */
     if(!recarga){
-      const pedido = new URLSearchParams(location.search).get('contrato');
+      const par = new URLSearchParams(location.search);
+      const pedido = par.get('contrato');
       if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; }
       else if(pedido) toast('Ese contrato ya no existe');
+      const filtroPedido = par.get('filtro');
+      if(filtroPedido && FILTROS.some(f => f[0] === filtroPedido)) FILTRO = filtroPedido;
     }
     pintarFiltros(); pintar(); pintarDetalle();
     if($('#panelVenc').classList.contains('on')) pintarVencimientos();

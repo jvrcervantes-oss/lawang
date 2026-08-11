@@ -529,7 +529,7 @@ function pintarKpis(d, ficha){
     /* `tono` colorea el pie por SIGNIFICADO, como el mockup: ámbar lo que espera,
        rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
        los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
-    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/', herr:'operaciones',
+    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/?filtro=firma_viva', herr:'operaciones',
       pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
       tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
     { rot:'Contratos', v:d.contratos, href:'/contracts/app.html', herr:'contratos',
