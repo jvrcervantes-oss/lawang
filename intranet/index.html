@@ -484,12 +484,11 @@ async function contar(sb){
     const { count, error } = await q;
     return error ? null : (count || 0);
   };
-  const [contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
+  const [contratos, contratosEditables, facturas, facturasAnuladas,
          recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
          documentos] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
-    n('contrato_firmas', q => q.eq('estado', 'pendiente')),
     n('facturas', q => q.eq('anulada', false)),
     n('facturas', q => q.eq('anulada', true)),
     n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
@@ -508,6 +507,20 @@ async function contar(sb){
   if(documentos){
     const { data, error } = await sb.from('documentos_proyecto').select('proyecto');
     proyectosConDocs = error ? null : new Set((data || []).map(x => x.proyecto)).size;
+  }
+  // 11-ago: "Firmas esperando" NO puede salir de `sb.from('contrato_firmas')`
+  // — esa tabla tiene RLS por agente ("lo mío") desde el 7-ago, así que ese
+  // conteo solo veía las firmas de ESTE agente, no las del equipo, y encima
+  // contaba FILAS (una por firmante) en vez de CONTRATOS — un contrato con
+  // dos firmantes pendientes sumaba 2. La tarjeta enlaza a
+  // `/operaciones/?filtro=firma_viva`, que cuenta contratos con al menos una
+  // firma pendiente vía `contrato_firmas_equipo()` (team-wide, la misma RPC
+  // que ya usa Operaciones) — el origen tiene que ser el mismo o los dos
+  // números nunca van a coincidir.
+  let firmasPendientes = null;
+  {
+    const { data, error } = await sb.rpc('contrato_firmas_equipo').select('contrato_id').eq('estado', 'pendiente');
+    firmasPendientes = error ? null : new Set((data || []).map(x => x.contrato_id)).size;
   }
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
            recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
