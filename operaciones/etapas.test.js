@@ -43,7 +43,15 @@ const fuente = entre('function cuenta(op){', '/* ---------- filtros ----------')
 const { ETAPAS, etapa } = new Function('parseImporte', 'redondear',
   fuente + '\n;return { ETAPAS, etapa };')(cajaTotales.parseImporte, cajaTotales.redondear);
 
-const op = o => Object.assign({ firmas: [], facturas: [], hijos: [], moneda: 'EUR' }, o);
+/* `cobrado` (11-ago-2026, reforma del modelo de facturación): cuenta() ya no
+   suma `op.facturas` — lee `op.cobrado`, precalculado en Supabase por
+   contrato_cobrado() (solo recibís, nunca facturas/proformas: ver
+   facturas/sql/contrato_cobrado.sql). Los casos que antes construían
+   `facturas: [{total:...}]` pasan un `cobrado` numérico directo — es
+   exactamente lo que cuenta() consume ahora, y "solo proforma"/"factura
+   anulada" ya no son escenarios distintos a nivel de cuenta(): el filtrado
+   pasó a Supabase, así que ambos son sencillamente `cobrado: 0`. */
+const op = o => Object.assign({ firmas: [], cobrado: 0, hijos: [], moneda: 'EUR' }, o);
 
 const CASOS = [
   ['sin firmar, sin enlace',              op({ bloqueado: false }), 'sin_firmar'],
@@ -53,19 +61,18 @@ const CASOS = [
   /* firmado manda sobre el enlace: la app anula los pendientes al cerrar la
      cadena, pero si uno se queda sin barrer no puede devolver el contrato a
      «firma enviada» */
-  ['firmado con enlace sin barrer',       op({ bloqueado: true, precio_total: '100', facturas: [{ total: '100' }],
+  ['firmado con enlace sin barrer',       op({ bloqueado: true, precio_total: '100', cobrado: 100,
                                               firmas: [{ estado: 'pendiente' }] }), 'cobro_ok'],
-  ['firmado, falta cobrar',               op({ bloqueado: true, precio_total: '100', facturas: [{ total: '40' }] }), 'cobro_pend'],
-  ['firmado, cobrado entero',             op({ bloqueado: true, precio_total: '100', facturas: [{ total: '100' }] }), 'cobro_ok'],
+  ['firmado, falta cobrar',               op({ bloqueado: true, precio_total: '100', cobrado: 40 }), 'cobro_pend'],
+  ['firmado, cobrado entero',             op({ bloqueado: true, precio_total: '100', cobrado: 100 }), 'cobro_ok'],
   /* 🔴 el caso que decide el criterio: firmado y sin precio fijado NO se declara
      cobrado. No se sabe cuánto falta, y de los dos errores posibles solo uno
      cuesta dinero. */
   ['firmado SIN precio fijado',           op({ bloqueado: true, precio_total: '' }), 'cobro_pend'],
-  /* una proforma no es un cobro, y una factura anulada tampoco */
-  ['firmado, solo proforma',              op({ bloqueado: true, precio_total: '100',
-                                              facturas: [{ total: '100', tipo: 'proforma' }] }), 'cobro_pend'],
-  ['firmado, factura anulada',            op({ bloqueado: true, precio_total: '100',
-                                              facturas: [{ total: '100', anulada: true }] }), 'cobro_pend'],
+  /* una proforma o una factura sin recibí no suman nada a `cobrado` — el
+     filtrado ya pasó por contrato_cobrado(), esto solo comprueba que
+     cobrado:0 con precio fijado cae en pendiente */
+  ['firmado, solo proforma o factura sin recibí', op({ bloqueado: true, precio_total: '100', cobrado: 0 }), 'cobro_pend'],
 ];
 
 const claves = ETAPAS.map(e => e[0]);
@@ -84,9 +91,9 @@ for (const [nombre, o, esperado] of CASOS) {
 let n = 0;
 for (const bloqueado of [false, true])
   for (const firma of [[], [{ estado: 'pendiente' }], [{ estado: 'anulado' }]])
-    for (const fact of [[], [{ total: '40' }], [{ total: '100' }]]) {
-      const r = etapa(op({ bloqueado, firmas: firma, facturas: fact, precio_total: '100' }));
-      assert.ok(claves.includes(r), `combinación sin columna: ${JSON.stringify({ bloqueado, firma, fact })} -> ${r}`);
+    for (const cobrado of [0, 40, 100]) {
+      const r = etapa(op({ bloqueado, firmas: firma, cobrado, precio_total: '100' }));
+      assert.ok(claves.includes(r), `combinación sin columna: ${JSON.stringify({ bloqueado, firma, cobrado })} -> ${r}`);
       n++;
     }
 
