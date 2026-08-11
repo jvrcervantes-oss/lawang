@@ -45,6 +45,12 @@ begin
   if v_justificante is null then
     raise exception 'el recibí necesita un justificante de pago adjunto' using errcode = '23514';
   end if;
+  -- "no nulo" no bastaba (Seguridad, 11-ago): cualquier string pasaba el gate
+  -- sin que existiera archivo real detrás. Se comprueba contra el objeto
+  -- subido de verdad en el bucket privado.
+  if not exists (select 1 from storage.objects where bucket_id = 'justificantes' and name = v_justificante) then
+    raise exception 'el justificante adjunto no existe en el almacenamiento' using errcode = '23514';
+  end if;
   if jsonb_typeof(p_aplicaciones) <> 'array' or jsonb_array_length(p_aplicaciones) = 0 then
     raise exception 'el recibí necesita al menos una factura que salde' using errcode = '23514';
   end if;
@@ -74,6 +80,18 @@ begin
   end if;
 
   for v_aplicacion in select * from jsonb_array_elements(p_aplicaciones) loop
+    -- SECURITY DEFINER salta la RLS de recibi_aplicaciones (la que exigía
+    -- tipo='factura' y anulada=false del lado factura) — sin repetir aquí ese
+    -- check, esta función quedaría MENOS estricta que el insert directo que
+    -- reemplaza (hallazgo de Seguridad/Administración, 11-ago). El FK a
+    -- facturas(id) por sí solo no distingue tipo ni estado.
+    if not exists (
+      select 1 from public.facturas f
+       where f.id = (v_aplicacion->>'factura_id')::uuid
+         and f.tipo = 'factura' and not coalesce(f.anulada, false)
+    ) then
+      raise exception 'la aplicación referencia una factura inválida o anulada' using errcode = '23514';
+    end if;
     insert into public.recibi_aplicaciones (recibi_id, factura_id, importe_aplicado, creado_por)
     values (v_id, (v_aplicacion->>'factura_id')::uuid, (v_aplicacion->>'importe')::numeric,
             (select auth.email()));
