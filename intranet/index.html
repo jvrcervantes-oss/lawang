@@ -354,7 +354,7 @@ const HERRAMIENTAS = [
     claves:'recibi recibos justificante señal pago',
     estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
 
-  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-house-line', href:'/unidades/', herr:'unidades',
+  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-house-line', href:'/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
     claves:'proyectos unidades parcelas villas inventario disponible carpetas',
     estado:d => d.unidades == null ? null
@@ -534,7 +534,7 @@ function pintarKpis(d, ficha){
     { rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
       pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada',
       tono:() => d.facturasAnuladas ? 'espera' : 'bien' },
-    { rot:'Unidades libres', v:d.unidadesLibres, href:'/unidades/', herr:'unidades',
+    { rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/', herr:'unidades',
       pie:() => d.unidades == null ? '' : 'de ' + d.unidades + ' en inventario' },
     { rot:'En obra', v:d.obraActivas, href:'/obra/', herr:'obra',
       pie:n => n ? 'con fase abierta' : 'sin unidades en obra',

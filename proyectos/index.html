@@ -117,6 +117,8 @@
           <thead><tr>
             <th data-orden="codigo">Código</th>
             <th data-orden="proyecto">Proyecto</th>
+            <th data-orden="fase_masterplan">Fase</th>
+            <th data-orden="zona_masterplan">Zona</th>
             <th data-orden="modelo">Modelo</th>
             <th class="num" data-orden="superficie_m2">m²</th>
             <th class="num" data-orden="precio_suelo">Suelo</th>
@@ -301,12 +303,17 @@ function visibles(){
    Por defecto CARPETAS (11-ago, petición del owner — antes era tabla): esta
    herramienta pasa a llamarse Proyectos y entrar viendo las carpetas es lo que
    corresponde a ese nombre. Tabla/rejilla siguen siendo una elección, un clic
-   más allá, para cuando lo que se busca es comparar precios dentro de un proyecto. */
+   más allá, para cuando lo que se busca es comparar precios dentro de un proyecto.
+   Clave de localStorage renombrada (lawang_unidades_vista → lawang_proyectos_vista,
+   mismo 11-ago): quien ya hubiera usado la herramienta tenía "tabla" guardado de
+   antes de este cambio, y esa preferencia vieja ganaba siempre al nuevo default —
+   la app parecía seguir entrando en Tabla aunque el código ya dijera Carpetas.
+   Cambiar de nombre la clave es lo que de verdad lo resetea, para todo el mundo. */
 let VISTA = 'carpetas';
 function vista(v){
-  if(v){ try{ localStorage.setItem('lawang_unidades_vista', v); }catch(_){} }
+  if(v){ try{ localStorage.setItem('lawang_proyectos_vista', v); }catch(_){} }
   let x = v;
-  if(!x){ try{ x = localStorage.getItem('lawang_unidades_vista'); }catch(_){} }
+  if(!x){ try{ x = localStorage.getItem('lawang_proyectos_vista'); }catch(_){} }
   VISTA = ['rejilla','tabla'].includes(x) ? x : 'carpetas';
   document.querySelectorAll('[data-vista]').forEach(b =>
     b.classList.toggle('on', b.dataset.vista === VISTA));
@@ -492,6 +499,8 @@ function pintarTabla(){
     <tr data-id="${esc(u.id)}" class="${SEL===u.id?'sel':''}">
       <td class="clave">${esc(u.codigo)}</td>
       <td>${esc(u.proyecto || '—')}</td>
+      <td>${u.fase_masterplan ? esc(u.fase_masterplan) : '<span class="flojo">—</span>'}</td>
+      <td>${u.zona_masterplan ? esc(u.zona_masterplan) : '<span class="flojo">—</span>'}</td>
       <td>${u.modelo ? esc(u.modelo)
             : '<span class="flojo">' + (modelosDe(u.proyecto).length ? 'sin decidir' : esc(nombreTipo(u.tipo))) + '</span>'}</td>
       <td class="num">${u.superficie_m2 == null ? '<span class="flojo">—</span>' : esc(fmtNum(Number(u.superficie_m2)))}</td>
