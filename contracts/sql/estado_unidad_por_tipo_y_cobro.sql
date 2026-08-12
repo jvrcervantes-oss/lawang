@@ -93,26 +93,62 @@ end $$;
 -- Misma base que ya usa /proyectos/ para enseñar "Cobrado" y el % de la
 -- parcela (`contrato_cobrado()` contra `unidades.precio`, vista
 -- `unidades_estado`) — ninguna cuenta nueva, la misma.
+--
+-- FIX-FORWARD sobre la consulta de deploy del propio 12-ago (capa 1), 3
+-- hallazgos reales de Administración/Desarrollo/Legal:
+--   · Una parcela con Bloqueo de Parcela (suelo) + Contrato de Construcción
+--     SEPARADO -patrón real y normal en Lawang, confirmado contra producción-
+--     nunca sumaba el cobro de los dos contratos juntos, y encima
+--     `unidades.contrato_id` apunta SIEMPRE al de suelo (la CC nunca lleva
+--     `parcela_codigo` propio, así que `sincroniza_unidad_contrato` no la
+--     vincula jamás) — un recibí contra la CC actualizaba 0 filas. Se resuelve
+--     vía `contratos.contrato_padre_id` (ya existente, 29-jul) al contrato
+--     "raíz" que `unidades.contrato_id` sí conoce, y se suma el cobro de la
+--     raíz + el de todos sus hijos.
+--   · El guardarraíl de moneda mezclada no cubría un recibí repartido vía
+--     `recibi_aplicaciones` cuyo PROPIO contrato_id (y moneda) puede ser
+--     distinto del contrato de la factura a la que se aplica — se amplía a
+--     cubrir también esa vía, sobre el mismo cluster raíz+hijos.
+--   · Un recibí contra una simple Carta de Reserva (sin Bloqueo de Parcela
+--     firmado detrás) saltaba directo a 'vendida' — palabra con peso
+--     contractual, publicada en el masterplan público. El dinero no se salta
+--     la escalera: hace falta que la parcela ya esté en 'bloqueada' (o más
+--     allá) antes de que un recibí la mueva.
 create or replace function public.avanza_unidad_por_cobro(p_contrato_id uuid)
 returns void language plpgsql security definer set search_path = '' as $$
 declare
+  v_raiz_id uuid;
   v_cobrado numeric;
   v_mezcla  boolean;
 begin
   if p_contrato_id is null then return; end if;
 
-  -- Si hay algún recibí en una moneda distinta a la de la parcela, el 100%
-  -- no es de fiar (sumar EUR + USD en crudo) — se deja tal cual para que lo
-  -- revise una persona, en vez de marcar `cobrada` una parcela que a lo
-  -- mejor no lo está.
+  select coalesce(contrato_padre_id, id) into v_raiz_id
+    from public.contratos where id = p_contrato_id;
+  if v_raiz_id is null then return; end if;
+
   select exists (
     select 1 from public.facturas f
-     where f.contrato_id = p_contrato_id and f.tipo = 'recibi' and not coalesce(f.anulada, false)
-       and f.moneda is distinct from (select u.moneda from public.unidades u where u.contrato_id = p_contrato_id)
+     where f.tipo = 'recibi' and not coalesce(f.anulada, false)
+       and (f.contrato_id = v_raiz_id
+            or f.contrato_id in (select hijo.id from public.contratos hijo where hijo.contrato_padre_id = v_raiz_id))
+       and f.moneda is distinct from (select u.moneda from public.unidades u where u.contrato_id = v_raiz_id)
+    union all
+    select 1 from public.recibi_aplicaciones ra
+      join public.facturas r   on r.id = ra.recibi_id
+      join public.facturas fac on fac.id = ra.factura_id
+     where not coalesce(r.anulada, false) and not coalesce(fac.anulada, false)
+       and (fac.contrato_id = v_raiz_id
+            or fac.contrato_id in (select hijo.id from public.contratos hijo where hijo.contrato_padre_id = v_raiz_id))
+       and r.moneda is distinct from (select u.moneda from public.unidades u where u.contrato_id = v_raiz_id)
   ) into v_mezcla;
   if v_mezcla then return; end if;
 
-  v_cobrado := coalesce(public.contrato_cobrado(p_contrato_id), 0);
+  v_cobrado := coalesce(public.contrato_cobrado(v_raiz_id), 0);
+  select v_cobrado + coalesce(sum(public.contrato_cobrado(hijo.id)), 0)
+    into v_cobrado
+    from public.contratos hijo
+   where hijo.contrato_padre_id = v_raiz_id;
 
   update public.unidades u
      set estado = case
@@ -122,11 +158,12 @@ begin
                    where c2.id = u.contrato_id
                      and c2.tipo = 'reserva_parcela' and coalesce(c2.bloqueado, false)
                 ) then u.estado
+           when u.estado not in ('bloqueada', 'vendida', 'cobrada') then u.estado
            when u.precio > 0 and v_cobrado >= u.precio then 'cobrada'
            when v_cobrado > 0 then 'vendida'
            else u.estado
          end
-   where u.contrato_id = p_contrato_id;
+   where u.contrato_id = v_raiz_id;
 end $$;
 
 revoke all on function public.avanza_unidad_por_cobro(uuid) from public, anon, authenticated;
