@@ -163,7 +163,13 @@ async function cargar(){
     SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
     // qué contratos ha firmado cada persona. Si la migración aún no está,
     // falla sola y la ficha simplemente no muestra el bloque.
-    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado,precio_total,moneda)'),
+    // precio_reserva (12-ago, hallazgo Legal ALTA): la cuota de una Carta de
+    // Reserva NO es precio_total (ver nota junto a PRELIMINAR, más abajo) —
+    // sin este campo, un cliente con SOLO una Carta de Reserva salía con
+    // "Precio pactado"/"Pendiente" en blanco aunque tuviera una cuota real,
+    // exigible y con penalización por desistimiento (carta_reserva_hak_sewa,
+    // cl. 4.1/7.2). Columna concreta, no `datos` entero (pesa MB por anexos).
+    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado,precio_total,moneda,precio_reserva:datos->fields->>precio_reserva)'),
     // accesos al portal del comprador (email → ficha)
     SB.from('portal_accesos').select('email, client_id, activo, ultimo_acceso, accesos'),
     // facturas de SUS contratos (11-ago, petición del owner: no se veían aquí,
@@ -323,13 +329,24 @@ function pintarFicha(){
         // recibí, sea de la reserva o del contrato real — es dinero real entrado.
         const PRELIMINAR = ['carta_reserva', 'carta_reserva_ampliada'];
         const sumables = suyos.filter(x => !PRELIMINAR.includes(x.tipo));
-        const precio = sumables.reduce((a,x) => a + (Number(x.precio_total)||0), 0) || null;
         const cobrado = suyos.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
+        // Solo Carta(s) de Reserva, sin contrato real todavía (hallazgo Legal
+        // ALTA, 12-ago): la cuota de reserva es un pago EXIGIBLE de verdad —
+        // 5 días hábiles tras la firma, con retención si el reservante desiste
+        // (carta_reserva_hak_sewa, cl. 4.1/7.2) — así que dejar "Precio
+        // pactado"/"Pendiente" en blanco aquí leería como "no debe nada",
+        // justo lo contrario. Se muestra la cuota de reserva (precio_reserva;
+        // si el contrato no la fijó, precio_total como aproximación) bajo una
+        // etiqueta que deja claro que es la reserva, no el precio final.
+        const soloReserva = !sumables.length;
+        const base = soloReserva ? suyos : sumables;
+        const precio = base.reduce((a,x) => a + (Number(soloReserva ? (x.precio_reserva ?? x.precio_total) : x.precio_total)||0), 0) || null;
         const pendiente = precio ? precio - cobrado : null;
         const fmt = n => n == null ? '—' : n.toLocaleString('es') + ' ' + moneda;
-        return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')})${sumables.length !== suyos.length ? ' — el precio solo cuenta los que no son Carta de Reserva' : ''}.</p>
+        const etiquetaPrecio = soloReserva ? 'Cuota de Reserva' : 'Precio pactado';
+        return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')})${sumables.length !== suyos.length && !soloReserva ? ' — el precio solo cuenta los que no son Carta de Reserva' : ''}${soloReserva ? ' — solo tiene Carta(s) de Reserva, sin contrato firmado todavía: el importe es la cuota de reserva, no el precio final de la villa' : ''}.</p>
         <div class="row" style="grid-template-columns:1fr 1fr 1fr">
-          <div><label>Precio pactado</label><p style="margin:0;font-size:19px;font-weight:600">${fmt(precio)}</p></div>
+          <div><label>${etiquetaPrecio}</label><p style="margin:0;font-size:19px;font-weight:600">${fmt(precio)}</p></div>
           <div><label>Cobrado</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>
           <div><label>Pendiente</label><p style="margin:0;font-size:19px;font-weight:600${pendiente>0?';color:#9E2F26':''}">${fmt(pendiente)}</p></div>
         </div>
