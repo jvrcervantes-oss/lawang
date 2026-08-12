@@ -205,8 +205,12 @@ after insert on public.facturas
 for each row execute function public.trg_aviso_factura();
 
 -- 4 · INVENTARIO. Lo mueve solo el disparador que ya existe
---     (`sincroniza_unidad_contrato`, 31-jul), así que esto no añade ninguna
---     regla nueva: solo cuenta lo que aquel hace.
+--     (`sincroniza_unidad_contrato` / `avanza_unidad_por_cobro`, ver
+--     `contracts/sql/estado_unidad_por_tipo_y_cobro.sql`, 12-ago), así que
+--     esto no añade ninguna regla nueva: solo cuenta lo que aquellos hacen.
+--     `bloqueada` ya no es solo de una persona (también la pone la firma de
+--     un Bloqueo de Parcela) y `cobrada` (100% pagado) es el aviso más
+--     importante del ciclo — `no_disponible` sigue siendo solo de una persona.
 create or replace function public.trg_aviso_unidad()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare c record; v_texto text;
@@ -215,10 +219,12 @@ begin
     if new.estado is not distinct from old.estado then return new; end if;
     v_texto := case new.estado
       when 'reservada'  then 'reservada'
+      when 'bloqueada'  then 'bloqueada'
       when 'vendida'    then 'vendida'
+      when 'cobrada'    then 'cobrada al 100%'
       when 'disponible' then 'vuelve a estar disponible'
       else null end;
-    if v_texto is null then return new; end if;   -- bloqueada/no_disponible las pone una persona
+    if v_texto is null then return new; end if;   -- no_disponible la pone una persona
 
     select numero, creado_por into c from contratos
      where id = coalesce(new.contrato_id, old.contrato_id);
@@ -226,7 +232,7 @@ begin
     perform anotar_aviso('unidad_' || new.estado,
       'Parcela ' || coalesce(new.codigo,'sin código') || ' ' || v_texto,
       coalesce(new.proyecto,'') || coalesce(' · ' || c.numero, ''),
-      c.creado_por, coalesce(new.contrato_id, old.contrato_id), '/unidades/');
+      c.creado_por, coalesce(new.contrato_id, old.contrato_id), '/proyectos/');
   exception when others then
     raise warning 'aviso unidad (%) no se pudo anotar: %', new.id, sqlerrm;
   end;

@@ -30,6 +30,7 @@
   .e-vendida{       background:#104C4F; }
   .e-bloqueada{     background:#9E2F26; }
   .e-no_disponible{ background:#5A6062; }
+  .e-cobrada{       background:#42210B; }
 
   /* formulario dentro del cajón */
   .dos{ display:grid; grid-template-columns:1fr 1fr; gap:var(--e3); }
@@ -171,8 +172,8 @@
 const $ = s => document.querySelector(s);
 
 const ESTADOS = [
-  ['disponible','Disponible'], ['reservada','Reservada'], ['vendida','Vendida'],
-  ['bloqueada','Bloqueada'], ['no_disponible','No disponible'],
+  ['disponible','Disponible'], ['reservada','Reservada'], ['bloqueada','Bloqueada'],
+  ['vendida','Vendida'], ['cobrada','Cobrada'], ['no_disponible','No disponible'],
 ];
 /* TIPOS y PROYECTOS: catálogos reales (tablas `tipos_vivienda`/`proyectos`,
    6-ago-2026). Antes `TIPOS` era un array a mano y `proyecto` se derivaba de
@@ -602,8 +603,10 @@ function abrirUnidad(id){
           u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}</dd>
       </dl>
       ${u.pct_cobrado != null ? `<div class="barra"><i style="width:${Math.min(100, u.pct_cobrado)}%"></i></div>` : ''}
-      <p class="sui-nota">El estado lo lleva el contrato: al vincularse queda <b>reservada</b> y al firmarse
-        <b>vendida</b>. Si se le quita la parcela al contrato o se borra, vuelve a disponible sola.</p>
+      <p class="sui-nota">El estado lo lleva el contrato y el dinero, no una persona: una Carta de Reserva
+        deja la parcela <b>reservada</b> (firmarla no la mueve); un Bloqueo de Parcela firmado la deja
+        <b>bloqueada</b>; el primer recibí real la pasa a <b>vendida</b>, y el 100% cobrado a <b>cobrada</b>.
+        Si se le quita la parcela al contrato o se borra, vuelve a disponible sola.</p>
     </div>` : '';
 
   suiAbrirCajon({

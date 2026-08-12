@@ -914,7 +914,7 @@
     return -1;
   }
   function plotClickable(estado){ return estado==="disponible" || (!estado && !S.plotsStatusOk); }
-  var PLOT_ESTADO_CLASS = {disponible:"ok", reservada:"held", vendida:"gone", bloqueada:"gone", no_disponible:"gone"};
+  var PLOT_ESTADO_CLASS = {disponible:"ok", reservada:"held", vendida:"gone", cobrada:"gone", bloqueada:"gone", no_disponible:"gone"};
   function masterplanPickerHTML(p, cfg){
     fetchPlotsStatus(p);  // idempotente: sale al toque si ya se pidió para esta ficha
     var focus = S.plotFocusCode;
