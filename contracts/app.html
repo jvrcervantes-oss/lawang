@@ -2606,14 +2606,14 @@ function nombreConResort(d){
 function injectBrandAndCover(html, data){
   // Título de portada: cov_t = idioma BASE (el del toggle, ES o EN) y va sobre
   // la regla; cov_t_id = traducción Bahasa, que la portada coloca arriba a la
-  // izquierda. Por defecto salen del nombre de la plantilla.
-  // `nombre_contrato` (12-ago, petición del owner) sustituye a cov_t cuando
-  // se rellena — antes solo cambiaba la etiqueta en el listado de guardados,
-  // pero la portada seguía con el nombre fijo de la plantilla sin que nadie
-  // lo notara ("no funciona"). cov_t_id (la esquina en Bahasa) se queda con
-  // el nombre real del tipo de documento a propósito: es el requisito legal
-  // de idioma indonesio, y un nombre propio sin traducir ahí no lo cumple.
-  const covData = { ...data, cov_t:data.nombre_contrato||CURRENT.name[LANG]||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
+  // izquierda. Los dos salen SIEMPRE del nombre de la plantilla — nunca de un
+  // campo del form (hallazgo Legal ALTA, 12-ago, sobre un intento anterior el
+  // mismo día: si "Nombre del contrato" sustituía cov_t entero, la portada
+  // dejaba de decir qué TIPO de contrato es, en el idioma que de verdad lee
+  // el firmante — el requisito de identificar el documento a primera vista
+  // se perdía justo para ES/EN, que es la mayoría). `nombre_contrato` se
+  // imprime ADEMÁS, como línea secundaria bajo la regla — ver _portada.html.
+  const covData = { ...data, cov_t:CURRENT.name[LANG]||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{
     if(!(k in covData) || covData[k]==='') return '';
     return k==='proyecto_nombre' ? nombreConResort(covData) : esc(covData[k],k);   // mismo criterio que el cuerpo

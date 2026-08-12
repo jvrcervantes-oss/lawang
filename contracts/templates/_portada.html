@@ -83,6 +83,11 @@
     <div class="rule"></div>
     <!-- El nombre del proyecto NO va en la portada (petición del cliente, 22-jul).
          Sigue imprimiéndose dentro del contrato en las plantillas que lo llevan y
-         se guarda en la ficha de Supabase; la regla .sub se conserva por si vuelve. -->
+         se guarda en la ficha de Supabase. -->
+    <!-- "Nombre del contrato" (12-ago, petición del owner): línea SECUNDARIA bajo
+         el tipo de documento, nunca lo sustituye (hallazgo Legal ALTA el mismo
+         día — ver injectBrandAndCover en app.html). Reutiliza la regla .sub que
+         ya existía para el nombre de proyecto. Solo imprime si se rellenó. -->
+    <!--opt:nombre_contrato--><div class="sub">{{nombre_contrato}}</div><!--/opt:nombre_contrato-->
   </div>
 </div>
