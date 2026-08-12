@@ -175,6 +175,12 @@
   .note-blocked b{ color:var(--be); }
   .note-blocked ul{ margin:6px 0 0; padding-left:16px; } .note-blocked li{ margin-bottom:2px; }
 
+  /* Marca PERSISTENTE en el campo, no solo un toast que puede pisarse con otro
+     (hallazgo Legal, 12-ago): una fecha guardada en formato antiguo, o una
+     sociedad cuya cláusula de contrato hay que revisar a mano. */
+  .field.campo-aviso input, .field.campo-aviso select{ border-color:var(--be); background:#fdf6f2; }
+  .field .aviso-campo{ font-size:11px; color:var(--be); margin:5px 0 0; font-weight:600; }
+
   /* firma */
   .sigpad-wrap{ border:1.5px dashed var(--ss); border-radius:var(--r-sm); background:#fff; position:relative; touch-action:none;
     transition:border-color .2s var(--ease); }
@@ -1857,6 +1863,24 @@ function aplicarReglasCampos(){
     if(!caja || !jefe) return;
     caja.style.display = (jefe.value === valor) ? '' : 'none';
   });
+  // Aviso en tiempo real, no solo un comentario en el código (hallazgo Legal,
+  // 12-ago): SANDAL WOODS Ltd (Hong Kong) sí puede elegirse como sociedad
+  // firmante, pero las 9 plantillas de contrato declaran al Promotor
+  // "sociedad de nacionalidad Indonesia" — falso para esa Ltd. Se avisa cada
+  // vez que este campo tiene ese valor, con marca persistente (no un toast
+  // que se pierde), hasta que se corrija la cláusula plantilla por plantilla.
+  {
+    const cajaSoc = form.querySelector('.field[data-key="sociedad_firmante"]');
+    const selSoc = form.querySelector('[name="sociedad_firmante"]');
+    if(cajaSoc && selSoc){
+      if(selSoc.value === 'sandal_woods_ltd'){
+        marcarCampoAviso(selSoc, 'Esta plantilla declara "sociedad de nacionalidad Indonesia" — falso para esta Ltd de Hong Kong. Corrige la frase a mano antes de imprimir el documento final.');
+      }else{
+        cajaSoc.classList.remove('campo-aviso');
+        const nota = cajaSoc.querySelector('.aviso-campo'); if(nota) nota.remove();
+      }
+    }
+  }
   // Único punto por el que pasa "un campo cambió" (input, change y estado inicial
   // de buildForm), así que el anexo automático se engancha aquí y no en tres sitios.
   syncAutoAnnex();
@@ -3387,8 +3411,28 @@ $('#btnNuevoC').addEventListener('click', () => {
 });
 $('#cpClose').addEventListener('click', ()=> $('#cpOverlay').classList.remove('open'));
 
+/* Marca visual persistente en un campo (hallazgo Legal, 12-ago): borde/fondo
+   de aviso + una nota debajo, que sobrevive aunque el toast ya se haya
+   perdido pisado por otro. Idempotente: si ya tiene nota, la reemplaza en vez
+   de duplicarla. */
+function marcarCampoAviso(el, mensaje){
+  const caja = el.closest('.field'); if(!caja) return;
+  caja.classList.add('campo-aviso');
+  let nota = caja.querySelector('.aviso-campo');
+  if(!nota){ nota = document.createElement('p'); nota.className='aviso-campo'; caja.appendChild(nota); }
+  nota.textContent = '⚠️ ' + mensaje;
+}
+
 /* rellena el form ya construido con los valores guardados (inverso de collect()) */
 function populateForm(fields){
+  // Un toast se pisa con el siguiente (hallazgo Legal, 12-ago): si dos campos
+  // de fecha antigua caen en el mismo populateForm(), o cualquier otro toast
+  // salta casi a la vez (p.ej. fallo de cargarCuentasBancarias), el primer
+  // aviso desaparece sin que el agente lo vea. Se acumulan y se muestran de
+  // una vez al final, Y ADEMÁS se deja marca persistente en el propio campo
+  // (clase .campo-aviso + nota bajo el input) — esa no depende de a tiempo
+  // que se lea el toast.
+  const avisos = [];
   Object.entries(fields || {}).forEach(([k,v])=>{
     if(v===null || v===undefined || v==='') return;
     const el=document.querySelector(`[name="${k}"]`);
@@ -3409,12 +3453,14 @@ function populateForm(fields){
       // campo a texto para no perder el dato, en vez de dejarlo en blanco.
       if(el.type==='date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(v))){
         el.type='text';
-        toast('Fecha guardada en un formato antiguo en "' + k + '" — revísala a mano');
+        marcarCampoAviso(el, 'Formato de fecha antiguo — revísala a mano.');
+        avisos.push(k);
       }
       el.value=v; return;
     }
     if(k.startsWith('firma')) drawToPad(k, v);
   });
+  if(avisos.length) toast('Fecha guardada en formato antiguo en: ' + avisos.join(', ') + ' — revísalas a mano (marcadas en el formulario)');
   // reactiva secciones opcionales (ej. sociedad) si traían datos
   document.querySelectorAll('[data-opt]').forEach(chk=>{
     const sec=document.querySelector(`[data-sec="${chk.dataset.opt}"]`); if(!sec) return;
