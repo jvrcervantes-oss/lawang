@@ -196,6 +196,10 @@ const antiFormula = s => {
 };
 
 let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
+// Borrar proyecto (12-ago-2026, petición del owner): "solo super_admin", más
+// estricto que el es_admin() (admin+super_admin) que ya usa el resto de la
+// suite — se guarda aparte, no se reutiliza CAN_EDIT_TEXT ni nada existente.
+let ES_SUPER_ADMIN = false;
 
 /* Qué se puede construir en cada parcela — decisión del cliente (31-jul): en
    Palm Field cabe CUALQUIERA de los dos modelos en CUALQUIER parcela. Así que el
@@ -412,14 +416,19 @@ function pintarCarpetas(){
     return;
   }
   const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
-  // div, no button: lleva un botón de editar dentro, y un button no puede anidar otro.
+  // div, no button: lleva botones dentro, y un button no puede anidar otro.
+  // Borrar solo para super_admin (12-ago) — botón aparte del de editar, que
+  // sigue abierto a admin+super_admin vía es_admin() dentro del RPC de rename.
   caja.innerHTML = nombres.map(nom => {
     const us = UNIDADES.filter(u => u.proyecto === nom);
     const libres = us.filter(u => u.estado === 'disponible').length;
     const cartera = us.reduce((a,u) => a + (Number(u.precio) || 0), 0);
     const m = (us[0] && us[0].moneda) || 'EUR';
+    const btnBorrar = ES_SUPER_ADMIN
+      ? `<button type="button" data-delproy="${esc(nom)}" title="Borrar proyecto" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">🗑️</button>`
+      : '';
     return `<div class="sui-ficha carpeta" data-proy="${esc(nom)}" style="cursor:pointer">
-      <span class="n">📁 ${esc(nom)} <button type="button" data-editproy="${esc(nom)}" title="Editar nombre" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">✏️</button></span>
+      <span class="n">📁 ${esc(nom)} <button type="button" data-editproy="${esc(nom)}" title="Editar nombre" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">✏️</button>${btnBorrar}</span>
       <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + eur(cartera, m):''}</span>
     </div>`;
   }).join('');
@@ -427,6 +436,8 @@ function pintarCarpetas(){
 $('#carpetas').addEventListener('click', e => {
   const ed = e.target.closest('[data-editproy]');
   if(ed){ editarProyecto(ed.dataset.editproy); return; }
+  const del = e.target.closest('[data-delproy]');
+  if(del){ borrarProyecto(del.dataset.delproy); return; }
   const f = e.target.closest('[data-proy]'); if(!f) return;
   PROY = f.dataset.proy;
   $('#fProyecto').value = PROY;
@@ -459,6 +470,31 @@ async function editarProyecto(nombreActual){
   if(error){ toast('No se pudo renombrar: ' + error.message); return; }
   toast('Proyecto renombrado');
   if(PROY === nombreActual) PROY = nuevo;
+  cargar();
+}
+
+/* Borrar carpeta (12-ago-2026, petición del owner: "solo super_admin").
+   El botón ya solo lo ve un super_admin (pintarCarpetas), pero el gate real
+   es el RPC — es_super_admin() dentro de borrar_proyecto(), no esta UI.
+   El propio RPC rechaza el borrado si quedan unidades, modelos de villa o
+   documentos colgando de este nombre (se orfanarían de verdad, nadie podría
+   volver a filtrarlos ni asociarlos); contratos/facturas NO bloquean —
+   proyecto_nombre ahí es una foto impresa en su momento, no una consulta en
+   vivo, así que borrar el catálogo no les rompe nada. Se muestran igual en
+   el aviso, para que quien borra sepa que ese nombre sigue impreso en ellos. */
+async function borrarProyecto(nombre){
+  const cuenta = (tabla, columna) => SB.from(tabla).select('id', { count:'exact', head:true }).eq(columna, nombre);
+  const [con, fac] = await Promise.all([
+    cuenta('contratos', 'proyecto_nombre'), cuenta('facturas', 'proyecto_nombre'),
+  ]);
+  const impreso = [con.count ? `${con.count} contrato(s)` : '', fac.count ? `${fac.count} factura(s)` : '']
+    .filter(Boolean).join(', ');
+  const aviso = impreso ? `Sigue impreso en: ${impreso} (no se toca, son documentos ya emitidos).\n\n` : '';
+  if(!confirm(`${aviso}Borrar el proyecto «${nombre}» del catálogo?\n\nSolo se puede si no tiene unidades, modelos de villa ni documentos subidos — si tiene algo, el propio sistema lo rechazará y dirá qué queda por vaciar.`)) return;
+  const { error } = await SB.rpc('borrar_proyecto', { p_nombre: nombre });
+  if(error){ toast('No se pudo borrar: ' + error.message); return; }
+  toast('Proyecto borrado');
+  if(PROY === nombre) PROY = '';
   cargar();
 }
 
@@ -1099,11 +1135,12 @@ suiMontarCajon();
 vista();   // recupera la vista guardada (carpetas por defecto) y enseña el contenedor que toca
 suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten las dos vistas
 
-window.LW_AUTH.then(async ({ sb, session }) => {
+window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
+  ES_SUPER_ADMIN = !!(ficha && ficha.rol === 'super_admin');
   const who = $('#who'); if(who && session) who.textContent = session.user.email;
   $('#btnLogout').onclick = async () => { await SB.auth.signOut(); location.replace('/entrar/'); };
-  await cargar();
+  await cargar();   // ES_SUPER_ADMIN ya está fijado antes de esta llamada — su pintar() final ya sale con el botón de borrar si toca
 });
 </script>
 </body>
