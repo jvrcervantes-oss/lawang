@@ -325,9 +325,19 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
    abajo, ya sin llamarse) que "con fuerza de cobro" acabó siendo el origen
    de un balance de cliente mal calculado. La proforma es informativa, sin
    validez fiscal; la factura de cada hito la crea un agente a mano cuando
-   corresponde, revisada antes de salir. */
+   corresponde, revisada antes de salir.
+   Solo reserva_parcela/construccion (12-ago, petición del owner): una Carta
+   de Reserva no es una venta, es un documento preliminar — generarle una
+   proforma duplicaba el "Precio pactado" de un mismo cliente en Compradores
+   en cuanto firmaba también el contrato real de la misma villa (mismo motivo
+   que `crearProformaAutomatica` en contracts/app.html, que hace este mismo
+   corte al GUARDAR; este es el corte gemelo al FIRMAR). */
+const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
 async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
     : Promise<{ emitida: boolean; mensaje: string }> {
+  if (!TIPOS_CON_PROFORMA_AUTO.includes(o.ct.tipo)) {
+    return { emitida: false, mensaje: 'tipo "' + o.ct.tipo + '" no genera proforma automática (solo Bloqueo de Parcela/Construcción)' };
+  }
   const C = await compartidos();
   const f = o.ct.fields || {};
   const moneda = f.moneda || o.ct.moneda || 'EUR';
@@ -505,7 +515,7 @@ Deno.serve(async (req) => {
     // hace falta al completo para el correo y la factura del primer hito.
     const { data: ct, error: ctErr } = await sb.from('contratos')
       .select('adq1:datos->fields->>adq1_nombre, extras:datos->compradores, ' +
-              'fields:datos->fields, hitos:datos->hitos, precio_total, moneda, proyecto_nombre')
+              'fields:datos->fields, hitos:datos->hitos, precio_total, moneda, proyecto_nombre, tipo')
       .eq('id', claimed.contrato_id).single();
     if (ctErr || !ct) throw new Error('no se pudo leer el contrato: ' + (ctErr?.message ?? 'sin fila'));
     const extras = Array.isArray((ct as any).extras) ? (ct as any).extras : [];
@@ -705,13 +715,19 @@ Deno.serve(async (req) => {
     // facturas/sql/recibi_aplicaciones.sql). La función sigue abajo, sin
     // llamarse, por si se retoma con revisión humana de por medio.
 
-    try {
-      const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
-      console.log('firma', claimed.id, '·', r.mensaje);
-      if (!r.emitida) avisos.push(r.mensaje);
-    } catch (e) {
-      const m = 'contrato ' + numero + ' firmado pero SIN proforma del total: ' + (e as Error).message;
-      console.error(m); avisos.push(m);
+    // Carta de Reserva y demás tipos preliminares no llegan ni a intentarlo:
+    // no calificar aquí (en vez de dejar que enviarProformaTotal() lo rechace
+    // por dentro) evita que su "no toca" salga como si fuera un fallo en
+    // `avisos` — no generar la proforma es lo correcto, no una incidencia.
+    if (TIPOS_CON_PROFORMA_AUTO.includes((ct as any).tipo)) {
+      try {
+        const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
+        console.log('firma', claimed.id, '·', r.mensaje);
+        if (!r.emitida) avisos.push(r.mensaje);
+      } catch (e) {
+        const m = 'contrato ' + numero + ' firmado pero SIN proforma del total: ' + (e as Error).message;
+        console.error(m); avisos.push(m);
+      }
     }
 
     return json({ ok: true, numero, faltan: 0, ...(avisos.length ? { avisos } : {}) });

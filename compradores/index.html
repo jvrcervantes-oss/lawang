@@ -314,11 +314,20 @@ function pintarFicha(){
         const monedas = [...new Set(suyos.map(x => x.moneda || 'EUR'))];
         if(monedas.length > 1) return `<p class="nota falta">Sus proyectos están en monedas distintas (${monedas.join(', ')}) — no se pueden sumar en una sola cifra. El detalle de cada uno está en «Contratos firmados», más arriba.</p>`;
         const moneda = monedas[0];
-        const precio = suyos.reduce((a,x) => a + (Number(x.precio_total)||0), 0) || null;
+        // Carta de Reserva (y su ampliada) es un documento preliminar: el precio
+        // que declara es el MISMO que luego repite el contrato real (Bloqueo de
+        // Parcela/Construcción) que la sustituye, no un cargo aparte. Sumarla
+        // duplicaba el "Precio pactado" (12-ago, hallazgo del owner: un cliente
+        // con Carta de Reserva + Construcción de 76.500 € salía con 153.000 €
+        // pactados para LA MISMA villa). "Cobrado" sí sigue contando cualquier
+        // recibí, sea de la reserva o del contrato real — es dinero real entrado.
+        const PRELIMINAR = ['carta_reserva', 'carta_reserva_ampliada'];
+        const sumables = suyos.filter(x => !PRELIMINAR.includes(x.tipo));
+        const precio = sumables.reduce((a,x) => a + (Number(x.precio_total)||0), 0) || null;
         const cobrado = suyos.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
         const pendiente = precio ? precio - cobrado : null;
         const fmt = n => n == null ? '—' : n.toLocaleString('es') + ' ' + moneda;
-        return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')}).</p>
+        return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')})${sumables.length !== suyos.length ? ' — el precio solo cuenta los que no son Carta de Reserva' : ''}.</p>
         <div class="row" style="grid-template-columns:1fr 1fr 1fr">
           <div><label>Precio pactado</label><p style="margin:0;font-size:19px;font-weight:600">${fmt(precio)}</p></div>
           <div><label>Cobrado</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>

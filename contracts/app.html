@@ -3166,8 +3166,17 @@ function contractPayload(){
    Sin precio_total válido no se crea nada — una proforma con importe
    inventado o a 0 es dinero mal pedido (mismo criterio que facturarPrimerHito
    en el cierre de firma). Si falla, el contrato ya está guardado: se avisa y
-   sigue, no se deshace el guardado por esto. */
+   sigue, no se deshace el guardado por esto.
+   Solo reserva_parcela/construccion (12-ago, petición del owner: "Carta de
+   Reserva NO debería generarla"): una Carta de Reserva es un documento
+   preliminar, no una venta — generarle una proforma duplicaba el "Precio
+   pactado" de un mismo cliente en Compradores en cuanto también firmaba el
+   contrato real de la misma villa (caso real: Joel Fuguet Margeli, CR00018 +
+   CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
+   (enviarProformaTotal), que hace lo mismo al FIRMAR. */
+const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
 async function crearProformaAutomatica(contratoId, numero, payload){
+  if(!TIPOS_CON_PROFORMA_AUTO.includes(payload.tipo)) return;
   const precio = payload.precio_total;
   if(!precio || precio <= 0) return;
   const f = (payload.datos && payload.datos.fields) || {};
