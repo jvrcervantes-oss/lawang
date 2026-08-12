@@ -36,7 +36,7 @@
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
      expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
      saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
-<script src="/contracts/assets/entities.js?v=3e0c70fc"></script>
+<script src="/contracts/assets/entities.js?v=72fec243"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <script src="totales.js"></script>
 <!-- maquetacion del documento: la MISMA que arma la factura automatica del
@@ -258,6 +258,32 @@
     <div class="pane-form">
       <div class="inner">
         <form id="form" autocomplete="off">
+          <!-- Contrato PRIMERO (12-ago-2026, petición del cliente): factura, proforma
+               y recibí exigen contrato — sin eso no hay a qué balance atribuir el
+               dinero (ver el guardián de #btnSave). Elegirlo aquí arrastra sociedad,
+               cuenta y cliente de la operación (ver cargarContrato), así que pedirlo
+               antes que "Emisor"/"Cliente" es también el orden en que se rellenan solos. -->
+          <fieldset>
+            <legend>Documento</legend>
+            <label>Contrato</label>
+            <select id="selContrato"><option value="">— elige un contrato —</option></select>
+            <div id="delContrato"></div>
+            <div id="delVinculado"></div>
+            <div class="row2">
+              <div><label>Fecha de emisión</label><input type="date" name="fecha_emision"></div>
+              <div><label>Vencimiento (opcional)</label><input type="date" name="fecha_vencimiento"></div>
+            </div>
+            <div class="row2">
+              <div><label>Moneda</label>
+                <select name="moneda">
+                  <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
+                </select></div>
+              <div><label>Nº de documento</label><input name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
+            </div>
+            <label>Contrato de referencia</label>
+            <input name="contrato_numero" placeholder="Ej. RP00008 — opcional">
+          </fieldset>
+
           <fieldset>
             <legend>Emisor</legend>
             <label>Sociedad que factura</label>
@@ -285,27 +311,6 @@
               <input name="banco_extra">
               <p class="hint">Si esta cuenta se va a repetir, pídenos darla de alta en la lista.</p>
             </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>Documento</legend>
-            <label>Partir de un contrato guardado (opcional)</label>
-            <select id="selContrato"><option value="">— sin contrato —</option></select>
-            <div id="delContrato"></div>
-            <div id="delVinculado"></div>
-            <div class="row2">
-              <div><label>Fecha de emisión</label><input type="date" name="fecha_emision"></div>
-              <div><label>Vencimiento (opcional)</label><input type="date" name="fecha_vencimiento"></div>
-            </div>
-            <div class="row2">
-              <div><label>Moneda</label>
-                <select name="moneda">
-                  <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
-                </select></div>
-              <div><label>Nº de documento</label><input name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
-            </div>
-            <label>Contrato de referencia</label>
-            <input name="contrato_numero" placeholder="Ej. RP00008 — opcional">
           </fieldset>
 
           <fieldset>
@@ -878,7 +883,7 @@ async function cargarContratos(){
     .order('created_at', { ascending:false }).limit(60);
   if(error || !data) return;
   const sel = $('#selContrato');
-  sel.innerHTML = '<option value="">— sin contrato —</option>' + data.filter(c => c.numero).map(c =>
+  sel.innerHTML = '<option value="">— elige un contrato —</option>' + data.filter(c => c.numero).map(c =>
     `<option value="${esc(c.id)}">${esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}${c.proyecto_nombre ? ' · ' + esc(c.proyecto_nombre) : ''}</option>`).join('');
   sel.onchange = () => {
     CONTRATO_ID = sel.value || null;
@@ -1060,10 +1065,12 @@ function payload(){
 $('#btnSave').onclick = async () => {
   const d = collect();
   if(!d.cliente_nombre){ toast('Falta el nombre del cliente'); return; }
-  // 11-ago (reforma del modelo de facturación): factura y recibí exigen
-  // contrato — sin eso no hay a qué balance atribuir el dinero. Un balance
-  // de cliente real salió mal justo por documentos sin este dato claro.
-  if((d.tipo === 'factura' || d.tipo === 'recibi') && !CONTRATO_ID){
+  // 11-ago (reforma del modelo de facturación) + 12-ago (se suma proforma,
+  // petición del cliente): los tres tipos exigen contrato — sin eso no hay a
+  // qué balance atribuir el dinero. Un balance de cliente real salió mal
+  // justo por documentos sin este dato claro. Con los tres tipos posibles
+  // cubiertos, ya no hace falta mirar cuál es — cualquier documento lo exige.
+  if(!CONTRATO_ID){
     toast('Elige el contrato al que corresponde este documento'); return;
   }
   if(d.tipo === 'recibi'){

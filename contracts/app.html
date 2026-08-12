@@ -35,7 +35,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=3e0c70fc"></script>
+<script src="assets/entities.js?v=72fec243"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
@@ -1436,13 +1436,21 @@ async function buscarClientes(q, res, onPick, input){
    guardada junto al contrato (datos.adq1_emails_extra), para familias que dan
    más de un correo. No cambia a quién se envía el contrato — eso lo sigue
    eligiendo el agente en el pop-up de "Enviar" (ver emailsConocidos). */
+// El input para escribir el email nuevo no se pinta hasta que se pulsa
+// "Añadir" (12-ago, petición del cliente): antes había siempre un campo vacío
+// a la vista aunque nadie fuera a rellenarlo — parecía un campo obligatorio
+// más del formulario en vez de una acción opcional.
+let EMAIL_EXTRA_ADDING = false;
 function buildEmailsExtraHTML(){
   const chips = ADQ1_EMAILS.map((e,i)=>`<span class="chip-email">${esc(e)}<button type="button" data-edel="${i}">×</button></span>`).join('');
+  const accion = EMAIL_EXTRA_ADDING
+    ? `<div class="dz-row"><input type="email" id="emailExtraInput" placeholder="otro@email.com">
+        <button type="button" class="btn ghost" id="emailExtraAdd">${L({es:'Añadir',en:'Add',id:'Tambah'})}</button></div>`
+    : `<button type="button" class="link-btn" id="emailExtraShow">+ ${L({es:'Añadir',en:'Add',id:'Tambah'})}</button>`;
   return `<div class="emails-extra" id="emailsExtraPanel">
     <label>${L({es:'Otros emails de Adquiriente I (opcional)',en:'Other emails for Buyer I (optional)',id:'Email lain Pembeli I (opsional)'})}</label>
     <div class="chips-row">${chips}</div>
-    <div class="dz-row"><input type="email" id="emailExtraInput" placeholder="otro@email.com">
-      <button type="button" class="btn ghost" id="emailExtraAdd">+ ${L({es:'Añadir',en:'Add',id:'Tambah'})}</button></div>
+    ${accion}
   </div>`;
 }
 function agregarEmailExtra(){
@@ -1450,7 +1458,7 @@ function agregarEmailExtra(){
   const v=input.value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ if(v) toast('Email no válido'); return; }
   if(!ADQ1_EMAILS.includes(v)) ADQ1_EMAILS.push(v);
-  input.value='';
+  EMAIL_EXTRA_ADDING = false;
   rebuildEmailsExtra();
 }
 function rebuildEmailsExtra(){
@@ -1459,8 +1467,12 @@ function rebuildEmailsExtra(){
 }
 function wireEmailsExtra(){
   const p=$('#emailsExtraPanel'); if(!p) return;
-  p.querySelector('#emailExtraAdd').addEventListener('click', agregarEmailExtra);
-  p.querySelector('#emailExtraInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); agregarEmailExtra(); } });
+  const mostrar = p.querySelector('#emailExtraShow');
+  if(mostrar) mostrar.addEventListener('click', ()=>{ EMAIL_EXTRA_ADDING = true; rebuildEmailsExtra(); const i=$('#emailExtraInput'); if(i) i.focus(); });
+  const add = p.querySelector('#emailExtraAdd');
+  if(add) add.addEventListener('click', agregarEmailExtra);
+  const input = p.querySelector('#emailExtraInput');
+  if(input) input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); agregarEmailExtra(); } });
   p.querySelectorAll('[data-edel]').forEach(b=> b.addEventListener('click', ()=>{
     ADQ1_EMAILS.splice(+b.dataset.edel, 1); rebuildEmailsExtra();
   }));
@@ -1611,7 +1623,7 @@ function resetBorrador(slug){
   COMPRADORES = []; saveCompradores();
   ANNEXES = []; saveAnnexes();
   CLAUSES = []; saveClauses();
-  ADQ1_EMAILS = [];
+  ADQ1_EMAILS = []; EMAIL_EXTRA_ADDING = false;
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   AUTO_APODERADO = {};
   avisoMismoApoderado = null;   // 11-ago, hallazgo Legal MEDIA: si no se resetea, cambiar a OTRO contrato que
@@ -1929,9 +1941,12 @@ const APODERADO_KTP_URL = {};
    adq_apoderado_nombre (apoderado del comprador, Segunda Parte, opcional).
    La KTP en exhibit solo la usa poa_notario.html vía hsn_apoderado_*, así que
    el fetch de signed URL sigue atado a ese select — el otro solo autorrellena texto. */
+// Segunda Parte (comprador) solo pide NIK — edad/ocupación/dirección se
+// retiraron del formulario y de la plantilla el 12-ago-2026 (petición del
+// cliente): esos datos son solo del apoderado de la Primera Parte.
 const APODERADO_GRUPOS = {
   hsn_apoderado_nombre: ['hsn_apoderado_edad', 'hsn_apoderado_ocupacion', 'hsn_apoderado_direccion', 'hsn_apoderado_nik'],
-  adq_apoderado_nombre: ['adq_apoderado_edad', 'adq_apoderado_ocupacion', 'adq_apoderado_direccion', 'adq_apoderado_nik'],
+  adq_apoderado_nombre: [null, null, null, 'adq_apoderado_nik'],
 };
 async function syncApoderadoHakSewa(){
   for(const [selName, [edadK, ocupK, dirK, nikK]] of Object.entries(APODERADO_GRUPOS)){
@@ -1940,6 +1955,7 @@ async function syncApoderadoHakSewa(){
     const datos = ((TOKENS && TOKENS.apoderadosHakSewa) || {})[sel.value];
     if(!datos) continue;
     const poner = (campo, valor) => {
+      if(!campo) return;
       const el = document.querySelector(`[name="${campo}"]`);
       if(!el || valor == null) return;
       const actual = String(el.value || '').trim();
@@ -2271,7 +2287,11 @@ function bankOptionsFor(slug){
    en las plantillas); las demás dejan línea en blanco para firmar a mano.
    Añadir una sociedad = un bloque más aquí, cero cambios en plantillas. */
 // (SOCIEDADES vive en assets/entities.js — compartido con /facturas)
-const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sun Gai primero (default)
+// soloFacturas (12-ago): sociedad sin rep/cred todavía, o cuya cláusula de
+// nacionalidad en las plantillas no le corresponde — ver entities.js. Sale en
+// Facturas (que no la usa) pero no aquí, para no firmar un contrato con
+// huecos en blanco.
+const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).filter(([,c])=>!c.soloFacturas).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sun Gai primero (default)
 function applyPromotor(data){
   const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
   const soc = SOCIEDADES[key] || SOCIEDADES.tepi_sungai;
@@ -3415,7 +3435,7 @@ async function openSavedContract(id){
   if(f.plazo_meses && !f.plazo_pago_final_meses && slug==='ppjb_parcela') f.plazo_pago_final_meses = f.plazo_meses;
   populateForm(f);
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
-  ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : [];
+  ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : []; EMAIL_EXTRA_ADDING = false;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
@@ -3485,7 +3505,7 @@ async function derivarContrato(slug){
   // que se capturan arriba y se reaplican abajo; Anexos/Cláusulas no tienen
   // ese mismo motivo y se limpian.
   limpiarOverrides(slug);
-  ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses(); ADQ1_EMAILS = [];
+  ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses(); ADQ1_EMAILS = []; EMAIL_EXTRA_ADDING = false;
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   await loadTemplate(slug);
   $('#tplPick').value = slug;

@@ -126,7 +126,7 @@ function documentoHTML(d, opts){
         '<b>' + escDoc(soc.razon) + '</b>' +
         (soc.marca ? '<span class="marca">' + escDoc(soc.marca) + '</span>' : '') +
         '<div>' + escDoc(soc.domicilio) + '</div>' +
-        '<div>NPWP ' + escDoc(soc.npwp) + '</div>' +
+        '<div>' + escDoc(soc.npwpLabel || 'NPWP') + ' ' + escDoc(soc.npwp) + '</div>' +
       '</div>' +
     '</div>' +
     '<div class="titulo">' +
@@ -165,7 +165,7 @@ function documentoHTML(d, opts){
   (d.notas ? '<h3>Notas · Notes</h3><div class="notas">' + escDoc(d.notas) + '</div>' : '') +
 
   '<div class="pie">' + escDoc(soc.razon) + (soc.marca ? ' · ' + escDoc(soc.marca) : '') +
-    ' · NPWP ' + escDoc(soc.npwp) + ' · ' + escDoc(soc.domicilio) + '</div>';
+    ' · ' + escDoc(soc.npwpLabel || 'NPWP') + ' ' + escDoc(soc.npwp) + ' · ' + escDoc(soc.domicilio) + '</div>';
 }
 
 /* Documento COMPLETO y autónomo, para mandarlo al renderizador de PDF (Chromium

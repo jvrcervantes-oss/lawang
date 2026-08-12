@@ -159,6 +159,37 @@ const SOCIEDADES = {
     cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',
             en: 'Spanish nationality, holder of Spanish passport no. PAL648254',
             id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
+  /* SANDAL WOODS Ltd (Hong Kong) — añadida 12-ago-2026, petición del owner.
+     Misma marca comercial SandalWoods que `san_dal_woods` (PT indonesia),
+     vehículo legal distinto: se reutiliza el mismo lockup/tinta/folio por
+     continuidad visual de marca; cambiar aquí si el cliente quiere un logo
+     propio para esta sociedad.
+     `npwpLabel` (12-ago): Hong Kong no tiene NPWP (impuesto indonesio) — su
+     identificación fiscal es el CRN (Company Registration Number). Sin este
+     campo, facturas/documento.js imprimía "NPWP 79887714", una etiqueta
+     falsa; con él, cada sociedad imprime la suya (las dos PT se quedan con
+     el 'NPWP' de siempre, por defecto en documento.js).
+     `soloFacturas:true` (12-ago): las 9 plantillas de contrato declaran al
+     Promotor "sociedad de nacionalidad Indonesia" / "an Indonesian company"
+     — cierto para las dos PT, falso para una Ltd de Hong Kong. Hasta que esa
+     cláusula se revise plantilla por plantilla (Legal) esta sociedad NO sale
+     en el desplegable "Sociedad firmante" de Contratos (ver SOCIEDAD_OPTIONS
+     en app.html) — solo en Facturas, que no hace esa declaración de derecho.
+     Tampoco tiene `rep`/`cred` (representante + nacionalidad/documento):
+     inventarlos sería un dato falso en un documento legal — pendiente del
+     owner. Quitar `soloFacturas` y rellenar rep/cred la habilita para firmar. */
+  sandal_woods_ltd: {
+    label: 'SANDAL WOODS Ltd (Hong Kong)',
+    razon: 'SANDAL WOODS Ltd', marca: '',
+    logo: '/contracts/assets/brand/sandalwoods-lockup.png',
+    logoAlto: '24mm',
+    folio: '#E7E3D2',
+    tinta: { primary:'#662906', deep:'#42210B' },
+    domicilio: "Suite D, 6/F Ho Lee Comm Bldg, 38-44 D'Aguilar St, Central, Hong Kong",
+    npwpLabel: 'CRN', npwp: '79887714',
+    soloFacturas: true,
+    rep: '', nib: '', rep_npwp: '',
+    cred: { es: '', en: '', id: '' } },
 };
 
 /* ---------- credenciales de quien puede aparecer como "Firmante" ----------
