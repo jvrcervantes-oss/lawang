@@ -6,8 +6,8 @@
    de cuenta duplicado en dos herramientas se corrige en una y se queda viejo en
    la otra — y ahí el fallo es dinero enviado al sitio equivocado.
 
-   Define dos globales: CUENTAS_BANCARIAS y SOCIEDADES. Sin módulos a propósito:
-   las dos apps son HTML plano con <script> clásico.
+   Define tres globales: CUENTAS_BANCARIAS, SOCIEDADES y APODERADOS_HAK_SEWA.
+   Sin módulos a propósito: las dos apps son HTML plano con <script> clásico.
 
    Los textos que llevan palabras van como {es,en,id} porque los contratos se
    imprimen en tres idiomas; las facturas usan solo `es`/`en`.
@@ -60,6 +60,33 @@ function cargarCuentasBancarias(sb){
   return CUENTAS_PROMESA;
 }
 
+/* ---------- apoderados de la serie Hak Sewa — MISMO MOTIVO que las cuentas ----------
+   El NIK (identificador nacional indonesio) y la dirección de un apoderado son
+   datos personales de un PARTICULAR, no de una sociedad — a diferencia del
+   representante de SOCIEDADES (nombre+pasaporte, ya público por registro
+   mercantil), esto no tiene ese mismo colchón. Vivían en tokens.json, que se
+   sirve igual de público que este fichero (hallazgo Seguridad, 12-ago-2026).
+   Ahora en `public.apoderados_hak_sewa` con la misma RLS que cuentas_bancarias
+   (SELECT solo `authenticated`). tokens.json se queda solo con los NOMBRES
+   (las opciones del <select>), que hacen falta para pintar el formulario. */
+const APODERADOS_HAK_SEWA = {};
+let APODERADOS_PROMESA = null;
+function cargarApoderadosHakSewa(sb){
+  if(APODERADOS_PROMESA) return APODERADOS_PROMESA;
+  APODERADOS_PROMESA = (async () => {
+    const { data, error } = await sb.from('apoderados_hak_sewa')
+      .select('clave,edad,ocupacion,direccion,nik,ktp')
+      .eq('activo', true).order('orden');
+    if(error){ APODERADOS_PROMESA = null; throw error; }
+    (data || []).forEach(r => {
+      APODERADOS_HAK_SEWA[r.clave] = { edad:r.edad, ocupacion:r.ocupacion,
+        direccion:r.direccion, nik:r.nik, ktp:r.ktp };
+    });
+    return APODERADOS_HAK_SEWA;
+  })();
+  return APODERADOS_PROMESA;
+}
+
 /* ---------- sociedades emisoras ----------
    `razon`/`marca`/`domicilio`/`npwp`/`rep` alimentan tanto los marcadores
    {{prom_*}} de las plantillas de contrato como la cabecera del emisor en las
@@ -109,7 +136,8 @@ const SOCIEDADES = {
     /* ⚠️ EL REPRESENTANTE DE ESTA SOCIEDAD ES I WAYAN EKA ARYAWAN (desde
        11-ago-2026, petición del owner — sustituye a I Made Monjong Adhi
        Nugruah). Identificación (NIK) tomada del mismo catálogo que ya usa el
-       apoderado de la serie Hak Sewa (`apoderadosHakSewa` en tokens.json).
+       apoderado de la serie Hak Sewa (hoy `APODERADOS_HAK_SEWA`, arriba en
+       este mismo fichero — vivía en tokens.json cuando se escribió esta nota).
        El 4-ago-2026 cambié este campo a Pablo Cantero Gambín leyendo mal al
        owner: dijo «en este caso mete a Pablo Cantero» refiriéndose SOLO al
        PPJB de Bonian C2, y lo apliqué aquí, que es la ficha de la que beben

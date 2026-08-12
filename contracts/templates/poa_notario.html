@@ -11,8 +11,9 @@
        el "Poder Especial de fecha {{hsn_poder_fecha}}, otorgado ante Notario y
        adjunto al presente Contrato" que ese contrato menciona en su
        comparecencia. Reutiliza el mismo apoderado (hsn_apoderado_*, catálogo
-       apoderadosHakSewa en tokens.json) y la misma fecha del poder — son el
-       mismo hecho legal en dos documentos.
+       APODERADOS_HAK_SEWA en assets/entities.js — Supabase, no tokens.json
+       desde el 12-ago) y la misma fecha del poder — son el mismo hecho legal
+       en dos documentos.
        ID = texto EXACTO del cliente (10-ago-2026, Google Doc "1. POA Jaime GC"),
        transcrito literal. ES/EN (11-ago-2026) SON TRADUCCIÓN DE TRABAJO DE
        AXISWORKS, no texto del cliente — el cliente solo dio el bahasa, que es
@@ -34,7 +35,7 @@
        criterio que hak_sewa_notario.html) — LAWANG no es parte de este poder.
        Página 2: fotocopia de la KTP del apoderado, exhibit habitual en este
        tipo de poder. La imagen NO es un dato del formulario: sale del catálogo
-       apoderadosHakSewa vía applyApoderado()/hsn_apoderado_ktp, resuelta como
+       APODERADOS_HAK_SEWA vía applyApoderado()/hsn_apoderado_ktp, resuelta como
        signed URL de Supabase Storage (bucket privado `kyc`) en tiempo de
        render — nunca como fichero estático público, a diferencia del resto de
        assets de contracts/. -->

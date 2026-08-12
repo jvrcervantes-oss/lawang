@@ -35,7 +35,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=c089e041"></script>
+<script src="assets/entities.js?v=cd43892a"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
@@ -1919,9 +1919,10 @@ function syncResort(){
 }
 
 /* Apoderado (Primera Parte) del Hak Sewa notarial (10-ago): el nombre es un
-   desplegable (tokens.json → apoderadosHakSewa, hoy con una sola persona, más
-   adelante con varias) y edad/ocupación/dirección/NIK se rellenan solos al
-   elegirlo — mismo patrón que syncParcelaMaster/syncResort. La fecha del poder
+   desplegable (opciones en tokens.json → sección hs_primera_parte; sus datos
+   personales en APODERADOS_HAK_SEWA, ver entities.js — movidos de tokens.json
+   el 12-ago, hallazgo Seguridad) y edad/ocupación/dirección/NIK se rellenan
+   solos al elegirlo — mismo patrón que syncParcelaMaster/syncResort. La fecha del poder
    y los datos del propietario NO se tocan aquí: son de la operación concreta,
    no de la persona, y cambian aunque el apoderado sea el mismo (ver
    _nota_hak_sewa en tokens.json). Quedan editables por si esta persona trae un
@@ -1936,7 +1937,8 @@ let AUTO_APODERADO = {};
    async aparte, re-render cuando llega. Vacío hasta que resuelva = sin imagen
    todavía, igual que una firma sin firmar. */
 const APODERADO_KTP_URL = {};
-/* Dos desplegables comparten el mismo catálogo apoderadosHakSewa (11-ago):
+/* Dos desplegables comparten el mismo catálogo APODERADOS_HAK_SEWA (11-ago,
+   movido de tokens.json a Supabase el 12-ago — ver entities.js):
    hsn_apoderado_nombre (apoderado del propietario, Primera Parte) y
    adq_apoderado_nombre (apoderado del comprador, Segunda Parte, opcional).
    La KTP en exhibit solo la usa poa_notario.html vía hsn_apoderado_*, así que
@@ -1952,7 +1954,7 @@ async function syncApoderadoHakSewa(){
   for(const [selName, [edadK, ocupK, dirK, nikK]] of Object.entries(APODERADO_GRUPOS)){
     const sel = document.querySelector(`[name="${selName}"]`);
     if(!sel || !sel.value) continue;
-    const datos = ((TOKENS && TOKENS.apoderadosHakSewa) || {})[sel.value];
+    const datos = APODERADOS_HAK_SEWA[sel.value];
     if(!datos) continue;
     const poner = (campo, valor) => {
       if(!campo) return;
@@ -2287,10 +2289,16 @@ function bankOptionsFor(slug){
    en las plantillas); las demás dejan línea en blanco para firmar a mano.
    Añadir una sociedad = un bloque más aquí, cero cambios en plantillas. */
 // (SOCIEDADES vive en assets/entities.js — compartido con /facturas)
-// soloFacturas (12-ago): sociedad sin rep/cred todavía, o cuya cláusula de
-// nacionalidad en las plantillas no le corresponde — ver entities.js. Sale en
-// Facturas (que no la usa) pero no aquí, para no firmar un contrato con
-// huecos en blanco.
+// soloFacturas (12-ago): gate para una sociedad sin rep/cred todavía — sin
+// eso applyPromotor() firmaría un contrato con huecos en blanco. Hoy NINGUNA
+// sociedad lo lleva (sandal_woods_ltd lo tuvo mientras le faltaba el
+// representante, 12-ago, y se le quitó al rellenarlo — ver entities.js).
+// ⚠️ Este filtro NO cubre el otro hallazgo abierto sobre sandal_woods_ltd:
+// las 9 plantillas de contrato declaran al Promotor "sociedad de
+// nacionalidad Indonesia", falso para esa Ltd de Hong Kong. No hay
+// mecanismo que lo bloquee — quien la elija para FIRMAR un contrato real
+// (no solo para facturar) tiene que corregir esa frase a mano en el
+// documento antes de imprimirlo.
 const SOCIEDAD_OPTIONS = Object.entries(SOCIEDADES).filter(([,c])=>!c.soloFacturas).map(([v,c])=>[v, c.label]);   // orden de inserción: Tepi Sun Gai primero (default)
 function applyPromotor(data){
   const key = data.sociedad_firmante || (CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) || 'tepi_sungai';   // vacío → default de la plantilla (o Tepi Sun Gai)
@@ -3391,6 +3399,18 @@ function populateForm(fields){
       if(el.tagName==='SELECT' && ![...el.options].some(o=>o.value===String(v))){
         const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o);
       }
+      // Un <input type="date"> descarta EN SILENCIO cualquier valor que no sea
+      // YYYY-MM-DD (hallazgo Legal, 12-ago): un campo que hasta ayer era texto
+      // libre (p.ej. hsn_poder_fecha/adq_poder_fecha, antes de convertirse a
+      // date) puede traer guardado "10 de agosto de 2026", y el.value=v lo
+      // borraría al reabrir el contrato sin avisar — en Hak Sewa eso además
+      // hace desaparecer toda la cláusula de representación del comprador
+      // (applyRepresentanteComprador exige nombre+fecha los dos). Se vuelve el
+      // campo a texto para no perder el dato, en vez de dejarlo en blanco.
+      if(el.type==='date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(v))){
+        el.type='text';
+        toast('Fecha guardada en un formato antiguo en "' + k + '" — revísala a mano');
+      }
       el.value=v; return;
     }
     if(k.startsWith('firma')) drawToPad(k, v);
@@ -3830,6 +3850,12 @@ async function init(){
      de datos bancarios saldría vacío y hay que saberlo antes de imprimir. */
   try{ await cargarCuentasBancarias(sb); }
   catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de imprimir'); }
+  // Mismo motivo y mismo patrón que las cuentas: NIK/dirección de los
+  // apoderados de Hak Sewa salieron de tokens.json (público) a una tabla con
+  // RLS (12-ago). Si falla, el nombre sigue eligiéndose (viene de
+  // tokens.json) pero edad/ocupación/dirección/NIK no se autorrellenan.
+  try{ await cargarApoderadosHakSewa(sb); }
+  catch(e){ toast('No se han podido cargar los datos del apoderado: ' + (e.message || e)); }
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
