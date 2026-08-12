@@ -36,6 +36,7 @@
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
 <script src="assets/entities.js?v=cd43892a"></script>
+<script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
@@ -418,6 +419,15 @@
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
 
+  <!-- Datalists globales de nacionalidad/prefijo (12-ago): ÚNICOS en la página,
+       referenciados por list="..." desde cualquier campo (Adquiriente I y cada
+       adquiriente adicional) — un <datalist> no se rebuye por form, así que
+       generarlo una vez evita IDs duplicados al reconstruir el formulario.
+       Contenido pintado por JS desde geo.js (ver init, más abajo en la página):
+       NACIONALIDADES/PREFIJOS no están disponibles hasta que ese script corre. -->
+  <datalist id="dl-nacionalidades"></datalist>
+  <datalist id="dl-prefijos"></datalist>
+
   <div class="stage">
     <!-- IZQUIERDA · campos -->
     <div class="pane-form">
@@ -580,6 +590,11 @@
    · Merge y PDF: siempre en cliente (ver printPreview()); el guardado del
      registro va a Supabase (guardarContrato()), no a un backend propio.
    ============================================================ */
+// Datalists globales de nacionalidad/prefijo (12-ago) — NACIONALIDADES y
+// PREFIJOS vienen de assets/geo.js, cargado antes que este <script>.
+document.getElementById('dl-nacionalidades').innerHTML = NACIONALIDADES.map(n=>`<option value="${n}">`).join('');
+document.getElementById('dl-prefijos').innerHTML = PREFIJOS.map(([cod,pais])=>`<option value="${cod}">${cod} · ${pais}</option>`).join('');
+
 const TEMPLATES = [
   // El orden de este array ES el orden del desplegable (buildPicker solo filtra
   // los disabled) y TEMPLATES[0] es la plantilla que se abre al entrar. Los tres
@@ -1342,7 +1357,9 @@ function romano(n){ const vals=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let
   for(const [v,s] of vals){ while(x>=v){ r+=s; x-=v; } } return r; }
 
 function buildCompradorPanel(){
-  const rows = COMPRADORES.map((c,i)=>`
+  const rows = COMPRADORES.map((c,i)=>{
+    const t = partirTelefono(c.telefono);
+    return `
     <div class="dz" data-comprador="${c.id}">
       <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Adquiriente',en:'Buyer',id:'Pembeli'})} ${romano(i+2)}</span>
         <span class="spacer" style="flex:1"></span>
@@ -1353,13 +1370,19 @@ function buildCompradorPanel(){
       </div>
       <div class="grid2">
         <div class="field"><label>${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
-        <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" value="${escAttr(c.nacionalidad)}"></div>
+        <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" list="dl-nacionalidades" value="${escAttr(c.nacionalidad)}"></div>
         <div class="field"><label>${L({es:'Nº pasaporte / identificación fiscal',en:'Passport / Tax ID no.',id:'No. paspor / Nomor Identifikasi Pajak'})}</label><input data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
         <div class="field"><label>${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
-        <div class="field"><label>${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label><input data-ci="${c.id}" data-ckey="telefono" value="${escAttr(c.telefono||'')}"></div>
+        <div class="field"><label>${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label>
+          <div style="display:flex;gap:6px">
+            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 132px" value="${escAttr(t.prefijo)}">
+            <input data-ci="${c.id}" data-ckey="telefono_numero" placeholder="Número" style="flex:1" value="${escAttr(t.numero)}">
+          </div>
+        </div>
         <div class="field"><label>${L({es:'Email',en:'Email',id:'Email'})}</label><input data-ci="${c.id}" data-ckey="email" value="${escAttr(c.email||'')}"></div>
       </div>
-    </div>`).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
+    </div>`;
+  }).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
   // Ya no es una sección propia con acordeón: va DENTRO del recuadro de
   // Adquiriente I, justo detrás de sus campos (pedido del cliente, 7-ago —
   // antes vivía prepuesto por encima de todo el formulario, lejos del
@@ -1373,7 +1396,20 @@ function buildCompradorPanel(){
 function wireCompradorPanel(){
   const p=$('#compradorPanel'); if(!p) return;
   p.addEventListener('input', e=>{ const el=e.target.closest('[data-ci]'); if(!el) return;
-    const c=COMPRADORES.find(x=>x.id===el.dataset.ci); if(c){ c[el.dataset.ckey]=el.value; saveCompradores(); renderDebounced(); } });
+    const c=COMPRADORES.find(x=>x.id===el.dataset.ci); if(!c) return;
+    const k = el.dataset.ckey;
+    // Teléfono partido en prefijo+número (12-ago): los dos se combinan en
+    // c.telefono, que sigue siendo UN string — compradorFields()/print no cambian.
+    if(k==='telefono_prefijo' || k==='telefono_numero'){
+      const caja = el.closest('.field');
+      const pre = caja.querySelector('[data-ckey="telefono_prefijo"]').value.trim();
+      const num = caja.querySelector('[data-ckey="telefono_numero"]').value.trim();
+      c.telefono = num ? (pre ? pre+' '+num : num) : '';
+    } else {
+      c[k] = el.value;
+    }
+    saveCompradores(); renderDebounced();
+  });
   p.addEventListener('click', e=>{
     if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''}); saveCompradores(); rebuildComprador(); render(); return; }
     const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); }
@@ -1839,13 +1875,34 @@ function fieldHTML(f){
     return `<div class="field" data-key="${key}"><label>${label}</label>
       <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
   }
+  if(type==='telefono'){
+    // Prefijo (datalist global #dl-prefijos, ver buildForm) + número, igual
+    // que ya hace Compradores (12-ago, petición del owner: "llévalo a todos
+    // lados"). El dato real sigue siendo UN string ("+34 612345678") en un
+    // input oculto con name="${key}" — collect() no cambia, y los dos campos
+    // visibles solo existen para no depender de que el agente escriba bien
+    // el prefijo. wireTelefonos() (buildForm) mantiene el oculto al día.
+    const t0 = partirTelefono(def);
+    return `<div class="field field-tel" data-key="${key}"><label>${label}</label>
+      <div style="display:flex;gap:6px">
+        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 132px" value="${escAttr(t0.prefijo)}">
+        <input class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
+      </div>
+      <input type="hidden" name="${key}" value="${def}">
+    </div>`;
+  }
   // Dinero NO va en <input type="number">: ahí el punto ES el separador decimal,
   // así que "44.000" (cuarenta y cuatro mil) vale 44 y el contrato sale con ese
   // importe sin que salte ningún error. Pasa a texto y se normaliza al salir del
   // campo con parseImporte, que sí entiende 44.000 / 44,000 / 44000.
   const esDinero = type==='money';
   const t = esDinero ? 'text' : (type==='number' ? 'number' : (type==='date'?'date':'text'));
-  const attrs = esDinero ? 'inputmode="decimal" data-money' : '';
+  // nacionalidad (12-ago, petición del owner): mismo <input> de siempre, con
+  // sugerencias del datalist global #dl-nacionalidades (ver buildForm) — no
+  // fuerza el valor como un <select> sí haría, para no romper un contrato ya
+  // guardado con una nacionalidad que no está en la lista (país no listado,
+  // errata histórica, "Doble: ES/PE"...).
+  const attrs = esDinero ? 'inputmode="decimal" data-money' : (type==='nacionalidad' ? 'list="dl-nacionalidades"' : '');
   return `<div class="field" data-key="${key}"><label>${label}</label>
     <input name="${key}" type="${t}" ${attrs} value="${def}" autocomplete="off"></div>`;
 }
@@ -2209,6 +2266,23 @@ function buildForm(){
       const key = lbl.closest('.field').dataset.key; if(key) saltarACampo(key);
     });
   }
+  // Campos de teléfono (prefijo+número, 12-ago): los dos inputs visibles no
+  // llevan name= (collect() exige un único elemento por key) — se combinan
+  // en el input oculto con name="${key}" y se dispara un 'input' sobre él,
+  // que ya tiene enganchado el listener genérico de más abajo
+  // (aplicarReglasCampos/renderDebounced/updateSaveButton). Delegado y una
+  // sola vez, mismo patrón que hitos/salto.
+  if(!form._telWired){ form._telWired = true;
+    form.addEventListener('input', e=>{
+      const sub = e.target.closest('.tel-prefijo, .tel-numero'); if(!sub) return;
+      const caja = sub.closest('.field-tel'); if(!caja) return;
+      const pre = caja.querySelector('.tel-prefijo').value.trim();
+      const num = caja.querySelector('.tel-numero').value.trim();
+      const oculto = caja.querySelector('input[type="hidden"][name]'); if(!oculto) return;
+      oculto.value = num ? (pre ? pre+' '+num : num) : '';
+      oculto.dispatchEvent(new Event('input', { bubbles:true }));
+    });
+  }
 
   wireDesignPanel();
   wireAnnexPanel();
@@ -2532,8 +2606,14 @@ function nombreConResort(d){
 function injectBrandAndCover(html, data){
   // Título de portada: cov_t = idioma BASE (el del toggle, ES o EN) y va sobre
   // la regla; cov_t_id = traducción Bahasa, que la portada coloca arriba a la
-  // izquierda. Ambos salen del nombre de la plantilla, no de un campo del form.
-  const covData = { ...data, cov_t:CURRENT.name[LANG]||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
+  // izquierda. Por defecto salen del nombre de la plantilla.
+  // `nombre_contrato` (12-ago, petición del owner) sustituye a cov_t cuando
+  // se rellena — antes solo cambiaba la etiqueta en el listado de guardados,
+  // pero la portada seguía con el nombre fijo de la plantilla sin que nadie
+  // lo notara ("no funciona"). cov_t_id (la esquina en Bahasa) se queda con
+  // el nombre real del tipo de documento a propósito: es el requisito legal
+  // de idioma indonesio, y un nombre propio sin traducir ahí no lo cumple.
+  const covData = { ...data, cov_t:data.nombre_contrato||CURRENT.name[LANG]||CURRENT.name.es, cov_t_id:CURRENT.name.id||CURRENT.name.es };
   const cov = COVER_HTML.replace(/\{\{([a-z0-9_]+)\}\}/g,(m,k)=>{
     if(!(k in covData) || covData[k]==='') return '';
     return k==='proyecto_nombre' ? nombreConResort(covData) : esc(covData[k],k);   // mismo criterio que el cuerpo
@@ -3461,6 +3541,16 @@ function populateForm(fields){
     if(k.startsWith('firma')) drawToPad(k, v);
   });
   if(avisos.length) toast('Fecha guardada en formato antiguo en: ' + avisos.join(', ') + ' — revísalas a mano (marcadas en el formulario)');
+  // Teléfono (prefijo+número, 12-ago): el bucle de arriba ya dejó el valor
+  // guardado en el input oculto — los dos campos visibles (fieldHTML no
+  // conoce el valor guardado, solo el default de plantilla) se rellenan
+  // aparte, partiendo ese valor con la misma partirTelefono() de geo.js.
+  document.querySelectorAll('.field-tel').forEach(caja=>{
+    const oculto = caja.querySelector('input[type="hidden"][name]'); if(!oculto) return;
+    const t = partirTelefono(oculto.value);
+    const pre = caja.querySelector('.tel-prefijo'), num = caja.querySelector('.tel-numero');
+    if(pre) pre.value = t.prefijo; if(num) num.value = t.numero;
+  });
   // reactiva secciones opcionales (ej. sociedad) si traían datos
   document.querySelectorAll('[data-opt]').forEach(chk=>{
     const sec=document.querySelector(`[data-sec="${chk.dataset.opt}"]`); if(!sec) return;
