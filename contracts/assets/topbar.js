@@ -11,6 +11,27 @@
    · un control que se usa varias veces seguidas (zoom) lleva data-keep y NO cierra,
    · clic fuera o Escape cierra todos.
    Un <select> o <label> dentro del menú tampoco cierra: hay que poder desplegarlo. */
+/* Diccionario de la barra compartida — mismo mecanismo que documentacion/
+   index.html (piloto, 12-ago-2026, ver assets/idioma.js). A nivel de
+   fichero, no dentro de una IIFE: varias de las de abajo lo usan y cada una
+   corre en su propio scope aislado. */
+var TB_T = {
+  cuentaTitle: { es:'Tu cuenta y tus avisos', en:'Your account and notifications' },
+  cerrarSesion: { es:'Cerrar sesión', en:'Log out' },
+  notificaciones: { es:'Notificaciones', en:'Notifications' },
+  nadaNuevo: { es:'Nada nuevo por aquí.', en:'Nothing new here.' },
+  cargando: { es:'Cargando…', en:'Loading…' },
+  rolSuperAdmin: { es:'Super administrador', en:'Super admin' },
+  rolAdmin: { es:'Administrador', en:'Admin' },
+  rolAgente: { es:'Agente', en:'Agent' },
+  hace: { es:'hace ', en:'' },          // ES antepone ("hace 3 min"), EN pospone ("3 min ago")
+  minAgo: { es:' min', en:' min ago' },
+  hAgo: { es:' h', en:' h ago' },
+  ayer: { es:'ayer', en:'yesterday' },
+  volverIntranet: { es:'← Intranet', en:'← Home' },
+};
+function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB_T[k].es) || k; }
+
 (function () {
   var SEL = 'details.lw-menu, details.pv-menu';
   var LISTA = '.lw-menu-list, .pv-menu-list';
@@ -65,7 +86,7 @@
   if (barra && !barra.querySelector('.lw-home')) {
     var cab = document.createDocumentFragment();
     var casa = document.createElement('a');
-    casa.className = 'lw-home'; casa.href = '/intranet/'; casa.textContent = '← Intranet';
+    casa.className = 'lw-home'; casa.href = '/intranet/'; casa.textContent = tb('volverIntranet');
     var logo = document.createElement('img');
     logo.className = 'lw-brand'; logo.alt = 'Lawang';
     logo.src = '/contracts/assets/brand/lawang-logo-v3-dark.png';
@@ -76,6 +97,35 @@
     cab.appendChild(casa); cab.appendChild(logo); cab.appendChild(rotulo);
     barra.insertBefore(cab, barra.firstChild);
   }
+})();
+
+/* SELECTOR DE IDIOMA DE INTERFAZ — 12-ago-2026
+   `idioma.js` (cargado antes que este script, sin defer) ya resolvió
+   `window.LW_IDIOMA` para cuando el <script> propio de la herramienta
+   arrancó. Esto solo pinta el botón para CAMBIARLO — la lectura inicial no
+   vive aquí (ver idioma.js y por qué está aparte de guard.js).
+   Recarga la página al cambiar en vez de traducir en caliente: la
+   traducción en vivo de una herramienta entera (tablas ya pintadas, cajones
+   abiertos, formularios a medio rellenar) es mucho más frágil que perder el
+   scroll y volver a cargar — mismo criterio que ya usa el toggle EUR/USD/AUD
+   de portfolio.html. */
+(function () {
+  // Mismo fallback que la campana, más abajo: `.lw-topbar` en las ocho
+  // herramientas, `[data-lw-usuario]` en el hub de la intranet, que tiene
+  // cabecera propia.
+  var barra = document.querySelector('.lw-topbar') || document.querySelector('[data-lw-usuario]');
+  if (!barra || !window.lwSetIdioma) return;
+  var boton = document.createElement('button');
+  boton.type = 'button';
+  boton.className = 'lw-btn lw-idioma';
+  var otro = window.LW_IDIOMA === 'en' ? 'es' : 'en';
+  boton.textContent = otro.toUpperCase();
+  boton.title = otro === 'en' ? 'Switch interface to English' : 'Cambiar la interfaz a español';
+  boton.addEventListener('click', function () {
+    window.lwSetIdioma(otro);
+    location.reload();
+  });
+  barra.appendChild(boton);
 })();
 
 (function () {
@@ -115,10 +165,10 @@
     if (!f) return '';
     var d = new Date(String(f).length === 10 ? f + 'T00:00:00' : f);
     var ms = Date.now() - d.getTime(), h = ms / 3600000;
-    if (h < 1)  return 'hace ' + Math.max(1, Math.round(ms / 60000)) + ' min';
-    if (h < 24) return 'hace ' + Math.round(h) + ' h';
-    if (h < 48) return 'ayer';
-    return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    if (h < 1)  return tb('hace') + Math.max(1, Math.round(ms / 60000)) + tb('minAgo');
+    if (h < 24) return tb('hace') + Math.round(h) + tb('hAgo');
+    if (h < 48) return tb('ayer');
+    return d.toLocaleDateString(window.LW_IDIOMA === 'en' ? 'en-GB' : 'es-ES', { day: '2-digit', month: 'short' });
   }
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) {
@@ -155,7 +205,7 @@
        `/intranet/` con sus permisos, y una segunda lista aquí se quedaría vieja
        en cuanto se añadiera una herramienta. Para eso ya está «← Intranet». */
     var nombre = ficha.nombre || (email.split('@')[0] || 'Cuenta');
-    var ROLES = { super_admin: 'Super administrador', admin: 'Administrador', agente: 'Agente' };
+    var ROLES = { super_admin: tb('rolSuperAdmin'), admin: tb('rolAdmin'), agente: tb('rolAgente') };
 
     /* CAJÓN IZQUIERDO, no un desplegable. Se abre y se cierra EXACTAMENTE igual
        que el cajón de la derecha de la suite (`.sui-cajon`): mismo velo que
@@ -171,7 +221,7 @@
     boton.type = 'button';
     boton.className = 'lw-usuario-btn';
     boton.setAttribute('aria-expanded', 'false');
-    boton.title = 'Tu cuenta y tus avisos';
+    boton.title = tb('cuentaTitle');
     boton.innerHTML =
       '<span class="lw-usuario-ini" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
       '<span class="lw-usuario-nom">' + esc(nombre) + '</span>' +
@@ -182,20 +232,20 @@
     velo.className = 'lw-velo';
     var panel = document.createElement('aside');
     panel.className = 'lw-panel';
-    panel.setAttribute('aria-label', 'Tu cuenta');
+    panel.setAttribute('aria-label', tb('cuentaTitle'));
     panel.innerHTML =
       '<div class="lw-panel-cab">' +
         '<span class="lw-usuario-ini grande" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
         '<div class="lw-panel-quien"><b>' + esc(nombre) + '</b><span>' + esc(email) + '</span>' +
           (ficha.rol ? '<span class="lw-usuario-rol">' + esc(ROLES[ficha.rol] || ficha.rol) + '</span>' : '') +
         '</div>' +
-        '<button type="button" class="lw-panel-x" aria-label="Cerrar">✕</button>' +
+        '<button type="button" class="lw-panel-x" aria-label="✕">✕</button>' +
       '</div>' +
       '<div class="lw-panel-cuerpo">' +
-        '<div class="lw-usuario-seccion">Notificaciones</div>' +
-        '<div class="lw-campana-lista"><p class="lw-campana-vacio">Cargando…</p></div>' +
+        '<div class="lw-usuario-seccion">' + tb('notificaciones') + '</div>' +
+        '<div class="lw-campana-lista"><p class="lw-campana-vacio">' + tb('cargando') + '</p></div>' +
       '</div>' +
-      '<div class="lw-panel-pie"><button type="button" class="lw-btn lw-usuario-salir">Cerrar sesión</button></div>';
+      '<div class="lw-panel-pie"><button type="button" class="lw-btn lw-usuario-salir">' + tb('cerrarSesion') + '</button></div>';
     document.body.appendChild(velo);
     document.body.appendChild(panel);
 
@@ -244,7 +294,7 @@
                    (a.detalle ? '<span class="lw-aviso-d">' + esc(a.detalle) + '</span>' : '') +
                    '<span class="lw-aviso-c">' + esc(fecha(a.cuando)) + '</span></a>';
           }).join('')
-        : '<p class="lw-campana-vacio">Nada nuevo por aquí.</p>';
+        : '<p class="lw-campana-vacio">' + tb('nadaNuevo') + '</p>';
     }
 
     function cargar() {

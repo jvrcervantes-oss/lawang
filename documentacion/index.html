@@ -12,8 +12,9 @@
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=4b167da0">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=301a1f38">
-<script src="/contracts/assets/topbar.js?v=96274d1e" defer></script>
+<script src="/contracts/assets/topbar.js?v=b0cb5eff" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=abd4a27b" data-herramienta="documentacion"></script>
 <script src="/contracts/assets/suite.js?v=eb783935"></script>
 <style>
@@ -81,9 +82,9 @@
   <div class="topbar lw-topbar" data-titulo="Documentación">
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnNuevaFaq">+ Pregunta frecuente</button>
-    <button type="button" class="lw-btn" id="btnNuevo">+ Añadir enlace</button>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+    <button type="button" class="lw-btn" id="btnNuevaFaq" data-t="btnFaq">+ Pregunta frecuente</button>
+    <button type="button" class="lw-btn" id="btnNuevo" data-t="btnEnlace">+ Añadir enlace</button>
+    <button type="button" class="lw-btn" id="btnLogout" data-t="salir">Salir</button>
   </div>
 
   <div class="sui-stage">
@@ -91,8 +92,8 @@
       <div class="uso" id="uso" hidden></div>
 
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" placeholder="Buscar título, carpeta o proyecto…">
-        <select class="sui-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+        <input class="sui-buscar" id="q" data-t-ph="buscar" placeholder="Buscar título, carpeta o proyecto…">
+        <select class="sui-sel" id="fProyecto"><option value="" data-t="todosProyectos">Todos los proyectos</option></select>
       </div>
       <div class="sui-filtros" id="arbol"></div>
       <div class="sui-filtros" id="filtros"></div>
@@ -100,11 +101,11 @@
       <div class="sui-tabla-caja">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
-            <th data-orden="titulo">Documento</th>
-            <th data-orden="carpeta">Carpeta</th>
-            <th data-orden="categoria">Categoría</th>
-            <th>Dónde</th>
-            <th data-orden="creado_en">Añadido</th>
+            <th data-orden="titulo" data-t="colDocumento">Documento</th>
+            <th data-orden="carpeta" data-t="colCarpeta">Carpeta</th>
+            <th data-orden="categoria" data-t="colCategoria">Categoría</th>
+            <th data-t="colDonde">Dónde</th>
+            <th data-orden="creado_en" data-t="colAnadido">Añadido</th>
           </tr></thead>
           <tbody id="filas"></tbody>
         </table>
@@ -142,20 +143,160 @@ const SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
 const SB_KEY = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
 const BUCKET = 'documentacion';
 
+/* ---------- idioma de interfaz (12-ago-2026) ----------
+   Piloto del mecanismo de assets/idioma.js: window.LW_IDIOMA ya lo resolvió
+   ese script (cargado sin defer, antes que este) — aquí solo se declara el
+   diccionario de ESTA herramienta y se aplica. Los DATOS del negocio
+   (nombre de proyecto, carpeta, título de un documento real, respuesta de
+   una FAQ) NUNCA se traducen — solo el "chrome": labels, botones, mensajes.
+   Si falta una clave, t() cae a español antes que a la propia clave, para
+   que un hueco en el diccionario no imprima "btnGuardar" en la pantalla. */
+const IDIOMA = (window.LW_IDIOMA === 'en') ? 'en' : 'es';
+const T = {
+  btnFaq: { es:'+ Pregunta frecuente', en:'+ Frequent question' },
+  btnEnlace: { es:'+ Añadir enlace', en:'+ Add link' },
+  salir: { es:'Salir', en:'Log out' },
+  buscar: { es:'Buscar título, carpeta o proyecto…', en:'Search title, folder or project…' },
+  todosProyectos: { es:'Todos los proyectos', en:'All projects' },
+  colDocumento: { es:'Documento', en:'Document' },
+  colCarpeta: { es:'Carpeta', en:'Folder' },
+  colCategoria: { es:'Categoría', en:'Category' },
+  colDonde: { es:'Dónde', en:'Where' },
+  colAnadido: { es:'Añadido', en:'Added' },
+  todas: { es:'Todas', en:'All' },
+  catPrecios: { es:'Precios', en:'Pricing' },
+  catPlanos: { es:'Planos', en:'Floor plans' },
+  catLegal: { es:'Legal', en:'Legal' },
+  catComercial: { es:'Comercial', en:'Commercial' },
+  catTecnico: { es:'Técnico', en:'Technical' },
+  catFotos: { es:'Fotos', en:'Photos' },
+  catFaq: { es:'Preguntas frecuentes', en:'Frequently asked questions' },
+  catOtros: { es:'Otros', en:'Other' },
+  cargando: { es:'Cargando…', en:'Loading…' },
+  errorLeer: { es:'No se pudo leer la documentación: ', en:'Could not load the documentation: ' },
+  nadaAqui: { es:'Nada aquí', en:'Nothing here' },
+  nadaTodavia: { es:'Todavía no hay documentación', en:'No documentation yet' },
+  pruebaFiltro: { es:'Prueba a quitar un filtro o a subir un nivel de carpeta.', en:'Try removing a filter or going up one folder level.' },
+  anadePrimero: { es:'Añade el primer enlace con «+ Añadir enlace».', en:'Add the first link with "+ Add link".' },
+  raiz: { es:'raíz', en:'root' },
+  respondida: { es:'respondida', en:'answered' },
+  sinResponder: { es:'sin responder', en:'unanswered' },
+  driveExterno: { es:'Drive / externo', en:'Drive / external' },
+  archivo: { es:'archivo · ', en:'file · ' },
+  confAbrev: { es:'conf.', en:'conf.' },
+  portal: { es:'portal', en:'portal' },
+  faqSubtitulo: { es:' · Pregunta frecuente', en:' · Frequent question' },
+  faqSinResponder: { es:'Todavía sin responder — pulsa «Editar» y escribe la respuesta.', en:'Not answered yet — press "Edit" and write the answer.' },
+  anadida: { es:'Añadida', en:'Added' },
+  por: { es:' por ', en:' by ' },
+  editar: { es:'Editar', en:'Edit' },
+  quitar: { es:'Quitar', en:'Remove' },
+  dtDonde: { es:'Dónde', en:'Where' },
+  driveOEnlace: { es:'Google Drive o enlace externo', en:'Google Drive or external link' },
+  archivoAlmacen: { es:'Archivo en el almacén del estudio', en:'File in the studio’s storage' },
+  dtTamano: { es:'Tamaño', en:'Size' },
+  dtAnadido: { es:'Añadido', en:'Added' },
+  dtAcceso: { es:'Acceso', en:'Access' },
+  confidencialTexto: { es:'Confidencial — no compartir fuera del estudio', en:'Confidential — do not share outside the studio' },
+  compartibleCliente: { es:'Compartible con el cliente', en:'Shareable with the client' },
+  dtPortal: { es:'Portal', en:'Portal' },
+  loVenCompradores: { es:'Lo ven los compradores de ', en:'Visible to buyers of ' },
+  noSalePortal: { es:'No sale en el portal del comprador', en:'Not shown in the buyer portal' },
+  viveFuera: { es:'El documento vive fuera de aquí, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Compruébalo allí.',
+               en:'The document lives outside this tool, so <b>who can open it is decided by Drive</b>, not by this tool. Check it there.' },
+  archivoViejo: { es:'Archivo subido antes de que la herramienta pasara a enlaces. Se abre con un enlace temporal de 15 minutos.',
+                  en:'File uploaded before this tool switched to links. It opens with a 15-minute temporary link.' },
+  soloSuperAdmin: { es:'Quitar documentación está reservado al super admin.', en:'Removing documentation is reserved to the super admin.' },
+  abrir: { es:'Abrir', en:'Open' },
+  enDrive: { es:' en Drive', en:' in Drive' },
+  previewNota: { es:'Vista previa servida por Drive. Si aparece pidiendo permiso, es que el archivo no está compartido con tu cuenta: se arregla en Drive.',
+                 en:'Preview served by Drive. If it asks for permission, the file isn’t shared with your account: fix it in Drive.' },
+  previewTitulo: { es:'Vista previa', en:'Preview' },
+  editarDocumento: { es:'Editar documento', en:'Edit document' },
+  anadirEnlace: { es:'Añadir enlace', en:'Add link' },
+  subDocumento: { es:'Un documento de Google Drive o cualquier enlace externo.', en:'A Google Drive document or any external link.' },
+  lblProyecto: { es:'Proyecto', en:'Project' },
+  lblCarpeta: { es:'Carpeta', en:'Folder' },
+  phCarpeta: { es:'Comercial/Dossiers', en:'Commercial/Brochures' },
+  notaCarpeta: { es:'Los niveles se separan con barras. En blanco = raíz del proyecto. Mover un documento de carpeta es cambiar esta ruta.',
+                 en:'Levels are separated with slashes. Blank = project root. Moving a document to another folder means changing this path.' },
+  lblTitulo: { es:'Título', en:'Title' },
+  phTitulo: { es:'Ej. Dossier Palm Field', en:'E.g. Palm Field brochure' },
+  lblCategoria: { es:'Categoría', en:'Category' },
+  archivoSubido: { es:'Este documento es un <b>archivo subido</b>, no un enlace: el fichero no se cambia desde aquí. Se puede editar todo lo demás.',
+                   en:'This document is an <b>uploaded file</b>, not a link: the file itself can’t be changed here. Everything else can be edited.' },
+  lblEnlace: { es:'Enlace', en:'Link' },
+  lblDescripcion: { es:'Descripción (opcional)', en:'Description (optional)' },
+  ckConfidencial: { es:'Confidencial — no compartir fuera del estudio', en:'Confidential — do not share outside the studio' },
+  ckPortal: { es:'Visible en el portal del comprador', en:'Visible in the buyer portal' },
+  notaPortal: { es:'Lo verán los compradores <b>con contrato en esa promoción</b>, no todos. Es una decisión aparte de «confidencial»: que se pueda enseñar dentro del estudio no significa que deba salir en el portal de un cliente. Un archivo subido se sirve con enlace temporal; un enlace de Drive lo abre Drive, así que <b>compruébalo allí antes de marcarlo</b>.',
+              en:'Only buyers <b>with a contract in that project</b> will see it, not everyone. It’s a separate decision from "confidential": that it can be shown inside the studio doesn’t mean it should go into a client’s portal. An uploaded file is served with a temporary link; a Drive link is opened by Drive, so <b>check it there before marking it</b>.' },
+  notaDrivePermiso: { es:'<b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace; el permiso para abrirlo lo pone Drive.',
+                      en:'<b>Check in Drive who it’s shared with.</b> This only stores the link; the permission to open it is set in Drive.' },
+  guardarCambios: { es:'Guardar cambios', en:'Save changes' },
+  guardarEnlace: { es:'Guardar enlace', en:'Save link' },
+  cancelar: { es:'Cancelar', en:'Cancel' },
+  ponTitulo: { es:'Ponle un título', en:'Give it a title' },
+  enlaceHttp: { es:'El enlace tiene que empezar por http:// o https://', en:'The link has to start with http:// or https://' },
+  sinPermisoAccion: { es:'no tienes permiso para ', en:'you don’t have permission to ' },
+  editarV: { es:'editar', en:'edit' },
+  anadirV: { es:'añadir', en:'add' },
+  documentacionN: { es:' documentación', en:' documentation' },
+  guardado: { es:'Guardado', en:'Saved' },
+  enlaceGuardado: { es:'Enlace guardado', en:'Link saved' },
+  noSePudoGuardar: { es:'No se pudo guardar: ', en:'Could not save: ' },
+  editarFaq: { es:'Editar pregunta frecuente', en:'Edit frequent question' },
+  nuevaFaq: { es:'Nueva pregunta frecuente', en:'New frequent question' },
+  subFaq: { es:'Para que el equipo comercial no tenga que responderla desde cero cada vez.', en:'So the sales team doesn’t have to answer it from scratch every time.' },
+  lblPregunta: { es:'Pregunta', en:'Question' },
+  phPregunta: { es:'Ej. ¿El precio incluye la parcela, la villa terminada, piscina, mobiliario, urbanización, impuestos y gastos legales?',
+                en:'E.g. Does the price include the plot, the finished villa, pool, furniture, landscaping, taxes and legal fees?' },
+  lblRespuesta: { es:'Respuesta', en:'Answer' },
+  phRespuesta: { es:'Déjalo en blanco si todavía no la tenéis — se puede rellenar más tarde', en:'Leave it blank if you don’t have it yet — it can be filled in later' },
+  guardarPregunta: { es:'Guardar pregunta', en:'Save question' },
+  escribePregunta: { es:'Escribe la pregunta', en:'Write the question' },
+  preguntaGuardada: { es:'Pregunta guardada', en:'Question saved' },
+  sinPermisoFaq: { es:'no tienes permiso para ', en:'you don’t have permission to ' },
+  preguntasFrecuentesN: { es:' preguntas frecuentes', en:' frequent questions' },
+  noSePudoAbrir: { es:'No se pudo abrir: ', en:'Could not open: ' },
+  quitarIndice: { es:'» del índice?\n\nEl archivo SIGUE en Drive: aquí solo se borra el enlace.', en:'" from the index?\n\nThe file STAYS in Drive: this only removes the link.' },
+  quitarIndicePre: { es:'¿Quitar «', en:'Remove "' },
+  borrarPre: { es:'¿Borrar «', en:'Delete "' },
+  borrarPost: { es:'»?\n\nSe borra el archivo y su ficha. No hay papelera.', en:'"?\n\nThe file and its record are deleted. There is no trash bin.' },
+  sinPermisoQuitar: { es:'no tienes permiso para quitar documentación', en:'you don’t have permission to remove documentation' },
+  quitado: { es:'Quitado', en:'Removed' },
+  noSePudoQuitar: { es:'No se pudo quitar: ', en:'Could not remove: ' },
+  almacenamientoTitulo: { es:'Almacenamiento del sistema', en:'System storage' },
+  archivos: { es:'Archivos', en:'Files' },
+  baseDeDatos: { es:'Base de datos', en:'Database' },
+  sinRitmo: { es:'Sin ritmo medible todavía.', en:'No measurable rate yet.' },
+  alRitmoActual: { es:'Al ritmo actual (', en:'At the current rate (' },
+  mbDia: { es:' MB/día) quedan ', en:' MB/day) there are ' },
+  diasRestantes: { es:' días</b>.', en:' days</b> left.' },
+  porEsoDrive: { es:'Por eso la documentación va por enlace a Drive: este espacio lo necesitan los contratos firmados.',
+                 en:'That’s why documentation goes by link to Drive: this space is needed for signed contracts.' },
+};
+const t = k => (T[k] && T[k][IDIOMA]) || (T[k] && T[k].es) || k;
+// Categorías: se guarda la CLAVE en la base (precios/planos/...), la
+// etiqueta visible sale del diccionario — así CATEGORIAS[n][1] deja de ser
+// un string fijo y pasa a resolverse en el idioma activo.
 const CATEGORIAS = [
-  ['precios','Precios'], ['planos','Planos'], ['legal','Legal'],
-  ['comercial','Comercial'], ['tecnico','Técnico'], ['fotos','Fotos'],
-  ['faq','Preguntas frecuentes'], ['otros','Otros'],
+  ['precios', t('catPrecios')], ['planos', t('catPlanos')], ['legal', t('catLegal')],
+  ['comercial', t('catComercial')], ['tecnico', t('catTecnico')], ['fotos', t('catFotos')],
+  ['faq', t('catFaq')], ['otros', t('catOtros')],
 ];
 // Carpeta fija para las FAQ (12-ago, petición del owner: "entrenar a los
 // comerciales" con las preguntas que repiten los clientes) — reusa el árbol
 // de carpetas que ya existe, así que "una sección de FAQ por proyecto" no
 // necesita ninguna vista nueva: es la carpeta que ya agrupa por proyecto.
+// Nombre FIJO en español a propósito, igual en los dos idiomas: es una
+// carpeta real guardada en la base (dato, no interfaz) — traducirla según
+// quien mire la dejaría partida en dos carpetas distintas.
 const CARPETA_FAQ = 'Preguntas frecuentes';
 
 const $ = s => document.querySelector(s);
 const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/1048576).toFixed(1) + ' MB';
-const fecha = f => f ? new Date(f).toLocaleDateString('es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
+const fecha = f => f ? new Date(f).toLocaleDateString(IDIOMA === 'en' ? 'en-GB' : 'es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
 const esSuperAdmin = rol => rol === 'super_admin';
 
 let SB=null, DOCS=[], SEL=null, PROYECTOS=[], CAT='', PROY='', CARPETA='', Q='', ROL=null;
@@ -178,8 +319,8 @@ async function cargar(){
   // los que ya tengan documentos, por si alguno se guardó con otro nombre.
   let delTokens = [];
   try{
-    const t = await fetch('/contracts/tokens.json?v=' + Date.now()).then(r => r.json());
-    (t.sections || []).forEach(sec => (sec.fields || []).forEach(f => {
+    const tk = await fetch('/contracts/tokens.json?v=' + Date.now()).then(r => r.json());
+    (tk.sections || []).forEach(sec => (sec.fields || []).forEach(f => {
       if(f[0] === 'proyecto_nombre' && Array.isArray(f[3])) delTokens = f[3].slice();
     }));
   }catch(_){}
@@ -234,7 +375,7 @@ function pintarArbol(){
       `<span class="n">${n(ruta)}</span>` +
     '</button>';
   $('#arbol').innerHTML =
-    tarjeta('', 'Todas', 0) +
+    tarjeta('', t('todas'), 0) +
     ramas().map(ruta => tarjeta(ruta, ruta.split('/').pop(), ruta.split('/').length - 1)).join('');
 }
 
@@ -251,14 +392,14 @@ function visibles(){
 function pintar(){ pintarProyectos(); pintarArbol(); pintarFiltros(); pintarTabla(); }
 
 function pintarProyectos(){
-  $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>' +
+  $('#fProyecto').innerHTML = `<option value="">${t('todosProyectos')}</option>` +
     PROYECTOS.map(p => `<option value="${esc(p)}" ${p===PROY?'selected':''}>${esc(p)}</option>`).join('');
 }
 function pintarFiltros(){
   const base = DOCS.filter(d => (!PROY || d.proyecto === PROY) && dentroDe(d, CARPETA));
   const n = c => base.filter(d => !c || d.categoria === c).length;
   $('#filtros').innerHTML =
-    `<button class="sui-chip ${CAT===''?'on':''}" data-c="">Todas<span class="n">${n('')}</span></button>` +
+    `<button class="sui-chip ${CAT===''?'on':''}" data-c="">${t('todas')}<span class="n">${n('')}</span></button>` +
     CATEGORIAS.map(([v,l]) => `<button class="sui-chip ${CAT===v?'on':''} ${n(v)?'':'vacio'}" data-c="${v}">${l}<span class="n">${n(v)}</span></button>`).join('');
 }
 
@@ -270,26 +411,26 @@ function pintarTabla(){
     cuerpo.innerHTML = Array.from({length:5}, () => '<tr class="sui-esqueleto">' + '<td><i></i></td>'.repeat(5) + '</tr>').join('');
     return;
   }
-  if(FALLO){ cuerpo.innerHTML = `<tr><td colspan="5" class="sui-error">No se pudo leer la documentación: ${esc(FALLO)}</td></tr>`; return; }
+  if(FALLO){ cuerpo.innerHTML = `<tr><td colspan="5" class="sui-error">${t('errorLeer')}${esc(FALLO)}</td></tr>`; return; }
   const vis = visibles();
   if(!vis.length){
     const filtrando = PROY || CARPETA || CAT || Q.trim();
     cuerpo.innerHTML = `<tr><td colspan="5"><div class="sui-nada">
-      <b>${filtrando ? 'Nada aquí' : 'Todavía no hay documentación'}</b>
-      ${filtrando ? 'Prueba a quitar un filtro o a subir un nivel de carpeta.' : 'Añade el primer enlace con «+ Añadir enlace».'}
+      <b>${filtrando ? t('nadaAqui') : t('nadaTodavia')}</b>
+      ${filtrando ? t('pruebaFiltro') : t('anadePrimero')}
     </div></td></tr>`;
     return;
   }
   cuerpo.innerHTML = vis.map(d => {
-    const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros','Otros'])[1];
+    const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros', t('catOtros')])[1];
     return `<tr data-id="${d.id}" class="${SEL===d.id?'sel':''}">
       <td class="clave">${esc(d.titulo)}</td>
-      <td>${d.carpeta ? esc(d.carpeta) : '<span class="flojo">raíz</span>'}</td>
+      <td>${d.carpeta ? esc(d.carpeta) : '<span class="flojo">' + t('raiz') + '</span>'}</td>
       <td><span class="sui-tag c-${esc(d.categoria)}">${esc(cat)}</span></td>
-      <td>${d.categoria==='faq' ? (d.descripcion ? '<span class="flojo">respondida</span>' : '<span class="conf">sin responder</span>')
-        : (d.url ? 'Drive / externo' : '<span class="flojo">archivo · ' + mb(d.bytes) + '</span>')}</td>
-      <td>${esc(fecha(d.creado_en))}${d.confidencial ? ' <span class="conf">conf.</span>' : ''}${
-        d.visible_portal ? ' <span class="sui-tag ok">portal</span>' : ''}</td>
+      <td>${d.categoria==='faq' ? (d.descripcion ? '<span class="flojo">' + t('respondida') + '</span>' : '<span class="conf">' + t('sinResponder') + '</span>')
+        : (d.url ? t('driveExterno') : '<span class="flojo">' + t('archivo') + mb(d.bytes) + '</span>')}</td>
+      <td>${esc(fecha(d.creado_en))}${d.confidencial ? ' <span class="conf">' + t('confAbrev') + '</span>' : ''}${
+        d.visible_portal ? ' <span class="sui-tag ok">' + t('portal') + '</span>' : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -302,14 +443,14 @@ function abrirFaq(d){
   SEL = d.id; pintarTabla();
   suiAbrirCajon({
     titulo: esc(d.titulo),
-    sub: esc(d.proyecto) + ' · Pregunta frecuente',
+    sub: esc(d.proyecto) + t('faqSubtitulo'),
     cuerpo: `
       ${d.descripcion
         ? `<p class="sui-nota" style="font-size:14px;color:var(--texto)">${esc(d.descripcion).replace(/\n/g,'<br>')}</p>`
-        : `<p class="sui-nota conf">Todavía sin responder — pulsa «Editar» y escribe la respuesta.</p>`}
-      <dl class="sui-dl"><dt>Añadida</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? ' por ' + esc(d.creado_por) : ''}</dd></dl>`,
-    pie: `<button class="sui-btn primario" id="btnEditar">Editar</button>
-          ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">Quitar</button>' : ''}`,
+        : `<p class="sui-nota conf">${t('faqSinResponder')}</p>`}
+      <dl class="sui-dl"><dt>${t('anadida')}</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? t('por') + esc(d.creado_por) : ''}</dd></dl>`,
+    pie: `<button class="sui-btn primario" id="btnEditar">${t('editar')}</button>
+          ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">' + t('quitar') + '</button>' : ''}`,
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
   $('#btnEditar').onclick = () => formFaq(d);
@@ -321,30 +462,28 @@ function abrirDoc(id){
   const d = DOCS.find(x => x.id === id); if(!d) return;
   if(d.categoria === 'faq'){ abrirFaq(d); return; }
   SEL = id; pintarTabla();
-  const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros','Otros'])[1];
+  const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros', t('catOtros')])[1];
   const enlace = !!d.url;
   suiAbrirCajon({
     titulo: esc(d.titulo),
     sub: esc(d.proyecto) + (d.carpeta ? ' · ' + esc(d.carpeta) : '') + ' · ' + esc(cat),
     cuerpo: `
       <dl class="sui-dl">
-        <dt>Dónde</dt><dd>${enlace ? 'Google Drive o enlace externo' : 'Archivo en el almacén del estudio'}</dd>
-        ${enlace ? '' : `<dt>Tamaño</dt><dd>${mb(d.bytes)}</dd>`}
-        <dt>Añadido</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? ' por ' + esc(d.creado_por) : ''}</dd>
-        <dt>Acceso</dt><dd>${d.confidencial ? '<span class="conf">Confidencial — no compartir fuera del estudio</span>' : 'Compartible con el cliente'}</dd>
-        <dt>Portal</dt><dd>${d.visible_portal
-          ? '<span class="sui-tag ok">Lo ven los compradores de ' + esc(d.proyecto) + '</span>'
-          : 'No sale en el portal del comprador'}</dd>
+        <dt>${t('dtDonde')}</dt><dd>${enlace ? t('driveOEnlace') : t('archivoAlmacen')}</dd>
+        ${enlace ? '' : `<dt>${t('dtTamano')}</dt><dd>${mb(d.bytes)}</dd>`}
+        <dt>${t('dtAnadido')}</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? t('por') + esc(d.creado_por) : ''}</dd>
+        <dt>${t('dtAcceso')}</dt><dd>${d.confidencial ? '<span class="conf">' + t('confidencialTexto') + '</span>' : t('compartibleCliente')}</dd>
+        <dt>${t('dtPortal')}</dt><dd>${d.visible_portal
+          ? '<span class="sui-tag ok">' + t('loVenCompradores') + esc(d.proyecto) + '</span>'
+          : t('noSalePortal')}</dd>
       </dl>
       ${d.descripcion ? `<p class="sui-nota">${esc(d.descripcion)}</p>` : ''}
-      <p class="sui-nota">${enlace
-        ? 'El documento vive fuera de aquí, así que <b>quién puede abrirlo lo decide Drive</b>, no esta herramienta. Compruébalo allí.'
-        : 'Archivo subido antes de que la herramienta pasara a enlaces. Se abre con un enlace temporal de 15 minutos.'}</p>
-      ${esSuperAdmin(ROL) ? '' : '<p class="sui-nota">Quitar documentación está reservado al super admin.</p>'}
+      <p class="sui-nota">${enlace ? t('viveFuera') : t('archivoViejo')}</p>
+      ${esSuperAdmin(ROL) ? '' : '<p class="sui-nota">' + t('soloSuperAdmin') + '</p>'}
       ${previsualizacion(d)}`,
-    pie: `<button class="sui-btn primario" id="btnAbrir">Abrir${enlace ? ' en Drive' : ''}</button>
-          <button class="sui-btn" id="btnEditar">Editar</button>
-          ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">Quitar</button>' : ''}`,
+    pie: `<button class="sui-btn primario" id="btnAbrir">${t('abrir')}${enlace ? t('enDrive') : ''}</button>
+          <button class="sui-btn" id="btnEditar">${t('editar')}</button>
+          ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">' + t('quitar') + '</button>' : ''}`,
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
   $('#btnAbrir').onclick = () => enlace ? window.open(d.url, '_blank', 'noopener') : abrirArchivo(d);
@@ -370,10 +509,9 @@ function previsualizacion(d){
   if(!id) return '';
   return `<div class="sui-bloque" style="padding:0;overflow:hidden">
       <iframe class="dprev" src="https://drive.google.com/file/d/${esc(id)}/preview"
-        loading="lazy" referrerpolicy="no-referrer" title="Vista previa"></iframe>
+        loading="lazy" referrerpolicy="no-referrer" title="${t('previewTitulo')}"></iframe>
     </div>
-    <p class="sui-nota">Vista previa servida por Drive. Si aparece pidiendo permiso,
-      es que el archivo no está compartido con tu cuenta: se arregla en Drive.</p>`;
+    <p class="sui-nota">${t('previewNota')}</p>`;
 }
 
 /* ---------- crear o editar ----------
@@ -386,34 +524,28 @@ function formDoc(d){
   const conocidas = [...new Set(DOCS.map(x => x.carpeta).filter(Boolean))].sort();
   const v = d || {};
   suiAbrirCajon({
-    titulo: editando ? 'Editar documento' : 'Añadir enlace',
-    sub: editando ? esc(v.titulo) : 'Un documento de Google Drive o cualquier enlace externo.',
+    titulo: editando ? t('editarDocumento') : t('anadirEnlace'),
+    sub: editando ? esc(v.titulo) : t('subDocumento'),
     cuerpo: `
-      <div class="campo"><label>Proyecto</label>
+      <div class="campo"><label>${t('lblProyecto')}</label>
         <select id="sProyecto">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
-      <div class="campo"><label>Carpeta</label>
-        <input id="sCarpeta" list="conocidas" value="${esc(v.carpeta != null ? v.carpeta : CARPETA)}" placeholder="Comercial/Dossiers">
+      <div class="campo"><label>${t('lblCarpeta')}</label>
+        <input id="sCarpeta" list="conocidas" value="${esc(v.carpeta != null ? v.carpeta : CARPETA)}" placeholder="${t('phCarpeta')}">
         <datalist id="conocidas">${conocidas.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
-      <p class="sui-nota" style="margin-top:-6px">Los niveles se separan con barras. En blanco = raíz del proyecto.
-        Mover un documento de carpeta es cambiar esta ruta.</p>
-      <div class="campo"><label>Título</label><input id="sTitulo" value="${esc(v.titulo||'')}" placeholder="Ej. Dossier Palm Field"></div>
-      <div class="campo"><label>Categoría</label>
+      <p class="sui-nota" style="margin-top:-6px">${t('notaCarpeta')}</p>
+      <div class="campo"><label>${t('lblTitulo')}</label><input id="sTitulo" value="${esc(v.titulo||'')}" placeholder="${t('phTitulo')}"></div>
+      <div class="campo"><label>${t('lblCategoria')}</label>
         <select id="sCategoria">${CATEGORIAS.map(([x,l]) => `<option value="${x}" ${v.categoria===x?'selected':''}>${l}</option>`).join('')}</select></div>
       ${v.path
-        ? `<p class="sui-nota">Este documento es un <b>archivo subido</b>, no un enlace: el fichero no se
-             cambia desde aquí. Se puede editar todo lo demás.</p>`
-        : `<div class="campo"><label>Enlace</label><input id="sUrl" value="${esc(v.url||'')}" placeholder="https://drive.google.com/…" inputmode="url"></div>`}
-      <div class="campo"><label>Descripción (opcional)</label><textarea id="sDesc">${esc(v.descripcion||'')}</textarea></div>
-      <label class="ck"><input type="checkbox" id="sConf" ${v.confidencial === false ? '' : 'checked'}> Confidencial — no compartir fuera del estudio</label>
-      <label class="ck"><input type="checkbox" id="sPortal" ${v.visible_portal ? 'checked' : ''}> Visible en el portal del comprador</label>
-      <p class="sui-nota">Lo verán los compradores <b>con contrato en esa promoción</b>, no todos. Es una
-        decisión aparte de «confidencial»: que se pueda enseñar dentro del estudio no significa que deba
-        salir en el portal de un cliente. Un archivo subido se sirve con enlace temporal; un enlace de
-        Drive lo abre Drive, así que <b>compruébalo allí antes de marcarlo</b>.</p>
-      <p class="sui-nota"><b>Comprueba en Drive con quién está compartido.</b> Aquí se guarda el enlace;
-        el permiso para abrirlo lo pone Drive.</p>`,
-    pie: `<button class="sui-btn primario" id="btnGuardar">${editando ? 'Guardar cambios' : 'Guardar enlace'}</button>
-          <button class="sui-btn" id="btnCancelar">Cancelar</button>`,
+        ? `<p class="sui-nota">${t('archivoSubido')}</p>`
+        : `<div class="campo"><label>${t('lblEnlace')}</label><input id="sUrl" value="${esc(v.url||'')}" placeholder="https://drive.google.com/…" inputmode="url"></div>`}
+      <div class="campo"><label>${t('lblDescripcion')}</label><textarea id="sDesc">${esc(v.descripcion||'')}</textarea></div>
+      <label class="ck"><input type="checkbox" id="sConf" ${v.confidencial === false ? '' : 'checked'}> ${t('ckConfidencial')}</label>
+      <label class="ck"><input type="checkbox" id="sPortal" ${v.visible_portal ? 'checked' : ''}> ${t('ckPortal')}</label>
+      <p class="sui-nota">${t('notaPortal')}</p>
+      <p class="sui-nota">${t('notaDrivePermiso')}</p>`,
+    pie: `<button class="sui-btn primario" id="btnGuardar">${editando ? t('guardarCambios') : t('guardarEnlace')}</button>
+          <button class="sui-btn" id="btnCancelar">${t('cancelar')}</button>`,
     onCerrar: () => { if(!editando){ SEL = null; pintarTabla(); } },
   });
   $('#btnGuardar').onclick = () => guardarDoc(d);
@@ -425,11 +557,11 @@ async function guardarDoc(d){
   const titulo = $('#sTitulo').value.trim();
   const campoUrl = $('#sUrl');
   const url = campoUrl ? campoUrl.value.trim() : null;
-  if(!titulo){ toast('Ponle un título'); $('#sTitulo').focus(); return; }
+  if(!titulo){ toast(t('ponTitulo')); $('#sTitulo').focus(); return; }
   // Solo http(s): un `javascript:` guardado aquí sería un clic ejecutable para
   // el siguiente que abra la ficha.
   if(campoUrl && !/^https?:\/\//i.test(url)){
-    toast('El enlace tiene que empezar por http:// o https://'); campoUrl.focus(); return;
+    toast(t('enlaceHttp')); campoUrl.focus(); return;
   }
   const b = $('#btnGuardar'); b.disabled = true;
   try{
@@ -446,7 +578,7 @@ async function guardarDoc(d){
     const { data, error } = await q;
     if(error) throw error;
     // La RLS no da error al denegar: devuelve CERO filas.
-    if(!data || !data.length) throw new Error('no tienes permiso para ' + (editando ? 'editar' : 'añadir') + ' documentación');
+    if(!data || !data.length) throw new Error(t('sinPermisoAccion') + (editando ? t('editarV') : t('anadirV')) + t('documentacionN'));
     // 🔴 Bug (7-ago-2026): esto forzaba el filtro global de proyecto al del
     // documento recién guardado. Si se guardaba estando en «Todos los
     // proyectos», el árbol se reducía de golpe a esa única promoción y el
@@ -456,8 +588,8 @@ async function guardarDoc(d){
     // respeta tal cual.
     await cargar();
     if(editando){ SEL = d.id; abrirDoc(d.id); } else { suiCerrarCajon(); }
-    toast(editando ? 'Guardado' : 'Enlace guardado');
-  }catch(e){ toast('No se pudo guardar: ' + (e.message || e)); }
+    toast(editando ? t('guardado') : t('enlaceGuardado'));
+  }catch(e){ toast(t('noSePudoGuardar') + (e.message || e)); }
   b.disabled = false;
 }
 
@@ -476,17 +608,17 @@ function formFaq(d){
   if(!editando){ SEL = null; pintarTabla(); }
   const v = d || {};
   suiAbrirCajon({
-    titulo: editando ? 'Editar pregunta frecuente' : 'Nueva pregunta frecuente',
-    sub: editando ? esc(v.titulo) : 'Para que el equipo comercial no tenga que responderla desde cero cada vez.',
+    titulo: editando ? t('editarFaq') : t('nuevaFaq'),
+    sub: editando ? esc(v.titulo) : t('subFaq'),
     cuerpo: `
-      <div class="campo"><label>Proyecto</label>
+      <div class="campo"><label>${t('lblProyecto')}</label>
         <select id="fProyectoFaq">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
-      <div class="campo"><label>Pregunta</label>
-        <textarea id="fPregunta" rows="2" placeholder="Ej. ¿El precio incluye la parcela, la villa terminada, piscina, mobiliario, urbanización, impuestos y gastos legales?">${esc(v.titulo||'')}</textarea></div>
-      <div class="campo"><label>Respuesta</label>
-        <textarea id="fRespuesta" rows="5" placeholder="Déjalo en blanco si todavía no la tenéis — se puede rellenar más tarde">${esc(v.descripcion||'')}</textarea></div>`,
-    pie: `<button class="sui-btn primario" id="btnGuardarFaq">${editando ? 'Guardar cambios' : 'Guardar pregunta'}</button>
-          <button class="sui-btn" id="btnCancelarFaq">Cancelar</button>`,
+      <div class="campo"><label>${t('lblPregunta')}</label>
+        <textarea id="fPregunta" rows="2" placeholder="${t('phPregunta')}">${esc(v.titulo||'')}</textarea></div>
+      <div class="campo"><label>${t('lblRespuesta')}</label>
+        <textarea id="fRespuesta" rows="5" placeholder="${t('phRespuesta')}">${esc(v.descripcion||'')}</textarea></div>`,
+    pie: `<button class="sui-btn primario" id="btnGuardarFaq">${editando ? t('guardarCambios') : t('guardarPregunta')}</button>
+          <button class="sui-btn" id="btnCancelarFaq">${t('cancelar')}</button>`,
     onCerrar: () => { if(!editando){ SEL = null; pintarTabla(); } },
   });
   $('#btnGuardarFaq').onclick = () => guardarFaq(d);
@@ -496,7 +628,7 @@ function formFaq(d){
 async function guardarFaq(d){
   const editando = !!d;
   const pregunta = $('#fPregunta').value.trim();
-  if(!pregunta){ toast('Escribe la pregunta'); $('#fPregunta').focus(); return; }
+  if(!pregunta){ toast(t('escribePregunta')); $('#fPregunta').focus(); return; }
   const b = $('#btnGuardarFaq'); b.disabled = true;
   try{
     const fila = {
@@ -510,11 +642,11 @@ async function guardarFaq(d){
       : SB.from('documentos_proyecto').insert(fila).select('id');
     const { data, error } = await q;
     if(error) throw error;
-    if(!data || !data.length) throw new Error('no tienes permiso para ' + (editando ? 'editar' : 'añadir') + ' preguntas frecuentes');
+    if(!data || !data.length) throw new Error(t('sinPermisoFaq') + (editando ? t('editarV') : t('anadirV')) + t('preguntasFrecuentesN'));
     await cargar();
     if(editando){ SEL = d.id; abrirFaq({ ...d, ...fila }); } else { suiCerrarCajon(); }
-    toast(editando ? 'Guardado' : 'Pregunta guardada');
-  }catch(e){ toast('No se pudo guardar: ' + (e.message || e)); }
+    toast(editando ? t('guardado') : t('preguntaGuardada'));
+  }catch(e){ toast(t('noSePudoGuardar') + (e.message || e)); }
   b.disabled = false;
 }
 
@@ -529,13 +661,13 @@ async function abrirArchivo(d){
       FIRMADAS.set(d.path, u);
     }
     window.open(u.href, '_blank', 'noopener');
-  }catch(e){ toast('No se pudo abrir: ' + (e.message || e)); }
+  }catch(e){ toast(t('noSePudoAbrir') + (e.message || e)); }
 }
 
 async function borrar(d){
   const aviso = d.url
-    ? '¿Quitar «' + d.titulo + '» del índice?\n\nEl archivo SIGUE en Drive: aquí solo se borra el enlace.'
-    : '¿Borrar «' + d.titulo + '»?\n\nSe borra el archivo y su ficha. No hay papelera.';
+    ? t('quitarIndicePre') + d.titulo + t('quitarIndice')
+    : t('borrarPre') + d.titulo + t('borrarPost');
   if(!confirm(aviso)) return;
   try{
     // Primero el archivo y después la fila: al revés, un fallo al borrar el
@@ -548,12 +680,12 @@ async function borrar(d){
     if(error) throw error;
     // La RLS no da error al denegar: devuelve CERO filas. Sin este control la
     // herramienta diría "quitado" y el documento seguiría ahí.
-    if(!data || !data.length) throw new Error('no tienes permiso para quitar documentación');
+    if(!data || !data.length) throw new Error(t('sinPermisoQuitar'));
     if(d.path) FIRMADAS.delete(d.path);
     suiCerrarCajon();
     await cargar();
-    toast('Quitado');
-  }catch(e){ toast('No se pudo quitar: ' + (e.message || e)); }
+    toast(t('quitado'));
+  }catch(e){ toast(t('noSePudoQuitar') + (e.message || e)); }
 }
 
 /* ---------- medidor de almacenamiento ----------
@@ -567,15 +699,28 @@ async function medidor(){
   const clase = p => p >= 90 ? 'mal' : p >= 70 ? 'aviso' : '';
   $('#uso').hidden = false;
   $('#uso').innerHTML = `
-    <h3>Almacenamiento del sistema</h3>
-    <div class="n"><span>Archivos</span><span><b>${mb(f.bytes)}</b> de ${mb(f.limite)} · ${f.pct}%</span></div>
+    <h3>${t('almacenamientoTitulo')}</h3>
+    <div class="n"><span>${t('archivos')}</span><span><b>${mb(f.bytes)}</b> de ${mb(f.limite)} · ${f.pct}%</span></div>
     <div class="barra ${clase(f.pct)}"><i style="width:${Math.min(100, f.pct)}%"></i></div>
-    <div class="n" style="margin-top:8px"><span>Base de datos</span><span><b>${mb(b.bytes)}</b> de ${mb(b.limite)} · ${b.pct}%</span></div>
+    <div class="n" style="margin-top:8px"><span>${t('baseDeDatos')}</span><span><b>${mb(b.bytes)}</b> de ${mb(b.limite)} · ${b.pct}%</span></div>
     <div class="barra ${clase(b.pct)}"><i style="width:${Math.min(100, b.pct)}%"></i></div>
-    <p class="sui-nota">${margen == null ? 'Sin ritmo medible todavía.'
-      : 'Al ritmo actual (' + data.ritmo_mb_dia + ' MB/día) quedan <b>' + margen + ' días</b>.'}
-      Por eso la documentación va por enlace a Drive: este espacio lo necesitan los contratos firmados.</p>`;
+    <p class="sui-nota">${margen == null ? t('sinRitmo')
+      : t('alRitmoActual') + data.ritmo_mb_dia + t('mbDia') + '<b>' + margen + t('diasRestantes')}
+      ${t('porEsoDrive')}</p>`;
 }
+
+/* ---------- idioma: aplica el diccionario a la HTML estática ----------
+   La HTML de arriba (botones de la barra, cabeceras de tabla, buscador) ya
+   está en el DOM cuando este script arranca — se marca con data-t/data-t-ph
+   en vez de generarla por JS, y aquí se sobreescribe UNA vez, antes de la
+   primera carga de datos. guard.js mantiene <html> oculto hasta que la
+   sesión se confirma (varios cientos de ms de red), tiempo de sobra para que
+   este pase — sin destello de español antes de saltar a inglés. */
+function aplicarIdiomaEstatico(){
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll('[data-t-ph]').forEach(el => { el.placeholder = t(el.dataset.tPh); });
+}
+aplicarIdiomaEstatico();
 
 /* ---------- eventos ---------- */
 $('#q').addEventListener('input', e => { Q = e.target.value; pintarTabla(); });
