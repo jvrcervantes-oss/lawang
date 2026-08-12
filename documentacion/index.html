@@ -23,7 +23,7 @@
 
   .c-precios{ background:#8C5E10; } .c-planos{ background:#104C4F; } .c-legal{ background:#3F5230; }
   .c-comercial{ background:#6A4B8A; } .c-tecnico{ background:#2E5F72; } .c-fotos{ background:#7A5C3A; }
-  .c-otros{ background:#5A6062; }
+  .c-otros{ background:#5A6062; } .c-faq{ background:#8A3A54; }
   .conf{ font-size:11px; color:#9E2F26; font-weight:600; }
 
 
@@ -81,6 +81,7 @@
   <div class="topbar lw-topbar" data-titulo="Documentación">
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnNuevaFaq">+ Pregunta frecuente</button>
     <button type="button" class="lw-btn" id="btnNuevo">+ Añadir enlace</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
@@ -143,8 +144,14 @@ const BUCKET = 'documentacion';
 
 const CATEGORIAS = [
   ['precios','Precios'], ['planos','Planos'], ['legal','Legal'],
-  ['comercial','Comercial'], ['tecnico','Técnico'], ['fotos','Fotos'], ['otros','Otros'],
+  ['comercial','Comercial'], ['tecnico','Técnico'], ['fotos','Fotos'],
+  ['faq','Preguntas frecuentes'], ['otros','Otros'],
 ];
+// Carpeta fija para las FAQ (12-ago, petición del owner: "entrenar a los
+// comerciales" con las preguntas que repiten los clientes) — reusa el árbol
+// de carpetas que ya existe, así que "una sección de FAQ por proyecto" no
+// necesita ninguna vista nueva: es la carpeta que ya agrupa por proyecto.
+const CARPETA_FAQ = 'Preguntas frecuentes';
 
 const $ = s => document.querySelector(s);
 const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/1048576).toFixed(1) + ' MB';
@@ -279,16 +286,40 @@ function pintarTabla(){
       <td class="clave">${esc(d.titulo)}</td>
       <td>${d.carpeta ? esc(d.carpeta) : '<span class="flojo">raíz</span>'}</td>
       <td><span class="sui-tag c-${esc(d.categoria)}">${esc(cat)}</span></td>
-      <td>${d.url ? 'Drive / externo' : '<span class="flojo">archivo · ' + mb(d.bytes) + '</span>'}</td>
+      <td>${d.categoria==='faq' ? (d.descripcion ? '<span class="flojo">respondida</span>' : '<span class="conf">sin responder</span>')
+        : (d.url ? 'Drive / externo' : '<span class="flojo">archivo · ' + mb(d.bytes) + '</span>')}</td>
       <td>${esc(fecha(d.creado_en))}${d.confidencial ? ' <span class="conf">conf.</span>' : ''}${
         d.visible_portal ? ' <span class="sui-tag ok">portal</span>' : ''}</td>
     </tr>`;
   }).join('');
 }
 
+/* ---------- cajón: pregunta frecuente ----------
+   Una FAQ no es un documento (no "está en algún sitio" ni tiene tamaño): el
+   cajón genérico de abajo asume las dos cosas, así que se separa en vez de
+   llenar abrirDoc() de condicionales sobre algo que no le pertenece. */
+function abrirFaq(d){
+  SEL = d.id; pintarTabla();
+  suiAbrirCajon({
+    titulo: esc(d.titulo),
+    sub: esc(d.proyecto) + ' · Pregunta frecuente',
+    cuerpo: `
+      ${d.descripcion
+        ? `<p class="sui-nota" style="font-size:14px;color:var(--texto)">${esc(d.descripcion).replace(/\n/g,'<br>')}</p>`
+        : `<p class="sui-nota conf">Todavía sin responder — pulsa «Editar» y escribe la respuesta.</p>`}
+      <dl class="sui-dl"><dt>Añadida</dt><dd>${esc(fecha(d.creado_en))}${d.creado_por ? ' por ' + esc(d.creado_por) : ''}</dd></dl>`,
+    pie: `<button class="sui-btn primario" id="btnEditar">Editar</button>
+          ${esSuperAdmin(ROL) ? '<button class="sui-btn peligro" id="btnBorrar">Quitar</button>' : ''}`,
+    onCerrar: () => { SEL = null; pintarTabla(); },
+  });
+  $('#btnEditar').onclick = () => formFaq(d);
+  const bb = $('#btnBorrar'); if(bb) bb.onclick = () => borrar(d);
+}
+
 /* ---------- cajón: ficha del documento ---------- */
 function abrirDoc(id){
   const d = DOCS.find(x => x.id === id); if(!d) return;
+  if(d.categoria === 'faq'){ abrirFaq(d); return; }
   SEL = id; pintarTabla();
   const cat = (CATEGORIAS.find(c => c[0] === d.categoria) || ['otros','Otros'])[1];
   const enlace = !!d.url;
@@ -430,6 +461,63 @@ async function guardarDoc(d){
   b.disabled = false;
 }
 
+/* ---------- crear o editar una pregunta frecuente ----------
+   12-ago-2026, petición del owner: "entrenar a los comerciales" con las
+   preguntas que repiten los clientes, para no responder lo mismo cada vez.
+   Formulario aparte de formDoc() a propósito — una FAQ no tiene enlace ni
+   archivo, y meterla en el formulario de documentos habría sido un enlace
+   obligatorio sin sentido (guardarDoc() exige URL) más un puñado de
+   condicionales sobre "Dónde"/"Portal" que no le pintan nada a una pregunta.
+   Misma tabla (documentos_proyecto, categoria='faq') y misma carpeta fija
+   (CARPETA_FAQ): así aparece sola como su propia sección en el árbol de cada
+   proyecto, reusando lo que ya existe en vez de construir una vista nueva. */
+function formFaq(d){
+  const editando = !!d;
+  if(!editando){ SEL = null; pintarTabla(); }
+  const v = d || {};
+  suiAbrirCajon({
+    titulo: editando ? 'Editar pregunta frecuente' : 'Nueva pregunta frecuente',
+    sub: editando ? esc(v.titulo) : 'Para que el equipo comercial no tenga que responderla desde cero cada vez.',
+    cuerpo: `
+      <div class="campo"><label>Proyecto</label>
+        <select id="fProyectoFaq">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+      <div class="campo"><label>Pregunta</label>
+        <textarea id="fPregunta" rows="2" placeholder="Ej. ¿El precio incluye la parcela, la villa terminada, piscina, mobiliario, urbanización, impuestos y gastos legales?">${esc(v.titulo||'')}</textarea></div>
+      <div class="campo"><label>Respuesta</label>
+        <textarea id="fRespuesta" rows="5" placeholder="Déjalo en blanco si todavía no la tenéis — se puede rellenar más tarde">${esc(v.descripcion||'')}</textarea></div>`,
+    pie: `<button class="sui-btn primario" id="btnGuardarFaq">${editando ? 'Guardar cambios' : 'Guardar pregunta'}</button>
+          <button class="sui-btn" id="btnCancelarFaq">Cancelar</button>`,
+    onCerrar: () => { if(!editando){ SEL = null; pintarTabla(); } },
+  });
+  $('#btnGuardarFaq').onclick = () => guardarFaq(d);
+  $('#btnCancelarFaq').onclick = () => editando ? abrirFaq(d) : suiCerrarCajon();
+}
+
+async function guardarFaq(d){
+  const editando = !!d;
+  const pregunta = $('#fPregunta').value.trim();
+  if(!pregunta){ toast('Escribe la pregunta'); $('#fPregunta').focus(); return; }
+  const b = $('#btnGuardarFaq'); b.disabled = true;
+  try{
+    const fila = {
+      proyecto: $('#fProyectoFaq').value, carpeta: CARPETA_FAQ, categoria: 'faq',
+      titulo: pregunta, descripcion: $('#fRespuesta').value.trim() || null,
+      // Material interno para entrenar al equipo, nunca cara al cliente.
+      confidencial: true, visible_portal: false,
+    };
+    const q = editando
+      ? SB.from('documentos_proyecto').update(fila).eq('id', d.id).select('id')
+      : SB.from('documentos_proyecto').insert(fila).select('id');
+    const { data, error } = await q;
+    if(error) throw error;
+    if(!data || !data.length) throw new Error('no tienes permiso para ' + (editando ? 'editar' : 'añadir') + ' preguntas frecuentes');
+    await cargar();
+    if(editando){ SEL = d.id; abrirFaq({ ...d, ...fila }); } else { suiCerrarCajon(); }
+    toast(editando ? 'Guardado' : 'Pregunta guardada');
+  }catch(e){ toast('No se pudo guardar: ' + (e.message || e)); }
+  b.disabled = false;
+}
+
 /* Los archivos que ya estaban subidos se siguen abriendo. */
 async function abrirArchivo(d){
   try{
@@ -505,6 +593,7 @@ $('#filas').addEventListener('click', e => {
   abrirDoc(tr.dataset.id);
 });
 $('#btnNuevo').addEventListener('click', () => formDoc(null));
+$('#btnNuevaFaq').addEventListener('click', () => formFaq(null));
 
 suiMontarCajon();
 suiOrdenable($('#tabla'), ORDEN, (d, c) => d[c], pintarTabla);
