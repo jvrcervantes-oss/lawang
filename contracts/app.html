@@ -2004,6 +2004,17 @@ function aplicarReglasCampos(){
   syncPoaVinculado();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
+  /* Si el traspaso depende del pasaporte/email del comprador y esos se teclean
+     DESPUÉS de elegir proyecto, el selector se quedaría con el motivo viejo
+     ("falta pasaporte o email") y la parcela deshabilitada para siempre.
+     `cargarUnidadesDelProyecto` no sirve para esto: sale antes si el proyecto no
+     ha cambiado. Se repinta solo cuando la identidad cambia de verdad — repintar
+     en cada tecla rehace el <select> por debajo de quien lo esté usando. */
+  const firmaId = identificadoresDelFormulario().join('|');
+  if(firmaId !== ID_PINTADO){
+    ID_PINTADO = firmaId;
+    if(UNIDADES_PROY.lista.length) pintarSelectorParcela();
+  }
 }
 
 /* Código de parcela por proyecto (tokens.json → parcelaPorProyecto).
@@ -2221,6 +2232,9 @@ function applyRepresentanteComprador(data){
    misma regla de siempre: el sistema no frena una venta esperando a que alguien
    dé de alta el inventario. */
 let UNIDADES_PROY = { proyecto:null, lista:[] };
+// Firma de los identificadores del comprador con los que se pintó el selector.
+// Vive junto a UNIDADES_PROY, que es el otro estado que lee el mismo hook.
+let ID_PINTADO = null;
 /* Tipos que CEDEN una parcela al Bloqueo de Parcela (14-ago-2026, petición del
    owner; caso real: A4 de Bonian Village). Es la secuencia normal de una venta,
    la misma que describe el orden de TEMPLATES: se reserva, se bloquea la
@@ -2230,14 +2244,50 @@ let UNIDADES_PROY = { proyecto:null, lista:[] };
    parecía un choque con otra venta cuando era la SUYA PROPIA.
    Solo las Cartas de Reserva y solo hacia un Bloqueo: dos Bloqueos sobre la
    misma parcela, o una Carta sobre una parcela ya bloqueada, siguen chocando.
+   Y desde LAW-51 (mismo día), solo si es el MISMO comprador — ver
+   estadoTraspaso() e `identificadoresDelFormulario` aquí abajo, y
+   sql/traspaso_mismo_comprador_y_enlace.sql en la base.
    La regla vive por duplicado a propósito — aquí para no enseñar deshabilitado
    lo que sí se puede elegir, y en el trigger de Postgres porque es el único
    sitio que de verdad lo impide. Si cambia una, cambia la otra. */
 const TIPOS_CEDEN_PARCELA = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
-function puedeTraspasarParcela(u){
-  return CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela'
-      && !!u.ocupante && TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo);
+
+/* Los MISMOS identificadores con los que la base decide si dos contratos son
+   del mismo comprador: pasaporte y email, en minúsculas y sin espacios, del
+   Adquiriente I y de los adicionales. Réplica de
+   `public.contrato_identificadores` (sql/traspaso_mismo_comprador_y_enlace.sql).
+   Se comparan estos y no el nombre porque el nombre es texto libre: una tilde o
+   un segundo apellido darían un bloqueo falso. Es también lo que usa
+   `sincronizar_compradores` para crear o reconocer la ficha de `clients`, así
+   que "mismo comprador" significa aquí exactamente lo mismo que en Compradores.
+   ⚠️ Tercera copia de la regla del traspaso, con las otras dos: si cambia una,
+   cambian las tres. */
+const normId = v => String(v == null ? '' : v).trim().toLowerCase();
+const unicos = arr => [...new Set(arr.filter(Boolean))];
+function identificadoresOcupante(c){
+  const out = [normId(c && c.adq1_pasaporte), normId(c && c.adq1_email)];
+  (Array.isArray(c && c.extras) ? c.extras : []).forEach(e => {
+    out.push(normId(e && e.pasaporte), normId(e && e.email));
+  });
+  return unicos(out);
 }
+function identificadoresDelFormulario(){
+  const out = [];
+  compradoresDelFormulario().lista.forEach(p => { out.push(normId(p.pasaporte), normId(p.email)); });
+  return unicos(out);
+}
+/* Cuatro respuestas y no un sí/no: el desplegable tiene que poder decir POR QUÉ
+   una parcela no se puede coger. 'otro' y 'sin_datos' salían antes como
+   traspasables y reventaban al guardar, que es justo lo que este selector
+   existe para evitar (LAW-51, 14-ago-2026). */
+function estadoTraspaso(u){
+  if(CONTRACT_TIPO[CURRENT.slug] !== 'reserva_parcela') return 'no';
+  if(!u.ocupante || !TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo)) return 'no';
+  const mios = identificadoresDelFormulario(), suyos = identificadoresOcupante(u.ocupante);
+  if(!mios.length || !suyos.length) return 'sin_datos';
+  return mios.some(v => suyos.includes(v)) ? 'ok' : 'otro';
+}
+function puedeTraspasarParcela(u){ return estadoTraspaso(u) === 'ok'; }
 async function cargarUnidadesDelProyecto(proyecto){
   if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
   UNIDADES_PROY = { proyecto, lista:[] };
@@ -2260,7 +2310,12 @@ async function cargarUnidadesDelProyecto(proyecto){
        inventario: las parcelas ocupadas salen bloqueadas, como hasta hoy. */
     const ids = [...new Set(UNIDADES_PROY.lista.map(u=>u.contrato_id).filter(Boolean))];
     if(ids.length){
-      const { data: cs } = await sb.from('contratos').select('id,tipo,numero').in('id', ids);
+      // pasaporte/email del ocupante: hacen falta para saber si el traspaso es
+      // al MISMO comprador (estadoTraspaso). Sin esto el selector ofrecería
+      // parcelas de otro cliente que el trigger rechaza al guardar.
+      const { data: cs } = await sb.from('contratos')
+        .select('id,tipo,numero,adq1_pasaporte:datos->fields->>adq1_pasaporte,'
+              + 'adq1_email:datos->fields->>adq1_email,extras:datos->compradores').in('id', ids);
       const porId = Object.fromEntries((cs||[]).map(c=>[c.id, c]));
       UNIDADES_PROY.lista.forEach(u=>{ u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null; });
     }
@@ -2291,11 +2346,18 @@ function pintarSelectorParcela(){
     // paso normal de la venta, se puede elegir. La base de datos aplica la
     // misma regla (sql/parcela_traspaso_carta_a_bloqueo.sql) — esto es solo
     // para no enseñar deshabilitado algo que sí se puede hacer.
-    const traspaso = tomada && puedeTraspasarParcela(u);
+    const modo = tomada ? estadoTraspaso(u) : 'no';
+    const traspaso = modo === 'ok';
+    const suNum = (u.ocupante && u.ocupante.numero) || 'una Carta de Reserva';
+    // Cada motivo dice lo suyo: "ya asignada" a secas sobre una Carta del mismo
+    // cliente haría pensar que el traspaso no existe, y sobre una de otro
+    // cliente escondería que el problema es de quién es, no de que esté ocupada.
+    const nota = traspaso        ? 'reservada en ' + suNum + ' · se traspasa a este contrato'
+               : modo === 'otro' ? 'reservada en ' + suNum + ' · de otro comprador'
+               : modo === 'sin_datos' ? 'reservada en ' + suNum + ' · falta pasaporte o email para traspasarla'
+               : tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '');
     const partes = [u.codigo, u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : '',
-                    u.precio ? fmtImporte(Number(u.precio)) + ' ' + (u.moneda||'EUR') : '',
-                    traspaso ? 'reservada en ' + ((u.ocupante&&u.ocupante.numero)||'una Carta de Reserva') + ' · se traspasa a este contrato'
-                             : (tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : ''))];
+                    u.precio ? fmtImporte(Number(u.precio)) + ' ' + (u.moneda||'EUR') : '', nota];
     return `<option value="${escAttr(u.codigo)}" ${tomada&&!traspaso?'disabled':''} ${u.codigo===valor?'selected':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
@@ -2305,7 +2367,11 @@ function pintarSelectorParcela(){
     ? `<option value="${escAttr(valor)}" selected>${escAttr(valor)} · fuera del inventario</option>` : '';
   const html = `<select name="parcela_codigo"><option value="">— elegir parcela —</option>${suelto}${ops}</select>`;
   if(campo) campo.outerHTML = html; else caja.insertAdjacentHTML('beforeend', html);
-  if(!caja.querySelector('.hint-unidades')){
+  // Se rehace en vez de conservarse: el contador de traspasables depende del
+  // pasaporte del comprador, que se teclea después. Dejándolo puesto se quedaba
+  // con la cuenta de antes de saber quién compra.
+  caja.querySelector('.hint-unidades')?.remove();
+  {
     const libresN = libres.filter(u => !u.contrato_id && u.estado === 'disponible').length;
     // las traspasables se cuentan aparte: sin decirlo, el agente ve "3 libres",
     // no encuentra la suya entre ellas y da por hecho que no puede seguir.
@@ -3501,10 +3567,12 @@ async function guardarContrato(){
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
   }catch(err){
     // El trigger `sincroniza_unidad_contrato` para el guardado si la parcela ya
-    // es de otro contrato. Ese mensaje ya viene escrito para leerse, así que se
-    // enseña tal cual en vez de envolverlo en jerga de base de datos.
+    // es de otro contrato, o si el traspaso no es del mismo comprador (LAW-51).
+    // Esos mensajes ya vienen escritos para leerse —dicen qué falta y dónde—,
+    // así que se enseñan tal cual en vez de envolverlos en jerga de base de
+    // datos. Si se toca el texto de una excepción, tocar también este patrón.
     const m = String(err.message || err);
-    toast(/ya est[aá] asignada/i.test(m) ? m : 'No se pudo guardar: ' + m);
+    toast(/ya est[aá] asignada|^El traspaso de la parcela/i.test(m) ? m : 'No se pudo guardar: ' + m);
   }
   btn.disabled=false; updateSaveButton();
 }
