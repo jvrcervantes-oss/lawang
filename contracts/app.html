@@ -799,8 +799,12 @@ const TIPOS_VINCULABLES = ['reserva_parcela'];
 let VINCULABLES = null;      // caché de sesión; null = aún sin cargar
 async function cargarVinculables(){
   if(VINCULABLES || !sb) return;
+  // Trae tambien la parcela del Bloqueo: es lo que permite deducir el precio de
+  // la OBRA (villa - suelo) cuando la Construccion se vincula. Ver
+  // syncPrecioObraVinculada.
   const { data, error } = await sb.from('contratos')
-    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato:datos->fields->>nombre_contrato')
+    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato:datos->fields->>nombre_contrato,'
+          + 'parcela_codigo:datos->fields->>parcela_codigo')
     .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES = data || [];
 }
@@ -2005,6 +2009,7 @@ function aplicarReglasCampos(){
   syncResort();
   syncApoderadoHakSewa();
   syncPoaVinculado();
+  syncPrecioObraVinculada();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
   /* Si el traspaso depende del pasaporte/email del comprador y esos se teclean
@@ -2414,12 +2419,12 @@ const AUTO_UNIDAD = {};
    una cifra de dinero en un contrato.
    El botón de confirmar NO va en tono peligro: aquí no se destruye nada, se
    corrige. El rojo se reserva para lo que no se deshace. */
-async function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa, el }){
+async function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa, el, queEsTexto }){
   const mon = unidad.moneda || 'EUR';
   const im = n => fmtImporte(n) + ' ' + mon;
-  const queEs = tipoDoc === 'reserva_parcela'
+  const queEs = queEsTexto || (tipoDoc === 'reserva_parcela'
     ? `el <b>suelo</b> de ${escAttr(unidad.codigo)}`
-    : `la <b>obra</b> de ${escAttr(unidad.codigo)} (la villa entera ${im(villa)} menos el suelo ${im(suelo)})`;
+    : `la <b>obra</b> de ${escAttr(unidad.codigo)} (la villa entera ${im(villa)} menos el suelo ${im(suelo)})`);
   const ok = await lwConfirmar({
     titulo: 'He corregido el precio',
     cuerpo:
@@ -2434,6 +2439,44 @@ async function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa,
     el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
     toast('Precio devuelto a ' + antes + ' ' + mon);
   }
+}
+/* Precio de la OBRA desde el Bloqueo vinculado — 15-ago-2026.
+   La Construccion NO tiene selector de parcela: `ppjb_construccion.html` no
+   lleva `parcela_codigo` (verificado), asi que `syncDatosDeUnidad` no corre
+   nunca aqui y el precio de la obra no lo precargaba nadie. Resultado: la
+   Construccion se quedaba con el precio de la villa ENTERA que arrastrara el
+   formulario, y sumada a su Bloqueo daba el doble -- CC00021 de Juan Jose
+   Carbajo Pinal, 164.000 cuando la obra son 95.600.
+   El Bloqueo si sabe su parcela, y la parcela sabe villa y suelo. Al elegir el
+   contrato vinculado se deduce la obra (villa - suelo) y se avisa igual que en
+   el Bloqueo, con la opcion de dejar el precio que hubiera: puede estar
+   negociado. */
+let OBRA_VINCULO_HECHO = null;   // numero del Bloqueo ya resuelto, para no repreguntar en cada tecla
+async function syncPrecioObraVinculada(){
+  if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !sb) return;
+  const sel = document.querySelector('[name="num_reserva_vinculada"]');
+  const el  = document.querySelector('[name="precio_total"]');
+  if(!sel || !el) return;
+  if(!sel.value){ OBRA_VINCULO_HECHO = null; return; }
+  if(sel.value === OBRA_VINCULO_HECHO) return;
+  OBRA_VINCULO_HECHO = sel.value;                    // se marca ANTES de esperar, o dos teclas seguidas lanzan dos avisos
+  const padre = (VINCULABLES||[]).find(c => c.numero === sel.value);
+  if(!padre || !padre.parcela_codigo || !padre.proyecto_nombre) return;
+  const { data:u, error } = await sb.from('unidades')
+    .select('codigo,precio,precio_suelo,moneda')
+    .eq('proyecto', padre.proyecto_nombre).eq('codigo', padre.parcela_codigo).maybeSingle();
+  if(error || !u || u.precio == null || u.precio_suelo == null) return;
+  const obra = Number(u.precio) - Number(u.precio_suelo);
+  if(!(obra > 0)) return;                            // datos raros: mejor no tocar nada
+  const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
+  if(antes && parseImporte(antes) === obra) return;  // ya cuadra
+  if(!antes){ el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo; return; }
+  el.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
+  const mon = u.moneda || 'EUR';
+  avisaPrecioForzado({ antes, nuevo, tipoDoc:'construccion', unidad:u, el,
+    queEsTexto: `la <b>obra</b> de ${escAttr(u.codigo)} seg\u00fan ${escAttr(sel.value)}: `
+              + `la villa entera ${fmtImporte(Number(u.precio))} ${mon} menos el suelo `
+              + `${fmtImporte(Number(u.precio_suelo))} ${mon}` });
 }
 function syncDatosDeUnidad(){
   const sel = document.querySelector('[name="parcela_codigo"]');
