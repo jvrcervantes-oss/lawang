@@ -10,10 +10,31 @@
        acompaña al Hak Sewa ante notario (templates/hak_sewa_notario.html): es
        el "Poder Especial de fecha {{hsn_poder_fecha}}, otorgado ante Notario y
        adjunto al presente Contrato" que ese contrato menciona en su
-       comparecencia. Reutiliza el mismo apoderado (hsn_apoderado_*, catálogo
-       APODERADOS_HAK_SEWA en assets/entities.js — Supabase, no tokens.json
-       desde el 12-ago) y la misma fecha del poder — son el mismo hecho legal
-       en dos documentos.
+       comparecencia. Comparte la fecha del poder con ese contrato — son el
+       mismo hecho legal en dos documentos.
+       ⚠️ 14-ago-2026, petición del owner — TRES cambios que rompen la simetría
+       que este documento tenía con el Hak Sewa:
+       1. OTORGANTE = el COMPRADOR del Hak Sewa vinculado (adq1_nombre /
+          adq1_pasaporte), no el propietario del suelo. Antes imprimía
+          hsn_propietario_*, que es la Primera Parte del Hak Sewa; el poder lo
+          da quien compra/arrienda, que es a quien corresponde la cláusula
+          KHUSUS de más abajo (comprar y arrendar en Bali y Sumba) y el único
+          que aporta pasaporte. Los dos campos los PRECARGA el desplegable
+          "Hak Sewa vinculado" del formulario (obligatorio, ver deriveSections
+          y syncPoaVinculado en app.html) — no se teclean sueltos.
+       2. APODERADO = NI LUH GEDE DIAH SURASTRI. I WAYAN EKA ARYAWAN sale del
+          desplegable de ESTE documento (OPCIONES_POR_PLANTILLA en app.html);
+          sigue siendo el apoderado de la Primera Parte en el Hak Sewa, que no
+          se toca. Un POA ya guardado con su nombre lo conserva.
+       3. Sin anexo de KTP: la página 2 era la fotocopia del DNI indonesio del
+          apoderado, y no hay KTP de la apoderada nueva. El documento queda de
+          una sola página. Si el cliente la trae, se recupera devolviendo el
+          marcador hsn_apoderado_ktp a un <img> (la maquinaria de signed URL
+          sigue en app.html, applyApoderado/APODERADO_KTP_URL, y solo se activa
+          si esta plantilla vuelve a traer ese marcador — escrito sin llaves
+          aquí a propósito: deriveSections lee los {{…}} del fichero ENTERO,
+          comentarios incluidos, y con llaves este párrafo reactivaría el
+          fetch de la KTP él solo).
        ID = texto EXACTO del cliente (10-ago-2026, Google Doc "1. POA Jaime GC"),
        transcrito literal. ES/EN (11-ago-2026) SON TRADUCCIÓN DE TRABAJO DE
        AXISWORKS, no texto del cliente — el cliente solo dio el bahasa, que es
@@ -32,13 +53,9 @@
        cliente lo pida, mismo criterio que las erratas de hak_sewa_notario.html
        («Testafierro», «MESEQUER»). Avisado en la entrega del 10-ago.
        Firma: línea en blanco a propósito, se firma en papel/notario (mismo
-       criterio que hak_sewa_notario.html) — LAWANG no es parte de este poder.
-       Página 2: fotocopia de la KTP del apoderado, exhibit habitual en este
-       tipo de poder. La imagen NO es un dato del formulario: sale del catálogo
-       APODERADOS_HAK_SEWA vía applyApoderado()/hsn_apoderado_ktp, resuelta como
-       signed URL de Supabase Storage (bucket privado `kyc`) en tiempo de
-       render — nunca como fichero estático público, a diferencia del resto de
-       assets de contracts/. -->
+       criterio que hak_sewa_notario.html) — LAWANG no es parte de este poder,
+       y por eso el formulario tampoco pregunta el "Firmante" (campo de gestión
+       que sí sale en el resto de contratos; retirado aquí el 14-ago). -->
   <div class="doc">
 
     <div class="doc-title">
@@ -52,9 +69,9 @@
     <p data-lang="id">Yang bertandatangan dibawah ini :</p>
 
     <div class="party">
-      <p data-lang="es"><b>Nombre</b>: <span class="f">{{hsn_propietario_nombre}}</span><br><b>Pasaporte</b>: <span class="f">{{hsn_propietario_pasaporte}}</span></p>
-      <p data-lang="en"><b>Name</b>: <span class="f">{{hsn_propietario_nombre}}</span><br><b>Passport</b>: <span class="f">{{hsn_propietario_pasaporte}}</span></p>
-      <p data-lang="id"><b>Nama</b> : <span class="f">{{hsn_propietario_nombre}}</span><br><b>Paspor</b> : <span class="f">{{hsn_propietario_pasaporte}}</span></p>
+      <p data-lang="es"><b>Nombre</b>: <span class="f">{{adq1_nombre}}</span><br><b>Pasaporte</b>: <span class="f">{{adq1_pasaporte}}</span></p>
+      <p data-lang="en"><b>Name</b>: <span class="f">{{adq1_nombre}}</span><br><b>Passport</b>: <span class="f">{{adq1_pasaporte}}</span></p>
+      <p data-lang="id"><b>Nama</b> : <span class="f">{{adq1_nombre}}</span><br><b>Paspor</b> : <span class="f">{{adq1_pasaporte}}</span></p>
       <p data-lang="es">En lo sucesivo denominado el &ldquo;<b>Otorgante</b>&rdquo;</p>
       <p data-lang="en">Hereinafter referred to as the &ldquo;<b>Grantor</b>&rdquo;</p>
       <p data-lang="id">Selanjutnya cukup disebut &ldquo;<b>Pemberi Kuasa</b>&rdquo;</p>
@@ -92,10 +109,7 @@
 
     <!-- línea en blanco a propósito: se firma en papel, ante notario -->
     <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm"></div>
-    <p style="margin-top:4px;font-size:9pt"><span class="f">{{hsn_propietario_nombre}}</span></p>
-
-    <h2 style="page-break-before:always"><span data-lang="es">Anexo — DNI del Apoderado</span><span data-lang="en">Attachment — Attorney-in-fact's ID Card</span><span data-lang="id">Lampiran — KTP Penerima Kuasa</span></h2>
-    <img src="{{hsn_apoderado_ktp}}" alt="" style="max-width:150mm;display:block">
+    <p style="margin-top:4px;font-size:9pt"><span class="f">{{adq1_nombre}}</span></p>
 
   </div>
 </body>

@@ -748,7 +748,8 @@ const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', co
   commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
   acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo',
   ppjb_bonian:'PPJB Bonian Beach', ppjb_bonian_c2:'PPJB Bonian Beach · Parcela C2', hak_sewa_notario:'Hak Sewa - Notario',
-  carta_reserva_hak_sewa:'Carta de Reserva (Hak Sewa)' };
+  carta_reserva_hak_sewa:'Carta de Reserva (Hak Sewa)',
+  poa:'Poder Notarial' };   // faltaba: el listado de guardados enseñaba "poa" en crudo (cpTipoLabel cae a la clave)
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 
@@ -774,6 +775,29 @@ async function cargarVinculables(){
     .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato:datos->fields->>nombre_contrato')
     .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES = data || [];
+}
+
+/* Contratos a los que un Poder Notarial se vincula (14-ago-2026, petición del
+   owner: "que se asocie sí o sí a un contrato existente"). Solo el Hak Sewa
+   ante notario: el POA ES el exhibit de ese contrato — el "Poder Especial de
+   fecha …, adjunto al presente Contrato" que su comparecencia cita. Un poder
+   suelto, sin el contrato al que acompaña, no tiene a quién nombrar Otorgante.
+   Lista APARTE de VINCULABLES (que es de Construcción→Parcela) porque son dos
+   relaciones distintas con dos listas de tipos distintas; compartir la caché
+   habría hecho que abrir un POA dejara al siguiente contrato de Construcción
+   ofreciendo Hak Sewas.
+   Trae también el comprador del Hak Sewa: es lo que precarga al Otorgante del
+   poder (adq1_nombre/adq1_pasaporte, ver syncPoaVinculado). `comprador_nombre`
+   es columna, el pasaporte solo vive en el jsonb del contrato. */
+const TIPOS_VINCULABLES_POA = ['hak_sewa_notario'];
+let VINCULABLES_POA = null;
+async function cargarVinculablesPoa(){
+  if(VINCULABLES_POA || !sb) return;
+  const { data, error } = await sb.from('contratos')
+    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,'
+          + 'adq1_nombre:datos->fields->>adq1_nombre,adq1_pasaporte:datos->fields->>adq1_pasaporte')
+    .in('tipo', TIPOS_VINCULABLES_POA).order('created_at',{ascending:false}).limit(300);
+  if(!error) VINCULABLES_POA = data || [];
 }
 
 /* ancho del hueco según el dato: un % o fecha no necesita tanto sitio como un nombre */
@@ -1668,7 +1692,7 @@ function resetBorrador(slug){
   CLAUSES = []; saveClauses();
   ADQ1_EMAILS = []; EMAIL_EXTRA_ADDING = false;
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
-  AUTO_APODERADO = {};
+  AUTO_APODERADO = {}; AUTO_POA = {};
   avisoMismoApoderado = null;   // 11-ago, hallazgo Legal MEDIA: si no se resetea, cambiar a OTRO contrato que
   // también tenga el mismo apoderado en las dos partes se queda mudo por casualidad de string
 }
@@ -1945,6 +1969,7 @@ function aplicarReglasCampos(){
   syncParcelaMaster();
   syncResort();
   syncApoderadoHakSewa();
+  syncPoaVinculado();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
 }
@@ -2051,7 +2076,13 @@ async function syncApoderadoHakSewa(){
     poner(ocupK, datos.ocupacion);
     poner(dirK, datos.direccion);
     poner(nikK, datos.nik);
-    if(selName === 'hsn_apoderado_nombre' && datos.ktp && sb && !APODERADO_KTP_URL[sel.value]){
+    // Solo si la plantilla activa IMPRIME la KTP. Desde que el POA perdió su
+    // anexo (14-ago) ninguna lo hace, y pedir una signed URL de un bucket
+    // privado para una imagen que no se va a renderizar es exponer un fichero
+    // KYC sin que nadie lo mire. La maquinaria se queda: basta con devolver el
+    // marcador a la plantilla para que vuelva a funcionar.
+    if(selName === 'hsn_apoderado_nombre' && templateHTML.includes('{{hsn_apoderado_ktp}}')
+       && datos.ktp && sb && !APODERADO_KTP_URL[sel.value]){
       const { data } = await sb.storage.from('kyc').createSignedUrl(datos.ktp, 3600);
       if(data && data.signedUrl){ APODERADO_KTP_URL[sel.value] = data.signedUrl; renderDebounced(); }
     }
@@ -2078,6 +2109,35 @@ function avisarMismoApoderado(){
    llegado) — mismo sitio y mismo momento que applyPromotor(data). */
 function applyApoderado(data){
   data.hsn_apoderado_ktp = APODERADO_KTP_URL[data.hsn_apoderado_nombre] || '';
+}
+
+/* Poder Notarial: el Otorgante sale del Hak Sewa vinculado (14-ago-2026).
+   Elegir el contrato en el desplegable `poa_hs_vinculado` precarga nombre y
+   pasaporte del COMPRADOR de ese contrato — el poder lo otorga quien compra,
+   no el propietario del suelo (ver cabecera de templates/poa_notario.html).
+   Mismo criterio de "no pisar lo escrito a mano" que syncApoderadoHakSewa: solo
+   se rellena el hueco vacío o el que todavía tiene el valor que puso este
+   automatismo, para que una corrección puntual del agente (una tilde, un
+   pasaporte renovado) sobreviva al siguiente re-render. Quedan editables a
+   propósito: el poder se firma ante notario y a veces el pasaporte del Hak Sewa
+   ya no es el vigente. */
+let AUTO_POA = {};
+function syncPoaVinculado(){
+  if(!CURRENT || CURRENT.slug !== 'poa_notario') return;
+  const sel = document.querySelector('[name="poa_hs_vinculado"]');
+  if(!sel || !sel.value) return;
+  const hs = (VINCULABLES_POA || []).find(c => c.numero === sel.value);
+  if(!hs) return;   // número guardado de un contrato que ya no está: se imprime igual, no precarga nada
+  const poner = (campo, valor) => {
+    const el = document.querySelector(`[name="${campo}"]`);
+    if(!el || !valor) return;
+    const actual = String(el.value || '').trim();
+    if(actual && actual !== AUTO_POA[campo]) return;   // escrito a mano: intocable
+    el.value = valor;
+    AUTO_POA[campo] = valor;
+  };
+  poner('adq1_nombre', hs.adq1_nombre || hs.comprador_nombre);
+  poner('adq1_pasaporte', hs.adq1_pasaporte);
 }
 /* Segunda Parte del Hak Sewa (11-ago): el comprador puede firmar por medio de
    un apoderado del mismo catálogo. adq2_firmante_nombre es quien FIRMA de
@@ -2837,7 +2897,41 @@ const ETIQUETAS_POR_PLANTILLA = {
   // El C2 no tiene mas campo que este (el resto del texto va escrito dentro,
   // fijo): es lo unico que identifica el contrato en el listado, de ahi la
   // etiqueta explicita en vez del humanize() generico de "Otros campos".
-  ppjb_bonian_c2: { proyecto_nombre: {es:'Nombre del proyecto',en:'Project name',id:'Nama proyek'} }
+  ppjb_bonian_c2: { proyecto_nombre: {es:'Nombre del proyecto',en:'Project name',id:'Nama proyek'} },
+  // En el POA el "Poder Especial" no es un poder de terceros que se cite: es
+  // ESTE documento, y la fecha es la suya. Y quien pone nombre y pasaporte es
+  // el Otorgante, no un adquiriente de una compraventa.
+  poa_notario: {
+    hsn_poder_fecha: {es:'Fecha del poder',en:'Date of the power of attorney',id:'Tanggal surat kuasa'},
+    adq1_nombre:    {es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'},
+    adq1_pasaporte: {es:'Nº de pasaporte',en:'Passport no.',id:'No. paspor'},
+  }
+};
+/* Un mismo campo con distinto catálogo según el documento (14-ago-2026). Nace
+   con `hsn_apoderado_nombre`, que comparten el Hak Sewa y el Poder Notarial:
+   desde hoy el poder se otorga a NI LUH GEDE DIAH SURASTRI y el Hak Sewa lo
+   sigue firmando I WAYAN EKA ARYAWAN como apoderado del propietario. Son la
+   misma columna de la misma tabla (`apoderados_hak_sewa`) y el mismo marcador,
+   pero NO la misma persona ni el mismo papel, así que el corte va por plantilla
+   y no por catálogo — borrar a I Wayan Eka de la tabla habría dejado sin
+   apoderado al documento 4.
+   Los nombres se quedan en tokens.json (no son dato sensible, ver
+   _nota_apoderados_hak_sewa); esto solo decide cuáles se OFRECEN en cada
+   documento. Un contrato ya guardado con un nombre que aquí no aparece lo
+   conserva: buildField lo reinyecta como opción huérfana. */
+const OPCIONES_POR_PLANTILLA = {
+  hak_sewa_notario: { hsn_apoderado_nombre: ['I WAYAN EKA ARYAWAN'] },
+  poa_notario:      { hsn_apoderado_nombre: ['NI LUH GEDE DIAH SURASTRI'] },
+};
+/* Título de sección distinto en un documento concreto. El POA reusa la sección
+   `hs_primera_parte` del Hak Sewa para el apoderado y la fecha del poder, pero
+   ahí no hay ninguna "Primera Parte" ni ningún propietario: llamarla así en
+   este documento describía mal lo que el agente está rellenando. */
+const TITULOS_POR_PLANTILLA = {
+  poa_notario: {
+    comprador:        {es:'Otorgante — se precarga del Hak Sewa vinculado',en:'Grantor — prefilled from the linked Hak Sewa',id:'Pemberi Kuasa — dari Hak Sewa terkait'},
+    hs_primera_parte: {es:'Apoderado (a quien se otorga el poder)',en:'Attorney-in-fact (grantee of the power)',id:'Penerima Kuasa'},
+  }
 };
 function deriveSections(){
   const src = (TOKENS && TOKENS.sections && TOKENS.sections.length) ? TOKENS.sections : FALLBACK_SECTIONS;
@@ -2859,7 +2953,12 @@ function deriveSections(){
   // firmante (10-ago): campo de gestión interna, no imprime {{firmante}} en
   // ningún documento — mismo motivo que resort, forzado para que sobreviva al
   // filtro en TODAS las plantillas (petición del cliente: "en todos los contratos").
-  inDoc.add('firmante');
+  // Excepto el Poder Notarial (14-ago, petición del owner): ahí LAWANG no es
+  // parte —el poder va del comprador a su apoderada, y la única firma del
+  // documento es la del Otorgante en papel ante notario—, así que preguntar
+  // quién firma por Lawang no tenía respuesta posible. Un POA ya guardado con
+  // firmante conserva el valor en su jsonb; simplemente deja de preguntarse.
+  if(CURRENT.slug !== 'poa_notario') inDoc.add('firmante');
   // nombre_contrato (11-ago): mismo motivo que firmante — campo de gestión
   // interna en TODAS las plantillas, no imprime nada. Sustituye al nombre del
   // comprador en el listado de guardados cuando se rellena (ver contractPayload);
@@ -2876,6 +2975,12 @@ function deriveSections(){
                 .filter(s=>s.fields.length);
   const relabel = ETIQUETAS_POR_PLANTILLA[CURRENT.slug];
   if(relabel) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> relabel[f[0]] ? [f[0], relabel[f[0]], ...f.slice(2)] : f); });
+  // catálogo de opciones propio de esta plantilla (ver OPCIONES_POR_PLANTILLA):
+  // sustituye la lista del select, deja intactos clave, etiqueta y tipo.
+  const reopts = OPCIONES_POR_PLANTILLA[CURRENT.slug];
+  if(reopts) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> (reopts[f[0]] && f[2]==='select') ? [f[0], f[1], f[2], reopts[f[0]]] : f); });
+  const retitle = TITULOS_POR_PLANTILLA[CURRENT.slug];
+  if(retitle) SECTIONS.forEach(s=>{ if(retitle[s.id]) s.title = retitle[s.id]; });
   // nº de reserva/PPJB vinculado → desplegable con los contratos guardados. Si
   // la lista no cargó (sin red), el campo se queda como texto libre y no bloquea.
   if(inDoc.has('num_reserva_vinculada') && (VINCULABLES||[]).length){
@@ -2924,6 +3029,24 @@ function deriveSections(){
     if(g) g.fields.push(campo);
     else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
   }
+  /* Hak Sewa vinculado (POA, 14-ago-2026): campo OBLIGATORIO y sin marcador en
+     la plantilla —no se imprime, identifica la operación— así que se inyecta
+     aquí igual que `sociedad_firmante`, en "Gestión del contrato". Es lo que
+     precarga al Otorgante (syncPoaVinculado) y lo que guardarContrato() exige
+     antes de dejar guardar; contractPayload lo resuelve a `contrato_padre_id`
+     para que Operaciones enseñe el poder colgando de su Hak Sewa.
+     Si la consulta no llegó (sin red) el campo se pinta como texto libre: no
+     poder guardar por no tener lista es peor que un número tecleado. */
+  if(CURRENT.slug === 'poa_notario'){
+    const etiqueta = {es:'Hak Sewa vinculado (obligatorio)',en:'Linked Hak Sewa (required)',id:'Hak Sewa terkait (wajib)'};
+    const opts = (VINCULABLES_POA||[]).map(c=>[c.numero,
+      c.numero+' · '+(c.adq1_nombre||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+    const campo = opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
+                              : ['poa_hs_vinculado', etiqueta, 'text'];
+    const g = SECTIONS.find(s=>s.id==='gestion');
+    if(g) g.fields.unshift(campo);
+    else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
+  }
   // orden pedido por el cliente, igual en todos los contratos (los no listados, al final)
   const rank = id => { const i = FORM_ORDER.indexOf(id); return i<0 ? FORM_ORDER.length : i; };
   SECTIONS = SECTIONS.map((s,i)=>({s,i}))
@@ -2937,6 +3060,7 @@ async function loadTemplate(slug){
   try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
+  if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
   deriveSections();
   // Diseño: Supabase compartido (la plantilla "real") > caché local de este
   // navegador (edición sin guardar) > default de fábrica.
@@ -3149,7 +3273,12 @@ function contractPayload(){
     // vínculo con la reserva/PPJB de la misma venta: el número elegido en el
     // desplegable se resuelve a su id. Un valor viejo tecleado a mano que no
     // case con ningún contrato guardado imprime igual pero no vincula (null).
-    contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id || null,
+    // El POA cuelga de su Hak Sewa por el mismo campo (poa_hs_vinculado), para
+    // que Operaciones junte poder y contrato en una sola operación sin saber
+    // nada de tipos: el padre es el padre, venga del desplegable que venga.
+    contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id
+                    || ((VINCULABLES_POA||[]).find(c=>c.numero===data.poa_hs_vinculado)||{}).id
+                    || null,
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
@@ -3209,6 +3338,16 @@ async function guardarContrato(){
   if(LOCKED){ toast('Contrato bloqueado, no se puede guardar'); return; }   // el botón ya se oculta; la RLS también lo bloquearía
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   if(!tipo) return;
+  /* El Poder Notarial no existe suelto (14-ago, petición del owner): acompaña a
+     un Hak Sewa concreto y de él saca al Otorgante. Se para AQUÍ y no solo en
+     el aviso visual porque sin guardar no hay número ni "Enviar a firma", así
+     que este es el único portillo por el que puede salir un poder huérfano. */
+  if(CURRENT.slug === 'poa_notario' && !String((collect().poa_hs_vinculado)||'').trim()){
+    toast('Elige el Hak Sewa al que acompaña este Poder Notarial antes de guardarlo');
+    const el = document.querySelector('[name="poa_hs_vinculado"]');
+    if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+    return;
+  }
   const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
@@ -3616,7 +3755,7 @@ async function openSavedContract(id){
   // nuevo", pero ABRIR uno guardado no pasa por ahí — sin esto, el apoderado o el
   // aviso de "mismo apoderado en las dos partes" del contrato ANTERIOR se cuela
   // en el que se acaba de abrir.
-  AUTO_APODERADO = {}; avisoMismoApoderado = null;
+  AUTO_APODERADO = {}; AUTO_POA = {}; avisoMismoApoderado = null;
   aplicarReglasCampos();
   refreshHitos();
   if($('#emailsExtraPanel')){ $('#emailsExtraPanel').outerHTML = buildEmailsExtraHTML(); wireEmailsExtra(); }
