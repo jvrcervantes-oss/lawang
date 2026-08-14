@@ -16,7 +16,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=9957ec6c">
+<link rel="stylesheet" href="assets/suite.css?v=0e4d00b3">
 <script src="assets/topbar.js?v=b0cb5eff" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -551,26 +551,6 @@
         <p class="em-note">Se copian comprador, proyecto, unidad, importes e hitos. No se copian el número, la fecha de firma ni las firmas.</p>
         <label>Contrato a generar<select id="dvTpl"></select></label>
         <button class="btn primary" id="dvGo" style="margin-top:6px">Generar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Aviso de precio corregido desde el inventario — 14-ago-2026, petición del
-       owner. La venta va partida en dos contratos: el Bloqueo de Parcela cobra
-       el SUELO y la Construcción la OBRA. Cuando se viene de una Carta de
-       Reserva el precio que arrastra el formulario no es de fiar: unos agentes
-       ponen la villa entera, otros solo la parcela. Así que se FUERZA el valor
-       del inventario y se avisa en el centro de la pantalla, con la salida de
-       dejar el que había: forzar en silencio sería peor que el problema. -->
-  <div class="cp-overlay" id="pxOverlay">
-    <div class="cp-modal" style="width:min(520px,100%)">
-      <div class="cp-head"><b>He corregido el precio</b></div>
-      <div class="em-body">
-        <p class="em-note" id="pxTexto" style="line-height:1.6"></p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button type="button" class="btn primary" id="pxOk">Vale, dejar el del inventario</button>
-          <button type="button" class="btn" id="pxUndo">Dejar el que tenía</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2427,31 +2407,33 @@ function wireCampoParcela(){
    comercial pactó otro precio, no se le pisa. */
 const AUTO_UNIDAD = {};
 /* Aviso de precio forzado desde el inventario — 14-ago-2026, petición del owner.
-   No es un toast a propósito: un aviso que se va solo en 4 segundos no vale para
-   algo que cambia una cifra de dinero en un contrato. Va en el centro, para y
-   pide una respuesta, y siempre deja volver al valor anterior — el inventario es
-   el punto de partida de una negociación, no la última palabra. */
-function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa, el }){
-  const ov = document.getElementById('pxOverlay');
-  const txt = document.getElementById('pxTexto');
-  if(!ov || !txt){ el.value = nuevo; return; }   // sin modal, al menos no se pierde la corrección
+   Usa `lwConfirmar` (assets/dialogo.js), el diálogo único de la suite: hasta el
+   15-ago esto tenía su PROPIO modal pegado en el HTML de esta página, que es
+   justo lo que la capa compartida existe para evitar. No es un toast a
+   propósito — un aviso que se va solo en 4 segundos no vale para algo que cambia
+   una cifra de dinero en un contrato.
+   El botón de confirmar NO va en tono peligro: aquí no se destruye nada, se
+   corrige. El rojo se reserva para lo que no se deshace. */
+async function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa, el }){
   const mon = unidad.moneda || 'EUR';
   const im = n => fmtImporte(n) + ' ' + mon;
   const queEs = tipoDoc === 'reserva_parcela'
     ? `el <b>suelo</b> de ${escAttr(unidad.codigo)}`
     : `la <b>obra</b> de ${escAttr(unidad.codigo)} (la villa entera ${im(villa)} menos el suelo ${im(suelo)})`;
-  txt.innerHTML =
-    `Este documento traía <b>${escAttr(antes)} ${mon}</b> y lo he cambiado a <b>${escAttr(nuevo)} ${mon}</b>, que es ${queEs} según el inventario.`
-    + `<br><br>La venta va partida en dos contratos: el <b>Bloqueo de Parcela</b> cobra el suelo y el <b>Contrato de Construcción</b> la obra. Si los dos llevan el precio de la villa completa, el cliente aparece debiendo el doble.`
-    + `<br><br>Si el precio de esta operación está negociado, deja el que tenías y edítalo a mano.`;
-  ov.classList.add('open');
-  const cerrar = () => ov.classList.remove('open');
-  document.getElementById('pxOk').onclick   = cerrar;
-  document.getElementById('pxUndo').onclick = () => {
-    el.value = antes; AUTO_UNIDAD['precio_total'] = antes; cerrar();
+  const ok = await lwConfirmar({
+    titulo: 'He corregido el precio',
+    cuerpo:
+      `<p>Este documento traía <b>${escAttr(antes)} ${mon}</b> y lo he cambiado a <b>${escAttr(nuevo)} ${mon}</b>, que es ${queEs} según el inventario.</p>`
+      + `<p>La venta va partida en dos contratos: el <b>Bloqueo de Parcela</b> cobra el suelo y el <b>Contrato de Construcción</b> la obra. Si los dos llevan el precio de la villa completa, el cliente aparece debiendo el doble.</p>`
+      + `<p>Si el precio de esta operación está negociado, deja el que tenías y edítalo a mano.</p>`,
+    confirmar: 'Dejar ' + nuevo + ' ' + mon,
+    cancelar:  'Dejar ' + antes + ' ' + mon,
+  });
+  if(!ok){
+    el.value = antes; AUTO_UNIDAD['precio_total'] = antes;
     el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
     toast('Precio devuelto a ' + antes + ' ' + mon);
-  };
+  }
 }
 function syncDatosDeUnidad(){
   const sel = document.querySelector('[name="parcela_codigo"]');

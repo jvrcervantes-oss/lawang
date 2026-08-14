@@ -609,3 +609,46 @@ select.lw-select-nativo{
   -webkit-appearance:auto; -moz-appearance:auto; appearance:auto;
   background-image:none; padding-right:11px;
 }
+
+/* ===========================================================================
+   DIÁLOGO DE CONFIRMACIÓN — la pieza de assets/dialogo.js (15-ago-2026)
+   ---------------------------------------------------------------------------
+   El marcado lo inyecta el propio JS, aquí solo vive su aspecto. Se usa para
+   parar al usuario cuando la acción no se deshace o toca dinero; para confirmar
+   que algo ya pasó está `toast()`, que no interrumpe.
+   z-index 120: por debajo del aviso (200) y por encima de los cajones y de los
+   overlays de contracts/ (80), que comparten pantalla con él. */
+.lw-dlg-fondo{
+  position:fixed; inset:0; z-index:120; display:none;
+  align-items:center; justify-content:center; padding:20px;
+  background:rgba(46,52,55,.46);
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+}
+.lw-dlg-fondo.abierto{ display:flex; animation:lwDlgFondo 160ms var(--curva); }
+.lw-dlg{
+  width:min(460px,100%); background:var(--sup-1); color:var(--texto);
+  border:1px solid var(--linea); border-radius:var(--r-l);
+  box-shadow:var(--sombra-2); overflow:hidden;
+  animation:lwDlgEntra 200ms var(--curva);
+}
+.lw-dlg-cab{ padding:20px 24px 0; display:flex; gap:12px; align-items:flex-start; }
+/* filete de 3px, la misma señal que ya marca la fila seleccionada de la suite */
+.lw-dlg-marca{ flex:0 0 3px; align-self:stretch; border-radius:2px; background:var(--dl,#104C4F); margin:2px 0; }
+.lw-dlg[data-tono="peligro"] .lw-dlg-marca{ background:#9E2F26; }
+.lw-dlg-cab h2{
+  font-size:17.5px; font-weight:600; letter-spacing:-.01em; color:var(--texto);
+  margin:0; line-height:1.35; text-wrap:balance;
+}
+.lw-dlg-cuerpo{ padding:10px 24px 4px 39px; font-size:14.5px; color:var(--texto-2); }
+.lw-dlg-cuerpo p{ margin:0 0 10px; }
+.lw-dlg-cuerpo p:last-child{ margin-bottom:0; }
+.lw-dlg-cuerpo b{ color:var(--texto); font-weight:600; }
+.lw-dlg-pie{ padding:18px 24px 20px 39px; display:flex; gap:9px; flex-wrap:wrap; }
+/* El botón que destruye va en el rojo que ya usa `.mal` en toda la suite: si
+   aquí estrenara otro rojo, el mismo concepto tendría dos colores. */
+.lw-dlg-pie .btn.peligro{ background:#9E2F26; border-color:#9E2F26; color:#fff; }
+@keyframes lwDlgFondo{ from{ opacity:0 } to{ opacity:1 } }
+@keyframes lwDlgEntra{ from{ opacity:0; transform:translateY(8px) scale(.985) } to{ opacity:1; transform:none } }
+@media (prefers-reduced-motion: reduce){
+  .lw-dlg-fondo.abierto, .lw-dlg{ animation:none; }
+}
