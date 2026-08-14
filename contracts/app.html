@@ -2973,8 +2973,17 @@ function deriveSections(){
   // dos campos desde que dejó de escribirse "Bonian Village by Balian Hills"
   // como un único texto — ninguna plantilla trae {{resort}} como marcador
   // propio, así que sin este añadido el campo no sobreviviría al filtro.
-  inDoc.add('proyecto_nombre');
-  inDoc.add('resort');
+  // Salvo el Poder Notarial (14-ago, petición del owner: "Parcela y producto no
+  // hace falta"). Es lo único que llenaba esa sección en este documento, y con
+  // razón: un poder no va sobre una parcela ni sobre un producto, va sobre una
+  // persona. Sigue habiendo proyecto en la lista de guardados y en Operaciones,
+  // pero NO se pregunta: lo hereda del Hak Sewa vinculado (ver contractPayload),
+  // que es de donde sale el resto de la identidad de este documento. Preguntarlo
+  // a mano solo abría la puerta a que no coincidieran.
+  if(CURRENT.slug !== 'poa_notario'){
+    inDoc.add('proyecto_nombre');
+    inDoc.add('resort');
+  }
   // firmante (10-ago): campo de gestión interna, no imprime {{firmante}} en
   // ningún documento — mismo motivo que resort, forzado para que sobreviva al
   // filtro en TODAS las plantillas (petición del cliente: "en todos los contratos").
@@ -3287,7 +3296,12 @@ function contractPayload(){
     // y el listado de ESTA app lo antepone solo (ver renderCpList/cargarVinculables),
     // sin tocar la identidad compartida.
     comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
-    proyecto_nombre: data.proyecto_nombre || null,
+    // El POA ya no pregunta el proyecto (ver deriveSections): lo hereda del Hak
+    // Sewa al que acompaña, así que la lista de guardados y Operaciones siguen
+    // sabiendo de qué operación es sin que nadie lo teclee dos veces.
+    proyecto_nombre: data.proyecto_nombre
+                  || ((VINCULABLES_POA||[]).find(c=>c.numero===data.poa_hs_vinculado)||{}).proyecto_nombre
+                  || null,
     // parseImporte, NO un replace a mano: el que había aquí quitaba la coma pero
     // dejaba el punto, así que "44.000" se guardaba como 44 en la base de datos
     // mientras el contrato impreso seguía diciendo 44.000. Un parser por fichero

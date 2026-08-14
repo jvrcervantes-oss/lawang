@@ -107,9 +107,22 @@
     <p data-lang="en">Grantor</p>
     <p data-lang="id">Pemberi Kuasa</p>
 
-    <!-- línea en blanco a propósito: se firma en papel, ante notario -->
-    <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm"></div>
-    <p style="margin-top:4px;font-size:9pt"><span class="f">{{adq1_nombre}}</span></p>
+    <!-- línea en blanco a propósito: se firma en papel, ante notario.
+         `clear:both` NO es decorativo (14-ago-2026): los párrafos [data-lang] se
+         maquetan como columnas FLOTADAS (langCSS en app.html, 47% idioma / 47%
+         bahasa), y un bloque normal que no corte ese flotado se coloca AL LADO
+         de las columnas y pinta su borde inferior de lado a lado del documento
+         — una raya cruzando la cláusula KHUSUS, a la altura de "facilitar
+         información, a firmar documentos". Es el mismo motivo por el que
+         contract.css da clear:both a h2/h3/.party/table.pays/.pending; aquí no
+         se hereda porque el bloque de firma es un <div> suelto, sin clase (en
+         hak_sewa_notario.html no pasa: allí las firmas van dentro de una tabla).
+         break-inside:avoid para que el renglón y el nombre no se partan entre
+         dos páginas, mismo criterio que los títulos de cláusula. -->
+    <div style="clear:both;break-inside:avoid;padding-top:6mm">
+      <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm"></div>
+      <p style="margin-top:4px;font-size:9pt"><span class="f">{{adq1_nombre}}</span></p>
+    </div>
 
   </div>
 </body>
