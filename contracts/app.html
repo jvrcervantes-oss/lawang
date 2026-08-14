@@ -2149,20 +2149,31 @@ function applyApoderado(data){
 let AUTO_POA = {};
 function syncPoaVinculado(){
   if(!CURRENT || CURRENT.slug !== 'poa_notario') return;
+  if(LOCKED) return;   // contrato firmado: lo que dice el papel firmado manda sobre la fuente
   const sel = document.querySelector('[name="poa_hs_vinculado"]');
   if(!sel || !sel.value) return;
   const hs = (VINCULABLES_POA || []).find(c => c.numero === sel.value);
   if(!hs) return;   // número guardado de un contrato que ya no está: se imprime igual, no precarga nada
+  /* Los dos campos son de SOLO LECTURA desde el 14-ago
+     (SOLO_LECTURA_POR_PLANTILLA), así que ya no hay "escrito a mano" que
+     respetar: la única forma de cambiar al Otorgante es cambiar el Hak Sewa
+     vinculado. Por eso el guardarraíl deja de mirar el valor del campo y pasa a
+     mirar DE QUÉ CONTRATO viene: mientras siga siendo el mismo no se toca nada,
+     y en cuanto se elige otro se reescriben los dos.
+     El guardarraíl anterior (comparar contra lo que puso el automatismo) se
+     quedaba clavado al reabrir un POA guardado: AUTO_POA arranca vacío, el
+     campo ya trae valor, y cambiar el Hak Sewa vinculado no actualizaba al
+     Otorgante — con el campo bloqueado, tampoco había forma de arreglarlo a
+     mano. */
+  if(AUTO_POA.__src === sel.value) return;
   const poner = (campo, valor) => {
     const el = document.querySelector(`[name="${campo}"]`);
-    if(!el || !valor) return;
-    const actual = String(el.value || '').trim();
-    if(actual && actual !== AUTO_POA[campo]) return;   // escrito a mano: intocable
-    el.value = valor;
-    AUTO_POA[campo] = valor;
+    if(!el) return;
+    el.value = valor || '';
   };
   poner('adq1_nombre', hs.adq1_nombre || hs.comprador_nombre);
   poner('adq1_pasaporte', hs.adq1_pasaporte);
+  AUTO_POA.__src = sel.value;
 }
 /* Segunda Parte del Hak Sewa (11-ago): el comprador puede firmar por medio de
    un apoderado del mismo catálogo. adq2_firmante_nombre es quien FIRMA de
@@ -2948,6 +2959,19 @@ const OPCIONES_POR_PLANTILLA = {
   hak_sewa_notario: { hsn_apoderado_nombre: ['I WAYAN EKA ARYAWAN'] },
   poa_notario:      { hsn_apoderado_nombre: ['NI LUH GEDE DIAH SURASTRI'] },
 };
+/* Campos que en un documento concreto son de SOLO LECTURA (14-ago-2026,
+   petición del owner: "si precargo datos de otro contrato no permitas su
+   edición"). Nace con el Otorgante del Poder Notarial, que se copia del Hak
+   Sewa vinculado: si se pudiera teclear encima, el poder acabaría nombrando a
+   una persona y el contrato al que acompaña a otra — y el poder existe
+   precisamente para representar a ESE comprador. Para cambiarlo se cambia el
+   Hak Sewa vinculado, que es la fuente.
+   Se pinta con el mismo tipo `readonly` que el nº de contrato (fondo apagado,
+   cursor bloqueado). Ojo: `readonly`, NO `disabled` — un campo deshabilitado
+   no viaja en collect() y el dato se perdería al guardar. */
+const SOLO_LECTURA_POR_PLANTILLA = {
+  poa_notario: ['adq1_nombre', 'adq1_pasaporte'],
+};
 /* Título de sección distinto en un documento concreto. El POA reusa la sección
    `hs_primera_parte` del Hak Sewa para el apoderado y la fecha del poder, pero
    ahí no hay ninguna "Primera Parte" ni ningún propietario: llamarla así en
@@ -3015,6 +3039,11 @@ function deriveSections(){
   if(reopts) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> (reopts[f[0]] && f[2]==='select') ? [f[0], f[1], f[2], reopts[f[0]]] : f); });
   const retitle = TITULOS_POR_PLANTILLA[CURRENT.slug];
   if(retitle) SECTIONS.forEach(s=>{ if(retitle[s.id]) s.title = retitle[s.id]; });
+  // solo lectura por plantilla (ver SOLO_LECTURA_POR_PLANTILLA): cambia el TIPO
+  // del campo, conservando clave y etiqueta. Va después del relabel para que la
+  // etiqueta que se vea siga siendo la de esta plantilla.
+  const rolock = SOLO_LECTURA_POR_PLANTILLA[CURRENT.slug];
+  if(rolock) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> rolock.includes(f[0]) ? [f[0], f[1], 'readonly'] : f); });
   // nº de reserva/PPJB vinculado → desplegable con los contratos guardados. Si
   // la lista no cargó (sin red), el campo se queda como texto libre y no bloquea.
   if(inDoc.has('num_reserva_vinculada') && (VINCULABLES||[]).length){
