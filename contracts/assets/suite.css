@@ -586,12 +586,16 @@ select:not([multiple]):not([size]){
      el chevron. La banda va como gradiente de un solo color porque
      `background-image` admite capas y `background-color` no: asi la pagina
      conserva SU color de fondo debajo y aqui solo se pinta la banda. */
+  /* ⚠️ EL ORDEN IMPORTA: en `background-image` la PRIMERA capa se pinta ENCIMA.
+     El chevron va primero y la banda debajo. Al reves -que es como se escribio a
+     ciegas el 14-ago- la banda solida tapaba el chevron y el desplegable se veia
+     igual que antes, con banda pero sin flecha. Verificado en pantalla. */
   background-image:
-    linear-gradient(var(--sup-2,#F7F3E9), var(--sup-2,#F7F3E9)),
-    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%234A5052' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%234A5052' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E"),
+    linear-gradient(var(--sup-2,#F7F3E9), var(--sup-2,#F7F3E9));
   background-repeat:no-repeat, no-repeat;
-  background-position:right center, right 11px center;
-  background-size:34px 100%, 11px 7px;
+  background-position:right 11px center, right center;
+  background-size:11px 7px, 34px 100%;
   padding-right:40px;
   cursor:pointer;
 }
