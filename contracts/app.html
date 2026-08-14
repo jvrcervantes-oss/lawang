@@ -16,7 +16,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=301a1f38">
+<link rel="stylesheet" href="assets/suite.css?v=9957ec6c">
 <script src="assets/topbar.js?v=b0cb5eff" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -43,6 +43,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
+<script src="assets/vocabulario.js?v=c031da44"></script>
 <style>
   :root{
     --line:#E4DCCB; --tbh:64px;
@@ -789,12 +790,14 @@ const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,ti
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
   carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
   ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH', poa:'PA' };
-const TIPO_LABEL = { reserva_parcela:'Parcela', construccion:'Construcción', contrato_general:'Contrato General',
-  commercial_offer:'Commercial Offer', carta_reserva:'Carta de Reserva', carta_reserva_ampliada:'Carta de Reserva ampliada',
-  acuerdo_comercial:'Acuerdo Comercial', protocolo_operativo:'Protocolo Operativo',
-  ppjb_bonian:'PPJB Bonian Beach', ppjb_bonian_c2:'PPJB Bonian Beach · Parcela C2', hak_sewa_notario:'Hak Sewa - Notario',
-  carta_reserva_hak_sewa:'Carta de Reserva (Hak Sewa)',
-  poa:'Poder Notarial' };   // faltaba: el listado de guardados enseñaba "poa" en crudo (cpTipoLabel cae a la clave)
+/* Los nombres salen de assets/vocabulario.js, compartidos con Operaciones.
+   Estaban copiados en las dos y habian divergido: aqui 'reserva_parcela' se
+   llamaba "Parcela" y alli "Bloqueo de Parcela" -que es como lo pidio el cliente
+   el 24-jul-, y 'commercial_offer' salia en ingles en una y en espanol en otra.
+   El comentario viejo de esta linea decia que a este diccionario le habia
+   faltado 'poa' y por eso el listado enseñaba la clave cruda; el mismo fallo
+   estaba vivo en Operaciones con otros tres tipos. Copiarlo es lo que lo repite. */
+const TIPO_LABEL = LW_TIPO_CONTRATO;
 let SAVED_CONTRACT = null;   // {id, numero} una vez guardado — null = borrador sin guardar
 let CP_ROWS = [];            // caché de filas del panel "Contratos guardados"
 

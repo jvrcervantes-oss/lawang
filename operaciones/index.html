@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=4b167da0">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=301a1f38">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=9957ec6c">
 <script src="/contracts/assets/topbar.js?v=b0cb5eff" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -294,7 +294,8 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/suite-comun.js?v=ad885f53"></script>
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
 <script>
 /* ============================================================
    OPERACIONES — la vista que cruza lo que ya existe.
@@ -326,11 +327,12 @@ const operador = o => EQUIPO[o.creado_por] || o.creado_por || '—';
 /* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
    creó la tabla). Aquí solo se traducen para mostrar. */
 const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aprobado', rejected:'Rechazado' };
-const TIPO_ES = { reserva_parcela:'Bloqueo de Parcela', construccion:'Construcción', contrato_general:'Contrato General',
-  commercial_offer:'Oferta Comercial', carta_reserva:'Carta de Reserva',
-  carta_reserva_ampliada:'Carta de Reserva ampliada', acuerdo_comercial:'Acuerdo Comercial',
-  protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach',
-  poa:'POA (Poder Notarial)' };
+/* Los nombres de los tipos salen de assets/vocabulario.js. Los tenia copiados
+   aqui y habian divergido de los de Contratos: 'reserva_parcela' se llamaba
+   "Bloqueo de Parcela" en esta pantalla y "Parcela" en la otra, y a esta copia
+   le faltaban hak_sewa_notario, ppjb_bonian_c2 y carta_reserva_hak_sewa, asi que
+   6 contratos reales salian con la clave cruda de la base de datos. */
+const TIPO_ES = LW_TIPO_CONTRATO;
 
 /* ---------- carga ----------
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
