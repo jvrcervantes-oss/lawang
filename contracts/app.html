@@ -2221,6 +2221,23 @@ function applyRepresentanteComprador(data){
    misma regla de siempre: el sistema no frena una venta esperando a que alguien
    dé de alta el inventario. */
 let UNIDADES_PROY = { proyecto:null, lista:[] };
+/* Tipos que CEDEN una parcela al Bloqueo de Parcela (14-ago-2026, petición del
+   owner; caso real: A4 de Bonian Village). Es la secuencia normal de una venta,
+   la misma que describe el orden de TEMPLATES: se reserva, se bloquea la
+   parcela y se firma la obra. Hasta hoy el segundo paso estaba prohibido —
+   había que ir a /proyectos/ a soltar la parcela a mano antes de poder emitir
+   el Bloqueo, y el error que salía ("ya está asignada al contrato CR000xx")
+   parecía un choque con otra venta cuando era la SUYA PROPIA.
+   Solo las Cartas de Reserva y solo hacia un Bloqueo: dos Bloqueos sobre la
+   misma parcela, o una Carta sobre una parcela ya bloqueada, siguen chocando.
+   La regla vive por duplicado a propósito — aquí para no enseñar deshabilitado
+   lo que sí se puede elegir, y en el trigger de Postgres porque es el único
+   sitio que de verdad lo impide. Si cambia una, cambia la otra. */
+const TIPOS_CEDEN_PARCELA = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
+function puedeTraspasarParcela(u){
+  return CONTRACT_TIPO[CURRENT.slug] === 'reserva_parcela'
+      && !!u.ocupante && TIPOS_CEDEN_PARCELA.includes(u.ocupante.tipo);
+}
 async function cargarUnidadesDelProyecto(proyecto){
   if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
   UNIDADES_PROY = { proyecto, lista:[] };
@@ -2229,6 +2246,24 @@ async function cargarUnidadesDelProyecto(proyecto){
       .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
       .eq('proyecto', proyecto).order('codigo');
     if(!error) UNIDADES_PROY.lista = data || [];
+    /* Quién ocupa cada parcela: tipo y número del contrato que la tiene. Hace
+       falta para saber si se puede traspasar — una parcela reservada por una
+       Carta de Reserva sí puede pasar a su Bloqueo de Parcela (ver
+       TIPOS_CEDEN_PARCELA y sql/parcela_traspaso_carta_a_bloqueo.sql).
+       Consulta APARTE y no un embebido `contratos(...)` de PostgREST: eso
+       depende del nombre de la clave ajena de `unidades.contrato_id`, que no
+       se crea en este repo (la columna es anterior). Si el nombre no fuera el
+       esperado, el embebido devuelve error, la lista se queda vacía y el
+       selector de parcela cae a texto libre SIN avisar — un fallo mudo justo
+       en el campo que decide qué parcela se vende.
+       Si esta segunda consulta falla, se pierde el traspaso pero no el
+       inventario: las parcelas ocupadas salen bloqueadas, como hasta hoy. */
+    const ids = [...new Set(UNIDADES_PROY.lista.map(u=>u.contrato_id).filter(Boolean))];
+    if(ids.length){
+      const { data: cs } = await sb.from('contratos').select('id,tipo,numero').in('id', ids);
+      const porId = Object.fromEntries((cs||[]).map(c=>[c.id, c]));
+      UNIDADES_PROY.lista.forEach(u=>{ u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null; });
+    }
   }catch(_){}
   pintarSelectorParcela();
 }
@@ -2252,10 +2287,16 @@ function pintarSelectorParcela(){
   const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
   const ops = libres.map(u => {
     const tomada = u.contrato_id && u.contrato_id !== mio;
+    // Ocupada por una Carta de Reserva y estamos emitiendo el Bloqueo: es el
+    // paso normal de la venta, se puede elegir. La base de datos aplica la
+    // misma regla (sql/parcela_traspaso_carta_a_bloqueo.sql) — esto es solo
+    // para no enseñar deshabilitado algo que sí se puede hacer.
+    const traspaso = tomada && puedeTraspasarParcela(u);
     const partes = [u.codigo, u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : '',
                     u.precio ? fmtImporte(Number(u.precio)) + ' ' + (u.moneda||'EUR') : '',
-                    tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '')];
-    return `<option value="${escAttr(u.codigo)}" ${tomada?'disabled':''} ${u.codigo===valor?'selected':''}>${
+                    traspaso ? 'reservada en ' + ((u.ocupante&&u.ocupante.numero)||'una Carta de Reserva') + ' · se traspasa a este contrato'
+                             : (tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : ''))];
+    return `<option value="${escAttr(u.codigo)}" ${tomada&&!traspaso?'disabled':''} ${u.codigo===valor?'selected':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
   // El valor guardado se conserva aunque ya no esté en la lista (una unidad que
@@ -2266,9 +2307,13 @@ function pintarSelectorParcela(){
   if(campo) campo.outerHTML = html; else caja.insertAdjacentHTML('beforeend', html);
   if(!caja.querySelector('.hint-unidades')){
     const libresN = libres.filter(u => !u.contrato_id && u.estado === 'disponible').length;
+    // las traspasables se cuentan aparte: sin decirlo, el agente ve "3 libres",
+    // no encuentra la suya entre ellas y da por hecho que no puede seguir.
+    const traspN = libres.filter(u => u.contrato_id && u.contrato_id !== mio && puedeTraspasarParcela(u)).length;
     caja.insertAdjacentHTML('beforeend',
       `<p class="hint-unidades" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">
-         ${libres.length} unidades en el inventario · <b>${libresN} libres</b>.
+         ${libres.length} unidades en el inventario · <b>${libresN} libres</b>${
+           traspN ? ` · <b>${traspN}</b> reservadas con Carta que este contrato puede traspasar` : ''}.
          Al guardar el contrato, la elegida queda reservada en Unidades.</p>`);
   }
   wireCampoParcela();
