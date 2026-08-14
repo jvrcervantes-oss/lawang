@@ -25,11 +25,14 @@
 -- Si se quiere ese guardarraíl, el sitio es `contrato_compradores` (la relación
 -- real con `clients`), no el nombre — y es una decisión aparte.
 --
--- ⚠️ ANTES DE CORRER ESTO: esta función se reescribe entera, así que comprueba
--- que lo que hay en producción es lo que el repo cree. Si el resultado de
---     select prosrc from pg_proc where proname = 'sincroniza_unidad_contrato';
--- no coincide con estado_unidad_por_tipo_y_cobro.sql (salvo el bloque nuevo de
--- `traspaso_ok`), PARA y revísalo: alguien la cambió sin espejarla aquí.
+-- ✅ COMPROBADO ANTES DE ESCRIBIR ESTO (14-ago-2026): se sacó el `prosrc` de
+-- producción y se comparó con estado_unidad_por_tipo_y_cobro.sql — misma lógica
+-- línea por línea. Dos diferencias, las dos de forma: producción NO tiene
+-- tildes ni comentarios (se perdieron al aplicarla en su día). Por eso el
+-- mensaje de la excepción va aquí SIN tilde, "ya esta asignada", igual que el
+-- que sale hoy: no toca un texto que nadie ha pedido cambiar. app.html lo
+-- reconoce con /ya est[aá] asignada/i, así que le vale cualquiera de los dos —
+-- pero mejor no depender de eso sin motivo.
 
 create or replace function public.sincroniza_unidad_contrato()
 returns trigger language plpgsql security definer set search_path = '' as $$
@@ -51,7 +54,7 @@ begin
 
   if cod is null or proy is null then return new; end if;
 
-  -- ahora importa QUIÉN ocupa, no solo que haya alguien
+  -- ahora importa QUIEN ocupa, no solo que haya alguien
   select c.numero, c.tipo into ocupada, ocupada_tipo
     from public.unidades u join public.contratos c on c.id = u.contrato_id
    where u.proyecto = proy and u.codigo = cod and u.contrato_id <> new.id;
@@ -60,7 +63,7 @@ begin
              and ocupada_tipo in ('carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa');
 
   if ocupada is not null and not traspaso_ok then
-    raise exception 'La parcela % de % ya está asignada al contrato %', cod, proy, ocupada
+    raise exception 'La parcela % de % ya esta asignada al contrato %', cod, proy, ocupada
       using errcode = '23505';
   end if;
 
@@ -68,17 +71,17 @@ begin
      set contrato_id = new.id,
          estado = case
            -- vendida/cobrada solo las mueve el dinero (avanza_unidad_por_cobro)
-           -- — ninguna firma ni edición de contrato las revierte.
+           --  ninguna firma ni edicion de contrato las revierte.
            when u.estado in ('vendida','cobrada') then u.estado
            when u.estado = 'no_disponible' then u.estado
-           -- bloqueada manual (sin RP firmado detrás): protegida, igual que siempre.
+           -- bloqueada manual (sin RP firmado detras): protegida, igual que siempre.
            when u.estado = 'bloqueada' and not exists (
                   select 1 from public.contratos c2
                    where c2.id = u.contrato_id
                      and c2.tipo = 'reserva_parcela' and coalesce(c2.bloqueado, false)
                 ) then u.estado
            when new.tipo = 'reserva_parcela' and coalesce(new.bloqueado, false) then 'bloqueada'
-           -- Contrato de Construcción: no mueve el estado de la parcela.
+           -- Contrato de Construccion: no mueve el estado de la parcela.
            when new.tipo = 'construccion' then u.estado
            -- cualquier otro caso (crear CR/RP, o firmar una CR) se queda en reservada.
            else 'reservada'
