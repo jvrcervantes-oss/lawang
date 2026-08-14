@@ -554,6 +554,26 @@
     </div>
   </div>
 
+  <!-- Aviso de precio corregido desde el inventario — 14-ago-2026, petición del
+       owner. La venta va partida en dos contratos: el Bloqueo de Parcela cobra
+       el SUELO y la Construcción la OBRA. Cuando se viene de una Carta de
+       Reserva el precio que arrastra el formulario no es de fiar: unos agentes
+       ponen la villa entera, otros solo la parcela. Así que se FUERZA el valor
+       del inventario y se avisa en el centro de la pantalla, con la salida de
+       dejar el que había: forzar en silencio sería peor que el problema. -->
+  <div class="cp-overlay" id="pxOverlay">
+    <div class="cp-modal" style="width:min(520px,100%)">
+      <div class="cp-head"><b>He corregido el precio</b></div>
+      <div class="em-body">
+        <p class="em-note" id="pxTexto" style="line-height:1.6"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button type="button" class="btn primary" id="pxOk">Vale, dejar el del inventario</button>
+          <button type="button" class="btn" id="pxUndo">Dejar el que tenía</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal "Enviar por email" — manda el HTML de la vista previa a
        api/send_email.php, que lo renderiza a PDF con el servicio Puppeteer
        (Chromium real en Railway). Si ese servicio no está configurado o
@@ -2403,6 +2423,33 @@ function wireCampoParcela(){
    Solo se toca lo que está vacío o lo que puso este mismo automatismo — si el
    comercial pactó otro precio, no se le pisa. */
 const AUTO_UNIDAD = {};
+/* Aviso de precio forzado desde el inventario — 14-ago-2026, petición del owner.
+   No es un toast a propósito: un aviso que se va solo en 4 segundos no vale para
+   algo que cambia una cifra de dinero en un contrato. Va en el centro, para y
+   pide una respuesta, y siempre deja volver al valor anterior — el inventario es
+   el punto de partida de una negociación, no la última palabra. */
+function avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad, suelo, villa, el }){
+  const ov = document.getElementById('pxOverlay');
+  const txt = document.getElementById('pxTexto');
+  if(!ov || !txt){ el.value = nuevo; return; }   // sin modal, al menos no se pierde la corrección
+  const mon = unidad.moneda || 'EUR';
+  const im = n => fmtImporte(n) + ' ' + mon;
+  const queEs = tipoDoc === 'reserva_parcela'
+    ? `el <b>suelo</b> de ${escAttr(unidad.codigo)}`
+    : `la <b>obra</b> de ${escAttr(unidad.codigo)} (la villa entera ${im(villa)} menos el suelo ${im(suelo)})`;
+  txt.innerHTML =
+    `Este documento traía <b>${escAttr(antes)} ${mon}</b> y lo he cambiado a <b>${escAttr(nuevo)} ${mon}</b>, que es ${queEs} según el inventario.`
+    + `<br><br>La venta va partida en dos contratos: el <b>Bloqueo de Parcela</b> cobra el suelo y el <b>Contrato de Construcción</b> la obra. Si los dos llevan el precio de la villa completa, el cliente aparece debiendo el doble.`
+    + `<br><br>Si el precio de esta operación está negociado, deja el que tenías y edítalo a mano.`;
+  ov.classList.add('open');
+  const cerrar = () => ov.classList.remove('open');
+  document.getElementById('pxOk').onclick   = cerrar;
+  document.getElementById('pxUndo').onclick = () => {
+    el.value = antes; AUTO_UNIDAD['precio_total'] = antes; cerrar();
+    el.dispatchEvent(new Event('input', { bubbles:true }));   // que la vista previa se entere
+    toast('Precio devuelto a ' + antes + ' ' + mon);
+  };
+}
 function syncDatosDeUnidad(){
   const sel = document.querySelector('[name="parcela_codigo"]');
   if(!sel) return;
@@ -2429,8 +2476,13 @@ function syncDatosDeUnidad(){
      La Carta de Reserva sí lleva la villa entera: es el documento preliminar que
      reserva la operación completa, y por eso no suma precio en Operaciones ni en
      Compradores (`lwEsPreliminar`, assets/suite-comun.js).
-     Es una precarga, no una imposición: `poner()` no pisa lo escrito a mano, así
-     que un precio negociado se teclea encima y se respeta. */
+     Y en el Bloqueo y la Construcción NO se queda en precarga: se FUERZA aunque
+     el campo ya traiga algo, avisando en el centro de la pantalla y dejando
+     deshacer (`avisaPrecioForzado`). El motivo es el de arriba llevado al caso
+     real: el precio que arrastra un formulario que viene de una Carta de Reserva
+     no es de fiar —unos agentes ponen la villa entera, otros solo la parcela— y
+     respetarlo "porque estaba escrito" es como se colaron RP00040 y RP00043.
+     En los demás documentos sigue siendo precarga blanda: `poner()` no pisa. */
   const suelo = u.precio_suelo != null ? Number(u.precio_suelo) : null;
   const villa = u.precio      != null ? Number(u.precio)      : null;
   const tipoDoc = CONTRACT_TIPO[CURRENT.slug];
@@ -2438,7 +2490,21 @@ function syncDatosDeUnidad(){
       tipoDoc === 'reserva_parcela' ? suelo
     : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
     : villa;
-  poner('precio_total', precioSegunTipo != null ? fmtImporte(precioSegunTipo) : null);
+  const forzar = tipoDoc === 'reserva_parcela' || tipoDoc === 'construccion';
+  const elPrecio = document.querySelector('[name="precio_total"]');
+  if(forzar && precioSegunTipo != null && elPrecio){
+    const antes = String(elPrecio.value || '').trim();
+    const nuevo = fmtImporte(precioSegunTipo);
+    // se compara por VALOR, no por texto: "164.000" y "164000" son el mismo precio
+    if(antes && parseImporte(antes) !== precioSegunTipo){
+      elPrecio.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
+      avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad:u, suelo, villa, el:elPrecio });
+    } else {
+      poner('precio_total', nuevo);
+    }
+  } else {
+    poner('precio_total', precioSegunTipo != null ? fmtImporte(precioSegunTipo) : null);
+  }
   poner('villa_nombre', u.modelo || null);
   poner('tipologia_construccion', u.modelo || null);
   if(u.moneda){
