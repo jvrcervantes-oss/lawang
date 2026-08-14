@@ -803,18 +803,25 @@ async function cargarVinculables(){
 }
 
 /* Contratos a los que un Poder Notarial se vincula (14-ago-2026, petición del
-   owner: "que se asocie sí o sí a un contrato existente"). Solo el Hak Sewa
-   ante notario: el POA ES el exhibit de ese contrato — el "Poder Especial de
-   fecha …, adjunto al presente Contrato" que su comparecencia cita. Un poder
-   suelto, sin el contrato al que acompaña, no tiene a quién nombrar Otorgante.
+   owner: "que se asocie sí o sí a un contrato existente"). Un poder suelto, sin
+   el contrato al que acompaña, no tiene a quién nombrar Otorgante.
+   ⚠️ Arrancó limitado al Hak Sewa ante notario, porque el POA nació como su
+   exhibit (el "Poder Especial de fecha …, adjunto al presente Contrato" que su
+   comparecencia cita). El MISMO DÍA el cliente corrigió: el poder se da para
+   cualquier contrato, no solo para los Hak Sewa. Así que la lista es TODOS los
+   tipos guardables menos el propio 'poa' — un poder colgado de otro poder no
+   significa nada. Al salir de CONTRACT_TIPO, un tipo nuevo entra solo.
    Lista APARTE de VINCULABLES (que es de Construcción→Parcela) porque son dos
-   relaciones distintas con dos listas de tipos distintas; compartir la caché
-   habría hecho que abrir un POA dejara al siguiente contrato de Construcción
-   ofreciendo Hak Sewas.
-   Trae también el comprador del Hak Sewa: es lo que precarga al Otorgante del
+   relaciones distintas; compartir la caché habría hecho que abrir un POA dejara
+   al siguiente contrato de Construcción ofreciendo tipos que no le tocan.
+   Trae también al comprador del contrato: es lo que precarga al Otorgante del
    poder (adq1_nombre/adq1_pasaporte, ver syncPoaVinculado). `comprador_nombre`
-   es columna, el pasaporte solo vive en el jsonb del contrato. */
-const TIPOS_VINCULABLES_POA = ['hak_sewa_notario'];
+   es columna —y ya resuelve partner/colaborador cuando no hay adquiriente—,
+   mientras que el pasaporte solo vive en el jsonb y NO todos los tipos lo
+   traen: un Acuerdo Comercial o un Protocolo Operativo no tienen pasaporte
+   ninguno. De ahí que syncPoaVinculado desbloquee el campo que la fuente deja
+   vacío, en vez de dejar un documento imposible de completar. */
+const TIPOS_VINCULABLES_POA = Object.values(CONTRACT_TIPO).filter(t => t !== 'poa');
 let VINCULABLES_POA = null;
 async function cargarVinculablesPoa(){
   if(VINCULABLES_POA || !sb) return;
@@ -2136,16 +2143,15 @@ function applyApoderado(data){
   data.hsn_apoderado_ktp = APODERADO_KTP_URL[data.hsn_apoderado_nombre] || '';
 }
 
-/* Poder Notarial: el Otorgante sale del Hak Sewa vinculado (14-ago-2026).
+/* Poder Notarial: el Otorgante sale del contrato vinculado (14-ago-2026).
    Elegir el contrato en el desplegable `poa_hs_vinculado` precarga nombre y
    pasaporte del COMPRADOR de ese contrato — el poder lo otorga quien compra,
    no el propietario del suelo (ver cabecera de templates/poa_notario.html).
-   Mismo criterio de "no pisar lo escrito a mano" que syncApoderadoHakSewa: solo
-   se rellena el hueco vacío o el que todavía tiene el valor que puso este
-   automatismo, para que una corrección puntual del agente (una tilde, un
-   pasaporte renovado) sobreviva al siguiente re-render. Quedan editables a
-   propósito: el poder se firma ante notario y a veces el pasaporte del Hak Sewa
-   ya no es el vigente. */
+   Los dos campos son de SOLO LECTURA cuando la fuente los trae (petición del
+   owner: "si precargo datos de otro contrato no permitas su edición") y se
+   abren cuando no — hay tipos sin pasaporte, y un campo bloqueado y vacío es un
+   documento que no se puede terminar. La única forma de cambiar un dato que sí
+   viene de fuera es cambiar el contrato vinculado. */
 let AUTO_POA = {};
 function syncPoaVinculado(){
   if(!CURRENT || CURRENT.slug !== 'poa_notario') return;
@@ -2156,20 +2162,33 @@ function syncPoaVinculado(){
   if(!hs) return;   // número guardado de un contrato que ya no está: se imprime igual, no precarga nada
   /* Los dos campos son de SOLO LECTURA desde el 14-ago
      (SOLO_LECTURA_POR_PLANTILLA), así que ya no hay "escrito a mano" que
-     respetar: la única forma de cambiar al Otorgante es cambiar el Hak Sewa
+     respetar: la única forma de cambiar al Otorgante es cambiar el contrato
      vinculado. Por eso el guardarraíl deja de mirar el valor del campo y pasa a
      mirar DE QUÉ CONTRATO viene: mientras siga siendo el mismo no se toca nada,
      y en cuanto se elige otro se reescriben los dos.
      El guardarraíl anterior (comparar contra lo que puso el automatismo) se
      quedaba clavado al reabrir un POA guardado: AUTO_POA arranca vacío, el
-     campo ya trae valor, y cambiar el Hak Sewa vinculado no actualizaba al
+     campo ya trae valor, y cambiar el contrato vinculado no actualizaba al
      Otorgante — con el campo bloqueado, tampoco había forma de arreglarlo a
      mano. */
   if(AUTO_POA.__src === sel.value) return;
+  /* Bloqueado SOLO si la fuente trae el dato. Desde que el poder puede colgar
+     de cualquier contrato (no solo de un Hak Sewa) hay tipos que no tienen
+     pasaporte —Acuerdo Comercial, Protocolo Operativo, los PPJB de Bonian—, y
+     un campo de solo lectura que la fuente deja vacío es un documento que no
+     hay manera de terminar. Así que lo que llega de fuera se bloquea y lo que
+     no llega se abre para teclearlo. */
   const poner = (campo, valor) => {
     const el = document.querySelector(`[name="${campo}"]`);
     if(!el) return;
     el.value = valor || '';
+    const bloquea = !!valor;
+    el.readOnly = bloquea;
+    // mismo aspecto que el nº de contrato cuando está bloqueado (ver fieldHTML)
+    el.style.background = bloquea ? 'var(--rl)' : '';
+    el.style.color      = bloquea ? 'var(--muted)' : '';
+    el.style.cursor     = bloquea ? 'not-allowed' : '';
+    el.title = bloquea ? 'Viene del contrato vinculado — para cambiarlo, cambia el contrato' : '';
   };
   poner('adq1_nombre', hs.adq1_nombre || hs.comprador_nombre);
   poner('adq1_pasaporte', hs.adq1_pasaporte);
@@ -2965,7 +2984,7 @@ const OPCIONES_POR_PLANTILLA = {
    Sewa vinculado: si se pudiera teclear encima, el poder acabaría nombrando a
    una persona y el contrato al que acompaña a otra — y el poder existe
    precisamente para representar a ESE comprador. Para cambiarlo se cambia el
-   Hak Sewa vinculado, que es la fuente.
+   contrato vinculado, que es la fuente.
    Se pinta con el mismo tipo `readonly` que el nº de contrato (fondo apagado,
    cursor bloqueado). Ojo: `readonly`, NO `disabled` — un campo deshabilitado
    no viaja en collect() y el dato se perdería al guardar. */
@@ -2978,7 +2997,7 @@ const SOLO_LECTURA_POR_PLANTILLA = {
    este documento describía mal lo que el agente está rellenando. */
 const TITULOS_POR_PLANTILLA = {
   poa_notario: {
-    comprador:        {es:'Otorgante — se precarga del Hak Sewa vinculado',en:'Grantor — prefilled from the linked Hak Sewa',id:'Pemberi Kuasa — dari Hak Sewa terkait'},
+    comprador:        {es:'Otorgante — se precarga del contrato vinculado',en:'Grantor — prefilled from the linked contract',id:'Pemberi Kuasa — dari kontrak terkait'},
     hs_primera_parte: {es:'Apoderado (a quien se otorga el poder)',en:'Attorney-in-fact (grantee of the power)',id:'Penerima Kuasa'},
   }
 };
@@ -3001,7 +3020,7 @@ function deriveSections(){
   // hace falta"). Es lo único que llenaba esa sección en este documento, y con
   // razón: un poder no va sobre una parcela ni sobre un producto, va sobre una
   // persona. Sigue habiendo proyecto en la lista de guardados y en Operaciones,
-  // pero NO se pregunta: lo hereda del Hak Sewa vinculado (ver contractPayload),
+  // pero NO se pregunta: lo hereda del contrato vinculado (ver contractPayload),
   // que es de donde sale el resto de la identidad de este documento. Preguntarlo
   // a mano solo abría la puerta a que no coincidieran.
   if(CURRENT.slug !== 'poa_notario'){
@@ -3092,18 +3111,21 @@ function deriveSections(){
     if(g) g.fields.push(campo);
     else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
   }
-  /* Hak Sewa vinculado (POA, 14-ago-2026): campo OBLIGATORIO y sin marcador en
+  /* contrato vinculado (POA, 14-ago-2026): campo OBLIGATORIO y sin marcador en
      la plantilla —no se imprime, identifica la operación— así que se inyecta
      aquí igual que `sociedad_firmante`, en "Gestión del contrato". Es lo que
      precarga al Otorgante (syncPoaVinculado) y lo que guardarContrato() exige
      antes de dejar guardar; contractPayload lo resuelve a `contrato_padre_id`
-     para que Operaciones enseñe el poder colgando de su Hak Sewa.
+     para que Operaciones enseñe el poder colgando de su contrato.
      Si la consulta no llegó (sin red) el campo se pinta como texto libre: no
      poder guardar por no tener lista es peor que un número tecleado. */
   if(CURRENT.slug === 'poa_notario'){
-    const etiqueta = {es:'Hak Sewa vinculado (obligatorio)',en:'Linked Hak Sewa (required)',id:'Hak Sewa terkait (wajib)'};
+    const etiqueta = {es:'Contrato vinculado (obligatorio)',en:'Linked contract (required)',id:'Kontrak terkait (wajib)'};
+    // La etiqueta de cada opción lleva el TIPO desde que la lista dejó de ser
+    // solo Hak Sewas: con trece tipos mezclados, un número y un nombre no
+    // bastan para saber a qué documento te estás enganchando.
     const opts = (VINCULABLES_POA||[]).map(c=>[c.numero,
-      c.numero+' · '+(c.adq1_nombre||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+      c.numero+' · '+(TIPO_LABEL[c.tipo]||c.tipo)+' · '+(c.adq1_nombre||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
     const campo = opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
                               : ['poa_hs_vinculado', etiqueta, 'text'];
     const g = SECTIONS.find(s=>s.id==='gestion');
@@ -3325,8 +3347,8 @@ function contractPayload(){
     // y el listado de ESTA app lo antepone solo (ver renderCpList/cargarVinculables),
     // sin tocar la identidad compartida.
     comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
-    // El POA ya no pregunta el proyecto (ver deriveSections): lo hereda del Hak
-    // Sewa al que acompaña, así que la lista de guardados y Operaciones siguen
+    // El POA ya no pregunta el proyecto (ver deriveSections): lo hereda del
+    // contrato al que acompaña, así que la lista de guardados y Operaciones siguen
     // sabiendo de qué operación es sin que nadie lo teclee dos veces.
     proyecto_nombre: data.proyecto_nombre
                   || ((VINCULABLES_POA||[]).find(c=>c.numero===data.poa_hs_vinculado)||{}).proyecto_nombre
@@ -3341,7 +3363,7 @@ function contractPayload(){
     // vínculo con la reserva/PPJB de la misma venta: el número elegido en el
     // desplegable se resuelve a su id. Un valor viejo tecleado a mano que no
     // case con ningún contrato guardado imprime igual pero no vincula (null).
-    // El POA cuelga de su Hak Sewa por el mismo campo (poa_hs_vinculado), para
+    // El POA cuelga de su contrato por el mismo campo (poa_hs_vinculado), para
     // que Operaciones junte poder y contrato en una sola operación sin saber
     // nada de tipos: el padre es el padre, venga del desplegable que venga.
     contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id
@@ -3407,11 +3429,11 @@ async function guardarContrato(){
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   if(!tipo) return;
   /* El Poder Notarial no existe suelto (14-ago, petición del owner): acompaña a
-     un Hak Sewa concreto y de él saca al Otorgante. Se para AQUÍ y no solo en
+     un contrato concreto y de él saca al Otorgante. Se para AQUÍ y no solo en
      el aviso visual porque sin guardar no hay número ni "Enviar a firma", así
      que este es el único portillo por el que puede salir un poder huérfano. */
   if(CURRENT.slug === 'poa_notario' && !String((collect().poa_hs_vinculado)||'').trim()){
-    toast('Elige el Hak Sewa al que acompaña este Poder Notarial antes de guardarlo');
+    toast('Elige el contrato al que acompaña este Poder Notarial antes de guardarlo');
     const el = document.querySelector('[name="poa_hs_vinculado"]');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;

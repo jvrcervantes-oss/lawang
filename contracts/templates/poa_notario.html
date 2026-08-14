@@ -14,14 +14,20 @@
        mismo hecho legal en dos documentos.
        ⚠️ 14-ago-2026, petición del owner — TRES cambios que rompen la simetría
        que este documento tenía con el Hak Sewa:
-       1. OTORGANTE = el COMPRADOR del Hak Sewa vinculado (adq1_nombre /
+       1. OTORGANTE = el COMPRADOR del contrato vinculado (adq1_nombre /
           adq1_pasaporte), no el propietario del suelo. Antes imprimía
           hsn_propietario_*, que es la Primera Parte del Hak Sewa; el poder lo
           da quien compra/arrienda, que es a quien corresponde la cláusula
           KHUSUS de más abajo (comprar y arrendar en Bali y Sumba) y el único
           que aporta pasaporte. Los dos campos los PRECARGA el desplegable
-          "Hak Sewa vinculado" del formulario (obligatorio, ver deriveSections
-          y syncPoaVinculado en app.html) — no se teclean sueltos.
+          "Contrato vinculado" del formulario (obligatorio, ver deriveSections
+          y syncPoaVinculado en app.html) — no se teclean sueltos, y quedan
+          bloqueados cuando el contrato de origen trae el dato.
+          El vínculo admite CUALQUIER tipo de contrato desde el 14-ago (el
+          cliente corrigió ese mismo día el "solo Hak Sewa" con el que nació:
+          el poder se da para todos). Ojo con lo que eso implica aquí: hay
+          tipos sin pasaporte —Acuerdo Comercial, Protocolo Operativo— y en
+          esos el hueco de Pasaporte queda editable para rellenarlo a mano.
        2. APODERADO = NI LUH GEDE DIAH SURASTRI. I WAYAN EKA ARYAWAN sale del
           desplegable de ESTE documento (OPCIONES_POR_PLANTILLA en app.html);
           sigue siendo el apoderado de la Primera Parte en el Hak Sewa, que no
