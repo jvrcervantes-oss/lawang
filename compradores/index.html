@@ -565,7 +565,12 @@ async function llamaPortal(body){
 async function invitarPortal(c){
   const email = ($('#p-email').value || '').trim().toLowerCase();
   if(!email){ toast('Falta el email de acceso'); return; }
-  if(!confirm('Se enviará un correo de acceso a ' + email + ' y verá en el portal todo lo de esta ficha (contratos, pagos, facturas y obra). ¿Invitar?')) return;
+  const ok = await lwConfirmar({
+    titulo: 'Invitar a ' + email + ' al portal',
+    cuerpo: '<p>Se le envía un <b>correo de acceso</b> y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.</p>',
+    confirmar: 'Enviar la invitación',
+  });
+  if(!ok) return;
   const b = $('#btnPortalInv'); b.disabled = true;
   const r = await llamaPortal({ accion:'invitar', email, client_ids:[c.id] });
   b.disabled = false;
@@ -592,7 +597,13 @@ async function revocarPortal(c){
   const suyos = ACCESOS.filter(x => x.client_id === c.id && x.activo);
   if(!suyos.length) return;
   const email = suyos[0].email;
-  if(!confirm('Revocar el acceso de ' + email + ' al portal. Dejará de ver TODAS las fichas vinculadas a ese email, no solo esta. ¿Seguir?')) return;
+  const ok = await lwConfirmar({
+    titulo: 'Revocar el acceso de ' + email,
+    cuerpo: '<p>Dejará de ver <b>todas</b> las fichas vinculadas a ese email, no solo ésta.</p>',
+    confirmar: 'Revocar el acceso',
+    tono: 'peligro',
+  });
+  if(!ok) return;
   const b = $('#btnPortalRev'); b.disabled = true;
   const r = await llamaPortal({ accion:'revocar', email });
   b.disabled = false;

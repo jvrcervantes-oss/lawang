@@ -1017,10 +1017,16 @@ async function borrarOperacion(op){
     facturasVivas ? facturasVivas + ' factura(s) quedarán ANULADAS (no se borran: la serie no puede tener huecos)' : null,
     'La parcela vinculada vuelve a estar disponible.',
   ].filter(Boolean);
-  if(!confirm('¿Borrar la operación de ' + (op.comprador_nombre || 'sin comprador') + '?\n\n'
-    + '· Se borra ' + detalle[0] + '\n'
-    + detalle.slice(1).map(x => '· ' + x).join('\n')
-    + '\n\nNo hay papelera.')) return;
+  const ok = await lwConfirmar({
+    titulo: 'Borrar la operación de ' + (op.comprador_nombre || 'sin comprador'),
+    cuerpo: '<p>Se borra ' + detalle[0] + '.</p>'
+          + (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">'
+              + detalle.slice(1).map(x => '<li>' + x + '</li>').join('') + '</ul>' : '')
+          + '<p>No hay papelera.</p>',
+    confirmar: 'Borrar la operación',
+    tono: 'peligro',
+  });
+  if(!ok) return;
 
   /* Los borradores de firma del ALMACENAMIENTO no los borra `borrar_operacion`:
      una función de la base no alcanza al bucket. Sin esto se quedaban ahí para

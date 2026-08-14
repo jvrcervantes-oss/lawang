@@ -468,7 +468,13 @@ async function editarProyecto(nombreActual){
     mod.count ? `${mod.count} modelo(s) de villa` : '',
   ].filter(Boolean).join(', ');
   const aviso = radio ? `Se actualizará en: ${radio}.\n\n` : 'No hay nada vinculado a este nombre todavía.\n\n';
-  if(!confirm(`${aviso}Renombrar «${nombreActual}» → «${nuevo}»?\n\nRecuerda: si este proyecto aparece en contracts/tokens.json (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo NO se actualiza solo.`)) return;
+  const ok = await lwConfirmar({
+    titulo: `Renombrar «${nombreActual}» a «${nuevo}»`,
+    cuerpo: (aviso ? `<p>${aviso}</p>` : '')
+      + '<p>Si este proyecto aparece en <b>contracts/tokens.json</b> (proyecto_nombre, parcelaPorProyecto, resortPorProyecto), ese archivo <b>no se actualiza solo</b> y hay que tocarlo a mano.</p>',
+    confirmar: 'Renombrar',
+  });
+  if(!ok) return;
   const { error } = await SB.rpc('renombrar_proyecto', { p_antiguo: nombreActual, p_nuevo: nuevo });
   if(error){ toast('No se pudo renombrar: ' + error.message); return; }
   toast('Proyecto renombrado');
@@ -493,7 +499,14 @@ async function borrarProyecto(nombre){
   const impreso = [con.count ? `${con.count} contrato(s)` : '', fac.count ? `${fac.count} factura(s)` : '']
     .filter(Boolean).join(', ');
   const aviso = impreso ? `Sigue impreso en: ${impreso} (no se toca, son documentos ya emitidos).\n\n` : '';
-  if(!confirm(`${aviso}Borrar el proyecto «${nombre}» del catálogo?\n\nSolo se puede si no tiene unidades, modelos de villa ni documentos subidos — si tiene algo, el propio sistema lo rechazará y dirá qué queda por vaciar.`)) return;
+  const ok = await lwConfirmar({
+    titulo: `Borrar el proyecto «${nombre}» del catálogo`,
+    cuerpo: (aviso ? `<p>${aviso}</p>` : '')
+      + '<p>Solo se puede si no tiene unidades, modelos de villa ni documentos subidos. Si tiene algo, el sistema lo rechaza y dice qué queda por vaciar.</p>',
+    confirmar: 'Borrar el proyecto',
+    tono: 'peligro',
+  });
+  if(!ok) return;
   const { error } = await SB.rpc('borrar_proyecto', { p_nombre: nombre });
   if(error){ toast('No se pudo borrar: ' + error.message); return; }
   toast('Proyecto borrado');

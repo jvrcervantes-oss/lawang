@@ -1887,8 +1887,14 @@ function avisaHuerfanos(){
 }
 function exitEdit(){ EDITING=false; editBtnIdle(); render(); }
 function toggleEdit(){ EDITING ? exitEdit() : enterEdit(); }
-function resetOverrides(){
-  if(!confirm('¿Restaurar el texto original de esta plantilla? Se pierden tus ediciones de texto (los campos y cláusulas no se tocan).')) return;
+async function resetOverrides(){
+  const ok = await lwConfirmar({
+    titulo: 'Restaurar el texto original de la plantilla',
+    cuerpo: '<p>Se pierden <b>tus ediciones de texto</b> en esta plantilla. Los campos rellenos y las cláusulas no se tocan.</p>',
+    confirmar: 'Restaurar el texto',
+    tono: 'peligro',
+  });
+  if(!ok) return;
   limpiarOverrides(CURRENT.slug); EDITING=false; editBtnIdle(); render(); toast('Texto original restaurado');
 }
 
@@ -3407,7 +3413,19 @@ $('#btnEditReset').addEventListener('click', resetOverrides);
 
 /* ---------- PDF / backend ---------- */
 $('#btnPdf').addEventListener('click', downloadPdf);
-$('#btnReset').addEventListener('click', ()=>{ if(confirm('¿Limpiar todos los campos? (el diseño de marca se conserva)')) location.reload(); });
+$('#btnReset').addEventListener('click', async ()=>{
+  const n = [...document.querySelectorAll('#form input, #form select, #form textarea')]
+              .filter(e => String(e.value||'').trim()).length;
+  const ok = await lwConfirmar({
+    titulo: 'Limpiar el formulario',
+    // Se cuentan los campos rellenos: "¿limpiar todo?" no dice cuanto se pierde,
+    // y no es lo mismo tirar un borrador de 2 campos que uno de 40.
+    cuerpo: '<p>Se vacían ' + (n ? '<b>' + n + ' campos</b> rellenos' : 'los campos') + ', incluidos adquirientes e hitos de pago. El diseño de marca se conserva.</p>',
+    confirmar: 'Limpiar todo',
+    tono: 'peligro',
+  });
+  if(ok) location.reload();
+});
 
 /* nombre de archivo estándar de PDF: NUMERACIÓN_NOMBRE+APELLIDOS_TIPO+DE+CONTRATO.PDF
    (numeración real de BD si ya está guardado; si no, lo que haya en el campo readonly).
@@ -3896,9 +3914,15 @@ function puedeBorrar(r){
 }
 async function borrarContrato(id){
   const r = (CP_ROWS || []).find(x => x.id === id) || {};
-  if(!confirm('¿Borrar el contrato ' + (r.numero || 'sin nº') + '?\n\n'
-    + 'Se van con él sus firmas y sus compradores enlazados. Las facturas y las unidades NO se '
-    + 'borran: se quedan sin el vínculo.\n\nNo hay papelera.')) return;
+  const ok = await lwConfirmar({
+    titulo: 'Borrar el contrato ' + (r.numero || 'sin nº'),
+    cuerpo: '<p>Se van con él <b>sus firmas y sus compradores enlazados</b>.</p>'
+          + '<p>Las facturas y las unidades <b>no</b> se borran: se quedan sin el vínculo.</p>'
+          + '<p>No hay papelera.</p>',
+    confirmar: 'Borrar ' + (r.numero || 'el contrato'),
+    tono: 'peligro',
+  });
+  if(!ok) return;
   try{
     const { data, error } = await sb.from('contratos').delete().eq('id', id).select('id');
     if(error) throw error;
@@ -4314,8 +4338,16 @@ $('#fmGen').addEventListener('click', async ()=>{
      decidir (Dream/Dune/Trinity/Temple se suben a mano y eso es legítimo). */
   if(AUTO_CARGA){ toast('Espera: se está preparando el anexo de '+AUTO_CARGA); return; }
   const tipSel = (document.querySelector('[name="tipologia_construccion"]')||{}).value;
-  if(tipSel && !ANNEXES.some(a=>a.on && a.pages && a.pages.length) &&
-     !confirm('Este contrato es de tipología '+tipSel+' y va SIN ningún anexo adjunto.\n\nLos Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones). ¿Generar el enlace de firma igualmente?')) return;
+  if(tipSel && !ANNEXES.some(a=>a.on && a.pages && a.pages.length)){
+    const ok = await lwConfirmar({
+      titulo: 'Este contrato va sin ningún anexo',
+      cuerpo: '<p>Es de tipología <b>' + escAttr(tipSel) + '</b> y no lleva anexos adjuntos.</p>'
+            + '<p>Los Artículos 2 y 3 remiten a los Apéndices (planos y especificaciones), así que el comprador firmaría un contrato que se refiere a documentos que no están.</p>',
+      confirmar: 'Generar el enlace igualmente',
+      cancelar: 'Volver y adjuntar',
+    });
+    if(!ok) return;
+  }
   const btn=$('#fmGen'); btn.disabled=true; btn.textContent='Generando…';
   const ROL = FIRMA_NEXT.rol;
   try{

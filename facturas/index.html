@@ -1129,8 +1129,12 @@ function nuevoDocumento(tipo){
   $('#selContrato').value = ''; $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
   toggleTipoRecibi(); pintarLineas(); render();
 }
-$('#btnNueva').onclick = () => {
-  if(SAVED && !confirm('Empezar una factura nueva. ¿Seguro?')) return;
+$('#btnNueva').onclick = async () => {
+  if(SAVED && !await lwConfirmar({
+    titulo: 'Empezar un documento nuevo',
+    cuerpo: '<p>El documento que tienes abierto ya está guardado, así que no se pierde. Se limpia el formulario para empezar otro.</p>',
+    confirmar: 'Empezar uno nuevo',
+  })) return;
   nuevoDocumento($('#selTipo').value);   // desde la vista previa se conserva el tipo que hubiera
 };
 
