@@ -42,7 +42,7 @@
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
-<script src="assets/autoria.js?v=fd4b8f1f"></script>
+<script src="assets/autoria.js?v=4e47fa06"></script>
 <style>
   :root{
     --line:#E4DCCB; --tbh:64px;
@@ -2419,7 +2419,26 @@ function syncDatosDeUnidad(){
   };
   poner('tipologia_villa', m2 != null ? String(m2) : null);            // superficie de la parcela
   poner('precio_m2', (m2 && u.precio_suelo != null) ? fmtImporte(Number(u.precio_suelo) / m2) : null);
-  poner('precio_total', u.precio != null ? fmtImporte(Number(u.precio)) : null);
+  /* El precio que se precarga DEPENDE DEL TIPO de documento, porque la venta va
+     partida en dos contratos: el Bloqueo de Parcela cobra el SUELO y la
+     Construcción la OBRA, y sumados dan la villa. Hasta el 14-ago aquí se metía
+     siempre `u.precio` —la villa entera— en cualquiera de los dos, así que un
+     Bloqueo + su Construcción declaraban el doble de lo pactado. Ya había
+     pasado dos veces sin detectarse: RP00040 (A4, 164.000 en vez de 68.400) y
+     RP00043 (B8, 165.800 en vez de 69.800), las dos de esta semana.
+     La Carta de Reserva sí lleva la villa entera: es el documento preliminar que
+     reserva la operación completa, y por eso no suma precio en Operaciones ni en
+     Compradores (`lwEsPreliminar`, assets/suite-comun.js).
+     Es una precarga, no una imposición: `poner()` no pisa lo escrito a mano, así
+     que un precio negociado se teclea encima y se respeta. */
+  const suelo = u.precio_suelo != null ? Number(u.precio_suelo) : null;
+  const villa = u.precio      != null ? Number(u.precio)      : null;
+  const tipoDoc = CONTRACT_TIPO[CURRENT.slug];
+  const precioSegunTipo =
+      tipoDoc === 'reserva_parcela' ? suelo
+    : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
+    : villa;
+  poner('precio_total', precioSegunTipo != null ? fmtImporte(precioSegunTipo) : null);
   poner('villa_nombre', u.modelo || null);
   poner('tipologia_construccion', u.modelo || null);
   if(u.moneda){

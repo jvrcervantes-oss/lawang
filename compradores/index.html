@@ -113,7 +113,7 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/suite-comun.js?v=76746232"></script>
+<script src="/contracts/assets/suite-comun.js?v=ad885f53"></script>
 <script>
 /* ============================================================
    COMPRADORES — ficha y documentación KYC.
@@ -165,7 +165,7 @@ async function cargar(){
     // qué contratos ha firmado cada persona. Si la migración aún no está,
     // falla sola y la ficha simplemente no muestra el bloque.
     // precio_reserva (12-ago, hallazgo Legal ALTA): la cuota de una Carta de
-    // Reserva NO es precio_total (ver nota junto a PRELIMINAR, más abajo) —
+    // Reserva NO es precio_total (ver nota junto a `lwEsPreliminar`, más abajo) —
     // sin este campo, un cliente con SOLO una Carta de Reserva salía con
     // "Precio pactado"/"Pendiente" en blanco aunque tuviera una cuota real,
     // exigible y con penalización por desistimiento (carta_reserva_hak_sewa,
@@ -328,8 +328,11 @@ function pintarFicha(){
         // con Carta de Reserva + Construcción de 76.500 € salía con 153.000 €
         // pactados para LA MISMA villa). "Cobrado" sí sigue contando cualquier
         // recibí, sea de la reserva o del contrato real — es dinero real entrado.
-        const PRELIMINAR = ['carta_reserva', 'carta_reserva_ampliada'];
-        const sumables = suyos.filter(x => !PRELIMINAR.includes(x.tipo));
+        // La lista se mudó a assets/suite-comun.js el 14-ago (`lwEsPreliminar`):
+        // Operaciones necesitaba la MISMA regla y tenerla solo aquí hizo que las
+        // dos vistas dieran cifras distintas del mismo cliente. De paso entra la
+        // variante hak_sewa, que esta copia se dejaba.
+        const sumables = suyos.filter(x => !lwEsPreliminar(x.tipo));
         const cobrado = suyos.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
         // Solo Carta(s) de Reserva, sin contrato real todavía (hallazgo Legal
         // ALTA, 12-ago): la cuota de reserva es un pago EXIGIBLE de verdad —

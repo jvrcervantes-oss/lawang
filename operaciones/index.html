@@ -294,7 +294,7 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/suite-comun.js?v=76746232"></script>
+<script src="/contracts/assets/suite-comun.js?v=ad885f53"></script>
 <script>
 /* ============================================================
    OPERACIONES — la vista que cruza lo que ya existe.
@@ -471,9 +471,24 @@ function cuenta(op){
 function cuentaGrupo(op){
   const grupo = op.padre ? [op.padre, ...op.padre.hijos] : [op, ...op.hijos];
   const moneda = op.moneda || 'EUR';
-  const precio = grupo.reduce((a, o) => a + (parseImporte(o.precio_total) || 0), 0) || null;
+  /* La Carta de Reserva NO suma precio: declara el mismo importe de la villa que
+     luego repite el contrato real que la sustituye (`lwEsPreliminar`, en
+     assets/suite-comun.js, con el porqué). Compradores ya lo hacía desde el
+     12-ago; aquí no hacía falta porque la Carta era una operación aparte. Desde
+     que cuelga de su Bloqueo (LAW-50, 14-ago) sí entra en el grupo, y sin esta
+     línea el precio salía DOBLE — Juan José Carbajo Pinal, 328.000 € por una
+     villa de 164.000.
+     Si el grupo es SOLO preliminar (una Carta que todavía no tiene su Bloqueo),
+     se cuenta igualmente: si no, la operación diría 0 € y leería como que no se
+     ha pactado nada, cuando la cuota de reserva sí es exigible. */
+  const sumables = grupo.filter(o => !lwEsPreliminar(o.tipo));
+  const base = sumables.length ? sumables : grupo;
+  const precio = base.reduce((a, o) => a + (parseImporte(o.precio_total) || 0), 0) || null;
+  // el cobrado sí cuenta TODO el grupo: un recibí contra la Carta es dinero real
+  // que entró, y al pasar a Bloqueo hay que descontárselo al cliente.
   const facturado = redondear(grupo.reduce((a, o) => a + (o.cobrado || 0), 0), moneda);
-  return { moneda, precio, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null, grupo };
+  return { moneda, precio, facturado, pendiente: precio ? redondear(precio - facturado, moneda) : null,
+           grupo, soloPreliminar: !sumables.length };
 }
 
 /* ---------- filtros ----------

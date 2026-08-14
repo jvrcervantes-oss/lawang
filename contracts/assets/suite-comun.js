@@ -67,3 +67,30 @@ const toast = (m, ms) => {
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove('show', 'on'), ms || duracionToast());
 };
+
+/* ---------------------------------------------------------------------------
+   Qué contratos NO suman precio — 14-ago-2026
+   ---------------------------------------------------------------------------
+   Una Carta de Reserva es un documento PRELIMINAR: el precio que declara es el
+   MISMO de la villa que luego repite el contrato real que la sustituye (Bloqueo
+   de Parcela + Construcción), no un cargo aparte. Sumarla duplica el precio
+   pactado.
+
+   Vivía SOLO en compradores/index.html (12-ago, hallazgo del owner: una Carta +
+   Construcción de 76.500 € daba 153.000 € por la misma villa). El 14-ago la
+   Carta pasó a colgar de su Bloqueo (LAW-50) y entonces Operaciones —que suma el
+   grupo padre+hijos y no tenía esta regla— empezó a dar el doble: Juan José
+   Carbajo Pinal salía con 328.000 € por una villa de 164.000. Dos vistas del
+   mismo dato con dos criterios distintos, que es exactamente lo que esta capa
+   compartida existe para evitar.
+
+   El COBRADO no se toca: un recibí contra la Carta es dinero real que entró y
+   cuenta en la operación. Es justo lo que pide el flujo comercial — el cliente
+   paga la reserva, y al pasar a Bloqueo eso ya pagado se le descuenta, sin
+   duplicar el importe.
+
+   Va la variante `hak_sewa` también, que compradores se dejaba. Hoy no cambia
+   ninguna cifra (ninguna está vinculada), pero el día que se traspase una haría
+   el mismo doble conteo. */
+const LW_TIPOS_PRELIMINARES = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
+const lwEsPreliminar = t => LW_TIPOS_PRELIMINARES.includes(t);
