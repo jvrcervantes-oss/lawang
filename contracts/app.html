@@ -601,6 +601,31 @@ const TEMPLATES = [
   // los disabled) y TEMPLATES[0] es la plantilla que se abre al entrar. Los tres
   // primeros son la secuencia real de una venta: se reserva, se bloquea la
   // parcela y se firma la obra.
+  /* `cover` — UN COLOR POR DOCUMENTO, SIN REPETIR (14-ago-2026, petición del
+     owner). Antes 16 documentos compartían 5 colores: tres Cartas de Reserva
+     idénticas, cuatro plantillas en Territorial Green, cuatro en Deep Lagoon.
+     Dos cosas que hay que saber antes de tocar uno de estos hex:
+     · `cover` NO es solo la portada. designStyle() lo inyecta como
+       `--brand-deep`, y ese token pinta además los títulos de sección del
+       documento y el FONDO de la cabecera de la tabla de pagos, que lleva
+       texto BLANCO encima (assets/contract.css). Un color de portada bonito
+       pero claro deja la tabla de pagos ilegible en el contrato impreso.
+       Regla: mínimo 4.5:1 contra blanco Y contra el papel #F5F0E6.
+       Así se cayó el viejo Soft Canopy #8F9B7A, que estaba en Oferta Comercial
+       y en el Anexo X: daba 2.94:1 — la cabecera de pagos llevaba meses casi
+       ilegible y no lo había mirado nadie.
+     · Los 16 salen de la paleta oficial (assets/brand.css): son sombras de los
+       cinco colores de marca con deriva de tono ≤11° y saturación ≤.45, o sea
+       siguen leyéndose como Lawang. Elegidos maximizando la distancia
+       perceptual: ΔE76 mínimo 15.4 entre dos portadas cualesquiera (por debajo
+       de 8 se confunden sobre papel). Volcanic Ash, Territorial Green y Burnt
+       Earth se quedan intactos en el documento que ya los tenía.
+     · Agrupados por familia, para que el color signifique algo: Reserva
+       (neutros/pizarra), Venta (verde + tierra), Hak Sewa ante notario
+       (lagunas — el Poder es el hermano claro de su contrato), Comercial
+       (verdes/azul), Bonian (tierras).
+     Si añades una plantilla: elige un hex que no esté en esta lista, comprueba
+     el contraste y sepáralo de los demás. */
   { slug:'carta_reserva', file:'templates/carta_reserva.html', cover:'#2E3437', num:1,
     name:{es:'Carta de Reserva',en:'Reservation Letter',id:'Surat Pemesanan'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
@@ -608,7 +633,7 @@ const TEMPLATES = [
   // el memorándum legal del abogado del comprador (002/LPH-LM/AGP/VII/2026) echaba
   // en falta. Es una plantilla APARTE, no un reemplazo: la Carta corta sigue emitida
   // en contratos vivos y no se toca. Serie propia (CA) para no mezclar las dos.
-  { slug:'carta_reserva_ampliada', file:'templates/carta_reserva_ampliada.html', cover:'#2E3437',
+  { slug:'carta_reserva_ampliada', file:'templates/carta_reserva_ampliada.html', cover:'#4C5967',
     name:{es:'Carta de Reserva ampliada',en:'Extended Reservation Letter',id:'Surat Pemesanan Lengkap'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
   // Otra variante APARTE (6-ago-2026), ni la corta ni la ampliada: due-diligence
@@ -616,7 +641,7 @@ const TEMPLATES = [
   // 50% si el reservante desiste. Serie propia CH -- 'CR00005' que pedia el
   // cliente ya es de otro contrato sin firmar, no se reutiliza a mano. Solo
   // ES/ID: el propio documento (art. 8.2) se otorga nada mas en esas dos lenguas.
-  { slug:'carta_reserva_hak_sewa', file:'templates/carta_reserva_hak_sewa.html', cover:'#2E3437',
+  { slug:'carta_reserva_hak_sewa', file:'templates/carta_reserva_hak_sewa.html', cover:'#1D354E',
     name:{es:'Carta de Reserva (Hak Sewa)',en:'Reservation Letter (Hak Sewa)',id:'Surat Pemesanan (Hak Sewa)'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37', num:2,
@@ -629,33 +654,33 @@ const TEMPLATES = [
   // cliente (5-ago-2026). LAWANG NO ES PARTE: firman arrendador (apoderado, línea en
   // blanco), arrendatario (pad firma_adquiriente) y testigos. El nombre no se traduce:
   // el cliente pidió ver exactamente "4. Hak Sewa - Notario" en el selector.
-  { slug:'hak_sewa_notario', file:'templates/hak_sewa_notario.html', cover:'#485B37', num:4,
+  { slug:'hak_sewa_notario', file:'templates/hak_sewa_notario.html', cover:'#104C4F', num:4,
     name:{es:'Hak Sewa - Notario',en:'Hak Sewa - Notario',id:'Hak Sewa - Notario'},
     l2:{es:'de Arrendamiento de Terreno',en:'Land Lease',id:'Sewa Menyewa Tanah'}, ready:true },
   // Poder Notarial (Power of Attorney / Surat Kuasa) que acompaña al Hak Sewa —
   // 10-ago-2026, "5.". Nombre pasó de "POA" a "Power of Attorney" (11-ago,
   // petición del cliente) y la plantilla pasó de monolingüe a trilingüe (ES/EN
   // traducción de trabajo de AxisWorks, ver comentario en poa_notario.html).
-  { slug:'poa_notario', file:'templates/poa_notario.html', cover:'#485B37', num:5,
+  { slug:'poa_notario', file:'templates/poa_notario.html', cover:'#3A7870', num:5,
     name:{es:'Poder Notarial',en:'Power of Attorney',id:'Surat Kuasa'},
     l2:{es:'ante Notario',en:'before a Notary',id:'di hadapan Notaris'}, ready:true },
-  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#104C4F',
+  { slug:'ppjb_reserva',     file:'templates/ppjb_reserva.html', cover:'#315881',
     name:{es:'Contrato General',en:'General Agreement',id:'Perjanjian Umum'},
     l2:{es:'General',en:'General',id:'Umum'}, ready:true, disabled:true },   // deshabilitado: no seleccionable para contratos nuevos (se mantiene para reabrir CG ya guardados)
-  { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#8F9B7A',
+  { slug:'commercial_offer', file:'templates/commercial_offer.html', cover:'#5F6B29',
     name:{es:'Oferta Comercial (Apéndice D)',en:'Commercial Offer (Appendix D)',id:'Penawaran Komersial (Lampiran D)'},
     l2:{es:'Oferta Comercial',en:'Commercial Offer',id:'Penawaran Komersial'}, ready:true },
-  { slug:'commercial_collaboration', file:'templates/commercial_collaboration.html', cover:'#485B37',
+  { slug:'commercial_collaboration', file:'templates/commercial_collaboration.html', cover:'#447A2E',
     name:{es:'Acuerdo Comercial',en:'Commercial Agreement',id:'Perjanjian Komersial'},
     l2:{es:'Acuerdo Comercial y Referidos',en:'Commercial Agreement and Referral',id:'Perjanjian Komersial dan Referral'}, ready:true },
-  { slug:'colaborador_operativo', file:'templates/colaborador_operativo.html', cover:'#104C4F',
+  { slug:'colaborador_operativo', file:'templates/colaborador_operativo.html', cover:'#316F81',
     name:{es:'Protocolo Operativo (Colaborador)',en:'Operational Protocol (Collaborator)',id:'Protokol Operasional (Kolaborator)'},
     l2:{es:'Organización Operativa y Comisiones',en:'Operational Organization and Commissions',id:'Organisasi Operasional dan Komisi'}, ready:true },
-  { slug:'estatutos_sw', file:'templates/estatutos_sw.html', cover:'#42210B',
+  { slug:'estatutos_sw', file:'templates/estatutos_sw.html', cover:'#17290F',
     name:{es:'Estatutos SandalWoods Beachfront',en:'SandalWoods Beachfront Bylaws',id:'Anggaran Dasar SandalWoods Beachfront'},
     l2:{es:'de la Comunidad · SandalWoods Beachfront Resort',en:'of the Community · SandalWoods Beachfront Resort',id:'Komunitas · SandalWoods Beachfront Resort'}, ready:true },
   // Documentos ESTÁTICOS de solo-estilo (como Estatutos): texto fijo, sin campos ni numeración (no van en CONTRACT_TIPO).
-  { slug:'ppjb_bonian', file:'templates/ppjb_bonian.html', cover:'#104C4F',
+  { slug:'ppjb_bonian', file:'templates/ppjb_bonian.html', cover:'#7A3F2E',
     name:{es:'PPJB Bonian Beach',en:'PPJB Bonian Beach',id:'PPJB Bonian Beach'},
     l2:{es:'de Reserva y Compraventa Vinculante de Parcela',en:'Reservation & Binding Sale of Plot',id:'Perjanjian Pengikatan Jual Beli'}, ready:true },
   // Es el ejemplar concreto de la parcela C2, con sus datos escritos dentro y
@@ -664,13 +689,13 @@ const TEMPLATES = [
   // plantilla. Para emitir PPJB de Bonian nuevos, la de arriba (serie PB).
   // Guardable y firmable desde el 6-ago-2026 (serie propia C2, ver
   // set_contrato_numero): antes no tenia numero ni "Enviar a firma".
-  { slug:'ppjb_bonian_c2', file:'templates/ppjb_bonian_c2.html', cover:'#104C4F',
+  { slug:'ppjb_bonian_c2', file:'templates/ppjb_bonian_c2.html', cover:'#815D31',
     name:{es:'PPJB Bonian Beach · Parcela C2',en:'PPJB Bonian Beach · Plot C2',id:'PPJB Bonian Beach · Kavling C2'},
     l2:{es:'de Reserva y Compraventa · Bonian Beach C2',en:'Reservation & Binding Sale · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
-  { slug:'anexo_x_bonian_c2', file:'templates/anexo_x_bonian_c2.html', cover:'#8F9B7A',
+  { slug:'anexo_x_bonian_c2', file:'templates/anexo_x_bonian_c2.html', cover:'#6B4F47',
     name:{es:'Anexo X · Planos y Especificaciones (Bonian C2)',en:'Annex X · Plans & Specs (Bonian C2)',id:'Lampiran X · Bonian C2'},
     l2:{es:'Planos Arquitectónicos y Especificaciones · Bonian Beach C2',en:'Architectural Plans & Specifications · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
-  { slug:'anexo_y_bonian_c2', file:'templates/anexo_y_bonian_c2.html', cover:'#485B37',
+  { slug:'anexo_y_bonian_c2', file:'templates/anexo_y_bonian_c2.html', cover:'#261712',
     name:{es:'Anexo Y · Cronograma de Pagos (Bonian C2)',en:'Annex Y · Payment Schedule (Bonian C2)',id:'Lampiran Y · Bonian C2'},
     l2:{es:'Cronograma de Pagos y Cuentas Bancarias · Bonian Beach C2',en:'Payment Schedule & Bank Accounts · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
 ];
