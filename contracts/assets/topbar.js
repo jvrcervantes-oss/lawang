@@ -353,3 +353,85 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     cargar();
   }
 })();
+
+/* ============================================================================
+   MENÚ LATERAL — V2, 15-ago-2026 (petición del owner)
+   ----------------------------------------------------------------------------
+   Antes, saltar de Facturas a Compradores eran DOS pasos y una carga entera del
+   hub por el medio. Ahora es un clic desde cualquier herramienta.
+
+   POR QUÉ RIEL Y NO BARRA FIJA. Estas pantallas son tablas densas y el cajón de
+   detalle ya ocupa el 70% del ancho; una columna permanente compite justo donde
+   el espacio escasea. Y por los números: un agente tiene 2,6 herramientas de
+   media, así que una columna abierta para tres entradas no sale a cuenta.
+   Así que: PLEGADO por defecto dentro de las herramientas (riel de iconos, 56px,
+   se ve dónde estás) y ABIERTO en el hub, que es donde uno elige a dónde va.
+
+   NO DUPLICA EL CATÁLOGO. Lee `LW_HERRAMIENTAS` de assets/herramientas.js, la
+   misma lista que pinta el hub. Esa era la objeción por escrito que este fichero
+   tenía para no llevar selector -- «una segunda lista aquí se quedaría vieja» --
+   y era correcta: se resuelve mudando la lista, no ignorándola.
+
+   Si `herramientas.js` no está cargado, no se pinta nada y la barra queda como
+   estaba. Una herramienta que no lo incluya no se rompe.
+============================================================================ */
+(function () {
+  if (typeof LW_HERRAMIENTAS === 'undefined') return;
+  var LLAVE = 'lw_rail_abierto';
+  var enHub = /^\/intranet\/?$/.test(location.pathname);
+
+  function pintar(ficha) {
+    if (document.getElementById('lwRail')) return;
+    var permitidas = LW_HERRAMIENTAS.filter(function (t) { return lwPermitida(t, ficha); });
+    // Con una sola herramienta no hay a dónde saltar: la barra sobra.
+    if (permitidas.length < 2) return;
+
+    var guardado = null;
+    try { guardado = localStorage.getItem(LLAVE); } catch (e) {}
+    // El hub abre por defecto; dentro de una herramienta, plegado. Lo que el
+    // usuario haya elegido a mano manda sobre las dos cosas.
+    var abierto = guardado === null ? enHub : guardado === '1';
+
+    var rail = document.createElement('nav');
+    rail.id = 'lwRail';
+    rail.className = 'lw-rail' + (abierto ? ' abierto' : '');
+    rail.setAttribute('aria-label', 'Herramientas');
+
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'lw-rail-tog';
+    btn.setAttribute('aria-expanded', String(abierto));
+    btn.innerHTML = '<i class="ph ph-list"></i><span>Herramientas</span>';
+    btn.title = 'Plegar o desplegar el menú';
+    rail.appendChild(btn);
+
+    var aqui = location.pathname.replace(/\/$/, '');
+    permitidas.forEach(function (t) {
+      var a = document.createElement('a');
+      a.className = 'lw-rail-i';
+      a.href = t.href;
+      // `title` SIEMPRE, no solo plegado: plegado es la única etiqueta que hay, y
+      // abierto sigue sirviendo a quien navega con teclado.
+      a.title = t.nombre;
+      var suyo = t.href.replace(/\/$/, '');
+      if (aqui === suyo || (suyo && aqui.indexOf(suyo) === 0)) a.classList.add('aqui');
+      a.innerHTML = '<i class="ph ' + (t.icon || 'ph-circle') + '"></i><span>' + t.nombre + '</span>';
+      rail.appendChild(a);
+    });
+
+    document.body.appendChild(rail);
+    document.body.classList.add('con-rail');
+    if (abierto) document.body.classList.add('rail-abierto');
+
+    btn.addEventListener('click', function () {
+      var ab = rail.classList.toggle('abierto');
+      document.body.classList.toggle('rail-abierto', ab);
+      btn.setAttribute('aria-expanded', String(ab));
+      try { localStorage.setItem(LLAVE, ab ? '1' : '0'); } catch (e) {}
+    });
+  }
+
+  // Se cuelga de la misma promesa que el resto de la barra: sin ficha no se
+  // sabe qué herramientas puede ver esta persona, y enseñarle puertas que le
+  // van a rebotar es peor que no enseñar ninguna.
+  if (window.LW_AUTH) window.LW_AUTH.then(function (ctx) { pintar((ctx && ctx.ficha) || null); }).catch(function () {});
+})();

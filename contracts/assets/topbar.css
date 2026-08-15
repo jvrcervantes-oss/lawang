@@ -266,3 +266,48 @@
   .lw-title{ font-size:11.5px; letter-spacing:.14em; }
   .lw-who{ display:none; }
 }
+
+/* ── MENÚ LATERAL (riel) — V2, 15-ago-2026 ─────────────────────────────────
+   Plegado = 56px de iconos; abierto = 208px con nombre. La barra superior mide
+   64px y el riel arranca justo debajo: no la tapa ni compite con ella.
+   El desplazamiento del contenido va por `padding-left` en el body y no por
+   `margin`, para no romper los `position:fixed` de las herramientas. */
+.lw-rail{
+  position:fixed; left:0; top:var(--tbh,64px); bottom:0; z-index:38;
+  width:56px; display:flex; flex-direction:column; gap:2px; padding:10px 8px;
+  background:var(--sup-1,#fff); border-right:1px solid var(--linea,#E4DCCB);
+  overflow-x:hidden; overflow-y:auto;
+  transition:width 180ms cubic-bezier(.22,.61,.36,1);
+}
+.lw-rail.abierto{ width:208px; }
+body.con-rail{ padding-left:56px; transition:padding-left 180ms cubic-bezier(.22,.61,.36,1); }
+body.rail-abierto{ padding-left:208px; }
+
+.lw-rail-i, .lw-rail-tog{
+  display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
+  border:none; background:none; border-radius:9px; cursor:pointer;
+  color:var(--texto-2,#4A5052); font:inherit; font-size:13.5px; text-decoration:none;
+  white-space:nowrap; width:100%;
+}
+.lw-rail-i i, .lw-rail-tog i{ font-size:19px; flex:0 0 20px; text-align:center; }
+/* El nombre no se oculta con display:none: se desvanece y se recorta, para que
+   al abrir no dé el salto de aparecer de golpe a mitad de la transición. */
+.lw-rail-i span, .lw-rail-tog span{ opacity:0; transition:opacity 120ms ease; }
+.lw-rail.abierto .lw-rail-i span, .lw-rail.abierto .lw-rail-tog span{ opacity:1; }
+.lw-rail-i:hover, .lw-rail-tog:hover{ background:var(--sup-hover,#EFEADE); color:var(--texto,#22282A); }
+.lw-rail-i:focus-visible, .lw-rail-tog:focus-visible{ outline:2px solid var(--dl,#104C4F); outline-offset:-2px; }
+/* Dónde estás: filete + tinta, las dos señales de la fila seleccionada de la
+   suite. Solo el color no basta plegado, que es cuando más falta hace. */
+.lw-rail-i.aqui{ background:var(--sup-sel,#EAE4D3); color:var(--dl,#104C4F); font-weight:600;
+  box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+.lw-rail-tog{ margin-bottom:6px; color:var(--texto-3,#676B63); }
+
+/* En móvil no hay ancho que repartir: el riel desaparece y se navega por el hub,
+   que es lo que ya se hacía. Media barra encima de una tabla es peor que nada. */
+@media (max-width:860px){
+  .lw-rail{ display:none; }
+  body.con-rail, body.rail-abierto{ padding-left:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .lw-rail, body.con-rail{ transition:none; }
+}

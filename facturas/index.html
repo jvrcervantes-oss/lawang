@@ -11,7 +11,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=4b167da0">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
+<!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
+     los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
+     para que el riel no salga como una columna de cuadros vacios. Misma URL y
+     misma version fijada que las tres que ya lo tenian. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=411b584b">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -20,7 +25,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=138867df">
 <link rel="stylesheet" href="documento.css?v=20260731">
-<script src="/contracts/assets/topbar.js?v=b0cb5eff" defer></script>
+<script src="/contracts/assets/topbar.js?v=720baca9" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
      el permiso lo comprueba el script de esta pagina, que sabe un matiz que

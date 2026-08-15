@@ -19,7 +19,7 @@
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=139ba9f7">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=411b584b">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=138867df">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=b0cb5eff" defer></script>
+<script src="/contracts/assets/topbar.js?v=720baca9" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -310,6 +310,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/herramientas.js?v=426d557a"></script>
 <script src="/contracts/assets/dialogo.js?v=805daace"></script>
 <script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
 <script>
@@ -321,68 +322,10 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
    null si la consulta que necesita no contestó — mejor un hueco que un cero
    inventado. Sin `estado` (el Dossier trabaja contra ficheros locales, no
    contra la base) la fila no espera ninguna cifra y no pinta esqueleto. */
-const HERRAMIENTAS = [
-  { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/operaciones/', herr:'operaciones',
-    para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
-    claves:'ventas seguimiento estado cuenta vencimientos',
-    estado:d => d.firmasPendientes == null ? null
-      : [d.firmasPendientes ? d.firmasPendientes + (d.firmasPendientes === 1 ? ' firma esperando' : ' firmas esperando') : 'Sin firmas pendientes',
-         d.firmasPendientes > 0] },
-
-  { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/app.html', herr:'contratos',
-    para:'Reservas, PPJB, construcción y anexos.',
-    claves:'contratos ppjb reserva construccion anexos',
-    estado:d => d.contratos == null ? null
-      : [d.contratos + ' guardados · ' + d.contratosEditables + ' editables', false] },
-  // Dossier y Creatividades, unificadas en UNA tarjeta (7-ago-2026): antes
-  // eran dos entradas sueltas para dos herramientas de producción de
-  // contenido que casi siempre se usan seguidas. `herr` como ARRAY = ve la
-  // tarjeta quien tenga cualquiera de las dos (ver `puede()` más abajo);
-  // dentro, el visor de /creatividades/ reparte a cada herramienta, que
-  // sigue exigiendo SU permiso propio para entrar de verdad.
-  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/creatividades/', herr:['dossier','creatividades'],
-    para:'Dossiers de producto y piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.',
-    claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto' },   // sin `estado`: ninguna de las dos vive en la base de datos
-  { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/documentacion/', herr:'documentacion',
-    para:'Precios, planos y material de cada proyecto, en el almacén privado.',
-    claves:'documentacion documentos precios planos parcelas material proyecto archivo',
-    estado:d => d.documentos == null ? null
-      : d.documentos === 0 ? ['Sin documentos todavía', true]
-      : [d.documentos + ' documentos · ' + d.proyectosConDocs + ' proyectos', false] },
-
-  { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/facturas/', herr:'facturas',
-    para:'Facturas, proformas y recibís, cada tipo con su serie.',
-    claves:'facturas proforma serie inv cobro impuesto',
-    estado:d => d.facturas == null ? null
-      : [d.facturas + ' emitidas' + (d.facturasAnuladas ? ' · ' + d.facturasAnuladas + ' anuladas' : ''), false] },
-  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/facturas/?tipo=recibi', herr:'facturas',
-    para:'Justificantes de pago y señales.',
-    claves:'recibi recibos justificante señal pago',
-    estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
-
-  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-house-line', href:'/proyectos/', herr:'unidades',
-    para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
-    claves:'proyectos unidades parcelas villas inventario disponible carpetas',
-    estado:d => d.unidades == null ? null
-      : d.unidades === 0 ? ['Sin inventario cargado', true]
-      : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
-  { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/obra/', herr:'obra',
-    para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.',
-    claves:'obra construccion fases fotos avance portal entrega',
-    estado:d => d.obraActivas == null ? null
-      : d.obraActivas === 0 ? ['Sin unidades en obra', true]
-      : [d.obraActivas + ' en obra', false] },
-  { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/compradores/', herr:'compradores',
-    para:'Ficha del comprador y documentación KYC, con caducidades.',
-    claves:'compradores kyc pasaporte fichas clientes caducidad',
-    estado:d => d.compradores == null ? null : [d.compradores + ' fichas', false] },
-
-  { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/usuarios/', herr:'usuarios', soloAdmin:true,
-    para:'Quién entra, con qué rol y qué herramientas ve cada uno.',
-    claves:'usuarios permisos roles equipo acceso',
-    estado:d => d.usuarios == null ? null
-      : [d.usuarios + ' con acceso' + (d.usuariosInactivos ? ' · ' + d.usuariosInactivos + ' desactivados' : ''), false] },
-];
+/* El catálogo se mudó a assets/herramientas.js (15-ago-2026) para que el hub y
+   el menú lateral de la barra lean la MISMA lista. Antes vivía aquí, y por eso
+   topbar.js no podía tener selector de herramientas sin duplicarla. */
+const HERRAMIENTAS = LW_HERRAMIENTAS;
 
 const $ = s => document.querySelector(s);
 
@@ -394,9 +337,7 @@ const esAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
 // Dossier + Creatividades bajo una tarjeta y necesita "cualquiera de las dos"
 // (7-ago-2026) — de ahí el `[].concat`, que trata un string suelto como un
 // array de uno sin tener que tocar las demás tarjetas.
-const permitida = t => t.soloAdmin ? esAdmin(FICHA)
-  : (!FICHA || esAdmin(FICHA) || !t.herr ||
-     [].concat(t.herr).some(h => (FICHA.herramientas || []).includes(h)));
+const permitida = t => lwPermitida(t, FICHA);   // la regla vive en assets/herramientas.js
 
 /* ── pintado ───────────────────────────────────────────────────────
    Se pinta ANTES de que lleguen las cifras, con hueso en su sitio: la lista
