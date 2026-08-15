@@ -377,6 +377,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
 ============================================================================ */
 (function () {
   if (typeof LW_HERRAMIENTAS === 'undefined') return;
+  var barraDe = function () { return document.querySelector('.lw-topbar'); };
   var LLAVE = 'lw_rail_abierto';
   var enHub = /^\/intranet\/?$/.test(location.pathname);
 
@@ -422,11 +423,35 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     document.body.classList.add('con-rail');
     if (abierto) document.body.classList.add('rail-abierto');
 
-    btn.addEventListener('click', function () {
-      var ab = rail.classList.toggle('abierto');
+    /* EN MÓVIL el riel es una hoja que sube desde abajo (ver topbar.css), no una
+       columna: 56px de columna sobre una tabla estrecha es quitarle una sexta
+       parte del ancho a quien menos le sobra. Pero entonces el botón de dentro
+       del riel no se ve, así que va otro en la barra superior — mismo estado,
+       dos mandos. Es el mismo patrón que ya usa el cajón de usuario. */
+    var velo = document.createElement('div');
+    velo.className = 'lw-rail-velo';
+    document.body.appendChild(velo);
+
+    var btnMovil = document.createElement('button');
+    btnMovil.type = 'button'; btnMovil.className = 'lw-rail-movil';
+    btnMovil.setAttribute('aria-label', 'Herramientas');
+    btnMovil.innerHTML = '<i class="ph ph-list"></i>';
+    if (barraDe()) barraDe().insertBefore(btnMovil, barraDe().firstChild);
+
+    function poner(ab) {
+      rail.classList.toggle('abierto', ab);
       document.body.classList.toggle('rail-abierto', ab);
+      velo.classList.toggle('on', ab);
       btn.setAttribute('aria-expanded', String(ab));
       try { localStorage.setItem(LLAVE, ab ? '1' : '0'); } catch (e) {}
+    }
+    btn.addEventListener('click', function () { poner(!rail.classList.contains('abierto')); });
+    btnMovil.addEventListener('click', function () { poner(!rail.classList.contains('abierto')); });
+    velo.addEventListener('click', function () { poner(false); });
+    // Elegir herramienta cierra la hoja: en movil se queda encima del contenido.
+    rail.addEventListener('click', function (e) { if (e.target.closest('.lw-rail-i')) poner(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && rail.classList.contains('abierto') && window.innerWidth <= 860) poner(false);
     });
   }
 

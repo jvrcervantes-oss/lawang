@@ -304,9 +304,39 @@ body.rail-abierto{ padding-left:208px; }
 
 /* En móvil no hay ancho que repartir: el riel desaparece y se navega por el hub,
    que es lo que ya se hacía. Media barra encima de una tabla es peor que nada. */
+/* Botón de la barra superior: SOLO en móvil, donde el riel es una hoja y su
+   botón interno no se ve. Mismo estado que el de dentro, dos mandos. */
+.lw-rail-movil{ display:none; }
+.lw-rail-velo{ position:fixed; inset:0; z-index:37; background:rgba(46,52,55,.42);
+  opacity:0; pointer-events:none; transition:opacity 180ms ease; }
+.lw-rail-velo.on{ opacity:1; pointer-events:auto; }
+
+/* MÓVIL — el riel deja de ser columna y pasa a ser hoja que sube desde abajo,
+   igual que el cajón de usuario (.lw-panel a 86vh). 56px de columna sobre una
+   tabla estrecha es quitarle una sexta parte del ancho a quien menos le sobra;
+   y una hoja a pantalla casi completa se lee y se toca de verdad. */
 @media (max-width:860px){
-  .lw-rail{ display:none; }
   body.con-rail, body.rail-abierto{ padding-left:0; }
+  .lw-rail-movil{ display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; flex:none; border:1px solid var(--linea,#E4DCCB);
+    border-radius:10px; background:var(--sup-1,#fff); color:var(--texto-2,#4A5052);
+    cursor:pointer; font-size:19px; }
+  .lw-rail{
+    top:auto; left:0; right:0; bottom:0; width:100%; height:auto; max-height:80vh;
+    border-right:none; border-top:1px solid var(--linea,#E4DCCB);
+    border-top-left-radius:16px; border-top-right-radius:16px;
+    padding:10px 10px calc(14px + env(safe-area-inset-bottom));
+    transform:translateY(101%); transition:transform 240ms cubic-bezier(.22,.61,.36,1);
+    z-index:39; box-shadow:0 -14px 40px -18px rgba(34,40,42,.5);
+  }
+  .lw-rail.abierto{ transform:none; width:100%; }
+  /* En la hoja el nombre se lee SIEMPRE: un icono suelto a pantalla completa no
+     dice nada, y aqui no hay ancho que ahorrar. */
+  .lw-rail .lw-rail-i span, .lw-rail .lw-rail-tog span{ opacity:1; }
+  .lw-rail-i{ min-height:46px; font-size:15px; }
+  /* El boton de plegar sobra dentro de la hoja: se cierra eligiendo, tocando
+     fuera o con Escape. */
+  .lw-rail-tog{ display:none; }
 }
 @media (prefers-reduced-motion: reduce){
   .lw-rail, body.con-rail{ transition:none; }
