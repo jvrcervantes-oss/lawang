@@ -406,6 +406,14 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     rail.appendChild(btn);
 
     var aqui = location.pathname.replace(/\/$/, '');
+    /* «Intranet» entra como una entrada mas del menu, la primera. Antes era un
+       boton verde suelto en la barra: se integra mejor aqui, donde ya esta todo
+       lo demas a lo que se puede ir, y deja de competir por sitio con el logo.
+       El boton de la barra se esconde (no se borra): el codigo de cada
+       herramienta le sigue escribiendo dentro. */
+    var casa = document.querySelector('.lw-home');
+    if (casa) casa.classList.add('lw-home-oculto');
+    permitidas.unshift({ nombre: tb('volverIntranet').replace(/^←\s*/, ''), icon: 'ph-house-line', href: '/intranet/' });
     permitidas.forEach(function (t) {
       var a = document.createElement('a');
       a.className = 'lw-rail-i';
@@ -418,6 +426,18 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
       a.innerHTML = '<i class="ph ' + (t.icon || 'ph-circle') + '"></i><span>' + t.nombre + '</span>';
       rail.appendChild(a);
     });
+
+    /* EL USUARIO, AL PIE DEL MENU. Estaba arriba a la izquierda, y en movil se
+       apretaba contra el ☰ y la insignia de avisos: ese era el «recuadro raro»
+       que reporto el owner. Aqui abajo tiene sitio, y ademas es donde se busca en
+       cualquier panel. Se REUTILIZA el boton que ya monta este mismo fichero
+       (`.lw-usuario`) moviendolo de sitio: crear otro habria duplicado el panel
+       de cuenta, los avisos y el cierre de sesion. */
+    var hueco = document.createElement('div');
+    hueco.className = 'lw-rail-pie';
+    rail.appendChild(hueco);
+    var usr = document.querySelector('.lw-usuario-btn');
+    if (usr) hueco.appendChild(usr);   // el panel/velo siguen colgando de <body>, solo se mueve el disparador
 
     document.body.appendChild(rail);
     document.body.classList.add('con-rail');

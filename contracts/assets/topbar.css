@@ -341,3 +341,17 @@ body.rail-abierto{ padding-left:208px; }
 @media (prefers-reduced-motion: reduce){
   .lw-rail, body.con-rail{ transition:none; }
 }
+
+/* ── Menú lateral: pie con el usuario, y avisos plegables ───────────────────
+   El disparador de cuenta baja aquí desde la barra superior (15-ago-2026): allí
+   se apretaba contra el ☰ y la insignia de avisos en móvil — el «recuadro raro»
+   que reportó el owner. `margin-top:auto` lo pega abajo del todo. */
+.lw-rail-pie{ margin-top:auto; padding-top:10px; border-top:1px solid var(--linea,#E4DCCB); }
+.lw-rail-pie .lw-usuario-btn{ width:100%; justify-content:flex-start; }
+/* Plegado solo cabe la inicial: el nombre se desvanece como el resto de rótulos. */
+.lw-rail:not(.abierto) .lw-rail-pie .lw-usuario-nom{ display:none; }
+
+/* «Intranet» pasa a ser la primera entrada del menú, así que su botón verde de
+   la barra sobra. Se esconde y NO se borra: el código de cada herramienta le
+   sigue escribiendo dentro y quitarlo del DOM lo rompería. */
+.lw-home-oculto{ display:none !important; }

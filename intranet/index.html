@@ -19,7 +19,7 @@
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=6debec6a">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=c7534e86">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=138867df">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=e71a7035" defer></script>
+<script src="/contracts/assets/topbar.js?v=3078e3be" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -142,6 +142,16 @@ main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 34p
 .railCaja{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
 .railCaja + .railCaja{ margin-top:14px; }
 .railCaja .t{ font-size:12px; font-weight:600; color:var(--ink); margin-bottom:10px; }
+/* Avisos plegados del cuadro de firmas: una linea que no empuja las
+   herramientas hacia abajo, y que al abrirse enseña lo mismo de antes. */
+.railMas{ margin-top:2px; }
+.railMas > summary{ list-style:none; cursor:pointer; font-size:11.5px; padding:6px 0 2px;
+  color:var(--texto-2,#4A5052); }
+.railMas > summary::-webkit-details-marker{ display:none; }
+.railMas > summary::before{ content:'▸ '; }
+.railMas[open] > summary::before{ content:'▾ '; }
+.railMas > summary:hover{ color:var(--dl,#104C4F); }
+
 .railFila{ display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:5px 0; }
 .railFila .v{ font-weight:600; font-variant-numeric:tabular-nums; }
 .railFila.tarde{ color:#9E2F26; }
@@ -292,12 +302,10 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
       <div>
         <h1 style="font-size:16px">Herramientas</h1>
       </div>
-      <div class="buscar">
-        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-        <input id="q" type="search" autocomplete="off" spellcheck="false"
-               placeholder="Escribe para filtrar: contratos, factura, KYC…" aria-label="Filtrar herramientas">
-        <kbd>↑↓ Enter</kbd>
-      </div>
+      <!-- Buscador retirado el 15-ago-2026 (owner). Filtraba una lista de diez
+           entradas que cabe entera en pantalla, y desde el menu lateral estan
+           todas a un clic desde cualquier herramienta: buscar para elegir entre
+           diez cosas visibles es teclear para no mirar. -->
     </div>
     <div id="grupos"></div>
   </main>
@@ -394,18 +402,18 @@ function marcar(i){
   CURSOR = Math.max(0, Math.min(i, filas.length - 1));
   filas.forEach((f, n) => f.classList.toggle('marcada', n === CURSOR));
 }
-$('#q').addEventListener('input', e => pintar(e.target.value));
+/* El buscador se retiro el 15-ago-2026 y con el su cableado. Se CONSERVAN las
+   flechas y Enter: recorrer la lista con el teclado sigue valiendo sin filtro, y
+   quitarlo tambien habria sido cobrar de mas por el cambio pedido. */
 document.addEventListener('keydown', e => {
   if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    const filas = document.querySelectorAll('.fila');
+    if(!filas.length) return;
     e.preventDefault(); marcar(CURSOR + (e.key === 'ArrowDown' ? 1 : -1));
-    document.querySelectorAll('.fila')[CURSOR].scrollIntoView({ block:'nearest' });
+    filas[CURSOR].scrollIntoView({ block:'nearest' });
   }else if(e.key === 'Enter'){
     const f = document.querySelectorAll('.fila')[CURSOR];
     if(f && f.href) location.href = f.href;
-  }else if(e.key === 'Escape' && $('#q').value){
-    $('#q').value = ''; pintar('');
-  }else if(e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement !== $('#q')){
-    $('#q').focus();   // escribir en cualquier sitio va al filtro, como en cualquier lista buena
   }
 });
 document.addEventListener('mousemove', e => {
@@ -518,17 +526,10 @@ function pintarKpis(d, ficha){
   }).join('');
   $('#kpis').hidden = false;
 
-  /* Fila de administración: solo para quien manda. No es un secreto —el panel de
-     Usuarios ya comprueba el rol— pero enseñar «14 con acceso» a un agente es
-     ruido sobre algo que no puede tocar. */
-  if(esAdmin(ficha) && d.usuarios != null){
-    $('#kpis').insertAdjacentHTML('beforeend',
-      `<a class="lw-kpi lw-fade mando" href="/usuarios/" style="--i:${vistas.length}">
-        <span class="rot">Equipo · admin</span>
-        <span class="lw-cifra">${d.usuarios}</span>
-        <span class="pie">${d.usuariosInactivos ? d.usuariosInactivos + ' desactivados' : 'todos activos'}</span>
-      </a>`);
-  }
+  /* La tarjeta «Equipo · admin» se retira el 15-ago-2026 (owner: «irrelevante»).
+     Tenia razon: contaba cuanta gente hay, que no es una cifra que mueva a hacer
+     nada — y ahora Usuarios esta a un clic en el menu lateral. Las tarjetas de
+     aqui son para lo que urge, no para lo que se puede contar. */
 }
 
 /* ── últimas operaciones ───────────────────────────────────────────────
@@ -616,9 +617,19 @@ async function pintarRail(sb, ficha){
           : a.tipo === 'firmante_sin_email' ? 'Sin email'
           : a.tipo === 'enlace_caducado' ? 'Enlace caducado'
           : a.tipo === 'cerrado_sin_documento' ? 'Sin documento' : esc(a.tipo)}</span></div>`;
+      /* Las CRÍTICAS van siempre enteras y sin recortar: son las que dejan un
+         contrato firmado a medias y editable. Los AVISOS se pliegan detrás de una
+         línea (15-ago-2026, owner: el cuadro empujaba demasiado abajo las
+         herramientas). No es lo mismo esconder una alarma que esconder un
+         recordatorio, y por eso solo se pliega lo segundo. */
       cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '">'
         + '<div class="t">Firmas que necesitan atención</div>'
-        + criticas.map(fila).join('') + avisos.map(fila).join('')
+        + criticas.map(fila).join('')
+        + (avisos.length
+            ? '<details class="railMas"><summary>' + avisos.length
+              + (avisos.length === 1 ? ' aviso más' : ' avisos más') + '</summary>'
+              + avisos.map(fila).join('') + '</details>'
+            : '')
         + (criticas.length
             ? '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
               + 'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.'
@@ -660,23 +671,10 @@ async function pintarRail(sb, ficha){
           <span class="v ${r.clase||''}">${esc(r.val)}</span></div>`).join('') + '</div>');
     }
   }catch(e){ console.warn('vencimientos:', e && e.message); }
-  if(esAdmin(ficha)){
-    try{
-      // facturas_equipo(), no .from(): esta caja compara a TODO el equipo, y la
-      // RLS por agente (7-ago) deja .from() en solo las propias del admin.
-      const { data } = await sb.rpc('facturas_equipo').select('creado_por, total, moneda').eq('anulada', false);
-      const por = {};
-      (data || []).forEach(r => { if(r.creado_por) por[r.creado_por] = (por[r.creado_por]||0) + (Number(r.total)||0); });
-      const eq = await sb.from('usuarios').select('email, nombre');
-      const nom = {}; (eq.data || []).forEach(u => { if(u.nombre) nom[u.email] = u.nombre; });
-      const top = Object.entries(por).sort((a,b) => b[1]-a[1]).slice(0,3);
-      if(top.length){
-        cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Rendimiento del equipo · admin</div>' +
-          top.map(([em,v]) => `<div class="railFila"><span>${esc(nom[em]||em)}</span>
-            <span class="v">${v.toLocaleString('es')} €</span></div>`).join('') + '</div>');
-      }
-    }catch(e){ console.warn('rendimiento:', e && e.message); }
-  }
+  /* «Rendimiento del equipo · admin» retirado el 15-ago-2026 (owner): se hara
+     algo especifico de agentes. Comparar a la gente por importe facturado en el
+     panel de entrada de todos no es lo mismo que un panel de rendimiento, y a
+     medias hacia mas ruido que servicio. */
   $('#rail').innerHTML = cajas.join('') || '<div class="railCaja lw-fade"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
 }
 
@@ -726,10 +724,9 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
 
   pintar('');                 // la lista sale ya, sin esperar a la base
   document.body.hidden = false;
-  $('#q').focus();
 
   CIFRAS = await contar(sb);
-  pintar($('#q').value);
+  pintar('');
   pintarKpis(CIFRAS, ficha);
   /* Va después y sin bloquear: si esta consulta falla, el panel ya está entero y
      usable. Un `await` sin catch aquí habría dejado el pie de página sin escribir
