@@ -891,7 +891,9 @@ function pintarDetalle(){
       }).join('')}
       </tbody></table>
       <p class="nota">Vinculados desde Contratos («Nº del Contrato de Reserva/PPJB vinculado» en la Construcción).
-        Aquí, cada fila por separado; el «Estado de cuenta» de más abajo ya los suma los dos.</p>
+        Aquí, cada fila por separado. El «Estado de cuenta» de más abajo suma los que fijan precio: una
+        Carta de Reserva declara el mismo importe de la villa que luego reparten el Bloqueo y la
+        Construcción, así que sumarla contaría la misma villa dos veces.</p>
     </section>` : '';
   const bloqueFichas = fichas.length ? `
     <section>
@@ -948,7 +950,20 @@ function pintarDetalle(){
 
     <section>
       <h3>Estado de cuenta${cg.grupo.length > 1 ? ' — ' + cg.grupo.length + ' contratos' : ''}</h3>
-      ${cg.grupo.length > 1 ? `<p class="nota">Suma ${cg.grupo.map(x => esc(x.numero || 'sin nº')).join(' + ')}. El detalle de cada uno está en «Contratos de la operación», más arriba.</p>` : ''}
+      ${(() => {
+        /* El rótulo tiene que nombrar los que DE VERDAD suman. Desde el 14-ago la
+           Carta de Reserva no cuenta precio (`lwEsPreliminar`), y este texto seguía
+           diciendo «Suma RP00040 + CR00019» debajo de una cifra que solo incluía el
+           primero. Un número que no cuadra con su propio rótulo es un número en el
+           que el agente deja de confiar — y con razón. El cobrado sí los suma todos. */
+        if(cg.grupo.length <= 1) return '';
+        const suman = cg.grupo.filter(x => !lwEsPreliminar(x.tipo));
+        const fuera = cg.grupo.filter(x =>  lwEsPreliminar(x.tipo));
+        const lista = a => a.map(x => esc(x.numero || 'sin nº')).join(' + ');
+        return `<p class="nota">Precio: suma ${lista(suman.length ? suman : cg.grupo)}.${
+          fuera.length ? ' No cuenta ' + lista(fuera) + ' — una Carta de Reserva declara el mismo importe que luego reparten el Bloqueo y la Construcción.' : ''
+        } El cobrado sí incluye lo pagado en ${lista(cg.grupo)}. Detalle de cada uno en «Contratos de la operación», más arriba.</p>`;
+      })()}
       <div class="cifras">
         <div class="cifra"><div class="k">Precio pactado</div>
           <div class="v ${cg.precio ? '' : 'gris'}">${cg.precio ? fmt(cg.precio) : 'sin fijar'}</div></div>
