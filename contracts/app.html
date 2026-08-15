@@ -4279,9 +4279,16 @@ async function avisaFichaDistinta(contratoId){
     /* Compara sin mayusculas ni puntuacion: un prefijo con espacios distintos no
        es una discrepancia, es la misma persona escrita de otra manera. */
     const clave = v => norm(v).toLowerCase().replace(/[^a-z0-9@.]/gi, '');
+    /* Solo campos que esta plantilla PINTA. `collect()` recorre activeKeys(), asi
+       que un campo que la plantilla no usa sale '' aunque el contrato lo tenga
+       guardado — CC00010 tiene su domicilio en `datos.fields` y aun asi salia
+       como «vacio». Y aunque el aviso fuera cierto, «traer los datos» no tendria
+       donde escribirlo: sin input no hay nada que avisar ni que arreglar. */
     const difs = CAMPOS_FICHA
-      .map(([campo, col, etq]) => ({ campo, etq, aqui: norm((collect() || {})[campo]), alla: norm(ficha[col]) }))
-      .filter(x => x.alla && clave(x.aqui) !== clave(x.alla));   // solo si la ficha TIENE dato y de verdad difiere
+      .map(([campo, col, etq]) => ({ campo, etq, el: document.querySelector('[name="' + campo + '"]'), alla: norm(ficha[col]) }))
+      .filter(x => x.el && x.alla)
+      .map(x => Object.assign(x, { aqui: norm(x.el.value) }))
+      .filter(x => clave(x.aqui) !== clave(x.alla));   // solo si la ficha TIENE dato y de verdad difiere
     if(!difs.length) return;
     const ok = await lwConfirmar({
       titulo: 'La ficha del comprador dice otra cosa',
@@ -4296,7 +4303,7 @@ async function avisaFichaDistinta(contratoId){
       cancelar: 'Dejarlo como está',
     });
     if(!ok) return;
-    difs.forEach(x => { const el = document.querySelector('[name="' + x.campo + '"]'); if(el) el.value = x.alla; });
+    difs.forEach(x => { x.el.value = x.alla; });
     render();
     toast(difs.length + (difs.length === 1 ? ' dato traído de la ficha · revisa y guarda'
                                            : ' datos traídos de la ficha · revisa y guarda'));
