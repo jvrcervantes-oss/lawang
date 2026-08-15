@@ -4303,6 +4303,33 @@ async function openFirmaModal(){
   if(!SAVED_CONTRACT){ toast('Guarda el contrato antes de enviarlo a firma'); return; }
   const lista = firmantesDelContrato();
   if(!lista.length){ toast('El contrato no tiene ningún firmante con nombre'); return; }
+  /* CADENA ROTA ANTES DE EMPEZAR — 15-ago-2026.
+     Si un firmante POSTERIOR no tiene email, la cadena se para en seco el día
+     que firme el anterior: `firma-submit` no puede generarle su enlace, lo deja
+     en `avisosCadena` y responde ok:true. Ese aviso va al navegador del COMPRADOR
+     y a console.error, así que el equipo no se entera — y el contrato se queda
+     firmado a medias y EDITABLE.
+     Pasó de verdad con CR00020: Jorge Miguel firmó el 14-ago y la cadena lleva
+     parada desde entonces porque Mayka Núñez Sáez no tiene email.
+     Se avisa AQUÍ, que es el único momento en que aún se puede arreglar sin
+     molestar a nadie. No se bloquea: mandar el enlace por WhatsApp es una salida
+     legítima, pero tiene que ser una decisión y no un descubrimiento. */
+  const sinEmail = lista.slice(1).filter(f => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email||'').trim()));
+  if(sinEmail.length){
+    const ok = await lwConfirmar({
+      titulo: sinEmail.length === 1
+        ? 'A ' + (sinEmail[0].nombre || sinEmail[0].etiqueta) + ' no se le puede mandar su enlace'
+        : 'Hay ' + sinEmail.length + ' firmantes sin email',
+      cuerpo: '<p>' + sinEmail.map(f => '<b>' + escAttr(f.nombre || f.etiqueta) + '</b> (' + escAttr(f.etiqueta) + ')').join(', ')
+            + ' no tiene' + (sinEmail.length > 1 ? 'n' : '') + ' email en el contrato.</p>'
+            + '<p>En cuanto firme el anterior, <b>la cadena se parará ahí</b>: el sistema no podrá enviar el siguiente enlace, '
+            + 'y el contrato se quedará firmado a medias y todavía editable.</p>'
+            + '<p>Puedes seguir y mandarle el enlace tú por otra vía, pero entonces hay que acordarse.</p>',
+      confirmar: 'Seguir de todas formas',
+      cancelar: 'Volver y poner el email',
+    });
+    if(!ok) return;
+  }
   // quién ha firmado ya — el modal solo ofrece AL SIGUIENTE, nunca a elegir
   const { data: filas, error } = await sb.from('contrato_firmas')
     .select('firmante_rol').eq('contrato_id', SAVED_CONTRACT.id).eq('estado','firmado');
