@@ -377,7 +377,8 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
 ============================================================================ */
 (function () {
   if (typeof LW_HERRAMIENTAS === 'undefined') return;
-  var barraDe = function () { return document.querySelector('.lw-topbar'); };
+  // el hub no tiene `.lw-topbar` sino `[data-lw-usuario]`, igual que el resto de topbar.js
+  var barraDe = function () { return document.querySelector('.lw-topbar') || document.querySelector('[data-lw-usuario]'); };
   var LLAVE = 'lw_rail_abierto';
   var enHub = /^\/intranet\/?$/.test(location.pathname);
 
@@ -478,5 +479,15 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
   // Se cuelga de la misma promesa que el resto de la barra: sin ficha no se
   // sabe qué herramientas puede ver esta persona, y enseñarle puertas que le
   // van a rebotar es peor que no enseñar ninguna.
-  if (window.LW_AUTH) window.LW_AUTH.then(function (ctx) { pintar((ctx && ctx.ficha) || null); }).catch(function () {});
+  /* Dos vias porque hay dos formas de saber quien eres en esta suite: las
+     herramientas usan `guard.js` (window.LW_AUTH) y el hub tiene su propio
+     control y anuncia `lw-ficha`. Se escuchan las dos: colgarse solo de la
+     primera dejaba el menu sin arrancar justo en el hub. */
+  if (window.LW_AUTH) {
+    window.LW_AUTH.then(function (ctx) { pintar((ctx && ctx.ficha) || null); }).catch(function () {});
+  } else if (window.LW_FICHA) {
+    pintar(window.LW_FICHA);
+  } else {
+    document.addEventListener('lw-ficha', function (e) { pintar(e.detail || null); }, { once: true });
+  }
 })();

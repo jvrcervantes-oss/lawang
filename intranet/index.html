@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=138867df">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=3078e3be" defer></script>
+<script src="/contracts/assets/topbar.js?v=3f9fd3da" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -721,6 +721,15 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
 
   const sin = new URLSearchParams(location.search).get('sin_permiso');
   if(sin) $('#avisos').innerHTML = '<p class="aviso">No tienes acceso a «' + esc(sin) + '». Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.</p>';
+
+  /* Este hub NO carga guard.js -- tiene su propio control de sesion-- asi que no
+     existe `window.LW_AUTH`, que es de donde cuelga todo lo de topbar.js. Sin
+     esto el menu lateral no arrancaba AQUI, justo donde mas se usa. Se anuncia la
+     ficha por evento en vez de duplicar la comprobacion: quien la necesite se
+     suscribe. Es la tercera vez que esta divergencia cuesta algo (ver
+     contexto/suite_lawang.md). */
+  window.LW_FICHA = ficha;
+  document.dispatchEvent(new CustomEvent('lw-ficha', { detail: ficha }));
 
   pintar('');                 // la lista sale ya, sin esperar a la base
   document.body.hidden = false;
