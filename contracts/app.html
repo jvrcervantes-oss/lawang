@@ -4224,6 +4224,64 @@ async function openSavedContract(id){
   updateSaveButton(); editBtnIdle(); render();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
   avisaHuerfanos();   // render() acaba de recalcular HUERFANOS con la plantilla de hoy
+  avisaFichaDistinta(data.id);
+}
+
+/* ¿La ficha del comprador dice algo distinto de lo que lleva este contrato?
+   ------------------------------------------------------------------------
+   Los datos del comprador se COPIAN al contrato al guardarlo y ahí se quedan
+   congelados: no hay ningún trigger que los propague, y Compradores no escribe
+   nunca en `contratos` (verificado 15-ago-2026).
+
+   Para un contrato FIRMADO eso es lo correcto y no se toca: el documento dice lo
+   que decía cuando se firmó, y si luego cambia un teléfono el firmado sigue
+   valiendo con el viejo. Propagar ahí seria reescribir un documento firmado.
+
+   Para un BORRADOR es un fallo silencioso: corriges un pasaporte mal escrito en
+   la ficha y el contrato que vas a mandar a firmar sigue llevando el error.
+   Ya ha pasado — CC00006 lleva `+34616483003` y su ficha `+34699998584`.
+
+   Asi que NO se propaga solo: se avisa y decide el agente. Solo en no firmados,
+   solo al abrir, y solo si de verdad difiere. */
+const CAMPOS_FICHA = [
+  ['adq1_nombre',       'full_name',       'Nombre'],
+  ['adq1_pasaporte',    'passport_number', 'Pasaporte'],
+  ['adq1_email',        'email',           'Email'],
+  ['adq1_telefono',     'phone',           'Teléfono'],
+  ['adq1_nacionalidad', 'nationality',     'Nacionalidad'],
+  ['adq1_domicilio',    'address',         'Domicilio'],
+];
+async function avisaFichaDistinta(contratoId){
+  if(LOCKED || !sb || !contratoId) return;          // firmado: congelado a propósito
+  try{
+    const { data, error } = await sb.from('contrato_compradores')
+      .select('client_id, clients(full_name,passport_number,email,phone,nationality,address)')
+      .eq('contrato_id', contratoId).eq('rol', 'adquiriente_1').maybeSingle();
+    if(error || !data || !data.clients) return;
+    const ficha = data.clients;
+    const norm = v => String(v == null ? '' : v).trim();
+    const difs = CAMPOS_FICHA
+      .map(([campo, col, etq]) => ({ campo, etq, aqui: norm((collect() || {})[campo]), alla: norm(ficha[col]) }))
+      .filter(x => x.alla && x.aqui !== x.alla);   // solo si la ficha TIENE dato y no coincide
+    if(!difs.length) return;
+    const ok = await lwConfirmar({
+      titulo: 'La ficha del comprador dice otra cosa',
+      cuerpo: '<p>Este contrato <b>todavía no está firmado</b> y lleva datos distintos de los de la ficha de '
+            + escAttr(ficha.full_name || 'el comprador') + ':</p>'
+            + '<ul style="margin:0 0 10px;padding-left:18px">'
+            + difs.map(x => '<li><b>' + escAttr(x.etq) + '</b>: aquí «' + escAttr(x.aqui || '(vacío)')
+                          + '», en la ficha «' + escAttr(x.alla) + '»</li>').join('')
+            + '</ul><p>Los datos se copian al contrato cuando se guarda y ya no se actualizan solos, '
+            + 'a propósito: un contrato firmado no puede cambiar por detrás.</p>',
+      confirmar: 'Traer los datos de la ficha',
+      cancelar: 'Dejarlo como está',
+    });
+    if(!ok) return;
+    difs.forEach(x => { const el = document.querySelector('[name="' + x.campo + '"]'); if(el) el.value = x.alla; });
+    render();
+    toast(difs.length + (difs.length === 1 ? ' dato traído de la ficha · revisa y guarda'
+                                           : ' datos traídos de la ficha · revisa y guarda'));
+  }catch(_){ /* un aviso que falla no puede impedir abrir un contrato */ }
 }
 
 /* ---------- Nuevo contrato a partir del que hay abierto ----------
