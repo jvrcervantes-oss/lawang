@@ -30,6 +30,9 @@
   .stage{ display:grid; grid-template-columns:340px 1fr; height:100%; padding-top:var(--tbh); }
   @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
 
+  .buscarU{ width:100%; margin-top:10px; font:inherit; font-size:13.5px; padding:9px 11px;
+    border:1px solid var(--linea,#E4DCCB); border-radius:9px; background:#FDFCF9; color:inherit; }
+  .buscarU:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   .lista{ overflow:auto; border-right:1px solid var(--line); }
   .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2;
         font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2); font-weight:600; }
@@ -87,7 +90,14 @@
 
   <div class="stage" id="stage">
     <div class="lista">
-      <div class="cab"><b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Equipo</b></div>
+      <div class="cab">
+        <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Equipo</b>
+        <!-- Buscador: era la UNICA herramienta de la suite sin el (medido 15-ago-2026,
+             0 campos de busqueda con 16 personas) mientras Contratos, Facturas,
+             Compradores y Operaciones lo tienen todas. Y la lista ordena los 8 admin
+             primero, asi que para llegar a un agente habia que bajarla entera. -->
+        <input class="buscarU" id="qU" type="search" placeholder="Buscar nombre, email o rol…" autocomplete="off">
+      </div>
       <div id="listaU">Cargando…</div>
     </div>
     <div class="ficha" id="ficha"><div class="vacio">Elige un usuario</div></div>
@@ -136,7 +146,17 @@ async function cargar(){
 }
 
 function pintarLista(){
-  $('#listaU').innerHTML = USUARIOS.map(u => {
+  // Busca tambien por ROL escrito en cristiano ("admin", "agente"), no solo por la
+  // clave interna: quien busca "agente" espera los agentes, no cero resultados.
+  const q = (($('#qU') || {}).value || '').trim().toLowerCase();
+  const ROL_ES = { super_admin:'super admin', admin:'administrador admin', agente:'agente' };
+  const lista = !q ? USUARIOS : USUARIOS.filter(u =>
+    [u.nombre, u.email, ROL_ES[u.rol] || u.rol].some(v => String(v || '').toLowerCase().includes(q)));
+  if(!lista.length){
+    $('#listaU').innerHTML = '<p class="nota" style="padding:18px 20px">Nadie con «' + esc(q) + '».</p>';
+    return;
+  }
+  $('#listaU').innerHTML = lista.map(u => {
     const tags = [];
     if(u.rol === 'super_admin') tags.push('<span class="tag t-super">Super admin</span>');
     else if(u.rol === 'admin')  tags.push('<span class="tag t-admin">Administrador</span>');
@@ -299,6 +319,7 @@ async function crear(){
 }
 
 /* ---------- eventos ---------- */
+$('#qU').addEventListener('input', pintarLista);
 $('#listaU').addEventListener('click', e => {
   const b = e.target.closest('[data-id]'); if(!b) return;
   SEL = b.dataset.id; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta');

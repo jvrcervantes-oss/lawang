@@ -1221,7 +1221,7 @@ async function cargarListado(){
        autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
        un dato que no existe en vez de como un dato que no se pidió. */
     const { data, error } = await sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos,justificante_path')
+      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos,justificante_path')
       .order('created_at', { ascending:false }).limit(200);
     if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
     LDOCS = data || [];
@@ -1253,7 +1253,7 @@ function pintarListado(){
      lista de filas sueltas del modal viejo. */
   const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','morado'], recibi:['Recibí','ok'] };
   box.innerHTML = `<table class="sui-tabla"><thead><tr>
-      <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Proyecto</th>
+      <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Contrato</th><th>Proyecto</th>
       <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th>
     </tr></thead><tbody>` + data.map(f => {
     const [tEt, tTono] = TIPO_ET[f.tipo] || TIPO_ET.factura;
@@ -1261,6 +1261,16 @@ function pintarListado(){
       <td class="clave">${esc(f.numero || '—')}</td>
       <td><span class="sui-tag ${tTono}">${tEt}</span></td>
       <td>${esc(f.cliente_nombre || 'sin nombre')}</td>
+      ${(() => {
+        /* Columna «Contrato», 15-ago-2026. El buscador de arriba decia ya que se
+           podia buscar por contrato, pero la tabla no lo enseñaba: para saber de
+           que contrato era un documento habia que abrirlo.
+           Y marca en rojo los que NO tienen contrato: son los que `contrato_cobrado`
+           no puede atribuir a nadie (LAW-38), y aplicarles un cobro lo hace
+           desaparecer de las cuentas. Que se vea en la lista y no al descubrirlo. */
+        if(!f.contrato_id) return '<td><span class="sui-tag alerta" title="Sin contrato: un cobro aplicado aqui no se atribuye a ninguna operacion (LAW-38)">Sin contrato</span></td>';
+        return `<td class="flojo">${esc(f.contrato_numero || '—')}</td>`;
+      })()}
       <td class="flojo">${esc(f.proyecto_nombre || '—')}</td>
       <td class="num">${esc(fmtMoneda(f.total, f.moneda))}</td>
       <td class="flojo" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></td>
