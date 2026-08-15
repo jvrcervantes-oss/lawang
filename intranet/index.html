@@ -138,6 +138,17 @@ main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 34p
    derecha. En pantalla estrecha el carril baja, no desaparece. */
 .dosCol{ display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; margin:0 0 24px; }
 @media (max-width:900px){ .dosCol{ grid-template-columns:1fr; } }
+/* `min-width:0` NO es cosmetico: un hijo de grid vale por defecto `min-width:auto`,
+   asi que la tabla de «Operaciones recientes» empujaba su columna y con ella toda
+   la pagina — en un movil de 614px el body medía 738 y se desplazaba de lado.
+   La tabla se desplaza DENTRO de su caja, que es lo que hay que hacer con una
+   tabla ancha: nunca dejar que mueva la pagina entera. */
+.dosCol > *{ min-width:0; }
+.dosCol .sui-tabla-caja{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+/* Las cajas del carril (firmas, vencimientos) llevan texto largo en dos columnas:
+   sin esto, un nombre largo tampoco cabe y estira la caja. */
+.railFila{ gap:10px; }
+.railFila > span:first-child{ min-width:0; overflow-wrap:anywhere; }
 .panelCab{ padding:15px 20px; font-size:13px; font-weight:600; color:var(--ink); }
 .railCaja{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
 .railCaja + .railCaja{ margin-top:14px; }
