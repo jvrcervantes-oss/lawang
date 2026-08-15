@@ -1,3 +1,17 @@
+
+/* ── TEXTO IGUAL EN MOVIL QUE EN ESCRITORIO — 15-ago-2026 ──────────────────
+   El owner reporto que "la fuente se ve diferente en el movil y en el portatil,
+   y en el portatil se ve mejor". No era la fuente: las herramientas cargan las
+   MISMAS (Jost + Cormorant, comprobado una a una). Era el inflado automatico de
+   texto de los navegadores moviles.
+   Safari en iOS y Chrome en Android agrandan por su cuenta el texto de los
+   bloques que consideran "columna principal", con un factor que depende del ancho
+   del bloque. Resultado: dos parrafos de la MISMA hoja salen con tamaños
+   distintos, y ninguno con el que se diseño. Aqui las medidas ya estan pensadas
+   para movil, asi que el ajuste sobra y lo unico que hace es descuadrar.
+   `100%` NO impide hacer zoom con los dedos -eso seria user-scalable=no y es un
+   problema de accesibilidad-: solo apaga el reescalado automatico. */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 /* ============================================================================
    CAPA DE INTERFAZ DE LA SUITE — tabla, cajón lateral, estados y movimiento
    31-jul-2026
