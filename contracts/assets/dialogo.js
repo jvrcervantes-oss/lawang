@@ -92,7 +92,7 @@
     if(e.key !== 'Tab') return;
     // El foco no se sale del diálogo: si se fuera, se estaría tabulando por la
     // página de detrás sin poder verla ni saber dónde se está.
-    var f = [bOk, bNo];
+    var f = [bOk, bNo].filter(function(b){ return b.style.display !== 'none'; });
     var i = f.indexOf(document.activeElement);
     e.preventDefault();
     f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
@@ -108,7 +108,10 @@
       elC.innerHTML     = o.cuerpo || '';
       elC.style.display = o.cuerpo ? '' : 'none';
       bOk.textContent   = o.confirmar || 'Continuar';
-      bNo.textContent   = o.cancelar  || 'Cancelar';
+      // `cancelar: false` -> un solo boton. Para mensajes que PARAN y no ofrecen
+      // alternativa: dos botones ahi son mentira, porque no hay nada que elegir.
+      bNo.textContent   = o.cancelar === false ? '' : (o.cancelar || 'Cancelar');
+      bNo.style.display = o.cancelar === false ? 'none' : '';
       var peligro = o.tono === 'peligro';
       caja.setAttribute('data-tono', peligro ? 'peligro' : 'normal');
       bOk.className = 'btn ' + (peligro ? 'peligro' : 'primary');
@@ -117,7 +120,7 @@
       document.addEventListener('keydown', teclas, true);
       // El foco arranca en CANCELAR, no en el botón que actúa: un Enter de
       // inercia no puede borrar una factura.
-      bNo.focus();
+      (o.cancelar === false ? bOk : bNo).focus();
     });
   };
 })();

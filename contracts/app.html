@@ -44,7 +44,7 @@
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=c031da44"></script>
-<script src="assets/dialogo.js"></script>
+<script src="assets/dialogo.js?v=805daace"></script>
 <style>
   :root{
     --line:#E4DCCB; --tbh:64px;
@@ -3682,6 +3682,55 @@ async function guardarContrato(){
     return;
   }
   const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
+
+  /* SEMIBLOQUEO al editar un contrato enviado a firma — 15-ago-2026, owner.
+     La RLS solo protegía el contrato ya firmado del todo (`bloqueado = false`
+     en su policy de UPDATE). Entre «enviado a firma» y «firmado» no había nada:
+     un contrato con un enlace vivo, o con una de dos firmas ya recogidas, se
+     editaba como un borrador — y CC00007 y CR00020 estuvieron semanas así.
+     Quien de verdad lo impide es el trigger `contrato_no_editable_en_firma`
+     (sql/contrato_semibloqueo_en_firma.sql). Esto de aquí es la otra mitad de la
+     regla: explicar QUÉ se pierde y dejar decidir, en vez de que el agente se
+     coma un error de Postgres. Si cambia una, cambia la otra.
+     Anular no es un castigo: si el texto cambia, la firma que alguien dio sobre
+     el texto anterior ya no vale. Nada se borra — las firmas quedan como
+     historia en `anulado` y su snapshot conserva lo que el comprador vio. */
+  if(!esNuevo && sb){
+    const { data: fmas } = await sb.from('contrato_firmas')
+      .select('estado, firmante_nombre').eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
+    if(fmas && fmas.length){
+      const vivas    = fmas.filter(f => f.estado === 'pendiente');
+      const firmadas = fmas.filter(f => f.estado === 'firmado');
+      const quien = f => (f.firmante_nombre || 'sin nombre').split(' ').slice(0,2).join(' ');
+      const ok = await lwConfirmar({
+        titulo: firmadas.length ? 'Este contrato ya lo ha firmado alguien' : 'Este contrato está enviado a firma',
+        cuerpo:
+            (firmadas.length
+              ? '<p><b>' + firmadas.map(quien).map(escAttr).join(', ') + '</b> ya lo ' + (firmadas.length > 1 ? 'han' : 'ha')
+                + ' firmado. Si lo editas, esa firma <b>se anula</b>: dejaría de valer, porque se dio sobre el texto anterior. '
+                + 'Habrá que pedirle que firme otra vez.</p>'
+              : '')
+          + (vivas.length
+              ? '<p>Hay <b>' + vivas.length + ' enlace(s) de firma sin usar</b> (' + vivas.map(quien).map(escAttr).join(', ')
+                + '). Se anulan también, así que el enlace que ya tengan dejará de funcionar y habrá que mandarles uno nuevo.</p>'
+              : '')
+          + '<p>La copia de lo que se firmó se conserva como prueba. No se borra nada.</p>',
+        confirmar: firmadas.length
+          ? 'Anular ' + firmadas.length + ' firma(s) y editar'
+          : 'Anular el envío y editar',
+        cancelar: 'Dejarlo como está',
+        tono: 'peligro',
+      });
+      if(!ok) return;
+      const { error: eAnu } = await sb.from('contrato_firmas').update({ estado:'anulado' })
+        .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
+      // Si la anulación falla NO se sigue: el trigger rechazaría el guardado y
+      // el agente vería un error de base de datos después de haber dicho que sí.
+      if(eAnu){ toast('No se pudo anular la firma: ' + eAnu.message); return; }
+      toast('Firma anulada — el contrato vuelve a ser editable');
+    }
+  }
+
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
     const payload = contractPayload();
@@ -4311,12 +4360,13 @@ async function openFirmaModal(){
      firmado a medias y EDITABLE.
      Pasó de verdad con CR00020: Jorge Miguel firmó el 14-ago y la cadena lleva
      parada desde entonces porque Mayka Núñez Sáez no tiene email.
-     Se avisa AQUÍ, que es el único momento en que aún se puede arreglar sin
-     molestar a nadie. No se bloquea: mandar el enlace por WhatsApp es una salida
-     legítima, pero tiene que ser una decisión y no un descubrimiento. */
+     Se para AQUÍ, que es el único momento en que aún se arregla sin molestar a
+     nadie. Y se PARA, no se avisa: hasta el 15-ago la salida era mandar el
+     enlace por WhatsApp, y el owner la retiró — si no hay email, no hay cadena,
+     y dejar seguir solo sirve para descubrirlo dos semanas después. */
   const sinEmail = lista.slice(1).filter(f => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email||'').trim()));
   if(sinEmail.length){
-    const ok = await lwConfirmar({
+    await lwConfirmar({
       titulo: sinEmail.length === 1
         ? 'A ' + (sinEmail[0].nombre || sinEmail[0].etiqueta) + ' no se le puede mandar su enlace'
         : 'Hay ' + sinEmail.length + ' firmantes sin email',
@@ -4325,10 +4375,10 @@ async function openFirmaModal(){
             + '<p>En cuanto firme el anterior, <b>la cadena se parará ahí</b>: el sistema no podrá enviar el siguiente enlace, '
             + 'y el contrato se quedará firmado a medias y todavía editable.</p>'
             + '<p>Puedes seguir y mandarle el enlace tú por otra vía, pero entonces hay que acordarse.</p>',
-      confirmar: 'Seguir de todas formas',
-      cancelar: 'Volver y poner el email',
+      confirmar: 'Volver y poner el email',
+      cancelar: false,
     });
-    if(!ok) return;
+    return;   // se PARA: mandar el enlace por otra via dejo de ser una salida (owner, 15-ago)
   }
   // quién ha firmado ya — el modal solo ofrece AL SIGUIENTE, nunca a elegir
   const { data: filas, error } = await sb.from('contrato_firmas')
