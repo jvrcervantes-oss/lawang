@@ -647,6 +647,46 @@ async function ultimasOperaciones(sb){
 async function pintarRail(sb, ficha){
   const cajas = [];
   const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
+
+  /* ── Firmas que necesitan atención — 15-ago-2026 ─────────────────────────
+     VA LA PRIMERA del carril a propósito, por encima de vencimientos y de
+     rendimiento: es lo único de este panel que puede costar un contrato.
+     Origen: `public.auditoria_firmas()` (contracts/sql/auditoria_firmas.sql).
+     Nace de dos contratos que llevaban semanas firmados por UN comprador y sin
+     cerrar —CC00007 desde el 1-ago y CR00020 desde el 14— porque la cadena se
+     paró al no poder mandarle el enlace al segundo firmante. `firma-submit` ya
+     lo avisaba, pero el aviso iba al navegador del COMPRADOR y a console.error:
+     el equipo no lo veía en ningún sitio. Mientras la cadena está parada el
+     contrato sigue EDITABLE, o sea que el texto ya firmado se puede cambiar.
+     Se enseñan TODAS las críticas sin recortar: si algún día hay diez, se ven
+     las diez. Un «+3 más» escondido en esto es exactamente el fallo que se
+     viene a tapar. */
+  try{
+    const { data: anom, error: eAnom } = await sb.rpc('auditoria_firmas');
+    if(eAnom) throw eAnom;
+    const criticas = (anom || []).filter(a => a.severidad === 'critica');
+    const avisos   = (anom || []).filter(a => a.severidad !== 'critica');
+    if(criticas.length || avisos.length){
+      const fila = a => `<div class="railFila ${a.severidad === 'critica' ? 'tarde' : ''}">
+        <span><b>${esc(a.contrato || 'sin nº')}</b> · ${esc(a.comprador || 'sin comprador')}${
+          a.desde ? ' · ' + (dias(a.desde) <= -1 ? 'hace ' + (-dias(a.desde)) + ' días' : 'hoy') : ''}</span>
+        <span class="v ${a.severidad === 'critica' ? 'mal' : 'espera'}">${
+          a.tipo === 'cadena_parada' ? 'Cadena parada'
+          : a.tipo === 'firmante_sin_email' ? 'Sin email'
+          : a.tipo === 'enlace_caducado' ? 'Enlace caducado'
+          : a.tipo === 'cerrado_sin_documento' ? 'Sin documento' : esc(a.tipo)}</span></div>`;
+      cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '">'
+        + '<div class="t">Firmas que necesitan atención</div>'
+        + criticas.map(fila).join('') + avisos.map(fila).join('')
+        + (criticas.length
+            ? '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
+              + 'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.'
+              + '</span></div>'
+            : '')
+        + '</div>');
+    }
+  }catch(e){ console.warn('auditoria de firmas:', e && e.message); }
+
   try{
     // Por `_equipo()` (7-ago), no `.from()` directo — mismo motivo que
     // ultimasOperaciones(). El embed `contratos(numero)` que hacía la lectura
