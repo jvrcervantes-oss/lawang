@@ -364,6 +364,10 @@
   .cp-f:hover{ border-color:var(--dl); }
   .cp-f.on{ background:#21272A; border-color:#21272A; color:#fff; }
   .cp-f.vacio{ opacity:.45; }
+  /* «Mas/Menos» es un control, no un filtro: sin borde solido y en tinta de
+     marca, para que no se lea como un tipo mas de contrato. */
+  .cp-f.cp-mas{ border-style:dashed; color:var(--dl,#104C4F); }
+  .cp-f.cp-mas:hover{ background:#F7F3E9; }
   .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
     font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
   .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
@@ -3895,12 +3899,40 @@ const CP_ESTADOS = [
   ['firmado',  'Firmados',   r => !!r.bloqueado],
   ['mios',     'Míos',       r => r.creado_por && r.creado_por === (MI_EMAIL || '')],
 ];
+/* Cuántos tipos se enseñan sueltos antes de plegar el resto. Cuatro, medido:
+   Bloqueo (20), Carta (19) y Construcción (16) son el 82% de los contratos, y los
+   otros siete vivos suman 12. Antes salían los TRECE en dos filas, tres de ellos
+   permanentemente a cero — ocupando sitio para no filtrar nada. */
+const CP_TIPOS_VISIBLES = 4;
+let CP_MAS_ABIERTO = false;
 function pintarCpFiltros(){
-  const tipos = Object.values(CONTRACT_TIPO);
   const nT = t => CP_ROWS.filter(r => r.tipo === t).length;
+  /* Se ordenan por CANTIDAD, no por el orden de CONTRACT_TIPO. El tipo que más
+     usas queda el primero, que es donde va la mano. Contrapartida asumida: si la
+     cartera cambia mucho, un chip puede moverse de sitio — pero los tres de
+     cabeza son el flujo de una venta (se reserva, se bloquea, se construye) y no
+     se reordenan solos de un día para otro.
+     Los que están a cero van SIEMPRE dentro de «Más», tengan el orden que tengan:
+     un filtro que no filtra nada no merece un hueco en la primera fila. */
+  const ordenados = Object.values(CONTRACT_TIPO)
+    .map(t => ({ t, n: nT(t) }))
+    .sort((a, b) => b.n - a.n || cpTipoLabel(a.t).localeCompare(cpTipoLabel(b.t)));
+  const conUso = ordenados.filter(x => x.n > 0);
+  const fuera  = ordenados.filter(x => x.n === 0);
+  const arriba = conUso.slice(0, CP_TIPOS_VISIBLES);
+  const dentro = conUso.slice(CP_TIPOS_VISIBLES).concat(fuera);
+  // Si el tipo elegido está plegado, el desplegable se abre solo: si no, el
+  // agente ve la lista filtrada y ningún chip encendido, y parece un fallo.
+  if(CP_TIPO && dentro.some(x => x.t === CP_TIPO)) CP_MAS_ABIERTO = true;
+  const chip = x => `<button class="cp-f ${CP_TIPO===x.t?'on':''} ${x.n?'':'vacio'}" data-t="${x.t}">${cpTipoLabel(x.t)} ${x.n}</button>`;
   $('#cpFiltrosTipo').innerHTML =
     `<button class="cp-f ${CP_TIPO===''?'on':''}" data-t="">Todos ${CP_ROWS.length}</button>` +
-    tipos.map(t => `<button class="cp-f ${CP_TIPO===t?'on':''} ${nT(t)?'':'vacio'}" data-t="${t}">${cpTipoLabel(t)} ${nT(t)}</button>`).join('');
+    arriba.map(chip).join('') +
+    (dentro.length
+      ? `<button class="cp-f cp-mas" data-mas="1" aria-expanded="${CP_MAS_ABIERTO}">${
+           CP_MAS_ABIERTO ? 'Menos ▴' : 'Más ' + dentro.length + ' ▾'}</button>`
+        + (CP_MAS_ABIERTO ? dentro.map(chip).join('') : '')
+      : '');
   $('#cpFiltrosEstado').innerHTML = CP_ESTADOS.map(([k,l,prueba]) => {
     const n = CP_ROWS.filter(prueba).length;
     return `<button class="cp-f ${CP_ESTADO===k?'on':''} ${n?'':'vacio'}" data-e="${k}">${l} ${n}</button>`;
@@ -3916,6 +3948,9 @@ function aplicarCpFiltros(){
       .some(v => (v||'').toLowerCase().includes(q))));
 }
 $('#cpFiltrosTipo').addEventListener('click', e => {
+  // «Más/Menos» solo despliega: no cambia el filtro ni la lista de abajo.
+  const mas = e.target.closest('[data-mas]');
+  if(mas){ CP_MAS_ABIERTO = !CP_MAS_ABIERTO; pintarCpFiltros(); return; }
   const b = e.target.closest('[data-t]'); if(!b) return;
   CP_TIPO = b.dataset.t; pintarCpFiltros(); aplicarCpFiltros();
 });
