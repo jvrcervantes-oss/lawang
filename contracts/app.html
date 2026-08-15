@@ -4237,18 +4237,34 @@ async function openSavedContract(id){
    que decía cuando se firmó, y si luego cambia un teléfono el firmado sigue
    valiendo con el viejo. Propagar ahí seria reescribir un documento firmado.
 
-   Para un BORRADOR es un fallo silencioso: corriges un pasaporte mal escrito en
-   la ficha y el contrato que vas a mandar a firmar sigue llevando el error.
-   Ya ha pasado — CC00006 lleva `+34616483003` y su ficha `+34699998584`.
+   Para un BORRADOR es un fallo silencioso: corriges un email mal escrito en la
+   ficha y el contrato que vas a mandar a firmar sigue llevando el error — y el
+   email es por donde sale el enlace de firma. Ya pasa hoy: CC00009 y RP00019
+   llevan `jcginer@gruposantagema.com` y la ficha dice `cginer@…`.
 
    Asi que NO se propaga solo: se avisa y decide el agente. Solo en no firmados,
-   solo al abrir, y solo si de verdad difiere. */
+   solo al abrir, y solo si de verdad difiere.
+
+   QUE SE COMPARA Y QUE NO. Medido sobre los 60 contratos sin firmar antes de
+   encenderlo, porque un aviso que salta por un espacio de mas se aprende a
+   ignorar y entonces no avisa de nada:
+
+     · La NACIONALIDAD no se compara. El contrato escribe el gentilicio en el
+       idioma del documento («Spanish», «Netherlands») y la ficha guarda el pais
+       en español («España», «Países Bajos»). De 26 diferencias, 22 eran eso: los
+       dos textos correctos, cada uno en su sitio. Comparar ese campo es ruido.
+     · El resto se compara IGNORANDO mayusculas y puntuacion, asi que
+       `34 625 45 42 68` y `+34 625 45 42 68` no son una discrepancia. Eso solo
+       quitaba 19 avisos falsos mas.
+
+   Con esas dos reglas quedan 25 diferencias reales en 13 contratos: emails
+   distintos de verdad, campos vacios que la ficha si tiene, y nombres a medias
+   («Rubén Carrasco» / «RUBÉN CARRASCO BARJA»). */
 const CAMPOS_FICHA = [
   ['adq1_nombre',       'full_name',       'Nombre'],
   ['adq1_pasaporte',    'passport_number', 'Pasaporte'],
   ['adq1_email',        'email',           'Email'],
   ['adq1_telefono',     'phone',           'Teléfono'],
-  ['adq1_nacionalidad', 'nationality',     'Nacionalidad'],
   ['adq1_domicilio',    'address',         'Domicilio'],
 ];
 async function avisaFichaDistinta(contratoId){
@@ -4260,9 +4276,12 @@ async function avisaFichaDistinta(contratoId){
     if(error || !data || !data.clients) return;
     const ficha = data.clients;
     const norm = v => String(v == null ? '' : v).trim();
+    /* Compara sin mayusculas ni puntuacion: un prefijo con espacios distintos no
+       es una discrepancia, es la misma persona escrita de otra manera. */
+    const clave = v => norm(v).toLowerCase().replace(/[^a-z0-9@.]/gi, '');
     const difs = CAMPOS_FICHA
       .map(([campo, col, etq]) => ({ campo, etq, aqui: norm((collect() || {})[campo]), alla: norm(ficha[col]) }))
-      .filter(x => x.alla && x.aqui !== x.alla);   // solo si la ficha TIENE dato y no coincide
+      .filter(x => x.alla && clave(x.aqui) !== clave(x.alla));   // solo si la ficha TIENE dato y de verdad difiere
     if(!difs.length) return;
     const ok = await lwConfirmar({
       titulo: 'La ficha del comprador dice otra cosa',
