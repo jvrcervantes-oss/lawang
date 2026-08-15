@@ -104,6 +104,22 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   # Coste real: una revalidacion por fichero en visita repetida, que responde
   # 304 sin cuerpo. Las imagenes y los videos -- lo que de verdad pesa -- siguen
   # con su cache de 7 dias intacta.
+  # HTML DE LA SUITE INTERNA -- 15-ago-2026.
+  # El sellado `?v=<hash>` de los assets vive DENTRO del HTML: si el navegador
+  # cachea la pagina, sirve referencias viejas y el sellado no sirve de nada. Es
+  # la misma familia del incidente de guard.js (29-jul), un piso mas arriba. Paso
+  # de verdad: el owner no veia el menu lateral nuevo porque su navegador le
+  # servia un HTML sin la etiqueta del catalogo.
+  #
+  # Se acota por RUTA y no por nombre de fichero: un <FilesMatch "index.html">
+  # habria casado tambien con el index.html PUBLICO de la raiz, y ahi cada visita
+  # revalidaria sin motivo -- son paginas de marketing que cambian poco.
+  # `no-cache` no desactiva la cache: obliga a revalidar, asi que si no ha
+  # cambiado responde 304 sin cuerpo.
+  SetEnvIf Request_URI "^/(intranet|operaciones|facturas|compradores|proyectos|documentacion|obra|usuarios|creatividades|dossier|contracts|entrar|portal)/" LW_SUITE
+  Header set Cache-Control "no-cache, must-revalidate" env=LW_SUITE
+  Header unset Expires env=LW_SUITE
+
   <FilesMatch "\.(js|css)$">
     Header set Cache-Control "no-cache, must-revalidate"
     # el servidor emite ademas un Expires a 7 dias. Cache-Control manda sobre
