@@ -116,6 +116,14 @@ $$;
 comment on function public.auditoria_firmas() is
   'Anomalias de la firma electronica. Preciso a proposito: solo avisa de estados que nadie va a resolver solo.';
 
+-- ⚠️ REVOKE ANTES DEL GRANT, y no es redundante. En Postgres una funcion nueva
+-- nace con EXECUTE para PUBLIC; un `grant ... to authenticated` NO revoca eso,
+-- solo anade. La primera version de este fichero solo hacia el grant, y el
+-- 15-ago se comprobo en vivo que un ANONIMO con la clave publicable -que esta en
+-- el HTML del sitio- llamaba a esta funcion y obtenia numeros de contrato,
+-- nombres de compradores y el estado de sus firmas.
+revoke all on function public.auditoria_firmas() from public;
+revoke all on function public.auditoria_firmas() from anon;
 grant execute on function public.auditoria_firmas() to authenticated;
 
 -- Comprobacion despues de aplicar (15-ago-2026 debe dar 2 criticas
