@@ -72,35 +72,25 @@ function suiMontarCajon(){
   document.addEventListener('keydown', e => { if(e.key === 'Escape') suiCerrarCajon(); });
 }
 
-/* ── CONFIRMAR EN SERIO (7a) ─────────────────────────────────────────────
-   `suiConfirmar({titulo, mensaje, accion, tono}) -> Promise<boolean>`.
-   Sustituye a window.confirm() en lo destructivo. El foco arranca en CANCELAR:
-   un Enter distraido no puede borrar nada. Esc y clic en el velo son «no». */
-function suiConfirmar({ titulo, mensaje, accion, tono } = {}){
-  return new Promise(resolver => {
-    const velo = document.createElement('div');
-    velo.className = 'sui-conf-velo';
-    velo.innerHTML =
-      `<div class="sui-conf" role="alertdialog" aria-modal="true" aria-label="${(titulo||'Confirmar').replace(/"/g,'&quot;')}">
-         <h3></h3><p></p>
-         <div class="botones">
-           <button type="button" class="sui-btn" data-no>Cancelar</button>
-           <button type="button" class="sui-btn ${tono==='peligro' ? 'peligro-solido' : 'primario'}" data-si></button>
-         </div>
-       </div>`;
-    velo.querySelector('h3').textContent = titulo || 'Confirmar';
-    velo.querySelector('p').textContent = mensaje || '';
-    velo.querySelector('[data-si]').textContent = accion || 'Confirmar';
-    const cerrar = ok => { velo.remove(); document.removeEventListener('keydown', porTecla); resolver(ok); };
-    const porTecla = e => { if(e.key === 'Escape'){ e.stopPropagation(); cerrar(false); } };
-    velo.addEventListener('click', e => { if(e.target === velo) cerrar(false); });
-    velo.querySelector('[data-no]').onclick = () => cerrar(false);
-    velo.querySelector('[data-si]').onclick = () => cerrar(true);
-    document.addEventListener('keydown', porTecla);
-    document.body.appendChild(velo);
-    velo.querySelector('[data-no]').focus();
-  });
-}
+/* ── CONFIRMAR EN SERIO — MUDADO ────────────────────────────────────────────
+   Aqui vivia `suiConfirmar()`. Se retira el 15-ago-2026 porque la suite acabo
+   con DOS dialogos: este y `lwConfirmar` (assets/dialogo.js), y facturas/ los
+   usaba los dos a la vez -- dos aspectos distintos en la misma pantalla.
+
+   Se conserva `lwConfirmar` y no este, por meritos y no por antiguedad:
+     · admite HTML en el cuerpo (aqui solo texto plano), y varios avisos
+       necesitan resaltar una cifra o un numero de contrato;
+     · atrapa el foco mientras esta abierto (aqui se podia tabular a la pagina
+       de detras sin verla);
+     · tiene modo de UN boton para los mensajes que paran sin alternativa;
+     · y sobre todo FUNCIONA EN contracts/app.html, que no carga suite.js --
+       por eso aquella herramienta seguia con diez `confirm()` nativos.
+   Lo que este si tenia bien y se conservo al migrar: el foco arranca en
+   Cancelar, y Escape y el clic en el velo cuentan como «no».
+
+   El CSS `.sui-conf*` se queda en suite.css: no lo usa nadie, pero quitarlo es
+   tocar una hoja compartida por trece herramientas para no ganar nada visible.
+   ---------------------------------------------------------------------------- */
 
 /* ── ORDEN DE COLUMNAS ───────────────────────────────────────────────────
    `orden` = {campo, dir}. El comparador distingue número de texto: ordenar

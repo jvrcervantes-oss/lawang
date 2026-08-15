@@ -29,9 +29,11 @@
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=abd4a27b"></script>
-<!-- suiConfirmar (modal de confirmacion, 7a). suite.js no declara esc/toast,
-     asi que convive con suite-comun.js sin choque de nombres. -->
-<script src="/contracts/assets/suite.js?v=eb783935"></script>
+<!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
+     el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
+     fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
+     en otro, con dos aspectos distintos en la misma pantalla. -->
+<script src="/contracts/assets/suite.js?v=f61d52c5"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
      El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
@@ -1293,9 +1295,10 @@ function pintarListado(){
     const an = e.target.closest('[data-anular]');
     if(an){
       e.stopPropagation();
-      if(!await suiConfirmar({ titulo:'Anular factura',
-        mensaje:'El número no se reutiliza y ya no se podrá editar. La factura queda en el registro como anulada.',
-        accion:'Anular', tono:'peligro' })) return;
+      if(!await lwConfirmar({ titulo:'Anular la factura ' + ((data.find(x=>x.id===an.dataset.anular)||{}).numero || ''),
+        cuerpo:'<p>El número <b>no se reutiliza</b> y ya no se podrá editar.</p>'
+             + '<p>La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.</p>',
+        confirmar:'Anular la factura', tono:'peligro' })) return;
       const { error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular);
       toast(error ? 'No se pudo anular: ' + error.message : 'Factura anulada');
       recargarListado(); return;
@@ -1308,10 +1311,10 @@ function pintarListado(){
     if(bo){
       e.stopPropagation();
       const f = data.find(x => x.id === bo.dataset.borrar) || {};
-      if(!await suiConfirmar({ titulo:'Borrar la factura ' + (f.numero || ''),
-        mensaje:'Lo normal es ANULARLA: así queda el rastro y la serie no pierde un número. '
-          + 'Borrarla deja un hueco en la numeración que habrá que explicar. No hay papelera.',
-        accion:'Borrar de todos modos', tono:'peligro' })) return;
+      if(!await lwConfirmar({ titulo:'Borrar la factura ' + (f.numero || ''),
+        cuerpo:'<p>Lo normal es <b>anularla</b>: así queda el rastro y la serie no pierde un número.</p>'
+             + '<p>Borrarla deja un <b>hueco en la numeración</b> que habrá que explicarle a un contable. No hay papelera.</p>',
+        confirmar:'Borrar de todos modos', cancelar:'Mejor anularla', tono:'peligro' })) return;
       const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
       // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
       // herramienta diría "borrada" y la factura seguiría ahí.
