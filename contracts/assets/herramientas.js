@@ -87,3 +87,16 @@ const lwEsAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
 const lwPermitida = (t, ficha) => t.soloAdmin ? lwEsAdmin(ficha)
   : (!ficha || lwEsAdmin(ficha) || !t.herr ||
      [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));
+
+/* Orden de los grupos, para que el menú lateral no repita cabeceras si el
+   catálogo trae entradas del mismo grupo separadas. El hub no lo necesita
+   -pinta por grupos- pero el menú va en una sola columna. */
+const LW_GRUPOS = LW_HERRAMIENTAS.reduce(function (a, t) {
+  if (t.grupo && a.indexOf(t.grupo) < 0) a.push(t.grupo);
+  return a;
+}, []);
+const lwPorGrupo = function (lista) {
+  return lista.slice().sort(function (a, b) {
+    return LW_GRUPOS.indexOf(a.grupo) - LW_GRUPOS.indexOf(b.grupo);
+  });
+};

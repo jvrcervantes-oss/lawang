@@ -399,6 +399,16 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     rail.className = 'lw-rail' + (abierto ? ' abierto' : '');
     rail.setAttribute('aria-label', 'Herramientas');
 
+    /* LOGO arriba del menú, imagen y no texto: en móvil el rótulo de la barra no
+       se leía. Lleva al hub, que es la convención de toda la web — y la entrada
+       «Intranet» del menú se queda igualmente, porque es la que marca DÓNDE
+       ESTÁS cuando ya estás en el hub (decisión del owner, 15-ago). */
+    var marca = document.createElement('a');
+    marca.className = 'lw-rail-marca'; marca.href = '/intranet/'; marca.title = 'Lawang · Intranet';
+    marca.innerHTML = '<img src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">'
+                    + '<i class="ph ph-house-line" aria-hidden="true"></i>';
+    rail.appendChild(marca);
+
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'lw-rail-tog';
     btn.setAttribute('aria-expanded', String(abierto));
@@ -414,8 +424,24 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
        herramienta le sigue escribiendo dentro. */
     var casa = document.querySelector('.lw-home');
     if (casa) casa.classList.add('lw-home-oculto');
-    permitidas.unshift({ nombre: tb('volverIntranet').replace(/^←\s*/, ''), icon: 'ph-house-line', href: '/intranet/' });
-    permitidas.forEach(function (t) {
+    permitidas.unshift({ nombre: tb('volverIntranet').replace(/^←\s*/, ''), icon: 'ph-house-line', href: '/intranet/', grupo: '' });
+    /* AGRUPADO POR DEPARTAMENTO, igual que el hub (petición del owner): once
+       entradas seguidas se leen como una lista; agrupadas se leen como un mapa.
+       El orden de los grupos sale del propio catálogo, no de una lista aparte
+       aquí — si mañana se añade un grupo, aparece solo. */
+    var grupoActual = null;
+    // ordenadas por grupo: si el catalogo trae dos entradas del mismo grupo
+    // separadas, la cabecera saldria dos veces.
+    (typeof lwPorGrupo === 'function' ? lwPorGrupo(permitidas) : permitidas).forEach(function (t) {
+      if (t.grupo && t.grupo !== grupoActual) {
+        grupoActual = t.grupo;
+        var h = document.createElement('div');
+        h.className = 'lw-rail-grupo';
+        h.textContent = t.grupo;
+        // Plegado no se lee, pero se deja en el DOM: al abrir aparece sin recolocar
+        // nada, y un lector de pantalla lo usa igual.
+        rail.appendChild(h);
+      }
       var a = document.createElement('a');
       a.className = 'lw-rail-i';
       a.href = t.href;

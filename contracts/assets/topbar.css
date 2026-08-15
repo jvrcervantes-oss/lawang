@@ -355,3 +355,25 @@ body.rail-abierto{ padding-left:208px; }
    la barra sobra. Se esconde y NO se borra: el código de cada herramienta le
    sigue escribiendo dentro y quitarlo del DOM lo rompería. */
 .lw-home-oculto{ display:none !important; }
+
+/* ── Menú: logo y cabeceras de departamento (15-ago-2026) ──────────────────── */
+.lw-rail-marca{ display:flex; align-items:center; justify-content:center; min-height:44px;
+  margin:-2px 0 6px; border-radius:9px; text-decoration:none; }
+.lw-rail-marca:hover{ background:var(--sup-hover,#EFEADE); }
+.lw-rail-marca img{ height:22px; width:auto; max-width:100%; object-fit:contain; opacity:0; transition:opacity 120ms ease; }
+/* Plegado no cabe el lockup: se enseña la casa. Abierto, al revés. Nunca los dos
+   a la vez, y nunca ninguno — el hueco vacío parecería un fallo de carga. */
+.lw-rail-marca i{ font-size:20px; color:var(--texto-2,#4A5052); position:absolute; }
+.lw-rail.abierto .lw-rail-marca img{ opacity:1; position:relative; }
+.lw-rail.abierto .lw-rail-marca i{ display:none; }
+.lw-rail:not(.abierto) .lw-rail-marca img{ display:none; }
+
+.lw-rail-grupo{ font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--sc,#BEB3A5); padding:12px 10px 4px; white-space:nowrap;
+  opacity:0; transition:opacity 120ms ease; }
+.lw-rail.abierto .lw-rail-grupo{ opacity:1; }
+/* Plegado, la cabecera no se lee pero SÍ separa: se queda como un filete fino en
+   vez de desaparecer, para que los bloques sigan distinguiéndose. */
+.lw-rail:not(.abierto) .lw-rail-grupo{ height:1px; padding:7px 10px; overflow:hidden;
+  background:linear-gradient(var(--linea,#E4DCCB), var(--linea,#E4DCCB)) center/60% 1px no-repeat;
+  background-clip:content-box; }
