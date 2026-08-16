@@ -59,10 +59,14 @@
        igual que «Testafierro» y «MESEQUER» en hak_sewa_notario.html, que
        SIGUEN sin tocar); el owner autorizó corregir ESTA el 14-ago tras
        preguntarlo él mismo. Cambiada en las tres lenguas.
-       Firma: línea en blanco a propósito, se firma en papel/notario (mismo
-       criterio que hak_sewa_notario.html) — LAWANG no es parte de este poder,
-       y por eso el formulario tampoco pregunta el "Firmante" (campo de gestión
-       que sí sale en el resto de contratos; retirado aquí el 14-ago). -->
+       Firma: hasta el 17-ago-2026 la línea iba en blanco a propósito, «se firma
+       en papel, ante notario». El owner pidió ese día que TODOS los contratos se
+       puedan firmar a distancia, así que lleva el campo de firma como el
+       resto. NO se pierde la vía en papel: sin firma el campo se imprime vacío y
+       queda exactamente el mismo renglón de antes para firmar a mano.
+       LAWANG sigue sin ser parte de este poder, y por eso el formulario tampoco
+       pregunta el "Firmante" (campo de gestión que sí sale en el resto de
+       contratos; retirado aquí el 14-ago). -->
   <div class="doc">
 
     <div class="doc-title">
@@ -124,7 +128,9 @@
     <p data-lang="en">Grantor</p>
     <p data-lang="id">Pemberi Kuasa</p>
 
-    <!-- línea en blanco a propósito: se firma en papel, ante notario.
+    <!-- El renglón de firma. Admite firma a distancia desde el 17-ago-2026 y
+         sigue sirviendo para firmar a mano: sin
+         firma el campo se imprime vacío y queda el renglón tal cual.
          `clear:both` NO es decorativo (14-ago-2026): los párrafos [data-lang] se
          maquetan como columnas FLOTADAS (langCSS en app.html, 47% idioma / 47%
          bahasa), y un bloque normal que no corte ese flotado se coloca AL LADO
@@ -137,7 +143,7 @@
          break-inside:avoid para que el renglón y el nombre no se partan entre
          dos páginas, mismo criterio que los títulos de cláusula. -->
     <div style="clear:both;break-inside:avoid;padding-top:6mm">
-      <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm"></div>
+      <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm;display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
       <p style="margin-top:4px;font-size:9pt"><span class="f">{{adq1_nombre}}</span></p>
     </div>
 

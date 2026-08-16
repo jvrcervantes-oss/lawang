@@ -82,6 +82,33 @@
     </ul>
 
     <!--extra-clauses-->
+
+    <!-- HUECO DE FIRMA — añadido el 17-ago-2026.
+         Este documento no tenía ninguno: es el Apéndice D del Contrato de
+         Construcción y se entregaba para leer, no para firmar. El owner pidió
+         ese día que TODOS los contratos se puedan firmar a distancia, y éste se
+         guarda con número propio (serie CO), así que puede llegar al flujo de
+         firma y necesitaba dónde firmarse.
+
+         ⚠️ SOLO LA COLUMNA DEL ADQUIRIENTE. La oferta la emite Lawang y la
+         acepta el comprador; no se añade renglón del promotor para no dar a
+         entender que esto se firma por duplicado como un contrato.
+
+         ⚠️ NO SE HA TOCADO NI UNA PALABRA DEL TEXTO. El documento sigue
+         diciendo, en las tres lenguas, que «no es vinculante salvo que se
+         incorpore a un contrato firmado». Una firma aquí es conformidad con la
+         oferta, no un contrato — si se quiere que signifique otra cosa, hay que
+         cambiar esa cláusula, y eso es decisión del cliente, no de la suite.
+
+         `clear:both` por lo mismo que en poa_notario.html: los párrafos
+         [data-lang] van en columnas flotadas y un bloque que no corte el flotado
+         pinta su renglón cruzando el texto de al lado. -->
+    <div style="clear:both;break-inside:avoid;padding-top:8mm">
+      <div class="role"><span data-lang="es">El ADQUIRIENTE</span><span data-lang="en">The BUYER</span><span data-lang="id">PEMBELI</span></div>
+      <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);max-width:70mm;display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
+      <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre / Nama</span><span data-lang="en">Name / Nama</span><span data-lang="id">Nama</span>: <span class="f">{{adq1_nombre}}</span></p>
+      <!--firmas-adquirientes-->
+    </div>
   </div>
 </body>
 </html>

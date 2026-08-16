@@ -4611,7 +4611,13 @@ $('#fmGen').addEventListener('click', async ()=>{
      Se comprueba la PLANTILLA CARGADA, no una lista de tipos: una plantilla
      nueva sin hueco de firma queda cubierta el día que se añada, sin que nadie
      se acuerde de apuntarla en ningún sitio. */
-  if(!templateHTML.includes('{{firma_adquiriente}}')){
+  /* Se miran los comentarios FUERA: si el token solo aparece dentro de un
+     <!-- --> la plantilla no tiene hueco de verdad, y el guardarraíl dejaría
+     pasar un enlace condenado a fallar. No es hipotético — al añadir el campo al
+     Poder Notarial escribí el token dentro de dos comentarios explicativos y la
+     comprobación pasó a dar `true` por ellos. */
+  const plantillaSinComentarios = templateHTML.replace(/<!--[\s\S]*?-->/g, '');
+  if(!plantillaSinComentarios.includes('{{firma_adquiriente}}')){
     await lwConfirmar({
       titulo: 'Este documento no se firma a distancia',
       cuerpo: '<p><b>' + escAttr(L(CURRENT.name) || 'Este documento') + '</b> no lleva '
