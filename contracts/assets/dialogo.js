@@ -265,8 +265,18 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
       elQ.placeholder = o.buscarPh || 'Escribe para buscar…';
       elQ.value = '';
       pintar();
+      resolver = res;
+      fondo.classList.add('abierto');
+      document.addEventListener('keydown', teclas, true);
+      elQ.focus();
       /* Si ya había un valor, se marca el suyo y se le lleva la vista: al abrir
-         un campo relleno lo primero que se quiere ver es qué pone ahora. */
+         un campo relleno lo primero que se quiere ver es qué pone ahora.
+
+         ⚠️ VA DESPUÉS DE `.abierto`, no antes. Estaba antes y `scrollIntoView`
+         no hacía nada: mientras el diálogo es `display:none` no tiene caja, y
+         desplazar algo que no ocupa sitio no desplaza nada. Se veía marcado
+         «Turquía» con la lista arriba del todo — `scrollTop` 0 de 7658 medidos
+         en producción — o sea, el valor actual a 7.000 px de la vista. */
       if(o.valor){
         var ops = elL.querySelectorAll('.lw-elegir-op');
         for(var i = 0; i < ops.length; i++){
@@ -278,10 +288,6 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
           }
         }
       }
-      resolver = res;
-      fondo.classList.add('abierto');
-      document.addEventListener('keydown', teclas, true);
-      elQ.focus();
     });
   };
 
