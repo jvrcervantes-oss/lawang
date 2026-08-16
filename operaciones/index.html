@@ -53,7 +53,10 @@
   /* ---------- lista ---------- */
   .lista .cab{ padding:0 0 14px; }
   .cab .fila{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .cab .fila .buscar{ flex:1 1 260px; }
+  /* Se queda con 260 y no con los 240 de la clase: aqui comparte fila con el
+     selector de proyecto y con el conmutador Tabla/Tablero, y con 240 el hueco
+     que sobraba se lo repartian los tres. */
+  .cab .fila .sui-buscar{ flex:1 1 260px; }
   .cab .fila .f-sel{ flex:0 1 240px; margin-top:0; width:auto; }
 
   /* La tabla desplaza en horizontal dentro de su caja en vez de recortarse o
