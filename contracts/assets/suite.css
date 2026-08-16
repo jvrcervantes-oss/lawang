@@ -736,6 +736,29 @@ input.lw-elegible{
 input.lw-elegible:hover{ border-color:var(--texto-3,#676B63); }
 input.lw-elegible:disabled{ cursor:default; opacity:.62; }
 
+/* ── UN CAMPO BLOQUEADO SE LEE IGUAL DE BIEN — 16-ago-2026 ──────────────────
+   En el cajon lateral, `disabled` ya no quiere decir «esto no se usa nunca»:
+   desde que la ficha del comprador abre cerrada quiere decir «bloqueado hasta
+   que apruebes editar». Y una ficha se abre para MIRAR, asi que el dato tiene
+   que leerse perfectamente.
+
+   Sin esto quedaba a medias, medido en produccion sobre la misma ficha: mismo
+   color y mismo fondo en los ocho campos, pero `opacity:.62` en los tres que
+   llevan chevron -los dos del selector y el <select> de KYC- y 1 en el resto.
+   O sea la mitad de la ficha lavada y la otra mitad no, sin ninguna razon que
+   el usuario pueda ver.
+
+   El candado lo dice el pie con su boton «Editar datos», que es donde se mira
+   para actuar. Repetirlo apagando el texto solo estorba la lectura.
+
+   Las dos reglas repiten los `:not(...)` y la clase del original a proposito:
+   la especificidad se gana igualando, no con `!important`. */
+.sui-cajon select:not([multiple]):not([size]):disabled,
+.sui-cajon input.lw-elegible:disabled,
+.sui-cajon input:disabled, .sui-cajon textarea:disabled{
+  opacity:1; cursor:default;
+}
+
 @media (max-width:860px){
   /* En móvil ocupa lo que necesita y se pega abajo: el pulgar llega al buscador
      y a las primeras opciones sin estirar la mano hasta el centro. */
