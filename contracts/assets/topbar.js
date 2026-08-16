@@ -239,7 +239,16 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
       '<span class="lw-usuario-ini" aria-hidden="true">' + esc(nombre.charAt(0).toUpperCase()) + '</span>' +
       '<span class="lw-usuario-nom">' + esc(nombre) + '</span>' +
       '<span class="lw-campana-n" hidden></span>';
-    barra.insertBefore(boton, barra.firstChild);
+    /* Al PIE DEL RIEL si ya está montado; si no, el primero de la barra y el riel
+       se lo lleva cuando se monte. Hacen falta los dos caminos porque el orden
+       cambia según la pantalla: en las herramientas `guard.js` resuelve la
+       sesión antes y el botón existe cuando el riel se construye, pero el HUB no
+       lleva guard.js y su botón nace más tarde, con el evento `lw-ficha` — o
+       sea, con el riel ya cerrado. Por eso en el hub se quedaba arriba mientras
+       en las ocho herramientas bajaba: no era una decisión, era una carrera. */
+    var pieRiel = document.querySelector('.lw-rail-pie');
+    if (pieRiel) pieRiel.appendChild(boton);
+    else barra.insertBefore(boton, barra.firstChild);
 
     var velo = document.createElement('div');
     velo.className = 'lw-velo';
