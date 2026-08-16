@@ -13,6 +13,15 @@
   --sc:#8F9B7A;  /* Soft Canopy */
   --va:#2E3437;  /* Volcanic Ash (texto) */
   --ss:#BEB3A5;  /* Stone Sand */
+  /* BORDE DE UN CONTROL — 16-ago-2026. Stone Sand oscurecido hasta cruzar el
+     3:1 que WCAG exige al contorno de un control (es lo que dice DÓNDE se puede
+     pulsar o escribir). No sale de la paleta por capricho: se probaron los siete
+     tonos de arriba contra el crema de fondo y NINGUNO sirve en esa banda —
+     `--ss` da 1,86:1 y `--sc` 2,66:1, los dos por debajo; el siguiente que pasa
+     ya es `--muted` a 4,78:1, un gris frío que sobre estos cremas se lee como
+     tinta. Éste da 3,36:1 sobre el crema y 3,73:1 sobre blanco: el mínimo que
+     cumple, conservando la familia cálida. Medido, no elegido a ojo. */
+  --borde-control:#8A8474;
   --rl:#F5F0E6;  /* Raw Linen (papel) */
   --ink:#2E3437; --muted:#6b6c66;
 

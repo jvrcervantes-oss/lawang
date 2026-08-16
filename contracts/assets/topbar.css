@@ -102,14 +102,13 @@
      12px/500 y `7px 13px` el secundario; el primario sube a 13px/600 y `9px 16px`. */
   font:inherit; font-size:12px; font-weight:500; line-height:1; color:var(--texto-2,#4A5052);
   background:#fff;
-  /* `--sc` y no `--linea`: el borde de un control es lo que dice DÓNDE se puede
-     pulsar, y la norma de contraste para eso es 3:1 contra lo que tiene al lado.
-     Medido en producción: `--linea` (#E4DCCB) da 1,36:1 sobre blanco y 1,23:1
-     sobre el fondo crema — un contorno que prácticamente no está. `--sc`
-     (#8A8474) da 3,73 y 3,36, y es el token de marca MÁS CLARO que pasa, así que
-     no hace falta inventar un color ni oscurecer de más. El texto ya iba bien
-     (14,95:1), esto no lo toca. */
-  border:1px solid var(--sc,#8A8474); border-radius:999px;
+  /* El borde de un control es lo que dice DÓNDE se puede pulsar, y la norma de
+     contraste para eso es 3:1 contra lo que tiene al lado. `--linea` (#E4DCCB)
+     daba 1,36:1 sobre blanco y 1,23:1 sobre el crema — un contorno que
+     prácticamente no está. `--borde-control` da 3,73 y 3,36; su porqué y por qué
+     no vale ninguno de los siete tonos de la paleta está en brand.css.
+     El texto ya iba bien (14,95:1), esto no lo toca. */
+  border:1px solid var(--borde-control,#8A8474); border-radius:999px;
   padding:7px 13px; cursor:pointer; white-space:nowrap; text-decoration:none;
   display:inline-flex; align-items:center; gap:6px;
   transition:transform .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
