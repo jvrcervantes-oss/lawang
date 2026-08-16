@@ -366,14 +366,20 @@ body.rail-abierto{ padding-left:208px; }
    izquierda sin pintar por nadie, enseñando el fondo del body. Medido, no es
    una impresión: `elementFromPoint(10,10)` devolvía el propio `<body>`.
 
-   Se saca la cabecera del padding con un margen negativo y se le devuelve como
-   relleno, así que el fondo llega hasta el borde y su contenido no se mueve ni
-   un píxel. `> header` (hijo directo) a propósito: Facturas y Operaciones tienen
-   `<header>` anidados dentro de su contenido y no son barras. */
-body.con-rail > header{ margin-left:-56px; padding-left:56px; }
-body.rail-abierto > header{ margin-left:-208px; padding-left:208px; }
-body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1),
-                                   padding-left 180ms cubic-bezier(.22,.61,.36,1); }
+   Se saca la cabecera del padding con un margen negativo, así que el fondo llega
+   hasta el borde. `> header` (hijo directo) a propósito: Facturas y Operaciones
+   tienen `<header>` anidados dentro de su contenido y no son barras.
+
+   ⚠️ EL RELLENO NO SE DEVUELVE. Al escribir esto el 15-ago le puse un
+   `padding-left` igual al margen «para que el contenido no se moviera», y eso
+   dejaba el logotipo del hub en x=208 mientras en las herramientas cae en x=26
+   —ahí la barra es `position:fixed` y se salta el desplazamiento del riel—. O
+   sea: se tapaba el hueco pero se creaba la descolocación que el owner reportó
+   el 16-ago. Sin el relleno manda el `padding:0 26px` de `.lw-topbar` y las doce
+   pantallas ponen el logotipo en el mismo sitio. Medido en las dos. */
+body.con-rail > header{ margin-left:-56px; }
+body.rail-abierto > header{ margin-left:-208px; }
+body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
 
 .lw-rail-i, .lw-rail-tog{
   display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
