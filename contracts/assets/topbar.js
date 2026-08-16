@@ -421,19 +421,17 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     rail.className = 'lw-rail' + (abierto ? ' abierto' : '');
     rail.setAttribute('aria-label', 'Herramientas');
 
-    /* LOGO arriba del menú, imagen y no texto: en móvil el rótulo de la barra no
-       se leía. Lleva al hub, que es la convención de toda la web — y la entrada
-       «Intranet» del menú se queda igualmente, porque es la que marca DÓNDE
-       ESTÁS cuando ya estás en el hub (decisión del owner, 15-ago). */
-    var marca = document.createElement('a');
-    marca.className = 'lw-rail-marca'; marca.href = '/intranet/'; marca.title = 'Lawang · Intranet';
-    /* Plegado se enseña el ISOTIPO, recortado del propio logotipo por CSS. Antes
-       aqui habia un `ph-house-line` y justo debajo esta la entrada «Intranet»,
-       que tambien es una casa: dos casitas identicas y seguidas, y las dos al
-       mismo sitio. Recortar el logotipo en vez de meter otro fichero evita que
-       un dia se cambie la marca y el riel se quede con la vieja. */
-    marca.innerHTML = '<img src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">';
-    rail.appendChild(marca);
+    /* AQUI NO VA LOGO (16-ago-2026, owner: «está repetido»). Lo llevaba, y el
+       resultado eran dos marcas Lawang a la vez en la misma pantalla: la de la
+       barra de arriba y esta, una encima de la otra en la esquina izquierda.
+
+       El enlace al hub no se pierde: «Intranet» es la primera entrada del menú y
+       hace exactamente lo mismo.
+
+       Efecto conocido y aceptado: por debajo de 860px la barra esconde su logo
+       para ganar ancho (`.lw-brand{display:none}` en topbar.css), así que en
+       móvil no queda marca en ninguno de los dos sitios. Se asume — el rótulo de
+       la herramienta sí se lee, y esto es una intranet, no un escaparate. */
 
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'lw-rail-tog';

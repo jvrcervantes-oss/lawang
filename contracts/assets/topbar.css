@@ -428,24 +428,11 @@ body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1)
    sigue escribiendo dentro y quitarlo del DOM lo rompería. */
 .lw-home-oculto{ display:none !important; }
 
-/* ── Menú: logo y cabeceras de departamento (15-ago-2026) ──────────────────── */
-.lw-rail-marca{ display:flex; align-items:center; justify-content:center; min-height:44px;
-  margin:-2px 0 6px; border-radius:9px; text-decoration:none; }
-.lw-rail-marca:hover{ background:var(--sup-hover,#EFEADE); }
-/* Plegado no cabe el logotipo entero, así que se enseña SOLO EL ISOTIPO, y se
-   saca recortando el propio fichero — no hay un segundo PNG que mantener, y el
-   día que se cambie la marca el riel cambia con ella.
-
-   Antes aquí había un `ph-house-line`, y la primera entrada del menú, justo
-   debajo, es «Intranet», que también es una casa: dos casitas idénticas y
-   seguidas, y las dos llevando al mismo sitio.
-
-   La cuenta del recorte: el fichero mide 1726×240 y el isotipo ocupa los ~255
-   primeros píxeles. A 22px de alto la escala es 22/240, así que el isotipo mide
-   255×22/240 ≈ 23px — de ahí la caja de 24. `cover` escala por el alto (la
-   imagen es mucho más ancha que la caja) y `left` ancla el recorte al isotipo. */
-.lw-rail-marca img{ height:22px; width:24px; object-fit:cover; object-position:left center; }
-.lw-rail.abierto .lw-rail-marca img{ width:auto; max-width:100%; object-fit:contain; }
+/* ── Menú: cabeceras de departamento (15-ago-2026) ─────────────────────────── */
+/* Aquí vivía `.lw-rail-marca`, el logo de la cabecera del menú. Retirado el
+   16-ago a petición del owner: la barra de arriba ya lleva el suyo y salían las
+   dos marcas a la vez, una encima de la otra. El enlace al hub lo sigue dando la
+   entrada «Intranet», que es la primera del menú. */
 
 .lw-rail-grupo{ font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
   color:var(--sc,#BEB3A5); padding:12px 10px 4px; white-space:nowrap;
