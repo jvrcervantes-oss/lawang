@@ -125,7 +125,13 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     window.lwSetIdioma(otro);
     location.reload();
   });
-  barra.appendChild(boton);
+  /* Va ANTES de la accion principal, no al final. La convencion de la suite
+     -escrita en topbar.css- es que `.lw-btn.primary` ocupa la esquina derecha,
+     y este `appendChild` la desplazaba: en Compradores el orden quedaba
+     «Nuevo comprador · EN», con el conmutador de idioma en el sitio reservado a
+     lo que se usa cien veces mas. */
+  var principal = barra.querySelector('.lw-btn.primary');
+  if (principal) barra.insertBefore(boton, principal); else barra.appendChild(boton);
 })();
 
 (function () {
