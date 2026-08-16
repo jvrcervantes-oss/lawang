@@ -22,7 +22,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=c047e340">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=c5cae000">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
 <script src="/contracts/assets/topbar.js?v=66ebd655" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -63,7 +63,8 @@
   label{ display:block; font-size:12px; color:var(--texto-2); margin:12px 0 4px; }
   input,select{ width:100%; font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:#FDFCF9; color:inherit; }
   input:focus,select:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
-  .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  /* La rejilla de dos campos por fila es `.sui-row`, en suite.css: estaba
+     duplicada aqui y en la otra herramienta, y en ninguna se deshacia en movil. */
   .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
   .btn{ font:inherit; font-size:13px; font-weight:500; border-radius:999px; padding:9px 17px; cursor:pointer;
         border:1px solid var(--line); background:var(--card); color:inherit; }
@@ -195,7 +196,7 @@ function pintarFicha(){
     ${bloqueado ? '<div class="aviso">Solo un super admin puede modificar la cuenta de otro super admin.</div>' : ''}
 
     <fieldset><legend>Identidad y rol</legend>
-      <div class="row">
+      <div class="sui-row">
         <div><label>Nombre</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
         <div><label>Rol</label>
           <select id="fRol" ${bloqueado || yoMismo || !soySuper ? 'disabled' : ''}>
@@ -282,7 +283,7 @@ function nuevoUsuario(){
     <h2 class="t">Nuevo usuario</h2>
     <p class="sub">Se crea la cuenta y se le da acceso de inmediato.</p>
     <fieldset><legend>Datos de acceso</legend>
-      <div class="row">
+      <div class="sui-row">
         <div><label>Email</label><input id="nEmail" type="email" placeholder="nombre@lawangproperties.com"></div>
         <div><label>Nombre</label><input id="nNombre" placeholder="Nombre y apellidos"></div>
       </div>

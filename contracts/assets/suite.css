@@ -345,15 +345,37 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 
 .sui-nota{ font-size:12px; color:var(--texto-2); line-height:1.5; margin:var(--e2) 0 0; }
 
+/* DOS CAMPOS POR FILA, UNO EN MÓVIL — 16-ago-2026
+   `.row{ display:grid; grid-template-columns:1fr 1fr; gap:12px }` estaba escrito
+   igual, byte a byte, en Compradores y en Usuarios, y en NINGUNO de los dos se
+   deshacía en móvil. En un teléfono de 390 px eso deja «Email» y «Teléfono»
+   compartiendo fila a ~180 px cada uno — y Teléfono lleva dentro el prefijo y el
+   número, así que al número le quedaban unos 60 px. Ese es el «la ventana
+   lateral no se adapta bien en móvil» que reportó el owner.
+
+   Se llama `.sui-row` y no `.row`: en una hoja que cargan las trece pantallas,
+   quedarse con un nombre tan corriente es reservar una palabra que cualquier
+   herramienta futura va a querer usar para otra cosa. */
+.sui-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:760px){ .sui-row{ grid-template-columns:1fr; } }
+
 /* ── móvil ──────────────────────────────────────────────────────────────
    El cajón pasa a ocupar casi todo el ancho: media pantalla en un teléfono no
    es leer, es adivinar. Va DESPUÉS de la regla base a propósito. */
 @media (max-width:760px){
   .sui-centro{ padding:var(--e4) var(--e3) var(--e7); }
-  .sui-cajon{ width:100%; top:auto; height:88vh; border-left:none;
+  .sui-cajon{ width:100%; top:auto; border-left:none;
     border-top-left-radius:var(--r-l); border-top-right-radius:var(--r-l);
     transform:translateY(100%); }
+  /* `dvh` y no `vh`, con el `vh` de respaldo para quien no lo soporte. En un
+     movil `vh` mide la ventana con la barra de direcciones ESCONDIDA, asi que
+     mientras esta a la vista el 88vh se sale por abajo — y lo que se sale es el
+     pie, o sea «Guardar cambios». Un formulario cuyo boton de guardar esta
+     debajo del borde de la pantalla no se puede terminar. */
+  .sui-cajon{ height:88vh; height:88dvh; }
   .sui-cajon.on{ transform:none; }
+  /* Los botones no se meten debajo del indicador de inicio del telefono. */
+  .sui-cajon-pie{ padding-bottom:calc(var(--e3) + env(safe-area-inset-bottom)); }
   .sui-dens{ margin-left:0; }
 }
 
