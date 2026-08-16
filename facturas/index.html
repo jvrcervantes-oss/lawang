@@ -16,7 +16,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ad87fd80">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -233,8 +233,13 @@
          emitir, en el documento se ofrece volver. Nunca los dos a la vez, que es
          lo que convierte una barra en un panel de mandos. -->
     <button type="button" class="lw-btn" id="btnList" hidden>← Listado</button>
-    <button type="button" class="lw-btn" id="btnNuevaDoc">+ Nueva</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
+    <!-- El rotulo sigue al tipo que filtra el listado, que es el que se va a
+         crear al pulsar: decia solo «+ Nueva» y no decia nueva QUE — y el
+         selector de tipo esta oculto en esta pantalla, asi que no lo aclaraba. -->
+    <button type="button" class="lw-btn primary" id="btnNuevaDoc"><i class="ph ph-plus"></i><span id="btnNuevaDocTxt">Nueva factura</span></button>
   </div>
 
   <!-- ═══ LISTADO — la pantalla de entrada desde el 6-ago-2026 ═══════════════
@@ -378,7 +383,7 @@
       <div class="pv-bar">
         <b>Vista previa</b>
         <div class="spacer"></div>
-        <button class="btn" id="btnNueva">Nueva</button>
+        <button class="btn" id="btnNueva">Nuevo documento</button>
         <button class="btn primary" id="btnSave">Guardar en base de datos</button>
         <button class="btn" id="btnPrint">Descargar PDF</button>
         <button class="btn" id="btnMail">Enviar por email</button>
@@ -1240,9 +1245,16 @@ async function cargarListado(){
    la lista seguiría mostrando el estado anterior y parecería que no pasó nada. */
 function recargarListado(){ LDOCS = null; return cargarListado(); }
 
+/* Lo que dice el boton de emitir. Es el tipo por el que esta filtrado el
+   listado, porque es exactamente el que se va a crear al pulsarlo
+   (`nuevoDocumento(LTIPO || 'factura')`). Sin filtro se emite una factura, asi
+   que eso es lo que anuncia. */
+const NUEVA_ROTULO = { '':'Nueva factura', factura:'Nueva factura',
+                       proforma:'Nueva proforma', recibi:'Nuevo recibí' };
 function pintarListado(){
   const box = $('#listBody');
   pintarFiltrosListado();
+  $('#btnNuevaDocTxt').textContent = NUEVA_ROTULO[LTIPO] || 'Nuevo documento';
   const data = docsVisibles();
   const tot = data.filter(f => !f.anulada).reduce((a,f) => a + (Number(f.total)||0), 0);
   const m = (data[0] && data[0].moneda) || 'EUR';

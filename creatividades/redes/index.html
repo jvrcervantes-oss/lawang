@@ -8,7 +8,7 @@
 <title>Lawang · Creatividades</title>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=4b167da0">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ad87fd80">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -111,7 +111,10 @@
   input[type=range]{ width:100% }
   .btn{ font:inherit; font-size:14px; padding:9px 14px; border-radius:999px; cursor:pointer;
         border:1px solid var(--linea,#E3DED2); background:#fff; color:inherit }
-  .btn.pri{ background:#104C4F; border-color:#104C4F; color:#fff; font-weight:600 }
+  /* `.primary` y no `.pri`, y por token y no por hex: era el unico primario de
+     la suite con `#104C4F` escrito a mano, asi que un cambio de marca lo habria
+     dejado atras sin que nadie lo notara. */
+  .btn.primary{ background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; font-weight:600 }
   .btn:disabled{ opacity:.5; cursor:not-allowed }
   .segm{ display:flex; gap:6px }
   .segm button{ flex:1 }
@@ -246,7 +249,7 @@
 
     <div class="bloque">
       <h3>Exportar</h3>
-      <button class="btn pri" id="btnPng" style="width:100%">Descargar PNG</button>
+      <button class="btn primary" id="btnPng" style="width:100%">Descargar PNG</button>
       <p class="aviso" id="avisoExp">Sale a 1080 px de ancho, el tamaño que pide Meta,
         con el grano de marca aplicado.</p>
     </div>

@@ -86,9 +86,40 @@
 .lw-btn:hover{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F);
   transform:translateY(-1px); }
 .lw-btn:active{ transform:translateY(0) scale(.97); }
+/* LA ACCIÓN PRINCIPAL DE CADA HERRAMIENTA — convención unificada 16-ago-2026
+   ---------------------------------------------------------------------------
+   `.lw-btn.primary` no es nueva: existía desde el mockup («la accion principal,
+   que es la azulada de la derecha», ahí arriba). Lo que pasaba es que solo la
+   usaba Contratos. Medido el 16-ago sobre las ocho herramientas: 1 de 8.
+
+   En las otras siete, «+ Nuevo comprador» era exactamente la misma píldora gris
+   que «Salir» y que «↻ Recargar» — la acción por la que se entra a la
+   herramienta pesaba lo mismo que cerrar sesión, y no había forma de encontrarla
+   sin leer los botones uno a uno.
+
+   LA CONVENCIÓN, para que una herramienta nueva no vuelva a inventarse la suya:
+
+     · UNA sola por herramienta. La que crea la cosa que da nombre a la
+       herramienta: Facturas emite documentos, Compradores crea fichas. Si hay
+       dos acciones que crean (Proyectos crea unidades y proyectos), la principal
+       es la frecuente y la otra se queda en `.lw-btn` gris.
+     · ÚLTIMA de la barra, en la esquina derecha. Antes iba antes de «Salir», así
+       que la esquina —el sitio más alcanzable— se la llevaba cerrar sesión.
+     · `<i class="ph ph-plus"></i><span>Nuevo…</span>`, nunca un «+» de texto.
+       El rótulo dice SIEMPRE de qué: «+ Nueva» no decía nueva qué.
+     · Siempre «Nuevo/Nueva <cosa>», nunca «Añadir <cosa>»: dos verbos para lo
+       mismo obligan a leer, y uno de los dos sobra.
+
+   Una herramienta que solo consulta o edita —Obra, Operaciones— NO lleva
+   ninguna. Un botón azul en una barra donde no se crea nada es peor que ninguno.
+
+   ⚠️ Si la herramienta traduce (`data-t`), el rótulo va en un `<span data-t>`
+   aparte y el icono FUERA: el traductor escribe `textContent` sobre el elemento
+   marcado y se llevaría el `<i>` por delante al cambiar de idioma. */
 .lw-btn.primary{ background:var(--dl,#104C4F); color:#fff; border-color:var(--dl,#104C4F);
   font-size:13px; font-weight:600; padding:9px 16px; }
 .lw-btn.primary:hover{ background:#0d5b5f; color:#fff; }
+.lw-btn .ph{ font-size:15px; line-height:1; }
 
 .lw-select{
   font:inherit; font-size:13px; font-weight:600; color:var(--dl,#104C4F);

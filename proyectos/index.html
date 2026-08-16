@@ -15,7 +15,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ad87fd80">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=53dbcb5f">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
@@ -93,9 +93,13 @@
     <span class="lw-who" id="who"></span>
     <button type="button" class="lw-btn" id="btnCsv">Importar CSV</button>
     <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
-    <button type="button" class="lw-btn" id="btnNuevoProyecto">+ Nuevo proyecto</button>
-    <button type="button" class="lw-btn" id="btnNueva">+ Nueva unidad</button>
+    <!-- Dos acciones que crean: la principal es la FRECUENTE. Se dan de alta
+         unidades a diario y proyectos tres veces al año. -->
+    <button type="button" class="lw-btn" id="btnNuevoProyecto"><i class="ph ph-plus"></i>Nuevo proyecto</button>
     <button type="button" class="lw-btn" id="btnLogout">Salir</button>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
+    <button type="button" class="lw-btn primary" id="btnNueva"><i class="ph ph-plus"></i>Nueva unidad</button>
   </div>
 
   <div class="sui-stage">

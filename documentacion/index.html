@@ -15,7 +15,7 @@
      "esta pagina no carga Phosphor" se refiere a un caso concreto de emoji y
      ya no describe el fichero entero. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ad87fd80">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=53dbcb5f">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
 <script src="/contracts/assets/topbar.js?v=f3782657" defer></script>
@@ -88,9 +88,13 @@
   <div class="topbar lw-topbar" data-titulo="Documentación">
     <div class="lw-spacer"></div>
     <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnNuevaFaq" data-t="btnFaq">+ Pregunta frecuente</button>
-    <button type="button" class="lw-btn" id="btnNuevo" data-t="btnEnlace">+ Añadir enlace</button>
+    <!-- El rotulo va en un <span data-t> y el icono FUERA: el traductor escribe
+         textContent sobre el elemento marcado y se llevaria el <i> por delante. -->
+    <button type="button" class="lw-btn" id="btnNuevaFaq"><i class="ph ph-plus"></i><span data-t="btnFaq">Nueva pregunta frecuente</span></button>
     <button type="button" class="lw-btn" id="btnLogout" data-t="salir">Salir</button>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i><span data-t="btnEnlace">Nuevo enlace</span></button>
   </div>
 
   <div class="sui-stage">
@@ -160,8 +164,10 @@ const BUCKET = 'documentacion';
    que un hueco en el diccionario no imprima "btnGuardar" en la pantalla. */
 const IDIOMA = (window.LW_IDIOMA === 'en') ? 'en' : 'es';
 const T = {
-  btnFaq: { es:'+ Pregunta frecuente', en:'+ Frequent question' },
-  btnEnlace: { es:'+ Añadir enlace', en:'+ Add link' },
+  // Sin el «+»: lo pone el icono. Y «Nuevo enlace», no «Añadir enlace» — dos
+  // verbos para lo mismo en la misma barra obligaban a leer para distinguirlos.
+  btnFaq: { es:'Nueva pregunta frecuente', en:'New FAQ' },
+  btnEnlace: { es:'Nuevo enlace', en:'New link' },
   salir: { es:'Salir', en:'Log out' },
   buscar: { es:'Buscar título, carpeta o proyecto…', en:'Search title, folder or project…' },
   todosProyectos: { es:'Todos los proyectos', en:'All projects' },

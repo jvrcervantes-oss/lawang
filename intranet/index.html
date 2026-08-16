@@ -19,7 +19,7 @@
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ad87fd80">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -295,8 +295,11 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
         <p id="saludoSub">Esto es lo que necesita tu atención.</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a class="lw-btn" href="/contracts/app.html?nuevo=1" style="font-size:13px;padding:10px 18px">+ Nuevo contrato</a>
-        <a class="lw-btn primary" href="/facturas/?nueva=1" style="font-size:13px;padding:10px 18px">+ Nueva factura</a>
+        <!-- Sin `style=` inline: eran los unicos `.lw-btn` de la suite con la
+             talla pisada a mano (13px/10px 18px), que no era ni la del boton de
+             barra ni la del primario. Ahora miden lo que mide la clase. -->
+        <a class="lw-btn" href="/contracts/app.html?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
+        <a class="lw-btn primary" href="/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </div>
     <!-- Tarjetas de cifra y últimas operaciones (6-ago-2026, handoff de diseño).
