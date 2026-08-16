@@ -243,7 +243,20 @@ function pintarFicha(){
   // Crear una ficha nueva sigue abierto a cualquier agente; editar una que ya
   // existe es solo admin/super_admin (7-ago-2026, ver nota junto a ES_ADMIN).
   const soloLectura = !nuevo && !ES_ADMIN;
-  const dis = soloLectura ? 'disabled' : '';
+  /* LA FICHA QUE YA EXISTE ABRE CERRADA — 16-ago-2026, a peticion del owner:
+     «que haya que aprobar la edicion antes».
+
+     El motivo no es la ceremonia. La ficha se abre para MIRAR mucho mas a
+     menudo que para cambiar algo -a comprobar un pasaporte, a ver si el KYC
+     esta al dia, a copiar un email- y con los campos vivos basta rozar el
+     teclado sobre uno enfocado para dejar el dato mal sin enterarse. Y estos
+     datos no se quedan aqui: son los que se copian a un contrato y los que
+     salen impresos en un documento que firma un comprador real.
+
+     Una ficha NUEVA no abre cerrada: no hay nada que proteger todavia y pedir
+     permiso para rellenar un formulario vacio es puro estorbo. */
+  const cerrada = !nuevo;
+  const dis = (soloLectura || cerrada) ? 'disabled' : '';
 
   const tel = partirTelefono(c.phone);
 
@@ -265,7 +278,7 @@ function pintarFicha(){
      y se edita sin perder de vista la lista de la que sale. */
   const cuerpoFicha = `
 
-    <fieldset>
+    <fieldset id="fsIdentidad">
       <legend>Identidad</legend>
       ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
       <label>Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
@@ -445,8 +458,11 @@ function pintarFicha(){
     // solo (mismo criterio que ya usa facturas/index.html con "Borrar").
     pie: soloLectura
       ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
-      : `<button class="sui-btn primario" id="btnGuardar">${nuevo ? 'Crear comprador' : 'Guardar cambios'}</button>
-         <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+      : cerrada
+        ? `<button class="sui-btn" id="btnEditar">Editar datos</button>
+           <button class="sui-btn" id="btnCerrar">Cerrar</button>`
+        : `<button class="sui-btn primario" id="btnGuardar">Crear comprador</button>
+           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
   });
 
@@ -457,6 +473,22 @@ function pintarFicha(){
   lwPicker($('#f-tel-pre'), PREFIJOS.map(([cod, pais]) => ({ valor:cod, texto:cod, nota:pais })),
            { titulo:'Prefijo del país' });
   lwPicker($('#f-nac'), NACIONALIDADES, { titulo:'Nacionalidad' });
+
+  /* Abrir la edicion: se sueltan los campos de Identidad y el pie pasa a
+     ofrecer guardar. No se recarga nada — lo que hay en pantalla ya son los
+     datos buenos. «Cancelar» vuelve a pintar la ficha, que es la forma mas
+     corta y mas segura de descartar: los valores se releen de CLIENTES. */
+  const be = $('#btnEditar');
+  if(be) be.addEventListener('click', () => {
+    $('#fsIdentidad').querySelectorAll('input,select,textarea').forEach(el => { el.disabled = false; });
+    const pie = be.parentElement;
+    pie.innerHTML = '<button class="sui-btn primario" id="btnGuardar">Guardar cambios</button>' +
+                    '<button class="sui-btn" id="btnCancelarEd">Cancelar</button>';
+    pie.querySelector('#btnGuardar').addEventListener('click', () => guardar(c.id));
+    pie.querySelector('#btnCancelarEd').addEventListener('click', pintarFicha);
+    const primero = $('#f-nombre'); if(primero) primero.focus();
+    toast('Puedes editar los datos de la ficha');
+  });
 
   const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
