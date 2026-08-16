@@ -4591,6 +4591,40 @@ $('#fmClose').addEventListener('click', ()=> $('#fmOverlay').classList.remove('o
 
 $('#fmGen').addEventListener('click', async ()=>{
   if(!sb || !SAVED_CONTRACT) return;
+  /* ¿ESTE DOCUMENTO TIENE DÓNDE FIRMAR? — 17-ago-2026
+     ------------------------------------------------------------------------
+     `firma-submit` estampa la firma sustituyendo el centinela
+     %%FIRMA_ADQUIRIENTE%%, y ese centinela solo existe si la plantilla trae un
+     campo `{{firma_adquiriente}}`. Seis plantillas NO lo traen, y no por
+     descuido: el Poder Notarial lo dice por escrito en su propio código —
+     «línea en blanco a propósito, se firma en papel, ante notario»—, y con la
+     Oferta Comercial, el Acuerdo Comercial, los Estatutos y los dos anexos de
+     Bonian pasa lo mismo: son documentos que no se firman a distancia.
+
+     Hasta hoy la app dejaba generar el enlace igualmente. El comprador lo
+     abría, veía el documento, firmaba... y `firma-submit` no encontraba el
+     hueco y devolvía un error. Y su mensaje decía «regenera el enlace desde la
+     app», que es el peor consejo posible aquí: regenerar da el mismo documento
+     y el mismo error. Pasó de verdad con PA00006 (Rubén Carrasco, 14-ago): el
+     agente lo reintentó una y otra vez sin poder saber que era imposible.
+
+     Se comprueba la PLANTILLA CARGADA, no una lista de tipos: una plantilla
+     nueva sin hueco de firma queda cubierta el día que se añada, sin que nadie
+     se acuerde de apuntarla en ningún sitio. */
+  if(!templateHTML.includes('{{firma_adquiriente}}')){
+    await lwConfirmar({
+      titulo: 'Este documento no se firma a distancia',
+      cuerpo: '<p><b>' + escAttr(L(CURRENT.name) || 'Este documento') + '</b> no lleva '
+            + 'espacio de firma electrónica: está hecho para firmarse <b>en papel</b>, y en el caso del Poder '
+            + 'Notarial, ante notario.</p>'
+            + '<p>No es un fallo del enlace ni de este contrato. Si se generase, el comprador podría abrirlo y '
+            + 'leerlo, pero al firmar daría error siempre — no hay dónde estampar la firma.</p>'
+            + '<p>Descarga el PDF y hazlo llegar por el canal que corresponda.</p>',
+      confirmar: 'Entendido',
+      cancelar: false,
+    });
+    return;
+  }
   const nombre=$('#fmName').value.trim();
   if(nombre.length<2){ toast('Pon el nombre del comprador'); return; }
   const email=$('#fmEmail').value.trim();
