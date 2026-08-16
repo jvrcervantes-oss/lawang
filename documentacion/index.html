@@ -16,7 +16,7 @@
      ya no describe el fichero entero. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=53dbcb5f">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=c690a39c">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
 <script src="/contracts/assets/topbar.js?v=66ebd655" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -177,6 +177,11 @@ const T = {
   colDonde: { es:'Dónde', en:'Where' },
   colAnadido: { es:'Añadido', en:'Added' },
   todas: { es:'Todas', en:'All' },
+  // Los dos ejes del filtro. Las dos filas empezaban por «Todas» y no decian de
+  // que: una son las CARPETAS y la otra el TIPO de documento. Mismo arreglo que
+  // en Contratos, que tenia dos «Todos» con el mismo numero.
+  ejeCarpeta: { es:'Carpeta', en:'Folder' },
+  ejeTipo:    { es:'Tipo',    en:'Type' },
   catPrecios: { es:'Precios', en:'Pricing' },
   catPlanos: { es:'Planos', en:'Floor plans' },
   catLegal: { es:'Legal', en:'Legal' },
@@ -388,6 +393,7 @@ function pintarArbol(){
       `<span class="n">${n(ruta)}</span>` +
     '</button>';
   $('#arbol').innerHTML =
+    `<span class="sui-eje">${t('ejeCarpeta')}</span>` +
     tarjeta('', t('todas'), 0) +
     ramas().map(ruta => tarjeta(ruta, ruta.split('/').pop(), ruta.split('/').length - 1)).join('');
 }
@@ -412,6 +418,7 @@ function pintarFiltros(){
   const base = DOCS.filter(d => (!PROY || d.proyecto === PROY) && dentroDe(d, CARPETA));
   const n = c => base.filter(d => !c || d.categoria === c).length;
   $('#filtros').innerHTML =
+    `<span class="sui-eje">${t('ejeTipo')}</span>` +
     `<button class="sui-chip ${CAT===''?'on':''}" data-c="">${t('todas')}<span class="n">${n('')}</span></button>` +
     CATEGORIAS.map(([v,l]) => `<button class="sui-chip ${CAT===v?'on':''} ${n(v)?'':'vacio'}" data-c="${v}">${l}<span class="n">${n(v)}</span></button>`).join('');
 }

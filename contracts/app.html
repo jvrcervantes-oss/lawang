@@ -26,7 +26,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=53dbcb5f">
+<link rel="stylesheet" href="assets/suite.css?v=c690a39c">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
 <script src="assets/topbar.js?v=66ebd655" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -369,7 +369,9 @@
   #cpSearch{ margin:12px 18px 0; padding:9px 14px; border:1px solid var(--line); border-radius:999px; font:inherit; font-size:12.5px; background:#F7F3E9; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
   #cpSearch:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   /* filtros del panel: mismos chips que Unidades y Operaciones */
-  .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; }
+  .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; align-items:center; }
+  /* El eje de cada fila de filtros es `.sui-eje`, en suite.css: el mismo
+     problema lo tenia Documentacion y la clase es una, no una por herramienta. */
   .cp-f{ font:inherit; font-size:12px; letter-spacing:.03em; background:#fff; border:1px solid var(--line);
          border-radius:999px; padding:7px 14px; cursor:pointer; color:var(--texto-2,#4A5052); }
   .cp-f:hover{ border-color:var(--dl); }
@@ -3939,6 +3941,7 @@ function pintarCpFiltros(){
   if(CP_TIPO && dentro.some(x => x.t === CP_TIPO)) CP_MAS_ABIERTO = true;
   const chip = x => `<button class="cp-f ${CP_TIPO===x.t?'on':''} ${x.n?'':'vacio'}" data-t="${x.t}">${cpTipoLabel(x.t)} ${x.n}</button>`;
   $('#cpFiltrosTipo').innerHTML =
+    `<span class="sui-eje">Tipo</span>` +
     `<button class="cp-f ${CP_TIPO===''?'on':''}" data-t="">Todos ${CP_ROWS.length}</button>` +
     arriba.map(chip).join('') +
     (dentro.length
@@ -3946,7 +3949,7 @@ function pintarCpFiltros(){
            CP_MAS_ABIERTO ? 'Menos ▴' : 'Más ' + dentro.length + ' ▾'}</button>`
         + (CP_MAS_ABIERTO ? dentro.map(chip).join('') : '')
       : '');
-  $('#cpFiltrosEstado').innerHTML = CP_ESTADOS.map(([k,l,prueba]) => {
+  $('#cpFiltrosEstado').innerHTML = `<span class="sui-eje">Estado</span>` + CP_ESTADOS.map(([k,l,prueba]) => {
     const n = CP_ROWS.filter(prueba).length;
     return `<button class="cp-f ${CP_ESTADO===k?'on':''} ${n?'':'vacio'}" data-e="${k}">${l} ${n}</button>`;
   }).join('');

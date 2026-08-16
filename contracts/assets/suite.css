@@ -162,6 +162,23 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 
 /* ── barra de filtros ───────────────────────────────────────────────────── */
 .sui-filtros{ display:flex; gap:var(--e2); flex-wrap:wrap; align-items:center; margin:0 0 var(--e3); }
+
+/* EL EJE DE UNA FILA DE FILTROS — 16-ago-2026
+   Una herramienta con DOS ejes de filtro pintaba dos filas que empezaban las dos
+   por «Todos», y no habia forma de saber cual era cual:
+
+     · Contratos: «Todos 68» arriba (todos los tipos) y «Todos 68» abajo (todos
+       los estados). El numero coincide SIEMPRE — las dos cuentas son el total —
+       asi que se leian como el mismo boton repetido. El owner lo reporto como
+       un filtro duplicado, que es justo lo que parecia.
+     · Documentacion: «Todas» en las carpetas y «Todas» en los tipos.
+
+   No sobraba ninguno: los dos ejes son reales y se combinan entre si. Lo que
+   faltaba era decir de que eje es cada fila. `min-width` fijo para que los
+   chips de las dos filas arranquen alineados y se lean como dos filas de lo
+   mismo, no como dos listas sueltas. */
+.sui-eje{ flex:none; min-width:58px; font-size:9.5px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--sc,#8A8474); }
 /* Pastilla y fondo `--sup-2`, como en el mockup: el buscador es el objeto que
    mas se repite en la suite y era lo que mas delataba la diferencia. */
 .sui-buscar{ flex:1 1 240px; min-width:0; font:inherit; font-size:12.5px; padding:9px 14px;
