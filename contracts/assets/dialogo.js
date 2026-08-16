@@ -87,9 +87,16 @@
     f(v);
   }
 
+  /* SE PARA LA PROPAGACIÓN, no solo el `preventDefault`. El cajon lateral de la
+     suite (suite.js) tiene su propio `Escape` colgado del documento, asi que un
+     unico Escape cerraba el dialogo Y el cajon de detras: se confirmaba «no» y
+     ademas se perdia el formulario a medio rellenar. Este handler va en captura,
+     o sea que llega primero — pero sin cortar la propagacion el evento seguia su
+     camino igual. */
   function teclas(e){
-    if(e.key === 'Escape'){ e.preventDefault(); cerrar(false); return; }
+    if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); cerrar(false); return; }
     if(e.key !== 'Tab') return;
+    e.stopPropagation();
     // El foco no se sale del diálogo: si se fuera, se estaría tabulando por la
     // página de detrás sin poder verla ni saber dónde se está.
     var f = [bOk, bNo].filter(function(b){ return b.style.display !== 'none'; });
@@ -230,19 +237,22 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
     ops[marcado].scrollIntoView({ block:'nearest' });
   }
 
+  /* Mismo motivo que en lwConfirmar: mientras esto esta abierto, las teclas que
+     maneja NO llegan a la pagina de detras. Sin esto un Escape cerraba el
+     selector y ademas el cajon lateral, medido en Compradores. */
   function teclas(e){
-    if(e.key === 'Escape'){ e.preventDefault(); cerrar(null); return; }
-    if(e.key === 'ArrowDown'){ e.preventDefault(); mover(1); return; }
-    if(e.key === 'ArrowUp'){ e.preventDefault(); mover(-1); return; }
+    if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); cerrar(null); return; }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); e.stopPropagation(); mover(1); return; }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); mover(-1); return; }
     if(e.key === 'Enter'){
-      e.preventDefault();
+      e.preventDefault(); e.stopPropagation();
       var ops = elL.querySelectorAll('.lw-elegir-op');
       if(marcado >= 0 && ops[marcado]) cerrar(ops[marcado].dataset.v);
       return;
     }
     // Tab no sale: dentro solo hay el buscador y la lista, y la lista se recorre
     // con las flechas. Dejar tabular por 195 botones no es navegar, es perderse.
-    if(e.key === 'Tab'){ e.preventDefault(); elQ.focus(); }
+    if(e.key === 'Tab'){ e.preventDefault(); e.stopPropagation(); elQ.focus(); }
   }
 
   function cerrar(v){
