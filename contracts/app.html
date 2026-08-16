@@ -26,7 +26,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=c690a39c">
+<link rel="stylesheet" href="assets/suite.css?v=cb7f3490">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
 <script src="assets/topbar.js?v=66ebd655" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -55,7 +55,7 @@
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=c031da44"></script>
-<script src="assets/dialogo.js?v=805daace"></script>
+<script src="assets/dialogo.js?v=52050808"></script>
 <style>
   :root{
     --line:#E4DCCB; --tbh:64px;
@@ -1473,7 +1473,7 @@ function buildCompradorPanel(){
         <div class="field"><label>${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
         <div class="field"><label>${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label>
           <div style="display:flex;gap:6px">
-            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 132px" value="${escAttr(t.prefijo)}">
+            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 108px" value="${escAttr(t.prefijo)}">
             <input data-ci="${c.id}" data-ckey="telefono_numero" placeholder="Número" style="flex:1" value="${escAttr(t.numero)}">
           </div>
         </div>
@@ -1492,6 +1492,7 @@ function buildCompradorPanel(){
   </div>`;
 }
 function wireCompradorPanel(){
+  setTimeout(wirePickers, 0);   // tras insertar el panel, no durante
   const p=$('#compradorPanel'); if(!p) return;
   p.addEventListener('input', e=>{ const el=e.target.closest('[data-ci]'); if(!el) return;
     const c=COMPRADORES.find(x=>x.id===el.dataset.ci); if(!c) return;
@@ -1518,6 +1519,25 @@ function wireCompradorPanel(){
   }));
 }
 function rebuildComprador(){ const old=$('#compradorPanel'); if(old){ old.outerHTML=buildCompradorPanel(); wireCompradorPanel(); wireAccordions(); } }
+
+/* Los campos de lista larga se eligen en el modal compartido (lwPicker).
+   Eran `<input list="dl-…">`, que el navegador pinta EXACTAMENTE igual que un
+   campo de texto: 182 prefijos y 195 paises detras de algo sin ninguna pista de
+   que despliega — y en movil el desplegable de un <datalist> ni se estila ni se
+   ensancha, sobre un campo de 108px.
+
+   Se rastrea el documento entero y no un contenedor: el formulario se reconstruye
+   con cada plantilla y el panel de compradores se rehace solo al añadir un
+   adquiriente. Es idempotente sin llevar cuentas — lwPicker QUITA el `list=` al
+   convertir el campo, asi que un campo ya convertido deja de encontrarse. */
+function wirePickers(){
+  if(!window.lwPicker) return;                 // dialogo.js no cargado: se queda como estaba
+  document.querySelectorAll('input[list="dl-prefijos"]').forEach(el =>
+    lwPicker(el, () => PREFIJOS.map(([cod, pais]) => ({ valor:cod, texto:cod, nota:pais })),
+             { titulo:'Prefijo del país' }));
+  document.querySelectorAll('input[list="dl-nacionalidades"]').forEach(el =>
+    lwPicker(el, () => NACIONALIDADES, { titulo:'Nacionalidad' }));
+}
 
 /* ---------- buscador de cliente ya registrado ----------
    Busca en `clients` (la misma tabla que /compradores/) y precarga sus datos
@@ -1989,7 +2009,7 @@ function fieldHTML(f){
     const t0 = partirTelefono(def);
     return `<div class="field field-tel" data-key="${key}"><label>${label}</label>
       <div style="display:flex;gap:6px">
-        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 132px" value="${escAttr(t0.prefijo)}">
+        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 108px" value="${escAttr(t0.prefijo)}">
         <input class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
       </div>
       <input type="hidden" name="${key}" value="${def}">
@@ -2682,6 +2702,7 @@ function buildForm(){
   ensurePads(form);   // secciones visibles al arrancar
   updateSaveButton(); // muestra/oculta "Guardar en base de datos" según la plantilla
   editBtnIdle();      // enseña "↺ Original" si esta plantilla trae ediciones a mano
+  wirePickers();      // prefijo y nacionalidad: modal con buscador, no <datalist>
   render();
 }
 

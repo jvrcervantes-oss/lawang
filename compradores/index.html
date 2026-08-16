@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=4b167da0">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=c690a39c">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=cb7f3490">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
 <script src="/contracts/assets/topbar.js?v=66ebd655" defer></script>
@@ -117,7 +117,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/dialogo.js?v=805daace"></script>
+<script src="/contracts/assets/dialogo.js?v=52050808"></script>
 <script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
 <script>
 /* ============================================================
@@ -275,20 +275,18 @@ function pintarFicha(){
           Eso se gestiona aparte, en «Portal del comprador» más abajo.</p></div>
         <div><label>Teléfono</label>
           <div style="display:flex;gap:6px">
-            <input id="f-tel-pre" list="dl-prefijo" ${dis} style="flex:0 0 132px" value="${esc(tel.prefijo||'')}" placeholder="Prefijo">
-            <datalist id="dl-prefijo">
-              ${PREFIJOS.map(([cod,pais])=>`<option value="${cod}">${cod} · ${esc(pais)}</option>`).join('')}
-            </datalist>
+            <!-- Sin <datalist>: lo abre lwPicker (ver el final de pintarFicha).
+                 Y 108px en vez de 132: solo tiene que caber «+34» y el chevron,
+                 y con el ancho de antes se comia el sitio del numero, que es el
+                 dato largo. -->
+            <input id="f-tel-pre" ${dis} style="flex:0 0 108px" value="${esc(tel.prefijo||'')}" placeholder="Prefijo">
             <input id="f-tel-num" ${dis} style="flex:1" value="${esc(tel.numero)}" placeholder="Número">
           </div>
         </div>
       </div>
       <div class="row">
         <div><label>Nacionalidad</label>
-          <input id="f-nac" list="dl-nac" ${dis} value="${esc(c.nationality||'')}">
-          <datalist id="dl-nac">
-            ${NACIONALIDADES.map(n=>`<option value="${esc(n)}">`).join('')}
-          </datalist>
+          <input id="f-nac" ${dis} value="${esc(c.nationality||'')}">
         </div>
         <div><label>Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
@@ -451,6 +449,14 @@ function pintarFicha(){
          <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
   });
+
+  /* Los dos campos de lista larga se eligen en el modal compartido. Eran
+     `<input list=…>`, que se pintan igual que un campo de texto: 182 prefijos y
+     195 paises detras de algo que no parecia desplegable — y en movil el
+     desplegable de un <datalist> no se puede ni estilar ni ensanchar. */
+  lwPicker($('#f-tel-pre'), PREFIJOS.map(([cod, pais]) => ({ valor:cod, texto:cod, nota:pais })),
+           { titulo:'Prefijo del país' });
+  lwPicker($('#f-nac'), NACIONALIDADES, { titulo:'Nacionalidad' });
 
   const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);

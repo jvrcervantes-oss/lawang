@@ -124,3 +124,199 @@
     });
   };
 })();
+
+/* ═══ lwElegir / lwPicker — elegir de una lista larga — 16-ago-2026 ═══════════
+   ----------------------------------------------------------------------------
+   POR QUÉ EXISTE. En Compradores el prefijo del teléfono y la nacionalidad no
+   eran desplegables: eran `<input list="…">` con un `<datalist>` detrás. Un
+   `<input list>` se pinta EXACTAMENTE igual que un campo de texto — sin flecha,
+   sin borde distinto, sin nada — así que no hay forma de saber que detrás hay
+   182 prefijos y 195 países. El owner lo dijo tal cual: «aquí no queda claro que
+   es desplegable».
+
+   Y en móvil es peor que poco claro: el desplegable de un `<datalist>` no se
+   puede estilar, se abre pegado a un campo de 132 px y en algunos navegadores no
+   se abre en absoluto. Sobre 195 opciones, eso es un campo que no se puede
+   rellenar sin saberse el dato de memoria.
+
+   LA DECISIÓN: la lista se elige EN EL MODAL, y el buscador va DENTRO. No se
+   pierde el escribir a máquina —que es como trabaja un agente con prisa— solo
+   cambia de sitio: se abre con Enter y se teclea «esp» igual que antes. Lo que
+   se gana es que el control se ve, se puede leer entero y funciona igual en el
+   móvil que en el portátil.
+
+   DÓNDE SÍ Y DÓNDE NO. Esto es para listas LARGAS que no caben en la cabeza.
+   Un `<select>` de tres opciones ya se ve, ya se entiende y el nativo del móvil
+   es mejor que cualquier cosa que montemos: ésos NO se tocan. La frontera está
+   en `LW_ELEGIR_DESDE`.
+
+   USO:
+     const v = await lwElegir({ titulo:'Nacionalidad', opciones:NACIONALIDADES });
+     lwPicker(document.querySelector('#f-nac'), NACIONALIDADES, {titulo:'Nacionalidad'});
+
+   `opciones` admite cadenas sueltas o `{valor, texto, nota}`. */
+var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta modal
+(function(){
+  var fondo, caja, elT, elQ, elL, resolver = null, focoPrevio = null, items = [], marcado = -1;
+
+  /* Sin tildes y en minúsculas: quien busca «espana» o «Mexico» tiene que
+     encontrar «España» y «México». Es el fallo clásico de un buscador de países
+     en español, y aquí las dos listas son de países. */
+  function llano(v){
+    return String(v == null ? '' : v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function normaliza(o){
+    return (o || []).map(function(x){
+      if (x && typeof x === 'object') return { valor:String(x.valor), texto:String(x.texto == null ? x.valor : x.texto), nota:x.nota || '' };
+      return { valor:String(x), texto:String(x), nota:'' };
+    });
+  }
+
+  function construir(){
+    fondo = document.createElement('div');
+    fondo.className = 'lw-dlg-fondo lw-elegir-fondo';
+    fondo.innerHTML =
+      '<div class="lw-dlg lw-elegir" role="dialog" aria-modal="true">' +
+        '<div class="lw-dlg-cab"><div class="lw-dlg-marca"></div><h2></h2></div>' +
+        '<input type="text" class="lw-elegir-q" autocomplete="off" spellcheck="false">' +
+        '<div class="lw-elegir-lista" role="listbox"></div>' +
+      '</div>';
+    document.body.appendChild(fondo);
+    caja = fondo.querySelector('.lw-elegir');
+    elT  = fondo.querySelector('h2');
+    elQ  = fondo.querySelector('.lw-elegir-q');
+    elL  = fondo.querySelector('.lw-elegir-lista');
+    elQ.addEventListener('input', function(){ pintar(); });
+    elL.addEventListener('click', function(e){
+      var b = e.target.closest('[data-v]'); if(b) cerrar(b.dataset.v);
+    });
+    fondo.addEventListener('mousedown', function(e){ if(e.target === fondo) cerrar(null); });
+  }
+
+  function visibles(){
+    var q = llano(elQ.value);
+    if(!q) return items;
+    /* Lo que EMPIEZA por lo tecleado va primero. Buscando «+34» interesa España
+       antes que cualquier país cuyo prefijo contenga un 34 por el medio. */
+    var a = [], b = [];
+    items.forEach(function(it){
+      var t = llano(it.texto) + ' ' + llano(it.valor) + ' ' + llano(it.nota);
+      if(t.indexOf(q) === 0 || llano(it.valor).indexOf(q) === 0) a.push(it);
+      else if(t.indexOf(q) >= 0) b.push(it);
+    });
+    return a.concat(b);
+  }
+
+  function pintar(){
+    var v = visibles();
+    marcado = v.length ? 0 : -1;
+    elL.innerHTML = v.length
+      ? v.map(function(it, i){
+          return '<button type="button" role="option" data-v="' + it.valor.replace(/"/g,'&quot;') + '"' +
+                 ' class="lw-elegir-op' + (i === 0 ? ' marcado' : '') + '">' +
+                 '<span>' + it.texto.replace(/</g,'&lt;') + '</span>' +
+                 (it.nota ? '<em>' + it.nota.replace(/</g,'&lt;') + '</em>' : '') + '</button>';
+        }).join('')
+      : '<p class="lw-elegir-nada">Nada coincide con «' + elQ.value.replace(/</g,'&lt;') + '»</p>';
+    elL.scrollTop = 0;
+  }
+
+  function mover(d){
+    var ops = elL.querySelectorAll('.lw-elegir-op'); if(!ops.length) return;
+    if(marcado >= 0 && ops[marcado]) ops[marcado].classList.remove('marcado');
+    marcado = (marcado + d + ops.length) % ops.length;
+    ops[marcado].classList.add('marcado');
+    ops[marcado].scrollIntoView({ block:'nearest' });
+  }
+
+  function teclas(e){
+    if(e.key === 'Escape'){ e.preventDefault(); cerrar(null); return; }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); mover(1); return; }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); mover(-1); return; }
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      var ops = elL.querySelectorAll('.lw-elegir-op');
+      if(marcado >= 0 && ops[marcado]) cerrar(ops[marcado].dataset.v);
+      return;
+    }
+    // Tab no sale: dentro solo hay el buscador y la lista, y la lista se recorre
+    // con las flechas. Dejar tabular por 195 botones no es navegar, es perderse.
+    if(e.key === 'Tab'){ e.preventDefault(); elQ.focus(); }
+  }
+
+  function cerrar(v){
+    if(!resolver) return;
+    var f = resolver; resolver = null;
+    fondo.classList.remove('abierto');
+    document.removeEventListener('keydown', teclas, true);
+    if(focoPrevio && focoPrevio.focus){ try{ focoPrevio.focus(); }catch(_){} }
+    f(v);
+  }
+
+  window.lwElegir = function(o){
+    o = o || {};
+    return new Promise(function(res){
+      if(!fondo) construir();
+      cerrar(null);
+      focoPrevio = document.activeElement;
+      items = normaliza(o.opciones);
+      elT.textContent = o.titulo || 'Elige una opción';
+      elQ.placeholder = o.buscarPh || 'Escribe para buscar…';
+      elQ.value = '';
+      pintar();
+      /* Si ya había un valor, se marca el suyo y se le lleva la vista: al abrir
+         un campo relleno lo primero que se quiere ver es qué pone ahora. */
+      if(o.valor){
+        var ops = elL.querySelectorAll('.lw-elegir-op');
+        for(var i = 0; i < ops.length; i++){
+          if(ops[i].dataset.v === String(o.valor)){
+            if(marcado >= 0 && ops[marcado]) ops[marcado].classList.remove('marcado');
+            marcado = i; ops[i].classList.add('marcado');
+            ops[i].scrollIntoView({ block:'center' });
+            break;
+          }
+        }
+      }
+      resolver = res;
+      fondo.classList.add('abierto');
+      document.addEventListener('keydown', teclas, true);
+      elQ.focus();
+    });
+  };
+
+  /* Convierte un campo en disparador del selector. El campo QUEDA como estaba
+     para todo lo demás —mismo `id`, mismo `name`, mismo sitio en el formulario—
+     así que quien lo lea con `.value` no se entera de nada.
+
+     Se le quita el `list=`: si no, el navegador enseñaría su propio desplegable
+     ADEMÁS del modal, y son dos interfaces distintas para el mismo campo. */
+  window.lwPicker = function(input, opciones, o){
+    if(!input || input.dataset.lwPicker) return;
+    o = o || {};
+    input.dataset.lwPicker = '1';
+    input.removeAttribute('list');
+    input.readOnly = true;                 // `readonly` y no `disabled`: sigue enviándose y sigue siendo enfocable
+    input.classList.add('lw-elegible');
+    input.setAttribute('aria-haspopup', 'listbox');
+    if(!input.getAttribute('title')) input.title = 'Pulsa para elegir';
+    var abrir = function(e){
+      if(e) e.preventDefault();
+      if(input.disabled) return;
+      lwElegir({ titulo:o.titulo || '', opciones:(typeof opciones === 'function' ? opciones() : opciones), valor:input.value })
+        .then(function(v){
+          if(v === null) return;
+          input.value = v;
+          // Los dos eventos, porque la suite escucha unas veces uno y otras el
+          // otro. `bubbles` para que valga un listener puesto en el formulario.
+          input.dispatchEvent(new Event('input',  { bubbles:true }));
+          input.dispatchEvent(new Event('change', { bubbles:true }));
+          if(o.despues) o.despues(v);
+        });
+    };
+    input.addEventListener('mousedown', abrir);
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') abrir(e);
+    });
+  };
+})();

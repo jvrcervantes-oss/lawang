@@ -687,3 +687,59 @@ select.lw-select-nativo{
 @media (prefers-reduced-motion: reduce){
   .lw-dlg-fondo.abierto, .lw-dlg{ animation:none; }
 }
+
+/* ── SELECTOR DE LISTA LARGA (lwElegir / lwPicker) — 16-ago-2026 ────────────
+   Reusa la caja del diálogo: mismo fondo, mismo borde, misma entrada. Lo que
+   cambia es lo de dentro — un buscador y una lista que se desplaza.
+   El porqué de todo esto está en dialogo.js, junto al código. */
+.lw-elegir{ display:flex; flex-direction:column; max-height:min(560px, 82vh); }
+.lw-elegir .lw-dlg-cab{ padding-bottom:14px; }
+.lw-elegir-q{
+  flex:none; margin:0 24px 12px; font:inherit; font-size:14.5px;
+  padding:10px 14px; border:1px solid var(--linea); border-radius:var(--r-p);
+  background:var(--sup-2); color:var(--texto);
+}
+.lw-elegir-q:focus{ outline:none; border-color:var(--dl,#104C4F);
+  box-shadow:0 0 0 3px rgba(16,76,79,.12); background:var(--sup-1); }
+/* La lista es lo ÚNICO que se desplaza: el buscador y el título se quedan
+   fijos. Si se fuera el buscador al bajar por 195 países, corregir lo tecleado
+   obligaría a subir del todo. */
+.lw-elegir-lista{ flex:1 1 auto; overflow-y:auto; padding:0 12px 14px;
+  overscroll-behavior:contain; }
+.lw-elegir-op{
+  display:flex; width:100%; align-items:baseline; gap:10px; text-align:left;
+  font:inherit; font-size:14.5px; color:var(--texto); background:none;
+  border:none; border-radius:var(--r-p); padding:9px 12px; cursor:pointer;
+}
+.lw-elegir-op em{ font-style:normal; font-size:12.5px; color:var(--texto-3,#676B63); margin-left:auto; }
+/* `.marcado` y no `:hover` a secas: lo que Enter va a elegir tiene que verse
+   igual lo hayas alcanzado con el ratón o con las flechas. */
+.lw-elegir-op:hover{ background:var(--sup-2); }
+.lw-elegir-op.marcado{ background:var(--dl,#104C4F); color:#fff; }
+.lw-elegir-op.marcado em{ color:rgba(255,255,255,.72); }
+.lw-elegir-nada{ margin:6px 12px; font-size:14px; color:var(--texto-3,#676B63); }
+
+/* El campo que abre el selector. Mismo chevron que un <select> de verdad,
+   porque hace lo mismo: era un <input> pelado y por eso nadie sabía que
+   desplegaba. `readonly` para que no se pueda teclear encima — se teclea en el
+   buscador del modal— pero sin `disabled`, que lo sacaría del formulario. */
+input.lw-elegible{
+  cursor:pointer;
+  background-image:
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%234A5052' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E"),
+    linear-gradient(var(--sup-2,#F7F3E9), var(--sup-2,#F7F3E9));
+  background-repeat:no-repeat, no-repeat;
+  background-position:right 11px center, right center;
+  background-size:11px 7px, 34px 100%;
+  padding-right:40px;
+}
+input.lw-elegible:hover{ border-color:var(--texto-3,#676B63); }
+input.lw-elegible:disabled{ cursor:default; opacity:.62; }
+
+@media (max-width:860px){
+  /* En móvil ocupa lo que necesita y se pega abajo: el pulgar llega al buscador
+     y a las primeras opciones sin estirar la mano hasta el centro. */
+  .lw-elegir-fondo{ align-items:flex-end; padding:0; }
+  .lw-elegir{ width:100%; max-height:88vh; border-radius:var(--r-l) var(--r-l) 0 0;
+    padding-bottom:env(safe-area-inset-bottom); }
+}
