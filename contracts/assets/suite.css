@@ -751,7 +751,22 @@ select.lw-select-nativo{
    porque hace lo mismo: era un <input> pelado y por eso nadie sabía que
    desplegaba. `readonly` para que no se pueda teclear encima — se teclea en el
    buscador del modal— pero sin `disabled`, que lo sacaría del formulario. */
-input.lw-elegible{
+/* ⚠️ EL `:disabled` VA EN EL SELECTOR, no es redundante. Cada herramienta tiene
+   en su propio <style> un `input:disabled,select:disabled,textarea:disabled{
+   background:… }` — especificidad (0,1,1), la MISMA que `input.lw-elegible`, y
+   va después en la cascada, así que ganaba: el atajo `background` reinicia
+   `background-image` y borraba el chevron. Listándolo aparte, ese caso pasa a
+   (0,2,1) y gana.
+
+   El `<select>` nativo no sufría esto porque su regla lleva dos `:not([…])` y
+   sale a (0,2,1) de serie — de hecho su comentario, más arriba, ya avisaba de
+   esta misma pelea contra los `<style>` de cada herramienta.
+
+   Salió a la luz con la ficha que abre cerrada: los campos nacen deshabilitados
+   y se quedaban sin flecha justo cuando más falta hace decir que despliegan.
+   Medido en pantalla: `background-image` valía `none`. */
+input.lw-elegible,
+input.lw-elegible:disabled{
   cursor:pointer;
   background-image:
     url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%234A5052' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E"),
@@ -762,7 +777,7 @@ input.lw-elegible{
   padding-right:40px;
 }
 input.lw-elegible:hover{ border-color:var(--texto-3,#676B63); }
-input.lw-elegible:disabled{ cursor:default; opacity:.62; }
+input.lw-elegible:disabled{ cursor:default; }
 
 /* ── UN CAMPO BLOQUEADO SE LEE IGUAL DE BIEN — 16-ago-2026 ──────────────────
    En el cajon lateral, `disabled` ya no quiere decir «esto no se usa nunca»:
