@@ -434,12 +434,8 @@ body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1)
    dos marcas a la vez, una encima de la otra. El enlace al hub lo sigue dando la
    entrada «Intranet», que es la primera del menú. */
 
-.lw-rail-grupo{ font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--sc,#BEB3A5); padding:12px 10px 4px; white-space:nowrap;
-  opacity:0; transition:opacity 120ms ease; }
-.lw-rail.abierto .lw-rail-grupo{ opacity:1; }
-/* Plegado, la cabecera no se lee pero SÍ separa: se queda como un filete fino en
-   vez de desaparecer, para que los bloques sigan distinguiéndose. */
-.lw-rail:not(.abierto) .lw-rail-grupo{ height:1px; padding:7px 10px; overflow:hidden;
-  background:linear-gradient(var(--linea,#E4DCCB), var(--linea,#E4DCCB)) center/60% 1px no-repeat;
-  background-clip:content-box; }
+/* Aquí vivían `.lw-rail-grupo` y su variante plegada (el filete que separaba sin
+   rotular). Retiradas el 16-ago: sumaban 147,5px en un riel cuyo contenido ya
+   medía 772px contra 632 visibles — el menú desbordaba y había que desplazarlo
+   para llegar a las últimas herramientas. Sin ellas entra entero, en 624px.
+   El razonamiento completo está junto al código, en topbar.js. */

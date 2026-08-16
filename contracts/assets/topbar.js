@@ -449,23 +449,23 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     var casa = document.querySelector('.lw-home');
     if (casa) casa.classList.add('lw-home-oculto');
     permitidas.unshift({ nombre: tb('volverIntranet').replace(/^←\s*/, ''), icon: 'ph-house-line', href: '/intranet/', grupo: '' });
-    /* AGRUPADO POR DEPARTAMENTO, igual que el hub (petición del owner): once
-       entradas seguidas se leen como una lista; agrupadas se leen como un mapa.
-       El orden de los grupos sale del propio catálogo, no de una lista aparte
-       aquí — si mañana se añade un grupo, aparece solo. */
-    var grupoActual = null;
-    // ordenadas por grupo: si el catalogo trae dos entradas del mismo grupo
-    // separadas, la cabecera saldria dos veces.
+    /* SIN CABECERAS DE DEPARTAMENTO (16-ago-2026, owner: «el menú se hizo muy
+       largo»). Se pusieron el 15-ago para que once entradas se leyeran como un
+       mapa y no como una lista, y la idea era buena — pero no cabían.
+
+       Medido antes de quitarlas, en una pantalla de 1440x640: el contenido del
+       riel medía 772px contra 632 visibles, o sea que DESBORDABA y había que
+       desplazarlo para llegar a las últimas herramientas. Las cinco cabeceras
+       («Seguimiento», «Documentación», «Administración», «Base de datos»,
+       «Equipo») sumaban 147,5px. Sin ellas queda en 624px y entra entero.
+
+       Se valoró dejar un filete fino sin texto en vez del rótulo: devolvía unos
+       75px y volvía a desbordar, así que no resolvía el problema.
+
+       El ORDEN se conserva agrupado (`lwPorGrupo`): las herramientas del mismo
+       departamento siguen juntas aunque ya no se anuncie con un rótulo. El mapa
+       por departamentos sigue estando en el hub, que es donde hay sitio. */
     (typeof lwPorGrupo === 'function' ? lwPorGrupo(permitidas) : permitidas).forEach(function (t) {
-      if (t.grupo && t.grupo !== grupoActual) {
-        grupoActual = t.grupo;
-        var h = document.createElement('div');
-        h.className = 'lw-rail-grupo';
-        h.textContent = t.grupo;
-        // Plegado no se lee, pero se deja en el DOM: al abrir aparece sin recolocar
-        // nada, y un lector de pantalla lo usa igual.
-        rail.appendChild(h);
-      }
       var a = document.createElement('a');
       a.className = 'lw-rail-i';
       a.href = t.href;
