@@ -16,7 +16,7 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=807bbaab">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=cbb52436">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=363ab193">
 <script src="/contracts/assets/herramientas.js?v=119fb008"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -83,9 +83,9 @@
   .volver:hover{ text-decoration:underline; }
   .resumen{ display:flex; gap:22px; flex-wrap:wrap; margin:0 0 14px; font-size:12.5px; color:var(--muted); }
   .resumen b{ color:var(--ink,#2E3437); font-variant-numeric:tabular-nums; }
-  .buscar{ width:100%; font:inherit; font-size:12.5px; padding:9px 14px; border-radius:999px; background:#F7F3E9; border:1px solid var(--line);
-           border-radius:9px; background:var(--card); color:inherit; }
-  .buscar:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  /* El buscador es `.sui-buscar` (suite.css). Lo de aquí eran seis líneas que
+     además se contradecían solas: declaraba `border-radius:999px` y
+     `background:#F7F3E9` y los pisaba en la línea siguiente. */
   /* mismos chips que Unidades: el contador va DENTRO del filtro para saber
      cuánto hay antes de pulsarlo */
   .filtros{ display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; }
@@ -265,7 +265,7 @@
       <div class="centro">
         <div class="cab">
           <div class="fila">
-            <input class="buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
+            <input class="sui-buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
             <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
             <!-- Tablero ↔ Tabla (6-ago-2026). La revisión de diseño pidió el
                  tablero porque la tabla plana deja de servir pasadas ~100 filas;

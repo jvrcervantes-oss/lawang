@@ -22,7 +22,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=cbb52436">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=363ab193">
 <script src="/contracts/assets/herramientas.js?v=119fb008"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -36,9 +36,9 @@
   .stage{ display:grid; grid-template-columns:340px 1fr; height:100%; padding-top:var(--tbh); }
   @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
 
-  .buscarU{ width:100%; margin-top:10px; font:inherit; font-size:13.5px; padding:9px 11px;
-    border:1px solid var(--linea,#E4DCCB); border-radius:9px; background:#FDFCF9; color:inherit; }
-  .buscarU:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  /* El buscador es `.sui-buscar` (suite.css). Aquí iba a 13,5px y con radio 9
+     mientras el resto de la suite lo tenía a 12,5 y en pastilla. */
+  #qU{ width:100%; margin-top:10px; }
   .lista{ overflow:auto; border-right:1px solid var(--line); }
   .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2;
         font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2); font-weight:600; }
@@ -105,7 +105,7 @@
              0 campos de busqueda con 16 personas) mientras Contratos, Facturas,
              Compradores y Operaciones lo tienen todas. Y la lista ordena los 8 admin
              primero, asi que para llegar a un agente habia que bajarla entera. -->
-        <input class="buscarU" id="qU" type="search" placeholder="Buscar nombre, email o rol…" autocomplete="off">
+        <input class="sui-buscar" id="qU" type="search" placeholder="Buscar nombre, email o rol…" autocomplete="off">
       </div>
       <div id="listaU">Cargando…</div>
     </div>
