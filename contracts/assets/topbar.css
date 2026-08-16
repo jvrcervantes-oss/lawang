@@ -43,6 +43,30 @@
   color:var(--va,#2E3437);
 }
 
+/* ── VARIANTE OSCURA DE LA BARRA — el hub, 16-ago-2026 ──────────────────────
+   Misma barra, mismo sitio para cada cosa; SOLO cambia la paleta. El hub tenía
+   cabecera propia (marca de texto, `max-width:1060px` centrado) y por eso su
+   logotipo no caía donde cae en las otras once pantallas. Decisión del owner:
+   unificar estructura y colocación, conservar el color — el hub es el sitio al
+   que se vuelve, y que se distinga de un vistazo ayuda.
+
+   El logotipo lo cambia `topbar.js`: sobre Deep Lagoon hay que servir el blanco
+   (`lawang-logo-v3.png`), porque el de siempre es tinta oscura y aquí sería un
+   rectángulo invisible.
+
+   El filete de abajo va en blanco translúcido: `--linea` es un crema claro
+   pensado para fondos claros y sobre este verde se lee como una raya luminosa. */
+.lw-topbar.lw-topbar-oscura{
+  background:var(--dl,#104C4F);
+  border-bottom-color:rgba(255,255,255,.16);
+  color:var(--rl,#F1EBDD);
+}
+.lw-topbar-oscura .lw-title{ color:#fff; }
+/* Un botón blanco sobre Deep Lagoon ya destaca de sobra: aquí el borde no tiene
+   que hacer de contorno, así que se apaga en vez de dibujar un cerco. */
+.lw-topbar-oscura .lw-btn{ border-color:rgba(255,255,255,.28); }
+.lw-topbar-oscura .lw-btn:hover{ border-color:#fff; }
+
 /* Vuelta al hub: primero, a la izquierda y en verde de marca. Es la única
    acción de la barra que saca de la herramienta, y antes se confundía con el
    resto de enlaces del extremo derecho. */

@@ -19,7 +19,7 @@
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=ebf8d0ff">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=f735bc0a">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=cbb52436">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=815f07f7" defer></script>
+<script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -103,19 +103,15 @@ body{
 body[hidden]{ display:none; }
 
 /* ── barra ────────────────────────────────────────────────────── */
-/* Deep Lagoon y no Volcanic Ash (6-ago-2026): el hub era la unica pantalla de
-   las doce con la cabecera casi negra, y eso se lee como otro producto. Ahora
-   es la misma barra que el resto de la suite. */
-header{ background:var(--dl); color:var(--rl); height:64px; position:sticky; top:0; z-index:var(--z-barra); }
-.bar{ max-width:1060px; height:100%; margin:0 auto; padding:0 26px; display:flex; align-items:center; gap:18px; }
-/* Sin esto la barra tiene un ancho mínimo mayor que un móvil (marca + nombre +
-   rol + botón) y desborda la PÁGINA entera, no solo la barra: el texto de las
-   filas sale cortado por la derecha. Ya pasó en la v2 con el email. */
-.bar > *{ min-width:0; }
-.marca{ display:flex; align-items:baseline; gap:9px; min-width:0; }
-.marca b{ font-family:var(--serif); font-size:22px; font-weight:600; letter-spacing:.01em; line-height:1; color:#fff; }
-.marca span{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ss); white-space:nowrap; }
-.spacer{ flex:1; }
+/* La barra ya NO se define aquí: es `.lw-topbar` de topbar.css, la misma que las
+   ocho herramientas, con `.lw-topbar-oscura` encima para la paleta. Lo único que
+   se queda es lo que esta pantalla tiene y las otras no: quién soy con su rol.
+
+   Antes vivía aquí entera, con `.bar{ max-width:1060px; margin:0 auto }`, y por
+   eso el logotipo no caía donde cae en el resto. Deep Lagoon se conserva:
+   decisión del owner el 16-ago, y ya lo era desde el 6-ago — el hub era la única
+   pantalla con la cabecera casi negra y eso se leía como otro producto. */
+header.lw-topbar{ position:sticky; top:0; z-index:var(--z-barra); }
 .yo{ display:flex; align-items:center; gap:9px; min-width:0; }
 .yo .quien{ font-size:12.5px; color:var(--rl); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:210px; }
 .rol{
@@ -123,12 +119,9 @@ header{ background:var(--dl); color:var(--rl); height:64px; position:sticky; top
   border:1px solid rgba(241,235,221,.35); border-radius:999px; padding:3px 9px; color:var(--ss);
 }
 .rol.manda{ border-color:var(--sc); color:#CBD6B6; }
-#out{
-  flex:none; font:inherit; font-size:12px; line-height:1; color:var(--rl); background:transparent;
-  border:1px solid rgba(241,235,221,.3); border-radius:999px; padding:7px 14px; cursor:pointer;
-  transition:background .16s var(--sal), border-color .16s var(--sal);
-}
-#out:hover{ background:rgba(241,235,221,.12); border-color:var(--ss); }
+/* `#out` ya es un `.lw-btn` como el de las herramientas. Normalmente ni se ve:
+   el panel de cuenta lo esconde y ofrece «Cerrar sesión» desde el menú. Se queda
+   como respaldo por si ese panel no llega a montarse. */
 #out:focus-visible{ outline:2px solid var(--sc); outline-offset:2px; }
 
 /* ── encabezado de página ─────────────────────────────────────── */
@@ -253,11 +246,9 @@ footer{ width:100%; max-width:1060px; margin:0 auto; padding:0 26px 34px; font-s
 footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
 
 @media (max-width:640px){
-  .bar{ padding:12px 16px; gap:10px; }
   /* en el móvil queda la marca y el botón: quién soy y con qué rol es dato de
      escritorio, y aquí sólo servía para empujar la página fuera de la pantalla */
   .yo{ display:none; }
-  .marca span{ display:none; }
   main{ padding:24px 16px 44px; }
   footer{ padding:0 16px 28px; }
   .lede{ gap:14px; }
@@ -273,16 +264,24 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 </style>
 </head>
 <body hidden>
-  <header>
-    <div class="bar">
-      <div class="marca"><b>Lawang</b><span>Panel</span></div>
-      <div class="spacer"></div>
-      <div class="yo" data-lw-usuario>
-        <span class="quien lw-who" id="who"></span>
-        <span class="rol" id="rol" hidden></span>
-      </div>
-      <button id="out">Salir</button>
+  <!-- LA MISMA BARRA QUE LAS HERRAMIENTAS (16-ago-2026, owner: «unificalo, pero
+       me parece bien que tenga otro color»). Era una cabecera propia: marca de
+       TEXTO en vez del logotipo, y un `.bar` con `max-width:1060px; margin:auto`
+       que la separaba del borde izquierdo — o sea que el logo no caía donde cae
+       en las otras once pantallas.
+
+       Ahora es `.lw-topbar` de verdad, con `topbar.js` inyectando el logotipo y
+       el rótulo igual que en el resto; `lw-topbar-oscura` es SOLO la paleta.
+       Efecto colateral bueno: el panel de cuenta busca el «Salir» viejo DENTRO
+       de la barra, y aquí lo tenía fuera de su alcance, asi que salían dos
+       formas de cerrar sesión. Ahora lo encuentra y lo esconde. -->
+  <header class="lw-topbar lw-topbar-oscura" data-titulo="Panel">
+    <div class="lw-spacer"></div>
+    <div class="yo" data-lw-usuario>
+      <span class="quien lw-who" id="who"></span>
+      <span class="rol" id="rol" hidden></span>
     </div>
+    <button type="button" class="lw-btn" id="out">Salir</button>
   </header>
 
   <main>

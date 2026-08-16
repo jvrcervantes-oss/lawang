@@ -89,7 +89,12 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     casa.className = 'lw-home'; casa.href = '/intranet/'; casa.textContent = tb('volverIntranet');
     var logo = document.createElement('img');
     logo.className = 'lw-brand'; logo.alt = 'Lawang';
-    logo.src = '/contracts/assets/brand/lawang-logo-v3-dark.png';
+    /* El logotipo de siempre es tinta oscura. Sobre la barra oscura del hub sería
+       un rectángulo invisible, así que ahí se sirve el blanco. Son los dos
+       ficheros de marca que ya existían; no se inventa ninguno. */
+    logo.src = barra.classList.contains('lw-topbar-oscura')
+      ? '/contracts/assets/brand/lawang-logo-v3.png'
+      : '/contracts/assets/brand/lawang-logo-v3-dark.png';
     logo.onerror = function () { this.remove(); };   // que falte el logo no parte la barra
     var rotulo = document.createElement('h1');
     rotulo.className = 'lw-title';
