@@ -55,7 +55,7 @@ const LW_HERRAMIENTAS = [
     claves:'recibi recibos justificante señal pago',
     estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
 
-  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-house-line', href:'/proyectos/', herr:'unidades',
+  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
     claves:'proyectos unidades parcelas villas inventario disponible carpetas',
     estado:d => d.unidades == null ? null

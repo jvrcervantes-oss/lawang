@@ -485,7 +485,11 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
        cerrar sesion, no una accion de la herramienta que estas usando. Se MUEVE
        el que ya existe, no se crea otro — si no, habria dos y uno se quedaria
        sin actualizar el dia que cambie el diccionario. */
-    var idi = document.querySelector('.lw-topbar .lw-idioma');
+    /* Sin atarlo a `.lw-topbar`: el hub NO la tiene -su cabecera es propia- y
+       ahi el boton se cuelga de `[data-lw-usuario]`. Con el selector atado a la
+       barra, el idioma se movia al riel en las ocho herramientas y se quedaba
+       arriba justo en el hub, que es donde el owner lo vio. */
+    var idi = document.querySelector('.lw-idioma');
     if (idi) { idi.className = 'lw-rail-i lw-idioma'; hueco.appendChild(idi); }
     var usr = document.querySelector('.lw-usuario-btn');
     if (usr) hueco.appendChild(usr);   // el panel/velo siguen colgando de <body>, solo se mueve el disparador
