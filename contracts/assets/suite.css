@@ -332,8 +332,14 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
   border-top:1px solid var(--linea); margin-top:7px; font-weight:600; }
 
 /* ── botones ────────────────────────────────────────────────────────────── */
+/* El borde de un botón secundario tiene que VERSE: es lo que dice dónde se
+   puede pulsar, y la norma de contraste para un control es 3:1 contra lo que
+   tiene al lado. Con `--linea` daba 1,23:1 sobre el fondo del pie del cajón
+   —medido en los botones «Editar datos» y «Cerrar» de Compradores— o sea un
+   contorno que casi no está. `--sc` da 3,36 ahí y 3,73 sobre blanco, y es el
+   token de marca más claro que pasa. */
 .sui-btn{ font:inherit; font-size:13px; font-weight:500; border-radius:var(--r-p); padding:10px 18px;
-  min-height:24px; cursor:pointer; border:1px solid var(--linea); background:var(--sup-1); color:inherit;
+  min-height:24px; cursor:pointer; border:1px solid var(--sc,#8A8474); background:var(--sup-1); color:inherit;
   display:inline-flex; align-items:center; gap:7px; text-decoration:none;
   transition:border-color var(--t-rapido), background var(--t-rapido), color var(--t-rapido); }
 .sui-btn:hover{ border-color:var(--dl,#104C4F); }

@@ -19,16 +19,16 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="assets/topbar.css?v=9a801500">
+<link rel="stylesheet" href="assets/topbar.css?v=109753e7">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=c5cae000">
+<link rel="stylesheet" href="assets/suite.css?v=dcdb7250">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
-<script src="assets/topbar.js?v=66ebd655" defer></script>
+<script src="assets/topbar.js?v=89e77d6e" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -1473,7 +1473,7 @@ function buildCompradorPanel(){
         <div class="field"><label>${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
         <div class="field"><label>${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label>
           <div style="display:flex;gap:6px">
-            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 108px" value="${escAttr(t.prefijo)}">
+            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 86px" value="${escAttr(t.prefijo)}">
             <input data-ci="${c.id}" data-ckey="telefono_numero" placeholder="Número" style="flex:1" value="${escAttr(t.numero)}">
           </div>
         </div>
@@ -2009,7 +2009,7 @@ function fieldHTML(f){
     const t0 = partirTelefono(def);
     return `<div class="field field-tel" data-key="${key}"><label>${label}</label>
       <div style="display:flex;gap:6px">
-        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 108px" value="${escAttr(t0.prefijo)}">
+        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 86px" value="${escAttr(t0.prefijo)}">
         <input class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
       </div>
       <input type="hidden" name="${key}" value="${def}">

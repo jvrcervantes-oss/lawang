@@ -78,7 +78,14 @@
      12px/500 y `7px 13px` el secundario; el primario sube a 13px/600 y `9px 16px`. */
   font:inherit; font-size:12px; font-weight:500; line-height:1; color:var(--texto-2,#4A5052);
   background:#fff;
-  border:1px solid var(--linea,#E4DCCB); border-radius:999px;
+  /* `--sc` y no `--linea`: el borde de un control es lo que dice DÓNDE se puede
+     pulsar, y la norma de contraste para eso es 3:1 contra lo que tiene al lado.
+     Medido en producción: `--linea` (#E4DCCB) da 1,36:1 sobre blanco y 1,23:1
+     sobre el fondo crema — un contorno que prácticamente no está. `--sc`
+     (#8A8474) da 3,73 y 3,36, y es el token de marca MÁS CLARO que pasa, así que
+     no hace falta inventar un color ni oscurecer de más. El texto ya iba bien
+     (14,95:1), esto no lo toca. */
+  border:1px solid var(--sc,#8A8474); border-radius:999px;
   padding:7px 13px; cursor:pointer; white-space:nowrap; text-decoration:none;
   display:inline-flex; align-items:center; gap:6px;
   transition:transform .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
@@ -325,6 +332,25 @@
 body.con-rail{ padding-left:56px; transition:padding-left 180ms cubic-bezier(.22,.61,.36,1); }
 body.rail-abierto{ padding-left:208px; }
 
+/* LA ESQUINA DE ARRIBA A LA IZQUIERDA — 16-ago-2026
+   El riel arranca a 64px del techo (debajo de la barra) y desplaza el contenido
+   con el `padding-left` de aquí arriba. En las herramientas eso no se nota: su
+   `.lw-topbar` va de borde a borde y tapa la esquina.
+
+   En el HUB no, porque su cabecera es un `<header>` del flujo y el padding la
+   empuja a la derecha: quedaba un rectángulo de 208×64 en la esquina superior
+   izquierda sin pintar por nadie, enseñando el fondo del body. Medido, no es
+   una impresión: `elementFromPoint(10,10)` devolvía el propio `<body>`.
+
+   Se saca la cabecera del padding con un margen negativo y se le devuelve como
+   relleno, así que el fondo llega hasta el borde y su contenido no se mueve ni
+   un píxel. `> header` (hijo directo) a propósito: Facturas y Operaciones tienen
+   `<header>` anidados dentro de su contenido y no son barras. */
+body.con-rail > header{ margin-left:-56px; padding-left:56px; }
+body.rail-abierto > header{ margin-left:-208px; padding-left:208px; }
+body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1),
+                                   padding-left 180ms cubic-bezier(.22,.61,.36,1); }
+
 .lw-rail-i, .lw-rail-tog{
   display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
   border:none; background:none; border-radius:9px; cursor:pointer;
@@ -343,6 +369,10 @@ body.rail-abierto{ padding-left:208px; }
 .lw-rail-i.aqui{ background:var(--sup-sel,#EAE4D3); color:var(--dl,#104C4F); font-weight:600;
   box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
 .lw-rail-tog{ margin-bottom:6px; color:var(--texto-3,#676B63); }
+/* El conmutador de idioma vive en el pie del riel y se pinta como una fila más:
+   sin la píldora blanca que traía de la barra, que ahí abajo se leería como un
+   botón suelto en medio de una lista. */
+.lw-rail-i.lw-idioma{ background:none; border:none; color:var(--texto-3,#676B63); }
 
 /* En móvil no hay ancho que repartir: el riel desaparece y se navega por el hub,
    que es lo que ya se hacía. Media barra encima de una tabla es peor que nada. */
@@ -402,13 +432,20 @@ body.rail-abierto{ padding-left:208px; }
 .lw-rail-marca{ display:flex; align-items:center; justify-content:center; min-height:44px;
   margin:-2px 0 6px; border-radius:9px; text-decoration:none; }
 .lw-rail-marca:hover{ background:var(--sup-hover,#EFEADE); }
-.lw-rail-marca img{ height:22px; width:auto; max-width:100%; object-fit:contain; opacity:0; transition:opacity 120ms ease; }
-/* Plegado no cabe el lockup: se enseña la casa. Abierto, al revés. Nunca los dos
-   a la vez, y nunca ninguno — el hueco vacío parecería un fallo de carga. */
-.lw-rail-marca i{ font-size:20px; color:var(--texto-2,#4A5052); position:absolute; }
-.lw-rail.abierto .lw-rail-marca img{ opacity:1; position:relative; }
-.lw-rail.abierto .lw-rail-marca i{ display:none; }
-.lw-rail:not(.abierto) .lw-rail-marca img{ display:none; }
+/* Plegado no cabe el logotipo entero, así que se enseña SOLO EL ISOTIPO, y se
+   saca recortando el propio fichero — no hay un segundo PNG que mantener, y el
+   día que se cambie la marca el riel cambia con ella.
+
+   Antes aquí había un `ph-house-line`, y la primera entrada del menú, justo
+   debajo, es «Intranet», que también es una casa: dos casitas idénticas y
+   seguidas, y las dos llevando al mismo sitio.
+
+   La cuenta del recorte: el fichero mide 1726×240 y el isotipo ocupa los ~255
+   primeros píxeles. A 22px de alto la escala es 22/240, así que el isotipo mide
+   255×22/240 ≈ 23px — de ahí la caja de 24. `cover` escala por el alto (la
+   imagen es mucho más ancha que la caja) y `left` ancla el recorte al isotipo. */
+.lw-rail-marca img{ height:22px; width:24px; object-fit:cover; object-position:left center; }
+.lw-rail.abierto .lw-rail-marca img{ width:auto; max-width:100%; object-fit:contain; }
 
 .lw-rail-grupo{ font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
   color:var(--sc,#BEB3A5); padding:12px 10px 4px; white-space:nowrap;

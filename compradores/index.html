@@ -10,11 +10,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=4b167da0">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=9a801500">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=c5cae000">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=109753e7">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=dcdb7250">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=bf37e2b2"></script>
-<script src="/contracts/assets/topbar.js?v=66ebd655" defer></script>
+<script src="/contracts/assets/topbar.js?v=89e77d6e" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
@@ -290,10 +290,10 @@ function pintarFicha(){
         <div><label>Teléfono</label>
           <div style="display:flex;gap:6px">
             <!-- Sin <datalist>: lo abre lwPicker (ver el final de pintarFicha).
-                 Y 108px en vez de 132: solo tiene que caber «+34» y el chevron,
-                 y con el ancho de antes se comia el sitio del numero, que es el
-                 dato largo. -->
-            <input id="f-tel-pre" ${dis} style="flex:0 0 108px" value="${esc(tel.prefijo||'')}" placeholder="Prefijo">
+                 Y 86px: el prefijo mas largo del mundo es «+998», o sea 4
+                 caracteres. Con 108 el hueco util eran 57px para ~30px de texto
+                 y le robaba sitio al numero, que es el dato largo. -->
+            <input id="f-tel-pre" ${dis} style="flex:0 0 86px" value="${esc(tel.prefijo||'')}" placeholder="Prefijo">
             <input id="f-tel-num" ${dis} style="flex:1" value="${esc(tel.numero)}" placeholder="Número">
           </div>
         </div>
@@ -460,7 +460,7 @@ function pintarFicha(){
     pie: soloLectura
       ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
       : cerrada
-        ? `<button class="sui-btn" id="btnEditar">Editar datos</button>
+        ? `<button class="sui-btn primario" id="btnEditar">Editar datos</button>
            <button class="sui-btn" id="btnCerrar">Cerrar</button>`
         : `<button class="sui-btn primario" id="btnGuardar">Crear comprador</button>
            <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
@@ -491,6 +491,11 @@ function pintarFicha(){
     toast('Puedes editar los datos de la ficha');
   });
 
+  /* JERARQUIA DEL PIE. «Editar datos» es la accion de esta pantalla y «Cerrar»
+     la salida: iban los dos con la misma pildora blanca, o sea sin decir cual
+     es cual. Relleno el primero y contorno el segundo, que es exactamente lo
+     que ya hace este mismo cajon cuando la ficha es nueva («Crear comprador» +
+     «Cerrar») y cuando esta desbloqueada («Guardar cambios» + «Cancelar»). */
   const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));

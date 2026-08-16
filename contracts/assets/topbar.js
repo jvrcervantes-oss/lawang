@@ -119,7 +119,11 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
   boton.type = 'button';
   boton.className = 'lw-btn lw-idioma';
   var otro = window.LW_IDIOMA === 'en' ? 'es' : 'en';
-  boton.textContent = otro.toUpperCase();
+  /* Icono + nombre del idioma AL QUE se va. Antes eran dos letras sueltas en la
+     barra («EN»), que no dicen si es el idioma actual o el de destino. El riel
+     plegado enseña el icono y abierto el nombre, como cualquier otra fila. */
+  boton.innerHTML = '<i class="ph ph-translate" aria-hidden="true"></i>' +
+                    '<span>' + (otro === 'en' ? 'English' : 'Español') + '</span>';
   boton.title = otro === 'en' ? 'Switch interface to English' : 'Cambiar la interfaz a español';
   boton.addEventListener('click', function () {
     window.lwSetIdioma(otro);
@@ -130,6 +134,9 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
      y este `appendChild` la desplazaba: en Compradores el orden quedaba
      «Nuevo comprador · EN», con el conmutador de idioma en el sitio reservado a
      lo que se usa cien veces mas. */
+  /* Se cuelga de la barra por si no hay riel; si lo hay, el riel se lo lleva a
+     su pie (mas abajo en este mismo fichero). En la barra iba antes del boton
+     primario para no robarle la esquina. */
   var principal = barra.querySelector('.lw-btn.primary');
   if (principal) barra.insertBefore(boton, principal); else barra.appendChild(boton);
 })();
@@ -411,8 +418,12 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
        ESTÁS cuando ya estás en el hub (decisión del owner, 15-ago). */
     var marca = document.createElement('a');
     marca.className = 'lw-rail-marca'; marca.href = '/intranet/'; marca.title = 'Lawang · Intranet';
-    marca.innerHTML = '<img src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">'
-                    + '<i class="ph ph-house-line" aria-hidden="true"></i>';
+    /* Plegado se enseña el ISOTIPO, recortado del propio logotipo por CSS. Antes
+       aqui habia un `ph-house-line` y justo debajo esta la entrada «Intranet»,
+       que tambien es una casa: dos casitas identicas y seguidas, y las dos al
+       mismo sitio. Recortar el logotipo en vez de meter otro fichero evita que
+       un dia se cambie la marca y el riel se quede con la vieja. */
+    marca.innerHTML = '<img src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang">';
     rail.appendChild(marca);
 
     var btn = document.createElement('button');
@@ -469,6 +480,13 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     var hueco = document.createElement('div');
     hueco.className = 'lw-rail-pie';
     rail.appendChild(hueco);
+    /* El conmutador de idioma baja aqui, encima del usuario. En la barra de
+       arriba no pintaba nada: es un ajuste de la sesion, como quien eres y
+       cerrar sesion, no una accion de la herramienta que estas usando. Se MUEVE
+       el que ya existe, no se crea otro — si no, habria dos y uno se quedaria
+       sin actualizar el dia que cambie el diccionario. */
+    var idi = document.querySelector('.lw-topbar .lw-idioma');
+    if (idi) { idi.className = 'lw-rail-i lw-idioma'; hueco.appendChild(idi); }
     var usr = document.querySelector('.lw-usuario-btn');
     if (usr) hueco.appendChild(usr);   // el panel/velo siguen colgando de <body>, solo se mueve el disparador
 
