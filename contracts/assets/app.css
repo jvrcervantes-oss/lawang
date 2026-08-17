@@ -1,0 +1,388 @@
+/* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
+   ============================================================================
+   Estaban dentro del HTML, 409 lineas de <style> en un fichero que ya tenia
+   5.030. Sacarlos no cambia ni un pixel: es el mismo CSS, en el mismo orden y
+   en el mismo sitio de la cascada (despues de suite.css, antes de nada propio).
+
+   Lo que se gana no es estetica, es poder VER lo que sobra: con el CSS aparte se
+   puede comparar contra suite.css y subir a la capa comun lo que ya este alli.
+   Mientras vivia dentro del HTML nadie lo miraba.
+
+   ⚠️ Va con `?v=` sellado por tools/sella_assets.py, igual que el resto: sin el
+   sello, un cambio de estilos se queda en la cache del CDN sin que se note. */
+
+  :root{
+    --line:#E4DCCB; --tbh:64px;
+    /* superficies cálidas sobre el papel Raw Linen */
+    --card:#fffdf8; --field-bg:#fdfcf9; --hair:#ece4d6;
+    /* profundidad discreta — sombras cálidas, nunca negras duras */
+    --sh-sm:0 1px 2px rgba(46,52,55,.04), 0 1px 3px rgba(46,52,55,.05);
+    --sh-md:0 2px 6px rgba(46,52,55,.05), 0 10px 26px rgba(46,52,55,.05);
+    --sh-lift:0 4px 16px rgba(46,52,55,.11);
+    /* radios y easing físico */
+    --r-lg:16px; --r-md:12px; --r-sm:10px;
+    --ease:cubic-bezier(.32,.72,0,1); --ease-out:cubic-bezier(.16,1,.3,1);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); color:var(--va); background:var(--rl); font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  ::selection{ background:rgba(72,91,55,.16); }
+  /* scrollbar discreta y de marca en los paneles con overflow */
+  .pane-form, .pv-scroll, .cp-list{ scrollbar-width:thin; scrollbar-color:var(--ss) transparent; }
+  .pane-form::-webkit-scrollbar, .pv-scroll::-webkit-scrollbar, .cp-list::-webkit-scrollbar{ width:9px; height:9px; }
+  .pane-form::-webkit-scrollbar-thumb, .pv-scroll::-webkit-scrollbar-thumb, .cp-list::-webkit-scrollbar-thumb{ background:var(--ss); border-radius:20px; border:2px solid transparent; background-clip:content-box; }
+
+  /* ---------- topbar · barra de vidrio esmerilado, fija ---------- */
+  /* Solo posicionamiento: el aspecto vive en assets/topbar.css, compartido con
+     Facturas y Dossier. Aquí sticky (las otras dos van fixed) porque .stage
+     calcula su alto con calc(100dvh - --tbh). */
+  .topbar{ position:sticky; top:0; z-index:40;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px -14px rgba(46,52,55,.5); }
+  /* toggle de idioma como segmento con pastilla deslizante */
+  .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:9px; padding:3px; box-shadow:inset 0 1px 2px rgba(46,52,55,.05); }
+  .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px; color:var(--muted); cursor:pointer; transition:color .2s var(--ease), background .2s var(--ease); }
+  .lang-toggle button:hover{ color:var(--va); }
+  .lang-toggle button.on{ background:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.4); }
+  .lang-hint{ font-size:11px; letter-spacing:.06em; color:var(--sc); text-transform:uppercase; font-weight:600; }
+  /* acciones de la barra: pastillas de línea con micro-elevación al hover */
+  .tb-link{ background:linear-gradient(180deg,#fff,var(--card)); border:1px solid var(--line); border-radius:9px; font:inherit; font-size:12.5px; font-weight:500; color:var(--va); padding:7px 13px; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease), color .18s var(--ease); }
+  .tb-link:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
+  .tb-link:active{ transform:translateY(0); }
+  a.tb-link{ text-decoration:none; display:inline-block; }   /* el "← Panel" es enlace, no botón */
+  /* Salir en tono tierra al pasar por encima — es la salida, no una acción de trabajo */
+  #btnLogout:hover{ border-color:var(--be); color:var(--be); }
+  /* selector de contrato en la barra estática: siempre accesible al hacer scroll del formulario */
+
+  /* ---------- escenario en dos columnas ---------- */
+  /* Grid con la columna del formulario ACOTADA, igual que en /facturas: al 50/50
+     el formulario dejaba 300px de aire a los lados de sus campos (su `.inner`
+     nunca pasa de 640px) mientras la barra de herramientas de la derecha se
+     partía en tres líneas. Ahora el formulario coge lo que necesita y el resto
+     es para el documento y sus botones. */
+  .stage{ display:grid; grid-template-columns:minmax(400px,560px) 1fr; height:calc(100dvh - var(--tbh)); }
+  .pane-form{ min-width:0; overflow:auto; padding:22px 20px 48px; }
+  .pane-form .inner{ max-width:640px; margin:0 auto; }
+  /* preview: bandeja de papel más profunda para que el documento "flote" */
+  .pane-preview{ min-width:0; display:flex; flex-direction:column;
+    background:radial-gradient(120% 80% at 50% 0%, #efe7d9 0%, #e7ddcd 100%); border-left:1px solid var(--line); }
+  .pv-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:9px 18px; padding:11px 16px;
+    background:rgba(255,253,248,.9); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); }
+  /* el rotulo NO crece (antes flex:1): empujaba el bloque de herramientas a una
+     linea propia incluso cuando quedaba sitio de sobra al lado. */
+  .pv-bar b{ font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); flex:none; }
+  /* Herramientas agrupadas por lo que HACEN, no por el orden en que se
+     escribieron (30-jul, owner): editar el documento, la firma automática y el
+     PDF a mano son tres flujos distintos y antes estaban mezclados en una fila
+     de nueve botones. Cada grupo no se parte por dentro; los grupos sí saltan de
+     línea como bloques. El filete separador va en el grupo siguiente, así que si
+     uno se oculta (los botones dependen del estado) el separador se va con él. */
+  .pv-grupo{ display:flex; align-items:center; gap:6px; flex:none; }
+  .pv-grupo > .g{ font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); white-space:nowrap; }
+  .pv-scroll{ flex:1; overflow:auto; padding:22px 20px; display:flex; justify-content:center; }
+  #pvFrame{ width:100%; max-width:820px; height:100%; min-height:400px; border:none; background:#fff;
+    box-shadow:0 1px 2px rgba(46,52,55,.08), 0 18px 48px -12px rgba(46,52,55,.32); border-radius:8px; }
+  .pv-close{ display:none; }
+
+
+  /* ---------- secciones (acordeón) ---------- */
+  /* etiqueta de agrupación (tier): eyebrow tipográfico entre bloques */
+  .tier-label{ font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--sc);
+    margin:22px 4px 10px; padding-top:14px; border-top:1px solid var(--hair); }
+  .tier-label.first{ border-top:none; padding-top:0; margin-top:4px; }
+  /* tarjeta de sección: papel cálido con sombra suave, no borde duro */
+  .section{ background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg); margin-bottom:12px; overflow:hidden;
+    box-shadow:var(--sh-sm); transition:box-shadow .25s var(--ease), border-color .25s var(--ease); }
+  .section:hover{ box-shadow:var(--sh-md); }
+  .section > header{ display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; user-select:none;
+    transition:background .2s var(--ease); }
+  .section > header:hover{ background:rgba(72,91,55,.035); }
+  /* número como ficha circular con tinte sage — jerarquía visual del índice */
+  .section > header .num{ font-style:italic; color:var(--tg); font-size:15px; font-weight:500; width:28px; height:28px; flex:none;
+    display:grid; place-items:center; border-radius:50%; background:rgba(143,155,122,.16); }
+  .section > header h2{ font-size:12.5px; letter-spacing:.1em; text-transform:uppercase; margin:0; color:var(--dl); font-weight:600; flex:1; }
+  .section > header .chev{ color:var(--sc); transition:transform .3s var(--ease); font-size:12px; }
+  .section.collapsed > header .chev{ transform:rotate(-90deg); }
+  .section .body{ padding:4px 16px 16px; }
+  .section.collapsed .body{ display:none; }
+
+  .opt-toggle{ display:flex; align-items:center; gap:9px; margin-left:auto; font-size:11.5px; color:var(--muted); }
+  .switch{ position:relative; width:42px; height:24px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:var(--ss); border-radius:24px; transition:background .25s var(--ease); box-shadow:inset 0 1px 2px rgba(46,52,55,.12); }
+  .slider:before{ content:""; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%;
+    transition:transform .28s var(--ease); box-shadow:0 1px 3px rgba(46,52,55,.28); }
+  .switch input:checked + .slider{ background:var(--dl); }
+  .switch input:checked + .slider:before{ transform:translateX(18px); }
+  .section.optional.off .body{ display:none; }
+  .section.optional.off{ opacity:.82; }
+  /* Contrato bloqueado (PDF firmado ya subido): una sola clase corta toda
+     edición del panel de campos (inputs, firmas, anexos, cláusulas,
+     adquirientes…) sin tener que deshabilitar elemento a elemento — incluye
+     los canvas de firma, que pointer-events también bloquea. */
+  #form.locked{ pointer-events:none; opacity:.6; }
+
+  .field{ margin:12px 0; }
+  .field label{ display:block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; cursor:pointer; }
+  .field label:hover{ color:var(--dl); }
+  .field label::after{ content:' ↳'; opacity:0; transition:opacity .15s var(--ease); }
+  .field label:hover::after{ opacity:.65; }
+  .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
+    padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--field-bg);
+    transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
+  .field input::placeholder, .field textarea::placeholder{ color:var(--ss); }
+  .field input:hover, .field textarea:hover, .field select:hover{ border-color:var(--sc); }
+  .field input:focus, .field textarea:focus, .field select:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.14); }
+  /* nº de contrato es readonly (lo asigna la BD): se ve como campo asignado, no editable */
+  .field input[readonly]{ background:rgba(190,179,165,.14); color:var(--muted); cursor:default; }
+  .field input[readonly]:hover{ border-color:var(--line); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
+
+  .note-blocked{ font-size:11.5px; color:var(--muted); background:#fbf9f3; border:1px dashed var(--ss); border-radius:10px; padding:11px 13px; margin:8px 0 0; }
+  .note-blocked b{ color:var(--be); }
+  .note-blocked ul{ margin:6px 0 0; padding-left:16px; } .note-blocked li{ margin-bottom:2px; }
+
+  /* Marca PERSISTENTE en el campo, no solo un toast que puede pisarse con otro
+     (hallazgo Legal, 12-ago): una fecha guardada en formato antiguo, o una
+     sociedad cuya cláusula de contrato hay que revisar a mano. */
+  .field.campo-aviso input, .field.campo-aviso select{ border-color:var(--be); background:#fdf6f2; }
+  .field .aviso-campo{ font-size:11px; color:var(--be); margin:5px 0 0; font-weight:600; }
+
+  /* firma */
+  .sigpad-wrap{ border:1.5px dashed var(--ss); border-radius:var(--r-sm); background:#fff; position:relative; touch-action:none;
+    transition:border-color .2s var(--ease); }
+  .sigpad-wrap.signed{ border-style:solid; border-color:var(--sc); }
+  .sigpad-wrap canvas{ width:100%; height:140px; display:block; border-radius:var(--r-sm); }
+  .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center; color:var(--ss); font-size:13px; letter-spacing:.02em; pointer-events:none; }
+  .sigpad-wrap.signed .ph{ display:none; }
+  .sig-actions{ display:flex; justify-content:flex-end; margin-top:7px; }
+  .link-btn{ background:none; border:none; color:var(--dl); font-size:12.5px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; padding:4px; transition:color .15s var(--ease); }
+  .link-btn:hover{ color:var(--dl); }
+
+  /* botones · presión física (scale al pulsar) + elevación al hover */
+  .btn{ font-family:inherit; font-size:13.5px; font-weight:500; border-radius:var(--r-sm); padding:10px 16px; border:none; cursor:pointer;
+    transition:transform .16s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease); }
+  .btn:active{ transform:scale(.97); }
+  .btn.primary{ background:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(16,76,79,.3), 0 6px 16px -6px rgba(16,76,79,.5); }
+  .btn.primary:hover{ background:#0d5b5f; box-shadow:0 2px 4px rgba(16,76,79,.32), 0 10px 22px -6px rgba(16,76,79,.55); transform:translateY(-1px); }
+  .btn.primary:active{ transform:translateY(0) scale(.97); }
+  .btn.primary:disabled{ background:var(--ss); box-shadow:none; cursor:not-allowed; transform:none; }
+  .btn.ghost{ background:linear-gradient(180deg,#fff,var(--card)); border:1px solid var(--line); color:var(--va); box-shadow:var(--sh-sm); }
+  .btn.ghost:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
+  .btn.ghost:active{ transform:translateY(0) scale(.97); }
+  .btn.ghost.editing{ background:var(--dl); border-color:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.35); }
+  .btn.ghost.editing:hover{ color:#fff; }
+  /* Guardar en base de datos = acción de marca (acento Territorial), un peldaño bajo el primary Descargar PDF */
+  #btnSave{ background:linear-gradient(180deg,#fbfdf7,#eef3e6); border-color:var(--sc); color:var(--dl); font-weight:600; }
+  #btnSave:hover{ background:var(--dl); border-color:var(--dl); color:#fff; box-shadow:0 2px 4px rgba(72,91,55,.28), 0 10px 22px -8px rgba(72,91,55,.5); }
+  /* botón de bloqueo (subir firmado) = tono tierra, señal de acción irreversible */
+  #btnLockUpload:hover{ border-color:var(--be); color:var(--be); }
+  /* `a.btn` sale `inline` y sus hermanos `<button>` salen `block`: sin esto,
+     Facturar quedaba mas bajo y con otra caja que los de al lado. */
+  a#btnFacturar{ display:inline-flex; align-items:center; text-decoration:none; }
+  #btnDownloadSigned:hover{ border-color:var(--dl); color:var(--dl); }
+
+  /* z-index 200: por encima de los modales (.cp-overlay, 80). Compartían el 80 y,
+     al ir los overlays después en el DOM, ganaban ellos — el aviso salía DETRÁS
+     del modal y no se veía justo cuando más falta hace (errores al guardar, al
+     generar el enlace de firma…). Cualquier capa nueva debe quedar por debajo. */
+
+  /* ---------- panel Diseño ---------- */
+  .section.design > header h2{ color:var(--be); }
+  /* ficha del índice para el panel Diseño: tinte tierra en vez de sage */
+  .section.design .num{ font-style:normal; background:rgba(66,33,11,.1); color:var(--be); }
+  /* Adquirientes adicionales, dentro del mismo recuadro que Adquiriente I
+     (7-ago) — separador propio para no confundirse con el grid2 de arriba. */
+  .comprador-extra{ margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
+  .comprador-extra-head{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:4px; }
+  .cli-buscar{ position:relative; padding:2px 0 12px; }
+  .cli-buscar input{ width:100%; padding:9px 14px; border:1px solid var(--line); border-radius:999px; font:inherit; font-size:12.5px; background:#F7F3E9; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .cli-buscar input:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .cli-resultados{ position:absolute; left:0; right:0; top:calc(100% - 6px); z-index:5; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 32px -12px rgba(46,52,55,.35); max-height:220px; overflow:auto; }
+  .cli-r{ padding:9px 14px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--hair); }
+  .cli-r:last-child{ border-bottom:none; }
+  .cli-r:hover{ background:#F7F3E9; }
+  .cli-r b{ color:var(--dl); }
+  .cli-r span{ color:var(--muted); }
+  .cli-vacio{ padding:9px 14px; font-size:12px; color:var(--muted); }
+  .emails-extra{ grid-column:1/-1; margin-top:4px; }
+  .chips-row{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .chip-email{ display:inline-flex; align-items:center; gap:6px; background:#F7F3E9; border:1px solid var(--line); border-radius:999px; padding:5px 6px 5px 12px; font-size:12px; }
+  .chip-email button{ border:none; background:none; cursor:pointer; color:var(--muted); font-size:14px; line-height:1; padding:2px 4px; }
+  .chip-email button:hover{ color:var(--be); }
+  .emails-extra .dz-row input{ flex:1; }
+  .em-emails-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0; }
+  .em-emails-chips button{ font:inherit; font-size:11.5px; background:#F7F3E9; border:1px solid var(--line); border-radius:999px; padding:4px 10px; cursor:pointer; color:var(--texto-2,#4A5052); }
+  .em-emails-chips button:hover{ border-color:var(--dl); color:var(--dl); }
+  .dz{ border-top:1px solid var(--hair); padding:12px 0 4px; }
+  .dz:first-child{ border-top:none; }
+  .dz-row{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px; color:var(--muted); }
+  .dz-row > span{ width:78px; flex:none; }
+  .dz-row select, .dz-row input[type=range], .dz-row input[type=color]{ flex:1; }
+  .dz-row input[type=range]{ accent-color:var(--dl); }
+  .dz-row input[type=color]{ height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+  .up{ display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:7px 12px; font-size:12.5px; color:var(--va); cursor:pointer; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .up:hover{ border-color:var(--dl); box-shadow:var(--sh-sm); }
+  .up input{ display:none; }
+
+  /* ---------- panel Diseño (rework moderno · compacto) ---------- */
+  .dsec{ display:flex; align-items:center; gap:8px; margin:12px 2px 7px;
+    font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--sc); }
+  .dsec::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .dsec:first-of-type{ margin-top:4px; }
+  /* fila escalar: color / degradado / textura */
+  .drow{ display:flex; align-items:center; gap:10px; margin:7px 2px; }
+  .drow .dlab{ width:88px; flex:none; font-size:12px; color:var(--muted); }
+  .drow input[type=range]{ flex:1; accent-color:var(--dl); height:4px; }
+  .drow .dval{ width:36px; flex:none; text-align:right; font-size:11.5px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dswatch{ width:40px; height:26px; flex:none; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+  /* tarjeta de asset */
+  .dcard{ border:1px solid var(--line); border-radius:var(--r-md); padding:9px 11px; margin:7px 0;
+    background:linear-gradient(180deg,#fff,#fdfcf8); box-shadow:var(--sh-sm); }
+  .dcard.empty{ opacity:.9; }
+  .dcard.empty .dcard-ctl{ opacity:.4; pointer-events:none; }
+  .dcard-head{ display:flex; align-items:center; gap:9px; }
+  .dthumb{ width:34px; height:34px; flex:none; border-radius:8px; border:1px solid var(--line);
+    background:#fff no-repeat center/contain; display:grid; place-items:center; color:var(--ss); font-size:15px; }
+  .dcard-title{ flex:1; min-width:0; }
+  .dcard-title b{ display:block; font-size:12px; font-weight:600; color:var(--dl); line-height:1.25; }
+  .dcard-title span{ font-size:10.5px; color:var(--muted); }
+  .dbtn{ font:inherit; font-size:11.5px; border:1px solid var(--line); background:#fff; color:var(--va);
+    border-radius:8px; padding:5px 9px; cursor:pointer; white-space:nowrap; transition:border-color .15s var(--ease),color .15s var(--ease),box-shadow .15s var(--ease); }
+  .dbtn:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-sm); }
+  .dbtn.ghost{ color:var(--muted); border-style:dashed; }
+  .dbtn.upload{ position:relative; overflow:hidden; }
+  .dbtn.upload input[type=file]{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+  .dcard-ctl{ display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin-top:8px; }
+  .dctl{ display:flex; flex-direction:column; gap:3px; }
+  .dctl.full{ grid-column:1/-1; }
+  .dctl > label{ display:flex; justify-content:space-between; align-items:baseline;
+    font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .dctl > label .v{ font-size:11.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dctl select{ font:inherit; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); }
+  .dctl input[type=range]{ accent-color:var(--dl); height:4px; margin:3px 0 1px; }
+
+  /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
+  .fab{ display:none; position:fixed; z-index:45; right:16px; bottom:calc(16px + env(safe-area-inset-bottom));
+    background:var(--dl); color:#fff; border:none; border-radius:30px; padding:14px 20px; font:inherit; font-size:15px; font-weight:500;
+    box-shadow:0 8px 24px rgba(16,76,79,.35); cursor:pointer; transition:transform .16s var(--ease), box-shadow .18s var(--ease); }
+  .fab:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(16,76,79,.42); }
+  .fab:active{ transform:translateY(0) scale(.97); }
+  @media (max-width:900px){
+    .stage{ grid-template-columns:1fr; height:auto; }
+    .pane-form{ overflow:visible; height:auto; padding-bottom:96px; }
+    .pane-preview{ position:fixed; inset:0; z-index:60; transform:translateY(100%); transition:transform .3s ease;
+      border-left:none; height:100dvh; }
+    .pane-preview.open{ transform:none; }
+    .pv-close{ display:inline-flex; }
+    .fab{ display:inline-flex; }
+    /* topbar: con "Salir" sumado a los 3 botones + selector de idioma ya no
+       cabe todo en una fila a partir de aquí — quita lo prescindible
+       (el rótulo "BAHASA +" es solo informativo, el toggle ES/EN se entiende
+       solo) y encoge botones/título antes de dejar que algo se parta en dos
+       líneas. */
+    .topbar{ gap:6px; padding:0 10px; }
+    .topbar .tbtitle{ font-size:13px; }
+    .lang-hint{ display:none; }
+    .tb-link{ padding:6px 8px; font-size:12px; }
+  }
+
+  /* ---------- panel "Contratos guardados" ---------- */
+  /* ── MODO LISTADO (2a, 6-ago-2026) ─────────────────────────────────────
+     Contratos abria directo al EDITOR y lo emitido vivia en este modal. Peticion
+     de la revision: como Facturas — primero la lista, «+ Nuevo» abre el editor.
+     Se promueve el MISMO panel (misma carga, filtros, autoria y borrado, cero
+     logica nueva) a pantalla: en `body.modo-listado` deja de ser un modal
+     flotante y ocupa el cuerpo de la pagina con los valores del mockup. */
+  body.modo-listado .stage, body.modo-listado .fab{ display:none !important; }
+  body.modo-listado #tplPick, body.modo-listado .lang-hint,
+  body.modo-listado #langToggle, body.modo-listado .lw-sep,
+  body.modo-listado #btnReset{ display:none !important; }
+  body.modo-listado #cpOverlay{ display:block; position:static; background:none;
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+    padding:calc(var(--tbh) + 22px) 26px 30px; }
+  body.modo-listado #cpOverlay .cp-modal{ width:100%; max-width:1520px; margin:0 auto;
+    max-height:none; border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 1px 2px rgba(34,40,42,.06); animation:none; }
+  body.modo-listado #cpClose{ display:none; }
+  body.modo-listado .cp-list{ max-height:calc(100vh - 340px); }
+
+  .cp-overlay{ display:none; position:fixed; inset:0; z-index:80; background:rgba(46,52,55,.42);
+    backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:24px; }
+  .cp-overlay.open{ display:flex; animation:cpFade .25s var(--ease-out); }
+  @keyframes cpFade{ from{ opacity:0; } to{ opacity:1; } }
+  .cp-modal{ background:var(--card); border-radius:var(--r-lg); width:min(760px,100%); max-height:min(600px,86vh);
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 30px 80px -20px rgba(46,52,55,.5);
+    animation:cpRise .3s var(--ease-out); }
+  @keyframes cpRise{ from{ opacity:0; transform:translateY(12px) scale(.985); } to{ opacity:1; transform:none; } }
+  .cp-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .cp-head b{ font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
+  /* El ASPECTO lo pone `.sui-buscar` (suite.css), igual que en las otras siete.
+     Aquí solo queda dónde va: el modal es un bloque, no una fila flexible, así
+     que el `flex:1 1 240px` de la clase no lo estira y hay que darle el ancho.
+     Los 18px de margen son la sangría del panel, la misma que `.cp-filtros`. */
+  /* ⚠️ `flex:none` NO es decorativo: `.cp-modal` es una COLUMNA flexible (para
+     que la lista de abajo sea lo que se desplaza), y el `flex:1 1 240px` de la
+     clase compartida —pensado para una fila, donde 240px es un ancho mínimo— se
+     lee aquí como 240px de ALTO, y ademas crece. El buscador salia convertido en
+     un ovalo de media pantalla. Visto en captura al desplegar. */
+  #cpSearch{ display:block; flex:none; width:calc(100% - 36px); margin:12px 18px 0; }
+  /* filtros del panel: mismos chips que Unidades y Operaciones */
+  .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; align-items:center; }
+  /* El eje de cada fila de filtros es `.sui-eje`, en suite.css: el mismo
+     problema lo tenia Documentacion y la clase es una, no una por herramienta. */
+  .cp-f{ font:inherit; font-size:12px; letter-spacing:.03em; background:#fff; border:1px solid var(--line);
+         border-radius:999px; padding:7px 14px; cursor:pointer; color:var(--texto-2,#4A5052); }
+  .cp-f:hover{ border-color:var(--dl); }
+  .cp-f.on{ background:#21272A; border-color:#21272A; color:#fff; }
+  .cp-f.vacio{ opacity:.45; }
+  /* «Mas/Menos» es un control, no un filtro: sin borde solido y en tinta de
+     marca, para que no se lea como un tipo mas de contrato. */
+  .cp-f.cp-mas{ border-style:dashed; color:var(--dl,#104C4F); }
+  .cp-f.cp-mas:hover{ background:#F7F3E9; }
+  .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
+    font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
+  .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
+  /* Mismos colores que la lista de Facturas guardadas (petición del owner,
+     4-ago-2026): cada fila es una tarjeta sobre `--card` con su filete
+     `--line`, y al pasar por encima lo que cambia es el BORDE, no el fondo.
+     Antes eran filas pegadas separadas por una raya, y el hover teñía el fondo
+     de verde. Las columnas y los campos NO se tocan: son los de Contratos y
+     estaban bien. Los dos tokens ya existían aquí con el mismo valor que en
+     Facturas, así que esto no añade ningún color nuevo al sistema. */
+  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr 34px; gap:8px;
+    padding:11px 12px; margin-bottom:8px; font-size:13px; cursor:pointer;
+    border:1px solid var(--line); border-radius:11px; background:var(--card);
+    transition:border-color .15s var(--ease); }
+  .cp-row:hover{ border-color:var(--dl); }
+  .cp-del{ font:inherit; font-size:13px; line-height:1; color:#a3342b; background:none;
+    border:1px solid #e0c6c2; border-radius:7px; padding:4px 7px; cursor:pointer; }
+  .cp-del:hover{ background:rgba(163,52,43,.09); }
+  /* el nº en Deep Lagoon y con cifras de ancho fijo, como en Facturas: así dos
+     números seguidos casan por columna y se comparan sin leerlos */
+  .cp-row .cp-num{ font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
+
+  /* ---------- modal "Enviar por email" ---------- */
+  /* `overflow-y:auto` + `min-height:0`: el .cp-modal es flex en columna con
+     max-height y overflow:hidden, así que un cuerpo que crece se RECORTA sin
+     scroll posible. Pasaba al generar el enlace de firma: aparecen enlace,
+     mensaje y tres botones, y los botones quedaban fuera del modal sin forma de
+     alcanzarlos (30-jul). El panel de contratos guardados no lo sufría porque su
+     lista sí tiene overflow propio. En un flex item, sin `min-height:0` el
+     `auto` no encoge y el overflow no sirve de nada. */
+  .em-body{ padding:16px 18px 18px; display:flex; flex-direction:column; gap:13px;
+    overflow-y:auto; min-height:0; }
+  .em-body label{ display:flex; flex-direction:column; gap:6px; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .em-body input, .em-body textarea{ font:inherit; font-size:14px; font-weight:400; letter-spacing:0; text-transform:none; padding:10px 12px; border:1px solid var(--line);
+    border-radius:var(--r-sm); color:var(--va); background:var(--field-bg); resize:vertical; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .em-body input:focus, .em-body textarea:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .em-note{ font-size:11.5px; color:var(--muted); margin:0; text-transform:none; letter-spacing:0; }
+  @media (max-width:640px){
+    .cp-cols{ display:none; }
+    .cp-row{ grid-template-columns:1fr; gap:2px; }
+    .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }
+  }
