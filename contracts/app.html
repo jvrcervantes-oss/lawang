@@ -977,7 +977,7 @@ let PROYECTOS_DB = null;
 async function cargarProyectos(){
   if(PROYECTOS_DB || !sb) return;
   const { data, error } = await sb.from('proyectos')
-    .select('nombre,resort').eq('activo', true).order('nombre');
+    .select('nombre,resort,parcela_master').eq('activo', true).order('nombre');
   // Si la consulta no llega (sin red) se cae a la lista de tokens.json: es
   // vieja, pero peor es un desplegable vacio que no deja hacer el contrato.
   if(!error) PROYECTOS_DB = data || [];
@@ -2232,7 +2232,14 @@ function syncParcelaMaster(){
   if(!sel || !campo) return;
   const actual = campo.value.trim();
   if(actual && actual !== AUTO_MASTER){ AUTO_MASTER = ''; return; }   // escrito a mano: intocable
-  const codigo = ((TOKENS && TOKENS.parcelaPorProyecto) || {})[sel.value] || '';
+  /* Primero la tabla, tokens.json de respaldo. La lista a mano de tokens.json
+     esta escrita con los nombres VIEJOS de los proyectos («Palm Field», «Mejan»)
+     y la tabla dice «Palm Field W5», «Mejan Village S7»: desde que el
+     desplegable lee la tabla, esas claves ya no casan y el autorrelleno se
+     quedaria mudo. El dato se ha mudado a `proyectos.parcela_master`. */
+  const enBase = (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
+  const codigo = (enBase && enBase.parcela_master)
+              || ((TOKENS && TOKENS.parcelaPorProyecto) || {})[sel.value] || '';
   if(codigo === actual) return;
   // Un proyecto sin código (Sumba Hills) BORRA el que puso el automatismo: dejar
   // el W8 de Balian Hills en un contrato de Sumba sería un terreno de otro sitio.
