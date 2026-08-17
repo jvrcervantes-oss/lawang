@@ -55,6 +55,7 @@
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=c031da44"></script>
+<script src="assets/dinero.js?v=5f6f041f"></script>
 <script src="assets/dialogo.js?v=939005c5"></script>
 <style>
   :root{
@@ -3243,20 +3244,11 @@ document.addEventListener('blur', e => {
   if(el.value !== antes){ render(); }
 }, true);   // captura: blur no burbujea
 
-function parseImporte(s){
-  s = String(s==null?'':s).replace(/[^\d.,]/g,'');
-  if(!/\d/.test(s)) return null;
-  const d = s.lastIndexOf('.'), c = s.lastIndexOf(',');
-  let sep = d>c ? '.' : (c>d ? ',' : '');
-  // Un separador repetido (1.000.000) o seguido de exactamente 3 dígitos
-  // (79.000 / 1,500) agrupa miles; solo si no cumple ninguna de las dos es
-  // decimal (79.000,50 → ','). ponytail: "79.500" queriendo decir 79 con 5
-  // décimas se leería como 79.500 — en estos contratos no se escriben así.
-  const resto = s.slice(s.lastIndexOf(sep)+1);
-  if(sep && (s.split(sep).length>2 || /^\d{3}$/.test(resto))) sep='';
-  const n = parseFloat(sep ? s.replace(/[.,]/g, m=> m===sep?'.':'') : s.replace(/[.,]/g,''));
-  return isFinite(n) ? n : null;
-}
+/* Vive en assets/dinero.js desde el 17-ago-2026 — UNA sola forma de leer un
+   importe en toda la suite. Aqui habia una implementacion y en facturas/ otra,
+   y no coincidian: la de aqui se comia el signo (-5.000 se leia +5000). Se
+   queda el nombre y la firma para no tocar los nueve sitios que la llaman. */
+function parseImporte(s){ return lwParseImporte(s); }
 function idrEquiv(html, data){
   const cur = data.moneda, tasa = parseImporte(data.tipo_cambio_idr);
   if(!cur || cur==='IDR' || !tasa) return html;

@@ -9,6 +9,17 @@ const DECIMALES = { EUR:2, USD:2, AUD:2, IDR:0 };
    "1,500.50" o "1500.5": manda el ÚLTIMO separador como decimal, y solo si
    deja 1-2 dígitos detrás (si no, es separador de miles: "1.500" = 1500). */
 function parseImporte(v){
+  /* La version buena vive en contracts/assets/dinero.js desde el 17-ago-2026.
+     Aqui se DELEGA, y `?? 0` conserva el contrato de esta funcion: una linea de
+     factura vacia suma 0, mientras que un contrato sin precio es `null` y no un
+     contrato de 0 €.
+
+     ⚠️ EL RESPALDO DE ABAJO NO ES CODIGO MUERTO. `firma-submit` se descarga este
+     fichero por HTTP y lo evalua suelto para pintar la proforma automatica; si
+     dinero.js no esta en SU lista de rutas, `lwParseImporte` no existe alli. Ya
+     esta añadido a esa lista en el repo, pero la funcion desplegada sigue con la
+     lista vieja — el respaldo se puede quitar cuando se despliegue. */
+  if(typeof lwParseImporte === 'function') return lwParseImporte(v) ?? 0;
   const s = String(v == null ? '' : v).replace(/[^\d.,-]/g, '');
   if(!s) return 0;
   const neg = s.startsWith('-');

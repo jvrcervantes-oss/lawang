@@ -135,7 +135,8 @@ const b64 = (u8: Uint8Array) => {
 let COMPARTIDOS: Record<string, any> | null = null;
 async function compartidos() {
   if (COMPARTIDOS) return COMPARTIDOS;
-  const rutas = ['/contracts/assets/entities.js', '/facturas/totales.js',
+  // dinero.js va PRIMERO: totales.js delega en el si esta definido.
+  const rutas = ['/contracts/assets/dinero.js', '/contracts/assets/entities.js', '/facturas/totales.js',
                  '/facturas/compradores.js', '/facturas/documento.js'];
   const fuentes = await Promise.all(rutas.map(async (p) => {
     const r = await fetch(SITIO + p + '?v=' + Date.now());
