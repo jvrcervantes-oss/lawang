@@ -336,7 +336,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      daba tres decimales donde Facturas da dos. El `?v=` lo sella el
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=f37d55ff"></script>
-<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
+<script src="/contracts/assets/herramientas.js?v=ebcbe39f"></script>
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -455,7 +455,7 @@ async function contar(sb){
   };
   const [contratos, contratosEditables, facturas, facturasAnuladas,
          recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-         documentos] = await Promise.all([
+         documentos, vencSinFecha] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
     n('facturas', q => q.eq('anulada', false)),
@@ -468,6 +468,11 @@ async function contar(sb){
     n('usuarios', q => q.eq('activo', true)),
     n('usuarios', q => q.eq('activo', false)),
     n('documentos_proyecto'),
+    // Vencimientos sin fecha: la cifra de la tarjeta de /vencimientos/. Se
+    // cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a
+    // la tarjeta, en assets/herramientas.js. RLS de equipo (es_agente), así
+    // que el count vale para cualquiera que vea la tarjeta.
+    n('contrato_vencimientos', q => q.is('fecha', null)),
   ]);
   // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
   // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
@@ -493,7 +498,7 @@ async function contar(sb){
   }
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
            recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-           documentos, proyectosConDocs };
+           documentos, proyectosConDocs, vencSinFecha };
 }
 
 /* ── tarjetas de cifra ─────────────────────────────────────────────────

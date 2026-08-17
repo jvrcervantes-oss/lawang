@@ -157,7 +157,12 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   # revalidaria sin motivo -- son paginas de marketing que cambian poco.
   # `no-cache` no desactiva la cache: obliga a revalidar, asi que si no ha
   # cambiado responde 304 sin cuerpo.
-  SetEnvIf Request_URI "^/(intranet|operaciones|facturas|compradores|proyectos|documentacion|obra|usuarios|creatividades|dossier|contracts|entrar|portal)/" LW_SUITE
+  # ⚠️ vencimientos añadido el 18-ago-2026 AL CREAR la herramienta, no despues de
+  # cazar el fallo: esta lista es de las "a mano" que ya mordieron tres veces
+  # (guard.js, consent.js, entities.js). Toda carpeta nueva de la suite entra
+  # aqui EN LA MISMA TAREA que la crea, o su HTML se cachea 7 dias y el sellado
+  # ?v= de dentro no sirve de nada.
+  SetEnvIf Request_URI "^/(intranet|operaciones|vencimientos|facturas|compradores|proyectos|documentacion|obra|usuarios|creatividades|dossier|contracts|entrar|portal)/" LW_SUITE
   Header set Cache-Control "no-cache, must-revalidate" env=LW_SUITE
   Header unset Expires env=LW_SUITE
 

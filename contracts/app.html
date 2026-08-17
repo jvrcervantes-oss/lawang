@@ -27,7 +27,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="assets/suite.css?v=a9158f4c">
-<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
+<script src="/contracts/assets/herramientas.js?v=ebcbe39f"></script>
 <script src="assets/topbar.js?v=88db9753" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -218,7 +218,7 @@
         <button type="button" class="tb-link" id="dvClose">Cerrar</button>
       </div>
       <div class="em-body">
-        <p class="em-note">Se copian comprador, proyecto, unidad, importes e hitos. No se copian el número, la fecha de firma ni las firmas.</p>
+        <p class="em-note">Se copian comprador, proyecto, unidad e importes. No se copian el número, la fecha de firma ni las firmas. El calendario de pagos solo viaja entre contratos del mismo tipo, y con los vencimientos recalculados desde hoy — cada tipo arranca con su plan pactado.</p>
         <label>Contrato a generar<select id="dvTpl"></select></label>
         <button class="btn primary" id="dvGo" style="margin-top:6px">Generar</button>
       </div>
@@ -2496,7 +2496,7 @@ function buildForm(){
     form.addEventListener('click', e=>{
       const del=e.target.closest('[data-hdel]');
       if(del){ HITOS.splice(+del.dataset.hdel,1); refreshHitos(); render(); return; }
-      if(e.target.closest('#hitoAdd')){ HITOS.push({pct:'',monto:'',timing:'',es:'',en:'',id:''}); refreshHitos(); render(); }
+      if(e.target.closest('#hitoAdd')){ HITOS.push({pct:'',monto:'',timing:'',es:'',en:'',id:'',fecha:''}); refreshHitos(); render(); }
     });
   }
   // flecha de salto: clic en la etiqueta de un campo → ese punto del contrato
@@ -2548,6 +2548,41 @@ function buildForm(){
 }
 
 /* ---------- hitos: UI de la tabla de pagos dinámica ---------- */
+
+/* Desfase de un hito → fecha concreta (18-ago-2026). `vence_meses` suma meses de
+   calendario con la regla de Date: si el día no existe en el mes destino
+   (31-ene + 1 mes), Date se pasa a marzo — se corrige al ÚLTIMO día del mes
+   destino, que es lo que significa "a los 3 meses" en un contrato. `vence_dias`
+   suma días exactos. Sin desfase declarado no se inventa fecha: null, y el campo
+   queda vacío para que lo ponga el agente. */
+function fechaVencimiento(base, hito){
+  const d = new Date(base.getTime());
+  if(typeof hito.vence_meses === 'number'){
+    const dia = d.getDate();
+    d.setMonth(d.getMonth() + hito.vence_meses);
+    if(d.getDate() !== dia) d.setDate(0);   // se pasó de mes: último día del destino
+  }else if(typeof hito.vence_dias === 'number'){
+    d.setDate(d.getDate() + hito.vence_dias);
+  }else{
+    return null;
+  }
+  /* En LOCAL, nunca toISOString(): eso convierte a UTC primero, y un contrato
+     hecho antes de las 2 de la madrugada en España (UTC+2) saldría con fecha de
+     AYER. Es el mismo tipo de error de fecha que ya costó una carta con fecha
+     equivocada en otro proyecto del estudio. */
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+/* La fecha de un hito, para IMPRIMIRLA en el documento. Tres grafías porque el
+   contrato es trilingüe y "09/03/2026" no significa lo mismo en las tres: en
+   inglés se escribe el mes con letra para que nadie lo lea como mes/día. */
+const MES_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fechaHitoImpresa(iso, lang){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||'')); if(!m) return '';
+  if(lang==='en') return `${+m[3]} ${MES_EN[+m[2]-1]} ${m[1]}`;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 function hitosBodyHTML(){
   const rows = HITOS.map((h,i)=>`
     <div class="dz" data-hito="${i}">
@@ -2557,7 +2592,10 @@ function hitosBodyHTML(){
       <div class="grid2">
         <div class="field"><label for="${hid(i,'pct')}">%</label><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"></div>
         <div class="field"><label for="${hid(i,'monto')}">${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</label><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"></div>
-        <div class="field"><label for="${hid(i,'timing')}">${L({es:'Timing',en:'Timing',id:'Waktu'})}</label><input id="${hid(i,'timing')}" data-hi="${i}" data-hkey="timing" value="${escAttr(h.timing)}" placeholder="${L({es:'ej. Mes 1 / +90 días',en:'e.g. Month 1 / +90 days',id:'cth. Bulan 1 / +90 hari'})}"></div>
+        <div class="field"><label for="${hid(i,'fecha')}">${L({es:'Vencimiento',en:'Due date',id:'Jatuh tempo'})}</label>
+          <input id="${hid(i,'fecha')}" type="date" data-hi="${i}" data-hkey="fecha" value="${escAttr(h.fecha||'')}">
+          ${!h.fecha && h.timing ? `<span style="display:block;font-size:11px;color:var(--muted);margin-top:3px">${L({es:'Este contrato decía',en:'This contract said',id:'Kontrak ini menyebut'})}: «${esc(h.timing)}»</span>` : ''}
+        </div>
         <div class="field"><label for="${hid(i,'es')}">${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"></div>
         <div class="field"><label for="${hid(i,'en')}">${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"></div>
         <div class="field"><label for="${hid(i,'id')}">${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"></div>
@@ -2580,11 +2618,20 @@ function hitosRowsHTML(){
     // % vacío o 0 → celda en blanco, sin "0%". Un hito puede ser un importe
     // cerrado (la reserva) sin porcentaje del total que lo represente.
     const pct = (String(h.pct||'').trim()==='' || parseFloat(h.pct)===0) ? '' : esc(String(h.pct))+'%';
+    /* La celda de timing imprime la FECHA de vencimiento cuando el hito la tiene
+       (18-ago-2026: los pagos se controlan por fecha de calendario, no por texto
+       libre). Con espacios por idioma, porque "09/03/2026" en inglés se lee como
+       mes/día: allí va "9 Mar 2026". Los contratos de ANTES del cambio no llevan
+       fecha y conservan su texto de timing tal cual — reabrirlos no les cambia ni
+       una letra del documento. */
+    const cuando = h.fecha
+      ? `<span data-lang="es">${esc(fechaHitoImpresa(h.fecha,'es'))}</span><span data-lang="en">${esc(fechaHitoImpresa(h.fecha,'en'))}</span><span data-lang="id">${esc(fechaHitoImpresa(h.fecha,'id'))}</span>`
+      : esc(String(h.timing||''));
     return `<tr><td class="n">${i+1}</td><td>`
     + `<span data-lang="es">${esc(String(h.es||''))}</span><span data-lang="en">${esc(String(h.en||''))}</span><span data-lang="id">${esc(String(h.id||''))}</span>`
     + `</td><td class="pct">${pct}</td>`
     + `<td class="amt">${monto}</td>`
-    + `<td class="timing">${esc(String(h.timing||''))}</td></tr>`;
+    + `<td class="timing">${cuando}</td></tr>`;
   }).join('');
 }
 
@@ -3222,10 +3269,20 @@ function deriveSections(){
     ins = ins<0 ? SECTIONS.length : ins+1;
     SECTIONS.splice(ins, 0, { id:'pagos', tier:'por_proyecto', special:'hitos',
       title:{es:'Calendario de pagos (hitos)',en:'Payment schedule (milestones)',id:'Jadwal pembayaran (tahapan)'}, fields:[] });
+    /* Cada hito lleva VENCIMIENTO desde el 18-ago-2026 (petición del cliente:
+       control de cuándo debe entrar cada pago). Los defaults de tokens.json
+       declaran el desfase pactado —`vence_meses`/`vence_dias` respecto a la
+       fecha del contrato— y aquí se convierte en una fecha CONCRETA y editable.
+       Meses y días son unidades distintas a propósito: "+3 meses" es aritmética
+       de calendario (15-ene → 15-abr, y 30-nov → 28-feb si no existe el 30) y
+       "+90 días" es exacta; convertir una en otra mueve el día de cobro.
+       La base es HOY, que es también el valor por defecto del campo fecha_firma:
+       si el agente cambia la fecha del contrato, ajusta los vencimientos a mano
+       — reescribírselos solos sería pisar fechas que pudo haber pactado ya. */
     HITOS = ((TOKENS && TOKENS.hitosDefaults && TOKENS.hitosDefaults[CURRENT.slug]) ||
       [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
        {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
-      .map(h=>({...h}));
+      .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
   }
   // cuenta bancaria de destino: si la plantilla trae <!--datos-bancarios-->, un
   // único select (mismo patrón [valor,etiqueta] que regimen_tenencia) justo
@@ -4266,7 +4323,22 @@ async function derivarContrato(slug){
      && TIPOS_VINCULABLES.includes(CONTRACT_TIPO[CURRENT.slug]))
     f.num_reserva_vinculada = SAVED_CONTRACT.numero;
   const compradores = COMPRADORES.map(c=>({...c}));
-  const hitos = Array.isArray(HITOS) ? HITOS.map(h=>({...h})) : [];
+  /* Los hitos SOLO se llevan al derivar hacia el MISMO tipo de contrato
+     (18-ago-2026). Hasta hoy se copiaban siempre —"son el objetivo de derivar",
+     decía el comentario— y era verdad cuando el calendario era genérico. Desde
+     que cada tipo tiene SU plan pactado (Bloqueo: 2 pagos del 50%, firma y
+     +3 meses · Construcción: 4 del 25% cada 90 días), copiar los hitos de una
+     Reserva a la Construcción derivada le metía el plan del SUELO al contrato de
+     la OBRA: importes de otra cosa y dos hitos donde van cuatro. Ahora el tipo
+     destino arranca con su propio plan (loadTemplate ya lo pone, con fechas
+     desde hoy) y solo el duplicado del mismo tipo conserva el calendario del
+     origen — con las FECHAS recalculadas desde hoy: son de la operación nueva,
+     no de la timeline de la vieja. El texto y los porcentajes sí viajan, que es
+     lo que se pactó; el "cuándo" empieza de cero. */
+  const mismoTipo = slug === CURRENT.slug;
+  const hitos = (mismoTipo && Array.isArray(HITOS))
+    ? HITOS.map(h=>({...h, fecha: fechaVencimiento(new Date(), h)}))
+    : null;
 
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
@@ -4289,7 +4361,7 @@ async function derivarContrato(slug){
   buildForm();
   COMPRADORES = compradores; saveCompradores(); rebuildComprador();
   populateForm(f);
-  HITOS = hitos;
+  if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
   refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   $('#dvOverlay').classList.remove('open');
   toast('Contrato nuevo con los datos de ' + origen + ' · sin número hasta que lo guardes');

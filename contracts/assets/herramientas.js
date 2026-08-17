@@ -19,10 +19,30 @@
 const LW_HERRAMIENTAS = [
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
-    claves:'ventas seguimiento estado cuenta vencimientos',
+    claves:'ventas seguimiento estado cuenta',
     estado:d => d.firmasPendientes == null ? null
       : [d.firmasPendientes ? d.firmasPendientes + (d.firmasPendientes === 1 ? ' firma esperando' : ' firmas esperando') : 'Sin firmas pendientes',
          d.firmasPendientes > 0] },
+  /* `herr:'operaciones'` y no un permiso propio, A PROPÓSITO (18-ago-2026): un
+     permiso nuevo hay que darlo de alta en la edge admin-usuarios y REDESPLEGARLA
+     (listas.test.js compara las dos listas), y la edge está pendiente de subir
+     por LAW-70 — una clave nueva ahora dejaría a los usuarios nuevos sin la
+     herramienta en silencio. Vencimientos es seguimiento del dinero de las
+     operaciones: mismo criterio de acceso. El detalle está en la cabecera de
+     /vencimientos/index.html. */
+  { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/vencimientos/', herr:'operaciones',
+    para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
+    claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard',
+    /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
+       vencimiento pasado sigue debiéndose exige la cascada de cobros (la calcula
+       la propia herramienta), y un conteo crudo de fechas pasadas contaría
+       también lo ya pagado — un número que asusta de más se deja de mirar, que
+       es el mismo fallo que un cero falso. "Sin fecha" sí es exacto con un
+       count, y es además lo primero que hay que dejar a cero para que el
+       dashboard vigile de verdad. */
+    estado:d => d.vencSinFecha == null ? null
+      : [d.vencSinFecha ? d.vencSinFecha + ' sin fecha que vigilar' : 'Calendario al día',
+         d.vencSinFecha > 0] },
 
   { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/app.html', herr:'contratos',
     para:'Reservas, PPJB, construcción y anexos.',
