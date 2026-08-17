@@ -916,41 +916,11 @@ async function cargarPoderes(){
     fecha:     p.fecha     || p.fecha_vieja     || '',
   }));
 }
-/* Rellena del poder elegido lo que el documento cita de el. No se toca nada mas:
-   el apoderado del PROPIETARIO (`hsn_*`) es del otro lado de la mesa y no sale
-   de aqui. Si el poder no trae un dato, el campo se queda editable — un
-   documento imposible de completar es peor que un dato tecleado (mismo criterio
-   que syncPoaVinculado). */
-const PODER_DERIVA = { adq_apoderado_nombre:'apoderado', adq_apoderado_nik:'nik', adq_poder_fecha:'fecha' };
-let AUTO_PODER = {};
-function syncPoderVinculado(){
-  const sel = document.querySelector('[name="poder_vinculado"]');
-  if(!sel) return;
-  if(LOCKED) return;   // firmado: manda lo que dice el papel, no la fuente
-  /* Mismo guardarraíl que syncPoaVinculado: se compara DE QUÉ poder viene, no
-     el valor del campo. Con los campos bloqueados no hay "escrito a mano" que
-     respetar, y mirar el valor dejaba el automatismo clavado al reabrir un
-     contrato ya guardado. */
-  if(AUTO_PODER.__src === sel.value) return;
-  AUTO_PODER.__src = sel.value;
-  const poder = (PODERES||[]).find(p=>p.numero === sel.value);
-  for(const [campo, clave] of Object.entries(PODER_DERIVA)){
-    const el = document.querySelector(`[name="${campo}"]`);
-    if(!el) continue;
-    /* Se bloquea SOLO lo que el poder trae. Un poder al que le falte el NIK
-       dejaría el Hak Sewa imposible de terminar si el campo quedara de solo
-       lectura y vacío — mismo criterio que el Otorgante del POA. */
-    const valor = poder ? (poder[clave] || '') : '';
-    const bloquea = !!valor;
-    if(poder) el.value = valor || el.value;
-    el.readOnly = bloquea;
-    el.style.background = bloquea ? 'var(--rl)' : '';
-    el.style.color      = bloquea ? 'var(--muted)' : '';
-    el.style.cursor     = bloquea ? 'not-allowed' : '';
-    el.title = bloquea ? 'Viene del poder notarial vinculado — para cambiarlo, cambia el poder' : '';
-  }
-  renderDebounced();
-}
+/* Aqui vivian `syncPoderVinculado()` y su tabla de derivacion. Se retiran con el
+   selector del Hak Sewa (17-ago-2026): el vinculo se crea desde el PODER, que es
+   quien sabe a que da poder, y el poder se hace DESPUES de los contratos. La
+   derivacion volvera con el selector puesto en su sitio.
+   `PODERES`/`cargarPoderes()` se quedan justo encima: los necesita ese selector. */
 
 /* ancho del hueco según el dato: un % o fecha no necesita tanto sitio como un nombre */
 function sizeClass(key){
@@ -2148,7 +2118,6 @@ function aplicarReglasCampos(){
   syncResort();
   syncApoderadoHakSewa();
   syncPoaVinculado();
-  syncPoderVinculado();
   syncPrecioObraVinculada();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
@@ -3526,27 +3495,20 @@ function deriveSections(){
     if(g) g.fields.unshift(campo);
     else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
   }
-  /* Documento que CITA el poder del comprador -> desplegable para elegirlo.
-     Se detecta por lo que la plantilla imprime, no por una lista de slugs: hoy
-     solo el Hak Sewa lo cita, pero el dia que otro documento lo haga aparecera
-     solo. El propio poder queda fuera: el es la fuente, no cita a nadie. */
-  if(CURRENT.slug !== 'poa_notario'
-     && /\{\{adq_(?:apoderado_nombre|poder_fecha)\}\}/.test(templateHTML)){
-    const etiqueta = {es:'Poder notarial del comprador',en:'Buyer\u2019s power of attorney',id:'Surat kuasa pembeli'};
-    const opts = (PODERES||[]).map(p=>[p.numero,
-      p.numero+' · '+(p.otorgante||'sin otorgante')+(p.apoderado?' → '+p.apoderado:'')]);
-    // Sin poderes guardados no se ofrece nada: el campo no aparece y los tres
-    // datos siguen tecleandose como hasta hoy. Un desplegable vacio solo
-    // pregunta algo que no se puede contestar.
-    if(opts.length){
-      // Sin opcion vacia propia: buildField ya antepone una (linea ~2069), y
-      // poniendo la mia salian dos huecos en blanco seguidos.
-      const campo = ['poder_vinculado', etiqueta, 'select', opts];
-      const g = SECTIONS.find(s=>s.id==='gestion');
-      if(g) g.fields.unshift(campo);
-      else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
-    }
-  }
+  /* AQUI NO VA EL SELECTOR DEL PODER — retirado el 17-ago-2026, el mismo dia que
+     lo puse. Lo coloque en el documento que CITA el poder (el Hak Sewa), y el
+     owner lo corrigio con el argumento decisivo, que es de CALENDARIO:
+
+       primero se firma el Hak Sewa —uno o tres, los que haga falta— y DESPUES se
+       hace el Poder Notarial, que es el que da poder sobre esos contratos.
+
+     Cuando se rellena un Hak Sewa el poder todavia no existe, asi que pedir
+     «elige su poder notarial» ahi es preguntar por algo que aun no se ha creado.
+     El vinculo se crea desde el PODER, que es quien sabe a que da poder.
+
+     La columna `poder_id` y sus guardas se quedan: el modelo de datos era
+     correcto —muchos contratos, un poder—, lo que estaba mal era desde donde se
+     rellenaba. */
   // orden pedido por el cliente, igual en todos los contratos (los no listados, al final)
   const rank = id => { const i = FORM_ORDER.indexOf(id); return i<0 ? FORM_ORDER.length : i; };
   SECTIONS = SECTIONS.map((s,i)=>({s,i}))
@@ -3561,10 +3523,6 @@ async function loadTemplate(slug){
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
-  // El poder del comprador: hace falta ANTES de deriveSections(), que es quien
-  // decide si pinta el desplegable — y solo lo pinta si hay poderes guardados.
-  if(CURRENT.slug !== 'poa_notario' && /\{\{adq_(?:apoderado_nombre|poder_fecha)\}\}/.test(templateHTML))
-    await cargarPoderes();
   deriveSections();
   // Diseño: Supabase compartido (la plantilla "real") > caché local de este
   // navegador (edición sin guardar) > default de fábrica.
@@ -3812,10 +3770,11 @@ function contractPayload(){
     contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id
                     || ((VINCULABLES_POA||[]).find(c=>c.numero===data.poa_hs_vinculado)||{}).id
                     || null,
-    // Bajo que poder notarial actua el apoderado del comprador. Mismo criterio
-    // que el padre: se guarda el numero en `datos` y aqui se resuelve al id.
-    // La base comprueba que sea un `poa` y que sea del MISMO comprador.
-    poder_id: ((PODERES||[]).find(p=>p.numero===data.poder_vinculado)||{}).id || null,
+    /* `poder_id` NO se toca aqui a proposito. El enlace lo crea el Poder
+       Notarial, no el contrato (ver la nota en deriveSections). Si esta linea
+       resolviera un campo que ya no existe, cada guardado mandaria `null` y
+       BORRARIA el enlace de los contratos que si lo tienen — hoy HS00003/4/5.
+       Al omitir la clave, el update de PostgREST deja la columna como estaba. */
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
