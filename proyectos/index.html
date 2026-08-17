@@ -325,12 +325,24 @@ function visibles(){
    mismo 11-ago): quien ya hubiera usado la herramienta tenía "tabla" guardado de
    antes de este cambio, y esa preferencia vieja ganaba siempre al nuevo default —
    la app parecía seguir entrando en Tabla aunque el código ya dijera Carpetas.
-   Cambiar de nombre la clave es lo que de verdad lo resetea, para todo el mundo. */
+
+   17-ago-2026 · LA MEMORIA PASA A SER DE SESIÓN, no permanente. Renombrar la
+   clave resolvió aquello una vez, pero no el fondo: en cuanto alguien elige
+   Tabla, ENTRAR en Proyectos vuelve a ser entrar en una tabla para siempre, y el
+   owner lo reporto otra vez hoy. Como dijo él: «si entras a proyectos lo que
+   debes ver son las carpetas».
+
+   Asi que abrir la herramienta es SIEMPRE carpetas —es lo que corresponde a su
+   nombre y lo primero que se quiere ver: que proyectos hay— y la vista elegida
+   se recuerda solo mientras dure la visita, que es cuando de verdad sirve: se
+   entra en Tabla a comparar precios, se salta a un contrato y se vuelve, y sigue
+   en Tabla. Al dia siguiente se vuelve a empezar por las carpetas.
+   `sessionStorage` y no `localStorage`: es exactamente esa diferencia. */
 let VISTA = 'carpetas';
 function vista(v){
-  if(v){ try{ localStorage.setItem('lawang_proyectos_vista', v); }catch(_){} }
+  if(v){ try{ sessionStorage.setItem('lawang_proyectos_vista', v); }catch(_){} }
   let x = v;
-  if(!x){ try{ x = localStorage.getItem('lawang_proyectos_vista'); }catch(_){} }
+  if(!x){ try{ x = sessionStorage.getItem('lawang_proyectos_vista'); }catch(_){} }
   VISTA = ['rejilla','tabla'].includes(x) ? x : 'carpetas';
   document.querySelectorAll('[data-vista]').forEach(b =>
     b.classList.toggle('on', b.dataset.vista === VISTA));
