@@ -14,11 +14,21 @@ function parseImporte(v){
      factura vacia suma 0, mientras que un contrato sin precio es `null` y no un
      contrato de 0 €.
 
-     ⚠️ EL RESPALDO DE ABAJO NO ES CODIGO MUERTO. `firma-submit` se descarga este
-     fichero por HTTP y lo evalua suelto para pintar la proforma automatica; si
-     dinero.js no esta en SU lista de rutas, `lwParseImporte` no existe alli. Ya
-     esta añadido a esa lista en el repo, pero la funcion desplegada sigue con la
-     lista vieja — el respaldo se puede quitar cuando se despliegue. */
+     ⚠️ EL RESPALDO DE ABAJO NO ES CODIGO MUERTO, pero desde el 17-ago-2026 lo es
+     por OTRO motivo — y el anterior ya no vale, asi que se reescribe entero en vez
+     de dejarlo dando una razon caducada:
+       · YA NO es por `firma-submit`. Esa funcion dejo de descargarse este fichero
+         por HTTP (auditoria, hallazgo 01): ahora lleva los cinco dentro, generados
+         por `tools/empaqueta_edge.py`, y dinero.js va PRIMERO en ese paquete.
+       · SIGUE vivo mientras haya alguna pagina que cargue este fichero sin cargar
+         `contracts/assets/dinero.js` delante. Hoy no queda ninguna —se le añadio a
+         operaciones/, que era la ultima— pero el respaldo se queda: cuesta ocho
+         lineas y evita que la proxima pantalla que se olvide de dinero.js empiece a
+         devolver 0 en cada importe sin dar ningun error.
+       · ⚠️ Mientras `firma-submit` no se REDESPLIEGUE, la version que corre en
+         produccion sigue siendo la que se lo descarga con la lista vieja de cuatro
+         rutas. Ese es un estado que se comprueba leyendo la funcion desplegada, no
+         el repo. */
   if(typeof lwParseImporte === 'function') return lwParseImporte(v) ?? 0;
   const s = String(v == null ? '' : v).replace(/[^\d.,-]/g, '');
   if(!s) return 0;
@@ -56,9 +66,9 @@ function calcTotales(lineas, moneda, impuesto){
 /* Se DELEGA en contracts/assets/dinero.js desde el 17-ago-2026, igual que
    `parseImporte`: esta era la única de las cuatro formas de imprimir un importe
    que conocía la moneda, así que subió a la capa común y las otras tres pasaron a
-   llamarla. El respaldo de abajo cubre lo mismo que el de `parseImporte`: la
-   `firma-submit` desplegada aún evalúa este fichero suelto, y allí `dinero.js`
-   podría no estar. Quitable cuando esa función se redespliegue. */
+   llamarla. El respaldo de abajo existe por el mismo motivo que el de
+   `parseImporte` — ver la nota larga de ahí arriba, que es la que explica por qué
+   no se quita. */
 function fmtMoneda(n, moneda){
   if(typeof lwFormatoImporte === 'function') return lwFormatoImporte(n, moneda);
   const d = DECIMALES[moneda] != null ? DECIMALES[moneda] : 2;

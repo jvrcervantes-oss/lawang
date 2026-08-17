@@ -34,6 +34,28 @@ if [ -n "$suite" ]; then
   fi
 fi
 
+# ── El paquete que la edge de firma lleva dentro ────────────────────────────────
+# `firma-submit` pintaba la factura automatica bajandose cinco .js del sitio y
+# ejecutandolos con `new Function`, teniendo la service_role en memoria (auditoria
+# 17-ago, hallazgo 01). Ahora el codigo viaja DENTRO, en compartidos.generated.ts.
+# Se regenera aqui en vez de exigir que alguien se acuerde, por el mismo motivo que
+# el sellador de arriba: una copia que hay que actualizar a mano se queda vieja, y
+# aqui quedarse vieja significa emitir facturas con un maquetador de hace semanas.
+paquete=$(git diff --cached --name-only | grep -E '^(contracts/assets/(dinero|entities)\.js|facturas/(totales|compradores|documento)\.js)$' || true)
+if [ -n "$paquete" ]; then
+  raiz=$(git rev-parse --show-toplevel)
+  empaquetador="$raiz/../../tools/empaqueta_edge.py"
+  if [ -f "$empaquetador" ]; then
+    py=$(command -v python || command -v python3)
+    "$py" "$empaquetador" >/dev/null 2>&1 || true
+    git add contracts/edge/firma-submit/compartidos.generated.ts 2>/dev/null || true
+    echo "[pre-commit] paquete de la edge de firma regenerado (empaqueta_edge.py)"
+    echo "[pre-commit] ⚠️  REDESPLIEGA firma-submit: el repo ya lo tiene, produccion no"
+  else
+    echo "[pre-commit] AVISO: no encuentro empaqueta_edge.py — la edge se queda con el paquete viejo"
+  fi
+fi
+
 changed=$(git diff --cached --name-only | grep -E '^assets/.+\.(js|css)$' || true)
 [ -z "$changed" ] && exit 0
 ver=$(date +%Y%m%d%H%M%S)

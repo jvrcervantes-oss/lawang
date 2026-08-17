@@ -124,29 +124,48 @@ const b64 = (u8: Uint8Array) => {
   return btoa(s);
 };
 
-/* Los ficheros que pintan la factura son los MISMOS que usa /facturas/: se
-   bajan del sitio y se ejecutan aquí. Así la factura que sale sola y la que
-   emite una persona son el mismo documento — si mañana cambia una fila en
-   documento.js, cambia en las dos. La alternativa era una segunda plantilla
-   aquí dentro, que es exactamente lo que se dejaría vieja.
-   ponytail: se ejecutan con `new Function` porque son <script> clásicos (los
-   comparte una página HTML plana). Si esto dejara de estar permitido, la
-   factura se salta con aviso y la firma sigue intacta. */
+/* Los ficheros que pintan la factura son los MISMOS que usa /facturas/, así que
+   la factura que sale sola y la que emite una persona son el mismo documento: si
+   mañana cambia una fila en documento.js, cambia en las dos. La alternativa que se
+   rechazó fue una segunda plantilla aquí dentro, que es lo que se queda vieja.
+
+   ══ 17-ago-2026 (auditoría, hallazgo 01) ═════════════════════════════════════
+   ANTES esos cinco ficheros se DESCARGABAN de lawangproperties.com por HTTP y se
+   ejecutaban:
+
+       const r = await fetch(SITIO + p + '?v=' + Date.now());
+       new Function('caja', fuentes.join('\n;\n') + …)(caja);
+
+   Este proceso tiene `SUPABASE_SERVICE_ROLE_KEY` en memoria. Quien controlara lo
+   que responde ese host —Hostinger, el DNS, un fichero servido a medias por el
+   CDN— ejecutaba código con acceso total a la base y por encima de TODA la RLS.
+   Y sin forma de detectarlo: el `?v=' + Date.now()` garantizaba que lo bajado no
+   se comparase nunca con nada conocido.
+
+   Lo llamativo es que el razonamiento inverso ya estaba escrito quince líneas más
+   abajo: las cuentas bancarias salieron de `entities.js` el 6-ago precisamente
+   porque «ese fichero se baja por HTTP público». Se vio el riesgo de lo que SALE
+   y no el de lo que ENTRA.
+
+   AHORA el código viaja DENTRO de la función, en `compartidos.generated.ts`, que
+   genera `tools/empaqueta_edge.py` desde esos mismos cinco ficheros — la fuente
+   única se conserva, la red desaparece. `tools/test.py` corre su `--check`, así
+   que el gate de push bloquea si alguien toca `documento.js` y no regenera.
+   ⚠️ Regenerar NO basta: hay que REDESPLEGAR esta función, o producción sigue con
+   la versión anterior. Eso se comprueba leyendo la función desplegada, no el repo.
+
+   Se sigue usando `new Function` y no `import`: son `<script>` clásicos que
+   declaran globales y los comparte una página HTML plana. La diferencia —y es
+   toda la diferencia— es que ahora evalúa una constante commiteada, no una
+   respuesta HTTP. */
+import { FUENTES, EXPORTA } from './compartidos.generated.ts';
+
 let COMPARTIDOS: Record<string, any> | null = null;
 async function compartidos() {
   if (COMPARTIDOS) return COMPARTIDOS;
-  // dinero.js va PRIMERO: totales.js delega en el si esta definido.
-  const rutas = ['/contracts/assets/dinero.js', '/contracts/assets/entities.js', '/facturas/totales.js',
-                 '/facturas/compradores.js', '/facturas/documento.js'];
-  const fuentes = await Promise.all(rutas.map(async (p) => {
-    const r = await fetch(SITIO + p + '?v=' + Date.now());
-    if (!r.ok) throw new Error('no se pudo cargar ' + p + ' (' + r.status + ')');
-    return await r.text();
-  }));
   const caja: Record<string, any> = {};
-  new Function('caja', fuentes.join('\n;\n') +
-    '\n;Object.assign(caja,{SOCIEDADES,CUENTAS_BANCARIAS,calcTotales,fmtMoneda,parseImporte,' +
-    'compradoresDeContrato,nombresFactura,documentosFactura,primerDato,documentoPagina,TIPOS_DOC});')(caja);
+  new Function('caja', FUENTES.join('\n;\n') +
+    '\n;Object.assign(caja,{' + EXPORTA.join(',') + '});')(caja);
 
   /* Las cuentas de cobro ya NO vienen dentro de entities.js (6-ago-2026): ese
      fichero se baja por HTTP público —sin sesión, es la razón de que las cuentas
