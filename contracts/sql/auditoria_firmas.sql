@@ -129,3 +129,25 @@ grant execute on function public.auditoria_firmas() to authenticated;
 -- Comprobacion despues de aplicar (15-ago-2026 debe dar 2 criticas
 -- `cadena_parada`: CC00007 y CR00020, y 1 aviso `firmante_sin_email` en CR00020):
 --   select severidad, tipo, contrato, detalle from public.auditoria_firmas();
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  REGLA 5 · «firma atascada en procesando» — 17-ago-2026
+--  ---------------------------------------------------------------------------
+--  `firma-submit` reclama el token pasandolo de 'pendiente' a 'procesando' (asi
+--  dos clics no producen dos firmas). Si la funcion se corta DESPUES de ese
+--  cambio —un timeout, el render que no responde, la funcion que se reinicia—,
+--  su `catch` no llega a correr y la fila se queda en 'procesando' PARA SIEMPRE.
+--
+--  A partir de ahi el comprador no tiene salida: cada reintento vuelve a fallar
+--  el reclamo, la funcion responde 409 y la pagina le dice «este enlace ya no
+--  esta disponible». Un callejon sin salida que solo un operador puede abrir, y
+--  del que nadie se entera porque no hay error visible en ningun panel.
+--
+--  El umbral son 15 minutos: un ciclo normal —descargar el snapshot, renderizar
+--  el PDF, subirlo y mandar los correos— tarda segundos. Cualquier cosa que
+--  lleve un cuarto de hora ahi dentro no esta procesando, esta muerta.
+--
+--  Se arregla devolviendo la fila a 'pendiente'; si ya existe el PDF, entonces
+--  la firma se completo y lo que toca es marcarla 'firmado'. Por eso el aviso es
+--  CRITICO y no un simple recordatorio: hay que mirar cual de los dos casos es.
+-- ═══════════════════════════════════════════════════════════════════════════

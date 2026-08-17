@@ -117,6 +117,16 @@ const ERR = {
   expirado:['Enlace caducado','Este enlace ha caducado. Pide uno nuevo. / This link has expired. Please request a new one.'],
   ya_firmado:['Ya firmado','Este documento ya fue firmado. / This document was already signed.'],
   no_disponible:['No disponible','Este enlace ya no está disponible. / This link is no longer available.'],
+  /* Un fallo del lado del servicio, no del firmante. Antes esto caía en el
+     `toast` genérico de más abajo —«No se pudo firmar. Inténtalo de nuevo»—,
+     que para un fallo PERMANENTE es una invitación a reintentar sin fin: es lo
+     que le pasó al comprador de PA00006 el 14-ago, cuya plantilla no tenía hueco
+     de firma y por tanto no iba a funcionar nunca.
+     No se promete que nadie esté avisado (el detalle va a los registros de la
+     función, que nadie vigila en tiempo real): se dice la verdad —no es culpa
+     suya— y se le da una salida que siempre existe, responder al correo. */
+  fallo_interno:['No se pudo completar la firma',
+    'Ha fallado algo de nuestro lado, no tuyo. Puedes intentarlo de nuevo en unos minutos; si vuelve a fallar, responde al correo con el que recibiste este enlace y lo resolvemos. / Something failed on our side, not yours. You can try again in a few minutes; if it keeps failing, reply to the email you received this link with and we will sort it out.'],
 };
 
 async function load(){
@@ -160,7 +170,7 @@ $('#signBtn').addEventListener('click', async ()=>{
     const signature = cv.toDataURL('image/png');
     const { ok, d } = await callFn('firma-submit', { token:TOKEN, signature, typedName:$('#fName').value.trim() });
     if(ok && d.ok){ show('done'); return; }
-    if(d.error==='ya_firmado'||d.error==='no_disponible'||d.error==='expirado'){ const e=ERR[d.error]; fail(e[0],e[1]); return; }
+    if(ERR[d.error]){ const e=ERR[d.error]; fail(e[0],e[1]); return; }
     toast('No se pudo firmar. Inténtalo de nuevo. / Could not sign. Try again.');
     btn.disabled=false; btn.textContent='Firmar y enviar / Sign & submit';
   }catch(err){

@@ -501,7 +501,14 @@ Deno.serve(async (req) => {
       // sin centinela Y sin rastro de esta firma en el snapshot = documento sin
       // hueco para este rol (snapshot de antes de la cadena) — mejor fallar en
       // voz alta que producir un "firmado" sin la firma. Se regenera desde la app.
-      throw new Error('el documento no tiene hueco de firma para ' + rol + ' — regenera el enlace desde la app');
+      /* NO dice ya «regenera el enlace»: regenerar reconstruye el MISMO documento
+         desde la MISMA plantilla, así que da el mismo error. Ese consejo hizo que
+         el agente de PA00006 lo reintentara una y otra vez (17-ago-2026). La
+         causa real es una plantilla sin hueco de firma, y eso se arregla en la
+         plantilla. Desde ese mismo día la app ya no deja ni generar el enlace en
+         ese caso, así que esto es la segunda barrera, no la primera. */
+      throw new Error('la plantilla de este documento no tiene hueco de firma para ' + rol +
+        ' — hay que añadírselo a la plantilla; regenerar el enlace no lo arregla');
     }
     // (si el snapshot ya lleva la referencia de esta firma es un REINTENTO tras
     // un fallo a mitad: la firma ya está estampada, se sigue sin duplicarla)
@@ -732,8 +739,28 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, numero, faltan: 0, ...(avisos.length ? { avisos } : {}) });
   } catch (e) {
-    // deja el token reutilizable para que el comprador pueda reintentar
-    if (claimedId) await sb.from('contrato_firmas').update({ estado: 'pendiente' }).eq('id', claimedId);
-    return json({ error: String((e as Error)?.message ?? e) }, 500);
+    const detalle = String((e as Error)?.message ?? e);
+    /* ⚠️ SOLO SI SIGUE EN 'procesando'. Sin ese filtro este catch PISABA una
+       firma ya completada: en el tramo final la firma se marca 'firmado'
+       ANTES de bloquear el contrato, así que si el bloqueo fallaba, esto la
+       devolvía a 'pendiente' — quedaba el PDF firmado y sellado en el bucket y
+       el registro diciendo que nadie había firmado. Es exactamente el
+       "documento y registro contradiciéndose" que el comentario de más arriba
+       llama el peor escenario probatorio posible, y lo provocaba el propio
+       manejador de errores. Con el filtro, una firma que llegó a marcarse se
+       queda marcada y el fallo posterior se arregla mirando el aviso. */
+    if (claimedId) {
+      const vuelta = await sb.from('contrato_firmas')
+        .update({ estado: 'pendiente' })
+        .eq('id', claimedId).eq('estado', 'procesando');
+      if (vuelta.error) console.error('firma', claimedId, 'no se pudo devolver a pendiente:', vuelta.error.message);
+    }
+    /* El detalle va al LOG, no al firmante. Esto responde a un tercero sin
+       autenticar —el comprador— y `e.message` arrastra mensajes de Postgres,
+       rutas del bucket y el cuerpo del servicio de render. Además no le sirve
+       de nada: quien puede actuar es el estudio. Se devuelve un código estable
+       para que la página diga algo útil y el detalle queda en los registros. */
+    console.error('firma-submit', claimedId ?? '(sin token reclamado)', '·', detalle);
+    return json({ error: 'fallo_interno' }, 500);
   }
 });
