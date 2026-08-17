@@ -3539,7 +3539,9 @@ function deriveSections(){
     // datos siguen tecleandose como hasta hoy. Un desplegable vacio solo
     // pregunta algo que no se puede contestar.
     if(opts.length){
-      const campo = ['poder_vinculado', etiqueta, 'select', [['', '— sin poder vinculado —'], ...opts]];
+      // Sin opcion vacia propia: buildField ya antepone una (linea ~2069), y
+      // poniendo la mia salian dos huecos en blanco seguidos.
+      const campo = ['poder_vinculado', etiqueta, 'select', opts];
       const g = SECTIONS.find(s=>s.id==='gestion');
       if(g) g.fields.unshift(campo);
       else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
