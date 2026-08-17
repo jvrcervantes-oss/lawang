@@ -23,9 +23,9 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <link rel="stylesheet" href="documento.css?v=20260731">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
@@ -279,30 +279,30 @@
                antes que "Emisor"/"Cliente" es también el orden en que se rellenan solos. -->
           <fieldset>
             <legend>Documento</legend>
-            <label>Contrato</label>
+            <label for="selContrato">Contrato</label>
             <select id="selContrato"><option value="">— elige un contrato —</option></select>
             <div id="delContrato"></div>
             <div id="delVinculado"></div>
             <div class="row2">
-              <div><label>Fecha de emisión</label><input type="date" name="fecha_emision"></div>
-              <div><label>Vencimiento (opcional)</label><input type="date" name="fecha_vencimiento"></div>
+              <div><label for="fa-fecha_emision">Fecha de emisión</label><input id="fa-fecha_emision" type="date" name="fecha_emision"></div>
+              <div><label for="fa-fecha_vencimiento">Vencimiento (opcional)</label><input id="fa-fecha_vencimiento" type="date" name="fecha_vencimiento"></div>
             </div>
             <div class="row2">
-              <div><label>Moneda</label>
-                <select name="moneda">
+              <div><label for="fa-moneda">Moneda</label>
+                <select id="fa-moneda" name="moneda">
                   <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
                 </select></div>
-              <div><label>Nº de documento</label><input name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
+              <div><label for="fa-numero_visible">Nº de documento</label><input id="fa-numero_visible" name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
             </div>
-            <label>Contrato de referencia</label>
-            <input name="contrato_numero" placeholder="Ej. RP00008 — opcional">
+            <label for="fa-contrato_numero">Contrato de referencia</label>
+            <input id="fa-contrato_numero" name="contrato_numero" placeholder="Ej. RP00008 — opcional">
           </fieldset>
 
           <fieldset>
             <legend>Emisor</legend>
-            <label>Sociedad que factura</label>
+            <label for="selSociedad">Sociedad que factura</label>
             <select name="sociedad" id="selSociedad"></select>
-            <label>Cuenta donde se cobra</label>
+            <label for="selCuenta">Cuenta donde se cobra</label>
             <select name="cuenta" id="selCuenta"></select>
             <p class="hint">Sin cuenta, el documento no imprime datos bancarios.</p>
             <!-- "Otros": cuenta que no está en entities.js. Se teclea aquí y sale
@@ -312,33 +312,33 @@
                  del mismo número y nadie sabría cuál es la buena. -->
             <div id="cuentaOtros" hidden>
               <div class="row2">
-                <div><label>Titular · Holder</label><input name="banco_titular"></div>
-                <div><label>Banco · Bank</label><input name="banco_nombre"></div>
+                <div><label for="fa-banco_titular">Titular · Holder</label><input id="fa-banco_titular" name="banco_titular"></div>
+                <div><label for="fa-banco_nombre">Banco · Bank</label><input id="fa-banco_nombre" name="banco_nombre"></div>
               </div>
               <div class="row2">
-                <div><label>Cuenta · Account</label><input name="banco_cuenta"></div>
-                <div><label>Swift / Routing</label><input name="banco_codigo"></div>
+                <div><label for="fa-banco_cuenta">Cuenta · Account</label><input id="fa-banco_cuenta" name="banco_cuenta"></div>
+                <div><label for="fa-banco_codigo">Swift / Routing</label><input id="fa-banco_codigo" name="banco_codigo"></div>
               </div>
-              <label>Dirección del banco · Address</label>
-              <input name="banco_direccion">
-              <label>Nota · Note (opcional)</label>
-              <input name="banco_extra">
+              <label for="fa-banco_direccion">Dirección del banco · Address</label>
+              <input id="fa-banco_direccion" name="banco_direccion">
+              <label for="fa-banco_extra">Nota · Note (opcional)</label>
+              <input id="fa-banco_extra" name="banco_extra">
               <p class="hint">Si esta cuenta se va a repetir, pídenos darla de alta en la lista.</p>
             </div>
           </fieldset>
 
           <fieldset>
             <legend>Cliente</legend>
-            <label>Nombre o razón social</label>
-            <input name="cliente_nombre">
-            <label>Pasaporte / NPWP / NIF</label>
-            <input name="cliente_documento">
-            <label>Domicilio</label>
-            <textarea name="cliente_domicilio"></textarea>
-            <label>Email</label>
-            <input type="email" name="cliente_email">
-            <label>Proyecto / unidad</label>
-            <input name="proyecto_nombre" placeholder="Ej. Palm Field — Cabana 2BR S2">
+            <label for="fa-cliente_nombre">Nombre o razón social</label>
+            <input id="fa-cliente_nombre" name="cliente_nombre">
+            <label for="fa-cliente_documento">Pasaporte / NPWP / NIF</label>
+            <input id="fa-cliente_documento" name="cliente_documento">
+            <label for="fa-cliente_domicilio">Domicilio</label>
+            <textarea id="fa-cliente_domicilio" name="cliente_domicilio"></textarea>
+            <label for="fa-cliente_email">Email</label>
+            <input id="fa-cliente_email" type="email" name="cliente_email">
+            <label for="fa-proyecto_nombre">Proyecto / unidad</label>
+            <input id="fa-proyecto_nombre" name="proyecto_nombre" placeholder="Ej. Palm Field — Cabana 2BR S2">
           </fieldset>
 
           <fieldset id="fsConceptos">
@@ -353,11 +353,11 @@
                toggleTipoRecibi()/sincronizarLineasDesdeAplicaciones(). -->
           <fieldset id="fsAplicaciones" hidden>
             <legend>Facturas que salda este recibí</legend>
-            <label>Añadir factura</label>
+            <label for="selFacturaAplicar">Añadir factura</label>
             <select id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
             <div id="aplicaciones"></div>
             <p class="hint" id="aplicSuma"></p>
-            <label>Justificante de pago (obligatorio)</label>
+            <label for="fJustificante">Justificante de pago (obligatorio)</label>
             <input type="file" id="fJustificante" accept="image/jpeg,image/png,image/webp,application/pdf">
             <p class="hint" id="justifEstado"></p>
           </fieldset>
@@ -365,8 +365,8 @@
           <fieldset>
             <legend>Impuesto (opcional)</legend>
             <div class="row2">
-              <div><label>Etiqueta</label><input name="imp_etiqueta" placeholder="Ej. PPN"></div>
-              <div><label>Porcentaje</label><input name="imp_pct" inputmode="decimal" placeholder="Ej. 11"></div>
+              <div><label for="fa-imp_etiqueta">Etiqueta</label><input id="fa-imp_etiqueta" name="imp_etiqueta" placeholder="Ej. PPN"></div>
+              <div><label for="fa-imp_pct">Porcentaje</label><input id="fa-imp_pct" name="imp_pct" inputmode="decimal" placeholder="Ej. 11"></div>
             </div>
             <p class="hint">En blanco, el documento no lleva impuesto.</p>
           </fieldset>
@@ -420,8 +420,8 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/dinero.js?v=5f6f041f"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/dinero.js?v=f37d55ff"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 const $  = s => document.querySelector(s);
 

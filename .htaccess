@@ -78,14 +78,55 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
 # (p.ej. sumbahills.lawangproperties.com) cuyo SSL no controlamos aqui; incluirlos podria
-# forzar HTTPS y romperlos. No se toca la CSP existente (la web tiene inline scripts/estilos;
-# una CSP estricta necesitaria nonces y romperia paginas).
+# forzar HTTPS y romperlos.
+#
+# 17-ago-2026 (auditoria): aqui decia "No se toca la CSP existente". NO HABIA
+# NINGUNA — `grep Content-Security` sobre el proyecto entero daba cero. El
+# comentario llevaba semanas dando el punto por cubierto, que es el fallo mas
+# barato de cometer y de los mas caros de detectar: documentacion que miente.
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
   Header always set Strict-Transport-Security "max-age=31536000"
+
+  # ── CSP, EN MODO INFORME ────────────────────────────────────────────────────
+  # Entra como `Report-Only` a proposito: en ese modo el navegador NO bloquea
+  # nada, solo escribe en la consola lo que HABRIA bloqueado. Es el unico modo en
+  # que se puede estrenar una CSP sobre una suite que mueve contratos firmados sin
+  # arriesgarse a dejarla inservible en el deploy de un viernes. Se mira la consola
+  # unos dias en las pantallas que mas se usan (Contratos, Facturas, el portal del
+  # comprador y la web publica), se ajusta lo que salga, y ENTONCES se cambia el
+  # nombre de la cabecera a `Content-Security-Policy` para que empiece a bloquear.
+  #
+  # `unsafe-inline` en script-src NO es un descuido: esto es HTML estatico servido
+  # por Hostinger, sin nonce por peticion, y la decision esta tomada por escrito en
+  # `contexto/seguridad_2026.md`. El valor real de esta politica lo aportan las
+  # otras cuatro directivas, que no dependen de eso:
+  #   · frame-ancestors  — nadie puede meter la intranet en un iframe suyo;
+  #   · base-uri         — un <base> inyectado no puede reescribir a donde van los
+  #                        enlaces y los formularios relativos;
+  #   · form-action      — un formulario no puede enviarse a un servidor ajeno;
+  #                        aqui viven 46 pasaportes y los datos de 98 compradores;
+  #   · connect-src      — el navegador solo puede hablar con Supabase, el servicio
+  #                        de PDF y las APIs de la web. Es lo que convierte una
+  #                        inyeccion de script en algo que no puede EXFILTRAR.
+  #
+  # Cada origen de esta lista se MIDIO en el repo, no se supuso:
+  #   cdn.jsdelivr.net     supabase-js + iconos Phosphor
+  #   cdnjs.cloudflare.com pdf.js Y SU WORKER (de ahi el worker-src)
+  #   fonts.g*             Google Fonts (hoja + ficheros)
+  #   *.supabase.co        REST, Auth, Storage y las Edge Functions
+  #   railway.app          contracts-pdf-service, el que renderiza el PDF
+  #   leadconnectorhq.com  GHL, solo desde los formularios de la web publica
+  #   connect.facebook.net pixel de Meta (lo carga consent.js tras consentimiento)
+  #   drive.google.com     iframes de vista previa de Documentacion
+  #   data: y blob: en img/media: los anexos de contrato son imagenes en base64 y
+  #                        los PDF firmados se abren como blob. Quitarlos rompe el
+  #                        generador de contratos entero (ver hallazgo 02: eso es
+  #                        justo lo que hay que sacar a Storage).
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://connect.facebook.net https://*.leadconnectorhq.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://www.facebook.com; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://contracts-pdf-service-production.up.railway.app https://*.leadconnectorhq.com https://open.er-api.com https://connect.facebook.net https://www.facebook.com; frame-src 'self' https://drive.google.com https://*.supabase.co; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://*.leadconnectorhq.com; object-src 'none'"
 
   # Piezas COMPARTIDAS de la suite interna: el servidor las servia con
   # max-age=604800 (7 dias). El 29-jul eso dejo a los agentes con un guard.js

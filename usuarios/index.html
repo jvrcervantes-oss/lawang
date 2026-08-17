@@ -22,8 +22,8 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=abd4a27b" data-herramienta="usuarios"></script>
@@ -118,7 +118,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================
    USUARIOS Y PERMISOS — panel de administración de la suite.
@@ -137,12 +137,12 @@
    ============================================================ */
 const $ = s => document.querySelector(s);
 
-const HERRAMIENTAS = [
-  ['contratos','Contratos'], ['facturas','Facturas y recibís'], ['operaciones','Operaciones'],
-  ['unidades','Unidades'], ['compradores','Compradores'], ['obra','Obra'], ['dossier','Dossier'],
-  ['creatividades','Creatividades'],
-  ['documentacion','Documentación'], ['usuarios','Usuarios (admin)'],
-];
+/* La lista sale de assets/herramientas.js (17-ago-2026, auditoría). Aquí había
+   una copia con sus etiquetas a mano, y la del inventario decía «Unidades»
+   mientras el hub y el menú lateral dicen «Proyectos»: la pantalla que reparte el
+   acceso llamaba a una herramienta por un nombre que no usa nadie más. Añadir una
+   herramienta ya no se toca aquí. */
+const HERRAMIENTAS = LW_PERMISOS;
 const ROLES = [['agente','Agente'], ['admin','Administrador'], ['super_admin','Super admin']];
 
 let SB = null, YO = null, USUARIOS = [], SEL = null;
@@ -197,8 +197,8 @@ function pintarFicha(){
 
     <fieldset><legend>Identidad y rol</legend>
       <div class="sui-row">
-        <div><label>Nombre</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
-        <div><label>Rol</label>
+        <div><label for="fNombre">Nombre</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
+        <div><label for="fRol">Rol</label>
           <select id="fRol" ${bloqueado || yoMismo || !soySuper ? 'disabled' : ''}>
             ${ROLES.map(([v,l]) => `<option value="${v}" ${u.rol===v?'selected':''}>${l}</option>`).join('')}
           </select></div>
@@ -218,7 +218,7 @@ function pintarFicha(){
     </fieldset>
 
     <fieldset><legend>Acceso</legend>
-      <label>Estado</label>
+      <label for="fActivo">Estado</label>
       <select id="fActivo" ${bloqueado || yoMismo ? 'disabled' : ''}>
         <option value="1" ${u.activo?'selected':''}>Activo</option>
         <option value="0" ${!u.activo?'selected':''}>Desactivado — no entra a la suite</option>
@@ -284,12 +284,12 @@ function nuevoUsuario(){
     <p class="sub">Se crea la cuenta y se le da acceso de inmediato.</p>
     <fieldset><legend>Datos de acceso</legend>
       <div class="sui-row">
-        <div><label>Email</label><input id="nEmail" type="email" placeholder="nombre@lawangproperties.com"></div>
-        <div><label>Nombre</label><input id="nNombre" placeholder="Nombre y apellidos"></div>
+        <div><label for="nEmail">Email</label><input id="nEmail" type="email" placeholder="nombre@lawangproperties.com"></div>
+        <div><label for="nNombre">Nombre</label><input id="nNombre" placeholder="Nombre y apellidos"></div>
       </div>
-      <label>Contraseña provisional (mínimo 10 caracteres)</label>
+      <label for="nPass">Contraseña provisional (mínimo 10 caracteres)</label>
       <input id="nPass" type="text" placeholder="La verá al entrar; que la cambie después">
-      <label>Rol</label>
+      <label for="nRol">Rol</label>
       <select id="nRol">${ROLES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
       <p class="nota">La contraseña se muestra en claro a propósito: hay que poder copiarla para
         dársela a la persona. No queda guardada en ningún sitio consultable.</p>
@@ -297,7 +297,7 @@ function nuevoUsuario(){
     <fieldset><legend>Herramientas que verá</legend>
       <div class="herr">
         ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
-          ${['contratos','facturas','operaciones'].includes(v)?'checked':''}> ${l}</label>`).join('')}
+          ${LW_PERMISOS_POR_DEFECTO.includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
     </fieldset>
     <div class="acciones">

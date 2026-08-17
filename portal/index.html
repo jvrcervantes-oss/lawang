@@ -21,7 +21,7 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- ⚠️ NI guard.js NI topbar.js, y no es un olvido:
      · guard.js es la puerta del EQUIPO — rebota al login interno y, desde el
@@ -34,7 +34,7 @@
      son interfaz pura, sin datos. -->
 <script src="/contracts/assets/suite.js?v=f61d52c5"></script>
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
      de una factura: la usan la herramienta de Facturas y la Edge Function que
      emite la del primer hito al firmarse un contrato. El portal la carga
@@ -368,6 +368,15 @@
     var s = String(v).replace(/\s/g,'').replace(/\./g,'').replace(',','.');
     var n = parseFloat(s); return isNaN(n) ? NaN : n;
   }
+  /* NO usa `lwFormatoImporte` (assets/dinero.js), y es deliberado — 17-ago-2026.
+     Las otras tres formas de imprimir dinero de la suite se unificaron ahí porque
+     divergían sin querer; esta divergencia es de diseño y no se toca:
+       · va con SÍMBOLO (`style:'currency'`) y sin decimales, porque es el plan de
+         pagos que lee el COMPRADOR, no una columna de contabilidad;
+       · cambia de locale con el idioma de la página (es-ES / en-GB), que es algo
+         que solo esta pantalla hace.
+     Si algún día el portal necesita el formato interno, se llama a la común; lo
+     que no vale es volver a escribir una cuarta a mano. */
   function dinero(n, moneda){
     if (n == null || isNaN(n)) return '—';
     // `useGrouping:'always'` porque el español no agrupa los números de cuatro
@@ -560,9 +569,9 @@
       titulo: t('cambiar_pass_btn'),
       sub: '',
       cuerpo:
-        '<div class="row"><div><label>' + esc(t('cambiar_pass_nueva')) + '</label>' +
+        '<div class="row"><div><label for="cpNueva">' + esc(t('cambiar_pass_nueva')) + '</label>' +
         '<input type="password" id="cpNueva" autocomplete="new-password"></div></div>' +
-        '<div class="row" style="margin-top:10px"><div><label>' + esc(t('cambiar_pass_repite')) + '</label>' +
+        '<div class="row" style="margin-top:10px"><div><label for="cpRepite">' + esc(t('cambiar_pass_repite')) + '</label>' +
         '<input type="password" id="cpRepite" autocomplete="new-password"></div></div>' +
         '<p class="sui-nota" style="margin-top:10px">' + esc(t('cambiar_pass_nota')) + '</p>' +
         '<div id="cpAviso" class="aviso" style="margin-top:8px"></div>',

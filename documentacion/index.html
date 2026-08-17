@@ -16,8 +16,8 @@
      ya no describe el fichero entero. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
@@ -133,7 +133,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================================
    Documentación de proyectos — índice por CARPETAS, con enlaces externos
@@ -569,19 +569,19 @@ function formDoc(d){
     titulo: editando ? t('editarDocumento') : t('anadirEnlace'),
     sub: editando ? esc(v.titulo) : t('subDocumento'),
     cuerpo: `
-      <div class="campo"><label>${t('lblProyecto')}</label>
+      <div class="campo"><label for="sProyecto">${t('lblProyecto')}</label>
         <select id="sProyecto">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
-      <div class="campo"><label>${t('lblCarpeta')}</label>
+      <div class="campo"><label for="sCarpeta">${t('lblCarpeta')}</label>
         <input id="sCarpeta" list="conocidas" value="${esc(v.carpeta != null ? v.carpeta : CARPETA)}" placeholder="${t('phCarpeta')}">
         <datalist id="conocidas">${conocidas.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
       <p class="sui-nota" style="margin-top:-6px">${t('notaCarpeta')}</p>
-      <div class="campo"><label>${t('lblTitulo')}</label><input id="sTitulo" value="${esc(v.titulo||'')}" placeholder="${t('phTitulo')}"></div>
-      <div class="campo"><label>${t('lblCategoria')}</label>
+      <div class="campo"><label for="sTitulo">${t('lblTitulo')}</label><input id="sTitulo" value="${esc(v.titulo||'')}" placeholder="${t('phTitulo')}"></div>
+      <div class="campo"><label for="sCategoria">${t('lblCategoria')}</label>
         <select id="sCategoria">${CATEGORIAS.map(([x,l]) => `<option value="${x}" ${v.categoria===x?'selected':''}>${l}</option>`).join('')}</select></div>
       ${v.path
         ? `<p class="sui-nota">${t('archivoSubido')}</p>`
-        : `<div class="campo"><label>${t('lblEnlace')}</label><input id="sUrl" value="${esc(v.url||'')}" placeholder="https://drive.google.com/…" inputmode="url"></div>`}
-      <div class="campo"><label>${t('lblDescripcion')}</label><textarea id="sDesc">${esc(v.descripcion||'')}</textarea></div>
+        : `<div class="campo"><label for="sUrl">${t('lblEnlace')}</label><input id="sUrl" value="${esc(v.url||'')}" placeholder="https://drive.google.com/…" inputmode="url"></div>`}
+      <div class="campo"><label for="sDesc">${t('lblDescripcion')}</label><textarea id="sDesc">${esc(v.descripcion||'')}</textarea></div>
       <label class="ck"><input type="checkbox" id="sConf" ${v.confidencial === false ? '' : 'checked'}> ${t('ckConfidencial')}</label>
       <label class="ck"><input type="checkbox" id="sPortal" ${v.visible_portal ? 'checked' : ''}> ${t('ckPortal')}</label>
       <p class="sui-nota">${t('notaPortal')}</p>
@@ -653,11 +653,11 @@ function formFaq(d){
     titulo: editando ? t('editarFaq') : t('nuevaFaq'),
     sub: editando ? esc(v.titulo) : t('subFaq'),
     cuerpo: `
-      <div class="campo"><label>${t('lblProyecto')}</label>
+      <div class="campo"><label for="fProyectoFaq">${t('lblProyecto')}</label>
         <select id="fProyectoFaq">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
-      <div class="campo"><label>${t('lblPregunta')}</label>
+      <div class="campo"><label for="fPregunta">${t('lblPregunta')}</label>
         <textarea id="fPregunta" rows="2" placeholder="${t('phPregunta')}">${esc(v.titulo||'')}</textarea></div>
-      <div class="campo"><label>${t('lblRespuesta')}</label>
+      <div class="campo"><label for="fRespuesta">${t('lblRespuesta')}</label>
         <textarea id="fRespuesta" rows="5" placeholder="${t('phRespuesta')}">${esc(v.descripcion||'')}</textarea></div>`,
     pie: `<button class="sui-btn primario" id="btnGuardarFaq">${editando ? t('guardarCambios') : t('guardarPregunta')}</button>
           <button class="sui-btn" id="btnCancelarFaq">${t('cancelar')}</button>`,

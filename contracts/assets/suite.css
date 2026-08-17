@@ -835,3 +835,23 @@ input.lw-elegible:disabled{ cursor:default; }
   .lw-elegir{ width:100%; max-height:88vh; border-radius:var(--r-l) var(--r-l) 0 0;
     padding-bottom:env(safe-area-inset-bottom); }
 }
+
+/* ── Aviso de la herramienta ────────────────────────────────────────────────
+   Un mensaje que NO se va: lo que hay que ver cada vez que se entra, no una vez.
+   Nace aquí y no dentro de Operaciones (17-ago-2026, auditoría) porque en cuanto
+   una segunda herramienta necesite avisar de algo persistente va a copiar este
+   bloque, y una copia pegada de la herramienta de al lado es deuda. Es la misma
+   razón por la que la barra superior se inyecta en vez de escribirse.
+
+   Estrenado por el aviso de tope de Operaciones («esta vista no lo está sumando
+   todo»). Los valores son los del `.aviso` que el hub ya tenía —ámbar, no rojo—:
+   esto informa de algo parcial, no de un error. El hub sigue con su copia local
+   hasta que se toque su hoja; cuando se toque, se borra y usa esta.
+
+   Lleva `role="status"` desde quien lo crea, no desde el CSS: un aviso que solo
+   se ve no existe para un lector de pantalla. */
+.sui-aviso{
+  margin:0 0 16px; padding:11px 14px;
+  font-size:13.5px; line-height:1.5; color:#6A4A14;
+  background:#F7EEDC; border:1px solid #E6D7B4; border-radius:var(--r-m,12px);
+}

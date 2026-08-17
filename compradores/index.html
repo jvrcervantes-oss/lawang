@@ -11,9 +11,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -117,9 +117,14 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
+<!-- Formato de importes: `lwFormatoImporte` (17-ago-2026). Esta pantalla
+     imprimia el dinero con toLocaleString('es'), que no recibe la moneda y
+     daba tres decimales donde Facturas da dos. El `?v=` lo sella el
+     pre-commit; el valor de aqui es solo el punto de partida. -->
+<script src="/contracts/assets/dinero.js?v=f37d55ff"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================
    COMPRADORES — ficha y documentación KYC.
@@ -282,9 +287,9 @@ function pintarFicha(){
     <fieldset id="fsIdentidad">
       <legend>Identidad</legend>
       ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
-      <label>Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
+      <label for="f-nombre">Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
       <div class="sui-row">
-        <div><label>Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
+        <div><label for="f-email">Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
           <p class="nota">Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal.
           Eso se gestiona aparte, en «Portal del comprador» más abajo.</p></div>
         <div><label>Teléfono</label>
@@ -299,16 +304,16 @@ function pintarFicha(){
         </div>
       </div>
       <div class="sui-row">
-        <div><label>Nacionalidad</label>
+        <div><label for="f-nac">Nacionalidad</label>
           <input id="f-nac" ${dis} value="${esc(c.nationality||'')}">
         </div>
-        <div><label>Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
+        <div><label for="f-pas">Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
       </div>
       <div class="sui-row">
-        <div><label>Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
-        <div><label>Estado KYC</label><select id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div><label for="f-nac-fecha">Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
+        <div><label for="f-kyc">Estado KYC</label><select id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
-      <label>Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
+      <label for="f-notas">Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
 
     ${nuevo ? '<p class="nota">Los documentos se suben después de crear la ficha.</p>' : `
@@ -363,7 +368,12 @@ function pintarFicha(){
         const base = soloReserva ? suyos : sumables;
         const precio = base.reduce((a,x) => a + (Number(soloReserva ? (x.precio_reserva ?? x.precio_total) : x.precio_total)||0), 0) || null;
         const pendiente = precio ? precio - cobrado : null;
-        const fmt = n => n == null ? '—' : n.toLocaleString('es') + ' ' + moneda;
+        /* `lwFormatoImporte` (assets/dinero.js) y no `toLocaleString('es')`
+           (17-ago-2026, auditoría): esta pantalla imprimía 1.234.567,891 € donde
+           Facturas imprime 1.234.567,89 €, y sin la moneda de por medio dejaba
+           decimales en importes en rupias, que no los tiene. El `— ` de cuando no
+           hay dato se queda aquí: eso es de esta pantalla, no del formato. */
+        const fmt = n => n == null ? '—' : lwFormatoImporte(n, moneda);
         const etiquetaPrecio = soloReserva ? 'Cuota de Reserva' : 'Precio pactado';
         return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')})${sumables.length !== suyos.length && !soloReserva ? ' — el precio solo cuenta los que no son Carta de Reserva' : ''}${soloReserva ? ' — solo tiene Carta(s) de Reserva, sin contrato firmado todavía: el importe es la cuota de reserva, no el precio final de la villa' : ''}.</p>
         <div class="sui-row" style="grid-template-columns:1fr 1fr 1fr">
@@ -417,7 +427,7 @@ function pintarFicha(){
         if(!esAdminYo) return estado + '<p class="nota">Invitar o revocar lo hace un administrador.</p>';
         return estado + `
         <div class="sui-row">
-          <div><label>Email de acceso</label><input id="p-email" type="email" value="${esc((activos[0] && activos[0].email) || c.email || '')}"></div>
+          <div><label for="p-email">Email de acceso</label><input id="p-email" type="email" value="${esc((activos[0] && activos[0].email) || c.email || '')}"></div>
         </div>
         <div class="acciones" style="margin-top:10px">
           <button class="btn primary" id="btnPortalInv">${activos.length ? 'Reenviar enlace' : 'Invitar al portal'}</button>
@@ -438,10 +448,10 @@ function pintarFicha(){
       </table>
       <div class="subir">
         <div class="sui-row">
-          <div><label>Tipo</label><select id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
-          <div><label>Caduca el (opcional)</label><input id="d-caduca" type="date"></div>
+          <div><label for="d-tipo">Tipo</label><select id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+          <div><label for="d-caduca">Caduca el (opcional)</label><input id="d-caduca" type="date"></div>
         </div>
-        <label>Fichero</label><input id="d-file" type="file" accept="application/pdf,image/*">
+        <label for="d-file">Fichero</label><input id="d-file" type="file" accept="application/pdf,image/*">
         <div class="acciones" style="margin-top:10px">
           <button class="btn primary" id="btnSubir">Subir documento</button>
         </div>

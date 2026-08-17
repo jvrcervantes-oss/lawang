@@ -51,8 +51,38 @@ function duracionToast(){
   return TOAST_MS;
 }
 
+/* EL AVISO SE ANUNCIA, NO SOLO SE PINTA — 17-ago-2026, auditoría de accesibilidad.
+   En buena parte de la suite este aviso es la ÚNICA confirmación de que algo se
+   guardó, y su nodo era un `<div>` mudo: quien no ve la pantalla no recibía ni
+   «guardado» ni «no se pudieron leer las facturas». En toda la suite había un solo
+   `aria-live`, y estaba en el login.
+
+   Se arregla aquí y no en las catorce copias del marcado a propósito: `toast()` es
+   el único sitio por el que pasan todos los avisos, así que poniendo los atributos
+   al usarlo quedan puestos en las catorce sin tocar catorce ficheros — y en las que
+   se añadan mañana. Si el nodo no existe, se crea: así una herramienta nueva no
+   puede quedarse sin avisos por haber olvidado el `<div>`.
+
+   `role="status"` + `aria-live="polite"` y no `alert`/`assertive`: un guardado
+   correcto no debe cortar lo que el lector esté leyendo. Los errores de verdad de
+   esta suite no van por aquí, van por `lwConfirmar()` y por los avisos de campo.
+   `aria-atomic` para que se lea el mensaje entero y no la parte que cambió. */
+function nodoToast() {
+  let t = document.querySelector('#toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  if (!t.getAttribute('role')) t.setAttribute('role', 'status');
+  if (!t.getAttribute('aria-live')) t.setAttribute('aria-live', 'polite');
+  if (!t.getAttribute('aria-atomic')) t.setAttribute('aria-atomic', 'true');
+  return t;
+}
+
 const toast = (m, ms) => {
-  const t = document.querySelector('#toast');
+  const t = nodoToast();
   if (!t) return;
   t.textContent = m;
   /* Quitar las clases, forzar un reflujo y volver a ponerlas. Sin esto, un

@@ -53,7 +53,14 @@ function calcTotales(lineas, moneda, impuesto){
   return { subtotal, pct, impuesto: imp, total: redondear(subtotal + imp, moneda) };
 }
 
+/* Se DELEGA en contracts/assets/dinero.js desde el 17-ago-2026, igual que
+   `parseImporte`: esta era la única de las cuatro formas de imprimir un importe
+   que conocía la moneda, así que subió a la capa común y las otras tres pasaron a
+   llamarla. El respaldo de abajo cubre lo mismo que el de `parseImporte`: la
+   `firma-submit` desplegada aún evalúa este fichero suelto, y allí `dinero.js`
+   podría no estar. Quitable cuando esa función se redespliegue. */
 function fmtMoneda(n, moneda){
+  if(typeof lwFormatoImporte === 'function') return lwFormatoImporte(n, moneda);
   const d = DECIMALES[moneda] != null ? DECIMALES[moneda] : 2;
   return new Intl.NumberFormat('de-DE', { minimumFractionDigits:d, maximumFractionDigits:d })
     .format(n || 0) + ' ' + (moneda || '');

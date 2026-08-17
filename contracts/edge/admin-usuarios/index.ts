@@ -35,6 +35,16 @@ const corsFor = (req: Request) => {
 // 5-ago-2026: añadidas 'documentacion' y 'obra'. 11-ago-2026: añadida
 // 'creatividades' — 3ª vez que esta lista se queda corta respecto al panel
 // /usuarios/ y una herramienta se pierde al crear un usuario (no al editar).
+//
+// 17-ago-2026 (auditoría): la lista sigue AQUÍ y no se lee de
+// `assets/herramientas.js`, a propósito — una edge que se descarga código del
+// sitio para ejecutarlo es exactamente lo que hay que dejar de hacer (ver el
+// hallazgo 01 de la auditoría y `firma-submit`). Lo que cambia es que ya no puede
+// quedarse corta en silencio: la comprueba `tools/test_listas_lawang.py`, que
+// falla si no coincide con el catálogo, y las desconocidas se RECHAZAN en vez de
+// filtrarse (ver abajo). Las tres veces que esta lista se quedó corta pasaron
+// desapercibidas por el `.filter()`: descartar sin avisar convierte un error de
+// programación en un permiso que falta y que nadie relaciona con esto.
 const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
@@ -69,9 +79,15 @@ Deno.serve(async (req) => {
       const password = String(body.password ?? '');
       const rol = String(body.rol ?? 'agente');
       const nombre = String(body.nombre ?? '').trim() || null;
-      const herramientas: string[] = Array.isArray(body.herramientas)
-        ? body.herramientas.filter((h: unknown) => HERRAMIENTAS.includes(String(h)))
-        : [];
+      // Se RECHAZA lo desconocido, no se filtra (17-ago-2026): un `.filter()` aquí
+      // deja al usuario creado sin ese permiso y sin que nadie se entere, que es
+      // cómo esta lista se quedó corta tres veces. Un 400 se arregla el mismo día.
+      const pedidas: string[] = Array.isArray(body.herramientas) ? body.herramientas.map(String) : [];
+      const desconocidas = pedidas.filter((h) => !HERRAMIENTAS.includes(h));
+      if (desconocidas.length)
+        return json({ error: 'herramienta_desconocida', detalle: desconocidas,
+                      ayuda: 'Esta función no conoce esa herramienta. Si es nueva, añádela a HERRAMIENTAS en admin-usuarios y redespliega.' }, 400);
+      const herramientas: string[] = pedidas;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'email_invalido' }, 400);
       if (password.length < 10) return json({ error: 'password_corta' }, 400);   // 10+: son cuentas con datos de clientes reales
       if (!ROLES.includes(rol)) return json({ error: 'rol_invalido' }, 400);

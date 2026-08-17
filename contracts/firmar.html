@@ -102,7 +102,12 @@ const TOKEN = new URLSearchParams(location.search).get('t') || '';
 
 const $ = s => document.querySelector(s);
 function show(id){ for(const k of ['loading','error','signview','done']) $('#'+k).classList.toggle('hide', k!==id); }
-function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
+/* `role=status` como en suite-comun.js (17-ago-2026): esta pagina la abre el
+   COMPRADOR desde su email, asi que es la mas expuesta a un lector de pantalla
+   de la suite entera, y su aviso era mudo. */
+function toast(m){ const t=$('#toast'); t.textContent=m;
+  if(!t.getAttribute('role')){ t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); t.setAttribute('aria-atomic','true'); }
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
 function fail(title,msg){ $('#errTitle').textContent=title; $('#errMsg').textContent=msg||''; show('error'); }
 
 async function callFn(name, body){

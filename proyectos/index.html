@@ -17,8 +17,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
@@ -171,7 +171,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================================
    Unidades — inventario y precios por parcela
@@ -706,11 +706,11 @@ function abrirUnidad(id){
     sub: nueva ? 'El código es el mismo texto que imprime el contrato.'
                : esc(u.proyecto || 'sin proyecto') + ' · ' + esc(nombreEstado(u.estado)),
     cuerpo: operacion + desglose + `
-      <div class="campo"><label>Código</label>
+      <div class="campo"><label for="f-codigo">Código</label>
         <input id="f-codigo" value="${esc(u.codigo||'')}" placeholder="Ej. A12"></div>
       <p class="sui-nota" style="margin-top:-6px">Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.</p>
       <div class="dos">
-        <div class="campo"><label>Proyecto</label>
+        <div class="campo"><label for="f-proyecto">Proyecto</label>
           <select id="f-proyecto">
             <option value="">— elegir —</option>
             ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort().map(p =>
@@ -722,7 +722,7 @@ function abrirUnidad(id){
             <button type="button" class="sui-btn" id="btnAltaProyecto">Añadir</button>
           </div>
         </div>
-        <div class="campo"><label>Tipo</label>
+        <div class="campo"><label for="f-tipo">Tipo</label>
           <select id="f-tipo">
             ${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}
             <option value="__nuevo__">+ Nuevo tipo…</option>
@@ -734,7 +734,7 @@ function abrirUnidad(id){
         </div>
       </div>
       <div class="dos">
-        <div class="campo"><label>Modelo de villa</label>
+        <div class="campo"><label for="f-modelo">Modelo de villa</label>
           ${modelosDe(u.proyecto).length
             ? `<select id="f-modelo">
                  <option value="">— sin decidir —</option>
@@ -745,21 +745,21 @@ function abrirUnidad(id){
                </select>`
             : `<input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="Dune, Dream…">`}
         </div>
-        <div class="campo"><label>Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
+        <div class="campo"><label for="f-sup">Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
       </div>
       ${u.proyecto === 'Sumba Hills' ? `
       <div class="dos">
-        <div class="campo"><label>Fase (masterplan)</label><input id="f-fase" value="${esc(u.fase_masterplan||'')}" placeholder="I, II…"></div>
-        <div class="campo"><label>Zona</label><input id="f-zona" value="${esc(u.zona_masterplan||'')}" placeholder="1, 2, 3…"></div>
+        <div class="campo"><label for="f-fase">Fase (masterplan)</label><input id="f-fase" value="${esc(u.fase_masterplan||'')}" placeholder="I, II…"></div>
+        <div class="campo"><label for="f-zona">Zona</label><input id="f-zona" value="${esc(u.zona_masterplan||'')}" placeholder="1, 2, 3…"></div>
       </div>` : ''}
       <div id="escenarios"></div>
       <div class="dos">
-        <div class="campo"><label>Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
-        <div class="campo"><label>Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
+        <div class="campo"><label for="f-suelo">Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
+        <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
       </div>
       <div class="dos">
-        <div class="campo"><label>Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):''}"></div>
-        <div class="campo"><label>Moneda</label><select id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):''}"></div>
+        <div class="campo"><label for="f-moneda">Moneda</label><select id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
       </div>
       ${u.contrato_id ? `
         <div class="campo"><label>Estado</label>
@@ -772,14 +772,14 @@ function abrirUnidad(id){
           <b>no se tocan desde aquí</b>: los lleva el contrato. Para soltarla, quítale la parcela al
           contrato o bórralo, y volverá a estar disponible sola.</p>`
       : `
-        <div class="campo"><label>Estado</label>
+        <div class="campo"><label for="f-estado">Estado</label>
           <select id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
-        <div class="campo"><label>Contrato asociado</label>
+        <div class="campo"><label for="f-contrato">Contrato asociado</label>
           <select id="f-contrato"><option value="">— sin contrato —</option>
             ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||'sin nº')} — ${esc(c.comprador_nombre||'sin nombre')}</option>`).join('')}
           </select></div>
         <div id="avisoEstado"></div>`}
-      <div class="campo"><label>Notas</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
+      <div class="campo"><label for="f-notas">Notas</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
     pie: `<button class="sui-btn primario" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintar(); },

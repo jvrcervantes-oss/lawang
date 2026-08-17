@@ -88,6 +88,57 @@ const lwPermitida = (t, ficha) => t.soloAdmin ? lwEsAdmin(ficha)
   : (!ficha || lwEsAdmin(ficha) || !t.herr ||
      [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOS PERMISOS SALEN DE ESTE MISMO CATÁLOGO — 17-ago-2026 (auditoría)
+   ═══════════════════════════════════════════════════════════════════════════
+   `/usuarios/` tenía su propia lista de las diez herramientas, con sus etiquetas
+   escritas a mano, y ya había divergido: la casilla del inventario decía
+   «Unidades» mientras el hub y el menú lateral dicen «Proyectos». Es letra por
+   letra el fallo de `TIPO_ES` contra `TIPO_LABEL` que se cerró el 14-ago, esta
+   vez sobre los nombres de las propias herramientas — y en la pantalla donde se
+   reparte el acceso, que es la peor para llamar a algo por un nombre que no usa
+   nadie más.
+
+   Se DERIVA del catálogo en vez de escribirse otra vez:
+     · un permiso por cada valor de `herr`, aplanando las tarjetas que agrupan
+       dos herramientas (Creatividades = dossier + creatividades);
+     · la etiqueta es el `nombre` de la tarjeta cuando la tarjeta es de UNA sola
+       herramienta, así que renombrar una en el catálogo la renombra también en
+       los permisos;
+     · las que comparten tarjeta necesitan nombre propio y solo esas están en
+       `ETIQUETA_PROPIA`. Si mañana se agrupa otra y nadie le pone etiqueta, el
+       `console.warn` de abajo lo dice en la consola de /usuarios/ en vez de
+       enseñar la clave cruda de la base de datos, que es como se colaron seis
+       contratos con jerga en pantalla.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const LW_ETIQUETA_PROPIA = {
+  dossier:       'Dossier',
+  creatividades: 'Creatividades',
+  facturas:      'Facturas y recibís',   // dos tarjetas (Facturas y Recibos), un solo permiso
+  usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
+};
+
+const LW_PERMISOS = (function () {
+  const vistos = [], nombreDe = {};
+  LW_HERRAMIENTAS.forEach(function (t) {
+    const claves = [].concat(t.herr || []);
+    claves.forEach(function (h) {
+      if (vistos.indexOf(h) < 0) vistos.push(h);
+      // el nombre de la tarjeta solo sirve si la tarjeta es de UNA herramienta
+      if (claves.length === 1 && !nombreDe[h]) nombreDe[h] = t.nombre;
+    });
+  });
+  return vistos.map(function (h) {
+    const etiqueta = LW_ETIQUETA_PROPIA[h] || nombreDe[h];
+    if (!etiqueta) console.warn('herramientas.js: el permiso «' + h + '» no tiene etiqueta — ponle una en LW_ETIQUETA_PROPIA');
+    return [h, etiqueta || h];
+  });
+})();
+
+/* Con qué entra un usuario nuevo. Vivía escrito dentro del formulario de alta de
+   `/usuarios/`; está aquí para que se lea junto a la lista que gobierna. */
+const LW_PERMISOS_POR_DEFECTO = ['contratos', 'facturas', 'operaciones'];
+
 /* Orden de los grupos, para que el menú lateral no repita cabeceras si el
    catálogo trae entradas del mismo grupo separadas. El hub no lo necesita
    -pinta por grupos- pero el menú va en una sola columna. */

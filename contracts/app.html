@@ -26,8 +26,8 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=68733a45">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<link rel="stylesheet" href="assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="assets/topbar.js?v=88db9753" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -55,7 +55,7 @@
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=c031da44"></script>
-<script src="assets/dinero.js?v=5f6f041f"></script>
+<script src="assets/dinero.js?v=f37d55ff"></script>
 <script src="assets/dialogo.js?v=939005c5"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
@@ -266,6 +266,20 @@
 // PREFIJOS vienen de assets/geo.js, cargado antes que este <script>.
 document.getElementById('dl-nacionalidades').innerHTML = NACIONALIDADES.map(n=>`<option value="${n}">`).join('');
 document.getElementById('dl-prefijos').innerHTML = PREFIJOS.map(([cod,pais])=>`<option value="${cod}">${cod} · ${pais}</option>`).join('');
+
+/* IDENTIDAD DE CADA CAMPO DEL FORMULARIO — 17-ago-2026, auditoría de accesibilidad.
+   Van aquí arriba, y no junto a la función que más las usa, porque las usan tres
+   constructores de formulario distintos y son `const` de primer nivel: declararlas
+   más abajo funciona hoy (todas se leen dentro de funciones) y revienta el día que
+   alguien llame a una de esas funciones durante la carga.
+     · `fid`  campo suelto del contrato          → f-precio_total
+     · `cid`  campo que se repite por adquiriente → c-bc2-pasaporte
+     · `hid`  campo que se repite por hito        → h-0-pct
+   El id se compone de datos que YA existen (la clave del campo, el id de la fila),
+   así que no hay un contador nuevo que se pueda desincronizar del marcado. */
+const fid = k => 'f-' + k;
+const cid = (fila, dato) => 'c-' + fila + '-' + dato;
+const hid = (n, dato) => 'h-' + n + '-' + dato;
 
 const TEMPLATES = [
   // El orden de este array ES el orden del desplegable (buildPicker solo filtra
@@ -665,6 +679,11 @@ function humanize(k){ return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCas
    primero todavía visible (ver el mismo comentario en suite-comun.js). */
 function toast(msg){
   const t=$('#toast'); t.textContent=msg;
+  /* Mismos atributos que pone `nodoToast()` en suite-comun.js, y por el mismo
+     motivo: este aviso es la única confirmación de que un contrato se guardó, y
+     sin esto no existe para un lector de pantalla (17-ago-2026). Se ponen aquí
+     porque esta página no puede cargar suite-comun.js — su `esc()` local choca. */
+  if(!t.getAttribute('role')){ t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); t.setAttribute('aria-atomic','true'); }
   t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
   const v=getComputedStyle(document.documentElement).getPropertyValue('--t-toast').trim();
   const ms=parseFloat(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v)*1000) : 4200;
@@ -1220,6 +1239,16 @@ function saveCompradores(){ try{ localStorage.setItem('lawang_contract_comprador
 function romano(n){ const vals=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let r='',x=n;
   for(const [v,s] of vals){ while(x>=v){ r+=s; x-=v; } } return r; }
 
+/* Los campos de cada adquiriente llevan `id` desde el 17-ago-2026 (misma pasada
+   que fieldHTML), y su etiqueta un `for` que apunta a él: `cid(fila, dato)` los
+   compone con los dos valores que ya existen en el marcado, data-ci y data-ckey,
+   sin inventar un contador nuevo que se pueda desincronizar.
+
+   ⚠️ Este comentario está AQUÍ FUERA y no dentro del bloque que documenta, y no es
+   preferencia de estilo: ahí dentro es una plantilla de texto, y un comentario con
+   backticks alrededor de un nombre de función CIERRA la plantilla antes de tiempo.
+   Escrito así la primera vez, reventaba el generador de contratos entero — lo cazó
+   `node --check` sobre el script extraído del HTML, no la vista previa. */
 function buildCompradorPanel(){
   const rows = COMPRADORES.map((c,i)=>{
     const t = partirTelefono(c.telefono);
@@ -1233,17 +1262,17 @@ function buildCompradorPanel(){
         <div class="cli-resultados" id="cliResultados-${c.id}" hidden></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
-        <div class="field"><label>${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input data-ci="${c.id}" data-ckey="nacionalidad" list="dl-nacionalidades" value="${escAttr(c.nacionalidad)}"></div>
-        <div class="field"><label>${L({es:'Nº pasaporte / identificación fiscal',en:'Passport / Tax ID no.',id:'No. paspor / Nomor Identifikasi Pajak'})}</label><input data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
-        <div class="field"><label>${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
-        <div class="field"><label>${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label>
+        <div class="field"><label for="${cid(c.id,'nombre')}">${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input id="${cid(c.id,'nombre')}" data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
+        <div class="field"><label for="${cid(c.id,'nacionalidad')}">${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input id="${cid(c.id,'nacionalidad')}" data-ci="${c.id}" data-ckey="nacionalidad" list="dl-nacionalidades" value="${escAttr(c.nacionalidad)}"></div>
+        <div class="field"><label for="${cid(c.id,'pasaporte')}">${L({es:'Nº pasaporte / identificación fiscal',en:'Passport / Tax ID no.',id:'No. paspor / Nomor Identifikasi Pajak'})}</label><input id="${cid(c.id,'pasaporte')}" data-ci="${c.id}" data-ckey="pasaporte" value="${escAttr(c.pasaporte)}"></div>
+        <div class="field"><label for="${cid(c.id,'domicilio')}">${L({es:'Domicilio',en:'Address',id:'Alamat'})}</label><input id="${cid(c.id,'domicilio')}" data-ci="${c.id}" data-ckey="domicilio" value="${escAttr(c.domicilio||'')}"></div>
+        <div class="field"><label for="${cid(c.id,'telefono_numero')}">${L({es:'Teléfono',en:'Phone',id:'Telepon'})}</label>
           <div style="display:flex;gap:6px">
-            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 86px" value="${escAttr(t.prefijo)}">
-            <input data-ci="${c.id}" data-ckey="telefono_numero" placeholder="Número" style="flex:1" value="${escAttr(t.numero)}">
+            <input data-ci="${c.id}" data-ckey="telefono_prefijo" list="dl-prefijos" placeholder="Prefijo" aria-label="${escAttr(L({es:'Prefijo internacional',en:'Country code',id:'Kode negara'}))}" style="flex:0 0 86px" value="${escAttr(t.prefijo)}">
+            <input id="${cid(c.id,'telefono_numero')}" data-ci="${c.id}" data-ckey="telefono_numero" placeholder="Número" style="flex:1" value="${escAttr(t.numero)}">
           </div>
         </div>
-        <div class="field"><label>${L({es:'Email',en:'Email',id:'Email'})}</label><input data-ci="${c.id}" data-ckey="email" value="${escAttr(c.email||'')}"></div>
+        <div class="field"><label for="${cid(c.id,'email')}">${L({es:'Email',en:'Email',id:'Email'})}</label><input id="${cid(c.id,'email')}" data-ci="${c.id}" data-ckey="email" value="${escAttr(c.email||'')}"></div>
       </div>
     </div>`;
   }).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
@@ -1720,6 +1749,18 @@ async function resetOverrides(){
 /* ============================================================
    FORMULARIO
    ============================================================ */
+/* CADA <label> APUNTA A SU CAMPO — 17-ago-2026, auditoría de accesibilidad.
+   Hasta hoy esta función emitía `<label>texto</label><input name="…">` como
+   HERMANOS, sin `for`: la etiqueta se veía y no existía para un lector de
+   pantalla, así que los ~60 campos del generador se anunciaban como "campo de
+   texto" sin decir cuál. Eran 24 de las 103 etiquetas huérfanas de la suite.
+   `key` ya es único dentro del formulario (es el nombre del campo y la clave de
+   `fields`), así que sirve de id sin inventar un contador. `id` va en el input y
+   `for` en la etiqueta; los dos salen de la misma variable, que es lo que evita
+   que se separen al añadir un tipo de campo nuevo.
+   Excepción: `signature` pinta un <canvas>, que NO es un elemento etiquetable —
+   ahí la etiqueta se queda suelta a propósito y el nombre accesible lo pone el
+   `aria-label` del propio lienzo. */
 function fieldHTML(f){
   const [key,labelObj,type,extra] = f;
   const label = L(labelObj);
@@ -1727,7 +1768,7 @@ function fieldHTML(f){
   if(type==='signature'){
     return `<div class="field" data-key="${key}">
       <label>${label}</label>
-      <div class="sigpad-wrap" id="pad-${key}"><canvas></canvas><div class="ph">✍︎</div></div>
+      <div class="sigpad-wrap" id="pad-${key}"><canvas role="img" aria-label="${escAttr(label)} — firma a mano alzada"></canvas><div class="ph">✍︎</div></div>
       <div class="sig-actions"><button type="button" class="link-btn" data-clear="${key}">Borrar</button></div>
     </div>`;
   }
@@ -1753,17 +1794,17 @@ function fieldHTML(f){
     // exactamente el mismo corte de rol que ya usa "Editar texto" — no una
     // coincidencia nueva que haya que mantener sincronizada a mano.
     const bloqueado = key==='firmante' && !CAN_EDIT_TEXT;
-    return `<div class="field" data-key="${key}"><label>${label}</label><select name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
+    return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label><select id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
   }
   if(type==='textarea'){
-    return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label>${label}</label><textarea name="${key}" rows="3">${def}</textarea></div>`;
+    return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label for="${fid(key)}">${label}</label><textarea id="${fid(key)}" name="${key}" rows="3">${def}</textarea></div>`;
   }
   if(type==='readonly'){
     // Nº de contrato: lo asigna el trigger de Supabase al guardar (guardarContrato()
     // escribe .value) y NO se teclea a mano — dejarlo editable permite firmar un
     // contrato con un número que no es el de la base de datos.
-    return `<div class="field" data-key="${key}"><label>${label}</label>
-      <input name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
+    return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label>
+      <input id="${fid(key)}" name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
   }
   if(type==='telefono'){
     // Prefijo (datalist global #dl-prefijos, ver buildForm) + número, igual
@@ -1773,10 +1814,13 @@ function fieldHTML(f){
     // visibles solo existen para no depender de que el agente escriba bien
     // el prefijo. wireTelefonos() (buildForm) mantiene el oculto al día.
     const t0 = partirTelefono(def);
-    return `<div class="field field-tel" data-key="${key}"><label>${label}</label>
+    /* La etiqueta apunta al NÚMERO, que es el campo principal; el prefijo lleva
+       su propio nombre accesible. El oculto con `name` no necesita etiqueta: no
+       se enfoca ni se lee, solo lo mantiene wireTelefonos(). */
+    return `<div class="field field-tel" data-key="${key}"><label for="${fid(key)}">${label}</label>
       <div style="display:flex;gap:6px">
-        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" style="flex:0 0 86px" value="${escAttr(t0.prefijo)}">
-        <input class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
+        <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" aria-label="${escAttr(label)} — prefijo internacional" style="flex:0 0 86px" value="${escAttr(t0.prefijo)}">
+        <input id="${fid(key)}" class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
       </div>
       <input type="hidden" name="${key}" value="${def}">
     </div>`;
@@ -1793,8 +1837,8 @@ function fieldHTML(f){
   // guardado con una nacionalidad que no está en la lista (país no listado,
   // errata histórica, "Doble: ES/PE"...).
   const attrs = esDinero ? 'inputmode="decimal" data-money' : (type==='nacionalidad' ? 'list="dl-nacionalidades"' : '');
-  return `<div class="field" data-key="${key}"><label>${label}</label>
-    <input name="${key}" type="${t}" ${attrs} value="${def}" autocomplete="off"></div>`;
+  return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label>
+    <input id="${fid(key)}" name="${key}" type="${t}" ${attrs} value="${def}" autocomplete="off"></div>`;
 }
 
 /* Campos que solo se preguntan según lo que valga otro campo — el equivalente
@@ -2511,12 +2555,12 @@ function hitosBodyHTML(){
         <span class="spacer" style="flex:1"></span>
         <button type="button" class="link-btn" data-hdel="${i}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
       <div class="grid2">
-        <div class="field"><label>%</label><input type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"></div>
-        <div class="field"><label>${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</label><input data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"></div>
-        <div class="field"><label>${L({es:'Timing',en:'Timing',id:'Waktu'})}</label><input data-hi="${i}" data-hkey="timing" value="${escAttr(h.timing)}" placeholder="${L({es:'ej. Mes 1 / +90 días',en:'e.g. Month 1 / +90 days',id:'cth. Bulan 1 / +90 hari'})}"></div>
-        <div class="field"><label>${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"></div>
-        <div class="field"><label>${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"></div>
-        <div class="field"><label>${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"></div>
+        <div class="field"><label for="${hid(i,'pct')}">%</label><input id="${hid(i,'pct')}" type="number" step="0.01" data-hi="${i}" data-hkey="pct" value="${escAttr(h.pct)}"></div>
+        <div class="field"><label for="${hid(i,'monto')}">${L({es:'Cantidad',en:'Amount',id:'Jumlah'})}</label><input id="${hid(i,'monto')}" data-hi="${i}" data-hkey="monto" value="${escAttr(h.monto)}"></div>
+        <div class="field"><label for="${hid(i,'timing')}">${L({es:'Timing',en:'Timing',id:'Waktu'})}</label><input id="${hid(i,'timing')}" data-hi="${i}" data-hkey="timing" value="${escAttr(h.timing)}" placeholder="${L({es:'ej. Mes 1 / +90 días',en:'e.g. Month 1 / +90 days',id:'cth. Bulan 1 / +90 hari'})}"></div>
+        <div class="field"><label for="${hid(i,'es')}">${L({es:'Texto (Español)',en:'Text (Spanish)',id:'Teks (Spanyol)'})}</label><input id="${hid(i,'es')}" data-hi="${i}" data-hkey="es" value="${escAttr(h.es)}"></div>
+        <div class="field"><label for="${hid(i,'en')}">${L({es:'Texto (English)',en:'Text (English)',id:'Teks (Inggris)'})}</label><input id="${hid(i,'en')}" data-hi="${i}" data-hkey="en" value="${escAttr(h.en)}"></div>
+        <div class="field"><label for="${hid(i,'id')}">${L({es:'Texto (Bahasa)',en:'Text (Bahasa)',id:'Teks (Bahasa)'})}</label><input id="${hid(i,'id')}" data-hi="${i}" data-hkey="id" value="${escAttr(h.id)}"></div>
       </div>
     </div>`).join('');
   const total = HITOS.reduce((t,h)=>t+(parseFloat(h.pct)||0),0);
@@ -4047,9 +4091,22 @@ async function openSavedContract(id){
      medias con SAVED_CONTRACT apuntando al contrato anterior. Cada clave nueva
      que se añada a DESIGN_DEFAULT repetiría el fallo sin esta fusión. */
   if(d.design){ DESIGN = deepMerge(structuredClone(DESIGN_DEFAULT), d.design); saveDesign(); }
-  if(d.annexes){ ANNEXES = d.annexes.map(sinPaginas); saveAnnexes(); rebuildAnnex(); }
-  if(d.clauses){ CLAUSES = d.clauses; saveClauses(); }
-  if(d.compradores){ COMPRADORES = d.compradores.map(c=>({...c})); saveCompradores(); rebuildComprador(); }
+  /* SIN `if(...)` DELANTE — 17-ago-2026, auditoría.
+     Estaban como `if(d.annexes){ … }`, y con eso una fila que NO trae la clave se
+     queda con lo que hubiera en memoria, o sea con los anexos, las cláusulas o los
+     adquirientes del contrato que se acabara de mirar. Con los contratos que se
+     guardan hoy no se nota (el payload siempre escribe la clave, aunque sea `[]`,
+     y `[]` pasa el `if` porque en JS es *truthy*): salta con las filas ANTIGUAS,
+     las de antes de que estas claves existieran — las mismas que ya obligaron a
+     fusionar DESIGN sobre los valores por defecto tras el fallo del 30-jul. En un
+     generador de documentos legales eso es el anexo de un cliente imprimiéndose en
+     el contrato de otro.
+     Es la lección que este mismo bloque ya aprendió doce líneas más abajo, donde
+     AUTO_ANX y AUTO_MASTER se ponen a cero SIN condición y el comentario explica
+     por qué. No había llegado a sus vecinas. */
+  ANNEXES = (d.annexes || []).map(sinPaginas); saveAnnexes(); rebuildAnnex();
+  CLAUSES = Array.isArray(d.clauses) ? d.clauses : []; saveClauses();
+  COMPRADORES = (d.compradores || []).map(c=>({...c})); saveCompradores(); rebuildComprador();
   // Las ediciones del texto fijo se guardaban pero no se restauraban: un contrato
   // con boilerplate retocado se reabría (o se abría desde otro equipo) con el
   // texto original y sin avisar. Se restauran solo las de ESTA plantilla.
@@ -4060,7 +4117,17 @@ async function openSavedContract(id){
   if(f.cuota_reserva_eur && !f.precio_reserva) f.precio_reserva = f.cuota_reserva_eur;
   if(f.plazo_meses && !f.plazo_pago_final_meses && slug==='ppjb_parcela') f.plazo_pago_final_meses = f.plazo_meses;
   populateForm(f);
-  HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : HITOS;
+  /* HITOS es el mismo caso que ANNEXES, con un agravante: si la fila no trae
+     `hitos` Y la plantilla de este contrato NO tiene calendario de pagos, nadie
+     reinicia la variable —`buildForm()` solo la rellena con los valores por
+     defecto cuando la plantilla trae `<!--hitos-->`—, así que se queda con el
+     calendario del contrato anterior. Y eso no se queda en la pantalla: el
+     siguiente guardado lo ESCRIBE en `datos.hitos` de esta fila, metiendo el plan
+     de pagos de otro cliente en un contrato donde ni se ve.
+     Si la plantilla sí tiene hitos, `HITOS` ya son sus valores por defecto y eso
+     es lo correcto para una fila antigua sin la clave. */
+  const plantillaConHitos = SECTIONS.some(s => s.special === 'hitos');
+  HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : (plantillaConHitos ? HITOS : []);
   ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : []; EMAIL_EXTRA_ADDING = false;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;

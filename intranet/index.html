@@ -26,7 +26,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <style>
@@ -331,9 +331,14 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<!-- Formato de importes: `lwFormatoImporte` (17-ago-2026). Esta pantalla
+     imprimia el dinero con toLocaleString('es'), que no recibe la moneda y
+     daba tres decimales donde Facturas da dos. El `?v=` lo sella el
+     pre-commit; el valor de aqui es solo el punto de partida. -->
+<script src="/contracts/assets/dinero.js?v=f37d55ff"></script>
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ── catálogo de herramientas ──────────────────────────────────────────
    Añadir una = una entrada aquí. `herr` es la herramienta de
@@ -579,7 +584,7 @@ async function ultimasOperaciones(sb){
         <td class="clave">${esc(r.num || '—')}</td>
         <td>${esc(r.que)}</td>
         <td>${esc(r.quien || 'sin nombre')}</td>
-        <td class="num flojo">${r.importe != null ? esc(Number(r.importe).toLocaleString('es') + ' ' + (r.moneda||'')) : ''}</td>
+        <td class="num flojo">${r.importe != null ? esc(lwFormatoImporte(r.importe, r.moneda)) : ''}</td>
         <td><span class="sui-tag ${r.estado[1]}">${esc(r.estado[0])}</span></td>
         <td class="flojo">${esc(dia(r.fecha))}</td>
       </tr>`).join('') +
@@ -675,7 +680,7 @@ async function pintarRail(sb, ficha){
         txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (numeroDe[r.contrato_id] ? ' · ' + numeroDe[r.contrato_id] : ''),
         val:'Pendiente', clase:'espera' })),
       ...(fac.data || []).filter(r => !r.anulada && r.venc).map(r => ({ d:dias(r.venc),
-        txt:r.numero, val:Number(r.total).toLocaleString('es') + ' ' + (r.moneda||'EUR') })),
+        txt:r.numero, val:lwFormatoImporte(r.total, r.moneda||'EUR') })),
     ].sort((a,b) => a.d - b.d).slice(0, 6);
     if(filas.length){
       cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Próximos vencimientos</div>' +

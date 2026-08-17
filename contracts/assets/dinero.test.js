@@ -4,7 +4,7 @@
    entre las dos implementaciones que habia. No son casos inventados: son los
    sitios exactos donde las dos versiones daban respuestas distintas sobre
    dinero, y estan aqui para que ninguna vuelva. */
-const { lwParseImporte: p } = require('./dinero.js');
+const { lwParseImporte: p, lwFormatoImporte: fmt } = require('./dinero.js');
 
 let fallos = 0;
 function es(entrada, esperado, porque){
@@ -41,5 +41,28 @@ es('-1.500,50', -1500.5, 'negativo con miles y decimales');
 es('- 200', -200, 'con espacio tras el signo');
 es('200-', 200, 'un guion al final no es un negativo');
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ESCRIBIR un importe — 17-ago-2026 (auditoria)
+   ══════════════════════════════════════════════════════════════════════════
+   Los tres primeros casos son las divergencias MEDIDAS entre `fmtMoneda` de
+   facturas y el `toLocaleString('es')` de Compradores y del Panel. Estan aqui
+   por lo mismo que los de arriba: para que ninguna de las dos vuelva.
+   El cuarto es el que de verdad no era estetico — la rupia no tiene centimos. */
+function fue(n, moneda, esperado, porque){
+  const dio = fmt(n, moneda);
+  if(dio !== esperado){ fallos++; console.error(`  FALLA  ${n} ${moneda} → "${dio}", se esperaba "${esperado}"\n         ${porque}`); }
+}
+
+fue(1234.5,       'EUR', '1.234,50 EUR',     'dos decimales siempre; Compradores daba "1234,5"');
+fue(164000,       'EUR', '164.000,00 EUR',   'el precio de una villa real; daba "164.000" sin centimos');
+fue(1234567.891,  'EUR', '1.234.567,89 EUR', 'se redondea a la moneda; daba tres decimales');
+fue(5000000,      'IDR', '5.000.000 IDR',    'la rupia NO tiene centimos: cero decimales');
+fue(1500,         'EUR', '1.500,00 EUR',     'agrupa tambien a cuatro cifras (de-DE, no es-ES)');
+fue(0,            'EUR', '0,00 EUR',         'cero es un importe y se imprime');
+fue(null,         'EUR', '0,00 EUR',         'sin dato imprime cero: quien no quiera eso comprueba antes');
+fue(-5000,        'EUR', '-5.000,00 EUR',    'el signo se conserva, igual que al leer');
+fue(99,           '',    '99,00',            'sin moneda no inventa ninguna');
+fue(12.345,       'USD', '12,35 USD',        'redondea al alza; Compradores imprimia "12,345"');
+
 if(fallos){ console.error(`\ndinero.test.js — ${fallos} fallo(s)`); process.exit(1); }
-console.log('OK dinero.test.js — 22 casos, incluidas las 6 divergencias que motivaron unificarlo');
+console.log('OK dinero.test.js — 32 casos: 22 al leer un importe y 10 al escribirlo');

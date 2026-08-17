@@ -16,8 +16,8 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -305,7 +305,7 @@
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================
    OPERACIONES — la vista que cruza lo que ya existe.
@@ -344,6 +344,21 @@ const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aproba
    6 contratos reales salian con la clave cruda de la base de datos. */
 const TIPO_ES = LW_TIPO_CONTRATO;
 
+/* TOPES DE LECTURA — y por qué se piden N+1 (17-ago-2026, auditoría)
+   ---------------------------------------------------------------------------
+   Esta pantalla existe para cruzar el dinero de TODO el equipo, y recortaba a 300
+   contratos sin decirlo: en el contrato 301 habría empezado a sumar sobre un
+   subconjunto con la misma cara de siempre. Hoy hay 73, así que la fecha en que
+   muerde depende del ritmo de ventas — el número que nadie va a estar mirando.
+   Los errores de consulta sí se avisaban (los `toast` de más abajo); un tope
+   alcanzado no. Un recorte que no se anuncia se lee como «está todo».
+
+   Se piden N+1 para poder DISTINGUIR «hay exactamente N» de «hay más de N»: con
+   `limit(N)` las dos cosas devuelven N filas y son indistinguibles. La de sobra
+   se descarta al pintar; solo sirve de señal. */
+const TOPE_CONTRATOS = 300, TOPE_FACTURAS = 500, TOPE_FIRMAS = 300;
+let RECORTES = [];   // ['contratos', 'facturas'…] — lo que llegó al tope
+
 /* ---------- carga ----------
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
@@ -356,15 +371,15 @@ async function cargar(){
     // directo: desde que la RLS de SELECT filtra por autor, una lectura directa
     // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
     // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
-    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(300),
+    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
     // `created_at` va en el select aunque no se pinte: PostgREST exige que la
     // columna del `order` esté proyectada cuando el origen es una función (a
     // diferencia de una tabla/vista, donde ordenar por una columna no
     // seleccionada es normal) — hallazgo del verificador tras el push, 42703.
-    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,created_at,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(500),
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,total,moneda,fecha_emision,anulada,created_at,venc:datos->fields->>fecha_vencimiento').order('created_at',{ascending:false}).limit(TOPE_FACTURAS + 1),
     // `snapshot_path` se pide solo para poder limpiar el almacenamiento al
     // borrar una operación: ver borrarOperacion().
-    SB.rpc('contrato_firmas_equipo').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(300),
+    SB.rpc('contrato_firmas_equipo').select('id,contrato_id,firmante_nombre,firmante_email,firmante_rol,estado,creado_en,expira_en,firmado_en,snapshot_path').order('creado_en',{ascending:false}).limit(TOPE_FIRMAS + 1),
     // fichas reales de comprador. Si la tabla todavía no existe (migración sin
     // correr), esto falla solo y la ficha cae al nombre suelto del contrato.
     SB.from('contrato_compradores').select('contrato_id,rol,clients(id,full_name,email,phone,passport_number,kyc_status)'),
@@ -385,6 +400,21 @@ async function cargar(){
     SB.rpc('contratos_cobrado_equipo'),
   ]);
   if(c.error) throw c.error;
+
+  /* ¿Alguna consulta llegó a su tope? Va AQUÍ ARRIBA y no más abajo: `facturas` y
+     `firmas` se leen dos líneas más adelante, y recortar después de eso dejaría a
+     esas dos con la fila de sobra dentro — una factura fantasma en los totales.
+     Se mira ANTES de descartarla, que es la única prueba de que hay más. */
+  RECORTES = [];
+  const recorta = (r, tope, nombre) => {
+    if(r.error || !r.data || r.data.length <= tope) return r.data || [];
+    RECORTES.push(nombre);
+    return r.data.slice(0, tope);
+  };
+  c.data = recorta(c, TOPE_CONTRATOS, 'contratos');
+  f.data = recorta(f, TOPE_FACTURAS,  'facturas');
+  s.data = recorta(s, TOPE_FIRMAS,    'firmas');
+
   const facturas = f.error ? [] : (f.data || []);
   const firmas   = s.error ? [] : (s.data || []);
   const vinculos = cc.error ? [] : (cc.data || []);
@@ -405,6 +435,26 @@ async function cargar(){
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
   if(s.error) toast('No se pudieron leer las firmas: ' + s.error.message);
   if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
+
+  /* Y si algo se recortó, se DICE. No con un toast, que se va en cuatro segundos:
+     con una marca fija en la pantalla, porque mientras el tope siga alcanzado los
+     totales de esta vista son parciales y hay que verlo cada vez que se entra.
+     Cuando este aviso salga de verdad, ese es el momento de mover la agregación a
+     una vista de Postgres — no antes. */
+  if(RECORTES.length){
+    const caja = document.querySelector('#avisoTope') || (() => {
+      const d = document.createElement('p');
+      d.id = 'avisoTope'; d.className = 'sui-aviso';
+      d.setAttribute('role', 'status');
+      const centro = document.querySelector('.sui-centro') || document.body;
+      centro.insertBefore(d, centro.firstChild);
+      return d;
+    })();
+    const cuantos = { contratos:TOPE_CONTRATOS, facturas:TOPE_FACTURAS, firmas:TOPE_FIRMAS };
+    caja.textContent = 'Esta vista no lo está sumando todo: hay más de '
+      + RECORTES.map(n => cuantos[n] + ' ' + n).join(' y más de ')
+      + ', y solo se han leído los más recientes. Los totales de abajo son parciales.';
+  }
 
   OPS = (c.data || []).map(ct => ({
     ...ct,

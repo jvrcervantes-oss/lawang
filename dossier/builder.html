@@ -18,13 +18,13 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="../contracts/assets/suite.css?v=68733a45">
+<link rel="stylesheet" href="../contracts/assets/suite.css?v=a9158f4c">
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=abd4a27b" data-herramienta="dossier"></script>
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="../contracts/assets/herramientas.js?v=119fb008"></script>
+<script src="../contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="../contracts/assets/topbar.js?v=88db9753" defer></script>
 <style>
 /* ============ tokens de marca (mismos que contracts/assets/brand.css) ============ */
@@ -1280,6 +1280,8 @@ function setZoom(dz){
    aviso encima del primero. */
 function toast(msg){
   const t=document.getElementById('toast'); t.textContent=msg;
+  // role=status, igual que suite-comun.js (17-ago-2026): este aviso era mudo.
+  if(!t.getAttribute('role')){ t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); t.setAttribute('aria-atomic','true'); }
   t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
   const v=getComputedStyle(document.documentElement).getPropertyValue('--t-toast').trim();
   const ms=parseFloat(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v)*1000) : 4200;

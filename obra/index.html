@@ -16,8 +16,8 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=68733a45">
-<script src="/contracts/assets/herramientas.js?v=119fb008"></script>
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=37cce51e"></script>
 <script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=abd4a27b" data-herramienta="obra"></script>
@@ -93,7 +93,7 @@
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=939005c5"></script>
-<script src="/contracts/assets/suite-comun.js?v=80f3d381"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================================
    Obra — fase, fecha de entrega y fotos por unidad
@@ -202,12 +202,12 @@ function abrir(id){
       : 'Sin contrato vinculado: aún no lo ve ningún comprador.',
     cuerpo: `
       <div class="dos">
-        <div class="campo"><label>Fase actual</label>
+        <div class="campo"><label for="o-fase">Fase actual</label>
           <select id="o-fase">
             <option value="">— sin empezar —</option>
             ${FASES.map(f => `<option value="${esc(f.clave)}" ${u.obra_fase===f.clave?'selected':''}>${esc(f.orden)}. ${esc(f.es)}</option>`).join('')}
           </select></div>
-        <div class="campo"><label>Entrega estimada</label>
+        <div class="campo"><label for="o-fecha">Entrega estimada</label>
           <input type="date" id="o-fecha" value="${esc(u.obra_fecha_entrega || '')}"></div>
       </div>
       <div class="campo"><label>Fotos (${fotos.length})</label>
