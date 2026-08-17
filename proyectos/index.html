@@ -54,6 +54,11 @@
      largo (nombre de proyecto + cartera en euros) se salía de la tarjeta.
      Grid propio en vez de tocar .sui-rejilla, que también usa #rejilla. */
   #carpetas{ grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+  /* La linea de documentacion: se lee como un dato mas de la carpeta, no como
+     un boton — pero es un enlace y al pasar por encima lo dice. */
+  .docs-proy{ display:inline-block; margin-top:4px; font-size:12.5px;
+    color:var(--texto-2); text-decoration:none; border-bottom:1px solid transparent; }
+  .docs-proy:hover{ color:var(--dl,#104C4F); border-bottom-color:currentColor; }
   .carpeta{ display:flex; flex-direction:column; gap:6px; align-items:flex-start; padding:var(--e5,20px) var(--e4); }
   .carpeta .n{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:26px; line-height:1.15; }
   .carpeta .sub{ font-size:13.5px; color:var(--texto-2); }
@@ -209,6 +214,13 @@ const antiFormula = s => {
 };
 
 let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
+/* `?proyecto=` entra directo a ese proyecto. Lo usa el enlace de vuelta desde
+   Documentacion (17-ago-2026): se salta de la documentacion al inventario del
+   mismo proyecto sin volver a elegirlo. Entrar asi abre en TABLA y no en
+   carpetas, porque quien llega con un proyecto en la URL ya eligio: enseñarle
+   las carpetas seria pedirle que vuelva a hacer el clic que acaba de hacer. */
+let PROY_URL = '';
+try{ PROY_URL = new URLSearchParams(location.search).get('proyecto') || ''; }catch(_){}
 // Borrar proyecto (12-ago-2026, petición del owner): "solo super_admin", más
 // estricto que el es_admin() (admin+super_admin) que ya usa el resto de la
 // suite — se guarda aparte, no se reutiliza CAN_EDIT_TEXT ni nada existente.
@@ -239,7 +251,7 @@ const valorDe = (u, campo) => {
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c, m, p, t] = await Promise.all([
+  const [u, c, m, p, t, dp] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
@@ -248,12 +260,32 @@ async function cargar(){
     SB.from('modelos_villa').select('proyecto, modelo, precio_construccion, moneda').order('modelo'),
     SB.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
     SB.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
+    // La documentacion de cada proyecto va en la misma tanda: es una consulta
+    // mas y evita que la carpeta se pinte dos veces (una sin la linea y otra
+    // con ella), que es como se ven los saltos.
+    SB.from('documentos_proyecto').select('proyecto').limit(2000),
   ]);
   CARGANDO = false;
   if(u.error){ FALLO = u.error.message; pintar(); return; }
+  /* Se aplica DESPUES de cargar, cuando ya se sabe que proyectos existen: un
+     nombre que no este se ignora y se ven todos, en vez de dejar la pantalla
+     vacia sin explicar por que. Una sola vez — si luego se cambia de proyecto a
+     mano, la URL no vuelve a imponerse. */
+  if(PROY_URL){
+    const hay = (p.data || []).some(x => x.nombre === PROY_URL)
+             || (u.data || []).some(x => x.proyecto === PROY_URL);
+    if(hay){ PROY = PROY_URL; vista('tabla'); }
+    PROY_URL = '';
+  }
   UNIDADES = u.data || [];
   CONTRATOS = c.error ? [] : (c.data || []);
   MODELOS   = m.error ? [] : (m.data || []);
+  /* Sin permiso sobre documentacion se queda en null y la carpeta no pinta la
+     linea, en vez de decir «sin documentacion» a quien simplemente no la ve. */
+  if(dp.error){ DOCS_POR_PROYECTO = null; }
+  else { DOCS_POR_PROYECTO = {};
+         for(const d of dp.data || []){ const k = d.proyecto || '';
+           DOCS_POR_PROYECTO[k] = (DOCS_POR_PROYECTO[k] || 0) + 1; } }
   // Sin permiso o con la tabla vacía se cae al fallback de arriba en vez de
   // dejar los desplegables en blanco.
   if(!p.error && p.data && p.data.length) PROYECTOS = p.data.map(x => x.nombre);
@@ -424,6 +456,16 @@ $('#rejilla').addEventListener('click', e => {
    proyecto que YA existe y volver a la última vista de contenido (tabla o
    rejilla, nunca carpetas — si no, un clic no llevaría a ningún sitio). */
 let VISTA_ANTES_CARPETAS = 'tabla';
+/* Cuantos documentos tiene cada proyecto. 17-ago-2026, peticion del owner:
+   «al final es lo mismo pero en dos sitios». No se fusionan las herramientas
+   —son dos trabajos distintos: una responde que queda libre y a que precio, la
+   otra donde esta el plano— pero desde la carpeta del proyecto se ve si tiene
+   documentacion y se salta a ella de un clic.
+
+   Solo se cuenta, no se listan: la carpeta es un resumen. Y se cuenta por
+   `proyecto_id`, no por el nombre — desde hoy es el vinculo de verdad. */
+let DOCS_POR_PROYECTO = null;   // lo rellena cargar(), en la misma tanda
+
 function pintarCarpetas(){
   const caja = $('#carpetas');
   if(CARGANDO){
@@ -452,13 +494,27 @@ function pintarCarpetas(){
     const btnBorrar = ES_SUPER_ADMIN
       ? `<button type="button" data-delproy="${esc(nom)}" title="Borrar proyecto" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">🗑️</button>`
       : '';
+    /* La documentacion del proyecto: enlace directo a su herramienta ya
+       filtrada. Si no tiene ninguno se dice tambien —que un proyecto no tenga
+       documentacion es justo lo que no se veia desde ningun sitio: hoy son 20
+       de 22—. El <a> lleva stopPropagation por delegacion (ver el listener de
+       #carpetas): sin eso, pulsar el enlace abriria ademas la carpeta. */
+    const nDocs = (DOCS_POR_PROYECTO || {})[nom];
+    const docs = DOCS_POR_PROYECTO == null ? '' :
+      `<a class="docs-proy" href="/documentacion/?proyecto=${encodeURIComponent(nom)}"
+          title="Ver la documentación de ${esc(nom)}">${
+        nDocs ? '📄 ' + nDocs + (nDocs === 1 ? ' documento' : ' documentos') : '📄 sin documentación'}</a>`;
     return `<div class="sui-ficha carpeta" data-proy="${esc(nom)}" style="cursor:pointer">
       <span class="n">📁 ${esc(nom)} <button type="button" data-editproy="${esc(nom)}" title="Editar nombre" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">✏️</button>${btnBorrar}</span>
       <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + eur(cartera, m):''}</span>
+      ${docs}
     </div>`;
   }).join('');
 }
 $('#carpetas').addEventListener('click', e => {
+  // El enlace a Documentacion navega y ya: si se dejara seguir, ademas abriria
+  // la carpeta y el usuario acabaria en Documentacion con la tabla detras.
+  if(e.target.closest('.docs-proy')) return;
   const ed = e.target.closest('[data-editproy]');
   if(ed){ editarProyecto(ed.dataset.editproy); return; }
   const del = e.target.closest('[data-delproy]');

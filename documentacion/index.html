@@ -104,6 +104,10 @@
       <div class="sui-filtros">
         <input class="sui-buscar" id="q" data-t-ph="buscar" placeholder="Buscar título, carpeta o proyecto…">
         <select class="sui-sel" id="fProyecto"><option value="" data-t="todosProyectos">Todos los proyectos</option></select>
+        <!-- El camino de vuelta: del documento al inventario. Solo aparece con
+             un proyecto elegido, porque «ver el inventario» de todos a la vez no
+             quiere decir nada. -->
+        <a class="lw-btn" id="verInventario" hidden><i class="ph ph-buildings"></i><span data-t="verInventario">Ver el inventario</span></a>
       </div>
       <div class="sui-filtros" id="arbol"></div>
       <div class="sui-filtros" id="filtros"></div>
@@ -182,6 +186,7 @@ const T = {
   // en Contratos, que tenia dos «Todos» con el mismo numero.
   ejeCarpeta: { es:'Carpeta', en:'Folder' },
   ejeTipo:    { es:'Tipo',    en:'Type' },
+  verInventario: { es:'Ver el inventario', en:'View inventory' },
   catPrecios: { es:'Precios', en:'Pricing' },
   catPlanos: { es:'Planos', en:'Floor plans' },
   catLegal: { es:'Legal', en:'Legal' },
@@ -317,7 +322,13 @@ const mb = b => !b ? '—' : b < 1048576 ? Math.round(b/1024) + ' KB' : (b/10485
 const fecha = f => f ? new Date(f).toLocaleDateString(IDIOMA === 'en' ? 'en-GB' : 'es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '';
 const esSuperAdmin = rol => rol === 'super_admin';
 
+/* `?proyecto=` en la URL entra ya filtrado. Lo usa el enlace que sale de la
+   carpeta de cada proyecto en /proyectos/ (17-ago-2026): «lo mismo pero en dos
+   sitios», dijo el owner, asi que al menos se salta de uno a otro sin volver a
+   elegir el proyecto a mano. Si el nombre no existe se ignora y se ven todos —
+   un filtro que deja la pantalla vacia parece que la herramienta esta rota. */
 let SB=null, DOCS=[], SEL=null, PROYECTOS=[], CAT='', PROY='', CARPETA='', Q='', ROL=null;
+try{ PROY = new URLSearchParams(location.search).get('proyecto') || ''; }catch(_){}
 let CARGANDO=true, FALLO=null;
 const ORDEN = { campo:'titulo', dir:'asc' };
 /* URL firmadas cacheadas por ruta: caducan a los 15 min — tiempo de sobra para
@@ -408,7 +419,18 @@ function visibles(){
   return suiOrdenar(f, ORDEN, (d, c) => d[c]);
 }
 
-function pintar(){ pintarProyectos(); pintarArbol(); pintarFiltros(); pintarTabla(); }
+function pintar(){
+  // El proyecto que llega por URL solo vale si de verdad existe: si no, se cae
+  // a «todos» en vez de dejar la pantalla en blanco sin explicar por que.
+  if(PROY && PROYECTOS.length && !PROYECTOS.includes(PROY)) PROY = '';
+  pintarProyectos(); pintarArbol(); pintarFiltros(); pintarTabla();
+  const inv = document.getElementById('verInventario');
+  if(inv){
+    inv.hidden = !PROY;
+    if(PROY){ inv.href = '/proyectos/?proyecto=' + encodeURIComponent(PROY);
+              inv.title = 'Unidades y precios de ' + PROY; }
+  }
+}
 
 function pintarProyectos(){
   $('#fProyecto').innerHTML = `<option value="">${t('todosProyectos')}</option>` +
