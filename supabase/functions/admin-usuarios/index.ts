@@ -1,0 +1,1 @@
+../../../contracts/edge/admin-usuarios/index.ts

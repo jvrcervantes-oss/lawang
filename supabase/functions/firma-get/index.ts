@@ -1,0 +1,1 @@
+../../../contracts/edge/firma-get/index.ts

@@ -1,0 +1,1 @@
+../../../contracts/edge/send-contract-email/index.ts
