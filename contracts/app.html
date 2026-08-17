@@ -881,6 +881,77 @@ async function cargarVinculablesPoa(){
   if(!error) VINCULABLES_POA = data || [];
 }
 
+/* ── EL PODER NOTARIAL DEL COMPRADOR — 17-ago-2026 ─────────────────────────
+   Al reves que `VINCULABLES_POA`: alli el poder elige de que contrato cuelga;
+   aqui un contrato elige BAJO QUE PODER actua el apoderado del comprador.
+
+   Decision del cliente (17-ago): UN solo poder vale para todos los contratos
+   del mismo comprador, no hace falta uno por escritura. Por eso el enlace va en
+   `contratos.poder_id` y no en `contrato_padre_id`: muchos contratos -> un
+   poder, y `padre` solo admite uno por fila.
+
+   Lo que resuelve de verdad: el nombre del apoderado del comprador, su NIK y la
+   fecha del poder se TECLEABAN a mano en cada Hak Sewa, copiando datos que
+   viven en el poder. Copiados a mano, derivan. Ahora se leen de su origen. */
+let PODERES = null;
+async function cargarPoderes(){
+  if(PODERES || !sb) return;
+  const { data, error } = await sb.from('contratos')
+    .select('id,numero,comprador_nombre,'
+          + 'adq1_nombre:datos->fields->>adq1_nombre,'
+          + 'apoderado:datos->fields->>adq_apoderado_nombre,'
+          + 'apoderado_viejo:datos->fields->>hsn_apoderado_nombre,'
+          + 'nik:datos->fields->>adq_apoderado_nik,'
+          + 'nik_viejo:datos->fields->>hsn_apoderado_nik,'
+          + 'fecha:datos->fields->>adq_poder_fecha,'
+          + 'fecha_vieja:datos->fields->>hsn_poder_fecha')
+    .eq('tipo','poa').order('created_at',{ascending:false}).limit(300);
+  // Los poderes de antes del renombrado traen las claves viejas: se normalizan
+  // aqui, igual que traducePoderViejo() hace al abrir uno.
+  if(!error) PODERES = (data||[]).map(p=>({
+    id:p.id, numero:p.numero,
+    otorgante: p.adq1_nombre || p.comprador_nombre || '',
+    apoderado: p.apoderado || p.apoderado_viejo || '',
+    nik:       p.nik       || p.nik_viejo       || '',
+    fecha:     p.fecha     || p.fecha_vieja     || '',
+  }));
+}
+/* Rellena del poder elegido lo que el documento cita de el. No se toca nada mas:
+   el apoderado del PROPIETARIO (`hsn_*`) es del otro lado de la mesa y no sale
+   de aqui. Si el poder no trae un dato, el campo se queda editable — un
+   documento imposible de completar es peor que un dato tecleado (mismo criterio
+   que syncPoaVinculado). */
+const PODER_DERIVA = { adq_apoderado_nombre:'apoderado', adq_apoderado_nik:'nik', adq_poder_fecha:'fecha' };
+let AUTO_PODER = {};
+function syncPoderVinculado(){
+  const sel = document.querySelector('[name="poder_vinculado"]');
+  if(!sel) return;
+  if(LOCKED) return;   // firmado: manda lo que dice el papel, no la fuente
+  /* Mismo guardarraíl que syncPoaVinculado: se compara DE QUÉ poder viene, no
+     el valor del campo. Con los campos bloqueados no hay "escrito a mano" que
+     respetar, y mirar el valor dejaba el automatismo clavado al reabrir un
+     contrato ya guardado. */
+  if(AUTO_PODER.__src === sel.value) return;
+  AUTO_PODER.__src = sel.value;
+  const poder = (PODERES||[]).find(p=>p.numero === sel.value);
+  for(const [campo, clave] of Object.entries(PODER_DERIVA)){
+    const el = document.querySelector(`[name="${campo}"]`);
+    if(!el) continue;
+    /* Se bloquea SOLO lo que el poder trae. Un poder al que le falte el NIK
+       dejaría el Hak Sewa imposible de terminar si el campo quedara de solo
+       lectura y vacío — mismo criterio que el Otorgante del POA. */
+    const valor = poder ? (poder[clave] || '') : '';
+    const bloquea = !!valor;
+    if(poder) el.value = valor || el.value;
+    el.readOnly = bloquea;
+    el.style.background = bloquea ? 'var(--rl)' : '';
+    el.style.color      = bloquea ? 'var(--muted)' : '';
+    el.style.cursor     = bloquea ? 'not-allowed' : '';
+    el.title = bloquea ? 'Viene del poder notarial vinculado — para cambiarlo, cambia el poder' : '';
+  }
+  renderDebounced();
+}
+
 /* ancho del hueco según el dato: un % o fecha no necesita tanto sitio como un nombre */
 function sizeClass(key){
   const t = FIELDTYPE[key] || 'text';
@@ -2077,6 +2148,7 @@ function aplicarReglasCampos(){
   syncResort();
   syncApoderadoHakSewa();
   syncPoaVinculado();
+  syncPoderVinculado();
   syncPrecioObraVinculada();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
@@ -2176,6 +2248,25 @@ const APODERADO_GRUPOS = {
   hsn_apoderado_nombre: ['hsn_apoderado_edad', 'hsn_apoderado_ocupacion', 'hsn_apoderado_direccion', 'hsn_apoderado_nik'],
   adq_apoderado_nombre: [null, null, null, 'adq_apoderado_nik'],
 };
+/* El Poder Notarial guardaba al apoderado del COMPRADOR en las claves del
+   VENDEDOR (`hsn_apoderado_*`, `hsn_poder_fecha`). Renombrado el 17-ago-2026.
+   Los poderes ya guardados siguen con las claves viejas, y PA00006 ni siquiera
+   se puede reescribir: tiene una firma pendiente y el semibloqueo rechaza tocar
+   `datos`. Asi que la traduccion se hace AL ABRIR, en memoria: el documento se
+   pinta bien desde hoy y la fila se corrige sola la proxima vez que se guarde.
+   Se puede retirar cuando no quede ningun `poa` con las claves viejas. */
+const POA_CLAVES_VIEJAS = {
+  hsn_apoderado_nombre: 'adq_apoderado_nombre',
+  hsn_apoderado_nik:    'adq_apoderado_nik',
+  hsn_poder_fecha:      'adq_poder_fecha',
+};
+function traducePoderViejo(fields){
+  if(!fields) return fields;
+  for(const [viejo, nuevo] of Object.entries(POA_CLAVES_VIEJAS)){
+    if(fields[viejo] && !fields[nuevo]){ fields[nuevo] = fields[viejo]; delete fields[viejo]; }
+  }
+  return fields;
+}
 async function syncApoderadoHakSewa(){
   for(const [selName, [edadK, ocupK, dirK, nikK]] of Object.entries(APODERADO_GRUPOS)){
     const sel = document.querySelector(`[name="${selName}"]`);
@@ -2200,7 +2291,7 @@ async function syncApoderadoHakSewa(){
     // privado para una imagen que no se va a renderizar es exponer un fichero
     // KYC sin que nadie lo mire. La maquinaria se queda: basta con devolver el
     // marcador a la plantilla para que vuelva a funcionar.
-    if(selName === 'hsn_apoderado_nombre' && templateHTML.includes('{{hsn_apoderado_ktp}}')
+    if(templateHTML.includes('{{' + selName.replace('_nombre', '_ktp') + '}}')
        && datos.ktp && sb && !APODERADO_KTP_URL[sel.value]){
       const { data } = await sb.storage.from('kyc').createSignedUrl(datos.ktp, 3600);
       if(data && data.signedUrl){ APODERADO_KTP_URL[sel.value] = data.signedUrl; renderDebounced(); }
@@ -2227,7 +2318,12 @@ function avisarMismoApoderado(){
 /* rellena hsn_apoderado_ktp con la signed URL ya resuelta (o '' si aún no ha
    llegado) — mismo sitio y mismo momento que applyPromotor(data). */
 function applyApoderado(data){
+  // Una por familia: `hsn_` es el apoderado del propietario y `adq_` el del
+  // comprador. Antes solo se rellenaba la del propietario y el Poder Notarial
+  // se colaba por ahi porque escribia en esas mismas claves; desde el renombrado
+  // del 17-ago el poder es `adq_`, asi que necesita la suya.
   data.hsn_apoderado_ktp = APODERADO_KTP_URL[data.hsn_apoderado_nombre] || '';
+  data.adq_apoderado_ktp = APODERADO_KTP_URL[data.adq_apoderado_nombre] || '';
 }
 
 /* Poder Notarial: el Otorgante sale del contrato vinculado (14-ago-2026).
@@ -2990,7 +3086,7 @@ function collect(){
 // coincidencia de nombre: salía de esc() y de campoFijo() sin escapar. Inerte hoy
 // porque ningún documento imprime {{firmante}}, pero un vector de inyección HTML
 // listo para activarse en cuanto lo hiciera (hallazgo de Seguridad, deploy 10-ago).
-const CAMPOS_IMAGEN_CRUDA = new Set(['firma_adquiriente', 'hsn_apoderado_ktp']);
+const CAMPOS_IMAGEN_CRUDA = new Set(['firma_adquiriente', 'hsn_apoderado_ktp', 'adq_apoderado_ktp']);
 function esc(v,k){ if(k && CAMPOS_IMAGEN_CRUDA.has(k)) return v; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* "Bonian Village by Balian Hills" volvió a ser dos campos el 7-ago (petición
@@ -3267,9 +3363,13 @@ const ETIQUETAS_POR_PLANTILLA = {
    _nota_apoderados_hak_sewa); esto solo decide cuáles se OFRECEN en cada
    documento. Un contrato ya guardado con un nombre que aquí no aparece lo
    conserva: buildField lo reinyecta como opción huérfana. */
+/* 17-ago-2026: el poder pasa a `adq_apoderado_nombre`. Ya no es «un mismo campo
+   con distinto catalogo» — son DOS campos distintos, cada uno con el suyo, que
+   es lo que siempre fueron. Este mapa se queda porque el Hak Sewa sigue
+   ofreciendo solo a los apoderados del propietario en su lado. */
 const OPCIONES_POR_PLANTILLA = {
   hak_sewa_notario: { hsn_apoderado_nombre: ['I WAYAN EKA ARYAWAN'] },
-  poa_notario:      { hsn_apoderado_nombre: ['NI LUH GEDE DIAH SURASTRI'] },
+  poa_notario:      { adq_apoderado_nombre: ['NI LUH GEDE DIAH SURASTRI'] },
 };
 /* Campos que en un documento concreto son de SOLO LECTURA (14-ago-2026,
    petición del owner: "si precargo datos de otro contrato no permitas su
@@ -3339,6 +3439,7 @@ function deriveSections(){
   [...inDoc].forEach(k=>{ if(k.startsWith('prom_')) inDoc.delete(k); });   // identidad del promotor: la rellena el selector de sociedad, no se teclea
   inDoc.delete('sociedad_firmante');   // tiene su propia sección (añadida abajo), que no caiga en "otros"
   inDoc.delete('hsn_apoderado_ktp');   // derivado del apoderado elegido (applyApoderado) — nunca un campo del form
+  inDoc.delete('adq_apoderado_ktp');   // idem, el del comprador
   inDoc.delete('adq2_firmante_nombre');   // derivado (applyRepresentanteComprador) — nunca un campo del form
   inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
   SECTIONS = src.map(s=>({ ...s, fields: s.fields.filter(f=>inDoc.has(f[0])) }))
@@ -3425,6 +3526,25 @@ function deriveSections(){
     if(g) g.fields.unshift(campo);
     else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
   }
+  /* Documento que CITA el poder del comprador -> desplegable para elegirlo.
+     Se detecta por lo que la plantilla imprime, no por una lista de slugs: hoy
+     solo el Hak Sewa lo cita, pero el dia que otro documento lo haga aparecera
+     solo. El propio poder queda fuera: el es la fuente, no cita a nadie. */
+  if(CURRENT.slug !== 'poa_notario'
+     && /\{\{adq_(?:apoderado_nombre|poder_fecha)\}\}/.test(templateHTML)){
+    const etiqueta = {es:'Poder notarial del comprador',en:'Buyer\u2019s power of attorney',id:'Surat kuasa pembeli'};
+    const opts = (PODERES||[]).map(p=>[p.numero,
+      p.numero+' · '+(p.otorgante||'sin otorgante')+(p.apoderado?' → '+p.apoderado:'')]);
+    // Sin poderes guardados no se ofrece nada: el campo no aparece y los tres
+    // datos siguen tecleandose como hasta hoy. Un desplegable vacio solo
+    // pregunta algo que no se puede contestar.
+    if(opts.length){
+      const campo = ['poder_vinculado', etiqueta, 'select', [['', '— sin poder vinculado —'], ...opts]];
+      const g = SECTIONS.find(s=>s.id==='gestion');
+      if(g) g.fields.unshift(campo);
+      else SECTIONS.unshift({ id:'gestion', tier:'gestion', title:{es:'Gestión del contrato',en:'Contract management',id:'Manajemen kontrak'}, fields:[campo] });
+    }
+  }
   // orden pedido por el cliente, igual en todos los contratos (los no listados, al final)
   const rank = id => { const i = FORM_ORDER.indexOf(id); return i<0 ? FORM_ORDER.length : i; };
   SECTIONS = SECTIONS.map((s,i)=>({s,i}))
@@ -3439,6 +3559,10 @@ async function loadTemplate(slug){
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
+  // El poder del comprador: hace falta ANTES de deriveSections(), que es quien
+  // decide si pinta el desplegable — y solo lo pinta si hay poderes guardados.
+  if(CURRENT.slug !== 'poa_notario' && /\{\{adq_(?:apoderado_nombre|poder_fecha)\}\}/.test(templateHTML))
+    await cargarPoderes();
   deriveSections();
   // Diseño: Supabase compartido (la plantilla "real") > caché local de este
   // navegador (edición sin guardar) > default de fábrica.
@@ -3686,6 +3810,10 @@ function contractPayload(){
     contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id
                     || ((VINCULABLES_POA||[]).find(c=>c.numero===data.poa_hs_vinculado)||{}).id
                     || null,
+    // Bajo que poder notarial actua el apoderado del comprador. Mismo criterio
+    // que el padre: se guarda el numero en `datos` y aqui se resuelve al id.
+    // La base comprueba que sea un `poa` y que sea del MISMO comprador.
+    poder_id: ((PODERES||[]).find(p=>p.numero===data.poder_vinculado)||{}).id || null,
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
@@ -4213,6 +4341,9 @@ async function openSavedContract(id){
   $('#tplPick').value = slug;
   buildForm();
   const d = data.datos || {};
+  // Poderes guardados antes del 17-ago: sus campos usaban las claves del
+  // apoderado del VENDEDOR. Se traducen aqui, en memoria (ver POA_CLAVES_VIEJAS).
+  if(data.tipo === 'poa') traducePoderViejo(d.fields);
   /* El diseño guardado se fusiona SOBRE los valores por defecto, igual que en
      loadDesign() y loadTemplate(). Asignarlo crudo era el fallo del 30-jul: los
      contratos guardados antes de que existiera `docBg` (CG00004, CG00005,

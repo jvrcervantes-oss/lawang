@@ -151,3 +151,5 @@ grant execute on function public.auditoria_firmas() to authenticated;
 --  la firma se completo y lo que toca es marcarla 'firmado'. Por eso el aviso es
 --  CRITICO y no un simple recordatorio: hay que mirar cual de los dos casos es.
 -- ═══════════════════════════════════════════════════════════════════════════
+
+-- (nota: el enlace poder_id vive en su propio fichero, poder_id.sql)
