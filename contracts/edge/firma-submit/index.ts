@@ -21,6 +21,10 @@ const ESTUDIO_EMAIL = Deno.env.get('ESTUDIO_EMAIL') || 'jcervantes@lawangpropert
 // del jsonb). Un correo rebotado por tamaño es un contrato que el cliente NO
 // recibe y de lo que nadie se entera.
 const MAX_ADJUNTO = 15 * 1024 * 1024;
+// Techo de la TANDA entera (PDF × destinatarios) dentro de una sola peticion de
+// firma. Por encima, todos reciben enlace en vez de adjunto: da igual repartir a
+// dos que a seis, la peticion pesa lo mismo. Ver la nota en repartirFirmado().
+const MAX_TANDA = 20 * 1024 * 1024;
 
 // Origen restringido: con '*' cualquier web podia lanzar la firma desde su
 // pagina. El token sigue siendo la credencial, pero esto cierra el paso a que
@@ -170,7 +174,24 @@ async function compartidos() {
 async function repartirFirmado(o: {
   numero: string; pdf: Uint8Array; path: string; compradores: any[]; proyecto: string;
 }) {
-  const grande = o.pdf.length > MAX_ADJUNTO;
+  /* ¿ADJUNTO O ENLACE? No basta con mirar el peso del PDF: hay que mirar el peso
+     TOTAL de la tanda, porque el adjunto se manda una vez POR DESTINATARIO y
+     todo ocurre dentro de la misma peticion de firma.
+
+     Medido el 17-ago-2026 sobre los contratos ya firmados con varios firmantes:
+       · CR00021 — 4 firmantes, PDF de 3,9 MB → 5 correos × 5,2 MB = 25,7 MB
+       · CR00015 — 2 firmantes, PDF de 8,8 MB → 3 correos × 11,5 MB = 34,4 MB
+     Cada uno de esos correos es un POST con el PDF en base64 hacia el emisor del
+     sitio, uno detras de otro. Cuando la funcion se queda sin tiempo a mitad del
+     bucle su `catch` NO llega a correr: no hay aviso, no hay registro, y solo
+     han salido los primeros. Es el fallo que reporto el owner — «solo el primero
+     y yo lo recibimos firmado» — y por eso no dejaba rastro en ningun sitio.
+
+     Con el enlace la peticion pesa lo mismo con dos destinatarios que con seis.
+     El enlace ya existia para PDFs grandes; lo unico que cambia es CUANDO se
+     usa. */
+  const tanda = o.pdf.length * Math.max(1, 1 + o.compradores.filter((c) => c.email).length);
+  const grande = o.pdf.length > MAX_ADJUNTO || tanda > MAX_TANDA;
   let enlace = '';
   if (grande) {
     // 30 días: el comprador tiene que poder volver a descargarlo sin pedirlo.
@@ -185,7 +206,7 @@ async function repartirFirmado(o: {
     'PT TEPI SUN GAI · PT SAN DAL WOODS',
   ].join('\n');
   const pie = grande
-    ? '\n\nEl documento pesa más de lo que admite el correo, así que va por enlace:\n' + enlace +
+    ? '\n\nEl documento va por enlace en vez de adjunto:\n' + enlace +
       '\n(El enlace caduca en 30 días. Si lo necesitas después, escríbenos.)'
     : '\n\nEl documento firmado va adjunto a este correo.';
 

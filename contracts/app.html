@@ -916,6 +916,80 @@ async function cargarPoderes(){
     fecha:     p.fecha     || p.fecha_vieja     || '',
   }));
 }
+/* ── UN PODER CUBRE TODOS LOS CONTRATOS DE SU COMPRADOR — 17-ago-2026 ───────
+   Decision del cliente: un solo Poder Notarial vale para todo, no hace falta uno
+   por escritura. Y decision del owner sobre DONDE se crea el vinculo: en el
+   poder, no en el contrato — porque el orden real es primero los Hak Sewa y
+   despues el poder, asi que al rellenar un contrato el poder aun no existe.
+
+   Al guardar un poder se enlazan de golpe todos los contratos de ese mismo
+   comprador. Sin preguntar: si un poder vale para todo, elegir cuales seria
+   trabajo inventado.
+
+   Se identifica al comprador por PASAPORTE o EMAIL, nunca por el nombre — mismo
+   criterio que el traspaso de parcela (LAW-51): el nombre se teclea a mano y una
+   tilde de mas daria un enlace fallado. Y NO se pisan los contratos que ya
+   cuelgan de otro poder: si alguien otorgo dos, el reparto entre ellos es una
+   decision humana, no algo que deba resolver un guardado.
+
+   La base valida cada enlace por su cuenta (valida_poder_id): esto solo propone,
+   no manda. Si un contrato no pasa la guarda, se queda fuera y se dice cuantos. */
+async function cubrirConEstePoder(poderId, poderNumero){
+  if(!sb) return;
+  try{
+    const f = collect();
+    const ids = [String(f.adq1_pasaporte||'').trim().toLowerCase(),
+                 String(f.adq1_email||'').trim().toLowerCase()].filter(Boolean);
+    if(!ids.length){
+      toast('El poder se guarda, pero sin pasaporte ni email del otorgante no se puede saber qué contratos cubre');
+      return;
+    }
+    const { data, error } = await sb.from('contratos')
+      .select('id,numero,poder_id,pas:datos->fields->>adq1_pasaporte,mail:datos->fields->>adq1_email')
+      .neq('tipo','poa').limit(500);
+    if(error || !data) return;
+    const suyos = data.filter(c => !c.poder_id && ids.some(i =>
+      i === String(c.pas||'').trim().toLowerCase() || i === String(c.mail||'').trim().toLowerCase()));
+    if(!suyos.length) return;
+    const r = await sb.from('contratos').update({ poder_id: poderId }).in('id', suyos.map(c=>c.id)).select('numero');
+    const n = (r.data||[]).length;
+    if(n) toast(poderNumero + ' pasa a cubrir ' + n + (n===1?' contrato: ':' contratos: ') + (r.data||[]).map(c=>c.numero).join(', '));
+  }catch(_){ /* el poder ya esta guardado: que esto falle no puede tumbarlo */ }
+}
+
+/* ── LOS PROYECTOS SE LEEN DE LA BASE, NO DE tokens.json — 17-ago-2026 ──────
+   El desplegable «Nombre del proyecto» era una lista de SIETE nombres escrita a
+   mano en tokens.json, mientras los proyectos de verdad viven en la tabla
+   `proyectos` y se dan de alta desde la herramienta de Proyectos.
+
+   Reportado por el cliente el 17-ago: dio de alta 14 proyectos esa mañana y
+   ninguno aparecia al hacer un contrato. Ni siquiera cuadraban los que si
+   estaban: la lista decia «Mejan», «Palm Field» y «Tamarind Rise» y la tabla
+   dice «Mejan Village S7», «Palm Field W5» y «Tamarind Rise W3, 3.1 y 3.2».
+
+   Estaba anotado desde el 11-ago como LAW-36 -«renombrar un proyecto no
+   actualiza las listas a mano de tokens.json»- y hoy ha mordido de verdad.
+
+   Un contrato guardado con un proyecto que ya no este en la tabla NO se pierde:
+   buildField reinyecta el valor como opcion huerfana (mismo mecanismo que los
+   apoderados). */
+let PROYECTOS_DB = null;
+async function cargarProyectos(){
+  if(PROYECTOS_DB || !sb) return;
+  const { data, error } = await sb.from('proyectos')
+    .select('nombre,resort').eq('activo', true).order('nombre');
+  // Si la consulta no llega (sin red) se cae a la lista de tokens.json: es
+  // vieja, pero peor es un desplegable vacio que no deja hacer el contrato.
+  if(!error) PROYECTOS_DB = data || [];
+}
+/* El resort del proyecto elegido: primero la tabla, y tokens.json de respaldo
+   para los proyectos viejos que aun no lo tengan puesto en la base. */
+function resortDe(nombre){
+  const enBase = (PROYECTOS_DB || []).find(p => p.nombre === nombre);
+  if(enBase && enBase.resort) return enBase.resort;
+  return ((TOKENS && TOKENS.resortPorProyecto) || {})[nombre] || '';
+}
+
 /* Aqui vivian `syncPoderVinculado()` y su tabla de derivacion. Se retiran con el
    selector del Hak Sewa (17-ago-2026): el vinculo se crea desde el PODER, que es
    quien sabe a que da poder, y el poder se hace DESPUES de los contratos. La
@@ -2178,7 +2252,7 @@ function syncResort(){
   if(!sel || !campo) return;
   const actual = campo.value.trim();
   if(actual && actual !== AUTO_RESORT){ AUTO_RESORT = ''; return; }
-  const resort = ((TOKENS && TOKENS.resortPorProyecto) || {})[sel.value] || '';
+  const resort = resortDe(sel.value);
   if(resort === actual) return;
   campo.value = resort;
   AUTO_RESORT = resort;
@@ -3432,6 +3506,16 @@ function deriveSections(){
     const opts = VINCULABLES.map(c=>[c.numero, c.numero+' · '+(c.nombre_contrato||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=> f[0]==='num_reserva_vinculada' ? [f[0], f[1], 'select', opts] : f); });
   }
+  /* Los proyectos, de la tabla `proyectos` y no de la lista a mano de
+     tokens.json (ver cargarProyectos). Va DESPUES de los catalogos por
+     plantilla para que mande la base: si algun dia una plantilla quisiera
+     ofrecer solo un subconjunto, ese caso se resuelve filtrando aqui, no
+     dejando una lista congelada en un fichero. */
+  if((PROYECTOS_DB||[]).length){
+    const opts = PROYECTOS_DB.map(p=>p.nombre);
+    SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
+      (f[0]==='proyecto_nombre' && f[2]==='select') ? [f[0], f[1], f[2], opts] : f); });
+  }
   const known = new Set(SECTIONS.flatMap(s=>s.fields.map(f=>f[0])));
   const missing = [...inDoc].filter(k=>!known.has(k));
   if(missing.length){
@@ -3522,6 +3606,8 @@ async function loadTemplate(slug){
   try{ templateHTML = await fetch(CURRENT.file+'?v='+Date.now()).then(r=>r.text()); }
   catch(_){ templateHTML='<body><p style="padding:20mm">Plantilla no encontrada.</p></body>'; }
   if(templateHTML.includes('{{num_reserva_vinculada}}')) await cargarVinculables();
+  // Los proyectos vivos, antes de deriveSections(), que es quien monta el select.
+  if(templateHTML.includes('{{proyecto_nombre}}')) await cargarProyectos();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
   deriveSections();
   // Diseño: Supabase compartido (la plantilla "real") > caché local de este
@@ -3909,6 +3995,7 @@ async function guardarContrato(){
     render();
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
+    if(tipo === 'poa') cubrirConEstePoder(data.id, data.numero);
   }catch(err){
     // El trigger `sincroniza_unidad_contrato` para el guardado si la parcela ya
     // es de otro contrato, o si el traspaso no es del mismo comprador (LAW-51).
