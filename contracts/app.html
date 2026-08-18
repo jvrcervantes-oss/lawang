@@ -4805,6 +4805,24 @@ $('#fmMail').addEventListener('click', async ()=>{
    siempre es quien creó el contrato (CR00025 lo creó otro agente). */
 const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
                   proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
+/* historial de contrato_eventos (sql/registro_eventos.sql): los escriben
+   triggers de la base — la app solo los pinta. quien=null → automatismo. */
+const REG_EVT = { creado:['Creado',''], editado:['Editado',''],
+  tipo_cambiado:['Cambio de tipo',''], enviado_a_firma:['Enlace de firma generado','activo'],
+  firma_abierta:['Enlace abierto por el firmante','activo'], firma_recogida:['Firma recogida','firmado'],
+  firma_anulada:['Firma anulada','malo'], firmado_del_todo:['Contrato cerrado (firmado)','firmado'],
+  desbloqueado:['Contrato reabierto','malo'], traspaso:['Colgado de su Bloqueo',''] };
+function regDetalleEvt(d){
+  d = d || {}; const t = [];
+  if(Array.isArray(d.campos) && d.campos.length)
+    t.push('campos: ' + d.campos.map(esc).join(', ') + (d.campos_total ? ' (+' + (d.campos_total - d.campos.length) + ' más)' : ''));
+  if(d.hitos) t.push('calendario de hitos');
+  if(d.rol) t.push(esc(String(d.rol).replace(/_/g,' ')) + (d.email ? ' · ' + esc(d.email) : ''));
+  if(d.de) t.push(esc(d.de) + ' → ' + esc(d.a || ''));
+  if(d.colgado_de) t.push('de ' + esc(d.colgado_de));
+  if(d.via) t.push(esc(d.via));
+  return t.join(' · ');
+}
 const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',
   { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
 function regEstadoFirma(f){
@@ -4820,13 +4838,15 @@ async function abrirRegistro(){
   if(!SAVED_CONTRACT){ toast('Guarda el contrato para ver su registro'); return; }
   $('#regOverlay').classList.add('open');
   const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">Cargando…</p>';
-  const [fmas, mails] = await Promise.all([
+  const [fmas, mails, evts] = await Promise.all([
     sb.rpc('contrato_firmas_equipo').eq('contrato_id', SAVED_CONTRACT.id).order('creado_en', { ascending:false }),
     sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
       .eq('contrato_id', SAVED_CONTRACT.id).order('enviado_en', { ascending:false }).limit(200),
+    sb.from('contrato_eventos').select('evento,detalle,quien,creado_en')
+      .eq('contrato_id', SAVED_CONTRACT.id).order('creado_en', { ascending:false }).limit(300),
   ]);
-  if(fmas.error || mails.error){
-    cont.innerHTML = '<p class="em-note">No se pudo cargar el registro: ' + esc((fmas.error||mails.error).message) + '</p>';
+  if(fmas.error || mails.error || evts.error){
+    cont.innerHTML = '<p class="em-note">No se pudo cargar el registro: ' + esc((fmas.error||mails.error||evts.error).message) + '</p>';
     return;
   }
   const hayActivo = (fmas.data||[]).some(f => regEstadoFirma(f)[1] === 'activo');
@@ -4859,7 +4879,20 @@ async function abrirRegistro(){
     + ((mails.data||[]).length
         ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Para</th><th>Vía</th><th>Quién</th><th>Asunto</th></tr></thead><tbody>'
           + mails.data.map(filaMail).join('') + '</tbody></table></div>'
-        : '<p class="em-note">Sin correos registrados. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.</p>');
+        : '<p class="em-note">Sin correos registrados. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.</p>')
+    + '<p class="reg-tit">Historial del contrato</p>'
+    + ((evts.data||[]).length
+        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Qué</th><th>Quién</th><th>Detalle</th></tr></thead><tbody>'
+          + evts.data.map(e => {
+              const [txt, cls] = REG_EVT[e.evento] || [e.evento, ''];
+              return '<tr><td style="white-space:nowrap">' + regFecha(e.creado_en) + '</td>'
+                + '<td><span class="reg-chip ' + cls + '">' + esc(txt) + '</span></td>'
+                + '<td>' + esc(e.quien || 'Sistema') + '</td>'
+                + '<td>' + regDetalleEvt(e.detalle) + '</td></tr>';
+            }).join('') + '</tbody></table></div>'
+          // las ediciones se apuntan desde el 18-ago-2026; lo anterior a esa
+          // fecha se reconstruyó de las fechas reales de creación y firma
+        : '<p class="em-note">Sin eventos registrados.</p>');
 }
 $('#btnRegistro').addEventListener('click', abrirRegistro);
 $('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove('open'));
