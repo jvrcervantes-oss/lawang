@@ -60,7 +60,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=3c3fc2c3">
+<link rel="stylesheet" href="assets/app.css?v=565920a3">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -143,6 +143,14 @@
           <span class="g">Cobro</span>
           <a class="btn ghost" id="btnFacturar" style="display:none" target="_blank" rel="noopener"
              title="Abre Facturas con este contrato ya elegido">💶 Facturar</a>
+        </div>
+        <!-- 6. El rastro (18-ago-2026, tras CR00025: un contrato "enviado" a un
+             email con typo y ningún sitio donde mirar a dónde había salido).
+             Enlaces de firma del contrato + log de correos_enviados. -->
+        <div class="pv-grupo" role="group" aria-label="Registro de envíos">
+          <span class="g">Rastro</span>
+          <button class="btn ghost" id="btnRegistro" style="display:none"
+                  title="Enlaces de firma de este contrato y a qué correos se ha enviado">📨 Registro</button>
         </div>
         <input type="file" id="lockFileInput" accept="application/pdf" style="display:none">
         <button class="btn ghost pv-close" id="btnClose">Cerrar</button>
@@ -248,6 +256,20 @@
         </details>
         <button type="button" class="btn primary" id="emSend" style="width:100%">Enviar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal "Registro" — solo lectura: los enlaces de firma del contrato (su
+       ESTADO, no el enlace: de un enlace solo se guarda su huella sha-256, así
+       que no se puede reconstruir — para reenviar se genera uno nuevo) y el
+       log de correos_enviados (quién escribe ahí: ver sql/registro_correos.sql). -->
+  <div class="cp-overlay" id="regOverlay">
+    <div class="cp-modal" style="width:min(820px,100%)">
+      <div class="cp-head">
+        <b>Registro de envíos</b>
+        <button type="button" class="tb-link" id="regClose">Cerrar</button>
+      </div>
+      <div class="em-body" id="regBody"><p class="em-note">Cargando…</p></div>
     </div>
   </div>
 
@@ -3569,6 +3591,10 @@ function updateSaveButton(){
   const proyectoFalta = CURRENT.slug === 'ppjb_bonian_c2' && !SAVED_CONTRACT
     && !(($('[name="proyecto_nombre"]')||{}).value||'').trim();
   btn.style.display = (LOCKED || proyectoFalta) ? 'none' : '';
+  const regBtn=$('#btnRegistro');
+  // También con el contrato BLOQUEADO: un contrato firmado es justo del que
+  // más veces hay que responder "¿a qué correo salió y cuándo?".
+  if(regBtn) regBtn.style.display = SAVED_CONTRACT ? '' : 'none';
   const facBtn=$('#btnFacturar');
   if(facBtn){
     // Se enseña incluso con el contrato BLOQUEADO: firmado es justo cuando se
@@ -4484,7 +4510,8 @@ async function enviarEmail(){
     // el WAF de Hostinger bloquea con 403 el HTML con portada de diseño
     // (LAW-30). La Edge renderiza el PDF vía Railway (fuera del WAF) y llama
     // a send_email.php ya solo con el PDF — mismo patrón que firma-submit.
-    const payload = { to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:pdfFilename(), html: buildDoc() };
+    // contrato_id: la Edge lo usa para dejar la fila en correos_enviados (registro de envíos)
+    const payload = { to, subject:$('#emSubject').value, message:$('#emMessage').value, filename:pdfFilename(), html: buildDoc(), contrato_id: SAVED_CONTRACT.id };
     if(file){ payload.filename = file.name; payload.pdf_base64 = await blobToBase64(file); }
     const s = await sb.auth.getSession();
     const token = s && s.data && s.data.session && s.data.session.access_token;
@@ -4749,11 +4776,93 @@ $('#fmMail').addEventListener('click', async ()=>{
       body: JSON.stringify({ to:FIRMA_ENVIO.to, subject:'Firma de documento — Lawang Tropical Properties',
                              message:msg, attach:false }) });
     const d = await r.json().catch(()=>({ ok:false, error:'Respuesta inválida del servidor' }));
-    if(d.ok) toast('Enlace enviado a ' + FIRMA_ENVIO.to);
+    if(d.ok){
+      toast('Enlace enviado a ' + FIRMA_ENVIO.to);
+      // registro de envíos: este es el ÚNICO correo de la suite que sale del
+      // navegador directo a send_email.php (los demás pasan por una Edge que
+      // ya registra), así que la fila la inserta el propio navegador. El correo
+      // ya salió: si el log falla se avisa en consola y no se molesta al agente.
+      if(SAVED_CONTRACT && SAVED_CONTRACT.id){
+        const { error:eLog } = await sb.from('correos_enviados').insert({
+          contrato_id: SAVED_CONTRACT.id, para: FIRMA_ENVIO.to,
+          asunto: 'Firma de documento — Lawang Tropical Properties',
+          via: 'enlace_firma', enviado_por: MI_EMAIL });
+        if(eLog) console.error('correos_enviados: ' + eLog.message);
+      }
+    }
     else toast(d.error || 'No se pudo enviar');
   }catch(err){ toast('Error: ' + (err.message || err)); }
   btn.disabled=false; btn.textContent='Enviar por email';
 });
+
+/* ---------- modal Registro: enlaces de firma + correos enviados ----------
+   18-ago-2026, tras CR00025: un contrato salió a un email con typo y no había
+   NINGÚN sitio donde mirar a dónde se había enviado. Los correos los apunta
+   quien los manda (las Edges y fmMail) en `correos_enviados`; los enlaces de
+   firma ya vivían en `contrato_firmas` — aquí solo se enseñan juntos.
+   Las firmas se leen por el RPC contrato_firmas_equipo y no por la tabla: la
+   RLS directa solo enseña las de MIS contratos, y quien atiende al cliente no
+   siempre es quien creó el contrato (CR00025 lo creó otro agente). */
+const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
+                  proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
+const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',
+  { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+function regEstadoFirma(f){
+  if(f.estado === 'firmado') return ['Firmada', 'firmado'];
+  if(f.estado === 'anulado') return ['Anulada', 'malo'];
+  if(f.estado === 'pendiente'){
+    if(f.expira_en && new Date(f.expira_en) < new Date()) return ['Caducado', 'malo'];
+    return ['Activo', 'activo'];
+  }
+  return [f.estado || '—', ''];
+}
+async function abrirRegistro(){
+  if(!SAVED_CONTRACT){ toast('Guarda el contrato para ver su registro'); return; }
+  $('#regOverlay').classList.add('open');
+  const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">Cargando…</p>';
+  const [fmas, mails] = await Promise.all([
+    sb.rpc('contrato_firmas_equipo').eq('contrato_id', SAVED_CONTRACT.id).order('creado_en', { ascending:false }),
+    sb.from('correos_enviados').select('para,asunto,via,enviado_por,enviado_en')
+      .eq('contrato_id', SAVED_CONTRACT.id).order('enviado_en', { ascending:false }).limit(200),
+  ]);
+  if(fmas.error || mails.error){
+    cont.innerHTML = '<p class="em-note">No se pudo cargar el registro: ' + esc((fmas.error||mails.error).message) + '</p>';
+    return;
+  }
+  const hayActivo = (fmas.data||[]).some(f => regEstadoFirma(f)[1] === 'activo');
+  const filaFirma = f => {
+    const [txt, cls] = regEstadoFirma(f);
+    return '<tr><td>' + esc(f.firmante_nombre || '—')
+      + '<br><span class="em-note">' + esc(String(f.firmante_rol||'').replace(/_/g,' ')) + '</span></td>'
+      + '<td>' + esc(f.firmante_email || '—') + '</td>'
+      + '<td><span class="reg-chip ' + cls + '">' + esc(txt) + '</span></td>'
+      + '<td>' + regFecha(f.creado_en) + '</td>'
+      + '<td>' + (f.estado === 'firmado' ? regFecha(f.firmado_en) : regFecha(f.expira_en)) + '</td></tr>';
+  };
+  const filaMail = m =>
+    '<tr><td style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
+    + '<td>' + esc(m.para) + '</td>'
+    + '<td>' + esc(REG_VIA[m.via] || m.via) + '</td>'
+    + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
+    + '<td>' + esc(m.asunto) + '</td></tr>';
+  cont.innerHTML =
+      '<p class="reg-tit">Enlaces de firma</p>'
+    + ((fmas.data||[]).length
+        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Firmante</th><th>Email</th><th>Estado</th><th>Creado</th><th>Expira / Firmado</th></tr></thead><tbody>'
+          + fmas.data.map(filaFirma).join('') + '</tbody></table></div>'
+          // de un enlace solo se guarda su huella sha-256 (nunca el enlace):
+          // no se puede volver a enseñar — reenviar = mandarlo otra vez desde
+          // "Enviar a firma", que reutiliza el token vivo mientras no caduque
+          + (hayActivo ? '<p class="em-note">El enlace activo no se puede mostrar aquí (solo se guarda su huella, no el enlace). Para reenviarlo: «✍︎ Enviar a firma» → Enviar por email.</p>' : '')
+        : '<p class="em-note">Este contrato no se ha enviado a firma electrónica.</p>')
+    + '<p class="reg-tit">Correos enviados</p>'
+    + ((mails.data||[]).length
+        ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Para</th><th>Vía</th><th>Quién</th><th>Asunto</th></tr></thead><tbody>'
+          + mails.data.map(filaMail).join('') + '</tbody></table></div>'
+        : '<p class="em-note">Sin correos registrados. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.</p>');
+}
+$('#btnRegistro').addEventListener('click', abrirRegistro);
+$('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove('open'));
 
 /* ---------- sesión (Supabase Auth) ----------
    La página en sí sigue siendo estática — lo que de verdad protege los datos

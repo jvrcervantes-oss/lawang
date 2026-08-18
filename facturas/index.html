@@ -866,6 +866,9 @@ $('#mailSend').onclick = async () => {
       method:'POST', headers: { 'content-type':'application/json', authorization:'Bearer ' + (tok || '') },
       body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
         filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
+        // ids para el registro de envíos (correos_enviados): la Edge deja la
+        // fila con via 'factura' al confirmar el envío
+        factura_id: SAVED.id, contrato_id: CONTRATO_ID || null,
         html: paginaParaEmail() }) });
     const res = await r.json().catch(() => ({ ok:false, error:'Respuesta inválida del servidor' }));
     if(res.ok){

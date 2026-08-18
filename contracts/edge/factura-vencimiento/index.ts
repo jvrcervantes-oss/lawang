@@ -66,7 +66,10 @@ const b64 = (u8: Uint8Array) => {
   return btoa(s);
 };
 
-async function enviarEmail(p: { to: string; subject: string; message: string; filename?: string; pdfB64?: string }) {
+async function enviarEmail(p: { to: string; subject: string; message: string; filename?: string; pdfB64?: string;
+  // registro de envíos (correos_enviados) — mismo contrato que en firma-submit:
+  // se inserta tras el ok y un fallo del log nunca revienta el envío
+  log?: { contrato_id?: string | null; factura_id?: string | null; via: string } }) {
   const r = await fetch(SITIO + '/contracts/api/send_email.php', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
@@ -77,6 +80,13 @@ async function enviarEmail(p: { to: string; subject: string; message: string; fi
   });
   const t = await r.text();
   if (!r.ok || !t.includes('"ok":true')) throw new Error('email a ' + p.to + ': ' + t.slice(0, 180));
+  if (p.log) {
+    const { error } = await sb.from('correos_enviados').insert({
+      contrato_id: p.log.contrato_id ?? null, factura_id: p.log.factura_id ?? null,
+      para: p.to, asunto: p.subject, via: p.log.via, enviado_por: null,
+    });
+    if (error) console.error('correos_enviados: ' + error.message);
+  }
 }
 
 const hoyISO = () => new Date().toISOString().slice(0, 10);
@@ -212,6 +222,7 @@ Deno.serve(async (req) => {
           '\n\nLos datos para la transferencia están en la propia factura. Si el pago ya está en camino, ignora este aviso.' +
           '\n\n\nLawang Tropical Properties',
         filename: ins.data.numero + '.pdf', pdfB64: b64(pdf),
+        log: { contrato_id: v.contrato_id, factura_id: ins.data.id, via: 'factura_auto' },
       });
       const marcaEnv = await sb.from('facturas')
         .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', ins.data.id);
@@ -223,6 +234,7 @@ Deno.serve(async (req) => {
           message: 'Factura ' + ins.data.numero + ' (' + importe + ') emitida automáticamente por el vencimiento del ' +
             v.fecha + ' de ' + (ct.numero || '') + ' y enviada a ' + para + '.\n\n' + descripcion,
           filename: ins.data.numero + '.pdf', pdfB64: b64(pdf),
+          log: { contrato_id: v.contrato_id, factura_id: ins.data.id, via: 'factura_auto' },
         }).catch((e) => console.error('copia al estudio:', (e as Error).message));
       }
       emitidas.push(etiqueta + ' → ' + ins.data.numero + ' (' + importe + ') a ' + para);

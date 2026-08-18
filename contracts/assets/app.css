@@ -381,6 +381,19 @@
     border-radius:var(--r-sm); color:var(--va); background:var(--field-bg); resize:vertical; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
   .em-body input:focus, .em-body textarea:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
   .em-note{ font-size:11.5px; color:var(--muted); margin:0; text-transform:none; letter-spacing:0; }
+  /* ── modal Registro (18-ago-2026, tras CR00025): enlaces de firma + correos ──
+     Los colores de los chips son los del set CVD-validado de la suite
+     (vencimientos): teal #0E6B70 = vivo, verde marca = cerrado bien,
+     rojo #9E2F26 = caducado/anulado. */
+  .reg-tit{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:6px 0 0; }
+  .reg-envoltura{ overflow-x:auto; }
+  .reg-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .reg-tabla th{ text-align:left; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .reg-tabla td{ padding:7px 8px; border-bottom:1px solid var(--line); color:var(--va); vertical-align:top; }
+  .reg-chip{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.04em; padding:1px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+  .reg-chip.activo{ color:#0E6B70; border-color:#0E6B70; }
+  .reg-chip.firmado{ color:var(--dl); border-color:var(--dl); }
+  .reg-chip.malo{ color:#9E2F26; border-color:#9E2F26; }
   @media (max-width:640px){
     .cp-cols{ display:none; }
     .cp-row{ grid-template-columns:1fr; gap:2px; }

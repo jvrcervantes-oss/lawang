@@ -97,6 +97,10 @@ function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: str
    están resueltos y probados en `contracts/api/send_email.php`. */
 async function enviarEmail(p: {
   to: string; subject: string; message: string; filename?: string; pdfB64?: string;
+  // registro de envíos (correos_enviados): quién llama dice de qué contrato /
+  // factura sale el correo y por qué vía. Sin `log` no se registra (no queda
+  // ningún llamador así, pero el envío nunca depende del log).
+  log?: { contrato_id?: string | null; factura_id?: string | null; via: string };
 }) {
   const r = await fetch(SITIO + '/contracts/api/send_email.php', {
     method: 'POST',
@@ -115,6 +119,15 @@ async function enviarEmail(p: {
   });
   const t = await r.text();
   if (!r.ok || !t.includes('"ok":true')) throw new Error('email a ' + p.to + ': ' + t.slice(0, 200));
+  if (p.log) {
+    // el correo YA salió: un fallo del log se anota y no revienta el flujo
+    // (perder una fila de registro < repetir un envío al cliente)
+    const { error } = await sb.from('correos_enviados').insert({
+      contrato_id: p.log.contrato_id ?? null, factura_id: p.log.factura_id ?? null,
+      para: p.to, asunto: p.subject, via: p.log.via, enviado_por: null,
+    });
+    if (error) console.error('correos_enviados: ' + error.message);
+  }
 }
 
 const b64 = (u8: Uint8Array) => {
@@ -193,6 +206,7 @@ async function compartidos() {
    le inventa una. */
 async function repartirFirmado(o: {
   numero: string; pdf: Uint8Array; path: string; compradores: any[]; proyecto: string;
+  contratoId: string;
 }) {
   /* ¿ADJUNTO O ENLACE? No basta con mirar el peso del PDF: hay que mirar el peso
      TOTAL de la tanda, porque el adjunto se manda una vez POR DESTINATARIO y
@@ -249,7 +263,8 @@ async function repartirFirmado(o: {
         (o.proyecto ? ' (' + o.proyecto + ')' : '') + ', ya firmado.' +
         '\n\nGuárdalo: es el documento con el registro de firma electrónica que acredita la operación.' +
         pie + cola;
-    try { await enviarEmail({ to: d.to, subject: asunto, message: cuerpo, ...adjunto }); }
+    try { await enviarEmail({ to: d.to, subject: asunto, message: cuerpo, ...adjunto,
+                              log: { contrato_id: o.contratoId, via: 'firma' } }); }
     catch (e) { errores.push(String((e as Error).message)); }
   }
   if (errores.length) throw new Error(errores.join(' | '));
@@ -341,6 +356,7 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
       '\n\nLos datos para la transferencia están en la propia factura.' +
       '\n\n\nLawang Tropical Properties',
     filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+    log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'factura_auto' },
   });
   // Copia al estudio, para que la emisión no dependa de mirar el panel.
   if (para !== ESTUDIO_EMAIL) {
@@ -350,6 +366,7 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
       message: 'Factura ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
         o.numero + ' y enviada a ' + para + '.\n\n' + descripcion,
       filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+      log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'factura_auto' },
     });
   }
   return { emitida: true, mensaje: 'factura ' + fila.numero + ' emitida y enviada a ' + para };
@@ -461,6 +478,7 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
       'a medida que vence.' +
       '\n\n\nLawang Tropical Properties',
     filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+    log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'proforma' },
   });
   const marcar = await sb.from('facturas')
     .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', fila.id);
@@ -475,6 +493,7 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
       message: 'Proforma ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
         o.numero + ' y enviada a ' + para + '.',
       filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+      log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'proforma' },
     });
   }
   return { emitida: true, mensaje: 'proforma ' + fila.numero + ' emitida y enviada a ' + para };
@@ -651,6 +670,7 @@ Deno.serve(async (req) => {
             message: 'Hola' + (siguiente.nombre ? ' ' + siguiente.nombre.split(' ')[0] : '') +
               ', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: ' + link +
               '\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties',
+            log: { contrato_id: claimed.contrato_id, via: 'enlace_firma' },
           });
         }
       } catch (e) {
@@ -747,7 +767,7 @@ Deno.serve(async (req) => {
     ].filter((c) => c.nombre);
 
     try {
-      await repartirFirmado({ numero, pdf, path, compradores,
+      await repartirFirmado({ numero, pdf, path, compradores, contratoId: claimed.contrato_id,
                               proyecto: String((ct as any).proyecto_nombre ?? (ct as any).fields?.proyecto_nombre ?? '') });
     } catch (e) {
       const m = 'contrato ' + numero + ' firmado pero NO repartido por email: ' + (e as Error).message;

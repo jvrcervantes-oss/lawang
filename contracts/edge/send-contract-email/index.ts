@@ -89,6 +89,12 @@ Deno.serve(async (req) => {
     const filename = String(body.filename ?? 'contrato.pdf');
     const html = String(body.html ?? '');
     const pdfManual = String(body.pdf_base64 ?? '');
+    // ancla para el registro de envíos (correos_enviados): el que llama dice de
+    // qué contrato/factura sale el correo. Solo uuids válidos — cualquier otra
+    // cosa se ignora y el envío sigue: el log nunca puede vetar un correo.
+    const esUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    const contratoId = esUuid(String(body.contrato_id ?? '')) ? String(body.contrato_id) : null;
+    const facturaId  = esUuid(String(body.factura_id ?? ''))  ? String(body.factura_id)  : null;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return json({ ok: false, error: 'destinatario_invalido' }, 400);
     if (!html && !pdfManual) return json({ ok: false, error: 'falta_html_o_pdf' }, 400);
 
@@ -122,6 +128,19 @@ Deno.serve(async (req) => {
     });
     const t = await r.text();
     if (!r.ok || !t.includes('"ok":true')) return json({ ok: false, error: 'send_email: ' + t.slice(0, 300) }, 502);
+
+    // Registro de envíos (correos_enviados): el correo YA salió — si el log
+    // falla se anota en consola y se devuelve ok igualmente, porque devolver
+    // error aquí haría que el usuario lo reenviara por duplicado.
+    if (contratoId || facturaId) {
+      const { error: eLog } = await admin.from('correos_enviados').insert({
+        contrato_id: contratoId, factura_id: facturaId,
+        para: to, asunto: subject,
+        via: facturaId ? 'factura' : 'manual',
+        enviado_por: quien.user.email ?? null,
+      });
+      if (eLog) console.error('correos_enviados: ' + eLog.message);
+    }
     return json({ ok: true });
   } catch (e) {
     return json({ ok: false, error: String((e as Error)?.message ?? e) }, 500);
