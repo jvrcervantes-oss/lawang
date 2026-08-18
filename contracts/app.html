@@ -60,7 +60,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=ea48c46c">
+<link rel="stylesheet" href="assets/app.css?v=3c3fc2c3">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -2232,75 +2232,116 @@ async function cargarUnidadesDelProyecto(proyecto){
   pintarSelectorParcela();
 }
 function pintarSelectorParcela(){
+  /* MULTI-PARCELA — 18-ago-2026 (encargo del owner): un mismo Bloqueo o una
+     misma Carta pueden llevar VARIAS parcelas. El valor sigue siendo el campo
+     `parcela_codigo` de siempre, ahora como lista separada por comas («A4, A5»):
+     las plantillas la imprimen tal cual, y un contrato viejo con un código es
+     una lista de uno — cero migración. El patrón de UI es el del teléfono:
+     el dato real vive en un input OCULTO con name=, y lo visible (chips + el
+     desplegable de añadir) no lleva name para que collect() siga viendo un
+     único elemento por campo. El trigger de la base ya valida por parcela
+     (sql/parcelas_multiples.sql): esto solo evita ofrecer lo que fallaría. */
   const caja = document.querySelector('.field[data-key="parcela_codigo"]');
   if(!caja) return;
   const campo = caja.querySelector('[name="parcela_codigo"]');
   const valor = campo ? campo.value : '';
+  const elegidas = valor.split(',').map(x=>x.trim()).filter(Boolean);
   const libres = UNIDADES_PROY.lista;
-  const yaEra = campo && campo.tagName === 'SELECT';
 
   if(!libres.length){
-    // sin inventario: texto libre. Se rehace solo si venía siendo desplegable.
-    if(yaEra){
-      campo.outerHTML = `<input name="parcela_codigo" type="text" value="${escAttr(valor)}" autocomplete="off">`;
+    // sin inventario: texto libre de siempre (se pueden teclear comas a mano)
+    if(!campo || campo.type === 'hidden' || campo.tagName === 'SELECT'){
+      caja.querySelector('.parcelas-multi')?.remove();
       caja.querySelector('.hint-unidades')?.remove();
+      if(campo) campo.outerHTML = `<input name="parcela_codigo" type="text" value="${escAttr(valor)}" autocomplete="off">`;
       wireCampoParcela();
     }
     return;
   }
   const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
-  const ops = libres.map(u => {
+  const ops = libres.filter(u => !elegidas.includes(u.codigo)).map(u => {
     const tomada = u.contrato_id && u.contrato_id !== mio;
-    // Ocupada por una Carta de Reserva y estamos emitiendo el Bloqueo: es el
-    // paso normal de la venta, se puede elegir. La base de datos aplica la
-    // misma regla (sql/parcela_traspaso_carta_a_bloqueo.sql) — esto es solo
-    // para no enseñar deshabilitado algo que sí se puede hacer.
     const modo = tomada ? estadoTraspaso(u) : 'no';
     const traspaso = modo === 'ok';
     const suNum = (u.ocupante && u.ocupante.numero) || 'una Carta de Reserva';
-    // Cada motivo dice lo suyo: "ya asignada" a secas sobre una Carta del mismo
-    // cliente haría pensar que el traspaso no existe, y sobre una de otro
-    // cliente escondería que el problema es de quién es, no de que esté ocupada.
     const nota = traspaso        ? 'reservada en ' + suNum + ' · se traspasa a este contrato'
                : modo === 'otro' ? 'reservada en ' + suNum + ' · de otro comprador'
                : modo === 'sin_datos' ? 'reservada en ' + suNum + ' · falta pasaporte o email para traspasarla'
                : tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '');
     const partes = [u.codigo, u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : '',
                     u.precio ? fmtImporte(Number(u.precio)) + ' ' + (u.moneda||'EUR') : '', nota];
-    return `<option value="${escAttr(u.codigo)}" ${tomada&&!traspaso?'disabled':''} ${u.codigo===valor?'selected':''}>${
+    return `<option value="${escAttr(u.codigo)}" ${tomada&&!traspaso?'disabled':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
-  // El valor guardado se conserva aunque ya no esté en la lista (una unidad que
-  // se borró del inventario): perderlo cambiaría lo que imprime el contrato.
-  const suelto = valor && !libres.some(u => u.codigo === valor)
-    ? `<option value="${escAttr(valor)}" selected>${escAttr(valor)} · fuera del inventario</option>` : '';
-  const html = `<select name="parcela_codigo"><option value="">— elegir parcela —</option>${suelto}${ops}</select>`;
-  if(campo) campo.outerHTML = html; else caja.insertAdjacentHTML('beforeend', html);
-  // Se rehace en vez de conservarse: el contador de traspasables depende del
-  // pasaporte del comprador, que se teclea después. Dejándolo puesto se quedaba
-  // con la cuenta de antes de saber quién compra.
+
+  // chips de lo elegido (la ✕ quita esa parcela) + añadidor sin name
+  const chips = elegidas.map(cod => {
+    const u = libres.find(x => x.codigo === cod);
+    const detalle = u ? [u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : ''].filter(Boolean).join(' · ')
+                      : 'fuera del inventario';
+    return `<span class="parcela-chip">${esc(cod)}${detalle ? ` <i>${esc(detalle)}</i>` : ''}
+      <button type="button" data-quitar-parcela="${escAttr(cod)}" aria-label="Quitar la parcela ${escAttr(cod)}">✕</button></span>`;
+  }).join('');
+  const html =
+    `<input type="hidden" name="parcela_codigo" value="${escAttr(elegidas.join(', '))}">
+     <div class="parcelas-multi">
+       ${chips ? `<div class="parcela-chips">${chips}</div>` : ''}
+       <select class="parcela-add" aria-label="Añadir parcela">
+         <option value="">— ${elegidas.length ? 'añadir otra parcela' : 'elegir parcela'} —</option>${ops}
+       </select>
+     </div>`;
+  if(campo){ campo.outerHTML = html; caja.querySelector('.parcelas-multi + .parcelas-multi')?.remove(); }
+  else caja.insertAdjacentHTML('beforeend', html);
+  // si el reemplazo dejó un bloque visible viejo, fuera (el nuevo va pegado al hidden)
+  const bloques = caja.querySelectorAll('.parcelas-multi');
+  for(let i=0;i<bloques.length-1;i++) bloques[i].remove();
+
   caja.querySelector('.hint-unidades')?.remove();
   {
-    const libresN = libres.filter(u => !u.contrato_id && u.estado === 'disponible').length;
-    // las traspasables se cuentan aparte: sin decirlo, el agente ve "3 libres",
-    // no encuentra la suya entre ellas y da por hecho que no puede seguir.
+    const libresN = libres.filter(u => !u.contrato_id && u.estado === 'disponible' && !elegidas.includes(u.codigo)).length;
     const traspN = libres.filter(u => u.contrato_id && u.contrato_id !== mio && puedeTraspasarParcela(u)).length;
     caja.insertAdjacentHTML('beforeend',
       `<p class="hint-unidades" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">
          ${libres.length} unidades en el inventario · <b>${libresN} libres</b>${
            traspN ? ` · <b>${traspN}</b> reservadas con Carta que este contrato puede traspasar` : ''}.
-         Al guardar el contrato, la elegida queda reservada en Unidades.</p>`);
+         Se pueden elegir varias; al guardar, las elegidas quedan reservadas en Unidades.</p>`);
   }
   wireCampoParcela();
 }
-/* El campo se ha reemplazado en el DOM, así que hay que devolverle sus oyentes:
-   los de buildForm se quedaron en el elemento viejo. */
+/* El campo se rehace en el DOM: se le devuelven sus oyentes. El dato vive en el
+   OCULTO; chips y añadidor solo lo reescriben y disparan `input` sobre él, que
+   es donde escuchan sync/preview (patrón del teléfono). */
 function wireCampoParcela(){
-  const el = document.querySelector('[name="parcela_codigo"]');
-  if(!el || el._wired) return;
-  el._wired = true;
-  el.addEventListener('input',  ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); renderDebounced(); });
-  el.addEventListener('change', ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); render(); });
+  const caja = document.querySelector('.field[data-key="parcela_codigo"]');
+  if(!caja) return;
+  const oculto = caja.querySelector('input[type="hidden"][name="parcela_codigo"], input[type="text"][name="parcela_codigo"]');
+  if(oculto && !oculto._wired){
+    oculto._wired = true;
+    oculto.addEventListener('input',  ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); renderDebounced(); });
+    oculto.addEventListener('change', ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); render(); });
+  }
+  if(caja._multiWired) return;
+  caja._multiWired = true;
+  caja.addEventListener('change', e => {
+    const add = e.target.closest('.parcela-add');
+    if(!add || !add.value) return;
+    const el = caja.querySelector('input[name="parcela_codigo"]');
+    const lista = el.value.split(',').map(x=>x.trim()).filter(Boolean);
+    if(!lista.includes(add.value)) lista.push(add.value);
+    el.value = lista.join(', ');
+    el.dispatchEvent(new Event('input', { bubbles:true }));
+    pintarSelectorParcela();
+    el.dispatchEvent(new Event('change', { bubbles:true }));
+  });
+  caja.addEventListener('click', e => {
+    const q = e.target.closest('[data-quitar-parcela]');
+    if(!q) return;
+    const el = caja.querySelector('input[name="parcela_codigo"]');
+    el.value = el.value.split(',').map(x=>x.trim()).filter(x => x && x !== q.dataset.quitarParcela).join(', ');
+    el.dispatchEvent(new Event('input', { bubbles:true }));
+    pintarSelectorParcela();
+    el.dispatchEvent(new Event('change', { bubbles:true }));
+  });
 }
 
 /* ---------- la parcela elegida trae sus datos ----------
@@ -2363,11 +2404,19 @@ async function syncPrecioObraVinculada(){
   OBRA_VINCULO_HECHO = sel.value;                    // se marca ANTES de esperar, o dos teclas seguidas lanzan dos avisos
   const padre = (VINCULABLES||[]).find(c => c.numero === sel.value);
   if(!padre || !padre.parcela_codigo || !padre.proyecto_nombre) return;
-  const { data:u, error } = await sb.from('unidades')
+  /* El Bloqueo vinculado puede llevar VARIAS parcelas (18-ago): se suman las
+     obras (villa − suelo) de todas. Si alguna no está en el inventario o le
+     faltan precios, mejor no tocar nada que precargar una obra a medias. */
+  const codsPadre = String(padre.parcela_codigo).split(',').map(x=>x.trim()).filter(Boolean);
+  const { data:us, error } = await sb.from('unidades')
     .select('codigo,precio,precio_suelo,moneda')
-    .eq('proyecto', padre.proyecto_nombre).eq('codigo', padre.parcela_codigo).maybeSingle();
-  if(error || !u || u.precio == null || u.precio_suelo == null) return;
-  const obra = Number(u.precio) - Number(u.precio_suelo);
+    .eq('proyecto', padre.proyecto_nombre).in('codigo', codsPadre);
+  if(error || !us || us.length !== codsPadre.length
+     || us.some(x => x.precio == null || x.precio_suelo == null)) return;
+  const u = { codigo: codsPadre.join(' + '), moneda: us[0].moneda,
+              precio: us.reduce((t,x)=>t+Number(x.precio),0),
+              precio_suelo: us.reduce((t,x)=>t+Number(x.precio_suelo),0) };
+  const obra = u.precio - u.precio_suelo;
   if(!(obra > 0)) return;                            // datos raros: mejor no tocar nada
   const nuevo = fmtImporte(obra), antes = String(el.value||'').trim();
   if(antes && parseImporte(antes) === obra) return;  // ya cuadra
@@ -2382,9 +2431,20 @@ async function syncPrecioObraVinculada(){
 function syncDatosDeUnidad(){
   const sel = document.querySelector('[name="parcela_codigo"]');
   if(!sel) return;
-  const u = (UNIDADES_PROY.lista || []).find(x => x.codigo === sel.value);
-  if(!u) return;
-  const m2 = u.superficie_m2 != null ? Number(u.superficie_m2) : null;
+  /* MULTI-PARCELA (18-ago-2026): el campo puede llevar «A4, A5». Se suman los
+     datos de TODAS las conocidas del inventario — superficie, suelo y villa —
+     y el precio según tipo se calcula sobre las sumas. Si algún código no está
+     en el inventario, se precarga solo con lo que sí se conoce y no se fuerza
+     nada: forzar un precio calculado a medias sería peor que no tocarlo. */
+  const cods = String(sel.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!cods.length) return;
+  const us = cods.map(c => (UNIDADES_PROY.lista || []).find(x => x.codigo === c)).filter(Boolean);
+  if(!us.length) return;
+  const completas = us.length === cods.length;   // ¿conocemos TODAS las elegidas?
+  const suma = campo => us.every(u => u[campo] != null) ? us.reduce((t,u)=>t+Number(u[campo]),0) : null;
+  const m2    = suma('superficie_m2');
+  const suelo = suma('precio_suelo');
+  const villa = suma('precio');
   const poner = (campo, valor) => {
     const el = document.querySelector(`[name="${campo}"]`);
     if(!el || valor == null || valor === '') return;
@@ -2393,52 +2453,42 @@ function syncDatosDeUnidad(){
     el.value = valor;
     AUTO_UNIDAD[campo] = valor;
   };
-  poner('tipologia_villa', m2 != null ? String(m2) : null);            // superficie de la parcela
-  poner('precio_m2', (m2 && u.precio_suelo != null) ? fmtImporte(Number(u.precio_suelo) / m2) : null);
-  /* El precio que se precarga DEPENDE DEL TIPO de documento, porque la venta va
-     partida en dos contratos: el Bloqueo de Parcela cobra el SUELO y la
-     Construcción la OBRA, y sumados dan la villa. Hasta el 14-ago aquí se metía
-     siempre `u.precio` —la villa entera— en cualquiera de los dos, así que un
-     Bloqueo + su Construcción declaraban el doble de lo pactado. Ya había
-     pasado dos veces sin detectarse: RP00040 (A4, 164.000 en vez de 68.400) y
-     RP00043 (B8, 165.800 en vez de 69.800), las dos de esta semana.
-     La Carta de Reserva sí lleva la villa entera: es el documento preliminar que
-     reserva la operación completa, y por eso no suma precio en Operaciones ni en
-     Compradores (`lwEsPreliminar`, assets/suite-comun.js).
-     Y en el Bloqueo y la Construcción NO se queda en precarga: se FUERZA aunque
-     el campo ya traiga algo, avisando en el centro de la pantalla y dejando
-     deshacer (`avisaPrecioForzado`). El motivo es el de arriba llevado al caso
-     real: el precio que arrastra un formulario que viene de una Carta de Reserva
-     no es de fiar —unos agentes ponen la villa entera, otros solo la parcela— y
-     respetarlo "porque estaba escrito" es como se colaron RP00040 y RP00043.
-     En los demás documentos sigue siendo precarga blanda: `poner()` no pisa. */
-  const suelo = u.precio_suelo != null ? Number(u.precio_suelo) : null;
-  const villa = u.precio      != null ? Number(u.precio)      : null;
+  poner('tipologia_villa', m2 != null ? String(m2) : null);
+  poner('precio_m2', (m2 && suelo != null) ? fmtImporte(suelo / m2) : null);
+  /* El precio según tipo, sobre las SUMAS (la regla del 14-ago intacta: Bloqueo
+     cobra suelo, Construcción obra, la Carta la villa entera). El forzado con
+     aviso solo cuando conocemos TODAS las parcelas elegidas: con una fuera del
+     inventario la suma está incompleta y forzar sería imponer una cifra mal. */
   const tipoDoc = CONTRACT_TIPO[CURRENT.slug];
   const precioSegunTipo =
       tipoDoc === 'reserva_parcela' ? suelo
     : tipoDoc === 'construccion'    ? ((villa != null && suelo != null) ? villa - suelo : null)
     : villa;
-  const forzar = tipoDoc === 'reserva_parcela' || tipoDoc === 'construccion';
+  const forzar = completas && (tipoDoc === 'reserva_parcela' || tipoDoc === 'construccion');
   const elPrecio = document.querySelector('[name="precio_total"]');
   if(forzar && precioSegunTipo != null && elPrecio){
     const antes = String(elPrecio.value || '').trim();
     const nuevo = fmtImporte(precioSegunTipo);
-    // se compara por VALOR, no por texto: "164.000" y "164000" son el mismo precio
     if(antes && parseImporte(antes) !== precioSegunTipo){
       elPrecio.value = nuevo; AUTO_UNIDAD['precio_total'] = nuevo;
-      avisaPrecioForzado({ antes, nuevo, tipoDoc, unidad:u, suelo, villa, el:elPrecio });
+      const etiqueta = cods.join(' + ');
+      avisaPrecioForzado({ antes, nuevo, tipoDoc,
+        unidad:{ codigo: etiqueta, moneda: us[0].moneda }, suelo, villa, el: elPrecio,
+        queEsTexto: tipoDoc === 'reserva_parcela'
+          ? `el <b>suelo</b> de ${escAttr(etiqueta)}${us.length>1 ? ' (las ' + us.length + ' parcelas sumadas)' : ''}`
+          : `la <b>obra</b> de ${escAttr(etiqueta)} (villa ${fmtImporte(villa)} menos suelo ${fmtImporte(suelo)})` });
     } else {
       poner('precio_total', nuevo);
     }
   } else {
     poner('precio_total', precioSegunTipo != null ? fmtImporte(precioSegunTipo) : null);
   }
-  poner('villa_nombre', u.modelo || null);
-  poner('tipologia_construccion', u.modelo || null);
-  if(u.moneda){
+  const modelos = [...new Set(us.map(u=>u.modelo).filter(Boolean))].join(', ');
+  poner('villa_nombre', modelos || null);
+  poner('tipologia_construccion', modelos || null);
+  if(us[0].moneda){
     const mon = document.querySelector('[name="moneda"]');
-    if(mon && !mon.value) mon.value = u.moneda;
+    if(mon && !mon.value) mon.value = us[0].moneda;
   }
 }
 function buildForm(){

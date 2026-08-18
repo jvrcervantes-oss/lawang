@@ -386,3 +386,19 @@
     .cp-row{ grid-template-columns:1fr; gap:2px; }
     .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }
   }
+
+/* ── multi-parcela (18-ago-2026): chips de lo elegido + añadidor ─────────────
+   El dato vive en un input oculto name=parcela_codigo (lista con comas); esto
+   es solo lo visible. La ✕ cumple mínimo táctil y lleva aria-label. */
+.parcelas-multi{ display:flex; flex-direction:column; gap:7px; }
+.parcela-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.parcela-chip{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px;
+  background:var(--rl,#F5F0E6); border:1px solid var(--line,#E4DCCB); border-radius:999px;
+  padding:5px 6px 5px 11px; }
+.parcela-chip i{ font-style:normal; color:var(--muted,#6B7072); font-size:11px; }
+.parcela-chip button{ font:inherit; font-size:12px; line-height:1; border:none; cursor:pointer;
+  background:var(--line,#E4DCCB); color:var(--ink,#2E3437); border-radius:999px;
+  width:20px; height:20px; }
+.parcela-chip button:hover{ background:#C9BCA4; }
+.parcela-chip button:focus-visible{ outline:2px solid var(--dl,#104C4F); outline-offset:1px; }
+
