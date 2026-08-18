@@ -211,6 +211,24 @@
   .cli-r b{ color:var(--dl); }
   .cli-r span{ color:var(--muted); }
   .cli-vacio{ padding:9px 14px; font-size:12px; color:var(--muted); }
+  /* ── La ficha del comprador manda (18-ago-2026) ───────────────────────────
+     Hasta hoy el comprador se tecleaba y la ficha nacía sola de ese texto: un
+     pasaporte con una errata creaba una persona nueva. Ahora el contrato se
+     enlaza a una ficha de /compradores/ y estos son sus dos estados: sin
+     enlazar (buscador + «crear ficha») y enlazada (este chip). */
+  .cli-chip{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 13px; margin:2px 0 12px;
+    border:1px solid var(--dl); border-radius:12px; background:#F3F6EE; font-size:12.5px; }
+  .cli-chip b{ color:var(--dl); }
+  .cli-ok{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
+  .cli-sub{ color:var(--muted); }
+  .cli-chip .tb-link{ margin-left:auto; }
+  .cli-chip .tb-link + .tb-link{ margin-left:0; }
+  .cli-nuevo{ display:flex; align-items:center; gap:8px; margin:-6px 0 12px; font-size:12px; color:var(--muted); }
+  /* Un campo que viene de la ficha no se teclea: se corrige en la ficha. Se ve
+     apagado y no acepta foco, pero sigue siendo legible y copiable. */
+  .field.de-ficha input, .field.de-ficha select, .field.de-ficha textarea{
+    background:#F1EFE9; color:var(--muted); cursor:not-allowed; }
+  .cli-aviso{ font-size:11.5px; color:#9E2F26; margin:-6px 0 12px; }
   .emails-extra{ grid-column:1/-1; margin-top:4px; }
   .chips-row{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
   .chip-email{ display:inline-flex; align-items:center; gap:6px; background:#F7F3E9; border:1px solid var(--line); border-radius:999px; padding:5px 6px 5px 12px; font-size:12px; }

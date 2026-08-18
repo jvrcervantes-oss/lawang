@@ -60,7 +60,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=9481695c">
+<link rel="stylesheet" href="assets/app.css?v=fbeb0520">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -1346,9 +1346,16 @@ function wireCompradorPanel(){
     if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''}); saveCompradores(); rebuildComprador(); render(); return; }
     const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); }
   });
-  COMPRADORES.forEach(c=> wireClienteBuscadorEn($(`#cliBuscar-${c.id}`), $(`#cliResultados-${c.id}`), datos=>{
+  COMPRADORES.forEach(c=> wireClienteBuscadorEn($(`#cliBuscar-${c.id}`), $(`#cliResultados-${c.id}`), (datos, fila)=>{
     const row=COMPRADORES.find(x=>x.id===c.id); if(!row) return;
-    Object.assign(row, datos); saveCompradores(); rebuildComprador(); render();
+    Object.assign(row, datos);
+    /* El adquiriente II+ también guarda el ENLACE con su ficha, no solo una
+       copia de sus datos (18-ago-2026): `sincronizar_compradores` lo prefiere a
+       adivinar por pasaporte o email. Sin esto, blindar solo al adquiriente I
+       habría dejado el agujero abierto por el lado de al lado — un contrato
+       admite hasta nueve compradores. */
+    row.client_id = (fila && fila.id) || null;
+    saveCompradores(); rebuildComprador(); render();
   }));
 }
 function rebuildComprador(){ const old=$('#compradorPanel'); if(old){ old.outerHTML=buildCompradorPanel(); wireCompradorPanel(); wireAccordions(); } }
@@ -1379,11 +1386,200 @@ function wirePickers(){
    Genérico desde el 11-ago: Adquiriente I lo usa vía wireClienteBuscador()
    (fijo, escribe en populateForm/adq1_*); Adquiriente II+ vía
    wireClienteBuscadorEn() con un onPick propio por fila (COMPRADORES). */
+/* ═══ LA FICHA DEL COMPRADOR MANDA — 18-ago-2026, encargo del owner ═══════════
+   CÓMO ERA. La ficha de `clients` era un SUBPRODUCTO del texto del contrato: al
+   guardar, `sincronizar_compradores` cogía el pasaporte y el email escritos en
+   el formulario, buscaba una ficha que coincidiera y, si no la encontraba,
+   CREABA UNA PERSONA NUEVA. O sea: la identidad de un cliente la decidía lo que
+   alguien tecleaba. De ahí salieron las dos cosas que ya costaron dinero y
+   tiempo — los compradores duplicados, y CR00025, donde el contrato llevaba un
+   email y la ficha otro (el contrato «se envió» a un dominio inexistente).
+   Y todavía hoy: RP00043, 165.800 €, tiene un email metido en el campo del
+   nombre; por eso nunca tuvo ficha.
+
+   CÓMO ES AHORA. El contrato se ENLAZA a una ficha concreta (`ADQ1_CLIENT`), y
+   ese enlace viaja en `datos.adq1_client_id`. Los campos de identidad se
+   rellenan desde la ficha y quedan bloqueados: para cambiarlos hay que
+   «Corregir ficha», y entonces la corrección va A LA FICHA — que es donde debe
+   ir, en vez de abrir una divergencia silenciosa entre el contrato y Compradores.
+   Si el cliente no está fichado, se crea la ficha DESDE AQUÍ (sin salir de la
+   pantalla) y el contrato queda enlazado a ella: misma garantía, cero rodeo.
+
+   ⚠️ La otra mitad de esta regla vive en `sincronizar_compradores` (la base),
+   que ahora prefiere `adq1_client_id` y YA NO INVENTA personas. Si cambia una,
+   cambia la otra: sin el id, la base volvería a adivinar por texto. */
+let ADQ1_CLIENT = null;          // la ficha enlazada, o null
+let CORRIGIENDO_FICHA = false;   // «Corregir ficha» abre los campos hasta guardar
+
+/* Los campos que SON la identidad de la persona los define CAMPOS_FICHA, la
+   misma lista que ya usaba el aviso de divergencia (más abajo): campo del
+   formulario, columna de `clients` y etiqueta. Una segunda lista aquí sería
+   exactamente el fallo que persigue listas.test.js — y la que se quedaría
+   corta el día que la ficha gane un campo. */
+function aplicarBloqueoComprador(){
+  const bloquear = !!ADQ1_CLIENT && !CORRIGIENDO_FICHA;
+  CAMPOS_FICHA.map(f => f[0]).forEach(k=>{
+    const campo = document.querySelector(`.field[data-key="${k}"]`);
+    if(!campo) return;
+    campo.classList.toggle('de-ficha', bloquear);
+    // se recorren TODOS los controles del campo, no solo `[name=k]`: el teléfono
+    // son dos inputs visibles (prefijo y número) y un oculto con el valor bueno,
+    // así que bloquear solo el del nombre dejaba el teclado abierto por un lado
+    campo.querySelectorAll('input, select, textarea').forEach(el=>{
+      if(el.tagName === 'SELECT') el.disabled = bloquear; else el.readOnly = bloquear;
+    });
+  });
+}
+
+function fichaResumen(c){
+  return [c.email, c.passport_number].filter(Boolean).join(' · ')
+      || L({es:'sin email ni pasaporte', en:'no email or passport', id:'tanpa email atau paspor'});
+}
+
+/* Pinta el bloque del comprador en su estado actual. Lo llama buildForm() y
+   cada acción que cambia el enlace. */
+function pintarFichaComprador(){
+  const caja = document.getElementById('cliFicha');
+  if(!caja) return;
+  if(ADQ1_CLIENT){
+    caja.innerHTML = `<div class="cli-chip">
+        <span class="cli-ok">✓ ${L({es:'Ficha',en:'Client',id:'Klien'})}</span>
+        <b>${esc(ADQ1_CLIENT.full_name || '—')}</b>
+        <span class="cli-sub">${esc(fichaResumen(ADQ1_CLIENT))}</span>
+        <button type="button" class="tb-link" id="cliCorregir">${CORRIGIENDO_FICHA
+          ? L({es:'Corrigiendo…',en:'Editing…',id:'Mengubah…'})
+          : L({es:'Corregir ficha',en:'Edit client',id:'Ubah klien'})}</button>
+        <button type="button" class="tb-link" id="cliCambiar">${L({es:'Cambiar de cliente',en:'Change client',id:'Ganti klien'})}</button>
+      </div>`
+      + (CORRIGIENDO_FICHA ? `<p class="cli-aviso">${L({
+          es:'Estás editando la ficha del cliente: al guardar el contrato se actualizará también en Compradores.',
+          en:'You are editing the client record: saving the contract will also update it in Buyers.',
+          id:'Anda mengubah data klien: menyimpan kontrak juga memperbaruinya di Pembeli.'})}</p>` : '');
+    const bC = document.getElementById('cliCorregir');
+    if(bC) bC.addEventListener('click', ()=>{ CORRIGIENDO_FICHA = true; pintarFichaComprador(); });
+    const bX = document.getElementById('cliCambiar');
+    if(bX) bX.addEventListener('click', ()=>{
+      ADQ1_CLIENT = null; CORRIGIENDO_FICHA = false;
+      pintarFichaComprador();
+      const b = document.getElementById('cliBuscar'); if(b) b.focus();
+    });
+  } else {
+    caja.innerHTML = `<div class="cli-buscar">
+        <input type="search" id="cliBuscar" autocomplete="off" placeholder="${L({es:'Buscar cliente ya registrado (nombre, email o pasaporte)…',en:'Search existing client (name, email or passport)…',id:'Cari klien terdaftar (nama, email, atau paspor)…'})}">
+        <div class="cli-resultados" id="cliResultados" hidden></div>
+      </div>
+      <div class="cli-nuevo"><span>${L({es:'¿No está fichado?',en:'Not registered yet?',id:'Belum terdaftar?'})}</span>
+        <button type="button" class="tb-link" id="cliNuevo">${L({es:'Crear ficha de cliente nuevo',en:'Create new client record',id:'Buat data klien baru'})}</button>
+      </div>`;
+    wireClienteBuscador();
+    const bN = document.getElementById('cliNuevo');
+    if(bN) bN.addEventListener('click', crearFichaComprador);
+  }
+  aplicarBloqueoComprador();
+}
+
+function enlazarFicha(c){
+  ADQ1_CLIENT = c; CORRIGIENDO_FICHA = false;
+  populateForm({ adq1_nombre:c.full_name||'', adq1_nacionalidad:c.nationality||'',
+    adq1_pasaporte:c.passport_number||'', adq1_telefono:c.phone||'',
+    adq1_email:c.email||'', adq1_domicilio:c.address||'' });
+  aplicarReglasCampos(); pintarFichaComprador(); render(); updateSaveButton();
+}
+
+/* Cliente nuevo, sin salir del contrato. ANTES de crear se comprueba que no
+   exista ya por pasaporte o email: crear el duplicado y borrarlo después es
+   justo el trabajo que este cambio viene a quitar. */
+async function crearFichaComprador(){
+  if(!sb) return;
+  const d = collect();
+  const nombre = String(d.adq1_nombre || '').trim();
+  const pas    = String(d.adq1_pasaporte || '').trim();
+  const mail   = String(d.adq1_email || '').trim().toLowerCase();
+  if(!nombre){ toast('Escribe el nombre del cliente antes de crear su ficha'); return; }
+  if(!pas && !mail){
+    toast('Una ficha necesita pasaporte o email: es lo único que distingue a una persona de otra');
+    return;
+  }
+  const btn = document.getElementById('cliNuevo');
+  if(btn){ btn.disabled = true; btn.textContent = 'Creando…'; }
+  try{
+    // ¿existe ya? se mira por los dos identificadores, no solo por el que se haya escrito
+    let ya = null;
+    if(pas){
+      const r = await sb.from('clients').select('*').ilike('passport_number', pas).limit(1);
+      if(!r.error && r.data && r.data.length) ya = r.data[0];
+    }
+    if(!ya && mail){
+      const r = await sb.from('clients').select('*').ilike('email', mail).limit(1);
+      if(!r.error && r.data && r.data.length) ya = r.data[0];
+    }
+    if(ya){
+      enlazarFicha(ya);
+      toast('Ese cliente ya estaba fichado: se ha enlazado el suyo en vez de crear otro');
+      return;
+    }
+    const { data, error } = await sb.from('clients').insert({
+      full_name: nombre, email: mail || null, passport_number: pas || null,
+      phone: String(d.adq1_telefono||'').trim() || null,
+      nationality: String(d.adq1_nacionalidad||'').trim() || null,
+      address: String(d.adq1_domicilio||'').trim() || null,
+      kyc_status: 'pending',
+    }).select('*').single();
+    if(error) throw error;
+    enlazarFicha(data);
+    toast('Ficha creada y enlazada · ya aparece en Compradores');
+  }catch(err){
+    toast('No se pudo crear la ficha: ' + (err.message || err));
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Crear ficha de cliente nuevo'; }
+  }
+}
+
+/* La corrección va A LA FICHA. La llama guardarContrato() justo antes de
+   guardar, y solo si se pulsó «Corregir ficha»: sin esto, el contrato diría
+   una cosa y Compradores otra — la divergencia que hoy solo se avisa con un
+   cartel (avisaFichaDistinta) en vez de impedirse. */
+async function guardarCorreccionFicha(){
+  if(!ADQ1_CLIENT || !CORRIGIENDO_FICHA || !sb) return true;
+  const d = collect();
+  const nuevo = {}, campos = {};
+  CAMPOS_FICHA.forEach(([campo, col, etq])=>{
+    const v = String(d[campo] || '').trim();
+    nuevo[col] = (col === 'email' ? v.toLowerCase() : v) || null;
+    campos[col] = etq;
+  });
+  const cambios = Object.keys(nuevo).filter(k =>
+    String(nuevo[k] || '') !== String(ADQ1_CLIENT[k] || ''));
+  if(!cambios.length){ CORRIGIENDO_FICHA = false; return true; }
+  const ok = await lwConfirmar({
+    titulo: 'Se actualizará la ficha del cliente',
+    cuerpo: '<p>Estos datos cambian en la ficha de <b>' + escAttr(ADQ1_CLIENT.full_name || '—')
+      + '</b>, y con ella en Compradores y en el resto de sus contratos:</p><ul>'
+      + cambios.map(k => '<li><b>' + campos[k] + '</b>: '
+          + esc(String(ADQ1_CLIENT[k] || '—')) + ' → ' + esc(String(nuevo[k] || '—')) + '</li>').join('')
+      + '</ul>',
+    confirmar: 'Actualizar la ficha y guardar',
+    cancelar: 'No guardar todavía',
+  });
+  if(!ok) return false;
+  const { data, error } = await sb.from('clients').update(nuevo).eq('id', ADQ1_CLIENT.id).select('*').single();
+  if(error){ toast('No se pudo actualizar la ficha: ' + error.message); return false; }
+  ADQ1_CLIENT = data; CORRIGIENDO_FICHA = false;
+  pintarFichaComprador();
+  return true;
+}
+
 function wireClienteBuscador(){
-  wireClienteBuscadorEn($('#cliBuscar'), $('#cliResultados'), datos=>{
-    populateForm({ adq1_nombre:datos.nombre, adq1_nacionalidad:datos.nacionalidad,
-      adq1_pasaporte:datos.pasaporte, adq1_telefono:datos.telefono, adq1_email:datos.email });
-    aplicarReglasCampos(); render(); updateSaveButton();
+  wireClienteBuscadorEn($('#cliBuscar'), $('#cliResultados'), (datos, fila)=>{
+    // `fila` es la ficha entera tal cual está en `clients`: es la que se enlaza.
+    // El objeto `datos` (nombres en castellano) se conserva para los adquirientes
+    // II+, que siguen usando el mismo buscador con su propio onPick.
+    if(fila && fila.id) enlazarFicha(fila);
+    else {
+      populateForm({ adq1_nombre:datos.nombre, adq1_nacionalidad:datos.nacionalidad,
+        adq1_pasaporte:datos.pasaporte, adq1_telefono:datos.telefono, adq1_email:datos.email });
+      aplicarReglasCampos(); render(); updateSaveButton();
+    }
   });
 }
 function wireClienteBuscadorEn(input, res, onPick){
@@ -1402,7 +1598,9 @@ async function buscarClientes(q, res, onPick, input){
   if(!res) return;
   if(!sb){ res.hidden=true; return; }
   const like=`%${q.replace(/[%_]/g,'')}%`;
-  const { data, error } = await sb.from('clients').select('full_name,email,phone,nationality,passport_number,address')
+  // `id` incluido desde el 18-ago-2026: el contrato ya no copia los datos del
+  // cliente, se ENLAZA a su ficha, y para eso hace falta el id.
+  const { data, error } = await sb.from('clients').select('id,full_name,email,phone,nationality,passport_number,address')
     .or(`full_name.ilike.${like},email.ilike.${like},passport_number.ilike.${like}`).limit(8);
   if(error){ res.hidden=true; return; }
   if(!data || !data.length){
@@ -1418,7 +1616,7 @@ async function buscarClientes(q, res, onPick, input){
     e.preventDefault();   // antes del blur del input, si no el blur cierra la lista primero
     const c=res._data[+el.dataset.ci];
     onPick({ nombre:c.full_name||'', nacionalidad:c.nationality||'', pasaporte:c.passport_number||'',
-      telefono:c.phone||'', email:c.email||'', domicilio:c.address||'' });
+      telefono:c.phone||'', email:c.email||'', domicilio:c.address||'' }, c);
     if(input) input.value='';
     res.hidden=true; res.innerHTML='';
   }));
@@ -1612,6 +1810,7 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = '';
+  ADQ1_CLIENT = null; CORRIGIENDO_FICHA = false;
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -2564,10 +2763,9 @@ function buildForm(){
           <ul>${TOKENS.bloqueado.slice(0,6).map(x=>`<li>${x}</li>`).join('')}<li>…</li></ul></div>` : '';
     // buscador de cliente ya registrado: solo en Adquiriente I, precarga desde
     // `clients` en vez de teclear otra vez a alguien que ya tenemos fichado
-    const clienteBuscadorHTML = s.id==='comprador' ? `<div class="cli-buscar">
-      <input type="search" id="cliBuscar" autocomplete="off" placeholder="${L({es:'Buscar cliente ya registrado (nombre, email o pasaporte)…',en:'Search existing client (name, email or passport)…',id:'Cari klien terdaftar (nama, email, atau paspor)…'})}">
-      <div class="cli-resultados" id="cliResultados" hidden></div>
-    </div>` : '';
+    // El hueco lo rellena pintarFichaComprador() al final de buildForm(): o el
+    // buscador + «crear ficha» (sin enlazar), o el chip de la ficha (enlazada).
+    const clienteBuscadorHTML = s.id==='comprador' ? '<div id="cliFicha"></div>' : '';
     // más de un email para Adquiriente I (el base sigue siendo adq1_email):
     // matrimonios/familias que quieren copia en dos buzones distintos
     const hasAdq1Email = s.id==='comprador' && s.fields.some(f=>f[0]==='adq1_email');
@@ -2619,7 +2817,9 @@ function buildForm(){
   wireAnnexPanel();
   wireClausePanel();
   wireCompradorPanel();
-  wireClienteBuscador();
+  // pintarFichaComprador() ya llama a wireClienteBuscador() cuando toca pintar
+  // el buscador; si hay ficha enlazada no hay buscador que cablear
+  pintarFichaComprador();
   wireEmailsExtra();
   wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
@@ -3902,7 +4102,12 @@ function contractPayload(){
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
-              compradores: COMPRADORES, adq1_emails_extra: ADQ1_EMAILS, overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
+              compradores: COMPRADORES, adq1_emails_extra: ADQ1_EMAILS,
+              /* el enlace con la ficha de `clients` (18-ago-2026). Lo lee
+                 `sincronizar_compradores`, que lo prefiere a adivinar por
+                 pasaporte o email — ver la nota junto a ADQ1_CLIENT. */
+              adq1_client_id: ADQ1_CLIENT ? ADQ1_CLIENT.id : null,
+              overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
   };
 }
 
@@ -3988,6 +4193,33 @@ async function guardarContrato(){
       return;
     }
   }
+
+  /* EL COMPRADOR SALE DE SU FICHA — 18-ago-2026, encargo del owner.
+     Aquí es donde la regla se hace de verdad: un contrato con comprador pero
+     sin ficha enlazada no se guarda. Antes se guardaba y era la BASE la que
+     inventaba la persona a partir del texto, con los duplicados y los emails
+     mal escritos que eso ha ido dejando (CR00025; RP00043, con 165.800 € y un
+     email metido en el campo del nombre).
+     Se mira `adq1_nombre` y no el tipo de documento: hay plantillas sin
+     comprador (Poder Notarial, ofertas), y esas siguen guardándose igual. */
+  const nombreComprador = String((collect().adq1_nombre) || '').trim();
+  if(nombreComprador && !ADQ1_CLIENT){
+    await lwConfirmar({
+      titulo: 'Este comprador todavía no tiene ficha',
+      cuerpo: '<p>Desde ahora el comprador de un contrato sale de su ficha de <b>Compradores</b>, '
+        + 'para que una errata al teclear no cree un cliente duplicado ni un email al que no llega nada.</p>'
+        + '<p>En el bloque del comprador tienes las dos formas de hacerlo: '
+        + '<b>buscarlo</b> si ya está registrado, o <b>«Crear ficha de cliente nuevo»</b> si es la primera vez. '
+        + 'Los datos que ya has escrito se aprovechan para crearla.</p>',
+      confirmar: 'Entendido',
+      cancelar: false,
+    });
+    const b = document.getElementById('cliBuscar');
+    if(b){ b.scrollIntoView({behavior:'smooth', block:'center'}); b.focus(); }
+    return;
+  }
+
+  if(!(await guardarCorreccionFicha())) return;
 
   const btn=$('#btnSave'); btn.disabled=true; btn.textContent='Guardando…';
   try{
@@ -4451,6 +4683,26 @@ async function openSavedContract(id){
   const plantillaConHitos = SECTIONS.some(s => s.special === 'hitos');
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : (plantillaConHitos ? HITOS : []);
   ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : []; EMAIL_EXTRA_ADDING = false;
+  // la ficha enlazada, si la hay. Se relee de `clients` en vez de fiarse de lo
+  // que el contrato copió el día que se guardó: si el cliente cambió de email,
+  // manda la ficha — que es justo lo que este cambio viene a arreglar.
+  ADQ1_CLIENT = null; CORRIGIENDO_FICHA = false;
+  if(sb){
+    let idFicha = d.adq1_client_id || null;
+    if(!idFicha){
+      /* Contrato anterior al 18-ago-2026: no lleva el enlace en `datos`, pero su
+         ficha SÍ existe — la creó el trigger y vive en `contrato_compradores`.
+         Se adopta desde ahí; sin esto, exigir ficha al guardar habría bloqueado
+         de golpe los 72 contratos que ya la tenían. */
+      const { data: cc } = await sb.from('contrato_compradores')
+        .select('client_id').eq('contrato_id', data.id).eq('rol','adquiriente_1').maybeSingle();
+      idFicha = cc && cc.client_id;
+    }
+    if(idFicha){
+      const { data: fc } = await sb.from('clients').select('*').eq('id', idFicha).maybeSingle();
+      if(fc) ADQ1_CLIENT = fc;
+    }
+  }
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
@@ -4520,6 +4772,10 @@ const CAMPOS_FICHA = [
   ['adq1_email',        'email',           'Email'],
   ['adq1_telefono',     'phone',           'Teléfono'],
   ['adq1_domicilio',    'address',         'Domicilio'],
+  // añadida el 18-ago-2026 con el enlace a la ficha: la nacionalidad se imprime
+  // en el contrato y vive en `clients`, así que o la gobierna la ficha o es un
+  // campo más por el que contrato y ficha pueden decir cosas distintas
+  ['adq1_nacionalidad', 'nationality',     'Nacionalidad'],
 ];
 async function avisaFichaDistinta(contratoId){
   if(LOCKED || !sb || !contratoId) return;          // firmado: congelado a propósito
@@ -4615,6 +4871,7 @@ async function derivarContrato(slug){
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
+  ADQ1_CLIENT = null; CORRIGIENDO_FICHA = false;
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
   // alguien retocó para la reserva de otra operación no tiene por qué salir
   // impreso en la obra de esta. Igual con Anexos y Cláusulas: son propios de
@@ -5189,7 +5446,7 @@ async function init(){
   if(pedido){
     pantallaC('editor');
     await openSavedContract(pedido);
-  } else if(par.has('nuevo')){
+  } else if(par.has('nuevo') || par.has('cliente')){
     // recargar esta URL directamente (F5, o entrar por ella a pelo) es una
     // ejecución nueva del script, pero COMPRADORES/ANNEXES/CLAUSES se leen de
     // localStorage al declararse (arriba del todo) — sin este reset, el mismo
@@ -5197,6 +5454,18 @@ async function init(){
     // por esta puerta también.
     resetBorrador(CURRENT.slug);
     buildForm();
+    /* ?cliente=<id> — la entrada desde Compradores (18-ago-2026): se abre un
+       contrato en blanco YA ENLAZADO a esa ficha, con sus datos puestos. Es el
+       camino que el owner pidió, y el que evita teclear a una persona que ya
+       existe. Si el id no existe (enlace viejo, ficha borrada) se sigue con el
+       contrato en blanco y se dice: quedarse en una pantalla que no carga sería
+       peor que empezar a mano. */
+    const idCliente = par.get('cliente');
+    if(idCliente && sb){
+      const { data: fc } = await sb.from('clients').select('*').eq('id', idCliente).maybeSingle();
+      if(fc){ enlazarFicha(fc); toast('Contrato nuevo para ' + (fc.full_name || 'el cliente elegido')); }
+      else toast('Esa ficha de cliente ya no existe: empieza el contrato buscándolo');
+    }
     pantallaC('editor');
   } else {
     pantallaC('listado');

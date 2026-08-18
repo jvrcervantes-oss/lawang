@@ -471,6 +471,7 @@ function pintarFicha(){
       ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
       : cerrada
         ? `<button class="sui-btn primario" id="btnEditar">Editar datos</button>
+           <button class="sui-btn" id="btnNuevoContrato">Crear contrato</button>
            <button class="sui-btn" id="btnCerrar">Cerrar</button>` +
           /* Borrar, SOLO super_admin y SOLO en la ficha cerrada (18-ago-2026,
              encargo del owner: hay duplicados). En la cerrada y no en edición a
@@ -516,6 +517,16 @@ function pintarFicha(){
      «Cerrar») y cuando esta desbloqueada («Guardar cambios» + «Cancelar»). */
   const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
   const bb = $('#btnBorrarComprador'); if(bb) bb.addEventListener('click', () => borrarComprador(c));
+  /* «Crear contrato» (18-ago-2026, encargo del owner). Abre Contratos con un
+     documento en blanco YA ENLAZADO a esta ficha (?cliente=<id>), con sus datos
+     puestos. Es la dirección que faltaba: hasta hoy el comprador nacía del
+     contrato, y a partir de ahora el contrato sale del comprador.
+     En pestaña nueva a propósito: quien está repasando fichas casi nunca quiere
+     perder la lista en la que estaba. */
+  const bn = $('#btnNuevoContrato');
+  if(bn) bn.addEventListener('click', () => {
+    window.open('/contracts/app.html?cliente=' + encodeURIComponent(c.id), '_blank', 'noopener');
+  });
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
   const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
