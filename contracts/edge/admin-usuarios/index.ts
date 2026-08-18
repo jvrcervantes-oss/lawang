@@ -62,13 +62,21 @@ Deno.serve(async (req) => {
     const { data: quien, error: eUser } = await admin.auth.getUser(jwt);
     if (eUser || !quien?.user) return json({ error: 'sesion_invalida' }, 401);
 
-    // ── ¿es admin? Se pregunta a la tabla, no al token ────────────────────
+    // ── ¿es admin, Y tiene la herramienta? Se pregunta a la tabla, no al token ──
+    // La herramienta se exige desde el 18-ago-2026: los admin pasaron a estar
+    // limitados por `usuarios.herramientas` y las policies de `usuarios` ahora
+    // piden `es_admin() AND puede('usuarios')`. Esta función corre con
+    // service_role y se SALTA la RLS, así que sin esta comprobación sería la
+    // puerta de servicio por la que un admin sin el permiso seguiría dando de
+    // alta usuarios — justo lo que el owner pidió cerrar.
     const { data: ficha, error: eFicha } = await admin
-      .from('usuarios').select('rol, activo').eq('user_id', quien.user.id).maybeSingle();
+      .from('usuarios').select('rol, activo, herramientas').eq('user_id', quien.user.id).maybeSingle();
     if (eFicha) return json({ error: 'no_se_pudo_comprobar_permiso' }, 500);
     if (!ficha || !ficha.activo || !['super_admin', 'admin'].includes(ficha.rol))
       return json({ error: 'no_autorizado' }, 403);
     const soySuper = ficha.rol === 'super_admin';
+    if (!soySuper && !(ficha.herramientas ?? []).includes('usuarios'))
+      return json({ error: 'no_autorizado: te falta la herramienta «usuarios»' }, 403);
 
     const body = await req.json().catch(() => ({}));
     const accion = String(body.accion ?? '');

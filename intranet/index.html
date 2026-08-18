@@ -336,7 +336,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      daba tres decimales donde Facturas da dos. El `?v=` lo sella el
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=f37d55ff"></script>
-<script src="/contracts/assets/herramientas.js?v=ebcbe39f"></script>
+<script src="/contracts/assets/herramientas.js?v=e237fff5"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -542,7 +542,10 @@ function pintarKpis(d, ficha){
   ];
   // Solo las herramientas que esta persona puede abrir: una tarjeta que lleva a
   // un sitio del que te van a echar es peor que no tenerla.
-  const puede = h => !h || !ficha || esAdmin(ficha) || (ficha.herramientas || []).includes(h);
+  // `esAdmin` ya no abre todas las puertas (18-ago-2026): solo el super admin.
+  // Esta línea era una copia a mano de lwPermitida; se queda porque aquí se
+  // filtra por clave de herramienta y no por tarjeta, pero sigue su regla.
+  const puede = h => !h || !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes(h);
   const vistas = tarjetas.filter(t => puede(t.herr));
   if(!vistas.length) return;
   $('#kpis').innerHTML = vistas.map((t, i) => {

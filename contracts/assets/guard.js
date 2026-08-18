@@ -104,8 +104,12 @@
           .then(function (f) {
             var ficha = (f && f.data) || null;
             if (ficha && !ficha.activo) { alLogin(); return; }   // desactivado = fuera
-            var admin = ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin');
-            if (HERRAMIENTAS_REQ && ficha && !admin &&
+            /* Solo el SUPER admin se salta la comprobación (18-ago-2026): un
+               admin normal pasa por su lista de herramientas como cualquiera.
+               Ver la nota de lwPermitida en assets/herramientas.js — y `puede()`
+               en la base, que es quien lo impide de verdad. */
+            var sinLimite = ficha && ficha.rol === 'super_admin';
+            if (HERRAMIENTAS_REQ && ficha && !sinLimite &&
                 !HERRAMIENTAS_REQ.some(function (h) { return (ficha.herramientas || []).indexOf(h) !== -1; })) {
               location.replace(HUB + '?sin_permiso=' + encodeURIComponent(HERRAMIENTA));
               return;

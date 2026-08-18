@@ -104,9 +104,23 @@ const LW_HERRAMIENTAS = [
    declarado es de todos. Se acepta la ficha por parámetro (y no una global)
    para que el hub y la barra la usen sin depender de cómo se llame su variable. */
 const lwEsAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
-const lwPermitida = (t, ficha) => t.soloAdmin ? lwEsAdmin(ficha)
-  : (!ficha || lwEsAdmin(ficha) || !t.herr ||
-     [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));
+const lwEsSuper = f => !!f && f.rol === 'super_admin';
+/* LOS ADMIN TAMBIÉN PASAN POR SU LISTA — 18-ago-2026, owner: «son gente del
+   equipo interno pero no todos deben tener acceso a todo».
+   Antes el que se saltaba la comprobación era `lwEsAdmin`, y como ocho de los
+   dieciocho usuarios son admin, el reparto por herramienta solo gobernaba a la
+   mitad del equipo. Ahora el único sin límite es el super admin (hay uno), que
+   tiene que poder llegar a todo aunque su propia ficha no lo tenga marcado —
+   la del owner no lleva ni «Obra» ni «Creatividades».
+   Las dos condiciones se SUMAN, no se sustituyen: una tarjeta `soloAdmin`
+   sigue exigiendo rol de admin, y además ahora su herramienta.
+   ⚠️ Esta regla es la del navegador. Quien manda de verdad es `puede()` en la
+   base (sql/permisos_admin_por_herramienta.sql). Si cambia una, cambia la otra
+   o el menú ofrecerá una herramienta que rebota al guardar. */
+const lwPermitida = (t, ficha) =>
+  (!t.soloAdmin || lwEsAdmin(ficha)) &&
+  (!ficha || lwEsSuper(ficha) || !t.herr ||
+   [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOS PERMISOS SALEN DE ESTE MISMO CATÁLOGO — 17-ago-2026 (auditoría)
