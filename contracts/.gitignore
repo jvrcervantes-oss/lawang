@@ -32,3 +32,5 @@ Logo Lawang-*
 informe_*.html
 resumen_cambios_*.html
 revision_legal_*.html
+# credencial local del CLI linkado — nunca al repo
+supabase/.temp/
