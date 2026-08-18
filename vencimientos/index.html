@@ -107,8 +107,9 @@
 
   <main>
     <h1>Vencimientos</h1>
-    <p class="sub">Qué dinero debe entrar, cuándo, y cuál se está retrasando. El calendario contractual vive en cada contrato;
-      aquí se ven todos juntos y, en los contratos ya firmados, las fechas se ajustan sin tocar el documento.</p>
+    <p class="sub">Qué dinero debe entrar, cuándo, y cuál se está retrasando. Solo contratos <b>firmados</b>: un borrador
+      no es un compromiso y no marca dinero como esperado (decisión del cliente, 18-ago-2026). El calendario contractual
+      vive en cada contrato; aquí las fechas se ajustan sin tocar el documento.</p>
 
     <div id="avisos"></div>
     <div class="sui-filtros" id="monedas" style="margin:0 0 14px"></div>
@@ -133,8 +134,11 @@
       </table>
     </div>
     <p class="nota-pie">El «cubierto» es una lectura, no un asiento: lo cobrado de cada contrato —recibís, incluida la señal
-      de su Carta de Reserva— va tapando sus vencimientos por orden de fecha. La fecha se edita aquí solo en contratos ya
-      firmados (el lápiz); en un borrador se cambia en el propio contrato, que sigue siendo la única fuente mientras se redacta.</p>
+      de su Carta de Reserva— va tapando sus vencimientos por orden de fecha. Todo lo listado es de contratos firmados, así
+      que la fecha se edita aquí (el lápiz) y queda registrado quién la cambió; el calendario de un borrador se prepara en el
+      propio contrato y entra en este panel al firmarse. La etiqueta «Facturada» la pone el sistema: tres días antes de cada
+      vencimiento emite la factura de lo pendiente y se la envía al comprador, con copia al estudio — un vencimiento
+      facturado no se vuelve a facturar.</p>
 
     <h2>Por proyecto</h2>
     <div class="sui-tabla-caja">
@@ -186,7 +190,7 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
   const [c, cb, v, f] = await Promise.all([
     sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').limit(1000),
     sb.rpc('contratos_cobrado_equipo'),
-    sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota').limit(3000),
+    sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000),
     sb.rpc('facturas_equipo').select('numero,tipo,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000),
   ]);
   if(c.error){ toast('No se pudieron leer los contratos: ' + c.error.message); return; }
@@ -247,7 +251,7 @@ function pintarKpis(m){
     { rot:'Vence en 30 días', v:m.proximos30, tono: m.proximos30 ? 'espera' : '', pie:'previsto en el próximo mes' },
     { rot:'Vence en 90 días', v:m.proximos90, tono:'', pie:'previsto en el trimestre' },
     { rot:'Cobrado', v:m.cobrado, tono:'bien', pie: m.cartera ? Math.round(m.cobrado / m.cartera * 100) + '% de la cartera' : '' },
-    { rot:'Cartera', v:m.cartera, tono:'', pie:'contratos, sin contar las Cartas de Reserva' },
+    { rot:'Cartera', v:m.cartera, tono:'', pie:'contratos firmados, sin contar las Cartas de Reserva' },
   ];
   $('#kpis').innerHTML = tarjetas.map((t,i) => `
     <div class="lw-kpi lw-fade ${t.urge?'urge':''}" style="--i:${i}">
@@ -336,14 +340,14 @@ function pintarTabla(m){
            aria-label="Cambiar la fecha de este vencimiento"><i class="ph ph-pencil-simple"></i></button>` : ''}
         ${f.ajustado ? '<span class="flojo" title="Fecha ajustada a mano">·aj</span>' : ''}</td>
       <td><a href="/contracts/app.html?contrato=${esc(f.contrato.id)}">${esc(f.contrato.numero || 'sin nº')}</a>
-        <span class="flojo">${esc(lwTipoContrato(f.contrato.tipo))}${f.contrato.bloqueado ? '' : ' · borrador'}</span></td>
+        <span class="flojo">${esc(lwTipoContrato(f.contrato.tipo))}</span></td>
       <td>${esc(f.contrato.comprador_nombre || 'sin nombre')}</td>
       <td>${esc(f.descripcion || 'Hito ' + f.orden)}${f.pct ? ` <span class="flojo">${esc(f.pct)}%</span>` : ''}
         ${f.nota ? `<span class="flojo" title="${escAttr(f.nota)}"> · ${esc(f.nota.length > 34 ? f.nota.slice(0,32) + '…' : f.nota)}</span>` : ''}</td>
       <td class="num">${esc(dinero(f.importe, MONEDA))}</td>
       <td class="num flojo">${f.cubierto ? esc(dinero(f.cubierto, MONEDA)) : ''}</td>
       <td class="num">${f.pendiente != null ? esc(dinero(f.pendiente, MONEDA)) : '—'}</td>
-      <td><span class="sui-tag ${cls}">${tag}</span></td>
+      <td><span class="sui-tag ${cls}">${tag}</span>${f.factura_id ? ' <span class="sui-tag info" title="El sistema ya emitió y envió la factura de este vencimiento">Facturada</span>' : ''}${f.no_facturar ? ' <span class="sui-tag gris" title="Este vencimiento no recibe factura automática">Sin auto</span>' : ''}</td>
     </tr>`;
   }).join('');
 }

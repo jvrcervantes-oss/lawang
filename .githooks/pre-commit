@@ -41,16 +41,16 @@ fi
 # Se regenera aqui en vez de exigir que alguien se acuerde, por el mismo motivo que
 # el sellador de arriba: una copia que hay que actualizar a mano se queda vieja, y
 # aqui quedarse vieja significa emitir facturas con un maquetador de hace semanas.
-paquete=$(git diff --cached --name-only | grep -E '^(contracts/assets/(dinero|entities)\.js|facturas/(totales|compradores|documento)\.js)$' || true)
+paquete=$(git diff --cached --name-only | grep -E '^(contracts/assets/(dinero|vocabulario|entities)\.js|facturas/(totales|compradores|documento)\.js|vencimientos/logica\.js)$' || true)
 if [ -n "$paquete" ]; then
   raiz=$(git rev-parse --show-toplevel)
   empaquetador="$raiz/../../tools/empaqueta_edge.py"
   if [ -f "$empaquetador" ]; then
     py=$(command -v python || command -v python3)
     "$py" "$empaquetador" >/dev/null 2>&1 || true
-    git add contracts/edge/firma-submit/compartidos.generated.ts 2>/dev/null || true
+    git add contracts/edge/firma-submit/compartidos.generated.ts contracts/edge/factura-vencimiento/compartidos.generated.ts 2>/dev/null || true
     echo "[pre-commit] paquete de la edge de firma regenerado (empaqueta_edge.py)"
-    echo "[pre-commit] ⚠️  REDESPLIEGA firma-submit: el repo ya lo tiene, produccion no"
+    echo "[pre-commit] ⚠️  REDESPLIEGA firma-submit y factura-vencimiento: el repo ya lo tiene, produccion no"
   else
     echo "[pre-commit] AVISO: no encuentro empaqueta_edge.py — la edge se queda con el paquete viejo"
   fi

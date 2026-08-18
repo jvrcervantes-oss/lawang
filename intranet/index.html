@@ -447,8 +447,13 @@ document.addEventListener('mousemove', e => {
 async function contar(sb){
   // `select('*')` con head:true no trae columnas: es el idioma de PostgREST para
   // contar, y sirve igual en `usuarios`, cuya clave no se llama `id`.
-  const n = async (tabla, filtro) => {
-    let q = sb.from(tabla).select('*', { count:'exact', head:true });
+  // `cols` opcional (18-ago-2026): el conteo de vencimientos necesita un embed
+  // `contratos!inner(id)` para filtrar por firmados, y eso va en las COLUMNAS
+  // del select — no en el filtro. Un `.select()` dentro del filtro pisaría el
+  // `count:'exact'` de este (la 2ª llamada no admite opciones) y devolvería
+  // filas en vez de un número: por eso las columnas entran por parámetro.
+  const n = async (tabla, filtro, cols) => {
+    let q = sb.from(tabla).select(cols || '*', { count:'exact', head:true });
     if(filtro) q = filtro(q);
     const { count, error } = await q;
     return error ? null : (count || 0);
@@ -472,7 +477,11 @@ async function contar(sb){
     // cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a
     // la tarjeta, en assets/herramientas.js. RLS de equipo (es_agente), así
     // que el count vale para cualquiera que vea la tarjeta.
-    n('contrato_vencimientos', q => q.is('fecha', null)),
+    // `contratos!inner` + eq sobre la tabla embebida: solo contratos FIRMADOS
+    // (cliente, 18-ago — un borrador no marca dinero como esperado, y su
+    // calendario a medio poner inflaría esta cifra con trabajo que no toca aún).
+    n('contrato_vencimientos', q => q.is('fecha', null).eq('contratos.bloqueado', true),
+      '*, contratos!inner(id)'),
   ]);
   // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
   // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un

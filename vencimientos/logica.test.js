@@ -42,9 +42,9 @@ es('pct sin precio conocido: null',
 
 /* ── cobradoEfectivo: la Carta descuenta en su Bloqueo ── */
 const contratos = [
-  {id:'B', tipo:'reserva_parcela', precio_total:82000, moneda:'EUR', contrato_padre_id:null, proyecto_nombre:'Bonian'},
-  {id:'CA', tipo:'carta_reserva', precio_total:82000, moneda:'EUR', contrato_padre_id:'B', proyecto_nombre:'Bonian'},
-  {id:'CC', tipo:'construccion', precio_total:82000, moneda:'EUR', contrato_padre_id:'B', proyecto_nombre:'Bonian'},
+  {id:'B', tipo:'reserva_parcela', precio_total:82000, moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Bonian'},
+  {id:'CA', tipo:'carta_reserva', precio_total:82000, moneda:'EUR', bloqueado:true, contrato_padre_id:'B', proyecto_nombre:'Bonian'},
+  {id:'CC', tipo:'construccion', precio_total:82000, moneda:'EUR', bloqueado:true, contrato_padre_id:'B', proyecto_nombre:'Bonian'},
 ];
 const cobrado = { B: 10000, CA: 5000, CC: 20000 };
 es('el Bloqueo suma su cobrado + el de su Carta (preliminar)',
@@ -77,8 +77,8 @@ es('sin fecha pero ya cubierto del todo cuenta como cobrado, no como alerta',
 const modelo = L.modeloFinanciero({
   hoyISO: HOY,
   contratos: contratos.concat([
-    {id:'USD1', tipo:'reserva_parcela', precio_total:50000, moneda:'USD', contrato_padre_id:null, proyecto_nombre:'Sumba'},
-    {id:'POA1', tipo:'poa', precio_total:0, moneda:'EUR', contrato_padre_id:null, proyecto_nombre:'Bonian'},
+    {id:'USD1', tipo:'reserva_parcela', precio_total:50000, moneda:'USD', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Sumba'},
+    {id:'POA1', tipo:'poa', precio_total:0, moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Bonian'},
   ]),
   cobradoPorId: cobrado,
   vencimientos: vencs.concat([
@@ -113,7 +113,7 @@ es('los de la obra suman 50 (faltan 2 hitos): AVISO',
 const conSuelta = L.modeloFinanciero({
   hoyISO: HOY,
   contratos: [
-    {id:'B', tipo:'reserva_parcela', precio_total:82000, moneda:'EUR', contrato_padre_id:null, proyecto_nombre:'Bonian'},
+    {id:'B', tipo:'reserva_parcela', precio_total:82000, moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Bonian'},
     {id:'CSUELTA', tipo:'carta_reserva', precio_total:82000, moneda:'EUR', contrato_padre_id:null, proyecto_nombre:'Bonian'},
   ],
   cobradoPorId: { B: 0, CSUELTA: 5000 },
@@ -121,6 +121,25 @@ const conSuelta = L.modeloFinanciero({
 });
 es('la señal de una Carta SIN Bloqueo cuenta como cobrado', conSuelta.EUR.cobrado, 5000);
 es('…pero su precio sigue sin entrar en cartera (no es de fiar)', conSuelta.EUR.cartera, 82000);
+
+/* ── los borradores NO entran (cliente, 18-ago): crear el contrato no marca
+   dinero como esperado — se espera a la firma. Su cobrado real sí cuenta. ── */
+const conBorrador = L.modeloFinanciero({
+  hoyISO: HOY,
+  contratos: [
+    {id:'F', tipo:'reserva_parcela', precio_total:100000, moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'P'},
+    {id:'DRAFT', tipo:'reserva_parcela', precio_total:900000, moneda:'EUR', bloqueado:false, contrato_padre_id:null, proyecto_nombre:'P'},
+  ],
+  cobradoPorId: { F: 0, DRAFT: 7000 },
+  vencimientos: [
+    {id:'vf', contrato_id:'F', orden:1, pct:'100', monto:'', fecha:'2026-09-01'},
+    {id:'vd', contrato_id:'DRAFT', orden:1, pct:'100', monto:'', fecha:'2026-08-01'},
+  ],
+});
+es('el borrador no aporta cartera (900.000 fuera)', conBorrador.EUR.cartera, 100000);
+es('ni vencimientos: su hito pasado NO es vencido', conBorrador.EUR.vencido, 0);
+es('ni filas en la tabla', conBorrador.EUR.filas.map(f=>f.id), ['vf']);
+es('pero su cobrado real sí es caja', conBorrador.EUR.cobrado, 7000);
 
 /* ── mesesVentana ── */
 const meses = L.mesesVentana(HOY);

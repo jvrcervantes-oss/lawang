@@ -115,6 +115,21 @@ function modeloFinanciero(o){
       }
       continue;
     }
+    /* SOLO CONTRATOS FIRMADOS — 18-ago-2026, decisión del cliente («debemos
+       esperar al menos a que el contrato esté firmado»). Un borrador no es un
+       compromiso: crear el contrato NO puede marcar dinero como esperado, y
+       hasta hoy lo hacía. Se filtra AQUÍ, en la lectura, y no en el trigger de
+       la base, por un motivo que no es de gusto: al firmar, la edge marca
+       `bloqueado=true` SIN tocar `datos`, así que un trigger que solo creara
+       las filas "al firmar" no se dispararía nunca — el espejo se sincroniza
+       desde el borrador precisamente para que al firmar ya esté todo puesto.
+       El COBRADO del borrador sí cuenta (rama de abajo): un recibí es dinero
+       real en caja, esté el contrato en el estado que esté. */
+    if(!c.bloqueado){
+      const m = de(c.moneda || 'EUR');
+      m.cobrado += cobradoEfectivo(c, o.contratos, o.cobradoPorId);
+      continue;
+    }
     const m = de(c.moneda || 'EUR');
     const precio = Number(c.precio_total) || 0;
     const cobrado = cobradoEfectivo(c, o.contratos, o.cobradoPorId);

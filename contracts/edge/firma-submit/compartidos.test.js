@@ -62,8 +62,8 @@ if (!FUENTES || !EXPORTA) {
   falla('no he podido leer el paquete generado',
         'compartidos.generated.ts no tiene la forma que este test sabe leer. ¿Cambió empaqueta_edge.py?');
 } else {
-  if (FUENTES.length !== 5)
-    falla(`el paquete trae ${FUENTES.length} ficheros y esperaba 5`,
+  if (FUENTES.length !== 7)
+    falla(`el paquete trae ${FUENTES.length} ficheros y esperaba 7`,
           'si de verdad son otros tantos, cámbialo en empaqueta_edge.py Y aquí — pero míralo antes.');
 
   /* La evaluación, igual que la hace index.ts. Sin `document` ni `window`: si algo
@@ -95,6 +95,20 @@ if (!FUENTES || !EXPORTA) {
            caja.calcTotales([{ descripcion: 'Total del proyecto', importe: '164000' }], 'EUR', { pct: '' }).total, 164000);
   if (typeof caja.documentoPagina !== 'function')
     falla('documentoPagina no es una función', 'es lo que maqueta el papel: sin ella no hay factura automática.');
+
+  /* Las piezas que la facturación automática D-3 añadió al paquete (18-ago):
+     la regla de la Carta y la cascada — probadas FUNCIONANDO, no solo definidas,
+     porque deciden a quién se le pide dinero y cuánto. */
+  if (typeof caja.lwEsPreliminar === 'function')
+    prueba('una Carta es preliminar (no se factura sola)', caja.lwEsPreliminar('carta_reserva'), true);
+  if (typeof caja.cascada === 'function') {
+    const anot = caja.cascada(
+      [{ id:'a', orden:1, pct:'50', monto:'', fecha:'2026-08-01' },
+       { id:'b', orden:2, pct:'50', monto:'', fecha:'2026-11-01' }],
+      { precio_total: 82000 }, 15000, '2026-08-18');
+    prueba('la cascada descuenta lo cobrado del hito más antiguo', anot[0].pendiente, 26000);
+    prueba('…y el segundo queda entero', anot[1].pendiente, 41000);
+  }
 }
 
 if (fallos) {
@@ -102,4 +116,4 @@ if (fallos) {
   console.error('la factura automática con este paquete.\n');
   process.exit(1);
 }
-console.log(`OK compartidos.test.js — ${FUENTES.length} ficheros empaquetados, ${EXPORTA.length} nombres definidos y evaluados sin navegador`);
+console.log(`OK compartidos.test.js — ${FUENTES.length} ficheros empaquetados, ${EXPORTA.length} nombres definidos, cascada y regla de la Carta ejercitadas`);
