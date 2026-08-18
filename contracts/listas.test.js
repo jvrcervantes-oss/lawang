@@ -113,7 +113,7 @@ const proformaDe = (txt, quien) => {
    Un test que compara dos listas vacías pasa siempre y no protege nada. */
 [['CONTRACT_TIPO', APP_TIPOS, 13], ['TIPO_PREFIX', Object.keys(APP_PREFIJO), 13],
  ['LW_TIPO_CONTRATO', VOC_TIPOS, 13], ['tipos_de_contrato.sql', SQL_FILAS, 13],
- ['LW_HERRAMIENTAS.herr', CAT_PERMISOS, 10], ['HERRAMIENTAS (edge)', EDGE_HERR, 10],
+ ['LW_HERRAMIENTAS.herr', CAT_PERMISOS, 11], ['HERRAMIENTAS (edge)', EDGE_HERR, 11],
 ].forEach(([nombre, lista, minimo]) => {
   if (lista.length < minimo) {
     fallos++;

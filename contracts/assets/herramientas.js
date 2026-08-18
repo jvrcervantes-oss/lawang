@@ -23,14 +23,17 @@ const LW_HERRAMIENTAS = [
     estado:d => d.firmasPendientes == null ? null
       : [d.firmasPendientes ? d.firmasPendientes + (d.firmasPendientes === 1 ? ' firma esperando' : ' firmas esperando') : 'Sin firmas pendientes',
          d.firmasPendientes > 0] },
-  /* `herr:'operaciones'` y no un permiso propio, A PROPÓSITO (18-ago-2026): un
-     permiso nuevo hay que darlo de alta en la edge admin-usuarios y REDESPLEGARLA
-     (listas.test.js compara las dos listas), y la edge está pendiente de subir
-     por LAW-70 — una clave nueva ahora dejaría a los usuarios nuevos sin la
-     herramienta en silencio. Vencimientos es seguimiento del dinero de las
-     operaciones: mismo criterio de acceso. El detalle está en la cabecera de
-     /vencimientos/index.html. */
-  { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/vencimientos/', herr:'operaciones',
+  /* PERMISO PROPIO desde el 18-ago-2026 (2ª vuelta). Nació compartiendo
+     `herr:'operaciones'` por una razón que ya no existe: una clave nueva hay que
+     darla de alta en la edge admin-usuarios y REDESPLEGARLA, y aquel día la edge
+     estaba bloqueada por LAW-70, así que una clave nueva habría dejado a los
+     usuarios nuevos sin la herramienta en silencio. La edge se desplegó esa misma
+     noche, y el owner lo vio por donde se ve: «hay una nueva herramienta y no
+     sale en la lista» — porque no tenía permiso propio que listar.
+     Al darle clave propia, quien tenía «Operaciones» recibe también
+     «Vencimientos» (migración en sql/permiso_vencimientos.sql): sin eso, diez
+     personas habrían perdido de golpe una herramienta que ya usaban. */
+  { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/vencimientos/', herr:'vencimientos',
     para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
     claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard',
     /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
@@ -171,7 +174,7 @@ const LW_PERMISOS = (function () {
 
 /* Con qué entra un usuario nuevo. Vivía escrito dentro del formulario de alta de
    `/usuarios/`; está aquí para que se lea junto a la lista que gobierna. */
-const LW_PERMISOS_POR_DEFECTO = ['contratos', 'facturas', 'operaciones'];
+const LW_PERMISOS_POR_DEFECTO = ['contratos', 'facturas', 'operaciones', 'vencimientos'];
 
 /* Orden de los grupos, para que el menú lateral no repita cabeceras si el
    catálogo trae entradas del mismo grupo separadas. El hub no lo necesita

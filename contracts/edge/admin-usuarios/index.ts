@@ -45,7 +45,7 @@ const corsFor = (req: Request) => {
 // filtrarse (ver abajo). Las tres veces que esta lista se quedó corta pasaron
 // desapercibidas por el `.filter()`: descartar sin avisar convierte un error de
 // programación en un permiso que falta y que nadie relaciona con esto.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
 Deno.serve(async (req) => {
