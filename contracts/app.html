@@ -661,10 +661,18 @@ async function cargarModelos(){
 }
 
 let PROYECTOS_DB = null;
+/* PERMISOS POR PROYECTO — 18-ago-2026 (sql/permisos_por_proyecto.sql).
+   `MIS_PROYECTOS` a null = SIN LÍMITE (admin, super_admin, o cuenta sin ficha);
+   un array de uuids = solo esos. Quien de verdad manda es la RLS
+   (`puede_proyecto_de` en las policies de `contratos`): esto es la mitad
+   ergonómica, para no ofrecer un proyecto en el que el guardado va a rebotar.
+   `PROYECTO_ABIERTO` guarda el del contrato que se está mirando, para no
+   quitarle del desplegable la opción que su propia ficha tiene guardada. */
+let MIS_PROYECTOS = null, PROYECTO_ABIERTO = '';
 async function cargarProyectos(){
   if(PROYECTOS_DB || !sb) return;
   const { data, error } = await sb.from('proyectos')
-    .select('nombre,resort,parcela_master').eq('activo', true).order('nombre');
+    .select('id,nombre,resort,parcela_master').eq('activo', true).order('nombre');
   // Si la consulta no llega (sin red) se cae a la lista de tokens.json: es
   // vieja, pero peor es un desplegable vacio que no deja hacer el contrato.
   if(!error) PROYECTOS_DB = data || [];
@@ -1603,7 +1611,7 @@ function limpiarOverrides(slug){
    DESIGN a propósito: ese sí es "por plantilla" de verdad (la marca/color del
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
-  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = '';
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -3326,7 +3334,16 @@ function deriveSections(){
      ofrecer solo un subconjunto, ese caso se resuelve filtrando aqui, no
      dejando una lista congelada en un fichero. */
   if((PROYECTOS_DB||[]).length){
-    const opts = PROYECTOS_DB.map(p=>p.nombre);
+    /* Y aquí está ese «filtrar aquí» que el comentario de arriba anticipaba: un
+       agente solo ve los proyectos que tiene asignados. El del contrato ABIERTO
+       se añade siempre aunque no sea suyo —un contrato heredado dejaría el
+       desplegable sin la opción que la ficha tiene guardada y el campo se vería
+       vacío, como si el dato se hubiera perdido—. Verlo no es poder guardarlo:
+       de eso se encarga la RLS. */
+    const lista = MIS_PROYECTOS
+      ? PROYECTOS_DB.filter(p => MIS_PROYECTOS.includes(p.id) || p.nombre === PROYECTO_ABIERTO)
+      : PROYECTOS_DB;
+    const opts = lista.map(p=>p.nombre);
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='proyecto_nombre' && f[2]==='select') ? [f[0], f[1], f[2], opts] : f); });
   }
@@ -4377,6 +4394,9 @@ async function openSavedContract(id){
   const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
   if(error || !data){ toast('No se pudo abrir el contrato'); return; }
   const slug = TIPO_SLUG[data.tipo]; if(!slug){ toast('Tipo de contrato desconocido'); return; }
+  // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
+  PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
+                            || data.proyecto_nombre || '').trim();
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
@@ -5099,7 +5119,7 @@ async function init(){
   // La RLS ya impide guardar; esto evita enseñar una herramienta que fallaría
   // al pulsar Guardar, que es la peor forma de enterarse.
   const { data: ficha } = await sb.from('usuarios')
-    .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
+    .select('rol, herramientas, activo, proyectos').eq('user_id', session.user.id).maybeSingle();
   if(ficha && !ficha.activo){ await sb.auth.signOut(); location.href='/entrar/?desactivado=1'; return; }
   if(ficha && !['super_admin','admin'].includes(ficha.rol) && !(ficha.herramientas||[]).includes('contratos')){
     location.replace('/intranet/?sin_permiso=contratos'); return;
@@ -5110,6 +5130,13 @@ async function init(){
   // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de
   // borrar; quien manda es la policy de DELETE de la RLS.
   MI_ROL = ficha ? ficha.rol : null;
+  /* Los proyectos asignados, del mismo `ficha` que ya se leyó — sin segunda
+     consulta. null = sin límite, y ese es el caso de admin, super_admin y de
+     las cuentas sin ficha (las de antes del panel), exactamente el mismo corte
+     que hace `puede_proyecto()` en la base. Si aquí y allí dejaran de coincidir,
+     el desplegable ofrecería proyectos en los que el guardado rebota. */
+  MIS_PROYECTOS = (ficha && !['super_admin','admin'].includes(ficha.rol))
+    ? (ficha.proyectos || []) : null;
   const who=$('#who'); if(who){ who.textContent = session.user.email || ''; who.title = 'Sesión iniciada como ' + (session.user.email||''); }
 
   // "Editar texto" vuelve a ser solo de admin/super_admin (7-ago, pedido
