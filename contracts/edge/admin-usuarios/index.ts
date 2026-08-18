@@ -35,12 +35,14 @@ const corsFor = (req: Request) => {
 // 5-ago-2026: añadidas 'documentacion' y 'obra'. 11-ago-2026: añadida
 // 'creatividades' — 3ª vez que esta lista se queda corta respecto al panel
 // /usuarios/ y una herramienta se pierde al crear un usuario (no al editar).
+// 18-ago-2026: añadida 'vencimientos', que hasta hoy compartía la clave de
+// 'operaciones' y por eso no aparecía en el panel de permisos.
 //
 // 17-ago-2026 (auditoría): la lista sigue AQUÍ y no se lee de
 // `assets/herramientas.js`, a propósito — una edge que se descarga código del
 // sitio para ejecutarlo es exactamente lo que hay que dejar de hacer (ver el
 // hallazgo 01 de la auditoría y `firma-submit`). Lo que cambia es que ya no puede
-// quedarse corta en silencio: la comprueba `tools/test_listas_lawang.py`, que
+// quedarse corta en silencio: la comprueba `contracts/listas.test.js`, que
 // falla si no coincide con el catálogo, y las desconocidas se RECHAZAN en vez de
 // filtrarse (ver abajo). Las tres veces que esta lista se quedó corta pasaron
 // desapercibidas por el `.filter()`: descartar sin avisar convierte un error de
