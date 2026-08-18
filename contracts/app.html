@@ -738,7 +738,7 @@ function pdef(key){
   // el contrato, no una fecha fija en tokens.json (cambia cada día). Mismo
   // mecanismo que el resto de projectDefaults — un contrato reabierto sin
   // este dato guardado también cae aquí, igual que ya pasa con moneda='EUR'.
-  if(key==='fecha_firma' || key==='fecha_tipo_cambio') return new Date().toISOString().slice(0,10);
+  if(key==='fecha_firma' || key==='fecha_tipo_cambio') return hoyLocalISO();   // local: toISOString daba AYER antes de las 2:00
   return (TOKENS && TOKENS.projectDefaults && TOKENS.projectDefaults[key]) || '';
 }
 
@@ -1480,6 +1480,14 @@ function pintarFichaComprador(){
 
 function enlazarFicha(c){
   ADQ1_CLIENT = c; CORRIGIENDO_FICHA = false;
+  // LIMPIAR antes de poblar (auditoría 19-ago): populateForm salta los valores
+  // vacíos a propósito, así que una ficha sin domicilio dejaba el domicilio del
+  // cliente ANTERIOR en el campo — y bloqueado como si viniera de esta ficha
+  CAMPOS_FICHA.map(f=>f[0]).forEach(k=>{
+    const campo = document.querySelector(`.field[data-key="${k}"]`);
+    if(campo) campo.querySelectorAll('input, textarea').forEach(el=>{ el.value=''; });
+    const sel = document.querySelector(`select[name="${k}"]`); if(sel) sel.value='';
+  });
   populateForm({ adq1_nombre:c.full_name||'', adq1_nacionalidad:c.nationality||'',
     adq1_pasaporte:c.passport_number||'', adq1_telefono:c.phone||'',
     adq1_email:c.email||'', adq1_domicilio:c.address||'' });
@@ -1543,7 +1551,13 @@ async function guardarCorreccionFicha(){
   if(!ADQ1_CLIENT || !CORRIGIENDO_FICHA || !sb) return true;
   const d = collect();
   const nuevo = {}, campos = {};
+  // SOLO los campos que esta plantilla pinta (auditoría 19-ago): collect()
+  // devuelve '' para los que no existen en el formulario, y sin este filtro la
+  // corrección proponía VACIAR en la ficha el domicilio o el teléfono solo
+  // porque la plantilla abierta no los lleva
+  const pintados = new Set(activeKeys());
   CAMPOS_FICHA.forEach(([campo, col, etq])=>{
+    if(!pintados.has(campo)) return;
     const v = String(d[campo] || '').trim();
     nuevo[col] = (col === 'email' ? v.toLowerCase() : v) || null;
     campos[col] = etq;
@@ -1810,6 +1824,15 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null; PROYECTO_ABIERTO = '';
+  /* HITOS también se reinicia (auditoría 19-ago): faltaba en esta lista y «+
+     Nuevo contrato» heredaba el calendario de pagos del contrato ABIERTO — la
+     misma familia de fallo que ANNEXES/COMPRADORES ya corregida aquí. Se
+     rederiva con la MISMA expresión que usa deriveSections al cargar plantilla
+     (defaults de tokens.json + fecha concreta desde hoy). */
+  HITOS = ((TOKENS && TOKENS.hitosDefaults && TOKENS.hitosDefaults[slug]) ||
+    [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
+     {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
+    .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
   ADQ1_CLIENT = null; CORRIGIENDO_FICHA = false;
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
@@ -2017,7 +2040,7 @@ function fieldHTML(f){
     // que ser un slug estable y la etiqueta visible puede ser más larga.
     const conocidos = (extra||[]).map(o=>Array.isArray(o)?o[0]:o);
     const opts=(extra||[]).map(o=>{ const [v,lbl]=Array.isArray(o)?o:[o,o];
-      return `<option value="${escAttr(v)}" ${v===def?'selected':''}>${lbl}</option>`; }).join('');
+      return `<option value="${escAttr(v)}" ${v===def?'selected':''}>${esc(String(lbl))}</option>`; }).join('');   // esc: la etiqueta lleva nombres escritos por agentes
     // Valor guardado que ya no está entre las opciones vigentes (p.ej. un
     // "Firmante" retirado del select, pero que un contrato ya creado guardó
     // antes de retirarse): se añade como opción extra en vez de dejar el
@@ -2845,6 +2868,15 @@ function buildForm(){
    destino, que es lo que significa "a los 3 meses" en un contrato. `vence_dias`
    suma días exactos. Sin desfase declarado no se inventa fecha: null, y el campo
    queda vacío para que lo ponga el agente. */
+/* HOY en local, nunca toISOString(): eso convierte a UTC primero y antes de
+   las 2:00 en España la fecha sale de AYER — el mismo fallo que ya se arregló
+   dentro de fechaVencimiento(), ahora en UN solo sitio para los defaults de
+   formulario y la proforma automática (auditoría 19-ago). */
+function hoyLocalISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 function fechaVencimiento(base, hito){
   const d = new Date(base.getTime());
   if(typeof hito.vence_meses === 'number'){
@@ -3815,6 +3847,10 @@ function aplicarEstadoFirma(){
   // mientras haya firmas vivas se esconde, o sería la misma puerta por detrás
   const bT = $('#btnEdit'); if(bT && activo) bT.style.display = 'none';
   const bS = $('#btnSave'); if(bS && activo) bS.style.display = 'none';
+  // «Subir firmado» también (auditoría 19-ago): cerrar a mano con un enlace
+  // vivo pisaba la firma en curso — el comprador podía firmar después contra
+  // un contrato ya bloqueado. Para subir a mano, primero se anula.
+  const bU = $('#btnLockUpload'); if(bU && activo) bU.style.display = 'none';
   ocultarGruposVacios();
 }
 
@@ -3826,7 +3862,14 @@ function aplicarEstadoFirma(){
 async function cargarEstadoFirma(){
   if(!sb || !SAVED_CONTRACT){ EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma(); return; }
   const { data, error } = await sb.rpc('contrato_firmas_equipo').eq('contrato_id', SAVED_CONTRACT.id);
-  if(error){ console.error('estado de firma:', error.message); return; }
+  if(error){
+    // el formulario queda como esté (normalmente editable, porque al abrir se
+    // resetea el candado). No se finge un estado: se AVISA — el trigger de la
+    // base sigue rechazando el guardado si de verdad hay firmas vivas.
+    console.error('estado de firma:', error.message);
+    toast('No se pudo comprobar si este contrato está enviado a firma');
+    return;
+  }
   // el filtro de estados va aquí y no en la consulta: son cuatro filas por
   // contrato, y así no depende de que PostgREST acepte `in` sobre un RPC
   const filas = (data || []).filter(f => f.estado === 'pendiente' || f.estado === 'firmado');
@@ -4041,6 +4084,16 @@ async function subirPdfFirmado(file){
     const { error: upErr } = await sb.storage.from('contratos-firmados').upload(path, file, { upsert:true, contentType:'application/pdf' });
     if(upErr) throw upErr;
     const { error: updErr } = await sb.from('contratos').update({ bloqueado:true, pdf_firmado_path:path, pdf_firmado_hash:pdfHash }).eq('id', SAVED_CONTRACT.id);
+    // mismo barrido final que firma-submit al cerrar (auditoría 19-ago): un
+    // enlace vivo tras un cierre manual dejaría al comprador firmar contra un
+    // contrato ya bloqueado. Si el barrido falla no se corta el cierre: se avisa.
+    if(!updErr){
+      const barr = await sb.from('contrato_firmas').update({ estado:'anulado' })
+        .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','en_proceso']).select('id');
+      if(barr.error) toast('Cerrado, pero no se pudieron anular los enlaces de firma vivos: ' + barr.error.message);
+      else if((barr.data||[]).length) toast('Enlace(s) de firma pendientes anulados al cerrar');
+      await cargarEstadoFirma();
+    }
     if(updErr) throw updErr;   // si esto falla, el PDF ya subió pero el contrato sigue editable — se puede reintentar sin duplicar (upsert)
     LOCKED = true; LOCKED_PDF_PATH = path;
     toast('Contrato bloqueado · PDF firmado guardado');
@@ -4143,11 +4196,11 @@ async function crearProformaAutomatica(contratoId, numero, payload){
       cliente_nombre: payload.comprador_nombre || null,
       proyecto_nombre: payload.proyecto_nombre || null,
       contrato_numero: numero, contrato_id: contratoId,
-      total: precio, fecha_emision: new Date().toISOString().slice(0,10),
+      total: precio, fecha_emision: hoyLocalISO(),
       datos: { fields: { tipo:'proforma', sociedad, moneda, contrato_numero:numero,
                           cliente_nombre: payload.comprador_nombre || '',
                           proyecto_nombre: payload.proyecto_nombre || '',
-                          fecha_emision: new Date().toISOString().slice(0,10),
+                          fecha_emision: hoyLocalISO(),
                           notas: 'Total del proyecto contratado en ' + numero + '. Documento informativo, sin validez fiscal.' },
                lineas: [{ descripcion:'Total del proyecto', importe:String(precio) }] },
     });
@@ -4203,7 +4256,13 @@ async function guardarContrato(){
      Se mira `adq1_nombre` y no el tipo de documento: hay plantillas sin
      comprador (Poder Notarial, ofertas), y esas siguen guardándose igual. */
   const nombreComprador = String((collect().adq1_nombre) || '').trim();
-  if(nombreComprador && !ADQ1_CLIENT){
+  // …y solo si la plantilla pinta email o pasaporte (auditoría 19-ago): la
+  // Oferta Comercial lleva nombre SIN identificadores, y con el freno a secas
+  // quedaba inguardable — no se puede crear una ficha sin nada que la distinga.
+  // Esos documentos se guardan como siempre y quedan en `sin_ficha`, igual que
+  // el histórico.
+  const plantillaConIdentificador = (k => k.has('adq1_email') || k.has('adq1_pasaporte'))(new Set(activeKeys()));
+  if(nombreComprador && !ADQ1_CLIENT && plantillaConIdentificador){
     await lwConfirmar({
       titulo: 'Este comprador todavía no tiene ficha',
       cuerpo: '<p>Desde ahora el comprador de un contrato sale de su ficha de <b>Compradores</b>, '
@@ -4631,6 +4690,11 @@ async function openSavedContract(id){
                             || data.proyecto_nombre || '').trim();
   await loadTemplate(slug);
   $('#tplPick').value = slug;
+  // ANTES de buildForm: pintarFichaComprador() corre dentro y, con la ficha del
+  // contrato ANTERIOR aún en memoria, pintaba SU chip sobre el que se abre —
+  // misma familia de fallo que AUTO_ANX/AUTO_MASTER (ver más abajo). La ficha
+  // buena se carga y se repinta unas líneas después.
+  ADQ1_CLIENT = null; CORRIGIENDO_FICHA = false;
   buildForm();
   const d = data.datos || {};
   // Poderes guardados antes del 17-ago: sus campos usaban las claves del
@@ -4703,6 +4767,11 @@ async function openSavedContract(id){
       if(fc) ADQ1_CLIENT = fc;
     }
   }
+  // buildForm() corrió ANTES de esta carga (pinta con ADQ1_CLIENT=null): sin
+  // repintar aquí, el contrato abría con el buscador en vez del chip de su
+  // ficha y con los campos de identidad sueltos — el candado solo existía en
+  // contratos recién enlazados, no al reabrirlos
+  pintarFichaComprador();
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba

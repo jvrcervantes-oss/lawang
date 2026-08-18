@@ -448,10 +448,16 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
   // consultar lo emitido está abierto a todo el equipo, igual que en la RLS,
   // donde el filtro por herramienta está en la escritura y no en la lectura.
-  if(!modoVista && ficha && ficha.rol !== 'super_admin'
-     && !(ficha.herramientas||[]).includes('facturas')){
+  const PUEDE_FACTURAS = !ficha || ficha.rol === 'super_admin'
+     || (ficha.herramientas||[]).includes('facturas');
+  if(!modoVista && !PUEDE_FACTURAS){
     location.replace('/intranet/?sin_permiso=facturas'); return;
   }
+  // En modo vista se entra SIN el permiso (consultar está abierto al equipo),
+  // pero ENVIAR una factura al cliente es un acto de emisión: la Edge de correo
+  // solo exige sesión, así que sin esto el botón mandaba de verdad (auditoría
+  // 19-ago). Guardar ya lo rebota la RLS; el correo no lo rebotaba nadie.
+  if(!PUEDE_FACTURAS){ const bm = $('#btnMail'); if(bm) bm.style.display = 'none'; }
   // Solo administradores y super admin borran facturas (petición del owner).
   // Sale de la ficha que se acaba de leer, sin una segunda consulta. Decide
   // qué botón se pinta; el candado es la policy de DELETE de la RLS.
@@ -465,7 +471,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
   catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de emitir'); }
   document.body.hidden = false;
-  cargarContratos();
+  const contratosListos = cargarContratos();   // la promesa se espera en el deep-link ?contrato= (auditoría 19-ago)
   // deep-link ?id=<factura>: abre ese documento guardado directamente — lo usa
   // el visor embebido de Operaciones (y vale como enlace compartible interno).
   // Va aquí y no al final del script: antes de restaurarse la sesión la
@@ -518,6 +524,9 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   } else if(contratoUrl){
     nuevoDocumento(LTIPO || 'factura');
     pantalla('documento');
+    // sin esperar, el <select> aún no tiene opciones y fijarle el valor lo
+    // dejaba en el placeholder: el agente no veía QUÉ contrato estaba facturando
+    await contratosListos;
     $('#selContrato').value = contratoUrl;
     traerContrato(contratoUrl);
   } else if(par.has('nueva')){
@@ -531,6 +540,13 @@ $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replac
 
 /* ---------- estado ---------- */
 let LINEAS = [{ descripcion:'', importe:'' }];
+/* HOY en local, nunca toISOString(): convierte a UTC y antes de las 2:00 en
+   España la fecha de emisión salía de AYER (auditoría 19-ago; mismo fallo ya
+   corregido en contracts/app.html). */
+function hoyLocalISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
 let CONTRATO_ID = null;
 /* Reforma del modelo de facturación (11-ago-2026): un recibí no describe
@@ -583,7 +599,7 @@ function toggleCuentaOtros(){
 $('#selCuenta').addEventListener('change', toggleCuentaOtros);
 toggleCuentaOtros();
 
-$('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
+$('[name="fecha_emision"]').value = hoyLocalISO();
 
 /* ---------- conceptos ---------- */
 function pintarLineas(){
@@ -878,7 +894,9 @@ $('#mailSend').onclick = async () => {
       // columna al día, el guard "no tocar el JSONB de una factura ya enviada"
       // de renombrar_proyecto.sql no protegía la factura normal, que es la
       // mayoría. No bloquea el aviso de "Enviado" si falla: el email ya salió.
-      await sb.from('facturas').update({ enviada:true, fecha_envio: new Date().toISOString() }).eq('id', SAVED.id);
+      const marca = await sb.from('facturas').update({ enviada:true, fecha_envio: new Date().toISOString() }).eq('id', SAVED.id);
+      if(marca.error) console.error('factura', SAVED.numero, 'enviada pero SIN marcar enviada=true:', marca.error.message);
+      LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
       toast('Enviado a ' + to); cerrarMail();
     }
     else toast(res.error || 'No se pudo enviar');
@@ -1125,6 +1143,7 @@ $('#btnSave').onclick = async () => {
     }
     SAVED = { id:data.id, numero:data.numero };
     $('[name="numero_visible"]').value = data.numero;
+    LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
     toast('Guardada como ' + data.numero);
   }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
   btn.disabled = false; render();
@@ -1141,7 +1160,7 @@ function nuevoDocumento(tipo){
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
   APLICACIONES = []; JUSTIFICANTE_PATH = null; $('#fJustificante').value = ''; $('#justifEstado').textContent = '';
-  $('[name="fecha_emision"]').value = new Date().toISOString().slice(0,10);
+  $('[name="fecha_emision"]').value = hoyLocalISO();
   $('[name="numero_visible"]').value = '';
   $('#selContrato').value = ''; $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
   toggleTipoRecibi(); pintarLineas(); render();
@@ -1260,11 +1279,17 @@ function pintarListado(){
   pintarFiltrosListado();
   $('#btnNuevaDocTxt').textContent = NUEVA_ROTULO[LTIPO] || 'Nuevo documento';
   const data = docsVisibles();
-  const tot = data.filter(f => !f.anulada).reduce((a,f) => a + (Number(f.total)||0), 0);
-  const m = (data[0] && data[0].moneda) || 'EUR';
+  // POR moneda (auditoría 19-ago): antes sumaba EUR con USD en una sola cifra
+  // y la etiquetaba con la moneda de la primera fila — un total que no existía
+  const porMoneda = {};
+  data.filter(f => !f.anulada).forEach(f => {
+    const m = f.moneda || 'EUR';
+    porMoneda[m] = (porMoneda[m] || 0) + (Number(f.total) || 0);
+  });
+  const sumas = Object.entries(porMoneda).map(([m, t]) => esc(fmtMoneda(t, m))).join(' · ');
   $('#lResumen').innerHTML = !data.length ? '' :
     `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
-     <span>Suma de lo vigente <b>${esc(fmtMoneda(tot, m))}</b></span>`;
+     <span>Suma de lo vigente <b>${sumas}</b></span>`;
   if(!data.length){
     const filtrando = LTIPO || LANUL || ($('#lq').value || '').trim();
     box.innerHTML = `<div class="sui-nada"><b>${
@@ -1321,8 +1346,13 @@ function pintarListado(){
         cuerpo:'<p>El número <b>no se reutiliza</b> y ya no se podrá editar.</p>'
              + '<p>La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.</p>',
         confirmar:'Anular la factura', tono:'peligro' })) return;
-      const { error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular);
-      toast(error ? 'No se pudo anular: ' + error.message : 'Factura anulada');
+      const { data: fue, error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular).select('id');
+      // mismo patrón que el borrar de aquí abajo (auditoría 19-ago): la RLS no
+      // da error al denegar, devuelve CERO filas — sin mirarlas, esto decía
+      // «Factura anulada» y la factura seguía viva
+      if(error) toast('No se pudo anular: ' + error.message);
+      else if(!fue || !fue.length) toast('No se pudo anular: no es tuya o ya está anulada');
+      else toast('Factura anulada');
       recargarListado(); return;
     }
     /* Borrar está reservado a administradores (petición del owner, 31-jul) y NO
@@ -1363,7 +1393,12 @@ $('#lAnuladas').addEventListener('click', e => {
 });
 /* Volver al listado NO recarga la página: el borrador que hubiera en el
    formulario se perdería sin avisar. Solo cambia de pantalla. */
-$('#btnList').onclick = () => pantalla('listado', LTIPO ? 'tipo=' + LTIPO : '');
+$('#btnList').onclick = () => {
+  pantalla('listado', LTIPO ? 'tipo=' + LTIPO : '');
+  // si algo marcó el listado como viejo (guardar, enviar), se recarga al volver:
+  // sin esto el documento recién emitido no salía en la lista (auditoría 19-ago)
+  if(!LDOCS) cargarListado();
+};
 /* «+ Nueva» hereda el tipo que se esté filtrando: si estás mirando recibís, el
    que quieres emitir es un recibí. Es lo que hace que la tarjeta «Recibos» del
    hub siga llevando a emitir un recibí en dos clics y no en cuatro. */
@@ -1379,10 +1414,18 @@ async function abrir(f){
   $('#form').reset();
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
   $('#selTipo').value = f.tipo || d.tipo || 'factura';
-  LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas : [{ descripcion:'', importe:'' }];
+  // CLONADAS, no por referencia (auditoría 19-ago): apuntaban al array de la
+  // caché del listado, así que editar líneas sin guardar quedaba escrito en
+  // LDOCS y reabrir el documento enseñaba la edición fantasma
+  LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas.map(l => ({...l})) : [{ descripcion:'', importe:'' }];
   SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
   CONTRATO_ID = f.contrato_id || null;
   $('#selContrato').value = CONTRATO_ID || '';
+  // el panel de hitos se repinta para ESTE contrato (auditoría 19-ago): antes
+  // se quedaba el del documento anterior, y sus botones «traer hito» metían
+  // importes de otro cliente en este documento
+  if(CONTRATO_ID) traerContrato(CONTRATO_ID);
+  else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; }
   $('#delVinculado').innerHTML = '';
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
   toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos

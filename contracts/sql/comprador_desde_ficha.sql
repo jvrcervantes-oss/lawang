@@ -123,7 +123,16 @@ begin
                             'sin_ficha',         to_jsonb(v_sin_ficha));
 end $$;
 
+-- La función nació con EXECUTE para PUBLIC (lección del estudio: un GRANT no
+-- restringe, añade — una función nueva nace pública) y NADIE la llama por RPC:
+-- solo el trigger, que corre como owner y no necesita grant. Con anon podía
+-- invocarse por la API REST sin sesión: una definer que ESCRIBE en
+-- contrato_compradores y devuelve nombres de compradores. Cazado en la
+-- auditoría del 19-ago; revocado ese día y verificado en catálogo.
+revoke execute on function public.sincronizar_compradores(uuid) from public, anon, authenticated;
+
 -- ── Comprobación (la del catálogo, nunca el «ya lo mandé») ──────────────────
+--   select has_function_privilege('anon', 'public.sincronizar_compradores(uuid)', 'EXECUTE');  → f
 --   select prosrc from pg_proc where proname='sincronizar_compradores';
 --     → NO debe aparecer ningún `insert into public.clients`
 --   select count(*) from public.clients;   → antes y después de guardar un
