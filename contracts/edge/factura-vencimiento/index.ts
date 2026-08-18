@@ -35,10 +35,27 @@ const DIAS_ANTES = 3;
 // totales, compradores, documento y la lógica de la cascada — generado por
 // tools/empaqueta_edge.py desde los ficheros del repo, sin red por el medio.
 let CAJA: Record<string, any> | null = null;
-function caja(): Record<string, any> {
+async function caja(): Promise<Record<string, any>> {
   if (CAJA) return CAJA;
   const c: Record<string, any> = {};
   new Function('caja', FUENTES.join('\n;\n') + '\n;Object.assign(caja,{' + EXPORTA.join(',') + '});')(c);
+
+  /* Las cuentas de cobro NO vienen en entities.js desde el 6-ago (es un fichero
+     público): se leen de la base con la service key, rellenando EL MISMO objeto
+     que publicó el new Function — documento.js lo lee por referencia. Es el
+     bloque de firma-submit, copiado CON su regla de fallo: si esto no carga, se
+     corta — la primera versión de esta función no lo tenía y habría emitido
+     facturas SIN datos de pago, que es dinero pedido sin decir dónde pagarlo.
+     Lo cazó la revisión pre-deploy, no un test: el paquete evalúa bien sin esto
+     (CUENTAS_BANCARIAS existe, vacío), así que compila y revienta en el uso —
+     la clase de fallo que solo se ve leyendo la función hermana. */
+  const { data: cuentas, error: errCuentas } = await sb.from('cuentas_bancarias')
+    .select('clave,label,titular,banco,cuenta,codigo,direccion,extra').eq('activa', true);
+  if (errCuentas) throw new Error('no se pudieron leer las cuentas de cobro: ' + errCuentas.message);
+  for (const cta of cuentas ?? []) {
+    c.CUENTAS_BANCARIAS[cta.clave] = { label: cta.label, titular: cta.titular, banco: cta.banco,
+      cuenta: cta.cuenta, codigo: cta.codigo, direccion: cta.direccion, extra: cta.extra };
+  }
   CAJA = c;
   return c;
 }
@@ -81,7 +98,7 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const dry = body.dry === true;
-  const C = caja();
+  const C = await caja();
   const hoy = hoyISO();
 
   // ── candidatos: firmados, con fecha en [hoy, hoy+3], sin factura, sin opt-out
