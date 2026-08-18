@@ -203,5 +203,53 @@ function mesesVentana(hoyISO){
   return out;
 }
 
+/* ── deuda por antigüedad: cuánto lleva vencido cada euro ──────────────────
+   Los cuatro tramos clásicos de un aging (1-30 / 31-60 / 61-90 / +90 días de
+   retraso), sobre las filas YA anotadas por la cascada: solo lo `vencido`, y por
+   su PENDIENTE — lo cubierto no es deuda. Un tramo vacío se devuelve igual, a
+   cero: en un informe de deuda, un tramo que falta se lee como "no hay deuda
+   vieja", que es distinto de "0 € en ese tramo". */
+function agingVencido(filas, hoyISO){
+  const tramos = [
+    { etiqueta:'1–30 días',  desde:1,  hasta:30,  importe:0, n:0 },
+    { etiqueta:'31–60 días', desde:31, hasta:60,  importe:0, n:0 },
+    { etiqueta:'61–90 días', desde:61, hasta:90,  importe:0, n:0 },
+    { etiqueta:'+90 días',   desde:91, hasta:Infinity, importe:0, n:0 },
+  ];
+  for(const f of filas){
+    if(f.estado !== 'vencido' || !(f.pendiente > 0)) continue;
+    const retraso = diasEntre(f.fecha, hoyISO);
+    const t = tramos.find(x => retraso >= x.desde && retraso <= x.hasta);
+    if(t){ t.importe = Math.round((t.importe + f.pendiente) * 100) / 100; t.n++; }
+  }
+  return tramos;
+}
+
+/* ── el dinero por trimestre: la pregunta del cliente ──────────────────────
+   «Sabe el dinero que debe entrar cada trimestre»: lo PENDIENTE con fecha
+   dentro de cada uno de los próximos `n` trimestres naturales, empezando por
+   el corriente. Trimestres naturales (T1=ene-mar…) y no ventanas móviles:
+   así la cifra coincide con cómo se cierra la contabilidad. */
+function porTrimestre(filas, hoyISO, n){
+  const [y0, m0] = hoyISO.split('-').map(Number);
+  const q0 = Math.floor((m0 - 1) / 3);          // 0..3 del trimestre corriente
+  const out = [];
+  for(let i = 0; i < (n || 4); i++){
+    const total = q0 + i;
+    const y = y0 + Math.floor(total / 4), q = total % 4;
+    const desde = `${y}-${String(q*3+1).padStart(2,'0')}-01`;
+    const finMes = new Date(Date.UTC(y, q*3+3, 0));
+    const hasta = finMes.toISOString().slice(0,10);
+    let importe = 0, cuenta = 0;
+    for(const f of filas){
+      if(!f.fecha || !(f.pendiente > 0)) continue;
+      if(f.fecha >= desde && f.fecha <= hasta){ importe += f.pendiente; cuenta++; }
+    }
+    out.push({ trimestre:`T${q+1} ${y}`, desde, hasta,
+               importe: Math.round(importe*100)/100, n: cuenta });
+  }
+  return out;
+}
+
 if(typeof module !== 'undefined' && module.exports)
-  module.exports = { importeVencimiento, cobradoEfectivo, cascada, modeloFinanciero, mesesVentana, diasEntre, TIPOS_SIN_CALENDARIO };
+  module.exports = { importeVencimiento, cobradoEfectivo, cascada, modeloFinanciero, mesesVentana, diasEntre, agingVencido, porTrimestre, TIPOS_SIN_CALENDARIO };

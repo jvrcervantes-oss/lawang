@@ -141,6 +141,41 @@ es('ni vencimientos: su hito pasado NO es vencido', conBorrador.EUR.vencido, 0);
 es('ni filas en la tabla', conBorrador.EUR.filas.map(f=>f.id), ['vf']);
 es('pero su cobrado real sí es caja', conBorrador.EUR.cobrado, 7000);
 
+/* ── aging del vencido: cada euro con su edad ── */
+const agFilas = [
+  { estado:'vencido', fecha:'2026-08-10', pendiente:1000 },   // 8 días  → 1-30
+  { estado:'vencido', fecha:'2026-07-01', pendiente:2000 },   // 48 días → 31-60
+  { estado:'vencido', fecha:'2026-05-01', pendiente:4000 },   // 109 días → +90
+  { estado:'cobrado', fecha:'2026-05-01', pendiente:0 },      // cobrado no es deuda
+  { estado:'pendiente', fecha:'2026-09-01', pendiente:500 },  // futuro no es deuda
+];
+const ag = L.agingVencido(agFilas, HOY);
+es('aging: cada vencido cae en su tramo por días de retraso',
+   ag.map(t=>[t.etiqueta, t.importe, t.n]),
+   [['1–30 días',1000,1],['31–60 días',2000,1],['61–90 días',0,0],['+90 días',4000,1]]);
+es('aging con nada vencido: los 4 tramos igual, a cero — un tramo que falta miente',
+   L.agingVencido([], HOY).map(t=>t.importe), [0,0,0,0]);
+
+/* ── trimestres naturales: la cifra que cierra contabilidad ── */
+const triFilas = [
+  { fecha:'2026-09-15', pendiente:10000 },   // T3 2026
+  { fecha:'2026-08-20', pendiente:5000 },    // T3 2026
+  { fecha:'2026-11-01', pendiente:20000 },   // T4 2026
+  { fecha:'2027-02-10', pendiente:7000 },    // T1 2027 (cruza el año)
+  { fecha:'2026-12-31', pendiente:1,   },    // borde: último día de T4
+  { fecha:'2026-07-01', pendiente:999, estado:'vencido' },  // T3 pero PASADO… sigue en su trimestre
+  { fecha:null, pendiente:3000 },            // sin fecha no entra en ningún trimestre
+  { fecha:'2026-10-05', pendiente:0 },       // sin pendiente no cuenta
+];
+const tri = L.porTrimestre(triFilas, HOY, 4);
+es('4 trimestres naturales desde el corriente, con el cruce de año bien',
+   tri.map(t=>t.trimestre), ['T3 2026','T4 2026','T1 2027','T2 2027']);
+es('T3 suma lo del trimestre corriente (incluido lo ya vencido dentro de él)',
+   tri[0].importe, 10000 + 5000 + 999);
+es('T4 con el borde del 31-dic dentro', tri[1].importe, 20001);
+es('T1 2027 tras el cambio de año', tri[2].importe, 7000);
+es('T2 2027 vacío es 0, no ausente', tri[3].importe, 0);
+
 /* ── mesesVentana ── */
 const meses = L.mesesVentana(HOY);
 es('15 meses, de 3 atrás a 11 adelante, sin huecos',
@@ -149,4 +184,4 @@ es('la ventana cruza el cambio de año sin romperse',
    L.mesesVentana('2026-12-15')[4], '2027-01');
 
 if(fallos){ console.error(`\nlogica.test.js — ${fallos} fallo(s)`); process.exit(1); }
-console.log('OK logica.test.js — cascada, cartera sin dobles, monedas separadas y avisos de calidad');
+console.log('OK logica.test.js — cascada, cartera sin dobles, monedas separadas, aging, trimestres y avisos de calidad');

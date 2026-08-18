@@ -91,6 +91,38 @@
   .lapiz:focus-visible{ opacity:1; outline:2px solid var(--tg,#485B37); border-radius:4px; }
   td.num{ text-align:right; font-variant-numeric:tabular-nums; }
   .sui-tabla .flojo{ color:var(--texto-2,#4A5052); font-size:12px; }
+  /* ── análisis: los gráficos secundarios ──────────────────────────────────
+     Mismas reglas que el de caja: sin librerías, hueco de superficie entre
+     segmentos, etiquetas directas (la identidad nunca por color solo) y la
+     tabla de abajo como vista de datos. El aging usa una RAMPA SECUENCIAL del
+     rojo de vencido (claro→oscuro = reciente→viejo): es magnitud de una sola
+     cosa, no categorías — regla del método dataviz. Luminosidad monótona
+     comprobada a mano: #E8C4BF → #CE8F86 → #B55D52 → #9E2F26. */
+  .analisis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
+  .analisis .caja{ padding:16px 18px 14px; }
+  .analisis h3{ margin:0 0 12px; font-size:12px; font-weight:600; color:var(--texto,#22282A); }
+  .compo{ display:flex; height:26px; border-radius:7px; overflow:hidden; gap:2px; background:var(--sup-0,#F1EBDD); }
+  .compo span{ min-width:3px; }
+  .compo .c1{ background:#8F9B7A; } .compo .c2{ background:#0E6B70; } .compo .c3{ background:#9E2F26; }
+  .compo-leyenda{ display:flex; flex-direction:column; gap:5px; margin-top:12px; font-size:12.5px; color:var(--texto-2,#4A5052); }
+  .compo-leyenda b{ color:var(--texto,#22282A); font-variant-numeric:tabular-nums; font-weight:600; margin-left:auto; }
+  .compo-leyenda > span{ display:flex; align-items:center; gap:8px; }
+  .compo-leyenda i{ width:10px; height:10px; border-radius:3px; flex:none; }
+  .barras-v{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:10px; align-items:end; height:120px; margin-top:6px; }
+  .barras-v .col{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:4px; height:100%; }
+  .barras-v .col i{ width:100%; max-width:52px; border-radius:4px 4px 0 0; display:block; }
+  .barras-v .col .v{ font-size:11px; font-variant-numeric:tabular-nums; color:var(--texto,#22282A); }
+  .barras-v .col .l{ font-size:10px; color:var(--texto-2,#4A5052); white-space:nowrap; }
+  .barras-h{ display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+  .barras-h .fila-b{ font-size:12px; color:var(--texto-2,#4A5052); }
+  .barras-h .fila-b .cab-b{ display:flex; justify-content:space-between; gap:10px; margin-bottom:3px; }
+  .barras-h .fila-b .cab-b b{ color:var(--texto,#22282A); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .barras-h .fila-b .cab-b .v{ font-variant-numeric:tabular-nums; flex:none; }
+  .barras-h .pista{ display:flex; height:10px; border-radius:5px; overflow:hidden; gap:2px; background:var(--sup-0,#F1EBDD); }
+  .barras-h .pista .pc{ background:#8F9B7A; } .barras-h .pista .pp{ background:#0E6B70; } .barras-h .pista .pv{ background:#9E2F26; }
+  .vacio-g{ padding:26px 0 18px; text-align:center; font-size:12.5px; color:var(--texto-2,#4A5052); }
+  .pager{ display:flex; align-items:center; gap:10px; margin-top:12px; justify-content:flex-end; font-size:12.5px; color:var(--texto-2,#4A5052); }
+  .pager .n{ font-variant-numeric:tabular-nums; }
   .nota-pie{ font-size:12px; color:var(--texto-2,#4A5052); margin:8px 0 0; line-height:1.55; max-width:78ch; }
   @media (max-width:720px){ main{ padding-left:14px; padding-right:14px; } .lw-kpi .lw-cifra{ font-size:18px; } }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; animation:none !important; } }
@@ -122,6 +154,14 @@
       <div class="leyenda" id="leyenda"></div>
     </div>
 
+    <h2>Análisis · <span id="analisisMoneda"></span></h2>
+    <div class="analisis">
+      <div class="caja"><h3>Composición de la cartera</h3><div id="gCompo"></div></div>
+      <div class="caja"><h3>Dinero por trimestre (pendiente)</h3><div id="gTrimestres"></div></div>
+      <div class="caja"><h3>Vencido por antigüedad</h3><div id="gAging"></div></div>
+      <div class="caja"><h3>Por proyecto</h3><div id="gProyectos"></div></div>
+    </div>
+
     <h2 id="hTabla">Todos los vencimientos</h2>
     <div class="sui-filtros" id="filtros"></div>
     <div class="sui-tabla-caja">
@@ -132,6 +172,11 @@
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
+    </div>
+    <div class="pager" id="pager" hidden>
+      <button type="button" class="sui-chip" id="pagAntes">← Anteriores</button>
+      <span class="n" id="pagInfo"></span>
+      <button type="button" class="sui-chip" id="pagDespues">Siguientes →</button>
     </div>
     <p class="nota-pie">El «cubierto» es una lectura, no un asiento: lo cobrado de cada contrato —recibís, incluida la señal
       de su Carta de Reserva— va tapando sus vencimientos por orden de fecha. Todo lo listado es de contratos firmados, así
@@ -171,6 +216,11 @@ const dinero = (n, m) => n == null ? '—' : lwFormatoImporte(n, m);
 const fechaCorta = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return d + '/' + m + '/' + y.slice(2); };
 
 let MODELO = null, RAW = null, MONEDA = 'EUR', FILTRO = 'atencion', FACTURAS = [], PUEDE_EDITAR = false, FICHA = null;
+/* Paginación de la tabla (18-ago, petición del owner: salía la lista entera).
+   25 por página: caben sin desplazar en un portátil y el paginador de abajo
+   dice siempre el total — un recorte que se anuncia, nunca silencioso. */
+const POR_PAGINA = 25;
+let PAGINA = 0;
 
 const ESTADO_TAG = { vencido:['Vencido','alerta'], parcial:['Parcial','espera'], pendiente:['Pendiente','gris'],
                      cobrado:['Cobrado','ok'], sin_fecha:['Sin fecha','espera'] };
@@ -214,7 +264,7 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
 function pintarTodo(){
   const m = MODELO[MONEDA] || { cartera:0, cobrado:0, pendiente:0, vencido:0, proximos30:0, proximos90:0,
                                 nSinFecha:0, filas:[], porProyecto:{}, porMes:{}, avisos:[] };
-  pintarMonedas(); pintarAvisos(m); pintarKpis(m); pintarGrafico(m); pintarFiltros(m); pintarTabla(m);
+  pintarMonedas(); pintarAvisos(m); pintarKpis(m); pintarGrafico(m); pintarAnalisis(m); pintarFiltros(m); pintarTabla(m);
   pintarProyectos(m); pintarFacturas();
 }
 
@@ -228,7 +278,7 @@ function pintarMonedas(){
 }
 $('#monedas').addEventListener('click', e => {
   const b = e.target.closest('[data-moneda]'); if(!b) return;
-  MONEDA = b.dataset.moneda; pintarTodo();
+  MONEDA = b.dataset.moneda; PAGINA = 0; pintarTodo();
 });
 
 /* ── avisos: lo que impide vigilar de verdad, fijo y arriba ─────────────── */
@@ -305,6 +355,75 @@ $('#grafico').addEventListener('mousemove', e => {
 });
 $('#grafico').addEventListener('mouseleave', () => { tip.style.display = 'none'; });
 
+/* ── análisis: cuatro lecturas del mismo modelo ─────────────────────────────
+   Nada se calcula aquí: composición y proyectos salen de campos que el modelo ya
+   trae, y aging/trimestres de las funciones probadas en node. Etiquetas directas
+   en todo — la identidad nunca por color solo. */
+function pintarAnalisis(m){
+  $('#analisisMoneda').textContent = MONEDA;
+  const din = n => dinero(n, MONEDA);
+
+  // 1 · composición de la cartera: una sola barra al 100% + leyenda con importes
+  const pendienteFuturo = Math.max(0, m.pendiente - m.vencido);
+  const total = Math.max(1, m.cobrado + pendienteFuturo + m.vencido);
+  const pctc = x => Math.round(x / total * 1000) / 10;
+  $('#gCompo').innerHTML = m.cartera <= 0
+    ? '<div class="vacio-g">Sin cartera en esta moneda.</div>'
+    : `<div class="compo" role="img" aria-label="Composición de la cartera: cobrado, pendiente y vencido">
+        ${m.cobrado ? `<span class="c1" style="width:${pctc(m.cobrado)}%" title="Cobrado: ${escAttr(din(m.cobrado))}"></span>` : ''}
+        ${pendienteFuturo ? `<span class="c2" style="width:${pctc(pendienteFuturo)}%" title="Pendiente: ${escAttr(din(pendienteFuturo))}"></span>` : ''}
+        ${m.vencido ? `<span class="c3" style="width:${pctc(m.vencido)}%" title="Vencido: ${escAttr(din(m.vencido))}"></span>` : ''}
+      </div>
+      <div class="compo-leyenda">
+        <span><i style="background:#8F9B7A"></i>Cobrado <b>${esc(din(m.cobrado))} · ${pctc(m.cobrado)}%</b></span>
+        <span><i style="background:#0E6B70"></i>Pendiente sin vencer <b>${esc(din(pendienteFuturo))} · ${pctc(pendienteFuturo)}%</b></span>
+        <span><i style="background:#9E2F26"></i>Vencido <b>${esc(din(m.vencido))} · ${pctc(m.vencido)}%</b></span>
+      </div>`;
+
+  // 2 · trimestres naturales: la cifra que pidió el cliente
+  const tri = porTrimestre(m.filas, HOY, 4);
+  const topeT = Math.max(1, ...tri.map(t => t.importe));
+  $('#gTrimestres').innerHTML = `<div class="barras-v" role="img" aria-label="Pendiente por trimestre">` +
+    tri.map(t => `<div class="col" title="${escAttr(t.trimestre + ': ' + din(t.importe) + ' en ' + t.n + ' vencimiento(s)')}">
+      <span class="v">${esc(din(t.importe))}</span>
+      <i style="background:#0E6B70;height:${Math.max(t.importe ? 4 : 1, Math.round(t.importe / topeT * 78))}px"></i>
+      <span class="l">${esc(t.trimestre)}</span>
+    </div>`).join('') + `</div>
+    <p class="nota-pie" style="margin-top:10px">Solo vencimientos con fecha: lo «sin fecha» no está aquí — está en su alerta.</p>`;
+
+  // 3 · aging del vencido: rampa secuencial, claro=reciente, oscuro=viejo
+  const RAMPA = ['#E8C4BF', '#CE8F86', '#B55D52', '#9E2F26'];
+  const ag = agingVencido(m.filas, HOY);
+  const topeA = Math.max(...ag.map(t => t.importe));
+  $('#gAging').innerHTML = !topeA
+    ? '<div class="vacio-g">Nada vencido en esta moneda. Que siga así.</div>'
+    : `<div class="barras-v" role="img" aria-label="Vencido por antigüedad del retraso">` +
+      ag.map((t, i) => `<div class="col" title="${escAttr(t.etiqueta + ' de retraso: ' + din(t.importe) + ' en ' + t.n + ' vencimiento(s)')}">
+        <span class="v">${t.importe ? esc(din(t.importe)) : '—'}</span>
+        <i style="background:${RAMPA[i]};height:${Math.max(t.importe ? 4 : 1, Math.round(t.importe / topeA * 78))}px"></i>
+        <span class="l">${esc(t.etiqueta)}</span>
+      </div>`).join('') + '</div>';
+
+  // 4 · por proyecto: barras horizontales apiladas, los 8 mayores por cartera
+  const proys = Object.entries(m.porProyecto).sort((a,b) => b[1].cartera - a[1].cartera).slice(0, 8);
+  const topeP = Math.max(1, ...proys.map(([,d]) => d.cartera));
+  $('#gProyectos').innerHTML = !proys.length
+    ? '<div class="vacio-g">Sin proyectos en esta moneda.</div>'
+    : '<div class="barras-h">' + proys.map(([nombre, d]) => {
+        const pendiente = Math.max(0, d.cartera - d.cobrado - d.vencido);
+        const w = x => Math.round(x / topeP * 1000) / 10;
+        return `<div class="fila-b">
+          <div class="cab-b"><b>${esc(nombre)}</b><span class="v">${esc(din(d.cartera))}</span></div>
+          <div class="pista" title="${escAttr(nombre + ' — cobrado ' + din(d.cobrado) + ' · pendiente ' + din(pendiente) + (d.vencido ? ' · vencido ' + din(d.vencido) : ''))}">
+            ${d.cobrado ? `<span class="pc" style="width:${w(d.cobrado)}%"></span>` : ''}
+            ${pendiente ? `<span class="pp" style="width:${w(pendiente)}%"></span>` : ''}
+            ${d.vencido ? `<span class="pv" style="width:${w(d.vencido)}%"></span>` : ''}
+          </div>
+        </div>`;
+      }).join('') + `</div>
+      <p class="nota-pie" style="margin-top:10px">Barra = cartera del proyecto, al ancho relativo del mayor. Verde cobrado · teal pendiente · rojo vencido${Object.keys(m.porProyecto).length > 8 ? ' · se enseñan los 8 mayores' : ''}.</p>`;
+}
+
 /* ── filtros de la tabla ────────────────────────────────────────────────── */
 const FILTROS = [
   ['atencion', 'Necesitan atención', f => f.estado === 'vencido' || f.estado === 'sin_fecha' || f.estado === 'parcial'],
@@ -320,9 +439,12 @@ function pintarFiltros(m){
       return `<button type="button" class="sui-chip ${k===FILTRO?'on':''} ${n?'':'vacio'}" data-filtro="${k}">${l}<span class="n">${n}</span></button>`;
     }).join('');
 }
+$('#pagAntes').addEventListener('click', () => { if(PAGINA > 0){ PAGINA--; pintarTabla(MODELO[MONEDA]); } });
+$('#pagDespues').addEventListener('click', () => { PAGINA++; pintarTabla(MODELO[MONEDA]); });
+
 $('#filtros').addEventListener('click', e => {
   const b = e.target.closest('[data-filtro]'); if(!b) return;
-  FILTRO = b.dataset.filtro; const m = MODELO[MONEDA]; pintarFiltros(m); pintarTabla(m);
+  FILTRO = b.dataset.filtro; PAGINA = 0; const m = MODELO[MONEDA]; pintarFiltros(m); pintarTabla(m);
 });
 
 /* ── la tabla ───────────────────────────────────────────────────────────── */
@@ -330,8 +452,16 @@ function pintarTabla(m){
   const fn = (FILTROS.find(([k]) => k === FILTRO) || FILTROS[4])[2];
   const filas = m.filas.filter(fn);
   $('#hTabla').textContent = (FILTROS.find(([k]) => k === FILTRO) || [])[1] + ' · ' + filas.length;
-  if(!filas.length){ $('#tbody').innerHTML = '<tr><td colspan="8" class="flojo" style="padding:18px">Nada con este filtro.</td></tr>'; return; }
-  $('#tbody').innerHTML = filas.map(f => {
+  if(!filas.length){ $('#tbody').innerHTML = '<tr><td colspan="8" class="flojo" style="padding:18px">Nada con este filtro.</td></tr>'; $('#pager').hidden = true; return; }
+  const paginas = Math.ceil(filas.length / POR_PAGINA);
+  if(PAGINA >= paginas) PAGINA = paginas - 1;
+  const desde = PAGINA * POR_PAGINA;
+  const pagina = filas.slice(desde, desde + POR_PAGINA);
+  $('#pager').hidden = filas.length <= POR_PAGINA;
+  $('#pagInfo').textContent = (desde + 1) + '–' + (desde + pagina.length) + ' de ' + filas.length;
+  $('#pagAntes').disabled = PAGINA === 0;
+  $('#pagDespues').disabled = PAGINA >= paginas - 1;
+  $('#tbody').innerHTML = pagina.map(f => {
     const [tag, cls] = ESTADO_TAG[f.estado] || [f.estado, 'gris'];
     const editable = PUEDE_EDITAR && f.contrato.bloqueado;
     return `<tr data-vid="${esc(f.id)}">

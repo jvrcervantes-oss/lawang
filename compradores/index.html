@@ -471,7 +471,15 @@ function pintarFicha(){
       ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
       : cerrada
         ? `<button class="sui-btn primario" id="btnEditar">Editar datos</button>
-           <button class="sui-btn" id="btnCerrar">Cerrar</button>`
+           <button class="sui-btn" id="btnCerrar">Cerrar</button>` +
+          /* Borrar, SOLO super_admin y SOLO en la ficha cerrada (18-ago-2026,
+             encargo del owner: hay duplicados). En la cerrada y no en edición a
+             propósito: borrar es una decisión de consulta, no un gesto entre
+             guardados. La puerta de verdad es `borrar_comprador()` en la base
+             (es_super_admin() + bloqueos por contrato/portal); este botón solo
+             evita ofrecer lo que fallaría — la regla de guard.js de siempre. */
+          (YO && YO.rol === 'super_admin'
+            ? `<button class="sui-btn peligro" id="btnBorrarComprador" style="margin-left:auto">Borrar comprador</button>` : '')
         : `<button class="sui-btn primario" id="btnGuardar">Crear comprador</button>
            <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintarLista(); },
@@ -507,6 +515,7 @@ function pintarFicha(){
      que ya hace este mismo cajon cuando la ficha es nueva («Crear comprador» +
      «Cerrar») y cuando esta desbloqueada («Guardar cambios» + «Cancelar»). */
   const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
+  const bb = $('#btnBorrarComprador'); if(bb) bb.addEventListener('click', () => borrarComprador(c));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
   const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
   const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
@@ -514,6 +523,49 @@ function pintarFicha(){
   const br = $('#btnPortalRev'); if(br) br.addEventListener('click', () => revocarPortal(c));
   document.getElementById('suiCajon').querySelectorAll('[data-ver]')
     .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
+}
+
+/* ---------- borrar una ficha (solo super_admin): los duplicados ----------
+   La logica de verdad vive en `borrar_comprador()` de la base (patron de
+   borrar_operacion): es_super_admin() y tres bloqueos — contratos vinculados
+   (nombrandolos), acceso al portal y filas del esquema viejo. Aqui solo se
+   confirma, se llama y se limpia el bucket: los ficheros KYC del duplicado los
+   quita ESTA sesion con las rutas que devuelve la RPC, porque una funcion de la
+   base no alcanza al almacenamiento (la misma leccion que borrarOperacion). */
+async function borrarComprador(c){
+  const misDocs = DOCUMENTOS.filter(d => d.client_id === c.id);
+  const ok = await lwConfirmar({
+    titulo: 'Borrar la ficha de ' + (c.full_name || 'este comprador'),
+    cuerpo: '<p>Se borra la ficha' + (misDocs.length
+        ? ' y sus <b>' + misDocs.length + ' documento(s) KYC</b> del archivo privado' : '') + '.</p>'
+      + '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide '
+      + 'y te dice cuál — esta acción es para <b>duplicados sueltos</b>.</p>'
+      + '<p>No hay papelera.</p>',
+    confirmar: 'Borrar la ficha',
+    tono: 'peligro',
+  });
+  if(!ok) return;
+
+  const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
+  if(error){
+    toast(error.message);
+    if(btn){ btn.disabled = false; btn.textContent = 'Borrar comprador'; }
+    return;
+  }
+  // los ficheros del bucket, con la sesion del super_admin. Si fallara, la ficha
+  // ya no existe (lo importante) y las rutas quedan en el aviso para limpiarlas.
+  const rutas = (data && data.rutas_kyc) || [];
+  if(rutas.length){
+    const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
+    if(eSt) toast('Ficha borrada, pero ' + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
+  }
+  toast('Ficha de ' + ((data && data.nombre) || 'comprador') + ' borrada'
+    + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
+  SEL = null;
+  suiCerrarCajon();
+  await cargar();
+  pintarLista();
 }
 
 async function guardar(id){
