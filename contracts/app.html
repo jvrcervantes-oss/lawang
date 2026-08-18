@@ -56,11 +56,11 @@
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=c031da44"></script>
 <script src="assets/dinero.js?v=f37d55ff"></script>
-<script src="assets/dialogo.js?v=939005c5"></script>
+<script src="assets/dialogo.js?v=8197f360"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=565920a3">
+<link rel="stylesheet" href="assets/app.css?v=9481695c">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -106,6 +106,12 @@
       <div class="pv-bar">
         <b id="pvTitle">Vista previa</b>
         <span id="lockBadge" style="display:none;font-size:12px;color:var(--be,#a3342b);align-items:center;gap:6px;font-weight:600">🔒 Bloqueado</span>
+        <!-- Enviado a firma (18-ago-2026): hasta hoy este estado era INVISIBLE
+             —el formulario de un contrato con un enlace vivo se veía igual que
+             un borrador en blanco— y encima editable. Ahora se ve y el
+             formulario está en solo lectura hasta anular. El texto lo pone
+             aplicarEstadoFirma(). -->
+        <span id="firmaBadge" style="display:none;font-size:12px;color:#0E6B70;align-items:center;gap:6px;font-weight:600">✍︎ Enviado a firma</span>
         <!-- 1. el documento en sí -->
         <div class="pv-grupo" role="group" aria-label="Documento">
           <span class="g">Documento</span>
@@ -122,6 +128,8 @@
         <div class="pv-grupo" role="group" aria-label="Firma automática">
           <span class="g">Firma automática</span>
           <button class="btn ghost" id="btnEnviarFirma" style="display:none" title="Enlace para que el comprador firme a distancia">✍︎ Enviar a firma</button>
+          <button class="btn ghost" id="btnEditarFirmado" style="display:none"
+                  title="Anula el enlace y las firmas ya dadas, y desbloquea el formulario para editar">✎ Editar (anula la firma)</button>
           <button class="btn ghost" id="btnDownloadSigned" style="display:none" title="Descargar el PDF ya firmado">PDF firmado ↓</button>
         </div>
         <!-- 4. el camino a mano: te llevas el PDF, lo mandas tú, y cuando vuelve
@@ -1596,6 +1604,8 @@ function limpiarOverrides(slug){
    tipo de documento), no algo que deba reiniciarse por contrato. */
 function resetBorrador(slug){
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
+  EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
   COMPRADORES = []; saveCompradores();
   ANNEXES = []; saveAnnexes();
@@ -3534,6 +3544,192 @@ async function downloadPdf(){
    ============================================================ */
 let LOCKED = false, LOCKED_PDF_PATH = null;   // true una vez subido el PDF firmado (columna `bloqueado`)
 
+/* ═══ SEMIBLOQUEO «enviado a firma» — 18-ago-2026, owner ═══════════════════════
+   CÓMO ERA HASTA HOY, y por qué estaba mal. La anulación de las firmas vivía
+   dentro de guardarContrato(): el agente editaba el formulario libremente y solo
+   al pulsar Guardar se le decía «esto anula la firma». Dos agujeros:
+
+     1. La decisión llegaba DESPUÉS del trabajo. Con el contrato ya reescrito, el
+        diálogo no es una decisión: es un trámite que se acepta.
+     2. El enlace seguía VIVO mientras se editaba. Y ese es el daño real: si el
+        comprador firma en esa ventana siendo el último firmante que faltaba,
+        `firma-submit` cierra el contrato (bloqueado=true) y MANDA al cliente el
+        contrato firmado y la proforma — con el texto viejo. Cuando el agente
+        guarda, la RLS ya lo rechaza: contrato ejecutado y dos correos fuera que
+        nadie puede recoger. Ningún diálogo arregla eso a posteriori.
+
+   CÓMO ES AHORA. Un contrato con firmas vivas abre en SOLO LECTURA, con su
+   distintivo en la barra. Para escribir hay que pulsar «Editar (anula la
+   firma)», que pregunta ANTES y, al confirmar, anula en ese mismo instante: a
+   partir de ahí no hay carrera contra el comprador posible. Cancelar no destruye
+   nada — el formulario sigue en solo lectura y el enlace, vivo.
+
+   LO QUE NO SE PIERDE del diseño anterior: destruir sigue exigiendo un acto
+   explícito y confirmado. Anular al primer clic en un botón «Editar» habría
+   hecho que un clic por curiosidad matara un enlace válido.
+
+   EL TRIGGER SIGUE SIENDO QUIEN MANDA (`contrato_no_editable_en_firma`): esto es
+   la mitad ergonómica de la regla, no la barrera. Si cambia una, cambia la otra.
+
+   POR QUÉ SE LEE POR RPC Y NO POR LA TABLA. La policy de SELECT de
+   `contrato_firmas` es «es_agente() AND es_suyo(creado_por del contrato)»: un
+   `select` directo devuelve CERO filas sobre el contrato de otro agente, así que
+   el candado no se habría aplicado justo en los contratos ajenos (que son la
+   mayoría para quien atiende una consulta — CR00025 lo creó otro agente). Con
+   `contrato_firmas_equipo()` (security definer, con su propio es_agente dentro)
+   se ve el estado real. El código viejo leía la tabla directa: mismo hueco. */
+let EN_FIRMA = { vivas: 0, firmadas: 0, filas: [] };
+
+function aplicarEstadoFirma(){
+  const n = EN_FIRMA.vivas + EN_FIRMA.firmadas;
+  // LOCKED manda: un contrato ya cerrado no es «en firma», es definitivo
+  const activo = n > 0 && !LOCKED;
+  const form = $('#form'); if(form) form.classList.toggle('enfirma', activo);
+  const badge = $('#firmaBadge');
+  if(badge){
+    badge.style.display = activo ? 'inline-flex' : 'none';
+    badge.textContent = '✍︎ ' + (EN_FIRMA.firmadas
+      ? EN_FIRMA.firmadas + (EN_FIRMA.firmadas === 1 ? ' firma recogida' : ' firmas recogidas')
+        + (EN_FIRMA.vivas ? ' · ' + EN_FIRMA.vivas + ' enlace(s) vivo(s)' : '')
+      : 'Enviado a firma · ' + EN_FIRMA.vivas + (EN_FIRMA.vivas === 1 ? ' enlace vivo' : ' enlaces vivos'));
+  }
+  const bE = $('#btnEditarFirmado'); if(bE) bE.style.display = activo ? '' : 'none';
+  // «Editar texto» también escribe en `datos` (los overrides del documento):
+  // mientras haya firmas vivas se esconde, o sería la misma puerta por detrás
+  const bT = $('#btnEdit'); if(bT && activo) bT.style.display = 'none';
+  const bS = $('#btnSave'); if(bS && activo) bS.style.display = 'none';
+  ocultarGruposVacios();
+}
+
+/* Relee el estado real de las firmas del contrato abierto. Se llama al abrirlo,
+   al generar un enlace (que bloquea el formulario en el acto) y antes de anular
+   —nunca se decide sobre el estado que el navegador creía tener hace diez
+   minutos. Si la lectura falla NO se finge que no hay firmas: se deja el candado
+   como estaba, porque el trigger rechazaría el guardado de todas formas. */
+async function cargarEstadoFirma(){
+  if(!sb || !SAVED_CONTRACT){ EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma(); return; }
+  const { data, error } = await sb.rpc('contrato_firmas_equipo').eq('contrato_id', SAVED_CONTRACT.id);
+  if(error){ console.error('estado de firma:', error.message); return; }
+  // el filtro de estados va aquí y no en la consulta: son cuatro filas por
+  // contrato, y así no depende de que PostgREST acepte `in` sobre un RPC
+  const filas = (data || []).filter(f => f.estado === 'pendiente' || f.estado === 'firmado');
+  EN_FIRMA = {
+    vivas:    filas.filter(f => f.estado === 'pendiente').length,
+    firmadas: filas.filter(f => f.estado === 'firmado').length,
+    filas,
+  };
+  aplicarEstadoFirma();
+}
+
+/* El aviso al comprador (owner, 18-ago). Al anular, el firmante se queda con un
+   correo cuyo enlace deja de funcionar; hasta hoy lo descubría pinchándolo. Va
+   por el mismo api/send_email.php que el resto de la app, con `attach:false`:
+   texto suelto, sin PDF. Se manda DESPUÉS de anular y nunca condiciona la
+   anulación — si el correo falla, el enlace ya está muerto igual, que es lo que
+   importa; el fallo se dice en un toast y queda en el registro por omisión. */
+function mensajeAnulacion(f, numero, yaFirmo){
+  const nom = String(f.firmante_nombre || '').trim().split(/\s+/)[0] || '';
+  return 'Hola' + (nom ? ' ' + nom : '') + ',\n\n'
+    + (yaFirmo
+        ? 'Vamos a actualizar el documento ' + numero + ' que firmaste. Como el texto cambia, la firma '
+          + 'que diste sobre la versión anterior deja de ser válida y el enlace que recibiste ya no está activo.\n\n'
+          + 'En cuanto la nueva versión esté lista te enviaremos un enlace nuevo para que puedas firmarla. '
+          + 'Sentimos la molestia.'
+        : 'Vamos a actualizar el documento ' + numero + ' que te enviamos para firmar, así que el enlace '
+          + 'que recibiste ya no está activo.\n\n'
+          + 'En cuanto la nueva versión esté lista te enviaremos un enlace nuevo.')
+    + '\n\nNo tienes que hacer nada por ahora.\n\nLawang Tropical Properties';
+}
+
+async function avisaAnulacion(filas, numero){
+  // uno por dirección: dos roles del mismo comprador no son dos correos
+  const porEmail = new Map();
+  filas.forEach(f => {
+    const em = String(f.firmante_email || '').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return;
+    const previo = porEmail.get(em);
+    // si una de sus firmas ya estaba dada, manda ese texto (es el que le afecta)
+    if(!previo || f.estado === 'firmado') porEmail.set(em, f);
+  });
+  let bien = 0; const fallos = [];
+  for(const [em, f] of porEmail){
+    const asunto = 'Actualización del documento ' + numero + ' — Lawang Tropical Properties';
+    try{
+      const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
+        body: JSON.stringify({ to: em, subject: asunto,
+                               message: mensajeAnulacion(f, numero, f.estado === 'firmado'), attach:false }) });
+      const d = await r.json().catch(()=>({ ok:false }));
+      if(!d.ok) throw new Error(d.error || 'envío rechazado');
+      bien++;
+      const { error: eLog } = await sb.from('correos_enviados').insert({
+        contrato_id: SAVED_CONTRACT.id, para: em, asunto,
+        via: 'aviso_anulacion', enviado_por: MI_EMAIL });
+      if(eLog) console.error('correos_enviados: ' + eLog.message);
+    }catch(err){ fallos.push(em); console.error('aviso de anulación a', em, err); }
+  }
+  return { bien, fallos };
+}
+
+/* El botón «Editar (anula la firma)». Orden deliberado: preguntar → anular →
+   abrir el formulario → avisar. El aviso va el último porque es lo único que
+   puede fallar sin dejar el sistema en un estado raro. */
+async function anularFirmasYEditar(){
+  if(!sb || !SAVED_CONTRACT) return;
+  await cargarEstadoFirma();
+  if(EN_FIRMA.vivas + EN_FIRMA.firmadas === 0){ toast('Este contrato ya no tiene firmas vivas'); return; }
+
+  const quien = f => (f.firmante_nombre || 'sin nombre').split(' ').slice(0,2).join(' ');
+  const firmadas = EN_FIRMA.filas.filter(f => f.estado === 'firmado');
+  const vivas    = EN_FIRMA.filas.filter(f => f.estado === 'pendiente');
+  const conEmail = EN_FIRMA.filas.filter(f => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.firmante_email||'').trim()));
+  const nDest    = new Set(conEmail.map(f => f.firmante_email.trim())).size;
+
+  const ok = await lwConfirmar({
+    titulo: firmadas.length ? 'Este contrato ya lo ha firmado alguien' : 'Este contrato está enviado a firma',
+    cuerpo:
+        (firmadas.length
+          ? '<p><b>' + firmadas.map(quien).map(escAttr).join(', ') + '</b> ya lo ' + (firmadas.length > 1 ? 'han' : 'ha')
+            + ' firmado. Para editarlo hay que <b>anular esa firma</b>: dejaría de valer, porque se dio sobre el '
+            + 'texto anterior. Habrá que pedirle que firme otra vez.</p>'
+          : '')
+      + (vivas.length
+          ? '<p>Hay <b>' + vivas.length + ' enlace(s) de firma sin usar</b> (' + vivas.map(quien).map(escAttr).join(', ')
+            + '). Se anulan también, así que el enlace que ya tengan dejará de funcionar y habrá que mandarles uno nuevo.</p>'
+          : '')
+      + '<p>La copia de lo que se firmó se conserva como prueba. No se borra nada.</p>'
+      + (nDest
+          ? '<p style="margin-top:12px"><label style="display:flex;gap:8px;align-items:flex-start;font-size:13px">'
+            + '<input type="checkbox" id="anulAviso" checked style="margin-top:3px">'
+            + '<span>Avisar por email a ' + nDest + (nDest === 1 ? ' firmante' : ' firmantes')
+            + ' de que su enlace ha dejado de valer.<br>'
+            + '<span style="opacity:.7">Desmárcalo si todavía no habían recibido el enlace.</span></span></label></p>'
+          : '<p style="opacity:.7;font-size:13px">Ningún firmante tiene email en el contrato: no se puede avisar a nadie.</p>'),
+    confirmar: firmadas.length ? 'Anular ' + firmadas.length + ' firma(s) y editar' : 'Anular el envío y editar',
+    cancelar: 'Dejarlo como está',
+    tono: 'peligro',
+  });
+  if(!ok) return;
+  // el diálogo sigue en el DOM tras resolverse (dialogo.js solo le quita la
+  // clase `abierto`), así que la casilla se puede leer aquí
+  const avisar = !!(document.getElementById('anulAviso') || {}).checked;
+
+  const filasAnuladas = EN_FIRMA.filas.slice();
+  const { error: eAnu } = await sb.from('contrato_firmas').update({ estado:'anulado' })
+    .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
+  if(eAnu){ toast('No se pudieron anular las firmas: ' + eAnu.message); return; }
+
+  await cargarEstadoFirma();   // relee: el formulario se abre solo si de verdad no quedan
+  updateSaveButton();          // devuelve Guardar y «Editar texto», que el candado escondía
+  toast('Firmas anuladas · ya puedes editar');
+
+  if(avisar && nDest){
+    const { bien, fallos } = await avisaAnulacion(filasAnuladas, SAVED_CONTRACT.numero || '');
+    if(fallos.length) toast('Aviso enviado a ' + bien + ', falló con: ' + fallos.join(', '));
+    else if(bien)     toast('Avisado' + (bien > 1 ? 's ' + bien + ' firmantes' : ' el firmante') + ' por email');
+  }
+}
+$('#btnEditarFirmado').addEventListener('click', anularFirmasYEditar);
+
 /* El PDF firmado es EL documento: la firma la inyecta `firma-submit` en el
    snapshot que se convierte en PDF y nunca vuelve a `contratos.datos`. Por eso
    "Descargar PDF" sobre un contrato bloqueado entrega ESTE fichero y no una
@@ -3605,7 +3801,9 @@ function updateSaveButton(){
   if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   if(firmaBtn) firmaBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   btn.textContent = SAVED_CONTRACT ? ('Actualizar ' + SAVED_CONTRACT.numero) : 'Guardar';
-  ocultarGruposVacios();   // al final: antes de aquí las visibilidades aún cambian
+  // al final, y es quien tiene la última palabra sobre Guardar: un contrato
+  // enviado a firma no se guarda hasta anular (llama a ocultarGruposVacios)
+  aplicarEstadoFirma();
 }
 
 async function subirPdfFirmado(file){
@@ -3755,51 +3953,22 @@ async function guardarContrato(){
   }
   const esNuevo = !(SAVED_CONTRACT && SAVED_CONTRACT.id);
 
-  /* SEMIBLOQUEO al editar un contrato enviado a firma — 15-ago-2026, owner.
-     La RLS solo protegía el contrato ya firmado del todo (`bloqueado = false`
-     en su policy de UPDATE). Entre «enviado a firma» y «firmado» no había nada:
-     un contrato con un enlace vivo, o con una de dos firmas ya recogidas, se
-     editaba como un borrador — y CC00007 y CR00020 estuvieron semanas así.
-     Quien de verdad lo impide es el trigger `contrato_no_editable_en_firma`
-     (sql/contrato_semibloqueo_en_firma.sql). Esto de aquí es la otra mitad de la
-     regla: explicar QUÉ se pierde y dejar decidir, en vez de que el agente se
-     coma un error de Postgres. Si cambia una, cambia la otra.
-     Anular no es un castigo: si el texto cambia, la firma que alguien dio sobre
-     el texto anterior ya no vale. Nada se borra — las firmas quedan como
-     historia en `anulado` y su snapshot conserva lo que el comprador vio. */
+  /* SEMIBLOQUEO — red de seguridad. La decisión y la anulación ya NO viven
+     aquí (18-ago-2026): las lleva «Editar (anula la firma)», que pregunta ANTES
+     de que se edite y mata el enlace en ese mismo instante — ver el bloque
+     grande junto a EN_FIRMA para el porqué. Preguntar al guardar dejaba el
+     enlace vivo durante toda la edición, y esa ventana podía acabar con el
+     contrato cerrado y enviado al cliente con el texto viejo.
+     Lo que queda aquí es el último filtro: si a estas alturas todavía hay
+     firmas vivas (otro agente generó un enlace mientras este tenía el
+     formulario abierto), se para con un mensaje en vez de dejar que el trigger
+     de la base devuelva su excepción en crudo. Se relee del servidor: no se
+     decide con lo que el navegador creía hace diez minutos. */
   if(!esNuevo && sb){
-    const { data: fmas } = await sb.from('contrato_firmas')
-      .select('estado, firmante_nombre').eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
-    if(fmas && fmas.length){
-      const vivas    = fmas.filter(f => f.estado === 'pendiente');
-      const firmadas = fmas.filter(f => f.estado === 'firmado');
-      const quien = f => (f.firmante_nombre || 'sin nombre').split(' ').slice(0,2).join(' ');
-      const ok = await lwConfirmar({
-        titulo: firmadas.length ? 'Este contrato ya lo ha firmado alguien' : 'Este contrato está enviado a firma',
-        cuerpo:
-            (firmadas.length
-              ? '<p><b>' + firmadas.map(quien).map(escAttr).join(', ') + '</b> ya lo ' + (firmadas.length > 1 ? 'han' : 'ha')
-                + ' firmado. Si lo editas, esa firma <b>se anula</b>: dejaría de valer, porque se dio sobre el texto anterior. '
-                + 'Habrá que pedirle que firme otra vez.</p>'
-              : '')
-          + (vivas.length
-              ? '<p>Hay <b>' + vivas.length + ' enlace(s) de firma sin usar</b> (' + vivas.map(quien).map(escAttr).join(', ')
-                + '). Se anulan también, así que el enlace que ya tengan dejará de funcionar y habrá que mandarles uno nuevo.</p>'
-              : '')
-          + '<p>La copia de lo que se firmó se conserva como prueba. No se borra nada.</p>',
-        confirmar: firmadas.length
-          ? 'Anular ' + firmadas.length + ' firma(s) y editar'
-          : 'Anular el envío y editar',
-        cancelar: 'Dejarlo como está',
-        tono: 'peligro',
-      });
-      if(!ok) return;
-      const { error: eAnu } = await sb.from('contrato_firmas').update({ estado:'anulado' })
-        .eq('contrato_id', SAVED_CONTRACT.id).in('estado', ['pendiente','firmado']);
-      // Si la anulación falla NO se sigue: el trigger rechazaría el guardado y
-      // el agente vería un error de base de datos después de haber dicho que sí.
-      if(eAnu){ toast('No se pudo anular la firma: ' + eAnu.message); return; }
-      toast('Firma anulada — el contrato vuelve a ser editable');
+    await cargarEstadoFirma();
+    if(EN_FIRMA.vivas + EN_FIRMA.firmadas > 0){
+      toast('Este contrato está enviado a firma: pulsa «Editar (anula la firma)» para poder guardarlo');
+      return;
     }
   }
 
@@ -4264,6 +4433,9 @@ async function openSavedContract(id){
   ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : []; EMAIL_EXTRA_ADDING = false;
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
+  // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
+  // a firma le pintaría a B el candado de A hasta que respondiera la lectura
+  EN_FIRMA = { vivas:0, firmadas:0, filas:[] };
   // tras poblar: reaplica los campos condicionados y vuelve a derivar el anexo
   // automático de la tipología guardada (solo viaja su ficha, no las páginas).
   // AUTO_ANX a cero o el anexo del contrato ANTERIOR daría por bueno el nuevo.
@@ -4281,6 +4453,9 @@ async function openSavedContract(id){
   refreshHitos();
   if($('#emailsExtraPanel')){ $('#emailsExtraPanel').outerHTML = buildEmailsExtraHTML(); wireEmailsExtra(); }
   updateSaveButton(); editBtnIdle(); render();
+  // el candado de «enviado a firma» se aplica al abrir: si el contrato tiene un
+  // enlace vivo o una firma recogida, el formulario entra en solo lectura
+  await cargarEstadoFirma();
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
   avisaHuerfanos();   // render() acaba de recalcular HUERFANOS con la plantilla de hoy
   avisaFichaDistinta(data.id);
@@ -4419,6 +4594,7 @@ async function derivarContrato(slug){
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
+  EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
   // alguien retocó para la reserva de otra operación no tiene por qué salir
   // impreso en la obra de esta. Igual con Anexos y Cláusulas: son propios de
@@ -4744,6 +4920,10 @@ $('#fmGen').addEventListener('click', async ()=>{
       +'\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties';
     FIRMA_ENVIO = { to:email, link:link };   // lo consumen WhatsApp y "Enviar por email"
     $('#fmResult').style.display='';
+    // generar el enlace deja el contrato en solo lectura EN EL ACTO: a partir de
+    // aquí el comprador puede firmar en cualquier momento, así que editar sin
+    // anular sería la carrera que este semibloqueo existe para cerrar
+    await cargarEstadoFirma();
     toast('Enlace de firma generado');
   }catch(err){ toast('No se pudo generar: '+(err.message||err)); }
   btn.disabled=false; btn.textContent='Generar enlace de firma';

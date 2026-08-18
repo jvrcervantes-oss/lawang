@@ -99,7 +99,15 @@
     e.stopPropagation();
     // El foco no se sale del diálogo: si se fuera, se estaría tabulando por la
     // página de detrás sin poder verla ni saber dónde se está.
-    var f = [bOk, bNo].filter(function(b){ return b.style.display !== 'none'; });
+    /* Los controles del CUERPO entran en el ciclo, no solo los dos botones
+       (18-ago-2026): el diálogo de anular firmas lleva una casilla («avisar al
+       firmante por email») y con el ciclo viejo era inalcanzable con el teclado
+       — se podía confirmar sin haber podido tocarla. querySelectorAll devuelve
+       orden del DOM, así que el cuerpo va antes del pie, que es el orden
+       natural de lectura. Para los diálogos sin controles en el cuerpo —todos
+       los demás— el ciclo resultante es exactamente el de antes. */
+    var f = [].slice.call(caja.querySelectorAll('input, select, textarea, button'))
+      .filter(function(b){ return b.style.display !== 'none' && !b.disabled; });
     var i = f.indexOf(document.activeElement);
     e.preventDefault();
     f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();

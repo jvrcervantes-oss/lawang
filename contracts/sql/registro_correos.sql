@@ -34,9 +34,12 @@ create table if not exists public.correos_enviados (
   para        text not null,
   asunto      text not null,
   -- de qué camino salió (los 4 de arriba + proforma, que firma-submit manda
-  -- como email separado del contrato firmado por decisión del owner 17-ago)
+  -- como email separado del contrato firmado por decisión del owner 17-ago,
+  -- + aviso_anulacion: el correo que avisa al comprador de que su enlace ha
+  --   dejado de valer porque el documento se va a cambiar, 18-ago)
   via         text not null check (via in
-                ('manual','enlace_firma','firma','proforma','factura','factura_auto')),
+                ('manual','enlace_firma','firma','proforma','factura','factura_auto',
+                 'aviso_anulacion')),
   -- email del agente que pulsó el botón; null = lo mandó un automatismo (cron)
   enviado_por text,
   enviado_en  timestamptz not null default now(),
