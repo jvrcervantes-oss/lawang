@@ -132,6 +132,11 @@
           <button class="btn ghost" id="btnEditarFirmado" style="display:none"
                   title="Anula el enlace y las firmas ya dadas, y desbloquea el formulario para editar">✎ Editar (anula la firma)</button>
           <button class="btn ghost" id="btnDownloadSigned" style="display:none" title="Descargar el PDF ya firmado">PDF firmado ↓</button>
+          <!-- LAW-71 (19-ago-2026): un contrato firmado era un camino sin vuelta
+               para todo el mundo. El super admin puede devolverlo a editable, y
+               la base deja escrito quién y cuándo (evento «desbloqueado»). -->
+          <button class="btn ghost" id="btnDesbloquear" style="display:none"
+                  title="Solo super admin: devuelve el contrato a editable. Queda registrado">🔓 Desbloquear</button>
         </div>
         <!-- 4. el camino a mano: te llevas el PDF, lo mandas tú, y cuando vuelve
              firmado lo subes tú. Mismo destino que el grupo anterior, pero cada
@@ -4068,6 +4073,32 @@ async function anularFirmasYEditar(){
 }
 $('#btnEditarFirmado').addEventListener('click', anularFirmasYEditar);
 
+/* Desbloquear un contrato firmado — LAW-71, solo super admin.
+   Se pide confirmación con lo que implica escrito, no un «¿seguro?»: esto
+   devuelve a editable un documento que alguien ya firmó, y el rastro que deja
+   («desbloqueado», con quién y cuándo) es justo lo que hace que sea un permiso
+   y no un agujero. El UPDATE lo permite la policy, que comprueba
+   `es_super_admin()` en la base — aquí solo se ofrece. */
+$('#btnDesbloquear').addEventListener('click', async ()=>{
+  if(!SAVED_CONTRACT || !sb) return;
+  const ok = await lwConfirmar({
+    titulo: 'Desbloquear ' + SAVED_CONTRACT.numero,
+    cuerpo: '<p>Este contrato está <b>firmado y cerrado</b>. Desbloquearlo lo devuelve a editable, '
+      + 'y a partir de ahí el documento puede dejar de coincidir con lo que el comprador firmó.</p>'
+      + '<p>Queda registrado en el historial del contrato: <b>quién</b> lo desbloqueó y <b>cuándo</b>. '
+      + 'Lo ves en «Registro».</p>',
+    confirmar: 'Desbloquear',
+    cancelar: 'Dejarlo firmado',
+  });
+  if(!ok) return;
+  const { error } = await sb.from('contratos').update({ bloqueado:false })
+    .eq('id', SAVED_CONTRACT.id).select('id').single();
+  if(error){ toast('No se pudo desbloquear: ' + error.message); return; }
+  LOCKED = false; LOCKED_PDF_PATH = null;
+  updateSaveButton(); render();
+  toast('Contrato desbloqueado y registrado');
+});
+
 /* El PDF firmado es EL documento: la firma la inyecta `firma-submit` en el
    snapshot que se convierte en PDF y nunca vuelve a `contratos.datos`. Por eso
    "Descargar PDF" sobre un contrato bloqueado entrega ESTE fichero y no una
@@ -4087,6 +4118,12 @@ async function abrirPdfFirmado(){
   window.open(url, '_blank');
 }
 let CAN_EDIT_TEXT = false;                    // rol admin (ver init()) — independiente del bloqueo
+/* LAW-71: lo que puede el super admin y no un admin. Se llena en init() junto a
+   MI_ROL. En pantalla solo decide qué se OFRECE; quien manda es la RLS, que ya
+   comprueba `es_super_admin()` por su cuenta — si esto se quedara a true por un
+   fallo, la base seguiría diciendo que no. */
+let ES_SUPER = false;
+let SALTO_FICHA = false;   // el super admin decidió guardar sin ficha: se registra tras guardar
 
 /* El cierre de los menús ⋯ (barra superior y barra de preview) lo lleva
    assets/topbar.js, compartido con Facturas y Dossier. */
@@ -4115,6 +4152,10 @@ function updateSaveButton(){
   const editBtn=$('#btnEdit'); if(editBtn) editBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
   // «Diseño» va con la misma llave que «Editar texto»: los dos cambian cómo
   // sale el documento impreso, y los dos son de admin (19-ago, owner)
+  // LAW-71: desbloquear solo se ofrece a quien de verdad puede, y solo cuando
+  // hay algo que desbloquear
+  const desBtn=$('#btnDesbloquear');
+  if(desBtn) desBtn.style.display = (ES_SUPER && LOCKED && SAVED_CONTRACT) ? '' : 'none';
   const dsgBtn=$('#btnDesign');
   if(dsgBtn){
     dsgBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
@@ -4357,20 +4398,30 @@ async function guardarContrato(){
   // Esos documentos se guardan como siempre y quedan en `sin_ficha`, igual que
   // el histórico.
   const plantillaConIdentificador = plantillaExigeFicha();
+  SALTO_FICHA = false;
   if(nombreComprador && !ADQ1_CLIENT && plantillaConIdentificador){
-    await lwConfirmar({
+    /* LAW-71: para un super admin esto deja de ser un muro y pasa a ser una
+       decisión suya — con el aviso escrito y, si la toma, rastro en el
+       historial del contrato. Para el resto sigue siendo un muro: el freno
+       existe porque una errata al teclear creaba clientes duplicados. */
+    const salida = await lwConfirmar({
       titulo: 'Este comprador todavía no tiene ficha',
       cuerpo: '<p>El comprador de un contrato sale de su ficha de <b>Compradores</b>, '
         + 'para que una errata al teclear no cree un cliente duplicado ni un email al que no llega nada.</p>'
         + '<p>Si ya está registrado, <b>búscalo</b> en el bloque del comprador. Si es la primera vez, '
         + 'se da de alta en <a href="/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> '
-        + 'y después se busca aquí — el alta no se hace desde el contrato.</p>',
-      confirmar: 'Entendido',
-      cancelar: false,
+        + 'y después se busca aquí — el alta no se hace desde el contrato.</p>'
+        + (ES_SUPER ? '<p><b>Como super admin</b> puedes guardarlo igualmente. El contrato quedará sin '
+                    + 'comprador enlazado y eso se anota en su historial.</p>' : ''),
+      confirmar: ES_SUPER ? 'Guardar sin ficha (queda registrado)' : 'Entendido',
+      cancelar: ES_SUPER ? 'Volver y buscarlo' : false,
     });
-    const b = document.getElementById('cliBuscar');
-    if(b){ b.scrollIntoView({behavior:'smooth', block:'center'}); b.focus(); }
-    return;
+    if(!(ES_SUPER && salida)){
+      const b = document.getElementById('cliBuscar');
+      if(b){ b.scrollIntoView({behavior:'smooth', block:'center'}); b.focus(); }
+      return;
+    }
+    SALTO_FICHA = true;
   }
 
   /* Los adquirientes II+ van por la misma regla (encargo del owner, 19-ago):
@@ -4407,6 +4458,15 @@ async function guardarContrato(){
     if(numEl){ numEl.value = data.numero; }
     toast((SAVED_CONTRACT ? 'Guardado como ' : '') + data.numero);
     render();
+    // LAW-71: el salto se registra DESPUÉS, que es cuando existe el contrato al
+    // que colgarlo. La RPC comprueba `es_super_admin()` por su cuenta: que este
+    // flag esté puesto no le basta.
+    if(SALTO_FICHA){
+      SALTO_FICHA = false;
+      const { error: eSalto } = await sb.rpc('registrar_salto_de_freno',
+        { p_contrato: data.id, p_evento: 'comprador_sin_ficha' });
+      if(eSalto) toast('Guardado, pero no se pudo registrar el salto: ' + eSalto.message);
+    }
     informarCompradores(data.id);   // el alta ya la hizo el disparador: esto solo la cuenta
     if(esNuevo) crearProformaAutomatica(data.id, data.numero, payload);
     if(tipo === 'poa') cubrirConEstePoder(data.id, data.numero);
@@ -5620,6 +5680,7 @@ async function init(){
   // Sin ficha (cuentas anteriores al panel) se permite, mismo criterio de
   // compatibilidad que el resto de la suite.
   CAN_EDIT_TEXT = !ficha || ['super_admin','admin'].includes(MI_ROL);
+  ES_SUPER = MI_ROL === 'super_admin';
 
   /* Cuentas de cobro desde `public.cuentas_bancarias` (6-ago-2026): salieron de
      assets/entities.js porque ese fichero se sirve sin login y además está en el
