@@ -766,9 +766,17 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
     /* ?id=<client_id> abre esa ficha directamente. Lo usa Operaciones: llegar
        desde la ficha de una venta a un listado y tener que buscar a la persona
        que ya estabas mirando es un viaje de ida sin vuelta. */
-    const pedido = new URLSearchParams(location.search).get('id');
+    const par = new URLSearchParams(location.search);
+    const pedido = par.get('id');
     if(pedido && CLIENTES.some(c => c.id === pedido)){
       SEL = pedido;
+      pintarLista(); pintarFicha();
+    }else if(par.get('nuevo')){
+      /* ?nuevo=1 abre directamente el alta (19-ago-2026). Lo usa Contratos:
+         desde que el contrato ya no da de alta a nadie, su enlace «Abrir
+         Compradores» tiene que caer en el formulario de alta y no en una lista
+         donde hay que volver a buscar el botón. */
+      SEL = 'nuevo';
       pintarLista(); pintarFicha();
     }else{
       if(pedido) toast('Ese comprador ya no existe');
