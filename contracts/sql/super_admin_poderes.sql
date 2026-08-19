@@ -90,6 +90,13 @@ drop trigger if exists trg_guarda_antes_de_borrar on public.facturas;
 create trigger trg_guarda_antes_de_borrar before delete on public.facturas
   for each row execute function public.trg_guarda_antes_de_borrar();
 
+-- Añadido en la auditoría del mismo día: las dos funciones de trigger de este
+-- fichero NACIERON PÚBLICAS y no las revoqué. Es la norma que ya está escrita en
+-- revocar_triggers_publicos.sql — «una función nueva nace pública» — y me la
+-- salté las dos veces. El riesgo práctico es bajo (PostgREST no expone una
+-- función que devuelve `trigger`), pero la norma existe para no depender de eso.
+revoke all on function public.trg_guarda_antes_de_borrar() from public, anon, authenticated;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- 2) EL RASTRO DE CADA SALTO
 -- ════════════════════════════════════════════════════════════════════════════
@@ -163,6 +170,8 @@ end $$;
 drop trigger if exists trg_registra_edicion_privilegiada on public.contratos;
 create trigger trg_registra_edicion_privilegiada after update on public.contratos
   for each row when (coalesce(old.bloqueado, false)) execute function public.trg_registra_edicion_privilegiada();
+
+revoke all on function public.trg_registra_edicion_privilegiada() from public, anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- 4) BORRAR FACTURAS: el dinero baja a super_admin
