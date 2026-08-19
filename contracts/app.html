@@ -4549,9 +4549,23 @@ async function informarCompradores(contratoId){
     ? ' · SIN ficha por falta de pasaporte y email: ' + sinIdentificar.join(', ') : '';
 
   if(faltan.length){
-    // esto ya no debería pasar: si pasa, es un fallo del disparador y hay que verlo
-    toast('⚠️ Contrato guardado, pero ' + faltan.length + ' comprador(es) sin ficha: '
-      + faltan.map(p => String(p.nombre||'').trim() || p.rol).join(', ') + sobran + sinId);
+    /* MODAL, no un toast — 19-ago-2026. Este aviso ya existía y aun así pasaron
+       SIETE contratos seguidos sin enlazar su ficha sin que nadie lo notara: el
+       disparador de la base fallaba en silencio (le habían revocado el permiso
+       al cerrar la función a `anon`) y el toast se perdía entre los otros dos
+       que salen al guardar. Un aviso que se puede no ver no es un aviso.
+       No bloquea nada: el contrato ya está guardado y esto solo lo cuenta. */
+    await lwConfirmar({
+      titulo: 'Guardado, pero sin enlazar al comprador',
+      cuerpo: '<p>El contrato está guardado. Lo que no ha quedado enlazado es su ficha de comprador: '
+        + '<b>' + esc(faltan.map(p => String(p.nombre||'').trim() || p.rol).join(', ')) + '</b>.</p>'
+        + '<p>Sin ese enlace, el comprador no verá este contrato en su ficha y las herramientas que '
+        + 'cruzan personas y operaciones no lo cuentan. <b>Avisa al estudio</b>: no es algo que puedas '
+        + 'arreglar tú desde aquí.</p>'
+        + (sinId ? '<p class="cli-sub">' + esc(sinId.replace(' · ', '')) + '</p>' : ''),
+      confirmar: 'Entendido',
+      cancelar: false,
+    });
   } else {
     toast(conFicha.size + (conFicha.size === 1 ? ' comprador con ficha' : ' compradores con ficha') + sobran + sinId);
   }
