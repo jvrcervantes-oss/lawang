@@ -219,12 +219,12 @@
     background-repeat:no-repeat; background-position:14px 50%; background-size:16px 16px; }
   .cli-pedir .cli-buscar input::placeholder{ color:#8A9182; }
   .cli-pedir .cli-nuevo{ margin:8px 0 10px; }
-  /* El buscador de cada Adquiriente II+ no necesita recuadro —ya está dentro
-     de su propia caja—, pero sí el mismo tamaño de campo y la misma lupa: es
-     la misma acción, y con dos aspectos distintos parecía otra cosa. */
-  .comprador-extra .cli-buscar input{ padding:10px 14px 10px 36px; font-size:13px; background-color:#fff;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23485B37' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:13px 50%; background-size:15px 15px; }
+  /* El Adquiriente II+ usa EXACTAMENTE este mismo bloque, sin una sola regla
+     propia (19-ago, owner: «¿por qué son diferentes?»). Lo eran porque tenían
+     dos marcados distintos para la misma acción, y el del I parecía el
+     importante solo por estar mejor pintado. Ahora los pinta la misma función
+     (`bloqueElegirComprador`) y los viste este mismo CSS: si mañana cambia el
+     recuadro, cambia en los dos a la vez o no cambia en ninguno. */
   .cli-resultados{ position:absolute; left:0; right:0; top:calc(100% - 6px); z-index:5; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 32px -12px rgba(46,52,55,.35); max-height:220px; overflow:auto; }
   .cli-r{ padding:9px 14px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--hair); }
   .cli-r:last-child{ border-bottom:none; }
