@@ -35,12 +35,20 @@ stable
 security definer
 set search_path = ''
 as $$
-  select coalesce((
-    select public.contrato_identificadores(a.datos)
-        && public.contrato_identificadores(b.datos)
-      from public.contratos a, public.contratos b
-     where a.id = p_a and b.id = p_b
-  ), false);
+  -- El mismo contrato es trivialmente el mismo comprador, y ese caso va PRIMERO
+  -- a proposito: hay contratos sin identidad utilizable (RP00043, 165.800 EUR,
+  -- con el email metido en el campo del nombre; CO00004) y exigirles identidad
+  -- les impediria cobrar su PROPIA factura. La decision de LAW-51 —si falta
+  -- identidad en cualquiera de los dos lados, se bloquea— es para comparar dos
+  -- registros DISTINTOS; aqui solo aplica cuando de verdad son dos.
+  select p_a is not null and p_b is not null and (
+    p_a = p_b or coalesce((
+      select public.contrato_identificadores(a.datos)
+          && public.contrato_identificadores(b.datos)
+        from public.contratos a, public.contratos b
+       where a.id = p_a and b.id = p_b
+    ), false)
+  );
 $$;
 
 revoke all on function public.contratos_mismo_comprador(uuid, uuid) from public, anon;
@@ -58,9 +66,13 @@ stable
 security definer
 set search_path = ''
 as $$
+  -- El propio contrato entra siempre, tenga identidad o no: ver el comentario
+  -- de contratos_mismo_comprador. Las dos funciones dicen lo mismo o el
+  -- selector ensenaria facturas que el guardado despues rechaza.
   select c.id
     from public.contratos c
-   where public.contrato_identificadores(c.datos)
+   where c.id = p_contrato_id
+      or public.contrato_identificadores(c.datos)
       && (select public.contrato_identificadores(datos)
             from public.contratos where id = p_contrato_id);
 $$;
