@@ -60,7 +60,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=fbeb0520">
+<link rel="stylesheet" href="assets/app.css?v=ae6b08d5">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -440,7 +440,6 @@ let CURRENT = TEMPLATES[0];       // Carta de Reserva por defecto: es el primer 
 let templateHTML = '';
 let COVER_HTML = '';
 let HITOS = [];        // tabla de pagos dinámica [{pct,es,en,id},…] — se inicializa por plantilla
-let ADQ1_EMAILS = [];  // emails adicionales de Adquiriente I, además del campo base adq1_email
 const FIELDTYPE = {};  // marcador → tipo (money/number/date/select/text) para dimensionar el hueco
 const pads = {};
 
@@ -1317,7 +1316,7 @@ function buildCompradorPanel(){
         <div class="field"><label for="${cid(c.id,'email')}">${L({es:'Email',en:'Email',id:'Email'})}</label><input id="${cid(c.id,'email')}" data-ci="${c.id}" data-ckey="email" value="${escAttr(c.email||'')}"></div>
       </div>
     </div>`;
-  }).join('') || `<div class="dz" style="color:var(--muted);font-size:12.5px">${L({es:'Solo Adquiriente I. Añade más si hay varios compradores.',en:'Buyer I only. Add more if there are several buyers.',id:'Hanya Pembeli I. Tambahkan jika ada beberapa pembeli.'})}</div>`;
+  }).join('');   // sin estado vacío: el botón «+ Añadir adquiriente» ya dice lo que hay que saber (19-ago, owner)
   // Ya no es una sección propia con acordeón: va DENTRO del recuadro de
   // Adquiriente I, justo detrás de sus campos (pedido del cliente, 7-ago —
   // antes vivía prepuesto por encima de todo el formulario, lejos del
@@ -1443,6 +1442,22 @@ function plantillaExigeFicha(){
   return k.has('adq1_email') || k.has('adq1_pasaporte');
 }
 
+/* `readOnly` NO basta para nacionalidad ni para el prefijo del teléfono, y eso
+   se vio en pantalla: son campos convertidos por `lwPicker`, que abre su modal
+   con un `mousedown` y escribe el valor por JS — cosas que `readonly` no impide.
+   Es más: lwPicker pone `readOnly = true` él mismo al convertir, así que ahí
+   readonly ni siquiera distingue "bloqueado" de "normal". Su freno es
+   `disabled`, que es justo lo que consulta antes de abrir.
+   Se reconoce al campo por `list=` (antes de convertirlo) o por su marca
+   `data-lw-picker` (después): el orden entre wirePickers() y este candado
+   depende de un setTimeout, así que tiene que valer en los dos sentidos.
+   `disabled` no pierde el valor: collect() lo lee con `.value`, no por submit. */
+function candar(el, bloquear){
+  const esPicker = el.dataset.lwPicker === '1' || el.hasAttribute('list');
+  if(el.tagName === 'SELECT' || esPicker) el.disabled = bloquear;
+  else el.readOnly = bloquear;
+}
+
 /* Bloqueo del 19-ago: los campos de identidad son de solo lectura SIEMPRE que la
    plantilla exija ficha, haya cliente enlazado o no. Antes solo se bloqueaban al
    enlazar, y eso dejaba teclear a mano a quien no hubiera elegido ficha todavía
@@ -1459,14 +1474,10 @@ function aplicarBloqueoComprador(){
     // se recorren TODOS los controles del campo, no solo `[name=k]`: el teléfono
     // son dos inputs visibles (prefijo y número) y un oculto con el valor bueno,
     // así que bloquear solo el del nombre dejaba el teclado abierto por un lado
-    campo.querySelectorAll('input, select, textarea').forEach(el=>{
-      if(el.tagName === 'SELECT') el.disabled = bloquear; else el.readOnly = bloquear;
-    });
+    campo.querySelectorAll('input, select, textarea').forEach(el=> candar(el, bloquear));
   });
   // Adquirientes II+: mismas reglas, mismo candado (encargo del owner, 19-ago).
-  document.querySelectorAll('#compradorPanel [data-ckey]').forEach(el=>{
-    if(el.tagName === 'SELECT') el.disabled = bloquear; else el.readOnly = bloquear;
-  });
+  document.querySelectorAll('#compradorPanel [data-ckey]').forEach(el=> candar(el, bloquear));
 }
 
 function fichaResumen(c){
@@ -1494,12 +1505,25 @@ function pintarFichaComprador(){
       const b = document.getElementById('cliBuscar'); if(b) b.focus();
     });
   } else {
-    caja.innerHTML = `<div class="cli-buscar">
-        <input type="search" id="cliBuscar" autocomplete="off" placeholder="${L({es:'Buscar cliente ya registrado (nombre, email o pasaporte)…',en:'Search existing client (name, email or passport)…',id:'Cari klien terdaftar (nama, email, atau paspor)…'})}">
-        <div class="cli-resultados" id="cliResultados" hidden></div>
-      </div>
-      <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
-        <a class="tb-link" id="cliNuevo" href="/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
+    caja.innerHTML = `<div class="cli-pedir">
+        <div class="cli-pedir-t">${L({es:'Elige al comprador',en:'Choose the buyer',id:'Pilih pembeli'})}</div>
+        <p class="cli-pedir-s">${plantillaExigeFicha()
+          ? L({es:'Los datos del comprador salen de su ficha: búscalo aquí y el resto del bloque se rellena solo.',
+               en:'The buyer’s details come from their client record: find them here and the rest fills in by itself.',
+               id:'Data pembeli berasal dari data kliennya: cari di sini dan sisanya terisi sendiri.'})
+          /* Sin email ni pasaporte no se puede exigir ficha (la Oferta
+             Comercial), así que aquí el buscador AYUDA pero no manda — y el
+             texto no puede prometer lo que en esta plantilla no se cumple. */
+          : L({es:'Este documento no pide email ni pasaporte, así que puede rellenarse a mano. Si el comprador ya está fichado, búscalo y te ahorras teclearlo.',
+               en:'This document asks for no email or passport, so it can be filled in by hand. If the buyer is already registered, find them and save the typing.',
+               id:'Dokumen ini tidak meminta email atau paspor, jadi bisa diisi manual. Jika pembeli sudah terdaftar, cari saja.'})}</p>
+        <div class="cli-buscar">
+          <input type="search" id="cliBuscar" autocomplete="off" placeholder="${L({es:'Nombre, email o pasaporte…',en:'Name, email or passport…',id:'Nama, email, atau paspor…'})}">
+          <div class="cli-resultados" id="cliResultados" hidden></div>
+        </div>
+        <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
+          <a class="tb-link" id="cliNuevo" href="/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
+        </div>
       </div>`;
     wireClienteBuscador();
   }
@@ -1577,57 +1601,13 @@ async function buscarClientes(q, res, onPick, input){
   }));
 }
 
-/* ---------- emails adicionales de Adquiriente I ----------
-   El campo base (adq1_email) sigue siendo UNO; esto es solo una lista aparte
-   guardada junto al contrato (datos.adq1_emails_extra), para familias que dan
-   más de un correo. No cambia a quién se envía el contrato — eso lo sigue
-   eligiendo el agente en el pop-up de "Enviar" (ver emailsConocidos). */
-// El input para escribir el email nuevo no se pinta hasta que se pulsa
-// "Añadir" (12-ago, petición del cliente): antes había siempre un campo vacío
-// a la vista aunque nadie fuera a rellenarlo — parecía un campo obligatorio
-// más del formulario en vez de una acción opcional.
-let EMAIL_EXTRA_ADDING = false;
-function buildEmailsExtraHTML(){
-  const chips = ADQ1_EMAILS.map((e,i)=>`<span class="chip-email">${esc(e)}<button type="button" data-edel="${i}">×</button></span>`).join('');
-  const accion = EMAIL_EXTRA_ADDING
-    ? `<div class="dz-row"><input type="email" id="emailExtraInput" placeholder="otro@email.com">
-        <button type="button" class="btn ghost" id="emailExtraAdd">${L({es:'Añadir',en:'Add',id:'Tambah'})}</button></div>`
-    : `<button type="button" class="link-btn" id="emailExtraShow">+ ${L({es:'Añadir',en:'Add',id:'Tambah'})}</button>`;
-  return `<div class="emails-extra" id="emailsExtraPanel">
-    <label>${L({es:'Otros emails de Adquiriente I (opcional)',en:'Other emails for Buyer I (optional)',id:'Email lain Pembeli I (opsional)'})}</label>
-    <div class="chips-row">${chips}</div>
-    ${accion}
-  </div>`;
-}
-function agregarEmailExtra(){
-  const input=$('#emailExtraInput'); if(!input) return;
-  const v=input.value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ if(v) toast('Email no válido'); return; }
-  if(!ADQ1_EMAILS.includes(v)) ADQ1_EMAILS.push(v);
-  EMAIL_EXTRA_ADDING = false;
-  rebuildEmailsExtra();
-}
-function rebuildEmailsExtra(){
-  const old=$('#emailsExtraPanel'); if(!old) return;
-  old.outerHTML=buildEmailsExtraHTML(); wireEmailsExtra(); render();
-}
-function wireEmailsExtra(){
-  const p=$('#emailsExtraPanel'); if(!p) return;
-  const mostrar = p.querySelector('#emailExtraShow');
-  if(mostrar) mostrar.addEventListener('click', ()=>{ EMAIL_EXTRA_ADDING = true; rebuildEmailsExtra(); const i=$('#emailExtraInput'); if(i) i.focus(); });
-  const add = p.querySelector('#emailExtraAdd');
-  if(add) add.addEventListener('click', agregarEmailExtra);
-  const input = p.querySelector('#emailExtraInput');
-  if(input) input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); agregarEmailExtra(); } });
-  p.querySelectorAll('[data-edel]').forEach(b=> b.addEventListener('click', ()=>{
-    ADQ1_EMAILS.splice(+b.dataset.edel, 1); rebuildEmailsExtra();
-  }));
-}
-/* todos los emails que tenemos de este contrato: base + extras + compradores
-   adicionales, sin duplicados — usado por el selector rápido del pop-up de envío */
+/* Los «Otros emails de Adquiriente I» se quitaron el 19-ago-2026 a petición
+   del owner: los correos de una persona son de su ficha, no de cada contrato.
+   No hubo migración porque no había nada que migrar — ningún contrato tenía la
+   lista con contenido (comprobado en producción antes de borrarla). */
 function emailsConocidos(){
   const d=collect();
-  return [...new Set([d.adq1_email, ...ADQ1_EMAILS, ...COMPRADORES.map(c=>c.email)].filter(Boolean))];
+  return [...new Set([d.adq1_email, ...COMPRADORES.map(c=>c.email)].filter(Boolean))];
 }
 
 /* redacción propia de cada plantilla para "Adquiriente N" (antes hardcoded
@@ -1781,7 +1761,6 @@ function resetBorrador(slug){
   COMPRADORES = []; saveCompradores();
   ANNEXES = []; saveAnnexes();
   CLAUSES = []; saveClauses();
-  ADQ1_EMAILS = []; EMAIL_EXTRA_ADDING = false;
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   AUTO_APODERADO = {}; AUTO_POA = {};
   avisoMismoApoderado = null;   // 11-ago, hallazgo Legal MEDIA: si no se resetea, cambiar a OTRO contrato que
@@ -2730,13 +2709,9 @@ function buildForm(){
     // El hueco lo rellena pintarFichaComprador() al final de buildForm(): o el
     // buscador + «crear ficha» (sin enlazar), o el chip de la ficha (enlazada).
     const clienteBuscadorHTML = s.id==='comprador' ? '<div id="cliFicha"></div>' : '';
-    // más de un email para Adquiriente I (el base sigue siendo adq1_email):
-    // matrimonios/familias que quieren copia en dos buzones distintos
-    const hasAdq1Email = s.id==='comprador' && s.fields.some(f=>f[0]==='adq1_email');
-    const emailsExtraHTML = hasAdq1Email ? buildEmailsExtraHTML() : '';
     html += `<section class="section ${cls}" data-sec="${s.id}" data-tier="${s.tier}">
       <header data-acc><span class="num">${idx}</span><h2>${L(s.title)}</h2>${optional}<span class="chev">▾</span></header>
-      <div class="body">${clienteBuscadorHTML}<div class="${grid?'grid2':''}">${body}${emailsExtraHTML}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}</div></section>`;
+      <div class="body">${clienteBuscadorHTML}<div class="${grid?'grid2':''}">${body}</div>${note}${s.id==='comprador' ? compradorExtraHTML : ''}</div></section>`;
   });
   if(anexosAlFinal) html += buildAnnexPanel();
   form.innerHTML = html;
@@ -2784,7 +2759,6 @@ function buildForm(){
   // pintarFichaComprador() ya llama a wireClienteBuscador() cuando toca pintar
   // el buscador; si hay ficha enlazada no hay buscador que cablear
   pintarFichaComprador();
-  wireEmailsExtra();
   wireAccordions();
   form.querySelectorAll('[data-opt]').forEach(chk=>{
     chk.addEventListener('change', ()=>{ const sec=form.querySelector(`[data-sec="${chk.dataset.opt}"]`);
@@ -4099,7 +4073,7 @@ function contractPayload(){
     // "toda la información": campos del form + hitos + diseño/anexos/cláusulas +
     // ediciones de texto fijo de ESTA plantilla. Recargable 1:1 desde el panel.
     datos: { fields: data, hitos: HITOS, design: DESIGN, annexes: ANNEXES.map(sinPaginas), clauses: CLAUSES,
-              compradores: COMPRADORES, adq1_emails_extra: ADQ1_EMAILS,
+              compradores: COMPRADORES,
               /* el enlace con la ficha de `clients` (18-ago-2026). Lo lee
                  `sincronizar_compradores`, que lo prefiere a adivinar por
                  pasaporte o email — ver la nota junto a ADQ1_CLIENT. */
@@ -4709,7 +4683,6 @@ async function openSavedContract(id){
      es lo correcto para una fila antigua sin la clave. */
   const plantillaConHitos = SECTIONS.some(s => s.special === 'hitos');
   HITOS = Array.isArray(d.hitos) ? d.hitos.map(h=>({...h})) : (plantillaConHitos ? HITOS : []);
-  ADQ1_EMAILS = Array.isArray(d.adq1_emails_extra) ? [...d.adq1_emails_extra] : []; EMAIL_EXTRA_ADDING = false;
   // la ficha enlazada, si la hay. Se relee de `clients` en vez de fiarse de lo
   // que el contrato copió el día que se guardó: si el cliente cambió de email,
   // manda la ficha — que es justo lo que este cambio viene a arreglar.
@@ -4755,7 +4728,6 @@ async function openSavedContract(id){
   AUTO_APODERADO = {}; AUTO_POA = {}; avisoMismoApoderado = null;
   aplicarReglasCampos();
   refreshHitos();
-  if($('#emailsExtraPanel')){ $('#emailsExtraPanel').outerHTML = buildEmailsExtraHTML(); wireEmailsExtra(); }
   updateSaveButton(); editBtnIdle(); render();
   // el candado de «enviado a firma» se aplica al abrir: si el contrato tiene un
   // enlace vivo o una firma recogida, el formulario entra en solo lectura
@@ -4915,7 +4887,7 @@ async function derivarContrato(slug){
   // que se capturan arriba y se reaplican abajo; Anexos/Cláusulas no tienen
   // ese mismo motivo y se limpian.
   limpiarOverrides(slug);
-  ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses(); ADQ1_EMAILS = []; EMAIL_EXTRA_ADDING = false;
+  ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses();
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
   await loadTemplate(slug);
   $('#tplPick').value = slug;
