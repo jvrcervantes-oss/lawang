@@ -57,6 +57,9 @@
 <script src="assets/vocabulario.js?v=c031da44"></script>
 <script src="assets/dinero.js?v=f37d55ff"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
+<!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
+     la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
+<script src="assets/compradores.js?v=9ea247e6"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -4255,7 +4258,18 @@ function contractPayload(){
     // el cliente. `nombre_contrato` sigue viajando en `datos.fields` (más abajo)
     // y el listado de ESTA app lo antepone solo (ver renderCpList/cargarVinculables),
     // sin tocar la identidad compartida.
-    comprador_nombre: data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
+    /* TODOS los que compran, no solo el primero — 19-ago-2026, encargo del owner:
+       «en facturas si hay más de un adquiriente sale como cliente pero en
+       contratos no». Se usa `compradoresDeContrato`/`nombresFactura`, que es la
+       MISMA función que ya usaba Facturas y que ahora vive en la capa
+       compartida: dos listas distintas para «quién compra» es exactamente el
+       fallo que hacía que una pantalla dijera «A · B» y la de al lado «A».
+       El fallback a partner/colaborador se conserva: hay plantillas sin
+       adquiriente (Acuerdo Comercial, Protocolo Operativo). */
+    comprador_nombre: (typeof nombresFactura === 'function'
+                        ? nombresFactura(compradoresDeContrato(data, COMPRADORES))
+                        : data.adq1_nombre)
+                      || data.partner_nombre || data.colaborador_nombre || null,
     // El POA ya no pregunta el proyecto (ver deriveSections): lo hereda del
     // contrato al que acompaña, así que la lista de guardados y Operaciones siguen
     // sabiendo de qué operación es sin que nadie lo teclee dos veces.

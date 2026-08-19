@@ -11,7 +11,7 @@ const path = require('path');
 
 const raiz = path.join(__dirname, '..');
 const RUTAS = ['contracts/assets/entities.js', 'facturas/totales.js',
-               'facturas/compradores.js', 'facturas/documento.js'];
+               'contracts/assets/compradores.js', 'facturas/documento.js'];
 
 /* Mismo montaje que firma-submit: los cuatro <script> clásicos concatenados y
    evaluados de una vez, publicando lo que hace falta en una caja. */

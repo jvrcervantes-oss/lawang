@@ -51,7 +51,11 @@
 <!-- maquetacion del documento: la MISMA que arma la factura automatica del
      primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
 <script src="documento.js?v=20260731"></script>
-<script src="compradores.js"></script>
+<!-- Quien compra, normalizado: vive en la capa compartida desde el 19-ago-2026
+     porque Contratos necesita EXACTAMENTE la misma lista para nombrar la
+     operación. Mientras estuvo aquí dentro, Facturas decía «A · B» y el
+     contrato de al lado decía solo «A». El `?v=` lo sella el hook. -->
+<script src="/contracts/assets/compradores.js?v=9ea247e6"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /contracts. `creado_por` es con lo que la RLS decide quién puede editar
      su propio documento, no un adorno. -->
@@ -117,6 +121,12 @@
   textarea{ min-height:70px; resize:vertical; }
   .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .hint{ font-size:11.5px; color:var(--muted); margin:8px 0 0; line-height:1.45; }
+  /* Enlace-botón dentro de un .hint (19-ago-2026): «Ver justificante» y lo que
+     venga después. Es un <button> y no un <a> porque la URL se firma al pulsar
+     y caduca en 5 minutos — no hay href que poner de antemano. */
+  .hint .lnk{ font:inherit; font-size:inherit; background:none; border:none; padding:0 0 0 4px;
+    color:var(--dl); text-decoration:underline; cursor:pointer; }
+  .hint .lnk:hover{ color:var(--be); }
 
   .linea{ display:grid; grid-template-columns:1fr 100px 30px; gap:8px; align-items:end; margin-bottom:8px; }
   .linea label{ margin:0 0 4px; }
@@ -748,6 +758,31 @@ function sincronizarLineasDesdeAplicaciones(){
   pintarAplicaciones(); render();
 }
 
+/* ---------- recibí: ver el justificante ya subido ----------
+   Faltaba desde que existe la función (11-ago-2026): el justificante se subía,
+   se exigía para guardar y NADIE podía volver a verlo — ni quien lo subió. El
+   bucket es privado y correcto (`agentes leen justificantes` ya estaba en la
+   RLS), solo faltaba la pantalla. Encargo del owner el 19-ago: «los
+   justificantes de pago dónde se guardan, no puedo verlos».
+
+   URL firmada de 5 minutos, como el resto de la suite (KYC usa 300 s): el
+   enlace no se guarda en ningún sitio y caduca solo. Se abre en pestaña nueva
+   para no perder el documento que se está editando. */
+async function verJustificante(path){
+  if(!path) return;
+  const { data, error } = await sb.storage.from('justificantes').createSignedUrl(path, 300);
+  if(error || !data){ toast('No se pudo abrir el justificante: ' + ((error && error.message) || '')); return; }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+function pintarEstadoJustificante(nombreVisible){
+  const caja = $('#justifEstado'); if(!caja) return;
+  if(!JUSTIFICANTE_PATH){ caja.textContent = ''; return; }
+  caja.innerHTML = esc(nombreVisible || 'Justificante adjunto.')
+    + ' <button type="button" class="lnk" id="btnVerJustif">Ver justificante</button>';
+  const b = $('#btnVerJustif');
+  if(b) b.addEventListener('click', () => verJustificante(JUSTIFICANTE_PATH));
+}
+
 /* ---------- recibí: justificante de pago ----------
    Sube al elegir el fichero, no al guardar el documento — mismo patrón que
    subir() en /compradores/. Path generado en el cliente con un UUID, NUNCA
@@ -764,7 +799,7 @@ $('#fJustificante').addEventListener('change', async () => {
     const up = await sb.storage.from('justificantes').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
     if(up.error) throw up.error;
     JUSTIFICANTE_PATH = path;
-    $('#justifEstado').textContent = 'Justificante adjunto: ' + f.name;
+    pintarEstadoJustificante('Justificante adjunto: ' + f.name);
   }catch(err){
     $('#justifEstado').textContent = '';
     toast('No se pudo subir el justificante: ' + (err.message || err));
@@ -1367,7 +1402,9 @@ function pintarListado(){
       <td class="num">${esc(fmtMoneda(f.total, f.moneda))}</td>
       <td class="flojo" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></td>
       <td>${f.anulada ? '<span class="sui-tag alerta">Anulada</span>' : '<span class="sui-tag gris">Emitida</span>'}</td>
-      <td class="num">${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
+      <td class="num">${f.tipo === 'recibi' && f.justificante_path
+          ? `<button class="btn" data-justif="${esc(f.justificante_path)}" title="Ver el justificante de pago adjunto">📎</button>` : ''}
+        ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
         ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
     </tr>`;
   }).join('') + '</tbody></table>';
@@ -1382,6 +1419,9 @@ function pintarListado(){
       onCambio:(nuevo) => toast('Autor reasignado a ' + nuevo) });
   });
   box.onclick = async e => {
+    // Ver el justificante desde la propia lista, sin abrir el recibí (19-ago)
+    const ju = e.target.closest('[data-justif]');
+    if(ju){ e.stopPropagation(); verJustificante(ju.dataset.justif); return; }
     const an = e.target.closest('[data-anular]');
     if(an){
       e.stopPropagation();
@@ -1477,7 +1517,7 @@ async function abrir(f){
   // vuelve a guardar, igual que ya pasa con el nº de factura.
   JUSTIFICANTE_PATH = f.anulada ? null : (f.justificante_path || null);
   $('#fJustificante').value = '';
-  $('#justifEstado').textContent = JUSTIFICANTE_PATH ? 'Justificante ya adjunto.' : '';
+  pintarEstadoJustificante('Justificante ya adjunto.');
   APLICACIONES = [];
   if(f.tipo === 'recibi' && !f.anulada){
     await cargarFacturasAbiertas();
