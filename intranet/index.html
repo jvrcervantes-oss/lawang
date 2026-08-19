@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=88db9753" defer></script>
+<script src="/contracts/assets/topbar.js?v=d5248630" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -679,7 +679,7 @@ async function pintarRail(sb, ficha){
     // ultimasOperaciones(). El embed `contratos(numero)` que hacía la lectura
     // directa no está garantizado a través de una función RPC, así que el
     // número se resuelve aparte con un mapa id→numero de contratos_equipo().
-    const [fir, fac, ctr] = await Promise.all([
+    const [fir, fac, pend, ctr] = await Promise.all([
       sb.rpc('contrato_firmas_equipo').select('contrato_id, expira_en, firmante_nombre')
         .eq('estado','pendiente').order('expira_en').limit(4),
       // `fecha_vencimiento` no es una columna de `facturas`: vive en
@@ -687,17 +687,35 @@ async function pintarRail(sb, ficha){
       // anterior pedía la columna suelta y llevaba HORAS fallando con un 400
       // silencioso (atrapado por el catch de aquí abajo) — la sección solo
       // enseñaba vencimientos de firma, nunca de factura.
-      sb.rpc('facturas_equipo').select('numero, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento')
+      sb.rpc('facturas_equipo').select('id, numero, tipo, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento')
         .limit(200),
+      // Lo que queda por cobrar de cada una. Sin esto, el panel enseñaba
+      // facturas ya pagadas (ver la nota de abajo).
+      sb.rpc('facturas_pendiente_equipo'),
       sb.rpc('contratos_equipo').select('id, numero'),
     ]);
     const numeroDe = {}; (ctr.data || []).forEach(c => { numeroDe[c.id] = c.numero; });
+    const pendientes = {}; (pend.data || []).forEach(x => { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
     const filas = [
       ...(fir.data || []).map(r => ({ d:dias(r.expira_en),
         txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (numeroDe[r.contrato_id] ? ' · ' + numeroDe[r.contrato_id] : ''),
         val:'Pendiente', clase:'espera' })),
-      ...(fac.data || []).filter(r => !r.anulada && r.venc).map(r => ({ d:dias(r.venc),
-        txt:r.numero, val:lwFormatoImporte(r.total, r.moneda||'EUR') })),
+      /* Solo lo que de verdad se debe — 19-ago-2026, encargo del owner: «estamos
+         subiendo facturas antiguas y pone vencida hace 300 y pico días».
+         El panel cogía CUALQUIER documento con fecha de vencimiento pasada y los
+         ordenaba de más antiguo a más nuevo, así que al cargar facturas viejas
+         —ya cobradas— se llevaban las seis filas y tapaban lo que sí viene.
+         Medido antes de tocarlo: de 5 filas vencidas, 4 eran facturas YA
+         COBRADAS y 1 un recibí. Deuda real vencida: cero.
+         Tres reglas, y ninguna esconde una deuda:
+           · un RECIBÍ no vence: es la prueba de que el dinero entró;
+           · una factura COBRADA no es un vencimiento, es historia;
+           · una vencida y sin cobrar SÍ se queda, por muy vieja que sea — eso
+             es justo lo que hay que ver. */
+      ...(fac.data || []).filter(r => !r.anulada && r.venc && r.tipo !== 'recibi'
+                                   && (pendientes[r.id] != null ? pendientes[r.id] : Number(r.total) || 0) > 0.005)
+        .map(r => ({ d:dias(r.venc),
+          txt:r.numero, val:lwFormatoImporte(r.total, r.moneda||'EUR') })),
     ].sort((a,b) => a.d - b.d).slice(0, 6);
     if(filas.length){
       cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Próximos vencimientos</div>' +

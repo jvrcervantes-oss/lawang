@@ -332,20 +332,33 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
       // Vencimientos: facturas con fecha puesta y sin anular. `venc` vive dentro
       // del jsonb, igual que en Operaciones — no hay columna propia.
       var qf = sb.from('facturas')
-        .select('numero,total,moneda,contrato_id,creado_por,anulada,tipo,venc:datos->fields->>fecha_vencimiento')
+        .select('id,numero,total,moneda,contrato_id,creado_por,anulada,tipo,venc:datos->fields->>fecha_vencimiento')
         .limit(200);
       var qs = sb.from('contrato_firmas')
         .select('firmante_nombre,estado,expira_en,contrato_id,contratos(numero,creado_por)')
         .eq('estado', 'pendiente').limit(100);
+      /* Lo que queda por cobrar de cada factura — 19-ago-2026. La campana avisaba
+         de facturas vencidas SIN mirar si ya estaban cobradas, y el detalle
+         decía «sin cobrar» aunque lo estuvieran. Al cargar facturas antiguas
+         (ya pagadas) la campana se llenaba de deudas que no existen, y una
+         campana que avisa de lo que no pasa se deja de mirar. */
+      var qp = sb.rpc('facturas_pendiente_equipo');
 
-      Promise.all([q, qf, qs]).then(function (r) {
+      Promise.all([q, qf, qs, qp]).then(function (r) {
         var avisos = (r[0].data || []).map(function (n) {
           return { titulo: n.titulo, detalle: n.detalle, enlace: n.enlace, cuando: n.creado_en,
                    nuevo: !vistoHasta || new Date(n.creado_en) > vistoHasta };
         });
 
+        var pendientes = {};
+        (r[3] && r[3].data || []).forEach(function (x) { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
+
         (r[1].data || []).forEach(function (f) {
           if (f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
+          // ya cobrada: no es una deuda, y decir «sin cobrar» de algo cobrado
+          // es peor que no avisar (19-ago-2026)
+          var queda = pendientes[f.id] != null ? pendientes[f.id] : Number(f.total) || 0;
+          if (!(queda > 0.005)) return;
           if (!esAdmin && f.creado_por !== email) return;   // la RLS aquí no filtra: deja leer todas
           var d = dias(f.venc);
           if (d === null || d > VENC_DIAS) return;
