@@ -56,6 +56,9 @@
      operación. Mientras estuvo aquí dentro, Facturas decía «A · B» y el
      contrato de al lado decía solo «A». El `?v=` lo sella el hook. -->
 <script src="/contracts/assets/compradores.js?v=9ea247e6"></script>
+<!-- ¿el documento sigue diciendo lo que dice la ficha? La comparación vive en
+     la vista `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
+<script src="/contracts/assets/ficha_divergencia.js?v=70b9307d"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /contracts. `creado_por` es con lo que la RLS decide quién puede editar
      su propio documento, no un adorno. -->
@@ -522,7 +525,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
     // pantalla de documento YA, para no enseñar el listado un instante.
     pantalla('documento');
     sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,datos,creado_por,justificante_path')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,datos,creado_por,justificante_path')
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
         if(error || !data){
@@ -563,6 +566,7 @@ function hoyLocalISO(){
 }
 let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
 let CONTRATO_ID = null;
+let CLIENTE_DEL_CONTRATO = null;   // ficha del comprador del contrato elegido (19-ago)
 /* Reforma del modelo de facturación (11-ago-2026): un recibí no describe
    conceptos sueltos, salda facturas concretas — ver facturas/sql/recibi_aplicaciones.sql.
    APLICACIONES = [{factura_id, numero, pendiente, importe}]; LINEAS (arriba)
@@ -1009,6 +1013,7 @@ async function cargarContratos(){
 
 async function traerContrato(id){
   CONTRATO_ID = id;
+  CLIENTE_DEL_CONTRATO = null;
   const caja = $('#delContrato');
   caja.innerHTML = '<div class="t">Cargando contrato…</div>';
   $('#delVinculado').innerHTML = '';
@@ -1016,12 +1021,16 @@ async function traerContrato(id){
   // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
   // contratos_equipo(): este contrato pudo guardarlo cualquier agente.
   let { data, error } = await sb.rpc('contratos_equipo')
-    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,contrato_padre_id').eq('id', id).single();
+    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,ficha:datos->>adq1_client_id,contrato_padre_id').eq('id', id).single();
   if(error){
     ({ data, error } = await sb.rpc('contratos_equipo').select('numero,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
-    if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores; }
+    if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores;
+      data.ficha = data.datos.adq1_client_id; }
   }
   if(error || !data){ caja.innerHTML = `<div class="t">No se pudo cargar el contrato: ${esc((error&&error.message)||'')}</div>`; return; }
+
+  // de quién es este contrato: viaja a la factura como `client_id` (19-ago)
+  CLIENTE_DEL_CONTRATO = data.ficha || null;
 
   const f = data.campos || {};
   const puesto = [];
@@ -1170,6 +1179,12 @@ function payload(){
     // el nº de contrato es texto que se imprime; `contrato_id` es el enlace real
     // con el que el contrato sabe qué facturas cuelgan de él
     contrato_id: CONTRATO_ID,
+    /* De QUIÉN es esta factura — 19-ago-2026. Va ADEMÁS de contrato_id, nunca en
+       su lugar (aviso del owner): los hitos y los vencimientos cuelgan del
+       contrato y no se tocan. Sale de la ficha enlazada al contrato elegido, que
+       es la única fuente de identidad desde el 18-ago. Sin esto, una factura no
+       puede saber si sus datos siguen siendo los del cliente. */
+    client_id: CLIENTE_DEL_CONTRATO,
     total: t.total,
     moneda: d.moneda || null,
     fecha_emision: d.fecha_emision || null,
@@ -1303,6 +1318,7 @@ function pantalla(cual, params){
 /* ---------- filtros del listado ---------- */
 const TIPOS_FILTRO = [['', 'Todos'], ['factura', 'Facturas'], ['proforma', 'Proformas'], ['recibi', 'Recibís']];
 let LTIPO = '', LANUL = false, LDOCS = null;
+let DIVERGEN = new Map();   // id → diferencias con la ficha del cliente
 
 function pintarFiltrosListado(){
   const base = LDOCS || [];
@@ -1335,10 +1351,14 @@ async function cargarListado(){
        autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
        un dato que no existe en vez de como un dato que no se pidió. */
     const { data, error } = await sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,creado_por,datos,justificante_path')
+      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,creado_por,datos,justificante_path')
       .order('created_at', { ascending:false }).limit(200);
     if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
     LDOCS = data || [];
+    /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
+       pide UNA vez con el listado, no una consulta por fila. Si falla, la lista
+       se pinta igual: es un aviso, no un requisito. */
+    DIVERGEN = await lwDivergencias(sb, 'factura');
   }
   pintarListado();
 }
@@ -1381,7 +1401,7 @@ function pintarListado(){
   const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','morado'], recibi:['Recibí','ok'] };
   box.innerHTML = `<table class="sui-tabla"><thead><tr>
       <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Contrato</th><th>Proyecto</th>
-      <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th>
+      <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th><th></th>
     </tr></thead><tbody>` + data.map(f => {
     const [tEt, tTono] = TIPO_ET[f.tipo] || TIPO_ET.factura;
     return `<tr data-id="${f.id}" class="${f.anulada ? 'anulada' : ''}">
@@ -1402,6 +1422,9 @@ function pintarListado(){
       <td class="num">${esc(fmtMoneda(f.total, f.moneda))}</td>
       <td class="flojo" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></td>
       <td>${f.anulada ? '<span class="sui-tag alerta">Anulada</span>' : '<span class="sui-tag gris">Emitida</span>'}</td>
+      <td>${DIVERGEN.has(f.id)
+          ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>`
+          : ''}</td>
       <td class="num">${f.tipo === 'recibi' && f.justificante_path
           ? `<button class="btn" data-justif="${esc(f.justificante_path)}" title="Ver el justificante de pago adjunto">📎</button>` : ''}
         ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
@@ -1419,6 +1442,20 @@ function pintarListado(){
       onCambio:(nuevo) => toast('Autor reasignado a ' + nuevo) });
   });
   box.onclick = async e => {
+    /* «Ficha ≠»: qué dice el documento y qué dice la ficha (19-ago-2026). El
+       texto lo pone la capa compartida, así que Contratos y Facturas dicen lo
+       mismo. Desde aquí solo se INFORMA: traer los datos se hace con el
+       documento abierto, que es donde se revisa antes de guardar. */
+    const dv = e.target.closest('[data-diverge]');
+    if(dv){
+      e.stopPropagation();
+      const d = DIVERGEN.get(dv.dataset.diverge);
+      if(d) await lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa',
+        cuerpo: lwTextoDivergencia(d)
+              + (d.congelado ? '' : '<p>Ábrelo para traer los datos de la ficha.</p>'),
+        confirmar: 'Entendido', cancelar: false });
+      return;
+    }
     // Ver el justificante desde la propia lista, sin abrir el recibí (19-ago)
     const ju = e.target.closest('[data-justif]');
     if(ju){ e.stopPropagation(); verJustificante(ju.dataset.justif); return; }
@@ -1542,6 +1579,38 @@ async function abrir(f){
   if(!document.body.classList.contains('modo-vista'))
     pantalla('documento', 'id=' + encodeURIComponent(f.id));
   if(f.anulada) toast('Factura anulada: se abre como borrador nuevo');
+
+  /* ¿Este documento contradice a la ficha de su cliente? — 19-ago-2026.
+     Se pregunta al ABRIRLO, que es el momento en que alguien lo va a tocar, y
+     solo si sigue vivo: una factura enviada o anulada no se corrige, se reemite
+     (decisión del owner). Traer los datos NO guarda: los deja en el formulario
+     para revisarlos, igual que hace «Traer los datos de la ficha» en Contratos. */
+  if(!f.anulada && !f.enviada && f.client_id && !document.body.classList.contains('modo-vista')){
+    const mapa = await lwDivergencias(sb, 'factura');
+    const d = mapa.get(f.id);
+    if(d && !d.congelado){
+      const traer = await lwConfirmar({
+        titulo: 'La ficha del cliente dice otra cosa',
+        cuerpo: lwTextoDivergencia(d),
+        confirmar: 'Traer los datos de la ficha',
+        cancelar: 'Dejarlo como está',
+      });
+      if(traer){
+        // Del documento al formulario, campo a campo: los nombres del jsonb del
+        // documento y los del formulario son los mismos (cliente_*).
+        const porCampo = { nombre:'cliente_nombre', identidad:'cliente_documento',
+                           email:'cliente_email', domicilio:'cliente_domicilio' };
+        let n = 0;
+        (d.diferencias || []).forEach(x => {
+          const el = document.querySelector(`[name="${porCampo[x.campo] || ''}"]`);
+          if(el){ el.value = x.ficha; n++; }
+        });
+        render();
+        toast(n + (n === 1 ? ' dato traído de la ficha · revisa y guarda'
+                           : ' datos traídos de la ficha · revisa y guarda'));
+      }
+    }
+  }
 }
 
 pintarLineas();

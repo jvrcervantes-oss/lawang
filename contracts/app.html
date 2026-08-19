@@ -60,6 +60,9 @@
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
 <script src="assets/compradores.js?v=9ea247e6"></script>
+<!-- ¿el documento sigue diciendo lo que dice la ficha? Compara la vista
+     `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
+<script src="assets/ficha_divergencia.js?v=70b9307d"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -4620,6 +4623,9 @@ async function openContractsPanel(){
     .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
   if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
   CP_ROWS = data || [];
+  // cuáles contradicen a la ficha de su comprador (19-ago): una consulta para
+  // todo el panel, y si falla la lista se pinta igual
+  DIVERGEN_CONTRATOS = await lwDivergencias(sb, 'contrato');
   CP_TIPO = ''; CP_ESTADO = '';
   pintarCpFiltros(); aplicarCpFiltros();
 }
@@ -4712,6 +4718,10 @@ async function cargarEquipo(){
   (data || []).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
 }
 const autorVisible = e => (EQUIPO && EQUIPO[e]) || e || '—';
+/* Qué contratos contradicen a la ficha de su comprador. Se pide UNA vez al
+   cargar el panel, no una consulta por fila, y si falla la lista se pinta igual:
+   es un aviso, no un requisito (19-ago-2026). */
+let DIVERGEN_CONTRATOS = new Map();
 function renderCpList(rows){
   const list=$('#cpList');
   if(!rows.length){
@@ -4726,7 +4736,10 @@ function renderCpList(rows){
     <div class="cp-row" data-id="${r.id}">
       <span class="cp-num" data-l="Nº" title="${r.bloqueado?'Bloqueado — PDF firmado ya subido':''}">${r.bloqueado?'🔒 Bloqueado · ':''}${r.numero||'—'}</span>
       <span data-l="Tipo">${cpTipoLabel(r.tipo)}</span>
-      <span data-l="Comprador">${escAttr(r.nombre_contrato||r.comprador_nombre||'—')}</span>
+      <span data-l="Comprador">${escAttr(r.nombre_contrato||r.comprador_nombre||'—')}${
+        DIVERGEN_CONTRATOS.has(r.id)
+          ? ' <span class="sui-tag alerta" title="Dice algo distinto de la ficha de su comprador — ábrelo para traer los datos">Ficha ≠</span>'
+          : ''}</span>
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
       <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
       <span data-l="Fecha">${r.fecha_firma||''}</span>
@@ -5099,45 +5112,38 @@ const ETIQUETA_EMPRESA = {
   adq1_domicilio:    {es:'Domicilio social',       en:'Registered address',  id:'Alamat terdaftar'},
 };
 async function avisaFichaDistinta(contratoId){
-  if(LOCKED || !sb || !contratoId) return;          // firmado: congelado a propósito
+  /* LA COMPARACIÓN YA NO ESTÁ AQUÍ — 19-ago-2026. Vivía en esta función, con su
+     propia normalización y su propia lista de campos, y era la ÚNICA de la
+     suite: por eso una factura podía contradecir a la ficha sin que nada lo
+     dijera. Ahora la hace la vista `documentos_desactualizados` y la consulta
+     `lwDivergencias` (assets/ficha_divergencia.js), que usan igual Contratos y
+     Facturas. Una comparación, un criterio, dos pantallas.
+
+     Un contrato firmado NO se toca (`congelado` en la vista): corregirlo es
+     reemitirlo. Antes eso se decidía aquí con `if(LOCKED) return`; ahora lo dice
+     el mismo sitio para los dos documentos. */
+  if(!sb || !contratoId) return;
   try{
-    const { data, error } = await sb.from('contrato_compradores')
-      .select('client_id, clients(full_name,passport_number,email,phone,nationality,address,forma_juridica,registro_num,rep_nombre,rep_cargo)')
-      .eq('contrato_id', contratoId).eq('rol', 'adquiriente_1').maybeSingle();
-    if(error || !data || !data.clients) return;
-    const ficha = data.clients;
-    const norm = v => String(v == null ? '' : v).trim();
-    /* Compara sin mayusculas ni puntuacion: un prefijo con espacios distintos no
-       es una discrepancia, es la misma persona escrita de otra manera. */
-    const clave = v => norm(v).toLowerCase().replace(/[^a-z0-9@.]/gi, '');
-    /* Solo campos que esta plantilla PINTA. `collect()` recorre activeKeys(), asi
-       que un campo que la plantilla no usa sale '' aunque el contrato lo tenga
-       guardado — CC00010 tiene su domicilio en `datos.fields` y aun asi salia
-       como «vacio». Y aunque el aviso fuera cierto, «traer los datos» no tendria
-       donde escribirlo: sin input no hay nada que avisar ni que arreglar. */
-    const difs = CAMPOS_FICHA
-      .map(([campo, col, etq]) => ({ campo, etq, el: document.querySelector('[name="' + campo + '"]'), alla: norm(ficha[col]) }))
-      .filter(x => x.el && x.alla)
-      .map(x => Object.assign(x, { aqui: norm(x.el.value) }))
-      .filter(x => clave(x.aqui) !== clave(x.alla));   // solo si la ficha TIENE dato y de verdad difiere
-    if(!difs.length) return;
+    const mapa = await lwDivergencias(sb, 'contrato');
+    const d = mapa.get(contratoId);
+    if(!d || d.congelado) return;
     const ok = await lwConfirmar({
       titulo: 'La ficha del comprador dice otra cosa',
-      cuerpo: '<p>Este contrato <b>todavía no está firmado</b> y lleva datos distintos de los de la ficha de '
-            + escAttr(ficha.full_name || 'el comprador') + ':</p>'
-            + '<ul style="margin:0 0 10px;padding-left:18px">'
-            + difs.map(x => '<li><b>' + escAttr(x.etq) + '</b>: aquí «' + escAttr(x.aqui || '(vacío)')
-                          + '», en la ficha «' + escAttr(x.alla) + '»</li>').join('')
-            + '</ul><p>Los datos se copian al contrato cuando se guarda y ya no se actualizan solos, '
-            + 'a propósito: un contrato firmado no puede cambiar por detrás.</p>',
+      cuerpo: lwTextoDivergencia(d),
       confirmar: 'Traer los datos de la ficha',
       cancelar: 'Dejarlo como está',
     });
     if(!ok) return;
-    difs.forEach(x => { x.el.value = x.alla; });
+    const porCampo = { nombre:'adq1_nombre', identidad:'adq1_pasaporte', email:'adq1_email',
+                       telefono:'adq1_telefono', domicilio:'adq1_domicilio', pais:'adq1_nacionalidad' };
+    let n = 0;
+    (d.diferencias || []).forEach(x => {
+      const el = document.querySelector(`[name="${porCampo[x.campo] || ''}"]`);
+      if(el){ el.value = x.ficha; n++; }
+    });
     render();
-    toast(difs.length + (difs.length === 1 ? ' dato traído de la ficha · revisa y guarda'
-                                           : ' datos traídos de la ficha · revisa y guarda'));
+    toast(n + (n === 1 ? ' dato traído de la ficha · revisa y guarda'
+                       : ' datos traídos de la ficha · revisa y guarda'));
   }catch(_){ /* un aviso que falla no puede impedir abrir un contrato */ }
 }
 
