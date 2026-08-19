@@ -4508,7 +4508,10 @@ function compradoresDelFormulario(){
   if(String(d.adq1_nombre||'').trim()){
     lista.push({ rol:'adquiriente_1', nombre:d.adq1_nombre, pasaporte:d.adq1_pasaporte,
                  email:d.adq1_email, telefono:d.adq1_telefono, domicilio:d.adq1_domicilio,
-                 nacionalidad:d.adq1_nacionalidad });
+                 nacionalidad:d.adq1_nacionalidad,
+                 // 19-ago: el ID de la ficha, para poder comprobar que el enlace
+                 // guardado apunta a ESTA persona y no solo a que hay alguna
+                 client_id: ADQ1_CLIENT ? ADQ1_CLIENT.id : null });
   }
   let fuera = 0;
   (COMPRADORES || []).forEach((c, i) => {
@@ -4519,7 +4522,8 @@ function compradoresDelFormulario(){
     // (contrato_id, rol) chocaría y el upsert PISARÍA al anterior en silencio.
     if(i + 2 > 9){ fuera++; return; }
     lista.push({ rol:'adquiriente_' + (i + 2), nombre:c.nombre, pasaporte:c.pasaporte,
-                 email:c.email, telefono:c.telefono, domicilio:c.domicilio, nacionalidad:c.nacionalidad });
+                 email:c.email, telefono:c.telefono, domicilio:c.domicilio, nacionalidad:c.nacionalidad,
+                 client_id: c.client_id || null });
   });
   // el aviso NO se lanza aquí: el toast del resultado lo pisaría y el operador
   // nunca vería que se ha quedado alguien fuera. Va en el mensaje final.
@@ -4540,15 +4544,33 @@ async function informarCompradores(contratoId){
   // que no puede es pasar en silencio, que es como se perdieron cuatro.
   const sinIdentificar = lista.filter(p => !String(p.pasaporte||'').trim() && !String(p.email||'').trim())
                               .map(p => String(p.nombre||'').trim() || p.rol);
-  const { data, error } = await sb.from('contrato_compradores').select('rol').eq('contrato_id', contratoId);
+  const { data, error } = await sb.from('contrato_compradores').select('rol,client_id').eq('contrato_id', contratoId);
   if(error) return;   // el contrato está guardado; no se molesta al operador con un fallo de lectura del índice
 
-  const conFicha = new Set((data || []).map(r => r.rol));
-  const faltan = lista.filter(p => !conFicha.has(p.rol) && !sinIdentificar.includes(String(p.nombre||'').trim()));
+  /* Se compara el ID, no solo que el rol exista — 19-ago-2026. RP00044 se
+     reasignó a otra ficha y el aviso calló: la fila de `adquiriente_1` seguía
+     ahí, así que "tiene ficha"… pero apuntaba al comprador ANTERIOR. Mirar solo
+     la presencia del rol deja pasar justo el caso que más importa, que es el
+     cambio de comprador. */
+  const enlace = new Map((data || []).map(r => [r.rol, r.client_id]));
+  const faltan = lista.filter(p => !enlace.has(p.rol) && !sinIdentificar.includes(String(p.nombre||'').trim()));
+  const desviados = lista.filter(p => p.client_id && enlace.has(p.rol) && enlace.get(p.rol) !== p.client_id);
+  const conFicha = new Set(enlace.keys());
   const sinId = sinIdentificar.length
     ? ' · SIN ficha por falta de pasaporte y email: ' + sinIdentificar.join(', ') : '';
 
-  if(faltan.length){
+  if(desviados.length){
+    await lwConfirmar({
+      titulo: 'El contrato quedó enlazado a otro comprador',
+      cuerpo: '<p>Está guardado con <b>' + esc(desviados.map(p => String(p.nombre||'').trim() || p.rol).join(', '))
+        + '</b>, pero el enlace que hay en la base apunta a otra ficha.</p>'
+        + '<p>Es lo que pasa si el enlace no se pudo actualizar al cambiar de comprador. '
+        + '<b>Avisa al estudio</b> antes de seguir: hasta arreglarlo, este contrato le sale al cliente equivocado '
+        + 'en su ficha y en las herramientas que cruzan personas y operaciones.</p>',
+      confirmar: 'Entendido',
+      cancelar: false,
+    });
+  } else if(faltan.length){
     /* MODAL, no un toast — 19-ago-2026. Este aviso ya existía y aun así pasaron
        SIETE contratos seguidos sin enlazar su ficha sin que nadie lo notara: el
        disparador de la base fallaba en silencio (le habían revocado el permiso
