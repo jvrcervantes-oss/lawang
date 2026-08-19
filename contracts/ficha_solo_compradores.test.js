@@ -70,5 +70,17 @@ const usos = (app.match(/plantillaExigeFicha\(\)/g) || []).length;
 afirma('`plantillaExigeFicha()` es la única definición y se reutiliza', usos >= 2,
   'aparece ' + usos + ' vez/veces: el candado y el freno del guardado tienen que compartirla');
 
+/* 5) el bloque de elegir comprador es UNO, no dos ---------------------------
+   El 19-ago el owner preguntó por qué el buscador del Adquiriente I y el de los
+   adicionales eran distintos. Lo eran porque había dos marcados para la misma
+   acción. Ahora los pinta `bloqueElegirComprador()`; esto afirma que no vuelve
+   a haber un segundo marcado suelto que pueda derivar del primero. */
+const llamadas = (app.match(/bloqueElegirComprador\(/g) || []).length;
+afirma('el bloque de elegir comprador se pinta desde una sola función',
+  llamadas >= 3, 'aparece ' + llamadas + ' vez/veces (1 definición + 2 usos como mínimo)');
+const literales = (app.match(/class="cli-pedir"/g) || []).length;
+afirma('no hay un segundo marcado `cli-pedir` a mano', literales === 1,
+  'aparece ' + literales + ' veces: si son dos, ya pueden separarse otra vez');
+
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nEl contrato no crea ni edita fichas.');
 process.exit(fallos ? 1 : 0);

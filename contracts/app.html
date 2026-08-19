@@ -60,7 +60,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=ae6b08d5">
+<link rel="stylesheet" href="assets/app.css?v=72344113">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -1292,16 +1292,15 @@ function buildCompradorPanel(){
     return `
     <div class="dz" data-comprador="${c.id}">
       <div class="dz-row"><span style="width:auto;font-weight:600;color:var(--dl)">${L({es:'Adquiriente',en:'Buyer',id:'Pembeli'})} ${romano(i+2)}</span>
-        ${c.client_id
-          ? `<span class="cli-ok" style="margin-left:8px">✓ ${L({es:'Ficha',en:'Client',id:'Klien'})}</span>
-             <a class="tb-link" href="/compradores/?id=${encodeURIComponent(c.client_id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>`
-          : `<span class="cli-sub" style="margin-left:8px">${L({es:'sin ficha: búscalo abajo',en:'no client record: search below',id:'tanpa data klien: cari di bawah'})}</span>`}
         <span class="spacer" style="flex:1"></span>
         <button type="button" class="link-btn" data-cdel="${c.id}">${L({es:'Quitar',en:'Remove',id:'Hapus'})}</button></div>
-      <div class="cli-buscar">
-        <input type="search" id="cliBuscar-${c.id}" data-cli-buscar="${c.id}" autocomplete="off" placeholder="${L({es:'Buscar cliente ya registrado (nombre, email o pasaporte)…',en:'Search existing client (name, email or passport)…',id:'Cari klien terdaftar (nama, email, atau paspor)…'})}">
-        <div class="cli-resultados" id="cliResultados-${c.id}" hidden></div>
-      </div>
+      ${bloqueElegirComprador({
+        titulo: L({es:'Elige al Adquiriente',en:'Choose Buyer',id:'Pilih Pembeli'}) + ' ' + romano(i+2),
+        idInput: 'cliBuscar-' + c.id, idResultados: 'cliResultados-' + c.id, marca: c.id,
+        idNuevo: 'cliNuevo-' + c.id,
+        ficha: c.client_id ? { id:c.client_id, full_name:c.nombre, email:c.email, passport_number:c.pasaporte } : null,
+        idCambiar: 'cliCambiar-' + c.id,
+      })}
       <div class="grid2">
         <div class="field"><label for="${cid(c.id,'nombre')}">${L({es:'Nombre y apellidos',en:'Full name',id:'Nama lengkap'})}</label><input id="${cid(c.id,'nombre')}" data-ci="${c.id}" data-ckey="nombre" value="${escAttr(c.nombre)}"></div>
         <div class="field"><label for="${cid(c.id,'nacionalidad')}">${L({es:'Nacionalidad',en:'Nationality',id:'Kewarganegaraan'})}</label><input id="${cid(c.id,'nacionalidad')}" data-ci="${c.id}" data-ckey="nacionalidad" list="dl-nacionalidades" value="${escAttr(c.nacionalidad)}"></div>
@@ -1347,7 +1346,15 @@ function wireCompradorPanel(){
   });
   p.addEventListener('click', e=>{
     if(e.target.closest('#compradorAdd')){ COMPRADORES.push({id:'bc'+(compradorSeq++), nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''}); saveCompradores(); rebuildComprador(); render(); return; }
-    const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); }
+    const d=e.target.closest('[data-cdel]'); if(d){ COMPRADORES=COMPRADORES.filter(x=>x.id!==d.dataset.cdel); saveCompradores(); rebuildComprador(); render(); return; }
+    /* «Cambiar de cliente» de un adquiriente adicional: mismo gesto y mismo
+       efecto que el del Adquiriente I — se suelta la ficha Y sus datos. */
+    const cb=e.target.closest('[data-ccambiar]');
+    if(cb){
+      const row=COMPRADORES.find(x=>x.id===cb.dataset.ccambiar);
+      if(row){ Object.assign(row, {client_id:null, nombre:'', nacionalidad:'', pasaporte:'', domicilio:'', telefono:'', email:''});
+        saveCompradores(); rebuildComprador(); render(); }
+    }
   });
   COMPRADORES.forEach(c=> wireClienteBuscadorEn($(`#cliBuscar-${c.id}`), $(`#cliResultados-${c.id}`), (datos, fila)=>{
     const row=COMPRADORES.find(x=>x.id===c.id); if(!row) return;
@@ -1485,61 +1492,95 @@ function fichaResumen(c){
       || L({es:'sin email ni pasaporte', en:'no email or passport', id:'tanpa email atau paspor'});
 }
 
+/* ── UN SOLO bloque «elegir comprador», para el I y para los II+ ─────────────
+   19-ago-2026, encargo del owner: «¿por qué son diferentes?». Y tenía razón —
+   eran dos marcados distintos para la MISMA acción, y el del Adquiriente I
+   parecía el importante solo porque estaba mejor pintado. Ahora los dos salen
+   de aquí, así que no pueden volver a separarse: cualquier cambio de forma o de
+   texto llega a los dos a la vez.
+
+   Dos estados, los mismos en los dos sitios:
+     · con ficha  → el chip, con «Ver en Compradores» y «Cambiar de cliente»
+     · sin ficha  → el recuadro de búsqueda, con el enlace al alta
+
+   `o.marca` es el id de la fila del adquiriente (COMPRADORES) o vacío para el
+   Adquiriente I: lo llevan el input y el botón de cambiar para que el panel de
+   adquirientes pueda engancharlos por delegación. */
+function bloqueElegirComprador(o){
+  const cambiar = `<button type="button" class="tb-link"${o.idCambiar ? ` id="${o.idCambiar}"` : ''}${
+    o.marca ? ` data-ccambiar="${escAttr(o.marca)}"` : ''}>${L({es:'Cambiar de cliente',en:'Change client',id:'Ganti klien'})}</button>`;
+  if(o.ficha){
+    return `<div class="cli-chip">
+      <span class="cli-ok">✓ ${L({es:'Ficha',en:'Client',id:'Klien'})}</span>
+      <b>${esc(o.ficha.full_name || '—')}</b>
+      <span class="cli-sub">${esc(fichaResumen(o.ficha))}</span>
+      <a class="tb-link" href="/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
+      ${cambiar}
+    </div>`;
+  }
+  return `<div class="cli-pedir">
+    <div class="cli-pedir-t">${esc(o.titulo)}</div>
+    <p class="cli-pedir-s">${plantillaExigeFicha()
+      ? L({es:'Los datos del comprador salen de su ficha: búscalo aquí y el resto se rellena solo.',
+           en:'The buyer’s details come from their client record: find them here and the rest fills in by itself.',
+           id:'Data pembeli berasal dari data kliennya: cari di sini dan sisanya terisi sendiri.'})
+      /* Sin email ni pasaporte no se puede exigir ficha (la Oferta Comercial),
+         así que ahí el buscador AYUDA pero no manda — y el texto no puede
+         prometer lo que en esa plantilla no se cumple. */
+      : L({es:'Este documento no pide email ni pasaporte, así que puede rellenarse a mano. Si el comprador ya está fichado, búscalo y te ahorras teclearlo.',
+           en:'This document asks for no email or passport, so it can be filled in by hand. If the buyer is already registered, find them and save the typing.',
+           id:'Dokumen ini tidak meminta email atau paspor, jadi bisa diisi manual. Jika pembeli sudah terdaftar, cari saja.'})}</p>
+    <div class="cli-buscar">
+      <input type="search" id="${o.idInput}"${o.marca ? ` data-cli-buscar="${escAttr(o.marca)}"` : ''} autocomplete="off" placeholder="${L({es:'Nombre, email o pasaporte…',en:'Name, email or passport…',id:'Nama, email, atau paspor…'})}">
+      <div class="cli-resultados" id="${o.idResultados}" hidden></div>
+    </div>
+    <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
+      <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
+    </div>
+  </div>`;
+}
+
 /* Pinta el bloque del comprador en su estado actual. Lo llama buildForm() y
    cada acción que cambia el enlace. */
 function pintarFichaComprador(){
   const caja = document.getElementById('cliFicha');
   if(!caja) return;
+  caja.innerHTML = bloqueElegirComprador({
+    titulo: L({es:'Elige al comprador',en:'Choose the buyer',id:'Pilih pembeli'}),
+    idInput: 'cliBuscar', idResultados: 'cliResultados',
+    idCambiar: 'cliCambiar', idNuevo: 'cliNuevo',
+    ficha: ADQ1_CLIENT,
+  });
   if(ADQ1_CLIENT){
-    caja.innerHTML = `<div class="cli-chip">
-        <span class="cli-ok">✓ ${L({es:'Ficha',en:'Client',id:'Klien'})}</span>
-        <b>${esc(ADQ1_CLIENT.full_name || '—')}</b>
-        <span class="cli-sub">${esc(fichaResumen(ADQ1_CLIENT))}</span>
-        <a class="tb-link" id="cliVer" href="/compradores/?id=${encodeURIComponent(ADQ1_CLIENT.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
-        <button type="button" class="tb-link" id="cliCambiar">${L({es:'Cambiar de cliente',en:'Change client',id:'Ganti klien'})}</button>
-      </div>`;
     const bX = document.getElementById('cliCambiar');
     if(bX) bX.addEventListener('click', ()=>{
       ADQ1_CLIENT = null;
-      pintarFichaComprador();
+      limpiarCamposFicha();
+      pintarFichaComprador(); render(); updateSaveButton();
       const b = document.getElementById('cliBuscar'); if(b) b.focus();
     });
   } else {
-    caja.innerHTML = `<div class="cli-pedir">
-        <div class="cli-pedir-t">${L({es:'Elige al comprador',en:'Choose the buyer',id:'Pilih pembeli'})}</div>
-        <p class="cli-pedir-s">${plantillaExigeFicha()
-          ? L({es:'Los datos del comprador salen de su ficha: búscalo aquí y el resto del bloque se rellena solo.',
-               en:'The buyer’s details come from their client record: find them here and the rest fills in by itself.',
-               id:'Data pembeli berasal dari data kliennya: cari di sini dan sisanya terisi sendiri.'})
-          /* Sin email ni pasaporte no se puede exigir ficha (la Oferta
-             Comercial), así que aquí el buscador AYUDA pero no manda — y el
-             texto no puede prometer lo que en esta plantilla no se cumple. */
-          : L({es:'Este documento no pide email ni pasaporte, así que puede rellenarse a mano. Si el comprador ya está fichado, búscalo y te ahorras teclearlo.',
-               en:'This document asks for no email or passport, so it can be filled in by hand. If the buyer is already registered, find them and save the typing.',
-               id:'Dokumen ini tidak meminta email atau paspor, jadi bisa diisi manual. Jika pembeli sudah terdaftar, cari saja.'})}</p>
-        <div class="cli-buscar">
-          <input type="search" id="cliBuscar" autocomplete="off" placeholder="${L({es:'Nombre, email o pasaporte…',en:'Name, email or passport…',id:'Nama, email, atau paspor…'})}">
-          <div class="cli-resultados" id="cliResultados" hidden></div>
-        </div>
-        <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
-          <a class="tb-link" id="cliNuevo" href="/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
-        </div>
-      </div>`;
     wireClienteBuscador();
   }
   aplicarBloqueoComprador();
 }
 
-function enlazarFicha(c){
-  ADQ1_CLIENT = c;
-  // LIMPIAR antes de poblar (auditoría 19-ago): populateForm salta los valores
-  // vacíos a propósito, así que una ficha sin domicilio dejaba el domicilio del
-  // cliente ANTERIOR en el campo — y bloqueado como si viniera de esta ficha
+/* LIMPIAR antes de poblar (auditoría 19-ago): populateForm salta los valores
+   vacíos a propósito, así que una ficha sin domicilio dejaba el domicilio del
+   cliente ANTERIOR en el campo — y bloqueado como si viniera de esta ficha.
+   Lo usa también «Cambiar de cliente»: al soltar la ficha, sus datos se van con
+   ella; si no, quedarían unos datos bloqueados que ya no son de nadie. */
+function limpiarCamposFicha(){
   CAMPOS_FICHA.map(f=>f[0]).forEach(k=>{
     const campo = document.querySelector(`.field[data-key="${k}"]`);
     if(campo) campo.querySelectorAll('input, textarea').forEach(el=>{ el.value=''; });
     const sel = document.querySelector(`select[name="${k}"]`); if(sel) sel.value='';
   });
+}
+
+function enlazarFicha(c){
+  ADQ1_CLIENT = c;
+  limpiarCamposFicha();
   populateForm({ adq1_nombre:c.full_name||'', adq1_nacionalidad:c.nationality||'',
     adq1_pasaporte:c.passport_number||'', adq1_telefono:c.phone||'',
     adq1_email:c.email||'', adq1_domicilio:c.address||'' });
