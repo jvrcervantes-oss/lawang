@@ -4140,9 +4140,17 @@ function updateSaveButton(){
   if(regBtn) regBtn.style.display = SAVED_CONTRACT ? '' : 'none';
   const facBtn=$('#btnFacturar');
   if(facBtn){
-    // Se enseña incluso con el contrato BLOQUEADO: firmado es justo cuando se
-    // factura. El de subir firmado y el de enviar a firma si desaparecen ahi.
-    facBtn.style.display = SAVED_CONTRACT ? 'inline-flex' : 'none';
+    /* SOLO CON EL CONTRATO BLOQUEADO — 19-ago-2026, encargo del owner:
+       «facturar un contrato no debe ser posible hasta que estuviese bloqueado».
+       Hasta hoy salía en cuanto el contrato estaba guardado, y guardado no es
+       nada: un borrador a medias, con el precio todavía por cerrar, ya ofrecía
+       facturar. Bloqueado = firmado y cerrado, que es cuando hay algo que cobrar.
+       ⚠️ Esto tapa LA PUERTA DE ESTA PANTALLA, no todas: desde /facturas/ se
+       puede elegir cualquier contrato del desplegable. Y la proforma automática
+       del depósito sigue naciendo al guardar un contrato NUEVO
+       (crearProformaAutomatica), que es justo lo contrario de esto y es
+       correcto: la reserva se cobra antes de firmar nada. */
+    facBtn.style.display = (SAVED_CONTRACT && LOCKED) ? 'inline-flex' : 'none';
     if(SAVED_CONTRACT) facBtn.href = '/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
   }
   if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
