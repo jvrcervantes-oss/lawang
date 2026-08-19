@@ -1,3 +1,8 @@
+-- ⚠️ 19-ago-2026: guardar_recibi() YA NO ES ESTA. La versión viva añade el
+-- guardarraíl de LAW-41(2) (un recibí solo salda facturas de su mismo
+-- comprador) y vive en `recibi_mismo_comprador.sql`. Aplicar este fichero tal
+-- cual REVIERTE ese guardarraíl sin avisar de nada.
+
 -- Blindaje a nivel de base de datos de "recibí exige factura y justificante,
 -- no es opcional" (11-ago-2026, petición del owner) — hasta ahora esa regla
 -- solo vivía en el JS de facturas/index.html, saltable por un INSERT directo

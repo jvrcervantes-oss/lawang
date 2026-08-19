@@ -355,6 +355,7 @@
             <legend>Facturas que salda este recibí</legend>
             <label for="selFacturaAplicar">Añadir factura</label>
             <select id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
+            <p class="hint" id="aplicAmbito"></p>
             <div id="aplicaciones"></div>
             <p class="hint" id="aplicSuma"></p>
             <label for="fJustificante">Justificante de pago (obligatorio)</label>
@@ -529,6 +530,9 @@ sb.auth.getSession().then(async ({data:{session}}) => {
     await contratosListos;
     $('#selContrato').value = contratoUrl;
     traerContrato(contratoUrl);
+    // Un recibí abierto por deep-link ya tiene comprador: sin esto su selector
+    // de facturas se quedaría vacío, porque se pintó antes de saberlo (LAW-41(2))
+    if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi();
   } else if(par.has('nueva')){
     nuevoDocumento(LTIPO || 'factura');
     pantalla('documento');
@@ -651,24 +655,58 @@ function toggleTipoRecibi(){
   $('#fsAplicaciones').hidden = !esRecibi;
   if(esRecibi) cargarFacturasAbiertas();
 }
+/* Solo se listan las facturas DEL MISMO COMPRADOR (LAW-41(2), 19-ago-2026).
+   Antes se listaban las de todo el equipo, y de ahí salió el error real:
+   REC00019 (1.000 €, Jorge Miguel Domingo Berenguer) acabó aplicado a
+   INV00001, una factura de Carmen Ribera Valdes. La regla la impone
+   guardar_recibi() en la misma transacción; aquí no se reimplementa, se
+   PREGUNTA — `contratos_del_mismo_comprador` es la misma comparación de
+   identidad (pasaporte + email) que usa la función, así que el selector no
+   puede derivar de lo que la base de datos acepta. */
 async function cargarFacturasAbiertas(){
-  const [f, p] = await Promise.all([
-    sb.rpc('facturas_equipo').select('id,numero,contrato_numero,cliente_nombre,total,tipo,anulada'),
+  const [f, p, m] = await Promise.all([
+    sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada'),
     sb.rpc('facturas_pendiente_equipo'),
+    CONTRATO_ID ? sb.rpc('contratos_del_mismo_comprador', { p_contrato_id: CONTRATO_ID }) : Promise.resolve({ data:[] }),
   ]);
   if(f.error || p.error){ toast('No se pudieron cargar las facturas abiertas: ' + ((f.error||p.error).message)); return; }
+  if(m.error){ toast('No se pudo comprobar de quién son las facturas: ' + m.error.message); FACTURAS_ABIERTAS = []; pintarSelectFacturaAplicar(); return; }
   const pend = {}; p.data.forEach(x => { pend[x.factura_id] = Number(x.pendiente) || 0; });
+  // setof uuid llega como array de escalares; se acepta también [{...}] por si
+  // PostgREST lo envuelve, antes que quedarse sin ninguna factura sin decir por qué
+  const suyos = new Set((m.data || []).map(x => (x && typeof x === 'object') ? Object.values(x)[0] : x));
   FACTURAS_ABIERTAS = (f.data || [])
     .filter(x => x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005)
+    .filter(x => x.contrato_id && suyos.has(x.contrato_id))
     .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id] }));
+  pintarSelectFacturaAplicar();
+}
+async function refrescarAplicablesDelRecibi(){
+  await cargarFacturasAbiertas();
+  const validas = new Set(FACTURAS_ABIERTAS.map(x => x.id));
+  const fuera = APLICACIONES.filter(a => !validas.has(a.factura_id));
+  if(fuera.length){
+    APLICACIONES = APLICACIONES.filter(a => validas.has(a.factura_id));
+    toast('Quitad' + (fuera.length===1?'a ':'as ') + fuera.length + ' factura' + (fuera.length===1?'':'s') +
+          ' que no son de este comprador: ' + fuera.map(a => a.numero).join(', '));
+    pintarAplicaciones(); sincronizarLineasDesdeAplicaciones();
+  }
   pintarSelectFacturaAplicar();
 }
 function pintarSelectFacturaAplicar(){
   const usadas = new Set(APLICACIONES.map(a => a.factura_id));
+  const libres = FACTURAS_ABIERTAS.filter(x => !usadas.has(x.id));
   $('#selFacturaAplicar').innerHTML = '<option value="">— elige una factura pendiente —</option>' +
-    FACTURAS_ABIERTAS.filter(x => !usadas.has(x.id)).map(x =>
+    libres.map(x =>
       `<option value="${esc(x.id)}">${esc(x.numero)} — ${esc(x.cliente_nombre||'sin nombre')}${x.contrato_numero ? ' · '+esc(x.contrato_numero) : ''} — pendiente ${esc(fmtMoneda(x.pendiente, $('[name="moneda"]').value))}</option>`
     ).join('');
+  // El desplegable vacío tiene dos causas muy distintas y el agente no puede
+  // adivinar cuál: sin contrato elegido no hay comprador contra el que filtrar.
+  const aviso = $('#aplicAmbito'); if(!aviso) return;
+  aviso.textContent = !CONTRATO_ID
+    ? 'Elige antes el contrato del recibí: solo se pueden saldar facturas de ese mismo comprador.'
+    : (libres.length ? 'Solo se listan las facturas pendientes de este comprador, incluidas las de sus otros contratos.'
+                     : 'Este comprador no tiene ninguna factura pendiente. Un recibí solo puede saldar facturas suyas.');
 }
 $('#selFacturaAplicar').addEventListener('change', e => {
   const id = e.target.value; if(!id) return;
@@ -926,6 +964,11 @@ async function cargarContratos(){
     CONTRATO_ID = sel.value || null;
     if(sel.value) traerContrato(sel.value);
     else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; }
+    // Cambiar de contrato cambia el comprador, y con él qué facturas puede
+    // saldar este recibí (LAW-41(2)). Las ya añadidas que dejen de valer se
+    // quitan aquí y no en el guardado: guardar_recibi() las rechazaría con un
+    // error de base de datos después de haber escrito todo lo demás.
+    if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi();
   };
 }
 
