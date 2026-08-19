@@ -75,6 +75,23 @@ CON_COMPRADOR.forEach(slug => {
     !persona.includes('{{comp_razon}}') && viejo.includes('{{comp_razon}}'));
 });
 
+/* ── 1b) el nº de registro desaparece si no lo hay ─────────────────────────
+   19-ago, visto en CR00035 (ABJ ASENATH ADMINISTRACIÓN SL, sin registro
+   mercantil puesto): el contrato imprimía «nº de registro e identificación
+   fiscal B47711270», que se lee como si el NIF fuera también el número de
+   registro. No es un hueco feo, es un documento firmado diciendo algo que no
+   es. Va envuelto en `opt:` como {{prom_marca}} en la Primera Parte. */
+CON_COMPRADOR.forEach(slug => {
+  const html = leer('templates', slug + '.html');
+  const conRegistro = renderBloques(html, { adq1_tipo: 'empresa', adq1_registro: 'RM-1' });
+  const sinRegistro = renderBloques(html, { adq1_tipo: 'empresa' });
+  afirma(slug + ': el nº de registro solo se imprime si el contrato lo trae',
+    conRegistro.includes('{{adq1_registro}}') && !sinRegistro.includes('{{adq1_registro}}'));
+  afirma(slug + ': sin registro, la frase no encadena con la identificación fiscal',
+    !/registro\s*(<[^>]*>\s*)*(e|and|dan)\s+identificaci|register no\.\s*(<[^>]*>\s*)*and\s+tax/i
+      .test(sinRegistro.replace(/\s+/g, ' ')));
+});
+
 /* ── 2) los campos de la redacción de empresa existen como campo ───────────── */
 const DE_EMPRESA = ['adq1_forma_juridica', 'adq1_registro', 'adq1_rep_nombre',
                     'adq1_rep_cargo', 'adq1_domicilio'];
