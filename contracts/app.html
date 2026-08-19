@@ -1318,7 +1318,7 @@ function buildCompradorPanel(){
         titulo: L({es:'Elige al Adquiriente',en:'Choose Buyer',id:'Pilih Pembeli'}) + ' ' + romano(i+2),
         idInput: 'cliBuscar-' + c.id, idResultados: 'cliResultados-' + c.id, marca: c.id,
         idNuevo: 'cliNuevo-' + c.id,
-        ficha: c.client_id ? { id:c.client_id, full_name:c.nombre, email:c.email, passport_number:c.pasaporte } : null,
+        ficha: c.client_id ? { id:c.client_id, full_name:c.nombre, email:c.email, passport_number:c.pasaporte, tipo:c.tipo } : null,
         idCambiar: 'cliCambiar-' + c.id,
       })}
       <div class="grid2">
@@ -1389,6 +1389,7 @@ function wireCompradorPanel(){
     if(!(fila && fila.id)){ toast('Ese resultado no tiene ficha: elige un cliente registrado'); return; }
     Object.assign(row, datos);
     row.client_id = fila.id;
+    row.tipo = fila.tipo || 'persona';   // para su distintivo; un adquiriente II+ también puede ser una sociedad
     saveCompradores(); rebuildComprador(); render();
   }));
 }
@@ -1453,6 +1454,11 @@ function wirePickers(){
    que ahora prefiere `adq1_client_id` y YA NO INVENTA personas. Si cambia una,
    cambia la otra: sin el id, la base volvería a adivinar por texto. */
 let ADQ1_CLIENT = null;          // la ficha enlazada, o null
+/* Campos que trae el contrato GUARDADO y que la plantilla de hoy ya no
+   pregunta (ver collect()). Se rellena al abrir uno y se vacía en cuanto se
+   empieza otro: heredarlos entre documentos metería la sociedad de un contrato
+   en el siguiente, que es la familia de fallo del 19-ago (HITOS, ficha, líneas). */
+let CAMPOS_HEREDADOS = {};
 
 /* Los campos que SON la identidad de la persona los define CAMPOS_FICHA, la
    misma lista que ya usaba el aviso de divergencia (más abajo): campo del
@@ -1519,6 +1525,31 @@ function aplicarBloqueoComprador(){
   const esconder = bloquear && !ADQ1_CLIENT && !conDatos();
   campos.forEach(campo => campo.classList.toggle('sin-ficha', esconder));
 
+  /* PERSONA o EMPRESA — 19-ago-2026, encargo del owner. Un comprador puede ser
+     una sociedad, y no solo una PT PMA: una S.L. española o una LLC americana
+     compran igual. La ficha lo dice (`clients.tipo`) y aquí se traduce a lo
+     único que cambia en el formulario: cómo se llaman tres campos y si se
+     enseñan los cuatro que solo tiene una empresa.
+     Sin ficha enlazada se asume persona: es lo que era todo hasta hoy. */
+  const empresa = !!(ADQ1_CLIENT && ADQ1_CLIENT.tipo === 'empresa');
+  campos.forEach(campo=>{
+    const k = campo.dataset.key;
+    const etq = campo.querySelector('label');
+    if(etq){
+      // La etiqueta original se guarda la primera vez, no se reconstruye: la
+      // pinta buildForm() desde tokens.json y en tres idiomas, y rehacerla aquí
+      // sería una segunda fuente para el mismo texto.
+      if(!campo.dataset.etqOriginal) campo.dataset.etqOriginal = etq.textContent;
+      etq.textContent = (empresa && ETIQUETA_EMPRESA[k]) ? L(ETIQUETA_EMPRESA[k]) : campo.dataset.etqOriginal;
+    }
+    if(CAMPOS_EMPRESA.includes(k)) campo.classList.toggle('sin-ficha', !empresa);
+  });
+  // y se vacían al dejar de aplicar: un contrato de una persona no puede
+  // guardar el CIF que quedó escrito cuando estaba enlazada una sociedad
+  if(!empresa) CAMPOS_EMPRESA.forEach(k=>{
+    const el = document.querySelector(`[name="${k}"]`); if(el) el.value = '';
+  });
+
   // Adquirientes II+: mismas reglas, mismo candado y misma aparición.
   document.querySelectorAll('#compradorPanel [data-ckey]').forEach(el=> candar(el, bloquear));
   document.querySelectorAll('#compradorPanel [data-comprador]').forEach(caja=>{
@@ -1532,7 +1563,9 @@ function aplicarBloqueoComprador(){
 
 function fichaResumen(c){
   return [c.email, c.passport_number].filter(Boolean).join(' · ')
-      || L({es:'sin email ni pasaporte', en:'no email or passport', id:'tanpa email atau paspor'});
+      || (c.tipo === 'empresa'
+            ? L({es:'sin email ni identificación fiscal', en:'no email or tax ID', id:'tanpa email atau NPWP'})
+            : L({es:'sin email ni pasaporte', en:'no email or passport', id:'tanpa email atau paspor'}));
 }
 
 /* ── UN SOLO bloque «elegir comprador», para el I y para los II+ ─────────────
@@ -1554,7 +1587,9 @@ function bloqueElegirComprador(o){
     o.marca ? ` data-ccambiar="${escAttr(o.marca)}"` : ''}>${L({es:'Cambiar de cliente',en:'Change client',id:'Ganti klien'})}</button>`;
   if(o.ficha){
     return `<div class="cli-chip">
-      <span class="cli-ok">✓ ${L({es:'Ficha',en:'Client',id:'Klien'})}</span>
+      <span class="cli-ok">✓ ${o.ficha.tipo === 'empresa'
+        ? L({es:'Empresa',en:'Company',id:'Perusahaan'})
+        : L({es:'Ficha',en:'Client',id:'Klien'})}</span>
       <b>${esc(o.ficha.full_name || '—')}</b>
       <span class="cli-sub">${esc(fichaResumen(o.ficha))}</span>
       <a class="tb-link" href="/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
@@ -1624,9 +1659,12 @@ function limpiarCamposFicha(){
 function enlazarFicha(c){
   ADQ1_CLIENT = c;
   limpiarCamposFicha();
-  populateForm({ adq1_nombre:c.full_name||'', adq1_nacionalidad:c.nationality||'',
-    adq1_pasaporte:c.passport_number||'', adq1_telefono:c.phone||'',
-    adq1_email:c.email||'', adq1_domicilio:c.address||'' });
+  // Un solo sitio decide qué columna llena qué campo: CAMPOS_FICHA. Escribir
+  // aquí la lista otra vez a mano es lo que dejó fuera a `nacionalidad` hasta
+  // el 18-ago y lo que dejaría fuera a los campos de empresa hoy.
+  const desdeFicha = {};
+  CAMPOS_FICHA.forEach(([campo, col]) => { desdeFicha[campo] = c[col] || ''; });
+  populateForm(desdeFicha);
   aplicarReglasCampos(); pintarFichaComprador(); render(); updateSaveButton();
 }
 
@@ -1663,15 +1701,19 @@ async function buscarClientes(q, res, onPick, input){
   const like=`%${q.replace(/[%_]/g,'')}%`;
   // `id` incluido desde el 18-ago-2026: el contrato ya no copia los datos del
   // cliente, se ENLAZA a su ficha, y para eso hace falta el id.
-  const { data, error } = await sb.from('clients').select('id,full_name,email,phone,nationality,passport_number,address')
+  const { data, error } = await sb.from('clients')
+    .select('id,full_name,email,phone,nationality,passport_number,address,tipo,forma_juridica,registro_num,rep_nombre,rep_cargo')
     .or(`full_name.ilike.${like},email.ilike.${like},passport_number.ilike.${like}`).limit(8);
   if(error){ res.hidden=true; return; }
   if(!data || !data.length){
     res.innerHTML=`<div class="cli-vacio">${L({es:'Sin coincidencias.',en:'No matches.',id:'Tidak ada hasil.'})}</div>`;
     res.hidden=false; return;
   }
+  // El distintivo de empresa importa aquí más que en ningún sitio: desde el
+  // 19-ago una persona y su sociedad comparten correo, así que dos resultados
+  // pueden llegar con el mismo email y solo el tipo los distingue.
   res.innerHTML=data.map((c,i)=>`<div class="cli-r" data-ci="${i}">
-    <b>${esc(c.full_name||'—')}</b><br><span>${esc([c.email,c.passport_number].filter(Boolean).join(' · ')||'—')}</span>
+    <b>${esc(c.full_name||'—')}</b>${c.tipo==='empresa' ? ' <span class="cli-ok">'+L({es:'Empresa',en:'Company',id:'Perusahaan'})+'</span>' : ''}<br><span>${esc([c.email,c.passport_number].filter(Boolean).join(' · ')||'—')}</span>
   </div>`).join('');
   res._data=data;
   res.hidden=false;
@@ -1838,7 +1880,7 @@ function resetBorrador(slug){
     [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
      {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
     .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
-  ADQ1_CLIENT = null;
+  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {};
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -3182,6 +3224,25 @@ function collect(){
   // reabrir un contrato el input readonly se recrea vacío → tomarlo de aquí para
   // que el documento imprima el número en vez de un hueco en blanco.
   if(SAVED_CONTRACT && SAVED_CONTRACT.numero) data.contrato_num = SAVED_CONTRACT.numero;
+
+  /* `adq1_tipo` no es un campo del formulario: sale de la ficha enlazada y lo
+     usan las plantillas con <!--if:adq1_tipo=empresa--> para elegir entre el
+     párrafo de persona y el de sociedad (19-ago-2026). Va en `data`, así que
+     viaja también a `datos.fields` y el contrato guardado sigue imprimiendo lo
+     mismo dentro de un año aunque la ficha cambie de tipo — un contrato es una
+     foto, no una vista. Por defecto 'persona': es lo que eran todos hasta hoy,
+     y sin defecto los contratos viejos no imprimirían NINGUNO de los dos. */
+  if(Object.prototype.hasOwnProperty.call(data, 'adq1_nombre'))
+    data.adq1_tipo = (ADQ1_CLIENT && ADQ1_CLIENT.tipo === 'empresa') ? 'empresa' : 'persona';
+
+  /* Campos que el contrato guardó y esta plantilla ya no pregunta. El caso real
+     es la sección «El adquiriente firma como sociedad (PT PMA)», retirada hoy:
+     CR00018, CC00020 y RP00046 la tienen rellena y son contratos reales. Sin
+     esto, abrirlos dejaría de imprimir su cláusula de sociedad y volverlos a
+     guardar la borraría de la base. No pisan nunca a un campo vivo. */
+  Object.entries(CAMPOS_HEREDADOS).forEach(([k,v])=>{
+    if(!Object.prototype.hasOwnProperty.call(data, k)) data[k] = v;
+  });
   return data;
 }
 
@@ -4739,7 +4800,7 @@ async function openSavedContract(id){
   // contrato ANTERIOR aún en memoria, pintaba SU chip sobre el que se abre —
   // misma familia de fallo que AUTO_ANX/AUTO_MASTER (ver más abajo). La ficha
   // buena se carga y se repinta unas líneas después.
-  ADQ1_CLIENT = null;
+  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {};
   buildForm();
   const d = data.datos || {};
   // Poderes guardados antes del 17-ago: sus campos usaban las claves del
@@ -4780,6 +4841,20 @@ async function openSavedContract(id){
   if(f.cuota_reserva_eur && !f.precio_reserva) f.precio_reserva = f.cuota_reserva_eur;
   if(f.plazo_meses && !f.plazo_pago_final_meses && slug==='ppjb_parcela') f.plazo_pago_final_meses = f.plazo_meses;
   populateForm(f);
+  /* Lo que este contrato guardó y la plantilla de hoy ya no pregunta se queda
+     en memoria y vuelve a salir en collect() (19-ago-2026). El caso real es la
+     sección de sociedad retirada hoy: CR00018, CC00020 y RP00046 la llevan
+     rellena. Sin esto, abrirlos dejaba de imprimir su cláusula y el siguiente
+     guardado la borraba de la base — un contrato firmado cambiando solo porque
+     el formulario cambió. Se compara contra los campos que el formulario SÍ
+     tiene ahora mismo, no contra una lista escrita a mano de campos retirados. */
+  {
+    const vivos = new Set(activeKeys());
+    CAMPOS_HEREDADOS = {};
+    Object.entries(f).forEach(([k,v])=>{
+      if(!vivos.has(k) && v !== '' && v != null) CAMPOS_HEREDADOS[k] = v;
+    });
+  }
   /* HITOS es el mismo caso que ANNEXES, con un agravante: si la fila no trae
      `hitos` Y la plantilla de este contrato NO tiene calendario de pagos, nadie
      reinicia la variable —`buildForm()` solo la rellena con los valores por
@@ -4888,12 +4963,33 @@ const CAMPOS_FICHA = [
   // en el contrato y vive en `clients`, así que o la gobierna la ficha o es un
   // campo más por el que contrato y ficha pueden decir cosas distintas
   ['adq1_nacionalidad', 'nationality',     'Nacionalidad'],
+  /* Empresa (19-ago-2026). Una sociedad reutiliza las columnas de la persona
+     —razón social en `full_name`, identificación fiscal en `passport_number`,
+     país de constitución en `nationality`, domicilio social en `address`— y
+     solo estas cuatro son suyas. El motivo de no darle columnas propias al NIF
+     está en sql/compradores_empresa.sql: la identidad de toda la suite se
+     compara con pasaporte + email, y un NIF aparte se quedaría fuera. */
+  ['adq1_forma_juridica', 'forma_juridica', 'Forma jurídica'],
+  ['adq1_registro',       'registro_num',   'Nº de registro mercantil'],
+  ['adq1_rep_nombre',     'rep_nombre',     'Representante legal'],
+  ['adq1_rep_cargo',      'rep_cargo',      'Cargo del representante'],
 ];
+/* Los cuatro de arriba solo existen para una empresa: con una persona enlazada
+   se esconden y se vacían. Una sola lista y no dos, por lo mismo de siempre. */
+const CAMPOS_EMPRESA = ['adq1_forma_juridica','adq1_registro','adq1_rep_nombre','adq1_rep_cargo'];
+/* Lo que cambia de nombre cuando el comprador es una sociedad. El campo de
+   pasaporte NO entra: su etiqueta ya dice «Nº pasaporte / identificación
+   fiscal» desde el primer día y vale para las dos. */
+const ETIQUETA_EMPRESA = {
+  adq1_nombre:       {es:'Razón social',           en:'Company name',        id:'Nama perusahaan'},
+  adq1_nacionalidad: {es:'País de constitución',   en:'Country of incorporation', id:'Negara pendirian'},
+  adq1_domicilio:    {es:'Domicilio social',       en:'Registered address',  id:'Alamat terdaftar'},
+};
 async function avisaFichaDistinta(contratoId){
   if(LOCKED || !sb || !contratoId) return;          // firmado: congelado a propósito
   try{
     const { data, error } = await sb.from('contrato_compradores')
-      .select('client_id, clients(full_name,passport_number,email,phone,nationality,address)')
+      .select('client_id, clients(full_name,passport_number,email,phone,nationality,address,forma_juridica,registro_num,rep_nombre,rep_cargo)')
       .eq('contrato_id', contratoId).eq('rol', 'adquiriente_1').maybeSingle();
     if(error || !data || !data.clients) return;
     const ficha = data.clients;
@@ -4983,7 +5079,7 @@ async function derivarContrato(slug){
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
-  ADQ1_CLIENT = null;
+  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {};
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
   // alguien retocó para la reserva de otra operación no tiene por qué salir
   // impreso en la obra de esta. Igual con Anexos y Cláusulas: son propios de

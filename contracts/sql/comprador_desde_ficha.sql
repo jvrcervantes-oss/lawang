@@ -99,7 +99,15 @@ begin
          where lower(btrim(passport_number)) = lower(v_pas) limit 1;
       end if;
       if v_client is null and v_mail is not null then
-        select id into v_client from public.clients where lower(email) = v_mail limit 1;
+        -- 19-ago-2026: desde que existen fichas de EMPRESA, un correo puede
+        -- estar en dos fichas (una persona y su sociedad comparten correo casi
+        -- siempre). Este camino solo lo alcanzan los contratos viejos, que son
+        -- todos de personas, asi que ante empate gana la persona en vez de
+        -- depender del orden en que la base devuelva las filas.
+        select id into v_client from public.clients
+         where lower(email) = v_mail
+         order by (tipo = 'persona') desc, created_at
+         limit 1;
       end if;
     end if;
 

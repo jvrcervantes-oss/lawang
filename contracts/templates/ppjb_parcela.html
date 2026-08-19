@@ -30,9 +30,30 @@
 
     <div class="party">
       <div class="role"><span data-lang="es">ADQUIRIENTE I</span><span data-lang="en">BUYER I</span><span data-lang="id">PEMBELI I</span></div>
+      <!-- PERSONA o EMPRESA (19-ago-2026, encargo del owner) — el comprador puede ser
+           una sociedad, y no solo una PT PMA: una S.L. española o una LLC americana
+           compran igual. `adq1_tipo` sale de la ficha de /compradores/ (ver collect()
+           en app.html) y vale 'persona' por defecto, que es lo que eran todos los
+           contratos anteriores. Las dos redacciones dicen lo mismo con los datos que
+           tiene cada tipo; no hay documento sin párrafo de Segunda Parte. -->
+      <!--if:adq1_tipo=persona-->
       <p data-lang="es"><b>ADQUIRIENTE I:</b> <span class="f">{{adq1_nombre}}</span>, nacional de <span class="f">{{adq1_nacionalidad}}</span>, con pasaporte nº <span class="f">{{adq1_pasaporte}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span> a efecto de notificaciones.</p>
       <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, national of <span class="f">{{adq1_nacionalidad}}</span>, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes.</p>
       <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, warga negara <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq1_pasaporte}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan.</p>
+      <!--/if:adq1_tipo-->
+      <!--if:adq1_tipo=empresa-->
+      <p data-lang="es"><b>ADQUIRIENTE I:</b> <span class="f">{{adq1_nombre}}</span>, sociedad de forma jurídica <span class="f">{{adq1_forma_juridica}}</span> constituida conforme a las leyes de <span class="f">{{adq1_nacionalidad}}</span>, con domicilio social en <span class="f">{{adq1_domicilio}}</span>, nº de registro <span class="f">{{adq1_registro}}</span> e identificación fiscal <span class="f">{{adq1_pasaporte}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span> a efecto de notificaciones. En este acto representada por <span class="f">{{adq1_rep_nombre}}</span>, en su calidad de <span class="f">{{adq1_rep_cargo}}</span>.</p>
+      <p data-lang="en"><b>BUYER I:</b> <span class="f">{{adq1_nombre}}</span>, a company of legal form <span class="f">{{adq1_forma_juridica}}</span> incorporated under the laws of <span class="f">{{adq1_nacionalidad}}</span>, with registered office at <span class="f">{{adq1_domicilio}}</span>, register no. <span class="f">{{adq1_registro}}</span> and tax identification <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span> for notification purposes. Represented herein by <span class="f">{{adq1_rep_nombre}}</span>, acting as <span class="f">{{adq1_rep_cargo}}</span>.</p>
+      <p data-lang="id"><b>PEMBELI I:</b> <span class="f">{{adq1_nombre}}</span>, perusahaan berbentuk <span class="f">{{adq1_forma_juridica}}</span> yang didirikan berdasarkan hukum <span class="f">{{adq1_nacionalidad}}</span>, berkedudukan di <span class="f">{{adq1_domicilio}}</span>, no. registrasi <span class="f">{{adq1_registro}}</span> dan identifikasi pajak <span class="f">{{adq1_pasaporte}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span> untuk keperluan pemberitahuan. Dalam hal ini diwakili oleh <span class="f">{{adq1_rep_nombre}}</span>, bertindak sebagai <span class="f">{{adq1_rep_cargo}}</span>.</p>
+      <!--/if:adq1_tipo-->
+      <!-- HISTÓRICO, no se rellena ya: la sección «El adquiriente firma como
+           sociedad (PT PMA)» se retiró del formulario el 19-ago-2026 (el
+           comprador que es una sociedad ahora se ficha como tal en
+           /compradores/ y sale arriba). El bloque se queda porque CR00018,
+           CC00020 y RP00046 son contratos REALES con estos campos rellenos:
+           borrarlo cambiaría lo que imprimen tres documentos ya entregados.
+           `opt:` solo lo pinta si el contrato trae el dato, así que en todo lo
+           que se emita desde hoy no aparece. -->
       <!--opt:comp_razon-->
       <p data-lang="es"><b>Actuando como sociedad:</b> el ADQUIRIENTE firma en nombre y representación de la sociedad <span class="f f-lg">{{comp_razon}}</span> (PT PMA), con domicilio social en <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> y NPWP <span class="f f-md">{{comp_npwp}}</span>. La adquisición se formaliza a nombre de dicha sociedad.</p>
       <p data-lang="en"><b>Acting as a company:</b> the BUYER signs in the name and on behalf of the company <span class="f f-lg">{{comp_razon}}</span> (PT PMA), with registered office at <span class="f f-lg">{{comp_domicilio}}</span>, NIB <span class="f f-md">{{comp_nib}}</span> and NPWP <span class="f f-md">{{comp_npwp}}</span>. The acquisition is formalised in the name of said company.</p>

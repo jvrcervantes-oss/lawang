@@ -112,6 +112,13 @@
       </div>
     </div>
   </div>
+  <!-- Sugerencias de forma jurídica: las cuatro que ya han salido en operaciones
+       reales o son inmediatas para este cliente. Es un `datalist`, no un select:
+       el comprador puede venir de cualquier país y la lista nunca estará completa. -->
+  <datalist id="dl-formas">
+    <option value="PT PMA"><option value="S.L."><option value="S.A."><option value="LLC">
+    <option value="Ltd"><option value="GmbH"><option value="SARL"><option value="B.V.">
+  </datalist>
   <div class="toast" id="toast"></div>
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
@@ -226,7 +233,8 @@ function pintarLista(){
     const a = alerta(c.id);
     const n = DOCUMENTOS.filter(x => x.client_id === c.id).length;
     return `<tr data-id="${esc(c.id)}" class="${SEL===c.id?'sel':''}">
-      <td class="clave">${esc(c.full_name || 'Sin nombre')}</td>
+      <td class="clave">${esc(c.full_name || 'Sin nombre')}${
+        c.tipo === 'empresa' ? ' <span class="sui-tag">Empresa</span>' : ''}</td>
       <td>${esc(c.email || '—')}${c.phone ? ' <span class="flojo">· ' + esc(c.phone) + '</span>' : ''}</td>
       <td>${esc(c.nationality || '—')}</td>
       <td>${esc(c.passport_number || '—')}</td>
@@ -287,7 +295,13 @@ function pintarFicha(){
     <fieldset id="fsIdentidad">
       <legend>Identidad</legend>
       ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
-      <label for="f-nombre">Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
+      <label for="f-tipo">Tipo de comprador</label>
+      <select id="f-tipo" ${dis}>
+        <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>Persona física</option>
+        <option value="empresa" ${c.tipo==='empresa'?'selected':''}>Empresa</option>
+      </select>
+      <p class="nota" id="notaTipo"></p>
+      <label for="f-nombre" id="lab-nombre">Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
       <div class="sui-row">
         <div><label for="f-email">Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
           <p class="nota">Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal.
@@ -304,13 +318,32 @@ function pintarFicha(){
         </div>
       </div>
       <div class="sui-row">
-        <div><label for="f-nac">Nacionalidad</label>
+        <div><label for="f-nac" id="lab-nac">Nacionalidad</label>
           <input id="f-nac" ${dis} value="${esc(c.nationality||'')}">
         </div>
-        <div><label for="f-pas">Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
+        <div><label for="f-pas" id="lab-pas">Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
+      </div>
+      <!-- Domicilio: hasta hoy no estaba en la ficha aunque la columna existía y
+           el contrato la imprime. Una empresa sin domicilio social no se puede
+           redactar, así que entra ahora para las dos (19-ago-2026). -->
+      <label for="f-dom" id="lab-dom">Domicilio</label><input id="f-dom" ${dis} value="${esc(c.address||'')}">
+      <!-- ── solo empresa ──────────────────────────────────────────────────
+           Sin NIB ni NPWP en las etiquetas: el comprador puede ser una S.L.
+           española, una LLC americana o una PT PMA indonesia, y el documento
+           tiene que servir para las tres (encargo del owner, 19-ago-2026). -->
+      <div class="sui-row solo-empresa">
+        <div><label for="f-forma">Forma jurídica</label>
+          <input id="f-forma" ${dis} list="dl-formas" value="${esc(c.forma_juridica||'')}" placeholder="S.L., LLC, PT PMA, GmbH…"></div>
+        <div><label for="f-registro">Nº de registro mercantil</label>
+          <input id="f-registro" ${dis} value="${esc(c.registro_num||'')}" placeholder="NIB/OSS, registro mercantil…"></div>
+      </div>
+      <div class="sui-row solo-empresa">
+        <div><label for="f-rep">Representante legal</label><input id="f-rep" ${dis} value="${esc(c.rep_nombre||'')}"></div>
+        <div><label for="f-rep-cargo">Cargo del representante</label>
+          <input id="f-rep-cargo" ${dis} value="${esc(c.rep_cargo||'')}" placeholder="Administrador, Director…"></div>
       </div>
       <div class="sui-row">
-        <div><label for="f-nac-fecha">Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
+        <div class="solo-persona"><label for="f-nac-fecha">Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
         <div><label for="f-kyc">Estado KYC</label><select id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
       <label for="f-notas">Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
@@ -494,6 +527,33 @@ function pintarFicha(){
            { titulo:'Prefijo del país' });
   lwPicker($('#f-nac'), NACIONALIDADES, { titulo:'Nacionalidad' });
 
+  /* PERSONA o EMPRESA — 19-ago-2026, encargo del owner ─────────────────────
+     Una empresa reutiliza las mismas columnas que una persona (razón social en
+     `full_name`, identificación fiscal en `passport_number`, país de
+     constitución en `nationality`, domicilio social en `address`). No es
+     pereza: `contrato_identificadores` compara identidad con pasaporte+email
+     en toda la suite, y un NIF en una columna aparte se quedaría fuera de esa
+     comparación. Lo que cambia son las ETIQUETAS y qué campos se enseñan. */
+  const ETIQUETAS = {
+    persona: { nombre:'Nombre completo', nac:'Nacionalidad', pas:'Pasaporte / identificación fiscal', dom:'Domicilio',
+               nota:'' },
+    empresa: { nombre:'Razón social', nac:'País de constitución', pas:'Identificación fiscal (NIF, NPWP, EIN…)',
+               dom:'Domicilio social',
+               nota:'Una empresa y su dueño pueden compartir correo: son dos fichas distintas y las dos son válidas.' },
+  };
+  function pintarSegunTipo(){
+    const sel = $('#f-tipo'); if(!sel) return;
+    const t = sel.value === 'empresa' ? 'empresa' : 'persona';
+    const e = ETIQUETAS[t];
+    const poner = (id, txt) => { const l = document.getElementById(id); if(l) l.textContent = txt; };
+    poner('lab-nombre', e.nombre); poner('lab-nac', e.nac); poner('lab-pas', e.pas); poner('lab-dom', e.dom);
+    const nota = document.getElementById('notaTipo'); if(nota) nota.textContent = e.nota;
+    document.querySelectorAll('#suiCajon .solo-empresa').forEach(x => { x.hidden = (t !== 'empresa'); });
+    document.querySelectorAll('#suiCajon .solo-persona').forEach(x => { x.hidden = (t === 'empresa'); });
+  }
+  const selTipo = $('#f-tipo');
+  if(selTipo){ selTipo.addEventListener('change', pintarSegunTipo); pintarSegunTipo(); }
+
   /* Abrir la edicion: se sueltan los campos de Identidad y el pie pasa a
      ofrecer guardar. No se recarga nada — lo que hay en pantalla ya son los
      datos buenos. «Cancelar» vuelve a pintar la ficha, que es la forma mas
@@ -583,13 +643,23 @@ async function guardar(id){
   const nombre = $('#f-nombre').value.trim();
   if(nombre.length < 2){ toast('Falta el nombre'); return; }
   const telNum = $('#f-tel-num').value.trim();
+  const esEmpresa = $('#f-tipo') && $('#f-tipo').value === 'empresa';
   const fila = {
+    tipo: esEmpresa ? 'empresa' : 'persona',
     full_name:nombre,
     email:$('#f-email').value.trim() || null,
     phone: telNum ? ($('#f-tel-pre').value ? $('#f-tel-pre').value + ' ' + telNum : telNum) : null,
     nationality:$('#f-nac').value.trim() || null,
     passport_number:$('#f-pas').value.trim() || null,
-    date_of_birth:$('#f-nac-fecha').value || null,
+    address:$('#f-dom').value.trim() || null,
+    // Los campos de empresa se VACÍAN al pasar a persona, no se dejan de lado:
+    // si no, una ficha corregida seguiría arrastrando el CIF de cuando estaba
+    // mal puesta como empresa, invisible en pantalla y visible en el contrato.
+    forma_juridica: esEmpresa ? ($('#f-forma').value.trim() || null) : null,
+    registro_num:   esEmpresa ? ($('#f-registro').value.trim() || null) : null,
+    rep_nombre:     esEmpresa ? ($('#f-rep').value.trim() || null) : null,
+    rep_cargo:      esEmpresa ? ($('#f-rep-cargo').value.trim() || null) : null,
+    date_of_birth: esEmpresa ? null : ($('#f-nac-fecha').value || null),
     kyc_status:$('#f-kyc').value,
     notes:$('#f-notas').value.trim() || null,
   };
@@ -612,8 +682,8 @@ async function guardar(id){
        signOut de la misma sesión compartida) — la RLS deniega en silencio, sin
        lanzar un 401 claro, así que un «no se puede leer un único objeto JSON»
        crudo no dice nada útil de por qué. */
-    const m = /duplicate key|clients_email_key/.test(err.message || '')
-      ? 'Ya hay otra ficha con ese correo. Un correo solo puede estar en una ficha: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
+    const m = /duplicate key|clients_email_key|clients_email_tipo_key/.test(err.message || '')
+      ? 'Ya hay otra ficha DEL MISMO TIPO con ese correo. Desde el 19-ago una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
       : /PGRST116/.test(err.code || '')
       ? 'Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.'
       : 'No se pudo guardar: ' + (err.message || err);
