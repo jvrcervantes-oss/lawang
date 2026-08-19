@@ -691,8 +691,17 @@ function abrirUnidad(id){
       <dl class="sui-dl" style="margin:0">
         <dt>Contrato</dt><dd><a class="enl" href="/operaciones/?contrato=${encodeURIComponent(u.contrato_id)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
         ${u.comprador_nombre ? `<dt>Comprador</dt><dd>${esc(u.comprador_nombre)}</dd>` : ''}
-        <dt>Cobrado</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
-          u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}</dd>
+        <!-- «de esta unidad» no es un adorno (19-ago-2026): con un contrato de
+             varias parcelas, esta cifra es LA PARTE de esta unidad, no el
+             total cobrado del contrato. Sin decirlo, quien lo lee suma dos
+             veces el mismo dinero — que es justo el fallo que se acaba de
+             corregir en la vista unidades_estado (sin comillas invertidas a
+             propósito: este comentario vive DENTRO de una plantilla de texto y
+             un backtick la cierra antes de tiempo). El total de la operación
+             está en Operaciones, a un clic de aquí. -->
+        <dt>Cobrado de esta unidad</dt><dd>${esc(fmtMoneda(Number(u.facturado||0), u.moneda||'EUR'))}${
+          u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : ''}${
+          ' <span class="flojo">(su parte del contrato)</span>'}</dd>
       </dl>
       ${u.pct_cobrado != null ? `<div class="barra"><i style="width:${Math.min(100, u.pct_cobrado)}%"></i></div>` : ''}
       <p class="sui-nota">El estado lo lleva el contrato y el dinero, no una persona: una Carta de Reserva
