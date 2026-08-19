@@ -184,45 +184,10 @@ create policy "borrar facturas" on public.facturas
 -- ════════════════════════════════════════════════════════════════════════════
 -- 5) LOS FRENOS DE HOY, SALTABLES SOLO POR ÉL Y DEJANDO RASTRO
 -- ════════════════════════════════════════════════════════════════════════════
--- 5a) Facturar un contrato sin bloquear (regla de esta misma mañana).
-create or replace function public.trg_factura_exige_contrato_bloqueado()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_bloqueado boolean;
-  v_numero    text;
-begin
-  if new.tipo is distinct from 'factura' then return new; end if;
-
-  if tg_op = 'UPDATE'
-     and old.tipo is not distinct from new.tipo
-     and old.contrato_id is not distinct from new.contrato_id then
-    return new;
-  end if;
-
-  if new.contrato_id is null then return new; end if;
-
-  select c.bloqueado, c.numero into v_bloqueado, v_numero
-    from public.contratos c where c.id = new.contrato_id;
-
-  if not coalesce(v_bloqueado, false) then
-    -- LAW-71: el super admin pasa, pero queda escrito en el historial del
-    -- contrato. Sin esta línea el poder sería invisible, que es como se
-    -- convierte en un agujero.
-    if public.es_super_admin() then
-      perform public.registra_privilegio(new.contrato_id, 'factura_sin_bloquear',
-        jsonb_build_object('factura', new.numero, 'total', new.total, 'moneda', new.moneda));
-      return new;
-    end if;
-    raise exception 'el contrato % no esta bloqueado: una factura se emite cuando el contrato esta firmado y cerrado. Para cobrar antes, emite una proforma y su recibi',
-      coalesce(v_numero, '?') using errcode = '23514';
-  end if;
-
-  return new;
-end $$;
+-- 5a) [RETIRADO el mismo 19-ago] El freno de «facturar solo con el contrato
+--     bloqueado» tenía aquí su excepción para el super admin. El owner revirtió
+--     la regla entera (ver revertido_factura_exige_bloqueado.sql), así que la
+--     excepción se fue con ella: no hay nada que saltarse.
 
 -- 5b) Aplicar un cobro a la factura de otro comprador (LAW-41(2), de hoy).
 --     Se rehace `guardar_recibi` entera porque plpgsql no se parchea a trozos;

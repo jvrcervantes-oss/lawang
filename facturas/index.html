@@ -281,7 +281,6 @@
             <legend>Documento</legend>
             <label for="selContrato">Contrato</label>
             <select id="selContrato"><option value="">— elige un contrato —</option></select>
-            <p class="hint" id="avisoContratoFirmado"></p>
             <div id="delContrato"></div>
             <div id="delVinculado"></div>
             <div class="row2">
@@ -781,7 +780,7 @@ function collect(){
   d.lineas = LINEAS;
   return d;
 }
-$('#selTipo').addEventListener('change', () => { pintarSelectContratos(); toggleTipoRecibi(); render(); });
+$('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
 
 /* Al salir de un campo de importe se reescribe en formato canónico ("44.000",
    "44.000,50"): lo que se ve pasa a ser exactamente lo que se guarda, en vez de
@@ -948,38 +947,6 @@ $('#mailSend').onclick = async () => {
    a 2,6 MB (los anexos van dentro en base64), así que traerlo de los 60 sería
    descargar decenas de megas para llenar un desplegable. Al elegir uno se pide
    solo ESE, y de su jsonb únicamente `fields` y `hitos`. */
-/* UNA FACTURA SOLO SOBRE UN CONTRATO BLOQUEADO — 19-ago-2026, encargo del
-   owner: «facturar un contrato no debe ser posible hasta que estuviese
-   bloqueado». Bloqueado = firmado y cerrado, que es cuando hay algo que cobrar
-   de verdad.
-
-   Solo para `factura`, y esto es deliberado: la PROFORMA es la petición del
-   depósito de reserva y el RECIBÍ es la prueba de que ese dinero entró — las
-   dos ocurren ANTES de firmar nada, y prohibirlas rompería la venta por su
-   principio. La misma regla la impone un trigger en la base (ver
-   contracts/sql/factura_exige_contrato_bloqueado.sql); esto es para no ofrecer
-   lo que el guardado va a rechazar.
-
-   Los contratos sin firmar siguen EN LA LISTA, deshabilitados y con el motivo
-   escrito: quitarlos dejaba al agente buscando un contrato que existe y no
-   aparece, sin saber por qué. */
-let CONTRATOS_SEL = [];
-function pintarSelectContratos(){
-  const sel = $('#selContrato'); if(!sel) return;
-  const esFactura = $('#selTipo') && $('#selTipo').value === 'factura';
-  const actual = CONTRATO_ID || '';
-  sel.innerHTML = '<option value="">— elige un contrato —</option>' + CONTRATOS_SEL.map(c => {
-    const veta = esFactura && !c.bloqueado;
-    return `<option value="${esc(c.id)}"${veta ? ' disabled' : ''}${c.id === actual ? ' selected' : ''}>${
-      esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}${
-      c.proyecto_nombre ? ' · ' + esc(c.proyecto_nombre) : ''}${
-      veta ? ' · sin firmar: no se puede facturar todavía' : ''}</option>`;
-  }).join('');
-  const aviso = $('#avisoContratoFirmado');
-  if(aviso) aviso.textContent = esFactura
-    ? 'Una factura solo puede emitirse sobre un contrato firmado y bloqueado. Para cobrar la reserva de uno sin firmar, usa una proforma y su recibí.'
-    : '';
-}
 async function cargarContratos(){
   // contratos_equipo(), no .from('contratos'): la RLS por agente (7-ago) deja
   // .from() en solo los propios, y este desplegable sirve para facturar un
@@ -987,12 +954,12 @@ async function cargarContratos(){
   // se use — un recurso de función exige que la columna del order() esté
   // proyectada (PostgREST 42703 si no, ver operaciones/index.html).
   const { data, error } = await sb.rpc('contratos_equipo')
-    .select('id,numero,comprador_nombre,proyecto_nombre,bloqueado,created_at')
+    .select('id,numero,comprador_nombre,proyecto_nombre,created_at')
     .order('created_at', { ascending:false }).limit(60);
   if(error || !data) return;
-  CONTRATOS_SEL = data.filter(c => c.numero);
-  pintarSelectContratos();
   const sel = $('#selContrato');
+  sel.innerHTML = '<option value="">— elige un contrato —</option>' + data.filter(c => c.numero).map(c =>
+    `<option value="${esc(c.id)}">${esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}${c.proyecto_nombre ? ' · ' + esc(c.proyecto_nombre) : ''}</option>`).join('');
   sel.onchange = () => {
     CONTRATO_ID = sel.value || null;
     if(sel.value) traerContrato(sel.value);
