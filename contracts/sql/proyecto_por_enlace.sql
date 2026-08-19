@@ -155,3 +155,25 @@ grant select on public.proyectos_huerfanos to authenticated;
 --   · Renombrar «Sumba Hills», que tiene el contrato FIRMADO CR00021 → la
 --     columna que lee la suite pasa a «Sumba Hills — PRUEBA»; el campo impreso
 --     de CR00021 se queda en «Sumba Hills». Vivo se actualiza, congelado no.
+
+-- ── recolocación de los huérfanos, 19-ago-2026 (el mapa lo dio el owner) ────
+--   Mejan Village                 → Mejan Village S7
+--   Palm Field by Balian Hills    → Palm Field W5
+--   Sumba Hills by SandalWoods    → Sumba Hills
+--   Horizon by Balian Hills       → Horizon S1
+--   Horizon S2 by Balian Hills    → Java Sunset S2
+--   Tamarind Rise by Balian Hills → Tamarind Rise W3, 3.1 y 3.2
+--
+-- Y dos contratos que NO tenían proyecto ninguno (RP00047, RP00048) se ataron
+-- LEYENDO el inventario: la parcela que retienen —A5 y D5— ya sabe que es de
+-- «Sari Village W1, 1.1 & 1.2». No es inferir, es mirar dónde ya estaba escrito.
+-- Sus Construcciones (CC00026, CC00027) lo heredaron de su contrato padre.
+--
+-- Resultado: **78 de 80 contratos con enlace**, y 0 facturas con contrato y sin
+-- enlace. Quedan dos, los dos FIRMADOS, sin parcela en el inventario y sin
+-- contrato padre — no hay de dónde leerlo y no se inventa: **CR00014** y
+-- **CH00001**. Los 11 huérfanos que quedan en `proyectos_huerfanos` son las
+-- facturas sin contrato de LAW-38, que no tienen de qué heredar.
+--
+-- El campo IMPRESO solo se rellenó en los contratos VIVOS. RP00047 está firmado
+-- y su documento se queda como estaba, que es la regla de toda la suite.
