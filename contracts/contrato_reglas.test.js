@@ -1,7 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   EL CONTRATO NI CREA NI EDITA FICHAS — 19-ago-2026 (corrección del owner)
-   `node ficha_solo_compradores.test.js`. Lo corre `tools/test.py`, y con él el
-   gate de push.
+   REGLAS DE LA PANTALLA DE CONTRATOS — 19-ago-2026
+   `node contrato_reglas.test.js`. Lo corre `tools/test.py`, y con él el gate de
+   push. (Nació como `ficha_solo_compradores.test.js`; se renombró al sumar los
+   frenos de permisos, que son la misma clase de fallo.)
    ═══════════════════════════════════════════════════════════════════════════
    POR QUÉ EXISTE ESTE TEST. El 18-ago se construyó «el comprador sale de su
    ficha» y, de paso, se le dio al contrato la capacidad de CREAR el cliente
@@ -82,5 +83,18 @@ const literales = (app.match(/class="cli-pedir"/g) || []).length;
 afirma('no hay un segundo marcado `cli-pedir` a mano', literales === 1,
   'aparece ' + literales + ' veces: si son dos, ya pueden separarse otra vez');
 
-console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nEl contrato no crea ni edita fichas.');
+/* 6) «Diseño / Marca» es de admin, y detrás de un botón ---------------------
+   19-ago, encargo del owner: mismo criterio que «Editar texto». El panel
+   cambia el color de portada, el logo y la marca de agua, y su botón de
+   guardar los deja fijados para TODOS los agentes. Que se cuele a un agente
+   no da error: simplemente puede cambiar la marca de los contratos. */
+afirma('el panel de Diseño solo se construye para admin',
+  /if\(!CAN_EDIT_TEXT\) return '';/.test(app),
+  'buildDesignPanel() tiene que salirse antes de pintar nada si no es admin');
+afirma('el botón de Diseño se enseña con la misma llave que «Editar texto»',
+  /dsgBtn\.style\.display = \(CAN_EDIT_TEXT && !LOCKED\)/.test(app));
+afirma('el panel nace escondido y lo abre el botón',
+  app.includes('id="designPanel" hidden') && app.includes("$('#btnDesign').addEventListener"));
+
+console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);

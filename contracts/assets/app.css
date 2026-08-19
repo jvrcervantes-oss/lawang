@@ -245,6 +245,12 @@
   .cli-chip .tb-link{ margin-left:auto; }
   .cli-chip .tb-link + .tb-link{ margin-left:0; }
   .cli-nuevo{ display:flex; align-items:center; gap:8px; margin:-6px 0 12px; font-size:12px; color:var(--muted); }
+  /* Sin comprador elegido, sus campos NO se pintan (19-ago-2026, owner: «para
+     hacerlo más sencillo de leer»). Serían seis casillas grises intocables
+     alrededor del único paso que sí se puede dar. `!important` a conciencia:
+     `aplicarReglasCampos()` gobierna `style.display` de algunos campos, y una
+     regla de clase sin peso la perdería contra un estilo en línea. */
+  .field.sin-ficha, .grid2.sin-ficha{ display:none !important; }
   /* Un campo que viene de la ficha no se teclea: se corrige en la ficha. Se ve
      apagado y no acepta foco, pero sigue siendo legible y copiable. */
   .field.de-ficha input, .field.de-ficha select, .field.de-ficha textarea{

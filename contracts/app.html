@@ -60,7 +60,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=72344113">
+<link rel="stylesheet" href="assets/app.css?v=9b4e969f">
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -116,6 +116,7 @@
         <div class="pv-grupo" role="group" aria-label="Documento">
           <span class="g">Documento</span>
           <button class="btn ghost" id="btnEdit" title="Editar el texto fijo del contrato">✎ Editar texto</button>
+          <button class="btn ghost" id="btnDesign" title="Color de portada, logo y marca de agua" style="display:none">🎨 Diseño</button>
           <button class="btn ghost" id="btnEditReset" title="Restaurar texto original de la plantilla" style="display:none">↺ Original</button>
           <button class="btn ghost" id="btnDerivar" title="Genera otro contrato reutilizando estos datos">⎘ Copiar datos</button>
         </div>
@@ -997,7 +998,17 @@ function buildDesignPanel(){
     </div>`;
   };
 
-  return `<section class="section design collapsed" id="designPanel">
+  /* Solo admin/super_admin, y escondido hasta que se pulsa «Diseño» en la
+     barra (19-ago-2026, encargo del owner: «que solo sea un botón que ven los
+     administradores, igual que Editar texto»). Mismo criterio que CAN_EDIT_TEXT
+     y por el mismo motivo: el color de portada, el logo y la marca de agua son
+     decisiones de marca, y además «Guardar como diseño de esta plantilla» las
+     escribe para TODOS los agentes, no solo para quien las toca.
+     Sin panel no hay nada que enganchar: wireDesignPanel() y rebuildDesign()
+     salen solos si no lo encuentran, y el diseño se sigue aplicando igual
+     porque lo pinta DESIGN, no este marcado. */
+  if(!CAN_EDIT_TEXT) return '';
+  return `<section class="section design collapsed" id="designPanel" hidden>
     <header data-acc><span class="num">🎨</span><h2>Diseño / Marca</h2><span class="chev">▾</span></header>
     <div class="body">
       <div class="dz" style="border-top:none;padding-top:0">
@@ -1042,7 +1053,16 @@ function wireDesignPanel(){
     const c=e.target.closest('[data-dclear]'); if(c){ DESIGN[c.dataset.dclear].src=''; saveDesign(); rebuildDesign(); render(); }
   });
 }
-function rebuildDesign(){ const old=$('#designPanel'); if(old){ old.outerHTML=buildDesignPanel(); wireDesignPanel(); wireAccordions(); } }
+function rebuildDesign(){
+  const old=$('#designPanel'); if(!old) return;
+  // rebuildDesign() corre al subir o quitar una imagen, o sea CON el panel
+  // abierto: sin recordar el estado, el marcado nuevo vuelve `hidden` y
+  // `collapsed` y el panel se cierra en las narices de quien lo estaba usando
+  const visible = !old.hidden, abierto = !old.classList.contains('collapsed');
+  old.outerHTML = buildDesignPanel(); wireDesignPanel(); wireAccordions();
+  const nuevo = $('#designPanel');
+  if(nuevo){ nuevo.hidden = !visible; nuevo.classList.toggle('collapsed', !abierto); }
+}
 function readImg(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
 
 /* ============================================================
@@ -1471,9 +1491,10 @@ function candar(el, bloquear){
    — que es justo por donde volvía a entrar el texto libre. */
 function aplicarBloqueoComprador(){
   const bloquear = plantillaExigeFicha();
-  CAMPOS_FICHA.map(f => f[0]).forEach(k=>{
-    const campo = document.querySelector(`.field[data-key="${k}"]`);
-    if(!campo) return;
+  const campos = CAMPOS_FICHA.map(f => f[0])
+    .map(k => document.querySelector(`.field[data-key="${k}"]`)).filter(Boolean);
+
+  campos.forEach(campo=>{
     // el gris de `de-ficha` va con el candado, no con el enlace: un campo que
     // no se puede teclear tiene que PARECER que no se puede teclear, también
     // cuando todavía no hay ficha elegida
@@ -1483,8 +1504,30 @@ function aplicarBloqueoComprador(){
     // así que bloquear solo el del nombre dejaba el teclado abierto por un lado
     campo.querySelectorAll('input, select, textarea').forEach(el=> candar(el, bloquear));
   });
-  // Adquirientes II+: mismas reglas, mismo candado (encargo del owner, 19-ago).
+
+  /* Los campos no aparecen hasta que hay comprador elegido (19-ago-2026,
+     encargo del owner: «para hacerlo más sencillo de leer»). Sin ficha son seis
+     casillas grises que no se pueden tocar y que no dicen nada: solo estorban
+     al único paso que sí se puede dar, que es buscar.
+
+     La excepción NO es un adorno: si el contrato TRAE datos y no tiene ficha
+     —los de antes del 18-ago, RP00043 y CO00004— esconderlos dejaría al agente
+     sin poder ver lo que su propio contrato dice. Se enseñan, en gris, hasta
+     que se les enlaza una ficha. */
+  const conDatos = () => campos.some(c => [...c.querySelectorAll('input, textarea, select')]
+    .some(x => String(x.value || '').trim()));
+  const esconder = bloquear && !ADQ1_CLIENT && !conDatos();
+  campos.forEach(campo => campo.classList.toggle('sin-ficha', esconder));
+
+  // Adquirientes II+: mismas reglas, mismo candado y misma aparición.
   document.querySelectorAll('#compradorPanel [data-ckey]').forEach(el=> candar(el, bloquear));
+  document.querySelectorAll('#compradorPanel [data-comprador]').forEach(caja=>{
+    const fila = COMPRADORES.find(x => x.id === caja.dataset.comprador);
+    const rejilla = caja.querySelector('.grid2'); if(!rejilla || !fila) return;
+    const trae = ['nombre','nacionalidad','pasaporte','domicilio','telefono','email']
+      .some(k => String(fila[k] || '').trim());
+    rejilla.classList.toggle('sin-ficha', bloquear && !fila.client_id && !trae);
+  });
 }
 
 function fichaResumen(c){
@@ -3678,6 +3721,20 @@ $('#btnClose').addEventListener('click', ()=> $('#pane').classList.remove('open'
 
 /* ---------- edición de texto fijo ---------- */
 $('#btnEdit').addEventListener('click', toggleEdit);
+/* «Diseño» no es un modo como «Editar texto»: solo enseña u oculta su panel,
+   que sigue siendo el mismo de siempre y vive al principio del formulario. Se
+   abre desplegado —quien lo pide quiere tocarlo, no verlo cerrado— y se lleva
+   la vista hasta él, que si no aparece fuera de pantalla y parece que no pasó
+   nada. */
+$('#btnDesign').addEventListener('click', ()=>{
+  const p=$('#designPanel'); if(!p) return;
+  p.hidden = !p.hidden;
+  if(!p.hidden){
+    p.classList.remove('collapsed');
+    p.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  $('#btnDesign').classList.toggle('editing', !p.hidden);
+});
 $('#btnEditReset').addEventListener('click', resetOverrides);
 
 /* ---------- PDF / backend ---------- */
@@ -3805,6 +3862,7 @@ function aplicarEstadoFirma(){
   // «Editar texto» también escribe en `datos` (los overrides del documento):
   // mientras haya firmas vivas se esconde, o sería la misma puerta por detrás
   const bT = $('#btnEdit'); if(bT && activo) bT.style.display = 'none';
+  const bD = $('#btnDesign'); if(bD && activo){ bD.style.display = 'none'; const pd=$('#designPanel'); if(pd) pd.hidden = true; }
   const bS = $('#btnSave'); if(bS && activo) bS.style.display = 'none';
   // «Subir firmado» también (auditoría 19-ago): cerrar a mano con un enlace
   // vivo pisaba la firma en curso — el comprador podía firmar después contra
@@ -3994,6 +4052,15 @@ function updateSaveButton(){
   const badge=$('#lockBadge'); if(badge) badge.style.display = LOCKED ? 'inline-flex' : 'none';
   const dlBtn=$('#btnDownloadSigned'); if(dlBtn) dlBtn.style.display = (LOCKED && LOCKED_PDF_PATH) ? '' : 'none';
   const editBtn=$('#btnEdit'); if(editBtn) editBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
+  // «Diseño» va con la misma llave que «Editar texto»: los dos cambian cómo
+  // sale el documento impreso, y los dos son de admin (19-ago, owner)
+  const dsgBtn=$('#btnDesign');
+  if(dsgBtn){
+    dsgBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';
+    // buildForm() rehace el panel escondido: sin esto el botón se quedaría
+    // marcado como abierto sobre un panel que ya no lo está
+    const pd=$('#designPanel'); dsgBtn.classList.toggle('editing', !!(pd && !pd.hidden));
+  }
   if(LOCKED){ const r=$('#btnEditReset'); if(r) r.style.display='none'; }
 
   const lockBtn=$('#btnLockUpload'), firmaBtn=$('#btnEnviarFirma');
