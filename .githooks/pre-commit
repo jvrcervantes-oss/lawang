@@ -64,13 +64,50 @@ ver=$(date +%Y%m%d%H%M%S)
 # se descubren solas — pero SOLO las que referencian el asset que ha cambiado. Refrescar
 # las 9 que llevan cualquier ?v= metia en el commit ediciones a medias de la suite interna
 # (usuarios/, unidades/, operaciones/): un `git add` que el autor no pidio.
-# basename + el punto como [.] (literal, no comodin); varios assets van con |
-pat=$(echo "$changed" | sed -E 's#.*/##' | sed 's#\.#[.]#g' | paste -sd'|' -)
-n=0
-for f in $(grep -rlE "assets/($pat)\?v=" $(git ls-files '*.html' '*.php') 2>/dev/null); do
-  sed -i -E "s#(assets/($pat))\?v=[0-9A-Za-z]+#\1?v=$ver#g" "$f"
-  git add "$f"
-  n=$((n+1))
-done
-echo "[pre-commit] cache-bust ?v=$ver aplicado a $n pagina(s)"
+# ── 21-ago-2026: el sellado lo hace PYTHON, no `sed` ─────────────────────────
+# Esto llevaba roto en macOS sin que nadie lo supiera. `sed -i -E` en BSD no es
+# lo mismo que en GNU: `-i` se come el `-E` como sufijo de copia de seguridad, el
+# patron pasa a leerse como BRE, los parentesis dejan de agrupar y sale
+# «\1 not defined in the RE». El bucle seguia, hacia `git add` del fichero sin
+# tocar y la linea final imprimia «aplicado a N pagina(s)». Un guardrail que
+# informa de exito mientras no hace nada — que es peor que no tenerlo, porque el
+# mensaje verde convence de que el asset se ha sellado.
+# Se vio el 21-ago al cambiar assets/portfolio-app.js: la pagina seguia pidiendo
+# el sello del 12-ago, o sea que el CDN (hcdn, 7 dias) habria servido el fichero
+# viejo a todos los visitantes durante una semana. Exactamente el fallo del pixel
+# de Meta del 29-jul que este hook se escribio para evitar.
+# Python porque ya es la herramienta del estudio y se comporta igual en las dos
+# plataformas. Y si NO puede sellar, el commit se para: un asset sin sellar no es
+# un aviso, es codigo que no llega a produccion.
+raiz=$(git rev-parse --show-toplevel)
+py=$(command -v python3 || command -v python)
+"$py" - "$ver" $changed <<'PYSELLA' || exit 1
+import os, re, subprocess, sys
+ver, cambiados = sys.argv[1], sys.argv[2:]
+nombres = sorted({os.path.basename(c) for c in cambiados})
+pat = re.compile(r"(assets/(?:%s))\?v=[0-9A-Za-z._-]+" % "|".join(re.escape(n) for n in nombres))
+paginas = subprocess.run(["git", "ls-files", "*.html", "*.php"],
+                         capture_output=True, text=True).stdout.split()
+tocadas = []
+for f in paginas:
+    try:
+        txt = open(f, encoding="utf8").read()
+    except (OSError, UnicodeDecodeError):
+        continue
+    nuevo, n = pat.subn(lambda m: m.group(1) + "?v=" + ver, txt)
+    if n:
+        open(f, "w", encoding="utf8").write(nuevo)
+        subprocess.run(["git", "add", f], check=True)
+        tocadas.append((f, n))
+if not tocadas:
+    # Un asset que ha cambiado y que NINGUNA pagina pide con ?v= no se puede
+    # sellar: el navegador lo seguira sirviendo de cache. Se para el commit —
+    # el comentario de arriba lo dice desde el primer dia («su etiqueta tiene
+    # que llevar ?v= desde el primer dia»), pero hasta hoy nadie lo comprobaba.
+    print("[pre-commit] ⛔ %s ha cambiado y ninguna pagina lo pide con ?v=." % ", ".join(nombres))
+    print("[pre-commit]    Anade ?v= a su <script>/<link> o el CDN servira lo viejo.")
+    sys.exit(1)
+print("[pre-commit] cache-bust ?v=%s aplicado a %d pagina(s): %s"
+      % (ver, len(tocadas), ", ".join(f for f, _ in tocadas)))
+PYSELLA
 exit 0
