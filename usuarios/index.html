@@ -118,6 +118,14 @@
     <div class="ficha" id="ficha"><div class="vacio">Elige un usuario</div></div>
   </div>
 
+  <!-- LAW-71 (21-ago-2026): los frenos que alguien se ha saltado. Existía la
+       vista `privilegios_ejercidos` y la caja negra `borrados`, pero solo se
+       podían consultar por SQL — un registro que hay que saber consultar es un
+       registro que nadie mira. Solo lo ve el super admin: es la lista de quién
+       usó un poder que los demás no tienen, y quien la lee no debe poder
+       aparecer en ella sin que otro lo vea. -->
+  <section id="privilegios" hidden></section>
+
   <div class="toast" id="toast"></div>
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
@@ -410,7 +418,62 @@ LW_AUTH.then(async ({ sb, session, ficha }) => {
     return;
   }
   await cargar();
+  if(YO.rol === 'super_admin') pintarPrivilegios();
 });
+
+/* Frenos saltados — LAW-71. Dos fuentes en una caja: `privilegios_ejercidos`
+   (quién se saltó qué y por qué) y cuántas filas guarda la caja negra
+   `borrados`, que es lo que queda de un contrato o una factura eliminados.
+
+   El estado vacío se dice con cuidado, que es la lección del 21-ago: «nadie se
+   ha saltado ningún freno» y «no he podido mirar» se parecen mucho en pantalla y
+   solo uno de los dos es tranquilizador. Si la consulta falla, lo dice. */
+async function pintarPrivilegios(){
+  const caja = $('#privilegios');
+  const [priv, borr] = await Promise.all([
+    SB.from('privilegios_ejercidos').select('cuando, quien, evento, contrato, detalle')
+      .order('cuando', { ascending:false }).limit(50),
+    SB.from('borrados').select('id', { count:'exact', head:true }),
+  ]);
+
+  const fallo = priv.error ? (priv.error.message || 'no se ha podido leer') : null;
+  const filas = priv.data || [];
+  const NOMBRE = {
+    desbloqueado:            'desbloqueó un contrato firmado',
+    editado_estando_firmado: 'editó un contrato firmado',
+    facturado_sin_bloquear:  'facturó un contrato sin firmar',
+    cobro_a_otro_comprador:  'aplicó un cobro al comprador de otro contrato',
+    cobro_a_factura_huerfana:'aplicó un cobro a una factura sin contrato',
+    guardado_sin_ficha:      'guardó un contrato sin ficha de comprador',
+  };
+  const dia = s => new Date(s).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+
+  caja.hidden = false;
+  caja.innerHTML =
+    `<div class="cab" style="margin-top:18px">
+       <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Frenos saltados</b>
+       <span style="font-size:11.5px;color:var(--texto-2)">${
+         borr.error ? 'caja negra: no se ha podido leer'
+                    : (borr.count || 0) + ' documento(s) borrados guardados en la caja negra'}</span>
+     </div>` +
+    (fallo
+      ? `<p style="font-size:12.5px;color:#C8791F;margin:8px 0 0">
+           <b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que nadie
+           se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>`
+      : !filas.length
+      ? `<p style="font-size:12.5px;color:var(--texto-2);margin:8px 0 0">
+           Mirado ahora mismo: <b>nadie se ha saltado ningún freno</b> todavía.</p>`
+      : `<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px">
+           <tbody>${filas.map(r => `<tr style="border-top:1px solid var(--linea,#E6E2DA)">
+             <td style="padding:6px 8px;white-space:nowrap;color:var(--texto-2)">${esc(dia(r.cuando))}</td>
+             <td style="padding:6px 8px">${esc(r.quien || '—')}</td>
+             <td style="padding:6px 8px"><b>${esc(NOMBRE[r.evento] || r.evento)}</b>${
+               r.contrato ? ' · ' + esc(r.contrato) : ''}</td>
+             <td style="padding:6px 8px;color:var(--texto-2)">${
+               esc((r.detalle && (r.detalle.motivo || r.detalle.razon)) || '')}</td>
+           </tr>`).join('')}</tbody>
+         </table>`);
+}
 </script>
 </body>
 </html>

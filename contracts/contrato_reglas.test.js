@@ -30,6 +30,7 @@ const path = require('path');
    fuera del .html, y este test se puso en rojo por seguir mirando solo alli.
    Ver codigo_app.js — mover una funcion de fichero no cambia lo que la app hace. */
 const app = require('./codigo_app').todo();
+const leerAsset = n => fs.readFileSync(path.join(__dirname, 'assets', n), 'utf8');
 let fallos = 0;
 
 function afirma(titulo, ok, detalle) {
@@ -98,6 +99,41 @@ afirma('el botón de Diseño se enseña con la misma llave que «Editar texto»'
   /dsgBtn\.style\.display = \(CAN_EDIT_TEXT && !LOCKED\)/.test(app));
 afirma('el panel nace escondido y lo abre el botón',
   app.includes('id="designPanel" hidden') && app.includes("$('#btnDesign').addEventListener"));
+
+/* ── LAW-73: la parcela SALE DEL INVENTARIO, nunca se teclea ───────────────
+   21-ago-2026, decisión del owner. El campo era texto libre siempre que el
+   proyecto no tuviera unidades cargadas, y de ahí salieron 21 parcelas que el
+   inventario no reconoce («the fifth bali», «Bungalow Villas Suite num. 6»):
+   el contrato decía una parcela, el mapa de unidades no la ataba a nada, y ni
+   contaba como vendida ni se bloqueaba. Sin dar ningún error.
+
+   Se comprueba lo que de verdad falla, no que exista una función: que en NINGÚN
+   camino se pinte un input de texto para ese campo. Había tres caminos y solo
+   se tapó uno la primera vez — sin elegir proyecto, el campo se quedaba como lo
+   dejaba fieldHTML y volvía a ser texto libre. */
+{
+  const parcela = leerAsset('parcela_inventario.js');
+
+  afirma('el campo de parcela no se pinta nunca como texto libre',
+    !/<input\s+name="parcela_codigo"\s+type="text"/.test(parcela)
+    && !/type="text"[^>]*name="parcela_codigo"/.test(parcela),
+    'un input de texto aquí es exactamente lo que produjo las 21 parcelas sueltas');
+
+  afirma('sin proyecto elegido el campo también se repinta (y por tanto se bloquea)',
+    /else if\(proy\)\{[\s\S]{0,320}?pintarSelectorParcela\(\)/.test(app),
+    'si no se llama a nadie, el campo se queda como lo dejó fieldHTML: un input de texto');
+
+  afirma('una parcela fuera del inventario no se puede quitar',
+    /if\(!u\)\{[\s\S]{0,400}?histórica · fuera del inventario/.test(parcela)
+    && !/if\(!u\)\{[\s\S]{0,400}?data-quitar-parcela/.test(parcela),
+    'sin texto libre, quitarla sería un borrado IRREVERSIBLE detrás de un botón pequeño');
+
+  afirma('los tres motivos por los que no hay lista se dicen distintos',
+    /No se ha podido leer el inventario/.test(parcela)
+    && /no tiene parcelas en el inventario/.test(parcela)
+    && /Elige antes el <b>proyecto<\/b>/.test(parcela),
+    'no poder mirar, no haber nada y no haber elegido son tres cosas y piden tres acciones');
+}
 
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);

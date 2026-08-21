@@ -137,25 +137,56 @@ function pintarSelectorParcela(){
   const elegidas = valor.split(',').map(x=>x.trim()).filter(Boolean);
   const libres = UNIDADES_PROY.lista;
 
+  /* ── LAW-73: LA PARCELA SALE DEL INVENTARIO, SIEMPRE ─────────────────────
+     21-ago-2026, decisión del owner: «siempre del inventario ahora; cosas
+     pasadas déjalas así y bloquea el texto editable, pero a futuro todo
+     desplegable».
+
+     El campo era texto libre cuando el proyecto no tenía unidades cargadas, y de
+     ahí salieron las 21 parcelas que el inventario no reconoce: «the fifth
+     bali», «Bungalow Villas Suite num. 6», «A3 W1.1». Un contrato decía una
+     parcela y el mapa de unidades no la ataba a nada, así que ni contaba como
+     vendida ni se bloqueaba — y no daba ningún error.
+
+     Ya no hay texto libre en ninguno de los dos casos. Sin inventario NO se
+     escribe a mano: se cargan las unidades en Unidades y se vuelve. Es más
+     incómodo a propósito; escribir a mano era justo lo cómodo que costó las 21.
+
+     Lo ya guardado NO se toca: el valor viaja en el oculto y se sigue
+     imprimiendo igual. */
   if(!libres.length){
-    // sin inventario: texto libre de siempre (se pueden teclear comas a mano)
-    if(!campo || campo.type === 'hidden' || campo.tagName === 'SELECT'){
-      caja.querySelector('.parcelas-multi')?.remove();
-      caja.querySelector('.hint-unidades')?.remove();
-      if(campo) campo.outerHTML = `<input name="parcela_codigo" type="text" value="${escAttr(valor)}" autocomplete="off">`;
-      wireCampoParcela();
-    }
-    /* Texto libre por no PODER mirar no es lo mismo que texto libre por no haber
-       nada que mirar: en el primer caso el campo que decide qué parcela se vende
-       ha perdido su única comprobación —ocupada, de otro comprador, traspasable—
-       y quien escribe no tiene forma de saberlo. Se dice, y se dice aquí. */
+    caja.querySelector('.parcelas-multi')?.remove();
     caja.querySelector('.hint-unidades')?.remove();
+    const html =
+      `<input type="hidden" name="parcela_codigo" value="${escAttr(valor)}">
+       <div class="parcelas-multi">${
+         elegidas.length
+           ? `<div class="parcela-chips">${elegidas.map(cod =>
+               `<span class="parcela-chip">${esc(cod)} <i>histórica</i></span>`).join('')}</div>`
+           : ''}
+       </div>`;
+    if(campo){ campo.outerHTML = html; }
+    else caja.insertAdjacentHTML('beforeend', html);
+    const sobra = caja.querySelectorAll('.parcelas-multi');
+    for(let i=0;i<sobra.length-1;i++) sobra[i].remove();
+    /* No poder LEER el inventario no es lo mismo que no haber inventario: en el
+       primero el dato existe y no ha llegado, en el segundo no existe. Las dos
+       bloquean el campo, pero lo que hay que hacer es distinto y por eso se
+       dicen distinto. */
     caja.insertAdjacentHTML('beforeend', UNIDADES_PROY.fallo
       ? `<p class="hint-unidades" style="font-size:11.5px;color:#C8791F;margin:6px 0 0">
-           <b>No se ha podido leer el inventario de este proyecto</b>, así que la parcela va a
-           mano y sin comprobar si está libre. Recarga la página antes de guardar.</p>`
-      : `<p class="hint-unidades" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">
-           Este proyecto no tiene unidades cargadas en el inventario: la parcela se escribe a mano.</p>`);
+           <b>No se ha podido leer el inventario de este proyecto.</b> La parcela no se puede
+           elegir hasta que cargue — recarga la página. No se escribe a mano.</p>`
+      : !UNIDADES_PROY.proyecto
+      ? `<p class="hint-unidades" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">
+           Elige antes el <b>proyecto</b>: la parcela sale de su inventario.${
+             elegidas.length ? ' Lo que ya tenía guardado se conserva.' : ''}</p>`
+      : `<p class="hint-unidades" style="font-size:11.5px;color:#C8791F;margin:6px 0 0">
+           <b>Este proyecto no tiene parcelas en el inventario.</b> Cárgalas en
+           <a href="/unidades/" target="_blank" rel="noopener">Unidades</a> y vuelve: desde el
+           21-ago la parcela se elige de la lista, no se escribe.${
+             elegidas.length ? ' Lo que ya tenía guardado se conserva y se imprime igual.' : ''}</p>`);
+    wireCampoParcela();
     return;
   }
   const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
@@ -175,10 +206,18 @@ function pintarSelectorParcela(){
   }).join('');
 
   // chips de lo elegido (la ✕ quita esa parcela) + añadidor sin name
+  /* Una parcela que NO está en el inventario solo puede venir de antes de
+     LAW-73, y desde hoy no se puede volver a escribir a mano: si se quitara, no
+     habría forma de devolverla. Así que va SIN la ✕ — quitarla sería un borrado
+     irreversible disfrazado de botón pequeño. Se sigue viendo y se sigue
+     imprimiendo; lo único que no se puede es perderla por un clic. */
   const chips = elegidas.map(cod => {
     const u = libres.find(x => x.codigo === cod);
-    const detalle = u ? [u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : ''].filter(Boolean).join(' · ')
-                      : 'fuera del inventario';
+    if(!u){
+      return `<span class="parcela-chip" title="Escrita a mano antes del 21-ago-2026. No está en el inventario y ya no se puede reescribir, así que no se puede quitar.">${
+        esc(cod)} <i>histórica · fuera del inventario</i></span>`;
+    }
+    const detalle = [u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : ''].filter(Boolean).join(' · ');
     return `<span class="parcela-chip">${esc(cod)}${detalle ? ` <i>${esc(detalle)}</i>` : ''}
       <button type="button" data-quitar-parcela="${escAttr(cod)}" aria-label="Quitar la parcela ${escAttr(cod)}">✕</button></span>`;
   }).join('');
@@ -214,7 +253,10 @@ function pintarSelectorParcela(){
 function wireCampoParcela(){
   const caja = document.querySelector('.field[data-key="parcela_codigo"]');
   if(!caja) return;
-  const oculto = caja.querySelector('input[type="hidden"][name="parcela_codigo"], input[type="text"][name="parcela_codigo"]');
+  // Por nombre y sin mirar el tipo: desde LAW-73 (21-ago-2026) siempre es el
+  // oculto, y buscar además por `text` dejaba viva la idea de que puede haber un
+  // campo tecleable — que es justo lo que ya no hay.
+  const oculto = caja.querySelector('input[name="parcela_codigo"]');
   if(oculto && !oculto._wired){
     oculto._wired = true;
     oculto.addEventListener('input',  ()=>{ syncDatosDeUnidad(); aplicarReglasCampos(); renderDebounced(); });

@@ -70,7 +70,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=f85e78ef"></script>
 <script src="assets/documento_anexos.js?v=4cb139f2"></script>
-<script src="assets/parcela_inventario.js?v=8a3f1fbd"></script>
+<script src="assets/parcela_inventario.js?v=165251cd"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=cf81b963"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -1678,6 +1678,17 @@ function aplicarReglasCampos(){
   syncPrecioObraVinculada();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
+  /* SIN proyecto elegido tambien hay que pintar (LAW-73, 21-ago-2026). Antes no
+     se llamaba a nadie y el campo se quedaba tal como lo dejo fieldHTML: un
+     input de texto. O sea que quitar el texto libre del selector no bastaba —
+     bastaba con no elegir proyecto para volver a tenerlo, que es exactamente por
+     donde se colaron varias de las 21 parcelas sueltas.
+     Se resetea la lista ademas de pintar: si venia de otro proyecto, sus
+     unidades no son las de este. */
+  else if(proy){
+    if(UNIDADES_PROY.proyecto !== null) UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+    pintarSelectorParcela();
+  }
   /* Si el traspaso depende del pasaporte/email del comprador y esos se teclean
      DESPUÉS de elegir proyecto, el selector se quedaría con el motivo viejo
      ("falta pasaporte o email") y la parcela deshabilitada para siempre.
