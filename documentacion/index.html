@@ -352,7 +352,15 @@ async function cargar(){
     (tk.sections || []).forEach(sec => (sec.fields || []).forEach(f => {
       if(f[0] === 'proyecto_nombre' && Array.isArray(f[3])) delTokens = f[3].slice();
     }));
-  }catch(_){}
+  }catch(_){
+    /* MUDO A PROPOSITO — 21-ago-2026, revisado. Si tokens.json no se
+       puede leer, la lista de proyectos cae a «los que ya tienen documentos»:
+       se pierde poder archivar en un proyecto todavia vacio, pero no se pierde
+       ni se esconde ningun documento ya guardado. Degradacion segura y visible
+       sola (el proyecto que falta se nota al buscarlo), asi que un aviso aqui
+       seria ruido. Se anota para que la proxima revision no lo cuente como
+       olvido. */
+  }
   /* Los dos primeros no son promociones: son la EMPRESA. Un documento como los
      anexos de las casas (Dali, Dream, Dune, Tropical) no es de Palm Field ni de
      Bonian Village — vale para todas, y archivarlo dentro de una obligaba a

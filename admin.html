@@ -789,7 +789,9 @@ window.addEventListener('DOMContentLoaded', async function() {
     var r = await fetch('api/auth.php', { credentials: 'include' });
     var d = await r.json();
     if (d.ok) { showApp(); await loadData(); }
-  } catch(e) { /* no session, stay on login */ }
+  } catch(e) { /* MUDO A PROPOSITO: no hay sesion, que es la respuesta normal de
+                  esta comprobacion. Se queda en la pantalla de entrar, y eso es
+                  precisamente lo que se ve. */ }
 
   // Drag & drop on upload zone
   var zone = document.getElementById('upload-zone');
@@ -831,7 +833,9 @@ async function doLogout() {
     method:'POST', credentials:'include',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ action:'logout' })
-  }).catch(function(){});
+  }).catch(function(){ /* MUDO A PROPOSITO: si el logout no llega al servidor, el
+       reload de la linea siguiente devuelve el panel con la sesion viva. No hace
+       falta avisar: se ve que NO se ha salido. */ });
   location.reload();
 }
 
@@ -1884,12 +1888,21 @@ async function uploadDocForRow(btn) {
 
 /* ─── IMAGES ────────────────────────────────────────────────── */
 async function loadImages() {
+  /* 21-ago-2026: los dos caminos de salida (respuesta no-ok y excepcion) dejaban
+     la rejilla VACIA sin decir nada, o sea igual que «no hay imagenes subidas».
+     Quien lo ve concluye que no hay nada y vuelve a subir lo que ya estaba. */
+  var grid = document.getElementById('images-grid');
+  var falla = function (motivo) {
+    if (grid) grid.innerHTML = '<p style="grid-column:1/-1;color:#C8791F;font-size:13px">'
+      + 'No se ha podido cargar la lista de imagenes (' + motivo + '). '
+      + 'Esto no quiere decir que no haya ninguna: recarga la pagina.</p>';
+  };
   try {
     var r = await fetch('api/list-images.php', { credentials:'include' });
-    if (!r.ok) return;
+    if (!r.ok) { falla('HTTP ' + r.status); return; }
     IMGS_CACHE = await r.json();
     renderImages(IMGS_CACHE, 'images-grid');
-  } catch(e) {}
+  } catch(e) { falla((e && e.message) || 'error de red'); }
 }
 
 function renderImages(list, containerId) {

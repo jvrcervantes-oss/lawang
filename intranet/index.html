@@ -623,6 +623,17 @@ async function ultimasOperaciones(sb){
    su lado: si la RLS tapa una, la otra se enseña igual. */
 async function pintarRail(sb, ficha){
   const cajas = [];
+  /* Lo que NO se ha podido comprobar — 21-ago-2026.
+     Las dos consultas de abajo iban en su try, y el catch solo escribia en la
+     consola. Con cualquiera de ellas caida el carril se quedaba sin cajas y la
+     linea final imprimia «Nada a la vista»: una alarma rota se leia EXACTAMENTE
+     igual que «no hay nada pendiente», que es el lado peligroso en el que
+     equivocarse. Es el mismo fallo que este panel vino a arreglar (ver el
+     comentario de «Firmas que necesitan atencion»: el aviso existia, pero iba a
+     console.error y el equipo no lo veia en ningun sitio).
+     Desde hoy: lo que falla se dice en pantalla, y «Nada a la vista» solo sale
+     cuando se ha mirado de verdad. */
+  const fallos = [];
   const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
 
   /* ── Firmas que necesitan atención — 15-ago-2026 ─────────────────────────
@@ -672,7 +683,7 @@ async function pintarRail(sb, ficha){
             : '')
         + '</div>');
     }
-  }catch(e){ console.warn('auditoria de firmas:', e && e.message); }
+  }catch(e){ fallos.push('las firmas pendientes'); console.warn('auditoria de firmas:', e && e.message); }
 
   try{
     // Por `_equipo()` (7-ago), no `.from()` directo — mismo motivo que
@@ -723,12 +734,23 @@ async function pintarRail(sb, ficha){
           <span>${esc(r.txt)} · ${r.d < 0 ? 'vencida hace ' + (-r.d) + ' días' : r.d === 0 ? 'hoy' : 'en ' + r.d + ' días'}</span>
           <span class="v ${r.clase||''}">${esc(r.val)}</span></div>`).join('') + '</div>');
     }
-  }catch(e){ console.warn('vencimientos:', e && e.message); }
+  }catch(e){ fallos.push('los vencimientos'); console.warn('vencimientos:', e && e.message); }
   /* «Rendimiento del equipo · admin» retirado el 15-ago-2026 (owner): se hara
      algo especifico de agentes. Comparar a la gente por importe facturado en el
      panel de entrada de todos no es lo mismo que un panel de rendimiento, y a
      medias hacia mas ruido que servicio. */
-  $('#rail').innerHTML = cajas.join('') || '<div class="railCaja lw-fade"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
+  /* El aviso de lo no comprobado va ARRIBA del carril y no al final: si queda
+     debajo de tres cajas, no se ve, y no verlo es el fallo entero. */
+  if(fallos.length){
+    cajas.unshift('<div class="railCaja lw-fade" style="--i:0;border-color:#C8791F">'
+      + '<div class="t">No se ha podido comprobar</div>'
+      + '<div class="railFila"><span>' + esc(fallos.join(' ni ')) + '.</span></div>'
+      + '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
+      + 'Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado. '
+      + 'Recarga la página; si sigue igual, avisa a desarrollo.</span></div></div>');
+  }
+  $('#rail').innerHTML = cajas.join('')
+    || '<div class="railCaja lw-fade"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
 }
 
 /* ── arranque ──────────────────────────────────────────────────────── */

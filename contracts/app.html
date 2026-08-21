@@ -637,7 +637,8 @@ async function cubrirConEstePoder(poderId, poderNumero){
     const r = await sb.from('contratos').update({ poder_id: poderId }).in('id', suyos.map(c=>c.id)).select('numero');
     const n = (r.data||[]).length;
     if(n) toast(poderNumero + ' pasa a cubrir ' + n + (n===1?' contrato: ':' contratos: ') + (r.data||[]).map(c=>c.numero).join(', '));
-  }catch(_){ /* el poder ya esta guardado: que esto falle no puede tumbarlo */ }
+  }catch(_){ /* MUDO A PROPOSITO: el poder ya esta guardado; que esto falle no
+                puede tumbarlo, y lo que se pierde se recalcula al abrirlo. */ }
 }
 
 /* ── LOS PROYECTOS SE LEEN DE LA BASE, NO DE tokens.json — 17-ago-2026 ──────
@@ -1898,7 +1899,7 @@ function resetBorrador(slug){
   COMPRADORES = []; saveCompradores();
   ANNEXES = []; saveAnnexes();
   CLAUSES = []; saveClauses();
-  AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
+  AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   AUTO_APODERADO = {}; AUTO_POA = {};
   avisoMismoApoderado = null;   // 11-ago, hallazgo Legal MEDIA: si no se resetea, cambiar a OTRO contrato que
   // también tenga el mismo apoderado en las dos partes se queda mudo por casualidad de string
@@ -2459,7 +2460,7 @@ function applyRepresentanteComprador(data){
    Si el proyecto NO tiene unidades, se queda como estaba —texto libre— por la
    misma regla de siempre: el sistema no frena una venta esperando a que alguien
    dé de alta el inventario. */
-let UNIDADES_PROY = { proyecto:null, lista:[] };
+let UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };   // `fallo`: no se ha podido leer el inventario (≠ no hay inventario)
 // Firma de los identificadores del comprador con los que se pintó el selector.
 // Vive junto a UNIDADES_PROY, que es el otro estado que lee el mismo hook.
 let ID_PINTADO = null;
@@ -2518,12 +2519,18 @@ function estadoTraspaso(u){
 function puedeTraspasarParcela(u){ return estadoTraspaso(u) === 'ok'; }
 async function cargarUnidadesDelProyecto(proyecto){
   if(!sb || !proyecto || UNIDADES_PROY.proyecto === proyecto) return;
-  UNIDADES_PROY = { proyecto, lista:[] };
+  UNIDADES_PROY = { proyecto, lista:[], fallo:null };
   try{
     const { data, error } = await sb.from('unidades')
       .select('codigo, modelo, superficie_m2, precio_suelo, precio, moneda, estado, contrato_id')
       .eq('proyecto', proyecto).order('codigo');
-    if(!error) UNIDADES_PROY.lista = data || [];
+    /* 21-ago-2026: el error se GUARDA. Antes se descartaba con un `if(!error)` y
+       el catch de abajo estaba vacío, así que un inventario ilegible dejaba la
+       lista a cero — y una lista a cero significa «este proyecto no tiene
+       inventario», que es lo que hace caer el campo a texto libre. Las dos
+       situaciones se veían igual en pantalla y solo una es segura. */
+    if(error) UNIDADES_PROY.fallo = error.message || 'no se ha podido leer';
+    else UNIDADES_PROY.lista = data || [];
     /* Quién ocupa cada parcela: tipo y número del contrato que la tiene. Hace
        falta para saber si se puede traspasar — una parcela reservada por una
        Carta de Reserva sí puede pasar a su Bloqueo de Parcela (ver
@@ -2547,7 +2554,7 @@ async function cargarUnidadesDelProyecto(proyecto){
       const porId = Object.fromEntries((cs||[]).map(c=>[c.id, c]));
       UNIDADES_PROY.lista.forEach(u=>{ u.ocupante = u.contrato_id ? porId[u.contrato_id] || null : null; });
     }
-  }catch(_){}
+  }catch(e){ UNIDADES_PROY.fallo = UNIDADES_PROY.fallo || (e && e.message) || 'no se ha podido leer'; }
   pintarSelectorParcela();
 }
 function pintarSelectorParcela(){
@@ -2575,6 +2582,17 @@ function pintarSelectorParcela(){
       if(campo) campo.outerHTML = `<input name="parcela_codigo" type="text" value="${escAttr(valor)}" autocomplete="off">`;
       wireCampoParcela();
     }
+    /* Texto libre por no PODER mirar no es lo mismo que texto libre por no haber
+       nada que mirar: en el primer caso el campo que decide qué parcela se vende
+       ha perdido su única comprobación —ocupada, de otro comprador, traspasable—
+       y quien escribe no tiene forma de saberlo. Se dice, y se dice aquí. */
+    caja.querySelector('.hint-unidades')?.remove();
+    caja.insertAdjacentHTML('beforeend', UNIDADES_PROY.fallo
+      ? `<p class="hint-unidades" style="font-size:11.5px;color:#C8791F;margin:6px 0 0">
+           <b>No se ha podido leer el inventario de este proyecto</b>, así que la parcela va a
+           mano y sin comprobar si está libre. Recarga la página antes de guardar.</p>`
+      : `<p class="hint-unidades" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">
+           Este proyecto no tiene unidades cargadas en el inventario: la parcela se escribe a mano.</p>`);
     return;
   }
   const mio = SAVED_CONTRACT && SAVED_CONTRACT.id;
@@ -5028,7 +5046,7 @@ async function openSavedContract(id){
   // AUTO_MASTER igual: sin resetear, un código que por casualidad coincida con
   // el del contrato anterior se tomaría por "puesto por el automatismo" y se
   // reescribiría solo — cambiando un dato ya guardado nada más abrirlo.
-  AUTO_ANX = ''; AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
+  AUTO_ANX = ''; AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   // Mismo motivo que AUTO_ANX/AUTO_MASTER arriba, mismo hallazgo (Legal, 11-ago):
   // resetBorrador() ya resetea AUTO_APODERADO/avisoMismoApoderado para "contrato
   // nuevo", pero ABRIR uno guardado no pasa por ahí — sin esto, el apoderado o el
@@ -5211,7 +5229,7 @@ async function derivarContrato(slug){
   // ese mismo motivo y se limpian.
   limpiarOverrides(slug);
   ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses();
-  AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[] };
+  AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
@@ -5749,8 +5767,16 @@ async function init(){
   catch(e){ toast('No se han podido cargar los datos del apoderado: ' + (e.message || e)); }
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
-  try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }catch(_){ COVER_HTML=''; }
-  try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }catch(_){}  // deriveSections() filtra por plantilla
+  try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }
+  catch(_){ COVER_HTML=''; /* MUDO A PROPOSITO: sin portada el contrato se imprime
+       igual, solo que empezando por la primera clausula. Se nota al verlo. */ }
+  /* tokens.json manda los CAMPOS del formulario: si no carga, buildForm() pinta un
+     formulario vacio y el contrato se guardaria sin nada dentro. Antes se callaba
+     («deriveSections() filtra por plantilla») y lo unico que veia quien lo abria
+     era una pagina en blanco, sin ninguna pista de por que. 21-ago-2026. */
+  try{ TOKENS = await fetch('tokens.json'+bust).then(r=>r.json()); }
+  catch(e){ toast('No se han podido cargar los campos del formulario (' + (e.message || e)
+                  + '). Recarga la pagina: si guardas ahora, el contrato saldria vacio.'); }
   // mapa marcador → tipo (para dimensionar el hueco de cada campo)
   ((TOKENS && TOKENS.sections) || []).forEach(s=> s.fields.forEach(f=> FIELDTYPE[f[0]] = f[2] || 'text'));
   await loadTemplate(CURRENT.slug);

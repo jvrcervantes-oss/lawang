@@ -15,6 +15,52 @@
 
   // Sin datos reales no se muestra el configurador — nunca precios inventados (auditoría 15-jul).
 
+  /* ── El lead no se pierde en silencio — 21-ago-2026 ──────────────────────
+     La verja de descargas mandaba el email con `fetch(...).catch(function(){})`.
+     Si la red fallaba o el visitante cerraba la pestaña con la peticion en
+     vuelo, la descarga se desbloqueaba igual y el contacto se perdia SIN que
+     nadie lo supiera nunca: no hay error en pantalla, no hay fila en el CSV, y
+     lo que no se ha registrado no se puede echar de menos.
+     Dos cambios y ninguno se nota al usar la web:
+       · `keepalive: true` — el navegador termina de mandarlo aunque la pagina se
+         cierre justo despues, que es cuando mas se perdian. Se descarto
+         sendBeacon, que tambien sobrevive al cierre, porque NO devuelve la
+         respuesta del servidor: un lead rechazado por lead.php se perderia
+         callado otra vez, o sea el fallo que esto viene a quitar;
+       · si aun asi falla, el lead se guarda y se reintenta al siguiente paso
+         por la web. `private/leads.csv` es un fputcsv que solo anade lineas y
+         la verja NO toca GHL (eso es el formulario largo, ver api/lead.php), o
+         sea que una fila repetida no rompe nada — y perder el contacto si. */
+  var COLA_LEADS = "lawang_leads_pendientes";
+  function leeCola(){ try { return JSON.parse(localStorage.getItem(COLA_LEADS)) || []; } catch(_) { return []; } }
+  function guardaCola(c){ try { localStorage.setItem(COLA_LEADS, JSON.stringify(c.slice(-20))); } catch(_) {} }
+
+  function enviaLead(body){
+    fetch("api/lead.php", { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
+                            body: body, keepalive: true })
+      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); })
+      .catch(function(e){
+        console.warn("lead no entregado, queda en cola:", e && e.message);
+        var c = leeCola();
+        if (c.indexOf(body) === -1) { c.push(body); guardaCola(c); }
+      });
+  }
+
+  function vaciaColaLeads(){
+    var c = leeCola();
+    if (!c.length) return;
+    /* Se vacia ANTES de reintentar y a proposito: si el reintento vuelve a
+       fallar, es el propio enviaLead quien lo devuelve a la cola. Al reves
+       —borrar solo los que salgan bien— una respuesta que nunca llega dejaria
+       la entrada para siempre, y se reenviaria en cada visita. La marca
+       `reintento=1` se pone una sola vez, asi que el cuerpo no crece. */
+    guardaCola([]);
+    c.forEach(function(body){
+      enviaLead(body.indexOf("reintento=") === -1 ? body + "&reintento=1" : body);
+    });
+  }
+  try { vaciaColaLeads(); } catch(_) {}
+
   // ── Estado global ──────────────────────────────────────────
   var S = {
     lang:"en", cur:"EUR",
@@ -904,7 +950,9 @@
       S.plotsStatus = map;
       S.plotsStatusOk = true;
       render();
-    }).catch(function(){ /* sin red: los pines siguen "sin dato" y clicables (plotsStatusOk queda false) */ });
+    }).catch(function(){ /* MUDO A PROPOSITO: sin red los pines siguen "sin dato" y
+       clicables (plotsStatusOk queda false), que es el estado honesto — el mapa
+       no dice que esten libres, dice que no lo sabe. */ });
   }
   // Emparejar el m² real de la parcela con el escalón de precio del configurador (landOptions
   // viene por tamaño, no por código individual — así lo carga hoy el admin).
@@ -1512,7 +1560,7 @@
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){ S.dlErr=true; render(); return; }
       S.dlErr=false; S.dlUnlocked=true;
       var pid=S.overlay;
-      try{ fetch("api/lead.php",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"email="+encodeURIComponent(v)+"&source=downloads&property="+encodeURIComponent(pid||"")}).catch(function(){}); }catch(_){}
+      enviaLead("email="+encodeURIComponent(v)+"&source=downloads&property="+encodeURIComponent(pid||""));
       // ponytail: Lead solo por píxel. El CAPI server-side desde lead.php (mejor match quality,
       // sobrevive a adblock) necesita PIXEL_ID + access token del owner — ver §0b C.
       if(window.lwTrack) window.lwTrack("Lead", {content_name:"buyers-guide", content_ids:[pid||""]});
@@ -1605,6 +1653,9 @@
     // data.json no declara -- un `=` los borraba en cuanto data.json cargaba.
     if(data.settings){ if(data.settings.rates){ L.RATES=Object.assign({},L.RATES,data.settings.rates); L.EUR_TO_USD=data.settings.rates.USD||1.08; } L.SETTINGS=Object.assign({},L.SETTINGS,data.settings); }
     L.PROPERTIES.forEach(function(p){ p.imgKeys=(p.images&&p.images.length)?p.images:[]; });
-    fetch('https://open.er-api.com/v6/latest/EUR').then(function(r){return r.json();}).then(function(d){ if(d.result==='success'){ var fresh={EUR:1,USD:d.rates.USD,AUD:d.rates.AUD}; if(d.rates.IDR) fresh.IDR=d.rates.IDR; L.RATES=Object.assign({},L.RATES,fresh); L.EUR_TO_USD=d.rates.USD; } }).catch(function(){}).finally(start);
+    fetch('https://open.er-api.com/v6/latest/EUR').then(function(r){return r.json();}).then(function(d){ if(d.result==='success'){ var fresh={EUR:1,USD:d.rates.USD,AUD:d.rates.AUD}; if(d.rates.IDR) fresh.IDR=d.rates.IDR; L.RATES=Object.assign({},L.RATES,fresh); L.EUR_TO_USD=d.rates.USD; } }).catch(function(){ /* MUDO A PROPOSITO: son las tasas de cambio del dia. Si la
+       API no contesta se usan las de data.json, que es exactamente lo que habia
+       antes de pedirlas — nunca un precio sin convertir ni a cero. */ })
+    .finally(start);
   }).catch(function(err){ console.error('Lawang: no se pudo cargar data.json — el portfolio se mostrará vacío.', err); start(); });
 })();
