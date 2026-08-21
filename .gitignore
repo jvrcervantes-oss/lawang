@@ -94,3 +94,6 @@ intranet/*Handoff*/
 # querer al extraerlo de un PDF, sin poder borrarlo (permiso denegado) —
 # esta linea evita que un `git add` futuro lo trague.
 contracts/assets/apoderados/
+
+# Supabase CLI: caché local, no se versiona
+supabase/.temp/
