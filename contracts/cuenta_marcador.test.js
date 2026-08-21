@@ -23,7 +23,9 @@ const fs = require('fs');
 const path = require('path');
 
 const AQUI = __dirname;
-const app = fs.readFileSync(path.join(AQUI, 'app.html'), 'utf8');
+/* app.html Y los assets que carga (ver codigo_app.js): el desplegable de cuenta
+   bancaria se mudo a assets/entidades_pago.js el 21-ago-2026. */
+const app = require('./codigo_app').todo();
 
 /* ---- 1. ninguna plantilla lleva un número de cuenta dentro ---- */
 const CUENTAS_REALES = ['478798116354', '885571532066', '3692536026', '1810004920345',

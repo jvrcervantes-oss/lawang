@@ -103,6 +103,54 @@ afirma('la sección «firma como sociedad (PT PMA)» no vuelve al formulario',
   !tokens.sections.some(s => s.id === 'sociedad'),
   'los datos de la sociedad salen de su ficha, no se teclean por contrato');
 
+/* ── 3b) NINGÚN campo derivado se cuela en el formulario ────────────────────
+   21-ago-2026, lo vio el owner: «han aparecido un montón de campos nuevos en los
+   contratos: comp razon, comp domicilio, comp nib, comp npwp y adq1_tipo».
+
+   Qué pasó. El 19-ago se retiró de tokens.json la sección «el adquiriente firma
+   como sociedad (PT PMA)», pero sus marcadores siguen dentro de CINCO plantillas
+   (CR00018, CC00020 y RP00046 los llevan rellenos). Y deriveSections tiene un
+   cajón automático: todo marcador de la plantilla que NO esté declarado cae en
+   «Otros campos» con el nombre en crudo. O sea que quitar la declaración es
+   exactamente lo que los soltó ahí — la cura fue la enfermedad.
+
+   Y el test de abajo lo dejó pasar porque comprobaba QUE NO ESTUVIERA LA SECCIÓN,
+   que es otra cosa que lo que había que comprobar: que no se vieran los CAMPOS.
+   Un test puede estar en verde y no cubrir nada.
+
+   Esto mira lo que de verdad pasa: reconstruye el cajón de «otros» para cada
+   plantilla, leyendo de app.html las mismas exclusiones que aplica el programa
+   (así no hay una segunda lista que se quede vieja), y exige que ningún campo
+   DERIVADO —los que el programa rellena solo— aparezca en él. */
+{
+  const DERIVADOS = /^(comp_|prom_)|^adq1_tipo$/;   // los rellena el programa, nunca se teclean
+
+  // las exclusiones tal y como las escribe app.html, no copiadas a mano
+  const borrados = new Set([...app.matchAll(/inDoc\.delete\('([a-z0-9_]+)'\)/g)].map(m => m[1]));
+  const prefijos = [...app.matchAll(/k\.startsWith\('([a-z0-9_]+)'\)\)\s*inDoc\.delete\(k\)/g)].map(m => m[1]);
+  const anadidos = new Set([...app.matchAll(/inDoc\.add\('([a-z0-9_]+)'\)/g)].map(m => m[1]));
+  afirma('el test sigue reconociendo cómo app.html excluye campos',
+    borrados.size > 3 && prefijos.length > 0,
+    'si deriveSections cambia de forma, esta lectura deja de ver nada y el test se vuelve decorativo');
+
+  const declarados = new Set(tokens.sections.flatMap(s => (s.fields || []).map(f => f[0])));
+
+  fs.readdirSync(aqui('templates')).filter(f => f.endsWith('.html') && !f.startsWith('_')).forEach(f => {
+    const html = leer('templates', f);
+    const enDoc = new Set([
+      ...[...html.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(m => m[1]),
+      ...[...html.matchAll(/<!--if:([a-z0-9_]+)=/g)].map(m => m[1]),
+    ]);
+    anadidos.forEach(k => enDoc.add(k));
+    const enOtros = [...enDoc].filter(k =>
+      !declarados.has(k) && !borrados.has(k) && !prefijos.some(p => k.startsWith(p)));
+    const colados = enOtros.filter(k => DERIVADOS.test(k));
+    afirma(f + ': ningún campo derivado acaba en «Otros campos»',
+      colados.length === 0,
+      colados.join(', ') + ' — se preguntarían a mano, y el programa ya los rellena');
+  });
+}
+
 /* ── 4) app.html: quién decide el tipo ─────────────────────────────────────── */
 afirma('`adq1_tipo` sale de la ficha enlazada y por defecto es persona',
   /data\.adq1_tipo = \(ADQ1_CLIENT && ADQ1_CLIENT\.tipo === 'empresa'\) \? 'empresa' : 'persona'/.test(app));

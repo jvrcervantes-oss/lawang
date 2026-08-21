@@ -26,7 +26,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const app = fs.readFileSync(path.join(__dirname, 'app.html'), 'utf8');
+/* app.html Y los assets que carga: desde el 21-ago-2026 parte del codigo vive
+   fuera del .html, y este test se puso en rojo por seguir mirando solo alli.
+   Ver codigo_app.js — mover una funcion de fichero no cambia lo que la app hace. */
+const app = require('./codigo_app').todo();
 let fallos = 0;
 
 function afirma(titulo, ok, detalle) {
