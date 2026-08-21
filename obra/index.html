@@ -196,9 +196,17 @@ function abrir(id){
   SEL = id; pintarTabla();
   const fotos = FOTOS[u.id] || [];
   suiAbrirCajon({
-    titulo: u.codigo + (u.proyecto ? ' · ' + u.proyecto : ''),
+    /* esc() en la CABECERA, no solo en el cuerpo — auditoría 21-ago-2026.
+       `suiAbrirCajon` inyecta `titulo` y `sub` tal cual (son HTML a propósito:
+       otros llamadores les meten marcado), así que escapar es del que llama.
+       Los otros diez sitios de la suite que abren el cajón lo hacían; este no,
+       y el cuerpo de aquí abajo SÍ escapa cada campo. O sea que no fue una
+       decisión, fue un olvido en la mitad de arriba de la misma función.
+       Lo que entra: código y proyecto de la unidad, número de contrato y NOMBRE
+       DEL COMPRADOR. Un «Smith & Sons» ya rompe el marcado. */
+    titulo: esc(u.codigo) + (u.proyecto ? ' · ' + esc(u.proyecto) : ''),
     sub: u.contrato_numero
-      ? 'Contrato ' + u.contrato_numero + (u.comprador_nombre ? ' — ' + u.comprador_nombre : '') + '. Lo que marques aquí lo ve el comprador en su portal.'
+      ? 'Contrato ' + esc(u.contrato_numero) + (u.comprador_nombre ? ' — ' + esc(u.comprador_nombre) : '') + '. Lo que marques aquí lo ve el comprador en su portal.'
       : 'Sin contrato vinculado: aún no lo ve ningún comprador.',
     cuerpo: `
       <div class="dos">
