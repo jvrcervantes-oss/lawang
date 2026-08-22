@@ -1033,10 +1033,27 @@ async function traerContrato(id){
   CLIENTE_DEL_CONTRATO = data.ficha || null;
 
   const f = data.campos || {};
+  /* `poner` NO tocaba el campo cuando el contrato nuevo no traía ese dato, así
+     que se quedaba el del contrato ANTERIOR. Auditoría 21-ago-2026.
+
+     Es reproducible con datos de hoy: RP00069 trae email
+     (davidpirisjuaneda@gmail.com) y RP00071 no trae ninguno. Elegir el primero y
+     cambiar al segundo dejaba una factura a nombre de David Jimenez Vera con el
+     email de David Piris Juaneda. Nadie ve nada raro: el campo está relleno.
+
+     Desde hoy, los campos de IDENTIDAD del cliente se vacían cuando el contrato
+     nuevo no los trae — un hueco se ve, un dato de otra persona no. Lo que NO se
+     vacía es moneda, sociedad ni cuenta de cobro: eso no es identidad, es un
+     valor por defecto razonable, y borrarlo solo obligaría a volver a elegirlo. */
+  const IDENTIDAD = ['cliente_nombre', 'cliente_documento', 'cliente_domicilio',
+                     'cliente_email', 'proyecto_nombre'];
   const puesto = [];
   const poner = (name, valor, etiqueta) => {
-    if(!valor) return;
     const el = document.querySelector(`[name="${name}"]`); if(!el) return;
+    if(!valor){
+      if(IDENTIDAD.includes(name) && el.value) el.value = '';   // fuera lo del contrato anterior
+      return;
+    }
     el.value = valor; puesto.push(etiqueta);
   };
 
