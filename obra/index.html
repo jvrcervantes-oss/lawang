@@ -19,11 +19,6 @@
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <script src="/contracts/assets/herramientas.js?v=7aa6d55b"></script>
 <script src="/contracts/assets/topbar.js?v=d5248630" defer></script>
-<!-- v3 (exploración, 23-ago-2026). Las dos etiquetas van SIEMPRE, pero no hacen
-     nada sin `?v3=1`: el CSS entero vive bajo `html.v3` y el motor sale por su
-     primera puerta. El `?v=` lo sella el pre-commit, nunca a mano. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ab783ac2">
-<script src="/contracts/assets/movimiento-v3.js?v=27806b98"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="obra"></script>
 <script src="/contracts/assets/suite.js?v=f61d52c5"></script>
@@ -62,6 +57,16 @@
           border-radius:var(--r-s); padding:9px 11px; margin:var(--e2) 0 0; }
 
 </style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=1">
+<script src="/contracts/assets/movimiento-v3.js?v=1"></script>
 </head>
 <body>
   <div class="topbar lw-topbar" data-titulo="Obra">

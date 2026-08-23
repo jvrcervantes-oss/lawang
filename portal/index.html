@@ -35,11 +35,6 @@
 <script src="/contracts/assets/suite.js?v=f61d52c5"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<!-- v3 (exploración, 23-ago-2026). Las dos etiquetas van SIEMPRE, pero no hacen
-     nada sin `?v3=1`: el CSS entero vive bajo `html.v3` y el motor sale por su
-     primera puerta. El `?v=` lo sella el pre-commit, nunca a mano. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ab783ac2">
-<script src="/contracts/assets/movimiento-v3.js?v=27806b98"></script>
 <!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
      de una factura: la usan la herramienta de Facturas y la Edge Function que
      emite la del primer hito al firmarse un contrato. El portal la carga
@@ -194,6 +189,16 @@
      empujaba la factura a una segunda página. Mismo criterio que la herramienta. */
   @page{ size:A4; margin:0; }
 </style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=1">
+<script src="/contracts/assets/movimiento-v3.js?v=1"></script>
 </head>
 <body>
 
