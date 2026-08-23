@@ -135,5 +135,38 @@ afirma('el panel nace escondido y lo abre el botón',
     'no poder mirar, no haber nada y no haber elegido son tres cosas y piden tres acciones');
 }
 
+/* ── Cuánto se comprime un anexo, y qué NUNCA se comprime ──────────────────
+   23-ago-2026. La calidad de los anexos la eligió el owner comparando dos
+   imágenes de una página REAL (ver el comentario en assets/documento_anexos.js).
+   Es un numero con una decision detras, no un valor por defecto: si alguien lo
+   cambia, que sea a sabiendas y con otra pagina delante.
+
+   Y la segunda mitad importa mas que la primera. El 21-ago estuve a punto de
+   dejar la firma de LAWANG «optimizada»: la revirti al medir que le cambiaba
+   hasta 28/255 en el 44% de sus pixeles. Una firma va en PNG, que no pierde
+   nada. El dia que alguien la pase a JPEG para ahorrar unos kB, esto lo para. */
+{
+  const anexos = leerAsset('documento_anexos.js');
+
+  const m = /const CALIDAD_ANEXO = ([\d.]+);/.exec(anexos);
+  afirma('la calidad del anexo está declarada en UN solo sitio', !!m,
+    'con la cifra repetida en cada llamada, cambiar una y olvidar la otra no da error');
+  afirma('sigue siendo la que el owner aprobó mirando una página real (0.55)',
+    m && Number(m[1]) === 0.55,
+    m ? 'ahora vale ' + m[1] + ': si es a propósito, actualiza también este test y el porqué' : '');
+
+  const sueltas = [...anexos.matchAll(/toDataURL\(\s*'image\/jpeg'\s*,\s*([^)]+)\)/g)]
+    .map(x => x[1].trim()).filter(v => v !== 'CALIDAD_ANEXO');
+  afirma('ninguna página de anexo se codifica con una calidad escrita a mano',
+    sueltas.length === 0, sueltas.join(' · '));
+
+  const firmas = require('fs').readFileSync(path.join(__dirname, 'firmar.html'), 'utf8');
+  afirma('la firma del comprador se guarda en PNG, nunca en JPEG',
+    /toDataURL\('image\/png'\)/.test(firmas) && !/toDataURL\('image\/jpeg'/.test(firmas),
+    'JPEG pierde informacion: en una firma manuscrita eso es alterar la prueba');
+  afirma('la firma del formulario también va en PNG',
+    /pad\.cv\.toDataURL\('image\/png'\)/.test(app));
+}
+
 console.log(fallos ? '\n' + fallos + ' fallo(s)' : '\nLas reglas de la pantalla de contratos se sostienen.');
 process.exit(fallos ? 1 : 0);

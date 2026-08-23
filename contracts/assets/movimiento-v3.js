@@ -205,7 +205,13 @@ function sensacion(tipo){
    Va por DELEGACIÓN en `document`, no elemento a elemento: las once
    herramientas repintan sus listas constantemente, y cualquier cosa que se
    enganche una vez al arrancar se queda sin efecto en cuanto se repinta. */
-const PULSABLES = '.sui-btn, .lw-btn, .lw-home, .sui-chip, .sui-ficha, .lw-kpi,'
+/* `button` a secas y `.btn` a secas SON el punto: las once herramientas tienen
+   sus propios nombres de clase para los botones, y sin esto el acuse al pulsar
+   solo se notaba en las pantallas que usan el vocabulario compartido. Se
+   excluye lo que no es un control de verdad (un `<summary>`, un boton dentro de
+   un campo) con `[data-v3-no]` si algun dia estorba. */
+const PULSABLES = 'button:not(:disabled), .btn, [role="button"],'
+                + '.sui-btn, .lw-btn, .lw-home, .sui-chip, .sui-ficha, .lw-kpi,'
                 + '.lw-rail-i, .lw-usuario-btn, .sui-cajon-x, .lw-panel-x, .lw-elegir-op,'
                 + '.lw-menu-list a, [data-v3-pulsable]';
 const ESCALA = el =>
@@ -222,7 +228,7 @@ const ESCALA = el =>
   document.addEventListener('pointerdown',e=>{
     if(e.button!==undefined&&e.button!==0) return;
     const el=e.target.closest&&e.target.closest(PULSABLES);
-    if(!el||el.disabled) return;
+    if(!el||el.disabled||el.hasAttribute('data-v3-no')) return;
     /* §8 — el empuje apunta a donde lleva el control: una fila con flecha
        empuja hacia la flecha; un botón normal no empuja, solo encoge. */
     const empuja = (el.dataset && el.dataset.v3Empuja) ? +el.dataset.v3Empuja

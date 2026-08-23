@@ -22,6 +22,32 @@ function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&q
 
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+/* CUÁNTO SE COMPRIME UNA PÁGINA DE ANEXO — 23-ago-2026, decisión del owner.
+   ═══════════════════════════════════════════════════════════════════════════
+   Estaba en 0.82. Los anexos son lo que más pesa de un contrato firmado: los
+   ocho que los llevan ocupan 113 MB de los 358 del bucket, 14 MB cada uno.
+
+   No se decidió a ojo ni por teoría. Se sacó una página REAL de un contrato en
+   firma (la ficha Tropical de un `pendientes/`), se generaron las variantes con
+   ESTE mismo codificador —el del navegador, no una herramienta de línea de
+   comandos que comprime distinto— y el owner comparó las dos imágenes:
+
+     calidad 82 (lo que había) ... 331 kB   100%
+     calidad 72 .................. 291 kB    88%
+     calidad 65 .................. 267 kB    81%
+     calidad 55 (elegida) ........ 190 kB    57%
+     75% de tamaño, calidad 78 ... 182 kB    55%
+
+   Se eligió BAJAR CALIDAD y no bajar resolución: el anexo es una ficha
+   comercial —render de la villa, planta en foto cenital, texto grande—, no un
+   plano acotado. Una foto aguanta la compresión; una línea fina con cotas, no.
+   Si algún día se adjunta un plano técnico de verdad, esta cifra hay que
+   volver a mirarla CON un plano delante.
+
+   Solo afecta a lo que se adjunte a partir de ahora. Lo ya firmado no se toca
+   ni se puede tocar: se archiva exactamente lo que el comprador firmó. */
+const CALIDAD_ANEXO = 0.55;
+
 async function pdfToImages(file){
   // acepta File/Blob o un ArrayBuffer ya leído (el anexo automático necesita el
   // buffer aparte para calcular su hash antes de que pdf.js se lo quede)
@@ -34,7 +60,7 @@ async function pdfToImages(file){
     const vp = page.getViewport({scale: Math.min(1400/base.width, 2)});
     const cv = document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
     await page.render({canvasContext:cv.getContext('2d'), viewport:vp}).promise;
-    out.push(cv.toDataURL('image/jpeg', .82));
+    out.push(cv.toDataURL('image/jpeg', CALIDAD_ANEXO));
   }
   return out;
 }
@@ -42,7 +68,7 @@ function compressImage(file){
   return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(file);
     img.onload=()=>{ URL.revokeObjectURL(url); const s=Math.min(1400/img.naturalWidth,1);
       const cv=document.createElement('canvas'); cv.width=Math.round(img.naturalWidth*s); cv.height=Math.round(img.naturalHeight*s);
-      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); res([cv.toDataURL('image/jpeg',.82)]); };
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); res([cv.toDataURL('image/jpeg', CALIDAD_ANEXO)]); };
     img.onerror=rej; img.src=url; });
 }
 async function fileToAnnexPages(file){

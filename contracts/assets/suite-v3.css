@@ -21,6 +21,36 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 html.v3{
+  /* ── LOS TOKENS, QUE ES DONDE ESTA LA PALANCA ────────────────────────────
+     El CSS propio de cada herramienta (2-15 KB, 132 KB en el generador de
+     contratos) no lo escribio nadie con clases compartidas — pero SI esta
+     construido sobre estos tokens: `--linea` en 7 herramientas, `--sup-1` en 6,
+     `--r-l` en 4, `--texto` en 6. Redefinirlos aqui cambia el aspecto de las
+     once sin abrir ni uno de sus ficheros.
+
+     LO QUE NO SE TOCA, Y NO ES NEGOCIABLE: `--texto-3`, `--sup-sel` y
+     `--borde-control` llevan su medicion de contraste escrita al lado en
+     suite.css (3,31:1 que no llegaba al minimo, etc.). Aqui se cambia el
+     MATERIAL —radio, profundidad, ritmo—, nunca la legibilidad. */
+
+  /* Radios mas generosos: la caja pequena y la grande no pueden llevar el mismo
+     redondeo, o la grande se lee como un rectangulo con las esquinas mordidas. */
+  --r-s:10px; --r-m:14px; --r-l:18px;
+
+  /* §12 — profundidad en dos capas, no una sombra plana: un contacto corto que
+     apoya el objeto en el papel y una difusa que lo separa del fondo. */
+  --sombra-1:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10);
+  --sombra-2:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07);
+
+  /* §4 — la curva de salida sin rebote, y mas corto: lo que se pueda tocar lo
+     mueve un muelle desde el JS; lo que quede en CSS al menos no se arrastra. */
+  --curva:cubic-bezier(.22,1,.36,1);
+  --t-rapido:110ms; --t-medio:180ms; --t-cajon:240ms;
+
+  /* Filas con aire. 11px era la densidad de una hoja de calculo; estas tablas
+     se leen de un vistazo, no se auditan celda a celda. */
+  --fila-y:13px;
+
   /* §12 — el material se declara una vez; lo que cambia es el peso.
      Superficie grande = material más grueso + sombra más profunda. */
   --v3-vidrio-pesado:saturate(180%) blur(24px);
@@ -30,7 +60,23 @@ html.v3{
   --v3-borde-claro:1px solid rgba(255,255,255,.6);
 }
 
-/* ─── §15 · TIPOGRAFÍA ───────────────────────────────────────────────────────
+/* ─── §15 · TIPOGRAFÍA GLOBAL ────────────────────────────────────────────────
+   Esto alcanza a las once sin nombrar ni una de sus clases. El tracking es
+   especifico del tamano —nunca uno solo para todo—: el texto grande se lee con
+   las letras demasiado separadas segun crece, y el pequeno pide lo contrario.
+   El leading va al reves que el tamano. */
+html.v3 h1{ letter-spacing:-.022em; line-height:1.1;  text-wrap:balance; }
+html.v3 h2{ letter-spacing:-.016em; line-height:1.18; text-wrap:balance; }
+html.v3 h3{ letter-spacing:-.012em; line-height:1.25; }
+html.v3 h4,html.v3 h5{ letter-spacing:-.006em; }
+/* Las cifras SIEMPRE tabulares: en una columna de dinero, unas cifras mas
+   anchas que otras impiden comparar de un vistazo, que es para lo que existe
+   la columna. */
+html.v3 table, html.v3 input[type=number],
+html.v3 .num, html.v3 .cifra, html.v3 .total, html.v3 .importe{ font-variant-numeric:tabular-nums; }
+html.v3 table{ font-feature-settings:'tnum' 1; }
+
+/* ─── §15 · TIPOGRAFÍA DE LOS COMPONENTES ───────────────────────────────────────────────────────
    El tracking es específico del tamaño, nunca uno solo para todo: el texto
    grande se lee con las letras demasiado separadas según crece, y el pequeño
    pide lo contrario. El leading va al revés que el tamaño. */
@@ -113,6 +159,17 @@ html.v3 .sui-cajon-cab,
 html.v3 .lw-panel-quien{ cursor:grab; }
 html.v3 .v3-agarrando .sui-cajon-cab,
 html.v3 .v3-agarrando .lw-panel-quien{ cursor:grabbing; }
+
+/* ─── §1 · TODO CONTROL RESPONDE ────────────────────────────────────────────
+   El motor coge por delegacion cualquier `button` y cualquier `.btn`, tengan la
+   clase que tengan. Es lo que hace que el cambio se NOTE en las once y no solo
+   en las pantallas que usan el vocabulario compartido: en el generador de
+   contratos, con 132 KB de CSS propio, sus botones responden igual que los del
+   panel sin haberle tocado una linea. */
+html.v3 button:not(:disabled), html.v3 .btn, html.v3 [role="button"]{
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+html.v3 button:hover, html.v3 .btn:hover{ transform:none; }
 
 /* ─── §1 · PULSABLES ─────────────────────────────────────────────────────────
    Se quitan los `:hover{transform:translateY(-1px)}` y los `:active{scale}` de
