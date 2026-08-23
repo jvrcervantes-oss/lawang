@@ -48,12 +48,20 @@ if(window.LW3) return;                       // idempotente: dos <script> no dup
    seguido sirviendo el viejo hasta 7 días. Es el fallo de `consent.js` con el
    píxel de Meta, otra vez. Ahora las dos etiquetas están en el HTML de cada
    herramienta y las sella el hook, sin que nadie tenga que acordarse. */
-var v3ON=false;
+/* EL PANEL v3 ES v3 SIEMPRE, sin parametro. Parece obvio y por no escribirlo se
+   desplego roto el 23-ago-2026: `/intranet/v3/` cargaba este motor, que no veia
+   ni `?v3=1` ni la llave de sesion —la pone el guion de la propia pagina, que
+   corre DESPUES— y se apagaba solo. Resultado: el panel v3 se pintaba con la
+   piel vieja y era indistinguible del que ya estaba en produccion. El owner lo
+   dijo en una linea: «no veo ninguna diferencia».
+   Lo decide la RUTA, que es un dato que existe antes que cualquier guion. */
+var v3ON = /^\/intranet\/v3(\/|$)/.test(location.pathname);
 try{
   var v3p=new URLSearchParams(location.search);
   if(v3p.has('v3')){ v3ON = v3p.get('v3')!=='0'; sessionStorage.setItem('lw3-on', v3ON?'1':'0'); }
+  else if(v3ON) sessionStorage.setItem('lw3-on','1');   // y queda encendida al saltar a una herramienta
   else v3ON = sessionStorage.getItem('lw3-on')==='1';
-}catch(_){ /* sessionStorage lanza en ventana privada: sin v3, no a medias */ }
+}catch(_){ /* sessionStorage lanza en ventana privada: la v3 sigue, solo no se recuerda */ }
 if(!v3ON) return;
 
 /* El hub viejo y el v3 son dos ficheros distintos. Si la v3 está encendida, el
