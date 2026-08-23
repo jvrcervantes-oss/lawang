@@ -35,6 +35,11 @@
 <script src="/contracts/assets/suite.js?v=f61d52c5"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<!-- v3 (exploración, 23-ago-2026). Las dos etiquetas van SIEMPRE, pero no hacen
+     nada sin `?v3=1`: el CSS entero vive bajo `html.v3` y el motor sale por su
+     primera puerta. El `?v=` lo sella el pre-commit, nunca a mano. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=1e8d46b7">
+<script src="/contracts/assets/movimiento-v3.js?v=64e23807"></script>
 <!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
      de una factura: la usan la herramienta de Facturas y la Edge Function que
      emite la del primer hito al firmarse un contrato. El portal la carga

@@ -1,0 +1,235 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUITE v3 · piel — 23-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   EXPLORACIÓN, NO PRODUCCIÓN. Se carga solo con `?v3=1`.
+
+   QUÉ NO TOCA, Y POR QUÉ. Ni un color de `suite.css`. Los tokens de esa hoja
+   no son gusto: `--texto-3` está en #676B63 porque el anterior daba 3,31:1
+   sobre la tabla y no llegaba al mínimo de la WCAG; `--sup-sel` y
+   `--borde-control` llevan su medición escrita al lado. Un restyle que los
+   pise vuelve a romper lo que costó medir. Aquí se cambia MATERIAL, MOVIMIENTO
+   y TIPOGRAFÍA; el color se hereda.
+
+   TODO va bajo `html.v3` a propósito. `suite.css` y `topbar.css` definen buena
+   parte de su comportamiento móvil dentro de `@media`, y una media query no
+   suma especificidad: un `.sui-cajon` mío perdería contra el `.sui-cajon` de
+   ellos en cuanto el orden de carga cambiara. Con `html.v3` delante gano
+   siempre, y además el prefijo documenta que nada de esto está vivo por
+   defecto.
+
+   Referencia: skill `apple-design`. Los § apuntan a sus secciones.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html.v3{
+  /* §12 — el material se declara una vez; lo que cambia es el peso.
+     Superficie grande = material más grueso + sombra más profunda. */
+  --v3-vidrio-pesado:saturate(180%) blur(24px);
+  --v3-vidrio-ligero:saturate(140%) blur(12px);
+  --v3-sombra-alta:0 26px 60px -18px rgba(34,40,42,.34), 0 8px 20px rgba(34,40,42,.10);
+  --v3-sombra-media:0 6px 18px -6px rgba(34,40,42,.16), 0 2px 5px rgba(34,40,42,.06);
+  --v3-borde-claro:1px solid rgba(255,255,255,.6);
+}
+
+/* ─── §15 · TIPOGRAFÍA ───────────────────────────────────────────────────────
+   El tracking es específico del tamaño, nunca uno solo para todo: el texto
+   grande se lee con las letras demasiado separadas según crece, y el pequeño
+   pide lo contrario. El leading va al revés que el tamaño. */
+html.v3 .sui-lede h1{ font-size:1.42rem; line-height:1.12; letter-spacing:-.018em; font-weight:500; text-wrap:balance; }
+html.v3 .sui-lede p{ font-size:.87rem; line-height:1.55; letter-spacing:0; }
+html.v3 .lw-title{ letter-spacing:.02em; }
+html.v3 .lw-cifra{ letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+html.v3 .lw-kpi .rot,
+html.v3 .sui-tabla th,
+html.v3 .sui-tag{ letter-spacing:.1em; }
+html.v3 .sui-tabla td.num,
+html.v3 .sui-ficha .cifra,
+html.v3 .sui-total{ font-variant-numeric:tabular-nums; }
+
+/* ─── §12 · CROMO TRANSLÚCIDO ────────────────────────────────────────────────
+   La barra deja de ser una franja opaca que se come 64 px: el contenido pasa
+   POR DEBAJO y se ve. Material pesado, que es el que separa regiones
+   estructurales. */
+html.v3 .lw-topbar{
+  position:sticky; top:0; z-index:40;
+  background:rgba(255,255,255,.74);
+  -webkit-backdrop-filter:var(--v3-vidrio-pesado); backdrop-filter:var(--v3-vidrio-pesado);
+  border-bottom:1px solid rgba(34,40,42,.07);
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset;   /* canto claro: la luz sobre el material */
+}
+html.v3 .lw-topbar.lw-topbar-oscura{
+  background:rgba(16,76,79,.88);
+  border-bottom-color:rgba(241,235,221,.12);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+}
+/* §12 vibrancia — sobre material translúcido el texto secundario no puede ser
+   gris plano: sube contraste, sube algo de peso y abre el tracking. */
+html.v3 .lw-topbar .lw-title,
+html.v3 .lw-topbar .lw-who{ font-weight:600; }
+
+/* Borde de scroll: una máscara que se funde donde el contenido pasa por
+   debajo del cromo, en vez de un filete de 1 px permanente que separa aunque
+   no haya nada que separar. La opacidad la escribe el JS con el scroll. */
+html.v3 .v3-borde{
+  position:sticky; top:var(--tbh,64px); z-index:39;
+  height:32px; margin-bottom:-32px; pointer-events:none; opacity:0;
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.5) 45%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.5) 45%,transparent 100%);
+}
+
+/* ─── §3 §12 · CAJONES ───────────────────────────────────────────────────────
+   La transición se APAGA: a partir de aquí el transform lo escribe el muelle,
+   y dejar la transición puesta haría que cada fotograma del arrastre se
+   persiguiera a sí mismo con 260 ms de retraso. */
+html.v3 .sui-cajon,
+html.v3 .lw-panel{
+  transition:none;
+  background:rgba(255,255,255,.93);
+  -webkit-backdrop-filter:var(--v3-vidrio-pesado); backdrop-filter:var(--v3-vidrio-pesado);
+  box-shadow:var(--v3-sombra-alta);
+  overscroll-behavior:contain;
+}
+html.v3 .lw-rail{ transition:width 180ms var(--curva,cubic-bezier(.22,.61,.36,1)); }
+html.v3 .sui-velo,
+html.v3 .lw-velo,
+html.v3 .lw-rail-velo{
+  transition:none;                       /* la opacidad va 1:1 con el dedo (§1) */
+  background:rgba(26,30,32,.42);
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+}
+/* La barra de agarre. Solo aparece cuando la hoja sube desde abajo: en un
+   cajón lateral no significaría nada, y un elemento que parece agarrable y no
+   lo es miente (§16.4). */
+html.v3 .v3-agarre{
+  flex:none; padding:10px 0 4px; display:grid; place-items:center;
+  cursor:grab; touch-action:none;
+}
+html.v3 .v3-agarre::before{
+  content:''; width:38px; height:5px; border-radius:999px;
+  background:var(--ss,#BEB3A5);
+}
+html.v3 .v3-agarrando .v3-agarre{ cursor:grabbing; }
+html.v3 .sui-cajon-cab,
+html.v3 .lw-panel-quien{ cursor:grab; }
+html.v3 .v3-agarrando .sui-cajon-cab,
+html.v3 .v3-agarrando .lw-panel-quien{ cursor:grabbing; }
+
+/* ─── §1 · PULSABLES ─────────────────────────────────────────────────────────
+   Se quitan los `:hover{transform:translateY(-1px)}` y los `:active{scale}` de
+   la suite. No es purismo: el acuse ahora lo escribe un muelle desde el
+   pointerdown, y dos transforms peleando por el mismo elemento dan un salto
+   visible en cuanto se pulsa con el ratón encima. Además el hover no existe en
+   una tablet, que es donde se firma. */
+html.v3 .sui-btn,
+html.v3 .lw-btn,
+html.v3 .lw-home,
+html.v3 .sui-chip,
+html.v3 .sui-ficha,
+html.v3 .lw-kpi{
+  transition:border-color 140ms var(--curva,ease), background-color 140ms var(--curva,ease), color 140ms var(--curva,ease);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+html.v3 .sui-btn:hover,
+html.v3 .lw-btn:hover,
+html.v3 .lw-home:hover,
+html.v3 .sui-ficha:hover,
+html.v3 .lw-kpi:hover{ transform:none; }
+html.v3 .sui-btn:active,
+html.v3 .lw-btn:active,
+html.v3 .lw-home:active{ transform:none; }
+html.v3 .sui-btn.primario:hover{ box-shadow:none; }
+/* §14 — con movimiento reducido el acuse no encoge nada: cambia el fondo.
+   Informa igual y no desplaza un píxel. */
+html.v3 .v3-pulsada{ background:rgba(72,91,55,.14); }
+html.v3 .lw-topbar .v3-pulsada{ background:rgba(241,235,221,.26); }
+
+/* ─── §12 · DIÁLOGOS ─────────────────────────────────────────────────────────
+   `display` no se puede animar, así que el JS sostiene el diálogo con esta
+   clase el tiempo justo para que salga por el mismo camino por el que entró. */
+html.v3 .lw-dlg-fondo{
+  background:rgba(26,30,32,.44);
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+}
+html.v3 .lw-dlg-fondo.v3-saliendo{ display:flex !important; }
+html.v3 .lw-dlg{
+  background:rgba(255,255,255,.95);
+  -webkit-backdrop-filter:var(--v3-vidrio-ligero); backdrop-filter:var(--v3-vidrio-ligero);
+  border:var(--v3-borde-claro);
+  box-shadow:var(--v3-sombra-alta);
+}
+
+/* ─── §12 §7 · POPOVER ───────────────────────────────────────────────────────
+   Nace anclado a su disparador; el JS le pone el `transform-origin` en la
+   esquina del control que lo abrió. */
+html.v3 .v3-pop{
+  position:fixed; z-index:130; min-width:184px; padding:6px; border-radius:14px;
+  background:rgba(255,255,255,.93); border:var(--v3-borde-claro);
+  -webkit-backdrop-filter:var(--v3-vidrio-ligero); backdrop-filter:var(--v3-vidrio-ligero);
+  box-shadow:var(--v3-sombra-alta);
+  opacity:0; pointer-events:none; transform-origin:top right;
+  font-family:var(--sans,'Jost',system-ui,sans-serif);
+}
+html.v3 .v3-pop.viva{ pointer-events:auto; }
+html.v3 .v3-pop button{
+  display:flex; width:100%; align-items:center; gap:10px;
+  font:inherit; font-size:.85rem; text-align:left;
+  padding:9px 11px; border:0; border-radius:10px; background:none;
+  color:var(--texto,#22282A); cursor:pointer;
+}
+html.v3 .v3-pop button:hover{ background:rgba(72,91,55,.10); }
+html.v3 .v3-pop button i{ font-size:1rem; color:var(--texto-2,#4A5052); }
+
+/* ─── §16.2 · AVISOS CON DESHACER ────────────────────────────────────────────
+   El que lleva acción: es lo que permite quitar de en medio la confirmación
+   previa en todo lo que no sea destructivo e irreversible. */
+html.v3 .v3-tostador{
+  position:fixed; left:50%; bottom:26px; z-index:210; transform:translateX(-50%);
+  width:min(440px, calc(100vw - 32px));
+  display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none;
+}
+html.v3 .v3-tosta{
+  pointer-events:auto; display:flex; align-items:center; gap:12px; width:100%;
+  padding:11px 14px; border-radius:14px; opacity:0;
+  font:inherit; font-size:.84rem; font-family:var(--sans,'Jost',system-ui,sans-serif);
+  background:rgba(34,40,42,.92); color:#F4EFE3; box-shadow:var(--v3-sombra-alta);
+  -webkit-backdrop-filter:var(--v3-vidrio-ligero); backdrop-filter:var(--v3-vidrio-ligero);
+}
+html.v3 .v3-tosta button{
+  margin-left:auto; font:inherit; font-size:.8rem; font-weight:600;
+  color:#CBD6B6; background:none; border:0; cursor:pointer; padding:4px 6px; border-radius:8px;
+}
+html.v3 .v3-tosta button:hover{ background:rgba(203,214,182,.14); }
+
+/* ─── §14 · LAS TRES SEÑALES, CADA UNA POR SU CUENTA ─────────────────────────
+   Son tres preferencias distintas y se piden por separado: hay quien apaga el
+   movimiento y quiere el vidrio, y quien necesita lo contrario. */
+@media (prefers-reduced-transparency:reduce){
+  html.v3 .lw-topbar{ background:#fff; -webkit-backdrop-filter:none; backdrop-filter:none; }
+  html.v3 .lw-topbar.lw-topbar-oscura{ background:var(--dl,#104C4F); }
+  html.v3 .sui-cajon, html.v3 .lw-panel, html.v3 .lw-dlg, html.v3 .v3-pop{
+    background:var(--sup-1,#fff); -webkit-backdrop-filter:none; backdrop-filter:none;
+  }
+  html.v3 .v3-tosta{ background:#22282A; -webkit-backdrop-filter:none; backdrop-filter:none; }
+  html.v3 .v3-borde{ -webkit-backdrop-filter:none; backdrop-filter:none;
+    background:linear-gradient(180deg, rgba(241,235,221,.92), transparent); }
+  html.v3 .sui-velo, html.v3 .lw-velo{ -webkit-backdrop-filter:none; backdrop-filter:none; }
+}
+@media (prefers-contrast:more){
+  html.v3 .sui-cajon, html.v3 .lw-panel, html.v3 .lw-dlg, html.v3 .v3-pop{
+    background:#fff; -webkit-backdrop-filter:none; backdrop-filter:none;
+    border:1.5px solid var(--borde-control,#8A8474);
+  }
+  html.v3 .lw-topbar{ background:#fff; -webkit-backdrop-filter:none; backdrop-filter:none;
+    border-bottom:1.5px solid var(--borde-control,#8A8474); }
+  html.v3 .lw-topbar.lw-topbar-oscura{ background:#0C3A3C; }
+}
+@media (prefers-reduced-motion:reduce){
+  /* El motor ya salta el recorrido; aquí solo se garantiza que no quede
+     ninguna transición de la suite moviendo algo por su cuenta. */
+  html.v3 *{ animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  html.v3 .sui-btn, html.v3 .lw-btn, html.v3 .lw-home,
+  html.v3 .sui-chip, html.v3 .sui-ficha, html.v3 .lw-kpi{
+    transition:background-color 140ms linear, border-color 140ms linear, color 140ms linear;
+  }
+}

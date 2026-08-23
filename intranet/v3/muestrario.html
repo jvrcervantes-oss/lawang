@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Suite Lawang · muestrario v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- LA CÁSCARA REAL, sin tocar: son los mismos ficheros que cargan las once
+     herramientas. Si algo se ve raro aquí, se ve raro allí. -->
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=604bf931">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<!-- y encima, la capa v3. Sin `?v3=1` en la URL no hace nada: por eso el
+     enlace de esta página lo lleva puesto. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=1e8d46b7">
+<script src="/contracts/assets/movimiento-v3.js?v=64e23807"></script>
+<style>
+/* Solo la caja del muestrario. Todo lo de dentro usa las clases de la suite:
+   si aquí hiciera falta escribir estilos para que algo se vea bien, sería
+   señal de que la capa v3 no llega a ese componente. */
+body{ margin:0; background:var(--sup-0,#F1EBDD); font-family:var(--sans,'Jost',system-ui,sans-serif); color:var(--texto,#22282A); }
+.mu{ max-width:1180px; margin:0 auto; padding:26px 26px 80px; }
+.mu section{ margin:0 0 34px; }
+.mu > section > h2{
+  margin:0 0 12px; font-size:11px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--sc,#8F9B7A);
+}
+.mu .caja{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB); border-radius:var(--r-m,12px); padding:18px; }
+.mu .fila{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.rejilla-kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+.rejilla-ficha{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+.nota{ font-size:12.5px; color:var(--texto-2,#4A5052); line-height:1.55; margin:8px 0 0; max-width:70ch; }
+</style>
+</head>
+<body>
+
+<!-- ── cromo: el mismo `.lw-topbar` de las once ─────────────────────────── -->
+<header class="lw-topbar lw-topbar-oscura">
+  <a class="lw-home" href="/intranet/v3/"><i class="ph ph-arrow-left"></i>Panel</a>
+  <h1 class="lw-title">Muestrario</h1>
+  <div class="lw-spacer" style="flex:1"></div>
+  <button type="button" class="lw-btn" id="abrePanel"><i class="ph ph-user"></i>Mi cuenta</button>
+  <button type="button" class="lw-btn primary" id="abreCajon"><i class="ph ph-sidebar-simple"></i>Abrir cajón</button>
+</header>
+
+<div class="mu">
+
+  <div class="sui-lede">
+    <div>
+      <h1>Componentes compartidos, con la piel v3</h1>
+      <p>Todo lo de esta página usa las clases que ya usan las once herramientas:
+         <code>.lw-topbar</code>, <code>.sui-tabla</code>, <code>.lw-kpi</code>,
+         <code>.sui-cajon</code>, <code>.lw-dlg</code>. No se ha escrito ni un estilo
+         propio para que se vean así.</p>
+    </div>
+    <div class="acciones">
+      <button type="button" class="sui-btn" id="avisa">Probar aviso</button>
+      <button type="button" class="sui-btn primario" id="abreDlg">Probar diálogo</button>
+    </div>
+  </div>
+
+  <section>
+    <h2>Cifras · .lw-kpi</h2>
+    <div class="rejilla-kpi">
+      <a class="lw-kpi" href="#"><span class="rot">Firmas esperando</span><span class="lw-cifra">3</span><span class="pie mal">pendientes de que el comprador firme</span></a>
+      <a class="lw-kpi" href="#"><span class="rot">Contratos</span><span class="lw-cifra">34</span><span class="pie espera">6 aún editables</span></a>
+      <a class="lw-kpi" href="#"><span class="rot">Facturas emitidas</span><span class="lw-cifra">112</span><span class="pie bien">ninguna anulada</span></a>
+      <a class="lw-kpi mando" href="#"><span class="rot">En obra</span><span class="lw-cifra">9</span><span class="pie">con fase abierta</span></a>
+    </div>
+    <p class="nota">Pulsa una y suéltala fuera: el acuse se cancela. Es §10 del manual —
+       se puede abortar arrastrando fuera y volver a armar arrastrando dentro.</p>
+  </section>
+
+  <section>
+    <h2>Filtros y búsqueda · .sui-buscar .sui-chip</h2>
+    <div class="caja">
+      <div class="fila" style="margin-bottom:12px">
+        <input class="sui-buscar" placeholder="Buscar comprador, proyecto o nº…">
+      </div>
+      <div class="fila">
+        <button type="button" class="sui-chip on">Todas <span class="n">34</span></button>
+        <button type="button" class="sui-chip">Editables <span class="n">6</span></button>
+        <button type="button" class="sui-chip">Firmadas <span class="n">28</span></button>
+        <button type="button" class="sui-chip vacio">Anuladas <span class="n">0</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tabla · .sui-tabla .sui-tag</h2>
+    <div class="sui-tabla-caja">
+      <table class="sui-tabla">
+        <thead><tr><th>Nº</th><th>Comprador</th><th>Proyecto</th><th class="num">Precio</th><th class="num">Pendiente</th><th>Situación</th></tr></thead>
+        <tbody>
+          <tr><td>CR00031</td><td>Marta Ferrán</td><td>Palm Field</td><td class="num">185.000,00 €</td><td class="num">92.500,00 €</td><td><span class="sui-tag gris">Editable</span></td></tr>
+          <tr><td>CC00028</td><td>Sven Halvorsen</td><td>Lawang Hills</td><td class="num">240.000,00 €</td><td class="num">0,00 €</td><td><span class="sui-tag ok">Firmado</span></td></tr>
+          <tr><td>CR00030</td><td>Lucía Prats</td><td>Palm Field</td><td class="num">168.000,00 €</td><td class="num">42.000,00 €</td><td><span class="sui-tag espera">Esperando firma</span></td></tr>
+          <tr><td>INV00110</td><td>Kadek Surya</td><td>Lawang Hills</td><td class="num">2.400,00 €</td><td class="num">2.400,00 €</td><td><span class="sui-tag alerta">Anulada</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fichas · .sui-ficha</h2>
+    <div class="rejilla-ficha">
+      <button type="button" class="sui-ficha">
+        <div class="sui-ficha-cab"><b>Palm Field</b><span class="sui-tag info">Activo</span></div>
+        <div class="sub">18 parcelas · 6 disponibles</div>
+        <div class="cifra">1.240.000,00 €</div>
+        <div class="pie"><span>4 en obra</span><span>2 entregadas</span></div>
+      </button>
+      <button type="button" class="sui-ficha sel">
+        <div class="sui-ficha-cab"><b>Lawang Hills</b><span class="sui-tag info">Activo</span></div>
+        <div class="sub">24 villas · 6 disponibles</div>
+        <div class="cifra">3.180.000,00 €</div>
+        <div class="pie"><span>5 en obra</span><span>9 entregadas</span></div>
+      </button>
+      <button type="button" class="sui-ficha">
+        <div class="sui-ficha-cab"><b>Sumba Hills</b><span class="sui-tag gris">Preventa</span></div>
+        <div class="sub">16 parcelas · 16 disponibles</div>
+        <div class="cifra">0,00 €</div>
+        <div class="pie"><span>sin obra</span></div>
+      </button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Formulario · .campo · botones</h2>
+    <div class="caja" style="max-width:520px">
+      <div class="campo"><label>Comprador</label><input value="Marta Ferrán"></div>
+      <div class="campo"><label>Proyecto</label><select><option>Palm Field</option><option>Lawang Hills</option></select></div>
+      <div class="campo"><label>Nota interna</label><textarea>Pendiente de KYC.</textarea></div>
+      <div class="fila">
+        <button type="button" class="sui-btn primario">Guardar</button>
+        <button type="button" class="sui-btn">Cancelar</button>
+        <button type="button" class="sui-btn peligro" id="borra">Eliminar</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ── cajón de detalle: el marcado del portal, palabra por palabra ─────── -->
+<div class="sui-velo" id="velo"></div>
+<aside class="sui-cajon" id="cajon" aria-label="Detalle">
+  <div class="sui-cajon-cab">
+    <b>CR00031 · Marta Ferrán</b>
+    <button type="button" class="sui-cajon-x" id="cierraCajon" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="sui-cajon-cuerpo" style="padding:18px; overflow:auto">
+    <div class="campo"><label>Proyecto</label><input value="Palm Field · parcela 12" readonly></div>
+    <div class="campo"><label>Precio</label><input value="185.000,00 €" readonly></div>
+    <div class="campo"><label>Situación</label><input value="Editable — falta la firma del segundo comprador" readonly></div>
+    <p class="nota">Arrástralo para cerrarlo. En móvil sube desde abajo y trae barra de
+       agarre; en escritorio entra por la derecha y se arrastra hacia la derecha.
+       El destino lo decide la velocidad, no dónde sueltas.</p>
+  </div>
+</aside>
+
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script>
+/* Lo mínimo para que el muestrario responda. Nada de esto es la v3: la v3 es
+   lo que hace `movimiento-v3.js` con estas mismas clases. */
+const $=s=>document.querySelector(s);
+$('#abreCajon').onclick=()=>{ $('#cajon').classList.add('on'); $('#velo').classList.add('on'); };
+$('#cierraCajon').onclick=()=>{ $('#cajon').classList.remove('on'); $('#velo').classList.remove('on'); };
+$('#velo').onclick=()=>$('#cierraCajon').click();
+
+/* Panel de cuenta: el marcado que inyecta topbar.js, copiado tal cual para
+   poder probarlo sin sesión. */
+$('#abrePanel').onclick=()=>{
+  let velo=document.querySelector('.lw-velo'), panel=document.querySelector('.lw-panel');
+  if(!panel){
+    velo=document.createElement('div'); velo.className='lw-velo'; document.body.appendChild(velo);
+    panel=document.createElement('aside'); panel.className='lw-panel';
+    panel.innerHTML='<div class="lw-panel-cab">'
+      +'<div class="lw-panel-quien"><b>Javier Cervantes</b><span>javier@lawang.es</span></div>'
+      +'<button type="button" class="lw-panel-x" aria-label="Cerrar">✕</button></div>'
+      +'<div class="lw-panel-cuerpo" style="padding:16px"><p class="nota">Panel de cuenta. '
+      +'Arrástralo para cerrarlo.</p></div>'
+      +'<div class="lw-panel-pie"><button type="button" class="lw-btn">Cerrar sesión</button></div>';
+    document.body.appendChild(panel);
+    const cerrar=()=>{ panel.classList.remove('on'); velo.classList.remove('on'); };
+    panel.querySelector('.lw-panel-x').onclick=cerrar;
+    velo.onclick=cerrar;
+  }
+  requestAnimationFrame(()=>{ panel.classList.add('on'); velo.classList.add('on'); });
+};
+
+/* `lwConfirmar`, con R — se llamaba `lwConfirm` aquí y no existía, así que caía
+   en un `alert()`. Un alert bloquea el hilo del navegador entero: la página deja
+   de responder y ni siquiera se puede cerrar desde fuera. No se usa nunca. */
+$('#abreDlg').onclick=()=>{
+  if(!window.lwConfirmar){ console.warn('dialogo.js no cargó'); return; }
+  lwConfirmar({ titulo:'¿Anular la factura INV00110?',
+                cuerpo:'Se marcará como anulada y dejará de contar en los totales. Se puede volver a emitir.',
+                confirmar:'Anular', tono:'peligro' })
+    .then(ok=>{ if(window.LW3) LW3.tosta(ok?'Factura anulada.':'No se ha tocado nada.',{icono:ok?'ph-prohibit':'ph-x'}); });
+};
+/* §16.2 — perdón en vez de confirmación: se hace y se ofrece deshacer. */
+$('#avisa').onclick=()=>{
+  if(window.LW3) LW3.tosta('Filtro «Anuladas» ocultado.',{icono:'ph-eye-slash',accion:{txt:'Deshacer',fn:()=>LW3.tosta('Restaurado.')}});
+};
+$('#borra').onclick=()=>{
+  if(window.LW3) LW3.tosta('Borrador eliminado.',{icono:'ph-trash',accion:{txt:'Deshacer',fn:()=>LW3.tosta('Recuperado.')}});
+};
+</script>
+</body>
+</html>
