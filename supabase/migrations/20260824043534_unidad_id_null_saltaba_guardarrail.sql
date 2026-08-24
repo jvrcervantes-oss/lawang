@@ -2,26 +2,6 @@
 -- "UPDATE sin WHERE" que marca el guardarraíl es un falso positivo de su
 -- heurística de texto sobre `tg_op = 'UPDATE'` (comparación dentro del cuerpo
 -- del trigger) — no hay ningún `update ... set` en este fichero.
--- ════════════════════════════════════════════════════════════════════════════
--- EL GUARDARRAÍL DE unidad_id SE SALTABA PONIÉNDOLO A NULL — 24-ago-2026
--- ════════════════════════════════════════════════════════════════════════════
--- Hallazgo de Seguridad (consulta de deploy, capa 1) sobre
--- `construccion_por_parcela.sql` de hoy mismo: `trg_valida_unidad_id_contrato`
--- cortaba con `return new` en cuanto `new.unidad_id is null` — ANTES de llegar
--- al `not public.es_admin()` de la línea siguiente. Un agente no-admin, autor
--- de un contrato de Construcción suyo y todavía sin bloquear (la policy de
--- `contratos` ya deja editar sus propios contratos no bloqueados), podía
--- vaciar `unidad_id` sin ser admin — exactamente lo que el guardarraíl decía
--- impedir. Sin ese enlace, `unidad_parte_cobrada` vuelve a repartir el cobro
--- de esa Construcción entre las parcelas hermanas sin asignar: la mezcla de
--- cobro entre parcelas (caso RP00069) que esta migración cerró hoy, reabierta
--- por la puerta de al lado. Tampoco deja rastro si el contrato no está
--- bloqueado (`trg_registra_edicion_privilegiada` de LAW-71 solo audita updates
--- sobre contratos YA bloqueados).
---
--- Cura: el chequeo de admin va PRIMERO, sobre cualquier cambio (incluido ir a
--- NULL). El `return` por NULL se queda, pero solo salta la comprobación de
--- pertenencia a la reserva raíz — no tiene sentido para un valor vacío.
 
 create or replace function public.trg_valida_unidad_id_contrato()
 returns trigger
@@ -48,3 +28,4 @@ begin
   return new;
 end;
 $$;
+;

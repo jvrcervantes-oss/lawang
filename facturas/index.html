@@ -16,7 +16,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=baea9186">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=7a917f4b">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -127,9 +127,17 @@
   /* Enlace-botón dentro de un .hint (19-ago-2026): «Ver justificante» y lo que
      venga después. Es un <button> y no un <a> porque la URL se firma al pulsar
      y caduca en 5 minutos — no hay href que poner de antemano. */
-  .hint .lnk{ font:inherit; font-size:inherit; background:none; border:none; padding:0 0 0 4px;
+  .hint .lnk, .justif-fila .lnk{ font:inherit; font-size:inherit; background:none; border:none; padding:0 0 0 4px;
     color:var(--dl); text-decoration:underline; cursor:pointer; }
-  .hint .lnk:hover{ color:var(--be); }
+  .hint .lnk:hover, .justif-fila .lnk:hover{ color:var(--be); }
+
+  /* Justificantes adjuntos de un recibí — 24-ago-2026, uno por fila. Una lista
+     de verdad y no un párrafo: con tres ficheros hay que poder decir CUÁL se
+     quita, y eso pide una fila propia con su nombre delante. */
+  .justif-lista{ margin-top:8px; display:flex; flex-direction:column; gap:5px; }
+  .justif-fila{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .justif-n{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--texto,#22282A); }
+  .justif-fila .lnk.quitar{ color:#a3342b; }
 
   .linea{ display:grid; grid-template-columns:1fr 100px 30px; gap:8px; align-items:end; margin-bottom:8px; }
   .linea label{ margin:0 0 4px; }
@@ -383,8 +391,9 @@
             <div id="aplicaciones"></div>
             <p class="hint" id="aplicSuma"></p>
             <label for="fJustificante">Justificante de pago (obligatorio)</label>
-            <input type="file" id="fJustificante" accept="image/jpeg,image/png,image/webp,application/pdf">
-            <p class="hint" id="justifEstado"></p>
+            <input type="file" id="fJustificante" multiple accept="image/jpeg,image/png,image/webp,application/pdf">
+            <p class="hint">Se puede adjuntar más de uno (hasta 8): un pago real llega a veces en el resguardo <i>y</i> la captura del banco, o en dos transferencias parciales. 10 MB por fichero.</p>
+            <div id="justifEstado" class="justif-lista"></div>
           </fieldset>
 
           <fieldset>
@@ -536,7 +545,7 @@ sb.auth.getSession().then(async ({data:{session}}) => {
     // pantalla de documento YA, para no enseñar el listado un instante.
     pantalla('documento');
     sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,datos,creado_por,justificante_path')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,datos,creado_por,justificante_path,justificantes')
       .eq('id', pedido).maybeSingle()
       .then(({ data, error }) => {
         if(error || !data){
@@ -584,7 +593,15 @@ let CLIENTE_DEL_CONTRATO = null;   // ficha del comprador del contrato elegido (
    se regenera SOLA a partir de esto para el documento impreso. */
 let APLICACIONES = [];
 let FACTURAS_ABIERTAS = [];   // [{id, numero, pendiente, contrato_numero, cliente_nombre}], para el <select> de aplicar
-let JUSTIFICANTE_PATH = null;   // path ya subido a Storage (bucket 'justificantes'), o null
+/* Justificantes del recibí — LISTA desde el 24-ago-2026 (encargo del owner:
+   «permitir adjuntar más de un archivo a un recibí»). Cada elemento es
+   {path, nombre, subido_en}: la RUTA es un UUID en el bucket privado y el
+   nombre original viaja aparte, dentro del dato, nunca en la ruta — un
+   justificante de transferencia real lleva a veces el nombre del cliente o el
+   importe en el nombre de archivo (revisión previa de Seguridad, 11-ago-2026).
+   En la base es `facturas.justificantes` (fuente); `justificante_path` sigue
+   existiendo como espejo del primero, escrito por un trigger. */
+let JUSTIFICANTES = [];
 let ES_ADMIN = false;   // lo fija la comprobación de sesión con la ficha del usuario
 let MI_FICHA = null;    // {rol, herramientas, activo} — la fija esa misma comprobación   // contrato del que sale la factura (FK real, no solo el nº impreso)
 
@@ -802,13 +819,39 @@ async function verJustificante(path){
   if(error || !data){ toast('No se pudo abrir el justificante: ' + ((error && error.message) || '')); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }
-function pintarEstadoJustificante(nombreVisible){
+/* Cuántos justificantes tiene un documento del listado, y cuáles. La lista
+   nueva (`justificantes`) manda; la columna vieja se lee solo si aquella viene
+   vacía, para que una fila sin migrar no se vea como «sin justificante». */
+function justifDe(f){
+  if(!f) return [];
+  if(Array.isArray(f.justificantes) && f.justificantes.length) return f.justificantes;
+  return f.justificante_path ? [{ path:f.justificante_path, nombre:'' }] : [];
+}
+const nJustif = f => justifDe(f).length;
+
+function pintarEstadoJustificante(){
   const caja = $('#justifEstado'); if(!caja) return;
-  if(!JUSTIFICANTE_PATH){ caja.textContent = ''; return; }
-  caja.innerHTML = esc(nombreVisible || 'Justificante adjunto.')
-    + ' <button type="button" class="lnk" id="btnVerJustif">Ver justificante</button>';
-  const b = $('#btnVerJustif');
-  if(b) b.addEventListener('click', () => verJustificante(JUSTIFICANTE_PATH));
+  if(!JUSTIFICANTES.length){ caja.innerHTML = ''; return; }
+  /* Una fila por fichero, con su nombre y sus dos acciones. El nombre importa:
+     con tres adjuntos, «Justificante adjunto» tres veces no dice cuál es cuál.
+     De los antiguos (subidos cuando solo cabía uno) no se guardó el nombre, y
+     ahí se dice eso mismo en vez de inventarse uno. */
+  caja.innerHTML = JUSTIFICANTES.map((j, i) => `<div class="justif-fila">
+      <span class="justif-n">${esc(j.nombre || 'Justificante adjunto')}</span>
+      <button type="button" class="lnk" data-ver="${i}">Ver</button>
+      <button type="button" class="lnk quitar" data-quitar="${i}">Quitar</button>
+    </div>`).join('');
+  caja.querySelectorAll('[data-ver]').forEach(b =>
+    b.addEventListener('click', () => verJustificante(JUSTIFICANTES[+b.dataset.ver].path)));
+  caja.querySelectorAll('[data-quitar]').forEach(b =>
+    b.addEventListener('click', () => {
+      /* Se quita de la LISTA del documento, no del bucket. Borrar el fichero
+         aquí destruiría la prueba de pago del recibí YA GUARDADO en cuanto
+         alguien se arrepienta a medias, porque la versión guardada sigue
+         citando ese path hasta que se pulse Guardar. */
+      JUSTIFICANTES.splice(+b.dataset.quitar, 1);
+      pintarEstadoJustificante();
+    }));
 }
 
 /* ---------- recibí: justificante de pago ----------
@@ -818,21 +861,35 @@ function pintarEstadoJustificante(nombreVisible){
    puede llevar el nombre del cliente o el importe en el nombre de archivo
    (revisión previa, Seguridad). Bucket privado, jamás público. */
 $('#fJustificante').addEventListener('change', async () => {
-  const f = $('#fJustificante').files[0]; if(!f) return;
-  if(f.size > 10*1024*1024){ toast('El justificante supera los 10 MB'); $('#fJustificante').value = ''; return; }
-  const ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
-  const path = crypto.randomUUID() + ext;
-  $('#justifEstado').textContent = 'Subiendo…';
-  try{
-    const up = await sb.storage.from('justificantes').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
-    if(up.error) throw up.error;
-    JUSTIFICANTE_PATH = path;
-    pintarEstadoJustificante('Justificante adjunto: ' + f.name);
-  }catch(err){
-    $('#justifEstado').textContent = '';
-    toast('No se pudo subir el justificante: ' + (err.message || err));
-    $('#fJustificante').value = '';
+  const elegidos = [...$('#fJustificante').files];
+  $('#fJustificante').value = '';   // se vacía YA: los ficheros ya están en `elegidos`
+  if(!elegidos.length) return;
+  if(JUSTIFICANTES.length + elegidos.length > 8){
+    toast('Un recibí admite hasta 8 justificantes (ya lleva ' + JUSTIFICANTES.length + ')');
+    return;
   }
+  const caja = $('#justifEstado');
+  /* Se suben de uno en uno y CADA UNO entra en la lista en cuanto termina, no
+     todos al final: si el tercero falla, los dos que sí subieron se quedan
+     puestos y solo hay que repetir el que falló. Y el fallo se dice con su
+     nombre — «no se pudo subir» a secas, con cuatro ficheros, no dice cuál. */
+  for(const [i, f] of elegidos.entries()){
+    if(f.size > 10*1024*1024){ toast(f.name + ' supera los 10 MB: no se ha subido'); continue; }
+    const ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    const path = crypto.randomUUID() + ext;
+    if(caja) caja.insertAdjacentHTML('beforeend',
+      '<p class="hint" data-subiendo="' + i + '">Subiendo ' + esc(f.name) + '…</p>');
+    try{
+      const up = await sb.storage.from('justificantes').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
+      if(up.error) throw up.error;
+      JUSTIFICANTES.push({ path, nombre: f.name, subido_en: new Date().toISOString() });
+    }catch(err){
+      toast('No se pudo subir ' + f.name + ': ' + (err.message || err));
+    }
+    const aviso = caja && caja.querySelector('[data-subiendo="' + i + '"]');
+    if(aviso) aviso.remove();
+  }
+  pintarEstadoJustificante();
 });
 
 /* ---------- datos del formulario ---------- */
@@ -1233,7 +1290,10 @@ function payload(){
     total: t.total,
     moneda: d.moneda || null,
     fecha_emision: d.fecha_emision || null,
-    justificante_path: d.tipo === 'recibi' ? JUSTIFICANTE_PATH : null,
+    /* `justificantes` (la lista) y NO `justificante_path`: la columna de texto
+       es el espejo del primero y lo escribe un trigger en la base. Escribir las
+       dos desde aquí sería devolverle dos dueños al mismo dato. */
+    justificantes: d.tipo === 'recibi' ? JUSTIFICANTES : [],
     datos: { fields:d, lineas:LINEAS, totales:t },
   };
 }
@@ -1250,7 +1310,7 @@ $('#btnSave').onclick = async () => {
   }
   if(d.tipo === 'recibi'){
     if(!APLICACIONES.length){ toast('Elige al menos una factura que salde este recibí'); return; }
-    if(!JUSTIFICANTE_PATH){ toast('Adjunta el justificante de pago'); return; }
+    if(!JUSTIFICANTES.length){ toast('Adjunta el justificante de pago'); return; }
     for(const a of APLICACIONES){
       const imp = parseImporte(a.importe);
       if(!imp || imp <= 0){ toast('Falta el importe aplicado a ' + a.numero); return; }
@@ -1297,7 +1357,7 @@ function nuevoDocumento(tipo){
   $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
-  APLICACIONES = []; JUSTIFICANTE_PATH = null; $('#fJustificante').value = ''; $('#justifEstado').textContent = '';
+  APLICACIONES = []; JUSTIFICANTES = []; $('#fJustificante').value = ''; pintarEstadoJustificante();
   $('[name="fecha_emision"]').value = hoyLocalISO();
   $('[name="numero_visible"]').value = '';
   $('#selContrato').value = ''; $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
@@ -1396,7 +1456,7 @@ async function cargarListado(){
        autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
        un dato que no existe en vez de como un dato que no se pidió. */
     const { data, error } = await sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,creado_por,datos,justificante_path')
+      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,creado_por,datos,justificante_path,justificantes')
       .order('created_at', { ascending:false }).limit(200);
     if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
     LDOCS = data || [];
@@ -1470,8 +1530,8 @@ function pintarListado(){
       <td>${DIVERGEN.has(f.id)
           ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>`
           : ''}</td>
-      <td class="num">${f.tipo === 'recibi' && f.justificante_path
-          ? `<button class="btn" data-justif="${esc(f.justificante_path)}" title="Ver el justificante de pago adjunto">📎</button>` : ''}
+      <td class="num">${f.tipo === 'recibi' && nJustif(f)
+          ? `<button class="btn" data-justif="${f.id}" title="Ver ${nJustif(f) === 1 ? 'el justificante de pago adjunto' : 'los ' + nJustif(f) + ' justificantes de pago adjuntos'}">📎${nJustif(f) > 1 ? ' ' + nJustif(f) : ''}</button>` : ''}
         ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
         ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
     </tr>`;
@@ -1503,7 +1563,20 @@ function pintarListado(){
     }
     // Ver el justificante desde la propia lista, sin abrir el recibí (19-ago)
     const ju = e.target.closest('[data-justif]');
-    if(ju){ e.stopPropagation(); verJustificante(ju.dataset.justif); return; }
+    if(ju){
+      e.stopPropagation();
+      const doc = (data || []).find(x => x.id === ju.dataset.justif);
+      const lista = justifDe(doc);
+      if(lista.length === 1){ verJustificante(lista[0].path); return; }
+      /* Varios: se elige con el selector compartido de la suite (`lwElegir`),
+         no con un menú propio de esta pantalla. */
+      const cual = await lwElegir({
+        titulo: 'Justificantes de ' + ((doc && doc.numero) || 'este recibí'),
+        opciones: lista.map((j, i) => ({ valor:String(i), texto:j.nombre || ('Justificante ' + (i+1)) })),
+      });
+      if(cual != null) verJustificante(lista[+cual].path);
+      return;
+    }
     const an = e.target.closest('[data-anular]');
     if(an){
       e.stopPropagation();
@@ -1597,9 +1670,9 @@ async function abrir(f){
   // Recibí (11-ago): una anulada se abre como copia (SAVED=null), así que su
   // aplicación y justificante NO se arrastran — habría que rehacerlas si se
   // vuelve a guardar, igual que ya pasa con el nº de factura.
-  JUSTIFICANTE_PATH = f.anulada ? null : (f.justificante_path || null);
+  JUSTIFICANTES = f.anulada ? [] : justifDe(f).map(j => ({ ...j }));
   $('#fJustificante').value = '';
-  pintarEstadoJustificante('Justificante ya adjunto.');
+  pintarEstadoJustificante();
   APLICACIONES = [];
   if(f.tipo === 'recibi' && !f.anulada){
     await cargarFacturasAbiertas();

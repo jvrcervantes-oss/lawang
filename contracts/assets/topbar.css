@@ -398,6 +398,53 @@ body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1)
 .lw-rail-i.aqui{ background:var(--sup-sel,#EAE4D3); color:var(--dl,#104C4F); font-weight:600;
   box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
 .lw-rail-tog{ margin-bottom:6px; color:var(--texto-3,#676B63); }
+
+/* AL PASAR EL RATÓN, EL RIEL PLEGADO SE ABRE PARA PODER LEERLO — 24-ago-2026,
+   encargo del owner. Plegado solo quedan los iconos, y un icono se reconoce
+   cuando ya sabes cuál buscas: para BUSCAR hace falta el nombre. Hasta ahora la
+   única salida era desplegar el menú (y volver a plegarlo) o parar el ratón
+   encima a esperar el `title` del navegador, que tarda ~1s y sale en gris de
+   sistema encima de la fila de al lado.
+
+   Se abre POR ENCIMA del contenido: el `padding-left` del body NO cambia. Si
+   empujara, cruzar el riel de camino a otra cosa movería la tabla que se está
+   leyendo — que es el fallo clásico de este patrón. Por eso lleva sombra: sin
+   ella se lee como una columna que ha crecido, no como una capa flotando.
+
+   `transition-delay` de 140 ms SOLO al abrir (al cerrar la regla deja de
+   aplicar y vuelve el 0 de la base): el ratón cruza esos 56px cada vez que va
+   del contenido a la barra, y sin retardo el menú se abriría y cerraría solo
+   todo el rato.
+
+   `:focus-within` con el mismo trato: quien tabula por el menú también necesita
+   leer dónde está, y ahí no hay ratón que provoque el hover.
+
+   Acotado a ratón de verdad (`hover:hover` + `pointer:fine`) y a escritorio: en
+   móvil el riel es una hoja que sube desde abajo, y el hover táctil lo dejaría
+   "abierto" después del primer toque, que es peor que no tenerlo. */
+@media (hover:hover) and (pointer:fine) and (min-width:861px){
+  .lw-rail:not(.abierto):hover,
+  .lw-rail:not(.abierto):focus-within{
+    width:208px; transition-delay:140ms;
+    box-shadow:6px 0 28px -14px rgba(34,40,42,.45);
+  }
+  .lw-rail:not(.abierto):hover .lw-rail-i span,
+  .lw-rail:not(.abierto):hover .lw-rail-tog span,
+  .lw-rail:not(.abierto):focus-within .lw-rail-i span,
+  .lw-rail:not(.abierto):focus-within .lw-rail-tog span{ opacity:1; transition-delay:140ms; }
+  /* el nombre del usuario, al pie, se esconde con `display` y no con opacidad
+     (regla de más abajo), así que hay que devolverlo aquí o el pie se queda a
+     medias mientras el resto del menú ya se lee */
+  .lw-rail:not(.abierto):hover .lw-rail-pie .lw-usuario-nom,
+  .lw-rail:not(.abierto):focus-within .lw-rail-pie .lw-usuario-nom{ display:inline; }
+}
+/* Con movimiento reducido, `.lw-rail{transition:none}` (más abajo) borraría
+   también el retardo, y el menú se abriría de golpe cada vez que el ratón cruza
+   el riel. El retardo NO es movimiento: se conserva con una transición de 1ms,
+   que no se ve pero sí espera. */
+@media (prefers-reduced-motion: reduce) and (hover:hover) and (min-width:861px){
+  .lw-rail:not(.abierto):hover, .lw-rail:not(.abierto):focus-within{ transition:width 1ms 140ms; }
+}
 /* El conmutador de idioma vive en el pie del riel y se pinta como una fila más:
    sin la píldora blanca que traía de la barra, que ahí abajo se leería como un
    botón suelto en medio de una lista. */

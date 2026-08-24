@@ -440,6 +440,9 @@
   .reg-chip.activo{ color:#0E6B70; border-color:#0E6B70; }
   .reg-chip.firmado{ color:var(--dl); border-color:var(--dl); }
   .reg-chip.malo{ color:#9E2F26; border-color:#9E2F26; }
+  /* Fila de accion del Registro (24-ago-2026): el boton de repartir las copias
+     del firmado, con su estado al lado. Va pegado a su tabla, no al margen. */
+  .reg-acc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px; }
   @media (max-width:640px){
     .cp-cols{ display:none; }
     .cp-row{ grid-template-columns:1fr; gap:2px; }

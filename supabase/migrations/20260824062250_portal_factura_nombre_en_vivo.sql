@@ -1,42 +1,5 @@
--- destructivo-ok: `create or replace function`, misma firma y mismos campos
--- del jsonb devuelto — no borra nada, solo cambia de dónde sale un valor.
--- ════════════════════════════════════════════════════════════════════════════
--- EL PORTAL PODÍA ENSEÑAR EL NOMBRE DE OTRO COMPRADOR EN UNA FACTURA — 24-ago-2026
--- ════════════════════════════════════════════════════════════════════════════
--- Hallazgo de hoy (revisión previa de Datos+Seguridad+Legal, no de auditoría
--- mecánica): `portal_situacion()` devolvía el nombre de cada factura leyendo
--- `f.cliente_nombre` — un texto guardado en el momento de crear el documento,
--- que puede quedarse desactualizado (un traspaso, un error al copiar datos).
--- El formulario interno (facturas/index.html) NUNCA tiene este problema porque
--- `traerContrato()` lo recalcula en vivo cada vez que se abre — pero eso solo
--- corrige lo que ve el agente en el formulario, nunca lo que ya está guardado
--- en la base. El comprador, en su portal, nunca pasa por ese formulario: veía
--- directamente el texto guardado, sin la corrección.
---
--- Caso real: REC00046 y PRO00055 (contrato RP00071, David Jimenez Vera / Sara
--- Caballero Palleja) tienen `cliente_nombre` con el nombre de otra pareja.
--- Nadie lo notó desde dentro del estudio porque el formulario lo enseña bien
--- solo. Plegado en el pendiente LAW-75 (mismo incidente, contexto/pendientes.md).
---
--- LA CURA, sin tocar el criterio de "quién es" (LAW-51/`contrato_identificadores`
--- ya fijó que la fuente es el JSONB del contrato, NUNCA `contrato_compradores`/
--- `clients` — esa tabla puede quedar vacía en silencio si el trigger que la
--- rellena atrapa un error, es_agente() la puede editar a mano, y
--- `sincronizar_compradores()` solo da de alta, nunca corrige una ficha ya
--- enlazada): se replica en SQL el mismo criterio que ya usa el formulario
--- (`compradoresDeContrato()` + `nombresFactura()` en contracts/assets/
--- compradores.js) — adq1 → adq2 → adq3 → `datos.compradores[]`, sin repetir
--- a la misma persona. Si el contrato no trae ningún nombre (huérfanas de
--- LAW-38, sin contrato_id), se cae al texto guardado — nunca a un campo en
--- blanco: un documento hacia un tercero real con un hueco es peor que uno
--- con un dato viejo (hallazgo de Seguridad en la revisión previa).
---
--- No toca RLS ni el resto de `portal_situacion()` — SOLO el campo 'cliente' de
--- cada factura. Base: la definición VIVA en producción (`pg_get_functiondef`),
--- que ya difería del repo en 'cobrado' (usa `contrato_cobrado(c.id)`, no la
--- CTE `cobros` que trae `contracts/sql/portal_comprador.sql` — arreglado de
--- paso para no reabrir esa deriva al reemplazar la función entera).
-
+-- destructivo-ok: create or replace function, misma firma y mismos campos del
+-- jsonb devuelto -- no borra nada, solo cambia de donde sale un valor.
 create or replace function public.contrato_nombres_factura(p_datos jsonb)
 returns text
 language sql
@@ -67,7 +30,7 @@ comment on function public.contrato_nombres_factura(jsonb) is
   'Nombre(s) de un contrato para el documento, mismo criterio y mismo orden que '
   'compradoresDeContrato()+nombresFactura() en contracts/assets/compradores.js: '
   'adq1, adq2, adq3, datos.compradores[], sin repetir. NULL si el contrato no '
-  'trae ningún nombre — quien llama decide el fallback, nunca en blanco.';
+  'trae ningun nombre -- quien llama decide el fallback, nunca en blanco.';
 revoke all on function public.contrato_nombres_factura(jsonb) from public, anon;
 grant execute on function public.contrato_nombres_factura(jsonb) to authenticated;
 
@@ -191,3 +154,4 @@ end $$;
 revoke execute on function public.portal_situacion() from public;
 revoke execute on function public.portal_situacion() from anon;
 grant execute on function public.portal_situacion() to authenticated;
+;

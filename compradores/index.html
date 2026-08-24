@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=cc7380a1">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=baea9186">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=7a917f4b">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=ae194bab">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
@@ -80,6 +80,19 @@
 
   .subir{ border:1px dashed var(--line); border-radius:11px; padding:13px; margin-top:12px; background:#FDFCF9; }
   .nota{ font-size:12px; color:var(--texto-2); margin:9px 0 0; line-height:1.5; }
+
+  /* Avance de pago por proyecto (24-ago-2026). La PISTA y el movimiento salen
+     de `.lw-bar` (suite.css), que ya usan Proyectos, Vencimientos y el portal:
+     aquí solo se dice la tinta —el mismo verde de la cifra «Cobrado» de esta
+     misma ficha, porque significan lo mismo— y cómo se apila la fila. */
+  .pp-titulo{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2);
+              font-weight:500; margin:16px 0 8px; }
+  .pp-lista{ display:flex; flex-direction:column; gap:13px; }
+  .pp-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+           font-size:13px; margin-bottom:5px; }
+  .pp-cab b{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-cab span{ flex:none; font-variant-numeric:tabular-nums; color:var(--texto-2); }
+  .lw-bar.cobro > i{ background:#3F5230; }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -223,6 +236,71 @@ async function cargar(){
   if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
   if(a.error) toast('No se pudieron leer los accesos al portal: ' + a.error.message);
   if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
+}
+
+/* ── CUÁNTO LLEVA PAGADO, PROYECTO A PROYECTO ──────────────────────────────
+   Encargo del owner, 24-ago-2026: «en la ficha de cliente haz más visible
+   cuánto lleva pagado el cliente en cada proyecto; lo haces bien con barras en
+   Proyectos y Vencimientos». Hasta hoy esta ficha daba UNA cifra sumada de
+   todo, y con dos villas en dos proyectos no había forma de saber cuál va
+   pagada y cuál no.
+
+   POR PROYECTO Y NO POR CONTRATO, a propósito: una villa se vende en dos
+   documentos —Bloqueo de Parcela (suelo) + Contrato de Construcción (obra)— y
+   sumarlos es lo correcto, no un duplicado (`contexto/suite_lawang.md` → «El
+   modelo de venta»). Una fila por contrato partiría cada villa en dos barras
+   al 50% que no significan nada.
+
+   Las reglas de qué suma son las MISMAS que la cifra de arriba, no una segunda
+   interpretación:
+   · el precio NO cuenta los preliminares (`lwEsPreliminar`) — la Carta de
+     Reserva repite el precio del contrato real que la sustituye;
+   · si el proyecto SOLO tiene preliminares, se enseña la cuota de reserva con
+     su etiqueta, porque es un pago exigible de verdad y dejarlo en blanco se
+     leería como «no debe nada»;
+   · el cobrado cuenta TODO recibí, venga de la reserva o del contrato real.
+
+   La moneda se resuelve por grupo: un cliente con un proyecto en EUR y otro en
+   IDR no puede tener una cifra sumada (y arriba se dice), pero SÍ puede tener
+   su barra en cada uno. */
+function pagosPorProyecto(suyos){
+  const grupos = new Map();
+  suyos.forEach(x => {
+    const k = (x.proyecto_nombre || '').trim() || '— sin proyecto —';
+    if(!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(x);
+  });
+  if(grupos.size === 0) return '';
+  const filas = [...grupos.entries()].map(([nombre, cts]) => {
+    const monedas = [...new Set(cts.map(x => x.moneda || 'EUR'))];
+    const moneda = monedas[0];
+    const sumables = cts.filter(x => !lwEsPreliminar(x.tipo));
+    const soloReserva = !sumables.length;
+    const base = soloReserva ? cts : sumables;
+    const precio = base.reduce((a,x) => a + (Number(soloReserva ? (x.precio_reserva ?? x.precio_total) : x.precio_total)||0), 0) || null;
+    const cobrado = cts.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
+    // Sin precio no hay porcentaje, y ahí NO se pinta barra: una barra vacía
+    // se lee como «no ha pagado nada», que es distinto de «no sabemos contra
+    // qué compararlo». Se dice con palabras.
+    const pct = precio ? Math.round(cobrado / precio * 100) : null;
+    const mezcla = monedas.length > 1;
+    return `<div class="pp-fila">
+      <div class="pp-cab">
+        <b>${esc(nombre)}</b>
+        <span>${mezcla ? '—' : (esc(lwFormatoImporte(cobrado, moneda)) + (precio ? ' de ' + esc(lwFormatoImporte(precio, moneda)) : ''))}${
+          pct != null && !mezcla ? ` · <b style="color:#3F5230">${pct}%</b>` : ''}</span>
+      </div>
+      ${pct != null && !mezcla
+        ? `<div class="lw-bar cobro" role="img" aria-label="Pagado el ${pct}% de ${esc(nombre)}"><i style="width:${Math.min(100, pct)}%"></i></div>`
+        : ''}
+      <p class="nota" style="margin:3px 0 0">${
+        mezcla ? 'Sus documentos de este proyecto están en monedas distintas (' + esc(monedas.join(', ')) + '): no se pueden sumar.'
+        : soloReserva ? 'Solo Carta(s) de Reserva: el importe es la cuota de reserva, no el precio final de la villa.'
+        : !precio ? 'Sus contratos de este proyecto no fijan precio todavía: solo se puede decir lo cobrado.'
+        : esc(cts.map(x => x.numero || 'sin nº').join(' · '))}</p>
+    </div>`;
+  }).join('');
+  return `<div class="pp-lista">${filas}</div>`;
 }
 
 /* estado de caducidad de un comprador, mirando TODOS sus documentos */
@@ -385,7 +463,11 @@ function pintarFicha(){
         const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos);
         if(!suyos.length) return '<p class="nota">Sin contrato enlazado todavía.</p>';
         const monedas = [...new Set(suyos.map(x => x.moneda || 'EUR'))];
-        if(monedas.length > 1) return `<p class="nota falta">Sus proyectos están en monedas distintas (${monedas.join(', ')}) — no se pueden sumar en una sola cifra. El detalle de cada uno está en «Contratos firmados», más arriba.</p>`;
+        // Monedas distintas: no hay UNA cifra, pero sí hay una barra por
+        // proyecto — cada grupo se resuelve en su propia moneda. Antes esto
+        // devolvía solo la disculpa y el cliente se quedaba sin ver nada.
+        if(monedas.length > 1) return `<p class="nota falta">Sus proyectos están en monedas distintas (${monedas.join(', ')}) — no se pueden sumar en una sola cifra. Cada uno, por separado:</p>
+        ${pagosPorProyecto(suyos)}`;
         const moneda = monedas[0];
         // Carta de Reserva (y su ampliada) es un documento preliminar: el precio
         // que declara es el MISMO que luego repite el contrato real (Bloqueo de
@@ -425,7 +507,8 @@ function pintarFicha(){
           <div><label>Cobrado</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>
           <div><label>Pendiente</label><p style="margin:0;font-size:19px;font-weight:600${pendiente>0?';color:#9E2F26':''}">${fmt(pendiente)}</p></div>
         </div>
-        <p class="nota">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.</p>`;
+        <p class="nota">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.</p>
+        ${suyos.length > 1 || (suyos[0] && suyos[0].proyecto_nombre) ? '<h4 class="pp-titulo">Avance de pago por proyecto</h4>' + pagosPorProyecto(suyos) : ''}`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `

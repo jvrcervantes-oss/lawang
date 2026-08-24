@@ -19,7 +19,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="assets/topbar.css?v=baea9186">
+<link rel="stylesheet" href="assets/topbar.css?v=7a917f4b">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -76,7 +76,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=fd2a6c65">
+<link rel="stylesheet" href="assets/app.css?v=a60edd48">
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
      no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
@@ -3061,6 +3061,16 @@ async function subirPdfFirmado(file){
     LOCKED = true; LOCKED_PDF_PATH = path;
     toast('Contrato bloqueado · PDF firmado guardado');
     updateSaveButton();
+    /* Cerrar a mano NO manda nada a nadie —ese era el hueco: el PDF entra en el
+       bucket y el firmante se queda sin su copia—. Se ofrece aquí, con una
+       persona delante, y no se manda solo: el estudio no escribe a un cliente
+       real sin que alguien lo vea. Si dice que no, el botón sigue en el
+       Registro del contrato. */
+    if(await lwConfirmar({
+      titulo: 'Mandarles su copia',
+      cuerpo: '<p>El contrato ya está cerrado. ¿Se les manda ahora la copia del PDF firmado a los firmantes?</p>'
+            + '<p class="em-note">Se puede hacer luego desde «Registro» → Copias del contrato firmado.</p>',
+      confirmar: 'Ver a quién se manda', cancelar: 'Ahora no' })) abrirRegistro();
   }catch(err){ toast('No se pudo bloquear: ' + (err.message || err)); }
   btn.disabled=false; btn.textContent='🔒 Subir firmado';
 }
@@ -4548,7 +4558,8 @@ async function abrirRegistro(){
     + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
     + '<td>' + esc(m.asunto) + '</td></tr>';
   cont.innerHTML =
-      '<p class="reg-tit">Enlaces de firma</p>'
+      copiasHTML(fmas.data, mails.data, fmas.error, mails.error)
+    + '<p class="reg-tit">Enlaces de firma</p>'
     + ((fmas.data||[]).length
         ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Firmante</th><th>Email</th><th>Estado</th><th>Creado</th><th>Expira / Firmado</th></tr></thead><tbody>'
           + fmas.data.map(filaFirma).join('') + '</tbody></table></div>'
@@ -4575,7 +4586,232 @@ async function abrirRegistro(){
           // las ediciones se apuntan desde el 18-ago-2026; lo anterior a esa
           // fecha se reconstruyó de las fechas reales de creación y firma
         : '<p class="em-note">Sin eventos registrados.</p>');
+  copiasWire(fmas.data, mails.data);
 }
+
+/* ============================================================
+   COPIAS DEL CONTRATO FIRMADO — que las reciba TODO EL QUE FIRMÓ
+   24-ago-2026, encargo del owner: «asegurarse de que se mandan copias de los
+   contratos firmados a todos los firmantes».
+
+   Lo que YA funcionaba y no se toca: al cerrarse la última firma de la cadena,
+   la Edge `firma-submit` reparte sola (estudio + cada comprador con email).
+   Verificado leyendo la función desplegada, no de memoria.
+
+   Los tres huecos que sí había, y que cubre esto:
+   · Un contrato cerrado A MANO («🔒 Subir firmado») no manda nada a nadie: el
+     PDF entra en el bucket y ahí se queda. Es el camino de todo lo firmado en
+     papel o con una firma escaneada.
+   · Si el reparto automático falla, el aviso muere en la pantalla del último
+     firmante —que ya cerró el navegador— y nadie del estudio se entera.
+   · No había forma de REENVIAR la copia a un firmante que la perdió, salvo
+     rehacer el envío a mano por fuera del sistema, sin dejar rastro.
+
+   Vive en el Registro del contrato porque es donde ya se mira quién ha recibido
+   qué: una segunda pantalla para lo mismo sería otra lista que se queda vieja.
+
+   POR QUÉ EL PDF VA POR LA EDGE Y NO DIRECTO: el WAF de Hostinger devuelve 403
+   a un POST a send_email.php con el documento dentro (LAW-30). `send-contract-email`
+   llama a send_email.php de servidor a servidor, fuera del WAF. Por encima de
+   15 MB se manda ENLACE firmado en vez de adjunto — mismo umbral y mismo motivo
+   que firma-submit: Gmail rebota por tamaño, y un correo rebotado es un contrato
+   que el cliente NO recibe y del que nadie se entera. Ese camino sí va directo
+   a send_email.php, porque lo que cruza es texto.
+
+   Y LA FECHA DE ABAJO NO ES UN ADORNO: el registro de envíos con vía «firma»
+   empezó a escribirse el 24-ago-2026 (hasta entonces el circuito repartía sin
+   dejar fila). Un contrato firmado antes de esa fecha NO se pinta en rojo: se
+   dice que no se puede confirmar, que es distinto de «no se envió». Pintar de
+   rojo 41 contratos que casi seguro sí salieron es la forma más rápida de que
+   nadie vuelva a mirar esta tabla — «un aviso que salta siempre no es un aviso». */
+const COPIAS_REGISTRO_DESDE = '2026-08-24T07:28:33Z';   // despliegue de firma-submit v21
+const COPIA_MAX_ADJUNTO = 15 * 1024 * 1024;
+const COPIA_MAX_TANDA = 45 * 1024 * 1024;   // peso total de la tanda (adjunto x destinatarios)
+const COPIA_ESPERA_MS = 4600;   // el cooldown de send-contract-email es de 4 s por usuario
+
+/* Quién firmó, con su dirección, sin repetir. Los que firmaron SIN email no se
+   descartan en silencio: se devuelven marcados, porque «este firmante no tiene
+   dirección a la que mandarle su copia» es justo lo que hay que ver. */
+function copiaFirmantes(firmas){
+  const vistos = new Set(), out = [];
+  (firmas || []).forEach(f => {
+    if(f.estado !== 'firmado') return;
+    const em = String(f.firmante_email || '').trim();
+    const valido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+    const k = valido ? em.toLowerCase() : 'sin-email:' + (f.id || f.firmante_nombre || Math.random());
+    if(vistos.has(k)) return;
+    vistos.add(k);
+    out.push({ email: valido ? em : '', nombre: f.firmante_nombre || '',
+               rol: String(f.firmante_rol || '').replace(/_/g, ' '), firmado_en: f.firmado_en });
+  });
+  return out;
+}
+
+function copiasHTML(firmas, mails, errFirmas, errMails){
+  /* Si la consulta no se pudo hacer, se dice — y no se enseña una tabla vacía
+     que se lee igual que «no hay nada que enviar». */
+  if(errFirmas || errMails)
+    return '<p class="reg-tit">Copias del contrato firmado</p>'
+         + '<p class="em-note">No se ha podido comprobar quién tiene su copia (falló la consulta). '
+         + 'No es que no se haya enviado: es que no se sabe.</p>';
+  const dest = copiaFirmantes(firmas);
+  if(!dest.length)
+    return '<p class="reg-tit">Copias del contrato firmado</p>'
+         + '<p class="em-note">Todavía no ha firmado nadie por vía electrónica, así que no hay copias que repartir.</p>';
+  const enviados = new Map();
+  (mails || []).filter(m => m.via === 'firma').forEach(m => {
+    const k = String(m.para || '').toLowerCase();
+    if(!enviados.has(k)) enviados.set(k, m);
+  });
+  // ¿Se firmó antes de que existiera el registro? Entonces no hay nada que leer.
+  const ultima = dest.map(d => d.firmado_en).filter(Boolean).sort().pop();
+  const anteriorAlRegistro = !ultima || ultima < COPIAS_REGISTRO_DESDE;
+
+  const filas = dest.map(d => {
+    const m = d.email ? enviados.get(d.email.toLowerCase()) : null;
+    let chip, cuando;
+    if(!d.email){ chip = '<span class="reg-chip malo">Sin dirección</span>'; cuando = '—'; }
+    else if(m){ chip = '<span class="reg-chip firmado">Enviada</span>'; cuando = regFecha(m.enviado_en); }
+    else if(anteriorAlRegistro){ chip = '<span class="reg-chip">Sin registro</span>'; cuando = '—'; }
+    else { chip = '<span class="reg-chip malo">No consta enviada</span>'; cuando = '—'; }
+    return '<tr><td>' + esc(d.nombre || '—') + '<br><span class="em-note">' + esc(d.rol) + '</span></td>'
+      + '<td>' + esc(d.email || 'no dejó email') + '</td>'
+      + '<td>' + chip + '</td><td>' + cuando + '</td></tr>';
+  }).join('');
+
+  const conEmail = dest.filter(d => d.email);
+  const pendientes = conEmail.filter(d => !enviados.get(d.email.toLowerCase()));
+  const sinEmail = dest.length - conEmail.length;
+  return '<p class="reg-tit">Copias del contrato firmado</p>'
+    + '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Firmante</th><th>Email</th><th>Copia</th><th>Cuándo</th></tr></thead><tbody>'
+    + filas + '</tbody></table></div>'
+    + (anteriorAlRegistro
+        ? '<p class="em-note">Este contrato se firmó antes del 24-ago-2026, cuando el reparto automático todavía no dejaba registro. Lo más probable es que las copias salieran; aquí no se puede confirmar.</p>'
+        : '')
+    + (sinEmail ? '<p class="em-note">' + sinEmail + ' firmante(s) sin dirección de correo: su copia hay que dársela por otra vía.</p>' : '')
+    + (LOCKED_PDF_PATH
+        ? '<p class="reg-acc"><button class="btn ghost" id="btnCopias"' + (conEmail.length ? '' : ' disabled') + '>'
+          + (pendientes.length ? '✉︎ Enviar copia a ' + pendientes.length + ' firmante(s)'
+                               : '✉︎ Reenviar copia a los ' + conEmail.length + ' firmante(s)')
+          + '</button> <span class="em-note" id="copiasEstado"></span></p>'
+        : '<p class="em-note">No hay PDF firmado guardado en este contrato, así que no hay copia que mandar.</p>');
+}
+
+/* El documento a repartir: adjunto si cabe, enlace firmado de 30 días si no.
+   Se prepara UNA vez para toda la tanda — leerlo por destinatario multiplicaría
+   la descarga por el número de firmantes sin ganar nada. */
+async function copiaDocumento(nDestinos){
+  if(!LOCKED_PDF_PATH) throw new Error('este contrato no tiene PDF firmado guardado');
+  const { data:blob, error } = await sb.storage.from('contratos-firmados').download(LOCKED_PDF_PATH);
+  if(error || !blob) throw new Error('no se pudo leer el PDF firmado: ' + ((error && error.message) || ''));
+  /* No basta con mirar el peso del PDF: el adjunto se sube una vez POR
+     DESTINATARIO desde este navegador. Es el mismo cálculo que hace la Edge al
+     repartir (allí midieron 4 firmantes × 3,9 MB = 25,7 MB en una sola tanda), y
+     aquí además sale por la conexión del agente, que puede estar en Bali. Pasado
+     el tope de la tanda se manda enlace: pesa lo mismo con dos que con seis. */
+  const tanda = blob.size * Math.max(1, nDestinos || 1);
+  if(blob.size <= COPIA_MAX_ADJUNTO && tanda <= COPIA_MAX_TANDA)
+    return { pdf_base64: await blobToBase64(blob),
+             filename: ((SAVED_CONTRACT && SAVED_CONTRACT.numero) || 'contrato') + '_firmado.pdf' };
+  const { data:url, error:eU } = await sb.storage.from('contratos-firmados')
+    .createSignedUrl(LOCKED_PDF_PATH, 30*24*3600);
+  if(eU || !url) throw new Error('no se pudo firmar el enlace de descarga: ' + ((eU && eU.message) || ''));
+  return { enlace: url.signedUrl };
+}
+
+/* Texto distinto del que manda la Edge al cerrarse la firma, A PROPÓSITO: aquel
+   dice «hemos recibido tu firma» porque sale en ese mismo momento; este lo manda
+   una persona después. Escribir aquí el mismo párrafo habría creado dos copias
+   del mismo texto en dos runtimes, que es como divergen. */
+function copiaMensaje(nombre, doc){
+  const numero = (SAVED_CONTRACT && SAVED_CONTRACT.numero) || '';
+  return 'Hola' + (nombre ? ' ' + String(nombre).split(' ')[0] : '') + ',' +
+    '\n\nTe enviamos tu copia del contrato ' + numero + ', ya firmado.' +
+    '\n\nGuárdalo: es el documento con el registro de firma electrónica que acredita la operación.' +
+    (doc.enlace
+      ? '\n\nEl documento va por enlace en vez de adjunto:\n' + doc.enlace +
+        '\n(El enlace caduca en 30 días. Si lo necesitas después, escríbenos.)'
+      : '\n\nEl documento firmado va adjunto a este correo.') +
+    '\n\n\nLawang Tropical Properties\nPT TEPI SUN GAI · PT SAN DAL WOODS';
+}
+
+async function copiaEnviarA(d, doc){
+  const asunto = 'Tu contrato firmado · ' + ((SAVED_CONTRACT && SAVED_CONTRACT.numero) || '');
+  const mensaje = copiaMensaje(d.nombre, doc);
+  if(doc.pdf_base64){
+    const s = await sb.auth.getSession();
+    const token = s && s.data && s.data.session && s.data.session.access_token;
+    /* SIN `contrato_id`: con él, la Edge deja la fila del registro como vía
+       «manual». La fila la escribe este navegador con vía «firma», que es el
+       hecho real —la copia del firmado salió a este firmante— y es lo que miran
+       esta tabla y el vigilante. Quién lo hizo ya lo distingue la columna
+       «Quién»: el circuito automático la deja vacía. */
+    const r = await fetch(SUPABASE_URL + '/functions/v1/send-contract-email', { method:'POST',
+      headers:{ 'content-type':'application/json', authorization:'Bearer ' + (token || '') },
+      body: JSON.stringify({ to:d.email, subject:asunto, message:mensaje,
+                             filename:doc.filename, pdf_base64:doc.pdf_base64 }) });
+    const j = await r.json().catch(()=>({ ok:false, error:'respuesta inválida del servidor' }));
+    if(!j.ok) throw new Error(j.error || 'no se pudo enviar');
+  } else {
+    // solo texto + enlace: cabe de sobra por el camino directo
+    const r = await fetch('api/send_email.php', { method:'POST', headers: await cabecerasCorreo(),
+      body: JSON.stringify({ to:d.email, subject:asunto, message:mensaje, attach:false }) });
+    const j = await r.json().catch(()=>({ ok:false, error:'respuesta inválida del servidor' }));
+    if(!j.ok) throw new Error(j.error || 'no se pudo enviar');
+  }
+  const { error:eLog } = await sb.from('correos_enviados').insert({
+    contrato_id: SAVED_CONTRACT.id, para: d.email, asunto, via: 'firma', enviado_por: MI_EMAIL });
+  /* El correo YA salió. Si el registro falla se dice EN PANTALLA y no solo en
+     la consola: esta tabla se lee como «quién la tiene», así que una fila que
+     falta se leería como una copia que no se envió, y alguien la mandaría dos
+     veces al mismo cliente. */
+  if(eLog) toast('Enviada a ' + d.email + ', pero NO se pudo anotar en el registro: ' + eLog.message);
+}
+
+/* El envío va detrás de una confirmación con nombres y direcciones a la vista:
+   son correos a clientes reales y el estudio no manda nada a un tercero sin que
+   una persona lo vea antes. */
+async function enviarCopiasFirmado(destinos){
+  const est = $('#copiasEstado'), btn = $('#btnCopias');
+  if(btn) btn.disabled = true;
+  let bien = 0; const fallos = [];
+  try{
+    if(est) est.textContent = 'Preparando el documento…';
+    const doc = await copiaDocumento(destinos.length);
+    for(const [i, d] of destinos.entries()){
+      if(est) est.textContent = 'Enviando ' + (i+1) + ' de ' + destinos.length + ' (' + d.email + ')…';
+      try{ await copiaEnviarA(d, doc); bien++; }
+      catch(err){ fallos.push(d.email + ': ' + (err.message || err)); }
+      // El cooldown de la Edge es por usuario, no por destinatario: sin esta
+      // espera el segundo envío de la tanda se lo come un 429.
+      if(doc.pdf_base64 && i < destinos.length - 1) await new Promise(r => setTimeout(r, COPIA_ESPERA_MS));
+    }
+  }catch(err){ fallos.push(String(err.message || err)); }
+  if(est) est.textContent = '';
+  if(bien) toast('Copia enviada a ' + bien + ' firmante(s)');
+  if(fallos.length) toast('No salió a: ' + fallos.join(' · '));
+  await abrirRegistro();   // se repinta con las filas nuevas del registro
+}
+
+function copiasWire(firmas, mails){
+  const btn = $('#btnCopias'); if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    const enviados = new Set((mails || []).filter(m => m.via === 'firma')
+      .map(m => String(m.para || '').toLowerCase()));
+    const conEmail = copiaFirmantes(firmas).filter(d => d.email);
+    const pend = conEmail.filter(d => !enviados.has(d.email.toLowerCase()));
+    const destinos = pend.length ? pend : conEmail;
+    if(!destinos.length) return;
+    const ok = await lwConfirmar({
+      titulo: 'Enviar el contrato firmado',
+      cuerpo: '<p>Se manda una copia del PDF firmado a:</p><ul>'
+        + destinos.map(d => '<li>' + esc(d.nombre || d.email) + ' — <b>' + esc(d.email) + '</b></li>').join('')
+        + '</ul>' + (pend.length ? '' : '<p>Todos constan como ya avisados: esto es un <b>reenvío</b>.</p>'),
+      confirmar: 'Enviar ' + destinos.length + ' copia(s)' });
+    if(ok) enviarCopiasFirmado(destinos);
+  });
+}
+
 $('#btnRegistro').addEventListener('click', abrirRegistro);
 $('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove('open'));
 
