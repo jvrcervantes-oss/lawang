@@ -234,6 +234,17 @@
   .tarj-cab{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .tarj-cab .n{ font-weight:600; letter-spacing:.04em; color:var(--dl,#104C4F); font-size:13px; }
   .tarj-c{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* «+3»: cuántos compradores más hay además del que se nombra. Va pegado al
+     nombre y no en una columna propia — con dos compradores, que es el caso
+     normal, una columna entera para un «+1» sería ruido en todas las filas. */
+  .mas-c{ display:inline-block; font-size:10.5px; font-weight:600; vertical-align:1px;
+          padding:1px 6px; border-radius:999px; margin-left:5px; flex:none;
+          background:var(--sup-sel,#EAE4D3); color:var(--dl,#104C4F); }
+  /* La celda pasa a flex para que el «+3» NO se lo coma la elipsis: lo que se
+     recorta es el nombre, nunca el número. Un contador a medio tapar sería el
+     mismo fallo que se viene a arreglar. */
+  table.ops .c, .tarj-c{ display:flex; align-items:baseline; gap:0; min-width:0; }
+  table.ops .c > :first-child, .tarj-c{ min-width:0; }
   .tarj-p{ font-size:11.5px; color:var(--texto-3,#676B63);
            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .tarj-cifra{ margin-top:3px; font-size:15px; font-weight:600;
@@ -381,14 +392,32 @@ let RECORTES = [];   // ['contratos', 'facturas'…] — lo que llegó al tope
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
   const [c, f, s, cc, dc, eq, cb, pe] = await Promise.all([
-    // `adq1` y `compradores` se piden para poder avisar de las fichas de
-    // comprador que faltan. Son campos pequeños del jsonb; sigue sin pedirse
-    // `datos` entero, que pesa MB por los anexos en base64.
+    /* ⚠️ NADA QUE SALGA DE `datos` EN ESTA CONSULTA. Medido el 24-ago-2026
+       sobre la tabla real: pedir `hitos:datos->hitos` la deja en **3.852 ms**;
+       la misma consulta sin tocar `datos`, en **0,37 ms**. Diez mil veces.
+
+       El motivo no es el tamaño de lo que se pide, es TOAST: `contratos` guarda
+       70 MB de jsonb en 112 filas (anexos en base64), y nombrar cualquier rama
+       —`datos->hitos`, aunque sean 200 bytes— obliga a Postgres a descomprimir
+       el valor ENTERO de cada fila. Paginar no lo arregla: 25 filas seguirían
+       siendo ~15 MB de descompresión.
+
+       Lo que se pedía de aquí y de dónde sale ahora:
+       · `hitos`  → solo lo usa la ficha de UNA operación (`pintarDetalle`), así
+                    que se carga al abrirla, no para las 112.
+       · `adq1` + `compradores` → solo servían para contar cuántas personas
+                    nombra el contrato. Ese número ya está en el espejo
+                    `comprador_nombre`, que es texto plano. Comprobado contra la
+                    base antes de fiarse: en los 112 contratos el conteo del
+                    espejo coincide con el del documento, 112 de 112.
+
+       La cura de fondo (sacar los base64 del jsonb) es otra tarea, y está
+       registrada como pendiente con esta medición al lado. */
     // Va por la función `contratos_equipo()` (7-ago) y no por `.from('contratos')`
     // directo: desde que la RLS de SELECT filtra por autor, una lectura directa
     // dejaría a un agente normal viendo solo SUS contratos aquí — y Operaciones
     // existe justo para cruzar los de todo el equipo. Mismo dato, sin el filtro.
-    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por,hitos:datos->hitos,adq1:datos->fields->>adq1_nombre,extras:datos->compradores').order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
+    SB.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,bloqueado,pdf_firmado_path,contrato_padre_id,created_at,creado_por').order('created_at',{ascending:false}).limit(TOPE_CONTRATOS + 1),
     // `created_at` va en el select aunque no se pinte: PostgREST exige que la
     // columna del `order` esté proyectada cuando el origen es una función (a
     // diferencia de una tabla/vista, donde ordenar por una columna no
@@ -535,9 +564,31 @@ const textoHito = h => h.es || h.en || h.id || 'Hito sin nombre';
    automática al guardar, pero se cae sin ruido si la persona no tiene pasaporte
    ni email, si el contrato se guardó antes de que existiera la sincronización,
    o (hasta el 29-jul) si era el cuarto adquiriente en adelante. */
+/* Cuántas personas nombra el contrato. Sale del espejo `comprador_nombre`, que
+   el trigger `espeja_comprador` mantiene con los nombres unidos por ' · ' — no
+   de `datos`, por lo dicho arriba. Verificado contra los 112 contratos reales:
+   el conteo coincide con el del documento en todos. */
 function compradoresNombrados(o){
-  return (String(o.adq1 || '').trim() ? 1 : 0)
-    + (Array.isArray(o.extras) ? o.extras.filter(x => String((x||{}).nombre || '').trim()).length : 0);
+  const s = String(o.comprador_nombre || '').trim();
+  if(!s) return 0;
+  return s.split(' · ').filter(x => x.trim()).length;
+}
+
+/* Cómo se resume la lista de compradores en una fila estrecha. Con cuatro
+   nombres, la celda los recortaba con puntos suspensivos y se leían dos: el
+   owner lo reportó como «me sale como mucho 2 adquirientes». No es un tope de
+   datos —el contrato admite hasta nueve y la ficha los enseña todos—, era la
+   celda. Ahora se ve el primero y CUÁNTOS más hay, y el título trae la lista
+   entera para el ratón. */
+function resumenCompradores(o){
+  const s = String(o.comprador_nombre || '').trim();
+  if(!s) return { texto:'Sin comprador', extra:'', titulo:'' };
+  const partes = s.split(' · ').filter(x => x.trim());
+  return {
+    texto: partes[0],
+    extra: partes.length > 1 ? '+' + (partes.length - 1) : '',
+    titulo: partes.length > 1 ? partes.length + ' compradores: ' + partes.join(' · ') : partes[0],
+  };
 }
 const fichasQueFaltan = o => Math.max(0, compradoresNombrados(o) - (o.compradores || []).length);
 
@@ -547,6 +598,29 @@ const fichasQueFaltan = o => Math.max(0, compradoresNombrados(o) - (o.compradore
    facturas/sql/contrato_cobrado.sql), precargado en op.cobrado por cargar().
    El nombre del campo se mantiene ("facturado") para no tocar cada sitio
    que ya lo lee — lo que cambió es CÓMO se calcula, no cómo se usa. */
+const HITOS_DE = {};   // contrato_id -> hitos, cargados al abrir su ficha
+
+/* Los hitos de UN contrato, a demanda. Antes viajaban en la consulta del
+   listado y costaban 3,9 s para las 112 operaciones; aquí se piden solo para la
+   que se abre, y se recuerdan por si se vuelve. Devuelve [] mientras llegan:
+   la ficha se repinta cuando están. */
+async function cargarHitos(id){
+  if(HITOS_DE[id]) return HITOS_DE[id];
+  const { data, error } = await SB.rpc('contratos_equipo').select('hitos:datos->hitos').eq('id', id).single();
+  if(error){
+    // Que no se hayan podido leer NO es lo mismo que «no tiene hitos»: se dice.
+    toast('No se pudieron cargar los hitos de pago: ' + error.message);
+    return null;
+  }
+  HITOS_DE[id] = Array.isArray(data && data.hitos) ? data.hitos : [];
+  /* Se cuelgan tambien de la propia operacion: `cuenta()` los lee de ahi y NO de
+     esta cache, para seguir siendo una funcion de lo que recibe — es la que
+     `etapas.test.js` extrae del HTML y ejecuta suelta, donde una global no
+     existe. El test lo caza en el acto si alguien lo vuelve a atar. */
+  const op = OPS.find(o => o.id === id); if(op) op.hitos = HITOS_DE[id];
+  return HITOS_DE[id];
+}
+
 function cuenta(op){
   const moneda = op.moneda || 'EUR';
   const precio = parseImporte(op.precio_total);
@@ -745,7 +819,8 @@ function pintarLista(){
     if(fichasQueFaltan(o)) b.push('<span class="tag alerta">Falta ficha</span>');
     return `<tr data-id="${esc(o.id)}" class="${SEL===o.id?'sel':''}">
       <td class="n">${esc(o.numero || 'sin nº')}</td>
-      <td class="c">${esc(o.comprador_nombre || 'Sin comprador')}</td>
+      <td class="c" title="${esc(resumenCompradores(o).titulo)}">${esc(resumenCompradores(o).texto)}${
+        resumenCompradores(o).extra ? ' <span class="mas-c">' + esc(resumenCompradores(o).extra) + '</span>' : ''}</td>
       <td class="p">${esc(o.proyecto_nombre || '—')}</td>
       <td class="p" title="${esc(o.creado_por || 'sin autor registrado')}">${esc(operador(o))}</td>
       <td class="num">${c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>'}</td>
@@ -830,7 +905,8 @@ function tarjetaOp(o, k){
     ? `<div class="tarj-cobro"><i style="width:${Math.min(100, Math.round(c.facturado / c.precio * 100))}%"></i></div>` : '';
   return `<button type="button" class="tarj ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}" style="--etapa:${ETAPA_COLOR[k]}">
     <span class="tarj-cab"><span class="n">${esc(o.numero || 'sin nº')}</span>${avisos.join('')}</span>
-    <span class="tarj-c">${esc(o.comprador_nombre || 'Sin comprador')}</span>
+    <span class="tarj-c" title="${esc(resumenCompradores(o).titulo)}">${esc(resumenCompradores(o).texto)}${
+      resumenCompradores(o).extra ? ' <span class="mas-c">' + esc(resumenCompradores(o).extra) + '</span>' : ''}</span>
     <span class="tarj-p">${esc(o.proyecto_nombre || '—')}${o.creado_por ? ' · ' + esc(operador(o)) : ''}</span>
     ${cobro}
     <span class="tarj-cifra">${cifra}<small>${rotulo}</small></span>
@@ -845,7 +921,14 @@ function pintarDetalle(){
   const cg = cuentaGrupo(op);
   const fmt = n => n == null ? '—' : fmtMoneda(n, c.moneda);
 
-  const filasHitos = c.hitos.length ? c.hitos.map(h => {
+  /* Si los hitos aún no están cargados, se piden y se repinta. `HITOS_DE` los
+     recuerda, así que la segunda vuelta no entra aquí y no hay bucle. */
+  if(!HITOS_DE[op.id]) cargarHitos(op.id).then(h => { if(h && SEL === op.id) pintarDetalle(); });
+  const cargandoHitos = !HITOS_DE[op.id];
+
+  const filasHitos = cargandoHitos
+    ? '<tr><td colspan="3" class="nota">Cargando los hitos de pago…</td></tr>'
+    : c.hitos.length ? c.hitos.map(h => {
     const imp = importeHito(h, c.precio, c.moneda);
     return `<tr>
       <td>${esc(textoHito(h))}${h.timing ? ' <span class="nota">· ' + esc(h.timing) + '</span>' : ''}</td>

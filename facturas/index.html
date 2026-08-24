@@ -110,7 +110,72 @@
   .pane-form .inner{ padding:16px 18px 40px; }
   /* Sin caja dentro de la tarjeta: en 2a el grupo se separa con su ROTULO, no con
      un segundo marco. Dos marcos anidados es lo que engordaba el formulario. */
-  fieldset{ border:none; padding:0; margin:0 0 18px; }
+  /* ── LA COLUMNA DEL FORMULARIO, POR SECCIONES — 24-ago-2026 ──────────────
+     Encargo del owner: «toda la documentación está ahí súper apiñada en un
+     lateral y toda seguida, sin colores, sin diferencias entre secciones».
+     Era literal: ocho `fieldset` sin borde, sin fondo y sin más separación que
+     18 px, con el rótulo en gris de 10,5 px. Todo pesaba lo mismo, así que
+     nada destacaba y había que leer para saber dónde empezaba cada cosa.
+
+     Cada sección pasa a ser una TARJETA con su fondo y su filete, y el rótulo
+     gana tinta y un punto de acento a la izquierda. No se inventa paleta: el
+     acento es `--dl` (Deep Lagoon), el mismo que ya marca «esto se puede tocar»
+     en toda la suite, y el fondo sale de las variables de marca. Sin sombras,
+     como el resto del sistema. */
+  fieldset{ border:1px solid var(--line); border-radius:12px; padding:13px 14px 15px;
+            margin:0 0 12px; background:var(--card); }
+  fieldset > legend{ display:flex; align-items:center; gap:7px; }
+  fieldset > legend::before{ content:''; width:3px; height:11px; border-radius:2px;
+            background:var(--dl); flex:none; }
+  /* El primer campo de una tarjeta no necesita el margen superior de `label`:
+     ya lo da el relleno de la tarjeta. */
+  fieldset > label:first-of-type{ margin-top:2px; }
+
+  /* Bloques plegables (Impuesto, Notas): lo que casi nunca se rellena no ocupa
+     sitio hasta que se pide. Mismo aspecto de tarjeta, para que la columna se
+     lea como una sola lista. */
+  .plegable{ border:1px solid var(--line); border-radius:12px; background:var(--card);
+             margin:0 0 12px; padding:0 14px; }
+  .plegable > summary{ cursor:pointer; list-style:none; padding:12px 0;
+             font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+             color:var(--texto-2,#4A5052); font-weight:600;
+             display:flex; align-items:center; gap:7px; }
+  .plegable > summary::-webkit-details-marker{ display:none; }
+  .plegable > summary::before{ content:'+'; width:15px; height:15px; flex:none;
+             display:grid; place-items:center; border:1px solid var(--line);
+             border-radius:5px; font-size:12px; line-height:1; color:var(--dl); }
+  .plegable[open] > summary::before{ content:'−'; }
+  .plegable[open]{ padding-bottom:14px; }
+  .plegable .opc{ font-size:9.5px; letter-spacing:.08em; color:var(--muted); font-weight:500; }
+
+  /* Botón que abre el buscador de contrato. Se pinta como un campo, no como un
+     botón: ocupa el sitio de un `<select>` y tiene que leerse como tal. */
+  .campo-elegir{ width:100%; font:inherit; font-size:14px; text-align:left;
+             padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+             background:var(--rl,#fff); color:inherit; cursor:pointer;
+             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .campo-elegir:hover{ border-color:var(--dl); }
+  .campo-elegir::after{ content:'⌄'; float:right; color:var(--muted); margin-left:8px; }
+  .campo-elegir.vacio{ color:var(--muted); }
+
+  /* Campo que rellena el contrato y no se teclea. Se ve DISTINTO de un campo
+     vacío: gris de fondo y candado. Un campo que no deja escribir sin decir por
+     qué se lee como una pantalla rota. */
+  .campo-del-contrato{ background:var(--sup-0,#F1EBDD); color:var(--texto-2,#4A5052);
+             cursor:default; }
+  .campo-del-contrato:focus{ outline:none; border-color:var(--line); }
+
+  /* El contrato encadenado: aviso que se queda, no un botón más. */
+  .vinc{ border:1px solid var(--dl); border-left-width:3px; border-radius:10px;
+         padding:11px 12px; margin-top:10px; background:var(--sup-0,#F1EBDD); }
+  .vinc.malo{ border-color:#9E2F26; background:#FBF3F1; }
+  .vinc-t{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:3px; }
+  .vinc.malo .vinc-t{ color:#9E2F26; }
+  .vinc p{ margin:0; font-size:12px; color:var(--texto-2,#4A5052); line-height:1.45; }
+  .vinc-btn{ margin-top:9px; font:inherit; font-size:12.5px; font-weight:500;
+         border:1px solid var(--dl); background:var(--dl); color:#fff;
+         border-radius:999px; padding:7px 14px; cursor:pointer; }
+  .vinc-btn:hover{ opacity:.9; }
   legend{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
           color:var(--texto-2,#4A5052); font-weight:600; padding:0; margin-bottom:10px; }
   label{ display:block; font-size:11.5px; color:var(--texto-2,#4A5052); margin:10px 0 4px; }
@@ -311,8 +376,16 @@
                antes que "Emisor"/"Cliente" es también el orden en que se rellenan solos. -->
           <fieldset>
             <legend>Documento</legend>
-            <label for="selContrato">Contrato</label>
-            <select id="selContrato"><option value="">— elige un contrato —</option></select>
+            <label for="btnContrato">Contrato</label>
+            <!-- BUSCADOR, no desplegable — 24-ago-2026, encargo del owner («el
+                 desplegable ya es demasiado grande»). Y no era solo incómodo:
+                 el `<select>` cargaba los 60 contratos más recientes, y hay 112.
+                 C200003 tiene 70 contratos por delante, así que era literalmente
+                 IMPOSIBLE facturarlo desde aquí — 52 contratos fuera de alcance
+                 sin que nada lo dijera. Se elige con `lwElegir` (dialogo.js), el
+                 control de la suite para listas largas, que trae el buscador
+                 dentro y funciona igual en el móvil. -->
+            <button type="button" class="campo-elegir" id="btnContrato">— elige un contrato —</button>
             <div id="delContrato"></div>
             <div id="delVinculado"></div>
             <div class="row2">
@@ -365,8 +438,6 @@
             <input id="fa-cliente_nombre" name="cliente_nombre">
             <label for="fa-cliente_documento">Pasaporte / NPWP / NIF</label>
             <input id="fa-cliente_documento" name="cliente_documento">
-            <label for="fa-cliente_domicilio">Domicilio</label>
-            <textarea id="fa-cliente_domicilio" name="cliente_domicilio"></textarea>
             <label for="fa-cliente_email">Email</label>
             <input id="fa-cliente_email" type="email" name="cliente_email">
             <label for="fa-proyecto_nombre">Proyecto / unidad</label>
@@ -396,19 +467,25 @@
             <div id="justifEstado" class="justif-lista"></div>
           </fieldset>
 
-          <fieldset>
-            <legend>Impuesto (opcional)</legend>
+          <!-- Impuesto y Notas van PLEGADOS (24-ago-2026, encargo del owner: «hazlo
+               más como si quiero añadirlo, que se despliegue»). Casi ninguna
+               factura de Lawang lleva impuesto ni nota, y ocupaban dos bloques
+               enteros de la columna en todas. `<details>` nativo: se abre solo si
+               el documento ya trae algo dentro (ver `abrirLoQueTengaContenido`),
+               porque un dato guardado que no se ve es peor que un bloque de más. -->
+          <details class="plegable" id="dtImpuesto">
+            <summary>Impuesto <span class="opc">opcional</span></summary>
             <div class="row2">
               <div><label for="fa-imp_etiqueta">Etiqueta</label><input id="fa-imp_etiqueta" name="imp_etiqueta" placeholder="Ej. PPN"></div>
               <div><label for="fa-imp_pct">Porcentaje</label><input id="fa-imp_pct" name="imp_pct" inputmode="decimal" placeholder="Ej. 11"></div>
             </div>
             <p class="hint">En blanco, el documento no lleva impuesto.</p>
-          </fieldset>
+          </details>
 
-          <fieldset>
-            <legend>Notas</legend>
+          <details class="plegable" id="dtNotas">
+            <summary>Notas <span class="opc">opcional</span></summary>
             <textarea name="notas" placeholder="Condiciones de pago, referencia de transferencia…"></textarea>
-          </fieldset>
+          </details>
         </form>
       </div>
     </div>
@@ -558,10 +635,10 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   } else if(contratoUrl){
     nuevoDocumento(LTIPO || 'factura');
     pantalla('documento');
-    // sin esperar, el <select> aún no tiene opciones y fijarle el valor lo
-    // dejaba en el placeholder: el agente no veía QUÉ contrato estaba facturando
+    // sin esperar, el catálogo aún no está cargado y el rótulo del botón se
+    // quedaría en «elige un contrato»: el agente no vería QUÉ está facturando
     await contratosListos;
-    $('#selContrato').value = contratoUrl;
+    CONTRATO_ID = contratoUrl; pintarContratoElegido();
     traerContrato(contratoUrl);
     // Un recibí abierto por deep-link ya tiene comprador: sin esto su selector
     // de facturas se quedaría vacío, porque se pintó antes de saberlo (LAW-41(2))
@@ -892,6 +969,17 @@ $('#fJustificante').addEventListener('change', async () => {
   pintarEstadoJustificante();
 });
 
+/* Abre los bloques plegables que YA tienen algo dentro. Un impuesto o una nota
+   guardados en el documento, con su bloque cerrado, son un dato que sale
+   impreso y no se ve al revisarlo: exactamente el fallo que un plegado mal
+   hecho introduce. Se llama al abrir un documento guardado. */
+function abrirLoQueTengaContenido(){
+  const dt = $('#dtImpuesto');
+  if(dt) dt.open = !!(($('[name="imp_etiqueta"]')||{}).value || ($('[name="imp_pct"]')||{}).value);
+  const dn = $('#dtNotas');
+  if(dn) dn.open = !!($('[name="notas"]')||{}).value;
+}
+
 /* ---------- datos del formulario ---------- */
 function collect(){
   const d = {};
@@ -1071,29 +1159,108 @@ $('#mailSend').onclick = async () => {
    a 2,6 MB (los anexos van dentro en base64), así que traerlo de los 60 sería
    descargar decenas de megas para llenar un desplegable. Al elegir uno se pide
    solo ESE, y de su jsonb únicamente `fields` y `hitos`. */
+let CONTRATOS = [];   // catálogo para el buscador: id, numero, comprador, proyecto
+
+/* Pone el rótulo del botón de contrato. Un botón que dice «elige un contrato»
+   con uno ya elegido es la forma de facturar al cliente equivocado. */
+function pintarContratoElegido(){
+  const b = $('#btnContrato'); if(!b) return;
+  const c = CONTRATOS.find(x => x.id === CONTRATO_ID);
+  b.textContent = c
+    ? (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')
+    : '— elige un contrato —';
+  b.classList.toggle('vacio', !c);
+}
+
 async function cargarContratos(){
-  // contratos_equipo(), no .from('contratos'): la RLS por agente (7-ago) deja
-  // .from() en solo los propios, y este desplegable sirve para facturar un
-  // contrato que firmó CUALQUIER agente. created_at va en el select aunque no
-  // se use — un recurso de función exige que la columna del order() esté
-  // proyectada (PostgREST 42703 si no, ver operaciones/index.html).
+  /* contratos_equipo(), no .from('contratos'): la RLS por agente (7-ago) deja
+     .from() en solo los propios, y esto sirve para facturar un contrato que
+     firmó CUALQUIER agente. created_at va en el select aunque no se pinte — un
+     recurso de función exige que la columna del order() esté proyectada
+     (PostgREST 42703 si no, ver operaciones/index.html).
+
+     SIN `datos` NI NADA QUE SALGA DE ÉL, y no es una preferencia: `contratos`
+     guarda 70 MB de jsonb en 112 filas (anexos en base64), así que basta con
+     nombrar `datos->algo` para que Postgres tenga que descomprimirlo entero.
+     Medido el 24-ago-2026 sobre esta misma tabla: 3.852 ms tocándolo, 0,37 ms
+     sin tocarlo. Diez mil veces. Aquí no hace falta, así que no se pide.
+
+     Y ya no hay `limit(60)`: con 112 contratos, ese tope dejaba 52 fuera del
+     alcance del buscador sin decirlo. El tope de ahora es holgado y, si algún
+     día se alcanza, se AVISA en vez de recortar en silencio. */
+  const TOPE = 500;
   const { data, error } = await sb.rpc('contratos_equipo')
     .select('id,numero,comprador_nombre,proyecto_nombre,created_at')
-    .order('created_at', { ascending:false }).limit(60);
-  if(error || !data) return;
-  const sel = $('#selContrato');
-  sel.innerHTML = '<option value="">— elige un contrato —</option>' + data.filter(c => c.numero).map(c =>
-    `<option value="${esc(c.id)}">${esc(c.numero)} — ${esc(c.comprador_nombre || 'sin nombre')}${c.proyecto_nombre ? ' · ' + esc(c.proyecto_nombre) : ''}</option>`).join('');
-  sel.onchange = () => {
-    CONTRATO_ID = sel.value || null;
-    if(sel.value) traerContrato(sel.value);
-    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; }
-    // Cambiar de contrato cambia el comprador, y con él qué facturas puede
-    // saldar este recibí (LAW-41(2)). Las ya añadidas que dejen de valer se
-    // quitan aquí y no en el guardado: guardar_recibi() las rechazaría con un
-    // error de base de datos después de haber escrito todo lo demás.
+    .order('created_at', { ascending:false }).limit(TOPE + 1);
+  if(error || !data){
+    // Un catálogo vacío se lee igual que «no hay contratos». No es lo mismo.
+    CONTRATOS = [];
+    toast('No se pudo cargar la lista de contratos: ' + ((error && error.message) || ''));
+    return;
+  }
+  if(data.length > TOPE) toast('Hay más de ' + TOPE + ' contratos: el buscador enseña los ' + TOPE + ' más recientes');
+  CONTRATOS = data.filter(c => c.numero).slice(0, TOPE);
+  pintarContratoElegido();
+
+  $('#btnContrato').addEventListener('click', async () => {
+    const elegido = await lwElegir({
+      titulo: 'Contrato que se factura',
+      buscarPh: 'Número, comprador o proyecto…',
+      opciones: [{ valor:'', texto:'— sin contrato —' }].concat(CONTRATOS.map(c => ({
+        valor: c.id,
+        texto: (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre'),
+        nota:  c.proyecto_nombre || '',
+      }))),
+    });
+    if(elegido === null) return;             // cerró sin elegir: no se toca nada
+    CONTRATO_ID = elegido || null;
+    pintarContratoElegido();
+    if(CONTRATO_ID) traerContrato(CONTRATO_ID);
+    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; soltarCampos(); }
+    /* Cambiar de contrato cambia el comprador, y con él qué facturas puede
+       saldar este recibí (LAW-41(2)). Las ya añadidas que dejen de valer se
+       quitan aquí y no en el guardado: guardar_recibi() las rechazaría con un
+       error de base de datos después de haber escrito todo lo demás. */
     if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi();
-  };
+  });
+}
+
+/* ── LO QUE VIENE DEL CONTRATO NO SE TECLEA ────────────────────────────────
+   24-ago-2026, encargo del owner: «si selecciono un contrato anterior ya tienes
+   información que puedes bloquear por completo».
+
+   No es comodidad, es corrección: el nombre, el pasaporte, el email, el
+   proyecto, la moneda y el número de contrato son del CONTRATO, y una factura
+   que los contradiga es una factura a nombre de quien no es. Ya mordió —
+   RP00069 traía email y RP00071 no, y cambiar de uno a otro dejaba una factura
+   con el email de otra persona (auditoría 21-ago).
+
+   Se bloquea SOLO lo que el contrato ha rellenado de verdad. Un campo que el
+   contrato no trae se queda abierto: bloquear un hueco no protege nada y deja
+   una factura que no se puede completar. Se marca con `.campo-del-contrato`
+   para que se vea POR QUÉ no se puede escribir ahí — un campo gris sin
+   explicación se lee como una pantalla rota.
+
+   `readonly` y no `disabled` a propósito: `disabled` no se envía con el
+   formulario, y `collect()` recorre `[name]` para armar el documento. */
+function bloquear(el, si){
+  if(!el) return;
+  if(el.tagName === 'SELECT'){
+    // un <select> no tiene readonly: se bloquea con el atributo y se vuelve a
+    // abrir al soltarlo. Solo hay uno (moneda) y se guarda igual.
+    el.classList.toggle('campo-del-contrato', si);
+    el.style.pointerEvents = si ? 'none' : '';
+    el.tabIndex = si ? -1 : 0;
+    return;
+  }
+  el.readOnly = !!si;
+  el.classList.toggle('campo-del-contrato', !!si);
+}
+
+/* Al quedarse sin contrato se sueltan TODOS: si no, un formulario que se
+   vació seguiría con los campos grises y sin poder escribir en ellos. */
+function soltarCampos(){
+  document.querySelectorAll('.campo-del-contrato').forEach(el => bloquear(el, false));
 }
 
 async function traerContrato(id){
@@ -1130,16 +1297,18 @@ async function traerContrato(id){
      nuevo no los trae — un hueco se ve, un dato de otra persona no. Lo que NO se
      vacía es moneda, sociedad ni cuenta de cobro: eso no es identidad, es un
      valor por defecto razonable, y borrarlo solo obligaría a volver a elegirlo. */
-  const IDENTIDAD = ['cliente_nombre', 'cliente_documento', 'cliente_domicilio',
+  const IDENTIDAD = ['cliente_nombre', 'cliente_documento',
                      'cliente_email', 'proyecto_nombre'];
   const puesto = [];
   const poner = (name, valor, etiqueta) => {
     const el = document.querySelector(`[name="${name}"]`); if(!el) return;
     if(!valor){
       if(IDENTIDAD.includes(name) && el.value) el.value = '';   // fuera lo del contrato anterior
+      bloquear(el, false);
       return;
     }
     el.value = valor; puesto.push(etiqueta);
+    bloquear(el, true);
   };
 
   // Compradores: la factura va a nombre de todos los que firman, no solo del
@@ -1154,7 +1323,6 @@ async function traerContrato(id){
   poner('contrato_numero', data.numero, 'contrato');
   poner('cliente_nombre', nombres, 'nombre');
   poner('cliente_documento', docs, 'documento');
-  poner('cliente_domicilio', primerDato(compradores, 'domicilio'), 'domicilio');
   poner('cliente_email', primerDato(compradores, 'email'), 'email');
   poner('proyecto_nombre', unidad, 'proyecto');
   poner('moneda', data.moneda || f.moneda, 'moneda');
@@ -1172,7 +1340,7 @@ async function traerContrato(id){
   }).filter(h => h.texto || h.monto);
 
   caja.innerHTML = `<div class="t">Del contrato ${esc(data.numero || '')}</div>
-    <p class="arrastrado">${puesto.length ? 'Traído: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
+    <p class="arrastrado">${puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
       ${compradores.length > 1 ? ' Contrato a <b>' + compradores.length + ' nombres</b>.' : ''}
       ${precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
     ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
@@ -1223,9 +1391,24 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
     const socC = (c.campos || {}).sociedad_firmante || '';
     const compatible = !socC || !sociedadPrincipal || socC === sociedadPrincipal;
     const etiqueta = TIPO_ES[c.tipo] || c.tipo || 'Vinculado';
+    /* AVISO, no botoncito — 24-ago-2026, encargo del owner («pone "+Traer
+       conceptos de XXXX", poco visible, hay que marcar eso mucho más»). Y tiene
+       razón de fondo: que una villa se venda en DOS contratos encadenados
+       (suelo + obra) es justo lo que hay que ver antes de emitir, porque
+       decidir si esta factura cobra uno o los dos es la decisión del documento.
+       Con un `addbtn` gris al final de la columna se pasaba por alto.
+       Se pinta como `.sui-aviso` de la suite: lo que hay que ver CADA vez que
+       se entra, no un `toast()` que se va en cuatro segundos. */
     return compatible
-      ? `<button type="button" class="addbtn" data-vinc="${esc(c.id)}">+ Traer conceptos de ${esc(c.numero)} (${esc(etiqueta)})</button>`
-      : `<p class="hint">⚠️ ${esc(c.numero)} (${esc(etiqueta)}) lo emite otra sociedad — no se puede combinar en la misma factura.</p>`;
+      ? `<div class="vinc" role="status">
+           <div class="vinc-t">Este contrato va encadenado con ${esc(c.numero)}</div>
+           <p>La venta está en dos contratos: <b>${esc(etiqueta)}</b> es el otro. Puedes cobrar los dos en este mismo documento.</p>
+           <button type="button" class="vinc-btn" data-vinc="${esc(c.id)}">Traer los conceptos de ${esc(c.numero)}</button>
+         </div>`
+      : `<div class="vinc malo" role="status">
+           <div class="vinc-t">${esc(c.numero)} (${esc(etiqueta)}) va encadenado con este</div>
+           <p>Pero lo emite <b>otra sociedad</b>, así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.</p>
+         </div>`;
   }).join('');
   cont.querySelectorAll('[data-vinc]').forEach(b => {
     const c = data.find(x => x.id === b.dataset.vinc);
@@ -1358,9 +1541,13 @@ function nuevoDocumento(tipo){
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
   APLICACIONES = []; JUSTIFICANTES = []; $('#fJustificante').value = ''; pintarEstadoJustificante();
+  // `form.reset()` vacía los campos pero NO cierra un <details> abierto
+  ['#dtImpuesto','#dtNotas'].forEach(s => { const d = $(s); if(d) d.open = false; });
+  soltarCampos();
   $('[name="fecha_emision"]').value = hoyLocalISO();
   $('[name="numero_visible"]').value = '';
-  $('#selContrato').value = ''; $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
+  CONTRATO_ID = null; pintarContratoElegido(); soltarCampos();
+  $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
   toggleTipoRecibi(); pintarLineas(); render();
 }
 $('#btnNueva').onclick = async () => {
@@ -1658,13 +1845,17 @@ async function abrir(f){
   LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas.map(l => ({...l})) : [{ descripcion:'', importe:'' }];
   SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
   CONTRATO_ID = f.contrato_id || null;
-  $('#selContrato').value = CONTRATO_ID || '';
+  pintarContratoElegido();
   // el panel de hitos se repinta para ESTE contrato (auditoría 19-ago): antes
   // se quedaba el del documento anterior, y sus botones «traer hito» metían
   // importes de otro cliente en este documento
   if(CONTRATO_ID) traerContrato(CONTRATO_ID);
-  else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; }
+  else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; soltarCampos(); }
   $('#delVinculado').innerHTML = '';
+  // Un documento guardado con impuesto o nota tiene que ENSEÑARLOS, aunque su
+  // bloque esté plegado por defecto: un dato que está en el papel y no se ve en
+  // el formulario es la forma más fácil de emitir de nuevo algo sin enterarse.
+  abrirLoQueTengaContenido();
   $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
   toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos
   // Recibí (11-ago): una anulada se abre como copia (SAVED=null), así que su
@@ -1716,8 +1907,12 @@ async function abrir(f){
       if(traer){
         // Del documento al formulario, campo a campo: los nombres del jsonb del
         // documento y los del formulario son los mismos (cliente_*).
+        /* `domicilio` ya no está: el campo salió de la factura el 24-ago-2026
+           (encargo del owner). Se deja fuera del mapa a propósito y no se
+           inventa un destino — `porCampo[x.campo]` da undefined, el `if(el)` de
+           abajo lo salta, y esa diferencia simplemente no se puede traer. */
         const porCampo = { nombre:'cliente_nombre', identidad:'cliente_documento',
-                           email:'cliente_email', domicilio:'cliente_domicilio' };
+                           email:'cliente_email' };
         let n = 0;
         (d.diferencias || []).forEach(x => {
           const el = document.querySelector(`[name="${porCampo[x.campo] || ''}"]`);
