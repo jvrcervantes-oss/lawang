@@ -774,11 +774,16 @@ function abrirUnidad(id){
       </div>` : ''}
       <div id="escenarios"></div>
       <div class="dos">
+        <div class="campo"><label for="f-m2precio">Precio por m²</label><input id="f-m2precio" inputmode="decimal"
+          value="${u.precio_suelo!=null && u.superficie_m2 ? esc(fmtNum(Number(u.precio_suelo)/Number(u.superficie_m2))) : ''}"
+          placeholder="Con la superficie, calcula el suelo solo"></div>
         <div class="campo"><label for="f-suelo">Precio de suelo</label><input id="f-suelo" inputmode="decimal" value="${u.precio_suelo!=null?esc(fmtNum(Number(u.precio_suelo))):''}"></div>
-        <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
       </div>
       <div class="dos">
+        <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
         <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):''}"></div>
+      </div>
+      <div class="dos">
         <div class="campo"><label for="f-moneda">Moneda</label><select id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
       </div>
       ${u.contrato_id ? `
@@ -855,11 +860,21 @@ function abrirUnidad(id){
     if(!s && !o) return;
     if(!actual || Math.abs(actual - (t._auto||0)) < 0.5){ t.value = fmtNum(s + o); t._auto = s + o; }
   };
+  // m² × precio/m² rellena el suelo con el mismo criterio que el suelo rellena
+  // el total arriba: mientras esté vacío o cuadre con lo último calculado. Un
+  // suelo puesto a mano (o traído de una Carta) se respeta y deja de seguir.
+  const recalcSuelo = () => {
+    const m2 = parseImporte($('#f-sup').value), pm2 = parseImporte($('#f-m2precio').value);
+    if(!m2 || !pm2) return;
+    const s = $('#f-suelo'), actual = parseImporte(s.value);
+    if(!actual || Math.abs(actual - (s._auto||0)) < 0.5){ s.value = fmtNum(m2 * pm2); s._auto = m2 * pm2; suma(); pintarEscenarios(u); }
+  };
   // El suelo y la superficie también mueven las cifras del bloque de escenarios,
   // así que lo repintan: si no, cambiar el suelo dejaba arriba los totales viejos.
   $('#f-suelo').addEventListener('input', () => { suma(); pintarEscenarios(u); });
   $('#f-obra').addEventListener('input', suma);
-  $('#f-sup').addEventListener('input', () => pintarEscenarios(u));
+  $('#f-m2precio').addEventListener('input', recalcSuelo);
+  $('#f-sup').addEventListener('input', () => { recalcSuelo(); pintarEscenarios(u); });
   pintarEscenarios(u);   // estado inicial
 
   /* Cambiar de modelo trae su precio de construcción del catálogo y rehace el
