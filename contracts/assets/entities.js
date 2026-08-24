@@ -145,21 +145,12 @@ const SOCIEDADES = {
        Si algún documento concreto lo firma otra persona, va escrito EN ESE
        documento —como está hoy en `templates/ppjb_bonian_c2.html`—, no aquí. */
     rep: 'I Wayan Eka Aryawan',
-    // NIB y NPWP personal del firmante: los pide el PPJB de Bonian Beach en sus
-    // antecedentes. Van aquí y no en la plantilla porque son identidad de la
-    // sociedad, y la identidad tiene una sola fuente (este fichero). Opcionales:
-    // la plantilla los envuelve en <!--opt:--> y la frase se cierra sola si una
-    // sociedad no los tiene, en vez de imprimir el marcador.
-    // ⚠️ `rep_npwp` es el del representante que figura ARRIBA en `rep`. Si se
-    // cambia uno hay que cambiar el otro: son la misma persona.
-    // `rep_npwp` va VACÍO: el NPWP 53.045.376.0-905.000 que trae el PPJB de
-    // Bonian es el de Pablo Cantero, y aquí el representante es I Wayan Eka
-    // Aryawan. Poner uno con el nombre del otro es peor que no poner ninguno
-    // — la frase se cierra sola gracias al <!--opt:-->.
-    nib: '2410250046282', rep_npwp: '',
-    cred: { es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5102010606870001',
-            en: 'Indonesian nationality, holder of Indonesian identity document ID 5102010606870001',
-            id: 'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5102010606870001' } },
+    // NIB: identidad de la sociedad, no es dato personal, se queda aquí.
+    // `rep_npwp`/`cred` (identidad personal del firmante) YA NO están en este
+    // fichero público — ver la nota de FIRMANTES_CRED más abajo. Los rellena
+    // cargarFirmantesCred() al vuelo, igual que hace con `rep_npwp`/`cred` de
+    // cada sociedad de esta lista.
+    nib: '2410250046282' },
   san_dal_woods: {
     label: 'PT SAN DAL WOODS',
     razon: 'PT SAN DAL WOODS', marca: '',
@@ -183,10 +174,7 @@ const SOCIEDADES = {
     // documento se queda con el verde/lagoon de Lawang (brand.css).
     tinta: { primary:'#662906', deep:'#42210B' },
     domicilio: 'Jl. Sunset Road No. 89, Pertokoan Sunset Indah I, No. 3B RT. 000 RW. 000, Kuta, Kuta, Kab. Badung, Bali',
-    npwp: '1000.0000.0012.5018', rep: 'Pablo Cantero Gambín',
-    cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',
-            en: 'Spanish nationality, holder of Spanish passport no. PAL648254',
-            id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
+    npwp: '1000.0000.0012.5018', rep: 'Pablo Cantero Gambín' },
   /* SANDAL WOODS Ltd (Hong Kong) — añadida 12-ago-2026, petición del owner.
      Misma marca comercial SandalWoods que `san_dal_woods` (PT indonesia),
      vehículo legal distinto: se reutiliza el mismo lockup/tinta/folio por
@@ -220,10 +208,7 @@ const SOCIEDADES = {
     tinta: { primary:'#662906', deep:'#42210B' },
     domicilio: "Suite D, 6/F Ho Lee Comm Bldg, 38-44 D'Aguilar St, Central, Hong Kong",
     npwpLabel: 'CRN', npwp: '79887714',
-    rep: 'Pablo Cantero Gambín', nib: '', rep_npwp: '',
-    cred: { es: 'de nacionalidad española, con pasaporte español nº PAL648254',
-            en: 'Spanish nationality, holder of Spanish passport no. PAL648254',
-            id: 'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254' } },
+    rep: 'Pablo Cantero Gambín', nib: '' },
 };
 
 /* ---------- credenciales de quien puede aparecer como "Firmante" ----------
@@ -241,17 +226,43 @@ const SOCIEDADES = {
    cuatro números de contrato reales). Esta tabla desacopla "quién puede
    aparecer firmando" de "quién es HOY el rep por defecto de cada sociedad":
    añadir aquí = una entrada más, y NUNCA se borra la de alguien que ya pudo
-   firmar o puede tener un contrato en vuelo con su nombre guardado. */
-const FIRMANTES_CRED = {
-  [SOCIEDADES.tepi_sungai.rep]: { rep_npwp: SOCIEDADES.tepi_sungai.rep_npwp, cred: SOCIEDADES.tepi_sungai.cred },
-  [SOCIEDADES.san_dal_woods.rep]: { rep_npwp: SOCIEDADES.san_dal_woods.rep_npwp, cred: SOCIEDADES.san_dal_woods.cred },
-  // retirado como rep por defecto el 11-ago-2026 — se queda aquí SOLO para que
-  // los contratos ya creados con su nombre no cambien de comparecencia solos.
-  'I Made Monjong Adhi Nugruah': { rep_npwp: '', cred: {
-    es: 'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
-    en: 'Indonesian nationality, holder of Indonesian identity document ID 5171021704720002',
-    id: 'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002' } },
-};
+   firmar o puede tener un contrato en vuelo con su nombre guardado.
+
+   MISMO MOTIVO que las cuentas y los apoderados de Hak Sewa (24-ago-2026,
+   revisión previa Seguridad+Legal): el número de documento (NIK/pasaporte) de
+   un representante es más sensible que su nombre+cargo — permite suplantación,
+   no solo identificación — y este fichero se sirve público sin login. El
+   nombre+cargo (`SOCIEDADES.<x>.rep`) SÍ se queda aquí: es la misma identidad
+   que ya imprime cada contrato/factura en manos del comprador, y "quién
+   representa a la sociedad" es público por registro mercantil — el número de
+   documento exacto no. Base legal para conservar el dato: ejecución de
+   contrato, se imprime en el documento que esa persona firma. Ahora en
+   `public.firmantes_cred`, misma RLS que apoderados_hak_sewa/cuentas_bancarias
+   (SELECT solo `authenticated`). Clave = nombre, igual que antes. */
+const FIRMANTES_CRED = {};
+let FIRMANTES_PROMESA = null;
+function cargarFirmantesCred(sb){
+  if(FIRMANTES_PROMESA) return FIRMANTES_PROMESA;
+  FIRMANTES_PROMESA = (async () => {
+    const { data, error } = await sb.from('firmantes_cred')
+      .select('nombre,rep_npwp,cred_es,cred_en,cred_id');
+    if(error){ FIRMANTES_PROMESA = null; throw error; }
+    (data || []).forEach(r => {
+      FIRMANTES_CRED[r.nombre] = { rep_npwp: r.rep_npwp,
+        cred: { es: r.cred_es, en: r.cred_en, id: r.cred_id } };
+    });
+    // Repuebla soc.cred/soc.rep_npwp de cada sociedad a partir de su rep POR
+    // DEFECTO — san_dal_woods y sandal_woods_ltd comparten representante
+    // (misma persona real), así que esto también los deja consistentes entre
+    // sí sin duplicar el dato dos veces en la tabla.
+    Object.values(SOCIEDADES).forEach(soc => {
+      const c = FIRMANTES_CRED[soc.rep];
+      if(c){ soc.cred = c.cred; soc.rep_npwp = c.rep_npwp; }
+    });
+    return FIRMANTES_CRED;
+  })();
+  return FIRMANTES_PROMESA;
+}
 
 /* ---------- etiqueta humana de `contratos.tipo` ----------
    Copiado a propósito, no movido: ya vivía inline en operaciones/index.html

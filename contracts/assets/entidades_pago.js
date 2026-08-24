@@ -71,7 +71,11 @@ function applyPromotor(data){
   // opcionales: si la sociedad no los tiene, el <!--opt:--> de la plantilla
   // borra la frase entera en vez de imprimir el marcador
   data.prom_nib=soc.nib||''; data.prom_rep_npwp=soc.rep_npwp||'';
-  data.prom_cred_es=soc.cred.es; data.prom_cred_en=soc.cred.en; data.prom_cred_id=soc.cred.id;
+  // soc.cred llega de cargarFirmantesCred() (entities.js, tabla con RLS) — si
+  // esa carga falló, soc.cred queda sin poner: mismo criterio que el resto de
+  // opcionales de aquí arriba, en vez de reventar el documento entero.
+  const credProm = soc.cred || {es:'',en:'',id:''};
+  data.prom_cred_es=credProm.es; data.prom_cred_en=credProm.en; data.prom_cred_id=credProm.id;
   // Firmante (10-ago): "Gestión del contrato" solo guardaba quién firma sin que
   // se imprimiera en ningún sitio — a petición del cliente, ahora SÍ decide el
   // nombre y las credenciales personales que salen en {{prom_rep}}/{{prom_cred_*}}
@@ -99,6 +103,9 @@ function applyPromotor(data){
       data.prom_rep_npwp = otro.rep_npwp || '';
       data.prom_cred_es = otro.cred.es; data.prom_cred_en = otro.cred.en; data.prom_cred_id = otro.cred.id;
     }
+    // si `otro` no está (nombre no reconocido, o cargarFirmantesCred() falló y
+    // FIRMANTES_CRED sigue vacío), se queda con lo de soc de arriba: nunca en
+    // blanco a medias entre el firmante pedido y el por defecto.
   }
 }
 /* etiqueta legible del régimen de tenencia (el select guarda un código; el contrato

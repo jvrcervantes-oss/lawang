@@ -47,7 +47,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=af9fbd74"></script>
+<script src="assets/entities.js?v=36632b1e"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
@@ -72,7 +72,7 @@
 <script src="assets/documento_anexos.js?v=614b4b23"></script>
 <script src="assets/parcela_inventario.js?v=eb637b16"></script>
 <script src="assets/hitos_fechas.js?v=7d9dfddd"></script>
-<script src="assets/entidades_pago.js?v=556c4837"></script>
+<script src="assets/entidades_pago.js?v=6d48d737"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -4614,6 +4614,13 @@ async function init(){
   // tokens.json) pero edad/ocupación/dirección/NIK no se autorrellenan.
   try{ await cargarApoderadosHakSewa(sb); }
   catch(e){ toast('No se han podido cargar los datos del apoderado: ' + (e.message || e)); }
+  // Mismo motivo y mismo patrón, 24-ago-2026: NIK/pasaporte de los
+  // representantes societarios salieron de entities.js (público) a
+  // `firmantes_cred` con RLS. Si falla, applyPromotor() se degrada solo
+  // (entidades_pago.js) — el nombre del representante se imprime igual, solo
+  // el bloque de credencial personal queda en blanco.
+  try{ await cargarFirmantesCred(sb); }
+  catch(e){ toast('No se han podido cargar las credenciales del firmante: ' + (e.message || e) + ' — revisa antes de imprimir'); }
 
   const bust='?v='+Date.now();  // plantillas/tokens/portada son ficheros pequeños que cambian con el deploy → nunca servir cacheados
   try{ COVER_HTML = await fetch('templates/_portada.html'+bust).then(r=>r.text()); }
