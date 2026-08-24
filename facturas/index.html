@@ -1648,9 +1648,21 @@ async function cargarListado(){
     if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
     LDOCS = data || [];
     /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
-       pide UNA vez con el listado, no una consulta por fila. Si falla, la lista
-       se pinta igual: es un aviso, no un requisito. */
-    DIVERGEN = await lwDivergencias(sb, 'factura');
+       pide UNA vez con el listado, no una consulta por fila.
+
+       Y NO SE ESPERA (24-ago-2026). La vista `documentos_desactualizados`
+       compara seis campos que viven dentro de `datos`, así que descomprime el
+       jsonb de cada documento: **2.565 ms** medidos contra la base real. Bloquear
+       el listado por un DISTINTIVO es pagar dos segundos y medio de pantalla en
+       blanco por una insignia. Ahora la lista se pinta al momento y las insignias
+       aparecen cuando llegan.
+
+       Se descartó la alternativa —reflejar esos seis campos en columnas
+       generadas, como se hizo con `nombre_contrato`— a propósito: son nombre,
+       pasaporte, email, teléfono, domicilio y nacionalidad, y esparcir datos de
+       identidad por columnas nuevas para ahorrar dos segundos no compensa.
+       Si falla, la lista se queda sin insignias: es un aviso, no un requisito. */
+    lwDivergencias(sb, 'factura').then(m => { DIVERGEN = m; pintarListado(); });
   }
   pintarListado();
 }

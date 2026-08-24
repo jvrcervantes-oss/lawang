@@ -552,8 +552,8 @@ async function cargarVinculables(){
   // la OBRA (villa - suelo) cuando la Construccion se vincula. Ver
   // syncPrecioObraVinculada.
   const { data, error } = await sb.from('contratos')
-    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato:datos->fields->>nombre_contrato,'
-          + 'parcela_codigo:datos->fields->>parcela_codigo')
+    // columnas, no ramas del jsonb: mismo motivo que en openContractsPanel
+    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,nombre_contrato,parcela_codigo')
     .in('tipo', TIPOS_VINCULABLES).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES = data || [];
 }
@@ -582,8 +582,12 @@ let VINCULABLES_POA = null;
 async function cargarVinculablesPoa(){
   if(VINCULABLES_POA || !sb) return;
   const { data, error } = await sb.from('contratos')
-    .select('id,numero,tipo,comprador_nombre,proyecto_nombre,'
-          + 'adq1_nombre:datos->fields->>adq1_nombre,adq1_pasaporte:datos->fields->>adq1_pasaporte')
+    /* Ni `adq1_nombre` ni `adq1_pasaporte`: los dos salían de `datos` y
+       costaban ~4 s (ver openContractsPanel). El pasaporte además NO se usaba en
+       ninguna parte de este selector — se pedía y se tiraba. Y para el rótulo,
+       `comprador_nombre` dice más que `adq1_nombre`: trae a TODOS los
+       compradores, que es lo que hay que ver al enganchar un poder. */
+    .select('id,numero,tipo,comprador_nombre,proyecto_nombre')
     .in('tipo', TIPOS_VINCULABLES_POA).order('created_at',{ascending:false}).limit(300);
   if(!error) VINCULABLES_POA = data || [];
 }
@@ -651,6 +655,16 @@ async function cubrirConEstePoder(poderId, poderNumero){
       toast('El poder se guarda, pero sin pasaporte ni email del otorgante no se puede saber qué contratos cubre');
       return;
     }
+    /* ⚠️ ESTA SÍ ABRE EL JSONB, Y SE QUEDA ASÍ A PROPÓSITO (24-ago-2026).
+       Cuesta ~4 s por lo mismo que el resto (TOAST de `datos`), y la tentación
+       era resolverlo con `contrato_compradores ⋈ clients`, que es barato. No se
+       hace: ese camino solo encuentra a quien YA tiene ficha, y
+       `sincronizar_compradores` no crea fichas — solo enlaza si el cliente ya
+       existe. Un contrato cuyo comprador aún no está fichado se quedaría FUERA
+       del poder sin que nadie lo note, y esto decide qué documentos cubre un
+       poder notarial. Cuatro segundos en una acción que se hace al guardar un
+       poder —rara— valen menos que un enlace legal que falta en silencio.
+       Se revisará cuando los anexos salgan del jsonb (LAW-78). */
     const { data, error } = await sb.from('contratos')
       .select('id,numero,poder_id,pas:datos->fields->>adq1_pasaporte,mail:datos->fields->>adq1_email')
       .neq('tipo','poa').limit(500);
@@ -2549,7 +2563,7 @@ function deriveSections(){
     // solo Hak Sewas: con trece tipos mezclados, un número y un nombre no
     // bastan para saber a qué documento te estás enganchando.
     const opts = (VINCULABLES_POA||[]).map(c=>[c.numero,
-      c.numero+' · '+(TIPO_LABEL[c.tipo]||c.tipo)+' · '+(c.adq1_nombre||c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
+      c.numero+' · '+(TIPO_LABEL[c.tipo]||c.tipo)+' · '+(c.comprador_nombre||'sin comprador')+' · '+(c.proyecto_nombre||'—')]);
     const campo = opts.length ? ['poa_hs_vinculado', etiqueta, 'select', opts]
                               : ['poa_hs_vinculado', etiqueta, 'text'];
     const g = SECTIONS.find(s=>s.id==='gestion');
@@ -3483,15 +3497,38 @@ async function openContractsPanel(){
   if(!sb){ list.innerHTML='Supabase no disponible.'; return; }
   await cargarEquipo();   // para mostrar el nombre del autor en vez del email
   const { data, error } = await sb.from('contratos')
-    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por,nombre_contrato:datos->fields->>nombre_contrato')
+    /* `nombre_contrato` es COLUMNA (reflejo generado), no `datos->fields->>…`.
+       Medido el 24-ago-2026: leerlo del jsonb dejaba este panel en 4.249 ms y
+       leerlo de la columna lo deja en 0,31 ms. La causa es TOAST — `datos` pesa
+       70 MB repartidos en 112 filas por los anexos en base64, y Postgres
+       descomprime ese valor entero aunque solo se pidan 30 bytes de dentro.
+       Remate del caso: el campo está vacío en los 112 contratos, así que se
+       pagaban cuatro segundos por leer algo que nadie ha rellenado nunca.
+       Ver contracts/sql/columnas_baratas_de_contratos.sql. */
+    .select('id,tipo,numero,comprador_nombre,proyecto_nombre,precio_total,moneda,fecha_firma,created_at,bloqueado,creado_por,nombre_contrato')
     .in('tipo', Object.values(CONTRACT_TIPO)).order('created_at', { ascending:false }).limit(300);
   if(error){ list.innerHTML='No se pudo cargar la lista.'; return; }
   CP_ROWS = data || [];
   // cuáles contradicen a la ficha de su comprador (19-ago): una consulta para
   // todo el panel, y si falla la lista se pinta igual
-  DIVERGEN_CONTRATOS = await lwDivergencias(sb, 'contrato');
   CP_TIPO = ''; CP_ESTADO = '';
   pintarCpFiltros(); aplicarCpFiltros();
+    /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
+       pide UNA vez con el listado, no una consulta por fila.
+
+       Y NO SE ESPERA (24-ago-2026). La vista `documentos_desactualizados`
+       compara seis campos que viven dentro de `datos`, así que descomprime el
+       jsonb de cada documento: **2.565 ms** medidos contra la base real. Bloquear
+       el listado por un DISTINTIVO es pagar dos segundos y medio de pantalla en
+       blanco por una insignia. Ahora la lista se pinta al momento y las insignias
+       aparecen cuando llegan.
+
+       Se descartó la alternativa —reflejar esos seis campos en columnas
+       generadas, como se hizo con `nombre_contrato`— a propósito: son nombre,
+       pasaporte, email, teléfono, domicilio y nacionalidad, y esparcir datos de
+       identidad por columnas nuevas para ahorrar dos segundos no compensa.
+       Si falla, la lista se queda sin insignias: es un aviso, no un requisito. */
+  lwDivergencias(sb, 'contrato').then(m => { DIVERGEN_CONTRATOS = m; aplicarCpFiltros(); });
 }
 function cpTipoLabel(t){ return TIPO_LABEL[t] || t; }
 
