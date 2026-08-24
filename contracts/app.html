@@ -13,22 +13,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/brand.css?v=d6acafff">
+<link rel="stylesheet" href="assets/brand.css?v=cc7380a1">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="assets/topbar.css?v=604bf931">
+<link rel="stylesheet" href="assets/topbar.css?v=baea9186">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=a9158f4c">
-<script src="/contracts/assets/herramientas.js?v=7aa6d55b"></script>
-<script src="assets/topbar.js?v=d5248630" defer></script>
+<link rel="stylesheet" href="assets/suite.css?v=ae194bab">
+<script src="/contracts/assets/herramientas.js?v=965f26bd"></script>
+<script src="assets/topbar.js?v=27ace8c7" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -42,7 +42,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/guard.js?v=5bfcbf1a"></script>
+<script src="/contracts/assets/guard.js?v=c709fcb0"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -53,30 +53,30 @@
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
-<script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=c031da44"></script>
-<script src="assets/dinero.js?v=f37d55ff"></script>
-<script src="assets/dialogo.js?v=8197f360"></script>
+<script src="assets/autoria.js?v=fd4b8f1f"></script>
+<script src="assets/vocabulario.js?v=e4a18fd2"></script>
+<script src="assets/dinero.js?v=5715dc3d"></script>
+<script src="assets/dialogo.js?v=5edf8aed"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
-<script src="assets/compradores.js?v=9ea247e6"></script>
+<script src="assets/compradores.js?v=17c385b9"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? Compara la vista
      `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
-<script src="assets/ficha_divergencia.js?v=70b9307d"></script>
+<script src="assets/ficha_divergencia.js?v=8c2d1d2b"></script>
 
 <!-- Trozos que SALIERON de este fichero el 21-ago-2026 (tenia 5.831 lineas).
      Van aqui y no con `defer` a proposito: `defer` los ejecutaria DESPUES del
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
-<script src="assets/documento_diseno.js?v=f85e78ef"></script>
-<script src="assets/documento_anexos.js?v=b73a5ff3"></script>
-<script src="assets/parcela_inventario.js?v=165251cd"></script>
-<script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
-<script src="assets/entidades_pago.js?v=cf81b963"></script>
+<script src="assets/documento_diseno.js?v=e77edb8e"></script>
+<script src="assets/documento_anexos.js?v=614b4b23"></script>
+<script src="assets/parcela_inventario.js?v=65087a90"></script>
+<script src="assets/hitos_fechas.js?v=7d9dfddd"></script>
+<script src="assets/entidades_pago.js?v=556c4837"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=9b4e969f">
+<link rel="stylesheet" href="assets/app.css?v=fd2a6c65">
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
      no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
@@ -88,9 +88,9 @@
      otras cuatro están dentro de plantillas JS que arman la ventana de impresión
      del contrato. Meter ahí la capa v3 la habría colado en el PDF del cliente.
      Sin `?v3=1` no hace nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ab783ac2">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=6fa541f0">
-<script src="/contracts/assets/movimiento-v3.js?v=27806b98"></script>
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=6248d624">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=2213e087">
+<script src="/contracts/assets/movimiento-v3.js?v=fdf1f68d"></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en

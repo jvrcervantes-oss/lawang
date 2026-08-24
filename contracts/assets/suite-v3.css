@@ -290,3 +290,20 @@ html.v3 .v3-tosta button:hover{ background:rgba(203,214,182,.14); }
     transition:background-color 140ms linear, border-color 140ms linear, color 140ms linear;
   }
 }
+
+/* ─── IMPRESIÓN — 24-ago-2026, hallazgo de revisión ──────────────────────────
+   Contratos imprime en una ventana APARTE con su propio <head> (solo
+   brand.css+contract.css: ver injectBrandAndCover), así que la v3 no puede
+   llegar ahí. Facturas no: su "Descargar PDF" es `window.print()` sobre el
+   documento VIVO, y el `@media print` local de cada herramienta solo apaga
+   `.topbar/.pane-form/.pv-bar/.overlay/.toast` — no conoce estas clases.
+   `.v3-pop`, `.v3-tostador` y `.v3-borde` cuelgan de `document.body` o al lado
+   de la barra (ver movimiento-v3.js: appendChild/insertAdjacentElement), fuera
+   de esos contenedores. Un aviso con deshacer visible, o un popover abierto,
+   en el instante de imprimir salía flotando en el PDF real que se manda al
+   cliente. Se apaga aquí, una vez, para las once — no en cada `@media print`
+   suelto. */
+@media print{
+  html.v3 .v3-pop, html.v3 .v3-tostador, html.v3 .v3-borde,
+  html.v3 .lw-dlg-fondo, html.v3 .sui-cajon, html.v3 .lw-panel{ display:none !important; }
+}
