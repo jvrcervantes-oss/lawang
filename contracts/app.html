@@ -3986,6 +3986,24 @@ async function derivarContrato(slug){
   const hitos = (mismoTipo && Array.isArray(HITOS))
     ? HITOS.map(h=>({...h, fecha: fechaVencimiento(new Date(), h)}))
     : null;
+  /* El precio TAMPOCO se lleva a un tipo distinto — mismo día, mismo hallazgo
+     que los hitos de arriba. `precio_total` significa una cosa por tipo: la
+     Carta declara la villa entera, el Bloqueo solo el suelo (Art. 3 de su
+     plantilla: precio_m2 × m²), la Construcción solo la obra. Arrastrarlo tal
+     cual de un tipo a otro no es "copiar el precio pactado", es pegarle la
+     etiqueta de un documento al número de otro.
+     Caso real, 24-ago-2026: derivar la Carta CR00041 (127.000, la villa
+     entera) a Bloqueo RP00072 le dejó el precio_total de la Carta en vez del
+     suyo propio (el suelo — 48.500, lo que su propio hito ya declaraba).
+     compradores/ sumó ese 127.000 más los 78.500 de la Construcción derivada
+     después: 205.500 pactados por una operación de 127.000, con 78.500 de
+     diferencia marcados como deuda que no existía — el cliente ya la había
+     pagado entera.
+     Solo el duplicado del MISMO tipo conserva su propio precio (repetir un
+     Bloqueo con su mismo suelo, por ejemplo); a un tipo distinto el campo
+     empieza en blanco, igual que ya arrancan los hitos, y lo pone quien
+     redacta ESE documento. */
+  if(!mismoTipo){ delete f.precio_total; delete f.precio_reserva; delete f.precio_m2; }
 
   // se suelta el vínculo con la fila de origen ANTES de cargar: lo que viene es
   // un contrato nuevo sin guardar, no una edición del anterior
