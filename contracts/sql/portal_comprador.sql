@@ -166,14 +166,6 @@ begin
     select distinct cc.contrato_id as id
       from contrato_compradores cc
       join mis_clientes mc on mc.client_id = cc.client_id
-  ),
-  cobros as (
-    select f.contrato_id,
-           coalesce(sum(f.total) filter (where not coalesce(f.anulada, false)
-                                           and f.tipo <> 'proforma'), 0) as cobrado
-      from facturas f
-     where f.contrato_id in (select id from mis_ids)
-     group by f.contrato_id
   )
   select jsonb_build_object(
     'nombre', (select cl.full_name from clients cl
@@ -194,11 +186,10 @@ begin
         'pdf',         c.pdf_firmado_path,
         'hitos',       case when jsonb_typeof(c.datos->'hitos') = 'array'
                             then c.datos->'hitos' else '[]'::jsonb end,
-        'cobrado',     coalesce(k.cobrado, 0)
+        'cobrado',     coalesce(public.contrato_cobrado(c.id), 0)
       ) order by c.created_at)
       from contratos c
-      join mis_ids m on m.id = c.id
-      left join cobros k on k.contrato_id = c.id), '[]'::jsonb),
+      join mis_ids m on m.id = c.id), '[]'::jsonb),
     'facturas', coalesce((
       select jsonb_agg(jsonb_build_object(
         'id',              f.id,
@@ -209,13 +200,14 @@ begin
         'fecha',           f.fecha_emision,
         'total',           f.total,
         'moneda',          f.moneda,
-        'cliente',         f.cliente_nombre,
+        'cliente',         coalesce(public.contrato_nombres_factura(cf.datos), f.cliente_nombre),
         'proyecto',        f.proyecto_nombre,
         'lineas',          f.datos->'lineas',
         'totales',         f.datos->'totales',
         'fields',          f.datos->'fields'
       ) order by f.fecha_emision desc, f.numero desc)
       from facturas f
+      join contratos cf on cf.id = f.contrato_id
      where f.contrato_id in (select id from mis_ids)
        and not coalesce(f.anulada, false)
        -- una proforma sin enviar es un borrador automático que el estudio

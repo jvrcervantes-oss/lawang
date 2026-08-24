@@ -1,0 +1,193 @@
+-- destructivo-ok: `create or replace function`, misma firma y mismos campos
+-- del jsonb devuelto — no borra nada, solo cambia de dónde sale un valor.
+-- ════════════════════════════════════════════════════════════════════════════
+-- EL PORTAL PODÍA ENSEÑAR EL NOMBRE DE OTRO COMPRADOR EN UNA FACTURA — 24-ago-2026
+-- ════════════════════════════════════════════════════════════════════════════
+-- Hallazgo de hoy (revisión previa de Datos+Seguridad+Legal, no de auditoría
+-- mecánica): `portal_situacion()` devolvía el nombre de cada factura leyendo
+-- `f.cliente_nombre` — un texto guardado en el momento de crear el documento,
+-- que puede quedarse desactualizado (un traspaso, un error al copiar datos).
+-- El formulario interno (facturas/index.html) NUNCA tiene este problema porque
+-- `traerContrato()` lo recalcula en vivo cada vez que se abre — pero eso solo
+-- corrige lo que ve el agente en el formulario, nunca lo que ya está guardado
+-- en la base. El comprador, en su portal, nunca pasa por ese formulario: veía
+-- directamente el texto guardado, sin la corrección.
+--
+-- Caso real: REC00046 y PRO00055 (contrato RP00071, David Jimenez Vera / Sara
+-- Caballero Palleja) tienen `cliente_nombre` con el nombre de otra pareja.
+-- Nadie lo notó desde dentro del estudio porque el formulario lo enseña bien
+-- solo. Plegado en el pendiente LAW-75 (mismo incidente, contexto/pendientes.md).
+--
+-- LA CURA, sin tocar el criterio de "quién es" (LAW-51/`contrato_identificadores`
+-- ya fijó que la fuente es el JSONB del contrato, NUNCA `contrato_compradores`/
+-- `clients` — esa tabla puede quedar vacía en silencio si el trigger que la
+-- rellena atrapa un error, es_agente() la puede editar a mano, y
+-- `sincronizar_compradores()` solo da de alta, nunca corrige una ficha ya
+-- enlazada): se replica en SQL el mismo criterio que ya usa el formulario
+-- (`compradoresDeContrato()` + `nombresFactura()` en contracts/assets/
+-- compradores.js) — adq1 → adq2 → adq3 → `datos.compradores[]`, sin repetir
+-- a la misma persona. Si el contrato no trae ningún nombre (huérfanas de
+-- LAW-38, sin contrato_id), se cae al texto guardado — nunca a un campo en
+-- blanco: un documento hacia un tercero real con un hueco es peor que uno
+-- con un dato viejo (hallazgo de Seguridad en la revisión previa).
+--
+-- No toca RLS ni el resto de `portal_situacion()` — SOLO el campo 'cliente' de
+-- cada factura. Base: la definición VIVA en producción (`pg_get_functiondef`),
+-- que ya difería del repo en 'cobrado' (usa `contrato_cobrado(c.id)`, no la
+-- CTE `cobros` que trae `contracts/sql/portal_comprador.sql` — arreglado de
+-- paso para no reabrir esa deriva al reemplazar la función entera).
+
+create or replace function public.contrato_nombres_factura(p_datos jsonb)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select nullif(string_agg(t.nombre, ' · ' order by t.ord), '')
+    from (
+      select distinct on (lower(btrim(x.nombre)))
+             x.nombre, x.ord
+        from (
+          select 1 as ord, nullif(btrim(p_datos->'fields'->>'adq1_nombre'), '') as nombre
+          union all
+          select 2, nullif(btrim(p_datos->'fields'->>'adq2_nombre'), '')
+          union all
+          select 3, nullif(btrim(p_datos->'fields'->>'adq3_nombre'), '')
+          union all
+          select 3 + (row_number() over ())::int, nullif(btrim(e->>'nombre'), '')
+            from jsonb_array_elements(
+                   case when jsonb_typeof(p_datos->'compradores') = 'array'
+                        then p_datos->'compradores' else '[]'::jsonb end) e
+        ) x
+       where x.nombre is not null
+       order by lower(btrim(x.nombre)), x.ord
+    ) t;
+$$;
+comment on function public.contrato_nombres_factura(jsonb) is
+  'Nombre(s) de un contrato para el documento, mismo criterio y mismo orden que '
+  'compradoresDeContrato()+nombresFactura() en contracts/assets/compradores.js: '
+  'adq1, adq2, adq3, datos.compradores[], sin repetir. NULL si el contrato no '
+  'trae ningún nombre — quien llama decide el fallback, nunca en blanco.';
+revoke all on function public.contrato_nombres_factura(jsonb) from public, anon;
+grant execute on function public.contrato_nombres_factura(jsonb) to authenticated;
+
+create or replace function public.portal_situacion()
+returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_email text := lower(coalesce(auth.email(), ''));
+  r jsonb;
+begin
+  if not public.es_portal() or v_email = '' then
+    raise exception 'solo usuarios del portal' using errcode = '42501';
+  end if;
+
+  with mis_clientes as (
+    select distinct pa.client_id
+      from portal_accesos pa
+     where pa.activo and pa.email = v_email
+  ),
+  mis_ids as (
+    select distinct cc.contrato_id as id
+      from contrato_compradores cc
+      join mis_clientes mc on mc.client_id = cc.client_id
+  )
+  select jsonb_build_object(
+    'nombre', (select cl.full_name from clients cl
+                join mis_clientes mc on mc.client_id = cl.id
+                order by cl.created_at limit 1),
+    'contratos', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',          c.id,
+        'numero',      c.numero,
+        'tipo',        c.tipo,
+        'proyecto',    c.proyecto_nombre,
+        'parcela',     c.datos->'fields'->>'parcela_codigo',
+        'precio',      c.precio_total,
+        'precio_txt',  nullif(c.datos->'fields'->>'precio_total', ''),
+        'moneda',      c.moneda,
+        'fecha_firma', c.fecha_firma,
+        'firmado',     coalesce(c.bloqueado, false),
+        'pdf',         c.pdf_firmado_path,
+        'hitos',       case when jsonb_typeof(c.datos->'hitos') = 'array'
+                            then c.datos->'hitos' else '[]'::jsonb end,
+        'cobrado',     coalesce(public.contrato_cobrado(c.id), 0)
+      ) order by c.created_at)
+      from contratos c
+      join mis_ids m on m.id = c.id), '[]'::jsonb),
+    'facturas', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',              f.id,
+        'numero',          f.numero,
+        'tipo',            f.tipo,
+        'sociedad',        f.sociedad,
+        'contrato_numero', f.contrato_numero,
+        'fecha',           f.fecha_emision,
+        'total',           f.total,
+        'moneda',          f.moneda,
+        'cliente',         coalesce(public.contrato_nombres_factura(cf.datos), f.cliente_nombre),
+        'proyecto',        f.proyecto_nombre,
+        'lineas',          f.datos->'lineas',
+        'totales',         f.datos->'totales',
+        'fields',          f.datos->'fields'
+      ) order by f.fecha_emision desc, f.numero desc)
+      from facturas f
+      join contratos cf on cf.id = f.contrato_id
+     where f.contrato_id in (select id from mis_ids)
+       and not coalesce(f.anulada, false)
+       and (f.tipo <> 'proforma' or f.enviada)), '[]'::jsonb),
+    'obra', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'unidad',          u.codigo,
+        'proyecto',        u.proyecto,
+        'contrato_numero', c2.numero,
+        'fase',            u.obra_fase,
+        'fecha_entrega',   u.obra_fecha_entrega,
+        'actualizado',     u.obra_actualizado,
+        'fotos', coalesce((
+          select jsonb_agg(jsonb_build_object(
+                   'path', o.path, 'titulo', o.titulo, 'fecha', o.tomada_en)
+                 order by o.tomada_en desc, o.creado_en desc)
+            from obra_fotos o
+           where o.unidad_id = u.id and o.visible), '[]'::jsonb)
+      ))
+      from unidades u
+      join contratos c2 on c2.id = u.contrato_id
+      join mis_ids m on m.id = c2.id), '[]'::jsonb),
+    'documentos', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',          dp.id,
+        'titulo',      dp.titulo,
+        'descripcion', dp.descripcion,
+        'categoria',   dp.categoria,
+        'proyecto',    dp.proyecto,
+        'url',         dp.url,
+        'path',        dp.path
+      ) order by dp.creado_en desc)
+      from documentos_proyecto dp
+     where dp.visible_portal
+       and exists (
+         select 1 from contratos c3
+         join mis_ids m3 on m3.id = c3.id
+        where public.mismo_proyecto(dp.proyecto, c3.proyecto_nombre)
+       )), '[]'::jsonb),
+    'kyc', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'tipo',   doc.doc_type,
+        'subido', doc.uploaded_at,
+        'caduca', doc.caduca_el,
+        'path',   doc.storage_path
+      ) order by doc.uploaded_at desc)
+      from documents doc
+      join mis_clientes mc2 on mc2.client_id = doc.client_id), '[]'::jsonb),
+    'fases', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'orden', ff.orden, 'clave', ff.clave, 'es', ff.es, 'en', ff.en)
+             order by ff.orden)
+        from obra_fases ff), '[]'::jsonb)
+  ) into r;
+  return r;
+end $$;
+revoke execute on function public.portal_situacion() from public;
+revoke execute on function public.portal_situacion() from anon;
+grant execute on function public.portal_situacion() to authenticated;
