@@ -708,7 +708,7 @@ let MIS_PROYECTOS = null, PROYECTO_ABIERTO = '';
 async function cargarProyectos(){
   if(PROYECTOS_DB || !sb) return;
   const { data, error } = await sb.from('proyectos')
-    .select('id,nombre,resort,parcela_master').eq('activo', true).order('nombre');
+    .select('id,nombre,resort,parcela_master,parcela_master_m2').eq('activo', true).order('nombre');
   // Si la consulta no llega (sin red) se cae a la lista de tokens.json: es
   // vieja, pero peor es un desplegable vacio que no deja hacer el contrato.
   if(!error) PROYECTOS_DB = data || [];
@@ -1695,6 +1695,7 @@ function aplicarReglasCampos(){
   syncAutoAnnex();
   syncParcelaMaster();
   syncResort();
+  syncSuperficieTotal();
   syncApoderadoHakSewa();
   syncPoaVinculado();
   syncPrecioObraVinculada();
@@ -1762,6 +1763,27 @@ function syncParcelaMaster(){
   // el W8 de Balian Hills en un contrato de Sumba sería un terreno de otro sitio.
   campo.value = codigo;
   AUTO_MASTER = codigo;
+  renderDebounced();
+}
+
+/* Superficie bruta de la parcela máster (24-ago): mismo patrón que
+   syncParcelaMaster, sin respaldo en tokens.json porque este campo nunca
+   vivió ahí — nace directo en `proyectos.parcela_master_m2` (ficha de
+   Proyectos). Sin ella, el número solo existía en la tabla de Proyectos y
+   había que volver a teclearlo a mano en cada contrato — la misma
+   duplicación que ya se corrigió para el código de parcela y el resort. */
+let AUTO_SUPERFICIE_TOTAL = '';
+function syncSuperficieTotal(){
+  const sel   = document.querySelector('[name="proyecto_nombre"]');
+  const campo = document.querySelector('[name="superficie_total"]');
+  if(!sel || !campo) return;
+  const actual = campo.value.trim();
+  if(actual && actual !== AUTO_SUPERFICIE_TOTAL){ AUTO_SUPERFICIE_TOTAL = ''; return; }
+  const enBase = (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
+  const m2 = (enBase && enBase.parcela_master_m2 != null) ? String(enBase.parcela_master_m2) : '';
+  if(m2 === actual) return;
+  campo.value = m2;
+  AUTO_SUPERFICIE_TOTAL = m2;
   renderDebounced();
 }
 
