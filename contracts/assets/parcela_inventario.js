@@ -370,6 +370,75 @@ async function syncPrecioObraVinculada(){
               + `la villa entera ${fmtImporte(Number(u.precio))} ${mon} menos el suelo `
               + `${fmtImporte(Number(u.precio_suelo))} ${mon}` });
 }
+/* ---------- a qué parcela pertenece esta Construcción ----------
+   24-ago-2026, revisión previa (Desarrollo+Datos+Seguridad) sobre RP00069: la
+   Construcción nunca guarda `parcela_codigo` (ver la nota junto a
+   syncPrecioObraVinculada, un poco más arriba) — con UNA sola parcela en la
+   Reserva vinculada no hace falta preguntar, pero con VARIAS,
+   `unidad_parte_cobrada` (sql/construccion_por_parcela.sql) necesita saber
+   cuál es la suya para no mezclar su cobro con el de su hermana. El selector
+   solo aparece cuando de verdad hace falta elegir, y guarda en `unidad_id`
+   —columna real de `contratos`, no un campo de plantilla: `collect()` no la
+   toca, la añade `contractPayload()` en app.html—. El guardado la exige
+   (guardarContrato) cuando hay más de una parcela y no se ha elegido. */
+let UNIDADES_RESERVA_VINCULADA = null;   // {reserva: numero, lista:[{id,codigo,precio}]}
+let UNIDAD_ID_CONSTRUCCION = null;
+async function syncUnidadConstruccion(){
+  const caja = document.getElementById('unidadConstruccion');
+  if(CONTRACT_TIPO[CURRENT.slug] !== 'construccion' || !sb){ if(caja) caja.remove(); return; }
+  const sel = document.querySelector('[name="num_reserva_vinculada"]');
+  if(!sel || !sel.value){
+    UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
+    if(caja) caja.remove();
+    return;
+  }
+  const padre = (VINCULABLES||[]).find(c => c.numero === sel.value);
+  if(!padre){ if(caja) caja.remove(); return; }
+  if(!UNIDADES_RESERVA_VINCULADA || UNIDADES_RESERVA_VINCULADA.reserva !== sel.value){
+    const { data, error } = await sb.from('unidades')
+      .select('id,codigo,precio').eq('contrato_id', padre.id).order('codigo');
+    UNIDADES_RESERVA_VINCULADA = { reserva: sel.value, lista: error ? [] : (data||[]) };
+    // cambió de Reserva vinculada: si la parcela que había elegida no es de
+    // ESTA reserva, se suelta — arrastrarla sería atribuirle el dinero de otra
+    if(UNIDAD_ID_CONSTRUCCION && !UNIDADES_RESERVA_VINCULADA.lista.some(u=>u.id===UNIDAD_ID_CONSTRUCCION))
+      UNIDAD_ID_CONSTRUCCION = null;
+  }
+  const lista = UNIDADES_RESERVA_VINCULADA.lista;
+  if(lista.length <= 1){
+    // una sola parcela (o ninguna en el inventario): se asigna sola, sin preguntar
+    UNIDAD_ID_CONSTRUCCION = lista.length ? lista[0].id : null;
+    if(caja) caja.remove();
+    return;
+  }
+  pintarSelectorUnidadConstruccion(lista);
+}
+function pintarSelectorUnidadConstruccion(lista){
+  const ancla = document.querySelector('.field[data-key="num_reserva_vinculada"]');
+  if(!ancla) return;
+  let caja = document.getElementById('unidadConstruccion');
+  if(!caja){
+    caja = document.createElement('div');
+    caja.id = 'unidadConstruccion';
+    caja.className = 'field';
+    ancla.insertAdjacentElement('afterend', caja);
+  }
+  caja.innerHTML =
+    `<label>${L({es:'¿Qué parcela es esta construcción?',en:'Which plot is this construction for?',id:'Kavling mana untuk konstruksi ini?'})}</label>
+     <select id="selUnidadConstruccion">
+       <option value="">${L({es:'— elige la parcela —',en:'— choose the plot —',id:'— pilih kavling —'})}</option>
+       ${lista.map(u=>`<option value="${escAttr(u.id)}"${u.id===UNIDAD_ID_CONSTRUCCION?' selected':''}>${
+         esc(u.codigo)}${u.precio!=null?' · '+fmtImporte(Number(u.precio)):''}</option>`).join('')}
+     </select>
+     <p class="hint" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">${
+       L({es:'Esta reserva tiene varias parcelas: sin elegir cuál, su cobro se reparte entre todas y no cuenta bien.',
+          en:'This reservation has several plots: without choosing which one, its payments get split across all of them and the numbers come out wrong.',
+          id:'Reservasi ini punya beberapa kavling: tanpa memilih yang mana, pembayarannya terbagi ke semuanya dan angkanya jadi salah.'})}</p>`;
+  const s = caja.querySelector('#selUnidadConstruccion');
+  if(!s._wired){
+    s._wired = true;
+    s.addEventListener('change', ()=>{ UNIDAD_ID_CONSTRUCCION = s.value || null; updateSaveButton(); });
+  }
+}
 function syncDatosDeUnidad(){
   const sel = document.querySelector('[name="parcela_codigo"]');
   if(!sel) return;

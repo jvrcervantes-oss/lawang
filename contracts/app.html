@@ -70,7 +70,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=e77edb8e"></script>
 <script src="assets/documento_anexos.js?v=614b4b23"></script>
-<script src="assets/parcela_inventario.js?v=65087a90"></script>
+<script src="assets/parcela_inventario.js?v=eb637b16"></script>
 <script src="assets/hitos_fechas.js?v=7d9dfddd"></script>
 <script src="assets/entidades_pago.js?v=556c4837"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -1382,7 +1382,7 @@ function resetBorrador(slug){
     [{pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''},
      {pct:'25',monto:'',timing:'',es:'',en:'',id:''},{pct:'25',monto:'',timing:'',es:'',en:'',id:''}])
     .map(h=>({...h, fecha: h.fecha || fechaVencimiento(new Date(), h)}));
-  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {};
+  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   // sin contrato no hay firmas: se suelta el candado de «enviado a firma»
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
   limpiarOverrides(slug);
@@ -1690,6 +1690,7 @@ function aplicarReglasCampos(){
   syncApoderadoHakSewa();
   syncPoaVinculado();
   syncPrecioObraVinculada();
+  syncUnidadConstruccion();
   const proy = document.querySelector('[name="proyecto_nombre"]');
   if(proy && proy.value) cargarUnidadesDelProyecto(proy.value);
   /* SIN proyecto elegido tambien hay que pintar (LAW-73, 21-ago-2026). Antes no
@@ -3081,6 +3082,12 @@ function contractPayload(){
     contrato_padre_id: ((VINCULABLES||[]).find(c=>c.numero===data.num_reserva_vinculada)||{}).id
                     || ((VINCULABLES_POA||[]).find(c=>c.numero===data.poa_hs_vinculado)||{}).id
                     || null,
+    /* A qué parcela pertenece — SOLO Construcción (24-ago-2026, ver
+       syncUnidadConstruccion en parcela_inventario.js). Otros tipos NO tocan
+       esta llave: omitirla deja la columna como estaba, igual que poder_id de
+       aquí abajo — un `null` explícito en, por ejemplo, un Poder Notarial
+       borraría el enlace de una Construcción sin que nadie lo pidiera. */
+    ...(CONTRACT_TIPO[CURRENT.slug] === 'construccion' ? { unidad_id: UNIDAD_ID_CONSTRUCCION || null } : {}),
     /* `poder_id` NO se toca aqui a proposito. El enlace lo crea el Poder
        Notarial, no el contrato (ver la nota en deriveSections). Si esta linea
        resolviera un campo que ya no existe, cada guardado mandaria `null` y
@@ -3157,6 +3164,18 @@ async function guardarContrato(){
   if(CURRENT.slug === 'poa_notario' && !String((collect().poa_hs_vinculado)||'').trim()){
     toast('Elige el contrato al que acompaña este Poder Notarial antes de guardarlo');
     const el = document.querySelector('[name="poa_hs_vinculado"]');
+    if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+    return;
+  }
+  /* La Construcción de una Reserva con VARIAS parcelas tiene que decir cuál es
+     la suya — sin esto, sql/construccion_por_parcela.sql no puede evitar
+     mezclar su cobro con el de su hermana (24-ago-2026, revisión previa de
+     Desarrollo+Datos+Seguridad). Con una sola parcela, syncUnidadConstruccion()
+     ya la asigna sola y este freno no dispara. */
+  if(tipo === 'construccion' && UNIDADES_RESERVA_VINCULADA
+     && UNIDADES_RESERVA_VINCULADA.lista.length > 1 && !UNIDAD_ID_CONSTRUCCION){
+    toast('Elige a qué parcela pertenece esta Construcción antes de guardarla');
+    const el = document.getElementById('selUnidadConstruccion');
     if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
     return;
   }
@@ -3712,7 +3731,7 @@ async function openSavedContract(id){
   // contrato ANTERIOR aún en memoria, pintaba SU chip sobre el que se abre —
   // misma familia de fallo que AUTO_ANX/AUTO_MASTER (ver más abajo). La ficha
   // buena se carga y se repinta unas líneas después.
-  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {};
+  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   buildForm();
   const d = data.datos || {};
   // Poderes guardados antes del 17-ago: sus campos usaban las claves del
@@ -3803,6 +3822,13 @@ async function openSavedContract(id){
   // ficha y con los campos de identidad sueltos — el candado solo existía en
   // contratos recién enlazados, no al reabrirlos
   pintarFichaComprador();
+  /* A qué parcela pertenece esta Construcción (columna real `unidad_id`, no
+     `datos.fields` — `select('*')` de arriba ya la trae). Se repinta aparte
+     porque syncUnidadConstruccion() necesita VINCULABLES + el desplegable de
+     num_reserva_vinculada ya pintados por buildForm(), que corrió antes. */
+  UNIDADES_RESERVA_VINCULADA = null;
+  UNIDAD_ID_CONSTRUCCION = data.unidad_id || null;
+  await syncUnidadConstruccion();
   SAVED_CONTRACT = { id:data.id, numero:data.numero };
   LOCKED = !!data.bloqueado; LOCKED_PDF_PATH = data.pdf_firmado_path || null;
   // de cero: sin esto, abrir un contrato B justo después de uno A que estaba
@@ -4009,7 +4035,7 @@ async function derivarContrato(slug){
   // un contrato nuevo sin guardar, no una edición del anterior
   SAVED_CONTRACT = null; LOCKED = false; LOCKED_PDF_PATH = null;
   EN_FIRMA = { vivas:0, firmadas:0, filas:[] }; aplicarEstadoFirma();
-  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {};
+  ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
   // El contrato derivado hereda datos, no ediciones de texto: el párrafo que
   // alguien retocó para la reserva de otra operación no tiene por qué salir
   // impreso en la obra de esta. Igual con Anexos y Cláusulas: son propios de
