@@ -209,6 +209,10 @@ const ESTADOS = [
    `cargar()` responda; en cuanto llega, se sustituye. */
 let TIPOS = [['parcela','Parcela'],['villa','Villa'],['apartamento','Apartamento'],['local','Local']];
 let PROYECTOS = [];
+// Ficha por proyecto (resort/parcela máster/superficie) — aparte de PROYECTOS
+// (solo nombres) para no tocar los decenas de sitios que ya esperan un array
+// de strings. Clave = nombre del proyecto.
+let PROYECTOS_FICHA = {};
 const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
 const nombreTipo   = t => (TIPOS.find(x => x[0] === t) || [t, t])[1];
 const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
@@ -269,7 +273,7 @@ async function cargar(){
     SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
     SB.from('modelos_villa').select('proyecto, modelo, precio_construccion, moneda').order('modelo'),
-    SB.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
+    SB.from('proyectos').select('nombre, resort, parcela_master, parcela_master_m2').eq('activo', true).order('nombre'),
     SB.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
     // La documentacion de cada proyecto va en la misma tanda: es una consulta
     // mas y evita que la carpeta se pinte dos veces (una sin la linea y otra
@@ -299,7 +303,10 @@ async function cargar(){
            DOCS_POR_PROYECTO[k] = (DOCS_POR_PROYECTO[k] || 0) + 1; } }
   // Sin permiso o con la tabla vacía se cae al fallback de arriba en vez de
   // dejar los desplegables en blanco.
-  if(!p.error && p.data && p.data.length) PROYECTOS = p.data.map(x => x.nombre);
+  if(!p.error && p.data && p.data.length){
+    PROYECTOS = p.data.map(x => x.nombre);
+    PROYECTOS_FICHA = Object.fromEntries(p.data.map(x => [x.nombre, x]));
+  }
   if(!t.error && t.data && t.data.length) TIPOS = t.data.map(x => [x.clave, x.etiqueta]);
   // Unión defensiva: si una unidad quedó con un proyecto que ya no está en el
   // catálogo (borrado por error, o dato antiguo), sigue apareciendo en el
@@ -536,13 +543,14 @@ $('#carpetas').addEventListener('click', e => {
   vista(VISTA_ANTES_CARPETAS === 'carpetas' ? 'tabla' : VISTA_ANTES_CARPETAS);
   pintar();
 });
-/* Editar/renombrar carpeta (11-ago): `proyecto`/`proyecto_nombre` es texto
-   libre en 5 tablas más (ver renombrar_proyecto.sql) — el rename es un RPC
-   SECURITY DEFINER que hace el cascade atómico y solo lo puede ejecutar un
-   admin (gate es_admin() dentro de la función). Antes de pedir confirmación
-   se cuenta el radio de impacto real, para no pedirle a nadie que confirme a
-   ciegas cuántas filas va a tocar. */
-async function editarProyecto(nombreActual){
+/* Renombrar carpeta (11-ago): `proyecto`/`proyecto_nombre` es texto libre en
+   5 tablas más (ver renombrar_proyecto.sql) — el rename es un RPC SECURITY
+   DEFINER que hace el cascade atómico y solo lo puede ejecutar un admin
+   (gate es_admin() dentro de la función). Antes de pedir confirmación se
+   cuenta el radio de impacto real, para no pedirle a nadie que confirme a
+   ciegas cuántas filas va a tocar. Aparte de editarProyecto (abajo) porque es
+   una operación de otro riesgo: esta toca 5 tablas, la ficha solo toca 1. */
+async function renombrarProyecto(nombreActual){
   const nuevo = antiFormula((prompt(`Nuevo nombre para "${nombreActual}":`, nombreActual) || '').trim());
   if(!nuevo || nuevo === nombreActual) return;
   const cuenta = (tabla, columna) => SB.from(tabla).select('id', { count:'exact', head:true }).eq(columna, nombreActual);
@@ -568,7 +576,59 @@ async function editarProyecto(nombreActual){
   if(error){ toast('No se pudo renombrar: ' + error.message); return; }
   toast('Proyecto renombrado');
   if(PROY === nombreActual) PROY = nuevo;
+  suiCerrarCajon();
   cargar();
+}
+
+/* Ficha del proyecto (24-ago, encargo del cliente): resort al que pertenece y
+   la parcela MÁSTER — su código (ya existía en la base, sin UI para tocarlo)
+   y ahora también su superficie bruta en m². Guardado directo (UPDATE en
+   `proyectos`, sin cascade — a diferencia del nombre, estos tres campos solo
+   viven aquí), y el RLS de la tabla ya exige es_admin(): si quien pulsa no lo
+   es, la fila vuelve vacía y se avisa en vez de mentir un "Guardado". Resort
+   es `<input list>` con lo ya usado como sugerencia, NO un <select> cerrado
+   (regla de la suite: un desplegable cerrado no deja escribir "Signature
+   project" la primera vez que existe). */
+function editarProyecto(nombre){
+  const ficha = PROYECTOS_FICHA[nombre] || {};
+  const resorts = [...new Set(Object.values(PROYECTOS_FICHA).map(f => f.resort).filter(Boolean))].sort();
+  suiAbrirCajon({
+    titulo: esc(nombre),
+    sub: 'Ficha del proyecto',
+    cuerpo: `
+      <div class="campo"><label for="fp-resort">Resort</label>
+        <input id="fp-resort" list="fp-resort-lista" value="${esc(ficha.resort||'')}" placeholder="Ej. Balian Hills">
+        <datalist id="fp-resort-lista">${resorts.map(r => `<option value="${esc(r)}">`).join('')}</datalist>
+      </div>
+      <div class="dos">
+        <div class="campo"><label for="fp-master">Parcela máster (código)</label>
+          <input id="fp-master" value="${esc(ficha.parcela_master||'')}" placeholder="Ej. W5"></div>
+        <div class="campo"><label for="fp-master-m2">Superficie bruta (m²)</label>
+          <input id="fp-master-m2" inputmode="decimal" value="${ficha.parcela_master_m2!=null?esc(fmtNum(Number(ficha.parcela_master_m2))):''}"></div>
+      </div>
+      <p class="sui-nota">Para cambiar el <b>nombre</b> del proyecto usa «Renombrar…» abajo — es otra operación,
+        porque esa sí se propaga a unidades, contratos, facturas… y estos tres campos no.</p>`,
+    pie: `<button class="sui-btn primario" id="btnGuardarFicha">Guardar</button>
+          <button class="sui-btn" id="btnRenombrarProy">Renombrar…</button>
+          <button class="sui-btn" id="btnCerrarFicha">Cerrar</button>`,
+  });
+  $('#btnRenombrarProy').addEventListener('click', () => renombrarProyecto(nombre));
+  $('#btnCerrarFicha').addEventListener('click', suiCerrarCajon);
+  $('#btnGuardarFicha').addEventListener('click', async () => {
+    const fila = {
+      resort: $('#fp-resort').value.trim() || null,
+      parcela_master: $('#fp-master').value.trim() || null,
+      parcela_master_m2: parseImporte($('#fp-master-m2').value) || null,
+    };
+    const btn = $('#btnGuardarFicha'); btn.disabled = true;
+    const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');
+    btn.disabled = false;
+    if(error){ toast('No se pudo guardar: ' + error.message); return; }
+    if(!data || !data.length){ toast('No tienes permiso para editar la ficha del proyecto (solo admin).'); return; }
+    toast('Guardado');
+    suiCerrarCajon();
+    cargar();
+  });
 }
 
 /* Borrar carpeta (12-ago-2026, petición del owner: "solo super_admin").
