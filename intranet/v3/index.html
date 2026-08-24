@@ -15,15 +15,15 @@
 <!-- Catálogo y formato de dinero: los MISMOS ficheros que el hub vivo. Esta v3
      cambia la piel y el comportamiento, no la fuente de verdad de qué
      herramientas existen ni de quién las ve (regla 0 de la suite). -->
-<script src="/contracts/assets/herramientas.js?v=965f26bd"></script>
+<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/dinero.js?v=5715dc3d"></script>
 <!-- LA CÁSCARA REAL DE LA SUITE. El panel v3 dejó de tener motor propio el
      23-ago-2026: tenía una copia entera de los muelles, del pulsable, del
      popover y de los avisos, y en cuanto la suite creció eso eran dos casas
      con la misma fachada y dos sitios donde arreglar el mismo fallo.
      Ahora carga lo MISMO que las once herramientas y encima la capa v3. -->
-<link rel="stylesheet" href="/contracts/assets/brand.css?v=cc7380a1">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=baea9186">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=7de7c331">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=dba4757d">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=ae194bab">
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=47a8cadb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=2213e087">
@@ -399,7 +399,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
         <p class="t-cuerpo" id="saludoSub">Esto es lo que necesita tu atención.</p>
       </div>
       <div class="acciones">
-        <a class="btn" href="/contracts/app.html?nuevo=1" data-press><i class="ph ph-plus"></i>Nuevo contrato</a>
+        <a class="btn" href="/contracts/?nuevo=1" data-press><i class="ph ph-plus"></i>Nuevo contrato</a>
         <a class="btn solido" href="/facturas/?nueva=1" data-press><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </section>
@@ -649,7 +649,7 @@ function tarjetasKpi(d){
     { id:'firmas', rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/?filtro=firma_viva', herr:'operaciones',
       pie:n=>n?'pendientes de que el comprador firme':'ninguna pendiente', tono:n=>n?'mal':'bien', urge:n=>n>0,
       detalle:n=>[['Contratos con firma viva',n==null?'—':n],['Origen','contrato_firmas_equipo()'],['Se cuenta','contratos, no firmantes']] },
-    { id:'contratos', rot:'Contratos', v:d.contratos, href:'/contracts/app.html', herr:'contratos',
+    { id:'contratos', rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:()=>d.contratosEditables==null?'':d.contratosEditables+' aún editables', tono:()=>d.contratosEditables?'espera':'',
       detalle:()=>[['Guardados',d.contratos??'—'],['Editables',d.contratosEditables??'—'],['Bloqueados',(d.contratos!=null&&d.contratosEditables!=null)?d.contratos-d.contratosEditables:'—']] },
     { id:'facturas', rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
@@ -882,7 +882,7 @@ async function ultimasOperaciones(sb){
   ]);
   const filas=[
     ...(c.data||[]).map(r=>({fecha:r.created_at,num:r.numero,quien:r.comprador_nombre,que:'Contrato',
-      href:'/contracts/app.html?contrato='+r.id, estado:r.bloqueado?['Firmado','ok']:['Editable','']})),
+      href:'/contracts/?contrato='+r.id, estado:r.bloqueado?['Firmado','ok']:['Editable','']})),
     ...(f.data||[]).map(r=>({fecha:r.created_at,num:r.numero,quien:r.cliente_nombre,
       que:r.tipo==='recibi'?'Recibí':r.tipo==='proforma'?'Proforma':'Factura',
       href:'/facturas/?id='+r.id, importe:r.total, moneda:r.moneda,

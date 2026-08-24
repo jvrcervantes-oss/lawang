@@ -1,0 +1,15 @@
+# 24-ago-2026: /contracts/ es la única de las doce herramientas cuyo fichero
+# principal no se llama index.html (es app.html, porque conviven aquí otros
+# ficheros — portada.html, firmar.html, los _qa_*.html de prueba). Sin esto,
+# `/contracts/` da 404 y la barra de direcciones muestra `/contracts/app.html`
+# mientras las otras once dicen `/vencimientos/`, `/facturas/`... — el "cacao"
+# que reportó el owner.
+#
+# DirectoryIndex, no un RewriteRule: es resolución interna, no una redirección.
+# No convierte POST en GET (la trampa ya documentada en el .htaccess raíz para
+# la regla de "URLs limpias" — aquí no aplica esa regla porque /contracts/ es
+# una app interna con login y formularios, y esta regla no es esa): simplemente
+# le dice a Apache qué servir cuando piden la carpeta a secas, igual que hace
+# de fábrica con index.html en las otras once. app.html sigue respondiendo
+# también por su nombre completo, así que ningún enlace existente se rompe.
+DirectoryIndex app.html index.html

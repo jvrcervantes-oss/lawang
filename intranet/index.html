@@ -19,7 +19,7 @@
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
      `data-lw-usuario` de la cabecera. -->
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=baea9186">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=dba4757d">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=ae194bab">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=27ace8c7" defer></script>
+<script src="/contracts/assets/topbar.js?v=41767b64" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -308,7 +308,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
         <!-- Sin `style=` inline: eran los unicos `.lw-btn` de la suite con la
              talla pisada a mano (13px/10px 18px), que no era ni la del boton de
              barra ni la del primario. Ahora miden lo que mide la clase. -->
-        <a class="lw-btn" href="/contracts/app.html?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
+        <a class="lw-btn" href="/contracts/?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
         <a class="lw-btn primary" href="/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </div>
@@ -347,7 +347,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      daba tres decimales donde Facturas da dos. El `?v=` lo sella el
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=5715dc3d"></script>
-<script src="/contracts/assets/herramientas.js?v=965f26bd"></script>
+<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/dialogo.js?v=5edf8aed"></script>
 <script src="/contracts/assets/suite-comun.js?v=9703fd59"></script>
 <script>
@@ -539,7 +539,7 @@ function pintarKpis(d, ficha){
     { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/?filtro=firma_viva', herr:'operaciones',
       pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
       tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
-    { rot:'Contratos', v:d.contratos, href:'/contracts/app.html', herr:'contratos',
+    { rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables',
       tono:() => d.contratosEditables ? 'espera' : '' },
     { rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
@@ -597,7 +597,7 @@ async function ultimasOperaciones(sb){
   ]);
   const filas = [
     ...(c.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.comprador_nombre,
-        que:'Contrato', href:'/contracts/app.html?contrato=' + r.id, estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
+        que:'Contrato', href:'/contracts/?contrato=' + r.id, estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
     ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
         que:r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura',
         href:'/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,

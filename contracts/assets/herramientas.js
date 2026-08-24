@@ -47,7 +47,7 @@ const LW_HERRAMIENTAS = [
       : [d.vencSinFecha ? d.vencSinFecha + ' sin fecha que vigilar' : 'Calendario al día',
          d.vencSinFecha > 0] },
 
-  { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/app.html', herr:'contratos',
+  { grupo:'Documentación', nombre:'Contratos', icon:'ph-file-text', href:'/contracts/', herr:'contratos',
     para:'Reservas, PPJB, construcción y anexos.',
     claves:'contratos ppjb reserva construccion anexos',
     estado:d => d.contratos == null ? null

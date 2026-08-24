@@ -4,7 +4,7 @@
  * Sin estado ni salida: todo lo que hay aquí se puede probar con `php modelo/test_modelo.php`.
  */
 
-/** Renders publicables de un modelo, en orden natural (dali.jpg antes que dali2.jpg). */
+/** Renders publicables de un modelo, en orden natural (dali.webp antes que dali2.webp). */
 function lw_modelo_imgs($id, $root = null) {
     $root = $root !== null ? $root : dirname(__DIR__);
     $dir  = $root . '/assets/img/buildings/' . $id . '/web';
