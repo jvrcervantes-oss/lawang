@@ -1391,6 +1391,14 @@ function resetBorrador(slug){
   CLAUSES = []; saveClauses();
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
   AUTO_APODERADO = {}; AUTO_POA = {};
+  // AUTO_UNIDAD es `const` (parcela_inventario.js): no se reasigna con `={}`,
+  // se vacía campo a campo. Hallazgo de la auditoría de hoy: era la ÚNICA guarda
+  // de "esto lo puso el automatismo" de toda la familia (AUTO_ANX/MASTER/RESORT/
+  // APODERADO/POA sí se limpiaban aquí) que se quedaba pegada al documento
+  // siguiente — mismo mecanismo, mismo campo (precio_total) que el bug de
+  // derivarContrato() de esta misma tarde, solo que disparado al abrir/derivar
+  // un documento cuyo precio coincide por casualidad con el del anterior.
+  Object.keys(AUTO_UNIDAD).forEach(k=>delete AUTO_UNIDAD[k]);
   avisoMismoApoderado = null;   // 11-ago, hallazgo Legal MEDIA: si no se resetea, cambiar a OTRO contrato que
   // también tenga el mismo apoderado en las dos partes se queda mudo por casualidad de string
 }
@@ -3847,6 +3855,7 @@ async function openSavedContract(id){
   // aviso de "mismo apoderado en las dos partes" del contrato ANTERIOR se cuela
   // en el que se acaba de abrir.
   AUTO_APODERADO = {}; AUTO_POA = {}; avisoMismoApoderado = null;
+  Object.keys(AUTO_UNIDAD).forEach(k=>delete AUTO_UNIDAD[k]);   // ver la nota junto a resetBorrador()
   aplicarReglasCampos();
   refreshHitos();
   updateSaveButton(); editBtnIdle(); render();
@@ -4049,6 +4058,17 @@ async function derivarContrato(slug){
   limpiarOverrides(slug);
   ANNEXES = []; saveAnnexes(); CLAUSES = []; saveClauses();
   AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+  /* Mismos dos huecos que la auditoría de hoy encontró en este punto:
+     AUTO_UNIDAD (guarda "puso el automatismo" de precio/tipología/villa desde
+     el inventario — const, se vacía campo a campo, no se reasigna) y los
+     guardas de apoderado, que openSavedContract() SÍ resetea al reabrir pero
+     "Copiar datos" nunca reseteaba — un apoderado editado a mano en el
+     contrato de origen podía protegerse como "manual" en el derivado y dejar
+     ahí los datos de identidad de OTRA persona bajo el apoderado que se elija
+     después. Ni COMPRADORES ni HITOS se tocan: esos SÍ son "el objetivo de
+     derivar" (ver más arriba); estos son guardas internas, no datos. */
+  Object.keys(AUTO_UNIDAD).forEach(k=>delete AUTO_UNIDAD[k]);
+  AUTO_APODERADO = {}; AUTO_POA = {}; avisoMismoApoderado = null;
   await loadTemplate(slug);
   $('#tplPick').value = slug;
   buildForm();
