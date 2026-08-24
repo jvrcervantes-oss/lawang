@@ -2469,6 +2469,15 @@ function deriveSections(){
     const opts = lista.map(p=>p.nombre);
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='proyecto_nombre' && f[2]==='select') ? [f[0], f[1], f[2], opts] : f); });
+    /* Resort (24-ago): mismo motivo que proyecto_nombre arriba — la lista de
+       tokens.json es solo el fallback sin red. Si Proyectos da de alta un
+       resort nuevo (p.ej. "Signature project", texto libre en su ficha), el
+       desplegable de Contratos tiene que verlo sin que alguien recuerde tocar
+       este fichero a mano; si no, es la misma lista-a-mano-en-dos-sitios que
+       ya mordió con proyecto_nombre y con los tipos de contrato. */
+    const resorts = [...new Set(PROYECTOS_DB.map(p => p.resort).filter(Boolean))];
+    if(resorts.length) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
+      (f[0]==='resort' && f[2]==='select') ? [f[0], f[1], f[2], resorts] : f); });
   }
   if((MODELOS_DB||[]).length){
     SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
