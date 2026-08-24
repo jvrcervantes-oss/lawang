@@ -20,8 +20,8 @@ ok($dali !== null && count($dali['imgs']) >= 5, 'dali debe ser publicable con su
 ok(count($M) === 1, 'el catalogo del funnel es solo Dali');
 ok(lw_modelo_get('dune', $M) === null, 'un modelo retirado no puede servir landing');
 
-// El primer render es el del hero: orden natural, dali.webp antes que dali2.webp.
-ok(substr($dali['imgs'][0], -8) === 'dali.webp', 'el hero debe ser dali.webp, no dali2.webp');
+// El primer render es el del hero: orden natural, dali.jpg antes que dali2.jpg.
+ok(substr($dali['imgs'][0], -8) === 'dali.jpg', 'el hero debe ser dali.jpg, no dali2.jpg');
 
 // La id viene de la URL: nada de rutas ni comodines llegando al glob.
 ok(lw_modelo_get('../../etc/passwd', $M) === null, 'path traversal debe caer');

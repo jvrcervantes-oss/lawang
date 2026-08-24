@@ -174,8 +174,8 @@ html,body{width:100%;height:100%;background:var(--obsidian);overflow:hidden;font
 #logo-inner .ll-white{filter:drop-shadow(0 1px 6px rgba(0,0,0,0.35))}
 /* Logo scrolled: verde --pg (máscara del PNG, ratio 1726:240 ≈ 7.19) en vez del negro */
 #logo-inner .ll-dark{display:none;height:24px;width:172px;background-color:var(--pg);
-  -webkit-mask:url('assets/img/lawang-logo-v3-dark.webp') left center/contain no-repeat;
-          mask:url('assets/img/lawang-logo-v3-dark.webp') left center/contain no-repeat}
+  -webkit-mask:url('assets/img/lawang-logo-v3-dark.png') left center/contain no-repeat;
+          mask:url('assets/img/lawang-logo-v3-dark.png') left center/contain no-repeat}
 #logo.dark .ll-white{display:none}
 #logo.dark .ll-dark{display:block}
 @media(max-width:680px){ #logo-inner .ll-dark{height:18px;width:129px} }
@@ -414,8 +414,8 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 /* ── Hero: imagen de fondo estática (sin diorama 2.5D) ── */
 .hero-layer{position:absolute;background-position:center;background-size:cover}
 .hero-layer.l-bg{inset:0;width:100%;height:100%;z-index:1;
-  background-image:url('assets/img/Hero2.webp?v=2')}
-/* Vídeo del hero: la puerta (l-bg = Hero2.webp) es el frame inicial; el vídeo aparece con
+  background-image:url('assets/img/Hero2.jpg?v=2')}
+/* Vídeo del hero: la puerta (l-bg = Hero2.jpg) es el frame inicial; el vídeo aparece con
    fade cuando está listo para reproducirse (clase .ready al evento 'playing'). */
 .hero-layer.l-vid{inset:0;width:100%;height:100%;z-index:1;object-fit:cover;opacity:0;background:transparent;transition:opacity .9s ease}
 .hero-layer.l-vid.ready{opacity:1}
@@ -445,7 +445,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   text-transform:uppercase;color:var(--rl);text-decoration:none;cursor:pointer;white-space:nowrap;
   transition:background .3s,border-color .3s,color .3s,transform .3s}
 /* Textura del botón (lighten 69%) */
-.hero-discover::before{content:"";position:absolute;inset:0;background:url('assets/img/TexturasBotones.webp') center/cover;
+.hero-discover::before{content:"";position:absolute;inset:0;background:url('assets/img/TexturasBotones.png') center/cover;
   mix-blend-mode:lighten;opacity:.69;pointer-events:none}
 .hero-discover .hd-in{position:relative;z-index:1;display:inline-flex;align-items:center;gap:.7rem}
 .hero-discover .ar{font-size:1.5em;line-height:0;opacity:1;font-weight:700;transition:transform .3s}
@@ -515,7 +515,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <header id="topbar" class="show">
   <div id="logo">
     <a id="logo-inner" href="#home" aria-label="Lawang — inicio">
-      <img class="ll-white" src="assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
+      <img class="ll-white" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties">
       <span class="ll-dark" aria-hidden="true"></span>
     </a>
   </div>
@@ -565,7 +565,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 <section class="hero-panel" id="home">
   <!-- Hero media: vídeo (8.3MB, 1600p) sobre imagen poster. En móvil el vídeo se oculta (solo poster). -->
   <div class="hero-layer l-bg"></div>
-  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="metadata" poster="assets/img/hero-poster.webp">
+  <video class="hero-layer l-vid" autoplay muted loop playsinline preload="metadata" poster="assets/img/hero-poster.jpg">
     <source src="assets/video/hero-loop-hq.mp4?v=3" type="video/mp4">
   </video>
   <div class="hero-mist"></div>
@@ -573,7 +573,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div class="hero-inner">
     <h1 class="hero-h">
       <span class="hh-l1"><span class="hh-thin">Turn</span> <span class="hh-bold">Capital</span></span>
-      <span class="hh-l2"><img class="hh-iso" src="assets/img/lawang-14.webp" alt=""><span class="hh-thin">Into</span> <span class="hh-bold">Legacy</span></span>
+      <span class="hh-l2"><img class="hh-iso" src="assets/img/lawang-14.png" alt=""><span class="hh-thin">Into</span> <span class="hh-bold">Legacy</span></span>
     </h1>
     <div class="hero-foot">
       <p class="hero-sub"><b>We help international investors build lasting wealth in Indonesia.</b><span class="hero-sub-2">through strategy, structure, and presence on the ground.</span></p>
@@ -657,7 +657,7 @@ const logo   = document.getElementById('logo');
 const marksWrap = document.getElementById('hero-marks');
 if(marksWrap){
   let s = '';
-  for(let i=0;i<30;i++) s += '<img src="assets/img/lawang-14.webp" alt="" />';
+  for(let i=0;i<30;i++) s += '<img src="assets/img/lawang-14.png" alt="" />';
   marksWrap.innerHTML = '<div class="marks-track">' + s + '</div>'; // fila fija centrada
 }
 
@@ -935,7 +935,7 @@ function applyHomeFeatured(p){
 .cs-btn-pill { border-radius:40px; }
 
 /* ════ 2 · THE ECOSYSTEM — Divisions (#lines) ════ */
-.lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/bg-ecosystem.webp?v=2') center/cover no-repeat; }
+.lw-divisions { background:linear-gradient(rgba(243,238,228,.25),rgba(243,238,228,.25)), url('assets/img/bg-ecosystem.jpg?v=2') center/cover no-repeat; }
 .lw-divisions > .cs-wrap { max-width:1480px; }
 .lw-show-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(1.9rem,2.8vw,3rem); margin-top:clamp(26px,4vh,48px); }
 .lw-show { position:relative; display:block; overflow:hidden; border-radius:16px; isolation:isolate; text-decoration:none;
@@ -956,7 +956,7 @@ function applyHomeFeatured(p){
 .lw-show:hover .lw-show-cta { background:rgba(245,240,230,.94); color:#1b2212; border-color:rgba(245,240,230,.94); }
 
 /* ════ 3 · CURATED PORTFOLIO (#portfolio) — 3 visibles + scroll horizontal ════ */
-.lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/bg-portfolio.webp') center/cover no-repeat; }
+.lw-portfolio { background:linear-gradient(rgba(245,240,230,.55),rgba(245,240,230,.55)), url('assets/img/bg-portfolio.jpg') center/cover no-repeat; }
 .lw-pf-top { position:relative; overflow:hidden; border-radius:16px; background:var(--ca); color:var(--cb); text-align:right;
   padding:clamp(34px,5vw,60px) clamp(28px,4vw,54px); }
 .lw-pf-top > .lw-pf-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:1; z-index:-1; pointer-events:none; }
@@ -997,7 +997,7 @@ function applyHomeFeatured(p){
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype'); font-weight:400; font-style:normal; font-display:swap; }
 @font-face { font-family:'Seasons TS'; src:url('assets/fonts/TheSeasons-Italic.otf') format('opentype'); font-weight:400; font-style:italic; font-display:swap; }
 .lw-theservices { position:relative; overflow:hidden; color:var(--rl);
-  background:url('assets/img/bg-theservices.webp?v=3') center/cover no-repeat;
+  background:url('assets/img/bg-theservices.jpg?v=3') center/cover no-repeat;
   justify-content:stretch; text-transform:uppercase; }
 /* Velo localizado SOLO detrás del texto (radial en el titulo + banda inferior
    para las columnas). La imagen sigue raw; solo se oscurece donde hay texto. */
@@ -1125,9 +1125,9 @@ function applyHomeFeatured(p){
 .lw-bt .bt-2 { font-family:var(--csa); font-weight:500; font-style:italic; text-transform:uppercase; letter-spacing:.005em; line-height:1; }
 .lw-bt .bt-3 { font-family:var(--csa); font-weight:400; text-transform:uppercase; letter-spacing:.07em; font-size:.44em; line-height:1.1; margin-top:.12em; }
 
-/* Bloque Strategic Partner (fondo selva bg-strategic.webp) */
+/* Bloque Strategic Partner (fondo selva bg-strategic.jpg) */
 .lw-strat { position:relative; overflow:hidden; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; justify-content:center; padding:clamp(5.5rem,10vh,7rem) 0 clamp(3rem,6vh,5rem); }
-.lw-strat-bg { position:absolute; inset:0; background:url('assets/img/bg-strategic.webp') center/cover; }
+.lw-strat-bg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center/cover; }
 .lw-strat-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(108deg,rgba(8,12,7,.88) 0%,rgba(8,12,7,.58) 46%,rgba(8,12,7,.30) 100%); }
 .lw-strat-inner { position:relative; z-index:1; color:var(--cb); }
 .lw-strat-title { color:var(--cb); font-size:var(--fs-heading-l); padding-left:clamp(18px,2vw,28px); border-left:1px solid rgba(245,240,230,.55); }
@@ -1196,7 +1196,7 @@ function applyHomeFeatured(p){
 .lw-exp-tl { position:relative; overflow:hidden; background:var(--ca); color:var(--cb);
   padding:clamp(4.5rem,9vh,7rem) 0 clamp(3.5rem,7vh,5rem); }
 .lw-exp-tlbg { position:absolute; inset:0; pointer-events:none;
-  background:url('assets/img/bg-theexpedition.webp') center/cover; }
+  background:url('assets/img/bg-theexpedition.jpg') center/cover; }
 .lw-tl-inner { position:relative; }
 .lw-tl-inner .lw-kicker { color:#E6EDDD; }
 .lw-tl-h { font-family:var(--cse); font-weight:300; font-size:clamp(2rem,3.8vw,3.4rem); line-height:1.05;
@@ -1341,7 +1341,7 @@ function applyHomeFeatured(p){
 #content-sections > section.lw-services > .cs-wrap { position:relative; z-index:1; }
 .lw-strat-card { position:relative; overflow:hidden; border-radius:22px; min-height:clamp(260px,30vh,330px);
   display:flex; box-shadow:0 34px 66px -34px rgba(32,24,15,.55); }
-.lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.webp') center 42%/cover; }
+.lw-strat-cardbg { position:absolute; inset:0; background:url('assets/img/bg-strategic.jpg') center 42%/cover; }
 .lw-strat-cardbg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(100deg,rgba(8,12,7,.9) 0%,rgba(8,12,7,.6) 30%,rgba(8,12,7,.16) 60%,rgba(8,12,7,0) 80%); }
 .lw-strat-card::after { content:""; position:absolute; inset:14px; border:1px solid rgba(245,240,230,.34);
@@ -1387,7 +1387,7 @@ function applyHomeFeatured(p){
 /* ── 6 · Epic Indonesia (full-bleed) ── */
 #content-sections > section.lw-epic { display:flex; padding:0; min-height:100vh; min-height:100dvh;
   background:#0A0C09; justify-content:stretch; position:relative; overflow:hidden; }
-.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.webp?v=5') center/cover; z-index:0; }
+.lw-epic-bg { position:absolute; inset:0; background:url('assets/img/bg-indonesia.jpg?v=5') center/cover; z-index:0; }
 .lw-epic-bg::after { content:""; position:absolute; inset:0;
   background:linear-gradient(180deg,rgba(18,42,60,.10) 0%,rgba(10,20,15,.12) 38%,rgba(8,14,10,.74) 100%); }
 .lw-epic-totem { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:3;
@@ -1439,9 +1439,9 @@ function applyHomeFeatured(p){
 .lw-feat-card-ico { display:block; width:66px; height:52px; background-color:var(--ca); margin-bottom:18px;
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
   -webkit-mask-size:contain; mask-size:contain; }
-.lw-feat-card-ico.ico-land { -webkit-mask-image:url('assets/img/cream-land.webp'); mask-image:url('assets/img/cream-land.webp'); }
-.lw-feat-card-ico.ico-signature { -webkit-mask-image:url('assets/img/cream-signature.webp'); mask-image:url('assets/img/cream-signature.webp'); }
-.lw-feat-card-ico.ico-resorts { -webkit-mask-image:url('assets/img/cream-resorts.webp'); mask-image:url('assets/img/cream-resorts.webp'); }
+.lw-feat-card-ico.ico-land { -webkit-mask-image:url('assets/img/cream-land.png'); mask-image:url('assets/img/cream-land.png'); }
+.lw-feat-card-ico.ico-signature { -webkit-mask-image:url('assets/img/cream-signature.png'); mask-image:url('assets/img/cream-signature.png'); }
+.lw-feat-card-ico.ico-resorts { -webkit-mask-image:url('assets/img/cream-resorts.png'); mask-image:url('assets/img/cream-resorts.png'); }
 /* Carrusel de proyectos destacados — 1 proyecto por flecha (sin peek) */
 .lw-feat-carousel { position:relative; max-width:var(--cmx); margin:0 auto; }
 .lw-feat-track { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
@@ -1539,24 +1539,24 @@ function applyHomeFeatured(p){
       <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase"><em style="font-style:normal">Four ways,</em> <span style="font-weight:200">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
-      <a class="lw-show reveal" href="/thecollection#signature" style="--img:url('assets/img/CardSignatures.webp')">
+      <a class="lw-show reveal" href="/thecollection#signature" style="--img:url('assets/img/CardSignatures.jpg')">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/cream-signature.webp" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-signature.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Villa Communities</span><span class="lw-show-cta">Elevated Living</span></div>
       </a>
       <a class="lw-show reveal" href="/thecollection#land" style="--img:url('assets/img/CardLand.jpg');transition-delay:80ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/cream-land.webp" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-land.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Land Legacy</span><span class="lw-show-sub">Premium Parcels</span><span class="lw-show-cta">Curated Views</span></div>
       </a>
-      <a class="lw-show reveal" href="/thecollection#villas" style="--img:url('assets/img/CardVillas.webp');transition-delay:140ms">
+      <a class="lw-show reveal" href="/thecollection#villas" style="--img:url('assets/img/CardVillas.jpg');transition-delay:140ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/cream-villas.webp" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-villas.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Private Residences</span><span class="lw-show-cta">Integrated Design</span></div>
       </a>
-      <a class="lw-show reveal" href="/thecollection#resorts" style="--img:url('assets/img/CardResorts.webp');transition-delay:200ms">
+      <a class="lw-show reveal" href="/thecollection#resorts" style="--img:url('assets/img/CardResorts.jpg');transition-delay:200ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
-        <img class="lw-show-icon" src="assets/img/cream-resorts.webp" alt="" draggable="false">
+        <img class="lw-show-icon" src="assets/img/cream-resorts.png" alt="" draggable="false">
         <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Prime Hospitality</span><span class="lw-show-cta">Long-Term Value</span></div>
       </a>
     </div>
@@ -1567,7 +1567,7 @@ function applyHomeFeatured(p){
 <section class="lw-portfolio" id="portfolio">
   <div class="cs-wrap">
     <div class="lw-pf-top reveal">
-      <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.webp?v=3">
+      <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.jpg?v=3">
         <source src="assets/video/legacy.mp4?v=3" type="video/mp4">
       </video>
       <h2 class="lw-pf-statement lw-select"><span class="ln-thin">We don't list properties.</span><span class="ln-bold">We select them.</span></h2>
@@ -1583,7 +1583,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/balian-ridge-house">
           <div class="lw-prop-media ph-sunset"><img class="lw-prop-img" src="/assets/img/properties/20260604_5fb11d5c956a.png" alt="" loading="lazy" onerror="this.remove()">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-signature.webp" alt="" loading="lazy">Signature</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-signature.png" alt="" loading="lazy">Signature</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
@@ -1598,7 +1598,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/balian-parcel-a">
           <div class="lw-prop-media ph-jungle">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-land.webp" alt="" loading="lazy">Land</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-land.png" alt="" loading="lazy">Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Titled land</span></div>
@@ -1613,7 +1613,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/villa-tipo-lontar">
           <div class="lw-prop-media ph-sunset">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-villas.webp" alt="" loading="lazy">Villas</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-villas.png" alt="" loading="lazy">Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
@@ -1628,7 +1628,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/sumba-bayhouse">
           <div class="lw-prop-media ph-sand">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-signature.webp" alt="" loading="lazy">Signature</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-signature.png" alt="" loading="lazy">Signature</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
@@ -1643,7 +1643,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/balian-surf-resort">
           <div class="lw-prop-media ph-dusk">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-resorts.webp" alt="" loading="lazy">Resorts</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-resorts.png" alt="" loading="lazy">Resorts</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Leasehold</span><span class="pf-pill plan">Off-plan</span></div>
@@ -1658,7 +1658,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/sumba-land-bluff">
           <div class="lw-prop-media ph-ocean">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-land.webp" alt="" loading="lazy">Land</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-land.png" alt="" loading="lazy">Land</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Titled land</span></div>
@@ -1673,7 +1673,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/villa-tipo-banyan">
           <div class="lw-prop-media ph-sunset">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-villas.webp" alt="" loading="lazy">Villas</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-villas.png" alt="" loading="lazy">Villas</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Freehold</span><span class="pf-pill plan">Off-plan</span></div>
@@ -1688,7 +1688,7 @@ function applyHomeFeatured(p){
       <article class="lw-prop">
         <a href="/thecollection#property/sumba-resort-villa">
           <div class="lw-prop-media ph-sand">
-            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-resorts.webp" alt="" loading="lazy">Resorts</span>
+            <span class="lw-prop-line"><img class="lw-line-ico" src="assets/img/cream-resorts.png" alt="" loading="lazy">Resorts</span>
           </div>
           <div class="lw-prop-body">
             <div class="lw-prop-pills"><span class="pf-pill ten">Leasehold</span><span class="pf-pill plan">Off-plan</span></div>
@@ -1715,22 +1715,22 @@ function applyHomeFeatured(p){
     </div>
     <div class="lw-ts-cols">
       <div class="lw-ts-col reveal" style="transition-delay:60ms">
-        <img class="lw-ts-ico" src="assets/img/icon-services-territorial.webp" alt="" aria-hidden="true" loading="lazy">
+        <img class="lw-ts-ico" src="assets/img/icon-services-territorial.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Territorial</b> Sourcing</h4>
         <p class="lw-ts-p">Verified expansion corridors, and long-term upside.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:120ms">
-        <img class="lw-ts-ico" src="assets/img/icon-services-legal.webp" alt="" aria-hidden="true" loading="lazy">
+        <img class="lw-ts-ico" src="assets/img/icon-services-legal.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Legal</b> and Structure</h4>
         <p class="lw-ts-p">Every acquisition with full fiscal clarity.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:180ms">
-        <img class="lw-ts-ico" src="assets/img/icon-services-development.webp" alt="" aria-hidden="true" loading="lazy">
+        <img class="lw-ts-ico" src="assets/img/icon-services-development.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Development</b> and Build</h4>
         <p class="lw-ts-p">Structural integrity and deep territorial knowledge.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:240ms">
-        <img class="lw-ts-ico" src="assets/img/icon-services-management.webp" alt="" aria-hidden="true" loading="lazy">
+        <img class="lw-ts-ico" src="assets/img/icon-services-management.png" alt="" aria-hidden="true" loading="lazy">
         <h4 class="lw-ts-h"><b>Management</b> and Returns</h4>
         <p class="lw-ts-p">Our curated network of local management partners.</p>
       </div>
@@ -1814,7 +1814,7 @@ function applyHomeFeatured(p){
       </div>
     </div>
   </div>
-  <img class="lw-ct-totem" src="assets/img/tiki-totem.webp" alt="" aria-hidden="true" draggable="false">
+  <img class="lw-ct-totem" src="assets/img/tiki-totem.png" alt="" aria-hidden="true" draggable="false">
   <div class="lw-ct-top" id="contact-form">
     <div class="lw-ct-grid">
       <div class="reveal">
@@ -1851,7 +1851,7 @@ function applyHomeFeatured(p){
   <div class="lw-ft">
     <div class="lw-ft-grid">
       <div>
-        <img class="lw-ft-logo-img" src="assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
+        <img class="lw-ft-logo-img" src="assets/img/lawang-logo-v3.png" alt="Lawang Tropical Properties">
         <div class="lw-ft-sub" style="margin-top:10px">Tropical Properties</div>
         <p class="lw-ft-tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>
       </div>
@@ -1901,7 +1901,7 @@ function applyHomeFeatured(p){
   <span class="wa-label">Meet Moanito! Your tropical partner</span>
   <span class="wa-ico">
     <svg class="wa-wa" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
-    <img class="wa-monito" src="assets/img/moanito-face.webp" alt="" aria-hidden="true">
+    <img class="wa-monito" src="assets/img/moanito-face.png" alt="" aria-hidden="true">
   </span>
 </a>
 

@@ -494,7 +494,7 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
       <?php endforeach; ?>
     </div>
     <figure class="port__fig">
-      <img src="/assets/img/modelo/dali-cubierta.webp" alt="Detalle de la cubierta de alang-alang de la villa <?= lw_e($nombre) ?>" loading="lazy">
+      <img src="/assets/img/modelo/dali-cubierta.jpg" alt="Detalle de la cubierta de alang-alang de la villa <?= lw_e($nombre) ?>" loading="lazy">
       <figcaption><span>Cubierta de alang-alang</span><span>Render de proyecto</span></figcaption>
     </figure>
   </section>
@@ -548,7 +548,7 @@ figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var
     <p class="dice">Estas dos imágenes no son renders: son fotografías tomadas con dron en la
       zona. En la llamada te decimos qué parcelas quedan y cómo se llega a cada una.</p>
     <div class="laminas">
-      <img src="/assets/img/lugar/costa.webp" alt="Desembocadura del río y playa de arena volcánica en la costa oeste de Bali, vista cenital" loading="lazy">
+      <img src="/assets/img/lugar/costa.jpg" alt="Desembocadura del río y playa de arena volcánica en la costa oeste de Bali, vista cenital" loading="lazy">
       <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
     </div>
     <p class="ficha__nota">Fotografía real con dron · Costa oeste de Bali</p>
