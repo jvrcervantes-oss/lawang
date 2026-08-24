@@ -93,7 +93,12 @@ async function cargarUnidadesDelProyecto(proyecto){
        inventario», que es lo que hace caer el campo a texto libre. Las dos
        situaciones se veían igual en pantalla y solo una es segura. */
     if(error) UNIDADES_PROY.fallo = error.message || 'no se ha podido leer';
-    else UNIDADES_PROY.lista = data || [];
+    // El .order('codigo') de arriba es orden de texto de Postgres: B10 antes que
+    // B2. Se reordena aquí con el mismo criterio numérico que ya usa el resto de
+    // la suite (suiComparar, contracts/assets/suite.js) para que B1..B2..B10 salga
+    // en el orden que un humano espera.
+    else UNIDADES_PROY.lista = (data || []).slice()
+      .sort((a,b) => String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric:true, sensitivity:'base' }));
     /* Quién ocupa cada parcela: tipo y número del contrato que la tiene. Hace
        falta para saber si se puede traspasar — una parcela reservada por una
        Carta de Reserva sí puede pasar a su Bloqueo de Parcela (ver
@@ -201,7 +206,14 @@ function pintarSelectorParcela(){
                : tomada ? 'ya asignada' : (u.estado !== 'disponible' ? u.estado : '');
     const partes = [u.codigo, u.modelo, u.superficie_m2 ? u.superficie_m2 + ' m²' : '',
                     u.precio ? fmtImporte(Number(u.precio)) + ' ' + (u.moneda||'EUR') : '', nota];
-    return `<option value="${escAttr(u.codigo)}" ${tomada&&!traspaso?'disabled':''}>${
+    /* Bloqueada u otro estado que no sea 'disponible' TAMBIÉN se deshabilita,
+       aunque no tenga contrato enlazado (24-ago, aviso del cliente). Hasta hoy
+       solo miraba `tomada` (¿tiene contrato_id?): una parcela marcada a mano en
+       Proyectos como bloqueada/no disponible sin contrato detrás se ofrecía
+       igual, con la nota puesta pero seleccionable — la nota se veía, el freno
+       no estaba. */
+    const bloqueadaOpcion = tomada ? !traspaso : u.estado !== 'disponible';
+    return `<option value="${escAttr(u.codigo)}" ${bloqueadaOpcion?'disabled':''}>${
       escAttr(partes.filter(Boolean).join(' · '))}</option>`;
   }).join('');
 
