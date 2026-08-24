@@ -64,24 +64,18 @@ if ($info === false) {
 }
 list($srcW, $srcH) = $info;
 
-// PNG sin canal alfa -> se guarda como JPEG (una foto en PNG pesa varias veces más).
-// El tipo de color vive en el byte 25 del IHDR: 0=gris, 2=truecolor (ninguno lleva alfa);
-// 3=paleta (puede traer tRNS), 4 y 6 sí llevan alfa. Es fiable y no cuesta recorrer píxeles.
-$outExt = $ext === 'jpeg' ? 'jpg' : $ext;
-if ($outExt === 'png') {
-    $head = @file_get_contents($file['tmp_name'], false, null, 24, 2);
-    if ($head !== false && strlen($head) === 2) {
-        $colorType = ord($head[1]);
-        if ($colorType === 0 || $colorType === 2) $outExt = 'jpg';
-    }
-}
+// Salida SIEMPRE webp (norma de agencia, 24-ago-2026): pesa menos que jpg y png a
+// igual calidad, y a diferencia de jpg sí lleva alfa — ya no hace falta la deteccion
+// de canal alfa de PNG que decidia aqui entre guardar como jpg o como png.
+$outExt = 'webp';
 
 // GD necesita ~4 bytes por píxel, y durante el reescalado conviven origen y destino.
 $estimate  = ($srcW * $srcH * 4) * 1.8;
 $loaders   = ['jpg' => 'imagecreatefromjpeg', 'jpeg' => 'imagecreatefromjpeg',
               'png' => 'imagecreatefrompng',  'webp' => 'imagecreatefromwebp'];
 $loader    = $loaders[$ext] ?? null;
-$canResize = $loader && function_exists($loader) && $estimate < 200 * 1024 * 1024;
+$canResize = $loader && function_exists($loader) && function_exists('imagewebp')
+             && $estimate < 200 * 1024 * 1024;
 
 $filename  = date('Ymd') . '_' . bin2hex(random_bytes(16)) . '.' . $outExt;
 $dest      = IMAGES_DIR . $filename;
@@ -95,19 +89,13 @@ if ($canResize) {
         $dstH  = max(1, (int) round($srcH * $scale));
         $dst   = imagecreatetruecolor($dstW, $dstH);
 
-        if ($outExt === 'png' || $outExt === 'webp') {
-            // Sin esto el alfa se aplana a negro al copiar
-            imagealphablending($dst, false);
-            imagesavealpha($dst, true);
-        } else {
-            // JPEG no tiene alfa: lo transparente iría a negro, así que se pone blanco
-            imagefilledrectangle($dst, 0, 0, $dstW, $dstH, imagecolorallocate($dst, 255, 255, 255));
-        }
+        // Sin esto el alfa se aplana a negro al copiar. Da igual que el origen sea
+        // jpg sin alfa: queda opaco igual, no hace dano dejarlo siempre activado.
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
 
         if (imagecopyresampled($dst, $src, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH)) {
-            if     ($outExt === 'png')  $processed = imagepng($dst, $dest, 8);
-            elseif ($outExt === 'webp') $processed = imagewebp($dst, $dest, IMAGE_QUALITY);
-            else                        $processed = imagejpeg($dst, $dest, IMAGE_QUALITY);
+            $processed = imagewebp($dst, $dest, IMAGE_QUALITY);
         }
         imagedestroy($dst);
         imagedestroy($src);
@@ -115,12 +103,10 @@ if ($canResize) {
 }
 
 if (!$processed) {
-    // Fallback: sin GD (o imagen demasiado grande para memoria) se guarda el original,
-    // con su extensión real — el $outExt calculado arriba ya no vale.
-    if ($outExt !== $ext) {
-        $filename = date('Ymd') . '_' . bin2hex(random_bytes(16)) . '.' . $ext;
-        $dest     = IMAGES_DIR . $filename;
-    }
+    // Fallback: sin GD/webp (o imagen demasiado grande para memoria) se guarda el
+    // original tal cual, con su extension real — el $outExt de arriba ya no vale.
+    $filename = date('Ymd') . '_' . bin2hex(random_bytes(16)) . '.' . $ext;
+    $dest     = IMAGES_DIR . $filename;
     if (!move_uploaded_file($file['tmp_name'], $dest)) {
         http_response_code(500);
         echo json_encode(['ok' => false, 'error' => 'Upload failed. Check server permissions.']);
