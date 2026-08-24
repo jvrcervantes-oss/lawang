@@ -3963,6 +3963,13 @@ async function derivarContrato(slug){
      && TIPOS_VINCULABLES.includes(CONTRACT_TIPO[CURRENT.slug]))
     f.num_reserva_vinculada = SAVED_CONTRACT.numero;
   const compradores = COMPRADORES.map(c=>({...c}));
+  // La ficha del Adquiriente I viaja igual que la de los II+ (que ya la llevan
+  // dentro de `client_id`, ver `compradores` arriba): sin esto, el derivado
+  // imprimía el nombre/email de la ficha de origen pero SIN el enlace real
+  // (ADQ1_CLIENT quedaba a null unas líneas más abajo), así que se guardaba sin
+  // `adq1_client_id` — la misma identidad suelta que el 18-ago vino a cerrar,
+  // reabierta por "Copiar datos" en cuanto el comprador pasó a leerse de su ficha.
+  const adq1Ficha = ADQ1_CLIENT;
   /* Los hitos SOLO se llevan al derivar hacia el MISMO tipo de contrato
      (18-ago-2026). Hasta hoy se copiaban siempre —"son el objetivo de derivar",
      decía el comentario— y era verdad cuando el calendario era genérico. Desde
@@ -4003,6 +4010,9 @@ async function derivarContrato(slug){
   buildForm();
   COMPRADORES = compradores; saveCompradores(); rebuildComprador();
   populateForm(f);
+  // buildForm() ya pintó con ADQ1_CLIENT=null (el buscador, no el chip); se
+  // repinta con la ficha real, igual que hace openSavedContract al reabrir.
+  if(adq1Ficha){ ADQ1_CLIENT = adq1Ficha; pintarFichaComprador(); }
   if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
   refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   $('#dvOverlay').classList.remove('open');
