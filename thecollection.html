@@ -514,8 +514,8 @@ article:hover .view-cta { gap:9px; }
 /* Logo idéntico al de index.html: header siempre solid → versión verde --pg (máscara del PNG, ratio ≈7.19) */
 #topbar #logo-inner .ll-white{ filter:drop-shadow(0 1px 6px rgba(0,0,0,.35)) }
 #topbar #logo-inner .ll-dark{ display:none;height:23px;width:165px;background-color:#587040;
-  -webkit-mask:url('assets/img/lawang-logo-v3-dark.png') left center/contain no-repeat;
-          mask:url('assets/img/lawang-logo-v3-dark.png') left center/contain no-repeat }
+  -webkit-mask:url('assets/img/lawang-logo-v3-dark.webp') left center/contain no-repeat;
+          mask:url('assets/img/lawang-logo-v3-dark.webp') left center/contain no-repeat }
 #topbar #logo.dark .ll-white{ display:none }
 #topbar #logo.dark .ll-dark{ display:block }
 @media(max-width:560px){ #topbar #logo-inner .ll-dark{ height:20px;width:144px } }
@@ -590,12 +590,12 @@ article:hover .view-cta { gap:9px; }
   bottom:clamp(20px,2.8vw,54px);
   border:1px solid rgba(245,240,230,.3); border-radius:10px; pointer-events:none; z-index:1 }
 /* (marca de agua "The Collection" del hero retirada — revisión cliente 23-jul) */
-/* ── Isotipo real de marca (assets/img/isotipo.png, blanco sobre transparente) ──────────────
+/* ── Isotipo real de marca (assets/img/isotipo.webp, blanco sobre transparente) ──────────────
    Va como MÁSCARA en vez de <img> para que tome el color del contexto: crema sobre el hero y
    Burnt Earth sobre el topbar claro. Ratio del arte recortado 261/280. */
 .lw-iso{ display:block; aspect-ratio:261/280; background-color:currentColor;
-  -webkit-mask:url('assets/img/isotipo.png') center/contain no-repeat;
-          mask:url('assets/img/isotipo.png') center/contain no-repeat }
+  -webkit-mask:url('assets/img/isotipo.webp') center/contain no-repeat;
+          mask:url('assets/img/isotipo.webp') center/contain no-repeat }
 /* La ficha respira más ancho que el marketplace (en la guía el contenido casi toca los bordes y
    solo el footer se queda en 1280) — de ahí un contenedor propio en vez de tocar --wrap global. */
 .pdp-wrap{ max-width:1760px }
@@ -1526,7 +1526,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260821222124"></script>
+<script src="assets/portfolio-app.js?v=20260824122518"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

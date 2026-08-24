@@ -4,12 +4,21 @@
  * Sin estado ni salida: todo lo que hay aquí se puede probar con `php modelo/test_modelo.php`.
  */
 
-/** Renders publicables de un modelo, en orden natural (dali.jpg antes que dali2.jpg). */
+/** Renders publicables de un modelo, en orden natural (dali.webp antes que dali2.webp). */
 function lw_modelo_imgs($id, $root = null) {
     $root = $root !== null ? $root : dirname(__DIR__);
     $dir  = $root . '/assets/img/buildings/' . $id . '/web';
-    $f    = glob($dir . '/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
+    $f = glob($dir . '/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
     if (!$f) return [];
+    // Original + .webp conviven en disco (conversion 24-ago sin borrar el original,
+    // cache CDN 7 dias) — sin esto cada render sale duplicado en la galeria.
+    $porStem = [];
+    foreach ($f as $p) {
+        $stem = pathinfo($p, PATHINFO_FILENAME);
+        $esWebp = strtolower(pathinfo($p, PATHINFO_EXTENSION)) === 'webp';
+        if (!isset($porStem[$stem]) || $esWebp) $porStem[$stem] = $p;
+    }
+    $f = array_values($porStem);
     sort($f, SORT_NATURAL);
     $urls = [];
     foreach ($f as $p) {
