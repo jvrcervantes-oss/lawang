@@ -380,7 +380,7 @@ let RECORTES = [];   // ['contratos', 'facturas'…] — lo que llegó al tope
    Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
    los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
 async function cargar(){
-  const [c, f, s, cc, dc, eq, cb] = await Promise.all([
+  const [c, f, s, cc, dc, eq, cb, pe] = await Promise.all([
     // `adq1` y `compradores` se piden para poder avisar de las fichas de
     // comprador que faltan. Son campos pequeños del jsonb; sigue sin pedirse
     // `datos` entero, que pesa MB por los anexos en base64.
@@ -415,6 +415,14 @@ async function cargar(){
     // facturas/sql/contrato_cobrado.sql. Se trae YA calculado en vez de
     // sumar aquí `facturas` a mano, para no tener dos copias de esa lógica.
     SB.rpc('contratos_cobrado_equipo'),
+    // pendiente REAL por factura (no por contrato): la pestaña Vencimientos
+    // (más abajo, pintarVencimientos) reclamaba el TOTAL de cada factura sin
+    // restar lo ya cobrado por recibí — una factura saldada al 100% seguía
+    // saliendo "vencida" en rojo para siempre. Misma función que ya usa
+    // Facturas para lo mismo (facturas/sql/facturas_pendiente_equipo.sql):
+    // una sola fuente para "cuánto queda de esta factura", no una segunda
+    // resta a mano aquí.
+    SB.rpc('facturas_pendiente_equipo'),
   ]);
   if(c.error) throw c.error;
 
@@ -438,6 +446,13 @@ async function cargar(){
   const docsKyc  = dc.error ? [] : (dc.data || []);
   const COBRADO = {};
   (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
+  // pendiente real por factura (ver la nota junto a la consulta, más arriba):
+  // se ata a cada factura aquí para que pintarVencimientos() lo lea de f.pendiente
+  // sin tener que buscarlo en un mapa aparte.
+  if(pe.error) toast('No se pudo calcular lo pendiente por factura: ' + pe.error.message);
+  const PENDIENTE = {};
+  (pe.error ? [] : (pe.data || [])).forEach(x => { PENDIENTE[x.factura_id] = Number(x.pendiente) || 0; });
+  facturas.forEach(x => { x.pendiente = x.id in PENDIENTE ? PENDIENTE[x.id] : parseImporte(x.total); });
   EQUIPO = {};
   (eq.error ? [] : (eq.data || [])).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
 
@@ -1166,7 +1181,12 @@ async function borrarOperacion(op){
 function pintarVencimientos(){
   const fact = [];
   OPS.forEach(o => o.facturas.forEach(f => {
-    if(f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc) return;
+    // Hallazgo de la auditoría de hoy: esta tabla reclamaba el TOTAL de cada
+    // factura sin restar lo ya cobrado por recibí — una factura saldada al
+    // 100% seguía saliendo "vencido hace N días" para siempre. `f.pendiente`
+    // ya viene calculado desde cargar() (facturas_pendiente_equipo()); una
+    // factura sin nada pendiente no reclama nada, así que no sale aquí.
+    if(f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc || !(f.pendiente > 0.005)) return;
     fact.push({ ...f, op:o, d: dias(f.venc) });
   }));
   fact.sort((a,b) => (a.d ?? 9e9) - (b.d ?? 9e9));
@@ -1187,16 +1207,16 @@ function pintarVencimientos(){
   $('#panelVenc').innerHTML = `
     <section>
       <h3>Cobros — documentos con vencimiento</h3>
-      <table><thead><tr><th>Nº</th><th>Comprador</th><th>Vence</th><th class="num">Importe</th><th>Aviso</th></tr></thead>
+      <table><thead><tr><th>Nº</th><th>Comprador</th><th>Vence</th><th class="num">Pendiente</th><th>Aviso</th></tr></thead>
       <tbody>${fact.length ? fact.map(f => `<tr>
         <td>${esc(f.numero || '—')}</td>
         <td>${esc(f.op.comprador_nombre || f.cliente_nombre || '—')}<div class="nota">${esc(f.op.numero || '')}</div></td>
         <td>${fFecha(f.venc)}</td>
-        <td class="num">${esc(fmtMoneda(parseImporte(f.total), f.moneda || 'EUR'))}</td>
+        <td class="num">${esc(fmtMoneda(f.pendiente, f.moneda || 'EUR'))}</td>
         <td>${tagDias(f.d)}</td></tr>`).join('')
-        : '<tr><td colspan="5" class="nota">Ninguna factura tiene fecha de vencimiento puesta.</td></tr>'}</tbody></table>
-      <p class="nota">Solo salen las que llevan vencimiento; es un campo opcional en Facturas.
-        Una factura sin fecha no aparece aquí y no la reclama nadie.</p>
+        : '<tr><td colspan="5" class="nota">Ninguna factura con vencimiento tiene algo pendiente de cobrar.</td></tr>'}</tbody></table>
+      <p class="nota">Solo salen las que llevan vencimiento Y todavía tienen algo pendiente; es un campo
+        opcional en Facturas, y una factura ya saldada por recibí no reclama nada.</p>
     </section>
 
     <section>
