@@ -212,7 +212,14 @@ async function cargar(){
     // "Precio pactado"/"Pendiente" en blanco aunque tuviera una cuota real,
     // exigible y con penalización por desistimiento (carta_reserva_hak_sewa,
     // cl. 4.1/7.2). Columna concreta, no `datos` entero (pesa MB por anexos).
-    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado,precio_total,moneda,precio_reserva:datos->fields->>precio_reserva)'),
+    /* ⚠️ SIN `precio_reserva` — y no es un descuido, es lo contrario. Ese campo
+       sale de `contratos.datos`, y basta nombrarlo para que Postgres descomprima
+       el jsonb ENTERO de cada contrato del join: 70 MB repartidos en 112 filas,
+       tocadas 144 veces por este join. Medido el 24-ago-2026 sobre la base real:
+       **5.561 ms** con el campo, milisegundos sin él. Era la carga más lenta de
+       la suite. Ahora se pide solo para los contratos de UNA ficha, y solo para
+       los preliminares, que son los únicos que lo usan (ver `cuotaReserva`). */
+    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado,precio_total,moneda)'),
     // accesos al portal del comprador (email → ficha)
     SB.from('portal_accesos').select('email, client_id, activo, ultimo_acceso, accesos'),
     // facturas de SUS contratos (11-ago, petición del owner: no se veían aquí,
@@ -277,7 +284,7 @@ function pagosPorProyecto(suyos){
     const sumables = cts.filter(x => !lwEsPreliminar(x.tipo));
     const soloReserva = !sumables.length;
     const base = soloReserva ? cts : sumables;
-    const precio = base.reduce((a,x) => a + (Number(soloReserva ? (x.precio_reserva ?? x.precio_total) : x.precio_total)||0), 0) || null;
+    const precio = base.reduce((a,x) => a + (Number(soloReserva ? cuotaReserva(x) : x.precio_total)||0), 0) || null;
     const cobrado = cts.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
     // Sin precio no hay porcentaje, y ahí NO se pinta barra: una barra vacía
     // se lee como «no ha pagado nada», que es distinto de «no sabemos contra
@@ -302,6 +309,34 @@ function pagosPorProyecto(suyos){
   }).join('');
   return `<div class="pp-lista">${filas}</div>`;
 }
+
+/* ── LA CUOTA DE RESERVA, A DEMANDA ────────────────────────────────────────
+   Solo hace falta cuando un cliente tiene ÚNICAMENTE Cartas de Reserva: ahí el
+   importe exigible es la cuota, no el precio de la villa (hallazgo Legal ALTA,
+   12-ago-2026). Son uno o dos contratos por ficha, así que se piden al abrirla
+   en vez de arrastrarlos en la carga de todos. */
+const CUOTA_RESERVA = {};   // contrato_id -> texto de la cuota (o null si no la fija)
+
+async function cargarCuotasReserva(ids){
+  const faltan = ids.filter(id => !(id in CUOTA_RESERVA));
+  if(!faltan.length) return false;
+  const { data, error } = await SB.rpc('contratos_equipo')
+    .select('id,precio_reserva:datos->fields->>precio_reserva').in('id', faltan);
+  if(error){
+    // No poder leerla NO es «no tiene»: se dice, en vez de enseñar un importe
+    // en blanco que se leería como «no debe nada».
+    toast('No se pudo leer la cuota de reserva: ' + error.message);
+    return false;
+  }
+  (data || []).forEach(c => { CUOTA_RESERVA[c.id] = c.precio_reserva || null; });
+  faltan.forEach(id => { if(!(id in CUOTA_RESERVA)) CUOTA_RESERVA[id] = null; });
+  return true;
+}
+
+/* Lo que vale un contrato preliminar: su cuota si la fijó, y si no el precio
+   total como aproximación — el mismo criterio que había cuando el dato viajaba
+   en la carga inicial. */
+const cuotaReserva = x => CUOTA_RESERVA[x.id] ?? x.precio_total;
 
 /* estado de caducidad de un comprador, mirando TODOS sus documentos */
 function alerta(clientId){
@@ -339,6 +374,14 @@ function pintarLista(){
 // partirTelefono() sale de geo.js — ver nota junto a NACIONALIDADES, arriba.
 
 function pintarFicha(){
+  /* Los contratos preliminares de esta ficha necesitan su cuota. Se piden y se
+     repinta cuando llegan; `CUOTA_RESERVA` recuerda lo pedido, así que la
+     segunda vuelta no vuelve a entrar y no hay bucle. */
+  if(SEL && SEL !== 'nuevo'){
+    const suyos = VINCULOS.filter(v => v.client_id === SEL && v.contratos).map(v => v.contratos);
+    const prelim = suyos.filter(x => lwEsPreliminar(x.tipo)).map(x => x.id);
+    if(prelim.length) cargarCuotasReserva(prelim).then(hubo => { if(hubo && SEL) pintarFicha(); });
+  }
   const nuevo = SEL === 'nuevo';
   const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
   if(!c){ suiCerrarCajon(); return; }
@@ -492,7 +535,7 @@ function pintarFicha(){
         // etiqueta que deja claro que es la reserva, no el precio final.
         const soloReserva = !sumables.length;
         const base = soloReserva ? suyos : sumables;
-        const precio = base.reduce((a,x) => a + (Number(soloReserva ? (x.precio_reserva ?? x.precio_total) : x.precio_total)||0), 0) || null;
+        const precio = base.reduce((a,x) => a + (Number(soloReserva ? cuotaReserva(x) : x.precio_total)||0), 0) || null;
         const pendiente = precio ? precio - cobrado : null;
         /* `lwFormatoImporte` (assets/dinero.js) y no `toLocaleString('es')`
            (17-ago-2026, auditoría): esta pantalla imprimía 1.234.567,891 € donde
