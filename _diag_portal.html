@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Área de clientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- LAS MISMAS HOJAS QUE LAS NUEVE HERRAMIENTAS. El portal nació con estilo
+     propio y el owner lo cazó: "no tiene NADA que ver con la intranet". Tenía
+     razón, y el problema no era el gusto sino el método — una décima manera de
+     pintar una tabla es exactamente lo que `suite.css` vino a matar. Ahora
+     hereda tokens, densidad, tabla, cajón y barra del resto de la suite. -->
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=cc7380a1">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=baea9186">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=ae194bab">
+<script>
+/* DOBLE de supabase-js para diagnostico local, sin credenciales reales.
+   DATOS_REALES es el payload real de portal_situacion() para una cuenta de
+   portal activa (leido por SQL directo, no por sesion). */
+var DATOS_REALES = {"kyc":[{"path":"x/1.png","tipo":"passport","caduca":null,"estado":"pending","subido":"2026-07-29T08:37:30.550753+00:00"}],"obra":[],"fases":[{"en":"Site preparation","es":"Preparación del terreno","clave":"preparacion","orden":1},{"en":"Foundations","es":"Cimentación","clave":"cimentacion","orden":2},{"en":"Structure","es":"Estructura","clave":"estructura","orden":3},{"en":"Roofing","es":"Cubierta","clave":"cubierta","orden":4},{"en":"Utilities & MEP","es":"Instalaciones","clave":"instalaciones","orden":5},{"en":"Finishes","es":"Acabados","clave":"acabados","orden":6},{"en":"Handed over","es":"Entregada","clave":"entregada","orden":7}],"nombre":"Javier Cervantes","facturas":[{"id":"c38b35a8-dd6b-49bd-9635-e64ea3e20535","tipo":"proforma","fecha":"2026-08-05","total":1,"fields":{"tipo":"proforma","notas":"","cuenta":"","lineas":[{"importe":"1","descripcion":""}],"moneda":"EUR","imp_pct":"","sociedad":"tepi_sungai","banco_extra":"","banco_codigo":"","banco_cuenta":"","banco_nombre":"","imp_etiqueta":"","banco_titular":"","cliente_email":"","fecha_emision":"2026-08-05","cliente_nombre":"Paco","numero_visible":"","banco_direccion":"","contrato_numero":"CR00009","proyecto_nombre":"","cliente_documento":"ou12414","cliente_domicilio":"","fecha_vencimiento":""},"lineas":[{"importe":"1","descripcion":""}],"moneda":"EUR","numero":"PRO00001","cliente":"Paco","totales":{"pct":0,"total":1,"impuesto":0,"subtotal":1},"proyecto":null,"sociedad":"tepi_sungai","contrato_numero":"CR00009"},{"id":"03dcf0f0-65f5-4967-9df8-9b3ce8eae99a","tipo":"factura","fecha":"2026-08-05","total":1,"fields":{"tipo":"factura","notas":"","cuenta":"","lineas":[{"importe":"1","descripcion":""}],"moneda":"EUR","imp_pct":"","sociedad":"tepi_sungai","banco_extra":"","banco_codigo":"","banco_cuenta":"","banco_nombre":"","imp_etiqueta":"","banco_titular":"","cliente_email":"","fecha_emision":"2026-08-05","cliente_nombre":"Paco","numero_visible":"","banco_direccion":"","contrato_numero":"CR00009","proyecto_nombre":"","cliente_documento":"ou12414","cliente_domicilio":"","fecha_vencimiento":""},"lineas":[{"importe":"1","descripcion":""}],"moneda":"EUR","numero":"INV00004","cliente":"Paco","totales":{"pct":0,"total":1,"impuesto":0,"subtotal":1},"proyecto":null,"sociedad":"tepi_sungai","contrato_numero":"CR00009"}],"contratos":[{"id":"56db5d87-1cdb-457d-9097-06867e660dfb","pdf":null,"tipo":"carta_reserva","hitos":[],"moneda":"EUR","numero":"CR00009","precio":null,"cobrado":1,"firmado":false,"parcela":"","proyecto":"Palm Field by Balian Hills","precio_txt":null,"fecha_firma":null},{"id":"535b0c5e-4351-40a9-96eb-40da0a7df2c6","pdf":null,"tipo":"construccion","hitos":[{"en":"Signing and mobilization","es":"Firma y movilización","id":"h1","pct":"25","monto":"1000","timing":""},{"en":"Construction phase 1","es":"Fase de obra 1","id":"h2","pct":"25","monto":"","timing":""},{"en":"Construction phase 2","es":"Fase de obra 2","id":"h3","pct":"25","monto":"","timing":""},{"en":"Construction phase 3 - final finishes","es":"Fase de obra 3 - acabados finales","id":"h4","pct":"25","monto":"","timing":""}],"moneda":"EUR","numero":"CC00015","precio":50000,"cobrado":0,"firmado":false,"parcela":null,"proyecto":"Palm Field by Balian Hills","precio_txt":"50.000","fecha_firma":null}],"documentos":[{"id":"3645b51c-a721-40e6-b2fb-a9f136d470be","url":"https://drive.google.com/x","mime":null,"path":null,"bytes":null,"fecha":"2026-07-31T06:58:00.327463+00:00","titulo":"Dossier Palm Field","proyecto":"Palm Field by Balian Hills","categoria":"comercial","descripcion":null},{"id":"6b99ad74-3a94-45ba-8462-cb4476bba1da","url":"https://drive.google.com/y","mime":null,"path":null,"bytes":null,"fecha":"2026-07-31T06:58:43.720427+00:00","titulo":"Parcelas y precios","proyecto":"Palm Field by Balian Hills","categoria":"precios","descripcion":null}]};
+function thenable(result){ var p = Promise.resolve(result); p.eq=function(){return p;}; p.order=function(){return p;}; p.single=function(){return p;}; p.maybeSingle=function(){return p;}; p.limit=function(){return p;}; return p; }
+window.supabase = {
+  createClient: function(){
+    return {
+      auth: {
+        getSession: function(){ return Promise.resolve({data:{session:{user:{email:'diagnostico@local',app_metadata:{portal:true}}}}}); },
+        onAuthStateChange: function(){ return {data:{subscription:{unsubscribe:function(){}}}}; },
+        signOut: function(){ return Promise.resolve({}); },
+        signInWithOtp: function(){ return Promise.resolve({}); },
+      },
+      rpc: function(name){
+        if(name === 'portal_situacion') return Promise.resolve({data:DATOS_REALES, error:null});
+        return Promise.resolve({data:null, error:null});
+      },
+      from: function(tabla){
+        return { select:function(){ return thenable({data:[{clave:'demo',label:'Cuenta demo',titular:'DEMO',banco:'Banco demo',cuenta:'0000',codigo:'DEMO',direccion:'—',extra:null,activa:true,orden:1}],error:null}); } };
+      },
+      storage: { from: function(){ return { createSignedUrl:function(){ return Promise.resolve({data:{signedUrl:'about:blank'},error:null}); } }; } },
+    };
+  }
+};
+</script>
+<!-- ⚠️ NI guard.js NI topbar.js, y no es un olvido:
+     · guard.js es la puerta del EQUIPO — rebota al login interno y, desde el
+       5-ago, expulsa a los usuarios del portal hacia aquí. Cargarlo sería un
+       bucle.
+     · topbar.js pinta el panel de usuario leyendo `usuarios` y las
+       notificaciones internas: dos tablas que la RLS le niega a un comprador.
+     La barra se escribe a mano con las clases de topbar.css (mismo aspecto) y
+     la sesión la resuelve esta página. suite.js y suite-comun.js SÍ entran:
+     son interfaz pura, sin datos. -->
+<script src="/contracts/assets/suite.js?v=ce6edb83"></script>
+<script src="/contracts/assets/suite-comun.js?v=9703fd59"></script>
+<!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
+     de una factura: la usan la herramienta de Facturas y la Edge Function que
+     emite la del primer hito al firmarse un contrato. El portal la carga
+     también, así que el comprador ve EXACTAMENTE el documento que emitió el
+     equipo — no una reconstrucción parecida que se queda vieja en cuanto alguien
+     toque una fila del original.
+     `entities.js` (sociedades y cuentas) ya viaja dentro de la propia factura:
+     los datos bancarios están para que el comprador pague. -->
+<link rel="stylesheet" href="/facturas/documento.css?v=20260731">
+<script src="/contracts/assets/entities.js?v=af9fbd74"></script>
+<script src="/facturas/totales.js"></script>
+<script src="/facturas/documento.js?v=20260731"></script>
+<style>
+  :root{ --tbh:64px;
+         /* la factura A4 va dentro del cajon a zoom .62 (~494px de hoja):
+            el ancho estandar de 420 la cortaria */
+         --cajon-w:clamp(520px, 40vw, 700px); }
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto);
+        -webkit-font-smoothing:antialiased; }
+  [hidden]{ display:none !important; }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+  /* La cadena de alturas llega hasta `.sui-stage` o el scroll se lo queda el
+     body: `height:100%` contra un padre de alto automático es alto automático.
+     Con el body scrolleando, la cabecera pegada de la tabla deja de pegarse y
+     el «volver arriba» al cambiar de sección no hace nada. Las herramientas no
+     lo necesitan porque su `.sui-stage` cuelga del body; aquí hay un envoltorio
+     en medio para poder alternar entrada / cargando / aplicación. */
+  #vApp{ height:100%; }
+  /* `.sui-chip.vacio` atenúa los filtros sin resultados, pero el que está
+     SELECCIONADO no puede verse apagado aunque su sección esté vacía: es donde
+     estás. Pasa en cuanto un comprador entra sin contratos todavía. */
+  .sui-chip.on{ opacity:1; }
+
+  /* ── NAVEGACIÓN PEGADA (6-ago-2026, secciones apiladas) ─────────────────
+     Con las cuatro secciones en una sola pasada, los chips dejan de ser un
+     filtro y pasan a ser el índice: si no se quedan a la vista, a media página
+     no hay forma de saltar a «Documentos» sin subir del todo.
+     `top:0` dentro de `.sui-stage`, que es el contenedor que desplaza — no la
+     ventana. El fondo es opaco a propósito: con el papel translúcido, las filas
+     de la tabla se leían POR DEBAJO de los chips al pasar. */
+  #chips{ position:sticky; top:0; z-index:12; background:var(--sup-0);
+          padding:var(--e2) 0; margin:0 0 var(--e3); }
+  /* Y el hueco que deja la barra pegada: sin esto, desplazarse a una sección
+     deja su titular JUSTO DEBAJO de los chips y parece que no ha pasado nada.
+     `scroll-margin-top` es exactamente para esto y no hace falta calcular nada. */
+  #secContratos, #secFacturas, #secObra, #secDocumentos{ scroll-margin-top:62px; }
+  /* Aire entre secciones: apiladas sin separación se leen como una sola lista
+     larga y el índice deja de significar algo. */
+  #secFacturas, #secObra, #secDocumentos{ margin-top:var(--e6); }
+
+  /* ── encabezado de página: mismo registro que la intranet ──────────────
+     Rótulo en Jost, no en serif. La display se reserva a la marca; en una
+     herramienta, un titular serif de 40px es ruido (manual del estudio). */
+  .lede{ margin:0 0 var(--e4); }
+  .lede h1{ margin:0; font-size:23px; font-weight:500; letter-spacing:.005em; color:var(--texto); }
+  .lede p{ margin:4px 0 0; font-size:14px; color:var(--texto-2); max-width:62ch; }
+
+  /* ── bloque de operación (contrato / unidad) ──────────────────────────
+     Mismo papel, borde, radio y sombra que `.sui-tabla-caja`: es la misma
+     familia de objeto, solo que su contenido no es una tabla. */
+  .op{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-l);
+       box-shadow:var(--sombra-1); padding:var(--e4) var(--e5) var(--e5); margin:0 0 var(--e4); }
+  .op-cab{ display:flex; align-items:baseline; gap:var(--e3); flex-wrap:wrap; }
+  .op-cab h2{ margin:0; font-size:16px; font-weight:600; letter-spacing:.05em; color:var(--dl); }
+  .op-cab .sub{ font-size:12.5px; color:var(--texto-2); }
+  .op-cab .sui-tag{ margin-left:auto; }
+  .op > .sui-dl{ margin-top:var(--e3); }
+  .op .sui-tabla{ min-width:0; }            /* dentro del bloque no hay scroll horizontal */
+  .op-pie{ margin-top:var(--e4); }
+
+  /* barra de avance — los mismos valores que Unidades */
+  .barra{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; margin:var(--e3) 0 6px; }
+  .barra i{ display:block; height:100%; background:#3F5230; transition:width .6s var(--curva); }
+  .barra-leg{ display:flex; justify-content:space-between; gap:var(--e3); font-size:12px;
+              color:var(--texto-2); font-variant-numeric:tabular-nums; }
+
+  /* fases de obra */
+  .fases{ display:flex; flex-wrap:wrap; gap:6px; margin:var(--e3) 0 0; }
+  .fase{ font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; padding:5px 11px;
+         border:1px solid var(--linea); border-radius:var(--r-p); color:var(--texto-3); }
+  .fase.hecha{ color:var(--texto-2); border-color:var(--ss); }
+  .fase.actual{ background:#3F5230; border-color:#3F5230; color:#fff; font-weight:600; }
+
+  /* fotos */
+  .fotos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:var(--e2); margin-top:var(--e4); }
+  .fotos figure{ margin:0; cursor:zoom-in; }
+  .fotos img{ width:100%; aspect-ratio:4/3; object-fit:cover; display:block;
+              border-radius:var(--r-s); background:#E7E1D2; }
+  .fotos figcaption{ font-size:11.5px; color:var(--texto-2); padding-top:4px; }
+  .lupa{ position:fixed; inset:0; z-index:70; background:rgba(34,40,42,.72);
+         display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out; }
+  .lupa img{ max-width:96vw; max-height:92vh; border-radius:var(--r-s); }
+
+  /* ── la factura de verdad dentro del cajón ─────────────────────────────
+     `documento.css` maqueta una hoja A4 real. En pantalla se reduce con `zoom`
+     igual que hace la vista previa de la herramienta de Facturas; al imprimir
+     vuelve a tamaño real (el zoom no se aplica dentro de @media print). */
+  .hoja-scroll{ display:flex; justify-content:center; }
+  .sheet{ width:210mm; min-height:297mm; background:var(--folio,#fff); padding:15mm 16mm;
+          zoom:.62; box-shadow:var(--sombra-1); }
+  @media (max-width:900px){
+    .sheet{ zoom:.46; }
+    .hoja-scroll{ overflow-x:auto; justify-content:flex-start; }
+  }
+
+  /* ── documentos (documentación de la promoción y lo entregado) ─────── */
+  .docrow-cat{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-3); }
+  .caduca-mal{ color:#9E2F26; font-weight:600; }
+  .doc .fec{ font-size:12.5px; color:var(--texto-2); text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* ── login ─────────────────────────────────────────────────────────── */
+  .entrada{ min-height:100%; display:grid; place-items:center; padding:var(--e5); }
+  .entrada .caja{ width:100%; max-width:400px; background:var(--sup-1); border:1px solid var(--linea);
+                  border-radius:var(--r-l); box-shadow:var(--sombra-1); padding:var(--e6) var(--e5); text-align:center; }
+  .entrada .marca{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; font-weight:600;
+                   letter-spacing:.12em; color:var(--tg); line-height:1; }
+  .entrada .rot{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase;
+                 color:var(--texto-3); margin:7px 0 var(--e5); }
+  .entrada p{ font-size:13.5px; color:var(--texto-2); margin:0 0 var(--e4); line-height:1.55; }
+  .entrada input{ width:100%; font:inherit; font-size:14px; padding:11px 13px; text-align:center;
+                  border:1px solid var(--linea); border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
+  .entrada input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+  .entrada .sui-btn{ width:100%; justify-content:center; margin-top:var(--e2); }
+  .aviso{ font-size:12.5px; line-height:1.5; min-height:18px; margin-top:var(--e3); color:var(--texto-2); }
+  .aviso.mal{ color:#9E2F26; } .aviso.bien{ color:#3F5230; }
+  .cargando{ display:grid; place-items:center; min-height:100%; color:var(--texto-3);
+             font-size:11px; letter-spacing:.22em; text-transform:uppercase; }
+
+  /* ── impresión: solo el documento del cajón ────────────────────────── */
+  @media print{
+    body.imprimiendo > *:not(#suiCajon){ display:none !important; }
+    #suiCajon{ position:static; width:auto; height:auto; transform:none;
+               box-shadow:none; border:none; }
+    #suiCajon .sui-cajon-cab, #suiCajon .sui-cajon-pie{ display:none; }
+    #suiCajon .sui-cajon-cuerpo{ overflow:visible; padding:0; }
+    /* la hoja recupera su tamaño real: es un A4 y sale como un A4 */
+    .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
+    .hoja-scroll{ display:block; overflow:visible; }
+  }
+  /* Sin margen: el margen ya lo lleva la propia hoja (15/16mm), y sumar los dos
+     empujaba la factura a una segunda página. Mismo criterio que la herramienta. */
+  @page{ size:A4; margin:0; }
+</style>
+</head>
+<body>
+
+<div id="vCarga" class="cargando">Lawang</div>
+
+<!-- ── entrada ───────────────────────────────────────────────────────── -->
+<div id="vLogin" class="entrada" hidden>
+  <div class="caja">
+    <div class="marca">LAWANG</div>
+    <div class="rot" data-t="area">Área de clientes</div>
+    <p data-t="login_intro">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.</p>
+    <form id="fLogin">
+      <input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com">
+      <button class="sui-btn primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
+    </form>
+    <div id="avisoLogin" class="aviso"></div>
+  </div>
+</div>
+
+<!-- ── aplicación ────────────────────────────────────────────────────── -->
+<div id="vApp" hidden>
+  <div class="topbar lw-topbar">
+    <img class="lw-brand" src="/contracts/assets/brand/lawang-logo-v3-dark.webp" alt="Lawang"
+         onerror="this.remove()">
+    <h1 class="lw-title" data-t="area">Área de clientes</h1>
+    <div class="lw-spacer"></div>
+    <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnLang">EN</button>
+    <button type="button" class="lw-btn" id="btnSalir" data-t="salir">Salir</button>
+  </div>
+
+  <div class="sui-stage">
+    <div class="sui-centro">
+      <div class="lede">
+        <h1 id="saludo"></h1>
+        <p data-t="saludo_sub">Estado de tu operación con Lawang Estate</p>
+      </div>
+
+      <div class="sui-resumen" id="resumen"></div>
+      <div class="sui-filtros" id="chips"></div>
+
+      <!-- Las cuatro APILADAS desde el 6-ago-2026 (antes se enseñaba una y se
+           ocultaban tres). El comprador entra a leer «cómo va lo mío» y eso se
+           responde de una pasada: su contrato, lo que ha pagado, la obra y sus
+           documentos. Cambiar de pestaña para reconstruir esa respuesta era
+           trabajo que le tocaba a él.
+           Las RUTAS se conservan enteras: el hash ya no cambia de vista, ahora
+           DESPLAZA hasta la sección. `#/facturas/INV00001` sigue abriendo ese
+           documento, que es lo que llevan los correos ya enviados. -->
+      <section id="secContratos"></section>
+      <section id="secFacturas"></section>
+      <section id="secObra"></section>
+      <section id="secDocumentos"></section>
+
+      <p class="sui-nota" style="margin-top:var(--e6);text-align:center">
+        <span data-t="pie">¿Dudas? Escríbenos a</span>
+        <a href="mailto:sales@lawangproperties.com" style="color:var(--dl)">sales@lawangproperties.com</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2E3437;color:#fff;padding:11px 20px;border-radius:999px;font-size:13px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none"></div>
+
+<script>
+(function(){
+  'use strict';
+  var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
+  var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS y la RPC
+  var sb = supabase.createClient(URL_SB, KEY_SB);
+
+  /* ── idioma ───────────────────────────────────────────────────────── */
+  var T = {
+    es:{ login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso — sin contraseñas.',
+         login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (mira también en spam).',
+         sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com y te lo abrimos.',
+         area:'Área de clientes', salir:'Salir', saludo_sub:'Estado de tu operación con Lawang Estate',
+         c_contratos:'Contratos', c_facturas:'Facturas', c_obra:'Obra', c_documentos:'Documentos',
+         d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
+         d_entregado_nota:'Son los documentos que aportaste para tu expediente. Si alguno está a punto de caducar, escríbenos y lo actualizamos.',
+         doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS',
+         caduca:'caduca el',
+         sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
+         err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
+         firmado:'Firmado', pendiente_firma:'Pendiente de firma',
+         precio:'Precio', unidad:'Unidad', fecha_firma:'Fecha de firma', cobrado:'Pagado hasta hoy',
+         pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
+         plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
+         descargar:'Descargar contrato firmado', imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
+         factura:'Factura', recibi:'Recibo', proforma:'Proforma',
+         f_numero:'Nº', f_tipo:'Tipo', f_fecha:'Fecha', f_total:'Importe', total:'Total',
+         f_cliente:'Cliente', f_proyecto:'Proyecto', f_concepto:'Concepto', f_importe:'Importe',
+         f_subtotal:'Subtotal', f_banco:'Forma de pago',
+         r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
+         sin_facturas_t:'Aún no hay documentos', sin_facturas:'Cuando emitamos una factura o un recibo aparecerá aquí, listo para descargar.',
+         sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
+         sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
+         entrega_est:'Entrega estimada', actualizado:'Última actualización', pie:'¿Dudas? Escríbenos a',
+         err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.' },
+    en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link — no passwords.',
+         login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
+         sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com and we will open it.',
+         area:'Client area', salir:'Sign out', saludo_sub:'Status of your operation with Lawang Estate',
+         c_contratos:'Contracts', c_facturas:'Invoices', c_obra:'Construction', c_documentos:'Documents',
+         d_promocion:'Your development’s documents', d_entregado:'What you gave us',
+         d_entregado_nota:'These are the documents you provided for your file. If any is about to expire, write to us and we will update it.',
+         doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS',
+         caduca:'expires',
+         sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
+         err_fichero:'We could not open the document. Please try again in a moment.',
+         firmado:'Signed', pendiente_firma:'Awaiting signature',
+         precio:'Price', unidad:'Unit', fecha_firma:'Signing date', cobrado:'Paid to date',
+         pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
+         plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
+         descargar:'Download signed contract', imprimir:'Print or save as PDF', cerrar:'Close',
+         factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
+         f_numero:'No.', f_tipo:'Type', f_fecha:'Date', f_total:'Amount', total:'Total',
+         f_cliente:'Client', f_proyecto:'Project', f_concepto:'Description', f_importe:'Amount',
+         f_subtotal:'Subtotal', f_banco:'Payment details',
+         r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
+         sin_facturas_t:'No documents yet', sin_facturas:'Once we issue an invoice or a receipt it will show up here, ready to download.',
+         sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
+         sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
+         entrega_est:'Estimated handover', actualizado:'Last update', pie:'Questions? Write to',
+         err_carga:'We could not load your information. Reload the page or try again later.' }
+  };
+  var LANG = localStorage.getItem('lw_portal_lang') ||
+             ((navigator.language || 'es').slice(0,2) === 'es' ? 'es' : 'en');
+  function t(k){ return (T[LANG] && T[LANG][k]) || T.es[k] || k; }
+  function aplicaLang(){
+    document.documentElement.lang = LANG;
+    document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent = t(el.getAttribute('data-t')); });
+    document.getElementById('btnLang').textContent = LANG === 'es' ? 'EN' : 'ES';
+  }
+
+  /* ── utilidades ───────────────────────────────────────────────────── */
+  // Importes tal y como los teclea el equipo: "69.000", "5000", "20.000,50".
+  function num(v){
+    if (v == null || v === '') return NaN;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+    var n = parseFloat(s); return isNaN(n) ? NaN : n;
+  }
+  function dinero(n, moneda){
+    if (n == null || isNaN(n)) return '—';
+    // `useGrouping:'always'` porque el español no agrupa los números de cuatro
+    // cifras: en el plan de pagos salía «5000 €» encima de «20.000 €».
+    try { return new Intl.NumberFormat(LANG === 'es' ? 'es-ES' : 'en-GB',
+            { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0,
+              useGrouping:'always' }).format(n); }
+    catch(e){ return n.toLocaleString() + ' ' + (moneda || ''); }
+  }
+  function fecha(f){
+    if (!f) return '';
+    var d = new Date(f); if (isNaN(d)) return esc(f);
+    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  var DATOS = null;
+  function muestra(vista){
+    ['vCarga','vLogin','vApp'].forEach(function(id){ document.getElementById(id).hidden = (id !== vista); });
+  }
+  aplicaLang();
+
+  /* ── RUTAS: la URL dice siempre dónde estás ─────────────────────────
+     Rutas: #/contratos · #/facturas · #/obra · #/facturas/INV00001
+     Una sola palabra por sección: la primera versión leía `#/factura/NUM` en
+     singular y escribía `#/facturas/NUM` en plural, así que el enlace a un
+     documento cambiaba la URL y no abría nada. El `#` pelado del enlace del
+     correo se sustituye por la ruta limpia en cuanto supabase-js lo consume. */
+  var SECCIONES = ['contratos','facturas','obra','documentos'];
+  var RUTA = { sec:'contratos', doc:null };
+
+  function leeHash(){
+    var partes = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
+    if (SECCIONES.indexOf(partes[0]) !== -1)
+      return { sec:partes[0], doc:partes[1] ? decodeURIComponent(partes[1]) : null };
+    return { sec:'contratos', doc:null };
+  }
+  function vasA(sec, doc, reemplaza){
+    var url = '#/' + sec + (doc ? '/' + encodeURIComponent(doc) : '');
+    if (reemplaza){ history.replaceState(null, '', url); aplicaRuta(); }
+    else location.hash = url;
+  }
+  var SEC_ID = { contratos:'secContratos', facturas:'secFacturas', obra:'secObra', documentos:'secDocumentos' };
+
+  /* Con las secciones apiladas, «ir a una sección» es DESPLAZARSE hasta ella.
+     `PROGRAMADO` existe porque durante un desplazamiento suave el vigía de abajo
+     va viendo pasar secciones intermedias: sin la bandera reescribiría el hash
+     tres veces de camino y la última ganaría, dejando la URL en una sección por la
+     que solo se pasó. Se apaga con `scrollend` donde existe y con un plazo donde
+     no (Safari todavía no lo trae). */
+  var PROGRAMADO = false, _tProg = null;
+  function desplazaA(sec){
+    var el = document.getElementById(SEC_ID[sec] || '');
+    if (!el) return;
+    PROGRAMADO = true;
+    clearTimeout(_tProg);
+    _tProg = setTimeout(function(){ PROGRAMADO = false; }, 900);
+    el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  (function(){
+    var caja = document.querySelector('.sui-stage');
+    if (caja && 'onscrollend' in window)
+      caja.addEventListener('scrollend', function(){ PROGRAMADO = false; clearTimeout(_tProg); });
+  })();
+
+  function aplicaRuta(){
+    RUTA = leeHash();
+    document.querySelectorAll('#chips .sui-chip').forEach(function(b){
+      b.classList.toggle('on', b.dataset.sec === RUTA.sec);
+    });
+    desplazaA(RUTA.sec);
+    var docAbierto = suiCajonAbierto() ? document.getElementById('suiCajon').dataset.doc : null;
+    if (RUTA.doc){
+      if (docAbierto !== RUTA.doc){
+        var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === RUTA.doc; })[0];
+        if (f) abreFactura(f); else vasA(RUTA.sec, null, true);
+      }
+    } else if (docAbierto) suiCerrarCajon();
+  }
+  window.addEventListener('hashchange', aplicaRuta);
+
+  /* ── VIGÍA: qué sección se está leyendo ──────────────────────────────────
+     Marca el chip Y actualiza la URL, con `replaceState` — así el enlace que se
+     copia sigue diciendo dónde estás, que es la norma del estudio, sin llenar el
+     historial de pasos por los que solo se pasó desplazándose.
+     Se calla en dos casos, y los dos importan:
+     · durante un desplazamiento programado (ver `PROGRAMADO`);
+     · con un documento abierto — si no, desplazarse con el cajón abierto
+       reescribiría `#/facturas/INV00001` como `#/obra` y el enlace del correo
+       dejaría de apuntar a ese documento.
+     `rootMargin` con un -45% arriba: la sección «activa» es la que ocupa el
+     tercio superior de la pantalla, no la que asoma por abajo. */
+  if (window.IntersectionObserver){
+    var vigia = new IntersectionObserver(function(entradas){
+      if (PROGRAMADO || RUTA.doc) return;
+      var visible = entradas.filter(function(e){ return e.isIntersecting; })
+        .sort(function(a,b){ return b.intersectionRatio - a.intersectionRatio; })[0];
+      if (!visible) return;
+      var sec = Object.keys(SEC_ID).filter(function(k){ return SEC_ID[k] === visible.target.id; })[0];
+      if (!sec || sec === RUTA.sec) return;
+      RUTA = { sec:sec, doc:null };
+      document.querySelectorAll('#chips .sui-chip').forEach(function(b){
+        b.classList.toggle('on', b.dataset.sec === sec);
+      });
+      try{ history.replaceState(null, '', '#/' + sec); }catch(_){}
+    /* `root` es `.sui-stage` y NO la ventana: en esta pagina el que desplaza es
+       ese contenedor (`height:100%; overflow:auto` de suite.css), asi que un
+       `rootMargin` medido contra el viewport no habria coincidido con nada. */
+    }, { root:document.querySelector('.sui-stage'),
+         rootMargin:'-45% 0px -45% 0px', threshold:[0, .01, .5] });
+    Object.keys(SEC_ID).forEach(function(k){
+      var el = document.getElementById(SEC_ID[k]);
+      if (el) vigia.observe(el);
+    });
+  }
+
+  /* ── arranque ─────────────────────────────────────────────────────── */
+  sb.auth.getSession().then(function(r){
+    var ses = r && r.data && r.data.session;
+    if (!ses){ muestra('vLogin'); return; }
+    if (!((ses.user && ses.user.app_metadata) || {}).portal){ location.replace('/intranet/'); return; }
+    document.getElementById('who').textContent = ses.user.email || '';
+    cargar();
+  }).catch(function(){ muestra('vLogin'); });
+
+  sb.auth.onAuthStateChange(function(ev, ses){
+    if (ev === 'SIGNED_IN' && ses && (ses.user.app_metadata || {}).portal &&
+        document.getElementById('vApp').hidden){
+      document.getElementById('who').textContent = ses.user.email || '';
+      cargar();
+    }
+  });
+
+  /* ── entrada ──────────────────────────────────────────────────────── */
+  document.getElementById('fLogin').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('inEmail').value.trim().toLowerCase();
+    var aviso = document.getElementById('avisoLogin');
+    aviso.className = 'aviso'; aviso.textContent = '…';
+    sb.auth.signInWithOtp({
+      email: email,
+      options: { shouldCreateUser:false, emailRedirectTo: location.origin + '/portal/' }
+    }).then(function(r){
+      aviso.className = 'aviso ' + (r.error ? 'mal' : 'bien');
+      aviso.textContent = r.error ? t('sin_acceso') : t('enviado');
+    });
+  });
+
+  document.getElementById('btnSalir').addEventListener('click', function(){
+    sb.auth.signOut().then(function(){ location.replace('/portal/'); });
+  });
+  document.getElementById('btnLang').addEventListener('click', function(){
+    LANG = LANG === 'es' ? 'en' : 'es';
+    localStorage.setItem('lw_portal_lang', LANG);
+    aplicaLang(); if (DATOS){ suiCerrarCajon(); pinta(); }
+  });
+
+  /* ── datos ────────────────────────────────────────────────────────── */
+  function cargar(){
+    muestra('vCarga');
+    /* Las cuentas de cobro ya no viven en entities.js (6-ago-2026: ese fichero
+       se sirve sin login y está en el repo público). Se cargan de la base, donde
+       la RLS las abre a `authenticated` — el comprador lo es, y las necesita:
+       son los datos con los que paga, y documentoHTML() los imprime en SU
+       factura. Si fallan, la factura se enseña igual pero sin el bloque
+       bancario, así que se dice en voz alta en vez de dejar un hueco mudo. */
+    cargarCuentasBancarias(sb).catch(function(e){
+      console.warn('cuentas de cobro no disponibles:', e && e.message);
+    }).then(function(){
+    sb.rpc('portal_situacion').then(function(r){
+      if (r.error){
+        muestra('vLogin');
+        var aviso = document.getElementById('avisoLogin');
+        aviso.className = 'aviso mal'; aviso.textContent = t('err_carga');
+        return;
+      }
+      DATOS = r.data || {};
+      muestra('vApp');
+      pinta();
+      var r0 = leeHash();
+      vasA(r0.sec, r0.doc, true);   // ruta limpia y legible desde el primer momento
+    });
+    });   // cierra el then() de cargarCuentasBancarias
+  }
+
+  /* ── reparto de cobro entre hitos ───────────────────────────────────
+     "Pagado" = las facturas y recibos no anulados cubren el acumulado del
+     hito, el MISMO criterio que usan las herramientas internas. El reparto
+     es secuencial: lo cobrado va tapando hitos por orden. */
+  function estadosHitos(hitos, cobrado, precio){
+    var resto = cobrado || 0;
+    return (hitos || []).map(function(h){
+      var m = num(h.monto);
+      if (isNaN(m)){ var p = num(h.pct); m = (!isNaN(p) && precio) ? precio * p / 100 : NaN; }
+      var est;
+      if (isNaN(m)) est = 'pendiente';
+      else if (resto >= m - 0.005){ est = 'pagado'; resto -= m; }
+      else if (resto > 0.005){ est = 'parcial'; resto = 0; }
+      else est = 'pendiente';
+      return { hito:h, monto:m, estado:est };
+    });
+  }
+  var TAG = { pagado:'ok', parcial:'espera', pendiente:'gris' };
+
+  /* ── pintado ──────────────────────────────────────────────────────── */
+  function pinta(){
+    var d = DATOS;
+    var nombre = d.nombre ? String(d.nombre).trim().split(/\s+/)[0] : '';
+    document.getElementById('saludo').textContent = (LANG === 'es' ? 'Hola' : 'Hello') + (nombre ? ', ' + nombre : '');
+
+    /* resumen y filtros: los componentes de la suite, no unos propios */
+    var tot = 0, cob = 0;
+    (d.contratos||[]).forEach(function(c){
+      var p = (c.precio != null) ? Number(c.precio) : num(c.precio_txt);
+      if (!isNaN(p)) tot += p;
+      cob += Number(c.cobrado) || 0;
+    });
+    var mon = ((d.contratos||[])[0] || {}).moneda || 'EUR';
+    var res = document.getElementById('resumen');
+    res.hidden = !(tot > 0);
+    if (tot > 0) res.innerHTML =
+      t('r_inversion') + ' <b>' + esc(dinero(tot, mon)) + '</b>' +
+      '<span>' + t('r_pagado') + ' <b>' + esc(dinero(cob, mon)) + '</b></span>' +
+      '<span>' + t('r_pendiente') + ' <b>' + esc(dinero(Math.max(0, tot - cob), mon)) + '</b></span>';
+
+    var cuentas = { contratos:(d.contratos||[]).length, facturas:(d.facturas||[]).length,
+                    obra:(d.obra||[]).length,
+                    documentos:(d.documentos||[]).length + (d.kyc||[]).length };
+    document.getElementById('chips').innerHTML = SECCIONES.map(function(s){
+      return '<button type="button" class="sui-chip' + (cuentas[s] ? '' : ' vacio') + '" data-sec="' + s + '">' +
+             esc(t('c_' + s)) + '<span class="n">' + cuentas[s] + '</span></button>';
+    }).join('');
+
+    /* contratos */
+    var cont = document.getElementById('secContratos');
+    if (!(d.contratos||[]).length){
+      cont.innerHTML = nada(t('sin_contratos_t'), t('sin_contratos'));
+    } else {
+      cont.innerHTML = d.contratos.map(function(c){
+        var precio = (c.precio != null) ? Number(c.precio) : num(c.precio_txt);
+        var cobrado = Number(c.cobrado) || 0;
+        var pct = (precio > 0) ? Math.min(100, Math.round(cobrado / precio * 100)) : null;
+        var hs = estadosHitos(c.hitos, cobrado, precio);
+        return '<div class="op">' +
+          '<div class="op-cab"><h2>' + esc(c.numero) + '</h2>' +
+            '<span class="sub">' + esc(c.proyecto || '') +
+              (c.parcela ? ' · ' + esc(t('unidad')) + ' ' + esc(c.parcela) : '') + '</span>' +
+            '<span class="sui-tag ' + (c.firmado ? 'ok' : 'espera') + '">' +
+              esc(c.firmado ? t('firmado') : t('pendiente_firma')) + '</span></div>' +
+          '<dl class="sui-dl">' +
+            '<dt>' + esc(t('precio')) + '</dt><dd>' + (precio ? esc(dinero(precio, c.moneda)) : esc(c.precio_txt || '—')) + '</dd>' +
+            (c.fecha_firma ? '<dt>' + esc(t('fecha_firma')) + '</dt><dd>' + esc(fecha(c.fecha_firma)) + '</dd>' : '') +
+            '<dt>' + esc(t('cobrado')) + '</dt><dd>' + esc(dinero(cobrado, c.moneda)) + '</dd>' +
+          '</dl>' +
+          (precio > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
+            '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(precio, c.moneda)) + '</span>' +
+            '<span>' + esc(dinero(Math.max(0, precio - cobrado), c.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '') +
+          (hs.length ? '<div class="sui-bloque" style="margin-top:var(--e4)"><h3>' + esc(t('plan_pagos')) + '</h3>' +
+            '<table class="sui-tabla"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
+            '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
+            hs.map(function(x){
+              var descr = x.hito[LANG] || x.hito.es || x.hito.en || '';
+              return '<tr style="cursor:default"><td>' + esc(descr || '—') + '</td>' +
+                '<td class="flojo">' + esc(x.hito.timing || '') + '</td>' +
+                '<td class="num">' + (isNaN(x.monto) ? '—' : esc(dinero(x.monto, c.moneda))) + '</td>' +
+                '<td><span class="sui-tag ' + TAG[x.estado] + '">' + esc(t(x.estado)) + '</span></td></tr>';
+            }).join('') + '</tbody></table></div>' : '') +
+          (c.pdf ? '<div class="op-pie"><button type="button" class="sui-btn" data-pdf="' + esc(c.pdf) + '">' +
+                   esc(t('descargar')) + '</button></div>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    /* facturas — tabla de la suite, y el documento en el cajón */
+    var lf = document.getElementById('secFacturas');
+    if (!(d.facturas||[]).length){
+      lf.innerHTML = nada(t('sin_facturas_t'), t('sin_facturas'));
+    } else {
+      lf.innerHTML = '<div class="sui-tabla-caja"><table class="sui-tabla"><thead><tr>' +
+        '<th>' + esc(t('f_numero')) + '</th><th>' + esc(t('f_tipo')) + '</th>' +
+        '<th>' + esc(t('f_fecha')) + '</th><th class="num">' + esc(t('f_total')) + '</th>' +
+        '</tr></thead><tbody>' +
+        d.facturas.map(function(f){
+          return '<tr data-fac="' + esc(f.numero) + '">' +
+            '<td class="clave">' + esc(f.numero) + '</td>' +
+            '<td>' + esc(t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + '</td>' +
+            '<td class="flojo">' + esc(fecha(f.fecha)) + '</td>' +
+            '<td class="num">' + esc(dinero(Number(f.total), f.moneda)) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+
+    /* obra */
+    var lo = document.getElementById('secObra');
+    var fases = d.fases || [];
+    if (!(d.obra||[]).length){
+      lo.innerHTML = nada(t('sin_obra_t'), t('sin_obra'));
+    } else {
+      lo.innerHTML = d.obra.map(function(u){
+        var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
+        return '<div class="op">' +
+          '<div class="op-cab"><h2>' + esc(u.unidad) + '</h2>' +
+            '<span class="sub">' + esc(u.proyecto || '') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</span></div>' +
+          (fases.length ? '<div class="fases">' + fases.map(function(f, i){
+            return '<span class="fase ' + (i < idx ? 'hecha' : (i === idx ? 'actual' : '')) + '">' +
+                   esc(f[LANG] || f.es) + '</span>'; }).join('') + '</div>' : '') +
+          '<dl class="sui-dl" style="margin-top:var(--e4)">' +
+            (u.fecha_entrega ? '<dt>' + esc(t('entrega_est')) + '</dt><dd>' + esc(fecha(u.fecha_entrega)) + '</dd>' : '') +
+            (u.actualizado ? '<dt>' + esc(t('actualizado')) + '</dt><dd>' + esc(fecha(u.actualizado)) + '</dd>' : '') +
+          '</dl>' +
+          ((u.fotos||[]).length ? '<div class="fotos">' + u.fotos.map(function(ft){
+            return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo || '') + '">' +
+                   '<figcaption>' + esc(ft.titulo || '') + (ft.fecha ? ' · ' + esc(fecha(ft.fecha)) : '') + '</figcaption></figure>';
+          }).join('') + '</div>' : '') +
+        '</div>';
+      }).join('');
+      cargaFotos();
+    }
+
+    /* documentos: lo compartido por el equipo y lo que él mismo entregó */
+    var ld = document.getElementById('secDocumentos');
+    var docs = d.documentos || [], kyc = d.kyc || [];
+    if (!docs.length && !kyc.length){
+      ld.innerHTML = nada(t('sin_docs_t'), t('sin_docs'));
+    } else {
+      var html = '';
+      if (docs.length) html +=
+        '<div class="sui-bloque" style="margin-bottom:var(--e4)"><h3>' + esc(t('d_promocion')) + '</h3>' +
+        '<table class="sui-tabla" style="min-width:0"><tbody>' + docs.map(function(x){
+          return '<tr data-doc="' + esc(x.id) + '">' +
+            '<td><span class="clave">' + esc(x.titulo) + '</span>' +
+              (x.descripcion ? '<div class="flojo">' + esc(x.descripcion) + '</div>' : '') + '</td>' +
+            '<td class="docrow-cat">' + esc(x.categoria || '') + '</td>' +
+            '<td class="flojo">' + esc(x.proyecto || '') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+      if (kyc.length) html +=
+        '<div class="sui-bloque"><h3>' + esc(t('d_entregado')) + '</h3>' +
+        '<table class="sui-tabla" style="min-width:0"><tbody>' + kyc.map(function(x){
+          var cad = x.caduca ? new Date(x.caduca) : null;
+          var vencido = cad && cad < new Date();
+          return '<tr data-kyc="' + esc(x.path) + '">' +
+            '<td><span class="clave">' + esc(t('doc_' + x.tipo) === 'doc_' + x.tipo ? x.tipo : t('doc_' + x.tipo)) + '</span></td>' +
+            '<td class="flojo">' + esc(fecha(x.subido)) + '</td>' +
+            '<td' + (vencido ? ' class="caduca-mal"' : ' class="flojo"') + '>' +
+              (x.caduca ? esc(t('caduca') + ' ' + fecha(x.caduca)) : '') + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<p class="sui-nota">' + esc(t('d_entregado_nota')) + '</p></div>';
+      ld.innerHTML = html;
+    }
+
+    aplicaRuta();
+  }
+
+  function nada(titulo, texto){
+    return '<div class="sui-tabla-caja"><div class="sui-nada"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
+  }
+
+  /* ── interacción ──────────────────────────────────────────────────── */
+  document.getElementById('chips').addEventListener('click', function(e){
+    var b = e.target.closest('.sui-chip'); if (!b) return;
+    vasA(b.dataset.sec, null);
+    document.querySelector('.sui-stage').scrollTop = 0;
+  });
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-pdf]');
+    if (b){
+      b.disabled = true;
+      sb.storage.from('contratos-firmados').createSignedUrl(b.getAttribute('data-pdf'), 600)
+        .then(function(r){
+          b.disabled = false;
+          if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank');
+          else toast(t('err_carga'));
+        });
+      return;
+    }
+    var tr = e.target.closest('tr[data-fac]');
+    if (tr){ vasA('facturas', tr.getAttribute('data-fac')); return; }
+
+    /* documentación compartida: enlace externo o fichero del almacén */
+    var fd = e.target.closest('tr[data-doc]');
+    if (fd){
+      var doc = (DATOS.documentos || []).filter(function(x){ return String(x.id) === fd.getAttribute('data-doc'); })[0];
+      if (!doc) return;
+      if (doc.url){ window.open(doc.url, '_blank', 'noopener'); return; }
+      abreFichero('documentacion', doc.path);
+      return;
+    }
+    var fk = e.target.closest('tr[data-kyc]');
+    if (fk){ abreFichero('kyc', fk.getAttribute('data-kyc')); return; }
+
+    var img = e.target.closest('.fotos img');
+    if (img && img.src) ampliaFoto(img.src);
+  });
+
+  /* Nunca una URL fija a un fichero privado: se pide una firmada de 10 minutos
+     en el momento de abrirlo (mismo criterio que el KYC de la intranet). */
+  function abreFichero(bucket, path){
+    if (!path) return;
+    sb.storage.from(bucket).createSignedUrl(path, 600).then(function(r){
+      if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank', 'noopener');
+      else toast(t('err_fichero'));
+    });
+  }
+
+  function cargaFotos(){
+    document.querySelectorAll('img[data-foto]').forEach(function(img){
+      var p = img.getAttribute('data-foto'); img.removeAttribute('data-foto');
+      sb.storage.from('obra').createSignedUrl(p, 3600).then(function(r){
+        if (r.data && r.data.signedUrl) img.src = r.data.signedUrl;
+      });
+    });
+  }
+
+  function ampliaFoto(src){
+    var l = document.createElement('div');
+    l.className = 'lupa';
+    l.innerHTML = '<img src="' + esc(src) + '" alt="">';
+    l.addEventListener('click', function(){ l.remove(); });
+    document.addEventListener('keydown', function h(ev){
+      if (ev.key === 'Escape'){ l.remove(); document.removeEventListener('keydown', h); }
+    });
+    document.body.appendChild(l);
+  }
+
+  /* ── el documento REAL, en el CAJÓN lateral (norma de la suite) ─────
+     Se arma con `documentoHTML()`, la misma función que usa la herramienta de
+     Facturas y la Edge que emite la factura del primer hito. Lo que ve el
+     comprador es el documento tal y como se emitió, con su sociedad, su logo y
+     sus datos bancarios — no una versión parecida mantenida aparte. */
+  function abreFactura(f){
+    if (!f) return;
+    /* `documentoHTML` da por hecho que `lineas` es un array (las 19 facturas de
+       hoy lo traen). Se normaliza igualmente: un campo que falte en un documento
+       viejo dejaría la pantalla en blanco, y el comprador no tiene a quién
+       preguntar ni forma de saber que el fallo no es suyo. */
+    var campos = Object.assign({}, f.fields || {});
+    if (!Array.isArray(campos.lineas)) campos.lineas = Array.isArray(f.lineas) ? f.lineas : [];
+    var soc = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[campos.sociedad]) || {};
+    var v = documentoVars(soc);
+    var estilo = function(k){
+      return Object.keys(v[k]).filter(function(p){ return v[k][p]; })
+             .map(function(p){ return p + ':' + v[k][p]; }).join(';');
+    };
+    suiAbrirCajon({
+      titulo: esc(f.numero),
+      sub: esc((t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + ' · ' + fecha(f.fecha)),
+      cuerpo: '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '">' +
+                '<div class="doc" style="' + estilo('doc') + '">' +
+                  documentoHTML(campos, { numero: f.numero }) +
+                '</div></div></div>',
+      pie: '<button type="button" class="sui-btn primario" id="btnImprimir">' + esc(t('imprimir')) + '</button>' +
+           '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
+      // Cerrar el cajón devuelve la URL a la sección. Si el cierre vino de un
+      // cambio de ruta, `RUTA.doc` ya es nulo y esto no hace nada: sin ese
+      // detalle, cerrar y navegar se llamarían el uno al otro.
+      onCerrar: function(){ if (RUTA.doc) vasA(RUTA.sec, null); }
+    });
+    document.getElementById('suiCajon').dataset.doc = f.numero;
+    document.getElementById('btnCerrarDoc').onclick = suiCerrarCajon;
+    document.getElementById('btnImprimir').onclick = function(){
+      document.body.classList.add('imprimiendo');
+      window.print();
+      document.body.classList.remove('imprimiendo');
+    };
+  }
+
+  suiMontarCajon();
+})();
+</script>
+</body>
+</html>
