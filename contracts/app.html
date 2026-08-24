@@ -4057,6 +4057,13 @@ async function derivarContrato(slug){
   // buildForm() ya pintó con ADQ1_CLIENT=null (el buscador, no el chip); se
   // repinta con la ficha real, igual que hace openSavedContract al reabrir.
   if(adq1Ficha){ ADQ1_CLIENT = adq1Ficha; pintarFichaComprador(); }
+  /* Mismo motivo que la línea de arriba, mismo bug si se olvida: buildForm()
+     corrió aplicarReglasCampos() → syncUnidadConstruccion() ANTES de que
+     populateForm() pusiera `num_reserva_vinculada` en el campo, así que el
+     selector "¿qué parcela es esta construcción?" nunca se pintaba al
+     derivar — solo al reabrir un contrato ya guardado (ahí sí se re-llama
+     explícitamente). Encontrado al verificar en producción, 24-ago-2026. */
+  await syncUnidadConstruccion();
   if(hitos) HITOS = hitos;   // mismo tipo: su calendario, con fechas de hoy. Distinto: el plan del tipo destino, que loadTemplate ya puso.
   refreshHitos(); updateSaveButton(); editBtnIdle(); render();
   $('#dvOverlay').classList.remove('open');
