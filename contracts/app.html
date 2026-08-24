@@ -3033,6 +3033,7 @@ async function subirPdfFirmado(file){
   if(!sb || !SAVED_CONTRACT){ toast('Guarda el contrato antes de subir el firmado'); return; }
   if(file.type!=='application/pdf'){ toast('El archivo debe ser un PDF'); return; }
   const btn=$('#btnLockUpload'); btn.disabled=true; btn.textContent='Subiendo…';
+  let cerrado = false;
   try{
     // `_manual` en la ruta: antes esto subía a `<numero>.pdf`, que es EXACTAMENTE
     // la ruta que usaba la firma remota (edge/firma-submit) — una subida manual
@@ -3061,18 +3062,27 @@ async function subirPdfFirmado(file){
     LOCKED = true; LOCKED_PDF_PATH = path;
     toast('Contrato bloqueado · PDF firmado guardado');
     updateSaveButton();
-    /* Cerrar a mano NO manda nada a nadie —ese era el hueco: el PDF entra en el
-       bucket y el firmante se queda sin su copia—. Se ofrece aquí, con una
-       persona delante, y no se manda solo: el estudio no escribe a un cliente
-       real sin que alguien lo vea. Si dice que no, el botón sigue en el
-       Registro del contrato. */
-    if(await lwConfirmar({
-      titulo: 'Mandarles su copia',
-      cuerpo: '<p>El contrato ya está cerrado. ¿Se les manda ahora la copia del PDF firmado a los firmantes?</p>'
-            + '<p class="em-note">Se puede hacer luego desde «Registro» → Copias del contrato firmado.</p>',
-      confirmar: 'Ver a quién se manda', cancelar: 'Ahora no' })) abrirRegistro();
+    cerrado = true;
   }catch(err){ toast('No se pudo bloquear: ' + (err.message || err)); }
   btn.disabled=false; btn.textContent='🔒 Subir firmado';
+  /* FUERA del try, y no es cosmética: el contrato ya está bloqueado y su PDF
+     guardado cuando se llega aquí. Dentro, cualquier fallo del diálogo (que
+     `dialogo.js` no haya cargado, por ejemplo) caía en el `catch` de arriba y le
+     decía al agente «no se pudo bloquear» sobre un contrato que SÍ quedó
+     cerrado — y volvería a subirlo.
+
+     Cerrar a mano NO manda nada a nadie: ese era el hueco, el PDF entra en el
+     bucket y el firmante se queda sin su copia. Se OFRECE, con una persona
+     delante; el estudio no escribe a un cliente real sin que alguien lo vea. Si
+     dice que no, el botón sigue en el Registro del contrato. */
+  if(!cerrado) return;
+  try{
+    if(await lwConfirmar({
+      titulo: 'Mandarles su copia',
+      cuerpo: '<p>El contrato ya está cerrado. ¿Se les manda ahora la copia del PDF firmado a los compradores?</p>'
+            + '<p class="em-note">Se puede hacer luego desde «Registro» → Copias del contrato firmado.</p>',
+      confirmar: 'Ver a quién se manda', cancelar: 'Ahora no' })) abrirRegistro();
+  }catch(err){ toast('Contrato cerrado. No se pudo abrir el aviso de copias: ' + (err.message || err)); }
 }
 $('#btnLockUpload').addEventListener('click', ()=> $('#lockFileInput').click());
 $('#lockFileInput').addEventListener('change', e=>{
@@ -4632,6 +4642,21 @@ const COPIA_ESPERA_MS = 4600;   // el cooldown de send-contract-email es de 4 s 
 /* Quién firmó, con su dirección, sin repetir. Los que firmaron SIN email no se
    descartan en silencio: se devuelven marcados, porque «este firmante no tiene
    dirección a la que mandarle su copia» es justo lo que hay que ver. */
+/* Quien firmo EN PAPEL no deja fila en `contrato_firmas`: se sube el PDF y ya.
+   Ahi los destinatarios son los compradores del propio contrato — los mismos
+   que reparte la Edge cuando la firma es electronica (adq1 + adicionales). Sin
+   esto, el panel contestaba «todavia no ha firmado nadie» en el unico camino
+   que de verdad no avisaba a nadie, que es el que vino a arreglar. */
+function copiaCompradoresDelContrato(){
+  const d = collect();
+  const lista = [{ nombre: d.adq1_nombre || '', email: String(d.adq1_email || '').trim(),
+                   rol: 'adquiriente 1', firmado_en: null }];
+  (COMPRADORES || []).forEach((c, i) => lista.push({
+    nombre: c.nombre || '', email: String(c.email || '').trim(),
+    rol: 'adquiriente ' + (i + 2), firmado_en: null }));
+  return lista.filter(c => c.nombre || c.email);
+}
+
 function copiaFirmantes(firmas){
   const vistos = new Set(), out = [];
   (firmas || []).forEach(f => {
@@ -4647,6 +4672,16 @@ function copiaFirmantes(firmas){
   return out;
 }
 
+/* ¿Se firmó antes de que existiera el registro de estos envíos? Entonces no
+   hay nada que leer, y todo lo que se mande es un REENVÍO. Lo calculan la tabla
+   y el botón desde aquí: con dos definiciones, la tabla decía «no se puede
+   confirmar» y el botón «Enviar copia a 4 firmantes», que es justo el empujón a
+   escribirle dos veces al mismo cliente. */
+function copiaAnteriorAlRegistro(dest){
+  const ultima = (dest || []).map(d => d.firmado_en).filter(Boolean).sort().pop();
+  return !ultima || ultima < COPIAS_REGISTRO_DESDE;
+}
+
 function copiasHTML(firmas, mails, errFirmas, errMails){
   /* Si la consulta no se pudo hacer, se dice — y no se enseña una tabla vacía
      que se lee igual que «no hay nada que enviar». */
@@ -4654,18 +4689,20 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
     return '<p class="reg-tit">Copias del contrato firmado</p>'
          + '<p class="em-note">No se ha podido comprobar quién tiene su copia (falló la consulta). '
          + 'No es que no se haya enviado: es que no se sabe.</p>';
-  const dest = copiaFirmantes(firmas);
+  // Sin firma electronica (contrato cerrado a mano), los firmantes son los
+  // compradores del contrato. `papel` cambia lo que se dice, no lo que se hace.
+  const firmasOk = copiaFirmantes(firmas);
+  const papel = !firmasOk.length;
+  const dest = papel ? copiaCompradoresDelContrato() : firmasOk;
   if(!dest.length)
     return '<p class="reg-tit">Copias del contrato firmado</p>'
-         + '<p class="em-note">Todavía no ha firmado nadie por vía electrónica, así que no hay copias que repartir.</p>';
+         + '<p class="em-note">Este contrato no tiene ni firmas electrónicas ni compradores con datos, así que no hay a quién mandarle una copia.</p>';
   const enviados = new Map();
   (mails || []).filter(m => m.via === 'firma').forEach(m => {
     const k = String(m.para || '').toLowerCase();
     if(!enviados.has(k)) enviados.set(k, m);
   });
-  // ¿Se firmó antes de que existiera el registro? Entonces no hay nada que leer.
-  const ultima = dest.map(d => d.firmado_en).filter(Boolean).sort().pop();
-  const anteriorAlRegistro = !ultima || ultima < COPIAS_REGISTRO_DESDE;
+  const anteriorAlRegistro = !papel && copiaAnteriorAlRegistro(dest);
 
   const filas = dest.map(d => {
     const m = d.email ? enviados.get(d.email.toLowerCase()) : null;
@@ -4685,14 +4722,17 @@ function copiasHTML(firmas, mails, errFirmas, errMails){
   return '<p class="reg-tit">Copias del contrato firmado</p>'
     + '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Firmante</th><th>Email</th><th>Copia</th><th>Cuándo</th></tr></thead><tbody>'
     + filas + '</tbody></table></div>'
-    + (anteriorAlRegistro
+    + (papel
+        ? '<p class="em-note">Este contrato se cerró subiendo el PDF firmado a mano, no por firma electrónica: los destinatarios son los compradores del contrato, y nada se les ha mandado solo.</p>'
+        : anteriorAlRegistro
         ? '<p class="em-note">Este contrato se firmó antes del 24-ago-2026, cuando el reparto automático todavía no dejaba registro. Lo más probable es que las copias salieran; aquí no se puede confirmar.</p>'
         : '')
     + (sinEmail ? '<p class="em-note">' + sinEmail + ' firmante(s) sin dirección de correo: su copia hay que dársela por otra vía.</p>' : '')
     + (LOCKED_PDF_PATH
         ? '<p class="reg-acc"><button class="btn ghost" id="btnCopias"' + (conEmail.length ? '' : ' disabled') + '>'
-          + (pendientes.length ? '✉︎ Enviar copia a ' + pendientes.length + ' firmante(s)'
-                               : '✉︎ Reenviar copia a los ' + conEmail.length + ' firmante(s)')
+          + (pendientes.length && !anteriorAlRegistro
+              ? '✉︎ Enviar copia a ' + pendientes.length + ' firmante(s)'
+              : '✉︎ Reenviar copia a los ' + conEmail.length + ' firmante(s)')
           + '</button> <span class="em-note" id="copiasEstado"></span></p>'
         : '<p class="em-note">No hay PDF firmado guardado en este contrato, así que no hay copia que mandar.</p>');
 }
@@ -4798,15 +4838,20 @@ function copiasWire(firmas, mails){
   btn.addEventListener('click', async ()=>{
     const enviados = new Set((mails || []).filter(m => m.via === 'firma')
       .map(m => String(m.para || '').toLowerCase()));
-    const conEmail = copiaFirmantes(firmas).filter(d => d.email);
-    const pend = conEmail.filter(d => !enviados.has(d.email.toLowerCase()));
+    const firmasOk = copiaFirmantes(firmas);
+    const todos = firmasOk.length ? firmasOk : copiaCompradoresDelContrato();
+    const conEmail = todos.filter(d => d.email);
+    const viejo = firmasOk.length && copiaAnteriorAlRegistro(todos);
+    const pend = viejo ? [] : conEmail.filter(d => !enviados.has(d.email.toLowerCase()));
     const destinos = pend.length ? pend : conEmail;
     if(!destinos.length) return;
     const ok = await lwConfirmar({
       titulo: 'Enviar el contrato firmado',
       cuerpo: '<p>Se manda una copia del PDF firmado a:</p><ul>'
         + destinos.map(d => '<li>' + esc(d.nombre || d.email) + ' — <b>' + esc(d.email) + '</b></li>').join('')
-        + '</ul>' + (pend.length ? '' : '<p>Todos constan como ya avisados: esto es un <b>reenvío</b>.</p>'),
+        + '</ul>' + (pend.length ? ''
+            : viejo ? '<p>Este contrato se firmó antes de que se registraran estos envíos: lo más probable es que ya recibieran su copia, así que esto es un <b>reenvío</b>.</p>'
+                    : '<p>Todos constan como ya avisados: esto es un <b>reenvío</b>.</p>'),
       confirmar: 'Enviar ' + destinos.length + ' copia(s)' });
     if(ok) enviarCopiasFirmado(destinos);
   });

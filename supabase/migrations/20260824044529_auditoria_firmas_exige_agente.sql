@@ -1,3 +1,26 @@
+-- destructivo-ok: `create or replace function`, no borra filas ni objetos.
+-- ════════════════════════════════════════════════════════════════════════════
+-- auditoria_firmas() NO COMPROBABA PERMISO — 24-ago-2026
+-- ════════════════════════════════════════════════════════════════════════════
+-- Hallazgo de Desarrollo (auditoría pedida por el owner): a diferencia de sus
+-- hermanas `contratos_equipo()`, `facturas_equipo()`, `contrato_firmas_equipo()`,
+-- `facturas_pendiente_equipo()` y `uso_almacenamiento()` (todas con
+-- `where public.es_agente()` o un `raise exception` si no lo es),
+-- `auditoria_firmas()` no llevaba NINGÚN gate. Es `security definer`, así que
+-- corre saltándose la RLS de `contratos`/`contrato_firmas` por diseño — sin el
+-- gate, cualquier sesión `authenticated` podía llamarla directamente
+-- (`POST /rest/v1/rpc/auditoria_firmas`), incluida la de un COMPRADOR logueado
+-- en `/portal/` (que sí es `authenticated`, solo que con
+-- `app_metadata.portal=true` en vez de agente) — y recibir número de contrato,
+-- nombre del comprador y estado de firma de TODOS los contratos del estudio,
+-- de cualquier cliente. Confirmado con `get_advisors(security)`:
+-- `has_function_privilege` daba `true` para `authenticated` sin más filtro.
+--
+-- Es `language sql` (no plpgsql), así que no hay `if/raise` de por medio: se
+-- envuelve la consulta entera y se filtra el resultado por `es_agente()` —
+-- una sesión que no lo es recibe CERO filas, igual que ya hacen las funciones
+-- hermanas. No se toca ni una línea de las cinco reglas de auditoría.
+
 create or replace function public.auditoria_firmas()
 returns table(severidad text, tipo text, contrato text, contrato_id uuid, comprador text, detalle text, desde timestamptz)
 language sql
@@ -51,6 +74,12 @@ as $$
       from public.contratos c
      where coalesce(c.bloqueado, false) and c.pdf_firmado_path is null
     union all
+    -- REGLA 5 (17-ago-2026): una firma que se quedo reclamada y nunca se cerro.
+    -- `firma-submit` pasa el token a 'procesando' antes de trabajar; si la funcion
+    -- muere ahi (timeout, render caido, reinicio), su catch no corre y la fila se
+    -- queda asi para siempre. El comprador no tiene salida: cada reintento recibe
+    -- 409 y la pagina le dice «este enlace ya no esta disponible».
+    -- 15 minutos de umbral: el ciclo normal tarda segundos.
     select 'critica', 'firma_atascada', c.numero, c.id, c.comprador_nombre,
            'La firma de ' || coalesce(nullif(btrim(cf.firmante_nombre), ''), 'este firmante')
            || ' lleva ' || (extract(epoch from (now() - cf.creado_en)) / 3600)::int
@@ -67,4 +96,3 @@ $$;
 
 revoke all on function public.auditoria_firmas() from public, anon;
 grant execute on function public.auditoria_firmas() to authenticated;
-;

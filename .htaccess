@@ -16,6 +16,16 @@ RedirectMatch 404 (?i)/\.git
 # por cualquiera. No hay secretos dentro, pero regala los endpoints internos y la logica.
 RedirectMatch 404 (?i)\.py$
 
+# Igual con los .sql, y por el mismo motivo — 24-ago-2026, verificado en produccion:
+# https://lawangproperties.com/supabase/migrations/<fichero>.sql respondia 200 y
+# servia el esquema entero de la base. `contracts/sql/` ya daba 403 por otra regla,
+# asi que la carpeta que llego despues (supabase/migrations/, con las 160
+# migraciones) entro sin cobertura: la lista a mano otra vez. Va por EXTENSION,
+# no por carpeta, para que la proxima carpeta de .sql nazca cubierta.
+# Lo pedia `contexto/seguridad_2026.md` §1 desde el principio («bloquear .md, .sql,
+# .zip, .bak, .log»); esta era la mitad que faltaba.
+RedirectMatch 404 (?i)\.sql$
+
 # Piezas internas de la landing de modelo: datos y funciones, nunca una pagina.
 # lib.php y modelos.php respondian 200 con cuerpo vacio.
 RedirectMatch 404 (?i)/modelo/(lib|modelos)\.php$

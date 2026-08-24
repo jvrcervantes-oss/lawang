@@ -49,17 +49,12 @@ create policy "firmantes cred: solo con sesion"
   to authenticated
   using (true);
 
-insert into public.firmantes_cred (nombre, rep_npwp, cred_es, cred_en, cred_id) values
-  ('I Wayan Eka Aryawan', '',
-   'de nacionalidad Indonesia, con documento de identidad indonesio ID 5102010606870001',
-   'Indonesian nationality, holder of Indonesian identity document ID 5102010606870001',
-   'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5102010606870001'),
-  ('Pablo Cantero Gambín', '',
-   'de nacionalidad española, con pasaporte español nº PAL648254',
-   'Spanish nationality, holder of Spanish passport no. PAL648254',
-   'berkewarganegaraan Spanyol, dengan paspor Spanyol no. PAL648254'),
-  ('I Made Monjong Adhi Nugruah', '',
-   'de nacionalidad Indonesia, con documento de identidad indonesio ID 5171021704720002',
-   'Indonesian nationality, holder of Indonesian identity document ID 5171021704720002',
-   'berkewarganegaraan Indonesia, dengan dokumen identitas Indonesia ID 5171021704720002')
-on conflict (nombre) do nothing;;
+-- ⚠️ LOS DATOS REALES NO VIVEN AQUI (24-ago-2026, contencion).
+-- Esta migracion llevaba dentro el NIK / numero de pasaporte real de los
+-- representantes, y este repo es PUBLICO por necesidad (el webhook de Hostinger
+-- despliega desde el) — asi que el numero se podia leer en la URL cruda de GitHub
+-- y, hasta el mismo dia, tambien en https://lawangproperties.com/... porque el
+-- servidor servia los .sql. Es exactamente el dato que la propia tabla existe para
+-- proteger: sirve para suplantar a la persona, y su nombre+cargo no.
+-- Las filas se cargan FUERA del repo (MCP de Supabase o SQL Editor) y ya estan en
+-- produccion. Aqui se queda la estructura, que es lo que hay que poder reconstruir.

@@ -29,6 +29,12 @@ create policy "apoderados hak sewa: solo con sesion"
 revoke all on public.apoderados_hak_sewa from public, anon;
 grant select on public.apoderados_hak_sewa to authenticated;
 
-insert into public.apoderados_hak_sewa (clave, edad, ocupacion, direccion, nik, ktp, orden) values
-  ('I WAYAN EKA ARYAWAN', '39', 'Private Employee', 'Banjar Dinas Payan, Antap Village, Selemadeg District, Tabanan Regency.', '5102010606870001', 'apoderados/i-wayan-eka-aryawan-ktp.jpg', 1),
-  ('NI LUH GEDE DIAH SURASTRI', null, null, null, '5108014707010003', null, 2);;
+-- ⚠️ LOS DATOS REALES NO VIVEN AQUI (24-ago-2026, contencion).
+-- Esta migracion llevaba dentro el NIK / numero de pasaporte real de los
+-- representantes, y este repo es PUBLICO por necesidad (el webhook de Hostinger
+-- despliega desde el) — asi que el numero se podia leer en la URL cruda de GitHub
+-- y, hasta el mismo dia, tambien en https://lawangproperties.com/... porque el
+-- servidor servia los .sql. Es exactamente el dato que la propia tabla existe para
+-- proteger: sirve para suplantar a la persona, y su nombre+cargo no.
+-- Las filas se cargan FUERA del repo (MCP de Supabase o SQL Editor) y ya estan en
+-- produccion. Aqui se queda la estructura, que es lo que hay que poder reconstruir.

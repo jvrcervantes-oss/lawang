@@ -3,10 +3,57 @@
 -- el resto del repo, ver law71_editar_firmado_y_borrar_facturas.sql); no borra
 -- datos ni ningún objeto ajeno. Las dos funciones se `create or replace`, no se
 -- borran filas de ninguna tabla.
+-- ════════════════════════════════════════════════════════════════════════════
+-- CADA CONSTRUCCIÓN SABE DE QUÉ PARCELA ES — 24-ago-2026
+-- ════════════════════════════════════════════════════════════════════════════
+-- EL CASO (owner): RP00069 tiene dos parcelas, C1 (131.750€) y C2 (128.250€),
+-- cada una con su propio contrato de Construcción — CC00030 (89.000€) y
+-- CC00031 (95.000€). El contrato de Construcción nunca ha guardado a qué
+-- parcela pertenece (`parcela_codigo` queda vacío ahí — gap ya visto el
+-- 12-ago, dejado pendiente a propósito: "LAW-42, dejarlas por ahora"). Sin ese
+-- dato, `unidad_parte_cobrada` no puede saber que el pago de CC00030 es de C1 y
+-- el de CC00031 es de C2: agrupaba TODO el cobrado de la reserva + sus hijos y
+-- lo repartía proporcional al precio entre las dos parcelas — el pago de la
+-- construcción de una se mezclaba con el de la otra, y las dos salían con el
+-- MISMO % cobrado (46,3%) pese a tener cada una su propio avance real.
+--
+-- REVISIÓN PREVIA (24-ago-2026, Desarrollo+Datos+Seguridad) antes de este
+-- fichero — lo que cambió respecto al plan original por sus hallazgos:
+--   · Datos: el dinero cobrado en la RAÍZ (depósito de reserva) es de TODA la
+--     reserva y se sigue prorrateando entre TODAS las hermanas, tengan o no ya
+--     su Construcción asignada. Solo el dinero de los HIJOS sin `unidad_id` se
+--     prorratea entre las hermanas que TODAVÍA no tienen ninguna Construcción
+--     asignada — no es un único reparto "sin asignar" como decía el plan.
+--   · Desarrollo: `avanza_unidad_por_cobro` (decide el estado) tenía su propio
+--     cálculo aparte de `unidad_parte_cobrada` (decide el %); si solo se
+--     arregla uno de los dos, vuelve la contradicción "ficha dice 100%, estado
+--     no se ha movido" que el fix del 19-ago ya cerró una vez. Se reescriben
+--     los dos, y `avanza_unidad_por_cobro` pasa a llamar a
+--     `unidad_parte_cobrada` fila a fila en vez de reimplementar el cálculo —
+--     una sola fuente de verdad para las dos.
+--   · Seguridad: sin guardarraíl de base, un `unidad_id` mal puesto (a mano,
+--     por la API, o por un bug de UI) atribuiría dinero a la parcela de OTRO
+--     comprador. Trigger que exige que `unidad_id` pertenezca a la MISMA
+--     reserva raíz del contrato, y que solo un admin pueda CAMBIARLO una vez
+--     puesto (darlo de alta al crear el contrato sigue abierto a cualquier
+--     agente — mismo patrón que `clients_solo_admin_edita.sql`: cualquiera da
+--     de alta, solo admin corrige después). El rastro de auditoría en un
+--     contrato ya bloqueado no hace falta añadirlo aparte:
+--     `trg_registra_edicion_privilegiada` (LAW-71) ya registra CUALQUIER
+--     UPDATE sobre un contrato que ya estaba bloqueado, genérico.
+--
+-- SIN BACKFILL (confirmado por Datos): CC00030/CC00031 no tienen forma fiable
+-- de deducirse por importe — 89.000 y 95.000 no casan con ninguna proporción
+-- limpia de 131.750/128.250. Se quedan sin `unidad_id`, con el reparto
+-- proporcional de siempre entre las hermanas sin asignar (que hoy son las dos,
+-- así que su comportamiento no cambia). El fix aplica desde la próxima
+-- Construcción que se derive.
 
+-- 1) la columna, con índice (Datos: el lado que referencia una FK no se indexa solo)
 alter table public.contratos add column if not exists unidad_id uuid references public.unidades(id);
 create index if not exists contratos_unidad_id_idx on public.contratos(unidad_id);
 
+-- 2) guardarraíl (Seguridad): pertenencia a la misma raíz + reasignar es solo admin
 create or replace function public.trg_valida_unidad_id_contrato()
 returns trigger
 language plpgsql
@@ -40,6 +87,9 @@ create trigger trg_valida_unidad_id_contrato
   before insert or update of unidad_id on public.contratos
   for each row execute function public.trg_valida_unidad_id_contrato();
 
+-- 3) el % de cada unidad (Datos: raíz siempre entre todas; hijos sin asignar
+--    solo entre las que aún no tienen Construcción propia; hijos asignados,
+--    directos a su unidad)
 create or replace function public.unidad_parte_cobrada(p_unidad uuid)
 returns numeric
 language sql
@@ -105,6 +155,7 @@ $$;
 revoke all on function public.unidad_parte_cobrada(uuid) from public, anon;
 grant execute on function public.unidad_parte_cobrada(uuid) to authenticated;
 
+-- la vista no cambia de forma, solo hereda la función de arriba
 create or replace view public.unidades_estado as
 select u.id, u.codigo, u.proyecto, u.tipo, u.superficie_m2, u.precio, u.moneda, u.estado,
        u.contrato_id, u.notas, u.created_at, u.precio_suelo, u.precio_construccion, u.modelo,
@@ -122,6 +173,8 @@ select u.id, u.codigo, u.proyecto, u.tipo, u.superficie_m2, u.precio, u.moneda, 
 alter view public.unidades_estado set (security_invoker = true);
 grant select on public.unidades_estado to authenticated;
 
+-- 4) el estado (Desarrollo: misma fuente que el % de arriba, fila a fila —
+--    ya no un cálculo agregado aparte que podía decir otra cosa)
 create or replace function public.avanza_unidad_por_cobro(p_contrato_id uuid)
 returns void
 language plpgsql
@@ -179,4 +232,3 @@ begin
    where u.contrato_id = v_raiz_id;
 end;
 $$;
-;
