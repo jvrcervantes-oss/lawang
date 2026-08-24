@@ -690,7 +690,7 @@ function toggleTipoRecibi(){
    puede derivar de lo que la base de datos acepta. */
 async function cargarFacturasAbiertas(){
   const [f, p, m] = await Promise.all([
-    sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada'),
+    sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada,moneda'),
     sb.rpc('facturas_pendiente_equipo'),
     CONTRATO_ID ? sb.rpc('contratos_del_mismo_comprador', { p_contrato_id: CONTRATO_ID }) : Promise.resolve({ data:[] }),
   ]);
@@ -700,12 +700,24 @@ async function cargarFacturasAbiertas(){
   // setof uuid llega como array de escalares; se acepta también [{...}] por si
   // PostgREST lo envuelve, antes que quedarse sin ninguna factura sin decir por qué
   const suyos = new Set((m.data || []).map(x => (x && typeof x === 'object') ? Object.values(x)[0] : x));
-  FACTURAS_ABIERTAS = (f.data || [])
+  // Un comprador puede tener contratos en monedas distintas (EUR/IDR conviven
+  // en la suite — hallazgo de la auditoría de hoy: nada lo impedía, ni aquí ni
+  // en la base. La base ya lo frena con un guardarraíl (recibi_no_mezcla_moneda.sql);
+  // aquí se evita ofrecer algo que ese guardarraíl rechazaría al guardar.
+  const monedaRecibi = ($('[name="moneda"]').value || 'EUR');
+  const delComprador = (f.data || [])
     .filter(x => x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005)
-    .filter(x => x.contrato_id && suyos.has(x.contrato_id))
-    .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id] }));
+    .filter(x => x.contrato_id && suyos.has(x.contrato_id));
+  FACTURAS_ABIERTAS = delComprador
+    .filter(x => (x.moneda || 'EUR') === monedaRecibi)
+    .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id], moneda:x.moneda }));
+  // Para el aviso: "no tiene ninguna pendiente" y "tiene, pero en otra moneda"
+  // son dos situaciones distintas — decir la primera cuando es la segunda deja
+  // a alguien buscando una factura que sí existe, solo que no en esta lista.
+  FACTURAS_OTRA_MONEDA = delComprador.length - FACTURAS_ABIERTAS.length;
   pintarSelectFacturaAplicar();
 }
+let FACTURAS_OTRA_MONEDA = 0;
 async function refrescarAplicablesDelRecibi(){
   await cargarFacturasAbiertas();
   const validas = new Set(FACTURAS_ABIERTAS.map(x => x.id));
@@ -730,8 +742,9 @@ function pintarSelectFacturaAplicar(){
   const aviso = $('#aplicAmbito'); if(!aviso) return;
   aviso.textContent = !CONTRATO_ID
     ? 'Elige antes el contrato del recibí: solo se pueden saldar facturas de ese mismo comprador.'
-    : (libres.length ? 'Solo se listan las facturas pendientes de este comprador, incluidas las de sus otros contratos.'
-                     : 'Este comprador no tiene ninguna factura pendiente. Un recibí solo puede saldar facturas suyas.');
+    : libres.length ? 'Solo se listan las facturas pendientes de este comprador, incluidas las de sus otros contratos.'
+    : FACTURAS_OTRA_MONEDA ? 'Este comprador tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
+    : 'Este comprador no tiene ninguna factura pendiente. Un recibí solo puede saldar facturas suyas.';
 }
 $('#selFacturaAplicar').addEventListener('change', e => {
   const id = e.target.value; if(!id) return;
@@ -831,6 +844,10 @@ function collect(){
   return d;
 }
 $('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
+// Cambiar la moneda a mitad de editar un recibí (poco habitual, pero pasa si
+// se elige mal al empezar) tiene que refrescar qué facturas se pueden saldar:
+// la lista ya se filtra por moneda (hallazgo de hoy, ver recibi_no_mezcla_moneda.sql).
+$('#fa-moneda').addEventListener('change', () => { if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi(); });
 
 /* Al salir de un campo de importe se reescribe en formato canónico ("44.000",
    "44.000,50"): lo que se ve pasa a ser exactamente lo que se guarda, en vez de
