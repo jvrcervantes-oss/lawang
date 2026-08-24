@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=cc7380a1">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=baea9186">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=ae194bab">
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=6248d624">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=47a8cadb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=2213e087">
 <script src="/contracts/assets/movimiento-v3.js?v=fdf1f68d"></script>
 <style>
@@ -721,22 +721,15 @@ function cablearKpi(card, t){
     ]);
   })(); });
   /* La tarjeta entera responde: el acuse en el DOWN lo pone la capa compartida
-     (con su cancelación por arrastrar fuera, §1 y §10) y el detalle se abre al
-     hacer clic, que ya respeta esa cancelación. */
-  card.addEventListener('click',e=>{ if(!e.target.closest('.mas')) abreDetalle(t,card); });
-  card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); abreDetalle(t,card); } });
-}
-
-function abreDetalle(t, origen){
-  const filas=(t.detalle?t.detalle(t.v):[]).map(([k,v])=>
-    '<div class="dato"><span>'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>').join('');
-  Hoja.abre(t.rot, t.v==null?'La base no contestó — no se enseña un cero inventado.':'Al día de hoy',
-    filas+'<div style="margin-top:16px;display:flex;gap:10px">'
-    +'<a class="btn solido" href="'+esc(t.href)+'">Abrir</a>'
-    +'</div>'
-    +'<p class="t-menudo" style="color:var(--ink-3);margin-top:14px">Arrastra esta hoja hacia abajo para cerrarla: se puede agarrar también a media animación.</p>',
-    origen);
-  const b=$('#hojaCuerpo').querySelector('.btn'); if(b) b.setAttribute('data-v3-pulsable','');
+     (con su cancelación por arrastrar fuera, §1 y §10) y el clic lleva
+     DIRECTAMENTE a la herramienta — 24-ago-2026, encargo del owner: la hoja de
+     detalle que había aquí (abreDetalle, retirada) obligaba a un segundo clic
+     en «Abrir» para llegar a donde ya se sabía que se quería ir. Es lo mismo
+     que hacía la intranet antes de la v3, y lo que promete la tarjeta: pulsar
+     «Firmas esperando» lleva a las firmas esperando, no a una hoja que dice lo
+     mismo que la tarjeta y pregunta otra vez. */
+  card.addEventListener('click',e=>{ if(!e.target.closest('.mas')) location.href=t.href; });
+  card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); location.href=t.href; } });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

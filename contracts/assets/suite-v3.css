@@ -94,9 +94,20 @@ html.v3 .sui-total{ font-variant-numeric:tabular-nums; }
 /* ─── §12 · CROMO TRANSLÚCIDO ────────────────────────────────────────────────
    La barra deja de ser una franja opaca que se come 64 px: el contenido pasa
    POR DEBAJO y se ve. Material pesado, que es el que separa regiones
-   estructurales. */
+   estructurales.
+
+   24-ago-2026, hallazgo del owner: «un gran espacio a la izquierda del logo».
+   Era `position:sticky` aquí — v2 la pone `.topbar{position:fixed;left:0;
+   right:0}` en cada herramienta (ver la nota "LA ESQUINA DE ARRIBA A LA
+   IZQUIERDA" de topbar.css), a propósito: así la barra ignora el
+   `padding-left` del `body` que abre hueco para el riel (56/208 px) y siempre
+   cae borde a borde. `sticky` SÍ respeta ese padding — la barra nacía metida
+   56-208 px hacia dentro, dejando el rectángulo sin pintar a su izquierda que
+   ese mismo comentario describe para el caso del hub. El vidrio no necesita
+   `sticky` para nada: `fixed` pasa el contenido por debajo exactamente igual,
+   solo que sin heredar el hueco del riel. */
 html.v3 .lw-topbar{
-  position:sticky; top:0; z-index:40;
+  position:fixed; top:0; left:0; right:0; z-index:40;
   background:rgba(255,255,255,.74);
   -webkit-backdrop-filter:var(--v3-vidrio-pesado); backdrop-filter:var(--v3-vidrio-pesado);
   border-bottom:1px solid rgba(34,40,42,.07);
