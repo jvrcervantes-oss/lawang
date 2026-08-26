@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=6c502ef6">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=eca3414e">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -107,6 +107,7 @@
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/paginacion.js?v=8a6ee94f"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
@@ -448,7 +449,7 @@ function pintarRejilla(){
     return;
   }
   const eur = (v, m) => v == null ? '—' : esc(fmtMoneda(Number(v), m || 'EUR'));
-  caja.innerHTML = vis.map(u => `
+  caja.innerHTML = PAG_REJILLA().pagina(vis).map(u => `
     <button type="button" class="sui-ficha ${SEL===u.id?'sel':''}" data-id="${esc(u.id)}">
       <span class="sui-ficha-cab">
         <span class="clave">${esc(u.codigo)}</span>
@@ -680,6 +681,24 @@ function pintarFiltros(){
     ESTADOS.map(([v,l]) => `<button class="sui-chip ${FILTRO===v?'on':''} ${n(v)?'':'vacio'}" data-f="${v}">${l}<span class="n">${n(v)}</span></button>`).join('');
 }
 
+/* PAGINACIÓN (26-ago-2026). El inventario son 375 unidades y salían todas de
+   golpe, en las dos vistas. Un paginador POR VISTA y no uno global: la tabla y
+   la rejilla son dos contenedores distintos y el pie tiene que caer debajo del
+   que estés mirando.
+   Carpetas NO se pagina a propósito: ahí las unidades van AGRUPADAS por
+   proyecto, y cortar por la fila 25 partiría un proyecto por la mitad — el
+   recorte dejaría de significar nada. Si algún día hay tantos proyectos que la
+   vista se hace larga, lo que se pagina son los PROYECTOS, no sus unidades.
+   ⚠️ El `#resumen` sigue contando `vis` ENTERO: es del filtro, no de la página. */
+let _PAG_T = null, _PAG_R = null;
+function PAG_TABLA(){
+  if(!_PAG_T){ _PAG_T = lwPaginador('#caja-tabla'); _PAG_T.alCambiar(pintarTabla); }
+  return _PAG_T;
+}
+function PAG_REJILLA(){
+  if(!_PAG_R){ _PAG_R = lwPaginador('#rejilla'); _PAG_R.alCambiar(pintarRejilla); }
+  return _PAG_R;
+}
 function pintarTabla(){
   const cuerpo = $('#filas');
   if(CARGANDO){
@@ -703,7 +722,7 @@ function pintarTabla(){
     $('#resumen').innerHTML = ''; return;
   }
   const eur = (v, m) => v == null ? '<span class="flojo">—</span>' : esc(fmtMoneda(Number(v), m || 'EUR'));
-  cuerpo.innerHTML = vis.map(u => `
+  cuerpo.innerHTML = PAG_TABLA().pagina(vis).map(u => `
     <tr data-id="${esc(u.id)}" class="${SEL===u.id?'sel':''}">
       <td class="clave">${esc(u.codigo)}</td>
       <td>${esc(u.proyecto || '—')}</td>

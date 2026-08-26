@@ -570,6 +570,16 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
    la vista que sí toca. Se declara explícitamente en vez de subir la
    especificidad del `display:grid`, para que cualquier bloque de la suite que
    use `hidden` se comporte como uno espera y no según qué clase lleve. */
+/* PIE DE PAGINACIÓN — lo inyecta `assets/paginacion.js`, no lo escribe la
+   página. Vivía dentro del `<style>` de Vencimientos, que era la única
+   herramienta que paginaba; sube aquí con la pieza. Alineado a la derecha
+   porque acompaña al final de la lista, y con cifras tabulares para que el
+   contador no baile al cambiar de página. */
+.sui-pager{ display:flex; align-items:center; gap:10px; margin-top:12px;
+  justify-content:flex-end; font-size:12.5px; color:var(--texto-2,#4A5052); }
+.sui-pager .n{ font-variant-numeric:tabular-nums; }
+.sui-pager button:disabled{ opacity:.45; cursor:default; }
+
 .sui-rejilla[hidden], .sui-tabla-caja[hidden]{ display:none; }
 .sui-rejilla{ display:grid; gap:var(--e3);
   grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); }

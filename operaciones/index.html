@@ -16,7 +16,7 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=6c502ef6">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=eca3414e">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
@@ -31,6 +31,7 @@
      hoy, y es justo por eso que convenia arreglarlo antes de que dejara de
      darlo. El `?v=` lo sella el pre-commit. -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/paginacion.js?v=8a6ee94f"></script>
 <script src="/facturas/totales.js"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#fffdf8; --tbh:64px; }
@@ -543,10 +544,24 @@ function pintarBarraEtapas(){
     }).join('')}</div>`;
 }
 
+/* PAGINACIÓN (26-ago-2026). La lista sacaba las 95 operaciones de golpe. La
+   pieza es la compartida de `assets/paginacion.js` — la misma que Facturas y
+   Vencimientos, para que paginar signifique lo mismo en las tres.
+   ⚠️ Los TOTALES de abajo siguen sumando `vis` ENTERO, no la página: la suma de
+   lo que estás viendo es del filtro, no de las 25 filas que caben. Solo se
+   recorta lo que se PINTA — igual que en Facturas. */
+let _PAG = null;
+function PAGINADOR(){
+  /* Se cuelga de `#caja-tabla`, NO de `#listaOps`: ese es un `<tbody>` y meterle
+     un `<div>` de hermano lo deja DENTRO de la `<table>`, donde el navegador lo
+     saca de sitio al parsear y el pie aparece flotando encima de la tabla. */
+  if(!_PAG){ _PAG = lwPaginador('#caja-tabla'); _PAG.alCambiar(pintarLista); }
+  return _PAG;
+}
 function pintarLista(){
   const q = $('#q').value.trim().toLowerCase();
   const vis = visibles();
-  $('#listaOps').innerHTML = vis.length ? vis.map(o => {
+  $('#listaOps').innerHTML = vis.length ? PAGINADOR().pagina(vis).map(o => {
     const c = cuenta(o);
     const eur = n => n == null ? '<span class="nota">—</span>' : esc(fmtMoneda(n, c.moneda));
     const b = [];

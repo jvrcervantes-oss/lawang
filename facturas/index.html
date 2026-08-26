@@ -23,7 +23,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=6c502ef6">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=eca3414e">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
@@ -536,6 +536,7 @@
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/paginacion.js?v=8a6ee94f"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 const $  = s => document.querySelector(s);
@@ -1683,6 +1684,19 @@ function recargarListado(){ LDOCS = null; return cargarListado(); }
    que eso es lo que anuncia. */
 const NUEVA_ROTULO = { '':'Nueva factura', factura:'Nueva factura',
                        proforma:'Nueva proforma', recibi:'Nuevo recibí' };
+/* PAGINACIÓN (26-ago-2026). El listado sacaba las 165 filas de golpe — es la
+   tercera vez que el owner lo pide por su nombre, así que la pieza vive en
+   `assets/paginacion.js` y la usan todas por igual, en vez de una copia aquí.
+   Se crea perezosa: `#listBody` tiene que existir ya en el DOM, y esta función
+   es lo primero que corre cuando existe.
+   ⚠️ El RESUMEN de arriba sigue contando `data` ENTERO, no la página: «165
+   documentos · suma de lo vigente» es del conjunto, y decir 25 ahí sería
+   mentir sobre lo que hay. Solo se recorta lo que se PINTA. */
+let _PAG = null;
+function PAGINADOR(){
+  if(!_PAG){ _PAG = lwPaginador('#listBody'); _PAG.alCambiar(pintarListado); }
+  return _PAG;
+}
 function pintarListado(){
   const box = $('#listBody');
   pintarFiltrosListado();
@@ -1713,7 +1727,7 @@ function pintarListado(){
   box.innerHTML = `<table class="sui-tabla"><thead><tr>
       <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Contrato</th><th>Proyecto</th>
       <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th><th></th>
-    </tr></thead><tbody>` + data.map(f => {
+    </tr></thead><tbody>` + PAGINADOR().pagina(data).map(f => {
     const [tEt, tTono] = TIPO_ET[f.tipo] || TIPO_ET.factura;
     return `<tr data-id="${f.id}" class="${f.anulada ? 'anulada' : ''}">
       <td class="clave">${esc(f.numero || '—')}</td>
