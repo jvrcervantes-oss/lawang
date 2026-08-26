@@ -357,8 +357,12 @@
     table.docs td{ padding:9px 8px; }
     table.docs td.doc{ width:104px; }
     table.docs td.dinero{ width:120px; }
-    table.docs td.acc{ width:96px; white-space:normal; }
+    table.docs td.acc{ width:104px; white-space:normal; }
     table.docs td.acc .btn, table.docs td.acc .sui-tag{ margin:1px 0; }
+    /* «Reasignar autor» se partía en dos líneas y empujaba la fila a 111 px,
+       más alta que las otras tres celdas juntas. Nunca se parte: se encoge.
+       Solo lo ve un super_admin, así que el que no lo es ni nota esta regla. */
+    table.docs td.acc .lw-autoria-abrir{ white-space:nowrap; font-size:.68rem; padding:2px 5px; }
   }
   /* Red de seguridad: si algún día una celda no cabe, se desplaza DENTRO de su
      caja y nunca empuja la página entera de lado. */
