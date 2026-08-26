@@ -1626,6 +1626,25 @@ function etiquetaHTML(key, texto){
 function fieldHTML(f){
   const [key,labelObj,type,extra] = f;
   const label = L(labelObj);
+  /* ── CAMPO DE LEGADO (27-ago-2026) ─────────────────────────────────────────
+     Un campo que YA NO se rellena pero que 31 documentos guardados sí tienen.
+     Caso real: `validez_meses`. El owner pidió pasar el plazo de la reserva de
+     meses a DÍAS, y el atajo —cambiar la etiqueta y la plantilla— habría
+     reinterpretado el dato guardado: un «12» que decía doce MESES pasaría a
+     decir doce DÍAS en **17 cartas ya firmadas**. Un documento firmado no
+     cambia de significado porque cambiemos un rótulo.
+     Así que el campo nuevo (`validez_dias`) nace al lado, y el viejo se queda:
+     invisible si está vacío —que es todo documento nuevo—, y visible en solo
+     lectura cuando el documento sí lo trae, para que se vea qué dice y por qué.
+     Las plantillas imprimen uno u otro con `<!--opt:campo-->`, que ya existía.
+     Cuando no quede ningún documento con `validez_meses`, la fila se borra de
+     tokens.json y esta rama deja de tener trabajo. */
+  if(type==='legacy'){
+    const val = pdef(key);
+    if(!val) return '';
+    return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
+      <input id="${fid(key)}" name="${key}" type="text" value="${val}" readonly tabindex="-1" class="dato-fijo"></div>`;
+  }
   const def = pdef(key);
   if(type==='signature'){
     return `<div class="field" data-key="${key}">
