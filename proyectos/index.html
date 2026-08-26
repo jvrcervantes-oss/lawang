@@ -107,6 +107,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <script src="/facturas/totales.js"></script>
+<script src="/contracts/assets/proyectos_csv.js?v=ee33e15a"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
@@ -231,10 +232,10 @@ const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionD
    reference_excel_generator_lawang), así que una celda sembrada hoy dispara
    mañana en la máquina de quien exporte. Se antepone una comilla: el valor se
    sigue leyendo igual, deja de ejecutarse como fórmula. */
-const antiFormula = s => {
-  const v = String(s ?? '').replace(/[\t\r]/g, ' ').trim();
-  return /^[=+\-@]/.test(v) ? "'" + v : v;
-};
+/* Vive en `contracts/assets/proyectos_csv.js` desde el 26-ago-2026, junto al
+   import que es quien más la necesita. Se queda el nombre para no tocar los
+   cuatro sitios que la llaman; detrás ya no hay una segunda implementación. */
+const antiFormula = lwCsvAntiFormula;
 
 let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
 /* `?proyecto=` entra directo a ese proyecto. Lo usa el enlace de vuelta desde
@@ -1109,70 +1110,14 @@ async function guardar(id){
    formulario de una unidad (#f-estado/#f-contrato, para parcelas sin
    contrato) — por eso la protección va aquí, en el propio código del import,
    y no como un REVOKE de columna que rompería ese camino. */
-const CSV_MAX_BYTES = 5 * 1024 * 1024;
-const CSV_MAX_FILAS = 5000;
-// cabecera del CSV (minúsculas, sin acentos) → columna real de `unidades`.
-// Ninguna clave de este mapa es estado/contrato_id a propósito.
-// 🔴 7-ago-2026: los exports de Notion del cliente (p.ej. "Available Plots ·
-// Bonian") vienen en inglés — "Type" (el modelo de villa), "Land"/"Villa" (los
-// dos precios que hoy llamamos precio_suelo/precio_construccion). Sin estos
-// alias esas tres columnas se ignoraban enteras: el modelo y los dos precios
-// desaparecían al importar, silenciosamente (solo avisaba "columnas
-// ignoradas", que nadie lee fila a fila).
-// fase/zone (10-ago-2026, CSV "SUMBA PLOTS" del cliente): van a fase_masterplan/
-// zona_masterplan, NO a obra_fase — esa ya existe y es la fase de OBRA de una
-// unidad concreta (ver obra/index.html), un concepto distinto que por
-// casualidad se llama igual en el lenguaje del negocio. Columnas genéricas en
-// la tabla (no hay una tabla por proyecto), pero solo las rellena un CSV que
-// las traiga — hoy solo el de Sumba Hills. El resto de proyectos las deja NULL.
-// 10-ago-2026: mismo fallo que el de "Type"/"Land"/"Villa" del 7-ago, otra
-// vez con una cabecera distinta — el CSV "SUMBA PLOTS" del cliente trae
-// "Modelo de villa"/"Precio de suelo"/"Precio de construcción" (con preposición,
-// normCab las deja en "modelo_de_villa"/"precio_de_suelo"/"precio_de_construccion"),
-// que no casaban con ningún alias de abajo: modelo y los dos precios se habrían
-// perdido en silencio otra vez. Añadidos sus alias explícitos.
-const CSV_COLUMNAS = {
-  codigo:'codigo', proyecto:'proyecto', tipo:'tipo', modelo:'modelo', type:'modelo', modelo_de_villa:'modelo',
-  superficie:'superficie_m2', superficie_m2:'superficie_m2', m2:'superficie_m2',
-  precio_suelo:'precio_suelo', suelo:'precio_suelo', land:'precio_suelo', precio_de_suelo:'precio_suelo',
-  precio_construccion:'precio_construccion', construccion:'precio_construccion', villa:'precio_construccion',
-  precio_de_construccion:'precio_construccion',
-  precio:'precio', precio_total:'precio', total:'precio',
-  moneda:'moneda', notas:'notas',
-  fase:'fase_masterplan', zone:'zona_masterplan', zona:'zona_masterplan',
-};
-// quita acentos y cualquier cosa que no sea letra/número ("Superficie (m2)"
-// y "superficie_m2" casan igual) — de puntuación exacta no debería depender
-// que una columna se reconozca o se ignore.
-// 🔴 "m²" (con el carácter Unicode ², U+00B2) se colaba: NFD solo descompone
-// letras acentuadas, no el superíndice, así que sobrevivía al normalize y la
-// regex de abajo lo convertía en "_" — "m²" acababa en "m", no "m2", y como
-// "m" no es ninguna clave de CSV_COLUMNAS la columna se perdía entera. Se
-// sustituye el superíndice por su dígito ANTES de la limpieza general.
-const normCab = s => String(s||'').replace(/²/g,'2').replace(/³/g,'3')
-  .normalize('NFD').replace(/[̀-ͯ]/g,'')
-  .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-
-/* Parser CSV propio (RFC4180: comillas, comas y saltos de línea dentro de un
-   campo entrecomillado, "" como comilla escapada) — ninguna herramienta de la
-   suite carga una librería de esto hoy, y el caso cabe en unas pocas líneas.
-   Devuelve array de arrays; la primera fila es la cabecera. */
-function parseCSV(texto){
-  const filas = []; let fila = []; let campo = ''; let enComillas = false;
-  const t = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  for(let i = 0; i < t.length; i++){
-    const c = t[i];
-    if(enComillas){
-      if(c === '"'){ if(t[i+1] === '"'){ campo += '"'; i++; } else enComillas = false; }
-      else campo += c;
-    }else if(c === '"'){ enComillas = true; }
-    else if(c === ','){ fila.push(campo); campo = ''; }
-    else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
-    else campo += c;
-  }
-  if(campo !== '' || fila.length){ fila.push(campo); filas.push(fila); }
-  return filas.filter(f => f.some(c => c.trim() !== ''));
-}
+/* Las reglas del import viven en `contracts/assets/proyectos_csv.js` desde el
+   26-ago-2026: los alias de cabecera (que han crecido tres veces por sorpresa,
+   perdiendo columnas en silencio cada vez), el «m²», la coincidencia de nombre
+   de proyecto y las dos columnas que un CSV NO puede tocar. Se sacaron al pedir
+   la v3 el mismo botón: copiarlas habría sido garantizar que el próximo alias se
+   añadiera en una pantalla y no en la otra. Aquí queda solo lo que es de ESTA
+   pantalla — pintar la previsualización. Tienen test: `contracts/proyectos_csv.test.js`. */
+const CSV_MAX_BYTES = LW_CSV_MAX_BYTES;
 
 let CSV_FILAS_VALIDAS = [];      // lo que de verdad se sube al confirmar
 let CSV_CAMPOS_PRESENTES = new Set();   // qué columnas trajo ESTE CSV (ver abajo)
@@ -1194,76 +1139,20 @@ async function abrirImportCsv(file){
     return;
   }
   cuerpo.innerHTML = '<p class="sub">Leyendo…</p>';
-  const texto = await file.text();
-  const filas = parseCSV(texto);
-  if(!filas.length){ cuerpo.innerHTML = '<p class="aviso">El fichero está vacío.</p>'; return; }
-  // ponytail: el tope real es el de bytes (arriba); contar filas exige haber
-  // parseado ya (un salto de línea dentro de un campo entrecomillado no cuenta
-  // como fila), así que este límite llega después del parse, no antes. Con 5MB
-  // ya acotado, el coste de parsear de más es milisegundos, no una vía de DoS.
-  if(filas.length - 1 > CSV_MAX_FILAS){
-    cuerpo.innerHTML = `<p class="aviso">El fichero trae ${filas.length-1} filas — el máximo son ${CSV_MAX_FILAS}. Pártelo en varios.</p>`;
-    return;
-  }
-  const cabecera = filas[0].map(normCab);
-  const mapa = cabecera.map(c => CSV_COLUMNAS[c] || null);
-  const ignoradas = cabecera.filter((c,i) => !mapa[i]);
-  if(!mapa.includes('codigo') || !mapa.includes('proyecto')){
-    cuerpo.innerHTML = '<p class="aviso">El CSV necesita al menos las columnas <code>codigo</code> y <code>proyecto</code>.</p>';
-    return;
-  }
-  // Qué columnas trae DE VERDAD este CSV (target real de unidades, no el alias
-  // de cabecera). Se usa al confirmar para NO mandar una clave que el fichero
-  // nunca trajo: `unidades.tipo` es un valor por fila, "sin dato" en el CSV no
-  // es lo mismo que "vacío a propósito", y una actualización no debe borrar lo
-  // que ya había en una columna que el CSV ni siquiera menciona.
-  CSV_CAMPOS_PRESENTES = new Set(mapa.filter(Boolean));
-
-  const tiposOk = new Set(TIPOS.map(x => x[0]));
-  const existentes = new Set(UNIDADES.map(u => u.proyecto + ' ' + u.codigo));
-
-  const analizadas = filas.slice(1).map((cols, idx) => {
-    const d = {}; mapa.forEach((campo, i) => { if(campo) d[campo] = (cols[i] ?? '').trim(); });
-    const errores = [];
-    const codigo = antiFormula(d.codigo || '');
-    const proyectoCsv = d.proyecto || '';
-    // Mismo criterio de coincidencia que public.mismo_proyecto() en Supabase
-    // (contracts/sql/portal_comprador.sql): el nombre no siempre casa exacto
-    // entre sitios. Aquí, típicamente entre lo que exporta Notion ("Bonian
-    // Village by Balian Hills") y el catálogo de Unidades ("Bonian Village",
-    // desde que el 7-ago se separó el Resort del nombre del proyecto). Si hay
-    // coincidencia por contención, se usa el nombre TAL CUAL vive en el
-    // catálogo — nunca el del CSV — para no crear una segunda variante del
-    // mismo proyecto en `unidades.proyecto`.
-    const proyectoCat = proyectoCsv
-      ? PROYECTOS.find(p => { const a = p.toLowerCase(), b = proyectoCsv.toLowerCase(); return a === b || a.includes(b) || b.includes(a); })
-      : null;
-    const proyecto = proyectoCat || proyectoCsv;
-    const tipo = (d.tipo || 'parcela').toLowerCase().trim();
-    if(!codigo) errores.push('sin código');
-    if(!proyectoCsv) errores.push('sin proyecto');
-    else if(!proyectoCat) errores.push(`proyecto "${proyectoCsv}" no está en el catálogo — créalo primero con «+ Nuevo proyecto»`);
-    if(!tiposOk.has(tipo)) errores.push(`tipo "${tipo}" no está en el catálogo`);
-    const num = v => { const n = parseImporte(v); return v && n ? n : null; };
-    return {
-      fila: idx + 2, // +2: encabezado + base-1
-      codigo, proyecto, tipo,
-      modelo: d.modelo ? antiFormula(d.modelo) : null,
-      superficie_m2: num(d.superficie_m2), precio_suelo: num(d.precio_suelo),
-      precio_construccion: num(d.precio_construccion), precio: num(d.precio),
-      moneda: (d.moneda || 'EUR').toUpperCase(),
-      notas: d.notas ? antiFormula(d.notas) : null,
-      fase_masterplan: d.fase_masterplan ? antiFormula(d.fase_masterplan) : null,
-      zona_masterplan: d.zona_masterplan ? antiFormula(d.zona_masterplan) : null,
-      esAlta: codigo && proyecto ? !existentes.has(proyecto + ' ' + codigo) : null,
-      errores,
-    };
+  /* El ANÁLISIS lo hace la pieza compartida; esta pantalla solo lo pinta.
+     `parseImporte` se le pasa a propósito: es la de `dinero.js`, la única forma
+     de leer un importe en la suite, y así la pieza no impone orden de carga. */
+  const r = lwCsvAnaliza(await file.text(), {
+    tipos: TIPOS.map(x => x[0]),
+    proyectos: PROYECTOS,
+    existentes: new Set(UNIDADES.map(u => u.proyecto + ' ' + u.codigo)),
+    parseImporte,
   });
+  if(r.error){ cuerpo.innerHTML = `<p class="aviso">${esc(r.error)}</p>`; return; }
 
-  CSV_FILAS_VALIDAS = analizadas.filter(f => !f.errores.length);
-  const altas = CSV_FILAS_VALIDAS.filter(f => f.esAlta).length;
-  const actualiza = CSV_FILAS_VALIDAS.length - altas;
-  const conError = analizadas.length - CSV_FILAS_VALIDAS.length;
+  const { analizadas, ignoradas, altas, actualiza, conError } = r;
+  CSV_FILAS_VALIDAS = r.validas;
+  CSV_CAMPOS_PRESENTES = r.camposPresentes;
 
   cuerpo.innerHTML = `
     <div class="csv-resumen">
