@@ -211,8 +211,9 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
    Safari empuja el texto: se retira y se limpia con Escape, que ya funciona. */
 .sui-buscar::-webkit-search-cancel-button{ -webkit-appearance:none; }
 .sui-buscar:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
-.sui-sel{ font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--linea);
-  border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
+/* `.sui-sel` se define UNA vez, en topbar.css, junto a `.lw-select` — son el
+   mismo control y aquí tenían dos tamaños, dos pesos, dos radios y solo uno de
+   los dos con estado de foco. Ver la nota de allí. */
 .sui-chip{ font:inherit; font-size:12px; font-weight:500; letter-spacing:0; background:var(--sup-1); border:1px solid var(--linea);
   border-radius:var(--r-p); padding:7px 14px; min-height:24px; cursor:pointer; color:var(--texto-2);
   transition:background var(--t-rapido), border-color var(--t-rapido), color var(--t-rapido); }

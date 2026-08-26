@@ -15,14 +15,14 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -100,7 +100,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -240,7 +240,7 @@ function pintarFicha(){
       <div class="sui-row">
         <div><label for="fNombre">Nombre</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
         <div><label for="fRol">Rol</label>
-          <select id="fRol" ${bloqueado || yoMismo || !soySuper ? 'disabled' : ''}>
+          <select class="sui-sel" id="fRol" ${bloqueado || yoMismo || !soySuper ? 'disabled' : ''}>
             ${ROLES.map(([v,l]) => `<option value="${v}" ${u.rol===v?'selected':''}>${l}</option>`).join('')}
           </select></div>
       </div>
@@ -276,7 +276,7 @@ function pintarFicha(){
 
     <fieldset><legend>Acceso</legend>
       <label for="fActivo">Estado</label>
-      <select id="fActivo" ${bloqueado || yoMismo ? 'disabled' : ''}>
+      <select class="sui-sel" id="fActivo" ${bloqueado || yoMismo ? 'disabled' : ''}>
         <option value="1" ${u.activo?'selected':''}>Activo</option>
         <option value="0" ${!u.activo?'selected':''}>Desactivado — no entra a la suite</option>
       </select>
@@ -356,7 +356,7 @@ function nuevoUsuario(){
       <label for="nPass">Contraseña provisional (mínimo 10 caracteres)</label>
       <input id="nPass" type="text" placeholder="La verá al entrar; que la cambie después">
       <label for="nRol">Rol</label>
-      <select id="nRol">${ROLES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+      <select class="sui-sel" id="nRol">${ROLES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
       <p class="nota">La contraseña se muestra en claro a propósito: hay que poder copiarla para
         dársela a la persona. No queda guardada en ningún sitio consultable.</p>
     </fieldset>

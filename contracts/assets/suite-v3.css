@@ -428,7 +428,12 @@ html.v3 input[type="search"]:focus{
 html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:600; }
 @media (max-width:380px){
   /* A 344 px cada píxel cuenta: se queda el icono, pero con `aria-label`. */
-  html.v3 .lw-rail-movil .v3-rot{ display:none; }
+  /* RETIRADO el 26-ago-2026. Aquí se escondía la palabra «Menú» por debajo de
+     380px para ahorrar sitio, y 344px es exactamente el ancho de un Galaxy Fold
+     plegado: en el único sitio donde ese botón es la ÚNICA puerta al resto de la
+     suite, se quedaba en un icono de 38px sin nombre. La barra ya scrollea en
+     horizontal a ese ancho y el botón es su primer hijo, así que la palabra no
+     empuja nada fuera de la vista: cabe. */
 }
 
 

@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
@@ -102,7 +102,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -434,7 +434,7 @@ function pintarFicha(){
       <legend>Identidad</legend>
       ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
       <label for="f-tipo">Tipo de comprador</label>
-      <select id="f-tipo" ${dis}>
+      <select class="sui-sel" id="f-tipo" ${dis}>
         <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>Persona física</option>
         <option value="empresa" ${c.tipo==='empresa'?'selected':''}>Empresa</option>
       </select>
@@ -482,7 +482,7 @@ function pintarFicha(){
       </div>
       <div class="sui-row">
         <div class="solo-persona"><label for="f-nac-fecha">Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
-        <div><label for="f-kyc">Estado KYC</label><select id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div><label for="f-kyc">Estado KYC</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
       </div>
       <label for="f-notas">Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
     </fieldset>
@@ -624,7 +624,7 @@ function pintarFicha(){
       </table>
       <div class="subir">
         <div class="sui-row">
-          <div><label for="d-tipo">Tipo</label><select id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+          <div><label for="d-tipo">Tipo</label><select class="sui-sel" id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
           <div><label for="d-caduca">Caduca el (opcional)</label><input id="d-caduca" type="date"></div>
         </div>
         <label for="d-file">Fichero</label><input id="d-file" type="file" accept="application/pdf,image/*">

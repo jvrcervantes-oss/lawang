@@ -151,14 +151,28 @@
 .lw-btn.primary:hover{ background:#0d5b5f; color:#fff; }
 .lw-btn .ph{ font-size:15px; line-height:1; }
 
-.lw-select{
+/* EL DESPLEGABLE DE LA SUITE — UNO SOLO (26-ago-2026)
+   Había dos: `.lw-select` (barra) y `.sui-sel` (formularios), con tamaño, peso,
+   color y radio distintos — y `.sui-sel` **sin estado de foco**, que no es una
+   diferencia de gusto sino un fallo de accesibilidad: quien navega con teclado
+   no veía dónde estaba. Y siete herramientas tenían `<select>` sin ninguna
+   clase, o sea el desplegable crudo del sistema al lado de los otros dos.
+   Ahora hay UNA definición y dos tamaños. Vive en topbar.css, que es la única
+   hoja que cargan las doce herramientas (`suite.css` no la cargan todas).
+   `.sui-sel` se conserva como nombre porque lo usan las plantillas ya escritas:
+   es un alias, no una segunda forma. */
+.lw-select, .sui-sel{
   font:inherit; font-size:13px; font-weight:600; color:var(--dl,#104C4F);
   background:var(--card,#fffdf8); border:1px solid var(--linea,#E4DCCB);
   border-radius:9px; padding:7px 12px; cursor:pointer; max-width:260px;
 }
-.lw-select:hover{ border-color:var(--dl,#104C4F); }
-.lw-select:focus{ outline:none; border-color:var(--dl,#104C4F);
+.lw-select:hover, .sui-sel:hover{ border-color:var(--dl,#104C4F); }
+.lw-select:focus, .sui-sel:focus{ outline:none; border-color:var(--dl,#104C4F);
   box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+/* Dentro de un formulario el desplegable no es un control de barra: ocupa el
+   ancho de su campo y no compite con la etiqueta. Es el MISMO control, con la
+   medida que le toca a su sitio — no otro. */
+.sui-sel{ max-width:none; width:100%; }
 
 /* campo de texto en barra (el nombre del dossier) */
 .lw-input{

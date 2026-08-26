@@ -15,8 +15,8 @@
      "esta pagina no carga Phosphor" se refiere a un caso concreto de emoji y
      ya no describe el fichero entero. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -91,7 +91,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -597,14 +597,14 @@ function formDoc(d){
     sub: editando ? esc(v.titulo) : t('subDocumento'),
     cuerpo: `
       <div class="campo"><label for="sProyecto">${t('lblProyecto')}</label>
-        <select id="sProyecto">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+        <select class="sui-sel" id="sProyecto">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
       <div class="campo"><label for="sCarpeta">${t('lblCarpeta')}</label>
         <input id="sCarpeta" list="conocidas" value="${esc(v.carpeta != null ? v.carpeta : CARPETA)}" placeholder="${t('phCarpeta')}">
         <datalist id="conocidas">${conocidas.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
       <p class="sui-nota" style="margin-top:-6px">${t('notaCarpeta')}</p>
       <div class="campo"><label for="sTitulo">${t('lblTitulo')}</label><input id="sTitulo" value="${esc(v.titulo||'')}" placeholder="${t('phTitulo')}"></div>
       <div class="campo"><label for="sCategoria">${t('lblCategoria')}</label>
-        <select id="sCategoria">${CATEGORIAS.map(([x,l]) => `<option value="${x}" ${v.categoria===x?'selected':''}>${l}</option>`).join('')}</select></div>
+        <select class="sui-sel" id="sCategoria">${CATEGORIAS.map(([x,l]) => `<option value="${x}" ${v.categoria===x?'selected':''}>${l}</option>`).join('')}</select></div>
       ${v.path
         ? `<p class="sui-nota">${t('archivoSubido')}</p>`
         : `<div class="campo"><label for="sUrl">${t('lblEnlace')}</label><input id="sUrl" value="${esc(v.url||'')}" placeholder="https://drive.google.com/…" inputmode="url"></div>`}
@@ -681,7 +681,7 @@ function formFaq(d){
     sub: editando ? esc(v.titulo) : t('subFaq'),
     cuerpo: `
       <div class="campo"><label for="fProyectoFaq">${t('lblProyecto')}</label>
-        <select id="fProyectoFaq">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
+        <select class="sui-sel" id="fProyectoFaq">${PROYECTOS.map(p => `<option ${p===(v.proyecto||PROY)?'selected':''}>${esc(p)}</option>`).join('')}</select></div>
       <div class="campo"><label for="fPregunta">${t('lblPregunta')}</label>
         <textarea id="fPregunta" rows="2" placeholder="${t('phPregunta')}">${esc(v.titulo||'')}</textarea></div>
       <div class="campo"><label for="fRespuesta">${t('lblRespuesta')}</label>

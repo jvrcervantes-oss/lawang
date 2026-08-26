@@ -15,9 +15,9 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -99,7 +99,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -593,7 +593,7 @@ async function renombrarProyecto(nombreActual){
    `proyectos`, sin cascade — a diferencia del nombre, estos tres campos solo
    viven aquí), y el RLS de la tabla ya exige es_admin(): si quien pulsa no lo
    es, la fila vuelve vacía y se avisa en vez de mentir un "Guardado". Resort
-   es `<input list>` con lo ya usado como sugerencia, NO un <select> cerrado
+   es `<input list>` con lo ya usado como sugerencia, NO un <select class="sui-sel"> cerrado
    (regla de la suite: un desplegable cerrado no deja escribir "Signature
    project" la primera vez que existe). */
 function editarProyecto(nombre){
@@ -798,7 +798,7 @@ function abrirUnidad(id){
       <p class="sui-nota" style="margin-top:-6px">Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.</p>
       <div class="dos">
         <div class="campo"><label for="f-proyecto">Proyecto</label>
-          <select id="f-proyecto">
+          <select class="sui-sel" id="f-proyecto">
             <option value="">— elegir —</option>
             ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort().map(p =>
               `<option value="${esc(p)}" ${u.proyecto===p?'selected':''}>${esc(p)}</option>`).join('')}
@@ -810,7 +810,7 @@ function abrirUnidad(id){
           </div>
         </div>
         <div class="campo"><label for="f-tipo">Tipo</label>
-          <select id="f-tipo">
+          <select class="sui-sel" id="f-tipo">
             ${TIPOS.map(([v,l])=>`<option value="${v}" ${u.tipo===v?'selected':''}>${l}</option>`).join('')}
             <option value="__nuevo__">+ Nuevo tipo…</option>
           </select>
@@ -823,7 +823,7 @@ function abrirUnidad(id){
       <div class="dos">
         <div class="campo"><label for="f-modelo">Modelo de villa</label>
           ${modelosDe(u.proyecto).length
-            ? `<select id="f-modelo">
+            ? `<select class="sui-sel" id="f-modelo">
                  <option value="">— sin decidir —</option>
                  ${modelosDe(u.proyecto).map(m => `<option value="${esc(m.modelo)}" ${u.modelo===m.modelo?'selected':''}>${
                      esc(m.modelo)}${m.precio_construccion != null ? ' · ' + fmtNum(Number(m.precio_construccion)) + ' ' + (m.moneda||'EUR') : ''}</option>`).join('')}
@@ -851,7 +851,7 @@ function abrirUnidad(id){
         <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):''}"></div>
       </div>
       <div class="dos">
-        <div class="campo"><label for="f-moneda">Moneda</label><select id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="campo"><label for="f-moneda">Moneda</label><select class="sui-sel" id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
       </div>
       ${u.contrato_id ? `
         <div class="campo"><label>Estado</label>
@@ -865,9 +865,9 @@ function abrirUnidad(id){
           contrato o bórralo, y volverá a estar disponible sola.</p>`
       : `
         <div class="campo"><label for="f-estado">Estado</label>
-          <select id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
+          <select class="sui-sel" id="f-estado">${ESTADOS.map(([v,l])=>`<option value="${v}" ${u.estado===v?'selected':''}>${l}</option>`).join('')}</select></div>
         <div class="campo"><label for="f-contrato">Contrato asociado</label>
-          <select id="f-contrato"><option value="">— sin contrato —</option>
+          <select class="sui-sel" id="f-contrato"><option value="">— sin contrato —</option>
             ${CONTRATOS.map(c=>`<option value="${esc(c.id)}" ${u.contrato_id===c.id?'selected':''}>${esc(c.numero||'sin nº')} — ${esc(c.comprador_nombre||'sin nombre')}</option>`).join('')}
           </select></div>
         <div id="avisoEstado"></div>`}

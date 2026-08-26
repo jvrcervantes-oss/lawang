@@ -16,14 +16,14 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
@@ -149,7 +149,7 @@
   .plegable .opc{ font-size:9.5px; letter-spacing:.08em; color:var(--muted); font-weight:500; }
 
   /* Botón que abre el buscador de contrato. Se pinta como un campo, no como un
-     botón: ocupa el sitio de un `<select>` y tiene que leerse como tal. */
+     botón: ocupa el sitio de un `<select class="sui-sel">` y tiene que leerse como tal. */
   .campo-elegir{ width:100%; font:inherit; font-size:14px; text-align:left;
              padding:9px 11px; border:1px solid var(--line); border-radius:9px;
              background:var(--rl,#fff); color:inherit; cursor:pointer;
@@ -307,7 +307,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -385,7 +385,7 @@
             <label for="btnContrato">Contrato</label>
             <!-- BUSCADOR, no desplegable — 24-ago-2026, encargo del owner («el
                  desplegable ya es demasiado grande»). Y no era solo incómodo:
-                 el `<select>` cargaba los 60 contratos más recientes, y hay 112.
+                 el `<select class="sui-sel">` cargaba los 60 contratos más recientes, y hay 112.
                  C200003 tiene 70 contratos por delante, así que era literalmente
                  IMPOSIBLE facturarlo desde aquí — 52 contratos fuera de alcance
                  sin que nada lo dijera. Se elige con `lwElegir` (dialogo.js), el
@@ -400,7 +400,7 @@
             </div>
             <div class="row2">
               <div><label for="fa-moneda">Moneda</label>
-                <select id="fa-moneda" name="moneda">
+                <select class="sui-sel" id="fa-moneda" name="moneda">
                   <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
                 </select></div>
               <div><label for="fa-numero_visible">Nº de documento</label><input id="fa-numero_visible" name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
@@ -412,9 +412,9 @@
           <fieldset>
             <legend>Emisor</legend>
             <label for="selSociedad">Sociedad que factura</label>
-            <select name="sociedad" id="selSociedad"></select>
+            <select class="sui-sel" name="sociedad" id="selSociedad"></select>
             <label for="selCuenta">Cuenta donde se cobra</label>
-            <select name="cuenta" id="selCuenta"></select>
+            <select class="sui-sel" name="cuenta" id="selCuenta"></select>
             <p class="hint">Sin cuenta, el documento no imprime datos bancarios.</p>
             <!-- "Otros": cuenta que no está en entities.js. Se teclea aquí y sale
                  impresa igual que una registrada, pero NO se da de alta: una
@@ -463,7 +463,7 @@
           <fieldset id="fsAplicaciones" hidden>
             <legend>Facturas que salda este recibí</legend>
             <label for="selFacturaAplicar">Añadir factura</label>
-            <select id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
+            <select class="sui-sel" id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
             <p class="hint" id="aplicAmbito"></p>
             <div id="aplicaciones"></div>
             <p class="hint" id="aplicSuma"></p>
@@ -673,7 +673,7 @@ let CLIENTE_DEL_CONTRATO = null;   // ficha del comprador del contrato elegido (
    APLICACIONES = [{factura_id, numero, pendiente, importe}]; LINEAS (arriba)
    se regenera SOLA a partir de esto para el documento impreso. */
 let APLICACIONES = [];
-let FACTURAS_ABIERTAS = [];   // [{id, numero, pendiente, contrato_numero, cliente_nombre}], para el <select> de aplicar
+let FACTURAS_ABIERTAS = [];   // [{id, numero, pendiente, contrato_numero, cliente_nombre}], para el <select class="sui-sel"> de aplicar
 /* Justificantes del recibí — LISTA desde el 24-ago-2026 (encargo del owner:
    «permitir adjuntar más de un archivo a un recibí»). Cada elemento es
    {path, nombre, subido_en}: la RUTA es un UUID en el bucket privado y el
@@ -1255,7 +1255,7 @@ async function cargarContratos(){
 function bloquear(el, si){
   if(!el) return;
   if(el.tagName === 'SELECT'){
-    // un <select> no tiene readonly: se bloquea con el atributo y se vuelve a
+    // un <select class="sui-sel"> no tiene readonly: se bloquea con el atributo y se vuelve a
     // abrir al soltarlo. Solo hay uno (moneda) y se guarda igual.
     el.classList.toggle('campo-del-contrato', si);
     el.style.pointerEvents = si ? 'none' : '';

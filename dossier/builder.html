@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../contracts/assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="../contracts/assets/topbar.css?v=54eff029">
 <!-- Iconos Phosphor para el menu lateral de topbar.js, igual que las demas. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
@@ -18,7 +18,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="../contracts/assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="../contracts/assets/suite.css?v=02736dbd">
 <!-- ninguna herramienta interna sin sesion: ver assets/guard.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
@@ -346,9 +346,9 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
     <span class="tplhint">— libéralo para poder moverlo</span>
   </span>
   <span data-for="text">
-    <select id="st_font"><option value="sans">Jost</option><option value="serif">Cormorant</option></select>
+    <select class="sui-sel" id="st_font"><option value="sans">Jost</option><option value="serif">Cormorant</option></select>
     <input type="number" id="st_size" min="6" max="300" step="1" title="Tamaño (px)">
-    <select id="st_weight"><option>300</option><option>400</option><option>500</option><option>600</option><option>700</option></select>
+    <select class="sui-sel" id="st_weight"><option>300</option><option>400</option><option>500</option><option>600</option><option>700</option></select>
     <button class="sbtn" id="st_italic" title="Cursiva"><i>I</i></button>
     <button class="sbtn" id="st_upper" title="MAYÚSCULAS">AA</button>
     <button class="sbtn" data-al="left">⟸</button><button class="sbtn" data-al="center">≡</button><button class="sbtn" data-al="right">⟹</button>
@@ -359,7 +359,7 @@ body{margin:0;font-family:var(--sans);background:#eae5d8;color:var(--ink)}
   </span>
   <span data-for="rect"><label>Relleno</label><input type="color" id="st_fill"></span>
   <span data-for="img"><label>Encaje</label>
-    <select id="st_fit" title="Rellenar recorta · Ajustar muestra la imagen entera">
+    <select class="sui-sel" id="st_fit" title="Rellenar recorta · Ajustar muestra la imagen entera">
       <option value="cover">Rellenar</option><option value="contain">Ajustar</option></select>
   </span>
   <span data-for="imgrect"><label>Opacidad</label><input type="number" id="st_op" min="5" max="100" step="5"></span>

@@ -19,14 +19,14 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="assets/topbar.css?v=54eff029">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="assets/suite.css?v=a9158f4c">
+<link rel="stylesheet" href="assets/suite.css?v=02736dbd">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="assets/topbar.js?v=ea125e99" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
@@ -88,7 +88,7 @@
      otras cuatro están dentro de plantillas JS que arman la ventana de impresión
      del contrato. Meter ahí la capa v3 la habría colado en el PDF del cliente.
      Sin `?v3=1` no hace nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
@@ -276,7 +276,7 @@
       </div>
       <div class="em-body">
         <p class="em-note">Se copian comprador, proyecto, unidad e importes. No se copian el número, la fecha de firma ni las firmas. El calendario de pagos solo viaja entre contratos del mismo tipo, y con los vencimientos recalculados desde hoy — cada tipo arranca con su plan pactado.</p>
-        <label>Contrato a generar<select id="dvTpl"></select></label>
+        <label>Contrato a generar<select class="sui-sel" id="dvTpl"></select></label>
         <button class="btn primary" id="dvGo" style="margin-top:6px">Generar</button>
       </div>
     </div>
@@ -1631,7 +1631,7 @@ function fieldHTML(f){
     // exactamente el mismo corte de rol que ya usa "Editar texto" — no una
     // coincidencia nueva que haya que mantener sincronizada a mano.
     const bloqueado = key==='firmante' && !CAN_EDIT_TEXT;
-    return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label><select id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
+    return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label><select class="sui-sel" id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
   }
   if(type==='textarea'){
     return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label for="${fid(key)}">${label}</label><textarea id="${fid(key)}" name="${key}" rows="3">${def}</textarea></div>`;
@@ -1670,7 +1670,7 @@ function fieldHTML(f){
   const t = esDinero ? 'text' : (type==='number' ? 'number' : (type==='date'?'date':'text'));
   // nacionalidad (12-ago, petición del owner): mismo <input> de siempre, con
   // sugerencias del datalist global #dl-nacionalidades (ver buildForm) — no
-  // fuerza el valor como un <select> sí haría, para no romper un contrato ya
+  // fuerza el valor como un <select class="sui-sel"> sí haría, para no romper un contrato ya
   // guardado con una nacionalidad que no está en la lista (país no listado,
   // errata histórica, "Doble: ES/PE"...).
   const attrs = esDinero ? 'inputmode="decimal" data-money' : (type==='nacionalidad' ? 'list="dl-nacionalidades"' : '');
@@ -1737,7 +1737,7 @@ function aplicarReglasCampos(){
      ("falta pasaporte o email") y la parcela deshabilitada para siempre.
      `cargarUnidadesDelProyecto` no sirve para esto: sale antes si el proyecto no
      ha cambiado. Se repinta solo cuando la identidad cambia de verdad — repintar
-     en cada tecla rehace el <select> por debajo de quien lo esté usando. */
+     en cada tecla rehace el <select class="sui-sel"> por debajo de quien lo esté usando. */
   const firmaId = identificadoresDelFormulario().join('|');
   if(firmaId !== ID_PINTADO){
     ID_PINTADO = firmaId;
