@@ -273,6 +273,12 @@
   .hito-todo .p{ display:block; margin-top:2px; font-size:11.5px; color:var(--muted); }
   .hito-todo:hover{ background:var(--rl,#F7F3E9); }
   .hito-todo.usado, .hito-todo:disabled{ opacity:.5; cursor:not-allowed; border-style:dashed; }
+  /* La ficha de la unidad completa vive dentro del aviso de contrato encadenado,
+     que ya tiene fondo propio: sin fondo blanco encima, que serían dos tarjetas
+     una dentro de otra (§12 — nunca un material claro sobre otro). */
+  .hito-todo.doble{ background:rgba(255,255,255,.55); margin:8px 0 9px; }
+  .hito-todo.doble:hover{ background:rgba(255,255,255,.85); }
+  .vinc-btn.usado, .vinc-btn:disabled{ opacity:.5; cursor:not-allowed; }
   /* ── plegado de secciones ──────────────────────────────────────────────
      El `<legend>` pasa a ser el mando: cursor, foco visible y un ángulo que
      gira. §16.4 (familiaridad): el mismo gesto que las carpetas de Proyectos. */
@@ -660,12 +666,15 @@
                  control de la suite para listas largas, que trae el buscador
                  dentro y funciona igual en el móvil. -->
             <button type="button" class="campo-elegir" id="btnContrato">— elige un contrato —</button>
-            <div id="delContrato"></div>
-            <div id="delVinculado"></div>
-            <div class="row2">
-              <div><label for="fa-fecha_emision">Fecha de emisión</label><input id="fa-fecha_emision" type="date" name="fecha_emision"></div>
-              <div><label for="fa-fecha_vencimiento">Vencimiento (opcional)</label><input id="fa-fecha_vencimiento" type="date" name="fecha_vencimiento"></div>
-            </div>
+            <!-- MONEDA Y Nº PEGADOS AL CONTRATO (27-ago-2026, encargo del owner).
+                 Estaban debajo del bloque de hitos, así que para ver en qué
+                 moneda se emite había que pasar por encima de la decisión de
+                 dinero — y la moneda es justo lo que hay que tener claro ANTES
+                 de mirar importes. Los dos identifican el documento, igual que
+                 el contrato: van juntos y arriba.
+                 Las FECHAS se van a su propia sección: no identifican el
+                 documento, lo sitúan en el tiempo, y mezcladas aquí hacían de
+                 este bloque un cajón de sastre. -->
             <div class="row2">
               <div><label for="fa-moneda">Moneda</label>
                 <select class="sui-sel" id="fa-moneda" name="moneda">
@@ -692,6 +701,16 @@
             <div id="refWrap"><label for="fa-contrato_numero">Contrato de referencia</label>
               <input id="fa-contrato_numero" name="contrato_numero" placeholder="Ej. RP00008 — opcional"></div>
             <button type="button" class="link-flojo" id="verRef" hidden>Referenciar otro contrato distinto</button>
+            <div id="delContrato"></div>
+            <div id="delVinculado"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Fechas</legend>
+            <div class="row2">
+              <div><label for="fa-fecha_emision">Fecha de emisión</label><input id="fa-fecha_emision" type="date" name="fecha_emision"></div>
+              <div><label for="fa-fecha_vencimiento">Vencimiento (opcional)</label><input id="fa-fecha_vencimiento" type="date" name="fecha_vencimiento"></div>
+            </div>
           </fieldset>
 
           <fieldset data-plegable="emisor">
@@ -1036,7 +1055,8 @@ function pintarLineas(){
    disponible sin tener que sincronizar nada. */
 const descHito = h => [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
                     + (h.timing ? ' — ' + h.timing : '');
-let DESC_TOTAL = '';
+let DESC_TOTAL = '', DESC_UNIDAD = '';
+let PRECIO_PRINCIPAL = 0, TIPO_PRINCIPAL = '', NUMERO_PRINCIPAL = '';
 function marcarHitosUsados(){
   /* ¿Está puesto el total del contrato? Entonces ningún hito puede añadirse:
      sumaría por encima del precio y el documento saldría creíble. Y al revés.
@@ -1060,6 +1080,24 @@ function marcarHitosUsados(){
              : hayHito ? 'Sustituirá los conceptos que ya hay'
              : '';
   }
+  /* La unidad completa son DOS líneas: la de este contrato (que es la misma que
+     pone «Todo el contrato», así que la exclusión de los hitos ya la hereda
+     gratis) y la del encadenado. Lo que hay que cerrar aquí es el otro lado:
+     con el precio total del encadenado puesto, traer SUS hitos encima cobraría
+     dos veces lo mismo con dos números distintos en el papel. */
+  document.querySelectorAll('[data-unidad], [data-vinc]').forEach(b => {
+    const otraPuesta = !!b.dataset.otra && LINEAS.some(l => (l.descripcion || '').trim() === b.dataset.otra);
+    if(b.hasAttribute('data-unidad')){
+      const completa = otraPuesta && hayTotal;
+      b.disabled = completa;
+      b.classList.toggle('usado', completa);
+      b.title = completa ? 'Ya está en este documento' : (hayHito || hayTotal ? 'Sustituirá los conceptos que ya hay' : '');
+    } else {
+      b.disabled = otraPuesta;
+      b.classList.toggle('usado', otraPuesta);
+      b.title = otraPuesta ? 'Su precio total ya está en este documento: sus hitos encima lo cobrarían dos veces' : '';
+    }
+  });
 }
 $('#lineas').addEventListener('input', e => {
   const el = e.target; if(el.dataset.l == null) return;
@@ -1650,7 +1688,7 @@ async function cargarContratos(){
     CONTRATO_ID = elegido || null;
     pintarContratoElegido();
     if(CONTRATO_ID) traerContrato(CONTRATO_ID);
-    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; DESC_TOTAL = ''; soltarCampos(); }
+    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; DESC_TOTAL = ''; DESC_UNIDAD = ''; PRECIO_PRINCIPAL = 0; TIPO_PRINCIPAL = ''; soltarCampos(); }
     /* Cambiar de contrato cambia el comprador, y con él qué facturas puede
        saldar este recibí (LAW-41(2)). Las ya añadidas que dejen de valer se
        quitan aquí y no en el guardado: guardar_recibi() las rechazaría con un
@@ -1707,9 +1745,9 @@ async function traerContrato(id){
   // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
   // contratos_equipo(): este contrato pudo guardarlo cualquier agente.
   let { data, error } = await sb.rpc('contratos_equipo')
-    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,ficha:datos->>adq1_client_id,contrato_padre_id').eq('id', id).single();
+    .select('numero,tipo,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,ficha:datos->>adq1_client_id,contrato_padre_id').eq('id', id).single();
   if(error){
-    ({ data, error } = await sb.rpc('contratos_equipo').select('numero,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
+    ({ data, error } = await sb.rpc('contratos_equipo').select('numero,tipo,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
     if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores;
       data.ficha = data.datos.adq1_client_id; }
   }
@@ -1840,6 +1878,12 @@ async function traerContrato(id){
   // se ofrece traer sus conceptos a esta MISMA factura. La sociedad ya puesta
   // en el formulario (poner('sociedad', ...) arriba, o el default si el
   // contrato no fijaba una) es la que manda para el chequeo de compatibilidad.
+  /* El precio y el TIPO del contrato principal, para poder decidir si la suma
+     con el encadenado tiene sentido. El tipo importa porque una carta de
+     reserva no suma (ver la nota larga de `pintarVinculados`). */
+  PRECIO_PRINCIPAL = precio || 0;
+  TIPO_PRINCIPAL = data.tipo || '';
+  NUMERO_PRINCIPAL = data.numero || '';
   pintarVinculados(id, data.contrato_padre_id || null, $('[name="sociedad"]').value, moneda);
 
   render();
@@ -1875,10 +1919,36 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
        Con un `addbtn` gris al final de la columna se pasaba por alto.
        Se pinta como `.sui-aviso` de la suite: lo que hay que ver CADA vez que
        se entra, no un `toast()` que se va en cuatro segundos. */
+    /* ── TODA LA UNIDAD, EN UN GESTO (27-ago-2026) ─────────────────────────
+       Owner: «tú haces contrato de bloqueo de parcela y luego generas un
+       contrato de construcción vinculado al de parcela, así es como vinculamos
+       los contratos». O sea que la unidad entera ya es computable sin tocar
+       `unidades`: es este contrato más el encadenado. 48 pares
+       reserva_parcela → construccion en la base.
+
+       🔴 UNA CARTA DE RESERVA NO SUMA (regla del 14-ago, `lwEsPreliminar`). Su
+       importe es el MISMO que luego reparten Bloqueo y Construcción, así que
+       sumarla cobra la villa dos veces. Con datos de hoy: CR00037 son 79.000 €
+       colgando de RP00060, que son otros 79.000 — sumar daría 158.000 por una
+       villa de 79.000. Hay 6 pares así. Por eso el total solo se ofrece cuando
+       NINGUNO de los dos es preliminar.
+       Y tampoco si las monedas no coinciden: sumar EUR con IDR da una cifra que
+       no existe. */
+    const precioC = parseImporte(c.precio_total || (c.campos || {}).precio_total);
+    const monedaC = (c.campos || {}).moneda || monedaPrincipal;
+    const sumable = compatible && precioC && PRECIO_PRINCIPAL
+                    && !lwEsPreliminar(c.tipo) && !lwEsPreliminar(TIPO_PRINCIPAL)
+                    && monedaC === monedaPrincipal;
+    const totalUnidad = sumable ? PRECIO_PRINCIPAL + precioC : 0;
     return compatible
       ? `<div class="vinc" role="status">
            <div class="vinc-t">Este contrato va encadenado con ${esc(c.numero)}</div>
            <p>La venta está en dos contratos: <b>${esc(etiqueta)}</b> es el otro. Puedes cobrar los dos en este mismo documento.</p>
+           ${sumable ? `<button type="button" class="hito-todo doble" data-unidad="${esc(c.id)}">
+               <span class="q">Toda la unidad · los dos contratos</span>
+               <span class="n">${esc(fmtMoneda(totalUnidad, monedaPrincipal))}</span>
+               <span class="p">${esc(fmtMoneda(PRECIO_PRINCIPAL, monedaPrincipal))} de este + ${esc(fmtMoneda(precioC, monedaPrincipal))} de ${esc(c.numero)}</span>
+             </button>` : ''}
            <button type="button" class="vinc-btn" data-vinc="${esc(c.id)}">Traer los conceptos de ${esc(c.numero)}</button>
          </div>`
       : `<div class="vinc malo" role="status">
@@ -1889,6 +1959,38 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
   cont.querySelectorAll('[data-vinc]').forEach(b => {
     const c = data.find(x => x.id === b.dataset.vinc);
     b.onclick = () => traerVinculado(c, monedaPrincipal);
+  });
+  cont.querySelectorAll('[data-unidad]').forEach(b => {
+    const c = data.find(x => x.id === b.dataset.unidad);
+    const precioC = parseImporte(c.precio_total || (c.campos || {}).precio_total);
+    const total = PRECIO_PRINCIPAL + precioC;
+    /* DOS líneas, no una. Son dos relaciones jurídicas distintas con el mismo
+       comprador —es la razón por la que `traerVinculado` prefija cada concepto
+       con su tipo desde el 7-ago— y una factura que las funde en «unidad
+       completa» borra a qué contrato corresponde cada euro. El total es el
+       mismo; el rastro, no. */
+    DESC_UNIDAD = 'Precio total del contrato ' + NUMERO_PRINCIPAL;
+    const descOtro = (TIPO_ES[c.tipo] || c.tipo || 'Vinculado') + ' — precio total del contrato ' + c.numero;
+    b.dataset.otra = descOtro;
+    /* El botón de «traer conceptos» del MISMO contrato queda apagado mientras
+       esté puesto su precio total: sus hitos encima cobrarían dos veces lo
+       mismo, y con dos números distintos en el papel nadie lo vería. */
+    const btnTraer = cont.querySelector(`[data-vinc="${c.id}"]`);
+    if(btnTraer) btnTraer.dataset.otra = descOtro;
+    b.onclick = async () => {
+      const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
+      if(conCosas && !await lwConfirmar({
+        titulo: 'Facturar la unidad completa',
+        cuerpo: '<p>Sustituye los conceptos por <b>dos líneas</b>: el precio total de cada uno de los dos contratos.</p>'
+              + '<p>Dos líneas y no una a propósito: son dos relaciones jurídicas con el mismo comprador, y fundirlas borra a qué contrato corresponde cada euro.</p>',
+        confirmar: 'Sustituir por los dos', cancelar: 'Dejarlo como está' })) return;
+      LINEAS = [
+        { descripcion: DESC_UNIDAD, importe: String(PRECIO_PRINCIPAL).replace('.', ',') },
+        { descripcion: descOtro,    importe: String(precioC).replace('.', ',') },
+      ];
+      pintarLineas(); render();
+      toast('Factura por la unidad completa: ' + fmtMoneda(total, monedaPrincipal));
+    };
   });
 }
 
