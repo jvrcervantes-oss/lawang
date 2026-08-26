@@ -539,7 +539,7 @@
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
-<script src="/contracts/assets/dinero.js?v=bff77614"></script>
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 const $  = s => document.querySelector(s);
@@ -1008,8 +1008,13 @@ $('#fa-moneda').addEventListener('change', () => { if($('#selTipo').value === 'r
 document.addEventListener('blur', e => {
   const el = e.target;
   if(!el || !el.matches || !el.matches('[data-money]')) return;
-  const n = parseImporte(el.value);
-  const txt = n ? n.toLocaleString('es-ES', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '';
+  /* `lwParseImporte` y no el `parseImporte` de esta página: aquél devuelve
+     `null` con el campo vacío y este `0`, y aquí hay que distinguirlos —
+     `lwImporteCanonico` deja «0» si escribes un cero y «» si no hay nada. Antes
+     esta línea era una copia del formato de `contracts/app.html` que ya había
+     divergido: como 0 es falso en JS, escribir un 0 VACIABA el campo. */
+  const n = lwParseImporte(el.value);
+  const txt = lwImporteCanonico(n);
   if(txt === el.value) return;
   el.value = txt;
   const i = el.dataset.l;

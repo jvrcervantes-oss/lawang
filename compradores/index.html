@@ -160,7 +160,7 @@
      imprimia el dinero con toLocaleString('es'), que no recibe la moneda y
      daba tres decimales donde Facturas da dos. El `?v=` lo sella el
      pre-commit; el valor de aqui es solo el punto de partida. -->
-<script src="/contracts/assets/dinero.js?v=bff77614"></script>
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
@@ -577,7 +577,7 @@ function pintarFicha(){
             <td><a href="/facturas/?id=${encodeURIComponent(x.id)}" style="color:var(--dl)">${esc(x.numero || 'borrador')}</a></td>
             <td>${esc(TIPO_DOC[x.tipo] || x.tipo || '—')}</td>
             <td>${fFecha(x.fecha_emision)}</td>
-            <td class="num">${x.total != null ? esc(Number(x.total).toLocaleString('es') + ' ' + (x.moneda||'')) : '—'}</td>
+            <td class="num">${x.total != null ? esc(lwFormatoImporte(Number(x.total), x.moneda)) : '—'}</td>
             <td>${x.anulada ? '<span class="tag mal">Anulada</span>' : '<span class="tag ok">Vigente</span>'}</td>
           </tr>`).join('')}
         </tbody></table>`;

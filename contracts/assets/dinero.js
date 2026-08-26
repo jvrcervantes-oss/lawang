@@ -89,10 +89,45 @@ function lwFormatoImporte(n, moneda){
     .format(Number(n) || 0) + (moneda ? ' ' + moneda : '');
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   LA FORMA CANÓNICA DE UN CAMPO DE IMPORTE — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Al salir de un campo de dinero, lo escrito se reescribe en forma canónica
+   («44000» → «44.000», «44000,5» → «44.000,50») para que lo que se VE sea
+   exactamente lo que se GUARDA, en vez de quedar a merced de cómo escribió los
+   separadores cada agente.
+
+   Estaba escrita DOS veces, idéntica y por separado: `fmtImporte` en
+   `contracts/app.html` y una lambda dentro del `blur` de `facturas/index.html`.
+   Dos copias de la misma regla son dos reglas: el día que una acepte tres
+   decimales, el mismo importe se guardará distinto según por qué pantalla haya
+   entrado, y nada dará error.
+
+   NO es `lwFormatoImporte`, y por eso vive aparte en vez de reutilizarla:
+     · aquí NO va la moneda detrás — es el valor de un `<input>`, y «44.000 EUR»
+       dentro del campo no se puede volver a parsear como número;
+     · los decimales salen del NÚMERO, no de la moneda: quien teclea 44000 ve
+       «44.000» y no «44.000,00», que en un campo editable se lee como ruido.
+   Imprimir un importe en pantalla sigue siendo `lwFormatoImporte`, siempre.   */
+/* ⚠️ CERO Y VACÍO NO SON LO MISMO, y las dos copias no se ponían de acuerdo.
+   `contracts/app.html` hacía `n === null ? '' : fmtImporte(n)` → un 0 tecleado
+   se quedaba «0». `facturas/index.html` hacía `n ? fmt(n) : ''` → como 0 es
+   falso en JS, **el campo se vaciaba solo al escribir 0**. El mismo gesto, dos
+   resultados, y ninguno de los dos ficheros sabía del otro. Manda el primero:
+   quien teclea un cero lo teclea a propósito y tiene que verlo. `null` (campo
+   vacío, que es lo que devuelve `lwParseImporte` sin nada escrito) sí es «». */
+function lwImporteCanonico(n){
+  if(n === null || n === undefined || n === '') return '';
+  const v = Number(n);
+  if(!isFinite(v)) return '';
+  return v.toLocaleString('es-ES', { minimumFractionDigits: v % 1 ? 2 : 0,
+                                     maximumFractionDigits: 2 });
+}
+
 /* Node lo necesita para el test; el navegador lo ignora. Sin `module.exports`
    las constantes quedan globales, que es como las usan las nueve herramientas. */
 if(typeof module !== 'undefined' && module.exports)
-  module.exports = { lwParseImporte, lwFormatoImporte, LW_DECIMALES };
+  module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES };
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SUMAR CUANDO HAY VARIAS MONEDAS — 26-ago-2026

@@ -14,11 +14,17 @@
    contrato y `etapa()` no lo contempla, esas operaciones desaparecerían del
    tablero sin error ninguno. Aquí falla antes.
 
-   Se extraen las funciones REALES de `index.html` en vez de copiarlas: probar una
-   copia no prueba nada — es la misma razón por la que `contracts/cuenta_marcador.test.js`
-   saca `tablaCuentaHTML` de `app.html`.
-   `parseImporte` y `redondear` vienen de `facturas/totales.js`, que es lo que
-   carga la página. */
+   Se usan las funciones REALES, nunca una copia. Hasta el 26-ago-2026 había que
+   RECORTARLAS de `index.html` con dos marcadores de texto, porque vivían dentro
+   del HTML; desde que `cuenta`, `ETAPAS` y `etapa` se mudaron a
+   `contracts/assets/operaciones-cuentas.js` —para que Operaciones y el listado de
+   Contratos cuenten igual— basta con cargar el módulo, que es lo que hacen las dos
+   páginas. Se gana lo que el recorte no podía dar: mover o renombrar una función ya
+   no rompe el test por el sitio equivocado. De hecho lo rompió — el recorte buscaba
+   `function cuenta(op){` en `index.html` y se quedó sin encontrarlo el día de la
+   mudanza, con el gate de push en rojo por un fallo que no era del código.
+   `parseImporte` y `redondear` vienen de `facturas/totales.js`, y `dinero.js`
+   delante, que es el mismo orden que carga la página. */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -26,22 +32,28 @@ const path = require('path');
 const AQUI = path.join(__dirname);
 const pagina = fs.readFileSync(path.join(AQUI, 'index.html'), 'utf8');
 
-/* las mismas piezas que carga la herramienta, no reimplementadas */
-const totales = fs.readFileSync(path.join(AQUI, '..', 'facturas', 'totales.js'), 'utf8');
+/* las mismas piezas que carga la herramienta, no reimplementadas — y en el mismo
+   ORDEN, que es parte de la dependencia: `totales.js` usa `dinero.js` y desde el
+   26-ago-2026 ya no lleva una copia propia por si falta. Concatenarlos aquí es
+   exactamente lo que hace el <head> de la página. */
+const fuentes = ['../contracts/assets/dinero.js', '../facturas/totales.js']
+  .map(r => fs.readFileSync(path.join(AQUI, r), 'utf8')).join('\n;\n');
 const cajaTotales = {};
-new Function('caja', totales + '\n;Object.assign(caja,{parseImporte,redondear});')(cajaTotales);
+new Function('caja', fuentes + '\n;Object.assign(caja,{parseImporte,redondear});')(cajaTotales);
 
-const entre = (ini, fin) => {
-  const a = pagina.indexOf(ini);
-  assert.ok(a > 0, 'no encuentro en index.html: ' + ini);
-  const b = pagina.indexOf(fin, a);
-  assert.ok(b > a, 'no encuentro el final tras: ' + ini);
-  return pagina.slice(a, b);
-};
-const fuente = entre('function cuenta(op){', '/* ---------- filtros ----------')
-             + entre('const ETAPAS = [', '/* ---------- vista');
+const modulo = fs.readFileSync(path.join(AQUI, '..', 'contracts', 'assets',
+                                        'operaciones-cuentas.js'), 'utf8');
+const vocab = fs.readFileSync(path.join(AQUI, '..', 'contracts', 'assets',
+                                        'vocabulario.js'), 'utf8');
 const { ETAPAS, etapa } = new Function('parseImporte', 'redondear',
-  fuente + '\n;return { ETAPAS, etapa };')(cajaTotales.parseImporte, cajaTotales.redondear);
+  vocab + '\n;' + modulo + '\n;return { ETAPAS, etapa };')(
+    cajaTotales.parseImporte, cajaTotales.redondear);
+
+/* Y la página tiene que seguir CARGANDO ese módulo: probar la lógica de un
+   fichero que la herramienta ya no enlaza sería verde sobre código muerto, que es
+   el fallo que este mismo test acaba de pagar por el otro lado. */
+assert.ok(/operaciones-cuentas\.js/.test(pagina),
+  'operaciones/index.html ya no carga operaciones-cuentas.js: este test estaría probando un fichero huérfano');
 
 /* `cobrado` (11-ago-2026, reforma del modelo de facturación): cuenta() ya no
    suma `op.facturas` — lee `op.cobrado`, precalculado en Supabase por

@@ -2,47 +2,48 @@
    Fuera del HTML para poder pasarle un test de verdad (totales.test.js).
    Se carga con <script src> en index.html y con require() en node. */
 
-// Decimales por moneda: la rupia no usa céntimos.
-const DECIMALES = { EUR:2, USD:2, AUD:2, IDR:0 };
+/* ═══════════════════════════════════════════════════════════════════════════
+   ESTE FICHERO YA NO TIENE COPIA DE NADA — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Tenía tres: la tabla de decimales por moneda, el parser y el formateador,
+   cada uno con su «respaldo por si `dinero.js` no está cargado». Los respaldos
+   se escribieron con una buena intención y eran, medidos, la causa de que:
+
+   1. **La tabla de decimales viviera dos veces.** `DECIMALES` aquí y
+      `LW_DECIMALES` en `dinero.js`, con los mismos cuatro pares escritos a
+      mano. Añadir una moneda a una y no a la otra da decimales distintos para
+      el mismo importe según qué función lo toque, y no falla nada. Es
+      literalmente el patrón que esta suite tiene anotado como fuente de fallos:
+      «una lista escrita a mano en dos sitios ES el bug».
+
+   2. **El test probara la copia y no el código.** `totales.test.js` hace
+      `require('./totales.js')` y en node no existen las globales del navegador,
+      así que TODAS sus aserciones caían al respaldo. Verde sobre código que
+      producción no ejecuta nunca — el peor color de todos, porque el que sí se
+      ejecuta no lo miraba nadie.
+
+   Ahora `dinero.js` se PIDE: en node por `require`, y en el navegador y en la
+   edge ya está cargado delante (el `<head>` de cada página; en la edge lo
+   antepone `tools/empaqueta_edge.py`, que por eso lo pone primero). Una sola
+   implementación en los tres sitios, y el test prueba la de verdad.
+   Si falta, esto revienta con un error legible en vez de devolver cifras
+   ligeramente distintas sin decir nada. */
+const _LW = (typeof lwFormatoImporte === 'function')
+  ? { lwParseImporte, lwFormatoImporte, LW_DECIMALES }
+  : require('../contracts/assets/dinero.js');
+
+// Decimales por moneda: la rupia no usa céntimos. Fuente única: dinero.js.
+const DECIMALES = _LW.LW_DECIMALES;
 
 /* Importe tecleado a número. El agente escribe indistintamente "1.500,50",
    "1,500.50" o "1500.5": manda el ÚLTIMO separador como decimal, y solo si
    deja 1-2 dígitos detrás (si no, es separador de miles: "1.500" = 1500). */
 function parseImporte(v){
-  /* La version buena vive en contracts/assets/dinero.js desde el 17-ago-2026.
-     Aqui se DELEGA, y `?? 0` conserva el contrato de esta funcion: una linea de
-     factura vacia suma 0, mientras que un contrato sin precio es `null` y no un
-     contrato de 0 €.
-
-     ⚠️ EL RESPALDO DE ABAJO NO ES CODIGO MUERTO, pero desde el 17-ago-2026 lo es
-     por OTRO motivo — y el anterior ya no vale, asi que se reescribe entero en vez
-     de dejarlo dando una razon caducada:
-       · YA NO es por `firma-submit`. Esa funcion dejo de descargarse este fichero
-         por HTTP (auditoria, hallazgo 01): ahora lleva los cinco dentro, generados
-         por `tools/empaqueta_edge.py`, y dinero.js va PRIMERO en ese paquete.
-       · SIGUE vivo mientras haya alguna pagina que cargue este fichero sin cargar
-         `contracts/assets/dinero.js` delante. Hoy no queda ninguna —se le añadio a
-         operaciones/, que era la ultima— pero el respaldo se queda: cuesta ocho
-         lineas y evita que la proxima pantalla que se olvide de dinero.js empiece a
-         devolver 0 en cada importe sin dar ningun error.
-       · ⚠️ Mientras `firma-submit` no se REDESPLIEGUE, la version que corre en
-         produccion sigue siendo la que se lo descarga con la lista vieja de cuatro
-         rutas. Ese es un estado que se comprueba leyendo la funcion desplegada, no
-         el repo. */
-  if(typeof lwParseImporte === 'function') return lwParseImporte(v) ?? 0;
-  const s = String(v == null ? '' : v).replace(/[^\d.,-]/g, '');
-  if(!s) return 0;
-  const neg = s.startsWith('-');
-  const cuerpo = s.replace(/-/g, '');
-  const corte = Math.max(cuerpo.lastIndexOf(','), cuerpo.lastIndexOf('.'));
-  let n;
-  if(corte >= 0 && cuerpo.length - corte - 1 <= 2 && cuerpo.length - corte - 1 > 0){
-    n = Number(cuerpo.slice(0, corte).replace(/[.,]/g, '') + '.' + cuerpo.slice(corte + 1));
-  }else{
-    n = Number(cuerpo.replace(/[.,]/g, ''));
-  }
-  if(!isFinite(n)) return 0;
-  return neg ? -n : n;
+  /* `?? 0` conserva el contrato de ESTA función, que no es el de `lwParseImporte`:
+     una línea de factura vacía suma 0, mientras que un contrato sin precio es
+     `null` y no un contrato de 0 €. Esa diferencia es la única razón por la que
+     esta envoltura sigue existiendo. */
+  return _LW.lwParseImporte(v) ?? 0;
 }
 
 // Redondeo a los decimales de la moneda, en enteros para no arrastrar
@@ -63,17 +64,9 @@ function calcTotales(lineas, moneda, impuesto){
   return { subtotal, pct, impuesto: imp, total: redondear(subtotal + imp, moneda) };
 }
 
-/* Se DELEGA en contracts/assets/dinero.js desde el 17-ago-2026, igual que
-   `parseImporte`: esta era la única de las cuatro formas de imprimir un importe
-   que conocía la moneda, así que subió a la capa común y las otras tres pasaron a
-   llamarla. El respaldo de abajo existe por el mismo motivo que el de
-   `parseImporte` — ver la nota larga de ahí arriba, que es la que explica por qué
-   no se quita. */
-function fmtMoneda(n, moneda){
-  if(typeof lwFormatoImporte === 'function') return lwFormatoImporte(n, moneda);
-  const d = DECIMALES[moneda] != null ? DECIMALES[moneda] : 2;
-  return new Intl.NumberFormat('de-DE', { minimumFractionDigits:d, maximumFractionDigits:d })
-    .format(n || 0) + ' ' + (moneda || '');
-}
+/* Alias de `lwFormatoImporte`. Se conserva el nombre porque lo llaman
+   `documento.js`, `operaciones-cuentas.js` y las pantallas de facturas; lo que
+   ya no conserva es una segunda implementación detrás. */
+function fmtMoneda(n, moneda){ return _LW.lwFormatoImporte(n, moneda); }
 
 if(typeof module !== 'undefined') module.exports = { parseImporte, redondear, calcTotales, fmtMoneda, DECIMALES };

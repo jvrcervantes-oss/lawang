@@ -10,7 +10,15 @@ const fs = require('fs');
 const path = require('path');
 
 const raiz = path.join(__dirname, '..');
-const RUTAS = ['contracts/assets/entities.js', 'facturas/totales.js',
+/* `dinero.js` VA PRIMERO, igual que en la edge de verdad (`tools/empaqueta_edge.py`
+   → FICHEROS, donde encabeza la lista y el propio script explica que el orden es la
+   dependencia). Faltaba aquí, y esta prueba dice de sí misma que reproduce «la forma
+   en que lo carga la Edge Function»: componía una lista distinta de la real y pasaba
+   igual porque `totales.js` llevaba dentro su propia copia del parser, del formato y
+   de la tabla de decimales. Retiradas esas copias el 26-ago-2026, la prueba dejó de
+   compilar — que es justo lo que tenía que haber hecho desde el principio. */
+const RUTAS = ['contracts/assets/dinero.js', 'contracts/assets/entities.js',
+               'facturas/totales.js',
                'contracts/assets/compradores.js', 'facturas/documento.js'];
 
 /* Mismo montaje que firma-submit: los cuatro <script> clásicos concatenados y

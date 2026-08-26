@@ -55,7 +55,7 @@
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
 <script src="assets/vocabulario.js?v=c031da44"></script>
-<script src="assets/dinero.js?v=bff77614"></script>
+<script src="assets/dinero.js?v=5183def2"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
      la operación tiene que decir lo mismo en las dos herramientas (19-ago-2026). -->
@@ -2172,12 +2172,12 @@ function injectBrandAndCover(html, data){
    imprime su equivalente en rupias al tipo de cambio pactado (campo
    tipo_cambio_idr). Sin tipo de cambio no se imprime NADA: un número de
    cambio inventado en un contrato es peor que no ponerlo. */
-/* Formato canónico español: 44000 → "44.000", 44000.5 → "44.000,50".
-   Se aplica al SALIR del campo, para que lo que se ve sea lo que se guarda y el
-   agente no tenga que adivinar cómo lo interpretó la app. */
-function fmtImporte(n){
-  return n.toLocaleString('es-ES', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
-}
+/* Vive en assets/dinero.js desde el 26-ago-2026 — `lwImporteCanonico`, la
+   pareja de escritura de `lwFormatoImporte`. Estaba aquí y otra igual dentro
+   del `blur` de `facturas/index.html`, y ya habían divergido: con un 0 esta
+   dejaba «0» y aquella VACIABA el campo. Se queda el nombre y la firma para no
+   tocar los sitios que la llaman. */
+function fmtImporte(n){ return lwImporteCanonico(n); }
 document.addEventListener('blur', e => {
   const el = e.target;
   if(!el || !el.matches || !el.matches('[data-money]')) return;
@@ -3644,7 +3644,7 @@ function renderCpList(rows){
           ? ' <span class="sui-tag alerta" title="Dice algo distinto de la ficha de su comprador — ábrelo para traer los datos">Ficha ≠</span>'
           : ''}</span>
       <span data-l="Proyecto">${escAttr(r.proyecto_nombre||'—')}</span>
-      <span data-l="Precio">${r.precio_total ? Number(r.precio_total).toLocaleString('es') : '—'} ${r.moneda||''}</span>
+      <span data-l="Precio">${r.precio_total ? esc(lwFormatoImporte(Number(r.precio_total), r.moneda)) : '—'}</span>
       <span data-l="Fecha">${r.fecha_firma||''}</span>
       <span data-l="Creado por" title="${escAttr(r.creado_por||'')}">${escAttr(autorVisible(r.creado_por))}<span class="cp-autoria"></span></span>
       <span>${puedeBorrar(r) ? `<button type="button" class="cp-del" data-del="${r.id}" title="Borrar contrato">✕</button>` : ''}</span>
