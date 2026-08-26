@@ -107,7 +107,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <script src="/facturas/totales.js"></script>
-<script src="/contracts/assets/proyectos_csv.js?v=ee33e15a"></script>
+<script src="/contracts/assets/proyectos_csv.js?v=9d8369e7"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
@@ -1184,26 +1184,10 @@ async function abrirImportCsv(file){
 $('#btnCsvConfirmar').addEventListener('click', async () => {
   if(!CSV_FILAS_VALIDAS.length) return;
   const btn = $('#btnCsvConfirmar'); btn.disabled = true; btn.textContent = 'Importando…';
-  /* Allowlist explícito: exactamente estas claves, nunca más — la misma idea
-     que ya usa guardar() para no mandar estado/contrato_id, aplicada aquí como
-     estructura del objeto, no como un `if` que se pueda olvidar.
-     🔴 Y dentro del allowlist, solo se manda una clave si el CSV traía esa
-     columna. `upsert` hace `UPDATE ... SET` de TODAS las claves del objeto: si
-     esta fila es una actualización y se manda `precio_suelo:null` porque el
-     CSV no traía esa columna (no porque viniera vacía), se borra un precio
-     real que ya estaba guardado. Ausente en el CSV ≠ vacío a propósito.
-     `tipo` es la única excepción con valor por defecto, porque es NOT NULL en
-     la base: una alta sin esa columna necesita algo que insertar; una
-     actualización sin esa columna no toca el tipo que la unidad ya tenía. */
-  const filas = CSV_FILAS_VALIDAS.map(f => {
-    const fila = { codigo: f.codigo, proyecto: f.proyecto };
-    if(CSV_CAMPOS_PRESENTES.has('tipo') || f.esAlta) fila.tipo = f.tipo;
-    ['modelo','superficie_m2','precio_suelo','precio_construccion','precio','notas','fase_masterplan','zona_masterplan']
-      .forEach(k => { if(CSV_CAMPOS_PRESENTES.has(k)) fila[k] = f[k]; });
-    if(CSV_CAMPOS_PRESENTES.has('moneda')) fila.moneda = f.moneda;
-    else if(f.esAlta) fila.moneda = 'EUR';
-    return fila;
-  });
+  /* El allowlist vive en `assets/proyectos_csv.js` (`lwCsvFilasParaGuardar`)
+     desde el 26-ago-2026: la v3 necesita exactamente el mismo, y un allowlist
+     duplicado es un allowlist que un día se relaja en una de las dos copias. */
+  const filas = lwCsvFilasParaGuardar(CSV_FILAS_VALIDAS, CSV_CAMPOS_PRESENTES);
   const { error } = await SB.from('unidades').upsert(filas, { onConflict: 'proyecto,codigo' });
   if(error){ toast('No se pudo importar: ' + error.message); btn.disabled = false; btn.textContent = 'Confirmar importación'; return; }
   toast(`Importadas ${filas.length} unidades`);

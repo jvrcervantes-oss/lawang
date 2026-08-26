@@ -171,6 +171,37 @@ function lwCsvAnaliza(texto, ctx){
   };
 }
 
+/* LO QUE DE VERDAD SE MANDA A `unidades` — el allowlist, que es una regla y no
+   una conveniencia. Sale aquí porque la v3 necesita exactamente el mismo, y un
+   allowlist duplicado es un allowlist que un día se relaja en una copia.
+
+   · Allowlist EXPLÍCITO, como estructura del objeto y no como un `if` que se
+     pueda olvidar: exactamente estas claves, nunca más. `estado` y `contrato_id`
+     no están, igual que no están en `LW_CSV_COLUMNAS`.
+   · 🔴 Y dentro del allowlist, una clave solo se manda si el CSV traía ESA
+     columna. `upsert` hace `UPDATE ... SET` de todas las claves del objeto: si
+     esta fila es una actualización y se manda `precio_suelo:null` porque el CSV
+     no traía la columna —no porque viniera vacía—, se borra un precio real ya
+     guardado. Ausente en el CSV ≠ vacío a propósito.
+   · `tipo` es la única excepción con valor por defecto: es NOT NULL en la base,
+     así que un alta sin esa columna necesita algo que insertar; una
+     actualización sin ella no toca el tipo que la unidad ya tenía. */
+const LW_CSV_ESCRIBIBLES = ['modelo','superficie_m2','precio_suelo','precio_construccion',
+                            'precio','notas','fase_masterplan','zona_masterplan'];
+
+function lwCsvFilasParaGuardar(validas, camposPresentes){
+  const presentes = camposPresentes || new Set();
+  return (validas || []).map(f => {
+    const fila = { codigo: f.codigo, proyecto: f.proyecto };
+    if(presentes.has('tipo') || f.esAlta) fila.tipo = f.tipo;
+    LW_CSV_ESCRIBIBLES.forEach(k => { if(presentes.has(k)) fila[k] = f[k]; });
+    if(presentes.has('moneda')) fila.moneda = f.moneda;
+    else if(f.esAlta) fila.moneda = 'EUR';
+    return fila;
+  });
+}
+
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwCsvParse, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza,
-                     LW_CSV_COLUMNAS, LW_CSV_MAX_BYTES, LW_CSV_MAX_FILAS };
+                     lwCsvFilasParaGuardar, LW_CSV_COLUMNAS, LW_CSV_ESCRIBIBLES,
+                     LW_CSV_MAX_BYTES, LW_CSV_MAX_FILAS };

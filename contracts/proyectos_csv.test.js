@@ -110,5 +110,31 @@ ok('la fila que se reporta es la del FICHERO, contando la cabecera', () => {
   assert.deepStrictEqual(r.analizadas.map(x => x.fila), [2, 3]);
 });
 
+ok('🔴 el allowlist NO manda una clave que el CSV no trajo (borraria un precio real)', () => {
+  const { lwCsvFilasParaGuardar } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
+  const validas = [{ codigo:'B1', proyecto:'P', tipo:'parcela', esAlta:false,
+                     precio_suelo:null, modelo:'X', moneda:'EUR' }];
+  const sin = lwCsvFilasParaGuardar(validas, new Set(['codigo','proyecto','modelo']));
+  assert.ok(!('precio_suelo' in sin[0]),
+    'upsert hace UPDATE SET de todas las claves: mandar null borraria el precio guardado');
+  assert.ok(!('tipo' in sin[0]), 'una actualizacion sin la columna no toca el tipo que ya tenia');
+  const con = lwCsvFilasParaGuardar(validas, new Set(['codigo','proyecto','precio_suelo']));
+  assert.ok('precio_suelo' in con[0] && con[0].precio_suelo === null,
+    'si la columna VIENE vacia, eso si es vaciar a proposito');
+});
+
+ok('un ALTA sin columna tipo/moneda igual necesita valores: son NOT NULL', () => {
+  const { lwCsvFilasParaGuardar } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
+  const alta = lwCsvFilasParaGuardar([{ codigo:'N1', proyecto:'P', tipo:'parcela', esAlta:true, moneda:'EUR' }], new Set(['codigo','proyecto']));
+  assert.strictEqual(alta[0].tipo, 'parcela');
+  assert.strictEqual(alta[0].moneda, 'EUR');
+});
+
+ok('`estado` y `contrato_id` no pueden colarse ni por el allowlist', () => {
+  const { LW_CSV_ESCRIBIBLES } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
+  assert.ok(!LW_CSV_ESCRIBIBLES.includes('estado'));
+  assert.ok(!LW_CSV_ESCRIBIBLES.includes('contrato_id'));
+});
+
 console.log(fallos ? `\n${fallos} fallo(s)` : '\nOK proyectos_csv.test.js — las reglas del import se sostienen');
 process.exit(fallos ? 1 : 0);

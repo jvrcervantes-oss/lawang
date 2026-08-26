@@ -19,6 +19,8 @@
 <script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="unidades"></script>
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/proyectos_csv.js?v=9d8369e7"></script>
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
@@ -109,7 +111,17 @@ main, .proy, .uni, .uni .quien{ min-width:0; }
 </head>
 <body>
 
-<header class="lw-topbar" data-titulo="Proyectos"></header>
+<!-- ACCIONES. La principal va la ÚLTIMA de la barra y es «Nueva unidad»: es
+     la frecuente. Crear un proyecto se hace una vez por proyecto y el CSV es
+     un lote — los dos secundarios. Norma en `assets/topbar.css` junto a
+     `.lw-btn.primary`, y el porqué de que la barra lleve UNA sola. -->
+<header class="lw-topbar" data-titulo="Proyectos">
+  <div class="lw-spacer"></div>
+  <button type="button" class="lw-btn" id="btnCsv"><i class="ph ph-upload-simple"></i>Importar CSV</button>
+  <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
+  <button type="button" class="lw-btn" id="btnNuevoProyecto"><i class="ph ph-folder-plus"></i>Nuevo proyecto</button>
+  <button type="button" class="lw-btn primary" id="btnNuevaUnidad"><i class="ph ph-plus"></i>Nueva unidad</button>
+</header>
 
 <main>
   <div id="avisos"></div>
@@ -252,7 +264,8 @@ const Cajon = (() => {
   $('#cX').addEventListener('click', cerrar);
   velo.addEventListener('click', cerrar);
   addEventListener('keydown', e => { if(e.key === 'Escape') cerrar(); });
-  return { abre(t, s, h){ $('#cTit').textContent = t; $('#cSub').textContent = s || '';
+  return { cierra: cerrar,
+    abre(t, s, h){ $('#cTit').textContent = t; $('#cSub').textContent = s || '';
     $('#cCuerpo').innerHTML = h; el.classList.add('on'); velo.classList.add('on');
     $('#cX').focus({ preventScroll:true }); } };
 })();
@@ -292,19 +305,213 @@ function abrir(id){
     + '</div>');
 }
 
-window.LW_AUTH.then(async ({ sb }) => {
-  /* `unidades_estado` es la vista que la propia herramienta ya usa: trae el
-     comprador, el estado, lo facturado y el % cobrado ya calculados. No se
-     recalcula nada aquí — el dato tiene un dueño y no es esta pantalla. */
-  const { data, error } = await sb.from('unidades_estado').select('*').order('proyecto').order('codigo');
-  if(error){
-    $('#avisos').innerHTML = '<p class="sui-aviso">No se ha podido leer el inventario: ' + esc(error.message) + '</p>';
-    return;
-  }
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAS TRES ALTAS — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Nuevo proyecto, importar CSV y nueva unidad. Lo que NO se hace aquí es
+   reimplementar sus reglas: el análisis del CSV y el allowlist de escritura
+   viven en `contracts/assets/proyectos_csv.js`, la misma pieza que usa la
+   herramienta viva. Copiarlas habría sido la copia número dos de una lista de
+   alias que ya ha crecido tres veces por sorpresa.
+   Lo que sí es de esta pantalla: cómo lo pinta. La previsualización y el
+   formulario van en el CAJÓN que la v3 ya tiene —con su muelle, su velo y su
+   arrastre— en vez de un `prompt()`, que es lo que usa hoy la viva y que la
+   propia norma de la suite prohíbe: un diálogo nativo congela el hilo y deja
+   muda la extensión de Chrome desde la que se opera. */
+let SB = null, PROYECTOS = [], TIPOS = [];
+
+async function recargar(){
+  const { data } = await SB.from('unidades_estado').select('*').order('proyecto').order('codigo');
   UNI = data || [];
   pintarChips(); pintar();
-  let t = null;
-  $('#q').addEventListener('input', e => { FILTRO = e.target.value; clearTimeout(t); t = setTimeout(pintar, 90); });
+}
+
+/* ── nuevo proyecto ───────────────────────────────────────────────────────── */
+function altaProyectoUI(){
+  Cajon.abre('Nuevo proyecto', 'Se añade al catálogo y queda disponible en toda la suite',
+    '<div class="bloque"><label class="mini" for="np-nombre">Nombre del proyecto</label>'
+    + '<input id="np-nombre" class="sui-buscar" style="width:100%;margin-top:6px" '
+    + 'placeholder="Bonian Village" autocomplete="off"></div>'
+    + '<div class="bloque" style="display:flex;gap:10px"><button type="button" class="sui-btn primario" id="np-ok">Crear</button></div>'
+    + '<p class="mini" id="np-msg" style="margin-top:8px"></p>');
+  const campo = $('#np-nombre');
+  campo.focus();
+  const crear = async () => {
+    /* `lwCsvAntiFormula` y no un `trim` a secas: el nombre acaba en un CSV
+       reexportado, y ahí un valor que empieza por «=» se ejecuta. Es la misma
+       función que usa el import — no una segunda idea de lo que es seguro. */
+    const nombre = lwCsvAntiFormula(campo.value);
+    if(!nombre){ $('#np-msg').textContent = 'El nombre no puede quedar vacío.'; return; }
+    $('#np-ok').disabled = true;
+    const { error } = await SB.from('proyectos').insert({ nombre });
+    if(error){
+      $('#np-ok').disabled = false;
+      $('#np-msg').textContent = /duplicate key|proyectos_nombre_key/.test(error.message || '')
+        ? 'Ya existe un proyecto con ese nombre.' : error.message;
+      return;
+    }
+    PROYECTOS = [...new Set([...PROYECTOS, nombre])].sort();
+    toast('Proyecto creado: ' + nombre);
+    Cajon.cierra();
+    await recargar();
+  };
+  $('#np-ok').addEventListener('click', crear);
+  campo.addEventListener('keydown', e => { if(e.key === 'Enter') crear(); });
+}
+
+/* ── nueva unidad ─────────────────────────────────────────────────────────── */
+function altaUnidadUI(){
+  if(!PROYECTOS.length){ toast('Crea antes un proyecto: una unidad cuelga de uno'); return; }
+  const ops = PROYECTOS.map(p => '<option>' + esc(p) + '</option>').join('');
+  const tips = TIPOS.map(t => '<option value="' + esc(t[0]) + '">' + esc(t[1]) + '</option>').join('');
+  Cajon.abre('Nueva unidad', 'El estado y el contrato NO se ponen aquí: los mueve el flujo de contratos',
+    '<div class="bloque">'
+    + '<label class="mini" for="nu-proy">Proyecto</label>'
+    + '<select id="nu-proy" class="sui-sel">' + ops + '</select>'
+    + '<label class="mini" for="nu-cod" style="margin-top:10px;display:block">Código</label>'
+    + '<input id="nu-cod" class="sui-buscar" style="width:100%" placeholder="SH-1" autocomplete="off">'
+    + '<label class="mini" for="nu-tipo" style="margin-top:10px;display:block">Tipo</label>'
+    + '<select id="nu-tipo" class="sui-sel">' + tips + '</select>'
+    + '<label class="mini" for="nu-suelo" style="margin-top:10px;display:block">Precio de suelo</label>'
+    + '<input id="nu-suelo" class="sui-buscar" style="width:100%" inputmode="decimal" data-money>'
+    + '<label class="mini" for="nu-obra" style="margin-top:10px;display:block">Precio de construcción</label>'
+    + '<input id="nu-obra" class="sui-buscar" style="width:100%" inputmode="decimal" data-money>'
+    + '<label class="mini" for="nu-m2" style="margin-top:10px;display:block">Superficie (m²)</label>'
+    + '<input id="nu-m2" class="sui-buscar" style="width:100%" inputmode="decimal">'
+    + '</div>'
+    + '<div class="bloque" style="display:flex;gap:10px"><button type="button" class="sui-btn primario" id="nu-ok">Crear unidad</button></div>'
+    + '<p class="mini" id="nu-msg" style="margin-top:8px"></p>');
+  $('#nu-cod').focus();
+  $('#nu-ok').addEventListener('click', async () => {
+    const codigo = lwCsvAntiFormula($('#nu-cod').value);
+    if(!codigo){ $('#nu-msg').textContent = 'El código no puede quedar vacío.'; return; }
+    /* `lwParseImporte` — la única forma de leer un importe en la suite. Un campo
+       vacío es `null` (no hay precio), nunca 0: un precio de cero es una
+       afirmación, y «todavía no lo sé» es otra cosa. */
+    const imp = sel => { const n = lwParseImporte($(sel).value); return n || null; };
+    const suelo = imp('#nu-suelo'), obra = imp('#nu-obra');
+    const fila = {
+      proyecto: $('#nu-proy').value, codigo, tipo: $('#nu-tipo').value,
+      precio_suelo: suelo, precio_construccion: obra,
+      /* El total se DERIVA de sus dos partes, no se teclea aparte: tecleado
+         sería una tercera cifra que puede contradecir a las otras dos. Si no hay
+         ninguna de las dos, se queda sin precio en vez de en 0. */
+      precio: (suelo || obra) ? (suelo || 0) + (obra || 0) : null,
+      superficie_m2: lwParseImporte($('#nu-m2').value) || null,
+      moneda: 'EUR',
+    };
+    $('#nu-ok').disabled = true;
+    const { error } = await SB.from('unidades').insert(fila);
+    if(error){
+      $('#nu-ok').disabled = false;
+      $('#nu-msg').textContent = /duplicate key/.test(error.message || '')
+        ? 'Ya existe una unidad con ese código en ese proyecto.' : error.message;
+      return;
+    }
+    toast('Unidad creada: ' + codigo);
+    Cajon.cierra();
+    await recargar();
+  });
+}
+
+/* ── importar CSV ─────────────────────────────────────────────────────────── */
+async function importarCsvUI(file){
+  if(file.size > LW_CSV_MAX_BYTES){
+    toast('El fichero pesa ' + (file.size/1024/1024).toFixed(1) + ' MB — el máximo son 5 MB');
+    return;
+  }
+  const r = lwCsvAnaliza(await file.text(), {
+    tipos: TIPOS.map(t => t[0]), proyectos: PROYECTOS,
+    existentes: new Set(UNI.map(u => u.proyecto + ' ' + u.codigo)),
+    parseImporte: lwParseImporte,
+  });
+  if(r.error){ toast(r.error); return; }
+
+  /* El resumen ANTES de la tabla, y con los errores contados: lo que se decide
+     aquí es «¿confirmo esto?», y eso se decide con cuatro números, no leyendo
+     500 filas. La tabla queda debajo para el que quiera comprobar. */
+  const fmt = n => n == null ? '—' : esc(lwFormatoImporte(n, 'EUR'));
+  Cajon.abre('Importar CSV', file.name,
+    '<div class="bloque"><div class="sui-resumen">'
+      + '<span><b>' + r.analizadas.length + '</b> filas leídas</span>'
+      + '<span><b>' + r.altas + '</b> altas nuevas</span>'
+      + '<span><b>' + r.actualiza + '</b> actualizan una existente</span>'
+      + (r.conError ? '<span style="color:#9E2F26"><b>' + r.conError + '</b> con error, no se importan</span>' : '')
+    + '</div>'
+    + (r.ignoradas.length ? '<p class="mini" style="margin-top:8px">Columnas ignoradas (no se guardan hoy): '
+        + r.ignoradas.map(esc).join(', ') + '</p>' : '')
+    + '</div>'
+    + '<div class="bloque" style="display:flex;gap:10px">'
+      + '<button type="button" class="sui-btn primario" id="csv-ok"' + (r.validas.length ? '' : ' disabled') + '>'
+      + (r.validas.length ? 'Confirmar (' + r.validas.length + ')' : 'Nada que importar') + '</button>'
+    + '</div>'
+    + '<div class="bloque" style="max-height:46vh;overflow:auto"><table class="sui-tabla"><thead><tr>'
+      + '<th>Fila</th><th>Código</th><th>Proyecto</th><th class="num">Precio</th><th>Estado</th>'
+    + '</tr></thead><tbody>'
+    + r.analizadas.map(f => '<tr>'
+        + '<td>' + f.fila + '</td><td class="clave">' + esc(f.codigo || '—') + '</td>'
+        + '<td>' + esc(f.proyecto || '—') + '</td><td class="num">' + fmt(f.precio) + '</td>'
+        + '<td>' + (f.errores.length
+            ? '<span style="color:#9E2F26">' + esc(f.errores.join('; ')) + '</span>'
+            : (f.esAlta ? 'Alta nueva' : 'Actualiza')) + '</td></tr>').join('')
+    + '</tbody></table></div>');
+
+  const ok = $('#csv-ok');
+  if(!ok || ok.disabled) return;
+  ok.addEventListener('click', async () => {
+    ok.disabled = true; ok.textContent = 'Importando…';
+    /* El allowlist es el de la pieza compartida: exactamente estas claves, y
+       solo las que el CSV traía. Ver su nota — mandar `precio_suelo:null`
+       porque el fichero no traía la columna BORRA un precio real. */
+    const filas = lwCsvFilasParaGuardar(r.validas, r.camposPresentes);
+    const { error } = await SB.from('unidades').upsert(filas, { onConflict: 'proyecto,codigo' });
+    if(error){ toast('No se pudo importar: ' + error.message); ok.disabled = false; ok.textContent = 'Reintentar'; return; }
+    toast('Importadas ' + filas.length + ' unidades');
+    Cajon.cierra();
+    await recargar();
+  });
+}
+
+window.LW_AUTH.then(async ({ sb }) => {
+  SB = sb;
+  /* `unidades_estado` es la vista que la propia herramienta ya usa: trae el
+     comprador, el estado, lo facturado y el % cobrado ya calculados. No se
+     recalcula nada aquí — el dato tiene un dueño y no es esta pantalla.
+     Los dos catálogos van en la MISMA tanda: hacen falta para validar el CSV y
+     para el formulario, y pedirlos después dejaría los botones vivos un segundo
+     antes de poder contestar. */
+  const [u, p, t] = await Promise.all([
+    sb.from('unidades_estado').select('*').order('proyecto').order('codigo'),
+    sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
+    sb.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
+  ]);
+  if(u.error){
+    $('#avisos').innerHTML = '<p class="sui-aviso">No se ha podido leer el inventario: ' + esc(u.error.message) + '</p>';
+    return;
+  }
+  UNI = u.data || [];
+  /* Si un catálogo no contesta, la pantalla SIGUE: se lee el inventario igual y
+     lo que se apaga es lo que no se puede hacer bien sin él. Un botón que
+     promete y falla es peor que un botón que dice por qué no está. */
+  PROYECTOS = (p.data || []).map(x => x.nombre);
+  TIPOS = (t.data || []).map(x => [x.clave, x.etiqueta]);
+  if(p.error || t.error){
+    $('#btnNuevaUnidad').disabled = $('#btnCsv').disabled = true;
+    $('#avisos').innerHTML = '<p class="sui-aviso">El catálogo de proyectos o de tipos no ha contestado, '
+      + 'así que dar de alta queda desactivado hasta recargar. El inventario que ves es correcto.</p>';
+  }
+  pintarChips(); pintar();
+  let tmr = null;
+  $('#q').addEventListener('input', e => { FILTRO = e.target.value; clearTimeout(tmr); tmr = setTimeout(pintar, 90); });
+
+  $('#btnNuevoProyecto').addEventListener('click', altaProyectoUI);
+  $('#btnNuevaUnidad').addEventListener('click', altaUnidadUI);
+  $('#btnCsv').addEventListener('click', () => $('#fileCsv').click());
+  $('#fileCsv').addEventListener('change', () => {
+    const f = $('#fileCsv').files[0];
+    $('#fileCsv').value = '';   // el mismo fichero dos veces seguidas tiene que volver a disparar
+    if(f) importarCsvUI(f);
+  });
 });
 })();
 </script>
