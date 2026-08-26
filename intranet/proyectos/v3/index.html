@@ -58,6 +58,15 @@ main{ max-width:1160px; margin:0 auto; padding:24px 24px 80px; }
 .proy > summary{ list-style:none; cursor:pointer; display:grid;
                  grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:center; padding:15px 18px; }
 .proy > summary::-webkit-details-marker{ display:none; }
+/* Carpeta sin unidades: un hueco por rellenar, no un proyecto más. Pesa menos
+   —fondo del lienzo, sin sombra, una línea de alto— porque 18 de las 29 lo
+   están y con el peso de las llenas enterrarían el inventario real. §12: el
+   material dice la jerarquía antes de que se lea una palabra. */
+.proy.vacia{ background:transparent; box-shadow:none; border-style:dashed; margin-bottom:8px; }
+.proy.vacia > summary{ padding:11px 18px; }
+.proy.vacia .nom{ font-weight:500; color:var(--texto-2,#4A5052); }
+.proy.vacia .cuenta{ margin-top:2px; font-size:.75rem; opacity:.75; }
+.proy.vacia .vacio{ padding:0 18px 13px; font-size:.8rem; color:var(--texto-2,#4A5052); }
 .proy .nom{ font-size:1rem; font-weight:600; letter-spacing:-.01em; }
 .proy .cuenta{ display:block; margin-top:4px; font-size:.78rem; color:var(--texto-2,#4A5052); }
 .proy .cuenta b{ color:var(--bien,#3F5230); }
@@ -253,20 +262,30 @@ function pintar(){
        la pestaña. `sessionStorage` y no `localStorage` a propósito, igual que la
        vista de la herramienta viva: abrir una carpeta es dónde estás ahora, no
        una preferencia que deba sobrevivir a mañana. */
-    return '<details class="proy" data-proy="' + esc(k) + '"' + (ABIERTAS.has(k) ? ' open' : '') + '>'
+    /* UNA CARPETA VACÍA NO ES UNA CARPETA MÁS: es un hueco por rellenar, y se
+       pinta como tal —una línea, sin barra, sin cifras de cero—. Con 18 de 29
+       vacías, darles el mismo peso que a Sumba Hills enterraría el inventario
+       real bajo una pantalla de placeholders. §16.6: jerarquía, no minimalismo.
+       Y «0 libres» en verde negrita es peor que no decir nada: pinta de buena
+       noticia lo que solo es ausencia de dato. */
+    return '<details class="proy' + (g.length ? '' : ' vacia') + '" data-proy="' + esc(k) + '"' + (ABIERTAS.has(k) ? ' open' : '') + '>'
       + '<summary><span><span class="nom">' + esc(k) + '</span>'
-        + '<span class="cuenta">' + g.length + (g.length === 1 ? ' unidad' : ' unidades')
-        + ' · <b>' + libres + ' libre' + (libres === 1 ? '' : 's') + '</b>'
-        + ' · ' + (g.length - libres) + ' vendida' + ((g.length - libres) === 1 ? '' : 's') + '</span></span>'
+        + '<span class="cuenta">' + (g.length
+            ? g.length + (g.length === 1 ? ' unidad' : ' unidades')
+              + ' · <b>' + libres + ' libre' + (libres === 1 ? '' : 's') + '</b>'
+              + ' · ' + (g.length - libres) + ' vendida' + ((g.length - libres) === 1 ? '' : 's')
+            : 'Sin unidades todavía') + '</span></span>'
       /* Una carpeta sin unidades NO vale «0,00 EUR»: eso afirma una cartera de
          cero euros, cuando lo cierto es que todavía no hay dato — y de paso se
          inventa una moneda que nadie ha elegido. Un guion no miente. */
-      + '<span class="plata"><span class="n">' + (g.length ? esc(carteraTxt) : '—') + '</span>'
-        + (g.length ? '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small>' : '')
-        + '</span>'
-      + '<span class="barraP"><i style="width:' + pct.toFixed(1) + '%"></i></span></summary>'
+      + (g.length
+          ? '<span class="plata"><span class="n">' + esc(carteraTxt) + '</span>'
+              + '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small></span>'
+            + '<span class="barraP"><i style="width:' + pct.toFixed(1) + '%"></i></span>'
+          : '<span class="plata"></span>')
+      + '</summary>'
       + (g.length ? g.map(filaUnidad).join('')
-                  : '<div class="vacio" style="padding:14px 18px">Sin unidades todavía. Cárgalas con «Importar CSV» o «+ Unidad».</div>')
+                  : '<div class="vacio">Cárgalas con «Importar CSV» o con «+ Unidad», arriba.</div>')
       + '</details>';
   }).join('');
 
