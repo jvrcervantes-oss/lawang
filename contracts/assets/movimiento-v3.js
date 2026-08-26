@@ -989,7 +989,19 @@ function nombraMenuMovil(){
    monta el menú lateral y el panel de cuenta cuando le llega la ficha del
    usuario, o sea después de esto. Sin el observador, justo esas dos
    superficies —las únicas que están en las doce pantallas— se quedaban fuera. */
-const VELO_DE={ 'sui-cajon':'.sui-velo', 'lw-panel':'.lw-velo', 'lw-rail':'.lw-rail-velo, .lw-velo' };
+/* 🔴 CADA SUPERFICIE CON SU VELO, Y SOLO EL SUYO — 26-ago-2026.
+   `lw-rail` apuntaba a `'.lw-rail-velo, .lw-velo'`. `querySelector` con dos
+   selectores devuelve el PRIMERO que aparezca EN EL DOM, no el primero de la
+   lista — así que según el orden en que `topbar.js` montara las piezas, al abrir
+   el menú se encendía el velo del PANEL DE USUARIO.
+   Y ese velo vive en z-index 60, mientras el riel está en 39: se pintaba ENCIMA
+   del menú. Eso es, literalmente, «una capa opaca por encima del menú» — el aviso
+   que el owner dio tres veces. Además llevaba `pointer-events:auto`, así que
+   también se comía los toques sobre las herramientas.
+   Medido antes de tocar: `.lw-velo` con `opacity:0.99` y `z-index:60` sobre un
+   riel de 39. El riel tiene el suyo, `.lw-rail-velo` (z-index 37), que es el que
+   le corresponde y el único que debe encenderse. */
+const VELO_DE={ 'sui-cajon':'.sui-velo', 'lw-panel':'.lw-velo', 'lw-rail':'.lw-rail-velo' };
 
 /* Toma una superficie concreta. Idempotente: `cajon()` y `materializa()` ya se
    guardan de engancharse dos veces. */
