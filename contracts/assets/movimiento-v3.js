@@ -60,7 +60,23 @@ if(window.LW3) return;                       // idempotente: dos <script> no dup
    `/facturas/v3/` salieron con el motor apagado: `LW3 is not defined` y la
    pantalla en blanco. En local no se vio porque la pestaña de pruebas ya
    tenía la llave puesta de antes — el clásico «en mi máquina funciona». */
-var v3ON = /\/v3(\/|$)/.test(location.pathname);
+/* ⚠️ LA RUTA DEJA DE MANDAR AL SALIR A PRODUCCIÓN (26-ago-2026).
+   Decidir "soy v3" mirando si la URL acaba en `/v3/` funcionaba mientras la v3
+   vivía en una carpeta aparte, pero es una dependencia de un accidente: el día
+   que la página se promociona a su sitio definitivo —`/intranet/`,
+   `/operaciones/`— la URL cambia y el motor se apaga SOLO, que es exactamente
+   el fallo del 23-ago con otro disfraz («no veo ninguna diferencia»).
+   La página lo declara ahora ella misma, en el `<html>`:
+
+       <html lang="es" data-lw3>
+
+   Es el mismo criterio que hacía buena a la ruta —existe ANTES de que corra
+   ningún guion, así que el motor no depende del orden de carga— pero viaja con
+   el fichero en vez de con su ubicación. Se conservan las otras dos vías: la
+   ruta `/v3/` (para lo que siga viviendo ahí) y `?v3=1|0`, que sigue siendo la
+   forma de apagarlo en caliente si algo sale mal en producción. */
+var v3ON = document.documentElement.hasAttribute('data-lw3')
+        || /\/v3(\/|$)/.test(location.pathname);
 try{
   var v3p=new URLSearchParams(location.search);
   if(v3p.has('v3')){ v3ON = v3p.get('v3')!=='0'; sessionStorage.setItem('lw3-on', v3ON?'1':'0'); }
@@ -69,14 +85,13 @@ try{
 }catch(_){ /* sessionStorage lanza en ventana privada: la v3 sigue, solo no se recuerda */ }
 if(!v3ON) return;
 
-/* El hub viejo y el v3 son dos ficheros distintos. Si la v3 está encendida, el
-   «← Intranet» de la barra tiene que llevar al v3: si no, salir de una
-   herramienta te devuelve a la pantalla vieja con la v3 aún puesta en la
-   pestaña, y eso se lee como que el rediseño se ha caído. */
-if(/^\/intranet\/(index\.html)?$/.test(location.pathname)){
-  location.replace('/intranet/v3/');
-  return;
-}
+/* RETIRADO el 26-ago-2026 al salir la v3 a producción. Aquí vivía un
+   `location.replace('/intranet/v3/')`: mientras el hub v3 era un fichero
+   aparte, «← Intranet» tenía que desviarse allí o salir de una herramienta te
+   devolvía a la pantalla vieja con la v3 aún puesta. Ahora `/intranet/` ES el
+   hub v3, así que el desvío se apuntaría a sí mismo — un bucle de redirección
+   en la página más visitada de la suite. No se deja "por si acaso": una
+   redirección que ya no lleva a ninguna parte distinta es una trampa. */
 
 const MENOS_MOV = matchMedia('(prefers-reduced-motion: reduce)');
 

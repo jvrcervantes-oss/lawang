@@ -32,7 +32,7 @@
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=5bb2201d"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    FACTURAS v3 · el listado — 26-ago-2026
@@ -385,7 +385,7 @@ function abrir(id){
     + '</div>'
     + '<div class="bloque" style="display:flex;gap:10px;flex-wrap:wrap">'
       + '<a class="sui-btn primario" href="/facturas/?id=' + esc(f.id) + '">Abrir el documento</a>'
-      + (f.contrato_id ? '<a class="sui-btn" href="/operaciones/v3/">Ver la operación</a>' : '')
+      + (f.contrato_id ? '<a class="sui-btn" href="/operaciones/">Ver la operación</a>' : '')
     + '</div>'
     + '<p class="mini" style="margin-top:16px">El documento se abre en el editor de siempre:'
     + ' es el que compone el PDF y lo manda. Esta pantalla solo cambia cómo se encuentran.</p>');

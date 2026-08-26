@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-lw3>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -24,7 +24,7 @@
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
-<script src="/contracts/assets/movimiento-v3.js?v=5bb2201d"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    CONTRATOS v3 · el listado — 26-ago-2026
@@ -289,7 +289,7 @@ function abrir(id){
     + '</div>'
     + '<div class="bloque" style="display:flex;gap:10px;flex-wrap:wrap">'
       + '<a class="sui-btn primario" href="/contracts/app.html?contrato=' + esc(o.id) + '">Abrir el contrato</a>'
-      + '<a class="sui-btn" href="/operaciones/v3/">Ver la operación</a></div>');
+      + '<a class="sui-btn" href="/operaciones/">Ver la operación</a></div>');
 }
 
 window.LW_AUTH.then(async ({ sb }) => {
