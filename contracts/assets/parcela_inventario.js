@@ -97,8 +97,10 @@ async function cargarUnidadesDelProyecto(proyecto){
     // B2. Se reordena aquí con el mismo criterio numérico que ya usa el resto de
     // la suite (suiComparar, contracts/assets/suite.js) para que B1..B2..B10 salga
     // en el orden que un humano espera.
-    else UNIDADES_PROY.lista = (data || []).slice()
-      .sort((a,b) => String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric:true, sensitivity:'base' }));
+    else UNIDADES_PROY.lista = (typeof suiOrdenarPorCodigo === 'function')
+      ? suiOrdenarPorCodigo(data || [])
+      : (data || []).slice()   /* app.html no carga suite.js; ver la nota de arriba */
+        .sort((a,b) => String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric:true, sensitivity:'base' }));
     /* Quién ocupa cada parcela: tipo y número del contrato que la tiene. Hace
        falta para saber si se puede traspasar — una parcela reservada por una
        Carta de Reserva sí puede pasar a su Bloqueo de Parcela (ver

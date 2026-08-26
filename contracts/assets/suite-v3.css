@@ -425,7 +425,18 @@ html.v3 input[type="search"]:focus{
 
 /* El botón del menú en móvil, con su palabra: un icono solo lo reconoce quien
    ya sabe que está, y en un teléfono es la única puerta al resto de la suite. */
-html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:600; }
+/* 🔴 EL BOTÓN TIENE QUE CRECER CON LA PALABRA (26-ago-2026).
+   `.lw-rail-movil` es un cuadrado FIJO de 38x38 en topbar.css — dimensionado
+   para un icono solo. La v3 le mete dentro la palabra «Menú» (`nombraMenuMovil`),
+   y el texto se salía de la caja por la derecha y caía ENCIMA del rótulo de la
+   herramienta: en Operaciones se leía «MenúOperaciones».
+   Se le da ancho automático con el 38 de suelo, que sigue siendo el mínimo
+   táctil, y aire a los lados. La palabra se queda —en un móvil ese botón es la
+   única puerta al resto de la suite y un icono suelto no la anuncia. */
+html.v3 .lw-rail-movil{
+  width:auto; min-width:38px; padding:0 11px; gap:6px; white-space:nowrap;
+}
+html.v3 .lw-rail-movil .v3-rot{ font-size:.76rem; font-weight:600; }
 @media (max-width:380px){
   /* A 344 px cada píxel cuenta: se queda el icono, pero con `aria-label`. */
   /* RETIRADO el 26-ago-2026. Aquí se escondía la palabra «Menú» por debajo de
@@ -478,8 +489,19 @@ html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:6
     align-content:start;
     gap:4px 8px;
     max-height:88dvh;
-    background:rgba(255,255,255,.94);
-    -webkit-backdrop-filter:var(--v3-vidrio-pesado); backdrop-filter:var(--v3-vidrio-pesado);
+    /* 🔴 OPACA, Y NO CRISTAL — 26-ago-2026, tercera vez que el owner lo reporta.
+       Aquí había `rgba(255,255,255,.94)` + `backdrop-filter`. Un material
+       translúcido enseña lo que tiene DETRÁS, y detrás de esta hoja no está la
+       página: está el VELO, que es negro al 42 %. Cristal sobre un velo negro no
+       da vidrio, da barro: la hoja salía gris sucia y sus nombres perdían el
+       contraste — exactamente «una capa opaca por encima del menú».
+       El material translúcido de la v3 funciona cuando debajo hay CONTENIDO
+       (la barra superior, que deja pasar la página). Una hoja modal no tiene
+       contenido debajo que enseñar, tiene un velo que la separa de él: ahí el
+       material correcto es opaco. Es la misma decisión que ya estaba escrita
+       para `prefers-reduced-transparency`, aplicada siempre.
+       Se conserva el desenfoque del VELO: ese sí desenfoca la página. */
+    background:var(--sup-1,#fff);
     box-shadow:var(--v3-sombra-alta);
     border-top:var(--v3-borde-claro);
     padding:12px 12px calc(16px + env(safe-area-inset-bottom));
@@ -505,6 +527,9 @@ html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:6
 @media (max-width:330px){
   html.v3 .lw-rail{ grid-template-columns:1fr; }
 }
+/* `prefers-reduced-transparency` ya no necesita excepción para la hoja: desde el
+   26-ago-2026 es opaca siempre (ver arriba). Se conserva para el riel en COLUMNA,
+   que sí es translúcido sobre la página. */
 @media (prefers-reduced-transparency:reduce){
   html.v3 .lw-rail{ background:var(--sup-1,#fff); -webkit-backdrop-filter:none; backdrop-filter:none; }
 }

@@ -18,9 +18,10 @@
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="unidades"></script>
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/suite.js?v=a916961a"></script>
 <script src="/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=d8716d7d">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
 <style>
@@ -186,6 +187,14 @@ function pintar(){
   if(!lista.length){ cont.innerHTML = '<div class="vacio">Ninguna unidad coincide.</div>'; return; }
   const grupos = {};
   lista.forEach(u => { const k = u.proyecto || 'Sin proyecto'; (grupos[k] = grupos[k] || []).push(u); });
+  /* 🔴 LAS PARCELAS SE ORDENAN COMO NÚMEROS, NO COMO TEXTO (26-ago-2026).
+     Salían SH-1, SH-10, SH-100, SH-101… porque venían en el orden de la consulta:
+     `.order('codigo')` de Postgres compara cadenas, y para el texto «10» va antes
+     que «2». En un inventario de 228 unidades eso significa bajar cien filas para
+     encontrar la SH-2, y que dos parcelas contiguas en el plano no lo estén en la
+     lista. `suiOrdenarPorCodigo` es la pieza compartida — la misma que usan Obra
+     y el selector de parcela. */
+  Object.keys(grupos).forEach(k => { grupos[k] = suiOrdenarPorCodigo(grupos[k]); });
   /* Por número de unidades: un inventario se ordena por tamaño, no por
      alfabeto — lo primero que se quiere ver es dónde está el grueso. */
   const claves = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length);

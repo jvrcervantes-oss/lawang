@@ -109,6 +109,19 @@ function suiComparar(a, b, dir){
     : String(a).localeCompare(String(b), 'es', { numeric:true, sensitivity:'base' });
   return dir === 'desc' ? -cmp : cmp;
 }
+/* ORDENAR UNA LISTA DE PARCELAS/UNIDADES POR SU CÓDIGO — 26-ago-2026.
+   `.order('codigo')` de Postgres es orden de TEXTO: pone SH-10 y SH-100 antes
+   que SH-2. En un inventario de 228 unidades eso significa bajar cien filas para
+   encontrar la SH-2, y que dos parcelas contiguas en el plano no lo estén en la
+   lista. El owner lo vio en Sumba Hills.
+   La corrección ya existía escrita a mano en `parcela_inventario.js` (con su
+   comentario explicando justo esto) y hacía falta en Obra y en Proyectos v3, que
+   no la tenían: tres sitios, la misma regla. Aquí una vez.
+   Se apoya en `suiComparar`, que ya sabe comparar con `numeric:true`. */
+function suiOrdenarPorCodigo(filas, codigoDe){
+  const cod = codigoDe || (x => x && x.codigo);
+  return (filas || []).slice().sort((a, b) => suiComparar(cod(a), cod(b), 'asc'));
+}
 /* Engancha las cabeceras marcadas con `data-orden="campo"`. `valorDe(fila,campo)`
    lo pone la herramienta: solo ella sabe si una columna es texto o dinero. */
 function suiOrdenable(tabla, estado, valorDe, repintar){
@@ -131,4 +144,4 @@ function suiOrdenar(filas, estado, valorDe){
 }
 
 if(typeof module !== 'undefined')
-  module.exports = { suiComparar, suiOrdenar };
+  module.exports = { suiComparar, suiOrdenar, suiOrdenarPorCodigo };
