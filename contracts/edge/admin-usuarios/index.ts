@@ -34,7 +34,7 @@ const corsFor = (req: Request) => {
 
 // 5-ago-2026: añadidas 'documentacion' y 'obra'. 11-ago-2026: añadida
 // 'creatividades' — 3ª vez que esta lista se queda corta respecto al panel
-// /usuarios/ y una herramienta se pierde al crear un usuario (no al editar).
+// /intranet/usuarios/ y una herramienta se pierde al crear un usuario (no al editar).
 // 18-ago-2026: añadida 'vencimientos', que hasta hoy compartía la clave de
 // 'operaciones' y por eso no aparecía en el panel de permisos.
 //

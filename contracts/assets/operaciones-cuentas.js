@@ -2,7 +2,7 @@
    OPERACIONES · CUENTAS Y ETAPAS — 26-ago-2026
    ═══════════════════════════════════════════════════════════════════════════
    LA REGLA DE NEGOCIO DEL DINERO DE UNA VENTA. Vivía dentro de
-   `operaciones/index.html`; se saca aquí porque `/operaciones/v3/` necesita
+   `operaciones/index.html`; se saca aquí porque `/intranet/operaciones/v3/` necesita
    EXACTAMENTE el mismo cálculo, y copiarlo habría creado dos aritméticas del
    dinero que se separan solas. Es la familia de fallo más cara del repo («el
    dato tiene un dueño»).
@@ -20,7 +20,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ---------- dinero ----------
-   parseImporte / fmtMoneda / redondear salen de /facturas/totales.js: la misma
+   parseImporte / fmtMoneda / redondear salen de /intranet/facturas/totales.js: la misma
    aritmética que emite las facturas, para que un total no cuadre distinto según
    dónde se mire. */
 function importeHito(h, precio, moneda){
@@ -157,7 +157,7 @@ function etapa(o){
 /* ═══════════════════════════════════════════════════════════════════════════
    EL CARGADOR — 26-ago-2026
    ═══════════════════════════════════════════════════════════════════════════
-   Mismo motivo que el bloque de arriba: `/operaciones/v3/` lee EXACTAMENTE
+   Mismo motivo que el bloque de arriba: `/intranet/operaciones/v3/` lee EXACTAMENTE
    los mismos datos, y dos listas de consultas se separan solas. Se ha vuelto
    pura —ni globales, ni DOM, ni toast— para que la use cualquiera:
 

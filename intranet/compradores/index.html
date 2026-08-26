@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Compradores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e26504f1">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
+<script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="compradores"></script>
+<script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/geo.js?v=cc6b09b2"></script>
+<style>
+  :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
+  /* --cajon-w: sin override propio desde el 11-ago — hereda el 70vw de
+     suite.css (norma de la suite, no herramienta por herramienta). Antes
+     tenía aquí un clamp propio para igualar a Operaciones; con el 70vw
+     nuevo ya no hace falta un ancho a medida. */
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+  .stage{ display:grid; grid-template-columns:minmax(300px,370px) 1fr; height:100%; padding-top:var(--tbh); }
+  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
+
+  .lista{ overflow:auto; border-right:1px solid var(--line); }
+  .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 12px; border-bottom:1px solid var(--line); z-index:2; }
+  .buscar{ width:100%; font:inherit; font-size:13.5px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--card); }
+  .buscar:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .c{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
+      border-bottom:1px solid var(--line); padding:12px 18px; cursor:pointer; }
+  .c:hover{ background:#EDE7D9; }
+  .c.sel{ background:#E7E1D2; box-shadow:inset 3px 0 0 var(--tg); }
+  .c .n{ font-size:14.5px; font-weight:600; }
+  .c .m{ font-size:12.5px; color:var(--texto-2); margin-top:2px; }
+  .c .r{ margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; }
+
+  .ficha{ overflow:auto; padding:26px 30px 90px; }
+  .vacio{ display:grid; place-items:center; height:100%; color:#BEB3A5; font-size:13px; letter-spacing:.14em; text-transform:uppercase; }
+  h2.t{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:30px; font-weight:600; margin:0 0 4px; }
+  .sub{ color:var(--texto-2); font-size:13.5px; margin:0 0 20px; }
+  fieldset{ border:1px solid var(--line); border-radius:14px; background:var(--card); padding:16px 18px 18px; margin:0 0 16px; }
+  legend{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--texto-2); padding:0 8px; }
+  label{ display:block; font-size:12px; color:var(--texto-2); margin:12px 0 4px; }
+  label:first-of-type{ margin-top:2px; }
+  input,select,textarea{ width:100%; font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:#FDFCF9; color:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  input:disabled,select:disabled,textarea:disabled{ background:var(--rl2); color:var(--texto-2); cursor:default; opacity:1; }
+  textarea{ min-height:60px; resize:vertical; }
+  /* La rejilla de dos campos por fila es `.sui-row`, en suite.css: estaba
+     duplicada aqui y en la otra herramienta, y en ninguna se deshacia en movil. */
+  .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  /* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
+     página ya carga. Aquí vivían 4 reglas propias: era la copia número N de
+     seis, todas divergidas, y sin estado de foco visible. Ver la nota larga de allí. */
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2); font-weight:500; padding:0 8px 7px 0; }
+  td{ padding:8px 8px 8px 0; border-top:1px solid var(--line); vertical-align:middle; }
+
+  /* estado en color sólido (mismo criterio que Operaciones y Unidades): AA >4.5:1 */
+  /* La etiqueta se define UNA vez, en `contracts/assets/suite.css`. Aquí había
+     una copia con 10,5px donde la compartida es 10 y con otro tracking:
+     la misma etiqueta cambiaba de tamaño según la pantalla. */
+  .ok{     background:#3F5230; }
+  .espera{ background:#8C5E10; }
+  .mal{    background:#9E2F26; }
+  .neutro{ background:#5A6062; }
+
+  .subir{ border:1px dashed var(--line); border-radius:11px; padding:13px; margin-top:12px; background:#FDFCF9; }
+  .nota{ font-size:12px; color:var(--texto-2); margin:9px 0 0; line-height:1.5; }
+
+  /* Avance de pago por proyecto (24-ago-2026). La PISTA y el movimiento salen
+     de `.lw-bar` (suite.css), que ya usan Proyectos, Vencimientos y el portal:
+     aquí solo se dice la tinta —el mismo verde de la cifra «Cobrado» de esta
+     misma ficha, porque significan lo mismo— y cómo se apila la fila. */
+  .pp-titulo{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2);
+              font-weight:500; margin:16px 0 8px; }
+  .pp-lista{ display:flex; flex-direction:column; gap:13px; }
+  .pp-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+           font-size:13px; margin-bottom:5px; }
+  .pp-cab b{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-cab span{ flex:none; font-variant-numeric:tabular-nums; color:var(--texto-2); }
+  .lw-bar.cobro > i{ background:#3F5230; }
+</style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
+     aritmética compartida y los nombres de tipo de contrato. Sin ellas el
+     cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
+     tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
+     tabla. Se añaden donde faltaban (12 de 15 páginas). -->
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
+<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+</head>
+<body>
+  <header class="lw-topbar" data-titulo="Compradores">
+    <div class="lw-spacer"></div>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo comprador</button>
+  </header>
+
+  <div class="sui-stage">
+    <div class="sui-centro">
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="q" placeholder="Buscar nombre, email o pasaporte…">
+      </div>
+      <div class="sui-tabla-caja" id="caja-tabla">
+        <table class="sui-tabla" id="tabla">
+          <thead><tr>
+            <th data-orden="full_name">Comprador</th>
+            <th data-orden="email">Contacto</th>
+            <th data-orden="nationality">Nacionalidad</th>
+            <th data-orden="passport_number">Pasaporte</th>
+            <th data-orden="kyc_status">KYC</th>
+            <th class="num">Docs.</th>
+          </tr></thead>
+          <tbody id="listaC"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- Sugerencias de forma jurídica: las cuatro que ya han salido en operaciones
+       reales o son inmediatas para este cliente. Es un `datalist`, no un select:
+       el comprador puede venir de cualquier país y la lista nunca estará completa. -->
+  <datalist id="dl-formas">
+    <option value="PT PMA"><option value="S.L."><option value="S.A."><option value="LLC">
+    <option value="Ltd"><option value="GmbH"><option value="SARL"><option value="B.V.">
+  </datalist>
+  <div class="toast" id="toast"></div>
+
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<!-- Formato de importes: `lwFormatoImporte` (17-ago-2026). Esta pantalla
+     imprimia el dinero con toLocaleString('es'), que no recibe la moneda y
+     daba tres decimales donde Facturas da dos. El `?v=` lo sella el
+     pre-commit; el valor de aqui es solo el punto de partida. -->
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/intranet/facturas/totales.js"></script>
+<script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script>
+/* ============================================================
+   COMPRADORES — ficha y documentación KYC.
+
+   Los ficheros van al bucket PRIVADO `kyc`. Nunca se enlaza una URL fija:
+   se pide una URL firmada de 5 minutos en el momento de abrirla. Un enlace
+   permanente a un pasaporte es una fuga esperando a que alguien lo reenvíe.
+
+   La caducidad es el punto del módulo: un pasaporte vencido invalida el KYC
+   y hasta ahora no había dónde anotarlo, así que nadie se enteraba.
+   ============================================================ */
+const $ = s => document.querySelector(s);
+
+const HOY = new Date(); HOY.setHours(0,0,0,0);
+const fFecha = f => f ? new Date(String(f).slice(0,10)+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const dias = f => f ? Math.round((new Date(String(f).slice(0,10)+'T00:00:00') - HOY)/86400000) : null;
+
+/* ⚠️ Las CLAVES son las que acepta el CHECK de la tabla (en inglés, de cuando
+   se creó el 14-jul). Solo las etiquetas van en español. Traducir la clave
+   rompe el guardado entero, y el error solo aparece al escribir. */
+/* NACIONALIDADES, PREFIJOS y partirTelefono() salen de /contracts/assets/geo.js
+   desde el 12-ago-2026 (petición del owner: "llévalo a todos lados") — se
+   comparten con Contratos, que ahora usa la misma lista para no repetir 195
+   países a mano en dos sitios (mismo motivo que ya sacó las cuentas bancarias
+   a entities.js). */
+
+const KYC = [['pending','Pendiente'],['submitted','En revisión'],['verified','Aprobado'],['rejected','Rechazado']];
+const DOCS = [['passport','Pasaporte'],['npwp','NPWP'],['visa','Visado'],
+              ['proof_of_funds','Justificante de fondos'],['proof_of_address','Justificante de domicilio'],
+              ['signed_contract','Contrato firmado'],['other','Otro']];
+const etiqueta = (lista,v) => (lista.find(x=>x[0]===v)||[v,v||'—'])[1];
+
+const ORDEN = { campo:'full_name', dir:'asc' };
+let SB=null, CLIENTES=[], DOCUMENTOS=[], VINCULOS=[], ACCESOS=[], FACTURAS=[], COBRADO={}, YO=null, SEL=null;
+/* Editar una ficha YA EXISTENTE es solo de admin/super_admin desde el
+   7-ago-2026 (petición del owner); crear una nueva ("+ Nuevo comprador")
+   sigue abierto a cualquier agente — es alta de datos, no lo que se pidió
+   proteger. Mismo patrón que ya usan facturas/index.html y
+   documentacion/index.html para gatear acciones solo-admin. La RLS de
+   `clients` (operaciones/sql/clients_solo_admin_edita.sql) es quien de
+   verdad lo impide; esto solo evita que un agente rellene un formulario
+   que luego la base va a rechazar. */
+let ES_ADMIN = false;
+
+async function cargar(){
+  const [c, d, v, a, f, cb] = await Promise.all([
+    SB.from('clients').select('*').order('full_name'),
+    SB.from('documents').select('*').order('uploaded_at',{ascending:false}),
+    // qué contratos ha firmado cada persona. Si la migración aún no está,
+    // falla sola y la ficha simplemente no muestra el bloque.
+    // precio_reserva (12-ago, hallazgo Legal ALTA): la cuota de una Carta de
+    // Reserva NO es precio_total (ver nota junto a `lwEsPreliminar`, más abajo) —
+    // sin este campo, un cliente con SOLO una Carta de Reserva salía con
+    // "Precio pactado"/"Pendiente" en blanco aunque tuviera una cuota real,
+    // exigible y con penalización por desistimiento (carta_reserva_hak_sewa,
+    // cl. 4.1/7.2). Columna concreta, no `datos` entero (pesa MB por anexos).
+    /* ⚠️ SIN `precio_reserva` — y no es un descuido, es lo contrario. Ese campo
+       sale de `contratos.datos`, y basta nombrarlo para que Postgres descomprima
+       el jsonb ENTERO de cada contrato del join: 70 MB repartidos en 112 filas,
+       tocadas 144 veces por este join. Medido el 24-ago-2026 sobre la base real:
+       **5.561 ms** con el campo, milisegundos sin él. Era la carga más lenta de
+       la suite. Ahora se pide solo para los contratos de UNA ficha, y solo para
+       los preliminares, que son los únicos que lo usan (ver `cuotaReserva`). */
+    SB.from('contrato_compradores').select('client_id,rol,contratos(id,numero,tipo,proyecto_nombre,fecha_firma,bloqueado,precio_total,moneda)'),
+    // accesos al portal del comprador (email → ficha)
+    SB.from('portal_accesos').select('email, client_id, activo, ultimo_acceso, accesos'),
+    // facturas de SUS contratos (11-ago, petición del owner: no se veían aquí,
+    // solo en /intranet/operaciones/ y en el propio /portal/ del comprador). Por
+    // facturas_equipo(), no .from() directo — mismo motivo que en Operaciones:
+    // la RLS por agente dejaría fuera las de un contrato guardado por otro.
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,total,moneda,fecha_emision,anulada'),
+    // "cobrado" real por contrato (reforma del modelo de facturación, 11-ago):
+    // mismo contrato_cobrado()/contratos_cobrado_equipo() que usa Operaciones,
+    // una sola fuente para no reimplementar la fórmula (solo recibí cuenta).
+    SB.rpc('contratos_cobrado_equipo'),
+  ]);
+  if(c.error) throw c.error;
+  CLIENTES = c.data || [];
+  DOCUMENTOS = d.error ? [] : (d.data || []);
+  VINCULOS = v.error ? [] : (v.data || []);
+  COBRADO = {}; (cb.error ? [] : (cb.data || [])).forEach(x => { COBRADO[x.contrato_id] = Number(x.cobrado) || 0; });
+  ACCESOS = a.error ? [] : (a.data || []);
+  FACTURAS = f.error ? [] : (f.data || []);
+  if(d.error) toast('No se pudieron leer los documentos: ' + d.error.message);
+  if(f.error) toast('No se pudieron leer las facturas: ' + f.error.message);
+  if(a.error) toast('No se pudieron leer los accesos al portal: ' + a.error.message);
+  if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
+}
+
+/* ── CUÁNTO LLEVA PAGADO, PROYECTO A PROYECTO ──────────────────────────────
+   Encargo del owner, 24-ago-2026: «en la ficha de cliente haz más visible
+   cuánto lleva pagado el cliente en cada proyecto; lo haces bien con barras en
+   Proyectos y Vencimientos». Hasta hoy esta ficha daba UNA cifra sumada de
+   todo, y con dos villas en dos proyectos no había forma de saber cuál va
+   pagada y cuál no.
+
+   POR PROYECTO Y NO POR CONTRATO, a propósito: una villa se vende en dos
+   documentos —Bloqueo de Parcela (suelo) + Contrato de Construcción (obra)— y
+   sumarlos es lo correcto, no un duplicado (`contexto/suite_lawang.md` → «El
+   modelo de venta»). Una fila por contrato partiría cada villa en dos barras
+   al 50% que no significan nada.
+
+   Las reglas de qué suma son las MISMAS que la cifra de arriba, no una segunda
+   interpretación:
+   · el precio NO cuenta los preliminares (`lwEsPreliminar`) — la Carta de
+     Reserva repite el precio del contrato real que la sustituye;
+   · si el proyecto SOLO tiene preliminares, se enseña la cuota de reserva con
+     su etiqueta, porque es un pago exigible de verdad y dejarlo en blanco se
+     leería como «no debe nada»;
+   · el cobrado cuenta TODO recibí, venga de la reserva o del contrato real.
+
+   La moneda se resuelve por grupo: un cliente con un proyecto en EUR y otro en
+   IDR no puede tener una cifra sumada (y arriba se dice), pero SÍ puede tener
+   su barra en cada uno. */
+function pagosPorProyecto(suyos){
+  const grupos = new Map();
+  suyos.forEach(x => {
+    const k = (x.proyecto_nombre || '').trim() || '— sin proyecto —';
+    if(!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(x);
+  });
+  if(grupos.size === 0) return '';
+  const filas = [...grupos.entries()].map(([nombre, cts]) => {
+    const monedas = [...new Set(cts.map(x => x.moneda || 'EUR'))];
+    const moneda = monedas[0];
+    const sumables = cts.filter(x => !lwEsPreliminar(x.tipo));
+    const soloReserva = !sumables.length;
+    const base = soloReserva ? cts : sumables;
+    const precio = base.reduce((a,x) => a + (Number(soloReserva ? cuotaReserva(x) : x.precio_total)||0), 0) || null;
+    const cobrado = cts.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
+    // Sin precio no hay porcentaje, y ahí NO se pinta barra: una barra vacía
+    // se lee como «no ha pagado nada», que es distinto de «no sabemos contra
+    // qué compararlo». Se dice con palabras.
+    const pct = precio ? Math.round(cobrado / precio * 100) : null;
+    const mezcla = monedas.length > 1;
+    return `<div class="pp-fila">
+      <div class="pp-cab">
+        <b>${esc(nombre)}</b>
+        <span>${mezcla ? '—' : (esc(lwFormatoImporte(cobrado, moneda)) + (precio ? ' de ' + esc(lwFormatoImporte(precio, moneda)) : ''))}${
+          pct != null && !mezcla ? ` · <b style="color:#3F5230">${pct}%</b>` : ''}</span>
+      </div>
+      ${pct != null && !mezcla
+        ? `<div class="lw-bar cobro" role="img" aria-label="Pagado el ${pct}% de ${esc(nombre)}"><i style="width:${Math.min(100, pct)}%"></i></div>`
+        : ''}
+      <p class="nota" style="margin:3px 0 0">${
+        mezcla ? 'Sus documentos de este proyecto están en monedas distintas (' + esc(monedas.join(', ')) + '): no se pueden sumar.'
+        : soloReserva ? 'Solo Carta(s) de Reserva: el importe es la cuota de reserva, no el precio final de la villa.'
+        : !precio ? 'Sus contratos de este proyecto no fijan precio todavía: solo se puede decir lo cobrado.'
+        : esc(cts.map(x => x.numero || 'sin nº').join(' · '))}</p>
+    </div>`;
+  }).join('');
+  return `<div class="pp-lista">${filas}</div>`;
+}
+
+/* ── LA CUOTA DE RESERVA, A DEMANDA ────────────────────────────────────────
+   Solo hace falta cuando un cliente tiene ÚNICAMENTE Cartas de Reserva: ahí el
+   importe exigible es la cuota, no el precio de la villa (hallazgo Legal ALTA,
+   12-ago-2026). Son uno o dos contratos por ficha, así que se piden al abrirla
+   en vez de arrastrarlos en la carga de todos. */
+const CUOTA_RESERVA = {};   // contrato_id -> texto de la cuota (o null si no la fija)
+
+async function cargarCuotasReserva(ids){
+  const faltan = ids.filter(id => !(id in CUOTA_RESERVA));
+  if(!faltan.length) return false;
+  const { data, error } = await SB.rpc('contratos_equipo')
+    .select('id,precio_reserva:datos->fields->>precio_reserva').in('id', faltan);
+  if(error){
+    // No poder leerla NO es «no tiene»: se dice, en vez de enseñar un importe
+    // en blanco que se leería como «no debe nada».
+    toast('No se pudo leer la cuota de reserva: ' + error.message);
+    return false;
+  }
+  (data || []).forEach(c => { CUOTA_RESERVA[c.id] = c.precio_reserva || null; });
+  faltan.forEach(id => { if(!(id in CUOTA_RESERVA)) CUOTA_RESERVA[id] = null; });
+  return true;
+}
+
+/* Lo que vale un contrato preliminar: su cuota si la fijó, y si no el precio
+   total como aproximación — el mismo criterio que había cuando el dato viajaba
+   en la carga inicial. */
+const cuotaReserva = x => CUOTA_RESERVA[x.id] ?? x.precio_total;
+
+/* estado de caducidad de un comprador, mirando TODOS sus documentos */
+function alerta(clientId){
+  const docs = DOCUMENTOS.filter(x => x.client_id === clientId && x.caduca_el);
+  if(!docs.length) return null;
+  const peor = Math.min(...docs.map(x => dias(x.caduca_el)));
+  if(peor < 0)  return ['mal','Documento caducado'];
+  if(peor <= 60) return ['espera','Caduca en ' + peor + ' d'];
+  return null;
+}
+
+/* PAGINACIÓN (26-ago-2026). Son 155 compradores y salían los 155. Pieza
+   compartida (`assets/paginacion.js`), anclada a `#caja-tabla` y NO al
+   `<tbody>`: un `<div>` hermano de un `<tbody>` el navegador lo saca de la tabla
+   al parsear y el pie acaba flotando encima.
+   Va FUERA de `pintarLista`: dentro, el `let` se reiniciaba en cada pintado, se
+   creaba un paginador nuevo y se colgaba otro pie — uno por repintado.
+   El contador de arriba sigue siendo del filtro entero, no de la página. */
+let _PAG = null;
+function PAGINADOR(){
+  if(!_PAG){ _PAG = lwPaginador('#caja-tabla'); _PAG.alCambiar(pintarLista); }
+  return _PAG;
+}
+
+function pintarLista(){
+  const q = $('#q').value.trim().toLowerCase();
+  const vis = suiOrdenar(CLIENTES.filter(c => !q ||
+    [c.full_name,c.email,c.passport_number].some(v => String(v||'').toLowerCase().includes(q))),
+    ORDEN, (c, campo) => c[campo]);
+  $('#listaC').innerHTML = vis.length ? PAGINADOR().pagina(vis).map(c => {
+    const a = alerta(c.id);
+    const n = DOCUMENTOS.filter(x => x.client_id === c.id).length;
+    return `<tr data-id="${esc(c.id)}" class="${SEL===c.id?'sel':''}">
+      <td class="clave">${esc(c.full_name || 'Sin nombre')}${
+        c.tipo === 'empresa' ? ' <span class="sui-tag">Empresa</span>' : ''}</td>
+      <td>${esc(c.email || '—')}${c.phone ? ' <span class="flojo">· ' + esc(c.phone) + '</span>' : ''}</td>
+      <td>${esc(c.nationality || '—')}</td>
+      <td>${esc(c.passport_number || '—')}</td>
+      <td><span class="sui-tag ${c.kyc_status==='verified'?'ok':(c.kyc_status==='rejected'?'alerta':'espera')}">${esc(etiqueta(KYC,c.kyc_status||'pending'))}</span>${
+        a ? ` <span class="sui-tag ${a[0]==='mal'?'alerta':a[0]}">${esc(a[1])}</span>` : ''}</td>
+      <td class="num ${n?'':'flojo'}">${n}</td>
+    </tr>`;
+  }).join('')
+  : `<tr><td colspan="6"><div class="sui-nada"><b>${CLIENTES.length ? 'Nadie coincide' : 'Todavía no hay compradores'}</b>${
+      CLIENTES.length ? 'Prueba con otra búsqueda.' : 'Créalo con «+ Nuevo comprador».'}</div></td></tr>`;
+}
+
+// partirTelefono() sale de geo.js — ver nota junto a NACIONALIDADES, arriba.
+
+function pintarFicha(){
+  /* Los contratos preliminares de esta ficha necesitan su cuota. Se piden y se
+     repinta cuando llegan; `CUOTA_RESERVA` recuerda lo pedido, así que la
+     segunda vuelta no vuelve a entrar y no hay bucle. */
+  if(SEL && SEL !== 'nuevo'){
+    const suyos = VINCULOS.filter(v => v.client_id === SEL && v.contratos).map(v => v.contratos);
+    const prelim = suyos.filter(x => lwEsPreliminar(x.tipo)).map(x => x.id);
+    if(prelim.length) cargarCuotasReserva(prelim).then(hubo => { if(hubo && SEL) pintarFicha(); });
+  }
+  const nuevo = SEL === 'nuevo';
+  const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
+  if(!c){ suiCerrarCajon(); return; }
+  const docs = nuevo ? [] : DOCUMENTOS.filter(d => d.client_id === c.id);
+  // Crear una ficha nueva sigue abierto a cualquier agente; editar una que ya
+  // existe es solo admin/super_admin (7-ago-2026, ver nota junto a ES_ADMIN).
+  const soloLectura = !nuevo && !ES_ADMIN;
+  /* LA FICHA QUE YA EXISTE ABRE CERRADA — 16-ago-2026, a peticion del owner:
+     «que haya que aprobar la edicion antes».
+
+     El motivo no es la ceremonia. La ficha se abre para MIRAR mucho mas a
+     menudo que para cambiar algo -a comprobar un pasaporte, a ver si el KYC
+     esta al dia, a copiar un email- y con los campos vivos basta rozar el
+     teclado sobre uno enfocado para dejar el dato mal sin enterarse. Y estos
+     datos no se quedan aqui: son los que se copian a un contrato y los que
+     salen impresos en un documento que firma un comprador real.
+
+     Una ficha NUEVA no abre cerrada: no hay nada que proteger todavia y pedir
+     permiso para rellenar un formulario vacio es puro estorbo. */
+  const cerrada = !nuevo;
+  const dis = (soloLectura || cerrada) ? 'disabled' : '';
+
+  const tel = partirTelefono(c.phone);
+
+  const filas = docs.length ? docs.map(d => {
+    const dd = dias(d.caduca_el);
+    let cad = '<span class="tag neutro">sin caducidad</span>';
+    if(d.caduca_el) cad = dd < 0 ? `<span class="tag mal">caducado hace ${-dd} d</span>`
+                       : dd <= 60 ? `<span class="tag espera">${fFecha(d.caduca_el)}</span>`
+                       : `<span class="tag ok">${fFecha(d.caduca_el)}</span>`;
+    return `<tr>
+      <td>${esc(etiqueta(DOCS,d.doc_type))}</td>
+      <td>${fFecha(d.uploaded_at)}</td>
+      <td>${cad}</td>
+      <td><button class="btn" data-ver="${esc(d.storage_path||'')}" ${d.storage_path?'':'disabled'}>Abrir</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" class="nota">Sin documentos todavía.</td></tr>';
+
+  /* La ficha va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
+     y se edita sin perder de vista la lista de la que sale. */
+  const cuerpoFicha = `
+
+    <fieldset id="fsIdentidad">
+      <legend>Identidad</legend>
+      ${soloLectura ? '<p class="nota">Solo un administrador puede editar estos datos. Puedes consultarlos y gestionar la documentación de más abajo.</p>' : ''}
+      <label for="f-tipo">Tipo de comprador</label>
+      <select class="sui-sel" id="f-tipo" ${dis}>
+        <option value="persona" ${(c.tipo||'persona')==='persona'?'selected':''}>Persona física</option>
+        <option value="empresa" ${c.tipo==='empresa'?'selected':''}>Empresa</option>
+      </select>
+      <p class="nota" id="notaTipo"></p>
+      <label for="f-nombre" id="lab-nombre">Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
+      <div class="sui-row">
+        <div><label for="f-email">Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
+          <p class="nota">Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal.
+          Eso se gestiona aparte, en «Portal del comprador» más abajo.</p></div>
+        <div><label>Teléfono</label>
+          <div style="display:flex;gap:6px">
+            <!-- Sin <datalist>: lo abre lwPicker (ver el final de pintarFicha).
+                 Y 86px: el prefijo mas largo del mundo es «+998», o sea 4
+                 caracteres. Con 108 el hueco util eran 57px para ~30px de texto
+                 y le robaba sitio al numero, que es el dato largo. -->
+            <input id="f-tel-pre" ${dis} style="flex:0 0 86px" value="${esc(tel.prefijo||'')}" placeholder="Prefijo">
+            <input id="f-tel-num" ${dis} style="flex:1" value="${esc(tel.numero)}" placeholder="Número">
+          </div>
+        </div>
+      </div>
+      <div class="sui-row">
+        <div><label for="f-nac" id="lab-nac">Nacionalidad</label>
+          <input id="f-nac" ${dis} value="${esc(c.nationality||'')}">
+        </div>
+        <div><label for="f-pas" id="lab-pas">Pasaporte / NPWP</label><input id="f-pas" ${dis} value="${esc(c.passport_number||'')}"></div>
+      </div>
+      <!-- Domicilio: hasta hoy no estaba en la ficha aunque la columna existía y
+           el contrato la imprime. Una empresa sin domicilio social no se puede
+           redactar, así que entra ahora para las dos (19-ago-2026). -->
+      <label for="f-dom" id="lab-dom">Domicilio</label><input id="f-dom" ${dis} value="${esc(c.address||'')}">
+      <!-- ── solo empresa ──────────────────────────────────────────────────
+           Sin NIB ni NPWP en las etiquetas: el comprador puede ser una S.L.
+           española, una LLC americana o una PT PMA indonesia, y el documento
+           tiene que servir para las tres (encargo del owner, 19-ago-2026). -->
+      <div class="sui-row solo-empresa">
+        <div><label for="f-forma">Forma jurídica</label>
+          <input id="f-forma" ${dis} list="dl-formas" value="${esc(c.forma_juridica||'')}" placeholder="S.L., LLC, PT PMA, GmbH…"></div>
+        <div><label for="f-registro">Nº de registro mercantil</label>
+          <input id="f-registro" ${dis} value="${esc(c.registro_num||'')}" placeholder="NIB/OSS, registro mercantil…"></div>
+      </div>
+      <div class="sui-row solo-empresa">
+        <div><label for="f-rep">Representante legal</label><input id="f-rep" ${dis} value="${esc(c.rep_nombre||'')}"></div>
+        <div><label for="f-rep-cargo">Cargo del representante</label>
+          <input id="f-rep-cargo" ${dis} value="${esc(c.rep_cargo||'')}" placeholder="Administrador, Director…"></div>
+      </div>
+      <div class="sui-row">
+        <div class="solo-persona"><label for="f-nac-fecha">Fecha de nacimiento</label><input id="f-nac-fecha" type="date" ${dis} value="${esc(c.date_of_birth||'')}"></div>
+        <div><label for="f-kyc">Estado KYC</label><select class="sui-sel" id="f-kyc" ${dis}>${KYC.map(([v,l])=>`<option value="${v}" ${(c.kyc_status||'pending')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+      </div>
+      <label for="f-notas">Notas</label><textarea id="f-notas" ${dis}>${esc(c.notes||'')}</textarea>
+    </fieldset>
+
+    ${nuevo ? '<p class="nota">Los documentos se suben después de crear la ficha.</p>' : `
+    <fieldset>
+      <legend>Contratos firmados</legend>
+      ${(() => {
+        const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos);
+        if(!suyos.length) return '<p class="nota">Ninguno enlazado todavía. El enlace se crea solo al guardar un contrato con su pasaporte o su email.</p>';
+        return `<table><thead><tr><th>Contrato</th><th>Proyecto</th><th>Rol</th><th>Estado</th></tr></thead><tbody>
+          ${suyos.map(v => `<tr>
+            <td><a href="/intranet/operaciones/?contrato=${encodeURIComponent(v.contratos.id)}" style="color:var(--dl)">${esc(v.contratos.numero || 'sin nº')}</a>
+                <div class="nota">${esc(lwTipoContrato(v.contratos.tipo))}</div></td>
+            <td>${esc(v.contratos.proyecto_nombre || '—')}</td>
+            <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
+            <td>${v.contratos.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
+          </tr>`).join('')}
+        </tbody></table>
+        <p class="nota">Pulsa un número de contrato para ver su operación completa.</p>`;
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Estado de cuentas</legend>
+      ${(() => {
+        const suyos = VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos);
+        if(!suyos.length) return '<p class="nota">Sin contrato enlazado todavía.</p>';
+        const monedas = [...new Set(suyos.map(x => x.moneda || 'EUR'))];
+        // Monedas distintas: no hay UNA cifra, pero sí hay una barra por
+        // proyecto — cada grupo se resuelve en su propia moneda. Antes esto
+        // devolvía solo la disculpa y el cliente se quedaba sin ver nada.
+        if(monedas.length > 1) return `<p class="nota falta">Sus proyectos están en monedas distintas (${monedas.join(', ')}) — no se pueden sumar en una sola cifra. Cada uno, por separado:</p>
+        ${pagosPorProyecto(suyos)}`;
+        const moneda = monedas[0];
+        // Carta de Reserva (y su ampliada) es un documento preliminar: el precio
+        // que declara es el MISMO que luego repite el contrato real (Bloqueo de
+        // Parcela/Construcción) que la sustituye, no un cargo aparte. Sumarla
+        // duplicaba el "Precio pactado" (12-ago, hallazgo del owner: un cliente
+        // con Carta de Reserva + Construcción de 76.500 € salía con 153.000 €
+        // pactados para LA MISMA villa). "Cobrado" sí sigue contando cualquier
+        // recibí, sea de la reserva o del contrato real — es dinero real entrado.
+        // La lista se mudó a assets/suite-comun.js el 14-ago (`lwEsPreliminar`):
+        // Operaciones necesitaba la MISMA regla y tenerla solo aquí hizo que las
+        // dos vistas dieran cifras distintas del mismo cliente. De paso entra la
+        // variante hak_sewa, que esta copia se dejaba.
+        const sumables = suyos.filter(x => !lwEsPreliminar(x.tipo));
+        const cobrado = suyos.reduce((a,x) => a + (COBRADO[x.id]||0), 0);
+        // Solo Carta(s) de Reserva, sin contrato real todavía (hallazgo Legal
+        // ALTA, 12-ago): la cuota de reserva es un pago EXIGIBLE de verdad —
+        // 5 días hábiles tras la firma, con retención si el reservante desiste
+        // (carta_reserva_hak_sewa, cl. 4.1/7.2) — así que dejar "Precio
+        // pactado"/"Pendiente" en blanco aquí leería como "no debe nada",
+        // justo lo contrario. Se muestra la cuota de reserva (precio_reserva;
+        // si el contrato no la fijó, precio_total como aproximación) bajo una
+        // etiqueta que deja claro que es la reserva, no el precio final.
+        const soloReserva = !sumables.length;
+        const base = soloReserva ? suyos : sumables;
+        const precio = base.reduce((a,x) => a + (Number(soloReserva ? cuotaReserva(x) : x.precio_total)||0), 0) || null;
+        const pendiente = precio ? precio - cobrado : null;
+        /* `lwFormatoImporte` (assets/dinero.js) y no `toLocaleString('es')`
+           (17-ago-2026, auditoría): esta pantalla imprimía 1.234.567,891 € donde
+           Facturas imprime 1.234.567,89 €, y sin la moneda de por medio dejaba
+           decimales en importes en rupias, que no los tiene. El `— ` de cuando no
+           hay dato se queda aquí: eso es de esta pantalla, no del formato. */
+        const fmt = n => n == null ? '—' : lwFormatoImporte(n, moneda);
+        const etiquetaPrecio = soloReserva ? 'Cuota de Reserva' : 'Precio pactado';
+        return `<p class="nota">Suma ${suyos.length === 1 ? 'su único proyecto' : 'los ' + suyos.length + ' proyectos'} de esta persona (${suyos.map(x=>esc(x.numero||'sin nº')).join(', ')})${sumables.length !== suyos.length && !soloReserva ? ' — el precio solo cuenta los que no son Carta de Reserva' : ''}${soloReserva ? ' — solo tiene Carta(s) de Reserva, sin contrato firmado todavía: el importe es la cuota de reserva, no el precio final de la villa' : ''}.</p>
+        <div class="sui-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div><label>${etiquetaPrecio}</label><p style="margin:0;font-size:19px;font-weight:600">${fmt(precio)}</p></div>
+          <div><label>Cobrado</label><p style="margin:0;font-size:19px;font-weight:600;color:#3F5230">${fmt(cobrado)}</p></div>
+          <div><label>Pendiente</label><p style="margin:0;font-size:19px;font-weight:600${pendiente>0?';color:#9E2F26':''}">${fmt(pendiente)}</p></div>
+        </div>
+        <p class="nota">Solo cuenta como cobrado el recibí — una factura o proforma es lo que se debe, no lo pagado.</p>
+        ${suyos.length > 1 || (suyos[0] && suyos[0].proyecto_nombre) ? '<h4 class="pp-titulo">Avance de pago por proyecto</h4>' + pagosPorProyecto(suyos) : ''}`;
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Facturas</legend>
+      ${(() => {
+        const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+        const suyosIds = new Set(VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos.id));
+        const suyas = FACTURAS.filter(x => suyosIds.has(x.contrato_id))
+          .sort((a,b) => String(b.fecha_emision||'').localeCompare(String(a.fecha_emision||'')));
+        if(!suyosIds.size) return '<p class="nota">Sin contrato enlazado todavía, no hay a qué factura atarla.</p>';
+        if(!suyas.length) return '<p class="nota">Ninguna factura emitida todavía en sus contratos.</p>';
+        return `<table><thead><tr><th>Nº</th><th>Tipo</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>
+          ${suyas.map(x => `<tr>
+            <td><a href="/intranet/facturas/?id=${encodeURIComponent(x.id)}" style="color:var(--dl)">${esc(x.numero || 'borrador')}</a></td>
+            <td>${esc(TIPO_DOC[x.tipo] || x.tipo || '—')}</td>
+            <td>${fFecha(x.fecha_emision)}</td>
+            <td class="num">${x.total != null ? esc(lwFormatoImporte(Number(x.total), x.moneda)) : '—'}</td>
+            <td>${x.anulada ? '<span class="tag mal">Anulada</span>' : '<span class="tag ok">Vigente</span>'}</td>
+          </tr>`).join('')}
+        </tbody></table>`;
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Portal del comprador</legend>
+      ${(() => {
+        const suyos = ACCESOS.filter(x => x.client_id === c.id);
+        const activos = suyos.filter(x => x.activo);
+        /* Si entró o no es la única forma de saber si el correo llegó: un enlace
+           que nadie abre es indistinguible de uno que no se envió. */
+        const rastro = a => !a.accesos
+          ? '<span class="tag espera">sin estrenar</span>'
+          : `<span class="tag ok">${a.accesos} ${a.accesos === 1 ? 'entrada' : 'entradas'}</span>` +
+            (a.ultimo_acceso ? ` <span class="nota" style="display:inline">última: ${fFecha(a.ultimo_acceso)}</span>` : '');
+        const estado = activos.length
+          ? `<p class="nota">Acceso activo para <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>. Ve sus contratos, pagos, facturas y obra en /portal/.</p>
+             <p class="nota">${activos.map(rastro).join(' · ')}</p>`
+          : suyos.length
+            ? '<p class="nota">Acceso <b>revocado</b>. Se puede volver a invitar.</p>'
+            : '<p class="nota">Esta ficha aún no tiene acceso al portal.</p>';
+        const esAdminYo = YO && (YO.rol === 'super_admin' || YO.rol === 'admin');
+        if(!esAdminYo) return estado + '<p class="nota">Invitar o revocar lo hace un administrador.</p>';
+        return estado + `
+        <div class="sui-row">
+          <div><label for="p-email">Email de acceso</label><input id="p-email" type="email" value="${esc((activos[0] && activos[0].email) || c.email || '')}"></div>
+        </div>
+        <div class="acciones" style="margin-top:10px">
+          <button class="btn primary" id="btnPortalInv">${activos.length ? 'Reenviar enlace' : 'Invitar al portal'}</button>
+          ${activos.length ? '<button class="btn" id="btnPortalPass">Ponerle contraseña</button>' : ''}
+          ${activos.length ? '<button class="btn" id="btnPortalRev">Revocar acceso</button>' : ''}
+        </div>
+        <p class="nota">La invitación vincula ESTA ficha a ese email y le envía un enlace de entrada.
+        Para una familia que comparte correo, invita el mismo email desde cada ficha: verá todo lo de
+        todas. Además del enlace, se le puede poner una contraseña para entrar directamente — el
+        comprador también puede cambiarla él mismo desde dentro del portal.</p>`;
+      })()}
+    </fieldset>
+    <fieldset>
+      <legend>Documentación</legend>
+      <table>
+        <thead><tr><th>Documento</th><th>Subido</th><th>Caduca</th><th></th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+      <div class="subir">
+        <div class="sui-row">
+          <div><label for="d-tipo">Tipo</label><select class="sui-sel" id="d-tipo">${DOCS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+          <div><label for="d-caduca">Caduca el (opcional)</label><input id="d-caduca" type="date"></div>
+        </div>
+        <label for="d-file">Fichero</label><input id="d-file" type="file" accept="application/pdf,image/*">
+        <div class="acciones" style="margin-top:10px">
+          <button class="btn primary" id="btnSubir">Subir documento</button>
+        </div>
+        <p class="nota">Van a un bucket privado. Al abrirlos se genera un enlace temporal de 5 minutos, no una URL fija.</p>
+      </div>
+    </fieldset>`}`;
+
+  suiAbrirCajon({
+    titulo: nuevo ? 'Nuevo comprador' : esc(c.full_name || 'Sin nombre'),
+    sub: nuevo ? 'Los datos que aquí se guardan son los que exige el KYC.'
+               : esc([c.nationality, c.passport_number].filter(Boolean).join(' · ') || 'sin identificación'),
+    cuerpo: cuerpoFicha,
+    // Sin botón de guardar en modo solo lectura: no hay nada que confirmar,
+    // y un botón deshabilitado invita a preguntar por qué en vez de explicarlo
+    // solo (mismo criterio que ya usa facturas/index.html con "Borrar").
+    pie: soloLectura
+      ? '<button class="sui-btn" id="btnCerrar">Cerrar</button>'
+      : cerrada
+        ? `<button class="sui-btn primario" id="btnEditar">Editar datos</button>
+           <button class="sui-btn" id="btnNuevoContrato">Crear contrato</button>
+           <button class="sui-btn" id="btnCerrar">Cerrar</button>` +
+          /* Borrar, SOLO super_admin y SOLO en la ficha cerrada (18-ago-2026,
+             encargo del owner: hay duplicados). En la cerrada y no en edición a
+             propósito: borrar es una decisión de consulta, no un gesto entre
+             guardados. La puerta de verdad es `borrar_comprador()` en la base
+             (es_super_admin() + bloqueos por contrato/portal); este botón solo
+             evita ofrecer lo que fallaría — la regla de guard.js de siempre. */
+          (YO && YO.rol === 'super_admin'
+            ? `<button class="sui-btn peligro" id="btnBorrarComprador" style="margin-left:auto">Borrar comprador</button>` : '')
+        : `<button class="sui-btn primario" id="btnGuardar">Crear comprador</button>
+           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
+    onCerrar: () => { SEL = null; pintarLista(); },
+  });
+
+  /* Los dos campos de lista larga se eligen en el modal compartido. Eran
+     `<input list=…>`, que se pintan igual que un campo de texto: 182 prefijos y
+     195 paises detras de algo que no parecia desplegable — y en movil el
+     desplegable de un <datalist> no se puede ni estilar ni ensanchar. */
+  lwPicker($('#f-tel-pre'), PREFIJOS.map(([cod, pais]) => ({ valor:cod, texto:cod, nota:pais })),
+           { titulo:'Prefijo del país' });
+  lwPicker($('#f-nac'), NACIONALIDADES, { titulo:'Nacionalidad' });
+
+  /* PERSONA o EMPRESA — 19-ago-2026, encargo del owner ─────────────────────
+     Una empresa reutiliza las mismas columnas que una persona (razón social en
+     `full_name`, identificación fiscal en `passport_number`, país de
+     constitución en `nationality`, domicilio social en `address`). No es
+     pereza: `contrato_identificadores` compara identidad con pasaporte+email
+     en toda la suite, y un NIF en una columna aparte se quedaría fuera de esa
+     comparación. Lo que cambia son las ETIQUETAS y qué campos se enseñan. */
+  const ETIQUETAS = {
+    persona: { nombre:'Nombre completo', nac:'Nacionalidad', pas:'Pasaporte / identificación fiscal', dom:'Domicilio',
+               nota:'' },
+    empresa: { nombre:'Razón social', nac:'País de constitución', pas:'Identificación fiscal (NIF, NPWP, EIN…)',
+               dom:'Domicilio social',
+               nota:'Una empresa y su dueño pueden compartir correo: son dos fichas distintas y las dos son válidas.' },
+  };
+  function pintarSegunTipo(){
+    const sel = $('#f-tipo'); if(!sel) return;
+    const t = sel.value === 'empresa' ? 'empresa' : 'persona';
+    const e = ETIQUETAS[t];
+    const poner = (id, txt) => { const l = document.getElementById(id); if(l) l.textContent = txt; };
+    poner('lab-nombre', e.nombre); poner('lab-nac', e.nac); poner('lab-pas', e.pas); poner('lab-dom', e.dom);
+    const nota = document.getElementById('notaTipo'); if(nota) nota.textContent = e.nota;
+    document.querySelectorAll('#suiCajon .solo-empresa').forEach(x => { x.hidden = (t !== 'empresa'); });
+    document.querySelectorAll('#suiCajon .solo-persona').forEach(x => { x.hidden = (t === 'empresa'); });
+  }
+  const selTipo = $('#f-tipo');
+  if(selTipo){ selTipo.addEventListener('change', pintarSegunTipo); pintarSegunTipo(); }
+
+  /* Abrir la edicion: se sueltan los campos de Identidad y el pie pasa a
+     ofrecer guardar. No se recarga nada — lo que hay en pantalla ya son los
+     datos buenos. «Cancelar» vuelve a pintar la ficha, que es la forma mas
+     corta y mas segura de descartar: los valores se releen de CLIENTES. */
+  const be = $('#btnEditar');
+  if(be) be.addEventListener('click', () => {
+    $('#fsIdentidad').querySelectorAll('input,select,textarea').forEach(el => { el.disabled = false; });
+    const pie = be.parentElement;
+    pie.innerHTML = '<button class="sui-btn primario" id="btnGuardar">Guardar cambios</button>' +
+                    '<button class="sui-btn" id="btnCancelarEd">Cancelar</button>';
+    pie.querySelector('#btnGuardar').addEventListener('click', () => guardar(c.id));
+    pie.querySelector('#btnCancelarEd').addEventListener('click', pintarFicha);
+    const primero = $('#f-nombre'); if(primero) primero.focus();
+    toast('Puedes editar los datos de la ficha');
+  });
+
+  /* JERARQUIA DEL PIE. «Editar datos» es la accion de esta pantalla y «Cerrar»
+     la salida: iban los dos con la misma pildora blanca, o sea sin decir cual
+     es cual. Relleno el primero y contorno el segundo, que es exactamente lo
+     que ya hace este mismo cajon cuando la ficha es nueva («Crear comprador» +
+     «Cerrar») y cuando esta desbloqueada («Guardar cambios» + «Cancelar»). */
+  const bg = $('#btnGuardar'); if(bg) bg.addEventListener('click', () => guardar(nuevo ? null : c.id));
+  const bb = $('#btnBorrarComprador'); if(bb) bb.addEventListener('click', () => borrarComprador(c));
+  /* «Crear contrato» (18-ago-2026, encargo del owner). Abre Contratos con un
+     documento en blanco YA ENLAZADO a esta ficha (?cliente=<id>), con sus datos
+     puestos. Es la dirección que faltaba: hasta hoy el comprador nacía del
+     contrato, y a partir de ahora el contrato sale del comprador.
+     En pestaña nueva a propósito: quien está repasando fichas casi nunca quiere
+     perder la lista en la que estaba. */
+  const bn = $('#btnNuevoContrato');
+  if(bn) bn.addEventListener('click', () => {
+    window.open('/contracts/?cliente=' + encodeURIComponent(c.id), '_blank', 'noopener');
+  });
+  $('#btnCerrar').addEventListener('click', suiCerrarCajon);
+  const bs = $('#btnSubir'); if(bs) bs.addEventListener('click', () => subir(c.id));
+  const bi = $('#btnPortalInv'); if(bi) bi.addEventListener('click', () => invitarPortal(c));
+  const bp = $('#btnPortalPass'); if(bp) bp.addEventListener('click', () => passwordPortal(c));
+  const br = $('#btnPortalRev'); if(br) br.addEventListener('click', () => revocarPortal(c));
+  document.getElementById('suiCajon').querySelectorAll('[data-ver]')
+    .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
+}
+
+/* ---------- borrar una ficha (solo super_admin): los duplicados ----------
+   La logica de verdad vive en `borrar_comprador()` de la base (patron de
+   borrar_operacion): es_super_admin() y tres bloqueos — contratos vinculados
+   (nombrandolos), acceso al portal y filas del esquema viejo. Aqui solo se
+   confirma, se llama y se limpia el bucket: los ficheros KYC del duplicado los
+   quita ESTA sesion con las rutas que devuelve la RPC, porque una funcion de la
+   base no alcanza al almacenamiento (la misma leccion que borrarOperacion). */
+async function borrarComprador(c){
+  const misDocs = DOCUMENTOS.filter(d => d.client_id === c.id);
+  const ok = await lwConfirmar({
+    titulo: 'Borrar la ficha de ' + (c.full_name || 'este comprador'),
+    cuerpo: '<p>Se borra la ficha' + (misDocs.length
+        ? ' y sus <b>' + misDocs.length + ' documento(s) KYC</b> del archivo privado' : '') + '.</p>'
+      + '<p>Si estuviera vinculada a un contrato o tuviera acceso al portal, el sistema lo impide '
+      + 'y te dice cuál — esta acción es para <b>duplicados sueltos</b>.</p>'
+      + '<p>No hay papelera.</p>',
+    confirmar: 'Borrar la ficha',
+    tono: 'peligro',
+  });
+  if(!ok) return;
+
+  const btn = $('#btnBorrarComprador'); if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  const { data, error } = await SB.rpc('borrar_comprador', { p_client_id: c.id });
+  if(error){
+    toast(error.message);
+    if(btn){ btn.disabled = false; btn.textContent = 'Borrar comprador'; }
+    return;
+  }
+  // los ficheros del bucket, con la sesion del super_admin. Si fallara, la ficha
+  // ya no existe (lo importante) y las rutas quedan en el aviso para limpiarlas.
+  const rutas = (data && data.rutas_kyc) || [];
+  if(rutas.length){
+    const { error: eSt } = await SB.storage.from('kyc').remove(rutas);
+    if(eSt) toast('Ficha borrada, pero ' + rutas.length + ' fichero(s) KYC no se pudieron quitar del bucket: ' + eSt.message);
+  }
+  toast('Ficha de ' + ((data && data.nombre) || 'comprador') + ' borrada'
+    + (rutas.length ? ' · ' + rutas.length + ' documento(s) retirados' : ''));
+  SEL = null;
+  suiCerrarCajon();
+  await cargar();
+  pintarLista();
+}
+
+async function guardar(id){
+  const nombre = $('#f-nombre').value.trim();
+  if(nombre.length < 2){ toast('Falta el nombre'); return; }
+  const telNum = $('#f-tel-num').value.trim();
+  const esEmpresa = $('#f-tipo') && $('#f-tipo').value === 'empresa';
+  const fila = {
+    tipo: esEmpresa ? 'empresa' : 'persona',
+    full_name:nombre,
+    email:$('#f-email').value.trim() || null,
+    phone: telNum ? ($('#f-tel-pre').value ? $('#f-tel-pre').value + ' ' + telNum : telNum) : null,
+    nationality:$('#f-nac').value.trim() || null,
+    passport_number:$('#f-pas').value.trim() || null,
+    address:$('#f-dom').value.trim() || null,
+    // Los campos de empresa se VACÍAN al pasar a persona, no se dejan de lado:
+    // si no, una ficha corregida seguiría arrastrando el CIF de cuando estaba
+    // mal puesta como empresa, invisible en pantalla y visible en el contrato.
+    forma_juridica: esEmpresa ? ($('#f-forma').value.trim() || null) : null,
+    registro_num:   esEmpresa ? ($('#f-registro').value.trim() || null) : null,
+    rep_nombre:     esEmpresa ? ($('#f-rep').value.trim() || null) : null,
+    rep_cargo:      esEmpresa ? ($('#f-rep-cargo').value.trim() || null) : null,
+    date_of_birth: esEmpresa ? null : ($('#f-nac-fecha').value || null),
+    kyc_status:$('#f-kyc').value,
+    notes:$('#f-notas').value.trim() || null,
+  };
+  const btn=$('#btnGuardar'); btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const q = id ? SB.from('clients').update(fila).eq('id',id).select().single()
+                 : SB.from('clients').insert(fila).select().single();
+    const { data, error } = await q;
+    if(error) throw error;
+    await cargar(); SEL = data.id;
+    pintarLista(); pintarFicha();
+    toast(id ? 'Ficha actualizada' : 'Comprador creado');
+  }catch(err){
+    /* `clients.email` es UNIQUE y una familia comparte correo: el 409 de
+       Postgres llegaba crudo («duplicate key value violates unique constraint»)
+       y no decía ni qué campo era ni qué hacer. Es el mismo caso que ya obligó
+       a que la ficha se pueda crear SIN correo (ver compradores_desde_contrato).
+       PGRST116 (0 o varias filas tras el update) sale casi siempre porque la
+       sesión murió a mitad de la petición (p.ej. otra pestaña de la suite hizo
+       signOut de la misma sesión compartida) — la RLS deniega en silencio, sin
+       lanzar un 401 claro, así que un «no se puede leer un único objeto JSON»
+       crudo no dice nada útil de por qué. */
+    const m = /duplicate key|clients_email_key|clients_email_tipo_key/.test(err.message || '')
+      ? 'Ya hay otra ficha DEL MISMO TIPO con ese correo. Desde el 19-ago una persona y su empresa sí pueden compartirlo, pero dos personas (o dos empresas) no: si es una familia que comparte buzón, deja el correo en una sola y a las demás identifícalas por su pasaporte.'
+      : /PGRST116/.test(err.code || '')
+      ? 'Tu sesión ha caducado a mitad de guardar. Recarga la página, entra de nuevo y repite el cambio — no se ha guardado.'
+      : 'No se pudo guardar: ' + (err.message || err);
+    toast(m);
+    btn.disabled=false; btn.textContent = id ? 'Guardar cambios' : 'Crear comprador';
+  }
+}
+
+async function subir(clientId){
+  const f = $('#d-file').files[0];
+  if(!f){ toast('Elige un fichero'); return; }
+  if(f.size > 20*1024*1024){ toast('El fichero supera los 20 MB'); return; }
+  const btn=$('#btnSubir'); btn.disabled=true; btn.textContent='Subiendo…';
+  // ruta por comprador: agrupa y evita que dos ficheros con el mismo nombre choquen
+  const limpio = f.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.-]/g,'_');
+  const path = `${clientId}/${Date.now()}_${limpio}`;
+  try{
+    const up = await SB.storage.from('kyc').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
+    if(up.error) throw up.error;
+    const ins = await SB.from('documents').insert({
+      client_id: clientId,
+      doc_type: $('#d-tipo').value,
+      storage_path: path,
+      status: 'pending',
+      caduca_el: $('#d-caduca').value || null,
+    });
+    if(ins.error) throw ins.error;   // el fichero ya subió; reintentar no duplica la fila
+    await cargar(); pintarLista(); pintarFicha();
+    toast('Documento subido');
+  }catch(err){
+    toast('No se pudo subir: ' + (err.message||err));
+    btn.disabled=false; btn.textContent='Subir documento';
+  }
+}
+
+/* ── portal del comprador ─────────────────────────────────────────────
+   La Edge Function `portal-invitar` es quien crea la cuenta y manda el
+   correo: aquí solo se pide con la sesión del admin. El body nunca decide
+   el permiso — lo decide el JWT en el servidor. */
+
+/* Los códigos de la función son para el log, no para una persona. Sin esta
+   traducción el operador leía «ese_email_es_del_equipo» y no sabía si era un
+   fallo suyo, un bug o una decisión de diseño (pasó el 5-ago, con el propio
+   correo del super_admin). */
+const MOTIVOS_PORTAL = {
+  ese_email_es_del_equipo:
+    'Ese correo ya es de un usuario del equipo. Una misma cuenta no puede ser del equipo y del portal a la vez. ' +
+    'Para probar el portal, usa otro correo (con Gmail vale tucorreo+portal@gmail.com: llega al mismo buzón y cuenta como distinto).',
+  email_invalido:  'Ese correo no tiene una forma válida.',
+  sin_fichas:      'No se ha podido saber a qué ficha dar acceso. Recarga la página e inténtalo otra vez.',
+  no_autorizado:   'Hace falta ser administrador para invitar o revocar accesos.',
+  sin_sesion:      'Tu sesión ha caducado. Vuelve a entrar.',
+  sesion_invalida: 'Tu sesión ha caducado. Vuelve a entrar.',
+  password_corta:  'La contraseña necesita 10 caracteres o más.',
+  no_es_cuenta_de_portal: 'Ese email no tiene acceso al portal todavía — invítalo primero.',
+};
+const motivoPortal = e => MOTIVOS_PORTAL[e] || e;
+
+async function llamaPortal(body){
+  const { data } = await SB.auth.getSession();
+  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/portal-invitar', {
+    method:'POST',
+    headers:{ 'content-type':'application/json', authorization:'Bearer ' + data.session.access_token },
+    body: JSON.stringify(body),
+  });
+  return r.json().catch(() => ({ error:'respuesta ilegible' }));
+}
+
+async function invitarPortal(c){
+  const email = ($('#p-email').value || '').trim().toLowerCase();
+  if(!email){ toast('Falta el email de acceso'); return; }
+  const ok = await lwConfirmar({
+    titulo: 'Invitar a ' + email + ' al portal',
+    cuerpo: '<p>Se le envía un <b>correo de acceso</b> y podrá ver en el portal todo lo de esta ficha: contratos, pagos, facturas y obra.</p>',
+    confirmar: 'Enviar la invitación',
+  });
+  if(!ok) return;
+  const b = $('#btnPortalInv'); b.disabled = true;
+  const r = await llamaPortal({ accion:'invitar', email, client_ids:[c.id] });
+  b.disabled = false;
+  if(r.error){ toast(motivoPortal(r.error)); return; }
+  toast(r.aviso ? 'Acceso creado, pero el correo no salió: reenvía en un rato' : 'Invitación enviada');
+  await cargar(); pintarLista(); pintarFicha();
+}
+
+async function passwordPortal(c){
+  const suyos = ACCESOS.filter(x => x.client_id === c.id && x.activo);
+  if(!suyos.length) return;
+  const email = ($('#p-email').value || '').trim().toLowerCase() || suyos[0].email;
+  const p = prompt('Nueva contraseña para ' + email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar, solo cambiar por otra.');
+  if(p === null) return;
+  if(p.length < 10){ toast('Mínimo 10 caracteres'); return; }
+  const b = $('#btnPortalPass'); b.disabled = true;
+  const r = await llamaPortal({ accion:'password', email, password:p });
+  b.disabled = false;
+  if(r.error){ toast(motivoPortal(r.error)); return; }
+  toast('Contraseña puesta. Pásasela tú: no queda guardada en ningún sitio consultable.');
+}
+
+async function revocarPortal(c){
+  const suyos = ACCESOS.filter(x => x.client_id === c.id && x.activo);
+  if(!suyos.length) return;
+  const email = suyos[0].email;
+  const ok = await lwConfirmar({
+    titulo: 'Revocar el acceso de ' + email,
+    cuerpo: '<p>Dejará de ver <b>todas</b> las fichas vinculadas a ese email, no solo ésta.</p>',
+    confirmar: 'Revocar el acceso',
+    tono: 'peligro',
+  });
+  if(!ok) return;
+  const b = $('#btnPortalRev'); b.disabled = true;
+  const r = await llamaPortal({ accion:'revocar', email });
+  b.disabled = false;
+  if(r.error){ toast(motivoPortal(r.error)); return; }
+  toast('Acceso revocado');
+  await cargar(); pintarLista(); pintarFicha();
+}
+
+async function abrir(path){
+  if(!path) return;
+  const { data, error } = await SB.storage.from('kyc').createSignedUrl(path, 300);
+  if(error || !data){ toast('No se pudo generar el enlace'); return; }
+  // visor compartido de la suite: el documento se consulta en un pop-up sin
+  // salir de la ficha (regla 29-jul: nunca pestaña nueva para consultar)
+  LW_VISOR.abrir(data.signedUrl, 'Documento del comprador');
+}
+
+$('#listaC').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if(!b) return;
+  SEL = b.dataset.id; pintarLista(); pintarFicha();
+});
+$('#q').addEventListener('input', pintarLista);
+/* Ni `#stage` ni `#ficha` existen desde que la ficha vive en el CAJÓN lateral
+   (31-jul): eran de la maqueta de dos columnas anterior. Cada clic en una fila
+   lanzaba un TypeError — no se veía porque saltaba DESPUÉS de abrir el cajón,
+   así que la pantalla funcionaba y solo ensuciaba la consola. Retirados. */
+$('#btnNuevo').addEventListener('click', () => { SEL='nuevo'; pintarLista(); pintarFicha(); });
+
+suiMontarCajon();
+suiOrdenable(document.getElementById('tabla'), ORDEN, (c, campo) => c[campo], pintarLista);
+
+window.LW_AUTH.then(async ({ sb, session, ficha }) => {
+  SB = sb;
+  YO = ficha;   // el rol decide si la ficha enseña los botones de invitar al portal
+  ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
+  try{
+    await cargar();
+    /* ?id=<client_id> abre esa ficha directamente. Lo usa Operaciones: llegar
+       desde la ficha de una venta a un listado y tener que buscar a la persona
+       que ya estabas mirando es un viaje de ida sin vuelta. */
+    const par = new URLSearchParams(location.search);
+    const pedido = par.get('id');
+    if(pedido && CLIENTES.some(c => c.id === pedido)){
+      SEL = pedido;
+      pintarLista(); pintarFicha();
+    }else if(par.get('nuevo')){
+      /* ?nuevo=1 abre directamente el alta (19-ago-2026). Lo usa Contratos:
+         desde que el contrato ya no da de alta a nadie, su enlace «Abrir
+         Compradores» tiene que caer en el formulario de alta y no en una lista
+         donde hay que volver a buscar el botón. */
+      SEL = 'nuevo';
+      pintarLista(); pintarFicha();
+    }else{
+      if(pedido) toast('Ese comprador ya no existe');
+      pintarLista();
+    }
+  }
+  catch(err){ $('#listaC').innerHTML = '<p class="nota" style="padding:18px">No se pudo cargar: ' + esc(err.message||err) + '</p>'; }
+});
+</script>
+</body>
+</html>

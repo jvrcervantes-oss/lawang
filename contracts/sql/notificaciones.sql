@@ -125,7 +125,7 @@ begin
         coalesce(new.numero,'Contrato') || ' firmado',
         coalesce(new.comprador_nombre,'sin comprador')
           || coalesce(' · ' || new.proyecto_nombre, ''),
-        new.creado_por, new.id, '/operaciones/?contrato=' || new.id);
+        new.creado_por, new.id, '/intranet/operaciones/?contrato=' || new.id);
     end if;
   exception when others then
     raise warning 'aviso contrato_firmado (%) no se pudo anotar: %', new.id, sqlerrm;
@@ -149,7 +149,7 @@ begin
       'Enlace de firma enviado · ' || coalesce(c.numero,'sin nº'),
       coalesce(new.firmante_nombre,'firmante')
         || coalesce(' · caduca el ' || to_char(new.expira_en,'DD/MM/YYYY'), ''),
-      c.creado_por, new.contrato_id, '/operaciones/?contrato=' || new.contrato_id);
+      c.creado_por, new.contrato_id, '/intranet/operaciones/?contrato=' || new.contrato_id);
   exception when others then
     raise warning 'aviso firma_enviada (%) no se pudo anotar: %', new.id, sqlerrm;
   end;
@@ -180,8 +180,8 @@ begin
       coalesce(new.cliente_nombre,'') || ' · ' ||
         trim(to_char(coalesce(new.total,0),'FM999G999G990D00')) || ' ' || coalesce(new.moneda,''),
       coalesce(new.creado_por, c.creado_por), new.contrato_id,
-      case when new.contrato_id is null then '/facturas/'
-           else '/operaciones/?contrato=' || new.contrato_id end);
+      case when new.contrato_id is null then '/intranet/facturas/'
+           else '/intranet/operaciones/?contrato=' || new.contrato_id end);
 
     if c.precio_total is not null and c.precio_total > 0 then
       select coalesce(sum(total),0) into v_emitido from facturas
@@ -190,7 +190,7 @@ begin
         perform anotar_aviso('operacion_saldada',
           coalesce(c.numero,'Contrato') || ' saldado',
           coalesce(c.comprador_nombre,'') || ' · lo emitido cubre ya el precio pactado',
-          c.creado_por, new.contrato_id, '/operaciones/?contrato=' || new.contrato_id);
+          c.creado_por, new.contrato_id, '/intranet/operaciones/?contrato=' || new.contrato_id);
       end if;
     end if;
   exception when others then
@@ -232,7 +232,7 @@ begin
     perform anotar_aviso('unidad_' || new.estado,
       'Parcela ' || coalesce(new.codigo,'sin código') || ' ' || v_texto,
       coalesce(new.proyecto,'') || coalesce(' · ' || c.numero, ''),
-      c.creado_por, coalesce(new.contrato_id, old.contrato_id), '/proyectos/');
+      c.creado_por, coalesce(new.contrato_id, old.contrato_id), '/intranet/proyectos/');
   exception when others then
     raise warning 'aviso unidad (%) no se pudo anotar: %', new.id, sqlerrm;
   end;
@@ -256,7 +256,7 @@ insert into public.notificaciones (tipo, titulo, detalle, destinatario, contrato
 select 'contrato_firmado',
        coalesce(c.numero,'Contrato') || ' firmado',
        coalesce(c.comprador_nombre,'sin comprador') || coalesce(' · ' || c.proyecto_nombre,''),
-       c.creado_por, c.id, '/operaciones/?contrato=' || c.id,
+       c.creado_por, c.id, '/intranet/operaciones/?contrato=' || c.id,
        coalesce(c.fecha_firma::timestamptz, c.created_at)
   from public.contratos c
  where c.bloqueado
@@ -269,7 +269,7 @@ select 'factura_emitida',
        coalesce(f.cliente_nombre,'') || ' · ' ||
          trim(to_char(coalesce(f.total,0),'FM999G999G990D00')) || ' ' || coalesce(f.moneda,''),
        coalesce(f.creado_por, c.creado_por), f.contrato_id,
-       case when f.contrato_id is null then '/facturas/' else '/operaciones/?contrato=' || f.contrato_id end,
+       case when f.contrato_id is null then '/intranet/facturas/' else '/intranet/operaciones/?contrato=' || f.contrato_id end,
        f.created_at
   from public.facturas f
   left join public.contratos c on c.id = f.contrato_id

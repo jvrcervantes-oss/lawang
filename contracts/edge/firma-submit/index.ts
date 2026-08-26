@@ -137,7 +137,7 @@ const b64 = (u8: Uint8Array) => {
   return btoa(s);
 };
 
-/* Los ficheros que pintan la factura son los MISMOS que usa /facturas/, así que
+/* Los ficheros que pintan la factura son los MISMOS que usa /intranet/facturas/, así que
    la factura que sale sola y la que emite una persona son el mismo documento: si
    mañana cambia una fila en documento.js, cambia en las dos. La alternativa que se
    rechazó fue una segunda plantilla aquí dentro, que es lo que se queda vieja.
@@ -297,7 +297,7 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
     .filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
   const lineas = [{ descripcion, importe: String(monto) }];
 
-  // Misma forma que produce collect() en /facturas/, para que la factura se abra
+  // Misma forma que produce collect() en /intranet/facturas/, para que la factura se abra
   // ahí tal cual y se pueda corregir o anular como cualquier otra.
   const campos: Record<string, string> = {
     tipo: 'factura',
@@ -778,7 +778,7 @@ Deno.serve(async (req) => {
     // tras un balance de cliente real que salió mal): una factura automática
     // "con fuerza de cobro" sin que un agente la revise es dinero mal pedido.
     // Ahora solo sale la proforma informativa; la factura por hito la crea un
-    // agente a mano en /facturas/ cuando corresponde, y esa factura NO cuenta
+    // agente a mano en /intranet/facturas/ cuando corresponde, y esa factura NO cuenta
     // como cobrado hasta que exista un recibí que la referencie (ver
     // facturas/sql/recibi_aplicaciones.sql). La función sigue abajo, sin
     // llamarse, por si se retoma con revisión humana de por medio.

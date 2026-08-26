@@ -31,9 +31,9 @@ if(window.LW3) return;                       // idempotente: dos <script> no dup
    `v3` al <html>, así que `suite-v3.css` —que está entera bajo `html.v3`—
    tampoco pinta nada. Las once herramientas siguen exactamente como estaban.
 
-     /facturas/?v3=1   enciende la v3 y la deja encendida en ESTA pestaña
-     /facturas/?v3=0   la apaga
-     /facturas/        hereda lo que hubiera en la pestaña
+     /intranet/facturas/?v3=1   enciende la v3 y la deja encendida en ESTA pestaña
+     /intranet/facturas/?v3=0   la apaga
+     /intranet/facturas/        hereda lo que hubiera en la pestaña
 
    Por qué `sessionStorage` y no reescribir los enlaces: la suite navega en
    estrella —del panel a una herramienta y vuelta— y esos enlaces no llevan el
@@ -56,15 +56,15 @@ if(window.LW3) return;                       // idempotente: dos <script> no dup
    dijo en una linea: «no veo ninguna diferencia».
    Lo decide la RUTA, que es un dato que existe antes que cualquier guion. */
 /* CUALQUIER ruta que termine en `/v3/` es v3, no solo la del panel. Se
-   desplegó mirando únicamente `/intranet/v3/`, y `/operaciones/v3/` y
-   `/facturas/v3/` salieron con el motor apagado: `LW3 is not defined` y la
+   desplegó mirando únicamente `/intranet/v3/`, y `/intranet/operaciones/v3/` y
+   `/intranet/facturas/v3/` salieron con el motor apagado: `LW3 is not defined` y la
    pantalla en blanco. En local no se vio porque la pestaña de pruebas ya
    tenía la llave puesta de antes — el clásico «en mi máquina funciona». */
 /* ⚠️ LA RUTA DEJA DE MANDAR AL SALIR A PRODUCCIÓN (26-ago-2026).
    Decidir "soy v3" mirando si la URL acaba en `/v3/` funcionaba mientras la v3
    vivía en una carpeta aparte, pero es una dependencia de un accidente: el día
    que la página se promociona a su sitio definitivo —`/intranet/`,
-   `/operaciones/`— la URL cambia y el motor se apaga SOLO, que es exactamente
+   `/intranet/operaciones/`— la URL cambia y el motor se apaga SOLO, que es exactamente
    el fallo del 23-ago con otro disfraz («no veo ninguna diferencia»).
    La página lo declara ahora ella misma, en el `<html>`:
 
@@ -1070,7 +1070,7 @@ document.documentElement.classList.add('v3');
    aplicaba a todas; `th`/`td` de Compradores cambiaban el relleno de cualquier
    tabla de la suite; `fieldset` salía con un radio en Facturas y otro en
    Usuarios según cuál se escribiera la última; y `.op` del Portal repintaba las
-   filas de `/operaciones/v3/`. Un pase por herramienta que no sabe en qué
+   filas de `/intranet/operaciones/v3/`. Un pase por herramienta que no sabe en qué
    herramienta está no es un pase por herramienta. */
 document.documentElement.setAttribute('data-herr',
   (location.pathname.split('/').filter(Boolean)[0] || 'intranet').toLowerCase());

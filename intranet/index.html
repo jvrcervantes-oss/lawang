@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
+<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -278,9 +278,9 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=4b6cb538"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 </head>
 <body hidden>
   <!-- LA MISMA BARRA QUE LAS HERRAMIENTAS (16-ago-2026, owner: «unificalo, pero
@@ -317,7 +317,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
              talla pisada a mano (13px/10px 18px), que no era ni la del boton de
              barra ni la del primario. Ahora miden lo que mide la clase. -->
         <a class="lw-btn" href="/contracts/?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
-        <a class="lw-btn primary" href="/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
+        <a class="lw-btn primary" href="/intranet/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </div>
     <!-- Tarjetas de cifra y últimas operaciones (6-ago-2026, handoff de diseño).
@@ -355,8 +355,8 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      daba tres decimales donde Facturas da dos. El `?v=` lo sella el
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
-<script src="/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
+<script src="/intranet/facturas/totales.js"></script>
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -493,7 +493,7 @@ async function contar(sb){
     n('usuarios', q => q.eq('activo', true)),
     n('usuarios', q => q.eq('activo', false)),
     n('documentos_proyecto'),
-    // Vencimientos sin fecha: la cifra de la tarjeta de /vencimientos/. Se
+    // Vencimientos sin fecha: la cifra de la tarjeta de /intranet/vencimientos/. Se
     // cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a
     // la tarjeta, en assets/herramientas.js. RLS de equipo (es_agente), así
     // que el count vale para cualquiera que vea la tarjeta.
@@ -516,7 +516,7 @@ async function contar(sb){
   // conteo solo veía las firmas de ESTE agente, no las del equipo, y encima
   // contaba FILAS (una por firmante) en vez de CONTRATOS — un contrato con
   // dos firmantes pendientes sumaba 2. La tarjeta enlaza a
-  // `/operaciones/?filtro=firma_viva`, que cuenta contratos con al menos una
+  // `/intranet/operaciones/?filtro=firma_viva`, que cuenta contratos con al menos una
   // firma pendiente vía `contrato_firmas_equipo()` (team-wide, la misma RPC
   // que ya usa Operaciones) — el origen tiene que ser el mismo o los dos
   // números nunca van a coincidir.
@@ -545,18 +545,18 @@ function pintarKpis(d, ficha){
     /* `tono` colorea el pie por SIGNIFICADO, como el mockup: ámbar lo que espera,
        rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
        los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
-    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/?filtro=firma_viva', herr:'operaciones',
+    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/intranet/operaciones/?filtro=firma_viva', herr:'operaciones',
       pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
       tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
     { rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables',
       tono:() => d.contratosEditables ? 'espera' : '' },
-    { rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
+    { rot:'Facturas emitidas', v:d.facturas, href:'/intranet/facturas/', herr:'facturas',
       pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada',
       tono:() => d.facturasAnuladas ? 'espera' : 'bien' },
-    { rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/', herr:'unidades',
+    { rot:'Unidades libres', v:d.unidadesLibres, href:'/intranet/proyectos/', herr:'unidades',
       pie:() => d.unidades == null ? '' : 'de ' + d.unidades + ' en inventario' },
-    { rot:'En obra', v:d.obraActivas, href:'/obra/', herr:'obra',
+    { rot:'En obra', v:d.obraActivas, href:'/intranet/obra/', herr:'obra',
       pie:n => n ? 'con fase abierta' : 'sin unidades en obra',
       tono:n => n ? 'bien' : '' },
   ];
@@ -609,7 +609,7 @@ async function ultimasOperaciones(sb){
         que:'Contrato', href:'/contracts/?contrato=' + r.id, estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
     ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
         que:r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura',
-        href:'/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
+        href:'/intranet/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
         estado:r.anulada ? ['Anulada','alerta'] : ['Emitida','info'] })),
   ].filter(r => r.fecha).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 8);
   if(!filas.length) return;

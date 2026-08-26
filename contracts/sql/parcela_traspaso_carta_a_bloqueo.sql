@@ -7,7 +7,7 @@
 -- Es decir: el paso NORMAL de una venta estaba prohibido. La secuencia real,
 -- la que describe el propio TEMPLATES de app.html, es "se reserva, se bloquea
 -- la parcela y se firma la obra" — y el segundo paso no podía darse sin ir a
--- mano a /proyectos/ a soltar la parcela primero.
+-- mano a /intranet/proyectos/ a soltar la parcela primero.
 --
 -- CAUSA: la comprobación de ocupación miraba SOLO si había otro contrato, no
 -- CUÁL. Cualquier contrato distinto del que se guarda bloqueaba, incluida la

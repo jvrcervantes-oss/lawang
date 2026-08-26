@@ -15,7 +15,7 @@
 <!-- Catálogo y formato de dinero: los MISMOS ficheros que el hub vivo. Esta v3
      cambia la piel y el comportamiento, no la fuente de verdad de qué
      herramientas existen ni de quién las ve (regla 0 de la suite). -->
-<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <!-- LA CÁSCARA REAL DE LA SUITE. El panel v3 dejó de tener motor propio el
      23-ago-2026: tenía una copia entera de los muelles, del pulsable, del
@@ -29,7 +29,7 @@
      que el panel v3 salió sin menú lateral: la única pantalla de la suite sin
      él, y justo la que se abre primero. Se cuelga del evento `lw-ficha` que
      dispara el arranque de abajo. -->
-<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
+<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
@@ -38,11 +38,11 @@
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/facturas/totales.js"></script>
+<script src="/intranet/facturas/totales.js"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=4b6cb538"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    LAWANG · PANEL v3 — 23-ago-2026
@@ -471,7 +471,7 @@ main, .lede, .lede > div, .dosCol, .dosCol > *, .fila, .fila .tx{ min-width:0; }
       </div>
       <div class="acciones">
         <a class="btn" href="/contracts/?nuevo=1" data-press><i class="ph ph-plus"></i>Nuevo contrato</a>
-        <a class="btn solido" href="/facturas/?nueva=1&v3=1" data-press><i class="ph ph-plus"></i>Nueva factura</a>
+        <a class="btn solido" href="/intranet/facturas/?nueva=1&v3=1" data-press><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </section>
 
@@ -663,7 +663,7 @@ swSonido.onchange=()=>{ LW3.sonido=swSonido.checked; if(LW3.sonido) sensacion('e
    9 · ESTADO DE LA PÁGINA
    ═══════════════════════════════════════════════════════════════════════════ */
 /* Al entrar por el panel v3 se enciende la v3 para TODA la pestaña: los
-   enlaces a las herramientas (`/facturas/`, `/operaciones/`…) no llevan
+   enlaces a las herramientas (`/intranet/facturas/`, `/intranet/operaciones/`…) no llevan
    `?v3=1`, y sin esto la exploración se caía en el primer clic y había que ir
    pegando el parámetro a mano. `movimiento-v3.js` lee esta misma llave. */
 try{ sessionStorage.setItem('lw3-on','1'); }catch(_){}
@@ -691,21 +691,21 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
    patrón que esta suite tiene anotado como fuente de fallos. Se tolera porque
    dura poco: Operaciones, Contratos e Intranet ya salieron a su ruta
    definitiva y han salido de aquí. Las tres que quedan son LISTADOS que aún
-   enlazan al editor de la página viva (`/facturas/?id=`, `/compradores/?id=`),
+   enlazan al editor de la página viva (`/intranet/facturas/?id=`, `/intranet/compradores/?id=`),
    así que promocionarlas tal cual las dejaría apuntándose a sí mismas y sin
    editor. Se fusionan en su página viva y este mapa desaparece — LAW-88.
    Mientras exista, la regla es la de siempre: si una fila no está aquí, manda
    `herramientas.js`. Nunca al revés. */
 const V3_PROPIA = {
-  '/facturas/':         '/facturas/v3/',
-  '/proyectos/':        '/proyectos/v3/',
-  '/compradores/':      '/compradores/v3/',
+  '/intranet/facturas/':         '/intranet/facturas/v3/',
+  '/intranet/proyectos/':        '/intranet/proyectos/v3/',
+  '/intranet/compradores/':      '/intranet/compradores/v3/',
 };
 function hrefV3(href){
   if(!href) return href;
   const propia = V3_PROPIA[href];
   if(propia) return propia;
-  /* Recibos apunta a `/facturas/?tipo=recibi`: conserva su filtro y se le añade
+  /* Recibos apunta a `/intranet/facturas/?tipo=recibi`: conserva su filtro y se le añade
      el interruptor, en vez de perderlo por mandarlo a la v3 sin parámetros. */
   return href + (href.includes('?') ? '&' : '?') + 'v3=1';
 }
@@ -761,19 +761,19 @@ const PREF={
    detalle, y el menú de «⋯» para ocultarla con deshacer. */
 function tarjetasKpi(d){
   const T=[
-    { id:'firmas', rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/v3/', herr:'operaciones',
+    { id:'firmas', rot:'Firmas esperando', v:d.firmasPendientes, href:'/intranet/operaciones/v3/', herr:'operaciones',
       pie:n=>n?'pendientes de que el comprador firme':'ninguna pendiente', tono:n=>n?'mal':'bien', urge:n=>n>0,
       detalle:n=>[['Contratos con firma viva',n==null?'—':n],['Origen','contrato_firmas_equipo()'],['Se cuenta','contratos, no firmantes']] },
     { id:'contratos', rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:()=>d.contratosEditables==null?'':d.contratosEditables+' aún editables', tono:()=>d.contratosEditables?'espera':'',
       detalle:()=>[['Guardados',d.contratos??'—'],['Editables',d.contratosEditables??'—'],['Bloqueados',(d.contratos!=null&&d.contratosEditables!=null)?d.contratos-d.contratosEditables:'—']] },
-    { id:'facturas', rot:'Facturas emitidas', v:d.facturas, href:'/facturas/v3/', herr:'facturas',
+    { id:'facturas', rot:'Facturas emitidas', v:d.facturas, href:'/intranet/facturas/v3/', herr:'facturas',
       pie:()=>d.facturasAnuladas?d.facturasAnuladas+' anuladas':'ninguna anulada', tono:()=>d.facturasAnuladas?'espera':'bien',
       detalle:()=>[['Emitidas',d.facturas??'—'],['Anuladas',d.facturasAnuladas??'—'],['Recibís',d.recibis??'—']] },
-    { id:'unidades', rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/?v3=1', herr:'unidades',
+    { id:'unidades', rot:'Unidades libres', v:d.unidadesLibres, href:'/intranet/proyectos/?v3=1', herr:'unidades',
       pie:()=>d.unidades==null?'':'de '+d.unidades+' en inventario',
       detalle:()=>[['Disponibles',d.unidadesLibres??'—'],['Inventario total',d.unidades??'—'],['En obra',d.obraActivas??'—']] },
-    { id:'obra', rot:'En obra', v:d.obraActivas, href:'/obra/?v3=1', herr:'obra', invertida:true,
+    { id:'obra', rot:'En obra', v:d.obraActivas, href:'/intranet/obra/?v3=1', herr:'obra', invertida:true,
       pie:n=>n?'con fase abierta':'sin unidades en obra', tono:n=>n?'bien':'',
       detalle:()=>[['Con fase abierta',d.obraActivas??'—'],['Lo ve el comprador','sí, en su portal']] },
   ];
@@ -1044,7 +1044,7 @@ async function ultimasOperaciones(sb){
       href:'/contracts/?contrato='+r.id, estado:r.bloqueado?['Firmado','ok']:['Editable','']})),
     ...(f.data||[]).map(r=>({fecha:r.created_at,num:r.numero,quien:r.cliente_nombre,
       que:r.tipo==='recibi'?'Recibí':r.tipo==='proforma'?'Proforma':'Factura',
-      href:'/facturas/?id='+r.id, importe:r.total, moneda:r.moneda,
+      href:'/intranet/facturas/?id='+r.id, importe:r.total, moneda:r.moneda,
       estado:r.anulada?['Anulada','alerta']:['Emitida','info']})),
   ].filter(r=>r.fecha).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
   pintarReciente(filas);

@@ -724,14 +724,14 @@ body{font-family:var(--csa);font-size:14px;background:var(--rl);color:var(--va);
         </div>
 
         <div class="form-section">
-          <h4>Masterplan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Plano del proyecto con las parcelas numeradas y clicables (reemplaza la lista de tamaños en el paso "Choose your plot"). El estado disponible/reservada/vendida se lee en vivo desde /proyectos/ por código — aquí solo se coloca el pin, no se edita el estado. Pulsa ◎ y luego la foto para situar cada parcela.</span></h4>
+          <h4>Masterplan <span class="muted" style="text-transform:none;letter-spacing:0;font-size:12px;font-weight:400">Opcional. Plano del proyecto con las parcelas numeradas y clicables (reemplaza la lista de tamaños en el paso "Choose your plot"). El estado disponible/reservada/vendida se lee en vivo desde /intranet/proyectos/ por código — aquí solo se coloca el pin, no se edita el estado. Pulsa ◎ y luego la foto para situar cada parcela.</span></h4>
           <div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center">
             <input type="text" id="f-masterplanImage" class="img-url" placeholder="URL de la imagen (o usa ↑ / Pick)" oninput="syncPreview('masterplan')">
             <button type="button" class="img-slot-upload" onclick="uploadToField(this,'f-masterplanImage','masterplan')" title="Upload file">↑</button>
             <button type="button" class="img-slot-pick" onclick="pickToField('f-masterplanImage','masterplan')">Pick</button>
           </div>
           <div class="form-group" style="margin-top:8px">
-            <input type="text" id="f-masterplanProject" placeholder="Nombre EXACTO del proyecto en /proyectos/ (ej. Palm Field)">
+            <input type="text" id="f-masterplanProject" placeholder="Nombre EXACTO del proyecto en /intranet/proyectos/ (ej. Palm Field)">
           </div>
           <div class="pt-wrap" id="masterplan-wrap" style="position:relative;display:none;margin:10px 0;max-width:660px">
             <img id="masterplan-preview" src="" alt="Masterplan preview" style="display:block;width:100%;border-radius:8px;cursor:crosshair" onclick="placePoint(event,'masterplan')" onerror="this.parentNode.style.display='none'">
@@ -1304,7 +1304,7 @@ function addHotspotRow(h) {
 }
 
 // Pin del masterplan: solo código + posición. El estado (disponible/reservada/
-// vendida) NO se guarda aquí — se lee en vivo desde /proyectos/ por código, así
+// vendida) NO se guarda aquí — se lee en vivo desde /intranet/proyectos/ por código, así
 // que un pin sin el código exacto que usa el contrato/unidad simplemente no
 // encuentra estado y la web lo trata como "sin datos" (degradación silenciosa).
 function addMasterplanPinRow(pt) {
@@ -1602,7 +1602,7 @@ function formToProperty() {
     };
   }).filter(function(h){ return h.en.l1 || h.en.l2; });
   var aerialImage = get('f-aerial-image').trim();
-  // Masterplan: fila sin código no sirve para nada (no habría con qué cruzar /proyectos/) -> se descarta.
+  // Masterplan: fila sin código no sirve para nada (no habría con qué cruzar /intranet/proyectos/) -> se descarta.
   var masterplanPlots = Array.from(document.querySelectorAll('#f-masterplan-list .pt-row')).map(function(row){
     return {
       code: row.querySelector('.pt-code').value.trim().toUpperCase(),

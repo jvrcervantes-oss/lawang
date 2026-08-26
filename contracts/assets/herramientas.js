@@ -17,7 +17,7 @@
    uno y no uno-y-medio.
 */
 const LW_HERRAMIENTAS = [
-  { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/operaciones/', herr:'operaciones',
+  { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
     claves:'ventas seguimiento estado cuenta',
     estado:d => d.firmasPendientes == null ? null
@@ -33,7 +33,7 @@ const LW_HERRAMIENTAS = [
      Al darle clave propia, quien tenía «Operaciones» recibe también
      «Vencimientos» (migración en sql/permiso_vencimientos.sql): sin eso, diez
      personas habrían perdido de golpe una herramienta que ya usaban. */
-  { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/vencimientos/', herr:'vencimientos',
+  { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/vencimientos/', herr:'vencimientos',
     para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',
     claves:'vencimientos pagos hitos caja cashflow finanzas dinero calendario vencido dashboard',
     /* La cifra del hub es "sin fecha" y NO "vencidos", a propósito: saber si un
@@ -56,46 +56,46 @@ const LW_HERRAMIENTAS = [
   // eran dos entradas sueltas para dos herramientas de producción de
   // contenido que casi siempre se usan seguidas. `herr` como ARRAY = ve la
   // tarjeta quien tenga cualquiera de las dos (ver `puede()` más abajo);
-  // dentro, el visor de /creatividades/ reparte a cada herramienta, que
+  // dentro, el visor de /intranet/creatividades/ reparte a cada herramienta, que
   // sigue exigiendo SU permiso propio para entrar de verdad.
-  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/creatividades/', herr:['dossier','creatividades'],
+  { grupo:'Documentación', nombre:'Creatividades', icon:'ph-image-square', href:'/intranet/creatividades/', herr:['dossier','creatividades'],
     para:'Dossiers de producto y piezas de pauta para Instagram y Facebook, con la revisión de legibilidad incorporada.',
     claves:'creatividades dossier anuncios pauta instagram facebook meta ads imagen story feed pdf maqueta producto' },   // sin `estado`: ninguna de las dos vive en la base de datos
-  { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/documentacion/', herr:'documentacion',
+  { grupo:'Documentación', nombre:'Documentación', icon:'ph-folders', href:'/intranet/documentacion/', herr:'documentacion',
     para:'Precios, planos y material de cada proyecto, en el almacén privado.',
     claves:'documentacion documentos precios planos parcelas material proyecto archivo',
     estado:d => d.documentos == null ? null
       : d.documentos === 0 ? ['Sin documentos todavía', true]
       : [d.documentos + ' documentos · ' + d.proyectosConDocs + ' proyectos', false] },
 
-  { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/facturas/', herr:'facturas',
+  { grupo:'Administración', nombre:'Facturas', icon:'ph-receipt', href:'/intranet/facturas/', herr:'facturas',
     para:'Facturas, proformas y recibís, cada tipo con su serie.',
     claves:'facturas proforma serie inv cobro impuesto',
     estado:d => d.facturas == null ? null
       : [d.facturas + ' emitidas' + (d.facturasAnuladas ? ' · ' + d.facturasAnuladas + ' anuladas' : ''), false] },
-  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/facturas/?tipo=recibi', herr:'facturas',
+  { grupo:'Administración', nombre:'Recibos', icon:'ph-hand-coins', href:'/intranet/facturas/?tipo=recibi', herr:'facturas',
     para:'Justificantes de pago y señales.',
     claves:'recibi recibos justificante señal pago',
     estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
 
-  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/proyectos/', herr:'unidades',
+  { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
     claves:'proyectos unidades parcelas villas inventario disponible carpetas',
     estado:d => d.unidades == null ? null
       : d.unidades === 0 ? ['Sin inventario cargado', true]
       : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
-  { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/obra/', herr:'obra',
+  { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/intranet/obra/', herr:'obra',
     para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.',
     claves:'obra construccion fases fotos avance portal entrega',
     estado:d => d.obraActivas == null ? null
       : d.obraActivas === 0 ? ['Sin unidades en obra', true]
       : [d.obraActivas + ' en obra', false] },
-  { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/compradores/', herr:'compradores',
+  { grupo:'Base de datos', nombre:'Compradores', icon:'ph-identification-card', href:'/intranet/compradores/', herr:'compradores',
     para:'Ficha del comprador y documentación KYC, con caducidades.',
     claves:'compradores kyc pasaporte fichas clientes caducidad',
     estado:d => d.compradores == null ? null : [d.compradores + ' fichas', false] },
 
-  { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/usuarios/', herr:'usuarios', soloAdmin:true,
+  { grupo:'Equipo', nombre:'Usuarios', icon:'ph-users-three', href:'/intranet/usuarios/', herr:'usuarios', soloAdmin:true,
     para:'Quién entra, con qué rol y qué herramientas ve cada uno.',
     claves:'usuarios permisos roles equipo acceso',
     estado:d => d.usuarios == null ? null
@@ -128,7 +128,7 @@ const lwPermitida = (t, ficha) =>
 /* ═══════════════════════════════════════════════════════════════════════════
    LOS PERMISOS SALEN DE ESTE MISMO CATÁLOGO — 17-ago-2026 (auditoría)
    ═══════════════════════════════════════════════════════════════════════════
-   `/usuarios/` tenía su propia lista de las diez herramientas, con sus etiquetas
+   `/intranet/usuarios/` tenía su propia lista de las diez herramientas, con sus etiquetas
    escritas a mano, y ya había divergido: la casilla del inventario decía
    «Unidades» mientras el hub y el menú lateral dicen «Proyectos». Es letra por
    letra el fallo de `TIPO_ES` contra `TIPO_LABEL` que se cerró el 14-ago, esta
@@ -144,7 +144,7 @@ const lwPermitida = (t, ficha) =>
        los permisos;
      · las que comparten tarjeta necesitan nombre propio y solo esas están en
        `ETIQUETA_PROPIA`. Si mañana se agrupa otra y nadie le pone etiqueta, el
-       `console.warn` de abajo lo dice en la consola de /usuarios/ en vez de
+       `console.warn` de abajo lo dice en la consola de /intranet/usuarios/ en vez de
        enseñar la clave cruda de la base de datos, que es como se colaron seis
        contratos con jerga en pantalla.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -173,7 +173,7 @@ const LW_PERMISOS = (function () {
 })();
 
 /* Con qué entra un usuario nuevo. Vivía escrito dentro del formulario de alta de
-   `/usuarios/`; está aquí para que se lea junto a la lista que gobierna. */
+   `/intranet/usuarios/`; está aquí para que se lea junto a la lista que gobierna. */
 const LW_PERMISOS_POR_DEFECTO = ['contratos', 'facturas', 'operaciones', 'vencimientos'];
 
 /* Orden de los grupos, para que el menú lateral no repita cabeceras si el

@@ -14,7 +14,7 @@
    ofrece algo que la base rechaza y el usuario no entiende por qué.
    ═══════════════════════════════════════════════════════════════════════════ */
 /* ---------- la subparcela sale del inventario ----------
-   Si el proyecto elegido tiene unidades dadas de alta en /proyectos/, el código
+   Si el proyecto elegido tiene unidades dadas de alta en /intranet/proyectos/, el código
    de parcela deja de ser texto libre y pasa a ser un desplegable con las que
    hay, su modelo y su precio. Las que ya tiene otro contrato salen marcadas y
    no se pueden elegir: la base también lo impide (trigger
@@ -31,7 +31,7 @@ let ID_PINTADO = null;
    owner; caso real: A4 de Bonian Village). Es la secuencia normal de una venta,
    la misma que describe el orden de TEMPLATES: se reserva, se bloquea la
    parcela y se firma la obra. Hasta hoy el segundo paso estaba prohibido —
-   había que ir a /proyectos/ a soltar la parcela a mano antes de poder emitir
+   había que ir a /intranet/proyectos/ a soltar la parcela a mano antes de poder emitir
    el Bloqueo, y el error que salía ("ya está asignada al contrato CR000xx")
    parecía un choque con otra venta cuando era la SUYA PROPIA.
    Solo las Cartas de Reserva y solo hacia un Bloqueo: dos Bloqueos sobre la

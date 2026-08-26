@@ -33,7 +33,7 @@
 -- REVIERTEN un estado. Si se anula el recibí que llevó una parcela a
 -- `vendida`/`cobrada`, la parcela se queda ahí — mismo criterio que ya tenía
 -- `sincroniza_unidad_contrato` (una edición del contrato tampoco hacía
--- retroceder `vendida`). Corrección manual desde `/proyectos/`.
+-- retroceder `vendida`). Corrección manual desde `/intranet/proyectos/`.
 -- ============================================================================
 
 -- ---- 1) el tipo de contrato decide el TECHO al que llega la firma sola ----
@@ -90,7 +90,7 @@ end $$;
 -- apunta a esta misma función por nombre — no hace falta recrearlo.
 
 -- ---- 2) el dinero avanza vendida/cobrada, nunca las revierte --------------
--- Misma base que ya usa /proyectos/ para enseñar "Cobrado" y el % de la
+-- Misma base que ya usa /intranet/proyectos/ para enseñar "Cobrado" y el % de la
 -- parcela (`contrato_cobrado()` contra `unidades.precio`, vista
 -- `unidades_estado`) — ninguna cuenta nueva, la misma.
 --

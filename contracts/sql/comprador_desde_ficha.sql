@@ -27,7 +27,7 @@
 -- una, cambia la otra: sin la app, esto deja contratos sin comprador enlazado;
 -- sin esto, la base volvería a inventar personas a partir de una errata.
 -- LAW-51: al tocar esta función se relee TODO consumidor — hoy el trigger
--- `trg_compradores_desde_datos` y la llamada suelta desde /compradores/.
+-- `trg_compradores_desde_datos` y la llamada suelta desde /intranet/compradores/.
 
 create or replace function public.sincronizar_compradores(p_contrato uuid)
 returns jsonb

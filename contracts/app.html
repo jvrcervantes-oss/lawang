@@ -27,8 +27,8 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="assets/suite.css?v=d75b8a06">
-<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="assets/topbar.js?v=ea125e99" defer></script>
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="assets/topbar.js?v=4002d4aa" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -42,7 +42,7 @@
      de Supabase publicado en `LW_SB`, que es lo que hacia falta para que la
      barra compartida funcione tambien aqui. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/guard.js?v=5bfcbf1a"></script>
+<script src="/contracts/assets/guard.js?v=cf2b0ff8"></script>
 <!-- Identidad de las sociedades y cuentas de cobro: fuente única compartida con
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
@@ -70,13 +70,13 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=f85e78ef"></script>
 <script src="assets/documento_anexos.js?v=b73a5ff3"></script>
-<script src="assets/parcela_inventario.js?v=ae56cf70"></script>
+<script src="assets/parcela_inventario.js?v=20a391ba"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=9b68afea"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=e8e88cfc">
+<link rel="stylesheet" href="assets/app.css?v=22a1caef">
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
      no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
@@ -90,9 +90,9 @@
      Sin `?v3=1` no hace nada: el CSS entero vive bajo `html.v3`. -->
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
-<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=4b6cb538"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 </head>
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
@@ -936,7 +936,7 @@ function wirePickers(){
 }
 
 /* ---------- buscador de cliente ya registrado ----------
-   Busca en `clients` (la misma tabla que /compradores/) y precarga sus datos
+   Busca en `clients` (la misma tabla que /intranet/compradores/) y precarga sus datos
    en vez de teclearlos otra vez para alguien que ya tenemos fichado. Solo
    busca, nunca escribe: guardar el contrato sigue sin tocar `clients`.
    Genérico desde el 11-ago: Adquiriente I lo usa vía wireClienteBuscador()
@@ -1113,7 +1113,7 @@ function bloqueElegirComprador(o){
         : L({es:'Ficha',en:'Client',id:'Klien'})}</span>
       <b>${esc(o.ficha.full_name || '—')}</b>
       <span class="cli-sub">${esc(fichaResumen(o.ficha))}</span>
-      <a class="tb-link" href="/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
+      <a class="tb-link" href="/intranet/compradores/?id=${encodeURIComponent(o.ficha.id)}" target="_blank" rel="noopener">${L({es:'Ver en Compradores',en:'Open in Buyers',id:'Buka di Pembeli'})}</a>
       ${cambiar}
     </div>`;
   }
@@ -1134,7 +1134,7 @@ function bloqueElegirComprador(o){
       <div class="cli-resultados" id="${o.idResultados}" hidden></div>
     </div>
     <div class="cli-nuevo"><span>${L({es:'¿No está fichado? El alta se hace en Compradores, no aquí.',en:'Not registered yet? New clients are created in Buyers, not here.',id:'Belum terdaftar? Klien baru dibuat di Pembeli, bukan di sini.'})}</span>
-      <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
+      <a class="tb-link"${o.idNuevo ? ` id="${o.idNuevo}"` : ''} href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">${L({es:'Abrir Compradores',en:'Open Buyers',id:'Buka Pembeli'})}</a>
     </div>
   </div>`;
 }
@@ -3038,7 +3038,7 @@ function updateSaveButton(){
        facturar contratos sin bloquear. Queda escrito para que no se vuelva a
        "arreglar" dentro de tres meses. */
     facBtn.style.display = SAVED_CONTRACT ? 'inline-flex' : 'none';
-    if(SAVED_CONTRACT) facBtn.href = '/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
+    if(SAVED_CONTRACT) facBtn.href = '/intranet/facturas/?contrato=' + encodeURIComponent(SAVED_CONTRACT.id);
   }
   if(lockBtn) lockBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
   if(firmaBtn) firmaBtn.style.display = (SAVED_CONTRACT && !LOCKED) ? '' : 'none';
@@ -3304,7 +3304,7 @@ async function guardarContrato(){
       cuerpo: '<p>El comprador de un contrato sale de su ficha de <b>Compradores</b>, '
         + 'para que una errata al teclear no cree un cliente duplicado ni un email al que no llega nada.</p>'
         + '<p>Si ya está registrado, <b>búscalo</b> en el bloque del comprador. Si es la primera vez, '
-        + 'se da de alta en <a href="/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> '
+        + 'se da de alta en <a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> '
         + 'y después se busca aquí — el alta no se hace desde el contrato.</p>'
         + (ES_SUPER ? '<p><b>Como super admin</b> puedes guardarlo igualmente. El contrato quedará sin '
                     + 'comprador enlazado y eso se anota en su historial.</p>' : ''),
@@ -3330,7 +3330,7 @@ async function guardarContrato(){
       cuerpo: '<p>Estos compradores están escritos a mano y no salen de ninguna ficha:</p><ul>'
         + extrasSinFicha.map(c => '<li><b>' + esc(String(c.nombre).trim()) + '</b></li>').join('')
         + '</ul><p>Búscalos en su bloque si ya están registrados, o dales de alta en '
-        + '<a href="/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> y después búscalos aquí. '
+        + '<a href="/intranet/compradores/?nuevo=1" target="_blank" rel="noopener">Compradores</a> y después búscalos aquí. '
         + 'Si alguno sobra, quítalo con «Quitar».</p>',
       confirmar: 'Entendido',
       cancelar: false,

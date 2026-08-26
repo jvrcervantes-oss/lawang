@@ -38,7 +38,7 @@
    herramienta que luego fallaría al guardar.
 
    VARIAS HERRAMIENTAS, con coma (7-ago-2026): `data-herramienta="dossier,creatividades"`
-   deja pasar con CUALQUIERA de las dos. Lo usa el visor de /creatividades/,
+   deja pasar con CUALQUIERA de las dos. Lo usa el visor de /intranet/creatividades/,
    que enlaza a Dossier y a Creatividades de redes sin ser ninguna de las
    dos — bloquearlo a una sola dejaría fuera a quien solo tiene la otra.
    Con un solo valor se comporta exactamente igual que antes. */

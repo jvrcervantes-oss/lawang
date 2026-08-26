@@ -9,7 +9,7 @@
 -- Antes: un único flag `app_metadata.agente` (todo o nada) que solo se tocaba
 -- desde el dashboard de Supabase, y cualquier agente podía editar el documento
 -- de cualquier otro.
--- Ahora: ficha por usuario (rol + herramientas) gestionable desde /usuarios/,
+-- Ahora: ficha por usuario (rol + herramientas) gestionable desde /intranet/usuarios/,
 -- y los documentos los edita quien los creó (o un admin).
 --
 -- COMPATIBILIDAD, y por qué existe: un usuario SIN fila en `public.usuarios`

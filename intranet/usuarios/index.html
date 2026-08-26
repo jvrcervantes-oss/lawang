@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Usuarios y permisos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
+     los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
+     para que el riel no salga como una columna de cuadros vacios. Misma URL y
+     misma version fijada que las tres que ya lo tenian. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e26504f1">
+<!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
+     doce, seis se habian quedado fuera del fichero que existe justamente para
+     que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
+     Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
+     esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
+     no le mueve lo que tenia. -->
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="usuarios"></script>
+<style>
+  :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
+  *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl2); color:#22282A; }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+  /* 340px fijos, el valor del mockup 4d — no un rango. */
+  .stage{ display:grid; grid-template-columns:340px 1fr; height:100%; padding-top:var(--tbh); }
+  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
+
+  /* El buscador es `.sui-buscar` (suite.css). Aquí iba a 13,5px y con radio 9
+     mientras el resto de la suite lo tenía a 12,5 y en pastilla. */
+  #qU{ width:100%; margin-top:10px; }
+  .lista{ overflow:auto; border-right:1px solid var(--line); }
+  .cab{ position:sticky; top:0; background:var(--rl2); padding:14px 18px 10px; border-bottom:1px solid var(--line); z-index:2;
+        font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-2); font-weight:600; }
+  .u{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
+      border-top:1px solid var(--line); padding:13px 18px; cursor:pointer; }
+  .u:first-of-type{ border-top:none; }
+  .u:hover{ background:#EDE7D9; }
+  /* El relleno y el filete de la suite (`--sup-sel` + Deep Lagoon), no dos valores
+     propios: es la misma senal de seleccion que en las tablas. */
+  .u.sel{ background:var(--sup-sel,#EAE4D3); box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+  .u .n{ font-size:14px; font-weight:600; }
+  .u .m{ font-size:12px; color:var(--texto-2); margin-top:2px; }
+  .u .r{ margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; }
+
+  .ficha{ overflow:auto; padding:26px 30px 90px; }
+  .vacio{ display:grid; place-items:center; height:100%; color:#BEB3A5; font-size:13px; letter-spacing:.14em; text-transform:uppercase; }
+  h2.t{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:30px; font-weight:600; margin:0 0 4px; }
+  .sub{ color:var(--texto-2); font-size:13.5px; margin:0 0 20px; }
+  fieldset{ border:1px solid var(--line); border-radius:14px; background:var(--card); padding:0 18px 18px; margin:0 0 16px; }
+  legend{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#fff; background:var(--dl,#104C4F);
+          padding:6px 12px; border-radius:999px; }
+  label{ display:block; font-size:12px; color:var(--texto-2); margin:12px 0 4px; }
+  input,select{ width:100%; font:inherit; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:#FDFCF9; color:inherit; }
+  input:focus,select:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  /* La rejilla de dos campos por fila es `.sui-row`, en suite.css: estaba
+     duplicada aqui y en la otra herramienta, y en ninguna se deshacia en movil. */
+  .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  /* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
+     página ya carga. Aquí vivían 4 reglas propias: era la copia número N de
+     seis, todas divergidas, y sin estado de foco visible. Ver la nota larga de allí. */
+
+  /* 9,5px / .05em / 3px 8px: los valores del mockup 4d para la etiqueta de rol.
+     Es mas pequena que la `.sui-tag` general (10px / .06em / 3px 9px) porque aqui
+     van dos o tres seguidas en una linea de lista, no una sola en una celda. */
+  /* La etiqueta se define UNA vez, en `contracts/assets/suite.css`. Aquí había
+     una copia con 9,5px donde la compartida es 10 y con otro tracking:
+     la misma etiqueta cambiaba de tamaño según la pantalla. */
+  .t-super{ background:#104C4F; } .t-admin{ background:#3F5230; } .t-off{ background:#9E2F26; }
+
+  .herr{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; margin-top:6px; }
+  .herr label{ display:flex; align-items:center; gap:8px; margin:0; font-size:13.5px; color:inherit;
+               border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#FDFCF9; cursor:pointer; }
+  .herr input{ width:auto; }
+  /* 29 proyectos no caben en pantalla como caben 8 herramientas: misma
+     rejilla, con su propio alto y scroll para que el botón Guardar no se
+     vaya al fondo de una lista larguísima. */
+  .proy{ max-height:260px; overflow-y:auto; padding-right:4px; }
+  .proy-acc{ display:flex; gap:8px; margin-top:10px; }
+  .proy-acc .btn{ padding:5px 12px; font-size:12.5px; }
+  .nota{ font-size:12px; color:var(--texto-2); margin:10px 0 0; line-height:1.55; }
+  .aviso{ background:#FBF4E4; border:1px solid #E8D9AE; border-radius:11px; padding:12px 14px; font-size:12.5px; line-height:1.55; margin-bottom:16px; }
+</style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
+     aritmética compartida y los nombres de tipo de contrato. Sin ellas el
+     cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
+     tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
+     tabla. Se añaden donde faltaban (12 de 15 páginas). -->
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/intranet/facturas/totales.js"></script>
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
+<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+</head>
+<body>
+  <header class="lw-topbar" data-titulo="Usuarios">
+    <div class="lw-spacer"></div>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo usuario</button>
+  </header>
+
+  <div class="stage" id="stage">
+    <div class="lista">
+      <div class="cab">
+        <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Equipo</b>
+        <!-- Buscador: era la UNICA herramienta de la suite sin el (medido 15-ago-2026,
+             0 campos de busqueda con 16 personas) mientras Contratos, Facturas,
+             Compradores y Operaciones lo tienen todas. Y la lista ordena los 8 admin
+             primero, asi que para llegar a un agente habia que bajarla entera. -->
+        <input class="sui-buscar" id="qU" type="search" placeholder="Buscar nombre, email o rol…" autocomplete="off">
+      </div>
+      <div id="listaU">Cargando…</div>
+    </div>
+    <div class="ficha" id="ficha"><div class="vacio">Elige un usuario</div></div>
+  </div>
+
+  <!-- LAW-71 (21-ago-2026): los frenos que alguien se ha saltado. Existía la
+       vista `privilegios_ejercidos` y la caja negra `borrados`, pero solo se
+       podían consultar por SQL — un registro que hay que saber consultar es un
+       registro que nadie mira. Solo lo ve el super admin: es la lista de quién
+       usó un poder que los demás no tienen, y quien la lee no debe poder
+       aparecer en ella sin que otro lo vea. -->
+  <section id="privilegios" hidden></section>
+
+  <div class="toast" id="toast"></div>
+
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script>
+/* ============================================================
+   USUARIOS Y PERMISOS — panel de administración de la suite.
+
+   Qué pasa por dónde, y por qué:
+   · Rol, herramientas y activo/inactivo se escriben DIRECTAMENTE en
+     `public.usuarios`. La RLS ya exige es_admin() para escribir, así que no
+     hace falta backend: meter una Edge Function en medio solo añadiría una
+     segunda puerta que proteger.
+   · Crear un usuario y cambiar una contraseña SÍ pasan por la Edge Function
+     `admin-usuarios`: la Admin API de Supabase necesita la clave de servicio,
+     que no puede estar en el navegador bajo ningún concepto.
+   · Nadie se borra: se DESACTIVA. Un usuario borrado se lleva por delante la
+     autoría de sus documentos (`creado_por`), y quién firmó qué es justo lo
+     que no se puede perder.
+   ============================================================ */
+const $ = s => document.querySelector(s);
+
+/* La lista sale de assets/herramientas.js (17-ago-2026, auditoría). Aquí había
+   una copia con sus etiquetas a mano, y la del inventario decía «Unidades»
+   mientras el hub y el menú lateral dicen «Proyectos»: la pantalla que reparte el
+   acceso llamaba a una herramienta por un nombre que no usa nadie más. Añadir una
+   herramienta ya no se toca aquí. */
+const HERRAMIENTAS = LW_PERMISOS;
+const ROLES = [['agente','Agente'], ['admin','Administrador'], ['super_admin','Super admin']];
+
+let SB = null, YO = null, USUARIOS = [], SEL = null, PROYECTOS = [];
+
+async function cargar(){
+  // los dos a la vez: la ficha necesita el catálogo de proyectos para pintar
+  // el reparto, y esperar a dos consultas seguidas se nota al abrir el panel
+  const [us, pr] = await Promise.all([
+    SB.from('usuarios').select('*').order('rol').order('email'),
+    SB.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
+  ]);
+  if(us.error){ $('#listaU').innerHTML = '<p class="nota" style="padding:18px">No se pudo cargar: ' + esc(us.error.message) + '</p>'; return; }
+  USUARIOS = us.data || [];
+  // si el catálogo no llega, la ficha lo dice en vez de pintar cero casillas y
+  // dar a entender que el usuario no tiene ningún proyecto asignado
+  PROYECTOS = pr.error ? null : (pr.data || []);
+  pintarLista();
+}
+
+function pintarLista(){
+  // Busca tambien por ROL escrito en cristiano ("admin", "agente"), no solo por la
+  // clave interna: quien busca "agente" espera los agentes, no cero resultados.
+  const q = (($('#qU') || {}).value || '').trim().toLowerCase();
+  const ROL_ES = { super_admin:'super admin', admin:'administrador admin', agente:'agente' };
+  const lista = !q ? USUARIOS : USUARIOS.filter(u =>
+    [u.nombre, u.email, ROL_ES[u.rol] || u.rol].some(v => String(v || '').toLowerCase().includes(q)));
+  if(!lista.length){
+    $('#listaU').innerHTML = '<p class="nota" style="padding:18px 20px">Nadie con «' + esc(q) + '».</p>';
+    return;
+  }
+  $('#listaU').innerHTML = lista.map(u => {
+    const tags = [];
+    if(u.rol === 'super_admin') tags.push('<span class="tag t-super">Super admin</span>');
+    else if(u.rol === 'admin')  tags.push('<span class="tag t-admin">Administrador</span>');
+    if(!u.activo) tags.push('<span class="tag t-off">Desactivado</span>');
+    return `<button class="u ${SEL===u.user_id?'sel':''}" data-id="${esc(u.user_id)}">
+      <div class="n">${esc(u.nombre || u.email)}</div>
+      <div class="m">${esc(u.email)}${u.nombre ? '' : ''}</div>
+      <div class="r">${tags.join('')}<span class="tag">${u.herramientas.length} herramienta${u.herramientas.length===1?'':'s'}</span></div>
+    </button>`;
+  }).join('');
+}
+
+function pintarFicha(){
+  const u = USUARIOS.find(x => x.user_id === SEL);
+  if(!u){ $('#ficha').innerHTML = '<div class="vacio">Elige un usuario</div>'; return; }
+  const yoMismo = YO && u.user_id === YO.user_id;
+  const soySuper = YO && YO.rol === 'super_admin';
+  // un admin no toca a un super_admin, y nadie se quita a sí mismo el acceso
+  // por accidente desde esta pantalla
+  const bloqueado = (u.rol === 'super_admin' && !soySuper);
+
+  $('#ficha').innerHTML = `
+    <h2 class="t">${esc(u.nombre || u.email)}</h2>
+    <p class="sub">${esc(u.email)} · alta ${u.creado_en ? new Date(u.creado_en).toLocaleDateString('es-ES') : '—'}
+      ${u.creado_por ? ' · por ' + esc(u.creado_por) : ''}</p>
+
+    ${yoMismo ? '<div class="aviso">Esta es tu propia cuenta. Para no dejarte fuera por accidente, no puedes desactivarte ni cambiarte el rol desde aquí.</div>' : ''}
+    ${bloqueado ? '<div class="aviso">Solo un super admin puede modificar la cuenta de otro super admin.</div>' : ''}
+
+    <fieldset><legend>Identidad y rol</legend>
+      <div class="sui-row">
+        <div><label for="fNombre">Nombre</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
+        <div><label for="fRol">Rol</label>
+          <select class="sui-sel" id="fRol" ${bloqueado || yoMismo || !soySuper ? 'disabled' : ''}>
+            ${ROLES.map(([v,l]) => `<option value="${v}" ${u.rol===v?'selected':''}>${l}</option>`).join('')}
+          </select></div>
+      </div>
+      <p class="nota">Un <b>administrador</b> ve todas las herramientas y puede editar documentos de cualquiera.
+        Solo un <b>super admin</b> reparte roles.</p>
+    </fieldset>
+
+    <fieldset><legend>Herramientas que ve</legend>
+      <div class="herr">
+        ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
+          ${u.herramientas.includes(v)?'checked':''} ${bloqueado?'disabled':''}> ${l}</label>`).join('')}
+      </div>
+      <p class="nota">Controla lo que aparece en la intranet y lo que puede <b>guardar</b>.
+        La consulta de datos ya emitidos sigue abierta a todo el equipo: Operaciones cruza contratos,
+        facturas y firmas, y filtrarlas por herramienta la dejaría en blanco.</p>
+    </fieldset>
+
+    <fieldset><legend>Proyectos en los que trabaja</legend>
+      ${PROYECTOS === null
+        ? '<p class="nota">No se pudo cargar el catálogo de proyectos. Vuelve a abrir el panel: sin él, guardar dejaría a esta persona sin ningún proyecto.</p>'
+        : `<div class="herr proy">
+             ${PROYECTOS.map(p => `<label><input type="checkbox" value="${esc(p.id)}"
+               ${(u.proyectos || []).includes(p.id) ? 'checked' : ''} ${bloqueado?'disabled':''}> ${esc(p.nombre)}</label>`).join('')}
+           </div>
+           <div class="proy-acc">
+             <button type="button" class="btn" id="btnProyTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
+             <button type="button" class="btn" id="btnProyNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
+           </div>`}
+      <p class="nota">Limita <b>en qué proyectos puede crear y editar contratos</b>. Sin ninguno marcado no
+        puede crear contratos en ningún proyecto${u.rol === 'agente' ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición'}.
+        No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.</p>
+    </fieldset>
+
+    <fieldset><legend>Acceso</legend>
+      <label for="fActivo">Estado</label>
+      <select class="sui-sel" id="fActivo" ${bloqueado || yoMismo ? 'disabled' : ''}>
+        <option value="1" ${u.activo?'selected':''}>Activo</option>
+        <option value="0" ${!u.activo?'selected':''}>Desactivado — no entra a la suite</option>
+      </select>
+      <p class="nota">Desactivar es lo contrario de borrar: la persona deja de entrar pero se conserva
+        qué documentos creó. Nunca se borra un usuario.</p>
+      <div class="acciones">
+        <button class="btn primary" id="btnGuardar" ${bloqueado?'disabled':''}>Guardar cambios</button>
+        <button class="btn" id="btnPass" ${bloqueado?'disabled':''}>Cambiar contraseña</button>
+      </div>
+    </fieldset>`;
+
+  $('#btnGuardar').addEventListener('click', guardar);
+  $('#btnPass').addEventListener('click', cambiarPassword);
+  const marcar = v => document.querySelectorAll('.proy input').forEach(i => { i.checked = v; });
+  if($('#btnProyTodos'))   $('#btnProyTodos').addEventListener('click', () => marcar(true));
+  if($('#btnProyNinguno')) $('#btnProyNinguno').addEventListener('click', () => marcar(false));
+}
+
+async function guardar(){
+  const u = USUARIOS.find(x => x.user_id === SEL); if(!u) return;
+  const btn = $('#btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  const cambios = {
+    // `.herr:not(.proy)`: las dos rejillas comparten estilo, y sin distinguirlas
+    // los ids de proyecto se colarían en la lista de herramientas
+    nombre: $('#fNombre').value.trim() || null,
+    herramientas: [...document.querySelectorAll('.herr:not(.proy) input:checked')].map(i => i.value),
+  };
+  // solo si el catálogo llegó a pintarse: con la consulta caída, mandar el array
+  // vacío le quitaría a esta persona todos sus proyectos sin que nadie lo pidiera
+  if(PROYECTOS !== null)
+    cambios.proyectos = [...document.querySelectorAll('.proy input:checked')].map(i => i.value);
+  // rol y activo solo viajan si el select estaba habilitado: enviarlos
+  // deshabilitados reescribiría con el valor pintado y anularía el guarda
+  if(!$('#fRol').disabled) cambios.rol = $('#fRol').value;
+  if(!$('#fActivo').disabled) cambios.activo = $('#fActivo').value === '1';
+  const { error } = await SB.from('usuarios').update(cambios).eq('user_id', SEL);
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+  if(error){ toast('No se pudo guardar: ' + error.message); return; }
+  toast('Permisos actualizados');
+  await cargar(); pintarFicha();
+}
+
+async function llamarAdmin(payload){
+  const { data:{ session } } = await SB.auth.getSession();
+  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/admin-usuarios', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json',
+      // el token de sesión ES la credencial: la función decide con él, no con el body
+      'Authorization':'Bearer ' + session.access_token,
+      'apikey':'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg' },
+    body: JSON.stringify(payload),
+  });
+  return r.json().catch(() => ({ error:'respuesta ilegible del servidor' }));
+}
+
+async function cambiarPassword(){
+  const u = USUARIOS.find(x => x.user_id === SEL); if(!u) return;
+  const p = prompt('Nueva contraseña para ' + u.email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar.');
+  if(p === null) return;
+  if(p.length < 10){ toast('Mínimo 10 caracteres'); return; }
+  const d = await llamarAdmin({ accion:'password', user_id:SEL, password:p });
+  toast(d.ok ? 'Contraseña cambiada' : 'No se pudo: ' + (d.error || ''));
+}
+
+/* ---------- alta ---------- */
+function nuevoUsuario(){
+  SEL = null; pintarLista();
+  $('#stage').classList.add('abierta');
+  $('#ficha').innerHTML = `
+    <h2 class="t">Nuevo usuario</h2>
+    <p class="sub">Se crea la cuenta y se le da acceso de inmediato.</p>
+    <fieldset><legend>Datos de acceso</legend>
+      <div class="sui-row">
+        <div><label for="nEmail">Email</label><input id="nEmail" type="email" placeholder="nombre@lawangproperties.com"></div>
+        <div><label for="nNombre">Nombre</label><input id="nNombre" placeholder="Nombre y apellidos"></div>
+      </div>
+      <label for="nPass">Contraseña provisional (mínimo 10 caracteres)</label>
+      <input id="nPass" type="text" placeholder="La verá al entrar; que la cambie después">
+      <label for="nRol">Rol</label>
+      <select class="sui-sel" id="nRol">${ROLES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+      <p class="nota">La contraseña se muestra en claro a propósito: hay que poder copiarla para
+        dársela a la persona. No queda guardada en ningún sitio consultable.</p>
+    </fieldset>
+    <fieldset><legend>Herramientas que verá</legend>
+      <div class="herr">
+        ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
+          ${LW_PERMISOS_POR_DEFECTO.includes(v)?'checked':''}> ${l}</label>`).join('')}
+      </div>
+      <p class="nota">Un agente nace <b>sin ningún proyecto asignado</b>, así que todavía no podrá crear
+        contratos: al crearlo se abre su ficha y ahí se le marcan los proyectos que vende.</p>
+    </fieldset>
+    <div class="acciones">
+      <button class="btn primary" id="btnCrear">Crear usuario</button>
+      <button class="btn" id="btnCancelar">Cancelar</button>
+    </div>`;
+  $('#btnCancelar').addEventListener('click', () => { pintarFicha(); });
+  $('#btnCrear').addEventListener('click', crear);
+}
+
+async function crear(){
+  const email = $('#nEmail').value.trim().toLowerCase();
+  const password = $('#nPass').value;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Email no válido'); return; }
+  if(password.length < 10){ toast('La contraseña necesita 10 caracteres o más'); return; }
+  const btn = $('#btnCrear'); btn.disabled = true; btn.textContent = 'Creando…';
+  const d = await llamarAdmin({
+    accion:'crear', email, password,
+    nombre: $('#nNombre').value.trim(),
+    rol: $('#nRol').value,
+    herramientas: [...document.querySelectorAll('.herr:not(.proy) input:checked')].map(i => i.value),
+  });
+  btn.disabled = false; btn.textContent = 'Crear usuario';
+  if(!d.ok){ toast('No se pudo crear: ' + (d.error || '')); return; }
+  toast('Usuario creado: ' + email);
+  await cargar();
+  SEL = d.user_id; pintarLista(); pintarFicha();
+}
+
+/* ---------- eventos ---------- */
+$('#qU').addEventListener('input', pintarLista);
+$('#listaU').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if(!b) return;
+  SEL = b.dataset.id; pintarLista(); pintarFicha(); $('#stage').classList.add('abierta');
+});
+$('#btnNuevo').addEventListener('click', nuevoUsuario);
+
+LW_AUTH.then(async ({ sb, session, ficha }) => {
+  SB = sb;
+
+  /* La ficha se consulta AQUÍ si el guard no la trae. No es redundancia: el
+     29-jul un guard.js cacheado por el servidor (max-age 7 días) seguía siendo
+     la versión que no devolvía `ficha`, y este panel le decía al super_admin
+     que no era administrador. Depender de que un asset compartido esté fresco
+     para decidir un permiso es frágil; preguntarlo cuesta una consulta. */
+  YO = ficha || (await sb.from('usuarios').select('rol, herramientas, activo, nombre')
+                   .eq('user_id', session.user.id).maybeSingle()).data;
+
+  // Un agente con 'usuarios' en su lista pero sin rol de admin llegaría hasta
+  // aquí y solo vería su propia fila (la RLS). Mejor decirlo que enseñar una
+  // pantalla vacía.
+  /* Hacen falta LAS DOS COSAS (18-ago-2026): rol de admin y la herramienta
+     «Usuarios» marcada. Es el permiso más delicado que hay —quien reparte
+     permisos puede concederse cualquier otro—, así que el owner pidió que se
+     limitara también en la base y no solo aquí: las policies de `usuarios`
+     exigen `es_admin() AND puede('usuarios')`. Esto es el aviso amable; si
+     alguien llega por la API igualmente, ahí rebota. */
+  const gestionaUsuarios = YO && (YO.rol === 'super_admin'
+    || (YO.rol === 'admin' && (YO.herramientas || []).includes('usuarios')));
+  if(!gestionaUsuarios){
+    $('#stage').innerHTML = '<div class="vacio" style="grid-column:1/-1">'
+      + (YO && YO.rol === 'admin'
+          ? 'No tienes activada la herramienta «Usuarios». Pídesela a un super admin.'
+          : 'Solo un administrador gestiona usuarios'
+            + (YO ? ' · tu rol es «' + esc(YO.rol) + '»' : ''))
+      + '</div>';
+    return;
+  }
+  await cargar();
+  if(YO.rol === 'super_admin') pintarPrivilegios();
+});
+
+/* Frenos saltados — LAW-71. Dos fuentes en una caja: `privilegios_ejercidos`
+   (quién se saltó qué y por qué) y cuántas filas guarda la caja negra
+   `borrados`, que es lo que queda de un contrato o una factura eliminados.
+
+   El estado vacío se dice con cuidado, que es la lección del 21-ago: «nadie se
+   ha saltado ningún freno» y «no he podido mirar» se parecen mucho en pantalla y
+   solo uno de los dos es tranquilizador. Si la consulta falla, lo dice. */
+async function pintarPrivilegios(){
+  const caja = $('#privilegios');
+  const [priv, borr] = await Promise.all([
+    SB.from('privilegios_ejercidos').select('cuando, quien, evento, contrato, detalle')
+      .order('cuando', { ascending:false }).limit(50),
+    SB.from('borrados').select('id', { count:'exact', head:true }),
+  ]);
+
+  const fallo = priv.error ? (priv.error.message || 'no se ha podido leer') : null;
+  const filas = priv.data || [];
+  const NOMBRE = {
+    desbloqueado:            'desbloqueó un contrato firmado',
+    editado_estando_firmado: 'editó un contrato firmado',
+    facturado_sin_bloquear:  'facturó un contrato sin firmar',
+    cobro_a_otro_comprador:  'aplicó un cobro al comprador de otro contrato',
+    cobro_a_factura_huerfana:'aplicó un cobro a una factura sin contrato',
+    guardado_sin_ficha:      'guardó un contrato sin ficha de comprador',
+  };
+  const dia = s => new Date(s).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+
+  caja.hidden = false;
+  caja.innerHTML =
+    `<div class="cab" style="margin-top:18px">
+       <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Frenos saltados</b>
+       <span style="font-size:11.5px;color:var(--texto-2)">${
+         borr.error ? 'caja negra: no se ha podido leer'
+                    : (borr.count || 0) + ' documento(s) borrados guardados en la caja negra'}</span>
+     </div>` +
+    (fallo
+      ? `<p style="font-size:12.5px;color:#C8791F;margin:8px 0 0">
+           <b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que nadie
+           se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>`
+      : !filas.length
+      ? `<p style="font-size:12.5px;color:var(--texto-2);margin:8px 0 0">
+           Mirado ahora mismo: <b>nadie se ha saltado ningún freno</b> todavía.</p>`
+      : `<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px">
+           <tbody>${filas.map(r => `<tr style="border-top:1px solid var(--linea,#E6E2DA)">
+             <td style="padding:6px 8px;white-space:nowrap;color:var(--texto-2)">${esc(dia(r.cuando))}</td>
+             <td style="padding:6px 8px">${esc(r.quien || '—')}</td>
+             <td style="padding:6px 8px"><b>${esc(NOMBRE[r.evento] || r.evento)}</b>${
+               r.contrato ? ' · ' + esc(r.contrato) : ''}</td>
+             <td style="padding:6px 8px;color:var(--texto-2)">${
+               esc((r.detalle && (r.detalle.motivo || r.detalle.razon)) || '')}</td>
+           </tr>`).join('')}</tbody>
+         </table>`);
+}
+</script>
+</body>
+</html>

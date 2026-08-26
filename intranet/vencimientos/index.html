@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Vencimientos</title>
+<!-- Herramienta nueva 18-ago-2026 (encargo del cliente: control de cuándo debe
+     entrar cada pago). Cáscara COPIADA de operaciones/, no un HTML en blanco —
+     regla 0 de contexto/suite_lawang.md. Todo el dinero que esta pantalla
+     enseña sale de vencimientos/logica.js, que tiene su test en node: aquí solo
+     se pinta.
+
+     PERMISO: entra quien tenga 'operaciones' en la ficha, A PROPÓSITO no una
+     herramienta nueva. Un permiso nuevo exige tocar la lista de la edge
+     admin-usuarios y REDESPLEGARLA (listas.test.js lo bloquearía si divergen), y
+     la edge está pendiente de despliegue por LAW-70: darle una clave nueva ahora
+     dejaría a los usuarios nuevos sin la herramienta en silencio hasta ese
+     despliegue. Vencimientos ES seguimiento de operaciones — mismo criterio de
+     acceso, ningún hueco. Si algún día merece permiso propio, se hace junto a un
+     despliegue de la edge, no antes. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e26504f1">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="vencimientos"></script>
+<script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="logica.js"></script>
+<style>
+  :root{ --tbh:64px; }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0,#F1EBDD); color:var(--texto,#22282A); }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+  main{ max-width:1240px; margin:0 auto; padding:calc(var(--tbh) + 22px) 24px 60px; }
+  h1{ margin:0 0 4px; font-size:22px; font-weight:500; letter-spacing:.005em; }
+  .sub{ margin:0 0 18px; font-size:13.5px; color:var(--texto-2,#4A5052); max-width:70ch; }
+  h2{ margin:28px 0 10px; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--sc,#8F9B7A); font-weight:600; }
+
+  /* KPI extra: en esta pantalla la cifra ES dinero, así que hereda .lw-kpi de
+     suite.css y solo ajusta el tamaño para importes de 7 cifras. */
+  .lw-kpi .lw-cifra{ font-size:clamp(19px,2.1vw,26px); }
+  .lw-kpi.urge{ border-color:#C8837B; }
+
+  /* ── gráfico de caja: barras apiladas en CSS puro ─────────────────────────
+     Sin librerías: la CSP limita a qué se habla y el estudio es vanilla-first.
+     Especificación de marcas del método dataviz: hueco de 2px ENTRE segmentos
+     (borde del color de la superficie), barras finas, rejilla recesiva, y la
+     identidad nunca por color solo — leyenda con etiqueta + tooltip + la tabla
+     de abajo como vista de datos. Los colores pasaron el validador CVD
+     (#8F9B7A/#0E6B70/#9E2F26, protan ΔE ≥ 11): el teal es un paso claro del
+     Deep Lagoon de marca — el de marca puro (#104C4F) caía a ΔE 6,6 contra el
+     rojo y por eso no se usa AQUÍ, solo aquí. El croma bajo es la identidad de
+     Lawang (ley del spec visual: sin saturados) y se compensa con lo anterior. */
+  .caja{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB); border-radius:var(--r-m,12px);
+         padding:18px 20px 12px; }
+  .grafico{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px;
+            align-items:end; height:190px; padding:8px 2px 0; position:relative; }
+  .grafico .mes{ display:flex; flex-direction:column-reverse; align-items:stretch; gap:0;
+                 height:100%; justify-content:flex-start; position:relative; cursor:default; }
+  .grafico .seg{ border-radius:3px 3px 0 0; border-top:2px solid var(--sup-1,#fff); min-height:0; }
+  .grafico .seg.cob{ background:#8F9B7A; }
+  .grafico .seg.pen{ background:#0E6B70; }
+  .grafico .seg.ven{ background:#9E2F26; }
+  .grafico .mes.hoy::after{ content:''; position:absolute; inset:0; border-left:2px dashed var(--ss,#BEB3A5); pointer-events:none; }
+  .ejes{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px; margin-top:6px; }
+  .ejes span{ font-size:10px; color:var(--texto-2,#4A5052); text-align:center; white-space:nowrap; overflow:hidden; }
+  .leyenda{ display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:12px; color:var(--texto-2,#4A5052); }
+  .leyenda i{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  /* tooltip del gráfico: html propio, un solo nodo reutilizado */
+  #tip{ position:fixed; z-index:60; background:var(--texto,#22282A); color:#fff; font-size:12px;
+        padding:8px 11px; border-radius:8px; pointer-events:none; display:none; line-height:1.5;
+        font-variant-numeric:tabular-nums; max-width:240px; }
+
+  /* fila editable de fecha */
+  td .fecha-edit{ font:inherit; font-size:12.5px; padding:3px 6px; border:1px solid var(--linea,#E4DCCB); border-radius:7px; background:#FDFCF9; }
+  td .lapiz{ opacity:0; font-size:13px; color:var(--sc,#8F9B7A); margin-left:5px; cursor:pointer; border:none; background:none; padding:2px; }
+  tr:hover .lapiz{ opacity:1; }
+  .lapiz:focus-visible{ opacity:1; outline:2px solid var(--tg,#485B37); border-radius:4px; }
+  td.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .sui-tabla .flojo{ color:var(--texto-2,#4A5052); font-size:12px; }
+  /* ── análisis: los gráficos secundarios ──────────────────────────────────
+     Mismas reglas que el de caja: sin librerías, hueco de superficie entre
+     segmentos, etiquetas directas (la identidad nunca por color solo) y la
+     tabla de abajo como vista de datos. El aging usa una RAMPA SECUENCIAL del
+     rojo de vencido (claro→oscuro = reciente→viejo): es magnitud de una sola
+     cosa, no categorías — regla del método dataviz. Luminosidad monótona
+     comprobada a mano: #E8C4BF → #CE8F86 → #B55D52 → #9E2F26. */
+  .analisis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
+  .analisis .caja{ padding:16px 18px 14px; }
+  .analisis h3{ margin:0 0 12px; font-size:12px; font-weight:600; color:var(--texto,#22282A); }
+  .compo{ display:flex; height:26px; border-radius:7px; overflow:hidden; gap:2px; background:var(--sup-0,#F1EBDD); }
+  .compo span{ min-width:3px; }
+  .compo .c1{ background:#8F9B7A; } .compo .c2{ background:#0E6B70; } .compo .c3{ background:#9E2F26; }
+  .compo-leyenda{ display:flex; flex-direction:column; gap:5px; margin-top:12px; font-size:12.5px; color:var(--texto-2,#4A5052); }
+  .compo-leyenda b{ color:var(--texto,#22282A); font-variant-numeric:tabular-nums; font-weight:600; margin-left:auto; }
+  .compo-leyenda > span{ display:flex; align-items:center; gap:8px; }
+  .compo-leyenda i{ width:10px; height:10px; border-radius:3px; flex:none; }
+  .barras-v{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:10px; align-items:end; height:120px; margin-top:6px; }
+  .barras-v .col{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:4px; height:100%; }
+  .barras-v .col i{ width:100%; max-width:52px; border-radius:4px 4px 0 0; display:block; }
+  .barras-v .col .v{ font-size:11px; font-variant-numeric:tabular-nums; color:var(--texto,#22282A); }
+  .barras-v .col .l{ font-size:10px; color:var(--texto-2,#4A5052); white-space:nowrap; }
+  .barras-h{ display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+  .barras-h .fila-b{ font-size:12px; color:var(--texto-2,#4A5052); }
+  .barras-h .fila-b .cab-b{ display:flex; justify-content:space-between; gap:10px; margin-bottom:3px; }
+  .barras-h .fila-b .cab-b b{ color:var(--texto,#22282A); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .barras-h .fila-b .cab-b .v{ font-variant-numeric:tabular-nums; flex:none; }
+  .barras-h .pista{ display:flex; height:10px; border-radius:5px; overflow:hidden; gap:2px; background:var(--sup-0,#F1EBDD); }
+  .barras-h .pista .pc{ background:#8F9B7A; } .barras-h .pista .pp{ background:#0E6B70; } .barras-h .pista .pv{ background:#9E2F26; }
+  .vacio-g{ padding:26px 0 18px; text-align:center; font-size:12.5px; color:var(--texto-2,#4A5052); }
+  .pager{ display:flex; align-items:center; gap:10px; margin-top:12px; justify-content:flex-end; font-size:12.5px; color:var(--texto-2,#4A5052); }
+  .pager .n{ font-variant-numeric:tabular-nums; }
+  .nota-pie{ font-size:12px; color:var(--texto-2,#4A5052); margin:8px 0 0; line-height:1.55; max-width:78ch; }
+  @media (max-width:720px){ main{ padding-left:14px; padding-right:14px; } .lw-kpi .lw-cifra{ font-size:18px; } }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; animation:none !important; } }
+
+/* Personas dentro de un proyecto: una tabla menor, claramente subordinada a su
+   fila. Sin bordes propios ni fondo: no es otra tabla, es el detalle de una. */
+.detalle-personas > td{ padding:0 !important; background:var(--sup-2,#F7F3E9); }
+.detalle-personas summary{ list-style:none; cursor:pointer; padding:8px 16px;
+  font-size:12px; color:var(--texto-2,#4A5052); }
+.detalle-personas summary::-webkit-details-marker{ display:none; }
+.detalle-personas summary::before{ content:'▸ '; }
+.detalle-personas details[open] summary::before{ content:'▾ '; }
+.mini-personas{ width:100%; border-collapse:collapse; }
+.mini-personas td{ padding:7px 16px; font-size:12.5px; border-top:1px solid var(--linea,#E4DCCB); }
+.mini-personas td.num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+</style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
+     aritmética compartida y los nombres de tipo de contrato. Sin ellas el
+     cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
+     tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
+     tabla. Se añaden donde faltaban (12 de 15 páginas). -->
+<script src="/intranet/facturas/totales.js"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
+<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+</head>
+<body>
+  <header class="lw-topbar" data-titulo="Vencimientos">
+    <div class="lw-spacer"></div>
+    <!-- Sin acción principal a propósito: esta herramienta VIGILA, no crea.
+         Mismo criterio que Obra y Operaciones (norma en topbar.css). -->
+  </header>
+
+  <main>
+    <h1>Vencimientos</h1>
+    <p class="sub">Qué dinero debe entrar, cuándo, y cuál se está retrasando. Solo contratos <b>firmados</b>: un borrador
+      no es un compromiso y no marca dinero como esperado (decisión del cliente, 18-ago-2026). El calendario contractual
+      vive en cada contrato; aquí las fechas se ajustan sin tocar el documento.</p>
+
+    <div id="avisos"></div>
+    <div class="sui-filtros" id="monedas" style="margin:0 0 14px"></div>
+    <div class="lw-kpis" id="kpis"></div>
+
+    <h2>Previsión de caja · <span id="graficoMoneda"></span></h2>
+    <div class="caja">
+      <div class="grafico" id="grafico" role="img" aria-label="Previsión de caja por mes: cobrado, pendiente y vencido"></div>
+      <div class="ejes" id="ejes"></div>
+      <div class="leyenda" id="leyenda"></div>
+    </div>
+
+    <h2>Análisis · <span id="analisisMoneda"></span></h2>
+    <div class="analisis">
+      <div class="caja"><h3>Composición de la cartera</h3><div id="gCompo"></div></div>
+      <div class="caja"><h3>Dinero por trimestre (pendiente)</h3><div id="gTrimestres"></div></div>
+      <div class="caja"><h3>Vencido por antigüedad</h3><div id="gAging"></div></div>
+      <div class="caja"><h3>Por proyecto</h3><div id="gProyectos"></div></div>
+    </div>
+
+    <h2 id="hTabla">Todos los vencimientos</h2>
+    <div class="sui-filtros" id="filtros"></div>
+    <div class="sui-tabla-caja">
+      <table class="sui-tabla">
+        <thead><tr>
+          <th>Vence</th><th>Contrato</th><th>Comprador</th><th>Concepto</th>
+          <th class="num">Importe</th><th class="num">Cubierto</th><th class="num">Pendiente</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pager" hidden>
+      <button type="button" class="sui-chip" id="pagAntes">← Anteriores</button>
+      <span class="n" id="pagInfo"></span>
+      <button type="button" class="sui-chip" id="pagDespues">Siguientes →</button>
+    </div>
+    <p class="nota-pie">El «cubierto» es una lectura, no un asiento: lo cobrado de cada contrato —recibís, incluida la señal
+      de su Carta de Reserva— va tapando sus vencimientos por orden de fecha. Todo lo listado es de contratos firmados, así
+      que la fecha se edita aquí (el lápiz) y queda registrado quién la cambió; el calendario de un borrador se prepara en el
+      propio contrato y entra en este panel al firmarse. La etiqueta «Facturada» la pone el sistema: tres días antes de cada
+      vencimiento emite la factura de lo pendiente y se la envía al comprador, con copia al estudio — un vencimiento
+      facturado no se vuelve a facturar.</p>
+
+    <h2>Por proyecto</h2>
+    <div class="sui-tabla-caja">
+      <table class="sui-tabla">
+        <thead><tr><th>Proyecto</th><th class="num">Cartera</th><th class="num">Cobrado</th>
+          <th class="num">Vence en 90 días</th><th class="num">Vencido</th></tr></thead>
+        <tbody id="tproy"></tbody>
+      </table>
+    </div>
+
+    <h2>Facturas con vencimiento propio</h2>
+    <div class="sui-tabla-caja">
+      <table class="sui-tabla">
+        <thead><tr><th>Vence</th><th>Factura</th><th>Cliente</th><th class="num">Importe</th><th>Estado</th></tr></thead>
+        <tbody id="tfact"></tbody>
+      </table>
+    </div>
+    <p class="nota-pie">Una factura emitida con fecha de vencimiento es una promesa aparte del calendario de hitos:
+      se lista para que nada con fecha se quede sin vigilar, pero no se suma a la cascada — su cobro ya entra por el recibí.</p>
+  </main>
+
+  <div id="tip" role="tooltip"></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const SB_HOY = new Date();
+const HOY = SB_HOY.getFullYear() + '-' + String(SB_HOY.getMonth()+1).padStart(2,'0') + '-' + String(SB_HOY.getDate()).padStart(2,'0');
+const dinero = (n, m) => n == null ? '—' : lwFormatoImporte(n, m);
+const fechaCorta = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return d + '/' + m + '/' + y.slice(2); };
+
+/* «Incluir sin firmar»: APAGADO por defecto, para que nadie se encuentre un
+   número distinto sin haberlo pedido. Se recuerda por persona, como el resto de
+   preferencias de la suite.
+   Existe porque mientras el cliente da de alta el HISTÓRICO (26-ago-2026)
+   `bloqueado=false` no significa «aún no acordado» sino «aún no marcado», y con
+   la regla de solo-firmados el panel se queda ciego justo ahora: 111 contratos
+   y 7,2 M fuera. */
+let SIN_FIRMAR = (() => { try{ return localStorage.getItem('lw_venc_sin_firmar') === '1'; }catch(_){ return false; } })();
+let MODELO = null, RAW = null, MONEDA = 'EUR', FILTRO = 'atencion', FACTURAS = [], PUEDE_EDITAR = false, FICHA = null;
+/* Paginación de la tabla (18-ago, petición del owner: salía la lista entera).
+   25 por página: caben sin desplazar en un portátil y el paginador de abajo
+   dice siempre el total — un recorte que se anuncia, nunca silencioso. */
+const POR_PAGINA = 25;
+let PAGINA = 0;
+
+const ESTADO_TAG = { vencido:['Vencido','alerta'], parcial:['Parcial','espera'], pendiente:['Pendiente','gris'],
+                     cobrado:['Cobrado','ok'], sin_fecha:['Sin fecha','espera'] };
+
+/* ── carga ──────────────────────────────────────────────────────────────── */
+window.LW_AUTH.then(async ({ sb, ficha }) => {
+  FICHA = ficha;
+  // Editar fechas exige el permiso de operaciones — el mismo de la puerta. La
+  // RLS lo vuelve a exigir al guardar: esto solo evita ofrecer lo que fallaría.
+  PUEDE_EDITAR = !ficha || ficha.rol === 'super_admin' || ficha.rol === 'admin'
+    || (ficha.herramientas || []).includes('operaciones');
+
+  /* Las funciones _equipo() y no .from() directo — la RLS de contratos filtra
+     por autor y esta pantalla existe para el dinero de TODO el equipo (mismo
+     motivo, mismo comentario que Operaciones). contrato_vencimientos sí se lee
+     directo: su RLS ya es de equipo (es_agente), sin filtro de autor. */
+  const [c, cb, v, f] = await Promise.all([
+    sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').limit(1000),
+    sb.rpc('contratos_cobrado_equipo'),
+    sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000),
+    sb.rpc('facturas_equipo').select('numero,tipo,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000),
+  ]);
+  if(c.error){ toast('No se pudieron leer los contratos: ' + c.error.message); return; }
+  if(v.error){ toast('No se pudieron leer los vencimientos: ' + v.error.message); return; }
+
+  const cobradoPorId = {};
+  (cb.error ? [] : (cb.data || [])).forEach(x => { cobradoPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+  if(cb.error) toast('No se pudo calcular lo cobrado: ' + cb.error.message);
+
+  FACTURAS = (f.error ? [] : (f.data || [])).filter(x => !x.anulada && x.venc && x.tipo !== 'recibi');
+
+  RAW = { hoyISO: HOY, contratos: c.data || [], cobradoPorId, vencimientos: v.data || [] };
+  MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+  // arranca en la moneda con más cartera — casi siempre EUR, pero medido, no supuesto
+  const monedas = Object.keys(MODELO).sort((a,b)=>MODELO[b].cartera - MODELO[a].cartera);
+  MONEDA = monedas[0] || 'EUR';
+  pintarTodo();
+  window._SB = sb;
+});
+
+function pintarTodo(){
+  const m = MODELO[MONEDA] || { cartera:0, cobrado:0, pendiente:0, vencido:0, proximos30:0, proximos90:0,
+                                nSinFecha:0, filas:[], porProyecto:{}, porMes:{}, avisos:[] };
+  pintarMonedas(); pintarAvisos(m); pintarKpis(m); pintarGrafico(m); pintarAnalisis(m); pintarFiltros(m); pintarTabla(m);
+  pintarProyectos(m); pintarFacturas();
+}
+
+/* ── moneda: cada agregado va por moneda, quien mira elige cuál ─────────── */
+function pintarMonedas(){
+  const monedas = Object.keys(MODELO).sort((a,b)=>MODELO[b].cartera - MODELO[a].cartera);
+  $('#monedas').innerHTML = monedas.length < 2 ? '' :
+    '<span class="sui-eje">Moneda</span>' +
+    monedas.map(mm => `<button type="button" class="sui-chip ${mm===MONEDA?'on':''}" data-moneda="${esc(mm)}">${esc(mm)}
+      <span class="n">${esc(dinero(MODELO[mm].cartera, ''))}</span></button>`).join('');
+}
+$('#monedas').addEventListener('click', e => {
+  const b = e.target.closest('[data-moneda]'); if(!b) return;
+  MONEDA = b.dataset.moneda; PAGINA = 0; pintarTodo();
+});
+
+/* ── avisos: lo que impide vigilar de verdad, fijo y arriba ─────────────── */
+function pintarAvisos(m){
+  const partes = [];
+  if(m.nSinFecha) partes.push(`<b>${m.nSinFecha} vencimiento(s) sin fecha</b> — no se pueden vigilar; ponles fecha (filtro «Sin fecha»)`);
+  const sinCal = m.avisos.filter(a=>a.tipo==='sin_calendario');
+  if(sinCal.length) partes.push(`<b>${sinCal.length} contrato(s) con precio y sin calendario de pagos</b>: ${sinCal.slice(0,4).map(a=>esc(a.contrato.numero||'sin nº')).join(', ')}${sinCal.length>4?'…':''}`);
+  const pctMal = m.avisos.filter(a=>a.tipo==='pct_no_100');
+  if(pctMal.length) partes.push(`<b>${pctMal.length} contrato(s) cuyos hitos no suman 100%</b>: ${pctMal.slice(0,4).map(a=>esc(a.contrato.numero||'sin nº')+' (Σ '+a.suma+'%)').join(', ')}${pctMal.length>4?'…':''}`);
+  /* LO QUE ESTE PANEL NO ESTÁ MIRANDO. Va con los otros avisos y no escondido,
+     porque es del mismo tipo: cosas que impiden vigilar de verdad. Un proyecto
+     entero puede tener 46 contratos y salir en blanco —pasó con Sumba Hills—
+     y sin esta línea eso se lee como «aquí no hay dinero», que es la lectura
+     peligrosa. */
+  const f = m.fuera || { sinFirmar:0, preliminares:0, proyectos:{} };
+  if(f.sinFirmar || f.preliminares){
+    const trozos = [];
+    if(f.sinFirmar)    trozos.push(f.sinFirmar + ' sin firmar');
+    if(f.preliminares) trozos.push(f.preliminares + ' Carta(s) de Reserva');
+    const top = Object.entries(f.proyectos).sort((a,b) => b[1]-a[1]).slice(0,3)
+      .map(([p,n]) => esc(p) + ' (' + n + ')').join(', ');
+    partes.push('<b>Fuera de este panel: ' + trozos.join(' y ') + '</b>'
+      + (f.importe ? ' — ' + esc(dinero(f.importe, '')) + ' de precio' : '')
+      + (top ? '. Sobre todo en ' + top : '')
+      + '. Aquí solo entran contratos firmados que no sean preliminares');
+  }
+  $('#avisos').innerHTML = partes.length
+    ? `<p class="sui-aviso" role="status">${partes.join(' · ')}</p>` : '';
+}
+
+/* ── KPIs ───────────────────────────────────────────────────────────────── */
+function pintarKpis(m){
+  const tarjetas = [
+    { rot:'Vencido', v:m.vencido, tono: m.vencido ? 'mal' : 'bien', urge: m.vencido > 0,
+      pie: m.vencido ? 'pendiente con la fecha pasada' : 'nada con la fecha pasada' },
+    { rot:'Vence en 30 días', v:m.proximos30, tono: m.proximos30 ? 'espera' : '', pie:'previsto en el próximo mes' },
+    { rot:'Vence en 90 días', v:m.proximos90, tono:'', pie:'previsto en el trimestre' },
+    { rot:'Cobrado', v:m.cobrado, tono:'bien', pie: m.cartera ? Math.round(m.cobrado / m.cartera * 100) + '% de la cartera' : '' },
+    { rot:'Cartera', v:m.cartera, tono:'', pie:'contratos firmados, sin contar las Cartas de Reserva' },
+  ];
+  $('#kpis').innerHTML = tarjetas.map((t,i) => `
+    <div class="lw-kpi lw-fade ${t.urge?'urge':''}" style="--i:${i}">
+      <span class="rot">${esc(t.rot)}</span>
+      <span class="lw-cifra">${esc(dinero(t.v, MONEDA))}</span>
+      <span class="pie ${t.tono}">${esc(t.pie)}</span>
+    </div>`).join('');
+}
+
+/* ── gráfico de caja ────────────────────────────────────────────────────── */
+function pintarGrafico(m){
+  $('#graficoMoneda').textContent = MONEDA;
+  const meses = mesesVentana(HOY);
+  const mesHoy = HOY.slice(0,7);
+  const datos = meses.map(mes => ({ mes, ...(m.porMes[mes] || { previsto:0, cobrado:0, vencido:0 }) }));
+  const tope = Math.max(1, ...datos.map(d => d.previsto));
+  const NOMBRE = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  $('#grafico').innerHTML = datos.map(d => {
+    const pendiente = Math.max(0, d.previsto - d.cobrado - d.vencido);
+    const h = x => Math.round(x / tope * 100 * 10) / 10;
+    return `<div class="mes ${d.mes===mesHoy?'hoy':''}" data-mes="${d.mes}" tabindex="0"
+      data-t="${escAttr(d.mes)}·${d.previsto}·${d.cobrado}·${pendiente}·${d.vencido}">
+      ${d.cobrado ? `<span class="seg cob" style="height:${h(d.cobrado)}%"></span>` : ''}
+      ${d.vencido ? `<span class="seg ven" style="height:${h(d.vencido)}%"></span>` : ''}
+      ${pendiente ? `<span class="seg pen" style="height:${h(pendiente)}%"></span>` : ''}
+    </div>`;
+  }).join('');
+  $('#ejes').innerHTML = datos.map(d => {
+    const [y, mm] = d.mes.split('-');
+    return `<span>${NOMBRE[+mm-1]}${mm==='01' || d.mes===meses[0] ? ' ' + y.slice(2) : ''}</span>`;
+  }).join('');
+  $('#leyenda').innerHTML = `
+    <span><i style="background:#8F9B7A"></i>Cobrado</span>
+    <span><i style="background:#0E6B70"></i>Pendiente</span>
+    <span><i style="background:#9E2F26"></i>Vencido</span>
+    <span style="margin-left:auto">línea discontinua = mes actual</span>`;
+}
+/* tooltip por mes: identidad nunca por color solo */
+const tip = $('#tip');
+$('#grafico').addEventListener('mousemove', e => {
+  const mes = e.target.closest('[data-t]'); if(!mes){ tip.style.display='none'; return; }
+  const [ym, prev, cob, pen, ven] = mes.dataset.t.split('·');
+  const NOMBRE = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const [y, mm] = ym.split('-');
+  tip.innerHTML = `<b>${NOMBRE[+mm-1]} ${y}</b><br>Previsto: ${esc(dinero(+prev, MONEDA))}<br>` +
+    `Cobrado: ${esc(dinero(+cob, MONEDA))}<br>Pendiente: ${esc(dinero(+pen, MONEDA))}` +
+    (+ven ? `<br>Vencido: ${esc(dinero(+ven, MONEDA))}` : '');
+  tip.style.display = 'block';
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - 250) + 'px';
+  tip.style.top = (e.clientY + 14) + 'px';
+});
+$('#grafico').addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+
+/* ── análisis: cuatro lecturas del mismo modelo ─────────────────────────────
+   Nada se calcula aquí: composición y proyectos salen de campos que el modelo ya
+   trae, y aging/trimestres de las funciones probadas en node. Etiquetas directas
+   en todo — la identidad nunca por color solo. */
+function pintarAnalisis(m){
+  $('#analisisMoneda').textContent = MONEDA;
+  const din = n => dinero(n, MONEDA);
+
+  // 1 · composición de la cartera: una sola barra al 100% + leyenda con importes
+  const pendienteFuturo = Math.max(0, m.pendiente - m.vencido);
+  const total = Math.max(1, m.cobrado + pendienteFuturo + m.vencido);
+  const pctc = x => Math.round(x / total * 1000) / 10;
+  $('#gCompo').innerHTML = m.cartera <= 0
+    ? '<div class="vacio-g">Sin cartera en esta moneda.</div>'
+    : `<div class="compo" role="img" aria-label="Composición de la cartera: cobrado, pendiente y vencido">
+        ${m.cobrado ? `<span class="c1" style="width:${pctc(m.cobrado)}%" title="Cobrado: ${escAttr(din(m.cobrado))}"></span>` : ''}
+        ${pendienteFuturo ? `<span class="c2" style="width:${pctc(pendienteFuturo)}%" title="Pendiente: ${escAttr(din(pendienteFuturo))}"></span>` : ''}
+        ${m.vencido ? `<span class="c3" style="width:${pctc(m.vencido)}%" title="Vencido: ${escAttr(din(m.vencido))}"></span>` : ''}
+      </div>
+      <div class="compo-leyenda">
+        <span><i style="background:#8F9B7A"></i>Cobrado <b>${esc(din(m.cobrado))} · ${pctc(m.cobrado)}%</b></span>
+        <span><i style="background:#0E6B70"></i>Pendiente sin vencer <b>${esc(din(pendienteFuturo))} · ${pctc(pendienteFuturo)}%</b></span>
+        <span><i style="background:#9E2F26"></i>Vencido <b>${esc(din(m.vencido))} · ${pctc(m.vencido)}%</b></span>
+      </div>`;
+
+  // 2 · trimestres naturales: la cifra que pidió el cliente
+  const tri = porTrimestre(m.filas, HOY, 4);
+  const topeT = Math.max(1, ...tri.map(t => t.importe));
+  $('#gTrimestres').innerHTML = `<div class="barras-v" role="img" aria-label="Pendiente por trimestre">` +
+    tri.map(t => `<div class="col" title="${escAttr(t.trimestre + ': ' + din(t.importe) + ' en ' + t.n + ' vencimiento(s)')}">
+      <span class="v">${esc(din(t.importe))}</span>
+      <i style="background:#0E6B70;height:${Math.max(t.importe ? 4 : 1, Math.round(t.importe / topeT * 78))}px"></i>
+      <span class="l">${esc(t.trimestre)}</span>
+    </div>`).join('') + `</div>
+    <p class="nota-pie" style="margin-top:10px">Solo vencimientos con fecha: lo «sin fecha» no está aquí — está en su alerta.</p>`;
+
+  // 3 · aging del vencido: rampa secuencial, claro=reciente, oscuro=viejo
+  const RAMPA = ['#E8C4BF', '#CE8F86', '#B55D52', '#9E2F26'];
+  const ag = agingVencido(m.filas, HOY);
+  const topeA = Math.max(...ag.map(t => t.importe));
+  $('#gAging').innerHTML = !topeA
+    ? '<div class="vacio-g">Nada vencido en esta moneda. Que siga así.</div>'
+    : `<div class="barras-v" role="img" aria-label="Vencido por antigüedad del retraso">` +
+      ag.map((t, i) => `<div class="col" title="${escAttr(t.etiqueta + ' de retraso: ' + din(t.importe) + ' en ' + t.n + ' vencimiento(s)')}">
+        <span class="v">${t.importe ? esc(din(t.importe)) : '—'}</span>
+        <i style="background:${RAMPA[i]};height:${Math.max(t.importe ? 4 : 1, Math.round(t.importe / topeA * 78))}px"></i>
+        <span class="l">${esc(t.etiqueta)}</span>
+      </div>`).join('') + '</div>';
+
+  // 4 · por proyecto: barras horizontales apiladas, los 8 mayores por cartera
+  const proys = Object.entries(m.porProyecto).sort((a,b) => b[1].cartera - a[1].cartera).slice(0, 8);
+  const topeP = Math.max(1, ...proys.map(([,d]) => d.cartera));
+  $('#gProyectos').innerHTML = !proys.length
+    ? '<div class="vacio-g">Sin proyectos en esta moneda.</div>'
+    : '<div class="barras-h">' + proys.map(([nombre, d]) => {
+        const pendiente = Math.max(0, d.cartera - d.cobrado - d.vencido);
+        const w = x => Math.round(x / topeP * 1000) / 10;
+        return `<div class="fila-b">
+          <div class="cab-b"><b>${esc(nombre)}</b><span class="v">${esc(din(d.cartera))}</span></div>
+          <div class="pista" title="${escAttr(nombre + ' — cobrado ' + din(d.cobrado) + ' · pendiente ' + din(pendiente) + (d.vencido ? ' · vencido ' + din(d.vencido) : ''))}">
+            ${d.cobrado ? `<span class="pc" style="width:${w(d.cobrado)}%"></span>` : ''}
+            ${pendiente ? `<span class="pp" style="width:${w(pendiente)}%"></span>` : ''}
+            ${d.vencido ? `<span class="pv" style="width:${w(d.vencido)}%"></span>` : ''}
+          </div>
+        </div>`;
+      }).join('') + `</div>
+      <p class="nota-pie" style="margin-top:10px">Barra = cartera del proyecto, al ancho relativo del mayor. Verde cobrado · teal pendiente · rojo vencido${Object.keys(m.porProyecto).length > 8 ? ' · se enseñan los 8 mayores' : ''}.</p>`;
+}
+
+/* ── filtros de la tabla ────────────────────────────────────────────────── */
+const FILTROS = [
+  ['atencion', 'Necesitan atención', f => f.estado === 'vencido' || f.estado === 'sin_fecha' || f.estado === 'parcial'],
+  ['vencido', 'Vencidos', f => f.estado === 'vencido'],
+  ['proximos', 'Próximos 90 días', f => f.fecha && f.pendiente > 0 && f.fecha >= HOY && diasEntre(HOY, f.fecha) <= 90],
+  ['sin_fecha', 'Sin fecha', f => f.estado === 'sin_fecha'],
+  ['todos', 'Todos', () => true],
+];
+function pintarFiltros(m){
+  /* El interruptor va JUNTO a los filtros y no escondido en ajustes: cambia lo
+     que suman todas las cifras de la pantalla, así que tiene que verse desde la
+     misma cifra que cambia. */
+  const f = m.fuera || { sinFirmar:0 };
+  const conmutador = f.sinFirmar || SIN_FIRMAR
+    ? '<span class="sui-eje" style="margin-left:14px">Alcance</span>'
+      + '<button type="button" class="sui-chip ' + (SIN_FIRMAR ? 'on' : '') + '" id="chipSinFirmar" '
+      + 'title="Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»">'
+      + 'Incluir sin firmar' + (f.sinFirmar ? ' <span class="n">' + f.sinFirmar + '</span>' : '') + '</button>'
+    : '';
+  $('#filtros').innerHTML = '<span class="sui-eje">Estado</span>' +
+    FILTROS.map(([k, l, fn]) => {
+      const n = m.filas.filter(fn).length;
+      return `<button type="button" class="sui-chip ${k===FILTRO?'on':''} ${n?'':'vacio'}" data-filtro="${k}">${l}<span class="n">${n}</span></button>`;
+    }).join('') + conmutador;
+  const cs = document.getElementById('chipSinFirmar');
+  if(cs) cs.onclick = () => {
+    SIN_FIRMAR = !SIN_FIRMAR;
+    try{ localStorage.setItem('lw_venc_sin_firmar', SIN_FIRMAR ? '1' : '0'); }catch(_){}
+    MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+    pintarTodo();
+  };
+}
+$('#pagAntes').addEventListener('click', () => { if(PAGINA > 0){ PAGINA--; pintarTabla(MODELO[MONEDA]); } });
+$('#pagDespues').addEventListener('click', () => { PAGINA++; pintarTabla(MODELO[MONEDA]); });
+
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('[data-filtro]'); if(!b) return;
+  FILTRO = b.dataset.filtro; PAGINA = 0; const m = MODELO[MONEDA]; pintarFiltros(m); pintarTabla(m);
+});
+
+/* ── la tabla ───────────────────────────────────────────────────────────── */
+function pintarTabla(m){
+  const fn = (FILTROS.find(([k]) => k === FILTRO) || FILTROS[4])[2];
+  const filas = m.filas.filter(fn);
+  $('#hTabla').textContent = (FILTROS.find(([k]) => k === FILTRO) || [])[1] + ' · ' + filas.length;
+  if(!filas.length){ $('#tbody').innerHTML = '<tr><td colspan="8" class="flojo" style="padding:18px">Nada con este filtro.</td></tr>'; $('#pager').hidden = true; return; }
+  const paginas = Math.ceil(filas.length / POR_PAGINA);
+  if(PAGINA >= paginas) PAGINA = paginas - 1;
+  const desde = PAGINA * POR_PAGINA;
+  const pagina = filas.slice(desde, desde + POR_PAGINA);
+  $('#pager').hidden = filas.length <= POR_PAGINA;
+  $('#pagInfo').textContent = (desde + 1) + '–' + (desde + pagina.length) + ' de ' + filas.length;
+  $('#pagAntes').disabled = PAGINA === 0;
+  $('#pagDespues').disabled = PAGINA >= paginas - 1;
+  $('#tbody').innerHTML = pagina.map(f => {
+    const [tag, cls] = ESTADO_TAG[f.estado] || [f.estado, 'gris'];
+    const editable = PUEDE_EDITAR && f.contrato.bloqueado;
+    return `<tr data-vid="${esc(f.id)}">
+      <td>${f.fecha ? esc(fechaCorta(f.fecha)) : '<span class="flojo">sin fecha</span>'}
+        ${editable ? `<button type="button" class="lapiz" data-editar="${esc(f.id)}" data-fecha="${esc(f.fecha||'')}"
+           aria-label="Cambiar la fecha de este vencimiento"><i class="ph ph-pencil-simple"></i></button>` : ''}
+        ${f.ajustado ? '<span class="flojo" title="Fecha ajustada a mano">·aj</span>' : ''}</td>
+      <td><a href="/contracts/?contrato=${esc(f.contrato.id)}">${esc(f.contrato.numero || 'sin nº')}</a>
+        <span class="flojo">${esc(lwTipoContrato(f.contrato.tipo))}</span></td>
+      <td>${esc(f.contrato.comprador_nombre || 'sin nombre')}</td>
+      <td>${esc(f.descripcion || 'Hito ' + f.orden)}${f.pct ? ` <span class="flojo">${esc(f.pct)}%</span>` : ''}
+        ${f.nota ? `<span class="flojo" title="${escAttr(f.nota)}"> · ${esc(f.nota.length > 34 ? f.nota.slice(0,32) + '…' : f.nota)}</span>` : ''}</td>
+      <td class="num">${esc(dinero(f.importe, MONEDA))}</td>
+      <td class="num flojo">${f.cubierto ? esc(dinero(f.cubierto, MONEDA)) : ''}</td>
+      <td class="num">${f.pendiente != null ? esc(dinero(f.pendiente, MONEDA)) : '—'}</td>
+      <td><span class="sui-tag ${cls}">${tag}</span>${f.factura_id ? ' <span class="sui-tag info" title="El sistema ya emitió y envió la factura de este vencimiento">Facturada</span>' : ''}${f.no_facturar ? ' <span class="sui-tag gris" title="Este vencimiento no recibe factura automática">Sin auto</span>' : ''}</td>
+    </tr>`;
+  }).join('');
+}
+function escAttr(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+/* edición de la fecha, solo contratos firmados (la nota de la página explica
+   por qué): input de calendario en la propia celda, guardar al cambiar. */
+$('#tbody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-editar]'); if(!b) return;
+  const td = b.closest('td'); const vid = b.dataset.editar; const previa = b.dataset.fecha;
+  td.innerHTML = `<input type="date" class="fecha-edit" value="${escAttr(previa)}" aria-label="Nueva fecha de vencimiento">`;
+  const inp = td.querySelector('input'); inp.focus();
+  const guardar = async () => {
+    const nueva = inp.value || null;
+    if(nueva === (previa || null)){ pintarTabla(MODELO[MONEDA]); return; }
+    const { error } = await window._SB.from('contrato_vencimientos')
+      .update({ fecha: nueva, ajustado: true }).eq('id', vid);
+    if(error){ toast('No se pudo guardar la fecha: ' + error.message); pintarTabla(MODELO[MONEDA]); return; }
+    // se toca la ENTRADA cruda y se recalcula con la misma función probada en
+    // node — no una versión "rápida" del modelo que divergiría de la testada
+    const cru = RAW.vencimientos.find(x => x.id === vid);
+    if(cru){ cru.fecha = nueva; cru.ajustado = true; }
+    MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+    pintarTodo();
+    toast(nueva ? 'Vencimiento el ' + fechaCorta(nueva) : 'Fecha quitada — vuelve a «Sin fecha»');
+  };
+  inp.addEventListener('change', guardar);
+  inp.addEventListener('blur', guardar, { once:true });
+  inp.addEventListener('keydown', ev => { if(ev.key === 'Escape'){ inp.removeEventListener('change', guardar); pintarTabla(MODELO[MONEDA]); } });
+});
+
+/* ── por proyecto ───────────────────────────────────────────────────────── */
+function pintarProyectos(m){
+  const filas = Object.entries(m.porProyecto).sort((a,b)=>b[1].cartera - a[1].cartera);
+  /* QUIÉN DEBE, DENTRO DE CADA PROYECTO — 26-ago-2026, encargo del cliente:
+     «quiere ver la situación en cada proyecto y que le salgan las personas ahí
+     con lo que deben». Van PLEGADAS: el proyecto se sigue leyendo de un vistazo
+     y quien quiera el detalle lo abre. Ordenadas por lo que deben, que es el
+     orden en el que se mira una lista así. Se marca «sin firmar» cuando ninguno
+     de sus contratos lo está: mientras se carga el histórico, esa distinción es
+     lo que dice cuánto fiarse de la cifra. */
+  const personasDe = d => {
+    const ps = Object.entries(d.personas || {})
+      .filter(([, v]) => v.precio > 0 || v.pendiente > 0)
+      .sort((a, b) => b[1].pendiente - a[1].pendiente);
+    if(!ps.length) return '';
+    return `<tr class="detalle-personas"><td colspan="5">
+      <details><summary>${ps.length} ${ps.length === 1 ? 'comprador' : 'compradores'} · quién debe qué</summary>
+      <table class="mini-personas"><tbody>${ps.map(([n, v]) => `<tr>
+        <td>${esc(n)}${v.firmados === 0 ? ' <span class="sui-tag gris">sin firmar</span>' : ''}</td>
+        <td class="num">${esc(dinero(v.precio, MONEDA))}</td>
+        <td class="num">${esc(dinero(v.cobrado, MONEDA))}</td>
+        <td class="num"><b>${v.pendiente > 0.005 ? esc(dinero(v.pendiente, MONEDA)) : '<span class="flojo">Cobrado</span>'}</b></td>
+      </tr>`).join('')}</tbody></table></details></td></tr>`;
+  };
+  $('#tproy').innerHTML = filas.map(([p, d]) => `<tr>
+    <td>${esc(p)}</td>
+    <td class="num">${esc(dinero(d.cartera, MONEDA))}</td>
+    <td class="num">${esc(dinero(d.cobrado, MONEDA))}</td>
+    <td class="num">${d.proximos90 ? esc(dinero(d.proximos90, MONEDA)) : '<span class="flojo">—</span>'}</td>
+    <td class="num">${d.vencido ? '<span class="sui-tag alerta">' + esc(dinero(d.vencido, MONEDA)) + '</span>' : '<span class="flojo">—</span>'}</td>
+  </tr>` + personasDe(d)).join('') || '<tr><td colspan="5" class="flojo" style="padding:18px">Sin contratos en esta moneda.</td></tr>';
+}
+
+/* ── facturas con vencimiento ───────────────────────────────────────────── */
+function pintarFacturas(){
+  const filas = FACTURAS.filter(f => (f.moneda || 'EUR') === MONEDA)
+    .sort((a,b) => a.venc < b.venc ? -1 : 1).slice(0, 40);
+  $('#tfact').innerHTML = filas.map(f => {
+    const pasada = f.venc < HOY;
+    return `<tr>
+      <td>${esc(fechaCorta(f.venc))}</td>
+      <td>${esc(f.numero || 'sin nº')} <span class="flojo">${esc(f.tipo)}</span></td>
+      <td>${esc(f.cliente_nombre || '')}</td>
+      <td class="num">${esc(dinero(Number(f.total), MONEDA))}</td>
+      <td><span class="sui-tag ${pasada ? 'alerta' : 'gris'}">${pasada ? 'Vencida' : 'En plazo'}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="flojo" style="padding:18px">Ninguna factura con fecha de vencimiento en esta moneda.</td></tr>';
+}
+
+</script>
+</body>
+</html>

@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
 
       if (dry) { emitidas.push('[DRY] ' + etiqueta + ' → ' + C.fmtMoneda(yo.pendiente, ct.moneda || 'EUR')); continue; }
 
-      // ── la factura, con la misma forma que produce /facturas/ ───────────
+      // ── la factura, con la misma forma que produce /intranet/facturas/ ───────────
       const { data: fila_ct, error: eCt } = await sb.from('contratos')
         .select('fields:datos->fields, extras:datos->compradores').eq('id', v.contrato_id).single();
       if (eCt || !fila_ct) throw new Error('no se pudo leer el contrato: ' + (eCt?.message ?? 'sin fila'));
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
       // El vencimiento queda marcado YA, con la factura recién creada: si el
       // PDF o el correo fallan luego, la factura EXISTE y el equipo la manda
-      // desde /facturas/ — lo que no puede pasar es que mañana el cron emita
+      // desde /intranet/facturas/ — lo que no puede pasar es que mañana el cron emita
       // OTRA para el mismo hito porque el marcado llegara tarde.
       const marca = await sb.from('contrato_vencimientos').update({ factura_id: ins.data.id }).eq('id', v.id);
       if (marca.error) console.error('venc', v.id, 'facturado pero SIN marcar factura_id:', marca.error.message);

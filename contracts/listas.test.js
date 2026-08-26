@@ -158,10 +158,10 @@ comprueba('el catálogo y la edge de usuarios no conocen las mismas herramientas
 
 // El panel de permisos ya NO tiene lista propia (17-ago): la deriva del catálogo.
 // Si alguien le vuelve a escribir una, esto lo dice.
-const PANEL = fs.readFileSync(aqui('..', 'usuarios', 'index.html'), 'utf8');
+const PANEL = fs.readFileSync(aqui('..', 'intranet', 'usuarios', 'index.html'), 'utf8');
 if (/const HERRAMIENTAS = \[/.test(PANEL)) {
   fallos++;
-  console.error('\n  FALLA  /usuarios/ ha vuelto a tener su propia lista de herramientas.');
+  console.error('\n  FALLA  /intranet/usuarios/ ha vuelto a tener su propia lista de herramientas.');
   console.error('         Tiene que ser `const HERRAMIENTAS = LW_PERMISOS`. Con lista propia, sus');
   console.error('         etiquetas divergen del hub — ya pasó con «Unidades» vs «Proyectos».');
 }

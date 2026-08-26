@@ -243,7 +243,7 @@
   /* ── La ficha del comprador manda (18-ago-2026) ───────────────────────────
      Hasta hoy el comprador se tecleaba y la ficha nacía sola de ese texto: un
      pasaporte con una errata creaba una persona nueva. Ahora el contrato se
-     enlaza a una ficha de /compradores/ y estos son sus dos estados: sin
+     enlaza a una ficha de /intranet/compradores/ y estos son sus dos estados: sin
      enlazar (buscador + «crear ficha») y enlazada (este chip). */
   .cli-chip{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 13px; margin:2px 0 12px;
     border:1px solid var(--dl); border-radius:12px; background:#F3F6EE; font-size:12.5px; }

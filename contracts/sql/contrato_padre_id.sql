@@ -5,7 +5,7 @@
 -- Vínculo entre contratos de la misma venta (obra → su reserva/PPJB).
 -- Lo escribe contracts/app.html al guardar (el número elegido en el desplegable
 -- «Nº del Contrato de Reserva/PPJB vinculado» se resuelve a id); lo lee
--- /operaciones/ para juntar ambos documentos en una sola operación.
+-- /intranet/operaciones/ para juntar ambos documentos en una sola operación.
 alter table public.contratos
   add column contrato_padre_id uuid references public.contratos(id),
   add constraint contratos_padre_no_self check (contrato_padre_id is distinct from id);

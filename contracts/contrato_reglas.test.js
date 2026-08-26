@@ -61,7 +61,7 @@ const prohibidos = ['crearFichaComprador', 'guardarCorreccionFicha', 'cliCorregi
 const vueltos = prohibidos.filter(p => app.includes(p));
 afirma('no vuelven «Crear ficha» ni «Corregir ficha»', vueltos.length === 0, vueltos.join(' · '));
 afirma('el enlace de alta apunta a Compradores',
-  app.includes('/compradores/?nuevo=1'),
+  app.includes('/intranet/compradores/?nuevo=1'),
   'sin ese enlace, el aviso de «este comprador no tiene ficha» no dice dónde se da de alta');
 
 /* 3) elegir cliente sigue siendo posible ----------------------------------- */

@@ -376,7 +376,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
             titulo: 'Factura ' + (f.numero || 'sin nº') + (d < 0 ? ' vencida hace ' + (-d) + ' d'
                     : d === 0 ? ' vence hoy' : ' vence en ' + d + ' d'),
             detalle: (f.total || '') + ' ' + (f.moneda || '') + ' sin cobrar',
-            enlace: f.contrato_id ? '/operaciones/?contrato=' + f.contrato_id : '/facturas/',
+            enlace: f.contrato_id ? '/intranet/operaciones/?contrato=' + f.contrato_id : '/intranet/facturas/',
             cuando: f.venc, nuevo: d <= 5,
           });
         });
@@ -390,7 +390,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
             titulo: 'Enlace de firma de ' + (c.numero || 'un contrato') +
                     (d < 0 ? ' caducado' : d === 0 ? ' caduca hoy' : ' caduca en ' + d + ' d'),
             detalle: s.firmante_nombre || '',
-            enlace: '/operaciones/?contrato=' + s.contrato_id,
+            enlace: '/intranet/operaciones/?contrato=' + s.contrato_id,
             cuando: s.expira_en, nuevo: d <= 5,
           });
         });

@@ -43,15 +43,15 @@
      toque una fila del original.
      `entities.js` (sociedades y cuentas) ya viaja dentro de la propia factura:
      los datos bancarios están para que el comprador pague. -->
-<link rel="stylesheet" href="/facturas/documento.css?v=20260731">
+<link rel="stylesheet" href="/intranet/facturas/documento.css?v=20260731">
 <script src="/contracts/assets/entities.js?v=5f9da647"></script>
 <!-- dinero.js ANTES de totales.js: totales.js usa lwParseImporte/lwFormatoImporte
      y desde el 26-ago-2026 ya no lleva una copia propia por si faltan. Esta
      pagina es la del CLIENTE: aqui un fallo no lo ve un operador, lo ve el
      comprador. Lo vigila `contracts/orden_dinero.test.js`. -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
-<script src="/facturas/totales.js"></script>
-<script src="/facturas/documento.js?v=20260731"></script>
+<script src="/intranet/facturas/totales.js"></script>
+<script src="/intranet/facturas/documento.js?v=20260731"></script>
 <style>
   :root{ --tbh:64px; }
   /* --cajon-w: sin override propio desde el 11-ago — hereda el 70vw de
@@ -210,9 +210,9 @@
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=4b6cb538"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 </head>
 <body>
 
@@ -274,7 +274,7 @@
            documentos. Cambiar de pestaña para reconstruir esa respuesta era
            trabajo que le tocaba a él.
            Las RUTAS se conservan enteras: el hash ya no cambia de vista, ahora
-           DESPLAZA hasta la sección. `#/facturas/INV00001` sigue abriendo ese
+           DESPLAZA hasta la sección. `#/intranet/facturas/INV00001` sigue abriendo ese
            documento, que es lo que llevan los correos ya enviados. -->
       <section id="secContratos"></section>
       <section id="secFacturas"></section>
@@ -423,9 +423,9 @@
   aplicaLang();
 
   /* ── RUTAS: la URL dice siempre dónde estás ─────────────────────────
-     Rutas: #/contratos · #/facturas · #/obra · #/facturas/INV00001
+     Rutas: #/contratos · #/facturas · #/obra · #/intranet/facturas/INV00001
      Una sola palabra por sección: la primera versión leía `#/factura/NUM` en
-     singular y escribía `#/facturas/NUM` en plural, así que el enlace a un
+     singular y escribía `#/intranet/facturas/NUM` en plural, así que el enlace a un
      documento cambiaba la URL y no abría nada. El `#` pelado del enlace del
      correo se sustituye por la ruta limpia en cuanto supabase-js lo consume. */
   var SECCIONES = ['contratos','facturas','obra','documentos'];
@@ -493,7 +493,7 @@
      Se calla en dos casos, y los dos importan:
      · durante un desplazamiento programado (ver `PROGRAMADO`);
      · con un documento abierto — si no, desplazarse con el cajón abierto
-       reescribiría `#/facturas/INV00001` como `#/obra` y el enlace del correo
+       reescribiría `#/intranet/facturas/INV00001` como `#/obra` y el enlace del correo
        dejaría de apuntar a ese documento.
      `rootMargin` con un -45% arriba: la sección «activa» es la que ocupa el
      tercio superior de la pantalla, no la que asoma por abajo. */

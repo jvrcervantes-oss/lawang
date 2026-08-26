@@ -21,7 +21,7 @@
 --     primero se revoca el acceso desde la propia ficha, luego se borra.
 --   · documents — el KYC del duplicado. Se BORRAN las filas y se DEVUELVEN las
 --     rutas del bucket: los ficheros los quita la interfaz con la sesión del
---     super_admin (mismo patrón que borrarOperacion en /operaciones/, que quita
+--     super_admin (mismo patrón que borrarOperacion en /intranet/operaciones/, que quita
 --     los PDF tras el RPC). Un pasaporte duplicado en un bucket privado no es
 --     una fuga, pero es PII que ya no respalda a nadie: fuera.
 --   · reservations — tabla del esquema viejo, sin policies. Si tuviera filas,

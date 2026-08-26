@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Facturas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- tokens de marca: los mismos que los contratos, fuente única -->
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
+     los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
+     para que el riel no salga como una columna de cuadros vacios. Misma URL y
+     misma version fijada que las tres que ya lo tenian. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e26504f1">
+<!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
+     doce, seis se habian quedado fuera del fichero que existe justamente para
+     que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
+     Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
+     esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
+     no le mueve lo que tenia. -->
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
+<link rel="stylesheet" href="documento.css?v=20260731">
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
+     el permiso lo comprueba el script de esta pagina, que sabe un matiz que
+     guard.js no — con `?vista=1` (Operaciones embebe la factura para
+     consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
+     sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/guard.js?v=cf2b0ff8"></script>
+<!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
+     el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
+     fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
+     en otro, con dos aspectos distintos en la misma pantalla. -->
+<script src="/contracts/assets/suite.js?v=a916961a"></script>
+<!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
+     El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
+     .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
+     expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
+     saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
+<script src="/contracts/assets/entities.js?v=5f9da647"></script>
+<!-- aritmética de dinero (con test propio en totales.test.js) -->
+<!-- maquetacion del documento: la MISMA que arma la factura automatica del
+     primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
+<!-- Quien compra, normalizado: vive en la capa compartida desde el 19-ago-2026
+     porque Contratos necesita EXACTAMENTE la misma lista para nombrar la
+     operación. Mientras estuvo aquí dentro, Facturas decía «A · B» y el
+     contrato de al lado decía solo «A». El `?v=` lo sella el hook. -->
+<script src="/contracts/assets/compradores.js?v=9ea247e6"></script>
+<!-- ¿el documento sigue diciendo lo que dice la ficha? La comparación vive en
+     la vista `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
+<script src="/contracts/assets/ficha_divergencia.js?v=70b9307d"></script>
+<!-- reasignar el autor de un documento (solo super_admin) — compartido con
+     /contracts. `creado_por` es con lo que la RLS decide quién puede editar
+     su propio documento, no un adorno. -->
+<script src="/contracts/assets/autoria.js?v=4e47fa06"></script>
+<style>
+  /* --folio = color del papel del documento. Vive aquí y en un solo sitio a
+     propósito: los logos de las sociedades vienen sin canal alfa (el de San
+     Dal Woods es marrón sobre un rectángulo BLANCO opaco), así que si el folio
+     deja de ser blanco el logo se ve pegado encima. Con `--folio` y el
+     multiply del logo (ver `.doc .head img`) el papel se puede cambiar sin que
+     aparezca ese recorte — 30-jul-2026. */
+  :root{ --line:#E4DCCB;   /* mismo valor que --linea de suite.css (6-ago) */ --card:#fffdf8; --field-bg:#fdfcf9; --tbh:64px; --folio:#fff; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body); background:var(--rl); color:var(--ink); }
+  body[hidden]{ display:none; }
+
+  /* ---------- chrome ---------- */
+  /* Solo posicionamiento: el aspecto lo pone /contracts/assets/topbar.css,
+     compartido con Contratos y Dossier. Fixed porque .stage compensa con
+     padding-top:var(--tbh). */
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+
+  /* `360px 1fr` con `gap:18px` y relleno `0 26px 22px`: los valores de 2a. Antes era
+     un rango hasta 440 y las dos columnas pegadas al borde de la ventana. */
+  .stage{ display:grid; grid-template-columns:360px 1fr; gap:18px; height:100%;
+          padding:calc(var(--tbh) + 18px) 26px 22px; }
+  /* ⚠️ Esta media query va ANTES de que se definan .pane-preview (línea ~84) y
+     .pv-scroll, así que a igualdad de especificidad gana la regla de después:
+     el `display:none` que llevaba aquí NO se aplicaba y nunca se aplicó.
+     Se ha quitado en vez de recolocarlo, porque resucitarlo dejaría el móvil sin
+     vista previa y no hay otra forma de ver la factura desde el teléfono (el
+     modo ?vista=1 lo abre el visor de escritorio). Lo que sí funciona —y es lo
+     que se queda— es apilar las dos columnas. El tamaño de la hoja para que
+     quepa se ajusta abajo, junto a .sheet, donde el orden sí manda. */
+  /* 🔴 16px en el campo SOLO en movil, y es la unica desviacion deliberada del
+     mockup (que pide 13): por debajo de 16px, Safari en iOS hace ZOOM al enfocar un
+     input y descuadra la pantalla entera. En escritorio no aplica y se respeta el 13. */
+  @media (max-width:900px){
+    .stage{ grid-template-columns:1fr; padding:calc(var(--tbh) + 12px) 14px 18px; }
+    input,select,textarea{ font-size:16px; }
+  }
+
+  /* ---------- formulario ---------- */
+  /* Tarjeta blanca de radio 12 con `16px 18px`, no una columna con filete a la
+     derecha: en 2a el formulario es un panel que flota sobre el papel. */
+  .pane-form{ overflow:auto; background:var(--card); border:1px solid var(--line);
+              border-radius:12px; }
+  .pane-form .inner{ padding:16px 18px 40px; }
+  /* Sin caja dentro de la tarjeta: en 2a el grupo se separa con su ROTULO, no con
+     un segundo marco. Dos marcos anidados es lo que engordaba el formulario. */
+  /* ── LA COLUMNA DEL FORMULARIO, POR SECCIONES — 24-ago-2026 ──────────────
+     Encargo del owner: «toda la documentación está ahí súper apiñada en un
+     lateral y toda seguida, sin colores, sin diferencias entre secciones».
+     Era literal: ocho `fieldset` sin borde, sin fondo y sin más separación que
+     18 px, con el rótulo en gris de 10,5 px. Todo pesaba lo mismo, así que
+     nada destacaba y había que leer para saber dónde empezaba cada cosa.
+
+     Cada sección pasa a ser una TARJETA con su fondo y su filete, y el rótulo
+     gana tinta y un punto de acento a la izquierda. No se inventa paleta: el
+     acento es `--dl` (Deep Lagoon), el mismo que ya marca «esto se puede tocar»
+     en toda la suite, y el fondo sale de las variables de marca. Sin sombras,
+     como el resto del sistema. */
+  fieldset{ border:1px solid var(--line); border-radius:12px; padding:13px 14px 15px;
+            margin:0 0 12px; background:var(--card); }
+  fieldset > legend{ display:flex; align-items:center; gap:7px; }
+  fieldset > legend::before{ content:''; width:3px; height:11px; border-radius:2px;
+            background:var(--dl); flex:none; }
+  /* El primer campo de una tarjeta no necesita el margen superior de `label`:
+     ya lo da el relleno de la tarjeta. */
+  fieldset > label:first-of-type{ margin-top:2px; }
+
+  /* Bloques plegables (Impuesto, Notas): lo que casi nunca se rellena no ocupa
+     sitio hasta que se pide. Mismo aspecto de tarjeta, para que la columna se
+     lea como una sola lista. */
+  .plegable{ border:1px solid var(--line); border-radius:12px; background:var(--card);
+             margin:0 0 12px; padding:0 14px; }
+  .plegable > summary{ cursor:pointer; list-style:none; padding:12px 0;
+             font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+             color:var(--texto-2,#4A5052); font-weight:600;
+             display:flex; align-items:center; gap:7px; }
+  .plegable > summary::-webkit-details-marker{ display:none; }
+  .plegable > summary::before{ content:'+'; width:15px; height:15px; flex:none;
+             display:grid; place-items:center; border:1px solid var(--line);
+             border-radius:5px; font-size:12px; line-height:1; color:var(--dl); }
+  .plegable[open] > summary::before{ content:'−'; }
+  .plegable[open]{ padding-bottom:14px; }
+  .plegable .opc{ font-size:9.5px; letter-spacing:.08em; color:var(--muted); font-weight:500; }
+
+  /* Botón que abre el buscador de contrato. Se pinta como un campo, no como un
+     botón: ocupa el sitio de un `<select class="sui-sel">` y tiene que leerse como tal. */
+  .campo-elegir{ width:100%; font:inherit; font-size:14px; text-align:left;
+             padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+             background:var(--rl,#fff); color:inherit; cursor:pointer;
+             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .campo-elegir:hover{ border-color:var(--dl); }
+  .campo-elegir::after{ content:'⌄'; float:right; color:var(--muted); margin-left:8px; }
+  .campo-elegir.vacio{ color:var(--muted); }
+
+  /* Campo que rellena el contrato y no se teclea. Se ve DISTINTO de un campo
+     vacío: gris de fondo y candado. Un campo que no deja escribir sin decir por
+     qué se lee como una pantalla rota. */
+  .campo-del-contrato{ background:var(--sup-0,#F1EBDD); color:var(--texto-2,#4A5052);
+             cursor:default; }
+  .campo-del-contrato:focus{ outline:none; border-color:var(--line); }
+
+  /* El contrato encadenado: aviso que se queda, no un botón más. */
+  .vinc{ border:1px solid var(--dl); border-left-width:3px; border-radius:10px;
+         padding:11px 12px; margin-top:10px; background:var(--sup-0,#F1EBDD); }
+  .vinc.malo{ border-color:#9E2F26; background:#FBF3F1; }
+  .vinc-t{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:3px; }
+  .vinc.malo .vinc-t{ color:#9E2F26; }
+  .vinc p{ margin:0; font-size:12px; color:var(--texto-2,#4A5052); line-height:1.45; }
+  .vinc-btn{ margin-top:9px; font:inherit; font-size:12.5px; font-weight:500;
+         border:1px solid var(--dl); background:var(--dl); color:#fff;
+         border-radius:999px; padding:7px 14px; cursor:pointer; }
+  .vinc-btn:hover{ opacity:.9; }
+  legend{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+          color:var(--texto-2,#4A5052); font-weight:600; padding:0; margin-bottom:10px; }
+  label{ display:block; font-size:11.5px; color:var(--texto-2,#4A5052); margin:10px 0 4px; }
+  label:first-of-type{ margin-top:2px; }
+  /* 13px / `8px 10px` / radio 8 / `#FDFCF9`: los valores de 2a.
+     El movil sube a 16px mas abajo: por debajo de 16, Safari en iOS hace zoom al
+     enfocar y descuadra la pantalla. Es la unica desviacion, y es deliberada. */
+  input,select,textarea{ width:100%; font-family:inherit; font-size:13px; color:var(--ink); padding:8px 10px;
+    border:1px solid var(--line); border-radius:9px; background:var(--field-bg); }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  textarea{ min-height:70px; resize:vertical; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .hint{ font-size:11.5px; color:var(--muted); margin:8px 0 0; line-height:1.45; }
+  /* Enlace-botón dentro de un .hint (19-ago-2026): «Ver justificante» y lo que
+     venga después. Es un <button> y no un <a> porque la URL se firma al pulsar
+     y caduca en 5 minutos — no hay href que poner de antemano. */
+  .hint .lnk, .justif-fila .lnk{ font:inherit; font-size:inherit; background:none; border:none; padding:0 0 0 4px;
+    color:var(--dl); text-decoration:underline; cursor:pointer; }
+  .hint .lnk:hover, .justif-fila .lnk:hover{ color:var(--be); }
+
+  /* Justificantes adjuntos de un recibí — 24-ago-2026, uno por fila. Una lista
+     de verdad y no un párrafo: con tres ficheros hay que poder decir CUÁL se
+     quita, y eso pide una fila propia con su nombre delante. */
+  .justif-lista{ margin-top:8px; display:flex; flex-direction:column; gap:5px; }
+  .justif-fila{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .justif-n{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--texto,#22282A); }
+  .justif-fila .lnk.quitar{ color:#a3342b; }
+
+  .linea{ display:grid; grid-template-columns:1fr 100px 30px; gap:8px; align-items:end; margin-bottom:8px; }
+  .linea label{ margin:0 0 4px; }
+  .xbtn{ font:inherit; font-size:16px; line-height:1; color:var(--muted); background:none; border:1px solid var(--line);
+         border-radius:8px; height:37px; cursor:pointer; }
+  .xbtn:hover{ color:#a3342b; border-color:#d9b8b3; }
+  .addbtn{ font:inherit; font-size:12.5px; color:var(--tg); background:none; border:1px dashed var(--tg);
+           border-radius:999px; padding:7px 14px; cursor:pointer; }
+
+  /* lo que trae el contrato elegido */
+  #delContrato:empty{ display:none; }
+  #delContrato{ margin-top:10px; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:#f7f4ea; }
+  #delContrato .t{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  #delContrato .arrastrado{ font-size:12px; color:var(--muted); margin:5px 0 0; line-height:1.5; }
+  /* Contrato vinculado (Parcela ↔ Construcción) del que se pueden traer
+     conceptos a la MISMA factura — 7-ago-2026. */
+  #delVinculado:empty{ display:none; }
+  #delVinculado{ margin-top:8px; }
+  #delVinculado .hitos{ margin-top:4px; }
+  .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
+         border-radius:9px; padding:6px 10px; cursor:pointer; }
+  .hito:hover{ border-color:var(--dl); color:var(--dl); }
+  .hito.usado{ opacity:.45; text-decoration:line-through; cursor:not-allowed; }
+  .hito.usado:hover{ border-color:var(--line); color:inherit; }
+  .hito b{ color:var(--dl); }
+
+  /* ---------- vista previa ---------- */
+  .pane-preview{ overflow:auto; background:#eae5d8; display:flex; flex-direction:column; }
+  .pv-bar{ position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:10px 14px;
+           background:#eae5d8ee; backdrop-filter:blur(6px); border-bottom:1px solid #dcd5c6; }
+  .pv-bar b{ font-size:12.5px; font-weight:500; color:var(--muted); }
+  /* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
+     página ya carga. Aquí vivían 4 reglas propias: era la copia número N de
+     seis, todas divergidas, y sin estado de foco visible. Ver la nota larga de allí. */
+  .pv-scroll{ padding:22px 0 60px; display:flex; justify-content:center; }
+  /* ponytail: zoom en pantalla para que el A4 quepa en el panel; la impresión
+     usa el tamaño real (zoom no se aplica dentro de @media print). */
+  .sheet{ width:210mm; min-height:297mm; background:var(--folio); padding:15mm 16mm; zoom:.78;
+          box-shadow:0 10px 40px rgba(46,52,55,.16); }
+
+  /* MÓVIL (31-jul-2026): con `zoom:.78` la hoja mide 495px y a 390px de pantalla
+     se salía 60px — el margen derecho de la factura quedaba cortado, y no había
+     forma de verlo porque el panel no desplazaba en horizontal. Dos medidas, y
+     las dos hacen falta: se reduce el zoom para que quepa, y el contenedor
+     desplaza por si algún día vuelve a no caber (una hoja recortada en silencio
+     es peor que una que se pueda arrastrar). Van DESPUÉS de .sheet y .pv-scroll
+     a propósito: la media query de arriba no aplicaba justo por ir antes. */
+  @media (max-width:560px){
+    .sheet{ zoom:.58; }
+    .pv-scroll{ overflow-x:auto; justify-content:flex-start; padding:16px 10px 60px; }
+  }
+
+  /* El aspecto del documento vive en documento.css, compartido con la factura
+     automatica del primer hito. Aqui solo queda el cromo de la herramienta. */
+
+  /* ---------- panel de facturas guardadas ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(46,52,55,.45); display:none; z-index:60; }
+  .overlay.open{ display:grid; place-items:center; }
+  .modal{ background:var(--rl); border-radius:16px; width:min(720px,92vw); max-height:82vh; display:flex; flex-direction:column; }
+  .modal header{ display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .modal header h2{ font-size:14px; margin:0; letter-spacing:.1em; text-transform:uppercase; font-weight:500; }
+  /* Sin `.modal` delante (6-ago-2026): el listado salio del modal y es pantalla.
+   Fuera el `overflow:auto` — ahora desplaza la pagina, y una caja con scroll
+   propio dentro de una pagina que tambien desplaza son dos barras peleandose. */
+  .list{ padding:0; }
+  .list tr.anulada td{ opacity:.55; }
+  .list tr{ cursor:pointer; }
+/* (el CSS de .frow se retiro el 6-ago: el listado es una sui-tabla) */
+  .list .btn.borrar{ color:#9E2F26; border-color:#E0C6C2; padding:6px 11px; }
+
+
+
+  @media print{
+    @page{ size:A4; margin:0; }
+    .topbar,.pane-form,.pv-bar,.overlay,.toast{ display:none!important; }
+    .stage{ display:block; padding:0; height:auto; }
+    .pane-preview{ overflow:visible; background:#fff; }
+    .pv-scroll{ padding:0; display:block; }
+    .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
+    /* el resto de reglas de impresion del documento van en documento.css */
+  }
+
+  /* modo vista (?vista=1) — SOLO el documento: lo carga el visor pop-up de
+     Operaciones/Compradores. Se ocultan formulario, topbar y guardado; queda
+     la vista previa a todo el ancho con "Descargar PDF" (consultar incluye
+     llevarse el papel). La media query de móvil oculta .pane-preview en
+     <900px — aquí se fuerza visible, porque en modo vista el documento ES la
+     página. */
+  body.modo-vista .topbar, body.modo-vista .pane-form,
+  body.modo-vista #btnSave, body.modo-vista #btnNueva{ display:none !important; }
+  body.modo-vista .stage{ grid-template-columns:1fr; padding-top:0; }
+  body.modo-vista .pane-preview{ display:flex !important; }
+</style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
+     aritmética compartida y los nombres de tipo de contrato. Sin ellas el
+     cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
+     tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
+     tabla. Se añaden donde faltaban (12 de 15 páginas). -->
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
+<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+</head>
+<body hidden>
+  <!-- Barra unificada de la suite (assets/topbar.css). Mismo orden que en
+       Contratos y Dossier: volver al hub primero, herramientas en el menú ⋯. -->
+  <header class="lw-topbar" data-titulo="Facturas">
+    <span class="lw-sep"></span>
+    <!-- Mismo sitio que el tipo de contrato en Contratos: es la primera
+         decisión (qué documento haces), no un campo más del formulario. -->
+    <select id="selTipo" class="lw-select" aria-label="Tipo de documento"
+            title="Cada tipo lleva su propia serie: INV, PRO, REC">
+      <option value="factura">Factura</option>
+      <option value="proforma">Factura proforma</option>
+      <option value="recibi">Recibí</option>
+    </select>
+    <div class="lw-spacer"></div>
+    <!-- Se alternan según la pantalla (ver `pantalla()`): en el listado se ofrece
+         emitir, en el documento se ofrece volver. Nunca los dos a la vez, que es
+         lo que convierte una barra en un panel de mandos. -->
+    <button type="button" class="lw-btn" id="btnList" hidden>← Listado</button>
+    <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
+         esta en assets/topbar.css junto a `.lw-btn.primary`. -->
+    <!-- El rotulo sigue al tipo que filtra el listado, que es el que se va a
+         crear al pulsar: decia solo «+ Nueva» y no decia nueva QUE — y el
+         selector de tipo esta oculto en esta pantalla, asi que no lo aclaraba. -->
+    <button type="button" class="lw-btn primary" id="btnNuevaDoc"><i class="ph ph-plus"></i><span id="btnNuevaDocTxt">Nueva factura</span></button>
+  </header>
+
+  <!-- ═══ LISTADO — la pantalla de entrada desde el 6-ago-2026 ═══════════════
+       Antes esta herramienta abría directamente en un formulario en blanco y lo
+       emitido vivía en un modal («📁 Facturas guardadas»). Petición de la
+       revisión: que funcione como Contratos — primero la lista, y «+ Nueva» abre
+       el formulario. El motivo es de uso, no de gusto: se entra aquí a CONSULTAR
+       un documento mucho más a menudo que a emitir uno, y lo que más se hacía
+       estaba a dos clics detrás de lo que menos.
+       El contenido es el MISMO que tenía el modal; lo que cambia es que ahora
+       tiene sitio para buscar y filtrar, que a 200 documentos hace falta. -->
+  <div class="sui-stage" id="pantallaListado" hidden>
+    <div class="sui-centro">
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="lq" placeholder="Buscar nº, cliente, proyecto o contrato…">
+        <div class="sui-dens" id="lAnuladas">
+          <button type="button" data-anul="no">Vigentes</button>
+          <button type="button" data-anul="si">Con anuladas</button>
+        </div>
+      </div>
+      <div class="sui-filtros" id="lTipos"></div>
+      <div class="sui-resumen" id="lResumen"></div>
+      <div class="sui-tabla-caja">
+        <div class="list" id="listBody">Cargando…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage" id="pantallaDoc">
+    <div class="pane-form">
+      <div class="inner">
+        <form id="form" autocomplete="off">
+          <!-- Contrato PRIMERO (12-ago-2026, petición del cliente): factura, proforma
+               y recibí exigen contrato — sin eso no hay a qué balance atribuir el
+               dinero (ver el guardián de #btnSave). Elegirlo aquí arrastra sociedad,
+               cuenta y cliente de la operación (ver cargarContrato), así que pedirlo
+               antes que "Emisor"/"Cliente" es también el orden en que se rellenan solos. -->
+          <fieldset>
+            <legend>Documento</legend>
+            <label for="btnContrato">Contrato</label>
+            <!-- BUSCADOR, no desplegable — 24-ago-2026, encargo del owner («el
+                 desplegable ya es demasiado grande»). Y no era solo incómodo:
+                 el `<select class="sui-sel">` cargaba los 60 contratos más recientes, y hay 112.
+                 C200003 tiene 70 contratos por delante, así que era literalmente
+                 IMPOSIBLE facturarlo desde aquí — 52 contratos fuera de alcance
+                 sin que nada lo dijera. Se elige con `lwElegir` (dialogo.js), el
+                 control de la suite para listas largas, que trae el buscador
+                 dentro y funciona igual en el móvil. -->
+            <button type="button" class="campo-elegir" id="btnContrato">— elige un contrato —</button>
+            <div id="delContrato"></div>
+            <div id="delVinculado"></div>
+            <div class="row2">
+              <div><label for="fa-fecha_emision">Fecha de emisión</label><input id="fa-fecha_emision" type="date" name="fecha_emision"></div>
+              <div><label for="fa-fecha_vencimiento">Vencimiento (opcional)</label><input id="fa-fecha_vencimiento" type="date" name="fecha_vencimiento"></div>
+            </div>
+            <div class="row2">
+              <div><label for="fa-moneda">Moneda</label>
+                <select class="sui-sel" id="fa-moneda" name="moneda">
+                  <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
+                </select></div>
+              <div><label for="fa-numero_visible">Nº de documento</label><input id="fa-numero_visible" name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
+            </div>
+            <label for="fa-contrato_numero">Contrato de referencia</label>
+            <input id="fa-contrato_numero" name="contrato_numero" placeholder="Ej. RP00008 — opcional">
+          </fieldset>
+
+          <fieldset>
+            <legend>Emisor</legend>
+            <label for="selSociedad">Sociedad que factura</label>
+            <select class="sui-sel" name="sociedad" id="selSociedad"></select>
+            <label for="selCuenta">Cuenta donde se cobra</label>
+            <select class="sui-sel" name="cuenta" id="selCuenta"></select>
+            <p class="hint">Sin cuenta, el documento no imprime datos bancarios.</p>
+            <!-- "Otros": cuenta que no está en entities.js. Se teclea aquí y sale
+                 impresa igual que una registrada, pero NO se da de alta: una
+                 cuenta que se va a usar más de una vez va a entities.js, que es
+                 la fuente única — si no, cada factura tendría su propia versión
+                 del mismo número y nadie sabría cuál es la buena. -->
+            <div id="cuentaOtros" hidden>
+              <div class="row2">
+                <div><label for="fa-banco_titular">Titular · Holder</label><input id="fa-banco_titular" name="banco_titular"></div>
+                <div><label for="fa-banco_nombre">Banco · Bank</label><input id="fa-banco_nombre" name="banco_nombre"></div>
+              </div>
+              <div class="row2">
+                <div><label for="fa-banco_cuenta">Cuenta · Account</label><input id="fa-banco_cuenta" name="banco_cuenta"></div>
+                <div><label for="fa-banco_codigo">Swift / Routing</label><input id="fa-banco_codigo" name="banco_codigo"></div>
+              </div>
+              <label for="fa-banco_direccion">Dirección del banco · Address</label>
+              <input id="fa-banco_direccion" name="banco_direccion">
+              <label for="fa-banco_extra">Nota · Note (opcional)</label>
+              <input id="fa-banco_extra" name="banco_extra">
+              <p class="hint">Si esta cuenta se va a repetir, pídenos darla de alta en la lista.</p>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Cliente</legend>
+            <label for="fa-cliente_nombre">Nombre o razón social</label>
+            <input id="fa-cliente_nombre" name="cliente_nombre">
+            <label for="fa-cliente_documento">Pasaporte / NPWP / NIF</label>
+            <input id="fa-cliente_documento" name="cliente_documento">
+            <label for="fa-cliente_email">Email</label>
+            <input id="fa-cliente_email" type="email" name="cliente_email">
+            <label for="fa-proyecto_nombre">Proyecto / unidad</label>
+            <input id="fa-proyecto_nombre" name="proyecto_nombre" placeholder="Ej. Palm Field — Cabana 2BR S2">
+          </fieldset>
+
+          <fieldset id="fsConceptos">
+            <legend>Conceptos</legend>
+            <div id="lineas"></div>
+            <button type="button" class="addbtn" id="btnAddLinea">+ Añadir concepto</button>
+          </fieldset>
+
+          <!-- Solo para recibí (11-ago, reforma del modelo de facturación): un
+               recibí no describe conceptos sueltos, salda facturas concretas.
+               Sus "Conceptos" (arriba) se generan solos a partir de esto — ver
+               toggleTipoRecibi()/sincronizarLineasDesdeAplicaciones(). -->
+          <fieldset id="fsAplicaciones" hidden>
+            <legend>Facturas que salda este recibí</legend>
+            <label for="selFacturaAplicar">Añadir factura</label>
+            <select class="sui-sel" id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
+            <p class="hint" id="aplicAmbito"></p>
+            <div id="aplicaciones"></div>
+            <p class="hint" id="aplicSuma"></p>
+            <label for="fJustificante">Justificante de pago (obligatorio)</label>
+            <input type="file" id="fJustificante" multiple accept="image/jpeg,image/png,image/webp,application/pdf">
+            <p class="hint">Se puede adjuntar más de uno (hasta 8): un pago real llega a veces en el resguardo <i>y</i> la captura del banco, o en dos transferencias parciales. 10 MB por fichero.</p>
+            <div id="justifEstado" class="justif-lista"></div>
+          </fieldset>
+
+          <!-- Impuesto y Notas van PLEGADOS (24-ago-2026, encargo del owner: «hazlo
+               más como si quiero añadirlo, que se despliegue»). Casi ninguna
+               factura de Lawang lleva impuesto ni nota, y ocupaban dos bloques
+               enteros de la columna en todas. `<details>` nativo: se abre solo si
+               el documento ya trae algo dentro (ver `abrirLoQueTengaContenido`),
+               porque un dato guardado que no se ve es peor que un bloque de más. -->
+          <details class="plegable" id="dtImpuesto">
+            <summary>Impuesto <span class="opc">opcional</span></summary>
+            <div class="row2">
+              <div><label for="fa-imp_etiqueta">Etiqueta</label><input id="fa-imp_etiqueta" name="imp_etiqueta" placeholder="Ej. PPN"></div>
+              <div><label for="fa-imp_pct">Porcentaje</label><input id="fa-imp_pct" name="imp_pct" inputmode="decimal" placeholder="Ej. 11"></div>
+            </div>
+            <p class="hint">En blanco, el documento no lleva impuesto.</p>
+          </details>
+
+          <details class="plegable" id="dtNotas">
+            <summary>Notas <span class="opc">opcional</span></summary>
+            <textarea name="notas" placeholder="Condiciones de pago, referencia de transferencia…"></textarea>
+          </details>
+        </form>
+      </div>
+    </div>
+
+    <div class="pane-preview">
+      <div class="pv-bar">
+        <b>Vista previa</b>
+        <div class="spacer"></div>
+        <button class="btn" id="btnNueva">Nuevo documento</button>
+        <button class="btn primary" id="btnSave">Guardar en base de datos</button>
+        <button class="btn" id="btnPrint">Descargar PDF</button>
+        <button class="btn" id="btnMail">Enviar por email</button>
+      </div>
+      <div class="pv-scroll"><div class="sheet"><div class="doc" id="doc"></div></div></div>
+    </div>
+  </div>
+
+  <!-- Enviar por email: mismo endpoint que los contratos
+       (/contracts/api/send_email.php), que renderiza el HTML a PDF con el
+       servicio Puppeteer y lo adjunta. El remitente lo fija el servidor. -->
+  <div class="overlay" id="ovMail">
+    <div class="modal">
+      <header>
+        <h2>Enviar por email</h2><div class="spacer"></div>
+        <button class="btn" id="btnCloseMail">Cerrar</button>
+      </header>
+      <div class="list">
+        <p class="hint" id="mailAviso" style="margin-top:0"></p>
+        <label>Para<input type="email" id="mailTo" placeholder="cliente@email.com"></label>
+        <label>Asunto<input type="text" id="mailSubject"></label>
+        <label>Mensaje<textarea id="mailMsg" rows="7"></textarea></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn primary" id="mailSend">Enviar</button>
+          <button class="btn" id="mailCancel">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="totales.js"></script>
+<script src="documento.js?v=20260731"></script>
+<script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script>
+const $  = s => document.querySelector(s);
+
+/* ---------- sesión (mismos agentes que Contratos) ---------- */
+/* El cliente lo crea guard.js y lo publica en `LW_SB` (4-ago-2026). Un solo
+   cliente por pagina: dos sobre el mismo almacenamiento de sesion se pisan al
+   refrescar el token. */
+const sb = window.LW_SB || window.supabase.createClient(
+  'https://vtulllundrfennhjddhc.supabase.co',
+  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'
+);
+window.LW_SB = sb;
+/* Igual que Contratos: esta herramienta tampoco pasa por guard.js. Se publica el
+   cliente para que la campana de la barra lo reuse en vez de abrir un segundo. */
+window.LW_SB = sb;
+sb.auth.getSession().then(async ({data:{session}}) => {
+  if(!session){ location.replace('/entrar/?next=/intranet/facturas/'); return; }
+  const modoVista = new URLSearchParams(location.search).has('vista');
+  const { data: ficha } = await sb.from('usuarios')
+    .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
+  MI_FICHA = ficha || null;   // la lista de guardadas lo usa para el botón de reasignar autor
+  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/entrar/?desactivado=1'); return; }
+  // El permiso 'facturas' gobierna EMITIR. En modo vista (el visor de
+  // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
+  // consultar lo emitido está abierto a todo el equipo, igual que en la RLS,
+  // donde el filtro por herramienta está en la escritura y no en la lectura.
+  const PUEDE_FACTURAS = !ficha || ficha.rol === 'super_admin'
+     || (ficha.herramientas||[]).includes('facturas');
+  if(!modoVista && !PUEDE_FACTURAS){
+    location.replace('/intranet/?sin_permiso=facturas'); return;
+  }
+  // En modo vista se entra SIN el permiso (consultar está abierto al equipo),
+  // pero ENVIAR una factura al cliente es un acto de emisión: la Edge de correo
+  // solo exige sesión, así que sin esto el botón mandaba de verdad (auditoría
+  // 19-ago). Guardar ya lo rebota la RLS; el correo no lo rebotaba nadie.
+  if(!PUEDE_FACTURAS){ const bm = $('#btnMail'); if(bm) bm.style.display = 'none'; }
+  // Solo administradores y super admin borran facturas (petición del owner).
+  // Sale de la ficha que se acaba de leer, sin una segunda consulta. Decide
+  // qué botón se pinta; el candado es la policy de DELETE de la RLS.
+  ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
+  /* Las cuentas de cobro vienen de la base (6-ago-2026, ya no de entities.js:
+     ese fichero es público por web y por el repo de GitHub). Va DENTRO de la
+     sesión restaurada, o la consulta saldría como anon y la RLS la niega.
+     Si falla se dice en voz alta: una factura emitida sin datos bancarios es una
+     factura que el cliente no puede pagar. */
+  try { await cargarCuentasBancarias(sb); pintarSelectCuentas(); }
+  catch(e){ toast('No se han podido cargar las cuentas de cobro: ' + (e.message || e) + ' — recarga antes de emitir'); }
+  document.body.hidden = false;
+  const contratosListos = cargarContratos();   // la promesa se espera en el deep-link ?contrato= (auditoría 19-ago)
+  // deep-link ?id=<factura>: abre ese documento guardado directamente — lo usa
+  // el visor embebido de Operaciones (y vale como enlace compartible interno).
+  // Va aquí y no al final del script: antes de restaurarse la sesión la
+  // consulta saldría como anon y la RLS devolvería vacío.
+  // ?vista=1 (junto a ?id=): modo SOLO DOCUMENTO — sin formulario, sin topbar,
+  // sin guardar. Es lo que carga el visor pop-up de Operaciones/Compradores:
+  // desde ahí se consulta, no se edita. "Descargar PDF" se conserva (consultar
+  // incluye llevarse el papel).
+  if(new URLSearchParams(location.search).has('vista')) document.body.classList.add('modo-vista');
+
+  /* ── QUÉ PANTALLA SE ABRE ──────────────────────────────────────────────
+     Las cuatro entradas por URL siguen valiendo exactamente lo que valían; lo
+     único nuevo es que SIN parámetros ya no se abre un formulario en blanco, se
+     abre el listado.
+       ?id=            -> ese documento (y con `vista` además sin barra ni formulario)
+       ?nueva=1        -> formulario en blanco (lo que era la entrada por defecto)
+       ?tipo=recibi    -> el LISTADO filtrado a recibís. Antes preseleccionaba el
+                          tipo en un formulario nuevo; ahora la tarjeta «Recibos»
+                          del hub lleva a ver los emitidos, que es lo que su
+                          contador promete («N emitidos»), y «+ Nueva» hereda el
+                          tipo, así que emitir sigue a dos clics.
+       ?contrato=<uuid>&tipo=proforma  -> formulario en blanco con ESE contrato
+                          ya cargado (mismo `traerContrato` de siempre: cliente,
+                          proyecto e hitos con el importe que calcula el propio
+                          contrato, nunca uno escrito a mano). Es el atajo de
+                          «Emitir proforma/recibí» de la ficha de Operaciones
+                          (6-ago-2026) — un contrato a la vez, el que se pulsó.
+       (nada)          -> listado */
+  const par = new URLSearchParams(location.search);
+  const pedido = par.get('id');
+  const tipoUrl = par.get('tipo');
+  if(tipoUrl && TIPOS[tipoUrl]) LTIPO = tipoUrl;
+  const contratoUrl = par.get('contrato');
+
+  if(pedido){
+    // El documento se abre en su pantalla; `abrir()` la cambia. Se pinta la
+    // pantalla de documento YA, para no enseñar el listado un instante.
+    pantalla('documento');
+    sb.from('facturas')
+      .select('id,numero,tipo,contrato_id,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,datos,creado_por,justificante_path,justificantes')
+      .eq('id', pedido).maybeSingle()
+      .then(({ data, error }) => {
+        if(error || !data){
+          toast('No se encontró ese documento');
+          if(!document.body.classList.contains('modo-vista')) pantalla('listado', '');
+          return;
+        }
+        abrir(data);
+      });
+  } else if(contratoUrl){
+    nuevoDocumento(LTIPO || 'factura');
+    pantalla('documento');
+    // sin esperar, el catálogo aún no está cargado y el rótulo del botón se
+    // quedaría en «elige un contrato»: el agente no vería QUÉ está facturando
+    await contratosListos;
+    CONTRATO_ID = contratoUrl; pintarContratoElegido();
+    traerContrato(contratoUrl);
+    // Un recibí abierto por deep-link ya tiene comprador: sin esto su selector
+    // de facturas se quedaría vacío, porque se pintó antes de saberlo (LAW-41(2))
+    if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi();
+  } else if(par.has('nueva')){
+    nuevoDocumento(LTIPO || 'factura');
+    pantalla('documento');
+  } else {
+    pantalla('listado');
+  }
+});
+
+/* ---------- estado ---------- */
+let LINEAS = [{ descripcion:'', importe:'' }];
+/* HOY en local, nunca toISOString(): convierte a UTC y antes de las 2:00 en
+   España la fecha de emisión salía de AYER (auditoría 19-ago; mismo fallo ya
+   corregido en contracts/app.html). */
+function hoyLocalISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+let SAVED  = null;   // {id, numero} una vez guardada — null = borrador
+let CONTRATO_ID = null;
+let CLIENTE_DEL_CONTRATO = null;   // ficha del comprador del contrato elegido (19-ago)
+/* Reforma del modelo de facturación (11-ago-2026): un recibí no describe
+   conceptos sueltos, salda facturas concretas — ver facturas/sql/recibi_aplicaciones.sql.
+   APLICACIONES = [{factura_id, numero, pendiente, importe}]; LINEAS (arriba)
+   se regenera SOLA a partir de esto para el documento impreso. */
+let APLICACIONES = [];
+let FACTURAS_ABIERTAS = [];   // [{id, numero, pendiente, contrato_numero, cliente_nombre}], para el <select class="sui-sel"> de aplicar
+/* Justificantes del recibí — LISTA desde el 24-ago-2026 (encargo del owner:
+   «permitir adjuntar más de un archivo a un recibí»). Cada elemento es
+   {path, nombre, subido_en}: la RUTA es un UUID en el bucket privado y el
+   nombre original viaja aparte, dentro del dato, nunca en la ruta — un
+   justificante de transferencia real lleva a veces el nombre del cliente o el
+   importe en el nombre de archivo (revisión previa de Seguridad, 11-ago-2026).
+   En la base es `facturas.justificantes` (fuente); `justificante_path` sigue
+   existiendo como espejo del primero, escrito por un trigger. */
+let JUSTIFICANTES = [];
+let ES_ADMIN = false;   // lo fija la comprobación de sesión con la ficha del usuario
+let MI_FICHA = null;    // {rol, herramientas, activo} — la fija esa misma comprobación   // contrato del que sale la factura (FK real, no solo el nº impreso)
+
+/* Los tres tipos comparten formulario y plantilla; solo cambia el rótulo del
+   documento. La serie del número la decide el trigger en base de datos, no aquí. */
+/* ES e EN separados, no "A · B" en una línea: a 20pt "Factura proforma ·
+   Proforma invoice" con white-space:nowrap se salía del papel. Van apilados,
+   igual que el bloque del emisor (razón social grande, marca pequeña encima). */
+/* Los rótulos viven en documento.js (TIPOS_DOC) junto al documento que los
+   imprime, y con ellos la serie que le toca a cada uno. Aquí solo se usan. */
+const TIPOS = TIPOS_DOC;
+
+/* ---------- selects que salen de entities.js ---------- */
+$('#selSociedad').innerHTML = Object.entries(SOCIEDADES)
+  .map(([k,s]) => `<option value="${k}">${esc(s.label)}</option>`).join('');
+// Van TODAS, incluidas las de notario (escrow): si el contrato pactó cobrar en
+// una cuenta concreta, la factura tiene que decir esa misma. La etiqueta ya
+// avisa de cuál es cuál.
+//
+// Es una FUNCIÓN porque desde el 6-ago-2026 las cuentas llegan por red (tabla
+// `cuentas_bancarias` con RLS, ya no están en entities.js, que es público). Se
+// llama al arrancar, después de cargarlas; si se pintara aquí saldría un select
+// con solo "sin datos bancarios" y "Otros", y el agente escribiría a mano una
+// cuenta que sí existía.
+function pintarSelectCuentas(){
+  const valor = $('#selCuenta').value;   // no perder la elección si se repinta
+  $('#selCuenta').innerHTML = '<option value="">— sin datos bancarios —</option>' +
+    Object.entries(CUENTAS_BANCARIAS).map(([k,c]) => [k, c.label])
+      .sort((a,b) => a[1].localeCompare(b[1],'es'))
+      .map(([k,label]) => `<option value="${k}">${esc(label)}</option>`).join('')
+    + '<option value="otros">Otros — escribir la cuenta a mano</option>';
+  if(valor) $('#selCuenta').value = valor;
+}
+pintarSelectCuentas();
+
+/* Los campos de la cuenta a mano solo se ven con "Otros" elegido. Se enseñan y
+   ocultan aquí y no en render(): render() repinta el documento, no el formulario. */
+function toggleCuentaOtros(){
+  $('#cuentaOtros').hidden = $('#selCuenta').value !== 'otros';
+}
+$('#selCuenta').addEventListener('change', toggleCuentaOtros);
+toggleCuentaOtros();
+
+$('[name="fecha_emision"]').value = hoyLocalISO();
+
+/* ---------- conceptos ---------- */
+function pintarLineas(){
+  $('#lineas').innerHTML = LINEAS.map((l,i) => `
+    <div class="linea">
+      <div><label>Descripción</label><input data-l="${i}" data-k="descripcion" value="${esc(l.descripcion)}"></div>
+      <div><label>Importe</label><input data-l="${i}" data-k="importe" inputmode="decimal" data-money value="${esc(l.importe)}"></div>
+      <button type="button" class="xbtn" data-del="${i}" title="Quitar">×</button>
+    </div>`).join('');
+  marcarHitosUsados();
+}
+
+/* Un hito ya cobrado no se vuelve a cobrar: el botón queda tachado y sin efecto.
+   El estado se DERIVA de los conceptos que hay ahora mismo, no de una lista
+   aparte de "ya pulsados" — así, si se borra la línea, el hito vuelve a estar
+   disponible sin tener que sincronizar nada. */
+const descHito = h => [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
+                    + (h.timing ? ' — ' + h.timing : '');
+function marcarHitosUsados(){
+  document.querySelectorAll('#delContrato [data-h], #delVinculado [data-vh]').forEach(b => {
+    const usado = LINEAS.some(l => (l.descripcion || '').trim() === b.dataset.desc);
+    b.disabled = usado;
+    b.classList.toggle('usado', usado);
+    b.title = usado ? 'Ya está en este documento' : '';
+  });
+}
+$('#lineas').addEventListener('input', e => {
+  const el = e.target; if(el.dataset.l == null) return;
+  LINEAS[+el.dataset.l][el.dataset.k] = el.value; render();
+});
+$('#lineas').addEventListener('click', e => {
+  const b = e.target.closest('[data-del]'); if(!b) return;
+  LINEAS.splice(+b.dataset.del, 1);
+  if(!LINEAS.length) LINEAS = [{ descripcion:'', importe:'' }];
+  pintarLineas(); render();
+});
+$('#btnAddLinea').onclick = () => { LINEAS.push({ descripcion:'', importe:'' }); pintarLineas(); render(); };
+
+/* ---------- recibí: aplicación a factura(s) ----------
+   Reforma del 11-ago-2026: un recibí es la única prueba de dinero cobrado, y
+   tiene que decir A QUÉ factura(s) corresponde ese dinero — puede saldar más
+   de una, o solo parte de una, de ahí la tabla puente en vez de una columna
+   1:1 (revisión previa, Administración: el caso real que originó esto era
+   justo un recibí repartido entre dos contratos). Conceptos (arriba) se oculta
+   para este tipo: los "conceptos" de un recibí SON las facturas que salda. */
+function toggleTipoRecibi(){
+  const esRecibi = $('#selTipo').value === 'recibi';
+  $('#fsConceptos').hidden = esRecibi;
+  $('#fsAplicaciones').hidden = !esRecibi;
+  if(esRecibi) cargarFacturasAbiertas();
+}
+/* Solo se listan las facturas DEL MISMO COMPRADOR (LAW-41(2), 19-ago-2026).
+   Antes se listaban las de todo el equipo, y de ahí salió el error real:
+   REC00019 (1.000 €, Jorge Miguel Domingo Berenguer) acabó aplicado a
+   INV00001, una factura de Carmen Ribera Valdes. La regla la impone
+   guardar_recibi() en la misma transacción; aquí no se reimplementa, se
+   PREGUNTA — `contratos_del_mismo_comprador` es la misma comparación de
+   identidad (pasaporte + email) que usa la función, así que el selector no
+   puede derivar de lo que la base de datos acepta. */
+async function cargarFacturasAbiertas(){
+  const [f, p, m] = await Promise.all([
+    sb.rpc('facturas_equipo').select('id,numero,contrato_id,contrato_numero,cliente_nombre,total,tipo,anulada,moneda'),
+    sb.rpc('facturas_pendiente_equipo'),
+    CONTRATO_ID ? sb.rpc('contratos_del_mismo_comprador', { p_contrato_id: CONTRATO_ID }) : Promise.resolve({ data:[] }),
+  ]);
+  if(f.error || p.error){ toast('No se pudieron cargar las facturas abiertas: ' + ((f.error||p.error).message)); return; }
+  if(m.error){ toast('No se pudo comprobar de quién son las facturas: ' + m.error.message); FACTURAS_ABIERTAS = []; pintarSelectFacturaAplicar(); return; }
+  const pend = {}; p.data.forEach(x => { pend[x.factura_id] = Number(x.pendiente) || 0; });
+  // setof uuid llega como array de escalares; se acepta también [{...}] por si
+  // PostgREST lo envuelve, antes que quedarse sin ninguna factura sin decir por qué
+  const suyos = new Set((m.data || []).map(x => (x && typeof x === 'object') ? Object.values(x)[0] : x));
+  // Un comprador puede tener contratos en monedas distintas (EUR/IDR conviven
+  // en la suite — hallazgo de la auditoría de hoy: nada lo impedía, ni aquí ni
+  // en la base. La base ya lo frena con un guardarraíl (recibi_no_mezcla_moneda.sql);
+  // aquí se evita ofrecer algo que ese guardarraíl rechazaría al guardar.
+  const monedaRecibi = ($('[name="moneda"]').value || 'EUR');
+  const delComprador = (f.data || [])
+    .filter(x => x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005)
+    .filter(x => x.contrato_id && suyos.has(x.contrato_id));
+  FACTURAS_ABIERTAS = delComprador
+    .filter(x => (x.moneda || 'EUR') === monedaRecibi)
+    .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id], moneda:x.moneda }));
+  // Para el aviso: "no tiene ninguna pendiente" y "tiene, pero en otra moneda"
+  // son dos situaciones distintas — decir la primera cuando es la segunda deja
+  // a alguien buscando una factura que sí existe, solo que no en esta lista.
+  FACTURAS_OTRA_MONEDA = delComprador.length - FACTURAS_ABIERTAS.length;
+  pintarSelectFacturaAplicar();
+}
+let FACTURAS_OTRA_MONEDA = 0;
+async function refrescarAplicablesDelRecibi(){
+  await cargarFacturasAbiertas();
+  const validas = new Set(FACTURAS_ABIERTAS.map(x => x.id));
+  const fuera = APLICACIONES.filter(a => !validas.has(a.factura_id));
+  if(fuera.length){
+    APLICACIONES = APLICACIONES.filter(a => validas.has(a.factura_id));
+    toast('Quitad' + (fuera.length===1?'a ':'as ') + fuera.length + ' factura' + (fuera.length===1?'':'s') +
+          ' que no son de este comprador: ' + fuera.map(a => a.numero).join(', '));
+    pintarAplicaciones(); sincronizarLineasDesdeAplicaciones();
+  }
+  pintarSelectFacturaAplicar();
+}
+function pintarSelectFacturaAplicar(){
+  const usadas = new Set(APLICACIONES.map(a => a.factura_id));
+  const libres = FACTURAS_ABIERTAS.filter(x => !usadas.has(x.id));
+  $('#selFacturaAplicar').innerHTML = '<option value="">— elige una factura pendiente —</option>' +
+    libres.map(x =>
+      `<option value="${esc(x.id)}">${esc(x.numero)} — ${esc(x.cliente_nombre||'sin nombre')}${x.contrato_numero ? ' · '+esc(x.contrato_numero) : ''} — pendiente ${esc(fmtMoneda(x.pendiente, $('[name="moneda"]').value))}</option>`
+    ).join('');
+  // El desplegable vacío tiene dos causas muy distintas y el agente no puede
+  // adivinar cuál: sin contrato elegido no hay comprador contra el que filtrar.
+  const aviso = $('#aplicAmbito'); if(!aviso) return;
+  aviso.textContent = !CONTRATO_ID
+    ? 'Elige antes el contrato del recibí: solo se pueden saldar facturas de ese mismo comprador.'
+    : libres.length ? 'Solo se listan las facturas pendientes de este comprador, incluidas las de sus otros contratos.'
+    : FACTURAS_OTRA_MONEDA ? 'Este comprador tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
+    : 'Este comprador no tiene ninguna factura pendiente. Un recibí solo puede saldar facturas suyas.';
+}
+$('#selFacturaAplicar').addEventListener('change', e => {
+  const id = e.target.value; if(!id) return;
+  const f = FACTURAS_ABIERTAS.find(x => x.id === id); if(!f) return;
+  APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente, importe:String(f.pendiente).replace('.',',') });
+  e.target.value = '';
+  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+});
+function pintarAplicaciones(){
+  $('#aplicaciones').innerHTML = APLICACIONES.map((a,i) => `
+    <div class="linea">
+      <div><label>${esc(a.numero)}</label><input value="${esc(a.numero)}" disabled></div>
+      <div><label>Importe aplicado (pendiente ${esc(fmtMoneda(a.pendiente, $('[name="moneda"]').value))})</label>
+        <input data-a="${i}" inputmode="decimal" data-money value="${esc(a.importe)}"></div>
+      <button type="button" class="xbtn" data-adel="${i}" title="Quitar">×</button>
+    </div>`).join('');
+  const moneda = $('[name="moneda"]').value;
+  const suma = APLICACIONES.reduce((s,a) => s + (parseImporte(a.importe) || 0), 0);
+  $('#aplicSuma').textContent = APLICACIONES.length
+    ? 'Total del recibí: ' + fmtMoneda(suma, moneda) + ' (' + APLICACIONES.length + ' factura' + (APLICACIONES.length===1?'':'s') + ')'
+    : 'Añade al menos una factura.';
+}
+$('#aplicaciones').addEventListener('input', e => {
+  const el = e.target; if(el.dataset.a == null) return;
+  APLICACIONES[+el.dataset.a].importe = el.value; sincronizarLineasDesdeAplicaciones();
+});
+$('#aplicaciones').addEventListener('click', e => {
+  const b = e.target.closest('[data-adel]'); if(!b) return;
+  APLICACIONES.splice(+b.dataset.adel, 1);
+  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+});
+/* El documento impreso de un recibí lista las facturas que salda, no
+   conceptos libres — por eso LINEAS (lo que de verdad imprime documento.js)
+   se deriva de APLICACIONES en vez de teclearse aparte. */
+function sincronizarLineasDesdeAplicaciones(){
+  LINEAS = APLICACIONES.length
+    ? APLICACIONES.map(a => ({ descripcion:'Aplicado a factura ' + a.numero, importe:a.importe }))
+    : [{ descripcion:'', importe:'' }];
+  pintarAplicaciones(); render();
+}
+
+/* ---------- recibí: ver el justificante ya subido ----------
+   Faltaba desde que existe la función (11-ago-2026): el justificante se subía,
+   se exigía para guardar y NADIE podía volver a verlo — ni quien lo subió. El
+   bucket es privado y correcto (`agentes leen justificantes` ya estaba en la
+   RLS), solo faltaba la pantalla. Encargo del owner el 19-ago: «los
+   justificantes de pago dónde se guardan, no puedo verlos».
+
+   URL firmada de 5 minutos, como el resto de la suite (KYC usa 300 s): el
+   enlace no se guarda en ningún sitio y caduca solo. Se abre en pestaña nueva
+   para no perder el documento que se está editando. */
+async function verJustificante(path){
+  if(!path) return;
+  const { data, error } = await sb.storage.from('justificantes').createSignedUrl(path, 300);
+  if(error || !data){ toast('No se pudo abrir el justificante: ' + ((error && error.message) || '')); return; }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+/* Cuántos justificantes tiene un documento del listado, y cuáles. La lista
+   nueva (`justificantes`) manda; la columna vieja se lee solo si aquella viene
+   vacía, para que una fila sin migrar no se vea como «sin justificante». */
+function justifDe(f){
+  if(!f) return [];
+  if(Array.isArray(f.justificantes) && f.justificantes.length) return f.justificantes;
+  return f.justificante_path ? [{ path:f.justificante_path, nombre:'' }] : [];
+}
+const nJustif = f => justifDe(f).length;
+
+function pintarEstadoJustificante(){
+  const caja = $('#justifEstado'); if(!caja) return;
+  if(!JUSTIFICANTES.length){ caja.innerHTML = ''; return; }
+  /* Una fila por fichero, con su nombre y sus dos acciones. El nombre importa:
+     con tres adjuntos, «Justificante adjunto» tres veces no dice cuál es cuál.
+     De los antiguos (subidos cuando solo cabía uno) no se guardó el nombre, y
+     ahí se dice eso mismo en vez de inventarse uno. */
+  caja.innerHTML = JUSTIFICANTES.map((j, i) => `<div class="justif-fila">
+      <span class="justif-n">${esc(j.nombre || 'Justificante adjunto')}</span>
+      <button type="button" class="lnk" data-ver="${i}">Ver</button>
+      <button type="button" class="lnk quitar" data-quitar="${i}">Quitar</button>
+    </div>`).join('');
+  caja.querySelectorAll('[data-ver]').forEach(b =>
+    b.addEventListener('click', () => verJustificante(JUSTIFICANTES[+b.dataset.ver].path)));
+  caja.querySelectorAll('[data-quitar]').forEach(b =>
+    b.addEventListener('click', () => {
+      /* Se quita de la LISTA del documento, no del bucket. Borrar el fichero
+         aquí destruiría la prueba de pago del recibí YA GUARDADO en cuanto
+         alguien se arrepienta a medias, porque la versión guardada sigue
+         citando ese path hasta que se pulse Guardar. */
+      JUSTIFICANTES.splice(+b.dataset.quitar, 1);
+      pintarEstadoJustificante();
+    }));
+}
+
+/* ---------- recibí: justificante de pago ----------
+   Sube al elegir el fichero, no al guardar el documento — mismo patrón que
+   subir() en /intranet/compradores/. Path generado en el cliente con un UUID, NUNCA
+   el nombre original del fichero: un justificante de transferencia real
+   puede llevar el nombre del cliente o el importe en el nombre de archivo
+   (revisión previa, Seguridad). Bucket privado, jamás público. */
+$('#fJustificante').addEventListener('change', async () => {
+  const elegidos = [...$('#fJustificante').files];
+  $('#fJustificante').value = '';   // se vacía YA: los ficheros ya están en `elegidos`
+  if(!elegidos.length) return;
+  if(JUSTIFICANTES.length + elegidos.length > 8){
+    toast('Un recibí admite hasta 8 justificantes (ya lleva ' + JUSTIFICANTES.length + ')');
+    return;
+  }
+  const caja = $('#justifEstado');
+  /* Se suben de uno en uno y CADA UNO entra en la lista en cuanto termina, no
+     todos al final: si el tercero falla, los dos que sí subieron se quedan
+     puestos y solo hay que repetir el que falló. Y el fallo se dice con su
+     nombre — «no se pudo subir» a secas, con cuatro ficheros, no dice cuál. */
+  for(const [i, f] of elegidos.entries()){
+    if(f.size > 10*1024*1024){ toast(f.name + ' supera los 10 MB: no se ha subido'); continue; }
+    const ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    const path = crypto.randomUUID() + ext;
+    if(caja) caja.insertAdjacentHTML('beforeend',
+      '<p class="hint" data-subiendo="' + i + '">Subiendo ' + esc(f.name) + '…</p>');
+    try{
+      const up = await sb.storage.from('justificantes').upload(path, f, { upsert:false, contentType:f.type || 'application/octet-stream' });
+      if(up.error) throw up.error;
+      JUSTIFICANTES.push({ path, nombre: f.name, subido_en: new Date().toISOString() });
+    }catch(err){
+      toast('No se pudo subir ' + f.name + ': ' + (err.message || err));
+    }
+    const aviso = caja && caja.querySelector('[data-subiendo="' + i + '"]');
+    if(aviso) aviso.remove();
+  }
+  pintarEstadoJustificante();
+});
+
+/* Abre los bloques plegables que YA tienen algo dentro. Un impuesto o una nota
+   guardados en el documento, con su bloque cerrado, son un dato que sale
+   impreso y no se ve al revisarlo: exactamente el fallo que un plegado mal
+   hecho introduce. Se llama al abrir un documento guardado. */
+function abrirLoQueTengaContenido(){
+  const dt = $('#dtImpuesto');
+  if(dt) dt.open = !!(($('[name="imp_etiqueta"]')||{}).value || ($('[name="imp_pct"]')||{}).value);
+  const dn = $('#dtNotas');
+  if(dn) dn.open = !!($('[name="notas"]')||{}).value;
+}
+
+/* ---------- datos del formulario ---------- */
+function collect(){
+  const d = {};
+  $('#form').querySelectorAll('[name]').forEach(el => d[el.name] = el.value.trim());
+  d.tipo = $('#selTipo').value;   // vive en la barra superior, fuera del <form>
+  d.lineas = LINEAS;
+  return d;
+}
+$('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
+// Cambiar la moneda a mitad de editar un recibí (poco habitual, pero pasa si
+// se elige mal al empezar) tiene que refrescar qué facturas se pueden saldar:
+// la lista ya se filtra por moneda (hallazgo de hoy, ver recibi_no_mezcla_moneda.sql).
+$('#fa-moneda').addEventListener('change', () => { if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi(); });
+
+/* Al salir de un campo de importe se reescribe en formato canónico ("44.000",
+   "44.000,50"): lo que se ve pasa a ser exactamente lo que se guarda, en vez de
+   quedar a merced de cómo escribió cada uno los separadores. */
+document.addEventListener('blur', e => {
+  const el = e.target;
+  if(!el || !el.matches || !el.matches('[data-money]')) return;
+  /* `lwParseImporte` y no el `parseImporte` de esta página: aquél devuelve
+     `null` con el campo vacío y este `0`, y aquí hay que distinguirlos —
+     `lwImporteCanonico` deja «0» si escribes un cero y «» si no hay nada. Antes
+     esta línea era una copia del formato de `contracts/app.html` que ya había
+     divergido: como 0 es falso en JS, escribir un 0 VACIABA el campo. */
+  const n = lwParseImporte(el.value);
+  const txt = lwImporteCanonico(n);
+  if(txt === el.value) return;
+  el.value = txt;
+  const i = el.dataset.l;
+  if(i != null){ LINEAS[+i].importe = txt; render(); }
+}, true);   // captura: blur no burbujea
+
+/* ?tipo=recibi|proforma abre la app ya puesta en ese documento. La intranet usa
+   esto para la tarjeta "Recibos": es la MISMA herramienta, no una segunda que
+   emitiría con sus propias reglas y su propia numeración. */
+(function(){
+  /* El `?tipo=` YA NO se lee aqui (6-ago-2026): ahora filtra el LISTADO, y quien
+     pone el tipo en el formulario es `nuevoDocumento(tipo)`, que lo recibe de la
+     pantalla de la que se viene. Dejarlo aqui era una segunda fuente para el
+     mismo campo, y la que se ejecutaba antes. */
+})();
+$('#form').addEventListener('input', render);
+$('#form').addEventListener('change', render);
+
+/* ---------- documento ----------
+   El marcado del papel lo arma `documento.js` y el aspecto lo pone
+   `documento.css`, los dos compartidos: la factura del primer hito que sale
+   sola al cerrarse una firma se pinta con ESTOS MISMOS ficheros
+   (contracts/edge/firma-submit se los baja y los ejecuta). Antes esto era una
+   plantilla inline aquí dentro; con dos emisores, una copia habría divergido
+   igual que iban a divergir las cuentas bancarias antes de entities.js. */
+function render(){
+  const d = collect();
+  const soc = SOCIEDADES[d.sociedad] || SOCIEDADES.tepi_sungai;
+  // Sin guardar no hay número: la línea no se pinta (antes decía «BORRADOR»,
+  // fuera por decisión del owner el 30-jul). El número lo asigna el trigger al
+  // guardar, así que un documento sin número es uno que aún no se ha emitido.
+  const numero = (SAVED && SAVED.numero) || '';
+
+  const v = documentoVars(soc);
+  const doc = $('#doc');
+  Object.entries(v.doc).forEach(([k, val]) => doc.style.setProperty(k, val));
+  const hoja = document.querySelector('.sheet');
+  if(hoja) Object.entries(v.hoja).forEach(([k, val]) => hoja.style.setProperty(k, val));
+
+  doc.innerHTML = documentoHTML(d, { numero });
+
+  $('#btnSave').textContent = SAVED ? 'Actualizar (' + SAVED.numero + ')' : 'Guardar en base de datos';
+  // el número ya emitido lleva el prefijo del tipo: cambiarlo después dejaría un
+  // PRO000xx rotulado "Factura". Se emite otro documento, no se reetiqueta este.
+  const st = $('#selTipo');
+  st.disabled = !!SAVED;
+  st.title = SAVED ? 'El tipo no se cambia una vez emitido el número'
+                   : 'Cada tipo lleva su propia serie: INV, PRO, REC';
+}
+
+/* ---------- PDF: lo genera el navegador, igual que en Contratos ---------- */
+const limpiaNombre = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_');
+$('#btnPrint').onclick = () => {
+  const d = collect();
+  const antes = document.title;
+  // El nombre del PDF: número si ya está emitido, y si no el tipo de documento.
+  const rotulo = (SAVED && SAVED.numero) || limpiaNombre((TIPOS[d.tipo] || TIPOS.factura).es);
+  document.title = `${rotulo}_${limpiaNombre(d.cliente_nombre) || 'SIN_NOMBRE'}`.toUpperCase();
+  window.print();
+  document.title = antes;
+};
+
+/* ---------- enviar por email ----------
+   Mismo endpoint que los contratos: `/contracts/api/send_email.php` recoge el
+   HTML, lo renderiza a PDF con Chromium de verdad (servicio Puppeteer en
+   Railway) y lo adjunta. El remitente lo fija el servidor, nunca el cliente.
+   No se genera el PDF en el navegador a propósito: en Contratos ya se probó con
+   html2pdf.js y html-to-image y ninguna aguanta este CSS (color-mix, fuentes de
+   Google con CORS). El botón lo pulsa una persona: mandar correo a un tercero
+   real no se automatiza. */
+/* La página completa que se manda al renderizador de PDF la arma
+   `documentoPagina()` de documento.js — la MISMA que usa la factura automática
+   del primer hito, así que el PDF que sale por email a mano y el que sale solo
+   son idénticos.
+   Antes esto se montaba aquí clonando `.sheet` y concatenando TODOS los <style>
+   de la página. Además de duplicar, esa versión se rompió en cuanto el CSS del
+   documento salió del <style> inline a documento.css: el PDF habría salido sin
+   estilos y nadie lo habría visto hasta abrirlo. Y llamarse `documentoHTML`
+   tapaba a la función compartida del mismo nombre. */
+function paginaParaEmail(){
+  return documentoPagina(collect(), {
+    numero: (SAVED && SAVED.numero) || '',
+    base: location.origin,
+  });
+}
+
+function abrirMail(){
+  const d = collect();
+  const tipo = (TIPOS[d.tipo] || TIPOS.factura).es;
+  const numero = SAVED && SAVED.numero;
+  /* Sin número no se manda. El número lo pone el trigger al guardar, así que un
+     documento sin él es uno que no se ha emitido: sale del estudio con pinta de
+     definitivo y sin rastro en la base de datos. Guardar es un clic. */
+  $('#mailSend').disabled = !numero;
+  $('#mailAviso').textContent = numero
+    ? `Se adjunta ${numero} en PDF, tal y como se ve en la vista previa.`
+    : 'Guarda el documento primero: sin número no se envía, porque no queda registrado como emitido.';
+  $('#mailTo').value = d.cliente_email || '';
+  $('#mailSubject').value = `${tipo}${numero ? ' ' + numero : ''} — ${SOCIEDADES[d.sociedad] ? SOCIEDADES[d.sociedad].razon : 'Lawang'}`;
+  $('#mailMsg').value = `Buenos días${d.cliente_nombre ? ' ' + d.cliente_nombre : ''},\n\n`
+    + `Adjunto ${tipo.toLowerCase()}${numero ? ' ' + numero : ''} para su revisión.\n\nUn saludo,\n`
+    + `${SOCIEDADES[d.sociedad] ? SOCIEDADES[d.sociedad].razon : 'Lawang Tropical Properties'}`;
+  $('#ovMail').classList.add('open');
+}
+$('#btnMail').onclick = abrirMail;
+const cerrarMail = () => $('#ovMail').classList.remove('open');
+$('#btnCloseMail').onclick = cerrarMail;
+$('#mailCancel').onclick = cerrarMail;
+$('#ovMail').onclick = e => { if(e.target === $('#ovMail')) cerrarMail(); };
+
+$('#mailSend').onclick = async () => {
+  const to = $('#mailTo').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast('Email de destinatario no válido'); return; }
+  if(!(SAVED && SAVED.numero)){ toast('Guarda el documento antes de enviarlo'); return; }
+  const btn = $('#mailSend');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try{
+    const d = collect();
+    /* Va a la Edge Function send-contract-email, NO directo a send_email.php:
+       el WAF de Hostinger bloquea con 403 el HTML con CSS de diseño (LAW-30,
+       ver contracts/app.html). La factura hoy no lo dispara (su CSS no tiene
+       los patrones que lo disparan), pero es la misma arquitectura frágil —
+       mismo rodeo que ya usa Contratos: la Edge renderiza el PDF vía Railway
+       (fuera del WAF) y llama a send_email.php ya solo con el PDF. */
+    const ses = await sb.auth.getSession();
+    const tok = ses && ses.data && ses.data.session && ses.data.session.access_token;
+    const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/send-contract-email', {
+      method:'POST', headers: { 'content-type':'application/json', authorization:'Bearer ' + (tok || '') },
+      body: JSON.stringify({ to, subject:$('#mailSubject').value, message:$('#mailMsg').value,
+        filename: `${SAVED.numero}_${limpiaNombre(d.cliente_nombre) || 'CLIENTE'}.pdf`.toUpperCase(),
+        // ids para el registro de envíos (correos_enviados): la Edge deja la
+        // fila con via 'factura' al confirmar el envío
+        factura_id: SAVED.id, contrato_id: CONTRATO_ID || null,
+        html: paginaParaEmail() }) });
+    const res = await r.json().catch(() => ({ ok:false, error:'Respuesta inválida del servidor' }));
+    if(res.ok){
+      // 11-ago (Administración, hallazgo ALTA): sin esto `facturas.enviada` se
+      // quedaba en false para siempre en el envío manual — el único camino que
+      // la marcaba era el automático de firma-submit (proformas). Sin la
+      // columna al día, el guard "no tocar el JSONB de una factura ya enviada"
+      // de renombrar_proyecto.sql no protegía la factura normal, que es la
+      // mayoría. No bloquea el aviso de "Enviado" si falla: el email ya salió.
+      const marca = await sb.from('facturas').update({ enviada:true, fecha_envio: new Date().toISOString() }).eq('id', SAVED.id);
+      if(marca.error) console.error('factura', SAVED.numero, 'enviada pero SIN marcar enviada=true:', marca.error.message);
+      LDOCS = null;   // que el listado enseñe el estado «enviada» al volver
+      toast('Enviado a ' + to); cerrarMail();
+    }
+    else toast(res.error || 'No se pudo enviar');
+  }catch(err){ toast('Error: ' + (err.message || err)); }
+  btn.disabled = false; btn.textContent = 'Enviar';
+};
+
+/* ---------- prefill desde un contrato guardado ----------
+   La lista va con columnas ligeras a propósito: el `datos` de un contrato llega
+   a 2,6 MB (los anexos van dentro en base64), así que traerlo de los 60 sería
+   descargar decenas de megas para llenar un desplegable. Al elegir uno se pide
+   solo ESE, y de su jsonb únicamente `fields` y `hitos`. */
+let CONTRATOS = [];   // catálogo para el buscador: id, numero, comprador, proyecto
+
+/* Pone el rótulo del botón de contrato. Un botón que dice «elige un contrato»
+   con uno ya elegido es la forma de facturar al cliente equivocado. */
+function pintarContratoElegido(){
+  const b = $('#btnContrato'); if(!b) return;
+  const c = CONTRATOS.find(x => x.id === CONTRATO_ID);
+  b.textContent = c
+    ? (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')
+    : '— elige un contrato —';
+  b.classList.toggle('vacio', !c);
+}
+
+async function cargarContratos(){
+  /* contratos_equipo(), no .from('contratos'): la RLS por agente (7-ago) deja
+     .from() en solo los propios, y esto sirve para facturar un contrato que
+     firmó CUALQUIER agente. created_at va en el select aunque no se pinte — un
+     recurso de función exige que la columna del order() esté proyectada
+     (PostgREST 42703 si no, ver operaciones/index.html).
+
+     SIN `datos` NI NADA QUE SALGA DE ÉL, y no es una preferencia: `contratos`
+     guarda 70 MB de jsonb en 112 filas (anexos en base64), así que basta con
+     nombrar `datos->algo` para que Postgres tenga que descomprimirlo entero.
+     Medido el 24-ago-2026 sobre esta misma tabla: 3.852 ms tocándolo, 0,37 ms
+     sin tocarlo. Diez mil veces. Aquí no hace falta, así que no se pide.
+
+     Y ya no hay `limit(60)`: con 112 contratos, ese tope dejaba 52 fuera del
+     alcance del buscador sin decirlo. El tope de ahora es holgado y, si algún
+     día se alcanza, se AVISA en vez de recortar en silencio. */
+  const TOPE = 500;
+  const { data, error } = await sb.rpc('contratos_equipo')
+    .select('id,numero,comprador_nombre,proyecto_nombre,created_at')
+    .order('created_at', { ascending:false }).limit(TOPE + 1);
+  if(error || !data){
+    // Un catálogo vacío se lee igual que «no hay contratos». No es lo mismo.
+    CONTRATOS = [];
+    toast('No se pudo cargar la lista de contratos: ' + ((error && error.message) || ''));
+    return;
+  }
+  if(data.length > TOPE) toast('Hay más de ' + TOPE + ' contratos: el buscador enseña los ' + TOPE + ' más recientes');
+  CONTRATOS = data.filter(c => c.numero).slice(0, TOPE);
+  pintarContratoElegido();
+
+  $('#btnContrato').addEventListener('click', async () => {
+    const elegido = await lwElegir({
+      titulo: 'Contrato que se factura',
+      buscarPh: 'Número, comprador o proyecto…',
+      opciones: [{ valor:'', texto:'— sin contrato —' }].concat(CONTRATOS.map(c => ({
+        valor: c.id,
+        texto: (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre'),
+        nota:  c.proyecto_nombre || '',
+      }))),
+    });
+    if(elegido === null) return;             // cerró sin elegir: no se toca nada
+    CONTRATO_ID = elegido || null;
+    pintarContratoElegido();
+    if(CONTRATO_ID) traerContrato(CONTRATO_ID);
+    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; soltarCampos(); }
+    /* Cambiar de contrato cambia el comprador, y con él qué facturas puede
+       saldar este recibí (LAW-41(2)). Las ya añadidas que dejen de valer se
+       quitan aquí y no en el guardado: guardar_recibi() las rechazaría con un
+       error de base de datos después de haber escrito todo lo demás. */
+    if($('#selTipo').value === 'recibi') refrescarAplicablesDelRecibi();
+  });
+}
+
+/* ── LO QUE VIENE DEL CONTRATO NO SE TECLEA ────────────────────────────────
+   24-ago-2026, encargo del owner: «si selecciono un contrato anterior ya tienes
+   información que puedes bloquear por completo».
+
+   No es comodidad, es corrección: el nombre, el pasaporte, el email, el
+   proyecto, la moneda y el número de contrato son del CONTRATO, y una factura
+   que los contradiga es una factura a nombre de quien no es. Ya mordió —
+   RP00069 traía email y RP00071 no, y cambiar de uno a otro dejaba una factura
+   con el email de otra persona (auditoría 21-ago).
+
+   Se bloquea SOLO lo que el contrato ha rellenado de verdad. Un campo que el
+   contrato no trae se queda abierto: bloquear un hueco no protege nada y deja
+   una factura que no se puede completar. Se marca con `.campo-del-contrato`
+   para que se vea POR QUÉ no se puede escribir ahí — un campo gris sin
+   explicación se lee como una pantalla rota.
+
+   `readonly` y no `disabled` a propósito: `disabled` no se envía con el
+   formulario, y `collect()` recorre `[name]` para armar el documento. */
+function bloquear(el, si){
+  if(!el) return;
+  if(el.tagName === 'SELECT'){
+    // un <select class="sui-sel"> no tiene readonly: se bloquea con el atributo y se vuelve a
+    // abrir al soltarlo. Solo hay uno (moneda) y se guarda igual.
+    el.classList.toggle('campo-del-contrato', si);
+    el.style.pointerEvents = si ? 'none' : '';
+    el.tabIndex = si ? -1 : 0;
+    return;
+  }
+  el.readOnly = !!si;
+  el.classList.toggle('campo-del-contrato', !!si);
+}
+
+/* Al quedarse sin contrato se sueltan TODOS: si no, un formulario que se
+   vació seguiría con los campos grises y sin poder escribir en ellos. */
+function soltarCampos(){
+  document.querySelectorAll('.campo-del-contrato').forEach(el => bloquear(el, false));
+}
+
+async function traerContrato(id){
+  CONTRATO_ID = id;
+  CLIENTE_DEL_CONTRATO = null;
+  const caja = $('#delContrato');
+  caja.innerHTML = '<div class="t">Cargando contrato…</div>';
+  $('#delVinculado').innerHTML = '';
+  // `campos:datos->fields` pide solo esa rama del jsonb. Si la sintaxis de
+  // PostgREST fallara, se cae al jsonb entero antes que dejar al agente sin datos.
+  // contratos_equipo(): este contrato pudo guardarlo cualquier agente.
+  let { data, error } = await sb.rpc('contratos_equipo')
+    .select('numero,moneda,precio_total,campos:datos->fields,hitos:datos->hitos,extras:datos->compradores,ficha:datos->>adq1_client_id,contrato_padre_id').eq('id', id).single();
+  if(error){
+    ({ data, error } = await sb.rpc('contratos_equipo').select('numero,moneda,precio_total,datos,contrato_padre_id').eq('id', id).single());
+    if(data && data.datos){ data.campos = data.datos.fields; data.hitos = data.datos.hitos; data.extras = data.datos.compradores;
+      data.ficha = data.datos.adq1_client_id; }
+  }
+  if(error || !data){ caja.innerHTML = `<div class="t">No se pudo cargar el contrato: ${esc((error&&error.message)||'')}</div>`; return; }
+
+  // de quién es este contrato: viaja a la factura como `client_id` (19-ago)
+  CLIENTE_DEL_CONTRATO = data.ficha || null;
+
+  const f = data.campos || {};
+  /* `poner` NO tocaba el campo cuando el contrato nuevo no traía ese dato, así
+     que se quedaba el del contrato ANTERIOR. Auditoría 21-ago-2026.
+
+     Es reproducible con datos de hoy: RP00069 trae email
+     (davidpirisjuaneda@gmail.com) y RP00071 no trae ninguno. Elegir el primero y
+     cambiar al segundo dejaba una factura a nombre de David Jimenez Vera con el
+     email de David Piris Juaneda. Nadie ve nada raro: el campo está relleno.
+
+     Desde hoy, los campos de IDENTIDAD del cliente se vacían cuando el contrato
+     nuevo no los trae — un hueco se ve, un dato de otra persona no. Lo que NO se
+     vacía es moneda, sociedad ni cuenta de cobro: eso no es identidad, es un
+     valor por defecto razonable, y borrarlo solo obligaría a volver a elegirlo. */
+  const IDENTIDAD = ['cliente_nombre', 'cliente_documento',
+                     'cliente_email', 'proyecto_nombre'];
+  const puesto = [];
+  const poner = (name, valor, etiqueta) => {
+    const el = document.querySelector(`[name="${name}"]`); if(!el) return;
+    if(!valor){
+      if(IDENTIDAD.includes(name) && el.value) el.value = '';   // fuera lo del contrato anterior
+      bloquear(el, false);
+      return;
+    }
+    el.value = valor; puesto.push(etiqueta);
+    bloquear(el, true);
+  };
+
+  // Compradores: la factura va a nombre de todos los que firman, no solo del
+  // primero. El II y siguientes viven en `datos.compradores[]`, no en adq2_*
+  // (ver compradores.js) — leyendo solo adq* se perdían en 5 contratos.
+  const compradores = compradoresDeContrato(f, data.extras);
+  const nombres = nombresFactura(compradores);
+  const docs = documentosFactura(compradores);
+  // Unidad concreta si el contrato la fija (parcela, villa o tipología).
+  const unidad = [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa].filter(Boolean).join(' — ');
+
+  poner('contrato_numero', data.numero, 'contrato');
+  poner('cliente_nombre', nombres, 'nombre');
+  poner('cliente_documento', docs, 'documento');
+  poner('cliente_email', primerDato(compradores, 'email'), 'email');
+  poner('proyecto_nombre', unidad, 'proyecto');
+  poner('moneda', data.moneda || f.moneda, 'moneda');
+  if(f.sociedad_firmante && SOCIEDADES[f.sociedad_firmante]) poner('sociedad', f.sociedad_firmante, 'sociedad');
+  if(f.cuenta_bancaria && CUENTAS_BANCARIAS[f.cuenta_bancaria]) poner('cuenta', f.cuenta_bancaria, 'cuenta de cobro');
+
+  // Hitos de pago del contrato: cada uno puede convertirse en un concepto de la
+  // factura. NO se añaden solos — una factura cobra el hito que toca, no los cuatro.
+  const moneda = ($('[name="moneda"]')||{}).value;
+  const precio = parseImporte(data.precio_total || f.precio_total);
+  const hitos = (data.hitos || []).map(h => {
+    const pct = parseImporte(h.pct);
+    const monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
+    return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
+  }).filter(h => h.texto || h.monto);
+
+  caja.innerHTML = `<div class="t">Del contrato ${esc(data.numero || '')}</div>
+    <p class="arrastrado">${puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
+      ${compradores.length > 1 ? ' Contrato a <b>' + compradores.length + ' nombres</b>.' : ''}
+      ${precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
+    ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
+        `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
+      ).join('')}</div>
+      <p class="arrastrado">Pulsa el hito que cobras en este documento.</p>` : ''}`;
+
+  caja.querySelectorAll('[data-h]').forEach(b => {
+    const h = hitos[+b.dataset.h];
+    b.dataset.desc = descHito(h);
+    b.onclick = () => {
+      if(LINEAS.length === 1 && !LINEAS[0].descripcion && !LINEAS[0].importe) LINEAS = [];
+      LINEAS.push({ descripcion: b.dataset.desc, importe: h.monto ? String(h.monto).replace('.', ',') : '' });
+      pintarLineas(); render();
+      toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+    };
+  });
+  marcarHitosUsados();
+
+  // Contrato vinculado (Parcela ↔ Construcción, contratos.contrato_padre_id):
+  // se ofrece traer sus conceptos a esta MISMA factura. La sociedad ya puesta
+  // en el formulario (poner('sociedad', ...) arriba, o el default si el
+  // contrato no fijaba una) es la que manda para el chequeo de compatibilidad.
+  pintarVinculados(id, data.contrato_padre_id || null, $('[name="sociedad"]').value, moneda);
+
+  render();
+}
+
+/* ---------- combinar con un contrato vinculado ----------
+   Parcela y Construcción son ventas encadenadas (contrato_padre_id, el mismo
+   vínculo que ya usa /intranet/operaciones/ para agruparlas en pantalla) pero siguen
+   siendo DOS relaciones jurídicas separadas con el comprador — por eso cada
+   línea que se trae de aquí queda marcada con `origen_contrato_id` y con su
+   descripción prefijada por tipo, nunca mezclada sin rastro. Si las dos
+   sociedades emisoras no coinciden, no se deja combinar: sería una sociedad
+   cobrando el ingreso de otra sin ningún soporte intercompañía (revisión
+   previa, Legal + Administración, 7-ago-2026). */
+async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaPrincipal){
+  const cont = $('#delVinculado');
+  const ors = ['contrato_padre_id.eq.' + idPrincipal];
+  if(padreId) ors.push('id.eq.' + padreId);
+  // contratos_equipo(): el padre/hijo vinculado puede ser de otro agente.
+  const { data, error } = await sb.rpc('contratos_equipo')
+    .select('id,numero,tipo,precio_total,campos:datos->fields,hitos:datos->hitos')
+    .or(ors.join(','));
+  if(error || !data || !data.length){ cont.innerHTML = ''; return; }
+  cont.innerHTML = data.map(c => {
+    const socC = (c.campos || {}).sociedad_firmante || '';
+    const compatible = !socC || !sociedadPrincipal || socC === sociedadPrincipal;
+    const etiqueta = TIPO_ES[c.tipo] || c.tipo || 'Vinculado';
+    /* AVISO, no botoncito — 24-ago-2026, encargo del owner («pone "+Traer
+       conceptos de XXXX", poco visible, hay que marcar eso mucho más»). Y tiene
+       razón de fondo: que una villa se venda en DOS contratos encadenados
+       (suelo + obra) es justo lo que hay que ver antes de emitir, porque
+       decidir si esta factura cobra uno o los dos es la decisión del documento.
+       Con un `addbtn` gris al final de la columna se pasaba por alto.
+       Se pinta como `.sui-aviso` de la suite: lo que hay que ver CADA vez que
+       se entra, no un `toast()` que se va en cuatro segundos. */
+    return compatible
+      ? `<div class="vinc" role="status">
+           <div class="vinc-t">Este contrato va encadenado con ${esc(c.numero)}</div>
+           <p>La venta está en dos contratos: <b>${esc(etiqueta)}</b> es el otro. Puedes cobrar los dos en este mismo documento.</p>
+           <button type="button" class="vinc-btn" data-vinc="${esc(c.id)}">Traer los conceptos de ${esc(c.numero)}</button>
+         </div>`
+      : `<div class="vinc malo" role="status">
+           <div class="vinc-t">${esc(c.numero)} (${esc(etiqueta)}) va encadenado con este</div>
+           <p>Pero lo emite <b>otra sociedad</b>, así que no se puede combinar en la misma factura: sería una sociedad cobrando el ingreso de otra.</p>
+         </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-vinc]').forEach(b => {
+    const c = data.find(x => x.id === b.dataset.vinc);
+    b.onclick = () => traerVinculado(c, monedaPrincipal);
+  });
+}
+
+function traerVinculado(c, moneda){
+  const f = c.campos || {};
+  const etiqueta = TIPO_ES[c.tipo] || c.tipo || 'Vinculado';
+  moneda = moneda || ($('[name="moneda"]') || {}).value;
+  const precio = parseImporte(c.precio_total || f.precio_total);
+  const hitos = (c.hitos || []).map(h => {
+    const pct = parseImporte(h.pct);
+    const monto = parseImporte(h.monto) || (pct && precio ? redondear(precio * pct / 100, moneda) : 0);
+    return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
+  }).filter(h => h.texto || h.monto);
+  if(!hitos.length){ toast('Ese contrato no tiene hitos de pago que traer'); return; }
+
+  const caja = document.createElement('div');
+  caja.className = 'hitos';
+  caja.innerHTML = hitos.map((h,i) =>
+    `<button type="button" class="hito" data-vh="${i}">[${esc(etiqueta)}] ${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
+  ).join('');
+  $('#delVinculado').appendChild(caja);
+  caja.querySelectorAll('[data-vh]').forEach(b => {
+    const h = hitos[+b.dataset.vh];
+    const desc = '[' + etiqueta + '] ' + descHito(h);
+    b.dataset.desc = desc;
+    b.onclick = () => {
+      if(LINEAS.length === 1 && !LINEAS[0].descripcion && !LINEAS[0].importe) LINEAS = [];
+      LINEAS.push({ descripcion: desc, importe: h.monto ? String(h.monto).replace('.', ',') : '', origen_contrato_id: c.id });
+      pintarLineas(); render();
+      toast(h.monto ? 'Concepto añadido' : 'Concepto añadido — el contrato no fijaba importe, ponlo a mano');
+    };
+  });
+  marcarHitosUsados();
+  // Ya traído: se retira su botón de "traer" para no ofrecerlo dos veces.
+  const btn = $('#delVinculado').querySelector(`[data-vinc="${c.id}"]`);
+  if(btn) btn.remove();
+}
+
+/* ---------- guardar ---------- */
+function payload(){
+  const d = collect();
+  const t = calcTotales(d.lineas, d.moneda, { pct:d.imp_pct });
+  return {
+    tipo: d.tipo || 'factura',
+    sociedad: d.sociedad || null,
+    cliente_nombre: d.cliente_nombre || null,
+    proyecto_nombre: d.proyecto_nombre || null,
+    contrato_numero: d.contrato_numero || null,
+    // el nº de contrato es texto que se imprime; `contrato_id` es el enlace real
+    // con el que el contrato sabe qué facturas cuelgan de él
+    contrato_id: CONTRATO_ID,
+    /* De QUIÉN es esta factura — 19-ago-2026. Va ADEMÁS de contrato_id, nunca en
+       su lugar (aviso del owner): los hitos y los vencimientos cuelgan del
+       contrato y no se tocan. Sale de la ficha enlazada al contrato elegido, que
+       es la única fuente de identidad desde el 18-ago. Sin esto, una factura no
+       puede saber si sus datos siguen siendo los del cliente. */
+    client_id: CLIENTE_DEL_CONTRATO,
+    total: t.total,
+    moneda: d.moneda || null,
+    fecha_emision: d.fecha_emision || null,
+    /* `justificantes` (la lista) y NO `justificante_path`: la columna de texto
+       es el espejo del primero y lo escribe un trigger en la base. Escribir las
+       dos desde aquí sería devolverle dos dueños al mismo dato. */
+    justificantes: d.tipo === 'recibi' ? JUSTIFICANTES : [],
+    datos: { fields:d, lineas:LINEAS, totales:t },
+  };
+}
+$('#btnSave').onclick = async () => {
+  const d = collect();
+  if(!d.cliente_nombre){ toast('Falta el nombre del cliente'); return; }
+  // 11-ago (reforma del modelo de facturación) + 12-ago (se suma proforma,
+  // petición del cliente): los tres tipos exigen contrato — sin eso no hay a
+  // qué balance atribuir el dinero. Un balance de cliente real salió mal
+  // justo por documentos sin este dato claro. Con los tres tipos posibles
+  // cubiertos, ya no hace falta mirar cuál es — cualquier documento lo exige.
+  if(!CONTRATO_ID){
+    toast('Elige el contrato al que corresponde este documento'); return;
+  }
+  if(d.tipo === 'recibi'){
+    if(!APLICACIONES.length){ toast('Elige al menos una factura que salde este recibí'); return; }
+    if(!JUSTIFICANTES.length){ toast('Adjunta el justificante de pago'); return; }
+    for(const a of APLICACIONES){
+      const imp = parseImporte(a.importe);
+      if(!imp || imp <= 0){ toast('Falta el importe aplicado a ' + a.numero); return; }
+      if(imp > a.pendiente + 0.01){ toast(a.numero + ' solo tiene ' + fmtMoneda(a.pendiente, d.moneda) + ' pendiente'); return; }
+    }
+  } else if(!calcTotales(d.lineas, d.moneda, null).subtotal){ toast('El documento no tiene importe'); return; }
+  const btn = $('#btnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    let data;
+    if(d.tipo === 'recibi'){
+      // 11-ago: contrato + justificante + al menos una aplicación ya no son
+      // solo un check de este JS — guardar_recibi() los exige otra vez en la
+      // base de datos, en la MISMA transacción que crea las aplicaciones, así
+      // que no puede quedar un recibí a medias vía un POST directo a la API.
+      const aplicaciones = APLICACIONES.map(a => ({ factura_id:a.factura_id, importe:parseImporte(a.importe) }));
+      const { data:rpcData, error } = await sb.rpc('guardar_recibi', {
+        p_id: (SAVED && SAVED.id) || null, p_factura: payload(), p_aplicaciones: aplicaciones,
+      });
+      if(error) throw error;
+      data = rpcData;
+    }else{
+      const q = (SAVED && SAVED.id)
+        ? sb.from('facturas').update(payload()).eq('id', SAVED.id).select('id,numero').single()
+        : sb.from('facturas').insert(payload()).select('id,numero').single();
+      const r = await q;
+      if(r.error) throw r.error;
+      data = r.data;
+    }
+    SAVED = { id:data.id, numero:data.numero };
+    $('[name="numero_visible"]').value = data.numero;
+    LDOCS = null;   // el listado queda viejo: al volver se recarga y el documento nuevo aparece (auditoría 19-ago)
+    toast('Guardada como ' + data.numero);
+  }catch(err){ toast('No se pudo guardar: ' + (err.message || err)); }
+  btn.disabled = false; render();
+};
+
+/* Extraida a funcion con nombre (6-ago-2026): la usan el boton «Nueva» de la
+   vista previa Y el «+ Nueva» de la barra del listado, que ademas le pasa el tipo
+   que se estaba filtrando. Antes era un manejador anonimo y el segundo boton
+   habria sido una copia. */
+function nuevoDocumento(tipo){
+  SAVED = null; CONTRATO_ID = null; $('#form').reset();
+  // el selector de tipo vive fuera del <form>, así que reset() no lo toca
+  $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
+  toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
+  LINEAS = [{ descripcion:'', importe:'' }];
+  APLICACIONES = []; JUSTIFICANTES = []; $('#fJustificante').value = ''; pintarEstadoJustificante();
+  // `form.reset()` vacía los campos pero NO cierra un <details> abierto
+  ['#dtImpuesto','#dtNotas'].forEach(s => { const d = $(s); if(d) d.open = false; });
+  soltarCampos();
+  $('[name="fecha_emision"]').value = hoyLocalISO();
+  $('[name="numero_visible"]').value = '';
+  CONTRATO_ID = null; pintarContratoElegido(); soltarCampos();
+  $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
+  toggleTipoRecibi(); pintarLineas(); render();
+}
+$('#btnNueva').onclick = async () => {
+  if(SAVED && !await lwConfirmar({
+    titulo: 'Empezar un documento nuevo',
+    cuerpo: '<p>El documento que tienes abierto ya está guardado, así que no se pierde. Se limpia el formulario para empezar otro.</p>',
+    confirmar: 'Empezar uno nuevo',
+  })) return;
+  nuevoDocumento($('#selTipo').value);   // desde la vista previa se conserva el tipo que hubiera
+};
+
+/* ---------- facturas guardadas ---------- */
+/* Quien la emitio. `facturas.creado_por` guarda el EMAIL —es la identidad con la
+   que la RLS decide quien edita lo suyo— y aqui solo se TRADUCE a nombre si esa
+   persona tiene ficha. Mismo patron que el panel de Contratos, no uno nuevo.
+   Ojo: la RLS de `usuarios` deja ver todas las fichas al admin y solo la propia
+   al resto, asi que a un agente le saldra el email. Identifica igual, y el
+   completo esta siempre en el `title`. */
+let EQUIPO = null;
+async function cargarEquipo(){
+  if(EQUIPO) return;
+  const { data } = await sb.from('usuarios').select('email, nombre');
+  EQUIPO = {};
+  (data || []).forEach(u => { if(u.nombre) EQUIPO[u.email] = u.nombre; });
+}
+const emisor = f => (EQUIPO && EQUIPO[f.creado_por]) || f.creado_por || '—';
+
+/* ═══ PANTALLA: listado o documento ══════════════════════════════════════════
+   Dos vistas en la misma página, cada una con su URL — la norma del estudio es
+   que toda vista tenga dirección propia, para que se pueda recargar, guardar en
+   marcadores y volver con el botón atrás.
+     /intranet/facturas/                  el listado (la entrada)
+     /intranet/facturas/?tipo=recibi      el listado, filtrado a recibís (la tarjeta
+                                 «Recibos» del hub entra por aquí)
+     /intranet/facturas/?nueva=1          documento nuevo en blanco
+     /intranet/facturas/?id=<uuid>        ese documento abierto
+     /intranet/facturas/?id=<uuid>&vista=1  SOLO el documento, sin barra ni formulario:
+                                 es lo que empotra el visor de Operaciones
+   `replaceState` y no `pushState`: dentro de esta herramienta se salta entre
+   listado y documento muchas veces por sesión, y llenar el historial de pasos
+   intermedios convierte el botón atrás en inútil. La URL sigue siendo copiable,
+   que es para lo que hace falta.
+   ⚠️ `pushState` sobre `file://` revienta — no aplica aquí (esto siempre se sirve
+   por HTTP) pero queda dicho, que ya nos costó una vez en el panel del estudio. */
+let PANTALLA = 'listado';
+function pantalla(cual, params){
+  PANTALLA = cual;
+  $('#pantallaListado').hidden = cual !== 'listado';
+  $('#pantallaDoc').hidden     = cual !== 'documento';
+  // los botones de la barra se alternan: nunca ofrecer las dos salidas a la vez
+  $('#btnList').hidden    = cual !== 'documento';
+  $('#btnNuevaDoc').hidden = cual !== 'listado';
+  $('#selTipo').hidden     = cual !== 'documento';
+  if(params !== undefined){
+    try{ history.replaceState(null, '', location.pathname + (params ? '?' + params : '')); }catch(_){}
+  }
+  if(cual === 'listado') cargarListado();
+}
+
+/* ---------- filtros del listado ---------- */
+const TIPOS_FILTRO = [['', 'Todos'], ['factura', 'Facturas'], ['proforma', 'Proformas'], ['recibi', 'Recibís']];
+let LTIPO = '', LANUL = false, LDOCS = null;
+let DIVERGEN = new Map();   // id → diferencias con la ficha del cliente
+
+function pintarFiltrosListado(){
+  const base = LDOCS || [];
+  $('#lTipos').innerHTML = TIPOS_FILTRO.map(([k, et]) => {
+    const n = base.filter(f => (!k || f.tipo === k) && (LANUL || !f.anulada)).length;
+    return `<button class="sui-chip ${LTIPO===k?'on':''} ${n?'':'vacio'}" data-lt="${k}">${et}<span class="n">${n}</span></button>`;
+  }).join('');
+  document.querySelectorAll('[data-anul]').forEach(b =>
+    b.classList.toggle('on', (b.dataset.anul === 'si') === LANUL));
+}
+
+/* Lo que se ve, en UNA función: la usan la tabla y el resumen, así que la cifra
+   del pie nunca puede discrepar de las filas de arriba. */
+function docsVisibles(){
+  const q = ($('#lq').value || '').trim().toLowerCase();
+  return (LDOCS || []).filter(f =>
+    (LANUL || !f.anulada) &&
+    (!LTIPO || f.tipo === LTIPO) &&
+    (!q || [f.numero, f.cliente_nombre, f.proyecto_nombre, (f.datos && f.datos.fields && f.datos.fields.contrato_numero)]
+            .some(v => String(v||'').toLowerCase().includes(q))));
+}
+
+async function cargarListado(){
+  const box = $('#listBody');
+  if(!LDOCS){
+    box.innerHTML = 'Cargando…';
+    await cargarEquipo();   // para enseñar el nombre en vez del email
+    /* `creado_por` FALTABA en esta consulta (6-ago-2026), y la fila de abajo lo
+       usa: la columna «emisor» de la lista salía vacía y su tooltip decía «sin
+       autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
+       un dato que no existe en vez de como un dato que no se pidió. */
+    const { data, error } = await sb.from('facturas')
+      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,creado_por,datos,justificante_path,justificantes')
+      .order('created_at', { ascending:false }).limit(200);
+    if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
+    LDOCS = data || [];
+    /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
+       pide UNA vez con el listado, no una consulta por fila.
+
+       Y NO SE ESPERA (24-ago-2026). La vista `documentos_desactualizados`
+       compara seis campos que viven dentro de `datos`, así que descomprime el
+       jsonb de cada documento: **2.565 ms** medidos contra la base real. Bloquear
+       el listado por un DISTINTIVO es pagar dos segundos y medio de pantalla en
+       blanco por una insignia. Ahora la lista se pinta al momento y las insignias
+       aparecen cuando llegan.
+
+       Se descartó la alternativa —reflejar esos seis campos en columnas
+       generadas, como se hizo con `nombre_contrato`— a propósito: son nombre,
+       pasaporte, email, teléfono, domicilio y nacionalidad, y esparcir datos de
+       identidad por columnas nuevas para ahorrar dos segundos no compensa.
+       Si falla, la lista se queda sin insignias: es un aviso, no un requisito. */
+    lwDivergencias(sb, 'factura').then(m => { DIVERGEN = m; pintarListado(); });
+  }
+  pintarListado();
+}
+/* Vuelve a preguntar a la base. Se llama tras anular, borrar o guardar: sin esto
+   la lista seguiría mostrando el estado anterior y parecería que no pasó nada. */
+function recargarListado(){ LDOCS = null; return cargarListado(); }
+
+/* Lo que dice el boton de emitir. Es el tipo por el que esta filtrado el
+   listado, porque es exactamente el que se va a crear al pulsarlo
+   (`nuevoDocumento(LTIPO || 'factura')`). Sin filtro se emite una factura, asi
+   que eso es lo que anuncia. */
+const NUEVA_ROTULO = { '':'Nueva factura', factura:'Nueva factura',
+                       proforma:'Nueva proforma', recibi:'Nuevo recibí' };
+/* PAGINACIÓN (26-ago-2026). El listado sacaba las 165 filas de golpe — es la
+   tercera vez que el owner lo pide por su nombre, así que la pieza vive en
+   `assets/paginacion.js` y la usan todas por igual, en vez de una copia aquí.
+   Se crea perezosa: `#listBody` tiene que existir ya en el DOM, y esta función
+   es lo primero que corre cuando existe.
+   ⚠️ El RESUMEN de arriba sigue contando `data` ENTERO, no la página: «165
+   documentos · suma de lo vigente» es del conjunto, y decir 25 ahí sería
+   mentir sobre lo que hay. Solo se recorta lo que se PINTA. */
+let _PAG = null;
+function PAGINADOR(){
+  if(!_PAG){ _PAG = lwPaginador('#listBody'); _PAG.alCambiar(pintarListado); }
+  return _PAG;
+}
+function pintarListado(){
+  const box = $('#listBody');
+  pintarFiltrosListado();
+  $('#btnNuevaDocTxt').textContent = NUEVA_ROTULO[LTIPO] || 'Nuevo documento';
+  const data = docsVisibles();
+  // POR moneda (auditoría 19-ago): antes sumaba EUR con USD en una sola cifra
+  // y la etiquetaba con la moneda de la primera fila — un total que no existía
+  const porMoneda = {};
+  data.filter(f => !f.anulada).forEach(f => {
+    const m = f.moneda || 'EUR';
+    porMoneda[m] = (porMoneda[m] || 0) + (Number(f.total) || 0);
+  });
+  const sumas = Object.entries(porMoneda).map(([m, t]) => esc(fmtMoneda(t, m))).join(' · ');
+  $('#lResumen').innerHTML = !data.length ? '' :
+    `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
+     <span>Suma de lo vigente <b>${sumas}</b></span>`;
+  if(!data.length){
+    const filtrando = LTIPO || LANUL || ($('#lq').value || '').trim();
+    box.innerHTML = `<div class="sui-nada"><b>${
+      filtrando ? 'Ningún documento coincide' : 'Todavía no hay documentos emitidos'}</b>${
+      filtrando ? 'Prueba a quitar algún filtro.' : 'Empieza con «+ Nueva».'}</div>`;
+    return;
+  }
+/* Tabla de verdad (2a): cabeceras 10,5px/.1em, celda 11px 16px, numero en tinta,
+     importe a la derecha con cifras de ancho fijo y etiqueta de estado — no la
+     lista de filas sueltas del modal viejo. */
+  const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','morado'], recibi:['Recibí','ok'] };
+  box.innerHTML = `<table class="sui-tabla"><thead><tr>
+      <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Contrato</th><th>Proyecto</th>
+      <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th><th></th>
+    </tr></thead><tbody>` + PAGINADOR().pagina(data).map(f => {
+    const [tEt, tTono] = TIPO_ET[f.tipo] || TIPO_ET.factura;
+    return `<tr data-id="${f.id}" class="${f.anulada ? 'anulada' : ''}">
+      <td class="clave">${esc(f.numero || '—')}</td>
+      <td><span class="sui-tag ${tTono}">${tEt}</span></td>
+      <td>${esc(f.cliente_nombre || 'sin nombre')}</td>
+      ${(() => {
+        /* Columna «Contrato», 15-ago-2026. El buscador de arriba decia ya que se
+           podia buscar por contrato, pero la tabla no lo enseñaba: para saber de
+           que contrato era un documento habia que abrirlo.
+           Y marca en rojo los que NO tienen contrato: son los que `contrato_cobrado`
+           no puede atribuir a nadie (LAW-38), y aplicarles un cobro lo hace
+           desaparecer de las cuentas. Que se vea en la lista y no al descubrirlo. */
+        if(!f.contrato_id) return '<td><span class="sui-tag alerta" title="Sin contrato: un cobro aplicado aqui no se atribuye a ninguna operacion (LAW-38)">Sin contrato</span></td>';
+        return `<td class="flojo">${esc(f.contrato_numero || '—')}</td>`;
+      })()}
+      <td class="flojo">${esc(f.proyecto_nombre || '—')}</td>
+      <td class="num">${esc(fmtMoneda(f.total, f.moneda))}</td>
+      <td class="flojo" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></td>
+      <td>${f.anulada ? '<span class="sui-tag alerta">Anulada</span>' : '<span class="sui-tag gris">Emitida</span>'}</td>
+      <td>${DIVERGEN.has(f.id)
+          ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>`
+          : ''}</td>
+      <td class="num">${f.tipo === 'recibi' && nJustif(f)
+          ? `<button class="btn" data-justif="${f.id}" title="Ver ${nJustif(f) === 1 ? 'el justificante de pago adjunto' : 'los ' + nJustif(f) + ' justificantes de pago adjuntos'}">📎${nJustif(f) > 1 ? ' ' + nJustif(f) : ''}</button>` : ''}
+        ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
+        ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
+    </tr>`;
+  }).join('') + '</tbody></table>';
+
+  /* Reasignar autor: el módulo se lo enseña solo al super_admin. Una factura
+     anulada no se puede reatribuir — la policy de UPDATE exige `anulada=false`. */
+  if(window.LW_AUTORIA && LW_AUTORIA.puede(MI_FICHA)) data.forEach(f => {
+    LW_AUTORIA.montar(box.querySelector(`tr[data-id="${f.id}"] .autoria-slot`), {
+      sb, ficha:MI_FICHA, tabla:'facturas', filaId:f.id, actual:f.creado_por,
+      editable:!f.anulada,
+      motivoNoEditable:'Documento anulado: la base de datos no admite cambios sobre él.',
+      onCambio:(nuevo) => toast('Autor reasignado a ' + nuevo) });
+  });
+  box.onclick = async e => {
+    /* «Ficha ≠»: qué dice el documento y qué dice la ficha (19-ago-2026). El
+       texto lo pone la capa compartida, así que Contratos y Facturas dicen lo
+       mismo. Desde aquí solo se INFORMA: traer los datos se hace con el
+       documento abierto, que es donde se revisa antes de guardar. */
+    const dv = e.target.closest('[data-diverge]');
+    if(dv){
+      e.stopPropagation();
+      const d = DIVERGEN.get(dv.dataset.diverge);
+      if(d) await lwConfirmar({ titulo: 'La ficha del cliente dice otra cosa',
+        cuerpo: lwTextoDivergencia(d)
+              + (d.congelado ? '' : '<p>Ábrelo para traer los datos de la ficha.</p>'),
+        confirmar: 'Entendido', cancelar: false });
+      return;
+    }
+    // Ver el justificante desde la propia lista, sin abrir el recibí (19-ago)
+    const ju = e.target.closest('[data-justif]');
+    if(ju){
+      e.stopPropagation();
+      const doc = (data || []).find(x => x.id === ju.dataset.justif);
+      const lista = justifDe(doc);
+      if(lista.length === 1){ verJustificante(lista[0].path); return; }
+      /* Varios: se elige con el selector compartido de la suite (`lwElegir`),
+         no con un menú propio de esta pantalla. */
+      const cual = await lwElegir({
+        titulo: 'Justificantes de ' + ((doc && doc.numero) || 'este recibí'),
+        opciones: lista.map((j, i) => ({ valor:String(i), texto:j.nombre || ('Justificante ' + (i+1)) })),
+      });
+      if(cual != null) verJustificante(lista[+cual].path);
+      return;
+    }
+    const an = e.target.closest('[data-anular]');
+    if(an){
+      e.stopPropagation();
+      if(!await lwConfirmar({ titulo:'Anular la factura ' + ((data.find(x=>x.id===an.dataset.anular)||{}).numero || ''),
+        cuerpo:'<p>El número <b>no se reutiliza</b> y ya no se podrá editar.</p>'
+             + '<p>La factura se queda en el registro marcada como anulada, así que el rastro no se pierde.</p>',
+        confirmar:'Anular la factura', tono:'peligro' })) return;
+      const { data: fue, error } = await sb.from('facturas').update({ anulada:true }).eq('id', an.dataset.anular).select('id');
+      // mismo patrón que el borrar de aquí abajo (auditoría 19-ago): la RLS no
+      // da error al denegar, devuelve CERO filas — sin mirarlas, esto decía
+      // «Factura anulada» y la factura seguía viva
+      if(error) toast('No se pudo anular: ' + error.message);
+      else if(!fue || !fue.length) toast('No se pudo anular: no es tuya o ya está anulada');
+      else toast('Factura anulada');
+      recargarListado(); return;
+    }
+    /* Borrar está reservado a administradores (petición del owner, 31-jul) y NO
+       es la acción normal: lo normal es ANULAR. Borrar una factura emitida deja
+       un hueco en la serie fiscal —INV00007 sin INV00006— y eso es exactamente
+       lo que un contable no puede explicar. Se avisa en el propio diálogo. */
+    const bo = e.target.closest('[data-borrar]');
+    if(bo){
+      e.stopPropagation();
+      const f = data.find(x => x.id === bo.dataset.borrar) || {};
+      if(!await lwConfirmar({ titulo:'Borrar la factura ' + (f.numero || ''),
+        cuerpo:'<p>Lo normal es <b>anularla</b>: así queda el rastro y la serie no pierde un número.</p>'
+             + '<p>Borrarla deja un <b>hueco en la numeración</b> que habrá que explicarle a un contable. No hay papelera.</p>',
+        confirmar:'Borrar de todos modos', cancelar:'Mejor anularla', tono:'peligro' })) return;
+      const { data: fue, error } = await sb.from('facturas').delete().eq('id', bo.dataset.borrar).select('id');
+      // La RLS no da error al denegar: devuelve cero filas. Sin comprobarlo, la
+      // herramienta diría "borrada" y la factura seguiría ahí.
+      if(error) toast('No se pudo borrar: ' + error.message);
+      else if(!fue || !fue.length) toast('No tienes permiso para borrar facturas');
+      else { toast('Factura borrada'); if(SAVED && SAVED.id === bo.dataset.borrar) SAVED = null; }
+      recargarListado(); return;
+    }
+    const row = e.target.closest('[data-id]'); if(!row) return;
+    const f = data.find(x => x.id === row.dataset.id); if(!f) return;
+    abrir(f);
+  };
+}
+
+/* ---------- eventos del listado ---------- */
+$('#lq').addEventListener('input', pintarListado);
+$('#lTipos').addEventListener('click', e => {
+  const b = e.target.closest('[data-lt]'); if(!b) return;
+  LTIPO = b.dataset.lt; pintarListado();
+});
+$('#lAnuladas').addEventListener('click', e => {
+  const b = e.target.closest('[data-anul]'); if(!b) return;
+  LANUL = b.dataset.anul === 'si'; pintarListado();
+});
+/* Volver al listado NO recarga la página: el borrador que hubiera en el
+   formulario se perdería sin avisar. Solo cambia de pantalla. */
+$('#btnList').onclick = () => {
+  pantalla('listado', LTIPO ? 'tipo=' + LTIPO : '');
+  // si algo marcó el listado como viejo (guardar, enviar), se recarga al volver:
+  // sin esto el documento recién emitido no salía en la lista (auditoría 19-ago)
+  if(!LDOCS) cargarListado();
+};
+/* «+ Nueva» hereda el tipo que se esté filtrando: si estás mirando recibís, el
+   que quieres emitir es un recibí. Es lo que hace que la tarjeta «Recibos» del
+   hub siga llevando a emitir un recibí en dos clics y no en cuatro. */
+$('#btnNuevaDoc').onclick = () => {
+  nuevoDocumento(LTIPO || 'factura');
+  pantalla('documento', 'nueva=1' + (LTIPO ? '&tipo=' + LTIPO : ''));
+};
+
+async function abrir(f){
+  const d = (f.datos && f.datos.fields) || {};
+  // un campo que el documento anterior traía y este no, se quedaba con el
+  // valor viejo escrito encima — reset() antes de aplicar los del nuevo
+  $('#form').reset();
+  $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
+  $('#selTipo').value = f.tipo || d.tipo || 'factura';
+  // CLONADAS, no por referencia (auditoría 19-ago): apuntaban al array de la
+  // caché del listado, así que editar líneas sin guardar quedaba escrito en
+  // LDOCS y reabrir el documento enseñaba la edición fantasma
+  LINEAS = (f.datos && f.datos.lineas && f.datos.lineas.length) ? f.datos.lineas.map(l => ({...l})) : [{ descripcion:'', importe:'' }];
+  SAVED = f.anulada ? null : { id:f.id, numero:f.numero };   // una anulada se abre como copia, no se reescribe
+  CONTRATO_ID = f.contrato_id || null;
+  pintarContratoElegido();
+  // el panel de hitos se repinta para ESTE contrato (auditoría 19-ago): antes
+  // se quedaba el del documento anterior, y sus botones «traer hito» metían
+  // importes de otro cliente en este documento
+  if(CONTRATO_ID) traerContrato(CONTRATO_ID);
+  else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; soltarCampos(); }
+  $('#delVinculado').innerHTML = '';
+  // Un documento guardado con impuesto o nota tiene que ENSEÑARLOS, aunque su
+  // bloque esté plegado por defecto: un dato que está en el papel y no se ve en
+  // el formulario es la forma más fácil de emitir de nuevo algo sin enterarse.
+  abrirLoQueTengaContenido();
+  $('[name="numero_visible"]').value = f.anulada ? '' : (f.numero || '');
+  toggleCuentaOtros();   // una factura guardada con cuenta "Otros" tiene que enseñar sus campos
+  // Recibí (11-ago): una anulada se abre como copia (SAVED=null), así que su
+  // aplicación y justificante NO se arrastran — habría que rehacerlas si se
+  // vuelve a guardar, igual que ya pasa con el nº de factura.
+  JUSTIFICANTES = f.anulada ? [] : justifDe(f).map(j => ({ ...j }));
+  $('#fJustificante').value = '';
+  pintarEstadoJustificante();
+  APLICACIONES = [];
+  if(f.tipo === 'recibi' && !f.anulada){
+    await cargarFacturasAbiertas();
+    const { data } = await sb.from('recibi_aplicaciones').select('factura_id,importe_aplicado').eq('recibi_id', f.id);
+    (data || []).forEach(row => {
+      const abierta = FACTURAS_ABIERTAS.find(x => x.id === row.factura_id);
+      APLICACIONES.push({
+        factura_id: row.factura_id,
+        numero: abierta ? abierta.numero : row.factura_id,
+        // pendiente visible = lo que queda SIN este recibí + lo que ya aplicaba este mismo
+        pendiente: (abierta ? abierta.pendiente : 0) + Number(row.importe_aplicado),
+        importe: String(row.importe_aplicado).replace('.', ','),
+      });
+    });
+  }
+  toggleTipoRecibi();
+  pintarLineas(); pintarAplicaciones(); render();
+  /* Cambia de pantalla y deja la URL apuntando a ESTE documento, así que el
+     enlace se puede copiar y pegar — es lo que usa «Lo último que se ha movido»
+     del panel y el visor de Operaciones. En modo vista NO se toca la URL: ya
+     viene con `?id=&vista=1` y reescribirla perdería el `vista`. */
+  if(!document.body.classList.contains('modo-vista'))
+    pantalla('documento', 'id=' + encodeURIComponent(f.id));
+  if(f.anulada) toast('Factura anulada: se abre como borrador nuevo');
+
+  /* ¿Este documento contradice a la ficha de su cliente? — 19-ago-2026.
+     Se pregunta al ABRIRLO, que es el momento en que alguien lo va a tocar, y
+     solo si sigue vivo: una factura enviada o anulada no se corrige, se reemite
+     (decisión del owner). Traer los datos NO guarda: los deja en el formulario
+     para revisarlos, igual que hace «Traer los datos de la ficha» en Contratos. */
+  if(!f.anulada && !f.enviada && f.client_id && !document.body.classList.contains('modo-vista')){
+    const mapa = await lwDivergencias(sb, 'factura');
+    const d = mapa.get(f.id);
+    if(d && !d.congelado){
+      const traer = await lwConfirmar({
+        titulo: 'La ficha del cliente dice otra cosa',
+        cuerpo: lwTextoDivergencia(d),
+        confirmar: 'Traer los datos de la ficha',
+        cancelar: 'Dejarlo como está',
+      });
+      if(traer){
+        // Del documento al formulario, campo a campo: los nombres del jsonb del
+        // documento y los del formulario son los mismos (cliente_*).
+        /* `domicilio` ya no está: el campo salió de la factura el 24-ago-2026
+           (encargo del owner). Se deja fuera del mapa a propósito y no se
+           inventa un destino — `porCampo[x.campo]` da undefined, el `if(el)` de
+           abajo lo salta, y esa diferencia simplemente no se puede traer. */
+        const porCampo = { nombre:'cliente_nombre', identidad:'cliente_documento',
+                           email:'cliente_email' };
+        let n = 0;
+        (d.diferencias || []).forEach(x => {
+          const el = document.querySelector(`[name="${porCampo[x.campo] || ''}"]`);
+          if(el){ el.value = x.ficha; n++; }
+        });
+        render();
+        toast(n + (n === 1 ? ' dato traído de la ficha · revisa y guarda'
+                           : ' datos traídos de la ficha · revisa y guarda'));
+      }
+    }
+  }
+}
+
+pintarLineas();
+render();
+</script>
+</body>
+</html>

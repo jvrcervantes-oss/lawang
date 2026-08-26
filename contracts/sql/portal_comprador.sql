@@ -35,7 +35,7 @@
 --     que auditar y ningún blob del jsonb viaja (el 97% de `datos` son firmas y
 --     anexos en base64 — nunca select(*)).
 --
---   · "Pagado" = MISMO criterio que /operaciones/ y unidades_estado: suma de
+--   · "Pagado" = MISMO criterio que /intranet/operaciones/ y unidades_estado: suma de
 --     facturas no anuladas y no proforma del contrato. El portal no inventa un
 --     segundo criterio de cobro; el reparto entre hitos se calcula al pintar.
 --

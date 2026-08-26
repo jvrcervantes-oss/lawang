@@ -1,5 +1,31 @@
 # 28-jul-2026: /panel/ renombrado a /intranet/. 301 para los marcadores del equipo.
 RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
+# ═══════════════════════════════════════════════════════════════════════════
+# 26-ago-2026 · LA INTRANET ENTERA BAJO /intranet/
+# ═══════════════════════════════════════════════════════════════════════════
+# Decisión del owner: «si operaciones o facturas son parte de la intranet, por
+# qué se entra desde /facturas/ y no desde /intranet/facturas/». Tiene razón por
+# dos motivos, y el segundo es el que aprieta:
+#   · la URL deja de mentir sobre qué es cada cosa;
+#   · y sobre todo, una herramienta interna dejaba de ocupar un nombre del
+#     espacio PÚBLICO. `lawangproperties.com/proyectos/` suena exactamente a
+#     página de marketing, y cada herramienta nueva competía con la web del
+#     cliente por su propia URL.
+#
+# NO se mueven, a propósito:
+#   · /portal/  — es la cara del CLIENTE. Un comprador no tiene por qué ver
+#     «intranet» en su barra, y hay enlaces ya enviados.
+#   · /entrar/  — es la puerta, y desde ahí se elige equipo o cliente.
+#   · /contracts/assets/ — la casa común de la suite. Son 318 referencias con el
+#     sello `?v=` por hash en 20 páginas; moverlas es churn sin ganancia y el
+#     riesgo es el fallo más caro que ha tenido esta suite (un hash que no
+#     corresponde y el CDN sirviendo una versión vieja 7 días).
+#
+# 301 permanentes y no temporales: el mismo criterio que /panel/ y /unidades/ de
+# aquí arriba. Un marcador del equipo o un enlace suelto en un correo de hace
+# meses siguen llegando, y no hay que acordarse de retirar nada.
+RedirectMatch 301 ^/(facturas|operaciones|compradores|proyectos|obra|documentacion|usuarios|vencimientos|creatividades|dossier)(/.*)?$ /intranet/$1$2
+
 # 11-ago-2026: /unidades/ renombrado a /proyectos/ (mismo criterio de arriba).
 RedirectMatch 301 ^/unidades(/.*)?$ /proyectos$1
 # 6-ago-2026: puerta unica /entrar/ (elige equipo o cliente). 301 para lo que

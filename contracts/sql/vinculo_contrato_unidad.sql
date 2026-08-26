@@ -100,7 +100,7 @@ create trigger trg_libera_unidad
 
 -- ---- lo que se cobra de cada unidad, calculado, no guardado ----------------
 -- Las proformas y las anuladas NO suman: una proforma no es un cobro y una
--- anulada dejó de serlo. Mismo criterio que /operaciones/.
+-- anulada dejó de serlo. Mismo criterio que /intranet/operaciones/.
 create or replace view public.unidades_estado as
 select u.*,
        c.numero          as contrato_numero,
