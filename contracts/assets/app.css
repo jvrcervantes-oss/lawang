@@ -140,14 +140,6 @@
   .field .pista{ margin:-2px 0 6px; font-size:11.5px; line-height:1.45;
                  letter-spacing:0; text-transform:none; font-weight:400;
                  color:var(--muted); }
-  /* Un dato que pone la base y nadie escribe: se lee, no se rellena. Mismo
-     tratamiento que en Facturas — sin borde de caja, sin fondo de campo y
-     fuera del recorrido del tabulador. */
-  .field input.dato-fijo{ border:0; background:none; padding-left:0;
-                          color:var(--muted); font-variant-numeric:tabular-nums;
-                          cursor:default; }
-  .field input.dato-fijo:not(:placeholder-shown),
-  .field input.dato-fijo[value]:not([value=""]){ color:var(--ink,#22282A); font-weight:600; }
   .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
     padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--field-bg);
     transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
@@ -157,6 +149,20 @@
   /* nº de contrato es readonly (lo asigna la BD): se ve como campo asignado, no editable */
   .field input[readonly]{ background:rgba(190,179,165,.14); color:var(--muted); cursor:default; }
   .field input[readonly]:hover{ border-color:var(--line); }
+
+  /* 🔴 VA DESPUÉS DE `[readonly]` A PROPÓSITO (27-ago-2026). Las dos reglas
+     tienen la MISMA especificidad —(0,2,1)— así que la que gana es la última, y
+     con este bloque escrito más arriba el `background:none` no se aplicaba: el
+     campo seguía pintando su caja de rellenar. Se ve en la pantalla y no en el
+     diff, porque el CSS era correcto de leer.
+     Qué distingue a los dos: `[readonly]` es un campo que ahora no se toca;
+     `dato-fijo` NO es un campo — es un dato que pone la base al guardar. Uno se
+     atenúa, el otro deja de parecer un hueco. Mismo tratamiento que en
+     Facturas, para que la suite no tenga dos formas de decir lo mismo. */
+  .field input.dato-fijo{ border:0; background:none; padding-left:0;
+                          color:var(--muted); font-variant-numeric:tabular-nums;
+                          cursor:default; }
+  .field input.dato-fijo:not([value=""]){ color:var(--ink,#22282A); font-weight:600; }
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   @media (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
 
