@@ -386,6 +386,13 @@ html.v3 input[type="search"]:focus{
   html.v3 .sui-tabla tbody,
   html.v3 .sui-tabla tr,
   html.v3 .sui-tabla td{ display:block; width:auto; }
+  /* `min-width` A CERO, y esta es la linea que faltaba. Varias herramientas le
+     ponen un ancho minimo a su tabla para que las columnas no se aplasten en
+     escritorio —Facturas, 720 px— y ese minimo sobrevive a `display:block`: la
+     tabla seguia midiendo 720 dentro de una pantalla de 344 y habia que
+     arrastrar de lado igual que antes. Cuando ya no hay columnas, un ancho
+     minimo pensado para columnas no significa nada. */
+  html.v3 .sui-tabla{ min-width:0 !important; }
   html.v3 .sui-tabla thead{ display:none; }        /* su sitio pasa a estar en cada celda */
   html.v3 .sui-tabla-caja{ overflow-x:visible; }   /* ya no hay nada que desplazar de lado */
 
