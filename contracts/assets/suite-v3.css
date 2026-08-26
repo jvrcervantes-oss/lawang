@@ -323,6 +323,11 @@ html.v3 .v3-pager .cuenta{
   html.v3 .v3-pager .cuenta{ margin-left:0; width:100%; order:-1; padding-bottom:6px; }
 }
 
+/* Fila fuera de la página actual. Clase propia y no `hidden` ni `style`: las
+   herramientas usan esas dos cosas para su propio filtrado. */
+html.v3 tr.v3-fuera{ display:none !important; }
+html.v3 .v3-pager-caja{ margin-top:-4px; }
+
 /* ─── EL BUSCADOR, UNO SOLO EN TODA LA SUITE ─────────────────────────────────
    Petición del owner (26-ago-2026): «donde haya buscadores, el mismo estilo que
    la v3 de la intranet». El de la paleta ⌘K es más generoso —texto más grande,

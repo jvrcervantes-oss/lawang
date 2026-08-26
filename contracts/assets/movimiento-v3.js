@@ -645,6 +645,87 @@ function cablearPaginador(raiz, alIr){
   });
 }
 
+
+/* ─── PAGINACIÓN AUTOMÁTICA DE TABLAS ────────────────────────────────────────
+   «Termina la suite», 26-ago-2026. Operaciones y Facturas tienen su paginador
+   escrito a mano porque además se rediseñaron enteras. Las otras nueve no, y
+   varias enseñan listas igual de largas: Compradores, Proyectos, Documentación,
+   Vencimientos, Usuarios.
+
+   La alternativa era entrar en las nueve y tocar su función de pintado, cada
+   una con su forma. En vez de eso esto trabaja sobre lo YA PINTADO: cualquier
+   `table.sui-tabla` con más filas de la cuenta se pagina sola, con el mismo
+   control que las otras dos. Una herramienta no se entera de que existe.
+
+   Reglas para no romper nada:
+     · solo con la v3 encendida — sin `?v3=1` este fichero ni llega aquí;
+     · a partir de 30 filas. Por debajo no hay problema que resolver, y un
+       paginador de dos páginas es peor que ninguno;
+     · las filas se ocultan con una CLASE propia, nunca con `hidden` ni tocando
+       `style`: las herramientas usan las dos cosas para su propio filtrado y
+       pisárselas dejaría filas escondidas para siempre;
+     · si la herramienta repinta la tabla —filtrar, recargar— se vuelve a
+       empezar por la página 1, que es lo que espera cualquiera después de
+       filtrar. */
+const TABLA_UMBRAL = 30, TABLA_POR_PAGINA = 25;
+
+function paginaTabla(tabla){
+  const cuerpo = tabla.tBodies && tabla.tBodies[0];
+  if(!cuerpo) return;
+  const filas = [...cuerpo.rows].filter(f => !f.classList.contains('v3-fuera'));
+  const total = [...cuerpo.rows].length;
+  /* Una tabla que aún dice «Cargando…» no se pagina: tiene una fila y no es
+     una fila de datos. */
+  if(total <= TABLA_UMBRAL){ limpiaPaginado(tabla); return; }
+
+  let est = tabla.__pag3;
+  if(!est){ est = tabla.__pag3 = { pagina:1, marca:0 }; }
+  if(est.marca !== total){ est.marca = total; est.pagina = 1; }   // repintada: a la 1
+
+  const paginas = Math.max(1, Math.ceil(total / TABLA_POR_PAGINA));
+  if(est.pagina > paginas) est.pagina = paginas;
+  const desde = (est.pagina - 1) * TABLA_POR_PAGINA, hasta = desde + TABLA_POR_PAGINA;
+  [...cuerpo.rows].forEach((f, i) => f.classList.toggle('v3-fuera', i < desde || i >= hasta));
+
+  let nav = tabla.__nav3;
+  if(!nav || !nav.isConnected){
+    nav = tabla.__nav3 = document.createElement('div');
+    nav.className = 'v3-pager-caja';
+    /* Después de la CAJA de la tabla, no dentro: `.sui-tabla-caja` suele tener
+       `overflow-x:auto` y el paginador acabaría dentro del desplazamiento
+       horizontal, o sea escondido a la derecha en cuanto la tabla es ancha. */
+    const caja = tabla.closest('.sui-tabla-caja') || tabla;
+    caja.insertAdjacentElement('afterend', nav);
+  }
+  nav.innerHTML = paginador({ total, pagina:est.pagina, porPagina:TABLA_POR_PAGINA });
+  cablearPaginador(nav, n => {
+    est.pagina = n; paginaTabla(tabla);
+    const caja = tabla.closest('.sui-tabla-caja') || tabla;
+    caja.scrollIntoView({ block:'start', behavior: MENOS_MOV.matches ? 'auto' : 'smooth' });
+  });
+}
+function limpiaPaginado(tabla){
+  if(tabla.__nav3){ tabla.__nav3.remove(); tabla.__nav3 = null; }
+  const c = tabla.tBodies && tabla.tBodies[0];
+  if(c) [...c.rows].forEach(f => f.classList.remove('v3-fuera'));
+  tabla.__pag3 = null;
+}
+function vigilaTablas(){
+  document.querySelectorAll('table.sui-tabla').forEach(t => {
+    if(t.__obs3) { paginaTabla(t); return; }
+    t.__obs3 = true;
+    const cuerpo = t.tBodies && t.tBodies[0];
+    if(!cuerpo) return;
+    /* El observador mira el CUERPO, no la tabla entera: así el `class` que
+       ponemos a cada fila no se vuelve a disparar a sí mismo. */
+    new MutationObserver(() => {
+      clearTimeout(t.__t3);
+      t.__t3 = setTimeout(() => paginaTabla(t), 40);
+    }).observe(cuerpo, { childList:true });
+    paginaTabla(t);
+  });
+}
+
 /* ─── 9 · ARRANQUE ───────────────────────────────────────────────────────────
    Se engancha a lo que hay AHORA y a lo que aparezca después: `topbar.js`
    monta el menú lateral y el panel de cuenta cuando le llega la ficha del
@@ -669,6 +750,7 @@ function escanea(n){
 }
 function engancha(){
   escanea(document.body);
+  vigilaTablas();
   const barra=document.querySelector('.lw-topbar');
   if(barra) bordeDeScroll(barra);
 }
