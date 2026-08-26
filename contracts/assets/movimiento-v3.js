@@ -334,16 +334,29 @@ function cajon(el, o={}){
     if(!vivo && !abierto && Math.abs(f[eje].v-cerrado)<1){
       /* Cerrado del todo: se devuelve el mando al CSS. Si se dejara el
          transform en línea con un valor en píxeles, al girar el móvil (el
-         cajón pasa de lateral a inferior) ese número ya no significaría nada. */
-      el.style.transform=''; el.style.willChange='';
-      if(velo){ velo.style.opacity=''; velo.style.pointerEvents=''; }
-      medido=false;
+         cajón pasa de lateral a inferior) ese número ya no significaría nada.
+         Y si se quedara a medias —rAF congelado— la siguiente apertura
+         arrancaría desde un valor viejo: es justo el fallo de la capa opaca. */
+      suelta();
     }
     return vivo;
   }};
 
   function abre(){
-    if(!medido && !mide()) return;
+    /* ⚠️ RED DE SEGURIDAD. Owner, 26-ago-2026: «cuando abro el menú en el móvil
+       aparece una capa opaca que no me deja seleccionar ningún botón».
+       Reproducido a 344 px: el velo se pone opaco (lo hace el CSS de la propia
+       herramienta con la clase `on`) pero el panel se queda en
+       `translate3d(0, 698px)`, o sea fuera de pantalla. Resultado: una lámina
+       que tapa todo y no se puede ni cerrar.
+       Pasa cuando nuestro transform en línea sobrevive a un cierre que no llegó
+       a terminar —el navegador congela el rAF en una pestaña en segundo plano,
+       y el móvil lo hace constantemente— y la siguiente apertura arranca desde
+       un valor viejo.
+       La regla ahora es: si no podemos conducirlo, NO lo conducimos y le
+       devolvemos el mando al CSS, que sabe abrirlo. Un gesto bonito que a veces
+       deja la pantalla bloqueada es peor que ningún gesto. */
+    if(!medido && !mide()){ suelta(); return; }
     el.style.willChange='transform';
     if(!abierto) f[eje].fija(cerrado);
     /* PINTAR AQUÍ, no en el primer fotograma. Entre que la herramienta pone la
@@ -355,6 +368,28 @@ function cajon(el, o={}){
     abierto=true;
     f[eje].a(0,{amort:.8,resp:.3});          // valores de Apple para cajón/hoja
     mueve(trabajo); sensacion('roce');
+    /* VIGILANTE. Si medio segundo después sigue sin estar donde debería —rAF
+       congelado, una excepción, lo que sea— se suelta y manda el CSS. Medio
+       segundo es de sobra: la animación entera dura 0,3 s. */
+    clearTimeout(el.__perro3);
+    el.__perro3 = setTimeout(() => {
+      if(!abierto) return;
+      const fuera = Math.abs(f[eje].v) > Math.abs(cerrado) * 0.25;
+      if(fuera){
+        console.warn('v3: el cajón no llegó a abrirse; se le devuelve el mando al CSS');
+        suelta();
+      }
+    }, 500);
+  }
+
+  /* Devuelve el mando al CSS: fuera nuestro transform y fuera el velo a medias.
+     Con la clase `abierto`/`on` puesta, la hoja de la herramienta lo abre igual
+     —sin muelle, pero abierto y usable, que es lo que importa. */
+  function suelta(){
+    clearTimeout(el.__perro3);
+    el.style.transform=''; el.style.willChange='';
+    if(velo){ velo.style.opacity=''; velo.style.pointerEvents=''; }
+    medido=false;
   }
   function cierra(vel){
     if(!medido) return;
