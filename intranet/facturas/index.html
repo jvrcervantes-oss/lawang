@@ -161,6 +161,12 @@
      justo lo que informa de que ahí se puede pulsar. */
   fieldset > legend::before{ content:''; width:15px; height:15px; flex:none;
             display:grid; place-items:center; border-radius:5px;
+            /* `border-box`: la caja de las plegables lleva un borde de 1 px y sin
+               esto medía 17 por fuera — los rótulos quedaban a 138 y a 140, dos
+               píxeles de desalineación que es exactamente lo que se venía a
+               arreglar. Un borde que empuja el contenido es la forma más tonta
+               de desalinear una columna. */
+            box-sizing:border-box;
             background:linear-gradient(var(--dl),var(--dl)) center/3px 11px no-repeat; }
   /* El primer campo de una tarjeta no necesita el margen superior de `label`:
      ya lo da el relleno de la tarjeta. */
