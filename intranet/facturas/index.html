@@ -294,8 +294,8 @@
      `height:auto` no se puede; con `0fr↔1fr` sí y sin medir nada en JS. */
   .fs-cuerpo{ display:grid; grid-template-rows:1fr;
               transition:grid-template-rows .3s cubic-bezier(.32,.72,0,1), opacity .2s ease; }
-  .fs-cuerpo > *{ min-height:0; }
-  fieldset.plegado > .fs-cuerpo{ grid-template-rows:0fr; opacity:0; overflow:hidden; visibility:hidden; }
+  .fs-cuerpo > .fs-dentro{ min-height:0; overflow:hidden; }
+  fieldset.plegado > .fs-cuerpo{ grid-template-rows:0fr; opacity:0; }
   fieldset.plegado{ padding-bottom:13px; }
   /* §14: sin movimiento el estado sigue siendo legible; solo deja de viajar. */
   @media (prefers-reduced-motion: reduce){ .fs-caret, .fs-cuerpo{ transition:none; } }
@@ -1361,9 +1361,15 @@ function montarPlegables(){
   document.querySelectorAll('fieldset[data-plegable]').forEach(fs => {
     const leg = fs.querySelector('legend'); if(!leg || fs.dataset.montado) return;
     fs.dataset.montado = '1';
-    const cuerpo = document.createElement('div');
-    cuerpo.className = 'fs-cuerpo';
-    while(leg.nextSibling) cuerpo.appendChild(leg.nextSibling);
+    /* DOS divs, no uno. El truco `grid-template-rows:0fr → 1fr` solo colapsa la
+       fila EXPLÍCITA: con varios hijos, el resto caen en filas implícitas
+       `auto` que no se encogen, y la sección plegada se quedaba como una caja
+       vacía del mismo alto (cazado en producción, 26-ago). Así que la rejilla
+       tiene exactamente un hijo —`.fs-dentro`— y ahí dentro va todo lo demás. */
+    const cuerpo = document.createElement('div'); cuerpo.className = 'fs-cuerpo';
+    const dentro = document.createElement('div'); dentro.className = 'fs-dentro';
+    while(leg.nextSibling) dentro.appendChild(leg.nextSibling);
+    cuerpo.appendChild(dentro);
     fs.appendChild(cuerpo);
     const res = document.createElement('span'); res.className = 'fs-resumen';
     const car = document.createElement('i');   car.className = 'fs-caret'; car.setAttribute('aria-hidden','true');
@@ -1384,7 +1390,7 @@ function repasaPlegables(){
   document.querySelectorAll('fieldset[data-plegable]').forEach(fs => {
     if(!fs.dataset.forzado){
       /* Completa = todos sus campos con valor. Un hueco mantiene abierto. */
-      const campos = [...fs.querySelectorAll('.fs-cuerpo input, .fs-cuerpo select')]
+      const campos = [...fs.querySelectorAll('.fs-dentro input, .fs-dentro select')]
         .filter(el => !el.closest('[hidden]') && el.type !== 'hidden');
       const completa = campos.length > 0 && campos.every(el => String(el.value || '').trim());
       fs.classList.toggle('plegado', completa);
