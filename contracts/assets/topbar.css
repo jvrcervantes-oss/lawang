@@ -534,6 +534,18 @@ body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1)
    y una hoja a pantalla casi completa se lee y se toca de verdad. */
 @media (max-width:860px){
   body.con-rail, body.rail-abierto{ padding-left:0; }
+  /* 🔴 Y EL MARGEN NEGATIVO DE LA BARRA TAMBIÉN SE VA (26-ago-2026).
+     Ese `margin-left:-56px` de arriba existe para CANCELAR el `padding-left`
+     que el riel le mete al `body` en escritorio, y así la barra cae borde a
+     borde. Aquí el padding ya es 0 — pero el margen seguía puesto, así que la
+     barra entera se iba 56 px hacia la IZQUIERDA, fuera de la pantalla.
+     Lo que se perdía por ese lado era su primer hijo: el botón ☰ del menú, la
+     ÚNICA puerta al resto de la suite en móvil. Medido en producción antes de
+     tocar nada: el botón estaba en x=-46 y `elementFromPoint` sobre su centro
+     devolvía `null` — no es que se viera mal, es que no estaba en la pantalla.
+     Un `padding` a 0 sin su `margin` a 0 es medio arreglo, y esta es la mitad
+     que faltaba desde que existe el riel. */
+  body.con-rail > header, body.rail-abierto > header{ margin-left:0; }
   .lw-rail-movil{ display:inline-flex; align-items:center; justify-content:center;
     width:38px; height:38px; flex:none; border:1px solid var(--linea,#E4DCCB);
     border-radius:10px; background:var(--sup-1,#fff); color:var(--texto-2,#4A5052);
