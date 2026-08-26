@@ -136,7 +136,19 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 *::-webkit-scrollbar-corner{ background:transparent; }
 
 /* ── esqueleto de página ────────────────────────────────────────────────── */
-.sui-stage{ height:100%; overflow:auto; padding-top:var(--tbh,64px); background:var(--sup-0); }
+/* 🔴 EL `padding-top` DEJABA SITIO A UNA BARRA QUE NO ES FIJA (26-ago-2026).
+   `.lw-topbar` es `position:static` en las siete herramientas —nunca se ha
+   puesto fija en ninguna, comprobado en topbar.css y en las siete páginas—, así
+   que ya ocupa sus 64 px en el flujo. Reservárselos otra vez aquí era una banda
+   de 64 px de nada justo debajo de la barra, en las siete, todos los días.
+   Y encima el `height:100%` se medía SIN descontar la barra, así que el
+   documento salía 64 px más alto que la ventana: la página entera tenía un
+   desplazamiento fantasma además del suyo propio. Medido en Facturas: 843 px de
+   documento en una ventana de 779. Con esto, 779 justos y cero scroll de
+   página.
+   Se arregla aquí y no en cada herramienta porque es UNA línea la que lo causa
+   en las siete — arreglarlo en una sería crear la divergencia. */
+.sui-stage{ height:calc(100% - var(--tbh,64px)); overflow:auto; background:var(--sup-0); }
 /* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el
    relleno del cuerpo es `22px 26px 30px` en la mayoria de pantallas (24 en
    Contratos y Documentacion, 26/34 en el panel, que lo sobrescribe). */
