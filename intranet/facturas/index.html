@@ -76,14 +76,21 @@
 
   /* ---------- chrome ---------- */
   /* Solo posicionamiento: el aspecto lo pone /contracts/assets/topbar.css,
-     compartido con Contratos y Dossier. Fixed porque .stage compensa con
-     padding-top:var(--tbh). */
-  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+     compartido con Contratos y Dossier.
+     🔴 AQUÍ HABÍA UNA REGLA MUERTA (26-ago-2026). Decía
+     `.topbar{ position:fixed }` «porque .stage compensa con padding-top», pero
+     el header que inyecta `topbar.js` lleva la clase **`lw-topbar`**, no
+     `topbar`: el selector no casa con nada y ese `fixed` no se aplicó nunca.
+     La barra es `static` y ocupa sus 64 px en el flujo — medido, no supuesto.
+     Lo que sí se aplicaba era la compensación, así que el documento empezaba
+     58 px más abajo de lo debido y la página arrastraba un desplazamiento
+     fantasma de 64. Se quita la regla muerta y con ella su compensación.
+     Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
 
   /* `360px 1fr` con `gap:18px` y relleno `0 26px 22px`: los valores de 2a. Antes era
      un rango hasta 440 y las dos columnas pegadas al borde de la ventana. */
-  .stage{ display:grid; grid-template-columns:360px 1fr; gap:18px; height:100%;
-          padding:calc(var(--tbh) + 18px) 26px 22px; }
+  .stage{ display:grid; grid-template-columns:360px 1fr; gap:18px;
+          height:calc(100% - var(--tbh)); padding:18px 26px 22px; }
   /* ⚠️ Esta media query va ANTES de que se definan .pane-preview (línea ~84) y
      .pv-scroll, así que a igualdad de especificidad gana la regla de después:
      el `display:none` que llevaba aquí NO se aplicaba y nunca se aplicó.
@@ -96,7 +103,7 @@
      mockup (que pide 13): por debajo de 16px, Safari en iOS hace ZOOM al enfocar un
      input y descuadra la pantalla entera. En escritorio no aplica y se respeta el 13. */
   @media (max-width:900px){
-    .stage{ grid-template-columns:1fr; padding:calc(var(--tbh) + 12px) 14px 18px; }
+    .stage{ grid-template-columns:1fr; padding:12px 14px 18px; }
     input,select,textarea{ font-size:16px; }
   }
 
