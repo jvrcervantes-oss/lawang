@@ -1,0 +1,11 @@
+# El maquetador de dossiers es `builder.html`, no `index.html`, porque en esta
+# carpeta conviven ademas las plantillas .dossier.json, los renders y sus tools.
+# Sin esto `/intranet/dossier/` da 403 y hay que enlazarla con extension, que es
+# lo unico de la suite que sigue enseñando un `.html` en la barra — la norma de
+# agencia de URLs limpias (contexto/patrones_tecnicos.md) dice lo contrario.
+#
+# `DirectoryIndex`, no un `RewriteRule`: es resolucion INTERNA, no una
+# redireccion. Un 301 convertiria un POST en GET, y esto es una app con
+# formularios. Mismo criterio y misma nota que `contracts/.htaccess`.
+# builder.html sigue respondiendo por su nombre completo: ningun enlace se rompe.
+DirectoryIndex builder.html index.html
