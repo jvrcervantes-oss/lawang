@@ -346,6 +346,23 @@
     table.docs td.acc .secundaria:focus-within,
     table.docs td.acc .secundaria:focus-visible{ opacity:1; }
   }
+  /* Estrecho: las tres columnas de ancho fijo sumaban 488 px y dejaban 99 al
+     nombre del cliente —volver al problema de partida por otra puerta—, y la
+     tabla se salía 16 px de su caja. Se encogen las fijas y las acciones dejan
+     de ir en una sola línea: la fila crece un poco, que es mucho mejor que un
+     desplazamiento lateral para llegar a «Anular».
+     En táctil no hay hover, así que ahí los botones están siempre visibles y
+     necesitan sitio de verdad. */
+  @media (max-width:900px){
+    table.docs td{ padding:9px 8px; }
+    table.docs td.doc{ width:104px; }
+    table.docs td.dinero{ width:120px; }
+    table.docs td.acc{ width:96px; white-space:normal; }
+    table.docs td.acc .btn, table.docs td.acc .sui-tag{ margin:1px 0; }
+  }
+  /* Red de seguridad: si algún día una celda no cabe, se desplaza DENTRO de su
+     caja y nunca empuja la página entera de lado. */
+  #listBody{ overflow-x:auto; }
 
   /* ══ VISTA POR CONTRATO ═══════════════════════════════════════════════════
      La lista plana no puede contestar «¿de qué me falta cobrar?»: los papeles
