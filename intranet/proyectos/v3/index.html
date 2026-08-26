@@ -258,8 +258,12 @@ function pintar(){
         + '<span class="cuenta">' + g.length + (g.length === 1 ? ' unidad' : ' unidades')
         + ' · <b>' + libres + ' libre' + (libres === 1 ? '' : 's') + '</b>'
         + ' · ' + (g.length - libres) + ' vendida' + ((g.length - libres) === 1 ? '' : 's') + '</span></span>'
-      + '<span class="plata"><span class="n">' + esc(carteraTxt) + '</span>'
-        + '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small></span>'
+      /* Una carpeta sin unidades NO vale «0,00 EUR»: eso afirma una cartera de
+         cero euros, cuando lo cierto es que todavía no hay dato — y de paso se
+         inventa una moneda que nadie ha elegido. Un guion no miente. */
+      + '<span class="plata"><span class="n">' + (g.length ? esc(carteraTxt) : '—') + '</span>'
+        + (g.length ? '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small>' : '')
+        + '</span>'
       + '<span class="barraP"><i style="width:' + pct.toFixed(1) + '%"></i></span></summary>'
       + (g.length ? g.map(filaUnidad).join('')
                   : '<div class="vacio" style="padding:14px 18px">Sin unidades todavía. Cárgalas con «Importar CSV» o «+ Unidad».</div>')
