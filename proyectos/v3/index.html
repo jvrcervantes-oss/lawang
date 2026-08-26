@@ -446,7 +446,19 @@ async function importarCsvUI(file){
   /* El resumen ANTES de la tabla, y con los errores contados: lo que se decide
      aquí es «¿confirmo esto?», y eso se decide con cuatro números, no leyendo
      500 filas. La tabla queda debajo para el que quiera comprobar. */
+  /* La previsualización tiene que enseñar lo que se va a ESCRIBIR, no una sola
+     columna. Un CSV de Notion trae `Land` y `Villa` (suelo y construcción) y
+     ninguna columna de total: mirando solo `precio` la fila salía con un «—»
+     como si no trajera importes, cuando trae dos. Se enseña el total si viene, y
+     si no sus partes. */
   const fmt = n => n == null ? '—' : esc(lwFormatoImporte(n, 'EUR'));
+  const importeDe = f => {
+    if(f.precio != null) return fmt(f.precio);
+    const partes = [];
+    if(f.precio_suelo != null) partes.push('suelo ' + fmt(f.precio_suelo));
+    if(f.precio_construccion != null) partes.push('obra ' + fmt(f.precio_construccion));
+    return partes.length ? partes.join(' + ') : '—';
+  };
   Cajon.abre('Importar CSV', file.name,
     '<div class="bloque"><div class="sui-resumen">'
       + '<span><b>' + r.analizadas.length + '</b> filas leídas</span>'
@@ -466,7 +478,7 @@ async function importarCsvUI(file){
     + '</tr></thead><tbody>'
     + r.analizadas.map(f => '<tr>'
         + '<td>' + f.fila + '</td><td class="clave">' + esc(f.codigo || '—') + '</td>'
-        + '<td>' + esc(f.proyecto || '—') + '</td><td class="num">' + fmt(f.precio) + '</td>'
+        + '<td>' + esc(f.proyecto || '—') + '</td><td class="num">' + importeDe(f) + '</td>'
         + '<td>' + (f.errores.length
             ? '<span style="color:#9E2F26">' + esc(f.errores.join('; ')) + '</span>'
             : (f.esAlta ? 'Alta nueva' : 'Actualiza')) + '</td></tr>').join('')
