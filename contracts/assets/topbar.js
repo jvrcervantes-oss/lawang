@@ -430,9 +430,24 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
 
     var guardado = null;
     try { guardado = localStorage.getItem(LLAVE); } catch (e) {}
-    // El hub abre por defecto; dentro de una herramienta, plegado. Lo que el
-    // usuario haya elegido a mano manda sobre las dos cosas.
-    var abierto = guardado === null ? enHub : guardado === '1';
+    /* ANCHO ESTRECHO: LA HOJA SIEMPRE ARRANCA CERRADA — 26-ago-2026
+       `abierto` significa DOS cosas distintas segun el ancho, y esa era la
+       averia. En escritorio el riel es una columna y `abierto` quiere decir
+       «desplegada a 208px»: una preferencia, y recordarla esta bien. En movil
+       el riel es una HOJA MODAL que sube desde abajo y tapa la pagina: ahi
+       `abierto` no es una preferencia, es un estado de la sesion.
+
+       Al guardarse las dos en la misma llave, bastaba con desplegar la columna
+       una vez en el ordenador para que el movil abriera TODAS las paginas con
+       la hoja puesta. Medido en 344x756: cubria de y=255 al suelo —501px de
+       756— y ademas el velo no se encendia (se crea despues de esta linea),
+       asi que no habia ni sombra que tocar para quitarla. Desde fuera eso es
+       exactamente «una capa opaca que no deja clicar detras», y no se iba
+       recargando: solo desaparecia si por casualidad elegias una herramienta.
+
+       Un modal no se restaura de almacenamiento. Nunca. */
+    var esHoja = function () { return window.innerWidth <= 860; };   // el mismo corte que topbar.css
+    var abierto = esHoja() ? false : (guardado === null ? enHub : guardado === '1');
 
     var rail = document.createElement('nav');
     rail.id = 'lwRail';
@@ -543,7 +558,9 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
       document.body.classList.toggle('rail-abierto', ab);
       velo.classList.toggle('on', ab);
       btn.setAttribute('aria-expanded', String(ab));
-      try { localStorage.setItem(LLAVE, ab ? '1' : '0'); } catch (e) {}
+      // Solo se recuerda la preferencia de la COLUMNA. Abrir la hoja del movil
+      // no es una eleccion que deba sobrevivir a la siguiente carga.
+      if (!esHoja()) { try { localStorage.setItem(LLAVE, ab ? '1' : '0'); } catch (e) {} }
     }
     btn.addEventListener('click', function () { poner(!rail.classList.contains('abierto')); });
     btnMovil.addEventListener('click', function () { poner(!rail.classList.contains('abierto')); });
@@ -551,8 +568,18 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     // Elegir herramienta cierra la hoja: en movil se queda encima del contenido.
     rail.addEventListener('click', function (e) { if (e.target.closest('.lw-rail-i')) poner(false); });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && rail.classList.contains('abierto') && window.innerWidth <= 860) poner(false);
+      if (e.key === 'Escape' && rail.classList.contains('abierto') && esHoja()) poner(false);
     });
+    /* Girar el movil o desplegar un Fold cruza el corte de 860px en caliente.
+       Cruzar hacia el lado estrecho con la columna desplegada la convierte en
+       una hoja puesta encima de la pagina sin que nadie la haya abierto: el
+       mismo sintoma, por otro camino. */
+    try {
+      var estrecho = window.matchMedia('(max-width:860px)');
+      var alCruzar = function (e) { if (e.matches && rail.classList.contains('abierto')) poner(false); };
+      if (estrecho.addEventListener) estrecho.addEventListener('change', alCruzar);
+      else if (estrecho.addListener) estrecho.addListener(alCruzar);
+    } catch (e) {}
   }
 
   // Se cuelga de la misma promesa que el resto de la barra: sin ficha no se
