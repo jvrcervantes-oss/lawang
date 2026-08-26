@@ -266,11 +266,23 @@ table.sui-tabla th.asc .fl, table.sui-tabla th.desc .fl{ opacity:.75; }
 table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
 
 /* ── etiquetas de estado: color sólido, texto claro, AA sobre blanco ────── */
-.sui-tag{ display:inline-block; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+/* LA ETIQUETA DE LA SUITE — una geometría (26-ago-2026, LAW-90).
+   Había cuatro tamaños para lo mismo: 10px aquí, 10.5px en Compradores, 9.5px en
+   Usuarios y .63rem en el hub, cada uno con su tracking. `.tag` se atiende aquí
+   también: es el mismo control con otro nombre heredado. */
+.sui-tag, .tag{ display:inline-block; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
   border-radius:var(--r-p); padding:3px 9px; color:#fff; background:#5A6062; white-space:nowrap; }
-.sui-tag.ok{ background:#3F5230; } .sui-tag.espera{ background:#8C5E10; }
-.sui-tag.alerta{ background:#9E2F26; } .sui-tag.info{ background:#104C4F; }
-.sui-tag.gris{ background:#5A6062; }
+/* DOS VOCABULARIOS PARA LOS MISMOS ESTADOS (26-ago-2026, LAW-90).
+   La suite escribía `alerta` y `gris`; tres pantallas escribían `mal` y
+   `neutro` para exactamente lo mismo. Escribir el que no toca NO da error: deja
+   la etiqueta en el gris por defecto, en silencio, justo donde había que avisar.
+   Se aceptan los dos nombres — el que se escriba es el que se ve. Mismo criterio
+   que `.primary` / `.primario` en el botón. */
+.sui-tag.ok, .tag.ok{ background:#3F5230; }
+.sui-tag.espera, .tag.espera{ background:#8C5E10; }
+.sui-tag.alerta, .sui-tag.mal, .tag.alerta, .tag.mal{ background:#9E2F26; }
+.sui-tag.info, .tag.info{ background:#104C4F; }
+.sui-tag.gris, .sui-tag.neutro, .tag.gris, .tag.neutro{ background:#5A6062; }
 /* morado: solo para TIPO de documento (proforma), nunca para estado — si se
    reusa un tono de estado (gris/info/ok) la etiqueta de tipo se confunde con
    la de Emitida/Anulada, que es justo lo que se pidió separar (6-ago-2026). */

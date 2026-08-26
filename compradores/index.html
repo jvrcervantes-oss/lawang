@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=edafb007">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
@@ -69,8 +69,9 @@
   td{ padding:8px 8px 8px 0; border-top:1px solid var(--line); vertical-align:middle; }
 
   /* estado en color sólido (mismo criterio que Operaciones y Unidades): AA >4.5:1 */
-  .tag{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
-        border-radius:999px; padding:4px 10px; color:#fff; background:#5A6062; }
+  /* La etiqueta se define UNA vez, en `contracts/assets/suite.css`. Aquí había
+     una copia con 10,5px donde la compartida es 10 y con otro tracking:
+     la misma etiqueta cambiaba de tamaño según la pantalla. */
   .ok{     background:#3F5230; }
   .espera{ background:#8C5E10; }
   .mal{    background:#9E2F26; }

@@ -30,7 +30,7 @@
      él, y justo la que se abre primero. Se cuelga del evento `lw-ficha` que
      dispara el arranque de abajo. -->
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=edafb007">
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
@@ -232,8 +232,14 @@ td.flojo{ color:var(--ink-3); } td.num{ text-align:right; font-variant-numeric:t
 td.clave{ font-weight:600; font-variant-numeric:tabular-nums; }
 tr[data-ir]{ cursor:pointer; will-change:transform; }
 tr[data-ir]:hover td{ background:var(--sup-2); }
-.tag{ display:inline-block; font-size:.63rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
-      padding:3px 9px; border-radius:var(--pill); border:1px solid var(--line-fuerte); color:var(--ink-2); background:var(--sup-2); }
+/* ETIQUETA SUAVE — variante declarada, no una copia (26-ago-2026, LAW-90).
+   La geometría (tamaño, tracking, radio, caja) sale ya de la compartida de
+   `suite.css`; aquí había una cuarta copia con `.63rem` y su propio tracking.
+   Lo que SÍ es propio del hub y se queda: la INTENSIDAD. En un panel con una
+   fila de estados por herramienta, la pastilla sólida de la suite grita —
+   aquí el estado acompaña, no avisa. Mismo color, menos peso: fondo claro,
+   texto del color del estado y borde a juego. */
+.tag{ background:transparent; color:var(--texto-2); border:1px solid var(--line); }
 .tag.ok{ color:var(--bien); border-color:#C3CDAF; background:#F2F5EC; }
 .tag.info{ color:var(--dl); border-color:#AFC7C8; background:#EDF4F4; }
 .tag.alerta{ color:var(--mal); border-color:#E2B3AE; background:#FBF0EF; }

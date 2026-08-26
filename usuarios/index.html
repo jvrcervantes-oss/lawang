@@ -22,7 +22,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=02736dbd">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=edafb007">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -73,8 +73,9 @@
   /* 9,5px / .05em / 3px 8px: los valores del mockup 4d para la etiqueta de rol.
      Es mas pequena que la `.sui-tag` general (10px / .06em / 3px 9px) porque aqui
      van dos o tres seguidas en una linea de lista, no una sola en una celda. */
-  .tag{ display:inline-block; font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
-        border-radius:999px; padding:3px 8px; color:#fff; background:#5A6062; }
+  /* La etiqueta se define UNA vez, en `contracts/assets/suite.css`. Aquí había
+     una copia con 9,5px donde la compartida es 10 y con otro tracking:
+     la misma etiqueta cambiaba de tamaño según la pantalla. */
   .t-super{ background:#104C4F; } .t-admin{ background:#3F5230; } .t-off{ background:#9E2F26; }
 
   .herr{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; margin-top:6px; }
