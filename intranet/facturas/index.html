@@ -294,6 +294,84 @@
   body.modo-vista #btnSave, body.modo-vista #btnNueva{ display:none !important; }
   body.modo-vista .stage{ grid-template-columns:1fr; padding-top:0; }
   body.modo-vista .pane-preview{ display:flex !important; }
+
+  /* ══ LISTA COMPACTA (26-ago-2026) ═════════════════════════════════════════
+     La fila medía 137–194 px para una línea de datos: cabían cuatro documentos
+     en pantalla de 249. La causa no era el tamaño de letra, era el reparto:
+     `Cliente` —el texto más largo, dos nombres con «·» en medio— tenía 89 px,
+     la columna MÁS ESTRECHA de las ocho, mientras `Tipo`, que guarda uno de
+     tres valores fijos, tenía 111. Así que el nombre se partía en seis líneas y
+     las otras siete columnas se estiraban a esa altura.
+     De diez columnas a cuatro, en dos líneas: lo que identifica el documento,
+     de quién es, cuánto y qué se puede hacer con él. No se pierde ni un dato ni
+     un botón —emisor, autoría, «Ficha ≠», justificantes, anular y borrar siguen
+     todos—, cambian de sitio: lo secundario baja a la segunda línea, que es
+     donde se lee sin competir. §15: jerarquía por peso y tamaño, no por columna
+     propia. */
+  #listBody table.docs{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.docs td{ padding:9px 12px; border-bottom:1px solid var(--linea,#E4DCCB); vertical-align:middle; }
+  table.docs tr:last-child td{ border-bottom:0; }
+  table.docs tr:hover td{ background:var(--sup-2,#F7F3E9); }
+  table.docs tr{ cursor:pointer; }
+  /* El tipo lo dice el prefijo del número (PRO/FAC/REC). Repetirlo en una
+     píldora de color en cada fila son 249 píldoras de tres colores que no
+     añaden nada y se llevan la atención. Queda como filete de 3 px: se ve el
+     bloque de golpe al recorrer la lista y no pesa. */
+  table.docs td.doc{ width:132px; border-left:3px solid transparent; }
+  table.docs tr.t-factura  td.doc{ border-left-color:#3E6E8E; }
+  table.docs tr.t-proforma td.doc{ border-left-color:#6B4E9B; }
+  table.docs tr.t-recibi   td.doc{ border-left-color:#3F5230; }
+  table.docs td.dinero{ width:170px; text-align:right; }
+  /* 🔴 NO PONER `overflow:hidden` AQUÍ. La caja de «Reasignar autor» mide
+     290 px y es `position:absolute` dentro de su ranura (autoria.js): cualquier
+     antepasado que recorte se la come. Por eso la ranura vive en esta celda y
+     no en la segunda línea del cliente, que sí trunca. */
+  table.docs td.acc{ width:186px; text-align:right; white-space:nowrap; }
+  table.docs td.acc .autoria-slot .lw-autoria-abrir{ font-size:.72rem; }
+  table.docs .n1{ display:block; font-weight:600; font-size:.88rem; letter-spacing:-.01em;
+                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  table.docs td.doc .n1{ font-variant-numeric:tabular-nums; }
+  table.docs td.dinero .n1{ font-variant-numeric:tabular-nums; font-size:.95rem; }
+  table.docs .n2{ display:block; margin-top:2px; font-size:.74rem; color:var(--texto-2,#4A5052);
+                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  table.docs .n2 .sep{ opacity:.45; }
+  table.docs tr.anulada .n1, table.docs tr.anulada .n2{ text-decoration:line-through; opacity:.55; }
+  table.docs td.acc .btn{ padding:3px 8px; font-size:.74rem; }
+  /* Las acciones aparecen al pasar por encima; en un táctil no hay hover, así
+     que ahí se quedan siempre visibles. Nunca se ocultan las de una fila que
+     pide atención (justificante, ficha divergente): esas son el aviso. */
+  @media (hover:hover){
+    table.docs td.acc .secundaria{ opacity:0; transition:opacity .12s ease; }
+    table.docs tr:hover td.acc .secundaria,
+    table.docs td.acc .secundaria:focus-within,
+    table.docs td.acc .secundaria:focus-visible{ opacity:1; }
+  }
+
+  /* ══ VISTA POR CONTRATO ═══════════════════════════════════════════════════
+     La lista plana no puede contestar «¿de qué me falta cobrar?»: los papeles
+     de un mismo contrato están repartidos por toda ella y en orden de emisión.
+     Agrupados salen los 46 contratos que solo tienen proforma y los 24
+     facturados sin un recibí, que hoy no se ven desde ninguna pantalla.
+     ⚠️ Facturado y cobrado se comparan por IMPORTE, nunca como un sí/no: tener
+     un recibí no cierra un pago, y un recibí de 12.500 € contra una factura de
+     44.000 € es un cobro parcial que un ✔️ contaría como cerrado. */
+  .ctr{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB); border-radius:14px;
+        margin:0 0 10px; overflow:hidden; }
+  .ctr > summary{ list-style:none; cursor:pointer; display:grid;
+                  grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:center; padding:12px 14px; }
+  .ctr > summary::-webkit-details-marker{ display:none; }
+  .ctr .cnom{ font-weight:600; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ctr .csub{ display:block; margin-top:2px; font-size:.74rem; color:var(--texto-2,#4A5052);
+              overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ctr .cplata{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ctr .cplata .n{ font-weight:700; font-size:.95rem; }
+  .ctr .cplata small{ display:block; margin-top:2px; font-size:.72rem; color:var(--texto-2,#4A5052); }
+  .ctr .cbarra{ grid-column:1 / -1; height:5px; border-radius:999px; background:#EAE4D3; overflow:hidden; margin-top:2px; }
+  .ctr .cbarra i{ display:block; height:100%; border-radius:999px; background:var(--tg,#485B37); }
+  .ctr[data-alerta="proforma"]{ border-style:dashed; }
+  .ctr[data-alerta="sinrecibi"]{ border-color:#C08A2E; }
+  .ctr table.docs td.doc{ border-left-width:3px; }
+  .ctr table.docs{ border-top:1px solid var(--linea,#E4DCCB); }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -357,6 +435,13 @@
         <div class="sui-dens" id="lAnuladas">
           <button type="button" data-anul="no">Vigentes</button>
           <button type="button" data-anul="si">Con anuladas</button>
+        </div>
+        <!-- Misma pieza y mismo sitio que el conmutador de vista de Proyectos:
+             dos herramientas con el mismo control en dos formas distintas es la
+             divergencia de siempre con otro disfraz. -->
+        <div class="sui-dens" id="lVista">
+          <button type="button" data-lv="lista">Lista</button>
+          <button type="button" data-lv="contrato">Por contrato</button>
         </div>
       </div>
       <div class="sui-filtros" id="lTipos"></div>
@@ -1618,6 +1703,9 @@ function pantalla(cual, params){
 /* ---------- filtros del listado ---------- */
 const TIPOS_FILTRO = [['', 'Todos'], ['factura', 'Facturas'], ['proforma', 'Proformas'], ['recibi', 'Recibís']];
 let LTIPO = '', LANUL = false, LDOCS = null, LDOCS_EN_BASE = null;
+/* Dónde estás ahora, no una preferencia que deba sobrevivir a mañana: por eso
+   `sessionStorage`, igual que la vista de Proyectos. */
+let LVISTA = (() => { try{ return sessionStorage.getItem('lw_fact_vista') || 'lista'; }catch(_){ return 'lista'; } })();
 let DIVERGEN = new Map();   // id → diferencias con la ficha del cliente
 
 function pintarFiltrosListado(){
@@ -1628,6 +1716,8 @@ function pintarFiltrosListado(){
   }).join('');
   document.querySelectorAll('[data-anul]').forEach(b =>
     b.classList.toggle('on', (b.dataset.anul === 'si') === LANUL));
+  document.querySelectorAll('[data-lv]').forEach(b =>
+    b.classList.toggle('on', b.dataset.lv === LVISTA));
 }
 
 /* Lo que se ve, en UNA función: la usan la tabla y el resumen, así que la cifra
@@ -1721,6 +1811,91 @@ function PAGINADOR(){
   if(!_PAG){ _PAG = lwPaginador('#listBody'); _PAG.alCambiar(pintarListado); }
   return _PAG;
 }
+/* ---------- vista por contrato ----------
+   La lista plana no puede contestar «¿de qué me falta cobrar?»: los papeles de
+   un contrato están repartidos por toda ella y en orden de emisión. Agrupados
+   salen los 46 contratos que solo tienen proforma y los 24 facturados sin un
+   recibí — hoy eso no se ve desde ninguna pantalla de la suite.
+
+   🔴 SE COMPARA POR IMPORTE, NUNCA COMO UN SÍ/NO. Tener un recibí no cierra un
+   pago: un recibí de 12.500 € contra una factura de 44.000 € es un cobro
+   parcial, y un ✔️ lo contaría como cerrado. Es la misma regla que ya rige en
+   Operaciones y en el portal.
+
+   Un documento ANULADO se sigue enseñando (si el filtro los pide) pero NO suma:
+   anular es exactamente decir que ese importe no cuenta. */
+function agrupaPorContrato(docs){
+  const g = new Map();
+  docs.forEach(f => {
+    const k = f.contrato_id ? (f.contrato_numero || f.contrato_id) : '\u0000sin';
+    if(!g.has(k)) g.set(k, { clave:k, numero:f.contrato_numero || null, sinContrato:!f.contrato_id,
+                             cliente:f.cliente_nombre, proyecto:f.proyecto_nombre, docs:[] });
+    g.get(k).docs.push(f);
+  });
+  const suma = (l, t) => lwSumaPorMoneda(l.filter(f => f.tipo === t && !f.anulada),
+                                          f => Number(f.total) || 0, f => f.moneda || 'EUR');
+  return [...g.values()].map(c => {
+    c.facturado = suma(c.docs, 'factura');
+    c.cobrado   = suma(c.docs, 'recibi');
+    c.proforma  = suma(c.docs, 'proforma');
+    const monedas = new Set([...Object.keys(c.facturado), ...Object.keys(c.cobrado)]);
+    /* El porcentaje SOLO si hay una moneda. Con dos, dividir mezcla divisas y
+       da una cifra que no existe — el fallo que costó el arreglo de Proyectos
+       esta misma mañana. Sin porcentaje se enseñan las sumas y ya. */
+    c.unaMoneda = monedas.size === 1 ? [...monedas][0] : null;
+    const F = c.unaMoneda ? (c.facturado[c.unaMoneda] || 0) : 0;
+    const C = c.unaMoneda ? (c.cobrado[c.unaMoneda]   || 0) : 0;
+    c.pct = F ? Math.max(0, Math.min(100, C / F * 100)) : 0;
+    c.totalFacturado = Object.values(c.facturado).reduce((a, b) => a + b, 0);
+    c.totalCobrado   = Object.values(c.cobrado).reduce((a, b) => a + b, 0);
+    c.soloProforma   = c.totalFacturado === 0 && Object.keys(c.proforma).length > 0;
+    c.sinRecibi      = c.totalFacturado > 0 && c.totalCobrado === 0;
+    /* El más reciente manda el orden, igual que en la lista plana: el operador
+       no cambia de modelo mental al cambiar de vista. */
+    c.ultima = c.docs.map(f => f.fecha_emision || '').sort().slice(-1)[0] || '';
+    return c;
+  }).sort((a, b) => (b.ultima || '').localeCompare(a.ultima || ''));
+}
+
+/* Las carpetas abiertas duran lo que la pestaña, como en Proyectos. */
+const CTR_ABIERTOS = new Set((() => {
+  try{ return JSON.parse(sessionStorage.getItem('lw_fact_abiertos') || '[]'); }catch(_){ return []; }
+})());
+
+function pintarPorContrato(box, data, filaDoc){
+  const grupos = agrupaPorContrato(data);
+  box.innerHTML = PAGINADOR().pagina(grupos).map(c => {
+    const et = c.sinContrato
+      ? '<span class="sui-tag alerta" title="Documentos sin contrato: un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span>'
+      : esc(c.numero || '—');
+    const marca = c.soloProforma ? 'proforma' : (c.sinRecibi ? 'sinrecibi' : '');
+    const aviso = c.soloProforma ? '<span class="sui-tag gris" title="Hay proforma pero no se ha emitido factura">Solo proforma</span>'
+                : c.sinRecibi   ? '<span class="sui-tag alerta" title="Facturado y sin un solo recibí: nada cobrado">Sin recibí</span>'
+                : '';
+    const cifra = c.totalFacturado
+      ? lwSumaTexto(c.facturado)
+      : (Object.keys(c.proforma).length ? lwSumaTexto(c.proforma) : '—');
+    const pie = c.totalFacturado
+      ? (c.unaMoneda
+          ? esc(lwSumaTexto(c.cobrado)) + ' cobrado \u00b7 ' + c.pct.toFixed(0) + ' %'
+          : esc(lwSumaTexto(c.cobrado)) + ' cobrado')
+      : (Object.keys(c.proforma).length ? 'en proforma, sin facturar' : '');
+    return `<details class="ctr" data-ctr="${esc(c.clave)}"${marca ? ` data-alerta="${marca}"` : ''}${CTR_ABIERTOS.has(c.clave) ? ' open' : ''}>
+      <summary>
+        <span><span class="cnom">${et} ${aviso}</span>
+          <span class="csub">${esc(c.cliente || 'sin cliente')} <span class="sep">·</span> ${esc(c.proyecto || 'sin proyecto')} <span class="sep">·</span> ${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}</span></span>
+        <span class="cplata"><span class="n">${esc(cifra)}</span><small>${pie}</small></span>
+        ${c.totalFacturado && c.unaMoneda ? `<span class="cbarra"><i style="width:${c.pct.toFixed(1)}%"></i></span>` : ''}
+      </summary>
+      <table class="docs"><tbody>${c.docs.map(filaDoc).join('')}</tbody></table>
+    </details>`;
+  }).join('');
+  box.querySelectorAll('details.ctr').forEach(d => d.addEventListener('toggle', () => {
+    d.open ? CTR_ABIERTOS.add(d.dataset.ctr) : CTR_ABIERTOS.delete(d.dataset.ctr);
+    try{ sessionStorage.setItem('lw_fact_abiertos', JSON.stringify([...CTR_ABIERTOS])); }catch(_){}
+  }));
+}
+
 function pintarListado(){
   const box = $('#listBody');
   pintarFiltrosListado();
@@ -1734,6 +1909,11 @@ function pintarListado(){
     porMoneda[m] = (porMoneda[m] || 0) + (Number(f.total) || 0);
   });
   const sumas = Object.entries(porMoneda).map(([m, t]) => esc(fmtMoneda(t, m))).join(' · ');
+  /* Lo mismo pero de UN tipo, para el resumen por contrato. Por moneda desde el
+     primer día: la suite ya tiene facturas en una divisa y unidades en otra, y
+     una cifra que mezcla las dos no existe en ninguna parte. */
+  const sumasTipo = t => esc(lwSumaTexto(lwSumaPorMoneda(
+    data.filter(f => f.tipo === t && !f.anulada), f => Number(f.total) || 0, f => f.moneda || 'EUR')));
   /* Si han llegado menos de las que hay en base, la lista está recortada y eso
      va DELANTE de la suma: la suma de un conjunto incompleto se lee igual que la
      de uno completo, y esa es exactamente la confusión que costó 1,68 M €. */
@@ -1742,11 +1922,24 @@ function pintarListado(){
   const avisoTope = faltan
     ? `<span class="sui-aviso" style="margin:0">⚠️ Faltan ${faltan} documentos: la lista enseña los ${LDOCS.length} más recientes y la suma es solo de esos.</span>`
     : '';
+  /* En la vista por contrato el resumen cuenta CONTRATOS y saca a la luz las
+     dos cosas que la lista plana no puede decir: cuántos se quedaron en
+     proforma y cuántos están facturados sin cobrar un euro. Son 46 y 24 hoy, y
+     hasta ahora no se veían desde ninguna pantalla de la suite. */
+  const resumenBase = LVISTA === 'contrato'
+    ? (() => {
+        const g = agrupaPorContrato(data);
+        const sp = g.filter(c => c.soloProforma).length, sr = g.filter(c => c.sinRecibi).length;
+        return `<span>${g.length} ${g.length===1?'contrato':'contratos'}</span>
+                <span>Facturado <b>${sumasTipo('factura')}</b></span>
+                <span>Cobrado <b>${sumasTipo('recibi')}</b></span>`
+             + (sp ? `<span class="sui-tag gris">${sp} solo proforma</span>` : '')
+             + (sr ? `<span class="sui-tag alerta">${sr} sin recibí</span>` : '');
+      })()
+    : `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
+       <span>Suma de lo vigente <b>${sumas}</b></span>`;
   $('#lResumen').innerHTML = (!data.length && !faltan) ? '' :
-    (data.length
-      ? `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
-         <span>Suma de lo vigente <b>${sumas}</b></span>`
-      : '') + avisoTope;
+    (data.length ? resumenBase : '') + avisoTope;
   if(!data.length){
     const filtrando = LTIPO || LANUL || ($('#lq').value || '').trim();
     box.innerHTML = `<div class="sui-nada"><b>${
@@ -1754,42 +1947,60 @@ function pintarListado(){
       filtrando ? 'Prueba a quitar algún filtro.' : 'Empieza con «+ Nueva».'}</div>`;
     return;
   }
-/* Tabla de verdad (2a): cabeceras 10,5px/.1em, celda 11px 16px, numero en tinta,
-     importe a la derecha con cifras de ancho fijo y etiqueta de estado — no la
-     lista de filas sueltas del modal viejo. */
-  const TIPO_ET = { factura:['Factura','info'], proforma:['Proforma','morado'], recibi:['Recibí','ok'] };
-  box.innerHTML = `<table class="sui-tabla"><thead><tr>
-      <th>Nº</th><th>Tipo</th><th>Cliente</th><th>Contrato</th><th>Proyecto</th>
-      <th class="num">Total</th><th>Emisor</th><th>Estado</th><th></th><th></th>
-    </tr></thead><tbody>` + PAGINADOR().pagina(data).map(f => {
-    const [tEt, tTono] = TIPO_ET[f.tipo] || TIPO_ET.factura;
-    return `<tr data-id="${f.id}" class="${f.anulada ? 'anulada' : ''}">
-      <td class="clave">${esc(f.numero || '—')}</td>
-      <td><span class="sui-tag ${tTono}">${tEt}</span></td>
-      <td>${esc(f.cliente_nombre || 'sin nombre')}</td>
-      ${(() => {
-        /* Columna «Contrato», 15-ago-2026. El buscador de arriba decia ya que se
-           podia buscar por contrato, pero la tabla no lo enseñaba: para saber de
-           que contrato era un documento habia que abrirlo.
-           Y marca en rojo los que NO tienen contrato: son los que `contrato_cobrado`
-           no puede atribuir a nadie (LAW-38), y aplicarles un cobro lo hace
-           desaparecer de las cuentas. Que se vea en la lista y no al descubrirlo. */
-        if(!f.contrato_id) return '<td><span class="sui-tag alerta" title="Sin contrato: un cobro aplicado aqui no se atribuye a ninguna operacion (LAW-38)">Sin contrato</span></td>';
-        return `<td class="flojo">${esc(f.contrato_numero || '—')}</td>`;
-      })()}
-      <td class="flojo">${esc(f.proyecto_nombre || '—')}</td>
-      <td class="num">${esc(fmtMoneda(f.total, f.moneda))}</td>
-      <td class="flojo" title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}<span class="autoria-slot"></span></td>
-      <td>${f.anulada ? '<span class="sui-tag alerta">Anulada</span>' : '<span class="sui-tag gris">Emitida</span>'}</td>
-      <td>${DIVERGEN.has(f.id)
-          ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>`
-          : ''}</td>
-      <td class="num">${f.tipo === 'recibi' && nJustif(f)
+/* UNA fila, la misma en las dos vistas. Vive en una función y no repetida en
+     dos ramas: dos copias de una fila con seis botones se separan al tercer
+     cambio, y aquí los botones son el trabajo del día.
+     Cada acción que había sigue estando: emisor con su ranura de autoría,
+     «Ficha ≠», los justificantes, anular y borrar. Lo que cambia es dónde se
+     leen, no si existen. */
+  const TIPO_ET = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+  /* El formato mayoritario de la suite (5 de 7 pantallas). Hay siete distintos
+     y eso es un defecto aparte —LAW-103—; aquí no se añade un octavo. */
+  const fFecha = d => { if(!d) return '—';
+    const x = new Date(d + 'T00:00:00');
+    return isNaN(x) ? '—' : x.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}); };
+
+  function filaDoc(f){
+    const sinContrato = !f.contrato_id;
+    /* El contrato en rojo cuando falta: son los que `contrato_cobrado` no puede
+       atribuir a nadie (LAW-38), y aplicarles un cobro los hace desaparecer de
+       las cuentas. Se ve en la lista, no al descubrirlo. */
+    const ctr = sinContrato
+      ? '<span class="sui-tag alerta" title="Sin contrato: un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span>'
+      : esc(f.contrato_numero || '—');
+    /* Un recibí SIN justificante es lo único accionable que la lista puede
+       decir de un documento por sí solo: 16 de los 70 lo están. Lo que no dice
+       —ni puede— es si una factura está cobrada: eso depende de los recibís de
+       su contrato y se responde en la vista por contrato, por importe. */
+    const estado = f.anulada ? '<span class="sui-tag alerta">Anulada</span>'
+      : (f.tipo === 'recibi' && !nJustif(f)) ? '<span class="sui-tag alerta" title="Un recibí sin justificante de pago adjunto">Sin justificante</span>'
+      : f.enviada ? '<span class="sui-tag ok">Enviada</span>'
+      : '<span class="sui-tag gris">Emitida</span>';
+    return `<tr data-id="${f.id}" class="t-${esc(f.tipo || 'factura')} ${f.anulada ? 'anulada' : ''}">
+      <td class="doc">
+        <span class="n1">${esc(f.numero || '—')}</span>
+        <span class="n2">${esc(TIPO_ET[f.tipo] || 'Documento')} <span class="sep">·</span> ${esc(fFecha(f.fecha_emision))}</span>
+      </td>
+      <td>
+        <span class="n1">${esc(f.cliente_nombre || 'sin nombre')}</span>
+        <span class="n2">${ctr} <span class="sep">·</span> ${esc(f.proyecto_nombre || 'sin proyecto')}<span class="sep"> · </span><span title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}</span></span>
+      </td>
+      <td class="dinero">
+        <span class="n1">${esc(fmtMoneda(f.total, f.moneda))}</span>
+        <span class="n2">${estado}</span>
+      </td>
+      <td class="acc"><span class="autoria-slot secundaria"></span>${DIVERGEN.has(f.id)
+          ? `<button class="sui-tag alerta" data-diverge="${f.id}" title="Dice algo distinto de la ficha del cliente">Ficha ≠</button>` : ''}
+        ${f.tipo === 'recibi' && nJustif(f)
           ? `<button class="btn" data-justif="${f.id}" title="Ver ${nJustif(f) === 1 ? 'el justificante de pago adjunto' : 'los ' + nJustif(f) + ' justificantes de pago adjuntos'}">📎${nJustif(f) > 1 ? ' ' + nJustif(f) : ''}</button>` : ''}
-        ${f.anulada ? '' : `<button class="btn" data-anular="${f.id}">Anular</button>`}
-        ${ES_ADMIN ? `<button class="btn borrar" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
+        ${f.anulada ? '' : `<button class="btn secundaria" data-anular="${f.id}">Anular</button>`}
+        ${ES_ADMIN ? `<button class="btn borrar secundaria" data-borrar="${f.id}" title="Borrar factura">✕</button>` : ''}</td>
     </tr>`;
-  }).join('') + '</tbody></table>';
+  }
+
+  if(LVISTA === 'contrato'){ pintarPorContrato(box, data, filaDoc); }
+  else box.innerHTML = '<table class="docs"><tbody>'
+    + PAGINADOR().pagina(data).map(filaDoc).join('') + '</tbody></table>';
 
   /* Reasignar autor: el módulo se lo enseña solo al super_admin. Una factura
      anulada no se puede reatribuir — la policy de UPDATE exige `anulada=false`. */
@@ -1882,6 +2093,17 @@ $('#lTipos').addEventListener('click', e => {
 $('#lAnuladas').addEventListener('click', e => {
   const b = e.target.closest('[data-anul]'); if(!b) return;
   LANUL = b.dataset.anul === 'si'; pintarListado();
+});
+$('#lVista').addEventListener('click', e => {
+  const b = e.target.closest('[data-lv]'); if(!b || b.dataset.lv === LVISTA) return;
+  LVISTA = b.dataset.lv;
+  try{ sessionStorage.setItem('lw_fact_vista', LVISTA); }catch(_){}
+  /* El paginador cuenta documentos en una vista y contratos en la otra: si no
+     se reinicia, se cambia de vista y se aterriza en la página 4 de algo que
+     tiene dos. Lo detecta solo por el total, pero decirlo aquí es más barato
+     que confiar en que lo detecte. */
+  PAGINADOR().reinicia();
+  pintarListado();
 });
 /* Volver al listado NO recarga la página: el borrador que hubiera en el
    formulario se perdería sin avisar. Solo cambia de pantalla. */
