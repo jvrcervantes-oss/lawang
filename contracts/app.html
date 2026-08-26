@@ -1648,6 +1648,16 @@ function repasaLegados(){
     const el = f.querySelector('[name]');
     f.hidden = !(el && String(el.value || '').trim());
   });
+  /* Y al revés: si el documento trae el campo VIEJO, el nuevo no puede quedarse
+     con su valor por defecto. Abrir CR00045 —que guardó 2 meses— lo dejaba con
+     «30 días» heredado del defecto y «2 meses» suyo, los dos a la vista y los
+     dos camino del papel. El documento antiguo se queda como está: eso es
+     literalmente lo que se pidió. */
+  Object.entries(SUSTITUYE_A).forEach(([nuevo, viejo]) => {
+    const vNuevo = document.querySelector(`[name="${nuevo}"]`);
+    const vViejo = document.querySelector(`[name="${viejo}"]`);
+    if(vNuevo && vViejo && String(vViejo.value || '').trim()) vNuevo.value = '';
+  });
 }
 
 function partirEtiqueta(t){
@@ -2304,8 +2314,21 @@ function idrEquiv(html, data){
     });
 }
 let SIGN_MODE=false;   // true solo al construir el snapshot para firma remota → el hueco de firma sale como centinela %%FIRMA_ADQUIRIENTE%% que firma-submit rellena con la firma real
+/* Campos que un campo NUEVO sustituye. Mientras convivan —los documentos
+   antiguos guardaron el viejo y no se tocan—, hay que impedir que se impriman
+   los DOS: una Carta de Reserva que dijera «durante 30 día(s)» y «durante 2
+   mes(es)» a la vez no es un documento con un fallo de estilo, es un contrato
+   que se contradice sobre cuánto dura una reserva.
+   El motor de plantillas solo sabe «imprime si este campo tiene valor»
+   (`<!--opt:-->`), no sabe «si no, aquel otro». Así que la exclusión se decide
+   aquí, con los datos delante, antes de tocar el HTML. */
+const SUSTITUYE_A = { validez_dias: 'validez_meses' };
+
 function buildDoc(){
   const data=collect();
+  Object.entries(SUSTITUYE_A).forEach(([nuevo, viejo]) => {
+    if(String(data[nuevo] || '').trim()) data[viejo] = '';
+  });
   applyPromotor(data);   // rellena prom_* según la sociedad firmante elegida (default Tepi Sun Gai)
   applyApoderado(data);   // rellena hsn_apoderado_ktp con la signed URL ya resuelta (POA)
   applyRepresentanteComprador(data);   // adq2_firmante_nombre: apoderado del comprador si lo hay, si no el propio comprador
