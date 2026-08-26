@@ -64,5 +64,22 @@ fue(-5000,        'EUR', '-5.000,00 EUR',    'el signo se conserva, igual que al
 fue(99,           '',    '99,00',            'sin moneda no inventa ninguna');
 fue(12.345,       'USD', '12,35 USD',        'redondea al alza; Compradores imprimia "12,345"');
 
+/* GUARDRAIL: toda funcion `lw*` del fichero tiene que salir por module.exports.
+   Las tres de suma por moneda se escribieron DEBAJO del bloque de exports y se
+   quedaron fuera sin sintoma: en el navegador son globales y funcionan, asi que
+   lo unico que pasaba es que ningun test de node podia alcanzarlas. Un test que
+   no puede ver una funcion es verde sobre nada. */
+(function(){
+  const src = require('fs').readFileSync(require('path').join(__dirname, 'dinero.js'), 'utf8');
+  const declaradas = [...src.matchAll(/^function (lw\w+)/gm)].map(m => m[1]);
+  const exportadas = Object.keys(require('./dinero.js'));
+  const faltan = declaradas.filter(n => !exportadas.includes(n));
+  if(faltan.length){
+    fallos++;
+    console.error('  FALLA  sin exportar: ' + faltan.join(', ') +
+                  '\n         node no las ve, y su test correria por otro camino que produccion');
+  }
+})();
+
 if(fallos){ console.error(`\ndinero.test.js — ${fallos} fallo(s)`); process.exit(1); }
 console.log('OK dinero.test.js — 32 casos: 22 al leer un importe y 10 al escribirlo');

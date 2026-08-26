@@ -17,7 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
 <script src="/contracts/assets/proyectos_csv.js?v=9d8369e7"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
@@ -202,9 +202,20 @@ const ABIERTAS = new Set((() => {
 function pintar(){
   const lista = UNI.filter(casa);
   const cont = $('#lista');
-  if(!lista.length){ cont.innerHTML = '<div class="vacio">Ninguna unidad coincide.</div>'; return; }
   const grupos = {};
+  /* 🔴 UNA CARPETA SALE DEL CATÁLOGO, NO DE SUS UNIDADES (26-ago-2026, owner:
+     «en la v2 hay muchísimos más proyectos que en v3 aunque vacíos, por qué no
+     salen sus carpetas?»). Agrupando solo lo que devuelve `unidades` un proyecto
+     recién dado de alta NO EXISTE hasta que alguien le mete la primera parcela:
+     29 proyectos activos, 11 con unidades, y v3 enseñaba once. Justo al revés de
+     lo que hace falta, porque la carpeta vacía es la que te recuerda que queda
+     inventario por cargar. La herramienta viva ya lo hacía así (`nombres` =
+     catálogo ∪ unidades); esto la iguala, que es lo que pide la Regla 0 bis.
+     CON FILTRO NO: si buscas «riverfront» o pinchas «Vendidas», 18 carpetas a
+     cero son ruido — ninguna puede casar. Sin filtro, la vista ES el catálogo. */
+  if(!ESTADO && !FILTRO.trim()) PROYECTOS.forEach(n => { grupos[n] = []; });
   lista.forEach(u => { const k = u.proyecto || 'Sin proyecto'; (grupos[k] = grupos[k] || []).push(u); });
+  if(!Object.keys(grupos).length){ cont.innerHTML = '<div class="vacio">Ninguna unidad coincide.</div>'; return; }
   /* 🔴 LAS PARCELAS SE ORDENAN COMO NÚMEROS, NO COMO TEXTO (26-ago-2026).
      Salían SH-1, SH-10, SH-100, SH-101… porque venían en el orden de la consulta:
      `.order('codigo')` de Postgres compara cadenas, y para el texto «10» va antes
@@ -215,7 +226,7 @@ function pintar(){
   Object.keys(grupos).forEach(k => { grupos[k] = suiOrdenarPorCodigo(grupos[k]); });
   /* Por número de unidades: un inventario se ordena por tamaño, no por
      alfabeto — lo primero que se quiere ver es dónde está el grueso. */
-  const claves = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length);
+  const claves = Object.keys(grupos).sort((a, b) => grupos[b].length - grupos[a].length || a.localeCompare(b, 'es'));
 
   cont.innerHTML = claves.map((k, i) => {
     const g = grupos[k];
@@ -250,7 +261,9 @@ function pintar(){
       + '<span class="plata"><span class="n">' + esc(carteraTxt) + '</span>'
         + '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small></span>'
       + '<span class="barraP"><i style="width:' + pct.toFixed(1) + '%"></i></span></summary>'
-      + g.map(filaUnidad).join('') + '</details>';
+      + (g.length ? g.map(filaUnidad).join('')
+                  : '<div class="vacio" style="padding:14px 18px">Sin unidades todavía. Cárgalas con «Importar CSV» o «+ Unidad».</div>')
+      + '</details>';
   }).join('');
 
   cont.querySelectorAll('.uni').forEach(el => el.addEventListener('click', () => abrir(el.dataset.id)));

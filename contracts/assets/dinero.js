@@ -124,10 +124,6 @@ function lwImporteCanonico(n){
                                      maximumFractionDigits: 2 });
 }
 
-/* Node lo necesita para el test; el navegador lo ignora. Sin `module.exports`
-   las constantes quedan globales, que es como las usan las nueve herramientas. */
-if(typeof module !== 'undefined' && module.exports)
-  module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES };
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SUMAR CUANDO HAY VARIAS MONEDAS — 26-ago-2026
@@ -174,3 +170,17 @@ function lwMonedaPrincipal(mapa){
   if(!claves.length) return 'EUR';
   return claves.sort(function(a,b){ return mapa[b] - mapa[a]; })[0];
 }
+
+/* Node lo necesita para el test; el navegador lo ignora. Sin `module.exports`
+   las constantes quedan globales, que es como las usan las nueve herramientas.
+
+   AL FINAL DEL FICHERO A PROPÓSITO (26-ago-2026). Estaba a media altura, y las
+   tres funciones de suma por moneda —escritas después— se quedaron fuera sin
+   que nadie lo notara: en el navegador son globales y funcionan, así que el
+   único síntoma era que ningún test de node podía alcanzarlas. Es la misma
+   trampa que tiró cuatro pantallas esta mañana —un test que corre por un camino
+   que producción no toma— vista del otro lado. `dinero.test.js` comprueba ahora
+   que no falte ninguna. */
+if(typeof module !== 'undefined' && module.exports)
+  module.exports = { lwParseImporte, lwFormatoImporte, lwImporteCanonico, LW_DECIMALES,
+                     lwSumaPorMoneda, lwSumaTexto, lwMonedaPrincipal };
