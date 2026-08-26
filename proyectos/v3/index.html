@@ -21,9 +21,9 @@
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
 <script src="/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=d8716d7d">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
-<script src="/contracts/assets/movimiento-v3.js?v=02b70139"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=4b6cb538"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    PROYECTOS v3 · el inventario — 26-ago-2026
@@ -181,6 +181,12 @@ function filaUnidad(u){
     + '<i class="ph ph-arrow-right"></i></div>';
 }
 
+/* Carpetas abiertas en ESTA pestaña. Ver la nota de `<details>` más abajo. */
+const ABIERTAS = new Set((() => {
+  try{ return JSON.parse(sessionStorage.getItem('lw_proy_abiertas') || '[]'); }
+  catch(_){ return []; }
+})());
+
 function pintar(){
   const lista = UNI.filter(casa);
   const cont = $('#lista');
@@ -206,9 +212,20 @@ function pintar(){
     const cobrado = g.reduce((a, u) => a + num(u.facturado), 0);
     const pct = cartera ? Math.min(100, cobrado / cartera * 100) : 0;
     const m = (g[0] && g[0].moneda) || 'EUR';
-    /* Los dos primeros abiertos; el resto plegado. Diez proyectos desplegados
-       son las mismas 375 filas de antes con títulos por medio. */
-    return '<details class="proy"' + (i < 2 ? ' open' : '') + '>'
+    /* CARPETAS PRIMERO — vuelve a ser el estado de entrada (26-ago-2026, owner:
+       «incorpora la vista por carpetas como por defecto, como estaba»).
+       Antes se abrían los dos primeros, y con eso lo que se veía al entrar era
+       una lista de 375 unidades con títulos por medio: la vista de carpetas
+       existía pero no se llegaba a ver.
+       §16.6 (simplicidad, no minimalismo): el camino común primero —¿qué
+       proyectos hay y cómo van— y el detalle un nivel más adentro. La carpeta ya
+       dice lo que hace falta para decidir si entras: unidades, libres, vendidas,
+       cartera y % cobrado.
+       §5 (flexibilidad) + §2 (agencia): lo que abras se recuerda MIENTRAS DURE
+       la pestaña. `sessionStorage` y no `localStorage` a propósito, igual que la
+       vista de la herramienta viva: abrir una carpeta es dónde estás ahora, no
+       una preferencia que deba sobrevivir a mañana. */
+    return '<details class="proy" data-proy="' + esc(k) + '"' + (ABIERTAS.has(k) ? ' open' : '') + '>'
       + '<summary><span><span class="nom">' + esc(k) + '</span>'
         + '<span class="cuenta">' + g.length + (g.length === 1 ? ' unidad' : ' unidades')
         + ' · <b>' + libres + ' libre' + (libres === 1 ? '' : 's') + '</b>'
@@ -220,6 +237,12 @@ function pintar(){
   }).join('');
 
   cont.querySelectorAll('.uni').forEach(el => el.addEventListener('click', () => abrir(el.dataset.id)));
+  /* Se apunta lo que el operador abre y se restituye al repintar: sin esto, un
+     filtro o una búsqueda cerraban de golpe la carpeta que estaba mirando. */
+  cont.querySelectorAll('details.proy').forEach(d => d.addEventListener('toggle', () => {
+    d.open ? ABIERTAS.add(d.dataset.proy) : ABIERTAS.delete(d.dataset.proy);
+    try{ sessionStorage.setItem('lw_proy_abiertas', JSON.stringify([...ABIERTAS])); }catch(_){}
+  }));
 }
 
 const Cajon = (() => {

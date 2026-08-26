@@ -233,10 +233,18 @@ function sensacion(tipo){
 const PULSABLES = 'button:not(:disabled), .btn, [role="button"],'
                 + '.sui-btn, .lw-btn, .lw-home, .sui-chip, .sui-ficha, .lw-kpi,'
                 + '.lw-rail-i, .lw-usuario-btn, .sui-cajon-x, .lw-panel-x, .lw-elegir-op,'
+                /* §1 — la CARPETA de Proyectos es un `<summary>`, y los `<summary>`
+                   estaban excluidos por la regla de arriba («no es un control de
+                   verdad»). Aquí sí lo es: es el control principal de esa pantalla,
+                   el que abres para entrar en un proyecto. Sin acuse al pulsar, el
+                   único control que importa es el único que no contesta. Los
+                   `<summary>` de otras cosas —los menús `<details>` de la barra—
+                   siguen fuera: se acota a `.proy`. */
+                + '.proy > summary,'
                 + '.lw-menu-list a, [data-v3-pulsable]';
 const ESCALA = el =>
     el.dataset && el.dataset.v3Escala ? +el.dataset.v3Escala
-  : el.matches('.sui-ficha, .lw-kpi') ? .987      // superficie grande: encoge menos
+  : el.matches('.sui-ficha, .lw-kpi, .proy > summary') ? .987      // superficie grande: encoge menos
   : el.matches('.lw-rail-i, .sui-cajon-x, .lw-panel-x') ? .9
   : .965;
 
@@ -252,7 +260,7 @@ const ESCALA = el =>
     /* §8 — el empuje apunta a donde lleva el control: una fila con flecha
        empuja hacia la flecha; un botón normal no empuja, solo encoge. */
     const empuja = (el.dataset && el.dataset.v3Empuja) ? +el.dataset.v3Empuja
-                 : el.matches('.lw-menu-list a, .lw-rail-i') ? 2 : 0;
+                 : el.matches('.lw-menu-list a, .lw-rail-i, .proy > summary') ? 2 : 0;
     const f=fx(el);
     act={el,f,id:e.pointerId,dentro:true,empuja};
     if(MENOS_MOV.matches){ marca(el,true); return; }

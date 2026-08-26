@@ -530,6 +530,61 @@ html.v3 .lw-rail-movil .v3-rot{ font-size:.76rem; font-weight:600; }
 /* `prefers-reduced-transparency` ya no necesita excepción para la hoja: desde el
    26-ago-2026 es opaca siempre (ver arriba). Se conserva para el riel en COLUMNA,
    que sí es translúcido sobre la página. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL MENÚ, AFINADO — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   §15 · TIPOGRAFÍA. Los nombres del menú van a 13,5-14px, que es texto PEQUEÑO:
+   ahí el tracking correcto es ligeramente POSITIVO, no cero — las letras muy
+   juntas a ese tamaño se emborronan. Es lo contrario de lo que pide un titular,
+   y por eso no puede haber un solo `letter-spacing` para toda la interfaz. Y
+   `line-height` ajustado: es interfaz densa, no prosa.
+
+   §12 · VIBRANCIA. En escritorio el riel es una columna translúcida sobre la
+   página: ahí el gris plano del texto secundario pierde. Sube contraste y algo
+   de peso — el color va en la capa sólida (el fondo del elemento activo), nunca
+   en la tipografía translúcida.
+
+   §16.4 · FAMILIARIDAD. El que estás mirando se marca con una barra a la
+   izquierda y fondo, no solo con color de texto: un cambio de color solo es
+   invisible para quien no distingue ese par. */
+html.v3 .lw-rail-i, html.v3 .lw-rail-tog{
+  letter-spacing:.006em; line-height:1.25;
+  color:var(--texto,#22282A);
+}
+html.v3 .lw-rail-i i, html.v3 .lw-rail-tog i{ color:var(--texto-2,#4A5052); }
+
+/* §14 · CONTRASTE ALTO. Cuando el sistema lo pide, el material se vuelve casi
+   sólido y el borde se define — que es exactamente lo que faltaba: el menú
+   flotaba sobre la página sin un canto que dijera dónde empieza. */
+@media (prefers-contrast:more){
+  html.v3 .lw-rail{
+    background:var(--sup-1,#fff);
+    -webkit-backdrop-filter:none; backdrop-filter:none;
+    border:1px solid var(--texto,#22282A);
+  }
+  html.v3 .lw-rail-i, html.v3 .lw-rail-tog{ color:var(--texto,#22282A); }
+  html.v3 .lw-rail-i[aria-current], html.v3 .lw-rail-i.actual{
+    outline:2px solid var(--dl,#104C4F); outline-offset:-2px;
+  }
+}
+
+/* §3 · EL RÓTULO SIGUE AL GESTO, NO A UN TEMPORIZADOR.
+   `topbar.css` desvanece el nombre de cada herramienta con
+   `transition:opacity 120ms` al abrir el riel. Eso es una animación de duración
+   fija sobre una superficie que se puede ARRASTRAR: si abres el riel a medias y
+   te paras, el texto ya ha terminado su transición y no dice dónde estás; si lo
+   sueltas a mitad, el rótulo va por un lado y el ancho por otro.
+   Aquí el riel de escritorio se abre con muelle desde `movimiento-v3.js`, así
+   que el rótulo se ata al ANCHO real —que es el valor que el muelle conduce— con
+   una consulta de contenedor. Sin temporizador que se desacompase del dedo. */
+html.v3 .lw-rail{ container-type:inline-size; container-name:riel; }
+@container riel (min-width:120px){
+  html.v3 .lw-rail-i span, html.v3 .lw-rail-tog span{ opacity:1; transition:none; }
+}
+@container riel (max-width:119px){
+  html.v3 .lw-rail-i span, html.v3 .lw-rail-tog span{ opacity:0; transition:none; }
+}
+
 @media (prefers-reduced-transparency:reduce){
   html.v3 .lw-rail{ background:var(--sup-1,#fff); -webkit-backdrop-filter:none; backdrop-filter:none; }
 }
