@@ -329,9 +329,16 @@ async function recargar(){
 /* ── nuevo proyecto ───────────────────────────────────────────────────────── */
 function altaProyectoUI(){
   Cajon.abre('Nuevo proyecto', 'Se añade al catálogo y queda disponible en toda la suite',
-    '<div class="bloque"><label class="mini" for="np-nombre">Nombre del proyecto</label>'
-    + '<input id="np-nombre" class="sui-buscar" style="width:100%;margin-top:6px" '
-    + 'placeholder="Bonian Village" autocomplete="off"></div>'
+    /* `.campo` es el campo de formulario de la suite (`assets/suite.css`), el
+       mismo que usa la herramienta viva: etiqueta encima con `for`, ancho
+       completo y el anillo de foco compartido. La primera versión de esto usó
+       `.sui-buscar` —el BUSCADOR— y salía con lupa dentro: un control que dice
+       «busca aquí» donde se teclea un nombre. Regla 0: mirar si la pieza existe
+       antes de escribir una. */
+    '<div class="bloque"><div class="campo">'
+    + '<label for="np-nombre">Nombre del proyecto</label>'
+    + '<input id="np-nombre" placeholder="Bonian Village" autocomplete="off">'
+    + '</div></div>'
     + '<div class="bloque" style="display:flex;gap:10px"><button type="button" class="sui-btn primario" id="np-ok">Crear</button></div>'
     + '<p class="mini" id="np-msg" style="margin-top:8px"></p>');
   const campo = $('#np-nombre');
@@ -365,19 +372,28 @@ function altaUnidadUI(){
   const ops = PROYECTOS.map(p => '<option>' + esc(p) + '</option>').join('');
   const tips = TIPOS.map(t => '<option value="' + esc(t[0]) + '">' + esc(t[1]) + '</option>').join('');
   Cajon.abre('Nueva unidad', 'El estado y el contrato NO se ponen aquí: los mueve el flujo de contratos',
+    /* Todos con `.campo` (ver la nota de arriba). Los dos precios van en una
+       `.sui-row`, que es la fila de dos campos de la suite y se deshace a una
+       columna por debajo de 760px: son la misma decisión —cuánto vale— y leerlos
+       juntos es lo que deja ver el total que sale de ellos. */
     '<div class="bloque">'
-    + '<label class="mini" for="nu-proy">Proyecto</label>'
-    + '<select id="nu-proy" class="sui-sel">' + ops + '</select>'
-    + '<label class="mini" for="nu-cod" style="margin-top:10px;display:block">Código</label>'
-    + '<input id="nu-cod" class="sui-buscar" style="width:100%" placeholder="SH-1" autocomplete="off">'
-    + '<label class="mini" for="nu-tipo" style="margin-top:10px;display:block">Tipo</label>'
-    + '<select id="nu-tipo" class="sui-sel">' + tips + '</select>'
-    + '<label class="mini" for="nu-suelo" style="margin-top:10px;display:block">Precio de suelo</label>'
-    + '<input id="nu-suelo" class="sui-buscar" style="width:100%" inputmode="decimal" data-money>'
-    + '<label class="mini" for="nu-obra" style="margin-top:10px;display:block">Precio de construcción</label>'
-    + '<input id="nu-obra" class="sui-buscar" style="width:100%" inputmode="decimal" data-money>'
-    + '<label class="mini" for="nu-m2" style="margin-top:10px;display:block">Superficie (m²)</label>'
-    + '<input id="nu-m2" class="sui-buscar" style="width:100%" inputmode="decimal">'
+    + '<div class="campo"><label for="nu-proy">Proyecto</label>'
+      + '<select id="nu-proy">' + ops + '</select></div>'
+    + '<div class="sui-row">'
+      + '<div class="campo"><label for="nu-cod">Código</label>'
+        + '<input id="nu-cod" placeholder="SH-1" autocomplete="off"></div>'
+      + '<div class="campo"><label for="nu-tipo">Tipo</label>'
+        + '<select id="nu-tipo">' + tips + '</select></div>'
+    + '</div>'
+    + '<div class="sui-row">'
+      + '<div class="campo"><label for="nu-suelo">Precio de suelo</label>'
+        + '<input id="nu-suelo" inputmode="decimal" data-money></div>'
+      + '<div class="campo"><label for="nu-obra">Precio de construcción</label>'
+        + '<input id="nu-obra" inputmode="decimal" data-money></div>'
+    + '</div>'
+    + '<div class="campo"><label for="nu-m2">Superficie (m²)</label>'
+      + '<input id="nu-m2" inputmode="decimal"></div>'
+    + '<p class="mini">El precio total se calcula de suelo + construcción; no se teclea aparte.</p>'
     + '</div>'
     + '<div class="bloque" style="display:flex;gap:10px"><button type="button" class="sui-btn primario" id="nu-ok">Crear unidad</button></div>'
     + '<p class="mini" id="nu-msg" style="margin-top:8px"></p>');
