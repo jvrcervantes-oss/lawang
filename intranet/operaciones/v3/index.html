@@ -287,7 +287,14 @@ function pintarDinero(){
   const precioSinFirmar = lwSumaPorMoneda(sinFirmar.map(o => cuentaGrupo(o)), c => c.precio || 0, c => c.moneda);
   const haySinFirmar = Object.values(precioSinFirmar).some(v => v > 0.005);
   const mp = lwMonedaPrincipal(precioM);
-  const pct = precioM[mp] ? Math.min(100, (cobradoM[mp] || 0) / precioM[mp] * 100) : 0;
+  /* 🔴 EL PORCENTAJE NO SE RECORTA A 100 (26-ago-2026, arreglado antes hoy en
+     Facturas y traído aquí). Cobrar MÁS de lo contratado es una NOTICIA —falta
+     una factura, hay un cobro duplicado o el precio cambió y nadie lo actualizó—
+     y un `Math.min(100, …)` la convierte en una operación perfectamente cerrada.
+     Se enseña el número real; lo que se limita es el ANCHO de la barra, que es
+     dibujo. En las herramientas vivas el clamp ya estaba solo en el `width:`,
+     que es lo correcto; en v3 se coló también en el texto. */
+  const pct = precioM[mp] ? (cobradoM[mp] || 0) / precioM[mp] * 100 : 0;
   const varias = Object.keys(precioM).length > 1;
   $('#dinero').innerHTML =
     '<div class="cifras">'
@@ -298,7 +305,7 @@ function pintarDinero(){
       + '<small>' + pct.toFixed(1).replace('.', ',') + ' % del contratado' + (varias ? ' en ' + mp : '') + '</small></div>'
     + '<div class="c pend"><span class="rot">Pendiente</span><span class="n">' + esc(lwSumaTexto(pendM)) + '</span>'
       + '<small>por entrar</small></div>'
-    + '</div><div class="barraTot"><i style="width:' + pct.toFixed(2) + '%"></i></div>'
+    + '</div><div class="barraTot"><i style="width:' + Math.min(100, pct).toFixed(2) + '%"></i></div>'
     /* La nota explica la regla en la propia pantalla. Un total que excluye cosas
        sin decirlo es peor que uno inflado: el inflado se discute, el silencioso
        se cree. */

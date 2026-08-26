@@ -411,16 +411,38 @@ function pintarChips(){
 /* ── arranque ─────────────────────────────────────────────────────────────── */
 window.LW_AUTH.then(async ({ sb }) => {
   SB = sb;
-  const [f, p] = await Promise.all([
+  const TOPE_DOCS = 5000;
+  const [f, p, cuenta] = await Promise.all([
     /* `fecha_vencimiento` no es una columna: vive en `datos->fields`, igual que
        la lee la campana de la barra y el panel. Pedirla suelta da un 400 mudo. */
+    /* 🔴 EL RECORTE SE ANUNCIA SIEMPRE. La herramienta viva llevaba `.limit(200)`
+       sobre 279 documentos y escondía 70 vigentes y 1.676.977 € de la suma que
+       presentaba como total (arreglado hoy). Aquí el tope era 1000 —hoy no
+       muerde— pero es el mismo silencio esperando a crecer, y esta pantalla sale
+       a producción sin ese arreglo si no se trae. Se pide la CUENTA EXACTA y se
+       compara con lo que ha llegado: es la única medida que no depende de
+       adivinar dónde está el techo (un `limit(N+1)` falla si PostgREST recorta
+       antes por su `max-rows`). */
     SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,anulada,fecha_emision,created_at,venc:datos->fields->>fecha_vencimiento')
-      .order('fecha_emision', { ascending:false }).limit(1000),
+      .order('fecha_emision', { ascending:false }).limit(TOPE_DOCS),
     SB.rpc('facturas_pendiente_equipo'),
+    /* La cuenta va por el MISMO camino que la lista (el RPC del equipo), no
+       contra la tabla: si contara la tabla y la RLS enseñara menos, el aviso
+       saltaría siempre y se aprendería a ignorarlo — que es como muere un
+       aviso. */
+    SB.rpc('facturas_equipo', {}, { count:'exact', head:true }),
   ]);
   if(f.error){
     $('#avisos').innerHTML = '<p class="sui-aviso">No se han podido leer los documentos: ' + esc(f.error.message) + '</p>';
     return;
+  }
+  /* `null` si la cuenta no contestó: no saber y estar completo son cosas
+     distintas, y solo una de las dos permite callarse. */
+  const hay = (cuenta && typeof cuenta.count === 'number') ? cuenta.count : null;
+  if(hay !== null && hay > (f.data || []).length){
+    $('#avisos').innerHTML = '<p class="sui-aviso">⚠️ Faltan ' + (hay - (f.data || []).length)
+      + ' documentos: esta pantalla enseña los ' + (f.data || []).length
+      + ' más recientes y las sumas son solo de esos.</p>';
   }
   /* Si falla lo pendiente NO se enseña un cero: sin ese dato no se sabe qué se
      debe, y decir «cobrado» sin saberlo es el único error aquí que cuesta

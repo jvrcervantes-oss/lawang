@@ -1082,10 +1082,21 @@ async function pintarRail(sb){
     }
   }catch(e){ fallos.push('las firmas pendientes'); console.warn('auditoria de firmas:',e&&e.message); }
 
+  const TOPE_FACT = 5000;
   try{
     const [fir,fac,pend,ctr]=await Promise.all([
       sb.rpc('contrato_firmas_equipo').select('contrato_id, expira_en, firmante_nombre').eq('estado','pendiente').order('expira_en').limit(4),
-      sb.rpc('facturas_equipo').select('id, numero, tipo, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento').limit(200),
+      /* 🔴 `.limit(200)` SOBRE 279 DOCUMENTOS, Y ALIMENTANDO UNA ALARMA
+         (26-ago-2026). Este bloque pinta «Próximos vencimientos»: si la factura
+         vencida cae fuera del recorte, la caja no dice «no la he mirado», dice
+         que no hay nada. Es exactamente lo que el comentario de aquí abajo
+         advierte para los ERRORES —«una alarma rota no puede leerse igual que
+         no hay nada pendiente»— y el recorte lo estaba haciendo en silencio por
+         la puerta de al lado.
+         Solo se piden siete campos, sin el `datos` entero: 279 filas así no
+         pesan nada y el tope sube a un techo que no muerde. Si algún día
+         mordiera, `fallos` lo dice arriba en vez de callarlo. */
+      sb.rpc('facturas_equipo').select('id, numero, tipo, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento').limit(TOPE_FACT),
       sb.rpc('facturas_pendiente_equipo'),
       sb.rpc('contratos_equipo').select('id, numero'),
     ]);
@@ -1107,6 +1118,9 @@ async function pintarRail(sb){
           +(r.d<0?'vencida hace '+(-r.d)+' días':r.d===0?'hoy':'en '+r.d+' días')+'</em></span>'
           +'<span class="v '+(r.clase||'')+'">'+esc(r.val)+'</span></div>').join('')+'</div>');
     }
+    /* Si el tope llegara a morder, el rail lo DICE. Un aviso que no puede
+       prometer que ha mirado todo tiene que decir cuánto ha mirado. */
+    if((fac.data||[]).length >= TOPE_FACT) fallos.push('todos los vencimientos (hay más documentos de los que caben)');
   }catch(e){ fallos.push('los vencimientos'); console.warn('vencimientos:',e&&e.message); }
 
   /* §16.1 — los cuatro tipos de aviso, y este es el de ERROR: una alarma rota

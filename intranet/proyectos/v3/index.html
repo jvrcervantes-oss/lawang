@@ -188,7 +188,14 @@ function pintarChips(){
 
 function filaUnidad(u){
   const precio = num(u.precio);
-  const pct = Math.max(0, Math.min(100, num(u.pct_cobrado)));
+  /* 🔴 EL PORCENTAJE NO SE RECORTA A 100 (26-ago-2026, arreglado antes hoy en
+     Facturas y traído aquí). Cobrar MÁS de lo contratado es una NOTICIA —falta
+     una factura, hay un cobro duplicado o el precio cambió y nadie lo actualizó—
+     y un `Math.min(100, …)` la convierte en una operación perfectamente cerrada.
+     Se enseña el número real; lo que se limita es el ANCHO de la barra, que es
+     dibujo. En las herramientas vivas el clamp ya estaba solo en el `width:`,
+     que es lo correcto; en v3 se coló también en el texto. */
+  const pct = Math.max(0, num(u.pct_cobrado));
   const libre = u.estado === 'disponible';
   return '<div class="uni' + (libre ? ' libre' : '') + '" data-id="' + esc(u.id) + '">'
     + '<span class="cod">' + esc(u.codigo || '—') + '</span>'
@@ -196,7 +203,7 @@ function filaUnidad(u){
       + '<small>' + esc(u.modelo || u.tipo || '') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</small></span>'
     + '<span class="cobro">'
       + (libre ? '<span class="t">sin vender</span>'
-               : '<span class="b"><i style="width:' + pct.toFixed(0) + '%"></i></span>'
+               : '<span class="b"><i style="width:' + Math.min(100, pct).toFixed(0) + '%"></i></span>'
                  + '<span class="t">' + pct.toFixed(0) + ' % cobrado</span>')
       + '</span>'
     + '<span class="precio">' + (precio ? esc(dinero(precio, u.moneda)) : '—') + '</span>'
@@ -243,13 +250,12 @@ function pintar(){
     const libres = g.filter(u => u.estado === 'disponible').length;
     const cartera = g.reduce((a, u) => a + num(u.precio), 0);
     const cobrado = g.reduce((a, u) => a + num(u.facturado), 0);
-    const pct = cartera ? Math.min(100, cobrado / cartera * 100) : 0;
+    const pct = cartera ? cobrado / cartera * 100 : 0;
     /* Por moneda: una carpeta puede mezclar divisas —Riverfront esta en IDR— y
        tomar la de la primera unidad da una cifra que no existe en ninguna.
        Misma pieza que la version viva (`lwSumaPorMoneda`/`lwSumaTexto`). */
     const carteraTxt = lwSumaTexto(lwSumaPorMoneda(g, u => num(u.precio), u => u.moneda));
     const cobradoTxt = lwSumaTexto(lwSumaPorMoneda(g, u => num(u.facturado), u => u.moneda));
-    const m = (g[0] && g[0].moneda) || 'EUR';
     /* CARPETAS PRIMERO — vuelve a ser el estado de entrada (26-ago-2026, owner:
        «incorpora la vista por carpetas como por defecto, como estaba»).
        Antes se abrían los dos primeros, y con eso lo que se veía al entrar era
@@ -282,7 +288,7 @@ function pintar(){
       + (g.length
           ? '<span class="plata"><span class="n">' + esc(carteraTxt) + '</span>'
               + '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small></span>'
-            + '<span class="barraP"><i style="width:' + pct.toFixed(1) + '%"></i></span>'
+            + '<span class="barraP"><i style="width:' + Math.min(100, pct).toFixed(1) + '%"></i></span>'
           : '<span class="plata"></span>')
       + '</summary>'
       + (g.length ? g.map(filaUnidad).join('')
