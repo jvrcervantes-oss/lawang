@@ -1,36 +1,275 @@
 <!DOCTYPE html>
-<html lang="es" data-lw3>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="color-scheme" content="light">
 <link rel="icon" href="/favicon.png">
 <title>Lawang · Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<!-- Instrument Sans SOLO para .lw-cifra (--font-cifra en brand.css, 11-ago).
+     Si esta página deja de ser la única que usa .lw-cifra, la que se sume
+     también tiene que cargar este peso 700 — si no, la cifra cae a Georgia
+     sin avisar (mismo aviso que ya llevaba Cormorant Garamond antes). -->
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!-- Catálogo y formato de dinero: los MISMOS ficheros que el hub vivo. Esta v3
-     cambia la piel y el comportamiento, no la fuente de verdad de qué
-     herramientas existen ni de quién las ve (regla 0 de la suite). -->
-<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="/contracts/assets/dinero.js?v=5183def2"></script>
-<!-- LA CÁSCARA REAL DE LA SUITE. El panel v3 dejó de tener motor propio el
-     23-ago-2026: tenía una copia entera de los muelles, del pulsable, del
-     popover y de los avisos, y en cuanto la suite creció eso eran dos casas
-     con la misma fachada y dos sitios donde arreglar el mismo fallo.
-     Ahora carga lo MISMO que las once herramientas y encima la capa v3. -->
-<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Solo por el PANEL DE USUARIO: el hub tiene cabecera propia y no usa la barra
+     compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
+     también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del
+     `data-lw-usuario` de la cabecera. -->
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
-<!-- topbar.js MONTA EL MENÚ LATERAL Y EL PANEL DE CUENTA. Al rehacer la
-     cabecera de esta pantalla se puso `topbar.css` y se olvidó el script, así
-     que el panel v3 salió sin menú lateral: la única pantalla de la suite sin
-     él, y justo la que se abre primero. Se cuelga del evento `lw-ficha` que
-     dispara el arranque de abajo. -->
-<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
+<!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
+     doce, seis se habian quedado fuera del fichero que existe justamente para
+     que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
+     Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
+     esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
+     no le mueve lo que tenia. -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=edafb007">
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   INTRANET LAWANG · rediseño 30-jul-2026 (v3)
+
+   AUTOPSIA DE LA v2 (28-jul, en Backups/) — qué falla, no qué me gusta menos:
+
+   1. ERA UNA REJILLA DE TARJETAS IDÉNTICAS. Siete cajas con icono +
+      título + párrafo, todas del mismo tamaño. Es el patrón que el
+      manual del estudio prohíbe explícitamente, y con razón: siete
+      objetos iguales no tienen jerarquía, así que la vista no sabe por
+      dónde empezar y hay que LEER las siete para elegir una.
+
+   2. FILO LATERAL DE COLOR (`a.tool::before`, 3px verdes). Prohibido en
+      el manual y por el mismo motivo: no significa nada. Marcaba "está
+      viva" en una lista donde todas lo están.
+
+   3. TARJETA FANTASMA: borde de 1px + sombra difusa de 28px en hover.
+      O borde o sombra definida, no las dos como decoración.
+
+   4. NO DECÍA NADA. Siete enlaces y ni un dato. Un hub que abres veinte
+      veces al día y que no te dice qué ha cambiado lo hace mejor la
+      barra de marcadores. Este es el cambio de fondo: cada herramienta
+      trae su estado real (contratos editables, firmas esperando,
+      documentos emitidos), consultado con los permisos de quien mira.
+
+   5. SIN TECLADO. Diez personas entran aquí a diario y solo se podía
+      apuntar y hacer clic. Ahora se escribe para filtrar, ↑↓ para
+      moverse, Enter para abrir; la primera fila ya viene enfocada.
+
+   6. EL ELEMENTO MÁS GRANDE ERA EL QUE MENOS DECÍA: "Herramientas del
+      equipo" en serif a 40px. La serif se queda en una sola palabra —
+      la marca — y el resto es Jost. En una herramienta, la tipografía
+      display en rótulos es ruido (manual: registro producto).
+
+   HONESTIDAD DE LOS DATOS: si una consulta falla, la fila NO muestra
+   "0". Un cero falso en un panel de control es peor que un hueco: el
+   hueco se pregunta, el cero se cree. Misma lección que el logo que
+   caía al de otra empresa cuando el JS venía cacheado.
+
+   Modo claro fijo: la identidad de Lawang es Raw Linen al 60% del
+   layout, y un modo oscuro automático rompe esa proporción.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root{
+  /* marca — hex exactos del brand guide */
+  --tg:#485B37;   /* Territorial Green: acento, y solo acento */
+  --dl:#104C4F;   /* Deep Lagoon */
+  --va:#2E3437;   /* Volcanic Ash */
+  --sc:#8F9B7A;   /* Soft Canopy */
+  --ss:#BEB3A5;   /* Stone Sand */
+  --rl:#F1EBDD;   /* Raw Linen */
+  --sup:#FFFFFF;         /* superficie de trabajo */
+  --sup-2:#FAF7F0;       /* segunda capa: cabecera de grupo, fila enfocada */
+  --line:#E4DCCB;
+  --line-fuerte:#D3C8B2;
+  --ink:#21272A;         /* 14.8:1 sobre blanco */
+  --ink-2:#4A5052;       /* 8.0:1 sobre blanco */
+  --ink-3:#6B7072;       /* 5.1:1 — mínimo para texto pequeño, no bajar más */
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Jost',system-ui,-apple-system,sans-serif;
+  --r:12px;   /* 6-ago-2026: la escala de suite.css (--r-m:12px), no una propia */
+  --sal:cubic-bezier(.22,1,.36,1);   /* ease-out; sin rebote */
+  --z-barra:20;   /* única capa que se superpone: la barra pegajosa */
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; }
+body{
+  font-family:var(--sans); font-size:15px; background:var(--rl); color:var(--ink);
+  min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
+}
+body[hidden]{ display:none; }
+
+/* ── barra ────────────────────────────────────────────────────── */
+/* La barra ya NO se define aquí: es `.lw-topbar` de topbar.css, la misma que las
+   ocho herramientas, con `.lw-topbar-oscura` encima para la paleta. Lo único que
+   se queda es lo que esta pantalla tiene y las otras no: quién soy con su rol.
+
+   Antes vivía aquí entera, con `.bar{ max-width:1060px; margin:0 auto }`, y por
+   eso el logotipo no caía donde cae en el resto. Deep Lagoon se conserva:
+   decisión del owner el 16-ago, y ya lo era desde el 6-ago — el hub era la única
+   pantalla con la cabecera casi negra y eso se leía como otro producto. */
+header.lw-topbar{ position:sticky; top:0; z-index:var(--z-barra); }
+.yo{ display:flex; align-items:center; gap:9px; min-width:0; }
+.yo .quien{ font-size:12.5px; color:var(--rl); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:210px; }
+.rol{
+  flex:none; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  border:1px solid rgba(241,235,221,.35); border-radius:999px; padding:3px 9px; color:var(--ss);
+}
+.rol.manda{ border-color:var(--sc); color:#CBD6B6; }
+/* `#out` ya es un `.lw-btn` como el de las herramientas. Normalmente ni se ve:
+   el panel de cuenta lo esconde y ofrece «Cerrar sesión» desde el menú. Se queda
+   como respaldo por si ese panel no llega a montarse. */
+#out:focus-visible{ outline:2px solid var(--sc); outline-offset:2px; }
+
+/* ── encabezado de página ─────────────────────────────────────── */
+/* 1308 y `26px 26px 34px`: el lienzo del mockup 1a (1360 - 2x26). */
+main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 34px; }
+/* rejilla del mockup: lo reciente a la izquierda, el carril de 300px a la
+   derecha. En pantalla estrecha el carril baja, no desaparece. */
+.dosCol{ display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; margin:0 0 24px; }
+@media (max-width:900px){ .dosCol{ grid-template-columns:1fr; } }
+/* `min-width:0` NO es cosmetico: un hijo de grid vale por defecto `min-width:auto`,
+   asi que la tabla de «Operaciones recientes» empujaba su columna y con ella toda
+   la pagina — en un movil de 614px el body medía 738 y se desplazaba de lado.
+   La tabla se desplaza DENTRO de su caja, que es lo que hay que hacer con una
+   tabla ancha: nunca dejar que mueva la pagina entera. */
+.dosCol > *{ min-width:0; }
+.dosCol .sui-tabla-caja{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+/* Las cajas del carril (firmas, vencimientos) llevan texto largo en dos columnas:
+   sin esto, un nombre largo tampoco cabe y estira la caja. */
+.railFila{ gap:10px; }
+.railFila > span:first-child{ min-width:0; overflow-wrap:anywhere; }
+.panelCab{ padding:15px 20px; font-size:13px; font-weight:600; color:var(--ink); }
+.railCaja{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+.railCaja + .railCaja{ margin-top:14px; }
+.railCaja .t{ font-size:12px; font-weight:600; color:var(--ink); margin-bottom:10px; }
+/* Avisos plegados del cuadro de firmas: una linea que no empuja las
+   herramientas hacia abajo, y que al abrirse enseña lo mismo de antes. */
+.railMas{ margin-top:2px; }
+.railMas > summary{ list-style:none; cursor:pointer; font-size:11.5px; padding:6px 0 2px;
+  color:var(--texto-2,#4A5052); }
+.railMas > summary::-webkit-details-marker{ display:none; }
+.railMas > summary::before{ content:'▸ '; }
+.railMas[open] > summary::before{ content:'▾ '; }
+.railMas > summary:hover{ color:var(--dl,#104C4F); }
+
+.railFila{ display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:5px 0; }
+.railFila .v{ font-weight:600; font-variant-numeric:tabular-nums; }
+.railFila.tarde{ color:#9E2F26; }
+.railFila .espera{ color:#8C5E10; }
+.lede{ display:flex; align-items:flex-end; gap:24px; margin-bottom:20px; flex-wrap:wrap; }
+.lede > div{ min-width:0; }
+.lede h1{
+  margin:0; font-size:23px; font-weight:500; letter-spacing:.005em; color:var(--ink);
+  text-wrap:balance;
+}
+.lede p{ margin:0; font-size:14px; color:var(--ink-2); max-width:62ch; }
+
+/* buscador: es el camino rápido, no un adorno. Se enfoca al cargar. */
+.buscar{ position:relative; flex:1; min-width:240px; }
+.buscar i{ position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:16px; color:var(--sc); }
+#q{
+  width:100%; font:inherit; font-size:14px; color:var(--ink);
+  padding:12px 84px 12px 40px; background:var(--sup);
+  border:1px solid var(--line); border-radius:999px;
+  transition:border-color .16s var(--sal), box-shadow .16s var(--sal);
+}
+#q::placeholder{ color:var(--ink-3); }
+#q:focus{ outline:none; border-color:var(--sc); box-shadow:0 0 0 3px rgba(143,155,122,.22); }
+.buscar kbd{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  font:inherit; font-size:11px; color:var(--sc); background:#F7F3E9;
+  border:1px solid var(--line); border-radius:6px; padding:3px 8px; pointer-events:none;
+}
+
+/* ── grupos y filas ───────────────────────────────────────────── */
+@keyframes lwFadeUp{ from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+/* 0,04s por fila (handoff): con once herramientas el ultimo entra a 0,44s,
+   que se nota como una cascada y no como una espera. `both` deja el estado
+   final puesto por si la animacion no llega a correr. */
+.fila.entra{ animation:lwFadeUp .45s cubic-bezier(.22,.61,.36,1) both;
+             animation-delay:calc(var(--i,0) * .04s); }
+.grupo{ margin-top:26px; }
+.grupo:first-of-type{ margin-top:8px; }
+.grupo > h2{
+  margin:0 0 8px; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--sc);
+}
+.filas{
+  background:var(--sup); border:1px solid var(--line); border-radius:var(--r); overflow:hidden;
+}
+.fila{
+  display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:14px;
+  padding:15px 18px; border-top:1px solid var(--line);
+  text-decoration:none; color:inherit; position:relative;
+  transition:background .14s var(--sal);
+}
+.fila:first-child{ border-top:none; }
+.fila:hover{ background:var(--sup-2); }
+.fila:focus-visible{ outline:none; background:var(--sup-2); box-shadow:inset 3px 0 0 var(--tg); }
+.fila.marcada{ background:var(--sup-2); box-shadow:inset 3px 0 0 var(--tg); }   /* cursor del teclado */
+.fila:active{ background:#F5F1E8; }
+.fila > i{ font-size:20px; color:var(--ink-2); justify-self:center; }
+.fila .nombre{ font-size:15px; font-weight:500; letter-spacing:.005em; }
+.fila .para{ display:block; margin-top:2px; font-size:12.5px; color:var(--ink-2); line-height:1.45; }
+.fila .estado{
+  display:flex; align-items:center; gap:10px; justify-self:end;
+  font-size:13px; color:var(--ink-2); text-align:right; white-space:nowrap;
+}
+.fila .cifra{ font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
+/* la única marca de color de la página: algo que espera a alguien */
+.fila .urge{ color:#7A4B14; background:#F7EEDC; border-radius:999px; padding:3px 9px; font-size:12.5px; }
+.fila .flecha{ font-size:15px; color:var(--sc); }
+.fila:hover .flecha, .fila.marcada .flecha{ color:var(--tg); }
+
+/* esqueleto mientras llegan las cifras: no un spinner en medio del contenido */
+.hueso{ display:inline-block; width:74px; height:11px; border-radius:6px; background:var(--line); opacity:.75;
+        animation:latir 1.1s ease-in-out infinite; }
+@keyframes latir{ 50%{ opacity:.35; } }
+
+/* pendiente de construir: no es una tarjeta más, es una fila apagada que dice qué falta */
+.fila.pendiente{ cursor:default; }
+.fila.pendiente .nombre{ color:var(--ink-2); }
+.fila.pendiente > i{ color:var(--ss); }
+.fila.pendiente:hover{ background:transparent; }
+.fila .falta{ font-size:12.5px; color:#6A5A3C; }
+
+.sin-nada{ padding:22px 16px; font-size:14px; color:var(--ink-2); }
+.aviso{
+  margin:0 0 18px; padding:11px 14px; font-size:13.5px; line-height:1.5; color:#6A4A14;
+  background:#F7EEDC; border:1px solid #E6D7B4; border-radius:var(--r);
+}
+footer{ width:100%; max-width:1060px; margin:0 auto; padding:0 26px 34px; font-size:12.5px; color:var(--ink-3); }
+footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
+
+@media (max-width:640px){
+  /* en el móvil queda la marca y el botón: quién soy y con qué rol es dato de
+     escritorio, y aquí sólo servía para empujar la página fuera de la pantalla */
+  .yo{ display:none; }
+  main{ padding:24px 16px 44px; }
+  footer{ padding:0 16px 28px; }
+  .lede{ gap:14px; }
+  .fila{ grid-template-columns:22px 1fr; padding:13px 14px; }
+  .fila .estado{ grid-column:2; justify-self:start; margin-top:6px; }
+  .fila .flecha{ display:none; }
+  .buscar kbd{ display:none; }
+  #q{ padding-right:16px; }
+}
+@media (prefers-reduced-motion:reduce){
+  *{ transition:none !important; animation:none !important; }
+}
+</style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
@@ -43,450 +282,65 @@
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
-<style>
-/* ═══════════════════════════════════════════════════════════════════════════
-   LAWANG · PANEL v3 — 23-ago-2026
-   Propuesta de rediseño. Convive con /intranet/ sin tocarlo.
-
-   QUÉ CAMBIA RESPECTO A LO QUE HAY VIVO
-   El hub actual es correcto y honesto con los datos; lo que no tiene es
-   COMPORTAMIENTO. Todo lo que se mueve en él son tres `@keyframes` de entrada
-   y transiciones CSS de 140 ms: nada se puede agarrar, nada responde al
-   pulsar, nada hereda la velocidad de la mano. Esta versión aplica el manual
-   de Apple (Designing Fluid Interfaces + The Details of UI Typography +
-   Principles of Great Design) de arriba abajo:
-
-     · muelles propios con la parametrización de Apple (amortiguación +
-       respuesta), no duraciones fijas — §4
-     · todo animable es interrumpible: se arranca SIEMPRE desde el valor en
-       pantalla y la velocidad se encadena en el retarget — §3
-     · arrastre 1:1 con Pointer Events y captura, respetando dónde agarraste
-       — §2
-     · entrega de velocidad y proyección de momento al soltar — §5, §6
-     · goma en los bordes, nunca un tope seco — §9
-     · materiales translúcidos con jerarquía por peso y borde de scroll en
-       vez de una línea de 1px — §12
-     · háptica y sonido opcional en el MISMO fotograma que el visual — §13
-     · movimiento reducido, transparencia reducida y contraste alto, los tres
-       — §14
-     · tracking y leading por tamaño, nunca un letter-spacing único — §15
-
-   LO QUE NO SE TOCA: la paleta de marca (Raw Linen / Deep Lagoon /
-   Territorial Green), la serif reservada a la marca, el modo claro fijo, y la
-   regla de oro del panel — si una consulta falla se enseña un hueco, jamás un
-   cero inventado.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-:root{
-  /* marca — hex exactos del brand guide */
-  --tg:#485B37;   --dl:#104C4F;   --va:#2E3437;
-  --sc:#8F9B7A;   --ss:#BEB3A5;   --rl:#F1EBDD;
-
-  --sup:#FFFFFF;
-  --sup-2:#FAF7F0;
-  --line:#E4DCCB;
-  --line-fuerte:#D3C8B2;
-  --ink:#21272A;      /* 14.8:1 */
-  --ink-2:#4A5052;    /* 8.0:1  */
-  --ink-3:#6B7072;    /* 5.1:1 — suelo para texto pequeño */
-
-  /* significado, no decoración */
-  --mal:#9E2F26;  --espera:#8C5E10;  --bien:#3F5230;
-
-  --serif:'Cormorant Garamond',Georgia,serif;
-  --sans:'Jost',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --cifra:'Instrument Sans',system-ui,sans-serif;
-
-  --r:12px;        /* radio de panel: 12, no 16 (espec visual) */
-  --r-s:10px;
-  --pill:999px;    /* pastilla: la norma, no la excepción */
-
-  /* §12 — el material se declara una vez y se reutiliza; el peso cambia */
-  --vidrio-pesado:saturate(180%) blur(24px);
-  --vidrio-ligero:saturate(140%) blur(12px);
-
-  --sombra-1:0 1px 2px rgba(33,39,42,.05);
-  --sombra-2:0 6px 18px -6px rgba(33,39,42,.16), 0 2px 5px rgba(33,39,42,.06);
-  --sombra-3:0 26px 60px -18px rgba(33,39,42,.34), 0 8px 20px rgba(33,39,42,.10);
-
-  --alto-barra:64px;
-}
-
-*{ box-sizing:border-box; }
-html{ -webkit-text-size-adjust:100%; }
-html,body{ margin:0; }
-body{
-  /* §15 — la base en rem para que el ajuste de tamaño de texto del usuario
-     escale TAMBIÉN el espaciado y no reviente la rejilla. */
-  font:400 1rem/1.5 var(--sans);
-  font-size:15px;
-  background:var(--rl); color:var(--ink);
-  min-height:100dvh; display:flex; flex-direction:column;
-  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-  overscroll-behavior-y:none;
-}
-body[hidden]{ display:none; }
-/* mientras una hoja está abierta el fondo no se desplaza detrás */
-body.bloqueado{ overflow:hidden; }
-
-/* §15 — tracking y leading SIEMPRE por tamaño. Ni un letter-spacing global. */
-h1,h2,h3{ margin:0; font-weight:600; font-optical-sizing:auto; }
-.t-display{ font-size:clamp(1.55rem,3.4vw,2.05rem); line-height:1.06; letter-spacing:-.022em; font-weight:500; }
-.t-titulo { font-size:1.02rem; line-height:1.25; letter-spacing:-.012em; font-weight:600; }
-.t-cuerpo { font-size:.9rem;  line-height:1.55; letter-spacing:0; }
-.t-menudo { font-size:.8rem;  line-height:1.45; letter-spacing:.005em; }
-.t-rotulo {
-  font-size:.69rem; line-height:1.2; letter-spacing:.1em; text-transform:uppercase;
-  font-weight:600; color:var(--ink-2);
-}
-
-/* ── LO PROPIO DE ESTA BARRA ─────────────────────────────────────────────────
-   La barra es `.lw-topbar.lw-topbar-oscura` de topbar.css y el material
-   translúcido se lo pone suite-v3.css. Lo único que esta pantalla tiene y las
-   herramientas no es la marca en serif y el quién-soy con su rol. */
-.lw-topbar{ z-index:40; }
-.lw-topbar kbd{ font:inherit; font-size:.66rem; opacity:.72; border:1px solid rgba(241,235,221,.3);
-                border-radius:6px; padding:1px 5px; margin-left:2px; }
-.yo{ display:flex; align-items:center; gap:9px; min-width:0; flex:none; }
-.avatar{
-  width:30px; height:30px; flex:none; border-radius:999px;
-  display:grid; place-items:center; font-size:.75rem; font-weight:700; color:#0C3A3C;
-  background:linear-gradient(160deg,#CBD6B6,#8F9B7A);
-}
-.yo .quien{ font-size:.78rem; color:#EDE6D7; max-width:190px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.yo .rol{ font-size:.62rem; letter-spacing:.09em; text-transform:uppercase; font-weight:600; color:#BEB3A5; }
-
-/* ── lienzo ─────────────────────────────────────────────────────────────── */
-main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 44px; }
-
-.lede{ display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; margin:6px 0 26px; }
-.lede > div:first-child{ min-width:0; flex:1; }
-.lede p{ margin:7px 0 0; color:var(--ink-2); max-width:58ch; }
-.acciones{ display:flex; gap:10px; flex-wrap:wrap; }
-
-/* botones del lienzo (material claro) */
-/* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
-   página ya carga. Aquí vivían 3 reglas propias: era la copia número N de
-   seis, todas divergidas, y el único que sí declaraba `:focus-visible`, ahora compartido. Ver la nota larga de allí. */
-.btn i{ font-size:1rem; }
-
-/* ── §12 · BANDA DE CIFRAS ──────────────────────────────────────────────────
-   En ancho estrecho es un carril con puntos de anclaje: se lanza con el dedo y
-   la tarjeta que queda es la PROYECTADA por la velocidad, no la más cercana al
-   punto donde soltaste (§6). */
-.banda{
-  display:flex; gap:14px; margin:0 0 10px; padding:2px;
-  overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
-  scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch;
-}
-.banda::-webkit-scrollbar{ display:none; }
-.banda[hidden]{ display:none; }
-.kpi{
-  position:relative; flex:1 1 0; min-width:186px; scroll-snap-align:start;
-  display:flex; flex-direction:column; gap:6px;
-  padding:17px 19px; border-radius:var(--r);
-  background:var(--sup); border:1px solid var(--line); box-shadow:var(--sombra-1);
-  text-decoration:none; color:inherit; cursor:pointer;
-  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
-  will-change:transform; transform-origin:50% 60%;
-}
-.kpi:focus-visible{ outline:2px solid var(--tg); outline-offset:3px; }
-.kpi .rot{ font-size:.69rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--ink-2); }
-/* §15 — la cifra es lo más grande, así que es lo que más tracking negativo pide */
-.kpi .n{
-  font-family:var(--cifra); font-size:2rem; font-weight:700; line-height:1;
-  letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:var(--dl);
-}
-.kpi .pie{ font-size:.75rem; line-height:1.35; color:var(--ink-2); }
-.kpi .pie.mal{ color:var(--mal); } .kpi .pie.espera{ color:var(--espera); } .kpi .pie.bien{ color:var(--bien); }
-.kpi.urge{ border-color:#E2C48E; background:linear-gradient(180deg,#FFFDF8,#FFF); }
-.kpi.muda .n{ color:var(--ss); }
-/* la invertida: una sola, y por jerarquía (espec visual) */
-.kpi.invertida{ background:var(--dl); border-color:var(--dl); }
-.kpi.invertida .rot{ color:#BEB3A5; } .kpi.invertida .n{ color:#fff; } .kpi.invertida .pie{ color:#DFD7C6; }
-.kpi .mas{
-  position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:var(--pill);
-  display:grid; place-items:center; border:0; background:transparent; color:var(--ss);
-  cursor:pointer; opacity:0; font-size:.95rem;
-}
-.kpi:hover .mas, .kpi:focus-within .mas{ opacity:1; }
-.kpi .mas:hover{ background:var(--sup-2); color:var(--ink-2); }
-
-.banda-pie{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:0 0 24px; font-size:.75rem; color:var(--ink-3); }
-.enlacillo{ font:inherit; background:none; border:0; padding:0; color:var(--tg); font-weight:600; cursor:pointer; border-radius:4px; }
-.enlacillo:focus-visible{ outline:2px solid var(--tg); outline-offset:3px; }
-
-/* ── dos columnas ───────────────────────────────────────────────────────── */
-.dos{ display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; margin:0 0 30px; }
-.dos > *{ min-width:0; }   /* un hijo de grid mide `auto`: sin esto la tabla empuja la página */
-@media (max-width:960px){ .dos{ grid-template-columns:1fr; } }
-
-.panel{ background:var(--sup); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--sombra-1); overflow:hidden; }
-.panel > .cab{ padding:15px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.panel .cuerpo-tabla{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-table{ width:100%; border-collapse:collapse; }
-th{ font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--ink-2);
-    text-align:left; padding:10px 16px; border-top:1px solid var(--line); background:var(--sup-2); white-space:nowrap; }
-td{ font-size:.81rem; padding:11px 16px; border-top:1px solid var(--line); color:var(--ink); white-space:nowrap; }
-td.flojo{ color:var(--ink-3); } td.num{ text-align:right; font-variant-numeric:tabular-nums; }
-td.clave{ font-weight:600; font-variant-numeric:tabular-nums; }
-tr[data-ir]{ cursor:pointer; will-change:transform; }
-tr[data-ir]:hover td{ background:var(--sup-2); }
-/* ETIQUETA SUAVE — variante declarada, no una copia (26-ago-2026, LAW-90).
-   La geometría (tamaño, tracking, radio, caja) sale ya de la compartida de
-   `suite.css`; aquí había una cuarta copia con `.63rem` y su propio tracking.
-   Lo que SÍ es propio del hub y se queda: la INTENSIDAD. En un panel con una
-   fila de estados por herramienta, la pastilla sólida de la suite grita —
-   aquí el estado acompaña, no avisa. Mismo color, menos peso: fondo claro,
-   texto del color del estado y borde a juego. */
-.tag{ background:transparent; color:var(--texto-2); border:1px solid var(--line); }
-.tag.ok{ color:var(--bien); border-color:#C3CDAF; background:#F2F5EC; }
-.tag.info{ color:var(--dl); border-color:#AFC7C8; background:#EDF4F4; }
-.tag.alerta{ color:var(--mal); border-color:#E2B3AE; background:#FBF0EF; }
-
-.rail .caja{ background:var(--sup); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px; box-shadow:var(--sombra-1); }
-.rail .caja + .caja{ margin-top:14px; }
-.rail .caja.aviso{ border-color:#DDA85A; }
-.rail .caja.error{ border-color:#C8791F; }
-.rail .t{ font-size:.81rem; font-weight:600; margin-bottom:10px; }
-.railFila{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; font-size:.78rem; padding:6px 0; }
-.railFila > span:first-child{ min-width:0; overflow-wrap:anywhere; display:flex; flex-direction:column; gap:2px; }
-.railFila em{ font-style:normal; font-size:.72rem; color:var(--ink-3); }
-.railFila.tarde em{ color:#A5675F; }
-.railFila .v{ font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.railFila.tarde{ color:var(--mal); } .railFila .espera{ color:var(--espera); } .railFila .mal{ color:var(--mal); }
-.railNota{ font-size:.72rem; color:var(--ink-2); line-height:1.45; padding-top:6px; }
-details.mas > summary{ list-style:none; cursor:pointer; font-size:.72rem; padding:6px 0 2px; color:var(--ink-2); }
-details.mas > summary::-webkit-details-marker{ display:none; }
-details.mas > summary::before{ content:'▸ '; } details.mas[open] > summary::before{ content:'▾ '; }
-
-/* ── lista de herramientas ──────────────────────────────────────────────── */
-.grupo{ margin-top:26px; }
-.grupo:first-of-type{ margin-top:8px; }
-.grupo > h2{
-  margin:0 0 8px; font-size:.69rem; letter-spacing:.1em; text-transform:uppercase;
-  font-weight:600; color:var(--sc);
-}
-/* El bloque de lo que pide algo se distingue por el BORDE, no por un filo de
-   color ni una sombra de más: es la misma señal que ya usa el carril de avisos,
-   así que no hay que aprender nada nuevo. */
-.grupo.destacado > h2{ color:#8C5E10; }
-.grupo.destacado .filas{ border-color:#E2C48E; }
-.filas{ background:var(--sup); border:1px solid var(--line); border-radius:var(--r);
-        overflow:hidden; box-shadow:var(--sombra-1,0 1px 2px rgba(34,40,42,.05)); }
-.fila{
-  display:grid; grid-template-columns:26px 1fr auto; align-items:center; gap:14px;
-  border-top:1px solid var(--line);
-  text-decoration:none; color:inherit; position:relative;
-  -webkit-tap-highlight-color:transparent; touch-action:manipulation; will-change:transform;
-}
-/* Dos densidades. La destacada respira porque se lee; la densa cabe porque se
-   recorre — con once herramientas, cuatro píxeles por fila son media pantalla. */
-.fila.destacada{ padding:14px 18px; }
-.fila.densa{ padding:11px 18px; }
-.fila:first-child{ border-top:none; }
-.fila:hover{ background:var(--sup-2); }
-.fila:focus-visible{ outline:none; background:var(--sup-2); box-shadow:inset 3px 0 0 var(--tg); }
-.fila.marcada{ background:var(--sup-2); box-shadow:inset 3px 0 0 var(--tg); }
-.fila > i{ font-size:1.2rem; color:var(--ink-2); justify-self:center; }
-.fila.destacada > i{ color:#8C5E10; }
-.fila .tx{ min-width:0; }
-.fila .nombre{ font-size:.94rem; font-weight:500; letter-spacing:-.004em; }
-.fila.destacada .nombre{ font-weight:600; }
-.fila .para{ display:block; margin-top:3px; font-size:.8rem; line-height:1.4; color:var(--ink-2); }
-.fila .para.urge{ color:#7A4B14; font-weight:500; }
-.fila .estado{
-  display:flex; align-items:center; gap:10px; justify-self:end;
-  font-size:.81rem; color:var(--ink-2); text-align:right; white-space:nowrap;
-}
-.fila .cif{ font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
-.fila .urg{ color:#7A4B14; background:#F7EEDC; border-radius:var(--pill);
-            padding:3px 9px; font-size:.76rem; font-weight:600; }
-.fila .flecha{ font-size:.94rem; color:var(--sc); will-change:transform; }
-.fila:hover .flecha, .fila.marcada .flecha{ color:var(--tg); }
-.hueso{ display:inline-block; width:74px; height:11px; border-radius:6px; background:var(--line); opacity:.75; animation:latir 1.1s ease-in-out infinite; }
-@keyframes latir{ 50%{ opacity:.35; } }
-
-footer{ width:100%; max-width:1520px; margin:0 auto; padding:0 26px 40px; font-size:.75rem; color:var(--ink-3); }
-footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
-
-.banner{
-  margin:0 0 18px; padding:11px 15px; font-size:.81rem; line-height:1.5; color:#6A4A14;
-  background:#F7EEDC; border:1px solid #E6D7B4; border-radius:var(--r);
-}
-.banner b{ font-weight:600; }
-
-/* ── EL CAJÓN ────────────────────────────────────────────────────────────────
-   La caja, el material, la sombra y la barra de agarre vienen de suite.css +
-   suite-v3.css. Aquí solo lo que va DENTRO y que esta pantalla escribe. */
-#hoja .sui-cajon-cab{ display:flex; align-items:flex-start; gap:12px; }
-#hoja h3{ margin:0; font-size:1.02rem; font-weight:600; letter-spacing:-.012em; }
-#hoja .sub{ font-size:.78rem; color:var(--ink-2); margin-top:3px; }
-#hoja .cuerpo{ overflow:auto; padding:16px 20px 22px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
-.dato{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid var(--line); font-size:.84rem; }
-.dato:first-of-type{ border-top:0; }
-.dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
-
-/* ── §12 · PALETA (⌘K) ──────────────────────────────────────────────────────
-   Se MATERIALIZA: el desenfoque y la escala entran juntos, así llega como una
-   superficie real y no como una opacidad. */
-.paleta-fondo{
-  position:fixed; inset:0; z-index:60; display:grid; align-items:start; justify-items:center;
-  padding:12vh 16px 0; background:rgba(26,30,32,.34);
-  opacity:0; pointer-events:none; will-change:opacity;
-}
-.paleta-fondo.viva{ pointer-events:auto; }
-.paleta{
-  width:min(560px,100%); border-radius:16px; overflow:hidden;
-  background:rgba(255,255,255,.86);
-  -webkit-backdrop-filter:var(--vidrio-pesado); backdrop-filter:var(--vidrio-pesado);
-  border:1px solid rgba(255,255,255,.7); box-shadow:var(--sombra-3);
-  transform:scale(.94); will-change:transform,filter;
-}
-.paleta input{
-  width:100%; font:inherit; font-size:1rem; padding:16px 18px; border:0; outline:0;
-  background:transparent; color:var(--ink); letter-spacing:-.006em;
-}
-.paleta input::placeholder{ color:var(--ink-3); }
-.paleta .res{ max-height:46vh; overflow:auto; border-top:1px solid var(--line); }
-.paleta .op{
-  display:flex; align-items:center; gap:12px; padding:11px 18px; cursor:pointer;
-  font-size:.87rem; border-top:1px solid rgba(228,220,203,.6);
-}
-.paleta .op:first-child{ border-top:0; }
-.paleta .op i{ font-size:1.05rem; color:var(--ink-2); }
-.paleta .op .g{ margin-left:auto; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); }
-.paleta .op.sel{ background:rgba(72,91,55,.10); }
-.paleta .pie{ display:flex; gap:16px; align-items:center; padding:9px 18px; border-top:1px solid var(--line);
-              font-size:.7rem; color:var(--ink-3); background:rgba(250,247,240,.7); }
-.paleta .pie kbd{ font:inherit; font-size:.66rem; border:1px solid var(--line-fuerte); border-radius:5px; padding:1px 5px; }
-.paleta .pie .sw{ margin-left:auto; }
-
-/* Los avisos y el popover ya no se definen aquí: son `.v3-tosta` y `.v3-pop`
-   de suite-v3.css, los mismos que usan las once herramientas. */
-
-/* ── §14 · las tres señales, cada una por su cuenta ─────────────────────── */
-.presionado{ background:rgba(72,91,55,.14) !important; }
-/* El acuse sin recorrido (`.v3-pulsada`) lo define suite-v3.css: la capa
-   compartida engancha estos mismos botones por delegación. */
-
-@media (prefers-reduced-motion:reduce){
-  /* No es «sin feedback»: es feedback sin vestíbulo. Se conservan opacidad y
-     color; se quitan recorridos, muelles y rebotes. El motor compartido lee la
-     misma preferencia y salta el muelle al valor final. */
-  *{ animation:none !important; }
-  .kpi,.fila{ transition:opacity .18s ease, background-color .18s ease !important; }
-}
-/* Transparencia reducida y contraste alto: lo del cromo, el cajón y el popover
-   ya está en suite-v3.css. Aquí solo lo que es de esta pantalla. */
-@media (prefers-reduced-transparency:reduce){
-  .paleta{ background:#fff; -webkit-backdrop-filter:none; backdrop-filter:none; }
-}
-@media (prefers-contrast:more){
-  :root{ --line:#B9AC93; --line-fuerte:#8C7F66; --ink-2:#333A3C; --ink-3:#4A5052; }
-  .paleta{ background:#fff; border-color:#8C7F66; }
-  .kpi,.panel,.filas,.rail .caja{ border-width:1.5px; }
-}
-
-/* ── §16.5 · PANTALLAS ESTRECHAS Y RARAS ─────────────────────────────────────
-   Probado con los anchos REALES de un Galaxy Z Fold: 344 px plegado —más
-   estrecho que cualquier móvil normal— y 674 px abierto, que cae justo entre
-   «móvil» y «tableta» y por eso se escapaba de los cortes de siempre. */
-@media (max-width:820px){
-  main{
-    padding-left:max(16px, env(safe-area-inset-left));
-    padding-right:max(16px, env(safe-area-inset-right));
-    padding-bottom:52px;
-  }
-  footer{ padding-left:max(16px, env(safe-area-inset-left));
-          padding-right:max(16px, env(safe-area-inset-right)); }
-}
-@media (max-width:640px){
-  .yo .quien, .yo .rol{ display:none; }
-  /* La banda de cifras es un carril con puntos de anclaje: se desliza. El
-     asomo de la siguiente tarjeta es lo que DICE que se desliza (§8, insinuar
-     el gesto), así que se deja a propósito — pero al 86 % y con margen de
-     anclaje, para que asome un trozo reconocible y no una tarjeta partida por
-     la mitad, que se lee como un fallo de maquetación. */
-  .banda{ scroll-padding-inline:16px; padding-inline:2px; }
-  .kpi{ flex:0 0 86%; min-width:0; }
-  .fila.destacada{ padding:13px 14px; }
-  .fila.densa{ padding:11px 14px; }
-  .fila{ grid-template-columns:22px 1fr; }
-  .fila .estado{ grid-column:2; justify-self:start; margin-top:6px; }
-  .fila .flecha{ display:none; }
-}
-@media (max-width:420px){
-  /* A 344 px la barra no cabe con todo escrito. El buscador se queda en su
-     icono: el atajo ⌘K no existe en un móvil, así que la palabra y la tecla
-     solo ocupaban sitio. La marca y el título siguen, que son el «dónde estoy». */
-  .lw-topbar #btnPaleta span, .lw-topbar #btnPaleta kbd{ display:none; }
-  .lw-topbar #btnPaleta{ padding:8px 10px; }
-  .lw-topbar #out span{ display:none; }
-  .lede h1{ font-size:1.36rem; }
-  .acciones{ width:100%; }
-  .acciones .btn{ flex:1 1 auto; justify-content:center; }
-  .kpi{ flex:0 0 90%; }
-}
-/* Un hijo de grid mide `auto`: sin esto un nombre largo empuja la página entera
-   y el móvil se desplaza de lado. Ya pasó una vez con la tabla de operaciones
-   recientes y está anotado arriba. */
-/* `.kpi` NO entra aquí: tiene su propio `min-width:186px` y meterla en esta
-   lista se lo anulaba. Efecto: a 674 px —el Z Fold abierto— las cinco tarjetas
-   se apretaban a 120 px en vez de desbordar en carril, y «FIRMAS ESPERANDO»
-   salía en dos líneas con el pie en cuatro. La red de seguridad estaba pisando
-   una medida puesta a mano. */
-main, .lede, .lede > div, .dosCol, .dosCol > *, .fila, .fila .tx{ min-width:0; }
-</style>
 </head>
 <body hidden>
-  <!-- LA MISMA BARRA QUE LAS ONCE. Era una `.cromo` propia con sus botones
-       `.chip`: una barra que se parecía a la de las herramientas sin serlo, o
-       sea un sitio más donde arreglar cada cosa dos veces. Ahora es
-       `.lw-topbar` de topbar.css con `lw-topbar-oscura` encima —que es solo la
-       paleta— y los botones son `.lw-btn`, así que la capa v3 los coge por
-       delegación sin cablear nada aquí. -->
-  <header class="lw-topbar lw-topbar-oscura">
-    <div class="lw-spacer" style="flex:1"></div>
-    <button type="button" class="lw-btn" id="btnPaleta">
-      <i class="ph ph-magnifying-glass"></i><span>Buscar</span><kbd>⌘K</kbd>
-    </button>
-    <div class="yo">
-      <span class="avatar" id="avatar">··</span>
-      <span style="display:flex;flex-direction:column;min-width:0;line-height:1.25">
-        <span class="quien" id="who"></span>
-        <span class="rol" id="rol"></span>
-      </span>
+  <!-- LA MISMA BARRA QUE LAS HERRAMIENTAS (16-ago-2026, owner: «unificalo, pero
+       me parece bien que tenga otro color»). Era una cabecera propia: marca de
+       TEXTO en vez del logotipo, y un `.bar` con `max-width:1060px; margin:auto`
+       que la separaba del borde izquierdo — o sea que el logo no caía donde cae
+       en las otras once pantallas.
+
+       Ahora es `.lw-topbar` de verdad, con `topbar.js` inyectando el logotipo y
+       el rótulo igual que en el resto; `lw-topbar-oscura` es SOLO la paleta.
+       Efecto colateral bueno: el panel de cuenta busca el «Salir» viejo DENTRO
+       de la barra, y aquí lo tenía fuera de su alcance, asi que salían dos
+       formas de cerrar sesión. Ahora lo encuentra y lo esconde. -->
+  <header class="lw-topbar lw-topbar-oscura" data-titulo="Panel">
+    <div class="lw-spacer"></div>
+    <div class="yo" data-lw-usuario>
+      <span class="quien lw-who" id="who"></span>
+      <span class="rol" id="rol" hidden></span>
     </div>
-    <button type="button" class="lw-btn" id="out"><i class="ph ph-sign-out"></i><span>Salir</span></button>
+    <button type="button" class="lw-btn" id="out">Salir</button>
   </header>
 
   <main>
     <div id="avisos"></div>
-
-    <section class="lede">
+    <!-- Saludo + acciones, como 1a. El saludo lo escribe el arranque con el
+         nombre de la ficha; las dos acciones son atajos reales a crear. -->
+    <div class="lede">
       <div>
-        <h1 class="t-display" id="saludo">Buenos días</h1>
-        <p class="t-cuerpo" id="saludoSub">Esto es lo que necesita tu atención.</p>
+        <h1 id="saludo">Buenos días</h1>
+        <p id="saludoSub">Esto es lo que necesita tu atención.</p>
       </div>
-      <div class="acciones">
-        <a class="btn" href="/contracts/?nuevo=1" data-press><i class="ph ph-plus"></i>Nuevo contrato</a>
-        <a class="btn solido" href="/facturas/?nueva=1&v3=1" data-press><i class="ph ph-plus"></i>Nueva factura</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <!-- Sin `style=` inline: eran los unicos `.lw-btn` de la suite con la
+             talla pisada a mano (13px/10px 18px), que no era ni la del boton de
+             barra ni la del primario. Ahora miden lo que mide la clase. -->
+        <a class="lw-btn" href="/contracts/?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
+        <a class="lw-btn primary" href="/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
-    </section>
-
-    <section class="banda" id="kpis" hidden aria-label="Estado del negocio"></section>
-    <div class="banda-pie" id="bandaPie" hidden></div>
-
-    <div class="dos" id="dos" hidden>
-      <div id="reciente"></div>
-      <aside class="rail" id="rail"></aside>
     </div>
-
-    <section>
-      <h2 class="t-titulo" style="margin-bottom:2px">Herramientas</h2>
-      <div id="grupos"></div>
-    </section>
+    <!-- Tarjetas de cifra y últimas operaciones (6-ago-2026, handoff de diseño).
+         Van ANTES de la lista de herramientas: al entrar, lo primero es el estado
+         del negocio; la lista es para ir a un sitio, y para eso ya está el
+         buscador con el foco puesto. Los dos contenedores nacen vacíos y con
+         `hidden`, así que si la base no contesta no queda un hueco con marco. -->
+    <div class="lw-kpis" id="kpis" hidden></div>
+    <div class="dosCol" id="dosCol" hidden>
+      <div id="reciente"></div>
+      <div id="rail"></div>
+    </div>
+    <div class="lede" style="margin-top:4px">
+      <div>
+        <h1 style="font-size:16px">Herramientas</h1>
+      </div>
+      <!-- Buscador retirado el 15-ago-2026 (owner). Filtraba una lista de diez
+           entradas que cabe entera en pantalla, y desde el menu lateral estan
+           todas a un clic desde cualquier herramienta: buscar para elegir entre
+           diez cosas visibles es teclear para no mirar. -->
+    </div>
+    <div id="grupos"></div>
   </main>
 
   <footer><div>
@@ -494,763 +348,505 @@ main, .lede, .lede > div, .dosCol, .dosCol > *, .fila, .fila .tx{ min-width:0; }
     <span id="pie-datos"></span>
   </div></footer>
 
-  <!-- EL CAJÓN DE LA SUITE, no una hoja propia. La `.hoja` de antes tenía un
-       fallo que solo se ve con el motor puesto: se centraba con
-       `translateX(-50%)`, y en cuanto el muelle escribía su propio `transform`
-       ese -50% desaparecía y la hoja salía media anchura a la derecha. Con
-       `.sui-cajon` el centrado no depende del transform, y de regalo se
-       comporta igual que el cajón de detalle del portal: mismo gesto, mismos
-       puntos de anclaje, misma barra de agarre. -->
-  <div class="sui-velo" id="velo"></div>
-  <aside class="sui-cajon" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hojaTit">
-    <div class="sui-cajon-cab">
-      <div style="min-width:0">
-        <h3 id="hojaTit">—</h3>
-        <div class="sub" id="hojaSub"></div>
-      </div>
-      <button type="button" class="sui-cajon-x" id="hojaX" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="cuerpo" id="hojaCuerpo"></div>
-  </aside>
-
-  <div class="paleta-fondo" id="paletaFondo">
-    <div class="paleta" id="paleta" role="dialog" aria-modal="true" aria-label="Ir a">
-      <input id="paletaQ" type="text" placeholder="Ir a una herramienta…" autocomplete="off" spellcheck="false">
-      <div class="res" id="paletaRes"></div>
-      <div class="pie">
-        <span><kbd>↑</kbd><kbd>↓</kbd> moverse</span><span><kbd>↵</kbd> abrir</span><span><kbd>esc</kbd> cerrar</span>
-        <label class="sw" style="display:flex;gap:6px;align-items:center;cursor:pointer">
-          <input type="checkbox" id="swSonido"> sonido
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <div class="tostador" id="tostador"></div>
-  <div class="pop" id="pop" role="menu"></div>
-
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<!-- Formato de importes: `lwFormatoImporte` (17-ago-2026). Esta pantalla
+     imprimia el dinero con toLocaleString('es'), que no recibe la moneda y
+     daba tres decimales donde Facturas da dos. El `?v=` lo sella el
+     pre-commit; el valor de aqui es solo el punto de partida. -->
+<script src="/contracts/assets/dinero.js?v=5183def2"></script>
+<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
-/* ═══════════════════════════════════════════════════════════════════════════
-   0 · LO QUE SE TOMA PRESTADO DE LA CAPA COMPARTIDA
-   ═══════════════════════════════════════════════════════════════════════════
-   Muelles, ticker, pulsables, popover, avisos con deshacer, háptica y borde de
-   scroll viven en /contracts/assets/v3/movimiento-v3.js y los usan también las
-   once herramientas. Aquí solo se les pone nombre corto. Lo único que este
-   panel construye por su cuenta es lo que no existe en ninguna otra pantalla:
-   la banda de cifras, la lista de herramientas y la paleta ⌘K. */
-const { Muelle, fx, mueve, arranca, proyecta, goma, masCerca, rastro,
-        sensacion, tosta, MENOS_MOV } = window.LW3;
-/* No hay `pulsable()` local. El acuse al pulsar lo da la capa compartida por
-   delegación en `document`: coge `.lw-btn`, `.sui-btn`, `.sui-cajon-x`… y
-   cualquier cosa marcada con `data-v3-pulsable`, que es como se apuntan los
-   elementos propios de esta pantalla (`.kpi`, `.fila`). `data-v3-escala` y
-   `data-v3-empuja` afinan cuánto encoge y hacia dónde apunta.
-   ⚠️ Durante un rato hubo aquí un `pulsable` de mentira que se tragaba el
-   `alSoltar`: el acuse se veía, pero tocar una tarjeta ya no abría nada. Por eso
-   el comportamiento va en un listener de verdad y no colgado del acuse. */
-const Pop = { abre: LW3.pop, cierra: LW3.popCierra };
+/* ── catálogo de herramientas ──────────────────────────────────────────
+   Añadir una = una entrada aquí. `herr` es la herramienta de
+   `public.usuarios.herramientas`: quien no la tenga no ve la fila (sin ficha
+   en esa tabla se ven todas, igual que antes del panel de permisos).
+   `estado` recibe las cifras ya consultadas y devuelve [texto, urgente], o
+   null si la consulta que necesita no contestó — mejor un hueco que un cero
+   inventado. Sin `estado` (el Dossier trabaja contra ficheros locales, no
+   contra la base) la fila no espera ninguna cifra y no pinta esqueleto. */
+/* El catálogo se mudó a assets/herramientas.js (15-ago-2026) para que el hub y
+   el menú lateral de la barra lean la MISMA lista. Antes vivía aquí, y por eso
+   topbar.js no podía tener selector de herramientas sin duplicarla. */
+const HERRAMIENTAS = LW_HERRAMIENTAS;
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   6 · §12 §3 · HOJA CON PUNTOS DE ANCLAJE
-   ═══════════════════════════════════════════════════════════════════════════
-   · arrastre 1:1 desde donde agarraste (§2)
-   · si la agarras mientras está volando, sigue el dedo desde el valor EN
-     PANTALLA — no da un salto al valor lógico (§3)
-   · pasado el tope superior, goma (§9)
-   · al soltar, el destino lo elige la PROYECCIÓN de la velocidad y el muelle
-     hereda esa misma velocidad (§5, §6)
-   · valores de Apple para cajón/hoja: amortiguación 0,8 · respuesta 0,3 */
-/* ═══════════════════════════════════════════════════════════════════════════
-   6 · EL CAJÓN — lo conduce la capa compartida
-   ═══════════════════════════════════════════════════════════════════════════
-   Todo el gesto (arrastre 1:1, goma en el tope, proyección de momento al
-   soltar, entrega de velocidad, interrumpirlo a media caída) vive en
-   `LW3.cajon`, que es el mismo que mueve el cajón de detalle del portal y el
-   panel de cuenta de las once herramientas. Aquí solo se le mete contenido y
-   se le pone la clase; el resto ya está resuelto en un sitio. */
-const Hoja=(()=>{
-  const el=document.getElementById('hoja'), velo=document.getElementById('velo');
-  const mando=LW3.cajon(el,{ velo, aspa:'#hojaX' });
-  let quienAbrio=null;
+const $ = s => document.querySelector(s);
 
-  document.getElementById('hojaX').addEventListener('click',()=>cierra());
+let FICHA = null, CIFRAS = null, VISIBLES = [], CURSOR = 0;
 
-  function abre(tit, sub, html, origen){
-    quienAbrio=origen||null;
-    document.getElementById('hojaTit').textContent=tit;
-    document.getElementById('hojaSub').textContent=sub||'';
-    document.getElementById('hojaCuerpo').innerHTML=html||'';
-    el.classList.add('on'); velo.classList.add('on');
-    document.body.classList.add('bloqueado');
-    document.getElementById('hojaX').focus({preventScroll:true});
-  }
-  function cierra(){
-    el.classList.remove('on'); velo.classList.remove('on');
-    document.body.classList.remove('bloqueado');
-    if(quienAbrio && quienAbrio.focus) quienAbrio.focus({preventScroll:true});
-  }
-  velo.addEventListener('click',cierra);
-  return { abre, cierra, get abierta(){ return el.classList.contains('on'); } };
-})();
+/* ── qué se le enseña a cada uno ───────────────────────────────────── */
+const esAdmin = f => !!f && (f.rol === 'super_admin' || f.rol === 'admin');
+// `t.herr` es normalmente una herramienta ("facturas"); Creatividades unifica
+// Dossier + Creatividades bajo una tarjeta y necesita "cualquiera de las dos"
+// (7-ago-2026) — de ahí el `[].concat`, que trata un string suelto como un
+// array de uno sin tener que tocar las demás tarjetas.
+const permitida = t => lwPermitida(t, FICHA);   // la regla vive en assets/herramientas.js
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   8 · §12 · PALETA ⌘K — se materializa y sale por el mismo camino
-   ═══════════════════════════════════════════════════════════════════════════ */
-const Paleta=(()=>{
-  const fondo=document.getElementById('paletaFondo'), caja=document.getElementById('paleta');
-  const q=document.getElementById('paletaQ'), res=document.getElementById('paletaRes');
-  const ff=fx(fondo), fc=fx(caja);
-  ff.o=new Muelle(0); fc.o=new Muelle(0); fc.b=new Muelle(16); fc.s.fija(.94);
-  let abierta=false, lista=[], sel=0, ultimoFoco=null;
-
-  function pinta(){
-    const t=q.value.trim().toLowerCase();
-    lista=VISIBLES.filter(h=>!t||((h.nombre+' '+h.para+' '+h.claves).toLowerCase().includes(t)));
-    sel=0;
-    res.innerHTML=lista.length
-      ? lista.map((h,i)=>'<div class="op'+(i===0?' sel':'')+'" data-i="'+i+'"><i class="ph '+esc(h.icon)+'"></i><span>'+esc(h.nombre)+'</span><span class="g">'+esc(h.grupo)+'</span></div>').join('')
-      : '<div class="op" style="color:var(--ink-3)">Nada con «'+esc(q.value)+'»</div>';
-  }
-  function marca(n){
-    if(!lista.length) return;
-    sel=(n+lista.length)%lista.length;
-    [...res.children].forEach((c,i)=>c.classList.toggle('sel',i===sel));
-    const c=res.children[sel]; if(c) c.scrollIntoView({block:'nearest'});
-  }
-  function abre(){
-    if(abierta) return; abierta=true; ultimoFoco=document.activeElement;
-    fondo.classList.add('viva'); q.value=''; pinta();
-    fc.s.fija(.94); fc.b.fija(16); fc.o.fija(0); ff.o.fija(0);
-    ff.o.a(1,{amort:1,resp:.24,suave:true});
-    fc.o.a(1,{amort:1,resp:.24,suave:true}); fc.b.a(0,{amort:1,resp:.34}); fc.s.a(1,{amort:.82,resp:.34});
-    arranca(fondo); arranca(caja);
-    q.focus({preventScroll:true});
-  }
-  function cierra(){
-    if(!abierta) return; abierta=false; fondo.classList.remove('viva');
-    /* mismo camino, invertido (§7) */
-    ff.o.a(0,{amort:1,resp:.2,suave:true});
-    fc.o.a(0,{amort:1,resp:.2,suave:true}); fc.b.a(12,{amort:1,resp:.2}); fc.s.a(.95,{amort:1,resp:.2});
-    arranca(fondo); arranca(caja);
-    if(ultimoFoco&&ultimoFoco.focus) ultimoFoco.focus({preventScroll:true});
-  }
-  q.addEventListener('input',pinta);
-  res.addEventListener('pointerdown',e=>{ const o=e.target.closest('.op[data-i]'); if(o){ marca(+o.dataset.i); ir(); } });
-  function ir(){ const h=lista[sel]; if(h){ sensacion('hecho'); location.href=h.href; } }
-  addEventListener('keydown',e=>{
-    const cmd=(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k';
-    if(cmd){ e.preventDefault(); abierta?cierra():abre(); return; }
-    if(!abierta) return;
-    if(e.key==='Escape'){ e.preventDefault(); cierra(); }
-    else if(e.key==='ArrowDown'){ e.preventDefault(); marca(sel+1); }
-    else if(e.key==='ArrowUp'){ e.preventDefault(); marca(sel-1); }
-    else if(e.key==='Enter'){ e.preventDefault(); ir(); }
-  });
-  fondo.addEventListener('pointerdown',e=>{ if(e.target===fondo) cierra(); });
-  return { abre, cierra };
-})();
-
-/* El interruptor de sonido gobierna la preferencia de la capa COMPARTIDA: es
-   la misma para el panel y para las once herramientas, así que encenderlo aquí
-   lo enciende en toda la suite. Vivía en un `SONIDO` local de esta página, que
-   al mudar el motor dejó de existir y se llevó por delante todo el arranque —
-   `pintar()` nunca llegaba a correr y la pantalla salía vacía. */
-const swSonido=document.getElementById('swSonido');
-swSonido.checked=LW3.sonido;
-swSonido.onchange=()=>{ LW3.sonido=swSonido.checked; if(LW3.sonido) sensacion('encaje'); };
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   9 · ESTADO DE LA PÁGINA
-   ═══════════════════════════════════════════════════════════════════════════ */
-/* Al entrar por el panel v3 se enciende la v3 para TODA la pestaña: los
-   enlaces a las herramientas (`/facturas/`, `/operaciones/`…) no llevan
-   `?v3=1`, y sin esto la exploración se caía en el primer clic y había que ir
-   pegando el parámetro a mano. `movimiento-v3.js` lee esta misma llave. */
-try{ sessionStorage.setItem('lw3-on','1'); }catch(_){}
-
-const $=s=>document.querySelector(s);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-/* ═══════════════════════════════════════════════════════════════════════════
-   LA SUITE v3 ENTERA, DESDE AQUÍ — 26-ago-2026
-   ═══════════════════════════════════════════════════════════════════════════
-   El catálogo sigue siendo UNO (`herramientas.js`): quién existe, cómo se llama
-   y quién la ve no se duplica. Lo único que cambia aquí es ADÓNDE lleva cada
-   fila, para que este panel sea la puerta de la suite en pruebas:
-
-     · si la herramienta tiene una v3 propia — Operaciones y Facturas, que están
-       rediseñadas de verdad — se va a ella;
-     · si no, se va a la de siempre con `?v3=1`, que le pone la piel y el
-       movimiento sin tocar su funcionamiento.
-
-   Así se puede recorrer la suite entera en v3 sin que nadie del equipo se
-   entere: la herramienta viva, sin el parámetro, sigue exactamente igual.
-
-   Cuando una herramienta estrene su v3, se añade una línea aquí y basta. */
-/* ⚠️ ESTE MAPA ES UN PUENTE Y TIENE FECHA DE CADUCIDAD (26-ago-2026).
-   Es una lista escrita a mano al lado de `herramientas.js`, que es justo el
-   patrón que esta suite tiene anotado como fuente de fallos. Se tolera porque
-   dura poco: Operaciones, Contratos e Intranet ya salieron a su ruta
-   definitiva y han salido de aquí. Las tres que quedan son LISTADOS que aún
-   enlazan al editor de la página viva (`/facturas/?id=`, `/compradores/?id=`),
-   así que promocionarlas tal cual las dejaría apuntándose a sí mismas y sin
-   editor. Se fusionan en su página viva y este mapa desaparece — LAW-88.
-   Mientras exista, la regla es la de siempre: si una fila no está aquí, manda
-   `herramientas.js`. Nunca al revés. */
-const V3_PROPIA = {
-  '/facturas/':         '/facturas/v3/',
-  '/proyectos/':        '/proyectos/v3/',
-  '/compradores/':      '/compradores/v3/',
-};
-function hrefV3(href){
-  if(!href) return href;
-  const propia = V3_PROPIA[href];
-  if(propia) return propia;
-  /* Recibos apunta a `/facturas/?tipo=recibi`: conserva su filtro y se le añade
-     el interruptor, en vez de perderlo por mandarlo a la v3 sin parámetros. */
-  return href + (href.includes('?') ? '&' : '?') + 'v3=1';
-}
-const HERRAMIENTAS=((typeof LW_HERRAMIENTAS!=='undefined')?LW_HERRAMIENTAS:[])
-  .map(t => Object.assign({}, t, { href: hrefV3(t.href) }));
-/* UNA sola forma de imprimir dinero en toda la suite: `lwFormatoImporte`
-   (assets/dinero.js), que esta página YA carga en el <head>. Aquí vivía un
-   respaldo con `Intl.NumberFormat` para el caso de que el fichero no cargara, y
-   ese respaldo era la SEXTA implementación viva de imprimir un importe — la
-   familia de fallos más cara que ha tenido este repo. Y además no era
-   equivalente: agrupaba distinto y no sabía que la rupia no tiene decimales,
-   así que el "respaldo" habría enseñado cifras que no coinciden con las de
-   Facturas justo el día en que algo va mal.
-   Si `dinero.js` no carga, esto revienta con un error legible en consola, que
-   es lo correcto: un formato de dinero silenciosamente distinto es peor que una
-   página que no pinta. */
-const fmtDinero = (n, m) => lwFormatoImporte(n, m || 'EUR');
-
-let FICHA=null, CIFRAS=null, VISIBLES=[], CURSOR=0, DEMO=false;
-const permitida=t=>(typeof lwPermitida==='function')?lwPermitida(t,FICHA):true;
-
-/* Preferencias de la persona, no del producto (§16.5 flexibilidad: deja
-   personalizar cuando ninguna disposición vale para todos). Viven en el
-   navegador porque son de ESTA persona en ESTE equipo. */
-/* El acceso a localStorage LANZA en algunos contextos —ventana privada,
-   navegador con datos de sitio bloqueados—; no devuelve null, revienta. Y estas
-   líneas corren en el primer bloque del arranque, así que se llevarían por
-   delante la pantalla entera antes de pintar nada. */
-const guardado={
-  lee(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:v; }catch(_){ return d; } },
-  pon(k,v){ try{ localStorage.setItem(k,v); }catch(_){} }
-};
-const PREF={
-  /* `orden` se fue con el arrastre (23-ago-2026): ya no hay forma de reordenar
-     las tarjetas, así que guardar un orden era código muerto que además habría
-     seguido aplicando el orden viejo a quien lo tuviera guardado de las pruebas. */
-  ocultas:new Set(JSON.parse(guardado.lee('lw3-ocultas','[]'))),
-  guarda(){ guardado.pon('lw3-ocultas',JSON.stringify([...this.ocultas])); }
-};
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   10 · BANDA DE CIFRAS
-   ═══════════════════════════════════════════════════════════════════════════
-   REORDENAR ARRASTRANDO: RETIRADO (owner, 23-ago-2026). Estaba para enseñar
-   §2 (manipulación directa) sobre un elemento real, y como demostración
-   funcionaba — pero una tarjeta que se mueve al tocarla, en la pantalla que
-   diez personas abren cada mañana, es un gesto que se dispara sin querer y que
-   no resuelve ningún problema que alguien tuviera. §16.1: se decide qué NO se
-   construye. La manipulación directa se queda donde sí gana algo: en los
-   cajones y las hojas, que es donde el gesto sustituye a buscar el aspa.
-
-   Lo que la tarjeta conserva: acuse en el pointerdown, toque para abrir su
-   detalle, y el menú de «⋯» para ocultarla con deshacer. */
-function tarjetasKpi(d){
-  const T=[
-    { id:'firmas', rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/v3/', herr:'operaciones',
-      pie:n=>n?'pendientes de que el comprador firme':'ninguna pendiente', tono:n=>n?'mal':'bien', urge:n=>n>0,
-      detalle:n=>[['Contratos con firma viva',n==null?'—':n],['Origen','contrato_firmas_equipo()'],['Se cuenta','contratos, no firmantes']] },
-    { id:'contratos', rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
-      pie:()=>d.contratosEditables==null?'':d.contratosEditables+' aún editables', tono:()=>d.contratosEditables?'espera':'',
-      detalle:()=>[['Guardados',d.contratos??'—'],['Editables',d.contratosEditables??'—'],['Bloqueados',(d.contratos!=null&&d.contratosEditables!=null)?d.contratos-d.contratosEditables:'—']] },
-    { id:'facturas', rot:'Facturas emitidas', v:d.facturas, href:'/facturas/v3/', herr:'facturas',
-      pie:()=>d.facturasAnuladas?d.facturasAnuladas+' anuladas':'ninguna anulada', tono:()=>d.facturasAnuladas?'espera':'bien',
-      detalle:()=>[['Emitidas',d.facturas??'—'],['Anuladas',d.facturasAnuladas??'—'],['Recibís',d.recibis??'—']] },
-    { id:'unidades', rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/?v3=1', herr:'unidades',
-      pie:()=>d.unidades==null?'':'de '+d.unidades+' en inventario',
-      detalle:()=>[['Disponibles',d.unidadesLibres??'—'],['Inventario total',d.unidades??'—'],['En obra',d.obraActivas??'—']] },
-    { id:'obra', rot:'En obra', v:d.obraActivas, href:'/obra/?v3=1', herr:'obra', invertida:true,
-      pie:n=>n?'con fase abierta':'sin unidades en obra', tono:n=>n?'bien':'',
-      detalle:()=>[['Con fase abierta',d.obraActivas??'—'],['Lo ve el comprador','sí, en su portal']] },
-  ];
-  const puede=h=>!h||!FICHA||FICHA.rol==='super_admin'||(FICHA.herramientas||[]).includes(h);
-  let vistas=T.filter(t=>puede(t.herr));
-  return vistas;
-}
-
-function pintarKpis(d){
-  if(!d) return;
-  const todas=tarjetasKpi(d);
-  const vistas=todas.filter(t=>!PREF.ocultas.has(t.id));
-  const banda=$('#kpis'), pie=$('#bandaPie');
-  if(!todas.length) return;
-
-  banda.innerHTML=vistas.map(t=>{
-    const muda=t.v==null;
-    const tono=(!muda&&t.tono)?(t.tono(t.v)||''):'';
-    return '<article data-v3-pulsable data-v3-escala="0.985" class="kpi'+(muda?' muda':'')+(!muda&&t.urge&&t.urge(t.v)?' urge':'')+(t.invertida?' invertida':'')+'"'
-      +' tabindex="0" role="button" data-id="'+t.id+'" aria-label="'+esc(t.rot)+'">'
-      +'<button class="mas" type="button" aria-label="Opciones de '+esc(t.rot)+'"><i class="ph ph-dots-three"></i></button>'
-      +'<span class="rot">'+esc(t.rot)+'</span>'
-      +'<span class="n">'+(muda?'—':t.v)+'</span>'
-      +'<span class="pie '+tono+'">'+(muda?'la base no contestó':esc(t.pie(t.v)||''))+'</span>'
-      +'</article>';
-  }).join('');
-  banda.hidden=false;
-
-  const ocultas=todas.length-vistas.length;
-  /* El pie solo aparece cuando hay algo que decir: sin nada oculto no hay
-     ninguna acción que ofrecer, y una línea permanente que no hace nada es
-     ruido en la pantalla más mirada del día. */
-  pie.hidden = !ocultas;
-  pie.innerHTML = ocultas
-    ? '<span>Hay '+ocultas+' tarjeta'+(ocultas>1?'s ocultas':' oculta')+'.</span> '
-      +'<button class="enlacillo" id="restaura">Volver a mostrar'+(ocultas>1?'las':'la')+'</button>'
-    : '';
-  const rr=$('#restaura'); if(rr) rr.onclick=()=>{ PREF.ocultas.clear(); PREF.guarda(); pintarKpis(CIFRAS); sensacion('hecho'); };
-
-  /* — entrada escalonada: cada tarjeta con su propio muelle, así se puede
-       interrumpir a media entrada agarrándola (§3). — */
-  [...banda.children].forEach((c,i)=>{
-    const f=fx(c); f.o=new Muelle(0); f.y.fija(12); f.s.fija(.985);
-    setTimeout(()=>{ f.o.a(1,{amort:1,resp:.34,suave:true}); f.y.a(0,{amort:.85,resp:.42}); f.s.a(1,{amort:.85,resp:.42}); arranca(c); }, i*45);
-    cablearKpi(c, todas.find(t=>t.id===c.dataset.id));
-  });
-}
-
-function cablearKpi(card, t){
-  card.querySelector('.mas').addEventListener('pointerdown',e=>e.stopPropagation());
-  card.querySelector('.mas').addEventListener('click',e=>{ e.stopPropagation(); (()=>{
-    Pop.abre(card.querySelector('.mas'),[
-      { icono:'ph-arrow-square-out', txt:'Abrir '+t.rot.toLowerCase(), fn:()=>{ location.href=t.href; } },
-      { icono:'ph-eye-slash', txt:'Ocultar tarjeta', fn:()=>{
-          PREF.ocultas.add(t.id); PREF.guarda(); pintarKpis(CIFRAS); sensacion('hecho');
-          /* §16.2 — perdón, no confirmación previa. */
-          tosta('«'+t.rot+'» oculta.', { icono:'ph-eye-slash', accion:{ txt:'Deshacer', fn:()=>{
-            PREF.ocultas.delete(t.id); PREF.guarda(); pintarKpis(CIFRAS); } } });
-        } },
-    ]);
-  })(); });
-  /* La tarjeta entera responde: el acuse en el DOWN lo pone la capa compartida
-     (con su cancelación por arrastrar fuera, §1 y §10) y el clic lleva
-     DIRECTAMENTE a la herramienta — 24-ago-2026, encargo del owner: la hoja de
-     detalle que había aquí (abreDetalle, retirada) obligaba a un segundo clic
-     en «Abrir» para llegar a donde ya se sabía que se quería ir. Es lo mismo
-     que hacía la intranet antes de la v3, y lo que promete la tarjeta: pulsar
-     «Firmas esperando» lleva a las firmas esperando, no a una hoja que dice lo
-     mismo que la tarjeta y pregunta otra vez. */
-  card.addEventListener('click',e=>{ if(!e.target.closest('.mas')) location.href=t.href; });
-  card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); location.href=t.href; } });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   11 · LISTA DE HERRAMIENTAS
-   ═══════════════════════════════════════════════════════════════════════════ */
-let PRIMERA=true;
-function pintar(){
-  /* ═════════════════════════════════════════════════════════════════════════
-     EL LISTADO, REORDENADO POR LO QUE PASA — 26-ago-2026
-     ═════════════════════════════════════════════════════════════════════════
-     Antes: once filas por grupo temático, todas del mismo peso, cada una con su
-     descripción. Eso contesta «qué herramientas hay», que es una pregunta que
-     se hace UNA vez, la primera semana. La que se hace veinte veces al día es
-     «¿dónde ha pasado algo?».
-
-     Ahora la lista se parte en dos, y el corte es el único que importa:
-
-       NECESITA QUE ENTRES — arriba, con la cifra en el sitio de la descripción.
-       Es la única parte que puede costar algo.
-       EL RESTO — debajo, en filas densas: icono, nombre y su estado. Sin
-       descripción: quien lleva dos semanas aquí no la lee, y quien acaba de
-       entrar la tiene en el menú lateral y dentro de la propia herramienta.
-
-     NO es una rejilla de tarjetas iguales. Eso ya se probó en la v2 y arriba
-     está escrito por qué falló: once objetos del mismo tamaño no tienen
-     jerarquía, así que hay que leerlos todos para elegir uno. Lo que da
-     jerarquía aquí es el ESTADO, no el tamaño ni un color de adorno.
-
-     §16.6: primero el camino común; lo demás, un nivel más abajo. */
-  const lista = HERRAMIENTAS.filter(permitida);
+/* ── pintado ───────────────────────────────────────────────────────
+   Se pinta ANTES de que lleguen las cifras, con hueso en su sitio: la lista
+   de herramientas no depende de la base de datos y esperar por ella dejaría
+   la página en blanco por un timeout de red. */
+function pintar(filtro){
+  const q = (filtro || '').trim().toLowerCase();
+  const casa = t => !q || (t.nombre + ' ' + t.para + ' ' + t.claves).toLowerCase().includes(q);
+  const lista = HERRAMIENTAS.filter(permitida).filter(casa);
   VISIBLES = lista;
+
   if(!lista.length){
-    $('#grupos').innerHTML = '<div class="filas"><p style="padding:22px 16px;color:var(--ink-2)">'
-      + 'Tu ficha no tiene ninguna herramienta activada. Pídeselo a un administrador.</p></div>';
+    $('#grupos').innerHTML = '<div class="filas"><p class="sin-nada">Ninguna herramienta coincide con «' + esc(filtro) + '».</p></div>';
     return;
   }
-  /* «Pendiente» es lo que la propia herramienta declara urgente en su `estado`
-     — el mismo dato que ya se pintaba, leído ahora para ORDENAR y no solo para
-     enseñar. Mientras no hayan llegado las cifras nadie es urgente: no se
-     inventa un orden que luego salte al llegar los datos. */
-  /* «Necesita que entres» RETIRADO (owner, 26-ago-2026): «ya están los avisos
-     arriba». Tenía razón — la banda de cifras y el carril de la derecha ya dicen
-     qué está parado, y repetirlo aquí en forma de lista era decir dos veces lo
-     mismo en la misma pantalla. Lo que se queda es lo que la lista sí aporta:
-     dónde está cada herramienta, con su estado al lado. */
-  {
-    const grupos = [];
-    lista.forEach(t => {
-      const g = grupos.find(x => x.titulo === t.grupo)
-        || (grupos.push({ titulo:t.grupo, tools:[] }), grupos[grupos.length-1]);
-      g.tools.push(t);
-    });
-    $('#grupos').innerHTML = grupos.map(g =>
-      '<section class="grupo"><h2>' + esc(g.titulo) + '</h2>'
-      + '<div class="filas">' + g.tools.map(t => fila(t, false)).join('') + '</div></section>').join('');
-  }
-
-  [...document.querySelectorAll('.fila')].forEach((el, i) => {
-    const fl = el.querySelector('.flecha');
-    if(fl){
-      const g = fx(fl);
-      el.addEventListener('pointerdown', () => { g.x.a(4,{amort:1,resp:.24}); arranca(fl); });
-      const v = () => { g.x.a(0,{amort:.8,resp:.3}); arranca(fl); };
-      el.addEventListener('pointerup', v); el.addEventListener('pointercancel', v);
-    }
-    if(PRIMERA){
-      const f = fx(el); f.o = new Muelle(0); f.y.fija(10);
-      setTimeout(() => { f.o.a(1,{amort:1,resp:.36,suave:true}); f.y.a(0,{amort:1,resp:.4}); arranca(el); }, 90 + i*38);
-    }
+  const grupos = [];
+  lista.forEach(t => {
+    const g = grupos.find(x => x.titulo === t.grupo) || (grupos.push({ titulo:t.grupo, tools:[] }), grupos[grupos.length-1]);
+    g.tools.push(t);
   });
-  marca(0); PRIMERA = false;
+  $('#grupos').innerHTML = grupos.map(g => `
+    <section class="grupo">
+      <h2>${esc(g.titulo)}</h2>
+      <div class="filas">${g.tools.map(fila).join('')}</div>
+    </section>`).join('');
+  marcar(0);
+  PRIMERA = false;
 }
 
-/* Dos formas de fila, y la diferencia significa algo (§16.7 mapeo): la
-   destacada pone la CIFRA donde iría la descripción, porque es lo que hay que
-   leer; la densa se queda en nombre + estado, que es lo justo para elegir. */
-function fila(t, destacada){
+let PRIMERA = true;   // ver `entra` en fila(): la animacion es solo del primer pintado
+function fila(t){
   const i = VISIBLES.indexOf(t);
   const est = (CIFRAS && t.estado) ? t.estado(CIFRAS) : null;
-  const der = !t.estado ? ''
-    : !CIFRAS ? '<span class="hueso" aria-hidden="true"></span>'
-    : est ? '<span class="' + (est[1] ? 'urg' : 'cif') + '">' + esc(est[0]) + '</span>' : '';
-  const bajo = destacada && est ? '<span class="para urge">' + esc(est[0]) + '</span>' : '';
-  return '<a class="fila' + (destacada ? ' destacada' : ' densa') + '"'
-    + ' data-v3-pulsable data-v3-escala="0.996" data-v3-empuja="2"'
-    + ' href="' + esc(t.href) + '" data-i="' + i + '">'
-    + '<i class="ph ' + esc(t.icon) + '" aria-hidden="true"></i>'
-    + '<span class="tx"><span class="nombre">' + esc(t.nombre) + '</span>' + bajo + '</span>'
-    + '<span class="estado">' + (destacada ? '' : der)
-    + '<i class="ph ph-arrow-right flecha" aria-hidden="true"></i></span></a>';
+  const derecha = !t.estado ? ''                                   // no cuenta nada: ni cifra ni esqueleto
+    : !CIFRAS ? '<span class="hueso" aria-hidden="true"></span>'   // esperando la consulta
+    : est ? `<span class="${est[1] ? 'urge' : 'cifra'}">${esc(est[0])}</span>` : '';
+  /* `--i` reusa el indice que esta funcion YA calcula para el teclado: el
+     escalonado sale gratis, sin reestructurar el bucle de pintado (que es lo
+     que el handoff pedia evitar).
+     `entra` solo en la PRIMERA pintada: `pintar()` corre en cada tecla del
+     buscador, y una lista que se vuelve a montar con animacion en cada letra
+     no es una entrada, es un parpadeo. */
+  return `<a class="fila${PRIMERA ? ' entra' : ''}" href="${esc(t.href)}" data-i="${i}" style="--i:${i}">
+    <i class="ph ${esc(t.icon)}" aria-hidden="true"></i>
+    <span><span class="nombre">${esc(t.nombre)}</span><span class="para">${esc(t.para)}</span></span>
+    <span class="estado">${derecha}<i class="ph ph-arrow-right flecha" aria-hidden="true"></i></span>
+  </a>`;
 }
 
-function marca(i){
-  const filas=[...document.querySelectorAll('.fila')];
+/* ── teclado: escribir filtra, ↑↓ mueve, Enter abre ───────────────── */
+function marcar(i){
+  const filas = [...document.querySelectorAll('.fila')];
   if(!filas.length) return;
-  CURSOR=Math.max(0,Math.min(i,filas.length-1));
-  filas.forEach((f,n)=>f.classList.toggle('marcada',n===CURSOR));
+  CURSOR = Math.max(0, Math.min(i, filas.length - 1));
+  filas.forEach((f, n) => f.classList.toggle('marcada', n === CURSOR));
 }
-document.addEventListener('keydown',e=>{
-  if(Hoja.abierta) { if(e.key==='Escape') Hoja.cierra(); return; }
-  if(document.activeElement&&document.activeElement.tagName==='INPUT') return;
-  const filas=document.querySelectorAll('.fila');
-  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+/* El buscador se retiro el 15-ago-2026 y con el su cableado. Se CONSERVAN las
+   flechas y Enter: recorrer la lista con el teclado sigue valiendo sin filtro, y
+   quitarlo tambien habria sido cobrar de mas por el cambio pedido. */
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    const filas = document.querySelectorAll('.fila');
     if(!filas.length) return;
-    e.preventDefault(); marca(CURSOR+(e.key==='ArrowDown'?1:-1));
-    filas[CURSOR].scrollIntoView({block:'nearest'});
-  }else if(e.key==='Enter'){
-    const f=filas[CURSOR]; if(f&&f.href){ sensacion('hecho'); location.href=f.href; }
+    e.preventDefault(); marcar(CURSOR + (e.key === 'ArrowDown' ? 1 : -1));
+    filas[CURSOR].scrollIntoView({ block:'nearest' });
+  }else if(e.key === 'Enter'){
+    const f = document.querySelectorAll('.fila')[CURSOR];
+    if(f && f.href) location.href = f.href;
   }
 });
-document.addEventListener('mousemove',e=>{
-  const f=e.target.closest&&e.target.closest('.fila');
-  if(f) marca(+f.dataset.i);
-},{passive:true});
+document.addEventListener('mousemove', e => {
+  const f = e.target.closest && e.target.closest('.fila');
+  if(f) marcar(+f.dataset.i);
+}, { passive:true });
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   12 · DATOS — las MISMAS consultas del hub vivo
-   ═══════════════════════════════════════════════════════════════════════════
-   No se toca ni una: lo que cambia en esta v3 es la piel y el comportamiento.
-   Y se conserva la regla que da valor al panel — si una consulta falla, la
-   cifra es un HUECO. Un cero falso en un panel de control es peor que un
-   hueco: el hueco se pregunta, el cero se cree. */
+/* ── cifras: una ronda de `count` en paralelo ──────────────────────
+   `head:true` no trae filas, solo el número: son ocho contadores, no ocho
+   listados. Cada uno se resuelve por separado a propósito — si la RLS tapa
+   una tabla para este usuario, esa fila se queda sin cifra y las demás
+   siguen. Un `Promise.all` que revienta dejaría el panel entero sin datos. */
 async function contar(sb){
-  const n=async(tabla,filtro,cols)=>{
-    let q=sb.from(tabla).select(cols||'*',{count:'exact',head:true});
-    if(filtro) q=filtro(q);
-    const {count,error}=await q;
-    return error?null:(count||0);
+  // `select('*')` con head:true no trae columnas: es el idioma de PostgREST para
+  // contar, y sirve igual en `usuarios`, cuya clave no se llama `id`.
+  // `cols` opcional (18-ago-2026): el conteo de vencimientos necesita un embed
+  // `contratos!inner(id)` para filtrar por firmados, y eso va en las COLUMNAS
+  // del select — no en el filtro. Un `.select()` dentro del filtro pisaría el
+  // `count:'exact'` de este (la 2ª llamada no admite opciones) y devolvería
+  // filas en vez de un número: por eso las columnas entran por parámetro.
+  const n = async (tabla, filtro, cols) => {
+    let q = sb.from(tabla).select(cols || '*', { count:'exact', head:true });
+    if(filtro) q = filtro(q);
+    const { count, error } = await q;
+    return error ? null : (count || 0);
   };
-  const [contratos,contratosEditables,facturas,facturasAnuladas,recibis,unidades,unidadesLibres,
-         obraActivas,compradores,usuarios,usuariosInactivos,documentos,vencSinFecha]=await Promise.all([
+  const [contratos, contratosEditables, facturas, facturasAnuladas,
+         recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
+         documentos, vencSinFecha] = await Promise.all([
     n('contratos'),
-    n('contratos',q=>q.eq('bloqueado',false)),
-    n('facturas',q=>q.eq('anulada',false)),
-    n('facturas',q=>q.eq('anulada',true)),
-    n('facturas',q=>q.eq('tipo','recibi').eq('anulada',false)),
+    n('contratos', q => q.eq('bloqueado', false)),
+    n('facturas', q => q.eq('anulada', false)),
+    n('facturas', q => q.eq('anulada', true)),
+    n('facturas', q => q.eq('tipo', 'recibi').eq('anulada', false)),
     n('unidades'),
-    n('unidades',q=>q.eq('estado','disponible')),
-    n('unidades',q=>q.not('obra_fase','is',null).neq('obra_fase','entregada')),
+    n('unidades', q => q.eq('estado', 'disponible')),
+    n('unidades', q => q.not('obra_fase', 'is', null).neq('obra_fase', 'entregada')),
     n('clients'),
-    n('usuarios',q=>q.eq('activo',true)),
-    n('usuarios',q=>q.eq('activo',false)),
+    n('usuarios', q => q.eq('activo', true)),
+    n('usuarios', q => q.eq('activo', false)),
     n('documentos_proyecto'),
-    n('contrato_vencimientos',q=>q.is('fecha',null).eq('contratos.bloqueado',true),'*, contratos!inner(id)'),
+    // Vencimientos sin fecha: la cifra de la tarjeta de /vencimientos/. Se
+    // cuenta "sin fecha" y no "vencidos" a propósito — el porqué está junto a
+    // la tarjeta, en assets/herramientas.js. RLS de equipo (es_agente), así
+    // que el count vale para cualquiera que vea la tarjeta.
+    // `contratos!inner` + eq sobre la tabla embebida: solo contratos FIRMADOS
+    // (cliente, 18-ago — un borrador no marca dinero como esperado, y su
+    // calendario a medio poner inflaría esta cifra con trabajo que no toca aún).
+    n('contrato_vencimientos', q => q.is('fecha', null).eq('contratos.bloqueado', true),
+      '*, contratos!inner(id)'),
   ]);
-  let proyectosConDocs=null;
+  // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
+  // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
+  // distinct y el contador de arriba solo sabe contar filas.
+  let proyectosConDocs = null;
   if(documentos){
-    const {data,error}=await sb.from('documentos_proyecto').select('proyecto');
-    proyectosConDocs=error?null:new Set((data||[]).map(x=>x.proyecto)).size;
+    const { data, error } = await sb.from('documentos_proyecto').select('proyecto');
+    proyectosConDocs = error ? null : new Set((data || []).map(x => x.proyecto)).size;
   }
-  /* Firmas esperando SIEMPRE por la RPC de equipo: `contrato_firmas` tiene RLS
-     por agente, así que una lectura directa contaría solo lo mío, y filas (una
-     por firmante) en vez de contratos. */
-  let firmasPendientes=null;
+  // 11-ago: "Firmas esperando" NO puede salir de `sb.from('contrato_firmas')`
+  // — esa tabla tiene RLS por agente ("lo mío") desde el 7-ago, así que ese
+  // conteo solo veía las firmas de ESTE agente, no las del equipo, y encima
+  // contaba FILAS (una por firmante) en vez de CONTRATOS — un contrato con
+  // dos firmantes pendientes sumaba 2. La tarjeta enlaza a
+  // `/operaciones/?filtro=firma_viva`, que cuenta contratos con al menos una
+  // firma pendiente vía `contrato_firmas_equipo()` (team-wide, la misma RPC
+  // que ya usa Operaciones) — el origen tiene que ser el mismo o los dos
+  // números nunca van a coincidir.
+  let firmasPendientes = null;
   {
-    const {data,error}=await sb.rpc('contrato_firmas_equipo').select('contrato_id').eq('estado','pendiente');
-    firmasPendientes=error?null:new Set((data||[]).map(x=>x.contrato_id)).size;
+    const { data, error } = await sb.rpc('contrato_firmas_equipo').select('contrato_id').eq('estado', 'pendiente');
+    firmasPendientes = error ? null : new Set((data || []).map(x => x.contrato_id)).size;
   }
-  return {contratos,contratosEditables,firmasPendientes,facturas,facturasAnuladas,recibis,unidades,
-          unidadesLibres,obraActivas,compradores,usuarios,usuariosInactivos,documentos,proyectosConDocs,vencSinFecha};
+  return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
+           recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
+           documentos, proyectosConDocs, vencSinFecha };
 }
 
-function pintarReciente(filas){
-  if(!filas||!filas.length) return;
-  const dia=s=>new Date(s).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
-  $('#reciente').innerHTML='<div class="panel"><div class="cab"><span class="t-titulo">Operaciones recientes</span>'
-    +'<span class="t-menudo" style="color:var(--ink-3)">lo último del equipo</span></div>'
-    +'<div class="cuerpo-tabla"><table><tbody>'
-    +filas.map(r=>'<tr data-ir="'+esc(r.href)+'">'
-      +'<td class="clave">'+esc(r.num||'—')+'</td>'
-      +'<td>'+esc(r.que)+'</td>'
-      +'<td>'+esc(r.quien||'sin nombre')+'</td>'
-      +'<td class="num flojo">'+(r.importe!=null?esc(fmtDinero(r.importe,r.moneda)):'')+'</td>'
-      +'<td><span class="tag '+r.estado[1]+'">'+esc(r.estado[0])+'</span></td>'
-      +'<td class="flojo">'+esc(dia(r.fecha))+'</td></tr>').join('')
-    +'</tbody></table></div></div>';
-  $('#dos').hidden=false;
-  $('#reciente').addEventListener('pointerdown',e=>{
-    const tr=e.target.closest('tr[data-ir]');
-    if(!tr) return;
-    const f=fx(tr); f.x.a(3,{amort:1,resp:.22}); arranca(tr);        /* §8 hacia donde lleva */
-    const v=()=>{ f.x.a(0,{amort:.8,resp:.3}); arranca(tr); };
-    addEventListener('pointerup',v,{once:true});
-  });
-  $('#reciente').addEventListener('click',e=>{
-    const tr=e.target.closest('tr[data-ir]'); if(tr) location.href=tr.dataset.ir;
-  });
+/* ── tarjetas de cifra ─────────────────────────────────────────────────
+   Ni una consulta nueva: son las MISMAS cifras que `contar()` ya trae y que hasta
+   hoy se leían como texto pequeño dentro de cada fila de herramienta. Lo que
+   cambia es que lo que necesita atención se ve al entrar, sin recorrer once
+   filas.
+   Cinco como máximo, y elegidas por eso: son las que responden «¿tengo algo
+   parado?». El resto de cifras sigue en su fila, que es donde tiene contexto.
+   `null` = la base no contestó (la RLS tapó la tabla, o falló): se dice con un
+   guion y la tarjeta se marca `muda`. Nunca un cero. */
+function pintarKpis(d, ficha){
+  if(!d) return;
+  const tarjetas = [
+    /* `tono` colorea el pie por SIGNIFICADO, como el mockup: ámbar lo que espera,
+       rojo lo que urge, verde lo que va bien, gris lo neutro. En la 1ª pasada todos
+       los pies eran grises y la tarjeta no decía si el número era bueno o malo. */
+    { rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/?filtro=firma_viva', herr:'operaciones',
+      pie:n => n ? 'pendientes de que el comprador firme' : 'ninguna pendiente',
+      tono:n => n ? 'mal' : 'bien', urge:n => n > 0 },
+    { rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
+      pie:() => d.contratosEditables == null ? '' : d.contratosEditables + ' aún editables',
+      tono:() => d.contratosEditables ? 'espera' : '' },
+    { rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
+      pie:() => d.facturasAnuladas ? d.facturasAnuladas + ' anuladas' : 'ninguna anulada',
+      tono:() => d.facturasAnuladas ? 'espera' : 'bien' },
+    { rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/', herr:'unidades',
+      pie:() => d.unidades == null ? '' : 'de ' + d.unidades + ' en inventario' },
+    { rot:'En obra', v:d.obraActivas, href:'/obra/', herr:'obra',
+      pie:n => n ? 'con fase abierta' : 'sin unidades en obra',
+      tono:n => n ? 'bien' : '' },
+  ];
+  // Solo las herramientas que esta persona puede abrir: una tarjeta que lleva a
+  // un sitio del que te van a echar es peor que no tenerla.
+  // `esAdmin` ya no abre todas las puertas (18-ago-2026): solo el super admin.
+  // Esta línea era una copia a mano de lwPermitida; se queda porque aquí se
+  // filtra por clave de herramienta y no por tarjeta, pero sigue su regla.
+  const puede = h => !h || !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes(h);
+  const vistas = tarjetas.filter(t => puede(t.herr));
+  if(!vistas.length) return;
+  $('#kpis').innerHTML = vistas.map((t, i) => {
+    const mudo = t.v == null;
+    const cls = ['lw-kpi', 'lw-fade', mudo ? 'muda' : '', (!mudo && t.urge && t.urge(t.v)) ? 'urge' : '']
+      .filter(Boolean).join(' ');
+    const tono = (!mudo && t.tono) ? (t.tono(t.v) || '') : '';
+    return `<a class="${cls}" href="${t.href}" style="--i:${i}">
+      <span class="rot">${esc(t.rot)}</span>
+      <span class="lw-cifra">${mudo ? '—' : t.v}</span>
+      <span class="pie ${tono}">${mudo ? 'la base no contestó' : esc(t.pie(t.v) || '')}</span>
+    </a>`;
+  }).join('');
+  $('#kpis').hidden = false;
+
+  /* La tarjeta «Equipo · admin» se retira el 15-ago-2026 (owner: «irrelevante»).
+     Tenia razon: contaba cuanta gente hay, que no es una cifra que mueva a hacer
+     nada — y ahora Usuarios esta a un clic en el menu lateral. Las tarjetas de
+     aqui son para lo que urge, no para lo que se puede contar. */
 }
 
+/* ── últimas operaciones ───────────────────────────────────────────────
+   La ÚNICA consulta nueva del panel. Dos lecturas de columnas concretas —jamás
+   `datos`, que en `contratos` pesa MB por los anexos en base64— y cada una por
+   su lado: si la RLS tapa una, la otra se enseña igual.
+   Se mezclan y se ordenan por fecha porque la pregunta del que entra es «qué se
+   ha movido», no «qué contratos hay». */
 async function ultimasOperaciones(sb){
-  const [c,f]=await Promise.all([
-    sb.rpc('contratos_equipo').select('id, numero, tipo, comprador_nombre, created_at, bloqueado').order('created_at',{ascending:false}).limit(6),
-    sb.rpc('facturas_equipo').select('id, numero, tipo, cliente_nombre, total, moneda, created_at, anulada').order('created_at',{ascending:false}).limit(6),
+  // Por las funciones `_equipo()` (7-ago) y no `.from()` directo: "recientes"
+  // es del equipo entero a propósito (mismo motivo que Operaciones), y desde
+  // que la RLS de SELECT filtra por autor una lectura directa solo traería
+  // lo del agente que mira la pantalla.
+  const [c, f] = await Promise.all([
+    sb.rpc('contratos_equipo').select('id, numero, tipo, comprador_nombre, created_at, bloqueado')
+      .order('created_at', { ascending:false }).limit(6),
+    sb.rpc('facturas_equipo').select('id, numero, tipo, cliente_nombre, total, moneda, created_at, anulada')
+      .order('created_at', { ascending:false }).limit(6),
   ]);
-  const filas=[
-    ...(c.data||[]).map(r=>({fecha:r.created_at,num:r.numero,quien:r.comprador_nombre,que:'Contrato',
-      href:'/contracts/?contrato='+r.id, estado:r.bloqueado?['Firmado','ok']:['Editable','']})),
-    ...(f.data||[]).map(r=>({fecha:r.created_at,num:r.numero,quien:r.cliente_nombre,
-      que:r.tipo==='recibi'?'Recibí':r.tipo==='proforma'?'Proforma':'Factura',
-      href:'/facturas/?id='+r.id, importe:r.total, moneda:r.moneda,
-      estado:r.anulada?['Anulada','alerta']:['Emitida','info']})),
-  ].filter(r=>r.fecha).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,8);
-  pintarReciente(filas);
-}
-
-function pintarRailCajas(cajas){
-  $('#rail').innerHTML=cajas.join('')
-    ||'<div class="caja"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
-  [...$('#rail').children].forEach((c,i)=>{
-    const f=fx(c); f.o=new Muelle(0); f.y.fija(10);
-    setTimeout(()=>{ f.o.a(1,{amort:1,resp:.34,suave:true}); f.y.a(0,{amort:1,resp:.4}); arranca(c); }, i*70);
+  const filas = [
+    ...(c.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.comprador_nombre,
+        que:'Contrato', href:'/contracts/?contrato=' + r.id, estado:r.bloqueado ? ['Firmado','ok'] : ['Editable','gris'] })),
+    ...(f.data || []).map(r => ({ fecha:r.created_at, num:r.numero, quien:r.cliente_nombre,
+        que:r.tipo === 'recibi' ? 'Recibí' : r.tipo === 'proforma' ? 'Proforma' : 'Factura',
+        href:'/facturas/?id=' + r.id, importe:r.total, moneda:r.moneda,
+        estado:r.anulada ? ['Anulada','alerta'] : ['Emitida','info'] })),
+  ].filter(r => r.fecha).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 8);
+  if(!filas.length) return;
+  const dia = s => new Date(s).toLocaleDateString('es-ES', { day:'2-digit', month:'short' });
+  $('#reciente').innerHTML =
+    `<div class="sui-tabla-caja lw-fade"><div class="panelCab">Operaciones recientes</div>
+      <table class="sui-tabla"><tbody>` +
+      filas.map(r => `<tr data-ir="${esc(r.href)}">
+        <td class="clave">${esc(r.num || '—')}</td>
+        <td>${esc(r.que)}</td>
+        <td>${esc(r.quien || 'sin nombre')}</td>
+        <td class="num flojo">${r.importe != null ? esc(lwFormatoImporte(r.importe, r.moneda)) : ''}</td>
+        <td><span class="sui-tag ${r.estado[1]}">${esc(r.estado[0])}</span></td>
+        <td class="flojo">${esc(dia(r.fecha))}</td>
+      </tr>`).join('') +
+      '</tbody></table></div>';
+  $('#dosCol').hidden = false;
+  /* Delegacion y no `onclick` en el marcado: es como escucha el resto de la
+     suite, y un atributo con una URL dentro de una plantilla es la clase de sitio
+     donde se cuela una comilla. */
+  $('#reciente').addEventListener('click', e => {
+    const tr = e.target.closest('tr[data-ir]');
+    if(tr) location.href = tr.dataset.ir;
   });
 }
 
-async function pintarRail(sb){
-  const cajas=[], fallos=[];
-  const dias=f=>Math.round((new Date(f)-Date.now())/86400000);
+/* ── carril derecho (1a): vencimientos y, para admin, rendimiento ──────
+   Datos REALES, nada de maqueta: los vencimientos salen de los enlaces de firma
+   pendientes (expira_en) y de las facturas con fecha de vencimiento; el
+   rendimiento, de la suma de facturas vigentes por emisor. Cada consulta va por
+   su lado: si la RLS tapa una, la otra se enseña igual. */
+async function pintarRail(sb, ficha){
+  const cajas = [];
+  /* Lo que NO se ha podido comprobar — 21-ago-2026.
+     Las dos consultas de abajo iban en su try, y el catch solo escribia en la
+     consola. Con cualquiera de ellas caida el carril se quedaba sin cajas y la
+     linea final imprimia «Nada a la vista»: una alarma rota se leia EXACTAMENTE
+     igual que «no hay nada pendiente», que es el lado peligroso en el que
+     equivocarse. Es el mismo fallo que este panel vino a arreglar (ver el
+     comentario de «Firmas que necesitan atencion»: el aviso existia, pero iba a
+     console.error y el equipo no lo veia en ningun sitio).
+     Desde hoy: lo que falla se dice en pantalla, y «Nada a la vista» solo sale
+     cuando se ha mirado de verdad. */
+  const fallos = [];
+  const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
+
+  /* ── Firmas que necesitan atención — 15-ago-2026 ─────────────────────────
+     VA LA PRIMERA del carril a propósito, por encima de vencimientos y de
+     rendimiento: es lo único de este panel que puede costar un contrato.
+     Origen: `public.auditoria_firmas()` (contracts/sql/auditoria_firmas.sql).
+     Nace de dos contratos que llevaban semanas firmados por UN comprador y sin
+     cerrar —CC00007 desde el 1-ago y CR00020 desde el 14— porque la cadena se
+     paró al no poder mandarle el enlace al segundo firmante. `firma-submit` ya
+     lo avisaba, pero el aviso iba al navegador del COMPRADOR y a console.error:
+     el equipo no lo veía en ningún sitio. Mientras la cadena está parada el
+     contrato sigue EDITABLE, o sea que el texto ya firmado se puede cambiar.
+     Se enseñan TODAS las críticas sin recortar: si algún día hay diez, se ven
+     las diez. Un «+3 más» escondido en esto es exactamente el fallo que se
+     viene a tapar. */
   try{
-    const {data:anom,error:eA}=await sb.rpc('auditoria_firmas');
-    if(eA) throw eA;
-    const criticas=(anom||[]).filter(a=>a.severidad==='critica');
-    const avisos=(anom||[]).filter(a=>a.severidad!=='critica');
-    if(criticas.length||avisos.length){
-      const fila=a=>'<div class="railFila '+(a.severidad==='critica'?'tarde':'')+'">'
-        +'<span><b>'+esc(a.contrato||'sin nº')+'</b><em>'+esc(a.comprador||'sin comprador')
-        +(a.desde?' · '+(dias(a.desde)<=-1?'hace '+(-dias(a.desde))+' días':'hoy'):'')+'</em></span>'
-        +'<span class="v '+(a.severidad==='critica'?'mal':'espera')+'">'
-        +(a.tipo==='cadena_parada'?'Cadena parada':a.tipo==='firmante_sin_email'?'Sin email'
-          :a.tipo==='enlace_caducado'?'Enlace caducado':a.tipo==='cerrado_sin_documento'?'Sin documento':esc(a.tipo))+'</span></div>';
-      cajas.push('<div class="caja aviso"><div class="t">Firmas que necesitan atención</div>'
-        +criticas.map(fila).join('')
-        +(avisos.length?'<details class="mas"><summary>'+avisos.length+(avisos.length===1?' aviso más':' avisos más')+'</summary>'+avisos.map(fila).join('')+'</details>':'')
-        +(criticas.length?'<div class="railNota">Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.</div>':'')
-        +'</div>');
+    const { data: anom, error: eAnom } = await sb.rpc('auditoria_firmas');
+    if(eAnom) throw eAnom;
+    const criticas = (anom || []).filter(a => a.severidad === 'critica');
+    const avisos   = (anom || []).filter(a => a.severidad !== 'critica');
+    if(criticas.length || avisos.length){
+      const fila = a => `<div class="railFila ${a.severidad === 'critica' ? 'tarde' : ''}">
+        <span><b>${esc(a.contrato || 'sin nº')}</b> · ${esc(a.comprador || 'sin comprador')}${
+          a.desde ? ' · ' + (dias(a.desde) <= -1 ? 'hace ' + (-dias(a.desde)) + ' días' : 'hoy') : ''}</span>
+        <span class="v ${a.severidad === 'critica' ? 'mal' : 'espera'}">${
+          a.tipo === 'cadena_parada' ? 'Cadena parada'
+          : a.tipo === 'firmante_sin_email' ? 'Sin email'
+          : a.tipo === 'enlace_caducado' ? 'Enlace caducado'
+          : a.tipo === 'cerrado_sin_documento' ? 'Sin documento' : esc(a.tipo)}</span></div>`;
+      /* Las CRÍTICAS van siempre enteras y sin recortar: son las que dejan un
+         contrato firmado a medias y editable. Los AVISOS se pliegan detrás de una
+         línea (15-ago-2026, owner: el cuadro empujaba demasiado abajo las
+         herramientas). No es lo mismo esconder una alarma que esconder un
+         recordatorio, y por eso solo se pliega lo segundo. */
+      cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '">'
+        + '<div class="t">Firmas que necesitan atención</div>'
+        + criticas.map(fila).join('')
+        + (avisos.length
+            ? '<details class="railMas"><summary>' + avisos.length
+              + (avisos.length === 1 ? ' aviso más' : ' avisos más') + '</summary>'
+              + avisos.map(fila).join('') + '</details>'
+            : '')
+        + (criticas.length
+            ? '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
+              + 'Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.'
+              + '</span></div>'
+            : '')
+        + '</div>');
     }
-  }catch(e){ fallos.push('las firmas pendientes'); console.warn('auditoria de firmas:',e&&e.message); }
+  }catch(e){ fallos.push('las firmas pendientes'); console.warn('auditoria de firmas:', e && e.message); }
 
   try{
-    const [fir,fac,pend,ctr]=await Promise.all([
-      sb.rpc('contrato_firmas_equipo').select('contrato_id, expira_en, firmante_nombre').eq('estado','pendiente').order('expira_en').limit(4),
-      sb.rpc('facturas_equipo').select('id, numero, tipo, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento').limit(200),
+    // Por `_equipo()` (7-ago), no `.from()` directo — mismo motivo que
+    // ultimasOperaciones(). El embed `contratos(numero)` que hacía la lectura
+    // directa no está garantizado a través de una función RPC, así que el
+    // número se resuelve aparte con un mapa id→numero de contratos_equipo().
+    const [fir, fac, pend, ctr] = await Promise.all([
+      sb.rpc('contrato_firmas_equipo').select('contrato_id, expira_en, firmante_nombre')
+        .eq('estado','pendiente').order('expira_en').limit(4),
+      // `fecha_vencimiento` no es una columna de `facturas`: vive en
+      // `datos->fields`, igual que la lee la campana de topbar.js. La versión
+      // anterior pedía la columna suelta y llevaba HORAS fallando con un 400
+      // silencioso (atrapado por el catch de aquí abajo) — la sección solo
+      // enseñaba vencimientos de firma, nunca de factura.
+      sb.rpc('facturas_equipo').select('id, numero, tipo, total, moneda, anulada, venc:datos->fields->>fecha_vencimiento')
+        .limit(200),
+      // Lo que queda por cobrar de cada una. Sin esto, el panel enseñaba
+      // facturas ya pagadas (ver la nota de abajo).
       sb.rpc('facturas_pendiente_equipo'),
       sb.rpc('contratos_equipo').select('id, numero'),
     ]);
-    const numeroDe={}; (ctr.data||[]).forEach(c=>{ numeroDe[c.id]=c.numero; });
-    const pendientes={}; (pend.data||[]).forEach(x=>{ pendientes[x.factura_id]=Number(x.pendiente)||0; });
-    const filas=[
-      ...(fir.data||[]).map(r=>({d:dias(r.expira_en),
-        txt:'Firma '+(r.firmante_nombre||'').split(' ')[0]+(numeroDe[r.contrato_id]?' · '+numeroDe[r.contrato_id]:''),
-        val:'Pendiente', clase:'espera'})),
-      /* Un recibí no vence, una factura cobrada es historia, y una vencida sin
-         cobrar se queda por vieja que sea. */
-      ...(fac.data||[]).filter(r=>!r.anulada&&r.venc&&r.tipo!=='recibi'
-            &&(pendientes[r.id]!=null?pendientes[r.id]:Number(r.total)||0)>0.005)
-        .map(r=>({d:dias(r.venc), txt:r.numero, val:fmtDinero(r.total,r.moneda||'EUR')})),
-    ].sort((a,b)=>a.d-b.d).slice(0,6);
+    const numeroDe = {}; (ctr.data || []).forEach(c => { numeroDe[c.id] = c.numero; });
+    const pendientes = {}; (pend.data || []).forEach(x => { pendientes[x.factura_id] = Number(x.pendiente) || 0; });
+    const filas = [
+      ...(fir.data || []).map(r => ({ d:dias(r.expira_en),
+        txt:'Firma ' + (r.firmante_nombre||'').split(' ')[0] + (numeroDe[r.contrato_id] ? ' · ' + numeroDe[r.contrato_id] : ''),
+        val:'Pendiente', clase:'espera' })),
+      /* Solo lo que de verdad se debe — 19-ago-2026, encargo del owner: «estamos
+         subiendo facturas antiguas y pone vencida hace 300 y pico días».
+         El panel cogía CUALQUIER documento con fecha de vencimiento pasada y los
+         ordenaba de más antiguo a más nuevo, así que al cargar facturas viejas
+         —ya cobradas— se llevaban las seis filas y tapaban lo que sí viene.
+         Medido antes de tocarlo: de 5 filas vencidas, 4 eran facturas YA
+         COBRADAS y 1 un recibí. Deuda real vencida: cero.
+         Tres reglas, y ninguna esconde una deuda:
+           · un RECIBÍ no vence: es la prueba de que el dinero entró;
+           · una factura COBRADA no es un vencimiento, es historia;
+           · una vencida y sin cobrar SÍ se queda, por muy vieja que sea — eso
+             es justo lo que hay que ver. */
+      ...(fac.data || []).filter(r => !r.anulada && r.venc && r.tipo !== 'recibi'
+                                   && (pendientes[r.id] != null ? pendientes[r.id] : Number(r.total) || 0) > 0.005)
+        .map(r => ({ d:dias(r.venc),
+          txt:r.numero, val:lwFormatoImporte(r.total, r.moneda||'EUR') })),
+    ].sort((a,b) => a.d - b.d).slice(0, 6);
     if(filas.length){
-      cajas.push('<div class="caja"><div class="t">Próximos vencimientos</div>'
-        +filas.map(r=>'<div class="railFila '+(r.d<0?'tarde':'')+'"><span><b>'+esc(r.txt)+'</b><em>'
-          +(r.d<0?'vencida hace '+(-r.d)+' días':r.d===0?'hoy':'en '+r.d+' días')+'</em></span>'
-          +'<span class="v '+(r.clase||'')+'">'+esc(r.val)+'</span></div>').join('')+'</div>');
+      cajas.push('<div class="railCaja lw-fade" style="--i:' + cajas.length + '"><div class="t">Próximos vencimientos</div>' +
+        filas.map(r => `<div class="railFila ${r.d < 0 ? 'tarde' : ''}">
+          <span>${esc(r.txt)} · ${r.d < 0 ? 'vencida hace ' + (-r.d) + ' días' : r.d === 0 ? 'hoy' : 'en ' + r.d + ' días'}</span>
+          <span class="v ${r.clase||''}">${esc(r.val)}</span></div>`).join('') + '</div>');
     }
-  }catch(e){ fallos.push('los vencimientos'); console.warn('vencimientos:',e&&e.message); }
-
-  /* §16.1 — los cuatro tipos de aviso, y este es el de ERROR: una alarma rota
-     no puede leerse igual que «no hay nada pendiente». Va ARRIBA. */
+  }catch(e){ fallos.push('los vencimientos'); console.warn('vencimientos:', e && e.message); }
+  /* «Rendimiento del equipo · admin» retirado el 15-ago-2026 (owner): se hara
+     algo especifico de agentes. Comparar a la gente por importe facturado en el
+     panel de entrada de todos no es lo mismo que un panel de rendimiento, y a
+     medias hacia mas ruido que servicio. */
+  /* El aviso de lo no comprobado va ARRIBA del carril y no al final: si queda
+     debajo de tres cajas, no se ve, y no verlo es el fallo entero. */
   if(fallos.length){
-    cajas.unshift('<div class="caja error"><div class="t">No se ha podido comprobar</div>'
-      +'<div class="railFila"><span>'+esc(fallos.join(' ni '))+'.</span></div>'
-      +'<div class="railNota">Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado. Recarga la página; si sigue igual, avisa a desarrollo.</div></div>');
-    sensacion('error');
+    cajas.unshift('<div class="railCaja lw-fade" style="--i:0;border-color:#C8791F">'
+      + '<div class="t">No se ha podido comprobar</div>'
+      + '<div class="railFila"><span>' + esc(fallos.join(' ni ')) + '.</span></div>'
+      + '<div class="railFila"><span style="font-size:11.5px;color:var(--texto-2,#4A5052)">'
+      + 'Esto NO quiere decir que no haya nada: quiere decir que no se ha mirado. '
+      + 'Recarga la página; si sigue igual, avisa a desarrollo.</span></div></div>');
   }
-  pintarRailCajas(cajas);
+  $('#rail').innerHTML = cajas.join('')
+    || '<div class="railCaja lw-fade"><div class="t">Próximos vencimientos</div><div class="railFila"><span>Nada a la vista</span></div></div>';
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   13 · MODO DEMOSTRACIÓN
-   ═══════════════════════════════════════════════════════════════════════════
-   §16.3 responsabilidad: la pantalla dice EN GRANDE que los números son
-   inventados. Un panel de control con datos falsos sin avisar es una mentira
-   operativa — el mismo pecado que un cero cuando la consulta falló. */
-const DATOS_DEMO={
-  cifras:{ contratos:34, contratosEditables:6, firmasPendientes:3, facturas:112, facturasAnuladas:2,
-    recibis:41, unidades:58, unidadesLibres:12, obraActivas:9, compradores:47, usuarios:18,
-    usuariosInactivos:2, documentos:76, proyectosConDocs:5, vencSinFecha:4 },
-  recientes:[
-    {fecha:'2026-08-22T10:12:00Z',num:'CR00031',quien:'Marta Ferrán',que:'Contrato',href:'#',estado:['Editable','']},
-    {fecha:'2026-08-22T08:40:00Z',num:'INV00112',quien:'PT Lawang Bali',que:'Factura',href:'#',importe:18500,moneda:'EUR',estado:['Emitida','info']},
-    {fecha:'2026-08-21T17:05:00Z',num:'CC00028',quien:'Sven Halvorsen',que:'Contrato',href:'#',estado:['Firmado','ok']},
-    {fecha:'2026-08-21T12:30:00Z',num:'REC00041',quien:'Andrea Benimeli',que:'Recibí',href:'#',importe:5000,moneda:'EUR',estado:['Emitida','info']},
-    {fecha:'2026-08-20T16:22:00Z',num:'INV00110',quien:'Kadek Surya',que:'Factura',href:'#',importe:2400,moneda:'EUR',estado:['Anulada','alerta']},
-    {fecha:'2026-08-20T09:15:00Z',num:'CR00030',quien:'Lucía Prats',que:'Contrato',href:'#',estado:['Firmado','ok']},
-  ],
-  rail:[
-    '<div class="caja aviso"><div class="t">Firmas que necesitan atención</div>'
-    +'<div class="railFila tarde"><span><b>CC00007</b><em>Sven Halvorsen · hace 22 días</em></span><span class="v mal">Cadena parada</span></div>'
-    +'<div class="railFila tarde"><span><b>CR00020</b><em>Marta Ferrán · hace 9 días</em></span><span class="v mal">Cadena parada</span></div>'
-    +'<details class="mas"><summary>2 avisos más</summary>'
-    +'<div class="railFila"><span><b>CR00027</b><em>Lucía Prats · hace 3 días</em></span><span class="v espera">Enlace caducado</span></div>'
-    +'<div class="railFila"><span><b>CC00025</b><em>Kadek Surya · hoy</em></span><span class="v espera">Sin email</span></div></details>'
-    +'<div class="railNota">Una cadena parada deja el contrato editable después de firmado. Ábrelo en Contratos y genera el enlace que falta.</div></div>',
-    '<div class="caja"><div class="t">Próximos vencimientos</div>'
-    +'<div class="railFila tarde"><span><b>INV00098</b><em>vencida hace 6 días</em></span><span class="v">12.000,00 €</span></div>'
-    +'<div class="railFila"><span><b>Firma Sven · CC00028</b><em>en 2 días</em></span><span class="v espera">Pendiente</span></div>'
-    +'<div class="railFila"><span><b>INV00105</b><em>en 9 días</em></span><span class="v">7.350,00 €</span></div>'
-    +'<div class="railFila"><span><b>INV00109</b><em>en 17 días</em></span><span class="v">3.100,00 €</span></div></div>',
-  ]
-};
+/* ── arranque ──────────────────────────────────────────────────────── */
+const sb = window.supabase.createClient(
+  'https://vtulllundrfennhjddhc.supabase.co',
+  'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg'   // publicable: el candado real es la RLS
+);
+window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   14 · ARRANQUE
-   ═══════════════════════════════════════════════════════════════════════════ */
-function saludo(nombre){
-  const h=new Date().getHours();
-  const s=h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches';
-  $('#saludo').textContent=s+(nombre?', '+nombre:'');
-  $('#saludoSub').textContent='Esto es lo que necesita tu atención hoy, '
-    +new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long'})+'.';
-}
-function iniciales(t){
-  const p=String(t||'').trim().split(/\s+/).filter(Boolean);
-  const a=(p[0]||'')[0]||'', b=(p[1]||'')[0]||'';
-  return (a+b).toUpperCase()||'··';
-}
+sb.auth.getSession().then(async ({ data:{ session } }) => {
+  if(!session){ location.replace('/entrar/?next=/intranet/'); return; }
+  // Un comprador del portal (app_metadata.portal) NO es del equipo: a su casa.
+  // Mismo chequeo que guard.js — sin ficha en `usuarios`, la compatibilidad
+  // "sin ficha se permite" de abajo le habría abierto el hub interno (vacío
+  // por RLS, pero visible: nombres de herramienta, KPIs, estructura).
+  if((session.user.app_metadata || {}).portal){ location.replace('/portal/'); return; }
+  const { data: ficha } = await sb.from('usuarios')
+    .select('rol, herramientas, activo, nombre').eq('user_id', session.user.id).maybeSingle();
+  if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío
+    await sb.auth.signOut();
+    location.replace('/entrar/?desactivado=1');
+    return;
+  }
+  FICHA = ficha || null;
+  /* «Buenos días, Ana — hoy, 6 de agosto» (1a). La hora decide el saludo y el
+     nombre sale de la ficha; sin ficha, del email, sin inventar nada. */
+  {
+    const h = new Date().getHours();
+    const saludo = h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+    const nombre = (ficha && ficha.nombre) ? ficha.nombre.split(' ')[0] : '';
+    $('#saludo').textContent = saludo + (nombre ? ', ' + nombre : '');
+    $('#saludoSub').textContent = 'Esto es lo que necesita tu atención hoy, '
+      + new Date().toLocaleDateString('es-ES', { day:'numeric', month:'long' }) + '.';
+  }
+  $('#who').textContent = (ficha && ficha.nombre) || session.user.email;
+  $('#who').title = session.user.email;
+  if(ficha){
+    const r = $('#rol');
+    r.hidden = false;
+    r.textContent = ficha.rol.replace('_', ' ');
+    r.classList.toggle('manda', esAdmin(ficha));
+  }
 
-/* `#btnPaleta` y `#out` son `.lw-btn`: la capa compartida ya los coge. */
-document.querySelectorAll('.acciones .btn').forEach(b=>b.setAttribute('data-v3-pulsable',''));
-document.getElementById('btnPaleta').addEventListener('click',()=>Paleta.abre());
+  const sin = new URLSearchParams(location.search).get('sin_permiso');
+  if(sin) $('#avisos').innerHTML = '<p class="aviso">No tienes acceso a «' + esc(sin) + '». Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.</p>';
 
-function arrancaDemo(motivo){
-  DEMO=true;
-  FICHA={ rol:'super_admin', nombre:'Javier Cervantes', herramientas:[], activo:true };
-  $('#avisos').innerHTML='<p class="banner"><b>Modo demostración.</b> '+esc(motivo)
-    +' Todos los números de esta pantalla son inventados y no vienen de la base de datos: '
-    +'están aquí para poder juzgar el diseño, no para trabajar con ellos.</p>';
-  saludo('Javier');
-  $('#who').textContent='javier@lawang.es'; $('#rol').textContent='super admin';
-  $('#avatar').textContent=iniciales('Javier Cervantes');
-  document.body.hidden=false;
-  pintar();
-  CIFRAS=DATOS_DEMO.cifras;
-  pintar(); pintarKpis(CIFRAS);
-  pintarReciente(DATOS_DEMO.recientes);
-  pintarRailCajas(DATOS_DEMO.rail);
-  $('#pie-datos').textContent='Datos de demostración · '+new Date().toLocaleString('es-ES',{hour:'2-digit',minute:'2-digit'});
-}
+  /* Este hub NO carga guard.js -- tiene su propio control de sesion-- asi que no
+     existe `window.LW_AUTH`, que es de donde cuelga todo lo de topbar.js. Sin
+     esto el menu lateral no arrancaba AQUI, justo donde mas se usa. Se anuncia la
+     ficha por evento en vez de duplicar la comprobacion: quien la necesite se
+     suscribe. Es la tercera vez que esta divergencia cuesta algo (ver
+     contexto/suite_lawang.md). */
+  window.LW_FICHA = ficha;
+  document.dispatchEvent(new CustomEvent('lw-ficha', { detail: ficha }));
 
-(async ()=>{
-  const forzarDemo=new URLSearchParams(location.search).has('demo');
-  let sb=null;
-  try{
-    sb=window.supabase.createClient(
-      'https://vtulllundrfennhjddhc.supabase.co',
-      'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg');   // publicable: el candado real es la RLS
-    window.LW_SB=sb;
-  }catch(e){}
+  pintar('');                 // la lista sale ya, sin esperar a la base
+  document.body.hidden = false;
 
-  if(forzarDemo||!sb){ arrancaDemo(forzarDemo?'Lo has abierto con ?demo=1.':'No se ha podido crear el cliente de Supabase.'); return; }
-
-  const {data:{session}}=await sb.auth.getSession();
-  /* SIN SESIÓN SE VA AL LOGIN, no al modo demostración (26-ago-2026, al salir a
-     producción). Mientras esto vivía en `/intranet/v3/` era una maqueta y caer a
-     datos de ejemplo estaba bien. En `/intranet/` es la puerta de la intranet: un
-     visitante sin sesión vería cifras de negocio INVENTADAS con pinta de reales,
-     que es peor que una pantalla en blanco y lo contrario de la norma de la casa
-     —«no se inventa un cero»—. La demostración sigue disponible, pero solo si
-     alguien la pide a propósito con `?demo=1`. */
-  if(!session){ location.replace('/entrar/?next=' + encodeURIComponent(location.pathname)); return; }
-  if((session.user.app_metadata||{}).portal){ location.replace('/portal/'); return; }
-
-  const {data:ficha}=await sb.from('usuarios')
-    .select('rol, herramientas, activo, nombre').eq('user_id',session.user.id).maybeSingle();
-  if(ficha&&!ficha.activo){ await sb.auth.signOut(); location.replace('/entrar/?desactivado=1'); return; }
-  FICHA=ficha||null;
-
-  saludo(ficha&&ficha.nombre?ficha.nombre.split(' ')[0]:'');
-  $('#who').textContent=(ficha&&ficha.nombre)||session.user.email;
-  $('#who').title=session.user.email;
-  $('#avatar').textContent=iniciales((ficha&&ficha.nombre)||session.user.email);
-  if(ficha) $('#rol').textContent=ficha.rol.replace('_',' ');
-
-  const sin=new URLSearchParams(location.search).get('sin_permiso');
-  if(sin) $('#avisos').innerHTML='<p class="banner">No tienes acceso a «'+esc(sin)+'». Pídeselo a un administrador: en tu ficha se activa herramienta por herramienta.</p>';
-
-  window.LW_FICHA=ficha;
-  document.dispatchEvent(new CustomEvent('lw-ficha',{detail:ficha}));
-
-  pintar();                      /* la lista sale sin esperar a la base */
-  document.body.hidden=false;
-
-  CIFRAS=await contar(sb);
-  pintar(); pintarKpis(CIFRAS);
-  ultimasOperaciones(sb).catch(e=>console.warn('últimas operaciones:',e&&e.message));
-  pintarRail(sb).catch(e=>console.warn('carril:',e&&e.message));
-
-  const mudas=HERRAMIENTAS.filter(permitida).filter(t=>t.estado&&t.estado(CIFRAS)===null).length;
-  $('#pie-datos').textContent=mudas
-    ? mudas+' herramienta(s) sin cifra: la base no contestó y no se inventa un cero.'
-    : 'Cifras al día de '+new Date().toLocaleString('es-ES',{hour:'2-digit',minute:'2-digit'})+'.';
-})();
-
-document.getElementById('out').addEventListener('click',async()=>{
-  if(DEMO){ tosta('En modo demostración no hay sesión que cerrar.',{icono:'ph-info'}); return; }
-  await window.LW_SB.auth.signOut();
-  location.replace('/entrar/');
+  CIFRAS = await contar(sb);
+  pintar('');
+  pintarKpis(CIFRAS, ficha);
+  /* Va después y sin bloquear: si esta consulta falla, el panel ya está entero y
+     usable. Un `await` sin catch aquí habría dejado el pie de página sin escribir
+     y la sesión sin cerrar bien. */
+  ultimasOperaciones(sb).catch(e => console.warn('últimas operaciones:', e && e.message));
+  pintarRail(sb, ficha).catch(e => console.warn('carril:', e && e.message));
+  const mudas = HERRAMIENTAS.filter(permitida).filter(t => t.estado && t.estado(CIFRAS) === null).length;
+  $('#pie-datos').textContent = mudas
+    ? mudas + ' herramienta(s) sin cifra: la base no contestó y no se inventa un cero.'
+    : 'Cifras al día de ' + new Date().toLocaleString('es-ES', { hour:'2-digit', minute:'2-digit' }) + '.';
 });
+
+$('#out').onclick = async () => {
+  await sb.auth.signOut();
+  location.replace('/entrar/');
+};
 </script>
 </body>
 </html>

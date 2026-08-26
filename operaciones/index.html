@@ -1,587 +1,1168 @@
 <!DOCTYPE html>
-<html lang="es" data-lw3>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="color-scheme" content="light">
 <link rel="icon" href="/favicon.png">
 <title>Lawang · Operaciones</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
+     los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
+     para que el riel no salga como una columna de cuadros vacios. Misma URL y
+     misma version fijada que las tres que ya lo tenian. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=edafb007">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
 <script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<!-- Mismo guardia y mismo permiso que la herramienta viva: quien no tenga
-     «operaciones» tampoco entra aquí. -->
 <script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="operaciones"></script>
+<script src="/contracts/assets/suite.js?v=f61d52c5"></script>
+<!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
+<!-- dinero.js ANTES de totales.js (17-ago-2026): esta pantalla llamaba a
+     `fmtMoneda` sin cargar dinero.js, asi que caia al respaldo local de
+     totales.js en vez de usar la funcion compartida. Da el mismo resultado
+     hoy, y es justo por eso que convenia arreglarlo antes de que dejara de
+     darlo. El `?v=` lo sella el pre-commit. -->
 <script src="/contracts/assets/dinero.js?v=5183def2"></script>
 <script src="/facturas/totales.js"></script>
-<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<!-- LA REGLA DE NEGOCIO, COMPARTIDA CON LA HERRAMIENTA VIVA. Ni las consultas
-     ni la aritmética del dinero se reescriben aquí: eso es lo que hace que esta
-     v3 sea un rediseño y no una segunda verdad sobre lo que se debe. -->
-<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<style>
+  :root{ --line:#E4DCCB; --card:#fffdf8; --tbh:64px; }
+  /* --cajon-w: sin override propio desde el 11-ago — hereda el 70vw de
+     suite.css (cajón flotante, ya no adosado). Antes tenía aquí un clamp
+     propio (480-760px) para que sus cinco tablas cupieran sin achicar la
+     lista de detrás; con el cajón flotando y bloqueando en vez de empujar,
+     ese cálculo ya no aplica: 70vw le sobra de largo. */
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--rl,#F5F0E6); color:var(--ink,#2E3437); }
+  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+
+  /* La vista de entrada es una TABLA CENTRADA, no una columna estrecha a la
+     izquierda (31-jul, petición del owner). Con dos o tres operaciones la
+     columna se leía; con cincuenta, cada una era un bloque de cuatro líneas y
+     había que ir bajando para comparar dos importes. Una tabla enseña de un
+     vistazo lo que se compara: número, comprador, precio, cobrado y pendiente.
+     Al elegir una fila, la tabla se va y entra la ficha en el mismo ancho —de
+     ahí `.stage.abierta`, que ya existía y solo servía en móvil. */
+  .stage{ display:block; height:100%; overflow:auto; padding-top:var(--tbh); }
+  .centro{ max-width:1520px; margin:0 auto; padding:22px 26px 90px; }
+  .stage.abierta .lista{ display:none; }
+  .stage:not(.abierta) .detalle{ display:none; }
+
+  /* ---------- lista ---------- */
+  .lista .cab{ padding:0 0 14px; }
+  .cab .fila{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  /* Se queda con 260 y no con los 240 de la clase: aqui comparte fila con el
+     selector de proyecto y con el conmutador Tabla/Tablero, y con 240 el hueco
+     que sobraba se lo repartian los tres. */
+  .cab .fila .sui-buscar{ flex:1 1 260px; }
+  .cab .fila .f-sel{ flex:0 1 240px; margin-top:0; width:auto; }
+
+  /* La tabla desplaza en horizontal dentro de su caja en vez de recortarse o
+     ensanchar la página: en un móvil son seis columnas que no caben. */
+  .tabla-caja{ overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+  table.ops{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:760px; }
+  table.ops thead th{ position:sticky; top:0; background:var(--card); z-index:1;
+    text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; padding:12px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table.ops td{ padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.ops tbody tr{ cursor:pointer; }
+  table.ops tbody tr:hover{ background:#efeade; }
+  table.ops tbody tr:last-child td{ border-bottom:none; }
+  table.ops .num, table.ops th.num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  table.ops .n{ font-size:12.5px; letter-spacing:.08em; color:var(--tg); font-weight:600; white-space:nowrap; }
+  table.ops .c{ font-weight:600; }
+  table.ops .p{ font-size:12.5px; color:var(--muted); }
+  /* SIN el `table.ops` de delante: la tabla es `.sui-tabla` desde el rediseño
+     del 31-jul, asi que esta regla no aplicaba a nada y las pastillas salian
+     PEGADAS (se unen con join('') , sin ni siquiera un espacio en blanco).
+     10px en horizontal: dos pastillas de color solido pegadas se leen como una
+     sola etiqueta partida. El hueco vertical se queda menor para que dos lineas
+     de etiquetas no engorden la fila. */
+  .badges{ display:flex; gap:6px 10px; flex-wrap:wrap; }
+  .volver{ font:inherit; font-size:12.5px; background:none; border:none; color:var(--dl); cursor:pointer;
+           padding:0; margin:0 0 14px; display:inline-flex; align-items:center; gap:6px; }
+  .volver:hover{ text-decoration:underline; }
+  .resumen{ display:flex; gap:22px; flex-wrap:wrap; margin:0 0 14px; font-size:12.5px; color:var(--muted); }
+  .resumen b{ color:var(--ink,#2E3437); font-variant-numeric:tabular-nums; }
+  /* El buscador es `.sui-buscar` (suite.css). Lo de aquí eran seis líneas que
+     además se contradecían solas: declaraba `border-radius:999px` y
+     `background:#F7F3E9` y los pisaba en la línea siguiente. */
+  /* mismos chips que Unidades: el contador va DENTRO del filtro para saber
+     cuánto hay antes de pulsarlo */
+  .filtros{ display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; }
+  .f{ font:inherit; font-size:12px; letter-spacing:.03em; padding:7px 14px; background:#fff; border:1px solid var(--line);
+      border-radius:999px; padding:5px 11px; cursor:pointer; color:var(--muted); }
+  .f:hover{ border-color:var(--dl); }
+  .f.on{ background:#21272A; border-color:#21272A; color:#fff; }
+  .f.vacio{ opacity:.45; }
+  .f-sel{ font:inherit; font-size:12px; padding:6px 9px; border:1px solid var(--line); border-radius:9px;
+          background:var(--card); color:inherit; margin-top:7px; width:100%; }
+  .op{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
+       border-bottom:1px solid var(--line); padding:13px 18px; cursor:pointer; }
+  .op:hover{ background:#efeade; }
+  .op.sel{ background:#e7e1d2; box-shadow:inset 3px 0 0 var(--tg); }
+  .op .n{ font-size:12px; letter-spacing:.1em; color:var(--tg); font-weight:600; }
+  .op .c{ font-size:14px; margin:2px 0 0; }
+  .op .p{ font-size:12px; color:var(--muted); }
+
+  /* ---------- detalle ---------- */
+  .detalle{ overflow:auto; padding:26px 30px 80px; }
+  .vacio-panel{ display:grid; place-items:center; height:100%; color:var(--ss,#BEB3A5); font-size:13px;
+                letter-spacing:.16em; text-transform:uppercase; }
+  section{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; overflow:hidden; }
+  /* título de sección = banda de marca a lo ancho de la tarjeta (los márgenes
+     negativos la llevan hasta el borde; el overflow:hidden del section recorta
+     las esquinas contra el radio de la tarjeta) */
+  section > h3{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--rl,#F5F0E6);
+                background:var(--dl,#104C4F); margin:-16px -18px 14px; padding:10px 18px; font-weight:600; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+      font-weight:500; padding:0 8px 7px 0; }
+  td{ padding:7px 8px 7px 0; border-top:1px solid var(--line); vertical-align:top; }
+  td.num, th.num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .cifras{ display:flex; gap:26px; flex-wrap:wrap; }
+  .cifra .k{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .cifra .v{ font-size:19px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .cifra .v.gris{ color:var(--ss,#BEB3A5); font-weight:400; font-size:15px; }
+
+  /* Estados en color SÓLIDO con texto claro: el lavado pálido de antes se leía
+     como decoración y había que buscar el estado. Los 5 pasan contraste AA
+     (>4.5:1) sobre blanco. Mismos colores en Unidades y Compradores. */
+  /* La etiqueta se define UNA vez, en `contracts/assets/suite.css`. Aqui habia
+     una copia con tracking .09em donde la compartida usa .06em — la misma
+     etiqueta cambiaba de forma segun la pantalla. La restauracion de la v3
+     (26-ago, tarde) la trajo de vuelta con el fichero; se retira otra vez: lo
+     que se revierte es la piel v3, no el sistema de controles.
+     Con ella se van sus cuatro modificadores de color, que repetian EXACTAMENTE
+     los de la hoja compartida (#3F5230 / #8C5E10 / #9E2F26 / #104C4F): no eran
+     una variante, era la misma tabla escrita dos veces — que es como empiezan a
+     separarse. */
+
+  a.enl{ color:var(--dl); text-decoration:none; border-bottom:1px solid rgba(16,76,79,.3); }
+  a.enl:hover{ border-bottom-color:var(--dl); }
+  /* la acción principal de cada documento: el PDF firmado se buscaba y estaba
+     en un párrafo de texto al final de la ficha */
+  a.enl.fuerte{ display:inline-block; border:1px solid var(--dl); border-radius:999px;
+                padding:5px 13px; font-size:12.5px; font-weight:600; white-space:nowrap; }
+  a.enl.fuerte:hover{ background:var(--dl); color:#fff; }
+  .nota{ font-size:12px; color:var(--muted); margin:10px 0 0; line-height:1.5; }
+  .falta{ color:#a3342b; }
+
+  /* pestañas — mismos valores que el mockup 4a: activa en #EAE4D3/#21272A,
+     inactiva en texto sin fondo. Antes usaba el marco de tarjeta (--card) que
+     el mockup reserva para el toggle Tabla/Embudo, más abajo — dos controles
+     con la misma pinta se leían como el mismo control. */
+  .tabs{ display:flex; gap:4px; }
+  /* Las pestañas viven DENTRO de la barra superior, que en móvil ya desplaza en
+     horizontal (assets/topbar.css). Aquí solo hace falta que no se aplasten al
+     repartir el ancho: medido a 390px la fila se salía 221px y las pestañas
+     quedaban ilegibles antes de quedar fuera. */
+  .tab{ flex:none; }
+  .tab{ font:500 12px 'Jost',sans-serif; background:none; border:none;
+        border-radius:999px; padding:7px 13px; cursor:pointer; color:#4A5052; }
+  .tab.on{ background:#EAE4D3; color:#21272A; font-weight:600; }
+  .panel{ display:none; }
+  .panel.on{ display:block; }
+  .venc{ padding:26px 30px 80px; overflow:auto; grid-column:1 / -1; }
+  /* el visor de documentos es la pieza compartida /contracts/assets/visor.js */
+
+  /* ── TABLERO (embudo por etapa) — 6-ago-2026 ────────────────────────────
+     La revisión pidió esto por un motivo medible: la tabla plana deja de servir
+     pasadas ~100 filas. Y lo que resuelve eso NO es el tablero, es que **cada
+     columna tenga alto fijo y su propio desplazamiento**. Sin eso, un tablero con
+     300 operaciones es una tabla plana con cuatro columnas: crece hacia abajo
+     hasta que la cabecera se pierde y hay que hacer scroll de página para ver la
+     columna de al lado.
+     `min-height:0` en el cuerpo es obligatorio, no decorativo: sin él, un hijo con
+     `overflow:auto` dentro de un flex NO se encoge —crece— y el alto fijo de la
+     columna no se respeta. Es el fallo clásico de esta maqueta. */
+  .tablero{ display:grid; gap:var(--e3,12px); align-items:start;
+            grid-template-columns:repeat(4, minmax(0, 1fr)); }
+
+  /* Barra de progreso del embudo + leyenda — mockup 4a, encima del tablero.
+     Faltaba entera: `#resumen` solo daba las cifras en texto, sin el reparto
+     visual por etapa que el mockup pone primero (de un vistazo, antes de leer
+     ninguna cifra). Un segmento por etapa, ancho = % de operaciones visibles
+     en esa etapa; mismos colores que la cabecera de columna, ver ETAPA_COLOR. */
+  .barra-etapas{ margin:0 0 8px; }
+  .barra-fill{ display:flex; height:10px; border-radius:999px; overflow:hidden; }
+  .barra-fill span{ height:100%; }
+  .leyenda-etapas{ display:flex; gap:18px; flex-wrap:wrap; margin:8px 0 20px;
+                    font-size:11.5px; color:var(--texto-2,#4A5052); }
+  .leyenda-etapas i{ display:inline-block; width:8px; height:8px; border-radius:2px;
+                      margin-right:5px; vertical-align:middle; }
+
+  .col{ display:flex; flex-direction:column; min-width:0;
+        height:clamp(340px, calc(100vh - 300px), 720px);
+        background:var(--sup-2,#F7F3E9); border:1px solid var(--linea,#E4DCCB);
+        border-radius:var(--r-l,16px); overflow:hidden; }
+  /* Cabecera de columna: rótulo en TEXTO de color, no pastilla — el mockup
+     reserva la pastilla para las alertas dentro de la tarjeta (Falta ficha),
+     y aquí competían por la misma forma. Recuento y suma en una sola línea,
+     "N · importe", como en 4a. */
+  .col-cab{ display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+            padding:10px 13px; border-bottom:1px solid var(--linea,#E4DCCB);
+            background:var(--sup-1,#fff); flex:none; }
+  .col-cab .col-rotulo{ font-size:11px; font-weight:600; letter-spacing:.08em;
+                         text-transform:uppercase; }
+  .col-suma{ font-size:11.5px; font-variant-numeric:tabular-nums;
+             color:var(--texto-2,#4A5052); white-space:nowrap; }
+  .col-cuerpo{ flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+               padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .col-vacia{ margin:0; padding:14px 4px; font-size:12.5px; color:var(--texto-3,#676B63); text-align:center; }
+
+  /* Acento de columna en el borde superior de la tarjeta (3px, color de la
+     etapa vía --etapa inline) — es lo que deja ver de qué columna es una
+     tarjeta aunque se mire sola, ej. en un scroll largo. Los otros tres lados
+     se quedan en el filete fino de siempre. */
+  .tarj{ display:flex; flex-direction:column; gap:4px; text-align:left; font:inherit;
+         background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
+         border-top:3px solid var(--etapa,var(--linea,#E4DCCB));
+         border-radius:var(--r-m,12px); padding:10px 12px; cursor:pointer; color:inherit;
+         transition:border-color .12s, box-shadow .12s, transform .15s ease; }
+  .tarj:hover{ border-color:var(--dl,#104C4F); border-top-color:var(--etapa,var(--dl,#104C4F));
+               transform:translateY(-1px); box-shadow:0 6px 16px -10px rgba(16,76,79,.45); }
+  /* Seleccionada: el MISMO lenguaje que la fila de la tabla y que la ficha de
+     Unidades — relleno + filete de acento + nº en tinta. Tres señales. */
+  .tarj.sel{ background:var(--sup-sel,#EAE4D3); border-color:var(--dl,#104C4F);
+             box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+  .tarj-cab{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .tarj-cab .n{ font-weight:600; letter-spacing:.04em; color:var(--dl,#104C4F); font-size:13px; }
+  .tarj-c{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* «+3»: cuántos compradores más hay además del que se nombra. Va pegado al
+     nombre y no en una columna propia — con dos compradores, que es el caso
+     normal, una columna entera para un «+1» sería ruido en todas las filas. */
+  .mas-c{ display:inline-block; font-size:10.5px; font-weight:600; vertical-align:1px;
+          padding:1px 6px; border-radius:999px; margin-left:5px; flex:none;
+          background:var(--sup-sel,#EAE4D3); color:var(--dl,#104C4F); }
+  /* La celda pasa a flex para que el «+3» NO se lo coma la elipsis: lo que se
+     recorta es el nombre, nunca el número. Un contador a medio tapar sería el
+     mismo fallo que se viene a arreglar. */
+  table.ops .c, .tarj-c{ display:flex; align-items:baseline; gap:0; min-width:0; }
+  table.ops .c > :first-child, .tarj-c{ min-width:0; }
+  .tarj-p{ font-size:11.5px; color:var(--texto-3,#676B63);
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tarj-cifra{ margin-top:3px; font-size:15px; font-weight:600;
+               font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:6px; }
+  .tarj-cifra small{ font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+                     font-weight:500; color:var(--texto-3,#676B63); }
+  /* Progreso de cobro — solo en la columna "Cobro pendiente" (mockup 4a): lo
+     que ya se facturó de esa operación, sobre el precio total. */
+  .tarj-cobro{ height:5px; border-radius:999px; background:#E7E1D2; overflow:hidden; margin:2px 0; }
+  .tarj-cobro i{ display:block; height:100%; background:#3F5230; }
+
+  /* Móvil y pantallas estrechas: las cuatro columnas en fila son ilegibles por
+     debajo de ~1000px. Se apilan y cada una recupera alto automático — apiladas,
+     el desplazamiento por columna ya no aporta y sí estorba (dos barras de
+     scroll anidadas en un teléfono). */
+  @media (max-width:1000px){
+    .tablero{ grid-template-columns:1fr; }
+    .col{ height:auto; max-height:none; }
+    .col-cuerpo{ overflow:visible; }
+  }
+</style>
+
+<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
+     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
+     y la pisaban las once herramientas — cada una trae su propio <style> (y el
+     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
+     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
+     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
+     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=498229cc">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
-<style>
-/* ═══════════════════════════════════════════════════════════════════════════
-   OPERACIONES v3 — 26-ago-2026
-   ═══════════════════════════════════════════════════════════════════════════
-   QUÉ SE REDISEÑA, Y POR QUÉ. La herramienta viva enseña ochenta y ocho
-   operaciones en una tabla de ocho columnas, todas con el mismo peso. Para
-   contestar «¿qué está parado?» hay que LEER las ochenta y ocho. Y las tres
-   columnas de dinero —precio, cobrado, pendiente— obligan a hacer la resta con
-   la vista, fila por fila.
-
-   Esta versión responde por orden de pregunta (§16.6: primero lo común, lo
-   avanzado un nivel más abajo):
-
-     1. ¿Cómo vamos?      una banda de dinero con su barra. Cuatro millones y
-                          medio contratados y el 10 % cobrado se ve de un
-                          vistazo, no se calcula.
-     2. ¿Qué necesita algo HOY?  lo que está parado, ordenado por lo que cuesta
-                          no hacerlo, y cada línea dice el VERBO. Esto no
-                          existía: había que deducirlo.
-     3. Todo lo demás     por etapa, en secciones plegables. «Cobro completo»
-                          nace plegado: 31 operaciones que no piden nada no
-                          pueden ocupar el mismo sitio que las que sí.
-
-   Y la fila cuenta su estado en vez de listarlo: el comprador manda, y las tres
-   columnas de dinero se sustituyen por UNA barra de pago con el pendiente al
-   lado. La resta ya está hecha.
-
-   El detalle abre en el cajón compartido, que se arrastra para cerrar.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-body{ margin:0; background:var(--sup-0,#F1EBDD); color:var(--texto,#22282A);
-      font-family:var(--sans,'Jost',system-ui,sans-serif); }
-main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
-
-/* ── banda de dinero ─────────────────────────────────────────────────────── */
-.dinero{
-  background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
-  border-radius:var(--r-l,18px); box-shadow:var(--sombra-1); padding:20px 22px; margin:0 0 22px;
-}
-.dinero .cifras{ display:flex; gap:34px; flex-wrap:wrap; align-items:flex-end; }
-.dinero .c .rot{ display:block; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
-                 font-weight:600; color:var(--texto-2,#4A5052); margin-bottom:4px; }
-.dinero .c .n{ font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700;
-               font-size:1.62rem; line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums;
-               color:var(--dl,#104C4F); }
-.dinero .c.pend .n{ color:#8C5E10; }
-.dinero .c small{ display:block; margin-top:5px; font-size:.74rem; color:var(--texto-2,#4A5052); }
-/* La barra es la frase «va por aquí» dicha en un objeto en vez de en un
-   porcentaje: §16.7, el mapeo tiene que ser evidente sin leer una etiqueta. */
-.barraTot{ margin-top:16px; height:9px; border-radius:999px; background:#EAE4D3; overflow:hidden; }
-.barraTot i{ display:block; height:100%; border-radius:999px; background:var(--tg,#485B37); width:0; }
-
-/* ── lo que necesita algo ────────────────────────────────────────────────── */
-.urge{ background:var(--sup-1,#fff); border:1px solid #DDA85A; border-radius:var(--r-l,18px);
-       box-shadow:var(--sombra-1); padding:6px 4px; margin:0 0 22px; }
-.urge h2{ margin:0; padding:14px 18px 8px; font-size:.9rem; font-weight:600; letter-spacing:-.01em; }
-.urge h2 span{ font-weight:400; color:var(--texto-2,#4A5052); }
-.urgeFila{
-  display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:14px;
-  padding:11px 18px; border-top:1px solid var(--linea,#E4DCCB);
-  text-decoration:none; color:inherit; cursor:pointer;
-}
-.urgeFila:first-of-type{ border-top:none; }
-.urgeFila:hover{ background:var(--sup-2,#F7F3E9); }
-.urgeFila b{ font-weight:600; }
-.urgeFila .por{ display:block; margin-top:2px; font-size:.78rem; color:var(--texto-2,#4A5052); }
-.urgeFila .verbo{ font-size:.78rem; font-weight:600; color:var(--tg,#485B37); white-space:nowrap; }
-.urgeFila.grave .por{ color:#9E2F26; }
-
-/* ── controles ───────────────────────────────────────────────────────────── */
-.controles{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 16px; }
-.controles .sui-buscar{ flex:1 1 260px; }
-
-/* ── chips de etapa ─────────────────────────────────────────────────────── */
-.chips{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px; }
-.sui-chip .punto{ display:inline-block; width:7px; height:7px; border-radius:999px; margin-right:6px; vertical-align:1px; }
-.filas{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
-        border-radius:var(--r-l,18px); box-shadow:var(--sombra-1); overflow:hidden; }
-
-/* LA FILA. Tres zonas y una jerarquía clara: quién (manda), cómo va (la barra),
-   cuánto falta (la cifra). El número de contrato y el tipo bajan a segundo
-   plano — son la referencia, no la identidad. */
-.op{
-  display:grid; grid-template-columns:minmax(0,1fr) 210px 130px 20px;
-  align-items:center; gap:18px; padding:14px 18px;
-  border-top:1px solid var(--linea,#E4DCCB); cursor:pointer;
-}
-.op:first-child{ border-top:none; }
-.op:hover{ background:var(--sup-2,#F7F3E9); }
-.op .quien{ font-size:.92rem; font-weight:600; letter-spacing:-.008em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.op .donde{ display:block; margin-top:3px; font-size:.76rem; color:var(--texto-2,#4A5052);
-            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.op .donde .punto{ display:inline-block; width:7px; height:7px; border-radius:999px; margin-right:6px; vertical-align:1px; }
-.op .pago{ min-width:0; }
-.op .pago .b{ height:7px; border-radius:999px; background:#EAE4D3; overflow:hidden; }
-.op .pago .b i{ display:block; height:100%; border-radius:999px; background:var(--tg,#485B37); }
-.op .pago .t{ display:block; margin-top:5px; font-size:.72rem; color:var(--texto-2,#4A5052); font-variant-numeric:tabular-nums; }
-.op .falta{ text-align:right; font-variant-numeric:tabular-nums; font-size:.86rem; font-weight:600; }
-.op .falta.debe{ color:#8C5E10; }
-.op .falta.ok{ color:var(--bien,#3F5230); font-weight:500; }
-.op .falta small{ display:block; font-weight:400; font-size:.7rem; color:var(--texto-3,#676B63); }
-.op .ir{ color:var(--sc,#8F9B7A); font-size:.9rem; justify-self:end; }
-.op .aviso{ display:inline-block; margin-left:8px; font-size:.66rem; font-weight:600; letter-spacing:.06em;
-            text-transform:uppercase; color:#9E2F26; background:#FBF0EF; border:1px solid #E2B3AE;
-            border-radius:999px; padding:2px 7px; vertical-align:1px; }
-
-.vacio{ padding:26px 18px; color:var(--texto-2,#4A5052); font-size:.86rem; }
-
-/* ── cajón de detalle ────────────────────────────────────────────────────── */
-#cajon .cuerpo{ overflow:auto; padding:0 20px 24px; }
-#cajon h3{ margin:0; font-size:1.02rem; letter-spacing:-.012em; }
-#cajon .sub{ font-size:.78rem; color:var(--texto-2,#4A5052); margin-top:3px; }
-.bloque{ margin-top:20px; }
-.bloque > h4{ margin:0 0 8px; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
-              font-weight:600; color:var(--texto-2,#4A5052); }
-.dato{ display:flex; justify-content:space-between; gap:12px; padding:9px 0;
-       border-top:1px solid var(--linea,#E4DCCB); font-size:.85rem; }
-.dato:first-of-type{ border-top:none; }
-.dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
-.mini{ font-size:.78rem; color:var(--texto-2,#4A5052); line-height:1.5; }
-
-/* ── §16.5 · PANTALLA ESTRECHA ───────────────────────────────────────────────
-   Los márgenes NO se estrechan hasta pegarse al borde. Un texto que arranca a
-   4 px del canto se lee peor y, en un móvil con esquinas redondeadas, la
-   primera letra queda debajo de la curva. Se baja de 24 a 16 px y ahí se para;
-   lo que se recorta es el relleno DENTRO de las tarjetas, no la calle de
-   fuera. Y `env(safe-area-inset)` para el iPhone en horizontal, donde la muesca
-   se come el lateral. */
-@media (max-width:820px){
-  main{
-    padding-left:max(16px, env(safe-area-inset-left));
-    padding-right:max(16px, env(safe-area-inset-right));
-    padding-top:18px; padding-bottom:56px;
-  }
-  .dinero{ padding:17px 18px; }
-  .dinero .cifras{ gap:20px; }
-  .dinero .c .n{ font-size:1.42rem; }
-  .urge{ padding:4px 2px; }
-  .urgeFila{ grid-template-columns:1fr auto; gap:10px; padding:12px 16px; }
-  .urgeFila .verbo{ grid-column:2; }
-  .urgeFila i.ph{ display:none; }
-  .op{ grid-template-columns:minmax(0,1fr) 118px; gap:12px 14px; padding:13px 16px; }
-  .op .pago{ grid-column:1; grid-row:2; }
-  .op .falta{ grid-column:2; grid-row:1 / span 2; text-align:right; }
-  .op .ir{ display:none; }
-  .controles{ gap:8px; }
-}
-@media (max-width:520px){
-  main{ padding-bottom:64px; }
-  /* UNA columna, no dos. A 390 px la mitad son 171 px y «395.275,00 EUR» a
-     1,42rem mide más que eso: las dos columnas empujaban la página a lo ancho y
-     la cifra salía cortada por el canto. La regla que faltaba no es de tamaño de
-     letra, es de cuántas columnas caben. */
-  .dinero .cifras{ display:grid; grid-template-columns:1fr; gap:14px; }
-  .dinero .c .n{ font-size:1.34rem; }
-  /* El verbo baja a su línea: en `1fr auto` el `auto` no se encoge, así que
-     «Generar el enlace» reservaba su ancho y se comía el texto de al lado. */
-  .urgeFila{ grid-template-columns:1fr; gap:6px; }
-  .urgeFila .verbo{ grid-column:1; justify-self:start; }
-  .op{ grid-template-columns:minmax(0,1fr) 100px; }
-  .op .quien{ white-space:normal; }
-  .op .donde{ white-space:normal; }
-}
-/* Red de seguridad: ningún hijo de un grid mide `auto` por defecto sin pedirlo.
-   Sin esto, un nombre largo o una cifra ancha empujan TODA la página a lo ancho
-   y el móvil se desplaza de lado — el mismo fallo que ya está anotado en el
-   panel con la tabla de operaciones recientes. */
-main, .dinero, .urge, .op, .urgeFila, .filas{ min-width:0; }
-.dinero .c{ min-width:0; }
-.dinero .c .n{ overflow-wrap:anywhere; }
-</style>
 </head>
-<!-- Sin `hidden`: guard.js destapa poniendo `visibility` en el <html>, no
-     quitando un atributo del <body>. Con `<body hidden>` la página se quedaba
-     en blanco aunque la sesión fuera correcta. -->
 <body>
-
-<header class="lw-topbar" data-titulo="Operaciones"></header>
-
-<main>
-  <div id="avisos"></div>
-
-  <section class="dinero" id="dinero" hidden></section>
-  <section class="urge" id="urge" hidden></section>
-
-  <div class="controles">
-    <input class="sui-buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
-    <select class="lw-select" id="fProyecto"><option value="">Todos los proyectos</option></select>
+  <div class="topbar lw-topbar" data-titulo="Operaciones">
+    <span class="lw-sep"></span>
+    <div class="tabs">
+      <button class="tab on" data-tab="ops">Operaciones</button>
+      <button class="tab" data-tab="venc">Vencimientos</button>
+    </div>
+    <div class="lw-spacer"></div>
+    <span class="lw-who" id="who"></span>
+    <button type="button" class="lw-btn" id="btnRecargar">↻ Recargar</button>
+    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
   </div>
 
-  <div class="chips" id="chips"></div>
-  <div id="etapas"></div>
-</main>
-
-<div class="sui-velo" id="velo"></div>
-<aside class="sui-cajon" id="cajon" role="dialog" aria-modal="true" aria-labelledby="cTit">
-  <div class="sui-cajon-cab">
-    <div style="min-width:0"><h3 id="cTit">—</h3><div class="sub" id="cSub"></div></div>
-    <button type="button" class="sui-cajon-x" id="cX" aria-label="Cerrar">✕</button>
+  <div class="sui-stage" id="stage">
+    <div class="lista panel on" id="panelOps">
+      <div class="centro">
+        <div class="cab">
+          <div class="fila">
+            <input class="sui-buscar" id="q" placeholder="Buscar comprador, proyecto, operador o nº…">
+            <select class="f-sel" id="fProyecto"><option value="">Todos los proyectos</option></select>
+            <!-- Tablero ↔ Tabla (6-ago-2026). La revisión de diseño pidió el
+                 tablero porque la tabla plana deja de servir pasadas ~100 filas;
+                 la tabla se queda como estaba, que es lo que el handoff dice. -->
+            <div class="sui-dens" id="vista">
+              <button type="button" data-vista="tabla">Tabla</button>
+              <button type="button" data-vista="tablero">Embudo</button>
+            </div>
+          </div>
+          <div class="filtros" id="filtros"></div>
+        </div>
+        <div class="resumen" id="resumen"></div>
+        <div class="barra-etapas" id="barraEtapas" hidden></div>
+        <div class="tablero" id="tablero" hidden></div>
+        <div class="sui-tabla-caja" id="caja-tabla">
+          <table class="sui-tabla" id="tabla">
+            <thead><tr>
+              <th>Nº</th><th>Comprador</th><th>Proyecto</th><th>Operador</th>
+              <th class="num">Precio</th><th class="num">Cobrado</th><th class="num">Pendiente</th>
+              <th>Situación</th>
+            </tr></thead>
+            <tbody id="listaOps"><tr><td colspan="8">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="venc panel" id="panelVenc">Cargando…</div>
   </div>
-  <div class="cuerpo" id="cCuerpo"></div>
-</aside>
 
+  <div class="toast" id="toast"></div>
+
+<!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
+     script de la pagina: son `const` de primer nivel y dos declaraciones del
+     mismo nombre revientan la pagina entera. -->
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
-/* TODO EL GUION VA DENTRO DE SU PROPIO ÁMBITO. La cáscara compartida
-   —suite.js, suite-comun.js, visor.js, topbar.js— declara bastantes nombres en
-   el global, y un `let FILTRO` aquí arriba chocaba con uno de los suyos: la
-   página entera moría en «Identifier 'FILTRO' has already been declared» y se
-   quedaba en blanco sin decir nada en pantalla. Encerrarlo es más barato que ir
-   comprobando nombre por nombre cada vez que se añade una variable. */
-(function(){
-'use strict';
+/* ============================================================
+   OPERACIONES — la vista que cruza lo que ya existe.
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   OPERACIONES v3 · lógica de PANTALLA
-   ═══════════════════════════════════════════════════════════════════════════
-   Aquí no se calcula dinero ni se consulta la base: eso vive en
-   `operaciones-cuentas.js` y lo comparte con la herramienta viva. Lo de este
-   fichero es qué se enseña, en qué orden y con qué jerarquía — que es lo único
-   que un rediseño debería cambiar.
-   ═══════════════════════════════════════════════════════════════════════════ */
-const $ = s => document.querySelector(s);
-let SB = null, OPS = [], EQUIPO = {}, FILTRO = '', PROY = '';
+   No crea tablas: lee `contratos`, `facturas` y `contrato_firmas` y las junta
+   por operación. Antes cada herramienta era una isla y para saber cómo iba una
+   venta había que abrir tres sitios (o la base de datos).
 
-const dinero = (n, m) => lwFormatoImporte(n || 0, m || 'EUR');
-const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
-const hace = f => { const d = -dias(f); return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + d + ' días'; };
+   Cubre de una vez lo que iban a ser cuatro herramientas sueltas:
+   estado de cuenta, ficha de la operación, vencimientos y registro de firmas.
+   Son la misma consulta mirada desde ángulos distintos; cuatro apps habrían
+   repetido cuatro veces el mismo cruce y habrían divergido.
 
-/* ── 1 · LA BANDA DE DINERO ────────────────────────────────────────────────
-   Los mismos tres números que ya daba el resumen, pero con la proporción
-   dicha en una barra. `cuentaGrupo` y no `cuenta`: dos contratos vinculados
-   —parcela y construcción del mismo comprador— son UNA venta, y sumarlos por
-   separado duplicaba el precio (el caso de los 328.000 € por una villa de
-   164.000 que está anotado en el asset compartido). Se cuenta cada grupo una
-   sola vez, por su contrato raíz. */
-function pintarDinero(){
-  /* TODO CUENTA, firmado o no — 26-ago-2026. El owner pidió primero contar solo
-     lo firmado y lo retiró el mismo día: «fue error mío». Y con los números
-     delante se entiende por qué — dejar fuera lo no firmado dejaba fuera
-     1.121.172 € de señales y reservas YA COBRADAS, más de diez veces lo cobrado
-     de los firmados. Un total que esconde dinero que está en la cuenta es peor
-     que uno optimista.
-     Lo que SÍ se queda de aquel intento es decir cuánto de esto todavía no está
-     firmado: la cifra se lee distinto sabiéndolo. */
-  const raices = OPS.filter(o => !o.padre);
-  const cuentas = raices.map(o => cuentaGrupo(o));
-  const precioM  = lwSumaPorMoneda(cuentas, c => c.precio || 0, c => c.moneda);
-  const cobradoM = lwSumaPorMoneda(cuentas, c => c.facturado || 0, c => c.moneda);
-  const pendM = {};
-  Object.keys(precioM).forEach(m => { pendM[m] = Math.max(0, precioM[m] - (cobradoM[m] || 0)); });
-  const sinFirmar = raices.filter(o => !o.bloqueado);
-  const precioSinFirmar = lwSumaPorMoneda(sinFirmar.map(o => cuentaGrupo(o)), c => c.precio || 0, c => c.moneda);
-  const haySinFirmar = Object.values(precioSinFirmar).some(v => v > 0.005);
-  const mp = lwMonedaPrincipal(precioM);
-  const pct = precioM[mp] ? Math.min(100, (cobradoM[mp] || 0) / precioM[mp] * 100) : 0;
-  const varias = Object.keys(precioM).length > 1;
-  $('#dinero').innerHTML =
-    '<div class="cifras">'
-    + '<div class="c"><span class="rot">Contratado</span><span class="n">' + esc(lwSumaTexto(precioM)) + '</span>'
-      + '<small>' + raices.length + ' operaciones'
-      + (sinFirmar.length ? ' · ' + sinFirmar.length + ' aún sin firmar' : '') + '</small></div>'
-    + '<div class="c"><span class="rot">Cobrado</span><span class="n">' + esc(lwSumaTexto(cobradoM)) + '</span>'
-      + '<small>' + pct.toFixed(1).replace('.', ',') + ' % del contratado' + (varias ? ' en ' + mp : '') + '</small></div>'
-    + '<div class="c pend"><span class="rot">Pendiente</span><span class="n">' + esc(lwSumaTexto(pendM)) + '</span>'
-      + '<small>por entrar</small></div>'
-    + '</div><div class="barraTot"><i style="width:' + pct.toFixed(2) + '%"></i></div>'
-    /* La nota explica la regla en la propia pantalla. Un total que excluye cosas
-       sin decirlo es peor que uno inflado: el inflado se discute, el silencioso
-       se cree. */
-    + (haySinFirmar
-        ? '<p class="mini" style="margin:12px 0 0">De este total, <b>' + esc(lwSumaTexto(precioSinFirmar))
-          + '</b> son operaciones <b>todavía sin firmar</b>: precio pactado que aún puede cambiar.'
-          + ' El resto ya está firmado.</p>'
-        : '');
-  $('#dinero').hidden = false;
+   SOLO LECTURA a propósito: aquí no se emite ni se corrige nada. Emitir se hace
+   en su herramienta, y desde aquí se enlaza. Una vista que además escribe acaba
+   siendo una segunda forma de crear documentos, con sus propias reglas.
+   ============================================================ */
+const $  = s => document.querySelector(s);
+
+const HOY = new Date(); HOY.setHours(0,0,0,0);
+const fFecha = f => f ? new Date(f + (String(f).length===10 ? 'T00:00:00' : '')).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const dias = f => f ? Math.round((new Date(f) - HOY) / 86400000) : null;
+
+let SB = null, OPS = [], SEL = null, POR_CLIENTE = {}, EQUIPO = {}, ES_ADMIN = false;
+/* Los 13 contratos anteriores a la columna `creado_por` (28-jul) no tienen
+   autor y nunca lo van a tener: no hay de dónde sacarlo. Salen con raya. */
+const operador = o => EQUIPO[o.creado_por] || o.creado_por || '—';
+
+/* Las claves de kyc_status son las del CHECK de `clients` (inglés, de cuando se
+   creó la tabla). Aquí solo se traducen para mostrar. */
+const KYC_ES = { pending:'Pendiente', submitted:'En revisión', verified:'Aprobado', rejected:'Rechazado' };
+/* Los nombres de los tipos salen de assets/vocabulario.js. Los tenia copiados
+   aqui y habian divergido de los de Contratos: 'reserva_parcela' se llamaba
+   "Bloqueo de Parcela" en esta pantalla y "Parcela" en la otra, y a esta copia
+   le faltaban hak_sewa_notario, ppjb_bonian_c2 y carta_reserva_hak_sewa, asi que
+   6 contratos reales salian con la clave cruda de la base de datos. */
+const TIPO_ES = LW_TIPO_CONTRATO;
+
+/* TOPES DE LECTURA — y por qué se piden N+1 (17-ago-2026, auditoría)
+   ---------------------------------------------------------------------------
+   Esta pantalla existe para cruzar el dinero de TODO el equipo, y recortaba a 300
+   contratos sin decirlo: en el contrato 301 habría empezado a sumar sobre un
+   subconjunto con la misma cara de siempre. Hoy hay 73, así que la fecha en que
+   muerde depende del ritmo de ventas — el número que nadie va a estar mirando.
+   Los errores de consulta sí se avisaban (los `toast` de más abajo); un tope
+   alcanzado no. Un recorte que no se anuncia se lee como «está todo».
+
+   Se piden N+1 para poder DISTINGUIR «hay exactamente N» de «hay más de N»: con
+   `limit(N)` las dos cosas devuelven N filas y son indistinguibles. La de sobra
+   se descarta al pintar; solo sirve de señal. */
+/* Los topes se mudaron a operaciones-cuentas.js, junto a las consultas que los aplican. */
+let RECORTES = [];   // ['contratos', 'facturas'…] — lo que llegó al tope
+
+/* ---------- carga ----------
+   Columnas explícitas y `hitos:datos->hitos`: un contrato entero pesa MB por
+   los anexos en base64 dentro del jsonb. Un select(*) aquí colgaría la lista. */
+async function cargar(){
+  /* El cargador vive en `/contracts/assets/operaciones-cuentas.js` (26-ago-2026):
+     la v3 lee los mismos datos. Aquí queda solo lo de ESTA pantalla: dónde se
+     enseñan los avisos. */
+  const r = await lwOperacionesCargar(SB, msg => toast(msg));
+  OPS = r.ops; EQUIPO = r.equipo; POR_CLIENTE = r.porCliente;
+  if(r.recortes.length){
+    const caja = document.querySelector('#avisoTope') || (() => {
+      const d = document.createElement('p');
+      d.id = 'avisoTope'; d.className = 'sui-aviso';
+      d.setAttribute('role', 'status');
+      const centro = document.querySelector('.sui-centro') || document.body;
+      centro.insertBefore(d, centro.firstChild);
+      return d;
+    })();
+    caja.textContent = 'Esta vista no lo está sumando todo: hay más de '
+      + r.recortes.map(n => r.topes[n] + ' ' + n).join(' y más de ')
+      + ', y solo se han leído los más recientes. Los totales de abajo son parciales.';
+  }
 }
 
-/* ── 2 · LO QUE NECESITA ALGO ──────────────────────────────────────────────
-   El corazón del rediseño. La herramienta viva tiene todos estos datos y no
-   los cruza: hay que ir operación por operación a descubrirlo.
+/* ---------- dinero, etapas y fichas ----------
+   Vive en `/contracts/assets/operaciones-cuentas.js` desde el 26-ago-2026: la
+   v3 de esta herramienta necesita el MISMO cálculo, y una segunda copia de la
+   aritmética del dinero se separa sola. Aquí se queda solo lo que consulta a
+   la base o es del listado de esta pantalla. */
+const HITOS_DE = {};   // contrato_id -> hitos, cargados al abrir su ficha
 
-   El ORDEN es el del coste de no hacerlo, no el de la fecha:
-     1. cadena de firma parada — deja un contrato firmado a medias y EDITABLE,
-        o sea que el texto ya firmado se puede cambiar. Es lo único aquí que
-        puede costar el contrato entero.
-     2. enlace de firma caducado — el comprador quiso firmar y no pudo.
-     3. dinero vencido sin cobrar.
-     4. firmado sin precio fijado — no se sabe cuánto se debe.
-     5. falta la ficha del comprador — bloquea el KYC y la escritura.
-   Cada línea dice el VERBO, no el diagnóstico: «genera el enlace que falta»,
-   no «cadena_parada». */
-function loQueUrge(){
-  const hoy = new Date().toISOString().slice(0, 10);
-  const out = [];
-  OPS.forEach(o => {
-    const c = cuentaGrupo(o);
-    const pend = (o.firmas || []).filter(f => f.estado === 'pendiente');
+/* Los hitos de UN contrato, a demanda. Antes viajaban en la consulta del
+   listado y costaban 3,9 s para las 112 operaciones; aquí se piden solo para la
+   que se abre, y se recuerdan por si se vuelve. Devuelve [] mientras llegan:
+   la ficha se repinta cuando están. */
+async function cargarHitos(id){
+  if(HITOS_DE[id]) return HITOS_DE[id];
+  const { data, error } = await SB.rpc('contratos_equipo').select('hitos:datos->hitos').eq('id', id).single();
+  if(error){
+    // Que no se hayan podido leer NO es lo mismo que «no tiene hitos»: se dice.
+    toast('No se pudieron cargar los hitos de pago: ' + error.message);
+    return null;
+  }
+  HITOS_DE[id] = Array.isArray(data && data.hitos) ? data.hitos : [];
+  /* Se cuelgan tambien de la propia operacion: `cuenta()` los lee de ahi y NO de
+     esta cache, para seguir siendo una funcion de lo que recibe — es la que
+     `etapas.test.js` extrae del HTML y ejecuta suelta, donde una global no
+     existe. El test lo caza en el acto si alguien lo vuelve a atar. */
+  const op = OPS.find(o => o.id === id); if(op) op.hitos = HITOS_DE[id];
+  return HITOS_DE[id];
+}
 
-    if(o.bloqueado && pend.length){
-      out.push({ o, peso:1, grave:true, que:'Cadena de firma parada',
-        por:'Firmado, pero le falta firmar ' + pend.length + (pend.length === 1 ? ' persona' : ' personas')
-            + '. Mientras tanto el contrato sigue editable.',
-        verbo:'Generar el enlace', href:'/contracts/app.html?contrato=' + o.id });
-    }else if(pend.some(f => f.expira_en && f.expira_en < hoy)){
-      const f = pend.find(x => x.expira_en && x.expira_en < hoy);
-      out.push({ o, peso:2, grave:true, que:'Enlace de firma caducado',
-        por:(f.firmante_nombre || 'El firmante') + ' quiso firmar y no pudo · caducó ' + hace(f.expira_en),
-        verbo:'Reenviar', href:'/contracts/app.html?contrato=' + o.id });
-    }
+/* ---------- filtros ----------
+   Lo que de verdad se busca aquí no es "una operación" sino "las que me
+   reclaman algo": las que están sin firmar, las que deben dinero, las que
+   tienen un enlace de firma esperando o les falta la ficha del comprador.
+   Por eso los filtros son por SITUACIÓN y no por tipo de contrato. Cada uno
+   lleva su contador: así se sabe si hay algo ahí antes de pulsarlo, y un
+   filtro vacío se atenúa en vez de esconderse (que no esté no es lo mismo que
+   no exista). Se combinan con el buscador y con el proyecto. */
+const FILTROS = [
+  ['',            'Todas',            () => true],
+  ['sin_firmar',  'Sin firmar',       o => !o.bloqueado],
+  ['firmado',     'Firmadas',         o => !!o.bloqueado],
+  ['debe',        'Con pendiente',    o => { const c = cuenta(o); return c.pendiente != null && c.pendiente > 0; }],
+  ['firma_viva',  'Firma enviada',    o => o.firmas.some(f => f.estado === 'pendiente')],
+  ['sin_factura', 'Sin facturar',     o => !o.facturas.some(f => !f.anulada && f.tipo !== 'proforma')],
+  ['falta_ficha', 'Falta ficha',      o => fichasQueFaltan(o) > 0],
+];
+let FILTRO = '', PROYECTO = '';
+const pasaFiltro = o => (FILTROS.find(f => f[0] === FILTRO) || FILTROS[0])[2](o);
 
-    /* Dinero vencido. Se mira el vencimiento de las facturas del grupo contra
-       lo que la operación TODAVÍA debe: una factura vieja de un contrato ya
-       cobrado no es deuda, es historia — el mismo error que el panel tuvo que
-       corregir cuando se subieron facturas antiguas y todas salían «vencidas
-       hace 300 días». */
-    if(c.pendiente != null && c.pendiente > 0.005){
-      const vencidas = (o.facturas || []).filter(f => !f.anulada && f.tipo !== 'recibi' && f.venc && f.venc < hoy);
-      if(vencidas.length){
-        const v = vencidas.sort((a, b) => a.venc.localeCompare(b.venc))[0];
-        out.push({ o, peso:3, grave:true, que:'Pago vencido',
-          por:v.numero + ' venció ' + hace(v.venc) + ' y la operación aún debe ' + dinero(c.pendiente, c.moneda),
-          verbo:'Ver en Facturas', href:'/facturas/?id=' + v.id });
-      }
-    }
+/* ---------- vista: tablero o tabla ----------
+   El handoff pide el tablero y deja la tabla «como la de hoy, sin tocar». Se
+   recuerda por persona, igual que la densidad y que la vista de Unidades.
+   Por defecto TABLA: es la que ya conoce el equipo, y un cambio de vista por
+   sorpresa en la herramienta con la que se sigue el dinero no se hace solo. */
+let VISTA = 'tabla';
+function vista(v){
+  if(v){ try{ localStorage.setItem('lawang_operaciones_vista', v); }catch(_){} }
+  let x = v;
+  if(!x){ try{ x = localStorage.getItem('lawang_operaciones_vista'); }catch(_){} }
+  VISTA = (x === 'tablero') ? 'tablero' : 'tabla';
+  document.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === VISTA));
+  $('#caja-tabla').hidden  = VISTA !== 'tabla';
+  $('#tablero').hidden     = VISTA !== 'tablero';
+  $('#barraEtapas').hidden = VISTA !== 'tablero';
+  return VISTA;
+}
 
-    if(o.bloqueado && !c.precio){
-      out.push({ o, peso:4, grave:false, que:'Firmado sin precio fijado',
-        por:'No se puede saber cuánto falta por cobrar.',
-        verbo:'Fijar el precio', href:'/contracts/app.html?contrato=' + o.id });
-    }
-    const faltan = fichasQueFaltan(o);
-    if(faltan){
-      out.push({ o, peso:5, grave:false, que:'Falta ficha de comprador',
-        por:faltan + (faltan === 1 ? ' comprador nombrado en el contrato no tiene ficha' : ' compradores nombrados no tienen ficha') + '.',
-        verbo:'Abrir Compradores', href:'/compradores/' });
-    }
+function pintarFiltros(){
+  const raiz = OPS.filter(o => !o.padre);
+  $('#filtros').innerHTML = FILTROS.map(([k, etiqueta, prueba]) => {
+    const n = raiz.filter(prueba).length;
+    return `<button class="f ${FILTRO===k?'on':''} ${n?'':'vacio'}" data-f="${k}">${etiqueta} ${n}</button>`;
+  }).join('');
+  // el desplegable de proyecto se construye de los datos, no de una lista fija:
+  // si mañana entra un proyecto nuevo aparece solo
+  const sel = $('#fProyecto');
+  const proyectos = [...new Set(raiz.map(o => o.proyecto_nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const previo = sel.value;
+  sel.innerHTML = '<option value="">Todos los proyectos</option>'
+    + proyectos.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.value = proyectos.includes(previo) ? previo : '';
+  PROYECTO = sel.value;
+}
+
+/* ---------- lista ----------
+   `visibles()` sale de dentro de `pintarLista()` para que el TABLERO use
+   exactamente el mismo conjunto. Es lo único que garantiza que las dos vistas
+   enseñan lo mismo: dos cadenas de filtros paralelas divergen en cuanto alguien
+   añade un chip, y entonces el tablero y la tabla dan cifras distintas sobre el
+   mismo dinero. */
+function visibles(){
+  const q = $('#q').value.trim().toLowerCase();
+  // el hijo no es fila: buscar por su número o comprador debe traer la
+  // operación entera, o sea la fila del padre
+  return OPS.filter(o => !o.padre)
+    .filter(pasaFiltro)
+    .filter(o => !PROYECTO || o.proyecto_nombre === PROYECTO)
+    .filter(o => !q ||
+    [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre,x.creado_por,operador(x)].some(v => String(v||'').toLowerCase().includes(q))));
+}
+
+/* Un SOLO punto de pintado. Antes habia siete llamadas sueltas a
+   `pintarLista()` (seleccionar, cerrar el cajon, teclear, cambiar chip,
+   cambiar proyecto, recargar): con dos vistas, cada una que se olvidara de
+   repintar el tablero lo dejaba mostrando datos viejos al lado de los nuevos. */
+function pintar(){ pintarLista(); pintarBarraEtapas(); pintarTablero(); }
+
+/* Reparto por etapa de las operaciones visibles ahora mismo, en segmentos
+   proporcionales + leyenda con el %. MISMO conjunto que pinta el tablero
+   (visibles()), así que la barra nunca puede desacompasarse de las columnas
+   de debajo. Sin operaciones no hay nada que repartir: se deja vacía en vez
+   de una barra a 0/0. */
+function pintarBarraEtapas(){
+  const vis = visibles();
+  if(!vis.length){ $('#barraEtapas').innerHTML = ''; return; }
+  const porEtapa = {}; ETAPAS.forEach(([k]) => porEtapa[k] = 0);
+  vis.forEach(o => porEtapa[etapa(o)]++);
+  $('#barraEtapas').innerHTML =
+    `<div class="barra-fill">${ETAPAS.map(([k, titulo]) => {
+      const pct = Math.round(porEtapa[k] / vis.length * 100);
+      return pct ? `<span style="width:${pct}%;background:${ETAPA_COLOR[k]}" title="${esc(titulo)}"></span>` : '';
+    }).join('')}</div>
+    <div class="leyenda-etapas">${ETAPAS.map(([k, titulo]) => {
+      const pct = Math.round(porEtapa[k] / vis.length * 100);
+      return `<span><i style="background:${ETAPA_COLOR[k]}"></i>${esc(titulo)} ${pct}%</span>`;
+    }).join('')}</div>`;
+}
+
+function pintarLista(){
+  const q = $('#q').value.trim().toLowerCase();
+  const vis = visibles();
+  $('#listaOps').innerHTML = vis.length ? vis.map(o => {
+    const c = cuenta(o);
+    const eur = n => n == null ? '<span class="nota">—</span>' : esc(fmtMoneda(n, c.moneda));
+    const b = [];
+    if(o.bloqueado) b.push('<span class="tag ok">Firmado</span>');
+    else b.push('<span class="tag espera">Sin firmar</span>');
+    if(o.firmas.some(x => x.estado === 'pendiente')) b.push('<span class="tag info">Firma enviada</span>');
+    if(o.hijos.length) b.push('<span class="tag info">+' + o.hijos.length + '</span>');
+    // el alta de comprador es automática pero se cae en silencio en 3 casos:
+    // se avisa en la LISTA para no tener que entrar operación por operación
+    if(fichasQueFaltan(o)) b.push('<span class="tag alerta">Falta ficha</span>');
+    return `<tr data-id="${esc(o.id)}" class="${SEL===o.id?'sel':''}">
+      <td class="n">${esc(o.numero || 'sin nº')}</td>
+      <td class="c" title="${esc(resumenCompradores(o).titulo)}">${esc(resumenCompradores(o).texto)}${
+        resumenCompradores(o).extra ? ' <span class="mas-c">' + esc(resumenCompradores(o).extra) + '</span>' : ''}</td>
+      <td class="p">${esc(o.proyecto_nombre || '—')}</td>
+      <td class="p" title="${esc(o.creado_por || 'sin autor registrado')}">${esc(operador(o))}</td>
+      <td class="num">${c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>'}</td>
+      <td class="num">${eur(c.facturado)}</td>
+      <td class="num">${c.pendiente != null && c.pendiente > 0 ? '<b>' + eur(c.pendiente) + '</b>' : eur(c.pendiente)}</td>
+      <td><div class="badges">${b.join('')}</div></td>
+    </tr>`;
+  }).join('')
+    // decir POR QUÉ no hay nada: con filtros puestos, "ninguna coincide" deja
+    // al operador pensando que no existe el dato cuando solo está filtrado
+    : `<tr><td colspan="8"><p class="nota">Ninguna operación coincide.
+        ${(FILTRO || PROYECTO || q) ? '<a class="enl" href="#" id="limpiaFiltros">Quitar los filtros</a>' : ''}</p></td></tr>`;
+
+  // Totales de lo que se está viendo, no de todo: con un filtro puesto, la suma
+  // de la cartera entera no dice nada de lo que tienes delante.
+  const tot = vis.reduce((a, o) => { const c = cuenta(o);
+    a.precio += c.precio || 0; a.cobrado += c.facturado || 0;
+    a.pendiente += (c.pendiente != null && c.pendiente > 0) ? c.pendiente : 0; return a; },
+    { precio:0, cobrado:0, pendiente:0 });
+  const m = (vis[0] && cuenta(vis[0]).moneda) || 'EUR';
+  $('#resumen').innerHTML = !vis.length ? '' :
+    `<span>${vis.length} ${vis.length===1?'operación':'operaciones'}</span>
+     <span>Precio <b>${esc(fmtMoneda(tot.precio, m))}</b></span>
+     <span>Cobrado <b>${esc(fmtMoneda(tot.cobrado, m))}</b></span>
+     <span>Pendiente <b>${esc(fmtMoneda(tot.pendiente, m))}</b></span>`;
+}
+
+/* ---------- TABLERO (Kanban por etapa) ----------
+   Lo pidió la revisión de diseño con un motivo concreto: la tabla plana deja de
+   servir pasadas ~100 filas. La respuesta a eso NO es el tablero por sí mismo, es
+   que **cada columna tiene alto fijo y su propio desplazamiento**: con 300
+   operaciones, la columna de «Cobro pendiente» se recorre sin perder de vista las
+   otras tres, y el tablero no crece hacia abajo hasta el infinito.
+
+   Los chips de situación SIGUEN funcionando en esta vista, y no es un descuido:
+   `falta ficha` y `sin facturar` son avisos que cruzan el embudo —quieres verlos
+   repartidos por etapa, no en una etapa— y los chips de firmado/sin firmar dejan
+   dos columnas vacías, lo cual ENSEÑA lo que hace el filtro en vez de esconderlo.
+   El total de las cuatro columnas siempre cuadra con el contador del resumen,
+   porque las dos cosas salen de `visibles()`. */
+function pintarTablero(){
+  const vis = visibles();
+  const porEtapa = {};
+  ETAPAS.forEach(([k]) => porEtapa[k] = []);
+  vis.forEach(o => porEtapa[etapa(o)].push(o));
+
+  $('#tablero').innerHTML = ETAPAS.map(([k, titulo]) => {
+    const ops = porEtapa[k];
+    // Suma de la columna: en «Cobro pendiente» es lo que falta por cobrar, en las
+    // demás el precio. Es el número que se busca en cada etapa, no siempre el
+    // mismo campo — un tablero que suma «precio» en la columna de cobro no
+    // responde a la pregunta de esa columna.
+    const m = (ops[0] && cuenta(ops[0]).moneda) || 'EUR';
+    const suma = ops.reduce((a, o) => { const c = cuenta(o);
+      return a + (k === 'cobro_pend' ? ((c.pendiente > 0 ? c.pendiente : 0) || 0) : (c.precio || 0)); }, 0);
+    return `<section class="col">
+      <header class="col-cab">
+        <span class="col-rotulo" style="color:${ETAPA_COLOR[k]}">${esc(titulo)}</span>
+        <span class="col-suma">${ops.length ? ops.length + ' · ' + esc(fmtMoneda(suma, m)) : '0'}</span>
+      </header>
+      <div class="col-cuerpo">${ops.length ? ops.map(o => tarjetaOp(o, k)).join('')
+        : '<p class="col-vacia">Nada aquí</p>'}</div>
+    </section>`;
+  }).join('');
+}
+
+function tarjetaOp(o, k){
+  const c = cuenta(o);
+  const eur = n => n == null ? '—' : esc(fmtMoneda(n, c.moneda));
+  const avisos = [];
+  if(fichasQueFaltan(o)) avisos.push('<span class="tag alerta">Falta ficha</span>');
+  if(o.hijos.length) avisos.push('<span class="tag info">+' + o.hijos.length + '</span>');
+  // La cifra grande de la tarjeta es la que importa EN ESA columna: lo pendiente
+  // donde se persigue el cobro, el precio donde todavía no hay nada cobrado.
+  const cifra = k === 'cobro_pend'
+    ? (c.pendiente != null && c.pendiente > 0 ? eur(c.pendiente) : '<span class="nota">sin fijar</span>')
+    : (c.precio ? eur(c.precio) : '<span class="nota">sin fijar</span>');
+  const rotulo = k === 'cobro_pend' ? 'pendiente' : 'precio';
+  // Progreso de cobro (mockup 4a): solo tiene sentido en la columna donde se
+  // persigue el cobro, y solo si hay precio fijado sobre el que medir un %.
+  const cobro = (k === 'cobro_pend' && c.precio)
+    ? `<div class="tarj-cobro"><i style="width:${Math.min(100, Math.round(c.facturado / c.precio * 100))}%"></i></div>` : '';
+  return `<button type="button" class="tarj ${SEL===o.id?'sel':''}" data-id="${esc(o.id)}" style="--etapa:${ETAPA_COLOR[k]}">
+    <span class="tarj-cab"><span class="n">${esc(o.numero || 'sin nº')}</span>${avisos.join('')}</span>
+    <span class="tarj-c" title="${esc(resumenCompradores(o).titulo)}">${esc(resumenCompradores(o).texto)}${
+      resumenCompradores(o).extra ? ' <span class="mas-c">' + esc(resumenCompradores(o).extra) + '</span>' : ''}</span>
+    <span class="tarj-p">${esc(o.proyecto_nombre || '—')}${o.creado_por ? ' · ' + esc(operador(o)) : ''}</span>
+    ${cobro}
+    <span class="tarj-cifra">${cifra}<small>${rotulo}</small></span>
+  </button>`;
+}
+
+/* ---------- ficha ---------- */
+function pintarDetalle(){
+  const op = OPS.find(o => o.id === SEL);
+  if(!op){ suiCerrarCajon(); return; }
+  const c = cuenta(op);
+  const cg = cuentaGrupo(op);
+  const fmt = n => n == null ? '—' : fmtMoneda(n, c.moneda);
+
+  /* Si los hitos aún no están cargados, se piden y se repinta. `HITOS_DE` los
+     recuerda, así que la segunda vuelta no entra aquí y no hay bucle. */
+  if(!HITOS_DE[op.id]) cargarHitos(op.id).then(h => { if(h && SEL === op.id) pintarDetalle(); });
+  const cargandoHitos = !HITOS_DE[op.id];
+
+  const filasHitos = cargandoHitos
+    ? '<tr><td colspan="3" class="nota">Cargando los hitos de pago…</td></tr>'
+    : c.hitos.length ? c.hitos.map(h => {
+    const imp = importeHito(h, c.precio, c.moneda);
+    return `<tr>
+      <td>${esc(textoHito(h))}${h.timing ? ' <span class="nota">· ' + esc(h.timing) + '</span>' : ''}</td>
+      <td class="num">${h.pct ? esc(h.pct) + '%' : '—'}</td>
+      <td class="num">${imp.n == null ? '<span class="falta">sin importe</span>'
+                       : fmt(imp.n) + (imp.exacto ? '' : ' <span class="nota">(calculado)</span>')}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="3" class="nota">El contrato no fijó hitos de pago.</td></tr>';
+
+  /* TODOS los documentos de la operación en UNA tabla: contratos (con su PDF
+     firmado, si lo hay) y lo emitido en Facturas. Antes vivían en dos secciones
+     separadas y el PDF firmado —el documento que más se busca— estaba escondido
+     en un párrafo de texto al final de la ficha. */
+  const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+  const docsOperacion = [];
+  (op.padre ? [op.padre, ...op.padre.hijos] : [op, ...op.hijos]).forEach(ct => {
+    docsOperacion.push({
+      clase:'contrato', numero: ct.numero || 'sin nº', tipo: TIPO_ES[ct.tipo] || ct.tipo || 'Contrato',
+      fecha: ct.fecha_firma, importe: parseImporte(ct.precio_total), moneda: ct.moneda || c.moneda,
+      firmado: !!ct.bloqueado, pdf: ct.pdf_firmado_path || null, opId: ct.id,
+    });
+    (ct.facturas || []).forEach(f => docsOperacion.push({
+      clase:'factura', numero: f.numero || 'borrador', tipo: TIPO_DOC[f.tipo] || f.tipo || 'Documento',
+      fecha: f.fecha_emision, importe: parseImporte(f.total), moneda: f.moneda || c.moneda,
+      anulada: f.anulada, proforma: f.tipo === 'proforma', id: f.id,
+    }));
   });
-  return out.sort((a, b) => a.peso - b.peso);
-}
 
-function pintarUrge(){
-  const lista = loQueUrge();
-  const caja = $('#urge');
-  if(!lista.length){ caja.hidden = true; return; }
-  caja.innerHTML = '<h2>Necesita algo <span>· ' + lista.length + (lista.length === 1 ? ' cosa' : ' cosas') + '</span></h2>'
-    + lista.map((u, i) =>
-      '<div class="urgeFila' + (u.grave ? ' grave' : '') + '" data-i="' + i + '">'
-      + '<span><b>' + esc(u.o.comprador_nombre || 'Sin comprador') + '</b> · ' + esc(u.que)
-      + '<span class="por">' + esc(u.o.numero || '') + ' · ' + esc(u.por) + '</span></span>'
-      + '<span class="verbo">' + esc(u.verbo) + '</span>'
-      + '<i class="ph ph-arrow-right" style="color:var(--sc)"></i></div>').join('');
-  caja.hidden = false;
-  caja.querySelectorAll('.urgeFila').forEach(el => {
-    el.addEventListener('click', () => { LW3.sensacion('hecho'); location.href = lista[+el.dataset.i].href; });
+  const filasDocumentos = docsOperacion.map(d => {
+    // la acción de cada fila: el contrato firmado abre su PDF; la factura, el
+    // documento; un contrato sin firmar no tiene nada que enseñar todavía
+    // Proforma/recibí a 1 clic desde el propio contrato (6-ago-2026, petición
+    // del owner): Facturas ya sabe cargar cliente, proyecto e hitos de un
+    // contrato — esto solo evita el paso de ir a buscarlo a mano en su
+    // desplegable. El importe sigue saliendo del contrato, nunca de aquí.
+    // Solo administración factura desde este panel; el resto sigue viendo la
+    // operación igual.
+    const facturar = (ES_ADMIN && d.clase === 'contrato')
+      ? ` · <a class="enl" href="/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=proforma">Proforma</a>
+          · <a class="enl" href="/facturas/?contrato=${encodeURIComponent(d.opId)}&amp;tipo=recibi">Recibí</a>` : '';
+    const accion = (d.clase === 'contrato'
+      ? (d.pdf ? `<a class="enl fuerte" href="#" data-pdf="${esc(d.pdf)}">Ver PDF firmado</a>`
+               : `<a class="enl" href="/contracts/?contrato=${encodeURIComponent(d.opId)}">Abrir en Contratos</a>`)
+      : `<a class="enl fuerte" href="/facturas/?id=${encodeURIComponent(d.id)}" data-doc="1">Ver documento</a>`) + facturar;
+    const estado = d.clase === 'contrato'
+      ? (d.firmado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>')
+      : (d.anulada ? '<span class="tag alerta">Anulada</span>'
+                   : (d.proforma ? '<span class="tag espera">No suma</span>' : '<span class="tag ok">Emitida</span>'));
+    return `<tr>
+      <td><b>${esc(d.numero)}</b><div class="nota">${esc(d.tipo)}</div></td>
+      <td>${d.clase === 'contrato' ? '<span class="tag info">Contrato</span>' : '<span class="tag">Facturación</span>'}</td>
+      <td>${fFecha(d.fecha)}</td>
+      <td class="num">${d.importe ? esc(fmtMoneda(d.importe, d.moneda)) : '—'}</td>
+      <td>${estado}</td>
+      <td>${accion}</td>
+    </tr>`;
+  }).join('');
+
+  /* Fichas de comprador que faltan. El alta es automática al guardar el
+     contrato, pero se cae en tres casos y hasta ahora ninguno se veía desde
+     aquí: comprador sin pasaporte ni email, contrato guardado antes de que la
+     sincronización existiera, y (hasta el 29-jul) más de tres adquirientes. */
+  const enElContrato = compradoresNombrados(op);
+  const faltanFichas = fichasQueFaltan(op);
+
+  const filasFirmas = op.firmas.length ? op.firmas.map(s => {
+    const d = dias(s.expira_en);
+    let est = '<span class="tag espera">Pendiente</span>';
+    if(s.estado === 'firmado') est = '<span class="tag ok">Firmado ' + fFecha(s.firmado_en) + '</span>';
+    // 🔴 `anulado` NO es `pendiente`, y aquí caía en el «Pendiente» de por
+    // defecto: los 15 enlaces anulados de producción se pintaban como enlaces
+    // VIVOS. En CR00007 —firmado y bloqueado— eso enseñaba una firma pendiente
+    // encima de la completa, o sea justo lo contrario de la regla del 28-jul
+    // (un solo enlace vivo por firmante: al generar uno nuevo se anula el
+    // anterior, y el índice `contrato_firmas_un_pendiente_por_rol` lo impone).
+    // No se ocultan: son el rastro que demuestra que solo hubo uno vivo.
+    else if(s.estado === 'anulado') est = '<span class="tag">Anulado</span>';
+    else if(d != null && d < 0) est = '<span class="tag alerta">Caducado</span>';
+    else if(d != null && d <= 5) est = '<span class="tag alerta">Caduca en ' + d + ' d</span>';
+    return `<tr><td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
+      <td>${esc(s.firmante_rol || '—')}</td><td>${fFecha(s.creado_en)}</td><td>${est}</td></tr>`;
+  }).join('') : '<tr><td colspan="4" class="nota">No se ha enviado a firma remota.</td></tr>';
+
+  /* El nombre viene de la ficha real si existe; si no, del texto del contrato.
+     Con la ficha se puede además decir cómo va su KYC, que es lo que el nombre
+     suelto nunca supo. */
+  const fichas = op.compradores || [];
+  /* Documentación KYC. El nombre del comprador va en cada fila porque en un
+     contrato a dos nombres hay que saber de quién falta el pasaporte. */
+  const DOC_ES = { passport:'Pasaporte', npwp:'NPWP', visa:'Visado',
+    proof_of_funds:'Justificante de fondos', proof_of_address:'Justificante de domicilio',
+    signed_contract:'Contrato firmado', other:'Otro' };
+  const nombreDe = id => (fichas.find(v => v.clients.id === id) || {clients:{}}).clients.full_name || '—';
+  const filasDocs = (op.docs || []).length ? op.docs.map(d => {
+    const dd = dias(d.caduca_el);
+    let cad = '<span class="tag espera">sin fecha</span>';
+    if(d.caduca_el) cad = dd < 0 ? `<span class="tag alerta">caducado hace ${-dd} d</span>`
+                       : dd <= 60 ? `<span class="tag espera">${fFecha(d.caduca_el)}</span>`
+                       : `<span class="tag ok">${fFecha(d.caduca_el)}</span>`;
+    return `<tr>
+      <td>${esc(DOC_ES[d.doc_type] || d.doc_type || '—')}</td>
+      <td>${esc(nombreDe(d.client_id))}</td>
+      <td>${fFecha(d.uploaded_at)}</td>
+      <td>${cad}</td></tr>`;
+  }).join('')
+    : `<tr><td colspan="4" class="nota">${fichas.length
+        ? 'Ningún documento subido todavía para ' + (fichas.length > 1 ? 'estos compradores' : 'este comprador') + '.'
+        : 'Sin ficha de comprador enlazada no hay documentación que mostrar.'}</td></tr>`;
+
+
+  const titulo = fichas.length ? fichas.map(v => v.clients.full_name).filter(Boolean).join(' · ')
+                              : (op.comprador_nombre || 'Sin comprador');
+
+  /* La misma venta en varios documentos (reserva/PPJB + obra): se enseñan
+     juntos y se salta entre ellos sin volver al listado. Cada contrato conserva
+     su propio estado de cuenta — sumar los precios inventaría un total que
+     ningún documento dice. El facturado de la operación sí es un hecho. */
+  const cadena = op.padre ? [op.padre, ...op.padre.hijos] : (op.hijos.length ? [op, ...op.hijos] : null);
+  const bloqueCadena = cadena ? `
+    <section>
+      <h3>Contratos de la operación</h3>
+      <table><thead><tr><th>Nº</th><th>Tipo</th><th class="num">Precio</th><th class="num">Cobrado</th><th>Estado</th></tr></thead><tbody>
+      ${cadena.map(x => {
+        const cx = cuenta(x);
+        return `<tr>
+          <td>${x.id === op.id
+            ? '<b>' + esc(x.numero || 'sin nº') + '</b> <span class="nota">(abierta)</span>'
+            : `<a class="enl" href="?contrato=${encodeURIComponent(x.id)}" data-op="${esc(x.id)}">${esc(x.numero || 'sin nº')}</a>`}</td>
+          <td>${esc(TIPO_ES[x.tipo] || x.tipo || '—')}</td>
+          <td class="num">${cx.precio ? esc(fmtMoneda(cx.precio, cx.moneda)) : '—'}</td>
+          <td class="num">${esc(fmtMoneda(cx.facturado, cx.moneda))}</td>
+          <td>${x.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+      <p class="nota">Vinculados desde Contratos («Nº del Contrato de Reserva/PPJB vinculado» en la Construcción).
+        Aquí, cada fila por separado. El «Estado de cuenta» de más abajo suma los que fijan precio: una
+        Carta de Reserva declara el mismo importe de la villa que luego reparten el Bloqueo y la
+        Construcción, así que sumarla contaría la misma villa dos veces.</p>
+    </section>` : '';
+  const bloqueFichas = fichas.length ? `
+    <section>
+      <h3>Comprador${fichas.length > 1 ? 'es' : ''}</h3>
+      <table><thead><tr><th>Nombre</th><th>Rol</th><th>Contacto</th><th>KYC</th><th>Sus otros contratos</th></tr></thead><tbody>
+      ${fichas.map(v => {
+        const c = v.clients;
+        const ok = c.kyc_status === 'verified';
+        // el nombre ES el enlace, y lleva a SU ficha, no a la lista: pulsar
+        // "Abrir en Compradores" y aterrizar en un listado obliga a buscar a
+        // la persona que ya estabas mirando
+        // sus OTROS contratos: la venta encadena reserva, PPJB y obra, y desde
+        // uno hay que poder saltar a los demás sin volver al listado
+        const otros = (POR_CLIENTE[c.id] || [])
+          .filter(cid => cid !== op.id)
+          .map(cid => OPS.find(o => o.id === cid))
+          .filter(Boolean);
+        return `<tr>
+          <td><a class="enl" href="/compradores/?id=${encodeURIComponent(c.id)}">${esc(c.full_name || 'Sin nombre')}</a>
+              <div class="nota">${esc(c.passport_number || 'sin pasaporte')}</div></td>
+          <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
+          <td>${esc(c.email || c.phone || '—')}</td>
+          <td><span class="tag ${ok ? 'ok' : (c.kyc_status === 'rejected' ? 'alerta' : 'espera')}">${esc(KYC_ES[c.kyc_status] || c.kyc_status || 'pendiente')}</span></td>
+          <td>${otros.length
+            ? otros.map(o => `<a class="enl" href="/operaciones/?contrato=${encodeURIComponent(o.id)}" title="${esc(o.proyecto_nombre || '')}">${esc(o.numero || 'sin nº')}</a>`).join(' · ')
+            : '<span class="nota">—</span>'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+      <p class="nota">Pulsa un nombre para abrir su ficha y su documentación.</p>
+      ${faltanFichas ? `<p class="nota falta"><b>Faltan ${faltanFichas} ficha${faltanFichas>1?'s':''} de comprador.</b>
+        El contrato nombra a ${enElContrato} y solo ${(op.compradores||[]).length} tiene${(op.compradores||[]).length===1?'':'n'} ficha.
+        Suele ser porque a esa persona le falta pasaporte y email (sin uno de los dos no se crea ficha, para no duplicarla).
+        Se corrige rellenando ese dato en Contratos y volviendo a guardar.</p>` : ''}
+    </section>` : `
+    <section>
+      <h3>Comprador</h3>
+      <p class="nota${enElContrato ? ' falta' : ''}">Este contrato todavía no tiene ficha de comprador enlazada: el nombre
+        vive solo como texto dentro del contrato. Se crea sola al volver a guardarlo en Contratos
+        ${enElContrato ? ' — siempre que el comprador tenga pasaporte o email.' : '.'}</p>
+    </section>`;
+
+  /* El detalle va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
+     sin perder de vista la lista de la que sale. El cuerpo es el mismo HTML de
+     siempre; lo único que cambia es dónde se cuelga.
+     El título y el subtítulo NO van aquí: los pinta la cabecera del cajón. Esta
+     ficha venía de ser una página entera y se trajo con su propio encabezado
+     dentro, así que salía dos veces (31-jul-2026). La fecha de firma, que solo
+     estaba en el de dentro, se pasa al de la cabecera para no perderla. */
+  const cuerpoFicha = `
+    ${bloqueCadena}
+
+    ${bloqueFichas}
+
+    <section>
+      <h3>Estado de cuenta${cg.grupo.length > 1 ? ' — ' + cg.grupo.length + ' contratos' : ''}</h3>
+      ${(() => {
+        /* El rótulo tiene que nombrar los que DE VERDAD suman. Desde el 14-ago la
+           Carta de Reserva no cuenta precio (`lwEsPreliminar`), y este texto seguía
+           diciendo «Suma RP00040 + CR00019» debajo de una cifra que solo incluía el
+           primero. Un número que no cuadra con su propio rótulo es un número en el
+           que el agente deja de confiar — y con razón. El cobrado sí los suma todos. */
+        if(cg.grupo.length <= 1) return '';
+        const suman = cg.grupo.filter(x => !lwEsPreliminar(x.tipo));
+        const fuera = cg.grupo.filter(x =>  lwEsPreliminar(x.tipo));
+        const lista = a => a.map(x => esc(x.numero || 'sin nº')).join(' + ');
+        return `<p class="nota">Precio: suma ${lista(suman.length ? suman : cg.grupo)}.${
+          fuera.length ? ' No cuenta ' + lista(fuera) + ' — una Carta de Reserva declara el mismo importe que luego reparten el Bloqueo y la Construcción.' : ''
+        } El cobrado sí incluye lo pagado en ${lista(cg.grupo)}. Detalle de cada uno en «Contratos de la operación», más arriba.</p>`;
+      })()}
+      <div class="cifras">
+        <div class="cifra"><div class="k">Precio pactado</div>
+          <div class="v ${cg.precio ? '' : 'gris'}">${cg.precio ? fmt(cg.precio) : 'sin fijar'}</div></div>
+        <div class="cifra"><div class="k">Cobrado</div><div class="v">${fmt(cg.facturado)}</div></div>
+        <div class="cifra"><div class="k">Pendiente</div>
+          <div class="v ${cg.pendiente == null ? 'gris' : ''}">${cg.pendiente == null ? 'no calculable' : fmt(cg.pendiente)}</div></div>
+      </div>
+      ${cg.precio ? '' : '<p class="nota falta">Sin precio total en el contrato no se puede calcular el pendiente ni convertir los hitos en %. Se rellena en Contratos.</p>'}
+      <table style="margin-top:14px">
+        <thead><tr><th>Hito de pago</th><th class="num">%</th><th class="num">Importe</th></tr></thead>
+        <tbody>${filasHitos}</tbody>
+      </table>
+      <p class="nota">Solo el recibí cuenta como cobrado — una factura o una proforma son lo que se debe, no lo pagado.</p>
+    </section>
+
+    <section>
+      <h3>Documentos de la operación</h3>
+      <table><thead><tr><th>Nº</th><th>Clase</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th><th>Ver</th></tr></thead>
+        <tbody>${filasDocumentos}</tbody></table>
+      <p class="nota">Contratos y facturación de esta venta, juntos.
+        <a class="enl" href="/facturas/">Emitir uno nuevo →</a></p>
+    </section>
+
+    <section>
+      <h3>Firmas</h3>
+      <table><thead><tr><th>Firmante</th><th>Rol</th><th>Enviado</th><th>Estado</th></tr></thead>
+        <tbody>${filasFirmas}</tbody></table>
+    </section>
+
+    <section>
+      <h3>Documentación del comprador</h3>
+      <table><thead><tr><th>Documento</th><th>De</th><th>Subido</th><th>Caduca</th></tr></thead>
+        <tbody>${filasDocs}</tbody></table>
+      <p class="nota">El pasaporte y el KYC son de la <b>persona</b>, no de una venta: salen en todas
+        sus operaciones. Se suben desde <a class="enl" href="/compradores/">Compradores</a>.</p>
+    </section>`;
+  suiAbrirCajon({
+    titulo: esc(titulo),
+    sub: esc(op.proyecto_nombre || 'Sin proyecto') + ' · ' + esc(op.numero || 'sin nº')
+         + (op.bloqueado ? ' · firmado y bloqueado' : ' · sin firmar')
+         + (op.fecha_firma ? ' · ' + fFecha(op.fecha_firma) : ''),
+    cuerpo: cuerpoFicha,
+    pie: `<button class="sui-btn peligro" id="btnBorrarOp">Borrar operación</button>`,
+    onCerrar: () => { SEL = null; pintar(); },
   });
+  $('#btnBorrarOp').onclick = () => borrarOperacion(op);
 }
 
-/* ── 3 · LAS OPERACIONES: CHIPS + LISTA PAGINADA ──────────────────────────
-   Antes eran secciones plegables por etapa. Se cambian por CHIPS de etapa y una
-   lista plana paginada, y por dos motivos:
+/* ---------- borrar la operación entera ----------
+   Una operación no es un contrato: es el padre, los que cuelgan de él, sus
+   enlaces de firma y sus facturas. Lo hace la función `borrar_operacion` de la
+   base porque son cuatro pasos que tienen que pasar TODOS o NINGUNO — a mitad
+   de camino queda una operación con las facturas anuladas y los contratos
+   todavía vivos, que es peor que no haber empezado.
+   Las facturas se ANULAN, no se borran: un hueco en la serie fiscal no se puede
+   explicar. Los enlaces de firma se anulan porque un token vivo de un contrato
+   borrado es un documento que alguien puede firmar sin que nadie lo vea venir. */
+async function borrarOperacion(op){
+  const n = 1 + (op.hijos ? op.hijos.length : 0);
+  const facturasVivas = op.facturas.filter(f => !f.anulada).length;
+  const firmasVivas   = op.firmas.filter(f => f.estado === 'pendiente').length;
+  const detalle = [
+    n > 1 ? n + ' contratos (' + [op.numero, ...op.hijos.map(h => h.numero)].join(', ') + ')'
+          : 'el contrato ' + (op.numero || 'sin nº'),
+    firmasVivas ? firmasVivas + ' enlace(s) de firma quedarán ANULADOS' : null,
+    facturasVivas ? facturasVivas + ' factura(s) quedarán ANULADAS (no se borran: la serie no puede tener huecos)' : null,
+    'La parcela vinculada vuelve a estar disponible.',
+  ].filter(Boolean);
+  const ok = await lwConfirmar({
+    titulo: 'Borrar la operación de ' + (op.comprador_nombre || 'sin comprador'),
+    cuerpo: '<p>Se borra ' + detalle[0] + '.</p>'
+          + (detalle.length > 1 ? '<ul style="margin:0 0 10px;padding-left:18px">'
+              + detalle.slice(1).map(x => '<li>' + x + '</li>').join('') + '</ul>' : '')
+          + '<p>No hay papelera.</p>',
+    confirmar: 'Borrar la operación',
+    tono: 'peligro',
+  });
+  if(!ok) return;
 
-     · la lista es larga y crece — 95 hoy, más en enero. Una lista que crece con
-       los datos deja de caber sin que nadie lo decida. (Y no debería hacer
-       falta pedirlo: cualquier lista que salga de una tabla lleva paginación
-       desde el primer día.)
-     · y así esta pantalla y la de Facturas se manejan IGUAL: buscar, filtrar
-       con chips, pasar página. Dos pantallas de la misma suite que se operan
-       distinto son dos cosas que aprender en vez de una.
+  /* Los borradores de firma del ALMACENAMIENTO no los borra `borrar_operacion`:
+     una función de la base no alcanza al bucket. Sin esto se quedaban ahí para
+     siempre — medido el 4-ago-2026: 7 huérfanos de operaciones ya borradas.
+     Las rutas se recogen AHORA, antes de la RPC: después, las filas que dicen
+     dónde vive cada snapshot ya no existen.
+     Solo `pendientes/`: el PDF firmado es el documento, y no se toca ni aunque
+     la operación se borre. */
+  const rutas = [...new Set(
+    [op, ...(op.hijos || [])].flatMap(x =>
+      ['pendientes/' + x.id + '.html', ...((x.firmas || []).map(f => f.snapshot_path))]
+    ).filter(r => r && r.startsWith('pendientes/'))
+  )];
 
-   El chip lleva su cuenta, como en Facturas, así que se sigue viendo el reparto
-   por etapa de un vistazo — que era lo bueno de las secciones. */
-const POR_PAGINA = 20;
-let ETAPA = '', PAGINA = 1;
-
-function casa(o){
-  const t = FILTRO.trim().toLowerCase();
-  if(PROY && (o.proyecto_nombre || '') !== PROY) return false;
-  if(ETAPA && etapa(o) !== ETAPA) return false;
-  if(!t) return true;
-  return [o.numero, o.comprador_nombre, o.proyecto_nombre, EQUIPO[o.creado_por] || o.creado_por]
-    .join(' ').toLowerCase().includes(t);
+  const b = $('#btnBorrarOp'); if(b) b.disabled = true;
+  try{
+    const { data, error } = await SB.rpc('borrar_operacion', { p_contrato_id: op.id });
+    if(error) throw error;
+    // DESPUÉS de que la RPC haya ido bien, nunca antes: si el borrado se para
+    // (contrato firmado y no eres super admin), la operación sigue viva y su
+    // enlace de firma tiene que seguir encontrando su documento. Es la misma
+    // lección del 30-jul con RP00021, cuando anular antes de subir dejó un
+    // contrato sin ningún enlace vivo.
+    if(rutas.length){
+      const { error: eSt } = await SB.storage.from('contratos-firmados').remove(rutas);
+      // no se reintenta ni se para: la operación YA está borrada y un fichero
+      // suelto en el bucket es basura, no un fallo que el operador deba resolver
+      if(eSt) console.warn('Operación borrada; sus borradores de firma siguen en el almacenamiento:', eSt.message);
+    }
+    suiCerrarCajon();
+    SEL = null;
+    await cargar();
+    toast('Operación borrada · ' + (data.contratos_borrados||0) + ' contrato(s), '
+      + (data.facturas_anuladas||0) + ' factura(s) anulada(s)');
+  }catch(e){
+    // El mensaje de la función ya viene escrito para leerse (dice qué contrato
+    // bloquea y por qué); se enseña tal cual en vez de envolverlo en jerga.
+    toast(String(e.message || e));
+    if(b) b.disabled = false;
+  }
 }
 
-function fila(o){
-  const c = cuentaGrupo(o);
-  const pct = c.precio ? Math.min(100, ((c.facturado || 0) / c.precio) * 100) : 0;
-  const debe = c.pendiente != null && c.pendiente > 0.005;
-  const faltan = fichasQueFaltan(o);
-  const et = etapa(o);
-  const rot = (ETAPAS.find(e => e[0] === et) || ['', ''])[1];
-  return '<div class="op" data-id="' + esc(o.id) + '">'
-    + '<span><span class="quien">' + esc(o.comprador_nombre || 'Sin comprador')
-      + (faltan ? '<span class="aviso">falta ficha</span>' : '')
-      + '</span><span class="donde">'
-      + '<i class="punto" style="background:' + ETAPA_COLOR[et] + '"></i>' + esc(rot) + ' · '
-      + esc(o.numero || '—') + ' · ' + esc(lwTipoContrato(o.tipo))
-      + (o.proyecto_nombre ? ' · ' + esc(o.proyecto_nombre) : '') + '</span></span>'
-    + '<span class="pago">'
-      + (c.precio
-          ? '<span class="b"><i style="width:' + pct.toFixed(1) + '%"></i></span>'
-            + '<span class="t">' + esc(dinero(c.facturado, c.moneda)) + ' de ' + esc(dinero(c.precio, c.moneda)) + '</span>'
-          : '<span class="t">sin precio fijado</span>')
-      + '</span>'
-    + '<span class="falta ' + (debe ? 'debe' : c.precio ? 'ok' : '') + '">'
-      + (debe ? esc(dinero(c.pendiente, c.moneda)) + '<small>pendiente</small>'
-              : c.precio ? 'Cobrado' : '—')
-      + '</span>'
-    + '<i class="ph ph-arrow-right ir"></i></div>';
-}
-
-function pintarChips(){
-  /* Solo las raíces: un contrato hijo no es otra venta. */
-  const base = OPS.filter(o => !o.padre);
-  const cuenta = k => base.filter(o => !k || etapa(o) === k).length;
-  $('#chips').innerHTML =
-    '<button type="button" class="sui-chip' + (ETAPA === '' ? ' on' : '') + '" data-et="">'
-    + 'Todas <span class="n">' + cuenta('') + '</span></button>'
-    + ETAPAS.map(([k, rot]) => {
-        const n = cuenta(k);
-        return '<button type="button" class="sui-chip' + (ETAPA === k ? ' on' : '') + (n ? '' : ' vacio')
-          + '" data-et="' + k + '"><i class="punto" style="background:' + ETAPA_COLOR[k] + '"></i>'
-          + esc(rot) + ' <span class="n">' + n + '</span></button>';
-      }).join('');
-  $('#chips').querySelectorAll('[data-et]').forEach(b => b.addEventListener('click', () => {
-    ETAPA = b.dataset.et; PAGINA = 1; pintarChips(); pintar();
+/* ---------- vencimientos ----------
+   Dos relojes distintos en una sola pantalla: dinero que debería haber entrado
+   y enlaces de firma que se van a apagar. Los dos se pierden de vista solos. */
+function pintarVencimientos(){
+  const fact = [];
+  OPS.forEach(o => o.facturas.forEach(f => {
+    // Hallazgo de la auditoría de hoy: esta tabla reclamaba el TOTAL de cada
+    // factura sin restar lo ya cobrado por recibí — una factura saldada al
+    // 100% seguía saliendo "vencido hace N días" para siempre. `f.pendiente`
+    // ya viene calculado desde cargar() (facturas_pendiente_equipo()); una
+    // factura sin nada pendiente no reclama nada, así que no sale aquí.
+    if(f.anulada || f.tipo === 'proforma' || f.tipo === 'recibi' || !f.venc || !(f.pendiente > 0.005)) return;
+    fact.push({ ...f, op:o, d: dias(f.venc) });
   }));
+  fact.sort((a,b) => (a.d ?? 9e9) - (b.d ?? 9e9));
+
+  const firmas = [];
+  OPS.forEach(o => o.firmas.forEach(s => {
+    if(s.estado !== 'pendiente') return;
+    firmas.push({ ...s, op:o, d: dias(s.expira_en) });
+  }));
+  firmas.sort((a,b) => (a.d ?? 9e9) - (b.d ?? 9e9));
+
+  const tagDias = d => d == null ? '—'
+    : d < 0  ? '<span class="tag alerta">vencido hace ' + (-d) + ' d</span>'
+    : d === 0 ? '<span class="tag alerta">vence hoy</span>'
+    : d <= 15 ? '<span class="tag espera">en ' + d + ' d</span>'
+    : '<span class="tag info">en ' + d + ' d</span>';
+
+  $('#panelVenc').innerHTML = `
+    <section>
+      <h3>Cobros — documentos con vencimiento</h3>
+      <table><thead><tr><th>Nº</th><th>Comprador</th><th>Vence</th><th class="num">Pendiente</th><th>Aviso</th></tr></thead>
+      <tbody>${fact.length ? fact.map(f => `<tr>
+        <td>${esc(f.numero || '—')}</td>
+        <td>${esc(f.op.comprador_nombre || f.cliente_nombre || '—')}<div class="nota">${esc(f.op.numero || '')}</div></td>
+        <td>${fFecha(f.venc)}</td>
+        <td class="num">${esc(fmtMoneda(f.pendiente, f.moneda || 'EUR'))}</td>
+        <td>${tagDias(f.d)}</td></tr>`).join('')
+        : '<tr><td colspan="5" class="nota">Ninguna factura con vencimiento tiene algo pendiente de cobrar.</td></tr>'}</tbody></table>
+      <p class="nota">Solo salen las que llevan vencimiento Y todavía tienen algo pendiente; es un campo
+        opcional en Facturas, y una factura ya saldada por recibí no reclama nada.</p>
+    </section>
+
+    <section>
+      <h3>Firmas — enlaces pendientes</h3>
+      <table><thead><tr><th>Firmante</th><th>Contrato</th><th>Caduca</th><th>Aviso</th></tr></thead>
+      <tbody>${firmas.length ? firmas.map(s => `<tr>
+        <td>${esc(s.firmante_nombre || '—')}<div class="nota">${esc(s.firmante_email || '')}</div></td>
+        <td>${esc(s.op.numero || '—')}<div class="nota">${esc(s.op.comprador_nombre || '')}</div></td>
+        <td>${fFecha(s.expira_en)}</td>
+        <td>${tagDias(s.d)}</td></tr>`).join('')
+        : '<tr><td colspan="4" class="nota">No hay enlaces de firma pendientes.</td></tr>'}</tbody></table>
+      <p class="nota">Un enlace caducado no se recupera: se genera otro desde Contratos.</p>
+    </section>`;
 }
 
-function pintar(){
-  const lista = OPS.filter(o => !o.padre).filter(casa);
-  const cont = $('#etapas');
-  if(!lista.length){
-    cont.innerHTML = '<div class="filas"><p class="vacio">Ninguna operación coincide con lo que has escrito.</p></div>';
+suiMontarCajon();   // antes de atarle oyentes: si no, no existe todavía
+vista();            // recupera la vista guardada (tabla por defecto) y enseña el contenedor que toca
+
+/* ---------- eventos ---------- */
+$('#listaOps').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if(!b) return;
+  SEL = b.dataset.id; pintar(); pintarDetalle();
+});
+// saltar entre los contratos de una operación sin recargar la página — el href
+// con ?contrato= queda de respaldo (abrir en pestaña nueva sigue funcionando)
+document.getElementById('suiCajon').addEventListener('click', async e => {
+  const a = e.target.closest('[data-op]');
+  if(a){ e.preventDefault(); SEL = a.dataset.op; pintar(); pintarDetalle(); return; }
+  // documento emitido → visor compartido en modo SOLO DOCUMENTO (&vista=1):
+  // desde aquí se consulta, no se edita; «Abrir completo» lleva a la herramienta
+  const doc = e.target.closest('[data-doc]');
+  if(doc){
+    e.preventDefault();
+    const href = doc.getAttribute('href');
+    LW_VISOR.abrir(href + '&vista=1', doc.textContent.trim(), href);
     return;
   }
-  /* La página no puede quedarse fuera del rango al filtrar: si estabas en la 4
-     y el filtro deja dos páginas, se vuelve a la última que existe en vez de
-     enseñar una lista vacía que parece un error. */
-  const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
-  if(PAGINA > paginas) PAGINA = paginas;
-  const trozo = lista.slice((PAGINA - 1) * POR_PAGINA, PAGINA * POR_PAGINA);
-  cont.innerHTML = '<div class="filas">' + trozo.map(fila).join('') + '</div>'
-    + LW3.paginador({ total:lista.length, pagina:PAGINA, porPagina:POR_PAGINA });
-  cont.querySelectorAll('.op').forEach(el => {
-    el.addEventListener('click', () => abrirDetalle(el.dataset.id, el));
-  });
-  LW3.cablearPaginador(cont, n => {
-    PAGINA = n; pintar();
-    /* Al cambiar de página se sube al principio de la lista: si no, apareces a
-       media pantalla en filas que no habías visto empezar. */
-    cont.scrollIntoView({ block:'start', behavior: LW3.MENOS_MOV.matches ? 'auto' : 'smooth' });
-  });
-}
-
-/* ── 4 · EL DETALLE, EN EL CAJÓN COMPARTIDO ───────────────────────────────
-   El mismo `.sui-cajon` que el portal y el panel: se arrastra para cerrarlo y
-   se puede agarrar a media caída. No hay una pantalla nueva a la que ir y de
-   la que volver. */
-const Cajon = (() => {
-  const el = $('#cajon'), velo = $('#velo');
-  LW3.cajon(el, { velo, aspa:'#cX' });
-  const cerrar = () => { el.classList.remove('on'); velo.classList.remove('on'); };
-  $('#cX').addEventListener('click', cerrar);
-  velo.addEventListener('click', cerrar);
-  addEventListener('keydown', e => { if(e.key === 'Escape') cerrar(); });
-  return {
-    abre(tit, sub, html){
-      $('#cTit').textContent = tit; $('#cSub').textContent = sub || '';
-      $('#cCuerpo').innerHTML = html;
-      el.classList.add('on'); velo.classList.add('on');
-      $('#cX').focus({ preventScroll:true });
-    }
-  };
-})();
-
-function abrirDetalle(id){
-  const o = OPS.find(x => x.id === id);
-  if(!o) return;
-  const c = cuentaGrupo(o);
-  const grupo = o.padre ? [o.padre, ...o.padre.hijos] : [o, ...o.hijos];
-  const pend = (o.firmas || []).filter(f => f.estado === 'pendiente');
-  const facts = grupo.flatMap(g => g.facturas || []).filter(f => !f.anulada);
-
-  const cuentaHtml =
-      '<div class="dato"><span>Precio del grupo</span><span class="v">' + (c.precio ? esc(dinero(c.precio, c.moneda)) : 'sin fijar') + '</span></div>'
-    + '<div class="dato"><span>Cobrado</span><span class="v">' + esc(dinero(c.facturado, c.moneda)) + '</span></div>'
-    + '<div class="dato"><span>Pendiente</span><span class="v">' + (c.pendiente != null ? esc(dinero(c.pendiente, c.moneda)) : '—') + '</span></div>';
-
-  const grupoHtml = grupo.map(g =>
-      '<div class="dato"><span>' + esc(g.numero || '—') + ' · '
-      + esc(lwTipoContrato(g.tipo)) + '</span>'
-      + '<span class="v">' + (g.bloqueado ? 'Firmado' : 'Editable') + '</span></div>').join('');
-
-  const firmasHtml = pend.length
-    ? pend.map(f => '<div class="dato"><span>' + esc(f.firmante_nombre || 'Sin nombre') + '</span>'
-        + '<span class="v" style="color:#8C5E10">'
-        + (f.expira_en && f.expira_en < new Date().toISOString().slice(0,10) ? 'enlace caducado' : 'pendiente')
-        + '</span></div>').join('')
-    : '<p class="mini">Nadie tiene una firma pendiente.</p>';
-
-  const factHtml = facts.length
-    ? facts.slice(0, 8).map(f => '<div class="dato"><span>' + esc(f.numero || '—') + ' · '
-        + esc(f.tipo === 'recibi' ? 'Recibí' : f.tipo === 'proforma' ? 'Proforma' : 'Factura') + '</span>'
-        + '<span class="v">' + esc(dinero(f.total, f.moneda)) + '</span></div>').join('')
-    : '<p class="mini">Todavía no se ha emitido ningún documento.</p>';
-
-  Cajon.abre(o.comprador_nombre || 'Sin comprador',
-    (o.numero || '') + (o.proyecto_nombre ? ' · ' + o.proyecto_nombre : ''),
-      '<div class="bloque"><h4>Estado de cuenta</h4>' + cuentaHtml + '</div>'
-    + (grupo.length > 1 ? '<div class="bloque"><h4>Contratos de la operación</h4>' + grupoHtml
-        + '<p class="mini">Van juntos porque uno cuelga del otro: el precio se cuenta una sola vez.</p></div>' : '')
-    + '<div class="bloque"><h4>Firmas</h4>' + firmasHtml + '</div>'
-    + '<div class="bloque"><h4>Documentos</h4>' + factHtml + '</div>'
-    + '<div class="bloque" style="display:flex;gap:10px;flex-wrap:wrap">'
-      + '<a class="sui-btn primario" href="/contracts/app.html?contrato=' + esc(o.id) + '">Abrir el contrato</a>'
-      + '<a class="sui-btn" href="/facturas/?contrato=' + esc(o.id) + '">Documentos</a></div>');
-}
-
-/* ── arranque ─────────────────────────────────────────────────────────────
-   `guard.js` ya comprobó sesión, cuenta activa y permiso, y destapó la página.
-   Aquí solo se reusa su cliente: dos clientes de supabase-js sobre el mismo
-   almacenamiento se pisan el token. */
-window.LW_AUTH.then(async ({ sb }) => {
-  SB = sb;
-  const r = await lwOperacionesCargar(SB, msg => LW3.tosta(msg, { icono:'ph-warning' }));
-  OPS = r.ops; EQUIPO = r.equipo;
-
-  if(r.recortes.length){
-    $('#avisos').innerHTML = '<p class="sui-aviso">Esta vista no lo está sumando todo: hay más de '
-      + esc(r.recortes.map(n => r.topes[n] + ' ' + n).join(' y más de '))
-      + ', y solo se han leído los más recientes. Los totales son parciales.</p>';
+  // PDF firmado del contrato → URL firmada de corta vida en el mismo visor
+  const pdf = e.target.closest('[data-pdf]');
+  if(pdf){
+    e.preventDefault();
+    const { data, error } = await SB.storage.from('contratos-firmados').createSignedUrl(pdf.dataset.pdf, 3600);
+    if(error || !data){ toast('No se pudo abrir el PDF: ' + (error && error.message || 'sin URL')); return; }
+    LW_VISOR.abrir(data.signedUrl, 'PDF firmado');
   }
-
-  const proyectos = [...new Set(OPS.map(o => o.proyecto_nombre).filter(Boolean))].sort();
-  $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>'
-    + proyectos.map(p => '<option>' + esc(p) + '</option>').join('');
-
-  pintarDinero(); pintarUrge(); pintarChips(); pintar();
-
-  let t = null;
-  $('#q').addEventListener('input', e => {
-    FILTRO = e.target.value;
-    PAGINA = 1;
-    clearTimeout(t); t = setTimeout(pintar, 90);
-  });
-  $('#fProyecto').addEventListener('change', e => { PROY = e.target.value; PAGINA = 1; pintarChips(); pintar(); });
 });
+/* Tarjeta del tablero -> lo mismo que una fila de la tabla: selecciona y abre la
+   ficha. Delegacion, porque el tablero se repinta entero. */
+$('#tablero').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]');
+  if(b){ SEL = b.dataset.id; pintar(); pintarDetalle(); }
+});
+$('#vista').addEventListener('click', e => {
+  const b = e.target.closest('[data-vista]');
+  if(b){ vista(b.dataset.vista); pintar(); }
+});
+$('#q').addEventListener('input', pintar);
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if(!b) return;
+  FILTRO = b.dataset.f; pintarFiltros(); pintar();
+});
+$('#fProyecto').addEventListener('change', e => { PROYECTO = e.target.value; pintar(); });
+$('#listaOps').addEventListener('click', e => {
+  if(e.target.id !== 'limpiaFiltros') return;
+  e.preventDefault();
+  // hay que vaciar el <select> además de la variable: pintarFiltros() reconstruye
+  // las opciones y REPONE la selección que siga en el DOM, así que sin esto el
+  // proyecto elegido volvía y "quitar los filtros" solo quitaba la mitad
+  FILTRO = ''; PROYECTO = ''; $('#q').value = ''; $('#fProyecto').value = '';
+  pintarFiltros(); pintar();
+});
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  const ops = t.dataset.tab === 'ops';
+  $('#panelOps').classList.toggle('on', ops);
+  $('#panelVenc').classList.toggle('on', !ops);
+  // el detalle vive en el cajón: cambiar de pestaña lo cierra, o quedaría
+  // abierto encima de los vencimientos
+  if(!ops) suiCerrarCajon();
+  if(!ops) pintarVencimientos();
+}));
+$('#btnRecargar').addEventListener('click', () => arrancar(true));
 
-})();
+async function arrancar(recarga){
+  try{
+    await cargar();
+    /* ?contrato=<id> abre esa operación directamente. Lo usa Compradores desde
+       la lista de contratos de una persona. ?filtro=<clave> entra ya con ese
+       filtro puesto (11-ago, petición del owner) — lo usa el KPI "Firmas
+       esperando" del panel, que antes enlazaba aquí sin filtrar y enseñaba
+       TODOS los contratos en vez de solo los que decía. Ambos solo la
+       primera carga: en una recarga manual se respeta lo que el usuario
+       tenga elegido. */
+    if(!recarga){
+      const par = new URLSearchParams(location.search);
+      const pedido = par.get('contrato');
+      if(pedido && OPS.some(o => o.id === pedido)){ SEL = pedido; }
+      else if(pedido) toast('Ese contrato ya no existe');
+      const filtroPedido = par.get('filtro');
+      if(filtroPedido && FILTROS.some(f => f[0] === filtroPedido)) FILTRO = filtroPedido;
+    }
+    pintarFiltros(); pintar(); pintarDetalle();
+    if($('#panelVenc').classList.contains('on')) pintarVencimientos();
+    if(recarga) toast('Datos actualizados');
+  }catch(err){
+    $('#listaOps').innerHTML = '<p class="nota falta" style="padding:18px">No se pudieron cargar: ' + esc(err.message || err) + '</p>';
+  }
+}
+
+/* guard.js ya comprobó la sesión y destapó la página; aquí solo se reusa su
+   cliente para no abrir un segundo. */
+
+
+window.LW_AUTH.then(({ sb, session, ficha }) => {
+  SB = sb;
+  // Emitir proforma/recibí desde la ficha de una operación es cosa de
+  // administración (petición del owner, 6-ago-2026) — el resto de la
+  // herramienta sigue igual para todo el equipo.
+  ES_ADMIN = !!(ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin'));
+  $('#who').textContent = session.user.email;
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
+  arrancar(false);
+});
 </script>
 </body>
 </html>

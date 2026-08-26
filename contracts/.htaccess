@@ -12,17 +12,8 @@
 # le dice a Apache qué servir cuando piden la carpeta a secas, igual que hace
 # de fábrica con index.html en las otras once. app.html sigue respondiendo
 # también por su nombre completo, así que ningún enlace existente se rompe.
-# 26-ago-2026, al salir la v3: el orden se INVIERTE. `/contracts/` pasa a ser el
-# LISTADO de contratos —`index.html`, rediseñado— y el generador sigue en
-# `/contracts/app.html`, que es adonde apuntan ya todos los enlaces internos
-# (`?contrato=…`) y adonde lleva cada fila del listado.
-#
-# Es la misma forma que el resto de la suite: `/operaciones/` y `/facturas/`
-# abren su lista, no un formulario en blanco. Hasta hoy Contratos era la
-# excepción y abría directamente el editor.
-#
-# ⚠️ ES LO ÚNICO DE ESTE DESPLIEGUE QUE EL EQUIPO NOTA: quien tenga `/contracts/`
-# como "el generador" aterriza ahora en la lista, con el generador a un clic.
-# Volver atrás es cambiar el orden de esta línea y nada más — ningún enlace
-# depende de él, porque `app.html` responde igual por su nombre completo.
-DirectoryIndex index.html app.html
+# 26-ago-2026 (tarde): se REVIERTE al orden de siempre. El listado v3 volvio a
+# `/contracts/v3/` mientras la v3 se termina, asi que `/contracts/` tiene que
+# volver a abrir el generador — que es lo que el equipo espera y lo que hacia
+# esta manana.
+DirectoryIndex app.html index.html
