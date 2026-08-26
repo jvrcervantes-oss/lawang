@@ -277,18 +277,24 @@
      El `<legend>` pasa a ser el mando: cursor, foco visible y un ángulo que
      gira. §16.4 (familiaridad): el mismo gesto que las carpetas de Proyectos. */
   fieldset[data-plegable] > legend{ cursor:pointer; width:100%; }
+  /* El filete vertical de `fieldset > legend::before` lo sustituye el cuadro. */
+  fieldset[data-plegable] > legend::before{ background:none; height:15px; border-radius:5px; }
   fieldset[data-plegable] > legend:focus-visible{ outline:2px solid var(--dl,#485B37); outline-offset:3px; border-radius:5px; }
   .fs-resumen{ flex:1; min-width:0; margin-left:8px; font-size:12px; font-weight:400;
                color:var(--muted); text-transform:none; letter-spacing:0;
                overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .fs-caret{ margin-left:auto; width:7px; height:7px; flex:none;
-             border-right:1.6px solid var(--muted); border-bottom:1.6px solid var(--muted);
-             transform:rotate(45deg) translateY(-2px);
-             /* §4, muelle de dos parámetros: damping 1.0 —sin rebote, un ángulo
-                que rebota es ruido— y response .28. No hay «duración» pensada
-                como tal: la curva ES el comportamiento. */
-             transition:transform .28s cubic-bezier(.32,.72,0,1); }
-  fieldset.plegado .fs-caret{ transform:rotate(-45deg) translateY(2px); }
+  /* 🔴 EL MISMO GESTO QUE `.plegable`, NO UNO NUEVO (26-ago-2026). La primera
+     versión de esto llevaba un ángulo a la derecha… justo encima de «Impuesto»
+     y «Notas», que se pliegan con un `+`/`−` a la izquierda desde el 24-ago por
+     encargo del owner. Dos plegables en la MISMA columna con dos gestos
+     distintos es la divergencia de siempre con otro disfraz, y se ve de un
+     vistazo en cuanto quedan juntos. Se copia el de ellos: mismo cuadro, mismo
+     tamaño, misma posición. §16.4 — lo que se comporta igual se ve igual. */
+  fieldset[data-plegable] > legend::before{ content:'−'; width:15px; height:15px; flex:none;
+             display:grid; place-items:center; border:1px solid var(--line);
+             border-radius:5px; font-size:12px; line-height:1; color:var(--dl);
+             font-weight:600; }
+  fieldset[data-plegable].plegado > legend::before{ content:'+'; }
   /* §3, interrumpible: se anima `grid-template-rows`, así que volver a pulsar a
      media animación arranca del valor que hay EN PANTALLA y no da un salto. Con
      `height:auto` no se puede; con `0fr↔1fr` sí y sin medir nada en JS. */
@@ -313,7 +319,7 @@
   fieldset.plegado{ padding-bottom:13px; }
   /* §14: sin movimiento el estado sigue siendo legible; solo deja de viajar. */
   @media (prefers-reduced-motion: reduce){
-    .fs-caret, .fs-cuerpo > .fs-dentro{ transition:none; }
+    .fs-cuerpo > .fs-dentro{ transition:none; }
     fieldset.plegado > .fs-cuerpo > .fs-dentro{ transform:none; }
   }
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
@@ -1389,8 +1395,7 @@ function montarPlegables(){
     cuerpo.appendChild(dentro);
     fs.appendChild(cuerpo);
     const res = document.createElement('span'); res.className = 'fs-resumen';
-    const car = document.createElement('i');   car.className = 'fs-caret'; car.setAttribute('aria-hidden','true');
-    leg.appendChild(res); leg.appendChild(car);
+    leg.appendChild(res);
     leg.tabIndex = 0; leg.setAttribute('role','button');
     const alterna = () => { fs.dataset.forzado = '1'; fs.classList.toggle('plegado'); sincronizaPlegable(fs); };
     leg.addEventListener('click', alterna);
