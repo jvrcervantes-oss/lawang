@@ -1617,7 +1617,7 @@ function pantalla(cual, params){
 
 /* ---------- filtros del listado ---------- */
 const TIPOS_FILTRO = [['', 'Todos'], ['factura', 'Facturas'], ['proforma', 'Proformas'], ['recibi', 'Recibís']];
-let LTIPO = '', LANUL = false, LDOCS = null;
+let LTIPO = '', LANUL = false, LDOCS = null, LDOCS_EN_BASE = null;
 let DIVERGEN = new Map();   // id → diferencias con la ficha del cliente
 
 function pintarFiltrosListado(){
@@ -1650,11 +1650,35 @@ async function cargarListado(){
        usa: la columna «emisor» de la lista salía vacía y su tooltip decía «sin
        autor registrado» en TODAS, incluidas las que sí tienen autor. Se veía como
        un dato que no existe en vez de como un dato que no se pidió. */
-    const { data, error } = await sb.from('facturas')
-      .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,creado_por,datos,justificante_path,justificantes')
-      .order('created_at', { ascending:false }).limit(200);
+    /* 🔴 `.limit(200)` SOBRE 279 DOCUMENTOS (26-ago-2026). Recortaba EN SILENCIO:
+       70 documentos vigentes no salían en la lista, no se encontraban al buscar
+       su número, y —lo peor— quedaban fuera de «Suma de lo vigente», que decía
+       7.348.280 € cuando lo vigente eran 9.025.257 €. **1.676.977 € de menos en
+       una cifra que se lee como el total.** La pantalla no mentía a propósito:
+       nadie le había dicho que preguntara cuántas hay.
+
+       El tope no se detecta con un tope. Un `limit(N+1)` —que es lo que hace el
+       buscador de contratos aquí al lado— falla si PostgREST recorta antes por
+       su `max-rows`: llegan N y nadie se entera. Se pregunta la CUENTA EXACTA y
+       se compara con lo que ha llegado, que es la única medida que no depende de
+       adivinar dónde está el techo. Y si no cuadra, se DICE en el resumen, con
+       letra fija y no un toast que se va. Es la regla que ya está escrita en
+       `paginacion.js`: «el recorte se anuncia siempre».
+       3000 y no 200: a 820 bytes de `datos` por fila son 2,4 MB en el peor caso,
+       y hoy son 279 filas. */
+    const TOPE_DOCS = 3000;
+    const [lista, cuenta] = await Promise.all([
+      sb.from('facturas')
+        .select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,fecha_emision,anulada,enviada,client_id,creado_por,datos,justificante_path,justificantes')
+        .order('created_at', { ascending:false }).limit(TOPE_DOCS),
+      sb.from('facturas').select('id', { count:'exact', head:true }),
+    ]);
+    const { data, error } = lista;
     if(error){ box.innerHTML = '<p class="sui-error">No se pudo cargar: ' + esc(error.message) + '</p>'; return; }
     LDOCS = data || [];
+    /* `null` si la cuenta no contestó: entonces NO se afirma que estén todas.
+       No saber y estar completo son cosas distintas y no se pintan igual. */
+    LDOCS_EN_BASE = (cuenta && typeof cuenta.count === 'number') ? cuenta.count : null;
     /* Cuáles dicen algo distinto de la ficha de su cliente (19-ago-2026). Se
        pide UNA vez con el listado, no una consulta por fila.
 
@@ -1710,9 +1734,19 @@ function pintarListado(){
     porMoneda[m] = (porMoneda[m] || 0) + (Number(f.total) || 0);
   });
   const sumas = Object.entries(porMoneda).map(([m, t]) => esc(fmtMoneda(t, m))).join(' · ');
-  $('#lResumen').innerHTML = !data.length ? '' :
-    `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
-     <span>Suma de lo vigente <b>${sumas}</b></span>`;
+  /* Si han llegado menos de las que hay en base, la lista está recortada y eso
+     va DELANTE de la suma: la suma de un conjunto incompleto se lee igual que la
+     de uno completo, y esa es exactamente la confusión que costó 1,68 M €. */
+  const faltan = (LDOCS_EN_BASE !== null && LDOCS && LDOCS_EN_BASE > LDOCS.length)
+    ? LDOCS_EN_BASE - LDOCS.length : 0;
+  const avisoTope = faltan
+    ? `<span class="sui-aviso" style="margin:0">⚠️ Faltan ${faltan} documentos: la lista enseña los ${LDOCS.length} más recientes y la suma es solo de esos.</span>`
+    : '';
+  $('#lResumen').innerHTML = (!data.length && !faltan) ? '' :
+    (data.length
+      ? `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
+         <span>Suma de lo vigente <b>${sumas}</b></span>`
+      : '') + avisoTope;
   if(!data.length){
     const filtrando = LTIPO || LANUL || ($('#lq').value || '').trim();
     box.innerHTML = `<div class="sui-nada"><b>${
