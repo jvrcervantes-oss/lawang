@@ -55,7 +55,12 @@ if(window.LW3) return;                       // idempotente: dos <script> no dup
    piel vieja y era indistinguible del que ya estaba en produccion. El owner lo
    dijo en una linea: «no veo ninguna diferencia».
    Lo decide la RUTA, que es un dato que existe antes que cualquier guion. */
-var v3ON = /^\/intranet\/v3(\/|$)/.test(location.pathname);
+/* CUALQUIER ruta que termine en `/v3/` es v3, no solo la del panel. Se
+   desplegó mirando únicamente `/intranet/v3/`, y `/operaciones/v3/` y
+   `/facturas/v3/` salieron con el motor apagado: `LW3 is not defined` y la
+   pantalla en blanco. En local no se vio porque la pestaña de pruebas ya
+   tenía la llave puesta de antes — el clásico «en mi máquina funciona». */
+var v3ON = /\/v3(\/|$)/.test(location.pathname);
 try{
   var v3p=new URLSearchParams(location.search);
   if(v3p.has('v3')){ v3ON = v3p.get('v3')!=='0'; sessionStorage.setItem('lw3-on', v3ON?'1':'0'); }
