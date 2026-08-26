@@ -391,6 +391,7 @@
   .ctr .cbarra i{ display:block; height:100%; border-radius:999px; background:var(--tg,#485B37); }
   .ctr[data-alerta="proforma"]{ border-style:dashed; }
   .ctr[data-alerta="sinrecibi"]{ border-color:#C08A2E; }
+  .ctr[data-alerta="sinfactura"]{ border-color:#B3261E; }
   .ctr table.docs td.doc{ border-left-width:3px; }
   .ctr table.docs{ border-top:1px solid var(--linea,#E4DCCB); }
 </style>
@@ -1869,8 +1870,15 @@ function agrupaPorContrato(docs){
     c.pct = F ? Math.max(0, Math.min(100, C / F * 100)) : 0;
     c.totalFacturado = Object.values(c.facturado).reduce((a, b) => a + b, 0);
     c.totalCobrado   = Object.values(c.cobrado).reduce((a, b) => a + b, 0);
-    c.soloProforma   = c.totalFacturado === 0 && Object.keys(c.proforma).length > 0;
-    c.sinRecibi      = c.totalFacturado > 0 && c.totalCobrado === 0;
+    /* 🔴 «Solo proforma» EXIGE que tampoco se haya cobrado (26-ago-2026). Sin
+       esa condición marcaba como «solo proforma» dos contratos con 190.620 €
+       ya cobrados: proforma emitida, recibí firmado y factura nunca hecha. El
+       cartel decía que allí no había pasado nada. */
+    c.soloProforma      = c.totalFacturado === 0 && c.totalCobrado === 0 && Object.keys(c.proforma).length > 0;
+    /* Y ese caso merece su propio nombre, porque no es un descuido de papeleo:
+       es dinero entrado sin factura que lo respalde. Son dos hoy. */
+    c.cobradoSinFactura = c.totalFacturado === 0 && c.totalCobrado > 0;
+    c.sinRecibi         = c.totalFacturado > 0 && c.totalCobrado === 0;
     /* El más reciente manda el orden, igual que en la lista plana: el operador
        no cambia de modelo mental al cambiar de vista. */
     c.ultima = c.docs.map(f => f.fecha_emision || '').sort().slice(-1)[0] || '';
@@ -1889,17 +1897,21 @@ function pintarPorContrato(box, data, filaDoc){
     const et = c.sinContrato
       ? '<span class="sui-tag alerta" title="Documentos sin contrato: un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span>'
       : esc(c.numero || '—');
-    const marca = c.soloProforma ? 'proforma' : (c.sinRecibi ? 'sinrecibi' : '');
-    const aviso = c.soloProforma ? '<span class="sui-tag gris" title="Hay proforma pero no se ha emitido factura">Solo proforma</span>'
+    const marca = c.cobradoSinFactura ? 'sinfactura'
+                : c.soloProforma ? 'proforma'
+                : (c.sinRecibi ? 'sinrecibi' : '');
+    const aviso = c.cobradoSinFactura ? '<span class="sui-tag alerta" title="Hay cobro registrado pero ninguna factura que lo respalde">Cobrado sin factura</span>'
+                : c.soloProforma ? '<span class="sui-tag gris" title="Hay proforma, ni factura ni cobro">Solo proforma</span>'
                 : c.sinRecibi   ? '<span class="sui-tag alerta" title="Facturado y sin un solo recibí: nada cobrado">Sin recibí</span>'
                 : '';
-    const cifra = c.totalFacturado
-      ? lwSumaTexto(c.facturado)
-      : (Object.keys(c.proforma).length ? lwSumaTexto(c.proforma) : '—');
+    const cifra = c.totalFacturado ? lwSumaTexto(c.facturado)
+                : c.cobradoSinFactura ? lwSumaTexto(c.cobrado)
+                : (Object.keys(c.proforma).length ? lwSumaTexto(c.proforma) : '\u2014');
     const pie = c.totalFacturado
       ? (c.unaMoneda
           ? esc(lwSumaTexto(c.cobrado)) + ' cobrado \u00b7 ' + c.pct.toFixed(0) + ' %'
           : esc(lwSumaTexto(c.cobrado)) + ' cobrado')
+      : c.cobradoSinFactura ? 'cobrado, sin factura emitida'
       : (Object.keys(c.proforma).length ? 'en proforma, sin facturar' : '');
     return `<details class="ctr" data-ctr="${esc(c.clave)}"${marca ? ` data-alerta="${marca}"` : ''}${CTR_ABIERTOS.has(c.clave) ? ' open' : ''}>
       <summary>
@@ -1951,11 +1963,13 @@ function pintarListado(){
     ? (() => {
         const g = agrupaPorContrato(data);
         const sp = g.filter(c => c.soloProforma).length, sr = g.filter(c => c.sinRecibi).length;
+        const sf = g.filter(c => c.cobradoSinFactura).length;
         return `<span>${g.length} ${g.length===1?'contrato':'contratos'}</span>
                 <span>Facturado <b>${sumasTipo('factura')}</b></span>
                 <span>Cobrado <b>${sumasTipo('recibi')}</b></span>`
-             + (sp ? `<span class="sui-tag gris">${sp} solo proforma</span>` : '')
-             + (sr ? `<span class="sui-tag alerta">${sr} sin recibí</span>` : '');
+             + (sp ? `<span><span class="sui-tag gris">${sp} solo proforma</span></span>` : '')
+             + (sr ? `<span><span class="sui-tag alerta">${sr} sin recibí</span></span>` : '')
+             + (sf ? `<span><span class="sui-tag alerta">${sf} cobrado sin factura</span></span>` : '');
       })()
     : `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
        <span>Suma de lo vigente <b>${sumas}</b></span>`;
