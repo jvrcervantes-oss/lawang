@@ -137,9 +137,14 @@
      etiqueta y el control porque se lee ANTES de contestar, no después. §15 —
      el tracking positivo ayuda a un rótulo de dos palabras y estorba en una
      línea de veinte. */
-  .field .pista{ margin:-2px 0 6px; font-size:11.5px; line-height:1.45;
+  /* Pequeña a propósito (27-ago-2026, owner: «reduce el tamaño de las
+     explicaciones»). Es apoyo, no contenido: si pesa lo mismo que la etiqueta,
+     compite con ella y hay que leer las dos para saber cuál manda. Las quince
+     que quedan miden 32 caracteres de media y la más larga 73 — las dos que
+     eran un párrafo se reescribieron en tokens.json, no se escondieron. */
+  .field .pista{ margin:-3px 0 5px; font-size:10.5px; line-height:1.4;
                  letter-spacing:0; text-transform:none; font-weight:400;
-                 color:var(--muted); }
+                 color:var(--muted); opacity:.85; }
   .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
     padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--field-bg);
     transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }

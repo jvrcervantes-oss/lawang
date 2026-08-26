@@ -16,7 +16,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e26504f1">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=690cc603">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -604,6 +604,14 @@
          emitir, en el documento se ofrece volver. Nunca los dos a la vez, que es
          lo que convierte una barra en un panel de mandos. -->
     <button type="button" class="lw-btn" id="btnList" hidden>← Listado</button>
+    <!-- «Nuevo documento» ESTABA EN LA BARRA DE LA VISTA PREVIA (27-ago-2026,
+         owner: «no coincide con donde están los demás»). Y tiene razón de
+         fondo: esa barra son las acciones SOBRE ESTE documento —guardarlo,
+         bajarlo en PDF, mandarlo—, mientras que «nuevo» lo abandona y empieza
+         otro. Es un movimiento entre pantallas, igual que «← Listado», y ese
+         vive arriba en las once herramientas. Con el estilo de la barra
+         (`lw-btn`), no con el de las acciones del documento. -->
+    <button type="button" class="lw-btn" id="btnNueva" hidden>Nuevo documento</button>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
     <!-- El rotulo sigue al tipo que filtra el listado, que es el que se va a
@@ -804,7 +812,6 @@
       <div class="pv-bar">
         <b>Vista previa</b>
         <div class="spacer"></div>
-        <button class="btn" id="btnNueva">Nuevo documento</button>
         <button class="btn primary" id="btnSave">Guardar en base de datos</button>
         <button class="btn" id="btnPrint">Descargar PDF</button>
         <button class="btn" id="btnMail">Enviar por email</button>
@@ -2182,6 +2189,7 @@ function pantalla(cual, params){
   $('#pantallaDoc').hidden     = cual !== 'documento';
   // los botones de la barra se alternan: nunca ofrecer las dos salidas a la vez
   $('#btnList').hidden    = cual !== 'documento';
+  $('#btnNueva').hidden   = cual !== 'documento';
   $('#btnNuevaDoc').hidden = cual !== 'listado';
   $('#selTipo').hidden     = cual !== 'documento';
   if(params !== undefined){

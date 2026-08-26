@@ -424,7 +424,21 @@
   transition:width 180ms cubic-bezier(.22,.61,.36,1);
 }
 .lw-rail.abierto{ width:208px; }
-body.con-rail{ padding-left:56px; transition:padding-left 180ms cubic-bezier(.22,.61,.36,1); }
+/* 🔴 SIN TRANSICIÓN, Y ESTE PADDING NO ES DECORACIÓN (27-ago-2026).
+   El riel es `position:fixed`, así que este `padding-left` es LO ÚNICO que
+   aparta el contenido de debajo de él. Llevaba una transición de 180 ms para
+   que la página se deslizara al abrir el riel… y medido en producción, en
+   Contratos y en Proyectos esa transición se quedaba `playState:"running"` con
+   `currentTime:0` PARA SIEMPRE. Una transición atascada es dueña del valor
+   calculado: `padding-left` se quedaba en 0 y ni `!important` lo movía —
+   comprobado—. Resultado: la primera tarjeta del formulario pasaba por debajo
+   del riel y se veía como un recuadro encima del menú. En Facturas no pasaba,
+   por eso era «a veces».
+   Se quita la transición. Un adorno de 180 ms no puede ser el dueño del valor
+   del que depende el encaje de la página entera — y además animar `padding` en
+   `<body>` fuerza un reflujo completo en cada fotograma. El riel sigue
+   animando SU propio ancho, que no descoloca nada si se atasca. */
+body.con-rail{ padding-left:56px; }
 body.rail-abierto{ padding-left:208px; }
 
 /* LA ESQUINA DE ARRIBA A LA IZQUIERDA — 16-ago-2026
@@ -450,7 +464,8 @@ body.rail-abierto{ padding-left:208px; }
    pantallas ponen el logotipo en el mismo sitio. Medido en las dos. */
 body.con-rail > header{ margin-left:-56px; }
 body.rail-abierto > header{ margin-left:-208px; }
-body.con-rail > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
+/* Mismo caso y mismo riesgo: si se atasca, la barra superior queda descolocada
+   56 px respecto de las otras once pantallas. */
 
 .lw-rail-i, .lw-rail-tog{
   display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
