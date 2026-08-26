@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Contratos v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
+<script src="/contracts/assets/topbar.js?v=d5248630" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="contratos"></script>
+<script src="/contracts/assets/dinero.js?v=bff77614"></script>
+<script src="/facturas/totales.js"></script>
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=711e2d1e">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<script src="/contracts/assets/movimiento-v3.js?v=5bb2201d"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTRATOS v3 · el listado — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   EL TRABAJO DE ESTA HERRAMIENTA, en palabras del owner: «donde creamos los
+   contratos y controlamos la vinculación entre ellos». El listado de hoy no
+   enseña la vinculación en ninguna parte: son 101 filas planas por fecha, y un
+   Bloqueo de Parcela y su Construcción —que son la MISMA venta— aparecen
+   separados por veinte filas, sin nada que diga que van juntos.
+
+   Aquí la unidad de la lista es la OPERACIÓN, no el contrato: el contrato raíz
+   con los suyos debajo, enganchados. Eso es enseñar la vinculación en vez de
+   describirla, y de paso hace evidente lo que estaba invisible — un contrato
+   suelto que debería colgar de otro se ve porque está solo.
+
+   Filtros por lo que de verdad se busca aquí: por tipo, y «sin vincular», que
+   es la pregunta que solo esta herramienta puede contestar.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body{ margin:0; background:var(--sup-0,#F1EBDD); color:var(--texto,#22282A);
+      font-family:var(--sans,'Jost',system-ui,sans-serif); }
+main{ max-width:1120px; margin:0 auto; padding:24px 24px 80px; }
+
+.resumen{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin:0 0 20px; }
+.kpi{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB); border-radius:var(--r-l,18px);
+      box-shadow:var(--sombra-1); padding:16px 18px; }
+.kpi .rot{ display:block; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+           font-weight:600; color:var(--texto-2,#4A5052); margin-bottom:6px; }
+.kpi .n{ font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:1.5rem;
+         line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:var(--dl,#104C4F); }
+.kpi small{ display:block; margin-top:6px; font-size:.74rem; color:var(--texto-2,#4A5052); }
+.kpi.suelto{ border-color:#E2C48E; } .kpi.suelto .n{ color:#8C5E10; }
+
+.controles{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 8px; }
+.controles .sui-buscar{ flex:1 1 260px; }
+.chips{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
+
+/* LA OPERACIÓN. Una caja por venta; dentro, sus contratos. El sangrado y la
+   línea del margen izquierdo son la vinculación dicha en el objeto, no en una
+   etiqueta que hay que leer (§16.7). */
+.op{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB); border-radius:var(--r-l,18px);
+     box-shadow:var(--sombra-1); margin:0 0 12px; overflow:hidden; }
+.op > .cab{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px;
+            align-items:center; padding:13px 18px; }
+.op .quien{ font-size:.94rem; font-weight:600; letter-spacing:-.008em; }
+.op .donde{ display:block; margin-top:3px; font-size:.76rem; color:var(--texto-2,#4A5052); }
+.op .dinero{ text-align:right; font-variant-numeric:tabular-nums; font-size:.86rem; font-weight:600; white-space:nowrap; }
+.op .dinero small{ display:block; font-weight:400; font-size:.7rem; color:var(--texto-3,#676B63); }
+
+.ctr{ display:grid; grid-template-columns:22px minmax(0,1fr) auto auto; gap:12px; align-items:center;
+      padding:11px 18px 11px 22px; border-top:1px solid var(--linea,#E4DCCB);
+      text-decoration:none; color:inherit; }
+.ctr:hover{ background:var(--sup-2,#F7F3E9); }
+/* El hijo va sangrado y con su hilo: se ve de quién cuelga sin leer nada. */
+.ctr.hijo{ padding-left:44px; position:relative; }
+.ctr.hijo::before{ content:''; position:absolute; left:28px; top:0; bottom:50%;
+                   border-left:1px solid var(--linea,#E4DCCB); border-bottom:1px solid var(--linea,#E4DCCB);
+                   width:10px; border-bottom-left-radius:6px; }
+.ctr .num{ font-weight:600; font-size:.86rem; font-variant-numeric:tabular-nums; }
+.ctr .tipo{ display:block; margin-top:2px; font-size:.74rem; color:var(--texto-2,#4A5052); }
+.ctr .precio{ font-variant-numeric:tabular-nums; font-size:.82rem; color:var(--texto-2,#4A5052); white-space:nowrap; }
+.ctr > i{ color:var(--texto-3,#676B63); font-size:1.05rem; justify-self:center; }
+
+.vacio{ padding:26px 18px; color:var(--texto-2,#4A5052); font-size:.86rem;
+        background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB); border-radius:var(--r-l,18px); }
+.mini{ font-size:.78rem; color:var(--texto-2,#4A5052); line-height:1.5; }
+
+#cajon .cuerpo{ overflow:auto; padding:0 20px 24px; }
+#cajon h3{ margin:0; font-size:1.02rem; letter-spacing:-.012em; }
+#cajon .sub{ font-size:.78rem; color:var(--texto-2,#4A5052); margin-top:3px; }
+.bloque{ margin-top:20px; }
+.bloque > h4{ margin:0 0 8px; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+              font-weight:600; color:var(--texto-2,#4A5052); }
+.dato{ display:flex; justify-content:space-between; gap:12px; padding:9px 0;
+       border-top:1px solid var(--linea,#E4DCCB); font-size:.85rem; }
+.dato:first-of-type{ border-top:0; }
+.dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
+
+@media (max-width:760px){
+  main{ padding-left:max(16px, env(safe-area-inset-left));
+        padding-right:max(16px, env(safe-area-inset-right)); padding-top:18px; padding-bottom:56px; }
+  .resumen{ grid-template-columns:1fr 1fr; gap:12px; }
+  .op > .cab{ grid-template-columns:1fr; }
+  .op .dinero{ text-align:left; }
+  .ctr{ grid-template-columns:22px minmax(0,1fr) auto; gap:10px; padding:11px 14px; }
+  .ctr.hijo{ padding-left:32px; }
+  .ctr.hijo::before{ left:18px; }
+  .ctr > i:last-child{ display:none; }
+}
+@media (max-width:440px){ .resumen{ grid-template-columns:1fr; } }
+main, .op, .op .cab, .ctr{ min-width:0; }
+</style>
+</head>
+<body>
+
+<header class="lw-topbar" data-titulo="Contratos"></header>
+
+<main>
+  <div id="avisos"></div>
+  <section class="resumen" id="resumen"></section>
+
+  <div class="controles">
+    <input class="sui-buscar" id="q" placeholder="Buscar nº, comprador o proyecto…">
+    <a class="sui-btn primario" href="/contracts/app.html?nuevo=1"><i class="ph ph-plus"></i>Nuevo contrato</a>
+  </div>
+  <div class="chips" id="chips"></div>
+
+  <div id="lista"></div>
+</main>
+
+<div class="sui-velo" id="velo"></div>
+<aside class="sui-cajon" id="cajon" role="dialog" aria-modal="true" aria-labelledby="cTit">
+  <div class="sui-cajon-cab">
+    <div style="min-width:0"><h3 id="cTit">—</h3><div class="sub" id="cSub"></div></div>
+    <button type="button" class="sui-cajon-x" id="cX" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="cuerpo" id="cCuerpo"></div>
+</aside>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+let OPS = [], FILTRO = '', TIPO = '', SOLO = '', PAGINA = 1;
+const POR_PAGINA = 15;
+const dinero = (n, m) => lwFormatoImporte(n || 0, m || 'EUR');
+
+/* Un contrato está «sin vincular» si no cuelga de nadie y nadie cuelga de él,
+   y su tipo es de los que normalmente van en pareja. No se marca cualquier
+   contrato suelto: un Poder Notarial vive solo por definición y marcarlo sería
+   ruido — la señal dejaría de significar nada. */
+const VA_EN_PAREJA = ['reserva_parcela', 'construccion', 'carta_reserva',
+                      'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
+const suelto = o => !o.padre && !(o.hijos || []).length && VA_EN_PAREJA.includes(o.tipo);
+
+function pintarResumen(){
+  const raices = OPS.filter(o => !o.padre);
+  const total = OPS.length;
+  const firmados = OPS.filter(o => o.bloqueado).length;
+  const sueltos = OPS.filter(suelto).length;
+  const tarj = (rot, n, pie, cls) =>
+    '<div class="kpi ' + (cls || '') + '"><span class="rot">' + esc(rot) + '</span>'
+    + '<span class="n">' + n + '</span><small>' + esc(pie) + '</small></div>';
+  $('#resumen').innerHTML =
+      tarj('Contratos', total, raices.length + ' operaciones')
+    + tarj('Firmados', firmados, total ? Math.round(firmados / total * 100) + ' % del total' : '—')
+    + tarj('Sin vincular', sueltos,
+        sueltos ? 'podrían faltarles su pareja' : 'todos enganchados', sueltos ? 'suelto' : '');
+}
+
+const CHIPS = [
+  ['', 'Todas', () => true],
+  ['sueltos', 'Sin vincular', o => suelto(o)],
+  ['sin_firmar', 'Sin firmar', o => !o.bloqueado],
+  ['firmados', 'Firmados', o => o.bloqueado],
+];
+function pintarChips(){
+  $('#chips').innerHTML = CHIPS.map(([k, r, fn]) => {
+    const n = OPS.filter(fn).length;
+    return '<button type="button" class="sui-chip' + (SOLO === k ? ' on' : '') + (n ? '' : ' vacio')
+      + '" data-k="' + k + '">' + esc(r) + ' <span class="n">' + n + '</span></button>';
+  }).join('');
+  $('#chips').querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
+    SOLO = b.dataset.k; PAGINA = 1; pintarChips(); pintar();
+  }));
+}
+
+function casa(o){
+  const t = FILTRO.trim().toLowerCase();
+  const fn = (CHIPS.find(c => c[0] === SOLO) || CHIPS[0])[2];
+  const grupo = [o, ...(o.hijos || [])];
+  /* Buscar por el número de un HIJO tiene que traer la operación entera: quien
+     escribe «CC00033» quiere esa venta, no una fila huérfana. */
+  if(!grupo.some(fn)) return false;
+  if(!t) return true;
+  return grupo.some(g => [g.numero, g.comprador_nombre, g.proyecto_nombre]
+    .join(' ').toLowerCase().includes(t));
+}
+
+function filaContrato(c, esHijo){
+  const p = parseImporte(c.precio_total);
+  return '<a class="ctr' + (esHijo ? ' hijo' : '') + '" data-v3-pulsable data-v3-escala="0.997"'
+    + ' href="/contracts/app.html?contrato=' + esc(c.id) + '">'
+    + '<i class="ph ' + (c.bloqueado ? 'ph-lock-simple' : 'ph-pencil-simple') + '"></i>'
+    + '<span><span class="num">' + esc(c.numero || 'sin nº') + '</span>'
+      + '<span class="tipo">' + esc(lwTipoContrato(c.tipo)) + '</span></span>'
+    + '<span class="precio">' + (p ? esc(dinero(p, c.moneda)) : '—') + '</span>'
+    + '<i class="ph ph-arrow-right"></i></a>';
+}
+
+function pintar(){
+  const lista = OPS.filter(o => !o.padre).filter(casa);
+  const cont = $('#lista');
+  if(!lista.length){
+    cont.innerHTML = '<div class="vacio">Ningún contrato coincide.</div>';
+    return;
+  }
+  const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  if(PAGINA > paginas) PAGINA = paginas;
+  const trozo = lista.slice((PAGINA - 1) * POR_PAGINA, PAGINA * POR_PAGINA);
+
+  cont.innerHTML = trozo.map(o => {
+    const c = cuentaGrupo(o);
+    const hijos = o.hijos || [];
+    const debe = c.pendiente != null && c.pendiente > 0.005;
+    return '<article class="op" data-id="' + esc(o.id) + '">'
+      + '<div class="cab"><span><span class="quien">' + esc(o.comprador_nombre || 'Sin comprador') + '</span>'
+        + '<span class="donde">' + (o.proyecto_nombre ? esc(o.proyecto_nombre) + ' · ' : '')
+        + (hijos.length ? (hijos.length + 1) + ' contratos vinculados' : '1 contrato')
+        + (suelto(o) ? ' · <b style="color:#8C5E10">sin vincular</b>' : '') + '</span></span>'
+      + '<span class="dinero">' + (c.precio ? esc(dinero(c.precio, c.moneda)) : 'sin precio')
+        + (debe ? '<small>' + esc(dinero(c.pendiente, c.moneda)) + ' pendiente</small>'
+                : c.precio ? '<small>cobrado</small>' : '') + '</span></div>'
+      + filaContrato(o, false)
+      + hijos.map(h => filaContrato(h, true)).join('')
+      + '</article>';
+  }).join('')
+  + LW3.paginador({ total:lista.length, pagina:PAGINA, porPagina:POR_PAGINA });
+
+  cont.querySelectorAll('.op > .cab').forEach(el => {
+    el.addEventListener('click', () => abrir(el.parentElement.dataset.id));
+  });
+  LW3.cablearPaginador(cont, n => {
+    PAGINA = n; pintar();
+    cont.scrollIntoView({ block:'start', behavior: LW3.MENOS_MOV.matches ? 'auto' : 'smooth' });
+  });
+}
+
+const Cajon = (() => {
+  const el = $('#cajon'), velo = $('#velo');
+  LW3.cajon(el, { velo, aspa:'#cX' });
+  const cerrar = () => { el.classList.remove('on'); velo.classList.remove('on'); };
+  $('#cX').addEventListener('click', cerrar);
+  velo.addEventListener('click', cerrar);
+  addEventListener('keydown', e => { if(e.key === 'Escape') cerrar(); });
+  return { abre(t, s, h){ $('#cTit').textContent = t; $('#cSub').textContent = s || '';
+    $('#cCuerpo').innerHTML = h; el.classList.add('on'); velo.classList.add('on');
+    $('#cX').focus({ preventScroll:true }); } };
+})();
+
+function abrir(id){
+  const o = OPS.find(x => x.id === id);
+  if(!o) return;
+  const c = cuentaGrupo(o);
+  const grupo = [o, ...(o.hijos || [])];
+  Cajon.abre(o.comprador_nombre || 'Sin comprador', o.proyecto_nombre || '',
+      '<div class="bloque"><h4>Contratos de esta operación</h4>'
+    + grupo.map(g => '<div class="dato"><span>' + esc(g.numero || 'sin nº') + ' · '
+        + esc(lwTipoContrato(g.tipo)) + '</span><span class="v">'
+        + (g.bloqueado ? 'Firmado' : 'Editable') + '</span></div>').join('')
+    + (grupo.length > 1
+        ? '<p class="mini">Van juntos porque uno cuelga del otro. El precio se cuenta una sola vez.</p>'
+        : suelto(o)
+          ? '<p class="mini">Este contrato no está vinculado a ningún otro. Si es un Bloqueo de Parcela'
+            + ' o una Construcción, probablemente le falta su pareja — y mientras tanto la operación'
+            + ' se cuenta a medias en todas las demás pantallas.</p>'
+          : '')
+    + '</div>'
+    + '<div class="bloque"><h4>Cuenta</h4>'
+    + '<div class="dato"><span>Precio</span><span class="v">' + (c.precio ? esc(dinero(c.precio, c.moneda)) : 'sin fijar') + '</span></div>'
+    + '<div class="dato"><span>Cobrado</span><span class="v">' + esc(dinero(c.facturado, c.moneda)) + '</span></div>'
+    + '<div class="dato"><span>Pendiente</span><span class="v">' + (c.pendiente != null ? esc(dinero(c.pendiente, c.moneda)) : '—') + '</span></div>'
+    + '</div>'
+    + '<div class="bloque" style="display:flex;gap:10px;flex-wrap:wrap">'
+      + '<a class="sui-btn primario" href="/contracts/app.html?contrato=' + esc(o.id) + '">Abrir el contrato</a>'
+      + '<a class="sui-btn" href="/operaciones/v3/">Ver la operación</a></div>');
+}
+
+window.LW_AUTH.then(async ({ sb }) => {
+  const r = await lwOperacionesCargar(sb, msg => LW3.tosta(msg, { icono:'ph-warning' }));
+  OPS = r.ops;
+  if(r.recortes.length){
+    $('#avisos').innerHTML = '<p class="sui-aviso">Esta vista no lo está enseñando todo: hay más de '
+      + esc(r.recortes.map(n => r.topes[n] + ' ' + n).join(' y más de ')) + '.</p>';
+  }
+  pintarResumen(); pintarChips(); pintar();
+  let t = null;
+  $('#q').addEventListener('input', e => { FILTRO = e.target.value; PAGINA = 1;
+    clearTimeout(t); t = setTimeout(pintar, 90); });
+});
+})();
+</script>
+</body>
+</html>

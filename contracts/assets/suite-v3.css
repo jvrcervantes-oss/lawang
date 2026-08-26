@@ -445,22 +445,60 @@ html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:6
      · un desvanecido abajo que dice que hay más — la misma señal que el borde
        de scroll de la barra, no una barra de desplazamiento que en un móvil no
        se ve. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL MENÚ EN PANTALLA ESTRECHA — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   MEDIDO, no supuesto. En 344×756 (la pantalla de portada de un Z Fold) la hoja
+   salía de 696 px de alto sobre 756 de pantalla: prácticamente un menú a
+   pantalla completa, y ENCIMA con scroll, porque las doce herramientas más el
+   pie suman 857 px en una sola columna. Lo peor de las dos opciones — te tapa
+   todo y aun así no te lo enseña todo. Y como la lista se llena de arriba
+   abajo, «Usuarios» quedaba siempre debajo del corte.
+
+   El arreglo no es estirar la hoja: es que quepa. Doce enlaces en DOS columnas
+   son seis filas, y la hoja baja a ~380 px — media pantalla, sin scroll, con
+   todas las herramientas a la vista de una vez. Un menú que se recorre entero
+   sin gesto se lee de un vistazo; uno que hay que arrastrar, no.
+
+   Se pone `max-height` en `dvh` y no en `vh` a propósito: en móvil `vh` cuenta
+   la barra del navegador aunque esté puesta, así que una hoja de `88vh` se sale
+   por abajo justo mientras la barra es visible. Aquí ya no hace de límite
+   —el contenido cabe de sobra— pero es la red por si algún día se añaden
+   herramientas.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width:860px){
   html.v3 .lw-rail{
-    max-height:88vh; max-height:88dvh;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    align-content:start;
+    gap:4px 8px;
+    max-height:88dvh;
     background:rgba(255,255,255,.94);
     -webkit-backdrop-filter:var(--v3-vidrio-pesado); backdrop-filter:var(--v3-vidrio-pesado);
     box-shadow:var(--v3-sombra-alta);
     border-top:var(--v3-borde-claro);
-    padding-bottom:calc(20px + env(safe-area-inset-bottom));
-    /* El desvanecido: la hoja se difumina en sus últimos 28 px mientras quede
-       contenido por debajo. */
-    -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
-    mask-image:linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+    padding:12px 12px calc(16px + env(safe-area-inset-bottom));
   }
-  html.v3 .lw-rail .lw-rail-i{ min-height:42px; padding-top:8px; padding-bottom:8px; }
-  /* El agarre no se difumina con el resto: es el asa. */
-  html.v3 .lw-rail .v3-agarre{ padding:8px 0 6px; }
+  /* El pie —idioma, usuario, avisos— cruza las dos columnas: no es una
+     herramienta más, y partirlo en dos lo haría parecerlo. */
+  html.v3 .lw-rail > .lw-rail-pie,
+  html.v3 .lw-rail > .v3-agarre{ grid-column:1 / -1; }
+  html.v3 .lw-rail .v3-agarre{ padding:2px 0 8px; }
+  /* 44 px de alto: el mínimo de un objetivo táctil. En dos columnas sobra sitio
+     para dárselo, que en una no lo había. */
+  html.v3 .lw-rail .lw-rail-i{
+    min-height:44px; padding:8px 10px; font-size:14px;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  html.v3 .lw-rail .lw-rail-i span{ overflow:hidden; text-overflow:ellipsis; }
+  /* Sin la máscara de desvanecido: ya no hay nada cortado por abajo que
+     insinuar, y con la rejilla la máscara mordía la última fila entera. */
+  html.v3 .lw-rail{ -webkit-mask-image:none; mask-image:none; }
+}
+/* Muy estrecho de verdad (plegado, 280 px): dos columnas dejarían los nombres
+   en un muñón. Vuelve a una, que ahí sí cabe con scroll corto. */
+@media (max-width:330px){
+  html.v3 .lw-rail{ grid-template-columns:1fr; }
 }
 @media (prefers-reduced-transparency:reduce){
   html.v3 .lw-rail{ background:var(--sup-1,#fff); -webkit-backdrop-filter:none; backdrop-filter:none; }
