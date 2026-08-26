@@ -370,7 +370,10 @@
        como otra cosa. El ancho se calcula para el peor caso, y lo que cede es
        el nombre del cliente, que sí puede llevar puntos suspensivos. */
     table.docs td.dinero{ width:168px; }
-    table.docs td.acc{ width:100px; white-space:normal; }
+    /* 112 y no 100: «Anular» (52) y «✕» (27) tienen que compartir línea. Con
+       100 caían a tres líneas y la fila subía a 93 px — más alta que antes de
+       comprimirla, que era el objetivo entero. */
+    table.docs td.acc{ width:112px; white-space:normal; }
     table.docs td.acc .btn, table.docs td.acc .sui-tag{ margin:1px 0; }
     /* «Reasignar autor» se partía en dos líneas y empujaba la fila a 111 px,
        más alta que las otras tres celdas juntas. Nunca se parte: se encoge.
