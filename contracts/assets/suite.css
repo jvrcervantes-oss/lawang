@@ -562,6 +562,15 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
    La rejilla gana en lo otro: ver de un golpe qué hay libre y de qué tipo. Son
    dos preguntas distintas, así que son dos vistas y las elige quien mira.
    Se recuerda por persona, igual que la densidad. */
+/* `[hidden]` TIENE QUE GANAR (26-ago-2026). El `display:none` de `[hidden]` es
+   del navegador y vale (0,0,1); `.sui-rejilla` vale (0,1,0) y lo pisaba. O sea:
+   `<div class="sui-rejilla" hidden>` seguía VISIBLE. Lo usan los conmutadores de
+   vista de Proyectos (Tabla / Rejilla / Carpetas), que ocultan cada bloque
+   poniéndole `hidden` — y ahí una rejilla vacía que no se va empuja hacia abajo
+   la vista que sí toca. Se declara explícitamente en vez de subir la
+   especificidad del `display:grid`, para que cualquier bloque de la suite que
+   use `hidden` se comporte como uno espera y no según qué clase lleve. */
+.sui-rejilla[hidden], .sui-tabla-caja[hidden]{ display:none; }
 .sui-rejilla{ display:grid; gap:var(--e3);
   grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); }
 .sui-ficha{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-l);
