@@ -19,7 +19,7 @@
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=d75b8a06">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=4002d4aa" defer></script>
+<script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="unidades"></script>
@@ -760,6 +760,18 @@ function pintarTabla(){
 }
 
 /* ---------- cajón: ficha de la unidad ---------- */
+/* EL CAMPO «Precio total» PREFIJA `precio_guardado`, NO `precio` (26-ago-2026).
+   Desde hoy la vista `unidades_estado` DERIVA el total de suelo+construccion
+   cuando no hay uno guardado, para que un proyecto importado por CSV sin columna
+   de total no salga valorado a cero. Aqui hay que prefijar lo que hay en la
+   TABLA: si se prefijara el derivado, guardar materializaria en silencio un
+   total que nadie tecleo, y a partir de ahi ese precio dejaria de seguir a sus
+   partes. El derivado se enseña como placeholder, que informa sin escribir.
+   Detalle: supabase/migrations/20260826112241_unidades_estado_precio_efectivo.sql
+
+   Y una nota de la casa, aprendida aqui mismo: esto NO puede ir dentro del
+   template literal de abajo. Un comentario HTML con backticks dentro de una
+   plantilla JS la CIERRA a mitad — tiro Proyectos en produccion el 26-ago. */
 function abrirUnidad(id){
   const nueva = id === 'nueva';
   const u = nueva ? { estado:'disponible', tipo:'parcela', moneda:'EUR' } : UNIDADES.find(x => x.id === id);
@@ -868,12 +880,6 @@ function abrirUnidad(id){
       </div>
       <div class="dos">
         <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
-        <!-- `precio_guardado` y NO `precio` (26-ago-2026): desde hoy la vista DERIVA
-                 el total de suelo+construccion cuando no hay uno guardado, para que un
-                 proyecto importado por CSV sin columna de total no salga a 0. Aqui hay que
-                 prefijar lo que hay en la TABLA: si se prefijara el derivado, guardar
-                 materializaria en silencio un total que nadie tecleo, y a partir de ahi
-                 dejaria de seguir a sus partes. Ver `sql/unidades_estado_precio_efectivo.sql`. -->
             <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio_guardado!=null?esc(fmtNum(Number(u.precio_guardado))):''}" placeholder="${u.precio!=null?esc(fmtNum(Number(u.precio)))+' (suelo + construcción)':''}"></div>
       </div>
       <div class="dos">

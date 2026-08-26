@@ -508,15 +508,47 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
        El ORDEN se conserva agrupado (`lwPorGrupo`): las herramientas del mismo
        departamento siguen juntas aunque ya no se anuncie con un rótulo. El mapa
        por departamentos sigue estando en el hub, que es donde hay sitio. */
-    (typeof lwPorGrupo === 'function' ? lwPorGrupo(permitidas) : permitidas).forEach(function (t) {
+    /* 🔴 SOLO UNA ENTRADA PUEDE ESTAR MARCADA — 26-ago-2026, owner: «el menú
+       marca más de una opción, eso está mal».
+       Aquí había `aqui.indexOf(suyo) === 0`: un prefijo a secas. Mientras las
+       herramientas vivían en `/facturas/`, `/proyectos/`… y el hub en
+       `/intranet/`, ningún href era prefijo de otro y el fallo no se veía. Al
+       mudar la suite entera bajo `/intranet/` (ese mismo día), `/intranet` pasó a
+       ser prefijo de TODAS: estando en Vencimientos se marcaban «Home» y
+       «Vencimientos» a la vez. Era un fallo latente que la mudanza destapó.
+       Dos cosas mal en aquella condición, y las dos se arreglan aquí:
+         · el prefijo no miraba el límite de SEGMENTO — `/intranet/obra` habría
+           marcado también una hipotética `/intranet/obras`;
+         · y con varios candidatos no elegía: marcaba todos.
+       La regla correcta es la de cualquier enrutador: gana el más ESPECÍFICO, o
+       sea el href más largo que case. Se calcula antes de pintar, una vez. */
+    var lista = (typeof lwPorGrupo === 'function' ? lwPorGrupo(permitidas) : permitidas);
+    var casa_ = function (h) { return String(h || '').split('?')[0].replace(/\/$/, ''); };
+    var mejor = '';
+    lista.forEach(function (t) {
+      var suyo = casa_(t.href);
+      if (!suyo) return;
+      var casa = (aqui === suyo) || aqui.indexOf(suyo + '/') === 0;
+      if (casa && suyo.length > mejor.length) mejor = suyo;
+    });
+    var yaMarcada = false;
+    lista.forEach(function (t) {
       var a = document.createElement('a');
       a.className = 'lw-rail-i';
       a.href = t.href;
       // `title` SIEMPRE, no solo plegado: plegado es la única etiqueta que hay, y
       // abierto sigue sirviendo a quien navega con teclado.
       a.title = t.nombre;
-      var suyo = t.href.replace(/\/$/, '');
-      if (aqui === suyo || (suyo && aqui.indexOf(suyo) === 0)) a.classList.add('aqui');
+      /* `yaMarcada` porque dos entradas pueden compartir href —«Facturas» y
+         «Recibos» son la misma herramienta con `?tipo=recibi`— y sin esto las dos
+         se marcarían estando en cualquiera de las dos. Gana la primera, que es
+         la genérica. El `?tipo` no distingue: quien mira el menú quiere saber en
+         qué HERRAMIENTA está. */
+      if (!yaMarcada && mejor && casa_(t.href) === mejor) {
+        a.classList.add('aqui');
+        a.setAttribute('aria-current', 'page');   // no solo color: también para quien no lo ve
+        yaMarcada = true;
+      }
       a.innerHTML = '<i class="ph ' + (t.icon || 'ph-circle') + '"></i><span>' + t.nombre + '</span>';
       rail.appendChild(a);
     });
