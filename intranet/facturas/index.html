@@ -257,6 +257,22 @@
   #delVinculado:empty{ display:none; }
   #delVinculado{ margin-top:8px; }
   #delVinculado .hitos{ margin-top:4px; }
+  /* La pregunta que de verdad se contesta en esta pantalla, escrita como
+     pregunta. §16.6: el camino común primero y en voz alta. */
+  #delContrato .pregunta{ margin:11px 0 7px; font-size:13px; font-weight:600; color:var(--ink); }
+  /* La ficha del total MANDA sobre los hitos: es el modelo por defecto desde el
+     26-ago. Los hitos siguen enteros debajo, como alternativa — no se quita
+     nada, se ordena. §15: jerarquía por peso y tamaño, y el importe en cifras
+     tabulares porque es lo que se compara de un vistazo. */
+  .hito-todo{ display:block; width:100%; text-align:left; cursor:pointer;
+              padding:11px 13px; border:1px solid var(--dl,#485B37); border-radius:11px;
+              background:var(--card,#fff); font:inherit; }
+  .hito-todo .q{ display:block; font-size:12.5px; font-weight:600; letter-spacing:-.01em; }
+  .hito-todo .n{ display:block; margin-top:1px; font-size:19px; font-weight:700;
+                 letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .hito-todo .p{ display:block; margin-top:2px; font-size:11.5px; color:var(--muted); }
+  .hito-todo:hover{ background:var(--rl,#F7F3E9); }
+  .hito-todo.usado, .hito-todo:disabled{ opacity:.5; cursor:not-allowed; border-style:dashed; }
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
   .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
          border-radius:9px; padding:6px 10px; cursor:pointer; }
@@ -928,13 +944,30 @@ function pintarLineas(){
    disponible sin tener que sincronizar nada. */
 const descHito = h => [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' : ''].filter(Boolean).join(' ')
                     + (h.timing ? ' — ' + h.timing : '');
+let DESC_TOTAL = '';
 function marcarHitosUsados(){
+  /* ¿Está puesto el total del contrato? Entonces ningún hito puede añadirse:
+     sumaría por encima del precio y el documento saldría creíble. Y al revés.
+     Se DERIVA de las líneas de ahora, no de una bandera aparte. */
+  const hayTotal = !!DESC_TOTAL && LINEAS.some(l => (l.descripcion || '').trim() === DESC_TOTAL);
+  const hayHito  = LINEAS.some(l => { const d = (l.descripcion || '').trim();
+                                      return d && d !== DESC_TOTAL; });
   document.querySelectorAll('#delContrato [data-h], #delVinculado [data-vh]').forEach(b => {
     const usado = LINEAS.some(l => (l.descripcion || '').trim() === b.dataset.desc);
-    b.disabled = usado;
+    b.disabled = usado || hayTotal;
     b.classList.toggle('usado', usado);
-    b.title = usado ? 'Ya está en este documento' : '';
+    b.title = usado ? 'Ya está en este documento'
+            : hayTotal ? 'Este documento factura el contrato entero: un hito encima cobraría de más'
+            : '';
   });
+  const bt = document.querySelector('#hitoTodo');
+  if(bt){
+    bt.disabled = hayTotal;
+    bt.classList.toggle('usado', hayTotal);
+    bt.title = hayTotal ? 'Ya está en este documento'
+             : hayHito ? 'Sustituirá los conceptos que ya hay'
+             : '';
+  }
 }
 $('#lineas').addEventListener('input', e => {
   const el = e.target; if(el.dataset.l == null) return;
@@ -1452,7 +1485,7 @@ async function cargarContratos(){
     CONTRATO_ID = elegido || null;
     pintarContratoElegido();
     if(CONTRATO_ID) traerContrato(CONTRATO_ID);
-    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; soltarCampos(); }
+    else { $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = ''; DESC_TOTAL = ''; soltarCampos(); }
     /* Cambiar de contrato cambia el comprador, y con él qué facturas puede
        saldar este recibí (LAW-41(2)). Las ya añadidas que dejen de valer se
        quitan aquí y no en el guardado: guardar_recibi() las rechazaría con un
@@ -1579,10 +1612,47 @@ async function traerContrato(id){
     <p class="arrastrado">${puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
       ${compradores.length > 1 ? ' Contrato a <b>' + compradores.length + ' nombres</b>.' : ''}
       ${precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
+    ${(precio || hitos.length) ? `<p class="pregunta">¿Qué cobras en este documento?</p>` : ''}
+    ${precio ? `<button type="button" class="hito-todo" id="hitoTodo">
+        <span class="q">Todo el contrato</span>
+        <span class="n">${esc(fmtMoneda(precio, moneda))}</span>
+        <span class="p">Una sola factura por el importe completo</span>
+      </button>` : ''}
     ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
         `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
       ).join('')}</div>
-      <p class="arrastrado">Pulsa el hito que cobras en este documento.</p>` : ''}`;
+      <p class="arrastrado">…o solo un hito, si cobras por partes.</p>` : ''}`;
+
+  /* ── «TODO EL CONTRATO» (26-ago-2026) ───────────────────────────────────────
+     El modelo nuevo del cliente: al firmarse el contrato se emite UNA factura
+     por el total, y conforme entran pagos se emiten recibís. Hasta ahora había
+     que sumar los hitos a mano o teclear el importe — y el precio ya está en el
+     contrato, así que teclearlo es una ocasión de equivocarse sin ninguna
+     ganancia.
+
+     🔴 EL RIESGO QUE ESTO ABRE, Y CÓMO SE CIERRA. Pulsar «todo» y después un
+     hito facturaría 44.000 + 20.000 = 64.000 € de un contrato de 44.000, y el
+     documento saldría perfecto: cada línea es correcta por separado. Por eso las
+     dos cosas se EXCLUYEN mutuamente —mientras el total esté puesto, los hitos
+     quedan apagados, y al revés—, y la exclusión se DERIVA de los conceptos que
+     hay ahora mismo, igual que ya hacía `marcarHitosUsados`: si se borra la
+     línea, todo vuelve a estar disponible sin sincronizar nada. */
+  DESC_TOTAL = 'Precio total del contrato ' + (data.numero || '');
+  const bt = caja.querySelector('#hitoTodo');
+  if(bt){
+    bt.dataset.desc = DESC_TOTAL;
+    bt.onclick = async () => {
+      const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
+      if(conCosas && !await lwConfirmar({
+        titulo: 'Sustituir los conceptos',
+        cuerpo: '<p>El documento ya tiene conceptos. Facturar <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.</p>'
+              + '<p>Se hace así a propósito: dejar los dos cobraría el total <b>y</b> el hito, y el documento saldría creíble.</p>',
+        confirmar: 'Sustituir por el total', cancelar: 'Dejarlo como está' })) return;
+      LINEAS = [{ descripcion: DESC_TOTAL, importe: String(precio).replace('.', ',') }];
+      pintarLineas(); render();
+      toast('Factura por el total del contrato: ' + fmtMoneda(precio, moneda));
+    };
+  }
 
   caja.querySelectorAll('[data-h]').forEach(b => {
     const h = hitos[+b.dataset.h];
