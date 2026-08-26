@@ -89,7 +89,13 @@
 
   /* `360px 1fr` con `gap:18px` y relleno `0 26px 22px`: los valores de 2a. Antes era
      un rango hasta 440 y las dos columnas pegadas al borde de la ventana. */
-  .stage{ display:grid; grid-template-columns:360px 1fr; gap:18px;
+  /* 360 px al formulario y 1026 a la previa era el reparto al revés: el trabajo
+     pasa a la IZQUIERDA —elegir contrato, elegir hito, repasar importes— y la
+     derecha solo confirma. Un A4 se lee de sobra en 700 px; una columna de
+     formulario a 360 obliga a apilar en vertical lo que cabría en dos.
+     `minmax` y no un fijo: en un portátil de 1280 la previa seguiría teniendo
+     740 px, y por debajo de 1180 el formulario cede antes que desaparecer. */
+  .stage{ display:grid; grid-template-columns:minmax(400px, 500px) 1fr; gap:18px;
           height:calc(100% - var(--tbh)); padding:18px 26px 22px; }
   /* ⚠️ Esta media query va ANTES de que se definan .pane-preview (línea ~84) y
      .pv-scroll, así que a igualdad de especificidad gana la regla de después:
@@ -171,6 +177,19 @@
              background:var(--rl,#fff); color:inherit; cursor:pointer;
              overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .campo-elegir:hover{ border-color:var(--dl); }
+  /* Un dato que la base pone y nadie escribe: se lee, no se rellena. Sin borde
+     de caja, sin fondo de campo y fuera del recorrido del tabulador. */
+  input.dato-fijo{ border:0; background:none; padding-left:0; color:var(--muted);
+                   font-variant-numeric:tabular-nums; cursor:default; }
+  input.dato-fijo:not(:placeholder-shown){ color:var(--ink); font-weight:600; }
+  .link-flojo{ border:0; background:none; padding:2px 0; font:inherit; font-size:12.5px;
+               color:var(--muted); text-decoration:underline; cursor:pointer; }
+  .link-flojo:hover{ color:var(--ink); }
+  /* Un botón que no puede funcionar no se esconde: se apaga y DICE por qué al
+     posarse encima (§16.1 — el aviso llega antes del error, no después). Sigue
+     en su sitio para que se aprenda que existe y qué le falta. */
+  .btn.inerte{ opacity:.42; cursor:not-allowed; }
+  .btn.inerte:hover{ border-color:var(--line); }
   .campo-elegir::after{ content:'⌄'; float:right; color:var(--muted); margin-left:8px; }
   .campo-elegir.vacio{ color:var(--muted); }
 
@@ -547,10 +566,27 @@
                 <select class="sui-sel" id="fa-moneda" name="moneda">
                   <option>EUR</option><option>USD</option><option>AUD</option><option>IDR</option>
                 </select></div>
-              <div><label for="fa-numero_visible">Nº de documento</label><input id="fa-numero_visible" name="numero_visible" readonly placeholder="Se asigna al guardar"></div>
+              <!-- 🔴 ERA UN `<input>` QUE NO ACEPTA TEXTO (readonly, con el
+                   valor real puesto por el trigger al guardar). Una caja de
+                   escribir que no se puede escribir enseña que ahí falta algo
+                   por rellenar, y no falta nada: el número lo pone la base para
+                   que la serie fiscal no tenga huecos. Sigue siendo `<input>`
+                   —`collect()` lo lee por `[name]` y el documento guardado lo
+                   necesita— pero se ve como lo que es: un dato, no un hueco. -->
+              <div><label for="fa-numero_visible">Nº de documento</label>
+                <input id="fa-numero_visible" name="numero_visible" readonly tabindex="-1"
+                       class="dato-fijo" placeholder="Lo asigna la base al guardar"></div>
             </div>
-            <label for="fa-contrato_numero">Contrato de referencia</label>
-            <input id="fa-contrato_numero" name="contrato_numero" placeholder="Ej. RP00008 — opcional">
+            <!-- Al elegir CC00068 arriba, este campo se rellenaba con CC00068:
+                 dos campos de contrato diciendo lo mismo, y el de abajo con
+                 pinta de que hay que hacer algo con él. Se pliega en cuanto
+                 coincide con el elegido —que es siempre, salvo que alguien
+                 quiera apuntar a OTRO contrato— y queda un enlace para abrirlo
+                 en ese caso raro. El input no desaparece del DOM: `collect()` lo
+                 lee por `[name]` y va dentro del documento guardado. -->
+            <div id="refWrap"><label for="fa-contrato_numero">Contrato de referencia</label>
+              <input id="fa-contrato_numero" name="contrato_numero" placeholder="Ej. RP00008 — opcional"></div>
+            <button type="button" class="link-flojo" id="verRef" hidden>Referenciar otro contrato distinto</button>
           </fieldset>
 
           <fieldset>
@@ -1140,6 +1176,11 @@ function collect(){
   return d;
 }
 $('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
+$('#verRef').addEventListener('click', () => {
+  $('#refWrap').dataset.forzado = '1';
+  render();
+  $('#fa-contrato_numero').focus();
+});
 // Cambiar la moneda a mitad de editar un recibí (poco habitual, pero pasa si
 // se elige mal al empezar) tiene que refrescar qué facturas se pueden saldar:
 // la lista ya se filtra por moneda (hallazgo de hoy, ver recibi_no_mezcla_moneda.sql).
@@ -1183,6 +1224,40 @@ $('#form').addEventListener('change', render);
    (contracts/edge/firma-submit se los baja y los ejecuta). Antes esto era una
    plantilla inline aquí dentro; con dos emisores, una copia habría divergido
    igual que iban a divergir las cuentas bancarias antes de entities.js. */
+/* Deja el formulario diciendo la verdad sobre sí mismo: qué campos son datos y
+   cuáles son huecos, y qué acciones pueden funcionar AHORA. Se llama desde
+   `render()`, que ya corre en cada cambio — no hace falta acordarse. */
+function estadoDelFormulario(d){
+  /* El campo de referencia duplicado (ver el comentario del marcado). */
+  const ref = $('#fa-contrato_numero'), wrap = $('#refWrap'), ver = $('#verRef');
+  const elegido = (CONTRATO_ID && $('#btnContrato').dataset.numero) || '';
+  const repite = !!elegido && ref.value.trim() === elegido;
+  if(wrap && ver){
+    const plegado = repite && !wrap.dataset.forzado;
+    wrap.hidden = plegado;
+    ver.hidden = !plegado;
+  }
+
+  /* 🔴 DOS ACCIONES QUE NO PODÍAN FUNCIONAR ESTABAN ACTIVAS. «Descargar PDF» y
+     «Enviar por email» se ofrecían sobre un documento vacío de 0,00 € y sin
+     guardar — y la segunda manda un correo a un comprador REAL. Un botón que no
+     puede funcionar dice por qué antes del clic, no falla después: §16.1, y §2,
+     porque la agencia del que trabaja empieza por saber qué puede hacer.
+     El PDF necesita importe; el email necesita además estar guardado (si no, el
+     comprador recibiría un documento sin número que no existe en la base). */
+  const total = (LINEAS || []).reduce((a, l) => a + (lwParseImporte(l.importe) || 0), 0);
+  const razon = (btn, ok, porque) => {
+    btn.disabled = !ok;
+    btn.title = ok ? '' : porque;
+    btn.classList.toggle('inerte', !ok);
+  };
+  razon($('#btnPrint'), total > 0,
+        'Todavía no hay ningún importe: el PDF saldría con el total a cero.');
+  razon($('#btnMail'), total > 0 && !!(SAVED && SAVED.numero),
+        !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
+                     : 'Guarda primero: sin guardar no hay número, y el comprador recibiría un documento que no existe en la base.');
+}
+
 function render(){
   const d = collect();
   const soc = SOCIEDADES[d.sociedad] || SOCIEDADES.tepi_sungai;
@@ -1198,6 +1273,7 @@ function render(){
   if(hoja) Object.entries(v.hoja).forEach(([k, val]) => hoja.style.setProperty(k, val));
 
   doc.innerHTML = documentoHTML(d, { numero });
+  estadoDelFormulario(d);
 
   $('#btnSave').textContent = SAVED ? 'Actualizar (' + SAVED.numero + ')' : 'Guardar en base de datos';
   // el número ya emitido lleva el prefijo del tipo: cambiarlo después dejaría un
@@ -1326,6 +1402,10 @@ function pintarContratoElegido(){
     ? (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')
     : '— elige un contrato —';
   b.classList.toggle('vacio', !c);
+  /* Lo apunta aquí para que `estadoDelFormulario` pueda comparar el contrato
+     ELEGIDO con lo que hay escrito en «Contrato de referencia», sin volver a
+     buscar en CONTRATOS ni fiarse de leer el rótulo. */
+  if(c && c.numero) b.dataset.numero = c.numero; else delete b.dataset.numero;
 }
 
 async function cargarContratos(){
