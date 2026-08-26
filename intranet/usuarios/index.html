@@ -273,6 +273,34 @@ function pintarFicha(){
         No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.</p>
     </fieldset>
 
+    <!-- QUÉ CONTRATOS PUEDE EMITIR — 27-ago-2026, encargo del owner. La lista
+         sale de LW_TIPO_CONTRATO (vocabulario.js), que es la fuente única de
+         los tipos y ya la vigila listas.test.js: escribirla a mano aquí sería
+         la séptima copia, y la séptima es la que se separa.
+         (Sin acentos graves en este comentario A PROPÓSITO: vive DENTRO de un
+         template literal, y un backtick aquí cierra la cadena. Es el fallo que
+         dejó Proyectos en blanco el 26-ago; ahora lo caza sintaxis_js.py.)
+         ⚠️ VACÍO = TODOS, al revés que «Proyectos» aquí arriba. No es un
+         descuido: esta restricción se añade sobre un sistema que ya funciona, y
+         si vacío significara «ninguno» el despliegue habría dejado a los diez
+         agentes sin poder emitir un solo contrato sin que nadie lo pidiera. Se
+         dice donde se marca, que es donde importa. -->
+    <fieldset><legend>Contratos que puede hacer</legend>
+      <div class="herr tipos">
+        ${Object.entries(LW_TIPO_CONTRATO).map(([v,l]) => `<label><input type="checkbox" value="${esc(v)}"
+          ${(u.tipos_contrato || []).includes(v) ? 'checked' : ''} ${bloqueado?'disabled':''}> ${esc(l)}</label>`).join('')}
+      </div>
+      <div class="proy-acc">
+        <button type="button" class="btn" id="btnTipoTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
+        <button type="button" class="btn" id="btnTipoNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
+      </div>
+      <p class="nota"><b>Sin ninguno marcado puede hacer todos</b> — lo contrario que en «Proyectos», y a propósito:
+        así nadie se queda sin poder emitir por no haber configurado esto todavía.
+        ${u.rol === 'agente'
+          ? 'Lo comprueba la <b>base de datos</b> al guardar el contrato, no solo el desplegable: esconder una opción no es impedirla.'
+          : 'A este usuario <b>no le afecta</b>: un administrador emite cualquier tipo por definición.'}</p>
+    </fieldset>
+
     <fieldset><legend>Acceso</legend>
       <label for="fActivo">Estado</label>
       <select class="sui-sel" id="fActivo" ${bloqueado || yoMismo ? 'disabled' : ''}>
@@ -292,16 +320,21 @@ function pintarFicha(){
   const marcar = v => document.querySelectorAll('.proy input').forEach(i => { i.checked = v; });
   if($('#btnProyTodos'))   $('#btnProyTodos').addEventListener('click', () => marcar(true));
   if($('#btnProyNinguno')) $('#btnProyNinguno').addEventListener('click', () => marcar(false));
+  const marcarTipos = on => document.querySelectorAll('.tipos input').forEach(i => { i.checked = on; });
+  if($('#btnTipoTodos'))   $('#btnTipoTodos').addEventListener('click', () => marcarTipos(true));
+  if($('#btnTipoNinguno')) $('#btnTipoNinguno').addEventListener('click', () => marcarTipos(false));
 }
 
 async function guardar(){
   const u = USUARIOS.find(x => x.user_id === SEL); if(!u) return;
   const btn = $('#btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
   const cambios = {
-    // `.herr:not(.proy)`: las dos rejillas comparten estilo, y sin distinguirlas
-    // los ids de proyecto se colarían en la lista de herramientas
+    // `.herr` la comparten TRES rejillas —herramientas, proyectos y tipos de
+    // contrato— y sin excluir a las otras dos sus valores se colarían en la
+    // lista de herramientas. Con `.proy` ya pasó; ahora son dos exclusiones.
     nombre: $('#fNombre').value.trim() || null,
-    herramientas: [...document.querySelectorAll('.herr:not(.proy) input:checked')].map(i => i.value),
+    herramientas: [...document.querySelectorAll('.herr:not(.proy):not(.tipos) input:checked')].map(i => i.value),
+    tipos_contrato: [...document.querySelectorAll('.tipos input:checked')].map(i => i.value),
   };
   // solo si el catálogo llegó a pintarse: con la consulta caída, mandar el array
   // vacío le quitaría a esta persona todos sus proyectos sin que nadie lo pidiera
@@ -385,7 +418,7 @@ async function crear(){
     accion:'crear', email, password,
     nombre: $('#nNombre').value.trim(),
     rol: $('#nRol').value,
-    herramientas: [...document.querySelectorAll('.herr:not(.proy) input:checked')].map(i => i.value),
+    herramientas: [...document.querySelectorAll('.herr:not(.proy):not(.tipos) input:checked')].map(i => i.value),
   });
   btn.disabled = false; btn.textContent = 'Crear usuario';
   if(!d.ok){ toast('No se pudo crear: ' + (d.error || '')); return; }

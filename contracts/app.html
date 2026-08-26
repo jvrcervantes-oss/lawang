@@ -521,6 +521,32 @@ const CONTRACT_TIPO = {
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
+
+/* ── QUÉ TIPOS PUEDE EMITIR QUIEN ESTÁ SENTADO AQUÍ (27-ago-2026) ────────────
+   Encargo del owner: poder limitar por agente qué contratos puede hacer, igual
+   que ya se limita qué herramientas ve y en qué proyectos trabaja. El permiso
+   vive en `usuarios.tipos_contrato`.
+
+   ⚠️ ESTO NO ES EL CONTROL. Esconder una opción de un `<select>` no impide un
+   POST a PostgREST con el tipo que sea; el control de verdad es el trigger
+   `contratos_tipo_permitido` de la base, que rechaza el insert. Esto es
+   cortesía: que no se ofrezca lo que se va a rechazar, para no descubrirlo al
+   final de rellenar un contrato entero.
+
+   Vacío = todos, y solo aplica a agentes: las dos reglas están en el comentario
+   de la columna y en el panel de Usuarios, y aquí se repiten porque quien lea
+   esta función tiene que poder decidir sin ir a buscarlas.
+   Una plantilla sin entrada en CONTRACT_TIPO (Estatutos) no se guarda ni se
+   numera, así que no hay nada que permitir: pasa siempre. */
+function puedeEmitir(slug){
+  const tipo = CONTRACT_TIPO[slug];
+  if(!tipo) return true;
+  const f = MI_FICHA;
+  if(!f || f.rol !== 'agente') return true;
+  const permitidos = f.tipos_contrato || [];
+  return permitidos.length === 0 || permitidos.includes(tipo);
+}
+const plantillasOfrecidas = () => TEMPLATES.filter(t => !t.disabled && puedeEmitir(t.slug));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
   carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
   ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH', poa:'PA' };
@@ -2660,7 +2686,7 @@ function buildPicker(){
   const sel=$('#tplPick');
   // El número va SOLO en el desplegable, no en t.name: ese nombre se imprime en
   // la portada del contrato y da nombre al PDF, y ahí un "2." no pinta nada.
-  sel.innerHTML = TEMPLATES.filter(t=>!t.disabled).map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
+  sel.innerHTML = plantillasOfrecidas().map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}${t.ready?'':' ·⚠'}</option>`).join('');
   sel.addEventListener('change', async ()=>{
     // cambiar de tipo arranca un documento nuevo: nada del anterior viaja con
     // él (ver resetBorrador — ediciones de texto, adquirientes, anexos, cláusulas)
@@ -4112,7 +4138,7 @@ async function avisaFichaDistinta(contratoId){
    guardado, uno bloqueado por firma o un borrador a medias. */
 function abrirDerivar(){
   const sel = $('#dvTpl');
-  sel.innerHTML = TEMPLATES.filter(t=>!t.disabled)
+  sel.innerHTML = plantillasOfrecidas()
     .map(t=>`<option value="${t.slug}" ${t.slug===CURRENT.slug?'selected':''}>${t.num?t.num+'. ':''}${L(t.name)}</option>`).join('');
   $('#dvOverlay').classList.add('open');
 }
@@ -4963,7 +4989,7 @@ async function init(){
   // La RLS ya impide guardar; esto evita enseñar una herramienta que fallaría
   // al pulsar Guardar, que es la peor forma de enterarse.
   const { data: ficha } = await sb.from('usuarios')
-    .select('rol, herramientas, activo, proyectos').eq('user_id', session.user.id).maybeSingle();
+    .select('rol, herramientas, activo, proyectos, tipos_contrato').eq('user_id', session.user.id).maybeSingle();
   if(ficha && !ficha.activo){ await sb.auth.signOut(); location.href='/entrar/?desactivado=1'; return; }
   // solo el super admin se salta la lista (18-ago-2026); un admin sin
   // «contratos» marcado ya no entra, igual que un agente
@@ -4971,6 +4997,15 @@ async function init(){
     location.replace('/intranet/?sin_permiso=contratos'); return;
   }
   MI_FICHA = ficha || null;   // el panel de guardados lo usa para el botón de reasignar autor
+  /* `CURRENT` arranca en TEMPLATES[0] —Carta de Reserva— ANTES de saber quién
+     está sentado aquí. Si resulta que no puede emitirla, se aterriza en el
+     primer tipo que sí pueda: dejarle rellenar un contrato entero para que la
+     base lo rechace al guardar es la peor forma de enterarse, que es lo mismo
+     que ya decía el rebote de arriba para las herramientas. */
+  if(!puedeEmitir(CURRENT.slug)){
+    const alt = plantillasOfrecidas()[0];
+    if(alt) CURRENT = alt;
+  }
   MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
   // falta una segunda consulta para lo mismo. Decide si se PINTA el botón de
