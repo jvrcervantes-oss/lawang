@@ -1,0 +1,1 @@
+../../../contracts/edge/firma-submit/compartidos.generated.ts

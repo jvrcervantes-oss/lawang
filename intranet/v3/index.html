@@ -400,7 +400,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
       </div>
       <div class="acciones">
         <a class="btn" href="/contracts/?nuevo=1" data-press><i class="ph ph-plus"></i>Nuevo contrato</a>
-        <a class="btn solido" href="/facturas/?nueva=1" data-press><i class="ph ph-plus"></i>Nueva factura</a>
+        <a class="btn solido" href="/facturas/?nueva=1&v3=1" data-press><i class="ph ph-plus"></i>Nueva factura</a>
       </div>
     </section>
 
@@ -599,7 +599,36 @@ try{ sessionStorage.setItem('lw3-on','1'); }catch(_){}
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const HERRAMIENTAS=(typeof LW_HERRAMIENTAS!=='undefined')?LW_HERRAMIENTAS:[];
+/* ═══════════════════════════════════════════════════════════════════════════
+   LA SUITE v3 ENTERA, DESDE AQUÍ — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   El catálogo sigue siendo UNO (`herramientas.js`): quién existe, cómo se llama
+   y quién la ve no se duplica. Lo único que cambia aquí es ADÓNDE lleva cada
+   fila, para que este panel sea la puerta de la suite en pruebas:
+
+     · si la herramienta tiene una v3 propia — Operaciones y Facturas, que están
+       rediseñadas de verdad — se va a ella;
+     · si no, se va a la de siempre con `?v3=1`, que le pone la piel y el
+       movimiento sin tocar su funcionamiento.
+
+   Así se puede recorrer la suite entera en v3 sin que nadie del equipo se
+   entere: la herramienta viva, sin el parámetro, sigue exactamente igual.
+
+   Cuando una herramienta estrene su v3, se añade una línea aquí y basta. */
+const V3_PROPIA = {
+  '/operaciones/':      '/operaciones/v3/',
+  '/facturas/':         '/facturas/v3/',
+};
+function hrefV3(href){
+  if(!href) return href;
+  const propia = V3_PROPIA[href];
+  if(propia) return propia;
+  /* Recibos apunta a `/facturas/?tipo=recibi`: conserva su filtro y se le añade
+     el interruptor, en vez de perderlo por mandarlo a la v3 sin parámetros. */
+  return href + (href.includes('?') ? '&' : '?') + 'v3=1';
+}
+const HERRAMIENTAS=((typeof LW_HERRAMIENTAS!=='undefined')?LW_HERRAMIENTAS:[])
+  .map(t => Object.assign({}, t, { href: hrefV3(t.href) }));
 const fmtDinero=(n,m)=>(typeof lwFormatoImporte==='function')?lwFormatoImporte(n,m||'EUR')
   :new Intl.NumberFormat('es-ES',{style:'currency',currency:m||'EUR',
       /* `useGrouping:'always'`: en español un número de cuatro cifras se escribe
@@ -646,19 +675,19 @@ const PREF={
    detalle, y el menú de «⋯» para ocultarla con deshacer. */
 function tarjetasKpi(d){
   const T=[
-    { id:'firmas', rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/?filtro=firma_viva', herr:'operaciones',
+    { id:'firmas', rot:'Firmas esperando', v:d.firmasPendientes, href:'/operaciones/v3/', herr:'operaciones',
       pie:n=>n?'pendientes de que el comprador firme':'ninguna pendiente', tono:n=>n?'mal':'bien', urge:n=>n>0,
       detalle:n=>[['Contratos con firma viva',n==null?'—':n],['Origen','contrato_firmas_equipo()'],['Se cuenta','contratos, no firmantes']] },
     { id:'contratos', rot:'Contratos', v:d.contratos, href:'/contracts/', herr:'contratos',
       pie:()=>d.contratosEditables==null?'':d.contratosEditables+' aún editables', tono:()=>d.contratosEditables?'espera':'',
       detalle:()=>[['Guardados',d.contratos??'—'],['Editables',d.contratosEditables??'—'],['Bloqueados',(d.contratos!=null&&d.contratosEditables!=null)?d.contratos-d.contratosEditables:'—']] },
-    { id:'facturas', rot:'Facturas emitidas', v:d.facturas, href:'/facturas/', herr:'facturas',
+    { id:'facturas', rot:'Facturas emitidas', v:d.facturas, href:'/facturas/v3/', herr:'facturas',
       pie:()=>d.facturasAnuladas?d.facturasAnuladas+' anuladas':'ninguna anulada', tono:()=>d.facturasAnuladas?'espera':'bien',
       detalle:()=>[['Emitidas',d.facturas??'—'],['Anuladas',d.facturasAnuladas??'—'],['Recibís',d.recibis??'—']] },
-    { id:'unidades', rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/', herr:'unidades',
+    { id:'unidades', rot:'Unidades libres', v:d.unidadesLibres, href:'/proyectos/?v3=1', herr:'unidades',
       pie:()=>d.unidades==null?'':'de '+d.unidades+' en inventario',
       detalle:()=>[['Disponibles',d.unidadesLibres??'—'],['Inventario total',d.unidades??'—'],['En obra',d.obraActivas??'—']] },
-    { id:'obra', rot:'En obra', v:d.obraActivas, href:'/obra/', herr:'obra', invertida:true,
+    { id:'obra', rot:'En obra', v:d.obraActivas, href:'/obra/?v3=1', herr:'obra', invertida:true,
       pie:n=>n?'con fase abierta':'sin unidades en obra', tono:n=>n?'bien':'',
       detalle:()=>[['Con fase abierta',d.obraActivas??'—'],['Lo ve el comprador','sí, en su portal']] },
   ];

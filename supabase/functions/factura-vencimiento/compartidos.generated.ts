@@ -1,0 +1,1 @@
+../../../contracts/edge/factura-vencimiento/compartidos.generated.ts

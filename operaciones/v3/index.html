@@ -233,41 +233,66 @@ const hace = f => { const d = -dias(f); return d <= 0 ? 'hoy' : d === 1 ? 'ayer'
    164.000 que está anotado en el asset compartido). Se cuenta cada grupo una
    sola vez, por su contrato raíz. */
 function pintarDinero(){
+  /* SOLO LO FIRMADO — decisión del owner, 26-ago-2026: «no sumes valores hasta
+     que no estén firmados».
+     Un contrato sin firmar es un precio pactado de palabra: puede cambiar, puede
+     caerse, y meterlo en «contratado» infla una cifra que se usa para decidir.
+     Esto también resuelve la pregunta que quedaba abierta —qué es «contratado»—
+     y de paso hace que el número deje de depender de si se cuenta el grupo o
+     solo la raíz: lo que no está firmado no entra, venga de donde venga.
+     Las que faltan NO desaparecen de la pantalla: siguen en su etapa, con su
+     precio en la fila. Lo que no hacen es sumar arriba. */
   const raices = OPS.filter(o => !o.padre);
+  const firmadas = raices.filter(o => {
+    /* Un grupo cuenta si su contrato principal está firmado. Los hijos de un
+       padre firmado (la construcción que cuelga de su parcela) entran con él:
+       es una sola venta y `cuentaGrupo` ya la cuenta una vez. */
+    return o.bloqueado;
+  });
   /* POR MONEDA. Sumar euros con dólares en una cifra y etiquetarla con la
      moneda de la última operación leída es un total que no existe — es el
      fallo que la auditoría del 19-ago-2026 encontró en Facturas, y que aquí
      volví a escribir. El ayudante vive en dinero.js. */
-  const cuentas = raices.map(o => cuentaGrupo(o));
+  const cuentas = firmadas.map(o => cuentaGrupo(o));
   const precioM  = lwSumaPorMoneda(cuentas, c => c.precio || 0, c => c.moneda);
   const cobradoM = lwSumaPorMoneda(cuentas, c => c.facturado || 0, c => c.moneda);
   const pendM = {};
   Object.keys(precioM).forEach(m => { pendM[m] = Math.max(0, precioM[m] - (cobradoM[m] || 0)); });
+  const sinFirmar = raices.filter(o => !o.bloqueado).map(o => cuentaGrupo(o));
+  const cobradoSinFirmarM = lwSumaPorMoneda(sinFirmar, c => c.facturado || 0, c => c.moneda);
+  const hayAlgo = Object.values(cobradoSinFirmarM).some(v => v > 0.005);
+  const cobradoSinFirmar = hayAlgo ? lwSumaTexto(cobradoSinFirmarM) : '';
   const mp = lwMonedaPrincipal(precioM);
   const pct = precioM[mp] ? Math.min(100, (cobradoM[mp] || 0) / precioM[mp] * 100) : 0;
   const varias = Object.keys(precioM).length > 1;
   $('#dinero').innerHTML =
     '<div class="cifras">'
     + '<div class="c"><span class="rot">Contratado</span><span class="n">' + esc(lwSumaTexto(precioM)) + '</span>'
-      + '<small>' + raices.length + ' operaciones</small></div>'
+      + '<small>' + firmadas.length + ' operaciones firmadas'
+      + (raices.length > firmadas.length ? ' · ' + (raices.length - firmadas.length) + ' sin firmar, fuera' : '')
+      + '</small></div>'
     + '<div class="c"><span class="rot">Cobrado</span><span class="n">' + esc(lwSumaTexto(cobradoM)) + '</span>'
       + '<small>' + pct.toFixed(1).replace('.', ',') + ' % del contratado' + (varias ? ' en ' + mp : '') + '</small></div>'
     + '<div class="c pend"><span class="rot">Pendiente</span><span class="n">' + esc(lwSumaTexto(pendM)) + '</span>'
       + '<small>por entrar</small></div>'
     + '</div><div class="barraTot"><i style="width:' + pct.toFixed(2) + '%"></i></div>'
-    /* ⚠️ ESTE TOTAL NO COINCIDE CON EL DE LA HERRAMIENTA VIVA, y es a propósito.
-       Allí el resumen suma `cuenta(o)`: solo el precio del contrato RAÍZ. Si un
-       comprador tiene la parcela y además la construcción, el precio de la
-       construcción no entra — y sin embargo el detalle de esa misma operación
-       SÍ lo suma, porque usa `cuentaGrupo`. O sea que hoy la lista y la ficha
-       de la misma venta dicen cifras distintas.
-       Aquí se usa `cuentaGrupo` en los dos sitios. La diferencia no es pequeña
-       (5,6 M contra 4,3 M) y no es una decisión técnica: es qué se llama
-       «contratado». Se dice en pantalla en vez de dejar que alguien descubra
-       la diferencia comparando dos pestañas. */
-    + '<p class="mini" style="margin:12px 0 0">Cuenta cada operación entera: si un comprador'
-    + ' tiene la parcela y la construcción, suma las dos. La herramienta actual solo suma el'
-    + ' contrato principal, así que su total sale más bajo.</p>';
+    /* La nota explica la regla en la propia pantalla. Un total que excluye cosas
+       sin decirlo es peor que uno inflado: el inflado se discute, el silencioso
+       se cree. */
+    + '<p class="mini" style="margin:12px 0 0">Solo cuenta lo <b>firmado</b>. Un contrato'
+    + ' sin firmar es un precio de palabra, así que no suma aquí — sigue abajo, en su etapa,'
+    + ' con su importe.'
+    /* PERO EL DINERO QUE YA ENTRÓ SE DICE IGUAL. Las tres cifras de arriba
+       describen la cartera firmada, que es lo pedido y es una base coherente.
+       El problema es que dejar fuera lo no firmado también deja fuera las
+       señales y reservas YA COBRADAS de esos contratos: dinero real, en la
+       cuenta. Excluirlo sin decirlo sería el mismo pecado que inflar el total,
+       solo que hacia el otro lado. Se dice en una línea. */
+    + (cobradoSinFirmar
+        ? ' Aparte, ya han entrado <b>' + esc(cobradoSinFirmar) + '</b> de operaciones'
+          + ' todavía sin firmar (señales y reservas), que no se cuentan arriba.'
+        : '')
+    + '</p>';
   $('#dinero').hidden = false;
 }
 
