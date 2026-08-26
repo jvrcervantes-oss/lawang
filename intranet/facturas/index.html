@@ -1916,7 +1916,8 @@ async function traerContrato(id){
   PRECIO_PRINCIPAL = precio || 0;
   TIPO_PRINCIPAL = data.tipo || '';
   NUMERO_PRINCIPAL = data.numero || '';
-  pintarVinculados(id, data.contrato_padre_id || null, $('[name="sociedad"]').value, moneda);
+  await pintarVinculados(id, data.contrato_padre_id || null, $('[name="sociedad"]').value, moneda);
+  precargarConceptos();
 
   render();
 }
@@ -1930,6 +1931,35 @@ async function traerContrato(id){
    sociedades emisoras no coinciden, no se deja combinar: sería una sociedad
    cobrando el ingreso de otra sin ningún soporte intercompañía (revisión
    previa, Legal + Administración, 7-ago-2026). */
+/* ── PRECARGA (27-ago-2026) ────────────────────────────────────────────────
+     Owner: «si al detectar una factura ves que va vinculado con otro contrato
+     por qué no precargas ya todos los conceptos?». Porque hasta ayer no había
+     un «todos» que fuera cierto — ahora sí: desde el 26-ago el modelo es UNA
+     factura por el total al firmar, así que el total ES el caso normal y
+     escribirlo a mano solo es una ocasión de equivocarse.
+
+     Se precarga con tres frenos, y cada uno responde a un error concreto:
+     · SOLO SI EL DOCUMENTO ESTÁ EN BLANCO. Si ya hay conceptos escritos, son
+       de una persona y no se pisan sin preguntar.
+     · NUNCA EN UN RECIBÍ. Un recibí registra un pago RECIBIDO; precargarle el
+       total del contrato diría que ha entrado dinero que no ha entrado.
+     · NUNCA AL REABRIR UN DOCUMENTO GUARDADO (`SAVED`): ahí los conceptos son
+       los que se emitieron, no una sugerencia.
+     Y se AVISA de que está precargado, con lo que se ha puesto: un importe que
+     aparece solo y no se anuncia es un importe que nadie repasa. */
+function precargarConceptos(){
+  const enBlanco = () => !LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
+  if(!SAVED && $('#selTipo').value !== 'recibi' && enBlanco()){
+    const auto = document.querySelector('[data-unidad]') || document.querySelector('#hitoTodo');
+    if(auto && !auto.disabled){
+      auto.click();
+      /* El clic ya pinta y avisa; aquí solo se dice que ha sido automático,
+         que es la diferencia entre «lo he puesto yo» y «lo has pedido tú». */
+      setTimeout(() => toast('Conceptos precargados del contrato — cámbialos si cobras otra cosa'), 350);
+    }
+  }
+}
+
 async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaPrincipal){
   const cont = $('#delVinculado');
   const ors = ['contrato_padre_id.eq.' + idPrincipal];
@@ -2025,32 +2055,6 @@ async function pintarVinculados(idPrincipal, padreId, sociedadPrincipal, monedaP
     };
   });
 
-  /* ── PRECARGA (27-ago-2026) ────────────────────────────────────────────────
-     Owner: «si al detectar una factura ves que va vinculado con otro contrato
-     por qué no precargas ya todos los conceptos?». Porque hasta ayer no había
-     un «todos» que fuera cierto — ahora sí: desde el 26-ago el modelo es UNA
-     factura por el total al firmar, así que el total ES el caso normal y
-     escribirlo a mano solo es una ocasión de equivocarse.
-
-     Se precarga con tres frenos, y cada uno responde a un error concreto:
-     · SOLO SI EL DOCUMENTO ESTÁ EN BLANCO. Si ya hay conceptos escritos, son
-       de una persona y no se pisan sin preguntar.
-     · NUNCA EN UN RECIBÍ. Un recibí registra un pago RECIBIDO; precargarle el
-       total del contrato diría que ha entrado dinero que no ha entrado.
-     · NUNCA AL REABRIR UN DOCUMENTO GUARDADO (`SAVED`): ahí los conceptos son
-       los que se emitieron, no una sugerencia.
-     Y se AVISA de que está precargado, con lo que se ha puesto: un importe que
-     aparece solo y no se anuncia es un importe que nadie repasa. */
-  const enBlanco = () => !LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
-  if(!SAVED && $('#selTipo').value !== 'recibi' && enBlanco()){
-    const auto = cont.querySelector('[data-unidad]') || document.querySelector('#hitoTodo');
-    if(auto && !auto.disabled){
-      auto.click();
-      /* El clic ya pinta y avisa; aquí solo se dice que ha sido automático,
-         que es la diferencia entre «lo he puesto yo» y «lo has pedido tú». */
-      setTimeout(() => toast('Conceptos precargados del contrato — cámbialos si cobras otra cosa'), 350);
-    }
-  }
 }
 
 function traerVinculado(c, moneda){
