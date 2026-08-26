@@ -955,6 +955,14 @@ function escanea(n){
   if(!n || n.nodeType!==1) return;
   if(n.matches && n.matches(OJO)) toma(n);
   if(n.querySelectorAll) n.querySelectorAll(OJO).forEach(toma);
+  /* Y LAS TABLAS QUE NACEN DESPUÉS. `vigilaTablas()` solo corría en el arranque,
+     asi que cubria las tablas cuyo <table> ya venia en el HTML y solo se
+     rellenaban las filas —Compradores, Proyectos— pero no las que la herramienta
+     CREA entera al llegar los datos. Facturas es de estas ultimas: se quedaba
+     sin paginacion, sin etiquetas y sin fichas en movil, y desde fuera parecia
+     que el CSS no aplicaba. */
+  if((n.matches && n.matches('table.sui-tabla')) ||
+     (n.querySelector && n.querySelector('table.sui-tabla'))) vigilaTablas();
 }
 function engancha(){
   escanea(document.body);
@@ -983,6 +991,7 @@ else engancha();
    cuesta ese puñado de nodos, y se hace en el acto. */
 new MutationObserver(ms=>{
   for(const m of ms) for(const n of m.addedNodes) escanea(n);
+  nombraMenuMovil();   // topbar.js monta la barra al llegar la ficha, no al cargar
 }).observe(document.documentElement,{childList:true,subtree:true});
 document.documentElement.classList.add('v3');
 /* QUÉ HERRAMIENTA ES ESTA PÁGINA. Lo necesita `suite-v3-herramientas.css`, que
