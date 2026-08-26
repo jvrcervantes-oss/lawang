@@ -642,6 +642,16 @@ new MutationObserver(ms=>{
   for(const m of ms) for(const n of m.addedNodes) escanea(n);
 }).observe(document.documentElement,{childList:true,subtree:true});
 document.documentElement.classList.add('v3');
+/* QUÉ HERRAMIENTA ES ESTA PÁGINA. Lo necesita `suite-v3-herramientas.css`, que
+   lleva el CSS propio de cada una: sin esta marca sus reglas eran GLOBALES y se
+   pisaban entre herramientas. `section{border-radius:18px}` de Operaciones se
+   aplicaba a todas; `th`/`td` de Compradores cambiaban el relleno de cualquier
+   tabla de la suite; `fieldset` salía con un radio en Facturas y otro en
+   Usuarios según cuál se escribiera la última; y `.op` del Portal repintaba las
+   filas de `/operaciones/v3/`. Un pase por herramienta que no sabe en qué
+   herramienta está no es un pase por herramienta. */
+document.documentElement.setAttribute('data-herr',
+  (location.pathname.split('/').filter(Boolean)[0] || 'intranet').toLowerCase());
 
 window.LW3={ Muelle, fx, mueve, arranca, proyecta, goma, masCerca, rastro,
              sensacion, cajon, pop, popCierra, tosta, MENOS_MOV,

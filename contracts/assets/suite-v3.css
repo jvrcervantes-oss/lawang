@@ -212,6 +212,85 @@ html.v3 .sui-btn.primario:hover{ box-shadow:none; }
 html.v3 .v3-pulsada{ background:rgba(72,91,55,.14); }
 html.v3 .lw-topbar .v3-pulsada{ background:rgba(241,235,221,.26); }
 
+
+/* ─── CONTROLES COMPARTIDOS: UN SOLO DESPLEGABLE ─────────────────────────────
+   Auditoría del 26-ago-2026. El mismo control estaba escrito de CINCO maneras
+   en la suite:
+
+     Operaciones ............ `.f-sel`      (propia de la pantalla)
+     Facturas, Contratos .... `.lw-select`  (la de la BARRA, usada en el cuerpo)
+     Proyectos, Obra, Doc. .. `.sui-sel`    (la compartida)
+     Compradores, Usuarios .. sin clase     (el desplegable crudo del navegador)
+
+   Los dos últimos son los que se ven: un `<select>` sin estilar no se parece a
+   nada del resto — otra tipografía, otro alto, otro borde, y la flecha del
+   sistema operativo. Al lado de un `.sui-buscar` canta.
+
+   Aquí se unifican los cinco de una vez, incluido el que no tiene clase, que es
+   justo el que no se podía arreglar sin entrar en cada herramienta.
+
+   DOS FORMAS, Y LA DIFERENCIA SIGNIFICA ALGO (§16.7, el mapeo):
+     · en una barra de filtros, PASTILLA — es hermano de `.sui-buscar` y de los
+       chips, y todos filtran;
+     · dentro de un formulario (`.campo`, `.field`), RECTANGULAR — es hermano
+       del campo de texto de al lado, y los dos se rellenan.
+   Un mismo elemento con dos aspectos solo vale si los dos aspectos quieren
+   decir cosas distintas; si no, es descuido. */
+html.v3 select,
+html.v3 .sui-sel,
+html.v3 .f-sel,
+html.v3 .lw-select{
+  font:inherit; font-size:.78rem; line-height:1.2; color:var(--texto,#22282A);
+  padding:9px 34px 9px 14px;
+  border:1px solid var(--borde-control,#8A8474);
+  border-radius:var(--r-p,999px);
+  background-color:var(--sup-1,#fff);
+  /* La flecha va incrustada, no es la del sistema: la del sistema cambia con el
+     navegador y con el modo del SO, y era otra de las cosas que no casaban. */
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238A8474' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5 8 10.5 12 6.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center; background-size:15px 15px;
+  -webkit-appearance:none; appearance:none;
+  cursor:pointer; max-width:100%;
+  transition:border-color 140ms var(--curva,ease), box-shadow 140ms var(--curva,ease);
+}
+html.v3 select:hover, html.v3 .sui-sel:hover, html.v3 .lw-select:hover{ border-color:var(--dl,#104C4F); }
+html.v3 select:focus, html.v3 .sui-sel:focus, html.v3 .lw-select:focus{
+  outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13);
+}
+html.v3 select:disabled{ opacity:.5; cursor:default; }
+/* dentro de un formulario: hermano del campo de texto, no de los filtros */
+html.v3 .campo select, html.v3 .field select, html.v3 label select{
+  border-radius:var(--r-s,10px); font-size:.87rem; padding:9px 32px 9px 11px;
+  border-color:var(--linea,#E4DCCB); background-color:#FDFCF9;
+}
+/* en la barra: más compacto, y con la tinta de marca que ya tenía */
+html.v3 .lw-topbar select, html.v3 .lw-topbar .lw-select{
+  font-size:.74rem; font-weight:600; color:var(--dl,#104C4F);
+  padding:7px 30px 7px 12px; background-color:var(--card,#fffdf8);
+}
+
+/* ─── Y LOS CAMPOS DE TEXTO SIN CLASE ────────────────────────────────────────
+   Mismo problema, misma cura: Compradores y Usuarios tienen `<input>` a pelo
+   junto a otros que sí llevan `.campo`. Se excluyen los que YA tienen forma
+   propia y significado propio: el buscador es una pastilla porque filtra, y las
+   casillas y los selectores de fichero los pinta el navegador. */
+html.v3 input:not([type]):not(.sui-buscar),
+html.v3 input[type="text"]:not(.sui-buscar),
+html.v3 input[type="search"]:not(.sui-buscar),
+html.v3 input[type="email"], html.v3 input[type="tel"], html.v3 input[type="url"],
+html.v3 input[type="number"], html.v3 input[type="date"], html.v3 input[type="password"],
+html.v3 textarea{
+  font:inherit; font-size:.87rem; color:var(--texto,#22282A);
+  padding:9px 11px; border:1px solid var(--linea,#E4DCCB); border-radius:var(--r-s,10px);
+  background:#FDFCF9;
+  transition:border-color 140ms var(--curva,ease), box-shadow 140ms var(--curva,ease);
+}
+html.v3 input:focus-visible, html.v3 textarea:focus-visible{
+  outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13);
+}
+/* el buscador conserva su pastilla y su lupa: es un filtro, no un campo */
+html.v3 .sui-buscar{ border-radius:var(--r-p,999px); }
+
 /* ─── §12 · DIÁLOGOS ─────────────────────────────────────────────────────────
    `display` no se puede animar, así que el JS sostiene el diálogo con esta
    clase el tiempo justo para que salga por el mismo camino por el que entró. */

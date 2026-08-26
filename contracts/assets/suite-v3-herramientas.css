@@ -19,113 +19,103 @@
    cliente. */
 @media screen {
 /* ── Contratos ─────────────────────────────────────────── */
-html.v3 .lang-toggle{ border-radius:10px; }
-html.v3 .lang-toggle button{ border-radius:10px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .lang-toggle button.on{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .tb-link{ border-radius:10px; box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .tb-link:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 #pvFrame{ border-radius:10px; box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .section{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .section:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .section > header{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .section > header .chev{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .slider{ border-radius:18px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .slider:before{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .field label::after{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .field input, html.v3 .field textarea, html.v3 .field select{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .note-blocked{ border-radius:14px; }
-html.v3 .sigpad-wrap{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .link-btn{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .btn{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .btn.primary{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .btn.primary:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .btn.ghost{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .btn.ghost:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .btn.ghost.editing{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 #btnSave:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .cli-buscar input{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .cli-pedir{ border-radius:18px; }
-html.v3 .cli-resultados{ border-radius:14px; box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .cli-chip{ border-radius:14px; }
-html.v3 .dz-row input[type=color]{ border-radius:10px; }
-html.v3 .up{ border-radius:10px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .up:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .dswatch{ border-radius:10px; }
-html.v3 .dcard{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .dthumb{ border-radius:10px; }
-html.v3 .dbtn{ border-radius:10px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .dbtn:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .dctl select{ border-radius:10px; }
-html.v3 .fab{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .fab:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 body.modo-listado #cpOverlay .cp-modal{ border-radius:14px; box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .cp-modal{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .cp-row{ border-radius:14px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .cp-del{ border-radius:10px; }
-html.v3 .em-body input, html.v3 .em-body textarea{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .reg-tabla th{ padding:13px 16px; }
-html.v3 .reg-tabla td{ padding:13px 16px; }
+html.v3[data-herr="contracts"] .lang-toggle{ border-radius:10px; }
+html.v3[data-herr="contracts"] .lang-toggle button{ border-radius:10px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .lang-toggle button.on{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .tb-link{ border-radius:10px; box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .tb-link:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] #pvFrame{ border-radius:10px; box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="contracts"] .section{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .section:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .section > header{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .section > header .chev{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .slider{ border-radius:18px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .slider:before{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .field label::after{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .note-blocked{ border-radius:14px; }
+html.v3[data-herr="contracts"] .sigpad-wrap{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .link-btn{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .btn{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .btn.primary{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .btn.primary:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="contracts"] .btn.ghost{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .btn.ghost:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .btn.ghost.editing{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] #btnSave:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="contracts"] .cli-pedir{ border-radius:18px; }
+html.v3[data-herr="contracts"] .cli-resultados{ border-radius:14px; box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="contracts"] .cli-chip{ border-radius:14px; }
+html.v3[data-herr="contracts"] .up{ border-radius:10px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .up:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .dswatch{ border-radius:10px; }
+html.v3[data-herr="contracts"] .dcard{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .dthumb{ border-radius:10px; }
+html.v3[data-herr="contracts"] .dbtn{ border-radius:10px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .dbtn:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .fab{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .fab:hover{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="contracts"] body.modo-listado #cpOverlay .cp-modal{ border-radius:14px; box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="contracts"] .cp-modal{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="contracts"] .cp-row{ border-radius:14px; transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="contracts"] .cp-del{ border-radius:10px; }
+html.v3[data-herr="contracts"] .reg-tabla th{ padding:13px 16px; }
+html.v3[data-herr="contracts"] .reg-tabla td{ padding:13px 16px; }
 
 /* ── Operaciones ─────────────────────────────────────────── */
-html.v3 .tabla-caja{ border-radius:18px; }
-html.v3 table.ops thead th{ padding:13px 16px; }
-html.v3 table.ops td{ padding:13px 16px; }
-html.v3 .f-sel{ border-radius:10px; }
-html.v3 section{ border-radius:18px; }
-html.v3 th{ padding:13px 16px; }
-html.v3 td{ padding:13px 16px; }
-html.v3 .tarj{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .tarj:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="operaciones"] .tabla-caja{ border-radius:18px; }
+html.v3[data-herr="operaciones"] table.ops thead th{ padding:13px 16px; }
+html.v3[data-herr="operaciones"] table.ops td{ padding:13px 16px; }
+html.v3[data-herr="operaciones"] section{ border-radius:18px; }
+html.v3[data-herr="operaciones"] th{ padding:13px 16px; }
+html.v3[data-herr="operaciones"] td{ padding:13px 16px; }
+html.v3[data-herr="operaciones"] .tarj{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="operaciones"] .tarj:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
 
 /* ── Vencimientos ─────────────────────────────────────────── */
-html.v3 #tip{ border-radius:10px; }
-html.v3 td .fecha-edit{ border-radius:10px; padding:13px 16px; }
-html.v3 td .lapiz{ padding:13px 16px; }
-html.v3 .compo{ border-radius:10px; }
+html.v3[data-herr="vencimientos"] #tip{ border-radius:10px; }
+html.v3[data-herr="vencimientos"] td .fecha-edit{ border-radius:10px; padding:13px 16px; }
+html.v3[data-herr="vencimientos"] td .lapiz{ padding:13px 16px; }
+html.v3[data-herr="vencimientos"] .compo{ border-radius:10px; }
 
 /* ── Facturas ─────────────────────────────────────────── */
-html.v3 .pane-form{ border-radius:14px; }
-html.v3 fieldset{ border-radius:14px; }
-html.v3 .plegable{ border-radius:14px; }
-html.v3 .campo-elegir{ border-radius:10px; }
-html.v3 .vinc{ border-radius:14px; }
-html.v3 input, html.v3 select, html.v3 textarea{ border-radius:10px; }
-html.v3 .xbtn{ border-radius:10px; }
-html.v3 #delContrato{ border-radius:14px; }
-html.v3 .hito{ border-radius:10px; }
-html.v3 .sheet{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .modal{ border-radius:18px; }
+html.v3[data-herr="facturas"] .pane-form{ border-radius:14px; }
+html.v3[data-herr="facturas"] fieldset{ border-radius:14px; }
+html.v3[data-herr="facturas"] .plegable{ border-radius:14px; }
+html.v3[data-herr="facturas"] .vinc{ border-radius:14px; }
+html.v3[data-herr="facturas"] .xbtn{ border-radius:10px; }
+html.v3[data-herr="facturas"] #delContrato{ border-radius:14px; }
+html.v3[data-herr="facturas"] .hito{ border-radius:10px; }
+html.v3[data-herr="facturas"] .sheet{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="facturas"] .modal{ border-radius:18px; }
 
 /* ── Proyectos ─────────────────────────────────────────── */
-html.v3 .ov-caja{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
-html.v3 .csv-tabla th, html.v3 .csv-tabla td{ padding:13px 16px; }
+html.v3[data-herr="proyectos"] .ov-caja{ box-shadow:0 20px 50px -20px rgba(34,40,42,.32), 0 6px 16px rgba(34,40,42,.07); }
+html.v3[data-herr="proyectos"] .csv-tabla th, html.v3[data-herr="proyectos"] .csv-tabla td{ padding:13px 16px; }
 
 /* ── Compradores ─────────────────────────────────────────── */
-html.v3 .buscar{ border-radius:10px; }
-html.v3 fieldset{ border-radius:18px; }
-html.v3 input, html.v3 select, html.v3 textarea{ border-radius:10px; }
-html.v3 th{ padding:13px 16px; }
-html.v3 td{ padding:13px 16px; }
-html.v3 .subir{ border-radius:14px; }
+html.v3[data-herr="compradores"] .buscar{ border-radius:10px; }
+html.v3[data-herr="compradores"] fieldset{ border-radius:18px; }
+html.v3[data-herr="compradores"] th{ padding:13px 16px; }
+html.v3[data-herr="compradores"] td{ padding:13px 16px; }
+html.v3[data-herr="compradores"] .subir{ border-radius:14px; }
 
 /* ── Documentacion ─────────────────────────────────────────── */
-html.v3 .carp{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .carp:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="documentacion"] .carp{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="documentacion"] .carp:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
 
 /* ── Usuarios ─────────────────────────────────────────── */
-html.v3 fieldset{ border-radius:18px; }
-html.v3 input, html.v3 select{ border-radius:10px; }
-html.v3 .herr label{ border-radius:10px; }
-html.v3 .aviso{ border-radius:14px; }
+html.v3[data-herr="usuarios"] fieldset{ border-radius:18px; }
+html.v3[data-herr="usuarios"] .herr label{ border-radius:10px; }
+html.v3[data-herr="usuarios"] .aviso{ border-radius:14px; }
 
 /* ── Portal ─────────────────────────────────────────── */
-html.v3 .op{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .barra i{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .sheet{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
-html.v3 .entrada .caja{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="portal"] .op{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="portal"] .barra i{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="portal"] .sheet{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="portal"] .entrada .caja{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
 
 /* ── Creatividades ─────────────────────────────────────────── */
-html.v3 .destino{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
-html.v3 .destino:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
+html.v3[data-herr="creatividades"] .destino{ transition-timing-function:cubic-bezier(.22,1,.36,1); }
+html.v3[data-herr="creatividades"] .destino:hover{ box-shadow:0 1px 2px rgba(34,40,42,.05), 0 4px 12px -6px rgba(34,40,42,.10); }
 
 }
