@@ -15,7 +15,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -66,11 +66,9 @@
   /* La rejilla de dos campos por fila es `.sui-row`, en suite.css: estaba
      duplicada aqui y en la otra herramienta, y en ninguna se deshacia en movil. */
   .acciones{ display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
-  .btn{ font:inherit; font-size:13px; font-weight:500; border-radius:999px; padding:9px 17px; cursor:pointer;
-        border:1px solid var(--line); background:var(--card); color:inherit; }
-  .btn:hover{ border-color:var(--dl); }
-  .btn.primary{ background:var(--dl); border-color:var(--dl); color:#fff; }
-  .btn:disabled{ opacity:.5; cursor:default; }
+  /* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
+     página ya carga. Aquí vivían 4 reglas propias: era la copia número N de
+     seis, todas divergidas, y sin estado de foco visible. Ver la nota larga de allí. */
 
   /* 9,5px / .05em / 3px 8px: los valores del mockup 4d para la etiqueta de rol.
      Es mas pequena que la `.sui-tag` general (10px / .06em / 3px 9px) porque aqui

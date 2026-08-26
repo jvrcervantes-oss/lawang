@@ -23,7 +23,7 @@
      con la misma fachada y dos sitios donde arreglar el mismo fallo.
      Ahora carga lo MISMO que las once herramientas y encima la capa v3. -->
 <link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
 <!-- topbar.js MONTA EL MENÚ LATERAL Y EL PANEL DE CUENTA. Al rehacer la
      cabecera de esta pantalla se puso `topbar.css` y se olvidó el script, así
      que el panel v3 salió sin menú lateral: la única pantalla de la suite sin
@@ -165,16 +165,9 @@ main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 44p
 .acciones{ display:flex; gap:10px; flex-wrap:wrap; }
 
 /* botones del lienzo (material claro) */
-.btn{
-  display:inline-flex; align-items:center; gap:8px;
-  font:inherit; font-size:.81rem; font-weight:500; letter-spacing:.005em;
-  padding:10px 18px; border-radius:var(--pill); cursor:pointer;
-  border:1px solid var(--line-fuerte); background:var(--sup); color:var(--ink);
-  text-decoration:none; box-shadow:var(--sombra-1);
-  -webkit-tap-highlight-color:transparent; touch-action:manipulation; will-change:transform;
-}
-.btn.solido{ background:var(--tg); border-color:var(--tg); color:#F4EFE3; font-weight:600; }
-.btn:focus-visible{ outline:2px solid var(--tg); outline-offset:2px; }
+/* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
+   página ya carga. Aquí vivían 3 reglas propias: era la copia número N de
+   seis, todas divergidas, y el único que sí declaraba `:focus-visible`, ahora compartido. Ver la nota larga de allí. */
 .btn i{ font-size:1rem; }
 
 /* ── §12 · BANDA DE CIFRAS ──────────────────────────────────────────────────

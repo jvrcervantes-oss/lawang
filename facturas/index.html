@@ -16,7 +16,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=54eff029">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=b2371b78">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -235,11 +235,9 @@
   .pv-bar{ position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:10px 14px;
            background:#eae5d8ee; backdrop-filter:blur(6px); border-bottom:1px solid #dcd5c6; }
   .pv-bar b{ font-size:12.5px; font-weight:500; color:var(--muted); }
-  .btn{ font:inherit; font-size:12.5px; border-radius:999px; padding:8px 15px; cursor:pointer; border:1px solid var(--line);
-        background:var(--card); color:var(--ink); }
-  .btn:hover{ border-color:var(--dl); }
-  .btn.primary{ background:var(--dl); border-color:var(--dl); color:#fff; }
-  .btn:disabled{ opacity:.5; cursor:default; }
+  /* El botón se define UNA vez, en `contracts/assets/topbar.css` — que esta
+     página ya carga. Aquí vivían 4 reglas propias: era la copia número N de
+     seis, todas divergidas, y sin estado de foco visible. Ver la nota larga de allí. */
   .pv-scroll{ padding:22px 0 60px; display:flex; justify-content:center; }
   /* ponytail: zoom en pantalla para que el A4 quepa en el panel; la impresión
      usa el tamaño real (zoom no se aplica dentro de @media print). */

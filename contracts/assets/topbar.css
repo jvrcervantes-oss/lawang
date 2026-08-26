@@ -96,6 +96,61 @@
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .lw-who::before{ content:"👤 "; }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL BOTÓN DE LA SUITE — UNO SOLO (26-ago-2026, LAW-90)
+   ═══════════════════════════════════════════════════════════════════════════
+   Había OCHO tratamientos del mismo control: `.lw-btn`, `.sui-btn`, y `.btn`
+   escrito SEIS veces —una en `app.css` y cinco copias privadas dentro del
+   `<style>` de Compradores, Facturas, Usuarios, Creatividades·Redes e
+   Intranet—. Y como pasa siempre que algo se escribe seis veces, las seis
+   habían divergido. Medido:
+
+     tamaño   12,5 · 13 · 13,5 · 14 · .81rem
+     relleno  8×15 · 9×14 · 9×17 · 10×16 · 10×18
+     radio    999px · var(--pill) · var(--r-sm)
+     borde    var(--line) · var(--linea) · var(--line-fuerte) · none
+     fondo    var(--card) · #fff · var(--sup)
+
+   Dos fallos de verdad debajo de la cosmética, que son la razón de tocarlo:
+
+   1. **Sin estado de foco en cuatro de las cinco.** Solo Intranet declaraba
+      `:focus-visible`. Quien navega con teclado no veía dónde estaba — el mismo
+      agujero que tenía `.sui-sel` y por el que se unificó el desplegable.
+   2. **Dos nombres para el modificador principal**: `.primary` en unas y
+      `.primario` en otras. Escribir el que no toca no da error: deja el botón
+      secundario, en silencio, en el sitio donde hay que pulsar.
+
+   Aquí van los TRES nombres al mismo control, porque son el mismo control. Se
+   conservan los tres como nombre —los usan las plantillas ya escritas— pero
+   detrás hay una sola definición. Y los dos modificadores se aceptan a la vez,
+   para que el que se escriba sea el que se ve.
+   Las medidas del cuerpo (13px / 9×17) son las que YA usaban tres de las cinco
+   páginas: se unifica hacia donde estaba la mayoría, no hacia un gusto nuevo.
+   `.lw-btn` conserva su tamaño de barra: un control de cromo es más pequeño que
+   uno de página, y eso no es divergencia, es su sitio.                        */
+.sui-btn, .btn{
+  font:inherit; font-size:13px; font-weight:500; line-height:1.2;
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  padding:9px 17px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--borde-control,var(--linea,#E4DCCB));
+  background:var(--card,var(--sup-1,#fffdf8)); color:inherit;
+  transition:border-color 160ms cubic-bezier(.22,.61,.36,1),
+             background 160ms cubic-bezier(.22,.61,.36,1),
+             color 160ms cubic-bezier(.22,.61,.36,1);
+}
+.sui-btn:hover, .btn:hover{ border-color:var(--dl,#104C4F); }
+/* El anillo de foco es el MISMO que el del desplegable: si dos controles que se
+   tabulan seguidos se marcan distinto, el ojo lee un salto donde no lo hay. */
+.lw-btn:focus-visible, .sui-btn:focus-visible, .btn:focus-visible{
+  outline:none; border-color:var(--dl,#104C4F);
+  box-shadow:0 0 0 3px rgba(72,91,55,.12);
+}
+.sui-btn:disabled, .btn:disabled{ opacity:.5; cursor:default; }
+/* Acción principal. Los DOS nombres, a propósito: ver el punto 2 de arriba. */
+.sui-btn.primary, .sui-btn.primario, .btn.primary, .btn.primario, .btn.solido{
+  background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; font-weight:600;
+}
+
 /* botón de barra (ghost) y su variante de acción principal */
 .lw-btn{
   /* Pastilla lisa: el mockup no usa degradado ni sombra en los botones de barra.

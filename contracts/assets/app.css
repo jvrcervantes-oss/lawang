@@ -165,9 +165,17 @@
   .link-btn{ background:none; border:none; color:var(--dl); font-size:12.5px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; padding:4px; transition:color .15s var(--ease); }
   .link-btn:hover{ color:var(--dl); }
 
-  /* botones · presión física (scale al pulsar) + elevación al hover */
-  .btn{ font-family:inherit; font-size:13.5px; font-weight:500; border-radius:var(--r-sm); padding:10px 16px; border:none; cursor:pointer;
-    transition:transform .16s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease); }
+  /* botones · presión física (scale al pulsar) + elevación al hover
+     26-ago-2026 (LAW-90): la FORMA del botón —tamaño, relleno, radio, borde,
+     fondo, foco— ya no se declara aquí. Es la compartida de `topbar.css`, que
+     esta página carga antes. Aquí quedaba la sexta copia de `.btn` y era la más
+     divergente de todas: 13,5px, `border:none` y `var(--r-sm)` donde las otras
+     cinco eran pastilla con borde, así que el generador de contratos —la
+     herramienta más usada— era la que menos se parecía al resto.
+     Lo que SÍ es de aquí y se queda: la presión física al pulsar y la elevación
+     al pasar por encima. Eso no es otra forma del botón, es cómo responde. */
+  .btn{ transition:transform .16s var(--ease), box-shadow .18s var(--ease),
+        background .18s var(--ease), border-color .18s var(--ease); }
   .btn:active{ transform:scale(.97); }
   .btn.primary{ background:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(16,76,79,.3), 0 6px 16px -6px rgba(16,76,79,.5); }
   .btn.primary:hover{ background:#0d5b5f; box-shadow:0 2px 4px rgba(16,76,79,.32), 0 10px 22px -6px rgba(16,76,79,.55); transform:translateY(-1px); }
