@@ -227,7 +227,10 @@
 /* Dentro de un formulario el desplegable no es un control de barra: ocupa el
    ancho de su campo y no compite con la etiqueta. Es el MISMO control, con la
    medida que le toca a su sitio — no otro. */
-.sui-sel{ max-width:none; width:100%; }
+/* `box-sizing` por el mismo motivo que `.campo input` en suite.css: un
+   `width:100%` con relleno y borde se sale 24px si la página no trae reset
+   global — y una pieza compartida no puede depender de eso. */
+.sui-sel{ box-sizing:border-box; max-width:none; width:100%; }
 
 /* campo de texto en barra (el nombre del dossier) */
 .lw-input{
