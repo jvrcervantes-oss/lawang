@@ -431,6 +431,41 @@ html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:6
   html.v3 .lw-rail-movil .v3-rot{ display:none; }
 }
 
+
+/* ─── EL MENÚ LATERAL EN MÓVIL ───────────────────────────────────────────────
+   Medido a 344×756 (Z Fold plegado): el menú abre como hoja inferior de 604 px
+   con 711 px de contenido. O sea que el ÚLTIMO ítem queda fuera —a 770, con la
+   ventana en 756— y hay que desplazar dentro sin que nada lo indique. Abres el
+   menú y no ves todas las herramientas: eso es lo que se ve mal.
+
+   Tres cosas, y ninguna es decoración:
+     · más alto (88vh) y filas algo más bajas, para que las trece quepan;
+     · el material de la v3, que era la única superficie de la suite que se
+       había quedado plana mientras el cajón y el panel de cuenta ya lo tenían;
+     · un desvanecido abajo que dice que hay más — la misma señal que el borde
+       de scroll de la barra, no una barra de desplazamiento que en un móvil no
+       se ve. */
+@media (max-width:860px){
+  html.v3 .lw-rail{
+    max-height:88vh; max-height:88dvh;
+    background:rgba(255,255,255,.94);
+    -webkit-backdrop-filter:var(--v3-vidrio-pesado); backdrop-filter:var(--v3-vidrio-pesado);
+    box-shadow:var(--v3-sombra-alta);
+    border-top:var(--v3-borde-claro);
+    padding-bottom:calc(20px + env(safe-area-inset-bottom));
+    /* El desvanecido: la hoja se difumina en sus últimos 28 px mientras quede
+       contenido por debajo. */
+    -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+    mask-image:linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+  }
+  html.v3 .lw-rail .lw-rail-i{ min-height:42px; padding-top:8px; padding-bottom:8px; }
+  /* El agarre no se difumina con el resto: es el asa. */
+  html.v3 .lw-rail .v3-agarre{ padding:8px 0 6px; }
+}
+@media (prefers-reduced-transparency:reduce){
+  html.v3 .lw-rail{ background:var(--sup-1,#fff); -webkit-backdrop-filter:none; backdrop-filter:none; }
+}
+
 /* ─── §12 · DIÁLOGOS ─────────────────────────────────────────────────────────
    `display` no se puede animar, así que el JS sostiene el diálogo con esta
    clase el tiempo justo para que salga por el mismo camino por el que entró. */
