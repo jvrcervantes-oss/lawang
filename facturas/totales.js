@@ -27,13 +27,45 @@
    antepone `tools/empaqueta_edge.py`, que por eso lo pone primero). Una sola
    implementación en los tres sitios, y el test prueba la de verdad.
    Si falta, esto revienta con un error legible en vez de devolver cifras
-   ligeramente distintas sin decir nada. */
-const _LW = (typeof lwFormatoImporte === 'function')
-  ? { lwParseImporte, lwFormatoImporte, LW_DECIMALES }
-  : require('../contracts/assets/dinero.js');
+   ligeramente distintas sin decir nada.
+
+   ⚠️ SE RESUELVE AL USARLO, NO AL CARGARLO — y esto no es un detalle de estilo,
+   costó una caída (26-ago-2026, misma tarde). La primera versión decidía en el
+   momento de PARSEAR el fichero:
+
+       const _LW = (typeof lwFormatoImporte === 'function') ? {...} : require(...)
+
+   y en el navegador `require` no existe. Facturas, Compradores y Proyectos
+   cargan `totales.js` ANTES que `dinero.js` —solo Operaciones tenía el orden
+   bien, con su comentario del 17-ago diciéndolo—, así que el `typeof` daba
+   `false`, se intentaba el `require`, y el `const` moría a medio inicializar.
+   A partir de ahí CUALQUIER acceso a `_LW` daba «Cannot access before
+   initialization»: `fmtMoneda` y `parseImporte` lanzaban, y las tres pantallas
+   se quedaban en blanco. Los tests no lo vieron porque en node el `require` sí
+   existe y el camino que se probaba era el otro.
+
+   Resolviéndolo en la PRIMERA LLAMADA, el orden de las etiquetas deja de
+   importar: para cuando alguien pide un importe, el `<head>` entero ya corrió.
+   El orden se arregla igualmente y lo vigila `contracts/orden_dinero.test.js`,
+   pero el código ya no depende de que nadie se equivoque. */
+let _lwCache = null;
+function _LW(){
+  if (_lwCache) return _lwCache;
+  if (typeof lwFormatoImporte === 'function')
+    _lwCache = { lwParseImporte, lwFormatoImporte, LW_DECIMALES };
+  else if (typeof require === 'function')
+    _lwCache = require('../contracts/assets/dinero.js');
+  else
+    throw new Error('totales.js necesita contracts/assets/dinero.js cargado antes que él');
+  return _lwCache;
+}
 
 // Decimales por moneda: la rupia no usa céntimos. Fuente única: dinero.js.
-const DECIMALES = _LW.LW_DECIMALES;
+// Función y no constante, por lo mismo: al cargar aún puede no haber nada.
+const DECIMALES = new Proxy({}, {
+  get: (_, k) => _LW().LW_DECIMALES[k],
+  has: (_, k) => k in _LW().LW_DECIMALES,
+});
 
 /* Importe tecleado a número. El agente escribe indistintamente "1.500,50",
    "1,500.50" o "1500.5": manda el ÚLTIMO separador como decimal, y solo si
@@ -43,7 +75,7 @@ function parseImporte(v){
      una línea de factura vacía suma 0, mientras que un contrato sin precio es
      `null` y no un contrato de 0 €. Esa diferencia es la única razón por la que
      esta envoltura sigue existiendo. */
-  return _LW.lwParseImporte(v) ?? 0;
+  return _LW().lwParseImporte(v) ?? 0;
 }
 
 // Redondeo a los decimales de la moneda, en enteros para no arrastrar
@@ -67,6 +99,6 @@ function calcTotales(lineas, moneda, impuesto){
 /* Alias de `lwFormatoImporte`. Se conserva el nombre porque lo llaman
    `documento.js`, `operaciones-cuentas.js` y las pantallas de facturas; lo que
    ya no conserva es una segunda implementación detrás. */
-function fmtMoneda(n, moneda){ return _LW.lwFormatoImporte(n, moneda); }
+function fmtMoneda(n, moneda){ return _LW().lwFormatoImporte(n, moneda); }
 
 if(typeof module !== 'undefined') module.exports = { parseImporte, redondear, calcTotales, fmtMoneda, DECIMALES };
