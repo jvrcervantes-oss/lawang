@@ -127,8 +127,19 @@
      acento es `--dl` (Deep Lagoon), el mismo que ya marca «esto se puede tocar»
      en toda la suite, y el fondo sale de las variables de marca. Sin sombras,
      como el resto del sistema. */
+  /* 🔴 `min-width:0` NO ES DECORACIÓN (26-ago-2026). El navegador le da a todo
+     `<fieldset>` un `min-width:min-content` de fábrica: se niega a encoger por
+     debajo de su contenido más ancho que no parte. Aquí ese contenido es el
+     botón del contrato —«CC00068 — Borja Alonso Fernandez · Sonia Alonso…»,
+     `white-space:nowrap`—, así que el fieldset crecía a 432 px dentro de un
+     panel de 360 y el panel sacaba un scroll horizontal. Medido: 92 px fuera.
+     En la pantalla se veía como texto cortado a media palabra: «documen…»,
+     «Contrato a 2 r…», «Puedes col…». No es que faltara texto: es que estaba a
+     la derecha, detrás de un scroll que nadie busca en una columna estrecha.
+     El `text-overflow:ellipsis` del botón no podía salvarlo porque solo actúa
+     cuando ALGO le pone un ancho, y el fieldset se lo estaba quitando. */
   fieldset{ border:1px solid var(--line); border-radius:12px; padding:13px 14px 15px;
-            margin:0 0 12px; background:var(--card); }
+            margin:0 0 12px; background:var(--card); min-width:0; }
   fieldset > legend{ display:flex; align-items:center; gap:7px; }
   fieldset > legend::before{ content:''; width:3px; height:11px; border-radius:2px;
             background:var(--dl); flex:none; }
