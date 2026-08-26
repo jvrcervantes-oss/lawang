@@ -135,7 +135,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=917fd6a8">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=0ab5e9c0">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -145,7 +145,7 @@
 <script src="/facturas/totales.js"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=d9ed2cb6"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=ffeb8531"></script>
 </head>
 <body>
   <div class="topbar lw-topbar" data-titulo="Vencimientos">
@@ -308,6 +308,23 @@ function pintarAvisos(m){
   if(sinCal.length) partes.push(`<b>${sinCal.length} contrato(s) con precio y sin calendario de pagos</b>: ${sinCal.slice(0,4).map(a=>esc(a.contrato.numero||'sin nº')).join(', ')}${sinCal.length>4?'…':''}`);
   const pctMal = m.avisos.filter(a=>a.tipo==='pct_no_100');
   if(pctMal.length) partes.push(`<b>${pctMal.length} contrato(s) cuyos hitos no suman 100%</b>: ${pctMal.slice(0,4).map(a=>esc(a.contrato.numero||'sin nº')+' (Σ '+a.suma+'%)').join(', ')}${pctMal.length>4?'…':''}`);
+  /* LO QUE ESTE PANEL NO ESTÁ MIRANDO. Va con los otros avisos y no escondido,
+     porque es del mismo tipo: cosas que impiden vigilar de verdad. Un proyecto
+     entero puede tener 46 contratos y salir en blanco —pasó con Sumba Hills—
+     y sin esta línea eso se lee como «aquí no hay dinero», que es la lectura
+     peligrosa. */
+  const f = m.fuera || { sinFirmar:0, preliminares:0, proyectos:{} };
+  if(f.sinFirmar || f.preliminares){
+    const trozos = [];
+    if(f.sinFirmar)    trozos.push(f.sinFirmar + ' sin firmar');
+    if(f.preliminares) trozos.push(f.preliminares + ' Carta(s) de Reserva');
+    const top = Object.entries(f.proyectos).sort((a,b) => b[1]-a[1]).slice(0,3)
+      .map(([p,n]) => esc(p) + ' (' + n + ')').join(', ');
+    partes.push('<b>Fuera de este panel: ' + trozos.join(' y ') + '</b>'
+      + (f.importe ? ' — ' + esc(dinero(f.importe, '')) + ' de precio' : '')
+      + (top ? '. Sobre todo en ' + top : '')
+      + '. Aquí solo entran contratos firmados que no sean preliminares');
+  }
   $('#avisos').innerHTML = partes.length
     ? `<p class="sui-aviso" role="status">${partes.join(' · ')}</p>` : '';
 }

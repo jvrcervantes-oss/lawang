@@ -801,8 +801,31 @@ function saldosEnTabla(tabla){
   if(ponSaldo && !th.querySelector('[data-v3-saldo]')){
     const c = document.createElement('th');
     c.setAttribute('data-v3-saldo', '1');
-    c.className = 'num';
+    c.className = 'num v3-ordenable';
     c.textContent = 'Pendiente';
+    /* ORDENABLE, como las columnas propias de la herramienta. Sin esto era la
+       única cabecera de la tabla que no reaccionaba al pulsarla —y encima la que
+       contesta «¿quién debe más?», que es justo lo que el cliente decía no ver.
+       Una columna de dinero que no se puede ordenar obliga a leer 155 filas. */
+    c.setAttribute('role', 'button');
+    c.tabIndex = 0;
+    const ordena = () => {
+      const desc = c.dataset.orden !== 'desc';
+      c.dataset.orden = desc ? 'desc' : 'asc';
+      c.textContent = 'Pendiente ' + (desc ? '▼' : '▲');
+      const filas = [...cuerpo.rows].filter(f => !(f.cells.length && f.cells[0].colSpan > 1));
+      const valor = f => {
+        const t = (f.querySelector('[data-v3-saldo]') || {}).textContent || '';
+        const n = parseFloat(t.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+        return isNaN(n) ? -1 : n;      // «—» y «Cobrado» al final, no mezclados con ceros
+      };
+      filas.sort((a, b) => desc ? valor(b) - valor(a) : valor(a) - valor(b))
+           .forEach(f => cuerpo.appendChild(f));
+      if(tabla.__pag3){ tabla.__pag3.pagina = 1; paginaTabla(tabla); }
+      sensacion('roce');
+    };
+    c.addEventListener('click', ordena);
+    c.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ordena(); } });
     th.appendChild(c);
   }
 

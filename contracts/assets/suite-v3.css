@@ -327,6 +327,9 @@ html.v3 .v3-pager .cuenta{
    Una sola cifra, y debajo en rojo la parte ya vencida cuando la hay. Dos
    líneas en vez de dos columnas: en un móvil plegado una columna más no cabe,
    y lo vencido no es otro dato — es un matiz del mismo. */
+html.v3 th.v3-ordenable{ cursor:pointer; user-select:none; white-space:nowrap; }
+html.v3 th.v3-ordenable:hover{ color:var(--dl,#104C4F); }
+html.v3 th.v3-ordenable:focus-visible{ outline:2px solid var(--tg,#485B37); outline-offset:-2px; }
 html.v3 td.v3-nombre-td{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 html.v3 td.v3-saldo-td{ white-space:nowrap; font-variant-numeric:tabular-nums; }
 html.v3 .v3-saldo{ display:block; font-weight:600; color:#8C5E10; }

@@ -95,12 +95,29 @@ function modeloFinanciero(o){
   const de = m => porMoneda[m] || (porMoneda[m] = {
     moneda: m, cartera: 0, cobrado: 0, pendiente: 0, vencido: 0,
     proximos30: 0, proximos90: 0, sinFecha: 0, nSinFecha: 0,
+    /* LO QUE ESTE PANEL NO CUENTA, contado. Ver la nota de `fuera` más abajo. */
+    fuera: { sinFirmar: 0, preliminares: 0, importe: 0, proyectos: {} },
     filas: [], porProyecto: {}, porMes: {}, avisos: [],
   });
   const vencsDe = {};
   for(const v of o.vencimientos) (vencsDe[v.contrato_id] = vencsDe[v.contrato_id] || []).push(v);
 
   for(const c of o.contratos){
+    /* ── LO QUE SE QUEDA FUERA, CONTADO ─────────────────────────────────────
+       Las dos exclusiones de abajo tienen su motivo y no se tocan. El efecto
+       secundario sí: un proyecto entero puede no aparecer y nadie sabe por qué.
+       Caso real (26-ago-2026, owner: «no veo Sumba Hills»): 46 contratos, solo
+       2 firmados y los dos Cartas de Reserva → cero filas y ni una palabra. Un
+       panel financiero que enseña un hueco donde hay 46 contratos se lee como
+       «aquí no hay dinero», que es la lectura peligrosa.
+       No se cambia QUÉ se cuenta: se cuenta lo que NO, para poder decirlo. */
+    const anotaFuera = (m, clave) => {
+      m.fuera[clave]++;
+      const pr = (c.proyecto_nombre || '').trim();
+      if(pr) m.fuera.proyectos[pr] = (m.fuera.proyectos[pr] || 0) + 1;
+      const p = Number(c.precio_total) || 0;
+      if(p) m.fuera.importe += p;
+    };
     if(lwEsPreliminar(c.tipo)){
       /* Una Carta que CUELGA de su Bloqueo ya está contada: su cobrado entra
          por cobradoEfectivo() del padre. Pero una Carta SUELTA —la reserva
@@ -109,10 +126,9 @@ function modeloFinanciero(o){
          exactamente en la fase en que más entra la señal. Su PRECIO sigue sin
          sumar (no es de fiar, regla del 14-ago) y sus vencimientos tampoco:
          el calendario llega con el contrato de verdad. */
-      if(!c.contrato_padre_id){
-        const m = de(c.moneda || 'EUR');
-        m.cobrado += Number(o.cobradoPorId[c.id]) || 0;
-      }
+      const m = de(c.moneda || 'EUR');
+      if(!c.contrato_padre_id) m.cobrado += Number(o.cobradoPorId[c.id]) || 0;
+      anotaFuera(m, 'preliminares');
       continue;
     }
     /* SOLO CONTRATOS FIRMADOS — 18-ago-2026, decisión del cliente («debemos
@@ -128,6 +144,7 @@ function modeloFinanciero(o){
     if(!c.bloqueado){
       const m = de(c.moneda || 'EUR');
       m.cobrado += cobradoEfectivo(c, o.contratos, o.cobradoPorId);
+      anotaFuera(m, 'sinFirmar');
       continue;
     }
     const m = de(c.moneda || 'EUR');

@@ -102,7 +102,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=917fd6a8">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=0ab5e9c0">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -112,7 +112,7 @@
 <script src="/facturas/totales.js"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=d9ed2cb6"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=ffeb8531"></script>
 </head>
 <body>
   <div class="topbar lw-topbar" data-titulo="Compradores">
@@ -498,7 +498,7 @@ function pintarFicha(){
         return `<table><thead><tr><th>Contrato</th><th>Proyecto</th><th>Rol</th><th>Estado</th></tr></thead><tbody>
           ${suyos.map(v => `<tr>
             <td><a href="/operaciones/?contrato=${encodeURIComponent(v.contratos.id)}" style="color:var(--dl)">${esc(v.contratos.numero || 'sin nº')}</a>
-                <div class="nota">${esc(v.contratos.tipo || '')}</div></td>
+                <div class="nota">${esc(lwTipoContrato(v.contratos.tipo))}</div></td>
             <td>${esc(v.contratos.proyecto_nombre || '—')}</td>
             <td>${esc(String(v.rol).replace('adquiriente_','Adquiriente '))}</td>
             <td>${v.contratos.bloqueado ? '<span class="tag ok">Firmado</span>' : '<span class="tag espera">Sin firmar</span>'}</td>
