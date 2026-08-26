@@ -1639,6 +1639,17 @@ async function resetOverrides(){
    etiqueta: una unidad de medida no es una pista.
    Va aquí y no en tokens.json a propósito: tocar los datos obligaría a repetir
    la operación en `es` y en `en` y a migrar 134 filas para arreglar 15. */
+/* Un campo de legado solo existe si el documento que se está mirando lo trae.
+   Va DENTRO de `populateForm`, que es el único sitio por el que pasan todos los
+   volcados: engancharlo en sus dos llamadas sería acordarse dos veces, y
+   acordarse es justo lo que falla. */
+function repasaLegados(){
+  document.querySelectorAll('.field.legado').forEach(f => {
+    const el = f.querySelector('[name]');
+    f.hidden = !(el && String(el.value || '').trim());
+  });
+}
+
 function partirEtiqueta(t){
   const m = String(t == null ? '' : t).match(/^(.*?)\s*\(([^()]{18,})\)\s*$/);
   return m ? [m[1].trim(), m[2].trim()] : [t, ''];
@@ -1666,10 +1677,15 @@ function fieldHTML(f){
      Cuando no quede ningún documento con `validez_meses`, la fila se borra de
      tokens.json y esta rama deja de tener trabajo. */
   if(type==='legacy'){
-    const val = pdef(key);
-    if(!val) return '';
-    return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
-      <input id="${fid(key)}" name="${key}" type="text" value="${val}" readonly tabindex="-1" class="dato-fijo"></div>`;
+    /* 🔴 SE PINTA SIEMPRE Y SE ESCONDE DESPUÉS, no al revés (27-ago-2026).
+       La primera versión decidía aquí con `pdef(key)`… y `buildForm()` corre
+       ANTES de volcar los valores del contrato guardado, así que en este punto
+       un documento antiguo todavía no tiene su dato: el campo no se habría
+       pintado nunca y el plazo en meses habría desaparecido de la pantalla en
+       las 31 cartas que lo tienen. Se marca `hidden` de salida y lo destapa
+       `repasaLegados()` cuando ya hay valores. */
+    return `<div class="field legado" data-key="${key}" hidden>${etiquetaHTML(key, label)}
+      <input id="${fid(key)}" name="${key}" type="text" value="${pdef(key)}" readonly tabindex="-1" class="dato-fijo"></div>`;
   }
   const def = pdef(key);
   if(type==='signature'){
@@ -3886,6 +3902,7 @@ function populateForm(fields){
     const hasData=[...sec.querySelectorAll('[name]')].some(i=>fields[i.name]);
     if(hasData){ chk.checked=true; sec.classList.remove('off'); ensurePads(sec); }
   });
+  repasaLegados();   // ya hay valores: ahora sí se sabe qué legados existen
 }
 
 async function openSavedContract(id){

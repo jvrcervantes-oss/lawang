@@ -147,8 +147,21 @@
   fieldset{ border:1px solid var(--line); border-radius:12px; padding:13px 14px 15px;
             margin:0 0 12px; background:var(--card); min-width:0; }
   fieldset > legend{ display:flex; align-items:center; gap:7px; }
-  fieldset > legend::before{ content:''; width:3px; height:11px; border-radius:2px;
-            background:var(--dl); flex:none; }
+  /* 🔴 TODAS LAS SECCIONES ARRANCAN EN LA MISMA CAJA (27-ago-2026, owner
+     señalando la pantalla: «me refería más a esto, puro diseño»).
+     Había DOS marcas de anchos distintos en la misma columna: un filete de 3 px
+     para las secciones fijas y un cuadro de 15 para las plegables. El efecto no
+     es solo que se vean distintas — es que los rótulos NO SE ALINEAN: «FECHAS»
+     empezaba doce píxeles a la izquierda de «EMISOR», y el ojo lee esa columna
+     de arriba abajo. §16.4: lo que se comporta igual se ve igual, y lo que no,
+     se distingue por UNA cosa, no por dos.
+     Ahora la caja es la misma —15×15, mismo radio, misma posición— y lo único
+     que cambia es lo que lleva dentro: nada en una sección fija, `+`/`−` en una
+     que se abre. La diferencia queda donde tiene que estar: en el signo, que es
+     justo lo que informa de que ahí se puede pulsar. */
+  fieldset > legend::before{ content:''; width:15px; height:15px; flex:none;
+            display:grid; place-items:center; border-radius:5px;
+            background:linear-gradient(var(--dl),var(--dl)) center/3px 11px no-repeat; }
   /* El primer campo de una tarjeta no necesita el margen superior de `label`:
      ya lo da el relleno de la tarjeta. */
   fieldset > label:first-of-type{ margin-top:2px; }
@@ -283,8 +296,9 @@
      El `<legend>` pasa a ser el mando: cursor, foco visible y un ángulo que
      gira. §16.4 (familiaridad): el mismo gesto que las carpetas de Proyectos. */
   fieldset[data-plegable] > legend{ cursor:pointer; width:100%; }
-  /* El filete vertical de `fieldset > legend::before` lo sustituye el cuadro. */
-  fieldset[data-plegable] > legend::before{ background:none; height:15px; border-radius:5px; }
+  /* Misma caja; lo que cambia es el signo. El fondo del filete se apaga porque
+     aquí el hueco lo ocupa el `+`/`−`. */
+  fieldset[data-plegable] > legend::before{ background:none; border:1px solid var(--line); }
   fieldset[data-plegable] > legend:focus-visible{ outline:2px solid var(--dl,#485B37); outline-offset:3px; border-radius:5px; }
   .fs-resumen{ flex:1; min-width:0; margin-left:8px; font-size:12px; font-weight:400;
                color:var(--muted); text-transform:none; letter-spacing:0;
@@ -322,7 +336,12 @@
                            transition:opacity .18s ease, transform .22s cubic-bezier(.32,.72,0,1); }
   fieldset.plegado > .fs-cuerpo{ grid-template-rows:0fr; }
   fieldset.plegado > .fs-cuerpo > .fs-dentro{ opacity:0; transform:translateY(-4px); }
-  fieldset.plegado{ padding-bottom:13px; }
+  /* Una sección plegada tiene que SER su propia línea. El `<legend>` se apoya
+     en el borde superior del `<fieldset>`, así que el relleno del fieldset
+     queda DEBAJO del rótulo: con `13px 14px 15px` sobraban 28 px de caja vacía
+     bajo cada sección cerrada — que es lo que se ve en la captura del owner y
+     lo que hace que plegar parezca no haber servido de nada. */
+  fieldset.plegado{ padding-top:0; padding-bottom:0; }
   /* §14: sin movimiento el estado sigue siendo legible; solo deja de viajar. */
   @media (prefers-reduced-motion: reduce){
     .fs-cuerpo > .fs-dentro{ transition:none; }
