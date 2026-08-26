@@ -141,6 +141,19 @@ ok('sin ancla en el DOM la herramienta sigue viva (lista entera, sin pie)', () =
     'una pieza de adorno no puede tumbar una pantalla que enseña dinero');
 });
 
+ok('si su lista esta OCULTA, el pie tampoco se enseña', () => {
+  const { p, pie } = nuevo();
+  p.pagina(filas(375));
+  assert.strictEqual(pie.hidden, false, 'preparado: con 375 filas el pie se ve');
+  global.__ancla.hidden = true;          // se cambia de vista
+  p.pagina(filas(375));
+  assert.strictEqual(pie.hidden, true,
+    'el pie es HERMANO del contenedor, asi que el hidden del contenedor no le llega solo');
+  global.__ancla.hidden = false;
+  p.pagina(filas(375));
+  assert.strictEqual(pie.hidden, false, 'y vuelve al volver a la vista');
+});
+
 ok('el tamaño de página es UNO para toda la suite', () => {
   assert.strictEqual(LW_POR_PAGINA, 25);
 });

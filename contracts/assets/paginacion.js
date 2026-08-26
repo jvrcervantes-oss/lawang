@@ -102,7 +102,16 @@ function lwPaginador(dondeCuelga, opciones){
       const desde = pagina * porPagina;
       const trozo = todas.slice(desde, desde + porPagina);
 
-      pie.hidden = todas.length <= porPagina;
+      /* UN PAGINADOR DE UNA LISTA OCULTA NO TIENE NADA QUE PAGINAR (26-ago-2026,
+         cazado en el navegador). Proyectos tiene TRES vistas —tabla, rejilla,
+         carpetas— y cada una su contenedor; la que no toca lleva `hidden`. Pero
+         el pie es HERMANO del contenedor, no hijo, así que el `hidden` del
+         contenedor no le llega: en la vista de tabla se veían DOS pies, el suyo
+         y el de la rejilla escondida, los dos diciendo «1–25 de 375».
+         Se mira el ancla en cada pintado y no una sola vez, porque la vista
+         cambia sin que la pieza se entere. */
+      const anclaOculta = !!(ancla && (ancla.hidden || ancla.offsetParent === null && ancla.getBoundingClientRect().height === 0));
+      pie.hidden = anclaOculta || todas.length <= porPagina;
       info.textContent = todas.length
         ? (desde + 1) + '–' + (desde + trozo.length) + ' de ' + todas.length
         : '';
