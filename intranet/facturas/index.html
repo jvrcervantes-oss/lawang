@@ -1852,6 +1852,10 @@ function agrupaPorContrato(docs){
     const k = f.contrato_id ? (f.contrato_numero || f.contrato_id) : '\u0000sin';
     if(!g.has(k)) g.set(k, { clave:k, numero:f.contrato_numero || null, sinContrato:!f.contrato_id,
                              cliente:f.cliente_nombre, proyecto:f.proyecto_nombre, docs:[] });
+    /* Si en la bolsa de «sin contrato» caen clientes distintos, NO se queda con
+       el del primero: no hay un cliente de ese grupo. */
+    const gr = g.get(k);
+    if(gr.sinContrato && gr.cliente && f.cliente_nombre !== gr.cliente) gr.variosClientes = true;
     g.get(k).docs.push(f);
   });
   const suma = (l, t) => lwSumaPorMoneda(l.filter(f => f.tipo === t && !f.anulada),
@@ -1867,7 +1871,11 @@ function agrupaPorContrato(docs){
     c.unaMoneda = monedas.size === 1 ? [...monedas][0] : null;
     const F = c.unaMoneda ? (c.facturado[c.unaMoneda] || 0) : 0;
     const C = c.unaMoneda ? (c.cobrado[c.unaMoneda]   || 0) : 0;
-    c.pct = F ? Math.max(0, Math.min(100, C / F * 100)) : 0;
+    /* 🔴 NO se recorta a 100. Cobrar MÁS de lo facturado es una noticia —falta
+       una factura, o hay un cobro duplicado—, y un `Math.min(100, …)` la
+       convierte en un contrato perfectamente cerrado. Se enseña el número real
+       y lo que se limita es solo el ANCHO de la barra, que es dibujo. */
+    c.pct = F ? Math.max(0, C / F * 100) : 0;
     c.totalFacturado = Object.values(c.facturado).reduce((a, b) => a + b, 0);
     c.totalCobrado   = Object.values(c.cobrado).reduce((a, b) => a + b, 0);
     /* 🔴 «Solo proforma» EXIGE que tampoco se haya cobrado (26-ago-2026). Sin
@@ -1894,9 +1902,23 @@ const CTR_ABIERTOS = new Set((() => {
 function pintarPorContrato(box, data, filaDoc){
   const grupos = agrupaPorContrato(data);
   box.innerHTML = PAGINADOR().pagina(grupos).map(c => {
-    const et = c.sinContrato
-      ? '<span class="sui-tag alerta" title="Documentos sin contrato: un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span>'
-      : esc(c.numero || '—');
+    /* 🔴 «SIN CONTRATO» NO ES UN CONTRATO (26-ago-2026, cazado en producción).
+       Caía todo ahí junto y la tarjeta salía con el nombre del PRIMER cliente y
+       la suma de los doce documentos: 60.000 € facturados contra 166.610 €
+       cobrados, atribuidos a una persona concreta que no tiene nada que ver con
+       diez de ellos. Un total de un conjunto que no es un conjunto no existe en
+       ninguna parte, y encima lleva un nombre propio al lado.
+       La bolsa enseña lo único cierto —cuántos documentos hay y cuáles— y ni
+       una cifra agregada. Cada fila lleva la suya. */
+    if(c.sinContrato) return `<details class="ctr" data-ctr="${esc(c.clave)}" data-alerta="sinfactura"${CTR_ABIERTOS.has(c.clave) ? ' open' : ''}>
+      <summary>
+        <span><span class="cnom"><span class="sui-tag alerta" title="Un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">Sin contrato</span></span>
+          <span class="csub">${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}${c.variosClientes ? ' de varios clientes' : (c.cliente ? ' \u00b7 ' + esc(c.cliente) : '')} <span class="sep">·</span> no son un contrato: no se suman entre s\u00ed</span></span>
+        <span class="cplata"></span>
+      </summary>
+      <table class="docs"><tbody>${c.docs.map(filaDoc).join('')}</tbody></table>
+    </details>`;
+    const et = esc(c.numero || '—');
     const marca = c.cobradoSinFactura ? 'sinfactura'
                 : c.soloProforma ? 'proforma'
                 : (c.sinRecibi ? 'sinrecibi' : '');
@@ -1918,7 +1940,7 @@ function pintarPorContrato(box, data, filaDoc){
         <span><span class="cnom">${et} ${aviso}</span>
           <span class="csub">${esc(c.cliente || 'sin cliente')} <span class="sep">·</span> ${esc(c.proyecto || 'sin proyecto')} <span class="sep">·</span> ${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}</span></span>
         <span class="cplata"><span class="n">${esc(cifra)}</span><small>${pie}</small></span>
-        ${c.totalFacturado && c.unaMoneda ? `<span class="cbarra"><i style="width:${c.pct.toFixed(1)}%"></i></span>` : ''}
+        ${c.totalFacturado && c.unaMoneda ? `<span class="cbarra"><i style="width:${Math.min(100, c.pct).toFixed(1)}%"></i></span>` : ''}
       </summary>
       <table class="docs"><tbody>${c.docs.map(filaDoc).join('')}</tbody></table>
     </details>`;
@@ -1962,8 +1984,11 @@ function pintarListado(){
   const resumenBase = LVISTA === 'contrato'
     ? (() => {
         const g = agrupaPorContrato(data);
-        const sp = g.filter(c => c.soloProforma).length, sr = g.filter(c => c.sinRecibi).length;
-        const sf = g.filter(c => c.cobradoSinFactura).length;
+        /* La bolsa de «sin contrato» no cuenta en los recuentos: no es un
+           contrato, así que no puede estar «solo en proforma» ni «sin recibí». */
+        const gc = g.filter(c => !c.sinContrato);
+        const sp = gc.filter(c => c.soloProforma).length, sr = gc.filter(c => c.sinRecibi).length;
+        const sf = gc.filter(c => c.cobradoSinFactura).length;
         return `<span>${g.length} ${g.length===1?'contrato':'contratos'}</span>
                 <span>Facturado <b>${sumasTipo('factura')}</b></span>
                 <span>Cobrado <b>${sumasTipo('recibi')}</b></span>`
