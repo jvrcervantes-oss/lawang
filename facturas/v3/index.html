@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Facturas v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
+<link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
+<script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
+<script src="/contracts/assets/topbar.js?v=d5248630" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="facturas"></script>
+<script src="/contracts/assets/dinero.js?v=bff77614"></script>
+<script src="/facturas/totales.js"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=6c9e50c6">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=8c0d7823">
+<script src="/contracts/assets/movimiento-v3.js?v=27806b98"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   FACTURAS v3 · el listado — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   QUÉ SE REDISEÑA. Hoy el listado son 146 documentos en una fila plana,
+   ordenados por fecha, con la misma tinta para el que se cobró hace un año y
+   para el que venció hace tres semanas. Para saber qué se debe hay que abrir
+   la calculadora. Y no hay ningún asidero: 146 filas iguales sin agrupar.
+
+   Esta versión contesta por orden de urgencia:
+     1. Cuatro cifras, y una es la que cuesta dinero: VENCIDO. Va en rojo y
+        separada, porque «pendiente» y «pendiente y ya pasado el plazo» no son
+        el mismo problema.
+     2. Vencidas y sin cobrar, arriba y sin plegar. Es lo único de esta pantalla
+        que se puede perder por no mirarlo.
+     3. El resto agrupado POR MES con su subtotal. Una lista de 146 iguales no
+        se recuerda; «agosto: 14 documentos, 320.000 €» sí.
+
+   LO QUE NO SE TOCA: el editor de documentos. Es la máquina que compone el PDF,
+   lo firma y lo manda por correo; rediseñarlo es otro encargo y con otro riesgo.
+   «Nueva factura» lleva al de siempre.
+   ═══════════════════════════════════════════════════════════════════════════ */
+body{ margin:0; background:var(--sup-0,#F1EBDD); color:var(--texto,#22282A);
+      font-family:var(--sans,'Jost',system-ui,sans-serif); }
+main{ max-width:1120px; margin:0 auto; padding:24px 24px 80px; }
+
+.dinero{ display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:14px; margin:0 0 22px; }
+.kpi{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
+      border-radius:var(--r-l,18px); box-shadow:var(--sombra-1); padding:17px 19px; }
+.kpi .rot{ display:block; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+           font-weight:600; color:var(--texto-2,#4A5052); margin-bottom:6px; }
+.kpi .n{ font-family:'Instrument Sans',system-ui,sans-serif; font-weight:700; font-size:1.5rem;
+         line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:var(--dl,#104C4F); }
+.kpi small{ display:block; margin-top:6px; font-size:.74rem; color:var(--texto-2,#4A5052); }
+/* La única tarjeta con otro color de la pantalla. Se gasta el rojo aquí porque
+   es lo único que cuesta dinero si nadie lo mira. */
+.kpi.vencido{ border-color:#E2B3AE; background:linear-gradient(180deg,#FFFBFA,#fff); }
+.kpi.vencido .n{ color:#9E2F26; }
+.kpi.vencido small{ color:#9E2F26; }
+.kpi.cobrado .n{ color:var(--bien,#3F5230); }
+
+.alarma{ background:var(--sup-1,#fff); border:1px solid #E2B3AE; border-radius:var(--r-l,18px);
+         box-shadow:var(--sombra-1); padding:6px 4px; margin:0 0 22px; }
+.alarma h2{ margin:0; padding:14px 18px 8px; font-size:.9rem; font-weight:600; letter-spacing:-.01em; color:#9E2F26; }
+
+.controles{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 8px; }
+.controles .sui-buscar{ flex:1 1 260px; }
+.chips{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
+
+.mes{ margin:0 0 16px; }
+.mes > summary{ list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:12px; padding:10px 4px; }
+.mes > summary::-webkit-details-marker{ display:none; }
+.mes .rot{ font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--texto-2,#4A5052); }
+.mes .sub{ margin-left:auto; font-size:.78rem; color:var(--texto-2,#4A5052); font-variant-numeric:tabular-nums; }
+.mes .sub b{ color:var(--texto,#22282A); }
+.filas{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
+        border-radius:var(--r-l,18px); box-shadow:var(--sombra-1); overflow:hidden; }
+
+.doc{
+  display:grid; grid-template-columns:minmax(0,1fr) 150px 116px 20px;
+  align-items:center; gap:16px; padding:13px 18px;
+  border-top:1px solid var(--linea,#E4DCCB); cursor:pointer;
+}
+.doc:first-child{ border-top:none; }
+.doc:hover{ background:var(--sup-2,#F7F3E9); }
+.doc .quien{ font-size:.9rem; font-weight:600; letter-spacing:-.008em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.doc .ref{ display:block; margin-top:3px; font-size:.75rem; color:var(--texto-2,#4A5052);
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.doc .imp{ text-align:right; font-variant-numeric:tabular-nums; font-size:.9rem; font-weight:600; }
+.doc .imp small{ display:block; font-weight:400; font-size:.7rem; color:var(--texto-3,#676B63); }
+.doc .imp.debe small{ color:#8C5E10; font-weight:600; }
+.doc .imp.tarde small{ color:#9E2F26; font-weight:600; }
+.doc .est{ justify-self:start; }
+.doc .ir{ color:var(--sc,#8F9B7A); font-size:.9rem; justify-self:end; }
+.doc.anul .quien, .doc.anul .imp{ text-decoration:line-through; color:var(--texto-3,#676B63); }
+
+.vacio{ padding:26px 18px; color:var(--texto-2,#4A5052); font-size:.86rem; }
+.mini{ font-size:.78rem; color:var(--texto-2,#4A5052); line-height:1.5; }
+#cajon .cuerpo{ overflow:auto; padding:0 20px 24px; }
+#cajon h3{ margin:0; font-size:1.02rem; letter-spacing:-.012em; }
+#cajon .sub{ font-size:.78rem; color:var(--texto-2,#4A5052); margin-top:3px; }
+.bloque{ margin-top:20px; }
+.bloque > h4{ margin:0 0 8px; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+              font-weight:600; color:var(--texto-2,#4A5052); }
+.dato{ display:flex; justify-content:space-between; gap:12px; padding:9px 0;
+       border-top:1px solid var(--linea,#E4DCCB); font-size:.85rem; }
+.dato:first-of-type{ border-top:none; }
+.dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
+
+@media (max-width:760px){
+  main{ padding:20px 14px 60px; }
+  .doc{ grid-template-columns:minmax(0,1fr) 120px; gap:10px; }
+  .doc .est{ grid-column:1; margin-top:4px; }
+  .doc .ir{ display:none; }
+}
+</style>
+</head>
+<!-- Sin `hidden`: guard.js destapa con `visibility` en el <html>. -->
+<body>
+
+<header class="lw-topbar" data-titulo="Facturas"></header>
+
+<main>
+  <div id="avisos"></div>
+  <section class="dinero" id="dinero"></section>
+  <section class="alarma" id="alarma" hidden></section>
+
+  <div class="controles">
+    <input class="sui-buscar" id="q" placeholder="Buscar nº, cliente, proyecto o contrato…">
+    <a class="sui-btn primario" href="/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
+  </div>
+  <div class="chips" id="chips"></div>
+
+  <div id="meses"></div>
+</main>
+
+<div class="sui-velo" id="velo"></div>
+<aside class="sui-cajon" id="cajon" role="dialog" aria-modal="true" aria-labelledby="cTit">
+  <div class="sui-cajon-cab">
+    <div style="min-width:0"><h3 id="cTit">—</h3><div class="sub" id="cSub"></div></div>
+    <button type="button" class="sui-cajon-x" id="cX" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="cuerpo" id="cCuerpo"></div>
+</aside>
+
+<script>
+/* Todo dentro de su ámbito: la cáscara compartida declara bastantes nombres en
+   el global y una colisión deja la página en blanco sin decirlo. */
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+let SB = null, DOCS = [], PEND = {}, TIPO = '', ANUL = false, FILTRO = '';
+
+const dinero = (n, m) => lwFormatoImporte(n || 0, m || 'EUR');
+const HOY = new Date().toISOString().slice(0, 10);
+const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const rotuloMes = k => { const [a, m] = k.split('-'); return MESES[+m - 1] + ' de ' + a; };
+const nombreTipo = t => t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura';
+
+/* Lo que queda por cobrar de un documento. Sale de `facturas_pendiente_equipo`,
+   la MISMA función que usa el editor y el panel: aquí no se resta nada a mano.
+   Un recibí no debe nada por definición — es la prueba de que el dinero entró. */
+const pendienteDe = f => f.tipo === 'recibi' || f.anulada ? 0
+  : (PEND[f.id] != null ? PEND[f.id] : (Number(f.total) || 0));
+
+/* ── las cuatro cifras ────────────────────────────────────────────────────
+   «Vencido» va aparte de «pendiente» a propósito: pendiente es el negocio
+   funcionando; vencido es dinero que debería estar en la cuenta y no está. */
+function pintarDinero(){
+  /* Sin recibís: un recibí es el justificante de una factura que YA está
+     contada aquí. Sumarlo sería contar el mismo dinero dos veces. Por eso este
+     «Emitido» no es el mismo número que el «Suma de lo vigente» del listado
+     actual, que sí los mete — se dice abajo, en el pie de la tarjeta. */
+  const vivas = DOCS.filter(f => !f.anulada && f.tipo !== 'recibi');
+  /* POR MONEDA, y no en una sola cifra. La auditoría del 19-ago-2026 ya
+     encontró exactamente este fallo en el listado de esta misma herramienta:
+     sumaba EUR con USD y lo etiquetaba con la moneda de la primera fila, o sea
+     un total que no existe en ninguna divisa. Al escribir esta v3 lo repetí,
+     porque aquel arreglo vivía dentro de una función de una pantalla; ahora el
+     ayudante está en dinero.js y lo usan las dos. */
+  const emitido   = lwSumaPorMoneda(vivas, f => f.total, f => f.moneda);
+  const pendiente = lwSumaPorMoneda(vivas, pendienteDe, f => f.moneda);
+  const vencidas  = vivas.filter(f => f.venc && f.venc < HOY && pendienteDe(f) > 0.005);
+  const vencido   = lwSumaPorMoneda(vencidas, pendienteDe, f => f.moneda);
+  const cobrado = {};
+  Object.keys(emitido).forEach(m => { cobrado[m] = emitido[m] - (pendiente[m] || 0); });
+
+  const mp = lwMonedaPrincipal(emitido);
+  const pctTxt = emitido[mp]
+    ? (cobrado[mp] / emitido[mp] * 100).toFixed(1).replace('.', ',') + ' % de lo emitido'
+      + (Object.keys(emitido).length > 1 ? ' en ' + mp : '')
+    : '—';
+
+  $('#dinero').innerHTML =
+      tarjeta('Emitido', lwSumaTexto(emitido), vivas.length + ' facturas y proformas · sin contar recibís', '')
+    + tarjeta('Cobrado', lwSumaTexto(cobrado), pctTxt, 'cobrado')
+    + tarjeta('Pendiente', lwSumaTexto(pendiente), 'aún dentro de plazo o sin fecha', '')
+    + tarjeta('Vencido', lwSumaTexto(vencido),
+        vencidas.length ? vencidas.length + (vencidas.length === 1 ? ' documento pasado de plazo' : ' documentos pasados de plazo') : 'nada fuera de plazo',
+        Object.keys(vencido).length ? 'vencido' : '');
+}
+const tarjeta = (rot, n, pie, cls) =>
+  '<div class="kpi ' + cls + '"><span class="rot">' + esc(rot) + '</span>'
+  + '<span class="n">' + esc(n) + '</span><small>' + esc(pie) + '</small></div>';
+
+/* ── vencidas y sin cobrar ────────────────────────────────────────────────
+   Tres reglas, y ninguna esconde una deuda: un recibí no vence, una anulada no
+   existe, y una cobrada es historia. Lo que queda sí se enseña, por vieja que
+   sea — es justo lo que hay que ver. */
+function pintarAlarma(){
+  const malas = DOCS.filter(f => !f.anulada && f.tipo !== 'recibi' && f.venc && f.venc < HOY
+                                 && pendienteDe(f) > 0.005)
+                    .sort((a, b) => a.venc.localeCompare(b.venc));
+  const caja = $('#alarma');
+  if(!malas.length){ caja.hidden = true; return; }
+  caja.innerHTML = '<h2>Vencidas y sin cobrar · ' + malas.length + '</h2>'
+    + malas.map(f => filaDoc(f, true)).join('');
+  caja.hidden = false;
+  cablear(caja);
+}
+
+/* ── el resto, por mes ────────────────────────────────────────────────────── */
+function casa(f){
+  if(TIPO && f.tipo !== TIPO) return false;
+  if(!ANUL && f.anulada) return false;
+  const t = FILTRO.trim().toLowerCase();
+  if(!t) return true;
+  return [f.numero, f.cliente_nombre, f.contrato_numero, f.proyecto_nombre].join(' ').toLowerCase().includes(t);
+}
+
+function filaDoc(f, enAlarma){
+  const p = pendienteDe(f);
+  const tarde = f.venc && f.venc < HOY && p > 0.005;
+  const d = f.venc ? dias(f.venc) : null;
+  return '<div class="doc' + (f.anulada ? ' anul' : '') + '" data-id="' + esc(f.id) + '">'
+    + '<span><span class="quien">' + esc(f.cliente_nombre || 'Sin cliente') + '</span>'
+      + '<span class="ref">' + esc(f.numero || '—') + ' · ' + esc(nombreTipo(f.tipo))
+      + (f.contrato_numero ? ' · ' + esc(f.contrato_numero) : '') + '</span></span>'
+    + '<span class="imp ' + (tarde ? 'tarde' : p > 0.005 ? 'debe' : '') + '">' + esc(dinero(f.total, f.moneda))
+      + (f.tipo === 'recibi' ? '<small>cobrado</small>'
+         : p > 0.005 ? '<small>' + (tarde ? 'venció hace ' + (-d) + ' días'
+                                          : d != null ? 'vence en ' + d + ' días' : 'sin fecha') + '</small>'
+         : '<small>saldada</small>') + '</span>'
+    + '<span class="est"><span class="sui-tag ' + (f.anulada ? 'alerta' : tarde ? 'alerta' : p > 0.005 ? 'espera' : 'ok') + '">'
+      + (f.anulada ? 'Anulada' : tarde ? 'Vencida' : p > 0.005 ? 'Pendiente' : 'Cobrada') + '</span></span>'
+    + (enAlarma ? '<i class="ph ph-arrow-right ir"></i>' : '<i class="ph ph-arrow-right ir"></i>')
+    + '</div>';
+}
+
+function pintar(){
+  const lista = DOCS.filter(casa);
+  const cont = $('#meses');
+  if(!lista.length){
+    cont.innerHTML = '<div class="filas"><p class="vacio">Ningún documento coincide.</p></div>';
+    return;
+  }
+  const grupos = {};
+  lista.forEach(f => {
+    const k = (f.fecha_emision || f.created_at || '').slice(0, 7) || 'sin-fecha';
+    (grupos[k] = grupos[k] || []).push(f);
+  });
+  const claves = Object.keys(grupos).sort().reverse();
+  cont.innerHTML = claves.map((k, i) => {
+    const g = grupos[k];
+    const suma = lwSumaPorMoneda(g.filter(f => !f.anulada && f.tipo !== 'recibi'), f => f.total, f => f.moneda);
+    const haySuma = Object.keys(suma).length;
+    /* Los dos meses más recientes abiertos; el resto plegado. Un archivo de
+       catorce meses no puede empezar desplegado: sería la misma lista plana de
+       antes con títulos por medio. */
+    return '<details class="mes"' + (i < 2 ? ' open' : '') + '>'
+      + '<summary><span class="rot">' + esc(k === 'sin-fecha' ? 'Sin fecha' : rotuloMes(k)) + '</span>'
+      + '<span class="sub">' + g.length + (g.length === 1 ? ' documento' : ' documentos')
+      + (haySuma ? ' · <b>' + esc(lwSumaTexto(suma)) + '</b>' : '') + '</span></summary>'
+      + '<div class="filas">' + g.map(f => filaDoc(f)).join('') + '</div></details>';
+  }).join('');
+  cablear(cont);
+}
+function cablear(raiz){
+  raiz.querySelectorAll('.doc').forEach(el => {
+    el.addEventListener('click', () => abrir(el.dataset.id));
+  });
+}
+
+/* ── detalle ──────────────────────────────────────────────────────────────── */
+const Cajon = (() => {
+  const el = $('#cajon'), velo = $('#velo');
+  LW3.cajon(el, { velo, aspa:'#cX' });
+  const cerrar = () => { el.classList.remove('on'); velo.classList.remove('on'); };
+  $('#cX').addEventListener('click', cerrar);
+  velo.addEventListener('click', cerrar);
+  addEventListener('keydown', e => { if(e.key === 'Escape') cerrar(); });
+  return { abre(t, s, h){ $('#cTit').textContent = t; $('#cSub').textContent = s || '';
+    $('#cCuerpo').innerHTML = h; el.classList.add('on'); velo.classList.add('on');
+    $('#cX').focus({ preventScroll:true }); } };
+})();
+
+function abrir(id){
+  const f = DOCS.find(x => x.id === id);
+  if(!f) return;
+  const p = pendienteDe(f);
+  const tarde = f.venc && f.venc < HOY && p > 0.005;
+  Cajon.abre(f.numero || 'Sin número', esc(nombreTipo(f.tipo)) + ' · ' + (f.cliente_nombre || 'sin cliente'),
+      '<div class="bloque"><h4>Importe</h4>'
+    + '<div class="dato"><span>Total</span><span class="v">' + esc(dinero(f.total, f.moneda)) + '</span></div>'
+    + (f.tipo !== 'recibi'
+        ? '<div class="dato"><span>Pendiente</span><span class="v" style="color:' + (tarde ? '#9E2F26' : p > 0.005 ? '#8C5E10' : 'inherit') + '">'
+          + esc(dinero(p, f.moneda)) + '</span></div>' : '')
+    + (f.venc ? '<div class="dato"><span>Vencimiento</span><span class="v">' + esc(f.venc)
+        + (tarde ? ' · vencida' : '') + '</span></div>' : '')
+    + '</div>'
+    + '<div class="bloque"><h4>Referencias</h4>'
+    + '<div class="dato"><span>Cliente</span><span class="v">' + esc(f.cliente_nombre || '—') + '</span></div>'
+    + '<div class="dato"><span>Contrato</span><span class="v">' + esc(f.contrato_numero || '—') + '</span></div>'
+    + '<div class="dato"><span>Emitida</span><span class="v">' + esc(f.fecha_emision || '—') + '</span></div>'
+    + '<div class="dato"><span>Estado</span><span class="v">' + (f.anulada ? 'Anulada' : tarde ? 'Vencida' : p > 0.005 ? 'Pendiente' : 'Cobrada') + '</span></div>'
+    + '</div>'
+    + '<div class="bloque" style="display:flex;gap:10px;flex-wrap:wrap">'
+      + '<a class="sui-btn primario" href="/facturas/?id=' + esc(f.id) + '">Abrir el documento</a>'
+      + (f.contrato_id ? '<a class="sui-btn" href="/operaciones/v3/">Ver la operación</a>' : '')
+    + '</div>'
+    + '<p class="mini" style="margin-top:16px">El documento se abre en el editor de siempre:'
+    + ' es el que compone el PDF y lo manda. Esta pantalla solo cambia cómo se encuentran.</p>');
+}
+
+/* ── chips de tipo ───────────────────────────────────────────────────────── */
+const TIPOS = [['', 'Todos'], ['factura', 'Facturas'], ['proforma', 'Proformas'], ['recibi', 'Recibís']];
+function pintarChips(){
+  $('#chips').innerHTML = TIPOS.map(([k, r]) => {
+    const n = DOCS.filter(f => (!k || f.tipo === k) && (ANUL || !f.anulada)).length;
+    return '<button type="button" class="sui-chip' + (TIPO === k ? ' on' : '') + '" data-t="' + k + '">'
+      + esc(r) + ' <span class="n">' + n + '</span></button>';
+  }).join('')
+  + '<button type="button" class="sui-chip' + (ANUL ? ' on' : '') + '" data-anul="1" style="margin-left:8px">Con anuladas</button>';
+  $('#chips').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => {
+    TIPO = b.dataset.t; pintarChips(); pintar();
+  }));
+  $('#chips').querySelector('[data-anul]').addEventListener('click', () => {
+    ANUL = !ANUL; pintarChips(); pintar();
+  });
+}
+
+/* ── arranque ─────────────────────────────────────────────────────────────── */
+window.LW_AUTH.then(async ({ sb }) => {
+  SB = sb;
+  const [f, p] = await Promise.all([
+    /* `fecha_vencimiento` no es una columna: vive en `datos->fields`, igual que
+       la lee la campana de la barra y el panel. Pedirla suelta da un 400 mudo. */
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,cliente_nombre,proyecto_nombre,total,moneda,anulada,fecha_emision,created_at,venc:datos->fields->>fecha_vencimiento')
+      .order('fecha_emision', { ascending:false }).limit(1000),
+    SB.rpc('facturas_pendiente_equipo'),
+  ]);
+  if(f.error){
+    $('#avisos').innerHTML = '<p class="sui-aviso">No se han podido leer los documentos: ' + esc(f.error.message) + '</p>';
+    return;
+  }
+  /* Si falla lo pendiente NO se enseña un cero: sin ese dato no se sabe qué se
+     debe, y decir «cobrado» sin saberlo es el único error aquí que cuesta
+     dinero. Se avisa y cada documento cae a «debe su total». */
+  if(p.error){
+    $('#avisos').innerHTML = '<p class="sui-aviso">No se ha podido calcular lo cobrado de cada documento.'
+      + ' Los importes pendientes de abajo son el total de cada uno, no lo que queda: no te fíes de ellos hasta recargar.</p>';
+  }
+  DOCS = f.data || [];
+  (p.data || []).forEach(x => { PEND[x.factura_id] = Number(x.pendiente) || 0; });
+
+  pintarDinero(); pintarAlarma(); pintarChips(); pintar();
+
+  let t = null;
+  $('#q').addEventListener('input', e => { FILTRO = e.target.value; clearTimeout(t); t = setTimeout(pintar, 90); });
+});
+})();
+</script>
+</body>
+</html>

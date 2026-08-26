@@ -93,3 +93,49 @@ function lwFormatoImporte(n, moneda){
    las constantes quedan globales, que es como las usan las nueve herramientas. */
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwParseImporte, lwFormatoImporte, LW_DECIMALES };
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUMAR CUANDO HAY VARIAS MONEDAS — 26-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Se saca aquí porque ya se ha tropezado dos veces con lo mismo. La auditoría
+   del 19-ago-2026 lo encontró en el listado de Facturas: sumaba EUR con USD en
+   una sola cifra y la etiquetaba con la moneda de la PRIMERA fila — un total
+   que no existe en ninguna divisa. Se arregló allí, a mano, y al escribir la
+   v3 de Operaciones y la de Facturas volvió a aparecer el mismo error, porque
+   el arreglo vivía dentro de una función de una pantalla.
+
+   Sumar importes de monedas distintas no es un redondeo mal hecho: es una
+   frase falsa. Aquí no se convierte nada —no hay tipo de cambio en el sistema
+   y meter uno inventado sería peor— : se suma por separado y se enseñan las
+   dos.
+
+       lwSumaPorMoneda(facturas, f => f.total, f => f.moneda)
+         → { EUR: 3686187, USD: 12000 }
+       lwSumaTexto(mapa)  → "3.686.187,00 EUR · 12.000,00 USD"
+   ═══════════════════════════════════════════════════════════════════════════ */
+function lwSumaPorMoneda(lista, importeDe, monedaDe){
+  const out = {};
+  (lista || []).forEach(function(x){
+    const m = (monedaDe ? monedaDe(x) : x.moneda) || 'EUR';
+    out[m] = (out[m] || 0) + (Number(importeDe ? importeDe(x) : x.total) || 0);
+  });
+  return out;
+}
+/* Una sola moneda se lee como siempre. Con varias, se enseñan todas: esconder
+   la segunda por que "casi todo es en euros" es exactamente cómo se cuela un
+   total que miente. */
+function lwSumaTexto(mapa){
+  const claves = Object.keys(mapa || {});
+  if(!claves.length) return lwFormatoImporte(0, 'EUR');
+  return claves.sort(function(a,b){ return mapa[b] - mapa[a]; })
+               .map(function(m){ return lwFormatoImporte(mapa[m], m); })
+               .join(' · ');
+}
+/* La moneda dominante, para cuando hace falta UNA (una barra de progreso, un
+   porcentaje). Si hay varias, quien llame debe decir que el porcentaje es de
+   esa; no vale mezclarlas por debajo. */
+function lwMonedaPrincipal(mapa){
+  const claves = Object.keys(mapa || {});
+  if(!claves.length) return 'EUR';
+  return claves.sort(function(a,b){ return mapa[b] - mapa[a]; })[0];
+}

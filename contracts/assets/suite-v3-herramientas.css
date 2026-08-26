@@ -85,6 +85,10 @@ html.v3 .compo{ border-radius:10px; }
 
 /* ── Facturas ─────────────────────────────────────────── */
 html.v3 .pane-form{ border-radius:14px; }
+html.v3 fieldset{ border-radius:14px; }
+html.v3 .plegable{ border-radius:14px; }
+html.v3 .campo-elegir{ border-radius:10px; }
+html.v3 .vinc{ border-radius:14px; }
 html.v3 input, html.v3 select, html.v3 textarea{ border-radius:10px; }
 html.v3 .xbtn{ border-radius:10px; }
 html.v3 #delContrato{ border-radius:14px; }
