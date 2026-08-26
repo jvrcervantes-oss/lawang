@@ -768,6 +768,17 @@ function saldosEnTabla(tabla){
   const iContacto = indiceCabecera(tabla, ['contacto']);
   if(iContrato < 0 && iContacto < 0) return;          // esta tabla no habla de dinero de nadie
 
+  /* ⚠️ SI LA HERRAMIENTA YA DICE LO QUE SE DEBE, AQUÍ NO SE DICE OTRA VEZ.
+     Se desplegó sin esta comprobación y Vencimientos —que ya tenía su columna
+     PENDIENTE— acabó con DOS columnas llamadas igual y con números distintos en
+     la misma fila: la suya es por hito (importe − cubierto) y la mía por
+     operación (precio − cobrado). Eduardo Cuellar salía debiendo 26.500 € en una
+     y «Cobrado» en la otra.
+     Dos cifras que se contradicen en la misma fila no son redundancia molesta:
+     son una herramienta en la que ya no se puede confiar. Manda la de la
+     herramienta, que es la que tiene el contexto. */
+  if(indiceCabecera(tabla, ['pendiente', 'saldo', 'debe']) >= 0) return;
+
   /* ¿Falta también el NOMBRE? Proyectos y Obra listan unidades por código y no
      dicen de quién son: hay que abrir el contrato para saberlo. Si la tabla ya
      trae comprador o cliente no se toca — no se duplica una columna que existe. */
