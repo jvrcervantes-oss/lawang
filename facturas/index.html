@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="/contracts/assets/topbar.js?v=78985e39" defer></script>
+<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
      el permiso lo comprueba el script de esta pagina, que sabe un matiz que
@@ -322,7 +322,7 @@
 <body hidden>
   <!-- Barra unificada de la suite (assets/topbar.css). Mismo orden que en
        Contratos y Dossier: volver al hub primero, herramientas en el menú ⋯. -->
-  <div class="topbar lw-topbar" data-titulo="Facturas">
+  <header class="lw-topbar" data-titulo="Facturas">
     <span class="lw-sep"></span>
     <!-- Mismo sitio que el tipo de contrato en Contratos: es la primera
          decisión (qué documento haces), no un campo más del formulario. -->
@@ -333,19 +333,17 @@
       <option value="recibi">Recibí</option>
     </select>
     <div class="lw-spacer"></div>
-    <span class="lw-who" id="who"></span>
     <!-- Se alternan según la pantalla (ver `pantalla()`): en el listado se ofrece
          emitir, en el documento se ofrece volver. Nunca los dos a la vez, que es
          lo que convierte una barra en un panel de mandos. -->
     <button type="button" class="lw-btn" id="btnList" hidden>← Listado</button>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
     <!-- El rotulo sigue al tipo que filtra el listado, que es el que se va a
          crear al pulsar: decia solo «+ Nueva» y no decia nueva QUE — y el
          selector de tipo esta oculto en esta pantalla, asi que no lo aclaraba. -->
     <button type="button" class="lw-btn primary" id="btnNuevaDoc"><i class="ph ph-plus"></i><span id="btnNuevaDocTxt">Nueva factura</span></button>
-  </div>
+  </header>
 
   <!-- ═══ LISTADO — la pantalla de entrada desde el 6-ago-2026 ═══════════════
        Antes esta herramienta abría directamente en un formulario en blanco y lo
@@ -581,7 +579,6 @@ sb.auth.getSession().then(async ({data:{session}}) => {
   // Sale de la ficha que se acaba de leer, sin una segunda consulta. Decide
   // qué botón se pinta; el candado es la policy de DELETE de la RLS.
   ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
-  $('#who').textContent = session.user.email;
   /* Las cuentas de cobro vienen de la base (6-ago-2026, ya no de entities.js:
      ese fichero es público por web y por el repo de GitHub). Va DENTRO de la
      sesión restaurada, o la consulta saldría como anon y la RLS la niega.
@@ -658,7 +655,6 @@ sb.auth.getSession().then(async ({data:{session}}) => {
     pantalla('listado');
   }
 });
-$('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
 
 /* ---------- estado ---------- */
 let LINEAS = [{ descripcion:'', importe:'' }];

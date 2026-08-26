@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="/contracts/assets/topbar.js?v=78985e39" defer></script>
+<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
@@ -115,14 +115,12 @@
 <script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
 </head>
 <body>
-  <div class="topbar lw-topbar" data-titulo="Compradores">
+  <header class="lw-topbar" data-titulo="Compradores">
     <div class="lw-spacer"></div>
-    <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
     <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo comprador</button>
-  </div>
+  </header>
 
   <div class="sui-stage">
     <div class="sui-centro">
@@ -974,8 +972,6 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   YO = ficha;   // el rol decide si la ficha enseña los botones de invitar al portal
   ES_ADMIN = !!(ficha && ['super_admin','admin'].includes(ficha.rol));
-  $('#who').textContent = session.user.email;
-  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
   try{
     await cargar();
     /* ?id=<client_id> abre esa ficha directamente. Lo usa Operaciones: llegar

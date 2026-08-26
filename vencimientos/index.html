@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="/contracts/assets/topbar.css?v=5650c1c1">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="/contracts/assets/topbar.js?v=78985e39" defer></script>
+<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="vencimientos"></script>
@@ -160,13 +160,11 @@
 <script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
 </head>
 <body>
-  <div class="topbar lw-topbar" data-titulo="Vencimientos">
+  <header class="lw-topbar" data-titulo="Vencimientos">
     <div class="lw-spacer"></div>
-    <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
     <!-- Sin acción principal a propósito: esta herramienta VIGILA, no crea.
          Mismo criterio que Obra y Operaciones (norma en topbar.css). -->
-  </div>
+  </header>
 
   <main>
     <h1>Vencimientos</h1>
@@ -631,10 +629,6 @@ function pintarFacturas(){
   }).join('') || '<tr><td colspan="5" class="flojo" style="padding:18px">Ninguna factura con fecha de vencimiento en esta moneda.</td></tr>';
 }
 
-$('#btnLogout').addEventListener('click', async () => {
-  if(window._SB) await window._SB.auth.signOut();
-  location.replace('/entrar/');
-});
 </script>
 </body>
 </html>

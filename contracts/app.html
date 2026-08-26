@@ -28,7 +28,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="assets/suite.css?v=a9158f4c">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="assets/topbar.js?v=78985e39" defer></script>
+<script src="assets/topbar.js?v=ea125e99" defer></script>
 <!-- pdf.js: convierte PDFs de anexos a imágenes de página (para incrustarlos en el contrato) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Supabase (guardado + numeración automática de contratos, tabla `contratos` en el
@@ -97,16 +97,19 @@
 <body>
   <!-- Barra unificada de la suite: mismo orden y mismos componentes en
        Contratos, Facturas y Dossier. Estilos en assets/topbar.css. -->
+  <!-- Es la ÚNICA de la suite que conserva la clase `.topbar` además de
+       `.lw-topbar`, y no por descuido: `assets/app.css` —la hoja propia de
+       Contratos, y la única página que la carga— la estila (`position:sticky`).
+       En las otras ocho `.topbar` no lo estilaba nadie: era ruido heredado de
+       copiar la barra, y se quitó el 26-ago-2026. -->
   <div class="topbar lw-topbar" data-titulo="Contratos">
     <span class="lw-sep"></span>
     <select id="tplPick" class="lw-select" aria-label="Tipo de contrato"></select>
     <span class="lang-hint" title="El contrato siempre incluye Bahasa Indonesia">Bahasa + </span>
     <div class="lang-toggle" id="langToggle"></div>
     <div class="lw-spacer"></div>
-    <span class="lw-who" id="who" title="Sesión iniciada"></span>
     <button type="button" class="lw-btn" id="btnContracts">← Listado</button>
     <button type="button" class="lw-btn" id="btnReset">↺ Limpiar</button>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
     <button type="button" class="lw-btn primary" id="btnNuevoC" hidden><i class="ph ph-plus"></i>Nuevo contrato</button>
@@ -4905,11 +4908,6 @@ $('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove(
    contratos_rls_requiere_authenticated). Este chequeo es solo para no dejar
    al agente mirando un formulario que no podrá guardar: sin sesión, redirige
    a /entrar/ antes de montar nada. */
-$('#btnLogout').addEventListener('click', async ()=>{
-  if(!sb) return;
-  await sb.auth.signOut();
-  location.href='/entrar/';
-});
 
 /* ---------- init ---------- */
 async function init(){
@@ -4941,7 +4939,6 @@ async function init(){
      el desplegable ofrecería proyectos en los que el guardado rebota. */
   MIS_PROYECTOS = (ficha && !['super_admin','admin'].includes(ficha.rol))
     ? (ficha.proyectos || []) : null;
-  const who=$('#who'); if(who){ who.textContent = session.user.email || ''; who.title = 'Sesión iniciada como ' + (session.user.email||''); }
 
   // "Editar texto" vuelve a ser solo de admin/super_admin (7-ago, pedido
   // explícito del usuario — el 20-jul se había abierto a todos los agentes;

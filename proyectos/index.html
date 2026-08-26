@@ -19,7 +19,7 @@
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
 <script src="/contracts/assets/herramientas.js?v=1aaedb5b"></script>
-<script src="/contracts/assets/topbar.js?v=78985e39" defer></script>
+<script src="/contracts/assets/topbar.js?v=ea125e99" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=5bfcbf1a" data-herramienta="unidades"></script>
@@ -113,19 +113,17 @@
 <script src="/contracts/assets/movimiento-v3.js?v=547c4e1a"></script>
 </head>
 <body>
-  <div class="topbar lw-topbar" data-titulo="Proyectos">
+  <header class="lw-topbar" data-titulo="Proyectos">
     <div class="lw-spacer"></div>
-    <span class="lw-who" id="who"></span>
     <button type="button" class="lw-btn" id="btnCsv">Importar CSV</button>
     <input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
     <!-- Dos acciones que crean: la principal es la FRECUENTE. Se dan de alta
          unidades a diario y proyectos tres veces al año. -->
     <button type="button" class="lw-btn" id="btnNuevoProyecto"><i class="ph ph-plus"></i>Nuevo proyecto</button>
-    <button type="button" class="lw-btn" id="btnLogout">Salir</button>
     <!-- ACCION PRINCIPAL: ultima de la barra. La convencion, con su porque,
          esta en assets/topbar.css junto a `.lw-btn.primary`. -->
     <button type="button" class="lw-btn primary" id="btnNueva"><i class="ph ph-plus"></i>Nueva unidad</button>
-  </div>
+  </header>
 
   <div class="sui-stage">
     <div class="sui-centro">
@@ -1338,8 +1336,6 @@ suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten la
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   ES_SUPER_ADMIN = !!(ficha && ficha.rol === 'super_admin');
-  const who = $('#who'); if(who && session) who.textContent = session.user.email;
-  $('#btnLogout').onclick = async () => { await SB.auth.signOut(); location.replace('/entrar/'); };
   await cargar();   // ES_SUPER_ADMIN ya está fijado antes de esta llamada — su pintar() final ya sale con el botón de borrar si toca
 });
 </script>

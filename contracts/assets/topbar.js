@@ -214,10 +214,18 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
        nombre» y su propio botón Salir: nueve copias de lo mismo (once `signOut`
        contados) que había que tocar una a una para cambiar cualquier detalle.
 
-       No se edita ninguna página: el panel se INYECTA y esconde el `.lw-who` y
-       el botón de salir que la página ya trae. Se esconden y no se borran a
-       propósito — el código de cada herramienta les sigue escribiendo dentro
-       (`$('#who').textContent = ...`) y quitarlos del DOM lo rompería.
+       La primera versión (4-ago) no editaba ninguna página: inyectaba el panel y
+       ESCONDÍA el `.lw-who` y el «Salir» que cada herramienta ya traía, porque
+       su propio código les seguía escribiendo dentro y quitarlos del DOM lo
+       habría roto. Era el paso correcto para no tocar nueve ficheros a la vez,
+       pero dejaba nueve copias de marcado muerto que ningún check contaba y que
+       el trinquete de unificación sí veía: era la razón de que la suite tuviera
+       DOS formas de la misma barra.
+       El 26-ago-2026 se completó la mudanza: las ocho herramientas ya no traen
+       ni el chip ni el botón ni el `signOut` propio — solo `<div class="topbar
+       lw-topbar" data-titulo="…">` y lo suyo dentro. Lo de esconder se queda,
+       acotado, por UNA razón concreta: el hub (`/intranet/`) sí tiene su propio
+       `#out` y su propio chip, porque su barra no la monta guard.js.
 
        Lo que NO lleva: un selector de herramientas. El catálogo vive en
        `/intranet/` con sus permisos, y una segunda lista aquí se quedaría vieja
@@ -276,8 +284,10 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     document.body.appendChild(velo);
     document.body.appendChild(panel);
 
-    // la página conserva su marcado, pero deja de enseñarlo: si no, el nombre y
-    // el botón de salir salen dos veces
+    // Si la página trae marcado propio (hoy solo el hub), se esconde en vez de
+    // enseñarse dos veces. En las ocho herramientas esto ya no encuentra nada:
+    // el marcado se retiró el 26-ago-2026 y este bloque es el puente para la
+    // única que queda. Cuando el hub adopte la barra compartida, se va entero.
     var ancla = barra.querySelector('.lw-who');
     if (ancla) ancla.hidden = true;
     var salirViejo = barra.querySelector('#btnLogout, #out, #btnSalir');
