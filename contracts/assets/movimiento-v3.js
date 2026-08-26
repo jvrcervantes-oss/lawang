@@ -594,6 +594,57 @@ function tosta(txt, o={}){
   return el;
 }
 
+
+/* ─── §16.6 · PAGINADOR ──────────────────────────────────────────────────────
+   Una lista de 165 filas no se recorre: se abandona. Y una que crece con los
+   datos deja de caber sin que nadie lo decida — hoy 165, en enero 400.
+
+   Va aquí, compartido, y no dentro de cada pantalla, porque el fallo de fondo
+   era ese: cada herramienta resolvía a su manera lo que hacen todas. Mismo
+   control, mismo sitio, mismo comportamiento con el teclado.
+
+       LW3.paginador({ total, pagina, porPagina, alIr })
+
+   Devuelve el marcado; el que llama decide dónde ponerlo. Con una sola página
+   no devuelve nada: un paginador de «1 de 1» es ruido que además hace dudar de
+   si falta algo. */
+function paginador({ total, pagina, porPagina, alIr, id }){
+  const paginas = Math.max(1, Math.ceil(total / porPagina));
+  if(paginas <= 1) return '';
+  const desde = (pagina - 1) * porPagina + 1;
+  const hasta = Math.min(total, pagina * porPagina);
+  /* Ventana de números alrededor de la actual, con los extremos siempre
+     visibles: sin el primero y el último no se sabe cuánto hay, y saber cuánto
+     hay es la mitad de para qué sirve paginar. */
+  const nums = [];
+  const pon = n => { if(n >= 1 && n <= paginas && nums.indexOf(n) < 0) nums.push(n); };
+  pon(1); for(let i = pagina - 1; i <= pagina + 1; i++) pon(i); pon(paginas);
+  nums.sort((a, b) => a - b);
+  let botones = '';
+  nums.forEach((n, i) => {
+    if(i && n - nums[i-1] > 1) botones += '<span class="hueco">…</span>';
+    botones += '<button type="button" class="pg' + (n === pagina ? ' on' : '') + '"'
+             + ' data-pg="' + n + '"' + (n === pagina ? ' aria-current="page"' : '') + '>' + n + '</button>';
+  });
+  return '<nav class="v3-pager" data-pager="' + (id || '') + '" aria-label="Paginación">'
+    + '<button type="button" class="pg flecha" data-pg="' + (pagina - 1) + '"'
+      + (pagina === 1 ? ' disabled' : '') + ' aria-label="Anterior">‹</button>'
+    + botones
+    + '<button type="button" class="pg flecha" data-pg="' + (pagina + 1) + '"'
+      + (pagina === paginas ? ' disabled' : '') + ' aria-label="Siguiente">›</button>'
+    + '<span class="cuenta">' + desde + '–' + hasta + ' de ' + total + '</span>'
+    + '</nav>';
+}
+/* Cablea los botones de un paginador ya pintado. Aparte del pintado a propósito:
+   las listas se repintan al filtrar, y así el que llama no tiene que acordarse
+   de volver a enganchar nada. */
+function cablearPaginador(raiz, alIr){
+  raiz.querySelectorAll('.v3-pager .pg[data-pg]').forEach(b => {
+    if(b.disabled) return;
+    b.addEventListener('click', () => { alIr(+b.dataset.pg); sensacion('roce'); });
+  });
+}
+
 /* ─── 9 · ARRANQUE ───────────────────────────────────────────────────────────
    Se engancha a lo que hay AHORA y a lo que aparezca después: `topbar.js`
    monta el menú lateral y el panel de cuenta cuando le llega la ficha del
@@ -655,6 +706,7 @@ document.documentElement.setAttribute('data-herr',
 
 window.LW3={ Muelle, fx, mueve, arranca, proyecta, goma, masCerca, rastro,
              sensacion, cajon, pop, popCierra, tosta, MENOS_MOV,
+             paginador, cablearPaginador,
              get sonido(){ return SONIDO; },
              set sonido(v){ SONIDO=!!v; try{ localStorage.setItem('lw3-sonido',v?'1':'0'); }catch(_){} } };
 })();

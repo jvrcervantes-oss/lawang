@@ -22,9 +22,9 @@
 <script src="/contracts/assets/dinero.js?v=bff77614"></script>
 <script src="/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=11479aca">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=9401a096">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
-<script src="/contracts/assets/movimiento-v3.js?v=7862fe9a"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=7cdde41a"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    FACTURAS v3 · el listado — 26-ago-2026
@@ -75,8 +75,7 @@ main{ max-width:1120px; margin:0 auto; padding:24px 24px 80px; }
 .chips{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
 
 .mes{ margin:0 0 16px; }
-.mes > summary{ list-style:none; cursor:pointer; display:flex; align-items:baseline; gap:12px; padding:10px 4px; }
-.mes > summary::-webkit-details-marker{ display:none; }
+.mes > .cab{ display:flex; align-items:baseline; gap:12px; padding:10px 4px; }
 .mes .rot{ font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--texto-2,#4A5052); }
 .mes .sub{ margin-left:auto; font-size:.78rem; color:var(--texto-2,#4A5052); font-variant-numeric:tabular-nums; }
 .mes .sub b{ color:var(--texto,#22282A); }
@@ -114,12 +113,37 @@ main{ max-width:1120px; margin:0 auto; padding:24px 24px 80px; }
 .dato:first-of-type{ border-top:none; }
 .dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
 
+/* ── §16.5 · PANTALLA ESTRECHA ───────────────────────────────────────────────
+   El margen baja de 24 a 16 px y ahí se para: pegar el texto al canto se lee
+   peor, y en un móvil con esquinas redondeadas la primera letra queda bajo la
+   curva. `env(safe-area-inset)` cubre el iPhone en horizontal. Lo que se
+   recorta es el relleno de dentro de las tarjetas, no la calle de fuera. */
 @media (max-width:760px){
-  main{ padding:20px 14px 60px; }
-  .doc{ grid-template-columns:minmax(0,1fr) 120px; gap:10px; }
-  .doc .est{ grid-column:1; margin-top:4px; }
+  main{
+    padding-left:max(16px, env(safe-area-inset-left));
+    padding-right:max(16px, env(safe-area-inset-right));
+    padding-top:18px; padding-bottom:56px;
+  }
+  .dinero{ grid-template-columns:1fr 1fr; gap:12px; }
+  .kpi{ padding:15px 16px; }
+  .kpi .n{ font-size:1.3rem; }
+  .doc{ grid-template-columns:minmax(0,1fr) 122px; gap:10px 12px; padding:13px 16px; }
+  .doc .est{ grid-column:1; grid-row:2; margin-top:2px; }
+  .doc .imp{ grid-column:2; grid-row:1 / span 2; }
   .doc .ir{ display:none; }
+  .alarma{ padding:4px 2px; }
+  .mes > .cab{ flex-wrap:wrap; gap:4px 12px; }
 }
+@media (max-width:440px){
+  .dinero{ grid-template-columns:1fr; }
+  .doc{ grid-template-columns:minmax(0,1fr) 108px; }
+  .doc .quien{ white-space:normal; }
+  .doc .ref{ white-space:normal; }
+}
+/* Misma red de seguridad que en Operaciones: un hijo de grid mide `auto` y
+   empuja la página entera a lo ancho con un nombre largo. */
+main, .dinero, .kpi, .alarma, .doc, .filas, .mes{ min-width:0; }
+.kpi .n{ overflow-wrap:anywhere; }
 </style>
 </head>
 <!-- Sin `hidden`: guard.js destapa con `visibility` en el <html>. -->
@@ -157,6 +181,10 @@ main{ max-width:1120px; margin:0 auto; padding:24px 24px 80px; }
 'use strict';
 const $ = s => document.querySelector(s);
 let SB = null, DOCS = [], PEND = {}, TIPO = '', ANUL = false, FILTRO = '';
+/* 25 por página: con los meses de cabecera son unas 30 líneas, que es lo que
+   cabe de un vistazo sin desplazarse tres pantallas. */
+const POR_PAGINA = 25;
+let PAGINA = 1;
 
 const dinero = (n, m) => lwFormatoImporte(n || 0, m || 'EUR');
 const HOY = new Date().toISOString().slice(0, 10);
@@ -274,26 +302,39 @@ function pintar(){
     cont.innerHTML = '<div class="filas"><p class="vacio">Ningún documento coincide.</p></div>';
     return;
   }
+  /* PAGINACIÓN sobre la lista filtrada, y los meses se pintan DENTRO de la
+     página. Así el mes sigue sirviendo de asidero pero la pantalla no crece con
+     los datos: 165 documentos hoy, y en enero los que sean.
+     Al filtrar, la página vuelve a existir: si estabas en la 5 y el filtro deja
+     dos, se cae a la última que hay en vez de enseñar el vacío. */
+  const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  if(PAGINA > paginas) PAGINA = paginas;
+  const trozo = lista.slice((PAGINA - 1) * POR_PAGINA, PAGINA * POR_PAGINA);
+
   const grupos = {};
-  lista.forEach(f => {
+  trozo.forEach(f => {
     const k = (f.fecha_emision || f.created_at || '').slice(0, 7) || 'sin-fecha';
     (grupos[k] = grupos[k] || []).push(f);
   });
   const claves = Object.keys(grupos).sort().reverse();
-  cont.innerHTML = claves.map((k, i) => {
+  cont.innerHTML = claves.map(k => {
     const g = grupos[k];
     const suma = lwSumaPorMoneda(g.filter(f => !f.anulada && f.tipo !== 'recibi'), f => f.total, f => f.moneda);
     const haySuma = Object.keys(suma).length;
-    /* Los dos meses más recientes abiertos; el resto plegado. Un archivo de
-       catorce meses no puede empezar desplegado: sería la misma lista plana de
-       antes con títulos por medio. */
-    return '<details class="mes"' + (i < 2 ? ' open' : '') + '>'
-      + '<summary><span class="rot">' + esc(k === 'sin-fecha' ? 'Sin fecha' : rotuloMes(k)) + '</span>'
+    /* Sin `<details>`: dentro de una página de 25 no hay nada que plegar, y un
+       plegado que a veces esconde una fila y a veces no es peor que ninguno. */
+    return '<div class="mes"><div class="cab">'
+      + '<span class="rot">' + esc(k === 'sin-fecha' ? 'Sin fecha' : rotuloMes(k)) + '</span>'
       + '<span class="sub">' + g.length + (g.length === 1 ? ' documento' : ' documentos')
-      + (haySuma ? ' · <b>' + esc(lwSumaTexto(suma)) + '</b>' : '') + '</span></summary>'
-      + '<div class="filas">' + g.map(f => filaDoc(f)).join('') + '</div></details>';
-  }).join('');
+      + (haySuma ? ' · <b>' + esc(lwSumaTexto(suma)) + '</b>' : '') + '</span></div>'
+      + '<div class="filas">' + g.map(f => filaDoc(f)).join('') + '</div></div>';
+  }).join('')
+  + LW3.paginador({ total:lista.length, pagina:PAGINA, porPagina:POR_PAGINA });
   cablear(cont);
+  LW3.cablearPaginador(cont, n => {
+    PAGINA = n; pintar();
+    cont.scrollIntoView({ block:'start', behavior: LW3.MENOS_MOV.matches ? 'auto' : 'smooth' });
+  });
 }
 function cablear(raiz){
   raiz.querySelectorAll('.doc').forEach(el => {
@@ -352,10 +393,10 @@ function pintarChips(){
   }).join('')
   + '<button type="button" class="sui-chip' + (ANUL ? ' on' : '') + '" data-anul="1" style="margin-left:8px">Con anuladas</button>';
   $('#chips').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => {
-    TIPO = b.dataset.t; pintarChips(); pintar();
+    TIPO = b.dataset.t; PAGINA = 1; pintarChips(); pintar();
   }));
   $('#chips').querySelector('[data-anul]').addEventListener('click', () => {
-    ANUL = !ANUL; pintarChips(); pintar();
+    ANUL = !ANUL; PAGINA = 1; pintarChips(); pintar();
   });
 }
 
@@ -386,7 +427,7 @@ window.LW_AUTH.then(async ({ sb }) => {
   pintarDinero(); pintarAlarma(); pintarChips(); pintar();
 
   let t = null;
-  $('#q').addEventListener('input', e => { FILTRO = e.target.value; clearTimeout(t); t = setTimeout(pintar, 90); });
+  $('#q').addEventListener('input', e => { FILTRO = e.target.value; PAGINA = 1; clearTimeout(t); t = setTimeout(pintar, 90); });
 });
 })();
 </script>

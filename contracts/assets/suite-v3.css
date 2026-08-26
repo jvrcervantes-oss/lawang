@@ -291,6 +291,62 @@ html.v3 input:focus-visible, html.v3 textarea:focus-visible{
 /* el buscador conserva su pastilla y su lupa: es un filtro, no un campo */
 html.v3 .sui-buscar{ border-radius:var(--r-p,999px); }
 
+
+/* ─── PAGINADOR ──────────────────────────────────────────────────────────────
+   Compartido: el mismo control en Operaciones, en Facturas y en la que venga.
+   Los números son pastillas del mismo tamaño que un chip, y la cuenta
+   («26–50 de 165») va a la derecha porque contesta a otra pregunta: no «adónde
+   voy» sino «cuánto hay». */
+html.v3 .v3-pager{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:16px 4px 4px; font-family:var(--sans,'Jost',system-ui,sans-serif);
+}
+html.v3 .v3-pager .pg{
+  font:inherit; font-size:.78rem; font-weight:500; min-width:34px; height:34px;
+  padding:0 10px; border-radius:var(--r-p,999px);
+  border:1px solid var(--linea,#E4DCCB); background:var(--sup-1,#fff);
+  color:var(--texto-2,#4A5052); cursor:pointer;
+  font-variant-numeric:tabular-nums;
+  transition:border-color 140ms var(--curva,ease), background-color 140ms var(--curva,ease), color 140ms var(--curva,ease);
+}
+html.v3 .v3-pager .pg:hover:not(:disabled){ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F); }
+html.v3 .v3-pager .pg.on{
+  background:var(--texto,#22282A); border-color:var(--texto,#22282A); color:#fff; font-weight:600;
+}
+html.v3 .v3-pager .pg:disabled{ opacity:.35; cursor:default; }
+html.v3 .v3-pager .pg.flecha{ font-size:1rem; line-height:1; padding:0 12px; }
+html.v3 .v3-pager .hueco{ color:var(--texto-3,#676B63); padding:0 2px; }
+html.v3 .v3-pager .cuenta{
+  margin-left:auto; font-size:.76rem; color:var(--texto-2,#4A5052); font-variant-numeric:tabular-nums;
+}
+@media (max-width:560px){
+  html.v3 .v3-pager .cuenta{ margin-left:0; width:100%; order:-1; padding-bottom:6px; }
+}
+
+/* ─── EL BUSCADOR, UNO SOLO EN TODA LA SUITE ─────────────────────────────────
+   Petición del owner (26-ago-2026): «donde haya buscadores, el mismo estilo que
+   la v3 de la intranet». El de la paleta ⌘K es más generoso —texto más grande,
+   más aire, sin borde duro— y se lee como algo en lo que se escribe, no como un
+   campo más de un formulario. Se trae ese trato a `.sui-buscar` y a cualquier
+   `input[type=search]`, que es lo que usan las once. */
+html.v3 .sui-buscar,
+html.v3 input[type="search"]{
+  font-size:.92rem; letter-spacing:-.004em;
+  padding:12px 16px 12px 42px;
+  border:1px solid var(--linea,#E4DCCB);
+  border-radius:var(--r-p,999px);
+  background-color:var(--sup-1,#fff);
+  background-position:left 16px center; background-size:17px 17px;
+  box-shadow:var(--sombra-1);
+}
+html.v3 .sui-buscar::placeholder,
+html.v3 input[type="search"]::placeholder{ color:var(--texto-3,#676B63); }
+html.v3 .sui-buscar:focus,
+html.v3 input[type="search"]:focus{
+  outline:none; border-color:var(--sc,#8F9B7A);
+  box-shadow:var(--sombra-1), 0 0 0 3px rgba(143,155,122,.22);
+}
+
 /* ─── §12 · DIÁLOGOS ─────────────────────────────────────────────────────────
    `display` no se puede animar, así que el JS sostiene el diálogo con esta
    clase el tiempo justo para que salga por el mismo camino por el que entró. */

@@ -29,9 +29,9 @@
      ni la aritmética del dinero se reescriben aquí: eso es lo que hace que esta
      v3 sea un rediseño y no una segunda verdad sobre lo que se debe. -->
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=11479aca">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=9401a096">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
-<script src="/contracts/assets/movimiento-v3.js?v=7862fe9a"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=7cdde41a"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    OPERACIONES v3 — 26-ago-2026
@@ -105,18 +105,9 @@ main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
 .controles{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 16px; }
 .controles .sui-buscar{ flex:1 1 260px; }
 
-/* ── secciones por etapa ─────────────────────────────────────────────────── */
-.etapa{ margin:0 0 14px; }
-.etapa > summary{
-  list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px;
-  padding:10px 4px; font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
-  color:var(--texto-2,#4A5052);
-}
-.etapa > summary::-webkit-details-marker{ display:none; }
-.etapa > summary .punto{ width:8px; height:8px; border-radius:999px; flex:none; }
-.etapa > summary .cuantas{ color:var(--texto-3,#676B63); font-weight:500; letter-spacing:0; text-transform:none; }
-.etapa > summary .chev{ margin-left:auto; font-size:.9rem; color:var(--texto-3,#676B63); }
-.etapa[open] > summary .chev{ transform:rotate(90deg); }
+/* ── chips de etapa ─────────────────────────────────────────────────────── */
+.chips{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px; }
+.sui-chip .punto{ display:inline-block; width:7px; height:7px; border-radius:999px; margin-right:6px; vertical-align:1px; }
 .filas{ background:var(--sup-1,#fff); border:1px solid var(--linea,#E4DCCB);
         border-radius:var(--r-l,18px); box-shadow:var(--sombra-1); overflow:hidden; }
 
@@ -133,6 +124,7 @@ main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
 .op .quien{ font-size:.92rem; font-weight:600; letter-spacing:-.008em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .op .donde{ display:block; margin-top:3px; font-size:.76rem; color:var(--texto-2,#4A5052);
             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.op .donde .punto{ display:inline-block; width:7px; height:7px; border-radius:999px; margin-right:6px; vertical-align:1px; }
 .op .pago{ min-width:0; }
 .op .pago .b{ height:7px; border-radius:999px; background:#EAE4D3; overflow:hidden; }
 .op .pago .b i{ display:block; height:100%; border-radius:999px; background:var(--tg,#485B37); }
@@ -161,13 +153,55 @@ main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
 .dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
 .mini{ font-size:.78rem; color:var(--texto-2,#4A5052); line-height:1.5; }
 
+/* ── §16.5 · PANTALLA ESTRECHA ───────────────────────────────────────────────
+   Los márgenes NO se estrechan hasta pegarse al borde. Un texto que arranca a
+   4 px del canto se lee peor y, en un móvil con esquinas redondeadas, la
+   primera letra queda debajo de la curva. Se baja de 24 a 16 px y ahí se para;
+   lo que se recorta es el relleno DENTRO de las tarjetas, no la calle de
+   fuera. Y `env(safe-area-inset)` para el iPhone en horizontal, donde la muesca
+   se come el lateral. */
 @media (max-width:820px){
-  main{ padding:20px 14px 60px; }
-  .op{ grid-template-columns:minmax(0,1fr) 110px; gap:12px; }
-  .op .pago{ grid-column:1; }
-  .op .falta{ text-align:left; }
+  main{
+    padding-left:max(16px, env(safe-area-inset-left));
+    padding-right:max(16px, env(safe-area-inset-right));
+    padding-top:18px; padding-bottom:56px;
+  }
+  .dinero{ padding:17px 18px; }
+  .dinero .cifras{ gap:20px; }
+  .dinero .c .n{ font-size:1.42rem; }
+  .urge{ padding:4px 2px; }
+  .urgeFila{ grid-template-columns:1fr auto; gap:10px; padding:12px 16px; }
+  .urgeFila .verbo{ grid-column:2; }
+  .urgeFila i.ph{ display:none; }
+  .op{ grid-template-columns:minmax(0,1fr) 118px; gap:12px 14px; padding:13px 16px; }
+  .op .pago{ grid-column:1; grid-row:2; }
+  .op .falta{ grid-column:2; grid-row:1 / span 2; text-align:right; }
   .op .ir{ display:none; }
+  .controles{ gap:8px; }
 }
+@media (max-width:520px){
+  main{ padding-bottom:64px; }
+  /* UNA columna, no dos. A 390 px la mitad son 171 px y «395.275,00 EUR» a
+     1,42rem mide más que eso: las dos columnas empujaban la página a lo ancho y
+     la cifra salía cortada por el canto. La regla que faltaba no es de tamaño de
+     letra, es de cuántas columnas caben. */
+  .dinero .cifras{ display:grid; grid-template-columns:1fr; gap:14px; }
+  .dinero .c .n{ font-size:1.34rem; }
+  /* El verbo baja a su línea: en `1fr auto` el `auto` no se encoge, así que
+     «Generar el enlace» reservaba su ancho y se comía el texto de al lado. */
+  .urgeFila{ grid-template-columns:1fr; gap:6px; }
+  .urgeFila .verbo{ grid-column:1; justify-self:start; }
+  .op{ grid-template-columns:minmax(0,1fr) 100px; }
+  .op .quien{ white-space:normal; }
+  .op .donde{ white-space:normal; }
+}
+/* Red de seguridad: ningún hijo de un grid mide `auto` por defecto sin pedirlo.
+   Sin esto, un nombre largo o una cifra ancha empujan TODA la página a lo ancho
+   y el móvil se desplaza de lado — el mismo fallo que ya está anotado en el
+   panel con la tabla de operaciones recientes. */
+main, .dinero, .urge, .op, .urgeFila, .filas{ min-width:0; }
+.dinero .c{ min-width:0; }
+.dinero .c .n{ overflow-wrap:anywhere; }
 </style>
 </head>
 <!-- Sin `hidden`: guard.js destapa poniendo `visibility` en el <html>, no
@@ -188,6 +222,7 @@ main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
     <select class="lw-select" id="fProyecto"><option value="">Todos los proyectos</option></select>
   </div>
 
+  <div class="chips" id="chips"></div>
   <div id="etapas"></div>
 </main>
 
@@ -233,44 +268,31 @@ const hace = f => { const d = -dias(f); return d <= 0 ? 'hoy' : d === 1 ? 'ayer'
    164.000 que está anotado en el asset compartido). Se cuenta cada grupo una
    sola vez, por su contrato raíz. */
 function pintarDinero(){
-  /* SOLO LO FIRMADO — decisión del owner, 26-ago-2026: «no sumes valores hasta
-     que no estén firmados».
-     Un contrato sin firmar es un precio pactado de palabra: puede cambiar, puede
-     caerse, y meterlo en «contratado» infla una cifra que se usa para decidir.
-     Esto también resuelve la pregunta que quedaba abierta —qué es «contratado»—
-     y de paso hace que el número deje de depender de si se cuenta el grupo o
-     solo la raíz: lo que no está firmado no entra, venga de donde venga.
-     Las que faltan NO desaparecen de la pantalla: siguen en su etapa, con su
-     precio en la fila. Lo que no hacen es sumar arriba. */
+  /* TODO CUENTA, firmado o no — 26-ago-2026. El owner pidió primero contar solo
+     lo firmado y lo retiró el mismo día: «fue error mío». Y con los números
+     delante se entiende por qué — dejar fuera lo no firmado dejaba fuera
+     1.121.172 € de señales y reservas YA COBRADAS, más de diez veces lo cobrado
+     de los firmados. Un total que esconde dinero que está en la cuenta es peor
+     que uno optimista.
+     Lo que SÍ se queda de aquel intento es decir cuánto de esto todavía no está
+     firmado: la cifra se lee distinto sabiéndolo. */
   const raices = OPS.filter(o => !o.padre);
-  const firmadas = raices.filter(o => {
-    /* Un grupo cuenta si su contrato principal está firmado. Los hijos de un
-       padre firmado (la construcción que cuelga de su parcela) entran con él:
-       es una sola venta y `cuentaGrupo` ya la cuenta una vez. */
-    return o.bloqueado;
-  });
-  /* POR MONEDA. Sumar euros con dólares en una cifra y etiquetarla con la
-     moneda de la última operación leída es un total que no existe — es el
-     fallo que la auditoría del 19-ago-2026 encontró en Facturas, y que aquí
-     volví a escribir. El ayudante vive en dinero.js. */
-  const cuentas = firmadas.map(o => cuentaGrupo(o));
+  const cuentas = raices.map(o => cuentaGrupo(o));
   const precioM  = lwSumaPorMoneda(cuentas, c => c.precio || 0, c => c.moneda);
   const cobradoM = lwSumaPorMoneda(cuentas, c => c.facturado || 0, c => c.moneda);
   const pendM = {};
   Object.keys(precioM).forEach(m => { pendM[m] = Math.max(0, precioM[m] - (cobradoM[m] || 0)); });
-  const sinFirmar = raices.filter(o => !o.bloqueado).map(o => cuentaGrupo(o));
-  const cobradoSinFirmarM = lwSumaPorMoneda(sinFirmar, c => c.facturado || 0, c => c.moneda);
-  const hayAlgo = Object.values(cobradoSinFirmarM).some(v => v > 0.005);
-  const cobradoSinFirmar = hayAlgo ? lwSumaTexto(cobradoSinFirmarM) : '';
+  const sinFirmar = raices.filter(o => !o.bloqueado);
+  const precioSinFirmar = lwSumaPorMoneda(sinFirmar.map(o => cuentaGrupo(o)), c => c.precio || 0, c => c.moneda);
+  const haySinFirmar = Object.values(precioSinFirmar).some(v => v > 0.005);
   const mp = lwMonedaPrincipal(precioM);
   const pct = precioM[mp] ? Math.min(100, (cobradoM[mp] || 0) / precioM[mp] * 100) : 0;
   const varias = Object.keys(precioM).length > 1;
   $('#dinero').innerHTML =
     '<div class="cifras">'
     + '<div class="c"><span class="rot">Contratado</span><span class="n">' + esc(lwSumaTexto(precioM)) + '</span>'
-      + '<small>' + firmadas.length + ' operaciones firmadas'
-      + (raices.length > firmadas.length ? ' · ' + (raices.length - firmadas.length) + ' sin firmar, fuera' : '')
-      + '</small></div>'
+      + '<small>' + raices.length + ' operaciones'
+      + (sinFirmar.length ? ' · ' + sinFirmar.length + ' aún sin firmar' : '') + '</small></div>'
     + '<div class="c"><span class="rot">Cobrado</span><span class="n">' + esc(lwSumaTexto(cobradoM)) + '</span>'
       + '<small>' + pct.toFixed(1).replace('.', ',') + ' % del contratado' + (varias ? ' en ' + mp : '') + '</small></div>'
     + '<div class="c pend"><span class="rot">Pendiente</span><span class="n">' + esc(lwSumaTexto(pendM)) + '</span>'
@@ -279,20 +301,11 @@ function pintarDinero(){
     /* La nota explica la regla en la propia pantalla. Un total que excluye cosas
        sin decirlo es peor que uno inflado: el inflado se discute, el silencioso
        se cree. */
-    + '<p class="mini" style="margin:12px 0 0">Solo cuenta lo <b>firmado</b>. Un contrato'
-    + ' sin firmar es un precio de palabra, así que no suma aquí — sigue abajo, en su etapa,'
-    + ' con su importe.'
-    /* PERO EL DINERO QUE YA ENTRÓ SE DICE IGUAL. Las tres cifras de arriba
-       describen la cartera firmada, que es lo pedido y es una base coherente.
-       El problema es que dejar fuera lo no firmado también deja fuera las
-       señales y reservas YA COBRADAS de esos contratos: dinero real, en la
-       cuenta. Excluirlo sin decirlo sería el mismo pecado que inflar el total,
-       solo que hacia el otro lado. Se dice en una línea. */
-    + (cobradoSinFirmar
-        ? ' Aparte, ya han entrado <b>' + esc(cobradoSinFirmar) + '</b> de operaciones'
-          + ' todavía sin firmar (señales y reservas), que no se cuentan arriba.'
-        : '')
-    + '</p>';
+    + (haySinFirmar
+        ? '<p class="mini" style="margin:12px 0 0">De este total, <b>' + esc(lwSumaTexto(precioSinFirmar))
+          + '</b> son operaciones <b>todavía sin firmar</b>: precio pactado que aún puede cambiar.'
+          + ' El resto ya está firmado.</p>'
+        : '');
   $('#dinero').hidden = false;
 }
 
@@ -376,16 +389,27 @@ function pintarUrge(){
   });
 }
 
-/* ── 3 · LAS OPERACIONES, POR ETAPA ───────────────────────────────────────
-   Secciones plegables y no un tablero lateral: un embudo obliga a desplazarse
-   en horizontal para leer una columna, y aquí lo que se busca es una fila.
-   «Cobro completo» nace PLEGADA — no pide nada, así que no puede ocupar el
-   mismo sitio que las que sí. */
-const ABIERTA = { sin_firmar:true, firma_viva:true, cobro_pend:true, cobro_ok:false };
+/* ── 3 · LAS OPERACIONES: CHIPS + LISTA PAGINADA ──────────────────────────
+   Antes eran secciones plegables por etapa. Se cambian por CHIPS de etapa y una
+   lista plana paginada, y por dos motivos:
+
+     · la lista es larga y crece — 95 hoy, más en enero. Una lista que crece con
+       los datos deja de caber sin que nadie lo decida. (Y no debería hacer
+       falta pedirlo: cualquier lista que salga de una tabla lleva paginación
+       desde el primer día.)
+     · y así esta pantalla y la de Facturas se manejan IGUAL: buscar, filtrar
+       con chips, pasar página. Dos pantallas de la misma suite que se operan
+       distinto son dos cosas que aprender en vez de una.
+
+   El chip lleva su cuenta, como en Facturas, así que se sigue viendo el reparto
+   por etapa de un vistazo — que era lo bueno de las secciones. */
+const POR_PAGINA = 20;
+let ETAPA = '', PAGINA = 1;
 
 function casa(o){
   const t = FILTRO.trim().toLowerCase();
   if(PROY && (o.proyecto_nombre || '') !== PROY) return false;
+  if(ETAPA && etapa(o) !== ETAPA) return false;
   if(!t) return true;
   return [o.numero, o.comprador_nombre, o.proyecto_nombre, EQUIPO[o.creado_por] || o.creado_por]
     .join(' ').toLowerCase().includes(t);
@@ -395,12 +419,15 @@ function fila(o){
   const c = cuentaGrupo(o);
   const pct = c.precio ? Math.min(100, ((c.facturado || 0) / c.precio) * 100) : 0;
   const debe = c.pendiente != null && c.pendiente > 0.005;
-  const tipo = lwTipoContrato(o.tipo);
   const faltan = fichasQueFaltan(o);
+  const et = etapa(o);
+  const rot = (ETAPAS.find(e => e[0] === et) || ['', ''])[1];
   return '<div class="op" data-id="' + esc(o.id) + '">'
     + '<span><span class="quien">' + esc(o.comprador_nombre || 'Sin comprador')
       + (faltan ? '<span class="aviso">falta ficha</span>' : '')
-      + '</span><span class="donde">' + esc(o.numero || '—') + ' · ' + esc(tipo)
+      + '</span><span class="donde">'
+      + '<i class="punto" style="background:' + ETAPA_COLOR[et] + '"></i>' + esc(rot) + ' · '
+      + esc(o.numero || '—') + ' · ' + esc(lwTipoContrato(o.tipo))
       + (o.proyecto_nombre ? ' · ' + esc(o.proyecto_nombre) : '') + '</span></span>'
     + '<span class="pago">'
       + (c.precio
@@ -415,30 +442,47 @@ function fila(o){
     + '<i class="ph ph-arrow-right ir"></i></div>';
 }
 
+function pintarChips(){
+  /* Solo las raíces: un contrato hijo no es otra venta. */
+  const base = OPS.filter(o => !o.padre);
+  const cuenta = k => base.filter(o => !k || etapa(o) === k).length;
+  $('#chips').innerHTML =
+    '<button type="button" class="sui-chip' + (ETAPA === '' ? ' on' : '') + '" data-et="">'
+    + 'Todas <span class="n">' + cuenta('') + '</span></button>'
+    + ETAPAS.map(([k, rot]) => {
+        const n = cuenta(k);
+        return '<button type="button" class="sui-chip' + (ETAPA === k ? ' on' : '') + (n ? '' : ' vacio')
+          + '" data-et="' + k + '"><i class="punto" style="background:' + ETAPA_COLOR[k] + '"></i>'
+          + esc(rot) + ' <span class="n">' + n + '</span></button>';
+      }).join('');
+  $('#chips').querySelectorAll('[data-et]').forEach(b => b.addEventListener('click', () => {
+    ETAPA = b.dataset.et; PAGINA = 1; pintarChips(); pintar();
+  }));
+}
+
 function pintar(){
-  /* Solo las raíces: un contrato hijo (la construcción que cuelga de su
-     parcela) no es otra venta, y enseñarlo suelto contaría el mismo comprador
-     dos veces. Se ve dentro, en el detalle del grupo. */
   const lista = OPS.filter(o => !o.padre).filter(casa);
   const cont = $('#etapas');
   if(!lista.length){
     cont.innerHTML = '<div class="filas"><p class="vacio">Ninguna operación coincide con lo que has escrito.</p></div>';
     return;
   }
-  cont.innerHTML = ETAPAS.map(([id, rot]) => {
-    const ops = lista.filter(o => etapa(o) === id);
-    if(!ops.length) return '';
-    return '<details class="etapa"' + (ABIERTA[id] ? ' open' : '') + ' data-etapa="' + id + '">'
-      + '<summary><span class="punto" style="background:' + ETAPA_COLOR[id] + '"></span>'
-      + esc(rot) + ' <span class="cuantas">· ' + ops.length + '</span>'
-      + '<i class="ph ph-caret-right chev"></i></summary>'
-      + '<div class="filas">' + ops.map(fila).join('') + '</div></details>';
-  }).join('');
+  /* La página no puede quedarse fuera del rango al filtrar: si estabas en la 4
+     y el filtro deja dos páginas, se vuelve a la última que existe en vez de
+     enseñar una lista vacía que parece un error. */
+  const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  if(PAGINA > paginas) PAGINA = paginas;
+  const trozo = lista.slice((PAGINA - 1) * POR_PAGINA, PAGINA * POR_PAGINA);
+  cont.innerHTML = '<div class="filas">' + trozo.map(fila).join('') + '</div>'
+    + LW3.paginador({ total:lista.length, pagina:PAGINA, porPagina:POR_PAGINA });
   cont.querySelectorAll('.op').forEach(el => {
     el.addEventListener('click', () => abrirDetalle(el.dataset.id, el));
   });
-  cont.querySelectorAll('.etapa').forEach(d => {
-    d.addEventListener('toggle', () => { ABIERTA[d.dataset.etapa] = d.open; });
+  LW3.cablearPaginador(cont, n => {
+    PAGINA = n; pintar();
+    /* Al cambiar de página se sube al principio de la lista: si no, apareces a
+       media pantalla en filas que no habías visto empezar. */
+    cont.scrollIntoView({ block:'start', behavior: LW3.MENOS_MOV.matches ? 'auto' : 'smooth' });
   });
 }
 
@@ -525,14 +569,15 @@ window.LW_AUTH.then(async ({ sb }) => {
   $('#fProyecto').innerHTML = '<option value="">Todos los proyectos</option>'
     + proyectos.map(p => '<option>' + esc(p) + '</option>').join('');
 
-  pintarDinero(); pintarUrge(); pintar();
+  pintarDinero(); pintarUrge(); pintarChips(); pintar();
 
   let t = null;
   $('#q').addEventListener('input', e => {
     FILTRO = e.target.value;
+    PAGINA = 1;
     clearTimeout(t); t = setTimeout(pintar, 90);
   });
-  $('#fProyecto').addEventListener('change', e => { PROY = e.target.value; pintar(); });
+  $('#fProyecto').addEventListener('change', e => { PROY = e.target.value; PAGINA = 1; pintarChips(); pintar(); });
 });
 
 })();
