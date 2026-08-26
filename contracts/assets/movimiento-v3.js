@@ -720,10 +720,125 @@ function vigilaTablas(){
        ponemos a cada fila no se vuelve a disparar a sí mismo. */
     new MutationObserver(() => {
       clearTimeout(t.__t3);
-      t.__t3 = setTimeout(() => paginaTabla(t), 40);
+      t.__t3 = setTimeout(() => { saldosEnTabla(t); paginaTabla(t); }, 40);
     }).observe(cuerpo, { childList:true });
-    paginaTabla(t);
+    saldosEnTabla(t); paginaTabla(t);
   });
+}
+
+
+/* ─── NOMBRE Y PENDIENTE EN LA TABLA YA PINTADA ──────────────────────────────
+   Encargo del cliente: «me falta ver nombres y balances pendientes de pago».
+   El cálculo vive en `saldos-v3.js`; esto solo lo mete en la tabla que la
+   herramienta acaba de pintar, sin que ella se entere — igual que la
+   paginación automática.
+
+   Cómo se ata cada fila a su dinero: por la columna que ya existe.
+     · una cabecera «CONTRATO» → el número de contrato de esa fila
+     · una cabecera «CONTACTO» (Compradores) → el email de esa fila
+   Lo que no se pueda atar se queda con un guion. Un cero inventado en una
+   columna de dinero es peor que un hueco: el hueco se pregunta, el cero se
+   cree. Es la misma regla que ya gobierna las cifras del panel. */
+/* `esc()` vive en suite-comun.js y no todas las páginas lo cargan. Este es el
+   mismo escape, local, porque aquí se está metiendo texto de la base en el DOM
+   y eso no se hace sin escapar aunque «sean nombres de personas». */
+const esc3 = v => String(v == null ? '' : v).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function indiceCabecera(tabla, textos){
+  const th = tabla.tHead && tabla.tHead.rows[0];
+  if(!th) return -1;
+  return [...th.cells].findIndex(c => {
+    /* Las cabeceras que hemos puesto NOSOTROS no cuentan. Sin esto, al repintar
+       la tabla el código veía su propia columna «Comprador», concluía que la
+       herramienta ya la tenía y dejaba de rellenar las celdas: cabecera puesta
+       y filas vacías. Un detector que se detecta a sí mismo siempre acaba así. */
+    if(c.hasAttribute('data-v3-nombre') || c.hasAttribute('data-v3-saldo')) return false;
+    const t = c.textContent.trim().toLowerCase().replace(/[▲▼]/g, '');
+    return textos.some(x => t === x || t.startsWith(x));
+  });
+}
+function saldosEnTabla(tabla){
+  if(!window.LW_SALDOS || !LW_SALDOS.listo) return;
+  const th = tabla.tHead && tabla.tHead.rows[0];
+  const cuerpo = tabla.tBodies && tabla.tBodies[0];
+  if(!th || !cuerpo) return;
+
+  const iContrato = indiceCabecera(tabla, ['contrato']);
+  const iContacto = indiceCabecera(tabla, ['contacto']);
+  if(iContrato < 0 && iContacto < 0) return;          // esta tabla no habla de dinero de nadie
+
+  /* ¿Falta también el NOMBRE? Proyectos y Obra listan unidades por código y no
+     dicen de quién son: hay que abrir el contrato para saberlo. Si la tabla ya
+     trae comprador o cliente no se toca — no se duplica una columna que existe. */
+  const ponNombre = iContrato >= 0 && indiceCabecera(tabla, ['comprador', 'cliente']) < 0;
+
+  /* Las cabeceras se ponen una vez. `data-v3-*` marca las que son nuestras para
+     no duplicarlas cuando la herramienta repinte el cuerpo. */
+  if(ponNombre && !th.querySelector('[data-v3-nombre]')){
+    const c = document.createElement('th');
+    c.setAttribute('data-v3-nombre', '1');
+    c.textContent = 'Comprador';
+    th.appendChild(c);
+  }
+  if(!th.querySelector('[data-v3-saldo]')){
+    const c = document.createElement('th');
+    c.setAttribute('data-v3-saldo', '1');
+    c.className = 'num';
+    c.textContent = 'Pendiente';
+    th.appendChild(c);
+  }
+
+  [...cuerpo.rows].forEach(f => {
+    /* Filas de «Cargando…» o de mensaje: llevan un colspan y no son datos. */
+    if(f.cells.length && f.cells[0].colSpan > 1) return;
+    let cn = null;
+    if(ponNombre){
+      cn = f.querySelector('[data-v3-nombre]');
+      if(!cn){
+        cn = document.createElement('td');
+        cn.setAttribute('data-v3-nombre', '1');
+        cn.className = 'v3-nombre-td';
+        f.appendChild(cn);
+      }
+    }
+    let c = f.querySelector('[data-v3-saldo]');
+    if(!c){
+      c = document.createElement('td');
+      c.setAttribute('data-v3-saldo', '1');
+      c.className = 'num v3-saldo-td';
+      f.appendChild(c);
+    }
+    let ficha = null;
+    if(iContrato >= 0 && f.cells[iContrato]){
+      /* La celda puede traer el número con el tipo detrás («CC00026
+         Construcción»): se coge el primer token, que es el número. */
+      const bruto = f.cells[iContrato].textContent.trim().split(/\s+/)[0];
+      if(bruto && bruto !== '—') ficha = LW_SALDOS.porNumero(bruto);
+    }
+    if(!ficha && iContacto >= 0 && f.cells[iContacto]){
+      const m = f.cells[iContacto].textContent.match(/[\w.+-]+@[\w.-]+\.\w+/);
+      if(m) ficha = LW_SALDOS.porPersona(m[0]);
+    }
+    if(cn) cn.innerHTML = (ficha && ficha.comprador)
+      ? esc3(ficha.comprador)
+      : '<span class="v3-saldo-mudo">sin vender</span>';
+    c.innerHTML = LW_SALDOS.celda(ficha);
+  });
+}
+/* Arranca el cálculo en cuanto haya con qué. `guard.js` publica el cliente en
+   `LW_AUTH`; el panel v3 lo anuncia por `lw-ficha` con `window.LW_SB`. */
+function arrancaSaldos(){
+  if(window.__saldos3) return; window.__saldos3 = true;
+  const conSB = sb => {
+    if(!sb || typeof lwOperacionesCargar !== 'function') return;
+    LW_SALDOS.cargar(sb).then(() => document.querySelectorAll('table.sui-tabla').forEach(t => {
+      saldosEnTabla(t); paginaTabla(t);
+    }));
+  };
+  if(window.LW_AUTH) window.LW_AUTH.then(ctx => conSB(ctx && ctx.sb)).catch(() => {});
+  else if(window.LW_SB) conSB(window.LW_SB);
+  else document.addEventListener('lw-ficha', () => conSB(window.LW_SB), { once:true });
 }
 
 /* ─── 9 · ARRANQUE ───────────────────────────────────────────────────────────
@@ -751,6 +866,7 @@ function escanea(n){
 function engancha(){
   escanea(document.body);
   vigilaTablas();
+  if(window.LW_SALDOS) arrancaSaldos();
   const barra=document.querySelector('.lw-topbar');
   if(barra) bordeDeScroll(barra);
 }

@@ -323,6 +323,18 @@ html.v3 .v3-pager .cuenta{
   html.v3 .v3-pager .cuenta{ margin-left:0; width:100%; order:-1; padding-bottom:6px; }
 }
 
+/* ─── COLUMNA DE PENDIENTE ───────────────────────────────────────────────────
+   Una sola cifra, y debajo en rojo la parte ya vencida cuando la hay. Dos
+   líneas en vez de dos columnas: en un móvil plegado una columna más no cabe,
+   y lo vencido no es otro dato — es un matiz del mismo. */
+html.v3 td.v3-nombre-td{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html.v3 td.v3-saldo-td{ white-space:nowrap; font-variant-numeric:tabular-nums; }
+html.v3 .v3-saldo{ display:block; font-weight:600; color:#8C5E10; }
+html.v3 .v3-saldo-venc{ display:block; font-size:.72rem; font-weight:600; color:#9E2F26; margin-top:1px; }
+html.v3 .v3-saldo-ok{ color:var(--bien,#3F5230); font-weight:500; }
+/* Lo que no se ha podido atar a una operación NO dice cero. */
+html.v3 .v3-saldo-mudo{ color:var(--texto-3,#676B63); }
+
 /* Fila fuera de la página actual. Clase propia y no `hidden` ni `style`: las
    herramientas usan esas dos cosas para su propio filtrado. */
 html.v3 tr.v3-fuera{ display:none !important; }
