@@ -448,7 +448,14 @@
     <select id="selTipo" class="lw-select" aria-label="Tipo de documento"
             title="Cada tipo lleva su propia serie: INV, PRO, REC">
       <option value="factura">Factura</option>
-      <option value="proforma">Factura proforma</option>
+      <!-- 🔴 LA PROFORMA YA NO SE EMITE (26-ago-2026, decisión del cliente): al
+           firmarse el contrato se emite UNA factura por el total de la unidad, y
+           conforme entren pagos se emiten recibís. La opción NO se borra del
+           todo: hay 112 proformas vivas y al abrir una hay que poder leer su
+           etiqueta —si el `<option>` no existe, el `select` cae a «Factura» y un
+           PRO000xx aparecería rotulado como factura—. Va oculta y deshabilitada,
+           y `abrir()` la destapa solo para el documento que ya lo es. -->
+      <option value="proforma" data-legado hidden disabled>Factura proforma</option>
       <option value="recibi">Recibí</option>
     </select>
     <div class="lw-spacer"></div>
@@ -1675,7 +1682,12 @@ $('#btnSave').onclick = async () => {
 function nuevoDocumento(tipo){
   SAVED = null; CONTRATO_ID = null; $('#form').reset();
   // el selector de tipo vive fuera del <form>, así que reset() no lo toca
-  $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
+  /* Ni por el filtro del listado ni por `?tipo=proforma` en la URL: una puerta
+     que sigue abierta es la que alguien acaba cruzando. */
+  const pedido = (tipo === 'proforma') ? 'factura' : tipo;
+  $('#selTipo').value = (pedido && TIPOS[pedido]) ? pedido : 'factura';
+  const opProf = $('#selTipo').querySelector('[data-legado]');
+  if(opProf){ opProf.hidden = true; opProf.disabled = true; }
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
   APLICACIONES = []; JUSTIFICANTES = []; $('#fJustificante').value = ''; pintarEstadoJustificante();
@@ -1842,7 +1854,7 @@ function recargarListado(){ LDOCS = null; return cargarListado(); }
    (`nuevoDocumento(LTIPO || 'factura')`). Sin filtro se emite una factura, asi
    que eso es lo que anuncia. */
 const NUEVA_ROTULO = { '':'Nueva factura', factura:'Nueva factura',
-                       proforma:'Nueva proforma', recibi:'Nuevo recibí' };
+                       proforma:'Nueva factura', recibi:'Nuevo recibí' };
 /* PAGINACIÓN (26-ago-2026). El listado sacaba las 165 filas de golpe — es la
    tercera vez que el owner lo pide por su nombre, así que la pieza vive en
    `assets/paginacion.js` y la usan todas por igual, en vez de una copia aquí.
@@ -2200,8 +2212,11 @@ $('#btnList').onclick = () => {
    que quieres emitir es un recibí. Es lo que hace que la tarjeta «Recibos» del
    hub siga llevando a emitir un recibí en dos clics y no en cuatro. */
 $('#btnNuevaDoc').onclick = () => {
-  nuevoDocumento(LTIPO || 'factura');
-  pantalla('documento', 'nueva=1' + (LTIPO ? '&tipo=' + LTIPO : ''));
+  /* Heredaba el tipo filtrado, así que mirando proformas emitía una proforma.
+     Ese camino se cierra: proforma ya no se emite. */
+  const t = (LTIPO === 'proforma') ? 'factura' : (LTIPO || 'factura');
+  nuevoDocumento(t);
+  pantalla('documento', 'nueva=1&tipo=' + t);
 };
 
 async function abrir(f){
@@ -2210,7 +2225,13 @@ async function abrir(f){
   // valor viejo escrito encima — reset() antes de aplicar los del nuevo
   $('#form').reset();
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
-  $('#selTipo').value = f.tipo || d.tipo || 'factura';
+  /* Al abrir una proforma de las 112 que ya existen, su opción se destapa para
+     que el rótulo diga la verdad. El `select` queda deshabilitado igualmente
+     (`st.disabled = !!SAVED`): se lee, no se cambia. */
+  const tipoDoc = f.tipo || d.tipo || 'factura';
+  const opLeg = $('#selTipo').querySelector('[data-legado]');
+  if(opLeg){ const esLegado = tipoDoc === opLeg.value; opLeg.hidden = !esLegado; opLeg.disabled = !esLegado; }
+  $('#selTipo').value = tipoDoc;
   // CLONADAS, no por referencia (auditoría 19-ago): apuntaban al array de la
   // caché del listado, así que editar líneas sin guardar quedaba escrito en
   // LDOCS y reabrir el documento enseñaba la edición fantasma
