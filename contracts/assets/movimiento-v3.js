@@ -720,9 +720,9 @@ function vigilaTablas(){
        ponemos a cada fila no se vuelve a disparar a sí mismo. */
     new MutationObserver(() => {
       clearTimeout(t.__t3);
-      t.__t3 = setTimeout(() => { saldosEnTabla(t); paginaTabla(t); }, 40);
+      t.__t3 = setTimeout(() => { saldosEnTabla(t); etiquetaCeldas(t); paginaTabla(t); }, 40);
     }).observe(cuerpo, { childList:true });
-    saldosEnTabla(t); paginaTabla(t);
+    saldosEnTabla(t); etiquetaCeldas(t); paginaTabla(t);
   });
 }
 
@@ -876,12 +876,62 @@ function arrancaSaldos(){
   const conSB = sb => {
     if(!sb || typeof lwOperacionesCargar !== 'function') return;
     LW_SALDOS.cargar(sb).then(() => document.querySelectorAll('table.sui-tabla').forEach(t => {
-      saldosEnTabla(t); paginaTabla(t);
+      saldosEnTabla(t); etiquetaCeldas(t); paginaTabla(t);
     }));
   };
   if(window.LW_AUTH) window.LW_AUTH.then(ctx => conSB(ctx && ctx.sb)).catch(() => {});
   else if(window.LW_SB) conSB(window.LW_SB);
   else document.addEventListener('lw-ficha', () => conSB(window.LW_SB), { once:true });
+}
+
+
+/* ─── TABLAS EN PANTALLA ESTRECHA ────────────────────────────────────────────
+   Owner, 26-ago-2026: «sigo con problemas con el ZFold». Medido en su ancho
+   real: la tabla de Facturas mide 1.100 px dentro de una pantalla de 344. No
+   desborda la página —se desplaza dentro de su caja— pero se ven 3 columnas de
+   9, y hay que arrastrar de lado para leer una fila. Y las columnas que hemos
+   añadido nosotros (comprador, pendiente) la hacen aún más ancha.
+
+   Debajo de 640 px la tabla deja de ser tabla y cada fila pasa a ser una
+   ficha, con la cabecera de su columna delante de cada dato. Es el patrón que
+   funciona en un móvil: se lee hacia abajo, que es como se desplaza un
+   teléfono, en vez de hacia los lados, que es como no se desplaza nadie.
+
+   Las etiquetas se copian de los `<th>` a un `data-etq` de cada `<td>`: el CSS
+   solo no puede leer la cabecera de su columna. Se hace aquí y no en cada
+   herramienta porque son ocho tablas en ocho ficheros. */
+function etiquetaCeldas(tabla){
+  const th = tabla.tHead && tabla.tHead.rows[0];
+  const cuerpo = tabla.tBodies && tabla.tBodies[0];
+  if(!th || !cuerpo) return;
+  const rot = [...th.cells].map(c => c.textContent.trim().replace(/[▲▼]/g, '').trim());
+  [...cuerpo.rows].forEach(f => {
+    if(f.cells.length && f.cells[0].colSpan > 1) return;
+    [...f.cells].forEach((c, i) => {
+      const t = rot[i];
+      /* Sin etiqueta no se inventa una: una celda con `data-etq=""` sale con dos
+         puntos huérfanos delante, que es peor que sin nada. */
+      if(t) c.setAttribute('data-etq', t); else c.removeAttribute('data-etq');
+    });
+  });
+}
+
+/* ─── EL MENÚ LATERAL, CON SU NOMBRE ─────────────────────────────────────────
+   «Sigo sin ver el menú lateral». Estaba: es el botón ☰ de arriba a la
+   izquierda, 38 px, sin una palabra al lado. Un icono solo lo reconoce quien ya
+   sabe que está — y en un móvil es la única puerta al resto de la suite. Se le
+   pone la palabra. */
+function nombraMenuMovil(){
+  const b = document.querySelector('.lw-rail-movil');
+  if(!b || b.__rot3) return;
+  b.__rot3 = true;
+  if(!b.querySelector('.v3-rot')){
+    const s = document.createElement('span');
+    s.className = 'v3-rot';
+    s.textContent = 'Menú';
+    b.appendChild(s);
+  }
+  if(!b.getAttribute('aria-label')) b.setAttribute('aria-label', 'Abrir el menú de herramientas');
 }
 
 /* ─── 9 · ARRANQUE ───────────────────────────────────────────────────────────
@@ -909,6 +959,7 @@ function escanea(n){
 function engancha(){
   escanea(document.body);
   vigilaTablas();
+  nombraMenuMovil();
   if(window.LW_SALDOS) arrancaSaldos();
   const barra=document.querySelector('.lw-topbar');
   if(barra) bordeDeScroll(barra);

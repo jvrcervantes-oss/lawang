@@ -367,6 +367,63 @@ html.v3 input[type="search"]:focus{
   box-shadow:var(--sombra-1), 0 0 0 3px rgba(143,155,122,.22);
 }
 
+
+/* ─── LA TABLA SE VUELVE FICHAS EN UN MÓVIL ──────────────────────────────────
+   Medido en un Galaxy Z Fold plegado (344 px): la tabla de Facturas mide
+   1.100 px. Se desplaza dentro de su caja, así que la página no se rompe —pero
+   se leen 3 columnas de 9 y hay que arrastrar de lado para entender una fila.
+   Un teléfono se desplaza hacia abajo; hacia los lados no se desplaza nadie.
+
+   Debajo de 640 px cada fila pasa a ser una ficha con la cabecera de su columna
+   delante de cada dato. Las etiquetas las copia `etiquetaCeldas()` de los <th>
+   a un `data-etq`: el CSS solo no puede leer la cabecera de su columna.
+
+   Se conserva TODO: los clics de fila siguen donde estaban —cambia el `display`,
+   no el DOM— y las celdas sin etiqueta salen sin dos puntos huérfanos. */
+@media (max-width:640px){
+  html.v3 .sui-tabla,
+  html.v3 .sui-tabla thead,
+  html.v3 .sui-tabla tbody,
+  html.v3 .sui-tabla tr,
+  html.v3 .sui-tabla td{ display:block; width:auto; }
+  html.v3 .sui-tabla thead{ display:none; }        /* su sitio pasa a estar en cada celda */
+  html.v3 .sui-tabla-caja{ overflow-x:visible; }   /* ya no hay nada que desplazar de lado */
+
+  html.v3 .sui-tabla tr{
+    border:1px solid var(--linea,#E4DCCB);
+    border-radius:var(--r-m,14px);
+    background:var(--sup-1,#fff);
+    padding:12px 14px;
+    margin:0 0 10px;
+    box-shadow:var(--sombra-1);
+  }
+  html.v3 .sui-tabla td{
+    border:0; padding:5px 0;
+    display:grid; grid-template-columns:minmax(88px,38%) 1fr; gap:12px; align-items:baseline;
+    text-align:left !important;
+  }
+  html.v3 .sui-tabla td[data-etq]::before{
+    content:attr(data-etq);
+    font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+    color:var(--texto-3,#676B63);
+  }
+  /* Una celda sin etiqueta ocupa la fila entera: no hay columna que anunciar. */
+  html.v3 .sui-tabla td:not([data-etq]){ display:block; }
+  /* La primera celda manda: es la identidad de la ficha. */
+  html.v3 .sui-tabla td:first-child{ font-weight:600; font-size:.95rem; padding-top:0; }
+  html.v3 .sui-tabla td:first-child::before{ font-weight:600; }
+  /* Las celdas vacías desaparecen en vez de dejar una etiqueta suelta. */
+  html.v3 .sui-tabla td:empty{ display:none; }
+}
+
+/* El botón del menú en móvil, con su palabra: un icono solo lo reconoce quien
+   ya sabe que está, y en un teléfono es la única puerta al resto de la suite. */
+html.v3 .lw-rail-movil .v3-rot{ margin-left:6px; font-size:.76rem; font-weight:600; }
+@media (max-width:380px){
+  /* A 344 px cada píxel cuenta: se queda el icono, pero con `aria-label`. */
+  html.v3 .lw-rail-movil .v3-rot{ display:none; }
+}
+
 /* ─── §12 · DIÁLOGOS ─────────────────────────────────────────────────────────
    `display` no se puede animar, así que el JS sostiene el diálogo con esta
    clase el tiempo justo para que salga por el mismo camino por el que entró. */

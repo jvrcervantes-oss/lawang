@@ -31,7 +31,7 @@
      dispara el arranque de abajo. -->
 <script src="/contracts/assets/topbar.js?v=d5248630" defer></script>
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a9158f4c">
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=0ab5e9c0">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=a9bef857">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -42,7 +42,7 @@
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=5ef66077"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=ffeb8531"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=d21aa6cc"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    LAWANG · PANEL v3 — 23-ago-2026
@@ -871,31 +871,22 @@ function pintar(){
      — el mismo dato que ya se pintaba, leído ahora para ORDENAR y no solo para
      enseñar. Mientras no hayan llegado las cifras nadie es urgente: no se
      inventa un orden que luego salte al llegar los datos. */
-  const urg = t => {
-    if(!CIFRAS || !t.estado) return false;
-    const e = t.estado(CIFRAS);
-    return !!(e && e[1]);
-  };
-  const conAlgo = lista.filter(urg);
-  const resto   = lista.filter(t => !urg(t));
-
-  let html = '';
-  if(conAlgo.length){
-    html += '<section class="grupo destacado"><h2>Necesita que entres</h2>'
-      + '<div class="filas">' + conAlgo.map(t => fila(t, true)).join('') + '</div></section>';
-  }
-  if(resto.length){
+  /* «Necesita que entres» RETIRADO (owner, 26-ago-2026): «ya están los avisos
+     arriba». Tenía razón — la banda de cifras y el carril de la derecha ya dicen
+     qué está parado, y repetirlo aquí en forma de lista era decir dos veces lo
+     mismo en la misma pantalla. Lo que se queda es lo que la lista sí aporta:
+     dónde está cada herramienta, con su estado al lado. */
+  {
     const grupos = [];
-    resto.forEach(t => {
+    lista.forEach(t => {
       const g = grupos.find(x => x.titulo === t.grupo)
         || (grupos.push({ titulo:t.grupo, tools:[] }), grupos[grupos.length-1]);
       g.tools.push(t);
     });
-    html += grupos.map(g =>
+    $('#grupos').innerHTML = grupos.map(g =>
       '<section class="grupo"><h2>' + esc(g.titulo) + '</h2>'
       + '<div class="filas">' + g.tools.map(t => fila(t, false)).join('') + '</div></section>').join('');
   }
-  $('#grupos').innerHTML = html;
 
   [...document.querySelectorAll('.fila')].forEach((el, i) => {
     const fl = el.querySelector('.flecha');
