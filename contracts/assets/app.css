@@ -132,6 +132,22 @@
   .field label:hover{ color:var(--dl); }
   .field label::after{ content:' ↳'; opacity:0; transition:opacity .15s var(--ease); }
   .field label:hover::after{ opacity:.65; }
+  /* La PISTA de un campo (27-ago-2026, ver `partirEtiqueta` en app.html). Caja
+     baja y sin tracking: es una frase y se lee como una frase. Va entre la
+     etiqueta y el control porque se lee ANTES de contestar, no después. §15 —
+     el tracking positivo ayuda a un rótulo de dos palabras y estorba en una
+     línea de veinte. */
+  .field .pista{ margin:-2px 0 6px; font-size:11.5px; line-height:1.45;
+                 letter-spacing:0; text-transform:none; font-weight:400;
+                 color:var(--muted); }
+  /* Un dato que pone la base y nadie escribe: se lee, no se rellena. Mismo
+     tratamiento que en Facturas — sin borde de caja, sin fondo de campo y
+     fuera del recorrido del tabulador. */
+  .field input.dato-fijo{ border:0; background:none; padding-left:0;
+                          color:var(--muted); font-variant-numeric:tabular-nums;
+                          cursor:default; }
+  .field input.dato-fijo:not(:placeholder-shown),
+  .field input.dato-fijo[value]:not([value=""]){ color:var(--ink,#22282A); font-weight:600; }
   .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
     padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--field-bg);
     transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }

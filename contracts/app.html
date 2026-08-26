@@ -76,7 +76,7 @@
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
-<link rel="stylesheet" href="assets/app.css?v=22a1caef">
+<link rel="stylesheet" href="assets/app.css?v=3bf81180">
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
      no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
@@ -1598,6 +1598,31 @@ async function resetOverrides(){
    Excepción: `signature` pinta un <canvas>, que NO es un elemento etiquetable —
    ahí la etiqueta se queda suelta a propósito y el nombre accesible lo pone el
    `aria-label` del propio lienzo. */
+/* ── LA ETIQUETA NO ES UN PÁRRAFO (27-ago-2026) ───────────────────────────
+   Las etiquetas de este formulario van en VERSALITAS a 10,5 px con tracking, y
+   67 de las 134 llevan el patrón «Etiqueta (explicación)». La peor medía **151
+   caracteres y 95 px de alto**: seis líneas de mayúsculas haciendo de rótulo de
+   un campo. Las mayúsculas destruyen la forma de la palabra, que es justo de lo
+   que vive la lectura de una frase — están bien para dos palabras y son un muro
+   para veinte (§15).
+   Se parte en NOMBRE (versalitas, como estaba) y PISTA (caja baja, debajo).
+   La regla se probó contra tokens.json antes de escribirla: se parten 15 —las
+   explicaciones de verdad— y se quedan enteras 119, incluidas «(m²)»,
+   «(meses)», «(opcional)» y «(1 unidad = ? IDR)», que en línea se leen mejor.
+   Por eso el mínimo son 18 caracteres y el paréntesis tiene que cerrar la
+   etiqueta: una unidad de medida no es una pista.
+   Va aquí y no en tokens.json a propósito: tocar los datos obligaría a repetir
+   la operación en `es` y en `en` y a migrar 134 filas para arreglar 15. */
+function partirEtiqueta(t){
+  const m = String(t == null ? '' : t).match(/^(.*?)\s*\(([^()]{18,})\)\s*$/);
+  return m ? [m[1].trim(), m[2].trim()] : [t, ''];
+}
+function etiquetaHTML(key, texto){
+  const [nombre, pista] = partirEtiqueta(texto);
+  return `<label for="${fid(key)}">${nombre}</label>`
+       + (pista ? `<p class="pista">${esc(pista)}</p>` : '');
+}
+
 function fieldHTML(f){
   const [key,labelObj,type,extra] = f;
   const label = L(labelObj);
@@ -1631,17 +1656,17 @@ function fieldHTML(f){
     // exactamente el mismo corte de rol que ya usa "Editar texto" — no una
     // coincidencia nueva que haya que mantener sincronizada a mano.
     const bloqueado = key==='firmante' && !CAN_EDIT_TEXT;
-    return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label><select class="sui-sel" id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
+    return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}<select class="sui-sel" id="${fid(key)}" name="${key}" ${bloqueado?'disabled':''}><option value=""></option>${opts}${huerfano}</select></div>`;
   }
   if(type==='textarea'){
-    return `<div class="field" data-key="${key}" style="grid-column:1/-1"><label for="${fid(key)}">${label}</label><textarea id="${fid(key)}" name="${key}" rows="3">${def}</textarea></div>`;
+    return `<div class="field" data-key="${key}" style="grid-column:1/-1">${etiquetaHTML(key, label)}<textarea id="${fid(key)}" name="${key}" rows="3">${def}</textarea></div>`;
   }
   if(type==='readonly'){
     // Nº de contrato: lo asigna el trigger de Supabase al guardar (guardarContrato()
     // escribe .value) y NO se teclea a mano — dejarlo editable permite firmar un
     // contrato con un número que no es el de la base de datos.
-    return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label>
-      <input id="${fid(key)}" name="${key}" type="text" value="${def}" readonly style="background:var(--rl);color:var(--muted);cursor:not-allowed"></div>`;
+    return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
+      <input id="${fid(key)}" name="${key}" type="text" value="${def}" readonly tabindex="-1" class="dato-fijo"></div>`;
   }
   if(type==='telefono'){
     // Prefijo (datalist global #dl-prefijos, ver buildForm) + número, igual
@@ -1654,7 +1679,7 @@ function fieldHTML(f){
     /* La etiqueta apunta al NÚMERO, que es el campo principal; el prefijo lleva
        su propio nombre accesible. El oculto con `name` no necesita etiqueta: no
        se enfoca ni se lee, solo lo mantiene wireTelefonos(). */
-    return `<div class="field field-tel" data-key="${key}"><label for="${fid(key)}">${label}</label>
+    return `<div class="field field-tel" data-key="${key}">${etiquetaHTML(key, label)}
       <div style="display:flex;gap:6px">
         <input class="tel-prefijo" list="dl-prefijos" placeholder="Prefijo" aria-label="${escAttr(label)} — prefijo internacional" style="flex:0 0 86px" value="${escAttr(t0.prefijo)}">
         <input id="${fid(key)}" class="tel-numero" placeholder="Número" style="flex:1" value="${escAttr(t0.numero)}">
@@ -1674,7 +1699,7 @@ function fieldHTML(f){
   // guardado con una nacionalidad que no está en la lista (país no listado,
   // errata histórica, "Doble: ES/PE"...).
   const attrs = esDinero ? 'inputmode="decimal" data-money' : (type==='nacionalidad' ? 'list="dl-nacionalidades"' : '');
-  return `<div class="field" data-key="${key}"><label for="${fid(key)}">${label}</label>
+  return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
     <input id="${fid(key)}" name="${key}" type="${t}" ${attrs} value="${def}" autocomplete="off"></div>`;
 }
 
