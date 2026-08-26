@@ -161,6 +161,37 @@ function tablaCuentaHTML(key, o){
 /* la cuenta que el agente ELIGE en el select del contrato */
 function datosBancariosHTML(){ return tablaCuentaHTML(collect().cuenta_bancaria, {}); }
 
+/* ── RESUMEN DE UNA LÍNEA EN LA CABECERA PLEGADA (27-ago-2026) ──────────────
+   Lo mismo que se hizo en Facturas, y aquí hace más falta: nueve secciones y 71
+   campos, así que plegado el formulario es una lista de nueve rótulos que no
+   dicen NADA de lo que hay dentro — hay que abrirlas una a una para saber cuál
+   te falta. Con el resumen se comprueba sin abrir, que es de lo que va plegar.
+
+   Se saca de los VALORES, no de una configuración por sección: nueve resúmenes
+   escritos a mano serían nueve cosas que mantener y la novena se quedaría
+   vieja. Se cogen los primeros campos con valor de la sección, y ya.
+   Se salta lo que no identifica —firmas, ficheros— y se recorta: es una pista
+   para reconocer la sección, no su contenido. */
+function resumenSeccion(sec){
+  const vals = [...sec.querySelectorAll('.body input, .body select, .body textarea')]
+    .filter(el => el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'file'
+                  && !el.closest('[hidden]') && !el.classList.contains('dato-fijo'))
+    .map(el => (el.tagName === 'SELECT' && el.selectedOptions[0] ? el.selectedOptions[0].text : el.value))
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+    .map(v => v.length > 26 ? v.slice(0, 25) + '…' : v);
+  if(!vals.length) return '';
+  const tres = vals.slice(0, 3).join(' · ');
+  return vals.length > 3 ? tres + ' · +' + (vals.length - 3) : tres;
+}
+function pintarResumen(sec){
+  const h = sec.querySelector('[data-acc]'); if(!h) return;
+  let r = h.querySelector('.sec-resumen');
+  if(!r){ r = document.createElement('span'); r.className = 'sec-resumen';
+          h.insertBefore(r, h.querySelector('.chev') || null); }
+  r.textContent = sec.classList.contains('collapsed') ? resumenSeccion(sec) : '';
+}
+
 /* acordeón: click en la cabecera pliega/despliega (e inicializa pads al abrir) */
 function wireAccordions(){
   document.querySelectorAll('#form [data-acc]').forEach(h=>{
@@ -169,9 +200,19 @@ function wireAccordions(){
       if(e.target.closest('.switch')||e.target.closest('.opt-toggle')) return;  // no plegar al togglear opcional
       const sec=h.closest('.section'); sec.classList.toggle('collapsed');
       if(!sec.classList.contains('collapsed')) ensurePads(sec);
+      pintarResumen(sec);
     });
   });
+  document.querySelectorAll('#form .section').forEach(pintarResumen);
 }
+/* Al escribir en una sección, su resumen deja de ser cierto en cuanto se
+   pliegue. Se recalcula al vuelo y no al plegar: si se recalculara solo al
+   plegar, una sección que ya estaba plegada y se rellenó desde otro sitio
+   —la ficha del comprador rellena media docena— seguiría enseñando lo viejo. */
+document.addEventListener('input', e => {
+  const sec = e.target.closest && e.target.closest('#form .section');
+  if(sec) pintarResumen(sec);
+}, true);
 
 /* pads de firma: init sólo cuando el canvas es visible (si no, mide 0) */
 function ensurePads(root){ root.querySelectorAll('.section:not(.collapsed):not(.off) .sigpad-wrap:not([data-init])').forEach(w=>{ w.setAttribute('data-init','1'); initPad(w); }); }

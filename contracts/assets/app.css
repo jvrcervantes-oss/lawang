@@ -102,8 +102,35 @@
   .section > header .num{ font-style:italic; color:var(--tg); font-size:15px; font-weight:500; width:28px; height:28px; flex:none;
     display:grid; place-items:center; border-radius:50%; background:rgba(143,155,122,.16); }
   .section > header h2{ font-size:12.5px; letter-spacing:.1em; text-transform:uppercase; margin:0; color:var(--dl); font-weight:600; flex:1; }
-  .section > header .chev{ color:var(--sc); transition:transform .3s var(--ease); font-size:12px; }
-  .section.collapsed > header .chev{ transform:rotate(-90deg); }
+  /* 🔴 EL MISMO GESTO QUE EN FACTURAS, NO UNO NUEVO (27-ago-2026, owner:
+     «iguala el estilo al de facturas, no uno nuevo»). Allí las secciones se
+     pliegan con un cuadrito `+`/`−` a la izquierda —heredado de «Impuesto» y
+     «Notas»—, y aquí había un chevron. Dos herramientas de la misma suite con
+     dos gestos para la misma acción es la divergencia de siempre.
+     El elemento `.chev` se queda (lo emiten cuatro ficheros distintos y
+     tocarlos los cuatro para cambiar un glifo es trabajo sin premio): se le
+     apaga el «▾» con `font-size:0` y el signo lo pone el pseudo. */
+  .section > header .chev{ color:var(--dl); font-size:0; width:15px; height:15px; flex:none;
+    display:grid; place-items:center; border:1px solid var(--line); border-radius:5px; }
+  .section > header .chev::before{ content:'−'; font-size:12px; line-height:1; }
+  .section.collapsed > header .chev::before{ content:'+'; }
+
+  /* El resumen de la sección plegada (ver `resumenSeccion` en entidades_pago.js).
+     Caja baja y en gris: acompaña al rótulo, no compite con él. Se come el
+     espacio sobrante para que el signo quede pegado a la derecha. */
+  .sec-resumen{ flex:1; min-width:0; font-size:11.5px; font-weight:400; color:var(--muted);
+    text-transform:none; letter-spacing:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .section > header h2{ flex:none; }
+
+  /* §1 RESPUESTA — el realce va al APRETAR, no al soltar. Es el mismo valor
+     que las fichas de concepto de Facturas: escala .98 y salida en 100 ms.
+     §14: sin movimiento se queda el cambio de fondo, que ya dice «te he oído». */
+  .section > header:active{ transform:scale(.995); }
+  .section > header{ transition:background .2s var(--ease), transform .1s ease-out; }
+  @media (prefers-reduced-motion: reduce){
+    .section > header{ transition:background .2s var(--ease); }
+    .section > header:active{ transform:none; }
+  }
   .section .body{ padding:4px 16px 16px; }
   .section.collapsed .body{ display:none; }
 
