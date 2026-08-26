@@ -273,7 +273,73 @@
   .hito-todo .p{ display:block; margin-top:2px; font-size:11.5px; color:var(--muted); }
   .hito-todo:hover{ background:var(--rl,#F7F3E9); }
   .hito-todo.usado, .hito-todo:disabled{ opacity:.5; cursor:not-allowed; border-style:dashed; }
+  /* ── plegado de secciones ──────────────────────────────────────────────
+     El `<legend>` pasa a ser el mando: cursor, foco visible y un ángulo que
+     gira. §16.4 (familiaridad): el mismo gesto que las carpetas de Proyectos. */
+  fieldset[data-plegable] > legend{ cursor:pointer; width:100%; }
+  fieldset[data-plegable] > legend:focus-visible{ outline:2px solid var(--dl,#485B37); outline-offset:3px; border-radius:5px; }
+  .fs-resumen{ flex:1; min-width:0; margin-left:8px; font-size:12px; font-weight:400;
+               color:var(--muted); text-transform:none; letter-spacing:0;
+               overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fs-caret{ margin-left:auto; width:7px; height:7px; flex:none;
+             border-right:1.6px solid var(--muted); border-bottom:1.6px solid var(--muted);
+             transform:rotate(45deg) translateY(-2px);
+             /* §4, muelle de dos parámetros: damping 1.0 —sin rebote, un ángulo
+                que rebota es ruido— y response .28. No hay «duración» pensada
+                como tal: la curva ES el comportamiento. */
+             transition:transform .28s cubic-bezier(.32,.72,0,1); }
+  fieldset.plegado .fs-caret{ transform:rotate(-45deg) translateY(2px); }
+  /* §3, interrumpible: se anima `grid-template-rows`, así que volver a pulsar a
+     media animación arranca del valor que hay EN PANTALLA y no da un salto. Con
+     `height:auto` no se puede; con `0fr↔1fr` sí y sin medir nada en JS. */
+  .fs-cuerpo{ display:grid; grid-template-rows:1fr;
+              transition:grid-template-rows .3s cubic-bezier(.32,.72,0,1), opacity .2s ease; }
+  .fs-cuerpo > *{ min-height:0; }
+  fieldset.plegado > .fs-cuerpo{ grid-template-rows:0fr; opacity:0; overflow:hidden; visibility:hidden; }
+  fieldset.plegado{ padding-bottom:13px; }
+  /* §14: sin movimiento el estado sigue siendo legible; solo deja de viajar. */
+  @media (prefers-reduced-motion: reduce){ .fs-caret, .fs-cuerpo{ transition:none; } }
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+
+  /* ── ACABADO (apple-design), 26-ago-2026 ─────────────────────────────────
+     §1 RESPUESTA. El realce va en `:active` —al APRETAR—, no al soltar. Esperar
+     al click para dar señal es lo que hace que una interfaz se sienta muerta, y
+     aquí se aprietan fichas que mueven dinero: la confirmación de «te he oído»
+     tiene que llegar antes de que el dedo se levante. 100 ms de salida. */
+  .hito:active:not(:disabled), .hito-todo:active:not(:disabled){ transform:scale(.98); }
+  .hito, .hito-todo{ transition:transform .1s ease-out, background-color .12s ease-out, border-color .12s ease-out; }
+
+  /* §7 CONSISTENCIA ESPACIAL + §4. El bloque del contrato aparecía de golpe, y
+     lo que aparece de golpe no tiene procedencia: no se sabe si lo trajo el
+     contrato que acabas de elegir o si estaba ahí. Nace ANCLADO al campo del
+     que sale —`transform-origin` arriba, donde está el botón— y con el mismo
+     muelle sin rebote que el resto. */
+  #delContrato, #delVinculado{ transform-origin:top center; }
+  #delContrato.entra, #delVinculado.entra{ animation:brota .34s cubic-bezier(.32,.72,0,1); }
+  @keyframes brota{
+    from{ opacity:0; transform:translateY(-6px) scale(.985); }
+    to  { opacity:1; transform:none; }
+  }
+
+  /* §12 MATERIALES. La previa es EL DOCUMENTO y el formulario es la mesa donde
+     se trabaja. Eran la misma tarjeta plana, así que el papel no se leía como
+     papel. La hoja gana sombra y el panel del formulario se queda mate: el
+     material dice cuál de los dos vas a mandarle a alguien. */
+  .pane-preview .sheet{ box-shadow:0 1px 2px rgba(34,40,42,.06), 0 8px 28px rgba(34,40,42,.09); }
+
+  /* §15 TIPOGRAFÍA. Los seis `<legend>` eran versalitas idénticas: seis
+     secciones con el mismo peso no son una jerarquía, son una lista. El bloque
+     donde se decide el dinero pesa más que el que solo confirma datos ya
+     traídos. Y tracking negativo al crecer, positivo al encoger. */
+  fieldset > legend{ font-size:10.5px; letter-spacing:.14em; }
+  #fsConceptos > legend{ font-size:11.5px; letter-spacing:.1em; color:var(--ink); }
+  #delContrato .arrastrado{ letter-spacing:.005em; }
+
+  @media (prefers-reduced-motion: reduce){
+    .hito, .hito-todo{ transition:none; }
+    .hito:active, .hito-todo:active{ transform:none; }
+    #delContrato.entra, #delVinculado.entra{ animation:none; }
+  }
   .hito{ font:inherit; font-size:12px; text-align:left; background:var(--card); border:1px solid var(--line);
          border-radius:9px; padding:6px 10px; cursor:pointer; }
   .hito:hover{ border-color:var(--dl); color:var(--dl); }
@@ -605,7 +671,7 @@
             <button type="button" class="link-flojo" id="verRef" hidden>Referenciar otro contrato distinto</button>
           </fieldset>
 
-          <fieldset>
+          <fieldset data-plegable="emisor">
             <legend>Emisor</legend>
             <label for="selSociedad">Sociedad que factura</label>
             <select class="sui-sel" name="sociedad" id="selSociedad"></select>
@@ -634,7 +700,7 @@
             </div>
           </fieldset>
 
-          <fieldset>
+          <fieldset data-plegable="cliente">
             <legend>Cliente</legend>
             <label for="fa-cliente_nombre">Nombre o razón social</label>
             <input id="fa-cliente_nombre" name="cliente_nombre">
@@ -926,6 +992,9 @@ $('#selCuenta').addEventListener('change', toggleCuentaOtros);
 toggleCuentaOtros();
 
 $('[name="fecha_emision"]').value = hoyLocalISO();
+/* Se monta una vez, al arrancar. `montarPlegables` es idempotente (`data-montado`)
+   y las declaraciones de función se izan, así que da igual que viva más abajo. */
+montarPlegables();
 
 /* ---------- conceptos ---------- */
 function pintarLineas(){
@@ -1257,6 +1326,73 @@ $('#form').addEventListener('change', render);
    (contracts/edge/firma-submit se los baja y los ejecuta). Antes esto era una
    plantilla inline aquí dentro; con dos emisores, una copia habría divergido
    igual que iban a divergir las cuentas bancarias antes de entities.js. */
+/* ── SECCIONES PLEGADAS (26-ago-2026) ────────────────────────────────────────
+   24 campos en 1,4 pantallas, todos a la vez y todos con el mismo peso. Pero
+   «Emisor» y «Cliente» llegan RESUELTOS: elegir el contrato rellena sociedad,
+   cuenta, nombre, documento, email y proyecto — seis de los que hay que mirar
+   cero veces cuando ya están bien. §16.6, que es simplicidad y no minimalismo:
+   el camino común arriba (contrato → qué cobras → guardar) y lo demás un nivel
+   dentro, con un resumen de una línea para poder comprobarlo sin abrir.
+
+   NO SE OCULTA NADA QUE FALTE: una sección con algún campo vacío se queda
+   abierta. Plegar un hueco es esconder trabajo pendiente, que es justo el
+   error contrario al que esto viene a arreglar. Y lo que el operador abre a
+   mano no se le vuelve a cerrar en sus narices.
+
+   El plegado se monta en JS y no en el marcado a propósito: `collect()` lee por
+   `[name]` y el documento guardado depende de que TODOS los campos sigan en el
+   DOM y sigan siendo los mismos. Aquí no se mueve ni un input; se envuelven. */
+const RESUMEN_DE = {
+  emisor: () => {
+    const soc = $('#selSociedad'), cta = $('#selCuenta');
+    const s = soc && soc.selectedOptions[0] ? soc.selectedOptions[0].text.split(' (')[0] : '';
+    const c = cta && cta.value ? (cta.selectedOptions[0] ? cta.selectedOptions[0].text : '') : '';
+    return [s, /sin datos bancarios/i.test(c) ? '⚠️ sin cuenta' : c].filter(Boolean).join(' · ');
+  },
+  cliente: () => {
+    const n = ($('#fa-cliente_nombre').value || '').trim();
+    const p = ($('#fa-proyecto_nombre').value || '').trim();
+    const partes = n.split('·').map(x => x.trim()).filter(Boolean);
+    const quien = partes.length > 1 ? partes[0] + ' +' + (partes.length - 1) : (n || 'sin nombre');
+    return [quien, p].filter(Boolean).join(' · ');
+  },
+};
+function montarPlegables(){
+  document.querySelectorAll('fieldset[data-plegable]').forEach(fs => {
+    const leg = fs.querySelector('legend'); if(!leg || fs.dataset.montado) return;
+    fs.dataset.montado = '1';
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'fs-cuerpo';
+    while(leg.nextSibling) cuerpo.appendChild(leg.nextSibling);
+    fs.appendChild(cuerpo);
+    const res = document.createElement('span'); res.className = 'fs-resumen';
+    const car = document.createElement('i');   car.className = 'fs-caret'; car.setAttribute('aria-hidden','true');
+    leg.appendChild(res); leg.appendChild(car);
+    leg.tabIndex = 0; leg.setAttribute('role','button');
+    const alterna = () => { fs.dataset.forzado = '1'; fs.classList.toggle('plegado'); sincronizaPlegable(fs); };
+    leg.addEventListener('click', alterna);
+    leg.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); alterna(); } });
+  });
+}
+function sincronizaPlegable(fs){
+  const leg = fs.querySelector('legend'), res = leg.querySelector('.fs-resumen');
+  const plegado = fs.classList.contains('plegado');
+  leg.setAttribute('aria-expanded', String(!plegado));
+  res.textContent = plegado ? (RESUMEN_DE[fs.dataset.plegable] || (() => ''))() : '';
+}
+function repasaPlegables(){
+  document.querySelectorAll('fieldset[data-plegable]').forEach(fs => {
+    if(!fs.dataset.forzado){
+      /* Completa = todos sus campos con valor. Un hueco mantiene abierto. */
+      const campos = [...fs.querySelectorAll('.fs-cuerpo input, .fs-cuerpo select')]
+        .filter(el => !el.closest('[hidden]') && el.type !== 'hidden');
+      const completa = campos.length > 0 && campos.every(el => String(el.value || '').trim());
+      fs.classList.toggle('plegado', completa);
+    }
+    sincronizaPlegable(fs);
+  });
+}
+
 /* Deja el formulario diciendo la verdad sobre sí mismo: qué campos son datos y
    cuáles son huecos, y qué acciones pueden funcionar AHORA. Se llama desde
    `render()`, que ya corre en cada cambio — no hace falta acordarse. */
@@ -1286,6 +1422,7 @@ function estadoDelFormulario(d){
   };
   razon($('#btnPrint'), total > 0,
         'Todavía no hay ningún importe: el PDF saldría con el total a cero.');
+  repasaPlegables();
   razon($('#btnMail'), total > 0 && !!(SAVED && SAVED.numero),
         !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
                      : 'Guarda primero: sin guardar no hay número, y el comprador recibiría un documento que no existe en la base.');
@@ -1653,6 +1790,11 @@ async function traerContrato(id){
       toast('Factura por el total del contrato: ' + fmtMoneda(precio, moneda));
     };
   }
+
+  /* Reinicia la animación aunque se cambie de contrato sin soltar el anterior:
+     quitar la clase y forzar un reflujo es la única forma de que un
+     `animation` vuelva a correr sobre el mismo nodo. */
+  caja.classList.remove('entra'); void caja.offsetWidth; caja.classList.add('entra');
 
   caja.querySelectorAll('[data-h]').forEach(b => {
     const h = hitos[+b.dataset.h];
