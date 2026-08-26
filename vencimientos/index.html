@@ -126,6 +126,18 @@
   .nota-pie{ font-size:12px; color:var(--texto-2,#4A5052); margin:8px 0 0; line-height:1.55; max-width:78ch; }
   @media (max-width:720px){ main{ padding-left:14px; padding-right:14px; } .lw-kpi .lw-cifra{ font-size:18px; } }
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; animation:none !important; } }
+
+/* Personas dentro de un proyecto: una tabla menor, claramente subordinada a su
+   fila. Sin bordes propios ni fondo: no es otra tabla, es el detalle de una. */
+.detalle-personas > td{ padding:0 !important; background:var(--sup-2,#F7F3E9); }
+.detalle-personas summary{ list-style:none; cursor:pointer; padding:8px 16px;
+  font-size:12px; color:var(--texto-2,#4A5052); }
+.detalle-personas summary::-webkit-details-marker{ display:none; }
+.detalle-personas summary::before{ content:'▸ '; }
+.detalle-personas details[open] summary::before{ content:'▾ '; }
+.mini-personas{ width:100%; border-collapse:collapse; }
+.mini-personas td{ padding:7px 16px; font-size:12.5px; border-top:1px solid var(--linea,#E4DCCB); }
+.mini-personas td.num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -234,6 +246,14 @@ const HOY = SB_HOY.getFullYear() + '-' + String(SB_HOY.getMonth()+1).padStart(2,
 const dinero = (n, m) => n == null ? '—' : lwFormatoImporte(n, m);
 const fechaCorta = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return d + '/' + m + '/' + y.slice(2); };
 
+/* «Incluir sin firmar»: APAGADO por defecto, para que nadie se encuentre un
+   número distinto sin haberlo pedido. Se recuerda por persona, como el resto de
+   preferencias de la suite.
+   Existe porque mientras el cliente da de alta el HISTÓRICO (26-ago-2026)
+   `bloqueado=false` no significa «aún no acordado» sino «aún no marcado», y con
+   la regla de solo-firmados el panel se queda ciego justo ahora: 111 contratos
+   y 7,2 M fuera. */
+let SIN_FIRMAR = (() => { try{ return localStorage.getItem('lw_venc_sin_firmar') === '1'; }catch(_){ return false; } })();
 let MODELO = null, RAW = null, MONEDA = 'EUR', FILTRO = 'atencion', FACTURAS = [], PUEDE_EDITAR = false, FICHA = null;
 /* Paginación de la tabla (18-ago, petición del owner: salía la lista entera).
    25 por página: caben sin desplazar en un portátil y el paginador de abajo
@@ -272,7 +292,7 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
   FACTURAS = (f.error ? [] : (f.data || [])).filter(x => !x.anulada && x.venc && x.tipo !== 'recibi');
 
   RAW = { hoyISO: HOY, contratos: c.data || [], cobradoPorId, vencimientos: v.data || [] };
-  MODELO = modeloFinanciero(RAW);
+  MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
   // arranca en la moneda con más cartera — casi siempre EUR, pero medido, no supuesto
   const monedas = Object.keys(MODELO).sort((a,b)=>MODELO[b].cartera - MODELO[a].cartera);
   MONEDA = monedas[0] || 'EUR';
@@ -469,11 +489,28 @@ const FILTROS = [
   ['todos', 'Todos', () => true],
 ];
 function pintarFiltros(m){
+  /* El interruptor va JUNTO a los filtros y no escondido en ajustes: cambia lo
+     que suman todas las cifras de la pantalla, así que tiene que verse desde la
+     misma cifra que cambia. */
+  const f = m.fuera || { sinFirmar:0 };
+  const conmutador = f.sinFirmar || SIN_FIRMAR
+    ? '<span class="sui-eje" style="margin-left:14px">Alcance</span>'
+      + '<button type="button" class="sui-chip ' + (SIN_FIRMAR ? 'on' : '') + '" id="chipSinFirmar" '
+      + 'title="Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»">'
+      + 'Incluir sin firmar' + (f.sinFirmar ? ' <span class="n">' + f.sinFirmar + '</span>' : '') + '</button>'
+    : '';
   $('#filtros').innerHTML = '<span class="sui-eje">Estado</span>' +
     FILTROS.map(([k, l, fn]) => {
       const n = m.filas.filter(fn).length;
       return `<button type="button" class="sui-chip ${k===FILTRO?'on':''} ${n?'':'vacio'}" data-filtro="${k}">${l}<span class="n">${n}</span></button>`;
-    }).join('');
+    }).join('') + conmutador;
+  const cs = document.getElementById('chipSinFirmar');
+  if(cs) cs.onclick = () => {
+    SIN_FIRMAR = !SIN_FIRMAR;
+    try{ localStorage.setItem('lw_venc_sin_firmar', SIN_FIRMAR ? '1' : '0'); }catch(_){}
+    MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+    pintarTodo();
+  };
 }
 $('#pagAntes').addEventListener('click', () => { if(PAGINA > 0){ PAGINA--; pintarTabla(MODELO[MONEDA]); } });
 $('#pagDespues').addEventListener('click', () => { PAGINA++; pintarTabla(MODELO[MONEDA]); });
@@ -536,7 +573,7 @@ $('#tbody').addEventListener('click', async e => {
     // node — no una versión "rápida" del modelo que divergiría de la testada
     const cru = RAW.vencimientos.find(x => x.id === vid);
     if(cru){ cru.fecha = nueva; cru.ajustado = true; }
-    MODELO = modeloFinanciero(RAW);
+    MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
     pintarTodo();
     toast(nueva ? 'Vencimiento el ' + fechaCorta(nueva) : 'Fecha quitada — vuelve a «Sin fecha»');
   };
@@ -548,13 +585,34 @@ $('#tbody').addEventListener('click', async e => {
 /* ── por proyecto ───────────────────────────────────────────────────────── */
 function pintarProyectos(m){
   const filas = Object.entries(m.porProyecto).sort((a,b)=>b[1].cartera - a[1].cartera);
+  /* QUIÉN DEBE, DENTRO DE CADA PROYECTO — 26-ago-2026, encargo del cliente:
+     «quiere ver la situación en cada proyecto y que le salgan las personas ahí
+     con lo que deben». Van PLEGADAS: el proyecto se sigue leyendo de un vistazo
+     y quien quiera el detalle lo abre. Ordenadas por lo que deben, que es el
+     orden en el que se mira una lista así. Se marca «sin firmar» cuando ninguno
+     de sus contratos lo está: mientras se carga el histórico, esa distinción es
+     lo que dice cuánto fiarse de la cifra. */
+  const personasDe = d => {
+    const ps = Object.entries(d.personas || {})
+      .filter(([, v]) => v.precio > 0 || v.pendiente > 0)
+      .sort((a, b) => b[1].pendiente - a[1].pendiente);
+    if(!ps.length) return '';
+    return `<tr class="detalle-personas"><td colspan="5">
+      <details><summary>${ps.length} ${ps.length === 1 ? 'comprador' : 'compradores'} · quién debe qué</summary>
+      <table class="mini-personas"><tbody>${ps.map(([n, v]) => `<tr>
+        <td>${esc(n)}${v.firmados === 0 ? ' <span class="sui-tag gris">sin firmar</span>' : ''}</td>
+        <td class="num">${esc(dinero(v.precio, MONEDA))}</td>
+        <td class="num">${esc(dinero(v.cobrado, MONEDA))}</td>
+        <td class="num"><b>${v.pendiente > 0.005 ? esc(dinero(v.pendiente, MONEDA)) : '<span class="flojo">Cobrado</span>'}</b></td>
+      </tr>`).join('')}</tbody></table></details></td></tr>`;
+  };
   $('#tproy').innerHTML = filas.map(([p, d]) => `<tr>
     <td>${esc(p)}</td>
     <td class="num">${esc(dinero(d.cartera, MONEDA))}</td>
     <td class="num">${esc(dinero(d.cobrado, MONEDA))}</td>
     <td class="num">${d.proximos90 ? esc(dinero(d.proximos90, MONEDA)) : '<span class="flojo">—</span>'}</td>
     <td class="num">${d.vencido ? '<span class="sui-tag alerta">' + esc(dinero(d.vencido, MONEDA)) + '</span>' : '<span class="flojo">—</span>'}</td>
-  </tr>`).join('') || '<tr><td colspan="5" class="flojo" style="padding:18px">Sin contratos en esta moneda.</td></tr>';
+  </tr>` + personasDe(d)).join('') || '<tr><td colspan="5" class="flojo" style="padding:18px">Sin contratos en esta moneda.</td></tr>';
 }
 
 /* ── facturas con vencimiento ───────────────────────────────────────────── */

@@ -141,7 +141,18 @@ function modeloFinanciero(o){
        desde el borrador precisamente para que al firmar ya esté todo puesto.
        El COBRADO del borrador sí cuenta (rama de abajo): un recibí es dinero
        real en caja, esté el contrato en el estado que esté. */
-    if(!c.bloqueado){
+    /* ── INCLUIR LOS NO FIRMADOS, a petición ──────────────────────────────
+       La regla de «solo firmados» es del 18-ago y sigue siendo la buena en
+       régimen normal: un borrador no compromete a nadie. Pero mientras el
+       cliente da de alta el HISTÓRICO (26-ago-2026), `bloqueado=false` no
+       significa «aún no acordado» sino «aún no marcado» — y con esa lectura el
+       panel financiero se queda ciego justo ahora: 111 contratos y 7,2 M fuera.
+       Es un INTERRUPTOR, no un cambio de regla: apagado por defecto, para que
+       nadie se encuentre un número distinto sin haberlo pedido.
+       Las Cartas de Reserva no entran ni con el interruptor: su precio lo repite
+       después el contrato de verdad y contarlas sería duplicar (regla del
+       14-ago, la de los 328.000 € por una villa de 164.000). */
+    if(!c.bloqueado && !o.incluirSinFirmar){
       const m = de(c.moneda || 'EUR');
       m.cobrado += cobradoEfectivo(c, o.contratos, o.cobradoPorId);
       anotaFuera(m, 'sinFirmar');
@@ -153,6 +164,22 @@ function modeloFinanciero(o){
     m.cartera += precio;
     m.cobrado += cobrado;
     m.pendiente += Math.max(0, precio - cobrado);
+
+    /* QUIÉN debe, dentro de cada proyecto. El owner: «que le salgan las personas
+       ahí con lo que deben». El nombre ya viene en el contrato, así que no hace
+       falta otra consulta — y se suma POR PERSONA porque un mismo comprador
+       puede tener dos contratos en el mismo proyecto. Se anota también si están
+       firmados o no: mientras se carga el histórico, esa distinción es la que
+       dice cuánto fiarse de la cifra. */
+    {
+      const proyP = c.proyecto_nombre || 'Sin proyecto';
+      const pp = m.porProyecto[proyP] || (m.porProyecto[proyP] = { cartera:0, cobrado:0, vencido:0, proximos90:0, personas:{} });
+      const quien = (c.comprador_nombre || '').trim() || 'Sin comprador';
+      const per = pp.personas[quien] || (pp.personas[quien] = { precio:0, cobrado:0, pendiente:0, firmados:0, sinFirmar:0 });
+      per.precio += precio; per.cobrado += cobrado;
+      per.pendiente += Math.max(0, precio - cobrado);
+      if(c.bloqueado) per.firmados++; else per.sinFirmar++;
+    }
 
     const anotados = cascada(vencsDe[c.id] || [], c, cobrado, hoy);
     for(const v of anotados){
