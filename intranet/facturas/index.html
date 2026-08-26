@@ -292,13 +292,30 @@
   /* §3, interrumpible: se anima `grid-template-rows`, así que volver a pulsar a
      media animación arranca del valor que hay EN PANTALLA y no da un salto. Con
      `height:auto` no se puede; con `0fr↔1fr` sí y sin medir nada en JS. */
-  .fs-cuerpo{ display:grid; grid-template-rows:1fr;
-              transition:grid-template-rows .3s cubic-bezier(.32,.72,0,1), opacity .2s ease; }
-  .fs-cuerpo > .fs-dentro{ min-height:0; overflow:hidden; }
-  fieldset.plegado > .fs-cuerpo{ grid-template-rows:0fr; opacity:0; }
+  /* 🔴 `grid-template-rows` NO SE TRANSICIONA, Y NO ES POR GUSTO (26-ago-2026,
+     medido en el navegador). El plan era el truco `0fr↔1fr`, la única forma
+     limpia de animar «hasta el alto del contenido» sin medir nada en JS.
+     `CSS.supports('transition','grid-template-rows 1s')` devuelve **true**… y la
+     propiedad no se mueve: cinco muestras a lo largo de 750 ms daban 264 px —el
+     valor de partida— para siempre. Al transicionarla, este motor se traga el
+     cambio ENTERO, así que la sección quedaba plegada en el DOM y abierta en
+     pantalla: una caja vacía del mismo alto, peor que sin plegar.
+     Con `transition:none` colapsa perfecto (cuerpo 0, fieldset 55 px). Así que
+     el alto cambia AL MOMENTO y lo que se anima es el material: el contenido se
+     desvanece y sube un pelo. §12 —«materializar, no solo fundir»— admite las
+     dos formas, y esta no se puede quedar a medias.
+     La lección: `CSS.supports` valida la SINTAXIS, no que el motor haga algo. */
+  .fs-cuerpo{ display:grid; grid-template-rows:1fr; }
+  .fs-cuerpo > .fs-dentro{ min-height:0; overflow:hidden;
+                           transition:opacity .18s ease, transform .22s cubic-bezier(.32,.72,0,1); }
+  fieldset.plegado > .fs-cuerpo{ grid-template-rows:0fr; }
+  fieldset.plegado > .fs-cuerpo > .fs-dentro{ opacity:0; transform:translateY(-4px); }
   fieldset.plegado{ padding-bottom:13px; }
   /* §14: sin movimiento el estado sigue siendo legible; solo deja de viajar. */
-  @media (prefers-reduced-motion: reduce){ .fs-caret, .fs-cuerpo{ transition:none; } }
+  @media (prefers-reduced-motion: reduce){
+    .fs-caret, .fs-cuerpo > .fs-dentro{ transition:none; }
+    fieldset.plegado > .fs-cuerpo > .fs-dentro{ transform:none; }
+  }
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
 
   /* ── ACABADO (apple-design), 26-ago-2026 ─────────────────────────────────
