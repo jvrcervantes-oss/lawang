@@ -868,7 +868,13 @@ function abrirUnidad(id){
       </div>
       <div class="dos">
         <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
-        <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):''}"></div>
+        <!-- `precio_guardado` y NO `precio` (26-ago-2026): desde hoy la vista DERIVA
+                 el total de suelo+construccion cuando no hay uno guardado, para que un
+                 proyecto importado por CSV sin columna de total no salga a 0. Aqui hay que
+                 prefijar lo que hay en la TABLA: si se prefijara el derivado, guardar
+                 materializaria en silencio un total que nadie tecleo, y a partir de ahi
+                 dejaria de seguir a sus partes. Ver `sql/unidades_estado_precio_efectivo.sql`. -->
+            <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio_guardado!=null?esc(fmtNum(Number(u.precio_guardado))):''}" placeholder="${u.precio!=null?esc(fmtNum(Number(u.precio)))+' (suelo + construcción)':''}"></div>
       </div>
       <div class="dos">
         <div class="campo"><label for="f-moneda">Moneda</label><select class="sui-sel" id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
@@ -1207,6 +1213,18 @@ $('#filas').addEventListener('click', e => {
   abrirUnidad(tr.dataset.id);
 });
 $('#btnNueva').addEventListener('click', () => abrirUnidad('nueva'));
+/* LAS MISMAS ACCIONES, POR URL (26-ago-2026). La v3 no reimplementa el
+   formulario de la unidad ni el alta de proyecto: abre EL DE AQUÍ. Un
+   formulario con 19 campos, sus validaciones, el precio por m² que se
+   autocalcula y las reglas de estado/contrato no se copian a otra pantalla —
+   copiarlo fue el error, y la copia salía además con la mitad de los campos.
+   Se exponen por parámetro para que cualquier otra pantalla —la v3 hoy, lo que
+   venga mañana— enganche ESTE y no escriba el suyo. */
+try{
+  const par = new URLSearchParams(location.search);
+  if(par.has('nueva')) abrirUnidad('nueva');
+  else if(par.has('nuevoproyecto')) $('#btnNuevoProyecto').click();
+}catch(_){}
 /* "+ Nuevo proyecto" (11-ago): antes solo se podía dar de alta un proyecto
    DESDE el desplegable de "Nueva unidad" — un rodeo para lo que ahora, con
    Carpetas como vista de entrada, es la operación más directa de la

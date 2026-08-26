@@ -326,109 +326,19 @@ async function recargar(){
   pintarChips(); pintar();
 }
 
-/* ── nuevo proyecto ───────────────────────────────────────────────────────── */
-function altaProyectoUI(){
-  Cajon.abre('Nuevo proyecto', 'Se añade al catálogo y queda disponible en toda la suite',
-    /* `.campo` es el campo de formulario de la suite (`assets/suite.css`), el
-       mismo que usa la herramienta viva: etiqueta encima con `for`, ancho
-       completo y el anillo de foco compartido. La primera versión de esto usó
-       `.sui-buscar` —el BUSCADOR— y salía con lupa dentro: un control que dice
-       «busca aquí» donde se teclea un nombre. Regla 0: mirar si la pieza existe
-       antes de escribir una. */
-    '<div class="bloque"><div class="campo">'
-    + '<label for="np-nombre">Nombre del proyecto</label>'
-    + '<input id="np-nombre" placeholder="Bonian Village" autocomplete="off">'
-    + '</div></div>'
-    + '<div class="bloque" style="display:flex;gap:10px"><button type="button" class="sui-btn primario" id="np-ok">Crear</button></div>'
-    + '<p class="mini" id="np-msg" style="margin-top:8px"></p>');
-  const campo = $('#np-nombre');
-  campo.focus();
-  const crear = async () => {
-    /* `lwCsvAntiFormula` y no un `trim` a secas: el nombre acaba en un CSV
-       reexportado, y ahí un valor que empieza por «=» se ejecuta. Es la misma
-       función que usa el import — no una segunda idea de lo que es seguro. */
-    const nombre = lwCsvAntiFormula(campo.value);
-    if(!nombre){ $('#np-msg').textContent = 'El nombre no puede quedar vacío.'; return; }
-    $('#np-ok').disabled = true;
-    const { error } = await SB.from('proyectos').insert({ nombre });
-    if(error){
-      $('#np-ok').disabled = false;
-      $('#np-msg').textContent = /duplicate key|proyectos_nombre_key/.test(error.message || '')
-        ? 'Ya existe un proyecto con ese nombre.' : error.message;
-      return;
-    }
-    PROYECTOS = [...new Set([...PROYECTOS, nombre])].sort();
-    toast('Proyecto creado: ' + nombre);
-    Cajon.cierra();
-    await recargar();
-  };
-  $('#np-ok').addEventListener('click', crear);
-  campo.addEventListener('keydown', e => { if(e.key === 'Enter') crear(); });
-}
-
-/* ── nueva unidad ─────────────────────────────────────────────────────────── */
-function altaUnidadUI(){
-  if(!PROYECTOS.length){ toast('Crea antes un proyecto: una unidad cuelga de uno'); return; }
-  const ops = PROYECTOS.map(p => '<option>' + esc(p) + '</option>').join('');
-  const tips = TIPOS.map(t => '<option value="' + esc(t[0]) + '">' + esc(t[1]) + '</option>').join('');
-  Cajon.abre('Nueva unidad', 'El estado y el contrato NO se ponen aquí: los mueve el flujo de contratos',
-    /* Todos con `.campo` (ver la nota de arriba). Los dos precios van en una
-       `.sui-row`, que es la fila de dos campos de la suite y se deshace a una
-       columna por debajo de 760px: son la misma decisión —cuánto vale— y leerlos
-       juntos es lo que deja ver el total que sale de ellos. */
-    '<div class="bloque">'
-    + '<div class="campo"><label for="nu-proy">Proyecto</label>'
-      + '<select id="nu-proy">' + ops + '</select></div>'
-    + '<div class="sui-row">'
-      + '<div class="campo"><label for="nu-cod">Código</label>'
-        + '<input id="nu-cod" placeholder="SH-1" autocomplete="off"></div>'
-      + '<div class="campo"><label for="nu-tipo">Tipo</label>'
-        + '<select id="nu-tipo">' + tips + '</select></div>'
-    + '</div>'
-    + '<div class="sui-row">'
-      + '<div class="campo"><label for="nu-suelo">Precio de suelo</label>'
-        + '<input id="nu-suelo" inputmode="decimal" data-money></div>'
-      + '<div class="campo"><label for="nu-obra">Precio de construcción</label>'
-        + '<input id="nu-obra" inputmode="decimal" data-money></div>'
-    + '</div>'
-    + '<div class="campo"><label for="nu-m2">Superficie (m²)</label>'
-      + '<input id="nu-m2" inputmode="decimal"></div>'
-    + '<p class="mini">El precio total se calcula de suelo + construcción; no se teclea aparte.</p>'
-    + '</div>'
-    + '<div class="bloque" style="display:flex;gap:10px"><button type="button" class="sui-btn primario" id="nu-ok">Crear unidad</button></div>'
-    + '<p class="mini" id="nu-msg" style="margin-top:8px"></p>');
-  $('#nu-cod').focus();
-  $('#nu-ok').addEventListener('click', async () => {
-    const codigo = lwCsvAntiFormula($('#nu-cod').value);
-    if(!codigo){ $('#nu-msg').textContent = 'El código no puede quedar vacío.'; return; }
-    /* `lwParseImporte` — la única forma de leer un importe en la suite. Un campo
-       vacío es `null` (no hay precio), nunca 0: un precio de cero es una
-       afirmación, y «todavía no lo sé» es otra cosa. */
-    const imp = sel => { const n = lwParseImporte($(sel).value); return n || null; };
-    const suelo = imp('#nu-suelo'), obra = imp('#nu-obra');
-    const fila = {
-      proyecto: $('#nu-proy').value, codigo, tipo: $('#nu-tipo').value,
-      precio_suelo: suelo, precio_construccion: obra,
-      /* El total se DERIVA de sus dos partes, no se teclea aparte: tecleado
-         sería una tercera cifra que puede contradecir a las otras dos. Si no hay
-         ninguna de las dos, se queda sin precio en vez de en 0. */
-      precio: (suelo || obra) ? (suelo || 0) + (obra || 0) : null,
-      superficie_m2: lwParseImporte($('#nu-m2').value) || null,
-      moneda: 'EUR',
-    };
-    $('#nu-ok').disabled = true;
-    const { error } = await SB.from('unidades').insert(fila);
-    if(error){
-      $('#nu-ok').disabled = false;
-      $('#nu-msg').textContent = /duplicate key/.test(error.message || '')
-        ? 'Ya existe una unidad con ese código en ese proyecto.' : error.message;
-      return;
-    }
-    toast('Unidad creada: ' + codigo);
-    Cajon.cierra();
-    await recargar();
-  });
-}
+/* ── nueva unidad y nuevo proyecto: SE ENGANCHA EL DE SIEMPRE ─────────────
+   26-ago-2026, corrección del owner: «es algo que teníamos funcionando, no debes
+   rehacerlo, debes enganchar lo que teníamos antes».
+   Aquí hubo un formulario nuevo con seis campos. El de la herramienta viva tiene
+   diecinueve, con el precio por m² que se autocalcula, el modelo por proyecto,
+   las notas, la fase y la zona del masterplan, y las reglas de estado y contrato.
+   O sea que «rehacerlo» no fue rehacerlo: fue perder dos tercios de la pantalla
+   sin que se notara hasta usarla.
+   La regla, dicha por él y que va al prompt del departamento: rehacer una
+   versión de DISEÑO es mantener todas las funcionalidades y botones y cambiar
+   cómo se ven. No es volver a escribir lo que ya funciona.
+   `/proyectos/` expone desde hoy `?nueva=1` y `?nuevoproyecto=1` para esto. */
+const abreEnLaViva = destino => { location.href = destino; };
 
 /* ── importar CSV ─────────────────────────────────────────────────────────── */
 async function importarCsvUI(file){
@@ -532,8 +442,8 @@ window.LW_AUTH.then(async ({ sb }) => {
   let tmr = null;
   $('#q').addEventListener('input', e => { FILTRO = e.target.value; clearTimeout(tmr); tmr = setTimeout(pintar, 90); });
 
-  $('#btnNuevoProyecto').addEventListener('click', altaProyectoUI);
-  $('#btnNuevaUnidad').addEventListener('click', altaUnidadUI);
+  $('#btnNuevoProyecto').addEventListener('click', () => abreEnLaViva('/proyectos/?nuevoproyecto=1'));
+  $('#btnNuevaUnidad').addEventListener('click', () => abreEnLaViva('/proyectos/?nueva=1'));
   $('#btnCsv').addEventListener('click', () => $('#fileCsv').click());
   $('#fileCsv').addEventListener('change', () => {
     const f = $('#fileCsv').files[0];
