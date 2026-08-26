@@ -223,6 +223,11 @@ function pintar(){
     const cartera = g.reduce((a, u) => a + num(u.precio), 0);
     const cobrado = g.reduce((a, u) => a + num(u.facturado), 0);
     const pct = cartera ? Math.min(100, cobrado / cartera * 100) : 0;
+    /* Por moneda: una carpeta puede mezclar divisas —Riverfront esta en IDR— y
+       tomar la de la primera unidad da una cifra que no existe en ninguna.
+       Misma pieza que la version viva (`lwSumaPorMoneda`/`lwSumaTexto`). */
+    const carteraTxt = lwSumaTexto(lwSumaPorMoneda(g, u => num(u.precio), u => u.moneda));
+    const cobradoTxt = lwSumaTexto(lwSumaPorMoneda(g, u => num(u.facturado), u => u.moneda));
     const m = (g[0] && g[0].moneda) || 'EUR';
     /* CARPETAS PRIMERO — vuelve a ser el estado de entrada (26-ago-2026, owner:
        «incorpora la vista por carpetas como por defecto, como estaba»).
@@ -242,8 +247,8 @@ function pintar(){
         + '<span class="cuenta">' + g.length + (g.length === 1 ? ' unidad' : ' unidades')
         + ' · <b>' + libres + ' libre' + (libres === 1 ? '' : 's') + '</b>'
         + ' · ' + (g.length - libres) + ' vendida' + ((g.length - libres) === 1 ? '' : 's') + '</span></span>'
-      + '<span class="plata"><span class="n">' + esc(dinero(cartera, m)) + '</span>'
-        + '<small>' + esc(dinero(cobrado, m)) + ' cobrado · ' + pct.toFixed(0) + ' %</small></span>'
+      + '<span class="plata"><span class="n">' + esc(carteraTxt) + '</span>'
+        + '<small>' + esc(cobradoTxt) + ' cobrado · ' + pct.toFixed(0) + ' %</small></span>'
       + '<span class="barraP"><i style="width:' + pct.toFixed(1) + '%"></i></span></summary>'
       + g.map(filaUnidad).join('') + '</details>';
   }).join('');

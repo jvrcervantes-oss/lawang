@@ -516,8 +516,10 @@ function pintarCarpetas(){
   caja.innerHTML = nombres.map(nom => {
     const us = UNIDADES.filter(u => u.proyecto === nom);
     const libres = us.filter(u => u.estado === 'disponible').length;
-    const cartera = us.reduce((a,u) => a + (Number(u.precio) || 0), 0);
-    const m = (us[0] && us[0].moneda) || 'EUR';
+    /* Por moneda tambien aqui: una carpeta puede tener unidades en dos divisas
+       —Riverfront esta en IDR y el resto en EUR— y una sola cifra las mezclaria.
+       Ver la nota larga del resumen de la tabla. */
+    const carteraTxt = lwSumaTexto(lwSumaPorMoneda(us, u => Number(u.precio) || 0, u => u.moneda));
     const btnBorrar = ES_SUPER_ADMIN
       ? `<button type="button" data-delproy="${esc(nom)}" title="Borrar proyecto" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">🗑️</button>`
       : '';
@@ -533,7 +535,7 @@ function pintarCarpetas(){
         nDocs ? '📄 ' + nDocs + (nDocs === 1 ? ' documento' : ' documentos') : '📄 sin documentación'}</a>`;
     return `<div class="sui-ficha carpeta" data-proy="${esc(nom)}" style="cursor:pointer">
       <span class="n">📁 ${esc(nom)} <button type="button" data-editproy="${esc(nom)}" title="Editar nombre" style="font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px;vertical-align:middle">✏️</button>${btnBorrar}</span>
-      <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + eur(cartera, m):''}</span>
+      <span class="sub">${us.length} ${us.length===1?'unidad':'unidades'} · ${libres} disponibles${us.length?' · ' + esc(carteraTxt):''}</span>
       ${docs}
     </div>`;
   }).join('');
@@ -744,8 +746,19 @@ function pintarTabla(){
 
   // Totales de LO QUE SE ESTÁ VIENDO. Con un filtro puesto, la suma de todo el
   // inventario no dice nada de lo que hay delante.
-  const suma = k => vis.reduce((a,u) => a + (Number(u[k]) || 0), 0);
-  const m = vis[0].moneda || 'EUR';
+  /* 🔴 POR MONEDA, NO EN UNA CIFRA (26-ago-2026). Aquí se sumaba todo junto y se
+     etiquetaba con `vis[0].moneda` — la moneda de la PRIMERA FILA. Es el mismo
+     fallo que se corrigió en el listado de Facturas el 19-ago y que `dinero.js`
+     tiene escrito: «un total que no existe en ninguna divisa».
+     Salió a la luz al pasar Riverfront I y II a IDR: 320 unidades en euros y 10
+     en rupias daban «8.250.939.130,00 EUR» de suelo. No se convierte nada —no
+     hay tipo de cambio en el sistema y meter uno inventado sería peor—: se suma
+     por separado y se enseñan las dos.
+     ⚠️ `lwSumaPorMoneda` cuenta como EUR lo que no tiene moneda. Hoy hay 45
+     unidades así (LAW-101, pendiente de decidir); cuando se rellenen, esto
+     dejará de ser una suposición. */
+  const sumaM = k => lwSumaPorMoneda(vis, u => Number(u[k]) || 0, u => u.moneda);
+  const texto = k => esc(lwSumaTexto(sumaM(k)));
   const libres = vis.filter(u => u.estado === 'disponible').length;
   // Las parcelas sin modelo decidido NO tienen total, así que suman 0 a la
   // cartera. Se dice cuántas son: si no, la cifra parece que ha bajado sola y
@@ -753,9 +766,9 @@ function pintarTabla(){
   const sinModelo = vis.filter(u => !u.modelo).length;
   $('#resumen').innerHTML =
     `<span>${vis.length} ${vis.length===1?'unidad':'unidades'} · <b>${libres}</b> disponibles</span>
-     <span>Suelo <b>${esc(fmtMoneda(suma('precio_suelo'), m))}</b></span>
-     <span>Construcción <b>${esc(fmtMoneda(suma('precio_construccion'), m))}</b></span>
-     <span>Cartera <b>${esc(fmtMoneda(suma('precio'), m))}</b>${
+     <span>Suelo <b>${texto('precio_suelo')}</b></span>
+     <span>Construcción <b>${texto('precio_construccion')}</b></span>
+     <span>Cartera <b>${texto('precio')}</b>${
        sinModelo ? ` <span class="flojo">(${sinModelo} sin modelo, sin total)</span>` : ''}</span>`;
 }
 

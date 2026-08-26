@@ -27,7 +27,10 @@ RedirectMatch 301 ^/panel(/.*)?$ /intranet$1
 RedirectMatch 301 ^/(facturas|operaciones|compradores|proyectos|obra|documentacion|usuarios|vencimientos|creatividades|dossier)(/.*)?$ /intranet/$1$2
 
 # 11-ago-2026: /unidades/ renombrado a /proyectos/ (mismo criterio de arriba).
-RedirectMatch 301 ^/unidades(/.*)?$ /proyectos$1
+# 26-ago: y /proyectos/ se fue bajo /intranet/. Se apunta DIRECTO al destino final
+# en vez de encadenar dos 301: una cadena funciona, pero cada salto es un viaje mas
+# y basta con que alguien copie el intermedio para volver a tener dos.
+RedirectMatch 301 ^/unidades(/.*)?$ /intranet/proyectos$1
 # 6-ago-2026: puerta unica /entrar/ (elige equipo o cliente). 301 para lo que
 # tuviera enlazado o guardado /contracts/login.html.
 Redirect 301 /contracts/login.html /entrar/
