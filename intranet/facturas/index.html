@@ -321,7 +321,11 @@
   table.docs tr.t-factura  td.doc{ border-left-color:#3E6E8E; }
   table.docs tr.t-proforma td.doc{ border-left-color:#6B4E9B; }
   table.docs tr.t-recibi   td.doc{ border-left-color:#3F5230; }
-  table.docs td.dinero{ width:170px; text-align:right; }
+  /* 170 px daban para «25.000,00 EUR» y para nada más. El peor caso NO es el
+     mayor importe de hoy (184.000 €): la cartera ya lleva precios en rupias
+     —«11.038.000.000 IDR», 18 caracteres— y el día que se facture uno, el
+     ancho tiene que estar puesto. Se dimensiona para eso, no para lo que hay. */
+  table.docs td.dinero{ width:190px; text-align:right; }
   /* 🔴 NO PONER `overflow:hidden` AQUÍ. La caja de «Reasignar autor» mide
      290 px y es `position:absolute` dentro de su ranura (autoria.js): cualquier
      antepasado que recorte se la come. Por eso la ranura vive en esta celda y
@@ -355,9 +359,18 @@
      necesitan sitio de verdad. */
   @media (max-width:900px){
     table.docs td{ padding:9px 8px; }
-    table.docs td.doc{ width:104px; }
-    table.docs td.dinero{ width:120px; }
-    table.docs td.acc{ width:104px; white-space:normal; }
+    /* La palabra del tipo se va: la dicen ya el prefijo del número y el filete
+       de color, y por repetirla se estaba comiendo la FECHA —«Proforma · 26 …»—,
+       que es justo lo que esta pantalla no tenía y por lo que se añadió. */
+    table.docs td.doc .tipo{ display:none; }
+    table.docs td.doc{ width:100px; }
+    /* 🔴 UN IMPORTE NO SE TRUNCA. NUNCA. Salía «25.000,00 E…» porque la columna
+       tenía 120 px y el número con moneda pide 115: cualquier cifra de siete
+       dígitos se habría comido su propia moneda, y «1.234.567,00 EU…» se lee
+       como otra cosa. El ancho se calcula para el peor caso, y lo que cede es
+       el nombre del cliente, que sí puede llevar puntos suspensivos. */
+    table.docs td.dinero{ width:168px; }
+    table.docs td.acc{ width:100px; white-space:normal; }
     table.docs td.acc .btn, table.docs td.acc .sui-tag{ margin:1px 0; }
     /* «Reasignar autor» se partía en dos líneas y empujaba la fila a 111 px,
        más alta que las otras tres celdas juntas. Nunca se parte: se encoge.
@@ -2039,14 +2052,14 @@ function pintarListado(){
     return `<tr data-id="${f.id}" class="t-${esc(f.tipo || 'factura')} ${f.anulada ? 'anulada' : ''}">
       <td class="doc">
         <span class="n1">${esc(f.numero || '—')}</span>
-        <span class="n2">${esc(TIPO_ET[f.tipo] || 'Documento')} <span class="sep">·</span> ${esc(fFecha(f.fecha_emision))}</span>
+        <span class="n2"><span class="tipo">${esc(TIPO_ET[f.tipo] || 'Documento')} <span class="sep">·</span> </span>${esc(fFecha(f.fecha_emision))}</span>
       </td>
       <td>
         <span class="n1">${esc(f.cliente_nombre || 'sin nombre')}</span>
         <span class="n2">${ctr} <span class="sep">·</span> ${esc(f.proyecto_nombre || 'sin proyecto')}<span class="sep"> · </span><span title="${esc(f.creado_por || 'sin autor registrado')}">${esc(emisor(f))}</span></span>
       </td>
       <td class="dinero">
-        <span class="n1">${esc(fmtMoneda(f.total, f.moneda))}</span>
+        <span class="n1" title="${esc(fmtMoneda(f.total, f.moneda))}">${esc(fmtMoneda(f.total, f.moneda))}</span>
         <span class="n2">${estado}</span>
       </td>
       <td class="acc"><span class="autoria-slot secundaria"></span>${DIVERGEN.has(f.id)
