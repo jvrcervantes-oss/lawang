@@ -727,21 +727,41 @@ function vigilaTablas(){
 }
 
 
-/* ─── NOMBRE Y PENDIENTE EN LA TABLA YA PINTADA ──────────────────────────────
+/* ─── NOMBRE Y PENDIENTE: QUIÉN ENSEÑA QUÉ ──────────────────────────────────
    Encargo del cliente: «me falta ver nombres y balances pendientes de pago».
-   El cálculo vive en `saldos-v3.js`; esto solo lo mete en la tabla que la
-   herramienta acaba de pintar, sin que ella se entere — igual que la
-   paginación automática.
 
-   Cómo se ata cada fila a su dinero: por la columna que ya existe.
-     · una cabecera «CONTRATO» → el número de contrato de esa fila
-     · una cabecera «CONTACTO» (Compradores) → el email de esa fila
-   Lo que no se pueda atar se queda con un guion. Un cero inventado en una
-   columna de dinero es peor que un hueco: el hueco se pregunta, el cero se
-   cree. Es la misma regla que ya gobierna las cifras del panel. */
+   ⚠️ LA PRIMERA VERSIÓN ADIVINABA, y salió mal. Miraba si la tabla tenía una
+   columna CONTRATO o CONTACTO y, si la tenía, metía «Pendiente». Vencimientos
+   ya tenía la suya, así que acabó con DOS columnas llamadas igual y con cifras
+   que se contradecían en la misma fila (Eduardo Cuellar: 26.500 € en una y
+   «Cobrado» en la otra). Un detector que adivina acaba siempre inventando una
+   segunda verdad.
+
+   Ahora es DECLARATIVO, y la tabla de abajo es el papel que el owner le da a
+   cada herramienta (26-ago-2026):
+
+     Compradores .. la ficha de la PERSONA: aquí sí va lo que debe, sumando
+                    todas sus operaciones. Era el hueco real.
+     Proyectos .... INVENTARIO del proyecto: interesa de quién es cada unidad,
+                    no su saldo. El saldo es de la venta, y para eso está
+                    Operaciones.
+     Obra ......... estado de la construcción. El nombre ayuda a entregar; un
+                    saldo ahí no lo puede resolver quien lleva la obra.
+     Las demás .... nada. Vencimientos, Operaciones y Facturas ya dicen lo que
+                    se debe cada una desde su ángulo, y son las dueñas de su
+                    número.
+
+   Una herramienta que no está en la tabla no se toca. Añadir una es añadir una
+   línea, no cambiar la lógica. */
+const SALDOS_POR_HERRAMIENTA = {
+  compradores: { nombre:false, pendiente:true  },
+  proyectos:   { nombre:true,  pendiente:false },
+  obra:        { nombre:true,  pendiente:false },
+};
+
 /* `esc()` vive en suite-comun.js y no todas las páginas lo cargan. Este es el
-   mismo escape, local, porque aquí se está metiendo texto de la base en el DOM
-   y eso no se hace sin escapar aunque «sean nombres de personas». */
+   mismo escape, local, porque aquí se mete texto de la base en el DOM y eso no
+   se hace sin escapar aunque «sean nombres de personas». */
 const esc3 = v => String(v == null ? '' : v).replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -749,10 +769,6 @@ function indiceCabecera(tabla, textos){
   const th = tabla.tHead && tabla.tHead.rows[0];
   if(!th) return -1;
   return [...th.cells].findIndex(c => {
-    /* Las cabeceras que hemos puesto NOSOTROS no cuentan. Sin esto, al repintar
-       la tabla el código veía su propia columna «Comprador», concluía que la
-       herramienta ya la tenía y dejaba de rellenar las celdas: cabecera puesta
-       y filas vacías. Un detector que se detecta a sí mismo siempre acaba así. */
     if(c.hasAttribute('data-v3-nombre') || c.hasAttribute('data-v3-saldo')) return false;
     const t = c.textContent.trim().toLowerCase().replace(/[▲▼]/g, '');
     return textos.some(x => t === x || t.startsWith(x));
@@ -760,39 +776,29 @@ function indiceCabecera(tabla, textos){
 }
 function saldosEnTabla(tabla){
   if(!window.LW_SALDOS || !LW_SALDOS.listo) return;
+  const quiere = SALDOS_POR_HERRAMIENTA[document.documentElement.getAttribute('data-herr')];
+  if(!quiere) return;                                  // esta herramienta no lo pide
   const th = tabla.tHead && tabla.tHead.rows[0];
   const cuerpo = tabla.tBodies && tabla.tBodies[0];
   if(!th || !cuerpo) return;
 
   const iContrato = indiceCabecera(tabla, ['contrato']);
   const iContacto = indiceCabecera(tabla, ['contacto']);
-  if(iContrato < 0 && iContacto < 0) return;          // esta tabla no habla de dinero de nadie
+  if(iContrato < 0 && iContacto < 0) return;           // no hay por dónde atar la fila
 
-  /* ⚠️ SI LA HERRAMIENTA YA DICE LO QUE SE DEBE, AQUÍ NO SE DICE OTRA VEZ.
-     Se desplegó sin esta comprobación y Vencimientos —que ya tenía su columna
-     PENDIENTE— acabó con DOS columnas llamadas igual y con números distintos en
-     la misma fila: la suya es por hito (importe − cubierto) y la mía por
-     operación (precio − cobrado). Eduardo Cuellar salía debiendo 26.500 € en una
-     y «Cobrado» en la otra.
-     Dos cifras que se contradicen en la misma fila no son redundancia molesta:
-     son una herramienta en la que ya no se puede confiar. Manda la de la
-     herramienta, que es la que tiene el contexto. */
-  if(indiceCabecera(tabla, ['pendiente', 'saldo', 'debe']) >= 0) return;
+  /* Aunque la herramienta lo pida, si ya tiene la columna no se duplica: manda
+     la suya, que es la que tiene el contexto. */
+  const ponNombre = quiere.nombre && indiceCabecera(tabla, ['comprador', 'cliente']) < 0;
+  const ponSaldo  = quiere.pendiente && indiceCabecera(tabla, ['pendiente', 'saldo', 'debe']) < 0;
+  if(!ponNombre && !ponSaldo) return;
 
-  /* ¿Falta también el NOMBRE? Proyectos y Obra listan unidades por código y no
-     dicen de quién son: hay que abrir el contrato para saberlo. Si la tabla ya
-     trae comprador o cliente no se toca — no se duplica una columna que existe. */
-  const ponNombre = iContrato >= 0 && indiceCabecera(tabla, ['comprador', 'cliente']) < 0;
-
-  /* Las cabeceras se ponen una vez. `data-v3-*` marca las que son nuestras para
-     no duplicarlas cuando la herramienta repinte el cuerpo. */
   if(ponNombre && !th.querySelector('[data-v3-nombre]')){
     const c = document.createElement('th');
     c.setAttribute('data-v3-nombre', '1');
     c.textContent = 'Comprador';
     th.appendChild(c);
   }
-  if(!th.querySelector('[data-v3-saldo]')){
+  if(ponSaldo && !th.querySelector('[data-v3-saldo]')){
     const c = document.createElement('th');
     c.setAttribute('data-v3-saldo', '1');
     c.className = 'num';
@@ -801,29 +807,13 @@ function saldosEnTabla(tabla){
   }
 
   [...cuerpo.rows].forEach(f => {
-    /* Filas de «Cargando…» o de mensaje: llevan un colspan y no son datos. */
+    /* Filas de «Cargando…» o de mensaje: llevan colspan y no son datos. */
     if(f.cells.length && f.cells[0].colSpan > 1) return;
-    let cn = null;
-    if(ponNombre){
-      cn = f.querySelector('[data-v3-nombre]');
-      if(!cn){
-        cn = document.createElement('td');
-        cn.setAttribute('data-v3-nombre', '1');
-        cn.className = 'v3-nombre-td';
-        f.appendChild(cn);
-      }
-    }
-    let c = f.querySelector('[data-v3-saldo]');
-    if(!c){
-      c = document.createElement('td');
-      c.setAttribute('data-v3-saldo', '1');
-      c.className = 'num v3-saldo-td';
-      f.appendChild(c);
-    }
+
     let ficha = null;
     if(iContrato >= 0 && f.cells[iContrato]){
       /* La celda puede traer el número con el tipo detrás («CC00026
-         Construcción»): se coge el primer token, que es el número. */
+         Construcción»): el primer token es el número. */
       const bruto = f.cells[iContrato].textContent.trim().split(/\s+/)[0];
       if(bruto && bruto !== '—') ficha = LW_SALDOS.porNumero(bruto);
     }
@@ -831,12 +821,31 @@ function saldosEnTabla(tabla){
       const m = f.cells[iContacto].textContent.match(/[\w.+-]+@[\w.-]+\.\w+/);
       if(m) ficha = LW_SALDOS.porPersona(m[0]);
     }
-    if(cn) cn.innerHTML = (ficha && ficha.comprador)
-      ? esc3(ficha.comprador)
-      : '<span class="v3-saldo-mudo">sin vender</span>';
-    c.innerHTML = LW_SALDOS.celda(ficha);
+
+    if(ponNombre){
+      let cn = f.querySelector('[data-v3-nombre]');
+      if(!cn){
+        cn = document.createElement('td');
+        cn.setAttribute('data-v3-nombre', '1');
+        cn.className = 'v3-nombre-td';
+        f.appendChild(cn);
+      }
+      cn.innerHTML = (ficha && ficha.comprador) ? esc3(ficha.comprador)
+                                                : '<span class="v3-saldo-mudo">sin vender</span>';
+    }
+    if(ponSaldo){
+      let c = f.querySelector('[data-v3-saldo]');
+      if(!c){
+        c = document.createElement('td');
+        c.setAttribute('data-v3-saldo', '1');
+        c.className = 'num v3-saldo-td';
+        f.appendChild(c);
+      }
+      c.innerHTML = LW_SALDOS.celda(ficha);
+    }
   });
 }
+
 /* Arranca el cálculo en cuanto haya con qué. `guard.js` publica el cliente en
    `LW_AUTH`; el panel v3 lo anuncia por `lw-ficha` con `window.LW_SB`. */
 function arrancaSaldos(){
