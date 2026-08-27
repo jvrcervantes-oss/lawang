@@ -14,14 +14,19 @@
      razón, y el problema no era el gusto sino el método — una décima manera de
      pintar una tabla es exactamente lo que `suite.css` vino a matar. Ahora
      hereda tokens, densidad, tabla, cajón y barra del resto de la suite. -->
-<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026, encargo del owner).
+     `lawang.css` la genera `tools/empaqueta_css.py` uniendo brand + topbar +
+     suite + app EN ESE ORDEN, que es la cascada y no el alfabeto. Se escribe
+     en cuatro ficheros —cada uno con el porqué de sus reglas— y se sirve en
+     uno, para que ninguna herramienta pueda cargar media suite: antes
+     Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
+     salieron los desplegables con cuatro aspectos. -->
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=cda7a0a1">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=0b07a4e1">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=d3c8f3d4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- ⚠️ NI guard.js NI topbar.js, y no es un olvido:
      · guard.js es la puerta del EQUIPO — rebota al login interno y, desde el

@@ -907,3 +907,42 @@ input.lw-elegible:disabled{ cursor:default; }
   font-size:13.5px; line-height:1.5; color:#6A4A14;
   background:#F7EEDC; border:1px solid #E6D7B4; border-radius:var(--r-m,12px);
 }
+
+/* ══ DOS PANELES: FORMULARIO + VISTA PREVIA ═══════════════════════════════════
+   27-ago-2026, owner: «en facturas en responsive quiero que haga una vista
+   previa como hay en contratos».
+
+   Vivía SOLO en `contracts/assets/app.css`, y Facturas —que tiene exactamente
+   la misma pantalla, con las mismas clases `.pane-form` y `.pane-preview`— se
+   había resuelto el móvil a su manera: apilando las dos columnas. Resultado: la
+   factura salía debajo del formulario, después de hacer scroll por veinte
+   campos, en vez de a pantalla completa. Dos definiciones de lo mismo con dos
+   comportamientos, que es de lo que va la pregunta del owner sobre el CSS.
+
+   Aquí está una sola vez, y las dos herramientas la usan. En escritorio no
+   cambia nada: `.fab` y `.pv-close` solo existen por debajo de 900 px.
+
+   §7 (consistencia espacial): la previa entra desde ABAJO y se va por abajo —
+   el mismo camino en los dos sentidos, que es lo que hace que se entienda de
+   dónde ha salido. §14: sin movimiento, aparece y ya. */
+.fab{ display:none; position:fixed; z-index:45; right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom));
+  background:var(--tg,#485B37); color:#fff; border:none; border-radius:30px;
+  padding:14px 20px; font:inherit; font-size:15px; font-weight:500;
+  box-shadow:0 8px 24px rgba(16,76,79,.35); cursor:pointer;
+  transition:transform .16s ease, box-shadow .18s ease; }
+.fab:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(16,76,79,.42); }
+/* §1: el realce al APRETAR, no al soltar. */
+.fab:active{ transform:translateY(0) scale(.97); }
+.pv-close{ display:none; }
+
+@media (max-width:900px){
+  .fab{ display:inline-flex; }
+  .pv-close{ display:inline-flex; }
+  .pane-preview{ position:fixed; inset:0; z-index:60; height:100dvh;
+    border-left:none; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1); }
+  .pane-preview.open{ transform:none; }
+}
+@media (max-width:900px) and (prefers-reduced-motion: reduce){
+  .pane-preview{ transition:none; }
+}

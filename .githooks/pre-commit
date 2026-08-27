@@ -44,6 +44,20 @@ fi
 suite=$(git diff --cached --name-only | grep -E '^contracts/assets/.+\.(js|css)$' | grep -v '\.test\.js$' || true)
 if [ -n "$suite" ]; then
   raiz=$(git rev-parse --show-toplevel)
+
+  # EL PAQUETE DE CSS, ANTES DE SELLAR (27-ago-2026). `lawang.css` se genera
+  # uniendo brand+topbar+suite+app, y las 21 paginas lo piden con `?v=<hash>`.
+  # Si se sella ANTES de regenerarlo, el hash corresponde al paquete viejo: las
+  # paginas creerian estar al dia y servirian el CSS anterior, que es peor que
+  # no sellar — un fallo que no se ve porque todo parece correcto. El orden de
+  # estas dos llamadas ES la garantia.
+  empcss="$raiz/../../tools/empaqueta_css.py"
+  if [ -f "$empcss" ]; then
+    py=$(command -v python || command -v python3)
+    "$py" "$empcss" >/dev/null 2>&1 || true
+    git add contracts/assets/lawang.css 2>/dev/null || true
+  fi
+
   sellador="$raiz/../../tools/sella_assets.py"
   if [ -f "$sellador" ]; then
     py=$(command -v python || command -v python3)

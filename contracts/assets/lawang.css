@@ -1,0 +1,2218 @@
+/* ===========================================================================
+   LAWANG · HOJA ÚNICA DE LA SUITE — GENERADA, NO SE EDITA A MANO.
+   Se escribe en cuatro ficheros y se sirve en uno:
+     brand.css  →  topbar.css  →  suite.css  →  app.css
+   El orden es la CASCADA, no el alfabeto. Regenerar con:
+     python tools/empaqueta_css.py
+   Cualquier cambio aquí se pierde en el siguiente push (lo comprueba
+   `--check` en la puerta de pre-commit).
+   =========================================================================== */
+
+/* ─────────────────────────────────────────────────────────────────────
+   brand.css   sha256:d6acafffcd89
+   ───────────────────────────────────────────────────────────────────── */
+/* ================================================================
+   LAWANG · VARIABLES DE MARCA  (design tokens de los contratos)
+   ----------------------------------------------------------------
+   FUENTE ÚNICA. Cambia SOLO aquí y se reskin-ea toda la familia de
+   contratos (portada + las 4 plantillas). Es lo que el cliente pidió:
+   "las paletas cromáticas y logos quiero que sean cambiables".
+   ================================================================ */
+:root{
+  /* — Paleta oficial (Brand Identity Guide) — */
+  --tg:#485B37;  /* Territorial Green */
+  --dl:#104C4F;  /* Deep Lagoon */
+  --be:#42210B;  /* Burnt Earth */
+  --sc:#8F9B7A;  /* Soft Canopy */
+  --va:#2E3437;  /* Volcanic Ash (texto) */
+  --ss:#BEB3A5;  /* Stone Sand */
+  /* BORDE DE UN CONTROL — 16-ago-2026. Stone Sand oscurecido hasta cruzar el
+     3:1 que WCAG exige al contorno de un control (es lo que dice DÓNDE se puede
+     pulsar o escribir). No sale de la paleta por capricho: se probaron los siete
+     tonos de arriba contra el crema de fondo y NINGUNO sirve en esa banda —
+     `--ss` da 1,86:1 y `--sc` 2,66:1, los dos por debajo; el siguiente que pasa
+     ya es `--muted` a 4,78:1, un gris frío que sobre estos cremas se lee como
+     tinta. Éste da 3,36:1 sobre el crema y 3,73:1 sobre blanco: el mínimo que
+     cumple, conservando la familia cálida. Medido, no elegido a ojo. */
+  --borde-control:#8A8474;
+  --rl:#F5F0E6;  /* Raw Linen (papel) */
+  --ink:#2E3437; --muted:#6b6c66;
+
+  /* — Roles semánticos: usa ESTOS en las plantillas, no los de arriba.
+       Para cambiar de paleta, repunta estos 4 a otros hex y listo. — */
+  --brand-primary: var(--tg);
+  --brand-deep:    var(--dl);
+  --brand-accent:  var(--be);
+  --brand-paper:   var(--rl);
+
+  /* — Tipografía — UNA sola fuente: Neue Kabel (The Seasons eliminada).
+     Neue Kabel (licenciada) llega después: al añadir su @font-face,
+     cambia SOLO --font-display a 'Neue Kabel'. Jost es el proxy geométrico.
+     --font-serif se conserva por compatibilidad pero apunta a Neue (no serif). */
+  --font-display: 'Jost', sans-serif;
+  --font-serif:   'Jost', sans-serif;
+  /* CIFRAS GRANDES: Instrument Sans, en negrita (11-ago-2026, decisión del
+     owner — segundo cambio del día: primero pasó de Cormorant Garamond serif
+     a apuntar a --font-display/Neue, y no convenció tampoco). Ya NO apunta a
+     --font-display: es su propia familia, cargada vía Google Fonts (libre,
+     a diferencia de Neue Kabel, que sigue sin @font-face en el repo) —
+     cualquier página que use `.lw-cifra` tiene que cargar Instrument Sans en
+     su <link> de Google Fonts o la cifra cae a Georgia sin avisar (mismo
+     aviso que ya llevaba esta nota para Cormorant Garamond).
+     `contracts/` (la herramienta y los documentos que imprime) queda fuera a
+     propósito — no se toca, pedido explícito del owner. */
+  --font-cifra:   'Instrument Sans', sans-serif;
+  --font-body:    'Jost', sans-serif;
+
+  /* — Emblema / moanito + logos (slots intercambiables) —
+     Assets reales del cliente en assets/brand/. Para cambiarlos,
+     repunta estas URLs (rutas relativas a este brand.css). */
+  --brand-mark:      url(brand/tiki-totem.png);        /* moanito, fondo de portada */
+  --brand-logo:      url(brand/lawang-logo-v3.png);    /* lockup blanco (fondo oscuro) */
+  --brand-logo-dark: url(brand/lawang-logo-v3-dark.png); /* lockup oscuro (fondo claro) */
+
+  /* — Portada · perillas de textura (calíbralas al ver el render) — */
+  --grain-opacity: .14;   /* "intensidad 14" del brief (0–1) */
+  --grain-contrast: .55;  /* "contraste 55" del brief (0–1) */
+  --curves-opacity: .12;  /* líneas curvas en multiply */
+  --mark-opacity: .10;    /* moanito de fondo, baja opacidad */
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   topbar.css   sha256:0b07a4e14cc2
+   ───────────────────────────────────────────────────────────────────── */
+/* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
+   Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
+   enlaces en sitios distintos y "← Intranet" perdido entre los demás botones.
+   Vive aquí y no copiada en cada app por lo mismo que entities.js: tres copias
+   de una barra vuelven a divergir en cuanto alguien toca una.
+
+   Estructura fija, en este orden:
+     [← Intranet] [logo] TÍTULO · SECCIÓN | <controles propios> | spacer | 👤 | [⋯]
+   Lo propio de cada herramienta va en un `.lw-menu` (desplegable por sección),
+   nunca suelto en la barra: es lo que la salvó de volver a llenarse de botones.
+
+   POSICIONAMIENTO NO: cada app mantiene el suyo (sticky en Contratos, fixed en
+   Facturas y Dossier) porque cada una compensa el alto de forma distinta.
+   Aquí solo van aspecto y comportamiento. El alto sale de --tbh de cada app. */
+
+/* [hidden] es del navegador (origen UA) y CUALQUIER regla de autor con
+   `display` — `.tablero{display:grid}`, `.sui-rejilla{display:grid}`, incluso
+   `.lw-btn{display:inline-flex}` — le gana igual sin necesitar más
+   especificidad, porque el origen de la cascada pesa antes que ella. Sin este
+   `!important` cada pantalla con un `hidden` y una regla de layout propia
+   mostraba las dos cosas a la vez (Operaciones: tabla + embudo juntos;
+   Contratos: "+ Nuevo contrato" visible aunque debía estar oculto). Va en
+   topbar.css porque es el único fichero que cargan las 13 pantallas
+   (6-ago-2026). */
+[hidden]{ display:none !important; }
+
+.lw-topbar{
+  /* 6-ago-2026, 2ª pasada: los valores EXACTOS del mockup, que son iguales en las
+     once pantallas de la direccion elegida — 64px de alto, fondo BLANCO liso con
+     filete, `padding:0 26px` y `gap:18px`.
+     ⚠️ Blanca y no Deep Lagoon: esta manana se puso `#104C4F` siguiendo el 2º
+     handoff, que solo cubria dos pantallas. Medido despues sobre las 13 opciones
+     del mockup principal: ONCE la tienen blanca (`#FFFFFF`) y solo 1b —la
+     direccion oscura, descartada— y 1c difieren. Manda la mayoria de la direccion
+     elegida, no el handoff parcial.
+     Fuera el `backdrop-filter`: el mockup usa fondo liso, y un desenfoque sobre
+     una tabla que pasa por debajo se lee como suciedad. */
+  height:var(--tbh,64px); display:flex; align-items:center; gap:18px;
+  padding:0 26px; padding-top:env(safe-area-inset-top);
+  background:#FFFFFF;
+  border-bottom:1px solid var(--linea,#E4DCCB);
+  font-family:var(--sans,'Jost',system-ui,sans-serif);
+  color:var(--va,#2E3437);
+}
+
+/* ── VARIANTE OSCURA DE LA BARRA — el hub, 16-ago-2026 ──────────────────────
+   Misma barra, mismo sitio para cada cosa; SOLO cambia la paleta. El hub tenía
+   cabecera propia (marca de texto, `max-width:1060px` centrado) y por eso su
+   logotipo no caía donde cae en las otras once pantallas. Decisión del owner:
+   unificar estructura y colocación, conservar el color — el hub es el sitio al
+   que se vuelve, y que se distinga de un vistazo ayuda.
+
+   El logotipo lo cambia `topbar.js`: sobre Deep Lagoon hay que servir el blanco
+   (`lawang-logo-v3.png`), porque el de siempre es tinta oscura y aquí sería un
+   rectángulo invisible.
+
+   El filete de abajo va en blanco translúcido: `--linea` es un crema claro
+   pensado para fondos claros y sobre este verde se lee como una raya luminosa. */
+.lw-topbar.lw-topbar-oscura{
+  background:var(--dl,#104C4F);
+  border-bottom-color:rgba(255,255,255,.16);
+  color:var(--rl,#F1EBDD);
+}
+.lw-topbar-oscura .lw-title{ color:#fff; }
+/* Un botón blanco sobre Deep Lagoon ya destaca de sobra: aquí el borde no tiene
+   que hacer de contorno, así que se apaga en vez de dibujar un cerco. */
+.lw-topbar-oscura .lw-btn{ border-color:rgba(255,255,255,.28); }
+.lw-topbar-oscura .lw-btn:hover{ border-color:#fff; }
+
+/* Vuelta al hub: primero, a la izquierda y en verde de marca. Es la única
+   acción de la barra que saca de la herramienta, y antes se confundía con el
+   resto de enlaces del extremo derecho. */
+.lw-home{
+  /* `#485B37` (verde territorial) y NO Deep Lagoon: en el mockup la vuelta al hub
+     es lo unico verde de la barra, y funciona justamente porque no compite con la
+     accion principal, que es la azulada de la derecha. 12px/600, 8x14, sin sombra. */
+  display:inline-flex; align-items:center; gap:6px; flex:none;
+  font:inherit; font-size:12px; font-weight:600; line-height:1;
+  text-decoration:none; cursor:pointer; white-space:nowrap;
+  background:var(--tg,#485B37); color:#fff; border:none;
+  border-radius:999px; padding:8px 14px;
+  transition:transform .18s ease, background .18s ease;
+}
+.lw-home:hover{ background:#3c4d2d; transform:translateY(-1px); }
+.lw-home:active{ transform:translateY(0) scale(.97); }
+
+.lw-brand{ height:24px; width:auto; opacity:.95; flex:none; }
+/* El nombre de la seccion es un TITULO, no un rotulo: 13px/600 en tinta. Estaba
+   en 500, gris y con `.2em` de tracking en mayusculas, que lo convertia en
+   decoracion — en el mockup es lo segundo que se lee de la barra. */
+.lw-title{ margin:0; font-size:13px; font-weight:600; letter-spacing:0;
+  text-transform:none; color:var(--texto,#21272A); white-space:nowrap; }
+.lw-spacer{ flex:1; }
+.lw-sep{ width:1px; height:24px; background:var(--linea,#E4DCCB); flex:none; }
+.lw-who{ font-size:12px; color:var(--muted,#6b6c66); max-width:190px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lw-who::before{ content:"👤 "; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL BOTÓN DE LA SUITE — UNO SOLO (26-ago-2026, LAW-90)
+   ═══════════════════════════════════════════════════════════════════════════
+   Había OCHO tratamientos del mismo control: `.lw-btn`, `.sui-btn`, y `.btn`
+   escrito SEIS veces —una en `app.css` y cinco copias privadas dentro del
+   `<style>` de Compradores, Facturas, Usuarios, Creatividades·Redes e
+   Intranet—. Y como pasa siempre que algo se escribe seis veces, las seis
+   habían divergido. Medido:
+
+     tamaño   12,5 · 13 · 13,5 · 14 · .81rem
+     relleno  8×15 · 9×14 · 9×17 · 10×16 · 10×18
+     radio    999px · var(--pill) · var(--r-sm)
+     borde    var(--line) · var(--linea) · var(--line-fuerte) · none
+     fondo    var(--card) · #fff · var(--sup)
+
+   Dos fallos de verdad debajo de la cosmética, que son la razón de tocarlo:
+
+   1. **Sin estado de foco en cuatro de las cinco.** Solo Intranet declaraba
+      `:focus-visible`. Quien navega con teclado no veía dónde estaba — el mismo
+      agujero que tenía `.sui-sel` y por el que se unificó el desplegable.
+   2. **Dos nombres para el modificador principal**: `.primary` en unas y
+      `.primario` en otras. Escribir el que no toca no da error: deja el botón
+      secundario, en silencio, en el sitio donde hay que pulsar.
+
+   Aquí van los TRES nombres al mismo control, porque son el mismo control. Se
+   conservan los tres como nombre —los usan las plantillas ya escritas— pero
+   detrás hay una sola definición. Y los dos modificadores se aceptan a la vez,
+   para que el que se escriba sea el que se ve.
+   Las medidas del cuerpo (13px / 9×17) son las que YA usaban tres de las cinco
+   páginas: se unifica hacia donde estaba la mayoría, no hacia un gusto nuevo.
+   `.lw-btn` conserva su tamaño de barra: un control de cromo es más pequeño que
+   uno de página, y eso no es divergencia, es su sitio.                        */
+.sui-btn, .btn{
+  font:inherit; font-size:13px; font-weight:500; line-height:1.2;
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  padding:9px 17px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--borde-control,var(--linea,#E4DCCB));
+  background:var(--card,var(--sup-1,#fffdf8)); color:inherit;
+  transition:border-color 160ms cubic-bezier(.22,.61,.36,1),
+             background 160ms cubic-bezier(.22,.61,.36,1),
+             color 160ms cubic-bezier(.22,.61,.36,1);
+}
+.sui-btn:hover, .btn:hover{ border-color:var(--dl,#104C4F); }
+/* El anillo de foco es el MISMO que el del desplegable: si dos controles que se
+   tabulan seguidos se marcan distinto, el ojo lee un salto donde no lo hay. */
+.lw-btn:focus-visible, .sui-btn:focus-visible, .btn:focus-visible{
+  outline:none; border-color:var(--dl,#104C4F);
+  box-shadow:0 0 0 3px rgba(72,91,55,.12);
+}
+.sui-btn:disabled, .btn:disabled{ opacity:.5; cursor:default; }
+/* Acción principal. Los DOS nombres, a propósito: ver el punto 2 de arriba. */
+.sui-btn.primary, .sui-btn.primario, .btn.primary, .btn.primario, .btn.solido{
+  background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; font-weight:600;
+}
+
+/* botón de barra (ghost) y su variante de acción principal */
+.lw-btn{
+  /* Pastilla lisa: el mockup no usa degradado ni sombra en los botones de barra.
+     12px/500 y `7px 13px` el secundario; el primario sube a 13px/600 y `9px 16px`. */
+  font:inherit; font-size:12px; font-weight:500; line-height:1; color:var(--texto-2,#4A5052);
+  background:#fff;
+  /* El borde de un control es lo que dice DÓNDE se puede pulsar, y la norma de
+     contraste para eso es 3:1 contra lo que tiene al lado. `--linea` (#E4DCCB)
+     daba 1,36:1 sobre blanco y 1,23:1 sobre el crema — un contorno que
+     prácticamente no está. `--borde-control` da 3,73 y 3,36; su porqué y por qué
+     no vale ninguno de los siete tonos de la paleta está en brand.css.
+     El texto ya iba bien (14,95:1), esto no lo toca. */
+  border:1px solid var(--borde-control,#8A8474); border-radius:999px;
+  padding:7px 13px; cursor:pointer; white-space:nowrap; text-decoration:none;
+  display:inline-flex; align-items:center; gap:6px;
+  transition:transform .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.lw-btn:hover{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F);
+  transform:translateY(-1px); }
+.lw-btn:active{ transform:translateY(0) scale(.97); }
+/* LA ACCIÓN PRINCIPAL DE CADA HERRAMIENTA — convención unificada 16-ago-2026
+   ---------------------------------------------------------------------------
+   `.lw-btn.primary` no es nueva: existía desde el mockup («la accion principal,
+   que es la azulada de la derecha», ahí arriba). Lo que pasaba es que solo la
+   usaba Contratos. Medido el 16-ago sobre las ocho herramientas: 1 de 8.
+
+   En las otras siete, «+ Nuevo comprador» era exactamente la misma píldora gris
+   que «Salir» y que «↻ Recargar» — la acción por la que se entra a la
+   herramienta pesaba lo mismo que cerrar sesión, y no había forma de encontrarla
+   sin leer los botones uno a uno.
+
+   LA CONVENCIÓN, para que una herramienta nueva no vuelva a inventarse la suya:
+
+     · UNA sola por herramienta. La que crea la cosa que da nombre a la
+       herramienta: Facturas emite documentos, Compradores crea fichas. Si hay
+       dos acciones que crean (Proyectos crea unidades y proyectos), la principal
+       es la frecuente y la otra se queda en `.lw-btn` gris.
+     · ÚLTIMA de la barra, en la esquina derecha. Antes iba antes de «Salir», así
+       que la esquina —el sitio más alcanzable— se la llevaba cerrar sesión.
+     · `<i class="ph ph-plus"></i><span>Nuevo…</span>`, nunca un «+» de texto.
+       El rótulo dice SIEMPRE de qué: «+ Nueva» no decía nueva qué.
+     · Siempre «Nuevo/Nueva <cosa>», nunca «Añadir <cosa>»: dos verbos para lo
+       mismo obligan a leer, y uno de los dos sobra.
+
+   Una herramienta que solo consulta o edita —Obra, Operaciones— NO lleva
+   ninguna. Un botón azul en una barra donde no se crea nada es peor que ninguno.
+
+   ⚠️ Si la herramienta traduce (`data-t`), el rótulo va en un `<span data-t>`
+   aparte y el icono FUERA: el traductor escribe `textContent` sobre el elemento
+   marcado y se llevaría el `<i>` por delante al cambiar de idioma. */
+.lw-btn.primary{ background:var(--dl,#104C4F); color:#fff; border-color:var(--dl,#104C4F);
+  font-size:13px; font-weight:600; padding:9px 16px; }
+.lw-btn.primary:hover{ background:#0d5b5f; color:#fff; }
+.lw-btn .ph{ font-size:15px; line-height:1; }
+
+/* EL DESPLEGABLE DE LA SUITE — UNO SOLO (26-ago-2026)
+   Había dos: `.lw-select` (barra) y `.sui-sel` (formularios), con tamaño, peso,
+   color y radio distintos — y `.sui-sel` **sin estado de foco**, que no es una
+   diferencia de gusto sino un fallo de accesibilidad: quien navega con teclado
+   no veía dónde estaba. Y siete herramientas tenían `<select>` sin ninguna
+   clase, o sea el desplegable crudo del sistema al lado de los otros dos.
+   Ahora hay UNA definición y dos tamaños. Vive en topbar.css, que es la única
+   hoja que cargan las doce herramientas (`suite.css` no la cargan todas).
+   `.sui-sel` se conserva como nombre porque lo usan las plantillas ya escritas:
+   es un alias, no una segunda forma. */
+/* 🔴 27-ago-2026, owner: «en facturas veo dos estilos de desplegables, uno en
+   contrato y otro en moneda… solo debe quedarse el de moneda. así con todo».
+   Contados los que había en las 13 pantallas: 32 `.sui-sel`, 3 `.lw-select`
+   —esos dos ya eran la MISMA definición desde el 26-ago—, 1 `.f-sel` con su
+   propia regla en Operaciones, y **dos `<select>` sin ninguna clase**, o sea el
+   desplegable crudo del sistema al lado de los otros. Cuatro tratamientos.
+   Se añaden los tres que faltaban a esta lista en vez de escribirles su regla:
+   una definición, cuatro selectores. Y `select` a secas dentro de la suite,
+   para que uno nuevo nazca ya bien en vez de nacer crudo — que es como
+   aparecieron los dos de hoy.
+   `.campo-elegir` entra aquí también aunque sea un `<button>`: abre un buscador
+   porque hay 112 contratos y un desplegable no vale, pero HACE lo mismo —elegir
+   un valor de una lista— y por tanto tiene que verse igual. Que se vea distinto
+   es lo que el owner señaló, y tenía razón: la diferencia estaba en el aspecto,
+   no en lo que el control significa. */
+.lw-select, .sui-sel, .f-sel, .campo-elegir,
+.sui-centro select:not([class]), .pane-form select:not([class]), #form select:not([class]){
+  font:inherit; font-size:13px; font-weight:600; color:var(--dl,#104C4F);
+  background:var(--card,#fffdf8); border:1px solid var(--linea,#E4DCCB);
+  border-radius:9px; padding:7px 12px; cursor:pointer; max-width:260px;
+}
+/* El relleno derecho lo fija `suite.css` en 40px para dejar sitio a su banda y
+   su chevron. No se repite aquí: dos reglas peleando por el mismo hueco es como
+   el botón acabó con 30 y el desplegable con 40, uno al lado del otro. */
+.lw-select:hover, .sui-sel:hover, .f-sel:hover, .campo-elegir:hover,
+.sui-centro select:not([class]):hover, .pane-form select:not([class]):hover, #form select:not([class]):hover{
+  border-color:var(--dl,#104C4F); }
+.lw-select:focus, .sui-sel:focus, .f-sel:focus, .campo-elegir:focus-visible,
+.sui-centro select:not([class]):focus, .pane-form select:not([class]):focus, #form select:not([class]):focus{
+  outline:none; border-color:var(--dl,#104C4F);
+  box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+/* El botón sí necesita lo que un `<select>` trae de fábrica: alinear a la
+   izquierda, ocupar su campo y recortar un nombre largo con puntos suspensivos
+   («CC00068 — Borja Alonso Fernandez · Sonia Alonso…»). */
+.campo-elegir{ display:block; box-sizing:border-box; width:100%; max-width:none; text-align:left;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  /* Un `<button>` hereda la interlínea de la página (1.5) y un `<select>` usa la
+     suya, más apretada: con el mismo relleno salían 35 px contra 31, cuatro de
+     diferencia entre dos controles que están uno encima del otro. Se iguala a
+     la del desplegable. */
+  line-height:1.15; }
+.campo-elegir.vacio{ color:var(--muted,#7C8B7A); font-weight:400; }
+/* La FLECHA no se dibuja aquí: la pone `suite.css` sobre `select` como
+   elemento, con su banda de fondo y su truco de especificidad, y esa es la que
+   el owner señaló como la buena («solo debe quedarse el de moneda»). Aquí se
+   unifica la GEOMETRÍA —letra, borde, radio, relleno, foco—; el adorno lo pone
+   quien ya lo tenía bien. Escribir aquí una segunda flecha fue mi primer
+   intento y creó un quinto tratamiento en vez de quitar uno: `suite.css` carga
+   después, así que los `<select>` llevaban la suya y el botón la mía.
+   `.campo-elegir` entra en la regla de `suite.css` (es un `<button>`, así que
+   el selector de elemento no lo alcanzaba solo). */
+/* Dentro de un formulario el desplegable no es un control de barra: ocupa el
+   ancho de su campo y no compite con la etiqueta. Es el MISMO control, con la
+   medida que le toca a su sitio — no otro. */
+/* `box-sizing` por el mismo motivo que `.campo input` en suite.css: un
+   `width:100%` con relleno y borde se sale 24px si la página no trae reset
+   global — y una pieza compartida no puede depender de eso. */
+.sui-sel{ box-sizing:border-box; max-width:none; width:100%; }
+
+/* campo de texto en barra (el nombre del dossier) */
+.lw-input{
+  font:inherit; font-size:13.5px; font-weight:600; color:var(--va,#2E3437);
+  background:transparent; border:none; border-bottom:1px dashed var(--ss,#BEB3A5);
+  padding:4px 2px; width:150px;
+}
+.lw-input:focus{ outline:none; border-bottom-color:var(--dl,#104C4F); }
+
+/* ---- desplegable de sección (<details> nativo: sin JS de apertura) ---- */
+.lw-menu{ position:relative; flex:none; }
+.lw-menu > summary{ list-style:none; cursor:pointer; }
+.lw-menu > summary::-webkit-details-marker{ display:none; }
+.lw-menu[open] > summary{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F); }
+.lw-menu-list{
+  position:absolute; right:0; top:calc(100% + 6px); z-index:60; min-width:232px;
+  background:var(--card,#fffdf8); border:1px solid var(--linea,#E4DCCB);
+  border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:2px;
+  box-shadow:0 14px 36px -10px rgba(46,52,55,.34), 0 2px 6px rgba(46,52,55,.08);
+}
+.lw-menu-list.left{ right:auto; left:0; }
+/* dentro del menú los botones son filas de lista, no botones sueltos */
+.lw-menu-list .lw-btn{
+  width:100%; justify-content:flex-start; text-align:left;
+  border:none; background:none; box-shadow:none; padding:9px 12px; border-radius:7px;
+}
+.lw-menu-list .lw-btn:hover{ background:rgba(72,91,55,.09); color:var(--dl,#104C4F);
+  transform:none; box-shadow:none; }
+.lw-menu-list hr{ border:none; border-top:1px solid var(--linea,#E4DCCB); margin:4px 2px; }
+
+/* ---------------------------------------------------------------------------
+   CAMPANA DE NOTIFICACIONES — 4-ago-2026
+   La inyecta topbar.js en las siete herramientas. Es un `.lw-menu` más, así que
+   hereda el cierre al pinchar fuera y con Escape sin una línea de código extra.
+   --------------------------------------------------------------------------- */
+/* 🔴 EL COLOR DEL TEXTO SE DECLARA, NO SE HEREDA. La barra de las ocho
+   herramientas es clara, pero la cabecera del hub es OSCURA y le pone a sus
+   hijos `color:#F5F0E6`. El botón heredaba ese claro y lo pintaba sobre su
+   propia píldora clara: contraste 1,12 sobre 21 — invisible. Medido. */
+/* El panel esconde el «👤 nombre» y el «Salir» que cada página ya trae, poniendo
+   `hidden`. Pero `.lw-btn` declara `display:inline-flex`, y una declaración de
+   `display` en una hoja gana al `display:none` que el navegador aplica a
+   `[hidden]`: el botón viejo seguía saliendo, y quedaban dos formas de cerrar
+   sesión. Medido en captura, no supuesto. */
+.lw-topbar [hidden]{ display:none !important; }
+
+.lw-usuario-btn{ position:relative; display:inline-flex; align-items:center; gap:7px; flex:none;
+  min-height:32px; padding:3px 10px 3px 3px; border-radius:999px; cursor:pointer;
+  font:inherit; border:1px solid var(--linea,#E4DCCB); background:var(--card,#fffdf8);
+  color:var(--va,#2E3437); transition:border-color 120ms; }
+.lw-usuario-btn:hover{ border-color:var(--dl,#104C4F); }
+.lw-usuario-ini{ display:inline-flex; align-items:center; justify-content:center;
+  width:25px; height:25px; border-radius:999px; background:var(--dl,#104C4F); color:#fff;
+  font-size:11.5px; font-weight:600; flex:none; }
+.lw-usuario-ini.grande{ width:38px; height:38px; font-size:16px; }
+.lw-usuario-nom{ font-size:12.5px; max-width:130px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:760px){ .lw-usuario-nom{ display:none; } }
+
+/* ── CAJÓN IZQUIERDO ────────────────────────────────────────────────────────
+   Mismos valores que `.sui-cajon` de suite.css, copiados y no heredados porque
+   suite.css solo lo cargan cuatro de las nueve pantallas y el panel tiene que
+   comportarse igual en las nueve. Si algún día se unifican las hojas, esto se
+   borra y se hereda; hasta entonces, dos sitios con el MISMO número es menos
+   malo que un panel que se abre distinto según la herramienta. */
+.lw-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.38);
+  opacity:0; pointer-events:none; transition:opacity 260ms cubic-bezier(.22,.61,.36,1); }
+.lw-velo.on{ opacity:1; pointer-events:auto; }
+.lw-panel{
+  position:fixed; top:var(--tbh,64px); left:0; bottom:0; z-index:61;
+  width:clamp(300px, 26vw, 420px); max-width:100vw;
+  background:var(--card,#fffdf8); border-right:1px solid var(--linea,#E4DCCB);
+  box-shadow:0 18px 48px -22px rgba(34,40,42,.45), 0 2px 8px rgba(34,40,42,.07);
+  display:flex; flex-direction:column; color:var(--va,#2E3437);
+  transform:translateX(-100%); transition:transform 260ms cubic-bezier(.22,.61,.36,1);
+  overscroll-behavior:contain;
+}
+.lw-panel.on{ transform:none; }
+.lw-panel-cab{ display:flex; align-items:flex-start; gap:11px; padding:16px 18px 13px;
+  border-bottom:1px solid var(--linea,#E4DCCB); }
+.lw-panel-quien{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.lw-panel-quien b{ font-size:14px; }
+.lw-panel-quien span{ font-size:11.5px; color:var(--muted,#6b6c66);
+  overflow:hidden; text-overflow:ellipsis; }
+.lw-usuario-rol{ margin-top:5px; align-self:flex-start; font-size:10px; letter-spacing:.09em;
+  text-transform:uppercase; font-weight:600; color:var(--dl,#104C4F);
+  border:1px solid var(--linea,#E4DCCB); border-radius:999px; padding:2px 8px; }
+.lw-panel-x{ margin-left:auto; flex:none; font:inherit; font-size:15px; line-height:1;
+  background:none; border:1px solid var(--linea,#E4DCCB); border-radius:8px;
+  min-width:30px; min-height:30px; cursor:pointer; color:var(--muted,#6b6c66); }
+.lw-panel-x:hover{ border-color:var(--dl,#104C4F); color:var(--va,#2E3437); }
+.lw-panel-cuerpo{ flex:1; overflow-y:auto; padding-bottom:8px; }
+.lw-panel-pie{ border-top:1px solid var(--linea,#E4DCCB); padding:11px 14px; }
+.lw-usuario-seccion{ font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted,#6b6c66); font-weight:600; padding:13px 18px 6px; }
+.lw-usuario-salir{ width:100%; justify-content:center; }
+
+/* En un teléfono, medio ancho no es leer: sube desde abajo y ocupa casi todo,
+   igual que hace el cajón de la derecha. */
+@media (max-width:760px){
+  /* `height:auto` con tope, no `height:86vh` fijo (15-ago-2026, owner: acortarlo).
+     Con altura fija la hoja ocupaba casi toda la pantalla aunque hubiera tres
+     avisos: se comia el contexto de detras para enseñar hueco. Ahora crece con lo
+     que hay y para a los 3/4 de pantalla; la lista de avisos se desplaza dentro. */
+  .lw-panel{ width:100%; top:auto; height:auto; max-height:76vh; border-right:none;
+    border-top-left-radius:16px; border-top-right-radius:16px;
+    transform:translateY(101%); }
+  /* El pie con «Cerrar sesión» se queda pegado abajo y NO se desplaza con la
+     lista: es la accion que mas se busca en un panel de cuenta. */
+  .lw-panel-pie{ position:sticky; bottom:0; background:var(--card,#fffdf8);
+    border-top:1px solid var(--linea,#E4DCCB); }
+  .lw-panel.on{ transform:none; }
+}
+@media (prefers-reduced-motion:reduce){
+  .lw-velo, .lw-panel{ transition-duration:.01ms; }
+}
+/* El número NO es solo color: lleva su propio sitio y su forma. Un punto rojo a
+   secas no dice cuántos, y con daltonismo no dice nada. */
+.lw-campana-n{ position:absolute; top:-4px; right:-4px; background:#9E2F26; color:#fff;
+  font-size:9.5px; font-weight:700; line-height:1; padding:2px 5px; border-radius:999px;
+  font-variant-numeric:tabular-nums; }
+.lw-campana-lista{ max-height:min(58vh, 380px); overflow-y:auto; padding:2px 4px 6px; }
+/* En movil el tope baja: la hoja ya no tiene altura fija y si la lista se estira
+   vuelve a comerse la pantalla, que es lo que se venia a arreglar. */
+@media (max-width:760px){ .lw-campana-lista{ max-height:44vh; } }
+.lw-aviso{ display:grid; grid-template-columns:1fr auto; gap:2px 10px;
+  padding:9px 11px; border-radius:7px; text-decoration:none; color:inherit; }
+.lw-aviso:hover{ background:rgba(72,91,55,.09); }
+.lw-aviso + .lw-aviso{ border-top:1px solid var(--linea,#E4DCCB); border-radius:0; }
+.lw-aviso-t{ font-size:13px; font-weight:500; line-height:1.35; }
+.lw-aviso-d{ grid-column:1; font-size:11.5px; color:var(--muted,#6b6c66); line-height:1.35; }
+.lw-aviso-c{ grid-row:1; grid-column:2; font-size:11px; color:var(--muted,#6b6c66);
+  white-space:nowrap; font-variant-numeric:tabular-nums; }
+/* lo no visto se marca con un filete a la izquierda, no con el fondo: sobre el
+   hover un fondo claro se pierde y deja de distinguirse */
+/* mismo acento que la fila seleccionada (6-ago-2026): un filete a la izquierda
+   marca «esto es lo que miras», y eso ya no es verde. El verde queda para
+   «correcto», y un aviso sin leer no es un acierto, es una tarea. */
+.lw-aviso.nuevo{ box-shadow:inset 2px 0 0 var(--dl,#104C4F); }
+.lw-aviso.nuevo .lw-aviso-t{ font-weight:600; }
+.lw-campana-vacio{ margin:0; padding:22px 14px; text-align:center; font-size:12.5px;
+  color:var(--muted,#6b6c66); }
+
+/* ---------------------------------------------------------------------------
+   MÓVIL — 31-jul-2026.
+   La barra era un flex de UNA línea sin salida: los botones del extremo derecho
+   se quedaban fuera de la pantalla y no había forma de llegar a ellos. Medido a
+   390px: en Facturas «Salir» caía en x=574 y «Facturas guardadas» en x=412, o
+   sea que desde un móvil no se podía ni cerrar sesión. Pasaba en las SEIS
+   herramientas, porque la barra es esta. Y en Contratos, que la lleva `sticky`
+   (en flujo, no `fixed`), además ensanchaba la página entera 675px.
+
+   El arreglo va aquí y no en cada app por lo mismo que existe este fichero. Dos
+   piezas:
+   1. La barra se desplaza en horizontal. Así ningún control queda inalcanzable
+      —hoy ni en la herramienta que se añada mañana— y, al ser un contenedor con
+      scroll, su contenido deja de ensanchar la página.
+   2. Se recorta lo que no aporta: el logo comía 173px de los 390 (es apaisado,
+      `width:auto` no lo limita), y el título ya iba abreviado.
+
+   No se usa `flex-wrap`: cada app compensa el alto de la barra con su propia
+   `--tbh` y una barra de dos filas se comería el principio del contenido.
+   --------------------------------------------------------------------------- */
+@media (max-width:860px){
+  .lw-topbar{
+    gap:7px; padding:0 10px;
+    overflow-x:auto; overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;                 /* la barra de scroll robaría alto */
+    overscroll-behavior-x:contain;        /* deslizar la barra no navega atrás */
+  }
+  .lw-topbar::-webkit-scrollbar{ display:none; }
+  /* Sin esto los botones se aplastarían al repartir el ancho en vez de
+     desbordar, y quedarían ilegibles en vez de alcanzables. */
+  .lw-topbar > *:not(.lw-spacer){ flex:none; }
+  .lw-brand{ display:none; }
+  .lw-title{ font-size:11.5px; letter-spacing:.14em; }
+  .lw-who{ display:none; }
+}
+
+/* ── MENÚ LATERAL (riel) — V2, 15-ago-2026 ─────────────────────────────────
+   Plegado = 56px de iconos; abierto = 208px con nombre. La barra superior mide
+   64px y el riel arranca justo debajo: no la tapa ni compite con ella.
+   El desplazamiento del contenido va por `padding-left` en el body y no por
+   `margin`, para no romper los `position:fixed` de las herramientas. */
+.lw-rail{
+  position:fixed; left:0; top:var(--tbh,64px); bottom:0; z-index:38;
+  width:56px; display:flex; flex-direction:column; gap:2px; padding:10px 8px;
+  background:var(--sup-1,#fff); border-right:1px solid var(--linea,#E4DCCB);
+  overflow-x:hidden; overflow-y:auto;
+  transition:width 180ms cubic-bezier(.22,.61,.36,1);
+}
+.lw-rail.abierto{ width:208px; }
+/* 🔴 SIN TRANSICIÓN, Y ESTE PADDING NO ES DECORACIÓN (27-ago-2026).
+   El riel es `position:fixed`, así que este `padding-left` es LO ÚNICO que
+   aparta el contenido de debajo de él. Llevaba una transición de 180 ms para
+   que la página se deslizara al abrir el riel… y medido en producción, en
+   Contratos y en Proyectos esa transición se quedaba `playState:"running"` con
+   `currentTime:0` PARA SIEMPRE. Una transición atascada es dueña del valor
+   calculado: `padding-left` se quedaba en 0 y ni `!important` lo movía —
+   comprobado—. Resultado: la primera tarjeta del formulario pasaba por debajo
+   del riel y se veía como un recuadro encima del menú. En Facturas no pasaba,
+   por eso era «a veces».
+   Se quita la transición. Un adorno de 180 ms no puede ser el dueño del valor
+   del que depende el encaje de la página entera — y además animar `padding` en
+   `<body>` fuerza un reflujo completo en cada fotograma. El riel sigue
+   animando SU propio ancho, que no descoloca nada si se atasca. */
+body.con-rail{ padding-left:56px; }
+body.rail-abierto{ padding-left:208px; }
+
+/* LA ESQUINA DE ARRIBA A LA IZQUIERDA — 16-ago-2026
+   El riel arranca a 64px del techo (debajo de la barra) y desplaza el contenido
+   con el `padding-left` de aquí arriba. En las herramientas eso no se nota: su
+   `.lw-topbar` va de borde a borde y tapa la esquina.
+
+   En el HUB no, porque su cabecera es un `<header>` del flujo y el padding la
+   empuja a la derecha: quedaba un rectángulo de 208×64 en la esquina superior
+   izquierda sin pintar por nadie, enseñando el fondo del body. Medido, no es
+   una impresión: `elementFromPoint(10,10)` devolvía el propio `<body>`.
+
+   Se saca la cabecera del padding con un margen negativo, así que el fondo llega
+   hasta el borde. `> header` (hijo directo) a propósito: Facturas y Operaciones
+   tienen `<header>` anidados dentro de su contenido y no son barras.
+
+   ⚠️ EL RELLENO NO SE DEVUELVE. Al escribir esto el 15-ago le puse un
+   `padding-left` igual al margen «para que el contenido no se moviera», y eso
+   dejaba el logotipo del hub en x=208 mientras en las herramientas cae en x=26
+   —ahí la barra es `position:fixed` y se salta el desplazamiento del riel—. O
+   sea: se tapaba el hueco pero se creaba la descolocación que el owner reportó
+   el 16-ago. Sin el relleno manda el `padding:0 26px` de `.lw-topbar` y las doce
+   pantallas ponen el logotipo en el mismo sitio. Medido en las dos. */
+body.con-rail > header{ margin-left:-56px; }
+body.rail-abierto > header{ margin-left:-208px; }
+/* Mismo caso y mismo riesgo: si se atasca, la barra superior queda descolocada
+   56 px respecto de las otras once pantallas. */
+
+.lw-rail-i, .lw-rail-tog{
+  display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
+  border:none; background:none; border-radius:9px; cursor:pointer;
+  color:var(--texto-2,#4A5052); font:inherit; font-size:13.5px; text-decoration:none;
+  white-space:nowrap; width:100%;
+}
+.lw-rail-i i, .lw-rail-tog i{ font-size:19px; flex:0 0 20px; text-align:center; }
+/* El nombre no se oculta con display:none: se desvanece y se recorta, para que
+   al abrir no dé el salto de aparecer de golpe a mitad de la transición. */
+.lw-rail-i span, .lw-rail-tog span{ opacity:0; transition:opacity 120ms ease; }
+.lw-rail.abierto .lw-rail-i span, .lw-rail.abierto .lw-rail-tog span{ opacity:1; }
+.lw-rail-i:hover, .lw-rail-tog:hover{ background:var(--sup-hover,#EFEADE); color:var(--texto,#22282A); }
+.lw-rail-i:focus-visible, .lw-rail-tog:focus-visible{ outline:2px solid var(--dl,#104C4F); outline-offset:-2px; }
+/* Dónde estás: filete + tinta, las dos señales de la fila seleccionada de la
+   suite. Solo el color no basta plegado, que es cuando más falta hace. */
+.lw-rail-i.aqui{ background:var(--sup-sel,#EAE4D3); color:var(--dl,#104C4F); font-weight:600;
+  box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+.lw-rail-tog{ margin-bottom:6px; color:var(--texto-3,#676B63); }
+
+/* AL PASAR EL RATÓN, EL RIEL PLEGADO SE ABRE PARA PODER LEERLO — 24-ago-2026,
+   encargo del owner. Plegado solo quedan los iconos, y un icono se reconoce
+   cuando ya sabes cuál buscas: para BUSCAR hace falta el nombre. Hasta ahora la
+   única salida era desplegar el menú (y volver a plegarlo) o parar el ratón
+   encima a esperar el `title` del navegador, que tarda ~1s y sale en gris de
+   sistema encima de la fila de al lado.
+
+   Se abre POR ENCIMA del contenido: el `padding-left` del body NO cambia. Si
+   empujara, cruzar el riel de camino a otra cosa movería la tabla que se está
+   leyendo — que es el fallo clásico de este patrón. Por eso lleva sombra: sin
+   ella se lee como una columna que ha crecido, no como una capa flotando.
+
+   `transition-delay` de 140 ms SOLO al abrir (al cerrar la regla deja de
+   aplicar y vuelve el 0 de la base): el ratón cruza esos 56px cada vez que va
+   del contenido a la barra, y sin retardo el menú se abriría y cerraría solo
+   todo el rato.
+
+   `:focus-within` con el mismo trato: quien tabula por el menú también necesita
+   leer dónde está, y ahí no hay ratón que provoque el hover.
+
+   Acotado a ratón de verdad (`hover:hover` + `pointer:fine`) y a escritorio: en
+   móvil el riel es una hoja que sube desde abajo, y el hover táctil lo dejaría
+   "abierto" después del primer toque, que es peor que no tenerlo. */
+@media (hover:hover) and (pointer:fine) and (min-width:861px){
+  .lw-rail:not(.abierto):hover,
+  .lw-rail:not(.abierto):focus-within{
+    width:208px; transition-delay:140ms;
+    box-shadow:6px 0 28px -14px rgba(34,40,42,.45);
+  }
+  .lw-rail:not(.abierto):hover .lw-rail-i span,
+  .lw-rail:not(.abierto):hover .lw-rail-tog span,
+  .lw-rail:not(.abierto):focus-within .lw-rail-i span,
+  .lw-rail:not(.abierto):focus-within .lw-rail-tog span{ opacity:1; transition-delay:140ms; }
+  /* el nombre del usuario, al pie, se esconde con `display` y no con opacidad
+     (regla de más abajo), así que hay que devolverlo aquí o el pie se queda a
+     medias mientras el resto del menú ya se lee */
+  .lw-rail:not(.abierto):hover .lw-rail-pie .lw-usuario-nom,
+  .lw-rail:not(.abierto):focus-within .lw-rail-pie .lw-usuario-nom{ display:inline; }
+}
+/* Con movimiento reducido, `.lw-rail{transition:none}` (más abajo) borraría
+   también el retardo, y el menú se abriría de golpe cada vez que el ratón cruza
+   el riel. El retardo NO es movimiento: se conserva con una transición de 1ms,
+   que no se ve pero sí espera. */
+@media (prefers-reduced-motion: reduce) and (hover:hover) and (min-width:861px){
+  .lw-rail:not(.abierto):hover, .lw-rail:not(.abierto):focus-within{ transition:width 1ms 140ms; }
+}
+/* El conmutador de idioma vive en el pie del riel y se pinta como una fila más:
+   sin la píldora blanca que traía de la barra, que ahí abajo se leería como un
+   botón suelto en medio de una lista. */
+.lw-rail-i.lw-idioma{ background:none; border:none; color:var(--texto-3,#676B63); }
+
+/* En móvil no hay ancho que repartir: el riel desaparece y se navega por el hub,
+   que es lo que ya se hacía. Media barra encima de una tabla es peor que nada. */
+/* Botón de la barra superior: SOLO en móvil, donde el riel es una hoja y su
+   botón interno no se ve. Mismo estado que el de dentro, dos mandos. */
+.lw-rail-movil{ display:none; }
+.lw-rail-velo{ position:fixed; inset:0; z-index:37; background:rgba(46,52,55,.42);
+  opacity:0; pointer-events:none; transition:opacity 180ms ease; }
+.lw-rail-velo.on{ opacity:1; pointer-events:auto; }
+
+/* MÓVIL — el riel deja de ser columna y pasa a ser hoja que sube desde abajo,
+   igual que el cajón de usuario (.lw-panel a 86vh). 56px de columna sobre una
+   tabla estrecha es quitarle una sexta parte del ancho a quien menos le sobra;
+   y una hoja a pantalla casi completa se lee y se toca de verdad. */
+@media (max-width:860px){
+  body.con-rail, body.rail-abierto{ padding-left:0; }
+  /* 🔴 Y EL MARGEN NEGATIVO DE LA BARRA TAMBIÉN SE VA (26-ago-2026).
+     Ese `margin-left:-56px` de arriba existe para CANCELAR el `padding-left`
+     que el riel le mete al `body` en escritorio, y así la barra cae borde a
+     borde. Aquí el padding ya es 0 — pero el margen seguía puesto, así que la
+     barra entera se iba 56 px hacia la IZQUIERDA, fuera de la pantalla.
+     Lo que se perdía por ese lado era su primer hijo: el botón ☰ del menú, la
+     ÚNICA puerta al resto de la suite en móvil. Medido en producción antes de
+     tocar nada: el botón estaba en x=-46 y `elementFromPoint` sobre su centro
+     devolvía `null` — no es que se viera mal, es que no estaba en la pantalla.
+     Un `padding` a 0 sin su `margin` a 0 es medio arreglo, y esta es la mitad
+     que faltaba desde que existe el riel. */
+  body.con-rail > header, body.rail-abierto > header{ margin-left:0; }
+  .lw-rail-movil{ display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; flex:none; border:1px solid var(--linea,#E4DCCB);
+    border-radius:10px; background:var(--sup-1,#fff); color:var(--texto-2,#4A5052);
+    cursor:pointer; font-size:19px; }
+  .lw-rail{
+    top:auto; left:0; right:0; bottom:0; width:100%; height:auto; max-height:80vh;
+    border-right:none; border-top:1px solid var(--linea,#E4DCCB);
+    border-top-left-radius:16px; border-top-right-radius:16px;
+    padding:10px 10px calc(14px + env(safe-area-inset-bottom));
+    transform:translateY(101%); transition:transform 240ms cubic-bezier(.22,.61,.36,1);
+    z-index:39; box-shadow:0 -14px 40px -18px rgba(34,40,42,.5);
+  }
+  .lw-rail.abierto{ transform:none; width:100%; }
+  /* En la hoja el nombre se lee SIEMPRE: un icono suelto a pantalla completa no
+     dice nada, y aqui no hay ancho que ahorrar. */
+  .lw-rail .lw-rail-i span, .lw-rail .lw-rail-tog span{ opacity:1; }
+  .lw-rail-i{ min-height:46px; font-size:15px; }
+  /* El boton de plegar sobra dentro de la hoja: se cierra eligiendo, tocando
+     fuera o con Escape. */
+  .lw-rail-tog{ display:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .lw-rail, body.con-rail{ transition:none; }
+}
+
+/* ── Menú lateral: pie con el usuario, y avisos plegables ───────────────────
+   El disparador de cuenta baja aquí desde la barra superior (15-ago-2026): allí
+   se apretaba contra el ☰ y la insignia de avisos en móvil — el «recuadro raro»
+   que reportó el owner. `margin-top:auto` lo pega abajo del todo. */
+.lw-rail-pie{ margin-top:auto; padding-top:10px; border-top:1px solid var(--linea,#E4DCCB); }
+.lw-rail-pie .lw-usuario-btn{ width:100%; justify-content:flex-start; }
+/* Plegado solo cabe la inicial: el nombre se desvanece como el resto de rótulos. */
+.lw-rail:not(.abierto) .lw-rail-pie .lw-usuario-nom{ display:none; }
+
+/* «Intranet» pasa a ser la primera entrada del menú, así que su botón verde de
+   la barra sobra. Se esconde y NO se borra: el código de cada herramienta le
+   sigue escribiendo dentro y quitarlo del DOM lo rompería. */
+.lw-home-oculto{ display:none !important; }
+
+/* ── Menú: cabeceras de departamento (15-ago-2026) ─────────────────────────── */
+/* Aquí vivía `.lw-rail-marca`, el logo de la cabecera del menú. Retirado el
+   16-ago a petición del owner: la barra de arriba ya lleva el suyo y salían las
+   dos marcas a la vez, una encima de la otra. El enlace al hub lo sigue dando la
+   entrada «Intranet», que es la primera del menú. */
+
+/* Aquí vivían `.lw-rail-grupo` y su variante plegada (el filete que separaba sin
+   rotular). Retiradas el 16-ago: sumaban 147,5px en un riel cuyo contenido ya
+   medía 772px contra 632 visibles — el menú desbordaba y había que desplazarlo
+   para llegar a las últimas herramientas. Sin ellas entra entero, en 624px.
+   El razonamiento completo está junto al código, en topbar.js. */
+
+/* ─────────────────────────────────────────────────────────────────────
+   suite.css   sha256:6e591013d534
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ── TEXTO IGUAL EN MOVIL QUE EN ESCRITORIO — 15-ago-2026 ──────────────────
+   El owner reporto que "la fuente se ve diferente en el movil y en el portatil,
+   y en el portatil se ve mejor". No era la fuente: las herramientas cargan las
+   MISMAS (Jost + Cormorant, comprobado una a una). Era el inflado automatico de
+   texto de los navegadores moviles.
+   Safari en iOS y Chrome en Android agrandan por su cuenta el texto de los
+   bloques que consideran "columna principal", con un factor que depende del ancho
+   del bloque. Resultado: dos parrafos de la MISMA hoja salen con tamaños
+   distintos, y ninguno con el que se diseño. Aqui las medidas ya estan pensadas
+   para movil, asi que el ajuste sobra y lo unico que hace es descuadrar.
+   `100%` NO impide hacer zoom con los dedos -eso seria user-scalable=no y es un
+   problema de accesibilidad-: solo apaga el reescalado automatico. */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+/* ============================================================================
+   CAPA DE INTERFAZ DE LA SUITE — tabla, cajón lateral, estados y movimiento
+   31-jul-2026
+   ----------------------------------------------------------------------------
+   POR QUÉ EXISTE. El owner: «no veo que el panel esté pensado para escalar y
+   ser usado por 50 personas a la vez, no es cómodo». Tenía razón, y el problema
+   no era el color: cada herramienta traía su propia lista, su propio detalle y
+   su propia idea de qué es una fila. Con seis herramientas, eso son seis
+   maneras distintas de hacer lo mismo, y quien aprende una no sabe usar la
+   siguiente.
+
+   Aquí vive el esqueleto compartido. Cada herramienta pone SUS datos; la forma
+   de enseñarlos la pone este fichero. `topbar.css` sigue siendo la barra;
+   `brand.css` sigue siendo la marca. Esto es lo de en medio.
+
+   CRITERIOS, con su fuente — no son gustos:
+   · Alineación: texto a la izquierda, NÚMEROS A LA DERECHA, para que los
+     dígitos casen por valor posicional y dos importes se comparen de un
+     vistazo. Fechas, siempre igual en toda la tabla.
+   · Densidad en tres modos (compacta / normal / amplia) y **se recuerda por
+     persona**: quien lleva 300 parcelas no quiere el mismo aire que quien mira
+     cuatro contratos.
+   · Cabecera pegada en cuanto la tabla pasa de una pantalla; si no, se pierden
+     los rótulos justo cuando hacen falta.
+   · Zonas pulsables de 24×24 px como suelo (WCAG 2.2, criterio 2.5.8).
+   · Relleno de celda 16px horizontal / 8px vertical.
+   · CAJÓN LATERAL, no página nueva ni modal: el detalle se lee SIN perder de
+     vista la lista de la que sale, que es justo lo que pidió el owner. Un modal
+     apaga lo de detrás y obliga a decidir; eso es para confirmar y para
+     destruir, no para consultar.
+   · Movimiento corto y con `prefers-reduced-motion` respetado. Una animación
+     que se nota es una animación que estorba a la quincuagésima vez.
+   ========================================================================== */
+
+:root{
+  /* — escala de espacio: una sola, para que dos herramientas no inventen
+       márgenes distintos para lo mismo — */
+  --e1:4px; --e2:8px; --e3:12px; --e4:16px; --e5:24px; --e6:32px; --e7:48px;
+  --r-s:8px; --r-m:12px; --r-l:16px; --r-p:999px;
+
+  /* superficies y líneas, sobre la paleta de brand.css */
+  --sup-0:#F1EBDD;      /* fondo de la aplicación */
+  --sup-1:#FFFFFF;      /* tarjeta, tabla, cajón */
+  --sup-2:#F7F3E9;      /* cabecera de tabla, zonas tranquilas */
+  --sup-hover:#EFEADE;
+  /* FILA SELECCIONADA — tres señales, nunca una.
+     Historia (31-jul-2026): era #E7E1D2 y NO se distinguía — 1,087 contra el
+     hover y 1,097 contra el fondo, o sea el mismo color. De ahí sale la regla que
+     sigue vigente: la selección lleva relleno + filete a la izquierda + el dato
+     clave en tinta de marca, porque una sola señal de color falla con poca luz,
+     con la pantalla girada o con daltonismo.
+
+     6-ago-2026, restyle del panel: el relleno se ACLARA a #EAE4D3 y el peso de la
+     señal se pasa al filete, que además cambia de verde a Deep Lagoon.
+     Los números, porque aquí ya se discutieron una vez y no se van a re-derivar:
+       relleno            vs fila blanca   filete sobre él
+       #E7E1D2 (rechazado el 31-jul)  1,30        —
+       #EAE4D3 (ahora)                1,27      7,63  ← #104C4F
+       #D6CBB2 (antes)                1,61      4,61  ← #485B37
+     Sí: el relleno nuevo contrasta MENOS que el que se rechazó por invisible. Se
+     acepta a propósito porque la selección nunca se apoyó solo en el tinte —
+     lleva filete y dato clave en tinta— y ese filete pasa de 4,61 a 7,63, que es
+     casi el doble de señal en el elemento que de verdad se ve.
+     Si en uso real se queda corto, el escalón siguiente es #DED5C0 (1,46), que
+     está en la paleta del propio mockup. */
+  --sup-sel:#EAE4D3;
+  /* Unificado con `--line` de topbar.css, que valía #e4ddcf: dos filetes que se
+     tocan y no casaban por unos puntos de hex. Una sola variable, un solo valor. */
+  --linea:#E4DCCB;
+  --texto:#22282A;
+  --texto-2:#4A5052;
+  /* 🔴 Era #8A8F86 y NO se leía: 3,31 sobre la tabla blanca y 2,98 sobre la
+     cabecera — por debajo del mínimo de 4,5 de la WCAG AA, y el segundo ni
+     siquiera llega al 3 que se exige a texto grande. Medido, no estimado: es el
+     color de los estados vacíos, del selector de densidad y de los datos
+     secundarios de cada fila, o sea justo lo que hay que poder leer de un
+     vistazo. Se ha bajado la luminosidad MANTENIENDO tono y saturación, así que
+     sigue siendo el mismo gris verdoso de la marca, solo legible: 5,44 sobre
+     blanco, 4,91 sobre la cabecera y 4,53 sobre la fila en hover. */
+  --texto-3:#676B63;
+
+  /* elevación: dos niveles y no más. Tres ya no se distinguen */
+  --sombra-1:0 1px 2px rgba(34,40,42,.06), 0 1px 1px rgba(34,40,42,.04);
+  --sombra-2:0 18px 48px -22px rgba(34,40,42,.45), 0 2px 8px rgba(34,40,42,.07);
+
+  /* movimiento */
+  --t-rapido:120ms; --t-medio:200ms; --t-cajon:260ms;
+  --curva:cubic-bezier(.22,.61,.36,1);
+  /* Cuánto dura un aviso. UNA sola fuente: la lee el CSS de la barra de cuenta
+     atrás Y `toast()` en suite-comun.js. Si vivieran en dos sitios, alguien
+     cambia uno y la barra termina antes o después que el aviso — una barra que
+     miente es peor que no tenerla.
+     Sube de 2.800 a 4.200 ms: en la revisión de diseño el aviso se iba antes de
+     poder leerlo, y eso importa porque varios avisos de esta suite son la única
+     confirmación de que algo se guardó. */
+  --t-toast:4200ms;
+
+  /* 6-ago-2026, 2ª pasada: los valores REALES del mockup 1a/2a, extraidos de sus
+     `style=` inline (ver ESPEC_VISUAL.md). La 1ª pasada solo midio colores y se
+     quedo con 13,5px y celda 10/16 — de ahi la sensacion de «no es lo mismo».
+     `11px 16px` aparece 27 veces en 2a: es el relleno de celda de la casa.
+     Densidad seleccionable (compacta/normal/amplia) RETIRADA el 6-ago-2026 a
+     petición del owner — «no hace falta»: se queda fija en estos valores. */
+  --fila-y:11px; --fila-x:16px; --fila-fs:13px;
+}
+
+/* ── barra de scroll de toda la suite (7-ago-2026) ─────────────────────────
+   Sin esto cada navegador pinta la suya: gris, ancha, con flechas — el único
+   elemento de toda la interfaz que no sale de esta paleta. Delgada, del color
+   de los filetes (`--linea`) en reposo y de la tinta (`--dl`) al pasar el
+   ratón; sin fondo de pista ni esquina propios. `*` para que alcance a
+   cualquier contenedor con su propio scroll (cajón, columnas de Operaciones,
+   tablas anchas) sin tener que listar cada uno.
+   `.lw-topbar` ya se oculta la suya (topbar.css) por especificidad de clase
+   sobre el universal — no hace falta excluirla aquí. */
+*{ scrollbar-width:thin; scrollbar-color:var(--linea,#E4DCCB) transparent; }
+*::-webkit-scrollbar{ width:10px; height:10px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background-color:var(--linea,#E4DCCB); border-radius:999px;
+  border:2px solid transparent; background-clip:padding-box; }
+*::-webkit-scrollbar-thumb:hover{ background-color:var(--dl,#104C4F); }
+*::-webkit-scrollbar-corner{ background:transparent; }
+
+/* ── esqueleto de página ────────────────────────────────────────────────── */
+/* 🔴 EL `padding-top` DEJABA SITIO A UNA BARRA QUE NO ES FIJA (26-ago-2026).
+   `.lw-topbar` es `position:static` en las siete herramientas —nunca se ha
+   puesto fija en ninguna, comprobado en topbar.css y en las siete páginas—, así
+   que ya ocupa sus 64 px en el flujo. Reservárselos otra vez aquí era una banda
+   de 64 px de nada justo debajo de la barra, en las siete, todos los días.
+   Y encima el `height:100%` se medía SIN descontar la barra, así que el
+   documento salía 64 px más alto que la ventana: la página entera tenía un
+   desplazamiento fantasma además del suyo propio. Medido en Facturas: 843 px de
+   documento en una ventana de 779. Con esto, 779 justos y cero scroll de
+   página.
+   Se arregla aquí y no en cada herramienta porque es UNA línea la que lo causa
+   en las siete — arreglarlo en una sería crear la divergencia. */
+.sui-stage{ height:calc(100% - var(--tbh,64px)); overflow:auto; background:var(--sup-0); }
+/* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el
+   relleno del cuerpo es `22px 26px 30px` en la mayoria de pantallas (24 en
+   Contratos y Documentacion, 26/34 en el panel, que lo sobrescribe). */
+.sui-centro{ max-width:1520px; margin:0 auto; padding:22px 26px 30px; }
+
+/* ── CABECERA DE PAGINA — igual en las once herramientas ──────────────────
+   `h1` 21px/500 y bajada 13px, con las acciones a la derecha en la misma linea
+   de base. Estaba escrita a mano en cada pagina con valores distintos (23px aqui,
+   22 alla), que es de donde venia parte del «no se parece». */
+.sui-lede{ display:flex; align-items:baseline; justify-content:space-between;
+  flex-wrap:wrap; gap:12px; margin:0 0 16px; }
+.sui-lede h1{ margin:0; font-size:21px; font-weight:500; color:var(--texto); letter-spacing:0; }
+.sui-lede p{ margin:4px 0 0; font-size:13px; color:var(--texto-2); max-width:70ch; }
+.sui-lede .acciones{ display:flex; gap:8px; flex-wrap:wrap; }
+/* Aquí vivía un desplazamiento de la página en pantallas ≥1500px: con el cajón
+   abierto se apartaba `.sui-centro` para hacerle sitio. Retirado el 31-jul-2026
+   por tres motivos, y ninguno es estético: llevaba escrito a mano el ancho VIEJO
+   del cajón, así que desde que este creció apartaba menos de lo que ocupaba;
+   Operaciones no tiene `.sui-centro` —usa su propia `.centro`—, o sea que la
+   página donde peor se veía el cajón era justo la única a la que no le aplicaba;
+   y ahora el cajón se anuncia con el velo, que es lo que se pidió. Un solo
+   comportamiento en las cuatro herramientas: el cajón se superpone y atenúa. */
+
+/* ── barra de filtros ───────────────────────────────────────────────────── */
+.sui-filtros{ display:flex; gap:var(--e2); flex-wrap:wrap; align-items:center; margin:0 0 var(--e3); }
+
+/* EL EJE DE UNA FILA DE FILTROS — 16-ago-2026
+   Una herramienta con DOS ejes de filtro pintaba dos filas que empezaban las dos
+   por «Todos», y no habia forma de saber cual era cual:
+
+     · Contratos: «Todos 68» arriba (todos los tipos) y «Todos 68» abajo (todos
+       los estados). El numero coincide SIEMPRE — las dos cuentas son el total —
+       asi que se leian como el mismo boton repetido. El owner lo reporto como
+       un filtro duplicado, que es justo lo que parecia.
+     · Documentacion: «Todas» en las carpetas y «Todas» en los tipos.
+
+   No sobraba ninguno: los dos ejes son reales y se combinan entre si. Lo que
+   faltaba era decir de que eje es cada fila. `min-width` fijo para que los
+   chips de las dos filas arranquen alineados y se lean como dos filas de lo
+   mismo, no como dos listas sueltas. */
+.sui-eje{ flex:none; min-width:58px; font-size:9.5px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--sc,#8F9B7A); }
+/* Pastilla y fondo `--sup-2`, como en el mockup: el buscador es el objeto que
+   mas se repite en la suite y era lo que mas delataba la diferencia. */
+/* EL BUSCADOR — uno solo para las ocho herramientas, 16-ago-2026
+   ---------------------------------------------------------------------------
+   Había CUATRO definiciones del mismo campo: esta, `#cpSearch` en Contratos,
+   `.buscar` en Operaciones y `.buscarU` en Usuarios. Y no coincidían — 12,5px
+   contra 13,5px, radio de pastilla contra 9px, y tres fondos distintos. Las dos
+   últimas ni siquiera eran coherentes consigo mismas: `.buscar` declaraba
+   `border-radius:999px` y `background:#F7F3E9` y las pisaba en la línea
+   siguiente, o sea dos declaraciones muertas que nadie llegó a ver nunca.
+
+   MÁS MARCADO, a petición del owner. Dos cambios, y ninguno es de gusto:
+     · El borde pasa de `--linea` a `--borde-control`. Es la misma corrección que
+       se hizo hoy con los botones: `--linea` daba 1,23:1 contra el fondo y la
+       norma para un control es 3:1 — el campo no tenía contorno, tenía una
+       insinuación.
+     · Una LUPA dibujada dentro. Un rectángulo con texto gris dentro puede ser un
+       buscador o puede ser un campo a medio rellenar; con la lupa se sabe sin
+       leer el `placeholder`, que además cambia en cada herramienta. */
+.sui-buscar{
+  flex:1 1 240px; min-width:0; font:inherit; font-size:12.5px;
+  padding:9px 14px 9px 36px;
+  border:1px solid var(--borde-control,#8A8474); border-radius:var(--r-p);
+  background:var(--sup-2); color:inherit;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238A8474' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.6'/%3E%3Cpath d='M10.4 10.4 14 14'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:left 13px center; background-size:15px 15px;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+/* La `x` que Chrome pinta en un `type="search"` se solapaba con nada, pero en
+   Safari empuja el texto: se retira y se limpia con Escape, que ya funciona. */
+.sui-buscar::-webkit-search-cancel-button{ -webkit-appearance:none; }
+.sui-buscar:focus{ outline:none; border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+/* `.sui-sel` se define UNA vez, en topbar.css, junto a `.lw-select` — son el
+   mismo control y aquí tenían dos tamaños, dos pesos, dos radios y solo uno de
+   los dos con estado de foco. Ver la nota de allí. */
+.sui-chip{ font:inherit; font-size:12px; font-weight:500; letter-spacing:0; background:var(--sup-1); border:1px solid var(--linea);
+  border-radius:var(--r-p); padding:7px 14px; min-height:24px; cursor:pointer; color:var(--texto-2);
+  transition:background var(--t-rapido), border-color var(--t-rapido), color var(--t-rapido); }
+.sui-chip:hover{ border-color:var(--dl,#104C4F); }
+.sui-chip.on{ background:var(--texto,#21272A); border-color:var(--texto,#21272A); color:#fff; }
+.sui-chip.vacio{ opacity:.45; }
+.sui-chip .n{ opacity:.7; margin-left:4px; font-variant-numeric:tabular-nums; }
+
+/* selector de densidad: tres botones, no un menú. Es un ajuste de dos clics */
+.sui-dens{ display:inline-flex; border:1px solid var(--linea); border-radius:var(--r-s); overflow:hidden; margin-left:auto; }
+.sui-dens button{ font:inherit; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  background:var(--sup-1); border:none; padding:7px 10px; min-height:24px; cursor:pointer; color:var(--texto-3); }
+.sui-dens button + button{ border-left:1px solid var(--linea); }
+.sui-dens button.on{ background:var(--va,#2E3437); color:#fff; }
+
+/* ── resumen de lo que se está viendo ───────────────────────────────────── */
+.sui-resumen{ display:flex; gap:var(--e5); flex-wrap:wrap; margin:0 0 var(--e3);
+  font-size:12.5px; color:var(--texto-2); }
+.sui-resumen b{ color:var(--texto); font-variant-numeric:tabular-nums; }
+
+/* ── tabla ──────────────────────────────────────────────────────────────── */
+/* Radio 12px (`--r-m`) y no 16: en el mockup TODO panel —tabla, tarjeta KPI,
+   tarjeta de ficha— va a 12. El 16 se reserva a nada, asi que `--r-l` deja de
+   usarse aqui. */
+.sui-tabla-caja{ overflow-x:auto; border:1px solid var(--linea); border-radius:var(--r-m);
+  background:var(--sup-1); box-shadow:var(--sombra-1); }
+table.sui-tabla{ width:100%; border-collapse:collapse; font-size:var(--fila-fs); min-width:720px; }
+table.sui-tabla thead th{
+  position:sticky; top:0; z-index:2; background:var(--sup-2);
+  text-align:left; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--texto-2); font-weight:600; white-space:nowrap;
+  padding:10px var(--fila-x); border-bottom:1px solid var(--linea);
+}
+table.sui-tabla tbody td{ padding:var(--fila-y) var(--fila-x); border-bottom:1px solid var(--linea); vertical-align:middle; }
+table.sui-tabla tbody tr{ cursor:pointer; transition:background var(--t-rapido); }
+table.sui-tabla tbody tr:hover{ background:var(--sup-hover); }
+table.sui-tabla tbody tr.sel{ background:var(--sup-sel); box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+table.sui-tabla tbody tr.sel:hover{ background:var(--sup-sel); }   /* el hover no puede aclarar la selección */
+table.sui-tabla tbody tr.sel .clave{ color:var(--dl,#104C4F); }
+table.sui-tabla tbody tr:last-child td{ border-bottom:none; }
+/* Los números a la derecha y con cifras de ancho fijo: así 95.250 y 130.875
+   casan por columna y la diferencia se ve sin leer. */
+table.sui-tabla .num, table.sui-tabla th.num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+table.sui-tabla .clave{ font-weight:600; color:var(--dl,#104C4F); letter-spacing:.04em; white-space:nowrap; }
+table.sui-tabla .flojo{ color:var(--texto-3); }
+table.sui-tabla th[data-orden]{ cursor:pointer; user-select:none; }
+table.sui-tabla th[data-orden]:hover{ color:var(--texto); }
+table.sui-tabla th .fl{ opacity:0; margin-left:5px; }
+table.sui-tabla th.asc .fl, table.sui-tabla th.desc .fl{ opacity:.75; }
+table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
+
+/* ── etiquetas de estado: color sólido, texto claro, AA sobre blanco ────── */
+/* LA ETIQUETA DE LA SUITE — una geometría (26-ago-2026, LAW-90).
+   Había cuatro tamaños para lo mismo: 10px aquí, 10.5px en Compradores, 9.5px en
+   Usuarios y .63rem en el hub, cada uno con su tracking. `.tag` se atiende aquí
+   también: es el mismo control con otro nombre heredado. */
+.sui-tag, .tag{ display:inline-block; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  border-radius:var(--r-p); padding:3px 9px; color:#fff; background:#5A6062; white-space:nowrap; }
+/* DOS VOCABULARIOS PARA LOS MISMOS ESTADOS (26-ago-2026, LAW-90).
+   La suite escribía `alerta` y `gris`; tres pantallas escribían `mal` y
+   `neutro` para exactamente lo mismo. Escribir el que no toca NO da error: deja
+   la etiqueta en el gris por defecto, en silencio, justo donde había que avisar.
+   Se aceptan los dos nombres — el que se escriba es el que se ve. Mismo criterio
+   que `.primary` / `.primario` en el botón. */
+.sui-tag.ok, .tag.ok{ background:#3F5230; }
+.sui-tag.espera, .tag.espera{ background:#8C5E10; }
+.sui-tag.alerta, .sui-tag.mal, .tag.alerta, .tag.mal{ background:#9E2F26; }
+.sui-tag.info, .tag.info{ background:#104C4F; }
+.sui-tag.gris, .sui-tag.neutro, .tag.gris, .tag.neutro{ background:#5A6062; }
+/* morado: solo para TIPO de documento (proforma), nunca para estado — si se
+   reusa un tono de estado (gris/info/ok) la etiqueta de tipo se confunde con
+   la de Emitida/Anulada, que es justo lo que se pidió separar (6-ago-2026). */
+.sui-tag.morado{ background:#5B4B8A; }
+
+/* ── estados de la lista: cargando / vacío / error, los tres distintos ───
+   Un vacío con cara de error manda a buscar un fallo que no existe, y un error
+   con cara de vacío esconde uno que sí. */
+.sui-esqueleto td{ padding:var(--fila-y) var(--fila-x); }
+.sui-esqueleto i{ display:block; height:11px; border-radius:var(--r-p);
+  background:linear-gradient(90deg,#EDE7D9,#F6F2E7,#EDE7D9); background-size:200% 100%;
+  animation:sui-brillo 1.1s linear infinite; }
+@keyframes sui-brillo{ from{ background-position:200% 0 } to{ background-position:-200% 0 } }
+.sui-nada{ padding:var(--e6) var(--e5); text-align:center; color:var(--texto-3); font-size:13.5px; }
+.sui-nada b{ display:block; color:var(--texto-2); font-size:14.5px; margin-bottom:6px; }
+.sui-error{ padding:var(--e4) var(--e5); color:#9E2F26; font-size:13.5px; }
+
+/* ── CAJÓN LATERAL ──────────────────────────────────────────────────────
+   No es modal: el velo deja ver la tabla y se puede cerrar pulsando fuera o
+   con Esc. Solo atenúa lo que queda detrás para que el ojo sepa cuál de las
+   dos capas está viva; se va con el mismo tiempo que el cajón.
+   En pantallas ≥1500px el velo era transparente a propósito, para no tapar
+   la lista. El efecto real era el contrario: en el monitor donde MÁS se nota
+   que el cajón flota, era donde no había ninguna señal de que flotaba
+   (31-jul-2026). Se atenúa siempre. Empezó en .22 y se subió a .38 el mismo día: a .22
+   apenas se distinguía de la propia sombra del cajón. */
+/* ── FLOTANTE Y BLOQUEA (11-ago-2026, decisión del owner) ──────────────────
+   Revierte el "ADOSADO" del 6-ago de abajo: el cajón vuelve a flotar por
+   encima de la lista (position:fixed, sin empujar el contenido) y el velo
+   vuelve a bloquear el clic sobre lo de detrás — antes, en pantallas anchas,
+   el velo solo atenuaba pero `pointer-events:none` lo dejaba tan clicable
+   como sin velo. Motivo del cambio: con un cajón mucho más ancho (70% de la
+   pantalla, ver --cajon-w abajo) empujar la lista la habría dejado en una
+   tira de 30% inútil — si de todos modos no se puede interactuar con ella
+   mientras el cajón está abierto, no tiene sentido seguir encogiéndola.
+   Se cierra con la X, con Esc o clicando el velo — igual que antes del
+   adosado, ver `suite.js`. */
+:root{ --cajon-w:70vw; }
+.sui-velo{ position:fixed; inset:0; z-index:60; background:rgba(34,40,42,.38);
+  opacity:0; pointer-events:none; transition:opacity var(--t-cajon) var(--curva); }
+.sui-velo.on{ opacity:1; pointer-events:auto; }
+
+/* Ancho: el cajón se dimensionó pensando en fichas de dos columnas (dato/valor),
+   pero Operaciones mete dentro cinco tablas y una de ellas tiene SEIS columnas.
+   A 560px eso sale ilegible — la lista de la que salen usa `min-width:760px` para
+   la misma densidad, así que el cajón tenía la mitad de sitio para el mismo dato.
+   Como el cajón flota por encima (position:fixed), ensancharlo no reajusta nada
+   detrás: no cuesta nada dárselo. 31-jul-2026. */
+.sui-cajon{
+  position:fixed; top:var(--tbh,64px); right:0; bottom:0; z-index:61;
+  /* 70vw para TODA la suite (11-ago, norma del estudio — ver el bloque
+     "FLOTANTE Y BLOQUEA" arriba). Ninguna herramienta lo pisa con un valor
+     propio: Operaciones, Compradores y Portal tenían un `--cajon-w` a medida
+     antes de esta norma y se les quitó a propósito, para no tener que ir
+     revisando herramienta por herramienta si alguna se quedó atrás. */
+  width:var(--cajon-w,420px); max-width:100vw;
+  background:var(--sup-1); border-left:1px solid var(--linea);
+  box-shadow:0 18px 44px -20px rgba(34,40,42,.35);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform var(--t-cajon) var(--curva);
+  overscroll-behavior:contain;
+}
+.sui-cajon.on{ transform:none; }
+.sui-cajon-cab{ display:flex; align-items:flex-start; gap:var(--e3); padding:var(--e4) var(--e5) var(--e3);
+  border-bottom:1px solid var(--linea); }
+.sui-cajon-cab h2{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:25px;
+  font-weight:600; margin:0; line-height:1.15; }
+.sui-cajon-cab .sub{ font-size:12.5px; color:var(--texto-2); margin:3px 0 0; }
+.sui-cajon-x{ margin-left:auto; flex:none; font:inherit; font-size:17px; line-height:1;
+  background:none; border:1px solid var(--linea); border-radius:var(--r-s);
+  min-width:30px; min-height:30px; cursor:pointer; color:var(--texto-2); }
+.sui-cajon-x:hover{ border-color:var(--dl,#104C4F); color:var(--texto); }
+.sui-cajon-cuerpo{ overflow:auto; padding:20px 22px var(--e7); flex:1; }
+.sui-cajon-pie{ border-top:1px solid var(--linea); padding:var(--e3) var(--e5);
+  display:flex; gap:var(--e2); flex-wrap:wrap; background:var(--sup-2); }
+
+/* pares dato/valor dentro del cajón */
+.sui-dl{ display:grid; grid-template-columns:auto 1fr; gap:7px var(--e5); font-size:13.5px; margin:0 0 var(--e4); }
+.sui-dl dt{ color:var(--texto-2); }
+.sui-dl dd{ margin:0; font-variant-numeric:tabular-nums; }
+.sui-bloque{ border:1px solid var(--linea); border-radius:var(--r-m); padding:var(--e3) var(--e4);
+  margin:0 0 var(--e3); background:var(--sup-2); }
+.sui-bloque h3{ margin:0 0 var(--e2); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--texto-2); font-weight:600; }
+.sui-total{ display:flex; justify-content:space-between; gap:var(--e3); padding-top:7px;
+  border-top:1px solid var(--linea); margin-top:7px; font-weight:600; }
+
+/* ── botones ────────────────────────────────────────────────────────────── */
+/* El borde de un botón secundario tiene que VERSE: es lo que dice dónde se
+   puede pulsar, y la norma de contraste para un control es 3:1 contra lo que
+   tiene al lado. Con `--linea` daba 1,23:1 sobre el fondo del pie del cajón
+   —medido en los botones «Editar datos» y «Cerrar» de Compradores— o sea un
+   contorno que casi no está. `--borde-control` da 3,36 ahí y 3,73 sobre blanco;
+   su porqué está en brand.css. */
+.sui-btn{ font:inherit; font-size:13px; font-weight:500; border-radius:var(--r-p); padding:10px 18px;
+  min-height:24px; cursor:pointer; border:1px solid var(--borde-control,#8A8474); background:var(--sup-1); color:inherit;
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  transition:border-color var(--t-rapido), background var(--t-rapido), color var(--t-rapido); }
+.sui-btn:hover{ border-color:var(--dl,#104C4F); }
+.sui-btn.primario{ background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); color:#fff; font-weight:600; }
+.sui-btn.primario:hover{ background:#0d5b5f; }
+.sui-btn.peligro{ color:#9E2F26; border-color:#E0C6C2; }
+.sui-btn.peligro:hover{ background:rgba(158,47,38,.07); border-color:#9E2F26; }
+.sui-btn:disabled{ opacity:.5; cursor:default; }
+
+.sui-nota{ font-size:12px; color:var(--texto-2); line-height:1.5; margin:var(--e2) 0 0; }
+
+/* DOS CAMPOS POR FILA, UNO EN MÓVIL — 16-ago-2026
+   `.row{ display:grid; grid-template-columns:1fr 1fr; gap:12px }` estaba escrito
+   igual, byte a byte, en Compradores y en Usuarios, y en NINGUNO de los dos se
+   deshacía en móvil. En un teléfono de 390 px eso deja «Email» y «Teléfono»
+   compartiendo fila a ~180 px cada uno — y Teléfono lleva dentro el prefijo y el
+   número, así que al número le quedaban unos 60 px. Ese es el «la ventana
+   lateral no se adapta bien en móvil» que reportó el owner.
+
+   Se llama `.sui-row` y no `.row`: en una hoja que cargan las trece pantallas,
+   quedarse con un nombre tan corriente es reservar una palabra que cualquier
+   herramienta futura va a querer usar para otra cosa. */
+.sui-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:760px){ .sui-row{ grid-template-columns:1fr; } }
+
+/* ── móvil ──────────────────────────────────────────────────────────────
+   El cajón pasa a ocupar casi todo el ancho: media pantalla en un teléfono no
+   es leer, es adivinar. Va DESPUÉS de la regla base a propósito. */
+@media (max-width:760px){
+  .sui-centro{ padding:var(--e4) var(--e3) var(--e7); }
+  .sui-cajon{ width:100%; top:auto; border-left:none;
+    border-top-left-radius:var(--r-l); border-top-right-radius:var(--r-l);
+    transform:translateY(100%); }
+  /* `dvh` y no `vh`, con el `vh` de respaldo para quien no lo soporte. En un
+     movil `vh` mide la ventana con la barra de direcciones ESCONDIDA, asi que
+     mientras esta a la vista el 88vh se sale por abajo — y lo que se sale es el
+     pie, o sea «Guardar cambios». Un formulario cuyo boton de guardar esta
+     debajo del borde de la pantalla no se puede terminar. */
+  .sui-cajon{ height:88vh; height:88dvh; }
+  .sui-cajon.on{ transform:none; }
+  /* Los botones no se meten debajo del indicador de inicio del telefono. */
+  .sui-cajon-pie{ padding-bottom:calc(var(--e3) + env(safe-area-inset-bottom)); }
+  .sui-dens{ margin-left:0; }
+}
+
+/* ── MOVIMIENTO COMPARTIDO (6-ago-2026, restyle del panel) ────────────────
+   Los cinco keyframes vienen literales del handoff de diseño. Viven aquí y no en
+   cada página por el mismo motivo que el resto de este fichero: seis copias de
+   una animación son seis velocidades distintas en cuanto alguien toca una.
+   Todos entran por `both`, que deja el elemento en su estado final — sin eso,
+   una tarjeta con `animation-delay` parpadea antes de empezar. */
+@keyframes lwFadeUp   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+@keyframes lwGrow     { from{ width:0 } }
+@keyframes lwSlideIn  { from{ transform:translateX(100%) } to{ transform:none } }
+@keyframes lwPop      { from{ opacity:0; transform:scale(.94) } to{ opacity:1; transform:none } }
+@keyframes lwCountdown{ from{ width:100% } to{ width:0% } }
+
+/* Entrada escalonada de tarjetas de resumen. El escalón se declara con `--i` en
+   el propio elemento (`style="--i:2"`), así que el orden lo decide quien pinta y
+   no hay que escribir una regla por tarjeta. */
+.lw-fade{ animation:lwFadeUp .6s var(--curva) both; animation-delay:calc(var(--i,0) * .06s); }
+
+/* Barras de avance. `both` + una sola pasada: el handoff pide que crezca al
+   PINTARSE, no en cada repintado — si se reanimara al filtrar, la barra estaría
+   creciendo todo el rato y dejaría de significar nada. Quien repinte la lista
+   entera obtiene la animación otra vez, que es lo correcto; quien solo cambie un
+   número dentro, no. */
+.lw-bar{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; }
+/* `.barra` entra en el mismo selector a propósito: Documentación (medidor de
+   almacenamiento), Unidades (avance de venta) y el portal (plan de pagos) ya
+   tenían su propia `.barra` con SUS colores y umbrales —verde/ámbar/rojo—, y esos
+   son de cada página, no compartidos. Lo único que se comparte aquí es el
+   movimiento, así que las tres lo heredan sin tocarles una línea de marcado ni
+   perder su semántica de color. */
+.lw-bar > i, .barra > i{ display:block; height:100%;
+  animation:lwGrow 1.1s var(--curva) both; }
+.lw-bar > i{ background:var(--dl,#104C4F); }
+
+/* ── CAMPO DE FORMULARIO — uno para las cuatro que lo tenían copiado ──────
+   Documentación, Unidades, Obra y Creatividades traían el MISMO bloque `.campo`
+   palabra por palabra (solo variaba si la lista incluía `textarea`), y las cuatro
+   con el foco en verde. El verde ya no es «esto se puede tocar»: eso es Deep
+   Lagoon desde el reparto de color de la fase 1, y aquí se arregla en las cuatro
+   de una vez. El ANILLO se queda verde, como en el resto de la suite.
+   Sin prefijo `.sui-` a propósito: las cuatro páginas ya escriben
+   `class="campo"` en el marcado, y renombrar por pulcritud costaría cuatro
+   ficheros de cambios sin que nadie vea nada distinto. Los componentes NUEVOS sí
+   llevan prefijo. */
+.campo{ margin:0 0 var(--e3); }
+.campo label{ display:block; font-size:12px; color:var(--texto-2); margin:0 0 4px; }
+/* `box-sizing:border-box` DECLARADO AQUÍ, no heredado (26-ago-2026).
+   Un `width:100%` con 11px de relleno y 1px de borde a cada lado mide 100%+24px
+   si nadie ha puesto el reset global. `proyectos/index.html` lo tiene y por eso
+   el campo cabía; la v3 no, y el mismo componente compartido se salía por la
+   derecha del cajón — sin tocar el componente, solo por caer en otra página.
+   Una pieza de la capa común no puede depender de lo que haya declarado quien
+   la use: se lo declara ella. */
+.campo input, .campo select, .campo textarea{ box-sizing:border-box;
+  width:100%; font:inherit; font-size:14px;
+  padding:9px 11px; border:1px solid var(--linea); border-radius:var(--r-s);
+  background:#FDFCF9; color:inherit; }
+/* la transicion de foco de 7a: el anillo entra en .15s, no de golpe */
+.campo input, .campo select, .campo textarea{ transition:border-color .15s ease, box-shadow .15s ease; }
+.campo input:focus, .campo select:focus, .campo textarea:focus{ outline:none;
+  border-color:var(--dl,#104C4F); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
+.campo textarea{ min-height:62px; resize:vertical; }
+.ck{ display:flex; align-items:center; gap:8px; font-size:13px; margin:var(--e3) 0 0; }
+.ck input{ width:auto; }
+
+/* CIFRAS GRANDES en serif — y solo cifras. Ver `--font-cifra` en brand.css: los
+   títulos se quedan en Jost por decisión del owner. `tabular-nums` porque dos
+   importes uno debajo del otro tienen que casar por columna.
+   ⚠️ ANTES DE USARLA en una página, comprobar que esa página carga Cormorant
+   Garamond de Google Fonts. Diez de las doce herramientas ya la cargan; a
+   6-ago-2026 NO la cargan `contracts/app.html` ni `creatividades/index.html`, y
+   ahí la cifra caería a Georgia sin dar ningún error — se vería «casi igual»,
+   que es la peor forma de fallar. La fuente se añade a esa página en el mismo
+   commit en que se use la clase, no antes. */
+.lw-cifra{ font-family:var(--font-cifra, var(--serif, 'Cormorant Garamond', Georgia, serif));
+  font-size:32px; font-weight:700; line-height:1;
+  letter-spacing:0; font-variant-numeric:tabular-nums; color:var(--dl,#104C4F); }
+
+/* ── TARJETAS DE CIFRA (KPI) ───────────────────────────────────────────────
+   Compartidas porque el handoff las pide en el panel y en Operaciones, y dos
+   rejillas de tarjetas escritas por separado son dos rejillas que se separan.
+   `auto-fit` + `minmax`: con cinco tarjetas caben en fila en un portátil y se
+   apilan solas en el móvil, sin media query y sin decidir un número de columnas
+   que se rompe cuando alguien añade la sexta.
+   Entran escalonadas con `.lw-fade` (el escalón se pone con `--i` en cada una). */
+.lw-kpis{ display:grid; gap:14px; margin:0 0 var(--e5);
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); }
+/* `17px 19px` y radio 12: los valores del mockup, no la escala generica. Y `gap:14px`
+   entre tarjetas, que es el suyo. */
+.lw-kpi{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-m);
+  box-shadow:var(--sombra-1); padding:17px 19px; display:flex; flex-direction:column; gap:5px;
+  text-decoration:none; color:inherit;
+  transition:border-color var(--t-rapido), box-shadow var(--t-rapido), transform .15s ease; }
+/* Es un enlace cuando lleva a su herramienta; cuando no, un div. Lo pulsable se
+   comporta como pulsable y lo demás no finge serlo. */
+a.lw-kpi:hover{ border-color:var(--dl,#104C4F); box-shadow:var(--sombra-1), 0 8px 22px -14px rgba(16,76,79,.5);
+  transform:translateY(-2px); }
+.lw-kpi .rot{ font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--texto-2); font-weight:600; }
+.lw-kpi .pie{ font-size:12px; color:var(--texto-2); }
+/* El pie de la tarjeta lleva COLOR POR SIGNIFICADO en el mockup, no un gris para
+   todo: ambar lo que espera, rojo lo que urge, verde lo que va bien. Es la
+   diferencia entre un dato y un dato que dice algo. */
+.lw-kpi .pie.espera{ color:#8C5E10; }
+.lw-kpi .pie.mal{ color:#9E2F26; }
+.lw-kpi .pie.bien{ color:#3F5230; }
+
+/* 🔴 La tarjeta de ADMINISTRACION va INVERTIDA en el mockup —fondo Deep Lagoon,
+   cifra en blanco— y en la 1ª pasada se hizo igual que las demas. No es adorno:
+   es lo que separa «tu trabajo» de «el conjunto del negocio» de un vistazo, y sin
+   eso la fila de admin era una tarjeta mas. */
+.lw-kpi.mando{ background:var(--dl,#104C4F); border-color:var(--dl,#104C4F); }
+.lw-kpi.mando .rot{ color:#BEB3A5; }
+.lw-kpi.mando .lw-cifra{ color:#fff; }
+.lw-kpi.mando .pie{ color:#F1EBDD; }
+a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
+/* Urgente: filete a la izquierda, no la cifra en rojo. Un número en rojo se lee
+   como «este dato está mal»; el filete dice «mira aquí» sin desteñir el dato. */
+.lw-kpi.urge{ box-shadow:var(--sombra-1), inset 3px 0 0 #9E2F26; }
+.lw-kpi.urge .rot{ color:#9E2F26; }
+/* Sin cifra: la base no contestó. Se dice, no se pinta un cero — un cero
+   inventado es peor que un hueco, porque parece un dato. */
+.lw-kpi.muda .lw-cifra{ color:var(--texto-3); }
+
+/* Botones: el handoff pide que se noten al pasar por encima, no solo que cambien
+   de borde. El `transform` se anima solo (no `top`/`margin`) para no provocar
+   recálculo de maqueta en una tabla de 300 filas. */
+.sui-btn{ transition:border-color var(--t-rapido), background var(--t-rapido),
+  color var(--t-rapido), transform .15s ease, box-shadow .15s ease; }
+.sui-btn.primario:hover{ transform:translateY(-2px); box-shadow:0 6px 16px -6px rgba(16,76,79,.55); }
+.sui-btn.primario:active{ transform:none; box-shadow:none; }
+
+/* ── REJILLA DE FICHAS, alternativa a la tabla ─────────────────────────────
+   El handoff pide Unidades «en tarjetas en vez de tabla». Se monta como
+   ALTERNATIVA y no como sustitución, que es el mismo patrón que el handoff
+   prescribe para Operaciones (conmutador Pipeline/Tabla, «Tabla = la de hoy, sin
+   tocar»), y aquí hace falta por una razón concreta y no por prudencia:
+   · la tabla de Unidades es una TABLA DE PRECIOS consultable — lo dice la
+     cabecera del propio fichero: «es lo que hace que esta pantalla valga como
+     tabla de precios y no haga falta abrir el PDF del cliente»;
+   · el criterio nº1 de esta hoja es que los números van a la derecha «para que
+     los dígitos casen por valor posicional y dos importes se comparen de un
+     vistazo». En una rejilla no casan: comparar 32 precios en tarjetas no se
+     puede hacer, y ordenar por columna deja de significar nada.
+   La rejilla gana en lo otro: ver de un golpe qué hay libre y de qué tipo. Son
+   dos preguntas distintas, así que son dos vistas y las elige quien mira.
+   Se recuerda por persona, igual que la densidad. */
+/* `[hidden]` TIENE QUE GANAR (26-ago-2026). El `display:none` de `[hidden]` es
+   del navegador y vale (0,0,1); `.sui-rejilla` vale (0,1,0) y lo pisaba. O sea:
+   `<div class="sui-rejilla" hidden>` seguía VISIBLE. Lo usan los conmutadores de
+   vista de Proyectos (Tabla / Rejilla / Carpetas), que ocultan cada bloque
+   poniéndole `hidden` — y ahí una rejilla vacía que no se va empuja hacia abajo
+   la vista que sí toca. Se declara explícitamente en vez de subir la
+   especificidad del `display:grid`, para que cualquier bloque de la suite que
+   use `hidden` se comporte como uno espera y no según qué clase lleve. */
+/* PIE DE PAGINACIÓN — lo inyecta `assets/paginacion.js`, no lo escribe la
+   página. Vivía dentro del `<style>` de Vencimientos, que era la única
+   herramienta que paginaba; sube aquí con la pieza. Alineado a la derecha
+   porque acompaña al final de la lista, y con cifras tabulares para que el
+   contador no baile al cambiar de página. */
+.sui-pager{ display:flex; align-items:center; gap:10px; margin-top:12px;
+  justify-content:flex-end; font-size:12.5px; color:var(--texto-2,#4A5052); }
+.sui-pager .n{ font-variant-numeric:tabular-nums; }
+.sui-pager button:disabled{ opacity:.45; cursor:default; }
+
+.sui-rejilla[hidden], .sui-tabla-caja[hidden]{ display:none; }
+.sui-rejilla{ display:grid; gap:var(--e3);
+  grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); }
+.sui-ficha{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-l);
+  box-shadow:var(--sombra-1); padding:var(--e4); cursor:pointer; text-align:left;
+  font:inherit; color:inherit; display:flex; flex-direction:column; gap:var(--e2);
+  transition:border-color var(--t-rapido), box-shadow var(--t-rapido), transform .15s ease; }
+.sui-ficha:hover{ border-color:var(--dl,#104C4F); transform:translateY(-2px);
+  box-shadow:var(--sombra-1), 0 10px 26px -16px rgba(16,76,79,.5); }
+/* Seleccionada: el MISMO lenguaje que la fila de tabla — relleno + filete de
+   acento + clave en tinta. Tres señales, ver `--sup-sel`. */
+.sui-ficha.sel{ background:var(--sup-sel); border-color:var(--dl,#104C4F);
+  box-shadow:inset 3px 0 0 var(--dl,#104C4F); }
+.sui-ficha-cab{ display:flex; align-items:baseline; gap:var(--e2); }
+.sui-ficha-cab .clave{ font-weight:600; color:var(--dl,#104C4F); letter-spacing:.04em; font-size:15px; }
+.sui-ficha-cab .sui-tag{ margin-left:auto; }
+.sui-ficha .sub{ font-size:12.5px; color:var(--texto-2); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+/* El dato numérico de la ficha, a la derecha y con cifras de ancho fijo: dentro
+   de una tarjeta no casa con la de al lado, pero al menos no baila entre líneas. */
+.sui-ficha .cifra{ margin-top:auto; font-size:17px; font-weight:600;
+  font-variant-numeric:tabular-nums; color:var(--texto); }
+.sui-ficha .pie{ font-size:12px; color:var(--texto-3); display:flex; gap:var(--e3);
+  flex-wrap:wrap; font-variant-numeric:tabular-nums; }
+/* Esqueleto de ficha mientras carga: mismo brillo que el de la tabla
+   (`sui-brillo`), para que las dos vistas esperen igual. Alto fijo o la rejilla
+   salta de tamaño cuando llegan los datos. */
+.sui-esq-i{ display:block; height:11px; border-radius:var(--r-p); margin:6px 0;
+  background:linear-gradient(90deg,#EDE7D9,#F6F2E7,#EDE7D9); background-size:200% 100%;
+  animation:sui-brillo 1.1s linear infinite; }
+.sui-ficha:has(> .sui-esq-i){ min-height:118px; }
+
+/* ── AVISO (toast) — uno solo para las doce herramientas ──────────────────
+   Hasta el 6-ago-2026 cada página traía su copia: cuatro variantes distintas de
+   lo mismo (bottom 24 vs 26px, radio 30 vs 999px, z-index 80 vs 200, transición
+   .2 vs .3s) y dos nombres de clase para «visible» (`.show` y `.on`) que
+   sobreviven porque `toast()` añade los dos. Seis copias de una cosa son seis
+   comportamientos en cuanto alguien toca una.
+
+   Lo que cambia respecto a lo que había, y por qué: **15px y en negrita** con más
+   aire y una sombra que lo despega del fondo. Varios avisos de esta suite son la
+   única confirmación de que algo se guardó, y se estaban leyendo a 13px sobre una
+   tabla llena de texto de 13,5px — o sea, el aviso no destacaba de lo que había
+   detrás.
+
+   Radio 12px y no pastilla: lleva una barra recta abajo, y una pastilla se la
+   comería por los extremos. */
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(8px);
+  z-index:200; max-width:min(560px, calc(100vw - 32px));
+  background:var(--va,#2E3437); color:#fff;
+  font-size:15px; font-weight:600; line-height:1.35;
+  padding:13px 22px 16px; border-radius:var(--r-m,12px);
+  box-shadow:0 14px 40px -12px rgba(34,40,42,.6), 0 2px 8px rgba(34,40,42,.25);
+  opacity:0; pointer-events:none; overflow:hidden;
+  transition:opacity var(--t-medio,200ms) var(--curva), transform var(--t-medio,200ms) var(--curva);
+}
+.toast.show, .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+/* La cuenta atrás va en un PSEUDO-elemento, no en un hijo real: `toast()` hace
+   `textContent = m`, que borra cualquier hijo que hubiera dentro. Y su duración
+   sale de `--t-toast`, la misma que lee el temporizador — ver suite-comun.js. */
+.toast::after{ content:''; position:absolute; left:0; bottom:0; height:3px;
+  width:0; background:rgba(255,255,255,.5); }
+.toast.show::after, .toast.on::after{ animation:lwCountdown var(--t-toast,4200ms) linear both; }
+
+/* ── CONFIRMAR EN SERIO (7a): modal para lo destructivo ───────────────────
+   Sustituye a `window.confirm()` donde la accion no tiene vuelta (borrar una
+   factura, anular). Velo que funde en .2s y dialogo que entra con lwPop, como
+   pide la demo de micro-interacciones. El boton de la accion va en rojo cuando
+   `tono` es peligro: el primario azulado diria «adelante, es lo normal». */
+.sui-conf-velo{ position:fixed; inset:0; z-index:80; background:rgba(34,40,42,.45);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  animation:lwVeloIn .2s ease both; }
+@keyframes lwVeloIn{ from{ opacity:0 } to{ opacity:1 } }
+.sui-conf{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-m);
+  box-shadow:var(--sombra-2); max-width:440px; width:100%; padding:20px 22px;
+  animation:lwPop .22s var(--curva) both; }
+.sui-conf h3{ margin:0 0 8px; font-size:14px; font-weight:600; color:var(--texto); }
+.sui-conf p{ margin:0 0 16px; font-size:13px; line-height:1.5; color:var(--texto-2); white-space:pre-line; }
+.sui-conf .botones{ display:flex; gap:8px; justify-content:flex-end; }
+.sui-conf .sui-btn.peligro-solido{ background:#9E2F26; border-color:#9E2F26; color:#fff; font-weight:600; }
+
+/* ── quien pide menos movimiento, menos movimiento ────────────────────────
+   Este bloque ya cubría transiciones y animaciones con `*`, así que los
+   keyframes nuevos entran solos. Se le añade lo único que `*` no alcanza: dejar
+   quietos los desplazamientos de hover, que con la duración a .01ms saltarían de
+   golpe en vez de no ocurrir. */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; }
+  .sui-btn.primario:hover{ transform:none; }
+}
+
+/* ===========================================================================
+   DESPLEGABLES — que se vea que lo son (14-ago-2026, petición del owner)
+   ---------------------------------------------------------------------------
+   Hasta hoy `select` compartía regla con `input` y `textarea`: mismo borde,
+   mismo fondo, mismo relleno. Un campo donde se ELIGE y otro donde se ESCRIBE se
+   veían idénticos, así que el agente no sabía cuál era cuál hasta pincharlo. La
+   flecha nativa tampoco ayudaba: en macOS es diminuta y en cada navegador se
+   dibuja distinta.
+
+   Tres señales, no una — una sola se pierde en un formulario largo:
+     1. chevron propio, siempre igual en todos los navegadores;
+     2. una banda de fondo bajo el chevron, que separa "esto se despliega" de
+        "esto se teclea" incluso de reojo;
+     3. cursor de puntero y realce al pasar por encima.
+
+   `select:not([multiple])` no es un capricho de escritura: sube la especificidad
+   a (0,1,1) y así GANA a los `input,select,textarea{...}` que cada herramienta
+   tiene en su <style> propio. Sin eso, esas reglas —que van después en el
+   cascade— resetearían el `background-image` del chevron con su `background:`
+   abreviado y esto no se vería en media suite. La especificidad se resuelve
+   propiedad a propiedad, así que el color de fondo de cada página se respeta.
+
+   El `[multiple]` y los `[size]` quedan fuera a propósito: son listas abiertas,
+   no despliegan nada, y ponerles un chevron sería mentir. */
+select:not([multiple]):not([size]), .campo-elegir{
+  -webkit-appearance:none; -moz-appearance:none; appearance:none;
+  /* dos capas: la banda (un color solido de 34px pegado a la derecha) y encima
+     el chevron. La banda va como gradiente de un solo color porque
+     `background-image` admite capas y `background-color` no: asi la pagina
+     conserva SU color de fondo debajo y aqui solo se pinta la banda. */
+  /* ⚠️ EL ORDEN IMPORTA: en `background-image` la PRIMERA capa se pinta ENCIMA.
+     El chevron va primero y la banda debajo. Al reves -que es como se escribio a
+     ciegas el 14-ago- la banda solida tapaba el chevron y el desplegable se veia
+     igual que antes, con banda pero sin flecha. Verificado en pantalla. */
+  background-image:
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%234A5052' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E"),
+    linear-gradient(var(--sup-2,#F7F3E9), var(--sup-2,#F7F3E9));
+  background-repeat:no-repeat, no-repeat;
+  background-position:right 11px center, right center;
+  background-size:11px 7px, 34px 100%;
+  padding-right:40px;
+  cursor:pointer;
+}
+select:not([multiple]):not([size]):hover, .campo-elegir:hover{
+  border-color:var(--texto-3,#676B63);
+}
+/* Un desplegable deshabilitado NO invita a pulsar: se le quita el puntero y se
+   apaga el chevron, o parece que la interfaz no responde. */
+select:not([multiple]):not([size]):disabled, .campo-elegir:disabled{
+  cursor:default; opacity:.62;
+}
+/* Reserva la vuelta al render nativo si algún día estorba en un sitio concreto:
+   basta con `.lw-select-nativo` en ese select, sin tocar esta hoja. */
+select.lw-select-nativo{
+  -webkit-appearance:auto; -moz-appearance:auto; appearance:auto;
+  background-image:none; padding-right:11px;
+}
+
+/* ===========================================================================
+   DIÁLOGO DE CONFIRMACIÓN — la pieza de assets/dialogo.js (15-ago-2026)
+   ---------------------------------------------------------------------------
+   El marcado lo inyecta el propio JS, aquí solo vive su aspecto. Se usa para
+   parar al usuario cuando la acción no se deshace o toca dinero; para confirmar
+   que algo ya pasó está `toast()`, que no interrumpe.
+   z-index 120: por debajo del aviso (200) y por encima de los cajones y de los
+   overlays de contracts/ (80), que comparten pantalla con él. */
+.lw-dlg-fondo{
+  position:fixed; inset:0; z-index:120; display:none;
+  align-items:center; justify-content:center; padding:20px;
+  background:rgba(46,52,55,.46);
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+}
+.lw-dlg-fondo.abierto{ display:flex; animation:lwDlgFondo 160ms var(--curva); }
+.lw-dlg{
+  width:min(460px,100%); background:var(--sup-1); color:var(--texto);
+  border:1px solid var(--linea); border-radius:var(--r-l);
+  box-shadow:var(--sombra-2); overflow:hidden;
+  animation:lwDlgEntra 200ms var(--curva);
+}
+.lw-dlg-cab{ padding:20px 24px 0; display:flex; gap:12px; align-items:flex-start; }
+/* filete de 3px, la misma señal que ya marca la fila seleccionada de la suite */
+.lw-dlg-marca{ flex:0 0 3px; align-self:stretch; border-radius:2px; background:var(--dl,#104C4F); margin:2px 0; }
+.lw-dlg[data-tono="peligro"] .lw-dlg-marca{ background:#9E2F26; }
+.lw-dlg-cab h2{
+  font-size:17.5px; font-weight:600; letter-spacing:-.01em; color:var(--texto);
+  margin:0; line-height:1.35; text-wrap:balance;
+}
+.lw-dlg-cuerpo{ padding:10px 24px 4px 39px; font-size:14.5px; color:var(--texto-2); }
+.lw-dlg-cuerpo p{ margin:0 0 10px; }
+.lw-dlg-cuerpo p:last-child{ margin-bottom:0; }
+.lw-dlg-cuerpo b{ color:var(--texto); font-weight:600; }
+.lw-dlg-pie{ padding:18px 24px 20px 39px; display:flex; gap:9px; flex-wrap:wrap; }
+/* El botón que destruye va en el rojo que ya usa `.mal` en toda la suite: si
+   aquí estrenara otro rojo, el mismo concepto tendría dos colores. */
+.lw-dlg-pie .btn.peligro{ background:#9E2F26; border-color:#9E2F26; color:#fff; }
+@keyframes lwDlgFondo{ from{ opacity:0 } to{ opacity:1 } }
+@keyframes lwDlgEntra{ from{ opacity:0; transform:translateY(8px) scale(.985) } to{ opacity:1; transform:none } }
+@media (prefers-reduced-motion: reduce){
+  .lw-dlg-fondo.abierto, .lw-dlg{ animation:none; }
+}
+
+/* ── SELECTOR DE LISTA LARGA (lwElegir / lwPicker) — 16-ago-2026 ────────────
+   Reusa la caja del diálogo: mismo fondo, mismo borde, misma entrada. Lo que
+   cambia es lo de dentro — un buscador y una lista que se desplaza.
+   El porqué de todo esto está en dialogo.js, junto al código. */
+.lw-elegir{ display:flex; flex-direction:column; max-height:min(560px, 82vh); }
+.lw-elegir .lw-dlg-cab{ padding-bottom:14px; }
+.lw-elegir-q{
+  flex:none; margin:0 24px 12px; font:inherit; font-size:14.5px;
+  padding:10px 14px; border:1px solid var(--linea); border-radius:var(--r-p);
+  background:var(--sup-2); color:var(--texto);
+}
+.lw-elegir-q:focus{ outline:none; border-color:var(--dl,#104C4F);
+  box-shadow:0 0 0 3px rgba(16,76,79,.12); background:var(--sup-1); }
+/* La lista es lo ÚNICO que se desplaza: el buscador y el título se quedan
+   fijos. Si se fuera el buscador al bajar por 195 países, corregir lo tecleado
+   obligaría a subir del todo. */
+.lw-elegir-lista{ flex:1 1 auto; overflow-y:auto; padding:0 12px 14px;
+  overscroll-behavior:contain; }
+.lw-elegir-op{
+  display:flex; width:100%; align-items:baseline; gap:10px; text-align:left;
+  font:inherit; font-size:14.5px; color:var(--texto); background:none;
+  border:none; border-radius:var(--r-p); padding:9px 12px; cursor:pointer;
+}
+.lw-elegir-op em{ font-style:normal; font-size:12.5px; color:var(--texto-3,#676B63); margin-left:auto; }
+/* `.marcado` y no `:hover` a secas: lo que Enter va a elegir tiene que verse
+   igual lo hayas alcanzado con el ratón o con las flechas. */
+.lw-elegir-op:hover{ background:var(--sup-2); }
+.lw-elegir-op.marcado{ background:var(--dl,#104C4F); color:#fff; }
+.lw-elegir-op.marcado em{ color:rgba(255,255,255,.72); }
+.lw-elegir-nada{ margin:6px 12px; font-size:14px; color:var(--texto-3,#676B63); }
+
+/* El campo que abre el selector. Mismo chevron que un <select> de verdad,
+   porque hace lo mismo: era un <input> pelado y por eso nadie sabía que
+   desplegaba. `readonly` para que no se pueda teclear encima — se teclea en el
+   buscador del modal— pero sin `disabled`, que lo sacaría del formulario. */
+/* ⚠️ EL `:disabled` VA EN EL SELECTOR, no es redundante. Cada herramienta tiene
+   en su propio <style> un `input:disabled,select:disabled,textarea:disabled{
+   background:… }` — especificidad (0,1,1), la MISMA que `input.lw-elegible`, y
+   va después en la cascada, así que ganaba: el atajo `background` reinicia
+   `background-image` y borraba el chevron. Listándolo aparte, ese caso pasa a
+   (0,2,1) y gana.
+
+   El `<select>` nativo no sufría esto porque su regla lleva dos `:not([…])` y
+   sale a (0,2,1) de serie — de hecho su comentario, más arriba, ya avisaba de
+   esta misma pelea contra los `<style>` de cada herramienta.
+
+   Salió a la luz con la ficha que abre cerrada: los campos nacen deshabilitados
+   y se quedaban sin flecha justo cuando más falta hace decir que despliegan.
+   Medido en pantalla: `background-image` valía `none`. */
+input.lw-elegible,
+input.lw-elegible:disabled{
+  cursor:pointer;
+  background-image:
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%234A5052' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E"),
+    linear-gradient(var(--sup-2,#F7F3E9), var(--sup-2,#F7F3E9));
+  background-repeat:no-repeat, no-repeat;
+  background-position:right 11px center, right center;
+  background-size:11px 7px, 34px 100%;
+  padding-right:40px;
+}
+input.lw-elegible:hover{ border-color:var(--texto-3,#676B63); }
+input.lw-elegible:disabled{ cursor:default; }
+
+/* ── UN CAMPO BLOQUEADO SE LEE IGUAL DE BIEN — 16-ago-2026 ──────────────────
+   En el cajon lateral, `disabled` ya no quiere decir «esto no se usa nunca»:
+   desde que la ficha del comprador abre cerrada quiere decir «bloqueado hasta
+   que apruebes editar». Y una ficha se abre para MIRAR, asi que el dato tiene
+   que leerse perfectamente.
+
+   Sin esto quedaba a medias, medido en produccion sobre la misma ficha: mismo
+   color y mismo fondo en los ocho campos, pero `opacity:.62` en los tres que
+   llevan chevron -los dos del selector y el <select> de KYC- y 1 en el resto.
+   O sea la mitad de la ficha lavada y la otra mitad no, sin ninguna razon que
+   el usuario pueda ver.
+
+   El candado lo dice el pie con su boton «Editar datos», que es donde se mira
+   para actuar. Repetirlo apagando el texto solo estorba la lectura.
+
+   Las dos reglas repiten los `:not(...)` y la clase del original a proposito:
+   la especificidad se gana igualando, no con `!important`. */
+.sui-cajon select:not([multiple]):not([size]):disabled,
+.sui-cajon input.lw-elegible:disabled,
+.sui-cajon input:disabled, .sui-cajon textarea:disabled{
+  opacity:1; cursor:default;
+}
+
+@media (max-width:860px){
+  /* En móvil ocupa lo que necesita y se pega abajo: el pulgar llega al buscador
+     y a las primeras opciones sin estirar la mano hasta el centro. */
+  .lw-elegir-fondo{ align-items:flex-end; padding:0; }
+  .lw-elegir{ width:100%; max-height:88vh; border-radius:var(--r-l) var(--r-l) 0 0;
+    padding-bottom:env(safe-area-inset-bottom); }
+}
+
+/* ── Aviso de la herramienta ────────────────────────────────────────────────
+   Un mensaje que NO se va: lo que hay que ver cada vez que se entra, no una vez.
+   Nace aquí y no dentro de Operaciones (17-ago-2026, auditoría) porque en cuanto
+   una segunda herramienta necesite avisar de algo persistente va a copiar este
+   bloque, y una copia pegada de la herramienta de al lado es deuda. Es la misma
+   razón por la que la barra superior se inyecta en vez de escribirse.
+
+   Estrenado por el aviso de tope de Operaciones («esta vista no lo está sumando
+   todo»). Los valores son los del `.aviso` que el hub ya tenía —ámbar, no rojo—:
+   esto informa de algo parcial, no de un error. El hub sigue con su copia local
+   hasta que se toque su hoja; cuando se toque, se borra y usa esta.
+
+   Lleva `role="status"` desde quien lo crea, no desde el CSS: un aviso que solo
+   se ve no existe para un lector de pantalla. */
+.sui-aviso{
+  margin:0 0 16px; padding:11px 14px;
+  font-size:13.5px; line-height:1.5; color:#6A4A14;
+  background:#F7EEDC; border:1px solid #E6D7B4; border-radius:var(--r-m,12px);
+}
+
+/* ══ DOS PANELES: FORMULARIO + VISTA PREVIA ═══════════════════════════════════
+   27-ago-2026, owner: «en facturas en responsive quiero que haga una vista
+   previa como hay en contratos».
+
+   Vivía SOLO en `contracts/assets/app.css`, y Facturas —que tiene exactamente
+   la misma pantalla, con las mismas clases `.pane-form` y `.pane-preview`— se
+   había resuelto el móvil a su manera: apilando las dos columnas. Resultado: la
+   factura salía debajo del formulario, después de hacer scroll por veinte
+   campos, en vez de a pantalla completa. Dos definiciones de lo mismo con dos
+   comportamientos, que es de lo que va la pregunta del owner sobre el CSS.
+
+   Aquí está una sola vez, y las dos herramientas la usan. En escritorio no
+   cambia nada: `.fab` y `.pv-close` solo existen por debajo de 900 px.
+
+   §7 (consistencia espacial): la previa entra desde ABAJO y se va por abajo —
+   el mismo camino en los dos sentidos, que es lo que hace que se entienda de
+   dónde ha salido. §14: sin movimiento, aparece y ya. */
+.fab{ display:none; position:fixed; z-index:45; right:16px;
+  bottom:calc(16px + env(safe-area-inset-bottom));
+  background:var(--tg,#485B37); color:#fff; border:none; border-radius:30px;
+  padding:14px 20px; font:inherit; font-size:15px; font-weight:500;
+  box-shadow:0 8px 24px rgba(16,76,79,.35); cursor:pointer;
+  transition:transform .16s ease, box-shadow .18s ease; }
+.fab:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(16,76,79,.42); }
+/* §1: el realce al APRETAR, no al soltar. */
+.fab:active{ transform:translateY(0) scale(.97); }
+.pv-close{ display:none; }
+
+@media (max-width:900px){
+  .fab{ display:inline-flex; }
+  .pv-close{ display:inline-flex; }
+  .pane-preview{ position:fixed; inset:0; z-index:60; height:100dvh;
+    border-left:none; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1); }
+  .pane-preview.open{ transform:none; }
+}
+@media (max-width:900px) and (prefers-reduced-motion: reduce){
+  .pane-preview{ transition:none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   app.css   sha256:5f331382656b
+   ───────────────────────────────────────────────────────────────────── */
+/* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
+   ============================================================================
+   Estaban dentro del HTML, 409 lineas de <style> en un fichero que ya tenia
+   5.030. Sacarlos no cambia ni un pixel: es el mismo CSS, en el mismo orden y
+   en el mismo sitio de la cascada (despues de suite.css, antes de nada propio).
+
+   Lo que se gana no es estetica, es poder VER lo que sobra: con el CSS aparte se
+   puede comparar contra suite.css y subir a la capa comun lo que ya este alli.
+   Mientras vivia dentro del HTML nadie lo miraba.
+
+   ⚠️ Va con `?v=` sellado por tools/sella_assets.py, igual que el resto: sin el
+   sello, un cambio de estilos se queda en la cache del CDN sin que se note. */
+
+  :root{
+    --line:#E4DCCB; --tbh:64px;
+    /* superficies cálidas sobre el papel Raw Linen */
+    --card:#fffdf8; --field-bg:#fdfcf9; --hair:#ece4d6;
+    /* profundidad discreta — sombras cálidas, nunca negras duras */
+    --sh-sm:0 1px 2px rgba(46,52,55,.04), 0 1px 3px rgba(46,52,55,.05);
+    --sh-md:0 2px 6px rgba(46,52,55,.05), 0 10px 26px rgba(46,52,55,.05);
+    --sh-lift:0 4px 16px rgba(46,52,55,.11);
+    /* radios y easing físico */
+    --r-lg:16px; --r-md:12px; --r-sm:10px;
+    --ease:cubic-bezier(.32,.72,0,1); --ease-out:cubic-bezier(.16,1,.3,1);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; height:100%; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); color:var(--va); background:var(--rl); font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  ::selection{ background:rgba(72,91,55,.16); }
+  /* scrollbar discreta y de marca en los paneles con overflow */
+  .pane-form, .pv-scroll, .cp-list{ scrollbar-width:thin; scrollbar-color:var(--ss) transparent; }
+  .pane-form::-webkit-scrollbar, .pv-scroll::-webkit-scrollbar, .cp-list::-webkit-scrollbar{ width:9px; height:9px; }
+  .pane-form::-webkit-scrollbar-thumb, .pv-scroll::-webkit-scrollbar-thumb, .cp-list::-webkit-scrollbar-thumb{ background:var(--ss); border-radius:20px; border:2px solid transparent; background-clip:content-box; }
+
+  /* ---------- topbar · barra de vidrio esmerilado, fija ---------- */
+  /* Solo posicionamiento: el aspecto vive en assets/topbar.css, compartido con
+     Facturas y Dossier. Aquí sticky (las otras dos van fixed) porque .stage
+     calcula su alto con calc(100dvh - --tbh). */
+  .topbar{ position:sticky; top:0; z-index:40;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px -14px rgba(46,52,55,.5); }
+  /* toggle de idioma como segmento con pastilla deslizante */
+  .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:9px; padding:3px; box-shadow:inset 0 1px 2px rgba(46,52,55,.05); }
+  .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px; color:var(--muted); cursor:pointer; transition:color .2s var(--ease), background .2s var(--ease); }
+  .lang-toggle button:hover{ color:var(--va); }
+  .lang-toggle button.on{ background:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.4); }
+  .lang-hint{ font-size:11px; letter-spacing:.06em; color:var(--sc); text-transform:uppercase; font-weight:600; }
+  /* acciones de la barra: pastillas de línea con micro-elevación al hover */
+  .tb-link{ background:linear-gradient(180deg,#fff,var(--card)); border:1px solid var(--line); border-radius:9px; font:inherit; font-size:12.5px; font-weight:500; color:var(--va); padding:7px 13px; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease), color .18s var(--ease); }
+  .tb-link:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
+  .tb-link:active{ transform:translateY(0); }
+  a.tb-link{ text-decoration:none; display:inline-block; }   /* el "← Panel" es enlace, no botón */
+  /* Salir en tono tierra al pasar por encima — es la salida, no una acción de trabajo */
+  #btnLogout:hover{ border-color:var(--be); color:var(--be); }
+  /* selector de contrato en la barra estática: siempre accesible al hacer scroll del formulario */
+
+  /* ---------- escenario en dos columnas ---------- */
+  /* Grid con la columna del formulario ACOTADA, igual que en /facturas: al 50/50
+     el formulario dejaba 300px de aire a los lados de sus campos (su `.inner`
+     nunca pasa de 640px) mientras la barra de herramientas de la derecha se
+     partía en tres líneas. Ahora el formulario coge lo que necesita y el resto
+     es para el documento y sus botones. */
+  .stage{ display:grid; grid-template-columns:minmax(400px,560px) 1fr; height:calc(100dvh - var(--tbh)); }
+  .pane-form{ min-width:0; overflow:auto; padding:22px 20px 48px; }
+  .pane-form .inner{ max-width:640px; margin:0 auto; }
+  /* preview: bandeja de papel más profunda para que el documento "flote" */
+  .pane-preview{ min-width:0; display:flex; flex-direction:column;
+    background:radial-gradient(120% 80% at 50% 0%, #efe7d9 0%, #e7ddcd 100%); border-left:1px solid var(--line); }
+  .pv-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:9px 18px; padding:11px 16px;
+    background:rgba(255,253,248,.9); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); }
+  /* el rotulo NO crece (antes flex:1): empujaba el bloque de herramientas a una
+     linea propia incluso cuando quedaba sitio de sobra al lado. */
+  .pv-bar b{ font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); flex:none; }
+  /* Herramientas agrupadas por lo que HACEN, no por el orden en que se
+     escribieron (30-jul, owner): editar el documento, la firma automática y el
+     PDF a mano son tres flujos distintos y antes estaban mezclados en una fila
+     de nueve botones. Cada grupo no se parte por dentro; los grupos sí saltan de
+     línea como bloques. El filete separador va en el grupo siguiente, así que si
+     uno se oculta (los botones dependen del estado) el separador se va con él. */
+  .pv-grupo{ display:flex; align-items:center; gap:6px; flex:none; }
+  .pv-grupo > .g{ font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); white-space:nowrap; }
+  .pv-scroll{ flex:1; overflow:auto; padding:22px 20px; display:flex; justify-content:center; }
+  #pvFrame{ width:100%; max-width:820px; height:100%; min-height:400px; border:none; background:#fff;
+    box-shadow:0 1px 2px rgba(46,52,55,.08), 0 18px 48px -12px rgba(46,52,55,.32); border-radius:8px; }
+  .pv-close{ display:none; }
+
+
+  /* ---------- secciones (acordeón) ---------- */
+  /* etiqueta de agrupación (tier): eyebrow tipográfico entre bloques */
+  .tier-label{ font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--sc);
+    margin:22px 4px 10px; padding-top:14px; border-top:1px solid var(--hair); }
+  .tier-label.first{ border-top:none; padding-top:0; margin-top:4px; }
+  /* tarjeta de sección: papel cálido con sombra suave, no borde duro */
+  .section{ background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg); margin-bottom:12px; overflow:hidden;
+    box-shadow:var(--sh-sm); transition:box-shadow .25s var(--ease), border-color .25s var(--ease); }
+  .section:hover{ box-shadow:var(--sh-md); }
+  .section > header{ display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; user-select:none;
+    transition:background .2s var(--ease); }
+  .section > header:hover{ background:rgba(72,91,55,.035); }
+  /* número como ficha circular con tinte sage — jerarquía visual del índice */
+  .section > header .num{ font-style:italic; color:var(--tg); font-size:15px; font-weight:500; width:28px; height:28px; flex:none;
+    display:grid; place-items:center; border-radius:50%; background:rgba(143,155,122,.16); }
+  .section > header h2{ font-size:12.5px; letter-spacing:.1em; text-transform:uppercase; margin:0; color:var(--dl); font-weight:600; flex:1; }
+  /* 🔴 EL MISMO GESTO QUE EN FACTURAS, NO UNO NUEVO (27-ago-2026, owner:
+     «iguala el estilo al de facturas, no uno nuevo»). Allí las secciones se
+     pliegan con un cuadrito `+`/`−` a la izquierda —heredado de «Impuesto» y
+     «Notas»—, y aquí había un chevron. Dos herramientas de la misma suite con
+     dos gestos para la misma acción es la divergencia de siempre.
+     El elemento `.chev` se queda (lo emiten cuatro ficheros distintos y
+     tocarlos los cuatro para cambiar un glifo es trabajo sin premio): se le
+     apaga el «▾» con `font-size:0` y el signo lo pone el pseudo. */
+  .section > header .chev{ color:var(--dl); font-size:0; width:15px; height:15px; flex:none;
+    display:grid; place-items:center; border:1px solid var(--line); border-radius:5px; }
+  .section > header .chev::before{ content:'−'; font-size:12px; line-height:1; }
+  .section.collapsed > header .chev::before{ content:'+'; }
+
+  /* El resumen de la sección plegada (ver `resumenSeccion` en entidades_pago.js).
+     Caja baja y en gris: acompaña al rótulo, no compite con él. Se come el
+     espacio sobrante para que el signo quede pegado a la derecha. */
+  .sec-resumen{ flex:1; min-width:0; font-size:11.5px; font-weight:400; color:var(--muted);
+    text-transform:none; letter-spacing:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .section > header h2{ flex:none; }
+
+  /* §1 RESPUESTA — el realce va al APRETAR, no al soltar. Es el mismo valor
+     que las fichas de concepto de Facturas: escala .98 y salida en 100 ms.
+     §14: sin movimiento se queda el cambio de fondo, que ya dice «te he oído». */
+  .section > header:active{ transform:scale(.995); }
+  .section > header{ transition:background .2s var(--ease), transform .1s ease-out; }
+  @media (prefers-reduced-motion: reduce){
+    .section > header{ transition:background .2s var(--ease); }
+    .section > header:active{ transform:none; }
+  }
+  .section .body{ padding:4px 16px 16px; }
+  .section.collapsed .body{ display:none; }
+
+  .opt-toggle{ display:flex; align-items:center; gap:9px; margin-left:auto; font-size:11.5px; color:var(--muted); }
+  .switch{ position:relative; width:42px; height:24px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:var(--ss); border-radius:24px; transition:background .25s var(--ease); box-shadow:inset 0 1px 2px rgba(46,52,55,.12); }
+  .slider:before{ content:""; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%;
+    transition:transform .28s var(--ease); box-shadow:0 1px 3px rgba(46,52,55,.28); }
+  .switch input:checked + .slider{ background:var(--dl); }
+  .switch input:checked + .slider:before{ transform:translateX(18px); }
+  .section.optional.off .body{ display:none; }
+  .section.optional.off{ opacity:.82; }
+  /* Contrato bloqueado (PDF firmado ya subido): una sola clase corta toda
+     edición del panel de campos (inputs, firmas, anexos, cláusulas,
+     adquirientes…) sin tener que deshabilitar elemento a elemento — incluye
+     los canvas de firma, que pointer-events también bloquea. */
+  #form.locked{ pointer-events:none; opacity:.6; }
+  /* Enviado a firma (18-ago-2026): mismo candado que `locked`, pero es un
+     estado REVERSIBLE — se sale con «Editar (anula la firma)», no es el punto
+     final de `bloqueado`. Se distingue en la barra por su propio distintivo. */
+  #form.enfirma{ pointer-events:none; opacity:.6; }
+
+  .field{ margin:12px 0; }
+  .field label{ display:block; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; cursor:pointer; }
+  .field label:hover{ color:var(--dl); }
+  .field label::after{ content:' ↳'; opacity:0; transition:opacity .15s var(--ease); }
+  .field label:hover::after{ opacity:.65; }
+  /* La PISTA de un campo (27-ago-2026, ver `partirEtiqueta` en app.html). Caja
+     baja y sin tracking: es una frase y se lee como una frase. Va entre la
+     etiqueta y el control porque se lee ANTES de contestar, no después. §15 —
+     el tracking positivo ayuda a un rótulo de dos palabras y estorba en una
+     línea de veinte. */
+  /* Pequeña a propósito (27-ago-2026, owner: «reduce el tamaño de las
+     explicaciones»). Es apoyo, no contenido: si pesa lo mismo que la etiqueta,
+     compite con ella y hay que leer las dos para saber cuál manda. Las quince
+     que quedan miden 32 caracteres de media y la más larga 73 — las dos que
+     eran un párrafo se reescribieron en tokens.json, no se escondieron. */
+  .field .pista{ margin:-3px 0 5px; font-size:10.5px; line-height:1.4;
+                 letter-spacing:0; text-transform:none; font-weight:400;
+                 color:var(--muted); opacity:.85; }
+  .field input, .field textarea, .field select{ width:100%; font-family:inherit; font-size:16px; color:var(--va);
+    padding:11px 13px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--field-bg);
+    transition:border-color .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
+  .field input::placeholder, .field textarea::placeholder{ color:var(--ss); }
+  .field input:hover, .field textarea:hover, .field select:hover{ border-color:var(--sc); }
+  .field input:focus, .field textarea:focus, .field select:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.14); }
+  /* nº de contrato es readonly (lo asigna la BD): se ve como campo asignado, no editable */
+  .field input[readonly]{ background:rgba(190,179,165,.14); color:var(--muted); cursor:default; }
+  .field input[readonly]:hover{ border-color:var(--line); }
+
+  /* 🔴 VA DESPUÉS DE `[readonly]` A PROPÓSITO (27-ago-2026). Las dos reglas
+     tienen la MISMA especificidad —(0,2,1)— así que la que gana es la última, y
+     con este bloque escrito más arriba el `background:none` no se aplicaba: el
+     campo seguía pintando su caja de rellenar. Se ve en la pantalla y no en el
+     diff, porque el CSS era correcto de leer.
+     Qué distingue a los dos: `[readonly]` es un campo que ahora no se toca;
+     `dato-fijo` NO es un campo — es un dato que pone la base al guardar. Uno se
+     atenúa, el otro deja de parecer un hueco. Mismo tratamiento que en
+     Facturas, para que la suite no tenga dos formas de decir lo mismo. */
+  .field input.dato-fijo{ border:0; background:none; padding-left:0;
+                          color:var(--muted); font-variant-numeric:tabular-nums;
+                          cursor:default; }
+  .field input.dato-fijo:not([value=""]){ color:var(--ink,#22282A); font-weight:600; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
+
+  .note-blocked{ font-size:11.5px; color:var(--muted); background:#fbf9f3; border:1px dashed var(--ss); border-radius:10px; padding:11px 13px; margin:8px 0 0; }
+  .note-blocked b{ color:var(--be); }
+  .note-blocked ul{ margin:6px 0 0; padding-left:16px; } .note-blocked li{ margin-bottom:2px; }
+
+  /* Marca PERSISTENTE en el campo, no solo un toast que puede pisarse con otro
+     (hallazgo Legal, 12-ago): una fecha guardada en formato antiguo, o una
+     sociedad cuya cláusula de contrato hay que revisar a mano. */
+  .field.campo-aviso input, .field.campo-aviso select{ border-color:var(--be); background:#fdf6f2; }
+  .field .aviso-campo{ font-size:11px; color:var(--be); margin:5px 0 0; font-weight:600; }
+
+  /* firma */
+  .sigpad-wrap{ border:1.5px dashed var(--ss); border-radius:var(--r-sm); background:#fff; position:relative; touch-action:none;
+    transition:border-color .2s var(--ease); }
+  .sigpad-wrap.signed{ border-style:solid; border-color:var(--sc); }
+  .sigpad-wrap canvas{ width:100%; height:140px; display:block; border-radius:var(--r-sm); }
+  .sigpad-wrap .ph{ position:absolute; inset:0; display:grid; place-items:center; color:var(--ss); font-size:13px; letter-spacing:.02em; pointer-events:none; }
+  .sigpad-wrap.signed .ph{ display:none; }
+  .sig-actions{ display:flex; justify-content:flex-end; margin-top:7px; }
+  .link-btn{ background:none; border:none; color:var(--dl); font-size:12.5px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; padding:4px; transition:color .15s var(--ease); }
+  .link-btn:hover{ color:var(--dl); }
+
+  /* botones · presión física (scale al pulsar) + elevación al hover
+     26-ago-2026 (LAW-90): la FORMA del botón —tamaño, relleno, radio, borde,
+     fondo, foco— ya no se declara aquí. Es la compartida de `topbar.css`, que
+     esta página carga antes. Aquí quedaba la sexta copia de `.btn` y era la más
+     divergente de todas: 13,5px, `border:none` y `var(--r-sm)` donde las otras
+     cinco eran pastilla con borde, así que el generador de contratos —la
+     herramienta más usada— era la que menos se parecía al resto.
+     Lo que SÍ es de aquí y se queda: la presión física al pulsar y la elevación
+     al pasar por encima. Eso no es otra forma del botón, es cómo responde. */
+  .btn{ transition:transform .16s var(--ease), box-shadow .18s var(--ease),
+        background .18s var(--ease), border-color .18s var(--ease); }
+  .btn:active{ transform:scale(.97); }
+  .btn.primary{ background:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(16,76,79,.3), 0 6px 16px -6px rgba(16,76,79,.5); }
+  .btn.primary:hover{ background:#0d5b5f; box-shadow:0 2px 4px rgba(16,76,79,.32), 0 10px 22px -6px rgba(16,76,79,.55); transform:translateY(-1px); }
+  .btn.primary:active{ transform:translateY(0) scale(.97); }
+  .btn.primary:disabled{ background:var(--ss); box-shadow:none; cursor:not-allowed; transform:none; }
+  .btn.ghost{ background:linear-gradient(180deg,#fff,var(--card)); border:1px solid var(--line); color:var(--va); box-shadow:var(--sh-sm); }
+  .btn.ghost:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-md); transform:translateY(-1px); }
+  .btn.ghost:active{ transform:translateY(0) scale(.97); }
+  .btn.ghost.editing{ background:var(--dl); border-color:var(--dl); color:#fff; box-shadow:0 1px 2px rgba(72,91,55,.35); }
+  .btn.ghost.editing:hover{ color:#fff; }
+  /* Guardar en base de datos = acción de marca (acento Territorial), un peldaño bajo el primary Descargar PDF */
+  #btnSave{ background:linear-gradient(180deg,#fbfdf7,#eef3e6); border-color:var(--sc); color:var(--dl); font-weight:600; }
+  #btnSave:hover{ background:var(--dl); border-color:var(--dl); color:#fff; box-shadow:0 2px 4px rgba(72,91,55,.28), 0 10px 22px -8px rgba(72,91,55,.5); }
+  /* botón de bloqueo (subir firmado) = tono tierra, señal de acción irreversible */
+  #btnLockUpload:hover{ border-color:var(--be); color:var(--be); }
+  /* `a.btn` sale `inline` y sus hermanos `<button>` salen `block`: sin esto,
+     Facturar quedaba mas bajo y con otra caja que los de al lado. */
+  a#btnFacturar{ display:inline-flex; align-items:center; text-decoration:none; }
+  #btnDownloadSigned:hover{ border-color:var(--dl); color:var(--dl); }
+
+  /* z-index 200: por encima de los modales (.cp-overlay, 80). Compartían el 80 y,
+     al ir los overlays después en el DOM, ganaban ellos — el aviso salía DETRÁS
+     del modal y no se veía justo cuando más falta hace (errores al guardar, al
+     generar el enlace de firma…). Cualquier capa nueva debe quedar por debajo. */
+
+  /* ---------- panel Diseño ---------- */
+  .section.design > header h2{ color:var(--be); }
+  /* ficha del índice para el panel Diseño: tinte tierra en vez de sage */
+  .section.design .num{ font-style:normal; background:rgba(66,33,11,.1); color:var(--be); }
+  /* Adquirientes adicionales, dentro del mismo recuadro que Adquiriente I
+     (7-ago) — separador propio para no confundirse con el grid2 de arriba. */
+  .comprador-extra{ margin-top:14px; padding-top:14px; border-top:1px solid var(--hair); }
+  .comprador-extra-head{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:4px; }
+  .cli-buscar{ position:relative; padding:2px 0 12px; }
+  .cli-buscar input{ width:100%; padding:9px 14px; border:1px solid var(--line); border-radius:999px; font:inherit; font-size:12.5px; background:#F7F3E9; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .cli-buscar input:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  /* ── Elegir comprador: el paso, no un campo más (19-ago-2026) ─────────────
+     Desde que el contrato ya no da de alta a nadie, buscar la ficha es LO
+     PRIMERO que hay que hacer en el bloque del comprador, y con todos los
+     campos de abajo en gris es además lo único que se puede hacer. Pintado
+     como un campo pequeño más se leía como opcional. Va en recuadro propio,
+     con su título y una lupa dentro del campo. */
+  .cli-pedir{ border:1px solid var(--dl); border-radius:14px; background:#F3F6EE; padding:12px 14px 4px; margin:2px 0 14px; }
+  .cli-pedir-t{ font-size:12.5px; font-weight:600; color:var(--dl); margin-bottom:2px; }
+  .cli-pedir-s{ font-size:11.5px; color:var(--muted); margin:0 0 8px; }
+  .cli-pedir .cli-buscar{ padding:0 0 4px; }
+  .cli-pedir .cli-buscar input{ padding:12px 16px 12px 38px; font-size:14px; background:#fff; border-color:var(--dl);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23485B37' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:14px 50%; background-size:16px 16px; }
+  .cli-pedir .cli-buscar input::placeholder{ color:#8A9182; }
+  .cli-pedir .cli-nuevo{ margin:8px 0 10px; }
+  /* El Adquiriente II+ usa EXACTAMENTE este mismo bloque, sin una sola regla
+     propia (19-ago, owner: «¿por qué son diferentes?»). Lo eran porque tenían
+     dos marcados distintos para la misma acción, y el del I parecía el
+     importante solo por estar mejor pintado. Ahora los pinta la misma función
+     (`bloqueElegirComprador`) y los viste este mismo CSS: si mañana cambia el
+     recuadro, cambia en los dos a la vez o no cambia en ninguno. */
+  .cli-resultados{ position:absolute; left:0; right:0; top:calc(100% - 6px); z-index:5; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 32px -12px rgba(46,52,55,.35); max-height:220px; overflow:auto; }
+  .cli-r{ padding:9px 14px; cursor:pointer; font-size:12.5px; border-bottom:1px solid var(--hair); }
+  .cli-r:last-child{ border-bottom:none; }
+  .cli-r:hover{ background:#F7F3E9; }
+  .cli-r b{ color:var(--dl); }
+  .cli-r span{ color:var(--muted); }
+  .cli-vacio{ padding:9px 14px; font-size:12px; color:var(--muted); }
+  /* ── La ficha del comprador manda (18-ago-2026) ───────────────────────────
+     Hasta hoy el comprador se tecleaba y la ficha nacía sola de ese texto: un
+     pasaporte con una errata creaba una persona nueva. Ahora el contrato se
+     enlaza a una ficha de /intranet/compradores/ y estos son sus dos estados: sin
+     enlazar (buscador + «crear ficha») y enlazada (este chip). */
+  .cli-chip{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 13px; margin:2px 0 12px;
+    border:1px solid var(--dl); border-radius:12px; background:#F3F6EE; font-size:12.5px; }
+  .cli-chip b{ color:var(--dl); }
+  .cli-ok{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
+  .cli-sub{ color:var(--muted); }
+  .cli-chip .tb-link{ margin-left:auto; }
+  .cli-chip .tb-link + .tb-link{ margin-left:0; }
+  .cli-nuevo{ display:flex; align-items:center; gap:8px; margin:-6px 0 12px; font-size:12px; color:var(--muted); }
+  /* Sin comprador elegido, sus campos NO se pintan (19-ago-2026, owner: «para
+     hacerlo más sencillo de leer»). Serían seis casillas grises intocables
+     alrededor del único paso que sí se puede dar. `!important` a conciencia:
+     `aplicarReglasCampos()` gobierna `style.display` de algunos campos, y una
+     regla de clase sin peso la perdería contra un estilo en línea. */
+  .field.sin-ficha, .grid2.sin-ficha{ display:none !important; }
+  /* Un campo que viene de la ficha no se teclea: se corrige en la ficha. Se ve
+     apagado y no acepta foco, pero sigue siendo legible y copiable. */
+  .field.de-ficha input, .field.de-ficha select, .field.de-ficha textarea{
+    background:#F1EFE9; color:var(--muted); cursor:not-allowed; }
+  /* `.cli-aviso`, `.emails-extra`, `.chips-row` y `.chip-email` se fueron con
+     «Corregir ficha» y con «Otros emails de Adquiriente I» (19-ago-2026). No se
+     dejan de adorno: CSS que no pinta nada es lo que hace creer que la pantalla
+     todavía tiene una función que ya no tiene. */
+  .em-emails-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0; }
+  .em-emails-chips button{ font:inherit; font-size:11.5px; background:#F7F3E9; border:1px solid var(--line); border-radius:999px; padding:4px 10px; cursor:pointer; color:var(--texto-2,#4A5052); }
+  .em-emails-chips button:hover{ border-color:var(--dl); color:var(--dl); }
+  .dz{ border-top:1px solid var(--hair); padding:12px 0 4px; }
+  .dz:first-child{ border-top:none; }
+  .dz-row{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px; color:var(--muted); }
+  .dz-row > span{ width:78px; flex:none; }
+  .dz-row select, .dz-row input[type=range], .dz-row input[type=color]{ flex:1; }
+  .dz-row input[type=range]{ accent-color:var(--dl); }
+  .dz-row input[type=color]{ height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+  .up{ display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:7px 12px; font-size:12.5px; color:var(--va); cursor:pointer; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .up:hover{ border-color:var(--dl); box-shadow:var(--sh-sm); }
+  .up input{ display:none; }
+
+  /* ---------- panel Diseño (rework moderno · compacto) ---------- */
+  .dsec{ display:flex; align-items:center; gap:8px; margin:12px 2px 7px;
+    font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--sc); }
+  .dsec::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .dsec:first-of-type{ margin-top:4px; }
+  /* fila escalar: color / degradado / textura */
+  .drow{ display:flex; align-items:center; gap:10px; margin:7px 2px; }
+  .drow .dlab{ width:88px; flex:none; font-size:12px; color:var(--muted); }
+  .drow input[type=range]{ flex:1; accent-color:var(--dl); height:4px; }
+  .drow .dval{ width:36px; flex:none; text-align:right; font-size:11.5px; font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dswatch{ width:40px; height:26px; flex:none; padding:2px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+  /* tarjeta de asset */
+  .dcard{ border:1px solid var(--line); border-radius:var(--r-md); padding:9px 11px; margin:7px 0;
+    background:linear-gradient(180deg,#fff,#fdfcf8); box-shadow:var(--sh-sm); }
+  .dcard.empty{ opacity:.9; }
+  .dcard.empty .dcard-ctl{ opacity:.4; pointer-events:none; }
+  .dcard-head{ display:flex; align-items:center; gap:9px; }
+  .dthumb{ width:34px; height:34px; flex:none; border-radius:8px; border:1px solid var(--line);
+    background:#fff no-repeat center/contain; display:grid; place-items:center; color:var(--ss); font-size:15px; }
+  .dcard-title{ flex:1; min-width:0; }
+  .dcard-title b{ display:block; font-size:12px; font-weight:600; color:var(--dl); line-height:1.25; }
+  .dcard-title span{ font-size:10.5px; color:var(--muted); }
+  .dbtn{ font:inherit; font-size:11.5px; border:1px solid var(--line); background:#fff; color:var(--va);
+    border-radius:8px; padding:5px 9px; cursor:pointer; white-space:nowrap; transition:border-color .15s var(--ease),color .15s var(--ease),box-shadow .15s var(--ease); }
+  .dbtn:hover{ border-color:var(--dl); color:var(--dl); box-shadow:var(--sh-sm); }
+  .dbtn.ghost{ color:var(--muted); border-style:dashed; }
+  .dbtn.upload{ position:relative; overflow:hidden; }
+  .dbtn.upload input[type=file]{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+  .dcard-ctl{ display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin-top:8px; }
+  .dctl{ display:flex; flex-direction:column; gap:3px; }
+  .dctl.full{ grid-column:1/-1; }
+  .dctl > label{ display:flex; justify-content:space-between; align-items:baseline;
+    font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .dctl > label .v{ font-size:11.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .dctl select{ font:inherit; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--va); }
+  .dctl input[type=range]{ accent-color:var(--dl); height:4px; margin:3px 0 1px; }
+
+  /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
+  /* `.fab`, `.pv-close` y la previa a pantalla completa viven en suite.css
+     desde el 27-ago-2026: Facturas tiene la misma pantalla y las tenía
+     resueltas de otra forma. Una definición para las dos. */
+  @media (max-width:900px){
+    .stage{ grid-template-columns:1fr; height:auto; }
+    .pane-form{ overflow:visible; height:auto; padding-bottom:96px; }
+    /* topbar: con "Salir" sumado a los 3 botones + selector de idioma ya no
+       cabe todo en una fila a partir de aquí — quita lo prescindible
+       (el rótulo "BAHASA +" es solo informativo, el toggle ES/EN se entiende
+       solo) y encoge botones/título antes de dejar que algo se parta en dos
+       líneas. */
+    .topbar{ gap:6px; padding:0 10px; }
+    .topbar .tbtitle{ font-size:13px; }
+    .lang-hint{ display:none; }
+    .tb-link{ padding:6px 8px; font-size:12px; }
+  }
+
+  /* ---------- panel "Contratos guardados" ---------- */
+  /* ── MODO LISTADO (2a, 6-ago-2026) ─────────────────────────────────────
+     Contratos abria directo al EDITOR y lo emitido vivia en este modal. Peticion
+     de la revision: como Facturas — primero la lista, «+ Nuevo» abre el editor.
+     Se promueve el MISMO panel (misma carga, filtros, autoria y borrado, cero
+     logica nueva) a pantalla: en `body.modo-listado` deja de ser un modal
+     flotante y ocupa el cuerpo de la pagina con los valores del mockup. */
+  body.modo-listado .stage, body.modo-listado .fab{ display:none !important; }
+  body.modo-listado #tplPick, body.modo-listado .lang-hint,
+  body.modo-listado #langToggle, body.modo-listado .lw-sep,
+  body.modo-listado #btnReset{ display:none !important; }
+  body.modo-listado #cpOverlay{ display:block; position:static; background:none;
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+    padding:calc(var(--tbh) + 22px) 26px 30px; }
+  body.modo-listado #cpOverlay .cp-modal{ width:100%; max-width:1520px; margin:0 auto;
+    max-height:none; border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 1px 2px rgba(34,40,42,.06); animation:none; }
+  body.modo-listado #cpClose{ display:none; }
+  body.modo-listado .cp-list{ max-height:calc(100vh - 340px); }
+
+  .cp-overlay{ display:none; position:fixed; inset:0; z-index:80; background:rgba(46,52,55,.42);
+    backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:24px; }
+  .cp-overlay.open{ display:flex; animation:cpFade .25s var(--ease-out); }
+  @keyframes cpFade{ from{ opacity:0; } to{ opacity:1; } }
+  .cp-modal{ background:var(--card); border-radius:var(--r-lg); width:min(760px,100%); max-height:min(600px,86vh);
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:0 30px 80px -20px rgba(46,52,55,.5);
+    animation:cpRise .3s var(--ease-out); }
+  @keyframes cpRise{ from{ opacity:0; transform:translateY(12px) scale(.985); } to{ opacity:1; transform:none; } }
+  .cp-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .cp-head b{ font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--dl); }
+  /* El ASPECTO lo pone `.sui-buscar` (suite.css), igual que en las otras siete.
+     Aquí solo queda dónde va: el modal es un bloque, no una fila flexible, así
+     que el `flex:1 1 240px` de la clase no lo estira y hay que darle el ancho.
+     Los 18px de margen son la sangría del panel, la misma que `.cp-filtros`. */
+  /* ⚠️ `flex:none` NO es decorativo: `.cp-modal` es una COLUMNA flexible (para
+     que la lista de abajo sea lo que se desplaza), y el `flex:1 1 240px` de la
+     clase compartida —pensado para una fila, donde 240px es un ancho mínimo— se
+     lee aquí como 240px de ALTO, y ademas crece. El buscador salia convertido en
+     un ovalo de media pantalla. Visto en captura al desplegar. */
+  #cpSearch{ display:block; flex:none; width:calc(100% - 36px); margin:12px 18px 0; }
+  /* filtros del panel: mismos chips que Unidades y Operaciones */
+  .cp-filtros{ display:flex; gap:5px; flex-wrap:wrap; padding:10px 18px 0; align-items:center; }
+  /* El eje de cada fila de filtros es `.sui-eje`, en suite.css: el mismo
+     problema lo tenia Documentacion y la clase es una, no una por herramienta. */
+  .cp-f{ font:inherit; font-size:12px; letter-spacing:.03em; background:#fff; border:1px solid var(--line);
+         border-radius:999px; padding:7px 14px; cursor:pointer; color:var(--texto-2,#4A5052); }
+  .cp-f:hover{ border-color:var(--dl); }
+  .cp-f.on{ background:#21272A; border-color:#21272A; color:#fff; }
+  .cp-f.vacio{ opacity:.45; }
+  /* «Mas/Menos» es un control, no un filtro: sin borde solido y en tinta de
+     marca, para que no se lea como un tipo mas de contrato. */
+  .cp-f.cp-mas{ border-style:dashed; color:var(--dl,#104C4F); }
+  .cp-f.cp-mas:hover{ background:#F7F3E9; }
+  .cp-cols{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr; gap:8px; padding:14px 18px 6px;
+    font-size:9.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--sc); }
+  .cp-list{ overflow-y:auto; padding:0 18px 16px; flex:1; }
+  /* Mismos colores que la lista de Facturas guardadas (petición del owner,
+     4-ago-2026): cada fila es una tarjeta sobre `--card` con su filete
+     `--line`, y al pasar por encima lo que cambia es el BORDE, no el fondo.
+     Antes eran filas pegadas separadas por una raya, y el hover teñía el fondo
+     de verde. Las columnas y los campos NO se tocan: son los de Contratos y
+     estaban bien. Los dos tokens ya existían aquí con el mismo valor que en
+     Facturas, así que esto no añade ningún color nuevo al sistema. */
+  .cp-row{ display:grid; grid-template-columns:.9fr .7fr 1.2fr 1fr .9fr .8fr 1.2fr 34px; gap:8px;
+    padding:11px 12px; margin-bottom:8px; font-size:13px; cursor:pointer;
+    border:1px solid var(--line); border-radius:11px; background:var(--card);
+    transition:border-color .15s var(--ease); }
+  .cp-row:hover{ border-color:var(--dl); }
+  .cp-del{ font:inherit; font-size:13px; line-height:1; color:#a3342b; background:none;
+    border:1px solid #e0c6c2; border-radius:7px; padding:4px 7px; cursor:pointer; }
+  .cp-del:hover{ background:rgba(163,52,43,.09); }
+  /* el nº en Deep Lagoon y con cifras de ancho fijo, como en Facturas: así dos
+     números seguidos casan por columna y se comparan sin leerlos */
+  .cp-row .cp-num{ font-weight:600; color:var(--dl); font-variant-numeric:tabular-nums; }
+  .cp-empty{ padding:24px 0; text-align:center; color:var(--muted); font-size:13px; }
+
+  /* ---------- modal "Enviar por email" ---------- */
+  /* `overflow-y:auto` + `min-height:0`: el .cp-modal es flex en columna con
+     max-height y overflow:hidden, así que un cuerpo que crece se RECORTA sin
+     scroll posible. Pasaba al generar el enlace de firma: aparecen enlace,
+     mensaje y tres botones, y los botones quedaban fuera del modal sin forma de
+     alcanzarlos (30-jul). El panel de contratos guardados no lo sufría porque su
+     lista sí tiene overflow propio. En un flex item, sin `min-height:0` el
+     `auto` no encoge y el overflow no sirve de nada. */
+  .em-body{ padding:16px 18px 18px; display:flex; flex-direction:column; gap:13px;
+    overflow-y:auto; min-height:0; }
+  .em-body label{ display:flex; flex-direction:column; gap:6px; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .em-body input, .em-body textarea{ font:inherit; font-size:14px; font-weight:400; letter-spacing:0; text-transform:none; padding:10px 12px; border:1px solid var(--line);
+    border-radius:var(--r-sm); color:var(--va); background:var(--field-bg); resize:vertical; transition:border-color .18s var(--ease), box-shadow .18s var(--ease); }
+  .em-body input:focus, .em-body textarea:focus{ outline:none; border-color:var(--dl); background:#fff; box-shadow:0 0 0 3px rgba(72,91,55,.12); }
+  .em-note{ font-size:11.5px; color:var(--muted); margin:0; text-transform:none; letter-spacing:0; }
+  /* ── modal Registro (18-ago-2026, tras CR00025): enlaces de firma + correos ──
+     Los colores de los chips son los del set CVD-validado de la suite
+     (vencimientos): teal #0E6B70 = vivo, verde marca = cerrado bien,
+     rojo #9E2F26 = caducado/anulado. */
+  .reg-tit{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:6px 0 0; }
+  .reg-envoltura{ overflow-x:auto; }
+  .reg-tabla{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .reg-tabla th{ text-align:left; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .reg-tabla td{ padding:7px 8px; border-bottom:1px solid var(--line); color:var(--va); vertical-align:top; }
+  .reg-chip{ display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:.04em; padding:1px 8px; border-radius:999px; border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+  .reg-chip.activo{ color:#0E6B70; border-color:#0E6B70; }
+  .reg-chip.firmado{ color:var(--dl); border-color:var(--dl); }
+  .reg-chip.malo{ color:#9E2F26; border-color:#9E2F26; }
+  /* Fila de accion del Registro (24-ago-2026): el boton de repartir las copias
+     del firmado, con su estado al lado. Va pegado a su tabla, no al margen. */
+  .reg-acc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px; }
+  @media (max-width:640px){
+    .cp-cols{ display:none; }
+    .cp-row{ grid-template-columns:1fr; gap:2px; }
+    .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }
+  }
+
+/* ── multi-parcela (18-ago-2026): chips de lo elegido + añadidor ─────────────
+   El dato vive en un input oculto name=parcela_codigo (lista con comas); esto
+   es solo lo visible. La ✕ cumple mínimo táctil y lleva aria-label. */
+.parcelas-multi{ display:flex; flex-direction:column; gap:7px; }
+.parcela-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.parcela-chip{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px;
+  background:var(--rl,#F5F0E6); border:1px solid var(--line,#E4DCCB); border-radius:999px;
+  padding:5px 6px 5px 11px; }
+.parcela-chip i{ font-style:normal; color:var(--muted,#6B7072); font-size:11px; }
+.parcela-chip button{ font:inherit; font-size:12px; line-height:1; border:none; cursor:pointer;
+  background:var(--line,#E4DCCB); color:var(--ink,#2E3437); border-radius:999px;
+  width:20px; height:20px; }
+.parcela-chip button:hover{ background:#C9BCA4; }
+.parcela-chip button:focus-visible{ outline:2px solid var(--dl,#104C4F); outline-offset:1px; }

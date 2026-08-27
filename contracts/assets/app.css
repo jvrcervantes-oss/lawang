@@ -373,19 +373,12 @@
   .dctl input[type=range]{ accent-color:var(--dl); height:4px; margin:3px 0 1px; }
 
   /* ---------- responsive: móvil = una columna + preview a pantalla ---------- */
-  .fab{ display:none; position:fixed; z-index:45; right:16px; bottom:calc(16px + env(safe-area-inset-bottom));
-    background:var(--dl); color:#fff; border:none; border-radius:30px; padding:14px 20px; font:inherit; font-size:15px; font-weight:500;
-    box-shadow:0 8px 24px rgba(16,76,79,.35); cursor:pointer; transition:transform .16s var(--ease), box-shadow .18s var(--ease); }
-  .fab:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(16,76,79,.42); }
-  .fab:active{ transform:translateY(0) scale(.97); }
+  /* `.fab`, `.pv-close` y la previa a pantalla completa viven en suite.css
+     desde el 27-ago-2026: Facturas tiene la misma pantalla y las tenía
+     resueltas de otra forma. Una definición para las dos. */
   @media (max-width:900px){
     .stage{ grid-template-columns:1fr; height:auto; }
     .pane-form{ overflow:visible; height:auto; padding-bottom:96px; }
-    .pane-preview{ position:fixed; inset:0; z-index:60; transform:translateY(100%); transition:transform .3s ease;
-      border-left:none; height:100dvh; }
-    .pane-preview.open{ transform:none; }
-    .pv-close{ display:inline-flex; }
-    .fab{ display:inline-flex; }
     /* topbar: con "Salir" sumado a los 3 botones + selector de idioma ya no
        cabe todo en una fila a partir de aquí — quita lo prescindible
        (el rótulo "BAHASA +" es solo informativo, el toggle ES/EN se entiende

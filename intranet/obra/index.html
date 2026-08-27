@@ -9,14 +9,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026, encargo del owner).
+     `lawang.css` la genera `tools/empaqueta_css.py` uniendo brand + topbar +
+     suite + app EN ESE ORDEN, que es la cascada y no el alfabeto. Se escribe
+     en cuatro ficheros —cada uno con el porqué de sus reglas— y se sirve en
+     uno, para que ninguna herramienta pueda cargar media suite: antes
+     Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
+     salieron los desplegables con cuatro aspectos. -->
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=cda7a0a1">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=0b07a4e1">
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=d3c8f3d4">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

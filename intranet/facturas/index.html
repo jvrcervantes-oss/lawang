@@ -10,20 +10,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- tokens de marca: los mismos que los contratos, fuente única -->
-<link rel="stylesheet" href="/contracts/assets/brand.css?v=d6acafff">
+<!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026, encargo del owner).
+     `lawang.css` la genera `tools/empaqueta_css.py` uniendo brand + topbar +
+     suite + app EN ESE ORDEN, que es la cascada y no el alfabeto. Se escribe
+     en cuatro ficheros —cada uno con el porqué de sus reglas— y se sirve en
+     uno, para que ninguna herramienta pueda cargar media suite: antes
+     Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
+     salieron los desplegables con cuatro aspectos. -->
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=cda7a0a1">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=0b07a4e1">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<link rel="stylesheet" href="/contracts/assets/suite.css?v=d3c8f3d4">
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
@@ -723,16 +728,25 @@
                 <input id="fa-numero_visible" name="numero_visible" readonly tabindex="-1"
                        class="dato-fijo" placeholder="Lo asigna la base al guardar"></div>
             </div>
-            <!-- Al elegir CC00068 arriba, este campo se rellenaba con CC00068:
-                 dos campos de contrato diciendo lo mismo, y el de abajo con
-                 pinta de que hay que hacer algo con él. Se pliega en cuanto
-                 coincide con el elegido —que es siempre, salvo que alguien
-                 quiera apuntar a OTRO contrato— y queda un enlace para abrirlo
-                 en ese caso raro. El input no desaparece del DOM: `collect()` lo
-                 lee por `[name]` y va dentro del documento guardado. -->
-            <div id="refWrap"><label for="fa-contrato_numero">Contrato de referencia</label>
-              <input id="fa-contrato_numero" name="contrato_numero" placeholder="Ej. RP00008 — opcional"></div>
-            <button type="button" class="link-flojo" id="verRef" hidden>Referenciar otro contrato distinto</button>
+            <!-- 🔴 «CONTRATO DE REFERENCIA» ERA UN ESPEJO, NO UN CAMPO
+                 (27-ago-2026, owner: «¿no es redundante?». Lo es, y hay número:
+                 en las 279 facturas emitidas `contrato_numero` NUNCA ha sido
+                 distinto del contrato enlazado —cero casos— y NADIE lo ha
+                 tecleado a mano sin contrato —cero casos—. Tampoco podía: el
+                 guardián de #btnSave exige contrato, así que este campo solo
+                 podía contener o lo mismo o una mentira.
+
+                 Ayer lo plegué cuando coincidía y dejé un enlace para
+                 «referenciar otro contrato distinto». Eso era atender a un caso
+                 que no existe: 279 de 279 dicen que no.
+
+                 El input SE QUEDA, oculto: es el espejo del enlace —el patrón
+                 de siempre, `contrato_id` enlaza y `contrato_numero` es lo que
+                 se imprime y por lo que se busca en el listado—. `collect()` lo
+                 lee por `[name]` y lo rellena `cargarContrato`. Lo que se retira
+                 es la caja de escribir, que era la que prometía una decisión
+                 que no hay que tomar. -->
+            <input type="hidden" id="fa-contrato_numero" name="contrato_numero">
             <div id="delContrato"></div>
             <div id="delVinculado"></div>
           </fieldset>
@@ -835,6 +849,10 @@
     <div class="pane-preview">
       <div class="pv-bar">
         <b>Vista previa</b>
+        <!-- Solo en móvil (`.pv-close` es `display:none` por encima de 900px):
+             la previa es ahí una capa a pantalla completa y hay que poder
+             salir. §7 — entra por abajo y se va por abajo. -->
+        <button type="button" class="btn pv-close" id="btnCerrarPrev">Cerrar</button>
         <div class="spacer"></div>
         <button class="btn primary" id="btnSave">Guardar en base de datos</button>
         <button class="btn" id="btnPrint">Descargar PDF</button>
@@ -843,6 +861,10 @@
       <div class="pv-scroll"><div class="sheet"><div class="doc" id="doc"></div></div></div>
     </div>
   </div>
+  <!-- La misma pieza que en Contratos, y ahora la misma definición (suite.css).
+       Antes, en móvil, Facturas apilaba las dos columnas: la factura salía
+       DEBAJO del formulario, después de bajar por veinte campos. -->
+  <button type="button" class="fab" id="fab">Vista previa ⤢</button>
 
   <!-- Enviar por email: mismo endpoint que los contratos
        (/contracts/api/send_email.php), que renderiza el HTML a PDF con el
@@ -1370,11 +1392,7 @@ function collect(){
   return d;
 }
 $('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
-$('#verRef').addEventListener('click', () => {
-  $('#refWrap').dataset.forzado = '1';
-  render();
-  $('#fa-contrato_numero').focus();
-});
+
 // Cambiar la moneda a mitad de editar un recibí (poco habitual, pero pasa si
 // se elige mal al empezar) tiene que refrescar qué facturas se pueden saldar:
 // la lista ya se filtra por moneda (hallazgo de hoy, ver recibi_no_mezcla_moneda.sql).
@@ -1494,16 +1512,6 @@ function repasaPlegables(){
    cuáles son huecos, y qué acciones pueden funcionar AHORA. Se llama desde
    `render()`, que ya corre en cada cambio — no hace falta acordarse. */
 function estadoDelFormulario(d){
-  /* El campo de referencia duplicado (ver el comentario del marcado). */
-  const ref = $('#fa-contrato_numero'), wrap = $('#refWrap'), ver = $('#verRef');
-  const elegido = (CONTRATO_ID && $('#btnContrato').dataset.numero) || '';
-  const repite = !!elegido && ref.value.trim() === elegido;
-  if(wrap && ver){
-    const plegado = repite && !wrap.dataset.forzado;
-    wrap.hidden = plegado;
-    ver.hidden = !plegado;
-  }
-
   /* 🔴 DOS ACCIONES QUE NO PODÍAN FUNCIONAR ESTABAN ACTIVAS. «Descargar PDF» y
      «Enviar por email» se ofrecían sobre un documento vacío de 0,00 € y sin
      guardar — y la segunda manda un correo a un comprador REAL. Un botón que no
@@ -2674,6 +2682,16 @@ function pintarListado(){
     abrir(f);
   };
 }
+
+/* La previa a pantalla completa en móvil. `render()` antes de abrir porque el
+   documento pudo quedarse viejo mientras se rellenaba el formulario con la capa
+   cerrada — abrir una previa desactualizada es peor que no tenerla. */
+$('#fab').addEventListener('click', () => { render(); $('.pane-preview').classList.add('open'); });
+$('#btnCerrarPrev').addEventListener('click', () => $('.pane-preview').classList.remove('open'));
+/* Y con Escape, que es lo primero que se intenta en una capa a pantalla completa. */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') $('.pane-preview').classList.remove('open');
+});
 
 /* ---------- eventos del listado ---------- */
 $('#lq').addEventListener('input', pintarListado);
