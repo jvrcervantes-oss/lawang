@@ -839,8 +839,32 @@ select.lw-select-nativo{
    El porqué de todo esto está en dialogo.js, junto al código. */
 .lw-elegir{ display:flex; flex-direction:column; max-height:min(560px, 82vh); }
 .lw-elegir .lw-dlg-cab{ padding-bottom:14px; }
+/* 🔴 EL BUSCADOR DESBORDABA EL DIÁLOGO 48px — 27-ago-2026
+   Owner: «"Contrato que se factura" no tiene márgenes». Y no los tenía, pero la
+   causa no estaba en ningún margen: estaba aquí.
+
+   `<input>` es un elemento REEMPLAZADO, así que en una columna flex el
+   `align-items:normal` del contenedor NO lo estira —se comporta como `start` y
+   el elemento se queda con su ancho intrínseco—. Aquí acababa midiendo los 458
+   del contenedor y, ENCIMA, sumando sus `margin:0 24px`: caja de 506 dentro de
+   un hueco de 458. Medido: `scrollWidth 506` contra `clientWidth 458`.
+
+   Lo que se veía no era un input ancho, era el diálogo ENTERO desplazado 24px:
+   con 48 de desborde, cualquier `scrollIntoView` de la opción marcada mueve el
+   contenedor, y entonces el título y la lista se van contra el borde izquierdo
+   y dejan un hueco a la derecha. O sea: el síntoma aparecía en los hermanos,
+   no en el culpable, que es justo por lo que no se encuentra mirando márgenes.
+
+   `align-self:stretch` + `width:auto` lo estira DESCONTANDO sus márgenes, que
+   es lo que hacen ya sus dos hermanos. Y no se pone `calc(100% - 48px)`, que
+   también funciona, porque ata el ancho al valor del margen: cambiar uno sin el
+   otro devuelve el mismo fallo sin decirlo.
+
+   Afecta a TODOS los electores de la suite —contrato, factura, país…—: la
+   pieza es compartida. */
 .lw-elegir-q{
-  flex:none; margin:0 24px 12px; font:inherit; font-size:14.5px;
+  flex:none; align-self:stretch; width:auto;
+  margin:0 24px 12px; font:inherit; font-size:14.5px;
   padding:10px 14px; border:1px solid var(--linea); border-radius:var(--r-p);
   background:var(--sup-2); color:var(--texto);
 }
