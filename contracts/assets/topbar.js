@@ -580,6 +580,26 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     document.body.classList.add('con-rail');
     if (abierto) document.body.classList.add('rail-abierto');
 
+    /* 🔴 LA ANIMACIÓN SE ENCIENDE DESPUÉS DEL PRIMER PINTADO (27-ago-2026).
+       El `padding-left` del body es LO ÚNICO que aparta el contenido de debajo
+       del riel, y llevaba una transición de 180 ms. El 26-ago se descubrió que
+       en algunas pantallas esa transición se quedaba `running` con
+       `currentTime:0` PARA SIEMPRE —una transición atascada es dueña del valor
+       calculado, así que el padding se quedaba en 0 y ni `!important` lo movía—
+       y el contenido pasaba por debajo del menú. Se quitó la transición, y con
+       ella el deslizamiento al abrir el riel: el menú se desplegaba animado y
+       el contenido saltaba de golpe. Owner: «parece que se queda pillado».
+
+       La causa de la atascada era arrancar la transición en el MISMO cuadro en
+       que se monta el riel: ese primer 0 → 56 px no es una animación, es la
+       maquetación inicial, y es justo el que se quedaba a medias. Así que la
+       transición se habilita con una clase aparte, dos cuadros después: el
+       salto inicial ocurre sin animar (que es lo correcto) y solo se anima lo
+       que el operador abre y cierra. */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { document.body.classList.add('rail-anima'); });
+    });
+
     /* EN MÓVIL el riel es una hoja que sube desde abajo (ver topbar.css), no una
        columna: 56px de columna sobre una tabla estrecha es quitarle una sexta
        parte del ancho a quien menos le sobra. Pero entonces el botón de dentro

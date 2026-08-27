@@ -18,9 +18,9 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c8050b07">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=0acc2754">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
+<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <!-- Mismo guardia y mismo permiso que la herramienta viva: quien no tenga
@@ -34,7 +34,7 @@
      ni la aritmética del dinero se reescriben aquí: eso es lo que hace que esta
      v3 sea un rediseño y no una segunda verdad sobre lo que se debe. -->
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -166,7 +166,7 @@ main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
    lo que se recorta es el relleno DENTRO de las tarjetas, no la calle de
    fuera. Y `env(safe-area-inset)` para el iPhone en horizontal, donde la muesca
    se come el lateral. */
-@media (max-width:820px){
+@media screen and (max-width:820px){
   main{
     padding-left:max(16px, env(safe-area-inset-left));
     padding-right:max(16px, env(safe-area-inset-right));
@@ -185,7 +185,7 @@ main{ max-width:1180px; margin:0 auto; padding:24px 24px 80px; }
   .op .ir{ display:none; }
   .controles{ gap:8px; }
 }
-@media (max-width:520px){
+@media screen and (max-width:520px){
   main{ padding-bottom:64px; }
   /* UNA columna, no dos. A 390 px la mitad son 171 px y «395.275,00 EUR» a
      1,42rem mide más que eso: las dos columnas empujaban la página a lo ancho y

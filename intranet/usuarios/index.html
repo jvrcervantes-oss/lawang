@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c8050b07">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=0acc2754">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -29,7 +29,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
+<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="usuarios"></script>
 <style>
@@ -46,7 +46,7 @@
      Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
   /* 340px fijos, el valor del mockup 4d — no un rango. */
   .stage{ display:grid; grid-template-columns:340px 1fr; height:calc(100% - var(--tbh)); }
-  @media (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
+  @media screen and (max-width:900px){ .stage{ grid-template-columns:1fr; } .ficha{ display:none; } .stage.abierta .lista{ display:none; } .stage.abierta .ficha{ display:block; } }
 
   /* El buscador es `.sui-buscar` (suite.css). Aquí iba a 13,5px y con radio 9
      mientras el resto de la suite lo tenía a 12,5 y en pastilla. */
@@ -111,7 +111,7 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el

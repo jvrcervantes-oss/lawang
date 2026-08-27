@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:390d713e6400
+   topbar.css   sha256:97531fdab9f9
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -436,7 +436,7 @@
 .lw-usuario-ini.grande{ width:38px; height:38px; font-size:16px; }
 .lw-usuario-nom{ font-size:12.5px; max-width:130px; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
-@media (max-width:760px){ .lw-usuario-nom{ display:none; } }
+@media screen and (max-width:760px){ .lw-usuario-nom{ display:none; } }
 
 /* ── CAJÓN IZQUIERDO ────────────────────────────────────────────────────────
    Mismos valores que `.sui-cajon` de suite.css, copiados y no heredados porque
@@ -478,7 +478,7 @@
 
 /* En un teléfono, medio ancho no es leer: sube desde abajo y ocupa casi todo,
    igual que hace el cajón de la derecha. */
-@media (max-width:760px){
+@media screen and (max-width:760px){
   /* `height:auto` con tope, no `height:86vh` fijo (15-ago-2026, owner: acortarlo).
      Con altura fija la hoja ocupaba casi toda la pantalla aunque hubiera tres
      avisos: se comia el contexto de detras para enseñar hueco. Ahora crece con lo
@@ -503,7 +503,7 @@
 .lw-campana-lista{ max-height:min(58vh, 380px); overflow-y:auto; padding:2px 4px 6px; }
 /* En movil el tope baja: la hoja ya no tiene altura fija y si la lista se estira
    vuelve a comerse la pantalla, que es lo que se venia a arreglar. */
-@media (max-width:760px){ .lw-campana-lista{ max-height:44vh; } }
+@media screen and (max-width:760px){ .lw-campana-lista{ max-height:44vh; } }
 .lw-aviso{ display:grid; grid-template-columns:1fr auto; gap:2px 10px;
   padding:9px 11px; border-radius:7px; text-decoration:none; color:inherit; }
 .lw-aviso:hover{ background:rgba(72,91,55,.09); }
@@ -542,7 +542,7 @@
    No se usa `flex-wrap`: cada app compensa el alto de la barra con su propia
    `--tbh` y una barra de dos filas se comería el principio del contenido.
    --------------------------------------------------------------------------- */
-@media (max-width:860px){
+@media screen and (max-width:860px){
   .lw-topbar{
     /* El atajo `padding` resetea el cálculo de escritorio de más arriba, que es
        lo que se quiere: aquí la barra no tiene columna que respetar. Pero sí
@@ -592,6 +592,15 @@
    animando SU propio ancho, que no descoloca nada si se atasca. */
 body.con-rail{ padding-left:56px; }
 body.rail-abierto{ padding-left:208px; }
+/* El deslizamiento SOLO cuando `topbar.js` lo habilita, dos cuadros después de
+   montar el riel (ver la nota larga allí). Sin esta condición, la transición
+   arrancaba en el mismo cuadro que la maquetación inicial y se quedaba clavada
+   con el contenido debajo del menú. */
+body.rail-anima{ transition:padding-left 180ms cubic-bezier(.22,.61,.36,1); }
+body.rail-anima > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
+@media (prefers-reduced-motion: reduce){
+  body.rail-anima, body.rail-anima > header{ transition:none; }
+}
 
 /* LA ESQUINA DE ARRIBA A LA IZQUIERDA — 16-ago-2026
    El riel arranca a 64px del techo (debajo de la barra) y desplaza el contenido
@@ -661,7 +670,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    Acotado a ratón de verdad (`hover:hover` + `pointer:fine`) y a escritorio: en
    móvil el riel es una hoja que sube desde abajo, y el hover táctil lo dejaría
    "abierto" después del primer toque, que es peor que no tenerlo. */
-@media (hover:hover) and (pointer:fine) and (min-width:861px){
+@media screen and (hover:hover) and (pointer:fine) and (min-width:861px){
   .lw-rail:not(.abierto):hover,
   .lw-rail:not(.abierto):focus-within{
     width:208px; transition-delay:140ms;
@@ -681,7 +690,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    también el retardo, y el menú se abriría de golpe cada vez que el ratón cruza
    el riel. El retardo NO es movimiento: se conserva con una transición de 1ms,
    que no se ve pero sí espera. */
-@media (prefers-reduced-motion: reduce) and (hover:hover) and (min-width:861px){
+@media screen and (prefers-reduced-motion: reduce) and (hover:hover) and (min-width:861px){
   .lw-rail:not(.abierto):hover, .lw-rail:not(.abierto):focus-within{ transition:width 1ms 140ms; }
 }
 /* El conmutador de idioma vive en el pie del riel y se pinta como una fila más:
@@ -702,7 +711,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    igual que el cajón de usuario (.lw-panel a 86vh). 56px de columna sobre una
    tabla estrecha es quitarle una sexta parte del ancho a quien menos le sobra;
    y una hoja a pantalla casi completa se lee y se toca de verdad. */
-@media (max-width:860px){
+@media screen and (max-width:860px){
   body.con-rail, body.rail-abierto{ padding-left:0; }
   /* 🔴 Y EL MARGEN NEGATIVO DE LA BARRA TAMBIÉN SE VA (26-ago-2026).
      Ese `margin-left:-56px` de arriba existe para CANCELAR el `padding-left`
@@ -768,7 +777,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    El razonamiento completo está junto al código, en topbar.js. */
 
 /* ─────────────────────────────────────────────────────────────────────
-   suite.css   sha256:57f0c545bf41
+   suite.css   sha256:97a18ec77625
    ───────────────────────────────────────────────────────────────────── */
 
 /* ── TEXTO IGUAL EN MOVIL QUE EN ESCRITORIO — 15-ago-2026 ──────────────────
@@ -1186,12 +1195,12 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    quedarse con un nombre tan corriente es reservar una palabra que cualquier
    herramienta futura va a querer usar para otra cosa. */
 .sui-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media (max-width:760px){ .sui-row{ grid-template-columns:1fr; } }
+@media screen and (max-width:760px){ .sui-row{ grid-template-columns:1fr; } }
 
 /* ── móvil ──────────────────────────────────────────────────────────────
    El cajón pasa a ocupar casi todo el ancho: media pantalla en un teléfono no
    es leer, es adivinar. Va DESPUÉS de la regla base a propósito. */
-@media (max-width:760px){
+@media screen and (max-width:760px){
   /* 🔴 MARGEN DE VERDAD EN ESTRECHO (27-ago-2026, owner: «los márgenes de todas
      las webs o popup no están funcionando bien». Es la SEGUNDA vez que lo pide,
      y eso ya no es una petición: es un defecto mío).
@@ -1684,7 +1693,7 @@ input.lw-elegible:disabled{ cursor:default; }
   opacity:1; cursor:default;
 }
 
-@media (max-width:860px){
+@media screen and (max-width:860px){
   /* En móvil ocupa lo que necesita y se pega abajo: el pulgar llega al buscador
      y a las primeras opciones sin estirar la mano hasta el centro. */
   .lw-elegir-fondo{ align-items:flex-end; padding:0; }
@@ -1740,19 +1749,37 @@ input.lw-elegible:disabled{ cursor:default; }
 .fab:active{ transform:translateY(0) scale(.97); }
 .pv-close{ display:none; }
 
-@media (max-width:900px){
+/* 🔴 `screen and`, Y NO ES DECORACIÓN (27-ago-2026). Sin eso esta media query
+   TAMBIÉN SE APLICA AL IMPRIMIR: un A4 mide unos 794 px CSS, o sea menos de
+   900. Resultado: al mandar un recibí a la impresora, la hoja se volvía
+   `position:fixed` con `translateY(100%)` —empujada un alto de página fuera del
+   papel— y salía en blanco. Y el botón flotante se imprimía encima.
+   El `@media print` de la herramienta no lo tapaba porque solo tocaba `overflow`
+   y `background`: no tenía por qué deshacer una regla que nadie esperaba que le
+   llegara.
+   La regla general, que es la que hay que recordar: una media query de ANCHO sin
+   `screen` habla también de papel, y el papel siempre es estrecho. */
+@media screen and (max-width:900px){
   .fab{ display:inline-flex; }
   .pv-close{ display:inline-flex; }
   .pane-preview{ position:fixed; inset:0; z-index:60; height:100dvh;
     border-left:none; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1); }
   .pane-preview.open{ transform:none; }
 }
-@media (max-width:900px) and (prefers-reduced-motion: reduce){
+@media screen and (max-width:900px) and (prefers-reduced-motion: reduce){
   .pane-preview{ transition:none; }
+}
+/* Cinturón: aunque alguien vuelva a colar una regla de ancho sin `screen`, al
+   imprimir la hoja vuelve a su sitio. Un documento que sale en blanco no avisa
+   —sale papel— así que esto se protege dos veces. */
+@media print{
+  .fab, .pv-close{ display:none !important; }
+  .pane-preview{ position:static !important; transform:none !important;
+                 height:auto !important; z-index:auto !important; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:f738417d5ed6
+   app.css   sha256:4af6ebdb1fb0
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -1956,7 +1983,7 @@ input.lw-elegible:disabled{ cursor:default; }
                           cursor:default; }
   .field input.dato-fijo:not([value=""]){ color:var(--ink,#22282A); font-weight:600; }
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  @media (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
+  @media screen and (max-width:520px){ .grid2{ grid-template-columns:1fr; } }
 
   .note-blocked{ font-size:11.5px; color:var(--muted); background:#fbf9f3; border:1px dashed var(--ss); border-radius:10px; padding:11px 13px; margin:8px 0 0; }
   .note-blocked b{ color:var(--be); }
@@ -2136,7 +2163,7 @@ input.lw-elegible:disabled{ cursor:default; }
   /* `.fab`, `.pv-close` y la previa a pantalla completa viven en suite.css
      desde el 27-ago-2026: Facturas tiene la misma pantalla y las tenía
      resueltas de otra forma. Una definición para las dos. */
-  @media (max-width:900px){
+  @media screen and (max-width:900px){
     .stage{ grid-template-columns:1fr; height:auto;
       padding-left:max(16px, env(safe-area-inset-left));
       padding-right:max(16px, env(safe-area-inset-right)); }
@@ -2260,7 +2287,7 @@ input.lw-elegible:disabled{ cursor:default; }
   /* Fila de accion del Registro (24-ago-2026): el boton de repartir las copias
      del firmado, con su estado al lado. Va pegado a su tabla, no al margen. */
   .reg-acc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px; }
-  @media (max-width:640px){
+  @media screen and (max-width:640px){
     .cp-cols{ display:none; }
     .cp-row{ grid-template-columns:1fr; gap:2px; }
     .cp-row span::before{ content:attr(data-l) ": "; color:var(--muted); }

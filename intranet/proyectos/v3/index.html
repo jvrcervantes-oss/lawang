@@ -16,9 +16,9 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c8050b07">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=0acc2754">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
+<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="unidades"></script>
@@ -28,7 +28,7 @@
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 <style>
@@ -110,7 +110,7 @@ main{ max-width:1160px; margin:0 auto; padding:24px 24px 80px; }
 .dato:first-of-type{ border-top:0; }
 .dato .v{ font-weight:600; font-variant-numeric:tabular-nums; }
 
-@media (max-width:820px){
+@media screen and (max-width:820px){
   main{ padding-left:max(16px, env(safe-area-inset-left));
         padding-right:max(16px, env(safe-area-inset-right)); padding-top:18px; padding-bottom:56px; }
   .uni{ grid-template-columns:66px minmax(0,1fr) 104px; gap:10px 12px; padding:11px 14px; }
@@ -120,7 +120,7 @@ main{ max-width:1160px; margin:0 auto; padding:24px 24px 80px; }
   .proy > summary{ grid-template-columns:1fr; }
   .proy .plata{ text-align:left; }
 }
-@media (max-width:440px){ .uni{ grid-template-columns:60px minmax(0,1fr); } .uni .precio{ grid-column:2; grid-row:auto; } }
+@media screen and (max-width:440px){ .uni{ grid-template-columns:60px minmax(0,1fr); } .uni .precio{ grid-column:2; grid-row:auto; } }
 main, .proy, .uni, .uni .quien{ min-width:0; }
 </style>
 </head>

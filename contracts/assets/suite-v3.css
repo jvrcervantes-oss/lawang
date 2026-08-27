@@ -319,7 +319,7 @@ html.v3 .v3-pager .hueco{ color:var(--texto-3,#676B63); padding:0 2px; }
 html.v3 .v3-pager .cuenta{
   margin-left:auto; font-size:.76rem; color:var(--texto-2,#4A5052); font-variant-numeric:tabular-nums;
 }
-@media (max-width:560px){
+@media screen and (max-width:560px){
   html.v3 .v3-pager .cuenta{ margin-left:0; width:100%; order:-1; padding-bottom:6px; }
 }
 
@@ -380,7 +380,7 @@ html.v3 input[type="search"]:focus{
 
    Se conserva TODO: los clics de fila siguen donde estaban —cambia el `display`,
    no el DOM— y las celdas sin etiqueta salen sin dos puntos huérfanos. */
-@media (max-width:640px){
+@media screen and (max-width:640px){
   html.v3 .sui-tabla,
   html.v3 .sui-tabla thead,
   html.v3 .sui-tabla tbody,
@@ -437,7 +437,7 @@ html.v3 .lw-rail-movil{
   width:auto; min-width:38px; padding:0 11px; gap:6px; white-space:nowrap;
 }
 html.v3 .lw-rail-movil .v3-rot{ font-size:.76rem; font-weight:600; }
-@media (max-width:380px){
+@media screen and (max-width:380px){
   /* A 344 px cada píxel cuenta: se queda el icono, pero con `aria-label`. */
   /* RETIRADO el 26-ago-2026. Aquí se escondía la palabra «Menú» por debajo de
      380px para ahorrar sitio, y 344px es exactamente el ancho de un Galaxy Fold
@@ -482,7 +482,7 @@ html.v3 .lw-rail-movil .v3-rot{ font-size:.76rem; font-weight:600; }
    —el contenido cabe de sobra— pero es la red por si algún día se añaden
    herramientas.
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (max-width:860px){
+@media screen and (max-width:860px){
   html.v3 .lw-rail{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -524,7 +524,7 @@ html.v3 .lw-rail-movil .v3-rot{ font-size:.76rem; font-weight:600; }
 }
 /* Muy estrecho de verdad (plegado, 280 px): dos columnas dejarían los nombres
    en un muñón. Vuelve a una, que ahí sí cabe con scroll corto. */
-@media (max-width:330px){
+@media screen and (max-width:330px){
   html.v3 .lw-rail{ grid-template-columns:1fr; }
 }
 /* `prefers-reduced-transparency` ya no necesita excepción para la hoja: desde el

@@ -353,7 +353,7 @@
 .lw-usuario-ini.grande{ width:38px; height:38px; font-size:16px; }
 .lw-usuario-nom{ font-size:12.5px; max-width:130px; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
-@media (max-width:760px){ .lw-usuario-nom{ display:none; } }
+@media screen and (max-width:760px){ .lw-usuario-nom{ display:none; } }
 
 /* ── CAJÓN IZQUIERDO ────────────────────────────────────────────────────────
    Mismos valores que `.sui-cajon` de suite.css, copiados y no heredados porque
@@ -395,7 +395,7 @@
 
 /* En un teléfono, medio ancho no es leer: sube desde abajo y ocupa casi todo,
    igual que hace el cajón de la derecha. */
-@media (max-width:760px){
+@media screen and (max-width:760px){
   /* `height:auto` con tope, no `height:86vh` fijo (15-ago-2026, owner: acortarlo).
      Con altura fija la hoja ocupaba casi toda la pantalla aunque hubiera tres
      avisos: se comia el contexto de detras para enseñar hueco. Ahora crece con lo
@@ -420,7 +420,7 @@
 .lw-campana-lista{ max-height:min(58vh, 380px); overflow-y:auto; padding:2px 4px 6px; }
 /* En movil el tope baja: la hoja ya no tiene altura fija y si la lista se estira
    vuelve a comerse la pantalla, que es lo que se venia a arreglar. */
-@media (max-width:760px){ .lw-campana-lista{ max-height:44vh; } }
+@media screen and (max-width:760px){ .lw-campana-lista{ max-height:44vh; } }
 .lw-aviso{ display:grid; grid-template-columns:1fr auto; gap:2px 10px;
   padding:9px 11px; border-radius:7px; text-decoration:none; color:inherit; }
 .lw-aviso:hover{ background:rgba(72,91,55,.09); }
@@ -459,7 +459,7 @@
    No se usa `flex-wrap`: cada app compensa el alto de la barra con su propia
    `--tbh` y una barra de dos filas se comería el principio del contenido.
    --------------------------------------------------------------------------- */
-@media (max-width:860px){
+@media screen and (max-width:860px){
   .lw-topbar{
     /* El atajo `padding` resetea el cálculo de escritorio de más arriba, que es
        lo que se quiere: aquí la barra no tiene columna que respetar. Pero sí
@@ -509,6 +509,15 @@
    animando SU propio ancho, que no descoloca nada si se atasca. */
 body.con-rail{ padding-left:56px; }
 body.rail-abierto{ padding-left:208px; }
+/* El deslizamiento SOLO cuando `topbar.js` lo habilita, dos cuadros después de
+   montar el riel (ver la nota larga allí). Sin esta condición, la transición
+   arrancaba en el mismo cuadro que la maquetación inicial y se quedaba clavada
+   con el contenido debajo del menú. */
+body.rail-anima{ transition:padding-left 180ms cubic-bezier(.22,.61,.36,1); }
+body.rail-anima > header{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
+@media (prefers-reduced-motion: reduce){
+  body.rail-anima, body.rail-anima > header{ transition:none; }
+}
 
 /* LA ESQUINA DE ARRIBA A LA IZQUIERDA — 16-ago-2026
    El riel arranca a 64px del techo (debajo de la barra) y desplaza el contenido
@@ -578,7 +587,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    Acotado a ratón de verdad (`hover:hover` + `pointer:fine`) y a escritorio: en
    móvil el riel es una hoja que sube desde abajo, y el hover táctil lo dejaría
    "abierto" después del primer toque, que es peor que no tenerlo. */
-@media (hover:hover) and (pointer:fine) and (min-width:861px){
+@media screen and (hover:hover) and (pointer:fine) and (min-width:861px){
   .lw-rail:not(.abierto):hover,
   .lw-rail:not(.abierto):focus-within{
     width:208px; transition-delay:140ms;
@@ -598,7 +607,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    también el retardo, y el menú se abriría de golpe cada vez que el ratón cruza
    el riel. El retardo NO es movimiento: se conserva con una transición de 1ms,
    que no se ve pero sí espera. */
-@media (prefers-reduced-motion: reduce) and (hover:hover) and (min-width:861px){
+@media screen and (prefers-reduced-motion: reduce) and (hover:hover) and (min-width:861px){
   .lw-rail:not(.abierto):hover, .lw-rail:not(.abierto):focus-within{ transition:width 1ms 140ms; }
 }
 /* El conmutador de idioma vive en el pie del riel y se pinta como una fila más:
@@ -619,7 +628,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    igual que el cajón de usuario (.lw-panel a 86vh). 56px de columna sobre una
    tabla estrecha es quitarle una sexta parte del ancho a quien menos le sobra;
    y una hoja a pantalla casi completa se lee y se toca de verdad. */
-@media (max-width:860px){
+@media screen and (max-width:860px){
   body.con-rail, body.rail-abierto{ padding-left:0; }
   /* 🔴 Y EL MARGEN NEGATIVO DE LA BARRA TAMBIÉN SE VA (26-ago-2026).
      Ese `margin-left:-56px` de arriba existe para CANCELAR el `padding-left`

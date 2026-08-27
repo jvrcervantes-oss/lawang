@@ -21,7 +21,7 @@
      `data-lw-usuario` de la cabecera. -->
 <!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026). La genera
      `tools/empaqueta_css.py`; ver la nota larga en cualquier herramienta. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c8050b07">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=0acc2754">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -29,7 +29,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
+<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -131,7 +131,7 @@ main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 34p
 /* rejilla del mockup: lo reciente a la izquierda, el carril de 300px a la
    derecha. En pantalla estrecha el carril baja, no desaparece. */
 .dosCol{ display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; margin:0 0 24px; }
-@media (max-width:900px){ .dosCol{ grid-template-columns:1fr; } }
+@media screen and (max-width:900px){ .dosCol{ grid-template-columns:1fr; } }
 /* `min-width:0` NO es cosmetico: un hijo de grid vale por defecto `min-width:auto`,
    asi que la tabla de «Operaciones recientes» empujaba su columna y con ella toda
    la pagina — en un movil de 614px el body medía 738 y se desplazaba de lado.
@@ -239,7 +239,7 @@ main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 34p
 footer{ width:100%; max-width:1060px; margin:0 auto; padding:0 26px 34px; font-size:12.5px; color:var(--ink-3); }
 footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
 
-@media (max-width:640px){
+@media screen and (max-width:640px){
   /* en el móvil queda la marca y el botón: quién soy y con qué rol es dato de
      escritorio, y aquí sólo servía para empujar la página fuera de la pantalla */
   .yo{ display:none; }
@@ -267,7 +267,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el

@@ -414,12 +414,12 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    quedarse con un nombre tan corriente es reservar una palabra que cualquier
    herramienta futura va a querer usar para otra cosa. */
 .sui-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media (max-width:760px){ .sui-row{ grid-template-columns:1fr; } }
+@media screen and (max-width:760px){ .sui-row{ grid-template-columns:1fr; } }
 
 /* ── móvil ──────────────────────────────────────────────────────────────
    El cajón pasa a ocupar casi todo el ancho: media pantalla en un teléfono no
    es leer, es adivinar. Va DESPUÉS de la regla base a propósito. */
-@media (max-width:760px){
+@media screen and (max-width:760px){
   /* 🔴 MARGEN DE VERDAD EN ESTRECHO (27-ago-2026, owner: «los márgenes de todas
      las webs o popup no están funcionando bien». Es la SEGUNDA vez que lo pide,
      y eso ya no es una petición: es un defecto mío).
@@ -912,7 +912,7 @@ input.lw-elegible:disabled{ cursor:default; }
   opacity:1; cursor:default;
 }
 
-@media (max-width:860px){
+@media screen and (max-width:860px){
   /* En móvil ocupa lo que necesita y se pega abajo: el pulgar llega al buscador
      y a las primeras opciones sin estirar la mano hasta el centro. */
   .lw-elegir-fondo{ align-items:flex-end; padding:0; }
@@ -968,13 +968,31 @@ input.lw-elegible:disabled{ cursor:default; }
 .fab:active{ transform:translateY(0) scale(.97); }
 .pv-close{ display:none; }
 
-@media (max-width:900px){
+/* 🔴 `screen and`, Y NO ES DECORACIÓN (27-ago-2026). Sin eso esta media query
+   TAMBIÉN SE APLICA AL IMPRIMIR: un A4 mide unos 794 px CSS, o sea menos de
+   900. Resultado: al mandar un recibí a la impresora, la hoja se volvía
+   `position:fixed` con `translateY(100%)` —empujada un alto de página fuera del
+   papel— y salía en blanco. Y el botón flotante se imprimía encima.
+   El `@media print` de la herramienta no lo tapaba porque solo tocaba `overflow`
+   y `background`: no tenía por qué deshacer una regla que nadie esperaba que le
+   llegara.
+   La regla general, que es la que hay que recordar: una media query de ANCHO sin
+   `screen` habla también de papel, y el papel siempre es estrecho. */
+@media screen and (max-width:900px){
   .fab{ display:inline-flex; }
   .pv-close{ display:inline-flex; }
   .pane-preview{ position:fixed; inset:0; z-index:60; height:100dvh;
     border-left:none; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1); }
   .pane-preview.open{ transform:none; }
 }
-@media (max-width:900px) and (prefers-reduced-motion: reduce){
+@media screen and (max-width:900px) and (prefers-reduced-motion: reduce){
   .pane-preview{ transition:none; }
+}
+/* Cinturón: aunque alguien vuelva a colar una regla de ancho sin `screen`, al
+   imprimir la hoja vuelve a su sitio. Un documento que sale en blanco no avisa
+   —sale papel— así que esto se protege dos veces. */
+@media print{
+  .fab, .pv-close{ display:none !important; }
+  .pane-preview{ position:static !important; transform:none !important;
+                 height:auto !important; z-index:auto !important; }
 }

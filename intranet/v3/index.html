@@ -29,14 +29,14 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c8050b07">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=0acc2754">
 <!-- topbar.js MONTA EL MENÚ LATERAL Y EL PANEL DE CUENTA. Al rehacer la
      cabecera de esta pantalla se puso `topbar.css` y se olvidó el script, así
      que el panel v3 salió sin menú lateral: la única pantalla de la suite sin
      él, y justo la que se abre primero. Se cuelga del evento `lw-ficha` que
      dispara el arranque de abajo. -->
-<script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
+<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
@@ -220,7 +220,7 @@ main{ flex:1; width:100%; max-width:1520px; margin:0 auto; padding:26px 26px 44p
 /* ── dos columnas ───────────────────────────────────────────────────────── */
 .dos{ display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; margin:0 0 30px; }
 .dos > *{ min-width:0; }   /* un hijo de grid mide `auto`: sin esto la tabla empuja la página */
-@media (max-width:960px){ .dos{ grid-template-columns:1fr; } }
+@media screen and (max-width:960px){ .dos{ grid-template-columns:1fr; } }
 
 .panel{ background:var(--sup); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--sombra-1); overflow:hidden; }
 .panel > .cab{ padding:15px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -392,7 +392,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
    Probado con los anchos REALES de un Galaxy Z Fold: 344 px plegado —más
    estrecho que cualquier móvil normal— y 674 px abierto, que cae justo entre
    «móvil» y «tableta» y por eso se escapaba de los cortes de siempre. */
-@media (max-width:820px){
+@media screen and (max-width:820px){
   main{
     padding-left:max(16px, env(safe-area-inset-left));
     padding-right:max(16px, env(safe-area-inset-right));
@@ -401,7 +401,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   footer{ padding-left:max(16px, env(safe-area-inset-left));
           padding-right:max(16px, env(safe-area-inset-right)); }
 }
-@media (max-width:640px){
+@media screen and (max-width:640px){
   .yo .quien, .yo .rol{ display:none; }
   /* La banda de cifras es un carril con puntos de anclaje: se desliza. El
      asomo de la siguiente tarjeta es lo que DICE que se desliza (§8, insinuar
@@ -416,7 +416,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   .fila .estado{ grid-column:2; justify-self:start; margin-top:6px; }
   .fila .flecha{ display:none; }
 }
-@media (max-width:420px){
+@media screen and (max-width:420px){
   /* A 344 px la barra no cabe con todo escrito. El buscador se queda en su
      icono: el atajo ⌘K no existe en un móvil, así que la palabra y la tecla
      solo ocupaban sitio. La marca y el título siguen, que son el «dónde estoy». */
