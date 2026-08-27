@@ -38,52 +38,31 @@
   height:var(--tbh,64px); display:flex; align-items:center; gap:18px;
   padding:0 26px; padding-top:env(safe-area-inset-top);
 
-  /* 🔴 LA BARRA VA DE CANTO A CANTO Y EL CONTENIDO NO (27-ago-2026, owner:
-     «los márgenes… el problema lo estamos teniendo en pc»).
-     `.sui-centro` está capado a 1520 px y centrado; la barra ocupa el ancho
-     entero. En un portátil de 1440 no se nota —el contenido llena y no sobra
-     nada— pero en un monitor de 1920 el desfase es de **254 px a la izquierda
-     y 172 a la derecha**: el logotipo y «Nueva factura» flotando lejos de la
-     columna que tienen debajo. Medido, no estimado.
+  /* ⚠️ AQUÍ HUBO UN INTENTO DE ALINEAR LA BARRA CON EL CONTENIDO, Y SE
+     RETIRÓ (27-ago-2026). Lo dejo escrito porque el problema SIGUE ahí y quien
+     lo vuelva a intentar merece saber dónde está la mina.
 
-     El fondo de la barra SIGUE siendo de canto a canto —es cromo, y cortarlo
-     dejaría una banda de otro color— pero su CONTENIDO se mete en la misma
-     columna que la página. Es lo que hace que cabecera y cuerpo se lean como
-     una sola página y no como dos cosas pegadas.
+     El síntoma es real: `.sui-centro` está capado a 1520 px y centrado, y la
+     barra ocupa el ancho entero. En un monitor de 1920 el logotipo queda 254 px
+     a la izquierda de la columna que tiene debajo y el botón 172 a la derecha.
+     En un portátil de 1440 no se ve, porque el contenido llena y no sobra nada.
 
-     La cuenta: `.sui-centro` vive dentro del relleno del `body` (56 px del
-     riel), se capa a 1520 y se centra en lo que queda; su contenido empieza 26
-     más adentro. Aquí `100%` es el ancho de la ventana, porque la barra lleva
-     `margin-left:-56px` para tapar también la franja del riel.
-     `max(0px, …)` para que por debajo de 1576 px no sobre nada y esto valga
-     exactamente lo de siempre: 82 a la izquierda, 26 a la derecha. */
-  --lw-medida:1520px;
-  /* 🔴 `100%` NO ES LA VENTANA. Se mide contra la caja de contenido del `body`,
-     que YA lleva descontados los 56 px del riel — y mi primera versión los
-     restaba otra vez aquí, con lo que la barra quedaba 28 px fuera del
-     contenido por los dos lados y «Nueva unidad» sobresalía de las tarjetas.
-     Owner: «creo que lo has roto más». Lo había roto: el desfase de 254 pasó a
-     28, pero hacia AFUERA, que se nota más que hacia adentro porque el botón se
-     sale de la columna en vez de meterse.
-     La cuenta buena: `(100% - medida)/2` es lo que sobra a cada lado del
-     contenido dentro del body; el `56px` de la izquierda es el riel, que esta
-     barra sí cruza porque lleva `margin-left:-56px`. */
-  --lw-sobra:max(0px, calc((100% - var(--lw-medida)) / 2));
-  padding-left:calc(var(--lw-sobra) + 26px);
-  padding-right:calc(var(--lw-sobra) + 26px);
+     Por qué no vale alinear la barra a 1520: LA SUITE TIENE DOS ANCHOS.
+       · `.sui-centro` → capado a 1520 y centrado (Proyectos, la lista de
+         Facturas, Documentación, el panel…).
+       · `.stage` → ancho completo (Usuarios, Compradores, el documento de
+         Facturas, Contratos).
+     Alineé la barra al primero y el segundo quedó 198 px descuadrado — peor que
+     antes, porque el botón se salía de la columna en vez de meterse. Y hay
+     pantallas que usan LOS DOS según lo que estén enseñando, así que ni
+     siquiera una regla por página lo arregla.
 
+     Lo que hay que decidir antes de tocar esto es cuál de los dos anchos manda
+     en la suite. Eso no es CSS, es una decisión de diseño. */
   background:#FFFFFF;
   border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
   color:var(--va,#2E3437);
-}
-/* Los 56 px del riel SOLO cuando el riel existe: sin él, la barra no lleva el
-   `margin-left:-56px` que la hace cruzarlo, y sumarlos la empujaría de más.
-   Va en su propia regla y no dentro de la de arriba para no llevarse con ella
-   el fondo y el filete — que es justo lo que hice mal al separarlas la primera
-   vez: una página sin riel se habría quedado sin barra blanca. */
-body.con-rail > .lw-topbar{
-  padding-left:calc(56px + var(--lw-sobra) + 26px);
 }
 
 /* ── VARIANTE OSCURA DE LA BARRA — el hub, 16-ago-2026 ──────────────────────
