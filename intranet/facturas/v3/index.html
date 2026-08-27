@@ -25,6 +25,7 @@
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
 <script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="facturas"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
+<script src="/contracts/assets/facturas_contratos.js?v=7fb07bac"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=65bd8b88">
@@ -174,6 +175,13 @@ main, .dinero, .kpi, .alarma, .doc, .filas, .mes{ min-width:0; }
     <a class="sui-btn primario" href="/intranet/facturas/?nueva=1"><i class="ph ph-plus"></i>Nueva factura</a>
   </div>
   <div class="chips" id="chips"></div>
+  <!-- Mismo control y mismo sitio que en Proyectos y en la Facturas viva: dos
+       herramientas con el mismo conmutador en dos formas es la divergencia de
+       siempre con otro disfraz. -->
+  <div class="sui-dens" id="vista" style="margin:-8px 0 18px">
+    <button type="button" data-v="mes">Por mes</button>
+    <button type="button" data-v="contrato">Por contrato</button>
+  </div>
 
   <div id="meses"></div>
 </main>
@@ -202,6 +210,44 @@ let PAGINA = 1;
 const dinero = (n, m) => lwFormatoImporte(n || 0, m || 'EUR');
 const HOY = new Date().toISOString().slice(0, 10);
 const dias = f => Math.round((new Date(f) - Date.now()) / 86400000);
+/* Dónde estás ahora, no una preferencia: `sessionStorage`, igual que en la
+   herramienta viva y que en Proyectos. */
+let VISTA = (() => { try{ return sessionStorage.getItem('lw_fact3_vista') || 'mes'; }catch(_){ return 'mes'; } })();
+
+function pintarPorContrato(cont, lista){
+  const grupos = lwAgrupaPorContrato(lista);
+  const paginas = Math.max(1, Math.ceil(grupos.length / POR_PAGINA));
+  if(PAGINA > paginas) PAGINA = paginas;
+  const trozo = grupos.slice((PAGINA - 1) * POR_PAGINA, PAGINA * POR_PAGINA);
+  cont.innerHTML = trozo.map(c => {
+    /* «Sin contrato» no es un contrato: ni nombre de cliente ni cifra agregada.
+       Doce documentos de gente distinta sumados dan un total que no existe. */
+    if(c.sinContrato) return '<div class="mes"><div class="cab">'
+      + '<span class="rot"><span class="sui-tag alerta">Sin contrato</span></span>'
+      + '<span class="sub">' + c.docs.length + (c.docs.length === 1 ? ' documento' : ' documentos')
+      + (c.variosClientes ? ' de varios clientes' : '') + ' · no son un contrato: no se suman entre sí</span></div>'
+      + '<div class="filas">' + c.docs.map(f => filaDoc(f)).join('') + '</div></div>';
+    const marca = c.cobradoSinFactura ? '<span class="sui-tag alerta">Cobrado sin factura</span>'
+                : c.soloProforma      ? '<span class="sui-tag gris">Solo proforma</span>'
+                : c.sinRecibi         ? '<span class="sui-tag alerta">Sin recibí</span>' : '';
+    const cifra = c.totalFacturado ? lwSumaTexto(c.facturado)
+                : c.cobradoSinFactura ? lwSumaTexto(c.cobrado)
+                : (Object.keys(c.proforma).length ? lwSumaTexto(c.proforma) : '—');
+    const pie = c.totalFacturado
+      ? lwSumaTexto(c.cobrado) + ' cobrado' + (c.unaMoneda ? ' · ' + c.pct.toFixed(0) + ' %' : '')
+      : c.cobradoSinFactura ? 'cobrado, sin factura emitida'
+      : (Object.keys(c.proforma).length ? 'en proforma, sin facturar' : '');
+    return '<div class="mes"><div class="cab">'
+      + '<span class="rot">' + esc(c.numero || '—') + ' ' + marca + '</span>'
+      + '<span class="sub">' + esc(c.cliente || 'sin cliente') + ' · <b>' + esc(cifra) + '</b>'
+      + (pie ? ' · ' + esc(pie) : '') + '</span></div>'
+      + '<div class="filas">' + c.docs.map(f => filaDoc(f)).join('') + '</div></div>';
+  }).join('')
+  + LW3.paginador({ total:grupos.length, pagina:PAGINA, porPagina:POR_PAGINA });
+  cablear(cont);
+  LW3.cablearPaginador(cont, n => { PAGINA = n; pintar(); });
+}
+
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const rotuloMes = k => { const [a, m] = k.split('-'); return MESES[+m - 1] + ' de ' + a; };
 const nombreTipo = t => t === 'recibi' ? 'Recibí' : t === 'proforma' ? 'Proforma' : 'Factura';
@@ -324,6 +370,16 @@ function pintar(){
   if(PAGINA > paginas) PAGINA = paginas;
   const trozo = lista.slice((PAGINA - 1) * POR_PAGINA, PAGINA * POR_PAGINA);
 
+  /* ── POR CONTRATO ─────────────────────────────────────────────────────────
+     La misma vista que la herramienta viva, y con LA MISMA PIEZA: las reglas
+     —qué es «solo proforma», qué es «cobrado sin factura», cuándo hay
+     porcentaje— viven en `assets/facturas_contratos.js`. Copiarlas aquí sería
+     garantizar que se separen, y dos de ellas ya nacieron mal y se corrigieron
+     con dinero delante.
+     El agrupado por MES se queda como estaba: son dos preguntas distintas
+     —«qué se emitió cuándo» y «cómo va cada contrato»— y las dos valen. */
+  if(VISTA === 'contrato'){ pintarPorContrato(cont, lista); return; }
+
   const grupos = {};
   trozo.forEach(f => {
     const k = (f.fecha_emision || f.created_at || '').slice(0, 7) || 'sin-fecha';
@@ -405,6 +461,19 @@ function pintarChips(){
       + esc(r) + ' <span class="n">' + n + '</span></button>';
   }).join('')
   + '<button type="button" class="sui-chip' + (ANUL ? ' on' : '') + '" data-anul="1" style="margin-left:8px">Con anuladas</button>';
+  document.querySelectorAll('#vista [data-v]').forEach(b => {
+    b.classList.toggle('on', b.dataset.v === VISTA);
+    if(b._w) return; b._w = 1;
+    b.addEventListener('click', () => {
+      if(b.dataset.v === VISTA) return;
+      VISTA = b.dataset.v;
+      try{ sessionStorage.setItem('lw_fact3_vista', VISTA); }catch(_){}
+      /* El paginador cuenta documentos en una vista y contratos en la otra: sin
+         reiniciar se aterriza en la página 5 de algo que tiene dos. */
+      PAGINA = 1;
+      pintarChips(); pintar();
+    });
+  });
   $('#chips').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => {
     TIPO = b.dataset.t; PAGINA = 1; pintarChips(); pintar();
   }));
