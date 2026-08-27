@@ -523,7 +523,15 @@ async function pintarPrivilegios(){
       : !filas.length
       ? `<p style="font-size:12.5px;color:var(--texto-2);margin:8px 0 0">
            Mirado ahora mismo: <b>nadie se ha saltado ningún freno</b> todavía.</p>`
-      : `<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px">
+      /* La tabla se desplaza DENTRO de su caja, no empuja la página. Con
+         `width:100%` a secas, la anchura mínima de cuatro celdas —la primera
+         con `nowrap` para no partir la fecha— se comía el 100% y sacaba la
+         página 6 px a la derecha en un móvil de 390. Medido: `scrollWidth`
+         396 contra 390 de ventana. Un desbordamiento lateral del documento no
+         se nota como «una tabla ancha»: se nota como que TODA la pantalla se
+         mueve de lado, y por eso hay que atajarlo aquí y no en el body. */
+      : `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+         <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px">
            <tbody>${filas.map(r => `<tr style="border-top:1px solid var(--linea,#E6E2DA)">
              <td style="padding:6px 8px;white-space:nowrap;color:var(--texto-2)">${esc(dia(r.cuando))}</td>
              <td style="padding:6px 8px">${esc(r.quien || '—')}</td>
@@ -532,7 +540,7 @@ async function pintarPrivilegios(){
              <td style="padding:6px 8px;color:var(--texto-2)">${
                esc((r.detalle && (r.detalle.motivo || r.detalle.razon)) || '')}</td>
            </tr>`).join('')}</tbody>
-         </table>`);
+         </table></div>`);
 }
 </script>
 </body>
