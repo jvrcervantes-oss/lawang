@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:95c1dd6936e0
+   topbar.css   sha256:a434d4a31455
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -749,16 +749,23 @@ body.rail-abierto > header{ margin-left:-208px; }
   .lw-rail-velo.on{ opacity:0; pointer-events:none; }
 }
 @media screen and (min-width:861px) and (hover:hover) and (pointer:fine){
-  .lw-rail:not(.abierto):hover{ width:208px; }
-  .lw-rail:not(.abierto):hover .lw-rail-i span,
-  .lw-rail:not(.abierto):hover .lw-rail-tog span{ opacity:1; }
-  /* El velo es hermano POSTERIOR del riel en el `body` (`topbar.js` mete
-     primero el riel y después el velo), así que `~` llega. Suave de verdad:
-     22% y no el 42% de la hoja de móvil — allí el menú ocupa la pantalla entera
-     y el velo separa dos mundos; aquí solo tiene que apagar el fondo lo justo
-     para que el ojo se vaya a la columna. */
-  .lw-rail:not(.abierto):hover ~ .lw-rail-velo{
-    opacity:1; pointer-events:none; background:rgba(46,52,55,.22); }
+  /* SOLO EL VELO. El despliegue por hover YA EXISTÍA más arriba, con su retardo
+     de 140 ms —lo busqué como `.lw-rail:hover` y no lo encontré porque lleva
+     `:not(.abierto)` delante; mi patrón era estrecho, no la regla inexistente—.
+     Aquí no se repite: se le añade lo único que le faltaba.
+
+     El velo es hermano POSTERIOR del riel en el `body` (`topbar.js` mete primero
+     el riel y después el velo), así que `~` llega. Suave de verdad: 22% y no el
+     42% de la hoja de móvil — allí el menú ocupa la pantalla entera y el velo
+     separa dos mundos; aquí solo tiene que apagar el fondo lo justo para que el
+     ojo se vaya a la columna.
+
+     Y el mismo retardo de 140 ms que el despliegue, o el velo se adelantaría al
+     menú y parpadearía en cada roce de camino a otra cosa. */
+  .lw-rail:not(.abierto):hover ~ .lw-rail-velo,
+  .lw-rail:not(.abierto):focus-within ~ .lw-rail-velo{
+    opacity:1; pointer-events:none; background:rgba(46,52,55,.22);
+    transition-delay:140ms; }
 }
 @media (prefers-reduced-motion: reduce){
   .lw-rail-velo{ transition:none; }
