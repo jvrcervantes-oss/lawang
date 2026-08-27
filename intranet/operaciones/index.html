@@ -60,8 +60,7 @@
   .stage{ display:block; height:100%; overflow:auto; padding-top:var(--tbh); }
   .centro{ max-width:1520px; margin:0 auto; padding:22px 26px 90px; }
   .stage.abierta .lista{ display:none; }
-  .stage:not(.abierta) .detalle{ display:none; }
-
+  .stage:not(.abierta)
   /* ---------- lista ---------- */
   .lista .cab{ padding:0 0 14px; }
   .cab .fila{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -73,7 +72,6 @@
 
   /* La tabla desplaza en horizontal dentro de su caja en vez de recortarse o
      ensanchar la página: en un móvil son seis columnas que no caben. */
-  .tabla-caja{ overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--card); }
   table.ops{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:760px; }
   table.ops thead th{ position:sticky; top:0; background:var(--card); z-index:1;
     text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
@@ -93,9 +91,6 @@
      sola etiqueta partida. El hueco vertical se queda menor para que dos lineas
      de etiquetas no engorden la fila. */
   .badges{ display:flex; gap:6px 10px; flex-wrap:wrap; }
-  .volver{ font:inherit; font-size:12.5px; background:none; border:none; color:var(--dl); cursor:pointer;
-           padding:0; margin:0 0 14px; display:inline-flex; align-items:center; gap:6px; }
-  .volver:hover{ text-decoration:underline; }
   .resumen{ display:flex; gap:22px; flex-wrap:wrap; margin:0 0 14px; font-size:12.5px; color:var(--muted); }
   .resumen b{ color:var(--ink,#2E3437); font-variant-numeric:tabular-nums; }
   /* El buscador es `.sui-buscar` (suite.css). Lo de aquí eran seis líneas que
@@ -123,9 +118,6 @@
   .op .p{ font-size:12px; color:var(--muted); }
 
   /* ---------- detalle ---------- */
-  .detalle{ overflow:auto; padding:26px 30px 80px; }
-  .vacio-panel{ display:grid; place-items:center; height:100%; color:var(--ss,#BEB3A5); font-size:13px;
-                letter-spacing:.16em; text-transform:uppercase; }
   section{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; overflow:hidden; }
   /* título de sección = banda de marca a lo ancho de la tarjeta (los márgenes
      negativos la llevan hasta el borde; el overflow:hidden del section recorta

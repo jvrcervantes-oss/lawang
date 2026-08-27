@@ -206,9 +206,6 @@
   input.dato-fijo{ border:0; background:none; padding-left:0; color:var(--muted);
                    font-variant-numeric:tabular-nums; cursor:default; }
   input.dato-fijo:not(:placeholder-shown){ color:var(--ink); font-weight:600; }
-  .link-flojo{ border:0; background:none; padding:2px 0; font:inherit; font-size:12.5px;
-               color:var(--muted); text-decoration:underline; cursor:pointer; }
-  .link-flojo:hover{ color:var(--ink); }
   /* Un botón que no puede funcionar no se esconde: se apaga y DICE por qué al
      posarse encima (§16.1 — el aviso llega antes del error, no después). Sigue
      en su sitio para que se aprenda que existe y qué le falta. */
@@ -1175,6 +1172,11 @@ function toggleTipoRecibi(){
   const esRecibi = $('#selTipo').value === 'recibi';
   $('#fsConceptos').hidden = esRecibi;
   $('#fsAplicaciones').hidden = !esRecibi;
+  /* El campo es el mismo control; lo que cambia es QUÉ se elige en él. Decirlo
+     en el rótulo evita el paso en falso de buscar un contrato en un recibí. */
+  const lab = document.querySelector('label[for="btnContrato"]');
+  if(lab) lab.textContent = esRecibi ? 'Factura que se cobra' : 'Contrato';
+  pintarContratoElegido();
   if(esRecibi) cargarFacturasAbiertas();
 }
 /* Solo se listan las facturas DEL MISMO COMPRADOR (LAW-41(2), 19-ago-2026).
@@ -1204,7 +1206,15 @@ async function cargarFacturasAbiertas(){
   const monedaRecibi = ($('[name="moneda"]').value || 'EUR');
   const delComprador = (f.data || [])
     .filter(x => x.tipo === 'factura' && !x.anulada && (pend[x.id] || 0) > 0.005)
-    .filter(x => x.contrato_id && suyos.has(x.contrato_id));
+    /* 🔴 SIN CONTRATO ELEGIDO, TODAS (27-ago-2026). El filtro por comprador
+       existe porque un recibí solo puede saldar facturas de la MISMA persona
+       (LAW-41(2)) — pero eso presupone que ya sabemos quién es, y desde hoy el
+       comprador lo fija la PRIMERA factura que se elige, no un contrato pedido
+       antes. Con `CONTRATO_ID` a null la lista es completa; en cuanto se elige
+       una, `traerContrato` fija el contrato y la siguiente llamada ya filtra por
+       su comprador, igual que siempre. La regla no se relaja: se aplica cuando
+       hay contra qué aplicarla. */
+    .filter(x => x.contrato_id && (!CONTRATO_ID || suyos.has(x.contrato_id)));
   FACTURAS_ABIERTAS = delComprador
     .filter(x => (x.moneda || 'EUR') === monedaRecibi)
     .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id], moneda:x.moneda }));
@@ -1243,6 +1253,45 @@ function pintarSelectFacturaAplicar(){
     : FACTURAS_OTRA_MONEDA ? 'Este comprador tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
     : 'Este comprador no tiene ninguna factura pendiente. Un recibí solo puede saldar facturas suyas.';
 }
+/* Elegir la factura que cobra este recibí. Deriva de ella todo lo demás: no se
+   teclea nada que la factura ya sepa. */
+async function elegirFacturaDelRecibi(){
+  await cargarFacturasAbiertas();
+  const libres = FACTURAS_ABIERTAS.filter(f => !APLICACIONES.some(a => a.factura_id === f.id));
+  if(!libres.length){
+    toast(FACTURAS_ABIERTAS.length
+      ? 'Todas las facturas pendientes ya están en este recibí.'
+      : 'No hay ninguna factura pendiente de cobro.');
+    return;
+  }
+  const elegido = await lwElegir({
+    titulo: 'Factura que se cobra',
+    buscarPh: 'Número, comprador o contrato…',
+    opciones: libres.map(f => ({
+      valor: f.id,
+      texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
+      nota:  'pendiente ' + fmtMoneda(f.pendiente, f.moneda || 'EUR')
+             + (f.contrato_numero ? ' · ' + f.contrato_numero : ''),
+    })),
+  });
+  if(!elegido) return;
+  const f = FACTURAS_ABIERTAS.find(x => x.id === elegido); if(!f) return;
+
+  /* El contrato sale de la factura. Si la factura no tuviera —los 12 documentos
+     sin contrato de LAW-38—, se deja en null y el guardián de #btnSave hará lo
+     suyo: aquí no se inventa uno. */
+  if(f.contrato_id && f.contrato_id !== CONTRATO_ID){
+    CONTRATO_ID = f.contrato_id;
+    pintarContratoElegido();
+    await traerContrato(CONTRATO_ID);
+  }
+  APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente,
+                      importe:String(f.pendiente).replace('.', ',') });
+  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+  render();
+  toast('Recibí por ' + fmtMoneda(f.pendiente, f.moneda || 'EUR') + ' contra ' + f.numero);
+}
+
 $('#selFacturaAplicar').addEventListener('change', e => {
   const id = e.target.value; if(!id) return;
   const f = FACTURAS_ABIERTAS.find(x => x.id === id); if(!f) return;
@@ -1673,9 +1722,10 @@ let CONTRATOS = [];   // catálogo para el buscador: id, numero, comprador, proy
 function pintarContratoElegido(){
   const b = $('#btnContrato'); if(!b) return;
   const c = CONTRATOS.find(x => x.id === CONTRATO_ID);
+  const esRecibi = $('#selTipo') && $('#selTipo').value === 'recibi';
   b.textContent = c
     ? (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')
-    : '— elige un contrato —';
+    : (esRecibi ? '— elige la factura que cobras —' : '— elige un contrato —');
   b.classList.toggle('vacio', !c);
   /* Lo apunta aquí para que `estadoDelFormulario` pueda comparar el contrato
      ELEGIDO con lo que hay escrito en «Contrato de referencia», sin volver a
@@ -1714,6 +1764,24 @@ async function cargarContratos(){
   pintarContratoElegido();
 
   $('#btnContrato').addEventListener('click', async () => {
+    /* ── UN RECIBÍ SE PIDE POR FACTURA, NO POR CONTRATO ───────────────────────
+       27-ago-2026, owner: «hacer un recibí pide un contrato y eso está mal,
+       debe pedir una factura directamente». Y los datos le dan la razón: de los
+       61 recibís emitidos, **54 saldan exactamente una factura** (1.594.187 €).
+       En la práctica un recibí ES el cobro de una factura; pedir antes el
+       contrato era el rodeo largo para llegar a la misma.
+
+       El mecanismo no cambia —el mismo buscador, la misma lista de facturas
+       abiertas, la misma tabla `recibi_aplicaciones`—, cambia el ORDEN: se
+       elige la factura y de ella salen el contrato, el comprador y el resto.
+
+       Y la regla que protegía el rodeo se cumple sola: `guardar_recibi()` exige
+       que todas las facturas saldadas sean del MISMO comprador (LAW-41(2), la
+       que nació de aplicar REC00019 a la factura de otra persona). Eligiendo la
+       factura primero, el comprador lo fija ella: la primera nunca puede estar
+       equivocada, y las siguientes se filtran contra ese comprador como ya se
+       hacía. */
+    if($('#selTipo').value === 'recibi'){ await elegirFacturaDelRecibi(); return; }
     const elegido = await lwElegir({
       titulo: 'Contrato que se factura',
       buscarPh: 'Número, comprador o proyecto…',

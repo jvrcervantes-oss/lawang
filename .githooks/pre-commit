@@ -58,6 +58,19 @@ if [ -n "$suite" ]; then
     git add contracts/assets/lawang.css 2>/dev/null || true
   fi
 
+  # CSS QUE NO CASA CON NADA (27-ago-2026). El recuadro sobre el menú lateral
+  # que el owner reportó era `.topbar{position:fixed}` con el header renombrado
+  # a `lw-topbar`: un selector huérfano, en OCHO herramientas, y en tres de
+  # ellas la regla de al lado compensaba por él. Una regla muerta no falla ni
+  # pinta nada — solo la encuentra quien la busca, así que se busca aquí.
+  # AVISA, no bloquea: la herramienta perdona prefijos dinámicos por diseño y
+  # prefiero un aviso que se lee a un bloqueo que se saltaría con --no-verify.
+  muerto="$raiz/../../tools/css_muerto.py"
+  if [ -f "$muerto" ]; then
+    py=$(command -v python || command -v python3)
+    "$py" "$muerto" 2>/dev/null | head -20
+  fi
+
   sellador="$raiz/../../tools/sella_assets.py"
   if [ -f "$sellador" ]; then
     py=$(command -v python || command -v python3)
