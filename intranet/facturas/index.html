@@ -1312,6 +1312,7 @@ async function elegirFacturaDelRecibi(){
      y el botón de «otra factura»—, pero sigue haciendo falta llamarla: sin
      esto el aviso se quedaba en «elige arriba la factura» con una ya elegida. */
   pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+  pintarContratoElegido();   // el campo de arriba enseña la factura, no el contrato
   render();
   toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
   const campo = document.querySelector('[data-a="' + (APLICACIONES.length - 1) + '"]');
@@ -1366,6 +1367,7 @@ $('#aplicaciones').addEventListener('input', e => {
 $('#aplicaciones').addEventListener('click', e => {
   const b = e.target.closest('[data-adel]'); if(!b) return;
   APLICACIONES.splice(+b.dataset.adel, 1);
+  pintarContratoElegido();   // si se quita la última, el campo vuelve a pedirla
   pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
 });
 /* El documento impreso de un recibí lista las facturas que salda, no
@@ -1768,11 +1770,22 @@ let CONTRATOS = [];   // catálogo para el buscador: id, numero, comprador, proy
 function pintarContratoElegido(){
   const b = $('#btnContrato'); if(!b) return;
   const c = CONTRATOS.find(x => x.id === CONTRATO_ID);
+  /* 🔴 EN UN RECIBÍ SE ENSEÑA LA FACTURA, NO EL CONTRATO (27-ago-2026). El
+     rótulo dice «Factura que se cobra» y aquí salía «CR00035 — ABJ ASENATH…»,
+     que es un CONTRATO: la CR del prefijo es Carta de Reserva. Lo heredaba de
+     que este botón siempre ha pintado `CONTRATO_ID`, y desde esta mañana el
+     contrato se deduce de la factura elegida. Un campo que promete una cosa y
+     enseña otra es peor que uno vacío: el que lo lee da por hecho que eligió
+     bien. La factura la sabe `APLICACIONES`, que es donde se guarda. */
   const esRecibi = $('#selTipo') && $('#selTipo').value === 'recibi';
-  b.textContent = c
-    ? (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')
-    : (esRecibi ? '— elige la factura que cobras —' : '— elige un contrato —');
-  b.classList.toggle('vacio', !c);
+  const fact = esRecibi && APLICACIONES.length ? APLICACIONES[0] : null;
+  b.textContent = fact
+    ? fact.numero + (APLICACIONES.length > 1 ? ' y ' + (APLICACIONES.length - 1) + ' más' : '')
+        + (c && c.comprador_nombre ? ' — ' + c.comprador_nombre : '')
+    : c
+      ? (c.numero || 'sin nº') + ' — ' + (c.comprador_nombre || 'sin nombre')
+      : (esRecibi ? '— elige la factura que cobras —' : '— elige un contrato —');
+  b.classList.toggle('vacio', !c && !fact);
   /* Lo apunta aquí para que `estadoDelFormulario` pueda comparar el contrato
      ELEGIDO con lo que hay escrito en «Contrato de referencia», sin volver a
      buscar en CONTRATOS ni fiarse de leer el rótulo. */
@@ -1964,17 +1977,39 @@ async function traerContrato(id){
     return { texto: h.es || h.en || '', pct, monto, timing: h.timing || '' };
   }).filter(h => h.texto || h.monto);
 
+  /* ── 🔴 EN UN RECIBÍ, ESTE BLOQUE ERA UNA TRAMPA (27-ago-2026) ─────────────
+     Owner, con la pantalla delante: «pone DEL CONTRATO CR00035, ¿no deberíamos
+     quitar esa parte?». Sí, y no solo por ruido.
+
+     Las fichas de aquí abajo —«Todo el contrato», los hitos— INSERTAN
+     CONCEPTOS. Y en un recibí la sección de Conceptos está oculta
+     (`#fsConceptos.hidden`), porque lo que un recibí cobra sale de las
+     facturas que salda, no de conceptos escritos a mano. O sea que pulsar
+     «Todo el contrato» en un recibí escribía 163.500 € en una sección que
+     nadie ve, y de ahí al papel. Eso no es ruido visual: es un importe que
+     entra sin que se vea entrar.
+
+     Tampoco ayudaba la cifra: «Precio del contrato: 163.500,00 EUR» era el
+     número más grande de una pantalla que va a cobrar 5.000, y el único que no
+     tiene nada que ver con lo que se emite.
+
+     Lo que SÍ hace falta saber al cobrar se queda: de qué contrato viene, qué
+     datos se han traído, y —esto es nuevo— cuánto lleva cobrado ese contrato,
+     que es la pregunta de verdad cuando entra un pago parcial. */
+  const paraRecibi = $('#selTipo').value === 'recibi';
+
   caja.innerHTML = `<div class="t">Del contrato ${esc(data.numero || '')}</div>
     <p class="arrastrado">${puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
       ${compradores.length > 1 ? ' Contrato a <b>' + compradores.length + ' nombres</b>.' : ''}
-      ${precio ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
-    ${(precio || hitos.length) ? `<p class="pregunta">¿Qué cobras en este documento?</p>` : ''}
-    ${precio ? `<button type="button" class="hito-todo" id="hitoTodo">
+      ${(precio && !paraRecibi) ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
+    ${paraRecibi ? '<div id="cobradoDelContrato"></div>' : ''}
+    ${(!paraRecibi && (precio || hitos.length)) ? `<p class="pregunta">¿Qué cobras en este documento?</p>` : ''}
+    ${(precio && !paraRecibi) ? `<button type="button" class="hito-todo" id="hitoTodo">
         <span class="q">Todo el contrato</span>
         <span class="n">${esc(fmtMoneda(precio, moneda))}</span>
         <span class="p">Una sola factura por el importe completo</span>
       </button>` : ''}
-    ${hitos.length ? `<div class="hitos">${hitos.map((h,i) =>
+    ${(hitos.length && !paraRecibi) ? `<div class="hitos">${hitos.map((h,i) =>
         `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
       ).join('')}</div>
       <p class="arrastrado">…o solo un hito, si cobras por partes.</p>` : ''}`;
@@ -2008,6 +2043,31 @@ async function traerContrato(id){
       pintarLineas(); render();
       toast('Factura por el total del contrato: ' + fmtMoneda(precio, moneda));
     };
+  }
+
+  /* ── CUÁNTO LLEVA COBRADO ESTE CONTRATO ────────────────────────────────────
+     La pregunta de verdad cuando entra un pago parcial: «de los 163.500 de este
+     contrato, ¿cuánto hay ya dentro?». Sustituye al «Precio del contrato», que
+     en un recibí era el número más grande y el que menos decía.
+     Se calcula con `lwAgrupaPorContrato` —la misma pieza y las mismas reglas que
+     la vista por contrato del listado— sobre los documentos que ya están en
+     memoria. Sin consulta nueva y sin una segunda forma de sumar lo cobrado:
+     dos maneras de calcular lo mismo es como se llega a dos cifras distintas. */
+  if(paraRecibi){
+    const caj = caja.querySelector('#cobradoDelContrato');
+    const docs = (LDOCS || []).filter(x => x.contrato_id === id);
+    const g = docs.length ? lwAgrupaPorContrato(docs)[0] : null;
+    if(caj && g){
+      const pct = g.unaMoneda && g.totalFacturado ? ' · ' + g.pct.toFixed(0) + ' %' : '';
+      caj.innerHTML = '<p class="arrastrado">De este contrato hay <b>'
+        + esc(lwSumaTexto(g.cobrado)) + '</b> cobrado'
+        + (g.totalFacturado ? ' sobre ' + esc(lwSumaTexto(g.facturado)) + ' facturado' + pct : '')
+        + '.</p>';
+    } else if(caj){
+      /* Sin documentos cargados no se dice «0 cobrado»: no saber y no haber
+         cobrado nada son cosas distintas, y una de las dos es una mentira. */
+      caj.innerHTML = '<p class="arrastrado">Abre el listado una vez para ver aquí cuánto lleva cobrado este contrato.</p>';
+    }
   }
 
   /* Reinicia la animación aunque se cambie de contrato sin soltar el anterior:
