@@ -630,6 +630,95 @@ body.rail-abierto > header{ margin-left:-208px; }
   opacity:0; pointer-events:none; transition:opacity 180ms ease; }
 .lw-rail-velo.on{ opacity:1; pointer-events:auto; }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL VELO EN ESCRITORIO — 27-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Hay DOS formas de tener el menú abierto y NO piden lo mismo:
+
+   · FIJADO (se pulsa el botón). Es una preferencia: se guarda en `localStorage`
+     y sobrevive a la recarga. La maquetación se aparta de verdad —el `body`
+     coge 208px de relleno— así que el menú no tapa nada. Aquí un velo no pinta
+     nada: no hay nada que enfocar, y encima estorba.
+
+     🔴 Y ESTORBABA DE VERDAD. Medido en Operaciones con el riel fijado abierto:
+     `elementFromPoint` en (700,300), (900,450) y (1200,600) devolvía las tres
+     veces `lw-rail-velo` — la zona de contenido ENTERA detrás de una capa que
+     se traga los clics. No ha dado la cara porque al cargar la página el riel
+     se abre desde `localStorage` sin pasar por `poner()`, que es quien enciende
+     el velo: solo aparecía si pulsabas el botón en esa sesión. O sea, un fallo
+     que solo tenía quien tocaba el menú.
+
+   · ASOMADO (se pasa el cursor por encima). Owner: «un velo suave en la web,
+     que enfoque el menú». Aquí el menú SÍ tapa contenido —se despliega encima,
+     sin mover la maquetación, porque desplazar la página entera en cada roce
+     accidental sería insoportable—, y el velo es justo lo que explica que eso
+     es una capa temporal y no un cambio de sitio.
+
+   El velo del asomo NO se traga los clics (`pointer-events:none`): si lo
+   hiciera, sacar el cursor del menú sería pulsar el velo en vez de volver a la
+   página, y el menú se quedaría abierto solo. Se cierra al retirar el cursor,
+   que es lo que hace un asomo.
+
+   Solo con ratón de verdad (`hover:hover` + `pointer:fine`): en táctil el
+   `:hover` se queda pegado tras el toque y el menú no se cerraría nunca. Y solo
+   por encima de 860px, que es donde el riel es columna y no hoja. */
+@media screen and (min-width:861px){
+  .lw-rail-velo.on{ opacity:0; pointer-events:none; }
+}
+@media screen and (min-width:861px) and (hover:hover) and (pointer:fine){
+  .lw-rail:not(.abierto):hover{ width:208px; }
+  .lw-rail:not(.abierto):hover .lw-rail-i span,
+  .lw-rail:not(.abierto):hover .lw-rail-tog span{ opacity:1; }
+  /* El velo es hermano POSTERIOR del riel en el `body` (`topbar.js` mete
+     primero el riel y después el velo), así que `~` llega. Suave de verdad:
+     22% y no el 42% de la hoja de móvil — allí el menú ocupa la pantalla entera
+     y el velo separa dos mundos; aquí solo tiene que apagar el fondo lo justo
+     para que el ojo se vaya a la columna. */
+  .lw-rail:not(.abierto):hover ~ .lw-rail-velo{
+    opacity:1; pointer-events:none; background:rgba(46,52,55,.22); }
+}
+@media (prefers-reduced-motion: reduce){
+  .lw-rail-velo{ transition:none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IMPRESIÓN — LA CÁSCARA NO SE IMPRIME.  27-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Owner, y con razón en llamarlo grave: «al intentar imprimir un pdf se ve el
+   menú». Salía el riel lateral, entero, encima del documento.
+
+   POR QUÉ NO SE VEÍA VENIR. Este fichero no tenía NINGÚN `@media print`, y aun
+   así el riel no se imprimía… por accidente. Un A4 mide unos 794 px CSS, o sea
+   menos de los 860 del bloque de móvil de más abajo, y ahí el riel deja de ser
+   columna para volverse una hoja fuera de pantalla. El papel entraba en el
+   bloque de móvil y se llevaba el efecto de rebote.
+
+   El 27-ago ese bloque se acotó a `screen and (max-width:860px)` —correcto, y
+   necesario: sin acotarlo, un recibí salía EN BLANCO porque la vista previa se
+   iba `translateY(100%)` fuera del papel—. Al arreglar aquello se retiró la
+   ocultación accidental del riel, y quedó al descubierto que nunca hubo una
+   deliberada.
+
+   LA REGLA, para no volver aquí: **el cromo no se apoya en una media query de
+   ancho para no imprimirse.** Se apaga en `@media print`, explícitamente, una
+   vez y para las trece herramientas. Lo comprueba `tools/imprime_limpio.py`.
+
+   Qué es cromo: la barra, el riel y su velo, el cajón de usuario y su velo, y
+   el botón de menú de móvil. Nada de eso es el documento; todo eso es la
+   ventana desde la que se mira el documento, y una ventana no se fotocopia. */
+@media print{
+  .lw-topbar, .lw-rail, .lw-rail-velo, .lw-rail-movil,
+  .lw-velo, .lw-panel, .lw-autoria-caja{ display:none !important; }
+  /* Y con el riel apagado, el hueco que le reservaba el body sobra: si no se
+     devuelve, el documento sale desplazado 56 o 208 px a la derecha y se come
+     el margen del papel por ese lado. Van juntos SIEMPRE — apagar el menú sin
+     devolver su hueco cambia un fallo visible por uno que solo se nota al
+     medir la hoja impresa. */
+  body.con-rail, body.rail-abierto{ padding-left:0 !important; }
+  body.con-rail > header, body.rail-abierto > header,
+  body.con-rail > .lw-topbar-flujo, body.rail-abierto > .lw-topbar-flujo{ margin-left:0 !important; }
+}
+
 /* MÓVIL — el riel deja de ser columna y pasa a ser hoja que sube desde abajo,
    igual que el cajón de usuario (.lw-panel a 86vh). 56px de columna sobre una
    tabla estrecha es quitarle una sexta parte del ancho a quien menos le sobra;

@@ -75,6 +75,17 @@ if [ -n "$suite" ]; then
     "$py" "$margenes" 2>/dev/null | head -14
   fi
 
+  # IMPRESIÓN (27-ago-2026). El owner: «muy grave, al intentar imprimir un pdf
+  # se ve el menu». Nunca hubo una regla que lo impidiera: el riel se ocultaba
+  # por casualidad, porque un A4 mide menos de 860px y le entraba el bloque de
+  # móvil. Al acotar ese bloque a `screen and` —necesario, un recibí salía en
+  # blanco— se destapó. La casualidad no es un guardrail; esto sí.
+  imprime="$raiz/../../tools/imprime_limpio.py"
+  if [ -f "$imprime" ]; then
+    py=$(command -v python || command -v python3)
+    "$py" "$imprime" 2>/dev/null | head -16
+  fi
+
   muerto="$raiz/../../tools/css_muerto.py"
   if [ -f "$muerto" ]; then
     py=$(command -v python || command -v python3)
