@@ -1308,7 +1308,10 @@ async function elegirFacturaDelRecibi(){
     await traerContrato(CONTRATO_ID);
   }
   APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente, importe:'' });
-  pintarAplicaciones(); sincronizarLineasDesdeAplicaciones();
+  /* `pintarSelectFacturaAplicar` ya no pinta ningún desplegable —solo el aviso
+     y el botón de «otra factura»—, pero sigue haciendo falta llamarla: sin
+     esto el aviso se quedaba en «elige arriba la factura» con una ya elegida. */
+  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
   render();
   toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
   const campo = document.querySelector('[data-a="' + (APLICACIONES.length - 1) + '"]');
