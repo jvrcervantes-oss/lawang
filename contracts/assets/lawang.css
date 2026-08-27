@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:0b07a4e14cc2
+   topbar.css   sha256:9a978edabe26
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -120,6 +120,30 @@
      una tabla que pasa por debajo se lee como suciedad. */
   height:var(--tbh,64px); display:flex; align-items:center; gap:18px;
   padding:0 26px; padding-top:env(safe-area-inset-top);
+
+  /* 🔴 LA BARRA VA DE CANTO A CANTO Y EL CONTENIDO NO (27-ago-2026, owner:
+     «los márgenes… el problema lo estamos teniendo en pc»).
+     `.sui-centro` está capado a 1520 px y centrado; la barra ocupa el ancho
+     entero. En un portátil de 1440 no se nota —el contenido llena y no sobra
+     nada— pero en un monitor de 1920 el desfase es de **254 px a la izquierda
+     y 172 a la derecha**: el logotipo y «Nueva factura» flotando lejos de la
+     columna que tienen debajo. Medido, no estimado.
+
+     El fondo de la barra SIGUE siendo de canto a canto —es cromo, y cortarlo
+     dejaría una banda de otro color— pero su CONTENIDO se mete en la misma
+     columna que la página. Es lo que hace que cabecera y cuerpo se lean como
+     una sola página y no como dos cosas pegadas.
+
+     La cuenta: `.sui-centro` vive dentro del relleno del `body` (56 px del
+     riel), se capa a 1520 y se centra en lo que queda; su contenido empieza 26
+     más adentro. Aquí `100%` es el ancho de la ventana, porque la barra lleva
+     `margin-left:-56px` para tapar también la franja del riel.
+     `max(0px, …)` para que por debajo de 1576 px no sobre nada y esto valga
+     exactamente lo de siempre: 82 a la izquierda, 26 a la derecha. */
+  --lw-medida:1520px;
+  --lw-sobra:max(0px, calc((100% - 56px - var(--lw-medida)) / 2));
+  padding-left:calc(56px + var(--lw-sobra) + 26px);
+  padding-right:calc(var(--lw-sobra) + 26px);
   background:#FFFFFF;
   border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
@@ -522,7 +546,11 @@
    --------------------------------------------------------------------------- */
 @media (max-width:860px){
   .lw-topbar{
-    gap:7px; padding:0 10px;
+    /* El atajo `padding` resetea el cálculo de escritorio de más arriba, que es
+       lo que se quiere: aquí la barra no tiene columna que respetar. Pero sí
+       tiene muesca — es lo PRIMERO que toca el borde de la pantalla. */
+    gap:7px;
+    padding:0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
     overflow-x:auto; overflow-y:hidden;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;                 /* la barra de scroll robaría alto */
