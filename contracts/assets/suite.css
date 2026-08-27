@@ -152,7 +152,14 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 /* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el
    relleno del cuerpo es `22px 26px 30px` en la mayoria de pantallas (24 en
    Contratos y Documentacion, 26/34 en el panel, que lo sobrescribe). */
-.sui-centro{ max-width:1520px; margin:0 auto; padding:22px 26px 30px; }
+/* SIN TOPE DE ANCHO (27-ago-2026, decisión del owner: «quitar el tope… que se
+   adapte y use la pantalla completa»). Estaba capado a 1520 px por el lienzo del
+   mockup (1360 + relleno), y en un monitor de 1920 eso dejaba 198 px muertos a
+   cada lado y la barra superior —que va de canto a canto— desalineada de su
+   propia columna. Sin tope, las dos familias de maquetación de la suite
+   (`.sui-centro` y `.stage`) empiezan en el mismo sitio y la barra cuadra con
+   las dos sin ninguna regla especial. */
+.sui-centro{ margin:0 auto; padding:22px 26px 30px; }
 
 /* ── CABECERA DE PAGINA — igual en las once herramientas ──────────────────
    `h1` 21px/500 y bajada 13px, con las acciones a la derecha en la misma linea

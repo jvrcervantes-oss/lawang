@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:3760100a4efd
+   topbar.css   sha256:e5e93f61894e
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -132,27 +132,17 @@
   flex:none;
   padding:0 26px; padding-top:env(safe-area-inset-top);
 
-  /* ⚠️ AQUÍ HUBO UN INTENTO DE ALINEAR LA BARRA CON EL CONTENIDO, Y SE
-     RETIRÓ (27-ago-2026). Lo dejo escrito porque el problema SIGUE ahí y quien
-     lo vuelva a intentar merece saber dónde está la mina.
-
-     El síntoma es real: `.sui-centro` está capado a 1520 px y centrado, y la
-     barra ocupa el ancho entero. En un monitor de 1920 el logotipo queda 254 px
-     a la izquierda de la columna que tiene debajo y el botón 172 a la derecha.
-     En un portátil de 1440 no se ve, porque el contenido llena y no sobra nada.
-
-     Por qué no vale alinear la barra a 1520: LA SUITE TIENE DOS ANCHOS.
-       · `.sui-centro` → capado a 1520 y centrado (Proyectos, la lista de
-         Facturas, Documentación, el panel…).
-       · `.stage` → ancho completo (Usuarios, Compradores, el documento de
-         Facturas, Contratos).
-     Alineé la barra al primero y el segundo quedó 198 px descuadrado — peor que
-     antes, porque el botón se salía de la columna en vez de meterse. Y hay
-     pantallas que usan LOS DOS según lo que estén enseñando, así que ni
-     siquiera una regla por página lo arregla.
-
-     Lo que hay que decidir antes de tocar esto es cuál de los dos anchos manda
-     en la suite. Eso no es CSS, es una decisión de diseño. */
+  /* 🔴 LA BARRA CUADRA CON EL CONTENIDO — ahora sí (27-ago-2026).
+     El 27-ago se intentó y se revirtió, porque la suite tenía DOS anchos: el
+     contenido capado a 1520 y centrado, y `.stage` a ancho completo. Alinear a
+     uno descuadraba el otro 198 px, y Facturas usa los dos según esté enseñando
+     la lista o el documento.
+     Con el tope fuera —decisión del owner: «que se adapte y use la pantalla
+     completa»— las dos familias empiezan EN EL MISMO SITIO: el relleno del body
+     (56 px del riel) más los 26 del contenedor. Así que la barra solo tiene que
+     sumar el riel que ella misma cruza con su `margin-left:-56px`, y cuadra con
+     todo sin una sola regla especial. Lo que hacía imposible el atajo no era la
+     barra: eran los dos anchos. */
   background:#FFFFFF;
   border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
@@ -601,6 +591,11 @@
    del que depende el encaje de la página entera — y además animar `padding` en
    `<body>` fuerza un reflujo completo en cada fotograma. El riel sigue
    animando SU propio ancho, que no descoloca nada si se atasca. */
+/* Los 26 px de la barra + los 56 del riel = los 82 en que empieza el contenido.
+   Solo cuando hay riel: sin él la barra no lo cruza y sumarlos la desplazaría. */
+body.con-rail > .lw-topbar{ padding-left:calc(56px + 26px); }
+body.rail-abierto > .lw-topbar{ padding-left:calc(208px + 26px); }
+
 body.con-rail{ padding-left:56px; }
 body.rail-abierto{ padding-left:208px; }
 /* El deslizamiento SOLO cuando `topbar.js` lo habilita, dos cuadros después de
@@ -788,7 +783,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    El razonamiento completo está junto al código, en topbar.js. */
 
 /* ─────────────────────────────────────────────────────────────────────
-   suite.css   sha256:97a18ec77625
+   suite.css   sha256:ef265c499a1c
    ───────────────────────────────────────────────────────────────────── */
 
 /* ── TEXTO IGUAL EN MOVIL QUE EN ESCRITORIO — 15-ago-2026 ──────────────────
@@ -944,7 +939,14 @@ html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 /* El lienzo del mockup mide 1360px con 26px de relleno: 1308 de contenido. Y el
    relleno del cuerpo es `22px 26px 30px` en la mayoria de pantallas (24 en
    Contratos y Documentacion, 26/34 en el panel, que lo sobrescribe). */
-.sui-centro{ max-width:1520px; margin:0 auto; padding:22px 26px 30px; }
+/* SIN TOPE DE ANCHO (27-ago-2026, decisión del owner: «quitar el tope… que se
+   adapte y use la pantalla completa»). Estaba capado a 1520 px por el lienzo del
+   mockup (1360 + relleno), y en un monitor de 1920 eso dejaba 198 px muertos a
+   cada lado y la barra superior —que va de canto a canto— desalineada de su
+   propia columna. Sin tope, las dos familias de maquetación de la suite
+   (`.sui-centro` y `.stage`) empiezan en el mismo sitio y la barra cuadra con
+   las dos sin ninguna regla especial. */
+.sui-centro{ margin:0 auto; padding:22px 26px 30px; }
 
 /* ── CABECERA DE PAGINA — igual en las once herramientas ──────────────────
    `h1` 21px/500 y bajada 13px, con las acciones a la derecha en la misma linea
@@ -1790,7 +1792,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:4af6ebdb1fb0
+   app.css   sha256:94de62ed3f42
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2204,7 +2206,8 @@ input.lw-elegible:disabled{ cursor:default; }
   body.modo-listado #cpOverlay{ display:block; position:static; background:none;
     backdrop-filter:none; -webkit-backdrop-filter:none;
     padding:calc(var(--tbh) + 22px) 26px 30px; }
-  body.modo-listado #cpOverlay .cp-modal{ width:100%; max-width:1520px; margin:0 auto;
+    /* Sin tope, como el resto de la suite (27-ago-2026). */
+  body.modo-listado #cpOverlay .cp-modal{ width:100%; margin:0 auto;
     max-height:none; border:1px solid var(--line); border-radius:12px;
     box-shadow:0 1px 2px rgba(34,40,42,.06); animation:none; }
   body.modo-listado #cpClose{ display:none; }

@@ -49,27 +49,17 @@
   flex:none;
   padding:0 26px; padding-top:env(safe-area-inset-top);
 
-  /* ⚠️ AQUÍ HUBO UN INTENTO DE ALINEAR LA BARRA CON EL CONTENIDO, Y SE
-     RETIRÓ (27-ago-2026). Lo dejo escrito porque el problema SIGUE ahí y quien
-     lo vuelva a intentar merece saber dónde está la mina.
-
-     El síntoma es real: `.sui-centro` está capado a 1520 px y centrado, y la
-     barra ocupa el ancho entero. En un monitor de 1920 el logotipo queda 254 px
-     a la izquierda de la columna que tiene debajo y el botón 172 a la derecha.
-     En un portátil de 1440 no se ve, porque el contenido llena y no sobra nada.
-
-     Por qué no vale alinear la barra a 1520: LA SUITE TIENE DOS ANCHOS.
-       · `.sui-centro` → capado a 1520 y centrado (Proyectos, la lista de
-         Facturas, Documentación, el panel…).
-       · `.stage` → ancho completo (Usuarios, Compradores, el documento de
-         Facturas, Contratos).
-     Alineé la barra al primero y el segundo quedó 198 px descuadrado — peor que
-     antes, porque el botón se salía de la columna en vez de meterse. Y hay
-     pantallas que usan LOS DOS según lo que estén enseñando, así que ni
-     siquiera una regla por página lo arregla.
-
-     Lo que hay que decidir antes de tocar esto es cuál de los dos anchos manda
-     en la suite. Eso no es CSS, es una decisión de diseño. */
+  /* 🔴 LA BARRA CUADRA CON EL CONTENIDO — ahora sí (27-ago-2026).
+     El 27-ago se intentó y se revirtió, porque la suite tenía DOS anchos: el
+     contenido capado a 1520 y centrado, y `.stage` a ancho completo. Alinear a
+     uno descuadraba el otro 198 px, y Facturas usa los dos según esté enseñando
+     la lista o el documento.
+     Con el tope fuera —decisión del owner: «que se adapte y use la pantalla
+     completa»— las dos familias empiezan EN EL MISMO SITIO: el relleno del body
+     (56 px del riel) más los 26 del contenedor. Así que la barra solo tiene que
+     sumar el riel que ella misma cruza con su `margin-left:-56px`, y cuadra con
+     todo sin una sola regla especial. Lo que hacía imposible el atajo no era la
+     barra: eran los dos anchos. */
   background:#FFFFFF;
   border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
@@ -518,6 +508,11 @@
    del que depende el encaje de la página entera — y además animar `padding` en
    `<body>` fuerza un reflujo completo en cada fotograma. El riel sigue
    animando SU propio ancho, que no descoloca nada si se atasca. */
+/* Los 26 px de la barra + los 56 del riel = los 82 en que empieza el contenido.
+   Solo cuando hay riel: sin él la barra no lo cruza y sumarlos la desplazaría. */
+body.con-rail > .lw-topbar{ padding-left:calc(56px + 26px); }
+body.rail-abierto > .lw-topbar{ padding-left:calc(208px + 26px); }
+
 body.con-rail{ padding-left:56px; }
 body.rail-abierto{ padding-left:208px; }
 /* El deslizamiento SOLO cuando `topbar.js` lo habilita, dos cuadros después de

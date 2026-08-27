@@ -30,7 +30,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=3f168100">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=d020619e">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
@@ -55,7 +55,8 @@
      una barra que ya ocupa su hueco en el flujo. Solo Operaciones y el portal
      usan `class="topbar"` de verdad; ahí se queda.
      Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
-  main{ max-width:1240px; margin:0 auto; padding:22px 24px 60px; }
+  /* Sin tope de ancho, como el resto de la suite (27-ago-2026). */
+  main{ margin:0 auto; padding:22px 24px 60px; }
   h1{ margin:0 0 4px; font-size:22px; font-weight:500; letter-spacing:.005em; }
   .sub{ margin:0 0 18px; font-size:13.5px; color:var(--texto-2,#4A5052); max-width:70ch; }
   h2{ margin:28px 0 10px; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;

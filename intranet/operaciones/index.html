@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=3f168100">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=d020619e">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -58,7 +58,8 @@
      Al elegir una fila, la tabla se va y entra la ficha en el mismo ancho —de
      ahí `.stage.abierta`, que ya existía y solo servía en móvil. */
   .stage{ display:block; height:100%; overflow:auto; padding-top:var(--tbh); }
-  .centro{ max-width:1520px; margin:0 auto; padding:22px 26px 90px; }
+  /* Sin tope de ancho, como el resto de la suite (27-ago-2026). */
+  .centro{ margin:0 auto; padding:22px 26px 90px; }
   .stage.abierta .lista{ display:none; }
   .stage:not(.abierta)
   /* ---------- lista ---------- */
