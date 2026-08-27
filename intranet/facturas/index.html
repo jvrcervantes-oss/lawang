@@ -1512,6 +1512,7 @@ function collect(){
   return d;
 }
 $('#selTipo').addEventListener('change', () => { toggleTipoRecibi();
+  soltarPrecargaAlCambiarTipo();
   /* Qué se ofrece depende del tipo: la proforma pide el total del proyecto
      y la factura pide un hito. Sin este repintado la ficha del contrato se
      quedaba con las opciones del tipo anterior. */
@@ -2200,12 +2201,39 @@ async function pintarOpcionesContrato(){
        los que se emitieron, no una sugerencia.
      Y se AVISA de que está precargado, con lo que se ha puesto: un importe que
      aparece solo y no se anuncia es un importe que nadie repasa. */
+let PRECARGA_HUELLA = null;
+/* 🔴 AL DEJAR DE SER PROFORMA, EL TOTAL PRECARGADO SE VA (27-ago-2026)
+   Medido en producción antes de existir esto: se abría una proforma de CC00075,
+   se precargaba «Precio total del contrato CC00075 · 66.000 €» —correcto para
+   una proforma— y al cambiar el tipo a Factura esas líneas se quedaban puestas.
+   El resultado era una factura por el proyecto ENTERO, con aspecto de estar
+   bien rellenada, en un modelo donde una factura cobra un hito.
+
+   Se retira, y solo si NADIE la ha tocado: se compara con la huella de lo que
+   puso la máquina. Si el agente ha cambiado un importe, una descripción o ha
+   añadido una línea, deja de coincidir y no se toca nada — borrar el trabajo
+   de una persona para arreglar un descuido de la máquina es peor que el
+   descuido. Y se avisa: quitar algo de la pantalla sin decirlo es la otra
+   forma de que nadie repase. */
+function soltarPrecargaAlCambiarTipo(){
+  if(!PRECARGA_HUELLA || $('#selTipo').value === 'proforma') return;
+  if(JSON.stringify(LINEAS) !== PRECARGA_HUELLA) { PRECARGA_HUELLA = null; return; }
+  PRECARGA_HUELLA = null;
+  LINEAS = [{ descripcion:'', importe:'' }];
+  pintarLineas();
+  toast('Conceptos vaciados: el total del proyecto es de la proforma, no de una factura');
+}
+
 function precargarConceptos(){
   const enBlanco = () => !LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
   if(!SAVED && $('#selTipo').value === 'proforma' && enBlanco()){
     const auto = document.querySelector('[data-unidad]') || document.querySelector('#hitoTodo');
     if(auto && !auto.disabled){
       auto.click();
+      /* La HUELLA de lo que ha puesto la máquina. Sirve para poder retirarlo
+         después sin tocar nunca lo que haya escrito una persona: se compara, y
+         solo se retira si sigue siendo exactamente lo que se puso. */
+      setTimeout(() => { PRECARGA_HUELLA = JSON.stringify(LINEAS); }, 60);
       /* El clic ya pinta y avisa; aquí solo se dice que ha sido automático,
          que es la diferencia entre «lo he puesto yo» y «lo has pedido tú». */
       setTimeout(() => toast('Proforma precargada con el total del proyecto'), 350);
