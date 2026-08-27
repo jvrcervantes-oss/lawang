@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:e5e93f61894e
+   topbar.css   sha256:a83962b417e6
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -731,6 +731,37 @@ body.rail-abierto > header{ margin-left:-208px; }
      Un `padding` a 0 sin su `margin` a 0 es medio arreglo, y esta es la mitad
      que faltaba desde que existe el riel. */
   body.con-rail > header, body.rail-abierto > header{ margin-left:0; }
+
+  /* 🔴 …Y EL RELLENO DE LA BARRA, QUE ERA EL TERCIO QUE FALTABA (27-ago-2026)
+     Arriba, `.lw-topbar` de este mismo bloque ya pone `padding:0 max(10px,…)`
+     para deshacer el cálculo de escritorio. NUNCA LLEGÓ A APLICARSE.
+
+     No es un problema de orden ni de media query: es ESPECIFICIDAD.
+         .lw-topbar                      → (0,1,0)
+         body.con-rail > .lw-topbar      → (0,2,1)   ← gana siempre
+     Una `@media` no suma especificidad. Da igual que esté más abajo y que sea
+     la única que debería aplicar en móvil: la regla de escritorio la supera y
+     manda a 390 px igual que a 1920.
+
+     Medido en producción antes de tocar nada, a 390 px de ancho, en Facturas,
+     Proyectos y el hub: `paddingLeft: "82px"` en las tres, con el botón ☰ —el
+     primer hijo— en x=82. En un iPhone eso es el 21% del ancho de pantalla
+     gastado en dejarle sitio a un riel que en móvil ya no es una columna, sino
+     una hoja que sube desde abajo.
+
+     Así que la cancelación se repite con la MISMA forma que la regla que la
+     pisaba. Es fea a propósito: cancelar una regla exige igualarla, no pedirlo
+     por favor. Y no se resuelve con `!important`, que arreglaría el síntoma y
+     dejaría la trampa puesta para la siguiente regla de escritorio que se
+     escriba con dos clases.
+
+     Es el mismo fallo de raíz que el `margin-left` de aquí arriba: la
+     compensación del riel se escribió pensando solo en escritorio, y en móvil
+     hay que deshacerla ENTERA — padding del body, margen de la barra y relleno
+     de la barra. Van los tres juntos o no va ninguno. */
+  body.con-rail > .lw-topbar, body.rail-abierto > .lw-topbar{
+    padding-left:max(10px, env(safe-area-inset-left));
+  }
   .lw-rail-movil{ display:inline-flex; align-items:center; justify-content:center;
     width:38px; height:38px; flex:none; border:1px solid var(--linea,#E4DCCB);
     border-radius:10px; background:var(--sup-1,#fff); color:var(--texto-2,#4A5052);
