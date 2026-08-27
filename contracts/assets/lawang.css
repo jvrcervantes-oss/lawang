@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:9a978edabe26
+   topbar.css   sha256:8d2598d112b1
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -141,13 +141,32 @@
      `max(0px, …)` para que por debajo de 1576 px no sobre nada y esto valga
      exactamente lo de siempre: 82 a la izquierda, 26 a la derecha. */
   --lw-medida:1520px;
-  --lw-sobra:max(0px, calc((100% - 56px - var(--lw-medida)) / 2));
-  padding-left:calc(56px + var(--lw-sobra) + 26px);
+  /* 🔴 `100%` NO ES LA VENTANA. Se mide contra la caja de contenido del `body`,
+     que YA lleva descontados los 56 px del riel — y mi primera versión los
+     restaba otra vez aquí, con lo que la barra quedaba 28 px fuera del
+     contenido por los dos lados y «Nueva unidad» sobresalía de las tarjetas.
+     Owner: «creo que lo has roto más». Lo había roto: el desfase de 254 pasó a
+     28, pero hacia AFUERA, que se nota más que hacia adentro porque el botón se
+     sale de la columna en vez de meterse.
+     La cuenta buena: `(100% - medida)/2` es lo que sobra a cada lado del
+     contenido dentro del body; el `56px` de la izquierda es el riel, que esta
+     barra sí cruza porque lleva `margin-left:-56px`. */
+  --lw-sobra:max(0px, calc((100% - var(--lw-medida)) / 2));
+  padding-left:calc(var(--lw-sobra) + 26px);
   padding-right:calc(var(--lw-sobra) + 26px);
+
   background:#FFFFFF;
   border-bottom:1px solid var(--linea,#E4DCCB);
   font-family:var(--sans,'Jost',system-ui,sans-serif);
   color:var(--va,#2E3437);
+}
+/* Los 56 px del riel SOLO cuando el riel existe: sin él, la barra no lleva el
+   `margin-left:-56px` que la hace cruzarlo, y sumarlos la empujaría de más.
+   Va en su propia regla y no dentro de la de arriba para no llevarse con ella
+   el fondo y el filete — que es justo lo que hice mal al separarlas la primera
+   vez: una página sin riel se habría quedado sin barra blanca. */
+body.con-rail > .lw-topbar{
+  padding-left:calc(56px + var(--lw-sobra) + 26px);
 }
 
 /* ── VARIANTE OSCURA DE LA BARRA — el hub, 16-ago-2026 ──────────────────────
