@@ -15,7 +15,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=690cc603">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e8300d04">
 <link rel="stylesheet" href="/contracts/assets/suite.css?v=a8478515">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/topbar.js?v=57ac2ec5" defer></script>
@@ -104,8 +104,11 @@
   .f:hover{ border-color:var(--dl); }
   .f.on{ background:#21272A; border-color:#21272A; color:#fff; }
   .f.vacio{ opacity:.45; }
-  .f-sel{ font:inherit; font-size:12px; padding:6px 9px; border:1px solid var(--line); border-radius:9px;
-          background:var(--card); color:inherit; margin-top:7px; width:100%; }
+  /* El ASPECTO de `.f-sel` vive en topbar.css con el resto de desplegables
+     (27-ago-2026): era la cuarta forma distinta de pintar lo mismo en la suite,
+     con su propio tamaño de letra y su propio relleno. Aquí se queda solo lo
+     que es de ESTA pantalla: dónde se coloca dentro de la cabecera. */
+  .f-sel{ margin-top:7px; width:100%; }
   .op{ display:block; width:100%; text-align:left; font:inherit; background:none; border:none;
        border-bottom:1px solid var(--line); padding:13px 18px; cursor:pointer; }
   .op:hover{ background:#efeade; }

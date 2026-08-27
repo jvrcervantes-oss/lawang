@@ -16,7 +16,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="/contracts/assets/topbar.css?v=690cc603">
+<link rel="stylesheet" href="/contracts/assets/topbar.css?v=e8300d04">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -191,11 +191,11 @@
 
   /* Botón que abre el buscador de contrato. Se pinta como un campo, no como un
      botón: ocupa el sitio de un `<select class="sui-sel">` y tiene que leerse como tal. */
-  .campo-elegir{ width:100%; font:inherit; font-size:14px; text-align:left;
-             padding:9px 11px; border:1px solid var(--line); border-radius:9px;
-             background:var(--rl,#fff); color:inherit; cursor:pointer;
-             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .campo-elegir:hover{ border-color:var(--dl); }
+  /* El aspecto de `.campo-elegir` vive en topbar.css, con el de los
+     desplegables: hace lo mismo que un `<select>` —elegir un valor de una
+     lista— y por eso tiene que verse igual. Aquí había una copia con otro
+     tamaño de letra, otro relleno y otro fondo, y eso es lo que el owner vio
+     el 27-ago: «dos estilos de desplegables, uno en contrato y otro en moneda».
   /* Un dato que la base pone y nadie escribe: se lee, no se rellena. Sin borde
      de caja, sin fondo de campo y fuera del recorrido del tabulador. */
   input.dato-fijo{ border:0; background:none; padding-left:0; color:var(--muted);
@@ -209,8 +209,7 @@
      en su sitio para que se aprenda que existe y qué le falta. */
   .btn.inerte{ opacity:.42; cursor:not-allowed; }
   .btn.inerte:hover{ border-color:var(--line); }
-  .campo-elegir::after{ content:'⌄'; float:right; color:var(--muted); margin-left:8px; }
-  .campo-elegir.vacio{ color:var(--muted); }
+     La flecha y el estado «vacío» también salen de allí. */
 
   /* Campo que rellena el contrato y no se teclea. Se ve DISTINTO de un campo
      vacío: gris de fondo y candado. Un campo que no deja escribir sin decir por

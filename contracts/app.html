@@ -19,7 +19,7 @@
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="assets/topbar.css?v=690cc603">
+<link rel="stylesheet" href="assets/topbar.css?v=e8300d04">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -543,8 +543,11 @@ function puedeEmitir(slug){
   if(!tipo) return true;
   const f = MI_FICHA;
   if(!f || f.rol !== 'agente') return true;
-  const permitidos = f.tipos_contrato || [];
-  return permitidos.length === 0 || permitidos.includes(tipo);
+  /* 27-ago-2026: vacío pasó a significar NINGUNO (antes era «todos»). El
+     «todos» existía solo para no dejar a nadie fuera el día que se añadió la
+     columna, y con los permisos ya repartidos esa protección solo servía para
+     que un permiso sin rellenar pareciera configurado. */
+  return (f.tipos_contrato || []).includes(tipo);
 }
 const plantillasOfrecidas = () => TEMPLATES.filter(t => !t.disabled && puedeEmitir(t.slug));
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
@@ -5043,8 +5046,17 @@ async function init(){
      base lo rechace al guardar es la peor forma de enterarse, que es lo mismo
      que ya decía el rebote de arriba para las herramientas. */
   if(!puedeEmitir(CURRENT.slug)){
-    const alt = plantillasOfrecidas()[0];
+    const alt = plantillasOfrecidas().find(t => CONTRACT_TIPO[t.slug]);
     if(alt) CURRENT = alt;
+  }
+  /* Y si NO puede emitir ninguno —desde el 27-ago, lista vacía significa
+     ninguno— se dice aquí y ahora. Sin esto se quedaba con el desplegable casi
+     vacío (solo Estatutos, que no se guarda) sobre un tipo que no puede emitir,
+     y lo descubría al pulsar Guardar con el contrato ya relleno: exactamente lo
+     que el rebote por herramienta evita tres líneas más arriba, y por el mismo
+     motivo. */
+  if(MI_FICHA && MI_FICHA.rol === 'agente' && !plantillasOfrecidas().some(t => CONTRACT_TIPO[t.slug])){
+    toast('No tienes ningún tipo de contrato asignado. Pídeselo a un administrador antes de empezar.');
   }
   MI_EMAIL = session.user.email || '';   // lo usa el filtro "Míos" del panel de guardados
   // El rol sale de la ficha que se acaba de leer tres líneas arriba: no hace
