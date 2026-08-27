@@ -57,19 +57,35 @@
      media corrección del 15-ago que descolocó el logotipo del hub—.
 
      Si algún día esta barra pasa a `fixed`, estas dos líneas SOBRAN y hay que
-     borrarlas: volverían a descolocarla, ahora hacia el otro lado. */
-  body.con-rail > .topbar{ margin-left:-56px; }
-  body.rail-abierto > .topbar{ margin-left:-208px; }
-  body.rail-anima > .topbar{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
+     borrarlas: volverían a descolocarla, ahora hacia el otro lado.
+
+     🔴 Y SE ACOTA POR `.lw-topbar-flujo`, NO POR `.topbar` (27-ago-2026).
+     Nació escrita sobre `.topbar` «porque es la de Contratos». No lo es:
+     Operaciones y el Portal también la llevan. La descolocó 56 px, y el fallo
+     lo cometí una hora después de unificar las cuatro hojas en `lawang.css`.
+
+     Ésa es justo la contrapartida de la hoja única, y hay que dejarla escrita:
+     antes, una regla en `app.css` solo alcanzaba a quien cargara `app.css` —el
+     fichero acotaba por sí solo—. Ahora las trece páginas cargan lo mismo, así
+     que **lo único que acota es el selector**. Escribirlo pensando en «mi
+     página» y no en «todo lo que casa» es el fallo que este bloque documenta.
+
+     La clase nombra la CONDICIÓN de la que depende el cálculo —la barra va en
+     el flujo— y no la página. Así, el día que otra herramienta necesite una
+     barra sticky, se la pone y funciona; y si Contratos deja de necesitarla,
+     se quita del HTML y la regla se apaga sola. */
+  body.con-rail > .lw-topbar-flujo{ margin-left:-56px; }
+  body.rail-abierto > .lw-topbar-flujo{ margin-left:-208px; }
+  body.rail-anima > .lw-topbar-flujo{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
   @media (prefers-reduced-motion: reduce){
-    body.rail-anima > .topbar{ transition:none; }
+    body.rail-anima > .lw-topbar-flujo{ transition:none; }
   }
   /* Y en móvil el riel deja de desplazar el body (padding-left:0), así que el
      margen negativo tiene que irse con él o la barra se sale por la izquierda
      llevándose el botón ☰ —el fallo exacto que ya ocurrió con el `<header>`
      el 26-ago—. El corte es el mismo 860px de `topbar.css`. */
   @media screen and (max-width:860px){
-    body.con-rail > .topbar, body.rail-abierto > .topbar{ margin-left:0; }
+    body.con-rail > .lw-topbar-flujo, body.rail-abierto > .lw-topbar-flujo{ margin-left:0; }
   }
   /* toggle de idioma como segmento con pastilla deslizante */
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:9px; padding:3px; box-shadow:inset 0 1px 2px rgba(46,52,55,.05); }
