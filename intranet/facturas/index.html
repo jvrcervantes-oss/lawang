@@ -209,6 +209,13 @@
   /* Un botón que no puede funcionar no se esconde: se apaga y DICE por qué al
      posarse encima (§16.1 — el aviso llega antes del error, no después). Sigue
      en su sitio para que se aprenda que existe y qué le falta. */
+  /* «Pendiente: 44.000,00 €» es pulsable: rellena el importe entero. Se pinta
+     como enlace y no como botón porque es un atajo dentro de una frase, no una
+     acción de la pantalla. */
+  .link-pendiente{ border:0; background:none; padding:0; font:inherit; font-weight:600;
+                   color:var(--dl); text-decoration:underline; cursor:pointer;
+                   font-variant-numeric:tabular-nums; }
+  .link-pendiente:hover{ text-decoration:none; }
   .btn.inerte{ opacity:.42; cursor:not-allowed; }
   .btn.inerte:hover{ border-color:var(--line); }
      La flecha y el estado «vacío» también salen de allí. */
@@ -808,11 +815,19 @@
                Sus "Conceptos" (arriba) se generan solos a partir de esto — ver
                toggleTipoRecibi()/sincronizarLineasDesdeAplicaciones(). -->
           <fieldset id="fsAplicaciones" hidden>
-            <legend>Facturas que salda este recibí</legend>
-            <label for="selFacturaAplicar">Añadir factura</label>
-            <select class="sui-sel" id="selFacturaAplicar"><option value="">— elige una factura pendiente —</option></select>
-            <p class="hint" id="aplicAmbito"></p>
+            <!-- 🔴 AQUÍ SE PEDÍA LA FACTURA OTRA VEZ (27-ago-2026, owner: «en
+                 recibí ahora seleccionamos factura y no contrato, eso está bien
+                 pero más abajo vuelve a pedir la factura, no tiene sentido»).
+                 Y no lo tenía: desde esta mañana la factura se elige arriba, en
+                 el primer campo. Este desplegable era el camino viejo, que se
+                 quedó de adorno pidiendo lo que ya está pedido.
+                 Lo que SÍ hay que poder seguir haciendo es cobrar DOS facturas
+                 con un mismo ingreso — pasa poco, así que se queda como enlace
+                 discreto y no como el primer control de la sección. -->
+            <legend>Lo que se ha cobrado</legend>
             <div id="aplicaciones"></div>
+            <button type="button" class="btn" id="btnOtraFactura">+ Añadir otra factura</button>
+            <p class="hint" id="aplicAmbito"></p>
             <p class="hint" id="aplicSuma"></p>
             <label for="fJustificante">Justificante de pago (obligatorio)</label>
             <input type="file" id="fJustificante" multiple accept="image/jpeg,image/png,image/webp,application/pdf">
@@ -1243,21 +1258,22 @@ async function refrescarAplicablesDelRecibi(){
   }
   pintarSelectFacturaAplicar();
 }
+/* El desplegable se fue (ver la nota del marcado), pero su AVISO se queda: las
+   tres cosas que decía —hay más facturas de este comprador, las hay en otra
+   moneda, o no hay ninguna— siguen siendo lo que hace falta saber antes de
+   pulsar «añadir otra factura». Un desplegable vacío y un botón que no ofrece
+   nada tienen el mismo problema: no dicen POR QUÉ. */
 function pintarSelectFacturaAplicar(){
   const usadas = new Set(APLICACIONES.map(a => a.factura_id));
   const libres = FACTURAS_ABIERTAS.filter(x => !usadas.has(x.id));
-  $('#selFacturaAplicar').innerHTML = '<option value="">— elige una factura pendiente —</option>' +
-    libres.map(x =>
-      `<option value="${esc(x.id)}">${esc(x.numero)} — ${esc(x.cliente_nombre||'sin nombre')}${x.contrato_numero ? ' · '+esc(x.contrato_numero) : ''} — pendiente ${esc(fmtMoneda(x.pendiente, $('[name="moneda"]').value))}</option>`
-    ).join('');
-  // El desplegable vacío tiene dos causas muy distintas y el agente no puede
-  // adivinar cuál: sin contrato elegido no hay comprador contra el que filtrar.
+  const otra = $('#btnOtraFactura');
+  if(otra) otra.hidden = !libres.length;
   const aviso = $('#aplicAmbito'); if(!aviso) return;
-  aviso.textContent = !CONTRATO_ID
-    ? 'Elige antes el contrato del recibí: solo se pueden saldar facturas de ese mismo comprador.'
-    : libres.length ? 'Solo se listan las facturas pendientes de este comprador, incluidas las de sus otros contratos.'
+  aviso.textContent = !APLICACIONES.length
+    ? 'Elige arriba la factura que se cobra.'
+    : libres.length ? 'Hay ' + libres.length + ' factura' + (libres.length===1?'':'s') + ' pendiente' + (libres.length===1?'':'s') + ' más de este comprador, incluidas las de sus otros contratos.'
     : FACTURAS_OTRA_MONEDA ? 'Este comprador tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
-    : 'Este comprador no tiene ninguna factura pendiente. Un recibí solo puede saldar facturas suyas.';
+    : 'No le queda ninguna otra factura pendiente a este comprador.';
 }
 /* Elegir la factura que cobra este recibí. Deriva de ella todo lo demás: no se
    teclea nada que la factura ya sepa. */
@@ -1291,27 +1307,48 @@ async function elegirFacturaDelRecibi(){
     pintarContratoElegido();
     await traerContrato(CONTRATO_ID);
   }
-  APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente,
-                      importe:String(f.pendiente).replace('.', ',') });
-  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+  APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente, importe:'' });
+  pintarAplicaciones(); sincronizarLineasDesdeAplicaciones();
   render();
-  toast('Recibí por ' + fmtMoneda(f.pendiente, f.moneda || 'EUR') + ' contra ' + f.numero);
+  toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+  const campo = document.querySelector('[data-a="' + (APLICACIONES.length - 1) + '"]');
+  if(campo) campo.focus();
 }
 
-$('#selFacturaAplicar').addEventListener('change', e => {
-  const id = e.target.value; if(!id) return;
-  const f = FACTURAS_ABIERTAS.find(x => x.id === id); if(!f) return;
-  APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente, importe:String(f.pendiente).replace('.',',') });
-  e.target.value = '';
-  pintarAplicaciones(); pintarSelectFacturaAplicar(); sincronizarLineasDesdeAplicaciones();
+/* Cobrar dos facturas con un mismo ingreso: el caso raro, con el MISMO buscador
+   que el de arriba en vez de un control propio. */
+$('#btnOtraFactura').addEventListener('click', () => elegirFacturaDelRecibi());
+
+/* «Pendiente: 44.000,00 €» es un botón: rellena el importe de golpe cuando el
+   pago sí ha sido todo. Es la mitad barata de nacer en blanco. */
+$('#aplicaciones').addEventListener('click', e => {
+  const b = e.target.closest('[data-todo]'); if(!b) return;
+  const a = APLICACIONES[+b.dataset.todo]; if(!a) return;
+  a.importe = String(a.pendiente).replace('.', ',');
+  pintarAplicaciones(); sincronizarLineasDesdeAplicaciones(); render();
 });
 function pintarAplicaciones(){
+  /* 🔴 EL IMPORTE NACE VACÍO, Y ES DELIBERADO (27-ago-2026). Owner: «al firmar
+     el contrato mandamos la factura total y conforme vaya pagando emitimos
+     recibís por el importe que haya pagado en ese momento».
+     O sea que el caso normal es un cobro PARCIAL: 5.000 sobre una factura de
+     44.000. Traer los 44.000 puestos y confiar en que alguien los cambie es
+     poner el error más caro como valor por defecto — un recibí de más da por
+     cobrado lo que no ha entrado, y el `pendiente` de esa factura desaparece de
+     Vencimientos sin que nadie lo note.
+     En blanco, con lo pendiente A UN CLIC al lado para cuando el pago sí sea
+     todo. Escribir un número es más barato que descubrir uno mal. */
+  const moneda0 = $('[name="moneda"]').value;
   $('#aplicaciones').innerHTML = APLICACIONES.map((a,i) => `
     <div class="linea">
       <div><label>${esc(a.numero)}</label><input value="${esc(a.numero)}" disabled></div>
-      <div><label>Importe aplicado (pendiente ${esc(fmtMoneda(a.pendiente, $('[name="moneda"]').value))})</label>
-        <input data-a="${i}" inputmode="decimal" data-money value="${esc(a.importe)}"></div>
+      <div><label>Importe cobrado</label>
+        <input data-a="${i}" inputmode="decimal" data-money value="${esc(a.importe)}"
+               placeholder="¿cuánto ha entrado?" autocomplete="off"></div>
       <button type="button" class="xbtn" data-adel="${i}" title="Quitar">×</button>
+      <p class="hint" style="grid-column:1/-1;margin:2px 0 0">Pendiente de ${esc(a.numero)}:
+        <button type="button" class="link-pendiente" data-todo="${i}">${esc(fmtMoneda(a.pendiente, moneda0))}</button>
+        — pulsa para cobrarlo entero.</p>
     </div>`).join('');
   const moneda = $('[name="moneda"]').value;
   const suma = APLICACIONES.reduce((s,a) => s + (parseImporte(a.importe) || 0), 0);
