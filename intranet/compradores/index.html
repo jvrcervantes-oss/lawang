@@ -90,6 +90,26 @@
   .subir{ border:1px dashed var(--line); border-radius:11px; padding:13px; margin-top:12px; background:#FDFCF9; }
   .nota{ font-size:12px; color:var(--texto-2); margin:9px 0 0; line-height:1.5; }
 
+  /* Las facturas anuladas, apartadas y contadas (27-ago-2026). El contador va
+     en el rótulo a propósito: es lo que separa «apartado» de «escondido». */
+  details.anuladas{ margin-top:10px; }
+  details.anuladas > summary{ cursor:pointer; list-style:none; padding:6px 0;
+    font-size:12px; color:var(--texto-2); user-select:none; }
+  details.anuladas > summary::-webkit-details-marker{ display:none; }
+  details.anuladas > summary::before{ content:'＋ '; font-size:10px; }
+  details.anuladas[open] > summary::before{ content:'− '; }
+  details.anuladas > summary:hover{ color:var(--texto); }
+  /* Tachado y apagado: la fila se lee, pero ni un segundo se confunde con dinero
+     vivo. Es el mismo tratamiento que ya usa el listado de Facturas. */
+  tr.anulada td{ opacity:.55; text-decoration:line-through; }
+  tr.anulada td a{ text-decoration:line-through; }
+
+  /* Retirar un documento KYC es la acción más seria de esta ficha: va en rojo de
+     línea, no de relleno — se encuentra cuando se busca y no se pulsa sin querer
+     al ir a «Abrir», que está justo al lado. */
+  .btn.borrar{ margin-left:6px; color:#9E2F26; border-color:#E0C6C2; }
+  .btn.borrar:hover:not(:disabled){ background:#FBF3F2; border-color:#C98A82; }
+
   /* Avance de pago por proyecto (24-ago-2026). La PISTA y el movimiento salen
      de `.lw-bar` (suite.css), que ya usan Proyectos, Vencimientos y el portal:
      aquí solo se dice la tinta —el mismo verde de la cifra «Cobrado» de esta
@@ -242,7 +262,12 @@ async function cargar(){
     // solo en /intranet/operaciones/ y en el propio /portal/ del comprador). Por
     // facturas_equipo(), no .from() directo — mismo motivo que en Operaciones:
     // la RLS por agente dejaría fuera las de un contrato guardado por otro.
-    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,total,moneda,fecha_emision,anulada'),
+    /* `contrato_numero` y `proyecto_nombre` desde el 27-ago-2026. Owner: «con el
+       número o con el importe hay poca info». Son columnas propias de `facturas`
+       —las escribe el emisor al guardar— así que no cuestan ningún join, y están
+       puestas en 289 y 293 de los 301 documentos: comprobado antes de pintar una
+       columna que podría haber salido vacía. */
+    SB.rpc('facturas_equipo').select('id,numero,tipo,contrato_id,contrato_numero,proyecto_nombre,total,moneda,fecha_emision,anulada'),
     // "cobrado" real por contrato (reforma del modelo de facturación, 11-ago):
     // mismo contrato_cobrado()/contratos_cobrado_equipo() que usa Operaciones,
     // una sola fuente para no reimplementar la fórmula (solo recibí cuenta).
@@ -445,9 +470,10 @@ function pintarFicha(){
       <td>${esc(etiqueta(DOCS,d.doc_type))}</td>
       <td>${fFecha(d.uploaded_at)}</td>
       <td>${cad}</td>
-      <td><button class="btn" data-ver="${esc(d.storage_path||'')}" ${d.storage_path?'':'disabled'}>Abrir</button></td>
+      <td><button class="btn" data-ver="${esc(d.storage_path||'')}" ${d.storage_path?'':'disabled'}>Abrir</button>${
+        ES_ADMIN ? `<button class="btn borrar" data-borrar-doc="${esc(d.id)}" title="Retirar este documento">Borrar</button>` : ''}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="4" class="nota">Sin documentos todavía.</td></tr>';
+  }).join('') : `<tr><td colspan="4" class="nota">Sin documentos todavía.</td></tr>`;
 
   /* La ficha va en el CAJÓN lateral — norma de la suite desde el 31-jul: se lee
      y se edita sin perder de vista la lista de la que sale. */
@@ -593,15 +619,36 @@ function pintarFicha(){
           .sort((a,b) => String(b.fecha_emision||'').localeCompare(String(a.fecha_emision||'')));
         if(!suyosIds.size) return '<p class="nota">Sin contrato enlazado todavía, no hay a qué factura atarla.</p>';
         if(!suyas.length) return '<p class="nota">Ninguna factura emitida todavía en sus contratos.</p>';
-        return `<table><thead><tr><th>Nº</th><th>Tipo</th><th>Fecha</th><th class="num">Importe</th><th>Estado</th></tr></thead><tbody>
-          ${suyas.map(x => `<tr>
+        /* 🔴 LAS ANULADAS SE APARTAN, NO SE ESCONDEN (27-ago-2026)
+           Owner: «yo aislaría las anuladas ya que no aportan nada». Y en la
+           lectura del día a día no aportan: anular es decir que ese importe no
+           cuenta, así que una fila anulada entre las vigentes solo obliga a
+           leer una columna «Estado» documento a documento para descartarla.
+
+           Pero apartar no es borrar. Un documento anulado sigue existiendo y
+           tiene su número gastado en la serie; el día que alguien pregunte «¿y
+           la INV00038?» la respuesta tiene que estar en esta pantalla y no en
+           otra. Va en un desplegable cerrado que DICE CUÁNTAS HAY: un contador
+           a la vista es lo que diferencia apartar de ocultar. */
+        const vivas = suyas.filter(x => !x.anulada);
+        const nulas = suyas.filter(x => x.anulada);
+        /* La unidad concreta, no solo el proyecto: `proyecto_nombre` de una
+           factura ya viene compuesto como «Bonian Village — W3 3.1» cuando el
+           contrato fija parcela, villa o tipología (lo arma el emisor). Se
+           enseña con el número de contrato delante, que es lo que ata el
+           documento a la operación. */
+        const unidad = x => [x.contrato_numero, x.proyecto_nombre].filter(Boolean).join(' · ') || '—';
+        const tabla = (filas) => `<table><thead><tr><th>Nº</th><th>Tipo</th><th>Contrato · unidad</th><th>Fecha</th><th class="num">Importe</th></tr></thead><tbody>
+          ${filas.map(x => `<tr${x.anulada ? ' class="anulada"' : ''}>
             <td><a href="/intranet/facturas/?id=${encodeURIComponent(x.id)}" style="color:var(--dl)">${esc(x.numero || 'borrador')}</a></td>
             <td>${esc(TIPO_DOC[x.tipo] || x.tipo || '—')}</td>
+            <td>${esc(unidad(x))}</td>
             <td>${fFecha(x.fecha_emision)}</td>
             <td class="num">${x.total != null ? esc(lwFormatoImporte(Number(x.total), x.moneda)) : '—'}</td>
-            <td>${x.anulada ? '<span class="tag mal">Anulada</span>' : '<span class="tag ok">Vigente</span>'}</td>
           </tr>`).join('')}
         </tbody></table>`;
+        return (vivas.length ? tabla(vivas) : '<p class="nota">Ninguna vigente: todas sus facturas están anuladas.</p>')
+          + (nulas.length ? `<details class="anuladas"><summary>${nulas.length} anulada${nulas.length===1?'':'s'} · no cuentan</summary>${tabla(nulas)}</details>` : '');
       })()}
     </fieldset>`}
     ${nuevo ? '' : `
@@ -760,6 +807,62 @@ function pintarFicha(){
   const br = $('#btnPortalRev'); if(br) br.addEventListener('click', () => revocarPortal(c));
   document.getElementById('suiCajon').querySelectorAll('[data-ver]')
     .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
+  document.getElementById('suiCajon').querySelectorAll('[data-borrar-doc]')
+    .forEach(b => b.addEventListener('click', () => borrarDocumento(b.dataset.borrarDoc, b)));
+}
+
+/* ---------- retirar UN documento (admin) ----------
+   Owner, 27-ago-2026: «poder borrar documentación como pasaportes o algo si hay
+   algo mal». El caso real es un fichero equivocado o ilegible, no una purga.
+
+   EL ORDEN IMPORTA, Y ES: FILA PRIMERO, FICHERO DESPUÉS.
+   La fila de `documents` es lo que esta pantalla enseña; el fichero del bucket
+   solo se ve si alguien pulsa «Abrir». Si el borrado se corta a la mitad:
+     · fila fuera y fichero dentro → un huérfano en el bucket. Molesto, invisible
+       para el operador, y se limpia después con la ruta, que se avisa.
+     · fila dentro y fichero fuera → la pantalla sigue ofreciendo un documento
+       que ya no existe, y el «Abrir» falla sin explicar por qué.
+   La segunda es peor, así que se corre el riesgo de la primera. Es el mismo
+   orden y el mismo motivo que `borrar_comprador()` de aquí abajo.
+
+   🔴 Y HACÍA FALTA UNA POLÍTICA NUEVA. `documents` tenía INSERT, SELECT y
+   UPDATE, y ninguna de DELETE: con RLS activa, un delete no falla, devuelve
+   CERO FILAS AFECTADAS. Sin `20260827110851_documents_borrado_por_admin.sql`
+   este botón habría borrado el fichero y dejado la fila, en silencio. Por eso
+   se comprueba el `count` de vuelta y no solo el `error`. */
+async function borrarDocumento(id, btn){
+  const d = DOCUMENTOS.find(x => x.id === id);
+  if(!d) return;
+  const nombre = etiqueta(DOCS, d.doc_type) || 'documento';
+  if(!await lwConfirmar({
+    titulo: 'Retirar ' + nombre,
+    cuerpo: '<p>Se retira <b>' + esc(nombre) + '</b>' + (d.uploaded_at ? ' (subido el ' + esc(fFecha(d.uploaded_at)) + ')' : '')
+          + ' de la ficha, y su fichero del archivo privado.</p>'
+          + '<p>No hay papelera: si el documento sigue haciendo falta habrá que volver a subirlo.</p>',
+    confirmar: 'Retirar el documento', cancelar: 'Dejarlo' })) return;
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Retirando…'; }
+  const { error, count } = await SB.from('documents').delete({ count:'exact' }).eq('id', id);
+  if(error || !count){
+    if(btn){ btn.disabled = false; btn.textContent = 'Borrar'; }
+    /* Cero filas sin error es la RLS diciendo que no, no un documento que ya no
+       estaba: si no estuviera, tampoco lo enseñaría esta tabla. Se distingue,
+       porque «no se ha borrado» y «no tienes permiso» se arreglan distinto. */
+    toast(error ? 'No se pudo retirar: ' + error.message
+                : 'No se ha retirado: tu usuario no tiene permiso para borrar documentos.');
+    return;
+  }
+  if(d.storage_path){
+    const { error: eSt } = await SB.storage.from('kyc').remove([d.storage_path]);
+    if(eSt) toast('Documento retirado de la ficha, pero su fichero sigue en el archivo (' + d.storage_path + '): ' + eSt.message);
+  }
+  toast(nombre + ' retirado');
+  /* Se recarga y se repinta la ficha ABIERTA, no se cierra el cajón: retirar un
+     documento suele venir seguido de subir el correcto, y cerrar obligaría a
+     buscar otra vez al comprador en la lista. */
+  await cargar();
+  pintarFicha();
+  pintarLista();
 }
 
 /* ---------- borrar una ficha (solo super_admin): los duplicados ----------
