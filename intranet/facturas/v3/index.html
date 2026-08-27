@@ -228,7 +228,7 @@ function pintarPorContrato(cont, lista){
       + (c.variosClientes ? ' de varios clientes' : '') + ' · no son un contrato: no se suman entre sí</span></div>'
       + '<div class="filas">' + c.docs.map(f => filaDoc(f)).join('') + '</div></div>';
     const marca = c.cobradoSinFactura ? '<span class="sui-tag alerta">Cobrado sin factura</span>'
-                : c.soloProforma      ? '<span class="sui-tag gris">Solo proforma</span>'
+                : c.soloProforma      ? '<span class="sui-tag gris" title="Proforma del total emitida; ningún hito facturado todavía">Sin hitos facturados</span>'
                 : c.sinRecibi         ? '<span class="sui-tag alerta">Sin recibí</span>' : '';
     const cifra = c.totalFacturado ? lwSumaTexto(c.facturado)
                 : c.cobradoSinFactura ? lwSumaTexto(c.cobrado)
@@ -262,11 +262,25 @@ const pendienteDe = f => f.tipo === 'recibi' || f.anulada ? 0
    «Vencido» va aparte de «pendiente» a propósito: pendiente es el negocio
    funcionando; vencido es dinero que debería estar en la cuenta y no está. */
 function pintarDinero(){
-  /* Sin recibís: un recibí es el justificante de una factura que YA está
-     contada aquí. Sumarlo sería contar el mismo dinero dos veces. Por eso este
-     «Emitido» no es el mismo número que el «Suma de lo vigente» del listado
-     actual, que sí los mete — se dice abajo, en el pie de la tarjeta. */
-  const vivas = DOCS.filter(f => !f.anulada && f.tipo !== 'recibi');
+  /* QUÉ ENTRA EN ESTAS CIFRAS: SOLO FACTURAS.
+     · Sin recibís — un recibí es el justificante de una factura que YA está
+       contada aquí. Sumarlo sería contar el mismo dinero dos veces.
+     · Sin proformas (27-ago-2026) — una proforma anuncia el TOTAL del proyecto
+       y es informativa, sin validez fiscal. El cliente lo ha decidido con estas
+       palabras: «que no cuenta en la contabilidad».
+
+     Este bloque llevaba escrito desde que se montó la v3 que sacar las
+     proformas «es una decisión de negocio» y que no se tomaba por cuenta
+     propia. Ya está tomada, así que se aplica — y el porqué se queda escrito,
+     que es lo que permite deshacerlo si el criterio cambia otra vez.
+
+     No es solo cosmético: `PEND` viene de `facturas_pendiente_equipo()`, que
+     solo devuelve filas de `tipo='factura'`. Para una proforma no había fila,
+     así que `pendienteDe` caía a su importe ÍNTEGRO y las 116 proformas vivas
+     engordaban «Pendiente» y podían aparecer en «Vencido» — reclamando un
+     dinero que ningún documento fiscal ha pedido todavía. */
+  const vivas     = DOCS.filter(f => !f.anulada && f.tipo === 'factura');
+  const proformas = DOCS.filter(f => !f.anulada && f.tipo === 'proforma');
   /* POR MONEDA, y no en una sola cifra. La auditoría del 19-ago-2026 ya
      encontró exactamente este fallo en el listado de esta misma herramienta:
      sumaba EUR con USD y lo etiquetaba con la moneda de la primera fila, o sea
@@ -277,29 +291,26 @@ function pintarDinero(){
   const pendiente = lwSumaPorMoneda(vivas, pendienteDe, f => f.moneda);
   const vencidas  = vivas.filter(f => f.venc && f.venc < HOY && pendienteDe(f) > 0.005);
   const vencido   = lwSumaPorMoneda(vencidas, pendienteDe, f => f.moneda);
-  const proformas = vivas.filter(f => f.tipo === 'proforma');
   const sumaProf  = lwSumaPorMoneda(proformas, f => f.total, f => f.moneda);
   const cobrado = {};
   Object.keys(emitido).forEach(m => { cobrado[m] = emitido[m] - (pendiente[m] || 0); });
 
   const mp = lwMonedaPrincipal(emitido);
   const pctTxt = emitido[mp]
-    ? (cobrado[mp] / emitido[mp] * 100).toFixed(1).replace('.', ',') + ' % de lo emitido'
+    ? (cobrado[mp] / emitido[mp] * 100).toFixed(1).replace('.', ',') + ' % de lo facturado'
       + (Object.keys(emitido).length > 1 ? ' en ' + mp : '')
     : '—';
 
   $('#dinero').innerHTML =
-      /* CUÁNTO DE ESTO ES PROFORMA. El owner ha pedido para Operaciones «no
-         sumes valores hasta que no estén firmados»; en Facturas el equivalente
-         de «todavía no es firme» es la proforma, que es una petición de pago y
-         no un documento definitivo. NO se saca del total por mi cuenta —eso
-         cambiaría lo que el equipo lee hoy, y es una decisión de negocio— pero
-         sí se dice cuánto pesa, que es lo que permite decidirlo con un número
-         delante en vez de a ojo. */
-      tarjeta('Emitido', lwSumaTexto(emitido),
-        vivas.length + ' documentos · ' + (proformas.length
-          ? proformas.length + ' son proformas (' + lwSumaTexto(sumaProf) + ')'
-          : 'ninguna proforma'), '')
+      /* Las proformas ya NO están dentro (ver arriba), pero se siguen diciendo:
+         son el compromiso anunciado al cliente y no verlas por ningún lado haría
+         pensar que se han perdido. Van como pie de la tarjeta —contexto— y no
+         como cifra, que es exactamente su papel. */
+      tarjeta('Facturado', lwSumaTexto(emitido),
+        vivas.length + (vivas.length === 1 ? ' factura' : ' facturas')
+        + (proformas.length
+          ? ' · ' + proformas.length + ' proformas por ' + lwSumaTexto(sumaProf) + ', informativas'
+          : ''), '')
     + tarjeta('Cobrado', lwSumaTexto(cobrado), pctTxt, 'cobrado')
     + tarjeta('Pendiente', lwSumaTexto(pendiente), 'aún dentro de plazo o sin fecha', '')
     + tarjeta('Vencido', lwSumaTexto(vencido),

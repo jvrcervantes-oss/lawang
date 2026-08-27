@@ -366,6 +366,17 @@
     .fs-cuerpo > .fs-dentro{ transition:none; }
     fieldset.plegado > .fs-cuerpo > .fs-dentro{ transform:none; }
   }
+  /* «El proyecto se factura de una vez» — la excepción del modelo por hitos.
+     Va plegada y sin color: sigue estando a un clic, pero no compite con los
+     hitos, que son el camino normal. El `summary` es texto, no botón: lo que
+     abre no es una acción, es una opción menos frecuente. */
+  .excepcion{ margin-top:12px; }
+  .excepcion > summary{ cursor:pointer; font-size:11.5px; color:var(--muted);
+    list-style:none; padding:4px 0; user-select:none; }
+  .excepcion > summary::-webkit-details-marker{ display:none; }
+  .excepcion > summary::before{ content:'＋ '; font-size:10px; }
+  .excepcion[open] > summary::before{ content:'− '; }
+  .excepcion > summary:hover{ color:var(--va,#2E3437); }
   .hitos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
 
   /* ── ACABADO (apple-design), 26-ago-2026 ─────────────────────────────────
@@ -626,15 +637,22 @@
          decisión (qué documento haces), no un campo más del formulario. -->
     <select id="selTipo" class="lw-select" aria-label="Tipo de documento"
             title="Cada tipo lleva su propia serie: INV, PRO, REC">
+      <!-- LOS TRES DOCUMENTOS, Y QUÉ HACE CADA UNO (27-ago-2026)
+           · Proforma — el TOTAL del proyecto. Se manda al cliente para que sepa
+             a qué se compromete. Es informativa, sin validez fiscal, y NO CUENTA
+             EN CONTABILIDAD: no se factura, no vence, no suma.
+           · Factura — un HITO. Se emite cuando ese hito se alcanza. Esto sí es
+             contabilidad, y es lo único que suma como facturado.
+           · Recibí — el dinero que ha entrado. Lo único que paga.
+
+           🔴 El 26-ago esto se cambió por «una sola factura por el total, sin
+           proforma», y el cliente lo ha dado por error el 27. Se revierte. El
+           modelo de arriba es además el que el backend nunca dejó de aplicar:
+           `firma-submit` sigue emitiendo y enviando la proforma del total, y
+           73 de las 116 vivas se crearon en esos dos días. Lo que se rompió fue
+           solo poder emitir una a mano desde aquí. -->
       <option value="factura">Factura</option>
-      <!-- 🔴 LA PROFORMA YA NO SE EMITE (26-ago-2026, decisión del cliente): al
-           firmarse el contrato se emite UNA factura por el total de la unidad, y
-           conforme entren pagos se emiten recibís. La opción NO se borra del
-           todo: hay 112 proformas vivas y al abrir una hay que poder leer su
-           etiqueta —si el `<option>` no existe, el `select` cae a «Factura» y un
-           PRO000xx aparecería rotulado como factura—. Va oculta y deshabilitada,
-           y `abrir()` la destapa solo para el documento que ya lo es. -->
-      <option value="proforma" data-legado hidden disabled>Factura proforma</option>
+      <option value="proforma">Factura proforma</option>
       <option value="recibi">Recibí</option>
     </select>
     <div class="lw-spacer"></div>
@@ -1493,7 +1511,11 @@ function collect(){
   d.lineas = LINEAS;
   return d;
 }
-$('#selTipo').addEventListener('change', () => { toggleTipoRecibi(); render(); });
+$('#selTipo').addEventListener('change', () => { toggleTipoRecibi();
+  /* Qué se ofrece depende del tipo: la proforma pide el total del proyecto
+     y la factura pide un hito. Sin este repintado la ficha del contrato se
+     quedaba con las opciones del tipo anterior. */
+  pintarOpcionesContrato(); render(); });
 
 // Cambiar la moneda a mitad de editar un recibí (poco habitual, pero pasa si
 // se elige mal al empezar) tiene que refrescar qué facturas se pueden saldar:
@@ -2001,23 +2023,56 @@ async function traerContrato(id){
      Lo que SÍ hace falta saber al cobrar se queda: de qué contrato viene, qué
      datos se han traído, y —esto es nuevo— cuánto lleva cobrado ese contrato,
      que es la pregunta de verdad cuando entra un pago parcial. */
+  /* El contexto que necesita el pintado, guardado para poder REPINTAR sin
+     volver a consultar. Hace falta desde el 27-ago: qué se ofrece depende del
+     tipo de documento (la proforma pide el total, la factura pide un hito), y
+     el tipo se cambia en la barra DESPUÉS de haber elegido contrato. Sin esto,
+     cambiar de tipo dejaba en pantalla las opciones del tipo anterior.
+     Se guarda el contexto y no se repite la consulta: volver a llamar a
+     `traerContrato` funcionaría, pero al repetir `poner()` borraría lo que un
+     agente hubiera escrito a mano en un campo que el contrato no trae. */
+  CTX_CONTRATO = { id, data, puesto, compradores, precio, moneda, hitos };
+  await pintarOpcionesContrato();
+}
+
+let CTX_CONTRATO = null;
+async function pintarOpcionesContrato(){
+  if(!CTX_CONTRATO) return;
+  const { id, data, puesto, compradores, precio, moneda, hitos } = CTX_CONTRATO;
+  const caja = $('#delContrato');
   const paraRecibi = $('#selTipo').value === 'recibi';
+  /* QUÉ SE OFRECE SEGÚN EL DOCUMENTO (27-ago-2026, modelo del cliente)
+     · Proforma → el TOTAL del proyecto, y nada más. Una proforma de un hito
+       suelto no es lo que se le manda al cliente al contratar.
+     · Factura  → un HITO. El total sigue estando, porque hay proyectos que se
+       facturan de una vez, pero deja de ser lo primero que se ve: es la
+       excepción, no el camino.
+     Los conceptos se pueden escribir a mano siempre, así que esto no quita
+     ninguna capacidad — ordena cuál es el camino de cada documento. */
+  const esProforma = $('#selTipo').value === 'proforma';
 
   caja.innerHTML = `<div class="t">Del contrato ${esc(data.numero || '')}</div>
     <p class="arrastrado">${puesto.length ? 'Traído del contrato y <b>bloqueado</b>: ' + esc(puesto.join(', ')) + '.' : 'El contrato no tenía datos de cliente que traer.'}
       ${compradores.length > 1 ? ' Contrato a <b>' + compradores.length + ' nombres</b>.' : ''}
       ${(precio && !paraRecibi) ? ' Precio del contrato: <b>' + esc(fmtMoneda(precio, moneda)) + '</b>.' : ''}</p>
     ${paraRecibi ? '<div id="cobradoDelContrato"></div>' : ''}
-    ${(!paraRecibi && (precio || hitos.length)) ? `<p class="pregunta">¿Qué cobras en este documento?</p>` : ''}
-    ${(precio && !paraRecibi) ? `<button type="button" class="hito-todo" id="hitoTodo">
-        <span class="q">Todo el contrato</span>
+    ${(!paraRecibi && (precio || hitos.length)) ? `<p class="pregunta">${
+        esProforma ? 'Esta proforma declara el total del proyecto' : '¿Qué cobras en este documento?'}</p>` : ''}
+    ${(precio && esProforma) ? `<button type="button" class="hito-todo" id="hitoTodo">
+        <span class="q">Total del proyecto</span>
         <span class="n">${esc(fmtMoneda(precio, moneda))}</span>
-        <span class="p">Una sola factura por el importe completo</span>
+        <span class="p">Lo que se le comunica al cliente. Informativo: no factura ni vence</span>
       </button>` : ''}
-    ${(hitos.length && !paraRecibi) ? `<div class="hitos">${hitos.map((h,i) =>
+    ${(hitos.length && !paraRecibi && !esProforma) ? `<div class="hitos">${hitos.map((h,i) =>
         `<button type="button" class="hito" data-h="${i}">${h.pct ? '<b>' + esc(String(h.pct)) + '%</b> · ' : ''}${esc(h.texto || 'Hito ' + (i+1))}${h.monto ? ' · ' + esc(fmtMoneda(h.monto, moneda)) : ''}</button>`
       ).join('')}</div>
-      <p class="arrastrado">…o solo un hito, si cobras por partes.</p>` : ''}`;
+      <p class="arrastrado">Se factura el hito que se haya alcanzado.</p>` : ''}
+    ${(precio && !paraRecibi && !esProforma) ? `<details class="excepcion"><summary>El proyecto se factura de una vez</summary>
+      <button type="button" class="hito-todo" id="hitoTodo">
+        <span class="q">Todo el contrato</span>
+        <span class="n">${esc(fmtMoneda(precio, moneda))}</span>
+        <span class="p">Una sola factura por el importe completo, sin hitos</span>
+      </button></details>` : ''}`;
 
   /* ── «TODO EL CONTRATO» (26-ago-2026) ───────────────────────────────────────
      El modelo nuevo del cliente: al firmarse el contrato se emite UNA factura
@@ -2041,12 +2096,16 @@ async function traerContrato(id){
       const conCosas = LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
       if(conCosas && !await lwConfirmar({
         titulo: 'Sustituir los conceptos',
-        cuerpo: '<p>El documento ya tiene conceptos. Facturar <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.</p>'
+        cuerpo: '<p>El documento ya tiene conceptos. Poner <b>todo el contrato</b> los reemplaza por una sola línea con el importe completo.</p>'
               + '<p>Se hace así a propósito: dejar los dos cobraría el total <b>y</b> el hito, y el documento saldría creíble.</p>',
         confirmar: 'Sustituir por el total', cancelar: 'Dejarlo como está' })) return;
       LINEAS = [{ descripcion: DESC_TOTAL, importe: String(precio).replace('.', ',') }];
       pintarLineas(); render();
-      toast('Factura por el total del contrato: ' + fmtMoneda(precio, moneda));
+      /* El aviso nombra el documento que se está haciendo. Decir «factura» en
+         una proforma es justo la confusión que este modelo viene a deshacer:
+         una proforma no factura nada. */
+      toast(($('#selTipo').value === 'proforma' ? 'Proforma' : 'Factura')
+            + ' por el total del contrato: ' + fmtMoneda(precio, moneda));
     };
   }
 
@@ -2119,12 +2178,20 @@ async function traerContrato(id){
    previa, Legal + Administración, 7-ago-2026). */
 /* ── PRECARGA (27-ago-2026) ────────────────────────────────────────────────
      Owner: «si al detectar una factura ves que va vinculado con otro contrato
-     por qué no precargas ya todos los conceptos?». Porque hasta ayer no había
-     un «todos» que fuera cierto — ahora sí: desde el 26-ago el modelo es UNA
-     factura por el total al firmar, así que el total ES el caso normal y
-     escribirlo a mano solo es una ocasión de equivocarse.
+     por qué no precargas ya todos los conceptos?».
 
-     Se precarga con tres frenos, y cada uno responde a un error concreto:
+     🔴 SOLO EN LA PROFORMA (corregido el 27-ago-2026). Esto se escribió el 26
+     apoyándose en el modelo de aquel día —«una sola factura por el total al
+     firmar»—, que el cliente ha dado por error. Con el modelo bueno, una
+     FACTURA cobra un hito, y cuál de los cuatro es no se puede adivinar: dejar
+     precargado el total del proyecto en una factura no es una sugerencia
+     cómoda, es una factura por el proyecto entero esperando a que alguien le
+     dé a guardar sin mirar.
+
+     La proforma sí tiene una única respuesta correcta —el total del proyecto,
+     que es literalmente lo que es— y ahí la precarga no puede equivocarse.
+
+     Los tres frenos que ya había siguen, y cada uno responde a un error real:
      · SOLO SI EL DOCUMENTO ESTÁ EN BLANCO. Si ya hay conceptos escritos, son
        de una persona y no se pisan sin preguntar.
      · NUNCA EN UN RECIBÍ. Un recibí registra un pago RECIBIDO; precargarle el
@@ -2135,13 +2202,13 @@ async function traerContrato(id){
      aparece solo y no se anuncia es un importe que nadie repasa. */
 function precargarConceptos(){
   const enBlanco = () => !LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
-  if(!SAVED && $('#selTipo').value !== 'recibi' && enBlanco()){
+  if(!SAVED && $('#selTipo').value === 'proforma' && enBlanco()){
     const auto = document.querySelector('[data-unidad]') || document.querySelector('#hitoTodo');
     if(auto && !auto.disabled){
       auto.click();
       /* El clic ya pinta y avisa; aquí solo se dice que ha sido automático,
          que es la diferencia entre «lo he puesto yo» y «lo has pedido tú». */
-      setTimeout(() => toast('Conceptos precargados del contrato — cámbialos si cobras otra cosa'), 350);
+      setTimeout(() => toast('Proforma precargada con el total del proyecto'), 350);
     }
   }
 }
@@ -2364,12 +2431,7 @@ $('#btnSave').onclick = async () => {
 function nuevoDocumento(tipo){
   SAVED = null; CONTRATO_ID = null; $('#form').reset();
   // el selector de tipo vive fuera del <form>, así que reset() no lo toca
-  /* Ni por el filtro del listado ni por `?tipo=proforma` en la URL: una puerta
-     que sigue abierta es la que alguien acaba cruzando. */
-  const pedido = (tipo === 'proforma') ? 'factura' : tipo;
-  $('#selTipo').value = (pedido && TIPOS[pedido]) ? pedido : 'factura';
-  const opProf = $('#selTipo').querySelector('[data-legado]');
-  if(opProf){ opProf.hidden = true; opProf.disabled = true; }
+  $('#selTipo').value = (tipo && TIPOS[tipo]) ? tipo : 'factura';
   toggleCuentaOtros();   // reset() devuelve el select a su opción inicial: el bloque tiene que seguirle
   LINEAS = [{ descripcion:'', importe:'' }];
   APLICACIONES = []; JUSTIFICANTES = []; $('#fJustificante').value = ''; pintarEstadoJustificante();
@@ -2378,7 +2440,7 @@ function nuevoDocumento(tipo){
   soltarCampos();
   $('[name="fecha_emision"]').value = hoyLocalISO();
   $('[name="numero_visible"]').value = '';
-  CONTRATO_ID = null; pintarContratoElegido(); soltarCampos();
+  CONTRATO_ID = null; CTX_CONTRATO = null; pintarContratoElegido(); soltarCampos();
   $('#delContrato').innerHTML = ''; $('#delVinculado').innerHTML = '';
   toggleTipoRecibi(); pintarLineas(); render();
 }
@@ -2554,8 +2616,14 @@ function PAGINADOR(){
 /* ---------- vista por contrato ----------
    La lista plana no puede contestar «¿de qué me falta cobrar?»: los papeles de
    un contrato están repartidos por toda ella y en orden de emisión. Agrupados
-   salen los 46 contratos que solo tienen proforma y los 24 facturados sin un
-   recibí — hoy eso no se ve desde ninguna pantalla de la suite.
+   salen los que aún no tienen ningún hito facturado y los facturados sin un
+   recibí — eso no se ve desde ninguna otra pantalla de la suite.
+
+   Ojo con leer «sin hitos facturados» como una incidencia: con el modelo del
+   cliente (proforma del total al firmar · una factura por hito alcanzado ·
+   recibís conforme se cobra) ése es el estado NORMAL de un contrato recién
+   firmado. Solo es una señal si el hito ya se alcanzó y nadie lo facturó, y eso
+   la pantalla no lo sabe: lo sabe quien lleva la obra.
 
    🔴 SE COMPARA POR IMPORTE, NUNCA COMO UN SÍ/NO. Tener un recibí no cierra un
    pago: un recibí de 12.500 € contra una factura de 44.000 € es un cobro
@@ -2599,7 +2667,7 @@ function pintarPorContrato(box, data, filaDoc){
                 : c.soloProforma ? 'proforma'
                 : (c.sinRecibi ? 'sinrecibi' : '');
     const aviso = c.cobradoSinFactura ? '<span class="sui-tag alerta" title="Hay cobro registrado pero ninguna factura que lo respalde">Cobrado sin factura</span>'
-                : c.soloProforma ? '<span class="sui-tag gris" title="Hay proforma, ni factura ni cobro">Solo proforma</span>'
+                : c.soloProforma ? '<span class="sui-tag gris" title="Proforma emitida con el total del proyecto. Aún no se ha facturado ningún hito — es lo normal justo tras firmar; deja de serlo cuando el primer hito ya se alcanzó">Sin hitos facturados</span>'
                 : c.sinRecibi   ? '<span class="sui-tag alerta" title="Facturado y sin un solo recibí: nada cobrado">Sin recibí</span>'
                 : '';
     const cifra = c.totalFacturado ? lwSumaTexto(c.facturado)
@@ -2632,14 +2700,27 @@ function pintarListado(){
   pintarFiltrosListado();
   $('#btnNuevaDocTxt').textContent = NUEVA_ROTULO[LTIPO] || 'Nuevo documento';
   const data = docsVisibles();
-  // POR moneda (auditoría 19-ago): antes sumaba EUR con USD en una sola cifra
-  // y la etiquetaba con la moneda de la primera fila — un total que no existía
-  const porMoneda = {};
-  data.filter(f => !f.anulada).forEach(f => {
-    const m = f.moneda || 'EUR';
-    porMoneda[m] = (porMoneda[m] || 0) + (Number(f.total) || 0);
-  });
-  const sumas = Object.entries(porMoneda).map(([m, t]) => esc(fmtMoneda(t, m))).join(' · ');
+  /* 🔴 «SUMA DE LO VIGENTE» SUMABA LOS TRES TIPOS EN UNA CIFRA (27-ago-2026).
+     Con el filtro en «Todos» daba 10.503.807 € juntando 92 facturas, 116
+     proformas y 62 recibís. Los tres hablan del MISMO dinero desde tres sitios
+     distintos: la proforma anuncia el total del proyecto, las facturas cobran
+     sus hitos y los recibís registran lo que ha entrado de esas facturas. Un
+     proyecto de 160.000 € aparecía ahí tres veces.
+
+     Y la proforma, además, NO ES CONTABILIDAD: es informativa, sin validez
+     fiscal. No puede sumar como facturado en ninguna pantalla.
+
+     Así que la cifra única solo se enseña cuando hay UN tipo a la vista —ahí sí
+     significa algo—. En «Todos» se enseñan las dos que son de verdad
+     independientes, facturado y cobrado, y se dice cuántas proformas hay fuera:
+     callarlo haría pensar que se han perdido documentos. */
+  const sumaTipoTxt = tp => esc(lwSumaTexto(lwSumaPorMoneda(
+    data.filter(f => f.tipo === tp && !f.anulada), f => Number(f.total) || 0, f => f.moneda || 'EUR')));
+  const nProf = data.filter(f => f.tipo === 'proforma' && !f.anulada).length;
+  const sumas = LTIPO
+    ? sumaTipoTxt(LTIPO)
+    : `Facturado <b>${sumaTipoTxt('factura')}</b> · Cobrado <b>${sumaTipoTxt('recibi')}</b>`
+      + (nProf ? ` <span class="sui-tag gris" title="Una proforma es informativa: anuncia el total del proyecto, no factura nada">${nProf} proforma${nProf===1?'':'s'}, no suman</span>` : '');
   /* Lo mismo pero de UN tipo, para el resumen por contrato. Por moneda desde el
      primer día: la suite ya tiene facturas en una divisa y unidades en otra, y
      una cifra que mezcla las dos no existe en ninguna parte. */
@@ -2668,12 +2749,12 @@ function pintarListado(){
         return `<span>${g.length} ${g.length===1?'contrato':'contratos'}</span>
                 <span>Facturado <b>${sumasTipo('factura')}</b></span>
                 <span>Cobrado <b>${sumasTipo('recibi')}</b></span>`
-             + (sp ? `<span><span class="sui-tag gris">${sp} solo proforma</span></span>` : '')
+             + (sp ? `<span><span class="sui-tag gris" title="Con proforma del total emitida y ningún hito facturado todavía">${sp} sin hitos facturados</span></span>` : '')
              + (sr ? `<span><span class="sui-tag alerta">${sr} sin recibí</span></span>` : '')
              + (sf ? `<span><span class="sui-tag alerta">${sf} cobrado sin factura</span></span>` : '');
       })()
     : `<span>${data.length} ${data.length===1?'documento':'documentos'}</span>
-       <span>Suma de lo vigente <b>${sumas}</b></span>`;
+       <span>${LTIPO ? 'Suma de lo vigente <b>' + sumas + '</b>' : sumas}</span>`;
   $('#lResumen').innerHTML = (!data.length && !faltan) ? '' :
     (data.length ? resumenBase : '') + avisoTope;
   if(!data.length){
@@ -2863,9 +2944,7 @@ $('#btnList').onclick = () => {
    que quieres emitir es un recibí. Es lo que hace que la tarjeta «Recibos» del
    hub siga llevando a emitir un recibí en dos clics y no en cuatro. */
 $('#btnNuevaDoc').onclick = () => {
-  /* Heredaba el tipo filtrado, así que mirando proformas emitía una proforma.
-     Ese camino se cierra: proforma ya no se emite. */
-  const t = (LTIPO === 'proforma') ? 'factura' : (LTIPO || 'factura');
+  const t = LTIPO || 'factura';
   nuevoDocumento(t);
   pantalla('documento', 'nueva=1&tipo=' + t);
 };
@@ -2876,12 +2955,7 @@ async function abrir(f){
   // valor viejo escrito encima — reset() antes de aplicar los del nuevo
   $('#form').reset();
   $('#form').querySelectorAll('[name]').forEach(el => { if(d[el.name] != null) el.value = d[el.name]; });
-  /* Al abrir una proforma de las 112 que ya existen, su opción se destapa para
-     que el rótulo diga la verdad. El `select` queda deshabilitado igualmente
-     (`st.disabled = !!SAVED`): se lee, no se cambia. */
   const tipoDoc = f.tipo || d.tipo || 'factura';
-  const opLeg = $('#selTipo').querySelector('[data-legado]');
-  if(opLeg){ const esLegado = tipoDoc === opLeg.value; opLeg.hidden = !esLegado; opLeg.disabled = !esLegado; }
   $('#selTipo').value = tipoDoc;
   // CLONADAS, no por referencia (auditoría 19-ago): apuntaban al array de la
   // caché del listado, así que editar líneas sin guardar quedaba escrito en
