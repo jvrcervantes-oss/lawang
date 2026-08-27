@@ -1792,7 +1792,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:94de62ed3f42
+   app.css   sha256:842faaa6ac0e
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -1834,6 +1834,39 @@ input.lw-elegible:disabled{ cursor:default; }
      calcula su alto con calc(100dvh - --tbh). */
   .topbar{ position:sticky; top:0; z-index:40;
     box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px -14px rgba(46,52,55,.5); }
+
+  /* 🔴 EL PRECIO DE SER LA ÚNICA `sticky` — 27-ago-2026
+     `topbar.css` compensa el riel con
+         body.con-rail > .lw-topbar{ padding-left:calc(56px + 26px) }
+     y esa cuenta SOLO sale si la barra es `position:fixed`, porque entonces se
+     salta el `padding-left` que el riel le pone al `<body>`. Está escrito allí
+     mismo, en la nota de «LA ESQUINA DE ARRIBA A LA IZQUIERDA».
+
+     Aquí la barra es `sticky`, o sea que sigue EN EL FLUJO: se come el padding
+     del body Y encima el suyo propio. Los 208 px del riel abierto se cuentan
+     dos veces y el logotipo cae en x=442 mientras en las otras doce pantallas
+     cae en x=234. Medido, no estimado: `panel_izq:234` contra `barra_izq:442`.
+
+     Mismo arreglo que el `<header>` del hub: se cancela el padding del body con
+     un margen negativo, y así la barra vuelve a ir de borde a borde y manda su
+     propio `padding-left`. NO se devuelve el relleno después —esa fue justo la
+     media corrección del 15-ago que descolocó el logotipo del hub—.
+
+     Si algún día esta barra pasa a `fixed`, estas dos líneas SOBRAN y hay que
+     borrarlas: volverían a descolocarla, ahora hacia el otro lado. */
+  body.con-rail > .topbar{ margin-left:-56px; }
+  body.rail-abierto > .topbar{ margin-left:-208px; }
+  body.rail-anima > .topbar{ transition:margin-left 180ms cubic-bezier(.22,.61,.36,1); }
+  @media (prefers-reduced-motion: reduce){
+    body.rail-anima > .topbar{ transition:none; }
+  }
+  /* Y en móvil el riel deja de desplazar el body (padding-left:0), así que el
+     margen negativo tiene que irse con él o la barra se sale por la izquierda
+     llevándose el botón ☰ —el fallo exacto que ya ocurrió con el `<header>`
+     el 26-ago—. El corte es el mismo 860px de `topbar.css`. */
+  @media screen and (max-width:860px){
+    body.con-rail > .topbar, body.rail-abierto > .topbar{ margin-left:0; }
+  }
   /* toggle de idioma como segmento con pastilla deslizante */
   .lang-toggle{ display:flex; gap:2px; background:var(--rl); border:1px solid var(--line); border-radius:9px; padding:3px; box-shadow:inset 0 1px 2px rgba(46,52,55,.05); }
   .lang-toggle button{ border:none; background:none; font:inherit; font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px; color:var(--muted); cursor:pointer; transition:color .2s var(--ease), background .2s var(--ease); }
