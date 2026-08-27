@@ -251,7 +251,12 @@
    izquierda, ocupar su campo y recortar un nombre largo con puntos suspensivos
    («CC00068 — Borja Alonso Fernandez · Sonia Alonso…»). */
 .campo-elegir{ display:block; box-sizing:border-box; width:100%; max-width:none; text-align:left;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  /* Un `<button>` hereda la interlínea de la página (1.5) y un `<select>` usa la
+     suya, más apretada: con el mismo relleno salían 35 px contra 31, cuatro de
+     diferencia entre dos controles que están uno encima del otro. Se iguala a
+     la del desplegable. */
+  line-height:1.15; }
 .campo-elegir.vacio{ color:var(--muted,#7C8B7A); font-weight:400; }
 /* La FLECHA no se dibuja aquí: la pone `suite.css` sobre `select` como
    elemento, con su banda de fondo y su truco de especificidad, y esa es la que
