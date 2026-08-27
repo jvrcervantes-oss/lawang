@@ -1218,7 +1218,12 @@ async function cargarFacturasAbiertas(){
     .filter(x => x.contrato_id && (!CONTRATO_ID || suyos.has(x.contrato_id)));
   FACTURAS_ABIERTAS = delComprador
     .filter(x => (x.moneda || 'EUR') === monedaRecibi)
-    .map(x => ({ id:x.id, numero:x.numero, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id], moneda:x.moneda }));
+    /* `contrato_id` VIAJA (27-ago-2026). Se usaba para filtrar dos líneas más
+       arriba y se tiraba aquí, porque hasta hoy el contrato ya venía elegido de
+       antes. Desde que el recibí se pide POR FACTURA, el contrato sale de ella:
+       sin este campo la factura se aplicaba bien y el comprador se quedaba en
+       blanco. */
+    .map(x => ({ id:x.id, numero:x.numero, contrato_id:x.contrato_id, contrato_numero:x.contrato_numero, cliente_nombre:x.cliente_nombre, pendiente:pend[x.id], moneda:x.moneda }));
   // Para el aviso: "no tiene ninguna pendiente" y "tiene, pero en otra moneda"
   // son dos situaciones distintas — decir la primera cuando es la segunda deja
   // a alguien buscando una factura que sí existe, solo que no en esta lista.
