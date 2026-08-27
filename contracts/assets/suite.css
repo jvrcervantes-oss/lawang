@@ -717,7 +717,7 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
 
    El `[multiple]` y los `[size]` quedan fuera a propósito: son listas abiertas,
    no despliegan nada, y ponerles un chevron sería mentir. */
-select:not([multiple]):not([size]){
+select:not([multiple]):not([size]), .campo-elegir{
   -webkit-appearance:none; -moz-appearance:none; appearance:none;
   /* dos capas: la banda (un color solido de 34px pegado a la derecha) y encima
      el chevron. La banda va como gradiente de un solo color porque
@@ -736,12 +736,12 @@ select:not([multiple]):not([size]){
   padding-right:40px;
   cursor:pointer;
 }
-select:not([multiple]):not([size]):hover{
+select:not([multiple]):not([size]):hover, .campo-elegir:hover{
   border-color:var(--texto-3,#676B63);
 }
 /* Un desplegable deshabilitado NO invita a pulsar: se le quita el puntero y se
    apaga el chevron, o parece que la interfaz no responde. */
-select:not([multiple]):not([size]):disabled{
+select:not([multiple]):not([size]):disabled, .campo-elegir:disabled{
   cursor:default; opacity:.62;
 }
 /* Reserva la vuelta al render nativo si algún día estorba en un sitio concreto:

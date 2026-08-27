@@ -237,6 +237,9 @@
   background:var(--card,#fffdf8); border:1px solid var(--linea,#E4DCCB);
   border-radius:9px; padding:7px 12px; cursor:pointer; max-width:260px;
 }
+/* El relleno derecho lo fija `suite.css` en 40px para dejar sitio a su banda y
+   su chevron. No se repite aquí: dos reglas peleando por el mismo hueco es como
+   el botón acabó con 30 y el desplegable con 40, uno al lado del otro. */
 .lw-select:hover, .sui-sel:hover, .f-sel:hover, .campo-elegir:hover,
 .sui-centro select:not([class]):hover, .pane-form select:not([class]):hover, #form select:not([class]):hover{
   border-color:var(--dl,#104C4F); }
@@ -250,24 +253,15 @@
 .campo-elegir{ display:block; box-sizing:border-box; width:100%; max-width:none; text-align:left;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .campo-elegir.vacio{ color:var(--muted,#7C8B7A); font-weight:400; }
-/* 🔴 Y LA MISMA FLECHA. Sin esto la unificación se queda a medias: el
-   `<select>` dibuja la suya el navegador —distinta en cada uno— y el botón
-   llevaba un «⌄» de texto. Dos controles que hacen lo mismo, con dos flechas
-   que no se parecen, uno al lado del otro. `appearance:none` apaga la del
-   sistema y la de todos pasa a ser este chevron, a la misma distancia del
-   borde. `padding-right` deja su sitio para que un texto largo no se le meta
-   debajo. */
-.lw-select, .sui-sel, .f-sel, .campo-elegir,
-.sui-centro select:not([class]), .pane-form select:not([class]), #form select:not([class]){
-  appearance:none; -webkit-appearance:none;
-  padding-right:30px;
-  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237C8B7A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;
-  background-position:right 11px center;
-}
-/* Un desplegable deshabilitado no promete que se pueda abrir. */
-.lw-select:disabled, .sui-sel:disabled, .f-sel:disabled, .campo-elegir:disabled{
-  opacity:.55; cursor:not-allowed; }
+/* La FLECHA no se dibuja aquí: la pone `suite.css` sobre `select` como
+   elemento, con su banda de fondo y su truco de especificidad, y esa es la que
+   el owner señaló como la buena («solo debe quedarse el de moneda»). Aquí se
+   unifica la GEOMETRÍA —letra, borde, radio, relleno, foco—; el adorno lo pone
+   quien ya lo tenía bien. Escribir aquí una segunda flecha fue mi primer
+   intento y creó un quinto tratamiento en vez de quitar uno: `suite.css` carga
+   después, así que los `<select>` llevaban la suya y el botón la mía.
+   `.campo-elegir` entra en la regla de `suite.css` (es un `<button>`, así que
+   el selector de elemento no lo alcanzaba solo). */
 /* Dentro de un formulario el desplegable no es un control de barra: ocupa el
    ancho de su campo y no compite con la etiqueta. Es el MISMO control, con la
    medida que le toca a su sitio — no otro. */
