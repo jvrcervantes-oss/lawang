@@ -27,7 +27,14 @@
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
   body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto); }
-  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
+  /* 🔴 REGLA MUERTA, RETIRADA 27-ago-2026. Decía `.topbar{ position:fixed }`,
+     pero el header que inyecta `topbar.js` lleva la clase **`lw-topbar`**: el
+     selector no casa con nada y ese `fixed` no se aplicó nunca. Medido en las
+     trece pantallas: ocho la arrastraban, y tres de ellas además compensaban
+     con `var(--tbh)` — o sea, empujaban el contenido 64 px para dejar sitio a
+     una barra que ya ocupa su hueco en el flujo. Solo Operaciones y el portal
+     usan `class="topbar"` de verdad; ahí se queda.
+     Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
 
   /* estados de venta — los mismos colores que Operaciones y Compradores */
   .e-disponible{    background:#3F5230; }

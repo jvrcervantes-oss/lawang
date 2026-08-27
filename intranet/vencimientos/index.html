@@ -42,8 +42,15 @@
   :root{ --tbh:64px; }
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0,#F1EBDD); color:var(--texto,#22282A); }
-  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
-  main{ max-width:1240px; margin:0 auto; padding:calc(var(--tbh) + 22px) 24px 60px; }
+  /* 🔴 REGLA MUERTA, RETIRADA 27-ago-2026. Decía `.topbar{ position:fixed }`,
+     pero el header que inyecta `topbar.js` lleva la clase **`lw-topbar`**: el
+     selector no casa con nada y ese `fixed` no se aplicó nunca. Medido en las
+     trece pantallas: ocho la arrastraban, y tres de ellas además compensaban
+     con `var(--tbh)` — o sea, empujaban el contenido 64 px para dejar sitio a
+     una barra que ya ocupa su hueco en el flujo. Solo Operaciones y el portal
+     usan `class="topbar"` de verdad; ahí se queda.
+     Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
+  main{ max-width:1240px; margin:0 auto; padding:22px 24px 60px; }
   h1{ margin:0 0 4px; font-size:22px; font-weight:500; letter-spacing:.005em; }
   .sub{ margin:0 0 18px; font-size:13.5px; color:var(--texto-2,#4A5052); max-width:70ch; }
   h2{ margin:28px 0 10px; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;
