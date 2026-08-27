@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=497dacac">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
@@ -614,6 +614,12 @@ function pintarFicha(){
       <legend>Facturas</legend>
       ${(() => {
         const TIPO_DOC = { factura:'Factura', proforma:'Proforma', recibi:'Recibí' };
+        /* El tipo, como etiqueta de color. El color no se elige aquí: sale de
+           `--doc-*` en `suite.css`, el mismo que ya pinta el borde de la fila en
+           /intranet/facturas/. La clase se compone del tipo, así que un tipo
+           nuevo hereda su color sin tocar esta pantalla — y si no lo tuviera,
+           saldría la etiqueta gris por defecto en vez de un hueco. */
+        const etiquetaTipo = x => `<span class="tag t-${esc(x.tipo || '')}">${esc(TIPO_DOC[x.tipo] || x.tipo || '—')}</span>`;
         const suyosIds = new Set(VINCULOS.filter(v => v.client_id === c.id && v.contratos).map(v => v.contratos.id));
         const suyas = FACTURAS.filter(x => suyosIds.has(x.contrato_id))
           .sort((a,b) => String(b.fecha_emision||'').localeCompare(String(a.fecha_emision||'')));
@@ -641,7 +647,7 @@ function pintarFicha(){
         const tabla = (filas) => `<table><thead><tr><th>Nº</th><th>Tipo</th><th>Contrato · unidad</th><th>Fecha</th><th class="num">Importe</th></tr></thead><tbody>
           ${filas.map(x => `<tr${x.anulada ? ' class="anulada"' : ''}>
             <td><a href="/intranet/facturas/?id=${encodeURIComponent(x.id)}" style="color:var(--dl)">${esc(x.numero || 'borrador')}</a></td>
-            <td>${esc(TIPO_DOC[x.tipo] || x.tipo || '—')}</td>
+            <td>${etiquetaTipo(x)}</td>
             <td>${esc(unidad(x))}</td>
             <td>${fFecha(x.fecha_emision)}</td>
             <td class="num">${x.total != null ? esc(lwFormatoImporte(Number(x.total), x.moneda)) : '—'}</td>

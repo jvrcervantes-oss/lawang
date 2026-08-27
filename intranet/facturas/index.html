@@ -17,7 +17,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=497dacac">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -520,9 +520,12 @@
      añaden nada y se llevan la atención. Queda como filete de 3 px: se ve el
      bloque de golpe al recorrer la lista y no pesa. */
   table.docs td.doc{ width:132px; border-left:3px solid transparent; }
-  table.docs tr.t-factura  td.doc{ border-left-color:#3E6E8E; }
-  table.docs tr.t-proforma td.doc{ border-left-color:#6B4E9B; }
-  table.docs tr.t-recibi   td.doc{ border-left-color:#3F5230; }
+  /* Los tres colores viven en `suite.css` (`--doc-*`) desde el 27-ago-2026:
+     los usa también la etiqueta de tipo en Compradores, y tenerlos escritos en
+     dos sitios garantiza que un día se separen. */
+  table.docs tr.t-factura  td.doc{ border-left-color:var(--doc-factura); }
+  table.docs tr.t-proforma td.doc{ border-left-color:var(--doc-proforma); }
+  table.docs tr.t-recibi   td.doc{ border-left-color:var(--doc-recibi); }
   /* 170 px daban para «25.000,00 EUR» y para nada más. El peor caso NO es el
      mayor importe de hoy (184.000 €): la cartera ya lleva precios en rupias
      —«11.038.000.000 IDR», 18 caracteres— y el día que se facture uno, el

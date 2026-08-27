@@ -910,7 +910,7 @@ body.rail-abierto > header{ margin-left:-208px; }
    El razonamiento completo está junto al código, en topbar.js. */
 
 /* ─────────────────────────────────────────────────────────────────────
-   suite.css   sha256:45e069b3e85a
+   suite.css   sha256:122eb350eda6
    ───────────────────────────────────────────────────────────────────── */
 
 /* ── TEXTO IGUAL EN MOVIL QUE EN ESCRITORIO — 15-ago-2026 ──────────────────
@@ -1220,6 +1220,34 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    reusa un tono de estado (gris/info/ok) la etiqueta de tipo se confunde con
    la de Emitida/Anulada, que es justo lo que se pidió separar (6-ago-2026). */
 .sui-tag.morado{ background:#5B4B8A; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL COLOR DE CADA TIPO DE DOCUMENTO — 27-ago-2026
+   ═══════════════════════════════════════════════════════════════════════════
+   Owner: «en Compradores, en Facturas, el TIPO usa las etiquetas de colores que
+   tenemos». El color por tipo YA existía en la suite… pero solo como el borde
+   izquierdo de la fila en `/intranet/facturas/`, escrito con tres literales
+   dentro del `<style>` de esa página. En cuanto una segunda pantalla lo
+   necesita, esos tres valores pasan a estar en dos sitios — y una lista escrita
+   a mano en dos sitios ES el bug: el día que se retoque un color, una de las
+   dos pantallas se queda con el viejo y nadie lo nota, porque las dos siguen
+   pintando algo.
+
+   Así que el valor vive aquí y lo leen las dos: la fila de Facturas por su
+   borde, y la etiqueta de Compradores por su fondo. Cambiar un color se hace
+   una vez.
+
+   Los tres son los que ya estaban: azul de trabajo para la factura, morado para
+   la proforma —el documento que no es contabilidad— y el verde de la marca para
+   el recibí, que es lo único que significa dinero cobrado. */
+:root{
+  --doc-factura:#3E6E8E;
+  --doc-proforma:#6B4E9B;
+  --doc-recibi:#3F5230;
+}
+.sui-tag.t-factura,  .tag.t-factura { background:var(--doc-factura); }
+.sui-tag.t-proforma, .tag.t-proforma{ background:var(--doc-proforma); }
+.sui-tag.t-recibi,   .tag.t-recibi  { background:var(--doc-recibi); }
 
 /* ── estados de la lista: cargando / vacío / error, los tres distintos ───
    Un vacío con cara de error manda a buscar un fallo que no existe, y un error
