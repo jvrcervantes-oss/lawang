@@ -56,7 +56,10 @@
      usan `class="topbar"` de verdad; ahí se queda.
      Una regla que no casa con nada no es inofensiva: la de al lado sí casa. */
   /* Sin tope de ancho, como el resto de la suite (27-ago-2026). */
-  main{ margin:0 auto; padding:22px 24px 60px; }
+  /* 26px de lado, no 24: es la medida de `.lw-topbar`, y con las dos iguales
+     la marca de la barra y el contenido caen en la misma vertical. Con 24 la
+     página quedaba 2px desalineada respecto de las otras doce. */
+  main{ margin:0 auto; padding:22px 26px 60px; }
   h1{ margin:0 0 4px; font-size:22px; font-weight:500; letter-spacing:.005em; }
   .sub{ margin:0 0 18px; font-size:13.5px; color:var(--texto-2,#4A5052); max-width:70ch; }
   h2{ margin:28px 0 10px; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;
