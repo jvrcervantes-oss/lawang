@@ -381,7 +381,9 @@
      desde el 27-ago-2026: Facturas tiene la misma pantalla y las tenía
      resueltas de otra forma. Una definición para las dos. */
   @media (max-width:900px){
-    .stage{ grid-template-columns:1fr; height:auto; }
+    .stage{ grid-template-columns:1fr; height:auto;
+      padding-left:max(16px, env(safe-area-inset-left));
+      padding-right:max(16px, env(safe-area-inset-right)); }
     .pane-form{ overflow:visible; height:auto; padding-bottom:96px; }
     /* topbar: con "Salir" sumado a los 3 botones + selector de idioma ya no
        cabe todo en una fila a partir de aquí — quita lo prescindible

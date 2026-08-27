@@ -17,7 +17,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=b18a08c2">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c9c485cb">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -114,7 +114,12 @@
      mockup (que pide 13): por debajo de 16px, Safari en iOS hace ZOOM al enfocar un
      input y descuadra la pantalla entera. En escritorio no aplica y se respeta el 13. */
   @media (max-width:900px){
-    .stage{ grid-template-columns:1fr; padding:12px 14px 18px; }
+    /* 14 px y sin `safe-area`: la misma desviación que la capa compartida
+       (27-ago-2026). La norma del estudio son 16 y ahí para, y bajo la esquina
+       redondeada de un móvil la primera letra desaparece sin el inset. */
+    .stage{ grid-template-columns:1fr; padding-top:12px; padding-bottom:18px;
+            padding-left:max(16px, env(safe-area-inset-left));
+            padding-right:max(16px, env(safe-area-inset-right)); }
     input,select,textarea{ font-size:16px; }
   }
 

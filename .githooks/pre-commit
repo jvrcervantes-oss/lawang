@@ -65,6 +65,16 @@ if [ -n "$suite" ]; then
   # pinta nada — solo la encuentra quien la busca, así que se busca aquí.
   # AVISA, no bloquea: la herramienta perdona prefijos dinámicos por diseño y
   # prefiero un aviso que se lee a un bloqueo que se saltaría con --no-verify.
+  # MÁRGENES DE MÓVIL (27-ago-2026). El owner lo ha pedido DOS veces, y una
+  # regla escrita que falla por segunda vez se promociona a comprobador. La
+  # norma —16 px y ahí para, más `env(safe-area-inset)`— llevaba escrita desde
+  # el 26-ago y aun así ninguna herramienta viva usaba el inset.
+  margenes="$raiz/../../tools/margenes_movil.py"
+  if [ -f "$margenes" ]; then
+    py=$(command -v python || command -v python3)
+    "$py" "$margenes" 2>/dev/null | head -14
+  fi
+
   muerto="$raiz/../../tools/css_muerto.py"
   if [ -f "$muerto" ]; then
     py=$(command -v python || command -v python3)

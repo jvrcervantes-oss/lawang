@@ -21,7 +21,7 @@
      `data-lw-usuario` de la cabecera. -->
 <!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026). La genera
      `tools/empaqueta_css.py`; ver la nota larga en cualquier herramienta. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=b18a08c2">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c9c485cb">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -243,7 +243,11 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   /* en el móvil queda la marca y el botón: quién soy y con qué rol es dato de
      escritorio, y aquí sólo servía para empujar la página fuera de la pantalla */
   .yo{ display:none; }
-  main{ padding:24px 16px 44px; }
+  /* 16 px estaba bien; faltaba la muesca (27-ago-2026). Sin el inset, en un
+     móvil en horizontal la primera letra de cada línea cae bajo el cristal. */
+  main{ padding-top:24px; padding-bottom:44px;
+        padding-left:max(16px, env(safe-area-inset-left));
+        padding-right:max(16px, env(safe-area-inset-right)); }
   footer{ padding:0 16px 28px; }
   .lede{ gap:14px; }
   .fila{ grid-template-columns:22px 1fr; padding:13px 14px; }

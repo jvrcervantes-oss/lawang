@@ -420,7 +420,28 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
    El cajón pasa a ocupar casi todo el ancho: media pantalla en un teléfono no
    es leer, es adivinar. Va DESPUÉS de la regla base a propósito. */
 @media (max-width:760px){
-  .sui-centro{ padding:var(--e4) var(--e3) var(--e7); }
+  /* 🔴 MARGEN DE VERDAD EN ESTRECHO (27-ago-2026, owner: «los márgenes de todas
+     las webs o popup no están funcionando bien». Es la SEGUNDA vez que lo pide,
+     y eso ya no es una petición: es un defecto mío).
+     Estaban dos cosas mal, y las dos en un solo sitio:
+       · 12 px (`--e3`) donde la norma del estudio dice 16 y ahí para;
+       · y NINGÚN `env(safe-area-inset)` en toda la capa compartida — así que
+         bajo la esquina redondeada de un móvil, o en horizontal con muesca, la
+         primera letra de cada línea desaparece debajo del cristal.
+     Las pantallas v3 ya lo tenían bien (`max(16px, env(safe-area-inset-left))`);
+     esto trae ESA regla, no una nueva, a las que faltaban.
+     `max(…)` y no una suma: en un móvil sin muesca el inset es 0 y quedaría en
+     0 px; sumarlo daría 16+34 en un iPhone en horizontal, que es demasiado.
+     Se pone aquí y no en cada herramienta porque desde ayer todas cargan la
+     misma hoja — que era justo el motivo de unificarla. */
+  .sui-centro{ padding-top:var(--e4); padding-bottom:var(--e7);
+    padding-left:max(var(--e4), env(safe-area-inset-left));
+    padding-right:max(var(--e4), env(safe-area-inset-right)); }
+  /* Las otras dos cáscaras de la suite, por el mismo motivo: `main` lo usan el
+     panel y Vencimientos, y `.stage` las de dos paneles. */
+  .sui-stage > main, body > main{
+    padding-left:max(var(--e4), env(safe-area-inset-left));
+    padding-right:max(var(--e4), env(safe-area-inset-right)); }
   .sui-cajon{ width:100%; top:auto; border-left:none;
     border-top-left-radius:var(--r-l); border-top-right-radius:var(--r-l);
     transform:translateY(100%); }
@@ -433,6 +454,13 @@ table.sui-tabla th.desc .fl{ display:inline-block; transform:rotate(180deg); }
   .sui-cajon.on{ transform:none; }
   /* Los botones no se meten debajo del indicador de inicio del telefono. */
   .sui-cajon-pie{ padding-bottom:calc(var(--e3) + env(safe-area-inset-bottom)); }
+  /* A pantalla completa el cajón hereda el problema de la página: sus 22 px
+     laterales caen bajo el cristal en un móvil con muesca en horizontal.
+     El inset de ABAJO ya estaba contemplado aquí desde antes — faltaban los
+     lados, que es lo que se lee. */
+  .sui-cajon-cab, .sui-cajon-cuerpo, .sui-cajon-pie{
+    padding-left:max(var(--e5), env(safe-area-inset-left));
+    padding-right:max(var(--e5), env(safe-area-inset-right)); }
   .sui-dens{ margin-left:0; }
 }
 
@@ -649,7 +677,11 @@ a.lw-kpi.mando:hover{ border-color:#BEB3A5; }
    comería por los extremos. */
 .toast{
   position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(8px);
-  z-index:200; max-width:min(560px, calc(100vw - 32px));
+  /* `- 32px` deja 16 a cada lado, que es la norma… salvo en un móvil con
+     muesca en horizontal, donde esos 16 caen DEBAJO del cristal. Se descuenta
+     también el inset (27-ago-2026, misma pasada que los márgenes de página). */
+  z-index:200;
+  max-width:min(560px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
   background:var(--va,#2E3437); color:#fff;
   font-size:15px; font-weight:600; line-height:1.35;
   padding:13px 22px 16px; border-radius:var(--r-m,12px);
