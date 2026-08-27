@@ -2610,7 +2610,17 @@ function deriveSections(){
        desplegable de Contratos tiene que verlo sin que alguien recuerde tocar
        este fichero a mano; si no, es la misma lista-a-mano-en-dos-sitios que
        ya mordió con proyecto_nombre y con los tipos de contrato. */
-    const resorts = [...new Set(PROYECTOS_DB.map(p => p.resort).filter(Boolean))];
+    /* 🔴 UNIÓN, NO SUSTITUCIÓN (27-ago-2026). Esto tomaba SOLO los resorts que
+       ya usa algún proyecto, y con eso un resort nuevo no se puede elegir hasta
+       que alguien le asigne un proyecto… pero para asignárselo hay que poder
+       elegirlo. El pez que se muerde la cola: el owner pidió añadir «Signature
+       project» y no había forma de que apareciera.
+       Ahora la lista es la UNIÓN de los dos: lo que la base ya usa —que sigue
+       apareciendo solo, que es de lo que iba la nota de abajo— y el catálogo de
+       tokens.json, que es donde se declara un resort que todavía no tiene
+       proyectos. Ninguna de las dos manda sobre la otra; se suman. */
+    const delCatalogo = (SECTIONS.flatMap(s => s.fields).find(f => f[0]==='resort') || [])[3] || [];
+    const resorts = [...new Set([...PROYECTOS_DB.map(p => p.resort), ...delCatalogo].filter(Boolean))];
     if(resorts.length) SECTIONS.forEach(s=>{ s.fields = s.fields.map(f=>
       (f[0]==='resort' && f[2]==='select') ? [f[0], f[1], f[2], resorts] : f); });
   }
