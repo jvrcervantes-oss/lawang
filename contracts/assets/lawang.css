@@ -79,7 +79,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   topbar.css   sha256:97531fdab9f9
+   topbar.css   sha256:3760100a4efd
    ───────────────────────────────────────────────────────────────────── */
 /* Barra superior común a Contratos, Facturas y Dossier — 28-jul-2026.
    Las tres tenían barras distintas: dos oscuras y una clara, con los mismos
@@ -119,6 +119,17 @@
      Fuera el `backdrop-filter`: el mockup usa fondo liso, y un desenfoque sobre
      una tabla que pasa por debajo se lee como suciedad. */
   height:var(--tbh,64px); display:flex; align-items:center; gap:18px;
+  /* 🔴 `flex:none` — LA BARRA NO SE ENCOGE (27-ago-2026, owner: «problema con
+     la parte superior del topbar en intranet»).
+     El `body` del panel es `display:flex; flex-direction:column` con alto de
+     ventana. En una columna flexible, un hijo se ENCOGE aunque tenga la altura
+     declarada: `flex-shrink` vale 1 por omisión, así que en cuanto el contenido
+     no cabía, la barra pasaba de 64 px a **25** —medido— y salía como una
+     tirita aplastada arriba.
+     Por eso era intermitente: con la ventana alta o poco contenido no se veía.
+     `height:64px` no protege de nada en un contenedor flexible; lo que protege
+     es esto. */
+  flex:none;
   padding:0 26px; padding-top:env(safe-area-inset-top);
 
   /* ⚠️ AQUÍ HUBO UN INTENTO DE ALINEAR LA BARRA CON EL CONTENIDO, Y SE
