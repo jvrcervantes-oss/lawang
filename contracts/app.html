@@ -476,6 +476,15 @@ const TEMPLATES = [
   { slug:'anexo_y_bonian_c2', file:'templates/anexo_y_bonian_c2.html', cover:'#261712',
     name:{es:'Anexo Y · Cronograma de Pagos (Bonian C2)',en:'Annex Y · Payment Schedule (Bonian C2)',id:'Lampiran Y · Bonian C2'},
     l2:{es:'Cronograma de Pagos y Cuentas Bancarias · Bonian Beach C2',en:'Payment Schedule & Bank Accounts · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
+  // Mismo patron que ppjb_bonian_c2: un solo ejemplar, texto fijo, tipo
+  // PROPIO (28-ago-2026, peticion del owner). `disabled:true` porque es EL
+  // contrato ya negociado de un comprador concreto (CC00014, Timon Taeke van
+  // den Bosch) -- no se ofrece para emitir contratos nuevos, solo reabre el
+  // que ya existe (mismo motivo que ppjb_reserva mas arriba).
+  { slug:'cc00014_timon', file:'templates/cc00014_timon.html', cover:'#5A3A1E',
+    name:{es:'Construcción · CC00014 Timon',en:'Construction · CC00014 Timon',id:'Konstruksi · CC00014 Timon'},
+    l2:{es:'Tamarind Rise · Modelo Dali',en:'Tamarind Rise · Model Dali',id:'Tamarind Rise · Model Dali'},
+    ready:true, disabled:true },
 ];
 const TIERS = {
   siempre:      {es:'Datos de la operación',en:'Operation data',id:'Data operasi'},
@@ -541,6 +550,7 @@ const CONTRACT_TIPO = {
   carta_reserva_hak_sewa:'carta_reserva_hak_sewa',   // serie CH · due-diligence + BANI Denpasar
   poa_notario:'poa',   // serie PA · Poder Notarial (Surat Kuasa), exhibit del Hak Sewa
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
+  cc00014_timon:'cc00014_timon',   // un solo ejemplar, texto fijo — mismo motivo que ppjb_bonian_c2
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 
@@ -2750,6 +2760,10 @@ async function loadTemplate(slug){
   if(templateHTML.includes('{{proyecto_nombre}}')) await cargarProyectos();
   if(templateHTML.includes('{{tipologia_construccion}}')) await cargarModelos();
   if(CURRENT.slug === 'poa_notario') await cargarVinculablesPoa();   // el vínculo del POA no tiene marcador: va por slug
+  // CC00014/Timon no tiene versión en español (el documento original es
+  // solo EN/ID) — con el LANG='es' de fábrica la vista previa saldría en
+  // blanco hasta que alguien tocara el botón "EN" a mano. 28-ago-2026.
+  if(CURRENT.slug === 'cc00014_timon') LANG = 'en';
   deriveSections();
   // Diseño: Supabase compartido (la plantilla "real") > caché local de este
   // navegador (edición sin guardar) > default de fábrica.
