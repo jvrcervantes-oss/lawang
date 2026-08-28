@@ -21,7 +21,7 @@
      `data-lw-usuario` de la cabecera. -->
 <!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026). La genera
      `tools/empaqueta_css.py`; ver la nota larga en cualquier herramienta. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c0bac093">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
 <!-- ESQUELETO COMPARTIDO (6-ago-2026). Esta herramienta no lo cargaba: de las
      doce, seis se habian quedado fuera del fichero que existe justamente para
      que todas se parezcan — entre ellas Contratos y Facturas, las mas usadas.
@@ -29,7 +29,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=d36f7e5e" defer></script>
+<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -268,17 +268,17 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=7cede2bd">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=a5e759bc">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/vocabulario.js?v=e4a18fd2"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=86e439d8"></script>
-<script src="/contracts/assets/saldos-v3.js?v=deaf78a0"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=d220a72f"></script>
+<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
+<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 </head>
 <body hidden>
   <!-- LA MISMA BARRA QUE LAS HERRAMIENTAS (16-ago-2026, owner: «unificalo, pero
@@ -352,11 +352,11 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      imprimia el dinero con toLocaleString('es'), que no recibe la moneda y
      daba tres decimales donde Facturas da dos. El `?v=` lo sella el
      pre-commit; el valor de aqui es solo el punto de partida. -->
-<script src="/contracts/assets/dinero.js?v=73da6788"></script>
+<script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=31fcd53b"></script>
-<script src="/contracts/assets/dialogo.js?v=5edf8aed"></script>
-<script src="/contracts/assets/suite-comun.js?v=9703fd59"></script>
+<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ── catálogo de herramientas ──────────────────────────────────────────
    Añadir una = una entrada aquí. `herr` es la herramienta de
