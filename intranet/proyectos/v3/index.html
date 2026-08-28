@@ -306,7 +306,9 @@ function pintar(){
      filtro o una búsqueda cerraban de golpe la carpeta que estaba mirando. */
   cont.querySelectorAll('details.proy').forEach(d => d.addEventListener('toggle', () => {
     d.open ? ABIERTAS.add(d.dataset.proy) : ABIERTAS.delete(d.dataset.proy);
-    try{ sessionStorage.setItem('lw_proy_abiertas', JSON.stringify([...ABIERTAS])); }catch(_){}
+    try{ sessionStorage.setItem('lw_proy_abiertas', JSON.stringify([...ABIERTAS])); }
+    catch(_){ /* MUDO A PROPOSITO: mismo caso que Facturas — ventana privada o cuota llena.
+                Se pierde recordar la carpeta abierta, nada mas. */ }
   }));
 }
 

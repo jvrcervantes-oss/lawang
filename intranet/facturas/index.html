@@ -2727,7 +2727,10 @@ function pintarPorContrato(box, data, filaDoc){
   }).join('');
   box.querySelectorAll('details.ctr').forEach(d => d.addEventListener('toggle', () => {
     d.open ? CTR_ABIERTOS.add(d.dataset.ctr) : CTR_ABIERTOS.delete(d.dataset.ctr);
-    try{ sessionStorage.setItem('lw_fact_abiertos', JSON.stringify([...CTR_ABIERTOS])); }catch(_){}
+    try{ sessionStorage.setItem('lw_fact_abiertos', JSON.stringify([...CTR_ABIERTOS])); }
+    catch(_){ /* MUDO A PROPOSITO: sessionStorage tira en ventana privada y al llenarse la
+                cuota. Lo unico que se pierde es recordar que contratos quedaban abiertos al
+                repintar; ningun dato de factura vive aqui. Avisar de esto seria ruido. */ }
   }));
 }
 
