@@ -27,12 +27,41 @@ const path = require('path');
 const RAIZ = path.join(__dirname, '..');
 const FUERA = new Set(['Backups', 'node_modules', 'templates', '_archive', 'dist']);
 
+/* Solo las paginas QUE ESTAN EN GIT (28-ago-2026). Esta prueba corre en el gate de
+   push, y ahi lo unico que puede romperse para alguien mas es lo que se sube: una
+   pagina sin trackear —o tapada por el `.gitignore`, como los `_qa_*`— no viaja, no
+   se despliega y no la abre nadie. Cinco ficheros de diagnostico de una sesion en
+   marcha tenian esto en rojo, y arreglarlos habria sido editar el trabajo en vivo de
+   otro para que pasara un push ajeno.
+
+   Se pregunta por lo que ESTA en el indice, no por lo que no esta: `ls-files --others
+   --exclude-standard` no lista lo que tapa el `.gitignore`, asi que preguntando al
+   reves un `_qa_index.html` ignorado se colaba igual. Lo saltado se dice al final, no
+   se calla. */
+function enGit(raiz) {
+  try {
+    const { execFileSync } = require('child_process');
+    const out = execFileSync('git', ['-C', raiz, 'ls-files', '--', '*.html'],
+                             { encoding: 'utf8' });
+    return new Set(out.split(String.fromCharCode(10))
+                      .map(f => f.trim()).filter(Boolean)
+                      .map(f => path.resolve(raiz, f).toLowerCase()));
+  } catch (_) {
+    return null;   // sin git (o sin repo) se comprueba todo: mejor de mas que de menos
+  }
+}
+const EN_GIT = enGit(RAIZ);
+let SALTADAS = 0;
+
 function paginas(dir, salida = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (FUERA.has(e.name)) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) paginas(p, salida);
-    else if (e.name.endsWith('.html')) salida.push(p);
+    else if (e.name.endsWith('.html')) {
+      if (EN_GIT && !EN_GIT.has(path.resolve(p).toLowerCase())) { SALTADAS++; continue; }
+      salida.push(p);
+    }
   }
   return salida;
 }
@@ -71,6 +100,8 @@ for (const p of paginas(RAIZ)) {
   }
 }
 
+if (SALTADAS) console.log(`
+  (${SALTADAS} pagina(s) fuera de git no se cuentan: no se suben)`);
 console.log(fallos
   ? `\n${fallos} fallo(s) de orden de carga`
   : `\nOK orden_dinero.test.js — ${revisadas} dependencia(s) de carga, todas en pie`);
