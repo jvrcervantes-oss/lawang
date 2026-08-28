@@ -418,12 +418,26 @@ async function syncUnidadConstruccion(){
       UNIDAD_ID_CONSTRUCCION = null;
   }
   const lista = UNIDADES_RESERVA_VINCULADA.lista;
-  if(lista.length <= 1){
-    // una sola parcela (o ninguna en el inventario): se asigna sola, sin preguntar
-    UNIDAD_ID_CONSTRUCCION = lista.length ? lista[0].id : null;
+  if(!lista.length){
+    // ninguna parcela en el inventario para esta reserva: no hay nada que elegir
+    UNIDAD_ID_CONSTRUCCION = null;
     if(caja) caja.remove();
     return;
   }
+  /* 🔴 SIEMPRE VISIBLE, incluso con una sola parcela (28-ago-2026, encargo del
+     owner: "poder vincularlo desde el mismo contrato" — más de una
+     Construcción en la misma parcela grande es un caso real, no uno raro).
+     Antes, con una sola parcela, se asignaba sola y el selector ni se
+     pintaba — funcionaba igual para la PRIMERA construcción de esa parcela,
+     pero la SEGUNDA (una segunda casa en la misma parcela) tampoco veía nunca
+     el selector, así que no había forma de CONFIRMARLo ni de elegirlo a
+     propósito desde el propio contrato: quedaba en manos de que la única
+     opción fuera, por casualidad, la correcta. Con una sola parcela se
+     preselecciona (mismo comportamiento de antes), pero ahora se ve y se
+     puede tocar. `unidad_parte_cobrada` ya sabe sumar más de una Construcción
+     por parcela (24-ago, contracts/sql/construccion_por_parcela.sql) —
+     esto solo hacía falta en la pantalla, no en la base. */
+  if(lista.length === 1 && UNIDAD_ID_CONSTRUCCION == null) UNIDAD_ID_CONSTRUCCION = lista[0].id;
   pintarSelectorUnidadConstruccion(lista);
 }
 function pintarSelectorUnidadConstruccion(lista){
@@ -444,9 +458,13 @@ function pintarSelectorUnidadConstruccion(lista){
          esc(u.codigo)}${u.precio!=null?' · '+fmtImporte(Number(u.precio)):''}</option>`).join('')}
      </select>
      <p class="hint" style="font-size:11.5px;color:var(--muted);margin:6px 0 0">${
-       L({es:'Esta reserva tiene varias parcelas: sin elegir cuál, su cobro se reparte entre todas y no cuenta bien.',
-          en:'This reservation has several plots: without choosing which one, its payments get split across all of them and the numbers come out wrong.',
-          id:'Reservasi ini punya beberapa kavling: tanpa memilih yang mana, pembayarannya terbagi ke semuanya dan angkanya jadi salah.'})}</p>`;
+       lista.length > 1
+         ? L({es:'Esta reserva tiene varias parcelas: sin elegir cuál, su cobro se reparte entre todas y no cuenta bien.',
+              en:'This reservation has several plots: without choosing which one, its payments get split across all of them and the numbers come out wrong.',
+              id:'Reservasi ini punya beberapa kavling: tanpa memilih yang mana, pembayarannya terbagi ke semuanya dan angkanya jadi salah.'})
+         : L({es:'Puede haber más de una Construcción sobre la misma parcela (varias casas en un terreno grande) — se suman al cobro de esa parcela.',
+              en:'More than one Construction can point to the same plot (several houses on a large lot) — their payments add up on that plot.',
+              id:'Bisa ada lebih dari satu Konstruksi untuk kavling yang sama (beberapa rumah di lahan besar) — pembayarannya dijumlahkan pada kavling itu.'})}</p>`;
   const s = caja.querySelector('#selUnidadConstruccion');
   if(!s._wired){
     s._wired = true;
