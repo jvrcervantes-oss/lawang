@@ -12,6 +12,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- MODO QA (28-ago-2026) — mismo gate que contracts/assets/guard.js, aquí
+     duplicado porque este hub NO carga guard.js (control propio de sesión,
+     ver más abajo). El `?demo=1` de esta página NO basta para probarla sin
+     red real: solo salta el createClient() de aquí arriba, pero saldos-v3.js
+     y movimiento-v3.js crean su PROPIO cliente y llaman a producción igual
+     (401 por falta de sesión, no hay fuga de datos, pero sí tráfico real).
+     Solo localhost+?qa=1; fuera de eso, nunca se ejecuta. -->
+<script>(function(){try{
+  if (location.hostname === 'localhost' &&
+      new URLSearchParams(location.search).get('qa') === '1') {
+    document.write('<script src="/_qa_double_guard.js"><\/script>');
+  }
+}catch(e){}})();</script>
 <!-- Catálogo y formato de dinero: los MISMOS ficheros que el hub vivo. Esta v3
      cambia la piel y el comportamiento, no la fuente de verdad de qué
      herramientas existen ni de quién las ve (regla 0 de la suite). -->
