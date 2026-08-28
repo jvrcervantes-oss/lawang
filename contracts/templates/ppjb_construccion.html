@@ -72,6 +72,17 @@
       <tbody>
         <tr><td><span data-lang="es">Nombre del Proyecto</span><span data-lang="en">Project Name</span><span data-lang="id">Nama Proyek</span></td><td><span class="f f-lg">{{proyecto_nombre}}</span></td></tr>
         <tr><td><span data-lang="es">Tipología de Vivienda</span><span data-lang="en">Housing Typology</span><span data-lang="id">Tipologi Hunian</span></td><td><span class="f f-lg">{{tipologia_construccion}}</span></td></tr>
+        <!-- 🔴 FALTABA (28-ago-2026, aviso del owner: "el campo ¿Qué parcela es esta
+             construcción? no se imprime"). El dato lleva desde el 24-ago en la base
+             (contratos.unidad_id, construccion_por_parcela.sql) y desde hoy siempre
+             visible en el editor (syncUnidadConstruccion), pero esta plantilla nunca
+             tuvo dónde imprimirlo — puede haber más de una Construcción sobre la
+             misma parcela, así que dejarlo sin imprimir es justo el caso en que más
+             hace falta verlo en el papel. `<!--opt:-->` porque una reserva con una
+             sola parcela ya en el inventario se asigna sola iguel, pero un contrato
+             de construcción sin ninguna parcela en el inventario (proyecto sin dar
+             de alta en Unidades) no tiene nada que imprimir aquí. -->
+        <!--opt:unidad_construccion_codigo--><tr><td><span data-lang="es">Parcela</span><span data-lang="en">Plot</span><span data-lang="id">Kavling</span></td><td><span class="f f-lg">{{unidad_construccion_codigo}}</span></td></tr><!--/opt:unidad_construccion_codigo-->
         <tr><td><span data-lang="es">Ubicación</span><span data-lang="en">Location</span><span data-lang="id">Lokasi</span></td><td><span class="f f-lg">{{ubicacion_proyecto}}</span></td></tr>
       </tbody>
     </table>

@@ -2184,6 +2184,18 @@ function collect(){
   // que el documento imprima el número en vez de un hueco en blanco.
   if(SAVED_CONTRACT && SAVED_CONTRACT.numero) data.contrato_num = SAVED_CONTRACT.numero;
 
+  /* La parcela de ESTA Construcción (28-ago-2026, aviso del owner: no se
+     imprimía en el documento). No es un campo de formulario — nunca se
+     teclea, la fija el selector "¿Qué parcela es esta construcción?"
+     (syncUnidadConstruccion, assets/parcela_inventario.js) — mismo patrón
+     que contrato_num arriba: un dato que ya vive en memoria/la base, no uno
+     que tenga que pasar por activeKeys()/tokens.json para imprimirse. */
+  if(CONTRACT_TIPO[CURRENT.slug] === 'construccion' && UNIDAD_ID_CONSTRUCCION){
+    const u = ((UNIDADES_RESERVA_VINCULADA && UNIDADES_RESERVA_VINCULADA.lista) || [])
+                .find(x => x.id === UNIDAD_ID_CONSTRUCCION);
+    if(u) data.unidad_construccion_codigo = u.codigo;
+  }
+
   /* `adq1_tipo` no es un campo del formulario: sale de la ficha enlazada y lo
      usan las plantillas con <!--if:adq1_tipo=empresa--> para elegir entre el
      párrafo de persona y el de sociedad (19-ago-2026). Va en `data`, así que
@@ -2574,6 +2586,7 @@ function deriveSections(){
   inDoc.delete('adq_apoderado_ktp');   // idem, el del comprador
   inDoc.delete('adq2_firmante_nombre');   // derivado (applyRepresentanteComprador) — nunca un campo del form
   inDoc.delete('adq_representacion');   // derivado: nombre+fecha del poder a la vez, no un campo del form
+  inDoc.delete('unidad_construccion_codigo');   // derivado (collect(), arriba): lo fija el selector de parcela, nunca se teclea
   /* La clausula historica «el adquiriente firma como sociedad (PT PMA)»: sus
      campos comp_* siguen dentro de cinco plantillas y su seccion se retiro de
      tokens.json el 19-ago-2026 (encargo del owner). Sin esta linea reaparecen en
