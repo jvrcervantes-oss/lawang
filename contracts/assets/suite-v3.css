@@ -33,9 +33,13 @@ html.v3{
      suite.css (3,31:1 que no llegaba al minimo, etc.). Aqui se cambia el
      MATERIAL —radio, profundidad, ritmo—, nunca la legibilidad. */
 
-  /* Radios mas generosos: la caja pequena y la grande no pueden llevar el mismo
-     redondeo, o la grande se lee como un rectangulo con las esquinas mordidas. */
-  --r-s:10px; --r-m:14px; --r-l:18px;
+  /* 🔴 Pulido 24-ago: aquí había un "--r-s/--r-m/--r-l más generosos" que
+     redefinía --r-m de 12px a 14px. suite.css lo fija en 12 A PROPÓSITO
+     ("Radio 12px y no 16: en el mockup TODO panel va a 12", línea 237) y
+     lawang_espec_visual.md lo repite como valor medido. No es un token de
+     movimiento/material — es un valor de marca ya corregido una vez, y
+     ninguna regla de apple-design pide tocar radios. Se retira: los tres
+     caen al valor de suite.css sin redefinirlos aquí. */
 
   /* §12 — profundidad en dos capas, no una sombra plana: un contacto corto que
      apoya el objeto en el papel y una difusa que lo separa del fondo. */
@@ -85,8 +89,13 @@ html.v3 .sui-lede p{ font-size:.87rem; line-height:1.55; letter-spacing:0; }
 html.v3 .lw-title{ letter-spacing:.02em; }
 html.v3 .lw-cifra{ letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
 html.v3 .lw-kpi .rot,
-html.v3 .sui-tabla th,
-html.v3 .sui-tag{ letter-spacing:.1em; }
+html.v3 .sui-tabla th{ letter-spacing:.1em; }
+/* 🔴 Pulido 24-ago: `.sui-tag` vivía en el mismo .1em que el th y el rótulo
+   KPI (10,5-11px). lawang_espec_visual.md mide el tag aparte, a .06em
+   (10px) — y agruparlo era justo el anti-patrón que el propio §15 de la
+   skill apple-design nombra: "tracking específico del tamaño, nunca un
+   valor para todo". Tamaño distinto, tracking distinto. */
+html.v3 .sui-tag{ letter-spacing:.06em; }
 html.v3 .sui-tabla td.num,
 html.v3 .sui-ficha .cifra,
 html.v3 .sui-total{ font-variant-numeric:tabular-nums; }
@@ -119,7 +128,12 @@ html.v3 .lw-topbar.lw-topbar-oscura{
   box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
 }
 /* §12 vibrancia — sobre material translúcido el texto secundario no puede ser
-   gris plano: sube contraste, sube algo de peso y abre el tracking. */
+   gris plano: sube algo de peso y abre el tracking (el tracking lo pone la
+   regla general de `.lw-title` más arriba). 🔴 Pulido 24-ago: el comentario
+   decía también "sube contraste" pero no tocaba color — y no lo toca aquí
+   tampoco a propósito: el contraste es del dominio de los tokens medidos
+   (--texto-3 etc.), no del de esta pasada de movimiento/material. Si hiciera
+   falta más contraste sobre el vidrio, se mide primero, no se sube a ojo. */
 html.v3 .lw-topbar .lw-title,
 html.v3 .lw-topbar .lw-who{ font-weight:600; }
 

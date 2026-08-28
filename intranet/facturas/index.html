@@ -17,7 +17,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c0bac093">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -30,8 +30,8 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="documento.css?v=20260731">
-<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<script src="/contracts/assets/herramientas.js?v=31fcd53b"></script>
+<script src="/contracts/assets/topbar.js?v=d36f7e5e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
      el permiso lo comprueba el script de esta pagina, que sabe un matiz que
@@ -39,18 +39,18 @@
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/guard.js?v=cf2b0ff8"></script>
+<script src="/contracts/assets/guard.js?v=8d5c0c7b"></script>
 <!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
      el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
      fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
      en otro, con dos aspectos distintos en la misma pantalla. -->
-<script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/suite.js?v=616759ae"></script>
 <!-- sociedades emisoras y cuentas de cobro: compartido con /contracts.
      El `?v=` salta por encima de la copia que el CDN cacheo ANTES de que el
      .htaccess pusiera no-cache en todo el js/css (el edge no revalida hasta que
      expire su TTL de 7 dias). Sin esto la factura de PT SAN DAL WOODS sigue
      saliendo con el logo de Lawang. Se puede quitar pasado el 3-ago-2026. -->
-<script src="/contracts/assets/entities.js?v=5f9da647"></script>
+<script src="/contracts/assets/entities.js?v=36632b1e"></script>
 <!-- aritmética de dinero (con test propio en totales.test.js) -->
 <!-- maquetacion del documento: la MISMA que arma la factura automatica del
      primer hito (contracts/edge/firma-submit se baja este fichero y lo ejecuta) -->
@@ -58,14 +58,14 @@
      porque Contratos necesita EXACTAMENTE la misma lista para nombrar la
      operación. Mientras estuvo aquí dentro, Facturas decía «A · B» y el
      contrato de al lado decía solo «A». El `?v=` lo sella el hook. -->
-<script src="/contracts/assets/compradores.js?v=9ea247e6"></script>
+<script src="/contracts/assets/compradores.js?v=17c385b9"></script>
 <!-- ¿el documento sigue diciendo lo que dice la ficha? La comparación vive en
      la vista `documentos_desactualizados`; esto solo la consulta (19-ago-2026). -->
-<script src="/contracts/assets/ficha_divergencia.js?v=70b9307d"></script>
+<script src="/contracts/assets/ficha_divergencia.js?v=8c2d1d2b"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
      /contracts. `creado_por` es con lo que la RLS decide quién puede editar
      su propio documento, no un adorno. -->
-<script src="/contracts/assets/autoria.js?v=4e47fa06"></script>
+<script src="/contracts/assets/autoria.js?v=fd4b8f1f"></script>
 <style>
   /* --folio = color del papel del documento. Vive aquí y en un solo sitio a
      propósito: los logos de las sociedades vienen sin canal alfa (el de San
@@ -624,17 +624,17 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=7cede2bd">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=a5e759bc">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
-<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/vocabulario.js?v=e4a18fd2"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=86e439d8"></script>
+<script src="/contracts/assets/saldos-v3.js?v=deaf78a0"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=d220a72f"></script>
 </head>
 <body hidden>
   <!-- Barra unificada de la suite (assets/topbar.css). Mismo orden que en
@@ -936,13 +936,13 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282"></script>
+<script src="/contracts/assets/dialogo.js?v=5edf8aed"></script>
+<script src="/contracts/assets/dinero.js?v=73da6788"></script>
 <script src="totales.js"></script>
 <script src="documento.js?v=20260731"></script>
-<script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
-<script src="/contracts/assets/facturas_contratos.js?v=7fb07bac"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/paginacion.js?v=fd718e4e"></script>
+<script src="/contracts/assets/facturas_contratos.js?v=f7d69acf"></script>
+<script src="/contracts/assets/suite-comun.js?v=9703fd59"></script>
 <script>
 const $  = s => document.querySelector(s);
 

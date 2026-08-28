@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c0bac093">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -28,10 +28,10 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<script src="/contracts/assets/herramientas.js?v=31fcd53b"></script>
+<script src="/contracts/assets/topbar.js?v=d36f7e5e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="/contracts/assets/guard.js?v=cf2b0ff8" data-herramienta="usuarios"></script>
+<script src="/contracts/assets/guard.js?v=8d5c0c7b" data-herramienta="usuarios"></script>
 <style>
   :root{ --line:#E4DCCB; --card:#FFFFFF; --rl2:#F1EBDD; --texto-2:#4A5052; --tbh:64px; }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
@@ -111,19 +111,19 @@
      DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
      owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
      Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=ff0d54fb">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
+<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=7cede2bd">
+<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=a5e759bc">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
      aritmética compartida y los nombres de tipo de contrato. Sin ellas el
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/dinero.js?v=ced29282"></script>
+<script src="/contracts/assets/dinero.js?v=73da6788"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
-<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
+<script src="/contracts/assets/vocabulario.js?v=e4a18fd2"></script>
+<script src="/contracts/assets/operaciones-cuentas.js?v=86e439d8"></script>
+<script src="/contracts/assets/saldos-v3.js?v=deaf78a0"></script>
+<script src="/contracts/assets/movimiento-v3.js?v=d220a72f"></script>
 </head>
 <body>
   <header class="lw-topbar" data-titulo="Usuarios">
@@ -161,8 +161,8 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/contracts/assets/dialogo.js?v=5edf8aed"></script>
+<script src="/contracts/assets/suite-comun.js?v=9703fd59"></script>
 <script>
 /* ============================================================
    USUARIOS Y PERMISOS — panel de administración de la suite.
