@@ -1337,6 +1337,14 @@ async function elegirFacturaDelRecibi(){
     CONTRATO_ID = f.contrato_id;
     pintarContratoElegido();
     await traerContrato(CONTRATO_ID);
+    /* 🔴 Sin esto, `FACTURAS_ABIERTAS` se queda con la lista SIN FILTRAR de
+       cuando aún no había comprador (ver el comentario "SIN CONTRATO ELEGIDO,
+       TODAS" en cargarFacturasAbiertas) — el aviso de abajo terminaba
+       contando las pendientes de TODO el equipo y llamándolas "de este
+       comprador" (28-ago-2026, aviso del owner: 62 facturas que no eran
+       suyas). Ahora que ya se sabe quién es, se vuelve a pedir con el
+       comprador puesto para que `suyos` haga su trabajo. */
+    await cargarFacturasAbiertas();
   }
   APLICACIONES.push({ factura_id:f.id, numero:f.numero, pendiente:f.pendiente, importe:'' });
   /* `pintarSelectFacturaAplicar` ya no pinta ningún desplegable —solo el aviso
@@ -1385,15 +1393,25 @@ function pintarAplicaciones(){
         <button type="button" class="link-pendiente" data-todo="${i}">${esc(fmtMoneda(a.pendiente, moneda0))}</button>
         — pulsa para cobrarlo entero.</p>
     </div>`).join('');
+  actualizarSumaAplicaciones();
+}
+function actualizarSumaAplicaciones(){
   const moneda = $('[name="moneda"]').value;
   const suma = APLICACIONES.reduce((s,a) => s + (parseImporte(a.importe) || 0), 0);
   $('#aplicSuma').textContent = APLICACIONES.length
     ? 'Total del recibí: ' + fmtMoneda(suma, moneda) + ' (' + APLICACIONES.length + ' factura' + (APLICACIONES.length===1?'':'s') + ')'
     : 'Añade al menos una factura.';
 }
+/* 🔴 Escribir aquí NO puede volver a pintar `#aplicaciones`: eso destruye el
+   propio <input> donde se está tecleando y obliga a hacer clic dígito a
+   dígito (aviso del owner, 28-ago-2026). Se actualiza el modelo y la suma
+   sin tocar el DOM del campo — `pintarAplicaciones()` solo hace falta
+   cuando cambia la LISTA de filas (añadir, quitar, "cobrar entero"). */
 $('#aplicaciones').addEventListener('input', e => {
   const el = e.target; if(el.dataset.a == null) return;
-  APLICACIONES[+el.dataset.a].importe = el.value; sincronizarLineasDesdeAplicaciones();
+  APLICACIONES[+el.dataset.a].importe = el.value;
+  LINEAS = APLICACIONES.map(a => ({ descripcion:'Aplicado a factura ' + a.numero, importe:a.importe }));
+  actualizarSumaAplicaciones(); render();
 });
 $('#aplicaciones').addEventListener('click', e => {
   const b = e.target.closest('[data-adel]'); if(!b) return;
