@@ -2253,7 +2253,16 @@ function soltarPrecargaAlCambiarTipo(){
 function precargarConceptos(){
   const enBlanco = () => !LINEAS.some(l => (l.descripcion || '').trim() || (l.importe || '').trim());
   if(!SAVED && $('#selTipo').value === 'proforma' && enBlanco()){
-    const auto = document.querySelector('[data-unidad]') || document.querySelector('#hitoTodo');
+    /* 🔴 NUNCA `[data-unidad]` (28-ago-2026, aviso del owner: PRO00119 salió
+       por 69.000 cuando el contrato CC00067 es de 44.000). `[data-unidad]`
+       junta el total de ESTE contrato con el del vinculado (RP00106) — una
+       decisión de qué se cobra en este documento, no una precarga segura.
+       Aquí no hay forma de saber si el vinculado YA tiene su propia proforma
+       emitida (la tenía: PRO00118, dos minutos antes) — auto-clicarlo cobra
+       la parcela dos veces sin que nadie lo pida. Solo se auto-precarga el
+       total de ESTE contrato (`#hitoTodo`); combinar los dos sigue siendo un
+       clic consciente en el aviso de abajo, nunca automático. */
+    const auto = document.querySelector('#hitoTodo');
     if(auto && !auto.disabled){
       auto.click();
       /* La HUELLA de lo que ha puesto la máquina. Sirve para poder retirarlo
