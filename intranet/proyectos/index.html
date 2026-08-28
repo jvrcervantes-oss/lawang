@@ -935,6 +935,7 @@ function abrirUnidad(id){
         <div id="avisoEstado"></div>`}
       <div class="campo"><label for="f-notas">Notas</label><textarea id="f-notas">${esc(u.notas||'')}</textarea></div>`,
     pie: `<button class="sui-btn primario" id="btnGuardar">${nueva ? 'Crear unidad' : 'Guardar cambios'}</button>
+          ${(!nueva && ES_SUPER_ADMIN) ? '<button class="sui-btn peligro" id="btnBorrarUnidad">Borrar</button>' : ''}
           <button class="sui-btn" id="btnCerrar">Cerrar</button>`,
     onCerrar: () => { SEL = null; pintar(); },
   });
@@ -1037,6 +1038,30 @@ function abrirUnidad(id){
   }
   $('#btnGuardar').addEventListener('click', () => guardar(nueva ? null : u.id));
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
+  if($('#btnBorrarUnidad')) $('#btnBorrarUnidad').addEventListener('click', () => borrarUnidad(u));
+}
+
+/* Borrar parcela (28-ago-2026, petición del owner: "permíteme como super
+   admin eliminar parcelas"). Mismo patrón que borrarProyecto: el botón ya
+   solo lo ve un super_admin (pie de abrirUnidad), pero el gate real es el
+   RPC — es_super_admin() dentro de borrar_unidad(), no esta UI. El propio
+   RPC rechaza el borrado si la parcela tiene un contrato o fotos de obra
+   colgando, y deja rastro en `unidades_borradas` antes de borrar. */
+async function borrarUnidad(u){
+  const ok = await lwConfirmar({
+    titulo: `Borrar la parcela «${u.codigo || 'sin código'}»`,
+    cuerpo: '<p>Solo se puede si no tiene un contrato ni fotos de obra colgando. Si tiene algo, el sistema lo rechaza y dice qué queda por soltar.</p>'
+          + '<p>No se puede deshacer desde aquí.</p>',
+    confirmar: 'Borrar la parcela',
+    tono: 'peligro',
+  });
+  if(!ok) return;
+  const { error } = await SB.rpc('borrar_unidad', { p_id: u.id });
+  if(error){ toast('No se pudo borrar: ' + error.message); return; }
+  toast('Parcela borrada');
+  suiCerrarCajon();
+  SEL = null;
+  cargar();
 }
 
 /* Qué costaría esta parcela con CADA modelo. Es la consecuencia directa de que
