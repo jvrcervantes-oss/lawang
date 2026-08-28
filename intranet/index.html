@@ -15,6 +15,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- MODO QA (28-ago-2026) — mismo gate que contracts/assets/guard.js, aquí
+     duplicado porque este hub NO carga guard.js (control de sesión propio,
+     ver contexto/suite_lawang.md). Solo localhost+?qa=1; fuera de eso, nunca
+     se ejecuta. Sobrescribe window.supabase ANTES de que el script de más
+     abajo llame a createClient(), así que ese código no necesita cambiar. -->
+<script>(function(){try{
+  if (location.hostname === 'localhost' &&
+      new URLSearchParams(location.search).get('qa') === '1') {
+    document.write('<script src="/_qa_double_guard.js"><\/script>');
+  }
+}catch(e){}})();</script>
 <!-- Solo por el PANEL DE USUARIO: el hub tiene cabecera propia y no usa la barra
      compartida, pero el panel (quién eres · tus avisos · salir) tiene que estar
      también aquí — es la primera pantalla que se abre cada mañana. Se cuelga del

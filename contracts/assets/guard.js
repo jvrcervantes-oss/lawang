@@ -43,6 +43,23 @@
    dos — bloquearlo a una sola dejaría fuera a quien solo tiene la otra.
    Con un solo valor se comporta exactamente igual que antes. */
 (function () {
+  /* MODO QA (28-ago-2026) — revisión previa: Desarrollo + Datos + Seguridad,
+     CEO/revisiones/estado.json. Único punto de entrada para las herramientas
+     que cargan guard.js: nunca se copia este `if` en cada index.html (los
+     tres departamentos lo pidieron independientemente — "una lista a mano en
+     dos sitios ES el bug", ya escrito en contexto/suite_lawang.md).
+     Solo se alcanza con localhost + ?qa=1; fuera de eso, código muerto. El
+     doble (_qa_double_guard.js) está gitignored y nunca llega a Hostinger,
+     así que fuera de localhost esto ni siquiera puede cargar. Detalle y
+     límites conocidos: cabecera de _qa_double_guard.js. */
+  try {
+    if (location.hostname === 'localhost' &&
+        new URLSearchParams(location.search).get('qa') === '1') {
+      document.write('<script src="/_qa_double_guard.js"><\/script>');
+      return;
+    }
+  } catch (e) { /* si algo falla aquí, se sigue por el camino real de abajo */ }
+
   var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
   var LOGIN  = '/entrar/';
