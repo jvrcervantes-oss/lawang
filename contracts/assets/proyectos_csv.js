@@ -143,12 +143,22 @@ function lwCsvAnaliza(texto, ctx){
     if(!proyectoCsv) errores.push('sin proyecto');
     else if(!proyectoCat) errores.push(`proyecto "${proyectoCsv}" no está en el catálogo — créalo primero con «+ Nuevo proyecto»`);
     if(!tiposOk.has(tipo)) errores.push(`tipo "${tipo}" no está en el catálogo`);
+    const precioSuelo = num(d.precio_suelo), precioConstruccion = num(d.precio_construccion);
+    /* El total es SIEMPRE suelo + construcción cuando el CSV trae los dos
+       (28-ago-2026, trigger `trg_unidad_precio_suma` en la base): si la fila
+       también traía su propia columna de Total, se ignora aquí — más vale
+       que la vista previa ya enseñe lo que se va a guardar de verdad que
+       dejar creer que ese Total del CSV es el que manda. Sin desglose, el
+       total del CSV se respeta tal cual: es el único dato que hay. */
+    const precio = (precioSuelo != null || precioConstruccion != null)
+      ? (precioSuelo || 0) + (precioConstruccion || 0)
+      : num(d.precio);
     return {
       fila: idx + 2,                       // +2: encabezado + base-1
       codigo, proyecto, tipo,
       modelo: d.modelo ? lwCsvAntiFormula(d.modelo) : null,
-      superficie_m2: num(d.superficie_m2), precio_suelo: num(d.precio_suelo),
-      precio_construccion: num(d.precio_construccion), precio: num(d.precio),
+      superficie_m2: num(d.superficie_m2), precio_suelo: precioSuelo,
+      precio_construccion: precioConstruccion, precio,
       moneda: (d.moneda || 'EUR').toUpperCase(),
       notas: d.notas ? lwCsvAntiFormula(d.notas) : null,
       fase_masterplan: d.fase_masterplan ? lwCsvAntiFormula(d.fase_masterplan) : null,

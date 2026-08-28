@@ -119,7 +119,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/proyectos_csv.js?v=9d8369e7"></script>
+<script src="/contracts/assets/proyectos_csv.js?v=fd7cfb5e"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/vocabulario.js?v=c031da44"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
@@ -905,8 +905,13 @@ function abrirUnidad(id){
       </div>
       <div class="dos">
         <div class="campo"><label for="f-obra">Precio de construcción</label><input id="f-obra" inputmode="decimal" value="${u.precio_construccion!=null?esc(fmtNum(Number(u.precio_construccion))):''}"></div>
-            <div class="campo"><label for="f-precio">Precio total</label><input id="f-precio" inputmode="decimal" value="${u.precio_guardado!=null?esc(fmtNum(Number(u.precio_guardado))):''}" placeholder="${u.precio!=null?esc(fmtNum(Number(u.precio)))+' (suelo + construcción)':''}"></div>
+        <div class="campo"><label for="f-precio">Precio total</label>
+          <input id="f-precio" value="${u.precio!=null?esc(fmtNum(Number(u.precio))):'—'}" readonly
+                 style="background:var(--sup-2);color:var(--texto-2);cursor:not-allowed"></div>
       </div>
+      <p class="sui-nota" style="margin-top:-6px">El total es siempre suelo + construcción — ya no se puede
+        escribir un valor distinto (28-ago-2026): un CSV trajo un total descuadrado con sus propias
+        columnas de suelo/construcción en 143 parcelas, y así no puede volver a pasar.</p>
       <div class="dos">
         <div class="campo"><label for="f-moneda">Moneda</label><select class="sui-sel" id="f-moneda">${['EUR','USD','AUD','IDR'].map(x=>`<option ${u.moneda===x?'selected':''}>${x}</option>`).join('')}</select></div>
       </div>
@@ -970,19 +975,16 @@ function abrirUnidad(id){
     $('#f-estado').addEventListener('change', avisoEstado);
     $('#f-contrato').addEventListener('change', avisoEstado);
   }
-  // Suelo + construcción rellenan el total mientras esté vacío o cuadre: es la
-  // suma que hace el propio cliente en su tabla, y tecleada dos veces se
-  // desincroniza. Si alguien pone un total distinto a mano, se respeta.
+  // El total ya no se puede escribir a mano (28-ago-2026): lo fija SIEMPRE un
+  // trigger en la base, suelo + construcción, sin excepción — esto solo
+  // espeja en pantalla lo que se va a guardar, para que no haya sorpresa al
+  // pulsar «Guardar». Sin construcción no se muestra un total: sería solo el
+  // suelo (36.875 € en una parcela que de verdad cuesta entre 95.000 y
+  // 131.000), y esa cifra en la columna «Total» es la que alguien acaba
+  // diciendo en voz alta delante de un comprador.
   const suma = () => {
     const s = parseImporte($('#f-suelo').value), o = parseImporte($('#f-obra').value);
-    const t = $('#f-precio'), actual = parseImporte(t.value);
-    // Sin construcción NO se rellena el total. Con el modelo sin decidir, el
-    // total sería solo el suelo (36.875 € en una parcela que de verdad cuesta
-    // entre 95.000 y 131.000), y esa cifra puesta en la columna «Total» es la
-    // que alguien acaba diciendo en voz alta delante de un comprador.
-    if(!o) return;
-    if(!s && !o) return;
-    if(!actual || Math.abs(actual - (t._auto||0)) < 0.5){ t.value = fmtNum(s + o); t._auto = s + o; }
+    $('#f-precio').value = o ? fmtNum((s||0) + o) : '—';
   };
   // m² × precio/m² rellena el suelo con el mismo criterio que el suelo rellena
   // el total arriba: mientras esté vacío o cuadre con lo último calculado. Un
@@ -1098,7 +1100,11 @@ async function guardar(id){
     codigo, proyecto,
     tipo: $('#f-tipo').value, modelo: $('#f-modelo').value.trim() || null,
     superficie_m2: num('#f-sup'), precio_suelo: num('#f-suelo'),
-    precio_construccion: num('#f-obra'), precio: num('#f-precio'),
+    precio_construccion: num('#f-obra'),
+    // `precio` NO se manda: lo fija el trigger `trg_unidad_precio_suma` en la
+    // base, siempre suelo + construcción (28-ago-2026). El campo #f-precio es
+    // solo lectura, un espejo — mandarlo aquí no haría nada salvo confundir a
+    // quien lea este código pensando que todavía es él quien decide el total.
     moneda: $('#f-moneda').value, notas: $('#f-notas').value.trim() || null,
   };
   // Fase/zona de masterplan: solo existen en el cajón para Sumba Hills (ver

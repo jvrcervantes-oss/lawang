@@ -97,6 +97,21 @@ ok('los importes pasan por lwParseImporte, no por Number()', () => {
     'un importe con separadores europeos no puede acabar en NaN');
 });
 
+ok('🔴 28-ago: con suelo+construcción, el Total del CSV se ignora — se recalcula', () => {
+  // El caso real: Sumba Hills, 10-ago-2026. La columna «Total» del CSV traía
+  // un valor que no cuadraba con Land/Villa de su propia fila en 141 de 183
+  // filas — la app lo guardó tal cual y el desajuste no se vio hasta el 28-ago.
+  const r = lwCsvAnaliza('codigo,proyecto,land,villa,total\nB1,Bonian Village,35000,54000,79000\n', CTX);
+  assert.strictEqual(r.analizadas[0].precio, 89000,
+    'con suelo(35000)+construccion(54000) presentes, el total es su suma — nunca el 79000 del CSV');
+});
+
+ok('sin desglose de suelo/construcción, el Total del CSV se respeta tal cual', () => {
+  const r = lwCsvAnaliza('codigo,proyecto,total\nB1,Bonian Village,79000\n', CTX);
+  assert.strictEqual(r.analizadas[0].precio, 79000,
+    'sin land/villa que sumar, es el único dato de precio que hay');
+});
+
 ok('un fichero vacío se DICE, no revienta', () => {
   assert.ok(/vac/i.test(lwCsvAnaliza('', CTX).error));
 });
