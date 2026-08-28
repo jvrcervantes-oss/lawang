@@ -135,7 +135,18 @@
   <datalist id="dl-nacionalidades"></datalist>
   <datalist id="dl-prefijos"></datalist>
 
-  <div class="stage">
+  <!-- 🔴 OCULTO HASTA QUE init() DECIDE QUÉ PANTALLA TOCA (28-ago-2026, aviso
+       del owner: "se ve el configurador antes de ver el listado"). guard.js ya
+       revela la página cuando la sesión está confirmada, pero eso pasa ANTES
+       de que init() termine loadTemplate()/buildForm() y decida listado vs
+       editor por la URL — en ese hueco se veía el formulario en blanco un
+       instante, tapado luego por el modal de listado. Se quita al final de
+       init(), en las TRES ramas (listado/editor/nuevo), nunca antes.
+       `style="display:none"` y no el atributo `hidden`: `.stage` ya trae su
+       propio `display:grid` en app.css/lawang.css con la MISMA especificidad
+       que la regla `[hidden]` del navegador, y por orden de cascada la de la
+       hoja de estilos gana — `hidden` se habría quedado sin efecto. -->
+  <div class="stage" style="display:none">
     <!-- IZQUIERDA · campos -->
     <div class="pane-form">
       <div class="inner">
@@ -5151,6 +5162,10 @@ async function init(){
   // tambien las filas del listado). ?nuevo=1 abre el editor en blanco, que era
   // la entrada por defecto. SIN parametros ya no: se entra por el listado, como
   // en Facturas — a esta herramienta se viene a consultar mas que a redactar.
+  // try/finally: si openSavedContract (u otra llamada de aquí abajo) revienta
+  // sin capturar, `.stage` tiene que revelarse igual — quedarse oculto para
+  // siempre es peor que el parpadeo que este bloque vino a arreglar.
+  try{
   const par = new URLSearchParams(location.search);
   const pedido = par.get('contrato');
   if(pedido){
@@ -5179,6 +5194,11 @@ async function init(){
     pantallaC('editor');
   } else {
     pantallaC('listado');
+  }
+  } finally {
+    // recién decidido listado/editor arriba (o reventado a medio decidir):
+    // ya no hay pantalla equivocada que enseñar, ni una oculta para siempre
+    document.querySelector('.stage').style.display = '';
   }
 }
 init();
