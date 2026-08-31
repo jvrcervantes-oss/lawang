@@ -408,6 +408,7 @@
          sin_tickets_t:'Aún no has abierto ningún ticket', sin_tickets:'Cuando tengas una duda sobre pagos, documentación u obra, abre un ticket y te responderemos aquí.',
          responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
          sin_mensajes:'Escríbele a tu gestora cuando quieras — te responderá aquí.',
+         aviso_no_vinculante:'Esto es un canal de atención, no un documento contractual: ningún precio, plazo o condición cambia hasta que quede reflejado en tu contrato o en un anexo firmado.',
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          seguridad:'Seguridad', cambiar_pass_btn:'Cambiar contraseña',
          cambiar_pass_nueva:'Nueva contraseña (mínimo 10 caracteres)', cambiar_pass_repite:'Repite la contraseña',
@@ -458,6 +459,7 @@
          sin_tickets_t:'You haven’t opened any tickets yet', sin_tickets:'When you have a question about payments, documents or construction, open a ticket and we will reply here.',
          responder:'Reply…', tu:'You', equipo:'Lawang team',
          sin_mensajes:'Write to your account manager any time — they will reply here.',
+         aviso_no_vinculante:'This is a support channel, not a contractual document: no price, deadline or condition changes until it is reflected in your contract or a signed annex.',
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          seguridad:'Security', cambiar_pass_btn:'Change password',
          cambiar_pass_nueva:'New password (10 characters minimum)', cambiar_pass_repite:'Repeat password',
@@ -774,7 +776,15 @@
       var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
       var hs = estadosHitos(x.hitos, Number(x.cobrado)||0, precio);
       var h = hs.filter(function(y){ return y.estado !== 'pagado'; })[0];
-      if (h) proximo = { hito:h.hito, monto:h.monto, moneda:x.moneda, contrato:x.numero };
+      if (h){
+        // restante del hito, no su importe integro: si esta 'parcial' ya se
+        // cobro una parte (Administracion, 31-ago-2026 — antes ensenaba el
+        // monto completo del hito aunque ya llevara pago, y no cuadraba con
+        // la tarjeta "Pendiente" de al lado, que si resta lo cobrado)
+        var pagadoAcum = hs.reduce(function(s,y){ return s + (y.estado === 'pagado' && !isNaN(y.monto) ? y.monto : 0); }, 0);
+        var restante = isNaN(h.monto) ? NaN : Math.max(0, h.monto - Math.max(0, (Number(x.cobrado)||0) - pagadoAcum));
+        proximo = { hito:h.hito, monto:restante, moneda:x.moneda, contrato:x.numero };
+      }
     });
 
     var novedades = novedadesDerivadas().slice(0,3);
@@ -945,6 +955,7 @@
   function pintaSoporte(c){
     var d = DATOS, tickets = d.tickets || [];
     c.innerHTML =
+      '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
       '<div style="display:flex;justify-content:flex-end;margin-bottom:16px">' +
         '<button type="button" class="btn-oscuro" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
       '<div id="formNuevoTicket"></div>' +
@@ -1024,7 +1035,8 @@
   /* ── Mensajes (chat con la gestora) ──────────────────────────────── */
   function pintaMensajes(c){
     var d = DATOS, mensajes = d.mensajes || [];
-    c.innerHTML = '<div class="chat"><div class="cab"><b>Lawang</b><div class="rol">' +
+    c.innerHTML = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
+      '<div class="chat"><div class="cab"><b>Lawang</b><div class="rol">' +
       (LANG==='es' ? 'Tu equipo de atención' : 'Your account team') + '</div></div>' +
       '<div class="hilo" id="chatHilo"></div>' +
       '<form id="fChat"><input id="chatIn" placeholder="' + esc(t('responder')) + '"><button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>';
