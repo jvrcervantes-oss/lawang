@@ -16,7 +16,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=de9a3f0e">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
 <script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
@@ -374,6 +374,33 @@ async function cargarCuotasReserva(ids){
   return true;
 }
 
+/* ── EL REGISTRO DE ENVÍOS, A DEMANDA (31-ago-2026, encargo del owner) ──────
+   Mismo criterio que la cuota de reserva arriba: `correos_enviados` crece sin
+   tope (no es "uno o dos por ficha" como la cuota, pero tampoco se puede
+   arrastrar entera en la carga de los 164 compradores — mismo riesgo que ya
+   midió la nota de `precio_reserva`, 5.561ms por traer de más). Se pide por
+   ficha, filtrando por los contrato_id/factura_id de ESTA persona, y solo la
+   primera vez que se abre (clave = client_id). */
+const CORREOS_COMPRADOR = {};   // client_id -> filas de correos_enviados
+async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
+  if(clientId in CORREOS_COMPRADOR) return false;
+  if(!contratoIds.length && !facturaIds.length){ CORREOS_COMPRADOR[clientId] = []; return false; }
+  const partes = [];
+  if(contratoIds.length) partes.push(`contrato_id.in.(${contratoIds.join(',')})`);
+  if(facturaIds.length) partes.push(`factura_id.in.(${facturaIds.join(',')})`);
+  const { data, error } = await SB.from('correos_enviados')
+    .select('para,asunto,via,enviado_por,enviado_en,contrato_id,factura_id')
+    .or(partes.join(','))
+    .order('enviado_en', { ascending:false });
+  if(error){
+    toast('No se pudo leer el registro de envíos: ' + error.message);
+    CORREOS_COMPRADOR[clientId] = [];   // ver la nota de cargarCuotasReserva: no es "sin correos", es "no se sabe"; pero sin esto el bloque se queda pidiendo para siempre
+    return false;
+  }
+  CORREOS_COMPRADOR[clientId] = data || [];
+  return true;
+}
+
 /* Lo que vale un contrato preliminar: su cuota si la fijó, y si no el precio
    total como aproximación — el mismo criterio que había cuando el dato viajaba
    en la carga inicial. */
@@ -435,6 +462,11 @@ function pintarFicha(){
     const suyos = VINCULOS.filter(v => v.client_id === SEL && v.contratos).map(v => v.contratos);
     const prelim = suyos.filter(x => lwEsPreliminar(x.tipo)).map(x => x.id);
     if(prelim.length) cargarCuotasReserva(prelim).then(hubo => { if(hubo && SEL) pintarFicha(); });
+    // Registro de envíos: mismo patrón, ver la nota junto a CORREOS_COMPRADOR.
+    const suyosIds = new Set(suyos.map(x => x.id));
+    const facturaIds = FACTURAS.filter(x => suyosIds.has(x.contrato_id)).map(x => x.id);
+    if(!(SEL in CORREOS_COMPRADOR))
+      cargarCorreosComprador(SEL, suyos.map(x => x.id), facturaIds).then(hubo => { if(hubo && SEL) pintarFicha(); });
   }
   const nuevo = SEL === 'nuevo';
   const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
@@ -655,6 +687,34 @@ function pintarFicha(){
         </tbody></table>`;
         return (vivas.length ? tabla(vivas) : '<p class="nota">Ninguna vigente: todas sus facturas están anuladas.</p>')
           + (nulas.length ? `<details class="anuladas"><summary>${nulas.length} anulada${nulas.length===1?'':'s'} · no cuentan</summary>${tabla(nulas)}</details>` : '');
+      })()}
+    </fieldset>`}
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Registro de envíos</legend>
+      ${(() => {
+        const filas = CORREOS_COMPRADOR[c.id];
+        if(filas === undefined) return '<p class="nota">Cargando…</p>';
+        if(!filas.length) return '<p class="nota">Sin correos registrados para sus contratos y facturas. El registro existe desde el 18-ago-2026: los envíos anteriores no dejaron rastro.</p>';
+        const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
+                          proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
+        const doc = x => x.contrato_id
+          ? (VINCULOS.find(v => v.contratos && v.contratos.id === x.contrato_id) || {}).contratos
+          : null;
+        const fac = x => x.factura_id ? FACTURAS.find(f => f.id === x.factura_id) : null;
+        return `<table><thead><tr><th>Cuándo</th><th>Documento</th><th>Para</th><th>Vía</th><th>Quién</th></tr></thead><tbody>
+          ${filas.map(x => {
+            const c2 = doc(x), f2 = fac(x);
+            const etq = f2 ? (f2.numero || 'factura') : (c2 ? (c2.numero || 'contrato') : '—');
+            return `<tr>
+              <td>${fFecha(x.enviado_en)}</td>
+              <td>${esc(etq)}</td>
+              <td>${esc(x.para || '—')}</td>
+              <td>${esc(REG_VIA[x.via] || x.via || '—')}</td>
+              <td>${esc(x.enviado_por || 'Automático')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody></table>`;
       })()}
     </fieldset>`}
     ${nuevo ? '' : `

@@ -1971,7 +1971,7 @@ input.lw-elegible:disabled{ cursor:default; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   app.css   sha256:6b7431058855
+   app.css   sha256:75a2137bb8bb
    ───────────────────────────────────────────────────────────────────── */
 /* Estilos propios del Generador de Contratos — sacados de app.html el 17-ago-2026.
    ============================================================================
@@ -2084,6 +2084,10 @@ input.lw-elegible:disabled{ cursor:default; }
      partía en tres líneas. Ahora el formulario coge lo que necesita y el resto
      es para el documento y sus botones. */
   .stage{ display:grid; grid-template-columns:minmax(400px,560px) 1fr; height:calc(100dvh - var(--tbh)); }
+  /* Al abrir otro contrato ya con el editor abierto (31-ago-2026): atenúa el
+     panel SIN vaciarlo, para que un fallo de red deje el contrato anterior
+     intacto en vez de una pantalla en blanco (ver openSavedContract). */
+  .stage.cargando{ opacity:.45; pointer-events:none; transition:opacity .15s; }
   .pane-form{ min-width:0; overflow:auto; padding:22px 20px 48px; }
   .pane-form .inner{ max-width:640px; margin:0 auto; }
   /* preview: bandeja de papel más profunda para que el documento "flote" */

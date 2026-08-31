@@ -20,7 +20,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="assets/lawang.css?v=536db8a7">
+<link rel="stylesheet" href="assets/lawang.css?v=de9a3f0e">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -3329,11 +3329,20 @@ function contractPayload(){
        compartida: dos listas distintas para «quién compra» es exactamente el
        fallo que hacía que una pantalla dijera «A · B» y la de al lado «A».
        El fallback a partner/colaborador se conserva: hay plantillas sin
-       adquiriente (Acuerdo Comercial, Protocolo Operativo). */
+       adquiriente (Acuerdo Comercial, Protocolo Operativo).
+       🔴 `data.adq1_nombre` como segundo fallback (31-ago-2026, hallazgo real:
+       RP00120/CC00077 con comprador enlazado y `comprador_nombre` nulo). Si
+       `compradoresDeContrato` devuelve vacío porque el campo del formulario
+       aún no se había repintado en el instante de guardar (enlazar y guardar
+       muy seguido, o "Derivar contrato" heredando ese mismo instante), el
+       nombre real seguía disponible en `data.adq1_nombre` y se tiraba igual
+       — sin necesidad. No sustituye a `compradoresDeContrato` (que sí suma
+       varios adquirientes): solo evita perder el dato cuando esa función no
+       encuentra ninguno. */
     comprador_nombre: (typeof nombresFactura === 'function'
                         ? nombresFactura(compradoresDeContrato(data, COMPRADORES))
                         : data.adq1_nombre)
-                      || data.partner_nombre || data.colaborador_nombre || null,
+                      || data.adq1_nombre || data.partner_nombre || data.colaborador_nombre || null,
     // El POA ya no pregunta el proyecto (ver deriveSections): lo hereda del
     // contrato al que acompaña, así que la lista de guardados y Operaciones siguen
     // sabiendo de qué operación es sin que nadie lo teclee dos veces.
@@ -4017,9 +4026,21 @@ function populateForm(fields){
 
 async function openSavedContract(id){
   if(!sb) return;
+  /* Placeholder de carga (31-ago-2026, aviso del owner): entre pulsar un
+     contrato y que populateForm() lo rellene hay DOS awaits en serie (traer
+     la fila, cargar la plantilla) — mientras tanto el formulario y la vista
+     previa seguían enteros, mostrando el contrato ANTERIOR como si fuera el
+     que se acaba de abrir. La clase `.cargando` solo ATENÚA el panel (CSS,
+     `.stage.cargando`) en vez de vaciarlo: si el fetch falla, el contrato
+     anterior sigue ahí intacto y solo hay que quitar la clase, no reconstruir
+     nada. buildForm()/populateForm()/render() ya quitan la clase en cuanto
+     llegan los datos reales; los dos `return` de aquí abajo también la
+     quitan, porque en esas dos ramas nadie más lo va a hacer. */
+  const stage = $('.stage'); if(stage) stage.classList.add('cargando');
   const { data, error } = await sb.from('contratos').select('*').eq('id', id).single();
-  if(error || !data){ toast('No se pudo abrir el contrato'); return; }
-  const slug = TIPO_SLUG[data.tipo]; if(!slug){ toast('Tipo de contrato desconocido'); return; }
+  if(error || !data){ if(stage) stage.classList.remove('cargando'); toast('No se pudo abrir el contrato'); return; }
+  const slug = TIPO_SLUG[data.tipo];
+  if(!slug){ if(stage) stage.classList.remove('cargando'); toast('Tipo de contrato desconocido'); return; }
   // antes de loadTemplate: deriveSections() monta el desplegable ahí dentro
   PROYECTO_ABIERTO = String((data.datos && data.datos.fields && data.datos.fields.proyecto_nombre)
                             || data.proyecto_nombre || '').trim();
@@ -4152,6 +4173,7 @@ async function openSavedContract(id){
   // el candado de «enviado a firma» se aplica al abrir: si el contrato tiene un
   // enlace vivo o una firma recogida, el formulario entra en solo lectura
   await cargarEstadoFirma();
+  if(stage) stage.classList.remove('cargando');   // ya está todo pintado, incluido el candado si toca
   toast('Contrato ' + data.numero + ' cargado' + (LOCKED ? ' · bloqueado (firmado)' : ''));
   avisaHuerfanos();   // render() acaba de recalcular HUERFANOS con la plantilla de hoy
   avisaFichaDistinta(data.id);

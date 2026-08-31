@@ -17,7 +17,7 @@
      uno, para que ninguna herramienta pueda cargar media suite: antes
      Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
      salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=536db8a7">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=de9a3f0e">
 <!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
      los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
      para que el riel no salga como una columna de cuadros vacios. Misma URL y
@@ -519,7 +519,15 @@
      píldora de color en cada fila son 249 píldoras de tres colores que no
      añaden nada y se llevan la atención. Queda como filete de 3 px: se ve el
      bloque de golpe al recorrer la lista y no pesa. */
-  table.docs td.doc{ width:132px; border-left:3px solid transparent; }
+  /* 🔴 132px SE COMÍA LA FECHA (31-ago-2026, aviso del owner). El peor caso es
+     «Proforma · 31 ago 2026»: 121px de contenido real (medido en pantalla,
+     fuente de marca) contra 108px de hueco (132 - 24 de padding) — se truncaba
+     con puntos suspensivos incluso en el caso normal, no solo en el extremo.
+     152px deja 128px de hueco, margen de sobra sobre el peor caso medido. La
+     columna de cliente, que ya tenía mucho espacio sin usar en pantallas
+     anchas (misma queja del owner), es la que cede esos 20px — no tiene ancho
+     fijo, así que lo absorbe sola. */
+  table.docs td.doc{ width:152px; border-left:3px solid transparent; }
   /* Los tres colores viven en `suite.css` (`--doc-*`) desde el 27-ago-2026:
      los usa también la etiqueta de tipo en Compradores, y tenerlos escritos en
      dos sitios garantiza que un día se separen. */
@@ -900,6 +908,9 @@
         <button class="btn primary" id="btnSave">Guardar en base de datos</button>
         <button class="btn" id="btnPrint">Descargar PDF</button>
         <button class="btn" id="btnMail">Enviar por email</button>
+        <button class="btn" id="btnRecibiDeFactura">Crear recibí</button>
+        <button class="btn ghost" id="btnRegistro" style="display:none"
+                title="A qué correos se ha enviado este documento">📨 Registro</button>
       </div>
       <div class="pv-scroll"><div class="sheet"><div class="doc" id="doc"></div></div></div>
     </div>
@@ -928,6 +939,21 @@
           <button class="btn" id="mailCancel">Cancelar</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal "Registro" — mismo mecanismo que Contratos (contracts/app.html,
+       ver abrirRegistro allí): solo lectura, log de correos_enviados filtrado
+       por ESTE documento (31-ago-2026, encargo del owner). Reusa las clases
+       .cp-overlay/.reg-* que ya trae lawang.css (paquete único de la suite,
+       ver tools/empaqueta_css.py) — no hace falta CSS nuevo. -->
+  <div class="cp-overlay" id="regOverlay">
+    <div class="cp-modal" style="width:min(820px,100%)">
+      <div class="cp-head">
+        <b>Registro de envíos</b>
+        <button type="button" class="tb-link" id="regClose">Cerrar</button>
+      </div>
+      <div class="em-body" id="regBody"><p class="em-note">Cargando…</p></div>
     </div>
   </div>
 
@@ -1154,6 +1180,32 @@ const descHito = h => [h.texto, h.pct ? '(' + h.pct + '% del precio acordado)' :
                     + (h.timing ? ' — ' + h.timing : '');
 let DESC_TOTAL = '', DESC_UNIDAD = '';
 let PRECIO_PRINCIPAL = 0, TIPO_PRINCIPAL = '', NUMERO_PRINCIPAL = '';
+/* Hitos ya facturados en OTRO documento de este mismo contrato (31-ago-2026,
+   aviso del owner: "si he creado una factura con un hito, al crear otra me
+   deja meter ese hito otra vez"). `marcarHitosUsados` de por sí solo mira
+   `LINEAS` — los conceptos del documento QUE SE ESTÁ EDITANDO ahora mismo —
+   así que un hito ya facturado en una factura GUARDADA distinta no se veía.
+   Mapa: descripción del hito (igual que descHito()/l.descripcion) → número de
+   la factura donde ya está. Se recalcula cada vez que se elige un contrato
+   (cargarHitosOtraFactura, más abajo) y se guarda aquí para que
+   marcarHitosUsados() —que corre en cada tecla— no repita la consulta. */
+let HITOS_OTRA_FACTURA = {};
+async function cargarHitosOtraFactura(contratoId){
+  HITOS_OTRA_FACTURA = {};
+  if(!contratoId) return;
+  const { data, error } = await sb.from('facturas')
+    .select('id,numero,tipo,anulada,datos')
+    .eq('contrato_id', contratoId).eq('tipo', 'factura').eq('anulada', false);
+  if(error){ console.error('hitos ya facturados:', error.message); return; }
+  const propio = SAVED && SAVED.id;
+  (data || []).forEach(f => {
+    if(f.id === propio) return;   // sus propias líneas ya las cubre LINEAS/marcarHitosUsados
+    (((f.datos || {}).lineas) || []).forEach(l => {
+      const d = (l.descripcion || '').trim(); if(!d) return;
+      if(!HITOS_OTRA_FACTURA[d]) HITOS_OTRA_FACTURA[d] = f.numero || 'otra factura';
+    });
+  });
+}
 function marcarHitosUsados(){
   /* ¿Está puesto el total del contrato? Entonces ningún hito puede añadirse:
      sumaría por encima del precio y el documento saldría creíble. Y al revés.
@@ -1163,9 +1215,11 @@ function marcarHitosUsados(){
                                       return d && d !== DESC_TOTAL; });
   document.querySelectorAll('#delContrato [data-h], #delVinculado [data-vh]').forEach(b => {
     const usado = LINEAS.some(l => (l.descripcion || '').trim() === b.dataset.desc);
-    b.disabled = usado || hayTotal;
-    b.classList.toggle('usado', usado);
+    const otraFactura = !usado && HITOS_OTRA_FACTURA[b.dataset.desc];
+    b.disabled = usado || otraFactura || hayTotal;
+    b.classList.toggle('usado', usado || !!otraFactura);
     b.title = usado ? 'Ya está en este documento'
+            : otraFactura ? 'Ya facturado en ' + otraFactura + ' — facturarlo otra vez lo cobraría dos veces'
             : hayTotal ? 'Este documento factura el contrato entero: un hito encima cobraría de más'
             : '';
   });
@@ -1306,30 +1360,12 @@ function pintarSelectFacturaAplicar(){
     : FACTURAS_OTRA_MONEDA ? 'Este comprador tiene ' + FACTURAS_OTRA_MONEDA + ' factura' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ' pendiente' + (FACTURAS_OTRA_MONEDA===1?'':'s') + ', pero en otra moneda — un recibí no puede saldar una factura en una moneda distinta a la suya.'
     : 'No le queda ninguna otra factura pendiente a este comprador.';
 }
-/* Elegir la factura que cobra este recibí. Deriva de ella todo lo demás: no se
-   teclea nada que la factura ya sepa. */
-async function elegirFacturaDelRecibi(){
-  await cargarFacturasAbiertas();
-  const libres = FACTURAS_ABIERTAS.filter(f => !APLICACIONES.some(a => a.factura_id === f.id));
-  if(!libres.length){
-    toast(FACTURAS_ABIERTAS.length
-      ? 'Todas las facturas pendientes ya están en este recibí.'
-      : 'No hay ninguna factura pendiente de cobro.');
-    return;
-  }
-  const elegido = await lwElegir({
-    titulo: 'Factura que se cobra',
-    buscarPh: 'Número, comprador o contrato…',
-    opciones: libres.map(f => ({
-      valor: f.id,
-      texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
-      nota:  'pendiente ' + fmtMoneda(f.pendiente, f.moneda || 'EUR')
-             + (f.contrato_numero ? ' · ' + f.contrato_numero : ''),
-    })),
-  });
-  if(!elegido) return;
-  const f = FACTURAS_ABIERTAS.find(x => x.id === elegido); if(!f) return;
-
+/* Enganchar una factura YA ELEGIDA a este recibí — el contrato, el comprador
+   y el pendiente salen todos de ella. Extraído de elegirFacturaDelRecibi()
+   (31-ago-2026) para que "Crear recibí" desde una factura abierta (más abajo,
+   crearRecibiDesdeFactura) pueda reusar exactamente el mismo enganche sin
+   pasar por el buscador — la factura ya se conoce, no hay nada que elegir. */
+async function aplicarFacturaAlRecibi(f){
   /* El contrato sale de la factura. Si la factura no tuviera —los 12 documentos
      sin contrato de LAW-38—, se deja en null y el guardián de #btnSave hará lo
      suyo: aquí no se inventa uno. */
@@ -1354,6 +1390,32 @@ async function elegirFacturaDelRecibi(){
   pintarContratoElegido();   // el campo de arriba enseña la factura, no el contrato
   render();
   toast('Factura ' + f.numero + ' — escribe cuánto se ha cobrado');
+}
+
+/* Elegir la factura que cobra este recibí. Deriva de ella todo lo demás: no se
+   teclea nada que la factura ya sepa. */
+async function elegirFacturaDelRecibi(){
+  await cargarFacturasAbiertas();
+  const libres = FACTURAS_ABIERTAS.filter(f => !APLICACIONES.some(a => a.factura_id === f.id));
+  if(!libres.length){
+    toast(FACTURAS_ABIERTAS.length
+      ? 'Todas las facturas pendientes ya están en este recibí.'
+      : 'No hay ninguna factura pendiente de cobro.');
+    return;
+  }
+  const elegido = await lwElegir({
+    titulo: 'Factura que se cobra',
+    buscarPh: 'Número, comprador o contrato…',
+    opciones: libres.map(f => ({
+      valor: f.id,
+      texto: (f.numero || 'sin nº') + ' — ' + (f.cliente_nombre || 'sin nombre'),
+      nota:  'pendiente ' + fmtMoneda(f.pendiente, f.moneda || 'EUR')
+             + (f.contrato_numero ? ' · ' + f.contrato_numero : ''),
+    })),
+  });
+  if(!elegido) return;
+  const f = FACTURAS_ABIERTAS.find(x => x.id === elegido); if(!f) return;
+  await aplicarFacturaAlRecibi(f);
   const campo = document.querySelector('[data-a="' + (APLICACIONES.length - 1) + '"]');
   if(campo) campo.focus();
 }
@@ -1682,6 +1744,16 @@ function estadoDelFormulario(d){
   razon($('#btnMail'), total > 0 && !!(SAVED && SAVED.numero),
         !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
                      : 'Guarda primero: sin guardar no hay número, y el comprador recibiría un documento que no existe en la base.');
+  // "Crear recibí" (31-ago-2026): solo tiene sentido sobre una FACTURA ya
+  // guardada — de una proforma o de un recibí no se deriva otro recibí.
+  razon($('#btnRecibiDeFactura'), d.tipo === 'factura' && !!(SAVED && SAVED.numero),
+        d.tipo !== 'factura' ? 'Solo se crea un recibí a partir de una factura.'
+                              : 'Guarda primero esta factura.');
+  // Registro de envíos (31-ago-2026): igual que en Contratos, se muestra en
+  // cuanto el documento existe en la base — también sobre uno bloqueado/
+  // enviado, que es justo del que más se pregunta "¿a quién se le mandó?".
+  const regBtn = $('#btnRegistro');
+  if(regBtn) regBtn.style.display = (SAVED && SAVED.id) ? '' : 'none';
 }
 
 function render(){
@@ -2068,6 +2140,9 @@ async function pintarOpcionesContrato(){
   const { id, data, puesto, compradores, precio, moneda, hitos } = CTX_CONTRATO;
   const caja = $('#delContrato');
   const paraRecibi = $('#selTipo').value === 'recibi';
+  // Antes de pintar los botones de hito: hace falta saber cuáles ya están
+  // facturados en OTRO documento para poder tacharlos (ver HITOS_OTRA_FACTURA).
+  await cargarHitosOtraFactura(id);
   /* QUÉ SE OFRECE SEGÚN EL DOCUMENTO (27-ago-2026, modelo del cliente)
      · Proforma → el TOTAL del proyecto, y nada más. Una proforma de un hito
        suelto no es lo que se le manda al cliente al contratar.
@@ -2515,6 +2590,64 @@ $('#btnNueva').onclick = async () => {
   })) return;
   nuevoDocumento($('#selTipo').value);   // desde la vista previa se conserva el tipo que hubiera
 };
+
+/* "Crear recibí" desde una factura ya abierta (31-ago-2026, encargo del owner):
+   se ahorra el paso de "elige qué factura" cuando ya se está mirando — se
+   conoce de sobra. Mismo camino que el buscador de elegirFacturaDelRecibi(),
+   solo que la factura no hay que elegirla: reusa aplicarFacturaAlRecibi(). */
+async function crearRecibiDesdeFactura(){
+  if(!(SAVED && SAVED.id)){ toast('Guarda la factura antes de crear un recibí desde ella'); return; }
+  const origenId = SAVED.id, origenNumero = SAVED.numero;
+  const origenMoneda = ($('[name="moneda"]').value || 'EUR');
+  if(!await lwConfirmar({
+    titulo: 'Crear un recibí de ' + (origenNumero || 'esta factura'),
+    cuerpo: '<p>Esta factura ya está guardada, así que no se pierde. Se abre un recibí nuevo enganchado a ella.</p>',
+    confirmar: 'Crear recibí',
+  })) return;
+  nuevoDocumento('recibi');
+  $('[name="moneda"]').value = origenMoneda;   // si no, cargarFacturasAbiertas() la descarta por moneda (ver su filtro)
+  await cargarFacturasAbiertas();
+  const f = FACTURAS_ABIERTAS.find(x => x.id === origenId);
+  if(!f){
+    toast('Esa factura ya no tiene saldo pendiente, o está anulada — no hay nada que cobrar en un recibí.');
+    return;
+  }
+  await aplicarFacturaAlRecibi(f);
+}
+$('#btnRecibiDeFactura').onclick = crearRecibiDesdeFactura;
+
+/* ---------- modal Registro: correos enviados de ESTE documento ----------
+   31-ago-2026, encargo del owner: "así podemos ver qué hemos hecho con cada
+   documento, si se ha mandado o no". Mismo mecanismo que ya usa Contratos
+   (contracts/app.html → abrirRegistro/`correos_enviados`), aquí filtrado por
+   `factura_id` en vez de `contrato_id` — la tabla ya la escriben las mismas
+   Edges de envío (send-contract-email deja `factura_id` cuando se manda desde
+   aquí), así que no hace falta tocar nada del lado que escribe. */
+const REG_VIA = { manual:'Email manual', enlace_firma:'Enlace de firma', firma:'Circuito de firma',
+                  proforma:'Proforma', factura:'Factura', factura_auto:'Factura automática' };
+const regFecha = iso => iso ? new Date(iso).toLocaleString('es-ES',
+  { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+async function abrirRegistro(){
+  if(!(SAVED && SAVED.id)){ toast('Guarda el documento para ver su registro'); return; }
+  $('#regOverlay').classList.add('open');
+  const cont = $('#regBody'); cont.innerHTML = '<p class="em-note">Cargando…</p>';
+  const { data, error } = await sb.from('correos_enviados')
+    .select('para,asunto,via,enviado_por,enviado_en')
+    .eq('factura_id', SAVED.id).order('enviado_en', { ascending:false }).limit(200);
+  if(error){ cont.innerHTML = '<p class="em-note">No se pudo cargar el registro: ' + esc(error.message) + '</p>'; return; }
+  const filaMail = m =>
+    '<tr><td style="white-space:nowrap">' + regFecha(m.enviado_en) + '</td>'
+    + '<td>' + esc(m.para) + '</td>'
+    + '<td>' + esc(REG_VIA[m.via] || m.via) + '</td>'
+    + '<td>' + esc(m.enviado_por || 'Automático') + '</td>'
+    + '<td>' + esc(m.asunto) + '</td></tr>';
+  cont.innerHTML = (data||[]).length
+    ? '<div class="reg-envoltura"><table class="reg-tabla"><thead><tr><th>Cuándo</th><th>Para</th><th>Vía</th><th>Quién</th><th>Asunto</th></tr></thead><tbody>'
+      + data.map(filaMail).join('') + '</tbody></table></div>'
+    : '<p class="em-note">Sin correos registrados para este documento.</p>';
+}
+$('#btnRegistro').addEventListener('click', abrirRegistro);
+$('#regClose').addEventListener('click', ()=> $('#regOverlay').classList.remove('open'));
 
 /* ---------- facturas guardadas ---------- */
 /* Quien la emitio. `facturas.creado_por` guarda el EMAIL —es la identidad con la
