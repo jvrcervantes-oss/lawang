@@ -488,7 +488,7 @@ function pintarFicha(){
         <option value="empresa" ${c.tipo==='empresa'?'selected':''}>Empresa</option>
       </select>
       <p class="nota" id="notaTipo"></p>
-      <label for="f-nombre" id="lab-nombre">Nombre completo</label><input id="f-nombre" ${dis} value="${esc(c.full_name||'')}">
+      <label for="f-nombre" id="lab-nombre">Nombre completo</label><input id="f-nombre" ${dis} style="text-transform:uppercase" value="${esc(c.full_name||'')}">
       <div class="sui-row">
         <div><label for="f-email">Email</label><input id="f-email" type="email" ${dis} value="${esc(c.email||'')}">
           <p class="nota">Este correo es solo de contacto — cambiarlo NO cambia con qué email entra al portal.
@@ -915,7 +915,14 @@ async function borrarComprador(c){
 }
 
 async function guardar(id){
-  const nombre = $('#f-nombre').value.trim();
+  /* Siempre en mayúsculas (31-ago, petición del cliente): mismo criterio que
+     ya usa la razón social del promotor (PT SAN DAL WOODS) y que es la norma
+     en los documentos oficiales indonesios (KTP, pasaporte...). Se fuerza
+     AQUÍ, en el único sitio que escribe `clients.full_name` — desde el 19-ago
+     el contrato ya no copia el nombre, se ENLAZA a esta ficha, así que
+     normalizar aquí basta para que todo lo que lo lea (contratos, facturas,
+     el portal) lo vea ya en mayúsculas. */
+  const nombre = $('#f-nombre').value.trim().toUpperCase();
   if(nombre.length < 2){ toast('Falta el nombre'); return; }
   const telNum = $('#f-tel-num').value.trim();
   const esEmpresa = $('#f-tipo') && $('#f-tipo').value === 'empresa';
