@@ -33,6 +33,7 @@ begin
     when 'hak_sewa_notario'   then prefix := 'HS'; seqname := 'public.contratos_hs_seq';
     when 'carta_reserva_hak_sewa' then prefix := 'CH'; seqname := 'public.contratos_ch_seq';
     when 'poa'                then prefix := 'PA'; seqname := 'public.contratos_poa_seq';
+    when 'cc00014_timon'      then prefix := 'CC'; seqname := 'public.contratos_cc_seq';
     else raise exception 'Tipo de contrato sin numeracion definida: %', new.tipo;
   end case;
   n := nextval(seqname);

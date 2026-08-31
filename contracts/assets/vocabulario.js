@@ -50,6 +50,7 @@ const LW_TIPO_CONTRATO = {
   ppjb_bonian_c2:         'PPJB Bonian Beach · Parcela C2',
   hak_sewa_notario:       'Hak Sewa - Notario',
   poa:                    'Poder Notarial',
+  cc00014_timon:          'Construcción · CC00014 Timon',
 };
 /* Cae a la clave si el tipo es nuevo y nadie lo añadió aquí. Enseñar
    `ppjb_bonian_c2` es feo, pero mentir con el nombre de otro documento es peor:
