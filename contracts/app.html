@@ -1846,6 +1846,7 @@ function aplicarReglasCampos(){
   syncParcelaMaster();
   syncResort();
   syncSuperficieTotal();
+  syncBloqueoFichaProyecto();
   syncApoderadoHakSewa();
   syncPoaVinculado();
   syncPrecioObraVinculada();
@@ -1953,6 +1954,29 @@ function syncResort(){
   campo.value = resort;
   AUTO_RESORT = resort;
   renderDebounced();
+}
+
+/* Bloqueo de resort/parcela máster/superficie bruta (31-ago, petición del
+   cliente): si el proyecto elegido YA tiene ese dato en su ficha (tabla
+   `proyectos`, la pantalla Proyectos), Contratos deja de dejar tocarlo a
+   mano — la ficha es la fuente única, y el escape "escrito a mano:
+   intocable" de syncParcelaMaster/syncResort/syncSuperficieTotal existía
+   justo para lo contrario. Si la ficha está vacía para ese campo (proyecto
+   sin dar de alta todavía en Proyectos), se queda editable como siempre:
+   bloquear un hueco vacío no ayuda, solo impide rellenarlo la primera vez.
+   Mismo mecanismo (disabled en el select) que ya usa "firmante" más arriba. */
+function syncBloqueoFichaProyecto(){
+  const sel = document.querySelector('[name="proyecto_nombre"]');
+  const enBase = sel && (PROYECTOS_DB || []).find(p => p.nombre === sel.value);
+  [['resort', 'resort'], ['parcela_master', 'parcela_master'], ['superficie_total', 'parcela_master_m2']]
+    .forEach(([campo, claveFicha]) => {
+      const el = document.querySelector(`[name="${campo}"]`);
+      if(!el) return;
+      const bloquear = !!(enBase && enBase[claveFicha] != null && enBase[claveFicha] !== '');
+      if(el.tagName === 'SELECT') el.disabled = bloquear;
+      else el.readOnly = bloquear;
+      el.title = bloquear ? 'Viene de la ficha del proyecto (Proyectos) — se edita ahí.' : '';
+    });
 }
 
 /* Apoderado (Primera Parte) del Hak Sewa notarial (10-ago): el nombre es un

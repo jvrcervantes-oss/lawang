@@ -234,6 +234,12 @@ let PROYECTOS = [];
 // (solo nombres) para no tocar los decenas de sitios que ya esperan un array
 // de strings. Clave = nombre del proyecto.
 let PROYECTOS_FICHA = {};
+// Catálogo de resorts de contracts/tokens.json (31-ago): un resort que aún no
+// tiene ningún proyecto asignado (p.ej. "Signature project") no sale nunca en
+// PROYECTOS_FICHA, que solo ve lo que YA está guardado. Mismo problema y misma
+// solución que Contratos resolvió el 27-ago para su propio desplegable de
+// resort — unión, no sustitución.
+let CATALOGO_RESORTS = [];
 const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
 const nombreTipo   = t => (TIPOS.find(x => x[0] === t) || [t, t])[1];
 const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
@@ -614,7 +620,7 @@ async function renombrarProyecto(nombreActual){
    project" la primera vez que existe). */
 function editarProyecto(nombre){
   const ficha = PROYECTOS_FICHA[nombre] || {};
-  const resorts = [...new Set(Object.values(PROYECTOS_FICHA).map(f => f.resort).filter(Boolean))].sort();
+  const resorts = [...new Set([...Object.values(PROYECTOS_FICHA).map(f => f.resort).filter(Boolean), ...CATALOGO_RESORTS])].sort();
   suiAbrirCajon({
     titulo: esc(nombre),
     sub: 'Ficha del proyecto',
@@ -1308,6 +1314,11 @@ suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten la
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   ES_SUPER_ADMIN = !!(ficha && ficha.rol === 'super_admin');
+  try{
+    const t = await fetch('../../contracts/tokens.json?v=' + Date.now()).then(r => r.json());
+    const campo = (t.sections || []).flatMap(s => s.fields).find(f => f[0] === 'resort');
+    CATALOGO_RESORTS = (campo && campo[3]) || [];
+  }catch(_){ /* MUDO A PROPOSITO: sin red, la ficha sigue con los resorts ya guardados */ }
   await cargar();   // ES_SUPER_ADMIN ya está fijado antes de esta llamada — su pintar() final ya sale con el botón de borrar si toca
 });
 </script>
