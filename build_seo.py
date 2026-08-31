@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-build_seo.py — Inyector de fallback SEO estático para Lawang (thecollection.html)
+build_seo.py — Inyector de fallback SEO estático para Lawang (thecollection.php)
 
-PROBLEMA: thecollection.html es una SPA React (Babel en navegador). Las fichas de
+PROBLEMA: thecollection.php es una SPA vanilla JS (portfolio-app.js). Las fichas de
 propiedad se cargan desde data.json y se pintan en cliente. Los crawlers que NO
 ejecutan JS (GPTBot, PerplexityBot, ClaudeBot y Google en su peor caso) ven la
 pagina VACIA -> no indexan ni precios ni descripciones.
 
-SOLUCION (Option A): generar, DESDE data.json, un bloque HTML semantico con todas
-las propiedades e inyectarlo en un <noscript> justo despues del root de React.
-- Usuarios con JS: noscript oculto -> sin flash, React manda.
-- Crawlers sin JS: leen el contenido real (titulos, region, precio, specs, desc).
+SOLUCION (Option A): generar, DESDE data.json, un bloque HTML semantico con las
+propiedades PUBLICADAS e inyectarlo en un <noscript> justo despues del root de la app.
+- Usuarios con JS: noscript oculto -> sin flash, portfolio-app.js manda.
+- Crawlers sin JS: leen el contenido real (titulos, region, precio, specs, desc), y
+  cada tarjeta enlaza a /property/<id> (ruta real con sus propios meta tags —
+  thecollection.php + property=<id>, ver .htaccess).
 
 Es IDEMPOTENTE: re-ejecutarlo reemplaza el bloque entre marcadores.
 Lanzar tras cada cambio en data.json:
 
     python build_seo.py
+
+31-ago-2026: filtrado a solo visible:true. Sin este filtro se volcaban las 44
+propiedades de data.json, incluidas las ~32 marcadas visible:false (borradores sin
+anunciar, sin fotos reales) — precio, region y descripcion de inventario no publico,
+servidos en claro a los crawlers que este script existe para alimentar. Estuvo asi en
+produccion desde el 14-jun-2026 hasta este fix (hallazgo de la auditoria SEO del
+31-ago-2026, no una regla que ya existiera y se rompiera).
 """
 import json
 import re
@@ -25,7 +34,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data.json"
-HTML = HERE / "thecollection.html"
+HTML = HERE / "thecollection.php"
 
 START = "<!-- SEO_FALLBACK_START (auto-generado por build_seo.py — NO editar a mano) -->"
 END = "<!-- SEO_FALLBACK_END -->"
@@ -63,7 +72,13 @@ def specs(p):
 
 
 def build_block(data, labels):
-    props = data.get("properties", [])
+    # Solo lo publicado. Sin este filtro se volcaban las 44 propiedades de data.json,
+    # incluidas las ~32 marcadas visible:false (borradores sin anunciar, sin fotos reales):
+    # precio, region y descripcion de inventario no publico, servidos en claro a los
+    # crawlers sin JS que este script existe para alimentar (GPTBot, ClaudeBot,
+    # PerplexityBot). Hallazgo de la auditoria SEO del 31-ago-2026, live en produccion
+    # desde el 14-jun-2026 (primer commit de este script) hasta este fix.
+    props = [p for p in data.get("properties", []) if p.get("visible") is True]
     cards = []
     for p in props:
         pid = p.get("id", "")
@@ -89,7 +104,7 @@ def build_block(data, labels):
 
         cards.append(f"""    <article class="seo-prop">
       {img_tag}
-      <h3><a href="#property/{esc(pid)}">{esc(title)}</a></h3>
+      <h3><a href="/property/{esc(pid)}">{esc(title)}</a></h3>
       <p class="seo-region">{esc(region)}</p>
       {f'<p class="seo-price">From {esc(price)}</p>' if price else ''}
       {f'<p class="seo-specs">{esc(sp)}</p>' if sp else ''}
@@ -140,8 +155,9 @@ def main():
         return
 
     HTML.write_text(new_text, encoding="utf-8")
-    n = len(data.get("properties", []))
-    print(f"[build_seo] Fallback SEO {action}: {n} propiedades en <noscript> de thecollection.html")
+    n_total = len(data.get("properties", []))
+    n_pub = sum(1 for p in data.get("properties", []) if p.get("visible") is True)
+    print(f"[build_seo] Fallback SEO {action}: {n_pub} de {n_total} propiedades (visible:true) en <noscript> de {HTML.name}")
 
 
 if __name__ == "__main__":

@@ -86,6 +86,19 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   # con mod_alias, la regla 1 de abajo se lo comia y mandaba a /portfolio (404).
   RewriteRule ^portfolio\.html$ /thecollection [R=302,L,NE]
 
+  # Sitemap dinamico: la URL de siempre (/sitemap.xml, la que ya conoce robots.txt) pasa a
+  # servir sitemap.php, generado desde data.json — antes era un XML estatico con 5 URLs fijas
+  # que nunca listaba ninguna propiedad. Rewrite interno, sin redirect: la URL no cambia.
+  RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+
+  # Ficha de propiedad con su query real (ej. si alguien pega /thecollection.php?property=x):
+  # redirige a la URL limpia /property/x ANTES de la regla 1 de abajo. thecollection.php esta
+  # en RAIZ (a diferencia de modelo/index.php, ver la 2b mas abajo), asi que sin esto la regla 1
+  # lo cazaria primero y tiraria el ?property= entero, dejando /thecollection a secas.
+  RewriteCond %{REQUEST_METHOD} =GET
+  RewriteCond %{THE_REQUEST} "\s/+thecollection\.php\?property=([A-Za-z0-9-]+)" [NC]
+  RewriteRule ^ /property/%1? [R=301,L,NE]
+
   # 1) La URL con extension redirige a la limpia: una sola URL indexable, sin contenido duplicado.
   RewriteCond %{REQUEST_METHOD} =GET
   RewriteCond %{THE_REQUEST} "\s/+index\.html[\s?]" [NC]
@@ -113,6 +126,11 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   #    reglas de raiz a proposito: aquellas solo casan rutas sin barra, asi que no se comen
   #    esta. Un modelo inexistente o sin renders lo manda index.php a /thecollection.
   RewriteRule ^modelo/([A-Za-z0-9-]+)/?$ /modelo/index.php?m=$1 [L,QSA]
+
+  # 3b) Ficha de propiedad: /property/<slug> sirve thecollection.php?property=<slug> (mismo
+  #     mecanismo que la 3 de arriba). A diferencia de modelo/index.php, thecollection.php
+  #     decide 404 REAL si el slug no existe o no es visible — no hay redirect a /thecollection.
+  RewriteRule ^property/([A-Za-z0-9-]+)/?$ /thecollection.php?property=$1 [L,QSA]
 </IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios

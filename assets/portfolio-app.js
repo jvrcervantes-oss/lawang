@@ -1480,15 +1480,37 @@
 
   // ════ ROUTING + EVENTOS ════
   function lineFromHash(){ var h=(location.hash||"").replace(/^#/,"").toLowerCase(); return ({villas:"villa",villa:"villa",signature:"signature",land:"land",resorts:"resorts"})[h]||"all"; }
-  function parseHash(){ var h=location.hash.replace(/^#/,""); return h.indexOf("property/")===0 ? h.slice(9) : null; }
+  // Slug de propiedad activo. Primero la URL REAL /property/<slug> (indexable — la sirve
+  // thecollection.php con meta tags propios); si no, el #property/<slug> heredado
+  // (compatibilidad con enlaces #hash ya compartidos por WhatsApp/redes antes de este cambio).
+  function parseHash(){
+    var m = location.pathname.match(/^\/property\/([A-Za-z0-9-]+)\/?$/);
+    if(m) return m[1];
+    var h = location.hash.replace(/^#/,"");
+    return h.indexOf("property/")===0 ? h.slice(9) : null;
+  }
 
-  function openProperty(id){ location.hash = "property/"+id; }
-  function closeProperty(){ history.replaceState(null,"",location.pathname+location.search); S.overlay=null; render(); }
+  // Abrir deja SIEMPRE una URL real e indexable, no un hash. pushState no dispara
+  // hashchange/popstate por sí mismo, así que el cambio de estado va aquí mismo (antes
+  // vivía solo en onHash, disparado por la mutación directa de location.hash).
+  function openProperty(id){
+    if(history.pushState) history.pushState({lwProperty:id},"","/property/"+id);
+    if(id!==S.overlay){ S.overlay=id; resetDetail(); render(); trackView(id); }
+  }
+  // Cerrar vuelve a /thecollection si se entró por una URL /property/<slug> real (directo o
+  // desde "more in this line"); si el filtro de línea seguía en el hash, lo respeta.
+  function closeProperty(){
+    var back = /^\/property\//.test(location.pathname) ? "/thecollection" : location.pathname;
+    if(history.pushState) history.pushState(null,"",back+location.search);
+    S.overlay=null; render();
+  }
 
   // Ficha de propiedad vista = semilla del público BOFU de Meta. No envía nada sin
   // consentimiento y, sin PIXEL_ID en consent.js, lwTrack ni siquiera existe.
   function trackView(pid){ if(pid && window.lwTrack) window.lwTrack("ViewContent", {content_ids:[pid], content_type:"product"}); }
 
+  // hashchange (filtros de línea, enlaces #property/ heredados) y popstate (atrás/adelante
+  // del navegador tras un pushState de /property/<slug>) comparten el mismo manejador.
   function onHash(){
     var pid = parseHash();
     if(pid){ if(pid!==S.overlay){ S.overlay=pid; resetDetail(); render(); trackView(pid); } }
@@ -1550,6 +1572,15 @@
       }
       var go = e.target.closest("[data-go]");
       if(go){ openProperty(go.getAttribute("data-go")); return; }
+      // Tarjetas de LawangCard: <a href="#property/<id>"> (grid, "more in this line"). Sin
+      // esto, un clic mientras la URL ya es /property/<otro-id> deja /property/<otro-id>#property/<id> —
+      // la navegación queda rota aunque la primera carga se vea igual. Solo se intercepta ESE
+      // patrón; cualquier otro <a> (legal, WhatsApp, mailto…) sigue su navegación nativa.
+      var link = e.target.closest("a[href]");
+      if(link){
+        var lm = link.getAttribute("href").match(/#property\/([A-Za-z0-9-]+)$/);
+        if(lm){ e.preventDefault(); openProperty(lm[1]); return; }
+      }
     });
     root.addEventListener("submit", function(e){
       var f=e.target.closest('[data-act="dl-submit"]');
@@ -1584,6 +1615,7 @@
       render();
     }, {passive:true});
     window.addEventListener("hashchange", onHash);
+    window.addEventListener("popstate", onHash);
     // a11y: Escape cierra el lightbox si está abierto (si no, la ficha); flechas navegan el lightbox
     document.addEventListener("keydown", function(e){
       if(S.lightbox!=null){

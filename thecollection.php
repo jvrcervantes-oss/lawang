@@ -1,11 +1,127 @@
-<!DOCTYPE html>
+<?php
+/**
+ * thecollection.php — listado + ficha de propiedad de Lawang.
+ *
+ * ?property=<id> (via /property/<id> en .htaccess) imprime en el <head> title/meta
+ * description/canonical/OG/JSON-LD UNICOS de esa propiedad. Sin el parametro, sirve el
+ * listado de siempre. El <body> y el bundle (portfolio-app.js) son EXACTAMENTE los mismos
+ * en los dos casos: la SPA lee la URL real (location.pathname) para abrir el overlay
+ * correcto nada mas arrancar — ver parsePropertyId() en portfolio-app.js.
+ *
+ * Auditoria SEO 31-ago-2026: las 26+ fichas de propiedad no tenian URL ni meta tags
+ * propios (rutas solo por #hash, nunca llegaban al servidor: /thecollection y
+ * /thecollection#property/x devolvian el mismo HTML byte a byte).
+ *
+ * Revision previa (Seguridad + Diseno) antes de escribir esto:
+ *  - Filtro visible===true (no !==false): ruta publica NUEVA, whitelist estricta. De 44
+ *    propiedades solo 12 estan visible:true; las otras 32 son borradores sin fotos reales.
+ *  - 404 real (no el redirect 302 a /thecollection que hace /modelo/<id>) y MISMO mensaje
+ *    para "slug no existe" y "existe pero no es visible" — un texto distinto para cada
+ *    caso permite enumerar por fuerza bruta los ids ocultos.
+ *  - Escapado con lw_e() (modelo/lib.php) en HTML y JSON_HEX_* en el JSON-LD.
+ */
+require __DIR__ . '/modelo/lib.php'; // lw_e()
+
+$SITE = 'https://lawangproperties.com';
+$prop = null;
+
+if (isset($_GET['property']) && $_GET['property'] !== '') {
+    $slug = (string) $_GET['property'];
+    if (preg_match('/^[A-Za-z0-9-]+$/', $slug)) {
+        $json = json_decode((string) file_get_contents(__DIR__ . '/data.json'), true);
+        $all  = (is_array($json) && isset($json['properties'])) ? $json['properties'] : [];
+        foreach ($all as $p) {
+            if (($p['id'] ?? '') === $slug && ($p['visible'] ?? null) === true) {
+                $prop = $p;
+                break;
+            }
+        }
+    }
+    if (!$prop) {
+        http_response_code(404);
+        ?><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Collection · Lawang Tropical Properties</title>
+<title>Property not found · Lawang Tropical Properties</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="<?= lw_e($SITE) ?>/thecollection">
+</head>
+<body style="font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;text-align:center;padding:18vh 5vw;color:#2E3437;background:#F5F0E6">
+<p style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8F9B7A;margin-bottom:1em">Lawang Tropical Properties</p>
+<h1 style="font-size:26px;font-weight:400;margin-bottom:1em">This property page doesn't exist.</h1>
+<p><a href="/thecollection" style="color:#485B37">Back to The Collection</a></p>
+</body>
+</html>
+<?php
+        exit;
+    }
+}
+
+if ($prop) {
+    $title    = $prop['title']['en'] ?? $prop['id'];
+    $region   = (string) ($prop['region'] ?? '');
+    $sub      = trim((string) ($prop['sub']['en'] ?? ''));
+    $desc     = trim((string) ($prop['desc']['en'] ?? ''));
+    $priceEUR = $prop['priceEUR'] ?? null;
+    $images   = $prop['images'] ?? [];
+    $ogImage  = $images ? $SITE . $images[0] : $SITE . '/assets/img/aerial-1.jpg';
+    $canonical = $SITE . '/property/' . $prop['id'];
+
+    $metaDesc = $sub !== '' ? $sub : $desc;
+    if ($region !== '') $metaDesc = ($metaDesc !== '' ? $metaDesc . ' — ' : '') . $region . ', Indonesia.';
+    if ($metaDesc === '') $metaDesc = $title . ' — freehold property by Lawang Tropical Properties.';
+    if (mb_strlen($metaDesc) > 300) $metaDesc = mb_substr($metaDesc, 0, 297) . '...';
+
+    $jsonLd = [
+        '@context'    => 'https://schema.org',
+        '@type'       => 'RealEstateListing',
+        'name'        => $title,
+        'url'         => $canonical,
+        'description' => $metaDesc,
+        'image'       => $ogImage,
+        'address'     => [
+            '@type'           => 'PostalAddress',
+            'addressLocality' => $region,
+            'addressCountry' => 'ID',
+        ],
+    ];
+    if ($priceEUR) {
+        $jsonLd['offers'] = [
+            '@type'        => 'Offer',
+            'price'        => (string) $priceEUR,
+            'priceCurrency' => 'EUR',
+            'availability' => 'https://schema.org/InStock',
+        ];
+    }
+}
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Sin esto, /property/<id> (dos niveles bajo raiz) rompe TODAS las rutas relativas del
+     documento: assets/*.css, assets/*.js y los fetch('data.json') / fetch('api/lead.php')
+     de portfolio-app.js resolverian contra /property/ en vez de contra la raiz del sitio. -->
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><?= $prop ? lw_e($title . ' · Lawang Tropical Properties') : 'The Collection · Lawang Tropical Properties' ?></title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<?php if ($prop): ?>
+<meta name="description" content="<?= lw_e($metaDesc) ?>">
+<link rel="canonical" href="<?= lw_e($canonical) ?>">
+<meta property="og:type" content="website">
+<meta property="og:url" content="<?= lw_e($canonical) ?>">
+<meta property="og:title" content="<?= lw_e($title) ?> · Lawang Tropical Properties">
+<meta property="og:description" content="<?= lw_e($metaDesc) ?>">
+<meta property="og:image" content="<?= lw_e($ogImage) ?>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="<?= lw_e($ogImage) ?>">
+<script type="application/ld+json">
+<?= json_encode($jsonLd, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+</script>
+<?php else: ?>
 <meta name="description" content="Land, villas, and resorts in Bali and Sumba. Freehold titled properties by Lawang Tropical Properties.">
 <link rel="canonical" href="https://lawangproperties.com/thecollection">
 <meta property="og:type" content="website">
@@ -25,6 +141,7 @@
   "isPartOf": { "@type": "WebSite", "name": "Lawang Tropical Properties", "url": "https://lawangproperties.com/" }
 }
 </script>
+<?php endif; ?>
 <!-- Fonts: The Seasons + Neue Kabel (marca, locales) · Cormorant Garamond + Jost de fallback -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -870,7 +987,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     <p>Signature homes, land parcels, villas and resort units across Bali and Sumba, Indonesia. Freehold and leasehold opportunities with managed rental income.</p>
     <article class="seo-prop">
       <img src="/assets/img/properties/tirta-hikari-20260730-1.jpg" alt="Tirta Hikari — South Buwit, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/tirta-hikari">Tirta Hikari</a></h3>
+      <h3><a href="/property/tirta-hikari">Tirta Hikari</a></h3>
       <p class="seo-region">South Buwit, Tabanan</p>
       <p class="seo-price">From €930,000</p>
       <p class="seo-specs">3 bed · 4 bath · 345 m² built · 965 m² land</p>
@@ -879,18 +996,8 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
       <p class="seo-desc">Lawang&#x27;s flagship: only three freehold villas in South Buwit, minutes from Seseh and Canggu. Joglo-inspired contemporary architecture with a wellness focus — sauna and ice bath — an infinity pool and jungle-and-river views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/joglo-kembar-ii">Joglo Kembar II</a></h3>
-      <p class="seo-region">Tangkuban, Denpasar</p>
-      <p class="seo-price">From €700,000</p>
-      <p class="seo-specs">5 bed · 5 bath</p>
-      <p class="seo-meta">Off-plan · Leasehold — 30 yrs</p>
-      <p class="seo-sub">A premium single villa facing the rice fields</p>
-      <p class="seo-desc">A one-off premium villa in Tangkuban (West Denpasar) with traditional Joglo architecture overlooking rice fields. Five bedrooms, fully furnished, pool and paddy views, 3 m private access.</p>
-    </article>
-    <article class="seo-prop">
       <img src="/assets/img/properties/riverfront-i-20260730-1.jpg" alt="Riverfront I — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/riverfront-i">Riverfront I</a></h3>
+      <h3><a href="/property/riverfront-i">Riverfront I</a></h3>
       <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €320,000</p>
       <p class="seo-specs">2 bed · 3 bath · 180 m² built · 300 m² land</p>
@@ -900,7 +1007,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/riverfront-ii-big-20260730-1.jpg" alt="Riverfront II — Big House — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/riverfront-ii-big">Riverfront II — Big House</a></h3>
+      <h3><a href="/property/riverfront-ii-big">Riverfront II — Big House</a></h3>
       <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €280,000</p>
       <p class="seo-specs">3 bed · 3 bath · 125 m² built · 450 m² land</p>
@@ -910,7 +1017,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/tangkuban-village-1.jpg" alt="Tangkuban Village — Seminyak, Denpasar" loading="lazy" width="800" height="600">
-      <h3><a href="#property/tangkuban-village">Tangkuban Village</a></h3>
+      <h3><a href="/property/tangkuban-village">Tangkuban Village</a></h3>
       <p class="seo-region">Seminyak, Denpasar</p>
       <p class="seo-price">From €250,000</p>
       <p class="seo-specs">3 bed · 3 bath · 160 m² built · 300 m² land</p>
@@ -920,7 +1027,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/riverfront-iii-20260730-1.jpg" alt="Riverfront III — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/riverfront-iii">Riverfront III</a></h3>
+      <h3><a href="/property/riverfront-iii">Riverfront III</a></h3>
       <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €250,000</p>
       <p class="seo-specs">3 bed · 3 bath · 106 m² built · 230 m² land</p>
@@ -930,7 +1037,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/pura-dalem-20260730-6.jpg" alt="Pura Dalem — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/pura-dalem">Pura Dalem</a></h3>
+      <h3><a href="/property/pura-dalem">Pura Dalem</a></h3>
       <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €240,000</p>
       <p class="seo-specs">3 bed · 3 bath · 130 m² built · 180 m² land</p>
@@ -940,7 +1047,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/riverfront-ii-small-20260730-1.jpg" alt="Riverfront II — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/riverfront-ii-small">Riverfront II</a></h3>
+      <h3><a href="/property/riverfront-ii-small">Riverfront II</a></h3>
       <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €210,000</p>
       <p class="seo-specs">2 bed · 2 bath · 106 m² built · 200 m² land</p>
@@ -950,7 +1057,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/rurung-anyar-20260730-6.jpg" alt="Rurung Anyar — Kaba-Kaba, Tabanan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/rurung-anyar">Rurung Anyar</a></h3>
+      <h3><a href="/property/rurung-anyar">Rurung Anyar</a></h3>
       <p class="seo-region">Kaba-Kaba, Tabanan</p>
       <p class="seo-price">From €200,000</p>
       <p class="seo-specs">2 bed · 3 bath · 117 m² built · 208 m² land</p>
@@ -960,7 +1067,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/cube-20260730-1.jpg" alt="Cube — Uluwatu / Balangan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/cube">Cube</a></h3>
+      <h3><a href="/property/cube">Cube</a></h3>
       <p class="seo-region">Uluwatu / Balangan</p>
       <p class="seo-price">From €199,000</p>
       <p class="seo-specs">3 bed · 2 bath · 184 m² built · 250 m² land</p>
@@ -970,7 +1077,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/river-20260730-2.jpg" alt="River — Uluwatu / Balangan" loading="lazy" width="800" height="600">
-      <h3><a href="#property/river">River</a></h3>
+      <h3><a href="/property/river">River</a></h3>
       <p class="seo-region">Uluwatu / Balangan</p>
       <p class="seo-price">From €167,000</p>
       <p class="seo-specs">1 bed · 1 bath · 84 m² built · 150 m² land</p>
@@ -980,7 +1087,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
     </article>
     <article class="seo-prop">
       <img src="/assets/img/properties/aqua-20260730-8.jpg" alt="Aqua — Uluwatu, Jimbaran" loading="lazy" width="800" height="600">
-      <h3><a href="#property/aqua">Aqua</a></h3>
+      <h3><a href="/property/aqua">Aqua</a></h3>
       <p class="seo-region">Uluwatu, Jimbaran</p>
       <p class="seo-price">From €155,000</p>
       <p class="seo-specs">1 bed · 1 bath · 84 m² built · 150 m² land</p>
@@ -989,318 +1096,8 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
       <p class="seo-desc">A modern loft villa in Uluwatu (Jimbaran) with an accessible entry price in a high-demand tourist area. Fully furnished, with pool and garden views.</p>
     </article>
     <article class="seo-prop">
-      
-      <h3><a href="#property/w0">W0</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w1">W1</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w1-1">W1.1</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w2">W2</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w3">W3</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w3-1">W3.1</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w3-2">W3.2</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w4">W4</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w5">W5</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w6">W6</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w7">W7</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w8">W8</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w9">W9</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w10">W10</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w11">W11</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w12">W12</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w13">W13</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w14">W14</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w15">W15</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/w16">W16</a></h3>
-      <p class="seo-region">Balian, Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s1">S1</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s2">S2</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s3">S3</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s4">S4</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s5">S5</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s6">S6</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s7">S7</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s8">S8</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/s9">S9</a></h3>
-      <p class="seo-region">Sumba</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/g1">G1</a></h3>
-      <p class="seo-region">Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
-      
-      <h3><a href="#property/g2">G2</a></h3>
-      <p class="seo-region">Bali</p>
-      <p class="seo-price">From €0</p>
-      
-      <p class="seo-meta">Off-plan · Freehold (Hak Milik)</p>
-      <p class="seo-sub">Land only</p>
-      
-    </article>
-    <article class="seo-prop">
       <img src="/assets/img/properties/20260710_fcf0f11a4340.png" alt="Palm Field — Balian Hills, Bali" loading="lazy" width="800" height="600">
-      <h3><a href="#property/palm-field-bali">Palm Field</a></h3>
+      <h3><a href="/property/palm-field-bali">Palm Field</a></h3>
       <p class="seo-region">Balian Hills, Bali</p>
       <p class="seo-price">From €31,250</p>
       
@@ -1526,7 +1323,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260730103319"></script>
-<script src="assets/portfolio-app.js?v=20260824122518"></script>
+<script src="assets/portfolio-app.js?v=20260831171011"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */
