@@ -143,13 +143,19 @@ SQL_FILAS.forEach(f => {
       APP_PREFIJO[f.tipo], f.prefijo, 'TIPO_PREFIX (app.html)', 'tipos_de_contrato.sql');
 });
 
-// Dos tipos con el mismo prefijo comparten serie: dos documentos distintos con
-// números que se pisan.
+// Dos tipos con el mismo prefijo Y la misma secuencia de Postgres no colisionan:
+// nextval() sobre una secuencia compartida es un único contador atómico (caso
+// real: cc00014_timon reabre el CC00014 ya emitido por 'construccion' -- nunca
+// llama a nextval por su cuenta, ver tipos_de_contrato.sql). Lo que SÍ es un
+// fallo es el mismo prefijo con secuencias DISTINTAS: ahí hay dos contadores
+// independientes que sí pueden emitir el mismo número (31-ago-2026).
 const porPrefijo = {};
-SQL_FILAS.forEach(f => { (porPrefijo[f.prefijo] = porPrefijo[f.prefijo] || []).push(f.tipo); });
-Object.entries(porPrefijo).filter(([, t]) => t.length > 1).forEach(([p, t]) => {
+SQL_FILAS.forEach(f => { (porPrefijo[f.prefijo] = porPrefijo[f.prefijo] || []).push(f); });
+Object.entries(porPrefijo).filter(([, t]) => t.length > 1).forEach(([p, filas]) => {
+  const secuencias = new Set(filas.map(f => f.secuencia));
+  if (secuencias.size <= 1) return;
   fallos++;
-  console.error(`\n  FALLA  la serie ${p} la usan ${t.length} tipos: ${t.join(', ')}\n         Dos tipos con la misma serie emiten números repetidos.`);
+  console.error(`\n  FALLA  la serie ${p} la usan ${filas.length} tipos con secuencias DISTINTAS: ${filas.map(f => f.tipo).join(', ')}\n         Dos contadores independientes pueden emitir el mismo número.`);
 });
 
 /* ── LAS HERRAMIENTAS ────────────────────────────────────────────────────── */

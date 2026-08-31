@@ -68,7 +68,13 @@ declare
     ['ppjb_bonian_c2',         'C2', 'public.contratos_c2_seq'],
     ['hak_sewa_notario',       'HS', 'public.contratos_hs_seq'],
     ['carta_reserva_hak_sewa', 'CH', 'public.contratos_ch_seq'],
-    ['poa',                    'PA', 'public.contratos_poa_seq']
+    ['poa',                    'PA', 'public.contratos_poa_seq'],
+    -- Mismo prefijo/secuencia que 'construccion' (28-ago-2026): es esa misma
+    -- plantilla, solo que con el texto negociado de CC00014 (Timon Taeke van
+    -- den Bosch). Ya aplicado en vivo vía MCP ese mismo día — esta fila solo
+    -- pone al día el generador para que vuelva a coincidir con producción
+    -- (verificado contra prosrc/pg_get_constraintdef antes de añadirla).
+    ['cc00014_timon',          'CC', 'public.contratos_cc_seq']
   ];
   i          int;
   n          int := array_length(tipos, 1);
