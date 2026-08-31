@@ -6,218 +6,273 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
 <title>Lawang · Área de clientes</title>
+<!-- Diseño nuevo instalado tal cual (31-ago-2026, encargo del owner) desde
+     Claude Design ("Área de Clientes.dc.html") — decisión consciente de
+     volver a un sistema visual PROPIO del portal, distinto de `lawang.css`
+     que usa el resto de la suite desde el 27-ago. No es un olvido de aquella
+     unificación: es un cambio de idea, y va dicho aquí para que quien lo lea
+     en seis meses no lo confunda con uno. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
-<!-- LAS MISMAS HOJAS QUE LAS NUEVE HERRAMIENTAS. El portal nació con estilo
-     propio y el owner lo cazó: "no tiene NADA que ver con la intranet". Tenía
-     razón, y el problema no era el gusto sino el método — una décima manera de
-     pintar una tabla es exactamente lo que `suite.css` vino a matar. Ahora
-     hereda tokens, densidad, tabla, cajón y barra del resto de la suite. -->
-<!-- UNA SOLA HOJA PARA TODA LA SUITE (27-ago-2026, encargo del owner).
-     `lawang.css` la genera `tools/empaqueta_css.py` uniendo brand + topbar +
-     suite + app EN ESE ORDEN, que es la cascada y no el alfabeto. Se escribe
-     en cuatro ficheros —cada uno con el porqué de sus reglas— y se sirve en
-     uno, para que ninguna herramienta pueda cargar media suite: antes
-     Contratos cargaba las cuatro y las otras diecisiete solo tres, y de ahí
-     salieron los desplegables con cuatro aspectos. -->
-<link rel="stylesheet" href="/contracts/assets/lawang.css?v=de9a3f0e">
-<!-- Iconos Phosphor: los usa el menu lateral de topbar.js (15-ago-2026). Ya
-     los cargaban intranet/, compradores/ y creatividades/; se igualan las demas
-     para que el riel no salga como una columna de cuadros vacios. Misma URL y
-     misma version fijada que las tres que ya lo tenian. -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!-- ⚠️ NI guard.js NI topbar.js, y no es un olvido:
-     · guard.js es la puerta del EQUIPO — rebota al login interno y, desde el
-       5-ago, expulsa a los usuarios del portal hacia aquí. Cargarlo sería un
-       bucle.
-     · topbar.js pinta el panel de usuario leyendo `usuarios` y las
-       notificaciones internas: dos tablas que la RLS le niega a un comprador.
-     La barra se escribe a mano con las clases de topbar.css (mismo aspecto) y
-     la sesión la resuelve esta página. suite.js y suite-comun.js SÍ entran:
-     son interfaz pura, sin datos. -->
-<script src="/contracts/assets/suite.js?v=a916961a"></script>
-<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
-<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<!-- EL DOCUMENTO DE VERDAD. `documento.js` es la fuente única de la maquetación
-     de una factura: la usan la herramienta de Facturas y la Edge Function que
-     emite la del primer hito al firmarse un contrato. El portal la carga
-     también, así que el comprador ve EXACTAMENTE el documento que emitió el
-     equipo — no una reconstrucción parecida que se queda vieja en cuanto alguien
-     toque una fila del original.
-     `entities.js` (sociedades y cuentas) ya viaja dentro de la propia factura:
-     los datos bancarios están para que el comprador pague. -->
+<!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
+     fichero): `documento.js` es la fuente única de la maquetación de una
+     factura, la misma que usan la herramienta de Facturas y la Edge que
+     emite la del primer hito. El comprador ve EXACTAMENTE el documento que
+     emitió el equipo, no una reconstrucción parecida. `entities.js` trae los
+     datos bancarios dentro de la propia factura. -->
 <link rel="stylesheet" href="/intranet/facturas/documento.css?v=20260731">
 <script src="/contracts/assets/entities.js?v=5f9da647"></script>
-<!-- dinero.js ANTES de totales.js: totales.js usa lwParseImporte/lwFormatoImporte
-     y desde el 26-ago-2026 ya no lleva una copia propia por si faltan. Esta
-     pagina es la del CLIENTE: aqui un fallo no lo ve un operador, lo ve el
-     comprador. Lo vigila `contracts/orden_dinero.test.js`. -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/intranet/facturas/documento.js?v=20260731"></script>
 <style>
-  :root{ --tbh:64px; }
-  /* --cajon-w: sin override propio desde el 11-ago — hereda el 70vw de
-     suite.css (norma de la suite). Antes tenía un clamp propio porque la
-     factura A4 dentro del cajón (zoom .62, ~494px de hoja) no cabía en los
-     420px estándar de entonces; 70vw de sobra la cubre sin necesitar un
-     ancho a medida. */
+  :root{
+    --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A; --va:#2E3437;
+    --ss:#BEB3A5; --rl:#F5F0E6; --bc:#8A8474; --ok:#3F5230; --bad:#9E2F26;
+  }
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }
-  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto);
+  body{ font-family:'Jost',sans-serif; color:var(--va); background:var(--rl); min-height:100vh;
         -webkit-font-smoothing:antialiased; }
   [hidden]{ display:none !important; }
-  .topbar{ position:fixed; top:0; left:0; right:0; z-index:40; }
-  /* La cadena de alturas llega hasta `.sui-stage` o el scroll se lo queda el
-     body: `height:100%` contra un padre de alto automático es alto automático.
-     Con el body scrolleando, la cabecera pegada de la tabla deja de pegarse y
-     el «volver arriba» al cambiar de sección no hace nada. Las herramientas no
-     lo necesitan porque su `.sui-stage` cuelga del body; aquí hay un envoltorio
-     en medio para poder alternar entrada / cargando / aplicación. */
-  #vApp{ height:100%; }
-  /* `.sui-chip.vacio` atenúa los filtros sin resultados, pero el que está
-     SELECCIONADO no puede verse apagado aunque su sección esté vacía: es donde
-     estás. Pasa en cuanto un comprador entra sin contratos todavía. */
-  .sui-chip.on{ opacity:1; }
+  input::placeholder, textarea::placeholder{ color:#a8a394; }
+  button{ font-family:inherit; }
 
-  /* ── NAVEGACIÓN PEGADA (6-ago-2026, secciones apiladas) ─────────────────
-     Con las cuatro secciones en una sola pasada, los chips dejan de ser un
-     filtro y pasan a ser el índice: si no se quedan a la vista, a media página
-     no hay forma de saltar a «Documentos» sin subir del todo.
-     `top:0` dentro de `.sui-stage`, que es el contenedor que desplaza — no la
-     ventana. El fondo es opaco a propósito: con el papel translúcido, las filas
-     de la tabla se leían POR DEBAJO de los chips al pasar. */
-  #chips{ position:sticky; top:0; z-index:12; background:var(--sup-0);
-          padding:var(--e2) 0; margin:0 0 var(--e3); }
-  /* Y el hueco que deja la barra pegada: sin esto, desplazarse a una sección
-     deja su titular JUSTO DEBAJO de los chips y parece que no ha pasado nada.
-     `scroll-margin-top` es exactamente para esto y no hace falta calcular nada. */
-  #secContratos, #secFacturas, #secObra, #secDocumentos{ scroll-margin-top:62px; }
-  /* Aire entre secciones: apiladas sin separación se leen como una sola lista
-     larga y el índice deja de significar algo. */
-  #secFacturas, #secObra, #secDocumentos{ margin-top:var(--e6); }
-
-  /* ── encabezado de página: mismo registro que la intranet ──────────────
-     Rótulo en Jost, no en serif. La display se reserva a la marca; en una
-     herramienta, un titular serif de 40px es ruido (manual del estudio). */
-  .lede{ margin:0 0 var(--e4); }
-  .lede h1{ margin:0; font-size:23px; font-weight:500; letter-spacing:.005em; color:var(--texto); }
-  .lede p{ margin:4px 0 0; font-size:14px; color:var(--texto-2); max-width:62ch; }
-
-  /* ── bloque de operación (contrato / unidad) ──────────────────────────
-     Mismo papel, borde, radio y sombra que `.sui-tabla-caja`: es la misma
-     familia de objeto, solo que su contenido no es una tabla. */
-  .op{ background:var(--sup-1); border:1px solid var(--linea); border-radius:var(--r-l);
-       box-shadow:var(--sombra-1); padding:var(--e4) var(--e5) var(--e5); margin:0 0 var(--e4); }
-  .op-cab{ display:flex; align-items:baseline; gap:var(--e3); flex-wrap:wrap; }
-  .op-cab h2{ margin:0; font-size:16px; font-weight:600; letter-spacing:.05em; color:var(--dl); }
-  .op-cab .sub{ font-size:12.5px; color:var(--texto-2); }
-  .op-cab .sui-tag{ margin-left:auto; }
-  .op > .sui-dl{ margin-top:var(--e3); }
-  .op .sui-tabla{ min-width:0; }            /* dentro del bloque no hay scroll horizontal */
-  .op-pie{ margin-top:var(--e4); }
-
-  /* barra de avance — los mismos valores que Unidades */
-  .barra{ height:7px; border-radius:var(--r-p); background:#E7E1D2; overflow:hidden; margin:var(--e3) 0 6px; }
-  .barra i{ display:block; height:100%; background:#3F5230; transition:width .6s var(--curva); }
-  .barra-leg{ display:flex; justify-content:space-between; gap:var(--e3); font-size:12px;
-              color:var(--texto-2); font-variant-numeric:tabular-nums; }
-
-  /* fases de obra */
-  .fases{ display:flex; flex-wrap:wrap; gap:6px; margin:var(--e3) 0 0; }
-  .fase{ font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; padding:5px 11px;
-         border:1px solid var(--linea); border-radius:var(--r-p); color:var(--texto-3); }
-  .fase.hecha{ color:var(--texto-2); border-color:var(--ss); }
-  .fase.actual{ background:#3F5230; border-color:#3F5230; color:#fff; font-weight:600; }
-
-  /* fotos */
-  .fotos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:var(--e2); margin-top:var(--e4); }
-  .fotos figure{ margin:0; cursor:zoom-in; }
-  .fotos img{ width:100%; aspect-ratio:4/3; object-fit:cover; display:block;
-              border-radius:var(--r-s); background:#E7E1D2; }
-  .fotos figcaption{ font-size:11.5px; color:var(--texto-2); padding-top:4px; }
-  .lupa{ position:fixed; inset:0; z-index:70; background:rgba(34,40,42,.72);
-         display:flex; align-items:center; justify-content:center; padding:20px; cursor:zoom-out; }
-  .lupa img{ max-width:96vw; max-height:92vh; border-radius:var(--r-s); }
-
-  /* ── la factura de verdad dentro del cajón ─────────────────────────────
-     `documento.css` maqueta una hoja A4 real. En pantalla se reduce con `zoom`
-     igual que hace la vista previa de la herramienta de Facturas; al imprimir
-     vuelve a tamaño real (el zoom no se aplica dentro de @media print). */
-  .hoja-scroll{ display:flex; justify-content:center; }
-  .sheet{ width:210mm; min-height:297mm; background:var(--folio,#fff); padding:15mm 16mm;
-          zoom:.62; box-shadow:var(--sombra-1); }
-  @media screen and (max-width:900px){
-    .sheet{ zoom:.46; }
-    .hoja-scroll{ overflow-x:auto; justify-content:flex-start; }
-  }
-
-  /* ── documentos (documentación de la promoción y lo entregado) ─────── */
-  .docrow-cat{ font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--texto-3); }
-  .caduca-mal{ color:#9E2F26; font-weight:600; }
-  .doc .fec{ font-size:12.5px; color:var(--texto-2); text-align:right; font-variant-numeric:tabular-nums; }
-
-  /* ── login ─────────────────────────────────────────────────────────── */
-  .entrada{ min-height:100%; display:grid; place-items:center; padding:var(--e5); }
-  .entrada .caja{ width:100%; max-width:400px; background:var(--sup-1); border:1px solid var(--linea);
-                  border-radius:var(--r-l); box-shadow:var(--sombra-1); padding:var(--e6) var(--e5); text-align:center; }
-  .entrada .marca{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; font-weight:600;
-                   letter-spacing:.12em; color:var(--tg); line-height:1; }
-  .entrada .rot{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase;
-                 color:var(--texto-3); margin:7px 0 var(--e5); }
-  .entrada p{ font-size:13.5px; color:var(--texto-2); margin:0 0 var(--e4); line-height:1.55; }
-  .entrada input{ width:100%; font:inherit; font-size:14px; padding:11px 13px; text-align:center;
-                  border:1px solid var(--linea); border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
-  .entrada input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
-  .entrada .sui-btn{ width:100%; justify-content:center; margin-top:var(--e2); }
-  .aviso{ font-size:12.5px; line-height:1.5; min-height:18px; margin-top:var(--e3); color:var(--texto-2); }
-  .aviso.mal{ color:#9E2F26; } .aviso.bien{ color:#3F5230; }
-
-  /* ── cajón «Cambiar contraseña» — el resto del portal no tiene formularios
-     dentro de un cajón, así que estos campos no heredan nada de otro sitio ── */
-  .sui-cajon-cuerpo .row label{ display:block; font-size:11px; font-weight:600; letter-spacing:.06em;
-    text-transform:uppercase; color:var(--texto-2); margin-bottom:5px; }
-  .sui-cajon-cuerpo .row input{ width:100%; font:inherit; font-size:14px; padding:10px 12px;
-    border:1px solid var(--linea); border-radius:var(--r-s); background:var(--sup-1); color:inherit; }
-  .sui-cajon-cuerpo .row input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(72,91,55,.13); }
-  .cargando{ display:grid; place-items:center; min-height:100%; color:var(--texto-3);
+  /* ── carga ─────────────────────────────────────────────────────────── */
+  .cargando{ min-height:100vh; display:grid; place-items:center; color:var(--bc);
              font-size:11px; letter-spacing:.22em; text-transform:uppercase; }
 
-  /* ── impresión: solo el documento del cajón ────────────────────────── */
+  /* ── login ─────────────────────────────────────────────────────────── */
+  .entrada{ min-height:100vh; display:grid; place-items:center; background:var(--rl); padding:24px; }
+  .entrada .caja{ width:100%; max-width:400px; background:#fff; border:1px solid #E4DCCB; border-radius:16px;
+                  padding:44px 34px 38px; box-shadow:0 18px 48px -22px rgba(34,40,42,.35); text-align:center; }
+  .entrada .marca{ font-family:'Cormorant Garamond',Georgia,serif; font-size:30px; font-weight:600;
+                    letter-spacing:.12em; color:var(--dl); line-height:1; }
+  .entrada .rot{ font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--sc); margin:8px 0 28px; }
+  .entrada p{ font-size:13.5px; color:#6b6c66; margin:0 0 20px; line-height:1.55; }
+  .entrada input{ width:100%; font:inherit; font-size:15px; padding:12px 13px; text-align:center;
+                   border:1px solid #E4DCCB; border-radius:9px; background:#fdfcf9; color:inherit; margin-bottom:14px; }
+  .entrada input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(16,76,79,.13); }
+  .btn-primario{ width:100%; font:inherit; font-size:13.5px; font-weight:600; color:#fff; background:var(--dl);
+                  border:1px solid var(--dl); border-radius:999px; padding:12px; cursor:pointer; white-space:nowrap; }
+  .btn-primario:disabled{ opacity:.55; cursor:default; }
+  .aviso{ font-size:12.5px; line-height:1.5; min-height:18px; margin-top:14px; color:#8a8570; }
+  .aviso.mal{ color:var(--bad); } .aviso.bien{ color:var(--ok); font-weight:600; }
+  .link-sutil{ color:var(--dl); text-decoration:none; }
+  .link-sutil:hover{ text-decoration:underline; }
+
+  /* ── app: sidebar + topbar + contenido ────────────────────────────── */
+  .app{ display:flex; min-height:100vh; }
+  .sidebar{ background:var(--dl); display:flex; flex-direction:column; flex-shrink:0; }
+  .sidebar .cab{ display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
+  .sidebar .cab img{ height:26px; }
+  .sidebar .cab button{ background:none; border:none; color:rgba(255,255,255,.7); font-size:20px; cursor:pointer; line-height:1; }
+  .sidebar .rot{ font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:rgba(255,255,255,.45);
+                 margin:0 0 18px; padding:0 4px; }
+  .navrow{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 16px;
+           border-radius:10px; cursor:pointer; font-size:14px; margin-bottom:2px; color:rgba(255,255,255,.72); background:none; border:none; width:100%; text-align:left; font-family:inherit; }
+  .navrow:hover{ background:rgba(255,255,255,.08); }
+  .navrow.on{ font-weight:600; background:rgba(255,255,255,.14); color:#fff; }
+  .navrow .badge{ background:var(--bad); color:#fff; font-size:11px; font-weight:600; min-width:18px; height:18px;
+                  border-radius:9px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; }
+  .sidebar .pie{ margin-top:auto; padding-top:20px; border-top:1px solid rgba(255,255,255,.12);
+                 display:flex; align-items:center; gap:10px; }
+  .avatar{ width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.14); color:#fff;
+           font-size:12.5px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pie .quien{ min-width:0; }
+  .pie .nombre{ color:#fff; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pie a{ color:rgba(255,255,255,.55); font-size:11.5px; }
+
+  .overlay-sidebar{ position:fixed; inset:0; background:rgba(34,40,42,.45); z-index:60; }
+
+  .main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .topbar2{ display:flex; align-items:center; gap:14px; background:#fff; border-bottom:1px solid rgba(138,132,116,.25);
+            position:sticky; top:0; z-index:30; }
+  .topbar2 .hamb{ background:none; border:none; font-size:20px; cursor:pointer; color:var(--va); padding:4px 6px 4px 0; }
+  .topbar2 h1{ margin:0; font-size:19px; font-weight:500; color:var(--va); flex:1; }
+  .campana{ position:relative; }
+  .campana button{ background:none; border:1px solid rgba(138,132,116,.4); border-radius:999px; width:36px; height:36px;
+                    cursor:pointer; font-size:15px; position:relative; }
+  .campana .n{ position:absolute; top:-3px; right:-3px; background:var(--bad); color:#fff; font-size:10px; font-weight:700;
+               min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .notif-drop{ position:absolute; top:44px; right:0; width:300px; max-width:80vw; background:#fff;
+               border:1px solid rgba(138,132,116,.35); border-radius:14px; box-shadow:0 14px 32px -16px rgba(34,40,42,.3);
+               z-index:45; padding:14px; }
+  .notif-drop .cab{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .notif-drop .cab span{ font-size:12.5px; font-weight:600; }
+  .notif-fila{ display:flex; gap:8px; padding:8px 0; border-top:1px solid rgba(138,132,116,.18); }
+  .notif-fila .punto{ width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+  .notif-fila .txt{ font-size:12.5px; line-height:1.4; color:var(--va); }
+  .notif-fila .fec{ font-size:11px; color:#a8a394; margin-top:2px; }
+
+  .content{ padding:30px 40px 60px; max-width:960px; margin:0 auto; width:100%; }
+
+  .titulo-sec{ margin:0 0 24px; }
+  .titulo-sec h2{ margin:0; font-size:23px; font-weight:500; }
+  .titulo-sec p{ margin:4px 0 0; font-size:14px; color:#6b6c66; }
+
+  .tarjeta{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; padding:20px 22px; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+  .kpi .lbl{ font-size:11.5px; color:#8a8570; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+  .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
+  .kpi .val.ok{ color:var(--ok); }
+
+  .grid2col{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; margin-bottom:28px; }
+  @media (max-width:760px){ .grid2col{ grid-template-columns:1fr; } }
+  .rot-bloque{ font-size:12px; font-weight:600; color:#8a8570; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
+  .btn-borde{ font:inherit; font-size:13px; font-weight:600; color:var(--dl); background:#fff;
+              border:1px solid rgba(138,132,116,.5); border-radius:999px; padding:9px 18px; cursor:pointer; white-space:nowrap; }
+  .btn-borde:disabled{ opacity:.5; cursor:default; }
+  .btn-oscuro{ font:inherit; font-size:13px; font-weight:600; color:#fff; background:var(--dl); border:1px solid var(--dl);
+               border-radius:999px; padding:10px 18px; cursor:pointer; white-space:nowrap; }
+
+  .accesos{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; }
+  .acceso{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:14px; padding:16px 18px; cursor:pointer;
+           font:inherit; text-align:left; }
+  .acceso .t{ font-size:13.5px; font-weight:500; }
+  .acceso .s{ font-size:12px; color:#8a8570; margin-top:3px; }
+
+  .op{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; padding:22px 24px 24px; margin-bottom:18px;
+       box-shadow:0 1px 2px rgba(46,52,55,.04),0 10px 28px -18px rgba(46,52,55,.18); }
+  .op-cab{ display:flex; gap:16px; }
+  .op-cab img{ width:88px; height:88px; border-radius:12px; flex-shrink:0; object-fit:cover; background:#E7E1D2; }
+  .op-cab .info{ flex:1; min-width:0; }
+  .op-cab h3{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:0; }
+  .op-cab h3 b{ font-size:16px; font-weight:600; letter-spacing:.03em; color:var(--dl); }
+  .op-cab h3 span.sub{ font-size:12.5px; color:#6b6c66; }
+  .tag{ margin-left:auto; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:4px 10px;
+        border-radius:999px; white-space:nowrap; }
+  .tag.chico{ font-size:10.5px; padding:3px 9px; }
+  .op-datos{ display:flex; gap:28px; margin-top:14px; flex-wrap:wrap; }
+  .op-datos .d .lbl{ font-size:11px; color:#8a8570; text-transform:uppercase; }
+  .op-datos .d .val{ font-size:14px; margin-top:2px; }
+  .barra{ height:7px; border-radius:4px; background:#E7E1D2; overflow:hidden; margin:16px 0 6px; }
+  .barra i{ display:block; height:100%; background:var(--ok); }
+  .barra-leg{ display:flex; justify-content:space-between; font-size:12px; color:#6b6c66; margin-bottom:16px; }
+
+  table.docs{ width:100%; border-collapse:collapse; margin-top:6px; }
+  table.docs th{ text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#8a8570;
+                 font-weight:600; padding:8px 6px; border-bottom:1px solid rgba(138,132,116,.3); }
+  table.docs th.num{ text-align:right; }
+  table.docs td{ padding:11px 6px; font-size:13.5px; border-bottom:1px solid rgba(138,132,116,.18); }
+  table.docs td.num{ text-align:right; }
+  table.docs td.flojo{ font-size:13px; color:#6b6c66; }
+  .op-pie{ margin-top:16px; }
+
+  .tabla-caja{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; overflow:hidden; }
+  .tabla-caja table{ width:100%; border-collapse:collapse; }
+  .tabla-caja th{ text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#8a8570;
+                  font-weight:600; padding:12px 16px; border-bottom:1px solid rgba(138,132,116,.3); }
+  .tabla-caja th.num{ text-align:right; }
+  .tabla-caja td{ padding:13px 16px; font-size:13.5px; border-bottom:1px solid rgba(138,132,116,.18); }
+  .tabla-caja td.num{ text-align:right; }
+  .tabla-caja tr[data-fila]{ cursor:pointer; }
+  .tabla-caja tr:last-child td{ border-bottom:0; }
+  .clave{ font-weight:500; color:var(--dl); }
+  .ir{ font-size:12.5px; color:var(--dl); text-align:right; }
+
+  .fases{ display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 4px; }
+  .fase{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px;
+         border:1px solid rgba(138,132,116,.4); border-radius:999px; white-space:nowrap; color:#8a8570; }
+  .fase.hecha{ color:#6b6c66; border-color:var(--sc); }
+  .fase.actual{ background:var(--ok); border-color:var(--ok); color:#fff; font-weight:600; }
+  .fotos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+  .fotos figure{ margin:0; cursor:zoom-in; }
+  .fotos img{ width:100%; aspect-ratio:4/3; object-fit:cover; display:block; border-radius:10px; background:#E7E1D2; }
+  .fotos figcaption{ font-size:11.5px; color:#8a8570; padding-top:4px; }
+  .lupa{ position:fixed; inset:0; z-index:120; background:rgba(34,40,42,.72); display:flex; align-items:center;
+         justify-content:center; padding:20px; cursor:zoom-out; }
+  .lupa img{ max-width:96vw; max-height:92vh; border-radius:10px; }
+
+  .doclista{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; overflow:hidden; }
+  .docfila{ display:flex; align-items:center; gap:14px; padding:14px 18px; border-bottom:1px solid rgba(138,132,116,.18);
+            cursor:pointer; }
+  .docfila:last-child{ border-bottom:0; }
+  .docfila .cuerpo{ flex:1; min-width:0; }
+  .docfila .t{ font-size:13.5px; font-weight:500; }
+  .docfila .s{ font-size:11.5px; color:#8a8570; margin-top:2px; }
+  .docfila .der{ font-size:12.5px; text-align:right; color:#6b6c66; }
+  .docfila .der.mal{ color:var(--bad); font-weight:700; }
+
+  .ticket{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:14px; padding:16px 20px;
+           margin-bottom:12px; cursor:pointer; }
+  .ticket .cab{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .ticket .cab span.asunto{ font-size:14px; font-weight:500; }
+  .ticket .ultimo{ font-size:12.5px; color:#6b6c66; margin-top:6px; }
+  .ticket .meta{ font-size:11.5px; color:#a8a394; margin-top:6px; }
+
+  .campo{ margin-bottom:12px; }
+  .campo label{ display:block; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+                color:#8a8570; margin-bottom:5px; }
+  .campo input, .campo select, .campo textarea{ width:100%; font:inherit; font-size:14px; padding:10px 12px;
+    border:1px solid rgba(138,132,116,.5); border-radius:9px; background:#fdfcf9; color:inherit; }
+  .campo textarea{ resize:vertical; }
+
+  .chat{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; display:flex; flex-direction:column;
+         height:min(560px,calc(100vh - 220px)); }
+  .chat .cab{ padding:14px 20px; border-bottom:1px solid rgba(138,132,116,.25); }
+  .chat .cab b{ font-size:14px; }
+  .chat .cab .rol{ font-size:12px; color:#8a8570; }
+  .chat .hilo{ flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
+  .burbuja{ display:inline-block; max-width:280px; padding:10px 14px; font-size:13.5px; line-height:1.5; }
+  .burbuja.mia{ background:var(--dl); color:#fff; border-radius:14px 14px 4px 14px; }
+  .burbuja.suya{ background:#f4f0e6; color:var(--va); border-radius:14px 14px 14px 4px; }
+  .fila-msg{ display:flex; }
+  .fila-msg.der{ justify-content:flex-end; }
+  .fila-msg .fecha-msg{ font-size:10.5px; color:#a8a394; margin-top:4px; }
+  .chat form{ display:flex; gap:10px; padding:14px 18px; border-top:1px solid rgba(138,132,116,.25); }
+  .chat form input{ flex:1; font:inherit; font-size:14px; padding:10px 13px; border:1px solid rgba(138,132,116,.5);
+                     border-radius:999px; background:#fdfcf9; color:inherit; }
+
+  .toggle{ width:42px; height:24px; border-radius:12px; border:none; cursor:pointer; padding:2px; display:flex;
+           align-items:center; background:#d8d2c2; }
+  .toggle.on{ background:var(--ok); justify-content:flex-end; }
+  .toggle:not(.on){ justify-content:flex-start; }
+  .toggle i{ width:18px; height:18px; border-radius:50%; background:#fff; display:block; }
+  .pref-fila{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(138,132,116,.18); }
+  .pref-fila:last-child{ border-bottom:0; }
+
+  .vacio{ padding:30px 20px; text-align:center; color:#8a8570; }
+  .vacio b{ display:block; color:var(--va); font-size:14px; margin-bottom:6px; }
+
+  /* ── cajón lateral genérico (drawer) ─────────────────────────────────── */
+  .drawer-velo{ position:fixed; inset:0; background:rgba(34,40,42,.45); z-index:70; }
+  .drawer{ position:fixed; top:0; right:0; height:100vh; width:min(480px,100vw); background:var(--rl); z-index:71;
+           box-shadow:-24px 0 48px -24px rgba(34,40,42,.35); overflow-y:auto; padding:26px 26px 40px; }
+  .drawer.ancho{ width:min(720px,100vw); }
+  .drawer-cerrar{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+  .drawer-cerrar button{ background:none; border:none; font-size:20px; cursor:pointer; color:var(--va); }
+  .drawer .hoja{ background:#fff; border-radius:12px; padding:32px 30px; }
+  .hoja-scroll{ display:flex; justify-content:center; }
+  .sheet{ width:210mm; min-height:297mm; background:var(--folio,#fff); padding:15mm 16mm; zoom:.62; }
+  @media screen and (max-width:900px){ .sheet{ zoom:.42; } .hoja-scroll{ overflow-x:auto; justify-content:flex-start; } }
+
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff;
+          padding:11px 20px; border-radius:999px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; pointer-events:none; }
+
+  /* ── responsive: sidebar/topbar/contenido ────────────────────────────── */
+  .sidebar{ position:sticky; top:0; height:100vh; width:236px; padding:26px 18px; }
+  .topbar2{ padding:16px 40px; }
+  .content{ padding:30px 40px 60px; }
+  @media (max-width:880px){
+    .sidebar{ position:fixed; top:0; left:0; height:100vh; width:264px; z-index:65; padding:22px 16px;
+              transform:translateX(-100%); transition:transform .28s cubic-bezier(.22,.61,.36,1); }
+    .sidebar.open{ transform:translateX(0); }
+    .topbar2{ padding:14px 16px; }
+    .content{ padding:20px 16px 60px; }
+  }
+
+  /* ── impresión: solo el documento del cajón ─────────────────────────── */
   @media print{
-    body.imprimiendo > *:not(#suiCajon){ display:none !important; }
-    #suiCajon{ position:static; width:auto; height:auto; transform:none;
-               box-shadow:none; border:none; }
-    #suiCajon .sui-cajon-cab, #suiCajon .sui-cajon-pie{ display:none; }
-    #suiCajon .sui-cajon-cuerpo{ overflow:visible; padding:0; }
-    /* la hoja recupera su tamaño real: es un A4 y sale como un A4 */
-    .sheet{ zoom:1; box-shadow:none; width:210mm; min-height:297mm; }
+    body.imprimiendo > *:not(.drawer){ display:none !important; }
+    .drawer{ position:static; width:auto; height:auto; box-shadow:none; padding:0; }
+    .drawer-cerrar{ display:none; }
+    .sheet{ zoom:1; width:210mm; min-height:297mm; }
     .hoja-scroll{ display:block; overflow:visible; }
   }
-  /* Sin margen: el margen ya lo lleva la propia hoja (15/16mm), y sumar los dos
-     empujaba la factura a una segunda página. Mismo criterio que la herramienta. */
   @page{ size:A4; margin:0; }
 </style>
-
-<!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
-     no es cosmético: es una capa de override. Estaba arriba, junto a topbar.js,
-     y la pisaban las once herramientas — cada una trae su propio <style> (y el
-     generador de contratos, además, `app.css` con 36 KB) que en el CSS van
-     DESPUÉS y por tanto ganan a igualdad de especificidad. Se desplegó así y el
-     owner lo dijo en una línea: «no veo ninguna diferencia con la versión live».
-     Sin `?v3=1` sigue sin hacer nada: el CSS entero vive bajo `html.v3`. -->
-<link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
-<link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
-<!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
-     aritmética compartida y los nombres de tipo de contrato. Sin ellas el
-     cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
-     tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
-     tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/vocabulario.js?v=8fd0155d"></script>
-<script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
-<script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
-<script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 </head>
 <body>
 
@@ -231,70 +286,68 @@
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.</p>
     <form id="fLogin">
       <input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com">
-      <button class="sui-btn primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
+      <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
       <input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com">
       <input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••">
-      <button class="sui-btn primario" type="submit" data-t="pass_btn">Entrar</button>
+      <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
     <div id="avisoLogin" class="aviso"></div>
-    <p class="sui-nota" style="margin-top:var(--e4);text-align:center;font-size:12px">
-      <a href="#" id="togglePass" data-t="pass_toggle" style="color:var(--dl)">¿Tienes contraseña? Entra con ella</a>
+    <p style="margin-top:18px;font-size:12px">
+      <a href="#" id="togglePass" class="link-sutil" data-t="pass_toggle">¿Tienes contraseña? Entra con ella</a>
     </p>
-    <p class="sui-nota" style="margin-top:var(--e4);text-align:center;font-size:12px">
+    <p style="margin-top:26px;font-size:12px;color:#8a8570;line-height:1.5">
+      <span data-t="pie">¿Dudas? Escríbenos a</span>
+      <a href="mailto:sales@lawangproperties.com" class="link-sutil">sales@lawangproperties.com</a>
+    </p>
+    <p style="margin-top:14px;font-size:12px">
       <span data-t="team_intro">¿Eres del equipo?</span>
-      <a href="/entrar/" style="color:var(--dl)" data-t="team_link">Entra aquí</a>
+      <a href="/entrar/" class="link-sutil" data-t="team_link">Entra aquí</a>
     </p>
   </div>
 </div>
 
 <!-- ── aplicación ────────────────────────────────────────────────────── -->
-<div id="vApp" hidden>
-  <div class="topbar lw-topbar">
-    <img class="lw-brand" src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang"
-         onerror="this.remove()">
-    <h1 class="lw-title" data-t="area">Área de clientes</h1>
-    <div class="lw-spacer"></div>
-    <span class="lw-who" id="who"></span>
-    <button type="button" class="lw-btn" id="btnPass" data-t="cambiar_pass_btn">Contraseña</button>
-    <button type="button" class="lw-btn" id="btnLang">EN</button>
-    <button type="button" class="lw-btn" id="btnSalir" data-t="salir">Salir</button>
+<div id="vApp" class="app" hidden>
+  <div id="overlaySidebar" class="overlay-sidebar" hidden></div>
+
+  <div id="sidebar" class="sidebar">
+    <div class="cab">
+      <img src="/contracts/assets/brand/lawang-logo-v3-dark.png" alt="Lawang" onerror="this.remove()">
+      <button type="button" id="btnCerrarSidebar" hidden>✕</button>
+    </div>
+    <div class="rot" data-t="area">Área de clientes</div>
+    <div id="nav"></div>
+    <div class="pie">
+      <div class="avatar" id="avatarIniciales"></div>
+      <div class="quien">
+        <div class="nombre" id="quienNombre"></div>
+        <a href="#" id="btnSalir" data-t="salir">Salir</a>
+      </div>
+    </div>
   </div>
 
-  <div class="sui-stage">
-    <div class="sui-centro">
-      <div class="lede">
-        <h1 id="saludo"></h1>
-        <p data-t="saludo_sub">Estado de tu operación con Lawang Estate</p>
+  <div class="main">
+    <div class="topbar2">
+      <button type="button" class="hamb" id="btnAbrirSidebar" hidden>☰</button>
+      <h1 id="tituloSeccion"></h1>
+      <button type="button" class="lw-btn" id="btnLang" style="border:1px solid rgba(138,132,116,.4);border-radius:999px;background:none;padding:6px 12px;cursor:pointer;font-size:12px">EN</button>
+      <div class="campana">
+        <button type="button" id="btnNotif">🔔<span class="n" id="notifN" hidden></span></button>
+        <div id="notifDrop" class="notif-drop" hidden></div>
       </div>
-
-      <div class="sui-resumen" id="resumen"></div>
-      <div class="sui-filtros" id="chips"></div>
-
-      <!-- Las cuatro APILADAS desde el 6-ago-2026 (antes se enseñaba una y se
-           ocultaban tres). El comprador entra a leer «cómo va lo mío» y eso se
-           responde de una pasada: su contrato, lo que ha pagado, la obra y sus
-           documentos. Cambiar de pestaña para reconstruir esa respuesta era
-           trabajo que le tocaba a él.
-           Las RUTAS se conservan enteras: el hash ya no cambia de vista, ahora
-           DESPLAZA hasta la sección. `#/intranet/facturas/INV00001` sigue abriendo ese
-           documento, que es lo que llevan los correos ya enviados. -->
-      <section id="secContratos"></section>
-      <section id="secFacturas"></section>
-      <section id="secObra"></section>
-      <section id="secDocumentos"></section>
-
-      <p class="sui-nota" style="margin-top:var(--e6);text-align:center">
-        <span data-t="pie">¿Dudas? Escríbenos a</span>
-        <a href="mailto:sales@lawangproperties.com" style="color:var(--dl)">sales@lawangproperties.com</a>
-      </p>
     </div>
+
+    <div id="content" class="content"></div>
   </div>
 </div>
 
-<div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2E3437;color:#fff;padding:11px 20px;border-radius:999px;font-size:13px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none"></div>
+<div id="drawerVelo" class="drawer-velo" hidden></div>
+<div id="drawer" class="drawer" hidden></div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 (function(){
@@ -303,116 +356,143 @@
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS y la RPC
   var sb = supabase.createClient(URL_SB, KEY_SB);
 
+  var esc = function(v){ return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
+
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg; el.style.opacity = '1';
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ el.style.opacity = '0'; }, 3200);
+  }
+
   /* ── idioma ───────────────────────────────────────────────────────── */
   var T = {
-    es:{ login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.',
+    es:{ area:'Área de clientes',
+         login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.',
          login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (mira también en spam).',
          sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com y te lo abrimos.',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
          login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
          pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
-         pass_mal:'Correo o contraseña incorrectos.',
-         cambiar_pass_btn:'Contraseña', cambiar_pass_nueva:'Nueva contraseña (mínimo 10 caracteres)',
-         cambiar_pass_repite:'Repite la contraseña',
-         cambiar_pass_nota:'La usarás junto a tu correo la próxima vez que entres — el enlace por email sigue funcionando igual.',
-         cambiar_pass_corta:'Mínimo 10 caracteres.', cambiar_pass_no_coincide:'Las dos contraseñas no coinciden.',
-         cambiar_pass_error:'No se pudo guardar', cambiar_pass_ok:'Contraseña actualizada.', guardar:'Guardar',
-         area:'Área de clientes', salir:'Salir', saludo_sub:'Estado de tu operación con Lawang Estate',
-         c_contratos:'Contratos', c_facturas:'Facturas', c_obra:'Obra', c_documentos:'Documentos',
-         d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
-         d_entregado_nota:'Son los documentos que aportaste para tu expediente. Si alguno está a punto de caducar, escríbenos y lo actualizamos.',
-         doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS',
-         caduca:'caduca el',
-         sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
-         err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
-         firmado:'Firmado', pendiente_firma:'Pendiente de firma',
+         pass_mal:'Correo o contraseña incorrectos.', pie:'¿Dudas? Escríbenos a',
+         team_intro:'¿Eres del equipo?', team_link:'Entra aquí', salir:'Salir',
+         nav_inicio:'Inicio', nav_contratos:'Contratos', nav_facturas:'Facturas', nav_obra:'Obra',
+         nav_documentos:'Documentos', nav_soporte:'Soporte', nav_mensajes:'Mensajes', nav_perfil:'Mi perfil',
+         tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
+         tit_documentos:'Documentos', tit_soporte:'Soporte', tit_mensajes:'Mensajes', tit_perfil:'Mi perfil',
+         hola:'Hola', saludo_sub:'Estado de tu operación con Lawang Estate',
+         r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
+         proximo_pago:'Próximo pago', sin_proximo:'No tienes pagos pendientes ahora mismo.',
+         ver_plan:'Ver plan de pagos', novedades:'Últimas novedades',
+         acc_documentos:'Documentos', acc_documentos_sub:'Dossier, planos y KYC',
+         acc_soporte:'Soporte', acc_soporte_sub:'Abre o revisa un ticket',
+         acc_mensajes:'Mensajes', acc_mensajes_sub:'Escribe a tu gestora',
          precio:'Precio', unidad:'Unidad', fecha_firma:'Fecha de firma', cobrado:'Pagado hasta hoy',
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
-         descargar:'Descargar contrato firmado', ver_contrato:'Ver contrato firmado',
+         firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
+         f_numero:'Nº', f_tipo:'Tipo', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
          factura:'Factura', recibi:'Recibo', proforma:'Proforma',
-         f_numero:'Nº', f_tipo:'Tipo', f_fecha:'Fecha', f_total:'Importe', total:'Total',
-         f_cliente:'Cliente', f_proyecto:'Proyecto', f_concepto:'Concepto', f_importe:'Importe',
-         f_subtotal:'Subtotal', f_banco:'Forma de pago',
-         r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
          sin_facturas_t:'Aún no hay documentos', sin_facturas:'Cuando emitamos una factura o un recibo aparecerá aquí, listo para descargar.',
          sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
-         entrega_est:'Entrega estimada', actualizado:'Última actualización', pie:'¿Dudas? Escríbenos a',
-         team_intro:'¿Eres del equipo?', team_link:'Entra aquí',
-         err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.' },
-    en:{ login_intro:'Enter the email you purchased with. We will send you a sign-in link.',
+         entrega_est:'Entrega estimada', actualizado:'Última actualización',
+         d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
+         d_entregado_nota:'Son los documentos que aportaste para tu expediente. Si alguno está a punto de caducar, escríbenos y lo actualizamos.',
+         doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'caduca el',
+         sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
+         err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
+         nuevo_ticket:'Nuevo ticket', asunto:'Asunto', categoria:'Categoría', mensaje:'Mensaje',
+         enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
+         sin_tickets_t:'Aún no has abierto ningún ticket', sin_tickets:'Cuando tengas una duda sobre pagos, documentación u obra, abre un ticket y te responderemos aquí.',
+         responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
+         sin_mensajes:'Escríbele a tu gestora cuando quieras — te responderá aquí.',
+         datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
+         seguridad:'Seguridad', cambiar_pass_btn:'Cambiar contraseña',
+         cambiar_pass_nueva:'Nueva contraseña (mínimo 10 caracteres)', cambiar_pass_repite:'Repite la contraseña',
+         cambiar_pass_nota:'La usarás junto a tu correo la próxima vez que entres — el enlace por email sigue funcionando igual.',
+         cambiar_pass_corta:'Mínimo 10 caracteres.', cambiar_pass_no_coincide:'Las contraseñas no coinciden.',
+         cambiar_pass_error:'No se pudo guardar', cambiar_pass_ok:'Contraseña actualizada.', guardar:'Guardar',
+         prefs:'Preferencias de notificación', pref_email:'Avisos por correo', pref_sms:'Avisos por SMS',
+         err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.',
+         no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.' },
+    en:{ area:'Client area',
+         login_intro:'Enter the email you purchased with. We will send you a sign-in link.',
          login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
          sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com and we will open it.',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
          login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
          pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
-         pass_mal:'Wrong email or password.',
-         cambiar_pass_btn:'Password', cambiar_pass_nueva:'New password (10 characters minimum)',
-         cambiar_pass_repite:'Repeat password',
-         cambiar_pass_nota:'You will use it together with your email next time you sign in — the email link keeps working too.',
-         cambiar_pass_corta:'At least 10 characters.', cambiar_pass_no_coincide:'The two passwords don’t match.',
-         cambiar_pass_error:'Could not save', cambiar_pass_ok:'Password updated.', guardar:'Save',
-         area:'Client area', salir:'Sign out', saludo_sub:'Status of your operation with Lawang Estate',
-         c_contratos:'Contracts', c_facturas:'Invoices', c_obra:'Construction', c_documentos:'Documents',
-         d_promocion:'Your development’s documents', d_entregado:'What you gave us',
-         d_entregado_nota:'These are the documents you provided for your file. If any is about to expire, write to us and we will update it.',
-         doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS',
-         caduca:'expires',
-         sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
-         err_fichero:'We could not open the document. Please try again in a moment.',
-         firmado:'Signed', pendiente_firma:'Awaiting signature',
+         pass_mal:'Wrong email or password.', pie:'Questions? Write to',
+         team_intro:'On the team?', team_link:'Sign in here', salir:'Sign out',
+         nav_inicio:'Home', nav_contratos:'Contracts', nav_facturas:'Invoices', nav_obra:'Construction',
+         nav_documentos:'Documents', nav_soporte:'Support', nav_mensajes:'Messages', nav_perfil:'My profile',
+         tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
+         tit_documentos:'Documents', tit_soporte:'Support', tit_mensajes:'Messages', tit_perfil:'My profile',
+         hola:'Hello', saludo_sub:'Status of your operation with Lawang Estate',
+         r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
+         proximo_pago:'Next payment', sin_proximo:'You have no pending payments right now.',
+         ver_plan:'View payment plan', novedades:'Latest updates',
+         acc_documentos:'Documents', acc_documentos_sub:'Brochure, plans and KYC',
+         acc_soporte:'Support', acc_soporte_sub:'Open or check a ticket',
+         acc_mensajes:'Messages', acc_mensajes_sub:'Write to your account manager',
          precio:'Price', unidad:'Unit', fecha_firma:'Signing date', cobrado:'Paid to date',
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
-         descargar:'Download signed contract', ver_contrato:'View signed contract',
+         firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
          imprimir:'Print or save as PDF', cerrar:'Close',
+         f_numero:'No.', f_tipo:'Type', f_fecha:'Date', f_total:'Amount', ir:'View →',
          factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
-         f_numero:'No.', f_tipo:'Type', f_fecha:'Date', f_total:'Amount', total:'Total',
-         f_cliente:'Client', f_proyecto:'Project', f_concepto:'Description', f_importe:'Amount',
-         f_subtotal:'Subtotal', f_banco:'Payment details',
-         r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
          sin_facturas_t:'No documents yet', sin_facturas:'Once we issue an invoice or a receipt it will show up here, ready to download.',
          sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
-         entrega_est:'Estimated handover', actualizado:'Last update', pie:'Questions? Write to',
-         team_intro:'On the team?', team_link:'Sign in here',
-         err_carga:'We could not load your information. Reload the page or try again later.' }
+         entrega_est:'Estimated handover', actualizado:'Last update',
+         d_promocion:'Your development’s documents', d_entregado:'What you gave us',
+         d_entregado_nota:'These are the documents you provided for your file. If any is about to expire, write to us and we will update it.',
+         doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'expires',
+         sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
+         err_fichero:'We could not open the document. Please try again in a moment.',
+         nuevo_ticket:'New ticket', asunto:'Subject', categoria:'Category', mensaje:'Message',
+         enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
+         sin_tickets_t:'You haven’t opened any tickets yet', sin_tickets:'When you have a question about payments, documents or construction, open a ticket and we will reply here.',
+         responder:'Reply…', tu:'You', equipo:'Lawang team',
+         sin_mensajes:'Write to your account manager any time — they will reply here.',
+         datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
+         seguridad:'Security', cambiar_pass_btn:'Change password',
+         cambiar_pass_nueva:'New password (10 characters minimum)', cambiar_pass_repite:'Repeat password',
+         cambiar_pass_nota:'You will use it together with your email next time you sign in — the email link keeps working too.',
+         cambiar_pass_corta:'At least 10 characters.', cambiar_pass_no_coincide:'The two passwords don’t match.',
+         cambiar_pass_error:'Could not save', cambiar_pass_ok:'Password updated.', guardar:'Save',
+         prefs:'Notification preferences', pref_email:'Email alerts', pref_sms:'SMS alerts',
+         err_carga:'We could not load your information. Reload the page or try again later.',
+         no_ficha:'Your access is not linked to a record yet. Write to us and we will check it.' }
   };
   var LANG = localStorage.getItem('lw_portal_lang') ||
              ((navigator.language || 'es').slice(0,2) === 'es' ? 'es' : 'en');
   function t(k){ return (T[LANG] && T[LANG][k]) || T.es[k] || k; }
-  function aplicaLang(){
+  function aplicaLangEstatico(){
     document.documentElement.lang = LANG;
     document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent = t(el.getAttribute('data-t')); });
     document.getElementById('btnLang').textContent = LANG === 'es' ? 'EN' : 'ES';
   }
+  aplicaLangEstatico();
 
   /* ── utilidades ───────────────────────────────────────────────────── */
-  // Importes tal y como los teclea el equipo: "69.000", "5000", "20.000,50".
   function num(v){
     if (v == null || v === '') return NaN;
     if (typeof v === 'number') return v;
     var s = String(v).replace(/\s/g,'').replace(/\./g,'').replace(',','.');
     var n = parseFloat(s); return isNaN(n) ? NaN : n;
   }
-  /* NO usa `lwFormatoImporte` (assets/dinero.js), y es deliberado — 17-ago-2026.
-     Las otras tres formas de imprimir dinero de la suite se unificaron ahí porque
-     divergían sin querer; esta divergencia es de diseño y no se toca:
-       · va con SÍMBOLO (`style:'currency'`) y sin decimales, porque es el plan de
-         pagos que lee el COMPRADOR, no una columna de contabilidad;
-       · cambia de locale con el idioma de la página (es-ES / en-GB), que es algo
-         que solo esta pantalla hace.
-     Si algún día el portal necesita el formato interno, se llama a la común; lo
-     que no vale es volver a escribir una cuarta a mano. */
+  // Deliberadamente NO usa `lwFormatoImporte` — la misma divergencia de
+  // diseño que ya llevaba esta página (con símbolo, sin decimales, locale
+  // según el idioma de la página): es el plan de pagos que lee el
+  // COMPRADOR, no una columna de contabilidad.
   function dinero(n, moneda){
     if (n == null || isNaN(n)) return '—';
-    // `useGrouping:'always'` porque el español no agrupa los números de cuatro
-    // cifras: en el plan de pagos salía «5000 €» encima de «20.000 €».
     try { return new Intl.NumberFormat(LANG === 'es' ? 'es-ES' : 'en-GB',
-            { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0,
-              useGrouping:'always' }).format(n); }
+            { style:'currency', currency:(moneda || 'EUR'), maximumFractionDigits:0, useGrouping:'always' }).format(n); }
     catch(e){ return n.toLocaleString() + ' ' + (moneda || ''); }
   }
   function fecha(f){
@@ -420,254 +500,14 @@
     var d = new Date(f); if (isNaN(d)) return esc(f);
     return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'numeric', month:'short', year:'numeric' });
   }
-
-  var DATOS = null;
-  function muestra(vista){
-    ['vCarga','vLogin','vApp'].forEach(function(id){ document.getElementById(id).hidden = (id !== vista); });
-  }
-  aplicaLang();
-
-  /* ── RUTAS: la URL dice siempre dónde estás ─────────────────────────
-     Rutas: #/contratos · #/facturas · #/obra · #/intranet/facturas/INV00001
-     Una sola palabra por sección: la primera versión leía `#/factura/NUM` en
-     singular y escribía `#/intranet/facturas/NUM` en plural, así que el enlace a un
-     documento cambiaba la URL y no abría nada. El `#` pelado del enlace del
-     correo se sustituye por la ruta limpia en cuanto supabase-js lo consume. */
-  var SECCIONES = ['contratos','facturas','obra','documentos'];
-  var RUTA = { sec:'contratos', doc:null };
-
-  function leeHash(){
-    var partes = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
-    if (SECCIONES.indexOf(partes[0]) !== -1)
-      return { sec:partes[0], doc:partes[1] ? decodeURIComponent(partes[1]) : null };
-    return { sec:'contratos', doc:null };
-  }
-  function vasA(sec, doc, reemplaza){
-    var url = '#/' + sec + (doc ? '/' + encodeURIComponent(doc) : '');
-    if (reemplaza){ history.replaceState(null, '', url); aplicaRuta(); }
-    else location.hash = url;
-  }
-  var SEC_ID = { contratos:'secContratos', facturas:'secFacturas', obra:'secObra', documentos:'secDocumentos' };
-
-  /* Con las secciones apiladas, «ir a una sección» es DESPLAZARSE hasta ella.
-     `PROGRAMADO` existe porque durante un desplazamiento suave el vigía de abajo
-     va viendo pasar secciones intermedias: sin la bandera reescribiría el hash
-     tres veces de camino y la última ganaría, dejando la URL en una sección por la
-     que solo se pasó. Se apaga con `scrollend` donde existe y con un plazo donde
-     no (Safari todavía no lo trae). */
-  var PROGRAMADO = false, _tProg = null;
-  function desplazaA(sec){
-    var el = document.getElementById(SEC_ID[sec] || '');
-    if (!el) return;
-    PROGRAMADO = true;
-    clearTimeout(_tProg);
-    _tProg = setTimeout(function(){ PROGRAMADO = false; }, 900);
-    el.scrollIntoView({ behavior:'smooth', block:'start' });
-  }
-  (function(){
-    var caja = document.querySelector('.sui-stage');
-    if (caja && 'onscrollend' in window)
-      caja.addEventListener('scrollend', function(){ PROGRAMADO = false; clearTimeout(_tProg); });
-  })();
-
-  function aplicaRuta(){
-    RUTA = leeHash();
-    document.querySelectorAll('#chips .sui-chip').forEach(function(b){
-      b.classList.toggle('on', b.dataset.sec === RUTA.sec);
-    });
-    desplazaA(RUTA.sec);
-    var docAbierto = suiCajonAbierto() ? document.getElementById('suiCajon').dataset.doc : null;
-    if (RUTA.doc){
-      if (docAbierto !== RUTA.doc){
-        if (RUTA.sec === 'contratos'){
-          var c = (DATOS && DATOS.contratos || []).filter(function(x){ return x.numero === RUTA.doc; })[0];
-          if (c) abreContrato(c); else vasA(RUTA.sec, null, true);
-        } else {
-          var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === RUTA.doc; })[0];
-          if (f) abreFactura(f); else vasA(RUTA.sec, null, true);
-        }
-      }
-    } else if (docAbierto) suiCerrarCajon();
-  }
-  window.addEventListener('hashchange', aplicaRuta);
-
-  /* ── VIGÍA: qué sección se está leyendo ──────────────────────────────────
-     Marca el chip Y actualiza la URL, con `replaceState` — así el enlace que se
-     copia sigue diciendo dónde estás, que es la norma del estudio, sin llenar el
-     historial de pasos por los que solo se pasó desplazándose.
-     Se calla en dos casos, y los dos importan:
-     · durante un desplazamiento programado (ver `PROGRAMADO`);
-     · con un documento abierto — si no, desplazarse con el cajón abierto
-       reescribiría `#/intranet/facturas/INV00001` como `#/obra` y el enlace del correo
-       dejaría de apuntar a ese documento.
-     `rootMargin` con un -45% arriba: la sección «activa» es la que ocupa el
-     tercio superior de la pantalla, no la que asoma por abajo. */
-  if (window.IntersectionObserver){
-    var vigia = new IntersectionObserver(function(entradas){
-      if (PROGRAMADO || RUTA.doc) return;
-      var visible = entradas.filter(function(e){ return e.isIntersecting; })
-        .sort(function(a,b){ return b.intersectionRatio - a.intersectionRatio; })[0];
-      if (!visible) return;
-      var sec = Object.keys(SEC_ID).filter(function(k){ return SEC_ID[k] === visible.target.id; })[0];
-      if (!sec || sec === RUTA.sec) return;
-      RUTA = { sec:sec, doc:null };
-      document.querySelectorAll('#chips .sui-chip').forEach(function(b){
-        b.classList.toggle('on', b.dataset.sec === sec);
-      });
-      try{ history.replaceState(null, '', '#/' + sec); }catch(_){}
-    /* `root` es `.sui-stage` y NO la ventana: en esta pagina el que desplaza es
-       ese contenedor (`height:100%; overflow:auto` de suite.css), asi que un
-       `rootMargin` medido contra el viewport no habria coincidido con nada. */
-    }, { root:document.querySelector('.sui-stage'),
-         rootMargin:'-45% 0px -45% 0px', threshold:[0, .01, .5] });
-    Object.keys(SEC_ID).forEach(function(k){
-      var el = document.getElementById(SEC_ID[k]);
-      if (el) vigia.observe(el);
-    });
+  function fechaHora(f){
+    if (!f) return '';
+    var d = new Date(f); if (isNaN(d)) return esc(f);
+    return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day:'2-digit', month:'short' }) + ' · ' +
+           d.toLocaleTimeString(LANG === 'es' ? 'es-ES' : 'en-GB', { hour:'2-digit', minute:'2-digit' });
   }
 
-  /* ── arranque ─────────────────────────────────────────────────────── */
-  sb.auth.getSession().then(function(r){
-    var ses = r && r.data && r.data.session;
-    if (!ses){ muestra('vLogin'); return; }
-    if (!((ses.user && ses.user.app_metadata) || {}).portal){ location.replace('/intranet/'); return; }
-    document.getElementById('who').textContent = ses.user.email || '';
-    cargar();
-  }).catch(function(){ muestra('vLogin'); });
-
-  sb.auth.onAuthStateChange(function(ev, ses){
-    if (ev === 'SIGNED_IN' && ses && (ses.user.app_metadata || {}).portal &&
-        document.getElementById('vApp').hidden){
-      document.getElementById('who').textContent = ses.user.email || '';
-      cargar();
-    }
-  });
-
-  /* ── entrada ──────────────────────────────────────────────────────── */
-  document.getElementById('fLogin').addEventListener('submit', function(e){
-    e.preventDefault();
-    var email = document.getElementById('inEmail').value.trim().toLowerCase();
-    var aviso = document.getElementById('avisoLogin');
-    aviso.className = 'aviso'; aviso.textContent = '…';
-    sb.auth.signInWithOtp({
-      email: email,
-      options: { shouldCreateUser:false, emailRedirectTo: location.origin + '/portal/' }
-    }).then(function(r){
-      aviso.className = 'aviso ' + (r.error ? 'mal' : 'bien');
-      /* Un error 5xx es SUPABASE fallando al enviar el correo (SMTP roto,
-         ver LAW-1 en contexto/pendientes.md) — no que el email no tenga
-         acceso. Antes de esto los dos casos mostraban el mismo texto y un
-         comprador real leía «este correo no tiene acceso al portal», que es
-         mentira: sí tiene acceso, es el envío el que falló. */
-      aviso.textContent = !r.error ? t('enviado')
-        : (r.error.status >= 500 ? t('error_envio') : t('sin_acceso'));
-    });
-  });
-
-  /* ── entrada con contraseña (alternativa al enlace, 7-ago) ──────────── */
-  document.getElementById('togglePass').addEventListener('click', function(e){
-    e.preventDefault();
-    var modo = document.getElementById('fLoginPass').hidden;   // pasa a modo contraseña si estaba oculto
-    document.getElementById('fLogin').hidden = modo;
-    document.getElementById('loginIntroEnlace').hidden = modo;
-    document.getElementById('fLoginPass').hidden = !modo;
-    document.getElementById('loginIntroPass').hidden = !modo;
-    document.getElementById('togglePass').textContent = t(modo ? 'pass_toggle_back' : 'pass_toggle');
-    var aviso = document.getElementById('avisoLogin');
-    aviso.className = 'aviso'; aviso.textContent = '';
-  });
-  document.getElementById('fLoginPass').addEventListener('submit', function(e){
-    e.preventDefault();
-    var email = document.getElementById('inEmailPass').value.trim().toLowerCase();
-    var password = document.getElementById('inPass').value;
-    var aviso = document.getElementById('avisoLogin');
-    aviso.className = 'aviso'; aviso.textContent = '…';
-    sb.auth.signInWithPassword({ email: email, password: password }).then(function(r){
-      // sin error: onAuthStateChange (arriba) ya dispara cargar() al ver SIGNED_IN
-      if (!r.error){ aviso.className = 'aviso'; aviso.textContent = ''; return; }
-      aviso.className = 'aviso mal'; aviso.textContent = t('pass_mal');
-    });
-  });
-
-  /* ── cambiar contraseña, ya dentro del portal ────────────────────────
-     `updateUser` actualiza la cuenta de la sesión activa — no hace falta
-     pasar por la Edge Function (esa es solo para que un ADMIN se la ponga
-     a otra persona). El enlace por email sigue funcionando igual después. */
-  function abrirCambiarPass(){
-    suiAbrirCajon({
-      titulo: t('cambiar_pass_btn'),
-      sub: '',
-      cuerpo:
-        '<div class="row"><div><label for="cpNueva">' + esc(t('cambiar_pass_nueva')) + '</label>' +
-        '<input type="password" id="cpNueva" autocomplete="new-password"></div></div>' +
-        '<div class="row" style="margin-top:10px"><div><label for="cpRepite">' + esc(t('cambiar_pass_repite')) + '</label>' +
-        '<input type="password" id="cpRepite" autocomplete="new-password"></div></div>' +
-        '<p class="sui-nota" style="margin-top:10px">' + esc(t('cambiar_pass_nota')) + '</p>' +
-        '<div id="cpAviso" class="aviso" style="margin-top:8px"></div>',
-      pie:
-        '<button type="button" class="sui-btn primario" id="btnCpGuardar">' + esc(t('guardar')) + '</button>' +
-        '<button type="button" class="sui-btn" id="btnCpCerrar">' + esc(t('cerrar')) + '</button>',
-      onCerrar: function(){},
-    });
-    document.getElementById('btnCpCerrar').addEventListener('click', suiCerrarCajon);
-    document.getElementById('btnCpGuardar').addEventListener('click', function(){
-      var p1 = document.getElementById('cpNueva').value;
-      var p2 = document.getElementById('cpRepite').value;
-      var aviso = document.getElementById('cpAviso');
-      if (p1.length < 10){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_corta'); return; }
-      if (p1 !== p2){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_no_coincide'); return; }
-      var btn = document.getElementById('btnCpGuardar'); btn.disabled = true;
-      sb.auth.updateUser({ password: p1 }).then(function(r){
-        btn.disabled = false;
-        if (r.error){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_error') + ': ' + r.error.message; return; }
-        aviso.className = 'aviso bien'; aviso.textContent = t('cambiar_pass_ok');
-        setTimeout(suiCerrarCajon, 1200);
-      });
-    });
-  }
-  document.getElementById('btnPass').addEventListener('click', abrirCambiarPass);
-
-  document.getElementById('btnSalir').addEventListener('click', function(){
-    sb.auth.signOut().then(function(){ location.replace('/portal/'); });
-  });
-  document.getElementById('btnLang').addEventListener('click', function(){
-    LANG = LANG === 'es' ? 'en' : 'es';
-    localStorage.setItem('lw_portal_lang', LANG);
-    aplicaLang(); if (DATOS){ suiCerrarCajon(); pinta(); }
-  });
-
-  /* ── datos ────────────────────────────────────────────────────────── */
-  function cargar(){
-    muestra('vCarga');
-    /* Las cuentas de cobro ya no viven en entities.js (6-ago-2026: ese fichero
-       se sirve sin login y está en el repo público). Se cargan de la base, donde
-       la RLS las abre a `authenticated` — el comprador lo es, y las necesita:
-       son los datos con los que paga, y documentoHTML() los imprime en SU
-       factura. Si fallan, la factura se enseña igual pero sin el bloque
-       bancario, así que se dice en voz alta en vez de dejar un hueco mudo. */
-    cargarCuentasBancarias(sb).catch(function(e){
-      console.warn('cuentas de cobro no disponibles:', e && e.message);
-    }).then(function(){
-    sb.rpc('portal_situacion').then(function(r){
-      if (r.error){
-        muestra('vLogin');
-        var aviso = document.getElementById('avisoLogin');
-        aviso.className = 'aviso mal'; aviso.textContent = t('err_carga');
-        return;
-      }
-      DATOS = r.data || {};
-      muestra('vApp');
-      pinta();
-      var r0 = leeHash();
-      vasA(r0.sec, r0.doc, true);   // ruta limpia y legible desde el primer momento
-    });
-    });   // cierra el then() de cargarCuentasBancarias
-  }
-
-  /* ── reparto de cobro entre hitos ───────────────────────────────────
-     "Pagado" = las facturas y recibos no anulados cubren el acumulado del
-     hito, el MISMO criterio que usan las herramientas internas. El reparto
-     es secuencial: lo cobrado va tapando hitos por orden. */
+  /* ── reparto de cobro entre hitos — igual que antes de este rediseño ── */
   function estadosHitos(hitos, cobrado, precio){
     var resto = cobrado || 0;
     return (hitos || []).map(function(h){
@@ -681,291 +521,656 @@
       return { hito:h, monto:m, estado:est };
     });
   }
-  var TAG = { pagado:'ok', parcial:'espera', pendiente:'gris' };
+  var TAGCOLOR = { pagado:['rgba(63,82,48,.12)','var(--ok)'], parcial:['rgba(143,155,122,.25)','var(--tg)'],
+                   pendiente:['rgba(190,179,165,.4)','var(--va)'] };
 
-  /* ── pintado ──────────────────────────────────────────────────────── */
-  function pinta(){
-    var d = DATOS;
-    var nombre = d.nombre ? String(d.nombre).trim().split(/\s+/)[0] : '';
-    document.getElementById('saludo').textContent = (LANG === 'es' ? 'Hola' : 'Hello') + (nombre ? ', ' + nombre : '');
+  var DATOS = null;
+  var ESTADO = { screen:'carga', loginMode:'link', loginSent:false,
+    section:'inicio', sidebarOpen:false, notifOpen:false, drawer:null,
+    ticketForm:{ asunto:'', categoria:'Pagos', mensaje:'' }, newTicketOpen:false, chatDraft:'', ticketReply:'' };
 
-    /* resumen y filtros: los componentes de la suite, no unos propios */
-    var tot = 0, cob = 0;
-    (d.contratos||[]).forEach(function(c){
-      var p = (c.precio != null) ? Number(c.precio) : num(c.precio_txt);
-      if (!isNaN(p)) tot += p;
-      cob += Number(c.cobrado) || 0;
-    });
-    var mon = ((d.contratos||[])[0] || {}).moneda || 'EUR';
-    var res = document.getElementById('resumen');
-    res.hidden = !(tot > 0);
-    if (tot > 0) res.innerHTML =
-      t('r_inversion') + ' <b>' + esc(dinero(tot, mon)) + '</b>' +
-      '<span>' + t('r_pagado') + ' <b>' + esc(dinero(cob, mon)) + '</b></span>' +
-      '<span>' + t('r_pendiente') + ' <b>' + esc(dinero(Math.max(0, tot - cob), mon)) + '</b></span>';
-
-    var cuentas = { contratos:(d.contratos||[]).length, facturas:(d.facturas||[]).length,
-                    obra:(d.obra||[]).length,
-                    documentos:(d.documentos||[]).length + (d.kyc||[]).length };
-    document.getElementById('chips').innerHTML = SECCIONES.map(function(s){
-      return '<button type="button" class="sui-chip' + (cuentas[s] ? '' : ' vacio') + '" data-sec="' + s + '">' +
-             esc(t('c_' + s)) + '<span class="n">' + cuentas[s] + '</span></button>';
-    }).join('');
-
-    /* contratos */
-    var cont = document.getElementById('secContratos');
-    if (!(d.contratos||[]).length){
-      cont.innerHTML = nada(t('sin_contratos_t'), t('sin_contratos'));
-    } else {
-      cont.innerHTML = d.contratos.map(function(c){
-        var precio = (c.precio != null) ? Number(c.precio) : num(c.precio_txt);
-        var cobrado = Number(c.cobrado) || 0;
-        var pct = (precio > 0) ? Math.min(100, Math.round(cobrado / precio * 100)) : null;
-        var hs = estadosHitos(c.hitos, cobrado, precio);
-        return '<div class="op">' +
-          '<div class="op-cab"><h2>' + esc(c.numero) + '</h2>' +
-            '<span class="sub">' + esc(c.proyecto || '') +
-              (c.parcela ? ' · ' + esc(t('unidad')) + ' ' + esc(c.parcela) : '') + '</span>' +
-            '<span class="sui-tag ' + (c.firmado ? 'ok' : 'espera') + '">' +
-              esc(c.firmado ? t('firmado') : t('pendiente_firma')) + '</span></div>' +
-          '<dl class="sui-dl">' +
-            '<dt>' + esc(t('precio')) + '</dt><dd>' + (precio ? esc(dinero(precio, c.moneda)) : esc(c.precio_txt || '—')) + '</dd>' +
-            (c.fecha_firma ? '<dt>' + esc(t('fecha_firma')) + '</dt><dd>' + esc(fecha(c.fecha_firma)) + '</dd>' : '') +
-            '<dt>' + esc(t('cobrado')) + '</dt><dd>' + esc(dinero(cobrado, c.moneda)) + '</dd>' +
-          '</dl>' +
-          (precio > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
-            '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(precio, c.moneda)) + '</span>' +
-            '<span>' + esc(dinero(Math.max(0, precio - cobrado), c.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '') +
-          (hs.length ? '<div class="sui-bloque" style="margin-top:var(--e4)"><h3>' + esc(t('plan_pagos')) + '</h3>' +
-            '<table class="sui-tabla"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
-            '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
-            hs.map(function(x){
-              var descr = x.hito[LANG] || x.hito.es || x.hito.en || '';
-              return '<tr style="cursor:default"><td>' + esc(descr || '—') + '</td>' +
-                '<td class="flojo">' + esc(x.hito.timing || '') + '</td>' +
-                '<td class="num">' + (isNaN(x.monto) ? '—' : esc(dinero(x.monto, c.moneda))) + '</td>' +
-                '<td><span class="sui-tag ' + TAG[x.estado] + '">' + esc(t(x.estado)) + '</span></td></tr>';
-            }).join('') + '</tbody></table></div>' : '') +
-          (c.pdf ? '<div class="op-pie"><button type="button" class="sui-btn" data-contrato="' + esc(c.numero) + '">' +
-                   esc(t('ver_contrato')) + '</button></div>' : '') +
-        '</div>';
-      }).join('');
-    }
-
-    /* facturas — tabla de la suite, y el documento en el cajón */
-    var lf = document.getElementById('secFacturas');
-    if (!(d.facturas||[]).length){
-      lf.innerHTML = nada(t('sin_facturas_t'), t('sin_facturas'));
-    } else {
-      lf.innerHTML = '<div class="sui-tabla-caja"><table class="sui-tabla"><thead><tr>' +
-        '<th>' + esc(t('f_numero')) + '</th><th>' + esc(t('f_tipo')) + '</th>' +
-        '<th>' + esc(t('f_fecha')) + '</th><th class="num">' + esc(t('f_total')) + '</th>' +
-        '</tr></thead><tbody>' +
-        d.facturas.map(function(f){
-          return '<tr data-fac="' + esc(f.numero) + '">' +
-            '<td class="clave">' + esc(f.numero) + '</td>' +
-            '<td>' + esc(t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + '</td>' +
-            '<td class="flojo">' + esc(fecha(f.fecha)) + '</td>' +
-            '<td class="num">' + esc(dinero(Number(f.total), f.moneda)) + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-    }
-
-    /* obra */
-    var lo = document.getElementById('secObra');
-    var fases = d.fases || [];
-    if (!(d.obra||[]).length){
-      lo.innerHTML = nada(t('sin_obra_t'), t('sin_obra'));
-    } else {
-      lo.innerHTML = d.obra.map(function(u){
-        var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
-        return '<div class="op">' +
-          '<div class="op-cab"><h2>' + esc(u.unidad) + '</h2>' +
-            '<span class="sub">' + esc(u.proyecto || '') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</span></div>' +
-          (fases.length ? '<div class="fases">' + fases.map(function(f, i){
-            return '<span class="fase ' + (i < idx ? 'hecha' : (i === idx ? 'actual' : '')) + '">' +
-                   esc(f[LANG] || f.es) + '</span>'; }).join('') + '</div>' : '') +
-          '<dl class="sui-dl" style="margin-top:var(--e4)">' +
-            (u.fecha_entrega ? '<dt>' + esc(t('entrega_est')) + '</dt><dd>' + esc(fecha(u.fecha_entrega)) + '</dd>' : '') +
-            (u.actualizado ? '<dt>' + esc(t('actualizado')) + '</dt><dd>' + esc(fecha(u.actualizado)) + '</dd>' : '') +
-          '</dl>' +
-          ((u.fotos||[]).length ? '<div class="fotos">' + u.fotos.map(function(ft){
-            return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo || '') + '">' +
-                   '<figcaption>' + esc(ft.titulo || '') + (ft.fecha ? ' · ' + esc(fecha(ft.fecha)) : '') + '</figcaption></figure>';
-          }).join('') + '</div>' : '') +
-        '</div>';
-      }).join('');
-      cargaFotos();
-    }
-
-    /* documentos: lo compartido por el equipo y lo que él mismo entregó */
-    var ld = document.getElementById('secDocumentos');
-    var docs = d.documentos || [], kyc = d.kyc || [];
-    if (!docs.length && !kyc.length){
-      ld.innerHTML = nada(t('sin_docs_t'), t('sin_docs'));
-    } else {
-      var html = '';
-      if (docs.length) html +=
-        '<div class="sui-bloque" style="margin-bottom:var(--e4)"><h3>' + esc(t('d_promocion')) + '</h3>' +
-        '<table class="sui-tabla" style="min-width:0"><tbody>' + docs.map(function(x){
-          return '<tr data-doc="' + esc(x.id) + '">' +
-            '<td><span class="clave">' + esc(x.titulo) + '</span>' +
-              (x.descripcion ? '<div class="flojo">' + esc(x.descripcion) + '</div>' : '') + '</td>' +
-            '<td class="docrow-cat">' + esc(x.categoria || '') + '</td>' +
-            '<td class="flojo">' + esc(x.proyecto || '') + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-      if (kyc.length) html +=
-        '<div class="sui-bloque"><h3>' + esc(t('d_entregado')) + '</h3>' +
-        '<table class="sui-tabla" style="min-width:0"><tbody>' + kyc.map(function(x){
-          var cad = x.caduca ? new Date(x.caduca) : null;
-          var vencido = cad && cad < new Date();
-          return '<tr data-kyc="' + esc(x.path) + '">' +
-            '<td><span class="clave">' + esc(t('doc_' + x.tipo) === 'doc_' + x.tipo ? x.tipo : t('doc_' + x.tipo)) + '</span></td>' +
-            '<td class="flojo">' + esc(fecha(x.subido)) + '</td>' +
-            '<td' + (vencido ? ' class="caduca-mal"' : ' class="flojo"') + '>' +
-              (x.caduca ? esc(t('caduca') + ' ' + fecha(x.caduca)) : '') + '</td></tr>';
-        }).join('') + '</tbody></table>' +
-        '<p class="sui-nota">' + esc(t('d_entregado_nota')) + '</p></div>';
-      ld.innerHTML = html;
-    }
-
-    aplicaRuta();
+  function muestra(vista){
+    ['vCarga','vLogin','vApp'].forEach(function(id){ document.getElementById(id).hidden = (id !== vista); });
   }
 
-  function nada(titulo, texto){
-    return '<div class="sui-tabla-caja"><div class="sui-nada"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
-  }
-
-  /* ── interacción ──────────────────────────────────────────────────── */
-  document.getElementById('chips').addEventListener('click', function(e){
-    var b = e.target.closest('.sui-chip'); if (!b) return;
-    vasA(b.dataset.sec, null);
-    document.querySelector('.sui-stage').scrollTop = 0;
+  var isMobile = function(){ return window.innerWidth < 880; };
+  window.addEventListener('resize', function(){
+    document.getElementById('btnAbrirSidebar').hidden = !isMobile();
+    document.getElementById('btnCerrarSidebar').hidden = !isMobile();
+    if (!isMobile()) cierraSidebar();
   });
 
+  /* ── RUTAS: #/seccion o #/facturas/NUM (abre el drawer directamente) ── */
+  var SECCIONES = ['inicio','contratos','facturas','obra','documentos','soporte','mensajes','perfil'];
+  function leeHash(){
+    var partes = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
+    if (SECCIONES.indexOf(partes[0]) !== -1)
+      return { sec:partes[0], doc:partes[1] ? decodeURIComponent(partes[1]) : null };
+    return { sec:'inicio', doc:null };
+  }
+  function vasA(sec, doc, reemplaza){
+    var url = '#/' + sec + (doc ? '/' + encodeURIComponent(doc) : '');
+    if (reemplaza) history.replaceState(null, '', url); else location.hash = url;
+  }
+  window.addEventListener('hashchange', function(){ aplicaRuta(true); });
+  function aplicaRuta(desdeHash){
+    var r = leeHash();
+    ESTADO.section = r.sec;
+    if (r.doc){
+      if (r.sec === 'contratos'){
+        var c = (DATOS && DATOS.contratos || []).filter(function(x){ return x.numero === r.doc; })[0];
+        if (c && c.pdf) abreContrato(c); else if (desdeHash) vasA('contratos', null, true);
+      } else if (r.sec === 'facturas'){
+        var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === r.doc; })[0];
+        if (f) abreFactura(f); else if (desdeHash) vasA('facturas', null, true);
+      }
+    }
+    render();
+  }
+
+  /* ── arranque ─────────────────────────────────────────────────────── */
+  sb.auth.getSession().then(function(r){
+    var ses = r && r.data && r.data.session;
+    if (!ses){ muestra('vLogin'); return; }
+    if (!((ses.user && ses.user.app_metadata) || {}).portal){ location.replace('/intranet/'); return; }
+    cargar();
+  }).catch(function(){ muestra('vLogin'); });
+
+  sb.auth.onAuthStateChange(function(ev, ses){
+    if (ev === 'SIGNED_IN' && ses && (ses.user.app_metadata || {}).portal &&
+        document.getElementById('vApp').hidden){
+      cargar();
+    }
+  });
+
+  /* ── entrada por enlace mágico ────────────────────────────────────── */
+  document.getElementById('fLogin').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('inEmail').value.trim().toLowerCase();
+    var aviso = document.getElementById('avisoLogin');
+    aviso.className = 'aviso'; aviso.textContent = '…';
+    sb.auth.signInWithOtp({ email: email, options:{ shouldCreateUser:false, emailRedirectTo: location.origin + '/portal/' } })
+      .then(function(r){
+        aviso.className = 'aviso ' + (r.error ? 'mal' : 'bien');
+        aviso.textContent = !r.error ? t('enviado')
+          : (r.error.status >= 500 ? t('error_envio') : t('sin_acceso'));
+      });
+  });
+
+  /* ── entrada con contraseña ───────────────────────────────────────── */
+  document.getElementById('togglePass').addEventListener('click', function(e){
+    e.preventDefault();
+    var modo = document.getElementById('fLoginPass').hidden;
+    document.getElementById('fLogin').hidden = modo;
+    document.getElementById('loginIntroEnlace').hidden = modo;
+    document.getElementById('fLoginPass').hidden = !modo;
+    document.getElementById('loginIntroPass').hidden = !modo;
+    document.getElementById('togglePass').textContent = t(modo ? 'pass_toggle_back' : 'pass_toggle');
+    var aviso = document.getElementById('avisoLogin'); aviso.className = 'aviso'; aviso.textContent = '';
+  });
+  document.getElementById('fLoginPass').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('inEmailPass').value.trim().toLowerCase();
+    var password = document.getElementById('inPass').value;
+    var aviso = document.getElementById('avisoLogin');
+    aviso.className = 'aviso'; aviso.textContent = '…';
+    sb.auth.signInWithPassword({ email: email, password: password }).then(function(r){
+      if (!r.error){ aviso.className = 'aviso'; aviso.textContent = ''; return; }
+      aviso.className = 'aviso mal'; aviso.textContent = t('pass_mal');
+    });
+  });
+
+  document.getElementById('btnSalir').addEventListener('click', function(e){
+    e.preventDefault();
+    sb.auth.signOut().then(function(){ location.replace('/portal/'); });
+  });
+  document.getElementById('btnLang').addEventListener('click', function(){
+    LANG = LANG === 'es' ? 'en' : 'es';
+    localStorage.setItem('lw_portal_lang', LANG);
+    aplicaLangEstatico();
+    if (DATOS) render();
+  });
+
+  /* ── sidebar móvil ────────────────────────────────────────────────── */
+  function abreSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('overlaySidebar').hidden = false; }
+  function cierraSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlaySidebar').hidden = true; }
+  document.getElementById('btnAbrirSidebar').addEventListener('click', abreSidebar);
+  document.getElementById('btnCerrarSidebar').addEventListener('click', cierraSidebar);
+  document.getElementById('overlaySidebar').addEventListener('click', cierraSidebar);
+
+  /* ── notificaciones (derivadas de datos reales — ver nota en pinta()) ── */
+  document.getElementById('btnNotif').addEventListener('click', function(){
+    ESTADO.notifOpen = !ESTADO.notifOpen;
+    // MUDO A PROPOSITO: si falla, el "visto hasta" no avanza y el badge sigue
+    // contando lo mismo la próxima vez que se abra la campana — no se pierde
+    // nada, ni bloquea nada más de la pantalla.
+    if (ESTADO.notifOpen) sb.rpc('portal_marcar_notificaciones_leidas').then(function(){}).catch(function(){});
+    pintaCampana();
+  });
   document.addEventListener('click', function(e){
-    var bc = e.target.closest('[data-contrato]');
-    if (bc){ vasA('contratos', bc.getAttribute('data-contrato')); return; }
-    var tr = e.target.closest('tr[data-fac]');
-    if (tr){ vasA('facturas', tr.getAttribute('data-fac')); return; }
-
-    /* documentación compartida: enlace externo o fichero del almacén */
-    var fd = e.target.closest('tr[data-doc]');
-    if (fd){
-      var doc = (DATOS.documentos || []).filter(function(x){ return String(x.id) === fd.getAttribute('data-doc'); })[0];
-      if (!doc) return;
-      if (doc.url){ window.open(doc.url, '_blank', 'noopener'); return; }
-      abreFichero('documentacion', doc.path);
-      return;
-    }
-    var fk = e.target.closest('tr[data-kyc]');
-    if (fk){ abreFichero('kyc', fk.getAttribute('data-kyc')); return; }
-
-    var img = e.target.closest('.fotos img');
-    if (img && img.src) ampliaFoto(img.src);
+    if (ESTADO.notifOpen && !e.target.closest('.campana')){ ESTADO.notifOpen = false; pintaCampana(); }
   });
 
-  /* Nunca una URL fija a un fichero privado: se pide una firmada de 10 minutos
-     en el momento de abrirlo (mismo criterio que el KYC de la intranet). */
-  function abreFichero(bucket, path){
-    if (!path) return;
-    sb.storage.from(bucket).createSignedUrl(path, 600).then(function(r){
-      if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank', 'noopener');
-      else toast(t('err_fichero'));
-    });
-  }
-
-  function cargaFotos(){
-    document.querySelectorAll('img[data-foto]').forEach(function(img){
-      var p = img.getAttribute('data-foto'); img.removeAttribute('data-foto');
-      sb.storage.from('obra').createSignedUrl(p, 3600).then(function(r){
-        if (r.data && r.data.signedUrl) img.src = r.data.signedUrl;
+  /* ── carga ────────────────────────────────────────────────────────── */
+  function cargar(){
+    muestra('vCarga');
+    cargarCuentasBancarias(sb).catch(function(e){
+      console.warn('cuentas de cobro no disponibles:', e && e.message);
+    }).then(function(){
+      sb.rpc('portal_situacion').then(function(r){
+        if (r.error){
+          muestra('vLogin');
+          var aviso = document.getElementById('avisoLogin');
+          aviso.className = 'aviso mal'; aviso.textContent = t('err_carga');
+          return;
+        }
+        DATOS = r.data || {};
+        var ini = document.getElementById('avatarIniciales');
+        var nombre = (DATOS.nombre || '').trim();
+        ini.textContent = nombre ? nombre.split(/\s+/).map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase() : '·';
+        document.getElementById('quienNombre').textContent = nombre || (DATOS.email || '');
+        muestra('vApp');
+        var r0 = leeHash();
+        ESTADO.section = r0.sec;
+        render();
+        if (r0.doc) aplicaRuta(false);
       });
     });
   }
 
+  /* ══ NAV ══════════════════════════════════════════════════════════════ */
+  var NAV_DEFS = ['inicio','contratos','facturas','obra','documentos','soporte','mensajes','perfil'];
+  function pintaNav(){
+    var abiertos = ((DATOS && DATOS.tickets) || []).filter(function(x){ return x.estado === 'abierto'; }).length;
+    document.getElementById('nav').innerHTML = NAV_DEFS.map(function(k){
+      var badge = k === 'soporte' && abiertos ? '<span class="badge">' + abiertos + '</span>' : '';
+      return '<button type="button" class="navrow' + (k === ESTADO.section ? ' on' : '') + '" data-nav="' + k + '">' +
+             '<span>' + esc(t('nav_' + k)) + '</span>' + badge + '</button>';
+    }).join('');
+  }
+  document.getElementById('nav').addEventListener('click', function(e){
+    var b = e.target.closest('[data-nav]'); if (!b) return;
+    vasA(b.getAttribute('data-nav'), null);
+    cierraSidebar();
+  });
+
+  /* ══ CAMPANA — derivada de datos reales (factura reciente, próximo pago,
+     obra actualizada, KYC por caducar), no una tabla de eventos aparte:
+     el "visto hasta" real vive en preferencias_comprador y lo devuelve
+     portal_situacion() en DATOS.prefs.notif_visto_hasta. ══ */
+  function novedadesDerivadas(){
+    var d = DATOS; if (!d) return [];
+    var lista = [];
+    (d.facturas || []).slice(0, 3).forEach(function(f){
+      lista.push({ texto: (f.tipo === 'factura' ? (LANG==='es'?'Nueva factura disponible: ':'New invoice available: ') : '') + f.numero,
+                   fecha: f.fecha, cuando: new Date(f.fecha || 0) });
+    });
+    (d.obra || []).forEach(function(o){
+      if (o.actualizado) lista.push({ texto: (LANG==='es'?'Novedades de obra en ':'Construction update on ') + o.unidad,
+                                       fecha: o.actualizado, cuando: new Date(o.actualizado) });
+    });
+    (d.kyc || []).forEach(function(k){
+      if (!k.caduca) return;
+      var dias = Math.round((new Date(k.caduca) - new Date()) / 86400000);
+      if (dias >= 0 && dias <= 30) lista.push({
+        texto: (LANG==='es' ? ('Tu ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' caduca en ' + dias + ' días')
+                             : ('Your ' + (t('doc_' + k.tipo) === 'doc_' + k.tipo ? k.tipo : t('doc_' + k.tipo)) + ' expires in ' + dias + ' days')),
+        fecha: k.caduca, cuando: new Date()
+      });
+    });
+    lista.sort(function(a,b){ return b.cuando - a.cuando; });
+    return lista.slice(0, 8);
+  }
+  function pintaCampana(){
+    var drop = document.getElementById('notifDrop');
+    var n = document.getElementById('notifN');
+    var visto = DATOS && DATOS.prefs && DATOS.prefs.notif_visto_hasta ? new Date(DATOS.prefs.notif_visto_hasta) : null;
+    var novedades = novedadesDerivadas();
+    var sinLeer = visto ? novedades.filter(function(x){ return x.cuando > visto; }).length : novedades.length;
+    n.hidden = !sinLeer; n.textContent = sinLeer;
+    drop.hidden = !ESTADO.notifOpen;
+    if (ESTADO.notifOpen){
+      drop.innerHTML = '<div class="cab"><span>' + esc(t('novedades')) + '</span></div>' +
+        (novedades.length ? novedades.map(function(x){
+          var noLeida = visto ? x.cuando > visto : true;
+          return '<div class="notif-fila"><span class="punto" style="background:' + (noLeida?'var(--bad)':'transparent') +
+                 ';border:1px solid ' + (noLeida?'var(--bad)':'rgba(138,132,116,.4)') + '"></span>' +
+                 '<div><div class="txt">' + esc(x.texto) + '</div><div class="fec">' + esc(fecha(x.fecha)) + '</div></div></div>';
+        }).join('') : '<p style="font-size:12.5px;color:#8a8570;margin:6px 0 0">—</p>');
+    }
+  }
+
+  /* ══ RENDER PRINCIPAL — una función por sección, todas alimentadas por
+     DATOS real (portal_situacion) ══ */
+  function render(){
+    pintaNav();
+    pintaCampana();
+    document.getElementById('tituloSeccion').textContent = t('tit_' + ESTADO.section);
+    var c = document.getElementById('content');
+    var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
+                documentos:pintaDocumentos, soporte:pintaSoporte, mensajes:pintaMensajes, perfil:pintaPerfil };
+    c.innerHTML = '';
+    (fns[ESTADO.section] || pintaInicio)(c);
+  }
+
+  function vacio(titulo, texto){
+    return '<div class="tabla-caja"><div class="vacio"><b>' + esc(titulo) + '</b>' + esc(texto) + '</div></div>';
+  }
+
+  /* ── Inicio ───────────────────────────────────────────────────────── */
+  function pintaInicio(c){
+    var d = DATOS;
+    var nombrePila = (d.nombre || '').trim().split(/\s+/)[0] || '';
+    var tot = 0, cob = 0;
+    (d.contratos||[]).forEach(function(x){
+      var p = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
+      if (!isNaN(p)) tot += p; cob += Number(x.cobrado) || 0;
+    });
+    var mon = ((d.contratos||[])[0] || {}).moneda || 'EUR';
+
+    var proximo = null;
+    (d.contratos||[]).forEach(function(x){
+      if (proximo) return;
+      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
+      var hs = estadosHitos(x.hitos, Number(x.cobrado)||0, precio);
+      var h = hs.filter(function(y){ return y.estado !== 'pagado'; })[0];
+      if (h) proximo = { hito:h.hito, monto:h.monto, moneda:x.moneda, contrato:x.numero };
+    });
+
+    var novedades = novedadesDerivadas().slice(0,3);
+
+    c.innerHTML =
+      '<div class="titulo-sec"><h2>' + esc(t('hola')) + (nombrePila ? ', ' + esc(nombrePila) : '') + '</h2>' +
+        '<p>' + esc(t('saludo_sub')) + '</p></div>' +
+      (tot > 0 ? '<div class="kpis">' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_inversion')) + '</div><div class="val">' + esc(dinero(tot,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pagado')) + '</div><div class="val ok">' + esc(dinero(cob,mon)) + '</div></div>' +
+        '<div class="tarjeta kpi"><div class="lbl">' + esc(t('r_pendiente')) + '</div><div class="val">' + esc(dinero(Math.max(0,tot-cob),mon)) + '</div></div>' +
+      '</div>' : '') +
+      '<div class="grid2col">' +
+        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('proximo_pago')) + '</div>' +
+          (proximo ?
+            '<div style="font-size:16px;font-weight:500;margin-bottom:4px">' + esc((proximo.hito[LANG] || proximo.hito.es || proximo.hito.en || '')) + '</div>' +
+            '<div style="font-size:13px;color:#6b6c66;margin-bottom:14px">' + esc(t('cuando')) + ': ' + esc(proximo.hito.timing || '—') + ' · ' + esc(proximo.contrato) + '</div>' +
+            '<div style="font-family:\'Instrument Sans\',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px">' + (isNaN(proximo.monto)?'—':esc(dinero(proximo.monto, proximo.moneda))) + '</div>' +
+            '<button type="button" class="btn-borde" data-ir="contratos">' + esc(t('ver_plan')) + '</button>'
+            : '<p style="font-size:13.5px;color:#6b6c66">' + esc(t('sin_proximo')) + '</p>') +
+        '</div>' +
+        '<div class="tarjeta"><div class="rot-bloque">' + esc(t('novedades')) + '</div>' +
+          (novedades.length ? novedades.map(function(x){
+            return '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(138,132,116,.15)">' +
+                   '<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--tg)"></span>' +
+                   '<div style="font-size:12.5px;line-height:1.4">' + esc(x.texto) + '</div></div>';
+          }).join('') : '<p style="font-size:13px;color:#8a8570">—</p>') +
+        '</div>' +
+      '</div>' +
+      '<div class="accesos">' +
+        '<button type="button" class="acceso" data-ir="documentos"><div class="t">' + esc(t('acc_documentos')) + '</div><div class="s">' + esc(t('acc_documentos_sub')) + '</div></button>' +
+        '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
+        '<button type="button" class="acceso" data-ir="mensajes"><div class="t">' + esc(t('acc_mensajes')) + '</div><div class="s">' + esc(t('acc_mensajes_sub')) + '</div></button>' +
+      '</div>';
+    c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
+  }
+
+  /* ── Contratos ────────────────────────────────────────────────────── */
+  function pintaContratos(c){
+    var d = DATOS;
+    if (!(d.contratos||[]).length){ c.innerHTML = vacio(t('sin_contratos_t'), t('sin_contratos')); return; }
+    c.innerHTML = d.contratos.map(function(x){
+      var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
+      var cobrado = Number(x.cobrado) || 0;
+      var pct = (precio > 0) ? Math.min(100, Math.round(cobrado/precio*100)) : null;
+      var hs = estadosHitos(x.hitos, cobrado, precio);
+      var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(190,179,165,.4)';
+      var tagColor = x.firmado ? 'var(--ok)' : 'var(--va)';
+      return '<div class="op"><div class="op-cab">' +
+        '<div class="info"><h3><b>' + esc(x.numero) + '</b><span class="sub">' + esc(x.proyecto||'') +
+          (x.parcela ? ' · ' + esc(t('unidad')) + ' ' + esc(x.parcela) : '') + '</span>' +
+          '<span class="tag" style="background:' + tagBg + ';color:' + tagColor + '">' + esc(x.firmado?t('firmado'):t('pendiente_firma')) + '</span></h3>' +
+          '<div class="op-datos">' +
+            '<div class="d"><div class="lbl">' + esc(t('precio')) + '</div><div class="val">' + (precio ? esc(dinero(precio,x.moneda)) : esc(x.precio_txt||'—')) + '</div></div>' +
+            '<div class="d"><div class="lbl">' + esc(t('cobrado')) + '</div><div class="val">' + esc(dinero(cobrado,x.moneda)) + '</div></div>' +
+          '</div></div></div>' +
+        (precio > 0 ? '<div class="barra"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="barra-leg"><span>' + pct + '% ' + esc(t('de')) + ' ' + esc(dinero(precio,x.moneda)) + '</span>' +
+          '<span>' + esc(dinero(Math.max(0,precio-cobrado),x.moneda)) + ' ' + esc(t('pendiente')).toLowerCase() + '</span></div>' : '') +
+        (hs.length ? '<table class="docs"><thead><tr><th>' + esc(t('concepto')) + '</th><th>' + esc(t('cuando')) + '</th>' +
+          '<th class="num">' + esc(t('importe')) + '</th><th>' + esc(t('estado')) + '</th></tr></thead><tbody>' +
+          hs.map(function(y){
+            var descr = y.hito[LANG] || y.hito.es || y.hito.en || '';
+            var col = TAGCOLOR[y.estado];
+            return '<tr><td>' + esc(descr||'—') + '</td><td class="flojo">' + esc(y.hito.timing||'') + '</td>' +
+              '<td class="num">' + (isNaN(y.monto)?'—':esc(dinero(y.monto,x.moneda))) + '</td>' +
+              '<td><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
+          }).join('') + '</tbody></table>' : '') +
+        (x.pdf ? '<div class="op-pie"><button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button></div>' : '') +
+      '</div>';
+    }).join('');
+    c.querySelectorAll('[data-contrato]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-contrato')); }); });
+  }
+
+  /* ── Facturas ─────────────────────────────────────────────────────── */
+  var TIPO_DOC = { factura:'factura', proforma:'proforma', recibi:'recibi' };
+  function pintaFacturas(c){
+    var d = DATOS;
+    if (!(d.facturas||[]).length){ c.innerHTML = vacio(t('sin_facturas_t'), t('sin_facturas')); return; }
+    c.innerHTML = '<div class="tabla-caja"><table><thead><tr>' +
+      '<th>' + esc(t('f_numero')) + '</th><th>' + esc(t('f_tipo')) + '</th><th>' + esc(t('f_fecha')) + '</th>' +
+      '<th class="num">' + esc(t('f_total')) + '</th><th></th></tr></thead><tbody>' +
+      d.facturas.map(function(f){
+        return '<tr data-fila data-fac="' + esc(f.numero) + '">' +
+          '<td class="clave">' + esc(f.numero) + '</td><td>' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
+          '<td class="flojo">' + esc(fecha(f.fecha)) + '</td>' +
+          '<td class="num">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
+          '<td class="ir">' + esc(t('ir')) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    c.querySelectorAll('[data-fac]').forEach(function(tr){ tr.addEventListener('click', function(){ vasA('facturas', tr.getAttribute('data-fac')); }); });
+  }
+
+  /* ── Obra ─────────────────────────────────────────────────────────── */
+  function pintaObra(c){
+    var d = DATOS, fases = d.fases || [];
+    if (!(d.obra||[]).length){ c.innerHTML = vacio(t('sin_obra_t'), t('sin_obra')); return; }
+    c.innerHTML = d.obra.map(function(u){
+      var idx = fases.map(function(f){ return f.clave; }).indexOf(u.fase);
+      return '<div class="op"><div class="op-cab"><div class="info"><h3><b>' + esc(u.unidad) + '</b>' +
+          '<span class="sub">' + esc(u.proyecto||'') + (u.contrato_numero ? ' · ' + esc(u.contrato_numero) : '') + '</span></h3></div></div>' +
+        (fases.length ? '<div class="fases">' + fases.map(function(f,i){
+          return '<span class="fase ' + (i<idx?'hecha':(i===idx?'actual':'')) + '">' + esc(f[LANG]||f.es) + '</span>';
+        }).join('') + '</div>' : '') +
+        '<div class="op-datos" style="margin-top:14px">' +
+          (u.fecha_entrega ? '<div class="d"><div class="lbl">' + esc(t('entrega_est')) + '</div><div class="val">' + esc(fecha(u.fecha_entrega)) + '</div></div>' : '') +
+          (u.actualizado ? '<div class="d"><div class="lbl">' + esc(t('actualizado')) + '</div><div class="val">' + esc(fecha(u.actualizado)) + '</div></div>' : '') +
+        '</div>' +
+        ((u.fotos||[]).length ? '<div class="fotos" style="margin-top:16px">' + u.fotos.map(function(ft){
+          return '<figure><img loading="lazy" data-foto="' + esc(ft.path) + '" alt="' + esc(ft.titulo||'') + '">' +
+                 '<figcaption>' + esc(ft.titulo||'') + (ft.fecha?' · '+esc(fecha(ft.fecha)):'') + '</figcaption></figure>';
+        }).join('') + '</div>' : '') +
+      '</div>';
+    }).join('');
+    cargaFotos();
+    c.querySelectorAll('.fotos img').forEach(function(img){ img.addEventListener('click', function(){ if (img.src) ampliaFoto(img.src); }); });
+  }
+  function cargaFotos(){
+    document.querySelectorAll('img[data-foto]').forEach(function(img){
+      var p = img.getAttribute('data-foto'); img.removeAttribute('data-foto');
+      sb.storage.from('obra').createSignedUrl(p, 3600).then(function(r){ if (r.data && r.data.signedUrl) img.src = r.data.signedUrl; });
+    });
+  }
   function ampliaFoto(src){
-    var l = document.createElement('div');
-    l.className = 'lupa';
+    var l = document.createElement('div'); l.className = 'lupa';
     l.innerHTML = '<img src="' + esc(src) + '" alt="">';
     l.addEventListener('click', function(){ l.remove(); });
-    document.addEventListener('keydown', function h(ev){
-      if (ev.key === 'Escape'){ l.remove(); document.removeEventListener('keydown', h); }
-    });
+    document.addEventListener('keydown', function h(ev){ if (ev.key==='Escape'){ l.remove(); document.removeEventListener('keydown',h); } });
     document.body.appendChild(l);
   }
 
-  /* ── el documento REAL, en el CAJÓN lateral (norma de la suite) ─────
-     Se arma con `documentoHTML()`, la misma función que usa la herramienta de
-     Facturas y la Edge que emite la factura del primer hito. Lo que ve el
-     comprador es el documento tal y como se emitió, con su sociedad, su logo y
-     sus datos bancarios — no una versión parecida mantenida aparte. */
+  /* ── Documentos ───────────────────────────────────────────────────── */
+  function pintaDocumentos(c){
+    var d = DATOS, docs = d.documentos||[], kyc = d.kyc||[];
+    if (!docs.length && !kyc.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
+    var html = '';
+    if (docs.length) html += '<h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('d_promocion')) + '</h3>' +
+      '<div class="doclista" style="margin-bottom:28px">' + docs.map(function(x){
+        return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
+          '<div class="s">' + esc([x.categoria, x.proyecto].filter(Boolean).join(' · ')) + '</div></div></div>';
+      }).join('') + '</div>';
+    if (kyc.length) html += '<h3 style="margin:0 0 6px;font-size:15px;font-weight:600">' + esc(t('d_entregado')) + '</h3>' +
+      '<p style="margin:0 0 14px;font-size:12.5px;color:#6b6c66;max-width:60ch">' + esc(t('d_entregado_nota')) + '</p>' +
+      '<div class="doclista">' + kyc.map(function(x){
+        var cad = x.caduca ? new Date(x.caduca) : null;
+        var vencido = cad && cad < new Date();
+        return '<div class="docfila" data-kyc="' + esc(x.path) + '"><div class="cuerpo"><div class="t">' +
+          esc(t('doc_'+x.tipo) === 'doc_'+x.tipo ? x.tipo : t('doc_'+x.tipo)) + '</div></div>' +
+          '<div class="der' + (vencido?' mal':'') + '">' + (x.caduca ? esc(t('caduca')+' '+fecha(x.caduca)) : '') + '</div></div>';
+      }).join('') + '</div>';
+    c.innerHTML = html;
+    c.querySelectorAll('[data-doc]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var doc = (DATOS.documentos||[]).filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
+        if (!doc) return;
+        if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
+      });
+    });
+    c.querySelectorAll('[data-kyc]').forEach(function(el){ el.addEventListener('click', function(){ abreFichero('kyc', el.getAttribute('data-kyc')); }); });
+  }
+  function abreFichero(bucket, path){
+    if (!path) return;
+    sb.storage.from(bucket).createSignedUrl(path, 600).then(function(r){
+      if (r.data && r.data.signedUrl) window.open(r.data.signedUrl, '_blank', 'noopener'); else toast(t('err_fichero'));
+    });
+  }
+
+  /* ── Soporte ──────────────────────────────────────────────────────── */
+  function pintaSoporte(c){
+    var d = DATOS, tickets = d.tickets || [];
+    c.innerHTML =
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:16px">' +
+        '<button type="button" class="btn-oscuro" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
+      '<div id="formNuevoTicket"></div>' +
+      (tickets.length ? tickets.map(function(x){
+        var col = x.estado === 'abierto' ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
+        var ultimo = x.mensajes[x.mensajes.length-1];
+        return '<div class="ticket" data-ticket="' + esc(x.id) + '"><div class="cab"><span class="asunto">' + esc(x.asunto) + '</span>' +
+          '<span class="tag chico" style="margin-left:auto;background:' + col[0] + ';color:' + col[1] + '">' + esc(x.estado==='abierto'?t('abierto'):t('resuelto')) + '</span></div>' +
+          (ultimo ? '<div class="ultimo">' + esc(ultimo.texto) + '</div>' : '') +
+          '<div class="meta">' + esc(fecha(x.creado_en)) + '</div></div>';
+      }).join('') : vacio(t('sin_tickets_t'), t('sin_tickets')));
+    document.getElementById('btnNuevoTicket').addEventListener('click', function(){
+      ESTADO.newTicketOpen = !ESTADO.newTicketOpen; pintaFormNuevoTicket();
+    });
+    c.querySelectorAll('[data-ticket]').forEach(function(el){
+      el.addEventListener('click', function(){ abreDrawerTicket(el.getAttribute('data-ticket')); });
+    });
+  }
+  function pintaFormNuevoTicket(){
+    var box = document.getElementById('formNuevoTicket'); if (!box) return;
+    if (!ESTADO.newTicketOpen){ box.innerHTML = ''; return; }
+    box.innerHTML = '<form id="fNuevoTicket" class="tarjeta" style="margin-bottom:18px">' +
+      '<div class="campo"><label>' + esc(t('asunto')) + '</label><input id="ntAsunto" required></div>' +
+      '<div class="campo"><label>' + esc(t('categoria')) + '</label><select id="ntCategoria">' +
+        '<option value="Pagos">Pagos</option><option value="Documentación">Documentación</option>' +
+        '<option value="Obra">Obra</option><option value="Otro">Otro</option></select></div>' +
+      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="ntMensaje" rows="3" required></textarea></div>' +
+      '<div style="display:flex;gap:10px">' +
+        '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button>' +
+        '<button type="button" class="btn-borde" id="ntCancelar">' + esc(t('cancelar')) + '</button></div></form>';
+    document.getElementById('ntCancelar').addEventListener('click', function(){ ESTADO.newTicketOpen = false; pintaFormNuevoTicket(); });
+    document.getElementById('fNuevoTicket').addEventListener('submit', function(e){
+      e.preventDefault();
+      var asunto = document.getElementById('ntAsunto').value.trim();
+      var categoria = document.getElementById('ntCategoria').value;
+      var mensaje = document.getElementById('ntMensaje').value.trim();
+      if (!asunto || !mensaje) return;
+      var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
+      sb.rpc('portal_crear_ticket', { p_client_id: DATOS.client_id, p_asunto: asunto, p_categoria: categoria, p_mensaje: mensaje })
+        .then(function(r){
+          btn.disabled = false;
+          if (r.error){ toast(r.error.message); return; }
+          ESTADO.newTicketOpen = false;
+          recargaSituacion(function(){ render(); });
+        });
+    });
+  }
+
+  function abreDrawerTicket(id){
+    var tk = ((DATOS && DATOS.tickets) || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if (!tk) return;
+    var col = tk.estado === 'abierto' ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
+    abreDrawer('<div class="hoja" style="display:flex;flex-direction:column;height:calc(100vh - 100px)">' +
+      '<h3 style="margin:0 0 4px;font-size:15px;font-weight:600">' + esc(tk.asunto) + '</h3>' +
+      '<div style="font-size:11.5px;color:#8a8570;margin-bottom:16px">' + esc(tk.categoria) + ' · ' +
+        '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(tk.estado==='abierto'?t('abierto'):t('resuelto')) + '</span></div>' +
+      '<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px" id="ticketHilo"></div>' +
+      '<form id="fTicketReply" style="display:flex;gap:8px;margin-top:14px">' +
+        '<input id="ticketReplyIn" placeholder="' + esc(t('responder')) + '" style="flex:1;font:inherit;font-size:13.5px;padding:9px 12px;border:1px solid rgba(138,132,116,.5);border-radius:999px;background:#fdfcf9">' +
+        '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>', 'ancho');
+    document.getElementById('ticketHilo').innerHTML = (tk.mensajes||[]).map(function(m){
+      var mia = m.de === 'cliente';
+      return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
+        '<div style="font-size:10.5px;color:#a8a394;margin-bottom:3px;text-align:' + (mia?'right':'left') + '">' + esc(mia?t('tu'):t('equipo')) + '</div>' +
+        '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div></div></div>';
+    }).join('');
+    document.getElementById('fTicketReply').addEventListener('submit', function(e){
+      e.preventDefault();
+      var val = document.getElementById('ticketReplyIn').value.trim(); if (!val) return;
+      sb.rpc('portal_enviar_ticket_mensaje', { p_ticket_id: tk.id, p_texto: val }).then(function(r){
+        if (r.error){ toast(r.error.message); return; }
+        recargaSituacion(function(){ abreDrawerTicket(id); });
+      });
+    });
+  }
+
+  /* ── Mensajes (chat con la gestora) ──────────────────────────────── */
+  function pintaMensajes(c){
+    var d = DATOS, mensajes = d.mensajes || [];
+    c.innerHTML = '<div class="chat"><div class="cab"><b>Lawang</b><div class="rol">' +
+      (LANG==='es' ? 'Tu equipo de atención' : 'Your account team') + '</div></div>' +
+      '<div class="hilo" id="chatHilo"></div>' +
+      '<form id="fChat"><input id="chatIn" placeholder="' + esc(t('responder')) + '"><button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>';
+    var hilo = document.getElementById('chatHilo');
+    hilo.innerHTML = mensajes.length ? mensajes.map(function(m){
+      var mia = m.de === 'cliente';
+      return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
+        '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div>' +
+        '<div class="fecha-msg" style="text-align:' + (mia?'right':'left') + '">' + esc(fechaHora(m.creado_en)) + '</div></div></div>';
+    }).join('') : '<p style="font-size:13px;color:#8a8570;text-align:center;margin-top:20px">' + esc(t('sin_mensajes')) + '</p>';
+    hilo.scrollTop = hilo.scrollHeight;
+    document.getElementById('fChat').addEventListener('submit', function(e){
+      e.preventDefault();
+      var val = document.getElementById('chatIn').value.trim(); if (!val) return;
+      sb.rpc('portal_enviar_mensaje', { p_client_id: DATOS.client_id, p_texto: val }).then(function(r){
+        if (r.error){ toast(r.error.message); return; }
+        recargaSituacion(function(){ render(); });
+      });
+    });
+  }
+
+  /* ── Perfil ───────────────────────────────────────────────────────── */
+  function pintaPerfil(c){
+    var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false };
+    c.innerHTML = '<div style="display:grid;gap:16px;max-width:520px">' +
+      '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('datos_personales')) + '</h3>' +
+        '<div style="display:grid;gap:10px">' +
+          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('nombre')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.nombre||'—') + '</div></div>' +
+          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('correo')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.email||'—') + '</div></div>' +
+          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
+          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
+        '</div></div>' +
+      '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('seguridad')) + '</h3>' +
+        '<button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +
+      '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('prefs')) + '</h3>' +
+        '<div class="pref-fila"><span style="font-size:13.5px">' + esc(t('pref_email')) + '</span>' +
+          '<button type="button" class="toggle' + (prefs.pref_email?' on':'') + '" id="tglEmail"><i></i></button></div>' +
+        '<div class="pref-fila"><span style="font-size:13.5px">' + esc(t('pref_sms')) + '</span>' +
+          '<button type="button" class="toggle' + (prefs.pref_sms?' on':'') + '" id="tglSms"><i></i></button></div>' +
+      '</div></div>';
+    document.getElementById('btnCambiarPass').addEventListener('click', abrirCambiarPass);
+    document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
+    document.getElementById('tglSms').addEventListener('click', function(){ togglePref('pref_sms'); });
+  }
+  function togglePref(cual){
+    var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };
+    prefs[cual] = !prefs[cual];
+    pintaPerfil(document.getElementById('content'));
+    sb.rpc('portal_set_prefs', { p_pref_email: prefs.pref_email, p_pref_sms: prefs.pref_sms }).then(function(r){
+      if (r.error) toast(r.error.message);
+    });
+  }
+
+  /* ── recarga ligera de portal_situacion (tras escribir algo) ────────── */
+  function recargaSituacion(cb){
+    sb.rpc('portal_situacion').then(function(r){
+      if (!r.error) DATOS = r.data || DATOS;
+      if (cb) cb();
+    });
+  }
+
+  /* ══ DRAWER genérico ═════════════════════════════════════════════════ */
+  function abreDrawer(html, clase){
+    document.getElementById('drawerVelo').hidden = false;
+    var dr = document.getElementById('drawer');
+    dr.className = 'drawer' + (clase ? ' ' + clase : '');
+    dr.hidden = false;
+    dr.innerHTML = '<div class="drawer-cerrar"><button type="button" id="btnCerrarDrawer">✕</button></div>' + html;
+    document.getElementById('btnCerrarDrawer').addEventListener('click', cierraDrawer);
+    document.getElementById('drawerVelo').onclick = cierraDrawer;
+  }
+  function cierraDrawer(){
+    document.getElementById('drawerVelo').hidden = true;
+    document.getElementById('drawer').hidden = true;
+    var r = leeHash();
+    if (r.doc) vasA(r.sec, null);
+  }
+
+  /* ── el documento REAL de una factura, en el drawer ──────────────────
+     Se arma con documentoHTML(), la misma función que usa la herramienta
+     de Facturas y la Edge que emite la del primer hito — el comprador ve
+     el documento tal y como se emitió. */
   function abreFactura(f){
     if (!f) return;
-    /* `documentoHTML` da por hecho que `lineas` es un array (las 19 facturas de
-       hoy lo traen). Se normaliza igualmente: un campo que falte en un documento
-       viejo dejaría la pantalla en blanco, y el comprador no tiene a quién
-       preguntar ni forma de saber que el fallo no es suyo. */
     var campos = Object.assign({}, f.fields || {});
     if (!Array.isArray(campos.lineas)) campos.lineas = Array.isArray(f.lineas) ? f.lineas : [];
     var soc = (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[campos.sociedad]) || {};
     var v = documentoVars(soc);
-    var estilo = function(k){
-      return Object.keys(v[k]).filter(function(p){ return v[k][p]; })
-             .map(function(p){ return p + ':' + v[k][p]; }).join(';');
-    };
-    suiAbrirCajon({
-      titulo: esc(f.numero),
-      sub: esc((t(f.tipo) === f.tipo ? f.tipo : t(f.tipo)) + ' · ' + fecha(f.fecha)),
-      cuerpo: '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '">' +
-                '<div class="doc" style="' + estilo('doc') + '">' +
-                  documentoHTML(campos, { numero: f.numero }) +
-                '</div></div></div>',
-      pie: '<button type="button" class="sui-btn primario" id="btnImprimir">' + esc(t('imprimir')) + '</button>' +
-           '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
-      // Cerrar el cajón devuelve la URL a la sección. Si el cierre vino de un
-      // cambio de ruta, `RUTA.doc` ya es nulo y esto no hace nada: sin ese
-      // detalle, cerrar y navegar se llamarían el uno al otro.
-      onCerrar: function(){ if (RUTA.doc) vasA(RUTA.sec, null); }
+    var estilo = function(k){ return Object.keys(v[k]).filter(function(p){ return v[k][p]; }).map(function(p){ return p+':'+v[k][p]; }).join(';'); };
+    abreDrawer(
+      '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '"><div class="doc" style="' + estilo('doc') + '">' +
+        documentoHTML(campos, { numero: f.numero }) + '</div></div></div>' +
+      '<div style="display:flex;gap:10px;margin-top:14px">' +
+        '<button type="button" class="btn-oscuro" id="btnImprimirDoc">' + esc(t('imprimir')) + '</button>' +
+        '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>'
+    );
+    document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
+    document.getElementById('btnImprimirDoc').addEventListener('click', function(){
+      document.body.classList.add('imprimiendo'); window.print(); document.body.classList.remove('imprimiendo');
     });
-    document.getElementById('suiCajon').dataset.doc = f.numero;
-    document.getElementById('btnCerrarDoc').onclick = suiCerrarCajon;
-    document.getElementById('btnImprimir').onclick = function(){
-      document.body.classList.add('imprimiendo');
-      window.print();
-      document.body.classList.remove('imprimiendo');
-    };
   }
 
-  /* Mismo cajón, pero el documento real de un contrato es el PDF que ya firmó
-     y guardó `firma-submit` en `contratos-firmados` — no hay un documentoHTML()
-     para contratos (son plantillas legales enteras, no una hoja de una página)
-     así que se incrusta el PDF tal cual; el visor nativo del navegador ya trae
-     imprimir/descargar/zoom, así que el cajón no necesita reconstruirlos. */
+  /* ── el PDF real de un contrato firmado, en el drawer ───────────────── */
   function abreContrato(c){
     if (!c || !c.pdf) return;
     sb.storage.from('contratos-firmados').createSignedUrl(c.pdf, 600).then(function(r){
-      /* si falla, el hash ya quedó en #/contratos/NUMERO — sin este reset un
-         reintento no dispara hashchange y el botón se queda muerto. */
-      if (!r.data || !r.data.signedUrl){ toast(t('err_carga')); vasA(RUTA.sec, null, true); return; }
-      suiAbrirCajon({
-        titulo: esc(c.numero),
-        sub: esc((c.proyecto || '') + (c.parcela ? ' · ' + t('unidad') + ' ' + c.parcela : '')),
-        cuerpo: '<iframe src="' + esc(r.data.signedUrl) + '" style="width:100%;height:100%;border:0" title="' + esc(c.numero) + '"></iframe>',
-        /* Android Chrome no renderiza PDF dentro de un iframe (marco en blanco
-           o descarga forzada) y Safari iOS solo pinta la primera página de un
-           PDF de varias — un contrato SIEMPRE tiene varias. El enlace de
-           descarga es la ruta que ya funcionaba antes de este cambio: se deja
-           como salida de emergencia en vez de apostarlo todo al iframe. */
-        pie: '<a class="sui-btn" href="' + esc(r.data.signedUrl) + '" target="_blank" rel="noopener">' + esc(t('descargar')) + '</a>' +
-             '<button type="button" class="sui-btn" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>',
-        onCerrar: function(){ if (RUTA.doc) vasA(RUTA.sec, null); }
-      });
-      document.getElementById('suiCajon').dataset.doc = c.numero;
-      document.getElementById('btnCerrarDoc').onclick = suiCerrarCajon;
+      if (!r.data || !r.data.signedUrl){ toast(t('err_carga')); vasA('contratos', null, true); return; }
+      abreDrawer(
+        '<h3 style="margin:0 0 4px;font-size:15px;font-weight:600">' + esc(c.numero) + '</h3>' +
+        '<div style="font-size:11.5px;color:#8a8570;margin-bottom:14px">' + esc((c.proyecto||'') + (c.parcela?' · '+t('unidad')+' '+c.parcela:'')) + '</div>' +
+        '<iframe src="' + esc(r.data.signedUrl) + '" style="width:100%;height:70vh;border:0;background:#fff;border-radius:8px" title="' + esc(c.numero) + '"></iframe>' +
+        '<div style="display:flex;gap:10px;margin-top:14px">' +
+          '<a class="btn-oscuro" style="text-decoration:none;display:inline-block" href="' + esc(r.data.signedUrl) + '" target="_blank" rel="noopener">' + esc(t('descargar')) + '</a>' +
+          '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>',
+        'ancho'
+      );
+      document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
     });
   }
 
-  suiMontarCajon();
+  /* ── cambiar contraseña, en el drawer ────────────────────────────────
+     `updateUser` sobre la sesión activa — no hace falta la Edge (esa es
+     solo para que un ADMIN se la ponga a otra persona). */
+  function abrirCambiarPass(){
+    abreDrawer(
+      '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('cambiar_pass_btn')) + '</h3>' +
+      '<div class="campo"><label>' + esc(t('cambiar_pass_nueva')) + '</label><input type="password" id="cpNueva" autocomplete="new-password"></div>' +
+      '<div class="campo"><label>' + esc(t('cambiar_pass_repite')) + '</label><input type="password" id="cpRepite" autocomplete="new-password"></div>' +
+      '<p style="font-size:12px;color:#8a8570;margin:0 0 10px">' + esc(t('cambiar_pass_nota')) + '</p>' +
+      '<div id="cpAviso" class="aviso" style="margin-bottom:10px"></div>' +
+      '<button type="button" class="btn-oscuro" id="btnCpGuardar">' + esc(t('guardar')) + '</button></div>'
+    );
+    document.getElementById('btnCpGuardar').addEventListener('click', function(){
+      var p1 = document.getElementById('cpNueva').value, p2 = document.getElementById('cpRepite').value;
+      var aviso = document.getElementById('cpAviso');
+      if (p1.length < 10){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_corta'); return; }
+      if (p1 !== p2){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_no_coincide'); return; }
+      var btn = document.getElementById('btnCpGuardar'); btn.disabled = true;
+      sb.auth.updateUser({ password: p1 }).then(function(r){
+        btn.disabled = false;
+        if (r.error){ aviso.className = 'aviso mal'; aviso.textContent = t('cambiar_pass_error') + ': ' + r.error.message; return; }
+        aviso.className = 'aviso bien'; aviso.textContent = t('cambiar_pass_ok');
+        setTimeout(cierraDrawer, 1200);
+      });
+    });
+  }
 })();
 </script>
 </body>
