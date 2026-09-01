@@ -205,13 +205,19 @@ $fromName = $mailConfig['from_name'] ?? 'Lawang Tropical Properties';
 
 $boundary = 'lwc_' . bin2hex(random_bytes(16));
 
-// multipart/mixed con una sola parte de texto es correo válido, así que el
+// Plantilla de marca compartida (1-sep-2026, encargo del owner: unificar el
+// formato de TODO correo de la intranet con el mismo diseño que ya usa el
+// email de acceso al portal). Antes esta parte era texto plano a secas.
+require_once __DIR__ . '/lib/plantilla_correo.php';
+$mensajeHtml = lw_plantilla_correo($message);
+
+// multipart/mixed con una sola parte de HTML es correo válido, así que el
 // camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez
 // de abrir una segunda forma de construir el mensaje.
 $body  = "--{$boundary}\r\n";
-$body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+$body .= "Content-Type: text/html; charset=UTF-8\r\n";
 $body .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-$body .= $message . "\r\n\r\n";
+$body .= $mensajeHtml . "\r\n\r\n";
 if ($pdfBytes !== null) {
   $body .= "--{$boundary}\r\n";
   $body .= "Content-Type: application/pdf; name=\"{$filename}\"\r\n";

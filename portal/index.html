@@ -15,6 +15,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
+<!-- Iconos Phosphor (1-sep-2026, encargo del owner: "iconografía que haga más
+     legible los campos" de Mi perfil). Misma librería y misma versión fijada
+     que ya usa toda la intranet (icon del riel, herramientas.js) — un solo
+     vocabulario de iconos en toda la suite, no uno nuevo aquí. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
@@ -54,6 +59,13 @@
   .entrada input{ width:100%; font:inherit; font-size:15px; padding:12px 13px; text-align:center;
                    border:1px solid #E4DCCB; border-radius:9px; background:#fdfcf9; color:inherit; margin-bottom:14px; }
   .entrada input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(16,76,79,.13); }
+  /* icono dentro del campo (1-sep-2026) — el texto pasa a alinearse a la
+     izquierda, que es lo natural con un icono delante; centrado y un icono
+     a la vez leían raro. */
+  .campo-icono{ position:relative; }
+  .campo-icono i{ position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    font-size:16px; color:#a8a394; pointer-events:none; }
+  .campo-icono input{ text-align:left; padding-left:38px; }
   .btn-primario{ width:100%; font:inherit; font-size:13.5px; font-weight:600; color:#fff; background:var(--dl);
                   border:1px solid var(--dl); border-radius:999px; padding:12px; cursor:pointer; white-space:nowrap; }
   .btn-primario:disabled{ opacity:.55; cursor:default; }
@@ -115,6 +127,10 @@
   .tarjeta{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; padding:20px 22px; }
   .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
   .kpi .lbl{ font-size:11.5px; color:#8a8570; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+  /* Mi perfil: icono + etiqueta, más legible que la etiqueta sola (1-sep-2026). */
+  .campo-lbl{ font-size:11px; color:#8a8570; text-transform:uppercase; letter-spacing:.02em;
+    display:flex; align-items:center; gap:6px; }
+  .campo-lbl i{ font-size:13px; color:var(--sc); flex:none; }
   .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
   .kpi .val.ok{ color:var(--ok); }
 
@@ -278,13 +294,13 @@
     <div class="rot" data-t="area">Área de clientes</div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.</p>
     <form id="fLogin">
-      <input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com">
+      <div class="campo-icono"><i class="ph ph-envelope-simple"></i><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
-      <input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com">
-      <input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••">
+      <div class="campo-icono"><i class="ph ph-envelope-simple"></i><input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><i class="ph ph-lock-simple"></i><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
       <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
     <div id="avisoLogin" class="aviso"></div>
@@ -1021,10 +1037,10 @@
     c.innerHTML = '<div style="display:grid;gap:16px;max-width:520px">' +
       '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('datos_personales')) + '</h3>' +
         '<div style="display:grid;gap:10px">' +
-          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('nombre')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.nombre||'—') + '</div></div>' +
-          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('correo')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.email||'—') + '</div></div>' +
-          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
-          '<div><div class="lbl" style="font-size:11px;color:#8a8570;text-transform:uppercase">' + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
+          '<div><div class="campo-lbl"><i class="ph ph-user"></i>' + esc(t('nombre')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.nombre||'—') + '</div></div>' +
+          '<div><div class="campo-lbl"><i class="ph ph-envelope-simple"></i>' + esc(t('correo')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.email||'—') + '</div></div>' +
+          '<div><div class="campo-lbl"><i class="ph ph-phone"></i>' + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
+          '<div><div class="campo-lbl"><i class="ph ph-map-pin"></i>' + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
         '</div></div>' +
       '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('seguridad')) + '</h3>' +
         '<button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +

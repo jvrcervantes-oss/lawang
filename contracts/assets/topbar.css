@@ -554,7 +554,10 @@ body.rail-abierto > header{ margin-left:-208px; }
 .lw-rail-i, .lw-rail-tog{
   display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
   border:none; background:none; border-radius:9px; cursor:pointer;
-  color:var(--texto-2,#4A5052); font:inherit; font-size:13.5px; text-decoration:none;
+  /* 1-sep-2026, encargo del owner: "haz el menú en bold para destacarlo".
+     Todas las filas, no solo `.aqui` (que ya lo llevaba) -- esa sigue
+     distinguiéndose por el fondo + filete + tinta de abajo, no por el peso. */
+  color:var(--texto-2,#4A5052); font:inherit; font-size:13.5px; font-weight:600; text-decoration:none;
   white-space:nowrap; width:100%;
 }
 .lw-rail-i i, .lw-rail-tog i{ font-size:19px; flex:0 0 20px; text-align:center; }
@@ -562,7 +565,12 @@ body.rail-abierto > header{ margin-left:-208px; }
    al abrir no dé el salto de aparecer de golpe a mitad de la transición. */
 .lw-rail-i span, .lw-rail-tog span{ opacity:0; transition:opacity 120ms ease; }
 .lw-rail.abierto .lw-rail-i span, .lw-rail.abierto .lw-rail-tog span{ opacity:1; }
-.lw-rail-i:hover, .lw-rail-tog:hover{ background:var(--sup-hover,#EFEADE); color:var(--texto,#22282A); }
+/* 1-sep-2026: "destaca el color al pasar el cursor". Antes solo cambiaba a un
+   gris neutro (--texto); ahora usa el acento real de marca (--tg, Territorial
+   Green) -- que es justo su uso permitido ("acento, y SOLO acento": un toque
+   de texto en hover, nunca el fondo de un botón). El fondo neutro se queda,
+   es lo que da la superficie de "esto es clicable". */
+.lw-rail-i:hover, .lw-rail-tog:hover{ background:var(--sup-hover,#EFEADE); color:var(--tg,#485B37); }
 .lw-rail-i:focus-visible, .lw-rail-tog:focus-visible{ outline:2px solid var(--dl,#104C4F); outline-offset:-2px; }
 /* Dónde estás: filete + tinta, las dos señales de la fila seleccionada de la
    suite. Solo el color no basta plegado, que es cuando más falta hace. */
