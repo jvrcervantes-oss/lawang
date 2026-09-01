@@ -37,13 +37,14 @@ const LW_HERRAMIENTAS = [
      ahí no se ve. Necesita su propia sección"). Antes eran dos fieldsets
      (Soporte + Mensajes) dentro de la ficha de un comprador en
      /intranet/compradores/ — invisibles salvo que se abriera esa ficha
-     concreta, y el owner los veía como la misma cosa duplicada. Ahora son
-     UN hilo por comprador, con su propia bandeja. */
+     concreta, y el owner los veía como la misma cosa duplicada. Unificado
+     en un hilo único (1-sep mañana) y, esa misma tarde, corregido a
+     TICKETS por comprador — con su propia bandeja en las dos versiones. */
   { grupo:'Seguimiento', nombre:'Soporte', icon:'ph-headset', href:'/intranet/soporte/', herr:'soporte',
-    para:'Los mensajes de los compradores desde su área de clientes, en una bandeja.',
+    para:'Los tickets de los compradores desde su área de clientes, en una bandeja.',
     claves:'soporte mensajes tickets chat compradores atencion consultas',
     estado:d => d.hilosAbiertos == null ? null
-      : [d.hilosAbiertos ? d.hilosAbiertos + (d.hilosAbiertos === 1 ? ' hilo abierto' : ' hilos abiertos') : 'Sin hilos abiertos',
+      : [d.hilosAbiertos ? d.hilosAbiertos + (d.hilosAbiertos === 1 ? ' ticket abierto' : ' tickets abiertos') : 'Sin tickets abiertos',
          d.hilosAbiertos > 0] },
   { grupo:'Seguimiento', nombre:'Vencimientos', icon:'ph-calendar-check', href:'/intranet/vencimientos/', herr:'vencimientos',
     para:'Qué dinero debe entrar, cuándo, y cuál se está retrasando: la caja de la empresa por fechas.',

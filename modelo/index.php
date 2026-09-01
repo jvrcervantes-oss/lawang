@@ -417,23 +417,17 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     </div>
     <figure class="hero__fig">
       <img src="<?= lw_e($portada) ?>" alt="<?= lw_e($villa) ?> de Lawang Tropical Properties: exterior con piscina overflow" fetchpriority="high">
-      <button type="button" class="play" id="lw-play" aria-haspopup="dialog">
-        <span class="play__dot"><span class="play__tri"></span></span>
-        <span class="play__label"><?= lw_i18n('Ver vídeo de la villa', 'Watch the villa video') ?></span>
-      </button>
     </figure>
   </section>
 
-  <!-- ── Modal de vídeo ────────────────────────────────────────────────────── -->
-  <div class="modal" id="lw-modal" role="dialog" aria-modal="true" aria-label="Vídeo">
-    <div class="modal__box">
-      <div class="modal__close"><button type="button" id="lw-modal-close" aria-label="Cerrar">&times;</button></div>
-      <div class="modal__ph">
-        <b><?= lw_i18n('Aquí va tu vídeo', 'Your video goes here') ?></b>
-        <span><?= lw_i18n('Conecta un embed de YouTube/Vimeo o sube tu MP4 para activar la reproducción.', 'Connect a YouTube/Vimeo embed or upload your MP4 to enable playback.') ?></span>
-      </div>
-    </div>
-  </div>
+  <!-- Botón + modal de vídeo del diseño importado, RETIRADOS a propósito (1-sep): sin un
+       vídeo real que enseñar, el modal solo mostraba el texto de instrucciones para el
+       equipo ("Aquí va tu vídeo... conecta tu MP4") a un lead real que pulsara el botón —
+       hallazgo de Desarrollo en la revisión de deploy. "Nada con placeholders sale del
+       estudio". Reintroducir cuando haya un vídeo real: el markup queda en el Backup de
+       esta misma fecha (Backups/20260901_1320_modelo-index_pre-dali-v5.php es la versión
+       ANTERIOR a este diseño, no sirve de referencia para esto — el botón/modal viven en
+       el primer commit de esta v5, `03aad68`, si hace falta recuperarlos). -->
 
   <!-- ── Ficha rápida ──────────────────────────────────────────────────────── -->
   <div class="facts">

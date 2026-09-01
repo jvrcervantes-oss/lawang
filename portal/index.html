@@ -419,7 +419,8 @@
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
-         firma_pendiente_desc:'Tienes este contrato pendiente de firma, enviado el', firmar_ahora:'Firmar ahora',
+         firma_pendiente_desc:'Tienes este contrato pendiente de firma, enviado el', firma_pendiente_caduca:'El enlace caduca el',
+         firmar_ahora:'Firmar ahora',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
          f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
          factura:'Factura', recibi:'Recibo', proforma:'Proforma',
@@ -471,7 +472,8 @@
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
          firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
-         firma_pendiente_desc:'This contract is awaiting your signature, sent on', firmar_ahora:'Sign now',
+         firma_pendiente_desc:'This contract is awaiting your signature, sent on', firma_pendiente_caduca:'Link expires on',
+         firmar_ahora:'Sign now',
          imprimir:'Print or save as PDF', cerrar:'Close',
          f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
          factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
@@ -903,7 +905,7 @@
           }).join('') + '</tbody></table>' : '') +
         (x.pdf ? '<div class="op-pie"><button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button></div>' : '') +
         (fp ? '<div class="op-pie" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
-          '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en)) + '</span>' +
+          '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en) + ' · ' + t('firma_pendiente_caduca') + ' ' + fecha(fp.expira_en)) + '</span>' +
           '<a class="btn-oscuro" style="text-decoration:none;display:inline-block" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' +
         '</div>' : '') +
       '</div>';
