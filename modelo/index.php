@@ -200,33 +200,6 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .btn--ghost:hover{background:var(--panel)}
 .hero__fig{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:5/4}
 .hero__fig img{width:100%;height:100%;object-fit:cover}
-.play{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:14px;background:transparent;border:0;cursor:pointer;width:100%}
-.play__dot{position:relative;width:78px;height:78px;border-radius:50%;background:var(--verde);
-  display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(46,52,55,.35)}
-.play__dot::before,.play__dot::after{content:"";position:absolute;inset:0;border-radius:50%;
-  background:var(--verde);animation:pulso 1.8s ease-out infinite}
-.play__dot::after{animation-delay:.4s}
-@keyframes pulso{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.85);opacity:0}}
-.play__tri{position:relative;width:0;height:0;border-style:solid;border-width:11px 0 11px 18px;
-  border-color:transparent transparent transparent #fff;margin-left:4px}
-.play__label{background:rgba(46,52,55,.6);color:#fff;font-size:12.5px;font-weight:600;
-  padding:6px 13px;border-radius:100px;backdrop-filter:blur(4px)}
-@media(prefers-reduced-motion:reduce){.play__dot::before,.play__dot::after{animation:none}}
-
-/* ── Modal de vídeo ───────────────────────────────────────────────────────────── */
-.modal{position:fixed;inset:0;z-index:200;background:rgba(46,52,55,.86);display:none;
-  align-items:center;justify-content:center;padding:24px}
-.modal.on{display:flex}
-.modal__box{width:100%;max-width:840px}
-.modal__close{display:flex;justify-content:flex-end;margin-bottom:10px}
-.modal__close button{background:transparent;border:0;color:#fff;font-size:28px;cursor:pointer;
-  line-height:1;padding:4px 10px}
-.modal__ph{aspect-ratio:16/9;border-radius:8px;border:1.5px dashed rgba(245,240,230,.4);
-  background:#33422A;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:8px;color:#fff;text-align:center;padding:24px}
-.modal__ph b{font-size:15px;font-weight:600}
-.modal__ph span{font-size:13px;opacity:.75;max-width:420px}
 
 /* ── Ficha rápida ─────────────────────────────────────────────────────────────── */
 .facts{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--linea);
@@ -376,7 +349,7 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .pie__links{font-size:13px;color:var(--ink2)}
 .pie__links a:hover{color:var(--verde)}
 
-@media print{ .nav,.cal,.modal{display:none} }
+@media print{ .nav,.cal{display:none} }
 </style>
 </head>
 <body>
@@ -484,8 +457,8 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
       <?php foreach ($m['acabados'] as $i => $a): ?>
       <div class="rows__it">
         <span class="n"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
-        <h3><?= lw_i18n($a['n'], $a['n_en']) ?></h3>
-        <p><?= lw_i18n($a['d'], $a['d_en']) ?></p>
+        <h3><?= lw_i18n($a['n'], $a['n_en'] ?? $a['n']) ?></h3>
+        <p><?= lw_i18n($a['d'], $a['d_en'] ?? $a['d']) ?></p>
       </div>
       <?php endforeach; ?>
     </div>
@@ -740,12 +713,6 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     var el = document.getElementById(id);
     if (el) el.addEventListener('click', function () { track('AbrioCalendario', {}); });
   });
-
-  // ── Vídeo ──────────────────────────────────────────────────────────────────
-  var modal = document.getElementById('lw-modal');
-  document.getElementById('lw-play').addEventListener('click', function () { modal.classList.add('on'); });
-  document.getElementById('lw-modal-close').addEventListener('click', function () { modal.classList.remove('on'); });
-  modal.addEventListener('click', function (e) { if (e.target === modal) modal.classList.remove('on'); });
 
   // ── Cookies: reabrir el aviso de consent.js ──────────────────────────────────
   ['lw-cookies', 'lw-cookies-en'].forEach(function (id) {
