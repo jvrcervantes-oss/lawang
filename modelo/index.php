@@ -129,7 +129,10 @@ $CALENDLY = 'https://calendly.com/lawangproperties';
 <style>
 :root{
   --papel:#F5F0E6;
-  --panel:#EDF1E8;
+  /* #EDF1E8 (antes) casi no se distinguía de --papel (diferencia de 2-8 puntos por canal,
+     imperceptible) — más saturado y con más salto real, verificado en 4,84:1 con --ink2
+     encima (sigue AA). */
+  --panel:#DCE7CB;
   --ink:#2E3437;
   /* rgba(46,52,55,.74) sobre --papel = 4,9:1 — el mockup traía opacity:.5-.68 en estos
      mismos usos (secundarios, notas, nav), que bajaba de 4,5:1 (falla AA). Un solo tono
@@ -197,8 +200,14 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:44px}}
 .hero__eyebrow{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--verde)}
 .hero h1{font-size:clamp(34px,5vw,68px);margin-top:.3em;max-width:16ch}
-.hero__precio{font-family:var(--head);font-size:24px;font-weight:700;color:var(--verde);
-  margin-top:.5em}
+/* Insignia sólida, no solo texto en color: es el dato que más pesa para quien
+   compara varias fichas, así que tiene que competir en peso visual con el titular. */
+.hero__precio{display:inline-flex;align-items:baseline;gap:6px;font-family:var(--head);
+  font-size:30px;font-weight:700;color:#fff;background:var(--verde);
+  padding:11px 22px;border-radius:100px;margin-top:.6em;
+  box-shadow:0 14px 30px -10px rgba(72,91,55,.55)}
+.hero__precio i{font-style:normal;font-family:var(--sans);font-size:14px;font-weight:600;
+  opacity:.85}
 .hero__sub{font-size:17px;color:var(--ink2);max-width:440px;margin-top:.6em}
 .hero__ctas{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
 .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--verde-tenue)}
@@ -389,7 +398,7 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     <div>
       <p class="hero__eyebrow"><?= lw_i18n('Bali, Indonesia — Obra nueva, llave en mano', 'Bali, Indonesia — New build, turnkey') ?></p>
       <h1><?= lw_e($villa) ?></h1>
-      <p class="hero__precio"><?= lw_i18n('Desde', 'From') ?> <?= lw_e($precioEs) ?></p>
+      <p class="hero__precio"><i><?= lw_i18n('Desde', 'From') ?></i> <?= lw_e($precioEs) ?></p>
       <p class="hero__sub"><?= lw_i18n($m['sub'], $m['sub_en']) ?></p>
       <div class="hero__ctas">
         <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
