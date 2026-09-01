@@ -56,6 +56,24 @@
  *   · Sin renders: no hay landing, se redirige al catálogo (lw_modelo_get).
  *   · Acabados y alcance de obra vienen de modelos.php (fuente única, ahora bilingüe
  *     ES/EN): ver `_en` en cada entrada.
+ *
+ * ── 1-sep-2026 (mismo día, tres rondas más, pedidas directamente por el owner) ──────
+ *   · Precio real (69.000 €, dado por el owner en la propia sesión) sustituye a
+ *     `null` en modelos.php. Quita el `noindex`.
+ *   · Se retira la mención a "Calendly" del texto visible (botones, nota del
+ *     calendario) — sigue siendo el mecanismo real por dentro, solo cambia el copy.
+ *   · `--panel` sube de contraste (era casi indistinguible de `--papel`) y el precio
+ *     del hero pasa de texto en color a insignia sólida.
+ *   · **Integración total del widget de Calendly** (ya no un enlace que abre
+ *     calendly.com en pestaña nueva): `calendly-inline-widget` real incrustado en la
+ *     columna lateral, con `widget.js`/`widget.css` oficiales de Calendly. Esto
+ *     REACTIVA `Lead` (arriba decía que ya no se disparaba — dejó de ser cierto):
+ *     al completar una reserva sin salir de la página, Calendly manda
+ *     `postMessage({event:'calendly.event_scheduled'})` al propio iframe, y eso
+ *     dispara `Lead` de verdad, no en el clic. Relevante para LAW-113 (adset pausado
+ *     que optimizaba sobre `Lead`): el nombre del evento vuelve a coincidir.
+ *     LAW-111 (nadie del equipo se entera de la reserva) SIGUE abierto: esto mejora
+ *     el píxel, no añade CRM ni aviso al equipo.
  */
 require __DIR__ . '/lib.php';
 $MODELOS = require __DIR__ . '/modelos.php';
@@ -126,6 +144,10 @@ $CALENDLY = 'https://calendly.com/lawangproperties';
 <link rel="preconnect" href="https://api.fontshare.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+<!-- Widget real de reserva incrustado en la página (1-sep) — nada de saltar a
+     calendly.com. defer, no bloquea el LCP de la foto de portada. -->
+<link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+<script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
 <style>
 :root{
   --papel:#F5F0E6;
@@ -188,7 +210,10 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .btn--block{width:100%;justify-content:center;padding:16px 24px;font-size:14px}
 
 /* ── Layout de dos columnas ───────────────────────────────────────────────────── */
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:40px;align-items:start}
+/* 300px (antes) se quedaba corto: el ancho útil tras el padding de .cal caía por debajo
+   de los 320px que el propio widget de Calendly pide como mínimo, y salía con scroll
+   horizontal interno. 360px deja sitio real. */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:40px;align-items:start}
 @media(max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
 
 /* ── Hero ─────────────────────────────────────────────────────────────────────── */
@@ -340,21 +365,12 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
   background:var(--papel);border:1px solid var(--linea);
   border-radius:12px;padding:22px 20px;box-shadow:0 12px 32px rgba(46,52,55,.1);
   display:flex;flex-direction:column;gap:16px}
-@media(max-width:1100px){.cal{position:static;margin-top:44px}}
+@media(max-width:1100px){.cal{position:static;margin-top:44px;max-height:none}}
 .cal__tt{font-size:15px;font-weight:700}
 .cal__sub{font-size:12px;color:var(--ink2);margin-top:2px}
-.cal__mes{font-family:var(--head);font-size:13px;font-weight:600;text-transform:capitalize}
-.cal__grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal__wd{text-align:center;font-size:10px;color:var(--ink2);font-weight:600}
-.cal__cell{aspect-ratio:1;border:0;border-radius:6px;font:inherit;font-size:12px;
-  display:flex;align-items:center;justify-content:center;background:transparent;color:var(--ink)}
-.cal__cell--avail{cursor:pointer;background:var(--panel)}
-.cal__cell--sel{background:var(--verde);color:#fff;font-weight:700}
-.cal__cell--off{opacity:.32}
-.cal__slots{display:flex;flex-wrap:wrap;gap:6px}
-.cal__slot{padding:7px 12px;border-radius:100px;font:inherit;font-size:12px;cursor:pointer;
-  border:1px solid var(--linea-fuerte);background:var(--papel);color:var(--ink)}
-.cal__slot--sel{background:var(--verde);color:#fff;border-color:var(--verde);font-weight:700}
+/* 320px es el mínimo real que pide el propio widget de Calendly; con la columna a
+   360px y el padding de .cal (20px por lado) hay margen de sobra. */
+.cal__widget{min-width:320px;height:600px}
 
 /* ── Pie ──────────────────────────────────────────────────────────────────────── */
 .pie{border-top:1px solid var(--linea)}
@@ -654,7 +670,7 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
       <b class="i-es">Calendario de disponibilidad</b><b class="i-en">Availability calendar</b>
       <span class="i-es">Elige día y hora directamente en el calendario.</span>
       <span class="i-en">Pick a day and time directly on the calendar.</span>
-      <a class="btn" id="lw-cal-cta" href="<?= lw_e($CALENDLY) ?>" target="_blank" rel="noopener">
+      <a class="btn" id="lw-cal-cta" href="#lw-cal">
         <?= lw_i18n('Ver horarios disponibles', 'See available times') ?>
       </a>
     </div>
@@ -667,17 +683,16 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 </div><!-- /col -->
 
 <!-- ── Columna del calendario ─────────────────────────────────────────────── -->
+<!-- Widget real de Calendly incrustado (1-sep, pedido del owner: "integración total",
+     nada de saltar a calendly.com). Días y horas de aquí abajo son los REALES de la
+     cuenta, no una vista previa — sustituye al calendario decorativo de la versión
+     anterior, que nunca comprobaba disponibilidad real. -->
 <aside class="cal" id="lw-cal">
   <div>
     <div class="cal__tt i-es">Reserva tu llamada</div><div class="cal__tt i-en">Book your call</div>
     <div class="cal__sub i-es">Media hora, sin compromiso.</div><div class="cal__sub i-en">Half an hour, no commitment.</div>
   </div>
-  <div class="cal__mes" id="lw-cal-mes"></div>
-  <div class="cal__grid" id="lw-cal-grid"></div>
-  <div class="cal__slots" id="lw-cal-slots"></div>
-  <a class="btn btn--block" id="lw-cal-confirm" href="<?= lw_e($CALENDLY) ?>" target="_blank" rel="noopener">
-    <?= lw_i18n('Confirmar llamada', 'Confirm call') ?>
-  </a>
+  <div class="cal__widget calendly-inline-widget" data-url="<?= lw_e($CALENDLY) ?>?hide_gdpr_banner=1"></div>
 </aside>
 
 </div><!-- /grid -->
@@ -710,7 +725,6 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
       var lang = b.getAttribute('data-set');
       html.setAttribute('data-lang', lang);
       html.lang = lang;
-      renderCalendar();
     });
   });
 
@@ -723,11 +737,19 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
   if (typeof window.lwTrack === 'function') track('ViewContent');
   else window.addEventListener('load', function () { track('ViewContent'); });
 
-  // Clic a Calendly: evento propio, no `Schedule` — es un clic, no una cita confirmada.
-  // Igual que hacía el botón de calendario GHL de la versión anterior.
-  ['lw-cal-cta', 'lw-cal-confirm'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function () { track('AbrioCalendario', {}); });
+  // Clic al botón que lleva al widget: evento propio, no `Schedule` — es un clic hacia
+  // el calendario, no una cita confirmada. Esa sí sale del propio widget, más abajo.
+  var ctaCal = document.getElementById('lw-cal-cta');
+  if (ctaCal) ctaCal.addEventListener('click', function () { track('AbrioCalendario', {}); });
+
+  // ── Reserva confirmada DE VERDAD, no un clic: Calendly manda este mensaje al propio
+  //    iframe cuando el visitante completa la reserva sin salir de la página. Con el
+  //    <form> propio esto lo daba el `Lead` del envío; con Calendly incrustado, esto
+  //    es lo más parecido que existe a esa confirmación real. ──────────────────────
+  window.addEventListener('message', function (e) {
+    if (!e.origin || e.origin.indexOf('calendly.com') === -1) return;
+    if (!e.data || e.data.event !== 'calendly.event_scheduled') return;
+    track('Lead', {});
   });
 
   // ── Cookies: reabrir el aviso de consent.js ──────────────────────────────────
@@ -738,72 +760,6 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
       if (window.lwConsentReopen) window.lwConsentReopen();
     });
   });
-
-  // ── Calendario decorativo (día/hora ilustrativos; la reserva real la hace
-  //    Calendly al pulsar "Confirmar" — este widget no comprueba disponibilidad
-  //    real de Calendly, es una vista previa del gesto de reservar). ────────────
-  var selectedDay = null;
-  var selectedTime = '09:00';
-  var SLOTS = ['09:00', '11:00', '14:00', '16:00'];
-
-  function renderCalendar() {
-    var lang = html.getAttribute('data-lang') === 'en' ? 'en' : 'es';
-    var now = new Date();
-    var year = now.getFullYear(), month = now.getMonth(), today = now.getDate();
-    var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // lunes=0
-    var wdLabels = lang === 'es' ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-    document.getElementById('lw-cal-mes').textContent =
-      now.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', {month: 'long', year: 'numeric'});
-
-    if (selectedDay === null) {
-      for (var d = today; d <= daysInMonth; d++) {
-        var dow = (firstWeekday + (d - 1)) % 7;
-        if (dow < 5) { selectedDay = d; break; }
-      }
-    }
-
-    var grid = document.getElementById('lw-cal-grid');
-    grid.textContent = '';
-    wdLabels.forEach(function (wd) {
-      var el = document.createElement('div');
-      el.className = 'cal__wd';
-      el.textContent = wd;
-      grid.appendChild(el);
-    });
-    for (var i = 0; i < firstWeekday; i++) {
-      var pad = document.createElement('div');
-      grid.appendChild(pad);
-    }
-    var _loop = function (dd) {
-      var dow = (firstWeekday + (dd - 1)) % 7;
-      var isPast = dd < today;
-      var isWeekend = dow >= 5;
-      var avail = !isPast && !isWeekend;
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = String(dd);
-      btn.className = 'cal__cell' + (avail ? ' cal__cell--avail' : ' cal__cell--off') +
-        (dd === selectedDay ? ' cal__cell--sel' : '');
-      btn.disabled = !avail;
-      if (avail) btn.addEventListener('click', function () { selectedDay = dd; renderCalendar(); });
-      grid.appendChild(btn);
-    };
-    for (var dd = 1; dd <= daysInMonth; dd++) _loop(dd);
-
-    var slots = document.getElementById('lw-cal-slots');
-    slots.textContent = '';
-    SLOTS.forEach(function (t) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = t;
-      btn.className = 'cal__slot' + (t === selectedTime ? ' cal__slot--sel' : '');
-      btn.addEventListener('click', function () { selectedTime = t; renderCalendar(); });
-      slots.appendChild(btn);
-    });
-  }
-  renderCalendar();
 })();
 </script>
 </body>
