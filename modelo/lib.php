@@ -50,3 +50,13 @@ function lw_precio_fmt($eur) {
 }
 
 function lw_e($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
+
+/**
+ * Par ES/EN como dos <span> hermanos: el CSS (html[data-lang]) esconde el que no toca y el
+ * toggle de idioma solo cambia un atributo, sin reconstruir texto por JS. $en=null repite el
+ * ES (para lo que no cambia entre idiomas, p.ej. un nombre propio).
+ */
+function lw_i18n($es, $en = null) {
+    if ($en === null) $en = $es;
+    return '<span class="i-es">' . lw_e($es) . '</span><span class="i-en">' . lw_e($en) . '</span>';
+}

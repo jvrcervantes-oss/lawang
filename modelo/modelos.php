@@ -25,13 +25,20 @@ return [
         'dormitorios'      => 1,
         // Va en el hero, bajo el titular: 20 palabras como techo. Más largo y el titular
         // deja de leerse de un vistazo, que es lo único que hace el tráfico de pago.
-        'sub'              => 'Obra nueva llave en mano. Eliges parcela y acabado, y el precio se cierra antes de firmar.',
+        'sub'              => 'Villa de 1 dormitorio en suite, construida sobre la parcela que elijas. Acabado y presupuesto cerrados por escrito antes de firmar.',
+        // 1-sep: landing bilingüe (ES/EN) — mismo dato, traducción profesional de la misma
+        // fuente. Nunca se redacta el inglés aparte "a ojo": si el ES cambia, este texto
+        // queda desincronizado hasta que alguien lo note.
+        'sub_en'           => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'precio_desde_eur' => null,
         // Los tres acabados de cubierta del pliego del contratista (anexo de obra de Dali).
         'acabados'         => [
-            ['n' => 'Alang-alang',        'd' => 'Cubierta vegetal tradicional balinesa. La estética más integrada en el entorno tropical.'],
-            ['n' => 'Bambú y Sirap Ulin', 'd' => 'Estructura de bambú combinada con teja de madera ulin. Carácter artesanal con mayor durabilidad.'],
-            ['n' => 'Sirap Ulin',         'd' => 'Teja de madera ulin, la más resistente al clima húmedo y la de mantenimiento más bajo.'],
+            ['n' => 'Alang-alang',        'd' => 'Cubierta vegetal tradicional balinesa. La estética más integrada en el entorno tropical.',
+             'n_en' => 'Alang-alang',        'd_en' => 'Traditional Balinese thatch roofing. The look most integrated into the tropical setting.'],
+            ['n' => 'Bambú y Sirap Ulin', 'd' => 'Estructura de bambú combinada con teja de madera ulin. Carácter artesanal con mayor durabilidad.',
+             'n_en' => 'Bamboo & Ulin shingle', 'd_en' => 'Bamboo structure combined with ulin wood shingle. Handcrafted character and greater durability.'],
+            ['n' => 'Sirap Ulin',         'd' => 'Teja de madera ulin, la más resistente al clima húmedo y la de mantenimiento más bajo.',
+             'n_en' => 'Ulin shingle',         'd_en' => 'Ulin wood shingle across the whole roof. The most weather-resistant, lowest-maintenance option.'],
         ],
         'alcance'          => [
             'incluido' => [
@@ -43,12 +50,25 @@ return [
                 'Acometida eléctrica PLN 3.500 W',
                 'Estructura, arquitectura e instalaciones',
             ],
+            'incluido_en' => [
+                'Main building per the project design',
+                'Roof in the finish you choose',
+                'Overflow pool in sukabumi stone',
+                'Exterior terrace',
+                'Air conditioning and hot water',
+                'PLN 3,500W electrical connection',
+                'Structure, architecture and installations',
+            ],
             // El pliego solo excluye mobiliario. Si aparecen más partidas fuera de precio
             // (licencias, notaría, IMB/PBG, conexión de agua) van aquí ANTES de publicar:
             // un "no incluido" incompleto es una reclamación.
             'no_incluido' => [
                 'Mobiliario interior: camas, armarios, cocina, mesas',
                 'Decoración y textiles',
+            ],
+            'no_incluido_en' => [
+                'Interior furniture: beds, wardrobes, kitchen, tables',
+                'Decor and textiles',
             ],
         ],
     ],

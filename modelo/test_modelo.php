@@ -47,5 +47,12 @@ foreach (['costa', 'rio'] as $f) {
 ok(!empty($dali['alcance']['incluido']) && !empty($dali['alcance']['no_incluido']),
     'un alcance de obra sin "no incluido" es una reclamacion');
 
+// Par ES/EN: dos spans, escapados, y EN cae al ES si no se da.
+ok(lw_i18n('Hola', 'Hi') === '<span class="i-es">Hola</span><span class="i-en">Hi</span>',
+    'lw_i18n debe emitir los dos spans en orden');
+ok(strpos(lw_i18n('<b>x</b>'), '&lt;b&gt;') !== false, 'lw_i18n debe escapar el HTML');
+ok(lw_i18n('Villa Dali') === lw_i18n('Villa Dali', 'Villa Dali'),
+    'sin EN explicito, lw_i18n repite el ES en el span de EN');
+
 echo $fallos === 0 ? "OK — todo pasa\n" : "$fallos fallo(s)\n";
 exit($fallos === 0 ? 0 : 1);
