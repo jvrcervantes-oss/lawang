@@ -1,1 +1,832 @@
-../../../contracts/edge/firma-submit/index.ts
+// firma-submit — el comprador firma en firmar.html y esta función cierra el
+// ciclo 100% automático: coge el snapshot de confianza, le mete la firma real +
+// una página de auditoría, lo manda al render service (Puppeteer en Railway),
+// sube el PDF a `contratos-firmados` y marca el contrato bloqueado.
+// Desplegar con verify_jwt=false. Secreto necesario: RENDER_SECRET.
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const RENDER_URL = Deno.env.get('RENDER_URL') || 'https://contracts-pdf-service-production.up.railway.app';
+const RENDER_SECRET = Deno.env.get('RENDER_SECRET') || '';
+// El sitio sirve el envío de correo (api/send_email.php) y los ficheros
+// compartidos con los que se pinta la factura. Env var para poder apuntar a un
+// entorno de pruebas sin tocar el código.
+const SITIO = (Deno.env.get('SITIO_URL') || 'https://lawangproperties.com').replace(/\/$/, '');
+// Copia del contrato firmado para el estudio. Va aparte de los compradores
+// porque no es "un destinatario más": es el acuse que se archiva.
+const ESTUDIO_EMAIL = Deno.env.get('ESTUDIO_EMAIL') || 'jcervantes@lawangproperties.com';
+// Por encima de esto el PDF se manda como enlace y no como adjunto. Gmail y la
+// práctica totalidad de servidores rechazan por encima de ~25 MB, y un contrato
+// de Lawang con anexos llega a 20 MB de sobra (los anexos van en base64 dentro
+// del jsonb). Un correo rebotado por tamaño es un contrato que el cliente NO
+// recibe y de lo que nadie se entera.
+const MAX_ADJUNTO = 15 * 1024 * 1024;
+// Techo de la TANDA entera (PDF × destinatarios) dentro de una sola peticion de
+// firma. Por encima, todos reciben enlace en vez de adjunto: da igual repartir a
+// dos que a seis, la peticion pesa lo mismo. Ver la nota en repartirFirmado().
+const MAX_TANDA = 20 * 1024 * 1024;
+
+// Origen restringido: con '*' cualquier web podia lanzar la firma desde su
+// pagina. El token sigue siendo la credencial, pero esto cierra el paso a que
+// un tercero monte una pantalla de firma que parezca nuestra.
+const ORIGENES = [
+  'https://lawangproperties.com',
+  'https://www.lawangproperties.com',
+  'https://sumbahills.lawangproperties.com',
+];
+const corsFor = (req: Request) => {
+  const o = req.headers.get('origin') ?? '';
+  const ok = ORIGENES.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);
+  return {
+    'Access-Control-Allow-Origin': ok ? o : ORIGENES[0],
+    'Access-Control-Allow-Headers': 'content-type, authorization, apikey',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin', // sin esto una CDN cachea el header de un origen y se lo sirve a otro
+  };
+};
+
+async function sha256hex(s: string | Uint8Array): Promise<string> {
+  const b = await crypto.subtle.digest('SHA-256', typeof s === 'string' ? new TextEncoder().encode(s) : s);
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+// mismo generador que app.html (randToken): 32 bytes crudos, el token va SOLO
+// en el enlace del correo — en la tabla se guarda su hash, no reconstruible.
+function randToken(): string {
+  const a = new Uint8Array(32);
+  crypto.getRandomValues(a);
+  return [...a].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+const esc = (s: string) =>
+  String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+// página final de auditoría (trilingüe ES/EN/ID), a sangre de página nueva
+function auditPage(d: { nombre: string; email: string; fechaISO: string; ip: string; numero: string; ref: string }) {
+  const fecha = d.fechaISO.replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+  const rows = [
+    ['Firmante / Signer', esc(d.nombre) || '—'],
+    ['Email', esc(d.email) || '—'],
+    ['Fecha y hora / Date & time', fecha],
+    ['IP', esc(d.ip) || '—'],
+    ['Documento / Document', esc(d.numero) || '—'],
+    ['Referencia de firma / Signature ref', esc(d.ref)],
+  ].map(([k, v]) => `<tr><td style="padding:3mm 12mm 3mm 0;color:#6b6c66;white-space:nowrap">${k}</td><td style="font-weight:600">${v}</td></tr>`).join('');
+  return `<div style="page-break-before:always;padding:26mm 20mm;font-family:'Jost',system-ui,sans-serif;color:#2E3437">
+    <div style="font-size:13pt;letter-spacing:.28em;text-transform:uppercase;color:#485B37;font-weight:600">Registro de firma electrónica</div>
+    <div style="font-size:10pt;letter-spacing:.24em;text-transform:uppercase;color:#8F9B7A;margin-top:2mm">Electronic Signature Record</div>
+    <div style="font-size:10pt;letter-spacing:.24em;text-transform:uppercase;color:#8F9B7A;margin-top:1mm">Catatan Tanda Tangan Elektronik</div>
+    <table style="border-collapse:collapse;font-size:11pt;margin-top:12mm">${rows}</table>
+    <p style="font-size:8.5pt;color:#6b6c66;margin-top:16mm;line-height:1.6;max-width:150mm">
+      Este documento fue firmado electrónicamente y a distancia por la persona identificada arriba, que declaró haber leído y aceptado su contenido. El presente registro deja constancia de dicha aceptación, la fecha/hora y la dirección IP desde la que se realizó.<br><br>
+      This document was signed electronically and remotely by the person identified above, who declared having read and accepted its content. This record evidences such acceptance, the date/time and the IP address from which it was made.<br><br>
+      Dokumen ini ditandatangani secara elektronik dan jarak jauh oleh orang yang diidentifikasi di atas, yang menyatakan telah membaca dan menerima isinya. Catatan ini membuktikan penerimaan tersebut, beserta tanggal/waktu dan alamat IP dari mana tanda tangan dilakukan.
+    </p>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CIERRE DE CICLO — lo que pasa DESPUÉS de que el contrato quede sellado
+//  ---------------------------------------------------------------------------
+//  Nada de esta sección puede tumbar una firma. Cuando se llega aquí el PDF ya
+//  está en el bucket con su hash y el contrato ya está bloqueado: el documento
+//  es válido aunque falle el correo o la factura. Por eso cada pieza va en su
+//  try/catch y lo que falla vuelve como `avisos`, no como error.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/* Envío de correo por el endpoint del sitio (PHP con SMTP autenticado). No se
+   monta un segundo emisor aquí: el remitente, el SMTP y el formato MIME ya
+   están resueltos y probados en `contracts/api/send_email.php`. */
+async function enviarEmail(p: {
+  to: string; subject: string; message: string; filename?: string; pdfB64?: string;
+  // registro de envíos (correos_enviados): quién llama dice de qué contrato /
+  // factura sale el correo y por qué vía. Sin `log` no se registra (no queda
+  // ningún llamador así, pero el envío nunca depende del log).
+  log?: { contrato_id?: string | null; factura_id?: string | null; via: string };
+}) {
+  const r = await fetch(SITIO + '/contracts/api/send_email.php', {
+    method: 'POST',
+    /* `X-Render-Secret` autentica esta función ante send_email.php desde el
+       6-ago-2026: ese endpoint ya no admite peticiones sin credencial (antes le
+       bastaba `Origin`, que un curl se salta). Se reusa el secreto del servicio
+       de render a propósito — esta función no tiene sesión de usuario, y crear un
+       secreto nuevo habría dejado el arreglo pendiente de que el owner lo pusiera
+       en dos sitios. Es el mismo valor que `private/mail.php.pdf_service_secret`.
+       ponytail: si se rota, se rota en los dos lados. */
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    body: JSON.stringify({
+      to: p.to, subject: p.subject, message: p.message,
+      ...(p.pdfB64 ? { filename: p.filename || 'documento.pdf', pdf_base64: p.pdfB64 } : { attach: false }),
+    }),
+  });
+  const t = await r.text();
+  if (!r.ok || !t.includes('"ok":true')) throw new Error('email a ' + p.to + ': ' + t.slice(0, 200));
+  if (p.log) {
+    // el correo YA salió: un fallo del log se anota y no revienta el flujo
+    // (perder una fila de registro < repetir un envío al cliente)
+    const { error } = await sb.from('correos_enviados').insert({
+      contrato_id: p.log.contrato_id ?? null, factura_id: p.log.factura_id ?? null,
+      para: p.to, asunto: p.subject, via: p.log.via, enviado_por: null,
+    });
+    if (error) console.error('correos_enviados: ' + error.message);
+  }
+}
+
+const b64 = (u8: Uint8Array) => {
+  // en trozos: `String.fromCharCode(...u8)` con un PDF de MB revienta la pila
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+/* Los ficheros que pintan la factura son los MISMOS que usa /intranet/facturas/, así que
+   la factura que sale sola y la que emite una persona son el mismo documento: si
+   mañana cambia una fila en documento.js, cambia en las dos. La alternativa que se
+   rechazó fue una segunda plantilla aquí dentro, que es lo que se queda vieja.
+
+   ══ 17-ago-2026 (auditoría, hallazgo 01) ═════════════════════════════════════
+   ANTES esos cinco ficheros se DESCARGABAN de lawangproperties.com por HTTP y se
+   ejecutaban:
+
+       const r = await fetch(SITIO + p + '?v=' + Date.now());
+       new Function('caja', fuentes.join('\n;\n') + …)(caja);
+
+   Este proceso tiene `SUPABASE_SERVICE_ROLE_KEY` en memoria. Quien controlara lo
+   que responde ese host —Hostinger, el DNS, un fichero servido a medias por el
+   CDN— ejecutaba código con acceso total a la base y por encima de TODA la RLS.
+   Y sin forma de detectarlo: el `?v=' + Date.now()` garantizaba que lo bajado no
+   se comparase nunca con nada conocido.
+
+   Lo llamativo es que el razonamiento inverso ya estaba escrito quince líneas más
+   abajo: las cuentas bancarias salieron de `entities.js` el 6-ago precisamente
+   porque «ese fichero se baja por HTTP público». Se vio el riesgo de lo que SALE
+   y no el de lo que ENTRA.
+
+   AHORA el código viaja DENTRO de la función, en `compartidos.generated.ts`, que
+   genera `tools/empaqueta_edge.py` desde esos mismos cinco ficheros — la fuente
+   única se conserva, la red desaparece. `tools/test.py` corre su `--check`, así
+   que el gate de push bloquea si alguien toca `documento.js` y no regenera.
+   ⚠️ Regenerar NO basta: hay que REDESPLEGAR esta función, o producción sigue con
+   la versión anterior. Eso se comprueba leyendo la función desplegada, no el repo.
+
+   Se sigue usando `new Function` y no `import`: son `<script>` clásicos que
+   declaran globales y los comparte una página HTML plana. La diferencia —y es
+   toda la diferencia— es que ahora evalúa una constante commiteada, no una
+   respuesta HTTP. */
+import { FUENTES, EXPORTA } from './compartidos.generated.ts';
+
+let COMPARTIDOS: Record<string, any> | null = null;
+async function compartidos() {
+  if (COMPARTIDOS) return COMPARTIDOS;
+  const caja: Record<string, any> = {};
+  new Function('caja', FUENTES.join('\n;\n') +
+    '\n;Object.assign(caja,{' + EXPORTA.join(',') + '});')(caja);
+
+  /* Las cuentas de cobro ya NO vienen dentro de entities.js (6-ago-2026): ese
+     fichero se baja por HTTP público —sin sesión, es la razón de que las cuentas
+     salieran de él— así que aquí se leen de la base con service_role, que es lo
+     que esta función ya tiene. Se rellena el MISMO objeto que publicó el
+     `new Function` de arriba, no uno nuevo: documento.js lee la global
+     CUENTAS_BANCARIAS por referencia.
+     Si esto fallara, la factura del primer hito saldría sin datos bancarios; se
+     corta aquí en vez de emitirla muda, porque una factura sin dónde pagar es
+     una factura que hay que reemitir. */
+  const { data: cuentas, error: errCuentas } = await sb.from('cuentas_bancarias')
+    .select('clave,label,titular,banco,cuenta,codigo,direccion,extra').eq('activa', true);
+  if (errCuentas) throw new Error('no se pudieron leer las cuentas de cobro: ' + errCuentas.message);
+  for (const c of cuentas ?? []) {
+    caja.CUENTAS_BANCARIAS[c.clave] = { label: c.label, titular: c.titular, banco: c.banco,
+      cuenta: c.cuenta, codigo: c.codigo, direccion: c.direccion, extra: c.extra };
+  }
+
+  COMPARTIDOS = caja;
+  return caja;
+}
+
+/* El contrato firmado, al estudio y a cada comprador con email. El estudio
+   siempre; los compradores, los que tengan dirección — a quien no la dio no se
+   le inventa una. */
+async function repartirFirmado(o: {
+  numero: string; pdf: Uint8Array; path: string; compradores: any[]; proyecto: string;
+  contratoId: string;
+}) {
+  /* ¿ADJUNTO O ENLACE? No basta con mirar el peso del PDF: hay que mirar el peso
+     TOTAL de la tanda, porque el adjunto se manda una vez POR DESTINATARIO y
+     todo ocurre dentro de la misma peticion de firma.
+
+     Medido el 17-ago-2026 sobre los contratos ya firmados con varios firmantes:
+       · CR00021 — 4 firmantes, PDF de 3,9 MB → 5 correos × 5,2 MB = 25,7 MB
+       · CR00015 — 2 firmantes, PDF de 8,8 MB → 3 correos × 11,5 MB = 34,4 MB
+     Cada uno de esos correos es un POST con el PDF en base64 hacia el emisor del
+     sitio, uno detras de otro. Cuando la funcion se queda sin tiempo a mitad del
+     bucle su `catch` NO llega a correr: no hay aviso, no hay registro, y solo
+     han salido los primeros. Es el fallo que reporto el owner — «solo el primero
+     y yo lo recibimos firmado» — y por eso no dejaba rastro en ningun sitio.
+
+     Con el enlace la peticion pesa lo mismo con dos destinatarios que con seis.
+     El enlace ya existia para PDFs grandes; lo unico que cambia es CUANDO se
+     usa. */
+  const tanda = o.pdf.length * Math.max(1, 1 + o.compradores.filter((c) => c.email).length);
+  const grande = o.pdf.length > MAX_ADJUNTO || tanda > MAX_TANDA;
+  let enlace = '';
+  if (grande) {
+    // 30 días: el comprador tiene que poder volver a descargarlo sin pedirlo.
+    const { data, error } = await sb.storage.from('contratos-firmados')
+      .createSignedUrl(o.path, 30 * 24 * 3600);
+    if (error || !data) throw new Error('no se pudo firmar el enlace de descarga: ' + (error?.message ?? ''));
+    enlace = data.signedUrl;
+  }
+  const adjunto = grande ? {} : { pdfB64: b64(o.pdf), filename: o.numero + '_firmado.pdf' };
+  const cola = [
+    '', '', 'Lawang Tropical Properties',
+    'PT TEPI SUN GAI · PT SAN DAL WOODS',
+  ].join('\n');
+  const pie = grande
+    ? '\n\nEl documento va por enlace en vez de adjunto:\n' + enlace +
+      '\n(El enlace caduca en 30 días. Si lo necesitas después, escríbenos.)'
+    : '\n\nEl documento firmado va adjunto a este correo.';
+
+  const errores: string[] = [];
+  const destinos = [
+    { to: ESTUDIO_EMAIL, estudio: true },
+    ...o.compradores.filter((c) => c.email).map((c) => ({ to: c.email, nombre: c.nombre, estudio: false })),
+  ];
+  for (const d of destinos) {
+    const asunto = d.estudio
+      ? 'Contrato firmado · ' + o.numero + (o.proyecto ? ' · ' + o.proyecto : '')
+      : 'Tu contrato firmado · ' + o.numero;
+    const cuerpo = d.estudio
+      ? 'Se ha completado la firma del contrato ' + o.numero + '.' +
+        (o.proyecto ? '\nProyecto: ' + o.proyecto : '') +
+        '\nFirmantes: ' + o.compradores.map((c) => c.nombre).join(', ') +
+        '\n\nCopia para archivo.' + pie
+      : 'Hola' + ((d as any).nombre ? ' ' + String((d as any).nombre).split(' ')[0] : '') + ',' +
+        '\n\nHemos recibido tu firma. Aquí tienes tu copia del contrato ' + o.numero +
+        (o.proyecto ? ' (' + o.proyecto + ')' : '') + ', ya firmado.' +
+        '\n\nGuárdalo: es el documento con el registro de firma electrónica que acredita la operación.' +
+        pie + cola;
+    try { await enviarEmail({ to: d.to, subject: asunto, message: cuerpo, ...adjunto,
+                              log: { contrato_id: o.contratoId, via: 'firma' } }); }
+    catch (e) { errores.push(String((e as Error).message)); }
+  }
+  if (errores.length) throw new Error(errores.join(' | '));
+}
+
+/* Factura del PRIMER hito del calendario de pagos. El número lo pone el trigger
+   de la base de datos (serie INV), nunca esta función: si lo calculara aquí, dos
+   firmas simultáneas emitirían el mismo número.
+   Se cobra UN hito, el primero — no los cuatro. Si el contrato no tiene
+   calendario, o el primer hito no da importe, no se emite nada y se avisa: una
+   factura con importe inventado es dinero mal pedido. */
+async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: any })
+    : Promise<{ emitida: boolean; mensaje: string }> {
+  const C = await compartidos();
+  const f = o.ct.fields || {};
+  const hitos = Array.isArray(o.ct.hitos) ? o.ct.hitos : [];
+  if (!hitos.length) return { emitida: false, mensaje: 'contrato sin calendario de pagos: no se emite factura' };
+
+  const moneda = f.moneda || o.ct.moneda || 'EUR';
+  const precio = C.parseImporte(f.precio_total) || Number(o.ct.precio_total) || 0;
+  const h = hitos[0];
+  const pct = C.parseImporte(h.pct);
+  const monto = C.parseImporte(h.monto) || (pct && precio ? Math.round(precio * pct / 100 * 100) / 100 : 0);
+  if (!monto) return { emitida: false,
+    mensaje: 'el primer hito no fija importe ni porcentaje sobre un precio conocido: no se emite factura' };
+
+  const compradores = C.compradoresDeContrato(f, o.ct.extras);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const descripcion = [h.es || h.en || 'Primer pago', pct ? '(' + pct + '% del precio acordado)' : '']
+    .filter(Boolean).join(' ') + (h.timing ? ' — ' + h.timing : '');
+  const lineas = [{ descripcion, importe: String(monto) }];
+
+  // Misma forma que produce collect() en /intranet/facturas/, para que la factura se abra
+  // ahí tal cual y se pueda corregir o anular como cualquier otra.
+  const campos: Record<string, string> = {
+    tipo: 'factura',
+    sociedad: f.sociedad_firmante && C.SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai',
+    cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
+    fecha_emision: hoy, fecha_vencimiento: '', moneda,
+    numero_visible: '', contrato_numero: o.numero,
+    cliente_nombre: C.nombresFactura(compradores),
+    cliente_documento: C.documentosFactura(compradores),
+    cliente_domicilio: C.primerDato(compradores, 'domicilio'),
+    cliente_email: C.primerDato(compradores, 'email'),
+    proyecto_nombre: [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa]
+      .filter(Boolean).join(' — '),
+    // El impuesto va vacío a propósito: qué tipo aplica en Indonesia (PPN y su
+    // porcentaje vigente) no está confirmado, y un porcentaje inventado en una
+    // factura es dinero mal calculado.
+    imp_etiqueta: '', imp_pct: '',
+    notas: 'Primer hito del contrato ' + o.numero + '. Emitida automáticamente al completarse la firma.',
+  };
+  const totales = C.calcTotales(lineas, moneda, { pct: '' });
+
+  const { data: fila, error } = await sb.from('facturas').insert({
+    tipo: 'factura', sociedad: campos.sociedad,
+    cliente_nombre: campos.cliente_nombre || null,
+    proyecto_nombre: campos.proyecto_nombre || null,
+    contrato_numero: o.numero, contrato_id: o.contratoId,
+    total: totales.total, moneda, fecha_emision: hoy,
+    datos: { fields: { ...campos, lineas }, lineas, totales },
+  }).select('id, numero').single();
+  if (error || !fila) throw new Error('no se pudo crear la factura: ' + (error?.message ?? 'sin fila'));
+
+  // El número ya emitido tiene que salir impreso en el papel que se manda.
+  campos.numero_visible = fila.numero;
+  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, base: SITIO });
+
+  const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    body: JSON.stringify({ html }),
+  });
+  if (!rr.ok) throw new Error('factura ' + fila.numero + ' creada, pero no se pudo generar su PDF: render ' + rr.status);
+  const pdf = new Uint8Array(await rr.arrayBuffer());
+  if (String.fromCharCode(...pdf.slice(0, 4)) !== '%PDF')
+    throw new Error('factura ' + fila.numero + ' creada, pero el render no devolvió un PDF');
+
+  const para = campos.cliente_email || ESTUDIO_EMAIL;
+  const importe = C.fmtMoneda(totales.total, moneda);
+  await enviarEmail({
+    to: para,
+    subject: 'Factura ' + fila.numero + ' · ' + o.numero,
+    message: 'Hola' + (compradores[0] ? ' ' + compradores[0].nombre.split(' ')[0] : '') + ',' +
+      '\n\nAdjuntamos la factura ' + fila.numero + ' correspondiente al primer pago del contrato ' +
+      o.numero + '.' +
+      '\n\nConcepto: ' + descripcion +
+      '\nImporte: ' + importe +
+      '\n\nLos datos para la transferencia están en la propia factura.' +
+      '\n\n\nLawang Tropical Properties',
+    filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+    log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'factura_auto' },
+  });
+  // Copia al estudio, para que la emisión no dependa de mirar el panel.
+  if (para !== ESTUDIO_EMAIL) {
+    await enviarEmail({
+      to: ESTUDIO_EMAIL,
+      subject: 'Factura ' + fila.numero + ' emitida y enviada · ' + o.numero,
+      message: 'Factura ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
+        o.numero + ' y enviada a ' + para + '.\n\n' + descripcion,
+      filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+      log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'factura_auto' },
+    });
+  }
+  return { emitida: true, mensaje: 'factura ' + fila.numero + ' emitida y enviada a ' + para };
+}
+
+/* Proforma del TOTAL del proyecto. `contracts/app.html` ya la crea al guardar
+   el contrato por primera vez (con número asignado, sin enviar); aquí se
+   RELEE precio_total y los datos del comprador —pueden haber cambiado entre
+   ese guardado y esta firma— y se manda. Si no existiera (contrato de antes
+   de este cambio, o falló su creación) se crea aquí mismo: sin precio_total
+   válido no se emite nada.
+   Desde el 11-ago-2026 es el ÚNICO documento que sale solo al firmar — antes
+   convivía con una factura real del primer hito (facturarPrimerHito, más
+   abajo, ya sin llamarse) que "con fuerza de cobro" acabó siendo el origen
+   de un balance de cliente mal calculado. La proforma es informativa, sin
+   validez fiscal; la factura de cada hito la crea un agente a mano cuando
+   corresponde, revisada antes de salir.
+   Solo reserva_parcela/construccion (12-ago, petición del owner): una Carta
+   de Reserva no es una venta, es un documento preliminar — generarle una
+   proforma duplicaba el "Precio pactado" de un mismo cliente en Compradores
+   en cuanto firmaba también el contrato real de la misma villa (mismo motivo
+   que `crearProformaAutomatica` en contracts/app.html, que hace este mismo
+   corte al GUARDAR; este es el corte gemelo al FIRMAR). */
+const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
+async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: any })
+    : Promise<{ emitida: boolean; mensaje: string }> {
+  if (!TIPOS_CON_PROFORMA_AUTO.includes(o.ct.tipo)) {
+    return { emitida: false, mensaje: 'tipo "' + o.ct.tipo + '" no genera proforma automática (solo Bloqueo de Parcela/Construcción)' };
+  }
+  const C = await compartidos();
+  const f = o.ct.fields || {};
+  const moneda = f.moneda || o.ct.moneda || 'EUR';
+  const precio = C.parseImporte(f.precio_total) || Number(o.ct.precio_total) || 0;
+  if (!precio) return { emitida: false, mensaje: 'contrato sin precio_total: no se emite proforma' };
+
+  const compradores = C.compradoresDeContrato(f, o.ct.extras);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const lineas = [{ descripcion: 'Total del proyecto', importe: String(precio) }];
+  const campos: Record<string, string> = {
+    tipo: 'proforma',
+    sociedad: f.sociedad_firmante && C.SOCIEDADES[f.sociedad_firmante] ? f.sociedad_firmante : 'tepi_sungai',
+    cuenta: f.cuenta_bancaria && C.CUENTAS_BANCARIAS[f.cuenta_bancaria] ? f.cuenta_bancaria : '',
+    fecha_emision: hoy, fecha_vencimiento: '', moneda,
+    numero_visible: '', contrato_numero: o.numero,
+    cliente_nombre: C.nombresFactura(compradores),
+    cliente_documento: C.documentosFactura(compradores),
+    cliente_domicilio: C.primerDato(compradores, 'domicilio'),
+    cliente_email: C.primerDato(compradores, 'email'),
+    proyecto_nombre: [f.proyecto_nombre, f.parcela_codigo || f.villa_nombre || f.tipologia_villa]
+      .filter(Boolean).join(' — '),
+    imp_etiqueta: '', imp_pct: '',
+    notas: 'Total del proyecto contratado en ' + o.numero + '. Documento informativo, sin validez fiscal — ' +
+      'el cobro de cada pago se factura aparte, a medida que vence.',
+  };
+  const totales = C.calcTotales(lineas, moneda, { pct: '' });
+
+  // La proforma que ya se creó al guardar el contrato (o.contratoId es FK real).
+  const { data: existente, error: errBusca } = await sb.from('facturas')
+    .select('id, numero').eq('contrato_id', o.contratoId).eq('tipo', 'proforma').eq('anulada', false)
+    .order('created_at', { ascending: true }).limit(1).maybeSingle();
+  if (errBusca) throw new Error('no se pudo buscar la proforma: ' + errBusca.message);
+
+  let fila: { id: string; numero: string };
+  if (existente) {
+    // resync: el precio o los datos del comprador pudieron cambiar desde la creación
+    const upd = await sb.from('facturas').update({
+      sociedad: campos.sociedad, cliente_nombre: campos.cliente_nombre || null,
+      proyecto_nombre: campos.proyecto_nombre || null, contrato_numero: o.numero,
+      total: totales.total, moneda, fecha_emision: hoy,
+      datos: { fields: { ...campos, lineas }, lineas, totales },
+    }).eq('id', existente.id).select('id, numero').single();
+    if (upd.error || !upd.data) throw new Error('no se pudo actualizar la proforma: ' + (upd.error?.message ?? ''));
+    fila = upd.data;
+  } else {
+    const ins = await sb.from('facturas').insert({
+      tipo: 'proforma', sociedad: campos.sociedad,
+      cliente_nombre: campos.cliente_nombre || null, proyecto_nombre: campos.proyecto_nombre || null,
+      contrato_numero: o.numero, contrato_id: o.contratoId,
+      total: totales.total, moneda, fecha_emision: hoy,
+      datos: { fields: { ...campos, lineas }, lineas, totales },
+    }).select('id, numero').single();
+    if (ins.error || !ins.data) throw new Error('no se pudo crear la proforma: ' + (ins.error?.message ?? ''));
+    fila = ins.data;
+  }
+
+  campos.numero_visible = fila.numero;
+  const html = C.documentoPagina({ ...campos, lineas }, { numero: fila.numero, base: SITIO });
+
+  const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+    body: JSON.stringify({ html }),
+  });
+  if (!rr.ok) throw new Error('proforma ' + fila.numero + ' creada, pero no se pudo generar su PDF: render ' + rr.status);
+  const pdf = new Uint8Array(await rr.arrayBuffer());
+  if (String.fromCharCode(...pdf.slice(0, 4)) !== '%PDF')
+    throw new Error('proforma ' + fila.numero + ' creada, pero el render no devolvió un PDF');
+
+  const para = campos.cliente_email || ESTUDIO_EMAIL;
+  const importe = C.fmtMoneda(totales.total, moneda);
+  await enviarEmail({
+    to: para,
+    subject: 'Factura proforma ' + fila.numero + ' · ' + o.numero,
+    message: 'Hola' + (compradores[0] ? ' ' + compradores[0].nombre.split(' ')[0] : '') + ',' +
+      '\n\nAdjuntamos la factura proforma ' + fila.numero + ' con el importe total del proyecto contratado en ' +
+      o.numero + '.' +
+      '\n\nImporte total: ' + importe +
+      '\n\nEs un documento informativo, sin validez fiscal: el cobro de cada pago se factura aparte, ' +
+      'a medida que vence.' +
+      '\n\n\nLawang Tropical Properties',
+    filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+    log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'proforma' },
+  });
+  const marcar = await sb.from('facturas')
+    .update({ enviada: true, fecha_envio: new Date().toISOString() }).eq('id', fila.id);
+  if (marcar.error) {
+    console.error('proforma', fila.numero, 'enviada pero SIN marcar enviada=true:', marcar.error.message);
+  }
+  // Copia al estudio, para que la emisión no dependa de mirar el panel.
+  if (para !== ESTUDIO_EMAIL) {
+    await enviarEmail({
+      to: ESTUDIO_EMAIL,
+      subject: 'Proforma ' + fila.numero + ' emitida y enviada · ' + o.numero,
+      message: 'Proforma ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
+        o.numero + ' y enviada a ' + para + '.',
+      filename: fila.numero + '.pdf', pdfB64: b64(pdf),
+      log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'proforma' },
+    });
+  }
+  return { emitida: true, mensaje: 'proforma ' + fila.numero + ' emitida y enviada a ' + para };
+}
+
+Deno.serve(async (req) => {
+  const cors = corsFor(req);
+  const json = (o: unknown, s = 200) =>
+    new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'content-type': 'application/json' } });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json({ error: 'metodo' }, 405);
+  if (!RENDER_SECRET) return json({ error: 'config' }, 500);
+
+  let claimedId: string | null = null;
+  try {
+    const { token, signature, typedName } = await req.json().catch(() => ({}));
+    if (!token || typeof token !== 'string') return json({ error: 'token' }, 400);
+    if (typeof signature !== 'string' || !signature.startsWith('data:image/png;base64,') || signature.length < 200)
+      return json({ error: 'firma' }, 400);
+    if (signature.length > 3_000_000) return json({ error: 'firma_grande' }, 413);
+
+    const hash = await sha256hex(token);
+    // reclama el token de forma atómica: solo un submit puede pasar de 'pendiente'
+    // a 'procesando'. Evita doble firma / doble render por doble click o reintento.
+    const { data: claimed } = await sb
+      .from('contrato_firmas')
+      .update({ estado: 'procesando' })
+      .eq('token_hash', hash)
+      .eq('estado', 'pendiente')
+      .select('id, contrato_id, expira_en, snapshot_path, firmante_nombre, firmante_email, firmante_rol, contratos(numero)')
+      .maybeSingle();
+    if (!claimed) return json({ error: 'no_disponible' }, 409); // no existe, ya usado, o en proceso
+    claimedId = claimed.id;
+
+    if (new Date(claimed.expira_en) < new Date()) {
+      await sb.from('contrato_firmas').update({ estado: 'pendiente' }).eq('id', claimed.id);
+      return json({ error: 'expirado' }, 410);
+    }
+
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+    const ua = (req.headers.get('user-agent') || '').slice(0, 400);
+    const numero = (claimed as any).contratos?.numero || '';
+
+    const { data: file, error: dlErr } = await sb.storage.from('contratos-firmados').download(claimed.snapshot_path);
+    if (dlErr || !file) throw new Error('snapshot no disponible');
+    let html = await file.text();
+
+    // ── Firma en cadena: cada rol tiene SU centinela ────────────────────
+    // adquiriente_1 → %%FIRMA_ADQUIRIENTE%% (histórico) · adquiriente_N → %%FIRMA_ADQ_N%%
+    const rol = String(claimed.firmante_rol || 'adquiriente_1');
+    const sent = rol === 'adquiriente_1' ? '%%FIRMA_ADQUIRIENTE%%' : `%%FIRMA_ADQ_${rol.split('_')[1]}%%`;
+    if (html.includes(sent)) {
+      html = html.replaceAll(sent, signature); // firma real dentro del <img src>
+      // la auditoría se APILA: una página por firmante, en orden de firma
+      const audit = auditPage({
+        nombre: typedName || claimed.firmante_nombre || '',
+        email: claimed.firmante_email || '',
+        fechaISO: new Date().toISOString(),
+        ip,
+        numero,
+        ref: claimed.id,
+      });
+      html = html.includes('</body>') ? html.replace('</body>', audit + '</body>') : html + audit;
+    } else if (!html.includes(claimed.id)) {
+      // sin centinela Y sin rastro de esta firma en el snapshot = documento sin
+      // hueco para este rol (snapshot de antes de la cadena) — mejor fallar en
+      // voz alta que producir un "firmado" sin la firma. Se regenera desde la app.
+      /* NO dice ya «regenera el enlace»: regenerar reconstruye el MISMO documento
+         desde la MISMA plantilla, así que da el mismo error. Ese consejo hizo que
+         el agente de PA00006 lo reintentara una y otra vez (17-ago-2026). La
+         causa real es una plantilla sin hueco de firma, y eso se arregla en la
+         plantilla. Desde ese mismo día la app ya no deja ni generar el enlace en
+         ese caso, así que esto es la segunda barrera, no la primera. */
+      throw new Error('la plantilla de este documento no tiene hueco de firma para ' + rol +
+        ' — hay que añadírselo a la plantilla; regenerar el enlace no lo arregla');
+    }
+    // (si el snapshot ya lleva la referencia de esta firma es un REINTENTO tras
+    // un fallo a mitad: la firma ya está estampada, se sigue sin duplicarla)
+
+    // ── ¿Es la última firma de la cadena? ───────────────────────────────
+    // Firmantes esperados = Adquiriente I (si tiene nombre) + adicionales con
+    // identidad, leídos del propio contrato. Columnas concretas, nunca datos
+    // entero: el jsonb pesa MB por los anexos en base64.
+    // Columnas concretas, JAMÁS `datos` entero: el jsonb pesa MB por los anexos
+    // en base64. `datos->fields` sí es texto plano (las firmas no viven ahí) y
+    // hace falta al completo para el correo y la factura del primer hito.
+    const { data: ct, error: ctErr } = await sb.from('contratos')
+      .select('adq1:datos->fields->>adq1_nombre, extras:datos->compradores, ' +
+              'fields:datos->fields, hitos:datos->hitos, precio_total, moneda, proyecto_nombre, tipo')
+      .eq('id', claimed.contrato_id).single();
+    if (ctErr || !ct) throw new Error('no se pudo leer el contrato: ' + (ctErr?.message ?? 'sin fila'));
+    const extras = Array.isArray((ct as any).extras) ? (ct as any).extras : [];
+    const conDatos = (c: unknown) => ['nombre', 'nacionalidad', 'pasaporte', 'domicilio', 'telefono', 'email']
+      .some((k) => String((c as Record<string, unknown>)?.[k] ?? '').trim() !== '');
+    const adq1Nombre = String((ct as any).adq1 ?? '').trim();
+    const adq1Email = String((ct as any).fields?.adq1_email ?? '').trim();
+    const total = Math.max(1, (adq1Nombre ? 1 : 0) + extras.filter(conDatos).length);
+    const { data: firmadas, error: cntErr } = await sb.from('contrato_firmas')
+      .select('firmante_rol')
+      .eq('contrato_id', claimed.contrato_id).eq('estado', 'firmado');
+    if (cntErr) throw new Error('no se pudo contar las firmas: ' + cntErr.message);
+    const yaFirmadas = firmadas?.length ?? 0;
+    const esUltima = yaFirmadas + 1 >= total;
+
+    if (!esUltima) {
+      // ── Firma INTERMEDIA: no hay PDF ni bloqueo todavía ───────────────
+      // 1) guardar el documento CON esta firma como snapshot vivo del contrato
+      //    (path fijo por contrato_id) — es lo que recibirá el siguiente
+      //    firmante. Si esto falla se lanza: un "ok" con el snapshot sin
+      //    guardar significaría que el siguiente firma un documento al que le
+      //    falta una firma, y nadie se enteraría (el fallo que FIRMA_EN_CADENA
+      //    marca como el peor). El catch devuelve el token a pendiente y el
+      //    reintento es limpio (el snapshot original sigue intacto).
+      const snapPath = `pendientes/${claimed.contrato_id}.html`;
+      const save = await sb.storage.from('contratos-firmados')
+        .upload(snapPath, new Blob([html], { type: 'text/html' }), { contentType: 'text/html', upsert: true });
+      if (save.error) throw new Error('no se pudo guardar el documento firmado: ' + save.error.message);
+      // 2) marcar la firma (si falla, el catch devuelve el token a pendiente;
+      //    el reintento detecta la firma ya estampada por la referencia y no
+      //    la duplica — ver guard de arriba)
+      const media = await sb.from('contrato_firmas').update({
+        estado: 'firmado', firmado_en: new Date().toISOString(), firmante_ip: ip, firmante_user_agent: ua,
+      }).eq('id', claimed.id);
+      if (media.error) throw new Error('no se pudo registrar la firma: ' + media.error.message);
+      // 3) anular pendientes sueltos (regeneraciones viejas) — informativo, la
+      //    app ya anula al generar el siguiente enlace; solo se deja rastro
+      const barrida = await sb.from('contrato_firmas').update({ estado: 'anulado' })
+        .eq('contrato_id', claimed.contrato_id).eq('estado', 'pendiente');
+      if (barrida.error) console.error('pendientes sin anular en', claimed.contrato_id, ':', barrida.error.message);
+
+      // 4) siguiente firmante de la cadena: enlace generado y enviado SOLO —
+      //    hasta el 7-ago esto lo hacía un operador a mano desde la app en
+      //    cuanto veía que el anterior había firmado (FIRMA_EN_CADENA.md lo
+      //    dejó fuera a propósito: "decisión aparte"). Mismo orden y misma
+      //    plantilla de correo que el botón "Generar enlace de firma" de
+      //    app.html — esto no sustituye ese botón, solo evita tener que
+      //    pulsarlo: si algo aquí falla, el operador lo genera a mano igual.
+      const avisosCadena: string[] = [];
+      try {
+        const rolesFirmados = new Set((firmadas ?? []).map((f) => f.firmante_rol));
+        rolesFirmados.add(rol);   // la de ahora mismo: la lectura de arriba es de ANTES de marcarla
+        // ⚠️ DUPLICADO a propósito de firmantesDelContrato() en contracts/app.html
+        // (esta función no comparte runtime con esa página). Si cambia el criterio
+        // de "quién cuenta como firmante" allí, replicarlo aquí también.
+        const cadena: { rol: string; nombre: string; email: string }[] = [];
+        if (adq1Nombre) cadena.push({ rol: 'adquiriente_1', nombre: adq1Nombre, email: adq1Email });
+        extras.forEach((c: any, i: number) => {
+          if (!conDatos(c)) return;
+          cadena.push({ rol: 'adquiriente_' + (i + 2), nombre: String(c.nombre ?? '').trim(), email: String(c.email ?? '').trim() });
+        });
+        const siguiente = cadena.find((s) => !rolesFirmados.has(s.rol));
+        if (!siguiente) {
+          avisosCadena.push('no se encontró al siguiente firmante en la cadena — revisa y genera el enlace a mano');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(siguiente.email)) {
+          avisosCadena.push(siguiente.nombre + ' (' + siguiente.rol + ') no tiene email válido en el contrato — genera y manda el enlace a mano');
+        } else {
+          const token = randToken();
+          const tHash = await sha256hex(token);
+          const orden = cadena.findIndex((s) => s.rol === siguiente.rol) + 1;
+          const link = SITIO + '/contracts/firmar.html?t=' + token;
+          // enlace_firma (1-sep-2026, decisión del owner, ver enviarAFirma en
+          // app.html): mismo campo que rellena el botón "Generar enlace de
+          // firma" — sin esto, el 2º/3er firmante de una cadena no vería su
+          // tarjeta de "pendiente de firma" en /portal/.
+          const insSig = await sb.from('contrato_firmas').insert({
+            contrato_id: claimed.contrato_id, token_hash: tHash,
+            firmante_nombre: siguiente.nombre, firmante_email: siguiente.email,
+            firmante_rol: siguiente.rol, orden, snapshot_path: snapPath,
+            enlace_firma: link,
+          });
+          if (insSig.error) throw new Error(insSig.error.message);
+          // sin pdfB64: enviarEmail() ya manda `attach:false` cuando no se le da
+          // un PDF — va solo el enlace, mismo criterio que "Generar enlace de
+          // firma" en app.html (adjuntar aquí sería un documento sin firmar
+          // con aspecto de definitivo).
+          await enviarEmail({
+            to: siguiente.email,
+            subject: 'Documento para firmar · ' + numero,
+            message: 'Hola' + (siguiente.nombre ? ' ' + siguiente.nombre.split(' ')[0] : '') +
+              ', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: ' + link +
+              '\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties',
+            log: { contrato_id: claimed.contrato_id, via: 'enlace_firma' },
+          });
+        }
+      } catch (e) {
+        avisosCadena.push('firma registrada, pero el enlace del siguiente firmante NO se generó/envió solo: ' +
+          (e as Error).message + ' — genera y manda el enlace desde la app');
+      }
+      if (avisosCadena.length) console.error('cadena', claimed.contrato_id, ':', avisosCadena.join(' | '));
+      return json({ ok: true, numero, faltan: total - (yaFirmadas + 1), ...(avisosCadena.length ? { avisos: avisosCadena } : {}) });
+    }
+    // ── ÚLTIMA firma: renderizar, sellar y bloquear (flujo original) ─────
+
+    // render con Chromium real (mismo servicio que el email de contratos)
+    const rr = await fetch(RENDER_URL.replace(/\/$/, '') + '/render-pdf', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'X-Render-Secret': RENDER_SECRET },
+      body: JSON.stringify({ html }),
+    });
+    if (!rr.ok) throw new Error('render ' + rr.status + ' ' + (await rr.text()).slice(0, 200));
+    const pdf = new Uint8Array(await rr.arrayBuffer());
+    if (pdf.length < 5 || String.fromCharCode(...pdf.slice(0, 4)) !== '%PDF') throw new Error('render no devolvió PDF');
+
+    // La ruta la decide la FIRMA, no el contrato. Antes era `<numero>.pdf`, que
+    // rompía de dos formas distintas y en silencio (28-jul-2026):
+    //   · dos adquirientes del mismo contrato -> el 2º machacaba el PDF del 1º
+    //     y solo sobrevivía la última firma;
+    //   · "Subir firmado" en app.html usaba ESA MISMA ruta, así que una subida
+    //     manual pisaba el PDF firmado a distancia, y al revés.
+    // `claimed.id` es además la "Referencia de firma" impresa en la página de
+    // auditoría del propio PDF: el nombre del fichero es rastreable al registro.
+    // `upsert:true` se mantiene a propósito: ahora la ruta es única por firma,
+    // así que reescribir solo puede pisar el reintento de ESA misma firma.
+    const path = `${numero || 'contrato'}_${claimed.id}.pdf`;
+    // hash ANTES de subir: con el bucket en upsert, el registro es la única
+    // prueba de integridad del documento (UU ITE 11/2008 la exige para que el
+    // PDF valga como evidencia).
+    const pdfHash = await sha256hex(pdf);
+    const up = await sb.storage.from('contratos-firmados').upload(path, pdf, { contentType: 'application/pdf', upsert: true });
+    if (up.error) throw up.error;
+
+    // ── Cierre del ciclo ────────────────────────────────────────────────
+    // TODO update se comprueba. `.update()` de supabase-js NO lanza: devuelve
+    // `{ error }`. Sin mirarlo, un fallo aquí dejaba al comprador con un PDF
+    // sellado como firmado mientras el registro decía otra cosa, y la función
+    // respondía ok:true. Documento y registro contradiciéndose es el peor
+    // escenario probatorio posible; peor que fallar de forma visible.
+    // Si algo falla se lanza: el `catch` devuelve el token a 'pendiente' y el
+    // comprador puede reintentar. El PDF se sube con upsert, así que el
+    // reintento lo reescribe sin duplicar.
+
+    // 1) marcar la firma ANTES de bloquear el contrato. Si fallara el bloqueo,
+    //    queda una firma registrada sin contrato bloqueado — detectable y
+    //    reparable. Al revés (contrato bloqueado sin firma registrada) es un
+    //    contrato cerrado del que nadie sabe quién lo firmó.
+    const marcada = await sb.from('contrato_firmas').update({
+      estado: 'firmado', firmado_en: new Date().toISOString(), firmante_ip: ip, firmante_user_agent: ua,
+    }).eq('id', claimed.id);
+    if (marcada.error) throw new Error('no se pudo registrar la firma: ' + marcada.error.message);
+
+    // 2) bloquear el contrato (mismo efecto que "Subir firmado" manual)
+    const bloqueo = await sb.from('contratos')
+      .update({ bloqueado: true, pdf_firmado_path: path, pdf_firmado_hash: pdfHash })
+      .eq('id', claimed.contrato_id);
+    if (bloqueo.error) throw new Error('no se pudo bloquear el contrato: ' + bloqueo.error.message);
+
+    // 3) `pdf_path` es informativo (cada firma guarda SU pdf; el de `contratos`
+    //    solo apunta al último) y va en su propio update: si la columna no
+    //    existiera todavía, PostgREST rechazaría el lote ENTERO y tumbaría la
+    //    transición de estado, que es la crítica.
+    //    Aquí NO se lanza: la firma ya es válida sin este dato. Pero se deja
+    //    rastro en los logs de la función, porque un fallo silencioso era
+    //    justamente el problema: el comentario decía "es solo un dato que
+    //    falta" y nadie se enteraba de que faltaba.
+    const ruta = await sb.from('contrato_firmas').update({ pdf_path: path, pdf_hash: pdfHash }).eq('id', claimed.id);
+    if (ruta.error) {
+      console.error('firma', claimed.id, 'firmada pero SIN pdf_path/pdf_hash:', ruta.error.message,
+                    '— el PDF está en', path, 'con sha256', pdfHash);
+    }
+
+    // 4) cadena completa → ningún enlace debe sobrevivir (regla: al completarse
+    //    la última firma se anulan TODOS los pendientes del contrato)
+    const barridaFinal = await sb.from('contrato_firmas').update({ estado: 'anulado' })
+      .eq('contrato_id', claimed.contrato_id).eq('estado', 'pendiente');
+    if (barridaFinal.error) console.error('pendientes sin anular al cerrar', claimed.contrato_id, ':', barridaFinal.error.message);
+
+    // ── A PARTIR DE AQUÍ el contrato ya es válido y está sellado ───────────
+    // Reparto del firmado y factura del primer hito. Van FUERA del camino
+    // crítico y cada uno en su try: si el correo o la factura fallan, la firma
+    // no se deshace ni se devuelve un error al comprador —que ya firmó y no
+    // puede hacer nada al respecto—. Se avisa por logs y en la respuesta.
+    const avisos: string[] = [];
+    const compradores = [
+      { nombre: String((ct as any).adq1 ?? '').trim(), email: String((ct as any).fields?.adq1_email ?? '').trim() },
+      ...extras.filter(conDatos).map((c: any) => ({ nombre: String(c.nombre ?? '').trim(), email: String(c.email ?? '').trim() })),
+    ].filter((c) => c.nombre);
+
+    try {
+      await repartirFirmado({ numero, pdf, path, compradores, contratoId: claimed.contrato_id,
+                              proyecto: String((ct as any).proyecto_nombre ?? (ct as any).fields?.proyecto_nombre ?? '') });
+    } catch (e) {
+      const m = 'contrato ' + numero + ' firmado pero NO repartido por email: ' + (e as Error).message;
+      console.error(m); avisos.push(m);
+    }
+
+    // facturarPrimerHito() YA NO se llama aquí (11-ago-2026, decisión del dueño
+    // tras un balance de cliente real que salió mal): una factura automática
+    // "con fuerza de cobro" sin que un agente la revise es dinero mal pedido.
+    // Ahora solo sale la proforma informativa; la factura por hito la crea un
+    // agente a mano en /intranet/facturas/ cuando corresponde, y esa factura NO cuenta
+    // como cobrado hasta que exista un recibí que la referencie (ver
+    // facturas/sql/recibi_aplicaciones.sql). La función sigue abajo, sin
+    // llamarse, por si se retoma con revisión humana de por medio.
+
+    // Carta de Reserva y demás tipos preliminares no llegan ni a intentarlo:
+    // no calificar aquí (en vez de dejar que enviarProformaTotal() lo rechace
+    // por dentro) evita que su "no toca" salga como si fuera un fallo en
+    // `avisos` — no generar la proforma es lo correcto, no una incidencia.
+    if (TIPOS_CON_PROFORMA_AUTO.includes((ct as any).tipo)) {
+      try {
+        const r = await enviarProformaTotal({ contratoId: claimed.contrato_id, numero, ct });
+        console.log('firma', claimed.id, '·', r.mensaje);
+        if (!r.emitida) avisos.push(r.mensaje);
+      } catch (e) {
+        const m = 'contrato ' + numero + ' firmado pero SIN proforma del total: ' + (e as Error).message;
+        console.error(m); avisos.push(m);
+      }
+    }
+
+    return json({ ok: true, numero, faltan: 0, ...(avisos.length ? { avisos } : {}) });
+  } catch (e) {
+    const detalle = String((e as Error)?.message ?? e);
+    /* ⚠️ SOLO SI SIGUE EN 'procesando'. Sin ese filtro este catch PISABA una
+       firma ya completada: en el tramo final la firma se marca 'firmado'
+       ANTES de bloquear el contrato, así que si el bloqueo fallaba, esto la
+       devolvía a 'pendiente' — quedaba el PDF firmado y sellado en el bucket y
+       el registro diciendo que nadie había firmado. Es exactamente el
+       "documento y registro contradiciéndose" que el comentario de más arriba
+       llama el peor escenario probatorio posible, y lo provocaba el propio
+       manejador de errores. Con el filtro, una firma que llegó a marcarse se
+       queda marcada y el fallo posterior se arregla mirando el aviso. */
+    if (claimedId) {
+      const vuelta = await sb.from('contrato_firmas')
+        .update({ estado: 'pendiente' })
+        .eq('id', claimedId).eq('estado', 'procesando');
+      if (vuelta.error) console.error('firma', claimedId, 'no se pudo devolver a pendiente:', vuelta.error.message);
+    }
+    /* El detalle va al LOG, no al firmante. Esto responde a un tercero sin
+       autenticar —el comprador— y `e.message` arrastra mensajes de Postgres,
+       rutas del bucket y el cuerpo del servicio de render. Además no le sirve
+       de nada: quien puede actuar es el estudio. Se devuelve un código estable
+       para que la página diga algo útil y el detalle queda en los registros. */
+    console.error('firma-submit', claimedId ?? '(sin token reclamado)', '·', detalle);
+    return json({ error: 'fallo_interno' }, 500);
+  }
+});
