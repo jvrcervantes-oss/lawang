@@ -31,7 +31,7 @@
      emitió el equipo, no una reconstrucción parecida. `entities.js` trae los
      datos bancarios dentro de la propia factura. -->
 <link rel="stylesheet" href="/intranet/facturas/documento.css?v=20260731">
-<script src="/contracts/assets/entities.js?v=5f9da647"></script>
+<script src="/contracts/assets/entities.js?v=7c67741d"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/intranet/facturas/documento.js?v=20260731"></script>
@@ -224,9 +224,11 @@
   .campo{ margin-bottom:12px; }
   .campo label{ display:block; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
                 color:#8a8570; margin-bottom:5px; }
-  .campo input, .campo select, .campo textarea{ width:100%; font:inherit; font-size:14px; padding:10px 12px;
+  .campo input, .campo select, .campo textarea,
+  .campo-input{ width:100%; font:inherit; font-size:14px; padding:10px 12px;
     border:1px solid rgba(138,132,116,.5); border-radius:9px; background:#fdfcf9; color:inherit; }
   .campo textarea{ resize:vertical; }
+  .campo-input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(16,76,79,.13); }
 
   .chat{ background:#fff; border:1px solid rgba(138,132,116,.35); border-radius:16px; display:flex; flex-direction:column;
          height:min(560px,calc(100vh - 220px)); }
@@ -430,6 +432,7 @@
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
          firma_pendiente_desc:'Tienes este contrato pendiente de firma, enviado el', firma_pendiente_caduca:'El enlace caduca el',
+         ver_borrador:'Ver borrador', cargando:'Cargando…',
          firmar_ahora:'Firmar ahora',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
          f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
@@ -483,6 +486,7 @@
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
          firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
          firma_pendiente_desc:'This contract is awaiting your signature, sent on', firma_pendiente_caduca:'Link expires on',
+         ver_borrador:'View draft', cargando:'Loading…',
          firmar_ahora:'Sign now',
          imprimir:'Print or save as PDF', cerrar:'Close',
          f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
@@ -907,8 +911,12 @@
       var cobrado = Number(x.cobrado) || 0;
       var pct = (precio > 0) ? Math.min(100, Math.round(cobrado/precio*100)) : null;
       var hs = estadosHitos(x.hitos, cobrado, precio);
-      var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(190,179,165,.4)';
-      var tagColor = x.firmado ? 'var(--ok)' : 'var(--va)';
+      // "Pendiente de firma" en naranja (1-sep-2026, pedido del cliente: "es
+      // algo grave, dale urgencia") — antes compartía el mismo gris neutro
+      // que cualquier otro estado sin marcar, y no destacaba entre el resto
+      // de la ficha.
+      var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(184,99,29,.14)';
+      var tagColor = x.firmado ? 'var(--ok)' : '#B8631D';
       var fp = firmaPend[x.id];
       return '<div class="op"><div class="op-cab">' +
         '<div class="info"><h3><b>' + esc(x.numero) + '</b><span class="sub">' + esc(x.proyecto||'') +
@@ -933,11 +941,13 @@
         (x.pdf ? '<div class="op-pie"><button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button></div>' : '') +
         (fp ? '<div class="op-pie" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
           '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en) + ' · ' + t('firma_pendiente_caduca') + ' ' + fecha(fp.expira_en)) + '</span>' +
+          '<button type="button" class="btn-borde" data-borrador="' + esc(fp.enlace) + '">' + esc(t('ver_borrador')) + '</button>' +
           '<a class="btn-oscuro" style="text-decoration:none;display:inline-block" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' +
         '</div>' : '') +
       '</div>';
     }).join('');
     c.querySelectorAll('[data-contrato]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-contrato')); }); });
+    c.querySelectorAll('[data-borrador]').forEach(function(b){ b.addEventListener('click', function(){ abreBorrador(b.getAttribute('data-borrador')); }); });
   }
 
   /* ── Facturas ─────────────────────────────────────────────────────── */
@@ -1049,7 +1059,9 @@
     html += tickets.length ? '<div class="doclista">' + tickets.map(function(x){
       var ultimo = x.mensajes[x.mensajes.length - 1];
       var abierto = x.estado === 'abierto';
-      var col = abierto ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
+      // "Abierto" en sólido (1-sep-2026, pedido del cliente: se perdía contra
+      // el crema de fondo con el tinte tan suave que llevaba antes).
+      var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
       var extracto = ultimo ? (ultimo.de === 'equipo' ? t('tu') + ': ' : '') + ultimo.texto : '';
       if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
       return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.categoria) + '</div>' +
@@ -1070,13 +1082,13 @@
 
   function abreTicket(x){
     var abierto = x.estado === 'abierto';
-    var col = abierto ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
+    var col = abierto ? ['var(--tg)','#fff'] : ['rgba(63,82,48,.12)','var(--ok)'];
     abreDrawer(
       '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(x.categoria) + '</h3>' +
       '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
       '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
       '<form id="fTicket">' +
-        '<input id="ticketIn" placeholder="' + esc(t('responder')) + '" style="width:100%;margin-bottom:10px">' +
+        '<input id="ticketIn" class="campo-input" placeholder="' + esc(t('responder')) + '" style="margin-bottom:10px">' +
         '<div style="display:flex;gap:10px">' +
           '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button>' +
           '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>' +
@@ -1228,11 +1240,11 @@
     var v = documentoVars(soc);
     var estilo = function(k){ return Object.keys(v[k]).filter(function(p){ return v[k][p]; }).map(function(p){ return p+':'+v[k][p]; }).join(';'); };
     abreDrawer(
-      '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '"><div class="doc" style="' + estilo('doc') + '">' +
-        documentoHTML(campos, { numero: f.numero }) + '</div></div></div>' +
-      '<div style="display:flex;gap:10px;margin-top:14px">' +
+      '<div style="display:flex;gap:10px;margin-bottom:14px">' +
         '<button type="button" class="btn-oscuro" id="btnImprimirDoc">' + esc(t('imprimir')) + '</button>' +
-        '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>',
+        '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>' +
+      '<div class="hoja-scroll"><div class="sheet" style="' + estilo('hoja') + '"><div class="doc" style="' + estilo('doc') + '">' +
+        documentoHTML(campos, { numero: f.numero }) + '</div></div></div>',
       'ancho'
     );
     document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
@@ -1257,6 +1269,40 @@
       );
       document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
     });
+  }
+
+  /* ── el BORRADOR de un contrato aún sin firmar, en el drawer ─────────
+     Reutiliza firma-get TAL CUAL (1-sep-2026, tarde) — es la misma edge
+     que ya sirve firmar.html: valida el token, descarta la fila si no está
+     'pendiente', limpia el centinela %%FIRMA_ADQUIRIENTE%% y devuelve el
+     HTML. Nada nuevo que desplegar ni revisar: es el documento que el
+     firmante YA puede ver hoy por el enlace de "Firmar ahora", solo que
+     aquí se enseña sin salir del portal. El token viaja en `fp.enlace`
+     (mismo dato que ya expone el botón de al lado), se extrae del query
+     string — nunca se guarda aparte. */
+  function abreBorrador(enlace){
+    var m = /[?&]t=([^&]+)/.exec(enlace || ''); if (!m) return;
+    abreDrawer(
+      '<div id="borradorCarga" style="padding:40px 0;text-align:center;color:#8a8570;font-size:13px">' + esc(t('cargando')) + '</div>',
+      'ancho'
+    );
+    fetch(URL_SB + '/functions/v1/firma-get', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: decodeURIComponent(m[1]) })
+    }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+      .then(function(res){
+        var cont = document.getElementById('borradorCarga'); if (!cont) return;
+        if (!res.ok || !res.j.html){ cont.textContent = t('err_carga'); return; }
+        cont.outerHTML =
+          '<h3 style="margin:0 0 4px;font-size:15px;font-weight:600">' + esc(res.j.numero||'') + '</h3>' +
+          '<iframe id="borradorFrame" style="width:100%;height:70vh;border:0;background:#fff;border-radius:8px"></iframe>' +
+          '<div style="display:flex;gap:10px;margin-top:14px">' +
+            '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>';
+        document.getElementById('borradorFrame').srcdoc = res.j.html;
+        document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
+      }).catch(function(){
+        var cont = document.getElementById('borradorCarga'); if (cont) cont.textContent = t('err_carga');
+      });
   }
 
   /* ── cambiar contraseña, en el drawer ────────────────────────────────

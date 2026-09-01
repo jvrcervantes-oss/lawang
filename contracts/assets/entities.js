@@ -131,6 +131,17 @@ const SOCIEDADES = {
     // El crema de San Dal Woods sí se queda con el -10%: el verde carga más a
     // la vista que el crema al mismo nivel de luminosidad.
     folio: '#E6EFE0',
+    /* Tinta EXPLÍCITA (1-sep-2026, tarde) — hasta hoy esta sociedad no la
+       llevaba a propósito ("sin tinta, se queda con el verde/lagoon de
+       Lawang vía brand.css", ver la nota de san_dal_woods más abajo): es
+       la propia marca Lawang, tiene sentido heredar. El fallo real es que
+       /portal/ NO carga brand.css/lawang.css (decisión consciente, "sistema
+       visual propio") — sin la cascada, `--brand-primary` queda sin valor y
+       ".doc thead" imprime texto BLANCO sobre fondo transparente: invisible.
+       Mismos hex que ya pone brand.css (--tg/--dl) para que la intranet no
+       cambie ni un píxel; el portal deja de depender de una hoja que
+       decidió no cargar. */
+    tinta: { primary:'#485B37', deep:'#104C4F' },
     domicilio: 'Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia',
     npwp: '1000.0000.0619.8026',
     /* ⚠️ EL REPRESENTANTE DE ESTA SOCIEDAD ES I WAYAN EKA ARYAWAN (desde
