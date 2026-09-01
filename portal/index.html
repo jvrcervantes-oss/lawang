@@ -536,11 +536,16 @@
   }
 
   var isMobile = function(){ return window.innerWidth < 880; };
-  window.addEventListener('resize', function(){
+  function aplicaLayoutMovil(){
     document.getElementById('btnAbrirSidebar').hidden = !isMobile();
     document.getElementById('btnCerrarSidebar').hidden = !isMobile();
     if (!isMobile()) cierraSidebar();
-  });
+  }
+  // Se llama YA, no solo en resize: en una carga real desde el móvil (sin
+  // redimensionar nada) el botón de abrir menú se quedaba oculto para
+  // siempre y el sidebar no tenía ninguna otra forma de abrirse.
+  aplicaLayoutMovil();
+  window.addEventListener('resize', aplicaLayoutMovil);
 
   /* ── RUTAS: #/seccion o #/facturas/NUM (abre el drawer directamente) ── */
   var SECCIONES = ['inicio','contratos','facturas','obra','documentos','soporte','mensajes','perfil'];
@@ -566,6 +571,13 @@
         var f = (DATOS && DATOS.facturas || []).filter(function(x){ return x.numero === r.doc; })[0];
         if (f) abreFactura(f); else if (desdeHash) vasA('facturas', null, true);
       }
+    } else if (!document.getElementById('drawer').hidden) {
+      // Navegar a una sección sin documento (ej. clic en el sidebar) tiene
+      // que cerrar el cajón que hubiera quedado abierto: si no, el fondo
+      // cambia de sección pero el cajón y su velo se quedan tapándola
+      // encima. `ESTADO.drawer` no se usaba para nada (nunca se asignaba),
+      // así que el estado real es el propio `hidden` del cajón en el DOM.
+      cierraDrawer();
     }
     render();
   }
