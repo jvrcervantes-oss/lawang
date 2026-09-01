@@ -15,11 +15,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600&family=Instrument+Sans:wght@600;700&display=swap" rel="stylesheet">
-<!-- Iconos Phosphor (1-sep-2026, encargo del owner: "iconografía que haga más
-     legible los campos" de Mi perfil). Misma librería y misma versión fijada
-     que ya usa toda la intranet (icon del riel, herramientas.js) — un solo
-     vocabulario de iconos en toda la suite, no uno nuevo aquí. -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Iconos de "Mi perfil" y del login: SVG inline en el propio HTML/JS, NO la
+     fuente de icono Phosphor que usa la intranet (1-sep-2026, tarde). Un
+     bloqueador/antivirus del cliente frenaba la descarga del .woff2 sin
+     dejar rastro visible (ni error de consola, ni fallo en Network) —
+     confirmado con `document.fonts.check("16px Phosphor")` devolviendo
+     false pese a que el .css sí cargaba. El portal es la cara del CLIENTE,
+     no la del equipo: aquí el icono tiene que funcionar siempre, sin
+     depender de qué bloqueador traiga instalado quien lo abra. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- EL DOCUMENTO DE VERDAD, sin tocar (ver la nota que ya llevaba este
      fichero): `documento.js` es la fuente única de la maquetación de una
@@ -61,10 +64,14 @@
   .entrada input:focus{ outline:none; border-color:var(--dl); box-shadow:0 0 0 3px rgba(16,76,79,.13); }
   /* icono dentro del campo (1-sep-2026) — el texto pasa a alinearse a la
      izquierda, que es lo natural con un icono delante; centrado y un icono
-     a la vez leían raro. */
+     a la vez leían raro. SVG inline, no fuente de icono (1-sep-2026, tarde):
+     un bloqueador/antivirus del cliente frenaba la descarga del .woff2 de
+     Phosphor sin dejar ni error en consola ni en Network — `document.fonts
+     .check("16px Phosphor")` daba false pese a CSS cargado sin fallo
+     visible. Un SVG es marcado, no un recurso aparte que pueda bloquearse. */
   .campo-icono{ position:relative; }
-  .campo-icono i{ position:absolute; left:13px; top:50%; transform:translateY(-50%);
-    font-size:16px; color:#a8a394; pointer-events:none; }
+  .campo-icono svg{ position:absolute; left:13px; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; color:#a8a394; pointer-events:none; }
   .campo-icono input{ text-align:left; padding-left:38px; }
   .btn-primario{ width:100%; font:inherit; font-size:13.5px; font-weight:600; color:#fff; background:var(--dl);
                   border:1px solid var(--dl); border-radius:999px; padding:12px; cursor:pointer; white-space:nowrap; }
@@ -130,7 +137,7 @@
   /* Mi perfil: icono + etiqueta, más legible que la etiqueta sola (1-sep-2026). */
   .campo-lbl{ font-size:11px; color:#8a8570; text-transform:uppercase; letter-spacing:.02em;
     display:flex; align-items:center; gap:6px; }
-  .campo-lbl i{ font-size:13px; color:var(--sc); flex:none; }
+  .campo-lbl svg{ width:13px; height:13px; color:var(--sc); flex:none; }
   .kpi .val{ font-family:'Instrument Sans',sans-serif; font-size:26px; font-weight:700; color:var(--va); }
   .kpi .val.ok{ color:var(--ok); }
 
@@ -301,13 +308,13 @@
     <div class="rot" data-t="area">Área de clientes</div>
     <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.</p>
     <form id="fLogin">
-      <div class="campo-icono"><i class="ph ph-envelope-simple"></i><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
     </form>
     <p data-t="login_intro_pass" id="loginIntroPass" hidden>Introduce tu correo y tu contraseña.</p>
     <form id="fLoginPass" hidden>
-      <div class="campo-icono"><i class="ph ph-envelope-simple"></i><input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com"></div>
-      <div class="campo-icono"><i class="ph ph-lock-simple"></i><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmailPass" autocomplete="email" required placeholder="tu@correo.com"></div>
+      <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg><input type="password" id="inPass" autocomplete="current-password" required placeholder="••••••••"></div>
       <button class="btn-primario" type="submit" data-t="pass_btn">Entrar</button>
     </form>
     <div id="avisoLogin" class="aviso"></div>
@@ -1106,6 +1113,20 @@
   }
 
   /* ── Perfil ───────────────────────────────────────────────────────── */
+  /* Iconos en SVG inline, no fuente de icono (1-sep-2026, tarde): un
+     bloqueador/antivirus del cliente frenaba la descarga del .woff2 de
+     Phosphor sin dejar rastro en consola ni en Network — un SVG es marcado,
+     no un recurso aparte que pueda bloquearse. Mismos trazos que Phosphor
+     "regular", copiados de su propio SVG fuente. */
+  var ICONOS_PERFIL = {
+    user: '<path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"></path>',
+    envelope: '<path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path>',
+    phone: '<path d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46ZM176,208A128.14,128.14,0,0,1,48,80,40.2,40.2,0,0,1,82.87,40a.61.61,0,0,0,0,.12l21,47L83.2,111.86a6.13,6.13,0,0,0-.57.77,16,16,0,0,0-1,15.7c9.06,18.53,27.73,37.06,46.46,46.11a16,16,0,0,0,15.75-1.14,8.44,8.44,0,0,0,.74-.56L168.89,152l47,21.05h0s.08,0,.11,0A40.21,40.21,0,0,1,176,208Z"></path>',
+    pin: '<path d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z"></path>'
+  };
+  function svgPerfil(clave){
+    return '<svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + ICONOS_PERFIL[clave] + '</svg>';
+  }
   /* "Lo que nos entregaste" (kyc) vive aquí desde el 1-sep (antes en
      Documentos, pedido del cliente: es documentación de LA CUENTA —
      pasaporte, NPWP, KITAS… — no de la promoción). */
@@ -1114,10 +1135,10 @@
     c.innerHTML = '<div style="display:grid;gap:16px;max-width:520px">' +
       '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('datos_personales')) + '</h3>' +
         '<div style="display:grid;gap:10px">' +
-          '<div><div class="campo-lbl"><i class="ph ph-user"></i>' + esc(t('nombre')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.nombre||'—') + '</div></div>' +
-          '<div><div class="campo-lbl"><i class="ph ph-envelope-simple"></i>' + esc(t('correo')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.email||'—') + '</div></div>' +
-          '<div><div class="campo-lbl"><i class="ph ph-phone"></i>' + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
-          '<div><div class="campo-lbl"><i class="ph ph-map-pin"></i>' + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
+          '<div><div class="campo-lbl">' + svgPerfil('user') + esc(t('nombre')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.nombre||'—') + '</div></div>' +
+          '<div><div class="campo-lbl">' + svgPerfil('envelope') + esc(t('correo')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.email||'—') + '</div></div>' +
+          '<div><div class="campo-lbl">' + svgPerfil('phone') + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
+          '<div><div class="campo-lbl">' + svgPerfil('pin') + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
         '</div></div>' +
       (kyc.length ? '<div class="tarjeta"><h3 style="margin:0 0 6px;font-size:15px;font-weight:600">' + esc(t('d_entregado')) + '</h3>' +
         '<p style="margin:0 0 14px;font-size:12.5px;color:#6b6c66">' + esc(t('d_entregado_nota')) + '</p>' +
