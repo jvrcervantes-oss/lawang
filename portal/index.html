@@ -419,6 +419,7 @@
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
+         firma_pendiente_desc:'Tienes este contrato pendiente de firma, enviado el', firmar_ahora:'Firmar ahora',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
          f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
          factura:'Factura', recibi:'Recibo', proforma:'Proforma',
@@ -431,10 +432,12 @@
          doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'caduca el',
          sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
          err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
-         categoria:'Categoría', categoria_opcional:'¿De qué trata? (opcional)', sin_categoria:'Sin categoría',
-         enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
+         categoria:'Categoría', enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
          responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
-         sin_mensajes:'Escríbenos cuando quieras — te responderemos aquí.',
+         nuevo_ticket:'Nuevo ticket', elige_categoria:'Elige de qué trata…', mensaje:'Mensaje',
+         abrir_ticket:'Abrir ticket', completa_campos:'Elige una categoría y escribe tu mensaje.',
+         ticket_abierto:'Ticket abierto. Te responderemos aquí.',
+         sin_tickets_t:'Aún no tienes ningún ticket', sin_tickets:'Abre uno cuando necesites algo — pagos, documentación, obra o cualquier otra duda.',
          aviso_no_vinculante:'Esto es un canal de atención, no un documento contractual: ningún precio, plazo o condición cambia hasta que quede reflejado en tu contrato o en un anexo firmado.',
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          seguridad:'Seguridad', cambiar_pass_btn:'Cambiar contraseña',
@@ -468,6 +471,7 @@
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
          firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
+         firma_pendiente_desc:'This contract is awaiting your signature, sent on', firmar_ahora:'Sign now',
          imprimir:'Print or save as PDF', cerrar:'Close',
          f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
          factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
@@ -480,10 +484,12 @@
          doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'expires',
          sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
          err_fichero:'We could not open the document. Please try again in a moment.',
-         categoria:'Category', categoria_opcional:'What is it about? (optional)', sin_categoria:'No category',
-         enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
+         categoria:'Category', enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
          responder:'Reply…', tu:'You', equipo:'Lawang team',
-         sin_mensajes:'Write to us any time — we will reply here.',
+         nuevo_ticket:'New ticket', elige_categoria:'What is it about…', mensaje:'Message',
+         abrir_ticket:'Open ticket', completa_campos:'Pick a category and write your message.',
+         ticket_abierto:'Ticket opened. We will reply here.',
+         sin_tickets_t:'You have no tickets yet', sin_tickets:'Open one whenever you need something — payments, documentation, construction or anything else.',
          aviso_no_vinculante:'This is a support channel, not a contractual document: no price, deadline or condition changes until it is reflected in your contract or a signed annex.',
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          seguridad:'Security', cambiar_pass_btn:'Change password',
@@ -722,10 +728,10 @@
   /* ══ NAV ══════════════════════════════════════════════════════════════ */
   var NAV_DEFS = ['inicio','contratos','facturas','obra','documentos','soporte','perfil'];
   function pintaNav(){
-    // Insignia binaria (no cuenta tickets: ya no hay varios) — hilo abierto = 1.
-    var abierto = DATOS && DATOS.hilo_estado === 'abierto';
+    // Cuenta tickets abiertos de verdad (1-sep-2026: vuelven a ser varios).
+    var abiertos = DATOS ? (DATOS.tickets||[]).filter(function(x){ return x.estado === 'abierto'; }).length : 0;
     document.getElementById('nav').innerHTML = NAV_DEFS.map(function(k){
-      var badge = k === 'soporte' && abierto ? '<span class="badge">1</span>' : '';
+      var badge = k === 'soporte' && abiertos ? '<span class="badge">' + abiertos + '</span>' : '';
       return '<button type="button" class="navrow' + (k === ESTADO.section ? ' on' : '') + '" data-nav="' + k + '">' +
              '<span>' + esc(t('nav_' + k)) + '</span>' + badge + '</button>';
     }).join('');
@@ -865,6 +871,8 @@
   function pintaContratos(c){
     var d = DATOS;
     if (!(d.contratos||[]).length){ c.innerHTML = vacio(t('sin_contratos_t'), t('sin_contratos')); return; }
+    var firmaPend = {};
+    (d.firma_pendiente||[]).forEach(function(f){ firmaPend[f.contrato_id] = f; });
     c.innerHTML = d.contratos.map(function(x){
       var precio = (x.precio != null) ? Number(x.precio) : num(x.precio_txt);
       var cobrado = Number(x.cobrado) || 0;
@@ -872,6 +880,7 @@
       var hs = estadosHitos(x.hitos, cobrado, precio);
       var tagBg = x.firmado ? 'rgba(63,82,48,.12)' : 'rgba(190,179,165,.4)';
       var tagColor = x.firmado ? 'var(--ok)' : 'var(--va)';
+      var fp = firmaPend[x.id];
       return '<div class="op"><div class="op-cab">' +
         '<div class="info"><h3><b>' + esc(x.numero) + '</b><span class="sub">' + esc(x.proyecto||'') +
           (x.parcela ? ' · ' + esc(t('unidad')) + ' ' + esc(x.parcela) : '') + '</span>' +
@@ -893,6 +902,10 @@
               '<td><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(t(y.estado)) + '</span></td></tr>';
           }).join('') + '</tbody></table>' : '') +
         (x.pdf ? '<div class="op-pie"><button type="button" class="btn-borde" data-contrato="' + esc(x.numero) + '">' + esc(t('ver_contrato')) + '</button></div>' : '') +
+        (fp ? '<div class="op-pie" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+          '<span style="font-size:12px;color:#8a8570">' + esc(t('firma_pendiente_desc') + ' ' + fecha(fp.enviado_en)) + '</span>' +
+          '<a class="btn-oscuro" style="text-decoration:none;display:inline-block" href="' + esc(fp.enlace) + '" target="_blank" rel="noopener">' + esc(t('firmar_ahora')) + '</a>' +
+        '</div>' : '') +
       '</div>';
     }).join('');
     c.querySelectorAll('[data-contrato]').forEach(function(b){ b.addEventListener('click', function(){ vasA('contratos', b.getAttribute('data-contrato')); }); });
@@ -992,50 +1005,100 @@
     });
   }
 
-  /* ── Soporte (fusión de "Soporte" + "Mensajes", 1-sep-2026) ──────────
-     El owner los vio como la misma cosa duplicada: un sistema de tickets
-     aparte de un chat aparte. Ahora es UN hilo por comprador (mismas tablas
-     que ya usaba "Mensajes"), con una categoría opcional por mensaje y un
-     estado (abierto/resuelto) que solo cambia el equipo — lo pone
-     hilo_soporte, lo lee portal_situacion() como DATOS.hilo_estado. */
+  /* ── Soporte, por TICKETS (1-sep-2026, corrección del owner sobre el
+     diseño de esta misma mañana: "soporte debe ser por tickets y no como
+     una conversación continua"). Cada ticket es una fila de hilo_soporte,
+     con su propia categoría (el título) y su propio estado abierto/resuelto
+     — un comprador puede tener varios a la vez, incluso de la misma
+     categoría. Las conversaciones de antes de este cambio viven ya como un
+     ticket "General" abierto (migración, no se perdió nada). */
   var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
   function pintaSoporte(c){
-    var d = DATOS, mensajes = d.mensajes || [];
-    var abierto = d.hilo_estado !== 'resuelto';   // sin hilo_estado (nunca escribió) = tratamos como "abierto" visualmente
+    var d = DATOS, tickets = d.tickets || [];
+    var html = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
+      '<button type="button" class="btn-oscuro" id="btnNuevoTicket" style="margin-bottom:18px">' + esc(t('nuevo_ticket')) + '</button>';
+    html += tickets.length ? '<div class="doclista">' + tickets.map(function(x){
+      var ultimo = x.mensajes[x.mensajes.length - 1];
+      var abierto = x.estado === 'abierto';
+      var col = abierto ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
+      var extracto = ultimo ? (ultimo.de === 'equipo' ? t('tu') + ': ' : '') + ultimo.texto : '';
+      if (extracto.length > 80) extracto = extracto.slice(0, 80) + '…';
+      return '<div class="docfila" data-ticket="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.categoria) + '</div>' +
+        (extracto ? '<div class="s">' + esc(extracto) + '</div>' : '') + '</div>' +
+        '<div class="der"><span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' +
+          esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
+        '<div style="margin-top:4px;font-size:11px;color:#a8a394">' + esc(fecha(x.actualizado_en)) + '</div></div></div>';
+    }).join('') + '</div>' : vacio(t('sin_tickets_t'), t('sin_tickets'));
+    c.innerHTML = html;
+    document.getElementById('btnNuevoTicket').addEventListener('click', abrirNuevoTicket);
+    c.querySelectorAll('[data-ticket]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var tk = tickets.filter(function(x){ return x.id === el.getAttribute('data-ticket'); })[0];
+        if (tk) abreTicket(tk);
+      });
+    });
+  }
+
+  function abreTicket(x){
+    var abierto = x.estado === 'abierto';
     var col = abierto ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
-    c.innerHTML =
-      '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
-      '<div class="chat"><div class="cab" style="display:flex;align-items:center;gap:10px">' +
-        '<div><b>Lawang</b><div class="rol">' + (LANG==='es' ? 'Tu equipo de atención' : 'Your account team') + '</div></div>' +
-        (d.hilo_estado ? '<span class="tag chico" style="margin-left:auto;background:' + col[0] + ';color:' + col[1] + '">' +
-          esc(abierto ? t('abierto') : t('resuelto')) + '</span>' : '') +
-      '</div>' +
-      '<div class="hilo" id="chatHilo"></div>' +
-      '<form id="fChat" style="flex-wrap:wrap">' +
-        '<select id="chatCategoria" title="' + esc(t('categoria_opcional')) + '" style="font:inherit;font-size:12.5px;padding:8px 9px;border:1px solid rgba(138,132,116,.5);border-radius:9px;background:#fdfcf9;flex:none;max-width:150px">' +
-          '<option value="">' + esc(t('sin_categoria')) + '</option>' +
-          CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '">' + esc(cat) + '</option>'; }).join('') +
-        '</select>' +
-        '<input id="chatIn" placeholder="' + esc(t('responder')) + '" style="flex:1;min-width:120px">' +
-        '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>';
-    var hilo = document.getElementById('chatHilo');
-    hilo.innerHTML = mensajes.length ? mensajes.map(function(m){
+    abreDrawer(
+      '<h3 style="margin:0 0 8px;font-size:15px;font-weight:600">' + esc(x.categoria) + '</h3>' +
+      '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(abierto ? t('abierto') : t('resuelto')) + '</span>' +
+      '<div id="ticketHilo" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin:14px 0;padding:2px"></div>' +
+      '<form id="fTicket">' +
+        '<input id="ticketIn" placeholder="' + esc(t('responder')) + '" style="width:100%;margin-bottom:10px">' +
+        '<div style="display:flex;gap:10px">' +
+          '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button>' +
+          '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button>' +
+        '</div></form>'
+    );
+    var hilo = document.getElementById('ticketHilo');
+    hilo.innerHTML = x.mensajes.length ? x.mensajes.map(function(m){
       var mia = m.de === 'cliente';
       return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
-        (m.categoria ? '<div style="font-size:10px;color:#a8a394;margin-bottom:2px;text-align:' + (mia?'right':'left') + '">' + esc(m.categoria) + '</div>' : '') +
         '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div>' +
         '<div class="fecha-msg" style="text-align:' + (mia?'right':'left') + '">' + esc(fechaHora(m.creado_en)) + '</div></div></div>';
-    }).join('') : '<p style="font-size:13px;color:#8a8570;text-align:center;margin-top:20px">' + esc(t('sin_mensajes')) + '</p>';
+    }).join('') : '';
     hilo.scrollTop = hilo.scrollHeight;
-    document.getElementById('fChat').addEventListener('submit', function(e){
+    document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
+    document.getElementById('fTicket').addEventListener('submit', function(e){
       e.preventDefault();
-      var val = document.getElementById('chatIn').value.trim(); if (!val) return;
-      var cat = document.getElementById('chatCategoria').value || null;
+      var val = document.getElementById('ticketIn').value.trim(); if (!val) return;
       var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
-      sb.rpc('portal_enviar_mensaje', { p_client_id: DATOS.client_id, p_texto: val, p_categoria: cat }).then(function(r){
+      sb.rpc('portal_enviar_mensaje', { p_hilo_id: x.id, p_texto: val }).then(function(r){
         btn.disabled = false;
         if (r.error){ toast(r.error.message); return; }
-        recargaSituacion(function(){ render(); });
+        recargaSituacion(function(){
+          var actual = (DATOS.tickets||[]).filter(function(t2){ return t2.id === x.id; })[0];
+          if (actual) abreTicket(actual); else cierraDrawer();
+          render();
+        });
+      });
+    });
+  }
+
+  function abrirNuevoTicket(){
+    abreDrawer(
+      '<div class="hoja"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600">' + esc(t('nuevo_ticket')) + '</h3>' +
+      '<div class="campo"><label>' + esc(t('categoria')) + '</label>' +
+        '<select id="nCategoria" required><option value="">' + esc(t('elige_categoria')) + '</option>' +
+        CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '">' + esc(cat) + '</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="nTexto" required style="min-height:100px"></textarea></div>' +
+      '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" class="btn-oscuro" id="btnAbrirTicket">' + esc(t('abrir_ticket')) + '</button>' +
+      '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cancelar')) + '</button></div></div>'
+    );
+    document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
+    document.getElementById('btnAbrirTicket').addEventListener('click', function(){
+      var cat = document.getElementById('nCategoria').value;
+      var texto = document.getElementById('nTexto').value.trim();
+      if (!cat || !texto){ toast(t('completa_campos')); return; }
+      var btn = document.getElementById('btnAbrirTicket'); btn.disabled = true;
+      sb.rpc('portal_abrir_ticket', { p_client_id: DATOS.client_id, p_categoria: cat, p_texto: texto }).then(function(r){
+        btn.disabled = false;
+        if (r.error){ toast(r.error.message); return; }
+        recargaSituacion(function(){ cierraDrawer(); render(); toast(t('ticket_abierto')); });
       });
     });
   }

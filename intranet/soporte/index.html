@@ -69,8 +69,8 @@
         <table class="sui-tabla" id="tabla">
           <thead><tr>
             <th data-orden="nombre">Comprador</th>
+            <th data-orden="categoria">Ticket</th>
             <th>Último mensaje</th>
-            <th data-orden="categoria">Categoría</th>
             <th data-orden="estado">Estado</th>
             <th data-orden="actualizado_en">Cuándo</th>
           </tr></thead>
@@ -86,17 +86,19 @@
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
 /* ============================================================================
-   Soporte — bandeja de mensajes_comprador, un hilo por comprador
+   Soporte — bandeja de TICKETS (1-sep-2026: cada fila de hilo_soporte es un
+   ticket propio, con su categoría y su estado; un comprador puede tener
+   varios a la vez — antes era un hilo único por comprador, el owner pidió
+   volver a tickets esa misma tarde).
    ----------------------------------------------------------------------------
    Lee mensajes_comprador + hilo_soporte (RLS ya deja al equipo ver y escribir
-   las dos, es_agente()). Responder y cambiar estado pasan por el mismo camino
-   que ya usa /portal/: portal_enviar_mensaje() (RPC) para el mensaje, UPDATE
-   directo por RLS para el estado — nada de esto es nuevo, solo la pantalla
-   que faltaba para verlo sin entrar comprador por comprador.
+   las dos, es_agente()). Responder pasa por portal_enviar_mensaje(hilo_id,
+   texto); cambiar estado es UPDATE directo por RLS — nada de esto es nuevo,
+   solo la pantalla que faltaba para verlo sin entrar comprador por comprador.
    ========================================================================== */
 const $ = s => document.querySelector(s);
 
-let SB=null, MENSAJES=[], HILOS={}, CLIENTES={}, SEL=null, FILTRO='abierto';
+let SB=null, MENSAJES=[], HILOS=[], CLIENTES={}, SEL=null, FILTRO='abierto';
 const ORDEN = { campo:'actualizado_en', dir:'desc' };
 
 const fmtFecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
@@ -104,40 +106,35 @@ const fmtFecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric
 /* ---------- carga ---------- */
 async function cargar(){
   const [m, h, c] = await Promise.all([
-    SB.from('mensajes_comprador').select('id,client_id,de,autor,texto,categoria,creado_en').order('creado_en', { ascending:true }),
-    SB.from('hilo_soporte').select('client_id,estado,actualizado_en'),
+    SB.from('mensajes_comprador').select('id,client_id,hilo_id,de,autor,texto,creado_en').order('creado_en', { ascending:true }),
+    SB.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en'),
     SB.from('clients').select('id,full_name,email'),
   ]);
-  if(m.error){ toast('No se pudieron leer los mensajes: ' + m.error.message); return; }
-  MENSAJES = m.data || [];
-  HILOS = {};
-  (h.error ? [] : (h.data || [])).forEach(x => { HILOS[x.client_id] = x; });
+  if(h.error){ toast('No se pudieron leer los tickets: ' + h.error.message); return; }
+  MENSAJES = m.error ? [] : (m.data || []);
+  HILOS = h.data || [];
   CLIENTES = {};
   (c.error ? [] : (c.data || [])).forEach(x => { CLIENTES[x.id] = x; });
   pintar();
 }
 
-/* Un hilo por client_id que tenga AL MENOS un mensaje — un comprador que
-   nunca escribió no aparece (nada que triar). El estado sale de hilo_soporte
-   si existe (siempre debería, el trigger lo crea con el primer mensaje); si
-   por lo que sea no existe todavía, se trata como abierto sin fecha. */
-function hilos(){
-  const porCliente = {};
-  MENSAJES.forEach(m => { (porCliente[m.client_id] = porCliente[m.client_id] || []).push(m); });
-  return Object.keys(porCliente).map(cid => {
-    const msgs = porCliente[cid];
-    const ultimo = msgs[msgs.length - 1];
-    const h = HILOS[cid];
-    const cliente = CLIENTES[cid];
+/* Un ticket es una fila de hilo_soporte — ya no se derivan de los mensajes:
+   un ticket recién abierto trae siempre su primer mensaje, pero la FUENTE de
+   qué tickets existen es la tabla de tickets, no la de mensajes. */
+function tickets(){
+  return HILOS.map(h => {
+    const msgs = MENSAJES.filter(m => m.hilo_id === h.id);
+    const cliente = CLIENTES[h.client_id];
     return {
-      client_id: cid,
+      id: h.id,
+      client_id: h.client_id,
       nombre: (cliente && cliente.full_name) || 'Sin nombre',
       email: cliente && cliente.email,
+      categoria: h.categoria,
       mensajes: msgs,
-      ultimo,
-      categoria: [...msgs].reverse().find(x => x.categoria) ? [...msgs].reverse().find(x => x.categoria).categoria : null,
-      estado: (h && h.estado) || 'abierto',
-      actualizado_en: (h && h.actualizado_en) || ultimo.creado_en,
+      ultimo: msgs[msgs.length - 1],
+      estado: h.estado,
+      actualizado_en: h.actualizado_en,
     };
   });
 }
@@ -148,15 +145,15 @@ const FILTROS = [
 ];
 function visibles(){
   const q = ($('#q').value || '').toLowerCase();
-  return hilos().filter(x => {
+  return tickets().filter(x => {
     if(FILTRO === 'abierto' && x.estado !== 'abierto') return false;
     if(FILTRO === 'resuelto' && x.estado !== 'resuelto') return false;
-    if(q && !((x.nombre||'') + ' ' + (x.email||'')).toLowerCase().includes(q)) return false;
+    if(q && !((x.nombre||'') + ' ' + (x.email||'') + ' ' + (x.categoria||'')).toLowerCase().includes(q)) return false;
     return true;
   });
 }
 function pintar(){
-  const todos = hilos();
+  const todos = tickets();
   $('#filtros').innerHTML = FILTROS.map(([v,l]) => {
     const n = v === 'todos' ? todos.length : todos.filter(x => x.estado === v).length;
     return `<button class="sui-chip ${FILTRO===v?'on':''}" data-f="${v}">${l}<span class="n">${n}</span></button>`;
@@ -167,34 +164,29 @@ function pintarTabla(){
   const filas = $('#filas');
   const vs = suiOrdenar(visibles(), ORDEN, (x, campo) => x[campo]);
   if(!vs.length){ filas.innerHTML = '<tr><td colspan="5" class="sui-vacio">Nada que enseñar con este filtro.</td></tr>'; return; }
-  filas.innerHTML = vs.map(x => `<tr data-id="${esc(x.client_id)}" class="${SEL===x.client_id?'on':''}">
+  filas.innerHTML = vs.map(x => `<tr data-id="${esc(x.id)}" class="${SEL===x.id?'on':''}">
     <td><b>${esc(x.nombre)}</b></td>
-    <td class="ultimo">${esc(x.ultimo.de === 'equipo' ? 'Tú: ' : '')}${esc(x.ultimo.texto)}</td>
-    <td class="cat-chip">${x.categoria ? esc(x.categoria) : '—'}</td>
+    <td class="cat-chip">${esc(x.categoria)}</td>
+    <td class="ultimo">${x.ultimo ? esc(x.ultimo.de === 'equipo' ? 'Tú: ' : '') + esc(x.ultimo.texto) : '—'}</td>
     <td><span class="sui-tag ${x.estado === 'abierto' ? 'espera' : 'ok'}">${x.estado === 'abierto' ? 'Abierto' : 'Resuelto'}</span></td>
     <td>${esc(fmtFecha(x.actualizado_en))}</td>
   </tr>`).join('');
 }
 
 /* ---------- cajón ---------- */
-function abrir(cid){
-  const h = hilos().find(x => x.client_id === cid); if(!h) return;
-  SEL = cid; pintarTabla();
+function abrir(hid){
+  const h = tickets().find(x => x.id === hid); if(!h) return;
+  SEL = hid; pintarTabla();
   suiAbrirCajon({
-    titulo: esc(h.nombre),
+    titulo: esc(h.nombre) + ' · ' + esc(h.categoria),
     sub: (h.email ? esc(h.email) + ' — ' : '') + 'Escribe a través de la intranet, igual que él ve tu respuesta en su área de clientes.',
     cuerpo: `
       <div class="hilo" id="hiloMsgs">${h.mensajes.map(m => `
         <div class="msg ${m.de === 'equipo' ? 'equipo' : ''}">
-          <div class="meta">${m.de === 'equipo' ? esc(m.autor || 'Equipo') : esc(h.nombre)} · ${esc(fmtFecha(m.creado_en))}${m.categoria ? ' · ' + esc(m.categoria) : ''}</div>
+          <div class="meta">${m.de === 'equipo' ? esc(m.autor || 'Equipo') : esc(h.nombre)} · ${esc(fmtFecha(m.creado_en))}</div>
           ${esc(m.texto)}
         </div>`).join('')}</div>
       <div class="responder">
-        <select id="respCategoria" title="Categoría (opcional, solo la usa el comprador — el equipo no suele necesitarla)">
-          <option value="">Sin categoría</option>
-          <option value="Pagos">Pagos</option><option value="Documentación">Documentación</option>
-          <option value="Obra">Obra</option><option value="Otro">Otro</option>
-        </select>
         <textarea id="respTexto" placeholder="Responder…"></textarea>
         <button class="btn primary" id="btnResponder">Enviar</button>
       </div>`,
@@ -204,28 +196,27 @@ function abrir(cid){
   });
   const hiloEl = $('#hiloMsgs'); if(hiloEl) hiloEl.scrollTop = hiloEl.scrollHeight;
   $('#btnCerrar').addEventListener('click', suiCerrarCajon);
-  $('#btnResponder').addEventListener('click', () => responder(cid));
-  $('#btnToggleEstado').addEventListener('click', () => toggleEstado(cid, h.estado));
+  $('#btnResponder').addEventListener('click', () => responder(hid));
+  $('#btnToggleEstado').addEventListener('click', () => toggleEstado(hid, h.estado));
 }
 
-async function responder(cid){
+async function responder(hid){
   const ta = $('#respTexto'); const texto = ta.value.trim(); if(!texto) return;
-  const cat = $('#respCategoria').value || null;
   const btn = $('#btnResponder'); btn.disabled = true;
-  const { error } = await SB.rpc('portal_enviar_mensaje', { p_client_id: cid, p_texto: texto, p_categoria: cat });
+  const { error } = await SB.rpc('portal_enviar_mensaje', { p_hilo_id: hid, p_texto: texto });
   if(error){ toast('No se pudo enviar: ' + error.message); btn.disabled = false; return; }
   await cargar();
   toast('Enviado');
-  abrir(cid);
+  abrir(hid);
 }
 
-async function toggleEstado(cid, actual){
+async function toggleEstado(hid, actual){
   const nuevo = actual === 'abierto' ? 'resuelto' : 'abierto';
-  const { error } = await SB.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('client_id', cid);
+  const { error } = await SB.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('id', hid);
   if(error){ toast('No se pudo cambiar el estado: ' + error.message); return; }
   await cargar();
   toast(nuevo === 'resuelto' ? 'Marcado como resuelto' : 'Reabierto');
-  abrir(cid);
+  abrir(hid);
 }
 
 /* ---------- eventos ---------- */
@@ -245,10 +236,15 @@ suiOrdenable($('#tabla'), ORDEN, (x, campo) => x[campo], pintarTabla);
 window.LW_AUTH.then(async ({ sb }) => {
   SB = sb;
   await cargar();
-  /* ?id=<client_id> abre ese hilo directo — mismo patrón que /intranet/compradores/,
-     lo usa el enlace del aviso por email al equipo. */
+  /* ?id=<client_id> lo manda el aviso por email al equipo — un comprador
+     puede tener varios tickets, así que se abre el suyo más reciente (con
+     casi toda seguridad el que disparó el aviso) y de paso se filtra la
+     tabla por su nombre para que se vean también los demás. */
   const pedido = new URLSearchParams(location.search).get('id');
-  if(pedido && hilos().some(h => h.client_id === pedido)) abrir(pedido);
+  if(pedido){
+    const suyos = tickets().filter(x => x.client_id === pedido).sort((a,b) => new Date(b.actualizado_en) - new Date(a.actualizado_en));
+    if(suyos.length){ $('#q').value = suyos[0].nombre; pintarTabla(); abrir(suyos[0].id); }
+  }
 });
 </script>
 </body>

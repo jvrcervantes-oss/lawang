@@ -653,13 +653,18 @@ Deno.serve(async (req) => {
           const token = randToken();
           const tHash = await sha256hex(token);
           const orden = cadena.findIndex((s) => s.rol === siguiente.rol) + 1;
+          const link = SITIO + '/contracts/firmar.html?t=' + token;
+          // enlace_firma (1-sep-2026, decisión del owner, ver enviarAFirma en
+          // app.html): mismo campo que rellena el botón "Generar enlace de
+          // firma" — sin esto, el 2º/3er firmante de una cadena no vería su
+          // tarjeta de "pendiente de firma" en /portal/.
           const insSig = await sb.from('contrato_firmas').insert({
             contrato_id: claimed.contrato_id, token_hash: tHash,
             firmante_nombre: siguiente.nombre, firmante_email: siguiente.email,
             firmante_rol: siguiente.rol, orden, snapshot_path: snapPath,
+            enlace_firma: link,
           });
           if (insSig.error) throw new Error(insSig.error.message);
-          const link = SITIO + '/contracts/firmar.html?t=' + token;
           // sin pdfB64: enviarEmail() ya manda `attach:false` cuando no se le da
           // un PDF — va solo el enlace, mismo criterio que "Generar enlace de
           // firma" en app.html (adjuntar aquí sería un documento sin firmar

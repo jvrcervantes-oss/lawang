@@ -411,22 +411,28 @@ async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
    va el último mensaje y si sigue abierto — con un botón que lleva a
    responder de verdad. Repetir aquí el hilo completo habría sido la MISMA
    duplicación que se acaba de cerrar, solo que en dos sitios en vez de tres. */
-const HILO_COMPRADOR = {};   // client_id -> {estado, actualizado_en, ultimo_de, ultimo_texto} | null
+const HILO_COMPRADOR = {};   // client_id -> {abiertos, total, actualizado_en, ultimo_de, ultimo_texto} | null
 
+/* Un comprador puede tener VARIOS tickets a la vez desde el 1-sep (ya no es
+   un hilo único) — por eso hilo_soporte ya no se lee con maybeSingle(), y el
+   resumen aquí es un CONTEO (cuántos abiertos de cuántos totales), no el
+   estado de "el" hilo. */
 async function cargarSoporte(clientId){
   if(clientId in HILO_COMPRADOR) return false;
-  const [{ data: msgs, error }, { data: hilo, error: e2 }] = await Promise.all([
+  const [{ data: msgs, error }, { data: hilos, error: e2 }] = await Promise.all([
     SB.from('mensajes_comprador').select('de,texto,creado_en')
       .eq('client_id', clientId).order('creado_en', { ascending:false }).limit(1),
-    SB.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId).maybeSingle(),
+    SB.from('hilo_soporte').select('estado,actualizado_en').eq('client_id', clientId),
   ]);
   if(error || e2){
     toast('No se pudo leer Soporte: ' + (error || e2).message);
     return false;   // no se cachea el fallo: la próxima vez que se abra la ficha, reintenta
   }
   const ultimo = (msgs || [])[0];
+  const filas = hilos || [];
   HILO_COMPRADOR[clientId] = ultimo
-    ? { estado: (hilo && hilo.estado) || 'abierto', actualizado_en: (hilo && hilo.actualizado_en) || ultimo.creado_en,
+    ? { abiertos: filas.filter(h => h.estado === 'abierto').length, total: filas.length,
+        actualizado_en: filas.length ? filas.map(h => h.actualizado_en).sort().slice(-1)[0] : ultimo.creado_en,
         ultimo_de: ultimo.de, ultimo_texto: ultimo.texto }
     : null;   // null = de verdad no hay nada, no "no se sabe" (esa es la razón de que undefined siga significando "cargando")
   return true;
@@ -794,11 +800,11 @@ function pintarFicha(){
         if(!h) return '<p class="nota">Sin mensajes desde el área de clientes.</p>';
         return `
         <p class="nota" style="margin:0 0 8px">
-          <span class="sui-tag ${h.estado === 'abierto' ? 'espera' : 'ok'}">${h.estado === 'abierto' ? 'Abierto' : 'Resuelto'}</span>
-          <span style="margin-left:8px">Último mensaje: ${fFecha(h.actualizado_en)}</span>
+          <span class="sui-tag ${h.abiertos ? 'espera' : 'ok'}">${h.abiertos ? h.abiertos + ' abierto' + (h.abiertos > 1 ? 's' : '') : 'Todo resuelto'}</span>
+          <span style="margin-left:8px">${h.total} ticket${h.total === 1 ? '' : 's'} en total · Último mensaje: ${fFecha(h.actualizado_en)}</span>
         </p>
         <p class="nota" style="margin:0 0 10px">${esc(h.ultimo_de === 'equipo' ? 'Tú: ' : '')}${esc(h.ultimo_texto)}</p>
-        <button class="btn primary" id="btnVerSoporte">Ver conversación →</button>`;
+        <button class="btn primary" id="btnVerSoporte">Ver tickets →</button>`;
       })()}
     </fieldset>`}
     <fieldset>

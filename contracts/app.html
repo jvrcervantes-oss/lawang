@@ -4691,13 +4691,19 @@ $('#fmGen').addEventListener('click', async ()=>{
 
     const token=randToken();
     const hash=await sha256hex(token);
+    const base=location.href.replace(/[^/]*(?:\?.*)?$/,'');
+    const link=base+'firmar.html?t='+token;
+    /* enlace_firma (1-sep-2026, decisión del owner): se guarda el enlace CON
+       el token en claro para que /portal/ lo enseñe al comprador — Seguridad
+       y Legal recomendaron minar el token al vuelo o reenviarlo por email en
+       su lugar, ver CEO/revisiones/estado.json. portal_situacion() solo lo
+       expone mientras estado='pendiente'. */
     const ins=await sb.from('contrato_firmas').insert({ contrato_id:SAVED_CONTRACT.id, token_hash:hash,
-      firmante_nombre:nombre, firmante_email:email||null, firmante_rol:ROL, orden:FIRMA_NEXT.orden, snapshot_path:path });
+      firmante_nombre:nombre, firmante_email:email||null, firmante_rol:ROL, orden:FIRMA_NEXT.orden, snapshot_path:path,
+      enlace_firma:link });
     if(ins.error) throw ins.error;
     if(anulados) toast(anulados === 1 ? 'El enlace anterior queda anulado'
                                       : anulados + ' enlaces anteriores quedan anulados');
-    const base=location.href.replace(/[^/]*(?:\?.*)?$/,'');
-    const link=base+'firmar.html?t='+token;
     $('#fmLink').value=link;
     $('#fmMsg').value='Hola'+(nombre?' '+nombre:'')+', aquí tienes el enlace para firmar el documento de Lawang Tropical Properties: '+link
       +'\n\nEl enlace caduca en 30 días.\n\nLawang Tropical Properties';
