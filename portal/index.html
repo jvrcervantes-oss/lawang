@@ -390,16 +390,15 @@
          pass_mal:'Correo o contraseña incorrectos.', pie:'¿Dudas? Escríbenos a',
          team_intro:'¿Eres del equipo?', team_link:'Entra aquí', salir:'Salir',
          nav_inicio:'Inicio', nav_contratos:'Contratos', nav_facturas:'Facturas', nav_obra:'Obra',
-         nav_documentos:'Documentos', nav_soporte:'Soporte', nav_mensajes:'Mensajes', nav_perfil:'Mi perfil',
+         nav_documentos:'Documentos', nav_soporte:'Soporte', nav_perfil:'Mi perfil',
          tit_inicio:'Inicio', tit_contratos:'Contratos', tit_facturas:'Facturas', tit_obra:'Obra',
-         tit_documentos:'Documentos', tit_soporte:'Soporte', tit_mensajes:'Mensajes', tit_perfil:'Mi perfil',
+         tit_documentos:'Documentos', tit_soporte:'Soporte', tit_perfil:'Mi perfil',
          hola:'Hola', saludo_sub:'Estado de tu operación con Lawang Estate',
          r_inversion:'Tu inversión', r_pagado:'Pagado', r_pendiente:'Pendiente',
          proximo_pago:'Próximo pago', sin_proximo:'No tienes pagos pendientes ahora mismo.',
          ver_plan:'Ver plan de pagos', novedades:'Últimas novedades',
          acc_documentos:'Documentos', acc_documentos_sub:'Dossier, planos y KYC',
-         acc_soporte:'Soporte', acc_soporte_sub:'Abre o revisa un ticket',
-         acc_mensajes:'Mensajes', acc_mensajes_sub:'Escribe a tu gestora',
+         acc_soporte:'Soporte', acc_soporte_sub:'Escribe a tu equipo de gestión',
          precio:'Precio', unidad:'Unidad', fecha_firma:'Fecha de firma', cobrado:'Pagado hasta hoy',
          pagado:'Pagado', pendiente:'Pendiente', parcial:'Parcial', de:'de',
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
@@ -416,11 +415,10 @@
          doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'caduca el',
          sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
          err_fichero:'No hemos podido abrir el documento. Inténtalo de nuevo en un momento.',
-         nuevo_ticket:'Nuevo ticket', asunto:'Asunto', categoria:'Categoría', mensaje:'Mensaje',
+         categoria:'Categoría', categoria_opcional:'¿De qué trata? (opcional)', sin_categoria:'Sin categoría',
          enviar:'Enviar', cancelar:'Cancelar', abierto:'Abierto', resuelto:'Resuelto',
-         sin_tickets_t:'Aún no has abierto ningún ticket', sin_tickets:'Cuando tengas una duda sobre pagos, documentación u obra, abre un ticket y te responderemos aquí.',
          responder:'Responder…', tu:'Tú', equipo:'Equipo Lawang',
-         sin_mensajes:'Escríbele a tu gestora cuando quieras — te responderá aquí.',
+         sin_mensajes:'Escríbenos cuando quieras — te responderemos aquí.',
          aviso_no_vinculante:'Esto es un canal de atención, no un documento contractual: ningún precio, plazo o condición cambia hasta que quede reflejado en tu contrato o en un anexo firmado.',
          datos_personales:'Datos personales', nombre:'Nombre', correo:'Correo', telefono:'Teléfono', pais:'País',
          seguridad:'Seguridad', cambiar_pass_btn:'Cambiar contraseña',
@@ -441,16 +439,15 @@
          pass_mal:'Wrong email or password.', pie:'Questions? Write to',
          team_intro:'On the team?', team_link:'Sign in here', salir:'Sign out',
          nav_inicio:'Home', nav_contratos:'Contracts', nav_facturas:'Invoices', nav_obra:'Construction',
-         nav_documentos:'Documents', nav_soporte:'Support', nav_mensajes:'Messages', nav_perfil:'My profile',
+         nav_documentos:'Documents', nav_soporte:'Support', nav_perfil:'My profile',
          tit_inicio:'Home', tit_contratos:'Contracts', tit_facturas:'Invoices', tit_obra:'Construction',
-         tit_documentos:'Documents', tit_soporte:'Support', tit_mensajes:'Messages', tit_perfil:'My profile',
+         tit_documentos:'Documents', tit_soporte:'Support', tit_perfil:'My profile',
          hola:'Hello', saludo_sub:'Status of your operation with Lawang Estate',
          r_inversion:'Your investment', r_pagado:'Paid', r_pendiente:'Outstanding',
          proximo_pago:'Next payment', sin_proximo:'You have no pending payments right now.',
          ver_plan:'View payment plan', novedades:'Latest updates',
          acc_documentos:'Documents', acc_documentos_sub:'Brochure, plans and KYC',
-         acc_soporte:'Support', acc_soporte_sub:'Open or check a ticket',
-         acc_mensajes:'Messages', acc_mensajes_sub:'Write to your account manager',
+         acc_soporte:'Support', acc_soporte_sub:'Write to your account team',
          precio:'Price', unidad:'Unit', fecha_firma:'Signing date', cobrado:'Paid to date',
          pagado:'Paid', pendiente:'Pending', parcial:'Partial', de:'of',
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
@@ -467,11 +464,10 @@
          doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'expires',
          sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
          err_fichero:'We could not open the document. Please try again in a moment.',
-         nuevo_ticket:'New ticket', asunto:'Subject', categoria:'Category', mensaje:'Message',
+         categoria:'Category', categoria_opcional:'What is it about? (optional)', sin_categoria:'No category',
          enviar:'Send', cancelar:'Cancel', abierto:'Open', resuelto:'Resolved',
-         sin_tickets_t:'You haven’t opened any tickets yet', sin_tickets:'When you have a question about payments, documents or construction, open a ticket and we will reply here.',
          responder:'Reply…', tu:'You', equipo:'Lawang team',
-         sin_mensajes:'Write to your account manager any time — they will reply here.',
+         sin_mensajes:'Write to us any time — we will reply here.',
          aviso_no_vinculante:'This is a support channel, not a contractual document: no price, deadline or condition changes until it is reflected in your contract or a signed annex.',
          datos_personales:'Personal details', nombre:'Name', correo:'Email', telefono:'Phone', pais:'Country',
          seguridad:'Security', cambiar_pass_btn:'Change password',
@@ -541,8 +537,7 @@
 
   var DATOS = null;
   var ESTADO = { screen:'carga', loginMode:'link', loginSent:false,
-    section:'inicio', sidebarOpen:false, notifOpen:false, drawer:null,
-    ticketForm:{ asunto:'', categoria:'Pagos', mensaje:'' }, newTicketOpen:false, chatDraft:'', ticketReply:'' };
+    section:'inicio', sidebarOpen:false, notifOpen:false, drawer:null };
 
   function muestra(vista){
     ['vCarga','vLogin','vApp'].forEach(function(id){ document.getElementById(id).hidden = (id !== vista); });
@@ -561,7 +556,10 @@
   window.addEventListener('resize', aplicaLayoutMovil);
 
   /* ── RUTAS: #/seccion o #/facturas/NUM (abre el drawer directamente) ── */
-  var SECCIONES = ['inicio','contratos','facturas','obra','documentos','soporte','mensajes','perfil'];
+  /* Soporte y Mensajes se fusionan en una sola sección, 'soporte' — el owner
+     las vio como la misma cosa duplicada (1-sep-2026): un hilo, no un
+     sistema de tickets aparte de un chat aparte. */
+  var SECCIONES = ['inicio','contratos','facturas','obra','documentos','soporte','perfil'];
   function leeHash(){
     var partes = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
     if (SECCIONES.indexOf(partes[0]) !== -1)
@@ -706,11 +704,12 @@
   }
 
   /* ══ NAV ══════════════════════════════════════════════════════════════ */
-  var NAV_DEFS = ['inicio','contratos','facturas','obra','documentos','soporte','mensajes','perfil'];
+  var NAV_DEFS = ['inicio','contratos','facturas','obra','documentos','soporte','perfil'];
   function pintaNav(){
-    var abiertos = ((DATOS && DATOS.tickets) || []).filter(function(x){ return x.estado === 'abierto'; }).length;
+    // Insignia binaria (no cuenta tickets: ya no hay varios) — hilo abierto = 1.
+    var abierto = DATOS && DATOS.hilo_estado === 'abierto';
     document.getElementById('nav').innerHTML = NAV_DEFS.map(function(k){
-      var badge = k === 'soporte' && abiertos ? '<span class="badge">' + abiertos + '</span>' : '';
+      var badge = k === 'soporte' && abierto ? '<span class="badge">1</span>' : '';
       return '<button type="button" class="navrow' + (k === ESTADO.section ? ' on' : '') + '" data-nav="' + k + '">' +
              '<span>' + esc(t('nav_' + k)) + '</span>' + badge + '</button>';
     }).join('');
@@ -775,7 +774,7 @@
     document.getElementById('tituloSeccion').textContent = t('tit_' + ESTADO.section);
     var c = document.getElementById('content');
     var fns = { inicio:pintaInicio, contratos:pintaContratos, facturas:pintaFacturas, obra:pintaObra,
-                documentos:pintaDocumentos, soporte:pintaSoporte, mensajes:pintaMensajes, perfil:pintaPerfil };
+                documentos:pintaDocumentos, soporte:pintaSoporte, perfil:pintaPerfil };
     c.innerHTML = '';
     (fns[ESTADO.section] || pintaInicio)(c);
   }
@@ -842,7 +841,6 @@
       '<div class="accesos">' +
         '<button type="button" class="acceso" data-ir="documentos"><div class="t">' + esc(t('acc_documentos')) + '</div><div class="s">' + esc(t('acc_documentos_sub')) + '</div></button>' +
         '<button type="button" class="acceso" data-ir="soporte"><div class="t">' + esc(t('acc_soporte')) + '</div><div class="s">' + esc(t('acc_soporte_sub')) + '</div></button>' +
-        '<button type="button" class="acceso" data-ir="mensajes"><div class="t">' + esc(t('acc_mensajes')) + '</div><div class="s">' + esc(t('acc_mensajes_sub')) + '</div></button>' +
       '</div>';
     c.querySelectorAll('[data-ir]').forEach(function(b){ b.addEventListener('click', function(){ vasA(b.getAttribute('data-ir'), null); }); });
   }
@@ -976,99 +974,37 @@
     });
   }
 
-  /* ── Soporte ──────────────────────────────────────────────────────── */
+  /* ── Soporte (fusión de "Soporte" + "Mensajes", 1-sep-2026) ──────────
+     El owner los vio como la misma cosa duplicada: un sistema de tickets
+     aparte de un chat aparte. Ahora es UN hilo por comprador (mismas tablas
+     que ya usaba "Mensajes"), con una categoría opcional por mensaje y un
+     estado (abierto/resuelto) que solo cambia el equipo — lo pone
+     hilo_soporte, lo lee portal_situacion() como DATOS.hilo_estado. */
+  var CATEGORIAS = ['Pagos','Documentación','Obra','Otro'];
   function pintaSoporte(c){
-    var d = DATOS, tickets = d.tickets || [];
+    var d = DATOS, mensajes = d.mensajes || [];
+    var abierto = d.hilo_estado !== 'resuelto';   // sin hilo_estado (nunca escribió) = tratamos como "abierto" visualmente
+    var col = abierto ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
     c.innerHTML =
       '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
-      '<div style="display:flex;justify-content:flex-end;margin-bottom:16px">' +
-        '<button type="button" class="btn-oscuro" id="btnNuevoTicket">' + esc(t('nuevo_ticket')) + '</button></div>' +
-      '<div id="formNuevoTicket"></div>' +
-      (tickets.length ? tickets.map(function(x){
-        var col = x.estado === 'abierto' ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
-        var ultimo = x.mensajes[x.mensajes.length-1];
-        return '<div class="ticket" data-ticket="' + esc(x.id) + '"><div class="cab"><span class="asunto">' + esc(x.asunto) + '</span>' +
-          '<span class="tag chico" style="margin-left:auto;background:' + col[0] + ';color:' + col[1] + '">' + esc(x.estado==='abierto'?t('abierto'):t('resuelto')) + '</span></div>' +
-          (ultimo ? '<div class="ultimo">' + esc(ultimo.texto) + '</div>' : '') +
-          '<div class="meta">' + esc(fecha(x.creado_en)) + '</div></div>';
-      }).join('') : vacio(t('sin_tickets_t'), t('sin_tickets')));
-    document.getElementById('btnNuevoTicket').addEventListener('click', function(){
-      ESTADO.newTicketOpen = !ESTADO.newTicketOpen; pintaFormNuevoTicket();
-    });
-    c.querySelectorAll('[data-ticket]').forEach(function(el){
-      el.addEventListener('click', function(){ abreDrawerTicket(el.getAttribute('data-ticket')); });
-    });
-  }
-  function pintaFormNuevoTicket(){
-    var box = document.getElementById('formNuevoTicket'); if (!box) return;
-    if (!ESTADO.newTicketOpen){ box.innerHTML = ''; return; }
-    box.innerHTML = '<form id="fNuevoTicket" class="tarjeta" style="margin-bottom:18px">' +
-      '<div class="campo"><label>' + esc(t('asunto')) + '</label><input id="ntAsunto" required></div>' +
-      '<div class="campo"><label>' + esc(t('categoria')) + '</label><select id="ntCategoria">' +
-        '<option value="Pagos">Pagos</option><option value="Documentación">Documentación</option>' +
-        '<option value="Obra">Obra</option><option value="Otro">Otro</option></select></div>' +
-      '<div class="campo"><label>' + esc(t('mensaje')) + '</label><textarea id="ntMensaje" rows="3" required></textarea></div>' +
-      '<div style="display:flex;gap:10px">' +
-        '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button>' +
-        '<button type="button" class="btn-borde" id="ntCancelar">' + esc(t('cancelar')) + '</button></div></form>';
-    document.getElementById('ntCancelar').addEventListener('click', function(){ ESTADO.newTicketOpen = false; pintaFormNuevoTicket(); });
-    document.getElementById('fNuevoTicket').addEventListener('submit', function(e){
-      e.preventDefault();
-      var asunto = document.getElementById('ntAsunto').value.trim();
-      var categoria = document.getElementById('ntCategoria').value;
-      var mensaje = document.getElementById('ntMensaje').value.trim();
-      if (!asunto || !mensaje) return;
-      var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
-      sb.rpc('portal_crear_ticket', { p_client_id: DATOS.client_id, p_asunto: asunto, p_categoria: categoria, p_mensaje: mensaje })
-        .then(function(r){
-          btn.disabled = false;
-          if (r.error){ toast(r.error.message); return; }
-          ESTADO.newTicketOpen = false;
-          recargaSituacion(function(){ render(); });
-        });
-    });
-  }
-
-  function abreDrawerTicket(id){
-    var tk = ((DATOS && DATOS.tickets) || []).filter(function(x){ return String(x.id) === String(id); })[0];
-    if (!tk) return;
-    var col = tk.estado === 'abierto' ? ['rgba(143,155,122,.25)','var(--tg)'] : ['rgba(63,82,48,.12)','var(--ok)'];
-    abreDrawer('<div class="hoja" style="display:flex;flex-direction:column;height:calc(100vh - 100px)">' +
-      '<h3 style="margin:0 0 4px;font-size:15px;font-weight:600">' + esc(tk.asunto) + '</h3>' +
-      '<div style="font-size:11.5px;color:#8a8570;margin-bottom:16px">' + esc(tk.categoria) + ' · ' +
-        '<span class="tag chico" style="background:' + col[0] + ';color:' + col[1] + '">' + esc(tk.estado==='abierto'?t('abierto'):t('resuelto')) + '</span></div>' +
-      '<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px" id="ticketHilo"></div>' +
-      '<form id="fTicketReply" style="display:flex;gap:8px;margin-top:14px">' +
-        '<input id="ticketReplyIn" placeholder="' + esc(t('responder')) + '" style="flex:1;font:inherit;font-size:13.5px;padding:9px 12px;border:1px solid rgba(138,132,116,.5);border-radius:999px;background:#fdfcf9">' +
-        '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>', 'ancho');
-    document.getElementById('ticketHilo').innerHTML = (tk.mensajes||[]).map(function(m){
-      var mia = m.de === 'cliente';
-      return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
-        '<div style="font-size:10.5px;color:#a8a394;margin-bottom:3px;text-align:' + (mia?'right':'left') + '">' + esc(mia?t('tu'):t('equipo')) + '</div>' +
-        '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div></div></div>';
-    }).join('');
-    document.getElementById('fTicketReply').addEventListener('submit', function(e){
-      e.preventDefault();
-      var val = document.getElementById('ticketReplyIn').value.trim(); if (!val) return;
-      sb.rpc('portal_enviar_ticket_mensaje', { p_ticket_id: tk.id, p_texto: val }).then(function(r){
-        if (r.error){ toast(r.error.message); return; }
-        recargaSituacion(function(){ abreDrawerTicket(id); });
-      });
-    });
-  }
-
-  /* ── Mensajes (chat con la gestora) ──────────────────────────────── */
-  function pintaMensajes(c){
-    var d = DATOS, mensajes = d.mensajes || [];
-    c.innerHTML = '<p style="font-size:11.5px;color:#8a8570;margin:0 0 14px;max-width:52ch">' + esc(t('aviso_no_vinculante')) + '</p>' +
-      '<div class="chat"><div class="cab"><b>Lawang</b><div class="rol">' +
-      (LANG==='es' ? 'Tu equipo de atención' : 'Your account team') + '</div></div>' +
+      '<div class="chat"><div class="cab" style="display:flex;align-items:center;gap:10px">' +
+        '<div><b>Lawang</b><div class="rol">' + (LANG==='es' ? 'Tu equipo de atención' : 'Your account team') + '</div></div>' +
+        (d.hilo_estado ? '<span class="tag chico" style="margin-left:auto;background:' + col[0] + ';color:' + col[1] + '">' +
+          esc(abierto ? t('abierto') : t('resuelto')) + '</span>' : '') +
+      '</div>' +
       '<div class="hilo" id="chatHilo"></div>' +
-      '<form id="fChat"><input id="chatIn" placeholder="' + esc(t('responder')) + '"><button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>';
+      '<form id="fChat" style="flex-wrap:wrap">' +
+        '<select id="chatCategoria" title="' + esc(t('categoria_opcional')) + '" style="font:inherit;font-size:12.5px;padding:8px 9px;border:1px solid rgba(138,132,116,.5);border-radius:9px;background:#fdfcf9;flex:none;max-width:150px">' +
+          '<option value="">' + esc(t('sin_categoria')) + '</option>' +
+          CATEGORIAS.map(function(cat){ return '<option value="' + esc(cat) + '">' + esc(cat) + '</option>'; }).join('') +
+        '</select>' +
+        '<input id="chatIn" placeholder="' + esc(t('responder')) + '" style="flex:1;min-width:120px">' +
+        '<button type="submit" class="btn-oscuro">' + esc(t('enviar')) + '</button></form></div>';
     var hilo = document.getElementById('chatHilo');
     hilo.innerHTML = mensajes.length ? mensajes.map(function(m){
       var mia = m.de === 'cliente';
       return '<div class="fila-msg' + (mia?' der':'') + '"><div>' +
+        (m.categoria ? '<div style="font-size:10px;color:#a8a394;margin-bottom:2px;text-align:' + (mia?'right':'left') + '">' + esc(m.categoria) + '</div>' : '') +
         '<div class="burbuja ' + (mia?'mia':'suya') + '">' + esc(m.texto) + '</div>' +
         '<div class="fecha-msg" style="text-align:' + (mia?'right':'left') + '">' + esc(fechaHora(m.creado_en)) + '</div></div></div>';
     }).join('') : '<p style="font-size:13px;color:#8a8570;text-align:center;margin-top:20px">' + esc(t('sin_mensajes')) + '</p>';
@@ -1076,7 +1012,10 @@
     document.getElementById('fChat').addEventListener('submit', function(e){
       e.preventDefault();
       var val = document.getElementById('chatIn').value.trim(); if (!val) return;
-      sb.rpc('portal_enviar_mensaje', { p_client_id: DATOS.client_id, p_texto: val }).then(function(r){
+      var cat = document.getElementById('chatCategoria').value || null;
+      var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true;
+      sb.rpc('portal_enviar_mensaje', { p_client_id: DATOS.client_id, p_texto: val, p_categoria: cat }).then(function(r){
+        btn.disabled = false;
         if (r.error){ toast(r.error.message); return; }
         recargaSituacion(function(){ render(); });
       });

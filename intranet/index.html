@@ -424,7 +424,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
+<script src="/contracts/assets/herramientas.js?v=1346a097"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -548,7 +548,7 @@ async function contar(sb){
   };
   const [contratos, contratosEditables, facturas, facturasAnuladas,
          recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-         documentos, vencSinFecha] = await Promise.all([
+         documentos, vencSinFecha, hilosAbiertos] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
     n('facturas', q => q.eq('anulada', false)),
@@ -570,6 +570,7 @@ async function contar(sb){
     // calendario a medio poner inflaría esta cifra con trabajo que no toca aún).
     n('contrato_vencimientos', q => q.is('fecha', null).eq('contratos.bloqueado', true),
       '*, contratos!inner(id)'),
+    n('hilo_soporte', q => q.eq('estado', 'abierto')),
   ]);
   // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
   // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
@@ -595,7 +596,7 @@ async function contar(sb){
   }
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
            recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-           documentos, proyectosConDocs, vencSinFecha };
+           documentos, proyectosConDocs, vencSinFecha, hilosAbiertos };
 }
 
 /* ── tarjetas de cifra ─────────────────────────────────────────────────
