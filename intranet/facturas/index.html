@@ -31,7 +31,7 @@
      no le mueve lo que tenia. -->
 <link rel="stylesheet" href="documento.css?v=20260731">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- La MISMA puerta que las otras (4-ago-2026), pero SIN `data-herramienta`:
      el permiso lo comprueba el script de esta pagina, que sabe un matiz que
@@ -39,7 +39,7 @@
      consultarla) NO se exige el permiso de emitir. Guard aporta lo otro:
      sesion, cuenta activa y UN SOLO cliente publicado en `LW_SB`. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/guard.js?v=438c4ea2"></script>
+<script src="/contracts/assets/guard.js?v=d1194bf1"></script>
 <!-- Los dialogos de esta herramienta usan `lwConfirmar` (assets/dialogo.js),
      el unico de la suite desde el 15-ago-2026. Antes convivian dos: este
      fichero llamaba a `suiConfirmar` de suite.js en dos sitios y a lwConfirmar
@@ -985,12 +985,12 @@ window.LW_SB = sb;
    cliente para que la campana de la barra lo reuse en vez de abrir un segundo. */
 window.LW_SB = sb;
 sb.auth.getSession().then(async ({data:{session}}) => {
-  if(!session){ location.replace('/entrar/?next=/intranet/facturas/'); return; }
+  if(!session){ location.replace('/intranet/?next=/intranet/facturas/'); return; }
   const modoVista = new URLSearchParams(location.search).has('vista');
   const { data: ficha } = await sb.from('usuarios')
     .select('rol, herramientas, activo').eq('user_id', session.user.id).maybeSingle();
   MI_FICHA = ficha || null;   // la lista de guardadas lo usa para el botón de reasignar autor
-  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/entrar/?desactivado=1'); return; }
+  if(ficha && !ficha.activo){ await sb.auth.signOut(); location.replace('/intranet/?desactivado=1'); return; }
   // El permiso 'facturas' gobierna EMITIR. En modo vista (el visor de
   // Operaciones lo embebe para consultar un documento ya emitido) no se exige:
   // consultar lo emitido está abierto a todo el equipo, igual que en la RLS,

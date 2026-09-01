@@ -48,7 +48,7 @@
      que el panel v3 salió sin menú lateral: la única pantalla de la suite sin
      él, y justo la que se abre primero. Se cuelga del evento `lw-ficha` que
      dispara el arranque de abajo. -->
-<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
 <link rel="stylesheet" href="/contracts/assets/suite-v3-herramientas.css?v=de007e65">
 <!-- Dependencias de `operaciones-cuentas.js` (la regla del dinero): la
@@ -1239,12 +1239,12 @@ function arrancaDemo(motivo){
      que es peor que una pantalla en blanco y lo contrario de la norma de la casa
      —«no se inventa un cero»—. La demostración sigue disponible, pero solo si
      alguien la pide a propósito con `?demo=1`. */
-  if(!session){ location.replace('/entrar/?next=' + encodeURIComponent(location.pathname)); return; }
+  if(!session){ location.replace('/intranet/?next=' + encodeURIComponent(location.pathname)); return; }
   if((session.user.app_metadata||{}).portal){ location.replace('/portal/'); return; }
 
   const {data:ficha}=await sb.from('usuarios')
     .select('rol, herramientas, activo, nombre').eq('user_id',session.user.id).maybeSingle();
-  if(ficha&&!ficha.activo){ await sb.auth.signOut(); location.replace('/entrar/?desactivado=1'); return; }
+  if(ficha&&!ficha.activo){ await sb.auth.signOut(); location.replace('/intranet/?desactivado=1'); return; }
   FICHA=ficha||null;
 
   saludo(ficha&&ficha.nombre?ficha.nombre.split(' ')[0]:'');
@@ -1276,7 +1276,7 @@ function arrancaDemo(motivo){
 document.getElementById('out').addEventListener('click',async()=>{
   if(DEMO){ tosta('En modo demostración no hay sesión que cerrar.',{icono:'ph-info'}); return; }
   await window.LW_SB.auth.signOut();
-  location.replace('/entrar/');
+  location.replace('/intranet/');
 });
 </script>
 </body>

@@ -62,7 +62,11 @@
 
   var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS
-  var LOGIN  = '/entrar/';
+  /* 1-sep-2026: /intranet/ tiene login propio (antes /entrar/, puerta
+     compartida con el portal del cliente, retirada como punto de entrada
+     — sigue viva por si algo externo aún apunta ahí, pero nada del estudio
+     enlaza a ella desde hoy). */
+  var LOGIN  = '/intranet/';
   var HUB    = '/intranet/';
 
   var propia = document.currentScript;

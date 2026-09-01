@@ -294,7 +294,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     if (salirViejo) salirViejo.hidden = true;
     panel.querySelector('.lw-usuario-salir').addEventListener('click', function () {
       if (salirViejo) { salirViejo.click(); return; }   // cada herramienta sabe a dónde volver
-      sb.auth.signOut().then(function () { location.replace('/entrar/'); });
+      sb.auth.signOut().then(function () { location.replace('/intranet/'); });
     });
 
     var contador = boton.querySelector('.lw-campana-n');

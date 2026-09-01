@@ -40,7 +40,7 @@
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    INTRANET LAWANG · rediseño 30-jul-2026 (v3)
@@ -270,6 +270,34 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 @media (prefers-reduced-motion:reduce){
   *{ transition:none !important; animation:none !important; }
 }
+
+/* ── puerta de acceso (1-sep-2026) ────────────────────────────────
+   /intranet/ pasa a tener su propio login, en vez de rebotar a /entrar/
+   (que se retira como puerta compartida equipo/cliente — ver commit).
+   Mismo look que llevaba /entrar/index.html (la puerta vieja), porque es
+   la pantalla que más gente ve al arrancar el día y no hay que reaprenderla. */
+.lw-login{ min-height:100vh; display:grid; place-items:center; padding:24px; }
+.lw-login .caja{ width:100%; max-width:380px; background:var(--sup); border:1px solid var(--line);
+  border-radius:16px; padding:40px 34px; box-shadow:0 18px 48px -22px rgba(34,40,42,.35);
+  animation:lwFadeUp .6s cubic-bezier(.22,.61,.36,1) both; }
+.lw-login .marca{ display:flex; flex-direction:column; align-items:center; margin-bottom:28px; }
+.lw-login .marca .word{ font-family:var(--serif); font-size:30px; font-weight:600; line-height:1;
+  letter-spacing:.06em; color:var(--dl); }
+.lw-login .marca h1{ font-family:var(--sans); font-size:10.5px; letter-spacing:.22em;
+  text-transform:uppercase; margin:7px 0 0; font-weight:500; color:var(--sc); }
+.lw-login label{ display:block; font-size:11.5px; color:var(--ink-2); margin:0 0 5px; }
+.lw-login input{ width:100%; font:inherit; font-size:16px; padding:11px 13px; border:1px solid var(--line);
+  border-radius:9px; background:var(--rl); color:var(--ink); }
+.lw-login input:not(:last-of-type){ margin-bottom:14px; }
+.lw-login input:focus{ outline:none; border-color:var(--tg); box-shadow:0 0 0 3px rgba(72,91,55,.15); }
+.lw-login button{ width:100%; margin-top:20px; font:inherit; font-size:13.5px; font-weight:600; color:#fff;
+  background:var(--dl); border:1px solid var(--dl); border-radius:999px; padding:12px; cursor:pointer; }
+.lw-login button:disabled{ background:var(--ss); border-color:var(--ss); cursor:default; }
+.lw-login .err{ color:#9E2F26; font-size:13px; margin-top:14px; min-height:18px; text-align:center; }
+.lw-login .aviso{ font-size:12.5px; line-height:1.5; color:#8C5E10; background:rgba(200,121,31,.1);
+  border-radius:9px; padding:10px 13px; margin-bottom:20px; text-align:center; }
+.lw-login .pie{ margin:22px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); text-align:center; }
+.lw-login .pie a{ color:var(--dl); }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -292,6 +320,31 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
 </head>
 <body hidden>
+  <!-- Puerta de acceso propia (1-sep-2026): antes /intranet/ sin sesión
+       rebotaba a /entrar/, la puerta compartida con el portal del cliente.
+       Ahora se pinta aquí mismo — mismo patrón que ya usaba /portal/ para
+       el suyo. Oculta por defecto; el script de más abajo decide cuál de
+       las dos (esta o #appShell) se enseña. -->
+  <div class="lw-login" id="loginGate" hidden>
+    <div class="caja">
+      <div class="marca">
+        <div class="word" aria-hidden="true">Lawang</div>
+        <h1>Intranet</h1>
+      </div>
+      <div class="aviso" id="loginAviso" hidden></div>
+      <form id="fLogin">
+        <label for="loginEmail">Correo</label>
+        <input type="email" id="loginEmail" autocomplete="username" placeholder="nombre@lawangproperties.com" required>
+        <label for="loginPass">Contraseña</label>
+        <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••" required>
+        <button type="submit" id="loginBtn">Entrar</button>
+        <div class="err" id="loginErr" role="alert" aria-live="polite"></div>
+      </form>
+      <p class="pie">¿Eres cliente? <a href="/portal/">Entra por el área de clientes →</a></p>
+    </div>
+  </div>
+
+  <div id="appShell" hidden>
   <!-- LA MISMA BARRA QUE LAS HERRAMIENTAS (16-ago-2026, owner: «unificalo, pero
        me parece bien que tenga otro color»). Era una cabecera propia: marca de
        TEXTO en vez del logotipo, y un `.bar` con `max-width:1060px; margin:auto`
@@ -355,6 +408,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     <span>Acceso restringido: cada herramienta exige esta misma sesión.</span>
     <span id="pie-datos"></span>
   </div></footer>
+  </div><!-- /#appShell -->
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
@@ -789,8 +843,27 @@ const sb = window.supabase.createClient(
 );
 window.LW_SB = sb;   // el panel de usuario de topbar.js reusa este cliente
 
+// mismo criterio contra open-redirect que ya llevaba /entrar/index.html (la
+// puerta vieja): una ruta que empiece por UNA sola barra, nunca `//host`
+// (protocol-relative) ni un esquema `http(s):` colado en el valor de `next`.
+function rutaValida(r){ return /^\/[^/\\]/.test(r || ''); }
+function siguiente(){
+  const n = new URLSearchParams(location.search).get('next');
+  return rutaValida(n) ? n : '/intranet/';
+}
+function mostrarLogin(){
+  document.getElementById('appShell').hidden = true;
+  document.getElementById('loginGate').hidden = false;
+  document.body.hidden = false;
+  if(new URLSearchParams(location.search).get('desactivado')){
+    const av = document.getElementById('loginAviso');
+    av.hidden = false;
+    av.textContent = 'Tu cuenta está desactivada. Habla con un administrador.';
+  }
+}
+
 sb.auth.getSession().then(async ({ data:{ session } }) => {
-  if(!session){ location.replace('/entrar/?next=/intranet/'); return; }
+  if(!session){ mostrarLogin(); return; }
   // Un comprador del portal (app_metadata.portal) NO es del equipo: a su casa.
   // Mismo chequeo que guard.js — sin ficha en `usuarios`, la compatibilidad
   // "sin ficha se permite" de abajo le habría abierto el hub interno (vacío
@@ -800,9 +873,11 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
     .select('rol, herramientas, activo, nombre').eq('user_id', session.user.id).maybeSingle();
   if(ficha && !ficha.activo){          // desactivado: se le cierra la sesión, no se le enseña un hub vacío
     await sb.auth.signOut();
-    location.replace('/entrar/?desactivado=1');
+    location.replace('/intranet/?desactivado=1');
     return;
   }
+  document.getElementById('loginGate').hidden = true;
+  document.getElementById('appShell').hidden = false;
   FICHA = ficha || null;
   /* «Buenos días, Ana — hoy, 6 de agosto» (1a). La hora decide el saludo y el
      nombre sale de la ficha; sin ficha, del email, sin inventar nada. */
@@ -854,8 +929,24 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
 
 $('#out').onclick = async () => {
   await sb.auth.signOut();
-  location.replace('/entrar/');
+  location.replace('/intranet/');
 };
+
+document.getElementById('fLogin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginErr');
+  btn.disabled = true; err.textContent = '';
+  const { error } = await sb.auth.signInWithPassword({
+    email: document.getElementById('loginEmail').value,
+    password: document.getElementById('loginPass').value
+  });
+  if(!error){ location.href = siguiente(); }
+  else{
+    err.textContent = error.message === 'Invalid login credentials' ? 'Credenciales incorrectas' : error.message;
+    btn.disabled = false;
+  }
+});
 </script>
 </body>
 </html>

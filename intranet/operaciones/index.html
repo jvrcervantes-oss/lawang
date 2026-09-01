@@ -23,11 +23,11 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <script src="/contracts/assets/herramientas.js?v=9a47f19a"></script>
-<script src="/contracts/assets/topbar.js?v=d18b6a17" defer></script>
+<script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="/contracts/assets/visor.js?v=c8d2b946" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/guard.js?v=438c4ea2" data-herramienta="operaciones"></script>
+<script src="/contracts/assets/guard.js?v=d1194bf1" data-herramienta="operaciones"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
 <!-- aritmética y formato de dinero: el MISMO que emite las facturas, no una copia -->
 <!-- dinero.js ANTES de totales.js (17-ago-2026): esta pantalla llamaba a
@@ -1194,7 +1194,7 @@ window.LW_AUTH.then(({ sb, session, ficha }) => {
   // herramienta sigue igual para todo el equipo.
   ES_ADMIN = !!(ficha && (ficha.rol === 'super_admin' || ficha.rol === 'admin'));
   $('#who').textContent = session.user.email;
-  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/entrar/'); };
+  $('#btnLogout').onclick = async () => { await sb.auth.signOut(); location.replace('/intranet/'); };
   arrancar(false);
 });
 </script>
