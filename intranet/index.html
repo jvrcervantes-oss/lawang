@@ -323,8 +323,8 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
   <!-- Puerta de acceso propia (1-sep-2026): antes /intranet/ sin sesión
        rebotaba a /entrar/, la puerta compartida con el portal del cliente.
        Ahora se pinta aquí mismo — mismo patrón que ya usaba /portal/ para
-       el suyo. Oculta por defecto; el script de más abajo decide cuál de
-       las dos (esta o #appShell) se enseña. -->
+       el suyo. Oculta por defecto; el script de más abajo decide si se
+       enseña esta o el header/main/footer de la app. -->
   <div class="lw-login" id="loginGate" hidden>
     <div class="caja">
       <div class="marca">
@@ -344,7 +344,6 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     </div>
   </div>
 
-  <div id="appShell" hidden>
   <!-- LA MISMA BARRA QUE LAS HERRAMIENTAS (16-ago-2026, owner: «unificalo, pero
        me parece bien que tenga otro color»). Era una cabecera propia: marca de
        TEXTO en vez del logotipo, y un `.bar` con `max-width:1060px; margin:auto`
@@ -355,8 +354,15 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
        el rótulo igual que en el resto; `lw-topbar-oscura` es SOLO la paleta.
        Efecto colateral bueno: el panel de cuenta busca el «Salir» viejo DENTRO
        de la barra, y aquí lo tenía fuera de su alcance, asi que salían dos
-       formas de cerrar sesión. Ahora lo encuentra y lo esconde. -->
-  <header class="lw-topbar lw-topbar-oscura" data-titulo="Panel">
+       formas de cerrar sesión. Ahora lo encuentra y lo esconde.
+
+       header/main/footer se ocultan CADA UNO POR SU CUENTA (1-sep-2026), no
+       envueltos en un `<div>` común: `topbar.css` tiene reglas como
+       `body.con-rail > .lw-topbar` y `body.con-rail > header` (combinador de
+       HIJO DIRECTO) para que la barra se extienda a todo el ancho por debajo
+       del riel — un envoltorio de por medio las deja de casar y la barra se
+       descuadra (el "recuadro" que vio el owner el mismo día). -->
+  <header id="topApp" class="lw-topbar lw-topbar-oscura" data-titulo="Panel" hidden>
     <div class="lw-spacer"></div>
     <div class="yo" data-lw-usuario>
       <span class="quien lw-who" id="who"></span>
@@ -365,7 +371,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     <button type="button" class="lw-btn" id="out">Salir</button>
   </header>
 
-  <main>
+  <main id="mainApp" hidden>
     <div id="avisos"></div>
     <!-- Saludo + acciones, como 1a. El saludo lo escribe el arranque con el
          nombre de la ficha; las dos acciones son atajos reales a crear. -->
@@ -404,11 +410,10 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
     <div id="grupos"></div>
   </main>
 
-  <footer><div>
+  <footer id="footApp" hidden><div>
     <span>Acceso restringido: cada herramienta exige esta misma sesión.</span>
     <span id="pie-datos"></span>
   </div></footer>
-  </div><!-- /#appShell -->
 
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
@@ -851,8 +856,17 @@ function siguiente(){
   const n = new URLSearchParams(location.search).get('next');
   return rutaValida(n) ? n : '/intranet/';
 }
+function mostrarApp(mostrar){
+  // header/main/footer SIN envoltorio (1-sep-2026): topbar.css los selecciona
+  // como hijo directo de <body> (`body.con-rail > .lw-topbar`, etc.) para que
+  // la barra se extienda a todo el ancho por debajo del riel — un <div> de por
+  // medio rompía esa regla y descuadraba la barra.
+  document.getElementById('topApp').hidden = !mostrar;
+  document.getElementById('mainApp').hidden = !mostrar;
+  document.getElementById('footApp').hidden = !mostrar;
+}
 function mostrarLogin(){
-  document.getElementById('appShell').hidden = true;
+  mostrarApp(false);
   document.getElementById('loginGate').hidden = false;
   document.body.hidden = false;
   if(new URLSearchParams(location.search).get('desactivado')){
@@ -877,7 +891,7 @@ sb.auth.getSession().then(async ({ data:{ session } }) => {
     return;
   }
   document.getElementById('loginGate').hidden = true;
-  document.getElementById('appShell').hidden = false;
+  mostrarApp(true);
   FICHA = ficha || null;
   /* «Buenos días, Ana — hoy, 6 de agosto» (1a). La hora decide el saludo y el
      nombre sale de la ficha; sin ficha, del email, sin inventar nada. */
