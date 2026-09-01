@@ -249,13 +249,20 @@
   .drawer-velo{ position:fixed; inset:0; background:rgba(34,40,42,.45); z-index:70; }
   .drawer{ position:fixed; top:0; right:0; height:100vh; width:min(480px,100vw); background:var(--rl); z-index:71;
            box-shadow:-24px 0 48px -24px rgba(34,40,42,.35); overflow-y:auto; padding:26px 26px 40px; }
-  .drawer.ancho{ width:min(720px,100vw); }
+  /* 936px = 720 * 1,3 (pedido del cliente, 1-sep: "el lateral un 30% más
+     grande") — usado por Facturas y Contratos, los dos únicos que abren
+     `.ancho`. */
+  .drawer.ancho{ width:min(936px,100vw); }
   .drawer-cerrar{ display:flex; justify-content:flex-end; margin-bottom:10px; }
   .drawer-cerrar button{ background:none; border:none; font-size:20px; cursor:pointer; color:var(--va); }
   .drawer .hoja{ background:#fff; border-radius:12px; padding:32px 30px; }
   .hoja-scroll{ display:flex; justify-content:center; }
-  .sheet{ width:210mm; min-height:297mm; background:var(--folio,#fff); padding:15mm 16mm; zoom:.62; }
-  @media screen and (max-width:900px){ .sheet{ zoom:.42; } .hoja-scroll{ overflow-x:auto; justify-content:flex-start; } }
+  /* zoom:.78 y el punto de corte a 560px: los mismos valores que usa la
+     herramienta interna de Facturas (intranet/facturas/index.html) para que
+     la factura se vea 100% igual, pixel a pixel — mismo documento, misma
+     escala (pedido del cliente, 1-sep). */
+  .sheet{ width:210mm; min-height:297mm; background:var(--folio,#fff); padding:15mm 16mm; zoom:.78; }
+  @media screen and (max-width:560px){ .sheet{ zoom:.58; } .hoja-scroll{ overflow-x:auto; justify-content:flex-start; } }
 
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--va); color:#fff;
           padding:11px 20px; border-radius:999px; font-size:13px; z-index:200; opacity:0; transition:opacity .2s; pointer-events:none; }
@@ -413,13 +420,13 @@
          plan_pagos:'Plan de pagos', concepto:'Concepto', cuando:'Vencimiento', importe:'Importe', estado:'Estado',
          firmado:'Firmado', pendiente_firma:'Pendiente de firma', ver_contrato:'Ver contrato firmado', descargar:'Descargar',
          imprimir:'Imprimir o guardar en PDF', cerrar:'Cerrar',
-         f_numero:'Nº', f_tipo:'Tipo', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
+         f_numero:'Nº', f_tipo:'Tipo', f_proyecto:'Proyecto', f_fecha:'Fecha', f_total:'Importe', ir:'Ver →',
          factura:'Factura', recibi:'Recibo', proforma:'Proforma',
          sin_facturas_t:'Aún no hay documentos', sin_facturas:'Cuando emitamos una factura o un recibo aparecerá aquí, listo para descargar.',
          sin_obra_t:'Aún no hay novedades de obra', sin_obra:'En cuanto empiece la construcción de tu unidad publicaremos aquí su avance y sus fotos.',
          sin_contratos_t:'No vemos contratos a tu nombre', sin_contratos:'Puede que tu acceso esté sobre una ficha que todavía no tiene contratos ligados. Escríbenos y lo revisamos.',
          entrega_est:'Entrega estimada', actualizado:'Última actualización',
-         d_promocion:'Documentación de tu promoción', d_entregado:'Lo que nos entregaste',
+         sin_proyecto:'Otros documentos', d_entregado:'Lo que nos entregaste',
          d_entregado_nota:'Son los documentos que aportaste para tu expediente. Si alguno está a punto de caducar, escríbenos y lo actualizamos.',
          doc_passport:'Pasaporte', doc_id:'Documento de identidad', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'caduca el',
          sin_docs_t:'Aún no hay documentos compartidos', sin_docs:'Aquí aparecerán los planos, dossieres y documentos de tu promoción cuando los publiquemos, junto con lo que tú nos hayas entregado.',
@@ -462,13 +469,13 @@
          plan_pagos:'Payment plan', concepto:'Description', cuando:'Due', importe:'Amount', estado:'Status',
          firmado:'Signed', pendiente_firma:'Awaiting signature', ver_contrato:'View signed contract', descargar:'Download',
          imprimir:'Print or save as PDF', cerrar:'Close',
-         f_numero:'No.', f_tipo:'Type', f_fecha:'Date', f_total:'Amount', ir:'View →',
+         f_numero:'No.', f_tipo:'Type', f_proyecto:'Project', f_fecha:'Date', f_total:'Amount', ir:'View →',
          factura:'Invoice', recibi:'Receipt', proforma:'Proforma',
          sin_facturas_t:'No documents yet', sin_facturas:'Once we issue an invoice or a receipt it will show up here, ready to download.',
          sin_obra_t:'No construction updates yet', sin_obra:'As soon as your unit breaks ground we will publish its progress and photos here.',
          sin_contratos_t:'We see no contracts under your name', sin_contratos:'Your access may sit on a record with no contracts linked yet. Write to us and we will check it.',
          entrega_est:'Estimated handover', actualizado:'Last update',
-         d_promocion:'Your development’s documents', d_entregado:'What you gave us',
+         sin_proyecto:'Other documents', d_entregado:'What you gave us',
          d_entregado_nota:'These are the documents you provided for your file. If any is about to expire, write to us and we will update it.',
          doc_passport:'Passport', doc_id:'ID document', doc_npwp:'NPWP', doc_kitas:'KITAS', caduca:'expires',
          sin_docs_t:'No shared documents yet', sin_docs:'Plans, brochures and documents for your development will appear here once we publish them, along with anything you have given us.',
@@ -897,11 +904,12 @@
     var d = DATOS;
     if (!(d.facturas||[]).length){ c.innerHTML = vacio(t('sin_facturas_t'), t('sin_facturas')); return; }
     c.innerHTML = '<div class="tabla-caja"><table><thead><tr>' +
-      '<th>' + esc(t('f_numero')) + '</th><th>' + esc(t('f_tipo')) + '</th><th>' + esc(t('f_fecha')) + '</th>' +
+      '<th>' + esc(t('f_numero')) + '</th><th>' + esc(t('f_tipo')) + '</th><th>' + esc(t('f_proyecto')) + '</th><th>' + esc(t('f_fecha')) + '</th>' +
       '<th class="num">' + esc(t('f_total')) + '</th><th></th></tr></thead><tbody>' +
       d.facturas.map(function(f){
         return '<tr data-fila data-fac="' + esc(f.numero) + '">' +
           '<td class="clave">' + esc(f.numero) + '</td><td>' + esc(t(TIPO_DOC[f.tipo]||f.tipo)) + '</td>' +
+          '<td class="flojo">' + esc(f.proyecto||'—') + '</td>' +
           '<td class="flojo">' + esc(fecha(f.fecha)) + '</td>' +
           '<td class="num">' + esc(dinero(Number(f.total),f.moneda)) + '</td>' +
           '<td class="ir">' + esc(t('ir')) + '</td></tr>';
@@ -948,25 +956,27 @@
   }
 
   /* ── Documentos ───────────────────────────────────────────────────── */
+  /* "Lo que nos entregaste" (kyc) vive en Mi perfil desde el 1-sep: es
+     documentación de la CUENTA del comprador, no de la promoción — ver
+     pintaPerfil(). Aquí solo queda la documentación de la promoción,
+     agrupada por proyecto (pedido del cliente, 1-sep: un comprador con
+     varios contratos veía todo mezclado). */
   function pintaDocumentos(c){
-    var d = DATOS, docs = d.documentos||[], kyc = d.kyc||[];
-    if (!docs.length && !kyc.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
-    var html = '';
-    if (docs.length) html += '<h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('d_promocion')) + '</h3>' +
-      '<div class="doclista" style="margin-bottom:28px">' + docs.map(function(x){
-        return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
-          '<div class="s">' + esc([x.categoria, x.proyecto].filter(Boolean).join(' · ')) + '</div></div></div>';
-      }).join('') + '</div>';
-    if (kyc.length) html += '<h3 style="margin:0 0 6px;font-size:15px;font-weight:600">' + esc(t('d_entregado')) + '</h3>' +
-      '<p style="margin:0 0 14px;font-size:12.5px;color:#6b6c66;max-width:60ch">' + esc(t('d_entregado_nota')) + '</p>' +
-      '<div class="doclista">' + kyc.map(function(x){
-        var cad = x.caduca ? new Date(x.caduca) : null;
-        var vencido = cad && cad < new Date();
-        return '<div class="docfila" data-kyc="' + esc(x.path) + '"><div class="cuerpo"><div class="t">' +
-          esc(t('doc_'+x.tipo) === 'doc_'+x.tipo ? x.tipo : t('doc_'+x.tipo)) + '</div></div>' +
-          '<div class="der' + (vencido?' mal':'') + '">' + (x.caduca ? esc(t('caduca')+' '+fecha(x.caduca)) : '') + '</div></div>';
-      }).join('') + '</div>';
-    c.innerHTML = html;
+    var d = DATOS, docs = d.documentos||[];
+    if (!docs.length){ c.innerHTML = vacio(t('sin_docs_t'), t('sin_docs')); return; }
+    var grupos = {}, orden = [];
+    docs.forEach(function(x){
+      var p = x.proyecto || t('sin_proyecto');
+      if (!grupos[p]){ grupos[p] = []; orden.push(p); }
+      grupos[p].push(x);
+    });
+    c.innerHTML = orden.map(function(p){
+      return '<h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(p) + '</h3>' +
+        '<div class="doclista" style="margin-bottom:28px">' + grupos[p].map(function(x){
+          return '<div class="docfila" data-doc="' + esc(x.id) + '"><div class="cuerpo"><div class="t">' + esc(x.titulo) + '</div>' +
+            '<div class="s">' + esc(x.categoria||'') + '</div></div></div>';
+        }).join('') + '</div>';
+    }).join('');
     c.querySelectorAll('[data-doc]').forEach(function(el){
       el.addEventListener('click', function(){
         var doc = (DATOS.documentos||[]).filter(function(x){ return String(x.id) === el.getAttribute('data-doc'); })[0];
@@ -974,7 +984,6 @@
         if (doc.url) window.open(doc.url, '_blank', 'noopener'); else abreFichero('documentacion', doc.path);
       });
     });
-    c.querySelectorAll('[data-kyc]').forEach(function(el){ el.addEventListener('click', function(){ abreFichero('kyc', el.getAttribute('data-kyc')); }); });
   }
   function abreFichero(bucket, path){
     if (!path) return;
@@ -1032,8 +1041,11 @@
   }
 
   /* ── Perfil ───────────────────────────────────────────────────────── */
+  /* "Lo que nos entregaste" (kyc) vive aquí desde el 1-sep (antes en
+     Documentos, pedido del cliente: es documentación de LA CUENTA —
+     pasaporte, NPWP, KITAS… — no de la promoción). */
   function pintaPerfil(c){
-    var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false };
+    var d = DATOS, prefs = d.prefs || { pref_email:true, pref_sms:false }, kyc = d.kyc||[];
     c.innerHTML = '<div style="display:grid;gap:16px;max-width:520px">' +
       '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('datos_personales')) + '</h3>' +
         '<div style="display:grid;gap:10px">' +
@@ -1042,6 +1054,15 @@
           '<div><div class="campo-lbl"><i class="ph ph-phone"></i>' + esc(t('telefono')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.telefono||'—') + '</div></div>' +
           '<div><div class="campo-lbl"><i class="ph ph-map-pin"></i>' + esc(t('pais')) + '</div><div style="font-size:14px;margin-top:2px">' + esc(d.pais||'—') + '</div></div>' +
         '</div></div>' +
+      (kyc.length ? '<div class="tarjeta"><h3 style="margin:0 0 6px;font-size:15px;font-weight:600">' + esc(t('d_entregado')) + '</h3>' +
+        '<p style="margin:0 0 14px;font-size:12.5px;color:#6b6c66">' + esc(t('d_entregado_nota')) + '</p>' +
+        '<div class="doclista">' + kyc.map(function(x){
+          var cad = x.caduca ? new Date(x.caduca) : null;
+          var vencido = cad && cad < new Date();
+          return '<div class="docfila" data-kyc="' + esc(x.path) + '"><div class="cuerpo"><div class="t">' +
+            esc(t('doc_'+x.tipo) === 'doc_'+x.tipo ? x.tipo : t('doc_'+x.tipo)) + '</div></div>' +
+            '<div class="der' + (vencido?' mal':'') + '">' + (x.caduca ? esc(t('caduca')+' '+fecha(x.caduca)) : '') + '</div></div>';
+        }).join('') + '</div></div>' : '') +
       '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('seguridad')) + '</h3>' +
         '<button type="button" class="btn-borde" id="btnCambiarPass">' + esc(t('cambiar_pass_btn')) + '</button></div>' +
       '<div class="tarjeta"><h3 style="margin:0 0 14px;font-size:15px;font-weight:600">' + esc(t('prefs')) + '</h3>' +
@@ -1053,6 +1074,7 @@
     document.getElementById('btnCambiarPass').addEventListener('click', abrirCambiarPass);
     document.getElementById('tglEmail').addEventListener('click', function(){ togglePref('pref_email'); });
     document.getElementById('tglSms').addEventListener('click', function(){ togglePref('pref_sms'); });
+    c.querySelectorAll('[data-kyc]').forEach(function(el){ el.addEventListener('click', function(){ abreFichero('kyc', el.getAttribute('data-kyc')); }); });
   }
   function togglePref(cual){
     var prefs = DATOS.prefs = DATOS.prefs || { pref_email:true, pref_sms:false };
@@ -1104,7 +1126,8 @@
         documentoHTML(campos, { numero: f.numero }) + '</div></div></div>' +
       '<div style="display:flex;gap:10px;margin-top:14px">' +
         '<button type="button" class="btn-oscuro" id="btnImprimirDoc">' + esc(t('imprimir')) + '</button>' +
-        '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>'
+        '<button type="button" class="btn-borde" id="btnCerrarDoc">' + esc(t('cerrar')) + '</button></div>',
+      'ancho'
     );
     document.getElementById('btnCerrarDoc').addEventListener('click', cierraDrawer);
     document.getElementById('btnImprimirDoc').addEventListener('click', function(){
