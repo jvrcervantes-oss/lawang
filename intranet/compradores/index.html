@@ -122,6 +122,22 @@
   .pp-cab b{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pp-cab span{ flex:none; font-variant-numeric:tabular-nums; color:var(--texto-2); }
   .lw-bar.cobro > i{ background:#3F5230; }
+
+  /* Soporte (tickets) y Mensajes (chat) del área de clientes — lado equipo
+     (1-sep-2026). Filas simples, no burbujas: la diferencia cliente/equipo la
+     da el color del nombre, no la maquetación — es una herramienta de
+     trabajo, no el chat del comprador. */
+  .hilo{ display:flex; flex-direction:column; gap:9px; margin:10px 0; max-height:260px; overflow-y:auto; }
+  .msg{ font-size:13px; line-height:1.5; padding:8px 11px; border-radius:8px; background:var(--rl2); }
+  .msg.equipo{ background:#EDF1E8; border:1px solid #DCE4D3; }
+  .msg .quien{ font-size:11px; font-weight:600; color:var(--texto-2); margin-bottom:2px; }
+  .msg.equipo .quien{ color:#3F5230; }
+  .ticket{ border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+  .ticket + .ticket{ margin-top:10px; }
+  .ticket-cab{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .ticket-cab b{ font-size:13.5px; }
+  .responder{ display:flex; gap:8px; margin-top:8px; align-items:flex-start; }
+  .responder textarea{ flex:1; min-height:38px; }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026). VA LA ÚLTIMA DE LA CABECERA A PROPÓSITO, y esto
@@ -401,6 +417,95 @@ async function cargarCorreosComprador(clientId, contratoIds, facturaIds){
   return true;
 }
 
+/* ── Soporte (tickets) y Mensajes (chat), lado equipo — 1-sep-2026 ─────────
+   El área de clientes (`/portal/`) escribe en estas mismas tablas desde el
+   31-ago; hasta hoy solo se veían por SQL directo (LAW-87). RLS ya deja
+   leer/escribir al equipo (`es_agente()`, `portal_soporte_mensajes_prefs.sql`)
+   — esto es solo la pantalla que faltaba. Mismo patrón de caché por ficha
+   que CORREOS_COMPRADOR: se pide una vez por client_id, no en cada repintado. */
+const TICKETS_COMPRADOR = {};    // client_id -> [{...ticket, mensajes:[...]}]
+const MENSAJES_COMPRADOR = {};   // client_id -> [mensaje,...]
+
+async function cargarSoporte(clientId){
+  if(clientId in TICKETS_COMPRADOR) return false;
+  const { data: tickets, error } = await SB.from('tickets_comprador')
+    .select('id,asunto,categoria,estado,creado_en')
+    .eq('client_id', clientId).order('creado_en', { ascending:false });
+  if(error){
+    toast('No se pudo leer Soporte: ' + error.message);
+    TICKETS_COMPRADOR[clientId] = [];   // "no se sabe", no "no hay" — igual que CORREOS_COMPRADOR
+    return false;
+  }
+  const ids = (tickets || []).map(t => t.id);
+  let mensajesPorTicket = {};
+  if(ids.length){
+    const { data: msgs, error: e2 } = await SB.from('tickets_comprador_mensajes')
+      .select('id,ticket_id,de,autor,texto,creado_en')
+      .in('ticket_id', ids).order('creado_en', { ascending:true });
+    if(e2) toast('No se pudieron leer los mensajes del ticket: ' + e2.message);
+    (msgs || []).forEach(m => { (mensajesPorTicket[m.ticket_id] ||= []).push(m); });
+  }
+  TICKETS_COMPRADOR[clientId] = (tickets || []).map(t => ({ ...t, mensajes: mensajesPorTicket[t.id] || [] }));
+  return true;
+}
+
+async function cargarMensajes(clientId){
+  if(clientId in MENSAJES_COMPRADOR) return false;
+  const { data, error } = await SB.from('mensajes_comprador')
+    .select('id,de,autor,texto,creado_en')
+    .eq('client_id', clientId).order('creado_en', { ascending:true });
+  if(error){
+    toast('No se pudo leer Mensajes: ' + error.message);
+    MENSAJES_COMPRADOR[clientId] = [];
+    return false;
+  }
+  MENSAJES_COMPRADOR[clientId] = data || [];
+  return true;
+}
+
+/* Las tres acciones de escritura del equipo. Ninguna hace INSERT/UPDATE
+   directo salvo el estado del ticket (RLS ya se lo permite a cualquier
+   agente, ver policy "equipo cambia el estado del ticket"); enviar mensaje
+   SIEMPRE pasa por la RPC, que fija `de`/`autor` ella misma — el mismo
+   candado que usa el propio portal, no uno nuevo para el lado equipo. */
+async function responderTicket(ticketId, clientId){
+  const ta = document.querySelector(`[data-responder-ticket="${ticketId}"]`);
+  const texto = ta && ta.value.trim();
+  if(!texto) return;
+  const btn = document.querySelector(`[data-btn-responder-ticket="${ticketId}"]`);
+  if(btn) btn.disabled = true;
+  const { error } = await SB.rpc('portal_enviar_ticket_mensaje', { p_ticket_id: ticketId, p_texto: texto });
+  if(error){ toast('No se pudo enviar: ' + error.message); if(btn) btn.disabled = false; return; }
+  delete TICKETS_COMPRADOR[clientId];
+  await cargarSoporte(clientId);
+  toast('Respuesta enviada');
+  pintarFicha();
+}
+
+async function alternarEstadoTicket(ticketId, estadoActual, clientId){
+  const nuevo = estadoActual === 'abierto' ? 'resuelto' : 'abierto';
+  const { error } = await SB.from('tickets_comprador').update({ estado: nuevo }).eq('id', ticketId);
+  if(error){ toast('No se pudo cambiar el estado: ' + error.message); return; }
+  delete TICKETS_COMPRADOR[clientId];
+  await cargarSoporte(clientId);
+  toast(nuevo === 'resuelto' ? 'Ticket marcado como resuelto' : 'Ticket reabierto');
+  pintarFicha();
+}
+
+async function enviarMensajeEquipo(clientId){
+  const ta = document.getElementById('responderMensaje');
+  const texto = ta && ta.value.trim();
+  if(!texto) return;
+  const btn = document.getElementById('btnResponderMensaje');
+  if(btn) btn.disabled = true;
+  const { error } = await SB.rpc('portal_enviar_mensaje', { p_client_id: clientId, p_texto: texto });
+  if(error){ toast('No se pudo enviar: ' + error.message); if(btn) btn.disabled = false; return; }
+  delete MENSAJES_COMPRADOR[clientId];
+  await cargarMensajes(clientId);
+  toast('Mensaje enviado');
+  pintarFicha();
+}
+
 /* Lo que vale un contrato preliminar: su cuota si la fijó, y si no el precio
    total como aproximación — el mismo criterio que había cuando el dato viajaba
    en la carga inicial. */
@@ -467,6 +572,10 @@ function pintarFicha(){
     const facturaIds = FACTURAS.filter(x => suyosIds.has(x.contrato_id)).map(x => x.id);
     if(!(SEL in CORREOS_COMPRADOR))
       cargarCorreosComprador(SEL, suyos.map(x => x.id), facturaIds).then(hubo => { if(hubo && SEL) pintarFicha(); });
+    if(!(SEL in TICKETS_COMPRADOR))
+      cargarSoporte(SEL).then(hubo => { if(hubo && SEL) pintarFicha(); });
+    if(!(SEL in MENSAJES_COMPRADOR))
+      cargarMensajes(SEL).then(hubo => { if(hubo && SEL) pintarFicha(); });
   }
   const nuevo = SEL === 'nuevo';
   const c = nuevo ? { kyc_status:'pending' } : CLIENTES.find(x => x.id === SEL);
@@ -752,6 +861,58 @@ function pintarFicha(){
         comprador también puede cambiarla él mismo desde dentro del portal.</p>`;
       })()}
     </fieldset>
+    ${nuevo ? '' : `
+    <fieldset>
+      <legend>Soporte</legend>
+      ${(() => {
+        const tks = TICKETS_COMPRADOR[c.id];
+        if(tks === undefined) return '<p class="nota">Cargando…</p>';
+        if(!tks.length) return '<p class="nota">Sin tickets abiertos desde el área de clientes.</p>';
+        const CAT_ETQ = { Pagos:'Pagos', Documentación:'Documentación', Obra:'Obra', Otro:'Otro' };
+        return tks.map(t => `
+        <div class="ticket" data-ticket="${esc(t.id)}">
+          <div class="ticket-cab">
+            <b>${esc(t.asunto)}</b>
+            <span>
+              <span class="sui-tag">${esc(CAT_ETQ[t.categoria] || t.categoria)}</span>
+              <span class="sui-tag ${t.estado === 'abierto' ? 'espera' : 'ok'}">${t.estado === 'abierto' ? 'Abierto' : 'Resuelto'}</span>
+            </span>
+          </div>
+          <p class="nota" style="margin:4px 0 0">${fFecha(t.creado_en)}</p>
+          <div class="hilo">
+            ${t.mensajes.map(m => `<div class="msg ${m.de === 'equipo' ? 'equipo' : ''}">
+              <div class="quien">${m.de === 'equipo' ? esc(m.autor || 'Equipo') : esc(c.full_name || 'Comprador')} · ${fFecha(m.creado_en)}</div>
+              ${esc(m.texto)}
+            </div>`).join('')}
+          </div>
+          <div class="responder">
+            <textarea placeholder="Responder…" data-responder-ticket="${esc(t.id)}"></textarea>
+            <button class="btn primary" data-btn-responder-ticket="${esc(t.id)}">Enviar</button>
+          </div>
+          <div class="acciones" style="margin-top:8px">
+            <button class="btn" data-toggle-ticket="${esc(t.id)}" data-estado="${esc(t.estado)}">${t.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir'}</button>
+          </div>
+        </div>`).join('');
+      })()}
+    </fieldset>
+    <fieldset>
+      <legend>Mensajes</legend>
+      ${(() => {
+        const msgs = MENSAJES_COMPRADOR[c.id];
+        if(msgs === undefined) return '<p class="nota">Cargando…</p>';
+        return `
+        <div class="hilo">
+          ${msgs.length ? msgs.map(m => `<div class="msg ${m.de === 'equipo' ? 'equipo' : ''}">
+            <div class="quien">${m.de === 'equipo' ? esc(m.autor || 'Equipo') : esc(c.full_name || 'Comprador')} · ${fFecha(m.creado_en)}</div>
+            ${esc(m.texto)}
+          </div>`).join('') : '<p class="nota">Sin mensajes todavía.</p>'}
+        </div>
+        <div class="responder">
+          <textarea placeholder="Escribir…" id="responderMensaje"></textarea>
+          <button class="btn primary" id="btnResponderMensaje">Enviar</button>
+        </div>`;
+      })()}
+    </fieldset>`}
     <fieldset>
       <legend>Documentación</legend>
       <table>
@@ -875,6 +1036,11 @@ function pintarFicha(){
     .forEach(b => b.addEventListener('click', () => abrir(b.dataset.ver)));
   document.getElementById('suiCajon').querySelectorAll('[data-borrar-doc]')
     .forEach(b => b.addEventListener('click', () => borrarDocumento(b.dataset.borrarDoc, b)));
+  document.getElementById('suiCajon').querySelectorAll('[data-btn-responder-ticket]')
+    .forEach(b => b.addEventListener('click', () => responderTicket(b.dataset.btnResponderTicket, c.id)));
+  document.getElementById('suiCajon').querySelectorAll('[data-toggle-ticket]')
+    .forEach(b => b.addEventListener('click', () => alternarEstadoTicket(b.dataset.toggleTicket, b.dataset.estado, c.id)));
+  const brm = $('#btnResponderMensaje'); if(brm) brm.addEventListener('click', () => enviarMensajeEquipo(c.id));
 }
 
 /* ---------- retirar UN documento (admin) ----------
