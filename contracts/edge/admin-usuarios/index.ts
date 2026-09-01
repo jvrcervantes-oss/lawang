@@ -37,6 +37,10 @@ const corsFor = (req: Request) => {
 // /intranet/usuarios/ y una herramienta se pierde al crear un usuario (no al editar).
 // 18-ago-2026: añadida 'vencimientos', que hasta hoy compartía la clave de
 // 'operaciones' y por eso no aparecía en el panel de permisos.
+// 1-sep-2026: añadida 'soporte' (fusión Soporte+Mensajes en un hilo), cazada
+// por `listas.test.js` antes de desplegar — la 4ª vez que esta lista se queda
+// corta, siempre por el mismo motivo: una herramienta nueva en el catálogo
+// que no se replica aquí a mano.
 //
 // 17-ago-2026 (auditoría): la lista sigue AQUÍ y no se lee de
 // `assets/herramientas.js`, a propósito — una edge que se descarga código del
@@ -47,7 +51,7 @@ const corsFor = (req: Request) => {
 // filtrarse (ver abajo). Las tres veces que esta lista se quedó corta pasaron
 // desapercibidas por el `.filter()`: descartar sin avisar convierte un error de
 // programación en un permiso que falta y que nadie relaciona con esto.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
 Deno.serve(async (req) => {
