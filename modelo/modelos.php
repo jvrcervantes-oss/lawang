@@ -30,7 +30,11 @@ return [
         // fuente. Nunca se redacta el inglés aparte "a ojo": si el ES cambia, este texto
         // queda desincronizado hasta que alguien lo note.
         'sub_en'           => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
-        'precio_desde_eur' => null,
+        // 1-sep: precio cerrado dado directamente por el owner en la sesión de trabajo
+        // (chat CEO, tras confirmar explícitamente que era la cifra real y no de relleno,
+        // en respuesta a la pregunta "¿me das el precio real?"). Quita el `noindex`
+        // automático de la landing — ver lw_precio_fmt() en lib.php.
+        'precio_desde_eur' => 69000,
         // Los tres acabados de cubierta del pliego del contratista (anexo de obra de Dali).
         'acabados'         => [
             ['n' => 'Alang-alang',        'd' => 'Cubierta vegetal tradicional balinesa. La estética más integrada en el entorno tropical.',

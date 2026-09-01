@@ -189,16 +189,22 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 @media(max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
 
 /* ── Hero ─────────────────────────────────────────────────────────────────────── */
-.hero{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:56px;
+/* La imagen es la prueba del producto en un vistazo: columna más ancha (.62/1.38),
+   más alta y con sombra propia para que se despegue del papel en vez de ir a la par
+   del texto. */
+.hero{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1.38fr);gap:56px;
   align-items:center;padding:72px 0 56px}
 @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:44px}}
 .hero__eyebrow{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--verde)}
 .hero h1{font-size:clamp(34px,5vw,68px);margin-top:.3em;max-width:16ch}
-.hero__sub{font-size:17px;color:var(--ink2);max-width:440px;margin-top:.85em}
+.hero__precio{font-family:var(--head);font-size:24px;font-weight:700;color:var(--verde);
+  margin-top:.5em}
+.hero__sub{font-size:17px;color:var(--ink2);max-width:440px;margin-top:.6em}
 .hero__ctas{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
 .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--verde-tenue)}
 .btn--ghost:hover{background:var(--panel)}
-.hero__fig{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:5/4}
+.hero__fig{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3.6;
+  box-shadow:0 24px 60px -20px rgba(46,52,55,.35)}
 .hero__fig img{width:100%;height:100%;object-fit:cover}
 
 /* ── Ficha rápida ─────────────────────────────────────────────────────────────── */
@@ -214,7 +220,9 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .sec:first-of-type{border-top:0}
 .et{font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.1em;
   text-transform:uppercase;color:var(--verde)}
-.num{font-family:var(--head);font-size:52px;font-weight:700;color:rgba(72,91,55,.16);
+/* El numeral de fondo ("01","02"...) apenas se notaba a .16 de opacidad — acentuado a .34,
+   sigue siendo un adorno tipográfico, no compite con el titular de la sección. */
+.num{font-family:var(--head);font-size:52px;font-weight:700;color:rgba(72,91,55,.34);
   margin-bottom:-6px}
 .sec h2{font-size:clamp(25px,2.8vw,34px);margin-top:.3em;max-width:22ch}
 .sec__desc{font-size:16px;color:var(--ink2);max-width:56ch;margin-top:.9em}
@@ -338,7 +346,6 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .cal__slot{padding:7px 12px;border-radius:100px;font:inherit;font-size:12px;cursor:pointer;
   border:1px solid var(--linea-fuerte);background:var(--papel);color:var(--ink)}
 .cal__slot--sel{background:var(--verde);color:#fff;border-color:var(--verde);font-weight:700}
-.cal__note{font-size:11px;color:var(--ink2);line-height:1.4}
 
 /* ── Pie ──────────────────────────────────────────────────────────────────────── */
 .pie{border-top:1px solid var(--linea)}
@@ -382,6 +389,7 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     <div>
       <p class="hero__eyebrow"><?= lw_i18n('Bali, Indonesia — Obra nueva, llave en mano', 'Bali, Indonesia — New build, turnkey') ?></p>
       <h1><?= lw_e($villa) ?></h1>
+      <p class="hero__precio"><?= lw_i18n('Desde', 'From') ?> <?= lw_e($precioEs) ?></p>
       <p class="hero__sub"><?= lw_i18n($m['sub'], $m['sub_en']) ?></p>
       <div class="hero__ctas">
         <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
@@ -635,8 +643,8 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     ) ?></p>
     <div class="reserva__card">
       <b class="i-es">Calendario de disponibilidad</b><b class="i-en">Availability calendar</b>
-      <span class="i-es">Elige día y hora directamente en nuestro calendario de Calendly.</span>
-      <span class="i-en">Pick a day and time directly on our Calendly calendar.</span>
+      <span class="i-es">Elige día y hora directamente en el calendario.</span>
+      <span class="i-en">Pick a day and time directly on the calendar.</span>
       <a class="btn" id="lw-cal-cta" href="<?= lw_e($CALENDLY) ?>" target="_blank" rel="noopener">
         <?= lw_i18n('Ver horarios disponibles', 'See available times') ?>
       </a>
@@ -659,9 +667,8 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
   <div class="cal__grid" id="lw-cal-grid"></div>
   <div class="cal__slots" id="lw-cal-slots"></div>
   <a class="btn btn--block" id="lw-cal-confirm" href="<?= lw_e($CALENDLY) ?>" target="_blank" rel="noopener">
-    <?= lw_i18n('Confirmar por Calendly', 'Confirm via Calendly') ?>
+    <?= lw_i18n('Confirmar llamada', 'Confirm call') ?>
   </a>
-  <p class="cal__note"><?= lw_i18n('Se sincroniza con Google Calendar al conectar tu cuenta en Calendly.', 'Syncs with Google Calendar once you connect your account in Calendly.') ?></p>
 </aside>
 
 </div><!-- /grid -->
