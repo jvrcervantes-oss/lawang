@@ -354,7 +354,20 @@
   'use strict';
   var URL_SB = 'https://vtulllundrfennhjddhc.supabase.co';
   var KEY_SB = 'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg';   // publicable: el candado es la RLS y la RPC
-  var sb = supabase.createClient(URL_SB, KEY_SB);
+  /* Sesión propia, aislada de la del equipo (1-sep-2026). El resto de la
+     suite (intranet, guard.js) usa la clave de almacenamiento POR DEFECTO
+     de supabase-js, a propósito: es lo que deja a un agente moverse entre
+     las doce herramientas sin volver a entrar. Pero eso mismo hacía que
+     compartiera sesión con /portal/ en el mismo navegador — alguien del
+     equipo probando la intranet se encontraba, sin querer, con que
+     /portal/ le rebotaba a /intranet/ (parecía que el portal "no
+     funcionaba"). Con `storageKey` propio, cada área guarda su sesión en
+     una llave de localStorage distinta: se puede estar dentro de la
+     intranet Y del portal a la vez, en el mismo navegador, sin que una
+     pise a la otra. Efecto de una sola vez: quien ya tuviera sesión
+     iniciada en /portal/ antes de este cambio tiene que volver a entrar
+     (su sesión vivía en la llave vieja, compartida). */
+  var sb = supabase.createClient(URL_SB, KEY_SB, { auth: { storageKey: 'lw-portal-auth' } });
 
   var esc = function(v){ return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
