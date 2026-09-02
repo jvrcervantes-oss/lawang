@@ -122,8 +122,11 @@ $facts = [
 $parcelaPlaya = lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'));
 $parcelaOtras = lw_precio_fmt(lw_parcela_tarifa_m2('otras'));
 
+// Reestructuración 2-sep (pedido del owner: "es demasiado larga"): la fila de la villa se
+// quita de aquí -- ya la enseñan las tarjetas de techo, justo encima, en la misma sección
+// fusionada. Repetirla aquí era una de las 4 veces que el precio de la villa se enseñaba
+// en la página.
 $filasPrecio = [
-    ['en' => 'Villa (roof of your choice)', 'v_en' => 'From ' . $precioTxt],
     ['en' => 'Plot — beachfront',           'v_en' => $parcelaPlaya . '/m²'],
     ['en' => 'Plot — other locations',      'v_en' => 'From ' . $parcelaOtras . '/m²'],
     ['en' => 'Closing costs',               'v_en' => 'Separate, in writing'],
@@ -369,6 +372,14 @@ a.cross__row:hover{background:var(--panel)}
 
 /* ── Picker (extras/isla/vista) ──────────────────────────────────────────────── */
 .picker__h{font-size:15px;font-weight:500;color:var(--ink2);margin-top:.5em;max-width:52ch}
+#lw-picker-toggle{margin-top:20px}
+#lw-picker-body{margin-top:8px}
+/* El atributo `hidden` pierde contra `.btn{display:inline-flex}` por especificidad (la
+   hoja de la UA que pone `[hidden]{display:none}` es la más baja de todas) — el botón se
+   quedaba visible tras el clic pese a `toggle.hidden = true`. Cazado en QA de la
+   reestructuración del 2-sep. Selector por id, gana seguro. */
+#lw-picker-toggle[hidden],
+#lw-picker-body[hidden]{display:none}
 .picker__group{margin-top:32px}
 .picker__gh{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .picker__gh h4{font-family:var(--head);font-size:15px;font-weight:600;margin:0}
@@ -426,6 +437,17 @@ a.cross__row:hover{background:var(--panel)}
 .faq details[open] summary::after{content:"–"}
 .faq p{padding:0 0 20px;font-size:14.5px;color:var(--ink2);max-width:64ch}
 
+/* ── Acordeón genérico (alcance, proceso) — 2-sep, reestructuración: mismo lenguaje
+   visual que el FAQ de arriba, generalizado fuera de .faq para que cualquier bloque
+   secundario pueda cerrarse por defecto sin perder ni una palabra de contenido. ──── */
+.acc summary{cursor:pointer;list-style:none;padding:4px 34px 4px 0;position:relative;
+  font-family:var(--head);font-size:19px;font-weight:600}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary::after{content:"+";position:absolute;right:4px;top:2px;color:var(--verde);
+  font-family:var(--head);font-size:20px}
+.acc[open] summary::after{content:"–"}
+.acc__body{margin-top:28px}
+
 /* ── Reserva ──────────────────────────────────────────────────────────────────── */
 .reserva{text-align:center;padding-bottom:20px}
 .reserva h2{font-size:clamp(28px,4vw,44px);margin-top:.25em}
@@ -473,9 +495,8 @@ a.cross__row:hover{background:var(--panel)}
     <div class="nav__right">
       <nav class="nav__links">
         <a href="#modelos">The range</a>
-        <a href="#acabados"><?= lw_i18n('Acabados', 'Finishes') ?></a>
+        <a href="#acabados">Finishes &amp; price</a>
         <a href="#ubicacion"><?= lw_i18n('Ubicación', 'Location') ?></a>
-        <a href="#precios"><?= lw_i18n('Precio', 'Price') ?></a>
         <a href="#faq"><?= lw_i18n('Preguntas', 'FAQ') ?></a>
       </nav>
       <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
@@ -605,16 +626,19 @@ a.cross__row:hover{background:var(--panel)}
   </section>
   <?php endif; ?>
 
-  <!-- ── Acabados / precio de techo ────────────────────────────────────────────
-       Reescrito 2-sep: antes eran 3 acabados descriptivos sin precio propio. Ahora son
-       los 2 techos reales que dio el owner, cada uno con su precio — "la cubierta es lo
-       único que cambia el presupuesto" pasa de eslogan a precio de verdad. El aviso de
-       la subida de 2027 vive AQUÍ, aparte del precio activo y sin el mismo peso visual
-       (Diseño, revisión previa): nunca tachado ni junto a la cifra, como haría una
-       landing de SaaS con descuento — esta página ya evita ese tono a propósito. -->
+  <!-- ── Acabados + Precio, fusionados (2-sep) ─────────────────────────────────
+       Reestructuración pedida por el owner ("es demasiado larga"): antes eran DOS
+       secciones separadas (Acabados con las tarjetas de techo, Precio con la tabla de
+       parcela) que repetían el precio de la villa cada una a su manera — cuarta vez que
+       aparecía en la página, contando el hero y la ficha rápida. Una sola sección: las
+       tarjetas de techo siguen mostrando SU precio (fuente real), la tabla de abajo ya
+       no repite la villa, solo parcela y gastos de cierre. El aviso de la subida de 2027
+       sigue aparte del precio activo y sin su mismo peso visual (Diseño, revisión
+       previa): nunca tachado ni junto a la cifra, como haría una landing de SaaS con
+       descuento — esta página ya evita ese tono a propósito. -->
   <section class="sec panel" id="acabados">
     <div class="num">02</div>
-    <p class="et">Finishes</p>
+    <p class="et">Finishes &amp; investment</p>
     <h2>The roof is the only thing that changes the price</h2>
     <p class="sec__desc">The rest of the villa doesn't vary between the two roof options. It's chosen before locking in numbers.</p>
     <div class="rows">
@@ -632,35 +656,48 @@ a.cross__row:hover{background:var(--panel)}
     <?php if ($antes2027): ?>
     <p class="sec__desc" style="margin-top:24px;font-size:13.5px">Prices shown are valid through 31 December 2026 (Bali time). Villa prices rise on 1 January 2027 — the plot rate above is unaffected.</p>
     <?php endif; ?>
+
+    <div class="precio__tabla" style="margin-top:32px;background:var(--papel)">
+      <?php foreach ($filasPrecio as $r): ?>
+      <div class="precio__fila">
+        <span><?= lw_e($r['en']) ?></span>
+        <span><?= lw_e($r['v_en']) ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <p class="sec__desc" style="margin-top:16px;font-size:13.5px">Villa prices are confirmed directly by the developer. Plot rates above are an estimate, not a quote for a specific plot — taxes, notary and permit costs are separate and are all detailed in writing before you sign.</p>
+    <div style="margin-top:24px"><a class="btn" href="#agendar">Request a quote</a></div>
   </section>
 
-  <!-- ── Alcance de obra ───────────────────────────────────────────────────── -->
+  <!-- ── Alcance de obra — acordeón (2-sep, cerrado por defecto): mismo contenido de
+       siempre, no una palabra menos, solo un clic para verlo en vez de 601px fijos. ── -->
   <?php if (!empty($m['alcance'])): ?>
   <section class="sec">
-    <div class="num">03</div>
-    <p class="et"><?= lw_i18n('Alcance de obra — Qué incluye el precio', "Scope of works — What's included") ?></p>
-    <div class="doscol">
-      <div>
-        <h3><?= lw_i18n('Incluido', 'Included') ?></h3>
-        <ul>
-          <?php foreach ($m['alcance']['incluido'] as $k => $li): $en = $m['alcance']['incluido_en'][$k] ?? $li; ?>
-          <li><i><?= str_pad($k + 1, 2, '0', STR_PAD_LEFT) ?></i><span><?= lw_i18n($li, $en) ?></span></li>
-          <?php endforeach; ?>
-        </ul>
+    <details class="acc">
+      <summary><?= lw_i18n('Alcance de obra — Qué incluye el precio', "Scope of works — what's included") ?></summary>
+      <div class="acc__body doscol">
+        <div>
+          <h3><?= lw_i18n('Incluido', 'Included') ?></h3>
+          <ul>
+            <?php foreach ($m['alcance']['incluido'] as $k => $li): $en = $m['alcance']['incluido_en'][$k] ?? $li; ?>
+            <li><i><?= str_pad($k + 1, 2, '0', STR_PAD_LEFT) ?></i><span><?= lw_i18n($li, $en) ?></span></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+        <div class="doscol--no">
+          <h3><?= lw_i18n('No incluido', 'Not included') ?></h3>
+          <ul>
+            <?php foreach ($m['alcance']['no_incluido'] as $k => $li): $en = $m['alcance']['no_incluido_en'][$k] ?? $li; ?>
+            <li><i>&ndash;</i><span><?= lw_i18n($li, $en) ?></span></li>
+            <?php endforeach; ?>
+          </ul>
+          <p class="doscol__nota"><?= lw_i18n(
+            'La parcela y los gastos de compraventa (impuestos, notaría y licencias) se presupuestan aparte y se detallan por escrito antes de firmar.',
+            'The plot and closing costs (taxes, notary, permits) are quoted separately and detailed in writing before signing.'
+          ) ?></p>
+        </div>
       </div>
-      <div class="doscol--no">
-        <h3><?= lw_i18n('No incluido', 'Not included') ?></h3>
-        <ul>
-          <?php foreach ($m['alcance']['no_incluido'] as $k => $li): $en = $m['alcance']['no_incluido_en'][$k] ?? $li; ?>
-          <li><i>&ndash;</i><span><?= lw_i18n($li, $en) ?></span></li>
-          <?php endforeach; ?>
-        </ul>
-        <p class="doscol__nota"><?= lw_i18n(
-          'La parcela y los gastos de compraventa (impuestos, notaría y licencias) se presupuestan aparte y se detallan por escrito antes de firmar.',
-          'The plot and closing costs (taxes, notary, permits) are quoted separately and detailed in writing before signing.'
-        ) ?></p>
-      </div>
-    </div>
+    </details>
   </section>
   <?php endif; ?>
 
@@ -696,77 +733,64 @@ a.cross__row:hover{background:var(--panel)}
          casi nadie lo pulsa). -->
     <div class="picker" id="lw-picker">
       <p class="et" style="margin-top:48px">Tell us what you're picturing</p>
-      <h3 class="picker__h">Nothing below is a quote — we confirm real availability and exact pricing on the call.</h3>
+      <h3 class="picker__h">Extras, island and view — nothing here is a quote, we confirm real availability and exact pricing on the call.</h3>
+      <button type="button" class="btn btn--ghost" id="lw-picker-toggle">Customize your villa</button>
 
-      <div class="picker__group">
-        <div class="picker__gh"><h4>Extras</h4><span class="picker__status">priced on the call</span></div>
-        <div class="picker__rows" data-group="extras" data-multi="1">
-          <button type="button" class="picker__row" data-value="airbnb-kit">Airbnb kit</button>
-          <button type="button" class="picker__row" data-value="sauna">Sauna</button>
-          <button type="button" class="picker__row" data-value="cold-plunge">Cold plunge pool</button>
+      <div id="lw-picker-body" hidden>
+        <div class="picker__group">
+          <div class="picker__gh"><h4>Extras</h4><span class="picker__status">priced on the call</span></div>
+          <div class="picker__rows" data-group="extras" data-multi="1">
+            <button type="button" class="picker__row" data-value="airbnb-kit">Airbnb kit</button>
+            <button type="button" class="picker__row" data-value="sauna">Sauna</button>
+            <button type="button" class="picker__row" data-value="cold-plunge">Cold plunge pool</button>
+          </div>
         </div>
-      </div>
 
-      <div class="picker__group">
-        <div class="picker__gh"><h4>Island</h4><span class="picker__status">confirmed on the call</span></div>
-        <div class="picker__rows" data-group="island" data-multi="0">
-          <button type="button" class="picker__row" data-value="bali">Bali</button>
-          <button type="button" class="picker__row" data-value="sumba">Sumba<i>subject to availability</i></button>
+        <div class="picker__group">
+          <div class="picker__gh"><h4>Island</h4><span class="picker__status">confirmed on the call</span></div>
+          <div class="picker__rows" data-group="island" data-multi="0">
+            <button type="button" class="picker__row" data-value="bali">Bali</button>
+            <button type="button" class="picker__row" data-value="sumba">Sumba<i>subject to availability</i></button>
+          </div>
         </div>
-      </div>
 
-      <div class="picker__group" id="lw-picker-view" data-visible-when="island=bali">
-        <div class="picker__gh"><h4>View</h4><span class="picker__status">estimated plot rate</span></div>
-        <div class="picker__rows" data-group="view" data-multi="0">
-          <button type="button" class="picker__row" data-value="cliff" data-rate="<?= (int) lw_parcela_tarifa_m2('cliff') ?>">Cliff<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('cliff'))) ?>/m²</span></button>
-          <button type="button" class="picker__row" data-value="ricefield" data-rate="<?= (int) lw_parcela_tarifa_m2('ricefield') ?>">Ricefield<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('ricefield'))) ?>/m²</span></button>
-          <button type="button" class="picker__row" data-value="riverfront" data-rate="<?= (int) lw_parcela_tarifa_m2('riverfront') ?>">Riverfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('riverfront'))) ?>/m²</span></button>
-          <button type="button" class="picker__row" data-value="beachfront" data-rate="<?= (int) lw_parcela_tarifa_m2('beachfront') ?>">Beachfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'))) ?>/m²</span></button>
+        <div class="picker__group" id="lw-picker-view" data-visible-when="island=bali">
+          <div class="picker__gh"><h4>View</h4><span class="picker__status">estimated plot rate</span></div>
+          <div class="picker__rows" data-group="view" data-multi="0">
+            <button type="button" class="picker__row" data-value="cliff" data-rate="<?= (int) lw_parcela_tarifa_m2('cliff') ?>">Cliff<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('cliff'))) ?>/m²</span></button>
+            <button type="button" class="picker__row" data-value="ricefield" data-rate="<?= (int) lw_parcela_tarifa_m2('ricefield') ?>">Ricefield<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('ricefield'))) ?>/m²</span></button>
+            <button type="button" class="picker__row" data-value="riverfront" data-rate="<?= (int) lw_parcela_tarifa_m2('riverfront') ?>">Riverfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('riverfront'))) ?>/m²</span></button>
+            <button type="button" class="picker__row" data-value="beachfront" data-rate="<?= (int) lw_parcela_tarifa_m2('beachfront') ?>">Beachfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'))) ?>/m²</span></button>
+          </div>
         </div>
-      </div>
 
-      <p class="picker__nota">Rates are an estimate per m², not a quote for a specific plot. Sumba plots are subject to availability and confirmed on the call.</p>
-    </div>
-  </section>
-
-  <!-- ── Proceso ────────────────────────────────────────────────────────────── -->
-  <section class="sec panel">
-    <h2><?= lw_i18n('Cómo se compra', "How it's purchased") ?></h2>
-    <div class="pasos">
-      <div class="pasos__it">
-        <span class="bola">01</span>
-        <h3><?= lw_i18n('Llamada', 'Call') ?></h3>
-        <p><?= lw_i18n('Media hora para ver qué parcela encaja, con qué presupuesto y en qué plazos.', 'Half an hour to see which plot fits, with what budget and timeline.') ?></p>
-      </div>
-      <div class="pasos__it">
-        <span class="bola">02</span>
-        <h3><?= lw_i18n('Presupuesto y parcela', 'Budget & plot') ?></h3>
-        <p><?= lw_i18n('Precio cerrado del acabado elegido, parcela concreta y calendario de pagos.', 'Fixed price for the chosen finish, a specific plot, and a payment schedule.') ?></p>
-      </div>
-      <div class="pasos__it">
-        <span class="bola">03</span>
-        <h3><?= lw_i18n('Reserva y obra', 'Reservation & construction') ?></h3>
-        <p><?= lw_i18n('Contrato de reserva, después el PPJB de compraventa y el contrato de construcción, y arranca la obra.', 'Reservation contract, then the sale (PPJB) and construction contracts, and construction begins.') ?></p>
+        <p class="picker__nota">Rates are an estimate per m², not a quote for a specific plot. Sumba plots are subject to availability and confirmed on the call.</p>
       </div>
     </div>
   </section>
 
-  <!-- ── Precio ─────────────────────────────────────────────────────────────── -->
-  <section class="sec precio" id="precios">
-    <div class="precio__box">
-      <p class="et"><?= lw_i18n('Inversión', 'Investment') ?></p>
-      <h2><?= lw_i18n('El precio, cerrado antes de firmar', 'A fixed price before you sign') ?></h2>
-      <div class="precio__tabla">
-        <?php foreach ($filasPrecio as $r): ?>
-        <div class="precio__fila">
-          <span><?= lw_e($r['en']) ?></span>
-          <span><?= lw_e($r['v_en']) ?></span>
+  <!-- ── Proceso — acordeón (2-sep, cerrado por defecto) ─────────────────────── -->
+  <section class="sec">
+    <details class="acc">
+      <summary><?= lw_i18n('Cómo se compra', "How it's purchased") ?></summary>
+      <div class="acc__body pasos">
+        <div class="pasos__it">
+          <span class="bola">01</span>
+          <h3><?= lw_i18n('Llamada', 'Call') ?></h3>
+          <p><?= lw_i18n('Media hora para ver qué parcela encaja, con qué presupuesto y en qué plazos.', 'Half an hour to see which plot fits, with what budget and timeline.') ?></p>
         </div>
-        <?php endforeach; ?>
+        <div class="pasos__it">
+          <span class="bola">02</span>
+          <h3><?= lw_i18n('Presupuesto y parcela', 'Budget & plot') ?></h3>
+          <p><?= lw_i18n('Precio cerrado del acabado elegido, parcela concreta y calendario de pagos.', 'Fixed price for the chosen finish, a specific plot, and a payment schedule.') ?></p>
+        </div>
+        <div class="pasos__it">
+          <span class="bola">03</span>
+          <h3><?= lw_i18n('Reserva y obra', 'Reservation & construction') ?></h3>
+          <p><?= lw_i18n('Contrato de reserva, después el PPJB de compraventa y el contrato de construcción, y arranca la obra.', 'Reservation contract, then the sale (PPJB) and construction contracts, and construction begins.') ?></p>
+        </div>
       </div>
-      <p class="precio__nota">Villa prices are confirmed directly by the developer. Plot rates above are an estimate, not a quote for a specific plot — taxes, notary and permit costs are separate and are all detailed in writing before you sign.</p>
-      <div class="precio__cta"><a class="btn" href="#agendar">Request a quote</a></div>
-    </div>
+    </details>
   </section>
 
   <!-- ── FAQ ────────────────────────────────────────────────────────────────── -->
@@ -937,6 +961,18 @@ a.cross__row:hover{background:var(--panel)}
   (function () {
     var picker = document.getElementById('lw-picker');
     if (!picker) return;
+
+    // Reestructuración 2-sep: el picker entero (el bloque más alto de la página) vive
+    // detrás de un botón — un solo sentido, no hace falta volver a ocultarlo.
+    var toggle = document.getElementById('lw-picker-toggle');
+    var body = document.getElementById('lw-picker-body');
+    if (toggle && body) {
+      toggle.addEventListener('click', function () {
+        body.hidden = false;
+        toggle.hidden = true;
+      });
+    }
+
     var viewGroup = document.getElementById('lw-picker-view');
     var waLink = document.getElementById('lw-wa-link');
     var waBase = "Hi, I'm interested in the " + <?= json_encode($villa) ?> + " from Lawang Tropical Properties.";
