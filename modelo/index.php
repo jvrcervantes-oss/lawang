@@ -1037,6 +1037,9 @@ a.cross__row:hover{background:var(--panel)}
   // tocar el DOM, y si no lo son, simplemente no hacen nada (el swap que sí es vigente
   // ya se está encargando de dejar el hero correcto).
   var lwConfigGen = 0;
+  // La IIFE del picker (más abajo) reasigna esto a su updateWaLink real una vez arranca
+  // — no-op mientras tanto, por si seleccionarModelo() llegara a dispararse antes.
+  var lwUpdateWaLink = function () {};
 
   function seleccionarModelo(id, opts) {
     var cfg = CONFIGURADOR[id];
@@ -1122,6 +1125,14 @@ a.cross__row:hover{background:var(--panel)}
     if (!opts.skipHistory) {
       window.history.pushState({modelo: id}, '', '/modelo/' + id);
     }
+
+    // El link de WhatsApp del picker (más abajo) menciona el modelo por nombre — sin
+    // esto, alguien configura Temple, marca extras y pulsa el link, y a ventas le llega
+    // "interested in the Villa Dali" con las preferencias de Temple pegadas detrás
+    // (hallazgo del advisor, ninguna de las 4 revisiones de deploy lo cazó: es una línea
+    // que el diff no tocaba, solo dejó de ser cierta). `lwUpdateWaLink` vive en el scope
+    // de arriba porque la IIFE del picker se declara DESPUÉS de esta función.
+    lwUpdateWaLink();
   }
 
   document.querySelectorAll('#lw-cross .cross__row[data-model-id]').forEach(function (row) {
@@ -1150,7 +1161,6 @@ a.cross__row:hover{background:var(--panel)}
 
     var viewGroup = document.getElementById('lw-picker-view');
     var waLink = document.getElementById('lw-wa-link');
-    var waBase = "Hi, I'm interested in the " + <?= json_encode($villa) ?> + " from Lawang Tropical Properties.";
 
     function updateViewVisibility() {
       if (!viewGroup) return;
@@ -1164,6 +1174,12 @@ a.cross__row:hover{background:var(--panel)}
 
     function updateWaLink() {
       if (!waLink) return;
+      // El nombre del modelo se lee de MODELO/CONFIGURADOR en cada llamada, nunca de un
+      // valor capturado al cargar la página — si no, el texto se queda pegado al modelo
+      // con el que abrió la página aunque el configurador ya enseñe otro (hallazgo del
+      // advisor). Cae al villa server-rendered solo si CONFIGURADOR[MODELO] no existiera.
+      var villaAhora = (CONFIGURADOR[MODELO] && CONFIGURADOR[MODELO].villa) || <?= json_encode($villa) ?>;
+      var waBase = "Hi, I'm interested in the " + villaAhora + " from Lawang Tropical Properties.";
       var bits = [];
       if (LW_PICKER.island) bits.push('Island: ' + LW_PICKER.island);
       if (LW_PICKER.view) bits.push('View: ' + LW_PICKER.view);
@@ -1171,6 +1187,7 @@ a.cross__row:hover{background:var(--panel)}
       var text = bits.length ? waBase + ' ' + bits.join(' · ') + ' (estimate only, to confirm on the call).' : waBase;
       waLink.href = 'https://wa.me/<?= $WA_NUM ?>?text=' + encodeURIComponent(text);
     }
+    lwUpdateWaLink = updateWaLink;
 
     picker.querySelectorAll('.picker__rows').forEach(function (group) {
       var name  = group.getAttribute('data-group');
