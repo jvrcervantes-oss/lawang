@@ -119,7 +119,7 @@ $facts = [
 
 // Tarifa de parcela ORIENTATIVA (revisión previa Seguridad+Administración, 2-sep): dos
 // constantes fijas, nunca un total combinado con la villa — ver lw_parcela_tarifa_m2().
-$parcelaPlaya = lw_precio_fmt(lw_parcela_tarifa_m2('playa'));
+$parcelaPlaya = lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'));
 $parcelaOtras = lw_precio_fmt(lw_parcela_tarifa_m2('otras'));
 
 $filasPrecio = [
@@ -348,14 +348,34 @@ a.cross__row:hover{background:var(--panel)}
 .doscol__nota{font-size:12.5px;color:var(--ink2);margin-top:22px}
 
 /* ── Ubicación ────────────────────────────────────────────────────────────────── */
-.ubic{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-@media(max-width:820px){.ubic{grid-template-columns:1fr}}
+.ubic__intro{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+@media(max-width:820px){.ubic__intro{grid-template-columns:1fr}}
 .ubic__pts{display:flex;flex-direction:column;gap:11px;margin-top:22px}
 .ubic__pt{display:flex;justify-content:space-between;border-bottom:1px solid var(--linea);
   padding-bottom:9px;font-size:14px}
 .ubic__pt span:first-child{color:var(--ink2)}
 .ubic__pt span:last-child{font-weight:600}
 .ubic__nota{font-size:12px;color:var(--ink2);margin-top:16px;font-style:italic}
+
+/* ── Picker (extras/isla/vista) ──────────────────────────────────────────────── */
+.picker__h{font-size:15px;font-weight:500;color:var(--ink2);margin-top:.5em;max-width:52ch}
+.picker__group{margin-top:32px}
+.picker__gh{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.picker__gh h4{font-family:var(--head);font-size:15px;font-weight:600;margin:0}
+.picker__status{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--verde-tenue)}
+.picker__rows{border:1px solid var(--linea);border-radius:10px;overflow:hidden;margin-top:12px}
+.picker__row{display:flex;align-items:center;justify-content:space-between;width:100%;
+  text-align:left;border:0;border-bottom:1px solid var(--linea);background:var(--papel);
+  font:inherit;font-size:14.5px;color:var(--ink);padding:14px 20px;cursor:pointer;
+  transition:background .15s ease}
+.picker__row:last-child{border-bottom:0}
+.picker__row:hover{background:var(--panel)}
+.picker__row.is-on{background:var(--verde);color:#fff}
+.picker__row.is-on span,.picker__row.is-on i{color:#fff}
+.picker__row span{font-family:var(--head);font-weight:600;font-size:13.5px;color:var(--ink2)}
+.picker__row i{font-style:normal;font-size:11.5px;color:var(--ink2);margin-left:10px}
+.picker__group[aria-hidden="true"]{display:none}
+.picker__nota{font-size:12.5px;color:var(--ink2);margin-top:20px;max-width:60ch}
 .ubic__fig{border-radius:8px;overflow:hidden;aspect-ratio:4/5}
 .ubic__fig img{width:100%;height:100%;object-fit:cover}
 
@@ -636,22 +656,66 @@ a.cross__row:hover{background:var(--panel)}
 
   <!-- ── Ubicación ──────────────────────────────────────────────────────────── -->
   <section class="sec ubic" id="ubicacion">
-    <div>
-      <p class="et"><?= lw_i18n('El sitio', 'The site') ?></p>
-      <h2><?= lw_i18n('Tú eliges la parcela', 'You choose the plot') ?></h2>
-      <p class="sec__desc"><?= lw_i18n(
-        'El modelo se levanta sobre la parcela que elijas de nuestro catálogo en la costa oeste de Bali. En la llamada te decimos qué parcelas quedan y cómo se llega a cada una.',
-        "The model is built on the plot you choose from our catalog on Bali's west coast. On the call, we'll tell you which plots are available and how to reach each one."
-      ) ?></p>
-      <div class="ubic__pts">
-        <div class="ubic__pt"><span><?= lw_i18n('Parcela', 'Plot') ?></span><span><?= lw_i18n('A elegir del catálogo', 'Chosen from the catalog') ?></span></div>
-        <div class="ubic__pt"><span><?= lw_i18n('Zona', 'Area') ?></span><span><?= lw_i18n('Costa oeste de Bali', "Bali's west coast") ?></span></div>
-        <div class="ubic__pt"><span><?= lw_i18n('Régimen', 'Title') ?></span><span><?= lw_i18n('Se revisa por parcela', 'Reviewed per plot') ?></span></div>
+    <div class="ubic__intro">
+      <div>
+        <p class="et"><?= lw_i18n('El sitio', 'The site') ?></p>
+        <h2><?= lw_i18n('Tú eliges la parcela', 'You choose the plot') ?></h2>
+        <p class="sec__desc"><?= lw_i18n(
+          'El modelo se levanta sobre la parcela que elijas de nuestro catálogo en la costa oeste de Bali. En la llamada te decimos qué parcelas quedan y cómo se llega a cada una.',
+          "The model is built on the plot you choose from our catalog on Bali's west coast. On the call, we'll tell you which plots are available and how to reach each one."
+        ) ?></p>
+        <div class="ubic__pts">
+          <div class="ubic__pt"><span><?= lw_i18n('Parcela', 'Plot') ?></span><span><?= lw_i18n('A elegir del catálogo', 'Chosen from the catalog') ?></span></div>
+          <div class="ubic__pt"><span><?= lw_i18n('Zona', 'Area') ?></span><span><?= lw_i18n('Costa oeste de Bali', "Bali's west coast") ?></span></div>
+          <div class="ubic__pt"><span><?= lw_i18n('Régimen', 'Title') ?></span><span><?= lw_i18n('Se revisa por parcela', 'Reviewed per plot') ?></span></div>
+        </div>
+        <p class="ubic__nota"><?= lw_i18n('Fotografía real con dron · Costa oeste de Bali', "Real drone photograph · Bali's west coast") ?></p>
       </div>
-      <p class="ubic__nota"><?= lw_i18n('Fotografía real con dron · Costa oeste de Bali', "Real drone photograph · Bali's west coast") ?></p>
+      <div class="ubic__fig">
+        <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
+      </div>
     </div>
-    <div class="ubic__fig">
-      <img src="/assets/img/lugar/rio.jpg" alt="Valle y río junto a la costa, vista aérea" loading="lazy">
+
+    <!-- ── Picker: extras + isla + vista (2-sep, funnel de Meta Ads pedido por el owner) ──
+         Nada aquí es una cotización: cualifica al lead, no suma un total (decisión del
+         owner). Cada grupo rotula su propio estatus (Administración, revisión previa) para
+         que ninguno "contagie" firmeza al de al lado. Filas tipo .cross__row/.precio__fila,
+         nunca checkbox/radio nativos visibles (Diseño). Las selecciones viajan por el
+         camino de conversión real de la página — el widget de Calendly vía
+         api/booking-notify.php — no por el wa.me secundario del pie (Diseño: ese enlace
+         casi nadie lo pulsa). -->
+    <div class="picker" id="lw-picker">
+      <p class="et" style="margin-top:48px">Tell us what you're picturing</p>
+      <h3 class="picker__h">Nothing below is a quote — we confirm real availability and exact pricing on the call.</h3>
+
+      <div class="picker__group">
+        <div class="picker__gh"><h4>Extras</h4><span class="picker__status">priced on the call</span></div>
+        <div class="picker__rows" data-group="extras" data-multi="1">
+          <button type="button" class="picker__row" data-value="airbnb-kit">Airbnb kit</button>
+          <button type="button" class="picker__row" data-value="sauna">Sauna</button>
+          <button type="button" class="picker__row" data-value="cold-plunge">Cold plunge pool</button>
+        </div>
+      </div>
+
+      <div class="picker__group">
+        <div class="picker__gh"><h4>Island</h4><span class="picker__status">confirmed on the call</span></div>
+        <div class="picker__rows" data-group="island" data-multi="0">
+          <button type="button" class="picker__row" data-value="bali">Bali</button>
+          <button type="button" class="picker__row" data-value="sumba">Sumba<i>subject to availability</i></button>
+        </div>
+      </div>
+
+      <div class="picker__group" id="lw-picker-view" data-visible-when="island=bali">
+        <div class="picker__gh"><h4>View</h4><span class="picker__status">estimated plot rate</span></div>
+        <div class="picker__rows" data-group="view" data-multi="0">
+          <button type="button" class="picker__row" data-value="cliff" data-rate="<?= (int) lw_parcela_tarifa_m2('cliff') ?>">Cliff<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('cliff'))) ?>/m²</span></button>
+          <button type="button" class="picker__row" data-value="ricefield" data-rate="<?= (int) lw_parcela_tarifa_m2('ricefield') ?>">Ricefield<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('ricefield'))) ?>/m²</span></button>
+          <button type="button" class="picker__row" data-value="riverfront" data-rate="<?= (int) lw_parcela_tarifa_m2('riverfront') ?>">Riverfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('riverfront'))) ?>/m²</span></button>
+          <button type="button" class="picker__row" data-value="beachfront" data-rate="<?= (int) lw_parcela_tarifa_m2('beachfront') ?>">Beachfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'))) ?>/m²</span></button>
+        </div>
+      </div>
+
+      <p class="picker__nota">Rates are an estimate per m², not a quote for a specific plot. Sumba plots are subject to availability and confirmed on the call.</p>
     </div>
   </section>
 
@@ -782,7 +846,7 @@ a.cross__row:hover{background:var(--panel)}
     </div>
     <div class="reserva__contact">
       <a href="mailto:<?= lw_e($EMAIL) ?>"><?= lw_e($EMAIL) ?></a>
-      <a href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener"><?= lw_e($WA_SHOW) ?></a>
+      <a href="<?= lw_e($WA_LINK) ?>" id="lw-wa-link" target="_blank" rel="noopener"><?= lw_e($WA_SHOW) ?></a>
     </div>
   </section>
 
@@ -854,6 +918,64 @@ a.cross__row:hover{background:var(--panel)}
   var ctaCal = document.getElementById('lw-cal-cta');
   if (ctaCal) ctaCal.addEventListener('click', function () { track('AbrioCalendario', {}); });
 
+  // ── Picker: extras/isla/vista (2-sep, funnel de Meta Ads) — cualifica al lead, no
+  //    cotiza: nunca suma un total, cada grupo mantiene su propio estatus. Las tarifas de
+  //    "view" vienen del `data-rate` que ya renderizó PHP (lw_parcela_tarifa_m2) — el JS
+  //    nunca las hardcodea, para que la próxima corrección de precio no repita el fallo
+  //    de esta mañana (dos copias de la misma cifra). ─────────────────────────────────
+  var LW_PICKER = {extras: [], island: null, view: null};
+  (function () {
+    var picker = document.getElementById('lw-picker');
+    if (!picker) return;
+    var viewGroup = document.getElementById('lw-picker-view');
+    var waLink = document.getElementById('lw-wa-link');
+    var waBase = "Hi, I'm interested in the " + <?= json_encode($villa) ?> + " from Lawang Tropical Properties.";
+
+    function updateViewVisibility() {
+      if (!viewGroup) return;
+      var show = LW_PICKER.island === 'bali';
+      viewGroup.setAttribute('aria-hidden', show ? 'false' : 'true');
+      if (!show && LW_PICKER.view) {
+        LW_PICKER.view = null;
+        viewGroup.querySelectorAll('.picker__row').forEach(function (r) { r.classList.remove('is-on'); });
+      }
+    }
+
+    function updateWaLink() {
+      if (!waLink) return;
+      var bits = [];
+      if (LW_PICKER.island) bits.push('Island: ' + LW_PICKER.island);
+      if (LW_PICKER.view) bits.push('View: ' + LW_PICKER.view);
+      if (LW_PICKER.extras.length) bits.push('Extras: ' + LW_PICKER.extras.join(', '));
+      var text = bits.length ? waBase + ' ' + bits.join(' · ') + ' (estimate only, to confirm on the call).' : waBase;
+      waLink.href = 'https://wa.me/<?= $WA_NUM ?>?text=' + encodeURIComponent(text);
+    }
+
+    picker.querySelectorAll('.picker__rows').forEach(function (group) {
+      var name  = group.getAttribute('data-group');
+      var multi = group.getAttribute('data-multi') === '1';
+      group.querySelectorAll('.picker__row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          var val = row.getAttribute('data-value');
+          if (multi) {
+            row.classList.toggle('is-on');
+            var i = LW_PICKER.extras.indexOf(val);
+            if (row.classList.contains('is-on') && i === -1) LW_PICKER.extras.push(val);
+            if (!row.classList.contains('is-on') && i !== -1) LW_PICKER.extras.splice(i, 1);
+          } else {
+            var wasOn = row.classList.contains('is-on');
+            group.querySelectorAll('.picker__row').forEach(function (r) { r.classList.remove('is-on'); });
+            if (wasOn) { LW_PICKER[name] = null; }
+            else { row.classList.add('is-on'); LW_PICKER[name] = val; }
+            if (name === 'island') updateViewVisibility();
+          }
+          updateWaLink();
+        });
+      });
+    });
+    updateViewVisibility();
+  })();
+
   // ── Reserva confirmada DE VERDAD, no un clic: Calendly manda este mensaje al propio
   //    iframe cuando el visitante completa la reserva sin salir de la página. Con el
   //    <form> propio esto lo daba el `Lead` del envío; con Calendly incrustado, esto
@@ -878,6 +1000,12 @@ a.cross__row:hover{background:var(--panel)}
       fd.set('campana', params.get('utm_campaign') || '');
       fd.set('event_uri', (payload.event && payload.event.uri) || '');
       fd.set('invitee_uri', (payload.invitee && payload.invitee.uri) || '');
+      // Selecciones del picker (2-sep): lo que el lead marcó antes de reservar, para que
+      // ventas llegue a la llamada sabiendo qué quiere — no es un pedido cerrado, se
+      // etiqueta igual en el propio correo que manda el endpoint.
+      fd.set('extras', LW_PICKER.extras.join(','));
+      fd.set('island', LW_PICKER.island || '');
+      fd.set('view', LW_PICKER.view || '');
       fetch('/api/booking-notify.php', {method: 'POST', body: fd});
     } catch (err) { /* no bloquea el pixel ni la reserva */ }
   });

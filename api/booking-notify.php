@@ -50,6 +50,12 @@ $source   = $clean($_POST['source']   ?? '');
 $campana  = $clean($_POST['campana']  ?? '');
 $eventUri = $clean($_POST['event_uri']   ?? '');
 $inviteeUri = $clean($_POST['invitee_uri'] ?? '');
+// Selecciones del picker de la ficha (2-sep): lo que el visitante marcó ANTES de
+// reservar (extras/isla/vista) — no es un pedido cerrado, solo orienta a ventas. Mismo
+// $clean() que el resto de campos: son texto libre que controla quien llama al endpoint.
+$extras   = $clean($_POST['extras'] ?? '');
+$isla     = $clean($_POST['island'] ?? '');
+$vista    = $clean($_POST['view']   ?? '');
 
 // Filtro de formato mínimo: sin esto, cualquier texto libre pasa a correo y CSV.
 // No es verificación real (para eso haría falta la API de Calendly, que no tenemos),
@@ -83,16 +89,20 @@ $enviado = @mail(
     . "reserva en la web. Revisar el calendario de Calendly para confirmar y ver\n"
     . "nombre/email/telefono reales (este aviso no los tiene).\n\n"
     . "Modelo: $modelo\nOrigen: $source\nCampana: $campana\n"
+    . "PREFERENCIAS MARCADAS ANTES DE RESERVAR (no es un pedido cerrado, se confirma en\n"
+    . "la llamada): Isla: " . ($isla !== '' ? $isla : '(sin marcar)')
+    . " · Vista: " . ($vista !== '' ? $vista : '(sin marcar)')
+    . " · Extras: " . ($extras !== '' ? $extras : '(sin marcar)') . "\n\n"
     . "Evento Calendly: $eventUri\nInvitado Calendly: $inviteeUri\nFecha: " . date('c'),
     "From: no-reply@lawangproperties.com\r\nContent-Type: text/plain; charset=UTF-8\r\n",
     '-fno-reply@lawangproperties.com'
 ) ? 'si' : 'NO';
 
 if ($new) {
-    fputcsv($fh, ['timestamp', 'modelo', 'source', 'campana', 'event_uri', 'invitee_uri', 'ip', 'avisado']);
+    fputcsv($fh, ['timestamp', 'modelo', 'source', 'campana', 'event_uri', 'invitee_uri', 'extras', 'island', 'view', 'ip', 'avisado']);
 }
 fputcsv($fh, [
-    date('c'), $modelo, $source, $campana, $eventUri, $inviteeUri,
+    date('c'), $modelo, $source, $campana, $eventUri, $inviteeUri, $extras, $isla, $vista,
     $_SERVER['REMOTE_ADDR'] ?? '', $enviado,
 ]);
 fclose($fh);

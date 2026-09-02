@@ -108,15 +108,28 @@ function lw_modelo_precio_desde(array $m) {
 
 /**
  * Tarifa ORIENTATIVA de parcela por m² — decisión de revisión previa (Seguridad +
- * Administración, 2-sep): son dos constantes fijas, nunca un valor que llegue por
+ * Administración, 2-sep): constantes fijas en servidor, nunca un valor que llegue por
  * request, y NO tocan el inventario real de Supabase (que sigue con su precio fijo por
- * parcela real). 'playa' es una cifra cerrada; 'otras' es un SUELO ("desde"), así que
- * cualquier total que se calcule con ella se rotula igual como "desde", nunca como cifra
- * exacta — mismo motivo por el que esto vive aparte del precio de la villa, nunca sumado
- * en un único total: un "desde" combinado sin la parcela concreta puede leerse como precio
- * total vinculante (hallazgo de Administración).
+ * parcela real). Sigue siendo un SUELO orientativo, no una cifra exacta por parcela
+ * concreta — nunca se suma al precio de la villa en un único total (un "desde" combinado
+ * sin la parcela concreta puede leerse como precio total vinculante, hallazgo de
+ * Administración).
+ *
+ * Corregida y ampliada el mismo 2-sep (misma sesión, mismo owner dando el dato en el chat
+ * CEO — misma autoridad que la primera versión): 'playa'/'otras' (200/125) eran una
+ * simplificación de arranque; el owner dio después las 4 vistas reales con su tarifa y
+ * confirmó Sumba al mismo tramo de 125. 'beachfront' sube de 200 a 250 — la cifra vieja
+ * NO se reintroduce en ningún sitio. 'otras' se deja como alias del tramo de 125€ para el
+ * resumen de la sección Precio, que no lista las 4 vistas una a una.
  */
 function lw_parcela_tarifa_m2($zona) {
-    $tarifas = ['playa' => 200, 'otras' => 125];
+    $tarifas = [
+        'cliff'      => 125,
+        'ricefield'  => 125,
+        'riverfront' => 125,
+        'beachfront' => 250,
+        'sumba'      => 125,
+        'otras'      => 125, // alias de resumen, ver arriba
+    ];
     return $tarifas[$zona] ?? null;
 }

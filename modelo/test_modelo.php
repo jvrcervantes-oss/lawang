@@ -88,8 +88,12 @@ ok(lw_antes_del_corte_2027(new DateTime('2026-06-01', $tz)) === true, 'lw_antes_
 ok(lw_antes_del_corte_2027(new DateTime('2027-06-01', $tz)) === false, 'lw_antes_del_corte_2027: despues del corte es false');
 
 // Tarifa de parcela: dos constantes fijas, nunca null salvo zona desconocida.
-ok(lw_parcela_tarifa_m2('playa') === 200, 'tarifa de playa debe ser 200€/m²');
-ok(lw_parcela_tarifa_m2('otras') === 125, 'tarifa de otras ubicaciones debe ser 125€/m² (suelo)');
+// 2-sep, corregidas y ampliadas en la misma sesion (el owner subio beachfront de 200 a
+// 250 y dio las 4 vistas + Sumba): la cifra vieja de 200 NO debe reaparecer en ningun sitio.
+ok(lw_parcela_tarifa_m2('beachfront') === 250, 'tarifa de beachfront debe ser 250€/m² (corregida, no 200)');
+foreach (['cliff', 'ricefield', 'riverfront', 'sumba', 'otras'] as $zona) {
+    ok(lw_parcela_tarifa_m2($zona) === 125, "tarifa de $zona debe ser 125€/m²");
+}
 ok(lw_parcela_tarifa_m2('luna') === null, 'una zona desconocida no debe devolver una tarifa inventada');
 
 // Las fotos reales del sitio: si faltan, la seccion "La costa, no el render" sale rota.
