@@ -72,9 +72,20 @@ foreach ($M as $id => $mm) {
 }
 
 // El corte de precio se decide con el reloj de Bali, nunca con un valor que pase el
-// llamador — antes de 2027 debe devolver 'now', en/después de 2027 debe devolver 'y2027'.
+// llamador en produccion — antes de 2027 debe devolver 'now', en/después de 2027 debe
+// devolver 'y2027'. El $hoy opcional SOLO existe para poder probar aquí la rama 2027 sin
+// esperar a que llegue el año (index.php/sitemap.php nunca lo pasan).
 ok(lw_techo_precio_activo(['now' => 100, 'y2027' => 200]) === 100,
     'hoy (2026) el precio activo debe ser el de "now"');
+$tz = new DateTimeZone(LW_TZ_BALI);
+ok(lw_techo_precio_activo(['now' => 100, 'y2027' => 200], new DateTime('2026-12-31 23:59:59', $tz)) === 100,
+    'un segundo antes del corte sigue siendo el precio de "now"');
+ok(lw_techo_precio_activo(['now' => 100, 'y2027' => 200], new DateTime('2027-01-01 00:00:00', $tz)) === 200,
+    'justo en el corte ya debe ser el precio de "y2027"');
+ok(lw_techo_precio_activo(['now' => 100, 'y2027' => 200], new DateTime('2027-06-01', $tz)) === 200,
+    'bien pasado el corte sigue siendo el precio de "y2027"');
+ok(lw_antes_del_corte_2027(new DateTime('2026-06-01', $tz)) === true, 'lw_antes_del_corte_2027: antes del corte es true');
+ok(lw_antes_del_corte_2027(new DateTime('2027-06-01', $tz)) === false, 'lw_antes_del_corte_2027: despues del corte es false');
 
 // Tarifa de parcela: dos constantes fijas, nunca null salvo zona desconocida.
 ok(lw_parcela_tarifa_m2('playa') === 200, 'tarifa de playa debe ser 200€/m²');

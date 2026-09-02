@@ -33,7 +33,11 @@ $modelosFile = __DIR__ . '/modelo/modelos.php';
 if (file_exists($modelosFile)) {
     $MODELOS = require $modelosFile;
     foreach ($MODELOS as $id => $m) {
-        if (lw_modelo_imgs($id)) {
+        // Misma regla que decide si /modelo/<id> sirve landing o no (lw_modelo_get, no
+        // lw_modelo_imgs a pelo) — sin esto, un modelo con renders_pendientes queda
+        // indexable (tiene precio, no noindex) pero invisible en el sitemap. Cazado por
+        // Desarrollo en la capa 1 del pivote australiano (2-sep): pasaba con Trinity/Temple.
+        if (lw_modelo_get($id, $MODELOS)) {
             $urls[] = ['loc' => $SITE . '/modelo/' . rawurlencode($id), 'lastmod' => $today, 'freq' => 'weekly', 'pri' => '0.7'];
         }
     }

@@ -85,10 +85,17 @@ function lw_i18n($es, $en = null) {
  * reloj del servidor en hora de Bali — ver LW_CORTE_2027 arriba. $techo = ['now'=>int,
  * 'y2027'=>int].
  */
-function lw_techo_precio_activo(array $techo) {
+// $hoy es SOLO para test_modelo.php (probar la rama 2027 sin esperar a que llegue el año) —
+// index.php/sitemap.php nunca lo pasan, así que en producción siempre es el reloj real del
+// servidor. No confundir con un parámetro de request: nadie fuera de un test CLI lo toca.
+function lw_antes_del_corte_2027(?DateTime $hoy = null) {
     $corte = new DateTime(LW_CORTE_2027, new DateTimeZone(LW_TZ_BALI));
-    $hoy   = new DateTime('now', new DateTimeZone(LW_TZ_BALI));
-    return $hoy >= $corte ? $techo['y2027'] : $techo['now'];
+    $hoy   = $hoy ?? new DateTime('now', new DateTimeZone(LW_TZ_BALI));
+    return $hoy < $corte;
+}
+
+function lw_techo_precio_activo(array $techo, ?DateTime $hoy = null) {
+    return lw_antes_del_corte_2027($hoy) ? $techo['now'] : $techo['y2027'];
 }
 
 /** El techo más barato de un modelo, ya resuelto al precio activo — es el "Desde X €"

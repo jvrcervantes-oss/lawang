@@ -92,7 +92,7 @@ $sinRender = empty($m['imgs']);
 $precio   = lw_precio_fmt(lw_modelo_precio_desde($m));
 // Solo se anuncia la subida de 2027 MIENTRAS sigue vigente el precio de ahora — pasado el
 // corte, no hay nada que anunciar (el precio activo ya es el nuevo).
-$antes2027 = (new DateTime('now', new DateTimeZone(LW_TZ_BALI))) < new DateTime(LW_CORTE_2027, new DateTimeZone(LW_TZ_BALI));
+$antes2027 = lw_antes_del_corte_2027();
 $nombre   = $m['nombre'];
 $villa    = 'Villa ' . $nombre;
 $dorm     = (int) $m['dormitorios'];
