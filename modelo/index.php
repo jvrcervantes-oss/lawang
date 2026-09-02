@@ -747,9 +747,27 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
   //    <form> propio esto lo daba el `Lead` del envío; con Calendly incrustado, esto
   //    es lo más parecido que existe a esa confirmación real. ──────────────────────
   window.addEventListener('message', function (e) {
-    if (!e.origin || e.origin.indexOf('calendly.com') === -1) return;
+    // Igualdad exacta, no `indexOf`: con substring, "https://calendly.com.attacker.example"
+    // también contiene "calendly.com" y colaba un Lead falso (cazado en revisión previa, 2-sep).
+    if (e.origin !== 'https://calendly.com') return;
     if (!e.data || e.data.event !== 'calendly.event_scheduled') return;
     track('Lead', {});
+
+    // Aviso al equipo (LAW-111): Calendly no da nombre/email en este mensaje, solo las
+    // URIs del evento y del invitado — el endpoint las usa para un aviso "sin verificar",
+    // ventas confirma en el propio Calendly. Best-effort: si falla, la reserva sigue
+    // intacta en Calendly, solo se pierde el aviso automático.
+    try {
+      var payload = e.data.payload || {};
+      var params = new URLSearchParams(location.search);
+      var fd = new URLSearchParams();
+      fd.set('modelo', MODELO);
+      fd.set('source', params.get('utm_source') || '');
+      fd.set('campana', params.get('utm_campaign') || '');
+      fd.set('event_uri', (payload.event && payload.event.uri) || '');
+      fd.set('invitee_uri', (payload.invitee && payload.invitee.uri) || '');
+      fetch('/api/booking-notify.php', {method: 'POST', body: fd});
+    } catch (err) { /* no bloquea el pixel ni la reserva */ }
   });
 
   // ── Cookies: reabrir el aviso de consent.js ──────────────────────────────────
