@@ -1,0 +1,24 @@
+-- destructivo-ok: no destruye datos -- solo repone `security_invoker` en una
+-- vista de solo lectura; los grants ya estaban bien (authenticated solo tenia
+-- SELECT), nada que revocar esta vez.
+--
+-- 2-sep-2026 (Seguridad): 2a reincidencia del mismo fallo del 10-ago. La
+-- migracion `unidades_estado_precio_efectivo` (26-ago, CREATE OR REPLACE VIEW)
+-- volvio a resetear reloptions sin repetir el `alter view ... set
+-- (security_invoker = true)` que llevaban las dos migraciones anteriores de esta
+-- vista (`unidades_estado_restaura_security_invoker` 10-ago,
+-- `unidades_estado_solo_recibi` 11-ago). Confirmado por get_advisors:
+-- security_definer_view, ERROR.
+--
+-- Esta vez los grants NO se reabrieron (authenticated seguia con solo SELECT),
+-- pero la vista corria con los privilegios del owner (postgres): cualquier
+-- `authenticated` veia TODAS las filas de unidades/contratos -- comprador_nombre,
+-- contrato_numero, facturado, pct_cobrado de contratos ajenos -- saltandose
+-- "agentes leen sus contratos" (es_suyo) y "agentes leen unidades" (es_agente()).
+-- Repone el estado correcto; no toca ninguna fila.
+--
+-- CREATE OR REPLACE VIEW no conserva reloptions: quien vuelva a tocar esta
+-- vista tiene que repetir esta linea EN LA MISMA migracion, o queda otra vez
+-- SECURITY DEFINER en silencio. 2a vez que pasa -> contexto/seguridad_2026.md
+-- ya lo tiene como regla explicita, no solo como comentario de migracion.
+alter view public.unidades_estado set (security_invoker = true);
