@@ -110,12 +110,39 @@ $sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';
 
 $precioTxt = $precio !== null ? $precio : 'Upon request';
 
-$facts = [
-    ['en' => 'Size',      'v_en' => $sizeTxt],
-    ['en' => 'Layout',    'v_en' => $dorm . ' bed · ' . $banos . ' bath'],
-    ['en' => 'Pool',      'v_en' => 'Included'],
-    ['en' => 'Price',     'v_en' => 'From ' . $precioTxt],
-];
+// Payload del configurador (2-sep, revisión previa Seguridad+Diseño): lista blanca
+// explícita, campo a campo — nunca el array $MODELOS/$mm crudo, que trae el par
+// now/y2027 sin resolver. Cada precio pasa por lw_techo_precio_activo()/lw_precio_fmt()
+// aquí, en servidor, antes de tocar json_encode; el JS solo pinta lo que ya llegó resuelto.
+$configuradorModelos = [];
+foreach ($MODELOS as $cmId => $cm) {
+    $cmImgs   = lw_modelo_imgs($cmId);
+    $cmSirap  = $cm['techos']['sirap'];
+    $cmBambu  = $cm['techos']['bambu'];
+    $configuradorModelos[$cmId] = [
+        'id'        => $cmId,
+        'villa'     => 'Villa ' . $cm['nombre'],
+        'sub'       => $cm['sub_en'] ?? $cm['sub'] ?? '',
+        'sizeTxt'   => $cm['villa_m2'] . 'm² + ' . $cm['terraza_m2'] . 'm² terrace',
+        'layoutTxt' => (int) $cm['dormitorios'] . ' bed · ' . (int) $cm['banos'] . ' bath',
+        'precioTxt' => 'From ' . lw_precio_fmt(lw_modelo_precio_desde($cm)),
+        'precioValor' => lw_modelo_precio_desde($cm),
+        'thumb'     => $cmImgs[0] ?? null,
+        'sinRender' => empty($cmImgs),
+        'techos'    => [
+            'sirap' => [
+                'nombre'    => $cmSirap['nombre'],
+                'desc'      => $cmSirap['desc'] ?? '',
+                'precioTxt' => lw_precio_fmt(lw_techo_precio_activo($cmSirap)),
+            ],
+            'bambu' => [
+                'nombre'    => $cmBambu['nombre'],
+                'desc'      => $cmBambu['desc'] ?? '',
+                'precioTxt' => lw_precio_fmt(lw_techo_precio_activo($cmBambu)),
+            ],
+        ],
+    ];
+}
 
 // Tarifa de parcela ORIENTATIVA (revisión previa Seguridad+Administración, 2-sep): dos
 // constantes fijas, nunca un total combinado con la villa — ver lw_parcela_tarifa_m2().
@@ -263,11 +290,20 @@ p{margin:0}
   opacity:.85}
 .hero__sub{font-size:17px;color:var(--ink2);max-width:440px;margin-top:.6em}
 .hero__ctas{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
+/* Mismo bug de especificidad que el picker-toggle (`[hidden]` pierde contra `.btn{display:
+   inline-flex}`): el link a la galería se oculta con `hidden` cuando no hay renders
+   todavía, selector por id para que gane seguro. */
+#lw-hero-gallery-link[hidden]{display:none}
 .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--verde-tenue)}
 .btn--ghost:hover{background:var(--panel)}
 .hero__fig{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3.6;
   box-shadow:0 24px 60px -20px rgba(46,52,55,.35)}
 .hero__fig img{width:100%;height:100%;object-fit:cover}
+/* Crossfade del configurador (2-sep): seleccionarModelo() precarga la imagen y solo
+   entonces baja la opacidad a 0 y la sube — nunca un "flash" del contenido a medio
+   cargar. Mismo mecanismo sirve para pasar de foto real a la ilustración "pending". */
+.hero__fig.is-swapping{opacity:0}
+.hero__fig,.hero__fig--pend{transition:opacity .18s ease}
 /* Estado "renders en camino": mismo peso visual que una foto real, nunca un gris muerto. */
 .hero__fig--pend{display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:14px;text-align:center;background:var(--verde-osc);color:var(--papel);padding:40px}
@@ -303,7 +339,13 @@ p{margin:0}
   transition:background .15s ease}
 .cross__row:last-child{border-bottom:0}
 a.cross__row:hover{background:var(--panel)}
-.cross__row.is-current{background:var(--panel);cursor:default}
+/* Dos estados (Diseño, revisión previa 2-sep): is-current = el modelo DE ESTA PÁGINA
+   (fijo, servidor, solo la etiqueta ".cross__tag" — About/Galería/Alcance de abajo
+   siguen hablando de él pase lo que pase arriba). is-configured = lo que se está
+   previsualizando ahora en el configurador (fondo sólido, lo mueve el JS). Al cargar
+   la página las dos coinciden en la misma fila. */
+.cross__row.is-configured{background:var(--panel)}
+.cross__tag{white-space:nowrap}
 .cross__thumb{width:56px;height:56px;border-radius:6px;overflow:hidden;flex:0 0 auto;
   background:var(--verde-osc);display:flex;align-items:center;justify-content:center}
 .cross__thumb img{width:100%;height:100%;object-fit:cover}
@@ -370,16 +412,7 @@ a.cross__row:hover{background:var(--panel)}
 .ubic__pt span:last-child{font-weight:600}
 .ubic__nota{font-size:12px;color:var(--ink2);margin-top:16px;font-style:italic}
 
-/* ── Picker (extras/isla/vista) ──────────────────────────────────────────────── */
-.picker__h{font-size:15px;font-weight:500;color:var(--ink2);margin-top:.5em;max-width:52ch}
-#lw-picker-toggle{margin-top:20px}
-#lw-picker-body{margin-top:8px}
-/* El atributo `hidden` pierde contra `.btn{display:inline-flex}` por especificidad (la
-   hoja de la UA que pone `[hidden]{display:none}` es la más baja de todas) — el botón se
-   quedaba visible tras el clic pese a `toggle.hidden = true`. Cazado en QA de la
-   reestructuración del 2-sep. Selector por id, gana seguro. */
-#lw-picker-toggle[hidden],
-#lw-picker-body[hidden]{display:none}
+/* ── Picker (extras/isla/vista) — siempre visible, sin botón (2-sep, pedido owner) ── */
 .picker__group{margin-top:32px}
 .picker__gh{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .picker__gh h4{font-family:var(--head);font-size:15px;font-weight:600;margin:0}
@@ -509,30 +542,31 @@ a.cross__row:hover{background:var(--panel)}
 <div>
 
   <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+  <!-- IDs estables (2-sep, configurador): seleccionarModelo() los actualiza en vivo al
+       elegir otro modelo en "The Range" — ver el porqué de todo el bloque en el script
+       de cierre de página. -->
   <section class="hero">
     <div>
       <p class="hero__eyebrow">Bali, Indonesia — New build, turnkey</p>
-      <h1><?= lw_e($villa) ?></h1>
-      <p class="hero__precio"><i>From</i> <?= lw_e($precioTxt) ?></p>
-      <p class="hero__sub"><?= lw_e($m['sub_en']) ?></p>
+      <h1 id="lw-hero-title"><?= lw_e($villa) ?></h1>
+      <p class="hero__precio"><i>From</i> <span id="lw-hero-price"><?= lw_e($precioTxt) ?></span></p>
+      <p class="hero__sub" id="lw-hero-sub"><?= lw_e($m['sub_en']) ?></p>
       <div class="hero__ctas">
         <a class="btn" href="#agendar">Book a call</a>
-        <?php if (!$sinRender): ?>
-        <a class="btn btn--ghost" href="#galeria">View gallery</a>
-        <?php endif; ?>
+        <a class="btn btn--ghost" href="#galeria" id="lw-hero-gallery-link"<?= $sinRender ? ' hidden' : '' ?>>View gallery</a>
       </div>
     </div>
     <?php if ($sinRender): ?>
     <!-- Estado "renders en camino" (Diseño, revisión previa 2-sep): nunca un placeholder
          gris ni un icono de imagen rota — un bloque a página completa con el mismo peso
          tipográfico del hero, honesto sobre lo que falta sin parecer un error. -->
-    <figure class="hero__fig hero__fig--pend">
+    <figure class="hero__fig hero__fig--pend" id="lw-hero-fig">
       <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
       <p class="hero__fig--pend-tt">Renders in progress</p>
       <p class="hero__fig--pend-sub">Reserve before they exist — the roof price is confirmed by the developer today.</p>
     </figure>
     <?php else: ?>
-    <figure class="hero__fig">
+    <figure class="hero__fig" id="lw-hero-fig">
       <img src="<?= lw_e($portada) ?>" alt="<?= lw_e($villa) ?>, Lawang Tropical Properties: exterior with overflow pool" fetchpriority="high">
     </figure>
     <?php endif; ?>
@@ -549,35 +583,49 @@ a.cross__row:hover{background:var(--panel)}
 
   <!-- ── Ficha rápida ──────────────────────────────────────────────────────── -->
   <div class="facts">
-    <?php foreach ($facts as $f): ?>
     <div class="facts__it">
-      <div class="facts__lb"><?= lw_e($f['en']) ?></div>
-      <div class="facts__vl"><?= lw_e($f['v_en']) ?></div>
+      <div class="facts__lb">Size</div>
+      <div class="facts__vl" id="lw-fact-size"><?= lw_e($sizeTxt) ?></div>
     </div>
-    <?php endforeach; ?>
+    <div class="facts__it">
+      <div class="facts__lb">Layout</div>
+      <div class="facts__vl" id="lw-fact-layout"><?= lw_e($dorm . ' bed · ' . $banos . ' bath') ?></div>
+    </div>
+    <div class="facts__it">
+      <div class="facts__lb">Pool</div>
+      <div class="facts__vl">Included</div>
+    </div>
+    <div class="facts__it">
+      <div class="facts__lb">Price</div>
+      <div class="facts__vl" id="lw-fact-price">From <?= lw_e($precioTxt) ?></div>
+    </div>
   </div>
 
-  <!-- ── Cross-selling: los 5 modelos ─────────────────────────────────────────
-       Pedido del owner (2-sep): entrar por cualquier ficha enseña las otras. Reutiliza
-       el patrón de fila con borde inferior de .precio__tabla (Diseño, revisión previa) —
-       nunca una tabla con rejilla completa. Un solo precio protagonista por fila (el más
-       barato, techo Sirap); la diferencia de Bambú es nota secundaria, no una segunda
-       cifra en paridad visual. Nunca el precio 2027 aquí (eso vive en la sección de
-       Acabados de cada ficha, aparte del precio activo). -->
+  <!-- ── Configurador, paso 1: los 5 modelos ───────────────────────────────────
+       Pedido del owner (2-sep): entrar por cualquier ficha enseña las otras — y elegir
+       otra fila aquí reconfigura hero+ficha rápida+Finishes EN ESTA MISMA página, sin
+       recargar (revisión previa Seguridad+Diseño, 2-sep). Cada fila sigue siendo un
+       <a href> real a su propia URL (progresivo: sin JS, o para un rastreador, sigue
+       siendo un enlace normal) — el JS solo intercepta el clic cuando puede.
+       Dos estados, no uno (Diseño): `.is-current` es el modelo DE ESTA PÁGINA/URL —
+       fijo, servidor, nunca lo mueve el JS, porque About/Galería/Alcance de abajo
+       siguen hablando de él pase lo que pase aquí arriba. `.is-configured` es lo que
+       se está previsualizando ahora — empieza en la misma fila y el JS lo mueve al
+       elegir otra. Nunca el precio 2027 aquí (vive en Finishes, aparte del activo). -->
   <section class="sec" id="modelos">
     <p class="et">The range</p>
     <h2>Five models, one build system</h2>
-    <p class="sec__desc">Same construction system and roof choice across the range — only the size changes the price. Pick what fits, or come back to this later.</p>
-    <div class="cross">
+    <p class="sec__desc">Same construction system and roof choice across the range — only the size changes the price. Pick a model to configure it below, or come back to this later.</p>
+    <div class="cross" id="lw-cross">
       <?php foreach ($MODELOS as $mid => $mm):
         $mmImgs   = lw_modelo_imgs($mid);
         $mmThumb  = $mmImgs[0] ?? null;
-        $mmActual = $mid === $m['id'];
+        $mmOriginal = $mid === $m['id'];
         $mmSirap  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['sirap']));
         $mmBambu  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['bambu']));
-        $mmTag    = $mmActual ? 'div' : 'a';
+        $mmClases = 'cross__row' . ($mmOriginal ? ' is-current is-configured' : '');
       ?>
-      <<?= $mmTag ?> class="cross__row<?= $mmActual ? ' is-current' : '' ?>"<?= $mmActual ? '' : ' href="/modelo/' . lw_e($mid) . '"' ?>>
+      <a class="<?= $mmClases ?>" href="/modelo/<?= lw_e($mid) ?>" data-model-id="<?= lw_e($mid) ?>">
         <span class="cross__thumb">
           <?php if ($mmThumb): ?>
           <img src="<?= lw_e($mmThumb) ?>" alt="" loading="lazy">
@@ -585,14 +633,115 @@ a.cross__row:hover{background:var(--panel)}
           <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="4"/></svg>
           <?php endif; ?>
         </span>
-        <span class="cross__name"><?= lw_e($mm['nombre']) ?><?= $mmActual ? ' <i>— viewing now</i>' : '' ?></span>
+        <span class="cross__name"><?= lw_e($mm['nombre']) ?><i class="cross__tag"<?= $mmOriginal ? '' : ' hidden' ?>>— this page</i></span>
         <span class="cross__specs"><?= lw_e($mm['villa_m2'] . 'm² + ' . $mm['terraza_m2'] . 'm² terrace · ' . $mm['dormitorios'] . ' bed · ' . $mm['banos'] . ' bath') ?></span>
         <span class="cross__price">From <?= lw_e($mmSirap) ?><i><?= lw_e($mm['techos']['bambu']['nombre']) ?> roof from <?= lw_e($mmBambu) ?></i></span>
-      </<?= $mmTag ?>>
+      </a>
       <?php endforeach; ?>
     </div>
-    <p class="sec__desc" style="margin-top:18px;font-size:13px">Villa price only, roof included. Plot priced separately — see Investment below.</p>
+    <p class="sec__desc" style="margin-top:18px;font-size:13px" id="lw-cross-nota">Villa price only, roof included. Plot priced separately — see Investment below.</p>
   </section>
+
+  <!-- ── Acabados + Precio, fusionados (2-sep) ─────────────────────────────────
+       Reestructuración pedida por el owner ("es demasiado larga"): antes eran DOS
+       secciones separadas (Acabados con las tarjetas de techo, Precio con la tabla de
+       parcela) que repetían el precio de la villa cada una a su manera — cuarta vez que
+       aparecía en la página, contando el hero y la ficha rápida. Una sola sección: las
+       tarjetas de techo siguen mostrando SU precio (fuente real), la tabla de abajo ya
+       no repite la villa, solo parcela y gastos de cierre. El aviso de la subida de 2027
+       sigue aparte del precio activo y sin su mismo peso visual (Diseño, revisión
+       previa): nunca tachado ni junto a la cifra, como haría una landing de SaaS con
+       descuento — esta página ya evita ese tono a propósito. -->
+  <!-- Sin `.num` (2-sep, configurador): esto ya no es "capítulo 02 de la ficha de
+       Dali" — es un panel vivo del configurador (paso 2). Pegado a Range, no después de
+       About+Galería (Diseño, revisión previa 2-sep): un configurador con dos secciones
+       estáticas en medio de sus propios pasos no se lee como configurador — Range,
+       Finishes y el picker de Extras/Isla/Vista quedan juntos, About+Galería pasan a
+       vivir DESPUÉS del bloque de configuración, antes de Alcance/Ubicación. -->
+  <section class="sec panel" id="acabados">
+    <p class="et">Step 2 — Finishes &amp; investment</p>
+    <h2 id="lw-techos-h2">The roof is the only thing that changes the price</h2>
+    <p class="sec__desc">The rest of the villa doesn't vary between the two roof options. It's chosen before locking in numbers.</p>
+    <div class="rows">
+      <div class="rows__it">
+        <span class="n">01</span>
+        <h3 id="lw-techo-sirap-nombre"><?= lw_e($m['techos']['sirap']['nombre']) ?></h3>
+        <p id="lw-techo-sirap-desc"<?= empty($m['techos']['sirap']['desc']) ? ' hidden' : '' ?>><?= lw_e($m['techos']['sirap']['desc'] ?? '') ?></p>
+        <p class="rows__precio">From <span id="lw-techo-sirap-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($m['techos']['sirap']))) ?></span></p>
+      </div>
+      <div class="rows__it">
+        <span class="n">02</span>
+        <h3 id="lw-techo-bambu-nombre"><?= lw_e($m['techos']['bambu']['nombre']) ?></h3>
+        <p id="lw-techo-bambu-desc"<?= empty($m['techos']['bambu']['desc']) ? ' hidden' : '' ?>><?= lw_e($m['techos']['bambu']['desc'] ?? '') ?></p>
+        <p class="rows__precio">From <span id="lw-techo-bambu-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($m['techos']['bambu']))) ?></span></p>
+      </div>
+    </div>
+    <?php if ($antes2027): ?>
+    <p class="sec__desc" style="margin-top:24px;font-size:13.5px">Prices shown are valid through 31 December 2026 (Bali time). Villa prices rise on 1 January 2027 — the plot rate above is unaffected.</p>
+    <?php endif; ?>
+
+    <div class="precio__tabla" style="margin-top:32px;background:var(--papel)">
+      <?php foreach ($filasPrecio as $r): ?>
+      <div class="precio__fila">
+        <span><?= lw_e($r['en']) ?></span>
+        <span><?= lw_e($r['v_en']) ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <p class="sec__desc" style="margin-top:16px;font-size:13.5px">Villa prices are confirmed directly by the developer. Plot rates above are an estimate, not a quote for a specific plot — taxes, notary and permit costs are separate and are all detailed in writing before you sign.</p>
+    <div style="margin-top:24px"><a class="btn" href="#agendar">Request a quote</a></div>
+  </section>
+
+  <!-- ── Picker: extras + isla + vista — pasos 3-4 del configurador (2-sep) ────────
+       Movido aquí desde Ubicación (Diseño, revisión previa): si es un paso del
+       configurador tiene que vivir pegado a Range+Finishes, no varias secciones
+       estáticas más abajo. Siempre visible, sin botón "Customize" — un configurador
+       con pasos escondidos no lee como configurador. Nada aquí es una cotización: no
+       depende del modelo elegido arriba, cualifica al lead, no suma un total (decisión
+       del owner). Las selecciones viajan por el camino de conversión real de la página
+       — el widget de Calendly vía api/booking-notify.php — no por el wa.me secundario
+       del pie. -->
+  <section class="sec" id="lw-picker">
+    <p class="et">Steps 3–4 — Extras, island &amp; view</p>
+    <h2>Tell us what you're picturing</h2>
+    <p class="sec__desc">Nothing below is a quote — we confirm real availability and exact pricing on the call.</p>
+
+    <div class="picker__group">
+      <div class="picker__gh"><h4>Extras</h4><span class="picker__status">priced on the call</span></div>
+      <div class="picker__rows" data-group="extras" data-multi="1">
+        <button type="button" class="picker__row" data-value="airbnb-kit">Airbnb kit</button>
+        <button type="button" class="picker__row" data-value="sauna">Sauna</button>
+        <button type="button" class="picker__row" data-value="cold-plunge">Cold plunge pool</button>
+      </div>
+    </div>
+
+    <div class="picker__group">
+      <div class="picker__gh"><h4>Island</h4><span class="picker__status">confirmed on the call</span></div>
+      <div class="picker__rows" data-group="island" data-multi="0">
+        <button type="button" class="picker__row" data-value="bali">Bali</button>
+        <button type="button" class="picker__row" data-value="sumba">Sumba<i>subject to availability</i></button>
+      </div>
+    </div>
+
+    <div class="picker__group" id="lw-picker-view" data-visible-when="island=bali">
+      <div class="picker__gh"><h4>View</h4><span class="picker__status">estimated plot rate</span></div>
+      <div class="picker__rows" data-group="view" data-multi="0">
+        <button type="button" class="picker__row" data-value="cliff" data-rate="<?= (int) lw_parcela_tarifa_m2('cliff') ?>">Cliff<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('cliff'))) ?>/m²</span></button>
+        <button type="button" class="picker__row" data-value="ricefield" data-rate="<?= (int) lw_parcela_tarifa_m2('ricefield') ?>">Ricefield<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('ricefield'))) ?>/m²</span></button>
+        <button type="button" class="picker__row" data-value="riverfront" data-rate="<?= (int) lw_parcela_tarifa_m2('riverfront') ?>">Riverfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('riverfront'))) ?>/m²</span></button>
+        <button type="button" class="picker__row" data-value="beachfront" data-rate="<?= (int) lw_parcela_tarifa_m2('beachfront') ?>">Beachfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'))) ?>/m²</span></button>
+      </div>
+    </div>
+
+    <p class="picker__nota">Rates are an estimate per m², not a quote for a specific plot. Sumba plots are subject to availability and confirmed on the call.</p>
+  </section>
+
+  <!-- ── Marcador de transición (2-sep, Diseño: sin esto, "01 About the model" que
+       viene justo después puede leerse como si describiera lo que acabas de configurar
+       arriba, cuando en realidad sigue siendo el modelo de ESTA página/URL). ────────── -->
+  <p class="sec__desc" id="lw-static-marker" style="text-align:center;padding-block:28px 0;font-size:13px">
+    From here on, this page describes <strong id="lw-static-marker-name"><?= lw_e($villa) ?></strong> — switch models above to compare price and specs.
+  </p>
 
   <!-- ── Sobre el modelo ───────────────────────────────────────────────────── -->
   <section class="sec sobre<?= $sinRender ? ' sobre--full' : '' ?>">
@@ -625,49 +774,6 @@ a.cross__row:hover{background:var(--panel)}
     </div>
   </section>
   <?php endif; ?>
-
-  <!-- ── Acabados + Precio, fusionados (2-sep) ─────────────────────────────────
-       Reestructuración pedida por el owner ("es demasiado larga"): antes eran DOS
-       secciones separadas (Acabados con las tarjetas de techo, Precio con la tabla de
-       parcela) que repetían el precio de la villa cada una a su manera — cuarta vez que
-       aparecía en la página, contando el hero y la ficha rápida. Una sola sección: las
-       tarjetas de techo siguen mostrando SU precio (fuente real), la tabla de abajo ya
-       no repite la villa, solo parcela y gastos de cierre. El aviso de la subida de 2027
-       sigue aparte del precio activo y sin su mismo peso visual (Diseño, revisión
-       previa): nunca tachado ni junto a la cifra, como haría una landing de SaaS con
-       descuento — esta página ya evita ese tono a propósito. -->
-  <section class="sec panel" id="acabados">
-    <div class="num">02</div>
-    <p class="et">Finishes &amp; investment</p>
-    <h2>The roof is the only thing that changes the price</h2>
-    <p class="sec__desc">The rest of the villa doesn't vary between the two roof options. It's chosen before locking in numbers.</p>
-    <div class="rows">
-      <?php foreach ($m['techos'] as $tk => $t):
-        $tPrecio = lw_precio_fmt(lw_techo_precio_activo($t));
-      ?>
-      <div class="rows__it">
-        <span class="n"><?= $tk === 'sirap' ? '01' : '02' ?></span>
-        <h3><?= lw_e($t['nombre']) ?></h3>
-        <?php if (!empty($t['desc'])): ?><p><?= lw_e($t['desc']) ?></p><?php endif; ?>
-        <p class="rows__precio">From <?= lw_e($tPrecio) ?></p>
-      </div>
-      <?php endforeach; ?>
-    </div>
-    <?php if ($antes2027): ?>
-    <p class="sec__desc" style="margin-top:24px;font-size:13.5px">Prices shown are valid through 31 December 2026 (Bali time). Villa prices rise on 1 January 2027 — the plot rate above is unaffected.</p>
-    <?php endif; ?>
-
-    <div class="precio__tabla" style="margin-top:32px;background:var(--papel)">
-      <?php foreach ($filasPrecio as $r): ?>
-      <div class="precio__fila">
-        <span><?= lw_e($r['en']) ?></span>
-        <span><?= lw_e($r['v_en']) ?></span>
-      </div>
-      <?php endforeach; ?>
-    </div>
-    <p class="sec__desc" style="margin-top:16px;font-size:13.5px">Villa prices are confirmed directly by the developer. Plot rates above are an estimate, not a quote for a specific plot — taxes, notary and permit costs are separate and are all detailed in writing before you sign.</p>
-    <div style="margin-top:24px"><a class="btn" href="#agendar">Request a quote</a></div>
-  </section>
 
   <!-- ── Alcance de obra — acordeón (2-sep, cerrado por defecto): mismo contenido de
        siempre, no una palabra menos, solo un clic para verlo en vez de 601px fijos. ── -->
@@ -723,50 +829,6 @@ a.cross__row:hover{background:var(--panel)}
       </div>
     </div>
 
-    <!-- ── Picker: extras + isla + vista (2-sep, funnel de Meta Ads pedido por el owner) ──
-         Nada aquí es una cotización: cualifica al lead, no suma un total (decisión del
-         owner). Cada grupo rotula su propio estatus (Administración, revisión previa) para
-         que ninguno "contagie" firmeza al de al lado. Filas tipo .cross__row/.precio__fila,
-         nunca checkbox/radio nativos visibles (Diseño). Las selecciones viajan por el
-         camino de conversión real de la página — el widget de Calendly vía
-         api/booking-notify.php — no por el wa.me secundario del pie (Diseño: ese enlace
-         casi nadie lo pulsa). -->
-    <div class="picker" id="lw-picker">
-      <p class="et" style="margin-top:48px">Tell us what you're picturing</p>
-      <h3 class="picker__h">Extras, island and view — nothing here is a quote, we confirm real availability and exact pricing on the call.</h3>
-      <button type="button" class="btn btn--ghost" id="lw-picker-toggle">Customize your villa</button>
-
-      <div id="lw-picker-body" hidden>
-        <div class="picker__group">
-          <div class="picker__gh"><h4>Extras</h4><span class="picker__status">priced on the call</span></div>
-          <div class="picker__rows" data-group="extras" data-multi="1">
-            <button type="button" class="picker__row" data-value="airbnb-kit">Airbnb kit</button>
-            <button type="button" class="picker__row" data-value="sauna">Sauna</button>
-            <button type="button" class="picker__row" data-value="cold-plunge">Cold plunge pool</button>
-          </div>
-        </div>
-
-        <div class="picker__group">
-          <div class="picker__gh"><h4>Island</h4><span class="picker__status">confirmed on the call</span></div>
-          <div class="picker__rows" data-group="island" data-multi="0">
-            <button type="button" class="picker__row" data-value="bali">Bali</button>
-            <button type="button" class="picker__row" data-value="sumba">Sumba<i>subject to availability</i></button>
-          </div>
-        </div>
-
-        <div class="picker__group" id="lw-picker-view" data-visible-when="island=bali">
-          <div class="picker__gh"><h4>View</h4><span class="picker__status">estimated plot rate</span></div>
-          <div class="picker__rows" data-group="view" data-multi="0">
-            <button type="button" class="picker__row" data-value="cliff" data-rate="<?= (int) lw_parcela_tarifa_m2('cliff') ?>">Cliff<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('cliff'))) ?>/m²</span></button>
-            <button type="button" class="picker__row" data-value="ricefield" data-rate="<?= (int) lw_parcela_tarifa_m2('ricefield') ?>">Ricefield<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('ricefield'))) ?>/m²</span></button>
-            <button type="button" class="picker__row" data-value="riverfront" data-rate="<?= (int) lw_parcela_tarifa_m2('riverfront') ?>">Riverfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('riverfront'))) ?>/m²</span></button>
-            <button type="button" class="picker__row" data-value="beachfront" data-rate="<?= (int) lw_parcela_tarifa_m2('beachfront') ?>">Beachfront<span><?= lw_e(lw_precio_fmt(lw_parcela_tarifa_m2('beachfront'))) ?>/m²</span></button>
-          </div>
-        </div>
-
-        <p class="picker__nota">Rates are an estimate per m², not a quote for a specific plot. Sumba plots are subject to availability and confirmed on the call.</p>
-      </div>
-    </div>
   </section>
 
   <!-- ── Proceso — acordeón (2-sep, cerrado por defecto) ─────────────────────── -->
@@ -935,6 +997,12 @@ a.cross__row:hover{background:var(--panel)}
   // 2-sep: los 5 modelos tienen precio real (antes solo Dali) — el pixel ya puede pujar
   // por valor, no solo por volumen. null si algún día vuelve a faltar el precio.
   var PRECIO_VALOR = <?= json_encode(lw_modelo_precio_desde($m)) ?>;
+  // Configurador (2-sep): payload ya resuelto por PHP, ver el porqué de la lista blanca
+  // junto a $configuradorModelos más arriba. MODELO_ORIGEN es el modelo DE ESTA URL — no
+  // lo mueve seleccionarModelo(), lo necesitan pushState (volver atrás) y el marcador de
+  // transición antes de "About the model".
+  var CONFIGURADOR = <?= json_encode($configuradorModelos) ?>;
+  var MODELO_ORIGEN = MODELO;
   var html = document.documentElement;
 
   // ── Píxel: ViewContent al cargar, con `value`/`currency` cuando hay precio cerrado. ──
@@ -952,6 +1020,102 @@ a.cross__row:hover{background:var(--panel)}
   var ctaCal = document.getElementById('lw-cal-cta');
   if (ctaCal) ctaCal.addEventListener('click', function () { track('AbrioCalendario', {}); });
 
+  // ── Configurador: cambiar de modelo EN ESTA MISMA página, sin recargar (2-sep, pedido
+  //    explícito del owner — la alternativa barata era navegar a /modelo/<id> y se
+  //    descartó). Una única función atómica: todo lo que depende del modelo (hero, ficha
+  //    rápida, acabados, fila activa en "The range", MODELO/PRECIO_VALOR del píxel y de
+  //    booking-notify.php, URL) se actualiza junto — nunca a medias, o el píxel dispara
+  //    con el modelo viejo mientras la pantalla ya enseña el nuevo (Seguridad, revisión
+  //    previa). Los enlaces de "The range" siguen siendo <a href> reales: sin JS, o para
+  //    un rastreador, funcionan igual que antes — esto solo intercepta el clic. ─────────
+  function seleccionarModelo(id, opts) {
+    var cfg = CONFIGURADOR[id];
+    if (!cfg || id === MODELO) return;
+    opts = opts || {};
+
+    MODELO = id;
+    PRECIO_VALOR = cfg.precioValor;
+
+    var title = document.getElementById('lw-hero-title');
+    var price = document.getElementById('lw-hero-price');
+    var sub   = document.getElementById('lw-hero-sub');
+    var fig   = document.getElementById('lw-hero-fig');
+    var galleryLink = document.getElementById('lw-hero-gallery-link');
+    if (title) title.textContent = cfg.villa;
+    if (price) price.textContent = cfg.precioTxt.replace(/^From /, '');
+    if (sub) sub.textContent = cfg.sub;
+    if (galleryLink) galleryLink.hidden = !!cfg.sinRender;
+
+    // Precarga la imagen antes de mostrarla: nunca un frame con la foto vieja seguida de
+    // un flash gris a mitad de carga (fig.is-swapping cruza opacidad, ver CSS).
+    if (fig) {
+      fig.classList.add('is-swapping');
+      window.setTimeout(function () {
+        // La clase de swap se mantiene mientras se reconstruye el contenido — si aquí se
+        // pierde, la opacidad vuelve a 1 con la imagen todavía sin decodificar (el mismo
+        // "flash" que esto existe para evitar).
+        fig.className = 'hero__fig is-swapping' + (cfg.sinRender ? ' hero__fig--pend' : '');
+        if (cfg.sinRender) {
+          fig.innerHTML = '<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><p class="hero__fig--pend-tt">Renders in progress</p><p class="hero__fig--pend-sub">Reserve before they exist — the roof price is confirmed by the developer today.</p>';
+          window.setTimeout(function () { fig.classList.remove('is-swapping'); }, 30);
+        } else {
+          var img = new Image();
+          img.onload = function () { fig.classList.remove('is-swapping'); };
+          img.fetchPriority = 'high';
+          img.alt = cfg.villa + ', Lawang Tropical Properties: exterior with overflow pool';
+          img.src = cfg.thumb;
+          fig.innerHTML = '';
+          fig.appendChild(img);
+        }
+      }, 180);
+    }
+
+    var fSize = document.getElementById('lw-fact-size');
+    var fLayout = document.getElementById('lw-fact-layout');
+    var fPrice = document.getElementById('lw-fact-price');
+    if (fSize) fSize.textContent = cfg.sizeTxt;
+    if (fLayout) fLayout.textContent = cfg.layoutTxt;
+    if (fPrice) fPrice.textContent = cfg.precioTxt;
+
+    var tSirapN = document.getElementById('lw-techo-sirap-nombre');
+    var tSirapD = document.getElementById('lw-techo-sirap-desc');
+    var tSirapP = document.getElementById('lw-techo-sirap-precio');
+    var tBambuN = document.getElementById('lw-techo-bambu-nombre');
+    var tBambuD = document.getElementById('lw-techo-bambu-desc');
+    var tBambuP = document.getElementById('lw-techo-bambu-precio');
+    if (tSirapN) tSirapN.textContent = cfg.techos.sirap.nombre;
+    if (tSirapD) { tSirapD.textContent = cfg.techos.sirap.desc; tSirapD.hidden = !cfg.techos.sirap.desc; }
+    if (tSirapP) tSirapP.textContent = cfg.techos.sirap.precioTxt;
+    if (tBambuN) tBambuN.textContent = cfg.techos.bambu.nombre;
+    if (tBambuD) { tBambuD.textContent = cfg.techos.bambu.desc; tBambuD.hidden = !cfg.techos.bambu.desc; }
+    if (tBambuP) tBambuP.textContent = cfg.techos.bambu.precioTxt;
+
+    var marker = document.getElementById('lw-static-marker-name');
+    if (marker) marker.textContent = cfg.villa;
+
+    document.querySelectorAll('#lw-cross .cross__row').forEach(function (row) {
+      row.classList.toggle('is-configured', row.getAttribute('data-model-id') === id);
+    });
+
+    if (!opts.skipHistory) {
+      window.history.pushState({modelo: id}, '', '/modelo/' + id);
+    }
+  }
+
+  document.querySelectorAll('#lw-cross .cross__row[data-model-id]').forEach(function (row) {
+    row.addEventListener('click', function (e) {
+      var id = row.getAttribute('data-model-id');
+      if (!CONFIGURADOR[id]) return; // deja el <a href> normal si algo no cuadra
+      e.preventDefault();
+      seleccionarModelo(id);
+    });
+  });
+
+  window.addEventListener('popstate', function (e) {
+    var id = (e.state && e.state.modelo) || MODELO_ORIGEN;
+    seleccionarModelo(id, {skipHistory: true});
+  });
+
   // ── Picker: extras/isla/vista (2-sep, funnel de Meta Ads) — cualifica al lead, no
   //    cotiza: nunca suma un total, cada grupo mantiene su propio estatus. Las tarifas de
   //    "view" vienen del `data-rate` que ya renderizó PHP (lw_parcela_tarifa_m2) — el JS
@@ -961,17 +1125,6 @@ a.cross__row:hover{background:var(--panel)}
   (function () {
     var picker = document.getElementById('lw-picker');
     if (!picker) return;
-
-    // Reestructuración 2-sep: el picker entero (el bloque más alto de la página) vive
-    // detrás de un botón — un solo sentido, no hace falta volver a ocultarlo.
-    var toggle = document.getElementById('lw-picker-toggle');
-    var body = document.getElementById('lw-picker-body');
-    if (toggle && body) {
-      toggle.addEventListener('click', function () {
-        body.hidden = false;
-        toggle.hidden = true;
-      });
-    }
 
     var viewGroup = document.getElementById('lw-picker-view');
     var waLink = document.getElementById('lw-wa-link');

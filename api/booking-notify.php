@@ -46,6 +46,12 @@ $clean = function ($s) {
 };
 
 $modelo   = $clean($_POST['modelo']   ?? '');
+// Contra el catálogo real, no solo $clean() (Seguridad, revisión previa 2-sep): el
+// configurador puede mandar cualquier id tras el cambio a "cambia en la misma página" —
+// sin este check, un modelo inventado (o un valor manipulado a mano) pasaba tal cual al
+// correo y al CSV de ventas.
+$__MODELOS = require __DIR__ . '/../modelo/modelos.php';
+if (!array_key_exists($modelo, $__MODELOS)) { $modelo = ''; }
 $source   = $clean($_POST['source']   ?? '');
 $campana  = $clean($_POST['campana']  ?? '');
 $eventUri = $clean($_POST['event_uri']   ?? '');
