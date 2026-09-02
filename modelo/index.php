@@ -209,8 +209,7 @@ p{margin:0}
 .nav{position:sticky;top:0;z-index:50;background:rgba(245,240,230,.93);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--linea)}
 .nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:20px}
-.nav__brand{font-family:var(--head);font-size:15px;font-weight:700;letter-spacing:.06em;
-  text-transform:uppercase;white-space:nowrap}
+.nav__brand{display:block;height:18px;width:auto}
 .nav__right{display:flex;align-items:center;gap:16px}
 .nav__links{display:flex;align-items:center;gap:22px}
 .nav__links a{font-size:13px;font-weight:500;color:var(--ink2);text-transform:uppercase;
@@ -459,7 +458,7 @@ a.cross__row:hover{background:var(--panel)}
 
 <header class="nav">
   <div class="wrap nav__in">
-    <span class="nav__brand">Lawang Tropical Properties</span>
+    <a href="/" aria-label="Lawang Tropical Properties"><img class="nav__brand" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties"></a>
     <div class="nav__right">
       <nav class="nav__links">
         <a href="#modelos">The range</a>
