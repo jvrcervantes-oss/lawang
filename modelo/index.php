@@ -1028,10 +1028,21 @@ a.cross__row:hover{background:var(--panel)}
   //    con el modelo viejo mientras la pantalla ya enseña el nuevo (Seguridad, revisión
   //    previa). Los enlaces de "The range" siguen siendo <a href> reales: sin JS, o para
   //    un rastreador, funcionan igual que antes — esto solo intercepta el clic. ─────────
+  // Generación del configurador (hallazgo Desarrollo, revisión de deploy 2-sep): dos
+  // clicks seguidos en "The range" (o un click + `popstate` antes de los 180ms del
+  // crossfade) dejaban dos temporizadores/onload en vuelo a la vez — el primero en
+  // resolver podía reescribir el hero con el modelo VIEJO encima del nuevo, o revelar
+  // (opacity 1) una imagen todavía sin decodificar. Cada llamada saca su propio número;
+  // los callbacks diferidos comprueban que siguen siendo la selección vigente antes de
+  // tocar el DOM, y si no lo son, simplemente no hacen nada (el swap que sí es vigente
+  // ya se está encargando de dejar el hero correcto).
+  var lwConfigGen = 0;
+
   function seleccionarModelo(id, opts) {
     var cfg = CONFIGURADOR[id];
     if (!cfg || id === MODELO) return;
     opts = opts || {};
+    var gen = ++lwConfigGen;
 
     MODELO = id;
     PRECIO_VALOR = cfg.precioValor;
@@ -1051,16 +1062,27 @@ a.cross__row:hover{background:var(--panel)}
     if (fig) {
       fig.classList.add('is-swapping');
       window.setTimeout(function () {
+        if (gen !== lwConfigGen) return; // otra selección más nueva ya tomó el relevo
         // La clase de swap se mantiene mientras se reconstruye el contenido — si aquí se
         // pierde, la opacidad vuelve a 1 con la imagen todavía sin decodificar (el mismo
         // "flash" que esto existe para evitar).
         fig.className = 'hero__fig is-swapping' + (cfg.sinRender ? ' hero__fig--pend' : '');
         if (cfg.sinRender) {
           fig.innerHTML = '<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><p class="hero__fig--pend-tt">Renders in progress</p><p class="hero__fig--pend-sub">Reserve before they exist — the roof price is confirmed by the developer today.</p>';
-          window.setTimeout(function () { fig.classList.remove('is-swapping'); }, 30);
+          window.setTimeout(function () { if (gen === lwConfigGen) fig.classList.remove('is-swapping'); }, 30);
         } else {
           var img = new Image();
-          img.onload = function () { fig.classList.remove('is-swapping'); };
+          // Sin `onerror` (hallazgo Desarrollo): un 404/blip de red dejaba el hero en
+          // opacity:0 para siempre, sin `onload` que lo rescatara — a diferencia del
+          // <img> estático original, que al menos enseña el icono roto + alt. Aquí cae
+          // al mismo estado "pending" que un modelo sin renders, nunca a un hueco vacío.
+          img.onload = function () { if (gen === lwConfigGen) fig.classList.remove('is-swapping'); };
+          img.onerror = function () {
+            if (gen !== lwConfigGen) return;
+            fig.className = 'hero__fig is-swapping hero__fig--pend';
+            fig.innerHTML = '<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><p class="hero__fig--pend-tt">Renders in progress</p><p class="hero__fig--pend-sub">Reserve before they exist — the roof price is confirmed by the developer today.</p>';
+            window.setTimeout(function () { if (gen === lwConfigGen) fig.classList.remove('is-swapping'); }, 30);
+          };
           img.fetchPriority = 'high';
           img.alt = cfg.villa + ', Lawang Tropical Properties: exterior with overflow pool';
           img.src = cfg.thumb;
