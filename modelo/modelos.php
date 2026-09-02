@@ -2,57 +2,71 @@
 /**
  * Catálogo de modelos de villa — fuente única de las landings /modelo/<id>.
  *
- * 30-jul-2026: **solo Dali**. El foco del funnel es un único modelo hasta que convierta;
- * Dune, Dream, Trinity y Temple se retiraron a propósito (decisión del owner). Volver a
- * publicar uno es añadir su entrada aquí y dejar sus renders en
- * assets/img/buildings/<id>/web/. Nada más.
+ * 2-sep-2026: **pivote a mercado australiano, catálogo completo (5 modelos)**. El owner dio
+ * specs y precios reales de Dali/Dune/Dream/Trinity/Temple en la misma sesión (chat CEO,
+ * confirmados explícitamente tras la pregunta de revisión de Administración sobre el patrón
+ * de sobreprecio del techo Bambú — "son correctas, publica tal cual"). Sustituye la fase
+ * "solo Dali" del 30-jul: aquella decisión era mantener el foco de la campaña de España en un
+ * único modelo; el pivote a Australia la reabre a propósito, no por descuido.
  *
  * REGLAS DE ESTE FICHERO (no son estilo, son las que evitan publicar mentiras):
  *
- * 1. `precio_desde_eur` a null mientras el owner no cierre NUESTRO precio. La página no
- *    enseña cifra y se marca `noindex` sola. Los precios de bonian.lawangproperties.com
- *    son de OTRO operador: referencia de mercado, no nuestros.
- * 2. `acabados` y `alcance` solo se rellenan con lo verificado en el anexo de obra del
- *    modelo. Extrapolar el pliego de Dali a otro modelo sería inventarse un contrato.
+ * 1. `techos` (Sirap/Bambú) llevan precio real dado por el owner, resuelto a "ahora" o
+ *    "2027" por `lw_techo_precio_activo()` — nunca un flag manual ni el reloj del visitante.
+ * 2. `acabados`/`alcance` (qué incluye/excluye la obra) solo se rellenan con lo verificado en
+ *    el anexo de obra del modelo. Hoy solo existe el de Dali — extrapolarlo a otro modelo
+ *    sería inventarse un contrato, así que los otros 4 se quedan sin esas dos claves (el
+ *    template las oculta si faltan) hasta que llegue su propio anexo.
  * 3. Las imágenes NO se listan aquí: se leen de assets/img/buildings/<id>/web/.
- * 4. Un modelo SIN imágenes no es publicable: /modelo/<id> manda a /thecollection en vez
- *    de servir una landing vacía.
+ * 4. `renders_pendientes` es la ÚNICA forma de publicar un modelo sin imágenes — ver el
+ *    porqué (decisión consciente del owner, no un descuido) en `lw_modelo_get()`, lib.php.
+ *    Hoy: Trinity y Temple. Quitar el flag en cuanto lleguen sus renders reales.
+ * 5. Solo inglés (pivote australiano, 2-sep): `lw_i18n($es, $en)` ya solo pinta `$en` — los
+ *    campos `_es`/`sub` sin `_en` que queden de la fase anterior no se borran (viven en git,
+ *    barato de recuperar si se retoma el bilingüe) pero no se traducen para los modelos
+ *    nuevos: se escribe directamente en inglés.
  */
 
 return [
     'dali' => [
-        'nombre'           => 'Dali',
-        'dormitorios'      => 1,
-        // Va en el hero, bajo el titular: 20 palabras como techo. Más largo y el titular
-        // deja de leerse de un vistazo, que es lo único que hace el tráfico de pago.
-        'sub'              => 'Villa de 1 dormitorio en suite, construida sobre la parcela que elijas. Acabado y presupuesto cerrados por escrito antes de firmar.',
-        // 1-sep: landing bilingüe (ES/EN) — mismo dato, traducción profesional de la misma
-        // fuente. Nunca se redacta el inglés aparte "a ojo": si el ES cambia, este texto
-        // queda desincronizado hasta que alguien lo note.
-        'sub_en'           => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
-        // 1-sep: precio cerrado dado directamente por el owner en la sesión de trabajo
-        // (chat CEO, tras confirmar explícitamente que era la cifra real y no de relleno,
-        // en respuesta a la pregunta "¿me das el precio real?"). Quita el `noindex`
-        // automático de la landing — ver lw_precio_fmt() en lib.php.
-        'precio_desde_eur' => 69000,
-        // Los tres acabados de cubierta del pliego del contratista (anexo de obra de Dali).
-        'acabados'         => [
-            ['n' => 'Alang-alang',        'd' => 'Cubierta vegetal tradicional balinesa. La estética más integrada en el entorno tropical.',
-             'n_en' => 'Alang-alang',        'd_en' => 'Traditional Balinese thatch roofing. The look most integrated into the tropical setting.'],
-            ['n' => 'Bambú y Sirap Ulin', 'd' => 'Estructura de bambú combinada con teja de madera ulin. Carácter artesanal con mayor durabilidad.',
-             'n_en' => 'Bamboo & Ulin shingle', 'd_en' => 'Bamboo structure combined with ulin wood shingle. Handcrafted character and greater durability.'],
-            ['n' => 'Sirap Ulin',         'd' => 'Teja de madera ulin, la más resistente al clima húmedo y la de mantenimiento más bajo.',
-             'n_en' => 'Ulin shingle',         'd_en' => 'Ulin wood shingle across the whole roof. The most weather-resistant, lowest-maintenance option.'],
+        'nombre'      => 'Dali',
+        'dormitorios' => 1,
+        'banos'       => 1,
+        'villa_m2'    => 30,
+        'terraza_m2'  => 17,
+        'sub'         => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'sub_en'      => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'techos'      => [
+            'sirap' => [
+                'nombre' => 'Sirap Ulin',
+                'desc'   => 'Ulin wood shingle across the whole roof. The most weather-resistant, lowest-maintenance option.',
+                'now'    => 48000,
+                'y2027'  => 52000,
+            ],
+            'bambu' => [
+                'nombre' => 'Bamboo & Ulin shingle',
+                'desc'   => 'Bamboo structure combined with ulin wood shingle. Handcrafted character and greater durability.',
+                'now'    => 50000,
+                'y2027'  => 56000,
+            ],
         ],
-        'alcance'          => [
+        // Los tres acabados verificados del anexo de obra de Dali. El tercero (Alang-alang)
+        // no tiene precio propio dado por el owner en esta ronda — se queda fuera de
+        // `techos` (que ahora es lo que fija el precio) pero la descripción sigue viva aquí
+        // por si se retoma como opción sin recargo. No se copia a los otros 4 modelos.
+        'acabados'    => [
+            ['n' => 'Alang-alang', 'd' => 'Traditional Balinese thatch roofing. The look most integrated into the tropical setting.',
+             'n_en' => 'Alang-alang', 'd_en' => 'Traditional Balinese thatch roofing. The look most integrated into the tropical setting.'],
+        ],
+        'alcance'     => [
             'incluido' => [
-                'Edificio principal según proyecto',
-                'Cubierta del acabado elegido',
-                'Piscina overflow en piedra sukabumi',
-                'Terraza exterior',
-                'Aire acondicionado y agua caliente',
-                'Acometida eléctrica PLN 3.500 W',
-                'Estructura, arquitectura e instalaciones',
+                'Main building per the project design',
+                'Roof in the finish you choose',
+                'Overflow pool in sukabumi stone',
+                'Exterior terrace',
+                'Air conditioning and hot water',
+                'PLN 3,500W electrical connection',
+                'Structure, architecture and installations',
             ],
             'incluido_en' => [
                 'Main building per the project design',
@@ -63,17 +77,82 @@ return [
                 'PLN 3,500W electrical connection',
                 'Structure, architecture and installations',
             ],
-            // El pliego solo excluye mobiliario. Si aparecen más partidas fuera de precio
-            // (licencias, notaría, IMB/PBG, conexión de agua) van aquí ANTES de publicar:
-            // un "no incluido" incompleto es una reclamación.
             'no_incluido' => [
-                'Mobiliario interior: camas, armarios, cocina, mesas',
-                'Decoración y textiles',
+                'Interior furniture: beds, wardrobes, kitchen, tables',
+                'Decor and textiles',
             ],
             'no_incluido_en' => [
                 'Interior furniture: beds, wardrobes, kitchen, tables',
                 'Decor and textiles',
             ],
         ],
+    ],
+
+    'dune' => [
+        'nombre'      => 'Dune',
+        'dormitorios' => 1,
+        'banos'       => 1,
+        'villa_m2'    => 47,
+        'terraza_m2'  => 30,
+        'sub'         => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'sub_en'      => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'techos'      => [
+            'sirap' => ['nombre' => 'Sirap', 'now' => 68000, 'y2027' => 72000],
+            'bambu' => ['nombre' => 'Bambú', 'now' => 70000, 'y2027' => 76000],
+        ],
+        // Sin acabados/alcance propios todavía: sin el anexo de obra de Dune, copiar el de
+        // Dali sería inventarse un contrato (regla 2 de este fichero). El template oculta
+        // esas secciones cuando faltan.
+    ],
+
+    'dream' => [
+        'nombre'      => 'Dream',
+        'dormitorios' => 2,
+        'banos'       => 2,
+        'villa_m2'    => 76,
+        'terraza_m2'  => 49,
+        'sub'         => 'A 2-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'sub_en'      => 'A 2-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'techos'      => [
+            'sirap' => ['nombre' => 'Sirap', 'now' => 101000, 'y2027' => 109000],
+            'bambu' => ['nombre' => 'Bambú', 'now' => 106000, 'y2027' => 119000],
+        ],
+    ],
+
+    'trinity' => [
+        'nombre'             => 'Trinity',
+        'dormitorios'        => 3,
+        'banos'              => 2,
+        'villa_m2'           => 92,
+        'terraza_m2'         => 35,
+        'sub'                => 'A 3-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'sub_en'             => 'A 3-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'techos'             => [
+            'sirap' => ['nombre' => 'Sirap', 'now' => 121000, 'y2027' => 129000],
+            'bambu' => ['nombre' => 'Bambú', 'now' => 127000, 'y2027' => 139000],
+        ],
+        // 2-sep: publicado sin render real por decisión expresa del owner ("Publícalo,
+        // estamos creándola y no estamos en producción aún") — el catálogo se lanza
+        // completo mientras se terminan los renders, en vez de esperar a tenerlos los 5.
+        // Quitar este flag en cuanto lleguen: hoy no hay ni un render de Trinity en el repo
+        // (solo el PDF de folleto del contratista, que no es un asset publicable).
+        'renders_pendientes' => true,
+    ],
+
+    'temple' => [
+        'nombre'             => 'Temple',
+        'dormitorios'        => 4,
+        'banos'              => 3,
+        'villa_m2'           => 114,
+        'terraza_m2'         => 46,
+        'sub'                => 'A 4-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'sub_en'             => 'A 4-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
+        'techos'             => [
+            'sirap' => ['nombre' => 'Sirap', 'now' => 146000, 'y2027' => 159000],
+            'bambu' => ['nombre' => 'Bambú', 'now' => 155000, 'y2027' => 169000],
+        ],
+        // Mismo caso que Trinity — ver su comentario. Hoy no hay ni un render de Temple en
+        // el repo, solo el PDF de folleto.
+        'renders_pendientes' => true,
     ],
 ];

@@ -84,61 +84,79 @@ if (!$m) {
     exit;
 }
 
-$precio   = lw_precio_fmt($m['precio_desde_eur']);
+// Sin renders todavía (Trinity/Temple, 2-sep): decisión consciente del owner de publicar
+// igual — ver el porqué en lw_modelo_get(), lib.php. La plantilla salta las secciones que
+// dependen de una foto real y muestra en su lugar el estado "renders en camino".
+$sinRender = empty($m['imgs']);
+
+$precio   = lw_precio_fmt(lw_modelo_precio_desde($m));
+// Solo se anuncia la subida de 2027 MIENTRAS sigue vigente el precio de ahora — pasado el
+// corte, no hay nada que anunciar (el precio activo ya es el nuevo).
+$antes2027 = (new DateTime('now', new DateTimeZone(LW_TZ_BALI))) < new DateTime(LW_CORTE_2027, new DateTimeZone(LW_TZ_BALI));
 $nombre   = $m['nombre'];
 $villa    = 'Villa ' . $nombre;
 $dorm     = (int) $m['dormitorios'];
+$banos    = (int) $m['banos'];
 
 $g        = $m['imgs'];
-$portada  = $g[0];
+$portada  = $g[0] ?? null;
 $resto    = array_slice($g, 1);      // el resto de renders, en orden natural
 $about    = $resto[0] ?? $portada;   // "Sobre el modelo": el segundo render (dali2)
 $galeria  = array_slice($resto, 1);  // el resto de renders (dali3, dali4…), sin repetir $about
 
-$dormEs   = $dorm . ' ' . ($dorm === 1 ? 'dormitorio' : 'dormitorios');
-$dormEn   = $dorm . ' ' . ($dorm === 1 ? 'bedroom' : 'bedrooms');
+$dormTxt  = $dorm . ' ' . ($dorm === 1 ? 'bedroom' : 'bedrooms');
+$banosTxt = $banos . ' ' . ($banos === 1 ? 'bathroom' : 'bathrooms');
+$sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';
 
-$precioEs = $precio !== null ? $precio : 'Bajo consulta';
-$precioEn = $precio !== null ? $precio : 'Upon request';
+$precioTxt = $precio !== null ? $precio : 'Upon request';
 
 $facts = [
-    ['es' => 'Modelo',       'en' => 'Model',      'v_es' => $nombre,                        'v_en' => $nombre],
-    ['es' => 'Dormitorios',  'en' => 'Bedrooms',   'v_es' => $dorm . ' en suite',             'v_en' => $dorm . ' en-suite'],
-    ['es' => 'Piscina',      'en' => 'Pool',       'v_es' => 'Overflow, piedra sukabumi',     'v_en' => 'Overflow, sukabumi stone'],
-    ['es' => 'Precio',       'en' => 'Price',      'v_es' => $precioEs,                       'v_en' => $precioEn],
+    ['en' => 'Size',      'v_en' => $sizeTxt],
+    ['en' => 'Layout',    'v_en' => $dorm . ' bed · ' . $banos . ' bath'],
+    ['en' => 'Pool',      'v_en' => 'Included'],
+    ['en' => 'Price',     'v_en' => 'From ' . $precioTxt],
 ];
 
+// Tarifa de parcela ORIENTATIVA (revisión previa Seguridad+Administración, 2-sep): dos
+// constantes fijas, nunca un total combinado con la villa — ver lw_parcela_tarifa_m2().
+$parcelaPlaya = lw_precio_fmt(lw_parcela_tarifa_m2('playa'));
+$parcelaOtras = lw_precio_fmt(lw_parcela_tarifa_m2('otras'));
+
 $filasPrecio = [
-    ['es' => 'Villa (acabado elegido)', 'en' => 'Villa (chosen finish)', 'v_es' => $precioEs,                   'v_en' => $precioEn],
-    ['es' => 'Parcela',                 'en' => 'Plot',                  'v_es' => 'A elegir del catálogo',     'v_en' => 'Chosen from catalog'],
-    ['es' => 'Gastos de compraventa',   'en' => 'Closing costs',         'v_es' => 'Aparte, por escrito',       'v_en' => 'Separate, in writing'],
+    ['en' => 'Villa (roof of your choice)', 'v_en' => 'From ' . $precioTxt],
+    ['en' => 'Plot — beachfront',           'v_en' => $parcelaPlaya . '/m²'],
+    ['en' => 'Plot — other locations',      'v_en' => 'From ' . $parcelaOtras . '/m²'],
+    ['en' => 'Closing costs',               'v_en' => 'Separate, in writing'],
 ];
 
 $WA_NUM   = '6281138319862';
-$WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode('Hola, me interesa la ' . $villa . ' de Lawang Tropical Properties.');
+$WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm interested in the " . $villa . ' from Lawang Tropical Properties.');
 $WA_SHOW  = '+62 811-3831-9862';
 $EMAIL    = 'sales@lawangproperties.com';
 $CALENDLY = 'https://calendly.com/lawangproperties';
+// Sin render propio todavía (Trinity/Temple): og:image y preload caen a una foto real del
+// sitio (no del modelo concreto) en vez de a una ruta vacía — nunca un render inventado.
+$ogImg = $portada ?? '/assets/img/lugar/costa.webp';
 ?><!DOCTYPE html>
-<html lang="es" data-lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= lw_e($villa) ?> · Villa llave en mano en Bali — Lawang Tropical Properties</title>
-<meta name="description" content="<?= lw_e($villa) ?>: villa de obra nueva de <?= lw_e($dormEs) ?> en suite, construida sobre la parcela que elijas. Acabados, alcance de obra y reserva de llamada.">
+<title><?= lw_e($villa) ?> · Turnkey villa in Bali — Lawang Tropical Properties</title>
+<meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and call booking.">
 <?php if (!$precio): ?>
 <meta name="robots" content="noindex, nofollow"><!-- sin precio cerrado no se indexa -->
 <?php endif; ?>
 <link rel="canonical" href="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
 <link rel="icon" href="/favicon.png">
-<meta property="og:title" content="<?= lw_e($villa) ?> · Villa llave en mano en Bali">
-<meta property="og:description" content="Obra nueva llave en mano de <?= lw_e($dormEs) ?> en suite. Eliges parcela y acabado; el precio se cierra por escrito antes de firmar.">
+<meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">
+<meta property="og:description" content="Turnkey new build, <?= lw_e($dormTxt) ?>. You choose the plot and finish; the price is locked in writing before you sign.">
 <meta property="og:url" content="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
-<meta property="og:image" content="https://lawangproperties.com<?= lw_e($portada) ?>">
+<meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 
-<link rel="preload" as="image" href="<?= lw_e($portada) ?>" fetchpriority="high">
+<link rel="preload" as="image" href="<?= lw_e($ogImg) ?>" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://api.fontshare.com">
@@ -179,9 +197,11 @@ h1,h2{font-family:var(--head);font-weight:700;margin:0;letter-spacing:-.01em;lin
 p{margin:0}
 :focus-visible{outline:2px solid var(--verde);outline-offset:3px}
 
-/* ── Idioma: dos spans, uno visible según html[data-lang] ─────────────────────── */
-html[data-lang="es"] .i-en{display:none}
-html[data-lang="en"] .i-es{display:none}
+/* ── Idioma ───────────────────────────────────────────────────────────────────── */
+/* Pivote a mercado australiano (2-sep): página solo en inglés, sin toggle. Se mantiene
+   la regla (en vez de borrar el markup .i-es que aún queda en el FAQ/pie) porque es una
+   línea y reversible por git — nunca un <span> ES visible por accidente. */
+.i-es{display:none}
 
 .wrap{max-width:1440px;margin-inline:auto;padding-inline:var(--gut)}
 
@@ -197,11 +217,6 @@ html[data-lang="en"] .i-es{display:none}
   letter-spacing:.04em;white-space:nowrap}
 .nav__links a:hover{color:var(--verde)}
 @media(max-width:940px){.nav__links{display:none}}
-.lang{display:flex;gap:2px;border:1px solid var(--linea-fuerte);border-radius:100px;padding:3px}
-.lang button{border:0;background:transparent;padding:5px 12px;border-radius:100px;font:inherit;
-  font-size:12px;font-weight:600;cursor:pointer;color:var(--ink2)}
-html[data-lang="es"] .lang [data-set="es"],
-html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .btn{display:inline-flex;align-items:center;gap:10px;background:var(--verde);color:#fff;
   border:0;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:700;
   text-transform:uppercase;letter-spacing:.03em;padding:12px 20px;border-radius:4px;
@@ -240,6 +255,12 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .hero__fig{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3.6;
   box-shadow:0 24px 60px -20px rgba(46,52,55,.35)}
 .hero__fig img{width:100%;height:100%;object-fit:cover}
+/* Estado "renders en camino": mismo peso visual que una foto real, nunca un gris muerto. */
+.hero__fig--pend{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;text-align:center;background:var(--verde-osc);color:var(--papel);padding:40px}
+.hero__fig--pend svg{width:64px;height:auto;color:var(--verde-tenue)}
+.hero__fig--pend-tt{font-family:var(--head);font-size:clamp(20px,2.4vw,26px);font-weight:700}
+.hero__fig--pend-sub{font-size:14px;color:rgba(245,240,230,.72);max-width:34ch}
 
 /* ── Ficha rápida ─────────────────────────────────────────────────────────────── */
 .facts{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--linea);
@@ -261,9 +282,37 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 .sec h2{font-size:clamp(25px,2.8vw,34px);margin-top:.3em;max-width:22ch}
 .sec__desc{font-size:16px;color:var(--ink2);max-width:56ch;margin-top:.9em}
 
+/* ── Cross-selling (los 5 modelos) ───────────────────────────────────────────── */
+/* Mismo patrón que .precio__tabla: borde inferior por fila, sin rejilla completa. */
+.cross{border:1px solid var(--linea);border-radius:10px;overflow:hidden;margin-top:28px}
+.cross__row{display:grid;grid-template-columns:56px 1fr auto;gap:18px;align-items:center;
+  padding:16px 22px;border-bottom:1px solid var(--linea);background:var(--papel);
+  transition:background .15s ease}
+.cross__row:last-child{border-bottom:0}
+a.cross__row:hover{background:var(--panel)}
+.cross__row.is-current{background:var(--panel);cursor:default}
+.cross__thumb{width:56px;height:56px;border-radius:6px;overflow:hidden;flex:0 0 auto;
+  background:var(--verde-osc);display:flex;align-items:center;justify-content:center}
+.cross__thumb img{width:100%;height:100%;object-fit:cover}
+.cross__thumb svg{width:30px;height:auto;color:var(--verde-tenue)}
+.cross__name{grid-row:1;grid-column:2;font-family:var(--head);font-size:16px;font-weight:600}
+.cross__name i{font-style:normal;font-family:var(--sans);font-size:12px;font-weight:500;
+  color:var(--verde);margin-left:6px}
+.cross__specs{grid-row:2;grid-column:2;font-size:13px;color:var(--ink2)}
+.cross__price{grid-row:1 / span 2;grid-column:3;text-align:right;font-family:var(--head);
+  font-size:17px;font-weight:600;white-space:nowrap}
+.cross__price i{display:block;font-style:normal;font-family:var(--sans);font-size:11.5px;
+  font-weight:500;color:var(--ink2);margin-top:3px}
+@media(max-width:560px){
+  .cross__row{grid-template-columns:44px 1fr;padding:14px 16px}
+  .cross__thumb{width:44px;height:44px}
+  .cross__price{grid-row:3;grid-column:1 / span 2;text-align:left;margin-top:6px}
+}
+
 /* ── Sobre el modelo ──────────────────────────────────────────────────────────── */
 .sobre{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
 @media(max-width:820px){.sobre{grid-template-columns:1fr}}
+.sobre--full{grid-template-columns:1fr;max-width:64ch}
 .sobre__fig{border-radius:8px;overflow:hidden;aspect-ratio:4/5}
 .sobre__fig img{width:100%;height:100%;object-fit:cover}
 .sobre__tx p{font-size:16px;color:var(--ink2);margin-top:.9em}
@@ -277,12 +326,14 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 
 /* ── Acabados / alcance de obra (fondo panel) ────────────────────────────────── */
 .panel{background:var(--panel);border-radius:12px;padding:clamp(32px,5vw,64px)}
-.rows{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+.rows{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:36px}
 @media(max-width:760px){.rows{grid-template-columns:1fr}}
 .rows__it{background:var(--papel);border-radius:8px;padding:26px 22px}
 .rows__it .n{font-family:var(--head);font-size:13px;color:var(--verde);display:block;margin-bottom:12px}
 .rows__it h3{font-size:17px;font-weight:600;margin:0 0 8px}
 .rows__it p{font-size:14px;color:var(--ink2)}
+.rows__it .rows__precio{font-family:var(--head);font-size:16px;font-weight:700;
+  color:var(--ink);margin-top:14px}
 
 .doscol{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,3vw,54px);margin-top:24px}
 @media(max-width:640px){.doscol{grid-template-columns:1fr}}
@@ -391,15 +442,12 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     <span class="nav__brand">Lawang Tropical Properties</span>
     <div class="nav__right">
       <nav class="nav__links">
+        <a href="#modelos">The range</a>
         <a href="#acabados"><?= lw_i18n('Acabados', 'Finishes') ?></a>
         <a href="#ubicacion"><?= lw_i18n('Ubicación', 'Location') ?></a>
         <a href="#precios"><?= lw_i18n('Precio', 'Price') ?></a>
         <a href="#faq"><?= lw_i18n('Preguntas', 'FAQ') ?></a>
       </nav>
-      <div class="lang" role="group" aria-label="Idioma / Language">
-        <button type="button" data-set="es">ES</button>
-        <button type="button" data-set="en">EN</button>
-      </div>
       <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
     </div>
   </div>
@@ -412,18 +460,31 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
   <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
   <section class="hero">
     <div>
-      <p class="hero__eyebrow"><?= lw_i18n('Bali, Indonesia — Obra nueva, llave en mano', 'Bali, Indonesia — New build, turnkey') ?></p>
+      <p class="hero__eyebrow">Bali, Indonesia — New build, turnkey</p>
       <h1><?= lw_e($villa) ?></h1>
-      <p class="hero__precio"><i><?= lw_i18n('Desde', 'From') ?></i> <?= lw_e($precioEs) ?></p>
-      <p class="hero__sub"><?= lw_i18n($m['sub'], $m['sub_en']) ?></p>
+      <p class="hero__precio"><i>From</i> <?= lw_e($precioTxt) ?></p>
+      <p class="hero__sub"><?= lw_e($m['sub_en']) ?></p>
       <div class="hero__ctas">
-        <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
-        <a class="btn btn--ghost" href="#galeria"><?= lw_i18n('Ver galería', 'View gallery') ?></a>
+        <a class="btn" href="#agendar">Book a call</a>
+        <?php if (!$sinRender): ?>
+        <a class="btn btn--ghost" href="#galeria">View gallery</a>
+        <?php endif; ?>
       </div>
     </div>
-    <figure class="hero__fig">
-      <img src="<?= lw_e($portada) ?>" alt="<?= lw_e($villa) ?> de Lawang Tropical Properties: exterior con piscina overflow" fetchpriority="high">
+    <?php if ($sinRender): ?>
+    <!-- Estado "renders en camino" (Diseño, revisión previa 2-sep): nunca un placeholder
+         gris ni un icono de imagen rota — un bloque a página completa con el mismo peso
+         tipográfico del hero, honesto sobre lo que falta sin parecer un error. -->
+    <figure class="hero__fig hero__fig--pend">
+      <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+      <p class="hero__fig--pend-tt">Renders in progress</p>
+      <p class="hero__fig--pend-sub">Reserve before they exist — the price and spec are already locked in.</p>
     </figure>
+    <?php else: ?>
+    <figure class="hero__fig">
+      <img src="<?= lw_e($portada) ?>" alt="<?= lw_e($villa) ?>, Lawang Tropical Properties: exterior with overflow pool" fetchpriority="high">
+    </figure>
+    <?php endif; ?>
   </section>
 
   <!-- Botón + modal de vídeo del diseño importado, RETIRADOS a propósito (1-sep): sin un
@@ -439,67 +500,112 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
   <div class="facts">
     <?php foreach ($facts as $f): ?>
     <div class="facts__it">
-      <div class="facts__lb"><?= lw_i18n($f['es'], $f['en']) ?></div>
-      <div class="facts__vl"><?= lw_i18n($f['v_es'], $f['v_en']) ?></div>
+      <div class="facts__lb"><?= lw_e($f['en']) ?></div>
+      <div class="facts__vl"><?= lw_e($f['v_en']) ?></div>
     </div>
     <?php endforeach; ?>
   </div>
 
-  <!-- ── Sobre el modelo ───────────────────────────────────────────────────── -->
-  <section class="sec sobre">
-    <div class="sobre__fig">
-      <img src="<?= lw_e($about) ?>" alt="Interior o detalle arquitectónico de la <?= lw_e($villa) ?>" loading="lazy">
+  <!-- ── Cross-selling: los 5 modelos ─────────────────────────────────────────
+       Pedido del owner (2-sep): entrar por cualquier ficha enseña las otras. Reutiliza
+       el patrón de fila con borde inferior de .precio__tabla (Diseño, revisión previa) —
+       nunca una tabla con rejilla completa. Un solo precio protagonista por fila (el más
+       barato, techo Sirap); la diferencia de Bambú es nota secundaria, no una segunda
+       cifra en paridad visual. Nunca el precio 2027 aquí (eso vive en la sección de
+       Acabados de cada ficha, aparte del precio activo). -->
+  <section class="sec" id="modelos">
+    <p class="et">The range</p>
+    <h2>Five models, one build system</h2>
+    <p class="sec__desc">Same construction system and roof choice across the range — only the size changes the price. Pick what fits, or come back to this later.</p>
+    <div class="cross">
+      <?php foreach ($MODELOS as $mid => $mm):
+        $mmImgs   = lw_modelo_imgs($mid);
+        $mmThumb  = $mmImgs[0] ?? null;
+        $mmActual = $mid === $m['id'];
+        $mmSirap  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['sirap']));
+        $mmBambu  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['bambu']));
+        $mmTag    = $mmActual ? 'div' : 'a';
+      ?>
+      <<?= $mmTag ?> class="cross__row<?= $mmActual ? ' is-current' : '' ?>"<?= $mmActual ? '' : ' href="/modelo/' . lw_e($mid) . '"' ?>>
+        <span class="cross__thumb">
+          <?php if ($mmThumb): ?>
+          <img src="<?= lw_e($mmThumb) ?>" alt="" loading="lazy">
+          <?php else: ?>
+          <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+          <?php endif; ?>
+        </span>
+        <span class="cross__name"><?= lw_e($mm['nombre']) ?><?= $mmActual ? ' <i>— viewing now</i>' : '' ?></span>
+        <span class="cross__specs"><?= lw_e($mm['villa_m2'] . 'm² + ' . $mm['terraza_m2'] . 'm² terrace · ' . $mm['dormitorios'] . ' bed · ' . $mm['banos'] . ' bath') ?></span>
+        <span class="cross__price">From <?= lw_e($mmSirap) ?><i>Bambú roof from <?= lw_e($mmBambu) ?></i></span>
+      </<?= $mmTag ?>>
+      <?php endforeach; ?>
     </div>
+    <p class="sec__desc" style="margin-top:18px;font-size:13px">Villa price only, roof included. Plot priced separately — see Investment below.</p>
+  </section>
+
+  <!-- ── Sobre el modelo ───────────────────────────────────────────────────── -->
+  <section class="sec sobre<?= $sinRender ? ' sobre--full' : '' ?>">
+    <?php if (!$sinRender): ?>
+    <div class="sobre__fig">
+      <img src="<?= lw_e($about) ?>" alt="Interior or architectural detail of the <?= lw_e($villa) ?>" loading="lazy">
+    </div>
+    <?php endif; ?>
     <div class="sobre__tx">
       <div class="num">01</div>
-      <p class="et"><?= lw_i18n('Sobre el modelo', 'About the model') ?></p>
-      <h2><?= lw_e($villa) ?><?= lw_i18n(', obra nueva llave en mano', ', a new turnkey build') ?></h2>
-      <p><?= lw_i18n(
-        'Lawang Tropical Properties desarrolla villas llave en mano en Bali: tú eliges la parcela y el acabado, y el presupuesto se cierra por escrito antes de firmar nada.',
-        'Lawang Tropical Properties develops turnkey villas in Bali: you choose the plot and the finish, and the budget is locked in writing before you sign anything.'
-      ) ?></p>
-      <p><?= lw_i18n(
-        'El resto de la villa no cambia entre acabados: estructura, arquitectura e instalaciones son las mismas. Solo la cubierta varía según la opción que elijas.',
-        "The rest of the villa doesn't change between finishes: structure, architecture, and installations stay the same. Only the roof changes with the option you pick."
-      ) ?></p>
+      <p class="et">About the model</p>
+      <h2><?= lw_e($villa) ?>, a new turnkey build</h2>
+      <p>Lawang Tropical Properties develops turnkey villas in Bali: you choose the plot and the finish, and the budget is locked in writing before you sign anything.</p>
+      <p>The rest of the villa doesn't change between finishes: structure, architecture, and installations stay the same. Only the roof changes with the option you pick.</p>
     </div>
   </section>
 
   <!-- ── Galería ────────────────────────────────────────────────────────────── -->
+  <?php if (!$sinRender): ?>
   <section class="sec" id="galeria">
     <div class="gal__head">
-      <h2><?= lw_e($villa) ?><?= lw_i18n(', por dentro', ', inside') ?></h2>
-      <p class="gal__note"><?= lw_i18n('Renders del proyecto, no fotografías de una villa terminada.', 'Project renders, not photographs of a finished villa.') ?></p>
+      <h2><?= lw_e($villa) ?>, inside</h2>
+      <p class="gal__note">Project renders, not photographs of a finished villa.</p>
     </div>
     <div class="gal__strip">
       <?php foreach ($galeria as $i => $img): ?>
-      <figure><img src="<?= lw_e($img) ?>" alt="Render del proyecto de la <?= lw_e($villa) ?> (<?= $i + 3 ?> de <?= count($g) ?>)" loading="lazy"></figure>
+      <figure><img src="<?= lw_e($img) ?>" alt="Project render of the <?= lw_e($villa) ?> (<?= $i + 3 ?> of <?= count($g) ?>)" loading="lazy"></figure>
       <?php endforeach; ?>
-      <figure><img src="/assets/img/lugar/costa.webp" alt="Desembocadura del río y playa de arena volcánica en la costa oeste de Bali" loading="lazy"></figure>
-    </div>
-  </section>
-
-  <!-- ── Acabados ───────────────────────────────────────────────────────────── -->
-  <?php if ($m['acabados']): ?>
-  <section class="sec panel" id="acabados">
-    <div class="num">02</div>
-    <p class="et"><?= lw_i18n('Acabados', 'Finishes') ?></p>
-    <h2><?= lw_i18n('La cubierta es lo único que cambia el presupuesto', 'The roof is the only thing that changes the budget') ?></h2>
-    <p class="sec__desc"><?= lw_i18n('El resto de la villa no varía entre las tres opciones. Se elige antes de cerrar números.', "The rest of the villa doesn't vary between the three options. It's chosen before locking in numbers.") ?></p>
-    <div class="rows">
-      <?php foreach ($m['acabados'] as $i => $a): ?>
-      <div class="rows__it">
-        <span class="n"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
-        <h3><?= lw_i18n($a['n'], $a['n_en'] ?? $a['n']) ?></h3>
-        <p><?= lw_i18n($a['d'], $a['d_en'] ?? $a['d']) ?></p>
-      </div>
-      <?php endforeach; ?>
+      <figure><img src="/assets/img/lugar/costa.webp" alt="River mouth and volcanic-sand beach on Bali's west coast" loading="lazy"></figure>
     </div>
   </section>
   <?php endif; ?>
 
+  <!-- ── Acabados / precio de techo ────────────────────────────────────────────
+       Reescrito 2-sep: antes eran 3 acabados descriptivos sin precio propio. Ahora son
+       los 2 techos reales que dio el owner, cada uno con su precio — "la cubierta es lo
+       único que cambia el presupuesto" pasa de eslogan a precio de verdad. El aviso de
+       la subida de 2027 vive AQUÍ, aparte del precio activo y sin el mismo peso visual
+       (Diseño, revisión previa): nunca tachado ni junto a la cifra, como haría una
+       landing de SaaS con descuento — esta página ya evita ese tono a propósito. -->
+  <section class="sec panel" id="acabados">
+    <div class="num">02</div>
+    <p class="et">Finishes</p>
+    <h2>The roof is the only thing that changes the price</h2>
+    <p class="sec__desc">The rest of the villa doesn't vary between the two roof options. It's chosen before locking in numbers.</p>
+    <div class="rows">
+      <?php foreach ($m['techos'] as $tk => $t):
+        $tPrecio = lw_precio_fmt(lw_techo_precio_activo($t));
+      ?>
+      <div class="rows__it">
+        <span class="n"><?= $tk === 'sirap' ? '01' : '02' ?></span>
+        <h3><?= lw_e($t['nombre']) ?></h3>
+        <?php if (!empty($t['desc'])): ?><p><?= lw_e($t['desc']) ?></p><?php endif; ?>
+        <p class="rows__precio">From <?= lw_e($tPrecio) ?></p>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <?php if ($antes2027): ?>
+    <p class="sec__desc" style="margin-top:24px;font-size:13.5px">Prices shown are valid through 31 December 2026 (Bali time). Villa prices rise on 1 January 2027 — the plot rate above is unaffected.</p>
+    <?php endif; ?>
+  </section>
+
   <!-- ── Alcance de obra ───────────────────────────────────────────────────── -->
-  <?php if ($m['alcance']): ?>
+  <?php if (!empty($m['alcance'])): ?>
   <section class="sec">
     <div class="num">03</div>
     <p class="et"><?= lw_i18n('Alcance de obra — Qué incluye el precio', "Scope of works — What's included") ?></p>
@@ -579,13 +685,13 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
       <div class="precio__tabla">
         <?php foreach ($filasPrecio as $r): ?>
         <div class="precio__fila">
-          <span><?= lw_i18n($r['es'], $r['en']) ?></span>
-          <span><?= lw_i18n($r['v_es'], $r['v_en']) ?></span>
+          <span><?= lw_e($r['en']) ?></span>
+          <span><?= lw_e($r['v_en']) ?></span>
         </div>
         <?php endforeach; ?>
       </div>
-      <p class="precio__nota"><?= lw_i18n("Los datos proceden del pliego del contratista y se entregan por escrito con el presupuesto.", "Figures come from the contractor's spec sheet and are delivered in writing with the quote.") ?></p>
-      <div class="precio__cta"><a class="btn" href="#agendar"><?= lw_i18n('Solicitar presupuesto', 'Request a quote') ?></a></div>
+      <p class="precio__nota">Villa prices are confirmed directly by the developer. Plot rates above are an estimate, not a quote for a specific plot — taxes, notary and permit costs are separate and are all detailed in writing before you sign.</p>
+      <div class="precio__cta"><a class="btn" href="#agendar">Request a quote</a></div>
     </div>
   </section>
 
@@ -617,9 +723,9 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
         <p class="i-es">La obra completa según el pliego del contratista, con el acabado de cubierta que
           elijas. La parcela y los gastos de compraventa (impuestos, notaría y licencias) se
           presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
-        <p class="i-en">The full build per the contractor's spec sheet, with the roof finish you
-          choose. The plot and closing costs (taxes, notary, permits) are quoted separately
-          and detailed in writing before signing.</p>
+        <p class="i-en">The full build with the roof finish you choose, confirmed by the
+          developer in writing before you sign. The plot and closing costs (taxes, notary,
+          permits) are quoted separately.</p>
       </details>
       <details>
         <summary><?= lw_i18n('¿Puedo elegir dónde se construye?', 'Can I choose where it gets built?') ?></summary>
@@ -728,21 +834,16 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
 (function () {
   'use strict';
   var MODELO = <?= json_encode($m['id']) ?>;
+  // 2-sep: los 5 modelos tienen precio real (antes solo Dali) — el pixel ya puede pujar
+  // por valor, no solo por volumen. null si algún día vuelve a faltar el precio.
+  var PRECIO_VALOR = <?= json_encode(lw_modelo_precio_desde($m)) ?>;
   var html = document.documentElement;
 
-  // ── Idioma ─────────────────────────────────────────────────────────────────
-  document.querySelectorAll('.lang [data-set]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var lang = b.getAttribute('data-set');
-      html.setAttribute('data-lang', lang);
-      html.lang = lang;
-    });
-  });
-
-  // ── Píxel: ViewContent al cargar. Sin `value` porque no hay precio cerrado. ──
+  // ── Píxel: ViewContent al cargar, con `value`/`currency` cuando hay precio cerrado. ──
   function track(ev, extra) {
     if (typeof window.lwTrack !== 'function') return;
     var p = Object.assign({content_ids: [MODELO], content_type: 'product', content_name: 'modelo-' + MODELO}, extra || {});
+    if (PRECIO_VALOR !== null && !('value' in p)) { p.value = PRECIO_VALOR; p.currency = 'EUR'; }
     window.lwTrack(ev, p);
   }
   if (typeof window.lwTrack === 'function') track('ViewContent');
