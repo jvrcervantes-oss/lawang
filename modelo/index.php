@@ -536,7 +536,7 @@ a.cross__row:hover{background:var(--panel)}
         </span>
         <span class="cross__name"><?= lw_e($mm['nombre']) ?><?= $mmActual ? ' <i>— viewing now</i>' : '' ?></span>
         <span class="cross__specs"><?= lw_e($mm['villa_m2'] . 'm² + ' . $mm['terraza_m2'] . 'm² terrace · ' . $mm['dormitorios'] . ' bed · ' . $mm['banos'] . ' bath') ?></span>
-        <span class="cross__price">From <?= lw_e($mmSirap) ?><i>Bambú roof from <?= lw_e($mmBambu) ?></i></span>
+        <span class="cross__price">From <?= lw_e($mmSirap) ?><i><?= lw_e($mm['techos']['bambu']['nombre']) ?> roof from <?= lw_e($mmBambu) ?></i></span>
       </<?= $mmTag ?>>
       <?php endforeach; ?>
     </div>

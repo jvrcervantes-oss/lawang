@@ -98,7 +98,7 @@ return [
         'sub_en'      => 'A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'techos'      => [
             'sirap' => ['nombre' => 'Sirap', 'now' => 68000, 'y2027' => 72000],
-            'bambu' => ['nombre' => 'Bambú', 'now' => 70000, 'y2027' => 76000],
+            'bambu' => ['nombre' => 'Bamboo', 'now' => 70000, 'y2027' => 76000],
         ],
         // Sin acabados/alcance propios todavía: sin el anexo de obra de Dune, copiar el de
         // Dali sería inventarse un contrato (regla 2 de este fichero). El template oculta
@@ -115,7 +115,7 @@ return [
         'sub_en'      => 'A 2-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'techos'      => [
             'sirap' => ['nombre' => 'Sirap', 'now' => 101000, 'y2027' => 109000],
-            'bambu' => ['nombre' => 'Bambú', 'now' => 106000, 'y2027' => 119000],
+            'bambu' => ['nombre' => 'Bamboo', 'now' => 106000, 'y2027' => 119000],
         ],
     ],
 
@@ -129,7 +129,7 @@ return [
         'sub_en'             => 'A 3-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'techos'             => [
             'sirap' => ['nombre' => 'Sirap', 'now' => 121000, 'y2027' => 129000],
-            'bambu' => ['nombre' => 'Bambú', 'now' => 127000, 'y2027' => 139000],
+            'bambu' => ['nombre' => 'Bamboo', 'now' => 127000, 'y2027' => 139000],
         ],
         // 2-sep: publicado sin render real por decisión expresa del owner ("Publícalo,
         // estamos creándola y no estamos en producción aún") — el catálogo se lanza
@@ -149,7 +149,7 @@ return [
         'sub_en'             => 'A 4-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'techos'             => [
             'sirap' => ['nombre' => 'Sirap', 'now' => 146000, 'y2027' => 159000],
-            'bambu' => ['nombre' => 'Bambú', 'now' => 155000, 'y2027' => 169000],
+            'bambu' => ['nombre' => 'Bamboo', 'now' => 155000, 'y2027' => 169000],
         ],
         // Mismo caso que Trinity — ver su comentario. Hoy no hay ni un render de Temple en
         // el repo, solo el PDF de folleto.
