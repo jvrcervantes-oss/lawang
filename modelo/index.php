@@ -199,9 +199,14 @@ p{margin:0}
 
 /* ── Idioma ───────────────────────────────────────────────────────────────────── */
 /* Pivote a mercado australiano (2-sep): página solo en inglés, sin toggle. Se mantiene
-   la regla (en vez de borrar el markup .i-es que aún queda en el FAQ/pie) porque es una
-   línea y reversible por git — nunca un <span> ES visible por accidente. */
-.i-es{display:none}
+   la regla (en vez de borrar el markup .i-es que aún queda en el FAQ/reserva/pie) porque
+   es una línea y reversible por git — nunca un <span> ES visible por accidente.
+   !important a propósito: sin él, selectores más específicos definidos MÁS ABAJO en esta
+   misma hoja (`.reserva__card b`, `.reserva__card span`, que fijan su propio `display`)
+   ganaban por especificidad y el español volvía a verse — encontrado en QA responsive del
+   2-sep, español e inglés apilados en la tarjeta de reserva. Este selector no compite por
+   estética, solo apaga contenido muerto: nada le disputa el `!important` a propósito. */
+.i-es{display:none !important}
 
 .wrap{max-width:1440px;margin-inline:auto;padding-inline:var(--gut)}
 
@@ -236,7 +241,13 @@ p{margin:0}
    del texto. */
 .hero{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1.38fr);gap:56px;
   align-items:center;padding:72px 0 56px}
-@media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:44px}}
+/* 1400px, no 900: la columna del calendario (.grid, 360px fijos desde los 1100px) deja el
+   hero apretado en un intervalo que el breakpoint viejo no cubría — encontrado en QA
+   responsive del 2-sep, texto partido a media palabra entre ~1100 y ~1300px de viewport
+   real (la columna de texto del hero se queda en ~220-340px de ancho útil). Por debajo de
+   1100px el sidebar ya baja y el hero tiene toda la página para él, así que apilarlo hasta
+   1400px no pierde nada ahí — ver el mismo criterio en .grid más abajo. */
+@media(max-width:1400px){.hero{grid-template-columns:1fr;padding-top:44px}}
 .hero__eyebrow{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--verde)}
 .hero h1{font-size:clamp(34px,5vw,68px);margin-top:.3em;max-width:16ch}
 /* Insignia sólida, no solo texto en color: es el dato que más pesa para quien
