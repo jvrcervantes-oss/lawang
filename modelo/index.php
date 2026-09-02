@@ -692,7 +692,18 @@ html[data-lang="en"] .lang [data-set="en"]{background:var(--verde);color:#fff}
     <div class="cal__tt i-es">Reserva tu llamada</div><div class="cal__tt i-en">Book your call</div>
     <div class="cal__sub i-es">Media hora, sin compromiso.</div><div class="cal__sub i-en">Half an hour, no commitment.</div>
   </div>
-  <div class="cal__widget calendly-inline-widget" data-url="<?= lw_e($CALENDLY) ?>?hide_gdpr_banner=1"></div>
+  <?php
+    // Calendly no deja cambiar su tipografía ni la disposición del calendario (eso es
+    // suyo), pero sí tintarlo por parámetros en la URL — así el widget no desentona
+    // con la paleta papel/tinta/verde del resto de la página (2-sep, pedido del owner).
+    $calParams = http_build_query([
+      'hide_gdpr_banner' => '1',
+      'background_color' => 'F5F0E6', // --papel
+      'text_color'       => '2E3437', // --ink
+      'primary_color'    => '485B37', // --verde
+    ]);
+  ?>
+  <div class="cal__widget calendly-inline-widget" data-url="<?= lw_e($CALENDLY) ?>?<?= $calParams ?>"></div>
 </aside>
 
 </div><!-- /grid -->
