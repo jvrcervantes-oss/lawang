@@ -1,0 +1,22 @@
+-- Espejo del cambio aplicado en produccion el 2-sep-2026 (version 20260902003108).
+--
+-- El respaldo del renombrado SandalWoods -> Sumba Hills (migracion 20260827020601)
+-- se creo con `create table ... as select ...`. Un CTAS NO hereda la RLS de la tabla
+-- de origen y nace sin ella, y en el esquema `public` de Supabase los privilegios por
+-- defecto ya le dan a `anon` y `authenticated` SELECT/INSERT/UPDATE/DELETE/TRUNCATE.
+-- Resultado: quedo abierta a cualquiera con la clave publicable.
+--
+-- Verificado desde fuera, como anonimo y sin credencial de servicio:
+--   ANTES:  GET -> 206 content-range 0-0/73  |  POST -> 201 Created
+--   DESPUES: GET -> 200 []                   |  POST -> 401 42501
+--
+-- Lo grave no es que se lean 73 numeros de contrato. Es que el comentario de la tabla
+-- documenta un rollback que hace UPDATE sobre `contratos` con JOIN por id contra ESTE
+-- respaldo: cualquiera podia insertar filas con el id de un contrato real y el valor
+-- que quisiera, y quien ejecutase el deshacer se lo habria escrito en `contratos.datos`.
+-- Un TRUNCATE anonimo, ademas, borraba la unica forma de deshacer el renombrado.
+--
+-- RLS sin politicas a proposito: es un respaldo manual, no lo lee ningun cliente (solo
+-- lo nombra su propia migracion). anon y authenticated no ven nada, `service_role`
+-- sigue igual. Mismo patron que las otras 10 tablas internas del proyecto.
+alter table public._respaldo_resort_sandalwoods enable row level security;
