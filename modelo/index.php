@@ -478,7 +478,7 @@ a.cross__row:hover{background:var(--panel)}
     <figure class="hero__fig hero__fig--pend">
       <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M48 82 V58 H72 V82" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
       <p class="hero__fig--pend-tt">Renders in progress</p>
-      <p class="hero__fig--pend-sub">Reserve before they exist — the price and spec are already locked in.</p>
+      <p class="hero__fig--pend-sub">Reserve before they exist — the roof price is confirmed by the developer today.</p>
     </figure>
     <?php else: ?>
     <figure class="hero__fig">

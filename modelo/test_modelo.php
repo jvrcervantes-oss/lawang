@@ -54,7 +54,7 @@ ok(lw_modelo_get('DALI', $M) !== null, 'la id no distingue mayusculas');
 // Precio: sin número cerrado no se pinta nada. Un 0 tampoco es un precio de venta.
 ok(lw_precio_fmt(null) === null, 'sin precio no se formatea nada');
 ok(lw_precio_fmt('') === null, 'cadena vacia no es precio');
-ok(lw_precio_fmt(69000) === '69.000 €', 'formato español de miles');
+ok(lw_precio_fmt(69000) === '€69,000', 'formato inglés de miles (coma), no español — pivote australiano');
 
 // Techos: los 5 modelos llevan Sirap y Bambú, con precio 'now'/'y2027' numérico, y Sirap
 // siempre por debajo de Bambú (si dejara de serlo, "Desde" tomaría el precio equivocado

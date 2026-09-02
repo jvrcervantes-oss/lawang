@@ -57,10 +57,15 @@ function lw_modelo_get($id, array $modelos, $root = null) {
     return $m;
 }
 
-/** "69.000 €" · null si no hay precio cerrado (nunca un número plausible). */
+/**
+ * "€69,000" · null si no hay precio cerrado (nunca un número plausible).
+ * Formato inglés (coma de millar), no español — cazado por Marketing en la capa 1 del
+ * deploy del pivote australiano (2-sep): "48.000" con punto se lee como "casi 48" para
+ * un angloparlante, no como cuarenta y ocho mil.
+ */
 function lw_precio_fmt($eur) {
     if ($eur === null || $eur === '' || !is_numeric($eur)) return null;
-    return number_format((float) $eur, 0, ',', '.') . ' €';
+    return '€' . number_format((float) $eur, 0, '.', ',');
 }
 
 function lw_e($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
