@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Entrar · Intranet Lawang</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">
+tailwind.config = { theme: { extend: {
+  colors: { "background":"#fbf9f4","surface-alt":"#F1EBDD","raw-linen":"#F5F0E6","territorial-green":"#485B37","deep-lagoon":"#104C4F","stone-sand":"#BEB3A5","control-border":"#8A8474","volcanic-ash":"#2E3437","primary":"#314322","on-surface":"#1b1c19","outline-variant":"#c5c8bc","accent-gold":"#C89B5C" },
+  fontFamily: { display:['"The Seasons"','serif'], sans:['Neue Kabel','system-ui','sans-serif'], ui:['"Neue Kabel"','sans-serif'] }
+} } };
+</script>
+</head>
+<body class="bg-background text-on-surface font-sans min-h-screen flex">
+
+<!-- Mitad izquierda: fotografía arquitectónica con velo lino -->
+<div class="hidden lg:flex w-[55%] relative overflow-hidden">
+  <img src="../assets/img/a44324cd1a.jpg" alt="" class="absolute inset-0 w-full h-full object-cover">
+  <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(245,240,230,.28) 0%, rgba(27,28,25,.18) 55%, rgba(27,28,25,.62) 100%)"></div>
+  <div class="relative z-10 flex flex-col justify-between p-14 w-full">
+    <p class="font-display text-3xl font-semibold tracking-[0.14em] text-raw-linen" style="text-shadow:0 1px 10px rgba(27,28,25,.55)">LAWANG <span class="font-ui text-[11px] tracking-[0.3em] align-middle font-semibold">PROPERTIES</span></p>
+    <p class="font-display italic text-2xl text-raw-linen/95 max-w-md leading-snug">La puerta de entrada al territorio. Bali &amp; Sumba, gestionados con precisión notarial.</p>
+  </div>
+</div>
+
+<!-- Mitad derecha: formulario -->
+<main class="flex-1 flex items-center justify-center px-6 py-16">
+  <div class="w-full max-w-sm">
+    <p class="font-ui text-[11px] uppercase tracking-[0.24em] text-territorial-green mb-3">Intranet del equipo</p>
+    <h1 class="font-display text-4xl font-semibold text-primary leading-tight mb-8">Bienvenido de nuevo</h1>
+
+    <form onsubmit="location.href='../home/';return false" class="flex flex-col gap-5">
+      <div>
+        <label for="email" class="font-ui text-[11px] uppercase tracking-[0.16em] text-control-border block mb-1.5">Email</label>
+        <input id="email" type="email" autocomplete="username" placeholder="nombre@lawangproperties.com"
+          class="w-full bg-white border border-outline-variant rounded px-3.5 py-2.5 text-sm placeholder:text-stone-sand focus:outline-none focus:border-territorial-green">
+      </div>
+      <div>
+        <label for="pass" class="font-ui text-[11px] uppercase tracking-[0.16em] text-control-border block mb-1.5">Contraseña</label>
+        <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••"
+          class="w-full bg-white border border-outline-variant rounded px-3.5 py-2.5 text-sm placeholder:text-stone-sand focus:outline-none focus:border-territorial-green">
+      </div>
+      <button type="submit" class="mt-2 w-full bg-territorial-green text-raw-linen font-ui text-[12px] uppercase tracking-[0.18em] font-semibold rounded px-4 py-3 hover:bg-primary transition-colors">Entrar</button>
+    </form>
+
+    <div class="flex items-center justify-between mt-5">
+      <a href="#" class="text-sm text-deep-lagoon underline decoration-outline-variant hover:decoration-deep-lagoon">¿Has olvidado tu contraseña?</a>
+      <span class="font-ui text-[10px] uppercase tracking-[0.14em] text-control-border border border-outline-variant rounded-full px-2.5 py-1"><span class="text-territorial-green font-semibold">ES</span> / EN</span>
+    </div>
+
+    <p class="mt-14 text-[12px] text-control-border leading-relaxed border-t border-outline-variant pt-5">
+      Acceso restringido al equipo autorizado de Lawang Properties.<br>© PT Tepi Sun Gai · Bali, Indonesia
+    </p>
+  </div>
+</main>
+
+</body>
+</html>

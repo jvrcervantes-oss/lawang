@@ -1,0 +1,691 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}#sidebar-root{transition:width 0.25s cubic-bezier(0.4,0,0.2,1);}#main-stage,#topbar-stage{transition:padding-left 0.25s cubic-bezier(0.4,0,0.2,1),left 0.25s cubic-bezier(0.4,0,0.2,1);}.sidebar-collapsed #sidebar-root{width:68px;}.sidebar-collapsed #main-stage{padding-left:68px;}.sidebar-collapsed #topbar-stage{left:68px;}.sidebar-collapsed .nav-text-item,.sidebar-collapsed .nav-section-title,.sidebar-collapsed .sidebar-full-brand,.sidebar-collapsed .sidebar-user-details{display:none;}.sidebar-collapsed .nav-link-anchor{justify-content:center;padding-left:0;padding-right:0;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "primary-fixed-dim": "#b8cea1",
+                "inverse-surface": "#30312d",
+                "tertiary-container": "#6f4a61",
+                "on-tertiary-container": "#edbdd8",
+                "on-primary-container": "#bcd2a5",
+                "secondary-fixed-dim": "#9ad0d3",
+                "surface-variant": "#e4e2dd",
+                "territorial-green": "#485B37",
+                "burnt-earth": "#42210B",
+                "outline-variant": "#c5c8bc",
+                "on-tertiary-fixed-variant": "#5f3c52",
+                "on-secondary-container": "#356b6e",
+                "stone-sand": "#BEB3A5",
+                "control-border": "#8A8474",
+                "on-secondary-fixed-variant": "#144e51",
+                "inverse-primary": "#b8cea1",
+                "surface-container-high": "#e9e8e3",
+                "on-primary-fixed": "#0f2003",
+                "tertiary": "#563349",
+                "error-container": "#ffdad6",
+                "volcanic-ash": "#2E3437",
+                "on-primary": "#ffffff",
+                "outline": "#75786e",
+                "surface-container-low": "#f5f4ee",
+                "on-surface-variant": "#44483f",
+                "on-error-container": "#93000a",
+                "on-error": "#ffffff",
+                "on-background": "#1b1c19",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed-dim": "#e9b9d4",
+                "surface": "#fbf9f4",
+                "deep-lagoon": "#104C4F",
+                "inverse-on-surface": "#f2f1eb",
+                "surface-dim": "#dbdad5",
+                "background": "#fbf9f4",
+                "surface-tint": "#51643f",
+                "primary-fixed": "#d3eabb",
+                "surface-container-highest": "#e4e2dd",
+                "error": "#ba1a1a",
+                "secondary-container": "#b3e9ed",
+                "surface-container-lowest": "#ffffff",
+                "on-primary-fixed-variant": "#3a4c2a",
+                "on-surface": "#1b1c19",
+                "surface-container": "#efeee8",
+                "raw-linen": "#F5F0E6",
+                "secondary": "#316669",
+                "surface-bright": "#fbf9f4",
+                "surface-alt": "#F1EBDD",
+                "primary": "#314322",
+                "on-tertiary-fixed": "#2e1125",
+                "on-secondary-fixed": "#002021",
+                "soft-canopy": "#8F9B7A",
+                "primary-container": "#485b37",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed": "#ffd8ed",
+                "secondary-fixed": "#b6ecef"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-mobile": "16px",
+                "margin-desktop": "48px",
+                "element-gap": "16px",
+                "gutter": "24px"
+        },
+        "fontFamily": {
+                "label-md": [
+                        "Neue Kabel"
+                ],
+                "body-lg": [
+                        "Neue Kabel"
+                ],
+                "headline-lg": [
+                        "The Seasons"
+                ],
+                "body-md": [
+                        "Neue Kabel"
+                ],
+                "body-sm": [
+                        "Neue Kabel"
+                ],
+                "headline-sm": [
+                        "The Seasons"
+                ],
+                "kpi-number": [
+                        "Neue Kabel"
+                ],
+                "headline-md": [
+                        "The Seasons"
+                ]
+        },
+        "fontSize": {
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "15px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-sm": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "kpi-number": [
+                        "36px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }</script></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider font-semibold leading-none">LAWANG</span><span class="font-body-sm text-body-sm text-outline tracking-widest uppercase leading-none mt-1">PROPERTIES &amp; SUITE</span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Compradores</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72" id="main-stage"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-4"></div><div class="flex items-center gap-4"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap">18</span></button><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">Javier Cervantes</span><span class="font-body-sm text-body-sm text-outline leading-tight">Super Admin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 bg-raw-linen min-h-screen px-6 lg:px-8 py-6"><div class="flex flex-col w-full">
+<!-- Cabecera de Módulo y Acción Principal -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 pt-2">
+<div class="flex flex-col gap-1 max-w-2xl">
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon font-bold tracking-tight">Contratos Guardados</h1>
+</div>
+
+<div class="flex items-center gap-2.5 shrink-0 self-start md:self-end"><button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface-container-lowest text-deep-lagoon font-label-md text-[13px] shadow-sm hover:bg-surface-container-high transition-all" type="button"><span class="material-symbols-outlined text-[18px]">history</span><span class="">Registro de firmas</span></button><button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-deep-lagoon text-on-secondary font-label-md text-[13px] shadow-md hover:bg-deep-lagoon/90 hover:shadow-lg transition-all" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span class="">+ Nuevo contrato</span></button></div></section>
+<!-- Tarjetas Métricas Rápidas -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4 pb-6">
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex items-center justify-between">
+<div>
+<div class="font-label-md text-[11px] uppercase tracking-wider text-control-border font-semibold">Contratos Activos</div>
+<div class="font-kpi-number text-kpi-number text-deep-lagoon font-bold mt-0.5">210</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-deep-lagoon">
+<span class="material-symbols-outlined text-[22px]">description</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex items-center justify-between">
+<div>
+<div class="font-label-md text-[11px] uppercase tracking-wider text-control-border font-semibold">Volumen Comprometido</div>
+<div class="font-kpi-number text-kpi-number text-territorial-green font-bold mt-0.5">€12.4M</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-territorial-green">
+<span class="material-symbols-outlined text-[22px]">account_balance</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex items-center justify-between">
+<div>
+<div class="font-label-md text-[11px] uppercase tracking-wider text-control-border font-semibold">Firmados (Mes)</div>
+<div class="font-kpi-number text-kpi-number text-deep-lagoon font-bold mt-0.5">41</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-deep-lagoon">
+<span class="material-symbols-outlined text-[22px]">verified</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex items-center justify-between">
+<div>
+<div class="font-label-md text-[11px] uppercase tracking-wider text-control-border font-semibold">Pendientes / Bloqueados</div>
+<div class="font-kpi-number text-kpi-number text-burnt-earth font-bold mt-0.5">18</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-burnt-earth">
+<span class="material-symbols-outlined text-[22px]">lock_clock</span>
+</div>
+</div>
+</section>
+<!-- Contenedor Maestro: Lista de Contratos + Previsualizador de Minuta Split View -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+<!-- Columna Principal: Filtros y Tabla (Ocupa 7 u 8 columnas según pantalla) -->
+<div class="xl:col-span-8 flex flex-col gap-4" id="contracts-table-col">
+<!-- Buscador Omnibox y Pastillas Filtro -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm space-y-4">
+<!-- Buscador Omnibox -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-control-border text-[22px] pointer-events-none">search</span>
+<input class="w-full pl-12 pr-10 py-3 rounded-full bg-surface-container-low text-volcanic-ash placeholder:text-control-border font-body-md text-body-md outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-territorial-green/30 transition-all" placeholder="Buscar por número, comprador, proyecto o autor..." type="text">
+<button class="absolute right-3.5 w-6 h-6 rounded-full flex items-center justify-center text-control-border hover:text-volcanic-ash" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+<!-- Fila 1 TIPO -->
+<div class="flex flex-wrap items-center gap-2 pt-1">
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold w-16">Tipo</span>
+<button class="px-3.5 py-1.5 rounded-full bg-volcanic-ash text-surface-container-lowest font-label-md text-body-sm transition-colors" type="button">Todos 210</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Bloqueo de Parcela 98</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Construcción 70</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Carta de Reserva 30</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Hak Sewa - Notario 3</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Cesión de Derechos 9</button>
+</div>
+<!-- Fila 2 ESTADO -->
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold w-16">Estado</span>
+<button class="px-3.5 py-1.5 rounded-full bg-volcanic-ash text-surface-container-lowest font-label-md text-body-sm transition-colors" type="button">Todos 210</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Editables 169</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Firmados 41</button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high font-label-md text-body-sm transition-colors" type="button">Míos 8</button>
+</div>
+</div>
+<!-- Tabla de Datos Formal (.sui-tabla-caja) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-body-sm">
+<thead class="bg-surface-container-low/70 text-control-border font-label-md text-[11px] uppercase tracking-wider select-none">
+<tr>
+<th class="py-3.5 pl-6 pr-3 font-semibold">N° Expediente</th>
+<th class="py-3.5 px-3 font-semibold">Tipo de Contrato</th>
+<th class="py-3.5 px-3 font-semibold">Comprador</th>
+<th class="py-3.5 px-3 font-semibold">Proyecto / Ubicación</th>
+<th class="py-3.5 px-3 font-semibold text-right">Importe Contractual</th>
+<th class="py-3.5 px-3 font-semibold">Fecha Emisión</th>
+<th class="py-3.5 px-3 font-semibold">Creado Por</th>
+<th class="py-3.5 px-3 font-semibold text-center">Estado</th>
+<th class="py-3.5 pr-6 pl-2 font-semibold text-right">Acción</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high/40 text-on-surface">
+<!-- Fila 1 (Seleccionada para vista previa) -->
+<tr class="bg-surface-container-low/90 transition-colors group cursor-pointer" onclick="selectContractRow('CC00082')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">CC00082</span>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Construcción</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">MARC VILANOVA SERRA</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Horizon S1 (Bali)</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  95.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-03</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Hugo Lamas</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash hover:bg-surface-container-high font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-[11px] font-semibold tracking-wide">
+                    EDITABLE
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" title="Acciones" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 2 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer" onclick="selectContractRow('RP00129')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">RP00129</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Bloqueo de Parcela</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">MARC VILANOVA SERRA</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Horizon S1 (Bali)</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  60.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-03</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Hugo Lamas</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-[11px] font-semibold tracking-wide">
+                    EDITABLE
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 3 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer" onclick="selectContractRow('RP00128')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">RP00128</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Bloqueo de Parcela</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">HUGO LAMAS PENA</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Java Sunset S2</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  50.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-03</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Hugo Lamas</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-[11px] font-semibold tracking-wide">
+                    EDITABLE
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 4 Bloqueado -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer bg-surface/50" onclick="selectContractRow('RP00127')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<div class="flex items-center gap-1.5 text-burnt-earth font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[16px] text-burnt-earth">lock</span>
+<span class="">RP00127</span>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Bloqueo de Parcela</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">JAVIER CERVANTES</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Palm Field W5</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  31.250,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-03</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Javier Cervantes</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-burnt-earth/10 text-burnt-earth font-label-md text-[11px] font-semibold tracking-wide">
+                    BLOQUEADO
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 5 Firmado -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer" onclick="selectContractRow('CC00081')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">CC00081</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Construcción</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">ROBLEDAL DEL ESTE SL</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Java Sunset S2</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  90.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-03</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Hugo Lamas</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-[11px] font-semibold tracking-wide">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+                    FIRMADO
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 6 Firmado -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer" onclick="selectContractRow('RP00126')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">RP00126</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Bloqueo de Parcela</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">ROBLEDAL DEL ESTE SL</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Java Sunset S2</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  50.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-03</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Hugo Lamas</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-[11px] font-semibold tracking-wide">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+                    FIRMADO
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 7 Bloqueado -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer bg-surface/50" onclick="selectContractRow('CR00049')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<div class="flex items-center gap-1.5 text-burnt-earth font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[16px] text-burnt-earth">lock</span>
+<span class="">CR00049</span>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Carta de Reserva</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">PABLO FUSTER RIBAS</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Horizon S1</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  155.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-02</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Teo Ferrer</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-burnt-earth/10 text-burnt-earth font-label-md text-[11px] font-semibold tracking-wide">
+                    BLOQUEADO
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Fila 8 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group cursor-pointer" onclick="selectContractRow('CC00080')">
+<td class="py-3.5 pl-6 pr-3 whitespace-nowrap">
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">CC00080</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-medium text-volcanic-ash">Construcción</td>
+<td class="py-3.5 px-3 whitespace-nowrap font-semibold text-on-surface">HUGO LAMAS PENA</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-volcanic-ash text-[12px] font-medium">Sumba Hills</span>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-right font-kpi-number text-[14px] font-bold text-on-surface">
+                  44.000,00 EUR
+                </td>
+<td class="py-3.5 px-3 whitespace-nowrap text-control-border font-label-md">2026-09-02</td>
+<td class="py-3.5 px-3 whitespace-nowrap">
+<div class="flex items-center gap-2">
+<span class="text-volcanic-ash text-body-sm">Hugo Lamas</span>
+<button class="text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-control-border hover:text-volcanic-ash font-label-md" type="button">Reasignar</button>
+</div>
+</td>
+<td class="py-3.5 px-3 whitespace-nowrap text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md text-[11px] font-semibold tracking-wide">
+                    EDITABLE
+                  </span>
+</td>
+<td class="py-3.5 pr-6 pl-2 text-right whitespace-nowrap">
+<button class="w-7 h-7 rounded-full inline-flex items-center justify-center text-control-border hover:bg-surface-container hover:text-deep-lagoon" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Paginación de Tabla -->
+<div class="px-6 py-3.5 bg-surface-container-low/40 flex items-center justify-between text-body-sm text-control-border">
+<div class="">Mostrando <span class="font-semibold text-volcanic-ash">1-8</span> de <span class="font-semibold text-volcanic-ash">210</span> contratos</div>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-control-border hover:bg-surface-container hover:text-volcanic-ash" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-volcanic-ash font-label-md text-body-sm">1</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-control-border hover:bg-surface-container hover:text-volcanic-ash font-label-md text-body-sm" type="button">2</button>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-control-border hover:bg-surface-container hover:text-volcanic-ash font-label-md text-body-sm" type="button">3</button>
+<span class="text-control-border px-1">…</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-control-border hover:bg-surface-container hover:text-volcanic-ash font-label-md text-body-sm" type="button">27</button>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-control-border hover:bg-surface-container hover:text-volcanic-ash" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Columna Lateral: Cajón Previsualizador de Minuta Bilingüe ES / Bahasa Indonesia -->
+<div class="xl:col-span-4 flex flex-col gap-4 sticky top-20" id="contract-preview-drawer">
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm space-y-4">
+<!-- Cabecera de la Minuta -->
+<div class="flex items-center justify-between pb-3 bg-surface-container-low/50 -m-5 p-5 mb-0 rounded-t-xl">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-deep-lagoon text-on-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">article</span>
+</div>
+<div>
+<div class="font-label-md text-label-md text-deep-lagoon font-bold leading-tight flex items-center gap-2">
+                Minuta CC00082
+                <span class="text-[10px] px-2 py-0.2 rounded-full bg-territorial-green/15 text-territorial-green font-semibold uppercase">Válido</span>
+</div>
+<div class="text-[11px] text-control-border font-body-sm">Contrato de Obra · Leasehold 30 Años</div>
+</div>
+</div>
+<!-- Selector de Idioma Contractual -->
+<div class="flex items-center bg-surface-container-high rounded-full p-0.5 text-[11px] font-label-md">
+<span class="px-2 py-0.5 rounded-full bg-deep-lagoon text-on-secondary font-semibold">ES</span>
+<span class="px-2 py-0.5 rounded-full text-on-surface-variant font-medium">IDN</span>
+<span class="px-2 py-0.5 rounded-full text-on-surface-variant font-medium">EN</span>
+</div>
+</div>
+<!-- Botones de Acción de Minuta -->
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-full bg-deep-lagoon text-on-secondary font-label-md text-body-sm shadow-sm hover:bg-deep-lagoon/90 transition-all" type="button">
+<span class="material-symbols-outlined text-[17px]">edit_note</span>
+<span class="">Editar Minuta</span>
+</button>
+<button class="inline-flex items-center justify-center p-2 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high transition-colors" title="Descargar PDF sellado" type="button">
+<span class="material-symbols-outlined text-[19px]">picture_as_pdf</span>
+</button>
+<button class="inline-flex items-center justify-center p-2 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high transition-colors" title="Enviar para firma digital" type="button">
+<span class="material-symbols-outlined text-[19px]">send</span>
+</button>
+</div>
+<!-- Visor Tipo Hoja Papel de Ley (Estilo Editorial Bilingüe) -->
+<div class="bg-surface-container-low/50 rounded-lg p-4 space-y-4 max-h-[580px] overflow-y-auto text-[12px] leading-relaxed select-text">
+<!-- Encabezado Notarial de la Minuta -->
+<div class="text-center pb-3 space-y-1">
+<div class="font-headline-sm text-headline-sm text-deep-lagoon italic font-bold">Perjanjian Sewa Menyewa &amp; Konstruksi</div>
+<div class="font-label-md text-[10px] uppercase tracking-widest text-control-border font-semibold">Acuerdo de Arrendamiento a Término Hak Sewa &amp; Obra Mayor</div>
+<div class="text-[11px] text-volcanic-ash/70">Notaris &amp; PPAT: I Wayan Eka Aryawan, S.H., M.Kn. · Denpasar, Bali</div>
+</div>
+<!-- Cuadro Resumen Partes Intervinientes -->
+<div class="bg-surface-container-lowest rounded-md p-3 space-y-2 text-volcanic-ash shadow-sm">
+<div class="font-label-md text-[11px] text-territorial-green uppercase tracking-wider font-semibold">I. Pihak Pertama (Parte Arrendadora)</div>
+<p class="text-[11px] leading-tight">
+<strong>PT. LAWANG PROPERTIES BALI</strong>, debidamente constituida conforme a las leyes de la República de Indonesia, con NIB 120593849102 y domicilio en Jl. Pantai Berawa No. 88, Tibubeneng, Kuta Utara, Badung.
+            </p>
+<div class="font-label-md text-[11px] text-territorial-green uppercase tracking-wider font-semibold pt-1">II. Pihak Kedua (Parte Arrendataria)</div>
+<p class="text-[11px] leading-tight">
+<strong>MARC VILANOVA SERRA</strong>, de nacionalidad española, titular de Pasaporte n.° PAX000003, con domicilio legal en Carrer de Provença 214, Barcelona, España.
+            </p>
+</div>
+<!-- Cláusula 1: Objeto y Hak Sewa (Bilingüe Columnar) -->
+<div class="space-y-2">
+<div class="font-label-md text-[11px] text-deep-lagoon uppercase tracking-wider font-bold">Pasal 1 / Cláusula 1: Objeto &amp; Hak Sewa (Leasehold 30 Años)</div>
+<div class="grid grid-cols-2 gap-2 text-[11px] text-on-surface/90">
+<div class="space-y-1 p-2 bg-surface-container-lowest rounded">
+<span class="font-semibold text-deep-lagoon">Español</span>
+<p class="">
+                  La Primera Parte cede en régimen de Hak Sewa (arrendamiento a largo plazo con registro notarial y protocolización PPAT) la parcela individualizada en el desarrollo <em>Horizon S1 (Uluwatu, Bali)</em>, por un período ininterrumpido de 30 (treinta) años, prorrogable a 20 años adicionales con tarifa preferente indexada.
+                </p>
+</div>
+<div class="space-y-1 p-2 bg-surface-container-lowest rounded">
+<span class="font-semibold text-deep-lagoon">Bahasa Indonesia</span>
+<p class="">
+                  Pihak Pertama dengan ini menyerahkan Hak Sewa atas sebidang tanah kavling dalam proyek <em>Horizon S1 (Uluwatu, Bali)</em> kepada Pihak Kedua untuk jangka waktu selama 30 (tiga puluh) tahun, terhitung sejak penandatanganan Akta Notaris ini dengan opsi perpanjangan selama 20 tahun.
+                </p>
+</div>
+</div>
+</div>
+<!-- Cláusula 2: Presupuesto y Custodia Fiduciaria BNI -->
+<div class="space-y-2">
+<div class="font-label-md text-[11px] text-deep-lagoon uppercase tracking-wider font-bold">Pasal 2 / Cláusula 2: Precio de Construcción &amp; Cuenta Escrow</div>
+<div class="bg-surface-container-lowest p-3 rounded-md space-y-2">
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-control-border">Presupuesto de Ejecución Cerrado:</span>
+<span class="font-kpi-number font-bold text-volcanic-ash">95.000,00 EUR</span>
+</div>
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-control-border">Banco Custodio Fiduciario:</span>
+<span class="font-semibold text-deep-lagoon">Bank Negara Indonesia (BNI) Trust Escrow</span>
+</div>
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-control-border">Plazo Estimado de Entrega de Llaves:</span>
+<span class="font-semibold text-territorial-green">14 meses (Noviembre 2027)</span>
+</div>
+<p class="text-[10px] text-control-border pt-1">
+                * Los desembolsos se realizarán por hitos certificados por el arquitecto técnico supervisor colegiado en IAI (Ikatan Arsitek Indonesia).
+              </p>
+</div>
+</div>
+<!-- Imagen Testimonial de la Parcela / Arquitectura -->
+<div class="space-y-1.5">
+<div class="font-label-md text-[11px] text-control-border uppercase tracking-wider font-semibold">Anexo Fotográfico de la Unidad · Horizon S1</div>
+<div class="relative w-full h-32 rounded-lg overflow-hidden shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Modern tropical luxury villa construction project in Uluwatu Bali, minimalist open-air architectural layout with natural timber, volcanic stone walls, infinity pool overlooking serene lush green jungle, warm late afternoon sunlight, high-end editorial architectural photography matching deep lagoon and earth tones" src="../assets/img/7069f245c8.jpg">
+<div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-volcanic-ash/80 backdrop-blur-md text-surface text-[10px] font-label-md">
+                Unidad Horizon S1 · Parcela B-04
+              </div>
+</div>
+</div>
+<!-- Sello Notarial y Firmas -->
+<div class="p-3 bg-surface-container-lowest rounded-md space-y-2">
+<div class="font-label-md text-[10px] uppercase tracking-wider text-control-border">Estado de Protocolización</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5 text-territorial-green font-label-md text-[11px]">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+<span class="">Borrador Verificado por Notaría</span>
+</div>
+<span class="text-[10px] text-control-border">Sellado: 03 Sep 2026</span>
+</div>
+</div>
+</div>
+<!-- Acciones Rápidas del Cajón -->
+<div class="pt-1 flex flex-col gap-2">
+<button class="w-full py-2.5 px-4 rounded-full bg-territorial-green text-on-primary font-label-md text-label-md shadow-sm hover:bg-territorial-green/90 transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px]">draw</span>
+<span class="">Firmar Minuta con e-Signature Bali</span>
+</button>
+<div class="text-center">
+<a class="text-[11px] text-control-border hover:text-deep-lagoon font-label-md underline" href="#">Descargar certificado de antecedentes de la parcela (BPN Bali)</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function selectContractRow(contractId) {
+    // Micro-interacción: feedback visual al clickear fila
+    console.log('Cargando minuta para expediente: ' + contractId);
+  }
+</script></main></div>
+
+
+
+
+
+
+
+
+
+
+
+</body></html>
