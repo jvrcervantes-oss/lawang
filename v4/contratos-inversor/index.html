@@ -1,0 +1,570 @@
+<!DOCTYPE html><html class="h-full bg-[#fbf9f4]" lang="es" style=""><head>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Tus Contratos &amp; Expediente Notarial - Intranet Lawang</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Jost, Cormorant Garamond & Instrument Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Instrument+Sans:wght@500;600;700&amp;family=Jost:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#314322",
+            "primary-container": "#485b37",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#bcd2a5",
+            "territorial-green": "#485B37",
+            "deep-lagoon": "#104C4F",
+            "raw-linen": "#F5F0E6",
+            "surface": "#fbf9f4",
+            "surface-alt": "#F1EBDD",
+            "surface-container": "#efeee8",
+            "surface-container-low": "#f5f4ee",
+            "surface-container-high": "#e9e8e3",
+            "surface-container-highest": "#e4e2dd",
+            "surface-container-lowest": "#ffffff",
+            "stone-sand": "#BEB3A5",
+            "volcanic-ash": "#2E3437",
+            "on-surface": "#1b1c19",
+            "on-surface-variant": "#44483f",
+            "soft-canopy": "#8F9B7A",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6"
+          },
+          fontFamily: {
+            sans: ['Jost', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'serif'],
+            'kpi-number': ['"Instrument Sans"', 'sans-serif']
+          },
+          borderRadius: {
+            'lawang': '12px',
+            'pill': '9999px'
+          },
+          boxShadow: {
+            'subtle': '0 1px 4px rgba(0,0,0,0.03), 0 4px 12px rgba(16, 76, 79, 0.03)',
+            'card': '0 1px 3px rgba(0,0,0,0.04), 0 6px 18px rgba(19, 56, 50, 0.03)'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Jost', sans-serif;
+      color: #1b1c19;
+      background-color: #fbf9f4;
+    }
+    .brand-serif {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    .font-kpi {
+      font-family: 'Instrument Sans', sans-serif;
+    }
+    /* Subtle custom scrollbar matching Intranet */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F5F0E6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5CE;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #104C4F;
+    }
+  </style>
+</head>
+<body class="h-full flex overflow-hidden antialiased text-[#1b1c19] selection:bg-[#104C4F] selection:text-white">
+<!-- BEGIN: LeftSidebar (Exact same as SCREEN_17 and SCREEN_4) -->
+<aside class="w-60 bg-[#F5F0E6] z-50 flex flex-col justify-between shrink-0 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-[#e4dccb] py-6 px-4" data-purpose="primary-sidebar"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="brand-serif text-[24px] text-[#104C4F] tracking-wider font-semibold leading-none">LAWANG</span><span class="text-[11px] text-[#75786e] tracking-widest uppercase leading-none mt-1 font-medium">PROPERTIES &amp; SUITE</span></div><button aria-label="Colapsar menú" class="w-8 h-8 rounded-full flex items-center justify-center text-[#44483f] hover:bg-[#e4e2dd] hover:text-[#1b1c19] transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1"><div class="flex flex-col gap-1"><span class="px-3 text-[11px] text-[#75786e] uppercase tracking-wider font-semibold">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 text-[11px] text-[#75786e] uppercase tracking-wider font-semibold">Documentación</span><a aria-current="page" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#485b37] text-white font-bold transition-all text-xs shadow-sm" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 text-[11px] text-[#75786e] uppercase tracking-wider font-semibold">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 text-[11px] text-[#75786e] uppercase tracking-wider font-semibold">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Compradores</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-[#e4dccb]"><div class="flex items-center justify-between px-3"><span class="text-[11px] text-[#75786e] uppercase tracking-wider font-semibold">Idioma</span><div class="flex items-center bg-[#efeee8] p-1 rounded-full"><button class="px-3 py-0.5 rounded-full text-xs font-semibold bg-[#104C4F] text-white" type="button">ES</button><button class="px-3 py-0.5 rounded-full text-xs font-semibold text-[#44483f] hover:text-[#1b1c19] transition-colors" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#44483f] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-all text-xs font-medium" data-path="cerrar-sesion" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside>
+<!-- END: LeftSidebar -->
+<!-- BEGIN: MainContentWrapper -->
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- BEGIN: Unified TopBar (Matching Intranet Screens) -->
+<header class="h-16 bg-[#f5f4ee]/90 backdrop-blur-md border-b border-[#e4dccb] px-6 lg:px-8 flex items-center shrink-0 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 justify-end" data-purpose="primary-topbar"><div class="flex items-center gap-4 sm:gap-5"><button aria-label="Buscar" class="w-9 h-9 rounded-full flex items-center justify-center text-[#75786e] hover:bg-[#e9e8e3] hover:text-[#1b1c19] transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button aria-label="Notificaciones" class="relative p-2 rounded-full text-[#44483f] hover:bg-[#efeee8] hover:text-[#1b1c19] transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-[#ba1a1a] text-white text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap">18</span></button><div class="flex items-center gap-3 pl-3 border-l border-[#e4dccb]"><div class="flex flex-col text-right"><span class="text-xs font-semibold text-[#1b1c19] leading-tight">Javier Cervantes</span><span class="text-[11px] text-[#75786e] leading-tight">Super Admin</span></div><div class="w-8 h-8 rounded-full bg-[#314322] flex items-center justify-center"><span class="material-symbols-outlined text-white text-[18px]">person</span></div></div></div></header>
+<!-- END: Unified TopBar -->
+<!-- BEGIN: MainContent (Contracts, KPIs, Notary Viewer & Schedule) -->
+<main class="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 bg-[#fbf9f4]" data-purpose="client-contracts-portfolio">
+<!-- Hero Header Panel -->
+<section class="bg-white border border-[#e4dccb] rounded-lawang p-6 sm:p-7 shadow-card relative overflow-hidden">
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-[#104C4F]/5 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div class="space-y-1.5 max-w-3xl">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-pill bg-[#F5F0E6] text-[#104C4F] text-xs font-semibold tracking-wide border border-[#e4dccb]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#485B37]"></span>
+            Ref. CC00099-QA · Aqua Collection · Villa Aqua 3 (Bingin, Uluwatu)
+          </div>
+<h1 class="brand-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-[#104C4F] tracking-tight">
+            Tus Contratos &amp; Documentos Firmados
+          </h1>
+<p class="text-sm text-[#44483f] font-normal leading-relaxed">
+            Consulta, descarga y verifica la validez notarial y el estado de custodia fiduciaria de tus acuerdos de compra y construcción en Indonesia.
+          </p>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-start lg:self-center">
+<button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[#e4dccb] text-[#104C4F] hover:bg-[#F5F0E6] text-xs font-semibold transition shadow-xs" type="button">
+<span class="material-symbols-outlined text-[16px] text-[#485B37]">verified</span>
+<span class="">Verificación notarial online</span>
+</button>
+<button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#104C4F] hover:bg-[#0c383a] text-white text-xs font-semibold shadow-xs transition duration-150 active:scale-95" type="button"><span class="material-symbols-outlined text-[16px]">download</span><span class="">Descargar dossier (ZIP)</span></button></div>
+</div>
+</section>
+<!-- KPI Overview Cards (Investor Snapshot) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-purpose="contract-kpis">
+<!-- KPI 1 -->
+<div class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-subtle flex flex-col justify-between">
+<div>
+<span class="text-[11px] font-semibold tracking-wider uppercase text-[#75786e] block">Total Inversión Comprometida</span>
+<div class="text-2xl lg:text-3xl font-bold font-kpi text-[#104C4F] mt-2 whitespace-nowrap">
+            410.000 €
+          </div>
+</div>
+<p class="text-[11px] text-[#75786e] mt-2 pt-2 border-t border-[#f5f4ee]">
+          Cesión Hak Sewa 35 años + Construcción
+        </p>
+</div>
+<!-- KPI 2 -->
+<div class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-subtle flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-semibold tracking-wider uppercase text-[#75786e] block">Contratos Firmados</span>
+<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-[#314322] border border-emerald-200 text-[10px] font-bold">3 de 3 activos</span>
+</div>
+<div class="text-2xl lg:text-3xl font-bold font-kpi text-[#314322] mt-2 whitespace-nowrap">
+            3 Instrumentos
+          </div>
+</div>
+<p class="text-[11px] text-[#75786e] mt-2 pt-2 border-t border-[#f5f4ee]">
+          Reserva, Hak Sewa y Construcción
+        </p>
+</div>
+<!-- KPI 3 -->
+<div class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-subtle flex flex-col justify-between">
+<div>
+<span class="text-[11px] font-semibold tracking-wider uppercase text-[#75786e] block">Estado Notarial &amp; Registro</span>
+<div class="text-base lg:text-lg font-bold text-[#104C4F] mt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-[#485B37]">gavel</span>
+<span class="truncate">Protocolizado</span>
+</div>
+</div>
+<p class="text-[11px] text-[#75786e] mt-2 pt-2 border-t border-[#f5f4ee]">
+          Notaría BNI Trust (Denpasar, Bali)
+        </p>
+</div>
+<!-- KPI 4 -->
+<div class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-subtle flex flex-col justify-between">
+<div>
+<span class="text-[11px] font-semibold tracking-wider uppercase text-[#75786e] block">Próximo Hito Vinculado</span>
+<div class="text-base lg:text-lg font-bold text-[#104C4F] mt-2 flex items-center justify-between">
+<span class="truncate">Fin de Estructura</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 shrink-0">Pendiente</span>
+</div>
+</div>
+<p class="text-[11px] text-[#75786e] mt-2 pt-2 border-t border-[#f5f4ee] whitespace-nowrap">
+          82.000 € · Vencimiento: 30 abr 2026
+        </p>
+</div>
+</section>
+<!-- Main Layout: Contracts List (Left) + Document Notarial Viewer (Right) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Column Left: Contracts Portfolio (7 Cols) -->
+<div class="lg:col-span-7 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-sm font-bold uppercase tracking-wider text-[#104C4F] flex items-center gap-2">
+<span class="">Expediente de Contratos Vigentes</span>
+<span class="text-xs font-normal text-[#75786e] lowercase">(3 documentos oficiales)</span>
+</h2>
+<span class="text-xs font-medium text-[#314322] bg-[#F5F0E6] px-2.5 py-1 rounded-full border border-[#e4dccb]">
+            Todos verificados con sello BNI
+          </span>
+</div>
+<!-- Contract 1: CC00099-QA Construcción -->
+<article class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-card hover:border-[#104C4F]/40 transition-all space-y-4">
+<div class="flex flex-wrap items-start justify-between gap-3 border-b border-[#f5f4ee] pb-3.5">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-base text-[#104C4F]">CC00099-QA</span>
+<span class="text-xs font-medium text-[#75786e]">· Aqua Collection</span>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-[#314322] text-[10px] font-bold">FIRMADO · NOTARIADO</span>
+</div>
+<h3 class="text-sm font-semibold text-[#1b1c19] mt-1">Contrato de Construcción Villa Aqua 3 (Bingin)</h3>
+</div>
+<div class="text-right">
+<span class="text-xs text-[#75786e] block">Importe total obra</span>
+<span class="text-lg font-bold font-kpi text-[#104C4F] whitespace-nowrap">255.000,00 €</span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-[#44483f]">
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Tipo de Instrumento</span>
+<span class="font-semibold text-[#1b1c19]">Construcción &amp; Acabados</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Fecha de Firma</span>
+<span class="font-semibold text-[#1b1c19]">12 mar 2026</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Protocolo Notarial</span>
+<span class="font-semibold text-[#1b1c19]">Acta No. 412/BNI/2026</span>
+</div>
+</div>
+<div class="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#f5f4ee]">
+<div class="flex items-center gap-1.5 text-xs text-[#485B37] font-medium">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span class="">Firma digitalizada de Marta Ibáñez y PT Tepi Sun Gai</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-full bg-[#104C4F] text-white hover:bg-[#0c383a] text-xs font-medium transition shadow-xs flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[15px]">description</span>
+<span class="">Ver firmado (PDF)</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-white hover:bg-[#F5F0E6] border border-[#e4dccb] text-[#1b1c19] text-xs font-medium transition" type="button">
+                Copia Notariada
+              </button>
+<button class="px-3 py-1.5 rounded-full bg-white hover:bg-[#F5F0E6] border border-[#e4dccb] text-[#1b1c19] text-xs font-medium transition hidden sm:inline" type="button">
+                Anexos Técnicos
+              </button>
+</div>
+</div>
+</article>
+<!-- Contract 2: RP00127 Hak Sewa -->
+<article class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-card hover:border-[#104C4F]/40 transition-all space-y-4">
+<div class="flex flex-wrap items-start justify-between gap-3 border-b border-[#f5f4ee] pb-3.5">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-base text-[#104C4F]">RP00127</span>
+<span class="text-xs font-medium text-[#75786e]">· Hak Sewa (Leasehold 35 Años)</span>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-[#314322] text-[10px] font-bold">FIRMADO · INSCRITO</span>
+</div>
+<h3 class="text-sm font-semibold text-[#1b1c19] mt-1">Cesión de Parcela Lote 04 - Aqua Collection Uluwatu</h3>
+</div>
+<div class="text-right">
+<span class="text-xs text-[#75786e] block">Valor cesión derecho</span>
+<span class="text-lg font-bold font-kpi text-[#104C4F] whitespace-nowrap">155.000,00 €</span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-[#44483f]">
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Tipo de Instrumento</span>
+<span class="font-semibold text-[#1b1c19]">Bloqueo &amp; Cesión Suelo</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Fecha de Firma</span>
+<span class="font-semibold text-[#1b1c19]">28 feb 2026</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Registro Territorial</span>
+<span class="font-semibold text-[#1b1c19]">Kantor Pertanahan Badung</span>
+</div>
+</div>
+<div class="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#f5f4ee]">
+<div class="flex items-center gap-1.5 text-xs text-[#485B37] font-medium">
+<span class="material-symbols-outlined text-[16px]">public</span>
+<span class="">Derecho de uso legal hasta 2061 (renovable)</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-full bg-[#104C4F] text-white hover:bg-[#0c383a] text-xs font-medium transition shadow-xs flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[15px]">description</span>
+<span class="">Ver Hak Sewa (PDF)</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-white hover:bg-[#F5F0E6] border border-[#e4dccb] text-[#1b1c19] text-xs font-medium transition" type="button">
+                Certificado Notarial
+              </button>
+</div>
+</div>
+</article>
+<!-- Contract 3: CR00049 Carta de Reserva -->
+<article class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-card hover:border-[#104C4F]/40 transition-all space-y-4">
+<div class="flex flex-wrap items-start justify-between gap-3 border-b border-[#f5f4ee] pb-3.5">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-base text-[#104C4F]">CR00049</span>
+<span class="text-xs font-medium text-[#75786e]">· Surat Pemesanan Unit</span>
+<span class="px-2 py-0.5 rounded-full bg-[#f5f4ee] text-[#44483f] text-[10px] font-bold">EJECUTADO / VINCULADO</span>
+</div>
+<h3 class="text-sm font-semibold text-[#1b1c19] mt-1">Carta de Reserva y Depósito de Parcela (Villa Aqua 3)</h3>
+</div>
+<div class="text-right">
+<span class="text-xs text-[#75786e] block">Depósito inicial</span>
+<span class="text-lg font-bold font-kpi text-[#104C4F] whitespace-nowrap">41.000,00 €</span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-[#44483f]">
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Tipo de Instrumento</span>
+<span class="font-semibold text-[#1b1c19]">Carta de Reserva Vinculante</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Fecha de Firma</span>
+<span class="font-semibold text-[#1b1c19]">04 ene 2026</span>
+</div>
+<div>
+<span class="block text-[10px] uppercase tracking-wider text-[#BEB3A5] font-semibold">Estado Financiero</span>
+<span class="font-semibold text-[#485B37]">100% Imputado a Contrato</span>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between border-t border-[#f5f4ee]">
+<span class="text-xs text-[#75786e]">Importe compensado en el pago inicial de obra</span>
+<button class="px-3 py-1.5 rounded-full bg-white hover:bg-[#F5F0E6] border border-[#e4dccb] text-[#1b1c19] text-xs font-medium transition" type="button">
+              Ver documento original (PDF)
+            </button>
+</div>
+</article>
+</div>
+<!-- Column Right: Live Document Viewer Card & Notarial Seal (5 Cols) -->
+<div class="lg:col-span-5 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-sm font-bold uppercase tracking-wider text-[#104C4F]">
+            Visor de Documento Notarial
+          </h2>
+<span class="text-xs text-[#75786e]">Protocolo CC00099-QA</span>
+</div>
+<!-- Document Preview Mockup -->
+<div class="bg-white border border-[#e4dccb] rounded-lawang p-5 shadow-card space-y-4 relative">
+<!-- Simulated Parchment / Legal Header -->
+<div class="border-b-2 border-[#104C4F] pb-4 text-center space-y-1">
+<span class="brand-serif text-lg font-bold tracking-widest text-[#104C4F] uppercase block">
+              AKTA PERJANJIAN PEMBANGUNAN
+            </span>
+<p class="text-[11px] text-[#75786e] uppercase tracking-wider">
+              Contrato Notarial de Obra Civil · Escritura Pública No. 288/2026
+            </p>
+<div class="flex items-center justify-center gap-2 pt-1 text-[10px] text-[#485B37] font-semibold">
+<span class="">NOTARIS &amp; PPAT I WAYAN SUGIARTA, S.H., M.Kn.</span>
+<span class="">•</span>
+<span class="">DENPASAR - BALI</span>
+</div>
+</div>
+<!-- Snippet Body of Contract -->
+<div class="bg-[#fbf9f4] rounded-lg p-4 border border-[#e4dccb] text-[11px] leading-relaxed text-[#44483f] space-y-2.5 font-serif">
+<p class="italic">
+              "En la ciudad de Denpasar, Bali, República de Indonesia, a los 12 días del mes de marzo de 2026, ante mí comparecen:
+            </p>
+<p class="">
+<strong>DE UNA PARTE:</strong> PT TEPI SUN GAI, representada legalmente por D. I Wayan Eka Aryawan en calidad de Administrador Fiduciario de LAWANG ESTATE...
+            </p>
+<p class="">
+<strong>DE OTRA PARTE:</strong> Dña. MARTA IBÁÑEZ CATALÀ, mayor de edad, con residencia fiscal en España, en calidad de BENEFICIARIA e INVERSORA..."
+            </p>
+<div class="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded text-[#314322] text-[10px] font-sans">
+<strong>Cláusula 4.2:</strong> Los pagos por hitos se liberarán únicamente contra certificación facultativa independiente y custodia fiduciaria en cuenta Escrow de Bank Negara Indonesia (BNI).
+            </div>
+</div>
+<!-- Signatures & Stamps Graphic Representation -->
+<div class="pt-2 border-t border-[#f5f4ee] grid grid-cols-2 gap-3 text-center">
+<div class="p-2.5 rounded bg-[#f5f4ee] border border-[#e4dccb]/70 flex flex-col items-center justify-center">
+<span class="text-[9px] uppercase tracking-wider font-semibold text-[#75786e]">Parte Promotora</span>
+<span class="brand-serif text-sm font-bold text-[#104C4F] my-1">I Wayan Eka Aryawan</span>
+<div class="inline-flex items-center gap-1 text-[9px] text-[#314322] bg-emerald-100/80 px-2 py-0.5 rounded-full font-mono">
+                ✓ Sello Digital PT Tepi Sun Gai
+              </div>
+</div>
+<div class="p-2.5 rounded bg-[#f5f4ee] border border-[#e4dccb]/70 flex flex-col items-center justify-center">
+<span class="text-[9px] uppercase tracking-wider font-semibold text-[#75786e]">Parte Inversora</span>
+<span class="brand-serif text-sm font-bold text-[#104C4F] my-1">Marta Ibáñez Català</span>
+<div class="inline-flex items-center gap-1 text-[9px] text-[#314322] bg-emerald-100/80 px-2 py-0.5 rounded-full font-mono">
+                ✓ Certificado eIDAS / Indonesia
+              </div>
+</div>
+</div>
+<!-- Notary Watermark Stamp Badge -->
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 text-xs">
+                ⚖
+              </div>
+<div class="text-[11px] leading-tight">
+<p class="font-semibold text-[#1b1c19]">Sello Oficial BNI Notary Trust</p>
+<p class="text-[10px] text-[#75786e]">Hash: 8a9f...41e0 · Verificado en cadena</p>
+</div>
+</div>
+<button class="text-xs font-semibold text-[#104C4F] hover:underline flex items-center gap-1">
+<span class="">Ampliar visor</span>
+<span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</button>
+</div>
+<!-- Action Buttons for Viewer -->
+<div class="pt-2 grid grid-cols-2 gap-2">
+<button class="py-2 px-3 rounded-full bg-[#104C4F] hover:bg-[#0c383a] text-white text-xs font-medium text-center transition shadow-sm flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[15px]">download</span>
+<span class="">Descargar PDF</span>
+</button>
+<button class="py-2 px-3 rounded-full bg-white hover:bg-[#F5F0E6] border border-[#e4dccb] text-[#1b1c19] text-xs font-medium text-center transition" type="button">
+              Solicitar copia compulsada
+            </button>
+</div>
+</div>
+<!-- Quick Assistance Card for Client -->
+<div class="p-4 rounded-lawang bg-[#F5F0E6] border border-[#e4dccb] flex items-center justify-between">
+<div class="space-y-0.5">
+<span class="text-xs font-semibold text-[#104C4F]">¿Dudas sobre cláusulas notariales?</span>
+<p class="text-[11px] text-[#75786e]">Tu asesor legal asignado responde en menos de 24h.</p>
+</div>
+<button class="px-3.5 py-1.5 rounded-full bg-white hover:bg-[#fbf9f4] border border-[#e4dccb] text-xs font-semibold text-[#104C4F] transition shadow-xs">
+            Contactar gestor
+          </button>
+</div>
+</div>
+</div>
+<!-- Dedicated Section: Cronograma de Hitos Contractuales y Vencimientos -->
+<section class="bg-white border border-[#e4dccb] rounded-lawang p-6 sm:p-7 shadow-card space-y-6" data-purpose="contract-milestones-schedule">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#f5f4ee] pb-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold text-[#485B37] uppercase tracking-widest">Plan Financiero Vinculante</span>
+<span class="px-2 py-0.5 rounded-full bg-[#F5F0E6] text-[#1b1c19] text-[10px] font-semibold border border-[#e4dccb]">30% Pagado de 410.000 €</span>
+</div>
+<h2 class="brand-serif text-2xl font-semibold text-[#104C4F] mt-1">
+            Cronograma de Hitos Contractuales y Vencimientos
+          </h2>
+</div>
+<div class="flex items-center gap-4 text-xs">
+<div class="text-right">
+<span class="text-[#75786e] block text-[10px] uppercase">Pagado hasta hoy</span>
+<span class="font-bold font-kpi text-[#104C4F] text-base whitespace-nowrap">123.000 €</span>
+</div>
+<div class="text-right pl-4 border-l border-[#e4dccb]">
+<span class="text-[#75786e] block text-[10px] uppercase">Pendiente</span>
+<span class="font-bold font-kpi text-[#ba1a1a] text-base whitespace-nowrap">287.000 €</span>
+</div>
+</div>
+</div>
+<!-- Progress Bar (30% Paid) -->
+<div class="space-y-1.5">
+<div class="flex justify-between text-xs text-[#75786e]">
+<span class="font-semibold text-[#104C4F]">30% del total desembolsado</span>
+<span class="whitespace-nowrap">287.000 € pendiente en custodia escrow</span>
+</div>
+<div class="w-full h-2.5 bg-[#f5f4ee] rounded-full overflow-hidden border border-[#e4dccb]/50">
+<div class="h-full bg-[#485B37] rounded-full transition-all duration-500" style="width: 30%"></div>
+</div>
+</div>
+<!-- Milestones Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="border-b border-[#e4dccb] text-[#75786e] uppercase tracking-wider text-[10px] bg-[#fbf9f4]">
+<th class="py-3 px-3 font-semibold">Concepto Contractual</th>
+<th class="py-3 px-3 font-semibold">Vencimiento / Condición</th>
+<th class="py-3 px-3 font-semibold">Importe</th>
+<th class="py-3 px-3 font-semibold text-center">Estado</th>
+<th class="py-3 px-3 font-semibold text-right">Comprobante</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#f5f4ee] text-[#1b1c19]">
+<!-- Hito 1 -->
+<tr class="hover:bg-[#fbf9f4] transition-colors">
+<td class="py-3.5 px-3 font-medium flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="">Reserva de Parcela (Surat Pemesanan)</span>
+</td>
+<td class="py-3.5 px-3 text-[#75786e]">Firma de reserva (04 ene 2026)</td>
+<td class="py-3.5 px-3 font-semibold font-kpi whitespace-nowrap">41.000 €</td>
+<td class="py-3.5 px-3 text-center">
+<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#314322] font-bold text-[10px] tracking-wide">PAGADO</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<a class="text-[#104C4F] hover:underline font-medium text-[11px]" href="#">Recibo #REC-041</a>
+</td>
+</tr>
+<!-- Hito 2 -->
+<tr class="hover:bg-[#fbf9f4] transition-colors">
+<td class="py-3.5 px-3 font-medium flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="">Firma de Contrato Maestro Hak Sewa &amp; Notaría</span>
+</td>
+<td class="py-3.5 px-3 text-[#75786e]">12 mar 2026</td>
+<td class="py-3.5 px-3 font-semibold font-kpi whitespace-nowrap">82.000 €</td>
+<td class="py-3.5 px-3 text-center">
+<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#314322] font-bold text-[10px] tracking-wide">PAGADO</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<a class="text-[#104C4F] hover:underline font-medium text-[11px]" href="#">Recibo #REC-082</a>
+</td>
+</tr>
+<!-- Hito 3 (Current / Pending) -->
+<tr class="bg-amber-50/50 hover:bg-amber-50 transition-colors font-medium">
+<td class="py-3.5 px-3 text-[#104C4F] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+<span class="font-bold">Fin de Estructura de Hormigón &amp; Cubierta</span>
+</td>
+<td class="py-3.5 px-3 text-amber-900 font-semibold">30 abr 2026 (Certificado técnico pendiente)</td>
+<td class="py-3.5 px-3 font-bold font-kpi text-[#104C4F] whitespace-nowrap">82.000 €</td>
+<td class="py-3.5 px-3 text-center">
+<span class="px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-950 font-bold text-[10px] tracking-wide">PENDIENTE</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<button class="px-3 py-1 rounded-full bg-[#104C4F] text-white text-[11px] font-medium hover:bg-[#0c383a] transition">
+                  Ver proforma
+                </button>
+</td>
+</tr>
+<!-- Hito 4 (Future) -->
+<tr class="hover:bg-[#fbf9f4] transition-colors text-[#75786e]">
+<td class="py-3.5 px-3 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-neutral-300"></span>
+<span class="">Acabados, Carpintería y Piscina Infinity</span>
+</td>
+<td class="py-3.5 px-3">30 jun 2026 (Proyectado)</td>
+<td class="py-3.5 px-3 font-medium font-kpi whitespace-nowrap">123.000 €</td>
+<td class="py-3.5 px-3 text-center">
+<span class="px-2.5 py-0.5 rounded-full bg-[#f5f4ee] text-[#44483f] font-medium text-[10px]">FUTURO</span>
+</td>
+<td class="py-3.5 px-3 text-right text-[#BEB3A5]">—</td>
+</tr>
+<!-- Hito 5 (Future) -->
+<tr class="hover:bg-[#fbf9f4] transition-colors text-[#75786e]">
+<td class="py-3.5 px-3 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-neutral-300"></span>
+<span class="">Entrega de Llaves, Licencia Turística &amp; Inspección Final</span>
+</td>
+<td class="py-3.5 px-3">30 sep 2026 (Liquidación final)</td>
+<td class="py-3.5 px-3 font-medium font-kpi whitespace-nowrap">82.000 €</td>
+<td class="py-3.5 px-3 text-center">
+<span class="px-2.5 py-0.5 rounded-full bg-[#f5f4ee] text-[#44483f] font-medium text-[10px]">FUTURO</span>
+</td>
+<td class="py-3.5 px-3 text-right text-[#BEB3A5]">—</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Trust, Regulatory & Compliance Footer Block -->
+<footer class="p-5 rounded-lawang bg-[#F5F0E6] border border-[#e4dccb] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#44483f]" data-purpose="compliance-disclaimer">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-[#485B37] border border-[#e4dccb] shrink-0">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<p class="leading-relaxed">
+<strong>Auditoría Fiduciaria BNI Trust:</strong> Todos los contratos y derechos de arrendamiento (Hak Sewa) están formalizados bajo la legislación agraria y mercantil de la República de Indonesia (UU No. 5/1960 y PP No. 18/2021) con custodia y fe pública notarial en Denpasar, Bali.
+        </p>
+</div>
+<div class="flex items-center gap-3 shrink-0 text-[11px] font-semibold text-[#485B37]">
+<span class="">Certificado SSL 256-bit</span>
+<span class="">•</span>
+<span class="">Custodia BNI Escrow</span>
+</div>
+</footer>
+</main>
+<!-- END: MainContent -->
+</div>
+<!-- END: MainContentWrapper -->
+
+
+
+
+
+
+</body></html>

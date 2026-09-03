@@ -1,9 +1,11 @@
 # Intranet Lawang — v4 (MAQUETA de diseño, rama `suite-v4`)
 
 > **Esto es una maqueta navegable. Todos los datos que enseña son ficticios.**
-> Origen: proyecto de Stitch «Portal Inmobiliario y Gestión Promotora» (3-sep-2026),
-> sistema «Architectural Prestige Portal» — negro volcánico `#070907`, latón `#C89B5C`,
-> Bodoni Moda + Manrope. Tokens completos: `DESIGN.md` en esta carpeta.
+> Origen: proyecto de Stitch «Portal Inmobiliario y Gestión Promotora» (3-sep-2026).
+> Sistema vigente: claro editorial — lino `#fbf9f4`, verde territorial `#485B37`,
+> Cormorant Garamond + Instrument Sans + Jost. Tokens reales: `DESIGN.md` en esta
+> carpeta (el tema oscuro «Architectural Prestige» de los ajustes del proyecto es
+> una dirección anterior descartada; ninguna pantalla visible lo usa).
 
 ## Qué hay
 
@@ -19,6 +21,20 @@
   herramienta activa e injerta el aviso de maqueta. No hay bloques de nav copiados.
 - `assets/img/` — las imágenes que Stitch servía desde `lh3.googleusercontent.com`
   (URLs que caducan), localizadas.
+
+## ⚠️ Stitch copió datos REALES — saneado el 3-sep-2026, y por qué no puede volver
+
+Al proyecto de Stitch se le subieron **capturas de la intranet real**, y el generador copió
+de ellas datos de verdad a las pantallas: 4 compradores reales (nombre completo), el email
+real de uno, **un número de pasaporte real** (verificado contra `clients`), 2 empresas
+cliente reales y 1 usuario real del equipo. Todo eso se sustituyó por ficción consistente
+antes del primer commit con contenido (~100 reemplazos, verificación de residuo cero:
+nombres, emails, teléfonos, pasaportes, iniciales de avatar e ids internos).
+
+**Regla:** cualquier pantalla que se re-descargue de Stitch en el futuro re-pasa este
+filtro ANTES de `git add`. Este repo es **público**: un nombre de cliente commiteado queda
+en el historial para siempre. El detalle de qué se sustituyó por qué NO se escribe aquí
+(sería re-publicar la mitad del dato); está en la memoria de sesión del estudio.
 
 ## Censo contra la suite viva (3-sep-2026)
 

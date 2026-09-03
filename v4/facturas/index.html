@@ -1,0 +1,476 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&amp;family=Instrument+Sans:wght@500;600;700&amp;family=Jost:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}#sidebar-root{transition:width 0.25s cubic-bezier(0.4,0,0.2,1);}#main-stage,#topbar-stage{transition:padding-left 0.25s cubic-bezier(0.4,0,0.2,1),left 0.25s cubic-bezier(0.4,0,0.2,1);}.sidebar-collapsed #sidebar-root{width:68px;}.sidebar-collapsed #main-stage{padding-left:68px;}.sidebar-collapsed #topbar-stage{left:68px;}.sidebar-collapsed .nav-text-item,.sidebar-collapsed .nav-section-title,.sidebar-collapsed .sidebar-full-brand,.sidebar-collapsed .sidebar-user-details{display:none;}.sidebar-collapsed .nav-link-anchor{justify-content:center;padding-left:0;padding-right:0;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "primary-fixed-dim": "#b8cea1",
+                "inverse-surface": "#30312d",
+                "tertiary-container": "#6f4a61",
+                "on-tertiary-container": "#edbdd8",
+                "on-primary-container": "#bcd2a5",
+                "secondary-fixed-dim": "#9ad0d3",
+                "surface-variant": "#e4e2dd",
+                "territorial-green": "#485B37",
+                "burnt-earth": "#42210B",
+                "outline-variant": "#c5c8bc",
+                "on-tertiary-fixed-variant": "#5f3c52",
+                "on-secondary-container": "#356b6e",
+                "stone-sand": "#BEB3A5",
+                "control-border": "#8A8474",
+                "on-secondary-fixed-variant": "#144e51",
+                "inverse-primary": "#b8cea1",
+                "surface-container-high": "#e9e8e3",
+                "on-primary-fixed": "#0f2003",
+                "tertiary": "#563349",
+                "error-container": "#ffdad6",
+                "volcanic-ash": "#2E3437",
+                "on-primary": "#ffffff",
+                "outline": "#75786e",
+                "surface-container-low": "#f5f4ee",
+                "on-surface-variant": "#44483f",
+                "on-error-container": "#93000a",
+                "on-error": "#ffffff",
+                "on-background": "#1b1c19",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed-dim": "#e9b9d4",
+                "surface": "#fbf9f4",
+                "deep-lagoon": "#104C4F",
+                "inverse-on-surface": "#f2f1eb",
+                "surface-dim": "#dbdad5",
+                "background": "#fbf9f4",
+                "surface-tint": "#51643f",
+                "primary-fixed": "#d3eabb",
+                "surface-container-highest": "#e4e2dd",
+                "error": "#ba1a1a",
+                "secondary-container": "#b3e9ed",
+                "surface-container-lowest": "#ffffff",
+                "on-primary-fixed-variant": "#3a4c2a",
+                "on-surface": "#1b1c19",
+                "surface-container": "#efeee8",
+                "raw-linen": "#F5F0E6",
+                "secondary": "#316669",
+                "surface-bright": "#fbf9f4",
+                "surface-alt": "#F1EBDD",
+                "primary": "#314322",
+                "on-tertiary-fixed": "#2e1125",
+                "on-secondary-fixed": "#002021",
+                "soft-canopy": "#8F9B7A",
+                "primary-container": "#485b37",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed": "#ffd8ed",
+                "secondary-fixed": "#b6ecef"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-mobile": "16px",
+                "margin-desktop": "48px",
+                "element-gap": "16px",
+                "gutter": "24px"
+        },
+        "fontFamily": {
+                "label-md": [
+                        "Jost"
+                ],
+                "body-lg": [
+                        "Jost"
+                ],
+                "headline-lg": [
+                        "Cormorant Garamond"
+                ],
+                "body-md": [
+                        "Jost"
+                ],
+                "body-sm": [
+                        "Jost"
+                ],
+                "headline-sm": [
+                        "Cormorant Garamond"
+                ],
+                "kpi-number": [
+                        "Instrument Sans"
+                ],
+                "headline-md": [
+                        "Cormorant Garamond"
+                ]
+        },
+        "fontSize": {
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "15px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-sm": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "kpi-number": [
+                        "36px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }</script></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none" id="sidebar-root"><div class="flex flex-col flex-1 min-h-0"><div class="h-16 flex items-center justify-between px-4 bg-surface-container-low"><div class="sidebar-full-brand flex items-center gap-2.5 overflow-hidden"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-tight leading-none truncate">LAWANG</span><span class="text-[9px] uppercase tracking-[0.2em] text-territorial-green font-label-md font-bold mt-0.5">PROPERTIES &amp; SUITE</span></div></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" id="sidebar-toggle-btn" onclick="document.body.classList.toggle('sidebar-collapsed')" type="button"><span class="material-symbols-outlined text-[20px]">menu_open</span></button></div><nav class="flex-1 overflow-y-auto px-3 py-4 space-y-5" data-active-classes="bg-primary text-on-primary font-semibold shadow-sm"><div class="space-y-1"><div class="nav-section-title px-3 mb-1.5 font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Seguimiento</div><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="home" href="#" title="Home"><span class="material-symbols-outlined text-[20px] shrink-0">dashboard</span><span class="nav-text-item font-body-sm text-body-sm truncate">Home</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="operaciones" href="#" title="Operaciones"><span class="material-symbols-outlined text-[20px] shrink-0">conversion_path</span><span class="nav-text-item font-body-sm text-body-sm truncate">Operaciones</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="soporte" href="#" title="Soporte"><span class="material-symbols-outlined text-[20px] shrink-0">support_agent</span><span class="nav-text-item font-body-sm text-body-sm truncate">Soporte</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="vencimientos" href="#" title="Vencimientos"><span class="material-symbols-outlined text-[20px] shrink-0">event_upcoming</span><span class="nav-text-item font-body-sm text-body-sm truncate">Vencimientos</span></a></div><div class="space-y-1"><div class="nav-section-title px-3 mb-1.5 font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Documentación</div><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="contratos" href="#" title="Contratos"><span class="material-symbols-outlined text-[20px] shrink-0">history_edu</span><span class="nav-text-item font-body-sm text-body-sm truncate">Contratos</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="creatividades" href="#" title="Creatividades"><span class="material-symbols-outlined text-[20px] shrink-0">perm_media</span><span class="nav-text-item font-body-sm text-body-sm truncate">Creatividades</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="documentacion" href="#" title="Documentación"><span class="nav-text-item font-body-sm text-body-sm truncate">Documentación</span></a></div><div class="space-y-1"><div class="nav-section-title px-3 mb-1.5 font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Administración</div><a aria-current="page" class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group bg-primary text-on-primary font-semibold shadow-sm" data-path="facturas" href="#" title="Facturas"><span class="material-symbols-outlined text-[20px] shrink-0">receipt_long</span><span class="nav-text-item font-body-sm text-body-sm truncate">Facturas</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="recibos" href="#" title="Recibos"><span class="material-symbols-outlined text-[20px] shrink-0">payments</span><span class="nav-text-item font-body-sm text-body-sm truncate">Recibos</span></a></div><div class="space-y-1"><div class="nav-section-title px-3 mb-1.5 font-label-md text-[11px] uppercase tracking-widest text-control-border font-semibold">Base de Datos</div><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="proyectos" href="#" title="Proyectos"><span class="material-symbols-outlined text-[20px] shrink-0">apartment</span><span class="nav-text-item font-body-sm text-body-sm truncate">Proyectos</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="obra" href="#" title="Obra"><span class="material-symbols-outlined text-[20px] shrink-0">engineering</span><span class="nav-text-item font-body-sm text-body-sm truncate">Obra</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="compradores" href="#" title="Compradores"><span class="material-symbols-outlined text-[20px] shrink-0">badge</span><span class="nav-text-item font-body-sm text-body-sm truncate">Compradores</span></a><a class="nav-link-anchor flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors group" data-path="usuarios" href="#" title="Usuarios"><span class="material-symbols-outlined text-[20px] shrink-0">manage_accounts</span><span class="nav-text-item font-body-sm text-body-sm truncate">Usuarios</span></a></div></nav></div><div class="p-3 bg-surface-container space-y-3"><div class="px-2 py-1 flex items-center justify-between"><span class="text-[11px] font-label-md uppercase tracking-wider text-control-border font-semibold">Idioma</span><div class="flex items-center bg-surface-container-high rounded-full p-0.5 text-[11px] font-label-md"><span class="px-2.5 py-0.5 rounded-full bg-deep-lagoon text-on-secondary font-semibold cursor-pointer">ES</span><span class="px-2.5 py-0.5 rounded-full text-on-surface-variant hover:text-on-surface cursor-pointer">EN</span></div></div><div class="border-t border-surface-variant/40 pt-2"><button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-error transition-colors text-left"><span class="material-symbols-outlined text-[18px] shrink-0">logout</span><span class="nav-text-item font-label-md text-body-sm font-semibold">Cerrar Sesión</span></button></div></div></aside><div class="pl-64" id="main-stage"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-6 flex items-center justify-between" id="topbar-stage"><div class="flex items-center gap-2"><div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low text-control-border"><span class="material-symbols-outlined text-[18px]">search</span><span class="font-body-sm text-[13px] pr-8">Buscar contrato, cliente o documento...</span></div></div><div class="flex items-center gap-4"><button type="button" class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 rounded-full bg-deep-lagoon text-on-secondary text-[9px] font-kpi-number font-bold flex items-center justify-center leading-none">18</span></button><div class="flex items-center gap-3 pl-3 border-l border-surface-variant/40"><div class="flex flex-col text-right hidden sm:flex"><span class="font-label-md text-[13px] text-volcanic-ash font-bold leading-tight">Javier Cervantes</span><span class="text-[11px] text-soft-canopy font-body-sm leading-tight mt-0.5">Super Admin</span></div><div class="w-9 h-9 rounded-full bg-territorial-green text-on-primary flex items-center justify-center font-bold text-sm shadow-sm select-none">JC</div></div></div></header><main class="relative bg-raw-linen min-h-screen px-6 lg:px-8 py-8 pt-24"><div class="flex flex-col w-full">
+<!-- Subheader Toolbar Area matching operational screen -->
+<div class="w-full flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-surface-variant/40">
+<div class="flex items-center gap-4 flex-wrap">
+<div class="flex items-center gap-3">
+<span class="w-2.5 h-2.5 rounded-full bg-territorial-green"></span>
+<h1 class="font-headline-md text-headline-md text-volcanic-ash tracking-tight leading-normal">Facturación &amp; Proformas</h1>
+</div>
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest text-deep-lagoon font-label-md text-label-md pl-4 pr-10 py-2 rounded-full shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-deep-lagoon transition-all" id="doc-type-selector">
+<option selected="" value="proforma">Factura proforma</option>
+<option value="oficial">Factura oficial PT Tepi Sun Gai</option>
+<option value="comercial">Factura comercial (Export/Trust)</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-control-border">expand_more</span>
+</div>
+</div>
+<div class="flex items-center gap-3 self-end md:self-auto">
+<button class="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-deep-lagoon hover:bg-surface-container shadow-sm transition-all font-label-md text-label-md shrink-0" type="button"><span class="material-symbols-outlined text-[18px]">arrow_back</span><span class="">Listado general</span></button>
+<button class="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-deep-lagoon text-on-secondary hover:bg-deep-lagoon/90 shadow-md hover:shadow-lg transition-all font-label-md text-label-md shrink-0" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span class="">Nuevo documento</span></button>
+</div>
+</div>
+<!-- Workspace: Split View Form / Live Document Preview -->
+<div class="w-full grid grid-cols-1 xl:grid-cols-12 gap-8 pt-6">
+<!-- Left Column: Operations & Document Parameters Form -->
+<div class="xl:col-span-4 2xl:col-span-4 flex flex-col gap-6">
+<!-- Card Section: Document Details -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-6">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 bg-territorial-green rounded-full"></span>
+<span class="font-label-md text-label-md tracking-wider text-territorial-green uppercase font-bold">Documento</span>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block font-label-md text-body-sm text-volcanic-ash mb-1.5 font-semibold">Contrato</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low text-on-surface font-label-md text-label-md px-3.5 py-2.5 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-territorial-green transition-all">
+<option selected="">CC00082 — MARC VILANOVA SERRA</option>
+<option>CC00083 — ELENA ROVIRA PRATS</option>
+<option>CC00079 — SERGIO ALMANSA VILA</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-control-border">expand_more</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block font-label-md text-body-sm text-volcanic-ash mb-1.5 font-semibold">Moneda</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low text-on-surface font-label-md text-label-md px-3.5 py-2.5 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-territorial-green transition-all">
+<option selected="">EUR</option>
+<option>IDR</option>
+<option>USD</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-control-border">expand_more</span>
+</div>
+</div>
+<div>
+<label class="block font-label-md text-body-sm text-volcanic-ash mb-1.5 font-semibold">Nº de documento</label>
+<input class="w-full bg-surface-container-low text-on-surface font-kpi-number text-label-md px-3.5 py-2.5 rounded-lg focus:outline-none cursor-default font-semibold shadow-inner" readonly="" type="text" value="PRO00153">
+</div>
+</div>
+</div>
+<!-- Locked metadata card -->
+<div class="p-4 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-soft-canopy">lock</span>
+<span class="font-label-md text-body-sm uppercase tracking-wide text-territorial-green font-semibold">Del contrato CC00082</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            Traído del contrato y <strong class="text-volcanic-ash">bloqueado</strong>: contrato, nombre, documento, email, proyecto, moneda, sociedad, cuenta de cobro. Precio del contrato: <strong class="text-volcanic-ash">95.000,00 EUR</strong>.
+          </p>
+<div class="pt-2">
+<span class="font-label-md text-body-sm text-volcanic-ash font-medium">Esta proforma declara el total del proyecto</span>
+</div>
+<!-- Total box inside lock -->
+<div class="mt-3 p-4 bg-surface-container-lowest rounded-lg shadow-sm space-y-1">
+<div class="font-label-md text-body-sm text-stone-sand uppercase font-bold tracking-wider">Total del proyecto</div>
+<div class="font-kpi-number text-kpi-number text-deep-lagoon tracking-tight">95.000,00 EUR</div>
+<div class="text-[12px] font-body-sm text-control-border italic">Lo que se le comunica al cliente. Informativo: no factura ni vence.</div>
+</div>
+</div>
+<!-- Linked Contract alert banner -->
+<div class="p-4 rounded-xl bg-surface-container-low/80 space-y-3">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[20px] text-deep-lagoon shrink-0 mt-0.5">link</span>
+<div class="space-y-1 min-w-0">
+<h4 class="font-label-md text-label-md text-deep-lagoon font-bold">Este contrato va encadenado con RP00129</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-normal">
+                La venta está en dos contratos: <span class="font-semibold text-volcanic-ash">Parcela</span> es el otro. Puedes cobrar los dos en este mismo documento.
+              </p>
+</div>
+</div>
+<div class="p-3.5 bg-surface-container-lowest rounded-lg shadow-sm">
+<div class="flex justify-between items-center text-body-sm font-label-md text-control-border">
+<span class="">Toda la unidad · los dos contratos</span>
+</div>
+<div class="font-kpi-number text-headline-sm text-volcanic-ash font-bold mt-0.5">155.000,00 EUR</div>
+<div class="font-body-sm text-[12px] text-soft-canopy mt-0.5">95.000,00 EUR de este + 60.000,00 EUR de RP00129</div>
+</div>
+<button class="w-full h-10 inline-flex items-center justify-center gap-2 px-5 rounded-full bg-deep-lagoon text-on-secondary hover:bg-deep-lagoon/90 shadow-sm transition-all font-label-md text-label-md shrink-0" id="btn-chain-import" type="button"><span class="material-symbols-outlined text-[16px]">call_merge</span><span class="">Traer los conceptos de RP00129</span></button>
+</div>
+</div>
+<!-- Card Section: Dates -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-4 bg-territorial-green rounded-full"></span>
+<span class="font-label-md text-label-md tracking-wider text-territorial-green uppercase font-bold">Fechas</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block font-label-md text-body-sm text-volcanic-ash mb-1 font-semibold">Fecha de emisión</label>
+<div class="relative">
+<input class="w-full bg-surface-container-low text-on-surface font-label-md text-body-sm px-3 py-2 rounded-lg pr-9 focus:outline-none focus:ring-2 focus:ring-territorial-green shadow-inner" type="text" value="03/09/2026">
+<span class="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-control-border">calendar_today</span>
+</div>
+</div>
+<div>
+<label class="block font-label-md text-body-sm text-volcanic-ash mb-1 font-semibold">Vencimiento <span class="font-normal text-control-border">(opcional)</span></label>
+<div class="relative">
+<input class="w-full bg-surface-container-low text-on-surface font-label-md text-body-sm px-3 py-2 rounded-lg pr-9 focus:outline-none focus:ring-2 focus:ring-territorial-green shadow-inner" placeholder="dd/mm/aaaa" type="text">
+<span class="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[18px] text-control-border">event</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Collapsible Quick Info Pills: Emisor / Cliente -->
+<div class="space-y-2.5">
+<div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl shadow-sm text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-center gap-3 min-w-0">
+<span class="w-6 h-6 rounded-full bg-surface-container-high group-hover:bg-deep-lagoon group-hover:text-on-primary text-volcanic-ash flex items-center justify-center font-bold text-sm leading-none transition-colors">+</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-volcanic-ash font-bold truncate">EMISOR</span>
+<span class="font-body-sm text-[12px] text-control-border truncate">PT Tepi Sun Gai · Sandal Woods Limited — DBS Bank Lt...</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-control-border">expand_more</span>
+</div>
+<div class="flex items-center justify-between p-3.5 bg-surface-container-lowest rounded-xl shadow-sm text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-center gap-3 min-w-0">
+<span class="w-6 h-6 rounded-full bg-surface-container-high group-hover:bg-deep-lagoon group-hover:text-on-primary text-volcanic-ash flex items-center justify-center font-bold text-sm leading-none transition-colors">+</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-volcanic-ash font-bold truncate">CLIENTE</span>
+<span class="font-body-sm text-[12px] text-control-border truncate">MARC VILANOVA SERRA · Horizon S1</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-control-border">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Document Live Paper Preview Stage -->
+<div class="xl:col-span-8 2xl:col-span-8 flex flex-col gap-4">
+<!-- Top Actions Bar for the Document Preview -->
+<div class="flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest px-5 py-3 rounded-xl shadow-sm">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-[12px] uppercase tracking-widest text-control-border font-bold">Vista Previa</span>
+<span class="w-1.5 h-1.5 rounded-full bg-stone-sand"></span>
+<span class="font-body-sm text-body-sm text-territorial-green font-medium">Hoja Fiduciaria Lawang A4</span>
+</div>
+<div class="flex items-center gap-2 flex-wrap"><button class="h-9 px-4 rounded-full bg-primary-fixed text-on-primary-fixed hover:bg-primary-fixed-dim transition-colors font-label-md text-label-md font-bold inline-flex items-center justify-center gap-1.5 shadow-sm shrink-0" type="button"><span class="material-symbols-outlined text-[16px]">sync</span><span class="">Actualizar (PRO00153)</span></button><button class="h-9 px-4 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high transition-colors font-label-md text-label-md inline-flex items-center justify-center gap-1.5 shrink-0" type="button"><span class="material-symbols-outlined text-[16px]">download</span><span class="">Descargar PDF</span></button><button class="h-9 px-4 rounded-full bg-surface-container-low text-volcanic-ash hover:bg-surface-container-high transition-colors font-label-md text-label-md inline-flex items-center justify-center gap-1.5 shrink-0" type="button"><span class="material-symbols-outlined text-[16px]">mail</span><span class="">Enviar por email</span></button><button class="h-9 px-4 rounded-full bg-surface-container-low text-control-border hover:bg-surface-container-high transition-colors font-label-md text-label-md inline-flex items-center justify-center gap-1.5 shrink-0" type="button"><span class="material-symbols-outlined text-[16px]">post_add</span><span class="">Crear recibí</span></button><span class="h-9 px-3.5 rounded-full bg-tertiary-container/15 text-tertiary font-label-md text-[11px] uppercase tracking-wider font-semibold inline-flex items-center gap-1 shrink-0"><span class="material-symbols-outlined text-[14px]">verified</span>Registro</span></div>
+</div>
+<!-- Real Document Paper Sheet (Fiduciary Luxury Pale Mint Paper Background from production screenshot) -->
+<div class="w-full bg-[#E5ECE3] text-volcanic-ash p-8 sm:p-12 md:p-16 rounded-2xl shadow-xl space-y-10 min-h-[920px] relative overflow-hidden">
+<!-- Subtle fiduciary watermark seal (Decorative background element) -->
+<div class="absolute right-6 top-40 opacity-[0.03] pointer-events-none select-none">
+<svg fill="currentColor" height="420" viewBox="0 0 100 100" width="420">
+<path d="M50 5 L90 25 L90 75 L50 95 L10 75 L10 25 Z"></path>
+</svg>
+</div>
+<!-- Header: Brand & Proforma Title -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-start gap-6 border-b border-[#CCD7C8] pb-8">
+<div class="space-y-3">
+<div class="flex items-center gap-3.5">
+<svg class="text-deep-lagoon shrink-0" fill="currentColor" height="42" viewBox="0 0 100 100" width="42">
+<path d="M15 15 H85 V30 H32 V44 H78 V59 H32 V85 H15 Z" fill-rule="evenodd" opacity="0.9"></path>
+<circle cx="80" cy="78" fill="currentColor" r="8"></circle>
+</svg>
+<div>
+<span class="font-headline-lg text-[32px] tracking-[0.18em] text-deep-lagoon uppercase block font-semibold">LAWANG</span>
+<span class="font-label-md text-[10px] tracking-[0.25em] text-territorial-green uppercase font-bold block">Tropical Properties</span>
+</div>
+</div>
+<div class="text-[12px] font-body-sm text-on-surface-variant leading-relaxed max-w-sm">
+<p class="font-bold text-volcanic-ash uppercase tracking-wide">PT TEPI SUN GAI</p>
+<p class="">Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia</p>
+<p class="font-label-md text-[11px] mt-1 text-territorial-green font-semibold">NPWP 1000.0000.0619.8026</p>
+</div>
+</div>
+<div class="text-left md:text-right space-y-1">
+<h2 class="font-headline-md text-headline-md text-deep-lagoon font-bold leading-tight">Factura proforma</h2>
+<div class="font-label-md text-[11px] uppercase tracking-[0.2em] text-stone-sand font-bold">PROFORMA INVOICE</div>
+<div class="font-kpi-number text-[22px] font-bold text-volcanic-ash tracking-tight pt-1">PRO00153</div>
+<div class="pt-2 text-[12px] font-body-sm text-on-surface-variant">
+<div class="">Fecha · Date: <strong class="text-volcanic-ash">03 de septiembre de 2026</strong></div>
+<div class="">Contrato · Contract: <strong class="text-volcanic-ash">CC00082</strong></div>
+</div>
+</div>
+</div>
+<!-- Bill To Section -->
+<div class="space-y-1.5">
+<div class="font-label-md text-[11px] tracking-[0.15em] text-stone-sand uppercase font-bold">FACTURAR A · BILL TO</div>
+<div class="font-label-md text-[17px] text-volcanic-ash font-bold">MARC VILANOVA SERRA</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant space-y-0.5">
+<div class="">Documento / ID: <span class="font-semibold text-volcanic-ash">PAX000002</span></div>
+<div class="">Email: <span class="font-semibold text-volcanic-ash">marc.vilanova@ejemplo.com</span></div>
+<div class="pt-1">Proyecto · Project: <span class="font-label-md text-territorial-green font-bold">Horizon S1</span></div>
+</div>
+</div>
+<!-- Items Table -->
+<div class="space-y-2">
+<div class="font-label-md text-[11px] tracking-[0.15em] text-stone-sand uppercase font-bold">CONCEPTOS · ITEMS</div>
+<div class="w-full overflow-hidden rounded-lg shadow-sm">
+<div class="bg-deep-lagoon text-on-secondary px-4 py-2.5 flex justify-between items-center text-[12px] font-label-md uppercase tracking-wider font-semibold">
+<span class="">DESCRIPCIÓN · DESCRIPTION</span>
+<span class="">IMPORTE · AMOUNT</span>
+</div>
+<div class="bg-surface-container-lowest/60 backdrop-blur-sm divide-y divide-[#D7DFD5]">
+<div class="px-4 py-4 flex justify-between items-center text-body-sm">
+<span class="font-label-md text-volcanic-ash font-semibold">Total del proyecto</span>
+<span class="font-kpi-number text-volcanic-ash font-semibold text-[15px]">95.000,00 EUR</span>
+</div>
+</div>
+</div>
+<!-- Totals aligned to the right -->
+<div class="pt-3 flex flex-col items-end gap-1.5 pr-2">
+<div class="flex items-center justify-between w-64 text-body-sm text-on-surface-variant font-label-md">
+<span class="">Subtotal</span>
+<span class="font-kpi-number text-volcanic-ash">95.000,00 EUR</span>
+</div>
+<div class="flex items-center justify-between w-64 pt-2 border-t border-[#CCD7C8] text-body-lg font-bold text-volcanic-ash">
+<span class="font-label-md text-deep-lagoon">Total</span>
+<span class="font-kpi-number text-[20px] text-deep-lagoon">95.000,00 EUR</span>
+</div>
+</div>
+</div>
+<!-- Bank Details Section -->
+<div class="pt-4 border-t border-[#CCD7C8] space-y-3">
+<div class="font-label-md text-[11px] tracking-[0.15em] text-stone-sand uppercase font-bold">DATOS BANCARIOS · BANK DETAILS</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-2.5 gap-x-8 text-[12px] font-body-sm text-on-surface-variant">
+<div class="flex items-baseline gap-2">
+<span class="text-stone-sand shrink-0">Titular · Holder</span>
+<span class="font-semibold text-volcanic-ash">Sandal Woods Limited</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-stone-sand shrink-0">Banco · Bank</span>
+<span class="font-semibold text-volcanic-ash">DBS Bank Ltd</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-stone-sand shrink-0">Cuenta · Account</span>
+<span class="font-kpi-number font-semibold text-volcanic-ash">885571532066</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-stone-sand shrink-0">Swift / Routing</span>
+<span class="font-kpi-number font-semibold text-volcanic-ash">DBSSSGSG</span>
+</div>
+<div class="col-span-1 md:col-span-2 flex items-baseline gap-2">
+<span class="text-stone-sand shrink-0">Dirección · Address</span>
+<span class="text-volcanic-ash">12 Marina Boulevard, DBS Asia Central, Marina Bay Financial Centre Tower 3, Singapore 018982</span>
+</div>
+<div class="col-span-1 md:col-span-2 flex items-baseline gap-2">
+<span class="text-stone-sand shrink-0">Nota · Note</span>
+<span class="font-label-md text-territorial-green font-semibold">Código de banco: 7171</span>
+</div>
+</div>
+</div>
+<!-- Notes Section -->
+<div class="pt-4 border-t border-[#CCD7C8] space-y-2">
+<div class="font-label-md text-[11px] tracking-[0.15em] text-stone-sand uppercase font-bold">NOTAS · NOTES</div>
+<p class="text-[12px] font-body-sm text-on-surface-variant leading-relaxed">
+            Total del proyecto contratado en CC00082. Documento informativo, sin validez fiscal ni obligación de devengo inmediato.
+          </p>
+</div>
+<!-- Fiduciary Footer Certification stamp -->
+<div class="pt-8 border-t border-[#CCD7C8] text-center">
+<p class="text-[10px] font-body-sm text-stone-sand leading-tight">
+            PT TEPI SUN GAI · LAWANG TROPICAL PROPERTIES · NPWP 1000.0000.0619.8026 · Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Kota Denpasar, Bali 80117 Indonesia
+          </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const chainBtn = document.getElementById('btn-chain-import');
+    if (chainBtn) {
+      chainBtn.addEventListener('click', function() {
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span><span>Vinculando RP00129...</span>';
+        setTimeout(() => {
+          this.innerHTML = '<span class="material-symbols-outlined text-[16px]">check_circle</span><span>Conceptos Vinculados (155.000 EUR)</span>';
+          this.classList.remove('bg-deep-lagoon');
+          this.classList.add('bg-territorial-green');
+        }, 600);
+      });
+    }
+  })();
+</script></main></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>

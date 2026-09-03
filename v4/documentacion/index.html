@@ -1,0 +1,628 @@
+<!DOCTYPE html><html lang="es"><head>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&amp;family=Instrument+Sans:wght@600&amp;family=Jost:wght@500;600&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"secondary-fixed-dim":"#9ad0d3","on-primary":"#ffffff","on-surface":"#1b1c19","surface-container-low":"#f5f4ee","on-error-container":"#93000a","on-primary-container":"#bcd2a5","on-tertiary-fixed":"#2e1125","surface-bright":"#fbf9f4","surface":"#fbf9f4","secondary-container":"#b3e9ed","surface-container-highest":"#e4e2dd","background":"#fbf9f4","surface-container":"#efeee8","on-secondary-container":"#356b6e","on-tertiary-container":"#edbdd8","on-secondary":"#ffffff","inverse-primary":"#b8cea1","on-secondary-fixed-variant":"#144e51","inverse-surface":"#30312d","burnt-earth":"#42210B","surface-container-lowest":"#ffffff","surface-tint":"#51643f","inverse-on-surface":"#f2f1eb","primary-container":"#485b37","primary-fixed-dim":"#b8cea1","on-error":"#ffffff","tertiary":"#563349","surface-alt":"#F1EBDD","control-border":"#8A8474","error":"#ba1a1a","volcanic-ash":"#2E3437","secondary-fixed":"#b6ecef","on-secondary-fixed":"#002021","deep-lagoon":"#104C4F","on-background":"#1b1c19","soft-canopy":"#8F9B7A","surface-variant":"#e4e2dd","stone-sand":"#BEB3A5","tertiary-fixed-dim":"#e9b9d4","surface-dim":"#dbdad5","outline-variant":"#c5c8bc","territorial-green":"#485B37","on-primary-fixed":"#0f2003","on-tertiary-fixed-variant":"#5f3c52","raw-linen":"#F5F0E6","primary-fixed":"#d3eabb","error-container":"#ffdad6","primary":"#314322","on-surface-variant":"#44483f","tertiary-fixed":"#ffd8ed","secondary":"#316669","on-tertiary":"#ffffff","tertiary-container":"#6f4a61","outline":"#75786e","on-primary-fixed-variant":"#3a4c2a","surface-container-high":"#e9e8e3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"gutter":"24px","margin-desktop":"48px","margin-mobile":"16px","element-gap":"16px"},fontFamily:{"kpi-number":["Instrument Sans"],"label-md":["Jost"],"headline-lg":["Cormorant Garamond"],"headline-sm":["Cormorant Garamond"],"body-lg":["Jost"],"body-md":["Jost"],"headline-md":["Cormorant Garamond"],"body-sm":["Jost"]},fontSize:{"kpi-number":["36px",{lineHeight:"40px",fontWeight:"600"}],"label-md":["14px",{lineHeight:"20px",fontWeight:"600"}],"headline-lg":["40px",{lineHeight:"48px",fontWeight:"600"}],"headline-sm":["24px",{lineHeight:"32px",fontWeight:"600"}],"body-lg":["18px",{lineHeight:"28px",fontWeight:"500"}],"body-md":["15px",{lineHeight:"24px",fontWeight:"500"}],"headline-md":["32px",{lineHeight:"40px",fontWeight:"600"}],"body-sm":["13px",{lineHeight:"20px",fontWeight:"500"}]}}}}</script></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider leading-none uppercase">Lawang</span><span class="font-body-sm text-body-sm text-outline tracking-wider uppercase leading-none mt-1">Properties &amp; Suite</span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl hover:text-on-surface transition-all font-body-md text-body-md bg-primary-container text-on-primary font-bold" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Compradores</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72 min-h-screen flex flex-col"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-end"><div class="flex items-center gap-4"><div class="flex items-center gap-2 border-outline/20"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative p-2 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold">18</span></button></div><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">Javier Cervantes</span><span class="font-body-sm text-body-sm text-outline leading-tight uppercase font-semibold text-[11px]">SUPER ADMIN</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 px-margin-desktop py-8 flex-1 bg-raw-linen"><div class="flex flex-col w-full gap-8">
+<!-- Dynamic Activation for Sidebar Item 'Documentación' -->
+<script>
+    (function () {
+      const activePath = 'documentacion';
+      const navLinks = document.querySelectorAll('aside nav a[data-path]');
+      navLinks.forEach((link) => {
+        if (link.getAttribute('data-path') === activePath) {
+          link.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high');
+          link.classList.add('bg-primary-container', 'text-on-primary', 'font-bold', 'rounded-xl');
+          const icon = link.querySelector('.material-symbols-outlined');
+          if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+        }
+      });
+    })();
+  </script>
+<!-- Editorial Page Header -->
+<div class="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-2">
+<div class="flex flex-col max-w-3xl">
+<div class="flex items-center gap-2 mb-2">
+<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-label-md uppercase tracking-wider">
+          Custodia y Fe Notarial
+        </span>
+<span class="w-1.5 h-1.5 rounded-full bg-control-border"></span>
+<span class="font-body-sm text-body-sm text-outline tracking-wider uppercase">
+          Protocolo BNI Trust &amp; PPAT Bali-Sumba
+        </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-deep-lagoon tracking-tight leading-tight">
+        Bóveda Notarial &amp; Repositorio Técnico
+      </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 leading-relaxed">
+        Custodia centralizada de escrituras Hak Sewa / HGB, licencias urbanísticas PBG, certificados de fin de obra SLF, planos ejecutivos y Due Diligence con cotejo registral en tiempo real.
+      </p>
+</div>
+<!-- Actions Toolbar -->
+
+<div class="flex flex-wrap items-center gap-2.5"><button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shadow-sm font-label-md text-label-md text-[13px]" type="button"><span class="material-symbols-outlined text-[18px] text-territorial-green">verified_user</span><span class="">Verificar sellos PPAT</span></button><button class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shadow-sm font-label-md text-label-md text-[13px]" type="button"><span class="material-symbols-outlined text-[18px]">archive</span><span class="">Descargar inventario (.zip)</span></button><button class="flex items-center gap-1.5 px-4 py-2 rounded-full bg-deep-lagoon hover:bg-deep-lagoon/90 text-on-primary transition-all shadow-md font-label-md text-label-md text-[13px]" type="button"><span class="material-symbols-outlined text-[18px]">upload_file</span><span class="">+ Subir nuevo expediente</span></button></div></div>
+<!-- Key Metrics Strip & Sovereign Trust Indicators -->
+<div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-5">
+<!-- Stat 1 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Acervo Indexado</span>
+<span class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-deep-lagoon">
+<span class="material-symbols-outlined text-[18px]">folder_special</span>
+</span>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="font-kpi-number text-kpi-number text-deep-lagoon">184</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">expedientes</span>
+</div>
+<div class="mt-2 flex items-center gap-2 text-soft-canopy">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+<span class="font-body-sm text-body-sm text-outline">Bóveda criptográfica SHA-256</span>
+</div>
+</div>
+<!-- Stat 2 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Cotejo Registral BPN</span>
+<span class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-territorial-green">
+<span class="material-symbols-outlined text-[18px]">gavel</span>
+</span>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="font-kpi-number text-kpi-number text-territorial-green">100%</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">convalidados</span>
+</div>
+<div class="mt-2 flex items-center gap-1.5 text-territorial-green font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-territorial-green"></span>
+<span class="">Badan Pertanahan Nasional</span>
+</div>
+</div>
+<!-- Stat 3 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-start justify-between">
+<span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Auditoría de Discrepancias</span>
+<span class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-[18px]">rule</span>
+</span>
+</div>
+<div class="mt-4 flex items-baseline gap-2">
+<span class="font-kpi-number text-kpi-number text-on-surface">0</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">litigios activos</span>
+</div>
+<div class="mt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-territorial-green">shield</span>
+<span class="font-body-sm text-body-sm text-outline">Garantía fiduciaria blindada</span>
+</div>
+</div>
+<!-- Quick Ledger / Heritage Seal visual item -->
+<div class="bg-surface-container p-5 rounded-xl shadow-sm flex items-center justify-between gap-4">
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-deep-lagoon uppercase tracking-wider font-semibold">Cámara Notarial PPAT</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-1">Denpasar &amp; Tambolaka</span>
+<span class="font-body-sm text-body-sm text-outline mt-0.5">Sello de custodia Nº 481-PPAT/2026</span>
+</div>
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-deep-lagoon flex-shrink-0">
+<span class="material-symbols-outlined text-[28px]">policy</span>
+</div>
+</div>
+</div>
+<!-- Search, Filter Pills & Batch Controls -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col gap-4">
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+<!-- Search Input with clear styling -->
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full bg-surface-container-low pl-10 pr-4 py-2.5 rounded-full text-on-surface placeholder:text-outline font-body-md text-body-md focus:outline-none focus:bg-surface-container transition-all" id="docSearchInput" placeholder="Buscar por referencia catastral, NIB, proyecto, notario o titular..." type="text">
+</div>
+<!-- Quick Sort / View Toggle -->
+<div class="flex items-center gap-2 self-end lg:self-auto">
+<button class="px-3.5 py-2 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px] text-outline">tune</span>
+<span class="">Filtros avanzados</span>
+</button>
+<button class="px-3.5 py-2 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px] text-outline">calendar_month</span>
+<span class="">Vigencia 2026-2056</span>
+</button>
+</div>
+</div>
+<!-- Category Filter Pills -->
+<div class="flex items-center gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-none">
+<button class="doc-filter-btn px-4 py-1.5 rounded-full bg-deep-lagoon text-on-primary font-label-md text-label-md whitespace-nowrap shadow-sm transition-all" data-category="all">
+        Todos los expedientes (184)
+      </button>
+<button class="doc-filter-btn px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all" data-category="hgb">
+        Títulos HGB / Hak Sewa (42)
+      </button>
+<button class="doc-filter-btn px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all" data-category="pbg">
+        Licencias PBG &amp; SLF (28)
+      </button>
+<button class="doc-filter-btn px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all" data-category="bpn">
+        Expedientes Topográficos BPN (36)
+      </button>
+<button class="doc-filter-btn px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all" data-category="pma">
+        Estatutos PT PMA &amp; Fiscal (19)
+      </button>
+<button class="doc-filter-btn px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md whitespace-nowrap transition-all" data-category="cad">
+        Planos Ejecutivos CAD/BIM (59)
+      </button>
+</div>
+</div>
+<!-- Main Workspace: Document Table + Interactive Inspector Card -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+<!-- Document Table Card (8 Columns) -->
+<div class="xl:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<!-- Table Header Bar -->
+<div class="px-6 py-4 bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="font-headline-sm text-headline-sm text-deep-lagoon">Expedientes Notariados</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container font-body-sm text-body-sm text-outline">Mostrando 5 de 184</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" title="Recargar vista" type="button">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-md text-body-md">
+<thead class="bg-surface-container-high/40 font-label-md text-label-md text-outline uppercase tracking-wider">
+<tr>
+<th class="py-3 px-5" scope="col">Código / Documento</th>
+<th class="py-3 px-4" scope="col">Proyecto / Parcela</th>
+<th class="py-3 px-4" scope="col">Titular / Entidad</th>
+<th class="py-3 px-4" scope="col">Vigencia / Protocolo</th>
+<th class="py-3 px-4" scope="col">Sellado</th>
+<th class="py-3 px-4 text-right" scope="col">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-none" id="documentsTbody">
+<!-- Row 1 (Selected) -->
+<tr class="doc-row bg-surface-container-low/60 hover:bg-surface-container-low cursor-pointer transition-colors" data-category="hgb" data-id="DOC-HGB-0089">
+<td class="py-4 px-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-deep-lagoon text-on-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-deep-lagoon font-bold tracking-tight">DOC-HGB-0089</span>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Certificado Dominio HGB Nº 04182</span>
+<span class="font-body-sm text-[11px] text-outline">PDF · 4.2 MB · Notaría Bali</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">Sumba Hills Master</span>
+<span class="font-body-sm text-body-sm text-outline">Parcela M-01 (4.800 m²)</span>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex flex-col">
+<span class="text-on-surface">PT Lawang Properties Bali</span>
+<span class="font-body-sm text-body-sm text-outline">NIB: 912000491823</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-kpi-number text-[14px] text-territorial-green">2056-08-14</span>
+<span class="font-body-sm text-body-sm text-outline">30 años prorrogables</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
+                  CUSTODIADO
+                </span>
+</td>
+<td class="py-4 px-4 text-right whitespace-nowrap">
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-deep-lagoon hover:bg-deep-lagoon hover:text-on-primary transition-colors" title="Ver compulsa" type="button">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Descargar" type="button">
+<span class="material-symbols-outlined text-[17px]">download</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="doc-row hover:bg-surface-container-low cursor-pointer transition-colors" data-category="pbg" data-id="DOC-PBG-00214">
+<td class="py-4 px-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-deep-lagoon flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">domain_verification</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-on-surface font-bold tracking-tight">DOC-PBG-00214</span>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Aprobación PBG-5103-2026-009</span>
+<span class="font-body-sm text-[11px] text-outline">PDF · 18.5 MB · DPMPTSP Badung</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">Aqua Collection</span>
+<span class="font-body-sm text-body-sm text-outline">Villa 3 · Clúster Río</span>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex flex-col">
+<span class="text-on-surface">PT Tepi Sun Gai</span>
+<span class="font-body-sm text-body-sm text-outline">NIB: 912019402911</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-kpi-number text-[14px] text-on-surface">14 Feb 2026</span>
+<span class="font-body-sm text-body-sm text-outline">Licencia en firme</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-container/40 text-on-secondary-container font-label-md text-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  VIGENTE
+                </span>
+</td>
+<td class="py-4 px-4 text-right whitespace-nowrap">
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-deep-lagoon hover:bg-deep-lagoon hover:text-on-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">download</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="doc-row hover:bg-surface-container-low cursor-pointer transition-colors" data-category="pbg" data-id="DOC-SLF-00045">
+<td class="py-4 px-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-deep-lagoon flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-on-surface font-bold tracking-tight">DOC-SLF-00045</span>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Sertifikat Laik Fungsi SLF</span>
+<span class="font-body-sm text-[11px] text-outline">PDF · 6.1 MB · Fin de Obra</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">Horizon S1 Master</span>
+<span class="font-body-sm text-body-sm text-outline">Lote Premium Cliffside</span>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex flex-col">
+<span class="text-on-surface">Marc Vilanova Serra</span>
+<span class="font-body-sm text-body-sm text-outline">Comprador Adjudicatario</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-kpi-number text-[14px] text-on-surface">02 Ago 2026</span>
+<span class="font-body-sm text-body-sm text-outline">Inspección Concluida</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface font-label-md text-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
+                  SLF APROBADO
+                </span>
+</td>
+<td class="py-4 px-4 text-right whitespace-nowrap">
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-deep-lagoon hover:bg-deep-lagoon hover:text-on-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">download</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="doc-row hover:bg-surface-container-low cursor-pointer transition-colors" data-category="cad" data-id="DOC-CAD-00118">
+<td class="py-4 px-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-deep-lagoon flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">architecture</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-on-surface font-bold tracking-tight">DOC-CAD-00118</span>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Planos As-Built Estructuras</span>
+<span class="font-body-sm text-[11px] text-outline">DWG/PDF · 84.0 MB · Rev 4.1</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">Bonian Village</span>
+<span class="font-body-sm text-body-sm text-outline">Clúster A · Cimentaciones</span>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex flex-col">
+<span class="text-on-surface">PT Lawang Engineering</span>
+<span class="font-body-sm text-body-sm text-outline">Dpto. Arquitectura</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-kpi-number text-[14px] text-on-surface">22 Jul 2026</span>
+<span class="font-body-sm text-body-sm text-outline">Ejecutado al 100%</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
+                  VÁLIDO OBRA
+                </span>
+</td>
+<td class="py-4 px-4 text-right whitespace-nowrap">
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-deep-lagoon hover:bg-deep-lagoon hover:text-on-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">download</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="doc-row hover:bg-surface-container-low cursor-pointer transition-colors" data-category="pma" data-id="DOC-PMA-00032">
+<td class="py-4 px-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container text-deep-lagoon flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">account_balance</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md text-on-surface font-bold tracking-tight">DOC-PMA-00032</span>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Akta Notaris Pendirian PT PMA</span>
+<span class="font-body-sm text-[11px] text-outline">PDF · 3.8 MB · Kemenkumham</span>
+</div>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="text-on-surface font-semibold">Sandal Woods Sumba</span>
+<span class="font-body-sm text-body-sm text-outline">Vehículo Inversión Extranjera</span>
+</div>
+</td>
+<td class="py-4 px-4">
+<div class="flex flex-col">
+<span class="text-on-surface">Notario I Wayan Eka Aryawan</span>
+<span class="font-body-sm text-body-sm text-outline">SK Menkeh AHU-00921</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<div class="flex flex-col">
+<span class="font-kpi-number text-[14px] text-on-surface">Permanente</span>
+<span class="font-body-sm text-body-sm text-outline">Estatuto Vigente</span>
+</div>
+</td>
+<td class="py-4 px-4 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
+                  REGISTRADO
+                </span>
+</td>
+<td class="py-4 px-4 text-right whitespace-nowrap">
+<div class="flex items-center justify-end gap-1.5">
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-deep-lagoon hover:bg-deep-lagoon hover:text-on-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px]">download</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Pagination strip -->
+<div class="p-4 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3 font-body-sm text-body-sm text-outline">
+<div class="flex items-center gap-2">
+<span class="">Filas por página:</span>
+<span class="px-2 py-1 rounded bg-surface-container text-on-surface font-semibold">10</span>
+<span class="">de 184 resultados</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md" disabled="">
+            Anterior
+          </button>
+<span class="px-3 py-1 rounded-full bg-deep-lagoon text-on-primary font-label-md text-label-md">1</span>
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md">2</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md">3</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md">
+            Siguiente
+          </button>
+</div>
+</div>
+</div>
+<!-- Right Inspector / Custody Detail Drawer (4 Columns) -->
+<div class="xl:col-span-4 flex flex-col gap-6">
+<!-- Selected File Forensic Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md p-6 flex flex-col gap-6 relative overflow-hidden">
+<!-- Floating Brand Emblem Top Right -->
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-territorial-green font-semibold uppercase tracking-wider">Compulsa Notarial</span>
+<h3 class="font-headline-sm text-headline-sm text-deep-lagoon mt-1" id="inspectorTitle">DOC-HGB-0089</h3>
+<span class="font-body-sm text-body-sm text-outline" id="inspectorSubtitle">Título Dominical Hak Guna Bangunan</span>
+</div>
+<!-- Lawang Stamp emblem -->
+<div class="w-12 h-12 rounded-full bg-surface-alt flex items-center justify-center p-2">
+<svg class="w-full h-full text-deep-lagoon fill-current" viewBox="0 0 100 100">
+<path d="M50,15 A35,35 0 1,0 85,50 A35,35 0 0,0 50,15 M50,30 A20,20 0 1,1 30,50 A20,20 0 0,1 50,30" opacity="0.8"></path>
+<circle cx="50" cy="50" r="8"></circle>
+</svg>
+</div>
+</div>
+<!-- Document Preview Canvas / Scrim -->
+<div class="relative rounded-xl overflow-hidden bg-surface-container-high h-48 flex items-center justify-center group shadow-inner">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Close up architectural legal parchment with an official Indonesian red ink stamp, gold embossed wax seal, and delicate bilingual Jawi Balinese typography, resting on raw linen texture in dramatic warm daylight." src="../assets/img/43663ee780.jpg">
+<div class="absolute inset-0 bg-gradient-to-t from-deep-lagoon/90 via-deep-lagoon/30 to-transparent flex items-end p-4">
+<div class="flex items-center justify-between w-full text-on-primary">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-primary-fixed">verified</span>
+<span class="font-label-md text-label-md">Cotejado con Registro BPN</span>
+</div>
+<span class="font-kpi-number text-[13px] text-surface-variant">Fojas 1-14</span>
+</div>
+</div>
+</div>
+<!-- Detailed Legal Specifications -->
+<div class="flex flex-col gap-3.5 bg-surface-container-low p-4 rounded-xl">
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-outline">Notario Certificador:</span>
+<span class="font-label-md text-label-md text-on-surface">I Wayan Eka Aryawan, S.H.</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-outline">Jurisdicción PPAT:</span>
+<span class="font-label-md text-label-md text-on-surface">Kantor Pertanahan Kab. Badung</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-outline">Sociedad Titular:</span>
+<span class="font-label-md text-label-md text-on-surface">PT Lawang Properties Bali</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-outline">Protocolo Fiduciario:</span>
+<span class="font-label-md text-label-md text-territorial-green font-semibold">BNI Trust Custody #9921-A</span>
+</div>
+<div class="flex flex-col gap-1 pt-2">
+<span class="font-body-sm text-body-sm text-outline">Hash de Integridad (SHA-256):</span>
+<span class="font-kpi-number text-[11px] text-on-surface-variant bg-surface-container px-2 py-1 rounded truncate select-all">
+              e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+            </span>
+</div>
+</div>
+<!-- Direct Actions -->
+<div class="flex flex-col gap-2.5">
+<button class="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-deep-lagoon text-on-primary font-label-md text-label-md hover:bg-deep-lagoon/90 shadow-md transition-all" type="button">
+<span class="material-symbols-outlined text-[19px]">download</span>
+<span class="">Descargar compulsa legal (PDF)</span>
+</button>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md" type="button">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span class="">Enviar a Comprador</span>
+</button>
+<button class="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md" type="button">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span class="">Trazabilidad</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Trust Assurance & Legal Warranty Badge -->
+<div class="bg-surface-alt p-5 rounded-xl flex items-start gap-4 shadow-sm">
+<div class="w-10 h-10 rounded-full bg-deep-lagoon text-on-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]">assured_workload</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-deep-lagoon">Garantía de Custodia Inmutable</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-normal">
+            Cada expediente notarial incorporado al repositorio de Lawang Suite queda anclado criptográficamente y depositado en copia física en la caja de seguridad fiduciaria de BNI Trust en Denpasar.
+          </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Client-side Script for Filtering and Inspector Details -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterButtons = document.querySelectorAll('.doc-filter-btn');
+    const tableRows = document.querySelectorAll('.doc-row');
+    const searchInput = document.getElementById('docSearchInput');
+
+    const inspectorTitle = document.getElementById('inspectorTitle');
+    const inspectorSubtitle = document.getElementById('inspectorSubtitle');
+
+    const docMetadata = {
+      'DOC-HGB-0089': {
+        title: 'DOC-HGB-0089',
+        sub: 'T\u00EDtulo Dominical Hak Guna Bangunan',
+      },
+      'DOC-PBG-00214': {
+        title: 'DOC-PBG-00214',
+        sub: 'Licencia Urban\u00EDstica PBG Edificaci\u00F3n',
+      },
+      'DOC-SLF-00045': {
+        title: 'DOC-SLF-00045',
+        sub: 'Certificado de Aptitud y Fin de Obra SLF',
+      },
+      'DOC-CAD-00118': {
+        title: 'DOC-CAD-00118',
+        sub: 'Juego de Planos As-Built y Memorias BIM',
+      },
+      'DOC-PMA-00032': {
+        title: 'DOC-PMA-00032',
+        sub: 'Escritura Fundacional PT PMA & NIB',
+      },
+    };
+
+    // Category Filtering
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach((b) => {
+          b.classList.remove('bg-deep-lagoon', 'text-on-primary');
+          b.classList.add('bg-surface-container-low', 'text-on-surface-variant');
+        });
+        btn.classList.add('bg-deep-lagoon', 'text-on-primary');
+        btn.classList.remove('bg-surface-container-low', 'text-on-surface-variant');
+
+        const cat = btn.getAttribute('data-category');
+        tableRows.forEach((row) => {
+          if (cat === 'all' || row.getAttribute('data-category') === cat) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Row selection and inspector sync
+    tableRows.forEach((row) => {
+      row.addEventListener('click', () => {
+        tableRows.forEach((r) => r.classList.remove('bg-surface-container-low/60'));
+        row.classList.add('bg-surface-container-low/60');
+
+        const id = row.getAttribute('data-id');
+        if (docMetadata[id]) {
+          inspectorTitle.textContent = docMetadata[id].title;
+          inspectorSubtitle.textContent = docMetadata[id].sub;
+        }
+      });
+    });
+
+    // Search filter
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        tableRows.forEach((row) => {
+          const text = row.innerText.toLowerCase();
+          row.style.display = text.includes(query) ? '' : 'none';
+        });
+      });
+    }
+  });
+</script></main></div>
+
+
+
+
+
+
+
+
+
+
+
+</body></html>
