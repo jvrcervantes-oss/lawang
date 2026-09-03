@@ -36,6 +36,23 @@ filtro ANTES de `git add`. Este repo es **público**: un nombre de cliente commi
 en el historial para siempre. El detalle de qué se sustituyó por qué NO se escribe aquí
 (sería re-publicar la mitad del dato); está en la memoria de sesión del estudio.
 
+## Pantallas añadidas después de la descarga inicial (3-sep-2026, tarde)
+
+- **`home/`** — el dashboard de inicio, **generado en Stitch vía MCP** (2º intento; el 1º
+  derivó a un híbrido Proyectos+Bóveda que no se integró y que Stitch luego descartó del
+  lienzo). Pasó el pipeline completo (noindex, imágenes localizadas, filtro PII contra la
+  base: limpio). `nav.js` enruta «Home» hacia ella en todas las páginas.
+- **`entrar/`** — la pantalla de login, **construida por el estudio** con los tokens del
+  sistema tras 3 generaciones de Stitch que nunca aterrizaron como pantalla. El botón
+  «Entrar» navega a `home/` y todos los «Cerrar Sesión» de la suite vuelven aquí (maqueta,
+  sin sesión real). Para regenerarla en Stitch algún día, el prompt que funciona como
+  espec: *«Pantalla de LOGIN, SIN sidebar. Estilo claro (lino #FBF9F4, verde #485B37, oro
+  #C89B5C, Cormorant Garamond + Instrument Sans + Jost). Layout 55/45: izquierda foto
+  arquitectónica tropical con velo y wordmark LAWANG PROPERTIES; derecha formulario:
+  "INTRANET DEL EQUIPO", "Bienvenido de nuevo", Email, Contraseña, botón verde "Entrar",
+  enlace de contraseña olvidada, ES/EN, pie © PT Tepi Sun Gai. Datos inventados.»* — y
+  re-pasar el filtro PII al bajarla.
+
 ## Censo contra la suite viva (3-sep-2026)
 
 Las **12 herramientas** de `contracts/assets/herramientas.js` tienen pantalla v4.

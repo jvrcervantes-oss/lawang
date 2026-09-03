@@ -38,8 +38,8 @@
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       var texto = normaliza(a.textContent);
       if (/Cerrar Sesi|logout/i.test(texto)) {
-        a.title = 'Maqueta — sin sesión real';
-        a.setAttribute('data-maqueta', 'inerte');
+        a.href = ROOT + 'entrar/';
+        a.title = 'Maqueta — vuelve a la pantalla de acceso';
         return;
       }
       for (var i = 0; i < RUTAS.length; i++) {
