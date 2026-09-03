@@ -1,0 +1,19 @@
+/* Tipografías de marca Lawang — sustituyen a Google Fonts en la maqueta v4 (3-sep-2026).
+   Origen: Marketing and Design/Design/Brand Files/Typography (orden del owner).
+   The Seasons = display serif (antes Cormorant Garamond) · Neue Kabel = sans (antes Jost e Instrument Sans). */
+
+@font-face { font-family: 'The Seasons'; src: url('fonnts.com-theseasons-lt.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'The Seasons'; src: url('fonnts.com-theseasons-ltit.otf') format('opentype'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'The Seasons'; src: url('fonnts.com-theseasons-reg.otf') format('opentype'); font-weight: 400 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'The Seasons'; src: url('fonnts.com-theseasons-it.otf') format('opentype'); font-weight: 400 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'The Seasons'; src: url('fonnts.com-theseasons-bd.otf') format('opentype'); font-weight: 600 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'The Seasons'; src: url('fonnts.com-theseasons-bdit.otf') format('opentype'); font-weight: 600 800; font-style: italic; font-display: swap; }
+
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_Italic.otf') format('opentype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_Medium.otf') format('opentype'); font-weight: 500 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_Medium_Italic.otf') format('opentype'); font-weight: 500 600; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_Bold_Italic.otf') format('opentype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Neue Kabel'; src: url('fonnts.com-Neue_Kabel_ExtraBold.otf') format('opentype'); font-weight: 800 900; font-style: normal; font-display: swap; }
