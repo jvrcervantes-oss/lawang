@@ -1,0 +1,58 @@
+/* shell.css — modal/toast de la maqueta + responsive de la cáscara canónica (3-sep-2026).
+   La sidebar canónica es fija de 288px (w-72) y el contenido compensa con pl-72;
+   por debajo de 1024px pasa a cajón off-canvas con hamburguesa (maqueta.js). */
+
+/* ---------- toast ---------- */
+#lw-toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:10001;display:none;
+  max-width:min(92vw,480px);background:#1B1C19;color:#F5F0E6;border:1px solid #C89B5C;border-radius:6px;
+  font:500 13px/1.45 'Neue Kabel',system-ui,sans-serif;padding:10px 16px;text-align:center;
+  box-shadow:0 8px 30px rgba(27,28,25,.25)}
+#lw-toast.ok{border-color:#485B37;background:#26311d;color:#e8f0dd}
+
+/* ---------- modal ---------- */
+#lw-modal{position:fixed;inset:0;z-index:10000}
+#lw-modal .lw-modal-fondo{position:absolute;inset:0;background:rgba(27,28,25,.45)}
+#lw-modal .lw-modal-caja{position:relative;margin:9vh auto 0;width:min(92vw,440px);background:#FBF9F4;
+  border:1px solid #c5c8bc;border-radius:10px;padding:22px 24px 16px;box-shadow:0 24px 60px rgba(27,28,25,.3)}
+#lw-modal .lw-modal-titulo{font:600 22px/1.25 'The Seasons',serif;color:#314322;margin:0 0 14px}
+#lw-modal .lw-modal-p{font:400 14px/1.5 'Neue Kabel',sans-serif;color:#44483f;margin:4px 0 8px}
+#lw-modal .lw-campo{display:block;margin-bottom:12px}
+#lw-modal .lw-campo span{display:block;font:700 10px/1 'Neue Kabel',sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:#8A8474;margin-bottom:5px}
+#lw-modal .lw-campo input,#lw-modal .lw-campo select,#lw-modal .lw-campo textarea{width:100%;
+  background:#fff;border:1px solid #c5c8bc;border-radius:6px;padding:8px 10px;
+  font:400 14px/1.4 'Neue Kabel',sans-serif;color:#1b1c19}
+#lw-modal .lw-campo input:focus,#lw-modal .lw-campo select:focus,#lw-modal .lw-campo textarea:focus{
+  outline:none;border-color:#485B37}
+#lw-modal .lw-modal-pie{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+#lw-modal .lw-btn-pri{background:#485B37;color:#F5F0E6;border:0;border-radius:6px;padding:9px 18px;
+  font:600 12px/1 'Neue Kabel',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#lw-modal .lw-btn-pri:hover{background:#314322}
+#lw-modal .lw-btn-sec{background:transparent;color:#44483f;border:1px solid #c5c8bc;border-radius:6px;
+  padding:9px 16px;font:600 12px/1 'Neue Kabel',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#lw-modal .lw-modal-nota{font:400 11px/1.4 'Neue Kabel',sans-serif;color:#8A8474;margin:12px 0 0;text-align:center}
+
+/* ---------- plegado de sidebar en desktop (botón left_panel_close) ---------- */
+.lw-burger{display:none}
+.lw-velo{display:none}
+@media (min-width:1024px){
+  body.v4-nav-plegada .lw-aside{transform:translateX(-100%);transition:transform .25s}
+  body.v4-nav-plegada .lw-topbar{left:0 !important}
+  body.v4-nav-plegada [class*="pl-72"]{padding-left:0 !important}
+  .lw-aside{transition:transform .25s}
+}
+
+/* ---------- responsive <1024px: cajón off-canvas ---------- */
+@media (max-width:1023px){
+  .lw-aside{transform:translateX(-100%);transition:transform .25s;width:288px !important;z-index:10002 !important}
+  body.v4-nav-abierta .lw-aside{transform:translateX(0)}
+  body.v4-nav-abierta .lw-velo{display:block;position:fixed;inset:0;z-index:10001;background:rgba(27,28,25,.4)}
+  .lw-topbar{left:0 !important}
+  [class*="pl-72"]{padding-left:0 !important}
+  [class*="pl-60"],[class*="pl-64"]{padding-left:0 !important}
+  .lw-burger{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;
+    border:0;background:transparent;border-radius:8px;color:#44483f;cursor:pointer}
+  .lw-burger:hover{background:#F1EBDD}
+  /* tablas anchas: scroll propio, nunca de la página */
+  table{display:block;overflow-x:auto;max-width:100%}
+}
