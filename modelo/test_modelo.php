@@ -110,6 +110,104 @@ foreach (['dune', 'dream', 'trinity', 'temple'] as $id) {
         "$id no tiene anexo de obra verificado: no debe llevar 'alcance' inventado de Dali");
 }
 
+// ── Configurador con presupuesto (3-sep) ────────────────────────────────────────────
+$OP = lw_picker_opciones();
+
+// Catálogo del picker: una sola fuente. Cada tarifa que sale por aquí tiene que coincidir
+// con lw_parcela_tarifa_m2() — es el test que impide que una cifra vieja (el beachfront de
+// 200, corregido el 2-sep) reaparezca por una tercera vía.
+ok(array_keys($OP['view']) === ['cliff', 'ricefield', 'riverfront', 'beachfront'],
+    'las 4 vistas del picker, en orden y sin colarse ninguna');
+foreach ($OP['view'] as $k => $o) {
+    ok($o['rate'] === lw_parcela_tarifa_m2($k), "la tarifa de $k debe salir de lw_parcela_tarifa_m2, no de una copia");
+}
+ok($OP['island']['sumba']['rate'] === 125, 'Sumba debe llevar SU tarifa en el propio botón de isla');
+// Bali no lleva tarifa a propósito: la pone la vista. Si alguien se la pone, hay dos
+// fuentes para el mismo número y vuelve el fallo de las dos copias.
+ok($OP['island']['bali']['rate'] === null, 'Bali NO debe tener tarifa propia: la da la vista');
+ok(array_keys($OP['extras']) === ['airbnb-kit', 'sauna', 'cold-plunge'], 'los 3 extras del catálogo');
+
+// Tarifa resuelta por combinación isla+vista.
+ok(lw_tarifa_de('sumba', null) === 125, 'Sumba tiene tarifa sin necesitar vista');
+ok(lw_tarifa_de('sumba', 'beachfront') === 125, 'la vista no manda en Sumba: el catálogo de vistas es de Bali');
+ok(lw_tarifa_de('bali', null) === null, 'Bali sin vista elegida todavía no tiene tarifa');
+ok(lw_tarifa_de('bali', 'beachfront') === 250, 'Bali beachfront = 250€/m²');
+ok(lw_tarifa_de('bali', 'luna') === null, 'una vista inventada no debe caer a 125 por defecto');
+ok(lw_tarifa_de(null, null) === null, 'sin isla no hay tarifa');
+
+// m²: el clamp es lo único que para "1e9" y los negativos (is_numeric los acepta), y nunca
+// devuelve 0 — un cero en el panel se leería como "el terreno es gratis".
+ok(LW_M2_MIN < LW_M2_MAX && LW_M2_MIN > 0, 'el rango de m² debe ser positivo y creciente');
+ok(lw_m2_clamp('1e9') === LW_M2_MAX, '1e9 debe toparse al máximo, no colarse');
+ok(lw_m2_clamp('-500') === null, 'un negativo no es una superficie');
+ok(lw_m2_clamp('0') === null, 'cero no es una superficie');
+ok(lw_m2_clamp('') === null, 'vacío no es una superficie');
+ok(lw_m2_clamp('abc') === null, 'texto no es una superficie');
+ok(lw_m2_clamp(null) === null, 'null no es una superficie');
+ok(lw_m2_clamp('300.7') === 300, 'los m² se compran enteros: se trunca, no se redondea al alza');
+ok(lw_m2_clamp(' 350 ') === 350, 'los espacios alrededor no invalidan el número');
+ok(lw_m2_clamp('10') === LW_M2_MIN, 'por debajo del mínimo se topa al mínimo');
+ok(lw_m2_clamp((string) LW_M2_MAX) === LW_M2_MAX, 'el máximo exacto es válido');
+
+// Los preajustes tienen que caer DENTRO del rango, o la interfaz ofrece un botón que el
+// propio clamp corrige a espaldas del visitante.
+foreach (LW_M2_PRESETS as $p) {
+    ok($p >= LW_M2_MIN && $p <= LW_M2_MAX, "el preajuste de $p m² debe estar dentro del rango del estimador");
+    ok(lw_m2_clamp((string) $p) === $p, "el preajuste de $p m² debe sobrevivir intacto al clamp");
+}
+
+// Identidad de techos: es lo que sostiene que la selección se mantenga POR CLAVE al cambiar
+// de modelo. Los nombres visibles SÍ difieren entre modelos (Dali "Sirap Ulin" vs Dune
+// "Sirap") — por eso no se puede keyear por nombre.
+foreach ($M as $id => $mm) {
+    ok(count($mm['techos']) === 2, "$id debe tener exactamente 2 techos, ni uno más");
+    ok(array_key_exists('sirap', $mm['techos']) && array_key_exists('bambu', $mm['techos']),
+        "$id debe usar las claves 'sirap'/'bambu': la selección del configurador se mantiene por clave");
+    // El invariante que ata el "From" del hero con el precio numérico del panel.
+    ok(lw_modelo_precio_desde($mm) === min(lw_techo_precio_activo($mm['techos']['sirap']),
+                                            lw_techo_precio_activo($mm['techos']['bambu'])),
+        "$id: el 'From' del hero debe ser el mínimo de los dos techos activos");
+}
+ok($M['dali']['techos']['sirap']['nombre'] !== $M['dune']['techos']['sirap']['nombre'],
+    'los nombres de techo difieren entre modelos: por eso el configurador keyea por clave y no por nombre');
+
+// Aritmética del presupuesto. El precio del techo es el precio COMPLETO de la villa con ese
+// techo, NO un sobrecoste: 48.000 y 50.000 son dos precios de villa de Dali.
+$e = lw_estimacion($M['dali'], 'sirap', 'bali', 'ricefield', 350);
+ok($e['villa'] === 48000, 'Dali/Sirap: la villa son 48.000, el precio completo con ese techo');
+ok($e['parcela'] === 350 * 125, 'la parcela es tarifa × m², sin más');
+ok($e['total'] === 48000 + 350 * 125, 'el total es villa + parcela, y nada más');
+ok($e['tramo'] === '2026', 'hoy el tramo activo es 2026');
+
+$e2 = lw_estimacion($M['dali'], 'bambu', 'bali', 'ricefield', 350);
+ok($e2['villa'] === 50000, 'Dali/Bambú son 50.000 de villa, no 48.000 + 2.000');
+
+// Sin ingredientes NO hay línea de parcela — pero el total con la villa sola SÍ existe
+// (decisión del owner del 3-sep: total siempre visible). Lo que impide que engañe es la
+// etiqueta del panel, no esconder la cifra.
+$e3 = lw_estimacion($M['dali'], 'sirap', null, null, null);
+ok($e3['parcela'] === null, 'sin isla ni m² no hay subtotal de parcela (nunca 0)');
+ok($e3['total'] === 48000, 'con la villa sola el total es la villa');
+$e4 = lw_estimacion($M['dali'], 'sirap', 'bali', 'ricefield', null);
+ok($e4['parcela'] === null, 'con tarifa pero sin m² tampoco hay subtotal');
+$e5 = lw_estimacion($M['dali'], 'sirap', 'bali', null, 350);
+ok($e5['parcela'] === null, 'con m² pero sin vista en Bali tampoco hay subtotal');
+$e6 = lw_estimacion($M['dali'], 'inventado', 'bali', 'cliff', 350);
+ok($e6['villa'] === null && $e6['total'] === null, 'un techo fuera de catálogo no produce cifra ninguna');
+// m² hostil: el clamp actúa DENTRO de la estimación, no solo en la interfaz.
+$e7 = lw_estimacion($M['dali'], 'sirap', 'sumba', null, '1e9');
+ok($e7['m2'] === LW_M2_MAX, 'un m² absurdo se topa dentro de la propia estimación');
+ok($e7['parcela'] === LW_M2_MAX * 125, 'Sumba estima con su tarifa aunque no haya vista');
+
+// La rama 2027 se prueba inyectando $hoy, igual que arriba: el presupuesto tiene que subir
+// solo el día del corte, sin que nadie toque un flag.
+$tz2 = new DateTimeZone(LW_TZ_BALI);
+$e27 = lw_estimacion($M['dali'], 'sirap', 'bali', 'ricefield', 350, new DateTime('2027-06-01', $tz2));
+ok($e27['villa'] === 52000, 'pasado el corte, la villa de la estimación es la de 2027');
+ok($e27['total'] === 52000 + 350 * 125, 'el total de 2027 usa el precio de 2027');
+ok($e27['tramo'] === '2027', 'el tramo se registra explícito, no se deduce del timestamp');
+ok($e27['parcela'] === $e['parcela'], 'la tarifa de parcela NO cambia con el corte de 2027');
+
 // Pivote a solo-inglés (2-sep): lw_i18n ya no emite los dos <span>, solo el inglés.
 ok(lw_i18n('Hola', 'Hi') === 'Hi', 'lw_i18n debe pintar solo el inglés cuando se da');
 ok(lw_i18n('Hola') === 'Hola', 'sin EN explícito, lw_i18n cae al primer argumento');
