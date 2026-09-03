@@ -31,6 +31,9 @@
     for (var i = 0; i < all.length; i++) {
       var el = all[i];
       if (el.children.length > 2) continue;
+      // nunca anclar en la cáscara: la sidebar tiene "Vencimientos", "Recibos"…
+      // y el primer intento le escribió el pie de un KPI al subtítulo del logo
+      if (el.closest('aside,nav,header,#lw-modal,#lw-maqueta')) continue;
       if (rx.test(el.textContent.replace(/\s+/g, ' ').trim()) && el.textContent.length < 90) return el;
     }
     return null;
@@ -50,11 +53,23 @@
   function kpi(labelRx, valor, pie) {
     var lab = hojaConTexto(labelRx); if (!lab) { console.info('[v4] KPI sin ancla:', labelRx); return; }
     var card = tarjetaDe(lab); var num = numeroGrande(card);
-    if (num) num.textContent = valor;
+    if (num) {
+      num.textContent = valor;
+      // las coletillas mock pegadas al número ("unidades", "€") mienten al lado
+      // de un valor real: se vacían las hojas pequeñas hermanas del número
+      var hermanos = num.parentElement ? num.parentElement.children : [];
+      for (var i = 0; i < hermanos.length; i++) {
+        var h = hermanos[i];
+        if (h !== num && h.children.length === 0 && h.textContent.trim().length < 26) h.textContent = '';
+      }
+    }
     if (pie != null) {
       var pieEl = null;
       card.querySelectorAll('span,p,div').forEach(function (el) {
         if (pieEl || el === num || el === lab || el.children.length) return;
+        if (lab.contains(el) || el.contains(lab)) return;
+        // el pie va DEBAJO del número: solo vale un elemento que lo siga en el DOM
+        if (num && !(num.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
         var fs = parseFloat(getComputedStyle(el).fontSize) || 0;
         if (fs <= 14 && el.textContent.trim().length > 3) pieEl = el;
       });
@@ -187,7 +202,7 @@
       cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en30).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
         .then(function (n) { if (n != null) kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días'); });
       Promise.all([cnt(sb, 'unidades'), cnt(sb, 'unidades', function (x) { return x.eq('estado', 'libre'); })]).then(function (r) {
-        if (r[1] != null) kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'de ' + r[0] + ' en inventario' : null);
+        if (r[1] != null) kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'disponibles de ' + r[0] + ' en inventario' : null);
       });
     },
 
@@ -319,7 +334,7 @@
         var ps = r[0], us = r[1];
         if (!ps) return;
         var porP = {};
-        (us || []).forEach(function (u) { var k = u.proyecto || '¿?'; (porP[k] = porP[k] || { t: 0, l: 0 }); porP[k].t++; if (u.estado === 'libre') porP[k].l++; });
+        (us || []).forEach(function (u) { var k = u.proyecto || '¿?'; (porP[k] = porP[k] || { t: 0, l: 0 }); porP[k].t++; if (u.estado === 'disponible') porP[k].l++; });
         // tarjetas-carpeta: plantilla = primera tarjeta con un h3 dentro del grid
         var h3 = document.querySelector('main h3, .grid h3');
         if (!h3) { console.info('[v4] proyectos: sin ancla de tarjetas'); return; }
@@ -343,9 +358,15 @@
 
     'proyectos-cuentas': function (sb) {
       var pedido = new URLSearchParams(location.search).get('proyecto');
-      q(sb.from('proyectos').select('nombre').order('nombre'), 'proyectos').then(function (ps) {
+      Promise.all([
+        q(sb.from('proyectos').select('nombre').order('nombre'), 'proyectos'),
+        q(sb.from('unidades_estado').select('proyecto'), 'unidades para elegir proyecto')
+      ]).then(function (rr) {
+        var ps = rr[0], uu = rr[1] || [];
         if (!ps || !ps.length) return;
-        var nombre = pedido || ps[0].nombre;
+        var conteo = {}; uu.forEach(function (u) { conteo[u.proyecto] = (conteo[u.proyecto] || 0) + 1; });
+        var mayor = ps.slice().sort(function (x, y) { return (conteo[y.nombre] || 0) - (conteo[x.nombre] || 0); })[0];
+        var nombre = pedido || mayor.nombre;
         var h2 = hojaConTexto(/Master Plan|Horizon S1/i); if (h2) h2.textContent = nombre + ' · Master Plan & Cuentas';
         q(sb.from('unidades_estado').select('codigo,modelo,estado,contrato_numero,comprador_nombre').eq('proyecto', nombre).order('codigo').limit(120), 'unidades de ' + nombre)
           .then(function (us) {
