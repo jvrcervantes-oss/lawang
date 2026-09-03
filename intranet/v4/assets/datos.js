@@ -204,6 +204,34 @@
       Promise.all([cnt(sb, 'unidades'), cnt(sb, 'unidades', function (x) { return x.eq('estado', 'libre'); })]).then(function (r) {
         if (r[1] != null) kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'disponibles de ' + r[0] + ' en inventario' : null);
       });
+      // módulos laterales: nunca dejar las tarjetas mock como "verdad"
+      q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
+          .eq('contratos.bloqueado', true).gte('fecha', hoy).order('fecha').limit(3), 'vencimientos críticos')
+        .then(function (vs) {
+          if (vs == null) return;
+          var anc = hojaConTexto(/Cr[ií]ticos/i);
+          if (!anc) { console.info('[v4] home: sin ancla de críticos'); return; }
+          var card = tarjetaDe(anc);
+          for (var i = 0; i < 3 && card.parentElement && card.querySelectorAll('*').length < 12; i++) card = card.parentElement;
+          card.innerHTML = '<p style="font:600 18px \'The Seasons\',serif;margin:0 0 10px">Vencimientos críticos</p>' +
+            (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || 'Hito') + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
+                       : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">Ninguno con fecha futura en contratos firmados.</p>') +
+            '<a href="/intranet/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir tesorería →</a>';
+        });
+      q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
+        .then(function (fs2) {
+          if (fs2 == null) return;
+          var n = {}; fs2.forEach(function (x) { n[x.contrato_id] = 1; });
+          var total = Object.keys(n).length;
+          var anc = hojaConTexto(/Firmas/i);
+          if (!anc) { console.info('[v4] home: sin ancla de firmas'); return; }
+          var card = tarjetaDe(anc);
+          for (var j = 0; j < 3 && card.parentElement && card.querySelectorAll('*').length < 12; j++) card = card.parentElement;
+          card.innerHTML = '<p style="font:600 18px \'The Seasons\',serif;margin:0 0 10px">Firmas pendientes</p>' +
+            '<p style="font:700 30px \'Neue Kabel\',sans-serif;margin:0">' + total + '</p>' +
+            '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 10px">contratos esperando la firma del comprador</p>' +
+            '<a href="/intranet/operaciones/?filtro=firma_viva" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Verlos en Operaciones →</a>';
+        });
     },
 
     contratos: function (sb) {
