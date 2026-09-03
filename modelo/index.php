@@ -767,7 +767,9 @@ label.picker__row{cursor:pointer}
       </a>
       <?php endforeach; ?>
     </div>
-    <p class="sec__desc" style="margin-top:18px;font-size:13px" id="lw-cross-nota">Villa price only, roof included. Plot priced separately — see Investment below.</p>
+    <!-- "see Investment below" apuntaba a una sección que este mismo push renombró a
+         "Step 2 — Roof" (Legal, capa 1 de deploy): la referencia se quedó huérfana. -->
+    <p class="sec__desc" style="margin-top:18px;font-size:13px" id="lw-cross-nota">Villa price only, roof included. Plot priced separately — build your estimate below.</p>
   </section>
 
   <!-- ── Acabados + Precio, fusionados (2-sep) ─────────────────────────────────
@@ -799,14 +801,14 @@ label.picker__row{cursor:pointer}
     <fieldset class="cfg__set">
       <legend class="cfg__in">Roof finish</legend>
       <div class="rows">
-        <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-sirap" value="sirap" checked>
-        <label class="rows__it is-on" for="lw-techo-sirap">
+        <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-sirap" value="sirap"<?= $techoIni === 'sirap' ? ' checked' : '' ?>>
+        <label class="rows__it<?= $techoIni === 'sirap' ? ' is-on' : '' ?>" for="lw-techo-sirap">
           <h3 id="lw-techo-sirap-nombre"><?= lw_e($m['techos']['sirap']['nombre']) ?></h3>
           <p id="lw-techo-sirap-desc"<?= empty($m['techos']['sirap']['desc']) ? ' hidden' : '' ?>><?= lw_e($m['techos']['sirap']['desc'] ?? '') ?></p>
           <p class="rows__precio">From <span id="lw-techo-sirap-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($m['techos']['sirap']))) ?></span></p>
         </label>
-        <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-bambu" value="bambu">
-        <label class="rows__it" for="lw-techo-bambu">
+        <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-bambu" value="bambu"<?= $techoIni === 'bambu' ? ' checked' : '' ?>>
+        <label class="rows__it<?= $techoIni === 'bambu' ? ' is-on' : '' ?>" for="lw-techo-bambu">
           <h3 id="lw-techo-bambu-nombre"><?= lw_e($m['techos']['bambu']['nombre']) ?></h3>
           <p id="lw-techo-bambu-desc"<?= empty($m['techos']['bambu']['desc']) ? ' hidden' : '' ?>><?= lw_e($m['techos']['bambu']['desc'] ?? '') ?></p>
           <p class="rows__precio">From <span id="lw-techo-bambu-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($m['techos']['bambu']))) ?></span></p>
@@ -925,7 +927,12 @@ label.picker__row{cursor:pointer}
 
       <div class="est__fila">
         <span class="est__lb" id="lw-est-villa-lb">Villa — <?= lw_e($nombre . ', ' . $m['techos'][$techoIni]['nombre']) ?> roof
-          <i>Starting figure for this roof, confirmed by the developer in writing. Indonesian VAT (PPN) included.</i></span>
+          <?php /* 3-sep, capa 1 (Legal): "Starting figure for this roof, confirmed by the
+                 developer in writing" no distinguía si lo confirmado por escrito es la
+                 cifra que el visitante tiene DELANTE o el precio final antes de firmar. Era
+                 la única frase del panel que empujaba hacia "precio cerrado", y encima
+                 pegada al número. */ ?>
+          <i>Today's starting figure for this roof. Your final price is confirmed by the developer in writing before you sign. Indonesian VAT (PPN) included.</i></span>
         <span class="est__vl" id="lw-est-villa">From <?= lw_e(lw_precio_fmt($estIni['villa'])) ?></span>
       </div>
 
@@ -945,9 +952,14 @@ label.picker__row{cursor:pointer}
         <span class="est__vl is-pend">Separate, in writing</span>
       </div>
 
-      <div class="est__total">
+      <!-- aria-live en el CONTENEDOR, no solo en el importe (Desarrollo, capa 1 de deploy):
+           la etiqueta es quien alterna entre "Villa only — plot not included yet" e
+           "Indicative starting figure, villa + plot", y con la región viva solo en la cifra
+           un lector de pantalla anunciaba el importe sin decir nunca si la parcela estaba
+           dentro. Toda la defensa del panel es esa etiqueta: dejarla muda la anula. -->
+      <div class="est__total" aria-live="polite">
         <span class="est__lb" id="lw-est-total-lb">Villa only — plot not included yet</span>
-        <span class="est__vl" id="lw-est-total" aria-live="polite">from around <?= lw_e(lw_precio_fmt($estIni['villa'])) ?></span>
+        <span class="est__vl" id="lw-est-total">from around <?= lw_e(lw_precio_fmt($estIni['villa'])) ?></span>
       </div>
       <div class="est__pie">
         <p id="lw-est-excluye">Excludes notary, permits and transfer costs.</p>
@@ -1020,7 +1032,9 @@ label.picker__row{cursor:pointer}
           </ul>
           <p class="doscol__nota"><?= lw_i18n(
             'La parcela y los gastos de compraventa (impuestos, notaría y licencias) se presupuestan aparte y se detallan por escrito antes de firmar.',
-            'The plot and closing costs (taxes, notary, permits) are quoted separately and detailed in writing before signing.'
+            // Mismo ajuste que el FAQ (3-sep, Legal): "taxes" a secas contradecía el panel,
+            // que declara el PPN incluido en el precio de villa.
+            'The villa price includes Indonesian VAT (PPN). The plot and the closing costs on the purchase (transfer tax, notary, permits) are quoted separately and detailed in writing before signing.'
           ) ?></p>
         </div>
       </div>
@@ -1104,9 +1118,18 @@ label.picker__row{cursor:pointer}
         <p class="i-es">La obra completa según el pliego del contratista, con el acabado de cubierta que
           elijas. La parcela y los gastos de compraventa (impuestos, notaría y licencias) se
           presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
-        <p class="i-en">The full build with the roof finish you choose, confirmed by the
-          developer in writing before you sign. The plot and closing costs (taxes, notary,
-          permits) are quoted separately.</p>
+        <?php /* 3-sep, capa 1 de deploy (Legal): decía "closing costs (taxes, notary,
+               permits) are quoted separately" a secas. Desde que el panel de presupuesto
+               afirma que el PPN va DENTRO del precio de villa, un lead leía las dos frases
+               y concluía razonablemente que le iban a sumar el 11%. Los contratos dan la
+               razón al panel (el PPJB de construcción dice que el precio del contrato
+               incluye todos los impuestos), así que lo obsoleto era esta frase: ahora
+               nombra los gastos concretos en vez de "taxes" a secas, y dice explícitamente
+               que el PPN ya está dentro. */ ?>
+        <p class="i-en">The full build with the roof finish you choose. The villa price
+          already includes Indonesian VAT (PPN). The plot, and the closing costs on the
+          purchase (transfer tax, notary and permits), are quoted separately and detailed in
+          writing before you sign.</p>
       </details>
       <details>
         <summary><?= lw_i18n('¿Puedo elegir dónde se construye?', 'Can I choose where it gets built?') ?></summary>
@@ -1237,8 +1260,13 @@ label.picker__row{cursor:pointer}
   // igual que el radio marcado por el servidor: el panel nunca sale vacío.
   // La aritmética la manda lib.php (lw_estimacion); esto es su espejo en cliente para
   // pintar. Lo que se GUARDA y lo que se manda a ventas lo recalcula el servidor.
-  var LW_CFG = {techo: 'sirap', island: null, view: null, m2: null, m2mode: null, extras: []};
-  var LW_M2 = {min: <?= (int) LW_M2_MIN ?>, max: <?= (int) LW_M2_MAX ?>};
+  // El techo por defecto sale de PHP, no escrito a mano aquí: hasta la capa 1 de deploy
+  // vivía en cuatro sitios (la variable de PHP, el `checked` del radio, este objeto y la
+  // comparación de syncURL), y cambiarlo en uno dejaba el panel del servidor pintando un
+  // techo y el radio marcando otro desde el primer frame, sin que saltara ningún test.
+  var TECHO_INI = <?= json_encode($techoIni, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  var LW_CFG = {techo: TECHO_INI, island: null, view: null, m2: null, m2mode: null, extras: []};
+  var LW_M2 = {min: <?= (int) LW_M2_MIN ?>, max: <?= (int) LW_M2_MAX ?>, step: <?= (int) LW_M2_STEP ?>};
 
   // ── Píxel: ViewContent al cargar, con `value`/`currency` cuando hay precio cerrado. ──
   // `value` = precio de villa DEL TECHO ELEGIDO, y de nada más. Dos reglas detrás:
@@ -1289,6 +1317,9 @@ label.picker__row{cursor:pointer}
   // La IIFE del picker (más abajo) reasigna esto a su updateWaLink real una vez arranca
   // — no-op mientras tanto, por si seleccionarModelo() llegara a dispararse antes.
   var lwUpdateWaLink = function () {};
+  // La IIFE del configurador (más abajo) reasigna esto a su aplicarQuery real — lo necesita
+  // `popstate`, que se declara antes.
+  var lwAplicarQuery = function () {};
 
   function seleccionarModelo(id, opts) {
     var cfg = CONFIGURADOR[id];
@@ -1404,6 +1435,10 @@ label.picker__row{cursor:pointer}
   window.addEventListener('popstate', function (e) {
     var id = (e.state && e.state.modelo) || MODELO_ORIGEN;
     seleccionarModelo(id, {skipHistory: true});
+    // Y se relee la configuración de la URL a la que se ha vuelto: sin esto, atrás
+    // cambiaba el modelo pero mantenía techo/isla/vista/m² del estado del que venías, y el
+    // syncURL siguiente reescribía esa entrada del historial con ese estado ajeno.
+    lwAplicarQuery();
   });
 
   // ── Configurador con presupuesto (3-sep) ────────────────────────────────────────────
@@ -1431,13 +1466,15 @@ label.picker__row{cursor:pointer}
     // valor hostil en uno diminuto que pasa todos los topes y da una estimación
     // absurdamente baja, que es peor que la alta. Number() + isFinite + floor + clamp.
     // Devuelve {v: int|null, topado: 'min'|'max'|null}.
+    // Espejo exacto de lw_m2_clamp() en PHP, ajuste al paso incluido — si divergen, el
+    // visitante ve una cifra y a ventas le llega otra.
     function clampM2(raw) {
       if (raw === null || raw === undefined) return {v: null, topado: null};
       var s = String(raw).trim();
       if (s === '') return {v: null, topado: null};
       var n = Number(s);
       if (!isFinite(n) || n <= 0) return {v: null, topado: null};
-      n = Math.floor(n);
+      n = Math.round(n / LW_M2.step) * LW_M2.step;
       if (n < LW_M2.min) return {v: LW_M2.min, topado: 'min'};
       if (n > LW_M2.max) return {v: LW_M2.max, topado: 'max'};
       return {v: n, topado: null};
@@ -1488,6 +1525,7 @@ label.picker__row{cursor:pointer}
 
     var EXTRA_LB = <?= json_encode($PICKER['extras'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var VIEW_LB  = <?= json_encode(array_map(function ($o) { return $o['label']; }, $PICKER['view']), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    var ISLAND_LB = <?= json_encode(array_map(function ($o) { return $o['label']; }, $PICKER['island']), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
     function recalcular() {
       var cfg = CONFIGURADOR[MODELO] || {};
@@ -1561,8 +1599,18 @@ label.picker__row{cursor:pointer}
     // pero dejaba el techo y los m² del estado "futuro" (hallazgo de Desarrollo). De paso
     // hace el enlace compartible, que en un funnel es un regalo.
     function syncURL() {
-      var p = new URLSearchParams();
-      if (LW_CFG.techo && LW_CFG.techo !== 'sirap') p.set('roof', LW_CFG.techo);
+      // Se PARTE de la query que ya hay y solo se borran las claves propias. Partir de un
+      // URLSearchParams vacío —como hacía la primera versión de hoy— barría `utm_*` y
+      // `fbclid` milisegundos después de cargar: las tres URLs de anuncio vivas los llevan,
+      // el POST de reserva los lee de `location.search`, y a ventas le llegaba TODO lead de
+      // pago sin origen ni campaña (hallazgo de Desarrollo, capa 1 de deploy). Además el
+      // píxel no podía sembrar `_fbc`, porque carga tras el consentimiento y para entonces
+      // el `fbclid` ya no estaba.
+      // Borrar lo propio en vez de copiar una lista blanca de lo ajeno es lo que hace que
+      // esto siga funcionando con el parámetro que Meta invente el año que viene.
+      var p = new URLSearchParams(location.search);
+      ['roof', 'island', 'view', 'plot', 'extras'].forEach(function (k) { p.delete(k); });
+      if (LW_CFG.techo && LW_CFG.techo !== TECHO_INI) p.set('roof', LW_CFG.techo);
       if (LW_CFG.island) p.set('island', LW_CFG.island);
       if (LW_CFG.view) p.set('view', LW_CFG.view);
       if (LW_CFG.m2 !== null) p.set('plot', String(LW_CFG.m2));
@@ -1581,12 +1629,17 @@ label.picker__row{cursor:pointer}
       var villaAhora = (cfg && cfg.villa) || <?= json_encode($villa, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
       var waBase = "Hi, I'm interested in the " + villaAhora + " from Lawang Tropical Properties.";
       var bits = [];
+      // Etiquetas del catálogo, no las claves internas (capa 1 de deploy, Administración):
+      // el mensaje lo manda el propio lead desde su WhatsApp, y "Extras: airbnb-kit" se lee
+      // como una máquina hablando. ISLAND_LB/VIEW_LB/EXTRA_LB ya están en este mismo scope.
       var t = cfg && cfg.techos && cfg.techos[LW_CFG.techo];
       if (t) bits.push('Roof: ' + t.nombre);
-      if (LW_CFG.island) bits.push('Island: ' + LW_CFG.island);
-      if (LW_CFG.view) bits.push('View: ' + LW_CFG.view);
+      if (LW_CFG.island) bits.push('Island: ' + (ISLAND_LB[LW_CFG.island] || LW_CFG.island));
+      if (LW_CFG.view) bits.push('View: ' + (VIEW_LB[LW_CFG.view] || LW_CFG.view));
       if (LW_CFG.m2 !== null) bits.push('Plot: ' + LW_CFG.m2 + ' m2');
-      if (LW_CFG.extras.length) bits.push('Extras: ' + LW_CFG.extras.join(', '));
+      if (LW_CFG.extras.length) {
+        bits.push('Extras: ' + LW_CFG.extras.map(function (k) { return EXTRA_LB[k] || k; }).join(', '));
+      }
       // Sin la cifra del total a propósito: en WhatsApp esto llega como un mensaje escrito
       // por el propio lead, y un importe ahí pesa mucho más que en pantalla, fuera de todo
       // el rotulado del panel que existe justo para matizarlo. Viajan las selecciones; el
@@ -1624,18 +1677,27 @@ label.picker__row{cursor:pointer}
     }
 
     // ── Techo (paso 2) ────────────────────────────────────────────────────────────
+    // El auto-scroll cuelga del CLIC en la etiqueta, no del `change` del radio: en un grupo
+    // de radios las flechas del teclado marcan y disparan `change`, así que quien navegaba
+    // Sirap↔Bambú con el teclado se llevaba un scroll a la sección siguiente en cada
+    // pulsación, sacando de pantalla el control que tenía enfocado (Desarrollo, capa 1).
+    function alClicar(sel, destino) {
+      document.querySelectorAll(sel).forEach(function (lb) {
+        lb.addEventListener('click', function () { scrollA(destino); });
+      });
+    }
+
     document.querySelectorAll('input[name="lw-techo"]').forEach(function (i) {
       i.addEventListener('change', function () {
         if (!i.checked) return;
         LW_CFG.techo = i.value;
         pintaGrupo('lw-techo');
         recalcular();
-        // Auto-scroll SOLO aquí y en isla, y solo desde el handler de clic — nunca dentro
-        // de seleccionarModelo(), o `popstate` secuestraría la restauración de scroll del
-        // navegador al pulsar atrás (hallazgo de Desarrollo).
-        scrollA('lw-picker');
       });
     });
+    // Nunca dentro de seleccionarModelo(): ahí `popstate` secuestraría la restauración de
+    // scroll del navegador al pulsar atrás.
+    alClicar('label[for^="lw-techo-"]', 'lw-picker');
 
     // ── Isla y vista (paso 3) ─────────────────────────────────────────────────────
     document.querySelectorAll('input[name="lw-island"]').forEach(function (i) {
@@ -1645,10 +1707,14 @@ label.picker__row{cursor:pointer}
         pintaGrupo('lw-island');
         verVista();
         recalcular();
-        // Elegir Bali revela el grupo Vista justo debajo: mover además el suelo bajo un
-        // elemento que acaba de aparecer marea (Diseño). Solo se avanza con Sumba, que no
-        // abre nada.
-        if (LW_CFG.island !== 'bali') scrollA('lw-picker2');
+      });
+    });
+    // Elegir Bali revela el grupo Vista justo debajo: mover además el suelo bajo un
+    // elemento que acaba de aparecer marea (Diseño). Solo se avanza con Sumba, que no abre
+    // nada.
+    document.querySelectorAll('label[for^="lw-island-"]').forEach(function (lb) {
+      lb.addEventListener('click', function () {
+        if (lb.getAttribute('for') !== 'lw-island-bali') scrollA('lw-picker2');
       });
     });
     document.querySelectorAll('input[name="lw-view"]').forEach(function (i) {
@@ -1670,9 +1736,17 @@ label.picker__row{cursor:pointer}
         : 'Our smallest available plots are around ' + LW_M2.min + ' m² — we’ll confirm what fits on the call.';
     }
 
+    // `deb` vive fuera del bloque del input porque el handler de los preajustes tiene que
+    // poder CANCELARLO: teclear 900 en "Another size" y pulsar "350 m²" antes de los 350ms
+    // dejaba el debounce en vuelo, que al vencer leía la caja (oculta pero con "900"
+    // dentro) y pisaba el 350 recién elegido. La interfaz enseñaba 350 y a ventas le
+    // llegaba 900 — justo el fallo que el correo existe para evitar (Desarrollo, capa 1).
+    var deb = null;
+
     document.querySelectorAll('input[name="lw-m2"]').forEach(function (i) {
       i.addEventListener('change', function () {
         if (!i.checked) return;
+        window.clearTimeout(deb);
         LW_CFG.m2mode = i.value;
         pintaGrupo('lw-m2');
         if (m2Custom) m2Custom.hidden = (i.value !== 'other');
@@ -1690,7 +1764,6 @@ label.picker__row{cursor:pointer}
     });
 
     if (m2Input) {
-      var deb = null;
       m2Input.addEventListener('input', function () {
         window.clearTimeout(deb);
         deb = window.setTimeout(function () {
@@ -1718,22 +1791,42 @@ label.picker__row{cursor:pointer}
       });
     });
 
-    // ── Estado inicial desde la query (enlace compartido o recarga) ───────────────
-    (function () {
+    // ── Estado desde la query (enlace compartido, recarga o vuelta atrás) ─────────
+    // Es una función y no una IIFE de arranque porque `popstate` también tiene que poder
+    // llamarla: hasta la capa 1 de deploy, pulsar atrás cambiaba el modelo pero dejaba el
+    // techo y los m² del estado "futuro", y encima reescribía la URL de esa entrada del
+    // historial para que cuadrara — con lo que el enlace configurado que el visitante tenía
+    // en el back-stack se perdía en silencio (Desarrollo).
+    function aplicarQuery() {
       var q = new URLSearchParams(location.search);
+
       var roof = q.get('roof');
-      if (roof === 'sirap' || roof === 'bambu') {
-        var ri = document.getElementById('lw-techo-' + roof);
-        if (ri) { ri.checked = true; LW_CFG.techo = roof; }
-      }
+      var ri = roof ? document.getElementById('lw-techo-' + roof) : null;
+      // Sin lista de techos escrita a mano: vale el que exista como control en la página,
+      // que es exactamente el catálogo que renderizó PHP.
+      LW_CFG.techo = ri ? roof : TECHO_INI;
+      var riIni = document.getElementById('lw-techo-' + LW_CFG.techo);
+      if (riIni) riIni.checked = true;
+
       var isl = q.get('island');
-      if (isl) { var ii = document.getElementById('lw-island-' + isl); if (ii) { ii.checked = true; LW_CFG.island = isl; } }
+      var ii  = isl ? document.getElementById('lw-island-' + isl) : null;
+      LW_CFG.island = ii ? isl : null;
+      document.querySelectorAll('input[name="lw-island"]').forEach(function (n) { n.checked = false; });
+      if (ii) ii.checked = true;
       verVista();
+
       var vw = q.get('view');
-      if (vw && LW_CFG.island === 'bali') { var vi = document.getElementById('lw-view-' + vw); if (vi) { vi.checked = true; LW_CFG.view = vw; } }
+      var vi = (vw && LW_CFG.island === 'bali') ? document.getElementById('lw-view-' + vw) : null;
+      LW_CFG.view = vi ? vw : null;
+      document.querySelectorAll('input[name="lw-view"]').forEach(function (n) { n.checked = false; });
+      if (vi) vi.checked = true;
+
       var pl = clampM2(q.get('plot'));
+      LW_CFG.m2 = pl.v;
+      LW_CFG.m2mode = null;
+      document.querySelectorAll('input[name="lw-m2"]').forEach(function (n) { n.checked = false; });
+      if (m2Custom) m2Custom.hidden = true;
       if (pl.v !== null) {
-        LW_CFG.m2 = pl.v;
         var exacto = document.getElementById('lw-m2-' + pl.v);
         if (exacto) { exacto.checked = true; LW_CFG.m2mode = String(pl.v); }
         else {
@@ -1743,14 +1836,25 @@ label.picker__row{cursor:pointer}
           if (m2Input) m2Input.value = String(pl.v);
         }
       }
-      var ex = (q.get('extras') || '').split(',').filter(Boolean);
-      ex.forEach(function (k) {
+      // El aviso de tope también al llegar por enlace: si no, quien abre un enlace con
+      // ?plot=9999 ve 1.500 sin ninguna explicación de por qué no es lo que pedía.
+      avisa(pl.topado);
+
+      // Guarda contra duplicados: `?extras=sauna,sauna` metía la clave dos veces, y al
+      // desmarcar la casilla el splice borraba una sola — quedaba un extra fantasma en el
+      // panel y en lo que se manda a ventas, con la casilla desmarcada (Desarrollo).
+      LW_CFG.extras = [];
+      document.querySelectorAll('input[name="lw-extras"]').forEach(function (n) { n.checked = false; });
+      (q.get('extras') || '').split(',').filter(Boolean).forEach(function (k) {
         var ei = document.getElementById('lw-extra-' + k);
-        if (ei) { ei.checked = true; LW_CFG.extras.push(k); }
+        if (ei && LW_CFG.extras.indexOf(k) === -1) { ei.checked = true; LW_CFG.extras.push(k); }
       });
+
       ['lw-techo', 'lw-island', 'lw-view', 'lw-m2', 'lw-extras'].forEach(pintaGrupo);
       recalcular();
-    })();
+    }
+    lwAplicarQuery = aplicarQuery;
+    aplicarQuery();
   })();
 
   // ── Reserva confirmada DE VERDAD, no un clic: Calendly manda este mensaje al propio

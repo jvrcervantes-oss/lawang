@@ -157,6 +157,13 @@ function lw_parcela_tarifa_m2($zona) {
  * 125 y 250 €/m², cada incremento vale 6.250 € o 12.500 €, así que toda línea de parcela
  * cae en un número redondo POR CONSTRUCCIÓN y es imposible que salga un "€187.437" con
  * pinta de cotización exacta.
+ *
+ * ⚠️ 3-sep, capa 1 de deploy (Seguridad): durante unas horas esta afirmación fue FALSA. El
+ * paso solo existía como atributo `step` del <input>, que es una pista visual y no una
+ * restricción — `?plot=337` daba una parcela de 42.125 € y un total de 90.125 €, o sea
+ * exactamente la cifra con pinta de cotización que el comentario juraba imposible, y encima
+ * compartible por URL y camino del correo a ventas. Ahora el paso se aplica de verdad, aquí
+ * abajo, que es el único sitio del que no se puede escapar.
  */
 define('LW_M2_MIN', 150);
 define('LW_M2_MAX', 1500);
@@ -164,11 +171,16 @@ define('LW_M2_STEP', 50);
 const LW_M2_PRESETS = [250, 350, 500];
 
 /**
- * Normaliza los m² que teclea el visitante. Devuelve int dentro de rango, o null si no hay
- * nada utilizable — NUNCA 0, que en el panel se leería como "el terreno es gratis".
+ * Normaliza los m² que teclea el visitante: entero, ajustado al paso de 50 y dentro de
+ * rango. Devuelve null si no hay nada utilizable — NUNCA 0, que en el panel se leería como
+ * "el terreno es gratis".
  *
  * Se usa en los DOS lados (PHP para lo que se guarda y se envía a ventas, JS para pintar),
  * porque el POST a booking-notify.php no tiene auth y ahí no vale fiarse de lo que llegue.
+ *
+ * El ajuste al paso NO es silencioso: la interfaz reescribe el campo con el valor aplicado
+ * al salir de él, así que el visitante ve el número con el que se está calculando. "Un
+ * clamp mudo es una trampa" vale igual para el redondeo.
  */
 function lw_m2_clamp($raw) {
     if (is_string($raw)) $raw = trim($raw);
@@ -176,7 +188,7 @@ function lw_m2_clamp($raw) {
     $n = (float) $raw;
     // is_numeric() acepta "1e9" y "-500": el rango es lo único que los para de verdad.
     if (!is_finite($n) || $n <= 0) return null;
-    $n = (int) floor($n);
+    $n = (int) round($n / LW_M2_STEP) * LW_M2_STEP;
     if ($n < LW_M2_MIN) return LW_M2_MIN;
     if ($n > LW_M2_MAX) return LW_M2_MAX;
     return $n;

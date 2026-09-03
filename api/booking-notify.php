@@ -57,8 +57,14 @@ $modelo   = $clean($_POST['modelo']   ?? '');
 require_once __DIR__ . '/../modelo/lib.php';
 $__MODELOS = require __DIR__ . '/../modelo/modelos.php';
 if (!array_key_exists($modelo, $__MODELOS)) { $modelo = ''; }
-$source   = $clean($_POST['source']   ?? '');
-$campana  = $clean($_POST['campana']  ?? '');
+// utm_source/utm_campaign son los ÚNICOS campos de texto libre que llegan a un correo que
+// ventas recibe desde un remitente propio con SPF válido — o sea, el vector de ingeniería
+// social hacia el equipo (Seguridad, capa 1 de deploy 3-sep). Son valores generados por
+// máquina, así que acotarlos al alfabeto de una utm cierra eso y, de paso, la inyección de
+// fórmula de Excel por esta vía. El $clean() de abajo se mantiene como segunda barrera.
+$utm = function ($s) { return substr(preg_replace('/[^A-Za-z0-9._-]/', '', (string) $s), 0, 64); };
+$source   = $clean($utm($_POST['source']  ?? ''));
+$campana  = $clean($utm($_POST['campana'] ?? ''));
 $eventUri = $clean($_POST['event_uri']   ?? '');
 $inviteeUri = $clean($_POST['invitee_uri'] ?? '');
 
@@ -80,7 +86,9 @@ if (!isset($__OP['view'][$vista])) { $vista = ''; }
 // imposible en la interfaz y trivial por POST — se ignora en vez de viajar al correo.
 if ($isla !== 'bali') { $vista = ''; }
 $extrasIn = explode(',', (string) ($_POST['extras'] ?? ''));
-$extrasOk = array_values(array_intersect(array_map('trim', $extrasIn), array_keys($__OP['extras'])));
+// array_unique además de array_intersect: intersect CONSERVA duplicados, así que un
+// "extras=sauna,sauna" escribía "sauna,sauna" en el CSV y en el correo a ventas.
+$extrasOk = array_values(array_unique(array_intersect(array_map('trim', $extrasIn), array_keys($__OP['extras']))));
 $extras   = implode(',', $extrasOk);
 $m2       = lw_m2_clamp($_POST['parcela_m2'] ?? null);
 
@@ -93,9 +101,15 @@ $m2       = lw_m2_clamp($_POST['parcela_m2'] ?? null);
 $est = ($modelo !== '' && $techo !== '')
     ? lw_estimacion($__MODELOS[$modelo], $techo, $isla, $vista, $m2)
     : ['villa' => null, 'tarifa' => null, 'm2' => null, 'parcela' => null, 'total' => null, 'tramo' => ''];
+// El hedge viaja PEGADO al número (Administración, capa 1 de deploy): la pantalla dice
+// "from around €173,000" y el correo decía "€173,000" a secas — y el comercial lee la cifra
+// de arriba, no la aclaración de la línea siguiente.
 $estTxt = $est['total'] !== null
-    ? lw_precio_fmt($est['total']) . ($est['parcela'] === null ? ' (villa sola, sin parcela)' : '')
-    : '(sin calcular)';
+    ? 'desde ~' . lw_precio_fmt($est['total']) . ' EUR' . ($est['parcela'] === null ? ' (villa sola, sin parcela)' : '')
+    // Si el techo no valida, el visitante SÍ vio una cifra igualmente (el panel arranca con
+    // sirap pintado en servidor): decir "(sin calcular)" bajo un encabezado que afirma "lo
+    // que vio en pantalla" sería falso. Se dice qué pasó de verdad.
+    : '(no reconstruible: la seleccion no llego completa)';
 
 // Filtro de formato mínimo: sin esto, cualquier texto libre pasa a correo y CSV.
 // No es verificación real (para eso haría falta la API de Calendly, que no tenemos),
@@ -122,6 +136,44 @@ if (!is_file($dir . '/.htaccess')) {
 // 11, en silencio y para siempre. El histórico anterior se queda intacto donde está.
 $file = $dir . '/bookings_calendly_v2.csv';
 
+// ── Purga a 90 días ────────────────────────────────────────────────────────────────
+// Las dos políticas de privacidad PROMETEN 90 días de conservación de este aviso interno,
+// y hasta hoy no había nada que lo cumpliera: una regla escrita sin guardrail. Ahora que el
+// fichero guarda además una estimación económica junto a la IP, la promesa tenía que
+// empezar a ser cierta. Se hace aquí, de forma oportunista al escribir, en vez de con un
+// cron: no hace falta acceso a la infraestructura y este endpoint es el único que escribe.
+// Cubre también el v1 congelado del 2-sep, que si no se quedaría eterno.
+$purga = function ($ruta) {
+    if (!is_file($ruta) || filesize($ruta) === 0) return;
+    $corte = strtotime('-90 days');
+    $fh = @fopen($ruta, 'r');
+    if ($fh === false) return;
+    $vivas = [];
+    $cabecera = fgetcsv($fh);
+    while (($f = fgetcsv($fh)) !== false) {
+        // La fecha es siempre la primera columna, en las dos versiones del fichero. Una
+        // fila con fecha ilegible se CONSERVA: ante la duda no se borra un dato.
+        $ts = isset($f[0]) ? strtotime($f[0]) : false;
+        if ($ts === false || $ts >= $corte) $vivas[] = $f;
+    }
+    fclose($fh);
+    // Solo se reescribe si de verdad hay algo que quitar.
+    if (count($vivas) === 0 && $cabecera === false) return;
+    $antes = 0;
+    $c = @file($ruta, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($c !== false) $antes = max(0, count($c) - 1);
+    if ($antes <= count($vivas)) return;
+    $tmpF = $ruta . '.tmp';
+    $out = @fopen($tmpF, 'w');
+    if ($out === false) return;
+    if ($cabecera !== false) fputcsv($out, $cabecera);
+    foreach ($vivas as $f) { fputcsv($out, $f); }
+    fclose($out);
+    @rename($tmpF, $ruta);
+};
+$purga($file);
+$purga($dir . '/bookings_calendly.csv');
+
 $new = !file_exists($file);
 $fh  = @fopen($file, 'a');
 if ($fh === false) {
@@ -145,6 +197,11 @@ $enviado = @mail(
     . " · tramo " . ($est['tramo'] !== '' ? $est['tramo'] : '?') . ")\n"
     . "  NO incluye: extras (" . ($extras !== '' ? $extras : 'ninguno marcado')
     . "), notaria, permisos ni gastos de transmision. El precio de villa es un DESDE.\n"
+    // Los dos matices que hacen que ventas cite otro numero en la llamada (Administracion,
+    // capa 1 de deploy): sumar el 11% que ya esta dentro, o dar el euro como si fuera la
+    // moneda del contrato cuando el propio FAQ de la pagina dice que se firma en rupias.
+    . "  SI incluye el PPN indonesio: no se le suma un 11% encima en la llamada.\n"
+    . "  EUR orientativo. El contrato se firma en IDR al cambio de la fecha.\n"
     . "  Recalculada en servidor, no es lo que dijo el navegador.\n\n"
     . "AVISO AUTOMATICO SIN VERIFICAR CONTRA CALENDLY: alguien completo el widget de\n"
     . "reserva en la web. Revisar el calendario de Calendly para confirmar y ver\n"

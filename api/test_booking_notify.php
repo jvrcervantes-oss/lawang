@@ -58,17 +58,26 @@ $base = [
 ];
 
 // 1. Caso bueno: Dali/bambú (50.000) + Bali/beachfront 500 m² a 250 = 175.000.
-llama($tmp, $base + ['techo' => 'bambu', 'island' => 'bali', 'view' => 'beachfront',
-                     'parcela_m2' => '500', 'extras' => 'sauna']);
+llama($tmp, array_merge($base, ['techo' => 'bambu', 'island' => 'bali', 'view' => 'beachfront',
+                     'parcela_m2' => '500', 'extras' => 'sauna']));
 // 2. El navegador manda un importe inventado: no puede aparecer en ningún sitio.
-llama($tmp, $base + ['techo' => 'sirap', 'island' => 'sumba', 'parcela_m2' => '300',
-                     'estimacion' => '999999999', 'total' => '1']);
+llama($tmp, array_merge($base, ['techo' => 'sirap', 'island' => 'sumba', 'parcela_m2' => '300',
+                     'estimacion' => '999999999', 'total' => '1']));
 // 3. Todo fuera de catálogo + m² hostil + inyección de fórmula CSV.
-llama($tmp, $base + ['techo' => '<script>', 'island' => 'marte', 'view' => 'volcano',
-                     'extras' => 'sauna,jacuzzi-inventado,=cmd|calc', 'parcela_m2' => '1e9']);
+llama($tmp, array_merge($base, ['techo' => '<script>', 'island' => 'marte', 'view' => 'volcano',
+                     'extras' => 'sauna,jacuzzi-inventado,=cmd|calc', 'parcela_m2' => '1e9']));
 // 4. Vista de Bali junto a Sumba: imposible en la interfaz, trivial por POST.
-llama($tmp, $base + ['techo' => 'sirap', 'island' => 'sumba', 'view' => 'beachfront',
-                     'parcela_m2' => '400']);
+llama($tmp, array_merge($base, ['techo' => 'sirap', 'island' => 'sumba', 'view' => 'beachfront',
+                     'parcela_m2' => '400']));
+// 5. Inyección de fórmula por la ÚNICA vía de texto libre real: las utm.
+//    Hasta la capa 1 de deploy del 3-sep el único caso hostil metía "=cmd|calc" en
+//    `extras`, donde el filtro de catálogo lo tiraba antes de llegar al guardia de
+//    fórmula — o sea, un test que no podía fallar (Seguridad). `source` y `campana` son
+//    los campos que de verdad llegan como texto libre al correo de ventas.
+//    Además: extras duplicados y m² fuera de paso, los dos por enlace manipulado.
+llama($tmp, array_merge($base, ['techo' => 'sirap', 'island' => 'sumba', 'parcela_m2' => '337',
+                     'source' => '=2+2', 'campana' => "ig'\"|cmd /c calc",
+                     'extras' => 'sauna,sauna']));
 
 $csv = $tmp . '/private/bookings_calendly_v2.csv';
 ok(is_file($csv), 'debe escribirse el CSV v2 (el v1 ya existe en produccion con 11 columnas)');
@@ -84,7 +93,7 @@ foreach ($filas as $i => $f) {
     ok(count($f) === count($cab), 'la fila ' . ($i + 1) . ' debe tener tantas columnas como la cabecera');
 }
 $r = array_map(function ($f) use ($cab) { return array_combine($cab, $f); }, $filas);
-ok(count($r) === 4, 'deben escribirse 4 filas, salieron ' . count($r));
+ok(count($r) === 5, 'deben escribirse 5 filas, salieron ' . count($r));
 
 ok($r[0]['total_servidor'] === '175000', 'bambu + beachfront 500m2 = 175000, salio ' . $r[0]['total_servidor']);
 ok($r[0]['precio_villa'] === '50000', 'el techo elegido manda: bambu son 50000, no el 48000 del sirap');
@@ -100,13 +109,40 @@ ok($r[2]['island'] === '', 'una isla inventada se guarda vacia');
 ok($r[2]['view'] === '', 'una vista inventada se guarda vacia');
 ok($r[2]['extras'] === 'sauna', 'solo sobreviven los extras del catalogo, salio "' . $r[2]['extras'] . '"');
 ok(strpos($crudo, 'jacuzzi-inventado') === false, 'un extra inventado no llega al CSV ni al correo');
-ok(strpos($crudo, 'calc') === false, 'la inyeccion de formula de Excel no llega al CSV');
+// Se asierta sobre los CARACTERES peligrosos, no sobre la palabra: tras el filtro, un
+// "cmd /c calc" queda en "cmdccalc", que sigue conteniendo "calc" y es completamente
+// inofensivo. Lo que no puede sobrevivir es el "=" que hace que Excel lo ejecute, ni la
+// tuberia que encadena el comando.
+ok(strpos($crudo, '=cmd') === false, 'la inyeccion de formula de Excel no llega al CSV');
+ok(strpos($crudo, '|') === false, 'ninguna tuberia de comando sobrevive en el CSV');
 ok($r[2]['parcela_m2'] === '1500', '1e9 m2 debe toparse a 1500, salio ' . $r[2]['parcela_m2']);
 ok($r[2]['total_servidor'] === '', 'sin techo valido no hay total (vacio, nunca un 0)');
 
 ok($r[3]['view'] === '', 'una vista de Bali junto a Sumba debe ignorarse');
 ok($r[3]['tarifa_m2'] === '125', 'Sumba mantiene su tarifa aunque llegue una vista de Bali');
 ok($r[3]['total_servidor'] === '98000', 'sumba 400m2 = 48000+50000 = 98000, salio ' . $r[3]['total_servidor']);
+
+// Caso 5 — el que de verdad ejercita el texto libre.
+ok($r[4]['source'] === '22', 'las utm se acotan al alfabeto de una utm: "=2+2" pierde el = y el +, salio "' . $r[4]['source'] . '"');
+ok(strpos($crudo, '=2+2') === false, 'ninguna celda puede quedar con una formula de Excel viva');
+ok(strpos($crudo, '2+2') === false, 'si alguien quita el filtro de utm, este assert cae: es lo que lo hace un test de verdad');
+ok(strpos($r[4]['campana'], '|') === false && strpos($r[4]['campana'], '"') === false,
+    'la campana no puede llevar comillas ni tuberias hacia el correo de ventas, salio "' . $r[4]['campana'] . '"');
+ok($r[4]['extras'] === 'sauna', 'extras duplicados se colapsan a uno, salio "' . $r[4]['extras'] . '"');
+ok($r[4]['parcela_m2'] === '350', '337 m2 se ajusta al paso de 50 tambien en servidor, salio ' . $r[4]['parcela_m2']);
+ok((int) $r[4]['total_servidor'] % 25 === 0, 'con el paso aplicado, el total nunca sale con pinta de cotizacion exacta');
+
+// El metodo se comprueba: un GET no debe escribir nada.
+$antes = count($r);
+$arn = $tmp . '/arnes_get.php';
+file_put_contents($arn, '<?php $_SERVER["REQUEST_METHOD"]="GET"; $_SERVER["REMOTE_ADDR"]="203.0.113.9";'
+    . ' require ' . var_export($tmp . '/api/booking-notify.php', true) . ';');
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($arn) . ' 2>&1', $og);
+ok(strpos(implode('', $og), '"error":"method"') !== false, 'un GET debe responder 405, salio: ' . implode('', $og));
+$despues = count(array_filter(explode("\n", trim(file_get_contents($csv))))) - 1;
+ok($despues === $antes, 'un GET no debe escribir ninguna fila');
+@unlink($arn);
+$crudo = file_get_contents($csv);
 
 // Limpieza: el arnés no deja basura en el temporal del sistema.
 foreach (['/private/bookings_calendly_v2.csv', '/private/.htaccess', '/arnes.php'] as $f) { @unlink($tmp . $f); }

@@ -144,15 +144,29 @@ ok(lw_m2_clamp('0') === null, 'cero no es una superficie');
 ok(lw_m2_clamp('') === null, 'vacío no es una superficie');
 ok(lw_m2_clamp('abc') === null, 'texto no es una superficie');
 ok(lw_m2_clamp(null) === null, 'null no es una superficie');
-ok(lw_m2_clamp('300.7') === 300, 'los m² se compran enteros: se trunca, no se redondea al alza');
 ok(lw_m2_clamp(' 350 ') === 350, 'los espacios alrededor no invalidan el número');
 ok(lw_m2_clamp('10') === LW_M2_MIN, 'por debajo del mínimo se topa al mínimo');
 ok(lw_m2_clamp((string) LW_M2_MAX) === LW_M2_MAX, 'el máximo exacto es válido');
 
-// Los preajustes tienen que caer DENTRO del rango, o la interfaz ofrece un botón que el
-// propio clamp corrige a espaldas del visitante.
+// El PASO se aplica de verdad, no solo como atributo del <input> (capa 1 de deploy,
+// Seguridad): durante unas horas ?plot=337 daba una parcela de 42.125€ y un total de
+// 90.125€, o sea justo la cifra con pinta de cotización exacta que el comentario de
+// lib.php juraba imposible por construcción — y encima compartible por URL.
+ok(LW_M2_STEP > 0 && LW_M2_MIN % LW_M2_STEP === 0 && LW_M2_MAX % LW_M2_STEP === 0,
+    'mínimo y máximo deben caer en el paso, o el propio rango produce cifras fuera de paso');
+ok(lw_m2_clamp('337') === 350, '337 m² debe ajustarse al paso de 50, no colarse tal cual');
+ok(lw_m2_clamp('301') === 300, 'el ajuste al paso es al más cercano');
+ok(lw_m2_clamp('300.7') === 300, 'decimal + paso: 300.7 cae en 300, nunca en 300.7');
+foreach (['337', '1', '99999', '412.9'] as $raw) {
+    $v = lw_m2_clamp($raw);
+    ok($v !== null && $v % LW_M2_STEP === 0, "lw_m2_clamp('$raw') debe caer siempre en el paso, salió " . var_export($v, true));
+}
+
+// Los preajustes tienen que caer DENTRO del rango y EN el paso, o la interfaz ofrece un
+// botón que el propio clamp corrige a espaldas del visitante.
 foreach (LW_M2_PRESETS as $p) {
     ok($p >= LW_M2_MIN && $p <= LW_M2_MAX, "el preajuste de $p m² debe estar dentro del rango del estimador");
+    ok($p % LW_M2_STEP === 0, "el preajuste de $p m² debe caer en el paso de " . LW_M2_STEP);
     ok(lw_m2_clamp((string) $p) === $p, "el preajuste de $p m² debe sobrevivir intacto al clamp");
 }
 
