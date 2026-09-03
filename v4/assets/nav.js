@@ -16,7 +16,7 @@
 
   // etiqueta visible (fin del textContent del enlace) -> carpeta de la herramienta
   var RUTAS = [
-    ['Home', ''],
+    ['Home', 'home/'],
     ['Operaciones', 'operaciones/'],
     ['Soporte', 'soporte/'],
     ['Vencimientos', 'vencimientos/'],
