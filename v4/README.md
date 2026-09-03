@@ -1,4 +1,23 @@
-# Intranet Lawang — v4 (MAQUETA de diseño, rama `suite-v4`)
+# Intranet Lawang — v4 (rama `suite-v4`)
+
+## ⚡ CABLEADA A DATOS REALES (4-sep-2026) — ya no es solo maqueta
+
+Desplegada en `lawangproperties.com/intranet/v4/` **detrás del guard real de la suite**
+(supabase-js + `/contracts/assets/guard.js`, sin defer y primeros del head, con el
+`data-herramienta` de su herramienta viva; sin sesión rebota a `/intranet/?next=`).
+`v4/assets/datos.js` (SOLO LECTURA) pinta datos reales: RPCs de equipo
+`contratos_equipo()`/`facturas_equipo()`/`contrato_firmas_equipo()` — nunca `.from()`
+directo sobre contratos/facturas (RLS «lo mío» devuelve menos filas sin error) — y
+tablas `es_agente()`; importes con `dinero.js`, tipos con `vocabulario.js`, jsonb
+`datos` jamás. Crear/editar abre los formularios de las herramientas VIVAS
+(maqueta.js → `FORM_REAL`). Pantallas cuya maqueta no tiene tabla llevan el panel
+«● DATOS EN VIVO» (siempre pintado; 0 filas = estado vacío honesto). Fallos ruidosos:
+`console.error` + aviso visible, «—» solo en cifras sueltas.
+Verificado el 4-sep con un usuario QA temporal (rol agente, borrado tras la prueba):
+login real → 16 pantallas, 0 errores de consola, 0 PII fuera de sesión.
+⚠️ Los `?v=` de los assets compartidos están sellados A MANO con el hash vigente del
+4-sep: `tools/sella_assets.py` no cubre este árbol hasta que v4 viva en
+`proyectos/Lawang` — al cambiar guard/dinero/vocabulario hay que resellarlos aquí.
 
 > **Esto es una maqueta navegable. Todos los datos que enseña son ficticios.**
 > Origen: proyecto de Stitch «Portal Inmobiliario y Gestión Promotora» (3-sep-2026).
