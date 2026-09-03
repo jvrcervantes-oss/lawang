@@ -53,6 +53,17 @@ en el historial para siempre. El detalle de qué se sustituyó por qué NO se es
   enlace de contraseña olvidada, ES/EN, pie © PT Tepi Sun Gai. Datos inventados.»* — y
   re-pasar el filtro PII al bajarla.
 
+## Cáscara canónica (3-sep-2026, orden del owner)
+
+Cada pantalla de Stitch traía su propia variante de sidebar y topbar. **La de
+`creatividades/` manda**: su `<aside>` (con ítem Home y logout→`entrar/`) y su `<header>`
+(buscador + campana + usuario) están trasplantados a las 16 pantallas desktop, con los
+offsets de contenido ajustados a su ancho (`pl-72`/`pt-16`). El ítem activo lo marca
+`nav.js` con la píldora canónica (`bg-primary-container`), leyendo el `data-path` de cada
+enlace. ⚠️ **La cáscara está duplicada en 16 ficheros a propósito de MAQUETA** — en la
+fase de cableado nace compartida e inyectada (patrón `topbar.js` de la suite viva,
+Regla 0 de `contexto/suite_lawang.md`), nunca se gradúa así.
+
 ## Censo contra la suite viva (3-sep-2026)
 
 Las **12 herramientas** de `contracts/assets/herramientas.js` tienen pantalla v4.

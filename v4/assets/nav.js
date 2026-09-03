@@ -33,9 +33,25 @@
 
   function normaliza(t) { return (t || '').replace(/\s+/g, ' ').trim(); }
 
+  function marcaActiva(a) {
+    a.setAttribute('aria-current', 'page');
+    // píldora activa de la cáscara canónica (creatividades, 3-sep-2026)
+    a.classList.remove('text-on-surface-variant');
+    a.classList.add('bg-primary-container', 'text-on-primary', 'font-bold');
+  }
+
   function recablea() {
     var aqui = location.pathname;
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
+      // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
+      var dp = a.getAttribute('data-path');
+      if (dp) {
+        var ruta = dp === 'login' ? 'entrar/' : dp + '/';
+        a.href = ROOT + ruta;
+        if (dp === 'login') { a.title = 'Maqueta — vuelve a la pantalla de acceso'; return; }
+        if (aqui.indexOf('/' + ruta) !== -1) marcaActiva(a);
+        return;
+      }
       var texto = normaliza(a.textContent);
       if (/Cerrar Sesi|logout/i.test(texto)) {
         a.href = ROOT + 'entrar/';
@@ -45,11 +61,7 @@
       for (var i = 0; i < RUTAS.length; i++) {
         if (texto === RUTAS[i][0] || texto.slice(-RUTAS[i][0].length) === RUTAS[i][0]) {
           a.href = ROOT + RUTAS[i][1];
-          if (RUTAS[i][1] && aqui.indexOf('/' + RUTAS[i][1]) !== -1) {
-            a.setAttribute('aria-current', 'page');
-            a.style.outline = '1px solid rgba(200,155,92,.6)';
-            a.style.outlineOffset = '-1px';
-          }
+          if (RUTAS[i][1] && aqui.indexOf('/' + RUTAS[i][1]) !== -1) marcaActiva(a);
           return;
         }
       }
