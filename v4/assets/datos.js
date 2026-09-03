@@ -106,6 +106,35 @@
     document.body.prepend(d);
   }
 
+  /* Panel «DATOS EN VIVO» tras la cabecera: para pantallas cuya maqueta no usa
+     <table>. Siempre se pinta — con filas reales o con el estado vacío honesto —
+     y avisa de que lo de debajo es diseño. */
+  function itemPanel(izq, sub, der) {
+    return '<div style="display:flex;justify-content:space-between;gap:12px;padding:11px 14px;background:#fff;border:1px solid #e4e2dd;border-radius:10px;font-family:\'Neue Kabel\',sans-serif;cursor:pointer" data-mq-item>' +
+      '<div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + izq + '</div>' +
+      (sub ? '<div style="font-size:12px;color:#8A8474">' + sub + '</div>' : '') + '</div>' +
+      (der != null ? '<div style="font-weight:700;white-space:nowrap;align-self:center">' + der + '</div>' : '') + '</div>';
+  }
+  function panelReal(titulo, items, urls, vacio, verMasUrl) {
+    var h1 = document.querySelector('h1'); if (!h1) return;
+    var cab = h1; for (var i = 0; i < 4 && cab.parentElement; i++) { cab = cab.parentElement; if (cab.parentElement && cab.parentElement.tagName === 'MAIN') break; }
+    var d = document.createElement('section');
+    d.style.cssText = 'margin:18px 0 26px;padding:16px 18px;background:#F1EBDD;border:1px solid #c5c8bc;border-radius:14px';
+    d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px">' +
+      '<span style="font:700 11px \'Neue Kabel\',sans-serif;letter-spacing:.18em;color:#485B37">● DATOS EN VIVO</span>' +
+      '<span style="font:400 11px \'Neue Kabel\',sans-serif;color:#8A8474">lo de debajo es diseño de la maqueta</span></div>' +
+      '<p style="font:600 20px \'The Seasons\',serif;color:#314322;margin:0 0 10px">' + esc(titulo) + '</p>' +
+      (items.length ? '<div style="display:grid;gap:8px">' + items.join('') + '</div>'
+                    : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">' + esc(vacio || 'Sin registros.') + '</p>') +
+      (verMasUrl ? '<a href="' + verMasUrl + '" style="display:inline-block;margin-top:10px;font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir la herramienta completa →</a>' : '');
+    cab.insertAdjacentElement('afterend', d);
+    var its = d.querySelectorAll('[data-mq-item]');
+    for (var j = 0; j < its.length; j++) (function (k) {
+      if (urls && urls[k]) its[k].addEventListener('click', function () { location.href = urls[k]; });
+      else its[k].style.cursor = 'default';
+    })(j);
+  }
+
   function q(p, nombre, cont) {
     return p.then(function (r) {
       if (r.error) { fallo(nombre, r.error, cont); return null; }
@@ -181,28 +210,20 @@
     },
 
     facturas: function (sb) {
-      var t = tablaPor([/DOC|FACTURA|N[ºU]/, /CLIENTE|COMPRADOR/, /IMPORTE|TOTAL/]);
-      q(sb.rpc('facturas_equipo').select('id,numero,tipo,cliente_nombre,contrato_numero,total,moneda,anulada,created_at'), 'facturas', t)
+      // esta pantalla de Stitch es un EDITOR de documento, no un listado: el
+      // panel en vivo trae las últimas emitidas y la emisión real va a la herramienta
+      q(sb.rpc('facturas_equipo').select('id,numero,tipo,cliente_nombre,contrato_numero,total,moneda,anulada,created_at'), 'facturas')
         .then(function (fs) {
-          if (!fs || !t) return;
-          var pl = plantillaFilas(t);
-          function pinta(filtro) {
-            while (pl.tbody.rows.length) pl.tbody.deleteRow(0);
-            fs.filter(function (f) { return !filtro || f.tipo === filtro; })
-              .sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120)
-              .forEach(function (f) {
-                fila(pl, [f.numero, f.tipo === 'recibi' ? 'Recibí' : f.tipo === 'proforma' ? 'Proforma' : 'Factura',
-                  f.cliente_nombre || '—', f.contrato_numero || '—', fmt(f.total, f.moneda),
-                  f.anulada ? 'ANULADA' : 'EMITIDA', fFecha(f.created_at)],
-                  '/intranet/facturas/?id=' + f.id);
-              });
-          }
-          pinta(null);
-          // chips de tipo: cableados de verdad (data-real) — filtran esta lista
-          [['Proforma', 'proforma'], ['Factura', 'factura'], ['Recib', 'recibi'], ['Todos|Listado', null]].forEach(function (par) {
-            var b = hojaConTexto(new RegExp('^' + par[0], 'i'));
-            if (b && b.tagName === 'BUTTON') { b.setAttribute('data-real', '1'); b.addEventListener('click', function () { pinta(par[1]); }); }
-          });
+          if (fs == null) return;
+          var ult = fs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 10);
+          panelReal('Últimos documentos emitidos (' + fs.length + ' en total)',
+            ult.map(function (f) {
+              return itemPanel(esc(f.numero) + ' · ' + (f.tipo === 'recibi' ? 'Recibí' : f.tipo === 'proforma' ? 'Proforma' : 'Factura'),
+                esc(f.cliente_nombre || '—') + (f.contrato_numero ? ' · ' + esc(f.contrato_numero) : '') + ' · ' + fFecha(f.created_at),
+                fmt(f.total, f.moneda) + (f.anulada ? ' · ANULADA' : ''));
+            }),
+            ult.map(function (f) { return '/intranet/facturas/?id=' + f.id; }),
+            'Sin documentos emitidos.', '/intranet/facturas/');
         });
     },
 
@@ -272,24 +293,21 @@
       cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en30).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
         .then(function (n) { if (n != null) kpi(/CR[IÍ]TICOS/i, String(n), 'con fecha en 30 días'); });
       kpi(/PREVISI[ÓO]N DE ENTRADAS/i, '—', 'la cascada exacta vive en la herramienta');
-      // lista: próximos vencimientos de contratos firmados
+      // lista SIEMPRE pintada (con 0 filas, estado vacío honesto — las tarjetas
+      // de la maqueta de abajo no pueden quedarse como única "verdad")
       q(sb.from('contrato_vencimientos')
           .select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
           .eq('contratos.bloqueado', true).gte('fecha', hoy).order('fecha').limit(12), 'próximos vencimientos')
         .then(function (vs) {
-          if (!vs || !vs.length) return;
-          var anc = hojaConTexto(/Urgentes \/ Vencidos|Esta Semana/i);
-          if (!anc) { console.info('[v4] vencimientos: sin ancla de lista'); return; }
-          var cont = tarjetaDe(anc).parentElement;
-          var html = vs.map(function (v) {
-            var imp = v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—');
-            return '<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 16px;background:#fff;border:1px solid #e4e2dd;border-radius:10px;margin:8px 0;font-family:\'Neue Kabel\',sans-serif">' +
-              '<div><div style="font-weight:600">' + esc(v.descripcion || 'Hito') + ' · ' + esc(v.contratos.numero) + '</div>' +
-              '<div style="font-size:12px;color:#8A8474">' + fFecha(v.fecha) + '</div></div>' +
-              '<div style="font-weight:700;white-space:nowrap">' + imp + '</div></div>';
-          }).join('');
-          cont.innerHTML = '<p style="font:600 15px \'The Seasons\',serif;margin:6px 0 2px">Próximos vencimientos (contratos firmados)</p>' + html +
-            '<a href="/intranet/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Cascada completa en la herramienta →</a>';
+          if (vs == null) return;
+          var items = vs.map(function (v) {
+            return itemPanel(esc(v.descripcion || 'Hito') + ' · ' + esc(v.contratos.numero), fFecha(v.fecha),
+              v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—'));
+          });
+          panelReal('Próximos vencimientos de contratos firmados', items,
+            vs.map(function () { return '/intranet/vencimientos/'; }),
+            'Ningún vencimiento con fecha futura en contratos firmados — la cascada de cobros y lo vencido se miran en la herramienta.',
+            '/intranet/vencimientos/');
         });
     },
 
@@ -329,33 +347,33 @@
         if (!ps || !ps.length) return;
         var nombre = pedido || ps[0].nombre;
         var h2 = hojaConTexto(/Master Plan|Horizon S1/i); if (h2) h2.textContent = nombre + ' · Master Plan & Cuentas';
-        var t = tablaPor([/UNIDAD|LOTE|C[ÓO]DIGO/, /ESTADO|MODELO/]);
-        q(sb.from('unidades_estado').select('codigo,modelo,estado,contrato_numero,comprador_nombre').eq('proyecto', nombre).order('codigo').limit(120), 'unidades de ' + nombre, t)
+        q(sb.from('unidades_estado').select('codigo,modelo,estado,contrato_numero,comprador_nombre').eq('proyecto', nombre).order('codigo').limit(120), 'unidades de ' + nombre)
           .then(function (us) {
-            if (!us || !t) return;
-            var pl = plantillaFilas(t);
-            us.forEach(function (u) {
-              fila(pl, [u.codigo, u.modelo || '—', (u.estado || '—').toUpperCase(),
-                u.contrato_numero || '—', u.comprador_nombre || '—', ''],
-                '/intranet/proyectos/?proyecto=' + encodeURIComponent(nombre));
-            });
+            if (us == null) return;
+            panelReal('Unidades de ' + nombre + (pedido ? '' : ' (primer proyecto por orden — abre otro con ?proyecto=)'),
+              us.map(function (u) {
+                return itemPanel(esc(u.codigo) + ' · ' + esc(u.modelo || '—'),
+                  (u.contrato_numero ? esc(u.contrato_numero) + ' · ' : '') + esc(u.comprador_nombre || 'sin comprador'),
+                  (u.estado || '—').toUpperCase());
+              }),
+              us.map(function () { return '/intranet/proyectos/?proyecto=' + encodeURIComponent(nombre); }),
+              'Este proyecto no tiene unidades dadas de alta.', '/intranet/proyectos/?proyecto=' + encodeURIComponent(nombre));
           });
       });
     },
 
     obra: function (sb) {
       vaciaKpis([/EN OBRA|ACTIVAS/i]);
-      var t = tablaPor([/UNIDAD|VILLA|C[ÓO]DIGO/, /FASE|AVANCE/]);
-      q(sb.from('unidades_estado').select('codigo,proyecto,modelo,obra_fase,obra_fecha_entrega,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }).limit(60), 'obra', t)
+      q(sb.from('unidades_estado').select('codigo,proyecto,modelo,obra_fase,obra_fecha_entrega,comprador_nombre').not('obra_fase', 'is', null).order('obra_actualizado', { ascending: false }).limit(60), 'obra')
         .then(function (us) {
-          if (!us) return;
+          if (us == null) return;
           kpi(/EN OBRA|ACTIVAS/i, String(us.length), 'unidades con fase abierta');
-          if (!t) { console.info('[v4] obra: sin tabla ancla'); return; }
-          var pl = plantillaFilas(t);
-          us.forEach(function (u) {
-            fila(pl, [u.codigo + ' · ' + (u.proyecto || ''), u.modelo || '—', u.obra_fase || '—',
-              u.comprador_nombre || '—', fFecha(u.obra_fecha_entrega), ''], '/intranet/obra/');
-          });
+          panelReal('Unidades en obra', us.map(function (u) {
+            return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || ''),
+              esc(u.modelo || '—') + ' · ' + esc(u.comprador_nombre || 'sin comprador') + ' · entrega ' + fFecha(u.obra_fecha_entrega),
+              esc(u.obra_fase || '—'));
+          }), us.map(function () { return '/intranet/obra/'; }),
+          'Ninguna unidad con fase de obra abierta.', '/intranet/obra/');
         });
     },
 
@@ -400,14 +418,11 @@
         var abiertos = hs.filter(function (h) { return h.estado === 'abierto'; }).length;
         kpi(/ABIERTOS|TICKETS/i, String(abiertos), 'de ' + hs.length + ' hilos');
         var chip = hojaConTexto(/^Todos\b/i); if (chip) chip.textContent = 'Todos (' + hs.length + ')';
-        var t = tablaPor([/CLIENTE|COMPRADOR|ASUNTO/, /ESTADO|CATEGOR/]);
-        if (!t) { console.info('[v4] soporte: sin tabla ancla'); return; }
-        var pl = plantillaFilas(t);
-        hs.forEach(function (h) {
-          fila(pl, [nom[h.client_id] || h.client_id, h.categoria || '—',
-            (h.estado || '—').toUpperCase(), fFecha(h.actualizado_en), '', ''],
-            '/intranet/soporte/?id=' + h.client_id);
-        });
+        panelReal('Hilos de soporte', hs.map(function (h) {
+          return itemPanel(esc(nom[h.client_id] || 'Cliente'), esc(h.categoria || 'general') + ' · ' + fFecha(h.actualizado_en),
+            (h.estado || '—').toUpperCase());
+        }), hs.map(function (h) { return '/intranet/soporte/?id=' + h.client_id; }),
+        'Ningún hilo de soporte todavía.', '/intranet/soporte/');
       });
     },
 
