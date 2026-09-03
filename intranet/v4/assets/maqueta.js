@@ -89,6 +89,27 @@
     [/registro de auditor/i, 'operaciones']
   ];
 
+  /* Con datos reales (cableado 4-sep-2026), crear/editar NO abre el modal de
+     maqueta: abre el formulario de la herramienta VIVA — Regla 0 bis de la
+     suite, y encargo literal del owner («usa los mismos formularios que
+     tenemos en la versión estándar»). Rutas absolutas: las herramientas viven
+     en el dominio real, no dentro de v4/. */
+  var FORM_REAL = [
+    [/nuevo contrato|nueva operaci/i, '/contracts/app.html'],
+    [/nueva factura|nuevo documento|emitir factura/i, '/intranet/facturas/?tipo=factura'],
+    [/emitir recib/i, '/intranet/facturas/?tipo=recibi'],
+    [/alta de comprador/i, '/intranet/compradores/?nuevo=1'],
+    [/nueva unidad|nuevo proyecto|importar csv/i, '/intranet/proyectos/'],
+    [/registrar hito/i, '/intranet/vencimientos/'],
+    [/registrar avance|firmar peritaje/i, '/intranet/obra/'],
+    [/nuevo ticket/i, '/intranet/soporte/'],
+    [/invitar miembro|editar permisos/i, '/intranet/usuarios/'],
+    [/nueva creatividad|dossier$/i, '/intranet/creatividades/'],
+    [/subir nuevo expediente/i, '/intranet/documentacion/'],
+    [/añadir adquirente|editar texto|copiar datos/i, '/contracts/app.html']
+  ];
+  function conDatosReales() { return document.body.getAttribute('data-datos') === 'reales'; }
+
   /* ---------- clasificación de la acción de un botón ---------- */
   function maneja(btn) {
     var t = texto(btn); var ico = iconos(btn); var tl = t.toLowerCase();
@@ -100,7 +121,13 @@
       else document.body.classList.toggle('v4-nav-plegada');
       return true;
     }
-    // 2) navegación
+    // 2) con datos reales: crear/editar abre el formulario de la herramienta VIVA
+    if (conDatosReales()) {
+      for (var k = 0; k < FORM_REAL.length; k++) {
+        if (FORM_REAL[k][0].test(tl)) { location.href = FORM_REAL[k][1]; return true; }
+      }
+    }
+    // 2b) navegación interna de la maqueta
     for (var i = 0; i < NAVEGAN.length; i++) {
       if (NAVEGAN[i][0].test(tl) && !en(NAVEGAN[i][1])) { location.href = ROOT + NAVEGAN[i][1] + '/'; return true; }
     }
@@ -150,7 +177,11 @@
     if (btn) {
       if (btn.closest('#lw-modal')) return;             // el modal gestiona los suyos
       if (btn.hasAttribute('onclick')) return;          // comportamiento propio de Stitch
-      if (conmutaChip(btn)) return;
+      if (btn.hasAttribute('data-real')) return;        // cableado por datos.js: no se toca
+      // Sobre datos reales un chip que "se enciende" sin filtrar MIENTE: solo
+      // conmutan los chips en pantallas aún de maqueta, o los que datos.js
+      // haya cableado de verdad (data-real, rama de arriba).
+      if (!conDatosReales() && conmutaChip(btn)) return;
       if (maneja(btn)) { ev.preventDefault(); return; }
       toast('«' + (sinIcono(texto(btn)) || 'Acción') + '» — disponible en la fase de cableado');
       return;

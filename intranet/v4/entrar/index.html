@@ -35,7 +35,9 @@ tailwind.config = { theme: { extend: {
     <p class="font-ui text-[11px] uppercase tracking-[0.24em] text-territorial-green mb-3">Intranet del equipo</p>
     <h1 class="font-display text-4xl font-semibold text-primary leading-tight mb-8">Bienvenido de nuevo</h1>
 
-    <form onsubmit="location.href='../home/';return false" class="flex flex-col gap-5">
+    <!-- La puerta real es /intranet/ (login vivo de la suite): este formulario redirige
+         allí con next de vuelta al Home v4. No valida nada aquí a propósito. -->
+    <form onsubmit="location.href='/intranet/?next='+encodeURIComponent(new URL('../home/',location.href).pathname);return false" class="flex flex-col gap-5">
       <div>
         <label for="email" class="font-ui text-[11px] uppercase tracking-[0.16em] text-control-border block mb-1.5">Email</label>
         <input id="email" type="email" autocomplete="username" placeholder="nombre@lawangproperties.com"
