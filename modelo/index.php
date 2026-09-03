@@ -110,6 +110,11 @@ $sizeTxt  = $m['villa_m2'] . 'm² + ' . $m['terraza_m2'] . 'm² terrace';
 
 $precioTxt = $precio !== null ? $precio : 'Upon request';
 
+// Sufijo del <title>, en una sola variable porque lo usan dos sitios: la etiqueta que pinta
+// el servidor y el título que el configurador reescribe al cambiar de modelo sin recargar.
+// Escrito dos veces sería la misma cadena en PHP y en JS, divergiendo en cuanto se retoque.
+$TITULO_SUFIJO = ' · Turnkey villa in Bali — Lawang Tropical Properties';
+
 // Payload del configurador (2-sep, revisión previa Seguridad+Diseño): lista blanca
 // explícita, campo a campo — nunca el array $MODELOS/$mm crudo, que trae el par
 // now/y2027 sin resolver. Cada precio pasa por lw_techo_precio_activo()/lw_precio_fmt()
@@ -185,7 +190,7 @@ $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= lw_e($villa) ?> · Turnkey villa in Bali — Lawang Tropical Properties</title>
+<title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and call booking.">
 <?php if (!$precio): ?>
 <meta name="robots" content="noindex, nofollow"><!-- sin precio cerrado no se indexa -->
@@ -1361,6 +1366,14 @@ label.picker__row{cursor:pointer}
 
     var marker = document.getElementById('lw-static-marker-name');
     if (marker) marker.textContent = cfg.villa;
+
+    // Título de la pestaña y canonical (3-sep, hallazgo del verificador en producción):
+    // al cambiar de modelo cambiaban el <h1> y la URL, pero el título seguía diciendo el
+    // modelo con el que se abrió la página. Con varias pestañas abiertas comparando villas
+    // —que es justo lo que invita a hacer el configurador— todas se llamaban igual.
+    document.title = cfg.villa + <?= json_encode($TITULO_SUFIJO, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    var canon = document.querySelector('link[rel="canonical"]');
+    if (canon) canon.href = 'https://lawangproperties.com/modelo/' + id;
 
     document.querySelectorAll('#lw-cross .cross__row').forEach(function (row) {
       row.classList.toggle('is-configured', row.getAttribute('data-model-id') === id);
