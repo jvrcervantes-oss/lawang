@@ -767,8 +767,10 @@ label.picker__row{cursor:pointer}
       </a>
       <?php endforeach; ?>
     </div>
-    <!-- "see Investment below" apuntaba a una sección que este mismo push renombró a
-         "Step 2 — Roof" (Legal, capa 1 de deploy): la referencia se quedó huérfana. -->
+    <!-- Esta nota remitía a una sección «Investment» que este mismo push renombró a
+         "Step 2 — Roof" (Legal, capa 1 de deploy): la referencia se quedó huérfana. El
+         texto viejo no se cita literal aquí a propósito, para que un grep del string
+         visible no tropiece con el comentario que explica su retirada. -->
     <p class="sec__desc" style="margin-top:18px;font-size:13px" id="lw-cross-nota">Villa price only, roof included. Plot priced separately — build your estimate below.</p>
   </section>
 
@@ -1115,8 +1117,13 @@ label.picker__row{cursor:pointer}
       </details>
       <details>
         <summary><?= lw_i18n('¿Qué incluye el precio?', "What's included in the price?") ?></summary>
+        <?php /* La copia ES no se ve hoy (la página es solo inglés desde el pivote
+               australiano, .i-es va a display:none) pero se corrige igual: si algún día se
+               reactiva el bilingüe, resucitaría la misma contradicción del PPN que se acaba
+               de cerrar en la versión inglesa, y nadie se acordaría de mirarlo. */ ?>
         <p class="i-es">La obra completa según el pliego del contratista, con el acabado de cubierta que
-          elijas. La parcela y los gastos de compraventa (impuestos, notaría y licencias) se
+          elijas. El precio de la villa ya incluye el IVA indonesio (PPN). La parcela y los
+          gastos de compraventa (impuesto de transmisión, notaría y licencias) se
           presupuestan aparte y se detallan por escrito antes de firmar nada.</p>
         <?php /* 3-sep, capa 1 de deploy (Legal): decía "closing costs (taxes, notary,
                permits) are quoted separately" a secas. Desde que el panel de presupuesto
