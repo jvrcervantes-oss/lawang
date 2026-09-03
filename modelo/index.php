@@ -664,7 +664,7 @@ label.picker__row{cursor:pointer}
 .wiz__tt{font-family:var(--head);font-size:13px;font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;color:var(--verde)}
 .wiz__flag-in{font-size:12px;color:var(--ink2)}
-.wiz__cuerpo{padding:26px;min-height:288px}
+.wiz__cuerpo{padding:22px 26px;min-height:270px}
 @media(max-width:560px){.wiz__cuerpo{padding:20px 16px;min-height:0}.wiz__head{padding:16px}}
 .wiz__q{font-family:var(--head);font-size:21px;font-weight:700;line-height:1.15;margin:0 0 4px}
 /* El foco de la pregunta es PROGRAMÁTICO y existe solo para que un lector de pantalla
@@ -672,7 +672,7 @@ label.picker__row{cursor:pointer}
    el anillo de foco encima deja un recuadro raro tras cada clic de ratón, sin informar de
    nada. El anillo sigue intacto en los controles reales, que es donde importa. */
 .wiz__q:focus{outline:none}
-.wiz__ayuda{font-size:13.5px;color:var(--ink2);max-width:52ch;margin-bottom:18px}
+.wiz__ayuda{font-size:13.5px;color:var(--ink2);max-width:52ch;margin-bottom:14px}
 .wiz__campo[hidden]{display:none}
 
 /* Fila de opción, común a los cinco pasos: un solo patrón para todo el formulario. */
@@ -696,12 +696,15 @@ label.picker__row{cursor:pointer}
 /* Foto de la opción — 150×100 (3-sep, owner: "más grandes, dale más presencia porque ahora
    no se ve"). Venía de una miniatura de 44px en la que no se distinguía nada de la villa.
    Mismo componente para el paso del modelo y para el del techo cuando tenga fotos. */
-.wiz__foto{grid-row:1 / span 2;grid-column:1;width:150px;height:94px;border-radius:8px;
+/* 150×84 y no 150×94: a 1440×900 —un portátil muy común— los 10px de más por fila dejaban
+   el total 70px por debajo del pliegue en el paso 1, que es el único de los cinco con cinco
+   opciones. Sigue siendo casi cuatro veces la miniatura de 44px de la que venía. */
+.wiz__foto{grid-row:1 / span 2;grid-column:1;width:150px;height:80px;border-radius:8px;
   overflow:hidden;background:var(--verde-osc);display:flex;align-items:center;
   justify-content:center;flex:0 0 auto}
 .wiz__foto img{width:100%;height:100%;object-fit:cover}
 .wiz__foto svg{width:44px;height:auto;color:var(--verde-tenue)}
-.wiz__op--mod,.wiz__op--foto{grid-template-columns:150px 1fr auto;padding:10px;margin-bottom:6px}
+.wiz__op--mod,.wiz__op--foto{grid-template-columns:150px 1fr auto;padding:9px;margin-bottom:5px}
 /* La foto ocupa dos filas de 47px, así que centrar cada celda en su fila separaba el nombre
    y las specs con un hueco muerto en medio. Se pegan al centro: nombre abajo de su fila,
    specs arriba de la suya. */
@@ -753,7 +756,7 @@ label.picker__row{cursor:pointer}
    fotos de villa— recupera ~110px para que el total quepa en pantalla. */
 .wiz .est__pie{display:none;padding:0 26px 20px}
 .wiz.is-final .est__pie{display:block}
-.wiz .est__total{padding:18px 26px}
+.wiz .est__total{padding:15px 26px}
 .wiz .est__cta{display:none;border-top:1px solid var(--linea)}
 .wiz.is-final .est__cta{display:block}
 @media(max-width:560px){.wiz .est__total,.wiz .est__pie,.wiz .est__fila{padding-inline:16px}}
