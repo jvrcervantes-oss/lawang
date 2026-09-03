@@ -174,8 +174,31 @@ $resumenTarifas = 'Plot rates: beachfront ' . $parcelaPlaya . '/m², all other l
 // ejecutar) el panel enseña el precio real de la villa y una instrucción en la línea de
 // parcela, nunca huecos vacíos que se leen como página rota.
 $PICKER  = lw_picker_opciones();
-$techoIni = 'sirap'; // el más barato = el que ya enseña el hero como "From"
-$estIni  = lw_estimacion($m, $techoIni, null, null, null);
+
+// ── Preselección: la opción MÁS BARATA de cada paso, marcada al entrar ────────────────
+// Pedido del owner (3-sep): "siempre deja marcada la primera opción, que debe ser la más
+// barata". No se escriben a mano: se DERIVAN ordenando por precio, así que el día que una
+// tarifa cambie el orden, la preselección se mueve sola en vez de quedarse mintiendo.
+// Consecuencia buscada: el formulario nunca arranca sin cifra, y la cifra de arranque es el
+// suelo real de la página — nunca una combinación cara presentada como punto de partida.
+$techosOrd = $m['techos'];
+uasort($techosOrd, function ($a, $b) { return lw_techo_precio_activo($a) <=> lw_techo_precio_activo($b); });
+$techoIni = array_key_first($techosOrd);
+
+// Los modelos también se ordenan por precio para el paso 1: hoy el catálogo ya está en
+// orden ascendente, pero por casualidad, no por invariante.
+$modelosOrd = $MODELOS;
+uasort($modelosOrd, function ($a, $b) { return lw_modelo_precio_desde($a) <=> lw_modelo_precio_desde($b); });
+
+// Isla y vista: la vista más barata de Bali. Bali y Sumba están al mismo tramo (125 €/m²),
+// así que "más barata" no las separa — manda Bali por ser el catálogo con vistas.
+$vistasOrd = $PICKER['view'];
+uasort($vistasOrd, function ($a, $b) { return $a['rate'] <=> $b['rate']; });
+$islaIni  = 'bali';
+$vistaIni = array_key_first($vistasOrd);
+$m2Ini    = min(LW_M2_PRESETS);
+
+$estIni  = lw_estimacion($m, $techoIni, $islaIni, $vistaIni, $m2Ini);
 
 // ── Formulario de un campo por pantalla — SOLO DALI (3-sep, decisión del owner) ──────
 // "Trabaja en el modelo Dali por ahora y no en todas, cuando tengamos todos los cambios
@@ -193,7 +216,13 @@ $wizard = ($m['id'] === 'dali');
  * entera: la etiqueta del total que cambia de estado, el "no es una oferta", el PPN. La
  * segunda copia envejecería sola en cuanto Legal retocara una frase.
  */
-$renderPanel = function () use ($nombre, $m, $techoIni, $estIni, $antes2027) { ?>
+$renderPanel = function () use ($nombre, $m, $techoIni, $estIni, $antes2027, $PICKER, $vistaIni, $m2Ini) {
+    // Con la preselección del 3-sep el panel ya arranca COMPLETO, así que su estado inicial
+    // de servidor tiene que decir la verdad: línea de parcela con cifra y etiqueta de total
+    // "villa + parcela". Antes arrancaba sin parcela y esos dos textos eran fijos.
+    $tieneParcela = $estIni['parcela'] !== null;
+    $vistaLb = strtolower($PICKER['view'][$vistaIni]['label']);
+    ?>
     <div class="est" id="lw-estimacion">
       <div class="est__head">
         <span class="est__tt">Your estimate</span>
@@ -212,9 +241,12 @@ $renderPanel = function () use ($nombre, $m, $techoIni, $estIni, $antes2027) { ?
       </div>
 
       <div class="est__fila">
-        <span class="est__lb" id="lw-est-parcela-lb">Plot
+        <span class="est__lb" id="lw-est-parcela-lb"><?= $tieneParcela
+            ? lw_e('Plot — ' . $vistaLb . ', ' . number_format($estIni['m2'], 0, '.', ',') . ' m² at ' . lw_precio_fmt($estIni['tarifa']) . '/m²')
+            : 'Plot' ?>
           <i>Indicative rate per m². Not a quote for a specific plot.</i></span>
-        <span class="est__vl is-pend" id="lw-est-parcela">Choose an island and a size</span>
+        <span class="est__vl<?= $tieneParcela ? '' : ' is-pend' ?>" id="lw-est-parcela"><?= $tieneParcela
+            ? lw_e(lw_precio_fmt($estIni['parcela'])) : 'Choose an island and a size' ?></span>
       </div>
 
       <div class="est__fila">
@@ -233,12 +265,20 @@ $renderPanel = function () use ($nombre, $m, $techoIni, $estIni, $antes2027) { ?
            un lector de pantalla anunciaba el importe sin decir nunca si la parcela estaba
            dentro. Toda la defensa del panel es esa etiqueta: dejarla muda la anula. -->
       <div class="est__total" aria-live="polite">
-        <span class="est__lb" id="lw-est-total-lb">Villa only — plot not included yet</span>
-        <span class="est__vl" id="lw-est-total">from around <?= lw_e(lw_precio_fmt($estIni['villa'])) ?></span>
+        <span class="est__lb" id="lw-est-total-lb"><?= $tieneParcela
+            ? 'Indicative starting figure, villa + plot' : 'Villa only — plot not included yet' ?></span>
+        <span class="est__vl" id="lw-est-total">from around <?= lw_e(lw_precio_fmt($estIni['total'])) ?></span>
       </div>
       <div class="est__pie">
         <p id="lw-est-excluye">Excludes notary, permits and transfer costs.</p>
-        <p>This is an indication based on what you selected. It is not an offer, a quote or a reservation. Villa prices are a starting figure and your final price depends on the specific plot — both are confirmed in writing before you sign anything.<?= $antes2027 ? ' Based on 2026 pricing, valid to 31 December 2026 (Bali time).' : '' ?></p>
+        <?php /* Recortado a petición del owner (3-sep). Se conserva lo que hace trabajo
+               legal —no es oferta, no es reserva, el precio final depende de la parcela y
+               se confirma por escrito— y se van la frase que repetía el rótulo "Indicative
+               only" de la cabecera y la coletilla de vigencia de 2026, que el owner también
+               ha retirado del paso del techo. Ver la nota del final del turno: sin ninguna
+               mención a 2027, un lead que reserve en diciembre y sea atendido en enero no
+               tiene aviso escrito de la subida. */ ?>
+        <p>Not an offer or a reservation. Your final price depends on the specific plot and is confirmed in writing before you sign.</p>
       </div>
       <div class="est__cta"><a class="btn btn--block" href="#agendar">Book a call for the real numbers</a></div>
     </div>
@@ -653,22 +693,31 @@ label.picker__row{cursor:pointer}
   font-weight:600;white-space:nowrap;text-align:right}
 .cfg__in:checked + .wiz__op .wiz__sub,.wiz__op.is-on .wiz__sub{color:rgba(255,255,255,.82)}
 .cfg__in:focus-visible + .wiz__op{outline:2px solid var(--verde);outline-offset:3px}
-/* Miniatura solo en el paso del modelo. */
-.wiz__op--mod{grid-template-columns:44px 1fr auto}
-.wiz__op--mod .wiz__thumb{grid-row:1 / span 2;grid-column:1;width:44px;height:44px;
-  border-radius:6px;overflow:hidden;background:var(--verde-osc);display:flex;
-  align-items:center;justify-content:center}
-.wiz__op--mod .wiz__thumb img{width:100%;height:100%;object-fit:cover}
-.wiz__op--mod .wiz__thumb svg{width:24px;height:auto;color:var(--verde-tenue)}
-.wiz__op--mod .wiz__nom{grid-column:2;grid-row:1}
-.wiz__op--mod .wiz__sub{grid-column:2;grid-row:2}
-.wiz__op--mod .wiz__cifra{grid-column:3}
+/* Foto de la opción — 150×100 (3-sep, owner: "más grandes, dale más presencia porque ahora
+   no se ve"). Venía de una miniatura de 44px en la que no se distinguía nada de la villa.
+   Mismo componente para el paso del modelo y para el del techo cuando tenga fotos. */
+.wiz__foto{grid-row:1 / span 2;grid-column:1;width:150px;height:94px;border-radius:8px;
+  overflow:hidden;background:var(--verde-osc);display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto}
+.wiz__foto img{width:100%;height:100%;object-fit:cover}
+.wiz__foto svg{width:44px;height:auto;color:var(--verde-tenue)}
+.wiz__op--mod,.wiz__op--foto{grid-template-columns:150px 1fr auto;padding:10px;margin-bottom:6px}
+/* La foto ocupa dos filas de 47px, así que centrar cada celda en su fila separaba el nombre
+   y las specs con un hueco muerto en medio. Se pegan al centro: nombre abajo de su fila,
+   specs arriba de la suya. */
+.wiz__op--mod .wiz__nom,.wiz__op--foto .wiz__nom{grid-column:2;grid-row:1;font-size:17px;align-self:end}
+.wiz__op--mod .wiz__sub,.wiz__op--foto .wiz__sub{grid-column:2;grid-row:2;align-self:start;margin-top:2px}
+.wiz__op--mod .wiz__cifra,.wiz__op--foto .wiz__cifra{grid-column:3;grid-row:1 / span 2}
 @media(max-width:560px){
   .wiz__op{grid-template-columns:1fr}
   .wiz__cifra{grid-column:1;grid-row:auto;text-align:left;margin-top:4px}
-  .wiz__op--mod{grid-template-columns:40px 1fr}
-  .wiz__op--mod .wiz__thumb{width:40px;height:40px}
-  .wiz__op--mod .wiz__cifra{grid-column:1 / span 2;grid-row:auto}
+  /* En móvil la foto pasa a ocupar todo el ancho, encima del texto: a 150px de ancho fijo
+     dentro de una columna de 343 no quedaba sitio legible para nombre, specs y precio. */
+  .wiz__op--mod,.wiz__op--foto{grid-template-columns:1fr}
+  .wiz__foto{grid-row:auto;grid-column:1;width:100%;height:150px;margin-bottom:10px}
+  .wiz__op--mod .wiz__nom,.wiz__op--foto .wiz__nom,
+  .wiz__op--mod .wiz__sub,.wiz__op--foto .wiz__sub,
+  .wiz__op--mod .wiz__cifra,.wiz__op--foto .wiz__cifra{grid-column:1;grid-row:auto}
 }
 
 /* Sub-pregunta de vista: aparece dentro del paso de ubicación al elegir Bali. */
@@ -698,7 +747,12 @@ label.picker__row{cursor:pointer}
 .wiz .est__head{display:none}
 .wiz .est__fila{display:none}
 .wiz.is-final .est__fila{display:flex}
-.wiz .est__pie{padding:0 26px 20px}
+/* El párrafo legal largo vive con el desglose, en el último paso. En los intermedios el
+   calificador lo lleva la cabecera de la tarjeta ("Indicative only — not a quote"), que sí
+   está en los cinco: la captura sigue explicándose sola, y el paso 1 —el más alto, por las
+   fotos de villa— recupera ~110px para que el total quepa en pantalla. */
+.wiz .est__pie{display:none;padding:0 26px 20px}
+.wiz.is-final .est__pie{display:block}
 .wiz .est__total{padding:18px 26px}
 .wiz .est__cta{display:none;border-top:1px solid var(--linea)}
 .wiz.is-final .est__cta{display:block}
@@ -936,25 +990,29 @@ label.picker__row{cursor:pointer}
           <legend class="cfg__in">Which villa</legend>
           <p class="wiz__q">Which villa?</p>
           <p class="wiz__ayuda">Same construction system and roof choice across the range — only the size changes the price.</p>
+          <!-- Foto grande, no miniatura (3-sep, owner: "dale más presencia porque ahora no
+               se ve"). Se pasa de 44px a 150×100 en escritorio. El paso 1 queda más alto
+               que los otros cuatro; es el precio de que la villa se vea, y no rompe el "que
+               no se mueva": lo que no se mueve es la POSICIÓN de la tarjeta, verificado. -->
           <div id="lw-cross">
-            <?php foreach ($MODELOS as $mid => $mm):
+            <?php foreach ($modelosOrd as $mid => $mm):
               $mmImgs   = lw_modelo_imgs($mid);
               $mmThumb  = $mmImgs[0] ?? null;
               $mmEsEste = $mid === $m['id'];
-              $mmSirap  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['sirap']));
+              $mmDesde  = lw_precio_fmt(lw_modelo_precio_desde($mm));
             ?>
             <input class="cfg__in" type="radio" name="lw-modelo" id="lw-modelo-<?= lw_e($mid) ?>" value="<?= lw_e($mid) ?>"<?= $mmEsEste ? ' checked' : '' ?>>
             <label class="wiz__op wiz__op--mod<?= $mmEsEste ? ' is-on' : '' ?>" for="lw-modelo-<?= lw_e($mid) ?>" data-model-id="<?= lw_e($mid) ?>">
-              <span class="wiz__thumb">
+              <span class="wiz__foto">
                 <?php if ($mmThumb): ?>
-                <img src="<?= lw_e($mmThumb) ?>" alt="" loading="lazy">
+                <img src="<?= lw_e($mmThumb) ?>" alt="<?= lw_e('Villa ' . $mm['nombre']) ?>" loading="lazy">
                 <?php else: ?>
                 <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><rect x="24" y="48" width="72" height="34" fill="none" stroke="currentColor" stroke-width="5"/></svg>
                 <?php endif; ?>
               </span>
               <span class="wiz__nom"><?= lw_e($mm['nombre']) ?><i class="cross__tag"<?= $mmEsEste ? '' : ' hidden' ?>>— this page</i></span>
               <span class="wiz__sub"><?= lw_e($mm['villa_m2'] . 'm² + ' . $mm['terraza_m2'] . 'm² terrace · ' . $mm['dormitorios'] . ' bed · ' . $mm['banos'] . ' bath') ?></span>
-              <span class="wiz__cifra">From <?= lw_e($mmSirap) ?></span>
+              <span class="wiz__cifra">From <?= lw_e($mmDesde) ?></span>
             </label>
             <?php endforeach; ?>
           </div>
@@ -965,21 +1023,25 @@ label.picker__row{cursor:pointer}
           <legend class="cfg__in">Which roof</legend>
           <p class="wiz__q">Which roof?</p>
           <p class="wiz__ayuda">The rest of the villa doesn't vary between the two. It's the only thing that changes the price.</p>
-          <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-sirap" value="sirap"<?= $techoIni === 'sirap' ? ' checked' : '' ?>>
-          <label class="wiz__op<?= $techoIni === 'sirap' ? ' is-on' : '' ?>" for="lw-techo-sirap">
-            <span class="wiz__nom" id="lw-techo-sirap-nombre"><?= lw_e($m['techos']['sirap']['nombre']) ?></span>
-            <span class="wiz__sub" id="lw-techo-sirap-desc"<?= empty($m['techos']['sirap']['desc']) ? ' hidden' : '' ?>><?= lw_e($m['techos']['sirap']['desc'] ?? '') ?></span>
-            <span class="wiz__cifra">From <span id="lw-techo-sirap-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($m['techos']['sirap']))) ?></span></span>
+          <?php /* Bucle sobre los techos YA ORDENADOS por precio: así el primero es siempre
+                 el más barato, que es el que va preseleccionado, sin depender del orden en
+                 que estén escritos en modelos.php. Los ids se mantienen (lw-techo-<clave>)
+                 porque seleccionarModelo() los actualiza por id al cambiar de villa.
+                 El hueco de FOTO (assets/img/roofs/<clave>.webp) se descubre en disco: el
+                 día que lleguen las fotos es soltar los ficheros, sin tocar código. Mientras
+                 no exista, no se renderiza marco ninguno — un espacio gris reservado es un
+                 placeholder, y de esos no sale ninguno del estudio. */ ?>
+          <?php foreach ($techosOrd as $tk => $tv): $tImg = lw_techo_img($tk); ?>
+          <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-<?= lw_e($tk) ?>" value="<?= lw_e($tk) ?>"<?= $techoIni === $tk ? ' checked' : '' ?>>
+          <label class="wiz__op<?= $tImg ? ' wiz__op--foto' : '' ?><?= $techoIni === $tk ? ' is-on' : '' ?>" for="lw-techo-<?= lw_e($tk) ?>">
+            <?php if ($tImg): ?>
+            <span class="wiz__foto wiz__foto--techo" id="lw-techo-<?= lw_e($tk) ?>-foto"><img src="<?= lw_e($tImg) ?>" alt="<?= lw_e($tv['nombre']) ?> roof finish" loading="lazy"></span>
+            <?php endif; ?>
+            <span class="wiz__nom" id="lw-techo-<?= lw_e($tk) ?>-nombre"><?= lw_e($tv['nombre']) ?></span>
+            <span class="wiz__sub" id="lw-techo-<?= lw_e($tk) ?>-desc"<?= empty($tv['desc']) ? ' hidden' : '' ?>><?= lw_e($tv['desc'] ?? '') ?></span>
+            <span class="wiz__cifra">From <span id="lw-techo-<?= lw_e($tk) ?>-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($tv))) ?></span></span>
           </label>
-          <input class="cfg__in" type="radio" name="lw-techo" id="lw-techo-bambu" value="bambu"<?= $techoIni === 'bambu' ? ' checked' : '' ?>>
-          <label class="wiz__op<?= $techoIni === 'bambu' ? ' is-on' : '' ?>" for="lw-techo-bambu">
-            <span class="wiz__nom" id="lw-techo-bambu-nombre"><?= lw_e($m['techos']['bambu']['nombre']) ?></span>
-            <span class="wiz__sub" id="lw-techo-bambu-desc"<?= empty($m['techos']['bambu']['desc']) ? ' hidden' : '' ?>><?= lw_e($m['techos']['bambu']['desc'] ?? '') ?></span>
-            <span class="wiz__cifra">From <span id="lw-techo-bambu-precio"><?= lw_e(lw_precio_fmt(lw_techo_precio_activo($m['techos']['bambu']))) ?></span></span>
-          </label>
-          <?php if ($antes2027): ?>
-          <p class="wiz__ayuda" style="margin-top:16px;margin-bottom:0">Prices are valid through 31 December 2026 (Bali time). Villa prices rise on 1 January 2027 — plot rates are unaffected.</p>
-          <?php endif; ?>
+          <?php endforeach; ?>
         </fieldset>
 
         <!-- ── 3 · Ubicación ─────────────────────────────────────────────────────
@@ -993,19 +1055,21 @@ label.picker__row{cursor:pointer}
           <p class="wiz__q">Where do you want it built?</p>
           <p class="wiz__ayuda">The plot rate depends on the location. We confirm real availability on the call.</p>
           <?php foreach ($PICKER['island'] as $k => $o): ?>
-          <input class="cfg__in" type="radio" name="lw-island" id="lw-island-<?= lw_e($k) ?>" value="<?= lw_e($k) ?>"<?= $o['rate'] !== null ? ' data-rate="' . (int) $o['rate'] . '"' : '' ?>>
-          <label class="wiz__op" for="lw-island-<?= lw_e($k) ?>">
+          <input class="cfg__in" type="radio" name="lw-island" id="lw-island-<?= lw_e($k) ?>" value="<?= lw_e($k) ?>"<?= $o['rate'] !== null ? ' data-rate="' . (int) $o['rate'] . '"' : '' ?><?= $islaIni === $k ? ' checked' : '' ?>>
+          <label class="wiz__op<?= $islaIni === $k ? ' is-on' : '' ?>" for="lw-island-<?= lw_e($k) ?>">
             <span class="wiz__nom"><?= lw_e($o['label']) ?></span>
             <?php if ($k === 'sumba'): ?><span class="wiz__sub">Subject to availability</span><?php endif; ?>
             <?php if ($o['rate'] !== null): ?><span class="wiz__cifra"><?= lw_e(lw_precio_fmt($o['rate'])) ?>/m²</span><?php endif; ?>
           </label>
           <?php endforeach; ?>
 
-          <div class="wiz__sub-q" id="lw-picker-view" hidden>
+          <?php /* Vistas ordenadas por tarifa y la más barata preseleccionada; visible de
+                 salida porque la isla por defecto es Bali. */ ?>
+          <div class="wiz__sub-q" id="lw-picker-view"<?= $islaIni === 'bali' ? '' : ' hidden' ?>>
             <h4>And which view?</h4>
-            <?php foreach ($PICKER['view'] as $k => $o): ?>
-            <input class="cfg__in" type="radio" name="lw-view" id="lw-view-<?= lw_e($k) ?>" value="<?= lw_e($k) ?>" data-rate="<?= (int) $o['rate'] ?>">
-            <label class="wiz__op" for="lw-view-<?= lw_e($k) ?>">
+            <?php foreach ($vistasOrd as $k => $o): ?>
+            <input class="cfg__in" type="radio" name="lw-view" id="lw-view-<?= lw_e($k) ?>" value="<?= lw_e($k) ?>" data-rate="<?= (int) $o['rate'] ?>"<?= $vistaIni === $k ? ' checked' : '' ?>>
+            <label class="wiz__op<?= $vistaIni === $k ? ' is-on' : '' ?>" for="lw-view-<?= lw_e($k) ?>">
               <span class="wiz__nom"><?= lw_e($o['label']) ?></span>
               <span class="wiz__cifra"><?= lw_e(lw_precio_fmt($o['rate'])) ?>/m²</span>
             </label>
@@ -1019,8 +1083,8 @@ label.picker__row{cursor:pointer}
           <p class="wiz__q">How much land?</p>
           <p class="wiz__ayuda">These are the sizes that actually come up in our plot catalog. Pick the closest — the exact plot is confirmed on the call.</p>
           <?php foreach (LW_M2_PRESETS as $p): ?>
-          <input class="cfg__in" type="radio" name="lw-m2" id="lw-m2-<?= (int) $p ?>" value="<?= (int) $p ?>">
-          <label class="wiz__op" for="lw-m2-<?= (int) $p ?>"><span class="wiz__nom"><?= number_format($p, 0, '.', ',') ?> m²</span></label>
+          <input class="cfg__in" type="radio" name="lw-m2" id="lw-m2-<?= (int) $p ?>" value="<?= (int) $p ?>"<?= $m2Ini === $p ? ' checked' : '' ?>>
+          <label class="wiz__op<?= $m2Ini === $p ? ' is-on' : '' ?>" for="lw-m2-<?= (int) $p ?>"><span class="wiz__nom"><?= number_format($p, 0, '.', ',') ?> m²</span></label>
           <?php endforeach; ?>
           <input class="cfg__in" type="radio" name="lw-m2" id="lw-m2-other" value="other">
           <label class="wiz__op" for="lw-m2-other"><span class="wiz__nom">Another size</span></label>
@@ -1574,10 +1638,21 @@ label.picker__row{cursor:pointer}
   // comparación de syncURL), y cambiarlo en uno dejaba el panel del servidor pintando un
   // techo y el radio marcando otro desde el primer frame, sin que saltara ningún test.
   var TECHO_INI = <?= json_encode($techoIni, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  // Preselección por defecto de cada paso: la opción más barata, derivada en servidor
+  // ordenando por precio (ver $techoIni/$islaIni/$vistaIni/$m2Ini). El JS no elige nada:
+  // solo necesita saber cuáles son para (a) restaurar ese estado cuando la URL no dice otra
+  // cosa y (b) no ensuciar la URL repitiendo lo que ya es el valor por defecto.
+  var DEFAULTS = {
+    techo:  TECHO_INI,
+    island: <?= json_encode($islaIni, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+    view:   <?= json_encode($vistaIni, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+    m2:     <?= (int) $m2Ini ?>
+  };
   // Rama de presentación: formulario de un campo por pantalla (solo Dali hoy) o el bloque
   // de cuatro secciones. Cambia dónde se pintan los controles, nunca la aritmética.
   var WIZARD = <?= $wizard ? 'true' : 'false' ?>;
-  var LW_CFG = {techo: TECHO_INI, island: null, view: null, m2: null, m2mode: null, extras: []};
+  var LW_CFG = {techo: DEFAULTS.techo, island: DEFAULTS.island, view: DEFAULTS.view,
+                m2: DEFAULTS.m2, m2mode: String(DEFAULTS.m2), extras: []};
   var LW_M2 = {min: <?= (int) LW_M2_MIN ?>, max: <?= (int) LW_M2_MAX ?>, step: <?= (int) LW_M2_STEP ?>};
 
   // ── Píxel: ViewContent al cargar, con `value`/`currency` cuando hay precio cerrado. ──
@@ -1632,6 +1707,9 @@ label.picker__row{cursor:pointer}
   // La IIFE del configurador (más abajo) reasigna esto a su aplicarQuery real — lo necesita
   // `popstate`, que se declara antes.
   var lwAplicarQuery = function () {};
+  // La reasigna la IIFE de navegación del formulario; no-op mientras tanto y en la rama de
+  // secciones, que no tiene pasos que avanzar.
+  var lwAvanzar = function () {};
 
   function seleccionarModelo(id, opts) {
     var cfg = CONFIGURADOR[id];
@@ -1928,10 +2006,13 @@ label.picker__row{cursor:pointer}
       // esto siga funcionando con el parámetro que Meta invente el año que viene.
       var p = new URLSearchParams(location.search);
       ['roof', 'island', 'view', 'plot', 'extras'].forEach(function (k) { p.delete(k); });
-      if (LW_CFG.techo && LW_CFG.techo !== TECHO_INI) p.set('roof', LW_CFG.techo);
-      if (LW_CFG.island) p.set('island', LW_CFG.island);
-      if (LW_CFG.view) p.set('view', LW_CFG.view);
-      if (LW_CFG.m2 !== null) p.set('plot', String(LW_CFG.m2));
+      // Solo se escribe lo que se APARTA del valor por defecto: con la preselección del
+      // 3-sep, escribirlo todo dejaba "?island=bali&view=cliff&plot=160" pegado a cada
+      // carga de un anuncio sin que el visitante hubiera tocado nada.
+      if (LW_CFG.techo && LW_CFG.techo !== DEFAULTS.techo) p.set('roof', LW_CFG.techo);
+      if (LW_CFG.island && LW_CFG.island !== DEFAULTS.island) p.set('island', LW_CFG.island);
+      if (LW_CFG.view && LW_CFG.view !== DEFAULTS.view) p.set('view', LW_CFG.view);
+      if (LW_CFG.m2 !== null && LW_CFG.m2 !== DEFAULTS.m2) p.set('plot', String(LW_CFG.m2));
       if (LW_CFG.extras.length) p.set('extras', LW_CFG.extras.join(','));
       var q = p.toString();
       window.history.replaceState(window.history.state, '', '/modelo/' + MODELO + (q ? '?' + q : ''));
@@ -2133,28 +2214,38 @@ label.picker__row{cursor:pointer}
     function aplicarQuery() {
       var q = new URLSearchParams(location.search);
 
+      // Un parámetro ausente cae al VALOR POR DEFECTO, no a "sin elegir": desde la
+      // preselección del 3-sep el formulario nunca arranca vacío, y volver atrás o abrir un
+      // enlace sin query tiene que dejar el mismo estado que entrar de cero.
       var roof = q.get('roof');
       var ri = roof ? document.getElementById('lw-techo-' + roof) : null;
       // Sin lista de techos escrita a mano: vale el que exista como control en la página,
       // que es exactamente el catálogo que renderizó PHP.
-      LW_CFG.techo = ri ? roof : TECHO_INI;
+      LW_CFG.techo = ri ? roof : DEFAULTS.techo;
       var riIni = document.getElementById('lw-techo-' + LW_CFG.techo);
       if (riIni) riIni.checked = true;
 
       var isl = q.get('island');
       var ii  = isl ? document.getElementById('lw-island-' + isl) : null;
-      LW_CFG.island = ii ? isl : null;
+      LW_CFG.island = ii ? isl : DEFAULTS.island;
       document.querySelectorAll('input[name="lw-island"]').forEach(function (n) { n.checked = false; });
-      if (ii) ii.checked = true;
+      var iiIni = document.getElementById('lw-island-' + LW_CFG.island);
+      if (iiIni) iiIni.checked = true;
       verVista();
 
       var vw = q.get('view');
-      var vi = (vw && LW_CFG.island === 'bali') ? document.getElementById('lw-view-' + vw) : null;
-      LW_CFG.view = vi ? vw : null;
+      if (LW_CFG.island === 'bali') {
+        var vi = vw ? document.getElementById('lw-view-' + vw) : null;
+        LW_CFG.view = vi ? vw : DEFAULTS.view;
+      } else {
+        LW_CFG.view = null; // el catálogo de vistas es de Bali
+      }
       document.querySelectorAll('input[name="lw-view"]').forEach(function (n) { n.checked = false; });
-      if (vi) vi.checked = true;
+      var viIni = LW_CFG.view ? document.getElementById('lw-view-' + LW_CFG.view) : null;
+      if (viIni) viIni.checked = true;
 
-      var pl = clampM2(q.get('plot'));
+      var pl = q.get('plot') !== null ? clampM2(q.get('plot')) : {v: DEFAULTS.m2, topado: null};
+      if (pl.v === null) pl = {v: DEFAULTS.m2, topado: pl.topado};
       LW_CFG.m2 = pl.v;
       LW_CFG.m2mode = null;
       document.querySelectorAll('input[name="lw-m2"]').forEach(function (n) { n.checked = false; });
@@ -2241,6 +2332,32 @@ label.picker__row{cursor:pointer}
 
       bNext.addEventListener('click', function () { mostrar(actual + 1, true); });
       bAtras.addEventListener('click', function () { mostrar(actual - 1, true); });
+      lwAvanzar = function () { mostrar(actual + 1, true); };
+
+      // ── Avance automático al elegir (3-sep, pedido del owner: "cuando clique en algo
+      //    que pase ya al siguiente punto") ──────────────────────────────────────────
+      // Cuelga del CLIC en la etiqueta, nunca del `change` del radio: con las flechas del
+      // teclado se recorren las opciones de un grupo disparando `change` en cada una, y
+      // avanzar ahí haría imposible comparar antes de decidir. Mismo motivo por el que el
+      // auto-scroll de la rama de secciones también cuelga del clic.
+      // El retardo deja ver el relleno verde de la opción antes de que cambie la pregunta:
+      // sin él, el paso desaparece antes de que el ojo confirme qué ha marcado.
+      wiz.addEventListener('click', function (e) {
+        if (!e.target.closest) return;
+        var lb = e.target.closest('label.wiz__op');
+        if (!lb) return;
+        var f = lb.getAttribute('for') || '';
+        // Extras es multi-selección Y el último paso: no hay a dónde avanzar, y avanzar
+        // tras la primera marca daría por terminado algo que no lo está.
+        if (f.indexOf('lw-extra-') === 0) return;
+        // Elegir Bali revela la sub-pregunta de la vista DENTRO de este mismo paso:
+        // avanzar aquí se saltaría justo lo que fija la tarifa de parcela.
+        if (f === 'lw-island-' + 'bali') return;
+        // "Another size" abre el campo libre: hay que dejar escribir.
+        if (f === 'lw-m2-other') return;
+        window.setTimeout(function () { lwAvanzar(); }, 260);
+      });
+
       mostrar(1, false);
     })();
   })();

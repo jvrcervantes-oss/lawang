@@ -152,15 +152,33 @@ ok(lw_m2_clamp((string) LW_M2_MAX) === LW_M2_MAX, 'el máximo exacto es válido'
 // Seguridad): durante unas horas ?plot=337 daba una parcela de 42.125€ y un total de
 // 90.125€, o sea justo la cifra con pinta de cotización exacta que el comentario de
 // lib.php juraba imposible por construcción — y encima compartible por URL.
+// 3-sep, tarde: el owner fija 160 m² de entrada. 160 NO es múltiplo de 50, así que el paso
+// bajó a 10 — este assert es el que impide que alguien devuelva el paso a 50 y deje el
+// mínimo corrigiéndose solo a 150 a espaldas del visitante.
 ok(LW_M2_STEP > 0 && LW_M2_MIN % LW_M2_STEP === 0 && LW_M2_MAX % LW_M2_STEP === 0,
     'mínimo y máximo deben caer en el paso, o el propio rango produce cifras fuera de paso');
-ok(lw_m2_clamp('337') === 350, '337 m² debe ajustarse al paso de 50, no colarse tal cual');
+ok(lw_m2_clamp((string) LW_M2_MIN) === LW_M2_MIN, 'el mínimo debe sobrevivir intacto: si el paso lo redondea, deja de ser el mínimo');
+ok(lw_m2_clamp('337') === 340, '337 m² debe ajustarse al paso, no colarse tal cual');
 ok(lw_m2_clamp('301') === 300, 'el ajuste al paso es al más cercano');
 ok(lw_m2_clamp('300.7') === 300, 'decimal + paso: 300.7 cae en 300, nunca en 300.7');
 foreach (['337', '1', '99999', '412.9'] as $raw) {
     $v = lw_m2_clamp($raw);
     ok($v !== null && $v % LW_M2_STEP === 0, "lw_m2_clamp('$raw') debe caer siempre en el paso, salió " . var_export($v, true));
 }
+
+// La preselección de cada paso es "la primera opción, y debe ser la más barata" (owner,
+// 3-sep). En m² eso significa que el primer preajuste sea el más pequeño Y coincida con el
+// mínimo del estimador: si divergieran, la opción marcada al entrar no sería el suelo.
+ok(LW_M2_PRESETS[0] === min(LW_M2_PRESETS), 'el primer preajuste debe ser el más pequeño');
+ok(LW_M2_PRESETS[0] === LW_M2_MIN, 'el primer preajuste debe coincidir con el mínimo del estimador');
+$ordenados = LW_M2_PRESETS; sort($ordenados);
+ok($ordenados === LW_M2_PRESETS, 'los preajustes deben estar en orden ascendente: el primero es el que se preselecciona');
+
+// Fotos de cubierta: se descubren en disco, no se listan. Mientras no existan, null — y la
+// tarjeta se renderiza sin hueco de imagen en vez de con un marco vacío.
+ok(lw_techo_img('no-existe-este-techo') === null, 'un techo sin foto devuelve null, nunca una ruta inventada');
+ok(lw_techo_img('../../etc/passwd') === null, 'path traversal en la clave del techo debe caer');
+ok(lw_techo_img('') === null, 'clave vacía no devuelve foto');
 
 // Los preajustes tienen que caer DENTRO del rango y EN el paso, o la interfaz ofrece un
 // botón que el propio clamp corrige a espaldas del visitante.

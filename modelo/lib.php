@@ -164,11 +164,44 @@ function lw_parcela_tarifa_m2($zona) {
  * exactamente la cifra con pinta de cotización que el comentario juraba imposible, y encima
  * compartible por URL y camino del correo a ventas. Ahora el paso se aplica de verdad, aquí
  * abajo, que es el único sitio del que no se puede escapar.
+ *
+ * ⚠️ 3-sep, tarde: el owner fija **160 m² como entrada** del estimador. Eso obliga a bajar
+ * el paso de 50 a 10, porque 160 no es múltiplo de 50 y con el paso viejo el propio clamp
+ * lo habría corregido a 150 a espaldas del visitante — el mínimo dejaría de ser el mínimo.
+ * Con paso 10 la propiedad que importa se mantiene: 10 m² valen 1.250 € o 2.500 € según la
+ * tarifa, así que toda línea de parcela sigue cayendo en un número redondo y sigue siendo
+ * imposible un "€187.437". El suelo real del inventario son 150 m² (121 parcelas
+ * disponibles, consultado el 3-sep); 160 es la decisión comercial del owner, más
+ * conservadora que el dato.
  */
-define('LW_M2_MIN', 150);
+define('LW_M2_MIN', 160);
 define('LW_M2_MAX', 1500);
-define('LW_M2_STEP', 50);
-const LW_M2_PRESETS = [250, 350, 500];
+define('LW_M2_STEP', 10);
+const LW_M2_PRESETS = [160, 250, 350, 500];
+
+/**
+ * Foto del acabado de cubierta, o null si todavía no hay una.
+ *
+ * Mismo criterio que los renders de modelo (lw_modelo_imgs): las imágenes se DESCUBREN en
+ * disco, no se listan en ningún array. Publicar la foto de un techo el día que llegue es
+ * soltar el fichero en assets/img/roofs/<clave>.webp, sin tocar código.
+ *
+ * Devuelve null a propósito mientras no exista: la tarjeta se renderiza entonces sin hueco
+ * de imagen, en vez de con un marco gris o un icono de imagen rota. "Nada con placeholders
+ * sale del estudio" — y un espacio reservado vacío es un placeholder.
+ */
+function lw_techo_img($clave, $root = null) {
+    $clave = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $clave));
+    if ($clave === '') return null;
+    $root = $root !== null ? $root : dirname(__DIR__);
+    $f = glob($root . '/assets/img/roofs/' . $clave . '.{jpg,jpeg,png,webp}', GLOB_BRACE);
+    if (!$f) return null;
+    // Si conviven original y .webp gana el .webp (misma regla que lw_modelo_imgs).
+    foreach ($f as $p) {
+        if (strtolower(pathinfo($p, PATHINFO_EXTENSION)) === 'webp') return '/assets/img/roofs/' . basename($p);
+    }
+    return '/assets/img/roofs/' . basename($f[0]);
+}
 
 /**
  * Normaliza los m² que teclea el visitante: entero, ajustado al paso de 50 y dentro de

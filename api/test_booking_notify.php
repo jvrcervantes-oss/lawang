@@ -129,7 +129,7 @@ ok(strpos($crudo, '2+2') === false, 'si alguien quita el filtro de utm, este ass
 ok(strpos($r[4]['campana'], '|') === false && strpos($r[4]['campana'], '"') === false,
     'la campana no puede llevar comillas ni tuberias hacia el correo de ventas, salio "' . $r[4]['campana'] . '"');
 ok($r[4]['extras'] === 'sauna', 'extras duplicados se colapsan a uno, salio "' . $r[4]['extras'] . '"');
-ok($r[4]['parcela_m2'] === '350', '337 m2 se ajusta al paso de 50 tambien en servidor, salio ' . $r[4]['parcela_m2']);
+ok($r[4]['parcela_m2'] === '340', '337 m2 se ajusta al paso tambien en servidor, salio ' . $r[4]['parcela_m2']);
 ok((int) $r[4]['total_servidor'] % 25 === 0, 'con el paso aplicado, el total nunca sale con pinta de cotizacion exacta');
 
 // El metodo se comprueba: un GET no debe escribir nada.
