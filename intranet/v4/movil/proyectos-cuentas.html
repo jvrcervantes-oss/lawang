@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d1194bf1"></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: #BEB3A5; border-radius: 9999px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "error": "#ba1a1a",
+            "secondary-fixed-dim": "#9ad0d3",
+            "inverse-on-surface": "#f2f1eb",
+            "outline-variant": "#c5c8bc",
+            "control-border": "#8A8474",
+            "tertiary": "#563349",
+            "tertiary-fixed": "#ffd8ed",
+            "deep-lagoon": "#104C4F",
+            "inverse-primary": "#b8cea1",
+            "inverse-surface": "#30312d",
+            "surface-container-low": "#f5f4ee",
+            "on-secondary-container": "#356b6e",
+            "surface": "#fbf9f4",
+            "on-tertiary-fixed": "#2e1125",
+            "surface-alt": "#F1EBDD",
+            "on-surface-variant": "#44483f",
+            "on-primary-fixed-variant": "#3a4c2a",
+            "surface-bright": "#fbf9f4",
+            "surface-dim": "#dbdad5",
+            "on-secondary-fixed": "#002021",
+            "tertiary-container": "#6f4a61",
+            "on-error": "#ffffff",
+            "on-secondary-fixed-variant": "#144e51",
+            "surface-variant": "#e4e2dd",
+            "on-primary": "#ffffff",
+            "primary": "#314322",
+            "soft-canopy": "#8F9B7A",
+            "surface-container-lowest": "#ffffff",
+            "background": "#fbf9f4",
+            "on-primary-container": "#bcd2a5",
+            "outline": "#75786e",
+            "territorial-green": "#485B37",
+            "fiduciary-green": "#3F5230",
+            "raw-linen": "#F5F0E6",
+            "surface-tint": "#51643f",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#b8cea1",
+            "surface-container-highest": "#e4e2dd",
+            "stone-sand": "#BEB3A5",
+            "secondary-container": "#b3e9ed",
+            "on-secondary": "#ffffff",
+            "tertiary-fixed-dim": "#e9b9d4",
+            "primary-container": "#485b37",
+            "on-surface": "#1b1c19",
+            "on-tertiary-container": "#edbdd8",
+            "on-background": "#1b1c19",
+            "volcanic-ash": "#2E3437",
+            "burnt-earth": "#42210B",
+            "surface-container": "#efeee8",
+            "secondary-fixed": "#b6ecef",
+            "on-tertiary-fixed-variant": "#5f3c52",
+            "on-primary-fixed": "#0f2003",
+            "surface-container-high": "#e9e8e3",
+            "secondary": "#316669",
+            "primary-fixed": "#d3eabb",
+            "warm-border": "#E4DCCB"
+          },
+          fontFamily: {
+            "body-md": ["Neue Kabel", "sans-serif"],
+            "headline-sm": ["The Seasons", "serif"],
+            "headline-lg": ["The Seasons", "serif"],
+            "body-sm": ["Neue Kabel", "sans-serif"],
+            "kpi-number": ["Neue Kabel", "sans-serif"],
+            "body-lg": ["Neue Kabel", "sans-serif"],
+            "headline-md": ["The Seasons", "serif"],
+            "label-md": ["Neue Kabel", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-surface-alt font-body-md text-on-surface antialiased overflow-x-hidden">
+<!-- SIDEBAR -->
+<aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-40 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-warm-border">
+<div class="flex flex-col gap-6">
+<div class="flex items-center justify-between px-2">
+<div class="flex items-center gap-3">
+<div class="flex flex-col">
+<span class="font-headline-sm text-[26px] text-deep-lagoon tracking-wide leading-none font-semibold">Lawang</span>
+<span class="font-body-sm text-[10px] text-outline tracking-widest uppercase leading-none mt-1">Properties &amp; Suite</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">left_panel_close</span>
+</button>
+</div>
+<nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1">
+<div class="flex flex-col gap-1">
+<span class="px-3 font-body-sm text-[11px] text-outline uppercase tracking-wider font-semibold">Seguimiento</span>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span>Home</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">sync_alt</span>
+<span>Operaciones</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+<span>Soporte</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">event_busy</span>
+<span>Vencimientos</span>
+</a>
+</div>
+<div class="flex flex-col gap-1">
+<span class="px-3 font-body-sm text-[11px] text-outline uppercase tracking-wider font-semibold">Documentación</span>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">history_edu</span>
+<span>Contratos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+<span>Creatividades</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">folder</span>
+<span>Documentación</span>
+</a>
+</div>
+<div class="flex flex-col gap-1">
+<span class="px-3 font-body-sm text-[11px] text-outline uppercase tracking-wider font-semibold">Administración</span>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+<span>Facturas</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+<span>Recibos</span>
+</a>
+</div>
+<div class="flex flex-col gap-1">
+<span class="px-3 font-body-sm text-[11px] text-outline uppercase tracking-wider font-semibold">Base de Datos</span>
+<!-- Selected: Proyectos -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2 bg-territorial-green text-surface-bright font-bold rounded-xl shadow-sm transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">apartment</span>
+<span>Proyectos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">foundation</span>
+<span>Obra</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">badge</span>
+<span>Compradores</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span>Usuarios</span>
+</a>
+</div>
+</nav>
+</div>
+<div class="flex flex-col gap-3 pt-4 border-t border-outline/20">
+<div class="flex items-center justify-between px-3">
+<span class="font-body-sm text-[12px] text-outline uppercase tracking-wider font-medium">Idioma</span>
+<div class="flex items-center bg-surface-container p-1 rounded-full border border-warm-border">
+<button class="px-3 py-0.5 rounded-full font-label-md text-[12px] bg-deep-lagoon text-on-primary font-medium" type="button">ES</button>
+<button class="px-3 py-0.5 rounded-full font-label-md text-[12px] text-on-surface-variant hover:text-on-surface" type="button">EN</button>
+</div>
+</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Cerrar Sesión</span>
+</a>
+</div>
+</aside>
+<!-- MAIN WRAPPER -->
+<div class="pl-72 min-h-screen flex flex-col">
+<!-- TOPBAR UNIFICADA (Idéntica a Recibos y Vencimientos, sin badges innecesarios) -->
+<header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/95 backdrop-blur-md shadow-[0_1px_6px_rgba(0,0,0,0.03)] border-b border-warm-border z-30 px-8 flex items-center justify-between">
+<div class="flex items-center gap-3 text-sm text-outline">
+<span class="hover:text-deep-lagoon transition-colors cursor-pointer">Base de Datos</span>
+<span>/</span>
+<span class="text-deep-lagoon font-semibold">Proyectos &amp; Suelo</span>
+</div>
+<div class="flex items-center gap-5">
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button">
+<span class="material-symbols-outlined text-[21px]">search</span>
+</button>
+<button class="relative p-2 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button">
+<span class="material-symbols-outlined text-[21px]">notifications</span>
+<span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-kpi-number text-[10px] rounded-full flex items-center justify-center font-bold">18</span>
+</button>
+<div class="flex items-center gap-3 pl-3 border-l border-warm-border">
+<div class="w-8 h-8 rounded-full bg-territorial-green text-surface-bright flex items-center justify-center font-medium shadow-sm">
+<span class="material-symbols-outlined text-[18px]">person</span>
+</div>
+<div class="flex items-baseline gap-1.5 leading-none">
+<span class="font-label-md text-[14px] text-on-surface font-semibold">Javier Cervantes</span>
+<span class="text-outline text-[13px]">·</span>
+<span class="font-body-sm text-[13px] text-outline">Super Admin</span>
+</div>
+</div>
+</div>
+</header>
+<!-- CONTENT AREA -->
+<main class="w-full pt-20 px-8 pb-12 flex-1">
+<!-- CABECERA DE SECCIÓN Y BOTONES DE ACCIÓN -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-warm-border">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="font-body-sm text-[11px] text-soft-canopy uppercase tracking-widest font-semibold">Supervisión Patrimonial</span>
+<span class="w-1.5 h-1.5 rounded-full bg-soft-canopy"></span>
+<span class="font-body-sm text-[11px] text-outline tracking-wider uppercase">Fideicomiso &amp; Balances</span>
+</div>
+<h1 class="font-headline-lg text-[36px] text-deep-lagoon tracking-tight leading-tight">Inventario de Proyectos &amp; Suelo</h1>
+<p class="font-body-md text-[15px] text-on-surface-variant max-w-3xl">
+            Supervisión patrimonial, volumetría de parcelas y estado consolidado de cuentas por desarrollo.
+          </p>
+</div>
+<div class="flex items-center gap-3 shrink-0 flex-wrap">
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-surface-container-lowest text-deep-lagoon border border-warm-border hover:bg-surface-container-high transition-all font-label-md text-[14px] font-semibold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Exportar informe financiero</span>
+</button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[14px] font-semibold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>+ Nuevo proyecto</span>
+</button>
+</div>
+</div>
+<!-- 4 TARJETAS KPI DE TESORERÍA / CARTERA CONSOLIDADA (Cifras en una sola línea) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 mb-7">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-outline mb-2">
+<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Cartera Consolidada</span>
+<span class="material-symbols-outlined text-territorial-green text-[19px]">account_balance</span>
+</div>
+<div class="font-kpi-number text-[26px] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold">
+            45.220.865 €
+          </div>
+<div class="mt-2 text-[12px] text-on-surface-variant whitespace-nowrap font-medium flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-territorial-green"></span>
+            Volumen total en 24 desarrollos
+          </div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-outline mb-2">
+<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Total Cobrado / Liquidado</span>
+<span class="material-symbols-outlined text-fiduciary-green text-[19px]">verified_user</span>
+</div>
+<div class="font-kpi-number text-[26px] leading-tight text-fiduciary-green whitespace-nowrap tabular-nums font-bold">
+            18.450.000 €
+          </div>
+<div class="mt-2 text-[12px] text-fiduciary-green whitespace-nowrap font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+            40.8% del total emitido en cuenta BNI
+          </div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-outline mb-2">
+<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Pendiente de Cobro</span>
+<span class="material-symbols-outlined text-secondary text-[19px]">schedule</span>
+</div>
+<div class="font-kpi-number text-[26px] leading-tight text-volcanic-ash whitespace-nowrap tabular-nums font-bold">
+            26.770.865 €
+          </div>
+<div class="mt-2 text-[12px] text-on-surface-variant whitespace-nowrap font-medium">
+            Próximos hitos de obra y suelo
+          </div>
+</div>
+<!-- KPI 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-5 border border-warm-border shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-outline mb-2">
+<span class="font-body-sm text-[11px] uppercase tracking-wider font-semibold text-outline">Valoración Suelo vs Obra</span>
+<span class="material-symbols-outlined text-deep-lagoon text-[19px]">pie_chart</span>
+</div>
+<div class="font-kpi-number text-[19px] leading-tight text-deep-lagoon whitespace-nowrap tabular-nums font-bold">
+            18.557.865 € <span class="text-xs text-outline font-normal">S</span> · 26.663.000 € <span class="text-xs text-outline font-normal">O</span>
+</div>
+<div class="mt-2 text-[12px] text-on-surface-variant whitespace-nowrap font-medium">
+            Suelo: 41.0% · Construcción: 59.0%
+          </div>
+</div>
+</div>
+<!-- BUSCADOR & FILTROS POR ESTADO -->
+<div class="bg-surface-container-lowest rounded-xl p-3.5 border border-warm-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+<div class="relative w-full md:w-80">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
+<input class="w-full pl-9 pr-4 py-1.5 bg-surface-container-low rounded-lg text-on-surface font-body-md text-[13px] placeholder:text-outline border border-warm-border/60 focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-territorial-green" id="project-search" placeholder="Filtrar por nombre, isla o lote..." type="text"/>
+</div>
+<!-- Pastillas de estado requeridas -->
+<div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto no-scrollbar">
+<button class="px-4 py-1.5 rounded-full bg-deep-lagoon text-surface-bright font-label-md text-[13px] font-semibold shadow-sm shrink-0 flex items-center gap-1.5" type="button">
+<span>Todos</span>
+<span class="px-1.5 py-0.2 bg-surface-bright/20 rounded-full text-[11px] font-kpi-number">24</span>
+</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" type="button">
+<span class="w-2 h-2 rounded-full bg-territorial-green"></span>
+<span>En comercialización</span>
+<span class="text-outline text-[11px] font-kpi-number">14</span>
+</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" type="button">
+<span class="w-2 h-2 rounded-full bg-stone-sand"></span>
+<span>Completados</span>
+<span class="text-outline text-[11px] font-kpi-number">6</span>
+</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-warm-border font-label-md text-[13px] font-medium transition-colors shrink-0 flex items-center gap-1.5" type="button">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span>En estudio</span>
+<span class="text-outline text-[11px] font-kpi-number">4</span>
+</button>
+</div>
+<!-- Vista Rejilla / Tabla -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 shrink-0">
+<button class="p-1.5 rounded bg-surface-container-lowest text-deep-lagoon shadow-xs" title="Rejilla arquitectónica" type="button">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+</button>
+<button class="p-1.5 rounded text-outline hover:text-on-surface" title="Tabla financiera" type="button">
+<span class="material-symbols-outlined text-[18px]">table_rows</span>
+</button>
+</div>
+</div>
+<!-- REDISEÑO VISUAL DE PROYECTOS: GRID ELEGANTE DE 3 COLUMNAS -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid">
+<!-- CARD 1: Horizon S1 (Destacado e inspeccionado) -->
+<div class="bg-surface-container-lowest rounded-xl border-2 border-territorial-green/80 shadow-md hover:shadow-lg transition-all flex flex-col overflow-hidden group">
+<!-- Cabecera visual con textura arquitectónica y badges -->
+<div class="h-36 relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] p-4 flex flex-col justify-between overflow-hidden">
+<div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-fixed/10 pointer-events-none blur-xl"></div>
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-territorial-green">location_on</span>
+                Bali · Uluwatu Clifftop
+              </span>
+<span class="px-2.5 py-1 rounded-md bg-territorial-green text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs">
+                Ventas activas
+              </span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors">
+                Horizon S1
+              </h3>
+<span class="text-surface-bright/70 text-[12px] font-body-sm">Master Plan Lote 01–10 · PBG Aprobada</span>
+</div>
+</div>
+<!-- Métricas de inventario y estado financiero -->
+<div class="p-5 flex-1 flex flex-col justify-between gap-4">
+<!-- Inventario -->
+<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
+<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash">
+                10 uds · <span class="text-tertiary">4 vendidas</span> · <span class="text-territorial-green">6 disp.</span>
+</span>
+</div>
+<!-- Estado de cuentas y barra de recaudación -->
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación fiduciaria</span>
+<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold">67.7% cobrado</span>
+</div>
+<!-- Barra de progreso -->
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 67.7%"></div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado (BNI Escrow)</span>
+<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums">1.050.000 €</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-[11px] text-outline uppercase font-medium">Pendiente / Total</span>
+<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums">500.000 € <span class="text-xs text-outline font-normal">/ 1.55M€</span></span>
+</div>
+</div>
+</div>
+<!-- Indicador SWIFT fiduciario -->
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-fiduciary-green font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Fideicomiso BNI al día</span>
+</div>
+<span class="text-[11px] text-outline font-mono">BNI-ESC-8829</span>
+</div>
+<!-- Botón de acción hacia cajón -->
+<button class="w-full py-2.5 px-4 rounded-lg bg-deep-lagoon/10 hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" onclick="document.getElementById('cajon-detalle').classList.remove('translate-x-full'); document.getElementById('cajon-backdrop').classList.remove('hidden');" type="button">
+<span>Ver detalle &amp; cuentas</span>
+<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- CARD 2: Sumba Hills -->
+<div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+<div class="h-36 relative bg-gradient-to-br from-[#2c281e] via-[#483a25] to-[#104C4F] p-4 flex flex-col justify-between overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-primary-fixed">location_on</span>
+                Sumba South Beach
+              </span>
+<span class="px-2.5 py-1 rounded-md bg-secondary text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs">
+                Fase Estructura
+              </span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors">
+                Sumba Hills
+              </h3>
+<span class="text-surface-bright/70 text-[12px] font-body-sm">Macro-parcelas costeras y resort</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col justify-between gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
+<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash">
+                228 uds · <span class="text-tertiary">41 vendidas</span> · <span class="text-territorial-green">187 disp.</span>
+</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación fiduciaria</span>
+<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold">34.2% cobrado</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 34.2%"></div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado (BNI Escrow)</span>
+<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums">10.085.195 €</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-[11px] text-outline uppercase font-medium">Pendiente / Total</span>
+<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums">19.403.680 € <span class="text-xs text-outline font-normal">/ 29.48M€</span></span>
+</div>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-fiduciary-green font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Fideicomiso Mandiri al día</span>
+</div>
+<span class="text-[11px] text-outline font-mono">MND-SH-0914</span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-surface-container hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" onclick="document.getElementById('cajon-detalle').classList.remove('translate-x-full'); document.getElementById('cajon-backdrop').classList.remove('hidden');" type="button">
+<span>Ver detalle &amp; cuentas</span>
+<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- CARD 3: Bonian Village -->
+<div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+<div class="h-36 relative bg-gradient-to-br from-[#103436] via-[#1a494d] to-[#3a5231] p-4 flex flex-col justify-between overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-primary-fixed">location_on</span>
+                Bali · Tabanan West
+              </span>
+<span class="px-2.5 py-1 rounded-md bg-territorial-green text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs">
+                52% Vendido
+              </span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors">
+                Bonian Village
+              </h3>
+<span class="text-surface-bright/70 text-[12px] font-body-sm">Villas eco-sostenibles y bancales</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col justify-between gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
+<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash">
+                29 uds · <span class="text-tertiary">15 vendidas</span> · <span class="text-territorial-green">14 disp.</span>
+</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación fiduciaria</span>
+<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold">58.4% cobrado</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 58.4%"></div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado (BNI Escrow)</span>
+<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums">2.401.290 €</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-[11px] text-outline uppercase font-medium">Pendiente / Total</span>
+<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums">1.710.510 € <span class="text-xs text-outline font-normal">/ 4.11M€</span></span>
+</div>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-fiduciary-green font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Fideicomiso BNI al día</span>
+</div>
+<span class="text-[11px] text-outline font-mono">BNI-BV-1022</span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-surface-container hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" onclick="document.getElementById('cajon-detalle').classList.remove('translate-x-full'); document.getElementById('cajon-backdrop').classList.remove('hidden');" type="button">
+<span>Ver detalle &amp; cuentas</span>
+<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- CARD 4: Java Sunset S2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+<div class="h-36 relative bg-gradient-to-br from-[#3b2b1e] via-[#523d2b] to-[#25423f] p-4 flex flex-col justify-between overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-primary-fixed">location_on</span>
+                Java · Pantai Timur
+              </span>
+<span class="px-2.5 py-1 rounded-md bg-stone-sand text-volcanic-ash text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs">
+                Últimas 8 uds
+              </span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors">
+                Java Sunset S2
+              </h3>
+<span class="text-surface-bright/70 text-[12px] font-body-sm">Parcelas frente al arrecife</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col justify-between gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
+<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash">
+                10 uds · <span class="text-tertiary">2 vendidas</span> · <span class="text-territorial-green">8 disp.</span>
+</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación fiduciaria</span>
+<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold">20.0% cobrado</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 20%"></div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado (BNI Escrow)</span>
+<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums">318.000 €</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-[11px] text-outline uppercase font-medium">Pendiente / Total</span>
+<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums">1.272.000 € <span class="text-xs text-outline font-normal">/ 1.59M€</span></span>
+</div>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-fiduciary-green font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Fideicomiso BNI al día</span>
+</div>
+<span class="text-[11px] text-outline font-mono">BNI-JS-4410</span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-surface-container hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" onclick="document.getElementById('cajon-detalle').classList.remove('translate-x-full'); document.getElementById('cajon-backdrop').classList.remove('hidden');" type="button">
+<span>Ver detalle &amp; cuentas</span>
+<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- CARD 5: Riverfront I & II -->
+<div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+<div class="h-36 relative bg-gradient-to-br from-[#143236] via-[#204944] to-[#344b2a] p-4 flex flex-col justify-between overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-primary-fixed">location_on</span>
+                Bali · Kediri Riverside
+              </span>
+<span class="px-2.5 py-1 rounded-md bg-deep-lagoon text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs">
+                Lanzamiento Fase 2
+              </span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors">
+                Riverfront I &amp; II
+              </h3>
+<span class="text-surface-bright/70 text-[12px] font-body-sm">10 parcelas fluviales con muelle privado</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col justify-between gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
+<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash">
+                10 uds · <span class="text-tertiary">0 vendidas</span> · <span class="text-territorial-green">10 disp.</span>
+</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación fiduciaria</span>
+<span class="text-[13px] font-kpi-number text-outline font-bold">12.5% reservas</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 12.5%"></div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado (BNI Escrow)</span>
+<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums">172.000 €</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-[11px] text-outline uppercase font-medium">Valoración Suelo IDR</span>
+<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums">22.268M IDR</span>
+</div>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-fiduciary-green font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Fideicomiso BNI al día</span>
+</div>
+<span class="text-[11px] text-outline font-mono">BNI-RF-8199</span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-surface-container hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" onclick="document.getElementById('cajon-detalle').classList.remove('translate-x-full'); document.getElementById('cajon-backdrop').classList.remove('hidden');" type="button">
+<span>Ver detalle &amp; cuentas</span>
+<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- CARD 6: Palm Field W5 -->
+<div class="bg-surface-container-lowest rounded-xl border border-warm-border shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+<div class="h-36 relative bg-gradient-to-br from-[#273822] via-[#354f2c] to-[#123e40] p-4 flex flex-col justify-between overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-primary-fixed">location_on</span>
+                Bali · Canggu Pererenan
+              </span>
+<span class="px-2.5 py-1 rounded-md bg-territorial-green text-surface-bright text-[11px] font-label-md font-semibold tracking-wide uppercase shadow-xs">
+                32% Vendido
+              </span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-[26px] text-surface-bright font-semibold tracking-tight group-hover:text-primary-fixed transition-colors">
+                Palm Field W5
+              </h3>
+<span class="text-surface-bright/70 text-[12px] font-body-sm">34 parcelas residenciales · 14 docs</span>
+</div>
+</div>
+<div class="p-5 flex-1 flex flex-col justify-between gap-4">
+<div class="flex items-center justify-between pb-3 border-b border-warm-border/60">
+<span class="text-xs text-outline font-semibold uppercase tracking-wider">Inventario parcelas</span>
+<span class="text-[13px] font-label-md font-semibold text-volcanic-ash">
+                34 uds · <span class="text-tertiary">11 vendidas</span> · <span class="text-territorial-green">23 disp.</span>
+</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación fiduciaria</span>
+<span class="text-[13px] font-kpi-number text-fiduciary-green font-bold">36.8% cobrado</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 36.8%"></div>
+</div>
+<div class="flex items-baseline justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[11px] text-outline uppercase font-medium">Cobrado (BNI Escrow)</span>
+<span class="font-kpi-number text-[18px] text-fiduciary-green font-bold tabular-nums">423.800 €</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-[11px] text-outline uppercase font-medium">Pendiente / Total</span>
+<span class="font-kpi-number text-[14px] text-on-surface-variant font-semibold tabular-nums">727.825 € <span class="text-xs text-outline font-normal">/ 1.15M€</span></span>
+</div>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-surface-container-low border border-warm-border flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-fiduciary-green font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Fideicomiso BNI al día</span>
+</div>
+<span class="text-[11px] text-outline font-mono">BNI-PF-5512</span>
+</div>
+<button class="w-full py-2.5 px-4 rounded-lg bg-surface-container hover:bg-deep-lagoon text-deep-lagoon hover:text-surface-bright transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-1.5 group/btn" onclick="document.getElementById('cajon-detalle').classList.remove('translate-x-full'); document.getElementById('cajon-backdrop').classList.remove('hidden');" type="button">
+<span>Ver detalle &amp; cuentas</span>
+<span class="material-symbols-outlined text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- PAGINACIÓN Y RESUMEN INFERIOR -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 mt-6 border-t border-warm-border">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-territorial-green"></span>
+<span class="font-body-sm text-[13px] text-on-surface-variant">
+            Mostrando <strong class="text-volcanic-ash">6 desarrollos destacados</strong> de un total de 24 proyectos activos
+          </span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs disabled:opacity-40" disabled="" type="button">
+            Anterior
+          </button>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-full bg-deep-lagoon text-surface-bright text-xs font-label-md shadow-sm font-semibold" type="button">1</button>
+<button class="w-8 h-8 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs" type="button">2</button>
+<button class="w-8 h-8 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs" type="button">3</button>
+</div>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs" type="button">
+            Siguiente
+          </button>
+</div>
+</div>
+</main>
+</div>
+<!-- CAJÓN / PANEL LATERAL (.sui-cajon) SUPERPUESTO CON VELO TENUE -->
+<!-- Backdrop / Velo -->
+<div class="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50 transition-opacity duration-300" id="cajon-backdrop" onclick="document.getElementById('cajon-detalle').classList.add('translate-x-full'); document.getElementById('cajon-backdrop').classList.add('hidden');"></div>
+<!-- Contenedor Cajón Lateral (~500px) -->
+<aside class="sui-cajon fixed top-0 right-0 h-full w-full max-w-[500px] bg-surface-container-lowest border-l border-warm-border z-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out" id="cajon-detalle">
+<!-- Cabecera del Cajón -->
+<div class="px-6 py-5 bg-surface-container-low border-b border-warm-border flex items-start justify-between">
+<div class="flex flex-col gap-1 pr-4">
+<span class="text-[11px] font-semibold text-soft-canopy uppercase tracking-widest">EXPEDIENTE FINANCIERO Y TERRITORIAL</span>
+<h2 class="font-headline-sm text-[26px] text-deep-lagoon font-bold leading-tight">
+          Horizon S1 — Master Plan &amp; Cuentas
+        </h2>
+<span class="text-xs text-outline font-medium">Uluwatu Clifftop · Lote 01 al 10 · BNI Trust Escrow</span>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-volcanic-ash hover:bg-surface-container transition-colors shrink-0" onclick="document.getElementById('cajon-detalle').classList.add('translate-x-full'); document.getElementById('cajon-backdrop').classList.add('hidden');" title="Cerrar panel" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Cuerpo con Scroll Exhaustivo -->
+<div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+<!-- 1. RESUMEN DE ESTADO DE CUENTAS FIDUCIARIO -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-fiduciary-green">account_balance_wallet</span>
+            Estado Fiduciario Consolidado
+          </h4>
+<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary-fixed/60 text-primary">BNI Escrow Activo</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-4 border border-warm-border space-y-3">
+<div class="flex items-baseline justify-between pb-2 border-b border-warm-border/60">
+<span class="text-xs text-on-surface-variant font-medium">Total Cartera Proyecto:</span>
+<span class="font-kpi-number text-[16px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap">1.550.000 €</span>
+</div>
+<div class="flex items-baseline justify-between pb-2 border-b border-warm-border/60">
+<span class="text-xs text-on-surface-variant font-medium">Total Cobrado (BNI Escrow):</span>
+<div class="text-right">
+<span class="font-kpi-number text-[16px] font-bold text-fiduciary-green tabular-nums whitespace-nowrap">1.050.000 €</span>
+<span class="text-[11px] text-fiduciary-green font-semibold ml-1">(67.7%)</span>
+</div>
+</div>
+<div class="flex items-baseline justify-between pb-2 border-b border-warm-border/60">
+<span class="text-xs text-on-surface-variant font-medium">Por Cobrar (Hitos Obra / Suelo):</span>
+<span class="font-kpi-number text-[16px] font-bold text-deep-lagoon tabular-nums whitespace-nowrap">500.000 €</span>
+</div>
+<div class="flex items-center justify-between pt-1 text-xs">
+<span class="text-outline font-medium">Cuenta de Garantía Fiduciaria:</span>
+<span class="font-mono text-volcanic-ash font-bold bg-surface-container-lowest px-2 py-1 rounded border border-warm-border">BNI-ESC-8829-S1</span>
+</div>
+<!-- Barra de recaudación visual en el cajón -->
+<div class="pt-2">
+<div class="flex justify-between text-[11px] text-outline mb-1">
+<span>Recaudado 67.7%</span>
+<span>Objetivo 1.55M€</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full rounded-full" style="width: 67.7%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. DESGLOSE DE UNIDADES Y COMPRADORES VINCULADOS -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-territorial-green">person_search</span>
+            Unidades &amp; Compradores Vinculados
+          </h4>
+<span class="text-xs text-outline">3 contratos activos</span>
+</div>
+<div class="space-y-2.5">
+<!-- Unidad 1 -->
+<div class="p-3.5 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-[13px] font-bold text-deep-lagoon">Lote 04 — Marc Vilanova Serra</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-primary-fixed/60 text-primary">Hak Sewa 30a + Obra</span>
+</div>
+<div class="flex items-baseline justify-between text-xs">
+<span class="text-outline font-medium">Volumen total pactado:</span>
+<span class="font-kpi-number text-[14px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap">155.000 €</span>
+</div>
+<div class="flex items-center justify-between text-xs text-fiduciary-green font-medium pt-1 border-t border-warm-border/60">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                50.000 € cobrados
+              </span>
+<span class="text-outline font-body-sm text-[11px]">Próx. hito: 30 Abr 2026</span>
+</div>
+</div>
+<!-- Unidad 2 -->
+<div class="p-3.5 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-[13px] font-bold text-deep-lagoon">Lote 02 — Pablo Fuster Ribas</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary-container text-on-secondary-container">Reserva Suelo</span>
+</div>
+<div class="flex items-baseline justify-between text-xs">
+<span class="text-outline font-medium">Volumen total pactado:</span>
+<span class="font-kpi-number text-[14px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap">155.000 €</span>
+</div>
+<div class="flex items-center justify-between text-xs text-fiduciary-green font-medium pt-1 border-t border-warm-border/60">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                45.000 € cobrados
+              </span>
+<span class="text-outline font-body-sm text-[11px]">Contrato en notaría Denpasar</span>
+</div>
+</div>
+<!-- Unidad 3 -->
+<div class="p-3.5 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-[13px] font-bold text-deep-lagoon">Lote 06 — Marta Ibáñez QA</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-stone-sand/40 text-on-surface-variant">En negociación</span>
+</div>
+<div class="flex items-baseline justify-between text-xs">
+<span class="text-outline font-medium">Presupuesto cotizado:</span>
+<span class="font-kpi-number text-[14px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap">185.000 €</span>
+</div>
+<div class="flex items-center justify-between text-xs text-outline pt-1 border-t border-warm-border/60">
+<span>Borrador enviado por fiduciario</span>
+<span class="font-body-sm text-[11px] text-tertiary font-semibold">Pendiente firma LOI</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. EXPEDIENTE TÉCNICO & PERMISOS URBANÍSTICOS -->
+<section class="space-y-3">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">engineering</span>
+          Expediente Técnico &amp; Permisos
+        </h4>
+<div class="bg-surface-container-low rounded-xl p-4 border border-warm-border space-y-2.5 text-xs">
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Licencia de Obra PBG:</span>
+<div class="flex items-center gap-1.5">
+<span class="font-mono font-bold text-volcanic-ash">PBG-5103-2025-00481</span>
+<span class="material-symbols-outlined text-fiduciary-green text-[16px]">verified</span>
+</div>
+</div>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Zonificación RDTR:</span>
+<span class="px-2 py-0.5 rounded bg-[#FBEFBE] text-[#634A00] font-bold font-label-md">
+              Kuning (Residencial permitido 100%)
+            </span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-on-surface-variant font-medium">Superficie Total Registrada:</span>
+<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash">6.800 m² (10 parcelas)</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Pie de Acciones Rápidas del Cajón -->
+<div class="p-5 bg-surface-container-low border-t border-warm-border flex flex-col gap-2.5 shrink-0">
+<button class="w-full py-2.5 px-4 rounded-xl bg-deep-lagoon text-surface-bright hover:bg-opacity-95 transition-all font-label-md text-[13px] font-semibold flex items-center justify-center gap-2 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+<span>Descargar Balance Financiero (PDF)</span>
+</button>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[16px]">description</span>
+<span>Ver contratos</span>
+</button>
+<button class="py-2 px-3 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-warm-border transition-colors font-label-md text-xs font-semibold flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[16px]">settings</span>
+<span>Editar proyecto</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Script para filtrado dinámico en vivo -->
+<script>
+    const searchInput = document.getElementById('project-search');
+    const cards = document.querySelectorAll('#projects-grid > div');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        cards.forEach(card => {
+          const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
+          const subtitle = card.querySelector('span')?.textContent.toLowerCase() || '';
+          if (title.includes(query) || subtitle.includes(query)) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    }
+  </script>
+</body></html>

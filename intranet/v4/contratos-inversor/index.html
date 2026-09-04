@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="es"><head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d1194bf1"></script>
+<script src="../assets/datos.js" defer></script>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script>
+<link href="../assets/shell.css" rel="stylesheet">
+<script src="../assets/maqueta.js" defer></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Área de Clientes | Lawang Properties</title>
+<!-- Google Fonts: The Seasons & Neue Kabel -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="../assets/fonts/fonts.css" rel="stylesheet">
+
+<!-- Tailwind CSS v3 with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              lagoon: '#104C4F',       /* Verde petróleo oscuro corporativo */
+              lagoonDark: '#0B3639',   /* Fondo complementario sidebar */
+              lagoonLight: '#1C5B5E',  /* Hover y activo sidebar */
+              linen: '#F4EFE6',        /* Fondo crema / lino */
+              linenCard: '#FFFFFF',    /* Fondo de tarjetas */
+              charcoal: '#2D312E',     /* Texto títulos y cifras */
+              muted: '#7A827D',        /* Textos secundarios */
+              border: '#E8E1D5',       /* Bordes sutiles */
+              sage: '#4D6B53',         /* Acento progreso y estado */
+              badgeBg: '#ECEBE4',      /* Fondo chips/badges */
+              badgeText: '#4A504C'     /* Texto chips */
+            }
+          },
+          fontFamily: {
+            serif: ['"The Seasons"', 'serif'],
+            sans: ['"Neue Kabel"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: CustomStyles -->
+<style data-purpose="custom-layout">
+    body {
+      font-family: 'Neue Kabel', sans-serif;
+      background-color: #F4EFE6;
+      color: #2D312E;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Estilización sutil del scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D9D2C5;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #C4BCAD;
+    }
+  </style>
+<style data-purpose="toggle-switch">
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #39523C;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: #39523C;
+    }
+  </style>
+<!-- END: CustomStyles -->
+</head>
+<body class="h-full overflow-hidden flex text-brand-charcoal antialiased">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-brand-lagoon text-white flex flex-col justify-between shrink-0 select-none z-30" data-purpose="main-sidebar">
+<!-- Top Area: Logo & Navigation Items -->
+<div class="flex flex-col">
+<!-- Brand Logo Lawang -->
+<div class="px-6 pt-6 pb-4 flex items-center gap-3">
+<svg class="w-7 h-7 text-[#E5D7B7] fill-current opacity-90" fill="none" viewbox="0 0 36 36">
+<path d="M4 4H32V8H4V4ZM8 10H28V14H8V10ZM12 16H24V20H12V16ZM6 22H30V26H6V22ZM4 28H32V32H4V28Z" fill-opacity="0.85"></path>
+</svg>
+<span class="text-xl tracking-[0.25em] font-serif uppercase text-[#F1E9DA] opacity-90">LAWANG</span>
+</div>
+<!-- Section Title -->
+<div class="px-6 py-2">
+<span class="text-[10px] tracking-[0.2em] uppercase font-semibold text-[#8EB7B5]">Área de Clientes</span>
+</div>
+<!-- Navigation Links -->
+<nav class="mt-2 px-3 space-y-1">
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-white bg-brand-lagoonLight transition-colors" id="nav-inicio" onclick="switchTab('inicio')">
+          Inicio
+        </button>
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-contratos" onclick="switchTab('contratos')">
+          Contratos
+        </button>
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-facturas" onclick="switchTab('facturas')">
+          Facturas
+        </button>
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-obra" onclick="switchTab('obra')">
+          Obra
+        </button>
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-documentos" onclick="switchTab('documentos')">
+          Documentos
+        </button>
+<button class="nav-item w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-soporte" onclick="switchTab('soporte')">
+<span>Soporte</span>
+<span class="w-4 h-4 rounded-full bg-[#D43838] text-[10px] font-bold text-white flex items-center justify-center">1</span>
+</button>
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-mensajes" onclick="switchTab('mensajes')">
+          Mensajes
+        </button>
+<button class="nav-item w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-emerald-100/80 hover:text-white hover:bg-brand-lagoonLight/50 transition-colors" id="nav-perfil" onclick="switchTab('perfil')">
+          Mi perfil
+        </button>
+</nav>
+</div>
+<!-- User Profile in Footer of Sidebar -->
+<div class="p-4 border-t border-brand-lagoonLight/60">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#1A383A] text-xs font-semibold flex items-center justify-center text-teal-100 border border-teal-700/40">
+          MI
+        </div>
+<div class="flex flex-col text-left leading-tight">
+<span class="text-xs font-medium text-slate-100 tracking-wide">Marta Ibáñez QA</span>
+<a class="text-[11px] text-teal-200/60 hover:text-teal-100 mt-0.5 transition-colors" href="#">Salir</a>
+</div>
+</div>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: MainContentWrapper -->
+<div class="flex-1 flex flex-col h-full bg-[#F5F0E6] overflow-hidden relative">
+<!-- BEGIN: TopBar -->
+<header class="h-16 px-8 flex items-center justify-between bg-transparent shrink-0" data-purpose="top-navigation-bar">
+<!-- Section Dynamic Title -->
+<h1 class="text-xl font-medium tracking-tight text-[#2B302E]" id="page-title">Inicio</h1>
+<!-- Top Right Controls (Language & Notification Bell) -->
+<div class="flex items-center gap-3">
+<!-- Language Switcher -->
+<button class="px-2.5 py-1 text-xs font-medium rounded-full bg-white/70 hover:bg-white text-gray-700 transition shadow-sm">
+          EN
+        </button>
+<!-- Notification Bell with Counter -->
+<button class="w-8 h-8 rounded-full bg-white/70 hover:bg-white flex items-center justify-center relative text-amber-600 transition shadow-sm">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20">
+<path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
+</svg>
+<span class="absolute -top-1 -right-1 w-4 h-4 bg-[#C93B2B] text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-[#F5F0E6]">2</span>
+</button>
+</div>
+</header>
+<!-- END: TopBar -->
+<!-- BEGIN: ScrollableContentContainer -->
+<main class="flex-1 overflow-y-auto px-8 pb-12 pt-2">
+<!-- ============================================== -->
+<!-- TAB 1: INICIO (DASHBOARD)                     -->
+<!-- ============================================== -->
+<div class="tab-pane block space-y-6 max-w-6xl" id="tab-content-inicio">
+<!-- Greeting Header -->
+<div class="mb-6">
+<h2 class="text-2xl font-normal text-[#2B302E]">Hola, Marta</h2>
+<p class="text-xs text-brand-muted mt-0.5">Estado de tu operación con Lawang Estate</p>
+</div>
+<!-- 3 KPIs Row -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+<!-- Inversion -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<span class="text-[11px] uppercase tracking-wider font-medium text-brand-muted">TU INVERSIÓN</span>
+<div class="mt-2 text-2xl font-semibold tracking-tight text-[#2B302E]">410.000 €</div>
+</div>
+<!-- Pagado -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<span class="text-[11px] uppercase tracking-wider font-medium text-brand-muted">PAGADO</span>
+<div class="mt-2 text-2xl font-semibold tracking-tight text-[#2B302E]">123.000 €</div>
+</div>
+<!-- Pendiente -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<span class="text-[11px] uppercase tracking-wider font-medium text-brand-muted">PENDIENTE</span>
+<div class="mt-2 text-2xl font-semibold tracking-tight text-[#2B302E]">287.000 €</div>
+</div>
+</div>
+<!-- Middle Section: Próximo Pago & Últimas Novedades -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+<!-- Próximo Pago Card (7 cols) -->
+<div class="md:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC] flex flex-col justify-between">
+<div>
+<span class="text-[11px] uppercase tracking-wider font-medium text-brand-muted block">PRÓXIMO PAGO</span>
+<h3 class="mt-2 text-base font-medium text-[#2B302E]">Fin de estructura</h3>
+<p class="text-xs text-brand-muted mt-1">Vencimiento: 30 abr 2026 · CC00099-QA</p>
+<div class="mt-4 text-2xl font-semibold text-[#2B302E]">82.000 €</div>
+</div>
+<div class="mt-6">
+<button class="px-5 py-2 rounded-full border border-[#D5CEC2] text-xs font-medium text-[#2B302E] hover:bg-[#FBF9F5] transition" onclick="switchTab('contratos')">
+                Ver plan de pagos
+              </button>
+</div>
+</div>
+<!-- Últimas Novedades Card (5 cols) -->
+<div class="md:col-span-5 bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<span class="text-[11px] uppercase tracking-wider font-medium text-brand-muted block mb-4">ÚLTIMAS NOVEDADES</span>
+<ul class="space-y-3.5 text-xs text-[#3E4340]">
+<li class="flex items-center gap-2 cursor-pointer hover:text-black transition" onclick="openInvoiceModal()">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-charcoal"></span>
+<span>Nueva factura disponible: <span class="font-medium">INV00099-QA</span></span>
+</li>
+<li class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-charcoal"></span>
+<span>Novedades de obra en Villa Aqua 3</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Bottom 3 Quick-Link Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
+<!-- Documentos -->
+<div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E9E4DC] cursor-pointer hover:border-gray-400/70 transition" onclick="switchTab('documentos')">
+<h4 class="text-xs font-medium text-[#2B302E]">Documentos</h4>
+<p class="text-[11px] text-brand-muted mt-1">Dossier, planos y KYC</p>
+</div>
+<!-- Soporte -->
+<div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E9E4DC] cursor-pointer hover:border-gray-400/70 transition" onclick="switchTab('soporte')">
+<h4 class="text-xs font-medium text-[#2B302E]">Soporte</h4>
+<p class="text-[11px] text-brand-muted mt-1">Abre o revisa un ticket</p>
+</div>
+<!-- Mensajes -->
+<div class="bg-white rounded-2xl p-5 shadow-sm border border-[#E9E4DC] cursor-pointer hover:border-gray-400/70 transition" onclick="switchTab('mensajes')">
+<h4 class="text-xs font-medium text-[#2B302E]">Mensajes</h4>
+<p class="text-[11px] text-brand-muted mt-1">Escribe a tu gestora</p>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 2: CONTRATOS                               -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-5xl" id="tab-content-contratos">
+<div class="bg-white rounded-2xl p-8 shadow-sm border border-[#E9E4DC]">
+<!-- Contract Top Header -->
+<div class="flex items-center justify-between pb-6">
+<div class="flex items-center gap-2">
+<span class="text-base font-semibold text-[#2B302E]">CC00099-QA</span>
+<span class="text-xs text-brand-muted">Aqua Collection · Unidad Villa Aqua 3</span>
+</div>
+<span class="px-3 py-1 rounded-full text-[10px] font-medium tracking-wider uppercase bg-[#F2EFE8] text-brand-muted">
+              FIRMADO
+            </span>
+</div>
+<!-- Price & Paid Summary -->
+<div class="grid grid-cols-2 gap-8 py-2">
+<div>
+<span class="text-[10px] uppercase font-medium tracking-wider text-brand-muted block">PRECIO</span>
+<span class="text-sm font-semibold text-[#2B302E] mt-1 block">410.000 €</span>
+</div>
+<div>
+<span class="text-[10px] uppercase font-medium tracking-wider text-brand-muted block">PAGADO HASTA HOY</span>
+<span class="text-sm font-semibold text-[#2B302E] mt-1 block">123.000 €</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="mt-4 mb-8">
+<div class="w-full bg-[#EAE5DC] h-2.5 rounded-full overflow-hidden">
+<div class="bg-[#445749] h-full rounded-full" style="width: 30%;"></div>
+</div>
+<div class="flex justify-between text-[11px] text-brand-muted mt-2 font-medium">
+<span>30% de 410.000 €</span>
+<span>287.000 € pendiente</span>
+</div>
+</div>
+<!-- Payment Schedule Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="text-brand-muted text-[10px] uppercase tracking-wider border-b border-[#F0EBE1]">
+<th class="py-3 font-medium">CONCEPTO</th>
+<th class="py-3 font-medium">VENCIMIENTO</th>
+<th class="py-3 font-medium text-right pr-6">IMPORTE</th>
+<th class="py-3 font-medium text-right">ESTADO</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#F2EFE8]">
+<!-- Row 1 -->
+<tr>
+<td class="py-4 text-[#2B302E] font-medium">Reserva</td>
+<td class="py-4 text-brand-muted">Firma de reserva</td>
+<td class="py-4 text-right pr-6 text-[#2B302E]">41.000 €</td>
+<td class="py-4 text-right">
+<span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#E7EFE9] text-[#295438]">
+                      PAGADO
+                    </span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr>
+<td class="py-4 text-[#2B302E] font-medium">Firma de contrato</td>
+<td class="py-4 text-brand-muted">12 mar 2026</td>
+<td class="py-4 text-right pr-6 text-[#2B302E]">82.000 €</td>
+<td class="py-4 text-right">
+<span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#E7EFE9] text-[#295438]">
+                      PAGADO
+                    </span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr>
+<td class="py-4 text-[#2B302E] font-medium">Fin de estructura</td>
+<td class="py-4 text-brand-muted">30 abr 2026</td>
+<td class="py-4 text-right pr-6 text-[#2B302E]">82.000 €</td>
+<td class="py-4 text-right">
+<span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#F1ECE4] text-[#696257]">
+                      PENDIENTE
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Bottom Action Button -->
+<div class="mt-8 pt-4">
+<button class="px-5 py-2.5 rounded-full border border-[#D5CEC2] text-xs font-medium text-[#2B302E] hover:bg-[#FBF9F5] transition">
+              Ver contrato firmado
+            </button>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 3: FACTURAS                                -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-5xl" id="tab-content-facturas">
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="text-brand-muted text-[10px] uppercase tracking-wider border-b border-[#F0EBE1]">
+<th class="py-3 font-medium">Nº</th>
+<th class="py-3 font-medium">TIPO</th>
+<th class="py-3 font-medium">FECHA</th>
+<th class="py-3 font-medium text-right">ACCIONES</th>
+</tr>
+</thead>
+<tbody>
+<tr class="hover:bg-brand-linen/40 transition cursor-pointer" onclick="openInvoiceModal()">
+<td class="py-4 font-medium text-[#2B302E]">INV00099-QA</td>
+<td class="py-4 text-brand-muted">Factura</td>
+<td class="py-4 text-brand-muted">20 ago 2026</td>
+<td class="py-4 text-right">
+<span class="text-xs text-brand-lagoon hover:underline font-medium">Ver factura</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 4: OBRA                                    -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-5xl" id="tab-content-obra">
+<div class="bg-white rounded-2xl p-8 shadow-sm border border-[#E9E4DC]">
+<h3 class="text-lg font-medium text-[#2B302E] mb-2">Avance de obra - Villa Aqua 3</h3>
+<p class="text-xs text-brand-muted mb-6">Seguimiento fotográfico y fases constructivas actualizadas.</p>
+<div class="p-6 rounded-xl bg-[#FBF9F5] border border-[#ECE5D9] text-center text-xs text-brand-muted">
+            Último reporte cargado el 28 de agosto de 2026. Cimentación y estructura completada al 92%.
+          </div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 5: DOCUMENTOS                              -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-5xl" id="tab-content-documentos">
+<div class="bg-white rounded-2xl p-8 shadow-sm border border-[#E9E4DC] space-y-4">
+<h3 class="text-base font-medium text-[#2B302E]">Documentación del Proyecto</h3>
+<ul class="divide-y divide-[#F2EFE8] text-xs">
+<li class="py-3 flex items-center justify-between">
+<div>
+<span class="font-medium text-[#2B302E] block">Dossier comercial y memoria de calidades</span>
+<span class="text-[10px] text-brand-muted">PDF · 12.4 MB</span>
+</div>
+<button class="px-4 py-1.5 rounded-full border border-[#D5CEC2] text-xs hover:bg-[#FBF9F5]">Descargar</button>
+</li>
+<li class="py-3 flex items-center justify-between">
+<div>
+<span class="font-medium text-[#2B302E] block">Planos arquitectónicos de Villa Aqua 3</span>
+<span class="text-[10px] text-brand-muted">PDF · 8.1 MB</span>
+</div>
+<button class="px-4 py-1.5 rounded-full border border-[#D5CEC2] text-xs hover:bg-[#FBF9F5]">Descargar</button>
+</li>
+<li class="py-3 flex items-center justify-between">
+<div>
+<span class="font-medium text-[#2B302E] block">KYC y comprobante de titularidad</span>
+<span class="text-[10px] text-brand-muted">Validado</span>
+</div>
+<span class="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#E7EFE9] text-[#295438]">APROBADO</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 6: SOPORTE                                 -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-5xl" id="tab-content-soporte">
+<!-- New Ticket Action Bar -->
+<div class="flex justify-end mb-5">
+<button class="bg-[#1C4345] hover:bg-[#153436] text-white px-5 py-2 rounded-full text-xs font-medium transition shadow-sm">
+            Nuevo ticket
+          </button>
+</div>
+<!-- Ticket Card -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC] flex items-center justify-between cursor-pointer hover:border-gray-400 transition" onclick="openSupportModal()">
+<div>
+<h3 class="text-sm font-medium text-[#2B302E]">Duda sobre KITAS</h3>
+<p class="text-xs text-brand-muted mt-1">¿Qué necesitáis para renovar?</p>
+<span class="text-[10px] text-brand-muted mt-2 block">25 ago 2026</span>
+</div>
+<div>
+<span class="px-3 py-1 rounded-full text-[10px] font-medium tracking-wider uppercase bg-[#ECEBE4] text-[#4A504C]">
+              ABIERTO
+            </span>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 7: MENSAJES (CHAT DIRECTO)                 -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-5xl" id="tab-content-mensajes">
+<div class="bg-white rounded-2xl p-8 shadow-sm border border-[#E9E4DC] flex flex-col justify-between h-[520px]">
+<!-- Conversation Header -->
+<div class="border-b border-[#F0EBE1] pb-4">
+<h3 class="text-sm font-medium text-[#2B302E]">Lawang</h3>
+<span class="text-xs text-brand-muted">Tu equipo de atención</span>
+</div>
+<!-- Messages Body -->
+<div class="flex-1 py-6 overflow-y-auto space-y-4">
+<div class="max-w-md">
+<div class="bg-[#EFEBE3] text-xs text-[#2B302E] p-3.5 rounded-2xl inline-block rounded-tl-sm">
+                ¡Hola Marta! Todo va según lo previsto.
+              </div>
+<span class="text-[10px] text-brand-muted block mt-1">20 ago · 17:00</span>
+</div>
+</div>
+<!-- Message Input Bar -->
+<div class="pt-4 flex items-center gap-3">
+<div class="flex-1 relative">
+<input class="w-full rounded-full border border-[#D5CEC2] px-5 py-2.5 text-xs text-[#2B302E] placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-lagoon focus:border-brand-lagoon" placeholder="Responder..." type="text"/>
+</div>
+<button class="bg-[#1C4345] hover:bg-[#153436] text-white px-6 py-2.5 rounded-full text-xs font-medium transition shadow-sm">
+              Enviar
+            </button>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- TAB 8: MI PERFIL                               -->
+<!-- ============================================== -->
+<div class="tab-pane hidden max-w-2xl space-y-5" id="tab-content-perfil">
+<!-- Datos Personales Card -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<h3 class="text-sm font-medium text-[#2B302E] mb-4">Datos personales</h3>
+<div class="space-y-3.5 text-xs">
+<div>
+<span class="text-[10px] uppercase font-medium tracking-wider text-brand-muted block">NOMBRE</span>
+<span class="text-[#2B302E] mt-0.5 block font-medium">Marta Ibáñez QA</span>
+</div>
+<div>
+<span class="text-[10px] uppercase font-medium tracking-wider text-brand-muted block">CORREO</span>
+<span class="text-[#2B302E] mt-0.5 block">marta.qa@example.com</span>
+</div>
+<div>
+<span class="text-[10px] uppercase font-medium tracking-wider text-brand-muted block">TELÉFONO</span>
+<span class="text-[#2B302E] mt-0.5 block">+34 600 000 000</span>
+</div>
+<div>
+<span class="text-[10px] uppercase font-medium tracking-wider text-brand-muted block">PAÍS</span>
+<span class="text-[#2B302E] mt-0.5 block">España</span>
+</div>
+</div>
+</div>
+<!-- Seguridad Card -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<h3 class="text-sm font-medium text-[#2B302E] mb-4">Seguridad</h3>
+<button class="px-5 py-2 rounded-full border border-[#D5CEC2] text-xs font-medium text-[#2B302E] hover:bg-[#FBF9F5] transition">
+            Cambiar contraseña
+          </button>
+</div>
+<!-- Preferencias de Notificación Card -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-[#E9E4DC]">
+<h3 class="text-sm font-medium text-[#2B302E] mb-4">Preferencias de notificación</h3>
+<div class="space-y-4 text-xs">
+<!-- Avisos por correo -->
+<div class="flex items-center justify-between pb-3 border-b border-[#F5F0E8]">
+<span class="text-[#2B302E]">Avisos por correo</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#344E39]"></div>
+</label>
+</div>
+<!-- Avisos por SMS -->
+<div class="flex items-center justify-between">
+<span class="text-[#2B302E]">Avisos por SMS</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-[#D8D2C5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#344E39]"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- END: ScrollableContentContainer -->
+</div>
+<!-- END: MainContentWrapper -->
+<!-- ============================================== -->
+<!-- MODAL 1: FACTURA DETALLADA (photo_3)          -->
+<!-- ============================================== -->
+<div class="fixed inset-0 z-50 bg-black/40 hidden items-center justify-end transition-opacity" data-purpose="invoice-modal-drawer" id="invoice-modal">
+<div class="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-200">
+<!-- Modal Close Button Top -->
+<div class="p-6 flex justify-end pb-2">
+<button class="text-gray-400 hover:text-gray-700" onclick="closeInvoiceModal()">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+<!-- Invoice Sheet Content (A4 style look) -->
+<div class="px-10 flex-1 overflow-y-auto font-sans text-xs">
+<div class="flex justify-between items-start pt-2">
+<!-- Company Legal Header -->
+<div>
+<div class="flex items-center gap-2 mb-2">
+<svg class="w-6 h-6 text-[#2B302E] fill-current" viewbox="0 0 36 36">
+<path d="M4 4H32V8H4V4ZM8 10H28V14H8V10ZM12 16H24V20H12V16ZM6 22H30V26H6V22ZM4 28H32V32H4V28Z"></path>
+</svg>
+<span class="text-lg tracking-[0.2em] font-serif uppercase font-semibold text-[#2B302E]">LAWANG</span>
+</div>
+<p class="text-[10px] text-gray-500 font-medium">PT TEPI SUN GAI</p>
+<p class="text-[9px] text-gray-400 uppercase tracking-tight">LAWANG TROPICAL PROPERTIES</p>
+<p class="text-[9px] text-gray-400 leading-tight mt-1 max-w-[200px]">
+              Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Denpasar, Bali 80117 Indonesia<br/>
+              NPWP 100000000619.8026
+            </p>
+</div>
+<!-- Invoice Identity -->
+<div class="text-right">
+<h2 class="text-lg font-normal text-gray-900">Factura</h2>
+<span class="text-[9px] uppercase tracking-widest text-gray-400 block -mt-1">INVOICE</span>
+<span class="text-xs font-semibold text-gray-800 mt-2 block">INV00099-QA</span>
+</div>
+</div>
+<div class="mt-8">
+<span class="text-[9px] uppercase font-semibold text-gray-400 tracking-wider">FACTURAR A · BILL TO</span>
+<p class="text-xs font-medium text-gray-800 mt-1">Marta Ibáñez QA</p>
+</div>
+<!-- Line items -->
+<div class="mt-6 border-t border-gray-100 pt-3">
+<span class="text-[9px] uppercase font-semibold text-gray-400 tracking-wider">CONCEPTOS · ITEMS</span>
+<div class="flex justify-between items-center py-4 border-b border-gray-100 text-xs">
+<span class="text-gray-700">Hilo prueba</span>
+<span class="font-medium text-gray-900">82.000,00</span>
+</div>
+</div>
+<!-- Totals -->
+<div class="mt-4 space-y-1 text-right text-xs">
+<div class="flex justify-between text-gray-500 text-[11px]">
+<span>Subtotal</span>
+<span>82.000,00</span>
+</div>
+<div class="flex justify-between font-semibold text-gray-900 text-sm pt-1">
+<span>Total</span>
+<span>82.000,00</span>
+</div>
+</div>
+<!-- Legal Disclaimer Footer -->
+<div class="mt-12 text-[8px] text-gray-400 leading-relaxed border-t border-gray-100 pt-4">
+          PT TEPI SUN GAI · LAWANG TROPICAL PROPERTIES · NPWP 100000000619.8026 · Jalan Gunung Tangkuban Perahu, Gg. Dewi Sri Dusun Tegal Buah RT. 000 RW. 000, Padangsambian Kelod, Denpasar Barat, Denpasar, Bali 80117, Indonesia
+        </div>
+</div>
+<!-- Action Footer -->
+<div class="p-6 border-t border-gray-100 flex items-center justify-between gap-3 bg-[#FCFBF8]">
+<button class="bg-[#1C4345] hover:bg-[#153436] text-white px-5 py-2.5 rounded-full text-xs font-medium transition shadow-sm flex-1">
+          Imprimir o guardar en PDF
+        </button>
+<button class="px-5 py-2.5 rounded-full border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-100 transition" onclick="closeInvoiceModal()">
+          Cerrar
+        </button>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- MODAL 2: TICKET SOPORTE DETALLE (photo_5)      -->
+<!-- ============================================== -->
+<div class="fixed inset-0 z-50 bg-black/40 hidden items-center justify-end" data-purpose="support-chat-drawer" id="support-modal">
+<div class="bg-white w-full max-w-xl h-full shadow-2xl flex flex-col justify-between">
+<!-- Modal Header -->
+<div class="p-6 flex items-start justify-between border-b border-gray-100">
+<div>
+<h3 class="text-sm font-semibold text-[#2B302E]">Duda sobre KITAS</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-xs text-brand-muted">Documentación</span>
+<span class="px-2 py-0.5 rounded-full text-[9px] font-medium tracking-wider uppercase bg-[#ECEBE4] text-[#4A504C]">
+              ABIERTO
+            </span>
+</div>
+</div>
+<button class="text-gray-400 hover:text-gray-700" onclick="closeSupportModal()">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+<!-- Support Chat Thread -->
+<div class="px-8 py-6 flex-1 overflow-y-auto flex flex-col items-end space-y-2">
+<span class="text-[10px] text-brand-muted mr-1">Tú</span>
+<div class="bg-[#1C4345] text-white text-xs px-4 py-3 rounded-2xl rounded-tr-sm max-w-xs leading-relaxed shadow-sm">
+          ¿Qué necesitáis para renovar?
+        </div>
+</div>
+<!-- Input Footer -->
+<div class="p-6 border-t border-gray-100 flex items-center gap-3">
+<input class="flex-1 rounded-full border border-gray-300 px-5 py-2.5 text-xs text-[#2B302E] placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-lagoon" placeholder="Responder..." type="text"/>
+<button class="bg-[#1C4345] hover:bg-[#153436] text-white px-6 py-2.5 rounded-full text-xs font-medium transition shadow-sm">
+          Enviar
+        </button>
+</div>
+</div>
+</div>
+<!-- BEGIN: InteractiveTabAndModalScript -->
+<script data-purpose="tab-and-modal-interactivity">
+    // Navigation Tabs Switcher
+    function switchTab(tabId) {
+      // Hide all tabs
+      const panes = document.querySelectorAll('.tab-pane');
+      panes.forEach(pane => pane.classList.add('hidden'));
+
+      // Remove active states from buttons
+      const navButtons = document.querySelectorAll('.nav-item');
+      navButtons.forEach(btn => {
+        btn.classList.remove('bg-brand-lagoonLight', 'text-white');
+        btn.classList.add('text-emerald-100/80', 'hover:bg-brand-lagoonLight/50');
+      });
+
+      // Show targeted tab
+      const targetPane = document.getElementById('tab-content-' + tabId);
+      if (targetPane) {
+        targetPane.classList.remove('hidden');
+      }
+
+      // Activate clicked button
+      const activeBtn = document.getElementById('nav-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-brand-lagoonLight', 'text-white');
+        activeBtn.classList.remove('text-emerald-100/80');
+      }
+
+      // Update Topbar Title
+      const pageTitle = document.getElementById('page-title');
+      const titleMap = {
+        'inicio': 'Inicio',
+        'contratos': 'Contratos',
+        'facturas': 'Facturas',
+        'obra': 'Obra',
+        'documentos': 'Documentos',
+        'soporte': 'Soporte',
+        'mensajes': 'Mensajes',
+        'perfil': 'Mi perfil'
+      };
+      if (pageTitle && titleMap[tabId]) {
+        pageTitle.textContent = titleMap[tabId];
+      }
+    }
+
+    // Factura Modal Handlers
+    function openInvoiceModal() {
+      const modal = document.getElementById('invoice-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeInvoiceModal() {
+      const modal = document.getElementById('invoice-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Soporte Modal Handlers
+    function openSupportModal() {
+      const modal = document.getElementById('support-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSupportModal() {
+      const modal = document.getElementById('support-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Close on backdrop click
+    window.addEventListener('click', function(e) {
+      const invoiceModal = document.getElementById('invoice-modal');
+      const supportModal = document.getElementById('support-modal');
+      if (e.target === invoiceModal) closeInvoiceModal();
+      if (e.target === supportModal) closeSupportModal();
+    });
+  </script>
+<!-- END: InteractiveTabAndModalScript -->
+</body></html>

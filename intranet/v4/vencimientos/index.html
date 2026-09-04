@@ -1,0 +1,575 @@
+<!DOCTYPE html><html lang="es" style=""><head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d1194bf1" data-herramienta="vencimientos"></script>
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=8fd0155d" defer></script><script src="../assets/datos.js" defer></script>
+<meta name="robots" content="noindex">
+<script src="../assets/nav.js" defer></script>
+<link href="../assets/shell.css" rel="stylesheet">
+<script src="../assets/maqueta.js" defer></script><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>Lawang Properties &amp; Suite — Consola Operativa</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="../assets/fonts/fonts.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}#sidebar-root{transition:width 0.25s cubic-bezier(0.4,0,0.2,1);}#main-stage,#topbar-stage{transition:padding-left 0.25s cubic-bezier(0.4,0,0.2,1),left 0.25s cubic-bezier(0.4,0,0.2,1);}.sidebar-collapsed #sidebar-root{width:68px;}.sidebar-collapsed #main-stage{padding-left:68px;}.sidebar-collapsed #topbar-stage{left:68px;}.sidebar-collapsed .nav-text-item,.sidebar-collapsed .nav-section-title,.sidebar-collapsed .sidebar-full-brand,.sidebar-collapsed .sidebar-user-details{display:none;}.sidebar-collapsed .nav-link-anchor{justify-content:center;padding-left:0;padding-right:0;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "primary-fixed-dim": "#b8cea1",
+                "inverse-surface": "#30312d",
+                "tertiary-container": "#6f4a61",
+                "on-tertiary-container": "#edbdd8",
+                "on-primary-container": "#bcd2a5",
+                "secondary-fixed-dim": "#9ad0d3",
+                "surface-variant": "#e4e2dd",
+                "territorial-green": "#485B37",
+                "burnt-earth": "#42210B",
+                "outline-variant": "#c5c8bc",
+                "on-tertiary-fixed-variant": "#5f3c52",
+                "on-secondary-container": "#356b6e",
+                "stone-sand": "#BEB3A5",
+                "control-border": "#8A8474",
+                "on-secondary-fixed-variant": "#144e51",
+                "inverse-primary": "#b8cea1",
+                "surface-container-high": "#e9e8e3",
+                "on-primary-fixed": "#0f2003",
+                "tertiary": "#563349",
+                "error-container": "#ffdad6",
+                "volcanic-ash": "#2E3437",
+                "on-primary": "#ffffff",
+                "outline": "#75786e",
+                "surface-container-low": "#f5f4ee",
+                "on-surface-variant": "#44483f",
+                "on-error-container": "#93000a",
+                "on-error": "#ffffff",
+                "on-background": "#1b1c19",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed-dim": "#e9b9d4",
+                "surface": "#fbf9f4",
+                "deep-lagoon": "#104C4F",
+                "inverse-on-surface": "#f2f1eb",
+                "surface-dim": "#dbdad5",
+                "background": "#fbf9f4",
+                "surface-tint": "#51643f",
+                "primary-fixed": "#d3eabb",
+                "surface-container-highest": "#e4e2dd",
+                "error": "#ba1a1a",
+                "secondary-container": "#b3e9ed",
+                "surface-container-lowest": "#ffffff",
+                "on-primary-fixed-variant": "#3a4c2a",
+                "on-surface": "#1b1c19",
+                "surface-container": "#efeee8",
+                "raw-linen": "#F5F0E6",
+                "secondary": "#316669",
+                "surface-bright": "#fbf9f4",
+                "surface-alt": "#F1EBDD",
+                "primary": "#314322",
+                "on-tertiary-fixed": "#2e1125",
+                "on-secondary-fixed": "#002021",
+                "soft-canopy": "#8F9B7A",
+                "primary-container": "#485b37",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed": "#ffd8ed",
+                "secondary-fixed": "#b6ecef"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-mobile": "16px",
+                "margin-desktop": "48px",
+                "element-gap": "16px",
+                "gutter": "24px"
+        },
+        "fontFamily": {
+                "label-md": [
+                        "Neue Kabel"
+                ],
+                "body-lg": [
+                        "Neue Kabel"
+                ],
+                "headline-lg": [
+                        "The Seasons"
+                ],
+                "body-md": [
+                        "Neue Kabel"
+                ],
+                "body-sm": [
+                        "Neue Kabel"
+                ],
+                "headline-sm": [
+                        "The Seasons"
+                ],
+                "kpi-number": [
+                        "Neue Kabel"
+                ],
+                "headline-md": [
+                        "The Seasons"
+                ]
+        },
+        "fontSize": {
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "15px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-sm": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "kpi-number": [
+                        "36px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }</script></head><body class="bg-raw-linen font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center justify-between px-2"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-deep-lagoon tracking-wider font-semibold leading-none">LAWANG</span><span class="font-body-sm text-body-sm text-outline tracking-widest uppercase leading-none mt-1">PROPERTIES &amp; SUITE</span></div><button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">left_panel_close</span></button></div><nav class="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-220px)] pr-1" data-active-classes="bg-primary-container text-on-primary font-bold rounded-xl"><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Seguimiento</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="home" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Home</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="operaciones" href="#"><span class="material-symbols-outlined text-[20px]">sync_alt</span><span class="">Operaciones</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="soporte" href="#"><span class="material-symbols-outlined text-[20px]">support_agent</span><span class="">Soporte</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="vencimientos" href="#"><span class="material-symbols-outlined text-[20px]">event_busy</span><span class="">Vencimientos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Documentación</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="contratos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span class="">Contratos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="creatividades" href="#"><span class="material-symbols-outlined text-[20px]">palette</span><span class="">Creatividades</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="documentacion" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="">Documentación</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Administración</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="facturas" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Facturas</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="recibos" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="">Recibos</span></a></div><div class="flex flex-col gap-1"><span class="px-3 font-body-sm text-body-sm text-outline uppercase tracking-wider">Base de Datos</span><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="proyectos" href="#"><span class="material-symbols-outlined text-[20px]">apartment</span><span class="">Proyectos</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="obra" href="#"><span class="material-symbols-outlined text-[20px]">foundation</span><span class="">Obra</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="compradores" href="#"><span class="material-symbols-outlined text-[20px]">badge</span><span class="">Compradores</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="usuarios" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Usuarios</span></a></div></nav></div><div class="flex flex-col gap-3 pt-4 border-t border-outline/20"><div class="flex items-center justify-between px-3"><span class="font-body-sm text-body-sm text-outline uppercase tracking-wider">Idioma</span><div class="flex items-center bg-surface-container p-1 rounded-full"><button class="px-3 py-0.5 rounded-full font-label-md text-label-md bg-deep-lagoon text-on-primary" type="button">ES</button><button class="px-3 py-0.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface" type="button">EN</button></div></div><a class="flex items-center gap-3 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-body-md text-body-md" data-path="login" href="#"><span class="material-symbols-outlined text-[20px]">logout</span><span class="">Cerrar Sesión</span></a></div></aside><div class="pl-72" id="main-stage"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-gutter flex items-center justify-between"><div class="flex items-center gap-4"></div><div class="flex items-center gap-4"><button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Buscar" type="button"><span class="material-symbols-outlined text-[20px]">search</span></button><button class="relative w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" title="Notificaciones" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-4 h-4 bg-error text-on-error font-body-sm text-[10px] rounded-full flex items-center justify-center font-bold whitespace-nowrap">18</span></button><div class="flex items-center gap-3 pl-3 border-l border-outline/20"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">Javier Cervantes</span><span class="font-body-sm text-body-sm text-outline leading-tight">Super Admin</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 bg-raw-linen min-h-screen px-6 lg:px-8 py-8"><div class="flex flex-col w-full">
+<section class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
+<div class="space-y-1">
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Vencimientos &amp; Tesorería</h1>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="relative">
+<select class="appearance-none bg-surface-container-lowest text-on-surface font-label-md text-label-md rounded-full px-4 py-2.5 pr-9 shadow-sm hover:bg-surface-container-low transition-colors cursor-pointer focus:outline-none">
+<option>Septiembre 2026</option>
+<option>Próximos 30 días</option>
+<option>Q4 2026</option>
+<option>Ejercicio Fiscal 2026/27</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-control-border text-[18px]">expand_more</span>
+</div>
+<button class="inline-flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container-low text-deep-lagoon font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+        Exportar previsión de caja
+      </button>
+<button class="inline-flex items-center gap-2 bg-deep-lagoon hover:bg-primary text-on-primary font-label-md text-label-md px-5 py-2.5 rounded-full shadow-sm transition-all duration-150" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+        + Registrar hito
+      </button>
+</div>
+</section>
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Previsión de Entradas</span>
+<span class="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-deep-lagoon">
+<span class="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+</span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-headline-md text-deep-lagoon">342.805,00 €</div>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="px-2 py-0.5 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-[11px] font-semibold">+18.4% vs mes ant.</span>
+<span class="text-on-surface-variant font-body-sm text-[12px]">Septiembre 2026</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Vencimientos Críticos</span>
+<span class="w-7 h-7 rounded-full bg-burnt-earth/10 flex items-center justify-center text-burnt-earth">
+<span class="material-symbols-outlined text-[16px]">priority_high</span>
+</span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-headline-md text-burnt-earth">4 cobros</div>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold">&lt; 7 días límite</span>
+<span class="text-on-surface-variant font-body-sm text-[12px]">Total: 115.000 €</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Vencidos Sin Regularizar</span>
+<span class="w-7 h-7 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+</span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-headline-md text-error">2 contratos</div>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-semibold">Acción notarial</span>
+<span class="text-on-surface-variant font-body-sm text-[12px]">Total: 50.000 €</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Saldo Fiduciario Escrow</span>
+<span class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[16px]">assured_workload</span>
+</span>
+</div>
+<div class="mt-4">
+<div class="font-kpi-number text-headline-md text-deep-lagoon">1.240.500,00 €</div>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="w-2 h-2 rounded-full bg-territorial-green animate-pulse"></span>
+<span class="text-territorial-green font-label-md text-[11px] font-semibold">BNI Trust Bali • Custodia notarial</span>
+</div>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+<div class="xl:col-span-8 flex flex-col gap-6 min-w-0">
+<div class="flex items-center justify-between bg-surface-container-lowest p-2 rounded-xl shadow-sm">
+<div class="inline-flex p-1 bg-surface-container-low rounded-lg">
+<button class="px-4 py-1.5 rounded-md bg-deep-lagoon text-on-primary font-label-md text-body-sm font-semibold shadow-sm transition-all" type="button">Vista Cronológica / Lista</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-label-md text-body-sm transition-all" type="button">Calendario Semanal</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-label-md text-body-sm transition-all" type="button">Por Proyecto (Bali / Sumba)</button>
+</div>
+<div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-lg text-body-sm text-volcanic-ash">
+<span class="material-symbols-outlined text-[18px] text-control-border">filter_list</span>
+<span class="">Filtro activo: Todos los tipos</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3 px-1">
+<span class="w-2.5 h-2.5 rounded-full bg-error"></span>
+<h2 class="font-headline-sm text-headline-sm text-burnt-earth">Urgentes / Vencidos</h2>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold">2 INCIDENCIAS</span>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">history_edu</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Firma jose · RP00024</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold uppercase">Vencido hace 1 día</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Bloqueo Parcela Java • Comprador: Jose Luis Martínez</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-burnt-earth">15.000,00 €</div>
+<div class="text-body-sm text-error text-[12px] font-medium">Cadena de firma detenida</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors" type="button">Reactivar enlace</button>
+<button class="px-3.5 py-1.5 rounded-full bg-error text-on-error font-label-md text-body-sm hover:opacity-90 transition-opacity" type="button">Aviso urgente</button>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">description</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Firma jose · CC00013</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold uppercase">Vencido hace 1 día</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Construcción Java • Lote 4 Reserva Natural</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-burnt-earth">35.000,00 €</div>
+<div class="text-body-sm text-error text-[12px] font-medium">Requiere firma 2 de 3</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors" type="button">Reactivar enlace</button>
+<button class="px-3.5 py-1.5 rounded-full bg-burnt-earth text-on-primary font-label-md text-body-sm hover:opacity-90 transition-opacity" type="button">WhatsApp Legal</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3 px-1">
+<span class="w-2.5 h-2.5 rounded-full bg-burnt-earth"></span>
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash">Esta Semana (Próximos 7 días)</h2>
+<span class="px-2 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">2 FIRMAS CLAVE</span>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">draw</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Firma Silvia · RP00027</span>
+<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold uppercase">Vence en 1 día</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Reserva Inti Living • Villa Uluwatu Cliffside</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-deep-lagoon">20.000,00 €</div>
+<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">Pendiente Firma</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">edit_document</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Firma Silvia · CC00018</span>
+<span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold uppercase">Vence en 1 día</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Contrato Maestro Inti • Comprador: Silvia Pérez Morales</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-deep-lagoon">45.000,00 €</div>
+<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">Pendiente Firma</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3 px-1">
+<span class="w-2.5 h-2.5 rounded-full bg-deep-lagoon"></span>
+<h2 class="font-headline-sm text-headline-sm text-volcanic-ash">A 30-60 Días (Hitos de Obra y Facturas)</h2>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[11px] font-semibold">3 DOCUMENTOS EN CALENDARIO</span>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-surface-container-low text-deep-lagoon flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Factura INV00036</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px]">En 37 días</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Hito Cimentación Villa Aqua 3 • Fase Terrenos Bali</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-deep-lagoon">15.805,00 €</div>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px] font-medium">Programado</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-surface-container-low text-deep-lagoon flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">receipt</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Factura INV00063</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px]">En 59 días</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Reserva Fiduciaria Sumba • Hito Apertura Registral</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-deep-lagoon">5.000,00 €</div>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px] font-medium">Programado</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-full bg-soft-canopy/20 text-territorial-green flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">domain_verification</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Factura INV00099-QA</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-volcanic-ash font-label-md text-[11px]">30 abr 2026</span>
+</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5">Fin Estructura Hormigón • Comprador: Marta Ibáñez</div>
+</div>
+</div>
+<div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
+<div class="text-right">
+<div class="font-kpi-number text-headline-sm text-territorial-green">82.000,00 €</div>
+<span class="px-2.5 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">Hitos Obra</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<aside class="xl:col-span-4 space-y-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-5">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-volcanic-ash">Automatización de Cobro</h3>
+<span class="w-2 h-2 rounded-full bg-territorial-green"></span>
+</div>
+<p class="text-on-surface-variant font-body-sm">Flujos automáticos sincronizados con la pasarela bancaria BNI e integración con asesores legales en Bali.</p>
+<div class="space-y-3">
+<div class="p-3.5 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm text-on-surface font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-territorial-green text-[18px]">chat</span>
+                Recordatorios WhatsApp / Email
+              </span>
+<span class="text-territorial-green font-label-md text-[11px] font-bold uppercase">Activo</span>
+</div>
+<p class="text-[12px] text-control-border leading-relaxed font-body-sm">Disparar plantilla notarial a compradores cuando falten 48h para la expiración de firma.</p>
+<button class="w-full py-2 px-3 rounded-full bg-surface-container-lowest hover:bg-surface-container text-deep-lagoon font-label-md text-body-sm transition-colors text-center" type="button">
+              Ejecutar recordatorio masivo (4)
+            </button>
+</div>
+<div class="p-3.5 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm text-on-surface font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-deep-lagoon text-[18px]">sync_alt</span>
+                Conciliación DBS • BNI
+              </span>
+<span class="text-on-surface-variant font-label-md text-[11px] font-semibold">10:45 AM</span>
+</div>
+<p class="text-[12px] text-control-border leading-relaxed font-body-sm">Emparejamiento en tiempo real de transacciones entrantes con identificadores de contrato.</p>
+<button class="w-full py-2 px-3 rounded-full bg-deep-lagoon hover:bg-primary text-on-primary font-label-md text-body-sm transition-colors text-center" type="button">
+              Conciliar extracto ahora
+            </button>
+</div>
+<div class="p-3.5 rounded-xl bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm text-on-surface font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-burnt-earth text-[18px]">gavel</span>
+                Reclamación Notarial
+              </span>
+<span class="px-2 py-0.5 rounded-full bg-burnt-earth/10 text-burnt-earth font-label-md text-[10px] font-bold">Leyes RI</span>
+</div>
+<p class="text-[12px] text-control-border leading-relaxed font-body-sm">Genera dossier y providencia de decaimiento de plazo de reserva bajo legislación indonesia.</p>
+<button class="w-full py-2 px-3 rounded-full bg-surface-container-lowest hover:bg-surface-container text-burnt-earth font-label-md text-body-sm transition-colors text-center" type="button">
+              Generar orden de reclamación
+            </button>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-body-sm uppercase tracking-widest text-control-border font-semibold">Distribución de Entradas</span>
+<span class="text-deep-lagoon font-body-sm font-semibold">Q3/Q4</span>
+</div>
+<div class="space-y-3 pt-1">
+<div>
+<div class="flex justify-between text-body-sm mb-1.5 font-label-md">
+<span class="text-volcanic-ash">Bali • Uluwatu &amp; Canggu</span>
+<span class="font-kpi-number text-deep-lagoon font-semibold">215.000 € (63%)</span>
+</div>
+<div class="h-2 rounded-full bg-surface-container-high overflow-hidden">
+<div class="h-full bg-deep-lagoon rounded-full" style="width: 63%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm mb-1.5 font-label-md">
+<span class="text-volcanic-ash">Sumba Sanctuary Retreat</span>
+<span class="font-kpi-number text-territorial-green font-semibold">92.805 € (27%)</span>
+</div>
+<div class="h-2 rounded-full bg-surface-container-high overflow-hidden">
+<div class="h-full bg-territorial-green rounded-full" style="width: 27%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-body-sm mb-1.5 font-label-md">
+<span class="text-volcanic-ash">Java Eco Lodges</span>
+<span class="font-kpi-number text-burnt-earth font-semibold">35.000 € (10%)</span>
+</div>
+<div class="h-2 rounded-full bg-surface-container-high overflow-hidden">
+<div class="h-full bg-burnt-earth rounded-full" style="width: 10%"></div>
+</div>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center gap-3 mt-4">
+<span class="material-symbols-outlined text-territorial-green shrink-0 text-[20px]">verified_user</span>
+<p class="text-[12px] text-on-surface-variant font-body-sm leading-tight">
+            Garantía de fondos segregados depositados bajo mandato notarial fiduciario regulado por OJK.
+          </p>
+</div>
+</div>
+</aside>
+</div>
+</div></main></div>
+
+
+
+
+
+
+
+
+
+</body></html>

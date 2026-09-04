@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d1194bf1"></script>
+<meta name="robots" content="noindex">
+<script src="assets/nav.js" defer></script>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Intranet Lawang v4 — Hub (maqueta)</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="assets/fonts/fonts.css" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">
+tailwind.config = {
+  theme: { extend: {
+    colors: {
+      "background": "#fbf9f4", "surface-alt": "#F1EBDD", "raw-linen": "#F5F0E6",
+      "territorial-green": "#485B37", "deep-lagoon": "#104C4F", "burnt-earth": "#42210B",
+      "stone-sand": "#BEB3A5", "control-border": "#8A8474", "volcanic-ash": "#2E3437",
+      "primary": "#314322", "on-surface": "#1b1c19", "outline-variant": "#c5c8bc",
+      "accent-gold": "#C89B5C"
+    },
+    fontFamily: {
+      display: ['"The Seasons"', 'serif'],
+      sans: ['Neue Kabel', 'system-ui', 'sans-serif'],
+      ui: ['"Neue Kabel"', 'sans-serif']
+    }
+  } }
+};
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+</style>
+</head>
+<body class="bg-background text-on-surface font-sans min-h-screen flex">
+
+<!-- Sidebar estándar de la suite (mismos 14 ítems que las herramientas; nav.js marca activo) -->
+<aside class="hidden lg:flex w-64 shrink-0 flex-col border-r border-outline-variant bg-raw-linen/60 px-5 py-8 sticky top-0 h-screen overflow-y-auto">
+  <div class="mb-10">
+    <p class="font-display text-2xl font-semibold tracking-wide text-primary">Lawang</p>
+    <p class="font-ui text-[10px] uppercase tracking-[0.22em] text-control-border">Properties &amp; Suite · v4</p>
+  </div>
+  <nav class="flex flex-col gap-1 text-sm">
+    <a href="home/" class="flex items-center gap-3 rounded px-3 py-2 bg-territorial-green text-raw-linen"><span class="material-symbols-outlined text-[18px]">dashboard</span>Home</a>
+    <a href="operaciones/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">sync_alt</span>Operaciones</a>
+    <a href="soporte/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">support_agent</span>Soporte</a>
+    <a href="vencimientos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">event_upcoming</span>Vencimientos</a>
+    <a href="contratos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">history_edu</span>Contratos</a>
+    <a href="creatividades/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">palette</span>Creatividades</a>
+    <a href="documentacion/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">folder</span>Documentación</a>
+    <a href="facturas/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">receipt_long</span>Facturas</a>
+    <a href="recibos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">payments</span>Recibos</a>
+    <a href="proyectos/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">apartment</span>Proyectos</a>
+    <a href="obra/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">engineering</span>Obra</a>
+    <a href="compradores/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">badge</span>Compradores</a>
+    <a href="usuarios/" class="flex items-center gap-3 rounded px-3 py-2 hover:bg-surface-alt"><span class="material-symbols-outlined text-[18px]">manage_accounts</span>Usuarios</a>
+  </nav>
+  <div class="mt-auto pt-8 border-t border-outline-variant/70">
+    <p class="font-ui text-[10px] uppercase tracking-[0.2em] text-control-border">Maqueta v4 · datos ficticios</p>
+  </div>
+</aside>
+
+<main class="flex-1 px-6 lg:px-14 py-12 max-w-[1200px]">
+  <header class="mb-12">
+    <p class="font-ui text-[11px] uppercase tracking-[0.24em] text-territorial-green mb-3">Intranet Lawang · versión 4 · maqueta navegable</p>
+    <h1 class="font-display text-5xl font-semibold text-primary leading-tight">Consola operativa</h1>
+    <p class="mt-4 max-w-2xl text-volcanic-ash/80">Las pantallas del diseño de Stitch, conectadas. Todos los datos que enseña esta maqueta son ficticios.</p>
+  </header>
+
+  <section class="mb-10">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Inicio</h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="home/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-accent-gold transition-colors"><span class="material-symbols-outlined text-accent-gold">dashboard</span><p class="font-display text-xl font-semibold mt-2">Home · Consola Operativa</p><p class="text-sm text-volcanic-ash/70 mt-1">El dashboard de inicio (generado en Stitch, 3-sep)</p></a>
+      <a href="entrar/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-accent-gold transition-colors"><span class="material-symbols-outlined text-accent-gold">login</span><p class="font-display text-xl font-semibold mt-2">Entrar · Login</p><p class="text-sm text-volcanic-ash/70 mt-1">La puerta del equipo (construida con los tokens; «Entrar» lleva al Home)</p></a>
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Gestión</h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="proyectos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">apartment</span><p class="font-display text-xl font-semibold mt-2">Proyectos</p><p class="text-sm text-volcanic-ash/70 mt-1">Inventario de proyectos &amp; suelo</p></a>
+      <a href="proyectos-cuentas/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">account_tree</span><p class="font-display text-xl font-semibold mt-2">Proyecto · Master Plan &amp; Cuentas</p><p class="text-sm text-volcanic-ash/70 mt-1">Vista de detalle de un proyecto (Horizon S1)</p></a>
+      <a href="compradores/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">badge</span><p class="font-display text-xl font-semibold mt-2">Compradores</p><p class="text-sm text-volcanic-ash/70 mt-1">Directorio de compradores &amp; inversores</p></a>
+      <a href="operaciones/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">sync_alt</span><p class="font-display text-xl font-semibold mt-2">Operaciones</p><p class="text-sm text-volcanic-ash/70 mt-1">Trazabilidad de cada operación</p></a>
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Contratación</h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="contratos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">history_edu</span><p class="font-display text-xl font-semibold mt-2">Contratos</p><p class="text-sm text-volcanic-ash/70 mt-1">Contratos guardados</p></a>
+      <a href="generador-contratos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">edit_document</span><p class="font-display text-xl font-semibold mt-2">Generador de contratos</p><p class="text-sm text-volcanic-ash/70 mt-1">Editor · gestión del contrato</p></a>
+      <a href="documentacion/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">folder</span><p class="font-display text-xl font-semibold mt-2">Documentación</p><p class="text-sm text-volcanic-ash/70 mt-1">Bóveda notarial &amp; repositorio técnico</p></a>
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Dinero</h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="facturas/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">receipt_long</span><p class="font-display text-xl font-semibold mt-2">Facturas</p><p class="text-sm text-volcanic-ash/70 mt-1">Facturación &amp; proformas</p></a>
+      <a href="recibos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">payments</span><p class="font-display text-xl font-semibold mt-2">Recibos</p><p class="text-sm text-volcanic-ash/70 mt-1">Recibos &amp; justificantes de cobro</p></a>
+      <a href="vencimientos/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">event_upcoming</span><p class="font-display text-xl font-semibold mt-2">Vencimientos</p><p class="text-sm text-volcanic-ash/70 mt-1">Vencimientos &amp; tesorería</p></a>
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Producto &amp; equipo</h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="obra/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">engineering</span><p class="font-display text-xl font-semibold mt-2">Obra</p><p class="text-sm text-volcanic-ash/70 mt-1">Control de obra &amp; certificaciones</p></a>
+      <a href="creatividades/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">palette</span><p class="font-display text-xl font-semibold mt-2">Creatividades</p><p class="text-sm text-volcanic-ash/70 mt-1">Dossiers de producto &amp; creatividades</p></a>
+      <a href="usuarios/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">manage_accounts</span><p class="font-display text-xl font-semibold mt-2">Usuarios</p><p class="text-sm text-volcanic-ash/70 mt-1">Equipo &amp; control de accesos</p></a>
+      <a href="soporte/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-territorial-green">support_agent</span><p class="font-display text-xl font-semibold mt-2">Soporte</p><p class="text-sm text-volcanic-ash/70 mt-1">Bandeja de soporte &amp; tickets</p></a>
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Cara al cliente</h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="contratos-inversor/" class="group border border-outline-variant rounded bg-white/60 p-5 hover:border-deep-lagoon transition-colors"><span class="material-symbols-outlined text-deep-lagoon">verified_user</span><p class="font-display text-xl font-semibold mt-2">Portal del Inversor</p><p class="text-sm text-volcanic-ash/70 mt-1">Área privada del comprador (pantalla nueva de Stitch, 3-sep)</p></a>
+    </div>
+  </section>
+
+  <section class="mb-16">
+    <h2 class="font-ui text-[11px] uppercase tracking-[0.2em] text-control-border border-b border-outline-variant pb-2 mb-5">Vistas móviles <span class="normal-case tracking-normal">— fuera del grafo de navegación, se abren desde aquí</span></h2>
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <a href="movil/contratos.html" class="group border border-dashed border-stone-sand rounded p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-stone-sand">smartphone</span><p class="font-display text-xl font-semibold mt-2">Móvil · Contratos</p></a>
+      <a href="movil/seguimiento.html" class="group border border-dashed border-stone-sand rounded p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-stone-sand">smartphone</span><p class="font-display text-xl font-semibold mt-2">Móvil · Seguimiento</p></a>
+      <a href="movil/proyectos-cuentas.html" class="group border border-dashed border-stone-sand rounded p-5 hover:border-territorial-green transition-colors"><span class="material-symbols-outlined text-stone-sand">smartphone</span><p class="font-display text-xl font-semibold mt-2">Móvil · Proyectos &amp; Cuentas</p></a>
+    </div>
+  </section>
+
+  <footer class="border-t border-outline-variant pt-6 pb-10 text-sm text-control-border">
+    <p>Maqueta v4 · diseño «Portal Inmobiliario y Gestión Promotora» (Stitch, 3-sep-2026) ·
+    promocionar a producción exige la Regla 0 bis, guard.js y seguridad en verde — ver README.</p>
+  </footer>
+</main>
+
+</body>
+</html>
