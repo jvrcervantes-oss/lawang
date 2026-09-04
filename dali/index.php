@@ -45,6 +45,20 @@ $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode($WA_TXT);
 $EMAIL    = 'sales@lawangproperties.com';
 $CALENDLY = 'https://calendly.com/lawangproperties';
 
+// Domicilio y líneas directas: los dio el owner el 4-sep-2026. Sustituyen a la oficina de
+// «Sunset Road No. 88, Seminyak» que traía el mockup y que no constaba en ninguna fuente
+// del repo.
+// ⭐ `+62 811-3830-5237` es el número que LAW-46 llevaba desde el 5-ago dando por huérfano
+// (aparecía en la pantalla de gracias de los formularios v3 de Meta y no estaba en ninguna
+// de las dos webs). El owner lo confirma como suyo: los leads que pulsaron «Message us on
+// WhatsApp» aterrizaron en una línea real de Lawang, no se perdieron. Cierra LAW-46.
+$OFICINA = 'Jl. Gn. Tangkuban Perahu No.145, 2nd Floor, Padangsambian Klod, '
+         . 'Kec. Denpasar Bar., Kota Denpasar, Bali 80117';
+$TELEFONOS = [
+    ['show' => '+62 811-3830-5240', 'tel' => '+6281138305240'],
+    ['show' => '+62 811-3830-5237', 'tel' => '+6281138305237'],
+];
+
 $portada  = $DALI['thumb'];
 $ogImg    = $portada ?? '/assets/img/lugar/costa.webp';
 
@@ -971,7 +985,15 @@ tr.destacada{background:rgba(250,247,240,.9)}
         <p class="pie__dl">
           <span>Email: <a href="mailto:<?= lw_e($EMAIL) ?>"><b><?= lw_e($EMAIL) ?></b></a></span>
           <span>WhatsApp Direct: <a href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer"><b><?= lw_e($WA_SHOW) ?></b></a></span>
+          <?php foreach ($TELEFONOS as $t): ?>
+          <span>Direct line: <a href="tel:<?= lw_e($t['tel']) ?>"><b><?= lw_e($t['show']) ?></b></a></span>
+          <?php endforeach; ?>
           <span>Working Hours Sync: <b>8:00 AM – 7:00 PM AEST / AWST</b></span>
+          <?php /* "Office", no "Registered Office" como el mockup: que esta sea la sede
+                   inscrita de PT TEPI SUN GAI en el NIB/SK no consta en ninguna fuente que
+                   el estudio pueda comprobar, y es un término legal concreto. "Office" es
+                   cierto en los dos casos. */ ?>
+          <span style="margin-top:5px">Office:<br><b><?= lw_e($OFICINA) ?></b></span>
         </p>
       </div>
       <div>
