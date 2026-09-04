@@ -131,6 +131,13 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   #     mecanismo que la 3 de arriba). A diferencia de modelo/index.php, thecollection.php
   #     decide 404 REAL si el slug no existe o no es visible — no hay redirect a /thecollection.
   RewriteRule ^property/([A-Za-z0-9-]+)/?$ /thecollection.php?property=$1 [L,QSA]
+
+  # 3c) Alias raiz de Dali (4-sep-2026, campana Meta Ads Australia): la publicidad enlaza
+  #     /dali en vez de /modelo/dali. Mismo contenido, mismo <link rel="canonical"> a
+  #     /modelo/dali (no se toca modelo/index.php) — cero riesgo de contenido duplicado,
+  #     es solo una URL mas corta para el anuncio. Solo Dali: los otros 4 modelos siguen
+  #     en /modelo/<id> unicamente, a proposito.
+  RewriteRule ^dali/?$ /modelo/index.php?m=dali [L,QSA]
 </IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
