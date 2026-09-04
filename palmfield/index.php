@@ -193,21 +193,32 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     </div>
 
     <div class="mosaico">
+      <?php /* Cada pie dice si es render o foto real — misma regla que /modelo/<id>. Aquí
+               importa el doble: Palm Field entrega en Q1 2027, así que una vista aérea del
+               complejo terminado SIN rotular se lee como que ya está construido. Y la foto
+               del solar no es «tu villa», es la explanación: mal rotulada engaña, bien
+               rotulada es la prueba de que la infraestructura existe de verdad. */ ?>
       <figure>
-        <img src="<?= lw_e($IMG_AEREA) ?>" alt="Palm Field from the air: villas laid out between the river and the jungle, Balian Hills, Bali" fetchpriority="high">
+        <img src="<?= lw_e($IMG_AEREA) ?>" alt="Palm Field masterplan visualisation: villas laid out between the river and the rice terraces, Balian Hills, Bali" fetchpriority="high">
         <figcaption>
-          <span class="mos__et">The masterplan, built</span>
+          <span class="mos__et">Masterplan · visualisation</span>
           <span class="mos__tt">Palm Field, Balian Hills</span>
           <span class="mos__sub">Private pool villas between the river and the rice terraces</span>
         </figcaption>
       </figure>
       <figure>
-        <img src="<?= lw_e($IMG_2) ?>" alt="Palm Field villa exterior" loading="lazy">
-        <figcaption><span class="mos__tt">Your own villa</span></figcaption>
+        <img src="<?= lw_e($IMG_2) ?>" alt="Palm Field site: terracing, retaining walls and drainage under construction" loading="lazy">
+        <figcaption>
+          <span class="mos__tt">The land, already worked</span>
+          <span class="mos__sub">Site photo · terracing and retaining walls</span>
+        </figcaption>
       </figure>
       <figure>
-        <img src="<?= lw_e($IMG_3) ?>" alt="Palm Field surroundings, west Bali" loading="lazy">
-        <figcaption><span class="mos__tt">Five minutes from the beach</span></figcaption>
+        <img src="<?= lw_e($IMG_3) ?>" alt="Villa model at Palm Field, evening" loading="lazy">
+        <figcaption>
+          <span class="mos__tt">Your own villa</span>
+          <span class="mos__sub">Render · Palm Field</span>
+        </figcaption>
       </figure>
     </div>
   </div>
