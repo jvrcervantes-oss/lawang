@@ -12,7 +12,7 @@
  * con el precio mal el 28-ago.
  */
 
-require_once __DIR__ . '/../modelo/lib.php';
+require_once __DIR__ . '/lib.php';
 
 /**
  * Tipo de cambio EUR→AUD.
@@ -45,7 +45,7 @@ function lw_aud_fmt($eur) {
  * según el reloj del servidor en Bali) en EUR y en AUD, specs y render de portada.
  */
 function lw_au_catalogo() {
-    $modelos = require __DIR__ . '/../modelo/modelos.php';
+    $modelos = require __DIR__ . '/modelos.php';
     $out = [];
     foreach ($modelos as $id => $m) {
         $imgs  = lw_modelo_imgs($id);

@@ -32,7 +32,7 @@
  *   · «© 2024» → 2026. Y el placeholder «e.g. Lachlan Murdoch» (persona real) → genérico.
  */
 
-require __DIR__ . '/datos.php';
+require __DIR__ . '/../modelo/datos.php';
 
 $CAT   = lw_au_catalogo();
 $DALI  = $CAT['dali'];

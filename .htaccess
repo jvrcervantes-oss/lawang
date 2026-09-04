@@ -56,10 +56,11 @@ RedirectMatch 404 (?i)\.py$
 RedirectMatch 404 (?i)\.sql$
 
 # Piezas internas de las landings: datos y funciones, nunca una pagina.
-# lib.php y modelos.php respondian 200 con cuerpo vacio. dali/datos.php entra el 4-sep con
-# la landing australiana: expone precios resueltos y el tipo de cambio, no es una pagina.
-RedirectMatch 404 (?i)/modelo/(lib|modelos)\.php$
-RedirectMatch 404 (?i)/dali/datos\.php$
+# lib.php y modelos.php respondian 200 con cuerpo vacio. modelo/datos.php entra el 4-sep:
+# expone precios resueltos y el tipo de cambio EUR/AUD, y lo comparten /dali y /palmfield.
+# El cierre de verdad es el <FilesMatch> de abajo, que casa el fichero resuelto y por tanto
+# tambien el PATH_INFO; estos RedirectMatch solo dan el 404 bonito en la ruta normal.
+RedirectMatch 404 (?i)/modelo/(lib|modelos|datos)\.php$
 
 # Arneses de prueba, en cualquier carpeta y por patron. Antes iban por nombre en la linea
 # de arriba y el que llego despues (api/test_ghl.php) respondio 200 en produccion desde el
@@ -141,6 +142,12 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   #     contenido duplicado. /modelo/dali sigue existiendo para el trafico organico.
   #     Va ANTES de la regla 2 para que la carpeta gane a cualquier dali.html/php de raiz.
   RewriteRule ^dali/?$ /dali/index.php [L,QSA]
+
+  # 3d) /palmfield — landing de campana del proyecto Palm Field (4-sep-2026). Es el destino
+  #     de la campana de Australia, en sustitucion de /dali: el owner pidio enfocarla a un
+  #     proyecto y no a un modelo de villa. Comparte piel (assets/au-landing.css) y datos
+  #     (modelo/datos.php) con /dali; /dali se queda publicada y con su propio canonical.
+  RewriteRule ^palmfield/?$ /palmfield/index.php [L,QSA]
 </IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
