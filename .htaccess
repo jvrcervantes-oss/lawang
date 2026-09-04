@@ -55,9 +55,11 @@ RedirectMatch 404 (?i)\.py$
 # .zip, .bak, .log»); esta era la mitad que faltaba.
 RedirectMatch 404 (?i)\.sql$
 
-# Piezas internas de la landing de modelo: datos y funciones, nunca una pagina.
-# lib.php y modelos.php respondian 200 con cuerpo vacio.
+# Piezas internas de las landings: datos y funciones, nunca una pagina.
+# lib.php y modelos.php respondian 200 con cuerpo vacio. dali/datos.php entra el 4-sep con
+# la landing australiana: expone precios resueltos y el tipo de cambio, no es una pagina.
 RedirectMatch 404 (?i)/modelo/(lib|modelos)\.php$
+RedirectMatch 404 (?i)/dali/datos\.php$
 
 # Arneses de prueba, en cualquier carpeta y por patron. Antes iban por nombre en la linea
 # de arriba y el que llego despues (api/test_ghl.php) respondio 200 en produccion desde el
@@ -70,7 +72,7 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
 # /modelo/modelos.php/x devolvian 200 pese a la regla de la linea 16. `Files` casa el
 # fichero YA resuelto, que es lo que de verdad se ejecuta, y aplica a las subcarpetas.
 # Se deja tambien el RedirectMatch: da el 404 bonito en la ruta normal. Este es el cierre.
-<FilesMatch "(?i)^(test_[^/]+|lib|modelos)\.php$">
+<FilesMatch "(?i)^(test_[^/]+|lib|modelos|datos)\.php$">
   Order allow,deny
   Deny from all
 </FilesMatch>
@@ -132,12 +134,13 @@ RedirectMatch 404 (?i)/test_[^/]+\.php$
   #     decide 404 REAL si el slug no existe o no es visible — no hay redirect a /thecollection.
   RewriteRule ^property/([A-Za-z0-9-]+)/?$ /thecollection.php?property=$1 [L,QSA]
 
-  # 3c) Alias raiz de Dali (4-sep-2026, campana Meta Ads Australia): la publicidad enlaza
-  #     /dali en vez de /modelo/dali. Mismo contenido, mismo <link rel="canonical"> a
-  #     /modelo/dali (no se toca modelo/index.php) — cero riesgo de contenido duplicado,
-  #     es solo una URL mas corta para el anuncio. Solo Dali: los otros 4 modelos siguen
-  #     en /modelo/<id> unicamente, a proposito.
-  RewriteRule ^dali/?$ /modelo/index.php?m=dali [L,QSA]
+  # 3c) /dali es su propia landing (4-sep-2026): pagina australiana con el diseno del
+  #     owner, en dali/index.php. NO es un alias de /modelo/dali — son dos paginas
+  #     distintas con publico distinto (esta va en AUD, con la mesa australiana y la
+  #     comparativa de vuelos) y cada una declara su propio canonical, asi que no hay
+  #     contenido duplicado. /modelo/dali sigue existiendo para el trafico organico.
+  #     Va ANTES de la regla 2 para que la carpeta gane a cualquier dali.html/php de raiz.
+  RewriteRule ^dali/?$ /dali/index.php [L,QSA]
 </IfModule>
 
 # Cabeceras de seguridad. HSTS SIN includeSubDomains a proposito: hay subdominios
