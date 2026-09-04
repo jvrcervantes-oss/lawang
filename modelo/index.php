@@ -325,7 +325,7 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://api.fontshare.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
 <!-- Widget real de reserva incrustado en la página (1-sep) — nada de saltar a
      calendly.com. defer, no bloquea el LCP de la foto de portada. -->
@@ -348,8 +348,22 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
   --verde:#485B37;
   --verde-osc:#37472B;
   --verde-tenue:#8F9B7A;
+  /* Deep Lagoon y Terracotta entran con el diseño de Stitch (4-sep). NO son colores
+     nuevos inventados: `--dl` ya es el acento de acción de la marca en
+     `contracts/assets/brand.css` (y lo que manda 8b sobre 1a en lawang_espec_visual.md);
+     aquí pasa de no usarse a ser el color dominante de barra y titulares. Terracotta es
+     el único añadido real, y solo como CTA — medido: #B85433 sobre blanco da 4,58:1 y
+     blanco sobre #B85433 da 4,58:1, así que el texto del botón cumple AA. */
+  --lagoon:#104C4F;
+  --lagoon-cl:#185D61;
+  --terracota:#B85433;
+  --terracota-osc:#A14425;
   --head:'Space Grotesk',sans-serif;
   --sans:'General Sans','Segoe UI',sans-serif;
+  /* Cormorant Garamond para titulares, del diseño de Stitch. Convive con Space Grotesk,
+     que se queda en cifras y etiquetas (`.font-mono-caps` del mockup): es justo lo que
+     hace que un importe se lea como dato y no como texto corrido. */
+  --display:'Cormorant Garamond',Georgia,serif;
   --gut:clamp(24px,7vw,140px);
 }
 *{box-sizing:border-box}
@@ -358,7 +372,11 @@ body{margin:0;background:var(--papel);color:var(--ink);font-family:var(--sans);
 img{max-width:100%;display:block}
 a{color:inherit;text-decoration:none}
 ::selection{background:var(--verde);color:var(--papel)}
-h1,h2{font-family:var(--head);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.05}
+/* Titulares en Cormorant (4-sep, diseño de Stitch) y en Deep Lagoon. El `letter-spacing`
+   negativo se retira: era compensación para Space Grotesk, que es una grotesca ancha; en
+   una garamond aprieta las serifas y ensucia el titular a tamaño grande. */
+h1,h2{font-family:var(--display);font-weight:700;margin:0;letter-spacing:0;line-height:1.06;
+  color:var(--lagoon)}
 p{margin:0}
 :focus-visible{outline:2px solid var(--verde);outline-offset:3px}
 
@@ -376,16 +394,33 @@ p{margin:0}
 .wrap{max-width:1440px;margin-inline:auto;padding-inline:var(--gut)}
 
 /* ── Nav ──────────────────────────────────────────────────────────────────────── */
-.nav{position:sticky;top:0;z-index:50;background:rgba(245,240,230,.93);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--linea)}
-.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:20px}
+/* Barra en Deep Lagoon (4-sep, diseño de Stitch): pasa de papel translúcido a bloque
+   sólido de color. El logo cambia a la versión clara — la oscura sobre el verde azulado
+   se pierde. */
+.nav{position:sticky;top:0;z-index:50;background:var(--lagoon);
+  border-bottom:1px solid var(--lagoon-cl);box-shadow:0 4px 20px rgba(16,76,79,.18)}
+.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:18px}
 .nav__brand{display:block;height:18px;width:auto}
-.nav__right{display:flex;align-items:center;gap:16px}
+.nav__right{display:flex;align-items:center;gap:14px}
 .nav__links{display:flex;align-items:center;gap:22px}
-.nav__links a{font-size:13px;font-weight:500;color:var(--ink2);text-transform:uppercase;
-  letter-spacing:.04em;white-space:nowrap}
-.nav__links a:hover{color:var(--verde)}
-@media(max-width:940px){.nav__links{display:none}}
+.nav__links a{font-family:var(--head);font-size:12px;font-weight:500;
+  color:rgba(255,255,255,.82);text-transform:uppercase;
+  letter-spacing:.09em;white-space:nowrap}
+.nav__links a:hover{color:#fff}
+@media(max-width:1100px){.nav__links{display:none}}
+/* Atajo de WhatsApp en la barra, del diseño de Stitch. Verde de marca de WhatsApp
+   (#25D366) a propósito: es un código de color que el usuario ya reconoce, y aquí no
+   compite con la paleta porque va sobre el lagoon, no sobre el papel. */
+.nav__wa{display:inline-flex;align-items:center;gap:7px;background:#25D366;color:#0B3D1F;
+  font-family:var(--head);font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;padding:9px 14px;border-radius:999px;transition:background .16s ease}
+.nav__wa:hover{background:#20BA59}
+.nav__wa svg{width:15px;height:15px;fill:currentColor}
+@media(max-width:640px){.nav__wa span{display:none}.nav__wa{padding:9px 11px}}
+/* El CTA de la barra, sobre lagoon, va en terracota: el verde de marca sobre el lagoon
+   da 1,9:1 entre fondos y desaparece como botón. */
+.nav .btn{background:var(--terracota);border-radius:999px;padding:10px 18px}
+.nav .btn:hover{background:var(--terracota-osc)}
 .btn{display:inline-flex;align-items:center;gap:10px;background:var(--verde);color:#fff;
   border:0;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:700;
   text-transform:uppercase;letter-spacing:.03em;padding:12px 20px;border-radius:4px;
@@ -867,6 +902,34 @@ label.picker__row{cursor:pointer}
    360px y el padding de .cal (20px por lado) hay margen de sobra. */
 .cal__widget{min-width:320px;height:600px}
 
+/* ── Selector de día (diseño de Stitch, 4-sep) ────────────────────────────────── */
+.calx{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 14px 12px;
+  display:flex;flex-direction:column;gap:9px}
+.calx__hd{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding-bottom:8px;border-bottom:1px solid var(--linea)}
+.calx__mes{font-family:var(--head);font-size:12px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--lagoon)}
+.calx__tz{font-family:var(--head);font-size:10px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink2)}
+.calx__dow,.calx__grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.calx__dow span{text-align:center;font-family:var(--head);font-size:10px;font-weight:700;
+  letter-spacing:.04em;color:var(--ink2)}
+.calx__d,.calx__no{display:flex;align-items:center;justify-content:center;
+  min-height:32px;border-radius:6px;font-family:var(--head);font-size:12.5px;font-weight:600}
+/* Día seleccionable: botón nativo, foco visible y área de toque de 32px — el mockup los
+   dejaba en 24px, por debajo del mínimo de toque cómodo en móvil. */
+.calx__d{background:var(--papel);border:1px solid var(--linea);color:var(--ink);
+  cursor:pointer;font-family:var(--head);transition:background .14s ease,border-color .14s ease}
+.calx__d:hover{border-color:var(--lagoon);background:#fff}
+.calx__d:focus-visible{outline:2px solid var(--lagoon);outline-offset:1px}
+.calx__d.is-on{background:var(--lagoon);border-color:var(--lagoon);color:#fff}
+/* Día no seleccionable (pasado o fin de semana): 3,1:1 sobre blanco. Es texto
+   deshabilitado, que WCAG no obliga a 4,5:1, pero por debajo de 3:1 deja de leerse
+   como "hay un número ahí" y la rejilla parece rota. */
+.calx__no{color:#9A968C}
+.calx__pie{font-size:11.5px;line-height:1.45;color:var(--ink2);margin:0}
+@media(max-width:1100px){.calx{max-width:420px}}
+
 /* ── Pie ──────────────────────────────────────────────────────────────────────── */
 .pie{border-top:1px solid var(--linea)}
 .pie .wrap{padding-block:34px;display:flex;justify-content:space-between;align-items:center;
@@ -883,7 +946,9 @@ label.picker__row{cursor:pointer}
 
 <header class="nav">
   <div class="wrap nav__in">
-    <a href="/" aria-label="Lawang Tropical Properties"><img class="nav__brand" src="/assets/img/lawang-logo-v3-dark.webp" alt="Lawang Tropical Properties"></a>
+    <!-- Logo CLARO desde el 4-sep: la barra pasó a Deep Lagoon y la versión `-dark` es
+         tinta sobre transparente, o sea invisible sobre el nuevo fondo. -->
+    <a href="/" aria-label="Lawang Tropical Properties"><img class="nav__brand" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties"></a>
     <div class="nav__right">
       <nav class="nav__links">
         <!-- Etiquetas alineadas con los pasos del configurador (3-sep). "Finishes & price"
@@ -901,6 +966,10 @@ label.picker__row{cursor:pointer}
         <a href="#ubicacion"><?= lw_i18n('Ubicación', 'Location') ?></a>
         <a href="#faq"><?= lw_i18n('Preguntas', 'FAQ') ?></a>
       </nav>
+      <a class="nav__wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+        <span>WhatsApp</span>
+      </a>
       <a class="btn" href="#agendar"><?= lw_i18n('Agendar llamada', 'Book a call') ?></a>
     </div>
   </div>
@@ -1601,7 +1670,68 @@ label.picker__row{cursor:pointer}
       'primary_color'    => '485B37', // --verde
     ]);
   ?>
-  <div class="cal__widget calendly-inline-widget" data-url="<?= lw_e($CALENDLY) ?>?<?= $calParams ?>"></div>
+  <!-- Selector de día, con el diseño de Stitch (4-sep). Lo que enseña son fechas REALES
+       calculadas en servidor (mes en curso, fines de semana fuera, hoy en adelante), no
+       la rejilla congelada de "mayo 2026" del mockup.
+       ⚠️ Lo que NO hace, y por qué: NO dice qué días tienen hueco ni cuántos quedan. El
+       mockup pintaba un punto verde en unos días y "5 Slots Open" en otros; eso exige la
+       API de Calendly (`/event_type_available_times`, token del owner, LAW-120) y sin
+       ella cualquier punto sería inventado — justo la familia de fallo que ya nos costó
+       una revisión de Legal. Al pulsar un día se abre el widget REAL de Calendly en esa
+       fecha (`?month=&date=`, parámetros documentados del embed), y es Calendly quien
+       enseña las horas que de verdad quedan. Cuando llegue el token, lo único que cambia
+       es de dónde salen los puntos: la rejilla ya está. -->
+  <?php
+    // Zona horaria de Bali, igual que lw_techo_precio_activo(): la disponibilidad la fija
+    // el reloj del equipo, no el del visitante — si no, un australiano (hasta 5h por
+    // delante) vería "mañana" un día que aquí todavía no ha empezado.
+    $calTz    = new DateTimeZone('Asia/Makassar');
+    $calHoy   = new DateTimeImmutable('today', $calTz);
+    // Si al mes en curso le quedan menos de 5 días laborables, se pinta el SIGUIENTE.
+    // Sin esto, quien entra un 29 ve una rejilla con uno o dos días pulsables y el resto
+    // en gris: parece que no hay hueco en toda la agenda, cuando lo que pasa es que el
+    // mes se acaba. Cinco es el umbral porque es lo que llena una fila de la rejilla.
+    $calQuedan = 0;
+    $calFin    = $calHoy->modify('last day of this month');
+    for ($c = $calHoy; $c <= $calFin; $c = $c->modify('+1 day')) {
+        if ((int) $c->format('N') < 6) { $calQuedan++; }
+    }
+    $calIni   = $calQuedan < 5
+        ? $calHoy->modify('first day of next month')
+        : $calHoy->modify('first day of this month');
+    // ISO-8601: 1 = lunes, que es como está rotulada la cabecera M T W T F S S.
+    $calPad   = (int) $calIni->format('N') - 1;
+    $calDias  = (int) $calIni->format('t');
+  ?>
+  <div class="calx" id="lw-calx">
+    <div class="calx__hd">
+      <span class="calx__mes"><?= lw_e($calIni->format('F Y')) ?></span>
+      <span class="calx__tz">WITA · Bali</span>
+    </div>
+    <div class="calx__dow" aria-hidden="true">
+      <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+    </div>
+    <div class="calx__grid">
+      <?php for ($i = 0; $i < $calPad; $i++): ?><span class="calx__no"></span><?php endfor; ?>
+      <?php for ($d = 1; $d <= $calDias; $d++):
+        $cd     = $calIni->modify('+' . ($d - 1) . ' days');
+        $finde  = (int) $cd->format('N') >= 6;
+        $pasado = $cd < $calHoy;
+        $libre  = !$finde && !$pasado;
+      ?>
+        <?php if ($libre): ?>
+        <button type="button" class="calx__d" data-fecha="<?= lw_e($cd->format('Y-m-d')) ?>"><?= $d ?></button>
+        <?php else: ?>
+        <span class="calx__no"><?= $d ?></span>
+        <?php endif; ?>
+      <?php endfor; ?>
+    </div>
+    <p class="calx__pie">
+      <span class="i-es">Lunes a viernes. Elige un día y verás las horas libres de verdad.</span>
+      <span class="i-en">Monday to Friday. Pick a day and you'll see the times that are actually free.</span>
+    </p>
+  </div>
+  <div class="cal__widget calendly-inline-widget" data-url="<?= lw_e($CALENDLY) ?>?<?= $calParams ?>" id="lw-cal-widget"></div>
 </aside>
 
 </div><!-- /grid -->
@@ -1698,6 +1828,45 @@ label.picker__row{cursor:pointer}
   // el calendario, no una cita confirmada. Esa sí sale del propio widget, más abajo.
   var ctaCal = document.getElementById('lw-cal-cta');
   if (ctaCal) ctaCal.addEventListener('click', function () { track('AbrioCalendario', {}); });
+
+  // ── Selector de día -> Calendly (4-sep, diseño de Stitch) ───────────────────────
+  // Elegir un día NO reserva nada: recarga el widget de Calendly en esa fecha, y es él
+  // quien enseña las horas reales que quedan y quien cierra la reserva. Por eso aquí se
+  // emite `AbrioCalendario` y nunca `Lead`/`Schedule` — la confirmación de verdad llega
+  // por el `postMessage` de Calendly, más abajo, que es el único sitio donde se sabe que
+  // una cita existe.
+  (function () {
+    var calx = document.getElementById('lw-calx');
+    var host = document.getElementById('lw-cal-widget');
+    if (!calx || !host) return;
+    var urlBase = host.getAttribute('data-url') || '';
+
+    calx.addEventListener('click', function (ev) {
+      var b = ev.target.closest('.calx__d');
+      if (!b || !calx.contains(b)) return;
+      var fecha = b.getAttribute('data-fecha');
+      if (!fecha) return;
+
+      calx.querySelectorAll('.calx__d.is-on').forEach(function (o) { o.classList.remove('is-on'); });
+      b.classList.add('is-on');
+
+      // `month` y `date` son los parámetros de deep-link del embed de Calendly. Se
+      // reconstruye el iframe con initInlineWidget en vez de tocar su `src` a mano:
+      // el widget guarda estado interno y cambiarle el src por debajo lo deja mudo
+      // (deja de emitir el postMessage de reserva, que es lo que dispara el aviso al
+      // equipo y el `Lead` del pixel).
+      var url = urlBase + '&month=' + fecha.slice(0, 7) + '&date=' + fecha;
+      if (window.Calendly && typeof window.Calendly.initInlineWidget === 'function') {
+        host.innerHTML = '';
+        window.Calendly.initInlineWidget({ url: url, parentElement: host });
+      } else {
+        // Calendly aún no ha cargado (va con `defer`): se deja anotado y el propio
+        // widget arrancará con esta URL cuando llegue.
+        host.setAttribute('data-url', url);
+      }
+      track('AbrioCalendario', {});
+    });
+  }());
 
   // ── Configurador: cambiar de modelo EN ESTA MISMA página, sin recargar (2-sep, pedido
   //    explícito del owner — la alternativa barata era navegar a /modelo/<id> y se
