@@ -126,6 +126,12 @@ foreach ($MODELOS as $cmId => $cm) {
     $cmBambu  = $cm['techos']['bambu'];
     $configuradorModelos[$cmId] = [
         'id'        => $cmId,
+        // Dali es el único modelo con alias raíz (`/dali`, 4-sep, campaña Meta Ads
+        // Australia — ver .htaccess regla 3c). El resto sigue solo en `/modelo/<id>`.
+        // Sin esto, cambiar de modelo en el configurador o recargar reescribía SIEMPRE
+        // la URL a /modelo/dali aunque se hubiera entrado por /dali (hallazgo del owner,
+        // probando el enlace de la campaña en vivo).
+        'path'      => $cmId === 'dali' ? 'dali' : 'modelo/' . $cmId,
         'villa'     => 'Villa ' . $cm['nombre'],
         'sub'       => $cm['sub_en'] ?? $cm['sub'] ?? '',
         'sizeTxt'   => $cm['villa_m2'] . 'm² + ' . $cm['terraza_m2'] . 'm² terrace',
@@ -292,6 +298,10 @@ $CALENDLY = 'https://calendly.com/lawangproperties';
 // Sin render propio todavía (Trinity/Temple): og:image y preload caen a una foto real del
 // sitio (no del modelo concreto) en vez de a una ruta vacía — nunca un render inventado.
 $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
+// Mismo criterio que $configuradorModelos['path'] más abajo: Dali es el único modelo
+// con alias raíz (/dali). El canonical y el og:url tienen que decir la URL real, o el
+// primer pantallazo (antes de que corra el JS) ya contradice lo que el visitante ve.
+$slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -302,11 +312,11 @@ $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
 <?php if (!$precio): ?>
 <meta name="robots" content="noindex, nofollow"><!-- sin precio cerrado no se indexa -->
 <?php endif; ?>
-<link rel="canonical" href="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
+<link rel="canonical" href="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="<?= lw_e($villa) ?> · Turnkey villa in Bali">
 <meta property="og:description" content="Turnkey new build, <?= lw_e($dormTxt) ?>. You choose the plot and finish; the price is locked in writing before you sign.">
-<meta property="og:url" content="https://lawangproperties.com/modelo/<?= lw_e($m['id']) ?>">
+<meta property="og:url" content="https://lawangproperties.com/<?= lw_e($slugPath) ?>">
 <meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
@@ -1167,8 +1177,10 @@ label.picker__row{cursor:pointer}
         $mmSirap  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['sirap']));
         $mmBambu  = lw_precio_fmt(lw_techo_precio_activo($mm['techos']['bambu']));
         $mmClases = 'cross__row' . ($mmOriginal ? ' is-current is-configured' : '');
+        // Mismo criterio que $configuradorModelos['path']: Dali es el único con alias raíz.
+        $mmPath = $mid === 'dali' ? 'dali' : 'modelo/' . $mid;
       ?>
-      <a class="<?= $mmClases ?>" href="/modelo/<?= lw_e($mid) ?>" data-model-id="<?= lw_e($mid) ?>">
+      <a class="<?= $mmClases ?>" href="/<?= lw_e($mmPath) ?>" data-model-id="<?= lw_e($mid) ?>">
         <span class="cross__thumb">
           <?php if ($mmThumb): ?>
           <img src="<?= lw_e($mmThumb) ?>" alt="" loading="lazy">
@@ -1797,7 +1809,7 @@ label.picker__row{cursor:pointer}
     // —que es justo lo que invita a hacer el configurador— todas se llamaban igual.
     document.title = cfg.villa + <?= json_encode($TITULO_SUFIJO, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var canon = document.querySelector('link[rel="canonical"]');
-    if (canon) canon.href = 'https://lawangproperties.com/modelo/' + id;
+    if (canon) canon.href = 'https://lawangproperties.com/' + cfg.path;
 
     // Rama de secciones: fila de "The range". Rama de formulario: opción del paso 1. Las
     // dos usan el mismo atributo, así que un solo selector cubre ambas.
@@ -1810,7 +1822,7 @@ label.picker__row{cursor:pointer}
     if (radioMod) radioMod.checked = true;
 
     if (!opts.skipHistory) {
-      window.history.pushState({modelo: id}, '', '/modelo/' + id);
+      window.history.pushState({modelo: id}, '', '/' + cfg.path);
     }
 
     // El link de WhatsApp del picker (más abajo) menciona el modelo por nombre — sin
@@ -2018,7 +2030,8 @@ label.picker__row{cursor:pointer}
       if (LW_CFG.m2 !== null && LW_CFG.m2 !== DEFAULTS.m2) p.set('plot', String(LW_CFG.m2));
       if (LW_CFG.extras.length) p.set('extras', LW_CFG.extras.join(','));
       var q = p.toString();
-      window.history.replaceState(window.history.state, '', '/modelo/' + MODELO + (q ? '?' + q : ''));
+      var base = (CONFIGURADOR[MODELO] && CONFIGURADOR[MODELO].path) || ('modelo/' + MODELO);
+      window.history.replaceState(window.history.state, '', '/' + base + (q ? '?' + q : ''));
     }
 
     function updateWaLink() {
