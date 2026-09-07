@@ -407,7 +407,7 @@ tr.destacada{background:rgba(250,247,240,.9)}
 .hero__gancho{font-family:var(--display);color:var(--primary);margin:14px 0 0;max-width:18ch;
   text-wrap:balance}
 .hero__sub b{color:var(--primary);font-weight:600}
-.hero__cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.hero__cta{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:20px}
 @media(max-width:560px){
   /* A ancho de móvil dos botones en fila se quedan en dos palabras cortadas cada uno: van
      apilados y a ancho completo, que además es el area de toque que se espera con el pulgar. */
