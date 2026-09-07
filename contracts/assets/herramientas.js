@@ -97,6 +97,24 @@ const LW_HERRAMIENTAS = [
     estado:d => d.unidades == null ? null
       : d.unidades === 0 ? ['Sin inventario cargado', true]
       : [d.unidades + ' unidades · ' + d.unidadesLibres + ' disponibles', false] },
+  /* Nueva 7-sep-2026 (encargo del owner: dar de alta los tipos de vivienda igual
+     que se dan de alta las parcelas). Va JUSTO detras de Proyectos porque es su
+     otra mitad: alli esta el terreno, aqui la casa que se levanta encima, y el
+     precio de una unidad es la suma de los dos.
+     `herr:'unidades'` — el mismo permiso que Proyectos, a proposito y no una
+     clave nueva: una clave nueva exige redesplegar la edge admin-usuarios, que
+     sigue pendiente por LAW-70, y dejaria a los usuarios nuevos sin la
+     herramienta en silencio. Mismo precedente que Vencimientos con
+     'operaciones'. Quien administra el inventario administra que se construye
+     en el, asi que el criterio de acceso tampoco abre ningun hueco. */
+  { grupo:'Base de datos', nombre:'Modelos', icon:'ph-house-line', href:'/intranet/modelos/', herr:'unidades',
+    para:'Que se puede construir: habitaciones, metros, precio, techos, extras y planos de cada tipo de vivienda.',
+    claves:'modelos tipologias villas tipos vivienda specs precio techos extras planos catalogo dormitorios metros',
+    /* El estado dice lo que hay que ARREGLAR, no cuantas filas hay: un modelo
+       sin precio de catalogo es el que hace que un proyecto herede un hueco. */
+    estado:d => d.modelos == null ? null
+      : d.modelosSinPrecio ? [d.modelosSinPrecio + ' sin precio de catalogo', true]
+      : [d.modelos + ' modelos · ' + d.modelosPublicados + ' en la web', false] },
   { grupo:'Base de datos', nombre:'Obra', icon:'ph-crane-tower', href:'/intranet/obra/', herr:'obra',
     para:'Fase, fecha de entrega y fotos de cada unidad — lo que ve el comprador en su portal.',
     claves:'obra construccion fases fotos avance portal entrega',

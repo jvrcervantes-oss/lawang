@@ -424,7 +424,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=daee0c4c"></script>
+<script src="/contracts/assets/herramientas.js?v=c971a02c"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -548,7 +548,8 @@ async function contar(sb){
   };
   const [contratos, contratosEditables, facturas, facturasAnuladas,
          recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-         documentos, vencSinFecha, hilosAbiertos] = await Promise.all([
+         documentos, vencSinFecha, hilosAbiertos,
+         modelos, modelosPublicados, modelosSinPrecio] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
     n('facturas', q => q.eq('anulada', false)),
@@ -571,6 +572,13 @@ async function contar(sb){
     n('contrato_vencimientos', q => q.is('fecha', null).eq('contratos.bloqueado', true),
       '*, contratos!inner(id)'),
     n('hilo_soporte', q => q.eq('estado', 'abierto')),
+    // Catálogo de modelos (7-sep-2026). El tercero es el que importa: un modelo
+    // ACTIVO sin precio de catálogo hace que cada proyecto que lo ofrezca herede
+    // un hueco, y ese hueco solo se ve al abrir el desplegable de una parcela.
+    // Los no activos no cuentan: retirar un modelo es una decisión, no una deuda.
+    n('modelos'),
+    n('modelos', q => q.eq('publicado', true)),
+    n('modelos', q => q.eq('activo', true).is('precio_construccion', null)),
   ]);
   // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
   // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
@@ -596,7 +604,8 @@ async function contar(sb){
   }
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
            recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
-           documentos, proyectosConDocs, vencSinFecha, hilosAbiertos };
+           documentos, proyectosConDocs, vencSinFecha, hilosAbiertos,
+           modelos, modelosPublicados, modelosSinPrecio };
 }
 
 /* ── tarjetas de cifra ─────────────────────────────────────────────────

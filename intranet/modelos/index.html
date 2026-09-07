@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · Modelos</title>
+<!-- Herramienta nueva 7-sep-2026 (encargo del owner: «al igual que tenemos un
+     agregador de parcelas, poder dar de alta los tipos de vivienda que podemos
+     construir — habitaciones, metros, precio, extras, anexos»). Cáscara COPIADA
+     de vencimientos/ y proyectos/, no un HTML en blanco — Regla 0 de
+     contexto/suite_lawang.md.
+
+     ES LA PANTALLA QUE LE FALTABA A UNA TABLA QUE YA EXISTÍA. `modelos_villa`
+     estaba viva desde el 31-jul con dos filas sembradas por SQL y ninguna forma
+     de darle de alta una tercera. Por eso las specs ricas acabaron en un
+     fichero PHP del repo y el inventario en texto libre: no había dónde
+     meterlas. El catálogo (`modelos`) es ahora la fuente y esto es su puerta.
+
+     PERMISO: entra quien tenga 'unidades' — el mismo de Proyectos, A PROPÓSITO,
+     no una clave nueva. Un permiso nuevo exige darlo de alta en la edge
+     admin-usuarios y REDESPLEGARLA (listas.test.js bloquea si divergen), y esa
+     edge sigue pendiente por LAW-70: una clave nueva ahora dejaría a los
+     usuarios nuevos sin la herramienta en silencio. Y el criterio encaja — quien
+     administra el inventario administra qué se construye en él. Mismo
+     razonamiento y mismo precedente que Vencimientos con 'operaciones'.
+
+     QUIÉN PUEDE ESCRIBIR: cambiar precios y specs es de ADMIN (policies
+     `modelos: escribir`, `techos`, `extras`, `modelo_extras`). Subir un plano
+     basta con ser del equipo. La pantalla lo refleja y DICE cuál es el motivo,
+     que es la norma de la suite: no se enseña un botón que va a fallar al
+     guardar, y no se dice solo «no puedes». -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="/contracts/assets/herramientas.js?v=c971a02c"></script>
+<script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js?v=d1194bf1" data-herramienta="unidades"></script>
+<script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/dinero.js?v=ced29282"></script>
+<style>
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0,#F1EBDD); color:var(--texto,#22282A); }
+  /* Los bloques de la ficha se separan entre sí, no del borde del cajón: el
+     relleno lateral ya lo pone `.sui-cajon-cuerpo`. */
+  .bloque + .bloque{ margin-top:22px; }
+  .bloque h3{ font-family:var(--font-display,'Cormorant Garamond',serif); font-size:19px;
+              font-weight:500; margin:0 0 10px; }
+  /* Una fila de «dato: valor» para la ficha en modo lectura. La ficha abre
+     CERRADA (patrón de compradores/): se abre para mirar mucho más de lo que se
+     abre para cambiar. */
+  .dato{ display:flex; justify-content:space-between; gap:14px; padding:5px 0;
+         border-bottom:1px solid var(--linea,#DED6C4); font-size:14px; }
+  .dato:last-child{ border-bottom:none; }
+  .dato b{ font-weight:500; }
+  .pill{ display:inline-block; font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+         padding:2px 8px; border:1px solid var(--linea,#DED6C4); border-radius:999px; }
+  .pill.on{ border-color:var(--dl,#104C4F); color:var(--dl,#104C4F); }
+  /* La cascada se PINTA. El owner tiene que poder ver de dónde sale una cifra
+     sin abrir la base: si un precio es heredado y parece propio, corregirlo en
+     el sitio equivocado es cuestión de tiempo. */
+  .casc{ font-size:12.5px; color:var(--texto-2,#5D6A63); }
+  .casc b{ color:var(--texto,#22282A); font-weight:500; }
+  .mini{ font-size:12.5px; color:var(--texto-2,#5D6A63); margin:4px 0 0; }
+  .rejilla-mod{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
+  .tarjeta{ border:1px solid var(--linea,#DED6C4); border-radius:12px; padding:14px 16px;
+            background:var(--sup-1,#FBF7EE); cursor:pointer; text-align:left; font:inherit; }
+  .tarjeta:hover{ border-color:var(--dl,#104C4F); }
+  .tarjeta h4{ margin:0 0 2px; font-family:var(--font-display,'Cormorant Garamond',serif);
+               font-size:21px; font-weight:500; }
+  .tarjeta .specs{ font-size:12.5px; color:var(--texto-2,#5D6A63); }
+  .tarjeta .precio{ margin-top:8px; font-size:15px; }
+  .fila-ed{ display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center;
+            padding:6px 0; border-bottom:1px solid var(--linea,#DED6C4); }
+  .fila-ed:last-child{ border-bottom:none; }
+  .fila-ed input[type=text]{ width:110px; }
+  @media (max-width:760px){ .fila-ed{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+  <header class="lw-topbar" data-titulo="Modelos">
+    <div class="lw-spacer"></div>
+    <!-- ACCIÓN PRINCIPAL: una sola y última de la barra (convención de la suite,
+         el porqué está en assets/topbar.css junto a `.lw-btn.primary`). -->
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo modelo</button>
+  </header>
+
+  <div class="sui-stage">
+    <div class="sui-centro">
+      <!-- `.sui-aviso` y no un toast: esto hay que verlo CADA vez que se entra,
+           no una. Un toast se va en cuatro segundos. Lo pinta `pintarPendientes`
+           y solo aparece si de verdad hay algo. -->
+      <div id="avisos"></div>
+
+      <div class="sui-filtros">
+        <input class="sui-buscar" id="q" placeholder="Buscar modelo…">
+        <select class="sui-sel" id="fEstado">
+          <option value="">Publicados y no publicados</option>
+          <option value="pub">Solo publicados en la web</option>
+          <option value="nopub">Solo sin publicar</option>
+        </select>
+      </div>
+      <div class="sui-resumen" id="resumen"></div>
+      <div class="rejilla-mod" id="rejilla"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<!-- esc() y toast() ANTES del script de la página: son `const` de primer nivel
+     y dos declaraciones del mismo nombre revientan la página entera. -->
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script>
+/* ============================================================================
+   Modelos — catálogo de tipos de vivienda
+   ----------------------------------------------------------------------------
+   LA CASCADA DE PRECIO, que es de lo que va toda esta pantalla:
+
+       catálogo (`modelos`)      Dune · 68.000 €
+         └─ proyecto             Palm Field: vacío → hereda 68.000
+         └─ proyecto             Tamarind:   40.250 ← precio propio pactado
+              └─ unidad          W3.1-D1:    46.500 ← precio de esa parcela
+
+   Un hueco vacío significa HEREDA, no «sin dato», y la pantalla lo dice con
+   todas las letras en cada fila. El nivel de unidad NO se edita aquí: vive en
+   Proyectos, y este catálogo solo PROPONE. En Tamarind las tres Dalí valen
+   40.250 / 43.375 / 46.500 y tres de esas diez ya tienen contrato — un catálogo
+   que pisara la unidad les cambiaría el precio por detrás de un contrato
+   firmado.
+
+   POR QUÉ NO HAY IMPORTACIÓN CSV, a diferencia de Proyectos: un catálogo son
+   quince filas que se dan de alta una vez y se corrigen de año en año, no un
+   inventario de cuatrocientas parcelas que llega en un export de Notion. La
+   maquinaria del CSV existe (assets/proyectos_csv.js) y se puede enganchar el
+   día que haga falta; montarla hoy sería mantener un camino que nadie usa.
+   ========================================================================== */
+let SB = null, YO = null, ADMIN = false;
+let MODELOS = [], TECHOS = [], EXTRAS = [], MODELO_EXTRAS = [], PRECIOS = [], DOCS = [], SIN_CAT = [], PROYECTOS = [];
+let SEL = null, CARGANDO = true, FALLO = null, EDITANDO = false;
+
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/* Los importes se leen y se escriben SIEMPRE con dinero.js. Ningún importe de
+   la suite se pinta con toLocaleString: eso daba tres decimales en una pantalla
+   y dos en otra, y decimales en rupias, que no los tiene. */
+const num  = v => (v == null || v === '') ? null : lwParseImporte(String(v));
+const eur  = (v, m) => v == null ? '—' : lwFormatoImporte(Number(v)) + ' ' + (m || 'EUR');
+
+/* ---------- carga ---------- */
+async function cargar(){
+  CARGANDO = true; FALLO = null; pintar();
+  const [mo, te, ex, me, pr, dc, sc, py] = await Promise.all([
+    SB.from('modelos').select('*').order('orden', { ascending:true, nullsFirst:false }).order('nombre'),
+    SB.from('modelo_techos').select('*').order('orden'),
+    SB.from('extras').select('*').eq('activo', true).order('orden'),
+    SB.from('modelo_extras').select('*'),
+    SB.from('modelos_villa').select('*').order('proyecto'),
+    SB.from('modelo_documentos').select('*').order('subido_en', { ascending:false }),
+    // Lo que el inventario nombra y el catálogo no reconoce. Existe para que un
+    // dato roto sea uno que alguien puede arreglar, y no uno que nadie sabrá
+    // nunca que está roto.
+    SB.from('modelos_sin_catalogar').select('*'),
+    SB.from('proyectos').select('id, nombre').eq('activo', true).order('nombre'),
+  ]);
+  CARGANDO = false;
+  if(mo.error){ FALLO = mo.error.message; pintar(); return; }
+  MODELOS = mo.data || [];
+  TECHOS  = te.error ? [] : (te.data || []);
+  EXTRAS  = ex.error ? [] : (ex.data || []);
+  MODELO_EXTRAS = me.error ? [] : (me.data || []);
+  PRECIOS = pr.error ? [] : (pr.data || []);
+  DOCS    = dc.error ? [] : (dc.data || []);
+  SIN_CAT = sc.error ? [] : (sc.data || []);
+  PROYECTOS = py.error ? [] : (py.data || []);
+  pintar();
+}
+
+const techosDe  = id => TECHOS.filter(t => t.modelo_id === id);
+const preciosDe = id => PRECIOS.filter(p => p.modelo_id === id);
+const docsDe    = id => DOCS.filter(d => d.modelo_id === id);
+const extraDe   = (mid, eid) => MODELO_EXTRAS.find(x => x.modelo_id === mid && x.extra_id === eid);
+
+/* La misma cascada que resuelve `modelo_precio_construccion()` en la base, aquí
+   para pintar sin un viaje por fila. Que exista dos veces es a propósito y con
+   la misma regla que el resto de la suite: la base es lo único que de verdad
+   manda, la interfaz solo evita enseñar algo que no cuadra. Si cambia una,
+   cambia la otra — y cada una nombra a la otra en su comentario. */
+function precioEn(modelo, proyectoNombre){
+  const p = preciosDe(modelo.id).find(x => x.proyecto === proyectoNombre);
+  if(p && p.precio_construccion != null)
+    return { valor:Number(p.precio_construccion), moneda:p.moneda || modelo.moneda, origen:'proyecto' };
+  if(modelo.precio_construccion != null)
+    return { valor:Number(modelo.precio_construccion), moneda:modelo.moneda, origen:'catalogo' };
+  return { valor:null, moneda:modelo.moneda, origen:'ninguno' };
+}
+
+/* ---------- lista ---------- */
+function visibles(){
+  const q = ($('#q').value || '').trim().toLowerCase();
+  const e = $('#fEstado').value;
+  return MODELOS.filter(m =>
+    (!q || (m.nombre + ' ' + (m.slug||'')).toLowerCase().includes(q)) &&
+    (!e || (e === 'pub' ? m.publicado : !m.publicado)));
+}
+
+function pintar(){
+  pintarPendientes();
+  const caja = $('#rejilla'), res = $('#resumen');
+  if(CARGANDO){ caja.innerHTML = '<p class="mini">Cargando…</p>'; res.textContent = ''; return; }
+  if(FALLO){ caja.innerHTML = '<p class="mini">No se ha podido cargar: ' + esc(FALLO) + '</p>'; return; }
+  const vis = visibles();
+  const pub = MODELOS.filter(m => m.publicado).length;
+  res.innerHTML = `${MODELOS.length} modelo${MODELOS.length===1?'':'s'} · ${pub} publicado${pub===1?'':'s'} en la web`
+    + (vis.length !== MODELOS.length ? ` · ${vis.length} en la vista` : '');
+  if(!vis.length){ caja.innerHTML = '<p class="mini">Ningún modelo con ese filtro.</p>'; return; }
+  caja.innerHTML = vis.map(m => {
+    const specs = [m.dormitorios != null ? m.dormitorios + ' dorm' : null,
+                   m.banos != null ? m.banos + ' baños' : null,
+                   m.villa_m2 != null ? m.villa_m2 + ' m²' : null].filter(Boolean).join(' · ');
+    const np = preciosDe(m.id).length, nd = docsDe(m.id).length;
+    return `<button type="button" class="tarjeta" data-id="${esc(m.id)}">
+      <h4>${esc(m.nombre)}</h4>
+      <div class="specs">${specs || '<span class="flojo">sin specs</span>'}</div>
+      <div class="precio">${m.precio_construccion == null
+          ? '<span class="flojo">sin precio de catálogo</span>'
+          : '<b>' + esc(eur(m.precio_construccion, m.moneda)) + '</b>'}</div>
+      <div class="mini">${m.publicado ? '<span class="pill on">en la web</span>' : '<span class="pill">sin publicar</span>'}
+        ${np ? ' · ' + np + ' proyecto' + (np===1?'':'s') : ''}${nd ? ' · ' + nd + ' doc' + (nd===1?'':'s') : ''}</div>
+    </button>`;
+  }).join('');
+  $$('#rejilla .tarjeta').forEach(b => b.onclick = () => abrir(b.dataset.id));
+}
+
+/* Lo que el inventario nombra y el catálogo no reconoce. NO es un error del
+   sistema: hoy son a propósito las 81 unidades de Sumba Hills bajo «Dream», que
+   el owner dejó pendientes de revisar con el cliente el 7-sep-2026 porque son
+   dos bloques con precio distinto. El aviso dice exactamente eso, para que
+   nadie lo «arregle» sin saberlo. */
+function pintarPendientes(){
+  const caja = $('#avisos'); if(!caja) return;
+  if(!SIN_CAT.length){ caja.innerHTML = ''; return; }
+  const tot = SIN_CAT.reduce((a, x) => a + Number(x.unidades || 0), 0);
+  caja.innerHTML = `<div class="sui-aviso" role="status">
+    <b>${tot} unidad${tot===1?'':'es'} nombra${tot===1?'':'n'} un modelo que no está en este catálogo.</b>
+    No suman en ninguna cifra de esta pantalla y su precio no lo toca nadie.
+    ${SIN_CAT.map(x => `<div class="mini">· ${esc(x.proyecto)} — «${esc(x.nombra_a)}»: ${x.unidades} unidad${x.unidades===1?'':'es'}`
+       + (x.con_contrato ? `, ${x.con_contrato} con contrato` : '')
+       + (x.precio_min != null && x.precio_min !== x.precio_max
+            ? ` · dos precios: ${esc(lwFormatoImporte(Number(x.precio_min)))} y ${esc(lwFormatoImporte(Number(x.precio_max)))}`
+            : '') + '</div>').join('')}
+    <div class="mini" style="margin-top:6px">Se resuelve dando de alta el modelo con ese nombre, o
+      corrigiendo el nombre en Proyectos. Mientras tanto se quedan como están, que es lo correcto.</div>
+  </div>`;
+}
+
+/* ---------- ficha ----------
+   Abre CERRADA, con «Editar datos» en el pie: patrón de compradores/. Se abre
+   para mirar mucho más de lo que se abre para cambiar. */
+function abrir(id){
+  SEL = MODELOS.find(m => m.id === id) || null;
+  EDITANDO = false;
+  if(!SEL) return;
+  render();
+}
+
+function render(){
+  const m = SEL; if(!m) return;
+  suiAbrirCajon({
+    titulo: m.nombre,
+    sub: (m.publicado ? 'Publicado en /modelo/' + m.slug : 'No sale en la web')
+         + (m.renders_pendientes ? ' · renders pendientes' : ''),
+    cuerpo: EDITANDO ? cuerpoEdicion(m) : cuerpoLectura(m),
+    pie: EDITANDO
+      ? `<button type="button" class="sui-btn primario" id="bGuardar">Guardar</button>
+         <button type="button" class="sui-btn" id="bCancelar">Cancelar</button>`
+      : (ADMIN
+          ? `<button type="button" class="sui-btn primario" id="bEditar">Editar datos</button>`
+          : `<span class="mini">Los precios y las specs los edita un administrador.
+               Tú sí puedes subir documentos.</span>`),
+    onCerrar: () => { SEL = null; EDITANDO = false; }
+  });
+  enganchar(m);
+}
+
+function cuerpoLectura(m){
+  const specs = [['Dormitorios', m.dormitorios], ['Baños', m.banos],
+                 ['Villa', m.villa_m2 != null ? m.villa_m2 + ' m²' : null],
+                 ['Terraza', m.terraza_m2 != null ? m.terraza_m2 + ' m²' : null]];
+  const th = techosDe(m.id), pr = preciosDe(m.id), dc = docsDe(m.id);
+  return `
+  <div class="bloque">
+    <h3>Ficha</h3>
+    ${specs.map(([k, v]) => `<div class="dato"><span>${k}</span><b>${v == null ? '—' : esc(String(v))}</b></div>`).join('')}
+    <div class="dato"><span>Precio de construcción (catálogo)</span><b>${esc(eur(m.precio_construccion, m.moneda))}</b></div>
+    ${m.descripcion ? `<p class="mini">${esc(m.descripcion)}</p>` : ''}
+  </div>
+
+  <div class="bloque">
+    <h3>Techos</h3>
+    ${th.length ? th.map(t => `<div class="dato"><span>${esc(t.nombre)}</span><b>${
+        esc(eur(t.precio_ahora, m.moneda))}${t.precio_2027 != null
+          ? ' <span class="casc">· desde 2027: ' + esc(eur(t.precio_2027, m.moneda)) + '</span>' : ''}</b></div>`).join('')
+      : '<p class="mini">Sin variantes de techo. El precio de catálogo es el único.</p>'}
+    ${th.length ? '<p class="mini">Cuál de los dos precios está vigente lo decide el reloj del servidor, nunca un ajuste a mano.</p>' : ''}
+  </div>
+
+  <div class="bloque">
+    <h3>Extras disponibles</h3>
+    ${EXTRAS.map(e => { const x = extraDe(m.id, e.id);
+      if(!x || !x.disponible) return '';
+      return `<div class="dato"><span>${esc(e.nombre)}</span><b>${esc(eur(x.precio, x.moneda || m.moneda))}</b></div>`;
+    }).join('') || '<p class="mini">Ninguno dado de alta todavía.</p>'}
+  </div>
+
+  <div class="bloque">
+    <h3>Precio por proyecto</h3>
+    <p class="mini">Vacío significa <b>hereda del catálogo</b>, no «sin dato». Solo se rellena
+      cuando ese proyecto tiene un precio propio pactado.</p>
+    ${pr.length ? pr.map(p => {
+      const c = precioEn(m, p.proyecto);
+      return `<div class="dato"><span>${esc(p.proyecto)}</span><b>${esc(eur(c.valor, c.moneda))}
+        <span class="casc">${c.origen === 'catalogo' ? '· heredado' : c.origen === 'proyecto' ? '· propio' : ''}</span></b></div>`;
+    }).join('') : '<p class="mini">Este modelo no está declarado en ningún proyecto todavía.</p>'}
+  </div>
+
+  <div class="bloque">
+    <h3>Documentos</h3>
+    ${dc.length ? dc.map(d => `<div class="dato"><span>${esc(d.nombre)}
+        <span class="casc">· ${esc(d.tipo)}${d.visible_portal ? ' · visible para el comprador' : ''}</span></span>
+      <b><button type="button" class="sui-btn" data-desc="${esc(d.id)}">Abrir</button></b></div>`).join('')
+      : '<p class="mini">Sin planos ni memoria de calidades todavía.</p>'}
+    <div style="margin-top:10px">
+      <input type="file" id="fDoc" accept="application/pdf,image/jpeg,image/png,image/webp" hidden>
+      <button type="button" class="sui-btn" id="bSubir">Añadir documento</button>
+      <span class="mini">PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.</span>
+    </div>
+  </div>`;
+}
+
+function cuerpoEdicion(m){
+  const th = techosDe(m.id);
+  return `
+  <div class="bloque">
+    <h3>Ficha</h3>
+    <div class="sui-row">
+      <div class="campo"><label for="e-nombre">Nombre</label><input id="e-nombre" value="${esc(m.nombre)}"></div>
+      <div class="campo"><label for="e-slug">Dirección en la web</label><input id="e-slug" value="${esc(m.slug)}">
+        <p class="mini">/modelo/<b id="vSlug">${esc(m.slug)}</b> — cambiarla rompe los enlaces que ya estén publicados.</p></div>
+    </div>
+    <div class="sui-row">
+      <div class="campo"><label for="e-dorm">Dormitorios</label><input id="e-dorm" inputmode="numeric" value="${m.dormitorios ?? ''}"></div>
+      <div class="campo"><label for="e-banos">Baños</label><input id="e-banos" inputmode="numeric" value="${m.banos ?? ''}"></div>
+    </div>
+    <div class="sui-row">
+      <div class="campo"><label for="e-villa">Villa (m²)</label><input id="e-villa" inputmode="decimal" value="${m.villa_m2 ?? ''}"></div>
+      <div class="campo"><label for="e-terraza">Terraza (m²)</label><input id="e-terraza" inputmode="decimal" value="${m.terraza_m2 ?? ''}"></div>
+    </div>
+    <div class="campo"><label for="e-desc">Descripción</label><textarea id="e-desc" rows="3">${esc(m.descripcion || '')}</textarea></div>
+  </div>
+
+  <div class="bloque">
+    <h3>Precio de catálogo</h3>
+    <div class="sui-row">
+      <div class="campo"><label for="e-precio">Construcción</label>
+        <input id="e-precio" inputmode="decimal" value="${m.precio_construccion != null ? lwFormatoImporte(Number(m.precio_construccion)) : ''}"></div>
+      <div class="campo"><label for="e-moneda">Moneda</label>
+        <select class="sui-sel" id="e-moneda">
+          <option value="EUR"${m.moneda === 'EUR' ? ' selected' : ''}>EUR</option>
+          <option value="IDR"${m.moneda === 'IDR' ? ' selected' : ''}>IDR</option>
+        </select></div>
+    </div>
+    <p class="mini">Es el nivel 1 de la cascada: lo heredan todos los proyectos que no tengan precio propio,
+      y es lo que publica la web como «desde».</p>
+  </div>
+
+  <div class="bloque">
+    <h3>Techos</h3>
+    ${th.map(t => `<div class="fila-ed" data-techo="${esc(t.id)}">
+      <span>${esc(t.nombre)}</span>
+      <input type="text" data-campo="ahora" inputmode="decimal" aria-label="Precio de ${esc(t.nombre)} ahora"
+             value="${t.precio_ahora != null ? lwFormatoImporte(Number(t.precio_ahora)) : ''}">
+      <input type="text" data-campo="y2027" inputmode="decimal" aria-label="Precio de ${esc(t.nombre)} desde 2027"
+             value="${t.precio_2027 != null ? lwFormatoImporte(Number(t.precio_2027)) : ''}">
+    </div>`).join('') || '<p class="mini">Este modelo no tiene variantes de techo.</p>'}
+    ${th.length ? '<p class="mini">Primera columna: precio de hoy. Segunda: desde el 1-ene-2027.</p>' : ''}
+  </div>
+
+  <div class="bloque">
+    <h3>Extras</h3>
+    ${EXTRAS.map(e => { const x = extraDe(m.id, e.id) || {};
+      return `<div class="fila-ed" data-extra="${esc(e.id)}">
+        <span>${esc(e.nombre)}</span>
+        <input type="text" data-campo="precio" inputmode="decimal" aria-label="Precio de ${esc(e.nombre)}"
+               value="${x.precio != null ? lwFormatoImporte(Number(x.precio)) : ''}">
+        <label class="mini"><input type="checkbox" data-campo="disponible" ${x.disponible === false ? '' : 'checked'}> se ofrece</label>
+      </div>`; }).join('')}
+    <p class="mini">Sin precio, el extra no se ofrece en la web: no se estima a ojo.</p>
+  </div>
+
+  <div class="bloque">
+    <h3>Precio por proyecto</h3>
+    <p class="mini">Dejar vacío = hereda el precio de catálogo. Rellenar solo si ese proyecto tiene precio propio pactado.</p>
+    ${preciosDe(m.id).map(p => `<div class="fila-ed" data-precio="${esc(p.id)}">
+      <span>${esc(p.proyecto)}</span>
+      <input type="text" data-campo="precio" inputmode="decimal" aria-label="Precio en ${esc(p.proyecto)}"
+             placeholder="hereda ${m.precio_construccion != null ? lwFormatoImporte(Number(m.precio_construccion)) : '—'}"
+             value="${p.precio_construccion != null ? lwFormatoImporte(Number(p.precio_construccion)) : ''}">
+      <span class="mini">${esc(p.moneda || m.moneda)}</span>
+    </div>`).join('') || '<p class="mini">Este modelo no está declarado en ningún proyecto.</p>'}
+    <div style="margin-top:10px">
+      <select class="sui-sel" id="e-nuevoProy"><option value="">Añadir a un proyecto…</option>
+        ${PROYECTOS.filter(p => !preciosDe(m.id).some(x => x.proyecto === p.nombre))
+                   .map(p => `<option value="${esc(p.nombre)}">${esc(p.nombre)}</option>`).join('')}
+      </select>
+      <p class="mini">Declararlo en un proyecto es lo que hace que aparezca en el desplegable de sus parcelas.</p>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h3>Publicación</h3>
+    <label class="mini" style="display:block;padding:4px 0">
+      <input type="checkbox" id="e-publicado" ${m.publicado ? 'checked' : ''}> Sale en la web, en /modelo/${esc(m.slug)}</label>
+    <label class="mini" style="display:block;padding:4px 0">
+      <input type="checkbox" id="e-renders" ${m.renders_pendientes ? 'checked' : ''}> Renders pendientes
+      — la ficha dirá «Renders in progress» en vez de enseñar una foto de otro modelo</label>
+    <label class="mini" style="display:block;padding:4px 0">
+      <input type="checkbox" id="e-activo" ${m.activo ? 'checked' : ''}> Activo (si se desmarca, deja de ofrecerse en toda la suite)</label>
+    <div class="campo" style="margin-top:8px"><label for="e-notas">Notas internas</label>
+      <textarea id="e-notas" rows="2">${esc(m.notas || '')}</textarea>
+      <p class="mini">No sale nunca en la web: el RPC público no las devuelve.</p></div>
+  </div>`;
+}
+
+function enganchar(m){
+  if(!EDITANDO){
+    const b = document.getElementById('bEditar');
+    if(b) b.onclick = () => { EDITANDO = true; render(); };
+    const sub = document.getElementById('bSubir');
+    if(sub) sub.onclick = () => document.getElementById('fDoc').click();
+    const f = document.getElementById('fDoc');
+    if(f) f.onchange = () => subirDoc(m, f.files && f.files[0]);
+    document.querySelectorAll('[data-desc]').forEach(b2 => b2.onclick = () => descargar(b2.dataset.desc));
+    return;
+  }
+  const slug = document.getElementById('e-slug');
+  if(slug) slug.oninput = () => { const v = document.getElementById('vSlug'); if(v) v.textContent = slug.value; };
+  document.getElementById('bCancelar').onclick = () => { EDITANDO = false; render(); };
+  document.getElementById('bGuardar').onclick  = () => guardar(m);
+}
+
+/* ---------- guardar ----------
+   Todo en una tanda y con `await` por tabla. Se guarda el modelo PRIMERO: si eso
+   falla no tiene sentido escribir sus hijos, y así no queda un techo actualizado
+   colgando de un modelo que no se guardó. */
+async function guardar(m){
+  const btn = document.getElementById('bGuardar'); btn.disabled = true;
+  try{
+    const nombre = (document.getElementById('e-nombre').value || '').trim();
+    const slug   = (document.getElementById('e-slug').value || '').trim().toLowerCase();
+    if(!nombre){ toast('El nombre no puede quedar vacío'); btn.disabled = false; return; }
+    if(!/^[a-z0-9-]+$/.test(slug)){
+      toast('La dirección solo admite minúsculas, números y guiones'); btn.disabled = false; return; }
+
+    /* Renombrar propaga por ID a las unidades y a los precios por proyecto (lo
+       hace el trigger `trg_modelo_renombrado`), así que se avisa de cuántas
+       filas se van a mover ANTES. Sin esto, cambiar una errata de nombre mueve
+       ciento cincuenta filas sin que nadie lo haya visto venir. */
+    if(nombre !== m.nombre){
+      const n = MODELOS.length ? await contarUnidades(m.id) : 0;
+      const ok = await lwConfirmar({
+        titulo: 'Renombrar «' + m.nombre + '» a «' + nombre + '»',
+        cuerpo: '<p>El nombre nuevo se propaga solo a <b>' + n + ' unidad' + (n === 1 ? '' : 'es') +
+                '</b> y a sus precios por proyecto. Lo ya impreso en un documento firmado no se toca.</p>',
+        confirmar: 'Renombrar' });
+      if(!ok){ btn.disabled = false; return; }
+    }
+
+    const parche = {
+      nombre, slug,
+      dormitorios: num(document.getElementById('e-dorm').value),
+      banos:       num(document.getElementById('e-banos').value),
+      villa_m2:    num(document.getElementById('e-villa').value),
+      terraza_m2:  num(document.getElementById('e-terraza').value),
+      descripcion: (document.getElementById('e-desc').value || '').trim() || null,
+      precio_construccion: num(document.getElementById('e-precio').value),
+      moneda:      document.getElementById('e-moneda').value,
+      publicado:   document.getElementById('e-publicado').checked,
+      renders_pendientes: document.getElementById('e-renders').checked,
+      activo:      document.getElementById('e-activo').checked,
+      notas:       (document.getElementById('e-notas').value || '').trim() || null,
+      // Nadie actualizaba esta columna: sin esto, «actualizado_en» sería la
+      // fecha de alta disfrazada de fecha de cambio, que es peor que no tenerla.
+      actualizado_en: new Date().toISOString(),
+    };
+    const r = await SB.from('modelos').update(parche).eq('id', m.id);
+    if(r.error) throw r.error;
+
+    for(const fila of document.querySelectorAll('[data-techo]')){
+      const p = {};
+      fila.querySelectorAll('input[data-campo]').forEach(i => {
+        p[i.dataset.campo === 'ahora' ? 'precio_ahora' : 'precio_2027'] = num(i.value); });
+      const e = await SB.from('modelo_techos').update(p).eq('id', fila.dataset.techo);
+      if(e.error) throw e.error;
+    }
+
+    for(const fila of document.querySelectorAll('[data-extra]')){
+      const extraId = fila.dataset.extra;
+      const precio  = num(fila.querySelector('[data-campo=precio]').value);
+      const disp    = fila.querySelector('[data-campo=disponible]').checked;
+      const ya = extraDe(m.id, extraId);
+      const e = ya
+        ? await SB.from('modelo_extras').update({ precio, disponible:disp, moneda:parche.moneda }).eq('id', ya.id)
+        : await SB.from('modelo_extras').insert({ modelo_id:m.id, extra_id:extraId, precio, disponible:disp, moneda:parche.moneda });
+      if(e.error) throw e.error;
+    }
+
+    for(const fila of document.querySelectorAll('[data-precio]')){
+      const e = await SB.from('modelos_villa')
+        .update({ precio_construccion: num(fila.querySelector('[data-campo=precio]').value) })
+        .eq('id', fila.dataset.precio);
+      if(e.error) throw e.error;
+    }
+
+    const nuevo = document.getElementById('e-nuevoProy');
+    if(nuevo && nuevo.value){
+      const p = PROYECTOS.find(x => x.nombre === nuevo.value);
+      const e = await SB.from('modelos_villa').insert({
+        proyecto: nuevo.value, proyecto_id: p ? p.id : null,
+        modelo: nombre, modelo_id: m.id, precio_construccion: null, moneda: parche.moneda,
+        notas: 'Declarado desde la herramienta de Modelos el ' + new Date().toISOString().slice(0,10) + '. Hereda el precio de catálogo.' });
+      if(e.error) throw e.error;
+    }
+
+    EDITANDO = false;
+    await cargar();
+    SEL = MODELOS.find(x => x.id === m.id) || null;
+    if(SEL) render();
+    toast('Guardado');
+  }catch(err){
+    /* Se dice CUÁL es el motivo, no solo «no se pudo». El caso frecuente es no
+       ser admin: la policy rechaza y el mensaje crudo de PostgREST no lo explica. */
+    const msg = (err && err.message) || 'error desconocido';
+    toast(/policy|permission|denied|row-level/i.test(msg)
+      ? 'No se ha guardado: cambiar precios y specs es de administrador.'
+      : 'No se ha guardado: ' + msg);
+    document.getElementById('bGuardar').disabled = false;
+  }
+}
+
+async function contarUnidades(modeloId){
+  const r = await SB.from('unidades').select('id', { count:'exact', head:true }).eq('modelo_id', modeloId);
+  return r.count || 0;
+}
+
+/* ---------- documentos ----------
+   La ruta en el bucket es un uuid y el nombre real va en la COLUMNA. Un plano de
+   verdad llega a veces con el nombre del cliente o el importe en el nombre de
+   archivo; misma regla que los justificantes de un recibí. */
+async function subirDoc(m, file){
+  if(!file) return;
+  if(file.size > 52428800){ toast('El fichero pasa de 50 MB'); return; }
+  const ext  = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+  const path = m.id + '/' + crypto.randomUUID() + ext;
+  toast('Subiendo…');
+  const up = await SB.storage.from('modelos').upload(path, file, { contentType:file.type || undefined });
+  if(up.error){ toast('No se ha subido: ' + up.error.message); return; }
+  const r = await SB.from('modelo_documentos').insert({
+    modelo_id:m.id, nombre:file.name, path, tipo:'otro',
+    tamano_bytes:file.size, subido_por:(YO && YO.id) || null });
+  if(r.error){
+    /* Si la fila no entra, el fichero que acaba de subir se queda huérfano en el
+       bucket. Se retira: un objeto sin fila no lo ve nadie y no lo borra nadie. */
+    await SB.storage.from('modelos').remove([path]);
+    toast('No se ha guardado la ficha del documento: ' + r.error.message);
+    return;
+  }
+  await cargar();
+  SEL = MODELOS.find(x => x.id === m.id) || null;
+  if(SEL) render();
+  toast('Documento añadido');
+}
+
+async function descargar(docId){
+  const d = DOCS.find(x => x.id === docId); if(!d) return;
+  const r = await SB.storage.from('modelos').createSignedUrl(d.path, 120);
+  if(r.error || !r.data){ toast('No se ha podido abrir: ' + ((r.error && r.error.message) || 'sin enlace')); return; }
+  window.open(r.data.signedUrl, '_blank', 'noopener');
+}
+
+/* ---------- alta ----------
+   El formulario va en el CAJÓN, no en un overlay propio. Proyectos tiene el suyo
+   (`.ov`) pero vive dentro de su fichero, así que copiarlo aquí sería la segunda
+   copia de un bloque que ya diverge — justo lo que prohíbe la Regla 0. El cajón
+   es la norma de la suite, ya está montado y no pide una línea de CSS.
+
+   Nace con lo MÍNIMO —nombre y dirección— y se abre en edición: pedir aquí las
+   specs, los techos y los extras sería un formulario de veinte campos que hay
+   que rellenar antes de ver nada, y el resto de la suite no funciona así. */
+function altaModelo(){
+  if(!ADMIN){
+    lwConfirmar({ titulo:'Dar de alta un modelo es de administrador',
+      cuerpo:'<p>Tu ficha entra en Modelos para consultar y para subir documentos. ' +
+             'Crear un modelo o cambiar un precio lo hace un administrador.</p>',
+      confirmar:'Entendido', cancelar:false });
+    return;
+  }
+  suiAbrirCajon({
+    titulo:'Nuevo modelo',
+    sub:'Nace sin publicar. Las specs, los techos y los extras se rellenan después.',
+    cuerpo:`
+      <div class="bloque">
+        <div class="campo"><label for="n-nombre">Nombre</label>
+          <input id="n-nombre" placeholder="Dune, Granada…" autocomplete="off"></div>
+        <div class="campo"><label for="n-slug">Dirección en la web</label>
+          <input id="n-slug" placeholder="dune" autocomplete="off">
+          <p class="mini">Se rellena sola desde el nombre. Solo minúsculas, números y guiones.</p></div>
+        <div class="campo"><label for="n-moneda">Moneda</label>
+          <select class="sui-sel" id="n-moneda"><option value="EUR">EUR</option><option value="IDR">IDR</option></select>
+          <p class="mini">IDR solo para los proyectos que llevan el inventario en rupias (Riverfront).</p></div>
+        <p class="mini">Si el inventario ya usa este nombre, las unidades que lo nombran se
+          enganchan solas al guardar: el enlace lo ata el propio trigger de la base.</p>
+      </div>`,
+    pie:`<button type="button" class="sui-btn primario" id="bCrear">Crear</button>
+         <button type="button" class="sui-btn" id="bNoCrear">Cancelar</button>`
+  });
+  const iN = document.getElementById('n-nombre'), iS = document.getElementById('n-slug');
+  // El slug sigue al nombre mientras nadie lo toque a mano. En cuanto se edita,
+  // deja de seguirlo: si no, corregir una letra del nombre le pisaría al usuario
+  // la dirección que acaba de escribir.
+  let slugTocado = false;
+  iS.oninput = () => { slugTocado = true; };
+  iN.oninput = () => { if(!slugTocado) iS.value = aSlug(iN.value); };
+  iN.focus();
+  document.getElementById('bNoCrear').onclick = suiCerrarCajon;
+  document.getElementById('bCrear').onclick   = crear;
+}
+
+/* Sin acentos y sin nada que no sea [a-z0-9-]: la dirección viaja en una URL y
+   `Dalí` daría `/modelo/dal%C3%AD`, que es un enlace que nadie escribe a mano. */
+const aSlug = t => (t || '').toLowerCase()
+  .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
+  .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/ñ/g,'n')
+  .replace(/\+/g,'-plus').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+
+async function crear(){
+  const btn = document.getElementById('bCrear'); btn.disabled = true;
+  const nombre = (document.getElementById('n-nombre').value || '').trim();
+  const slug   = (document.getElementById('n-slug').value || '').trim().toLowerCase();
+  const moneda = document.getElementById('n-moneda').value;
+  if(!nombre || !slug){ toast('Hacen falta el nombre y la dirección'); btn.disabled = false; return; }
+  if(!/^[a-z0-9-]+$/.test(slug)){ toast('La dirección solo admite minúsculas, números y guiones'); btn.disabled = false; return; }
+  if(MODELOS.some(m => m.slug === slug)){ toast('Ya hay un modelo en esa dirección'); btn.disabled = false; return; }
+  const r = await SB.from('modelos')
+    .insert({ nombre, slug, moneda, publicado:false, activo:true,
+              orden:(MODELOS.reduce((a,m) => Math.max(a, m.orden || 0), 0) + 1) })
+    .select().single();
+  if(r.error){
+    const msg = r.error.message || '';
+    toast(/policy|permission|denied|row-level/i.test(msg)
+      ? 'No se ha creado: dar de alta un modelo es de administrador.'
+      : 'No se ha creado: ' + msg);
+    btn.disabled = false; return;
+  }
+  await cargar();
+  SEL = MODELOS.find(m => m.id === r.data.id) || null;
+  EDITANDO = true;
+  if(SEL) render();
+  toast('Modelo creado. Ahora sus datos.');
+}
+
+/* ---------- arranque ---------- */
+window.LW_AUTH.then(async ({ sb, session, ficha }) => {
+  SB = sb; YO = session && session.user;
+  ADMIN = !!(ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'));
+  suiMontarCajon();
+  $('#q').addEventListener('input', pintar);
+  $('#fEstado').addEventListener('change', pintar);
+  $('#btnNuevo').addEventListener('click', altaModelo);
+  await cargar();
+});
+</script>
+</body>
+</html>
