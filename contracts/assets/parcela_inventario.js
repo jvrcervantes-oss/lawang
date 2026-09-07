@@ -42,7 +42,8 @@ let ID_PINTADO = null;
    La regla vive por duplicado a propósito — aquí para no enseñar deshabilitado
    lo que sí se puede elegir, y en el trigger de Postgres porque es el único
    sitio que de verdad lo impide. Si cambia una, cambia la otra. */
-const TIPOS_CEDEN_PARCELA = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
+const TIPOS_CEDEN_PARCELA = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa',
+                             'carta_reserva_pma'];
 
 /* Los MISMOS identificadores con los que la base decide si dos contratos son
    del mismo comprador: pasaporte y email, en minúsculas y sin espacios, del

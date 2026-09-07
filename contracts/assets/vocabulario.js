@@ -40,6 +40,7 @@ const LW_TIPO_CONTRATO = {
   carta_reserva:          'Carta de Reserva',
   carta_reserva_ampliada: 'Carta de Reserva ampliada',
   carta_reserva_hak_sewa: 'Carta de Reserva (Hak Sewa)',
+  carta_reserva_pma:      'Carta de Reserva Condicionada (PT PMA)',
   reserva_parcela:        'Bloqueo de Parcela',
   construccion:           'Construcción',
   contrato_general:       'Contrato General',
@@ -74,5 +75,6 @@ const lwTipoContrato = t => LW_TIPO_CONTRATO[t] || t || '—';
 
    Lo ÚNICO que se hereda de una Carta es cuánto pagó el cliente: el COBRADO sí
    suma todo el grupo, para descontárselo al pasar a Bloqueo sin duplicarlo. */
-const LW_TIPOS_PRELIMINARES = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
+const LW_TIPOS_PRELIMINARES = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa',
+                               'carta_reserva_pma'];
 const lwEsPreliminar = t => LW_TIPOS_PRELIMINARES.includes(t);

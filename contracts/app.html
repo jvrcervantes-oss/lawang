@@ -59,7 +59,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=8fd0155d"></script>
+<script src="assets/vocabulario.js?v=24e98015"></script>
 <script src="assets/dinero.js?v=ced29282"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
@@ -75,7 +75,7 @@
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=f85e78ef"></script>
 <script src="assets/documento_anexos.js?v=b73a5ff3"></script>
-<script src="assets/parcela_inventario.js?v=8d99be49"></script>
+<script src="assets/parcela_inventario.js?v=0b6b5438"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=484e01a6"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -422,6 +422,26 @@ const TEMPLATES = [
   { slug:'carta_reserva_hak_sewa', file:'templates/carta_reserva_hak_sewa.html', cover:'#1D354E',
     name:{es:'Carta de Reserva (Hak Sewa)',en:'Reservation Letter (Hak Sewa)',id:'Surat Pemesanan (Hak Sewa)'},
     l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
+  // CUARTA carta (7-sep-2026), y aparte de las tres de arriba: due-diligence como
+  // la CH, pero la tenencia NO es Hak Sewa sino HGB corporativo via PT PMA, el
+  // reservante puede ser una SOCIEDAD y se reservan VARIAS parcelas a la vez, con
+  // derecho a transmitir cada una por separado despues. Serie propia CP.
+  // `cover` #3C3422: elegido midiendo, no a ojo. Cumple las tres reglas del bloque
+  // de arriba (dE76 15.5 >= 15.4 contra los 17 que ya habia, deriva de tono 7.9 <=
+  // 11 sobre la paleta oficial, saturacion .43 <= .45) y da 10.84:1 contra el papel
+  // y 12.31:1 contra blanco. A 18 documentos la paleta ya NO admite las dos cosas a
+  // la vez: no existe ningun hex que llegue a dE 17 Y a 7:1 de contraste. Se
+  // priorizo el contraste porque su fallo es real y visible (la cabecera de la
+  // tabla de pagos ilegible, que es como se cayo Soft Canopy), y porque rompe la
+  // agrupacion por familia -- este sale tierra, no pizarra como el resto de Reserva.
+  { slug:'carta_reserva_pma', file:'templates/carta_reserva_pma.html', cover:'#3C3422',
+    // `name` es lo que IMPRIME la portada (injectBrandAndCover -> cov_t/cov_t_id),
+    // no solo lo que se lee en el desplegable. Con "(PT PMA)" detras el titulo se
+    // partia en dos lineas dejando "(PT PMA)" solo en la segunda -- medido en el
+    // PDF, no supuesto. La via de tenencia ya la dice el propio documento (cl. 2.2);
+    // en las listas internas si va completo, via LW_TIPO_CONTRATO.
+    name:{es:'Carta de Reserva Condicionada',en:'Conditional Reservation Letter',id:'Surat Pemesanan Bersyarat'},
+    l2:{es:'de Reserva',en:'Reservation',id:'Pemesanan'}, ready:true },
   { slug:'ppjb_parcela',     file:'templates/ppjb_parcela.html', cover:'#485B37', num:2,
     name:{es:'Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'},
     l2:{es:'de Bloqueo de Parcela',en:'Plot Hold',id:'Penahanan Kavling'}, ready:true },
@@ -548,6 +568,8 @@ const CONTRACT_TIPO = {
   // 'carta_reserva_ampliada' — comparte tipo con cualquiera de las dos y se
   // rompe la reapertura de la que sea.
   carta_reserva_hak_sewa:'carta_reserva_hak_sewa',   // serie CH · due-diligence + BANI Denpasar
+  // mismo motivo que las otras tres cartas: tipo propio o se rompe la reapertura
+  carta_reserva_pma:'carta_reserva_pma',   // serie CP · due-diligence + HGB via PT PMA + multiparcela
   poa_notario:'poa',   // serie PA · Poder Notarial (Surat Kuasa), exhibit del Hak Sewa
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
   cc00014_timon:'cc00014_timon',   // un solo ejemplar, texto fijo — mismo motivo que ppjb_bonian_c2
@@ -585,6 +607,7 @@ const plantillasOfrecidas = () => TEMPLATES.filter(t => !t.disabled && puedeEmit
 const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:'CG', commercial_offer:'CO',
   carta_reserva:'CR', carta_reserva_ampliada:'CA', acuerdo_comercial:'AC', protocolo_operativo:'PO',
   ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH', poa:'PA',
+  carta_reserva_pma:'CP',
   cc00014_timon:'CC' };   // misma serie que 'construccion' -- ver tipos_de_contrato.sql
 /* Los nombres salen de assets/vocabulario.js, compartidos con Operaciones.
    Estaban copiados en las dos y habian divergido: aqui 'reserva_parcela' se

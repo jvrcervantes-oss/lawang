@@ -24,7 +24,7 @@
 <script src="/contracts/assets/guard.js?v=d1194bf1" data-herramienta="contratos"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/vocabulario.js?v=8fd0155d"></script>
+<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <link rel="stylesheet" href="/contracts/assets/suite-v3.css?v=18c17264">
@@ -161,7 +161,8 @@ const dinero = (n, m) => lwFormatoImporte(n || 0, m || 'EUR');
    contrato suelto: un Poder Notarial vive solo por definición y marcarlo sería
    ruido — la señal dejaría de significar nada. */
 const VA_EN_PAREJA = ['reserva_parcela', 'construccion', 'carta_reserva',
-                      'carta_reserva_ampliada', 'carta_reserva_hak_sewa'];
+                      'carta_reserva_ampliada', 'carta_reserva_hak_sewa',
+                      'carta_reserva_pma'];
 const suelto = o => !o.padre && !(o.hijos || []).length && VA_EN_PAREJA.includes(o.tipo);
 
 function pintarResumen(){
