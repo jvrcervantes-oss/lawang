@@ -1,0 +1,183 @@
+{
+    "dali": {
+        "sub": "A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.",
+        "banos": 1,
+        "desde": 48000,
+        "extras": {
+            "gym": 6000,
+            "zero": 6000,
+            "oasis": 5000,
+            "sauna": 8000,
+            "airbnb": 5000,
+            "rooftop": 9000,
+            "recovery": 9000
+        },
+        "moneda": "EUR",
+        "nombre": "Dali",
+        "techos": {
+            "bambu": {
+                "now": 50000,
+                "desc": "Bamboo structure combined with ulin wood shingle. Handcrafted character and greater durability.",
+                "y2027": 56000,
+                "nombre": "Bamboo & Ulin shingle"
+            },
+            "sirap": {
+                "now": 48000,
+                "desc": "Ulin wood shingle across the whole roof. The most weather-resistant, lowest-maintenance option.",
+                "y2027": 52000,
+                "nombre": "Sirap Ulin"
+            }
+        },
+        "alcance": {
+            "incluido": [
+                "Main building per the project design",
+                "Roof in the finish you choose",
+                "Overflow pool in sukabumi stone",
+                "Exterior terrace",
+                "Air conditioning and hot water",
+                "PLN 3,500W electrical connection",
+                "Structure, architecture and installations"
+            ],
+            "no_incluido": [
+                "Interior furniture: beds, wardrobes, kitchen, tables",
+                "Decor and textiles"
+            ]
+        },
+        "acabados": [
+            {
+                "d": "Traditional Balinese thatch roofing. The look most integrated into the tropical setting.",
+                "n": "Alang-alang"
+            }
+        ],
+        "villa_m2": 30,
+        "terraza_m2": 17,
+        "dormitorios": 1
+    },
+    "dune": {
+        "sub": "A 1-bedroom en-suite villa, built on the plot you choose. Finish and budget locked in writing before you sign.",
+        "banos": 1,
+        "desde": 68000,
+        "extras": {
+            "gym": 6000,
+            "zero": 6000,
+            "oasis": 5000,
+            "sauna": 8000,
+            "airbnb": 5000,
+            "rooftop": 9000,
+            "recovery": 9000
+        },
+        "moneda": "EUR",
+        "nombre": "Dune",
+        "techos": {
+            "bambu": {
+                "now": 70000,
+                "y2027": 76000,
+                "nombre": "Bamboo"
+            },
+            "sirap": {
+                "now": 68000,
+                "y2027": 72000,
+                "nombre": "Sirap"
+            }
+        },
+        "villa_m2": 47,
+        "terraza_m2": 30,
+        "dormitorios": 1
+    },
+    "dream": {
+        "sub": "A 2-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.",
+        "banos": 2,
+        "desde": 101000,
+        "extras": {
+            "gym": 6000,
+            "zero": 6000,
+            "oasis": 6000,
+            "sauna": 8000,
+            "airbnb": 6000,
+            "rooftop": 9000,
+            "recovery": 9000
+        },
+        "moneda": "EUR",
+        "nombre": "Dream",
+        "techos": {
+            "bambu": {
+                "now": 106000,
+                "y2027": 119000,
+                "nombre": "Bamboo"
+            },
+            "sirap": {
+                "now": 101000,
+                "y2027": 109000,
+                "nombre": "Sirap"
+            }
+        },
+        "villa_m2": 76,
+        "terraza_m2": 49,
+        "dormitorios": 2
+    },
+    "temple": {
+        "sub": "A 4-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.",
+        "banos": 3,
+        "desde": 146000,
+        "extras": {
+            "gym": 6000,
+            "zero": 6000,
+            "oasis": 8000,
+            "sauna": 8000,
+            "airbnb": 8000,
+            "rooftop": 9000,
+            "recovery": 9000
+        },
+        "moneda": "EUR",
+        "nombre": "Temple",
+        "techos": {
+            "bambu": {
+                "now": 151000,
+                "y2027": 169000,
+                "nombre": "Bamboo"
+            },
+            "sirap": {
+                "now": 146000,
+                "y2027": 159000,
+                "nombre": "Sirap"
+            }
+        },
+        "villa_m2": 114,
+        "terraza_m2": 46,
+        "dormitorios": 4,
+        "renders_pendientes": true
+    },
+    "trinity": {
+        "sub": "A 3-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.",
+        "banos": 2,
+        "desde": 121000,
+        "extras": {
+            "gym": 6000,
+            "zero": 6000,
+            "oasis": 7000,
+            "sauna": 8000,
+            "airbnb": 7000,
+            "rooftop": 9000,
+            "recovery": 9000
+        },
+        "moneda": "EUR",
+        "nombre": "Trinity",
+        "techos": {
+            "bambu": {
+                "now": 126000,
+                "y2027": 139000,
+                "nombre": "Bamboo"
+            },
+            "sirap": {
+                "now": 121000,
+                "y2027": 129000,
+                "nombre": "Sirap"
+            }
+        },
+        "villa_m2": 92,
+        "terraza_m2": 35,
+        "dormitorios": 3,
+        "renders_pendientes": true
+    },
+    "_aviso": "FOTO GENERADA — no editar a mano. La fuente es la tabla `modelos` de Supabase, que se edita en /intranet/modelos/. Se regenera con `php modelo/catalogo.php --respaldo`. Un cambio hecho aquí vive hasta el siguiente fetch con red y luego desaparece sin avisar."
+}
