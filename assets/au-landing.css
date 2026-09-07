@@ -26,6 +26,10 @@
   --body:'Jost','Segoe UI',sans-serif;
   --mono:'Space Grotesk',sans-serif;
   --gut:clamp(16px,4vw,32px);
+  /* El gancho del hero usa EXACTAMENTE el tamaño de h2 y por eso vive en una variable:
+     un tamaño intermedio propio seria un escalon mas en la escala, que es justo lo que
+     la ley 3 del catalogo prohibe («salto brutal, sin tallas intermedias»). */
+  --t-h2:clamp(34px,8.7vw,40px);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
@@ -50,7 +54,8 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;color:var(--primary
   overflow-wrap:break-word}
 h1{font-size:clamp(46px,11.8vw,52px);font-weight:700;text-transform:uppercase;
   letter-spacing:-.015em;line-height:1.02}
-h2{font-size:clamp(34px,8.7vw,40px);font-weight:700;letter-spacing:-.012em;line-height:1.06}
+h2,.hero__gancho{font-size:var(--t-h2);font-weight:700;letter-spacing:-.012em;line-height:1.06}
+h2{font-family:var(--display);color:var(--primary)}
 h3{font-size:20px;font-weight:700}
 .wrap{max-width:1280px;margin-inline:auto;padding-inline:var(--gut)}
 .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.09em}
@@ -381,14 +386,31 @@ tr.destacada{background:rgba(250,247,240,.9)}
   .sec{padding:38px 0}
   .hero{gap:22px;padding-top:22px}
   .hero>div{display:flex;flex-direction:column}
+  /* Orden en móvil: gancho, prueba y acción JUNTOS y antes de la foto — una afirmación cuyo
+     respaldo hay que ir a buscar debajo de una imagen no respalda nada. Los datos (chips)
+     bajan del todo: repiten cifras que la frase de arriba ya da. */
   .hero__pills{order:1;margin-bottom:12px}
   .hero>div>h1{order:2}
-  .hero__sub{order:3;max-width:none}
-  .mosaico{order:4;margin-top:20px}
-  .chips{order:5;margin-top:18px}
+  .hero__gancho{order:3;max-width:none;margin-top:12px}
+  .hero__sub{order:4;max-width:none}
+  .hero__cta{order:5}
+  .mosaico{order:6;margin-top:20px}
+  .chips{order:7;margin-top:18px}
   /* El ancho de medida (60ch) es de escritorio: en 390px no limita nada y solo estorba
      cuando el titular quiere ocupar el ancho completo. */
   .sec__hd,.sec__hd h2{max-width:none}
   .stats{margin:18px 0}
   .tabla-pie{padding:13px 15px}
+}
+
+/* ── Gancho del hero + su CTA (opción A del owner, 7-sep-2026) ─────────────────────── */
+.hero__gancho{font-family:var(--display);color:var(--primary);margin:14px 0 0;max-width:18ch;
+  text-wrap:balance}
+.hero__sub b{color:var(--primary);font-weight:600}
+.hero__cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+@media(max-width:560px){
+  /* A ancho de móvil dos botones en fila se quedan en dos palabras cortadas cada uno: van
+     apilados y a ancho completo, que además es el area de toque que se espera con el pulgar. */
+  .hero__cta{flex-direction:column;align-items:stretch}
+  .hero__cta .btn{width:100%}
 }

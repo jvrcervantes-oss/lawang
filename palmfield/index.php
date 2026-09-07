@@ -171,7 +171,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
 <script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260907133245">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260907170430">
 </head>
 <body>
 
@@ -218,13 +218,41 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     </div>
 
     <h1>Palm Field</h1>
-    <?php /* El segundo párrafo que había aquí («Land bought outright, subdivided, and
-             delivered with underground power…») decía exactamente lo mismo que el titular
-             de la sección «We do the land» de más abajo, punto por punto. Cuarenta palabras
-             en la primera pantalla del móvil para repetir algo que se cuenta entero, con
-             sus cuatro pasos, doscientos píxeles después. */ ?>
-    <p class="hero__sub" style="font-size:19px;color:var(--primary);margin-top:10px">
-      Freehold villa plots in <?= lw_e($PF_ZONA) ?>, five minutes from the beach.</p>
+
+    <?php
+      // ── El gancho (opción A del owner, 7-sep-2026) ───────────────────────────────────
+      // La pregunta funciona porque la propia página la demuestra cinco pantallas más
+      // abajo: la tabla #benchmark ya publica la mediana de Perth (785.000 AUD, CoreLogic
+      // 2024/25). Sacar ese argumento al hero es usar el dato que ya estaba enterrado.
+      //
+      // ⚠️ Y por eso la línea de debajo NO es relleno: «el precio de una entrada en Perth»
+      // solo es cierto con un porcentaje concreto. Al 20% son 157.140 AUD y la entrada de
+      // Palm Field (128.390) cabe holgada; al 10% (78.514) NO cabe y la frase sería falsa.
+      // Se publica el porcentaje y las dos cifras para que la afirmación se pueda
+      // comprobar sin fiarse — mismo criterio que el resto de la página, y el que pide un
+      // público australiano (ACL s18, ver LAW-122).
+      // Las dos cifras se CALCULAN de las mismas constantes que pinta la tabla; si mañana
+      // cambia el tipo de cambio o el precio de entrada, esta frase cambia sola en vez de
+      // quedarse mintiendo.
+      $PF_PERTH_MEDIANA = 785000;   // AUD · CoreLogic 2024/25, la misma fila que #benchmark
+      $PF_PERTH_ENTRADA = 0.20;     // el % que hace cierta la comparación; si baja, no cabe
+      $pfEntradaPerth   = (int) round($PF_PERTH_MEDIANA * $PF_PERTH_ENTRADA);
+      $pfDesdeAud       = lw_aud($desdeTotal);
+    ?>
+    <p class="hero__gancho">What could you own in Bali for the price of a Perth deposit?</p>
+
+    <p class="hero__sub">Palm Field starts at
+      <b><?= lw_e(lw_aud_fmt($desdeTotal)) ?></b> with the freehold plot included — less than
+      the <?= (int) round($PF_PERTH_ENTRADA * 100) ?>% deposit on a median Perth house
+      ($<?= lw_e(number_format($pfEntradaPerth, 0, '.', ',')) ?> AUD).</p>
+
+    <div class="hero__cta">
+      <a class="btn btn--terra" href="#estimator">See Your Figure</a>
+      <a class="btn btn--lag" href="#book">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zM7 12h5v5H7v-5z"/></svg>
+        Book a Call
+      </a>
+    </div>
 
     <div class="chips">
       <div class="chip">
