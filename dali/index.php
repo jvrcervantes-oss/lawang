@@ -121,7 +121,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
 <script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260907131500">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260907131651">
 </head>
 <body>
 
@@ -161,10 +161,16 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <span class="pill pill--terra">Q4 2026 Release Open</span>
     </div>
 
-    <h1>100% Freehold Architectural Villas in Bali &amp; Sumba</h1>
+    <?php /* 7-sep-2026: era «100% Freehold Architectural Villas in Bali & Sumba», y con la
+             escala de móvil nueva (h1 con suelo de 46px) la palabra ARCHITECTURAL sola es más
+             ancha que un móvil de 390 — se salía de la página en horizontal. Un titular grande
+             solo cabe si es corto; ese es el intercambio, y aquí la palabra que sobraba no
+             aportaba nada que no diga ya el subtítulo. «Freehold» se queda: es vocabulario
+             de LAW-122, decisión expresa del owner. */ ?>
+    <h1>Freehold Villas in Bali &amp; Sumba</h1>
 
-    <p class="hero__sub">Fixed Price. Perpetual Title. Zero Leases. Fully Prepped Land with
-      Subterranean Power &amp; Water Before You Break Ground.</p>
+    <p class="hero__sub">Fixed price, perpetual title, zero leases. Land prepped with power and
+      water underground before you break ground.</p>
 
     <div class="chips">
       <div class="chip">

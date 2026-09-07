@@ -42,7 +42,12 @@ button{font:inherit}
    según crece el cuerpo, y tracking negativo en lo grande. Por eso el suelo sube a 46/34 y
    el vw se recalcula para que el techo siga siendo el mismo 52/40 de antes: el escritorio
    NO cambia, solo deja de haber un tramo muerto en el medio. */
-h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;color:var(--primary)}
+/* Red de seguridad: con el suelo de 46px, UNA palabra larga («ARCHITECTURAL») ya es más ancha
+   que un móvil de 390 y sacaba scroll horizontal a toda la página — pasó en /dali el 7-sep. El
+   arreglo de verdad es acortar el titular (y se hizo), pero esto evita que el próximo titular
+   largo que alguien escriba rompa la página entera en vez de solo verse apretado. */
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;color:var(--primary);
+  overflow-wrap:break-word}
 h1{font-size:clamp(46px,11.8vw,52px);font-weight:700;text-transform:uppercase;
   letter-spacing:-.015em;line-height:1.02}
 h2{font-size:clamp(34px,8.7vw,40px);font-weight:700;letter-spacing:-.012em;line-height:1.06}
