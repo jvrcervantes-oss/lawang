@@ -381,7 +381,12 @@
       Promise.all([
         q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
-        q(sb.from('facturas').select('proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
+        /* La RPC de EQUIPO, nunca `.from('facturas')`. `facturas` tiene RLS por
+           agente (`es_suyo`), así que una lectura directa devuelve solo «lo mío»
+           —menos filas, sin ningún error— y el cobrado de la cartera saldría
+           bajo para todo el que no sea super admin. Está avisado en la cabecera
+           de este fichero y aun así caí en ello al escribir esta pantalla. */
+        q(sb.rpc('facturas_equipo').select('proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
         q(sb.from('documentos_proyecto').select('proyecto'), 'documentación')
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [];
