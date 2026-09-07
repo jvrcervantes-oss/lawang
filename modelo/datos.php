@@ -56,7 +56,10 @@ function lw_extras_meta() {
     return [
         'airbnb'   => ['nombre' => 'Airbnb Kit',        'desc' => null],
         'zero'     => ['nombre' => 'Zero Chemical Pool', 'desc' => 'Ozone purification, no chlorine'],
-        'recovery' => ['nombre' => 'Recovery',          'desc' => 'Fire &amp; Ice 2 m pools'],
+        // Ampersand CRUDO, no `&amp;`: estas descripciones viajan en JSON al JS y se pintan
+        // con textContent, que NO decodifica entidades — con `&amp;` se lee literal en la
+        // pagina. Si algun dia se pintaran con innerHTML habria que escaparlas ahi.
+        'recovery' => ['nombre' => 'Recovery',          'desc' => 'Fire & Ice 2 m pools'],
         'sauna'    => ['nombre' => 'Sauna',             'desc' => '2 × 1.5 m — fits four'],
         'rooftop'  => ['nombre' => 'Rooftop',           'desc' => 'Sofa, BBQ and shade included'],
         'oasis'    => ['nombre' => 'Oasis Pool',        'desc' => 'White cement pool with a beach finish, natural rock and palms'],
