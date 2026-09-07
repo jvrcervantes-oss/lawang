@@ -255,7 +255,7 @@ const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionD
    cuatro sitios que la llaman; detrás ya no hay una segunda implementación. */
 const antiFormula = lwCsvAntiFormula;
 
-let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
+let SB=null, UNIDADES=[], CONTRATOS=[], MODELOS=[], CATALOGO=[], SEL=null, FILTRO='', PROY='', CARGANDO=true, FALLO=null;
 /* `?proyecto=` entra directo a ese proyecto. Lo usa el enlace de vuelta desde
    Documentacion (17-ago-2026): se salta de la documentacion al inventario del
    mismo proyecto sin volver a elegirlo. Entrar asi abre en TABLA y no en
@@ -273,7 +273,22 @@ let ES_SUPER_ADMIN = false;
    modelo NO es una propiedad del terreno, es la casa que elige el comprador.
    De la parcela son la superficie y el precio de suelo; del modelo, lo que
    cuesta construirlo. El total es la suma, y cambia si cambia la casa. */
-const modelosDe   = proyecto => MODELOS.filter(m => m.proyecto === proyecto);
+/* Un `precio_construccion` en NULL dentro de `modelos_villa` significa HEREDA
+   del catalogo, no «sin precio» (cascada del 7-sep-2026: catalogo ->
+   proyecto -> unidad). Se resuelve UNA sola vez aqui y no en cada consumidor:
+   el dia que Palm Field paso a heredar, esta pantalla se quedo enseñando sus
+   dos modelos SIN precio porque leia la columna a pelo. Con tres lectores de la
+   herencia era cuestion de tiempo que uno se olvidara; con uno, no puede.
+   La MONEDA viaja con el precio y del MISMO nivel que lo dio: un proyecto en
+   rupias heredando una cifra en euros del catalogo no es un detalle, es un
+   error de tres ordenes de magnitud (Riverfront va en IDR). */
+const modelosDe = proyecto => MODELOS.filter(m => m.proyecto === proyecto).map(m => {
+  if(m.precio_construccion != null) return m;
+  const cat = CATALOGO.find(c => c.id === m.modelo_id);
+  if(!cat || cat.precio_construccion == null) return m;
+  return { ...m, precio_construccion: cat.precio_construccion,
+           moneda: cat.moneda || m.moneda, _heredado: true };
+});
 const precioModelo = (proyecto, modelo) => {
   const m = MODELOS.find(x => x.proyecto === proyecto && x.modelo === modelo);
   return m && m.precio_construccion != null ? Number(m.precio_construccion) : null;
@@ -293,13 +308,17 @@ const valorDe = (u, campo) => {
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c, m, p, t, dp] = await Promise.all([
+  const [u, c, m, cat, p, t, dp] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
     SB.from('unidades_estado').select('*').order('proyecto').order('codigo'),
     SB.from('contratos').select('id, numero, comprador_nombre').order('created_at', { ascending:false }),
-    SB.from('modelos_villa').select('proyecto, modelo, precio_construccion, moneda').order('modelo'),
+    SB.from('modelos_villa').select('proyecto, modelo, modelo_id, precio_construccion, moneda').order('modelo'),
+    // El catalogo de modelos: el nivel del que hereda `modelos_villa` cuando su
+    // precio esta en NULL. Va en la misma tanda para que la pantalla no pinte
+    // primero sin precio y luego con el.
+    SB.from('modelos').select('id, nombre, precio_construccion, moneda').eq('activo', true),
     SB.from('proyectos').select('nombre, resort, parcela_master, parcela_master_m2').eq('activo', true).order('nombre'),
     SB.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
     // La documentacion de cada proyecto va en la misma tanda: es una consulta
@@ -322,6 +341,7 @@ async function cargar(){
   UNIDADES = u.data || [];
   CONTRATOS = c.error ? [] : (c.data || []);
   MODELOS   = m.error ? [] : (m.data || []);
+  CATALOGO  = cat.error ? [] : (cat.data || []);
   /* Sin permiso sobre documentacion se queda en null y la carpeta no pinta la
      linea, en vez de decir «sin documentacion» a quien simplemente no la ve. */
   if(dp.error){ DOCS_POR_PROYECTO = null; }
@@ -1094,7 +1114,8 @@ function pintarEscenarios(u){
     ${ms.map(x => {
       const c = x.precio_construccion != null ? Number(x.precio_construccion) : null;
       return `<div class="sui-total" style="border:none;margin:0;padding:3px 0;font-weight:400">
-        <span>${esc(x.modelo)}${elegido === x.modelo ? ' <b>· elegido</b>' : ''}</span>
+        <span>${esc(x.modelo)}${elegido === x.modelo ? ' <b>· elegido</b>' : ''}${
+          x._heredado ? ' <span class="flojo">· del catálogo</span>' : ''}</span>
         <span>${c == null ? '<span class="flojo">sin precio</span>' : '<b>' + esc(fmtMoneda(suelo + c, m)) + '</b>'}</span>
       </div>`;
     }).join('')}

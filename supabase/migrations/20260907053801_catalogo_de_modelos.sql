@@ -46,6 +46,14 @@
    suelo), y tres de esas diez parcelas ya tienen contrato. Un catálogo que
    pisara la unidad les cambiaría el precio a espaldas de un contrato firmado.
 
+   ⚠️ Este fichero es el CANÓNICO (lleva los porqués); lo aplicado fue una versión
+   compacta con los mismos objetos. Se ha reconciliado: nombre de fichero igual al
+   que registró la base (`supabase_migrations.schema_migrations`, que es lo que
+   compara `tools/salud_lawang.py`) y fuera el índice funcional sobre
+   `modelo_norm(nombre)` que estaba aquí y no llegó a aplicarse — sobre 15 filas
+   no compra nada, y un fichero de migración tiene que decir lo que la base
+   TIENE, no lo que se pensó escribir.
+
    ALCANCE: esta migración crea estructura. No siembra ni engancha ninguna
    unidad — eso va en la siguiente, a propósito, para poder revisarlas por
    separado.
@@ -294,8 +302,6 @@ as $$
                                       'áéíóúàèìòùäëïöüâêîôûÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÂÊÎÔÛ',
                                       'aeiouaeiouaeiouaeiouAEIOUAEIOUAEIOUAEIOU'))), '')
 $$;
-
-create index if not exists modelos_nombre_norm_idx on public.modelos (public.modelo_norm(nombre));
 
 create or replace function public.trg_espejo_modelo()
 returns trigger
