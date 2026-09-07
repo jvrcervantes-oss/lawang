@@ -25,6 +25,18 @@
  *    campos `_es`/`sub` sin `_en` que queden de la fase anterior no se borran (viven en git,
  *    barato de recuperar si se retoma el bilingüe) pero no se traducen para los modelos
  *    nuevos: se escribe directamente en inglés.
+ * 6. `extras` son los siete opcionales del price list del owner (Google Sheet «UPDATED:
+ *    SEPTEMBER 2026», leído el 7-sep-2026). Se guardan POR MODELO aunque cinco de los siete
+ *    valgan lo mismo en los cinco: Airbnb Kit y Oasis Pool SÍ escalan con el modelo, y una
+ *    tabla mixta «estos cinco fijos + estos dos por modelo» es justo la forma de que el día
+ *    que el owner mueva uno de los fijos alguien lo cambie en un sitio y no en el otro.
+ *    El nombre y la descripción de cada extra NO viven aquí (son iguales para todos):
+ *    `lw_extras_meta()` en `datos.php`.
+ *
+ * ⚠️ 7-sep-2026: el mismo price list corrigió dos precios que este fichero publicaba mal —
+ *    Trinity bambú 127.000 → 126.000 € y Temple bambú 155.000 → 151.000 €. Estaban en vivo
+ *    en /modelo y en /palmfield. Los «desde» no se mueven (los fija el techo Sirap, que es
+ *    el barato en los cinco modelos), así que el hero de las landings no cambia.
  */
 
 return [
@@ -50,6 +62,8 @@ return [
                 'y2027'  => 56000,
             ],
         ],
+        'extras'      => ['airbnb' => 5000, 'zero' => 6000, 'recovery' => 9000, 'sauna' => 8000,
+                          'rooftop' => 9000, 'oasis' => 5000, 'gym' => 6000],
         // Los tres acabados verificados del anexo de obra de Dali. El tercero (Alang-alang)
         // no tiene precio propio dado por el owner en esta ronda — se queda fuera de
         // `techos` (que ahora es lo que fija el precio) pero la descripción sigue viva aquí
@@ -100,6 +114,8 @@ return [
             'sirap' => ['nombre' => 'Sirap', 'now' => 68000, 'y2027' => 72000],
             'bambu' => ['nombre' => 'Bamboo', 'now' => 70000, 'y2027' => 76000],
         ],
+        'extras'      => ['airbnb' => 5000, 'zero' => 6000, 'recovery' => 9000, 'sauna' => 8000,
+                          'rooftop' => 9000, 'oasis' => 5000, 'gym' => 6000],
         // Sin acabados/alcance propios todavía: sin el anexo de obra de Dune, copiar el de
         // Dali sería inventarse un contrato (regla 2 de este fichero). El template oculta
         // esas secciones cuando faltan.
@@ -117,6 +133,8 @@ return [
             'sirap' => ['nombre' => 'Sirap', 'now' => 101000, 'y2027' => 109000],
             'bambu' => ['nombre' => 'Bamboo', 'now' => 106000, 'y2027' => 119000],
         ],
+        'extras'      => ['airbnb' => 6000, 'zero' => 6000, 'recovery' => 9000, 'sauna' => 8000,
+                          'rooftop' => 9000, 'oasis' => 6000, 'gym' => 6000],
     ],
 
     'trinity' => [
@@ -129,8 +147,10 @@ return [
         'sub_en'             => 'A 3-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'techos'             => [
             'sirap' => ['nombre' => 'Sirap', 'now' => 121000, 'y2027' => 129000],
-            'bambu' => ['nombre' => 'Bamboo', 'now' => 127000, 'y2027' => 139000],
+            'bambu' => ['nombre' => 'Bamboo', 'now' => 126000, 'y2027' => 139000],
         ],
+        'extras'             => ['airbnb' => 7000, 'zero' => 6000, 'recovery' => 9000, 'sauna' => 8000,
+                                 'rooftop' => 9000, 'oasis' => 7000, 'gym' => 6000],
         // 2-sep: publicado sin render real por decisión expresa del owner ("Publícalo,
         // estamos creándola y no estamos en producción aún") — el catálogo se lanza
         // completo mientras se terminan los renders, en vez de esperar a tenerlos los 5.
@@ -149,8 +169,10 @@ return [
         'sub_en'             => 'A 4-bedroom villa, built on the plot you choose. Finish and budget locked in writing before you sign.',
         'techos'             => [
             'sirap' => ['nombre' => 'Sirap', 'now' => 146000, 'y2027' => 159000],
-            'bambu' => ['nombre' => 'Bamboo', 'now' => 155000, 'y2027' => 169000],
+            'bambu' => ['nombre' => 'Bamboo', 'now' => 151000, 'y2027' => 169000],
         ],
+        'extras'             => ['airbnb' => 8000, 'zero' => 6000, 'recovery' => 9000, 'sauna' => 8000,
+                                 'rooftop' => 9000, 'oasis' => 8000, 'gym' => 6000],
         // Mismo caso que Trinity — ver su comentario. Hoy no hay ni un render de Temple en
         // el repo, solo el PDF de folleto.
         'renders_pendientes' => true,

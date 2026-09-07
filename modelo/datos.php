@@ -41,6 +41,46 @@ function lw_aud_fmt($eur) {
 }
 
 /**
+ * Nombre y descripción de los siete extras. El PRECIO no está aquí: vive en `modelos.php`
+ * porque dos de los siete (Airbnb Kit y Oasis Pool) escalan con el modelo.
+ *
+ * Las descripciones son las de la columna «EXTRAS INFO» del price list del owner (Google
+ * Sheet, 7-sep-2026), traducidas al inglés porque estas landings son solo inglés desde el
+ * pivote australiano del 2-sep. `airbnb` se queda SIN descripción a propósito: el price
+ * list no trae ninguna para ese, y rellenarla con algo plausible sería inventarse qué
+ * incluye un extra de 5.000-8.000 € en una página de tráfico de pago.
+ *
+ * El ORDEN de este array es el que se pinta.
+ */
+function lw_extras_meta() {
+    return [
+        'airbnb'   => ['nombre' => 'Airbnb Kit',        'desc' => null],
+        'zero'     => ['nombre' => 'Zero Chemical Pool', 'desc' => 'Ozone purification, no chlorine'],
+        'recovery' => ['nombre' => 'Recovery',          'desc' => 'Fire &amp; Ice 2 m pools'],
+        'sauna'    => ['nombre' => 'Sauna',             'desc' => '2 × 1.5 m — fits four'],
+        'rooftop'  => ['nombre' => 'Rooftop',           'desc' => 'Sofa, BBQ and shade included'],
+        'oasis'    => ['nombre' => 'Oasis Pool',        'desc' => 'White cement pool with a beach finish, natural rock and palms'],
+        'gym'      => ['nombre' => 'Exterior Gym',      'desc' => 'Three-level pull-up bar, dip bar, dumbbell kit, press bench, flat bench'],
+    ];
+}
+
+/** Cruza `lw_extras_meta()` con los precios del modelo. Lista ordenada y lista para pintar. */
+function lw_extras_resueltos(array $m) {
+    $precios = isset($m['extras']) && is_array($m['extras']) ? $m['extras'] : [];
+    $out = [];
+    foreach (lw_extras_meta() as $id => $meta) {
+        if (!isset($precios[$id])) continue;   // sin precio no se ofrece: no se estima a ojo
+        $out[] = [
+            'id'     => $id,
+            'nombre' => $meta['nombre'],
+            'desc'   => $meta['desc'],
+            'eur'    => (int) $precios[$id],
+        ];
+    }
+    return $out;
+}
+
+/**
  * Catálogo de las cinco villas resuelto para la plantilla: precio activo (2026 o 2027,
  * según el reloj del servidor en Bali) en EUR y en AUD, specs y render de portada.
  */
@@ -72,6 +112,10 @@ function lw_au_catalogo() {
             // que es el error que ya cazó Diseño el 3-sep: Sirap y Bambú son dos PRECIOS
             // de villa alternativos, no un precio y un recargo.
             'desde_eur' => min($sirap, $bambu),
+            // Extras resueltos: metadatos comunes + el precio de ESTE modelo. Un modelo sin
+            // la clave `extras` (los que lleguen nuevos al catálogo) sale con la lista vacía
+            // y la plantilla oculta el paso — nunca con un precio heredado de otro modelo.
+            'extras'    => lw_extras_resueltos($m),
         ];
     }
     return $out;

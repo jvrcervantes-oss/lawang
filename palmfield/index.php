@@ -34,12 +34,31 @@
  * Sobre «freehold» y las cifras de rentabilidad: decisión expresa del owner, ver el
  * docblock de dali/index.php y LAW-122. El propio dossier del cliente titula una página
  * «Your own freehold villa», así que aquí se usa su misma terminología.
+ *
+ * ── 7-sep-2026: el configurador vuelve a ser por PASOS, sin parcela ni isla ────────────
+ * Encargo del owner: «restablécelo quitando la parte de Land e island, quiero que avance
+ * clicando y faltan los extras». El estimador de una sola pantalla (parcela + villa) pasa a
+ * los tres pasos que ya tenía /dali —villa → techo → extras— con dos cambios de fondo:
+ *   · **La parcela sale del cálculo.** El total es villa (con su techo) + extras. La tarifa
+ *     de 125 €/m² sigue publicada, en el resumen y bajo el total, como línea aparte que se
+ *     dimensiona en la llamada. Es lo que pidió el owner; si algún día se quiere volver a
+ *     sumar, es una fila más en el resumen, no una reescritura.
+ *   · **Avanza al hacer clic** en villa o techo. El paso de extras NO avanza solo: es
+ *     multiselección y saltar al primer tick impediría marcar el segundo. Ahí el botón pasa
+ *     a «See my figure» y baja al resumen.
+ * Vuelve además la **tabla comparativa de vuelos y precio de vivienda en Australia**
+ * (`#benchmark`), que /dali sí tenía y esta página perdió al nacer. Su columna de Lawang
+ * ahora SÍ incluye la parcela que su rótulo promete (villa + la parcela más pequeña
+ * disponible), en vez del precio de la villa a secas bajo un «+ land included».
+ *
+ * Precios: price list del owner (Google Sheet «UPDATED: SEPTEMBER 2026», leído el 7-sep).
+ * Los de 2027 se ignoran por orden suya. Los siete extras y sus importes por modelo viven en
+ * `modelo/modelos.php`; su nombre y descripción, en `lw_extras_meta()` de `modelo/datos.php`.
  */
 
 require __DIR__ . '/../modelo/datos.php';
 
 $CAT = lw_au_catalogo();
-$OPC = lw_picker_opciones();
 
 // Tarifa de la parcela: Palm Field está en Balian (costa oeste, no beachfront), así que le
 // aplica el tramo general de 125 €/m². Sale de lib.php, no escrita aquí.
@@ -102,6 +121,10 @@ foreach ($CAT as $id => $v) {
             'sirap' => ['nombre' => $v['techos']['sirap']['nombre'], 'eur' => $v['techos']['sirap']['eur']],
             'bambu' => ['nombre' => $v['techos']['bambu']['nombre'], 'eur' => $v['techos']['bambu']['eur']],
         ],
+        // Los extras van POR MODELO porque dos de los siete escalan con la villa. El JS los
+        // pinta desde aquí: si un modelo llegara sin ellos, su paso 3 sale vacío en vez de
+        // heredar los precios de otro modelo.
+        'extras' => $v['extras'],
     ];
 }
 $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
@@ -307,76 +330,87 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <section class="sec sec--surface" id="estimator">
   <div class="wrap">
     <div class="et">
-      <span class="pill pill--verde">2 choices</span>
-      <span class="mono" style="font-size:11px;color:var(--ink2)">Plot + villa = your figure</span>
+      <span class="pill pill--verde">3-Step</span>
+      <span class="mono" style="font-size:11px;color:var(--ink2)">Pick an option and it moves on</span>
     </div>
     <div class="sec__hd">
-      <h2>Pick your plot, pick your villa</h2>
-      <p class="sec__desc">Every villa model can be built on every plot. Land is
-        <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² at Palm Field. Prices shown at a fixed rate of
+      <h2>Three questions, and you have your figure</h2>
+      <p class="sec__desc">Villa, roof, and the extras you want. Prices shown at a fixed rate of
         <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR (<?= lw_e(LW_AUD_FECHA) ?>) — the
-        contract figure is the euro one.</p>
+        contract figure is the euro one. The freehold plot is quoted separately at
+        <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m², sized against what is actually available
+        when we speak.</p>
     </div>
 
     <div class="cfg">
+      <!-- Pasos -->
       <div class="cfg__card">
         <div class="cfg__hd">
-          <span class="cfg__paso">Plot size</span>
+          <span class="cfg__paso" id="pf-paso-lb">Step 1 of 3</span>
           <span class="divisas" role="group" aria-label="Currency">
             <button type="button" class="divisa is-on" data-div="AUD">AUD ($)</button>
             <button type="button" class="divisa" data-div="EUR">EUR (€)</button>
           </span>
         </div>
 
-        <p class="cfg__nota">Plot sizes available at Palm Field as of
-          <?= lw_e(LW_PF_PARCELAS_FECHA) ?>. Exact plots are confirmed on the call.</p>
-        <div class="ops" style="margin-bottom:22px">
-          <?php foreach ($PF_PARCELAS as $i => $m2): ?>
-          <label class="op">
-            <input type="radio" name="pf-m2" value="<?= (int) $m2 ?>"<?= $i === 0 ? ' checked' : '' ?>>
-            <span><span class="op__nb"><?= (int) $m2 ?> m²</span>
-                  <span class="op__sp">Land only · <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m²</span></span>
-            <span class="op__pr" data-eur="<?= (int) ($PF_TARIFA * $m2) ?>">
-              <b><?= lw_e(lw_aud_fmt($PF_TARIFA * $m2)) ?></b>
-              <i><?= lw_e(lw_precio_fmt($PF_TARIFA * $m2)) ?></i>
-            </span>
-          </label>
-          <?php endforeach; ?>
+        <!-- Paso 1: villa -->
+        <div class="cfg__step" data-paso="1">
+          <p class="cfg__q">Which villa?</p>
+          <p class="cfg__nota">All five models can be built on any Palm Field plot. The price
+            shown is the villa with its cheaper roof; you pick the roof next.</p>
+          <div class="ops">
+            <?php foreach ($CAT as $id => $v): ?>
+            <label class="op">
+              <input type="radio" name="pf-villa" value="<?= lw_e($id) ?>"<?= $id === 'dune' ? ' checked' : '' ?>>
+              <?php if ($v['thumb']): ?>
+                <img class="op__th" src="<?= lw_e($v['thumb']) ?>" alt="" loading="lazy">
+              <?php else: ?>
+                <span class="op__th op__th--vacio"><svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke-linejoin="round"/><rect x="24" y="48" width="72" height="34" fill="none"/></svg></span>
+              <?php endif; ?>
+              <span>
+                <span class="op__nb"><?= lw_e($v['villa']) ?></span>
+                <span class="op__sp"><?= lw_e($v['specs']) ?></span>
+              </span>
+              <span class="op__pr" data-eur="<?= (int) $v['desde_eur'] ?>">
+                <b><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
+                <i><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></i>
+              </span>
+            </label>
+            <?php endforeach; ?>
+          </div>
         </div>
 
-        <div class="cfg__hd"><span class="cfg__paso">Villa model — all five available</span></div>
-        <div class="ops">
-          <?php foreach ($CAT as $id => $v): ?>
-          <label class="op">
-            <input type="radio" name="pf-villa" value="<?= lw_e($id) ?>"<?= $id === 'dune' ? ' checked' : '' ?>>
-            <?php if ($v['thumb']): ?>
-              <img class="op__th" src="<?= lw_e($v['thumb']) ?>" alt="" loading="lazy">
-            <?php else: ?>
-              <span class="op__th op__th--vacio"><svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 48 L60 12 L110 48" fill="none" stroke-linejoin="round"/><rect x="24" y="48" width="72" height="34" fill="none"/></svg></span>
-            <?php endif; ?>
-            <span>
-              <span class="op__nb"><?= lw_e($v['villa']) ?></span>
-              <span class="op__sp"><?= lw_e($v['specs']) ?></span>
-            </span>
-            <span class="op__pr" data-eur="<?= (int) $v['desde_eur'] ?>">
-              <b><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
-              <i><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></i>
-            </span>
-          </label>
-          <?php endforeach; ?>
+        <!-- Paso 2: techo. Lo pinta el JS: el precio es el de la villa ya elegida. -->
+        <div class="cfg__step" data-paso="2" hidden>
+          <p class="cfg__q">Which roof?</p>
+          <p class="cfg__nota">Two complete villa prices, not an add-on: the roof you choose is
+            the price of the villa.</p>
+          <div class="ops" id="pf-techos"></div>
+        </div>
+
+        <!-- Paso 3: extras. Multiseleccion, asi que este NO avanza solo al hacer clic. -->
+        <div class="cfg__step" data-paso="3" hidden>
+          <p class="cfg__q">Any extras?</p>
+          <p class="cfg__nota">Optional, and none of them is needed to move in. Tick as many as
+            you want — the figure on the right updates as you go.</p>
+          <div class="ops" id="pf-extras"></div>
+        </div>
+
+        <div class="cfg__nav">
+          <button type="button" class="cfg__atras" id="pf-atras" hidden>← Back</button>
+          <span class="puntos" id="pf-puntos" aria-hidden="true"></span>
+          <button type="button" class="btn btn--lag" id="pf-siguiente">
+            Next <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7v-4H4v-6h9V5z"/></svg>
+          </button>
         </div>
       </div>
 
+      <!-- Resumen en vivo -->
       <div class="res">
         <div class="res__card">
           <div class="res__hd">
             <span class="res__tt">Your Palm Field figure</span>
-            <span class="pill pill--canopy">Freehold included</span>
-          </div>
-          <div class="res__fila">
-            <span><span class="res__lb" id="pf-r-plot">250 m² plot</span>
-                  <span class="res__sub">Subdivided freehold · power, water, permits</span></span>
-            <span class="res__vl" id="pf-r-plot-pr">—</span>
+            <span class="pill pill--canopy">Freehold</span>
           </div>
           <div class="res__fila">
             <span><span class="res__lb" id="pf-r-villa">Villa</span>
@@ -384,23 +418,133 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
             <span class="res__vl" id="pf-r-villa-pr">—</span>
           </div>
           <div class="res__fila">
+            <span><span class="res__lb" id="pf-r-extras">Extras</span>
+                  <span class="res__sub" id="pf-r-extras-sub">None selected</span></span>
+            <span class="res__vl" id="pf-r-extras-pr">—</span>
+          </div>
+          <div class="res__fila">
             <span><span class="res__lb">Roads &amp; approvals</span>
                   <span class="res__sub">PBG / SLF licences, PLN connection</span></span>
             <span class="res__vl">Included</span>
           </div>
+          <div class="res__fila">
+            <span><span class="res__lb">Freehold plot</span>
+                  <span class="res__sub"><?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² · sized on the call</span></span>
+            <span class="res__vl">Separate</span>
+          </div>
         </div>
 
         <div class="total">
-          <span class="total__lb">Plot + villa, turnkey</span>
+          <span class="total__lb">Villa turnkey, your spec</span>
           <span class="total__vl" id="pf-total">—</span>
           <span class="total__alt" id="pf-total-alt"></span>
-          <p class="total__nota">Fixed-price written EPC contract. Notary, permits and
-            transfer costs are quoted separately. Handover <?= lw_e($PF_ENTREGA) ?>.</p>
+          <p class="total__nota">Fixed-price written EPC contract. The plot is priced apart at
+            <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² — from
+            <?= lw_e(lw_precio_fmt($PF_TARIFA * min($PF_PARCELAS))) ?> for the smallest one
+            available as of <?= lw_e(LW_PF_PARCELAS_FECHA) ?>. Notary, permits and transfer
+            costs are quoted separately. Handover <?= lw_e($PF_ENTREGA) ?>.</p>
           <a class="btn btn--terra btn--block total__cta" href="#book">
             Book a 30-Min Call on This Figure
           </a>
         </div>
         <p class="res__sync">Perth &amp; Sydney working hours · direct sync</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMPARATIVA ════════════════════════════════════════════════════════════════ -->
+<?php
+  // Columna "Palm Field Turnkey Freehold" de la tabla: villa + la parcela MAS PEQUEÑA
+  // disponible hoy. En /dali esta misma columna ponia solo el precio de la villa bajo el
+  // rotulo "+ land included" — decia una cosa y sumaba otra. Aqui la cifra incluye de
+  // verdad la parcela que el rotulo promete, y el rotulo dice de que tamaño es.
+  $pfMin = min($PF_PARCELAS);
+?>
+<section class="sec" id="benchmark">
+  <div class="wrap">
+    <div class="et">
+      <span class="pill pill--canopy">Flight &amp; Capital Benchmark</span>
+      <span class="mono" style="font-size:11px;color:var(--ink2)">CoreLogic 2024/2025 Data</span>
+    </div>
+    <div class="sec__hd">
+      <h2>Closer than Sydney to Perth — at a Fraction of the Property Price</h2>
+      <p class="sec__desc">Direct flight times from key Australian capitals and average median
+        house price compared to a turnkey freehold villa at Palm Field, plot included (AUD).</p>
+    </div>
+
+    <div class="stats">
+      <div class="chip">
+        <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6V6h-2v7.4l5.2 3.1 1-1.7-4.2-2.2z"/></svg></span>
+        <span><span class="chip__lb">Zero Jetlag from WA</span>
+              <span class="chip__vl">Perth: 0h diff · 3h 40m flight</span></span>
+      </div>
+      <div class="chip">
+        <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l2.3-2.3-4.9-4.9-4 4L2 7.4 3.4 6l6 6 4-4 6.3 6.3L22 12v6h-6z"/></svg></span>
+        <span><span class="chip__lb">Entry Capital Efficiency</span>
+              <span class="chip__vl">Up to 14x less capital</span></span>
+      </div>
+      <div class="chip">
+        <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm10 9a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM5.4 19.4L19.4 5.4 18 4 4 18l1.4 1.4z"/></svg></span>
+        <span><span class="chip__lb">Rental Yield Spread</span>
+              <span class="chip__vl" style="color:var(--secondary)">14 – 18% ROI (vs ~3% AU)</span></span>
+      </div>
+    </div>
+
+    <div class="tabla-caja">
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Australian City</th><th>Direct Flight Time</th><th>AU Median House</th>
+              <th>Palm Field Turnkey Freehold</th><th style="text-align:right">Capital Multiple</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+              // Villa que se compara en cada fila. Perth se compara con Dali (la de entrada)
+              // y el resto con Dune, igual que el diseño del owner en /dali.
+              $filas = [
+                ['SYD','Sydney','NSW · AEST','~6h 15m','Daily direct: Qantas, Jetstar, Virgin','1620000','dune','~14x More Affordable',false],
+                ['MEL','Melbourne','VIC · AEST','~6h 00m','Daily direct: Jetstar, Virgin, Garuda','940000','dune','~8.5x More Affordable',false],
+                ['PER','Perth','WA · AWST (0h time diff)','~3h 40m','Multiple daily: Jetstar, AirAsia, Batik','785000','dali','~10x More Affordable',true],
+                ['BNE','Brisbane','QLD · AEST','~6h 10m','Daily direct: Virgin, Jetstar','890000','dune','~8x More Affordable',false],
+                ['ADL','Adelaide','SA · ACST','~5h 15m','Direct seasonal &amp; 1-stop options','790000','dune','~7x More Affordable',false],
+              ];
+              foreach ($filas as $f):
+                list($iata,$ciudad,$estado,$vuelo,$aerolineas,$mediana,$vid,$mult,$destaca) = $f;
+                $vv    = $CAT[$vid];
+                $vvTot = $vv['desde_eur'] + $PF_TARIFA * $pfMin;
+            ?>
+            <tr<?= $destaca ? ' class="destacada"' : '' ?>>
+              <td>
+                <span class="ciudad">
+                  <span class="iata<?= $destaca ? ' iata--on' : '' ?>"><?= lw_e($iata) ?></span>
+                  <span><span class="cel-b"><?= lw_e($ciudad) ?></span>
+                        <span class="cel-s"><?= $estado ?></span></span>
+                </span>
+              </td>
+              <td><span class="cel-m"><?= lw_e($vuelo) ?></span><span class="cel-s"><?= $aerolineas ?></span></td>
+              <td><span class="cel-m">~$<?= lw_e(number_format((int) $mediana, 0, '.', ',')) ?> AUD</span>
+                  <span class="cel-s mono" style="font-size:9.5px">CoreLogic 2024/25</span></td>
+              <td><span class="cel-m"><?= lw_e(lw_aud_fmt($vvTot)) ?></span>
+                  <span class="cel-s" style="color:var(--secondary);font-weight:600"><?= lw_e($vv['villa']) ?> + <?= (int) $pfMin ?> m² plot</span></td>
+              <td style="text-align:right">
+                <span class="pill <?= $destaca ? 'pill--verde' : 'pill--canopy' ?>"><?= lw_e($mult) ?></span>
+                <span class="cel-s" style="margin-top:4px"><?= $destaca ? 'Zero jetlag · weekend commute' : '100% perpetual title' ?></span>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <div class="tabla-pie">
+        <span>Australian benchmark figures based on CoreLogic capital city median dwelling data
+          (2024/2025). Palm Field figures include the freehold plot (<?= (int) $pfMin ?> m², the
+          smallest available as of <?= lw_e(LW_PF_PARCELAS_FECHA) ?>) plus the turnkey
+          architectural build, converted at <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
+          (<?= lw_e(LW_AUD_FECHA) ?>).</span>
+        <a class="btn btn--lag" href="#book">Lock Strategy Slot</a>
       </div>
     </div>
   </div>
@@ -562,8 +706,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
 <div class="movil">
   <span class="movil__pr">
-    <b id="pf-movil"><?= lw_e(lw_aud_fmt($desdeTotal)) ?></b>
-    <span>Palm Field · plot + villa</span>
+    <b id="pf-movil"><?= lw_e(lw_aud_fmt($desdeVilla)) ?></b>
+    <span>Palm Field · villa turnkey</span>
   </span>
   <a class="btn btn--terra" href="#book">Book Call</a>
   <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
@@ -590,7 +734,11 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   if (document.readyState === 'complete') vista();
   else window.addEventListener('load', vista);
 
-  var S = {m2: <?= (int) $PF_PARCELAS[0] ?>, villa: 'dune', div: 'AUD'};
+  // Estado del configurador. `extras` es un objeto id->true (multiseleccion). El precio de
+  // cada extra depende del MODELO (Airbnb Kit y Oasis Pool escalan con la villa), asi que se
+  // lee siempre de CFG.modelos[S.villa].extras y nunca de una copia guardada al marcarlo.
+  var S = {villa: 'dune', techo: 'sirap', extras: {}, div: 'AUD'};
+  var PASOS = 3, paso = 1;
 
   function eur(n) { return '€' + Number(n).toLocaleString('en-US'); }
   function audf(n) { return '$' + (Math.round(n * CFG.tasaAud / 10) * 10).toLocaleString('en-US') + ' AUD'; }
@@ -600,51 +748,166 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   function $(id) { return document.getElementById(id); }
   function txt(id, s) { var e = $(id); if (e) e.textContent = s; }
 
-  function recalcular() {
-    var m = CFG.modelos[S.villa];
-    if (!m) return;
-    // El techo Sirap es el "desde" de cada villa; el otro se elige en la llamada. Igual que
-    // en /dali, el precio del techo es el precio COMPLETO de la villa, no un recargo.
-    var pv = Math.min(m.techos.sirap.eur, m.techos.bambu.eur);
-    var parcela = CFG.tarifa * S.m2;
-    var total = pv + parcela;
+  function modelo() { return CFG.modelos[S.villa] || null; }
+  function techoActivo() {
+    var m = modelo();
+    if (!m) return null;
+    return m.techos[S.techo] || m.techos.sirap || null;
+  }
+  function precioVilla() {
+    var t = techoActivo();
+    return t ? t.eur : 0;
+  }
+  /** Extras marcados que EXISTEN en el modelo actual. Cambiar de villa no borra la seleccion:
+   *  si el modelo nuevo no ofreciera uno, simplemente no entra en la cuenta. */
+  function extrasElegidos() {
+    var m = modelo(), out = [];
+    if (!m) return out;
+    (m.extras || []).forEach(function (x) { if (S.extras[x.id]) out.push(x); });
+    return out;
+  }
 
-    txt('pf-r-plot', S.m2 + ' m² plot');
-    txt('pf-r-plot-pr', pinta(parcela));
+  // ── Pasos 2 (techos) y 3 (extras): se repintan al cambiar de villa, porque los dos llevan
+  //    precios del modelo elegido. Mismo patron que ya usaba /dali con los techos.
+  function pintaTechos() {
+    var m = modelo(), cont = $('pf-techos');
+    if (!m || !cont) return;
+    cont.innerHTML = '';
+    ['sirap', 'bambu'].forEach(function (k) {
+      var t = m.techos[k];
+      if (!t) return;
+      var l = document.createElement('label');
+      l.className = 'op';
+      l.innerHTML =
+        '<input type="radio" name="pf-techo" value="' + k + '"' + (k === S.techo ? ' checked' : '') + '>' +
+        '<span><span class="op__nb"></span></span>' +
+        '<span class="op__pr" data-eur="' + t.eur + '"><b></b><i></i></span>';
+      l.querySelector('.op__nb').textContent = t.nombre;
+      l.querySelector('b').textContent = pinta(t.eur);
+      l.querySelector('i').textContent = alterna(t.eur);
+      cont.appendChild(l);
+    });
+  }
+  function pintaExtras() {
+    var m = modelo(), cont = $('pf-extras');
+    if (!m || !cont) return;
+    cont.innerHTML = '';
+    (m.extras || []).forEach(function (x) {
+      var l = document.createElement('label');
+      l.className = 'op';
+      l.innerHTML =
+        '<input type="checkbox" name="pf-extra" value="' + x.id + '"' + (S.extras[x.id] ? ' checked' : '') + '>' +
+        '<span><span class="op__nb"></span><span class="op__sp"></span></span>' +
+        '<span class="op__pr" data-eur="' + x.eur + '"><b></b><i></i></span>';
+      l.querySelector('.op__nb').textContent = x.nombre;
+      // El price list del owner no trae descripcion para todos (hoy falta la del Airbnb Kit):
+      // se deja el hueco vacio en vez de inventarse que incluye un extra de 5.000-8.000 €.
+      l.querySelector('.op__sp').textContent = x.desc || '';
+      l.querySelector('b').textContent = '+ ' + pinta(x.eur);
+      l.querySelector('i').textContent = '+ ' + alterna(x.eur);
+      cont.appendChild(l);
+    });
+  }
+
+  // ── Navegacion por pasos ─────────────────────────────────────────────────────────
+  function muestraPaso(n) {
+    paso = n;
+    document.querySelectorAll('.cfg__step').forEach(function (s) {
+      s.hidden = Number(s.getAttribute('data-paso')) !== n;
+    });
+    txt('pf-paso-lb', 'Step ' + n + ' of ' + PASOS);
+    var a = $('pf-atras'); if (a) a.hidden = n === 1;
+    var sig = $('pf-siguiente');
+    if (sig && sig.firstChild) sig.firstChild.textContent = n === PASOS ? 'See my figure ' : 'Next ';
+    var p = $('pf-puntos');
+    if (p) {
+      p.innerHTML = '';
+      for (var i = 1; i <= PASOS; i++) {
+        var d = document.createElement('span');
+        d.className = 'punto' + (i === n ? ' is-on' : '');
+        p.appendChild(d);
+      }
+    }
+  }
+  function avanza(dir) {
+    var n = paso + dir;
+    if (n < 1) n = 1;
+    if (n > PASOS) {
+      var r = document.querySelector('.res');
+      if (r) r.scrollIntoView({behavior: 'smooth', block: 'center'});
+      return;
+    }
+    muestraPaso(n);
+  }
+  var sigB = $('pf-siguiente'); if (sigB) sigB.addEventListener('click', function () { avanza(1); });
+  var atrB = $('pf-atras');     if (atrB) atrB.addEventListener('click', function () { avanza(-1); });
+
+  function recalcular() {
+    var m = modelo();
+    if (!m) return;
+    var t   = techoActivo();
+    var pv  = precioVilla();
+    var els = extrasElegidos();
+    var pe  = 0;
+    els.forEach(function (x) { pe += x.eur; });
+    var total = pv + pe;
+
     txt('pf-r-villa', m.villa);
-    txt('pf-r-villa-sub', m.specs);
+    txt('pf-r-villa-sub', (t ? t.nombre + ' roof · ' : '') + m.specs);
     txt('pf-r-villa-pr', pinta(pv));
+    txt('pf-r-extras', els.length ? 'Extras (' + els.length + ')' : 'Extras');
+    txt('pf-r-extras-sub', els.length
+      ? els.map(function (x) { return x.nombre; }).join(', ')
+      : 'None selected');
+    txt('pf-r-extras-pr', els.length ? pinta(pe) : '—');
     txt('pf-total', pinta(total));
     txt('pf-total-alt', '≈ ' + alterna(total));
     txt('pf-movil', pinta(total));
 
-    document.querySelectorAll('.op__pr[data-eur]').forEach(function (n) {
-      var v = Number(n.getAttribute('data-eur'));
-      n.querySelector('b').textContent = pinta(v);
-      n.querySelector('i').textContent = alterna(v);
+    document.querySelectorAll('.cfg .op__pr[data-eur]').forEach(function (nodo) {
+      var v   = Number(nodo.getAttribute('data-eur'));
+      var mas = nodo.closest('#pf-extras') ? '+ ' : '';
+      var b   = nodo.querySelector('b'), i = nodo.querySelector('i');
+      if (b) b.textContent = mas + pinta(v);
+      if (i) i.textContent = mas + alterna(v);
     });
 
+    // Se PARTE de la query que ya hay y solo se borran las claves propias: barrerla entera se
+    // llevaria `utm_*` y `fbclid`, que es de donde sale la atribucion de la campaña.
     var p = new URLSearchParams(location.search);
-    ['plot', 'villa', 'cur'].forEach(function (k) { p.delete(k); });
-    if (S.m2 !== <?= (int) $PF_PARCELAS[0] ?>) p.set('plot', String(S.m2));
-    if (S.villa !== 'dune') p.set('villa', S.villa);
+    ['villa', 'roof', 'extras', 'cur', 'plot'].forEach(function (k) { p.delete(k); });
+    if (S.villa !== 'dune')  p.set('villa', S.villa);
+    if (S.techo !== 'sirap') p.set('roof', S.techo);
+    if (els.length) p.set('extras', els.map(function (x) { return x.id; }).join(','));
     if (S.div !== 'AUD') p.set('cur', S.div);
     var q = p.toString();
     history.replaceState(history.state, '', '/palmfield' + (q ? '?' + q : ''));
 
-    var t = "Hi, I'm an Australian investor interested in Palm Field: " + m.villa
-          + ' on a ' + S.m2 + ' m² plot (' + eur(total) + ').';
-    var href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(t);
+    var wt = "Hi, I'm an Australian investor interested in Palm Field: " + m.villa
+           + (t ? ' with a ' + t.nombre + ' roof' : '')
+           + (els.length ? ', plus ' + els.map(function (x) { return x.nombre; }).join(', ') : '')
+           + ' (' + eur(total) + ' for the villa, plot quoted separately).';
+    var href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(wt);
     document.querySelectorAll('a[href*="wa.me/"]').forEach(function (a) { a.href = href; });
   }
 
+  // Un clic en una opcion de paso simple AVANZA solo (pedido del owner, 7-sep-2026). El paso
+  // de extras no avanza: es multiseleccion, y saltar al primer tick impediria marcar el resto.
   document.addEventListener('change', function (e) {
     var t = e.target;
-    if (!t || t.type !== 'radio') return;
-    if (t.name === 'pf-m2') S.m2 = Number(t.value);
-    else if (t.name === 'pf-villa') S.villa = t.value;
-    else return;
-    recalcular();
+    if (!t) return;
+    if (t.type === 'radio') {
+      if (t.name === 'pf-villa') { S.villa = t.value; pintaTechos(); pintaExtras(); }
+      else if (t.name === 'pf-techo') { S.techo = t.value; }
+      else { return; }
+      recalcular();
+      if (paso < PASOS) avanza(1);
+      return;
+    }
+    if (t.type === 'checkbox' && t.name === 'pf-extra') {
+      if (t.checked) S.extras[t.value] = true; else delete S.extras[t.value];
+      recalcular();
+    }
   });
 
   document.querySelectorAll('.divisa').forEach(function (b) {
@@ -701,10 +964,12 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   window.addEventListener('message', function (e) {
     if (e.origin !== 'https://calendly.com') return;
     if (!e.data || e.data.event !== 'calendly.event_scheduled') return;
-    var m = CFG.modelos[S.villa];
-    var pv = m ? Math.min(m.techos.sirap.eur, m.techos.bambu.eur) : 0;
+    var m = modelo(), pe = 0;
+    extrasElegidos().forEach(function (x) { pe += x.eur; });
+    // Valor del lead = la cifra que la pagina le ha enseñado (villa + extras). La parcela no
+    // entra porque no se elige aqui: meterla inflaria el valor con un m² que nadie ha pedido.
     track('Lead', {content_name: 'Palm Field · ' + (m ? m.villa : ''),
-      value: pv + CFG.tarifa * S.m2, currency: 'EUR'});
+      value: precioVilla() + pe, currency: 'EUR'});
   });
 
   var ck = $('lw-cookies');
@@ -714,19 +979,27 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   });
 
   // Estado desde la query (enlace compartible)
-  var q = new URLSearchParams(location.search);
-  var pl = parseInt(q.get('plot'), 10);
-  if (<?= json_encode($PF_PARCELAS) ?>.indexOf(pl) !== -1) S.m2 = pl;
+  var q  = new URLSearchParams(location.search);
   var vq = q.get('villa'); if (vq && CFG.modelos[vq]) S.villa = vq;
+  var tq = q.get('roof');  if (tq === 'sirap' || tq === 'bambu') S.techo = tq;
   var cq = q.get('cur');   if (cq === 'EUR' || cq === 'AUD') S.div = cq;
-  var rm = document.querySelector('input[name="pf-m2"][value="' + S.m2 + '"]');
-  if (rm) rm.checked = true;
+  // Lista blanca contra el catalogo del MODELO ya resuelto: un id que ese modelo no ofrece no
+  // entra en el estado, asi que ?extras= no puede meter en la cuenta nada sin precio propio.
+  var validos = {};
+  ((CFG.modelos[S.villa] || {}).extras || []).forEach(function (x) { validos[x.id] = true; });
+  (q.get('extras') || '').split(',').forEach(function (id) {
+    if (validos[id]) S.extras[id] = true;
+  });
+
   var rv = document.querySelector('input[name="pf-villa"][value="' + S.villa + '"]');
   if (rv) rv.checked = true;
   document.querySelectorAll('.divisa').forEach(function (b) {
     b.classList.toggle('is-on', b.getAttribute('data-div') === S.div);
   });
 
+  pintaTechos();
+  pintaExtras();
+  muestraPaso(1);
   recalcular();
 }());
 </script>
