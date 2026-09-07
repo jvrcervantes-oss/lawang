@@ -54,6 +54,27 @@
  * Precios: price list del owner (Google Sheet «UPDATED: SEPTEMBER 2026», leído el 7-sep).
  * Los de 2027 se ignoran por orden suya. Los siete extras y sus importes por modelo viven en
  * `modelo/modelos.php`; su nombre y descripción, en `lw_extras_meta()` de `modelo/datos.php`.
+ *
+ * ── 7-sep-2026 (2ª pasada): móvil primero, menos texto y titulares grandes ────────────
+ * Encargo del owner: «la gran mayoría van a entrar por móvil; necesito mucho menos texto en
+ * toda la web y claridad con títulos llamativos y grandes». Medido en producción a 390px
+ * ANTES de tocar: 10,8 pantallas de scroll, el hero se llevaba 2,8 con 207 palabras, y en la
+ * primera pantalla no entraba ni una foto. Los titulares caían a 30/26px sobre un cuerpo de
+ * 15-16px — el «salto brutal de escala» del catálogo no existía en móvil (sí en escritorio).
+ * Lo que se hizo, por orden de impacto:
+ *   1. **El texto que sobraba, fuera** — no acortado, eliminado: el 2º párrafo del hero
+ *      repetía punto por punto la sección «We do the land» de más abajo, y la píldora
+ *      «Direct Australian Investor Gate · PMA Custody» dice lo mismo que el escritorio
+ *      australiano del final. Los cuatro pasos del proyecto pasan a una línea cada uno; el
+ *      detalle técnico ya vive en su `paso__pie`.
+ *   2. **Titulares cortos**, porque un titular grande solo cabe si es corto. «We Buy The
+ *      Land, Subdivide, Pipe Utilities & Clear Permits. You Own It Freehold.» ocupaba
+ *      CUATRO líneas a 26px en un móvil.
+ *   3. Escala y orden, en `assets/au-landing.css` (lo comparte /dali, verificar las dos).
+ * **Lo que NO se toca al recortar** y hay que respetar en la siguiente pasada: el tipo de
+ * cambio con su fecha, «plot sized on the call», la fecha de la lista de parcelas, los pies
+ * de foto que dicen si es render o foto real, y el vocabulario de LAW-122. Son las líneas
+ * que evitan que la página mienta, no relleno.
  */
 
 require __DIR__ . '/../modelo/datos.php';
@@ -150,7 +171,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
 <script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
-<link rel="stylesheet" href="/assets/au-landing.css?v=1">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260907131500">
 </head>
 <body>
 
@@ -185,17 +206,23 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <section class="hero">
   <div>
     <div class="hero__pills">
+      <?php /* 7-sep-2026: eran TRES píldoras y en el móvil se apilaban en tres líneas por
+               encima del titular. «Direct Australian Investor Gate · PMA Custody» sale de
+               aquí — es jerga, y lo mismo ya lo dice la sección del escritorio australiano
+               al final. Las dos que quedan son las dos cosas que un comprador pregunta
+               primero: qué compra y cuándo lo tiene. */ ?>
       <span class="pill pill--verde"><span class="dot"></span> Freehold (Hak Milik) / HGB</span>
-      <span class="pill pill--lag">Direct Australian Investor Gate · PMA Custody</span>
       <span class="pill pill--terra">Handover <?= lw_e($PF_ENTREGA) ?></span>
     </div>
 
     <h1>Palm Field</h1>
-    <p class="hero__sub" style="font-size:19px;color:var(--primary);margin-top:8px">
+    <?php /* El segundo párrafo que había aquí («Land bought outright, subdivided, and
+             delivered with underground power…») decía exactamente lo mismo que el titular
+             de la sección «We do the land» de más abajo, punto por punto. Cuarenta palabras
+             en la primera pantalla del móvil para repetir algo que se cuenta entero, con
+             sus cuatro pasos, doscientos píxeles después. */ ?>
+    <p class="hero__sub" style="font-size:19px;color:var(--primary);margin-top:10px">
       Freehold villa plots in <?= lw_e($PF_ZONA) ?>, five minutes from the beach.</p>
-    <p class="hero__sub">Land bought outright, subdivided, and delivered with underground
-      power, water and building permits already cleared. You choose the plot and the villa;
-      the price is fixed in writing before you sign.</p>
 
     <div class="chips">
       <div class="chip">
@@ -334,12 +361,10 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <span class="mono" style="font-size:11px;color:var(--ink2)">Pick an option and it moves on</span>
     </div>
     <div class="sec__hd">
-      <h2>Three questions, and you have your figure</h2>
-      <p class="sec__desc">Villa, roof, and the extras you want. Prices shown at a fixed rate of
-        <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR (<?= lw_e(LW_AUD_FECHA) ?>) — the
-        contract figure is the euro one. The freehold plot is quoted separately at
-        <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m², sized against what is actually available
-        when we speak.</p>
+      <h2>Three questions. Your figure.</h2>
+      <p class="sec__desc">Plot quoted apart at <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m², sized
+        on the call. Rate <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
+        (<?= lw_e(LW_AUD_FECHA) ?>); the contract figure is the euro one.</p>
     </div>
 
     <div class="cfg">
@@ -468,9 +493,9 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <span class="mono" style="font-size:11px;color:var(--ink2)">CoreLogic 2024/2025 Data</span>
     </div>
     <div class="sec__hd">
-      <h2>Closer than Sydney to Perth — at a Fraction of the Property Price</h2>
-      <p class="sec__desc">Direct flight times from key Australian capitals and average median
-        house price compared to a turnkey freehold villa at Palm Field, plot included (AUD).</p>
+      <h2>Closer than Perth. A fraction of the price.</h2>
+      <p class="sec__desc">Direct flight time and median house price, against a turnkey
+        freehold villa at Palm Field with its plot (AUD).</p>
     </div>
 
     <div class="stats">
@@ -539,10 +564,10 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         </table>
       </div>
       <div class="tabla-pie">
-        <span>Australian benchmark figures based on CoreLogic capital city median dwelling data
-          (2024/2025). Palm Field figures include the freehold plot (<?= (int) $pfMin ?> m², the
-          smallest available as of <?= lw_e(LW_PF_PARCELAS_FECHA) ?>) plus the turnkey
-          architectural build, converted at <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
+        <span>Australian figures: CoreLogic capital city median dwelling, 2024/25. Palm Field
+          includes the freehold plot (<?= (int) $pfMin ?> m², smallest available
+          <?= lw_e(LW_PF_PARCELAS_FECHA) ?>) plus the turnkey build, at
+          <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
           (<?= lw_e(LW_AUD_FECHA) ?>).</span>
         <a class="btn btn--lag" href="#book">Lock Strategy Slot</a>
       </div>
@@ -556,43 +581,38 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <div class="et" style="justify-content:center">
       <span class="pill pill--canopy">Zero Bureaucratic Risk</span>
     </div>
-    <h2 style="max-width:24ch;margin-inline:auto">We Buy The Land, Subdivide, Pipe Utilities
-      &amp; Clear Permits. You Own It Freehold.</h2>
-    <p class="sec__desc" style="max-width:64ch;margin-inline:auto">Australian investors never
-      deal with village negotiations or missing electric poles. Palm Field is delivered
-      plot-ready before you break ground.</p>
+    <h2 style="max-width:18ch;margin-inline:auto">We do the land. You own it freehold.</h2>
+    <p class="sec__desc" style="max-width:48ch;margin-inline:auto">No village negotiations, no
+      missing power poles. Plot-ready before you break ground.</p>
 
     <div class="pasos" style="text-align:left">
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5l-9-4zm-1.2 15L7 12.2l1.4-1.4 2.4 2.4 5-5L17.2 9l-6.4 7z"/></svg></span>
         <span class="paso__n">01 · Title Deed</span>
         <h3>Clean Freehold Acquisition</h3>
-        <p>Land purchased outright with clean notary titles, legally subdivided and ready for
-          direct transfer under registered PMA legal custody.</p>
+        <p>Bought outright, clean notary titles, subdivided and ready to transfer under PMA
+          custody.</p>
         <span class="paso__pie">Hak Milik / HGB</span>
       </div>
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></span>
         <span class="paso__n">02 · Utilities</span>
         <h3>Underground Power &amp; Water</h3>
-        <p>Subterranean PLN electricity conduits — no overhead wires spoiling the view — deep
-          potable well connections and high-capacity soakaways.</p>
+        <p>PLN power underground — no wires across the view — plus deep potable wells.</p>
         <span class="paso__pie">PLN 3,500W+ Active</span>
       </div>
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h2v16H4V4zm7 0h2v16h-2V4zm7 0h2v16h-2V4z"/></svg></span>
         <span class="paso__n">03 · Civil Works</span>
         <h3>Paved Access Roads</h3>
-        <p>Full topographic grading, retaining walls, stormwater drainage and paved access
-          roads right up to your parcel.</p>
+        <p>Grading, retaining walls, drainage and paved road up to your parcel.</p>
         <span class="paso__pie">Direct Heavy Vehicle Access</span>
       </div>
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
         <span class="paso__n">04 · Legal Approvals</span>
         <h3>PBG &amp; SLF Building Licences</h3>
-        <p>Pre-approved municipal construction licences and commercial tourism zoning
-          (Pariwisata / Komersial) for legal short-term rental.</p>
+        <p>Municipal building licences and Pariwisata tourism zoning, already approved.</p>
         <span class="paso__pie">Airbnb &amp; Booking Ready</span>
       </div>
     </div>
@@ -606,9 +626,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div>
         <div class="et"><span class="pill pill--canopy">Location</span></div>
         <h2><?= lw_e($PF_ZONA) ?></h2>
-        <p class="sec__desc">Palm Field sits on the west coast, above the Balian river and
-          five minutes from the beach — the stretch of Bali that is being developed now,
-          away from the traffic of the south.</p>
+        <p class="sec__desc">West coast, above the Balian river, five minutes from the beach
+          — and away from the traffic of the south.</p>
         <div class="chips" style="grid-template-columns:repeat(2,minmax(0,1fr))">
           <div class="chip">
             <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
@@ -641,10 +660,9 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <span class="pill pill--terra">Direct Australian Investor Desk</span>
         <span class="mono" style="font-size:11px;color:#6EE7B7">Sydney (AEST) &amp; Perth (AWST)</span>
       </div>
-      <h2>Ready to Review Palm Field Plots &amp; Pricing?</h2>
-      <p>In 30 minutes our desk walks you through the plots still available, the notary deed
-        proofs, drone footage of the site as it stands today, and your exact fixed turnkey
-        cost in AUD.</p>
+      <h2>Ready to see your plot?</h2>
+      <p>Thirty minutes: the plots still free, the notary deeds, drone footage of the site
+        today, and your fixed turnkey cost in AUD.</p>
       <div class="cta__garantias">
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Freehold title, transferred to you</span>
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Guaranteed fixed-price written EPC contract</span>
