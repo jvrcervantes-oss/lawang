@@ -126,9 +126,18 @@ h3{font-size:20px;font-weight:700}
 .mos__sub{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.07em;
   color:rgba(255,255,255,.82);display:block;margin-top:4px}
 .mosaico figure:not(:first-child) .mos__tt{font-size:13.5px}
+/* Móvil: una grande arriba y las otras dos de a pares debajo (7-sep-2026). Antes las tres
+   iban a ancho completo apiladas y se comían pantalla y media de scroll para decir lo mismo.
+   La primera es la que lleva el mensaje (el masterplan); las otras dos son apoyo y no
+   necesitan el ancho entero. Los PIES se quedan en las tres: son los que dicen si lo que se
+   ve es un render o una foto real, y esa etiqueta no es decoración. */
 @media(max-width:560px){
-  .mosaico{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
-  .mosaico figure:first-child{grid-row:auto}
+  .mosaico{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;gap:9px}
+  .mosaico figure:first-child{grid-row:auto;grid-column:1 / -1}
+  .mosaico figure:not(:first-child) img{aspect-ratio:1/1}
+  .mosaico figure:not(:first-child) figcaption{padding:11px 9px 9px}
+  .mosaico figure:not(:first-child) .mos__tt{font-size:12.5px;line-height:1.1}
+  .mosaico figure:not(:first-child) .mos__sub{font-size:8px;letter-spacing:.05em;margin-top:3px}
 }
 
 /* ── Tarjeta de reserva ───────────────────────────────────────────────────────────── */

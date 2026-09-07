@@ -171,7 +171,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
 <script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260907131651">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260907133245">
 </head>
 <body>
 
@@ -183,7 +183,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <nav class="nav__links">
       <a href="#estimator">Plots &amp; Villas</a>
       <a href="#project">The Project</a>
-      <a href="#location">Location</a>
       <a href="#desk">Perth &amp; Sydney Desk</a>
     </nav>
     <div class="nav__cta">
@@ -191,9 +190,12 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
         <span>WhatsApp Desk</span>
       </a>
+      <?php /* 7-sep-2026: era una flecha generica. Un calendario dice a donde lleva el
+               boton antes de pulsarlo, y en movil (donde el <span> se oculta por debajo de
+               560px) el icono es LO UNICO que queda: una flecha ahi no significa nada. */ ?>
       <a class="btn btn--terra" href="#book">
         <span>Schedule Call</span>
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7v-4H4v-6h9V5z"/></svg>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zM7 12h5v5H7v-5z"/></svg>
       </a>
     </div>
   </div>
@@ -320,6 +322,12 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
     <div class="cal__wid" id="lw-wid"></div>
 
+    <?php /* 7-sep-2026: los tres campos y el boton nacen ocultos y aparecen al elegir dia.
+             Antes se veian de entrada: pedirle el telefono a alguien que todavia no sabe si
+             hay hueco es pedir antes de dar. `hidden` de HTML, no display:none en CSS, para
+             que el navegador tampoco los cuente al tabular ni el lector de pantalla los lea
+             mientras no existan. */ ?>
+    <div id="lw-form" hidden>
     <div class="campos">
       <div class="campo">
         <label for="lw-nombre">Full Name</label>
@@ -338,6 +346,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <button class="btn btn--terra btn--block" type="button" id="lw-confirmar">
       Book Your Palm Field Review
     </button>
+    </div>
 
     <div class="book__pie">
       <span class="book__np">
@@ -362,9 +371,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     </div>
     <div class="sec__hd">
       <h2>Three questions. Your figure.</h2>
-      <p class="sec__desc">Plot quoted apart at <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m², sized
-        on the call. Rate <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
-        (<?= lw_e(LW_AUD_FECHA) ?>); the contract figure is the euro one.</p>
     </div>
 
     <div class="cfg">
@@ -463,16 +469,12 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           <span class="total__lb">Villa turnkey, your spec</span>
           <span class="total__vl" id="pf-total">—</span>
           <span class="total__alt" id="pf-total-alt"></span>
-          <p class="total__nota">Fixed-price written EPC contract. The plot is priced apart at
-            <?= lw_e(lw_precio_fmt($PF_TARIFA)) ?>/m² — from
-            <?= lw_e(lw_precio_fmt($PF_TARIFA * min($PF_PARCELAS))) ?> for the smallest one
-            available as of <?= lw_e(LW_PF_PARCELAS_FECHA) ?>. Notary, permits and transfer
-            costs are quoted separately. Handover <?= lw_e($PF_ENTREGA) ?>.</p>
           <a class="btn btn--terra btn--block total__cta" href="#book">
             Book a 30-Min Call on This Figure
           </a>
         </div>
-        <p class="res__sync">Perth &amp; Sydney working hours · direct sync</p>
+        <p class="res__sync">AUD at <?= lw_e(number_format(LW_AUD_TASA, 2)) ?>
+          (<?= lw_e(LW_AUD_FECHA) ?>) · contract in EUR · plot apart</p>
       </div>
     </div>
   </div>
@@ -494,8 +496,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     </div>
     <div class="sec__hd">
       <h2>Closer than Perth. A fraction of the price.</h2>
-      <p class="sec__desc">Direct flight time and median house price, against a turnkey
-        freehold villa at Palm Field with its plot (AUD).</p>
     </div>
 
     <div class="stats">
@@ -582,8 +582,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <span class="pill pill--canopy">Zero Bureaucratic Risk</span>
     </div>
     <h2 style="max-width:18ch;margin-inline:auto">We do the land. You own it freehold.</h2>
-    <p class="sec__desc" style="max-width:48ch;margin-inline:auto">No village negotiations, no
-      missing power poles. Plot-ready before you break ground.</p>
 
     <div class="pasos" style="text-align:left">
       <div class="paso">
@@ -615,39 +613,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <p>Municipal building licences and Pariwisata tourism zoning, already approved.</p>
         <span class="paso__pie">Airbnb &amp; Booking Ready</span>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ UBICACIÓN ══════════════════════════════════════════════════════════════════ -->
-<section class="sec" id="location">
-  <div class="wrap">
-    <div class="cfg" style="margin-top:0">
-      <div>
-        <div class="et"><span class="pill pill--canopy">Location</span></div>
-        <h2><?= lw_e($PF_ZONA) ?></h2>
-        <p class="sec__desc">West coast, above the Balian river, five minutes from the beach
-          — and away from the traffic of the south.</p>
-        <div class="chips" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-          <div class="chip">
-            <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
-            <span><span class="chip__lb">To the beach</span><span class="chip__vl">5 minutes</span></span>
-          </div>
-          <div class="chip">
-            <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z"/></svg></span>
-            <span><span class="chip__lb">From Perth</span><span class="chip__vl">3h 40m direct</span></span>
-          </div>
-        </div>
-        <p style="margin-top:20px">
-          <a class="btn btn--lag" href="<?= lw_e($PF_MAPA) ?>" target="_blank" rel="noopener noreferrer">
-            Open in Google Maps
-            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7v-4H4v-6h9V5z"/></svg>
-          </a>
-        </p>
-      </div>
-      <figure style="margin:0;border-radius:16px;overflow:hidden;border:1px solid var(--borde)">
-        <img src="<?= lw_e($IMG_PLANO) ?>" alt="Palm Field masterplan, Balian Hills" loading="lazy">
-      </figure>
     </div>
   </div>
 </section>
@@ -980,6 +945,9 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       fecha = b.getAttribute('data-fecha');
       txt('lw-cal-sel', 'Selected: ' + b.getAttribute('data-larga'));
       txt('lw-cal-hint', 'Pick a time below');
+      // Los datos personales solo se piden cuando ya hay dia elegido (7-sep-2026).
+      var form = $('lw-form');
+      if (form) form.hidden = false;
       abre();
     });
     var conf = $('lw-confirmar');
