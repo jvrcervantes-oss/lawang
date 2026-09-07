@@ -383,8 +383,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <!-- Paso 2: techo. Lo pinta el JS: el precio es el de la villa ya elegida. -->
         <div class="cfg__step" data-paso="2" hidden>
           <p class="cfg__q">Which roof?</p>
-          <p class="cfg__nota">Two complete villa prices, not an add-on: the roof you choose is
-            the price of the villa.</p>
+          <p class="cfg__nota">What each finish adds over the base roof. Both are complete villa
+            prices, not add-ons — the full figure is on the right.</p>
           <div class="ops" id="pf-techos"></div>
         </div>
 
@@ -772,19 +772,34 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   function pintaTechos() {
     var m = modelo(), cont = $('pf-techos');
     if (!m || !cont) return;
+    // El paso 2 enseña lo que SUMA cada techo, no el precio entero de la villa (pedido del
+    // owner, 7-sep): en el paso 1 acabas de ver 110.160 y volver a ver 110.160 y 113.400 no
+    // deja claro que la diferencia son 3.240. La base es el techo mas barato del modelo,
+    // calculada — no "sirap" fijo — para que siga siendo cierto si algun dia se le da la
+    // vuelta al precio. El total entero sigue estando en el resumen de la derecha, que es
+    // donde la regla de "el techo es el precio de la villa, no un recargo" se sostiene.
+    var base = Math.min.apply(null, ['sirap', 'bambu']
+      .filter(function (k) { return m.techos[k]; })
+      .map(function (k) { return m.techos[k].eur; }));
     cont.innerHTML = '';
     ['sirap', 'bambu'].forEach(function (k) {
       var t = m.techos[k];
       if (!t) return;
+      var d = t.eur - base;
       var l = document.createElement('label');
       l.className = 'op';
+      // Sin `data-eur` cuando no suma nada: asi el repintado por cambio de moneda no lo pisa
+      // con un "+ $0 AUD", que es ruido — se queda en "Included".
       l.innerHTML =
         '<input type="radio" name="pf-techo" value="' + k + '"' + (k === S.techo ? ' checked' : '') + '>' +
         '<span><span class="op__nb"></span></span>' +
-        '<span class="op__pr" data-eur="' + t.eur + '"><b></b><i></i></span>';
+        (d ? '<span class="op__pr" data-eur="' + d + '"><b></b><i></i></span>'
+           : '<span class="op__pr"><b>Included</b></span>');
       l.querySelector('.op__nb').textContent = t.nombre;
-      l.querySelector('b').textContent = pinta(t.eur);
-      l.querySelector('i').textContent = alterna(t.eur);
+      if (d) {
+        l.querySelector('b').textContent = '+ ' + pinta(d);
+        l.querySelector('i').textContent = '+ ' + alterna(d);
+      }
       cont.appendChild(l);
     });
   }
@@ -866,7 +881,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
     document.querySelectorAll('.cfg .op__pr[data-eur]').forEach(function (nodo) {
       var v   = Number(nodo.getAttribute('data-eur'));
-      var mas = nodo.closest('#pf-extras') ? '+ ' : '';
+      // Techos y extras se enseñan como lo que SUMAN; el paso 1 (villa), en absoluto.
+      var mas = (nodo.closest('#pf-extras') || nodo.closest('#pf-techos')) ? '+ ' : '';
       var b   = nodo.querySelector('b'), i = nodo.querySelector('i');
       if (b) b.textContent = mas + pinta(v);
       if (i) i.textContent = mas + alterna(v);
