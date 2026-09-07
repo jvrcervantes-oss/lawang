@@ -150,6 +150,15 @@ const $$ = s => Array.from(document.querySelectorAll(s));
    la suite se pinta con toLocaleString: eso daba tres decimales en una pantalla
    y dos en otra, y decimales en rupias, que no los tiene. */
 const num  = v => (v == null || v === '') ? null : lwParseImporte(String(v));
+/* Un textarea → lista, sin líneas en blanco ni espacios de sobra: al pegar desde
+   un PDF o un correo se cuelan los dos, y una viñeta vacía en la ficha pública
+   se ve como un fallo de la web. */
+const lineas = id => (document.getElementById(id).value || '')
+  .split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+/* El salto como constante y no escrito dentro de cada plantilla: estos textos se
+   generan desde plantillas de literal, donde un "\n" a mano se cuela con
+   demasiada facilidad como salto DE VERDAD y parte la plantilla en dos. */
+const SALTO = String.fromCharCode(10);
 const eur  = (v, m) => v == null ? '—' : lwFormatoImporte(Number(v)) + ' ' + (m || 'EUR');
 
 /* ---------- carga ---------- */
@@ -319,6 +328,16 @@ function cuerpoLectura(m){
   </div>
 
   <div class="bloque">
+    <h3>Alcance de obra</h3>
+    ${(m.alcance && (m.alcance.incluido || m.alcance.no_incluido))
+      ? `<div class="dato"><span>Incluido</span><b>${(m.alcance.incluido || []).length} punto(s)</b></div>
+         <div class="dato"><span>No incluido</span><b>${(m.alcance.no_incluido || []).length} punto(s)</b></div>
+         <p class="mini">${esc((m.alcance.incluido || []).join(' · '))}</p>`
+      : `<p class="mini">Sin alcance de obra. Solo se rellena con lo verificado en el <b>anexo de obra
+           de este modelo</b>: copiarlo de otro es publicar un contrato que nadie ha firmado.</p>`}
+  </div>
+
+  <div class="bloque">
     <h3>Precio por proyecto</h3>
     <p class="mini">Vacío significa <b>hereda del catálogo</b>, no «sin dato». Solo se rellena
       cuando ese proyecto tiene un precio propio pactado.</p>
@@ -401,6 +420,17 @@ function cuerpoEdicion(m){
         <label class="mini"><input type="checkbox" data-campo="disponible" ${x.disponible === false ? '' : 'checked'}> se ofrece</label>
       </div>`; }).join('')}
     <p class="mini">Sin precio, el extra no se ofrece en la web: no se estima a ojo.</p>
+  </div>
+
+  <div class="bloque">
+    <h3>Alcance de obra</h3>
+    <p class="mini">Una línea por punto. Es lo que la ficha publica como «Included» y «Not included»,
+      así que <b>solo se escribe lo que diga el anexo de obra de ESTE modelo</b>. Copiarlo de otro
+      modelo es publicar un contrato que nadie ha firmado.</p>
+    <div class="campo"><label for="e-incluido">Incluido</label>
+      <textarea id="e-incluido" rows="6">${esc(((m.alcance || {}).incluido || []).join(SALTO))}</textarea></div>
+    <div class="campo"><label for="e-noincluido">No incluido</label>
+      <textarea id="e-noincluido" rows="3">${esc(((m.alcance || {}).no_incluido || []).join(SALTO))}</textarea></div>
   </div>
 
   <div class="bloque">
@@ -494,6 +524,15 @@ async function guardar(m){
       renders_pendientes: document.getElementById('e-renders').checked,
       activo:      document.getElementById('e-activo').checked,
       notas:       (document.getElementById('e-notas').value || '').trim() || null,
+      /* Las dos listas del alcance viajan como jsonb. Si las DOS quedan vacías se
+         guarda `null` y no un objeto con dos arrays vacíos: la ficha pública
+         pregunta por `!empty($m['alcance'])`, y un objeto vacío es «truthy» —
+         imprimiría los dos titulares «Included» y «Not included» sin una sola
+         línea debajo. Vacío tiene que significar vacío hasta el final. */
+      alcance:     (function(){
+        const li = lineas('e-incluido'), ln = lineas('e-noincluido');
+        return (li.length || ln.length) ? { incluido:li, no_incluido:ln } : null;
+      })(),
       // Nadie actualizaba esta columna: sin esto, «actualizado_en» sería la
       // fecha de alta disfrazada de fecha de cambio, que es peor que no tenerla.
       actualizado_en: new Date().toISOString(),
