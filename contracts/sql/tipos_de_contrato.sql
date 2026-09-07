@@ -74,7 +74,17 @@ declare
     -- den Bosch). Ya aplicado en vivo vía MCP ese mismo día — esta fila solo
     -- pone al día el generador para que vuelva a coincidir con producción
     -- (verificado contra prosrc/pg_get_constraintdef antes de añadirla).
-    ['cc00014_timon',          'CC', 'public.contratos_cc_seq']
+    ['cc00014_timon',          'CC', 'public.contratos_cc_seq'],
+    -- Carta de Reserva Condicionada vía PT PMA (7-sep-2026, commit d43a045):
+    -- due diligence + HGB vía PT PMA, multiparcela. Serie propia CP.
+    -- Se aplicó en vivo el mismo día (el CHECK de `contratos` y la secuencia
+    -- `contratos_cp_seq` ya existen, verificado con pg_get_constraintdef y
+    -- pg_class) pero NO se añadió aquí, que es la fuente que genera las dos.
+    -- `listas.test.js` lo cazó al primer push siguiente y bloqueó el gate para
+    -- todos: la lista escrita en dos sitios ES el bug, y por eso hay un test
+    -- que compara los seis. Fila puesta al día el 7-sep para que el generador
+    -- vuelva a coincidir con producción.
+    ['carta_reserva_pma',      'CP', 'public.contratos_cp_seq']
   ];
   i          int;
   n          int := array_length(tipos, 1);

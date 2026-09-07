@@ -354,33 +354,176 @@
         });
     },
 
+    /* PROYECTOS — rehecha el 7-sep-2026 sobre el diseño de Stitch «Proyectos &
+       Estado de Cuentas». Antes anclaba por texto, como el resto de pantallas,
+       porque el marcado de Stitch no se podía tocar. Esta pantalla SÍ es
+       nuestra: sus campos llevan `data-lw` y aquí se rellenan por selector.
+       Buscar por texto era la respuesta correcta a un problema que ya no
+       tenemos, y un ancla de texto se rompe el día que alguien cambia una
+       etiqueta.
+
+       DOS REGLAS DEL DINERO QUE NO SE PUEDEN RELAJAR:
+       1. NO se suman monedas distintas. La cartera se da en EUR y lo que queda
+          fuera se DICE en un aviso, no se esconde: hoy 10 unidades en IDR y 45
+          sin moneda (LAW-101, pendiente abierto). Sumarlas daría un número que
+          parece la cartera y no lo es.
+       2. Lo cobrado sale de los RECIBÍS no anulados, que es la fuente que ya usa
+          el resto de la suite. Una quinta forma de calcular dinero es una quinta
+          forma de que dos pantallas no coincidan. */
     proyectos: function (sb) {
+      var $ = function (k, raiz) { return (raiz || document).querySelector('[data-lw="' + k + '"]'); };
+      var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
+      // Sin `vaciaKpis` aquí a propósito: en esta pantalla las cifras de Stitch
+      // ya se borraron del PROPIO fichero (los `data-lw` nacen en «—»), así que
+      // no hay nada que vaciar en caliente. Si la consulta falla, se queda el
+      // guion y no un número inventado — que es justo lo que se busca.
+
       Promise.all([
-        q(sb.from('proyectos').select('nombre,resort').order('nombre'), 'proyectos'),
-        q(sb.from('unidades_estado').select('proyecto,estado'), 'unidades')
+        q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2').eq('activo', true).order('nombre'), 'proyectos'),
+        q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
+        q(sb.from('facturas').select('proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
+        q(sb.from('documentos_proyecto').select('proyecto'), 'documentación')
       ]).then(function (r) {
-        var ps = r[0], us = r[1];
+        var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [];
         if (!ps) return;
+
+        /* --- agregados, SOLO EUR --- */
+        var EUR = function (u) { return (u.moneda || 'EUR') === 'EUR' && u.moneda; };
+        var tot = { cartera: 0, suelo: 0, obra: 0 }, fuera = { idr: 0, sin: 0 };
         var porP = {};
-        (us || []).forEach(function (u) { var k = u.proyecto || '¿?'; (porP[k] = porP[k] || { t: 0, l: 0 }); porP[k].t++; if (u.estado === 'disponible') porP[k].l++; });
-        // tarjetas-carpeta: plantilla = primera tarjeta con un h3 dentro del grid
-        var h3 = document.querySelector('main h3, .grid h3');
-        if (!h3) { console.info('[v4] proyectos: sin ancla de tarjetas'); return; }
-        var card = h3.closest('a,div');
-        for (var t = card; t && t.parentElement; t = t.parentElement) if (t.parentElement.children.length >= 3) { card = t; break; }
-        var grid = card.parentElement, base = card.cloneNode(true);
-        base.removeAttribute('onclick'); base.querySelectorAll('[onclick]').forEach(function (x) { x.removeAttribute('onclick'); });
+        us.forEach(function (u) {
+          var k = u.proyecto || '¿?';
+          var d = porP[k] = porP[k] || { t: 0, disp: 0, vend: 0, cartera: 0, suelo: 0, obra: 0 };
+          d.t++;
+          if (u.estado === 'disponible') d.disp++;
+          if (u.estado === 'vendida' || u.estado === 'cobrada') d.vend++;
+          if (!u.moneda) { fuera.sin++; return; }
+          if (u.moneda !== 'EUR') { fuera.idr++; return; }
+          tot.cartera += Number(u.precio || 0); tot.suelo += Number(u.precio_suelo || 0); tot.obra += Number(u.precio_construccion || 0);
+          d.cartera += Number(u.precio || 0);
+        });
+        var cobrado = 0, facturado = 0, cobP = {};
+        fs.forEach(function (f) {
+          if (f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
+          if (f.tipo === 'recibi') { cobrado += Number(f.total || 0); var k = f.proyecto_nombre || ''; cobP[k] = (cobP[k] || 0) + Number(f.total || 0); }
+          else if (f.tipo === 'factura') facturado += Number(f.total || 0);
+        });
+        var docP = {}; ds.forEach(function (d) { docP[d.proyecto] = (docP[d.proyecto] || 0) + 1; });
+
+        /* --- KPIs --- */
+        pon('k-cartera', fmt(tot.cartera, 'EUR'));
+        pon('k-cartera-pie', 'Volumen en ' + ps.length + ' desarrollos activos');
+        pon('k-cobrado', fmt(cobrado, 'EUR'));
+        pon('k-cobrado-pie', facturado ? (Math.round(cobrado / facturado * 1000) / 10) + '% de lo facturado (' + fmt(facturado, 'EUR') + ')' : 'sin facturas emitidas');
+        pon('k-pendiente', fmt(tot.cartera - cobrado, 'EUR'));
+        pon('k-pendiente-pie', 'Cartera menos lo cobrado');
+        pon('k-suelo-v', fmt(tot.suelo, 'EUR'));
+        pon('k-obra', fmt(tot.obra, 'EUR'));
+        var base = tot.suelo + tot.obra;
+        pon('k-mix-pie', base ? 'Suelo: ' + (Math.round(tot.suelo / base * 1000) / 10) + '% · Construcción: ' + (Math.round(tot.obra / base * 1000) / 10) + '%' : '—');
+
+        /* Lo que la vista NO está sumando se dice. Un aviso que no está es la
+           forma más barata de que un número se lea como si lo incluyera todo. */
+        if (fuera.idr || fuera.sin) {
+          bandaNota('Estas cifras son SOLO en euros. Fuera de la suma: ' +
+            (fuera.idr ? fuera.idr + ' unidades en rupias (Riverfront)' : '') +
+            (fuera.idr && fuera.sin ? ' y ' : '') +
+            (fuera.sin ? fuera.sin + ' unidades sin moneda asignada (pendiente LAW-101)' : '') +
+            '. No se mezclan monedas: el total saldría en una unidad que no existe.', '#8A6A34');
+        }
+
+        /* --- chips --- */
+        pon('p-todos', String(ps.length));
+        var ests = { disponible: 0, reservada: 0, bloqueada: 0, vendida: 0, cobrada: 0, no_disponible: 0 };
+        us.forEach(function (u) { var e = (u.estado || '').replace(/\s+/g, '_'); if (e in ests) ests[e]++; });
+        pon('uds-todas', String(us.length));
+        Object.keys(ests).forEach(function (e) { pon('uds-' + e, String(ests[e])); });
+
+        /* --- tarjetas: se siembran del CATÁLOGO, no de las unidades ---
+           Agrupar por `unidades.proyecto` pierde todo proyecto sin unidades, y
+           justo ése suele ser el que hay que ver, porque es el que falta por
+           hacer. Es el fallo que el owner cazó el 26-ago (11 carpetas donde la
+           herramienta viva enseña 29). */
+        var grid = document.getElementById('projects-grid');
+        if (!grid) { console.info('[v4] proyectos: sin #projects-grid'); return; }
+        var plantilla = grid.firstElementChild;
+        if (!plantilla) { console.info('[v4] proyectos: grid sin plantilla'); return; }
+        var molde = plantilla.cloneNode(true);
         grid.innerHTML = '';
         ps.forEach(function (p) {
-          var c = base.cloneNode(true);
-          var hh = c.querySelector('h3'); if (hh) hh.textContent = p.nombre;
-          var d = porP[p.nombre] || { t: 0, l: 0 };
-          var pie = c.querySelector('p,span'); if (pie) pie.textContent = d.t + ' unidades · ' + d.l + ' libres' + (p.resort ? ' · ' + p.resort : '');
+          var c = molde.cloneNode(true);
+          var d = porP[p.nombre] || { t: 0, disp: 0, vend: 0, cartera: 0 };
+          var cob = cobP[p.nombre] || 0;
+          pon('nombre', p.nombre, c);
+          pon('sitio', p.resort || 'Sin ubicación asignada', c);
+          pon('sub', p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada', c);
+          pon('badge', d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado'), c);
+          pon('uds', String(d.t), c);
+          pon('vendidas', d.vend + ' vendidas', c);
+          pon('disp', d.disp + ' disp.', c);
+          pon('cobrado', fmt(cob, 'EUR'), c);
+          pon('total', '/ ' + fmt(d.cartera, 'EUR'), c);
+          pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' : 'sin cartera', c);
+          pon('master', p.parcela_master || '—', c);
+          var barra = c.querySelector('.bg-fiduciary-green');
+          if (barra && barra.style) barra.style.width = (d.cartera ? Math.min(100, cob / d.cartera * 100) : 0) + '%';
           c.style.cursor = 'pointer';
           c.addEventListener('click', function () { location.href = '/intranet/proyectos/?proyecto=' + encodeURIComponent(p.nombre); });
           grid.appendChild(c);
         });
-        var chip = hojaConTexto(/^Todos\b/i); if (chip) chip.textContent = 'Todos ' + ps.length;
+
+        /* --- cajón de detalle: el proyecto de ?proyecto= o el de más unidades --- */
+        var pedido = new URLSearchParams(location.search).get('proyecto');
+        var elegido = ps.filter(function (p) { return p.nombre === pedido; })[0] ||
+                      ps.slice().sort(function (a, b) { return (porP[b.nombre] || { t: 0 }).t - (porP[a.nombre] || { t: 0 }).t; })[0];
+        if (elegido) {
+          var d = porP[elegido.nombre] || { t: 0, cartera: 0 }, cob = cobP[elegido.nombre] || 0;
+          pon('d-cartera', fmt(d.cartera, 'EUR'));
+          pon('d-cobrado', fmt(cob, 'EUR'));
+          pon('d-pendiente', fmt(d.cartera - cob, 'EUR'));
+          pon('d-pct', d.cartera ? '(' + (Math.round(cob / d.cartera * 1000) / 10) + '%)' : '(—)');
+          pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%');
+          pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
+          pon('d-master', elegido.parcela_master || 'sin registrar');
+          pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
+          pon('d-docs', (docP[elegido.nombre] || 0) + ' documentos');
+          pon('d-pendiente2', fmt(d.cartera - cob, 'EUR'));
+          pon('d-presu', '—');
+          var h2 = hojaConTexto(/Master Plan/i);
+          if (h2) h2.textContent = elegido.nombre + ' · Master Plan & Cuentas';
+
+          /* La lista de unidades del cajón, con datos reales del proyecto
+             elegido. `unidades_estado` es la vista que ya trae el contrato y el
+             comprador vinculados — no se vuelve a cruzar aquí a mano. */
+          q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre')
+              .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
+            .then(function (uu) {
+              var caja = document.getElementById('d-unidades');
+              if (!caja || uu == null) return;
+              var molde = caja.firstElementChild;
+              if (!molde) return;
+              var base = molde.cloneNode(true);
+              caja.innerHTML = '';
+              pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
+              if (!uu.length) {
+                caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
+                  'Este proyecto no tiene unidades dadas de alta.</p>';
+                return;
+              }
+              uu.forEach(function (u) {
+                var f = base.cloneNode(true);
+                pon('u-titulo', u.codigo + (u.comprador_nombre ? ' · ' + u.comprador_nombre : ''), f);
+                pon('u-tipo', u.modelo || (u.estado || '—'), f);
+                pon('u-total', u.precio != null ? fmt(u.precio, 'EUR') : '—', f);
+                // Sin recibí por unidad: el cobro cuelga del CONTRATO, no de la
+                // parcela. Se dice cuál es el contrato en vez de inventar un
+                // reparto por unidad que la base no respalda.
+                pon('u-cobrado', u.contrato_numero || 'sin contrato', f);
+                pon('u-nota', (u.estado || '—').toUpperCase(), f);
+                caja.appendChild(f);
+              });
+            });
+        }
       });
     },
 
