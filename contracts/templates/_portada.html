@@ -60,12 +60,19 @@
   .lwcov .tline-id{ position:absolute; top:24mm; left:22mm; right:22mm;
     font-weight:300; font-size:11pt; letter-spacing:.02em; opacity:.72; }
   .lwcov .rule{ height:1px; width:100%; margin:12px 0; background:color-mix(in srgb, var(--brand-paper,#F5F0E6) 50%, transparent); }
-  /* Nombre de proyecto: The Seasons (fuente de marca) — versión demo/DRM
-     conocida por corromper los caracteres & + 4 ' (ver assets/fonts/), pero
-     ninguno de los nombres de proyecto actuales los usa. Si se licencia la
-     versión completa, reemplazar el archivo .otf sin tocar esta regla. */
-  @font-face{ font-family:'The Seasons'; src:url('assets/fonts/TheSeasons-Regular.otf') format('opentype'); font-weight:400; font-display:swap; }
-  .lwcov .sub{ font-family:'The Seasons', var(--font-serif,'Jost',sans-serif); font-size:15pt; letter-spacing:.25em;
+  /* Nombre de contrato / proyecto — THE SEASONS FUERA (7-sep-2026).
+     Era la versión demo/DRM y su protección no es que falte el glifo: SUSTITUYE
+     & + 4 ' por una florecilla con la palabra «DEMO» impresa dentro. La nota
+     que había aquí decía «ninguno de los nombres actuales los usa» — esa
+     suposición se rompió sola: CR00052 salió al cliente con
+     «RESERVA PARCELAS MEJAN B2, B3, B[DEMO], B6 Y B7» en la portada. El nombre
+     de contrato lo escribe el usuario, así que cualquier número de parcela,
+     año o «&» reventaba el título del documento firmado.
+     No se sustituye por otra fuente de marca: `assets/brand.css` ya fija UNA sola
+     familia (Neue Kabel, con Jost de proxy) y esta portada era el último sitio
+     que se salía. Si algún día se licencia la versión completa, se añade su
+     @font-face aquí — pero nunca la demo. */
+  .lwcov .sub{ font-family:var(--font-serif,'Jost',sans-serif); font-size:15pt; letter-spacing:.25em;
     text-transform:uppercase; opacity:.9; }
   @media print{ .lwcov{ margin:0; } }
 </style>
