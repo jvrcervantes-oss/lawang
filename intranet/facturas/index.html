@@ -1830,10 +1830,14 @@ function abrirMail(){
     ? `Se adjunta ${numero} en PDF, tal y como se ve en la vista previa.`
     : 'Guarda el documento primero: sin número no se envía, porque no queda registrado como emitido.';
   $('#mailTo').value = d.cliente_email || '';
-  $('#mailSubject').value = `${tipo}${numero ? ' ' + numero : ''} — ${SOCIEDADES[d.sociedad] ? SOCIEDADES[d.sociedad].razon : 'Lawang'}`;
+  /* Firmante del CORREO: siempre la marca, nunca la sociedad emisora (owner,
+     8-sep-2026). La sociedad sigue en el DOCUMENTO adjunto, que es donde tiene
+     valor legal; en el cuerpo del correo solo obligaba al comprador a reconocer
+     un nombre que no es con el que habla con nosotros. */
+  $('#mailSubject').value = `${tipo}${numero ? ' ' + numero : ''} — Lawang Tropical Properties`;
   $('#mailMsg').value = `Buenos días${d.cliente_nombre ? ' ' + d.cliente_nombre : ''},\n\n`
     + `Adjunto ${tipo.toLowerCase()}${numero ? ' ' + numero : ''} para su revisión.\n\nUn saludo,\n`
-    + `${SOCIEDADES[d.sociedad] ? SOCIEDADES[d.sociedad].razon : 'Lawang Tropical Properties'}`;
+    + 'Lawang Tropical Properties';
   $('#ovMail').classList.add('open');
 }
 $('#btnMail').onclick = abrirMail;

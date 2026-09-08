@@ -235,10 +235,13 @@ async function repartirFirmado(o: {
     enlace = data.signedUrl;
   }
   const adjunto = grande ? {} : { pdfB64: b64(o.pdf), filename: o.numero + '_firmado.pdf' };
-  const cola = [
-    '', '', 'Lawang Tropical Properties',
-    'PT TEPI SUN GAI · PT SAN DAL WOODS',
-  ].join('\n');
+  /* Firmante del correo: SOLO la marca (owner, 8-sep-2026). La sociedad emisora
+     -- PT TEPI SUN GAI o PT SAN DAL WOODS segun el documento -- sigue donde
+     tiene valor legal: dentro del PDF adjunto, que es el que se firma. En el
+     cuerpo del correo obligaba al comprador a reconocer un nombre que no es con
+     el que habla con nosotros, y ademas anunciaba las dos sociedades a quien
+     solo contrata con una. */
+  const cola = ['', '', 'Lawang Tropical Properties'].join('\n');
   const pie = grande
     ? '\n\nEl documento va por enlace en vez de adjunto:\n' + enlace +
       '\n(El enlace caduca en 30 días. Si lo necesitas después, escríbenos.)'
