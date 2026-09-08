@@ -460,6 +460,18 @@
         return 'Atap ' + m[1] + ' · ' + m[2] + ' m² + ' + m[3] + ' m² teras · '
              + m[4] + ' kamar tidur · ' + m[5] + ' kamar mandi';
       } },
+    /* La misma ficha SIN el prefijo del techo: /palmfield la pinta de las dos formas
+       segun el bloque. Cazada en el barrido de produccion, no leyendo el fuente. */
+    { re: /^([\d.,]+)m² \+ ([\d.,]+)m² terrace · (\d+) bed · (\d+) bath$/,
+      es: function (m) {
+        return m[1] + ' m² + ' + m[2] + ' m² de terraza · '
+             + m[3] + (m[3] === '1' ? ' dormitorio · ' : ' dormitorios · ')
+             + m[4] + (m[4] === '1' ? ' baño' : ' baños');
+      },
+      id: function (m) {
+        return m[1] + ' m² + ' + m[2] + ' m² teras · '
+             + m[3] + ' kamar tidur · ' + m[4] + ' kamar mandi';
+      } },
     { re: /^Australian figures: CoreLogic capital city median dwelling, (.+?)\. Palm Field includes the freehold plot \(([\d.,]+) m², smallest available (.+?)\) plus the turnkey build, at ([\d.,]+) AUD\/EUR \((.+?)\)\.$/,
       es: "Cifras australianas: vivienda media de capital según CoreLogic, $1. Palm Field incluye la parcela freehold ($2 m², la más pequeña disponible a $3) más la obra llave en mano, a $4 AUD/EUR ($5).",
       id: "Angka Australia: hunian median ibu kota menurut CoreLogic, $1. Palm Field sudah termasuk kavling freehold ($2 m², terkecil yang tersedia per $3) ditambah pembangunan turnkey, pada kurs $4 AUD/EUR ($5)." }
