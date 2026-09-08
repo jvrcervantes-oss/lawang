@@ -76,6 +76,11 @@
       if (pieEl) pieEl.textContent = pie;
     }
   }
+  /* Anclaje por `data-lw`: deterministico, para las pantallas cuyo fichero ya es
+     nuestro. El anclaje por TEXTO (kpi/hojaConTexto) sigue siendo lo correcto
+     donde el marcado de Stitch no se toca. */
+  function pon2(k, v) { var e = document.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; }
+
   function vaciaKpis(labels) { labels.forEach(function (rx) { kpi(rx, '—'); }); }
 
   function tablaPor(headRxs) {
@@ -239,7 +244,29 @@
       q(sb.rpc('contratos_equipo').select('numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,created_at'), 'contratos', t)
         .then(function (cs) {
           if (!cs) return;
-          if (!cs.length) { kpi(/Todos/i, '—'); return; }
+
+          /* KPIs: los cuatro numeros de Stitch (210, 12.4M, 41, 18) eran
+             inventados y se leian como reales. Nacen en «—» en el fichero y solo
+             los llena la base. Dos etiquetas se reescribieron porque preguntaban
+             algo que la base no responde sin mentir: firmado = `bloqueado`, y no
+             hay fecha de firma fiable con la que acotar «del mes». */
+          var pon = pon2;
+          var eur = 0, otras = 0, firmados = 0;
+          cs.forEach(function (c) {
+            if (c.bloqueado) firmados++;
+            if (c.precio_total == null) return;
+            if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
+          });
+          pon('k-activos', String(cs.length));
+          pon('k-volumen', fmt(eur, 'EUR'));
+          pon('k-firmados', String(firmados));
+          pon('k-pendientes', String(cs.length - firmados));
+          if (otras) {
+            bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda quedan fuera de la suma. ' +
+              'No se mezclan monedas — el total saldria en una unidad que no existe.', '#8A6A34');
+          }
+
+          if (!cs.length) return;
           var chip = hojaConTexto(/^Todos\b/i); if (chip) chip.textContent = 'Todos ' + cs.length;
           if (!t) { console.info('[v4] contratos: tabla sin ancla'); return; }
           var pl = plantillaFilas(t);
@@ -295,9 +322,15 @@
     compradores: function (sb) {
       vaciaKpis([/INVERSORES REGISTRADOS/i]);
       var t = tablaPor([/INVERSOR|TITULAR/, /CONTACTO|PA[IÍ]S/]);
-      q(sb.from('clients').select('id,full_name,email,nationality,tipo,created_at').order('created_at', { ascending: false }).limit(200), 'compradores', t)
+      /* El «96% verificados» de Stitch era invencion, y ademas halagadora: el KYC
+         real esta casi todo en `pending`. Un porcentaje inventado en una pantalla
+         de cumplimiento es de lo peor que puede quedarse en una maqueta. */
+      q(sb.from('clients').select('id,full_name,email,nationality,tipo,kyc_status,created_at').order('created_at', { ascending: false }).limit(500), 'compradores', t)
         .then(function (cs) {
           if (!cs) return;
+          pon2('k-compradores', String(cs.length));
+          var ver = cs.filter(function (c) { return c.kyc_status === 'verified'; }).length;
+          pon2('k-verificados', cs.length ? Math.round(ver / cs.length * 100) + '%' : '—');
           if (!cs.length) { kpi(/INVERSORES REGISTRADOS/i, '—', 'sin filas: revisar permisos'); return; }
           kpi(/INVERSORES REGISTRADOS/i, String(cs.length), 'fichas en Compradores');
           if (!t) return;
@@ -579,6 +612,10 @@
       q(sb.from('documentos_proyecto').select('proyecto'), 'documentación').then(function (ds) {
         if (!ds) return;
         var porP = {}; ds.forEach(function (d) { porP[d.proyecto] = (porP[d.proyecto] || 0) + 1; });
+        pon2('k-docs', String(ds.length));
+        // «100% convalidados» no sale de ningun sitio: la boveda no guarda estado
+        // de convalidacion. Guion y motivo, nunca un porcentaje que suene bien.
+        pon2('k-convalidados', '—');
         kpi(/EXPEDIENTES|DOCUMENTOS/i, String(ds.length), Object.keys(porP).length + ' proyectos con documentación');
         bandaNota('Bóveda real: ' + ds.length + ' documentos en ' + Object.keys(porP).length + ' proyectos — el listado y las descargas viven en la herramienta (/intranet/documentacion/)', '#485B37');
       });
@@ -594,6 +631,16 @@
       q(sb.from('usuarios').select('nombre,email,rol,activo').order('nombre'), 'usuarios', t).then(function (us) {
         if (!us) return;
         var act = us.filter(function (u) { return u.activo; });
+        pon2('k-usuarios', String(act.length));
+        var roles = {}; us.forEach(function (u) { if (u.rol) roles[u.rol] = 1; });
+        pon2('k-roles', String(Object.keys(roles).length));
+        /* Estas dos tarjetas de Stitch preguntan por datos que la suite NO guarda.
+           Se quedan en «—» con el motivo escrito: un numero plausible aqui es
+           exactamente el fallo que trajo el fideicomiso a las otras doce pantallas. */
+        pon2('k-notarial', '—');
+        pon2('k-2fa', '—');
+        bandaNota('«Supervision notarial» y «Autenticacion 2FA» se quedan en «—» a proposito: ' +
+          'la suite no guarda ninguno de esos dos datos, asi que cualquier cifra ahi seria inventada.', '#8A6A34');
         kpi(/USUARIOS ACTIVOS|MIEMBROS/i, String(act.length), 'de ' + us.length + ' fichas');
         if (!t) return;
         var pl = plantillaFilas(t);
@@ -613,6 +660,11 @@
         if (!hs) return;
         var nom = {}; cs.forEach(function (c) { nom[c.id] = c.full_name; });
         var abiertos = hs.filter(function (h) { return h.estado === 'abierto'; }).length;
+        pon2('k-abiertos', String(abiertos));
+        pon2('k-whatsapp', '—');
+        pon2('k-satisfaccion', '—');
+        bandaNota('«Canal WhatsApp» y «Satisfaccion cliente» se quedan en «—»: no hay ninguna ' +
+          'medida de eso en la base. El 94% y el 9,8 que habia eran del diseno, no datos.', '#8A6A34');
         kpi(/ABIERTOS|TICKETS/i, String(abiertos), 'de ' + hs.length + ' hilos');
         var chip = hojaConTexto(/^Todos\b/i); if (chip) chip.textContent = 'Todos (' + hs.length + ')';
         panelReal('Hilos de soporte', hs.map(function (h) {
@@ -652,6 +704,20 @@
       var rol = (aut.ficha && aut.ficha.rol) || '—';
       document.querySelectorAll('[data-lw-user]').forEach(function (e) { e.textContent = quien; });
       document.querySelectorAll('[data-lw-rol]').forEach(function (e) { e.textContent = rol; });
+
+      /* La campana marcaba «18» en las 18 pantallas: un numero de Stitch. Aqui se
+         cuentan los HECHOS reales de `notificaciones` posteriores al ultimo visto.
+         La campana viva (topbar.js) suma ademas alertas derivadas de facturas y
+         firmas; NO se replican aqui — al graduar la v4 la barra se comparte, no se
+         copia (Regla 0 de contexto/suite_lawang.md). */
+      var desde = (aut.ficha && aut.ficha.notif_visto_hasta) || '1970-01-01T00:00:00Z';
+      aut.sb.from('notificaciones').select('id', { count: 'exact', head: true })
+        .gt('creado_en', desde)
+        .then(function (r) {
+          var v = r.error ? '—' : String(r.count || 0);
+          if (r.error) console.error('[v4 datos] avisos:', r.error);
+          document.querySelectorAll('[data-lw="k-avisos"]').forEach(function (e) { e.textContent = v; });
+        });
       var fn = REG[seg];
       if (fn) { try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); } }
     });
