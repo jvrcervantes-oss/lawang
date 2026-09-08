@@ -107,6 +107,11 @@ if ($prop) {
      documento: assets/*.css, assets/*.js y los fetch('data.json') / fetch('api/lead.php')
      de portfolio-app.js resolverian contra /property/ en vez de contra la raiz del sitio. -->
 <base href="/">
+<!-- Idioma de la web publica (EN/ES/ID). SIN defer y antes que nada: fija el idioma
+     antes de que portfolio-app.js construya su estado (S.lang lee window.LW_LANG).
+     Va DESPUES del <base> a proposito, por el mismo motivo que existe el <base>:
+     esta pagina tambien se sirve como /property/<id>, dos niveles bajo raiz. -->
+<script src="assets/idioma-web.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $prop ? lw_e($title . ' · Lawang Tropical Properties') : 'The Collection · Lawang Tropical Properties' ?></title>
 <link rel="icon" type="image/png" href="favicon.png">
