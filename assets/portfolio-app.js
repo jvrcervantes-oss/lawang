@@ -63,13 +63,21 @@
 
   // ── Estado global ──────────────────────────────────────────
   var S = {
-    lang:"en", cur:"EUR",
+    // El idioma lo resuelve `assets/idioma-web.js` (?lang= > localStorage > en) y es la
+    // FUENTE UNICA del sitio publico. Antes nacia fijo en "en" y no leia la eleccion
+    // de la home: el espanol de este diccionario estaba escrito al 100% y era
+    // inalcanzable — se perdia al recargar y al llegar desde index.html.
+    lang:(window.LW_LANG||"en"), cur:"EUR",
     line:"all", region:"all", layout:"grid", langOpen:false, curOpen:false, page:1, featIdx:0,
     overlay:null,
     gallery:0, calcTable:false, dlUnlocked:false, dlEmail:"", dlErr:false,
     parcelIdx:-1, modelIdx:-1, extrasSel:{}, step:0,
     plotCode:null, plotFocusCode:null, plotsStatus:{}, plotsStatusFor:null, plotsStatusOk:false
   };
+  /* The Collection se repinta sola: se lo dice al modulo de idioma para que NO
+     recargue la pagina al cambiar de idioma (perderia filtros, pagina y scroll). */
+  window.LW_AL_CAMBIAR_IDIOMA = function(lang){ S.lang = lang; render(); };
+
   function resetDetail(){ S.gallery=0; S.lightbox=null; S.tab=0; S.tabImg=0; S.calcTable=false; S.dlUnlocked=false; S.dlEmail=""; S.dlErr=false; S.parcelIdx=-1; S.modelIdx=-1; S.extrasSel={}; S.step=0; S.plotCode=null; S.plotFocusCode=null; S.plotsStatus={}; S.plotsStatusFor=null; S.plotsStatusOk=false; }
 
   // ── Helpers ────────────────────────────────────────────────
@@ -77,7 +85,61 @@
   function money(eur, cur){ return L.money(eur, cur || S.cur); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;","&gt;":"&gt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function pick(o){ return o ? (o[S.lang] || o.en) : ""; }
-  function tl(en,es){ return S.lang==="es" ? es : en; }  // etiqueta bilingüe puntual (evita tocar el DICT por un string suelto)
+  /* Etiqueta suelta, sin pasar por el DICT. Nacio bilingue (`tl(en,es)`) y con
+     bahasa se quedaba corta: los 85 sitios que la llaman caian al ingles.
+     En vez de tocar las 85 llamadas se le pone una TABLA detras, indexada por el
+     propio par en/es. La firma no cambia, asi que ninguna llamada existente se
+     toca y una nueva sigue escribiendose igual — si le falta bahasa, cae al
+     ingles, que es el mismo comportamiento de siempre.
+     Se indexa por "en|es" y no solo por "en" a proposito: hay pares que comparten
+     el ingles y significan cosas distintas ("Built"->Construido/Construidos,
+     "Land"->Suelo/Terreno), y colapsarlos por la clave inglesa habria dado la
+     misma palabra indonesia a dos conceptos. */
+  var TL_ID = {
+    "3D site plan|Planta 3D":"Denah 3D", "Available|Disponible":"Tersedia",
+    "Bathrooms|Baños":"Kamar mandi", "Bedrooms|Habitaciones":"Kamar tidur",
+    "Built area|Construido":"Luas bangunan", "Built|Construido":"Terbangun",
+    "Built|Construidos":"Terbangun", "Close|Cerrar":"Tutup",
+    "Control your investment in|Controla tu inversión en":"Kendalikan investasi Anda di",
+    "Delivery|Entrega":"Serah terima", "Dossier|Dossier":"Dosir",
+    "Entry price|Precio de entrada":"Harga awal",
+    "Featured Release|Lanzamiento destacado":"Rilis unggulan",
+    "Freehold land.|Suelo en freehold.":"Tanah freehold.", "Freehold|Freehold":"Freehold",
+    "From |Desde ":"Mulai ", "From|Desde":"Mulai",
+    "Furnished|Amueblada":"Berperabot", "Furnishing|Amueblado":"Perabotan",
+    "Garage|Garaje":"Garasi", "Key features|Características":"Fitur utama",
+    "Kitchen|Cocina":"Dapur", "Land|Suelo":"Tanah", "Land|Terreno":"Tanah",
+    "Living|Salón":"Ruang keluarga",
+    "Location map|Mapa de situación":"Peta lokasi", "Location|Ubicación":"Lokasi",
+    "Next|Siguiente":"Berikutnya", "Not available|No disponible":"Tidak tersedia",
+    "Open in Google Maps|Abrir en Google Maps":"Buka di Google Maps",
+    "per m²|por m²":"per m²", "Photo viewer|Visor de fotos":"Penampil foto",
+    "Photo|Foto":"Foto", "Plot|Parcela":"Kavling", "plots|parcelas":"kavling",
+    "Pool terrace|Terraza piscina":"Teras kolam", "Pool|Piscina":"Kolam renang",
+    "Previous|Anterior":"Sebelumnya",
+    "price on request|precio a consultar":"harga atas permintaan",
+    "Private|Privada":"Pribadi", "Property type|Tipo":"Jenis properti",
+    "Request details|Solicitar detalles":"Minta detail",
+    "Request received|Solicitud recibida":"Permintaan diterima",
+    "Reserved|Reservada":"Dipesan",
+    "Select this plot|Elegir esta parcela":"Pilih kavling ini",
+    "Selected|Seleccionada":"Dipilih", "Site plan|Plano del proyecto":"Denah kawasan",
+    "Status|Estado":"Status", "Step|Paso":"Langkah", "Style|Estilo":"Gaya",
+    "Tap a plot to see its size, price and availability.|Toca una parcela para ver tamaño, precio y disponibilidad.":"Ketuk sebuah kavling untuk melihat ukuran, harga, dan ketersediaannya.",
+    "Technical sheet|Ficha técnica":"Lembar teknis", "Tenure|Régimen":"Status hak",
+    "Thank you — we'll email the full dossier to you shortly.|Gracias — te enviaremos el dossier completo por email en breve.":"Terima kasih — dosir lengkap akan kami kirim ke email Anda sebentar lagi.",
+    "The Location|La ubicación":"Lokasi", "The Smart Way|El camino inteligente":"Cara Cerdas",
+    "The Territory|El territorio":"Wilayah", "The Villa|La Villa":"Villa",
+    "Type|Tipo":"Jenis", "Units|Unidades":"Unit",
+    "View on Google Maps|Ver en Google Maps":"Lihat di Google Maps",
+    "View photo|Ver foto":"Lihat foto", "Yes|Sí":"Ya",
+    "Your configuration is ready.|Tu configuración está lista.":"Konfigurasi Anda sudah siap."
+  };
+  function tl(en,es){
+    if(S.lang==="es") return es;
+    if(S.lang==="id"){ var v = TL_ID[en+"|"+es]; if(v) return v; }
+    return en;
+  }
   function firstImg(p){ return (p.imgKeys&&p.imgKeys[0]) || (p.images&&p.images[0]) || null; }
   function imgUrl(key,w){ return key ? (L.img ? L.img(key,w||1600) : key) : null; }
   function themeFor(p){ if(p.regionKey==="sumba") return p.line==="land"?"ocean":"sand"; if(p.line==="resorts") return "dusk"; if(p.line==="land") return "jungle"; return "sunset"; }
@@ -1521,7 +1583,17 @@
 
   function handleAct(act, el){
     var k=act.split(":"); var cmd=k[0]; var val=k.slice(1).join(":");
-    if(cmd==="lang"){ S.lang=val; S.langOpen=false; render(); }
+    if(cmd==="lang"){
+      // Persistir en la clave compartida (`lawang_lang`) para que la eleccion sobreviva
+      // a la recarga y viaje a index.html y a las landings. `lwSetLang` avisa por
+      // LW_AL_CAMBIAR_IDIOMA — declarado mas abajo —, que repinta SIN recargar; el
+      // resto del sitio, que no sabe repintarse, recarga. Aqui no se toca `S.lang`
+      // ni se llama a render(): lo hace el callback, y hacerlo tambien aqui pintaria
+      // dos veces.
+      S.langOpen=false;
+      if(window.lwSetLang){ window.lwSetLang(val); }
+      else { S.lang=val; render(); }
+    }
     else if(cmd==="lang-toggle"){ S.langOpen=!S.langOpen; S.curOpen=false; render(); }
     else if(cmd==="cur"){ S.cur=val; S.curOpen=false; render(); }
     else if(cmd==="cur-toggle"){ S.curOpen=!S.curOpen; S.langOpen=false; render(); }

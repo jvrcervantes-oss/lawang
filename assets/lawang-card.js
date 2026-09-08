@@ -6,25 +6,33 @@
    ════════════════════════════════════════════════════════════ */
 (function () {
   var LINE_CREAM = { signature:'cream-signature', land:'cream-land', villa:'cream-villas', resorts:'cream-resorts' };
+  /* Nombre de linea intacto en los tres idiomas, descriptor traducido: mismo
+     criterio que el DICT de thecollection.php y que assets/i18n-home.js. */
   var LINE_LABEL = {
-    signature:{ en:'Signature', es:'Signature' },
-    land:     { en:'Land',      es:'Terrenos' },
-    villa:    { en:'Villas',    es:'Villas' },
-    resorts:  { en:'Resorts',   es:'Resorts' }
+    signature:{ en:'Signature', es:'Signature', id:'Signature' },
+    land:     { en:'Land',      es:'Terrenos',  id:'Tanah' },
+    villa:    { en:'Villas',    es:'Villas',    id:'Villa' },
+    resorts:  { en:'Resorts',   es:'Resorts',   id:'Resort' }
   };
-  var TENURE = { 'tenure.leasehold':{ en:'Leasehold', es:'Leasehold' }, 'tenure.freehold':{ en:'Freehold', es:'Freehold' } };
+  /* NO SE TRADUCE (revision previa de Legal, 8-sep-2026): `freehold -> hak milik`
+     es literal y juridicamente letal — Hak Milik es solo para ciudadanos
+     indonesios y el art. 26(2) UUPA anula su transmision a un extranjero. */
+  var TENURE = {
+    'tenure.leasehold':{ en:'Leasehold', es:'Leasehold', id:'Leasehold' },
+    'tenure.freehold': { en:'Freehold',  es:'Freehold',  id:'Freehold'  }
+  };
   var STATUS = {
-    'status.offplan':      { c:'plan',   en:'Off-plan',          es:'En plano' },
-    'status.land':         { c:'plan',   en:'Titled land',       es:'Terreno titulado' },
-    'status.ready':        { c:'built',  en:'Built',             es:'Construida' },
-    'status.construction': { c:'constr', en:'Under construction',es:'En construcción' }
+    'status.offplan':      { c:'plan',   en:'Off-plan',          es:'En plano',        id:'Off-plan' },
+    'status.land':         { c:'plan',   en:'Titled land',       es:'Terreno titulado',id:'Tanah bersertifikat' },
+    'status.ready':        { c:'built',  en:'Built',             es:'Construida',      id:'Terbangun' },
+    'status.construction': { c:'constr', en:'Under construction',es:'En construcción', id:'Dalam konstruksi' }
   };
   var VIEW_LABEL = {
-    beach:    { en:'Beachfront', es:'Frente al mar' },
-    cliff:    { en:'Clifftop',   es:'Acantilado' },
-    jungle:   { en:'Jungle',     es:'Selva' },
-    ricefield:{ en:'Rice fields',es:'Arrozales' },
-    river:    { en:'Riverside',  es:'Río' }
+    beach:    { en:'Beachfront', es:'Frente al mar', id:'Tepi pantai' },
+    cliff:    { en:'Clifftop',   es:'Acantilado',    id:'Atas tebing' },
+    jungle:   { en:'Jungle',     es:'Selva',         id:'Hutan' },
+    ricefield:{ en:'Rice fields',es:'Arrozales',     id:'Sawah' },
+    river:    { en:'Riverside',  es:'Río',           id:'Tepi sungai' }
   };
   var SYMS = { EUR:'€', USD:'$', AUD:'A$', IDR:'Rp ' };
   var DEFAULT_RATES = { EUR:1, USD:1.08, AUD:1.65, IDR:17500 };
@@ -43,7 +51,16 @@
   // "Auto" se infiere del texto de la propiedad.
   function viewFor(p) {
     if (p.view && VIEW_LABEL[p.view]) return p.view;
-    var s = (((p.sub && p.sub.en) || '') + ' ' + ((p.desc && p.desc.en) || '') + ' ' + ((p.title && p.title.en) || '')).toLowerCase();
+    // Se indexan los TRES idiomas: buscar en espanol una ficha cuyo titulo esta
+    // traducido no devolvia nada porque solo se miraba el ingles.
+    var campos = [];
+    ['title','sub','desc'].forEach(function (c) {
+      var o = p[c];
+      if (!o) return;
+      if (typeof o === 'string') { campos.push(o); return; }
+      ['en','es','id'].forEach(function (lg) { if (o[lg]) campos.push(o[lg]); });
+    });
+    var s = campos.join(' ').toLowerCase();
     if (/clifftop|cliff|bluff/.test(s)) return 'cliff';
     if (/rivermouth|riverside|river|valley/.test(s)) return 'river';
     if (/beachfront|beach|surf|seafront|ocean/.test(s)) return 'beach';
@@ -83,12 +100,12 @@
     // Specs con icono: área construida · dormitorios · parcela
     var meta = '';
     if (p.built > 0) meta += '<span class="lw-m">' + ICO_AREA + '<b>' + p.built + '</b> m²</span>';
-    if (p.beds  > 0) meta += '<span class="lw-m">' + ICO_BED + '<b>' + p.beds + '</b> ' + (lang === 'es' ? 'hab' : (p.beds > 1 ? 'rooms' : 'room')) + '</span>';
+    if (p.beds  > 0) meta += '<span class="lw-m">' + ICO_BED + '<b>' + p.beds + '</b> ' + (lang === 'es' ? 'hab' : lang === 'id' ? 'kt' : (p.beds > 1 ? 'rooms' : 'room')) + '</span>';
     var extra = p.metaText ? (typeof p.metaText === 'string' ? p.metaText : pick(p.metaText, lang))
-                           : (p.land > 0 ? p.land + ' m² ' + (lang === 'es' ? 'parcela' : 'land') : '');
+                           : (p.land > 0 ? p.land + ' m² ' + (lang === 'es' ? 'parcela' : lang === 'id' ? 'kavling' : 'land') : '');
     if (extra) meta += '<span class="lw-m lw-m-txt">' + ICO_LAND + esc(extra) + '</span>';
 
-    var fromTxt = lang === 'es' ? 'Desde' : 'From';
+    var fromTxt = lang === 'es' ? 'Desde' : lang === 'id' ? 'Mulai' : 'From';
 
     // Ubicación en dos tonos (guía): "SOUTH BUWIT," bold + "TABANAN" ligero
     var region = String(p.region || '');
@@ -108,7 +125,7 @@
       + '<h3 class="lw-prop-title">' + esc(pick(p.title, lang)) + '</h3>'
       + '<p class="lw-prop-sub">' + esc(pick(p.sub, lang)) + '</p>'
       + '<div class="lw-prop-meta">' + meta + '</div>'
-      + '<div class="lw-prop-foot"><span class="lw-prop-price">' + (p.priceEUR > 0 ? '<span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : 'Price on request')) + '</span></div></div></a></article>';
+      + '<div class="lw-prop-foot"><span class="lw-prop-price">' + (p.priceEUR > 0 ? '<span class="from">' + fromTxt + '</span>' + money(p.priceEUR, cur, rates) : (lang === 'es' ? 'Consultar precio' : lang === 'id' ? 'Harga atas permintaan' : 'Price on request')) + '</span></div></div></a></article>';
   }
 
   window.LawangCard = { render: render, themeFor: themeFor, money: money, viewFor: viewFor, VIEW_LABEL: VIEW_LABEL };

@@ -306,6 +306,11 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Idioma de la web publica (EN/ES/ID). idioma-web.js va SIN defer y lo antes
+     posible: fija el idioma y la tipografia antes del primer pintado. El
+     diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
+<script src="/assets/idioma-web.js?v=20260908111654"></script>
+<script src="/assets/i18n-landing.js?v=20260908111654" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and call booking.">
@@ -389,7 +394,19 @@ p{margin:0}
    ganaban por especificidad y el español volvía a verse — encontrado en QA responsive del
    2-sep, español e inglés apilados en la tarjeta de reserva. Este selector no compite por
    estética, solo apaga contenido muerto: nada le disputa el `!important` a propósito. */
-.i-es{display:none !important}
+/* 8-sep-2026 · EL IDIOMA VUELVE, y ahora son tres (EN/ES/ID).
+   La regla de arriba explica por que el markup `.i-es` se dejo en su sitio en vez de
+   borrarlo: «es una linea y reversible por git». Esta es esa reversion. El español no
+   se ha vuelto a traducir — es el que ya estaba escrito aqui, que es mejor que
+   cualquier traduccion nueva del ingles.
+   `:not([data-lang="es"])` cubre tambien el instante ANTES de que el modulo escriba el
+   atributo: sin `data-lang` el selector casa, asi que el español nace oculto y nunca
+   aparece apilado bajo el ingles — que es exactamente el fallo que se caza en el QA
+   responsive del 2-sep y el motivo del `!important`.
+   En bahasa se muestra el bloque `.i-en` y lo traduce `assets/i18n-landing.js`: no hay
+   markup `.i-id`, y montarlo habria significado una tercera copia del FAQ en el HTML. */
+html[data-lang="es"] .i-en{display:none !important}
+html:not([data-lang="es"]) .i-es{display:none !important}
 
 .wrap{max-width:1440px;margin-inline:auto;padding-inline:var(--gut)}
 
@@ -1751,7 +1768,7 @@ label.picker__row{cursor:pointer}
   </div>
 </footer>
 
-<script src="/assets/consent.js?v=20260901" defer></script>
+<script src="/assets/consent.js?v=20260908111654" defer></script>
 <script>
 (function () {
   'use strict';

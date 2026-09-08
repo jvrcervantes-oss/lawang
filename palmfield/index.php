@@ -153,6 +153,11 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Idioma de la web publica (EN/ES/ID). idioma-web.js va SIN defer y lo antes
+     posible: fija el idioma y la tipografia antes del primer pintado. El
+     diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
+<script src="/assets/idioma-web.js?v=20260908111654"></script>
+<script src="/assets/i18n-landing.js?v=20260908111654" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Palm Field — Freehold Villas in Balian Hills, Bali | Lawang Tropical Properties</title>
 <meta name="description" content="Palm Field: freehold villa plots in Balian Hills, West Bali, five minutes from the beach. Land ready with power, water and permits. Five villa models, handover <?= lw_e($PF_ENTREGA) ?>. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
@@ -213,7 +218,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                aquí — es jerga, y lo mismo ya lo dice la sección del escritorio australiano
                al final. Las dos que quedan son las dos cosas que un comprador pregunta
                primero: qué compra y cuándo lo tiene. */ ?>
-      <span class="pill pill--verde"><span class="dot"></span> Freehold (Hak Milik) / HGB</span>
+      <span class="pill pill--verde"><span class="dot"></span> Freehold (HGB)</span>
       <span class="pill pill--terra">Handover <?= lw_e($PF_ENTREGA) ?></span>
     </div>
 
@@ -258,7 +263,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div class="chip">
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5l-9-4zm-1.2 15L7 12.2l1.4-1.4 2.4 2.4 5-5L17.2 9l-6.4 7z"/></svg></span>
         <span><span class="chip__lb">Tenure</span>
-              <span class="chip__vl">Freehold · Hak Milik / HGB</span></span>
+              <span class="chip__vl">Freehold · HGB</span></span>
       </div>
       <div class="chip">
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></span>
@@ -618,7 +623,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <h3>Clean Freehold Acquisition</h3>
         <p>Bought outright, clean notary titles, subdivided and ready to transfer under PMA
           custody.</p>
-        <span class="paso__pie">Hak Milik / HGB</span>
+        <span class="paso__pie">HGB</span>
       </div>
       <div class="paso">
         <span class="paso__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></span>
@@ -726,7 +731,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   </a>
 </div>
 
-<script src="/assets/consent.js?v=20260901" defer></script>
+<script src="/assets/consent.js?v=20260908111654" defer></script>
 <script>
 (function () {
   'use strict';

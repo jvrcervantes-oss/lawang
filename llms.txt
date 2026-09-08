@@ -1,13 +1,37 @@
 # Lawang Estate
 
-> Curated tropical real estate in Bali and Sumba, Indonesia. Hand-picked villas, land and signature estates for international buyers and investors. Bilingual service (English / Indonesian).
+> Curated tropical real estate in Bali and Sumba, Indonesia. Hand-picked villas, land and signature estates for international buyers and investors. The website is served in English, Spanish and Indonesian (Bahasa Indonesia).
 
 ## Key facts
 - Focus: curated tropical properties in Bali and Sumba, Indonesia
 - Offering: villas, land plots and signature estate listings
 - Audience: international buyers and investors
 - Website: https://lawangproperties.com
+- Legal entity: PT TEPI SUN GAI, Denpasar, Bali, Indonesia
+- Tenure offered: Freehold HGB (Hak Guna Bangunan) held through a PT PMA company, and
+  leasehold on selected units. NOT Hak Milik — that title is reserved to Indonesian
+  citizens and cannot be transferred to a foreign buyer.
+
+## Languages
+The site is available in three languages. The page content itself is the same; the
+language is chosen in the header selector and can be linked directly with `?lang=`:
+- English (default): https://lawangproperties.com/
+- Spanish: https://lawangproperties.com/?lang=es
+- Indonesian (Bahasa): https://lawangproperties.com/?lang=id
+
+Note for crawlers that do not execute JavaScript: the HTML served at these URLs is the
+English source. The Spanish and Indonesian text is applied in the browser, so only the
+English wording is visible to a non-JS fetch. There are no separate per-language URLs.
 
 ## Sections
 - [Portfolio](https://lawangproperties.com/thecollection): the full collection of available properties.
 - [Signature](https://lawangproperties.com/thecollection#signature): the flagship / primary estate listings.
+- [Palm Field](https://lawangproperties.com/palmfield): private pool villas in Balian Hills, with a step-by-step price estimator.
+- [Villa models](https://lawangproperties.com/modelo/dali): the five villa models, their specifications and prices.
+
+## Legal
+- [Privacy & terms, English](https://lawangproperties.com/legal)
+- [Privacy & terms, Spanish](https://lawangproperties.com/legal-es)
+- [Accessibility statement](https://lawangproperties.com/accessibility)
+There is no Indonesian version of the legal pages. Under UU 24/2009 an Indonesian-language
+version of a legal document governs, so it is drafted by counsel rather than translated.

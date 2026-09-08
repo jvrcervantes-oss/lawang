@@ -58,6 +58,10 @@
      Cuando se tengan licencias comerciales, añadir @font-face con
      font-family:'Cormorant Garamond' y font-family:'Jost' apuntando
      a los archivos propios y eliminar estas etiquetas. -->
+<!-- Idioma de la web publica (EN/ES/ID). SIN defer y antes que nada: fija el idioma,
+     la tipografia de display y el velo antidestello antes del primer pintado. -->
+<script src="assets/idioma-web.js?v=20260908111654"></script>
+<script src="assets/i18n-home.js?v=20260908111654"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -505,7 +509,52 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 #nav{transition:background .3s,opacity .3s}
 </style>
 <link rel="stylesheet" href="assets/lawang-card.css?v=20260807170527">
-<script src="assets/lawang-card.js?v=20260730103319" defer></script>
+<script src="assets/lawang-card.js?v=20260908111654" defer></script>
+<style>
+/* ════ Ajustes de maquetacion por idioma (8-sep-2026) ════════════════════════
+   Va al final del <head> a proposito: mismas especificidades que las reglas que
+   corrige, asi que manda por orden de cascada y no hace falta subir el peso con
+   selectores artificiales.
+
+   EL PROBLEMA que resuelve, medido: media docena de titulares y subtitulos de
+   esta pagina llevan `white-space:nowrap` con tamanos en `clamp()` calibrados
+   para llenar el viewport EXACTO con la cadena inglesa. Una cadena mas larga no
+   reflowea: se sale de la pantalla en horizontal.
+
+   El H1 del hero NO entra aqui — ese se arregla dirigiendo el copy (claves
+   `hero.*` del diccionario, escritas cortas a proposito), porque es la pieza
+   donde el `nowrap` es intencion de diseno y no un descuido. Lo de abajo son
+   subtitulos y titulares secundarios, donde partir en dos lineas es aceptable y
+   desbordar no lo es. */
+
+/* Subtitulo del hero: dos frases largas, una por renglon en ingles. */
+html[data-lang="es"] .hero-sub b,  html[data-lang="id"] .hero-sub b,
+html[data-lang="es"] .hero-sub .hero-sub-2, html[data-lang="id"] .hero-sub .hero-sub-2 {
+  white-space: normal;
+}
+
+/* «Own Eternity» → «Poseer la Eternidad» / «Miliki Keabadian»: +7 y +5 caracteres
+   sobre una linea que ya iba justa. */
+html[data-lang="es"] .lw-ct-h.lw-ct-seasons,
+html[data-lang="id"] .lw-ct-h.lw-ct-seasons { white-space: normal; }
+
+/* «From land to legacy» y «The Collection» viven en una franja de ancho fijo. */
+html[data-lang="es"] .lw-ts-title, html[data-lang="id"] .lw-ts-title { white-space: normal; }
+@media (min-width: 760px) {
+  html[data-lang="es"] .lw-pf-title2, html[data-lang="id"] .lw-pf-title2 { white-space: normal; }
+}
+
+/* La barra: el burger solo aparece a <=900px y ese umbral se afino con las
+   etiquetas INGLESAS. En ES/ID las cuatro entradas son mas anchas y entre 900 y
+   ~1150px se comen el selector de idioma y el CTA, que es justo lo que no puede
+   desaparecer. Se aprieta el interletrado antes que dejar que empujen. */
+@media (min-width: 901px) and (max-width: 1150px) {
+  html[data-lang="es"] #nav, html[data-lang="id"] #nav { gap: 18px; }
+  html[data-lang="es"] #nav .nav-link, html[data-lang="id"] #nav .nav-link {
+    font-size: 10.5px; letter-spacing: .08em;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -520,10 +569,10 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
     </a>
   </div>
   <nav id="nav">
-    <a class="nav-link" href="/thecollection#land">The Land</a>
-    <a class="nav-link" href="/thecollection#villas">The Villas</a>
-    <a class="nav-link" href="#expedition">The Soul</a>
-    <a class="nav-link" href="#portfolio">The Portfolio</a>
+    <a class="nav-link" href="/thecollection#land" data-i18n="nav.land">The Land</a>
+    <a class="nav-link" href="/thecollection#villas" data-i18n="nav.villas">The Villas</a>
+    <a class="nav-link" href="#expedition" data-i18n="nav.soul">The Soul</a>
+    <a class="nav-link" href="#portfolio" data-i18n="nav.portfolio">The Portfolio</a>
   </nav>
   <div id="nav-actions">
     <div class="nav-lang-wrap" id="langWrap">
@@ -537,7 +586,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
         <li role="option" data-lang="id"><span class="lang-opt">Bahasa</span></li>
       </ul>
     </div>
-    <a class="nav-cta" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp"><span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span> <span class="cta-label">Ask Us Anything</span></a>
+    <a class="nav-cta" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Contact Lawang on WhatsApp"><span class="wa"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg></span> <span class="cta-label" data-i18n="cta.ask">Ask Us Anything</span></a>
     <button id="navBurger" class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
   </div>
 </header>
@@ -572,12 +621,12 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
   <div class="hero-scrim"></div>
   <div class="hero-inner">
     <h1 class="hero-h">
-      <span class="hh-l1"><span class="hh-thin">Turn</span> <span class="hh-bold">Capital</span></span>
-      <span class="hh-l2"><img class="hh-iso" src="assets/img/lawang-14.webp" alt=""><span class="hh-thin">Into</span> <span class="hh-bold">Legacy</span></span>
+      <span class="hh-l1"><span class="hh-thin" data-i18n="hero.l1a">Turn</span> <span class="hh-bold" data-i18n="hero.l1b">Capital</span></span>
+      <span class="hh-l2"><img class="hh-iso" src="assets/img/lawang-14.webp" alt=""><span class="hh-thin" data-i18n="hero.l2a">Into</span> <span class="hh-bold" data-i18n="hero.l2b">Legacy</span></span>
     </h1>
     <div class="hero-foot">
-      <p class="hero-sub"><b>We help international investors build lasting wealth in Indonesia.</b><span class="hero-sub-2">through strategy, structure, and presence on the ground.</span></p>
-      <a class="hero-discover" href="#lines"><span class="hd-in"><span class="ar">↓</span> Explore Tropical Territories <span class="ar">↓</span></span></a>
+      <p class="hero-sub"><b data-i18n="hero.sub1">We help international investors build lasting wealth in Indonesia.</b><span class="hero-sub-2" data-i18n="hero.sub2">through strategy, structure, and presence on the ground.</span></p>
+      <a class="hero-discover" href="#lines"><span class="hd-in"><span class="ar">↓</span> <span data-i18n="hero.cta">Explore Tropical Territories</span> <span class="ar">↓</span></span></a>
     </div>
   </div>
 </section>
@@ -632,25 +681,28 @@ const logo   = document.getElementById('logo');
     e.stopPropagation();
     menu.classList.contains('open') ? close() : open();
   });
+  // 8-sep-2026 · ESTE SELECTOR YA TRADUCE. Hasta hoy solo cambiaba `<html lang>` y
+  // guardaba la elección — el comentario que había aqui lo decia: «la traducción real
+  // del contenido aún no está cableada». Era interfaz que mentia al visitante.
+  // Ahora la elección la resuelve y la persiste `assets/idioma-web.js` (fuente única,
+  // misma clave `lawang_lang` de siempre) y `lwSetLang` recarga la página, que es la
+  // única forma de que cambie TAMBIEN lo que pinta el servidor.
   menu.querySelectorAll('li').forEach(li => {
-    li.addEventListener('click', () => {
-      menu.querySelectorAll('li').forEach(i => i.classList.remove('active'));
-      li.classList.add('active');
-      cur.textContent = li.textContent.trim();
-      const f = li.querySelector('.flag'); if(flagEl && f){ flagEl.innerHTML = f.outerHTML; }
-      document.documentElement.lang = li.dataset.lang;
-      try { localStorage.setItem('lawang_lang', li.dataset.lang); } catch(e){}
-      close();
-      // NOTA: la traducción real del contenido aún no está cableada (index es EN).
-    });
+    li.addEventListener('click', () => { close(); window.lwSetLang(li.dataset.lang); });
   });
   document.addEventListener('click', e => { if(!wrap.contains(e.target)) close(); });
   document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
-  // Restaurar elección previa
-  try {
-    const saved = localStorage.getItem('lawang_lang');
-    if(saved){ const li = menu.querySelector('[data-lang="'+saved+'"]'); if(li) li.click(); }
-  } catch(e){}
+
+  // Reflejar el idioma YA resuelto por el módulo (no re-disparar un click, que era
+  // como se «restauraba» antes: un click sintético que además reejecutaba el handler).
+  const NOMBRE = { en:'English', es:'Español', id:'Bahasa' };
+  const actual = window.LW_LANG || 'en';
+  if (cur) cur.textContent = NOMBRE[actual];
+  menu.querySelectorAll('li').forEach(i => {
+    const on = i.dataset.lang === actual;
+    i.classList.toggle('active', on);
+    i.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
 })();
 
 // ── Franja de marca del hero (watermark drift L→R) ────────────
@@ -776,7 +828,7 @@ onScroll();
         var coll = ps.filter(function(p){ return p.inCollection; });
         var pick = (coll.length ? coll : ps).slice(0, 9);
         if(pick.length && window.LawangCard){ grid.innerHTML = pick.map(function(p){
-          return window.LawangCard.render(p, { lang:'en', cur:'EUR', hrefBase:'/thecollection' });
+          return window.LawangCard.render(p, { lang:(window.LW_LANG||'en'), cur:'EUR', hrefBase:'/thecollection' });
         }).join(''); if(window.lwColSync) window.lwColSync(); }
         var hf = ps.filter(function(p){ return p.homeFeatured; })[0];
         if(hf && typeof applyHomeFeatured === 'function') applyHomeFeatured(hf);  // Featured de la home desde admin
@@ -1396,7 +1448,14 @@ function applyHomeFeatured(p){
 .lw-epic-inner { position:relative; z-index:2; width:100%; display:flex; flex-direction:column;
   justify-content:space-between; min-height:min(92vh,940px); padding-bottom:clamp(2.2rem,5vh,4rem); }
 .lw-epic-top { text-align:center; margin-top:clamp(9rem,36vh,22rem); }
-.lw-epic-country { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.04em;
+/* 8-sep-2026 · las tres reglas de abajo escribian `'Seasons TS',var(--cse)`, o sea la
+   familia literal ANTES de la variable, y eso puenteaba cualquier cambio de tipografia
+   por idioma: en español los acentos seguian rotos justo en los titulares de display
+   (`The Seasons` es la demo de fonnts.com y solo trae ASCII — 97 glifos, medido). Dos de
+   ellas son ademas `uppercase`, asi que fallaban tambien Á É Í Ó Ú Ñ. Se normalizan a la
+   variable: un solo token manda. `Seasons TS` sigue declarada arriba y apunta a los
+   mismos ficheros, asi que en ingles no cambia nada. */
+.lw-epic-country { font-family:var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.04em;
   font-size:clamp(32px,8.5vw,130px); line-height:.92; color:#fff; margin:0; text-align:center; text-shadow:0 3px 30px rgba(0,0,0,.5); }
 .lw-epic-sub { font-family:var(--csa); font-weight:300; text-transform:uppercase; letter-spacing:.16em;
   font-size:var(--fs-heading-s); color:rgba(255,255,255,.94); margin:1rem 0 0; text-shadow:0 2px 16px rgba(0,0,0,.55); }
@@ -1458,7 +1517,7 @@ function applyHomeFeatured(p){
 @media(max-width:780px){ .lw-feat-arrow{ width:44px; height:44px; font-size:18px; } .lw-feat-arrow.prev{left:2px} .lw-feat-arrow.next{right:2px} }
 .lw-feat-card-logo { display:block; height:clamp(120px,15.6vh,174px); width:auto; max-width:100%; margin:0 auto; object-fit:contain; }
 /* Fallback cuando la propiedad destacada no tiene logo: título en serif de marca */
-.lw-feat-card-name { font-family:'Seasons TS',var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em; font-size:var(--fs-heading-l); line-height:1; color:var(--ci); margin:0; }
+.lw-feat-card-name { font-family:var(--cse); font-weight:400; text-transform:uppercase; letter-spacing:.06em; font-size:var(--fs-heading-l); line-height:1; color:var(--ci); margin:0; }
 .lw-feat-card-loc { font-family:var(--csa); font-weight:500; text-transform:uppercase; letter-spacing:.2em;
   font-size:calc(var(--fs-caption) * .92); color:var(--ca); margin-top:12px; }
 /* Datos como checklist con icono ✓ (fuente menor) */
@@ -1487,7 +1546,7 @@ function applyHomeFeatured(p){
 
 /* ── 7 · Contact NEUE + logo + T&C ── */
 .lw-ct-h.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-weight:400; letter-spacing:.02em; }
-.lw-ct-h.lw-ct-seasons { font-family:'Seasons TS',var(--cse); font-weight:400; letter-spacing:.04em; white-space:nowrap; }
+.lw-ct-h.lw-ct-seasons { font-family:var(--cse); font-weight:400; letter-spacing:.04em; white-space:nowrap; }
 .lw-ct-italic.lw-ct-neue { font-family:'Kabel NK',var(--csa); font-style:italic; font-weight:300; }
 .lw-ft-logo-img { height:34px; width:auto; display:block; }
 .lw-ft-tc { font-family:var(--csa); font-size:var(--fs-caption); font-weight:600; letter-spacing:.14em; text-transform:uppercase;
@@ -1535,29 +1594,29 @@ function applyHomeFeatured(p){
 <section class="lw-divisions" id="lines">
   <div class="cs-wrap">
     <div class="lw-head center reveal">
-      <span class="lw-kicker">The Tropical Ecosystem</span>
-      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase"><em style="font-style:normal">Four ways,</em> <span style="font-weight:200">one legacy</span></h2>
+      <span class="lw-kicker" data-i18n="eco.kicker">The Tropical Ecosystem</span>
+      <h2 class="lw-title" style="font-family:var(--csa);text-transform:uppercase"><em style="font-style:normal" data-i18n="eco.title.a">Four ways,</em> <span style="font-weight:200" data-i18n="eco.title.b">one legacy</span></h2>
     </div>
     <div class="lw-show-grid">
       <a class="lw-show reveal" href="/thecollection#signature" style="--img:url('assets/img/CardSignatures.webp')">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/cream-signature.webp" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-title">Signature</span><span class="lw-show-sub">Villa Communities</span><span class="lw-show-cta">Elevated Living</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title" data-i18n="eco.sig.t">Signature</span><span class="lw-show-sub" data-i18n="eco.sig.s">Villa Communities</span><span class="lw-show-cta" data-i18n="eco.sig.c">Elevated Living</span></div>
       </a>
       <a class="lw-show reveal" href="/thecollection#land" style="--img:url('assets/img/CardLand.jpg');transition-delay:80ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/cream-land.webp" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-title">Land Legacy</span><span class="lw-show-sub">Premium Parcels</span><span class="lw-show-cta">Curated Views</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title" data-i18n="eco.land.t">Land Legacy</span><span class="lw-show-sub" data-i18n="eco.land.s">Premium Parcels</span><span class="lw-show-cta" data-i18n="eco.land.c">Curated Views</span></div>
       </a>
       <a class="lw-show reveal" href="/thecollection#villas" style="--img:url('assets/img/CardVillas.webp');transition-delay:140ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/cream-villas.webp" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-title">Villas</span><span class="lw-show-sub">Private Residences</span><span class="lw-show-cta">Integrated Design</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title" data-i18n="eco.vil.t">Villas</span><span class="lw-show-sub" data-i18n="eco.vil.s">Private Residences</span><span class="lw-show-cta" data-i18n="eco.vil.c">Integrated Design</span></div>
       </a>
       <a class="lw-show reveal" href="/thecollection#resorts" style="--img:url('assets/img/CardResorts.webp');transition-delay:200ms">
         <div class="lw-show-media"></div><div class="lw-show-grad"></div><div class="lw-show-frame"></div>
         <img class="lw-show-icon" src="assets/img/cream-resorts.webp" alt="" draggable="false">
-        <div class="lw-show-cap"><span class="lw-show-title">Resorts</span><span class="lw-show-sub">Prime Hospitality</span><span class="lw-show-cta">Long-Term Value</span></div>
+        <div class="lw-show-cap"><span class="lw-show-title" data-i18n="eco.res.t">Resorts</span><span class="lw-show-sub" data-i18n="eco.res.s">Prime Hospitality</span><span class="lw-show-cta" data-i18n="eco.res.c">Long-Term Value</span></div>
       </a>
     </div>
   </div>
@@ -1570,15 +1629,15 @@ function applyHomeFeatured(p){
       <video class="lw-pf-video" autoplay muted loop playsinline preload="metadata" poster="assets/video/legacy-poster.webp?v=3">
         <source src="assets/video/legacy.mp4?v=3" type="video/mp4">
       </video>
-      <h2 class="lw-pf-statement lw-select"><span class="ln-thin">We don't list properties.</span><span class="ln-bold">We select them.</span></h2>
+      <h2 class="lw-pf-statement lw-select"><span class="ln-thin" data-i18n="pf.stmt1">We don't list properties.</span><span class="ln-bold" data-i18n="pf.stmt2">We select them.</span></h2>
     </div>
     <div class="lw-pf-title2-row reveal" style="transition-delay:80ms">
-      <p class="lw-pf-title2"><b>The Collection</b></p>
-      <a class="lw-pf-viewall" href="/thecollection">See all projects <span class="arr">→</span></a>
+      <p class="lw-pf-title2"><b data-i18n="pf.title">The Collection</b></p>
+      <a class="lw-pf-viewall" href="/thecollection"><span data-i18n="pf.viewall">See all projects</span> <span class="arr">→</span></a>
     </div>
     <div class="lw-pf-carousel reveal" style="transition-delay:140ms">
-      <button class="lw-pf-arrow prev is-hidden" id="lwPrev" type="button" aria-label="Previous properties">‹</button>
-      <button class="lw-pf-arrow next is-hidden" id="lwNext" type="button" aria-label="Next properties">›</button>
+      <button class="lw-pf-arrow prev is-hidden" id="lwPrev" type="button" aria-label="Previous properties" data-i18n-attr="aria-label:pf.prev">‹</button>
+      <button class="lw-pf-arrow next is-hidden" id="lwNext" type="button" aria-label="Next properties" data-i18n-attr="aria-label:pf.next">›</button>
       <div class="lw-pf-grid" id="lwGrid">
       <article class="lw-prop">
         <a href="/thecollection#property/balian-ridge-house">
@@ -1709,30 +1768,30 @@ function applyHomeFeatured(p){
 <section class="lw-theservices" id="the-services">
   <div class="cs-wrap lw-ts-inner">
     <div class="lw-ts-head reveal">
-      <span class="lw-kicker">The Services</span>
-      <h2 class="lw-ts-title"><span class="tl-a">From land</span> <span class="tl-b">to legacy</span></h2>
-      <p class="lw-ts-sub">Every stage of the investment journey.</p>
+      <span class="lw-kicker" data-i18n="sv.kicker">The Services</span>
+      <h2 class="lw-ts-title"><span class="tl-a" data-i18n="sv.title.a">From land</span> <span class="tl-b" data-i18n="sv.title.b">to legacy</span></h2>
+      <p class="lw-ts-sub" data-i18n="sv.sub">Every stage of the investment journey.</p>
     </div>
     <div class="lw-ts-cols">
       <div class="lw-ts-col reveal" style="transition-delay:60ms">
         <img class="lw-ts-ico" src="assets/img/icon-services-territorial.webp" alt="" aria-hidden="true" loading="lazy">
-        <h4 class="lw-ts-h"><b>Territorial</b> Sourcing</h4>
-        <p class="lw-ts-p">Verified expansion corridors, and long-term upside.</p>
+        <h4 class="lw-ts-h" data-i18n-html="sv.1.h"><b>Territorial</b> Sourcing</h4>
+        <p class="lw-ts-p" data-i18n="sv.1.p">Verified expansion corridors, and long-term upside.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:120ms">
         <img class="lw-ts-ico" src="assets/img/icon-services-legal.webp" alt="" aria-hidden="true" loading="lazy">
-        <h4 class="lw-ts-h"><b>Legal</b> and Structure</h4>
-        <p class="lw-ts-p">Every acquisition with full fiscal clarity.</p>
+        <h4 class="lw-ts-h" data-i18n-html="sv.2.h"><b>Legal</b> and Structure</h4>
+        <p class="lw-ts-p" data-i18n="sv.2.p">Every acquisition with full fiscal clarity.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:180ms">
         <img class="lw-ts-ico" src="assets/img/icon-services-development.webp" alt="" aria-hidden="true" loading="lazy">
-        <h4 class="lw-ts-h"><b>Development</b> and Build</h4>
-        <p class="lw-ts-p">Structural integrity and deep territorial knowledge.</p>
+        <h4 class="lw-ts-h" data-i18n-html="sv.3.h"><b>Development</b> and Build</h4>
+        <p class="lw-ts-p" data-i18n="sv.3.p">Structural integrity and deep territorial knowledge.</p>
       </div>
       <div class="lw-ts-col reveal" style="transition-delay:240ms">
         <img class="lw-ts-ico" src="assets/img/icon-services-management.webp" alt="" aria-hidden="true" loading="lazy">
-        <h4 class="lw-ts-h"><b>Management</b> and Returns</h4>
-        <p class="lw-ts-p">Our curated network of local management partners.</p>
+        <h4 class="lw-ts-h" data-i18n-html="sv.4.h"><b>Management</b> and Returns</h4>
+        <p class="lw-ts-p" data-i18n="sv.4.p">Our curated network of local management partners.</p>
       </div>
     </div>
   </div>
@@ -1769,22 +1828,22 @@ function applyHomeFeatured(p){
   <div class="cs-wrap lw-epic-inner">
     <div class="lw-epic-top reveal">
       <h2 class="lw-epic-country">Indonesia</h2>
-      <p class="lw-epic-sub">Where growth <b>is unstoppable.</b></p>
+      <p class="lw-epic-sub" data-i18n-html="ep.sub">Where growth <b>is unstoppable.</b></p>
     </div>
     <div class="lw-epic-cols">
       <div class="lw-epic-col reveal">
-        <h4 class="lw-epic-col-h">The Archipelago</h4>
-        <p class="lw-epic-col-p">is the largest economy in Southeast Asia, growing at 5%+ GDP. A G20 member. And a legal framework designed for the international investor.</p>
+        <h4 class="lw-epic-col-h" data-i18n="ep.1.h">The Archipelago</h4>
+        <p class="lw-epic-col-p" data-i18n="ep.1.p">is the largest economy in Southeast Asia, growing at 5%+ GDP. A G20 member. And a legal framework designed for the international investor.</p>
       </div>
       <div class="lw-epic-col reveal" style="transition-delay:80ms">
         <h4 class="lw-epic-col-h">Bali</h4>
-        <p class="lw-epic-col-p">The island everyone chose.<br>The valley few have found.</p>
-        <a class="lw-epic-col-link" href="/thecollection">Explore Balian <span class="arr">→</span></a>
+        <p class="lw-epic-col-p" data-i18n-html="ep.2.p">The island everyone chose.<br>The valley few have found.</p>
+        <a class="lw-epic-col-link" href="/thecollection"><span data-i18n="ep.2.cta">Explore Balian</span> <span class="arr">→</span></a>
       </div>
       <div class="lw-epic-col reveal" style="transition-delay:160ms">
         <h4 class="lw-epic-col-h">Sumba</h4>
-        <p class="lw-epic-col-p">An island frozen in time.<br>Where the wild still decides.</p>
-        <a class="lw-epic-col-link" href="/thecollection">Discover the Expedition <span class="arr">→</span></a>
+        <p class="lw-epic-col-p" data-i18n-html="ep.3.p">An island frozen in time.<br>Where the wild still decides.</p>
+        <a class="lw-epic-col-link" href="/thecollection"><span data-i18n="ep.3.cta">Discover the Expedition</span> <span class="arr">→</span></a>
       </div>
     </div>
   </div>
@@ -1800,15 +1859,15 @@ function applyHomeFeatured(p){
         <div class="lw-feat-media lw-feat-outline">
           <div class="lw-feat-gallery" id="featGallery"></div>
           <div class="lw-feat-dots" id="featDots" aria-hidden="true"></div>
-          <div class="lw-feat-invest" style="display:none"><span class="lw-feat-invest-l">Investment</span><span class="lw-feat-invest-amt"></span></div>
+          <div class="lw-feat-invest" style="display:none"><span class="lw-feat-invest-l" data-i18n="ct.invest">Investment</span><span class="lw-feat-invest-amt"></span></div>
         </div>
         <div class="lw-feat-card">
           <img class="lw-feat-card-logo" src="" alt="" loading="lazy">
           <span class="lw-feat-card-loc"></span>
           <ul class="lw-feat-card-specs"></ul>
           <div class="lw-feat-card-btns">
-            <a class="cs-btn cs-btn-bone" href="#contact-form">Ask an Advisor</a>
-            <a class="cs-btn cs-btn-green" href="#" download style="display:none">Download the Dossier</a>
+            <a class="cs-btn cs-btn-bone" href="#contact-form" data-i18n="ct.advisor">Ask an Advisor</a>
+            <a class="cs-btn cs-btn-green" href="#" download style="display:none" data-i18n="ct.dossier">Download the Dossier</a>
           </div>
         </div>
       </div>
@@ -1818,10 +1877,10 @@ function applyHomeFeatured(p){
   <div class="lw-ct-top" id="contact-form">
     <div class="lw-ct-grid">
       <div class="reveal">
-        <span class="lw-kicker">The Tropical Partner</span>
-        <h2 class="lw-ct-h lw-ct-seasons">Own Eternity</h2>
-        <p class="lw-ct-italic lw-ct-neue">Some places you visit. Others you keep.</p>
-        <p class="lw-ct-note">Share the legacy you have in mind and our advisors will return with hand-verified opportunities across Bali &amp; Sumba — no lists, only what truly fits.</p>
+        <span class="lw-kicker" data-i18n="ct.kicker">The Tropical Partner</span>
+        <h2 class="lw-ct-h lw-ct-seasons" data-i18n="ct.h">Own Eternity</h2>
+        <p class="lw-ct-italic lw-ct-neue" data-i18n="ct.italic">Some places you visit. Others you keep.</p>
+        <p class="lw-ct-note" data-i18n-html="ct.note">Share the legacy you have in mind and our advisors will return with hand-verified opportunities across Bali &amp; Sumba — no lists, only what truly fits.</p>
         <div class="lw-ct-direct">
           <a class="lw-ct-cti" href="tel:+6281138319862"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+62 811-3831-9862</a>
           <a class="lw-ct-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
@@ -1829,20 +1888,20 @@ function applyHomeFeatured(p){
       </div>
       <div class="lw-ct-faq reveal" style="transition-delay:120ms">
         <div class="cs-faq-item">
-          <button class="faq-q" type="button">Do your projects have a building permit (PBG)?<span class="faq-ic" aria-hidden="true"></span></button>
-          <div class="faq-a"><div><p>Yes. Every Lawang project is built under a valid <b>PBG</b> (Persetujuan Bangunan Gedung) — the building approval that replaced the old IMB in 2021. A PBG is only issued once the technical drawings comply with the local spatial plan, so it certifies that the construction is legal from day one. On completion the building also receives its <b>SLF</b> (Sertifikat Laik Fungsi), confirming it is fit for use. You never inherit an unpermitted structure.</p></div></div>
+          <button class="faq-q" type="button"><span data-i18n="faq.1.q">Do your projects have a building permit (PBG)?</span><span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p data-i18n-html="faq.1.a">Yes. Every Lawang project is built under a valid <b>PBG</b> (Persetujuan Bangunan Gedung) — the building approval that replaced the old IMB in 2021. A PBG is only issued once the technical drawings comply with the local spatial plan, so it certifies that the construction is legal from day one. On completion the building also receives its <b>SLF</b> (Sertifikat Laik Fungsi), confirming it is fit for use. You never inherit an unpermitted structure.</p></div></div>
         </div>
         <div class="cs-faq-item">
-          <button class="faq-q" type="button">Leasehold or freehold — what do you offer?<span class="faq-ic" aria-hidden="true"></span></button>
-          <div class="faq-a"><div><p>We focus on <b>Freehold HGB</b> (Hak Guna Bangunan), the Right-to-Build title held through a PT&nbsp;PMA company. Unlike a leasehold — which is only a rental right for a fixed term that loses value as the years run out — HGB is a registered, certificated freehold-class title: it can be sold, inherited, mortgaged and renewed (30 years, then extendable 20 + 30). It is the most secure and most liquid way for a foreign investor to hold Bali real estate.</p></div></div>
+          <button class="faq-q" type="button"><span data-i18n="faq.2.q">Leasehold or freehold — what do you offer?</span><span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p data-i18n-html="faq.2.a">We focus on <b>Freehold HGB</b> (Hak Guna Bangunan), the Right-to-Build title held through a PT&nbsp;PMA company. Unlike a leasehold — which is only a rental right for a fixed term that loses value as the years run out — HGB is a registered, certificated freehold-class title: it can be sold, inherited, mortgaged and renewed (30 years, then extendable 20 + 30). It is the most secure and most liquid way for a foreign investor to hold Bali real estate.</p></div></div>
         </div>
         <div class="cs-faq-item">
-          <button class="faq-q" type="button">What does the "colour" (zoning) of the land mean?<span class="faq-ic" aria-hidden="true"></span></button>
-          <div class="faq-a"><div><p>Indonesia's spatial plan (RDTR) classifies every plot by a <b>colour</b> on the official zoning map: yellow for residential areas, dedicated zones for tourism and commercial use, and <b>green for protected agricultural land where building is prohibited</b>. That colour decides whether a plot can be built on — and whether a PBG can be issued — at all. We only acquire and develop land that is correctly zoned for construction (never green/agricultural), and we verify the zoning before anything else, so your investment is buildable and compliant.</p></div></div>
+          <button class="faq-q" type="button"><span data-i18n="faq.3.q">What does the "colour" (zoning) of the land mean?</span><span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p data-i18n-html="faq.3.a">Indonesia's spatial plan (RDTR) classifies every plot by a <b>colour</b> on the official zoning map: yellow for residential areas, dedicated zones for tourism and commercial use, and <b>green for protected agricultural land where building is prohibited</b>. That colour decides whether a plot can be built on — and whether a PBG can be issued — at all. We only acquire and develop land that is correctly zoned for construction (never green/agricultural), and we verify the zoning before anything else, so your investment is buildable and compliant.</p></div></div>
         </div>
         <div class="cs-faq-item">
-          <button class="faq-q" type="button">Should I invest through a company (PT PMA) or personally?<span class="faq-ic" aria-hidden="true"></span></button>
-          <div class="faq-a"><div><p>There are two routes. A <b>PT&nbsp;PMA</b> — a foreign-owned Indonesian company — is the vehicle that can hold Freehold HGB, operate rentals legally, repatriate income and support your residency (KITAS); it is what we recommend for investors seeking the strongest title and a real return. Investing <b>personally</b> (through leasehold or Hak Pakai with residency) is simpler and cheaper, but weaker in title strength and business use. We set up the right structure for your goals with our notaries and legal partners.</p></div></div>
+          <button class="faq-q" type="button"><span data-i18n="faq.4.q">Should I invest through a company (PT PMA) or personally?</span><span class="faq-ic" aria-hidden="true"></span></button>
+          <div class="faq-a"><div><p data-i18n-html="faq.4.a">There are two routes. A <b>PT&nbsp;PMA</b> — a foreign-owned Indonesian company — is the vehicle that can hold Freehold HGB, operate rentals legally, repatriate income and support your residency (KITAS); it is what we recommend for investors seeking the strongest title and a real return. Investing <b>personally</b> (through leasehold or Hak Pakai with residency) is simpler and cheaper, but weaker in title strength and business use. We set up the right structure for your goals with our notaries and legal partners.</p></div></div>
         </div>
       </div>
     </div>
@@ -1853,24 +1912,24 @@ function applyHomeFeatured(p){
       <div>
         <img class="lw-ft-logo-img" src="assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
         <div class="lw-ft-sub" style="margin-top:10px">Tropical Properties</div>
-        <p class="lw-ft-tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>
+        <p class="lw-ft-tag" data-i18n="ft.tag">Strategic asset investment, structuring and development in Indonesia. Bali · Sumba.</p>
       </div>
       <div class="lw-ft-col">
-        <h5>Portfolio</h5>
-        <a href="/thecollection#signature">Signature</a>
-        <a href="/thecollection#land">Land</a>
-        <a href="/thecollection#villas">Villas</a>
-        <a href="/thecollection#resorts">Resorts</a>
+        <h5 data-i18n="ft.h.portfolio">Portfolio</h5>
+        <a href="/thecollection#signature" data-i18n="ft.signature">Signature</a>
+        <a href="/thecollection#land" data-i18n="ft.land">Land</a>
+        <a href="/thecollection#villas" data-i18n="ft.villas">Villas</a>
+        <a href="/thecollection#resorts" data-i18n="ft.resorts">Resorts</a>
       </div>
       <div class="lw-ft-col">
-        <h5>Company</h5>
-        <a href="#expedition">The Soul</a>
-        <a href="#the-services">What We Do</a>
-        <a href="/thecollection">The Expedition</a>
-        <a href="#portfolio">Choose your Legacy</a>
+        <h5 data-i18n="ft.h.company">Company</h5>
+        <a href="#expedition" data-i18n="ft.soul">The Soul</a>
+        <a href="#the-services" data-i18n="ft.whatwedo">What We Do</a>
+        <a href="/thecollection" data-i18n="ft.expedition">The Expedition</a>
+        <a href="#portfolio" data-i18n="ft.choose">Choose your Legacy</a>
       </div>
       <div class="lw-ft-col">
-        <h5>Divisions</h5>
+        <h5 data-i18n="ft.h.divisions">Divisions</h5>
         <a href="/thecollection">Tepi Sungai</a>
         <a href="/thecollection">Balian Hills</a>
         <a href="/thecollection#signature">Riverfront II®</a>
@@ -1884,9 +1943,9 @@ function applyHomeFeatured(p){
       <a class="lw-ft-cti" href="mailto:sales@lawangproperties.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>sales@lawangproperties.com</a>
     </div>
     <div class="lw-ft-legal">
-      <a class="lw-ft-tc" href="/legal#terms">Terms &amp; Conditions</a>
-      <a class="lw-ft-tc" href="/legal#privacy">Privacy Policy</a>
-      <a class="lw-ft-tc" href="#" onclick="event.preventDefault();window.lwConsentReopen&&window.lwConsentReopen()">Cookie Settings</a>
+      <a class="lw-ft-tc lw-legal-link" href="/legal#terms" data-i18n="ft.terms">Terms &amp; Conditions</a>
+      <a class="lw-ft-tc lw-legal-link" href="/legal#privacy" data-i18n="ft.privacy">Privacy Policy</a>
+      <a class="lw-ft-tc" href="#" onclick="event.preventDefault();window.lwConsentReopen&&window.lwConsentReopen()" data-i18n="ft.cookies">Cookie Settings</a>
     </div>
   </div>
   </div><!-- end .lw-ft-wrap -->
@@ -1897,16 +1956,53 @@ function applyHomeFeatured(p){
 </main><!-- end .snap -->
 
 <!-- WhatsApp flotante (aparece al hacer scroll, pulso cada 5s) -->
-<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Meet Moanito! Your tropical partner — chat on WhatsApp">
-  <span class="wa-label">Meet Moanito! Your tropical partner</span>
+<a id="wa-float" href="https://wa.me/6281138319862?text=Hello%20LAWANG%20%F0%9F%8C%BF%0A%0AI%27m%20exploring%20thoughtfully%20curated%20investment%20opportunities%20in%20Bali%20and%20would%20love%20to%20learn%20more%20about%20your%20current%20projects.%20%E2%9C%A8" target="_blank" rel="noopener" aria-label="Meet Moanito! Your tropical partner — chat on WhatsApp" data-i18n-attr="aria-label:wa.aria">
+  <span class="wa-label" data-i18n="wa.label">Meet Moanito! Your tropical partner</span>
   <span class="wa-ico">
     <svg class="wa-wa" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51l-.57-.01c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.08.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.04 21.5h-.01a9.5 9.5 0 0 1-4.84-1.33l-.35-.2-3.6.94.96-3.51-.23-.36a9.49 9.49 0 0 1-1.45-5.05c0-5.24 4.27-9.5 9.52-9.5a9.46 9.46 0 0 1 9.51 9.51c0 5.24-4.27 9.5-9.51 9.5zM20.52 3.49A11.78 11.78 0 0 0 12.04 0C5.46 0 .1 5.36.1 11.94c0 2.1.55 4.16 1.6 5.98L0 24l6.25-1.64a11.92 11.92 0 0 0 5.79 1.47h.01c6.58 0 11.94-5.36 11.94-11.94a11.86 11.86 0 0 0-3.47-8.4z"/></svg>
     <img class="wa-monito" src="assets/img/moanito-face.webp" alt="" aria-hidden="true">
   </span>
 </a>
 
+<script>
+/* ── Arranque del idioma (EN/ES/ID) ──────────────────────────────────────────
+   Va al final del <body> a proposito: el modulo ya fijo el idioma y el velo en
+   <head>, y aqui solo queda aplicar el diccionario sobre un DOM que ya existe.
+   El velo se levanta solo cuando esto termina, asi que no hay destello de ingles. */
+(function () {
+  if (!window.lwLangInit || !window.LW_I18N_HOME) return;   // fail-open: mejor en ingles que en blanco
+
+  window.lwLangInit(window.LW_I18N_HOME, {
+    despues: function (lang) {
+
+      /* WhatsApp: el mensaje precargado en el idioma del visitante.
+         Es el evento de conversion de la pagina — hasta hoy el usuario leia la
+         web en su idioma, pulsaba, y el borrador le salia en ingles. */
+      var msg = window.lwT(window.LW_I18N_HOME, 'wa.msg');
+      var tel = '6281138319862';
+      var els = document.querySelectorAll('a[href*="wa.me/"]');
+      for (var i = 0; i < els.length; i++) {
+        els[i].href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg)
+          + '&utm_source=web&utm_medium=whatsapp&utm_content=' + lang;   /* de que idioma vino */
+      }
+
+      /* El aviso legal en espanol esta MAS COMPLETO que el ingles: identifica al
+         responsable (PT TEPI SUN GAI) y declara el rango de presupuesto que los
+         formularios ya piden. Mandar a un hispanohablante al /legal ingles seria
+         ensenarle la version incompleta — hallazgo de Legal en la revision previa. */
+      if (lang === 'es') {
+        var lg = document.querySelectorAll('a.lw-legal-link');
+        for (var j = 0; j < lg.length; j++) {
+          lg[j].href = lg[j].getAttribute('href').replace('/legal#', '/legal-es#');
+        }
+      }
+    }
+  });
+})();
+</script>
+
 <!-- Aviso de cookies + Meta Pixel bajo consentimiento. El texto legal vive en /legal -->
-<script src="assets/consent.js?v=20260731100255" defer></script>
+<script src="assets/consent.js?v=20260908111654" defer></script>
 <script>
 // El clic al WhatsApp flotante es la señal de intención más fuerte de esta página.
 // lwTrack no hace nada si el visitante no ha aceptado cookies.

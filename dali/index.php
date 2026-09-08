@@ -103,6 +103,11 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Idioma de la web publica (EN/ES/ID). idioma-web.js va SIN defer y lo antes
+     posible: fija el idioma y la tipografia antes del primer pintado. El
+     diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
+<script src="/assets/idioma-web.js?v=20260908111654"></script>
+<script src="/assets/i18n-landing.js?v=20260908111654" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100% Freehold Architectural Villas in Bali &amp; Sumba — Lawang Tropical Properties</title>
 <meta name="description" content="Turnkey architectural villas in Bali &amp; Sumba for Australian investors. Fixed-price written EPC contract, land ready with power, water and permits. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
@@ -694,7 +699,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   </a>
 </div>
 
-<script src="/assets/consent.js?v=20260901" defer></script>
+<script src="/assets/consent.js?v=20260908111654" defer></script>
 <script>
 (function () {
   'use strict';

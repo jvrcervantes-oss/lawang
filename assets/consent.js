@@ -101,21 +101,41 @@
     // Idioma del banner = idioma de la página. La pauta de Meta va a España y en una
     // landing en español un aviso en inglés baja la aceptación: sin aceptación no hay
     // píxel, y sin píxel no hay medición ni públicos. Es dinero, no cortesía.
-    var es = (document.documentElement.lang || '').toLowerCase().indexOf('es') === 0;
-    var t = es ? {
-      p: 'Usamos cookies para medir el rendimiento de nuestra publicidad. No se carga nada hasta que aceptas. ',
-      l: 'Política de Privacidad', no: 'Rechazar', si: 'Aceptar'
-    } : {
-      p: 'We use cookies to measure how our advertising performs. Nothing is loaded until you accept. ',
-      l: 'Privacy &amp; Data Policy', no: 'Decline', si: 'Accept'
+    // 8-sep-2026: esto era un BOOLEANO (`var es = ...indexOf('es')===0`), no un idioma,
+    // asi que con la pagina en bahasa el aviso salia en ingles. No es cosmetica: un
+    // consentimiento pedido en un idioma que el visitante no lee no es consentimiento
+    // INFORMADO (RGPD art. 7 «lenguaje claro y sencillo»; UU PDP exige que la solicitud
+    // sea inteligible para el interesado), y este banner es justo lo que decide si se
+    // carga el pixel de Meta. Hallazgo de Legal en la revision previa.
+    var lang = window.LW_LANG || (document.documentElement.lang || 'en').toLowerCase().slice(0, 2);
+    if (['en', 'es', 'id'].indexOf(lang) === -1) lang = 'en';
+
+    // El enlace legal por idioma: el aviso ES esta MAS COMPLETO que el EN (identifica al
+    // responsable, PT TEPI SUN GAI, y declara el rango de presupuesto que ya se recoge).
+    // Mandar a un hispanohablante al /legal ingles seria ensenarle la version incompleta.
+    // ID apunta al ingles a proposito: no existe version en bahasa y NO se genera a
+    // maquina — bajo UU 24/2009 la version indonesia de un texto legal PREVALECE, asi
+    // que crearla no es traducir, es redactar el documento que manda. Decision del owner.
+    var TXT = {
+      es: { p: 'Usamos cookies para medir el rendimiento de nuestra publicidad. No se carga nada hasta que aceptas. ',
+            l: 'Política de Privacidad', no: 'Rechazar', si: 'Aceptar',
+            aria: 'Preferencias de cookies', href: '/legal-es#privacy' },
+      id: { p: 'Kami menggunakan cookie untuk mengukur kinerja iklan kami. Tidak ada yang dimuat sebelum Anda menyetujui. ',
+            l: 'Kebijakan Privasi', no: 'Tolak', si: 'Setuju',
+            aria: 'Preferensi cookie', href: '/legal#privacy' },
+      en: { p: 'We use cookies to measure how our advertising performs. Nothing is loaded until you accept. ',
+            l: 'Privacy &amp; Data Policy', no: 'Decline', si: 'Accept',
+            aria: 'Cookie preferences', href: '/legal#privacy' }
     };
+    var t = TXT[lang];
 
     var bar = document.createElement('div');
     bar.id = 'lw-consent-bar';
     bar.setAttribute('role', 'dialog');
-    bar.setAttribute('aria-label', 'Cookie preferences');
+    bar.setAttribute('aria-label', t.aria);
+    bar.setAttribute('lang', lang);
     bar.innerHTML =
-      '<p>' + t.p + '<a href="/legal#privacy">' + t.l + '</a></p>' +
+      '<p>' + t.p + '<a href="' + t.href + '">' + t.l + '</a></p>' +
       '<div class="lw-cbtns">' +
       '<button type="button" id="lw-consent-no">' + t.no + '</button>' +
       '<button type="button" id="lw-consent-yes">' + t.si + '</button>' +
