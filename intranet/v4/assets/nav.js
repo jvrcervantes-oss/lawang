@@ -48,6 +48,14 @@
      — una lista copiada en dos sitios ES el bug, y con 19 copias la siguiente
      herramienta se olvidaria en alguna. Se cuelga detras de Proyectos, que es
      donde va en la suite viva (herramientas.js). */
+  /* Documentacion se fusiono dentro de Proyectos (owner, 8-sep): la pestana
+     desaparece de la v4. Se oculta desde aqui — un solo fichero — en vez de
+     editar 19 sidebars; el fichero de la pantalla queda como redireccion. */
+  function retiraDocumentacion(aside) {
+    var a = aside.querySelector('[data-path="documentacion"]');
+    if (a) a.style.display = 'none';
+  }
+
   function injertaModelos(aside) {
     if (aside.querySelector('[data-path="modelos"]')) return;
     var ancla = aside.querySelector('[data-path="proyectos"]');
@@ -65,6 +73,7 @@
   function recablea() {
     var aqui = location.pathname;
     document.querySelectorAll('aside').forEach(injertaModelos);
+    document.querySelectorAll('aside').forEach(retiraDocumentacion);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
       var dp = a.getAttribute('data-path');

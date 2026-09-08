@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=db25e740" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=98c70bfb" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
-<script src="../assets/nav.js?v=c2869d3f" defer></script>
+<script src="../assets/nav.js?v=4afc04b7" defer></script>
 <link href="../assets/shell.css?v=47ef41f3" rel="stylesheet">
-<script src="../assets/maqueta.js?v=5c4cc383" defer></script>
+<script src="../assets/editores.js?v=81febc08" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -444,6 +444,23 @@
 <span class="material-symbols-outlined text-[14px]">check_circle</span><span data-lw="u-cobrado">—</span></span>
 <span class="text-outline font-body-sm text-[11px]" data-lw="u-nota">—</span>
 </div>
+</div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 mt-6 border-t border-outline-variant/40">
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between gap-3">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Enlaces del proyecto</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-enlace" type="button">+ Nuevo enlace</button>
+</div>
+<div class="flex flex-col gap-2" id="d-enlaces"><a class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors" href="#" target="_blank" rel="noopener"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="en-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="en-meta">—</span></a></div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-baseline justify-between gap-3">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Preguntas frecuentes</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-faq" type="button">+ Nueva pregunta</button>
+</div>
+<div class="flex flex-col gap-2" id="d-faqs"><details class="px-3 py-2 rounded-lg bg-surface-container-low"><summary class="font-body-sm text-body-sm text-on-surface cursor-pointer" data-lw="fq-pregunta">—</summary><p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5" data-lw="fq-respuesta">—</p></details></div>
 </div>
 </div>
 </section>

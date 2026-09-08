@@ -689,7 +689,7 @@
            bajo para todo el que no sea super admin. Está avisado en la cabecera
            de este fichero y aun así caí en ello al escribir esta pantalla. */
         q(sb.rpc('facturas_equipo').select('proyecto_nombre,tipo,total,moneda,anulada'), 'facturas'),
-        q(sb.from('documentos_proyecto').select('proyecto'), 'documentación')
+        q(sb.from('documentos_proyecto').select('id,proyecto,categoria,titulo,descripcion,url,carpeta,visible_portal,confidencial,creado_en'), 'documentación')
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [];
         if (!ps) return;
@@ -799,6 +799,7 @@
         var elegido = ps.filter(function (p) { return p.nombre === pedido; })[0] ||
                       ps.slice().sort(function (a, b) { return (porP[b.nombre] || { t: 0 }).t - (porP[a.nombre] || { t: 0 }).t; })[0];
         if (elegido) {
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.proyecto = elegido;
           var d = porP[elegido.nombre] || { t: 0, cartera: 0 }, cob = cobP[elegido.nombre] || 0;
           pon('d-cartera', fmt(d.cartera, 'EUR'));
           pon('d-cobrado', fmt(cob, 'EUR'));
@@ -809,6 +810,41 @@
           pon('d-master', elegido.parcela_master || 'sin registrar');
           pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
           pon('d-docs', (docP[elegido.nombre] || 0) + ' documentos');
+
+          /* Documentacion FUSIONADA aqui (decision owner 8-sep): la boveda son
+             hoy 6 FAQ y 10 enlaces, todos con proyecto — una pestana propia no
+             se sostenia. La lectura es de equipo (es_agente); el alta seguira
+             exigiendo puede('documentacion'), la misma llave de siempre. */
+          var docsEl = ds.filter(function (d2) { return d2.proyecto === elegido.nombre; });
+          var enl = docsEl.filter(function (d2) { return d2.categoria !== 'faq'; });
+          var faq = docsEl.filter(function (d2) { return d2.categoria === 'faq'; });
+          var cajaE = document.getElementById('d-enlaces');
+          if (cajaE && cajaE.firstElementChild) {
+            var mE = cajaE.firstElementChild.cloneNode(true);
+            cajaE.innerHTML = '';
+            if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
+            enl.forEach(function (d2) {
+              var f = mE.cloneNode(true);
+              var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
+              p3('en-titulo', d2.titulo || 'Enlace');
+              p3('en-meta', (d2.categoria || '—') + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
+              if (d2.url) f.href = d2.url; else { f.removeAttribute('href'); f.style.cursor = 'default'; }
+              cajaE.appendChild(f);
+            });
+          }
+          var cajaF = document.getElementById('d-faqs');
+          if (cajaF && cajaF.firstElementChild) {
+            var mF = cajaF.firstElementChild.cloneNode(true);
+            cajaF.innerHTML = '';
+            if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
+            faq.forEach(function (d2) {
+              var f = mF.cloneNode(true);
+              var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
+              p3('fq-pregunta', d2.titulo || 'Pregunta');
+              p3('fq-respuesta', d2.descripcion || '—');
+              cajaF.appendChild(f);
+            });
+          }
           pon('d-pendiente2', fmt(d.cartera - cob, 'EUR'));
           pon('d-presu', '—');
           var h2 = hojaConTexto(/Master Plan/i);
@@ -943,6 +979,7 @@
         var el = ms.filter(function (m) { return m.slug === pedido || m.nombre === pedido; })[0] ||
                  ms.slice().sort(function (a, b) { return (porModelo[b.id] || 0) - (porModelo[a.id] || 0); })[0];
         if (!el) return;
+        window.LW_V4 = window.LW_V4 || {}; window.LW_V4.modelo = el;
         pon('d-nombre', el.nombre || '—');
         pon('d-slug', el.slug ? '/' + el.slug : 'sin slug');
         pon('d-estado', sinFicha(el) ? 'Sin ficha' : (el.publicado ? 'Publicado' : 'Borrador'));
@@ -1072,47 +1109,8 @@
           'Ninguna unidad con fase de obra abierta.', '/intranet/obra/');
         });
     },
-    documentacion: function (sb) {
-      vaciaKpis([/EXPEDIENTES|DOCUMENTOS/i]);
-      /* La tabla de esta pantalla venia con cinco expedientes inventados —
-         numeros de HGB, un NIB y hasta una sociedad que no existe («PT Lawang
-         Properties Bali»). Se siembra de la boveda real. */
-      var t = tablaPor([/C[OÓ]DIGO|DOCUMENTO/, /PROYECTO|PARCELA/, /TITULAR|ENTIDAD/]);
-      q(sb.from('documentos_proyecto')
-          .select('id,proyecto,categoria,titulo,descripcion,mime,bytes,confidencial,creado_en,carpeta')
-          .order('creado_en', { ascending: false }).limit(120), 'expedientes', t)
-        .then(function (ds2) {
-          if (ds2 == null || !t) return;
-          var pl = plantillaFilas(t);
-          if (!pl) return;
-          var kb = function (b) { return b == null ? '—' : (b > 1048576 ? (Math.round(b / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'); };
-          ds2.forEach(function (d) {
-            fila(pl, [
-              (d.titulo || 'Documento') + (d.categoria ? ' · ' + d.categoria : ''),
-              d.proyecto || '—',
-              d.carpeta || '—',
-              fFecha(d.creado_en),
-              d.confidencial ? 'CONFIDENCIAL' : 'INTERNO',
-              (d.mime || '').split('/').pop().toUpperCase() + ' · ' + kb(d.bytes)
-            ], '/intranet/documentacion/');
-          });
-          if (!ds2.length) bandaNota('La boveda no tiene ningun documento dado de alta todavia.', '#8A8474');
-        });
-      q(sb.from('documentos_proyecto').select('proyecto'), 'documentación').then(function (ds) {
-        if (!ds) return;
-        var porP = {}; ds.forEach(function (d) { porP[d.proyecto] = (porP[d.proyecto] || 0) + 1; });
-        pon2('k-docs', String(ds.length));
-        // «100% convalidados» no sale de ningun sitio: la boveda no guarda estado
-        // de convalidacion. Guion y motivo, nunca un porcentaje que suene bien.
-        pon2('k-convalidados', '—');
-        // «0 litigios activos» tampoco sale de ningun sitio: no hay tabla de
-        // discrepancias. Un cero suena inofensivo y es igual de inventado.
-        pon2('k-litigios', '—');
-        kpi(/EXPEDIENTES|DOCUMENTOS/i, String(ds.length), Object.keys(porP).length + ' proyectos con documentación');
-        bandaNota('Las descargas viven en la herramienta: /intranet/documentacion/', '#485B37');
-      });
-    },
-
+    /* documentacion/: fusionada en Proyectos el 8-sep (decision del owner).
+       La pagina es una redireccion; no queda nada que cablear aqui. */
     creatividades: function () {
       bandaNota('Creatividades y dossiers no viven en la base de datos: el catálogo real está en /intranet/creatividades/ — los botones de esta pantalla te llevan allí', '#485B37');
     },
@@ -1151,6 +1149,7 @@
         var pedido = new URLSearchParams(location.search).get('u');
         var el = us.filter(function (u) { return u.email === pedido; })[0] || us[0];
         if (el) {
+          window.LW_V4 = window.LW_V4 || {}; window.LW_V4.usuario = el;
           pon2('u-perfil', 'Perfil: ' + (el.nombre || el.email) + ' · ' + (el.rol || '—'));
           var hs = el.herramientas || [];
           var tiene = function (h) { return el.rol === 'super_admin' || hs.indexOf(h) !== -1; };
@@ -1247,6 +1246,7 @@
         var el = hs.filter(function (h) { return String(h.id) === pedido; })[0] || hs[0];
         if (!el) return;
         var c = cli[el.client_id] || {};
+        window.LW_V4 = window.LW_V4 || {}; window.LW_V4.hilo = el; window.LW_V4.hiloCliente = c;
         var msgs = (deHilo[el.id] || deHilo[el.client_id] || []).slice().reverse();
         pon2('h-num', 'Hilo #' + String(el.id).slice(0, 6));
         pon2('h-nombre', c.full_name || 'Cliente');
