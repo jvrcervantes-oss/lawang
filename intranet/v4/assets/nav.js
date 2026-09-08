@@ -26,6 +26,7 @@
     ['Facturas', 'facturas/'],
     ['Recibos', 'recibos/'],
     ['Proyectos', 'proyectos/'],
+    ['Modelos', 'modelos/'],
     ['Obra', 'obra/'],
     ['Compradores', 'compradores/'],
     ['Usuarios', 'usuarios/']
@@ -40,8 +41,30 @@
     a.classList.add('bg-primary-container', 'text-on-primary', 'font-bold');
   }
 
+  /* Modelos no existe en el diseno de Stitch: la herramienta nacio el 7-sep-2026,
+     despues de la descarga, y su pantalla la construyo el estudio con los tokens
+     del sistema. El item de menu se INYECTA aqui en vez de anadirlo a mano en las
+     19 sidebars: la cascara esta duplicada por ser maqueta, pero la navegacion no
+     — una lista copiada en dos sitios ES el bug, y con 19 copias la siguiente
+     herramienta se olvidaria en alguna. Se cuelga detras de Proyectos, que es
+     donde va en la suite viva (herramientas.js). */
+  function injertaModelos(aside) {
+    if (aside.querySelector('[data-path="modelos"]')) return;
+    var ancla = aside.querySelector('[data-path="proyectos"]');
+    if (!ancla) return;                       // sin Proyectos no hay donde colgarlo
+    var a = ancla.cloneNode(true);            // clon: hereda las clases exactas
+    a.setAttribute('data-path', 'modelos');
+    a.removeAttribute('aria-current');
+    var spans = a.querySelectorAll('span');
+    if (spans.length < 2) return;
+    spans[0].textContent = 'villa';           // ligadura de material-symbols
+    spans[1].textContent = 'Modelos';
+    ancla.insertAdjacentElement('afterend', a);
+  }
+
   function recablea() {
     var aqui = location.pathname;
+    document.querySelectorAll('aside').forEach(injertaModelos);
     document.querySelectorAll('aside a[href="#"], nav a[href="#"]').forEach(function (a) {
       // 1º por data-path (cáscara canónica); 2º por texto (páginas sin él)
       var dp = a.getAttribute('data-path');

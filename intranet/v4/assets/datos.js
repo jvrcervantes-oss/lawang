@@ -642,6 +642,147 @@
       });
     },
 
+    /* Modelos — pantalla construida por el estudio (Stitch no la tiene: la
+       herramienta nacio el 7-sep-2026, despues de la descarga del lienzo).
+       Como el fichero es NUESTRO, aqui se ancla por `data-lw` y no por texto. */
+    modelos: function (sb) {
+      var $ = function (k, raiz) { return (raiz || document).querySelector('[data-lw="' + k + '"]'); };
+      var pon = function (k, v, raiz) { var e = $(k, raiz); if (e) e.textContent = v; };
+
+      Promise.all([
+        q(sb.from('modelos').select('id,slug,nombre,dormitorios,banos,villa_m2,terraza_m2,descripcion,precio_construccion,moneda,publicado,activo,renders_pendientes,orden').order('orden', { ascending: true, nullsFirst: false }), 'modelos'),
+        q(sb.from('unidades').select('modelo_id,proyecto'), 'unidades por modelo'),
+        q(sb.from('modelo_documentos').select('modelo_id,nombre,tipo,tamano_bytes,subido_en,visible_portal'), 'documentos de modelo')
+      ]).then(function (r) {
+        var ms = r[0], us = r[1] || [], ds = r[2] || [];
+        if (!ms) return;
+
+        /* «Sin ficha tecnica» es el dato que de verdad manda en esta pantalla:
+           un modelo sin dormitorios, banos ni superficie no puede heredar nada a
+           la unidad ni publicarse. Se define por lo que falta, no por un estado
+           que la tabla no tiene. */
+        var sinFicha = function (m) {
+          return m.dormitorios == null && m.banos == null && m.villa_m2 == null && m.terraza_m2 == null;
+        };
+        var porModelo = {}, proyModelo = {};
+        us.forEach(function (u) {
+          if (!u.modelo_id) return;
+          porModelo[u.modelo_id] = (porModelo[u.modelo_id] || 0) + 1;
+          var d = proyModelo[u.modelo_id] = proyModelo[u.modelo_id] || {};
+          var k = u.proyecto || 'Sin proyecto';
+          d[k] = (d[k] || 0) + 1;
+        });
+        var docsModelo = {};
+        ds.forEach(function (d) { (docsModelo[d.modelo_id] = docsModelo[d.modelo_id] || []).push(d); });
+
+        var activos = ms.filter(function (m) { return m.activo; }).length;
+        var publicados = ms.filter(function (m) { return m.publicado; }).length;
+        var faltan = ms.filter(sinFicha).length;
+        var sinRender = ms.filter(function (m) { return m.renders_pendientes; }).length;
+        var enlazadas = Object.keys(porModelo).reduce(function (a, k) { return a + porModelo[k]; }, 0);
+
+        pon('k-activos', String(activos));
+        pon('k-total', String(ms.length));
+        pon('k-activos-pie', enlazadas + ' unidades enlazadas a un modelo');
+        pon('k-publicados', String(publicados));
+        pon('k-publicados-pie', publicados ? 'los unicos que ve un comprador en la web' : 'ninguno visible fuera');
+        pon('k-sinficha', String(faltan));
+        pon('k-sinficha-pie', faltan ? 'sin dormitorios, banos ni superficie: no pueden heredar nada' : 'todos con ficha completa');
+        pon('k-sinrender', String(sinRender));
+        pon('k-sinrender-pie', sinRender ? 'marcados como pendientes de imagen' : 'todos con render');
+
+        pon('c-todos', String(ms.length));
+        pon('c-publicados', String(publicados));
+        pon('c-sinficha', String(faltan));
+        pon('c-sinrender', String(sinRender));
+
+        /* Monedas mezcladas: se dice, no se suma. Mismo criterio que Proyectos. */
+        var monedas = {}; ms.forEach(function (m) { if (m.precio_construccion != null) monedas[m.moneda || 'EUR'] = 1; });
+        if (Object.keys(monedas).length > 1) {
+          bandaNota('El catalogo tiene precios en mas de una moneda (' + Object.keys(monedas).join(' y ') +
+            '). Cada modelo ensena la suya; aqui no se suma nada entre monedas.', '#8A6A34');
+        }
+
+        /* --- rejilla, desde el molde --- */
+        var grid = document.getElementById('modelos-grid');
+        if (!grid || !grid.firstElementChild) { console.info('[v4] modelos: sin molde de tarjeta'); return; }
+        var molde = grid.firstElementChild.cloneNode(true);
+        grid.innerHTML = '';
+        if (!ms.length) {
+          grid.innerHTML = '<p style="font:500 14px/1.5 sans-serif;color:#75786e;margin:0">El catalogo no tiene ningun modelo dado de alta.</p>';
+          return;
+        }
+        ms.forEach(function (m) {
+          var c = molde.cloneNode(true);
+          pon('m-nombre', m.nombre || '—', c);
+          pon('m-slug', m.slug ? '/' + m.slug : 'sin slug', c);
+          pon('m-estado', sinFicha(m) ? 'Sin ficha' : (m.publicado ? 'Publicado' : 'Borrador'), c);
+          var sp = [];
+          if (m.dormitorios != null) sp.push(m.dormitorios + ' dorm.');
+          if (m.banos != null) sp.push(m.banos + ' banos');
+          if (m.villa_m2 != null) sp.push(m.villa_m2 + ' m² villa');
+          if (m.terraza_m2 != null) sp.push(m.terraza_m2 + ' m² terraza');
+          pon('m-specs', sp.length ? sp.join(' · ') : 'Ficha tecnica sin rellenar', c);
+          pon('m-precio', m.precio_construccion != null ? fmt(m.precio_construccion, m.moneda) : '—', c);
+          var n = porModelo[m.id] || 0;
+          pon('m-unidades', n ? n + (n === 1 ? ' unidad' : ' unidades') : 'sin unidades', c);
+          c.style.cursor = 'pointer';
+          c.addEventListener('click', function () { location.search = '?modelo=' + encodeURIComponent(m.slug || m.nombre); });
+          grid.appendChild(c);
+        });
+
+        /* --- ficha: la de ?modelo= o la que mas unidades arrastra --- */
+        var pedido = new URLSearchParams(location.search).get('modelo');
+        var el = ms.filter(function (m) { return m.slug === pedido || m.nombre === pedido; })[0] ||
+                 ms.slice().sort(function (a, b) { return (porModelo[b.id] || 0) - (porModelo[a.id] || 0); })[0];
+        if (!el) return;
+        pon('d-nombre', el.nombre || '—');
+        pon('d-slug', el.slug ? '/' + el.slug : 'sin slug');
+        pon('d-estado', sinFicha(el) ? 'Sin ficha' : (el.publicado ? 'Publicado' : 'Borrador'));
+        pon('d-dorm', el.dormitorios != null ? String(el.dormitorios) : '—');
+        pon('d-banos', el.banos != null ? String(el.banos) : '—');
+        pon('d-villa', el.villa_m2 != null ? el.villa_m2 + ' m²' : '—');
+        pon('d-terraza', el.terraza_m2 != null ? el.terraza_m2 + ' m²' : '—');
+        pon('d-precio', el.precio_construccion != null ? fmt(el.precio_construccion, el.moneda) : '—');
+        pon('d-desc', el.descripcion || 'Este modelo no tiene descripcion escrita. La web publica la toma de aqui, asi que mientras este vacia no hay nada que publicar.');
+
+        var caja = document.getElementById('d-proyectos');
+        if (caja && caja.firstElementChild) {
+          var base = caja.firstElementChild.cloneNode(true);
+          caja.innerHTML = '';
+          var mapa = proyModelo[el.id] || {};
+          var claves = Object.keys(mapa).sort(function (a, b) { return mapa[b] - mapa[a]; });
+          if (!claves.length) {
+            caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Ninguna unidad usa este modelo todavia.</p>';
+          } else {
+            claves.forEach(function (k) {
+              var f = base.cloneNode(true);
+              pon('p-nombre', k, f);
+              pon('p-n', String(mapa[k]), f);
+              caja.appendChild(f);
+            });
+          }
+        }
+
+        var cd = document.getElementById('d-docs');
+        if (cd && cd.firstElementChild) {
+          var moldeD = cd.firstElementChild.cloneNode(true);
+          cd.innerHTML = '';
+          var dd = docsModelo[el.id] || [];
+          if (!dd.length) {
+            cd.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Ningun documento adjunto a este modelo. La tabla existe y el boton tambien; todavia no se ha subido nada.</p>';
+          } else {
+            dd.forEach(function (d) {
+              var f = moldeD.cloneNode(true);
+              pon('doc-titulo', d.nombre || 'Documento', f);
+              pon('doc-meta', (d.tipo || '—') + ' · ' + fFecha(d.subido_en) + (d.visible_portal ? ' · visible al comprador' : ''), f);
+              cd.appendChild(f);
+            });
+          }
+        }
+      });
+    },
+
     'proyectos-cuentas': function (sb) {
       var pedido = new URLSearchParams(location.search).get('proyecto');
       Promise.all([
