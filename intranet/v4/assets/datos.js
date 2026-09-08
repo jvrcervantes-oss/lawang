@@ -187,11 +187,27 @@
         if (!cs) return;
         var firmados = cs.filter(function (c) { return c.bloqueado; }).length;
         kpi(/CONTRATOS ACTIVOS/i, String(cs.length), firmados + ' firmados · ' + (cs.length - firmados) + ' editables');
+        pon2('k-contratos', String(cs.length));
+        pon2('k-encurso', String(cs.length - firmados));
+        pon2('k-firmados-pie', firmados + ' firmados');
       });
       q(sb.rpc('facturas_equipo').select('tipo,total,moneda,anulada,created_at,numero,cliente_nombre,proyecto_nombre'), 'facturas').then(function (fs) {
         if (!fs) return;
         var s = sumaMesEUR(fs.filter(function (f) { return f.tipo === 'recibi'; }));
         kpi(/COBRADO ESTE MES/i, fmt(s.eur, 'EUR'), s.otros ? '+' + s.otros + ' cobros en otra moneda' : 'recibís del mes en curso');
+        pon2('k-cobrado', fmt(s.eur, 'EUR'));
+        /* «+18,4% vs mes anterior» era del diseno. Se calcula de verdad, y si no
+           hay con que comparar se dice, en vez de ensenar una flecha verde. */
+        var ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
+        var iniPrev = new Date(ini); iniPrev.setMonth(iniPrev.getMonth() - 1);
+        var prev = 0;
+        fs.forEach(function (f) {
+          if (f.tipo !== 'recibi' || f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
+          var d = new Date(f.created_at);
+          if (d >= iniPrev && d < ini) prev += Number(f.total) || 0;
+        });
+        // el «vs mes anterior» lo pone la propia tarjeta: aqui solo va la cifra
+        pon2('k-cobrado-tend', prev ? ((s.eur >= prev ? '+' : '') + Math.round((s.eur - prev) / prev * 1000) / 10 + '%') : '—');
         var t = tablaPor([/TIPO/, /DOC/, /COMPRADOR|CLIENTE/, /IMPORTE/]);
         if (t) {
           var pl = plantillaFilas(t);
@@ -205,9 +221,26 @@
       var hoy = new Date().toISOString().slice(0, 10);
       var en30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
       cnt(sb, 'contrato_vencimientos', function (x) { return x.gte('fecha', hoy).lte('fecha', en30).eq('contratos.bloqueado', true); }, '*, contratos!inner(id)')
-        .then(function (n) { if (n != null) kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días'); });
-      Promise.all([cnt(sb, 'unidades'), cnt(sb, 'unidades', function (x) { return x.eq('estado', 'libre'); })]).then(function (r) {
-        if (r[1] != null) kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'disponibles de ' + r[0] + ' en inventario' : null);
+        .then(function (n) {
+          if (n == null) return;
+          kpi(/VENCIMIENTOS/i, String(n), 'con fecha en los próximos 30 días');
+          pon2('k-operaciones', String(n));   // la tarjeta es «Vencimientos (30 días)»
+        });
+      /* 'libre' NO es un estado de `unidades` — el real es 'disponible'. Esta
+         consulta llevaba devolviendo cero desde el 4-sep sin dar ningun error, y
+         el KPI ensenaba «0 unidades libres» sobre un inventario lleno. Es la
+         misma familia que la RLS que recorta sin avisar: la respuesta vacia se
+         lee igual que la respuesta correcta. */
+      Promise.all([
+        cnt(sb, 'unidades'),
+        cnt(sb, 'unidades', function (x) { return x.eq('estado', 'disponible'); }),
+        cnt(sb, 'unidades', function (x) { return x.eq('estado', 'reservada'); })
+      ]).then(function (r) {
+        if (r[1] == null) return;
+        kpi(/UNIDADES LIBRES/i, String(r[1]), r[0] != null ? 'disponibles de ' + r[0] + ' en inventario' : null);
+        pon2('k-unidades', String(r[1]));
+        pon2('k-unidades-sub', r[0] != null ? 'de ' + r[0] + ' parcelas' : 'en inventario');
+        pon2('k-reservadas', r[2] != null ? String(r[2]) : '—');
       });
       // módulos laterales: nunca dejar las tarjetas mock como "verdad"
       q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,contratos!inner(numero,bloqueado)')
@@ -349,6 +382,29 @@
         .then(function (cs) {
           if (!cs) return;
           var chip = hojaConTexto(/^Todas\b/i); if (chip) chip.textContent = 'Todas (' + cs.length + ')';
+          var eur = 0, otras = 0;
+          cs.forEach(function (c) {
+            if (c.precio_total == null) return;
+            if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
+          });
+          pon2('k-volumen', fmt(eur, 'EUR'));
+          if (otras) bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda fuera de la suma.', '#8A6A34');
+          /* La tarjeta «Escrow notarial» pedia un saldo en la cuenta del notario.
+             La suite no lleva ese saldo — lleva lo COBRADO, que no es lo mismo:
+             el escrow tambien se libera. Guion y motivo. */
+          pon2('k-escrow', '—');
+          q(sb.rpc('facturas_equipo').select('tipo,total,moneda,anulada'), 'cobros de operaciones').then(function (fs) {
+            if (fs == null) return;
+            var cob = 0;
+            fs.forEach(function (f) { if (f.tipo === 'recibi' && !f.anulada && (f.moneda || 'EUR') === 'EUR') cob += Number(f.total) || 0; });
+            pon2('k-cobros', fmt(cob, 'EUR'));
+          });
+          q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
+            .then(function (fi) {
+              if (fi == null) return;
+              var n2 = {}; fi.forEach(function (x) { n2[x.contrato_id] = 1; });
+              pon2('k-firmas', String(Object.keys(n2).length));
+            });
           if (!t) return;
           var pl = plantillaFilas(t);
           cs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (c) {
@@ -598,6 +654,14 @@
         .then(function (us) {
           if (us == null) return;
           kpi(/EN OBRA|ACTIVAS/i, String(us.length), 'unidades con fase abierta');
+          /* «12 hitos» y «94,2% de certificaciones» eran del diseno. La suite
+             guarda la FASE de cada unidad, no un contador de hitos ni un estado
+             de certificacion: se ensena lo que si hay (unidades con entrega
+             fechada) y lo que no, en guion con el motivo escrito. */
+          pon2('k-hitos', String(us.filter(function (u) { return u.obra_fecha_entrega; }).length));
+          pon2('k-certificaciones', '—');
+          bandaNota('«Hitos estructurales» cuenta las unidades en obra con fecha de entrega puesta. ' +
+            '«Certificaciones aprobadas» se queda en «—»: la suite no guarda ese estado, y el 94,2% era del diseno.', '#8A6A34');
           panelReal('Unidades en obra', us.map(function (u) {
             return itemPanel(esc(u.codigo) + ' · ' + esc(u.proyecto || ''),
               esc(u.modelo || '—') + ' · ' + esc(u.comprador_nombre || 'sin comprador') + ' · entrega ' + fFecha(u.obra_fecha_entrega),
