@@ -3081,6 +3081,18 @@ async function downloadPdf(){
   // `datos`, que no tiene la firma, y saldría un PDF sin firmar con aspecto de
   // definitivo. Se entrega el firmado real.
   if(sb && LOCKED && LOCKED_PDF_PATH){ return abrirPdfFirmado(); }
+  /* SIN GUARDAR NO SE DESCARGA (9-sep-2026, misma orden del owner que cerró el
+     mismo agujero en Facturas). Un contrato sin guardar imprimía un PDF con el
+     membrete, las partes, el precio y la cuenta de cobro, sin número —la
+     plantilla no pinta `{{contrato_num}}` si está vacío— y sin ninguna marca:
+     indistinguible de uno emitido salvo por una línea que falta, y sin ninguna
+     fila en la base que permita saber después que existió.
+     El botón ya sale apagado (updateSaveButton); esto es el segundo cerrojo,
+     por si alguien llega aquí por otro camino. */
+  if(!SAVED_CONTRACT || !SAVED_CONTRACT.numero){
+    toast('Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
+    return;
+  }
   printPreview();
 }
 
@@ -3381,6 +3393,19 @@ function updateSaveButton(){
   // hay algo que desbloquear
   const desBtn=$('#btnDesbloquear');
   if(desBtn) desBtn.style.display = (ES_SUPER && LOCKED && SAVED_CONTRACT) ? '' : 'none';
+  /* «Descargar PDF» apagado mientras el contrato no exista en la base. Un botón
+     que no puede funcionar dice por qué ANTES del clic, no falla después — es la
+     misma regla que ya sigue Facturas. Un contrato bloqueado sí descarga: ahí lo
+     que se entrega es el PDF firmado real. */
+  const pdfBtn=$('#btnPdf');
+  if(pdfBtn){
+    const puede = !!(SAVED_CONTRACT && SAVED_CONTRACT.numero) || (LOCKED && LOCKED_PDF_PATH);
+    // `disabled` basta: `.btn:disabled{opacity:.5}` ya vive en la capa compartida
+    // (topbar.css). La clase `inerte` es de la hoja propia de Facturas y aquí no
+    // tendría ninguna regla detrás — una clase sin CSS es peso muerto.
+    pdfBtn.disabled = !puede;
+    pdfBtn.title = puede ? '' : 'Guarda primero: un contrato sin guardar no tiene número y su PDF no se distingue de uno emitido.';
+  }
   const dsgBtn=$('#btnDesign');
   if(dsgBtn){
     dsgBtn.style.display = (CAN_EDIT_TEXT && !LOCKED) ? '' : 'none';

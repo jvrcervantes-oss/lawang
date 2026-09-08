@@ -1738,8 +1738,24 @@ function estadoDelFormulario(d){
     btn.title = ok ? '' : porque;
     btn.classList.toggle('inerte', !ok);
   };
-  razon($('#btnPrint'), total > 0,
-        'Todavía no hay ningún importe: el PDF saldría con el total a cero.');
+  /* Descargar EXIGE estar guardado desde el 9-sep-2026 (aviso del owner: «me pude
+     descargar una factura / recibí sin haberlo guardado en base de datos»). El
+     email ya lo exigía —ver la línea de abajo, escrita el mismo día que este
+     botón— y la descarga se quedó abierta: se podía sacar un PDF con membrete,
+     sociedad emisora, importes y cuenta bancaria de un documento que no existe
+     en ninguna parte. Y no se distinguía de uno emitido: `documentoHTML` no
+     pinta la línea del número cuando no lo hay (el rótulo «BORRADOR» se retiró
+     el 30-jul por decisión del owner), así que lo único que lo delataba era una
+     línea ausente.
+     Grave sobre todo en el RECIBÍ: el selector de tipo está libre mientras no
+     se ha guardado, así que se podía generar un documento que reconoce dinero
+     cobrado sin ningún rastro contable — y, por construcción, sin forma de
+     auditarlo después.
+     El precio de cerrarlo, dicho en voz alta: ya no se puede revisar el PDF
+     final antes de quemar un número de serie. El owner lo eligió sabiéndolo. */
+  razon($('#btnPrint'), total > 0 && !!(SAVED && SAVED.numero),
+        !(total > 0) ? 'Todavía no hay ningún importe: el PDF saldría con el total a cero.'
+                     : 'Guarda primero: sin guardar no hay número, y el PDF saldría idéntico a uno emitido sin existir en la base.');
   repasaPlegables();
   razon($('#btnMail'), total > 0 && !!(SAVED && SAVED.numero),
         !(total > 0) ? 'Todavía no hay ningún importe que cobrar.'
