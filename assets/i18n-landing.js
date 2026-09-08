@@ -370,6 +370,34 @@
   "PT Tepi Sun Gai · Registered Developer & Property Advisory. Developing verified freehold parcels and turnkey architectural villas across Tabanan, Uluwatu and Sumba for Australian investors.": {
     es: "PT Tepi Sun Gai · Promotora registrada y asesoría inmobiliaria. Desarrollamos parcelas freehold verificadas y villas de autor llave en mano en Tabanan, Uluwatu y Sumba para inversores australianos.",
     id: "PT Tepi Sun Gai · Pengembang terdaftar & konsultan properti. Mengembangkan kavling freehold terverifikasi dan villa arsitektural turnkey di Tabanan, Uluwatu, dan Sumba untuk investor Australia." },
+  /* ── Los bloques `.i-en` de /modelo — SOLO bahasa ──────────────────────────
+     Aqui va `id` y NO `es` a proposito. En español estos nodos ni siquiera se ven:
+     su hermano `.i-es`, con el texto que escribio el estudio, es el que se muestra
+     (regla de idioma en modelo/index.php). Poner un `es` aqui seria una segunda
+     version española del mismo parrafo compitiendo con la buena — dos voces para
+     la misma frase, que es justo lo que se evito al recuperar el copy original.
+     Sin `es`, el modulo deja el nodo intacto. */
+  "The built villa and the right over the plot it stands on. In Indonesia that right doesn't work like Spanish-style ownership, and not every plot sits under the same scheme or term. We review it plot by plot on the call, document in hand, before talking numbers.": {
+    id: "Bangunan villanya dan hak atas kavling tempatnya berdiri. Di Indonesia hak itu tidak bekerja seperti kepemilikan penuh ala Eropa, dan tidak semua kavling berada di bawah skema atau jangka waktu yang sama. Kami meninjaunya kavling per kavling saat panggilan, dengan dokumen di tangan, sebelum membicarakan angka." },
+  "The full build with the roof finish you choose. The villa price already includes Indonesian VAT (PPN). The plot, and the closing costs on the purchase (transfer tax, notary and permits), are quoted separately and detailed in writing before you sign.": {
+    id: "Pembangunan lengkap dengan finishing atap pilihan Anda. Harga villa sudah termasuk PPN. Kavling dan biaya penutupan pembelian (bea balik nama, notaris, dan izin) dihitung terpisah serta dirinci tertulis sebelum Anda menandatangani." },
+  "Yes. The model stays the same and is built on the plot you choose from the catalog. The view, orientation, and land price change. Not every plot takes every model — that's confirmed on the call.": {
+    id: "Ya. Modelnya tetap sama dan dibangun di kavling yang Anda pilih dari katalog. Yang berubah adalah pemandangan, orientasi, dan harga tanahnya. Tidak semua kavling cocok untuk setiap model — itu dipastikan saat panggilan." },
+  "The contract is executed in Indonesian rupiah, as required by Indonesian law for transactions inside the country. Other-currency equivalents are given for reference only, at the exchange rate on the date.": {
+    id: "Kontrak dibuat dalam rupiah, sebagaimana diwajibkan hukum Indonesia untuk transaksi di dalam negeri. Nilai setara dalam mata uang lain hanya sebagai rujukan, memakai kurs pada tanggal tersebut." },
+  "First a reservation contract on the plot. Then the PPJB — the Indonesian sale contract — and the construction contract. All three are the developer's own documents and are reviewed before signing.": {
+    id: "Pertama kontrak reservasi atas kavling. Lalu PPJB — perjanjian jual beli — dan kontrak konstruksi. Ketiganya adalah dokumen pengembang sendiri dan ditinjau sebelum ditandatangani." },
+  "Lawang Tropical Properties, through the Indonesian company PT Tepi Sun Gai. On the call we show you delivered projects and the ones underway right now.": {
+    id: "Lawang Tropical Properties, melalui perusahaan Indonesia PT Tepi Sun Gai. Saat panggilan kami tunjukkan proyek yang sudah diserahterimakan dan yang sedang berjalan sekarang." },
+  "Availability calendar":                { id: "Kalender ketersediaan" },
+  "Pick a day and time directly on the calendar.": { id: "Pilih hari dan jam langsung di kalender." },
+  "Half an hour, no commitment.":         { id: "Setengah jam, tanpa komitmen." },
+  "Monday to Friday. Pick a day and you'll see the times that are actually free.": {
+    id: "Senin sampai Jumat. Pilih satu hari dan Anda akan melihat jam yang benar-benar kosong." },
+  "© 2026 Lawang Tropical Properties. All rights reserved.": {
+    es: "© 2026 Lawang Tropical Properties. Todos los derechos reservados.",
+    id: "© 2026 Lawang Tropical Properties. Seluruh hak cipta dilindungi." },
+
   "PT Tepi Sun Gai · Registered Developer & Property Advisory. Developing verified freehold parcels and turnkey luxury architectural villas across Tabanan, Uluwatu, and Sumba for Australian investors.": {
     es: "PT Tepi Sun Gai · Promotora registrada y asesoría inmobiliaria. Desarrollamos parcelas freehold verificadas y villas de autor de lujo llave en mano en Tabanan, Uluwatu y Sumba para inversores australianos.",
     id: "PT Tepi Sun Gai · Pengembang terdaftar & konsultan properti. Mengembangkan kavling freehold terverifikasi dan villa arsitektural mewah turnkey di Tabanan, Uluwatu, dan Sumba untuk investor Australia." }
