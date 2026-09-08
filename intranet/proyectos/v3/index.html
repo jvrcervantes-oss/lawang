@@ -24,7 +24,7 @@
 <script src="/contracts/assets/guard.js?v=d1194bf1" data-herramienta="unidades"></script>
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<script src="/contracts/assets/proyectos_csv.js?v=fd7cfb5e"></script>
+<script src="/contracts/assets/proyectos_csv.js?v=e610515a"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
@@ -455,11 +455,27 @@ async function importarCsvUI(file){
     ok.disabled = true; ok.textContent = 'Importando…';
     /* El allowlist es el de la pieza compartida: exactamente estas claves, y
        solo las que el CSV traía. Ver su nota — mandar `precio_suelo:null`
-       porque el fichero no traía la columna BORRA un precio real. */
-    const filas = lwCsvFilasParaGuardar(r.validas, r.camposPresentes);
-    const { error } = await SB.from('unidades').upsert(filas, { onConflict: 'proyecto,codigo' });
-    if(error){ toast('No se pudo importar: ' + error.message); ok.disabled = false; ok.textContent = 'Reintentar'; return; }
-    toast('Importadas ' + filas.length + ' unidades');
+       porque el fichero no traía la columna BORRA un precio real.
+       🔴 8-sep-2026 — y llega en LOTES: un `upsert` con un array manda UNA
+       sentencia con la unión de las claves y pone NULL donde a una fila le
+       falten, así que mezclar altas (con `tipo`, NOT NULL) y actualizaciones
+       (sin él, a propósito) tumbaba el import entero. */
+    const lotes = lwCsvLotesParaGuardar(r.validas, r.camposPresentes);
+    const total = lotes.reduce((n, l) => n + l.length, 0);
+    let escritas = 0;
+    for(const lote of lotes){
+      const { error } = await SB.from('unidades').upsert(lote, { onConflict: 'proyecto,codigo' });
+      if(error){
+        /* Cuántas entraron, no solo que falló: los lotes van uno a uno y lo
+           escrito está escrito. Se recarga igual para enseñar lo que hay. */
+        toast('Importadas ' + escritas + ' de ' + total + ' — el resto no: ' + error.message);
+        ok.disabled = false; ok.textContent = 'Reintentar';
+        await recargar();
+        return;
+      }
+      escritas += lote.length;
+    }
+    toast('Importadas ' + escritas + ' unidades');
     Cajon.cierra();
     await recargar();
   });

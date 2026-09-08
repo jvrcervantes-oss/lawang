@@ -7,7 +7,8 @@
    columnas que un CSV NO puede tocar, y que «sin dato» no borre una columna. */
 const assert = require('assert');
 const path = require('path');
-const { lwCsvParse, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza, LW_CSV_COLUMNAS } =
+const { lwCsvParse, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza,
+        lwCsvLotesParaGuardar, LW_CSV_COLUMNAS } =
   require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
 const { lwParseImporte } = require(path.join(__dirname, 'assets', 'dinero.js'));
 
@@ -126,23 +127,45 @@ ok('la fila que se reporta es la del FICHERO, contando la cabecera', () => {
 });
 
 ok('🔴 el allowlist NO manda una clave que el CSV no trajo (borraria un precio real)', () => {
-  const { lwCsvFilasParaGuardar } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
   const validas = [{ codigo:'B1', proyecto:'P', tipo:'parcela', esAlta:false,
                      precio_suelo:null, modelo:'X', moneda:'EUR' }];
-  const sin = lwCsvFilasParaGuardar(validas, new Set(['codigo','proyecto','modelo']));
+  const sin = lwCsvLotesParaGuardar(validas, new Set(['codigo','proyecto','modelo']))[0];
   assert.ok(!('precio_suelo' in sin[0]),
     'upsert hace UPDATE SET de todas las claves: mandar null borraria el precio guardado');
   assert.ok(!('tipo' in sin[0]), 'una actualizacion sin la columna no toca el tipo que ya tenia');
-  const con = lwCsvFilasParaGuardar(validas, new Set(['codigo','proyecto','precio_suelo']));
+  const con = lwCsvLotesParaGuardar(validas, new Set(['codigo','proyecto','precio_suelo']))[0];
   assert.ok('precio_suelo' in con[0] && con[0].precio_suelo === null,
     'si la columna VIENE vacia, eso si es vaciar a proposito');
 });
 
-ok('un ALTA sin columna tipo/moneda igual necesita valores: son NOT NULL', () => {
-  const { lwCsvFilasParaGuardar } = require(path.join(__dirname, 'assets', 'proyectos_csv.js'));
-  const alta = lwCsvFilasParaGuardar([{ codigo:'N1', proyecto:'P', tipo:'parcela', esAlta:true, moneda:'EUR' }], new Set(['codigo','proyecto']));
+ok('un ALTA sin columna tipo/moneda igual necesita valores: tipo es NOT NULL', () => {
+  const alta = lwCsvLotesParaGuardar([{ codigo:'N1', proyecto:'P', tipo:'parcela', esAlta:true, moneda:'EUR' }],
+                                     new Set(['codigo','proyecto']))[0];
   assert.strictEqual(alta[0].tipo, 'parcela');
   assert.strictEqual(alta[0].moneda, 'EUR');
+});
+
+ok('🔴 8-sep: TODAS las filas de un lote tienen LAS MISMAS CLAVES', () => {
+  /* El fallo que costo el import entero: «null value in column "tipo" of
+     relation "unidades" violates not-null constraint», seis veces seguidas.
+     Un `upsert` en lote no manda cada objeto por su cuenta — PostgREST hace UNA
+     sentencia con la union de las claves y pone NULL donde a una fila le falten.
+     Un CSV sin columna `tipo` que trae altas (llevan `tipo`) y actualizaciones
+     (no lo llevan) mezclaba dos formas en el mismo array. */
+  const r = lwCsvAnaliza('codigo,proyecto,precio\nSH-1,Sumba Hills,100\nSH-2,Sumba Hills,200\n', CTX);
+  const lotes = lwCsvLotesParaGuardar(r.validas, r.camposPresentes);
+  assert.strictEqual(lotes.reduce((n, l) => n + l.length, 0), 2, 'no se pierde ninguna fila por el camino');
+  lotes.forEach(lote => {
+    const firma = Object.keys(lote[0]).sort().join('|');
+    lote.forEach(f => assert.strictEqual(Object.keys(f).sort().join('|'), firma,
+      'dos formas en el mismo array = NULL implicito en la base'));
+  });
+  const actualiza = lotes.find(l => !('tipo' in l[0]));
+  assert.ok(actualiza && actualiza[0].codigo === 'SH-1', 'SH-1 ya existe: se actualiza y no toca su tipo');
+  assert.ok(!('moneda' in actualiza[0]),
+    'y tampoco su moneda: el mismo mecanismo la borraba EN SILENCIO, que es peor que el error');
+  const altas = lotes.find(l => 'tipo' in l[0]);
+  assert.ok(altas && altas[0].codigo === 'SH-2' && altas[0].tipo === 'parcela');
 });
 
 ok('`estado` y `contrato_id` no pueden colarse ni por el allowlist', () => {

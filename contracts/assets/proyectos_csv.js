@@ -199,19 +199,61 @@ function lwCsvAnaliza(texto, ctx){
 const LW_CSV_ESCRIBIBLES = ['modelo','superficie_m2','precio_suelo','precio_construccion',
                             'precio','notas','fase_masterplan','zona_masterplan'];
 
-function lwCsvFilasParaGuardar(validas, camposPresentes){
+function lwCsvFilaParaGuardar(f, presentes){
+  const fila = { codigo: f.codigo, proyecto: f.proyecto };
+  if(presentes.has('tipo') || f.esAlta) fila.tipo = f.tipo;
+  LW_CSV_ESCRIBIBLES.forEach(k => { if(presentes.has(k)) fila[k] = f[k]; });
+  if(presentes.has('moneda')) fila.moneda = f.moneda;
+  else if(f.esAlta) fila.moneda = 'EUR';
+  return fila;
+}
+
+/* 🔴 8-sep-2026 — «No se pudo importar: null value in column "tipo" of relation
+   "unidades" violates not-null constraint». Seis intentos seguidos del usuario,
+   ninguna fila escrita.
+
+   LA CAUSA NO ESTABA EN LA FILA, ESTABA EN EL LOTE. Un `upsert` con un array de
+   objetos NO manda cada objeto por su cuenta: PostgREST hace UNA sentencia con
+   la UNIÓN de las claves de todo el array, y a la fila que no trae una clave le
+   pone NULL explícito (es lo que hace `defaultToNull`, que viene en true). O sea
+   que basta con que un objeto del array traiga `tipo` para que TODOS los demás
+   lleven `tipo: null` — y `tipo` es NOT NULL.
+
+   Cuándo pasa exactamente: un CSV SIN columna `tipo` que trae a la vez altas y
+   actualizaciones. Las altas llevan `tipo` (lo necesitan: es NOT NULL); las
+   actualizaciones no (a propósito: no deben tocar el tipo que la unidad ya
+   tenía). Dos formas de objeto en el mismo array, y la base rechaza la sentencia
+   entera. Por eso fallaba el import COMPLETO y no unas filas: es una sola
+   sentencia.
+
+   Y con `moneda` el mismo mecanismo no da error, que es peor: es nullable, así
+   que un CSV con `tipo` pero sin `moneda` BORRABA en silencio la moneda de cada
+   unidad que actualizaba. En la base hay 45 unidades de Sumba Hills con precio y
+   sin moneda, compatibles con esto.
+
+   LA REGLA, que es lo que hay que recordar y no el caso: a un `upsert` en lote
+   nunca se le manda un array donde no todos los objetos tengan LAS MISMAS
+   CLAVES. Aquí se cumple por construcción — se agrupa por la firma de claves de
+   cada fila, no por «alta o actualización»— para que siga siendo cierto el día
+   que alguien añada otra clave condicional y no se acuerde de esta nota.
+
+   Efecto de regalo: si `existentes` venía viejo (otra sesión creó la unidad
+   después de cargar la pantalla), la fila que creíamos actualización se va sola
+   a su lote sin `tipo`, y el INSERT usa el DEFAULT de la columna en vez de
+   reventar. */
+function lwCsvLotesParaGuardar(validas, camposPresentes){
   const presentes = camposPresentes || new Set();
-  return (validas || []).map(f => {
-    const fila = { codigo: f.codigo, proyecto: f.proyecto };
-    if(presentes.has('tipo') || f.esAlta) fila.tipo = f.tipo;
-    LW_CSV_ESCRIBIBLES.forEach(k => { if(presentes.has(k)) fila[k] = f[k]; });
-    if(presentes.has('moneda')) fila.moneda = f.moneda;
-    else if(f.esAlta) fila.moneda = 'EUR';
-    return fila;
+  const lotes = new Map();
+  (validas || []).forEach(f => {
+    const fila = lwCsvFilaParaGuardar(f, presentes);
+    const firma = Object.keys(fila).sort().join('|');
+    if(!lotes.has(firma)) lotes.set(firma, []);
+    lotes.get(firma).push(fila);
   });
+  return [...lotes.values()];
 }
 
 if(typeof module !== 'undefined' && module.exports)
   module.exports = { lwCsvParse, lwCsvNormCab, lwCsvAntiFormula, lwCsvAnaliza,
-                     lwCsvFilasParaGuardar, LW_CSV_COLUMNAS, LW_CSV_ESCRIBIBLES,
+                     lwCsvLotesParaGuardar, LW_CSV_COLUMNAS, LW_CSV_ESCRIBIBLES,
                      LW_CSV_MAX_BYTES, LW_CSV_MAX_FILAS };
