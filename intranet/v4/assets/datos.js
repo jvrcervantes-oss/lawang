@@ -294,6 +294,24 @@
           pon('k-volumen', fmt(eur, 'EUR'));
           pon('k-firmados', String(firmados));
           pon('k-pendientes', String(cs.length - firmados));
+
+          /* drawer de previsualizacion: cabecera real del contrato elegido
+             (?contrato= o el ultimo). La minuta renderizada es fase de editores:
+             el boton Editar lleva al generador real mientras tanto. */
+          var pedido = new URLSearchParams(location.search).get('contrato');
+          var elg = cs.filter(function (c) { return c.numero === pedido; })[0] ||
+                    cs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; })[0];
+          if (elg) {
+            pon2('dw-num', 'Minuta ' + elg.numero);
+            pon2('dw-estado', elg.bloqueado ? 'Firmado' : 'Borrador');
+            pon2('dw-tipo', tipoC(elg.tipo) + (elg.proyecto_nombre ? ' · ' + elg.proyecto_nombre : ''));
+            var be = document.querySelectorAll('button');
+            for (var i4 = 0; i4 < be.length; i4++) {
+              if (/Editar Minuta/i.test(be[i4].textContent || '')) {
+                (function (num) { be[i4].addEventListener('click', function () { location.href = '/contracts/app.html?contrato=' + encodeURIComponent(num); }); })(elg.numero);
+              }
+            }
+          }
           if (otras) {
             bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda quedan fuera de la suma. ' +
               'No se mezclan monedas — el total saldria en una unidad que no existe.', '#8A6A34');
@@ -316,6 +334,22 @@
     },
 
     facturas: function (sb) {
+      /* Esta pantalla de Stitch es el EDITOR de emision: cablearlo a escribir es
+         la fase de editores (mismas vias que la herramienta viva, con encadenado
+         y anulacion — emitir un recibi ademas mueve el estado del contrato). Lo
+         que ya es real aqui: el panel de emitidos y el selector de contratos. */
+      bandaNota('El formulario de abajo es diseño todavía: la emisión real (con validaciones, encadenado y numeración) vive en /intranet/facturas/ hasta que el editor v4 esté cableado.', '#8A6A34');
+      q(sb.rpc('contratos_equipo').select('numero,comprador_nombre,created_at'), 'contratos para el selector').then(function (cs2) {
+        if (!cs2 || !cs2.length) return;
+        var sels = document.querySelectorAll('select');
+        for (var i5 = 0; i5 < sels.length; i5++) {
+          if (/CC00082|COMPRADOR/.test(sels[i5].textContent || '')) {
+            sels[i5].innerHTML = cs2.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 40)
+              .map(function (c) { return '<option>' + esc(c.numero + ' · ' + (c.comprador_nombre || '')) + '</option>'; }).join('');
+            break;
+          }
+        }
+      });
       // esta pantalla de Stitch es un EDITOR de documento, no un listado: el
       // panel en vivo trae las últimas emitidas y la emisión real va a la herramienta
       q(sb.rpc('facturas_equipo').select('id,numero,tipo,cliente_nombre,contrato_numero,total,moneda,anulada,created_at'), 'facturas')
@@ -446,44 +480,95 @@
     },
     operaciones: function (sb) {
       var t = tablaPor([/OPERACI|CONTRATO/, /COMPRADOR/, /IMPORTE|ESTADO/]);
-      q(sb.rpc('contratos_equipo').select('numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,created_at'), 'operaciones', t)
-        .then(function (cs) {
-          if (!cs) return;
-          var chip = hojaConTexto(/^Todas\b/i); if (chip) chip.textContent = 'Todas (' + cs.length + ')';
-          var eur = 0, otras = 0;
-          cs.forEach(function (c) {
-            if (c.precio_total == null) return;
-            if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
-          });
-          pon2('k-volumen', fmt(eur, 'EUR'));
-          if (otras) bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda fuera de la suma.', '#8A6A34');
-          /* La tarjeta «Escrow notarial» pedia un saldo en la cuenta del notario.
-             La suite no lleva ese saldo — lleva lo COBRADO, que no es lo mismo:
-             el escrow tambien se libera. Guion y motivo. */
-          pon2('k-escrow', '—');
-          q(sb.rpc('facturas_equipo').select('tipo,total,moneda,anulada'), 'cobros de operaciones').then(function (fs) {
-            if (fs == null) return;
-            var cob = 0;
-            fs.forEach(function (f) { if (f.tipo === 'recibi' && !f.anulada && (f.moneda || 'EUR') === 'EUR') cob += Number(f.total) || 0; });
-            pon2('k-cobros', fmt(cob, 'EUR'));
-          });
-          q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
-            .then(function (fi) {
-              if (fi == null) return;
-              var n2 = {}; fi.forEach(function (x) { n2[x.contrato_id] = 1; });
-              pon2('k-firmas', String(Object.keys(n2).length));
-            });
-          if (!t) return;
+      Promise.all([
+        q(sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at'), 'operaciones', t),
+        sb.rpc('contratos_cobrado_equipo').then(function (r) { return r.error ? (fallo('cobrado', r.error), null) : (r.data || []); }),
+        q(sb.rpc('contrato_firmas_equipo').select('contrato_id,estado').eq('estado', 'pendiente'), 'firmas pendientes')
+      ]).then(function (r) {
+        var cs = r[0], cob = r[1] || [], fi = r[2] || [];
+        if (!cs) return;
+        var cobId = {}; cob.forEach(function (x) { cobId[x.contrato_id] = Number(x.cobrado) || 0; });
+        var chip = hojaConTexto(/^Todas\b/i); if (chip) chip.textContent = 'Todas (' + cs.length + ')';
+        var eur = 0, otras = 0;
+        cs.forEach(function (c) {
+          if (c.precio_total == null) return;
+          if ((c.moneda || 'EUR') === 'EUR') eur += Number(c.precio_total) || 0; else otras++;
+        });
+        pon2('k-volumen', fmt(eur, 'EUR'));
+        if (otras) bandaNota('El volumen es SOLO en euros: ' + otras + ' contrato(s) en otra moneda fuera de la suma.', '#8A6A34');
+        pon2('k-escrow', '—');
+        var cobT = 0; cob.forEach(function (x) { cobT += Number(x.cobrado) || 0; });
+        pon2('k-cobros', fmt(cobT, 'EUR'));
+        var nf = {}; fi.forEach(function (x) { nf[x.contrato_id] = 1; });
+        pon2('k-firmas', String(Object.keys(nf).length));
+
+        if (t) {
           var pl = plantillaFilas(t);
-          cs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (c) {
+          cs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (c) {
             fila(pl, [c.numero, tipoC(c.tipo), c.comprador_nombre || '—', c.proyecto_nombre || '—',
               c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—',
               c.bloqueado ? 'FIRMADO' : 'EN CURSO', fFecha(c.created_at)],
               '/intranet/operaciones/?contrato=' + encodeURIComponent(c.numero));
           });
-        });
-    },
+        }
 
+        /* --- EXPEDIENTE: ?contrato= o el mas reciente. El «notario con acta» y
+           el «cobro SWIFT» del diseno eran inventados: el timeline real son los
+           vencimientos del contrato, y la estructura encadenada es la de verdad
+           (contrato_padre_id), con el cobrado de cada pieza. */
+        var pedido = new URLSearchParams(location.search).get('contrato');
+        var el = cs.filter(function (c) { return c.numero === pedido; })[0] ||
+                 cs.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; })[0];
+        if (!el) return;
+        var raiz = el.contrato_padre_id ? (cs.filter(function (c) { return c.id === el.contrato_padre_id; })[0] || el) : el;
+        var hijos = cs.filter(function (c) { return c.contrato_padre_id === raiz.id; });
+        pon2('x-id', 'Expediente');
+        pon2('x-num', raiz.numero);
+        pon2('x-sub', (raiz.comprador_nombre || '—') + (raiz.proyecto_nombre ? ' · ' + raiz.proyecto_nombre : ''));
+        var totalCadena = 0, monEl = raiz.moneda || 'EUR';
+        [raiz].concat(hijos).forEach(function (c) {
+          if ((c.moneda || 'EUR') === monEl && !(typeof lwEsPreliminar === 'function' && lwEsPreliminar(c.tipo))) totalCadena += Number(c.precio_total) || 0;
+        });
+        pon2('x-total', 'Total: ' + fmt(totalCadena, monEl));
+        var pinta = function (pref, c) {
+          if (!c) {
+            pon2(pref + '-titulo', 'Sin contrato encadenado');
+            pon2(pref + '-sub', 'esta operación es de una sola pieza');
+            pon2(pref + '-importe', '');
+            return;
+          }
+          pon2(pref + '-titulo', c.numero + ' · ' + tipoC(c.tipo));
+          var cb2 = cobId[c.id] || 0;
+          pon2(pref + '-sub', 'Cobrado ' + fmt(cb2, c.moneda) + (c.precio_total != null ? ' / ' + fmt(c.precio_total, c.moneda) : ''));
+          pon2(pref + '-importe', c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—');
+        };
+        pinta('e1', raiz);
+        pinta('e2', hijos[0]);
+        if (hijos.length > 1) bandaNota('La cadena de ' + raiz.numero + ' tiene ' + hijos.length + ' contratos colgando; aquí se enseña el primero. La cadena completa vive en la herramienta (/intranet/operaciones/).', '#485B37');
+
+        q(sb.from('contrato_vencimientos').select('descripcion,pct,monto,fecha,nota').eq('contrato_id', el.id).order('fecha', { ascending: true, nullsFirst: false }).limit(3), 'hitos del expediente')
+          .then(function (vs) {
+            if (vs == null) return;
+            for (var i2 = 0; i2 < 3; i2++) {
+              var v = vs[i2];
+              pon2('h' + (i2 + 1) + '-t', v ? (v.descripcion || 'Hito ' + (i2 + 1)) : '—');
+              pon2('h' + (i2 + 1) + '-s', v ? (v.monto ? String(v.monto) : (v.pct ? v.pct + ' %' : (v.nota || '—'))) : 'sin más hitos');
+              pon2('h' + (i2 + 1) + '-f', v ? (v.fecha ? fFecha(v.fecha) : 'sin fecha') : '');
+            }
+          });
+
+        // los dos botones del cajon llevan a las herramientas reales
+        var botones = document.querySelectorAll('button');
+        for (var i3 = 0; i3 < botones.length; i3++) {
+          var tx = (botones[i3].textContent || '').trim();
+          if (/Emitir recib/i.test(tx)) {
+            (function (num) { botones[i3].addEventListener('click', function () { location.href = '/intranet/facturas/?contrato=' + encodeURIComponent(num); }); })(el.numero);
+          } else if (/proforma encadenada|Abrir proforma/i.test(tx)) {
+            (function (num) { botones[i3].addEventListener('click', function () { location.href = '/contracts/app.html?contrato=' + encodeURIComponent(num); }); })(raiz.numero);
+          }
+        }
+      });
+    },
     vencimientos: function (sb) {
       /* Cuerpo REAL (fase A, 8-sep). La aritmetica no se rehace: la pagina carga
          intranet/vencimientos/logica.js — el modulo puro y testeado que la suite
@@ -1033,30 +1118,71 @@
     },
 
     usuarios: function (sb) {
-      vaciaKpis([/USUARIOS ACTIVOS|MIEMBROS/i]);
+      /* Perfil, matriz y auditoria reales (fase A5). La matriz sale de
+         usuarios.herramientas — la lista real que gobierna el guard — y la
+         auditoria de la tabla notificaciones (hechos escritos por triggers).
+         Las IPs y el 2FA del diseno no existen en la suite: fuera. */
       var t = tablaPor([/MIEMBRO|NOMBRE|USUARIO/, /ROL|ACCESO/]);
-      q(sb.from('usuarios').select('nombre,email,rol,activo').order('nombre'), 'usuarios', t).then(function (us) {
+      Promise.all([
+        q(sb.from('usuarios').select('nombre,email,rol,activo,herramientas').order('nombre'), 'usuarios', t),
+        q(sb.from('notificaciones').select('titulo,detalle,creado_en').order('creado_en', { ascending: false }).limit(8), 'auditoría')
+      ]).then(function (r) {
+        var us = r[0], ns = r[1] || [];
         if (!us) return;
         var act = us.filter(function (u) { return u.activo; });
         pon2('k-usuarios', String(act.length));
         var roles = {}; us.forEach(function (u) { if (u.rol) roles[u.rol] = 1; });
         pon2('k-roles', String(Object.keys(roles).length));
-        /* Estas dos tarjetas de Stitch preguntan por datos que la suite NO guarda.
-           Se quedan en «—» con el motivo escrito: un numero plausible aqui es
-           exactamente el fallo que trajo el fideicomiso a las otras doce pantallas. */
         pon2('k-notarial', '—');
         pon2('k-2fa', '—');
-        bandaNota('«Supervision notarial» y «Autenticacion 2FA» se quedan en «—» a proposito: ' +
-          'la suite no guarda ninguno de esos dos datos, asi que cualquier cifra ahi seria inventada.', '#8A6A34');
-        kpi(/USUARIOS ACTIVOS|MIEMBROS/i, String(act.length), 'de ' + us.length + ' fichas');
-        if (!t) return;
-        var pl = plantillaFilas(t);
-        us.forEach(function (u) {
-          fila(pl, [u.nombre || '—', u.email || '—', u.rol || '—', u.activo ? 'ACTIVO' : 'INACTIVO', '', ''], '/intranet/usuarios/');
-        });
+        bandaNota('«Supervisión notarial» y «2FA» se quedan en «—»: la suite no guarda ninguno de esos datos.', '#8A6A34');
+
+        if (t) {
+          var pl = plantillaFilas(t);
+          us.forEach(function (u) {
+            fila(pl, [u.nombre || '—', u.email || '—', u.rol || '—', u.activo ? 'ACTIVO' : 'INACTIVO',
+              (u.herramientas || []).length + ' herramientas', ''],
+              '/intranet/v4/usuarios/?u=' + encodeURIComponent(u.email || ''));
+          });
+        }
+
+        /* perfil: ?u= o el primero. La matriz refleja usuarios.herramientas —
+           exactamente lo que el guard aplica, ni mas ni menos. */
+        var pedido = new URLSearchParams(location.search).get('u');
+        var el = us.filter(function (u) { return u.email === pedido; })[0] || us[0];
+        if (el) {
+          pon2('u-perfil', 'Perfil: ' + (el.nombre || el.email) + ' · ' + (el.rol || '—'));
+          var hs = el.herramientas || [];
+          var tiene = function (h) { return el.rol === 'super_admin' || hs.indexOf(h) !== -1; };
+          pon2('m1', tiene('contratos') ? 'Autorizado' : 'Sin acceso');
+          pon2('m2', tiene('facturas') ? 'Autorizado' : 'Sin acceso');
+          pon2('m3', tiene('unidades') ? 'Autorizado' : 'Sin acceso');
+          pon2('m4', tiene('compradores') ? 'Autorizado' : 'Sin acceso');
+        }
+
+        var caja = document.getElementById('auditoria');
+        if (caja && caja.firstElementChild) {
+          var molde = null;
+          for (var i6 = 0; i6 < caja.children.length; i6++) {
+            if (caja.children[i6].querySelector && caja.children[i6].querySelector('[data-lw="a-titulo"]')) { molde = caja.children[i6].cloneNode(true); break; }
+          }
+          if (molde) {
+            caja.innerHTML = '';
+            if (!ns.length) {
+              caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin hechos registrados todavía.</p>';
+            }
+            ns.forEach(function (nx) {
+              var f = molde.cloneNode(true);
+              var p3 = function (k, v) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v; };
+              p3('a-titulo', nx.titulo || 'Hecho');
+              p3('a-sub', nx.detalle || '');
+              p3('a-fecha', fFecha(nx.creado_en));
+              caja.appendChild(f);
+            });
+          }
+        }
       });
     },
-
     soporte: function (sb) {
       /* Bandeja y conversacion REALES (fase A2, 8-sep). hilo_soporte no guarda
          asunto, prioridad ni agente asignado — eso era del diseno. El asunto es
@@ -1178,6 +1304,33 @@
     'contratos-inversor': function () {
       bandaNota('VISTA PREVIA del portal del comprador — datos de demostración. El portal real vive en /portal/ con su propio acceso', '#C06C47');
     }
+  };
+
+  /* Las 3 pantallas moviles comparten datos con sus hermanas de escritorio:
+     misma tabla, mismos handlers. El registro va por ultimo segmento de ruta,
+     asi que "contratos.html" (movil) apunta al mismo handler que "contratos".
+     proyectos-cuentas movil no tiene las anclas data-lw del escritorio: lleva
+     un panel en vivo propio, que es el trato honesto para una maqueta movil. */
+  REG['contratos.html'] = REG['contratos'];
+  REG['seguimiento.html'] = REG['operaciones'];
+  REG['proyectos-cuentas.html'] = function (sb) {
+    Promise.all([
+      q(sb.from('proyectos').select('nombre,resort').eq('activo', true).order('nombre'), 'proyectos'),
+      q(sb.from('unidades').select('proyecto,estado'), 'unidades')
+    ]).then(function (r) {
+      var ps = r[0], us2 = r[1] || [];
+      if (!ps) return;
+      var porP = {};
+      us2.forEach(function (u) {
+        var d = porP[u.proyecto] = porP[u.proyecto] || { t: 0, disp: 0 };
+        d.t++; if (u.estado === 'disponible') d.disp++;
+      });
+      panelReal('Proyectos (' + ps.length + ')', ps.map(function (p2) {
+        var d = porP[p2.nombre] || { t: 0, disp: 0 };
+        return itemPanel(esc(p2.nombre), esc(p2.resort || '—'), d.t + ' uds · ' + d.disp + ' disp.');
+      }), ps.map(function (p2) { return '/intranet/v4/proyectos/?proyecto=' + encodeURIComponent(p2.nombre); }),
+      'Sin proyectos activos.', '/intranet/v4/proyectos/');
+    });
   };
 
   function arranca() {
