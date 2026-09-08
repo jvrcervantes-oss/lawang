@@ -206,6 +206,16 @@ if ($ctaUrl !== '') {
           && cta_permitida($mFirma[0])) {
   $ctaUrl = $mFirma[0];
   $ctaTexto = 'Firmar el documento';
+} elseif ($destinoInterno
+          && preg_match('#https://[A-Za-z0-9.-]+/intranet/[A-Za-z0-9._/?=-]*#', $message, $mIntra)
+          && cta_permitida($mIntra[0])) {
+  /* Los avisos de Soporte ya escriben en el cuerpo la ficha exacta del
+     comprador ("Responder desde: .../intranet/compradores/?id=..."). Llevar el
+     boton a la portada de la intranet cuando el mensaje trae el enlace preciso
+     seria tirar el dato que ya tenemos: el aviso existe para poder responder,
+     no para recordar que existe una intranet. */
+  $ctaUrl = $mIntra[0];
+  $ctaTexto = 'Abrir en la intranet';
 } elseif ($destinoInterno) {
   $ctaUrl = $INTRANET;
   $ctaTexto = 'Abrir la intranet';
