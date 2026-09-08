@@ -84,6 +84,8 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<!-- vocabulario.js: aqui solo por lwBusca/lwBuscaEn — el buscador sin tildes (8-sep-2026) -->
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script>
 /* ============================================================================
    Soporte — bandeja de TICKETS (1-sep-2026: cada fila de hilo_soporte es un
@@ -148,7 +150,7 @@ function visibles(){
   return tickets().filter(x => {
     if(FILTRO === 'abierto' && x.estado !== 'abierto') return false;
     if(FILTRO === 'resuelto' && x.estado !== 'resuelto') return false;
-    if(q && !((x.nombre||'') + ' ' + (x.email||'') + ' ' + (x.categoria||'')).toLowerCase().includes(q)) return false;
+    if(!lwBuscaEn([x.nombre, x.email, x.categoria], q)) return false;
     return true;
   });
 }

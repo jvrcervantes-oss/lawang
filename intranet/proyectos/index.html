@@ -124,7 +124,7 @@
      compartido con contracts/app.html e intranet/modelos/. -->
 <script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
-<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -422,7 +422,7 @@ function visibles(){
   const f = UNIDADES.filter(u =>
     (!FILTRO || u.estado === FILTRO) &&
     (!PROY || u.proyecto === PROY) &&
-    (!q || [u.codigo, u.proyecto, u.modelo].some(v => String(v||'').toLowerCase().includes(q))));
+    lwBuscaEn([u.codigo, u.proyecto, u.modelo], q));
   return suiOrdenar(f, ORDEN, valorDe);
 }
 

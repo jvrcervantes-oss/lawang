@@ -78,3 +78,44 @@ const lwTipoContrato = t => LW_TIPO_CONTRATO[t] || t || '—';
 const LW_TIPOS_PRELIMINARES = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa',
                                'carta_reserva_pma'];
 const lwEsPreliminar = t => LW_TIPOS_PRELIMINARES.includes(t);
+
+
+/* ---------------------------------------------------------------------------
+   BUSCAR SIN QUE LAS TILDES ESTORBEN — 8-sep-2026, aviso del owner:
+   «todos los buscadores de la suite no filtran si llevan tildes».
+   ---------------------------------------------------------------------------
+   Los once buscadores de la suite hacian
+   `String(v).toLowerCase().includes(q)`. Eso baja las mayusculas pero NO toca
+   los acentos, asi que escribir «maria» no encontraba a MARIA (con tilde) y
+   escribir «Balí» no encontraba «Bali». En una cartera con nombres espanoles,
+   indonesios y franceses el buscador fallaba justo en los que mas se buscan.
+
+   `normalize('NFD')` separa la letra de su acento y el rango de combinantes
+   se tira. Se normalizan LOS DOS LADOS en la misma funcion a proposito: con
+   dos llamadas separadas siempre acaba habiendo un sitio que normaliza solo
+   uno, y ese buscador vuelve a fallar sin que nadie lo note.
+
+   Vive aqui y no en `suite-comun.js` por el mismo motivo que el resto de este
+   fichero: `contracts/app.html` NO puede cargar aquel (su `esc()` local
+   chocaria), y app.html tambien busca. */
+function lwNormaliza(s){
+  return String(s == null ? '' : s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+/* `q` ya viene normalizado o no: da igual, se normaliza aqui. Vacio = todo pasa,
+   que es lo que espera un buscador con el campo en blanco. */
+function lwBusca(texto, q){
+  const aguja = lwNormaliza(q);
+  return !aguja || lwNormaliza(texto).includes(aguja);
+}
+/* Varios campos de una misma fila: «alguno de estos casa». Evita repetir el
+   `.some(...)` en once sitios y, sobre todo, evita que uno de los once se
+   escriba sin normalizar. */
+function lwBuscaEn(campos, q){
+  const aguja = lwNormaliza(q);
+  if(!aguja) return true;
+  return (campos || []).some(v => lwNormaliza(v).includes(aguja));
+}

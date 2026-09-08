@@ -35,8 +35,18 @@ const bankOptions = () => Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.la
 // las operaciones de Sumba, el escrow del notario y la cuenta del constructor en
 // euros (añadidas 22-jul a petición del cliente).
 const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'notario_sandy_sumba', 'contractor_sumba_eur'];
+/* La Carta de Reserva cobra SIEMPRE en la misma cuenta (owner, 8-sep-2026:
+   «precarga siempre Tepi Sun Gai (OCBC) y quita las demás»). Se filtra aquí y
+   no en la sección del formulario porque este es el único interruptor por
+   plantilla que existe: con dos sitios decidiendo qué cuentas se ofrecen, el
+   día que se añada una cuenta habría que acordarse de los dos.
+   Un contrato YA GUARDADO con otra cuenta no la pierde: `fieldHTML` inyecta el
+   valor guardado como opción extra cuando no está entre las vigentes (ver la
+   nota de `huerfano`, hallazgo Legal del 11-ago-2026). */
+const BANCO_UNICO = { carta_reserva: 'contractor_tepisungai' };
 function bankOptionsFor(slug){
   const opts = bankOptions();
+  if(BANCO_UNICO[slug]) return opts.filter(o=>o[0]===BANCO_UNICO[slug]);
   if(slug==='ppjb_construccion') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
   if(slug==='ppjb_parcela') return opts;
   return opts.filter(o=>!o[0].startsWith('notario_'));

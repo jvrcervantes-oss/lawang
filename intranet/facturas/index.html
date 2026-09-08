@@ -639,7 +639,7 @@
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -2729,8 +2729,7 @@ function docsVisibles(){
   return (LDOCS || []).filter(f =>
     (LANUL || !f.anulada) &&
     (!LTIPO || f.tipo === LTIPO) &&
-    (!q || [f.numero, f.cliente_nombre, f.proyecto_nombre, (f.datos && f.datos.fields && f.datos.fields.contrato_numero)]
-            .some(v => String(v||'').toLowerCase().includes(q))));
+    lwBuscaEn([f.numero, f.cliente_nombre, f.proyecto_nombre, (f.datos && f.datos.fields && f.datos.fields.contrato_numero)], q));
 }
 
 async function cargarListado(){

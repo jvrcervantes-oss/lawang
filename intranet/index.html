@@ -314,7 +314,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      cálculo del pendiente revienta al primer `parseImporte`, y lo hace en
      tiempo de USO, no de carga — o sea sin avisar hasta que alguien abre la
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
-<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -459,7 +459,7 @@ const permitida = t => lwPermitida(t, FICHA);   // la regla vive en assets/herra
    la página en blanco por un timeout de red. */
 function pintar(filtro){
   const q = (filtro || '').trim().toLowerCase();
-  const casa = t => !q || (t.nombre + ' ' + t.para + ' ' + t.claves).toLowerCase().includes(q);
+  const casa = t => lwBusca(t.nombre + ' ' + t.para + ' ' + t.claves, q);
   const lista = HERRAMIENTAS.filter(permitida).filter(casa);
   VISIBLES = lista;
 

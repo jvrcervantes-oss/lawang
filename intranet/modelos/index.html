@@ -115,6 +115,8 @@
      y dos declaraciones del mismo nombre revientan la página entera. -->
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<!-- vocabulario.js: aqui solo por lwBusca/lwBuscaEn — el buscador sin tildes (8-sep-2026) -->
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script>
 /* ============================================================================
    Modelos — catálogo de tipos de vivienda
@@ -214,7 +216,7 @@ function visibles(){
   const q = ($('#q').value || '').trim().toLowerCase();
   const e = $('#fEstado').value;
   return MODELOS.filter(m =>
-    (!q || (m.nombre + ' ' + (m.slug||'')).toLowerCase().includes(q)) &&
+    lwBusca(m.nombre + ' ' + (m.slug||''), q) &&
     (!e || (e === 'pub' ? m.publicado : !m.publicado)));
 }
 

@@ -120,7 +120,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -212,7 +212,7 @@ function pintarLista(){
   const q = (($('#qU') || {}).value || '').trim().toLowerCase();
   const ROL_ES = { super_admin:'super admin', admin:'administrador admin', agente:'agente' };
   const lista = !q ? USUARIOS : USUARIOS.filter(u =>
-    [u.nombre, u.email, ROL_ES[u.rol] || u.rol].some(v => String(v || '').toLowerCase().includes(q)));
+    lwBuscaEn([u.nombre, u.email, ROL_ES[u.rol] || u.rol], q));
   if(!lista.length){
     $('#listaU').innerHTML = '<p class="nota" style="padding:18px 20px">Nadie con «' + esc(q) + '».</p>';
     return;

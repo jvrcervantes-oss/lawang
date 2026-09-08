@@ -59,7 +59,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=24e98015"></script>
+<script src="assets/vocabulario.js?v=588fd174"></script>
 <script src="assets/dinero.js?v=ced29282"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
@@ -80,7 +80,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
-<script src="assets/entidades_pago.js?v=484e01a6"></script>
+<script src="assets/entidades_pago.js?v=aa4a59b1"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -963,8 +963,18 @@ function toast(msg){
 // NPWP/domicilio de SAN DAL WOODS (bajo el nombre inexistente "PT Lawang Tropical
 // Properties"), así que arranca en SAN DAL WOODS para no alterar su identidad real.
 const SOCIEDAD_DEFAULT = { ppjb_reserva: 'san_dal_woods' };
+/* Cuenta de cobro precargada por plantilla (owner, 8-sep-2026). Mismo patrón
+   que SOCIEDAD_DEFAULT y por el mismo motivo: `projectDefaults` de tokens.json
+   es GLOBAL, así que poner ahí `cuenta_bancaria` la precargaría en TODAS las
+   plantillas con <!--datos-bancarios-->, y solo se pidió para la Carta.
+   ⚠️ Esto contradice a propósito la norma de entidades_pago.js («sin selección
+   no se imprime nada: nunca un valor por defecto adivinado en algo tan
+   sensible»). No es un descuido: en esta plantilla la cuenta ya no se adivina,
+   es la única que se ofrece, por orden expresa del owner. */
+const CUENTA_DEFAULT = { carta_reserva: 'contractor_tepisungai' };
 function pdef(key){
   if(key==='sociedad_firmante' && CURRENT && SOCIEDAD_DEFAULT[CURRENT.slug]) return SOCIEDAD_DEFAULT[CURRENT.slug];
+  if(key==='cuenta_bancaria' && CURRENT && CUENTA_DEFAULT[CURRENT.slug]) return CUENTA_DEFAULT[CURRENT.slug];
   // Fecha de firma y fecha de tipo de cambio: el día en que se está haciendo
   // el contrato, no una fecha fija en tokens.json (cambia cada día). Mismo
   // mecanismo que el resto de projectDefaults — un contrato reabierto sin
@@ -1924,14 +1934,37 @@ function fieldHTML(f){
   // guardado con una nacionalidad que no está en la lista (país no listado,
   // errata histórica, "Doble: ES/PE"...).
   const attrs = esDinero ? 'inputmode="decimal" data-money' : (type==='nacionalidad' ? 'list="dl-nacionalidades"' : '');
+  /* CAMPOS FIJADOS POR EL ESTUDIO (8-sep-2026, owner: «fija la reserva se
+     mantiene en 10 días, sólo editable por super-admins»). El valor lo pone
+     `projectDefaults`; esto solo impide teclear encima.
+     🔴 SE PINTA BLOQUEADO SIEMPRE Y SE ABRE DESPUÉS, nunca al revés:
+     `buildForm()` corre ANTES de que se sepa el rol (`MI_ROL`/`ES_SUPER` se
+     asignan al terminar de leer la ficha), así que decidir aquí con `ES_SUPER`
+     dejaría el campo ABIERTO durante el primer render para todo el mundo. Lo
+     destapa `updateSaveButton()` cuando el rol ya se conoce — mismo mecanismo
+     que usa `repasaLegados()` con los campos de legado.
+     `readonly` y no `disabled`: un `disabled` sigue leyéndose en `collect()`
+     (busca por `name` y lee `.value`), pero no se puede seleccionar ni copiar,
+     y este dato se copia a mano a menudo. */
+  const fijado = FIJOS_SUPER_ADMIN.includes(key);
+  const marca = fijado ? ' readonly data-fijo-super class="dato-fijo"' +
+    ' title="Lo fija el estudio: solo un super admin puede cambiarlo"' : '';
   return `<div class="field" data-key="${key}">${etiquetaHTML(key, label)}
-    <input id="${fid(key)}" name="${key}" type="${t}" ${attrs} value="${def}" autocomplete="off"></div>`;
+    <input id="${fid(key)}" name="${key}" type="${t}" ${attrs}${marca} value="${def}" autocomplete="off"></div>`;
 }
 
 /* Campos que solo se preguntan según lo que valga otro campo — el equivalente
    en el formulario de los bloques <!--if:campo=valor--> de las plantillas. Si el
    campo que manda no está en esta plantilla, la regla no aplica: precio_reserva
    se sigue preguntando en la Carta, que no tiene forma de pago. */
+/* Campos que el estudio fija y solo un super admin puede tocar. Hoy uno:
+   el plazo de la reserva, que el owner fijó en 10 días el 8-sep-2026 para que
+   deje de negociarse contrato a contrato.
+   ⚠️ Esto es un candado de PANTALLA, no de la base: `contratos.datos` es un
+   jsonb que la app escribe entero, y la RLS no mira campo a campo. Quien abra
+   la consola lo cambia. Vale para que no se cambie por descuido, no para
+   impedírselo a quien quiera saltárselo. */
+const FIJOS_SUPER_ADMIN = ['validez_dias'];
 const CAMPO_SI = { precio_reserva: ['modalidad_pago', 'reserva'] };
 function aplicarReglasCampos(){
   const form = $('#form'); if(!form) return;
@@ -3313,6 +3346,17 @@ function ocultarGruposVacios(){
 }
 
 function updateSaveButton(){
+  /* Abre los campos fijados si quien mira es super admin. Va aquí porque esta
+     función es la que ya corre cada vez que cambian el rol, la plantilla o el
+     bloqueo — ver la nota junto a FIJOS_SUPER_ADMIN. */
+  FIJOS_SUPER_ADMIN.forEach(k => {
+    const el = document.querySelector('[data-fijo-super][name="' + k + '"]');
+    if(!el) return;
+    el.readOnly = !ES_SUPER;
+    el.classList.toggle('dato-fijo', !ES_SUPER);
+    el.title = ES_SUPER ? 'Lo fija el estudio; puedes cambiarlo por ser super admin'
+                        : 'Lo fija el estudio: solo un super admin puede cambiarlo';
+  });
   const btn=$('#btnSave'); if(!btn) return;
   const tipo = CONTRACT_TIPO[CURRENT.slug];
   const form=$('#form'); if(form) form.classList.toggle('locked', LOCKED);
@@ -3923,8 +3967,7 @@ function aplicarCpFiltros(){
   renderCpList(CP_ROWS
     .filter(r => !CP_TIPO || r.tipo === CP_TIPO)
     .filter(pruebaEstado)
-    .filter(r => !q || [r.numero,r.nombre_contrato,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)]
-      .some(v => (v||'').toLowerCase().includes(q))));
+    .filter(r => lwBuscaEn([r.numero,r.nombre_contrato,r.comprador_nombre,r.proyecto_nombre,r.creado_por,autorVisible(r.creado_por)], q)));
 }
 $('#cpFiltrosTipo').addEventListener('click', e => {
   // «Más/Menos» solo despliega: no cambia el filtro ni la lista de abajo.

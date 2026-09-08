@@ -355,7 +355,7 @@
 <!-- esc() y toast(), que estaban copiados en cada herramienta. Va ANTES del
      script de la pagina: son `const` de primer nivel y dos declaraciones del
      mismo nombre revientan la pagina entera. -->
-<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
@@ -532,8 +532,8 @@ function visibles(){
   return OPS.filter(o => !o.padre)
     .filter(pasaFiltro)
     .filter(o => !PROYECTO || o.proyecto_nombre === PROYECTO)
-    .filter(o => !q ||
-    [o, ...o.hijos].some(x => [x.numero,x.comprador_nombre,x.proyecto_nombre,x.creado_por,operador(x)].some(v => String(v||'').toLowerCase().includes(q))));
+    .filter(o =>
+    [o, ...o.hijos].some(x => lwBuscaEn([x.numero,x.comprador_nombre,x.proyecto_nombre,x.creado_por,operador(x)], q)));
 }
 
 /* Un SOLO punto de pintado. Antes habia siete llamadas sueltas a

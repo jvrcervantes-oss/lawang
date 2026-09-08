@@ -112,7 +112,7 @@
      tabla. Se añaden donde faltaban (12 de 15 páginas). -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
+<script src="/contracts/assets/vocabulario.js?v=588fd174"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
 <script src="/contracts/assets/saldos-v3.js?v=3caabd49"></script>
 <script src="/contracts/assets/movimiento-v3.js?v=853ce82b"></script>
@@ -453,8 +453,7 @@ function visibles(){
   const f = DOCS.filter(d =>
     (!PROY || d.proyecto === PROY) && dentroDe(d, CARPETA) &&
     (!CAT || d.categoria === CAT) &&
-    (!q || [d.titulo, d.proyecto, d.carpeta, d.descripcion, d.creado_por]
-            .some(v => String(v||'').toLowerCase().includes(q))));
+    lwBuscaEn([d.titulo, d.proyecto, d.carpeta, d.descripcion, d.creado_por], q));
   return suiOrdenar(f, ORDEN, (d, c) => d[c]);
 }
 
