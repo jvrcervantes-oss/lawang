@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Adenda — LAWANG</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }
+  .doc .adenda-ref{ background:#F5F0E6; border-left:2px solid var(--dl,#104C4F);
+    padding:10px 14px; margin:0 0 14px; font-size:10pt; }
+</style>
+</head>
+<body>
+  <!-- ADENDA GENÉRICA — 8-sep-2026, encargo del owner.
+       ==========================================================================
+       POR QUÉ EXISTE. Cuando un contrato YA FIRMADO necesita un cambio, hasta hoy
+       había dos salidas y las dos malas: anular la firma y reeditar el documento
+       (el comprador vuelve a firmarlo entero y se pierde la traza de qué cambió) o
+       duplicarlo en uno nuevo (dos documentos vivos sobre la misma operación). La
+       adenda es el instrumento correcto para un cambio puntual: el contrato madre
+       se queda intacto y firmado, y esto es una página que dice qué se modifica.
+       El owner lo pidió con el caso de CC00014 delante: «el cliente firmó y
+       requiere una modificación, es un coñazo estar así».
+
+       CÓMO SE ESCRIBE EL CAMBIO. El formulario solo pide QUÉ contrato se modifica
+       y de qué fecha. El texto de la modificación se escribe con «Editar texto»
+       (admin), directamente sobre la cláusula 2 — no hay un campo de formulario
+       para eso a propósito: el cambio de un contrato es prosa jurídica, no cabe
+       en un <input>, y el editor de documento ya existe y ya deja rastro.
+       Las cláusulas adicionales van por <!--extra-clauses--> como en el resto.
+
+       ⚠️ REVISIÓN LEGAL REAL, PENDIENTE. Redactado con criterio del departamento
+       Legal del estudio, que NO es abogado colegiado. Una adenda modifica un
+       contrato vinculante ya firmado: antes de emitir la primera a un comprador
+       real conviene que un abogado indonesio valide (a) que la fórmula de
+       modificación y ratificación de abajo es suficiente bajo el KUHPerdata, y
+       (b) si el contrato madre se otorgó ante notario, si la adenda necesita la
+       misma forma. Este aviso va en comentario HTML: no viaja al documento.
+
+       TEXTO TRILINGÜE. ES/EN/ID con la misma estructura que carta_reserva.html.
+       Las cláusulas de ley aplicable, arbitraje e idioma se copian de ella
+       DELIBERADAMENTE palabra por palabra: una adenda que se rigiera por otro
+       foro que su contrato madre es exactamente el fallo que este documento
+       viene a evitar. Si allí cambian, aquí también.
+  -->
+  <div class="doc">
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
+
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Adenda al</span><span data-lang="en">Addendum to</span><span data-lang="id">Adendum atas</span></span>
+      <span class="bold"><span data-lang="es">Contrato</span><span data-lang="en">Contract</span><span data-lang="id">Kontrak</span></span>
+    </div>
+    <div class="doc-date"><span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_firma}}</span> · Nº de Adenda: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_firma}}</span> · Addendum No.: <span class="f f-md">{{contrato_num}}</span></span><span data-lang="id">Di Indonesia, tertanggal <span class="f f-sm">{{fecha_firma}}</span> · No. Adendum: <span class="f f-md">{{contrato_num}}</span></span></div>
+
+    <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span><span data-lang="id">Para Pihak</span></h2>
+    <div class="party">
+      <div class="role"><span data-lang="es">Primera Parte</span><span data-lang="en">First Party</span><span data-lang="id">Pihak Pertama</span></div>
+      <p data-lang="es">1. {{prom_razon}}, sociedad constituida conforme a las leyes de la República de Indonesia,<!--opt:prom_marca--> propietaria de la marca registrada en Indonesia {{prom_marca}},<!--/opt:prom_marca--> con domicilio registrado en {{prom_domicilio}}, NPWP {{prom_npwp}}. En este acto representada por D. {{prom_rep}}, actuando en su calidad de Director, {{prom_cred_es}} (en adelante, la «Primera Parte»).</p>
+      <p data-lang="en">1. {{prom_razon}}, a company incorporated under the laws of the Republic of Indonesia,<!--opt:prom_marca--> owner of the trademark registered in Indonesia {{prom_marca}},<!--/opt:prom_marca--> with registered address at {{prom_domicilio}}, NPWP {{prom_npwp}}. Represented herein by Mr. {{prom_rep}}, acting as Director, {{prom_cred_en}} (hereinafter, the "First Party").</p>
+      <p data-lang="id">1. {{prom_razon}}, perusahaan yang didirikan berdasarkan hukum Republik Indonesia,<!--opt:prom_marca--> pemilik merek dagang terdaftar di Indonesia {{prom_marca}},<!--/opt:prom_marca--> beralamat terdaftar di {{prom_domicilio}}, NPWP {{prom_npwp}}. Dalam hal ini diwakili oleh Tn. {{prom_rep}}, bertindak sebagai Direktur, {{prom_cred_id}} (selanjutnya disebut "Pihak Pertama").</p>
+    </div>
+    <div class="party">
+      <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span><span data-lang="id">Pihak Kedua</span></div>
+      <!--if:adq1_tipo=persona-->
+      <p data-lang="es">2. <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, titular del pasaporte n.º <span class="f">{{adq1_pasaporte}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span>. En este acto actuando en nombre propio (en adelante, la «Segunda Parte»).</p>
+      <p data-lang="en">2. <span class="f">{{adq1_nombre}}</span>, of <span class="f">{{adq1_nacionalidad}}</span> nationality, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span>. Acting herein in their own name (hereinafter, the "Second Party").</p>
+      <p data-lang="id">2. <span class="f">{{adq1_nombre}}</span>, berkewarganegaraan <span class="f">{{adq1_nacionalidad}}</span>, pemegang paspor no. <span class="f">{{adq1_pasaporte}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span>. Dalam hal ini bertindak atas nama sendiri (selanjutnya disebut "Pihak Kedua").</p>
+      <!--/if:adq1_tipo-->
+      <!--if:adq1_tipo=empresa-->
+      <p data-lang="es">2. <span class="f">{{adq1_nombre}}</span>, sociedad de nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, con número de registro <span class="f">{{adq1_registro_num}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span>. En este acto representada por <span class="f">{{adq1_rep_nombre}}</span>, en calidad de <span class="f">{{adq1_rep_cargo}}</span> (en adelante, la «Segunda Parte»).</p>
+      <p data-lang="en">2. <span class="f">{{adq1_nombre}}</span>, a company of <span class="f">{{adq1_nacionalidad}}</span> nationality, registration number <span class="f">{{adq1_registro_num}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span>. Represented herein by <span class="f">{{adq1_rep_nombre}}</span>, as <span class="f">{{adq1_rep_cargo}}</span> (hereinafter, the "Second Party").</p>
+      <p data-lang="id">2. <span class="f">{{adq1_nombre}}</span>, perusahaan berkewarganegaraan <span class="f">{{adq1_nacionalidad}}</span>, dengan nomor registrasi <span class="f">{{adq1_registro_num}}</span>, telepon <span class="f">{{adq1_telefono}}</span> dan email <span class="f">{{adq1_email}}</span>. Dalam hal ini diwakili oleh <span class="f">{{adq1_rep_nombre}}</span>, selaku <span class="f">{{adq1_rep_cargo}}</span> (selanjutnya disebut "Pihak Kedua").</p>
+      <!--/if:adq1_tipo-->
+    </div>
+
+    <h2><span data-lang="es">Antecedentes</span><span data-lang="en">Background</span><span data-lang="id">Latar Belakang</span></h2>
+    <div class="adenda-ref">
+      <p data-lang="es" style="margin:0">Las Partes suscribieron el contrato n.º <span class="f f-md">{{adenda_contrato}}</span>, de fecha <span class="f f-sm">{{adenda_contrato_fecha}}</span> (en adelante, el «Contrato»), que a la fecha de esta Adenda se encuentra <b>vigente y firmado por ambas Partes</b>.</p>
+      <p data-lang="en" style="margin:0">The Parties entered into contract no. <span class="f f-md">{{adenda_contrato}}</span>, dated <span class="f f-sm">{{adenda_contrato_fecha}}</span> (hereinafter, the "Contract"), which as at the date of this Addendum is <b>in force and signed by both Parties</b>.</p>
+      <p data-lang="id" style="margin:0">Para Pihak telah menandatangani kontrak no. <span class="f f-md">{{adenda_contrato}}</span>, tertanggal <span class="f f-sm">{{adenda_contrato_fecha}}</span> (selanjutnya disebut "Kontrak"), yang pada tanggal Adendum ini <b>masih berlaku dan telah ditandatangani oleh kedua Pihak</b>.</p>
+    </div>
+
+    <p data-lang="es">Las Partes desean modificar el Contrato en los términos que se recogen a continuación, y a tal efecto suscriben la presente Adenda (en adelante, la «Adenda»).</p>
+    <p data-lang="en">The Parties wish to amend the Contract on the terms set out below, and to that effect execute this Addendum (hereinafter, the "Addendum").</p>
+    <p data-lang="id">Para Pihak bermaksud mengubah Kontrak dengan ketentuan sebagaimana diuraikan di bawah ini, dan untuk itu menandatangani Adendum ini (selanjutnya disebut "Adendum").</p>
+
+    <h2><span data-lang="es">Cláusulas</span><span data-lang="en">Clauses</span><span data-lang="id">Pasal-Pasal</span></h2>
+    <ol>
+      <li>
+        <span data-lang="es"><b>Objeto.</b> Esta Adenda modifica el Contrato exclusivamente en los puntos recogidos en la cláusula 2. Todo lo no modificado expresamente en ella permanece inalterado.</span>
+        <span data-lang="en"><b>Purpose.</b> This Addendum amends the Contract solely on the points set out in clause 2. Everything not expressly amended therein remains unchanged.</span>
+        <span data-lang="id"><b>Maksud.</b> Adendum ini mengubah Kontrak hanya pada hal-hal yang diuraikan dalam Pasal 2. Segala sesuatu yang tidak diubah secara tegas di dalamnya tetap berlaku tanpa perubahan.</span>
+      </li>
+      <li>
+        <!-- ESTA es la cláusula que se escribe con «Editar texto» en cada adenda.
+             El texto de abajo es la INSTRUCCIÓN para quien la redacta y NO debe
+             salir a un comprador: se sustituye entero por la modificación real,
+             citando la cláusula del Contrato que se modifica y su redacción
+             nueva. Si sale tal cual, el documento no está terminado. -->
+        <span data-lang="es"><b>Modificaciones acordadas.</b> [Redactar aquí, con «Editar texto», qué cláusula del Contrato se modifica y cuál pasa a ser su redacción. Ejemplo de forma: «La cláusula 4.2 del Contrato queda sustituida por la siguiente: “…”».]</span>
+        <span data-lang="en"><b>Agreed amendments.</b> [Draft here, using "Edit text", which clause of the Contract is amended and its new wording. Form example: "Clause 4.2 of the Contract is replaced by the following: '…'".]</span>
+        <span data-lang="id"><b>Perubahan yang disepakati.</b> [Tuliskan di sini, melalui "Edit teks", pasal Kontrak mana yang diubah dan bagaimana bunyinya yang baru. Contoh bentuk: "Pasal 4.2 Kontrak diganti menjadi sebagai berikut: '…'".]</span>
+      </li>
+      <li>
+        <span data-lang="es"><b>Ratificación del resto del Contrato.</b> Las Partes ratifican expresamente el Contrato en todo lo no modificado por esta Adenda, que continúa produciendo plenos efectos. Esta Adenda no supone novación extintiva del Contrato.</span>
+        <span data-lang="en"><b>Ratification of the remainder of the Contract.</b> The Parties expressly ratify the Contract in all respects not amended by this Addendum, which remains in full force and effect. This Addendum does not constitute an extinctive novation of the Contract.</span>
+        <span data-lang="id"><b>Pengesahan sisa Kontrak.</b> Para Pihak dengan tegas mengesahkan Kontrak dalam segala hal yang tidak diubah oleh Adendum ini, yang tetap berlaku sepenuhnya. Adendum ini bukan merupakan novasi yang menghapuskan Kontrak.</span>
+      </li>
+      <li>
+        <span data-lang="es"><b>Integración.</b> Esta Adenda forma parte integrante del Contrato y se leerá conjuntamente con él. En caso de discrepancia entre el Contrato y esta Adenda sobre un punto expresamente modificado, prevalecerá esta Adenda.</span>
+        <span data-lang="en"><b>Incorporation.</b> This Addendum forms an integral part of the Contract and shall be read together with it. In the event of any discrepancy between the Contract and this Addendum on an expressly amended point, this Addendum shall prevail.</span>
+        <span data-lang="id"><b>Keterpaduan.</b> Adendum ini merupakan bagian yang tidak terpisahkan dari Kontrak dan dibaca bersama dengannya. Apabila terdapat perbedaan antara Kontrak dan Adendum ini mengenai hal yang diubah secara tegas, Adendum ini yang berlaku.</span>
+      </li>
+      <li>
+        <span data-lang="es"><b>Entrada en vigor.</b> Esta Adenda produce efectos desde la fecha de su firma por ambas Partes.</span>
+        <span data-lang="en"><b>Effective date.</b> This Addendum takes effect from the date of its signature by both Parties.</span>
+        <span data-lang="id"><b>Mulai berlaku.</b> Adendum ini berlaku sejak tanggal ditandatangani oleh kedua Pihak.</span>
+      </li>
+    </ol>
+
+    <h2><span data-lang="es">Ley aplicable, arbitraje e idioma</span><span data-lang="en">Governing law, arbitration and language</span><span data-lang="id">Hukum yang berlaku, arbitrase dan bahasa</span></h2>
+
+    <p data-lang="es">La presente Adenda se rige por las leyes de la República de Indonesia, al igual que el Contrato.</p>
+    <p data-lang="en">This Addendum is governed by the laws of the Republic of Indonesia, as is the Contract.</p>
+    <p data-lang="id">Adendum ini diatur oleh hukum Republik Indonesia, sebagaimana halnya Kontrak.</p>
+
+    <p data-lang="es">Cualquier controversia se resolverá, en primer lugar, mediante negociación amistosa entre las Partes durante 30 (treinta) días naturales desde su notificación escrita. De no alcanzarse acuerdo, la controversia se someterá a arbitraje administrado bajo las reglas del Singapore International Arbitration Centre (SIAC), con sede en Singapur, ante un árbitro único, en idioma español e inglés, siendo el laudo definitivo y vinculante, con renuncia expresa a cualquier otro fuero.</p>
+    <p data-lang="en">Any dispute shall first be resolved through amicable negotiation between the Parties for 30 (thirty) calendar days from written notice thereof. If no agreement is reached, the dispute shall be submitted to arbitration administered under the rules of the Singapore International Arbitration Centre (SIAC), seated in Singapore, before a sole arbitrator, in the Spanish and English languages, with the award being final and binding, with express waiver of any other jurisdiction.</p>
+    <p data-lang="id">Setiap perselisihan pertama-tama diselesaikan melalui negosiasi damai antara Para Pihak selama 30 (tiga puluh) hari kalender sejak pemberitahuan tertulis. Apabila tidak tercapai kesepakatan, perselisihan diajukan ke arbitrase yang diselenggarakan berdasarkan aturan Singapore International Arbitration Centre (SIAC), berkedudukan di Singapura, di hadapan seorang arbiter tunggal, dalam bahasa Spanyol dan Inggris, dengan putusan yang bersifat final dan mengikat, dengan pelepasan tegas atas yurisdiksi lain.</p>
+
+    <p data-lang="es">Este documento se otorga en español, inglés y bahasa indonesia. Conforme a la Ley nº 24/2009 sobre uso obligatorio del idioma indonesio, <b>prevalecerá la versión en bahasa indonesia</b> en caso de discrepancia entre versiones, y será la presentada ante autoridades y registros indonesios. Las versiones en español e inglés son traducciones fieles de aquélla y se otorgan para la comprensión de las Partes.</p>
+    <p data-lang="en">This document is executed in Spanish, English and Indonesian (bahasa). Pursuant to Law no. 24/2009 on the mandatory use of the Indonesian language, <b>the Indonesian version shall prevail</b> in the event of any discrepancy between versions, and shall be the one filed with Indonesian authorities and registries. The Spanish and English versions are faithful translations thereof and are executed for the Parties' understanding.</p>
+    <p data-lang="id">Dokumen ini dibuat dalam bahasa Spanyol, Inggris, dan Indonesia. Sesuai Undang-Undang No. 24/2009 tentang kewajiban penggunaan bahasa Indonesia, <b>versi bahasa Indonesia yang berlaku</b> apabila terdapat perbedaan antar versi, dan versi tersebut yang diajukan kepada otoritas dan pendaftaran di Indonesia. Versi bahasa Spanyol dan Inggris merupakan terjemahan yang setia dan dibuat untuk pemahaman Para Pihak.</p>
+
+    <!--extra-clauses-->
+
+    <h2><span data-lang="es">Suscrito como acuerdo</span><span data-lang="en">Agreed and signed</span><span data-lang="id">Disepakati dan ditandatangani</span></h2>
+    <table class="pays sigs" style="margin-top:14px">
+      <tbody>
+        <tr>
+          <td>
+            <div class="role"><span data-lang="es">Primera Parte — {{prom_razon}}</span><span data-lang="en">First Party — {{prom_razon}}</span><span data-lang="id">Pihak Pertama — {{prom_razon}}</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><!--if:sociedad_firmante=tepi_sungai--><img src="assets/brand/firma-lawang.png" alt="Firma Lawang" style="max-height:20mm;max-width:100%"><!--/if:sociedad_firmante--><!--if:sociedad_firmante=san_dal_woods--><img src="assets/brand/firma-sandalwoods.png" alt="Firma San Dal Woods" style="max-height:20mm;max-width:100%"><!--/if:sociedad_firmante--></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre / Nama</span><span data-lang="en">Name / Nama</span>: {{prom_rep}} — <span data-lang="es">Cargo / Jabatan</span><span data-lang="en">Position / Jabatan</span>: Director / Direktur</p>
+          </td>
+          <td>
+            <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span><span data-lang="id">Pihak Kedua</span></div>
+            <div style="height:22mm;border-bottom:1px solid var(--ss,#BEB3A5);display:flex;align-items:flex-end"><img src="{{firma_adquiriente}}" alt="" style="max-height:22mm;max-width:100%"></div>
+            <p style="margin-top:4px;font-size:9pt"><span data-lang="es">Nombre / Nama</span><span data-lang="en">Name / Nama</span>: <span class="f">{{adq1_nombre}}</span></p>
+            <!--firmas-adquirientes-->
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

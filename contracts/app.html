@@ -59,7 +59,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=588fd174"></script>
+<script src="assets/vocabulario.js?v=1bed6ecd"></script>
 <script src="assets/dinero.js?v=ced29282"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
@@ -508,6 +508,17 @@ const TEMPLATES = [
     name:{es:'Construcción · CC00014 Timon',en:'Construction · CC00014 Timon',id:'Konstruksi · CC00014 Timon'},
     l2:{es:'Tamarind Rise · Modelo Dali',en:'Tamarind Rise · Model Dali',id:'Tamarind Rise · Model Dali'},
     ready:true, disabled:true },
+  /* ADENDA (8-sep-2026). El instrumento para cambiar un contrato YA FIRMADO sin
+     rehacerlo: el contrato madre se queda intacto y esto es una pagina que dice
+     que se modifica. Tipo PROPIO (serie AD) por el mismo motivo que las cuatro
+     cartas: TIPO_SLUG es un mapa inverso tipo->slug y compartir tipo rompe la
+     reapertura del documento guardado.
+     NO lleva precio: si la adenda declarara `precio_total`, Operaciones sumaria
+     el importe otra vez sobre la misma operacion — el mismo fallo que ya costo
+     328.000 EUR por una villa de 164.000 (ver vocabulario.js). */
+  { slug:'adenda', file:'templates/adenda.html', cover:'#6B2F3A',
+    name:{es:'Adenda a contrato',en:'Contract addendum',id:'Adendum kontrak'},
+    l2:{es:'a contrato',en:'to contract',id:'atas kontrak'}, ready:true },
 ];
 const TIERS = {
   siempre:      {es:'Datos de la operación',en:'Operation data',id:'Data operasi'},
@@ -576,6 +587,7 @@ const CONTRACT_TIPO = {
   poa_notario:'poa',   // serie PA · Poder Notarial (Surat Kuasa), exhibit del Hak Sewa
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
   cc00014_timon:'cc00014_timon',   // un solo ejemplar, texto fijo — mismo motivo que ppjb_bonian_c2
+  adenda:'adenda',   // serie AD · modifica un contrato ya firmado sin rehacerlo
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 
