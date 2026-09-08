@@ -303,6 +303,9 @@
           var chip = hojaConTexto(/^Todos\b/i); if (chip) chip.textContent = 'Todos ' + cs.length;
           if (!t) { console.info('[v4] contratos: tabla sin ancla'); return; }
           var pl = plantillaFilas(t);
+          var pintadas = Math.min(cs.length, 120);
+          pon2('p-desde', pintadas ? '1-' + pintadas : '0');
+          pon2('p-total', String(cs.length));   // el pie decia «de 210», fijo
           cs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (c) {
             fila(pl, [c.numero, tipoC(c.tipo), c.comprador_nombre || '—', c.proyecto_nombre || '—',
               c.precio_total != null ? fmt(c.precio_total, c.moneda) : '—',
@@ -342,6 +345,9 @@
           kpi(/CONCILIADOS|EMITIDOS/i, rs.length + ' emitidos', 'histórico completo');
           if (!t) return;
           var pl = plantillaFilas(t);
+          var pintadas = Math.min(rs.length, 120);
+          pon2('p-desde', String(pintadas));    // el pie decia «Mostrando 5 de 16»
+          pon2('p-total', String(rs.length));
           rs.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; }).slice(0, 120).forEach(function (f) {
             fila(pl, [f.numero, f.contrato_numero || '—', f.cliente_nombre || '—', '', fmt(f.total, f.moneda), '',
               fFecha(f.created_at), f.anulada ? 'ANULADA' : 'EMITIDA'], '/intranet/facturas/?id=' + f.id);
@@ -528,6 +534,21 @@
 
         /* --- chips --- */
         pon('p-todos', String(ps.length));
+        /* Los chips «En comercializacion / Completados / En estudio» pedian una
+           clasificacion que `proyectos` NO tiene (solo hay `activo`). En vez de
+           dejar 14/6/4 inventados o poner tres guiones, se derivan del inventario
+           con el MISMO criterio que ya usa el badge de cada tarjeta: hay
+           disponibles / todo asignado / sin unidades. */
+        var cl = { com: 0, fin: 0, est: 0 };
+        ps.forEach(function (p) {
+          var d = porP[p.nombre];
+          if (!d || !d.t) cl.est++;
+          else if (d.disp) cl.com++;
+          else cl.fin++;
+        });
+        pon('c-comercializacion', String(cl.com));
+        pon('c-completados', String(cl.fin));
+        pon('c-estudio', String(cl.est));
         var ests = { disponible: 0, reservada: 0, bloqueada: 0, vendida: 0, cobrada: 0, no_disponible: 0 };
         us.forEach(function (u) { var e = (u.estado || '').replace(/\s+/g, '_'); if (e in ests) ests[e]++; });
         pon('uds-todas', String(us.length));
@@ -704,6 +725,9 @@
         // «100% convalidados» no sale de ningun sitio: la boveda no guarda estado
         // de convalidacion. Guion y motivo, nunca un porcentaje que suene bien.
         pon2('k-convalidados', '—');
+        // «0 litigios activos» tampoco sale de ningun sitio: no hay tabla de
+        // discrepancias. Un cero suena inofensivo y es igual de inventado.
+        pon2('k-litigios', '—');
         kpi(/EXPEDIENTES|DOCUMENTOS/i, String(ds.length), Object.keys(porP).length + ' proyectos con documentación');
         bandaNota('Las descargas viven en la herramienta: /intranet/documentacion/', '#485B37');
       });
