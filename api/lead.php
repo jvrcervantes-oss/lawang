@@ -152,18 +152,45 @@ if ($name !== '' || $phone !== '') {
     // Aviso a ventas. Un formulario que solo escribe en un CSV que nadie abre no es
     // captación: el lead se enfría en el disco. Se guarda si el envío salió o no,
     // que es lo único que permite darse cuenta de que el correo dejó de salir.
-    $enviado = @mail(
-        'sales@lawangproperties.com',
-        'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
+    /* Este aviso era el UNICO correo del sistema fuera de la plantilla de marca:
+       todos los demas pasan por contracts/api/send_email.php, que si la aplica.
+       Se une el 8-sep-2026 (encargo del owner: que todo correo lleve boton de
+       acceso directo) con un boton "Responder al lead" -- la accion util aqui no
+       es abrir una herramienta, es contestarle antes de que se enfrie.
+       wa.me se descarto: el formulario no exige prefijo internacional y un wa.me
+       sin prefijo abre un chat con un numero que no existe, peor que no ponerlo.
+       RED DE SEGURIDAD a proposito: este endpoint ES la captacion y un fallo suyo
+       son leads perdidos, asi que si la plantilla no esta o no carga, el aviso
+       sale en texto plano como toda la vida en vez de no salir. */
+    $cuerpoLead =
         "Modelo: $property\nNombre: $name\nEmail: $email\nTelefono: $phone\n"
         // "no contesto" y "eligio no saberlo" NO son lo mismo para quien va a llamar: el
         // segundo es un lead trabajable que dijo algo. Colapsarlos en "sin definir" tira
         // justo la senal que este campo venia a dar.
         . 'Presupuesto: ' . ($rango !== '' ? $rangos[$rango] : 'no contesto') . "\n"
-        . "Origen: $source\nCampana: $campana\nFecha: " . date('c'),
+        . "Origen: $source\nCampana: $campana\nFecha: " . date('c');
+    $cuerpoCorreo = $cuerpoLead;
+    $tipoCorreo   = 'text/plain';
+    $plantilla    = __DIR__ . '/../contracts/api/lib/plantilla_correo.php';
+    if (is_readable($plantilla)) {
+        require_once $plantilla;
+        if (function_exists('lw_plantilla_correo')) {
+            $ctaLead = filter_var($email, FILTER_VALIDATE_EMAIL)
+                ? ['url' => 'mailto:' . $email, 'texto' => 'Responder al lead']
+                : null;
+            $cuerpoCorreo = lw_plantilla_correo($cuerpoLead, 'Nueva solicitud de llamada', $ctaLead);
+            $tipoCorreo   = 'text/html';
+        }
+    }
+
+    $enviado = @mail(
+        'sales@lawangproperties.com',
+        'Nueva solicitud de llamada - ' . ($property !== '' ? $property : 'web'),
+        $cuerpoCorreo,
         // From de un buzón del propio dominio: con un remitente ajeno el correo cae en spam.
         "From: no-reply@lawangproperties.com\r\nReply-To: $email\r\n"
-        . "Content-Type: text/plain; charset=UTF-8\r\n",
+        . "MIME-Version: 1.0\r\n"
+        . "Content-Type: {$tipoCorreo}; charset=UTF-8\r\n",
         // Envelope sender. Sin -f, Hostinger manda con el usuario del sistema como
         // remitente de sobre, el SPF de lawangproperties.com falla y el aviso cae en
         // spam. Mismo parametro que usa contracts/api/send_email.php.

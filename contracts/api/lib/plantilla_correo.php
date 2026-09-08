@@ -51,12 +51,62 @@ const LW_CORREO_LOGO_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAeAAAABDCAYAAABEK9ZhAABX6ElE
  * "Tu contrato" o "Nuevo mensaje de soporte"). Si no se da, la tarjeta
  * entra directa en el cuerpo -- el asunto del correo ya hace de titulo.
  */
-function lw_plantilla_correo(string $mensajeTexto, ?string $encabezado = null): string {
+/**
+ * $cta (8-sep-2026, encargo del owner: "que todas tengan un boton para acceder
+ * directamente") -- ['url' => ..., 'texto' => ...]. QUIEN decide el destino es
+ * send_email.php, no esta funcion: aqui solo se pinta. El boton es el MISMO
+ * marcado, color y espaciado que el de contracts/edge/correo/magic-link.html
+ * (#104C4F Deep Lagoon, 15px/38px, letter-spacing 2px) -- copiado verbatim a
+ * proposito: esas dos plantillas ya divergieron una vez (ver arriba, 1-sep) y
+ * si vuelven a separarse el comprador recibe dos botones distintos del mismo
+ * remitente el mismo dia.
+ *
+ * La URL va TAMBIEN en claro debajo. Mismo motivo que documenta magic-link.html
+ * en su cabecera: hay clientes de correo que no pintan el boton, y sin la
+ * direccion visible el correo se queda sin salida.
+ */
+function lw_plantilla_correo(string $mensajeTexto, ?string $encabezado = null, ?array $cta = null): string {
   $cuerpoHtml = nl2br(htmlspecialchars($mensajeTexto, ENT_QUOTES, 'UTF-8'));
   $encabezadoHtml = $encabezado !== null && trim($encabezado) !== ''
     ? '<div style="font-family:Georgia,\'Times New Roman\',serif;font-size:20px;color:#2E3437;padding-bottom:14px;">'
       . htmlspecialchars($encabezado, ENT_QUOTES, 'UTF-8') . '</div>'
     : '';
+  // El boton solo se pinta si el llamante da URL y texto: media pareja no
+  // produce medio boton, produce uno roto.
+  $ctaUrl   = is_array($cta) ? trim((string)($cta['url'] ?? '')) : '';
+  $ctaTexto = is_array($cta) ? trim((string)($cta['texto'] ?? '')) : '';
+  $botonHtml = '';
+  $enClaroHtml = '';
+  if ($ctaUrl !== '' && $ctaTexto !== '') {
+    $u = htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8');
+    $t = htmlspecialchars($ctaTexto, ENT_QUOTES, 'UTF-8');
+    $botonHtml = <<<BTN
+        <tr>
+          <td style="padding:26px 40px 0;text-align:center;">
+            <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+              <tr>
+                <td style="background:#104C4F;">
+                  <a href="{$u}"
+                     style="display:inline-block;padding:15px 38px;color:#F5F0E6;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;">
+                    {$t}
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+BTN;
+    // `mailto:` y `wa.me` no se repiten en claro: la direccion y el telefono ya
+    // estan en el propio cuerpo del aviso, y una linea "mailto:..." suelta
+    // parece un error, no una salida de emergencia.
+    if (stripos($ctaUrl, 'http') === 0) {
+      $enClaroHtml = '<div style="padding-bottom:16px;word-break:break-all;">'
+        . 'Si el boton no funciona, copia esta direccion en tu navegador &middot; '
+        . 'If the button does not work, paste this address into your browser:<br>'
+        . '<a href="' . $u . '" style="color:#104C4F;">' . $u . '</a></div>';
+    }
+  }
+
   $logo = LW_CORREO_LOGO_B64;
 
   return <<<HTML
@@ -85,11 +135,12 @@ function lw_plantilla_correo(string $mensajeTexto, ?string $encabezado = null): 
           </td>
         </tr>
 
+{$botonHtml}
         <!-- pie -->
         <tr>
           <td style="padding:30px 40px 34px;">
             <div style="border-top:1px solid #E4DCCB;padding-top:20px;font-size:11.5px;line-height:1.7;color:#8F9B7A;">
-              Lawang Tropical Properties &middot;
+              {$enClaroHtml}Lawang Tropical Properties &middot;
               <a href="mailto:sales@lawangproperties.com" style="color:#104C4F;">sales@lawangproperties.com</a>
             </div>
           </td>

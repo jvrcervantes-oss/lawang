@@ -161,6 +161,76 @@ if (!$autorizado) {
 // esto, "funciona" y "funciona por la puerta de atrás" se ven igual.
 error_log('send_email: autorizado por ' . $via . ' -> ' . $to);
 
+/* ---- botón de acceso directo (8-sep-2026) ------------------------------
+   Encargo del owner: "que todas tengan un botón para acceder directamente".
+   Se decide AQUÍ y no en cada llamante porque este endpoint es el cuello de
+   botella por el que pasa TODO el correo del sistema — la app de contratos, la
+   herramienta de Facturas, las dos Edge Functions (firma-submit y
+   factura-vencimiento, que hacen POST aquí en vez de montar un segundo emisor)
+   y los avisos de Postgres. Poniéndolo en este punto, los correos de las Edge
+   ganan su botón sin redesplegar ninguna: `compartidos.generated.ts` no se
+   toca, que es exactamente donde estas funciones se rompen al reempaquetarlas.
+
+   Un llamante puede imponer el suyo con `cta_url` + `cta_texto`. Si no lo hace,
+   se deduce, en este orden:
+     1. el mensaje lleva un enlace de firma  → llevar a firmar ese documento
+     2. el destinatario es de casa           → la intranet
+     3. cualquier otro                       → el área de clientes
+
+   ⚠️ La URL va contra una lista blanca y un `cta_url` fuera de ella se RECHAZA,
+   no se ignora: este correo sale con la marca de Lawang y su remitente real, así
+   que un botón hacia un dominio ajeno es materia prima de un fraude — y la vía 3
+   entra sin credencial. Rechazar en voz alta también evita el fallo silencioso:
+   todos los llamantes son de casa, así que un 400 aquí es un bug nuestro que hay
+   que ver, no un caso de usuario que haya que tolerar. */
+$PORTAL   = 'https://lawangproperties.com/portal/';
+$INTRANET = 'https://lawangproperties.com/intranet/';
+
+/* Ojo: `$interno` (arriba) exige además `!$attach`, porque autoriza. Para el
+   botón hace falta solo "¿va a alguien de casa?" — la copia al estudio de una
+   factura lleva PDF y sigue siendo interna. Son dos preguntas distintas y por
+   eso son dos variables. */
+$destinoInterno = preg_match('/@(.+)$/', $to, $mdCta)
+  && (strcasecmp($mdCta[1], $DOMINIO) === 0 || str_ends_with(strtolower($mdCta[1]), '.' . $DOMINIO));
+
+$ctaUrl   = trim((string)($in['cta_url'] ?? ''));
+$ctaTexto = trim((string)($in['cta_texto'] ?? ''));
+
+if ($ctaUrl !== '') {
+  if (!cta_permitida($ctaUrl)) {
+    fail('cta_url no permitida: solo https hacia ' . $DOMINIO . ' (o sus subdominios), mailto: y https://wa.me/');
+  }
+  if ($ctaTexto === '') { fail('cta_url sin cta_texto: media pareja no pinta medio botón'); }
+  if (mb_strlen($ctaTexto) > 60) { fail('cta_texto demasiado largo'); }
+} elseif (preg_match('#https://[A-Za-z0-9.-]+/contracts/firmar[.]html[?]t=[A-Za-z0-9._-]+#', $message, $mFirma)
+          && cta_permitida($mFirma[0])) {
+  $ctaUrl = $mFirma[0];
+  $ctaTexto = 'Firmar el documento';
+} elseif ($destinoInterno) {
+  $ctaUrl = $INTRANET;
+  $ctaTexto = 'Abrir la intranet';
+} else {
+  $ctaUrl = $PORTAL;
+  $ctaTexto = 'Entrar · Sign in';
+}
+$cta = ['url' => $ctaUrl, 'texto' => $ctaTexto];
+
+/* Lista blanca. `parse_url` y comparación de host completo: un `str_contains`
+   con 'lawangproperties.com' aceptaría `lawangproperties.com.fraude.ru`, que es
+   el bypass clásico de esta comprobación escrita a la ligera. */
+function cta_permitida(string $u): bool {
+  if (stripos($u, 'mailto:') === 0) {
+    return (bool) filter_var(substr($u, 7), FILTER_VALIDATE_EMAIL);
+  }
+  if (stripos($u, 'https://wa.me/') === 0) {
+    return (bool) preg_match('#^https://wa\.me/\d{6,20}$#', $u);
+  }
+  $p = parse_url($u);
+  if (!$p || ($p['scheme'] ?? '') !== 'https' || empty($p['host'])) { return false; }
+  $h = strtolower($p['host']);
+  return $h === 'lawangproperties.com' || str_ends_with($h, '.lawangproperties.com');
+}
+
 // ---- PDF: renderizado con Chromium real (Railway) si hay HTML + servicio
 // configurado; si eso falla o no está configurado, cae al adjunto manual
 // (pdf_base64) cuando el cliente lo mandó como respaldo. ----
@@ -209,7 +279,7 @@ $boundary = 'lwc_' . bin2hex(random_bytes(16));
 // formato de TODO correo de la intranet con el mismo diseño que ya usa el
 // email de acceso al portal). Antes esta parte era texto plano a secas.
 require_once __DIR__ . '/lib/plantilla_correo.php';
-$mensajeHtml = lw_plantilla_correo($message);
+$mensajeHtml = lw_plantilla_correo($message, null, $cta);
 
 // multipart/mixed con una sola parte de HTML es correo válido, así que el
 // camino sin adjunto reusa la misma estructura (y el mismo SmtpMailer) en vez
