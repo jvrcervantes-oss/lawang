@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es"><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="compradores"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=6b3bbe41" defer></script>
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=474e6c90" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c2869d3f" defer></script>
 <link href="../assets/shell.css?v=47ef41f3" rel="stylesheet">
@@ -27,7 +27,7 @@
 <span class="font-body-sm text-body-sm text-on-surface-variant">clientes activos</span>
 </div>
 <div class="mt-3 flex items-center gap-2 pt-2 border-t-0">
-<span class="inline-flex items-center text-[11px] font-label-md font-semibold text-territorial-green bg-primary-fixed/40 px-2 py-0.5 rounded-full">+12 este trimestre</span>
+<span class="inline-flex items-center text-[11px] font-label-md font-semibold text-territorial-green bg-primary-fixed/40 px-2 py-0.5 rounded-full" data-lw="k-nuevos">—</span>
 </div>
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
@@ -38,13 +38,13 @@
 </div>
 </div>
 <div class="flex items-baseline gap-2">
-<span class="font-kpi-number text-kpi-number text-volcanic-ash font-bold">32.650.000 €</span>
+<span class="font-kpi-number text-kpi-number text-volcanic-ash font-bold" data-lw="k-capital">—</span>
 </div>
 <div class="mt-3 flex items-center gap-2 pt-2">
 <div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
 <div class="bg-deep-lagoon h-full rounded-full" style="width: 78%"></div>
 </div>
-<span class="font-body-sm text-[11px] text-on-surface-variant font-medium shrink-0">78% ejecutado</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant font-medium shrink-0" data-lw="k-capital-chip">—</span>
 </div>
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex flex-col justify-between">
@@ -54,11 +54,9 @@
 <span class="material-symbols-outlined text-[18px]">public</span>
 </div>
 </div>
-<div class="flex flex-wrap gap-1.5 my-1">
-<span class="px-2 py-0.5 rounded-md bg-surface-container text-volcanic-ash font-label-md text-[12px] font-medium">España</span>
-<span class="px-2 py-0.5 rounded-md bg-surface-container text-volcanic-ash font-label-md text-[12px] font-medium">Singapur</span>
-<span class="px-2 py-0.5 rounded-md bg-surface-container text-volcanic-ash font-label-md text-[12px] font-medium">Australia</span>
-<span class="px-2 py-0.5 rounded-md bg-surface-container text-volcanic-ash font-label-md text-[12px] font-medium">Francia</span>
+<div class="flex flex-wrap gap-1.5 my-1" id="nacs">
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-volcanic-ash font-label-md text-[12px] font-medium">—</span>
+
 </div>
 <div class="mt-2 text-on-surface-variant font-body-sm text-[11px]">
         Cobertura legal multijurisdicción
@@ -77,7 +75,7 @@
 </div>
 <div class="mt-3 flex items-center gap-1.5 text-territorial-green font-label-md text-[11px] font-semibold">
 <span class="material-symbols-outlined text-[14px]">gavel</span>
-<span class="">Acreditados Notaría PPAT</span>
+<span class="" data-lw="k-verificados-pie">—</span>
 </div>
 </div>
 </div>
@@ -102,18 +100,10 @@
 <div class="flex items-center gap-2 pl-2 border-l border-stone-sand/30"><button class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface text-volcanic-ash font-label-md text-body-sm hover:bg-surface-container transition-colors" title="Exportar listado" type="button"><span class="material-symbols-outlined text-[18px] text-deep-lagoon">download</span><span class="">Exportar CSV</span></button><button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-deep-lagoon text-on-primary font-label-md text-body-sm font-semibold shadow-sm hover:opacity-95 transition-all" type="button"><span class="material-symbols-outlined text-[18px]">person_add</span><span class="">+ Alta de comprador</span></button></div></div>
 </div>
 <div class="flex flex-wrap items-center gap-2 pt-2">
-<button class="filter-btn active px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-deep-lagoon text-on-primary font-semibold transition-all" type="button">
-        Todos (142)
-      </button>
-<button class="filter-btn px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-volcanic-ash font-medium transition-all" type="button">
-        Con contrato activo (86)
-      </button>
-<button class="filter-btn px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-volcanic-ash font-medium transition-all" type="button">
-        En proceso de firma (18)
-      </button>
-<button class="filter-btn px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-volcanic-ash font-medium transition-all" type="button">
-        Prospectos cualificados (38)
-      </button>
+<button class="filter-btn active px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-deep-lagoon text-on-primary font-semibold transition-all" type="button"><span data-lw="cc-todos">Todos</span></button>
+<button class="filter-btn px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-volcanic-ash font-medium transition-all" type="button"><span data-lw="cc-contrato">Con contrato</span></button>
+<button class="filter-btn px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-volcanic-ash font-medium transition-all" type="button"><span data-lw="cc-firma">En firma</span></button>
+<button class="filter-btn px-3.5 py-1.5 rounded-full font-label-md text-body-sm bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-volcanic-ash font-medium transition-all" type="button"><span data-lw="cc-prospectos">Prospectos</span></button>
 </div>
 </div>
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">

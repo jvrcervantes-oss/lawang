@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="vencimientos"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=6b3bbe41" defer></script>
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="/intranet/vencimientos/logica.js?v=f93fae48" defer></script><script src="../assets/datos.js?v=474e6c90" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c2869d3f" defer></script>
 <link href="../assets/shell.css?v=47ef41f3" rel="stylesheet">
@@ -199,9 +199,9 @@
 </span>
 </div>
 <div class="mt-4">
-<div class="font-kpi-number text-headline-md text-deep-lagoon">342.805,00 €</div>
+<div class="font-kpi-number text-headline-md text-deep-lagoon" data-lw="k-prevision">—</div>
 <div class="flex items-center gap-2 mt-1.5">
-<span class="px-2 py-0.5 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-[11px] font-semibold">+18.4% vs mes ant.</span>
+<span class="px-2 py-0.5 rounded-full bg-soft-canopy/25 text-territorial-green font-label-md text-[11px] font-semibold" data-lw="k-prevision-chip">—</span>
 <span class="text-on-surface-variant font-body-sm text-[12px]">Septiembre 2026</span>
 </div>
 </div>
@@ -214,10 +214,10 @@
 </span>
 </div>
 <div class="mt-4">
-<div class="font-kpi-number text-headline-md text-burnt-earth">4 cobros</div>
+<div class="font-kpi-number text-headline-md text-burnt-earth" data-lw="k-criticos">—</div>
 <div class="flex items-center gap-2 mt-1.5">
 <span class="px-2 py-0.5 rounded-full bg-burnt-earth/15 text-burnt-earth font-label-md text-[11px] font-semibold">&lt; 7 días límite</span>
-<span class="text-on-surface-variant font-body-sm text-[12px]">Total: 115.000 €</span>
+<span class="text-on-surface-variant font-body-sm text-[12px]" data-lw="k-criticos-total">—</span>
 </div>
 </div>
 </div>
@@ -229,10 +229,10 @@
 </span>
 </div>
 <div class="mt-4">
-<div class="font-kpi-number text-headline-md text-error">2 contratos</div>
+<div class="font-kpi-number text-headline-md text-error" data-lw="k-vencidos-n">—</div>
 <div class="flex items-center gap-2 mt-1.5">
-<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-semibold">Acción notarial</span>
-<span class="text-on-surface-variant font-body-sm text-[12px]">Total: 50.000 €</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-semibold" data-lw="k-vencidos-chip">—</span>
+<span class="text-on-surface-variant font-body-sm text-[12px]" data-lw="k-vencidos-total">—</span>
 </div>
 </div>
 </div>
@@ -244,7 +244,7 @@
 </span>
 </div>
 <div class="mt-4">
-<div class="font-kpi-number text-headline-md text-deep-lagoon">1.240.500,00 €</div>
+<div class="font-kpi-number text-headline-md text-deep-lagoon" data-lw="k-escrow">—</div>
 <div class="flex items-center gap-2 mt-1.5">
 <span class="w-2 h-2 rounded-full bg-territorial-green animate-pulse"></span>
 <span class="text-territorial-green font-label-md text-[11px] font-semibold">Escrow notarial • Custodia notarial</span>
@@ -269,9 +269,9 @@
 <div class="flex items-center gap-3 px-1">
 <span class="w-2.5 h-2.5 rounded-full bg-error"></span>
 <h2 class="font-headline-sm text-headline-sm text-burnt-earth">Urgentes / Vencidos</h2>
-<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold">2 INCIDENCIAS</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold" data-lw="n-vencidos">—</span>
 </div>
-<div class="space-y-3">
+<div class="space-y-3" id="lista-vencidos">
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 <div class="flex items-start gap-3.5 min-w-0">
@@ -280,16 +280,16 @@
 </div>
 <div class="min-w-0">
 <div class="flex items-center gap-2 flex-wrap">
-<span class="font-label-md text-label-md text-on-surface font-semibold">Firma comprador F · RP00024</span>
-<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold uppercase">Vencido hace 1 día</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold" data-lw="v-titulo">—</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-md text-[11px] font-bold uppercase" data-lw="v-chip">—</span>
 </div>
-<div class="text-body-sm text-on-surface-variant mt-0.5">Bloqueo Parcela Java • Comprador: Comprador de ejemplo F</div>
+<div class="text-body-sm text-on-surface-variant mt-0.5" data-lw="v-desc">—</div>
 </div>
 </div>
 <div class="flex items-center justify-between md:justify-end gap-6 shrink-0">
 <div class="text-right">
-<div class="font-kpi-number text-headline-sm text-burnt-earth">15.000,00 €</div>
-<div class="text-body-sm text-error text-[12px] font-medium">Cadena de firma detenida</div>
+<div class="font-kpi-number text-headline-sm text-burnt-earth" data-lw="v-importe">—</div>
+<div class="text-body-sm text-error text-[12px] font-medium" data-lw="v-nota">—</div>
 </div>
 <div class="flex items-center gap-2">
 <button class="px-3.5 py-1.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-body-sm transition-colors" type="button">Reactivar enlace</button>
@@ -330,9 +330,9 @@
 <div class="flex items-center gap-3 px-1">
 <span class="w-2.5 h-2.5 rounded-full bg-burnt-earth"></span>
 <h2 class="font-headline-sm text-headline-sm text-volcanic-ash">Esta Semana (Próximos 7 días)</h2>
-<span class="px-2 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold">2 FIRMAS CLAVE</span>
+<span class="px-2 py-0.5 rounded-full bg-soft-canopy/20 text-territorial-green font-label-md text-[11px] font-semibold" data-lw="n-semana">—</span>
 </div>
-<div class="space-y-3">
+<div class="space-y-3" id="lista-semana">
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 <div class="flex items-start gap-3.5 min-w-0">
@@ -389,9 +389,9 @@
 <div class="flex items-center gap-3 px-1">
 <span class="w-2.5 h-2.5 rounded-full bg-deep-lagoon"></span>
 <h2 class="font-headline-sm text-headline-sm text-volcanic-ash">A 30-60 Días (Hitos de Obra y Facturas)</h2>
-<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[11px] font-semibold">3 DOCUMENTOS EN CALENDARIO</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[11px] font-semibold" data-lw="n-prox">—</span>
 </div>
-<div class="space-y-3">
+<div class="space-y-3" id="lista-prox">
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 <div class="flex items-start gap-3.5 min-w-0">

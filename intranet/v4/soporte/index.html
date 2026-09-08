@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="soporte"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=6b3bbe41" defer></script>
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=1bed6ecd" defer></script><script src="../assets/datos.js?v=474e6c90" defer></script>
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=c2869d3f" defer></script>
 <link href="../assets/shell.css?v=47ef41f3" rel="stylesheet">
@@ -32,7 +32,7 @@
 </div>
 <div class="flex items-center gap-1.5 text-on-surface-variant font-body-sm text-[12px]">
 <span class="w-2 h-2 rounded-full bg-territorial-green"></span>
-<span class="">4 prioritarios en Bali / Sumba</span>
+<span class=""><span data-lw="k-abiertos-pie">—</span></span>
 </div>
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-3 relative overflow-hidden">
@@ -41,12 +41,12 @@
 <span class="material-symbols-outlined text-deep-lagoon text-[20px]">schedule</span>
 </div>
 <div class="flex items-baseline gap-2">
-<span class="font-kpi-number text-volcanic-ash text-[34px] tracking-tight font-semibold">1h 14m</span>
+<span class="font-kpi-number text-volcanic-ash text-[34px] tracking-tight font-semibold" data-lw="k-tmr">—</span>
 <span class="font-body-sm text-on-surface-variant text-[12px] font-medium">SLA &lt; 4h</span>
 </div>
 <div class="flex items-center gap-2 font-body-sm text-[12px] text-soft-canopy font-medium">
 <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
-<span class="">26% más veloz esta semana</span>
+<span class=""><span data-lw="k-tmr-chip">—</span></span>
 </div>
 </div>
 <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-3 relative overflow-hidden">
@@ -86,7 +86,7 @@
 <div class="flex items-center justify-between px-1">
 <div class="flex items-center gap-2">
 <span class="font-headline-sm text-volcanic-ash text-[19px]">Casos asignados</span>
-<span class="px-2 py-0.5 rounded-full bg-raw-linen text-volcanic-ash font-label-md text-[11px] font-bold">5 activos</span>
+<span class="px-2 py-0.5 rounded-full bg-raw-linen text-volcanic-ash font-label-md text-[11px] font-bold"><span data-lw="n-hilos">—</span></span>
 </div>
 <button class="text-on-surface-variant hover:text-volcanic-ash text-body-sm flex items-center gap-1 font-medium" type="button">
 <span class="material-symbols-outlined text-[16px]">tune</span>
@@ -98,35 +98,31 @@
 <input class="w-full pl-9 pr-4 py-2 bg-surface-container-low rounded-lg font-body-sm text-body-sm text-volcanic-ash placeholder-on-surface-variant/70 focus:outline-none focus:bg-surface-container-lowest transition-all" placeholder="Buscar por inversor, referencia o villa..." type="text">
 </div>
 <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-label-md">
-<button class="px-3 py-1 rounded-full bg-primary text-on-primary text-[12px] font-semibold" type="button">Todos (12)</button>
-<button class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high text-[12px] transition-colors" type="button">Abiertos (7)</button>
-<button class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high text-[12px] transition-colors" type="button">En espera (3)</button>
+<button class="px-3 py-1 rounded-full bg-primary text-on-primary text-[12px] font-semibold" type="button"><span data-lw="c-todos">Todos</span></button>
+<button class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high text-[12px] transition-colors" type="button"><span data-lw="c-abiertos">Abiertos</span></button>
+<button class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high text-[12px] transition-colors" type="button"><span data-lw="c-espera">En espera</span></button>
 <button class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high text-[12px] transition-colors" type="button">Resueltos</button>
 <button class="px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high text-[12px] transition-colors" type="button">VIP</button>
 </div>
-<div class="space-y-2 pt-1">
+<div class="space-y-2 pt-1" id="lista-hilos">
 <div class="p-3.5 rounded-xl bg-surface-container-high/60 cursor-pointer transition-all space-y-2 relative">
 <div class="flex items-start justify-between gap-2">
 <div class="flex items-center gap-2">
-<span class="font-label-md text-[11px] font-bold text-deep-lagoon tracking-wider">#TK-882</span>
+<span class="font-label-md text-[11px] font-bold text-deep-lagoon tracking-wider" data-lw="t-num">—</span>
 <span class="w-1 h-1 rounded-full bg-stone-sand"></span>
-<span class="font-label-md text-[12px] text-volcanic-ash font-bold">Comprador de ejemplo C QA</span>
+<span class="font-label-md text-[12px] text-volcanic-ash font-bold" data-lw="t-nombre">—</span>
 </div>
-<span class="px-2 py-0.5 rounded-full bg-territorial-green/15 text-territorial-green font-label-md text-[10px] uppercase font-bold tracking-wide">
-              Abierto
-            </span>
+<span class="px-2 py-0.5 rounded-full bg-territorial-green/15 text-territorial-green font-label-md text-[10px] uppercase font-bold tracking-wide" data-lw="t-estado">—</span>
 </div>
-<p class="font-body-sm text-volcanic-ash font-medium text-[13px] line-clamp-2 leading-relaxed">
-            Duda sobre estructuración de KITAS e impuestos indonesios
-          </p>
+<p class="font-body-sm text-volcanic-ash font-medium text-[13px] line-clamp-2 leading-relaxed" data-lw="t-asunto">—</p>
 <div class="flex items-center justify-between pt-1 text-[11px] font-body-sm text-on-surface-variant">
 <div class="flex items-center gap-1.5">
 <span class="w-2 h-2 rounded-full bg-error"></span>
-<span class="font-semibold text-burnt-earth">Prioridad Alta</span>
+<span class="font-semibold text-burnt-earth" data-lw="t-cat">—</span>
 <span class="text-stone-sand">·</span>
-<span class="">Andrea L.</span>
+<span class="" data-lw="t-quien">—</span>
 </div>
-<span class="font-medium text-volcanic-ash">Hoy 10:14</span>
+<span class="font-medium text-volcanic-ash" data-lw="t-fecha">—</span>
 </div>
 </div>
 <div class="p-3.5 rounded-xl bg-surface-container-low hover:bg-surface-container-high/40 cursor-pointer transition-colors space-y-2">
@@ -226,15 +222,11 @@
 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
 <div class="space-y-1">
 <div class="flex items-center gap-2.5">
-<span class="font-label-md text-[11px] tracking-wider uppercase font-bold text-deep-lagoon bg-secondary-container/60 px-2.5 py-0.5 rounded-full">
-                Ticket #TK-882
-              </span>
-<span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-[11px] font-bold">
-                Inversora Acreditada
-              </span>
+<span class="font-label-md text-[11px] tracking-wider uppercase font-bold text-deep-lagoon bg-secondary-container/60 px-2.5 py-0.5 rounded-full" data-lw="h-num">—</span>
+<span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-[11px] font-bold" data-lw="h-chip">—</span>
 </div>
-<h2 class="font-headline-md text-volcanic-ash text-[24px]">Comprador de ejemplo C QA</h2>
-<p class="font-body-sm text-on-surface-variant">Aqua Collection · Villa Aqua 3 (Uluwatu, Bali)</p>
+<h2 class="font-headline-md text-volcanic-ash text-[24px]" data-lw="h-nombre">—</h2>
+<p class="font-body-sm text-on-surface-variant" data-lw="h-sub">—</p>
 </div>
 <div class="flex items-center gap-2">
 <a class="px-3 py-1.5 rounded-full bg-surface-container-highest hover:bg-surface-container-high text-volcanic-ash font-label-md text-[12px] flex items-center gap-1.5 transition-colors" href="#">
@@ -250,19 +242,19 @@
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-[12px] font-body-sm text-volcanic-ash">
 <div class="flex items-center gap-2 bg-surface-container-lowest p-2.5 rounded-lg">
 <span class="material-symbols-outlined text-stone-sand text-[18px]">phone</span>
-<span class="font-medium">+34 600 000 000</span>
+<span class="font-medium" data-lw="cv-tel">—</span>
 </div>
 <div class="flex items-center gap-2 bg-surface-container-lowest p-2.5 rounded-lg">
 <span class="material-symbols-outlined text-stone-sand text-[18px]">mail</span>
-<span class="font-medium truncate">comprador.c@ejemplo.com</span>
+<span class="font-medium truncate" data-lw="cv-email">—</span>
 </div>
 <div class="flex items-center gap-2 bg-surface-container-lowest p-2.5 rounded-lg">
 <span class="material-symbols-outlined text-territorial-green text-[18px]">badge</span>
-<span class="font-medium truncate">Andrea Lestari (Legal)</span>
+<span class="font-medium truncate" data-lw="cv-cat">—</span>
 </div>
 </div>
 </div>
-<div class="p-6 space-y-5 flex-1 min-h-[380px] bg-background">
+<div id="convo" class="p-6 space-y-5 flex-1 min-h-[380px] bg-background">
 <div class="flex justify-center">
 <span class="px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-md text-[11px] font-semibold tracking-wider uppercase">
             25 Ago 2026
