@@ -643,6 +643,15 @@
         b.innerHTML = 'V4 · DATOS EN VIVO · <a href="' + raiz + '" style="color:#DFB376;text-decoration:underline">Hub</a>';
       }
       ponBanner();
+
+      /* La topbar enseñaba un nombre REAL del equipo hardcodeado por Stitch
+         (venía copiado de las capturas). El usuario de sesión se pinta aquí,
+         nunca en el HTML: este repo es público. */
+      var quien = (aut.ficha && aut.ficha.nombre) ||
+                  ((aut.session && aut.session.user && aut.session.user.email || '').split('@')[0]) || 'Sesión activa';
+      var rol = (aut.ficha && aut.ficha.rol) || '—';
+      document.querySelectorAll('[data-lw-user]').forEach(function (e) { e.textContent = quien; });
+      document.querySelectorAll('[data-lw-rol]').forEach(function (e) { e.textContent = rol; });
       var fn = REG[seg];
       if (fn) { try { fn(aut.sb); } catch (e) { fallo('pantalla ' + seg, e); } }
     });
