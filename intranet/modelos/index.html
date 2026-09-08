@@ -356,11 +356,21 @@ function cuerpoLectura(m){
         <span class="casc">· ${esc(d.tipo)}${d.visible_portal ? ' · visible para el comprador' : ''}</span></span>
       <b><button type="button" class="sui-btn" data-desc="${esc(d.id)}">Abrir</button></b></div>`).join('')
       : '<p class="mini">Sin planos ni memoria de calidades todavía.</p>'}
-    <div style="margin-top:10px">
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="file" id="fDoc" accept="application/pdf,image/jpeg,image/png,image/webp" hidden>
+      <select class="sui-sel" id="tipoDoc" style="max-width:220px" aria-label="Tipo de documento">
+        <option value="plano">Plano · anexo del contrato</option>
+        <option value="calidades">Memoria de calidades</option>
+        <option value="ficha">Ficha</option>
+        <option value="render">Render</option>
+        <option value="otro" selected>Otro</option>
+      </select>
       <button type="button" class="sui-btn" id="bSubir">Añadir documento</button>
       <span class="mini">PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.</span>
     </div>
+    <p class="mini" style="margin-top:6px">El de tipo <b>plano</b> es el que el contrato de Construcción
+      adjunta solo al elegir este modelo (el más reciente si hay varios). Sin ninguno, se sigue usando
+      el PDF que el estudio tenga en el repo.</p>
   </div>`;
 }
 
@@ -476,7 +486,8 @@ function enganchar(m){
     const sub = document.getElementById('bSubir');
     if(sub) sub.onclick = () => document.getElementById('fDoc').click();
     const f = document.getElementById('fDoc');
-    if(f) f.onchange = () => subirDoc(m, f.files && f.files[0]);
+    if(f) f.onchange = () => subirDoc(m, f.files && f.files[0],
+                                    (document.getElementById('tipoDoc') || {}).value);
     document.querySelectorAll('[data-desc]').forEach(b2 => b2.onclick = () => descargar(b2.dataset.desc));
     return;
   }
@@ -603,7 +614,11 @@ async function contarUnidades(modeloId){
    La ruta en el bucket es un uuid y el nombre real va en la COLUMNA. Un plano de
    verdad llega a veces con el nombre del cliente o el importe en el nombre de
    archivo; misma regla que los justificantes de un recibí. */
-async function subirDoc(m, file){
+/* EL TIPO LO ELIGE QUIEN SUBE — 8-sep-2026. Estaba fijo en 'otro', y desde hoy
+   el contrato de Construccion busca el documento de tipo `plano` del modelo para
+   adjuntarlo como anexo: sin poder marcarlo, el camino nuevo no lo estrenaba
+   nadie y todo seguia cayendo al PDF estatico del repo sin que se notara. */
+async function subirDoc(m, file, tipo){
   if(!file) return;
   if(file.size > 52428800){ toast('El fichero pasa de 50 MB'); return; }
   const ext  = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
@@ -612,7 +627,7 @@ async function subirDoc(m, file){
   const up = await SB.storage.from('modelos').upload(path, file, { contentType:file.type || undefined });
   if(up.error){ toast('No se ha subido: ' + up.error.message); return; }
   const r = await SB.from('modelo_documentos').insert({
-    modelo_id:m.id, nombre:file.name, path, tipo:'otro',
+    modelo_id:m.id, nombre:file.name, path, tipo:(tipo || 'otro'),
     tamano_bytes:file.size, subido_por:(YO && YO.id) || null });
   if(r.error){
     /* Si la fila no entra, el fichero que acaba de subir se queda huérfano en el
