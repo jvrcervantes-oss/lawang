@@ -446,6 +446,20 @@
     { re: /^Select your villa size, roof finish, and land plot\. Prices shown in your currency at a fixed rate of ([\d.,]+) AUD\/EUR \((.+?)\) — the contract figure is the euro one\.$/,
       es: "Elige el tamaño de la villa, el acabado del techo y la parcela. Los precios se muestran en tu moneda a un tipo fijo de $1 AUD/EUR ($2) — la cifra del contrato es la que va en euros.",
       id: "Pilih ukuran villa, finishing atap, dan kavlingnya. Harga ditampilkan dalam mata uang Anda pada kurs tetap $1 AUD/EUR ($2) — angka yang mengikat dalam kontrak adalah yang dalam euro." },
+    /* Ficha de specs del modelo, distinta para cada villa. Va con función y no con
+       cadena por el plural: «1 bath» no puede salir como «1 baños». */
+    { re: /^(\S+) roof · ([\d.,]+)m² \+ ([\d.,]+)m² terrace · (\d+) bed · (\d+) bath$/,
+      es: function (m) {
+        return 'Techo ' + m[1] + ' · ' + m[2] + ' m² + ' + m[3] + ' m² de terraza · '
+             + m[4] + (m[4] === '1' ? ' dormitorio · ' : ' dormitorios · ')
+             + m[5] + (m[5] === '1' ? ' baño' : ' baños');
+      },
+      id: function (m) {
+        // El indonesio no marca plural en el sustantivo: «1 kamar» y «3 kamar» son
+        // ambos correctos, asi que aqui no hace falta la bifurcacion.
+        return 'Atap ' + m[1] + ' · ' + m[2] + ' m² + ' + m[3] + ' m² teras · '
+             + m[4] + ' kamar tidur · ' + m[5] + ' kamar mandi';
+      } },
     { re: /^Australian figures: CoreLogic capital city median dwelling, (.+?)\. Palm Field includes the freehold plot \(([\d.,]+) m², smallest available (.+?)\) plus the turnkey build, at ([\d.,]+) AUD\/EUR \((.+?)\)\.$/,
       es: "Cifras australianas: vivienda media de capital según CoreLogic, $1. Palm Field incluye la parcela freehold ($2 m², la más pequeña disponible a $3) más la obra llave en mano, a $4 AUD/EUR ($5).",
       id: "Angka Australia: hunian median ibu kota menurut CoreLogic, $1. Palm Field sudah termasuk kavling freehold ($2 m², terkecil yang tersedia per $3) ditambah pembangunan turnkey, pada kurs $4 AUD/EUR ($5)." }
@@ -470,12 +484,18 @@
     ricefield: { es: "arrozal",        id: "sawah" }
   };
 
-  /* Devuelve la traducción por patrón, o null si ninguno casa. */
+  /* Devuelve la traducción por patrón, o null si ninguno casa.
+     Una regla puede dar una CADENA con $1, $2… o una FUNCIÓN de las capturas. La
+     función existe por la concordancia de plural: «1 bath» y «2 baths» no se pueden
+     resolver con una sustitución ciega, y «1 baños» es exactamente el detalle por el
+     que una web traducida se nota traducida. */
   function porPatron(txt, lang) {
     for (var i = 0; i < P.length; i++) {
       var m = P[i].re.exec(txt);
       if (m) {
-        return P[i][lang].replace(/\$(\d)/g, function (_, d) {
+        var r = P[i][lang];
+        if (typeof r === 'function') return r(m);
+        return r.replace(/\$(\d)/g, function (_, d) {
           var cap = m[+d] || '';
           var v = VOCAB[cap.toLowerCase()];
           return v ? v[lang] : cap;
