@@ -332,13 +332,130 @@
   "Book your call": { es: "Reserva tu llamada", id: "Pesan panggilan Anda" },
   "Half an hour. We'll give you a fixed quote for the finish you're interested in and the available plots it can be built on.": { es: "Media hora. Te damos el presupuesto cerrado del acabado que te interese y las parcelas disponibles donde puede construirse.", id: "Setengah jam. Kami akan memberi Anda penawaran harga tetap untuk finishing yang Anda minati dan kavling yang tersedia untuk membangunnya." },
   "See available times": { es: "Ver horarios disponibles", id: "Lihat jadwal yang tersedia" },
-  "About the model":                { es: "Sobre el modelo", id: "Tentang model ini" }
+  "About the model":                { es: "Sobre el modelo", id: "Tentang model ini" },
+
+  /* ── Cazadas VERIFICANDO EN PRODUCCIÓN, no escribiendo el diccionario ─────
+     Estas no salieron del volcado inicial de cadenas porque el volcado descartaba
+     todo nodo que tuviera PHP dentro, y estas conviven con precios en el mismo
+     bloque. Aparecieron al recorrer el DOM ya renderizado de las tres landings en
+     vivo y buscar qué seguía en inglés con la página en español. Vale la pena
+     anotarlo: leer el fichero fuente no bastaba. */
+  "Indicative rate per m². Not a quote for a specific plot.": {
+    es: "Tarifa orientativa por m². No es un presupuesto de una parcela concreta.",
+    id: "Tarif indikatif per m². Bukan penawaran untuk kavling tertentu." },
+  "Notary, permits and transfer costs": {
+    es: "Notaría, licencias y gastos de transmisión",
+    id: "Notaris, izin, dan biaya balik nama" },
+  "Excludes notary, permits and transfer costs.": {
+    es: "No incluye notaría, licencias ni gastos de transmisión.",
+    id: "Belum termasuk notaris, izin, dan biaya balik nama." },
+  "Indicative starting figure, villa + plot": {
+    es: "Cifra de partida orientativa, villa + parcela",
+    id: "Angka awal indikatif, villa + kavling" },
+  "Not an offer or a reservation. Your final price depends on the specific plot and is confirmed in writing before you sign.": {
+    es: "No es una oferta ni una reserva. El precio final depende de la parcela concreta y se confirma por escrito antes de firmar.",
+    id: "Bukan penawaran maupun pemesanan. Harga akhir tergantung kavling yang dipilih dan dikonfirmasi tertulis sebelum Anda menandatangani." },
+  "Book a call for the real numbers": {
+    es: "Reserva una llamada para los números reales",
+    id: "Pesan panggilan untuk angka sebenarnya" },
+  "Today's starting figure for this roof. Your final price is confirmed by the developer in writing before you sign. Indonesian VAT (PPN) included.": {
+    es: "Cifra de partida de hoy para este techo. El precio final lo confirma la promotora por escrito antes de firmar. IVA indonesio (PPN) incluido.",
+    id: "Angka awal hari ini untuk atap ini. Harga akhir dikonfirmasi pengembang secara tertulis sebelum Anda menandatangani. Sudah termasuk PPN." },
+  "Lawang Tropical Properties develops turnkey villas in Bali: you choose the plot and the finish, and the budget is locked in writing before you sign anything.": {
+    es: "Lawang Tropical Properties desarrolla villas llave en mano en Bali: tú eliges la parcela y el acabado, y el presupuesto queda cerrado por escrito antes de que firmes nada.",
+    id: "Lawang Tropical Properties membangun villa turnkey di Bali: Anda memilih kavling dan finishing-nya, dan anggarannya dikunci tertulis sebelum Anda menandatangani apa pun." },
+  "The rest of the villa doesn't change between finishes: structure, architecture, and installations stay the same. Only the roof changes with the option you pick.": {
+    es: "El resto de la villa no cambia entre acabados: estructura, arquitectura e instalaciones son las mismas. Lo único que cambia con la opción que elijas es el techo.",
+    id: "Sisa villanya tidak berubah antar finishing: struktur, arsitektur, dan instalasinya sama. Yang berubah hanya atapnya, sesuai opsi yang Anda pilih." },
+  "PT Tepi Sun Gai · Registered Developer & Property Advisory. Developing verified freehold parcels and turnkey architectural villas across Tabanan, Uluwatu and Sumba for Australian investors.": {
+    es: "PT Tepi Sun Gai · Promotora registrada y asesoría inmobiliaria. Desarrollamos parcelas freehold verificadas y villas de autor llave en mano en Tabanan, Uluwatu y Sumba para inversores australianos.",
+    id: "PT Tepi Sun Gai · Pengembang terdaftar & konsultan properti. Mengembangkan kavling freehold terverifikasi dan villa arsitektural turnkey di Tabanan, Uluwatu, dan Sumba untuk investor Australia." },
+  "PT Tepi Sun Gai · Registered Developer & Property Advisory. Developing verified freehold parcels and turnkey luxury architectural villas across Tabanan, Uluwatu, and Sumba for Australian investors.": {
+    es: "PT Tepi Sun Gai · Promotora registrada y asesoría inmobiliaria. Desarrollamos parcelas freehold verificadas y villas de autor de lujo llave en mano en Tabanan, Uluwatu y Sumba para inversores australianos.",
+    id: "PT Tepi Sun Gai · Pengembang terdaftar & konsultan properti. Mengembangkan kavling freehold terverifikasi dan villa arsitektural mewah turnkey di Tabanan, Uluwatu, dan Sumba untuk investor Australia." }
   };
+
+  /* ── Frases CON UNA CIFRA DENTRO ───────────────────────────────────────────
+     La tabla de arriba casa el texto completo, así que nunca puede tocar una frase
+     que lleve incrustado un precio, un tipo de cambio o un tamaño de parcela: el
+     servidor los calcula y cada modelo produce una cadena distinta. Medido en
+     producción tras el primer despliegue: quedaban 7 en /palmfield, 4 en /dali y
+     23 en /modelo, y casi todas eran líneas de precio.
+     Aquí se casa por PATRÓN y se conserva el número tal cual viene ($1, $2…). No
+     se toca ni una cifra, ni su formato, ni su moneda: solo las palabras
+     alrededor. Es la única forma de traducirlas sin volver a calcular nada. */
+  var P = [
+    { re: /^From (€[\d.,]+)$/,
+      es: "Desde $1", id: "Mulai $1" },
+    { re: /^from around (€[\d.,]+)$/,
+      es: "desde unos $1", id: "sekitar $1" },
+    { re: /^Bamboo roof from (€[\d.,]+)$/,
+      es: "Techo de bambú desde $1", id: "Atap bambu mulai $1" },
+    { re: /^Bamboo & Ulin shingle roof from (€[\d.,]+)$/,
+      es: "Techo de bambú y teja Ulin desde $1", id: "Atap bambu & sirap ulin mulai $1" },
+    { re: /^Villa — (.+), (.+) roof$/,
+      es: "Villa — $1, techo $2", id: "Villa — $1, atap $2" },
+    { re: /^Plot — (.+), ([\d.,]+) m² at (€[\d.,]+\/m²)$/,
+      es: "Parcela — $1, $2 m² a $3", id: "Kavling — $1, $2 m² seharga $3" },
+    { re: /^Villa (\S+) \+ ([\d.,]+) m² plot$/,
+      es: "Villa $1 + parcela de $2 m²", id: "Villa $1 + kavling $2 m²" },
+    { re: /^Villa (\S+) \+ land included$/,
+      es: "Villa $1 + suelo incluido", id: "Villa $1 + tanah termasuk" },
+    { re: /^(€[\d.,]+\/m²) · sized on the call$/,
+      es: "$1 · el tamaño se cierra en la llamada", id: "$1 · ukuran ditentukan saat panggilan" },
+    { re: /^AUD at ([\d.,]+) \((.+?)\) · contract in EUR · plot apart$/,
+      es: "AUD a $1 ($2) · el contrato va en EUR · parcela aparte",
+      id: "AUD pada kurs $1 ($2) · kontrak dalam EUR · kavling terpisah" },
+    { re: /^with the freehold plot included — less than the 20% deposit on a median Perth house \((.+?)\)\.$/,
+      es: "con la parcela freehold incluida — menos que la entrada del 20% de una vivienda media en Perth ($1).",
+      id: "sudah termasuk kavling freehold — lebih kecil dari uang muka 20% rumah median di Perth ($1)." },
+    { re: /^A ([\d]+)-bedroom en-suite villa, built on the plot you choose\. Finish and budget locked in writing before you sign\.$/,
+      es: "Una villa de $1 hab. con baño en suite, construida en la parcela que elijas. Acabado y presupuesto cerrados por escrito antes de firmar.",
+      id: "Villa dengan $1 kamar tidur en-suite, dibangun di kavling pilihan Anda. Finishing dan anggaran dikunci tertulis sebelum Anda menandatangani." },
+    { re: /^Plot rates: beachfront (€[\d.,]+\/m²), all other locations (€[\d.,]+\/m²)\. Indicative rates per m², not a quote for a specific plot\. Sumba plots are subject to availability and confirmed on the call\.$/,
+      es: "Tarifas de parcela: primera línea de playa $1, resto de ubicaciones $2. Tarifas orientativas por m², no un presupuesto de una parcela concreta. Las parcelas de Sumba están sujetas a disponibilidad y se confirman en la llamada.",
+      id: "Tarif kavling: tepi pantai $1, lokasi lainnya $2. Tarif indikatif per m², bukan penawaran untuk kavling tertentu. Kavling di Sumba tergantung ketersediaan dan dikonfirmasi saat panggilan." },
+    { re: /^Select your villa size, roof finish, and land plot\. Prices shown in your currency at a fixed rate of ([\d.,]+) AUD\/EUR \((.+?)\) — the contract figure is the euro one\.$/,
+      es: "Elige el tamaño de la villa, el acabado del techo y la parcela. Los precios se muestran en tu moneda a un tipo fijo de $1 AUD/EUR ($2) — la cifra del contrato es la que va en euros.",
+      id: "Pilih ukuran villa, finishing atap, dan kavlingnya. Harga ditampilkan dalam mata uang Anda pada kurs tetap $1 AUD/EUR ($2) — angka yang mengikat dalam kontrak adalah yang dalam euro." },
+    { re: /^Australian figures: CoreLogic capital city median dwelling, (.+?)\. Palm Field includes the freehold plot \(([\d.,]+) m², smallest available (.+?)\) plus the turnkey build, at ([\d.,]+) AUD\/EUR \((.+?)\)\.$/,
+      es: "Cifras australianas: vivienda media de capital según CoreLogic, $1. Palm Field incluye la parcela freehold ($2 m², la más pequeña disponible a $3) más la obra llave en mano, a $4 AUD/EUR ($5).",
+      id: "Angka Australia: hunian median ibu kota menurut CoreLogic, $1. Palm Field sudah termasuk kavling freehold ($2 m², terkecil yang tersedia per $3) ditambah pembangunan turnkey, pada kurs $4 AUD/EUR ($5)." }
+  ];
 
   /* Normaliza para comparar: colapsa espacios y saltos de línea. El HTML de estas
      páginas parte frases en varias líneas con sangría, así que el texto del nodo
      trae saltos donde el diccionario tiene un espacio. */
   function norm(s) { return s.replace(/\s+/g, ' ').trim(); }
+
+  /* Lo capturado por un patrón se conserva TAL CUAL — es un número, una fecha o un
+     nombre de producto — salvo estas palabras, que son vocabulario y sí se traducen:
+     el tipo de vista viaja dentro de «Plot — cliff, 160 m² at €125/m²» y dejarlo en
+     inglés partía la frase por la mitad. Los nombres de techo (Sirap, Ulin, Bambú) NO
+     entran aquí a propósito: son producto, no descripción. */
+  var VOCAB = {
+    cliff:     { es: "acantilado",     id: "tebing" },
+    beach:     { es: "playa",          id: "pantai" },
+    beachfront:{ es: "primera línea",  id: "tepi pantai" },
+    jungle:    { es: "selva",          id: "hutan" },
+    river:     { es: "río",            id: "sungai" },
+    ricefield: { es: "arrozal",        id: "sawah" }
+  };
+
+  /* Devuelve la traducción por patrón, o null si ninguno casa. */
+  function porPatron(txt, lang) {
+    for (var i = 0; i < P.length; i++) {
+      var m = P[i].re.exec(txt);
+      if (m) {
+        return P[i][lang].replace(/\$(\d)/g, function (_, d) {
+          var cap = m[+d] || '';
+          var v = VOCAB[cap.toLowerCase()];
+          return v ? v[lang] : cap;
+        });
+      }
+    }
+    return null;
+  }
 
   function traduce(lang) {
     if (lang === 'en') return;
@@ -357,10 +474,11 @@
 
     for (var i = 0; i < pend.length; i++) {
       var nodo = pend[i];
-      var e = T[norm(nodo.nodeValue)];
-      if (!e) continue;                       // no está en el diccionario -> se queda en inglés
-      var v = e[lang];
-      if (!v) continue;
+      var crudo = norm(nodo.nodeValue);
+      var e = T[crudo];
+      // Primero la tabla exacta, que es la barata; si no casa, los patrones.
+      var v = e ? e[lang] : porPatron(crudo, lang);
+      if (!v) continue;                       // no está en ninguna -> se queda en inglés
       // Se conserva el espaciado de alrededor para no pegar palabras a un <b> vecino.
       var izq = /^\s*/.exec(nodo.nodeValue)[0];
       var der = /\s*$/.exec(nodo.nodeValue)[0];

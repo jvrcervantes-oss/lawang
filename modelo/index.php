@@ -310,7 +310,7 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908111654"></script>
-<script src="/assets/i18n-landing.js?v=20260908111654" defer></script>
+<script src="/assets/i18n-landing.js?v=20260908112452" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and call booking.">

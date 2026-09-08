@@ -157,7 +157,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908111654"></script>
-<script src="/assets/i18n-landing.js?v=20260908111654" defer></script>
+<script src="/assets/i18n-landing.js?v=20260908112452" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Palm Field — Freehold Villas in Balian Hills, Bali | Lawang Tropical Properties</title>
 <meta name="description" content="Palm Field: freehold villa plots in Balian Hills, West Bali, five minutes from the beach. Land ready with power, water and permits. Five villa models, handover <?= lw_e($PF_ENTREGA) ?>. From <?= lw_e(lw_aud_fmt($desdeTotal)) ?>.">
