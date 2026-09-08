@@ -772,8 +772,14 @@ function pintarFicha(){
           ? `<p class="nota">Acceso activo para <b>${activos.map(x=>esc(x.email)).join('</b>, <b>')}</b>. Ve sus contratos, pagos, facturas y obra en /portal/.</p>
              <p class="nota">${activos.map(rastro).join(' · ')}</p>`
           : suyos.length
-            ? '<p class="nota">Acceso <b>revocado</b>. Se puede volver a invitar.</p>'
-            : '<p class="nota">Esta ficha aún no tiene acceso al portal.</p>';
+            ? '<p class="nota">Acceso <b>revocado</b>. Se puede volver a invitar desde aquí — mientras haya una fila revocada, la entrada automática NO se la devuelve.</p>'
+            /* Desde el 8-sep el acceso ya no hace falta concederlo: si la ficha
+               tiene correo y algún contrato, el comprador entra solo en /portal/
+               escribiendo ese correo. Decir «aún no tiene acceso» sería falso y
+               llevaría a mandar invitaciones que nadie necesita. */
+            : (c.email && VINCULOS.some(v => v.client_id === c.id)
+                ? '<p class="nota">Entra <b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite. El botón de abajo sirve para <b>mandarle el enlace ahora</b> o para darle acceso <b>con otro correo</b>.</p>'
+                : '<p class="nota">Sin acceso todavía. La entrada automática pide <b>correo en la ficha</b> y <b>al menos un contrato</b>' + (c.email ? ' — le falta el contrato.' : ' — le falta el correo.') + ' Invitando desde aquí se le da igualmente.</p>');
         const esAdminYo = YO && (YO.rol === 'super_admin' || YO.rol === 'admin');
         if(!esAdminYo) return estado + '<p class="nota">Invitar o revocar lo hace un administrador.</p>';
         return estado + `

@@ -305,7 +305,7 @@
   <div class="caja">
     <div class="marca">LAWANG</div>
     <div class="rot" data-t="area">Área de clientes</div>
-    <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.</p>
+    <p data-t="login_intro" id="loginIntroEnlace">Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.</p>
     <form id="fLogin">
       <div class="campo-icono"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"></path></svg><input type="email" id="inEmail" autocomplete="email" required placeholder="tu@correo.com"></div>
       <button class="btn-primario" type="submit" data-t="login_btn">Enviarme el enlace</button>
@@ -403,9 +403,9 @@
   /* ── idioma ───────────────────────────────────────────────────────── */
   var T = {
     es:{ area:'Área de clientes',
-         login_intro:'Introduce el correo con el que compraste. Te enviaremos un enlace de acceso.',
-         login_btn:'Enviarme el enlace', enviado:'Enlace enviado. Revisa tu correo (mira también en spam).',
-         sin_acceso:'Este correo no tiene acceso al portal. Escríbenos a sales@lawangproperties.com y te lo abrimos.',
+         login_intro:'Introduce el correo con el que compraste. Si tienes contrato con nosotros, te llega el enlace al momento.',
+         login_btn:'Enviarme el enlace',
+         enviado:'Si ese correo tiene acceso, acabamos de enviarte el enlace. Revisa tu bandeja (mira también en spam).',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
          login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
          pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
@@ -457,9 +457,9 @@
          err_carga:'No hemos podido cargar tu información. Recarga la página o inténtalo más tarde.',
          no_ficha:'Tu acceso no está ligado todavía a ninguna ficha. Escríbenos y lo revisamos.' },
     en:{ area:'Client area',
-         login_intro:'Enter the email you purchased with. We will send you a sign-in link.',
-         login_btn:'Send me the link', enviado:'Link sent. Check your inbox (and your spam folder).',
-         sin_acceso:'This email has no portal access. Write to sales@lawangproperties.com and we will open it.',
+         login_intro:'Enter the email you purchased with. If you have a contract with us, the link arrives right away.',
+         login_btn:'Send me the link',
+         enviado:'If that email has access, we have just sent you the link. Check your inbox (and your spam folder).',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
          login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
          pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
@@ -641,16 +641,33 @@
   });
 
   /* ── entrada por enlace mágico ────────────────────────────────────── */
+  /* Desde el 8-sep NO llama a `signInWithOtp` directamente, sino a la Edge
+     `portal-acceso`: el acceso ya no lo concede un admin desde Compradores, lo
+     concede la regla (ficha de comprador con este correo + contrato, ni del
+     equipo ni revocado) y la Edge crea la cuenta antes de mandar el enlace.
+     Ver contracts/sql/portal_autoservicio.sql.
+     La respuesta es la MISMA tenga o no acceso: antes, «este correo no tiene
+     acceso» convertía este formulario en un buscador público de quién ha
+     comprado en Lawang. Lo único que se distingue es que el envío falle, y eso
+     se dice a propósito: el 8-sep había 18 invitaciones a compradores reales
+     dadas por enviadas y ninguna estrenada, sin forma de saber si el correo
+     llegó a salir. Un «enviado» que puede ser mentira es peor que un fallo. */
   document.getElementById('fLogin').addEventListener('submit', function(e){
     e.preventDefault();
     var email = document.getElementById('inEmail').value.trim().toLowerCase();
     var aviso = document.getElementById('avisoLogin');
     aviso.className = 'aviso'; aviso.textContent = '…';
-    sb.auth.signInWithOtp({ email: email, options:{ shouldCreateUser:false, emailRedirectTo: location.origin + '/portal/' } })
+    fetch(URL_SB + '/functions/v1/portal-acceso', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function(r){ return r.json().catch(function(){ return { error: 'ilegible' }; }); })
+      .catch(function(){ return { error: 'red' }; })
       .then(function(r){
-        aviso.className = 'aviso ' + (r.error ? 'mal' : 'bien');
-        aviso.textContent = !r.error ? t('enviado')
-          : (r.error.status >= 500 ? t('error_envio') : t('sin_acceso'));
+        var mal = !!(r.error || r.reintentar);
+        aviso.className = 'aviso ' + (mal ? 'mal' : 'bien');
+        aviso.textContent = mal ? t('error_envio') : t('enviado');
       });
   });
 
