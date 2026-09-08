@@ -45,7 +45,7 @@ if (isset($_GET['property']) && $_GET['property'] !== '') {
 <meta charset="UTF-8">
 <!-- Idioma de la web publica (EN/ES/ID). SIN defer y lo antes posible: fija el idioma
      antes de que portfolio-app.js construya su estado (S.lang lo lee de window.LW_LANG). -->
-<script src="assets/idioma-web.js?v=20260908111654"></script>
+<script src="assets/idioma-web.js?v=20260908113407"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Property not found · Lawang Tropical Properties</title>
 <meta name="robots" content="noindex, follow">
@@ -1340,7 +1340,7 @@ span.pdp-hs{ animation:hsPulse 2.4s ease-in-out infinite; }
 
 <!-- ═══ SHARED COMPONENTS ════════════════════════════════════ -->
 <script src="assets/lawang-card.js?v=20260908111654"></script>
-<script src="assets/portfolio-app.js?v=20260908111654"></script>
+<script src="assets/portfolio-app.js?v=20260908113407"></script>
 
 <script>
 /* ── Magnetic CTAs ────────────────────────────────────────────── */

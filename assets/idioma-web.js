@@ -100,7 +100,13 @@
   // ⚠️ INTERINO, no la solución: The Seasons es una demo de fonnts.com que ya
   // corrompe `& - + 4` en cualquier idioma. La solución es comprar la licencia
   // — pendiente LAW-18, decisión de gasto del owner.
-  if (LANG === 'es') {
+  // Se inyecta SIEMPRE, no solo si la pagina nace en español. Sus reglas ya van
+  // gateadas por `html[data-lang="es"]`, asi que en EN e ID no pintan nada — y en
+  // cambio, condicionarlo dejaba vivo el bug original en un camino entero:
+  // `thecollection` cambia de idioma SIN recargar (se repinta sola), asi que quien
+  // entraba en ingles y pulsaba Español obtenia texto español dibujado con The
+  // Seasons, que no tiene acentos. Justo lo que motivo todo esto.
+  {
     var tip = document.createElement('style');
     tip.id = 'lw-tipografia-es';
     // ⚠️ Las dos páginas declaran su serif en SITIOS distintos y eso decide la

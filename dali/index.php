@@ -106,7 +106,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <!-- Idioma de la web publica (EN/ES/ID). idioma-web.js va SIN defer y lo antes
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
-<script src="/assets/idioma-web.js?v=20260908111654"></script>
+<script src="/assets/idioma-web.js?v=20260908113407"></script>
 <script src="/assets/i18n-landing.js?v=20260908112829" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100% Freehold Architectural Villas in Bali &amp; Sumba — Lawang Tropical Properties</title>

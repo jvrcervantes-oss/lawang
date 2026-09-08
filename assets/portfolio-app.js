@@ -1714,6 +1714,14 @@
     if(!S.overlay) S.line = lineFromHash();
     bindEvents();
     render();
+
+    // Levanta el velo antidestello de `assets/idioma-web.js`. Esta pagina NO pasa por
+    // `lwLangInit` (tiene su propio DICT y su propio render), asi que nadie ponia esta
+    // marca y en ES/ID el body se quedaba oculto los 1200 ms enteros del failsafe, en
+    // CADA carga. Y encima el velo aqui no protege de nada: portfolio-app ya pinta en
+    // el idioma correcto desde el primer render, porque S.lang nace de window.LW_LANG.
+    document.documentElement.setAttribute('data-i18n-listo', '1');
+
     trackView(S.overlay);   // enlace directo a una ficha: el otro camino es onHash()
     // Recarga (o volver atrás): devolver al visitante donde estaba, no al principio.
     // Se hace después de pintar (antes no hay altura a la que saltar). Solo en recarga/atrás: si

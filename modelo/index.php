@@ -309,7 +309,7 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
 <!-- Idioma de la web publica (EN/ES/ID). idioma-web.js va SIN defer y lo antes
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
-<script src="/assets/idioma-web.js?v=20260908111654"></script>
+<script src="/assets/idioma-web.js?v=20260908113407"></script>
 <script src="/assets/i18n-landing.js?v=20260908112829" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
