@@ -95,9 +95,22 @@ if [ -n "$suite" ]; then
   sellador="$raiz/../../tools/sella_assets.py"
   if [ -f "$sellador" ]; then
     py=$(command -v python || command -v python3)
+    # 🔴 8-sep-2026 — «re-stagear SOLO las paginas que el sellador haya tocado»
+    # es lo que decia este comentario, pero el bucle hacia `git add` de TODO html
+    # o php modificado en el arbol. Ese dia un commit de cuatro ficheros
+    # (contracts/assets/proyectos_csv.js y sus dos pantallas) se llevo dentro 20
+    # paginas de intranet/v4/ con trabajo a medias de la otra sesion, y las
+    # pusheo a main — que despliega solo por webhook. Es exactamente el «git add
+    # que el autor no pidio» del que avisa el comentario de mas abajo.
+    # Ahora se mira ANTES y DESPUES: se stagea solo lo que ha aparecido por
+    # correr el sellador. Lo que ya estaba modificado se queda donde estaba, que
+    # es el arbol de quien lo esta editando.
+    antes=$(git diff --name-only -- '*.html' '*.php')
     "$py" "$sellador" >/dev/null 2>&1 || true
-    # re-stagear SOLO las paginas que el sellador haya tocado
-    for f in $(git diff --name-only -- '*.html' '*.php'); do git add "$f"; done
+    for f in $(git diff --name-only -- '*.html' '*.php'); do
+      case " $antes " in *" $f "*) continue ;; esac
+      git add "$f"
+    done
     echo "[pre-commit] assets de la suite sellados por hash (sella_assets.py)"
   else
     echo "[pre-commit] AVISO: no encuentro sella_assets.py — sella a mano antes de pushear"
