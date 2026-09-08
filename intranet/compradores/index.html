@@ -778,7 +778,7 @@ function pintarFicha(){
                escribiendo ese correo. Decir «aún no tiene acceso» sería falso y
                llevaría a mandar invitaciones que nadie necesita. */
             : (c.email && VINCULOS.some(v => v.client_id === c.id)
-                ? '<p class="nota">Entra <b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite. El botón de abajo sirve para <b>mandarle el enlace ahora</b> o para darle acceso <b>con otro correo</b>.</p>'
+                ? '<p class="nota">Entra <b>solo</b>: con ' + esc(c.email) + ' y sus contratos, el portal le abre la puerta sin que nadie le invite — salvo que ese correo sea de alguien del equipo (una cuenta no puede ser de los dos mundos) o se le haya revocado el acceso. El botón de abajo sirve para <b>mandarle el enlace ahora</b> o para darle acceso <b>con otro correo</b>.</p>'
                 : '<p class="nota">Sin acceso todavía. La entrada automática pide <b>correo en la ficha</b> y <b>al menos un contrato</b>' + (c.email ? ' — le falta el contrato.' : ' — le falta el correo.') + ' Invitando desde aquí se le da igualmente.</p>');
         const esAdminYo = YO && (YO.rol === 'super_admin' || YO.rol === 'admin');
         if(!esAdminYo) return estado + '<p class="nota">Invitar o revocar lo hace un administrador.</p>';
