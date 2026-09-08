@@ -174,8 +174,20 @@ error_log('send_email: autorizado por ' . $via . ' -> ' . $to);
    Un llamante puede imponer el suyo con `cta_url` + `cta_texto`. Si no lo hace,
    se deduce, en este orden:
      1. el mensaje lleva un enlace de firma  → llevar a firmar ese documento
-     2. el destinatario es de casa           → la intranet
+     2. el mensaje lleva un enlace DE LA INTRANET y va a alguien de casa
+                                             → ese enlace exacto
      3. cualquier otro                       → el área de clientes
+
+   ⚠️ NO HAY REGLA «si el correo es de nuestro dominio, a la intranet» — la
+   había y se retiró el 8-sep-2026 por orden del owner: «los clientes no deben
+   entrar nunca en /intranet/, siempre a /portal/». El dominio del destinatario
+   NO dice si es del equipo: `portal_accesos` tiene direcciones
+   @lawangproperties.com dadas de alta contra fichas de COMPRADOR, y a esas el
+   botón las mandaba a la puerta del equipo. Ahora el destino por defecto es
+   siempre el área de clientes, y la intranet solo se ofrece cuando el propio
+   mensaje trae el enlace (los avisos de Soporte escriben «Responder desde:
+   …/intranet/compradores/?id=…») — un aviso interno sin enlace no lo trae por
+   casualidad, lo trae porque quien lo escribió sabía a dónde llevaba.
 
    ⚠️ La URL va contra una lista blanca y un `cta_url` fuera de ella se RECHAZA,
    no se ignora: este correo sale con la marca de Lawang y su remitente real, así
@@ -184,7 +196,6 @@ error_log('send_email: autorizado por ' . $via . ' -> ' . $to);
    todos los llamantes son de casa, así que un 400 aquí es un bug nuestro que hay
    que ver, no un caso de usuario que haya que tolerar. */
 $PORTAL   = 'https://lawangproperties.com/portal/';
-$INTRANET = 'https://lawangproperties.com/intranet/';
 
 /* Ojo: `$interno` (arriba) exige además `!$attach`, porque autoriza. Para el
    botón hace falta solo "¿va a alguien de casa?" — la copia al estudio de una
@@ -216,9 +227,6 @@ if ($ctaUrl !== '') {
      no para recordar que existe una intranet. */
   $ctaUrl = $mIntra[0];
   $ctaTexto = 'Abrir en la intranet';
-} elseif ($destinoInterno) {
-  $ctaUrl = $INTRANET;
-  $ctaTexto = 'Abrir la intranet';
 } else {
   $ctaUrl = $PORTAL;
   $ctaTexto = 'Entrar · Sign in';

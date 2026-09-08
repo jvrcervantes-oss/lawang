@@ -1,0 +1,35 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>
+<script>
+window.__CANNED = { usuarios: [{rol:'super_admin', herramientas:[], activo:true, nombre:'Test Agente', notif_visto_hasta:null}] };
+function stubQuery(table){
+  const state = { table };
+  const p = new Proxy({}, {
+    get(_, prop){
+      if(prop === 'then'){
+        return (resolve) => {
+          let data = window.__CANNED[table] || [];
+          if(state.single) data = data[0] || null;
+          resolve({ data, error: null, count: (window.__CANNED[table]||[]).length });
+        };
+      }
+      if(prop === 'maybeSingle' || prop === 'single'){ state.single = true; return () => p; }
+      if(prop === 'eq'){ return (col, val) => { state.eqId = val; return p; }; }
+      return (...args) => p;
+    }
+  });
+  return p;
+}
+window.supabase = {
+  createClient: () => ({
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: { user: { id:'test-uid', email:'test@lawangproperties.com', app_metadata:{} } } } }),
+      signOut: () => Promise.resolve({}),
+    },
+    from: (table) => stubQuery(table),
+  }),
+};
+console.log('window.supabase set?', !!window.supabase, !!window.supabase.createClient);
+window.supabase.createClient().auth.getSession().then(r => console.log('getSession result', JSON.stringify(r)));
+window.supabase.createClient().from('usuarios').select('a').eq('user_id','test-uid').maybeSingle().then(r => console.log('usuarios result', JSON.stringify(r)));
+</script>
+</body></html>

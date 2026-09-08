@@ -232,7 +232,8 @@ Deno.serve(async (req) => {
           to: ESTUDIO_EMAIL,
           subject: 'Factura ' + ins.data.numero + ' emitida sola (D-' + DIAS_ANTES + ') · ' + (ct.numero || ''),
           message: 'Factura ' + ins.data.numero + ' (' + importe + ') emitida automáticamente por el vencimiento del ' +
-            v.fecha + ' de ' + (ct.numero || '') + ' y enviada a ' + para + '.\n\n' + descripcion,
+            v.fecha + ' de ' + (ct.numero || '') + ' y enviada a ' + para + '.\n\n' + descripcion +
+            '\n\nVer en la intranet: ' + SITIO + '/intranet/facturas/?id=' + ins.data.id,
           filename: ins.data.numero + '.pdf', pdfB64: b64(pdf),
           log: { contrato_id: v.contrato_id, factura_id: ins.data.id, via: 'factura_auto' },
         }).catch((e) => console.error('copia al estudio:', (e as Error).message));

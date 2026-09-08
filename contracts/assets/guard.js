@@ -31,8 +31,10 @@
    PERMISO POR HERRAMIENTA (29-jul-2026). Declararlo en la propia etiqueta:
      <script src="/contracts/assets/guard.js" data-herramienta="contratos"></script>
    Si el usuario tiene ficha en `public.usuarios` y esa herramienta no está en
-   su lista, se le devuelve a la intranet. Sin ficha (cuentas anteriores al
-   panel) se permite: mismo criterio de compatibilidad que las funciones SQL.
+   su lista, se le devuelve a la intranet. **Sin ficha ya NO se permite**
+   (8-sep-2026): esa compatibilidad con las cuentas anteriores al panel dejaba
+   entrar a cualquier sesión que no fuera del equipo — ver la nota junto al
+   `if (!ficha)`. Las funciones SQL conservan la suya; ésta era la puerta.
    ⚠️ Esto decide lo que se VE. Lo que de verdad impide escribir es la RLS
    (`puede('herramienta')` en las policies) — esto solo evita enseñar una
    herramienta que luego fallaría al guardar.
@@ -125,6 +127,20 @@
           .then(function (f) {
             var ficha = (f && f.data) || null;
             if (ficha && !ficha.activo) { alLogin(); return; }   // desactivado = fuera
+            /* SIN FICHA = NO ES DEL EQUIPO -> FUERA (8-sep-2026, orden del owner:
+               «los clientes no deben entrar nunca en /intranet/»).
+               Hasta hoy aqui habia una compatibilidad heredada: «sin ficha se
+               permite», pensada para las cuentas anteriores al panel de usuarios.
+               El claim `portal` de arriba tapaba el caso conocido, pero no el
+               peligroso: una cuenta de cliente a la que le FALTE ese claim no era
+               del equipo y aun asi entraba — con las herramientas vacias por RLS,
+               si, pero dentro. Un cliente no debe ver ni la cascara.
+               Se puede cerrar hoy porque ya no hay a quien dejar fuera: medido
+               contra auth.users el 8-sep, de 43 cuentas 24 tienen ficha de equipo
+               y 19 el claim del portal — CERO huerfanas.
+               Cierra hacia fuera a proposito: se cierra la sesion antes de mandar
+               al login, para no dejar una sesion viva rebotando entre dos puertas. */
+            if (!ficha) { sb.auth.signOut().then(alLogin, alLogin); return; }
             /* Solo el SUPER admin se salta la comprobación (18-ago-2026): un
                admin normal pasa por su lista de herramientas como cualquiera.
                Ver la nota de lwPermitida en assets/herramientas.js — y `puede()`

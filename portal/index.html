@@ -407,6 +407,7 @@
          login_btn:'Enviarme el enlace',
          enviado:'Si ese correo tiene acceso, acabamos de enviarte el enlace. Revisa tu bandeja (mira también en spam).',
          error_envio:'No hemos podido enviarte el correo ahora mismo. Inténtalo de nuevo en un momento o escríbenos a sales@lawangproperties.com.',
+         sin_activar:'Tu cuenta todavía no tiene el área de clientes activada. Escríbenos a sales@lawangproperties.com y te la abrimos.',
          login_intro_pass:'Introduce tu correo y tu contraseña.', pass_btn:'Entrar',
          pass_toggle:'¿Tienes contraseña? Entra con ella', pass_toggle_back:'Prefiero que me manden un enlace',
          pass_mal:'Correo o contraseña incorrectos.', pie:'¿Dudas? Escríbenos a',
@@ -461,6 +462,7 @@
          login_btn:'Send me the link',
          enviado:'If that email has access, we have just sent you the link. Check your inbox (and your spam folder).',
          error_envio:'We could not send the email right now. Please try again in a moment or write to sales@lawangproperties.com.',
+         sin_activar:'Your account does not have the client area enabled yet. Write to sales@lawangproperties.com and we will open it.',
          login_intro_pass:'Enter your email and password.', pass_btn:'Sign in',
          pass_toggle:'Have a password? Sign in with it', pass_toggle_back:'Send me a link instead',
          pass_mal:'Wrong email or password.', pie:'Questions? Write to',
@@ -629,7 +631,23 @@
   sb.auth.getSession().then(function(r){
     var ses = r && r.data && r.data.session;
     if (!ses){ muestra('vLogin'); return; }
-    if (!((ses.user && ses.user.app_metadata) || {}).portal){ location.replace('/intranet/'); return; }
+    /* Una sesion sin el claim `portal` YA NO se manda a /intranet/ (8-sep-2026,
+       orden del owner: «los clientes no deben entrar nunca en /intranet/»).
+       Mandarla alli era el otro extremo del mismo agujero que se cierra en
+       guard.js: si a un comprador le falta el claim, esto lo empujaba justo a la
+       puerta del equipo. Y el portal no puede saber si quien entra es del equipo
+       —la RLS de `usuarios` le niega esa tabla al comprador—, asi que no redirige
+       a ningun sitio: se le dice lo que pasa y se cierra la sesion. Redirigir a
+       ciegas entre las dos puertas es ademas como se fabrica un bucle. */
+    if (!((ses.user && ses.user.app_metadata) || {}).portal){
+      sb.auth.signOut().then(function(){
+        muestra('vLogin');
+        var aviso = document.getElementById('avisoLogin');
+        aviso.className = 'aviso mal';
+        aviso.textContent = t('sin_activar');
+      });
+      return;
+    }
     cargar();
   }).catch(function(){ muestra('vLogin'); });
 

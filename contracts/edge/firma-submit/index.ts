@@ -260,7 +260,8 @@ async function repartirFirmado(o: {
       ? 'Se ha completado la firma del contrato ' + o.numero + '.' +
         (o.proyecto ? '\nProyecto: ' + o.proyecto : '') +
         '\nFirmantes: ' + o.compradores.map((c) => c.nombre).join(', ') +
-        '\n\nCopia para archivo.' + pie
+        '\n\nCopia para archivo.' +
+        '\n\nVer en la intranet: ' + SITIO + '/intranet/operaciones/' + pie
       : 'Hola' + ((d as any).nombre ? ' ' + String((d as any).nombre).split(' ')[0] : '') + ',' +
         '\n\nHemos recibido tu firma. Aquí tienes tu copia del contrato ' + o.numero +
         (o.proyecto ? ' (' + o.proyecto + ')' : '') + ', ya firmado.' +
@@ -367,7 +368,8 @@ async function facturarPrimerHito(o: { contratoId: string; numero: string; ct: a
       to: ESTUDIO_EMAIL,
       subject: 'Factura ' + fila.numero + ' emitida y enviada · ' + o.numero,
       message: 'Factura ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
-        o.numero + ' y enviada a ' + para + '.\n\n' + descripcion,
+        o.numero + ' y enviada a ' + para + '.\n\n' + descripcion +
+        '\n\nVer en la intranet: ' + SITIO + '/intranet/facturas/?id=' + fila.id,
       filename: fila.numero + '.pdf', pdfB64: b64(pdf),
       log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'factura_auto' },
     });
@@ -494,7 +496,8 @@ async function enviarProformaTotal(o: { contratoId: string; numero: string; ct: 
       to: ESTUDIO_EMAIL,
       subject: 'Proforma ' + fila.numero + ' emitida y enviada · ' + o.numero,
       message: 'Proforma ' + fila.numero + ' (' + importe + ') emitida automáticamente al firmarse ' +
-        o.numero + ' y enviada a ' + para + '.',
+        o.numero + ' y enviada a ' + para + '.' +
+        '\n\nVer en la intranet: ' + SITIO + '/intranet/facturas/?id=' + fila.id,
       filename: fila.numero + '.pdf', pdfB64: b64(pdf),
       log: { contrato_id: o.contratoId, factura_id: fila.id, via: 'proforma' },
     });

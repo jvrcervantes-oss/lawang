@@ -83,7 +83,13 @@ begin
     'eso significa que una firma se completa y su PDF no se puede guardar.' || chr(10) || chr(10) ||
     'Detalle por bucket: ' || (u->>'buckets') || chr(10) || chr(10) ||
     'Qué hacer: subir de plan, o sacar del jsonb los anexos en base64 de '
-    '`contratos` (son la mayor parte del peso).';
+    '`contratos` (son la mayor parte del peso).' || chr(10) || chr(10) ||
+    -- El enlace no es decoración: desde el 8-sep-2026 `send_email.php` ya no
+    -- deduce el botón por el dominio del destinatario (mandaba a la intranet a
+    -- clientes con correo @lawangproperties.com). Ahora el botón de la intranet
+    -- solo aparece si el propio mensaje trae el enlace; sin esta línea, este
+    -- aviso interno saldría con un botón al área de CLIENTES.
+    'Ver en la intranet: https://lawangproperties.com/intranet/';
 
   perform net.http_post(
     url := 'https://lawangproperties.com/contracts/api/send_email.php',
