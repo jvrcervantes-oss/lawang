@@ -118,19 +118,31 @@ let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado prop
 async function bufferDelAnexo(tip){
   const ficha = (typeof fichaDelModelo === 'function') ? fichaDelModelo(tip) : null;
   if(ficha && typeof sb !== 'undefined' && sb){
+    /* Si Modelos falla se sigue al PDF estático —mejor un anexo que ninguno—,
+       pero NO en silencio: que el modelo TENGA un plano subido y el contrato
+       acabe llevando el fichero viejo del repo es exactamente la divergencia que
+       este cambio venía a cerrar, y sin aviso nadie la nota hasta que el
+       documento está firmado. Se dice qué pasó y con qué se ha quedado. */
+    let doc = null;
     try{
-      const { data } = await sb.from('modelo_documentos')
+      const { data, error } = await sb.from('modelo_documentos')
         .select('path, nombre, tipo, subido_en').eq('modelo_id', ficha.id).eq('tipo', 'plano')
         .order('subido_en', { ascending:false }).limit(1);
-      const doc = (data || [])[0];
+      if(error) throw error;
+      doc = (data || [])[0] || null;
       if(doc && doc.path){
-        const { data:url } = await sb.storage.from('modelos').createSignedUrl(doc.path, 3600);
-        if(url && url.signedUrl){
-          const r = await fetch(url.signedUrl);
-          if(r.ok) return await r.arrayBuffer();
-        }
+        const { data:url, error:eUrl } = await sb.storage.from('modelos').createSignedUrl(doc.path, 3600);
+        if(eUrl || !url || !url.signedUrl) throw (eUrl || new Error('sin URL firmada'));
+        const r = await fetch(url.signedUrl);
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.arrayBuffer();
       }
-    }catch(_){ /* si Modelos falla se intenta el estático: mejor el anexo viejo que ninguno */ }
+    }catch(e){
+      // Solo se avisa si HABÍA algo que traerse. Que un modelo no tenga plano en
+      // Modelos es lo normal hoy (la tabla está vacía) y no es un fallo.
+      if(doc) toast('El plano de ' + tip + ' está en Modelos pero no se ha podido leer ('
+                    + ((e && e.message) || 'error') + '). Se usa el PDF de siempre.');
+    }
   }
   const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
   if(!r.ok) throw new Error(r.status);
