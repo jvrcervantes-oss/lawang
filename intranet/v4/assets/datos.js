@@ -673,6 +673,30 @@
 
     documentacion: function (sb) {
       vaciaKpis([/EXPEDIENTES|DOCUMENTOS/i]);
+      /* La tabla de esta pantalla venia con cinco expedientes inventados —
+         numeros de HGB, un NIB y hasta una sociedad que no existe («PT Lawang
+         Properties Bali»). Se siembra de la boveda real. */
+      var t = tablaPor([/C[OÓ]DIGO|DOCUMENTO/, /PROYECTO|PARCELA/, /TITULAR|ENTIDAD/]);
+      q(sb.from('documentos_proyecto')
+          .select('id,proyecto,categoria,titulo,descripcion,mime,bytes,confidencial,creado_en,carpeta')
+          .order('creado_en', { ascending: false }).limit(120), 'expedientes', t)
+        .then(function (ds2) {
+          if (ds2 == null || !t) return;
+          var pl = plantillaFilas(t);
+          if (!pl) return;
+          var kb = function (b) { return b == null ? '—' : (b > 1048576 ? (Math.round(b / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'); };
+          ds2.forEach(function (d) {
+            fila(pl, [
+              (d.titulo || 'Documento') + (d.categoria ? ' · ' + d.categoria : ''),
+              d.proyecto || '—',
+              d.carpeta || '—',
+              fFecha(d.creado_en),
+              d.confidencial ? 'CONFIDENCIAL' : 'INTERNO',
+              (d.mime || '').split('/').pop().toUpperCase() + ' · ' + kb(d.bytes)
+            ], '/intranet/documentacion/');
+          });
+          if (!ds2.length) bandaNota('La boveda no tiene ningun documento dado de alta todavia.', '#8A8474');
+        });
       q(sb.from('documentos_proyecto').select('proyecto'), 'documentación').then(function (ds) {
         if (!ds) return;
         var porP = {}; ds.forEach(function (d) { porP[d.proyecto] = (porP[d.proyecto] || 0) + 1; });
@@ -681,7 +705,7 @@
         // de convalidacion. Guion y motivo, nunca un porcentaje que suene bien.
         pon2('k-convalidados', '—');
         kpi(/EXPEDIENTES|DOCUMENTOS/i, String(ds.length), Object.keys(porP).length + ' proyectos con documentación');
-        bandaNota('Bóveda real: ' + ds.length + ' documentos en ' + Object.keys(porP).length + ' proyectos — el listado y las descargas viven en la herramienta (/intranet/documentacion/)', '#485B37');
+        bandaNota('Las descargas viven en la herramienta: /intranet/documentacion/', '#485B37');
       });
     },
 
