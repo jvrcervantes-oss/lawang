@@ -74,8 +74,11 @@
      bloque de abajo, y hay constantes que se calculan al cargar. El orden es
      el que manda, y entities.js tiene que ir antes que entidades_pago.js. -->
 <script src="assets/documento_diseno.js?v=f85e78ef"></script>
-<script src="assets/documento_anexos.js?v=b73a5ff3"></script>
+<script src="assets/documento_anexos.js?v=b5893f55"></script>
 <script src="assets/parcela_inventario.js?v=0b6b5438"></script>
+<!-- El catálogo de modelos y qué se construye en cada proyecto (8-sep-2026).
+     Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
+<script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
 <script src="assets/entidades_pago.js?v=484e01a6"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
@@ -790,14 +793,102 @@ async function cubrirConEstePoder(poderId, poderNumero){
    (Dali, Dream, Dune, Trinity, Temple, Tropical) y `unidades` tiene nueve. O
    sea CUATRO modelos reales que no se podian elegir en un contrato —Free
    Design, Pool Suite, Pool Suite+, Restoration— y uno, Temple, que se ofrecia
-   y no existe en el inventario. Ficha LAW-63. */
-let MODELOS_DB = null;
+   y no existe en el inventario. Ficha LAW-63.
+
+   🔴 8-sep-2026 — y ya no salen del INVENTARIO, salen del CATÁLOGO. Leer los
+   `distinct unidades.modelo` era leer texto libre: lo que alguien tecleó alguna
+   vez en una parcela, con sus variantes y sus erratas, y sin specs ni precio
+   detrás. Desde el 7-sep existe `modelos` —el catálogo de verdad, con m², precio
+   y documentos— y `modelos_villa` dice cuáles se construyen en cada proyecto.
+   El owner lo pidió así: la Tipología ofrece **los modelos del proyecto de ESTE
+   contrato**, y si el proyecto no tiene ninguno declarado, el catálogo entero
+   (16 de los 29 proyectos activos no tienen ninguno: filtrar a secas dejaría el
+   desplegable vacío y el contrato sin poder hacerse — el mismo pez que se mordía
+   la cola que ya pasó con los resorts el 27-ago).
+   La lógica vive en `assets/modelos_catalogo.js` porque la comparten Contratos,
+   Proyectos y Modelos. */
+let MODELOS_DB = null, CATALOGO_MODELOS = null;
 async function cargarModelos(){
-  if(MODELOS_DB || !sb) return;
-  const { data, error } = await sb.from('unidades')
-    .select('modelo').not('modelo','is',null).limit(2000);
-  if(error) return;   // sin red se cae a la lista de tokens.json
-  MODELOS_DB = [...new Set((data||[]).map(u => String(u.modelo).trim()).filter(Boolean))].sort();
+  if(CATALOGO_MODELOS || !sb) return;
+  const r = await lwCargarCatalogoModelos(sb);
+  if(r.error) return;   // sin red se cae a la lista de tokens.json
+  CATALOGO_MODELOS = r;
+  MODELOS_DB = modelosDelProyectoActual();
+}
+/* Los nombres que toca ofrecer AHORA MISMO, según el proyecto que tenga puesto
+   el formulario. Se recalcula, no se cachea: el proyecto se cambia a mitad de un
+   contrato y el desplegable tiene que seguirlo. */
+function modelosDelProyectoActual(){
+  if(!CATALOGO_MODELOS) return MODELOS_DB;
+  const sel = document.querySelector('[name="proyecto_nombre"]');
+  const proy = sel ? String(sel.value || '').trim() : '';
+  const r = lwModelosDeProyecto(proy, CATALOGO_MODELOS.villas, CATALOGO_MODELOS.catalogo);
+  return r.lista.map(m => m.modelo);
+}
+function fichaDelModelo(nombre){
+  if(!CATALOGO_MODELOS || !nombre) return null;
+  const n = String(nombre).trim().toLowerCase();
+  return (CATALOGO_MODELOS.catalogo || []).find(c => String(c.nombre).trim().toLowerCase() === n) || null;
+}
+
+/* La tipología sigue al proyecto, y los datos de la villa siguen a la tipología.
+   Tres reglas, y cada una está aquí por un motivo distinto:
+
+   1. REPINTAR SOLO SI LA LISTA CAMBIA. El proyecto se cambia a mitad de un
+      contrato, y `deriveSections()` monta el `<select>` una sola vez. Pero
+      rehacer las opciones en cada tecla reconstruye el desplegable por debajo de
+      quien lo esté usando — el mismo cuidado que el selector de parcela.
+   2. UNA TIPOLOGÍA GUARDADA NO SE PIERDE NUNCA. Si el contrato trae una que hoy
+      no se construye en su proyecto (o que salió del catálogo), se reinyecta como
+      opción huérfana marcada. Es lo que ya hace `buildField` con los apoderados y
+      los proyectos: un documento guardado dice lo que dice.
+   3. LOS DATOS DE LA VILLA SE PRECARGAN AL CAMBIAR LA TIPOLOGÍA, NUNCA AL ABRIR.
+      El owner los quiso en solo lectura —«que precargue los datos de modelos y no
+      puedan ser otros»— y eso, aplicado al abrir, dejaría que el catálogo de hoy
+      pisara los m² con los que se firmó un contrato de hace tres meses. Así que
+      al abrir se respeta lo guardado y, si no cuadra con el catálogo, se DICE
+      (marcarCampoAviso) en vez de corregirlo por su cuenta.
+   `precio_total` NO se toca: en una Construcción lo manda la Reserva vinculada
+   (`syncPrecioObraVinculada`, villa − suelo de sus parcelas), que es el precio
+   pactado de esa operación y pesa más que el del catálogo. */
+let TIPO_LISTA_PINTADA = null, TIPO_MODELO_HECHO = null;
+function syncTipologiaModelos(){
+  const sel = document.querySelector('[name="tipologia_construccion"]');
+  if(!sel || sel.tagName !== 'SELECT' || !CATALOGO_MODELOS) return;
+
+  const permitidos = modelosDelProyectoActual() || [];
+  const valor = String(sel.value || '').trim();
+  const firma = permitidos.join('|') + '§' + valor;
+  if(firma !== TIPO_LISTA_PINTADA){
+    TIPO_LISTA_PINTADA = firma;
+    const huerfana = valor && !permitidos.includes(valor);
+    sel.innerHTML = '<option value=""></option>'
+      + permitidos.map(m => `<option value="${escAttr(m)}"${m === valor ? ' selected' : ''}>${esc(m)}</option>`).join('')
+      + (huerfana ? `<option value="${escAttr(valor)}" selected>${esc(valor)} — no declarada en este proyecto</option>` : '');
+    MODELOS_DB = permitidos;
+  }
+
+  const ficha = fichaDelModelo(valor);
+  const cambio = TIPO_MODELO_HECHO !== null && TIPO_MODELO_HECHO !== valor;
+  const primera = TIPO_MODELO_HECHO === null;
+  TIPO_MODELO_HECHO = valor;
+
+  [['villa_m2', 'villa_m2', 'superficie construida'],
+   ['villa_terraza_m2', 'terraza_m2', 'superficie de terraza']].forEach(([campo, prop, queEs]) => {
+    const el = document.querySelector(`[name="${campo}"]`);
+    if(!el) return;                                   // esta plantilla no lo imprime
+    const delCatalogo = ficha && ficha[prop] != null ? String(Number(ficha[prop])) : '';
+    if(!ficha || !delCatalogo){                       // sin modelo elegido, campo normal
+      el.readOnly = false; el.classList.remove('dato-fijo'); el.removeAttribute('tabindex');
+      return;
+    }
+    if(cambio) el.value = delCatalogo;                // la tipología ha cambiado: manda el catálogo
+    else if(primera && String(el.value || '').trim() && String(el.value).trim() !== delCatalogo)
+      marcarCampoAviso(el, `este contrato guardó ${el.value} y el catálogo dice hoy ${delCatalogo} `
+        + `de ${queEs} para ${valor}. Se respeta lo guardado: un documento dice lo que decía.`);
+    else if(!String(el.value || '').trim()) el.value = delCatalogo;
+    el.readOnly = true; el.classList.add('dato-fijo'); el.setAttribute('tabindex', '-1');
+  });
 }
 
 let PROYECTOS_DB = null;
@@ -1494,6 +1585,10 @@ function resetBorrador(slug){
   ANNEXES = []; saveAnnexes();
   CLAUSES = []; saveClauses();
   AUTO_ANX = ''; AUTO_MASTER = ''; AUTO_RESORT = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+  /* Y los de la tipologia: al cambiar de contrato o de plantilla, lo pintado y
+     lo precargado son de OTRO documento. Si no se sueltan, el primer repintado
+     del siguiente contrato se cree un cambio de tipologia y le pisa los m2. */
+  TIPO_LISTA_PINTADA = null; TIPO_MODELO_HECHO = null;
   AUTO_APODERADO = {}; AUTO_POA = {};
   // AUTO_UNIDAD es `const` (parcela_inventario.js): no se reasigna con `={}`,
   // se vacía campo a campo. Hallazgo de la auditoría de hoy: era la ÚNICA guarda
@@ -1866,6 +1961,10 @@ function aplicarReglasCampos(){
   }
   // Único punto por el que pasa "un campo cambió" (input, change y estado inicial
   // de buildForm), así que el anexo automático se engancha aquí y no en tres sitios.
+  // La tipología va ANTES del anexo: si el proyecto cambió y la que había ya no
+  // se construye aquí, el campo se vacía — y el anexo tiene que enterarse en la
+  // misma pasada, no en la siguiente.
+  syncTipologiaModelos();
   syncAutoAnnex();
   syncParcelaMaster();
   syncResort();
@@ -4183,6 +4282,10 @@ async function openSavedContract(id){
   // el del contrato anterior se tomaría por "puesto por el automatismo" y se
   // reescribiría solo — cambiando un dato ya guardado nada más abrirlo.
   AUTO_ANX = ''; AUTO_MASTER = ''; UNIDADES_PROY = { proyecto:null, lista:[], fallo:null };
+  /* Y los de la tipologia: al cambiar de contrato o de plantilla, lo pintado y
+     lo precargado son de OTRO documento. Si no se sueltan, el primer repintado
+     del siguiente contrato se cree un cambio de tipologia y le pisa los m2. */
+  TIPO_LISTA_PINTADA = null; TIPO_MODELO_HECHO = null;
   // Mismo motivo que AUTO_ANX/AUTO_MASTER arriba, mismo hallazgo (Legal, 11-ago):
   // resetBorrador() ya resetea AUTO_APODERADO/avisoMismoApoderado para "contrato
   // nuevo", pero ABRIR uno guardado no pasa por ahí — sin esto, el apoderado o el

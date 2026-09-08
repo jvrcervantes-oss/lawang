@@ -120,6 +120,9 @@
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
 <script src="/contracts/assets/proyectos_csv.js?v=e610515a"></script>
+<!-- El catalogo de modelos y que se construye en cada proyecto (8-sep-2026),
+     compartido con contracts/app.html e intranet/modelos/. -->
+<script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="/contracts/assets/paginacion.js?v=2ac67b84"></script>
 <script src="/contracts/assets/vocabulario.js?v=24e98015"></script>
 <script src="/contracts/assets/operaciones-cuentas.js?v=47347e2a"></script>
@@ -267,6 +270,11 @@ try{ PROY_URL = new URLSearchParams(location.search).get('proyecto') || ''; }cat
 // estricto que el es_admin() (admin+super_admin) que ya usa el resto de la
 // suite — se guarda aparte, no se reutiliza CAN_EDIT_TEXT ni nada existente.
 let ES_SUPER_ADMIN = false;
+/* Escribir `modelos_villa` exige `es_admin()` en la base (rol admin o
+   super_admin). Se guarda aparte de ES_SUPER_ADMIN para no ofrecerle a un
+   agente unas casillas que la policy le va a rechazar al guardar: la interfaz
+   no dice solo «no puedes», directamente no lo ofrece. */
+let ES_ADMIN = false;
 
 /* Qué se puede construir en cada parcela — decisión del cliente (31-jul): en
    Palm Field cabe CUALQUIERA de los dos modelos en CUALQUIER parcela. Así que el
@@ -282,15 +290,23 @@ let ES_SUPER_ADMIN = false;
    La MONEDA viaja con el precio y del MISMO nivel que lo dio: un proyecto en
    rupias heredando una cifra en euros del catalogo no es un detalle, es un
    error de tres ordenes de magnitud (Riverfront va en IDR). */
-const modelosDe = proyecto => MODELOS.filter(m => m.proyecto === proyecto).map(m => {
-  if(m.precio_construccion != null) return m;
-  const cat = CATALOGO.find(c => c.id === m.modelo_id);
-  if(!cat || cat.precio_construccion == null) return m;
-  return { ...m, precio_construccion: cat.precio_construccion,
-           moneda: cat.moneda || m.moneda, _heredado: true };
-});
+/* 8-sep-2026: la resolucion se muda a `contracts/assets/modelos_catalogo.js`,
+   que es de donde beben tambien Contratos y Modelos desde el encargo del owner
+   («que el modelo de villa salga de Modelos»). Aqui queda la llamada: la regla
+   de la herencia solo puede vivir en un sitio, y ya se enseño mal una vez por
+   tenerla repartida.
+   `declarados:false` significa «este proyecto no tiene ninguno declarado, se
+   ofrece el catalogo entero»: la pantalla lo DICE en vez de fingir que esos son
+   los suyos. */
+const modelosDeProy = proyecto => lwModelosDeProyecto(proyecto, MODELOS, CATALOGO);
+const modelosDe = proyecto => modelosDeProy(proyecto).lista;
+/* 🔴 8-sep-2026: esto leia `MODELOS` a pelo, o sea la columna sin resolver. Un
+   modelo con precio propio se recalculaba y uno que HEREDA del catalogo devolvia
+   null, asi que al elegirlo en la parcela la obra y el total se quedaban como
+   estaban sin decir nada. Justo el fallo del que avisa la nota de arriba: la
+   herencia repartida entre lectores acaba con un lector que se la olvida. */
 const precioModelo = (proyecto, modelo) => {
-  const m = MODELOS.find(x => x.proyecto === proyecto && x.modelo === modelo);
+  const m = modelosDe(proyecto).find(x => x.modelo === modelo);
   return m && m.precio_construccion != null ? Number(m.precio_construccion) : null;
 };
 const ORDEN = { campo:'codigo', dir:'asc' };
@@ -319,7 +335,7 @@ async function cargar(){
     // precio esta en NULL. Va en la misma tanda para que la pantalla no pinte
     // primero sin precio y luego con el.
     SB.from('modelos').select('id, nombre, precio_construccion, moneda').eq('activo', true),
-    SB.from('proyectos').select('nombre, resort, parcela_master, parcela_master_m2').eq('activo', true).order('nombre'),
+    SB.from('proyectos').select('id, nombre, resort, parcela_master, parcela_master_m2').eq('activo', true).order('nombre'),
     SB.from('tipos_vivienda').select('clave, etiqueta').eq('activo', true).order('etiqueta'),
     // La documentacion de cada proyecto va en la misma tanda: es una consulta
     // mas y evita que la carpeta se pinte dos veces (una sin la linea y otra
@@ -641,6 +657,19 @@ async function renombrarProyecto(nombreActual){
 function editarProyecto(nombre){
   const ficha = PROYECTOS_FICHA[nombre] || {};
   const resorts = [...new Set([...Object.values(PROYECTOS_FICHA).map(f => f.resort).filter(Boolean), ...CATALOGO_RESORTS])].sort();
+  /* QUÉ SE PUEDE CONSTRUIR AQUÍ — 8-sep-2026, encargo del owner: «quiero poder
+     editar el proyecto para seleccionar qué casas pueden construirse en él».
+     No es una tabla nueva: son las filas de `modelos_villa`, que ya existían y
+     ya mandaban en el desplegable de la parcela. Lo que faltaba era poder
+     tocarlas desde el proyecto — hasta hoy había que abrir modelo por modelo en
+     `intranet/modelos/` y añadirle el proyecto a cada uno.
+     `usados` cuenta las parcelas que YA nombran cada modelo: uno en uso no se
+     puede retirar, o la unidad quedaría nombrando algo que su propio proyecto
+     dice que no se construye. */
+  const declarados = new Set(MODELOS.filter(m => m.proyecto === nombre).map(m => m.modelo_id).filter(Boolean));
+  const usados = new Map();
+  UNIDADES.filter(u => u.proyecto === nombre && u.modelo)
+          .forEach(u => usados.set(u.modelo, (usados.get(u.modelo) || 0) + 1));
   suiAbrirCajon({
     titulo: esc(nombre),
     sub: 'Ficha del proyecto',
@@ -656,7 +685,26 @@ function editarProyecto(nombre){
           <input id="fp-master-m2" inputmode="decimal" value="${ficha.parcela_master_m2!=null?esc(fmtNum(Number(ficha.parcela_master_m2))):''}"></div>
       </div>
       <p class="sui-nota">Para cambiar el <b>nombre</b> del proyecto usa «Renombrar…» abajo — es otra operación,
-        porque esa sí se propaga a unidades, contratos, facturas… y estos tres campos no.</p>`,
+        porque esa sí se propaga a unidades, contratos, facturas… y estos tres campos no.</p>
+
+      <div class="sui-bloque" style="margin-top:18px">
+        <h3>Qué se puede construir aquí</h3>
+        <p class="sui-nota">Lo que se marque es lo único que se podrá elegir al dar de alta una parcela
+          de este proyecto, y lo único que ofrecerá la Tipología de sus contratos de Construcción.
+          Sin nada marcado se ofrece el catálogo entero.</p>
+        ${CATALOGO.length ? CATALOGO.map(c => {
+          const decl = declarados.has(c.id);
+          const enUso = usados.has(c.nombre);
+          return `<label class="mini" style="display:flex;gap:8px;align-items:baseline;padding:4px 0">
+            <input type="checkbox" data-modelo="${esc(c.id)}" ${decl ? 'checked' : ''}
+                   ${(!ES_ADMIN || (enUso && decl)) ? 'disabled' : ''}>
+            <span>${esc(c.nombre)}${c.precio_construccion != null
+                ? ' <span class="flojo">· ' + esc(fmtNum(Number(c.precio_construccion))) + ' ' + esc(c.moneda||'EUR') + ' de catálogo</span>' : ''}
+              ${enUso ? '<span class="flojo"> · lo usan ' + usados.get(c.nombre) + ' parcela(s), no se puede retirar</span>' : ''}</span>
+          </label>`; }).join('')
+        : '<p class="sui-nota">El catálogo de modelos está vacío o no tienes permiso para leerlo.</p>'}
+        ${ES_ADMIN ? '' : '<p class="sui-nota">Solo un administrador puede cambiar esta lista.</p>'}
+      </div>`,
     pie: `<button class="sui-btn primario" id="btnGuardarFicha">Guardar</button>
           <button class="sui-btn" id="btnRenombrarProy">Renombrar…</button>
           <button class="sui-btn" id="btnCerrarFicha">Cerrar</button>`,
@@ -671,9 +719,23 @@ function editarProyecto(nombre){
     };
     const btn = $('#btnGuardarFicha'); btn.disabled = true;
     const { data, error } = await SB.from('proyectos').update(fila).eq('nombre', nombre).select('id');
+    if(error){ btn.disabled = false; toast('No se pudo guardar: ' + error.message); return; }
+    if(!data || !data.length){ btn.disabled = false; toast('No tienes permiso para editar la ficha del proyecto (solo admin).'); return; }
+    /* La selección de modelos va en el MISMO botón: para quien la usa es una
+       sola ficha. Se escribe después de la ficha y solo si el usuario es admin
+       (la policy de `modelos_villa` exige es_admin, igual que la de `proyectos`). */
+    if(ES_ADMIN){
+      const marcados = [...document.querySelectorAll('[data-modelo]')]
+        .filter(c => c.checked).map(c => c.dataset.modelo);
+      const r = await lwDeclaraModelosEnProyecto(SB, nombre, marcados, {
+        catalogo: CATALOGO, villas: MODELOS, enUso: new Set(usados.keys()),
+        proyecto_id: (data[0] && data[0].id) || ficha.id || null,
+      });
+      if(!r.ok){ btn.disabled = false; toast('La ficha sí, los modelos no: ' + r.error); return; }
+      if(r.rechazadas.length)
+        toast('No se han retirado ' + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
+    }
     btn.disabled = false;
-    if(error){ toast('No se pudo guardar: ' + error.message); return; }
-    if(!data || !data.length){ toast('No tienes permiso para editar la ficha del proyecto (solo admin).'); return; }
     toast('Guardado');
     suiCerrarCajon();
     cargar();
@@ -905,15 +967,24 @@ function abrirUnidad(id){
       </div>
       <div class="dos">
         <div class="campo"><label for="f-modelo">Modelo de villa</label>
-          ${modelosDe(u.proyecto).length
-            ? `<select class="sui-sel" id="f-modelo">
+          ${(() => { const r = modelosDeProy(u.proyecto); return !r.lista.length
+            /* Catalogo vacio de verdad (o sin permiso para leerlo): el texto
+               libre es el ultimo recurso, no el camino normal. */
+            ? `<input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="Dune, Dream…">`
+            : `<select class="sui-sel" id="f-modelo">
                  <option value="">— sin decidir —</option>
-                 ${modelosDe(u.proyecto).map(m => `<option value="${esc(m.modelo)}" ${u.modelo===m.modelo?'selected':''}>${
+                 ${r.lista.map(m => `<option value="${esc(m.modelo)}" ${u.modelo===m.modelo?'selected':''}>${
                      esc(m.modelo)}${m.precio_construccion != null ? ' · ' + fmtNum(Number(m.precio_construccion)) + ' ' + (m.moneda||'EUR') : ''}</option>`).join('')}
-                 ${u.modelo && !modelosDe(u.proyecto).some(m => m.modelo === u.modelo)
+                 ${u.modelo && !r.lista.some(m => m.modelo === u.modelo)
                    ? `<option value="${esc(u.modelo)}" selected>${esc(u.modelo)} · fuera del catálogo</option>` : ''}
                </select>`
-            : `<input id="f-modelo" value="${esc(u.modelo||'')}" placeholder="Dune, Dream…">`}
+            + (r.declarados ? ''
+               /* 8-sep-2026: antes, un proyecto sin modelos declarados daba un
+                  INPUT DE TEXTO — y por ahí entraban los modelos inventados que
+                  luego no casan con nada. Ahora se ofrece el catálogo entero y se
+                  dice que es el catálogo, con el camino para acotarlo. */
+               : `<p class="sui-nota">Este proyecto no tiene modelos declarados, así que se ofrece el catálogo entero.
+                    Para acotarlo, «Qué se puede construir aquí» en la ficha del proyecto.</p>`); })()}
         </div>
         <div class="campo"><label for="f-sup">Superficie (m²)</label><input id="f-sup" inputmode="decimal" value="${esc(u.superficie_m2||'')}"></div>
       </div>
@@ -1115,7 +1186,7 @@ function pintarEscenarios(u){
       const c = x.precio_construccion != null ? Number(x.precio_construccion) : null;
       return `<div class="sui-total" style="border:none;margin:0;padding:3px 0;font-weight:400">
         <span>${esc(x.modelo)}${elegido === x.modelo ? ' <b>· elegido</b>' : ''}${
-          x._heredado ? ' <span class="flojo">· del catálogo</span>' : ''}</span>
+          x.heredado ? ' <span class="flojo">· del catálogo</span>' : ''}</span>
         <span>${c == null ? '<span class="flojo">sin precio</span>' : '<b>' + esc(fmtMoneda(suelo + c, m)) + '</b>'}</span>
       </div>`;
     }).join('')}
@@ -1353,6 +1424,7 @@ suiOrdenable($('#tabla'), ORDEN, valorDe, pintar);   // el orden lo comparten la
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb;
   ES_SUPER_ADMIN = !!(ficha && ficha.rol === 'super_admin');
+  ES_ADMIN = !!(ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'));
   try{
     const t = await fetch('../../contracts/tokens.json?v=' + Date.now()).then(r => r.json());
     const campo = (t.sections || []).flatMap(s => s.fields).find(f => f[0] === 'resort');

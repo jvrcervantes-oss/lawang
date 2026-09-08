@@ -95,6 +95,48 @@ let AUTO_CARGA = '';  // tipología que se está convirtiendo AHORA. Estado prop
                       // inferido de ANNEXES: si el PDF no existe, "sin anexo" y "aún
                       // convirtiendo" son el mismo estado y el panel se quedaba
                       // diciendo "Preparando…" para siempre (visto el 30-jul-2026).
+/* DE DÓNDE SALE EL PDF DEL ANEXO — 8-sep-2026, encargo del owner.
+   ═══════════════════════════════════════════════════════════════════════════
+   Hasta hoy: un fichero por tipología en `assets/anexos/`, servido por
+   convención de nombre. Funciona, pero para añadir el anexo de un modelo hay que
+   pasar por el repo — o sea por nosotros—, y el cliente ya da de alta sus
+   modelos solo en `intranet/modelos/`, documentos incluidos.
+
+   Desde hoy manda MODELOS: se busca el documento de tipo `plano` del modelo (el
+   más reciente si hay varios) en el bucket privado `modelos`, con URL firmada —
+   el mismo camino que ya usa la KTP del apoderado en app.html.
+
+   Y SI ESE MODELO NO TIENE NINGUNO, se cae al PDF estático de siempre. No es
+   pereza: hoy `modelo_documentos` está vacía y en `assets/anexos/` solo hay
+   `Dali.pdf` y `Tropical.pdf`. Sin la red, este cambio dejaría sin anexo
+   automático a los únicos dos que lo tienen. La red se puede retirar el día que
+   todos los modelos vivos tengan el suyo subido.
+
+   El SHA se calcula sobre el buffer venga de donde venga, así que el aviso «el
+   pack ha cambiado desde que se guardó este contrato» sigue funcionando igual —
+   y ahora también detecta que alguien ha sustituido el plano desde Modelos. */
+async function bufferDelAnexo(tip){
+  const ficha = (typeof fichaDelModelo === 'function') ? fichaDelModelo(tip) : null;
+  if(ficha && typeof sb !== 'undefined' && sb){
+    try{
+      const { data } = await sb.from('modelo_documentos')
+        .select('path, nombre, tipo, subido_en').eq('modelo_id', ficha.id).eq('tipo', 'plano')
+        .order('subido_en', { ascending:false }).limit(1);
+      const doc = (data || [])[0];
+      if(doc && doc.path){
+        const { data:url } = await sb.storage.from('modelos').createSignedUrl(doc.path, 3600);
+        if(url && url.signedUrl){
+          const r = await fetch(url.signedUrl);
+          if(r.ok) return await r.arrayBuffer();
+        }
+      }
+    }catch(_){ /* si Modelos falla se intenta el estático: mejor el anexo viejo que ninguno */ }
+  }
+  const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
+  if(!r.ok) throw new Error(r.status);
+  return await r.arrayBuffer();
+}
+
 async function syncAutoAnnex(){
   const el = document.querySelector('[name="tipologia_construccion"]');
   const tip = el ? el.value.trim() : '';       // sin campo (otra plantilla) → se quita el anexo
@@ -109,9 +151,7 @@ async function syncAutoAnnex(){
   if(!tip){ AUTO_CARGA=''; saveAnnexes(); rebuildAnnex(); render(); return; }
   AUTO_CARGA = tip; rebuildAnnex();
   try{
-    const r = await fetch('assets/anexos/'+encodeURIComponent(tip)+'.pdf');
-    if(!r.ok) throw new Error(r.status);
-    const buf = await r.arrayBuffer();
+    const buf = await bufferDelAnexo(tip);
     const sha = await sha256hex(buf);           // antes de pdf.js: se queda el buffer
     const pages = await pdfToImages(buf);
     if(AUTO_ANX !== tip) return;               // cambió de tipología mientras se convertía
