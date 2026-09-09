@@ -45,7 +45,13 @@ alter table public.contratos add constraint contratos_tipo_check
     'carta_reserva','carta_reserva_ampliada','acuerdo_comercial','protocolo_operativo',
     'ppjb_bonian','ppjb_bonian_c2','hak_sewa_notario','carta_reserva_hak_sewa',
     'poa','cc00014_timon',
-    'carta_reserva_pma'
+    'carta_reserva_pma',
+    -- Anadida aqui el 9-sep-2026: la serie AD ya vivia en produccion desde el
+    -- 8-sep (sql/adenda.sql, migracion `adenda_tipo_y_serie_ad`), pero este
+    -- fichero -- que es el .sql COMPLETO de referencia -- no la tenia. Reejecutarlo
+    -- habria borrado el tipo `adenda` del check y la rama de su numeracion. Es
+    -- exactamente el fallo que adenda.sql avisa en su cabecera (LAW-48).
+    'adenda'
   ]));
 
 create or replace function public.set_contrato_numero()
@@ -77,6 +83,7 @@ begin
     when 'poa'                then prefix := 'PA'; seqname := 'public.contratos_poa_seq';
     when 'cc00014_timon'      then prefix := 'CC'; seqname := 'public.contratos_cc_seq';
     when 'carta_reserva_pma'  then prefix := 'CP'; seqname := 'public.contratos_cp_seq';
+    when 'adenda'             then prefix := 'AD'; seqname := 'public.contratos_ad_seq';
     else raise exception 'Tipo de contrato sin numeracion definida: %', new.tipo;
   end case;
   n := nextval(seqname);
