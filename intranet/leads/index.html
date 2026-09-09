@@ -29,10 +29,18 @@
      /Modelos/Solicitudes a propósito: esas tres reutilizaron 'operaciones' porque
      dar de alta una clave exigía redesplegar la edge admin-usuarios y estaba
      bloqueada (LAW-70). Hoy la edge está ACTIVA y redesplegable, y aquí lo que se
-     abre son los datos de contacto de 101 personas reales: quién los ve tiene que
-     poder decidirse persona a persona, no venir de regalo con «Operaciones».
-     La clave se siembra a quien ya tenía 'operaciones' para que nadie pierda de
-     golpe una herramienta que usaba (mismo cuidado que en permiso_vencimientos.sql).
+     abre son los datos de contacto de un centenar de personas reales: quién los ve
+     tiene que poder decidirse persona a persona, no venir de regalo con «Operaciones».
+
+     ⚠️ LA CLAVE NO SE SIEMBRA A NADIE, y eso es deliberado — al revés que
+     'vencimientos', que sí se repartió a quien ya tenía 'operaciones' para que nadie
+     perdiera una herramienta que ya usaba. Aquí la herramienta es nueva: nadie la
+     pierde, y sembrarla a los dieciséis de 'operaciones' sería justo lo que se quiere
+     evitar. De salida la ven solo los dos super_admin (que pasan cualquier permiso);
+     a partir de ahí, un admin la reparte desde /intranet/usuarios/, donde ya sale
+     como casilla propia (edge admin-usuarios v7).
+     Consecuencia práctica: una cuenta con rol 'admin' NO ve esta herramienta hasta
+     que alguien le marque la casilla. Si alguien dice «no me aparece», es esto.
 
      LO QUE ESTA PANTALLA NUNCA HACE: escribir en `leads`. Esa tabla la mantiene R13
      (la recogida automática de Meta, cada 4 h) con un upsert; el estado y las notas
@@ -55,9 +63,13 @@
 </style>
 </head>
 <body class="crm">
+  <!-- La barra superior es CÁSCARA DE LA SUITE y va exactamente igual que en las
+       otras once: mismos elementos, mismas clases. La piel del mockup empieza
+       por debajo de ella. Mezclar las dos cosas convertiría la barra en una
+       versión más de un bloque del que ya hay demasiadas. -->
   <header class="lw-topbar" data-titulo="CRM de leads">
     <div class="lw-spacer"></div>
-    <button type="button" class="btn mini" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
+    <button type="button" class="lw-btn" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
   </header>
 
   <nav class="crm-nav" id="nav" role="tablist">
