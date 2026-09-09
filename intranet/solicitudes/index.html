@@ -89,8 +89,15 @@
     <div class="sui-centro">
       <div class="sui-filtros">
         <input class="sui-buscar" id="q" placeholder="Buscar concepto, contrato o compañero…">
+        <!-- solo lo ve el admin: para un agente todas las filas son suyas y el
+             filtro sería una lista de una persona -->
+        <select class="sui-sel" id="fAgente" hidden></select>
       </div>
       <div class="sui-filtros" id="filtros"></div>
+      <!-- el mini panel del admin: qué espera su acción y cuánto dinero hay
+           comprometido sin pagar, por moneda. Un agente no lo ve — sus cifras
+           son sus propias filas y ya están en los chips. -->
+      <div class="sui-resumen" id="resumen" hidden></div>
 
       <div class="sui-tabla-caja">
         <table class="sui-tabla" id="tabla">
@@ -129,7 +136,7 @@ const $ = s => document.querySelector(s);
 
 let SB=null, YO=null, ADMIN=false;
 let SOLICITUDES=[], CONTRATOS={}, USUARIOS={};
-let SEL=null, FILTRO='pendiente';
+let SEL=null, FILTRO='pendiente', AGENTE='';
 const ORDEN = { campo:'creado_en', dir:'desc' };
 
 const fmtFecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '';
@@ -183,6 +190,7 @@ const RESUELTAS = ['pagada','rechazada','anulada'];
 function visibles(){
   const q = ($('#q').value || '').toLowerCase();
   return vistas().filter(x => {
+    if(AGENTE && x.creado_por !== AGENTE) return false;
     if(FILTRO === 'pendiente' && x.estado !== 'pendiente') return false;
     if(FILTRO === 'aprobada' && x.estado !== 'aprobada') return false;
     if(FILTRO === 'resueltas' && RESUELTAS.indexOf(x.estado) < 0) return false;
@@ -190,12 +198,51 @@ function visibles(){
     return true;
   });
 }
+/* El mini panel del ADMIN: los chips ya cuentan filas — esto dice qué espera
+   su acción y cuánto dinero hay comprometido. Suma por moneda y NUNCA entre
+   monedas: 500 EUR + 500 USD no son «1.000 nada» (regla del modelo de venta). */
+function pintarResumen(todos){
+  const caja = $('#resumen');
+  if(!ADMIN){ caja.hidden = true; return; }
+  const pend = todos.filter(x => x.estado === 'pendiente').length;
+  const aprob = todos.filter(x => x.estado === 'aprobada');
+  const porMoneda = {};
+  aprob.forEach(x => { porMoneda[x.moneda] = (porMoneda[x.moneda] || 0) + Number(x.importe); });
+  const sumas = Object.keys(porMoneda).sort()
+    .map(m => lwFormatoImporte(porMoneda[m]) + ' ' + m).join(' · ');
+  caja.hidden = false;
+  caja.textContent = pend + (pend === 1 ? ' pendiente de resolver' : ' pendientes de resolver')
+    + ' — ' + aprob.length + (aprob.length === 1 ? ' aprobada por pagar' : ' aprobadas por pagar')
+    + (aprob.length ? ' (' + sumas + ')' : '');
+}
+/* El filtro por agente solo existe para el admin (para un agente todas las
+   filas son suyas). Las opciones salen de las filas que la RLS ya le dejó
+   ver — no de la lista de usuarios: un compañero sin solicitudes no es una
+   opción que filtre nada. */
+function pintarFiltroAgente(todos){
+  const sel = $('#fAgente');
+  if(!ADMIN){ sel.hidden = true; return; }
+  const vistos = [];
+  todos.forEach(x => { if(vistos.indexOf(x.creado_por) < 0) vistos.push(x.creado_por); });
+  if(vistos.length < 2){ sel.hidden = true; AGENTE = ''; return; }
+  sel.hidden = false;
+  const antes = AGENTE;
+  sel.innerHTML = '<option value="">Todos los agentes</option>' + vistos
+    .map(uid => ({ uid, nombre: nombreDe(uid) }))
+    .sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'))
+    .map(o => `<option value="${esc(o.uid)}">${esc(o.nombre)}</option>`).join('');
+  sel.value = antes;
+  if(sel.value !== antes) AGENTE = '';
+}
 function pintar(){
   const todos = vistas();
+  pintarResumen(todos);
+  pintarFiltroAgente(todos);
+  const base = AGENTE ? todos.filter(x => x.creado_por === AGENTE) : todos;
   $('#filtros').innerHTML = FILTROS.map(([v,l]) => {
-    const n = v === 'todos' ? todos.length
-      : v === 'resueltas' ? todos.filter(x => RESUELTAS.indexOf(x.estado) >= 0).length
-      : todos.filter(x => x.estado === v).length;
+    const n = v === 'todos' ? base.length
+      : v === 'resueltas' ? base.filter(x => RESUELTAS.indexOf(x.estado) >= 0).length
+      : base.filter(x => x.estado === v).length;
     return `<button class="sui-chip ${FILTRO===v?'on':''}" data-f="${v}">${l}<span class="n">${n}</span></button>`;
   }).join('');
   pintarTabla();
@@ -420,6 +467,7 @@ function formulario(existente){
 
 /* ---------- eventos ---------- */
 $('#q').addEventListener('input', pintarTabla);
+$('#fAgente').addEventListener('change', () => { AGENTE = $('#fAgente').value; pintar(); });
 $('#filtros').addEventListener('click', e => {
   const b = e.target.closest('[data-f]'); if(!b) return;
   FILTRO = b.dataset.f; pintar();
