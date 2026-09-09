@@ -28,10 +28,10 @@ window.__CANNED = {
      contrato_firmado:null, facturado:0, pct_cobrado:null},
     {id:'u2', codigo:'B2', proyecto:'Bonian Village by Balian Hills', tipo:'villa', modelo:'Dune',
      superficie_m2:300, precio_suelo:80000, precio_construccion:130000, precio:210000, moneda:'EUR',
-     notas:null, estado:'reservada', contrato_id:'c1', contrato_numero:'RP00001', comprador_nombre:'Juan Perez',
+     notas:null, estado:'reservada', contrato_id:'c1', contrato_numero:'RP00001', comprador_nombre:'Comprador de ejemplo A',
      contrato_firmado:false, facturado:5000, pct_cobrado:2},
   ],
-  contratos: [{id:'c1', numero:'RP00001', comprador_nombre:'Juan Perez'}],
+  contratos: [{id:'c1', numero:'RP00001', comprador_nombre:'Comprador de ejemplo A'}],
   modelos_villa: [{proyecto:'Bonian Village by Balian Hills', modelo:'Dune', precio_construccion:130000, moneda:'EUR'}],
   proyectos: [{nombre:'Palm Field by Balian Hills'},{nombre:'Bonian Village by Balian Hills'},{nombre:'Horizon by Balian Hills'}],
   tipos_vivienda: [{clave:'parcela',etiqueta:'Parcela'},{clave:'villa',etiqueta:'Villa'},{clave:'apartamento',etiqueta:'Apartamento'},{clave:'local',etiqueta:'Local'}],
@@ -70,6 +70,7 @@ window.supabase = {
 
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/facturas/totales.js"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }

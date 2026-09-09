@@ -387,6 +387,12 @@
     if (!window.LW_AUTH) return;
     window.LW_AUTH.then(function (aut) {
       var fn = ED[seg];
+      /* MUDO A PROPOSITO: si el editor de UNA seccion revienta al montarse, el
+         resto de la pagina (listado, barra, navegacion) tiene que seguir en pie
+         — es una maqueta de exploracion y aqui un fallo de montaje deja la
+         seccion sin editor, no datos a medias: no hay nada guardado que pueda
+         quedar inconsistente. El error va a consola con su prefijo para poder
+         reproducirlo. */
       if (fn) { try { fn(aut); } catch (e) { console.error('[v4 editores]', e); } }
     });
   }

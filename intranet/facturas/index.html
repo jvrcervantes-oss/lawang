@@ -146,7 +146,7 @@
   /* 🔴 `min-width:0` NO ES DECORACIÓN (26-ago-2026). El navegador le da a todo
      `<fieldset>` un `min-width:min-content` de fábrica: se niega a encoger por
      debajo de su contenido más ancho que no parte. Aquí ese contenido es el
-     botón del contrato —«CC00068 — Borja Alonso Fernandez · Sonia Alonso…»,
+     botón del contrato —«CC00068 — <dos compradores con nombre largo>…»,
      `white-space:nowrap`—, así que el fieldset crecía a 432 px dentro de un
      panel de 360 y el panel sacaba un scroll horizontal. Medido: 92 px fuera.
      En la pantalla se veía como texto cortado a media palabra: «documen…»,
@@ -1282,8 +1282,8 @@ function toggleTipoRecibi(){
 }
 /* Solo se listan las facturas DEL MISMO COMPRADOR (LAW-41(2), 19-ago-2026).
    Antes se listaban las de todo el equipo, y de ahí salió el error real:
-   REC00019 (1.000 €, Jorge Miguel Domingo Berenguer) acabó aplicado a
-   INV00001, una factura de Carmen Ribera Valdes. La regla la impone
+   REC00019 (1.000 €, de un comprador) acabó aplicado a
+   INV00001, que es una factura de OTRO comprador distinto. La regla la impone
    guardar_recibi() en la misma transacción; aquí no se reimplementa, se
    PREGUNTA — `contratos_del_mismo_comprador` es la misma comparación de
    identidad (pasaporte + email) que usa la función, así que el selector no
@@ -1917,7 +1917,7 @@ function pintarContratoElegido(){
   const b = $('#btnContrato'); if(!b) return;
   const c = CONTRATOS.find(x => x.id === CONTRATO_ID);
   /* 🔴 EN UN RECIBÍ SE ENSEÑA LA FACTURA, NO EL CONTRATO (27-ago-2026). El
-     rótulo dice «Factura que se cobra» y aquí salía «CR00035 — ABJ ASENATH…»,
+     rótulo dice «Factura que se cobra» y aquí salía «CR00035 — <el comprador>…»,
      que es un CONTRATO: la CR del prefijo es Carta de Reserva. Lo heredaba de
      que este botón siempre ha pintado `CONTRATO_ID`, y desde esta mañana el
      contrato se deduce de la factura elegida. Un campo que promete una cosa y
@@ -2072,10 +2072,9 @@ async function traerContrato(id){
   /* `poner` NO tocaba el campo cuando el contrato nuevo no traía ese dato, así
      que se quedaba el del contrato ANTERIOR. Auditoría 21-ago-2026.
 
-     Es reproducible con datos de hoy: RP00069 trae email
-     (davidpirisjuaneda@gmail.com) y RP00071 no trae ninguno. Elegir el primero y
-     cambiar al segundo dejaba una factura a nombre de David Jimenez Vera con el
-     email de David Piris Juaneda. Nadie ve nada raro: el campo está relleno.
+     Es reproducible con datos de hoy: RP00069 trae email y RP00071 no trae
+     ninguno. Elegir el primero y cambiar al segundo dejaba una factura a
+     nombre del comprador de RP00071 con el email del de RP00069. Nadie ve nada raro: el campo está relleno.
 
      Desde hoy, los campos de IDENTIDAD del cliente se vacían cuando el contrato
      nuevo no los trae — un hueco se ve, un dato de otra persona no. Lo que NO se

@@ -19,10 +19,10 @@ window.__CANNED = {
   unidades_estado: [
     {id:'u1', codigo:'A1', proyecto:'Palm Field by Balian Hills', tipo:'villa', modelo:'Dune',
      superficie_m2:600, precio_suelo:95000, precio_construccion:130000, precio:225000, moneda:'EUR',
-     notas:'nota original', estado:'reservada', contrato_id:'c1', contrato_numero:'RP00001', comprador_nombre:'Juan Perez',
+     notas:'nota original', estado:'reservada', contrato_id:'c1', contrato_numero:'RP00001', comprador_nombre:'Comprador de ejemplo A',
      contrato_firmado:false, facturado:5000, pct_cobrado:2},
   ],
-  contratos: [{id:'c1', numero:'RP00001', comprador_nombre:'Juan Perez'}],
+  contratos: [{id:'c1', numero:'RP00001', comprador_nombre:'Comprador de ejemplo A'}],
   modelos_villa: [{proyecto:'Palm Field by Balian Hills', modelo:'Dune', precio_construccion:130000, moneda:'EUR'}],
   proyectos: [{nombre:'Palm Field by Balian Hills'}],
   tipos_vivienda: [{clave:'parcela',etiqueta:'Parcela'},{clave:'villa',etiqueta:'Villa'},{clave:'apartamento',etiqueta:'Apartamento'},{clave:'local',etiqueta:'Local'}],
@@ -81,6 +81,7 @@ window.supabase = {
 
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
+<script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/facturas/totales.js"></script>
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; height:100%; }

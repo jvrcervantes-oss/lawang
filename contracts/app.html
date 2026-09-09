@@ -501,8 +501,7 @@ const TEMPLATES = [
     l2:{es:'Cronograma de Pagos y Cuentas Bancarias · Bonian Beach C2',en:'Payment Schedule & Bank Accounts · Bonian Beach C2',id:'Bonian Beach C2'}, ready:true },
   // Mismo patron que ppjb_bonian_c2: un solo ejemplar, texto fijo, tipo
   // PROPIO (28-ago-2026, peticion del owner). `disabled:true` porque es EL
-  // contrato ya negociado de un comprador concreto (CC00014, Timon Taeke van
-  // den Bosch) -- no se ofrece para emitir contratos nuevos, solo reabre el
+  // contrato ya negociado de un comprador concreto (CC00014) -- no se ofrece para emitir contratos nuevos, solo reabre el
   // que ya existe (mismo motivo que ppjb_reserva mas arriba).
   { slug:'cc00014_timon', file:'templates/cc00014_timon.html', cover:'#5A3A1E',
     name:{es:'Construcción · CC00014 Timon',en:'Construction · CC00014 Timon',id:'Konstruksi · CC00014 Timon'},
@@ -1554,7 +1553,7 @@ function clausesHTML(){
    plantilla —tokenizar un literal, añadir una cláusula, traducir un bloque—
    corría de sitio todos los overrides posteriores y los aplicaba a párrafos
    ajenos, sin decir nada. No es teórico: CR00003 tenía guardado en el eid 27 el
-   bloque de firmas ("Nombre: Pablo Cantero Gambín — Cargo: Director"), y el eid
+   bloque de firmas ("Nombre: <apoderado> — Cargo: Director"), y el eid
    27 de la plantilla de hoy es la cláusula de ley aplicable — abrir ese contrato
    sustituía la una por la otra. Eso era "editar texto a mano rompe los
    contratos".
@@ -3606,7 +3605,7 @@ function contractPayload(){
    Reserva NO debería generarla"): una Carta de Reserva es un documento
    preliminar, no una venta — generarle una proforma duplicaba el "Precio
    pactado" de un mismo cliente en Compradores en cuanto también firmaba el
-   contrato real de la misma villa (caso real: Joel Fuguet Margeli, CR00018 +
+   contrato real de la misma villa (caso real: el comprador de CR00018 +
    CC00020, 76.500 € contados dos veces). Corte gemelo al de firma-submit
    (enviarProformaTotal), que hace lo mismo al FIRMAR. */
 const TIPOS_CON_PROFORMA_AUTO = ['reserva_parcela', 'construccion'];
@@ -4398,7 +4397,7 @@ async function openSavedContract(id){
    Para un BORRADOR es un fallo silencioso: corriges un email mal escrito en la
    ficha y el contrato que vas a mandar a firmar sigue llevando el error — y el
    email es por donde sale el enlace de firma. Ya pasa hoy: CC00009 y RP00019
-   llevan `jcginer@gruposantagema.com` y la ficha dice `cginer@…`.
+   llevan un email con una letra de mas al principio y la ficha dice el mismo sin ella.
 
    Asi que NO se propaga solo: se avisa y decide el agente. Solo en no firmados,
    solo al abrir, y solo si de verdad difiere.
@@ -4417,7 +4416,7 @@ async function openSavedContract(id){
 
    Con esas dos reglas quedan 25 diferencias reales en 13 contratos: emails
    distintos de verdad, campos vacios que la ficha si tiene, y nombres a medias
-   («Rubén Carrasco» / «RUBÉN CARRASCO BARJA»). */
+   (la ficha lleva nombre y un apellido y el contrato los dos, o al revés). */
 const CAMPOS_FICHA = [
   ['adq1_nombre',       'full_name',       'Nombre'],
   ['adq1_pasaporte',    'passport_number', 'Pasaporte'],
@@ -4754,8 +4753,8 @@ async function openFirmaModal(){
      en `avisosCadena` y responde ok:true. Ese aviso va al navegador del COMPRADOR
      y a console.error, así que el equipo no se entera — y el contrato se queda
      firmado a medias y EDITABLE.
-     Pasó de verdad con CR00020: Jorge Miguel firmó el 14-ago y la cadena lleva
-     parada desde entonces porque Mayka Núñez Sáez no tiene email.
+     Pasó de verdad con CR00020: el primer firmante firmó el 14-ago y la cadena
+     lleva parada desde entonces porque la segunda firmante no tiene email.
      Se para AQUÍ, que es el único momento en que aún se arregla sin molestar a
      nadie. Y se PARA, no se avisa: hasta el 15-ago la salida era mandar el
      enlace por WhatsApp, y el owner la retiró — si no hay email, no hay cadena,
@@ -4811,7 +4810,7 @@ $('#fmGen').addEventListener('click', async ()=>{
      abría, veía el documento, firmaba... y `firma-submit` no encontraba el
      hueco y devolvía un error. Y su mensaje decía «regenera el enlace desde la
      app», que es el peor consejo posible aquí: regenerar da el mismo documento
-     y el mismo error. Pasó de verdad con PA00006 (Rubén Carrasco, 14-ago): el
+     y el mismo error. Pasó de verdad con PA00006 (14-ago): el
      agente lo reintentó una y otra vez sin poder saber que era imposible.
 
      Se comprueba la PLANTILLA CARGADA, no una lista de tipos: una plantilla
