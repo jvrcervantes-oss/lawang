@@ -424,7 +424,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=27b9eb68"></script>
+<script src="/contracts/assets/herramientas.js?v=55bab44e"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -602,12 +602,23 @@ async function contar(sb){
   // firma pendiente vía `contrato_firmas_equipo()` (team-wide, la misma RPC
   // que ya usa Operaciones) — el origen tiene que ser el mismo o los dos
   // números nunca van a coincidir.
+  /* Leads sin contactar. Sale de una RPC y no de `sb.from('leads')` porque esa
+     tabla no tiene policy de lectura a proposito (lleva `ip` y la mantiene la
+     recogida automatica): todo el CRM se sirve por funcion. Si el usuario no
+     tiene el permiso 'leads', la funcion devuelve cero filas y la tarjeta se
+     queda sin cifra, que es justo lo que debe pasar. */
+  let leadsNuevos = null;
+  {
+    const { data, error } = await sb.rpc('crm_leads_resumen');
+    const f = error ? null : (data || [])[0];
+    leadsNuevos = f ? Number(f.nuevos) : null;
+  }
   let firmasPendientes = null;
   {
     const { data, error } = await sb.rpc('contrato_firmas_equipo').select('contrato_id').eq('estado', 'pendiente');
     firmasPendientes = error ? null : new Set((data || []).map(x => x.contrato_id)).size;
   }
-  return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
+  return { leadsNuevos, contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
            recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
            documentos, proyectosConDocs, vencSinFecha, hilosAbiertos,
            modelos, modelosPublicados, modelosSinPrecio, solicitudesVivas };

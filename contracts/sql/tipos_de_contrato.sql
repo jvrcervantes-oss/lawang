@@ -84,7 +84,16 @@ declare
     -- todos: la lista escrita en dos sitios ES el bug, y por eso hay un test
     -- que compara los seis. Fila puesta al día el 7-sep para que el generador
     -- vuelva a coincidir con producción.
-    ['carta_reserva_pma',      'CP', 'public.contratos_cp_seq']
+    ['carta_reserva_pma',      'CP', 'public.contratos_cp_seq'],
+    -- Adenda (serie AD). Aplicada en vivo el 8-sep-2026 por la migracion
+    -- `adenda_tipo_y_serie_ad` — verificado hoy en produccion: el CHECK admite
+    -- 'adenda' y set_contrato_numero() tiene su rama. Pero se volvio a hacer lo
+    -- mismo que con carta_reserva_pma: parchear la definicion viva sin anadir la
+    -- fila AQUI, que es la fuente que genera las dos. Se cazo el 9-sep, otra vez
+    -- por `listas.test.js`. Es la SEGUNDA vez consecutiva que un tipo nuevo entra
+    -- por un .sql suelto en vez de por esta lista: el guardarrail funciona, lo
+    -- que falla es la costumbre de dar de alta un tipo por otro camino.
+    ['adenda',                 'AD', 'public.contratos_ad_seq']
   ];
   i          int;
   n          int := array_length(tipos, 1);

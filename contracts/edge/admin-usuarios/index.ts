@@ -51,7 +51,12 @@ const corsFor = (req: Request) => {
 // filtrarse (ver abajo). Las tres veces que esta lista se quedó corta pasaron
 // desapercibidas por el `.filter()`: descartar sin avisar convierte un error de
 // programación en un permiso que falta y que nadie relaciona con esto.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte'];
+// 9-sep-2026: añadida 'leads' (CRM de leads de Meta). Es la primera clave nueva desde
+// 'vencimientos': las herramientas intermedias (Modelos, Solicitudes) reutilizaron
+// 'operaciones' porque esta edge estaba sin poder redesplegarse. Ésta no lo hace: abre
+// datos de contacto de un centenar de personas y eso tiene que poder darse cuenta a
+// cuenta.
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
 Deno.serve(async (req) => {

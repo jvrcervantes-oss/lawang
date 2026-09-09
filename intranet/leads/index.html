@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/favicon.png">
+<title>Lawang · CRM de leads</title>
+<!-- CRM de leads de Meta — herramienta nueva 9-sep-2026 (encargo del owner: «un CRM
+     para que Lawang gestione los leads de Meta; ya lo tenemos en el panel de
+     AxisWorks pero no quiero darles acceso»).
+
+     QUÉ ES. El tablero de leads que hasta hoy vivía SOLO en el panel del estudio
+     (/leads, detrás de PANEL_PASSWORD, junto al monitoreo de todos los clientes),
+     traído a la intranet de Lawang para que lo gestione su equipo sin pisar el
+     panel. El estudio conserva el suyo: son dos pantallas sobre la MISMA base.
+
+     CÁSCARA COPIADA de intranet/solicitudes/ (Regla 0 de contexto/suite_lawang.md):
+     guard.js + lw-topbar + LW_AUTH + suite-comun. No es un HTML en blanco.
+
+     PIEL. Ésta es la excepción de la suite: el owner eligió la del mockup de Stitch
+     que él mismo trajo (esmeralda/ochre/Plus Jakarta Sans) frente a la de las otras
+     once herramientas. Vive en leads.css, DENTRO de la herramienta — el porqué, en
+     la cabecera de ese fichero. Del mockup se toma el sistema visual; ni un texto,
+     ni un nombre, ni un importe suyos entran aquí: «Bali Haven» y sus leads de
+     muestra son invención del generador.
+
+     PERMISO PROPIO 'leads', no reutilizado. Rompe con el precedente de Vencimientos
+     /Modelos/Solicitudes a propósito: esas tres reutilizaron 'operaciones' porque
+     dar de alta una clave exigía redesplegar la edge admin-usuarios y estaba
+     bloqueada (LAW-70). Hoy la edge está ACTIVA y redesplegable, y aquí lo que se
+     abre son los datos de contacto de 101 personas reales: quién los ve tiene que
+     poder decidirse persona a persona, no venir de regalo con «Operaciones».
+     La clave se siembra a quien ya tenía 'operaciones' para que nadie pierda de
+     golpe una herramienta que usaba (mismo cuidado que en permiso_vencimientos.sql).
+
+     LO QUE ESTA PANTALLA NUNCA HACE: escribir en `leads`. Esa tabla la mantiene R13
+     (la recogida automática de Meta, cada 4 h) con un upsert; el estado y las notas
+     viven en tablas aparte por eso mismo. Todo cambio pasa por los RPC lead_mover /
+     lead_nota, que revalidan permiso y sellan el autor en la base. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<script src="/contracts/assets/herramientas.js?v=55bab44e"></script>
+<script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
+<script src="/contracts/assets/suite.js?v=a916961a"></script>
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=1">
+<style>
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
+</style>
+</head>
+<body class="crm">
+  <header class="lw-topbar" data-titulo="CRM de leads">
+    <div class="lw-spacer"></div>
+    <button type="button" class="btn mini" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
+  </header>
+
+  <nav class="crm-nav" id="nav" role="tablist">
+    <button role="tab" data-v="pipeline"    aria-selected="true"><i class="ph ph-kanban"></i>Pipeline <span class="cuenta" id="c-pipeline">—</span></button>
+    <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i>Bandeja</button>
+    <button role="tab" data-v="panel"       aria-selected="false"><i class="ph ph-chart-line-up"></i>Campañas</button>
+    <button role="tab" data-v="automatismos" aria-selected="false"><i class="ph ph-flow-arrow"></i>Automatismos</button>
+  </nav>
+
+  <!-- ===================== PIPELINE ===================== -->
+  <section class="crm-vista" id="v-pipeline">
+    <div class="kpis" id="kpis-pipeline"></div>
+    <div class="aviso rojo" id="avisoTipos" hidden></div>
+    <div class="filtros">
+      <input type="search" id="q" placeholder="Buscar por nombre, email o teléfono…" autocomplete="off">
+      <div class="seg" id="canales"></div>
+    </div>
+    <div class="tablero" id="tablero"><p class="vacio">Cargando…</p></div>
+  </section>
+
+  <!-- ===================== BANDEJA ====================== -->
+  <section class="crm-vista" id="v-bandeja" hidden>
+    <div class="filtros">
+      <input type="search" id="qb" placeholder="Buscar en la bandeja…" autocomplete="off">
+      <div class="seg" id="filtroBandeja">
+        <button data-fb="todos"    aria-pressed="true">Todos</button>
+        <button data-fb="sintocar" aria-pressed="false">Sin tocar</button>
+        <button data-fb="parados"  aria-pressed="false">Parados +14d</button>
+      </div>
+    </div>
+    <div class="bandeja" id="bandeja"></div>
+  </section>
+
+  <!-- ===================== CAMPAÑAS ===================== -->
+  <section class="crm-vista" id="v-panel" hidden>
+    <div class="kpis" id="kpis-panel"></div>
+    <div class="aviso gris" id="avisoPanel" hidden></div>
+    <div class="caja" style="margin-bottom:16px">
+      <header>
+        <div>
+          <h2>Leads y gasto, semana a semana</h2>
+          <p>Leads recibidos frente a lo invertido en Meta. El gasto lo trae el vigilante cada 4 h.</p>
+        </div>
+      </header>
+      <div id="grafica" style="padding:16px"></div>
+    </div>
+    <div class="caja">
+      <header>
+        <div>
+          <h2>Rendimiento por campaña</h2>
+          <p id="subCampanas">—</p>
+        </div>
+      </header>
+      <div class="tabla-scroll"><table class="tabla" id="tCampanas"></table></div>
+    </div>
+  </section>
+
+  <!-- ================== AUTOMATISMOS ==================== -->
+  <section class="crm-vista" id="v-automatismos" hidden>
+    <div class="kpis" id="kpis-auto"></div>
+    <div class="aviso gris">
+      Estos automatismos los ejecuta AxisWorks sobre las campañas de Lawang, cada 4 horas.
+      Aquí se ven <b>en solo lectura</b>: qué vigila cada regla y qué ha hecho de verdad.
+      Para cambiar un umbral o un tope de gasto, habla con el estudio.
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2>El flujo</h2><p>De un formulario de Meta a una tarjeta en el pipeline.</p></div></header>
+      <div id="flujo" style="padding:18px 16px"></div>
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2>Reglas activas</h2><p id="subReglas">—</p></div></header>
+      <div id="reglas" style="padding:14px 16px"></div>
+    </div>
+    <div class="caja">
+      <header><div><h2>Lo que han hecho</h2><p id="subAcciones">—</p></div></header>
+      <div class="tabla-scroll"><table class="tabla" id="tAcciones"></table></div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+<script src="/contracts/assets/dialogo.js?v=8197f360"></script>
+<script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
+<script src="/intranet/leads/leads.js?v=1"></script>
+</body>
+</html>

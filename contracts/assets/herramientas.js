@@ -17,6 +17,25 @@
    uno y no uno-y-medio.
 */
 const LW_HERRAMIENTAS = [
+  /* Nueva 9-sep-2026 (encargo del owner: un CRM propio para los leads de Meta,
+     que hasta hoy solo se veían desde el panel de AxisWorks). Va la PRIMERA de
+     Seguimiento porque es el principio del embudo: antes de que haya una venta
+     que seguir, hay un lead al que contestar.
+     PERMISO PROPIO 'leads' y no 'operaciones' —al revés que Vencimientos,
+     Modelos y Solicitudes—: lo que abre son los datos de contacto de un
+     centenar de personas reales, y eso tiene que poder darse cuenta a cuenta.
+     Aquellas tres compartieron clave porque dar de alta una nueva exigía
+     redesplegar la edge admin-usuarios y estaba bloqueada (LAW-70); hoy la
+     edge está activa, así que ese motivo ya no vale. */
+  { grupo:'Seguimiento', nombre:'Leads', icon:'ph-user-focus', href:'/intranet/leads/', herr:'leads',
+    para:'Los leads que entran por Meta y por la web: en qué punto está cada uno y quién lo lleva.',
+    claves:'leads crm meta ads formulario campañas contactos pipeline embudo kanban prospectos interesados',
+    /* La cifra del hub es "sin contactar" y no "leads totales": el total no
+       pide nada a nadie, y lo que hay que mirar cada mañana es a cuánta gente
+       se ha dejado sin contestar. */
+    estado:d => d.leadsNuevos == null ? null
+      : [d.leadsNuevos ? d.leadsNuevos + (d.leadsNuevos === 1 ? ' sin contactar' : ' sin contactar') : 'Todos contestados',
+         d.leadsNuevos > 0] },
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
     claves:'ventas seguimiento estado cuenta',
