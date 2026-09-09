@@ -90,6 +90,22 @@ const LW_HERRAMIENTAS = [
     para:'Justificantes de pago y señales.',
     claves:'recibi recibos justificante señal pago',
     estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
+  /* Nueva 9-sep-2026 (owner: «un apartado donde los comerciales nos puedan
+     crear solicitudes de pago»). La cola de entrada de Administración: el
+     agente pide el cobro, el admin lo resuelve y emite desde Facturas.
+     `herr:'operaciones'` A PROPÓSITO, no una clave nueva: un permiso nuevo
+     exige redesplegar la edge admin-usuarios (pendiente por LAW-70) y dejaría
+     a los usuarios nuevos sin la herramienta en silencio — mismo precedente
+     que Vencimientos (18-ago) y Modelos (7-sep). Al compartir clave dos
+     tarjetas, la etiqueta del permiso va en LW_ETIQUETA_PROPIA (abajo).
+     La cifra hereda la RLS: el admin cuenta todas las pendientes, cada agente
+     las suyas — y las dos lecturas son las correctas para quien las ve. */
+  { grupo:'Administración', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'operaciones',
+    para:'Peticiones de cobro de los comerciales: quién pide cobrar qué, y en qué quedó cada una.',
+    claves:'solicitudes pago cobro peticiones comerciales agentes pedir cobrar',
+    estado:d => d.solicitudesPendientes == null ? null
+      : [d.solicitudesPendientes ? d.solicitudesPendientes + (d.solicitudesPendientes === 1 ? ' pendiente de resolver' : ' pendientes de resolver') : 'Sin solicitudes pendientes',
+         d.solicitudesPendientes > 0] },
 
   { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
@@ -183,6 +199,7 @@ const LW_ETIQUETA_PROPIA = {
   dossier:       'Dossier',
   creatividades: 'Creatividades',
   facturas:      'Facturas y recibís',   // dos tarjetas (Facturas y Recibos), un solo permiso
+  operaciones:   'Operaciones y solicitudes',   // dos tarjetas (Operaciones y Solicitudes), un solo permiso — 9-sep-2026
   usuarios:      'Usuarios (admin)',     // el «(admin)» avisa de que además exige rol
 };
 

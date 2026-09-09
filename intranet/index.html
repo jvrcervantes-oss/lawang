@@ -424,7 +424,7 @@ footer div{ border-top:1px solid var(--line); padding-top:14px; display:flex; ga
      pre-commit; el valor de aqui es solo el punto de partida. -->
 <script src="/contracts/assets/dinero.js?v=ced29282"></script>
 <script src="/intranet/facturas/totales.js"></script>
-<script src="/contracts/assets/herramientas.js?v=c971a02c"></script>
+<script src="/contracts/assets/herramientas.js?v=0c86eecd"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
 <script>
@@ -549,7 +549,7 @@ async function contar(sb){
   const [contratos, contratosEditables, facturas, facturasAnuladas,
          recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
          documentos, vencSinFecha, hilosAbiertos,
-         modelos, modelosPublicados, modelosSinPrecio] = await Promise.all([
+         modelos, modelosPublicados, modelosSinPrecio, solicitudesPendientes] = await Promise.all([
     n('contratos'),
     n('contratos', q => q.eq('bloqueado', false)),
     n('facturas', q => q.eq('anulada', false)),
@@ -579,6 +579,11 @@ async function contar(sb){
     n('modelos'),
     n('modelos', q => q.eq('publicado', true)),
     n('modelos', q => q.eq('activo', true).is('precio_construccion', null)),
+    // Solicitudes de pago (9-sep-2026). El count hereda la RLS a propósito:
+    // el admin cuenta todas las pendientes (su bandeja), cada agente las
+    // suyas (lo que él tiene en vuelo) — las dos lecturas son las correctas
+    // para quien mira la tarjeta.
+    n('solicitudes_pago', q => q.eq('estado', 'pendiente')),
   ]);
   // Cuántos PROYECTOS tienen documentación, no solo cuántas filas: "12
   // documentos" no dice si son de un proyecto o de seis. Va aparte porque es un
@@ -605,7 +610,7 @@ async function contar(sb){
   return { contratos, contratosEditables, firmasPendientes, facturas, facturasAnuladas,
            recibis, unidades, unidadesLibres, obraActivas, compradores, usuarios, usuariosInactivos,
            documentos, proyectosConDocs, vencSinFecha, hilosAbiertos,
-           modelos, modelosPublicados, modelosSinPrecio };
+           modelos, modelosPublicados, modelosSinPrecio, solicitudesPendientes };
 }
 
 /* ── tarjetas de cifra ─────────────────────────────────────────────────
