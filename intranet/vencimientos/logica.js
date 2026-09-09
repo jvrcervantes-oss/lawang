@@ -295,5 +295,64 @@ function porTrimestre(filas, hoyISO, n){
   return out;
 }
 
+/* ── la EMPRESA (sociedad firmante) de cada contrato ───────────────────────
+   9-sep-2026, encargo del owner: el panel mezclaba los vencimientos de todas
+   las sociedades. El resolver vive en assets/entities.js (lwSociedadContrato),
+   el MISMO que usa el generador de contratos: la regla «vacío → Tepi Sun Gai,
+   salvo el default propio de la plantilla» no se copia aquí — dos copias de
+   una regla de negocio divergen en silencio y el dinero aparece bajo la
+   sociedad equivocada sin ningún error (revisión previa Datos+Desarrollo).
+   ⚠️ Estas funciones exigen entities.js cargado antes. modeloFinanciero() NO
+   las necesita: la v4 lo llama sin entities.js y debe seguir pudiendo.
+
+   Un hijo PRELIMINAR hereda la empresa de su PADRE, no resuelve la suya: la
+   Carta es parte de la misma operación y su cobrado entra por
+   cobradoEfectivo() del padre. Si se filtrara por su propio campo, una Carta
+   cuyo default no coincida con el del padre saldría del filtro y su cobrado
+   desaparecería de TODAS las empresas sin dejar de estar en «Todas». Hoy,
+   medido en producción (9-sep), las 11 Cartas coinciden con su padre; la
+   herencia protege el día que una no. */
+function empresaDeContrato(c, porId){
+  if(lwEsPreliminar(c.tipo) && c.contrato_padre_id && porId[c.contrato_padre_id]){
+    const p = porId[c.contrato_padre_id];
+    return lwSociedadContrato(p.soc, p.tipo);
+  }
+  return lwSociedadContrato(c.soc, c.tipo);
+}
+
+/* Las empresas presentes en los DATOS, nunca la intersección contra el
+   catálogo SOCIEDADES: un valor que el catálogo no conozca (typo histórico,
+   sociedad nueva sin dar de alta) genera su propio chip con la clave cruda en
+   vez de desaparecer del filtro — una fila no puede perderse por construcción.
+   Entran también las de las facturas: una sociedad que solo factura (pasó con
+   sandal_woods_ltd) tiene filas en la tabla de abajo y necesita su chip.
+   Orden por cartera descendente — mezcla monedas SOLO para ordenar, jamás
+   para enseñar una cifra sumada. */
+function empresasFinancieras(o, facturas){
+  const porId = {}; for(const c of o.contratos) porId[c.id] = c;
+  const peso = {};
+  for(const c of o.contratos){
+    const e = empresaDeContrato(c, porId);
+    peso[e] = (peso[e] || 0) + (Number(c.precio_total) || 0);
+  }
+  for(const f of (facturas || [])){
+    const e = lwSociedadContrato(f.sociedad, f.tipo);
+    if(!(e in peso)) peso[e] = 0;
+  }
+  return Object.keys(peso).sort((a,b) => peso[b] - peso[a]);
+}
+
+/* El recorte a UNA empresa se hace sobre la ENTRADA, no sobre el modelo: se
+   filtran los contratos y modeloFinanciero() hace el resto con la misma
+   aritmética probada — así la suma de los modelos por empresa ES el modelo de
+   «Todas» por construcción, no por confianza (el test lo verifica por moneda).
+   Los vencimientos y el cobrado no se tocan: solo se consultan por contrato. */
+function filtraEmpresa(o, empresa){
+  if(!empresa || empresa === 'todas') return o;
+  const porId = {}; for(const c of o.contratos) porId[c.id] = c;
+  return { ...o, contratos: o.contratos.filter(c => empresaDeContrato(c, porId) === empresa) };
+}
+
 if(typeof module !== 'undefined' && module.exports)
-  module.exports = { importeVencimiento, cobradoEfectivo, cascada, modeloFinanciero, mesesVentana, diasEntre, agingVencido, porTrimestre, TIPOS_SIN_CALENDARIO };
+  module.exports = { importeVencimiento, cobradoEfectivo, cascada, modeloFinanciero, mesesVentana, diasEntre, agingVencido, porTrimestre, TIPOS_SIN_CALENDARIO,
+                     empresaDeContrato, empresasFinancieras, filtraEmpresa };

@@ -42,7 +42,15 @@
 <script src="/contracts/assets/vocabulario.js?v=1bed6ecd"></script>
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="logica.js"></script>
+<!-- entities.js ANTES que logica.js: trae SOCIEDADES (etiquetas de los chips
+     de empresa) y lwSociedadContrato, el resolver que las funciones de empresa
+     de logica.js llaman como global (9-sep-2026). -->
+<script src="/contracts/assets/entities.js?v=57769ef0"></script>
+<!-- Con sello desde el 9-sep: iba sin ?v= y el CDN cachea js 7 días — un
+     logica.js viejo deja esta pantalla llamando a funciones que no existen,
+     en silencio. Sello a mano (sha256 normalizado, como sella_assets.py):
+     este fichero es propio de la herramienta, el sellador no lo cubre. -->
+<script src="logica.js?v=cfd08117"></script>
 <style>
   :root{ --tbh:64px; }
   *{ box-sizing:border-box; } html,body{ margin:0; }
@@ -194,6 +202,11 @@
       vive en cada contrato; aquí las fechas se ajustan sin tocar el documento.</p>
 
     <div id="avisos"></div>
+    <!-- Separación por EMPRESA (9-sep-2026, encargo del owner: «si no se
+         mezclan los vencimientos de todas»). Mismo patrón que Moneda: elegir
+         un chip recalcula TODO el panel — KPIs, caja, análisis y las tres
+         tablas. «Todas» es el total del grupo y el arranque por defecto. -->
+    <div class="sui-filtros" id="empresas" style="margin:0 0 10px"></div>
     <div class="sui-filtros" id="monedas" style="margin:0 0 14px"></div>
     <div class="lw-kpis" id="kpis"></div>
 
@@ -274,6 +287,13 @@ const fechaCorta = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); re
    y 7,2 M fuera. */
 let SIN_FIRMAR = (() => { try{ return localStorage.getItem('lw_venc_sin_firmar') === '1'; }catch(_){ return false; } })();
 let MODELO = null, RAW = null, MONEDA = 'EUR', FILTRO = 'atencion', FACTURAS = [], PUEDE_EDITAR = false, FICHA = null;
+/* La empresa elegida se recuerda por persona, como la moneda no y SIN_FIRMAR
+   sí: quien vigila una sociedad vuelve a por la misma. OJO: a diferencia de
+   SIN_FIRMAR (booleano estable), esto es un valor dinámico — recalcula() lo
+   valida contra las empresas que existen en los datos y, si quedó huérfano,
+   cae a «todas»: un filtro por algo invisible descarta filas sin que se vea
+   por qué (revisión previa, 9-sep). */
+let EMPRESA = (() => { try{ return localStorage.getItem('lw_venc_empresa') || 'todas'; }catch(_){ return 'todas'; } })();
 /* Paginación de la tabla (18-ago, petición del owner: salía la lista entera).
    25 por página: caben sin desplazar en un portátil y el paginador de abajo
    dice siempre el total — un recorte que se anuncia, nunca silencioso. */
@@ -296,10 +316,14 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
      motivo, mismo comentario que Operaciones). contrato_vencimientos sí se lee
      directo: su RLS ya es de equipo (es_agente), sin filtro de autor. */
   const [c, cb, v, f] = await Promise.all([
-    sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at').limit(1000),
+    /* `soc`: la sociedad firmante guardada en el contrato — la RPC devuelve la
+       fila entera (setof contratos, select *), así que el ->> extrae en el
+       servidor sin traerse el blob `datos`. Vacía o ausente da null y el
+       resolver compartido decide (lwSociedadContrato, entities.js). */
+    sb.rpc('contratos_equipo').select('id,numero,tipo,comprador_nombre,proyecto_nombre,precio_total,moneda,bloqueado,contrato_padre_id,created_at,soc:datos->fields->>sociedad_firmante').limit(1000),
     sb.rpc('contratos_cobrado_equipo'),
     sb.from('contrato_vencimientos').select('id,contrato_id,orden,descripcion,pct,monto,fecha,ajustado,nota,factura_id,no_facturar').limit(3000),
-    sb.rpc('facturas_equipo').select('numero,tipo,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000),
+    sb.rpc('facturas_equipo').select('numero,tipo,sociedad,cliente_nombre,total,moneda,anulada,created_at,venc:datos->fields->>fecha_vencimiento').limit(1000),
   ]);
   if(c.error){ toast('No se pudieron leer los contratos: ' + c.error.message); return; }
   if(v.error){ toast('No se pudieron leer los vencimientos: ' + v.error.message); return; }
@@ -311,7 +335,7 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
   FACTURAS = (f.error ? [] : (f.data || [])).filter(x => !x.anulada && x.venc && x.tipo !== 'recibi');
 
   RAW = { hoyISO: HOY, contratos: c.data || [], cobradoPorId, vencimientos: v.data || [] };
-  MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+  recalcula();
   // arranca en la moneda con más cartera — casi siempre EUR, pero medido, no supuesto
   const monedas = Object.keys(MODELO).sort((a,b)=>MODELO[b].cartera - MODELO[a].cartera);
   MONEDA = monedas[0] || 'EUR';
@@ -319,12 +343,53 @@ window.LW_AUTH.then(async ({ sb, ficha }) => {
   window._SB = sb;
 });
 
+/* ── EL camino de recálculo, uno solo ──────────────────────────────────────
+   Carga inicial, cambio de empresa, interruptor de sin-firmar y edición de
+   fecha pasan TODOS por aquí. Con tres sitios reconstruyendo el modelo cada
+   uno por su cuenta, al añadir el filtro de empresa bastaba olvidar uno para
+   que una edición de fecha repintara el panel SIN el filtro con el chip aún
+   marcado — cifras equivocadas sin ningún error (cerrar una salida no cierra
+   a sus hermanas, 9-sep-2026). */
+function recalcula(){
+  const emps = empresasFinancieras(RAW, FACTURAS);
+  if(EMPRESA !== 'todas' && !emps.includes(EMPRESA)) EMPRESA = 'todas';
+  MODELO = modeloFinanciero({ ...filtraEmpresa(RAW, EMPRESA), incluirSinFirmar: SIN_FIRMAR });
+  /* al cambiar de empresa la moneda elegida puede no existir en el recorte
+     (p. ej. IDR solo en una sociedad): se cae a la de más cartera, nunca a un
+     panel vacío con los chips diciendo otra cosa */
+  if(!MODELO[MONEDA]){
+    const mm = Object.keys(MODELO).sort((a,b)=>MODELO[b].cartera - MODELO[a].cartera);
+    if(mm.length) MONEDA = mm[0];
+  }
+}
+
 function pintarTodo(){
   const m = MODELO[MONEDA] || { cartera:0, cobrado:0, pendiente:0, vencido:0, proximos30:0, proximos90:0,
                                 nSinFecha:0, filas:[], porProyecto:{}, porMes:{}, avisos:[] };
-  pintarMonedas(); pintarAvisos(m); pintarKpis(m); pintarGrafico(m); pintarAnalisis(m); pintarFiltros(m); pintarTabla(m);
+  pintarEmpresas(); pintarMonedas(); pintarAvisos(m); pintarKpis(m); pintarGrafico(m); pintarAnalisis(m); pintarFiltros(m); pintarTabla(m);
   pintarProyectos(m); pintarFacturas();
 }
+
+/* ── empresa: los chips salen de los DATOS, no del catálogo ────────────────
+   empresasFinancieras() deriva la lista de los contratos (con la herencia de
+   las Cartas) y de las facturas: un valor que SOCIEDADES no conozca genera su
+   chip con la clave cruda en vez de desaparecer del filtro. La etiqueta usa
+   la razón social corta; con una sola empresa en los datos no hay nada que
+   separar y la fila no se pinta. */
+function pintarEmpresas(){
+  const emps = empresasFinancieras(RAW, FACTURAS);
+  const nombre = k => (typeof SOCIEDADES !== 'undefined' && SOCIEDADES[k] && SOCIEDADES[k].razon) || k;
+  $('#empresas').innerHTML = emps.length < 2 ? '' :
+    '<span class="sui-eje">Empresa</span>' +
+    `<button type="button" class="sui-chip ${EMPRESA==='todas'?'on':''}" data-empresa="todas">Todas</button>` +
+    emps.map(e => `<button type="button" class="sui-chip ${e===EMPRESA?'on':''}" data-empresa="${escAttr(e)}">${esc(nombre(e))}</button>`).join('');
+}
+$('#empresas').addEventListener('click', e => {
+  const b = e.target.closest('[data-empresa]'); if(!b) return;
+  EMPRESA = b.dataset.empresa;
+  try{ localStorage.setItem('lw_venc_empresa', EMPRESA); }catch(_){}
+  PAGINA = 0; recalcula(); pintarTodo();
+});
 
 /* ── moneda: cada agregado va por moneda, quien mira elige cuál ─────────── */
 function pintarMonedas(){
@@ -527,7 +592,7 @@ function pintarFiltros(m){
   if(cs) cs.onclick = () => {
     SIN_FIRMAR = !SIN_FIRMAR;
     try{ localStorage.setItem('lw_venc_sin_firmar', SIN_FIRMAR ? '1' : '0'); }catch(_){}
-    MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+    recalcula();
     pintarTodo();
   };
 }
@@ -592,7 +657,7 @@ $('#tbody').addEventListener('click', async e => {
     // node — no una versión "rápida" del modelo que divergiría de la testada
     const cru = RAW.vencimientos.find(x => x.id === vid);
     if(cru){ cru.fecha = nueva; cru.ajustado = true; }
-    MODELO = modeloFinanciero({ ...RAW, incluirSinFirmar: SIN_FIRMAR });
+    recalcula();
     pintarTodo();
     toast(nueva ? 'Vencimiento el ' + fechaCorta(nueva) : 'Fecha quitada — vuelve a «Sin fecha»');
   };
@@ -636,7 +701,11 @@ function pintarProyectos(m){
 
 /* ── facturas con vencimiento ───────────────────────────────────────────── */
 function pintarFacturas(){
-  const filas = FACTURAS.filter(f => (f.moneda || 'EUR') === MONEDA)
+  /* mismo selector de empresa que todo el panel: la sociedad EMISORA de la
+     factura, por el mismo resolver compartido (columna real `sociedad`; un
+     tipo de factura no tiene default de plantilla, así que vacío → Tepi). */
+  const filas = FACTURAS.filter(f => (f.moneda || 'EUR') === MONEDA
+      && (EMPRESA === 'todas' || lwSociedadContrato(f.sociedad, f.tipo) === EMPRESA))
     .sort((a,b) => a.venc < b.venc ? -1 : 1).slice(0, 40);
   $('#tfact').innerHTML = filas.map(f => {
     const pasada = f.venc < HOY;

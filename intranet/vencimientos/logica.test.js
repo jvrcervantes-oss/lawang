@@ -23,6 +23,11 @@ global.lwParseImporte = dinero.lwParseImporte;
 // vocabulario.js no exporta para node: se evalúa como en la página
 const voc = fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'vocabulario.js'), 'utf8');
 new Function(voc + '; globalThis.lwEsPreliminar = lwEsPreliminar;')();
+// entities.js igual: define SOCIEDADES y el resolver de sociedad firmante que
+// las funciones de empresa (9-sep) llaman como global. Solo datos y funciones
+// puras a nivel de fichero — la red vive dentro de cargarCuentasBancarias().
+const ent = fs.readFileSync(path.join(RAIZ, 'contracts', 'assets', 'entities.js'), 'utf8');
+new Function(ent + '; globalThis.lwSociedadContrato = lwSociedadContrato;')();
 const L = require(path.join(AQUI, 'logica.js'));
 
 let fallos = 0;
@@ -186,5 +191,62 @@ es('15 meses, de 3 atrás a 11 adelante, sin huecos',
 es('la ventana cruza el cambio de año sin romperse',
    L.mesesVentana('2026-12-15')[4], '2027-01');
 
+/* ── empresa (sociedad firmante): resolver, herencia y el invariante ──
+   9-sep-2026. La regla del resolver vive en entities.js (la misma del
+   generador); aquí se prueba que el panel la aplica y que el filtro no puede
+   perder dinero: la suma de los modelos por empresa ES el modelo de «Todas»,
+   agregado a agregado Y POR MONEDA — un cruce mal compuesto entre el filtro
+   de empresa y el de moneda mezclaría importes sin que un total único lo note. */
+es('resolver: manda lo elegido', lwSociedadContrato('san_dal_woods', 'reserva_parcela'), 'san_dal_woods');
+es('resolver: vacío cae al default global (lo que imprime el documento)',
+   lwSociedadContrato('', 'reserva_parcela'), 'tepi_sungai');
+es('resolver: vacío en ppjb_reserva cae a SAN DAL WOODS, su default de plantilla',
+   lwSociedadContrato(null, 'ppjb_reserva'), 'san_dal_woods');
+
+const empContratos = [
+  // dos empresas × dos monedas, con huecos a propósito
+  {id:'T1', tipo:'reserva_parcela', soc:'tepi_sungai',   precio_total:100000, moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Bonian'},
+  {id:'T2', tipo:'construccion',    soc:'',              precio_total:50000,  moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Bonian'},   // vacío → tepi
+  {id:'S1', tipo:'reserva_parcela', soc:'san_dal_woods', precio_total:80000,  moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Mejan'},
+  {id:'S2', tipo:'ppjb_bonian',     soc:'san_dal_woods', precio_total:900000000, moneda:'IDR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Mejan'},
+  // Carta hija con el campo VACÍO colgando de un padre san_dal_woods: por su
+  // propio campo resolvería tepi_sungai y su cobrado se perdería del filtro
+  {id:'CA1', tipo:'carta_reserva', soc:'', precio_total:80000, moneda:'EUR', bloqueado:true, contrato_padre_id:'S1', proyecto_nombre:'Mejan'},
+  // typo histórico: no está en SOCIEDADES — debe tener su propio chip, no desaparecer
+  {id:'X1', tipo:'reserva_parcela', soc:'sociedad_typo', precio_total:10000, moneda:'EUR', bloqueado:true, contrato_padre_id:null, proyecto_nombre:'Bonian'},
+];
+const empPorId = {}; for(const c of empContratos) empPorId[c.id] = c;
+es('herencia: la Carta hija va con la empresa de su PADRE, no con su propio default',
+   L.empresaDeContrato(empContratos[4], empPorId), 'san_dal_woods');
+
+const empVencs = [
+  {id:'ev1', contrato_id:'T1', orden:1, pct:'50', monto:'', fecha:'2026-07-01'},   // vencido
+  {id:'ev2', contrato_id:'T1', orden:2, pct:'50', monto:'', fecha:'2026-09-01'},   // próximo
+  {id:'ev3', contrato_id:'S1', orden:1, pct:'100', monto:'', fecha:'2026-08-25'},  // próximos 30
+  {id:'ev4', contrato_id:'S2', orden:1, pct:'100', monto:'', fecha:null},          // sin fecha (IDR)
+  {id:'ev5', contrato_id:'X1', orden:1, pct:'100', monto:'', fecha:'2026-06-01'},  // vencido del typo
+];
+const empCobrado = { T1:20000, S1:5000, CA1:15000, X1:0 };
+const empEntrada = { hoyISO:HOY, contratos:empContratos, cobradoPorId:empCobrado, vencimientos:empVencs };
+
+es('las empresas salen de los DATOS: el typo tiene chip propio, y ordena por cartera',
+   L.empresasFinancieras(empEntrada, [{sociedad:'sandal_woods_ltd', tipo:'factura'}]),
+   ['san_dal_woods','tepi_sungai','sociedad_typo','sandal_woods_ltd']);
+
+const todo = L.modeloFinanciero(empEntrada);
+const porEmpresa = L.empresasFinancieras(empEntrada, []).map(e => L.modeloFinanciero(L.filtraEmpresa(empEntrada, e)));
+for(const mon of Object.keys(todo)){
+  const suma = campo => Math.round(porEmpresa.reduce((t,M) => t + ((M[mon]||{})[campo]||0), 0)*100)/100;
+  for(const campo of ['cartera','cobrado','pendiente','vencido','proximos30','proximos90','nSinFecha'])
+    es(`invariante ${mon}: la suma de las empresas es «Todas» en ${campo}`, suma(campo), Math.round((todo[mon][campo]||0)*100)/100);
+  const prevTodo = Object.values(todo[mon].porMes).reduce((t,x)=>t+x.previsto,0);
+  const prevSuma = porEmpresa.reduce((t,M)=>t+Object.values((M[mon]||{porMes:{}}).porMes).reduce((u,x)=>u+x.previsto,0),0);
+  es(`invariante ${mon}: el previsto por mes tampoco pierde filas`, Math.round(prevSuma), Math.round(prevTodo));
+}
+es('el cobrado de la Carta hija sigue en la empresa del padre al filtrar',
+   L.modeloFinanciero(L.filtraEmpresa(empEntrada, 'san_dal_woods')).EUR.cobrado, 20000);
+es('filtrar por «todas» devuelve la entrada intacta',
+   L.filtraEmpresa(empEntrada, 'todas').contratos.length, empContratos.length);
+
 if(fallos){ console.error(`\nlogica.test.js — ${fallos} fallo(s)`); process.exit(1); }
-console.log('OK logica.test.js — cascada, cartera sin dobles, monedas separadas, aging, trimestres y avisos de calidad');
+console.log('OK logica.test.js — cascada, cartera sin dobles, monedas separadas, aging, trimestres, avisos de calidad y empresas sin perder un euro');

@@ -287,3 +287,26 @@ const TIPO_ES = { reserva_parcela:'Parcela', construccion:'Construcción', contr
   carta_reserva_ampliada:'Carta de Reserva ampliada', acuerdo_comercial:'Acuerdo Comercial',
   protocolo_operativo:'Protocolo Operativo', ppjb_bonian:'PPJB Bonian Beach',
   poa:'POA (Poder Notarial)' };
+
+/* ---------- sociedad firmante: default por plantilla y RESOLVER ----------
+   Movido aquí desde contracts/app.html el 9-sep-2026 (revisión previa de
+   Datos y Desarrollo): el panel de Vencimientos necesita la MISMA regla para
+   atribuir cada contrato a su sociedad, y dos copias de una regla de negocio
+   divergen en silencio — el día que una plantilla nueva cambie su default,
+   el dinero aparecería bajo la sociedad equivocada sin ningún error.
+
+   El porqué del único default especial (escrito el 8-sep en app.html, se
+   conserva): ppjb_reserva llevaba NPWP/domicilio de SAN DAL WOODS (bajo el
+   nombre inexistente "PT Lawang Tropical Properties"), así que arranca en
+   SAN DAL WOODS para no alterar su identidad real. El resto de plantillas
+   cae en Tepi Sun Gai, que es el default global de projectDefaults. */
+const SOCIEDAD_DEFAULT = { ppjb_reserva: 'san_dal_woods' };
+
+/* La sociedad de un contrato o factura YA GUARDADO: manda lo elegido; vacío,
+   el default de su plantilla; sin plantilla con default, Tepi Sun Gai — que
+   es exactamente lo que imprime el documento emitido (pdef() del generador).
+   Quien filtre o agrupe por sociedad llama AQUÍ, nunca reimplementa. */
+function lwSociedadContrato(campo, tipo){
+  const v = String(campo || '').trim();
+  return v || SOCIEDAD_DEFAULT[tipo] || 'tepi_sungai';
+}

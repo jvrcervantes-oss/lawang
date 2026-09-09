@@ -52,7 +52,7 @@
      /facturas (define CUENTAS_BANCARIAS y SOCIEDADES). -->
 <!-- ?v=: misma razon que en /facturas — la copia vieja del CDN no revalida
      hasta que expire su TTL. Quitable pasado el 3-ago-2026. -->
-<script src="assets/entities.js?v=7c67741d"></script>
+<script src="assets/entities.js?v=57769ef0"></script>
 <script src="assets/geo.js?v=cc6b09b2"></script>
 <script src="assets/huella.js?v=b511ff5e"></script>
 <!-- reasignar el autor de un documento (solo super_admin) — compartido con
@@ -970,11 +970,10 @@ function toast(msg){
   const ms=parseFloat(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v)*1000) : 4200;
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),ms);
 }
-// La sociedad firmante por defecto es global (Tepi Sun Gai, en projectDefaults), salvo
-// las plantillas cuya identidad fiscal ya era de otra sociedad: ppjb_reserva llevaba
-// NPWP/domicilio de SAN DAL WOODS (bajo el nombre inexistente "PT Lawang Tropical
-// Properties"), así que arranca en SAN DAL WOODS para no alterar su identidad real.
-const SOCIEDAD_DEFAULT = { ppjb_reserva: 'san_dal_woods' };
+// SOCIEDAD_DEFAULT vive en assets/entities.js desde el 9-sep-2026 (con su
+// porqué): Vencimientos atribuye cada contrato a su sociedad con la MISMA
+// regla, y dos copias de una regla de negocio divergen en silencio. Aquí se
+// usa como global — entities.js va cargado arriba, antes que este script.
 /* Cuenta de cobro precargada por plantilla (owner, 8-sep-2026). Mismo patrón
    que SOCIEDAD_DEFAULT y por el mismo motivo: `projectDefaults` de tokens.json
    es GLOBAL, así que poner ahí `cuenta_bancaria` la precargaría en TODAS las
