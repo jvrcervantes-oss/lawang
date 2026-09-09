@@ -11,23 +11,26 @@
      intranet/soporte/ y el patrón de alta de intranet/modelos/ — Regla 0 de
      contexto/suite_lawang.md, no un HTML en blanco.
 
-     QUÉ ES: la cola de entrada de Administración. El comercial pide que se
-     cobre algo (comprador y/o contrato + concepto + importe); el admin
-     aprueba, rechaza con motivo, o cierra enlazando la factura que lo
-     resolvió. La solicitud NO emite ni cobra: para eso el admin salta a
-     /intranet/facturas/, que tiene sus propios guardarraíles.
+     QUÉ ES (corregido por el owner ese mismo día, textual: «las ponen los
+     agentes para pedirle a Lawang que les pague ciertos importes como pueden
+     ser comisiones o pagos acordados, no para cargarlas sobre los
+     compradores»): el agente pide un pago a Lawang — comisión, pago acordado —
+     con su concepto, importe y, si viene de una venta, el contrato de
+     referencia. El admin aprueba, rechaza con motivo, y al hacer el pago real
+     (fuera de la suite: transferencia, Wise…) la marca PAGADA con su
+     referencia. La herramienta registra; el dinero se mueve fuera.
 
-     LA MÁQUINA DE ESTADOS VIVE EN LA BASE (migración 20260909120000): esta
+     LA MÁQUINA DE ESTADOS VIVE EN LA BASE (migración 20260909073555): esta
      pantalla no ofrece lo que va a fallar al guardar, pero quien manda es el
      trigger. pendiente → aprobada | rechazada(motivo) | anulada(solo el
-     creador) · aprobada → cerrada(exige factura). Resuelta = congelada.
+     creador) · aprobada → pagada(solo admin, sella quién/cuándo). Resuelta o
+     pagada = congelada.
 
      PERMISO: entra quien tenga 'operaciones' — A PROPÓSITO, no una clave
      nueva: un permiso nuevo exige darlo de alta en la edge admin-usuarios y
      REDESPLEGARLA, pendiente por LAW-70 — una clave nueva hoy dejaría a los
      usuarios nuevos sin la herramienta en silencio. Mismo precedente que
-     Vencimientos (18-ago) y Modelos (7-sep). Y encaja: pedir un cobro es
-     parte del seguimiento de la venta.
+     Vencimientos (18-ago) y Modelos (7-sep).
 
      QUIÉN VE QUÉ (RLS, no esta pantalla): cada agente ve las SUYAS; un admin
      las ve todas. El contador de la tarjeta del hub hereda esa misma vista. -->
@@ -36,7 +39,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/herramientas.js?v=0c86eecd"></script>
+<script src="/contracts/assets/herramientas.js?v=27b9eb68"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="operaciones"></script>
@@ -47,7 +50,7 @@
   body{ font-family:var(--font-body,'Jost',sans-serif); background:var(--sup-0); color:var(--texto); }
 
   .concepto{ max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .para .mini{ display:block; font-size:11.5px; color:var(--texto-3,#676B63); }
+  .venta .mini{ display:block; font-size:11.5px; color:var(--texto-3,#676B63); }
   /* la edad se pinta al lado de la fecha; a partir de 14 días PENDIENTE es un
      plazo perdiéndose en silencio (hallazgo de Administración en la revisión
      previa — mismo umbral que contexto/pendientes.md) */
@@ -66,8 +69,8 @@
     width:100%; font:inherit; font-size:14px; padding:9px 10px;
     border:1px solid var(--linea,#E4DCCB); border-radius:9px; background:#FDFCF9; }
   .form-campo textarea{ min-height:64px; resize:vertical; }
-  .motivo-caja{ margin-top:10px; }
-  .aviso-motivo{ font-size:12.5px; color:#9E2F26; margin:6px 0 0; }
+  .extra-caja{ margin-top:10px; }
+  .aviso-falta{ font-size:12.5px; color:#9E2F26; margin:6px 0 0; }
 </style>
 
 <!-- v3 (exploración, 23-ago-2026): capa de override, va última a propósito. -->
@@ -85,7 +88,7 @@
   <div class="sui-stage">
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" placeholder="Buscar comprador, contrato o concepto…">
+        <input class="sui-buscar" id="q" placeholder="Buscar concepto, contrato o compañero…">
       </div>
       <div class="sui-filtros" id="filtros"></div>
 
@@ -93,11 +96,11 @@
         <table class="sui-tabla" id="tabla">
           <thead><tr>
             <th data-orden="numero">Nº</th>
-            <th data-orden="para">Para</th>
+            <th data-orden="quien">Quién pide</th>
             <th>Concepto</th>
             <th data-orden="importe">Importe</th>
+            <th data-orden="venta">De la venta</th>
             <th data-orden="estado">Estado</th>
-            <th data-orden="quien">Quién</th>
             <th data-orden="creado_en">Cuándo</th>
           </tr></thead>
           <tbody id="filas"></tbody>
@@ -116,16 +119,16 @@
 /* ============================================================================
    Solicitudes de pago — bandeja + alta
    ----------------------------------------------------------------------------
-   Los desplegables de comprador y contrato SE LLENAN DE LA TABLA y lo que se
-   guarda es el ID (papel Referencia del patrón «el dato tiene un dueño»):
-   nombre, número y moneda se leen en vivo al pintar, nunca se copian. La
-   moneda de una solicitud con contrato ES la del contrato — la base impone
-   que aquí viaje a null (CHECK solicitud_moneda_un_dueno).
+   El pago va DEL ESTUDIO AL AGENTE (comisiones, pagos acordados). El contrato
+   es referencia opcional —la venta de la que sale la comisión— y se guarda su
+   ID (papel Referencia del patrón «el dato tiene un dueño»): número y proyecto
+   se leen en vivo al pintar, nunca se copian. El pago real ocurre fuera de la
+   suite; aquí queda quién lo pidió, quién lo aprobó y cuándo se pagó.
    ========================================================================== */
 const $ = s => document.querySelector(s);
 
-let SB=null, YO=null, ADMIN=false, FICHA=null;
-let SOLICITUDES=[], CLIENTES={}, CONTRATOS={}, USUARIOS={}, FACTURAS_MAPA={};
+let SB=null, YO=null, ADMIN=false;
+let SOLICITUDES=[], CONTRATOS={}, USUARIOS={};
 let SEL=null, FILTRO='pendiente';
 const ORDEN = { campo:'creado_en', dir:'desc' };
 
@@ -133,61 +136,57 @@ const fmtFecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric
 const diasDesde = f => Math.floor((Date.now() - new Date(f).getTime()) / 86400000);
 /* Los importes se leen y se escriben SIEMPRE con dinero.js (norma de la suite:
    nada de toLocaleString). */
-const fmtImporte = x => lwFormatoImporte(Number(x.importe)) + ' ' + monedaDe(x);
-const monedaDe = x => x.contrato_id
-  ? ((CONTRATOS[x.contrato_id] || {}).moneda || '')
-  : (x.moneda || '');
+const fmtImporte = x => lwFormatoImporte(Number(x.importe)) + ' ' + (x.moneda || '');
 
-const ETIQUETA = { pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rechazada', anulada:'Anulada', cerrada:'Cerrada' };
-const TAG      = { pendiente:'espera',    aprobada:'info',     rechazada:'mal',      anulada:'gris',   cerrada:'ok' };
+const ETIQUETA = { pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rechazada', anulada:'Anulada', pagada:'Pagada' };
+const TAG      = { pendiente:'espera',    aprobada:'info',     rechazada:'mal',      anulada:'gris',   pagada:'ok' };
 
 /* ---------- carga ---------- */
 async function cargar(){
-  const [s, c, k, u] = await Promise.all([
+  const [s, k, u] = await Promise.all([
     SB.from('solicitudes_pago').select('*').order('creado_en', { ascending:false }),
-    SB.from('clients').select('id,full_name,email'),
-    SB.from('contratos').select('id,numero,tipo,proyecto_nombre,moneda'),
-    // Para la columna «Quién». Si la RLS de usuarios solo deja leer la propia
-    // ficha, el mapa se queda corto y el fallback pinta «—»: no es un fallo.
+    SB.from('contratos').select('id,numero,tipo,proyecto_nombre'),
+    // Para «Quién pide» y los sellos. Si la RLS de usuarios solo deja leer la
+    // propia ficha, el mapa se queda corto y el fallback pinta «—»: no es un fallo.
     SB.from('usuarios').select('user_id,nombre,email'),
   ]);
   if(s.error){ toast('No se pudieron leer las solicitudes: ' + s.error.message); return; }
   SOLICITUDES = s.data || [];
-  CLIENTES = {}; (c.error ? [] : (c.data || [])).forEach(x => { CLIENTES[x.id] = x; });
   CONTRATOS = {}; (k.error ? [] : (k.data || [])).forEach(x => { CONTRATOS[x.id] = x; });
   USUARIOS = {}; (u.error ? [] : (u.data || [])).forEach(x => { USUARIOS[x.user_id] = x; });
   pintar();
 }
 
+const nombreDe = uid => {
+  const u = USUARIOS[uid];
+  return u ? (u.nombre || u.email) : (YO && uid === YO.id ? 'Tú' : '—');
+};
+
 function vistas(){
   return SOLICITUDES.map(x => {
-    const cl = CLIENTES[x.client_id];
     const ct = CONTRATOS[x.contrato_id];
-    const quien = USUARIOS[x.creado_por];
     return Object.assign({}, x, {
-      para: ct ? (ct.numero || 'contrato') : ((cl && cl.full_name) || '—'),
-      paraSub: ct ? [lwTipoContrato(ct.tipo), ct.proyecto_nombre].filter(Boolean).join(' · ')
-                  : ((cl && cl.email) || ''),
-      comprador: cl, contrato: ct,
-      quien: quien ? (quien.nombre || quien.email)
-           : (YO && x.creado_por === YO.id ? 'Tú' : '—'),
+      venta: ct ? (ct.numero || 'contrato') : '',
+      ventaSub: ct ? [lwTipoContrato(ct.tipo), ct.proyecto_nombre].filter(Boolean).join(' · ') : '',
+      contrato: ct,
+      quien: nombreDe(x.creado_por),
     });
   });
 }
 
 /* ---------- filtros y tabla ---------- */
 const FILTROS = [
-  ['pendiente','Pendientes'], ['aprobada','Aprobadas'],
+  ['pendiente','Pendientes'], ['aprobada','Por pagar'],
   ['resueltas','Resueltas'], ['todos','Todas'],
 ];
-const RESUELTAS = ['cerrada','rechazada','anulada'];
+const RESUELTAS = ['pagada','rechazada','anulada'];
 function visibles(){
   const q = ($('#q').value || '').toLowerCase();
   return vistas().filter(x => {
     if(FILTRO === 'pendiente' && x.estado !== 'pendiente') return false;
     if(FILTRO === 'aprobada' && x.estado !== 'aprobada') return false;
     if(FILTRO === 'resueltas' && RESUELTAS.indexOf(x.estado) < 0) return false;
-    if(!lwBuscaEn(['SP-' + x.numero, x.para, x.paraSub, x.concepto, x.quien], q)) return false;
+    if(!lwBuscaEn(['SP-' + x.numero, x.venta, x.ventaSub, x.concepto, x.quien], q)) return false;
     return true;
   });
 }
@@ -207,14 +206,14 @@ function pintarTabla(){
   if(!vs.length){ filas.innerHTML = '<tr><td colspan="7" class="sui-vacio">Nada que enseñar con este filtro.</td></tr>'; return; }
   filas.innerHTML = vs.map(x => {
     const d = diasDesde(x.creado_en);
-    const tarde = x.estado === 'pendiente' && d >= 14;
+    const tarde = (x.estado === 'pendiente' || x.estado === 'aprobada') && d >= 14;
     return `<tr data-id="${esc(x.id)}" class="${SEL===x.id?'on':''}">
     <td><b>SP-${esc(String(x.numero))}</b></td>
-    <td class="para">${esc(x.para)}${x.paraSub ? '<span class="mini">' + esc(x.paraSub) + '</span>' : ''}</td>
+    <td>${esc(x.quien)}</td>
     <td class="concepto">${esc(x.concepto)}</td>
     <td>${esc(fmtImporte(x))}</td>
+    <td class="venta">${x.venta ? esc(x.venta) : '—'}${x.ventaSub ? '<span class="mini">' + esc(x.ventaSub) + '</span>' : ''}</td>
     <td><span class="sui-tag ${TAG[x.estado] || 'gris'}">${esc(ETIQUETA[x.estado] || x.estado)}</span></td>
-    <td>${esc(x.quien)}</td>
     <td>${esc(fmtFecha(x.creado_en))} <span class="edad ${tarde?'tarde':''}">hace ${d} d</span></td>
   </tr>`;
   }).join('');
@@ -228,26 +227,25 @@ function abrir(id){
   const filaDato = (k, v) => v ? `<div class="dato"><span>${k}</span><b>${v}</b></div>` : '';
 
   let cuerpo = `<div class="bloque">
-    ${filaDato('Comprador', x.comprador ? esc(x.comprador.full_name) + (x.comprador.email ? ' · ' + esc(x.comprador.email) : '') : '')}
-    ${filaDato('Contrato', x.contrato ? esc(x.contrato.numero || '') + ' · ' + esc(lwTipoContrato(x.contrato.tipo)) + (x.contrato.proyecto_nombre ? ' · ' + esc(x.contrato.proyecto_nombre) : '') : '')}
+    ${filaDato('Quién pide', esc(x.quien))}
     ${filaDato('Concepto', esc(x.concepto))}
     ${filaDato('Importe', esc(fmtImporte(x)))}
+    ${filaDato('De la venta', x.contrato ? esc(x.contrato.numero || '') + ' · ' + esc(lwTipoContrato(x.contrato.tipo)) + (x.contrato.proyecto_nombre ? ' · ' + esc(x.contrato.proyecto_nombre) : '') : '')}
     ${filaDato('Fecha límite', x.vence_el ? esc(fmtFecha(x.vence_el)) : '')}
     ${filaDato('Nota', x.nota ? esc(x.nota) : '')}
-    ${filaDato('Pedida por', esc(x.quien) + ' · ' + esc(fmtFecha(x.creado_en)))}
+    ${filaDato('Pedida', esc(fmtFecha(x.creado_en)))}
   </div>`;
 
   if(x.estado !== 'pendiente'){
-    const rq = USUARIOS[x.resuelto_por];
     cuerpo += `<div class="bloque"><h3>Resolución</h3>
       ${filaDato('Estado', esc(ETIQUETA[x.estado]))}
       ${filaDato('Motivo', x.motivo_rechazo ? esc(x.motivo_rechazo) : '')}
-      ${filaDato('Quién', rq ? esc(rq.nombre || rq.email) : '')}
-      ${filaDato('Cuándo', x.resuelto_en ? esc(fmtFecha(x.resuelto_en)) : '')}
-      ${filaDato('Factura', x.factura_id && FACTURAS_MAPA[x.factura_id] ? esc(FACTURAS_MAPA[x.factura_id]) : (x.factura_id ? 'enlazada' : ''))}
+      ${filaDato('Resuelta por', x.resuelto_por ? esc(nombreDe(x.resuelto_por)) + ' · ' + esc(fmtFecha(x.resuelto_en)) : '')}
+      ${filaDato('Pagada por', x.pagado_por ? esc(nombreDe(x.pagado_por)) + ' · ' + esc(fmtFecha(x.pagado_en)) : '')}
+      ${filaDato('Referencia del pago', x.pago_referencia ? esc(x.pago_referencia) : '')}
     </div>`;
   }
-  // el hueco donde aparece el campo de motivo al pulsar «Rechazar»
+  // el hueco donde aparecen el motivo del rechazo o la referencia del pago
   cuerpo += '<div id="cajonExtra"></div>';
 
   const botones = [];
@@ -260,17 +258,13 @@ function abrir(id){
     botones.push('<button class="sui-btn" id="btnAnular">Anular</button>');
   }
   if(x.estado === 'aprobada' && ADMIN){
-    // emitir es SALTAR a Facturas (la solicitud no emite nada);
-    // una solicitud sin contrato abre el formulario de factura en blanco
-    const hrefFacturas = x.contrato_id ? '/intranet/facturas/?contrato=' + x.contrato_id : '/intranet/facturas/?nueva=1';
-    botones.push(`<a class="sui-btn primario" href="${esc(hrefFacturas)}">Emitir en Facturas</a>`);
-    botones.push('<button class="sui-btn" id="btnCerrarCon">Cerrar con factura…</button>');
+    botones.push('<button class="sui-btn primario" id="btnPagada">Marcar pagada…</button>');
   }
   botones.push('<button class="sui-btn" id="btnCerrarCajon">Cerrar</button>');
 
   suiAbrirCajon({
     titulo: 'SP-' + esc(String(x.numero)) + ' · ' + esc(ETIQUETA[x.estado] || x.estado),
-    sub: esc(x.para),
+    sub: esc(x.quien) + ' — el pago se hace fuera (transferencia); aquí queda pedido, aprobado y pagado.',
     cuerpo, pie: botones.join(''),
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
@@ -280,34 +274,51 @@ function abrir(id){
   if($('#btnRechazar')) $('#btnRechazar').addEventListener('click', () => pedirMotivo(x));
   if($('#btnAnular'))   $('#btnAnular').addEventListener('click', () => anular(x));
   if($('#btnEditar'))   $('#btnEditar').addEventListener('click', () => formulario(x));
-  if($('#btnCerrarCon'))$('#btnCerrarCon').addEventListener('click', () => cerrarConFactura(x));
+  if($('#btnPagada'))   $('#btnPagada').addEventListener('click', () => pedirReferenciaPago(x));
 }
 
-async function resolver(x, estado, motivo){
-  const cambio = { estado };
-  if(motivo != null) cambio.motivo_rechazo = motivo;
+async function resolver(x, estado, extra){
+  const cambio = Object.assign({ estado }, extra || {});
   const { error } = await SB.from('solicitudes_pago').update(cambio).eq('id', x.id);
   if(error){ toast('No se pudo: ' + error.message); return; }
   await cargar();
-  toast(estado === 'aprobada' ? 'Solicitud aprobada' : 'Solicitud ' + ETIQUETA[estado].toLowerCase());
+  toast(estado === 'aprobada' ? 'Solicitud aprobada — queda por pagar'
+      : estado === 'pagada' ? 'Marcada como pagada'
+      : 'Solicitud ' + ETIQUETA[estado].toLowerCase());
   abrir(x.id);
 }
 
 function pedirMotivo(x){
   const hueco = $('#cajonExtra'); if(!hueco || hueco.childElementCount) return;
-  hueco.innerHTML = `<div class="bloque motivo-caja"><h3>Motivo del rechazo</h3>
+  hueco.innerHTML = `<div class="bloque extra-caja"><h3>Motivo del rechazo</h3>
     <div class="form-campo">
-      <label for="fMotivo">Se le enseña al comercial tal cual — di qué falta o por qué no procede</label>
+      <label for="fMotivo">Se le enseña al compañero tal cual — di qué falta o por qué no procede</label>
       <textarea id="fMotivo"></textarea>
     </div>
     <button class="sui-btn primario" id="btnRechazarOk">Rechazar la solicitud</button>
-    <p class="aviso-motivo" id="avisoMotivo" hidden>El motivo es obligatorio: sin él la base no acepta el rechazo.</p>
+    <p class="aviso-falta" id="avisoMotivo" hidden>El motivo es obligatorio: sin él la base no acepta el rechazo.</p>
   </div>`;
   $('#fMotivo').focus();
   $('#btnRechazarOk').addEventListener('click', () => {
     const m = $('#fMotivo').value.trim();
     if(!m){ $('#avisoMotivo').hidden = false; return; }
-    resolver(x, 'rechazada', m);
+    resolver(x, 'rechazada', { motivo_rechazo: m });
+  });
+}
+
+function pedirReferenciaPago(x){
+  const hueco = $('#cajonExtra'); if(!hueco || hueco.childElementCount) return;
+  hueco.innerHTML = `<div class="bloque extra-caja"><h3>Referencia del pago</h3>
+    <div class="form-campo">
+      <label for="fRef">Cómo se ha pagado — transferencia, Wise, fecha… (opcional, pero al compañero le llega en el aviso)</label>
+      <input id="fRef" autocomplete="off">
+    </div>
+    <button class="sui-btn primario" id="btnPagadaOk">Confirmar: pagada</button>
+  </div>`;
+  $('#fRef').focus();
+  $('#btnPagadaOk').addEventListener('click', () => {
+    const r = $('#fRef').value.trim();
+    resolver(x, 'pagada', { pago_referencia: r || null });
   });
 }
 
@@ -321,65 +332,34 @@ async function anular(x){
   resolver(x, 'anulada');
 }
 
-async function cerrarConFactura(x){
-  // la lista se pide al pulsar, no al cargar: son ~200 facturas y casi nunca
-  // hace falta. Si la solicitud tiene contrato, solo las de ese contrato — la
-  // base rechaza cruzar facturas de otro (trigger), esto solo evita ofrecerlo.
-  let q = SB.from('facturas').select('id,numero,total,moneda,contrato_id').eq('anulada', false);
-  if(x.contrato_id) q = q.eq('contrato_id', x.contrato_id);
-  const { data, error } = await q.order('fecha_emision', { ascending:false }).limit(300);
-  if(error){ toast('No se pudieron leer las facturas: ' + error.message); return; }
-  const ops = (data || []).map(f => ({
-    valor: f.id,
-    texto: f.numero || 'sin nº',
-    nota: lwFormatoImporte(Number(f.total)) + ' ' + (f.moneda || ''),
-  }));
-  if(!ops.length){ toast(x.contrato_id ? 'Ese contrato no tiene facturas todavía — emite primero' : 'No hay facturas que enlazar'); return; }
-  const v = await lwElegir({ titulo: 'La factura que cierra SP-' + x.numero, opciones: ops });
-  if(v === null) return;
-  const f = (data || []).find(d => d.id === v);
-  FACTURAS_MAPA[v] = (f && f.numero) || 'enlazada';
-  const { error: e2 } = await SB.from('solicitudes_pago').update({ estado:'cerrada', factura_id: v }).eq('id', x.id);
-  if(e2){ toast('No se pudo cerrar: ' + e2.message); return; }
-  await cargar();
-  toast('Solicitud cerrada con su factura');
-  abrir(x.id);
-}
-
 /* ---------- alta / edición ---------- */
 function formulario(existente){
   SEL = existente ? existente.id : null;
   const x = existente || {};
-  const monedaVisible = !x.contrato_id;
   suiAbrirCajon({
     titulo: existente ? 'Editar SP-' + esc(String(x.numero)) : 'Nueva solicitud de pago',
-    sub: 'Pide el cobro; Administración lo emite desde Facturas.',
+    sub: 'Pide un pago a Lawang — una comisión, un pago acordado. Administración lo aprueba y lo paga.',
     cuerpo: `
       <div class="form-campo">
-        <label for="fComprador">Comprador</label>
-        <input id="fComprador" placeholder="Elegir de Compradores…" autocomplete="off">
-      </div>
-      <div class="form-campo">
-        <label for="fContrato">Contrato (si el cobro es de un contrato)</label>
-        <input id="fContrato" placeholder="Elegir contrato…" autocomplete="off">
-      </div>
-      <div class="form-campo">
-        <label for="fConcepto">Concepto — qué se está cobrando</label>
-        <input id="fConcepto" value="${esc(x.concepto || '')}">
+        <label for="fConcepto">Concepto — qué pago estás pidiendo</label>
+        <input id="fConcepto" placeholder="Comisión venta W3.1-D1 · pago acordado septiembre…" value="${esc(x.concepto || '')}">
       </div>
       <div class="sui-row">
         <div class="form-campo">
           <label for="fImporte">Importe</label>
           <input id="fImporte" inputmode="decimal" value="${x.importe != null ? esc(lwFormatoImporte(Number(x.importe))) : ''}">
         </div>
-        <div class="form-campo" id="campoMoneda" ${monedaVisible ? '' : 'hidden'}>
+        <div class="form-campo">
           <label for="fMoneda">Moneda</label>
           <select id="fMoneda">
             <option value="EUR">EUR</option><option value="USD">USD</option><option value="IDR">IDR</option>
           </select>
         </div>
       </div>
-      <p class="sui-nota" id="notaMoneda" ${monedaVisible ? 'hidden' : ''}>Con contrato elegido, la moneda es la del contrato.</p>
+      <div class="form-campo">
+        <label for="fContrato">De qué venta viene, si viene de una (opcional)</label>
+        <input id="fContrato" placeholder="Elegir contrato…" autocomplete="off">
+      </div>
       <div class="form-campo">
         <label for="fVence">Fecha límite (opcional)</label>
         <input id="fVence" type="date" value="${esc(x.vence_el || '')}">
@@ -393,55 +373,37 @@ function formulario(existente){
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
 
-  // pickers: se guarda el ID en dataset y se enseña el nombre. lwPicker
-  // escribiría el uuid en el campo, por eso aquí se usa lwElegir directo.
-  const elC = $('#fComprador'), elK = $('#fContrato');
-  const preparaPicker = (input, titulo, opciones, alElegir) => {
-    input.readOnly = true; input.classList.add('lw-elegible');
-    const abrirLista = async () => {
-      const v = await lwElegir({ titulo, opciones: opciones(), valor: input.dataset.id || '' });
-      if(v === null) return;
-      alElegir(v);
-    };
-    input.addEventListener('mousedown', e => { e.preventDefault(); abrirLista(); });
-    input.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown'){ e.preventDefault(); abrirLista(); } });
-  };
-  const opsClientes = () => [{ valor:'', texto:'— Sin comprador —' }].concat(
-    Object.values(CLIENTES).map(c => ({ valor:c.id, texto:c.full_name || 'Sin nombre', nota:c.email || '' }))
-      .sort((a,b) => a.texto.localeCompare(b.texto, 'es')));
-  const opsContratos = () => [{ valor:'', texto:'— Sin contrato —' }].concat(
+  // picker de contrato: se guarda el ID en dataset y se enseña el número.
+  // lwPicker escribiría el uuid en el campo, por eso aquí va lwElegir directo.
+  const elK = $('#fContrato');
+  const opsContratos = () => [{ valor:'', texto:'— Sin venta asociada —' }].concat(
     Object.values(CONTRATOS).map(k => ({ valor:k.id, texto:k.numero || 'sin nº',
       nota:[lwTipoContrato(k.tipo), k.proyecto_nombre].filter(Boolean).join(' · ') }))
       .sort((a,b) => a.texto.localeCompare(b.texto, 'es')));
-  const ponComprador = id => {
-    elC.dataset.id = id || '';
-    elC.value = id && CLIENTES[id] ? (CLIENTES[id].full_name || '') : '';
-  };
   const ponContrato = id => {
     elK.dataset.id = id || '';
     elK.value = id && CONTRATOS[id] ? (CONTRATOS[id].numero || 'contrato') : '';
-    $('#campoMoneda').hidden = !!id;
-    $('#notaMoneda').hidden = !id;
   };
-  preparaPicker(elC, 'Comprador', opsClientes, ponComprador);
-  preparaPicker(elK, 'Contrato', opsContratos, ponContrato);
-  ponComprador(x.client_id || '');
+  elK.readOnly = true; elK.classList.add('lw-elegible');
+  const abrirLista = async () => {
+    const v = await lwElegir({ titulo:'La venta de la que viene el pago', opciones: opsContratos(), valor: elK.dataset.id || '' });
+    if(v !== null) ponContrato(v);
+  };
+  elK.addEventListener('mousedown', e => { e.preventDefault(); abrirLista(); });
+  elK.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown'){ e.preventDefault(); abrirLista(); } });
   ponContrato(x.contrato_id || '');
   if(x.moneda) $('#fMoneda').value = x.moneda;
 
   $('#btnCancelar').addEventListener('click', suiCerrarCajon);
   $('#btnGuardar').addEventListener('click', async () => {
-    const client_id = elC.dataset.id || null;
-    const contrato_id = elK.dataset.id || null;
     const concepto = $('#fConcepto').value.trim();
     const importe = lwParseImporte($('#fImporte').value);
-    if(!client_id && !contrato_id){ toast('Di a quién se le cobra: comprador o contrato'); return; }
     if(!concepto){ toast('El concepto no puede quedar vacío'); return; }
     if(!(importe > 0)){ toast('El importe no se entiende — escribe un número mayor que cero'); return; }
     const fila = {
-      client_id, contrato_id, concepto,
-      importe,
-      moneda: contrato_id ? null : $('#fMoneda').value,
+      contrato_id: elK.dataset.id || null,
+      concepto, importe,
+      moneda: $('#fMoneda').value,
       vence_el: $('#fVence').value || null,
       nota: $('#fNota').value.trim() || null,
     };
@@ -472,7 +434,7 @@ suiMontarCajon();
 suiOrdenable($('#tabla'), ORDEN, (x, campo) => campo === 'importe' ? Number(x.importe) : x[campo], pintarTabla);
 
 window.LW_AUTH.then(async ({ sb, session, ficha }) => {
-  SB = sb; YO = session && session.user; FICHA = ficha;
+  SB = sb; YO = session && session.user;
   ADMIN = !!(ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'));
   await cargar();
   /* ?id=<solicitud> llega desde la campana: se abre esa y, si el filtro por

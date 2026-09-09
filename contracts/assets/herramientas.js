@@ -91,21 +91,24 @@ const LW_HERRAMIENTAS = [
     claves:'recibi recibos justificante señal pago',
     estado:d => d.recibis == null ? null : [d.recibis + ' emitidos', false] },
   /* Nueva 9-sep-2026 (owner: «un apartado donde los comerciales nos puedan
-     crear solicitudes de pago»). La cola de entrada de Administración: el
-     agente pide el cobro, el admin lo resuelve y emite desde Facturas.
+     crear solicitudes de pago» — y su corrección del mismo día: «las ponen los
+     agentes para pedirle a Lawang que les pague ciertos importes como pueden
+     ser comisiones o pagos acordados, no para cargarlas sobre los
+     compradores»). El agente pide un pago a Lawang; el admin lo aprueba,
+     lo rechaza con motivo, o lo marca pagado al hacer la transferencia.
      `herr:'operaciones'` A PROPÓSITO, no una clave nueva: un permiso nuevo
      exige redesplegar la edge admin-usuarios (pendiente por LAW-70) y dejaría
      a los usuarios nuevos sin la herramienta en silencio — mismo precedente
      que Vencimientos (18-ago) y Modelos (7-sep). Al compartir clave dos
      tarjetas, la etiqueta del permiso va en LW_ETIQUETA_PROPIA (abajo).
-     La cifra hereda la RLS: el admin cuenta todas las pendientes, cada agente
-     las suyas — y las dos lecturas son las correctas para quien las ve. */
+     La cifra cuenta pendientes + aprobadas sin pagar (lo que espera acción del
+     admin) y hereda la RLS: el admin las cuenta todas, cada agente las suyas. */
   { grupo:'Administración', nombre:'Solicitudes', icon:'ph-coins', href:'/intranet/solicitudes/', herr:'operaciones',
-    para:'Peticiones de cobro de los comerciales: quién pide cobrar qué, y en qué quedó cada una.',
-    claves:'solicitudes pago cobro peticiones comerciales agentes pedir cobrar',
-    estado:d => d.solicitudesPendientes == null ? null
-      : [d.solicitudesPendientes ? d.solicitudesPendientes + (d.solicitudesPendientes === 1 ? ' pendiente de resolver' : ' pendientes de resolver') : 'Sin solicitudes pendientes',
-         d.solicitudesPendientes > 0] },
+    para:'Pagos que piden los comerciales — comisiones y acordados: quién pide qué, y en qué quedó cada uno.',
+    claves:'solicitudes pago pagos comisiones comerciales agentes pedir comision',
+    estado:d => d.solicitudesVivas == null ? null
+      : [d.solicitudesVivas ? d.solicitudesVivas + (d.solicitudesVivas === 1 ? ' por resolver o pagar' : ' por resolver o pagar') : 'Sin solicitudes en vuelo',
+         d.solicitudesVivas > 0] },
 
   { grupo:'Base de datos', nombre:'Proyectos', icon:'ph-buildings', href:'/intranet/proyectos/', herr:'unidades',
     para:'Inventario de parcelas y villas con su estado de venta, por proyecto.',
