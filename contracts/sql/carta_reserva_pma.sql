@@ -51,7 +51,13 @@ alter table public.contratos add constraint contratos_tipo_check
     -- fichero -- que es el .sql COMPLETO de referencia -- no la tenia. Reejecutarlo
     -- habria borrado el tipo `adenda` del check y la rama de su numeracion. Es
     -- exactamente el fallo que adenda.sql avisa en su cabecera (LAW-48).
-    'adenda'
+    'adenda',
+    -- Anadida aqui el 10-sep-2026: la serie CD ya vivia en produccion desde el
+    -- 10-sep (supabase/migrations/20260910025145_investor_deck_palmfield.sql y
+    -- .../20260910025534_tipos_de_contrato_regenera_investor_deck.sql), pero este
+    -- fichero -- que es el .sql COMPLETO de referencia -- no la tenia. Mismo
+    -- fallo de LAW-48 que adenda arriba.
+    'carta_reserva_investor_deck'
   ]));
 
 create or replace function public.set_contrato_numero()
@@ -84,6 +90,7 @@ begin
     when 'cc00014_timon'      then prefix := 'CC'; seqname := 'public.contratos_cc_seq';
     when 'carta_reserva_pma'  then prefix := 'CP'; seqname := 'public.contratos_cp_seq';
     when 'adenda'             then prefix := 'AD'; seqname := 'public.contratos_ad_seq';
+    when 'carta_reserva_investor_deck' then prefix := 'CD'; seqname := 'public.contratos_cd_seq';
     else raise exception 'Tipo de contrato sin numeracion definida: %', new.tipo;
   end case;
   n := nextval(seqname);
