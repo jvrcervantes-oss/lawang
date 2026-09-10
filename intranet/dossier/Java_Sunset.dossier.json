@@ -1,0 +1,302 @@
+{
+ "title": "Balian Hill · Java Sunset",
+ "sizeKey": "a4l",
+ "size": {
+  "w": 297,
+  "h": 210
+ },
+ "pages": [
+  {
+   "id": "p1",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p01.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p2",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p02.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p3",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p03.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p4",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p04.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p5",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p05.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p6",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p06.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p7",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p07.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p8",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p08.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p9",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p09.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p10",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p10.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p11",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p11.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p12",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p12.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p13",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p13.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p14",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p14.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p15",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p15.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p16",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p16.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p17",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p17.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p18",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p18.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p19",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p19.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p20",
+   "type": "cover",
+   "d": {
+    "kick": "",
+    "title": "",
+    "claim": "",
+    "foot": ""
+   },
+   "img": {
+    "bg": "java/p20.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p21",
+   "type": "back",
+   "d": {
+    "contact": "",
+    "legal": ""
+   },
+   "img": {
+    "bg": "java/p21.jpg"
+   },
+   "free": []
+  }
+ ]
+}
