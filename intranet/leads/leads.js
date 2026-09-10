@@ -159,17 +159,24 @@ function kpisPipeline(){
 }
 
 function avisoTipos(){
+  /* Comparaba `l.sugerencia` (una ETAPA: 'reserva'/'contrato') contra un Set de
+     TIPOS ('ppjb_bonian', 'hak_sewa_notario'…) y por eso disparaba siempre que
+     un lead convertía de verdad: ningún tipo real se llama literalmente
+     "reserva" ni "contrato", así que la comparación era falsa siempre y el
+     aviso rojo salía en producción con cada conversión legítima (4 leads reales
+     hoy, verificado 10-sep-2026 contra Supabase). Ese caso NO se puede detectar
+     desde aquí con los datos que manda `crm_leads()`: si el tipo firmado no
+     está mapeado, el JOIN de la función ni siquiera genera `sugerencia`, así
+     que un lead con `sugerencia_contrato` YA tiene tipo mapeado por
+     construcción. Lo único que SÍ se puede ver desde el cliente es una fila de
+     `contrato_tipo_etapa` con `etapa` vacía. El caso de LAW-151 (un tipo que ni
+     siquiera tiene fila) queda pendiente de un cambio en la función SQL. */
   const sin = ETAPAS.filter(e => !e.etapa).map(e => e.tipo);
-  /* La tabla trae los tipos que SÍ están mapeados; los que faltan no tienen
-     fila. Se comparan contra los tipos que han firmado de verdad. */
-  const mapeados = new Set(ETAPAS.map(e => e.tipo));
-  const faltan = [];
-  LEADS.forEach(l => { if(l.sugerencia_contrato && !mapeados.has(l.sugerencia)) faltan.push(l.sugerencia); });
   const av = $('#avisoTipos');
-  if(!sin.length && !faltan.length){ av.hidden = true; return; }
+  if(!sin.length){ av.hidden = true; return; }
   av.hidden = false;
   av.innerHTML = '<b>Hay tipos de contrato sin columna asignada.</b> Quien firme uno de esos '
-    + 'no aparecerá sugerido en Reserva ni en Contrato: ' + esc([...new Set(sin.concat(faltan))].join(', '))
+    + 'no aparecerá sugerido en Reserva ni en Contrato: ' + esc([...new Set(sin)].join(', '))
     + '. Se arregla desde el estudio, añadiendo su fila en <code>contrato_tipo_etapa</code>.';
 }
 
