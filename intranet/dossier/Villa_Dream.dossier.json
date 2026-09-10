@@ -1,0 +1,154 @@
+{
+ "title": "Villa Dream",
+ "sizeKey": "a4l",
+ "size": {
+  "w": 297,
+  "h": 210
+ },
+ "pages": [
+  {
+   "id": "p1",
+   "type": "cover",
+   "d": {
+    "kick": "INSIDE THE VILLA",
+    "title": "DREAM",
+    "claim": "A project by Lawang · Balian, Bali",
+    "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS"
+   },
+   "img": {
+    "bg": "dream/exterior.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
+   "free": []
+  },
+  {
+   "id": "p2",
+   "type": "villa",
+   "d": {
+    "kick": "PRIVATE VILLAS",
+    "name": "DREAM",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "2",
+    "t1": "Rooms",
+    "s2": "2",
+    "t2": "Baths",
+    "s3": "1",
+    "t3": "Kitchen",
+    "s4": "1",
+    "t4": "Living + Sunken"
+   },
+   "img": {
+    "main": "dream/exterior.jpg",
+    "sec": "dream/pool-terrace.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p3",
+   "type": "text",
+   "d": {
+    "kick": "ROOF DESIGNS",
+    "title": "Ulin · Traditional Elegance",
+    "body": "Crafted from Ulin wood, this traditional Balinese roof combines exceptional durability with a natural, timeless aesthetic, perfectly complementing the tropical architecture of the home."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p4",
+   "type": "text",
+   "d": {
+    "kick": "ROOF DESIGNS",
+    "title": "Ulin + Bamboo · Timeless Craftsmanship",
+    "body": "A harmonious combination of durable Ulin wood and natural bamboo, creating a warm, authentic finish that blends seamlessly with the tropical surroundings."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p5",
+   "type": "feature",
+   "d": {
+    "kick": "THE VILLA OUTDOOR",
+    "title": "Step into your own<br>tropical garden",
+    "body": "Bird of Paradise, Areca Palm, Monstera Deliciosa and Tropical Ferns — selected for their beauty and adaptability, these plants create a lush, low-maintenance tropical retreat.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "dream/garden.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p6",
+   "type": "feature",
+   "d": {
+    "kick": "EXPERIENCE LIVING",
+    "title": "Outdoor landscaping",
+    "body": "A serene, contemporary space designed for everyday relaxation. Its clean lines, tropical surroundings, and naturally cool water create a refreshing sanctuary that blends seamlessly with the landscape. Sukabumi tiles bring authentic texture, durability, and a refined, unmistakably local touch.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "dream/outdoor-living.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p7",
+   "type": "text",
+   "d": {
+    "kick": "MATERIALS",
+    "title": "Rattan · sense of Balinese heritage",
+    "body": "Warmth and texture into the interiors, often used in feature panels, ceiling accents, or decorative elements. This natural material enhances the soft tropical atmosphere while keeping the design sophisticated and contemporary."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p8",
+   "type": "feature",
+   "d": {
+    "kick": "INSIDE THE VILLA",
+    "title": "Modern surfaces<br>and polished finishes",
+    "body": "Smooth rendered concrete floors, microcement finishes, and minimalist neutral palettes create a clean, airy environment. Bring durability, easy maintenance, and a timeless aesthetic that complements the villa's architecture.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "dream/bedroom.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p9",
+   "type": "text",
+   "d": {
+    "kick": "EXTRAS",
+    "title": "Diferéntiate — elige tus extras",
+    "body": "<b>Oasis Pool.</b> A tranquil private pool designed as a serene retreat to unwind, refresh and reconnect with nature.<br><br><b>Exterior Gym.</b> An open-air fitness space designed to keep you active while enjoying the tropical surroundings.<br><br><b>Rooftop.</b> Elevated living with panoramic views and a private space to unwind, entertain and enjoy the surroundings.<br><br><b>Zero Chemical.</b> Modern UV purification system for crystal-clear water with minimal use of traditional pool chemicals.<br><br><b>Sauna &amp; Recovery.</b> Hot &amp; cold water therapy paired with a private sauna, designed for recovery, relaxation and wellbeing.<br><br><b>Fully Furnished.</b> A turnkey villa, fully furnished and equipped with everything you need for a comfortable and effortless living experience."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p10",
+   "type": "back",
+   "d": {
+    "contact": "Turn capital into legacy.<br>lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862",
+    "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED"
+   },
+   "img": {
+    "bg": "dream/closing.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
+   "free": []
+  }
+ ]
+}
