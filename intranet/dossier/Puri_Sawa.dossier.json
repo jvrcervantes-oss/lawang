@@ -1,123 +1,284 @@
 {
  "title": "Puri Sawa",
  "sizeKey": "a4l",
- "size": { "w": 297, "h": 210 },
+ "size": {
+  "w": 297,
+  "h": 210
+ },
  "pages": [
   {
-   "id": "p1", "type": "cover",
-   "d": { "kick": "WELCOME TO", "title": "PURI SAWA", "claim": "A place that feels inevitable. Presence, without excess. Intention, without explanation. Experience, without effort.", "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS" },
-   "img": { "bg": "purisawa/cover.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p1",
+   "type": "cover",
+   "d": {
+    "kick": "WELCOME TO",
+    "title": "PURI SAWA",
+    "claim": "A place that feels inevitable. Presence, without excess. Intention, without explanation. Experience, without effort.",
+    "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS"
+   },
+   "img": {
+    "bg": "purisawa/cover.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   },
   {
-   "id": "p2", "type": "stats",
-   "d": { "kick": "INDONESIA", "title": "The world's largest archipelago", "intro": "Prime investment destination. Early positioning, limited by nature, not by marketing.",
-    "n1": "17,000+", "l1": "Islands in the archipelago",
-    "n2": "13M+", "l2": "International tourists per year",
-    "n3": "Top 3", "l3": "Safest country in Southeast Asia",
-    "n4": "7th", "l4": "Largest economy in the world" },
-   "img": { "side": "soka/stats-side.jpg" },
+   "id": "p2",
+   "type": "stats",
+   "d": {
+    "kick": "INDONESIA",
+    "title": "The world's largest archipelago",
+    "intro": "Prime investment destination. Early positioning, limited by nature, not by marketing.",
+    "n1": "17,000+",
+    "l1": "Islands in the archipelago",
+    "n2": "13M+",
+    "l2": "International tourists per year",
+    "n3": "Top 3",
+    "l3": "Safest country in Southeast Asia",
+    "n4": "7th",
+    "l4": "Largest economy in the world"
+   },
+   "img": {
+    "side": "soka/stats-side.jpg"
+   },
    "free": []
   },
   {
-   "id": "p3", "type": "stats",
-   "d": { "kick": "LAWANG", "title": "Strategic land &amp; asset platform in Indonesia", "intro": "Building wisdom, with purpose, built to last.",
-    "n1": "6+", "l1": "Years operating",
-    "n2": "500K+", "l2": "SQM land",
-    "n3": "30+", "l3": "Projects developed in Bali &amp; Sumba",
-    "n4": "30+", "l4": "Team members" },
-   "img": { "side": "purisawa/ricefield-retreat.jpg" },
+   "id": "p3",
+   "type": "stats",
+   "d": {
+    "kick": "LAWANG",
+    "title": "Strategic land &amp; asset platform in Indonesia",
+    "intro": "Building wisdom, with purpose, built to last.",
+    "n1": "6+",
+    "l1": "Years operating",
+    "n2": "500K+",
+    "l2": "SQM land",
+    "n3": "30+",
+    "l3": "Projects developed in Bali &amp; Sumba",
+    "n4": "30+",
+    "l4": "Team members"
+   },
+   "img": {
+    "side": "purisawa/ricefield-retreat.jpg"
+   },
    "free": []
   },
   {
-   "id": "p4", "type": "plan",
-   "d": { "title": "Bali 2026 · Land legacy", "sub": "Freehold land in an early-stage market · A balance of wellness, surf and retreat · Bali's longest beach, +40km · Balian based" },
-   "img": { "bg": "soka/bali-map.jpg" },
+   "id": "p4",
+   "type": "plan",
+   "d": {
+    "title": "Bali 2026 · Land legacy",
+    "sub": "Freehold land in an early-stage market · A balance of wellness, surf and retreat · Bali's longest beach, +40km · Balian based"
+   },
+   "img": {
+    "bg": "soka/bali-map.jpg"
+   },
    "free": []
   },
   {
-   "id": "p5", "type": "statement",
-   "d": { "big": "MANAGED RESORTS", "note": "A retreat amidst the rice terraces." },
-   "img": { "bg": "purisawa/ricefield-retreat.jpg" },
+   "id": "p5",
+   "type": "statement",
+   "d": {
+    "big": "MANAGED RESORTS",
+    "note": "A retreat amidst the rice terraces."
+   },
+   "img": {
+    "bg": "purisawa/ricefield-retreat.jpg"
+   },
    "free": []
   },
   {
-   "id": "p6", "type": "gallery",
-   "d": { "kick": "POSITIONED ON BALI'S WEST COAST · 5 MIN FROM THE BEACH", "title": "The views, the plot, the surrounding", "cap1": "THE VIEWS", "cap2": "THE PLOT", "cap3": "THE SURROUNDING" },
-   "img": { "g1": "purisawa/the-views.jpg", "g2": "purisawa/the-plot.jpg", "g3": "purisawa/the-surrounding.jpg" },
+   "id": "p6",
+   "type": "gallery",
+   "d": {
+    "kick": "POSITIONED ON BALI'S WEST COAST · 5 MIN FROM THE BEACH",
+    "title": "The views, the plot, the surrounding",
+    "cap1": "THE VIEWS",
+    "cap2": "THE PLOT",
+    "cap3": "THE SURROUNDING"
+   },
+   "img": {
+    "g1": "purisawa/the-views.jpg",
+    "g2": "purisawa/the-plot.jpg",
+    "g3": "purisawa/the-surrounding.jpg"
+   },
    "free": []
   },
   {
-   "id": "p7", "type": "feature",
-   "d": { "kick": "THE LOCATION", "title": "Ricefields surrounding —<br>every villa opens to 360°", "body": "Defined by elevation, proximity to developments, and return potential. Not an isolated location — an evolving environment, with hospitality, infrastructure and residential developments nearby.", "c1": "RICEFIELDS SURROUNDING", "c2": "TROPICAL JUNGLE", "c3": "LAND · 26 ARE" },
-   "img": { "bg": "purisawa/amenities-aerial.jpg" },
+   "id": "p7",
+   "type": "feature",
+   "d": {
+    "kick": "THE LOCATION",
+    "title": "Ricefields surrounding —<br>every villa opens to 360°",
+    "body": "Defined by elevation, proximity to developments, and return potential. Not an isolated location — an evolving environment, with hospitality, infrastructure and residential developments nearby.",
+    "c1": "RICEFIELDS SURROUNDING",
+    "c2": "TROPICAL JUNGLE",
+    "c3": "LAND · 26 ARE"
+   },
+   "img": {
+    "bg": "purisawa/amenities-aerial.jpg"
+   },
    "free": []
   },
   {
-   "id": "p8", "type": "feature",
-   "d": { "kick": "5 MIN FROM THE BEACH", "title": "Signature · 8 villas", "body": "Road access, secured private parking. Co-working &amp; community space. Recovery pool, sauna &amp; ice bath — shared spaces surrounded by ricefields and tropical jungle.", "c1": "8 SIGNATURE VILLAS", "c2": "CO-WORKING", "c3": "SAUNA &amp; ICE BATH" },
-   "img": { "bg": "purisawa/retreat-exterior.jpg" },
+   "id": "p8",
+   "type": "feature",
+   "d": {
+    "kick": "5 MIN FROM THE BEACH",
+    "title": "Signature villas",
+    "body": "Road access, secured private parking. Co-working &amp; community space. Recovery pool, sauna &amp; ice bath — shared spaces surrounded by ricefields and tropical jungle.",
+    "c1": "SIGNATURE VILLAS",
+    "c2": "CO-WORKING",
+    "c3": "SAUNA &amp; ICE BATH"
+   },
+   "img": {
+    "bg": "purisawa/retreat-exterior.jpg"
+   },
    "free": []
   },
   {
-   "id": "p9", "type": "feature",
-   "d": { "kick": "PREMIUM COMMON AREAS", "title": "Your own<br>Balinese-inspired retreat", "body": "Built with sustainable materials and high-quality finishes. Unlimited access to the stunning organically designed central pool that flows through the heart of the resort.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "purisawa/central-pool.jpg" },
+   "id": "p9",
+   "type": "feature",
+   "d": {
+    "kick": "PREMIUM COMMON AREAS",
+    "title": "Your own<br>Balinese-inspired retreat",
+    "body": "Built with sustainable materials and high-quality finishes. Unlimited access to the stunning organically designed central pool that flows through the heart of the resort.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "purisawa/central-pool.jpg"
+   },
    "free": []
   },
   {
-   "id": "p10", "type": "text",
-   "d": { "kick": "VILLAS · CONSTRUCTIVE STYLE", "title": "Pool terrace, teak wood, authentic materials", "body": "Alang alang roofing, teak wood structure and authentic local materials define the constructive style of every villa — the same tropical minimalism that runs through the whole resort." },
+   "id": "p10",
+   "type": "text",
+   "d": {
+    "kick": "VILLAS · CONSTRUCTIVE STYLE",
+    "title": "Pool terrace, teak wood, authentic materials",
+    "body": "Alang alang roofing, teak wood structure and authentic local materials define the constructive style of every villa — the same tropical minimalism that runs through the whole resort."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p11", "type": "villa",
-   "d": { "kick": "RESORT ROOM", "name": "RESORT", "invfrom": "", "price": "", "areas": "",
-    "s1": "1", "t1": "Room", "s2": "1", "t2": "Bath", "s3": "1", "t3": "Kitchen", "s4": "1", "t4": "Studio" },
-   "img": { "main": "purisawa/resort-room.jpg", "sec": "purisawa/bathroom.jpg" },
+   "id": "p11",
+   "type": "villa",
+   "d": {
+    "kick": "RESORT ROOM",
+    "name": "RESORT",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "1",
+    "t1": "Room",
+    "s2": "1",
+    "t2": "Bath",
+    "s3": "1",
+    "t3": "Kitchen",
+    "s4": "1",
+    "t4": "Studio"
+   },
+   "img": {
+    "main": "purisawa/resort-room.jpg",
+    "sec": "purisawa/bathroom.jpg"
+   },
    "free": []
   },
   {
-   "id": "p12", "type": "text",
-   "d": { "kick": "THE CONCEPT", "title": "Comfort first, tropical minimal", "body": "<b>Comfort first.</b> The essentials should feel right from the very first use.<br><br><b>Tropical minimal.</b> Fewer pieces, better materials, and a cleaner visual reading.<br><br><b>Operational ease.</b> Everything should be easy to clean, restock, and maintain.<br><br><b>Guest perception.</b> Small details greatly elevate the overall experience." },
+   "id": "p12",
+   "type": "text",
+   "d": {
+    "kick": "THE CONCEPT",
+    "title": "Comfort first, tropical minimal",
+    "body": "<b>Comfort first.</b> The essentials should feel right from the very first use.<br><br><b>Tropical minimal.</b> Fewer pieces, better materials, and a cleaner visual reading.<br><br><b>Operational ease.</b> Everything should be easy to clean, restock, and maintain.<br><br><b>Guest perception.</b> Small details greatly elevate the overall experience."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p13", "type": "feature",
-   "d": { "kick": "LIVING &amp; DINING", "title": "Light, warm,<br>easy to maintain", "body": "Comfortable sofa, coffee table, television with streaming, high-speed Wi-Fi, dining table &amp; chairs, warm lighting, minimal and welcoming décor, workstation, plants, local art. Where comfort, good light and a clean aesthetic come together.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "purisawa/living-dining.jpg" },
+   "id": "p13",
+   "type": "feature",
+   "d": {
+    "kick": "LIVING &amp; DINING",
+    "title": "Light, warm,<br>easy to maintain",
+    "body": "Comfortable sofa, coffee table, television with streaming, high-speed Wi-Fi, dining table &amp; chairs, warm lighting, minimal and welcoming décor, workstation, plants, local art. Where comfort, good light and a clean aesthetic come together.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "purisawa/living-dining.jpg"
+   },
    "free": []
   },
   {
-   "id": "p14", "type": "text",
-   "d": { "kick": "THE BEDROOM", "title": "A hotel-like feeling", "body": "Main bed with solid structure, high-comfort hotel mattress, 300-thread-count bed linen, blackout + sheer curtains. Defines the perception of rest — the priority is not only beauty, but visual calm, the right textiles, and an impeccable bed." },
+   "id": "p14",
+   "type": "text",
+   "d": {
+    "kick": "THE BEDROOM",
+    "title": "A hotel-like feeling",
+    "body": "Main bed with solid structure, high-comfort hotel mattress, 300-thread-count bed linen, blackout + sheer curtains. Defines the perception of rest — the priority is not only beauty, but visual calm, the right textiles, and an impeccable bed."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p15", "type": "feature",
-   "d": { "kick": "BATHROOMS · CARE SPACE", "title": "Clean and calm", "body": "Soft cotton towel set, mirror with clean presence, essential amenity set, hair dryer and guest support. More than a utility space — it reinforces the perception of care, comfort and hospitality.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "purisawa/bathroom.jpg" },
+   "id": "p15",
+   "type": "feature",
+   "d": {
+    "kick": "BATHROOMS · CARE SPACE",
+    "title": "Clean and calm",
+    "body": "Soft cotton towel set, mirror with clean presence, essential amenity set, hair dryer and guest support. More than a utility space — it reinforces the perception of care, comfort and hospitality.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "purisawa/bathroom.jpg"
+   },
    "free": []
   },
   {
-   "id": "p16", "type": "feature",
-   "d": { "kick": "KITCHEN", "title": "Fresh, complete<br>and naturally inviting", "body": "Refrigerator with freezer, complete tableware set, cookware and utensils, coffee &amp; tea station. Fully equipped, thoughtful material choices, and a well-proportioned island.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "purisawa/kitchen.jpg" },
+   "id": "p16",
+   "type": "feature",
+   "d": {
+    "kick": "KITCHEN",
+    "title": "Fresh, complete<br>and naturally inviting",
+    "body": "Refrigerator with freezer, complete tableware set, cookware and utensils, coffee &amp; tea station. Fully equipped, thoughtful material choices, and a well-proportioned island.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "purisawa/kitchen.jpg"
+   },
    "free": []
   },
   {
-   "id": "p17", "type": "text",
-   "d": { "kick": "FREEHOLD + VILLA", "title": "Land legacy", "body": "Freehold turnkey villa with private pool. Common areas, co-working, community pool, parking area and roads." },
+   "id": "p17",
+   "type": "text",
+   "d": {
+    "kick": "FREEHOLD + VILLA",
+    "title": "Land legacy",
+    "body": "Freehold turnkey villa with private pool. Common areas, co-working, community pool, parking area and roads."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p18", "type": "back",
-   "d": { "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862", "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED" },
-   "img": { "bg": "purisawa/closing.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p18",
+   "type": "back",
+   "d": {
+    "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862",
+    "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED"
+   },
+   "img": {
+    "bg": "purisawa/closing.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   }
  ]

@@ -322,13 +322,13 @@
    "d": {
     "kick": "ESTRUCTURA DE PROPIEDAD",
     "title": "Tú eliges qué título de propiedad adquirir",
-    "intro": "Todo el terreno de Bonian Village es Freehold (propiedad plena) — la estructura concreta depende de quién adquiere.",
+    "intro": "Todo el terreno de Bonian Village se estructura bajo HGB — la vía concreta depende de quién adquiere.",
     "n1": "90",
     "l1": "Años de leasehold · persona física extranjera",
     "n2": "80",
     "l2": "Años con HGB + extensión indefinida",
     "n3": "PT PMA",
-    "l3": "Propiedad plena (freehold) · empresa extranjera en Indonesia",
+    "l3": "HGB · empresa extranjera en Indonesia",
     "n4": "100%",
     "l4": "Propiedad plena · persona física indonesia"
    },

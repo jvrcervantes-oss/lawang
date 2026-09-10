@@ -1,123 +1,289 @@
 {
  "title": "Horizon Resort",
  "sizeKey": "a4l",
- "size": { "w": 297, "h": 210 },
+ "size": {
+  "w": 297,
+  "h": 210
+ },
  "pages": [
   {
-   "id": "p1", "type": "cover",
-   "d": { "kick": "A PROJECT BY LAWANG", "title": "HORIZON", "claim": "Your own freehold villa resort. Newly built modern villa, own an infinity pool with ocean views, located between the river and the Balinese jungle.", "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS" },
-   "img": { "bg": "horizon/cover.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p1",
+   "type": "cover",
+   "d": {
+    "kick": "A PROJECT BY LAWANG",
+    "title": "HORIZON",
+    "claim": "Newly built modern villa. Own an infinity pool with ocean views, located between the river and the Balinese jungle.",
+    "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS"
+   },
+   "img": {
+    "bg": "horizon/cover.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   },
   {
-   "id": "p2", "type": "stats",
-   "d": { "kick": "INDONESIA", "title": "The world's largest archipelago", "intro": "Prime investment destination. Early positioning, limited by nature, not by marketing.",
-    "n1": "17,000+", "l1": "Islands in the archipelago",
-    "n2": "14M", "l2": "International tourists per year",
-    "n3": "Top 3", "l3": "Safest country in Southeast Asia",
-    "n4": "7th", "l4": "Largest economy in the world" },
-   "img": { "side": "soka/stats-side.jpg" },
+   "id": "p2",
+   "type": "stats",
+   "d": {
+    "kick": "INDONESIA",
+    "title": "The world's largest archipelago",
+    "intro": "Prime investment destination. Early positioning, limited by nature, not by marketing.",
+    "n1": "17,000+",
+    "l1": "Islands in the archipelago",
+    "n2": "14M",
+    "l2": "International tourists per year",
+    "n3": "Top 3",
+    "l3": "Safest country in Southeast Asia",
+    "n4": "7th",
+    "l4": "Largest economy in the world"
+   },
+   "img": {
+    "side": "soka/stats-side.jpg"
+   },
    "free": []
   },
   {
-   "id": "p3", "type": "stats",
-   "d": { "kick": "BALI", "title": "The Island of Gods", "intro": "Tripadvisor Travelers' Choice Award 2025 · #1 destination in Asia.",
-    "n1": "2026", "l1": "Land legacy · Balian based",
-    "n2": "#1", "l2": "Destination in Asia",
-    "n3": "", "l3": "",
-    "n4": "", "l4": "" },
-   "img": { "side": "horizon/aerial.jpg" },
+   "id": "p3",
+   "type": "stats",
+   "d": {
+    "kick": "BALI",
+    "title": "The Island of Gods",
+    "intro": "Tripadvisor Travelers' Choice Award 2025 · #1 destination in Asia.",
+    "n1": "2026",
+    "l1": "Land legacy · Balian based",
+    "n2": "#1",
+    "l2": "Destination in Asia",
+    "n3": "",
+    "l3": "",
+    "n4": "",
+    "l4": ""
+   },
+   "img": {
+    "side": "horizon/aerial.jpg"
+   },
    "free": []
   },
   {
-   "id": "p4", "type": "feature",
-   "d": { "kick": "BALIAN", "title": "A high-value<br>investment area", "body": "A balance of wellness, surf and retreat. Internationally acclaimed as one of the best places to surf in Bali.", "c1": "WELLNESS · SURF · RETREAT", "c2": "BALI'S LONGEST BEACH", "c3": "+40 KM OF COASTLINE" },
-   "img": { "bg": "horizon/beach.jpg" },
+   "id": "p4",
+   "type": "feature",
+   "d": {
+    "kick": "BALIAN",
+    "title": "A high-value<br>investment area",
+    "body": "A balance of wellness, surf and retreat. Internationally acclaimed as one of the best places to surf in Bali.",
+    "c1": "WELLNESS · SURF · RETREAT",
+    "c2": "BALI'S LONGEST BEACH",
+    "c3": "+40 KM OF COASTLINE"
+   },
+   "img": {
+    "bg": "horizon/beach.jpg"
+   },
    "free": []
   },
   {
-   "id": "p5", "type": "feature",
-   "d": { "kick": "BALIAN · HIGH-VALUE INVESTMENT AREA", "title": "Growth that is planned,<br>not speculated", "body": "The growth of the area is not driven by speculation, rather by publicly announced planning: the North Bali International Airport (2025–2029), road connections towards the West and North of Bali, and Paramount Pictures anticipated to open around 2026. Reference — Canggu: €500–800/m² · Balian (current): €120/m².", "c1": "NEW AIRPORT", "c2": "NEW HIGHWAY", "c3": "THEME PARK" },
-   "img": { "bg": "soka/bali-map.jpg" },
+   "id": "p5",
+   "type": "feature",
+   "d": {
+    "kick": "BALIAN · HIGH-VALUE INVESTMENT AREA",
+    "title": "Growth that is planned,<br>not speculated",
+    "body": "The growth of the area is not driven by speculation, rather by publicly announced planning: the North Bali International Airport (2025–2029), road connections towards the West and North of Bali, and Paramount Pictures anticipated to open around 2026. Reference — Canggu: €500–800/m² · Balian (current): €120/m².",
+    "c1": "NEW AIRPORT",
+    "c2": "NEW HIGHWAY",
+    "c3": "THEME PARK"
+   },
+   "img": {
+    "bg": "soka/bali-map.jpg"
+   },
    "free": []
   },
   {
-   "id": "p6", "type": "feature",
-   "d": { "kick": "REGULATORY SECURITY", "title": "Certified for<br>residential development", "body": "Foreign ownership ready (HGB title). Construction &amp; occupancy permits ready. We prioritize freehold &amp; legal clarity.", "c1": "HGB TITLE", "c2": "PERMITS READY", "c3": "LEGAL CLARITY" },
-   "img": { "bg": "horizon/aerial.jpg" },
+   "id": "p6",
+   "type": "feature",
+   "d": {
+    "kick": "REGULATORY SECURITY",
+    "title": "Certified for<br>residential development",
+    "body": "Foreign ownership ready (HGB title). Construction &amp; occupancy permits ready. We prioritize freehold &amp; legal clarity.",
+    "c1": "HGB TITLE",
+    "c2": "PERMITS READY",
+    "c3": "LEGAL CLARITY"
+   },
+   "img": {
+    "bg": "horizon/aerial.jpg"
+   },
    "free": []
   },
   {
-   "id": "p7", "type": "statement",
-   "d": { "big": "SIGNATURE TROPICAL VILLA<br>DOUBLE HEIGHT · OPEN CONCEPT", "note": "Resort · tropical jungle on the riverside · 10 minutes from the beach · Balian, Bali." },
-   "img": { "bg": "horizon/signature-exterior.jpg" },
+   "id": "p7",
+   "type": "statement",
+   "d": {
+    "big": "SIGNATURE TROPICAL VILLA<br>DOUBLE HEIGHT · OPEN CONCEPT",
+    "note": "Resort · tropical jungle on the riverside · 10 minutes from the beach · Balian, Bali."
+   },
+   "img": {
+    "bg": "horizon/signature-exterior.jpg"
+   },
    "free": []
   },
   {
-   "id": "p8", "type": "villa",
-   "d": { "kick": "A PROJECT BY LAWANG", "name": "HORIZON VILLA", "invfrom": "", "price": "", "areas": "",
-    "s1": "2", "t1": "Bedrooms", "s2": "2", "t2": "Bathrooms", "s3": "1", "t3": "Kitchen", "s4": "1", "t4": "Living + Infinity Pool" },
-   "img": { "main": "horizon/general-view.jpg", "sec": "horizon/lounge.jpg" },
+   "id": "p8",
+   "type": "villa",
+   "d": {
+    "kick": "A PROJECT BY LAWANG",
+    "name": "HORIZON VILLA",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "2",
+    "t1": "Bedrooms",
+    "s2": "2",
+    "t2": "Bathrooms",
+    "s3": "1",
+    "t3": "Kitchen",
+    "s4": "1",
+    "t4": "Living + Infinity Pool"
+   },
+   "img": {
+    "main": "horizon/general-view.jpg",
+    "sec": "horizon/lounge.jpg"
+   },
    "free": []
   },
   {
-   "id": "p9", "type": "feature",
-   "d": { "kick": "BALINESE LOUNGE", "title": "Relax with a view", "body": "Double-height villa, infinity pool, river &amp; ocean views. Contemporary living room.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "horizon/suite-bedroom.jpg" },
+   "id": "p9",
+   "type": "feature",
+   "d": {
+    "kick": "BALINESE LOUNGE",
+    "title": "Relax with a view",
+    "body": "Double-height villa, infinity pool, river &amp; ocean views. Contemporary living room.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "horizon/suite-bedroom.jpg"
+   },
    "free": []
   },
   {
-   "id": "p10", "type": "feature",
-   "d": { "kick": "RIVER &amp; JUNGLE VIEW", "title": "Master bedroom", "body": "Suite bedroom, en-suite bathroom, river and jungle view from every angle.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "horizon/master-bedroom.jpg" },
+   "id": "p10",
+   "type": "feature",
+   "d": {
+    "kick": "RIVER &amp; JUNGLE VIEW",
+    "title": "Master bedroom",
+    "body": "Suite bedroom, en-suite bathroom, river and jungle view from every angle.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "horizon/master-bedroom.jpg"
+   },
    "free": []
   },
   {
-   "id": "p11", "type": "plan",
-   "d": { "title": "First floor overview", "sub": "1 bedroom · 1 bathroom · 1 living room · 1 kitchen · fully equipped" },
-   "img": { "bg": "horizon/floorplan-1.jpg" },
+   "id": "p11",
+   "type": "plan",
+   "d": {
+    "title": "First floor overview",
+    "sub": "1 bedroom · 1 bathroom · 1 living room · 1 kitchen · fully equipped"
+   },
+   "img": {
+    "bg": "horizon/floorplan-1.jpg"
+   },
    "free": []
   },
   {
-   "id": "p12", "type": "plan",
-   "d": { "title": "Second floor overview", "sub": "1 bedroom · 1 bathroom · net hammock · en-suite bathroom" },
-   "img": { "bg": "horizon/floorplan-2.jpg" },
+   "id": "p12",
+   "type": "plan",
+   "d": {
+    "title": "Second floor overview",
+    "sub": "1 bedroom · 1 bathroom · net hammock · en-suite bathroom"
+   },
+   "img": {
+    "bg": "horizon/floorplan-2.jpg"
+   },
    "free": []
   },
   {
-   "id": "p13", "type": "text",
-   "d": { "kick": "MATERIALS", "title": "Overview of long-term stability &amp; durability", "body": "<b>Stone — Palimanan.</b> A natural, elegant look, improved thermal comfort, outdoor durability, ideal for façades, feature walls, terraces and pool areas.<br><br><b>Wood — Bengkirai.</b> High strength, durability and natural resistance to weathering; warm golden-brown tones add a timeless aesthetic.<br><br><b>Rattan — Lampit.</b> Warmth, texture and natural character for wall coverings, ceilings and decorative panels.<br><br><b>Tiles — Sukabumi.</b> Natural, elegant appearance, excellent durability, cooling effect underfoot, natural anti-slip for pools and terraces." },
+   "id": "p13",
+   "type": "text",
+   "d": {
+    "kick": "MATERIALS",
+    "title": "Overview of long-term stability &amp; durability",
+    "body": "<b>Stone — Palimanan.</b> A natural, elegant look, improved thermal comfort, outdoor durability, ideal for façades, feature walls, terraces and pool areas.<br><br><b>Wood — Bengkirai.</b> High strength, durability and natural resistance to weathering; warm golden-brown tones add a timeless aesthetic.<br><br><b>Rattan — Lampit.</b> Warmth, texture and natural character for wall coverings, ceilings and decorative panels.<br><br><b>Tiles — Sukabumi.</b> Natural, elegant appearance, excellent durability, cooling effect underfoot, natural anti-slip for pools and terraces."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p14", "type": "feature",
-   "d": { "kick": "WHY US?", "title": "Transparency, management<br>&amp; development", "body": "Transparent payment stages. Title deed in your name — fully notarised and certified. Fully managed and rented villa: we can do it for you so it generates income even when you're away. We create projects around Bali's top areas — you invest with confidence, structure and real protection.", "c1": "TRANSPARENT PAYMENTS", "c2": "FULLY MANAGED", "c3": "NOTARISED TITLE" },
-   "img": { "bg": "horizon/lounge.jpg" },
+   "id": "p14",
+   "type": "feature",
+   "d": {
+    "kick": "WHY US?",
+    "title": "Transparency, management<br>&amp; development",
+    "body": "Transparent payment stages. Title structured and fully notarised and certified — see Investment Highlights for land type. Fully managed and rented villa: we can do it for you so it generates income even when you're away. We create projects around Bali's top areas — you invest with confidence, structure and real protection.",
+    "c1": "TRANSPARENT PAYMENTS",
+    "c2": "FULLY MANAGED",
+    "c3": "NOTARISED TITLE"
+   },
+   "img": {
+    "bg": "horizon/lounge.jpg"
+   },
    "free": []
   },
   {
-   "id": "p15", "type": "feature",
-   "d": { "kick": "FROM VISION TO DELIVERY", "title": "Your villa,<br>fully managed", "body": "Curated process, from architectural concept to final handover — ensuring design precision, legal clarity &amp; seamless coordination in Bali.", "c1": "END-TO-END COORDINATION", "c2": "COMPLETE TURNKEY DELIVERY", "c3": "CLEAR VILLA TYPOLOGIES" },
-   "img": { "bg": "horizon/general-view.jpg" },
+   "id": "p15",
+   "type": "feature",
+   "d": {
+    "kick": "FROM VISION TO DELIVERY",
+    "title": "Your villa,<br>fully managed",
+    "body": "Curated process, from architectural concept to final handover — ensuring design precision, legal clarity &amp; seamless coordination in Bali.",
+    "c1": "END-TO-END COORDINATION",
+    "c2": "COMPLETE TURNKEY DELIVERY",
+    "c3": "CLEAR VILLA TYPOLOGIES"
+   },
+   "img": {
+    "bg": "horizon/general-view.jpg"
+   },
    "free": []
   },
   {
-   "id": "p16", "type": "text",
-   "d": { "kick": "PAYMENT", "title": "Full legal guidance &amp; transparent property management", "body": "Structure of 4 milestones, tied to major certifications.<br><br><b>Phase 1.</b> Land preparation &amp; structural base. First payment after lock fee.<br><br><b>Phase 2.</b> Structure completion. Second payment.<br><br><b>Phase 3.</b> Installation of the facilities. Third payment.<br><br><b>Phase 4.</b> Interior design &amp; finishing. Fourth payment." },
+   "id": "p16",
+   "type": "text",
+   "d": {
+    "kick": "PAYMENT",
+    "title": "Full legal guidance &amp; transparent property management",
+    "body": "Structure of 4 milestones, tied to major certifications.<br><br><b>Phase 1.</b> Land preparation &amp; structural base. First payment after lock fee.<br><br><b>Phase 2.</b> Structure completion. Second payment.<br><br><b>Phase 3.</b> Installation of the facilities. Third payment.<br><br><b>Phase 4.</b> Interior design &amp; finishing. Fourth payment."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p17", "type": "feature",
-   "d": { "kick": "INVESTMENT HIGHLIGHTS", "title": "Land type, capital<br>appreciation &amp; rental yield", "body": "HGB title, with full infrastructure (roads, water, electricity).", "c1": "HGB", "c2": "FULL INFRASTRUCTURE", "c3": "" },
-   "img": { "bg": "horizon/aerial.jpg" },
+   "id": "p17",
+   "type": "feature",
+   "d": {
+    "kick": "INVESTMENT HIGHLIGHTS",
+    "title": "Land type, capital<br>appreciation &amp; rental yield",
+    "body": "HGB title, with full infrastructure (roads, water, electricity).",
+    "c1": "HGB",
+    "c2": "FULL INFRASTRUCTURE",
+    "c3": ""
+   },
+   "img": {
+    "bg": "horizon/aerial.jpg"
+   },
    "free": []
   },
   {
-   "id": "p18", "type": "back",
-   "d": { "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862", "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED" },
-   "img": { "bg": "horizon/closing.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p18",
+   "type": "back",
+   "d": {
+    "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862",
+    "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED"
+   },
+   "img": {
+    "bg": "horizon/closing.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   }
  ]
