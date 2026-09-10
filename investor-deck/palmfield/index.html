@@ -25,9 +25,13 @@
      Nunca "Freehold (Hak Milik)" — ver reference_lawang_freehold_no_es_hak_milik.
   2. Catálogo: precios y specs reales de la tabla `modelos` (Supabase), no
      los inventados del mockup. Nunca se bundlea suelo+construcción en una
-     cifra (revisión previa Seguridad+Administración, 2-sep-2026). Trinity y
-     Temple sin render real ("Renders in progress" honesto, no imagen
-     inventada — mismo patrón que /modelo/<id> en producción).
+     cifra (revisión previa Seguridad+Administración, 2-sep-2026).
+  2b. CORRECCIÓN 10-sep-2026 (aviso del owner): el catálogo mostraba los 5
+      modelos del catálogo general (incluidos Trinity y Temple), pero Palm
+      Field W5 solo tiene 3 asignados en la intranet (`modelos_villa`,
+      proyecto_id de Palm Field): Dali, Dune, Dream. Trinity/Temple existen
+      para OTROS proyectos — se retiraron de este deck entero (catálogo,
+      dropdown del formulario, disclaimer financiero), no solo su render.
   3. KPIs de cabecera (500.000+ m², 6+ años, 100+ inversores, 100% PBG&SLF):
      confirmados reales por el owner 10-sep, se mantienen tal cual.
   4. "Bank Mandiri" / "SIMBG" del mockup: no confirmados → sustituidos por
@@ -255,11 +259,11 @@
   <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
     <div class="flex flex-col gap-3 max-w-2xl">
       <span class="font-label-md text-label-md text-territorial-green uppercase tracking-widest font-semibold">2026 Architectural Catalogue</span>
-      <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">The 5 Villa Typologies</h2>
+      <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">The 3 Villa Typologies</h2>
       <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Turn-key bioclimatic designs, private pool, optimised for premium vacation rental or private residence. Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
     </div>
   </div>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
 </div>
 </section>
 
@@ -363,7 +367,7 @@
       </table>
     </div>
   </div>
-  <p class="font-body-sm text-xs text-[#75786e] max-w-3xl">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. Dali, Trinity and Temple do not have an operating forecast yet — ask our team for the latest figures. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
+  <p class="font-body-sm text-xs text-[#75786e] max-w-3xl">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. Dali does not have an operating forecast yet — ask our team for the latest figures. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
 </div>
 </section>
 
@@ -514,7 +518,7 @@
           <div class="flex flex-col gap-1"><label class="font-label-md text-xs uppercase text-[#44483f] font-semibold">Interest</label>
             <select id="lead-interes" class="w-full px-4 py-2.5 rounded-lg bg-surface border border-[#D8D2C5] text-on-surface font-body-md text-body-md shadow-sm outline-none focus:bg-white focus:border-deep-lagoon transition-all">
               <option value="">Not sure yet</option>
-              <option>Dali</option><option>Dune</option><option>Dream</option><option>Trinity</option><option>Temple</option>
+              <option>Dali</option><option>Dune</option><option>Dream</option>
               <option value="Land plot only">Land plot only</option>
               <option value="Multiple plots / portfolio">Multiple plots / portfolio</option>
             </select>
@@ -627,13 +631,15 @@
     g.appendChild(fig);
   });
 
-  // ── catálogo de 5 modelos (precios reales de Supabase `modelos`) ─────────
+  // ── catálogo de modelos asignados a Palm Field W5 (modelos_villa, Supabase) ─
+  // Solo Dali/Dune/Dream: son los 3 modelos que el proyecto tiene asignados en
+  // la intranet (tabla `modelos_villa`, proyecto_id de Palm Field W5). Trinity y
+  // Temple existen en el catálogo general pero NO están asignados a este
+  // proyecto — no se muestran aquí (10-sep-2026, corrección tras aviso del owner).
   var MODELOS = [
     { slug:'dali', nombre:'Dali', tag:'Tipología 01', img:'../../assets/img/buildings/dali/dali.jpg', dorm:1, banos:1, m2:30, precio:48000, desc:'Compact contemporary lines with a zen interior garden. Built to maximise yield in boutique short-stay platforms.' },
     { slug:'dune', nombre:'Dune', tag:'Tipología 02', img:'assets/gallery/14-dune-exterior.jpg', dorm:1, banos:1, m2:47, precio:68000, desc:'Curved geometry inspired by dunes and the sea breeze. Double-height living room with folding doors onto the terrace.' },
-    { slug:'dream', nombre:'Dream', tag:'Tipología 03', img:'assets/gallery/17-dream-evening.jpg', dorm:2, banos:2, m2:76, precio:101000, desc:'Cantilevered master suite over the valley. Panoramic teak balconies and an open-air shower on volcanic stone.', featured:true },
-    { slug:'trinity', nombre:'Trinity', tag:'Tipología 04', img:null, dorm:3, banos:2, m2:92, precio:121000, desc:'Three independent architectural volumes connected by wooden walkways over water gardens.', pendiente:true },
-    { slug:'temple', nombre:'Temple', tag:'Tipología 05 · Signature', img:null, dorm:4, banos:3, m2:114, precio:146000, desc:'Maximum privacy. Monumental living areas in hand-carved andesite stone and a 360° lookout.', pendiente:true }
+    { slug:'dream', nombre:'Dream', tag:'Tipología 03', img:'assets/gallery/17-dream-evening.jpg', dorm:2, banos:2, m2:76, precio:101000, desc:'Cantilevered master suite over the valley. Panoramic teak balconies and an open-air shower on volcanic stone.', featured:true }
   ];
   var mg = document.getElementById('modelos-grid');
   MODELOS.forEach(function(m){
