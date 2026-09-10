@@ -70,6 +70,12 @@
   ::-webkit-scrollbar { display: none; }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
   .lw-money { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Anchuras: la imagen se lleva el margen muerto de los lados, el texto NO.
+     Una columna de prosa a 1400px es ilegible; una foto a 1280px se queda pequeña. */
+  .lw-wide  { max-width: 1400px; margin-inline: auto; width: 100%; }
+  .lw-prose { max-width: 46rem; }
+  h1, h2 { text-wrap: balance; }
+  p { text-wrap: pretty; }
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
@@ -122,16 +128,16 @@
 <!-- TOP BAR -->
 <header class="fixed top-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-b border-[#D8D2C5]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
   <div class="h-20 w-full px-6 md:px-margin-desktop flex items-center justify-between gap-4">
-    <a class="flex items-center gap-3 shrink-0 group" href="#vision">
+    <a class="flex items-center gap-3 min-w-0 group" href="#vision">
       <div class="w-10 h-10 rounded-full bg-deep-lagoon flex items-center justify-center text-white shadow-sm border border-deep-lagoon/20 transition-transform group-hover:scale-105">
         <span class="font-headline-lg text-2xl font-bold tracking-tight">L</span>
       </div>
-      <div class="flex flex-col">
+      <div class="flex flex-col min-w-0">
         <span class="font-headline-md text-xl md:text-2xl font-bold text-deep-lagoon tracking-tight leading-tight">PALM FIELD</span>
-        <span class="font-label-md text-[10px] uppercase tracking-[0.25em] text-territorial-green font-semibold">Lawang · Balian Hills, Bali</span>
+        <span class="hidden sm:block font-label-md text-[10px] uppercase tracking-[0.25em] text-territorial-green font-semibold whitespace-nowrap">Lawang · Balian Hills, Bali</span>
       </div>
     </a>
-    <nav class="hidden 2xl:flex items-center gap-1 bg-[#E4DFD5]/70 p-1.5 rounded-full border border-[#D8D2C5]">
+    <nav class="hidden xl:flex items-center gap-1 bg-[#E4DFD5]/70 p-1.5 rounded-full border border-[#D8D2C5]">
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-on-surface hover:text-deep-lagoon hover:bg-surface transition-all" href="#vision">Project &amp; Photos</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-on-surface hover:text-deep-lagoon hover:bg-surface transition-all" href="#modelos">Villa Models</a>
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-on-surface hover:text-deep-lagoon hover:bg-surface transition-all" href="#masterplan">Masterplan &amp; Plots</a>
@@ -140,9 +146,9 @@
       <a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-on-surface hover:text-deep-lagoon hover:bg-surface transition-all" href="#faq">FAQ</a>
     </nav>
     <div class="flex items-center gap-3 shrink-0">
-      <a class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-deep-lagoon text-white font-label-md text-label-md hover:bg-territorial-green transition-all shadow-sm" href="#adjudicacion">
+      <a class="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full bg-deep-lagoon text-white font-label-md text-label-md hover:bg-territorial-green transition-all shadow-sm whitespace-nowrap" href="#adjudicacion">
         <span class="material-symbols-outlined text-[17px]">description</span>
-        <span>Request Dossier</span>
+        <span class="hidden sm:inline">Request Dossier</span><span class="sm:hidden">Dossier</span>
       </a>
     </div>
   </div>
@@ -152,77 +158,37 @@
 <div class="flex flex-col w-full">
 
 <!-- SECCIÓN 1: HERO -->
-<section class="w-full px-6 md:px-margin-desktop pt-12 pb-20 relative overflow-hidden" id="vision">
-<div class="max-w-7xl mx-auto flex flex-col gap-14">
+<section class="w-full px-6 md:px-margin-desktop pt-14 pb-24 relative overflow-hidden" id="vision">
+<div class="lw-wide flex flex-col gap-14">
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-    <div class="lg:col-span-7 rounded-2xl overflow-hidden shadow-xl min-h-[520px] bg-cover bg-center flex flex-col justify-between p-8 border border-[#D8D2C5] relative group" style="background-image: url('assets/gallery/12-masterplan.jpg');">
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none"></div>
-      <div class="relative z-10 flex justify-between items-start gap-2">
-        <span class="bg-surface/95 backdrop-blur-md px-4 py-1.5 rounded-full text-deep-lagoon font-label-md text-label-md shadow-sm border border-[#D8D2C5]">Palm Field · Balian Hills</span>
-        <span class="bg-territorial-green text-white px-3.5 py-1 rounded-full text-xs font-label-md uppercase tracking-wider font-semibold">Hak Sewa · Notarial Escrow</span>
-      </div>
-      <div class="relative z-10 bg-deep-lagoon/95 backdrop-blur-md p-6 rounded-xl text-white max-w-xl border border-white/15 shadow-lg">
-        <span class="font-label-md text-xs uppercase tracking-wider text-soft-canopy font-semibold">Landscape &amp; Balance</span>
-        <p class="font-headline-sm text-xl md:text-2xl font-light text-white mt-1 mb-2">Villas Suspended Over Virgin Rice Terraces</p>
-        <p class="font-body-sm text-stone-sand leading-relaxed">Infinity pools cantilevered over the river gorge, teak terraces integrated into the forest canopy.</p>
-      </div>
-    </div>
-    <div class="lg:col-span-5 flex flex-col gap-gutter">
-      <div class="rounded-2xl overflow-hidden shadow-md h-64 bg-cover bg-center border border-[#D8D2C5] relative group" style="background-image: url('assets/gallery/06-balian-coast.jpg');">
-        <div class="absolute inset-0 bg-gradient-to-t from-deep-lagoon/85 via-transparent to-transparent flex flex-col justify-end p-6">
-          <span class="text-white font-headline-sm text-2xl font-light">Volcanic Stone &amp; Alang-Alang Thatch</span>
-          <span class="text-stone-sand text-xs font-label-md mt-1">Reclaimed teak structural joinery</span>
-        </div>
-      </div>
-      <div class="rounded-2xl overflow-hidden shadow-md flex-1 min-h-[240px] bg-cover bg-center border border-[#D8D2C5] relative group" style="background-image: url('assets/gallery/09-the-view.jpg');">
-        <div class="absolute inset-0 bg-gradient-to-t from-deep-lagoon/90 via-deep-lagoon/30 to-transparent flex flex-col justify-end p-6">
-          <span class="text-white font-headline-sm text-2xl font-light">The Plot &amp; the View</span>
-          <span class="text-stone-sand text-xs font-label-md mt-1">Balian river valley, southwest Bali</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="flex flex-col gap-6 max-w-4xl">
+  <!-- Titular primero: es un deck de due diligence, la portada la abre el dato, no la foto. -->
+  <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-center gap-3">
       <span class="px-3 py-1 rounded-full bg-[#E4DFD5] text-[#2E3437] border border-[#D8D2C5] font-label-md text-body-sm tracking-wider uppercase font-semibold">Investor Deck · Due Diligence</span>
-      <span class="text-[#75786e] text-xs">•</span>
+      <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
       <span class="font-body-sm text-body-sm text-territorial-green font-semibold">Balian Hills · Bali</span>
-      <span class="text-[#75786e] text-xs">•</span>
+      <span class="text-[#5F6257] text-xs hidden sm:inline">•</span>
       <span class="font-body-sm text-body-sm text-[#44483f]">Palm Field, by PT SAN DAL WOODS</span>
     </div>
-    <h1 class="font-headline-lg text-[46px] md:text-[72px] leading-[1.06] text-deep-lagoon tracking-tight font-normal">
-      Turn Capital <span class="italic font-light text-territorial-green">Into Legacy.</span>
+    <h1 class="font-headline-lg text-[46px] md:text-[76px] leading-[1.04] text-deep-lagoon tracking-tight font-normal max-w-5xl">
+      A land-plot development in the <span class="italic font-light text-territorial-green">Balian river valley.</span>
     </h1>
-    <p class="font-headline-md text-headline-sm text-[#44483f] font-light max-w-3xl leading-relaxed">
-      Palm Field is a land-plot development in the Balian river valley, Bali, held under <b>Hak Sewa</b> with a notarial escrow account — not a securities or investment product. This page presents the project for due diligence: real documentation, live plot inventory and an honest financial forecast.
+    <p class="font-headline-md text-headline-sm text-[#44483f] font-light lw-prose leading-relaxed">
+      Held under <b>Hak Sewa</b> with a notarial escrow account — not a security or investment product. Real documentation, live plot inventory and a Year-1 forecast, for your own due diligence.
     </p>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter bg-[#E4DFD5]/60 p-8 rounded-2xl border border-[#D8D2C5]">
-    <div class="flex flex-col gap-3">
-      <div class="flex items-center gap-2 text-deep-lagoon">
-        <span class="material-symbols-outlined text-territorial-green text-2xl">nature_people</span>
-        <h3 class="font-headline-sm text-headline-sm font-semibold">Topographic &amp; Subak Integration</h3>
-      </div>
-      <p class="font-body-sm text-[#44483f] leading-relaxed">Residences follow the millennia-old rice-terrace steps without altering the traditional Subak irrigation network.</p>
+  <!-- Imagen a sangre del contenedor ancho: el producto construido, no un plano recortado. -->
+  <figure class="m-0 relative rounded-2xl overflow-hidden shadow-lg">
+    <img src="assets/gallery/08-resort-night.jpg" alt="Palm Field villas stepped down the Balian river valley at dusk" class="w-full h-[46vh] min-h-[380px] md:h-[62vh] md:max-h-[680px] object-cover" fetchpriority="high">
+    <div class="absolute inset-x-0 top-0 p-5 md:p-7 flex justify-between items-start gap-2 pointer-events-none">
+      <span class="bg-surface/95 backdrop-blur-md px-4 py-1.5 rounded-full text-deep-lagoon font-label-md text-label-md shadow-sm border border-[#D8D2C5]">Palm Field · Balian Hills</span>
+      <span class="bg-territorial-green text-white px-3.5 py-1 rounded-full text-xs font-label-md uppercase tracking-wider font-semibold">Hak Sewa · Notarial Escrow</span>
     </div>
-    <div class="flex flex-col gap-3 border-t lg:border-t-0 lg:border-l border-[#D8D2C5] pt-6 lg:pt-0 lg:pl-8">
-      <div class="flex items-center gap-2 text-deep-lagoon">
-        <span class="material-symbols-outlined text-territorial-green text-2xl">wb_sunny</span>
-        <h3 class="font-headline-sm text-headline-sm font-semibold">Passive Bioclimatic Architecture</h3>
-      </div>
-      <p class="font-body-sm text-[#44483f] leading-relaxed">Solar orientation and natural cross-ventilation reduce thermal load, keeping continuous comfort in the tropical canopy.</p>
-    </div>
-    <div class="flex flex-col gap-3 border-t lg:border-t-0 lg:border-l border-[#D8D2C5] pt-6 lg:pt-0 lg:pl-8">
-      <div class="flex items-center gap-2 text-deep-lagoon">
-        <span class="material-symbols-outlined text-territorial-green text-2xl">foundation</span>
-        <h3 class="font-headline-sm text-headline-sm font-semibold">Local Noble Materials</h3>
-      </div>
-      <p class="font-body-sm text-[#44483f] leading-relaxed">Volcanic andesite stone, certified Balinese teak treated against xylophages, river stone hand-carved by local masons.</p>
-    </div>
-  </div>
+    <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-stone-sand font-body-sm text-xs md:text-body-sm px-5 md:px-7 pt-12 pb-5">
+      Delivered villas on a neighbouring phase, Balian river valley, southwest Bali.
+    </figcaption>
+  </figure>
 
   <div class="grid grid-cols-2 md:grid-cols-4 gap-gutter pt-2">
     <div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col gap-1 shadow-sm border border-[#D8D2C5]">
@@ -247,32 +213,28 @@
     </div>
   </div>
 
-  <div class="rounded-xl border border-[#D8D2C5] bg-white p-5 text-sm text-[#44483f] leading-relaxed max-w-4xl">
+  <div class="rounded-xl border border-[#D8D2C5] bg-white p-5 text-sm text-[#44483f] leading-relaxed lw-prose">
     <b class="text-deep-lagoon">What this is.</b> This page is due-diligence documentation, not a binding offer. Prices, availability and dimensions are informational and subject to confirmation in the Letter of Reservation / Plot Lock agreement. Palm Field is the direct purchase of a real-estate asset (Hak Sewa land tenure) — not a security, fund, or tokenised instrument.
   </div>
 </div>
 </section>
 
 <!-- SECCIÓN 2: MODELOS -->
-<section class="w-full bg-surface-container-low px-6 md:px-margin-desktop py-20" id="modelos">
-<div class="max-w-7xl mx-auto flex flex-col gap-12">
-  <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-    <div class="flex flex-col gap-3 max-w-2xl">
-      <span class="font-label-md text-label-md text-territorial-green uppercase tracking-widest font-semibold">2026 Architectural Catalogue</span>
-      <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">The 3 Villa Typologies</h2>
-      <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Turn-key bioclimatic designs, private pool, optimised for premium vacation rental or private residence. Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
-    </div>
+<section class="w-full bg-surface-container-low px-6 md:px-margin-desktop py-24" id="modelos">
+<div class="lw-wide flex flex-col gap-12">
+  <div class="flex flex-col gap-3 lw-prose">
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">The 3 Villa Typologies</h2>
+    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Prices below are <b>construction only</b> — land price depends on the plot chosen in the masterplan.</p>
   </div>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch" id="modelos-grid"><!-- filled by JS --></div>
 </div>
 </section>
 
 <!-- SECCIÓN 3: MASTERPLAN & DISPONIBILIDAD -->
-<section class="w-full px-6 md:px-margin-desktop py-20 bg-surface" id="masterplan">
-<div class="max-w-7xl mx-auto flex flex-col gap-12">
+<section class="w-full px-6 md:px-margin-desktop py-24 bg-surface" id="masterplan">
+<div class="lw-wide flex flex-col gap-12">
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-    <div class="flex flex-col gap-3 max-w-2xl">
-      <span class="font-label-md text-label-md text-burnt-earth tracking-widest uppercase font-semibold">Segregated Land Planning</span>
+    <div class="flex flex-col gap-3 lw-prose">
       <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Masterplan &amp; Plot Availability</h2>
       <p class="font-body-md text-body-md text-on-surface-variant">Individually cadastred plots. Live inventory read directly from Palm Field's records — sizes, prices and status are informational and confirmed at Plot Lock.</p>
     </div>
@@ -283,29 +245,36 @@
     </div>
   </div>
 
+  <!-- Aéreo a todo el ancho del contenedor: antes iba a media columna con max-height:420px. -->
+  <figure class="m-0 flex flex-col gap-3">
+    <div class="rounded-2xl overflow-hidden shadow-md border border-[#D8D2C5]">
+      <img src="assets/gallery/11-masterplan-aerial.jpg" alt="Palm Field masterplan, aerial view over the Balian valley" loading="lazy" class="w-full h-[42vh] min-h-[320px] md:h-[56vh] md:max-h-[600px] object-cover">
+    </div>
+    <figcaption class="font-body-sm text-xs text-[#5F6257]">Aerial masterplan — Balian valley. Exact boundaries for each plot are confirmed by topographic survey ahead of Plot Lock.</figcaption>
+  </figure>
+
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-    <div class="lg:col-span-6 bg-surface-container-lowest p-6 rounded-2xl shadow-md border border-[#D8D2C5] flex flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <span class="font-headline-sm text-lg font-bold text-deep-lagoon">Aerial masterplan — Balian valley</span>
-      </div>
-      <img src="assets/gallery/11-masterplan-aerial.jpg" alt="Palm Field masterplan, aerial view" class="w-full rounded-xl border border-[#D8D2C5] object-cover" style="max-height:420px">
-      <p class="font-body-sm text-xs text-[#75786e]">Exact boundaries for each plot are confirmed by topographic survey ahead of Plot Lock. The photograph above is the real masterplan render — not a schematic.</p>
+    <!-- Plano de parcelas: 1690×2200 (vertical). object-contain para no recortar códigos de parcela. -->
+    <div class="lg:col-span-7 bg-surface-container-lowest p-5 rounded-2xl shadow-md border border-[#D8D2C5] flex flex-col gap-3">
+      <span class="font-headline-sm text-lg font-bold text-deep-lagoon">Plot layout</span>
+      <img src="assets/gallery/12-masterplan.jpg" alt="Palm Field plot layout showing every plot code and surface area" loading="lazy" class="w-full rounded-xl border border-[#D8D2C5] bg-[#F0ECE1] object-contain">
+      <p class="font-body-sm text-xs text-[#5F6257]">Plot codes and surface areas as laid out on site. Availability below is live.</p>
     </div>
 
-    <div class="lg:col-span-6 flex flex-col gap-4">
+    <div class="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-28">
       <div class="bg-surface-container-lowest rounded-2xl shadow-md border border-[#D8D2C5] overflow-hidden">
         <div class="p-4 bg-[#E4DFD5] border-b border-[#D8D2C5] flex items-center justify-between">
           <span class="font-label-md text-xs uppercase font-bold text-deep-lagoon tracking-wider">Live plot inventory</span>
           <span class="text-xs font-body-sm text-territorial-green font-semibold" id="plots-count">Loading…</span>
         </div>
-        <div class="divide-y divide-[#D8D2C5]/70 max-h-[420px] overflow-y-auto" id="plots-wrap">
-          <div class="p-6 text-sm text-[#75786e]">Loading live plot data…</div>
+        <div class="divide-y divide-[#D8D2C5]/70 max-h-[520px] overflow-y-auto" id="plots-wrap">
+          <div class="p-6 text-sm text-[#5F6257]">Loading live plot data…</div>
         </div>
       </div>
 
       <div class="bg-[#E4DFD5]/70 p-5 rounded-xl border border-[#D8D2C5] flex flex-col gap-3">
         <span class="font-label-md text-xs uppercase tracking-wider text-burnt-earth font-bold">Reservation Protocol</span>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div class="grid grid-cols-1 gap-3 text-xs">
           <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">1. Reservation deposit</strong><span class="text-[#44483f]">Formal plot lock with €3,000 in the notary's escrow account.</span></div>
           <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">2. 10-day validity</strong><span class="text-[#44483f]">Due-diligence window; refundable per the Letter of Reservation.</span></div>
           <div class="flex flex-col gap-1"><strong class="text-deep-lagoon font-semibold">3. Notarial signature</strong><span class="text-[#44483f]">Hak Sewa deed and Power of Attorney before a PPAT notary.</span></div>
@@ -317,10 +286,9 @@
 </section>
 
 <!-- SECCIÓN 4: FINANCIAL FORECAST (real) -->
-<section class="w-full px-6 md:px-margin-desktop py-20 bg-surface-container-low" id="rendimientos">
-<div class="max-w-7xl mx-auto flex flex-col gap-12">
-  <div class="flex flex-col gap-3 max-w-2xl">
-    <span class="font-label-md text-label-md text-territorial-green uppercase tracking-widest font-semibold">Financial Forecast</span>
+<section class="w-full px-6 md:px-margin-desktop py-24 bg-surface-container-low" id="rendimientos">
+<div class="lw-wide flex flex-col gap-12">
+  <div class="flex flex-col gap-3 lw-prose">
     <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Year-1 Rental Forecast — Dune &amp; Dream</h2>
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">A first-year operating forecast for the two models with a track record on neighbouring phases, under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
   </div>
@@ -332,7 +300,7 @@
         <div class="text-xs text-[#44483f] font-body-sm mt-1">Investment (construction): <b>€68,000</b></div>
       </div>
       <table class="w-full text-sm">
-        <thead><tr class="text-[11px] uppercase tracking-wide text-[#75786e] font-label-md"><th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th><th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>
+        <thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md"><th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th><th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>
         <tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">
           <tr><td>ADR</td><td class="text-right lw-money">€81</td><td class="text-right lw-money">€94</td></tr>
           <tr><td>Occupancy</td><td class="text-right lw-money">59%</td><td class="text-right lw-money">66%</td></tr>
@@ -353,7 +321,7 @@
         <div class="text-xs text-[#44483f] font-body-sm mt-1">Investment (construction): <b>€101,000</b></div>
       </div>
       <table class="w-full text-sm">
-        <thead><tr class="text-[11px] uppercase tracking-wide text-[#75786e] font-label-md"><th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th><th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>
+        <thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md"><th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th><th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>
         <tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">
           <tr><td>ADR</td><td class="text-right lw-money">€115</td><td class="text-right lw-money">€132</td></tr>
           <tr><td>Occupancy</td><td class="text-right lw-money">48%</td><td class="text-right lw-money">54%</td></tr>
@@ -367,15 +335,14 @@
       </table>
     </div>
   </div>
-  <p class="font-body-sm text-xs text-[#75786e] max-w-3xl">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. Dali does not have an operating forecast yet — ask our team for the latest figures. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
+  <p class="font-body-sm text-xs text-[#5F6257] lw-prose">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. Dali does not have an operating forecast yet — ask our team for the latest figures. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
 </div>
 </section>
 
 <!-- SECCIÓN 5: SEGURIDAD JURÍDICA — HAK SEWA + ESCROW (reescrito) -->
-<section class="w-full px-6 md:px-margin-desktop py-20 bg-surface" id="seguridad-notarial">
-<div class="max-w-7xl mx-auto flex flex-col gap-12">
-  <div class="flex flex-col gap-4 max-w-3xl">
-    <span class="font-label-md text-label-md text-burnt-earth tracking-widest uppercase font-semibold">Legal Security &amp; Notarial Framework</span>
+<section class="w-full px-6 md:px-margin-desktop py-24 bg-surface" id="seguridad-notarial">
+<div class="lw-wide flex flex-col gap-12">
+  <div class="flex flex-col gap-4 lw-prose">
     <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Hak Sewa With Notarial Escrow vs. Informal Leasehold</h2>
     <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
       Much of Bali's foreign-facing market runs on private, unregistered lease agreements with no escrow and no notarial oversight. Palm Field is structured as <strong>Hak Sewa</strong> (long-term Indonesian lease tenure) directly between the landowner and the buyer, with funds held in a <strong>notarial escrow account</strong> until the agreed conditions are met — not Hak Milik, which Indonesian law reserves for Indonesian citizens.
@@ -386,26 +353,26 @@
     <div class="grid grid-cols-1 md:grid-cols-12 bg-[#E4DFD5] text-deep-lagoon font-headline-sm text-body-lg p-6 border-b border-[#D8D2C5]">
       <div class="md:col-span-4 font-bold text-deep-lagoon">Legal &amp; registry aspect</div>
       <div class="md:col-span-4 font-bold text-territorial-green flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">verified</span>Palm Field: Hak Sewa + escrow</div>
-      <div class="md:col-span-4 font-bold text-[#75786e] flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">warning</span>Common practice: informal lease</div>
+      <div class="md:col-span-4 font-bold text-[#5F6257] flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">warning</span>Common practice: informal lease</div>
     </div>
     <div class="divide-y divide-[#D8D2C5]">
       <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-[#E4DFD5]/30 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Payment security</span><span class="font-body-sm text-xs text-stone-sand">Notarial escrow (PPAT)</span></div>
+        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Payment security</span><span class="font-body-sm text-xs text-[#5F6257]">Notarial escrow (PPAT)</span></div>
         <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Reservation and stage payments held in an escrow account managed by the notary, released against agreed conditions.</div>
         <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Funds paid directly to a private landowner or intermediary, with no third-party custody.</div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-[#E4DFD5]/30 hover:bg-[#E4DFD5]/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Term &amp; registration</span><span class="font-body-sm text-xs text-stone-sand">Hak Sewa, Indonesian law</span></div>
+        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Term &amp; registration</span><span class="font-body-sm text-xs text-[#5F6257]">Hak Sewa, Indonesian law</span></div>
         <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Registered lease term (legal maximum 30 years per grant, renewable with a new term), transferable and heritable.</div>
         <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Unregistered private agreement with no guaranteed renewal and limited transferability.</div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-12 p-6 hover:bg-[#E4DFD5]/30 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Building permits (PBG / SLF)</span><span class="font-body-sm text-xs text-stone-sand">Government portal (SIMBG)</span></div>
+        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Building permits (PBG / SLF)</span><span class="font-body-sm text-xs text-[#5F6257]">Government portal (SIMBG)</span></div>
         <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Approved ahead of construction, with occupancy certification (SLF) enabling legal short-term rental.</div>
         <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Frequently started without permits or with permits pending, exposed to government closure.</div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-12 p-6 bg-[#E4DFD5]/30 hover:bg-[#E4DFD5]/60 transition-colors gap-3">
-        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Land zoning (RDTR)</span><span class="font-body-sm text-xs text-stone-sand">Official urban classification</span></div>
+        <div class="md:col-span-4 flex flex-col"><span class="font-body-md text-body-md font-bold text-deep-lagoon">Land zoning (RDTR)</span><span class="font-body-sm text-xs text-[#5F6257]">Official urban classification</span></div>
         <div class="md:col-span-4 font-body-md text-body-md text-territorial-green font-medium">Zoned for tourism / residential use, legally enabled for short-stay rental income.</div>
         <div class="md:col-span-4 font-body-md text-body-md text-[#44483f]">Often sited on green or agricultural-protection land (LSD/LP2B), not legally buildable.</div>
       </div>
@@ -430,12 +397,10 @@
 </section>
 
 <!-- SECCIÓN 6: FAQ (reescrita) -->
-<section class="w-full px-6 md:px-margin-desktop py-20 bg-surface-container-low" id="faq">
+<section class="w-full px-6 md:px-margin-desktop py-24 bg-surface-container-low" id="faq">
 <div class="max-w-4xl mx-auto flex flex-col gap-10">
-  <div class="flex flex-col gap-3 text-center items-center">
-    <span class="font-label-md text-label-md text-territorial-green uppercase tracking-widest font-semibold">Clarity &amp; Transparency</span>
+  <div class="flex flex-col gap-3">
     <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Frequently Asked Questions</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Direct answers to the questions we hear most from investors evaluating Palm Field.</p>
   </div>
   <div class="flex flex-col gap-4">
     <details class="group bg-surface-container-lowest p-6 rounded-2xl border border-[#D8D2C5] shadow-sm transition-all open:shadow-md" open>
@@ -471,19 +436,19 @@
 </section>
 
 <!-- SECCIÓN 7: DOCUMENTATION (galería real) -->
-<section class="w-full px-6 md:px-margin-desktop py-20 bg-surface" id="documentation">
-<div class="max-w-7xl mx-auto flex flex-col gap-8">
-  <div class="flex flex-col gap-3 max-w-2xl">
-    <span class="font-label-md text-label-md text-territorial-green uppercase tracking-widest font-semibold">Documentation</span>
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Real Photography</h2>
-    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Masterplan, plots, surrounding land and villa models already delivered on neighbouring phases — real photography, not renders.</p>
+<section class="w-full px-6 md:px-margin-desktop py-24 bg-surface" id="documentation">
+<div class="lw-wide flex flex-col gap-10">
+  <div class="flex flex-col gap-3 lw-prose">
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Site &amp; Delivered Villas</h2>
+    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">Plots, surrounding land and villa models already delivered on neighbouring phases.</p>
   </div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="gallery"><!-- filled by JS --></div>
+  <!-- 3 columnas: a 5 las fotos caían a ~245px (sellos de correos) y sobraba una huérfana. -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="gallery"><!-- filled by JS --></div>
 </div>
 </section>
 
 <!-- SECCIÓN 8: CTA — RESERVA + SOLICITUD GENERAL -->
-<section class="w-full px-6 md:px-margin-desktop py-20 bg-deep-lagoon text-white relative overflow-hidden" id="adjudicacion">
+<section class="w-full px-6 md:px-margin-desktop py-24 bg-deep-lagoon text-white relative overflow-hidden" id="adjudicacion">
 <div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-territorial-green/20 blur-3xl pointer-events-none"></div>
 <div class="max-w-5xl mx-auto flex flex-col gap-12 relative z-10">
   <div class="flex flex-col gap-4 text-center items-center">
@@ -540,7 +505,7 @@
 </main>
 
 <footer class="w-full bg-surface-container-low py-10 border-t border-[#D8D2C5]">
-  <div class="max-w-7xl mx-auto px-6 md:px-margin-desktop flex flex-col md:flex-row items-center justify-between gap-6">
+  <div class="lw-wide px-6 md:px-margin-desktop flex flex-col md:flex-row items-center justify-between gap-6">
     <div class="flex items-center gap-4">
       <div class="w-8 h-8 rounded-full bg-deep-lagoon flex items-center justify-center text-white text-sm font-bold">L</div>
       <div class="flex flex-col">
@@ -559,7 +524,7 @@
   <div class="bg-white max-w-[480px] w-full rounded-xl p-7 max-h-[90vh] overflow-auto shadow-2xl">
     <div id="step-request">
       <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Reserve plot <span id="plot-code-label"></span></h3>
-      <div class="text-sm text-[#75786e] mb-4">We'll email you a one-time verification code before anything is issued.</div>
+      <div class="text-sm text-[#5F6257] mb-4">We'll email you a one-time verification code before anything is issued.</div>
       <div id="msg-area"></div>
       <div class="flex flex-col gap-3">
         <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-nombre">Full name</label><input id="f-nombre" class="w-full px-3 py-2 border border-[#BEB3A5] rounded" autocomplete="name"></div>
@@ -577,7 +542,7 @@
     </div>
     <div id="step-verify" class="hidden">
       <h3 class="font-headline-sm text-2xl text-deep-lagoon font-bold mb-1">Enter your code</h3>
-      <div class="text-sm text-[#75786e] mb-4">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
+      <div class="text-sm text-[#5F6257] mb-4">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
       <div id="msg-area-2"></div>
       <div><label class="block text-xs text-deep-lagoon font-semibold mb-1" for="f-codigo">Verification code</label><input id="f-codigo" inputmode="numeric" maxlength="6" class="w-full px-3 py-2 border border-[#BEB3A5] rounded"></div>
       <div class="flex gap-3 justify-end mt-4">
@@ -604,30 +569,35 @@
   function fmtMoney(n, cur){ if(n==null) return '—'; return (cur||'EUR') + ' ' + Number(n).toLocaleString('en-GB'); }
 
   // ── galería (fotos reales de intranet/dossier/palmfield/) ────────────────
+  // 15 = 5 filas exactas de 3, sin huérfana. Se retiraron 12-masterplan y 11-masterplan-aerial:
+  // ahora se muestran a tamaño grande en su propia sección #masterplan, aquí eran duplicados.
+  // Se añadió un render de Dali: el deck vende 3 modelos y la galería solo enseñaba 2.
   var GALLERY = [
-    ['12-masterplan.jpg','Masterplan'],
-    ['11-masterplan-aerial.jpg','Masterplan — aerial'],
     ['10-plot-aerial.jpg','Plot — aerial view'],
     ['09-the-plot.jpg','The plot'],
     ['09-the-view.jpg','The view'],
-    ['09-the-villas.jpg','The villas'],
+    ['13-resort-river.jpg','The villas — Balian river'],
     ['06-balian-coast.jpg','Balian coast'],
     ['07-balian-sunset.jpg','Balian sunset'],
     ['01-volcano-ocean.jpg','Volcano & ocean'],
     ['03-jungle-canopy.jpg','Jungle canopy'],
+    ['../../assets/img/buildings/dali/web/dali2.webp','Dali model'],
     ['14-dune-exterior.jpg','Dune model — exterior'],
+    ['../../assets/img/buildings/dune/web/dune2.webp','Dune model — interior'],
     ['15-dune-plan.jpg','Dune model — floor plan'],
     ['17-dream-evening.jpg','Dream model — evening'],
     ['18-dream-day.jpg','Dream model — day'],
-    ['19-dream-plan.jpg','Dream model — floor plan'],
-    ['13-resort-river.jpg','Balian river']
+    ['19-dream-plan.jpg','Dream model — floor plan']
   ];
   var g = document.getElementById('gallery');
   GALLERY.forEach(function(it){
+    // Una entrada que ya empieza por '../' es una ruta propia (renders de /assets/img/buildings/);
+    // el resto son nombres de fichero dentro de assets/gallery/.
+    var src = it[0].indexOf('../') === 0 ? it[0] : 'assets/gallery/' + it[0];
     var fig = document.createElement('figure');
-    fig.className = 'm-0 relative overflow-hidden rounded-xl border border-[#D8D2C5] aspect-[4/3] bg-[#ddd] group';
-    fig.innerHTML = '<img src="assets/gallery/'+it[0]+'" alt="'+esc(it[1])+'" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">' +
-      '<figcaption class="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent text-white text-[11px] px-2.5 py-2">'+esc(it[1])+'</figcaption>';
+    fig.className = 'm-0 relative overflow-hidden rounded-xl border border-[#D8D2C5] aspect-[4/3] bg-[#F0ECE1] group';
+    fig.innerHTML = '<img src="'+src+'" alt="'+esc(it[1])+'" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">' +
+      '<figcaption class="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-white font-body-sm text-body-sm px-4 pt-10 pb-3">'+esc(it[1])+'</figcaption>';
     g.appendChild(fig);
   });
 
@@ -636,28 +606,32 @@
   // la intranet (tabla `modelos_villa`, proyecto_id de Palm Field W5). Trinity y
   // Temple existen en el catálogo general pero NO están asignados a este
   // proyecto — no se muestran aquí (10-sep-2026, corrección tras aviso del owner).
+  // Renders: se apunta a assets/img/buildings/<modelo>/web/*.webp — la carpeta web/ (1600px)
+  // es la ÚNICA versionada; los originales están gitignored y por eso la ruta anterior
+  // (../../assets/img/buildings/dali/dali.jpg) daba 404 en producción (10-sep-2026).
   var MODELOS = [
-    { slug:'dali', nombre:'Dali', tag:'Tipología 01', img:'../../assets/img/buildings/dali/dali.jpg', dorm:1, banos:1, m2:30, precio:48000, desc:'Compact contemporary lines with a zen interior garden. Built to maximise yield in boutique short-stay platforms.' },
-    { slug:'dune', nombre:'Dune', tag:'Tipología 02', img:'assets/gallery/14-dune-exterior.jpg', dorm:1, banos:1, m2:47, precio:68000, desc:'Curved geometry inspired by dunes and the sea breeze. Double-height living room with folding doors onto the terrace.' },
-    { slug:'dream', nombre:'Dream', tag:'Tipología 03', img:'assets/gallery/17-dream-evening.jpg', dorm:2, banos:2, m2:76, precio:101000, desc:'Cantilevered master suite over the valley. Panoramic teak balconies and an open-air shower on volcanic stone.', featured:true }
+    { slug:'dali', nombre:'Dali', tag:'Type 01', img:'../../assets/img/buildings/dali/web/dali.webp', dorm:1, banos:1, m2:30, precio:48000 },
+    { slug:'dune', nombre:'Dune', tag:'Type 02', img:'../../assets/img/buildings/dune/web/dune.webp', dorm:1, banos:1, m2:47, precio:68000 },
+    { slug:'dream', nombre:'Dream', tag:'Type 03', img:'../../assets/img/buildings/dream/web/dream.webp', dorm:2, banos:2, m2:76, precio:101000, featured:true }
   ];
   var mg = document.getElementById('modelos-grid');
   MODELOS.forEach(function(m){
     var card = document.createElement('div');
-    card.className = 'bg-surface-container-lowest rounded-2xl p-5 flex flex-col justify-between shadow-md hover:-translate-y-1 transition-all border' + (m.featured ? ' border-2 border-territorial-green relative' : ' border-[#D8D2C5]');
-    var imgHtml = m.img
-      ? '<div class="w-full h-44 rounded-xl overflow-hidden relative bg-cover bg-center border border-[#D8D2C5]" style="background-image:url(\'' + m.img + '\')"><span class="absolute top-2.5 left-2.5 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold">'+esc(m.tag)+'</span></div>'
-      : '<div class="w-full h-44 rounded-xl relative bg-[#F0ECE1] border border-dashed border-[#BEB3A5] flex items-center justify-center"><span class="absolute top-2.5 left-2.5 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold">'+esc(m.tag)+'</span><span class="text-xs text-[#8A8474] font-label-md uppercase tracking-wide">Renders in progress</span></div>';
-    card.innerHTML = (m.featured ? '<span class="absolute -top-3 right-4 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-      '<div class="flex flex-col gap-4">' + imgHtml +
-      '<div><h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">'+esc(m.nombre)+'</h3></div>' +
-      '<div class="grid grid-cols-2 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
-        '<div><strong>Area:</strong> ~'+m.m2+' m²</div><div><strong>Bedrooms:</strong> '+m.dorm+'</div>' +
-        '<div><strong>Bathrooms:</strong> '+m.banos+'</div><div>&nbsp;</div></div>' +
-      '<p class="font-body-sm text-xs text-[#44483f] leading-relaxed">'+esc(m.desc)+'</p></div>' +
-      '<div class="pt-5 mt-4 border-t border-[#D8D2C5] flex flex-col gap-3">' +
-        '<div class="flex items-baseline justify-between"><span class="text-xs text-[#75786e] font-body-sm uppercase">Construction from</span><span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money">€'+m.precio.toLocaleString('en-GB')+'</span></div>' +
-        '<span class="text-[11px] text-[#75786e]">+ land price, per plot chosen below</span>' +
+    card.className = 'bg-surface-container-lowest rounded-2xl overflow-hidden flex flex-col justify-between shadow-md hover:-translate-y-1 transition-all border' + (m.featured ? ' border-2 border-territorial-green relative' : ' border-[#D8D2C5]');
+    // aspect-[4/3] en vez de h-44 fija: la imagen crece con la tarjeta al ensanchar el contenedor.
+    var imgHtml = '<div class="w-full aspect-[4/3] relative overflow-hidden bg-[#F0ECE1]">' +
+        '<img src="'+m.img+'" alt="'+esc(m.nombre)+' villa model" loading="lazy" class="w-full h-full object-cover">' +
+        '<span class="absolute top-3 left-3 bg-deep-lagoon text-white px-2.5 py-0.5 rounded-full text-xs font-label-md uppercase font-semibold">'+esc(m.tag)+'</span></div>';
+    card.innerHTML = (m.featured ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
+      imgHtml +
+      '<div class="flex flex-col gap-4 p-6">' +
+      '<h3 class="font-headline-sm text-2xl font-bold text-deep-lagoon">'+esc(m.nombre)+'</h3>' +
+      '<div class="grid grid-cols-3 gap-2 text-xs font-body-sm text-[#44483f] bg-surface-container-low p-3 rounded-lg border border-[#D8D2C5]">' +
+        '<div><strong>Area</strong><br>~'+m.m2+' m²</div><div><strong>Bedrooms</strong><br>'+m.dorm+'</div>' +
+        '<div><strong>Bathrooms</strong><br>'+m.banos+'</div></div></div>' +
+      '<div class="px-6 pb-6 pt-5 border-t border-[#D8D2C5] flex flex-col gap-3">' +
+        '<div class="flex items-baseline justify-between"><span class="text-xs text-[#5F6257] font-body-sm uppercase">Construction from</span><span class="font-headline-sm text-xl font-bold text-deep-lagoon lw-money">€'+m.precio.toLocaleString('en-GB')+'</span></div>' +
+        '<span class="text-[11px] text-[#5F6257]">+ land price, per plot chosen below</span>' +
         '<a class="w-full py-2 rounded-full bg-[#E4DFD5] hover:bg-deep-lagoon hover:text-white text-deep-lagoon text-center text-xs font-label-md font-semibold transition-all border border-[#D8D2C5]" href="../../modelo/'+m.slug+'">View model &amp; floor plan</a>' +
       '</div>';
     mg.appendChild(card);
@@ -671,14 +645,14 @@
     body: JSON.stringify({ p_proyecto: PROYECTO })
   }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(rows){
-      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#75786e]">No plots published yet.</div>'; plotsCount.textContent=''; return; }
+      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">No plots published yet.</div>'; plotsCount.textContent=''; return; }
       var disponibles = rows.filter(function(r){ return r.estado === 'disponible'; }).length;
       plotsCount.textContent = disponibles + ' of ' + rows.length + ' plots available';
       plotsWrap.innerHTML = '';
       rows.forEach(function(row){
         var puedeReservar = row.estado === 'disponible' && row.cuota_reserva != null && Number(row.cuota_reserva) > 0;
         var estadoLabel = { disponible:'Available', reservada:'Reserved', bloqueada:'Blocked', no_disponible:'Not available' }[row.estado] || row.estado;
-        var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#E4DFD5] text-[#75786e]');
+        var pillClass = row.estado === 'disponible' ? 'bg-territorial-green/15 text-territorial-green' : (row.estado === 'reservada' ? 'bg-amber-100 text-amber-800' : 'bg-[#E4DFD5] text-[#5F6257]');
         var row_ = document.createElement('div');
         row_.className = 'p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#E4DFD5]/30 transition-colors';
         var actionHtml;
@@ -687,7 +661,7 @@
         } else if (row.estado === 'disponible') {
           actionHtml = '<a class="px-3.5 py-1.5 rounded-full bg-[#E4DFD5] text-deep-lagoon text-xs font-label-md font-semibold" href="mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo)+'">Contact us</a>';
         } else {
-          actionHtml = '<span class="text-xs font-label-md text-[#8A8474] bg-[#F0ECE1] px-3 py-1.5 rounded-full">—</span>';
+          actionHtml = '<span class="text-xs font-label-md text-[#5F6257] bg-[#F0ECE1] px-3 py-1.5 rounded-full">—</span>';
         }
         row_.innerHTML = '<div class="flex flex-col"><div class="flex items-center gap-2"><span class="font-headline-sm text-lg font-bold text-deep-lagoon">'+esc(row.codigo)+'</span>' +
           '<span class="px-2 py-0.5 rounded-full text-[11px] font-label-md font-semibold '+pillClass+'">'+esc(estadoLabel)+'</span></div>' +
@@ -700,7 +674,7 @@
       });
     })
     .catch(function(){
-      plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#75786e]">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+      plotsWrap.innerHTML = '<div class="p-6 text-sm text-[#5F6257]">We could not load live plot data right now. Please contact <a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
       plotsCount.textContent = '';
     });
 
