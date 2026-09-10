@@ -74,6 +74,10 @@
 .crm-nav .cuenta { font: 600 11px/1 var(--text); background: var(--line-soft);
   color: var(--mist); border-radius: 9999px; padding: 3px 7px; font-variant-numeric: tabular-nums; }
 .crm-nav button[aria-selected="true"] .cuenta { background: var(--primary-soft); color: var(--primary); }
+/* Separador de las pestañas del bot: son datos de otro sistema (Redis del
+   bot, vía proxy), no del CRM de leads (Postgres) — no se fusionan visualmente. */
+.crm-nav-sep { flex: 0 0 auto; align-self: center; font: 600 10px/1 var(--text); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--mist); padding: 0 4px; border-left: 1px solid var(--line); margin-left: 4px; padding-left: 12px; }
 
 .crm-vista { padding: 20px 16px 64px; max-width: 1560px; margin: 0 auto; }
 .crm-vista[hidden] { display: none; }
@@ -204,6 +208,16 @@
 .cajon textarea { width: 100%; font: 400 13.5px/1.5 var(--text); padding: 10px;
   border: 1px solid var(--line); border-radius: var(--r-ctrl); background: var(--canvas);
   resize: vertical; min-height: 72px; }
+
+/* ---- Campos de formulario (Agenda de cierre) ------------------------------ */
+/* No existían fuera de la búsqueda y el textarea de notas — Setter/Agenda son
+   las primeras pestañas con un formulario de verdad (crear/editar una cita). */
+.campo { display: flex; flex-direction: column; gap: 5px; margin: 0 0 12px; }
+.campo label { font: 600 11px/1 var(--text); letter-spacing: .04em; text-transform: uppercase; color: var(--mist); }
+.campo input, .campo select { font: 400 13.5px/1 var(--text); padding: 9px 11px;
+  border: 1px solid var(--line); border-radius: var(--r-ctrl); background: var(--canvas); color: var(--slate); }
+.campo input:focus, .campo select:focus { outline: 2px solid var(--primary-line); outline-offset: -1px; }
+.fila-campos { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 
 /* ---- Hilo de actividad (bandeja) ----------------------------------------- */
 .hilo { display: flex; flex-direction: column; gap: 0; }

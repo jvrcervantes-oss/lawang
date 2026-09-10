@@ -28,7 +28,9 @@ let LEADS = [], ETAPAS = [], CAMPANAS = [], SERIE = [], ACCIONES = [];
 let VISTA = 'pipeline';
 let CANAL = '', BUSCA = '', FILTRO_B = 'todos';
 let ABIERTAS = new Set(), ABIERTO = null, SEL_B = null;
-let CARGADO = { panel: false, automatismos: false };
+let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false };
+let FICHA = null;
+let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null;
 
 /* Las seis columnas. El orden es el del embudo y no se reordena: la posición
    de una tarjeta ES la información. */
@@ -102,6 +104,8 @@ function ir(v){
   if(v === 'panel' && !CARGADO.panel) cargarPanel();
   if(v === 'automatismos' && !CARGADO.automatismos) cargarAutomatismos();
   if(v === 'bandeja') pintarBandeja();
+  if(v === 'setter' && !CARGADO.setter) cargarSetter();
+  if(v === 'agenda' && !CARGADO.agenda) cargarAgenda();
 }
 
 /* ==========================================================================
@@ -321,6 +325,8 @@ function abrirFicha(l){
       <textarea id="nota" placeholder="Qué ha pasado con este lead…"></textarea>
       <div style="margin-top:8px"><button class="btn" id="guardarNota"><i class="ph ph-plus"></i>Añadir nota</button></div>
       <div id="hilo" style="margin-top:16px"><p class="vacio">Cargando actividad…</p></div>
+      ${FICHA && (FICHA.rol === 'super_admin' || (FICHA.herramientas || []).includes('closers'))
+        ? '<p class="lb">Llamada de venta (Fathom.ai)</p><div id="fathom"><p class="vacio">Cargando…</p></div>' : ''}
     </div>`;
   document.body.append(velo, c);
   c.querySelector('.cerrar').onclick = cerrarFicha;
@@ -329,6 +335,25 @@ function abrirFicha(l){
   const vc = c.querySelector('#verContacto');
   if(vc) vc.onclick = () => verContacto(l);
   pintarHilo(l);
+  if(c.querySelector('#fathom')) pintarFathom(l);
+}
+
+/* El owner todavía no tiene cuenta de Fathom.ai (10-sep-2026): esto siempre
+   enseña "sin llamadas registradas todavía" en producción hasta que exista el
+   primer webhook real — nunca se inventa una fila de ejemplo aquí. */
+async function pintarFathom(l){
+  const caja = document.querySelector('#fathom'); if(!caja) return;
+  const { data, error } = await SB.rpc('crm_lead_fathom', { p_lead: l.id });
+  if(error){ caja.innerHTML = '<p class="vacio">No se pudo leer.</p>'; return; }
+  if(!data || !data.length){ caja.innerHTML = '<p class="vacio">Sin llamadas registradas todavía.</p>'; return; }
+  caja.innerHTML = data.map(f => `
+    <div class="dato" style="display:block;padding:10px 0">
+      <div style="font-size:11.5px;color:var(--mist);margin-bottom:4px">${esc(fechaHora(f.procesado_en))}</div>
+      ${f.resumen ? `<p style="margin:0 0 6px">${esc(f.resumen)}</p>` : ''}
+      ${(f.objeciones || []).length ? '<p class="lb" style="margin:10px 0 4px">Objeciones</p>' +
+        f.objeciones.map(o => `<span class="chip rojo" style="margin:2px">${esc(typeof o === 'string' ? o : (o.text || JSON.stringify(o)))}</span>`).join('') : ''}
+      ${f.recording_url ? `<div style="margin-top:8px"><a class="btn mini" target="_blank" rel="noopener" href="${esc(f.recording_url)}"><i class="ph ph-play"></i>Ver grabación</a></div>` : ''}
+    </div>`).join('');
 }
 
 /* El contacto se pide de uno en uno y la petición queda registrada en la base
@@ -616,6 +641,178 @@ function pintarAutomatismos(){
 }
 
 /* ==========================================================================
+   VISTA 5 — SETTER IA (bot de WhatsApp)
+   --------------------------------------------------------------------------
+   Datos del bot (`lawang-bot`, Redis), NO del CRM de leads (Postgres) — nunca
+   se llama a `lawang-bot-proxy` con datos de aquí ni al revés sin querer. El
+   proxy guarda la clave del bot como secreto de la función: esta pantalla
+   nunca ve `ADMIN_PASSWORD`.
+   ========================================================================== */
+async function llamarBot(accion, extra){
+  const { data: ses } = await SB.auth.getSession();
+  const token = ses && ses.session && ses.session.access_token;
+  const r = await fetch('https://vtulllundrfennhjddhc.supabase.co/functions/v1/lawang-bot-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || '') },
+    body: JSON.stringify(Object.assign({ accion }, extra || {})),
+  });
+  const cuerpo = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(cuerpo.error || ('El bot respondió ' + r.status));
+  return cuerpo;
+}
+
+async function cargarSetter(){
+  CARGADO.setter = true;
+  const av = $('#avisoSetter');
+  try {
+    CONVERSACIONES = await llamarBot('conversaciones');
+    av.hidden = true;
+  } catch(err){
+    CONVERSACIONES = [];
+    av.hidden = false;
+    av.innerHTML = err.message === 'lawang-bot-proxy no configurado (falta LAWANG_BOT_ADMIN_KEY)'
+      ? 'El puente con el bot todavía no está activado por el estudio.'
+      : 'No se pudo leer el bot: ' + esc(err.message);
+  }
+  pintarSetter();
+}
+
+function pintarSetter(){
+  const filas = CONVERSACIONES.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  $('#tSetter').innerHTML = `
+    <thead><tr><th>Lead</th><th>Teléfono</th><th>Última actividad</th><th>Estado</th><th></th></tr></thead>
+    <tbody>${filas.length ? filas.map(l => `
+      <tr data-phone="${esc(l.phone)}" style="cursor:pointer">
+        <td><b>${esc(l.name || 'sin nombre')}</b></td>
+        <td>${esc(l.phone || '')}</td>
+        <td>${l.lastInboundAt ? esc(fechaHora(new Date(l.lastInboundAt).toISOString())) : '—'}</td>
+        <td>${l.paused
+          ? '<span class="chip gris"><i class="ph ph-pause"></i> En pausa · responde una persona</span>'
+          : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}</td>
+        <td style="text-align:right">
+          <button class="btn mini" data-pausar="${esc(l.phone)}" data-a="${l.paused ? '0' : '1'}">
+            ${l.paused ? 'Reanudar IA' : 'Pausar IA'}</button></td>
+      </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">Sin conversaciones todavía.</p></td></tr>'}</tbody>`;
+  $('#tSetter').querySelectorAll('[data-pausar]').forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    pausarLead(b.dataset.pausar, b.dataset.a === '1');
+  });
+  $('#tSetter').querySelectorAll('tr[data-phone]').forEach(tr => tr.onclick = () => verConversacion(tr.dataset.phone));
+}
+
+async function pausarLead(phone, paused){
+  try {
+    await llamarBot('pausar', { phone, paused });
+    const l = CONVERSACIONES.find(x => x.phone === phone);
+    if(l) l.paused = paused;
+    pintarSetter();
+    toast(paused ? 'IA pausada para ese lead.' : 'IA reanudada para ese lead.');
+  } catch(err){ toast('No se pudo cambiar el estado: ' + err.message); }
+}
+
+async function verConversacion(phone){
+  cerrarFicha();
+  const velo = document.createElement('div'); velo.className = 'velo'; velo.onclick = cerrarFicha;
+  const c = document.createElement('aside'); c.className = 'cajon';
+  c.innerHTML = `<header><button class="cerrar" aria-label="Cerrar">&times;</button><h2>${esc(phone)}</h2></header>
+    <div class="cuerpo"><div id="hiloConv" class="hilo"><p class="vacio">Cargando…</p></div></div>`;
+  document.body.append(velo, c);
+  c.querySelector('.cerrar').onclick = cerrarFicha;
+  ABIERTO = { id: '__conv__' };   // reutiliza cerrarFicha() sin chocar con la ficha de un lead
+  try {
+    const historia = await llamarBot('conversacion', { phone });
+    $('#hiloConv').innerHTML = (historia || []).map(m => `
+      <div class="ev ${m.role === 'user' ? 'alta' : 'nota'}"><div class="ico"><i class="ph ${m.role === 'user' ? 'ph-user' : 'ph-robot'}"></i></div>
+      <div><div class="qué">${esc(m.content || '')}</div>
+      <div class="cuando">${m.ts ? esc(fechaHora(new Date(m.ts).toISOString())) : ''}${m.by ? ' · ' + esc(m.by) : ''}</div></div></div>`).join('')
+      || '<p class="vacio">Sin mensajes.</p>';
+  } catch(err){ $('#hiloConv').innerHTML = '<p class="vacio">No se pudo leer la conversación.</p>'; }
+}
+
+/* ==========================================================================
+   VISTA 6 — AGENDA DE CIERRE (citas del bot + closer)
+   --------------------------------------------------------------------------
+   El enlace de Google Meet solo llega si el estudio activó Calendar en el
+   bot (CALENDAR_ID+GOOGLE_SERVICE_ACCOUNT en Railway) — sin eso, `meetLink`
+   viene vacío y se avisa en vez de fingir un botón que no lleva a ningún
+   sitio.
+   ========================================================================== */
+async function cargarAgenda(){
+  CARGADO.agenda = true;
+  try { CITAS = await llamarBot('citas_listar'); }
+  catch(err){ CITAS = []; toast('No se pudieron leer las citas: ' + err.message); }
+  pintarAgenda();
+}
+
+function pintarAgenda(){
+  const filas = CITAS.slice().sort((a, b) => new Date(a.when) - new Date(b.when));
+  const hayMeetActivo = filas.some(c => c.meetLink);
+  $('#avisoAgendaMeet').hidden = filas.length === 0 || hayMeetActivo;
+  $('#subAgenda').textContent = filas.length ? filas.length + ' citas agendadas' : 'Sin citas agendadas todavía.';
+  $('#tAgenda').innerHTML = `
+    <thead><tr><th>Cuándo</th><th>Lead</th><th>Closer</th><th>Meet</th><th></th></tr></thead>
+    <tbody>${filas.length ? filas.map(c => `
+      <tr>
+        <td style="white-space:nowrap">${esc(fechaHora(c.when))}</td>
+        <td><b>${esc(c.name || c.phone || 'sin nombre')}</b>${c.phone ? `<div style="font-size:11.5px;color:var(--mist)">${esc(c.phone)}</div>` : ''}</td>
+        <td>${esc(c.closer || '—')}</td>
+        <td>${c.meetLink ? `<a class="btn mini pri" target="_blank" rel="noopener" href="${esc(c.meetLink)}"><i class="ph ph-video-camera"></i>Unirse</a>` : '<span class="chip gris">sin enlace todavía</span>'}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn mini" data-editar="${esc(c.id)}">Editar</button>
+          <button class="btn mini" data-borrar="${esc(c.id)}">Borrar</button></td>
+      </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">Sin citas agendadas.</p></td></tr>'}</tbody>`;
+  $('#tAgenda').querySelectorAll('[data-editar]').forEach(b => b.onclick = () => cargarCitaEnFormulario(b.dataset.editar));
+  $('#tAgenda').querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => borrarCita(b.dataset.borrar));
+}
+
+function cargarCitaEnFormulario(id){
+  const c = CITAS.find(x => x.id === id); if(!c) return;
+  EDITANDO_CITA = id;
+  $('#agCitaId').value = id;
+  $('#agTelefono').value = c.phone || '';
+  $('#agNombre').value = c.name || '';
+  $('#agCuando').value = (c.when || '').slice(0, 16);
+  $('#agCloser').value = c.closer || '';
+  $('#agNotas').value = c.notes || '';
+  $('#btnAgendarGuardar').innerHTML = '<i class="ph ph-check"></i>Guardar cambios';
+  $('#btnAgendarCancelar').hidden = false;
+  $('#v-agenda').scrollIntoView({ behavior: 'auto' });
+}
+
+function limpiarFormularioAgenda(){
+  EDITANDO_CITA = null;
+  ['agCitaId','agTelefono','agNombre','agCuando','agCloser','agNotas'].forEach(id => { $('#' + id).value = ''; });
+  $('#btnAgendarGuardar').innerHTML = '<i class="ph ph-calendar-plus"></i>Agendar';
+  $('#btnAgendarCancelar').hidden = true;
+}
+
+async function guardarCita(){
+  const when = $('#agCuando').value;
+  if(!when){ toast('Falta la fecha y hora.'); return; }
+  const payload = {
+    id: EDITANDO_CITA || undefined,
+    phone: $('#agTelefono').value.replace(/[^0-9]/g, ''),
+    name: $('#agNombre').value.trim(),
+    title: 'Llamada de venta',
+    when,
+    closer: $('#agCloser').value.trim(),
+    notes: $('#agNotas').value.trim(),
+  };
+  try {
+    await llamarBot('citas_guardar', payload);
+    toast(EDITANDO_CITA ? 'Cita actualizada.' : 'Cita agendada.');
+    limpiarFormularioAgenda();
+    cargarAgenda();
+  } catch(err){ toast('No se pudo guardar la cita: ' + err.message); }
+}
+
+async function borrarCita(id){
+  if(!confirm('¿Borrar esta cita? Si tiene evento de Calendar, se borra también.')) return;
+  try { await llamarBot('citas_borrar', { id }); toast('Cita borrada.'); cargarAgenda(); }
+  catch(err){ toast('No se pudo borrar: ' + err.message); }
+}
+
+/* ==========================================================================
    ARRANQUE
    ========================================================================== */
 $('#nav').addEventListener('click', e => {
@@ -636,9 +833,17 @@ $('#filtroBandeja').addEventListener('click', e => {
   pintarBandeja();
 });
 $('#btnRefrescar').addEventListener('click', cargar);
+$('#btnRefrescarSetter').addEventListener('click', cargarSetter);
+$('#btnAgendarGuardar').addEventListener('click', guardarCita);
+$('#btnAgendarCancelar').addEventListener('click', limpiarFormularioAgenda);
 
-window.LW_AUTH.then(async ({ sb, session }) => {
-  SB = sb; YO = session && session.user;
+window.LW_AUTH.then(async ({ sb, session, ficha }) => {
+  SB = sb; YO = session && session.user; FICHA = ficha;
+  const puedeClosers = !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes('closers');
+  $('#tabAgenda').hidden = !puedeClosers;
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
+  // Entrada directa a una pestaña desde el hub (`?v=agenda`, herramientas.js).
+  const vInicial = new URLSearchParams(location.search).get('v');
+  if(vInicial && document.querySelector('#v-' + vInicial) && (vInicial !== 'agenda' || puedeClosers)) ir(vInicial);
 });

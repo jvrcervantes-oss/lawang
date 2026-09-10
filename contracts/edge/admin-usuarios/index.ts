@@ -56,7 +56,11 @@ const corsFor = (req: Request) => {
 // 'operaciones' porque esta edge estaba sin poder redesplegarse. Ésta no lo hace: abre
 // datos de contacto de un centenar de personas y eso tiene que poder darse cuenta a
 // cuenta.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads'];
+// 10-sep-2026: añadida 'closers' (agenda de visitas/llamadas del CRM de leads). Distinta
+// de 'leads' a propósito: quien ve la agenda de contactos no es necesariamente quien
+// hace la llamada de venta y accede a sus grabaciones/resúmenes de Fathom — son dos
+// decisiones de acceso separadas, mismo motivo que separó 'leads' de 'operaciones'.
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers'];
 const ROLES = ['super_admin', 'admin', 'agente'];
 
 Deno.serve(async (req) => {

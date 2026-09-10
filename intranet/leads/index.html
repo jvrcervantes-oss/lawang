@@ -45,18 +45,28 @@
      LO QUE ESTA PANTALLA NUNCA HACE: escribir en `leads`. Esa tabla la mantiene R13
      (la recogida automática de Meta, cada 4 h) con un upsert; el estado y las notas
      viven en tablas aparte por eso mismo. Todo cambio pasa por los RPC lead_mover /
-     lead_nota, que revalidan permiso y sellan el autor en la base. -->
+     lead_nota, que revalidan permiso y sellan el autor en la base.
+
+     DOS PESTAÑAS MÁS, 10-sep-2026 (owner: hay closers reales que llaman por Google
+     Meet y quiere grabarlas con Fathom.ai para analizar patrones). Setter IA y
+     Agenda son datos del BOT de WhatsApp (Redis en Railway), no del CRM de leads de
+     arriba (Postgres) — nunca se mezclan, van tras un separador visual propio y
+     hablan con el bot a través de la Edge Function `lawang-bot-proxy` (nunca directo:
+     la clave del bot no puede llegar al navegador). 'closers' es un permiso PROPIO,
+     no 'leads': agenda una llamada y —cuando exista cuenta de Fathom.ai— ve su
+     grabación es una decisión de acceso aparte. Detalle completo de la revisión
+     previa (Bots+Seguridad+Legal) en contexto/pendientes.md y CEO/revisiones/estado.json. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/herramientas.js?v=55bab44e"></script>
+<script src="/contracts/assets/herramientas.js?v=e317fb69"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=1">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=2">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -77,6 +87,16 @@
     <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i>Bandeja</button>
     <button role="tab" data-v="panel"       aria-selected="false"><i class="ph ph-chart-line-up"></i>Campañas</button>
     <button role="tab" data-v="automatismos" aria-selected="false"><i class="ph ph-flow-arrow"></i>Automatismos</button>
+    <!-- Dos pestañas nuevas, 10-sep-2026 (owner: hay closers reales que llaman
+         por Google Meet y quiere grabarlas con Fathom.ai). Separador visual
+         propio ("· WhatsApp Bot") a propósito: son datos del bot (Redis, vía
+         lawang-bot-proxy), no del CRM de leads (Postgres) — hallazgo Bots de
+         la revisión previa de esta mañana: "no fusionar los 2 CRMs, son datos
+         sin join hoy". Setter IA va detrás de 'leads' (ya lo tiene cualquiera
+         que abre esta página); Agenda va detrás de 'closers', permiso propio. -->
+    <span class="crm-nav-sep" aria-hidden="true">· WhatsApp Bot</span>
+    <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i>Setter IA</button>
+    <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i>Agenda</button>
   </nav>
 
   <!-- ===================== PIPELINE ===================== -->
@@ -149,10 +169,53 @@
     </div>
   </section>
 
+  <!-- =================== SETTER IA (bot de WhatsApp) =================== -->
+  <section class="crm-vista" id="v-setter" hidden>
+    <div class="aviso gris" id="avisoSetter" hidden></div>
+    <div class="caja">
+      <header>
+        <div>
+          <h2>Conversaciones del bot</h2>
+          <p id="subSetter">El bot de WhatsApp de Lawang, en vivo. Pausar detiene la IA para ese lead: a partir de ahí responde una persona.</p>
+        </div>
+        <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
+      </header>
+      <div class="tabla-scroll"><table class="tabla" id="tSetter"></table></div>
+    </div>
+  </section>
+
+  <!-- ======================= AGENDA DE CIERRE =========================== -->
+  <section class="crm-vista" id="v-agenda" hidden>
+    <div class="aviso gris" id="avisoAgendaMeet" hidden>
+      El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.
+    </div>
+    <div class="caja" style="margin-bottom:16px">
+      <header><div><h2>Nueva cita</h2><p>Agenda la llamada de venta de un lead con su closer.</p></div></header>
+      <div style="padding:16px">
+        <input type="hidden" id="agCitaId">
+        <div class="fila-campos">
+          <div class="campo"><label for="agTelefono">Teléfono del lead</label><input type="tel" id="agTelefono" placeholder="+34600000000"></div>
+          <div class="campo"><label for="agNombre">Nombre</label><input type="text" id="agNombre" placeholder="Nombre del lead"></div>
+          <div class="campo"><label for="agCuando">Fecha y hora</label><input type="datetime-local" id="agCuando"></div>
+          <div class="campo"><label for="agCloser">Closer</label><input type="email" id="agCloser" placeholder="vacío = tú mismo"></div>
+        </div>
+        <div class="campo"><label for="agNotas">Notas</label><input type="text" id="agNotas" placeholder="Contexto para quien atienda la llamada"></div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn pri" id="btnAgendarGuardar"><i class="ph ph-calendar-plus"></i>Agendar</button>
+          <button type="button" class="btn" id="btnAgendarCancelar" hidden>Cancelar edición</button>
+        </div>
+      </div>
+    </div>
+    <div class="caja">
+      <header><div><h2>Próximas llamadas</h2><p id="subAgenda">—</p></div></header>
+      <div class="tabla-scroll"><table class="tabla" id="tAgenda"></table></div>
+    </div>
+  </section>
+
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=3"></script>
+<script src="/intranet/leads/leads.js?v=4"></script>
 </body>
 </html>
