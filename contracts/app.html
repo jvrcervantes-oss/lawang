@@ -80,7 +80,7 @@
      Lo comparten esta pantalla, intranet/proyectos/ e intranet/modelos/. -->
 <script src="assets/modelos_catalogo.js?v=4e4fdee1"></script>
 <script src="assets/hitos_fechas.js?v=f4fb5a15"></script>
-<script src="assets/entidades_pago.js?v=aa4a59b1"></script>
+<script src="assets/entidades_pago.js?v=e7a8f8cd"></script>
 <!-- CSS propio del Generador, sacado del HTML el 17-ago-2026. Vive en
      assets/ y no junto a app.html porque el sellador de cache solo mira ahi
      — igual que contract.css, que tambien es especifico de contratos. -->
@@ -2587,6 +2587,9 @@ function buildDoc(){
   html=html.replace('<!--compradores-extra-->', compradoresExtraHTML());   // Adquiriente II, III, IV… sin tope
   html=html.replace('<!--firmas-adquirientes-->', compradoresFirmasHTML());   // firmas de esos adquirientes extra
   html=html.replace('<!--datos-bancarios-->', datosBancariosHTML());   // tabla de la cuenta bancaria elegida
+  // variante sin título "Datos bancarios": para plantillas que ya traen su propio
+  // epígrafe numerado justo encima (cc00014_timon: "ARTICLE 5 — BANK DETAILS")
+  html=html.replace('<!--datos-bancarios-sin-titulo-->', datosBancariosHTML({titulo:false}));
   /* <!--cuenta:CLAVE--> : cuenta FIJA de la plantilla, resuelta contra
      `cuentas_bancarias`. Existe porque un documento puede pactar MÁS DE UNA
      cuenta (el C2 de Bonian: escrow del notario para el hito 1, empresa para los
@@ -2904,7 +2907,7 @@ function deriveSections(){
   // cuenta bancaria de destino: si la plantilla trae <!--datos-bancarios-->, un
   // único select (mismo patrón [valor,etiqueta] que regimen_tenencia) justo
   // después del calendario de pagos (o de "Gestión" si esa plantilla no tiene hitos).
-  if(templateHTML.includes('<!--datos-bancarios-->')){
+  if(templateHTML.includes('<!--datos-bancarios-->') || templateHTML.includes('<!--datos-bancarios-sin-titulo-->')){
     let ins = SECTIONS.findIndex(s=>s.id==='pagos');
     if(ins<0) ins = SECTIONS.findIndex(s=>s.tier==='gestion');
     ins = ins<0 ? SECTIONS.length : ins+1;

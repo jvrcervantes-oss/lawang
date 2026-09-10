@@ -35,6 +35,12 @@ const bankOptions = () => Object.entries(CUENTAS_BANCARIAS).map(([v,c])=>[v,c.la
 // las operaciones de Sumba, el escrow del notario y la cuenta del constructor en
 // euros (añadidas 22-jul a petición del cliente).
 const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'notario_sandy_sumba', 'contractor_sumba_eur'];
+// cc00014_timon (10-sep-2026): mismo contrato de construcción de Timon, reabierto
+// para una segunda unidad (CC00088) — antes traía la cuenta de Sandal Woods
+// Danamon EUR fija en la plantilla (<!--cuenta:sandalwoods_danamon_eur-->), sin
+// selección posible. El owner pidió poder elegir; usa las mismas 4 vías que
+// 'ppjb_construccion' porque es el mismo tipo de operación, solo con plantilla
+// propia por las cláusulas ya negociadas con este comprador.
 /* La Carta de Reserva cobra SIEMPRE en la misma cuenta (owner, 8-sep-2026:
    «precarga siempre Tepi Sun Gai (OCBC) y quita las demás»). Se filtra aquí y
    no en la sección del formulario porque este es el único interruptor por
@@ -47,7 +53,7 @@ const BANCO_UNICO = { carta_reserva: 'contractor_tepisungai' };
 function bankOptionsFor(slug){
   const opts = bankOptions();
   if(BANCO_UNICO[slug]) return opts.filter(o=>o[0]===BANCO_UNICO[slug]);
-  if(slug==='ppjb_construccion') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
+  if(slug==='ppjb_construccion' || slug==='cc00014_timon') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
   if(slug==='ppjb_parcela') return opts;
   return opts.filter(o=>!o[0].startsWith('notario_'));
 }
@@ -168,8 +174,11 @@ function tablaCuentaHTML(key, o){
       ${row('Nota','Note','Catatan', c.extra)}
     </tbody></table>`;
 }
-/* la cuenta que el agente ELIGE en el select del contrato */
-function datosBancariosHTML(){ return tablaCuentaHTML(collect().cuenta_bancaria, {}); }
+/* la cuenta que el agente ELIGE en el select del contrato.
+   `opts` se reenvía tal cual a tablaCuentaHTML — usado por cc00014_timon.html,
+   que ya trae su propio "ARTICLE 5 — BANK DETAILS" numerado y no quiere el
+   título "Datos bancarios" repetido debajo (ver <!--datos-bancarios-sin-titulo--> en buildDoc). */
+function datosBancariosHTML(opts){ return tablaCuentaHTML(collect().cuenta_bancaria, opts || {}); }
 
 /* ── RESUMEN DE UNA LÍNEA EN LA CABECERA PLEGADA (27-ago-2026) ──────────────
    Lo mismo que se hizo en Facturas, y aquí hace más falta: nueve secciones y 71
