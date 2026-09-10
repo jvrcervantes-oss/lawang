@@ -2990,8 +2990,20 @@ function buildPicker(){
 function buildLangToggle(){
   const box=$('#langToggle');
   box.innerHTML = LANGS.map(([code,lbl])=>`<button data-l="${code}" class="${code===LANG?'on':''}">${lbl}</button>`).join('');
-  box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ LANG=b.dataset.l;
-    buildPicker(); buildForm(); applyLang(); }));   // buildPicker re-localiza el nombre en el select
+  // Sin buildForm(): applyLang() ya re-etiqueta los campos existentes y
+  // conserva sus valores (ver su propio comentario, assets/entidades_pago.js).
+  // buildForm() reconstruye el <form> entero desde cero (form.innerHTML=html)
+  // y no repuebla lo que había — llamarlo aquí vaciaba cualquier campo ya
+  // escrito en cuanto se tocaba ES/EN, en un contrato nuevo o ya guardado
+  // (aviso del owner, 10-sep-2026).
+  box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{
+    // Salir de «Editar texto» antes de cambiar: nada se pierde (captureEdit ya
+    // guardó en OVERRIDES con cada tecla), pero render() no repinta mientras
+    // EDITING=true — sin esto la vista previa se quedaba en el idioma viejo
+    // hasta que el agente pulsara «✓ Hecho» a mano.
+    if(EDITING) toggleEdit();
+    LANG=b.dataset.l;
+    buildPicker(); applyLang(); }));   // buildPicker re-localiza el nombre en el select
 }
 
 /* ---------- preview móvil (overlay) ---------- */
@@ -3586,7 +3598,14 @@ function contractPayload(){
                  `sincronizar_compradores`, que lo prefiere a adivinar por
                  pasaporte o email — ver la nota junto a ADQ1_CLIENT. */
               adq1_client_id: ADQ1_CLIENT ? ADQ1_CLIENT.id : null,
-              overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {} }
+              overrides: (OVERRIDES && OVERRIDES[CURRENT.slug]) || {},
+              /* Idioma ACOMPAÑANTE (ES/EN, el Bahasa va siempre) con el que se
+                 escribió este contrato — 10-sep-2026, aviso del owner: sin
+                 esto, reabrir un contrato hecho en inglés lo enseñaba en
+                 español (LANG vuelve a 'es' en cada carga) y el agente podía
+                 imprimir/firmar el idioma equivocado si se le olvidaba pulsar
+                 «EN» a mano. Se restaura en openSavedContract(). */
+              lang: LANG }
   };
 }
 
@@ -4252,8 +4271,14 @@ async function openSavedContract(id){
   // misma familia de fallo que AUTO_ANX/AUTO_MASTER (ver más abajo). La ficha
   // buena se carga y se repinta unas líneas después.
   ADQ1_CLIENT = null; CAMPOS_HEREDADOS = {}; UNIDADES_RESERVA_VINCULADA = null; UNIDAD_ID_CONSTRUCCION = null;
-  buildForm();
   const d = data.datos || {};
+  // El idioma con el que se guardó (ver contractPayload) manda sobre el que
+  // hubiera quedado puesto del contrato anterior o del arranque — ANTES de
+  // buildForm(), que es quien pinta las etiquetas con el LANG vigente.
+  // Contratos guardados antes del 10-sep-2026 no traen `lang`: se quedan con
+  // lo que ya hubiera (el 'es' de fábrica, o el 'en' fijo de cc00014_timon).
+  if(d.lang === 'en' || d.lang === 'es') LANG = d.lang;
+  buildForm();
   // Poderes guardados antes del 17-ago: sus campos usaban las claves del
   // apoderado del VENDEDOR. Se traducen aqui, en memoria (ver POA_CLAVES_VIEJAS).
   if(data.tipo === 'poa') traducePoderViejo(d.fields);
@@ -4374,6 +4399,10 @@ async function openSavedContract(id){
   Object.keys(AUTO_UNIDAD).forEach(k=>delete AUTO_UNIDAD[k]);   // ver la nota junto a resetBorrador()
   aplicarReglasCampos();
   refreshHitos();
+  // El toggle ES/EN se pintó una vez al arrancar la app: si este contrato
+  // restauró un LANG distinto (arriba), su pastilla activa se queda desfasada
+  // sin este repintado — el agente vería "ES" marcado con el documento en inglés.
+  document.querySelectorAll('#langToggle button').forEach(b=> b.classList.toggle('on', b.dataset.l===LANG));
   updateSaveButton(); editBtnIdle(); render();
   // el candado de «enviado a firma» se aplica al abrir: si el contrato tiene un
   // enlace vivo o una firma recogida, el formulario entra en solo lectura
