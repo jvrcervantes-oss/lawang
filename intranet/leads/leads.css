@@ -231,6 +231,34 @@
 .ev .qué { font: 400 13.5px/1.5 var(--text); word-break: break-word; }
 .ev .cuando { font: 400 11.5px/1.3 var(--text); color: var(--mist); margin-top: 3px; }
 
+/* ---- Setter IA y Agenda de cierre (tarjetas, no tabla) -------------------- */
+/* Las dos pestañas del bot (10-sep-2026) nacieron como `.tabla` genérica —
+   correcta en tokens (mismos colores/radios que el resto) pero sin el
+   lenguaje visual de tarjeta que ya usan Pipeline y el cajón: iniciales en
+   círculo, barra de color a la izquierda, chips de estado. Se corrige aquí
+   para que las seis pestañas se lean como una sola herramienta, no cuatro
+   con tarjetas y dos con filas de tabla. */
+.avatar { width: 38px; height: 38px; border-radius: 9999px; flex: 0 0 auto;
+  background: var(--primary-soft); color: var(--primary);
+  display: grid; place-items: center; font: 700 13px/1 var(--sans); }
+
+.conversaciones, .citas { display: flex; flex-direction: column; gap: 9px; padding: 12px; }
+
+.conversacion, .cita { display: flex; align-items: center; gap: 12px; background: var(--panel);
+  border: 1px solid var(--line); border-left: 3px solid var(--mist); border-radius: var(--r-box);
+  padding: 11px 13px; box-shadow: var(--e1); }
+.conversacion:hover { border-color: var(--primary-line); cursor: pointer; }
+.conversacion.activa { border-left-color: var(--primary); }
+.cita.con-meet { border-left-color: var(--primary); }
+
+.conversacion .cuerpo, .cita .cuerpo { flex: 1 1 auto; min-width: 0; }
+.conversacion .quien, .cita .quien { font: 600 14px/1.3 var(--sans); letter-spacing: -.01em; }
+.conversacion .sub, .cita .sub { font: 400 12px/1.4 var(--text); color: var(--mist); margin-top: 2px; }
+.cita .cuando { font: 600 11px/1 var(--text); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--mist); margin-bottom: 3px; }
+.conversacion .acciones, .cita .acciones { display: flex; align-items: center; gap: 6px;
+  flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
+
 /* ---- Tabla --------------------------------------------------------------- */
 .tabla { width: 100%; border-collapse: collapse; }
 .tabla th { font: 600 11px/1 var(--text); letter-spacing: .04em; text-transform: uppercase;

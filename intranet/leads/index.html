@@ -66,7 +66,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=2">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=3">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -171,6 +171,7 @@
 
   <!-- =================== SETTER IA (bot de WhatsApp) =================== -->
   <section class="crm-vista" id="v-setter" hidden>
+    <div class="kpis" id="kpis-setter"></div>
     <div class="aviso gris" id="avisoSetter" hidden></div>
     <div class="caja">
       <header>
@@ -180,12 +181,13 @@
         </div>
         <button type="button" class="btn" id="btnRefrescarSetter"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
       </header>
-      <div class="tabla-scroll"><table class="tabla" id="tSetter"></table></div>
+      <div id="tSetter" class="conversaciones"></div>
     </div>
   </section>
 
   <!-- ======================= AGENDA DE CIERRE =========================== -->
   <section class="crm-vista" id="v-agenda" hidden>
+    <div class="kpis" id="kpis-agenda"></div>
     <div class="aviso gris" id="avisoAgendaMeet" hidden>
       El enlace de Google Meet se genera solo en cuanto el estudio active el acceso de Google Workspace. Hasta entonces, la cita se agenda igual — el closer comparte su propio enlace con el lead.
     </div>
@@ -208,7 +210,7 @@
     </div>
     <div class="caja">
       <header><div><h2>Próximas llamadas</h2><p id="subAgenda">—</p></div></header>
-      <div class="tabla-scroll"><table class="tabla" id="tAgenda"></table></div>
+      <div id="tAgenda" class="citas"></div>
     </div>
   </section>
 
@@ -216,6 +218,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=4"></script>
+<script src="/intranet/leads/leads.js?v=5"></script>
 </body>
 </html>

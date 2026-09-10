@@ -677,27 +677,43 @@ async function cargarSetter(){
   pintarSetter();
 }
 
+const iniciales = nombre => (nombre || '').trim().split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
+
+function kpisSetter(){
+  const activas = CONVERSACIONES.filter(l => !l.paused).length;
+  const pausadas = CONVERSACIONES.length - activas;
+  $('#kpis-setter').innerHTML = `
+    <div class="kpi"><div class="rot">Conversaciones<i class="ph ph-chats-circle"></i></div>
+      <p class="cifra">${CONVERSACIONES.length}</p><p class="pie">con el bot de WhatsApp</p></div>
+    <div class="kpi fuerte"><div class="rot">IA activa<i class="ph ph-robot"></i></div>
+      <p class="cifra">${activas}</p><p class="pie">respondiendo sola ahora mismo</p></div>
+    <div class="kpi"><div class="rot">En pausa<i class="ph ph-pause"></i></div>
+      <p class="cifra oro">${pausadas}</p><p class="pie">las lleva una persona</p></div>`;
+}
+
 function pintarSetter(){
-  const filas = CONVERSACIONES.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  $('#tSetter').innerHTML = `
-    <thead><tr><th>Lead</th><th>Teléfono</th><th>Última actividad</th><th>Estado</th><th></th></tr></thead>
-    <tbody>${filas.length ? filas.map(l => `
-      <tr data-phone="${esc(l.phone)}" style="cursor:pointer">
-        <td><b>${esc(l.name || 'sin nombre')}</b></td>
-        <td>${esc(l.phone || '')}</td>
-        <td>${l.lastInboundAt ? esc(fechaHora(new Date(l.lastInboundAt).toISOString())) : '—'}</td>
-        <td>${l.paused
-          ? '<span class="chip gris"><i class="ph ph-pause"></i> En pausa · responde una persona</span>'
-          : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}</td>
-        <td style="text-align:right">
-          <button class="btn mini" data-pausar="${esc(l.phone)}" data-a="${l.paused ? '0' : '1'}">
-            ${l.paused ? 'Reanudar IA' : 'Pausar IA'}</button></td>
-      </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">Sin conversaciones todavía.</p></td></tr>'}</tbody>`;
+  kpisSetter();
+  const filas = CONVERSACIONES.slice().sort((a, b) => (b.lastInboundAt || 0) - (a.lastInboundAt || 0));
+  $('#tSetter').innerHTML = filas.length ? filas.map(l => `
+    <article class="conversacion${l.paused ? '' : ' activa'}" data-phone="${esc(l.phone)}">
+      <div class="avatar">${esc(iniciales(l.name))}</div>
+      <div class="cuerpo">
+        <div class="quien">${esc(l.name || 'sin nombre')}</div>
+        <div class="sub">${esc(l.phone || '')} · ${l.lastInboundAt ? esc(fechaHora(new Date(l.lastInboundAt).toISOString())) : 'sin actividad'}</div>
+      </div>
+      ${l.paused
+        ? '<span class="chip gris"><i class="ph ph-pause"></i> Pausada</span>'
+        : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}
+      <div class="acciones">
+        <button class="btn mini" data-pausar="${esc(l.phone)}" data-a="${l.paused ? '0' : '1'}">
+          ${l.paused ? 'Reanudar IA' : 'Pausar IA'}</button>
+      </div>
+    </article>`).join('') : '<p class="vacio">Sin conversaciones todavía.</p>';
   $('#tSetter').querySelectorAll('[data-pausar]').forEach(b => b.onclick = ev => {
     ev.stopPropagation();
     pausarLead(b.dataset.pausar, b.dataset.a === '1');
   });
-  $('#tSetter').querySelectorAll('tr[data-phone]').forEach(tr => tr.onclick = () => verConversacion(tr.dataset.phone));
+  $('#tSetter').querySelectorAll('.conversacion').forEach(c => c.onclick = () => verConversacion(c.dataset.phone));
 }
 
 async function pausarLead(phone, paused){
@@ -744,23 +760,43 @@ async function cargarAgenda(){
   pintarAgenda();
 }
 
+function kpisAgenda(filas){
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const futuras = filas.filter(c => new Date(c.when) >= new Date());
+  const conMeet = filas.filter(c => c.meetLink).length;
+  const proxima = futuras[0];
+  $('#kpis-agenda').innerHTML = `
+    <div class="kpi"><div class="rot">Citas agendadas<i class="ph ph-calendar"></i></div>
+      <p class="cifra">${filas.length}</p><p class="pie">${futuras.length} todavía por llegar</p></div>
+    <div class="kpi"><div class="rot">Con Meet listo<i class="ph ph-video-camera"></i></div>
+      <p class="cifra oro">${conMeet}</p><p class="pie">${filas.length - conMeet} sin enlace automático</p></div>
+    <div class="kpi fuerte"><div class="rot">Próxima llamada<i class="ph ph-clock"></i></div>
+      <p class="cifra" style="font-size:19px">${proxima ? esc(fechaHora(proxima.when)) : '—'}</p>
+      <p class="pie">${proxima ? esc(proxima.name || proxima.phone || 'sin nombre') : 'nada agendado por delante'}</p></div>`;
+}
+
 function pintarAgenda(){
   const filas = CITAS.slice().sort((a, b) => new Date(a.when) - new Date(b.when));
+  kpisAgenda(filas);
   const hayMeetActivo = filas.some(c => c.meetLink);
   $('#avisoAgendaMeet').hidden = filas.length === 0 || hayMeetActivo;
-  $('#subAgenda').textContent = filas.length ? filas.length + ' citas agendadas' : 'Sin citas agendadas todavía.';
-  $('#tAgenda').innerHTML = `
-    <thead><tr><th>Cuándo</th><th>Lead</th><th>Closer</th><th>Meet</th><th></th></tr></thead>
-    <tbody>${filas.length ? filas.map(c => `
-      <tr>
-        <td style="white-space:nowrap">${esc(fechaHora(c.when))}</td>
-        <td><b>${esc(c.name || c.phone || 'sin nombre')}</b>${c.phone ? `<div style="font-size:11.5px;color:var(--mist)">${esc(c.phone)}</div>` : ''}</td>
-        <td>${esc(c.closer || '—')}</td>
-        <td>${c.meetLink ? `<a class="btn mini pri" target="_blank" rel="noopener" href="${esc(c.meetLink)}"><i class="ph ph-video-camera"></i>Unirse</a>` : '<span class="chip gris">sin enlace todavía</span>'}</td>
-        <td style="text-align:right;white-space:nowrap">
-          <button class="btn mini" data-editar="${esc(c.id)}">Editar</button>
-          <button class="btn mini" data-borrar="${esc(c.id)}">Borrar</button></td>
-      </tr>`).join('') : '<tr><td colspan="5"><p class="vacio">Sin citas agendadas.</p></td></tr>'}</tbody>`;
+  $('#subAgenda').textContent = filas.length ? filas.length + (filas.length === 1 ? ' cita agendada' : ' citas agendadas') : 'Sin citas agendadas todavía.';
+  $('#tAgenda').innerHTML = filas.length ? filas.map(c => `
+    <article class="cita${c.meetLink ? ' con-meet' : ''}">
+      <div class="avatar">${esc(iniciales(c.name || c.phone))}</div>
+      <div class="cuerpo">
+        <div class="cuando">${esc(fechaHora(c.when))}</div>
+        <div class="quien">${esc(c.name || c.phone || 'sin nombre')}</div>
+        <div class="sub">${c.phone ? esc(c.phone) + ' · ' : ''}closer: ${esc(c.closer || '—')}${c.notes ? ' · ' + esc(c.notes) : ''}</div>
+      </div>
+      ${c.meetLink
+        ? `<a class="btn mini pri" target="_blank" rel="noopener" href="${esc(c.meetLink)}"><i class="ph ph-video-camera"></i>Unirse</a>`
+        : '<span class="chip gris">sin enlace todavía</span>'}
+      <div class="acciones">
+        <button class="btn mini" data-editar="${esc(c.id)}">Editar</button>
+        <button class="btn mini" data-borrar="${esc(c.id)}">Borrar</button>
+      </div>
+    </article>`).join('') : '<p class="vacio">Sin citas agendadas.</p>';
   $('#tAgenda').querySelectorAll('[data-editar]').forEach(b => b.onclick = () => cargarCitaEnFormulario(b.dataset.editar));
   $('#tAgenda').querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => borrarCita(b.dataset.borrar));
 }
