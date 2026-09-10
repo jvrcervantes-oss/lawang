@@ -38,9 +38,13 @@ const BANCOS_CONSTRUCCION = ['sandalwoods_dbs_sg', 'sandalwoods_danamon_eur', 'n
 // cc00014_timon (10-sep-2026): mismo contrato de construcción de Timon, reabierto
 // para una segunda unidad (CC00088) — antes traía la cuenta de Sandal Woods
 // Danamon EUR fija en la plantilla (<!--cuenta:sandalwoods_danamon_eur-->), sin
-// selección posible. El owner pidió poder elegir; usa las mismas 4 vías que
-// 'ppjb_construccion' porque es el mismo tipo de operación, solo con plantilla
-// propia por las cláusulas ya negociadas con este comprador.
+// selección posible. Empezó con las mismas 4 vías que 'ppjb_construccion', pero
+// el owner pidió también la de PT Tepi Sun Gai (OCBC) — la del Promotor, no la
+// de un constructor — así que lleva SU PROPIA lista y no la comparte con
+// 'ppjb_construccion': si se hubiera añadido a BANCOS_CONSTRUCCION, esa cuenta
+// se habría colado también en todos los demás contratos de construcción, que
+// nunca la pidieron.
+const BANCOS_CC00014_TIMON = [...BANCOS_CONSTRUCCION, 'contractor_tepisungai'];
 /* La Carta de Reserva cobra SIEMPRE en la misma cuenta (owner, 8-sep-2026:
    «precarga siempre Tepi Sun Gai (OCBC) y quita las demás»). Se filtra aquí y
    no en la sección del formulario porque este es el único interruptor por
@@ -53,7 +57,8 @@ const BANCO_UNICO = { carta_reserva: 'contractor_tepisungai' };
 function bankOptionsFor(slug){
   const opts = bankOptions();
   if(BANCO_UNICO[slug]) return opts.filter(o=>o[0]===BANCO_UNICO[slug]);
-  if(slug==='ppjb_construccion' || slug==='cc00014_timon') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
+  if(slug==='cc00014_timon') return opts.filter(o=>BANCOS_CC00014_TIMON.includes(o[0]));
+  if(slug==='ppjb_construccion') return opts.filter(o=>BANCOS_CONSTRUCCION.includes(o[0]));
   if(slug==='ppjb_parcela') return opts;
   return opts.filter(o=>!o[0].startsWith('notario_'));
 }
