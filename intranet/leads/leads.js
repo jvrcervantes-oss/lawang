@@ -67,7 +67,10 @@ const PREGUNTA = {
 };
 
 /* ---------- utilidades ---------- */
-const esc = t => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+/* `esc` y `toast` vienen de suite-comun.js (se carga antes en index.html). NO
+   redeclarar aqui: dos `const`/`function` del mismo nombre en el mismo scope
+   global revientan el script entero con «Identifier ya declarado» y ninguna
+   de las cuatro vistas llega a pintarse (incidente 10-sep-2026). */
 const dias = iso => { const d = new Date(iso); return isNaN(d) ? null : Math.floor((Date.now() - d) / 864e5); };
 const fecha = iso => { const d = new Date(iso); return isNaN(d) ? (iso || '')
   : d.toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }); };
@@ -78,12 +81,6 @@ const edad = d => d === null ? '' : (d === 0 ? 'hoy' : d === 1 ? 'ayer' : d + ' 
    cual. Un importe convertido a ojo es peor que un importe en rupias. */
 const dinero = (n, mon) => n == null ? '—'
   : new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Number(n)) + (mon ? ' ' + mon : '');
-
-function toast(msg){
-  const t = $('#toast'); if(!t) return alert(msg);
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 4200);
-}
 
 /* Un `href` construido con texto de un tercero. Solo se dejan pasar los tres
    esquemas que esta herramienta usa; cualquier otra cosa devuelve null y el
