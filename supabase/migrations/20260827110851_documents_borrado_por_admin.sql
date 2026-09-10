@@ -14,4 +14,4 @@
 create policy "admins borran documentos"
   on public.documents for delete
   to authenticated
-  using (public.es_admin());
+  using (public.es_admin());;

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palm Field — Investor Deck | Lawang</title>
+<meta name="description" content="Palm Field, Bali — project documentation, real plot inventory and FAQ for prospective investors. Request a plot reservation directly.">
+<meta name="robots" content="noindex, nofollow">
+<!--
+  Investor Deck / data room público — Palm Field (piloto), 10-sep-2026.
+  Construido tras revisión previa (Seguridad+Legal+Desarrollo, CEO/flujos/
+  revision_previa.md). Decisiones del owner, ya asumidas: acceso público sin
+  gate, reserva en autoservicio total.
+
+  DISTINTO de /portal/ (área de clientes que YA firmaron) y de la maqueta
+  Stitch «Portal del Inversor» de intranet/v4 (área privada del comprador,
+  otra cosa): esto es un data room de PRE-VENTA para due-diligence, sin login,
+  fuera de la intranet — no carga guard.js ni topbar.js a propósito.
+
+  Documentación: fotos reales del dossier de Palm Field (copiadas de
+  intranet/dossier/palmfield/, NO enlazadas ahí — esa ruta vive detrás del
+  guard.js casero de intranet, ver contexto/suite_lawang.md).
+  Masterplan: lee en vivo la tabla `unidades` vía la RPC pública
+  investor_deck_parcelas() — solo las 34 parcelas de Palm Field marcadas
+  publicado_investor_deck=true, nunca precio_construccion/notas/comprador.
+  Reserva: código de email de un solo uso → investor-deck-reservar (Edge) →
+  investor_deck_reservar() (RPC, service_role, bloqueo atómico). Las dos Edge
+  Functions están escritas y en el repo (supabase/functions/investor-deck-*)
+  pero AÚN NO DESPLEGADAS — el MCP de despliegue lo bloqueó el clasificador de
+  permisos de Auto Mode (acción de producción, exige aprobación humana
+  explícita). Hasta que se desplieguen, el formulario de abajo devuelve error
+  de red: es esperado, no un bug de esta página.
+  El botón "Reservar" además exige que `investor_deck_config` (los tres
+  parámetros legales) y `cuota_reserva_investor_deck` de cada parcela estén
+  rellenos por el owner — nacen vacíos a propósito, nada de plazos inventados.
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap');
+  :root{
+    --tg:#485B37; --dl:#104C4F; --be:#42210B; --sc:#8F9B7A;
+    --va:#2E3437; --ss:#BEB3A5; --rl:#F5F0E6;
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--rl);color:var(--va);font-family:'Jost',sans-serif;font-weight:300;line-height:1.6}
+  h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:500;color:var(--va);margin:0 0 .4em}
+  a{color:var(--dl)}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  header.hero{background:linear-gradient(180deg,rgba(16,76,79,.86),rgba(16,76,79,.72)),url('assets/gallery/12-masterplan.jpg') center/cover;color:var(--rl);padding:88px 0 64px}
+  header.hero .wrap{max-width:900px}
+  header.hero h1{color:#fff;font-size:clamp(34px,5vw,58px);letter-spacing:.01em}
+  header.hero p{font-size:18px;max-width:640px;opacity:.94}
+  .tag{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border:1px solid rgba(255,255,255,.5);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+  section{padding:56px 0}
+  section h2{font-size:clamp(26px,3.4vw,36px);border-bottom:1px solid var(--ss);padding-bottom:14px;margin-bottom:26px}
+  .notice{border:1px solid var(--be);background:#fff;padding:16px 18px;border-radius:4px;font-size:14.5px;margin-bottom:28px}
+  .notice b{color:var(--be)}
+  .grid-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .grid-gallery figure{margin:0;position:relative;overflow:hidden;border-radius:3px;aspect-ratio:4/3;background:#ddd}
+  .grid-gallery img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+  .grid-gallery img:hover{transform:scale(1.045)}
+  .grid-gallery figcaption{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.62),transparent);color:#fff;font-size:12px;padding:8px 10px;letter-spacing:.02em}
+  .faq details{border-bottom:1px solid var(--ss);padding:14px 0}
+  .faq summary{cursor:pointer;font-family:'Cormorant Garamond',serif;font-size:19px;color:var(--dl);list-style:none}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary:before{content:'+ ';color:var(--tg)}
+  .faq details[open] summary:before{content:'– '}
+  .faq p{margin:.6em 0 0;font-size:14.5px;color:#444}
+  table.plots{width:100%;border-collapse:collapse;font-size:14px;background:#fff}
+  table.plots th,table.plots td{padding:10px 12px;text-align:left;border-bottom:1px solid #e7e2d8}
+  table.plots th{font-family:'Jost';font-weight:500;letter-spacing:.03em;text-transform:uppercase;font-size:11.5px;color:var(--dl)}
+  .pill{display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+  .pill.disponible{background:#e7efe1;color:var(--tg)}
+  .pill.reservada{background:#f3ead8;color:#8a6a1f}
+  .pill.bloqueada, .pill.no_disponible{background:#eee;color:#888}
+  button.reservar{background:var(--dl);color:#fff;border:0;padding:7px 14px;border-radius:3px;font-family:'Jost';font-size:12.5px;cursor:pointer;letter-spacing:.03em}
+  button.reservar:disabled{background:#c9c4b7;cursor:not-allowed}
+  .loading, .empty{padding:20px;color:#777;font-size:14px}
+  .disclaimer{font-size:12.5px;color:#777;margin-top:16px;line-height:1.55}
+  /* modal */
+  .backdrop{position:fixed;inset:0;background:rgba(20,20,18,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .backdrop.open{display:flex}
+  .modal{background:#fff;max-width:480px;width:100%;border-radius:6px;padding:28px 26px;max-height:90vh;overflow:auto}
+  .modal h3{margin-bottom:6px}
+  .modal .sub{font-size:13px;color:#777;margin-bottom:18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;color:var(--dl);margin-bottom:4px;font-weight:500}
+  .field input{width:100%;padding:9px 10px;border:1px solid var(--ss);border-radius:3px;font-family:'Jost';font-size:14px}
+  .consent{display:flex;gap:8px;font-size:12.5px;align-items:flex-start;margin:16px 0}
+  .consent input{margin-top:3px}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+  .btn-ghost{background:none;border:1px solid var(--ss);padding:8px 16px;border-radius:3px;cursor:pointer;font-family:'Jost'}
+  .msg{font-size:13.5px;padding:10px 12px;border-radius:3px;margin-bottom:14px}
+  .msg.err{background:#fbe9e7;color:#a13b2a}
+  .msg.ok{background:#e7efe1;color:var(--tg)}
+  footer{padding:36px 0 60px;font-size:12.5px;color:#888;border-top:1px solid var(--ss);margin-top:40px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="tag">Investor Deck · Due Diligence</span>
+    <h1>Palm Field, Bali</h1>
+    <p>Documentation, real plot inventory and answers for investors evaluating Palm Field before purchase — not a client portal, not a binding offer of investment.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="notice">
+    <b>What this is.</b> Palm Field is a freehold-style land plot development in Balian Hills, Bali, held under <b>Hak Sewa</b> (Indonesian long-lease tenure), developed and marketed by <b>PT SAN DAL WOODS</b> under the Lawang brand. This page presents the project for due diligence purposes. Prices, availability and dimensions shown below are <b>informational and subject to confirmation</b> — they do not constitute a binding offer. This is a real-estate purchase, not a securities or investment product.
+  </div>
+</div>
+
+<section id="documentation">
+  <div class="wrap">
+    <h2>Documentation</h2>
+    <p style="max-width:640px;margin-bottom:22px;color:#555">Real photography from the Palm Field project — masterplan, plots, surrounding land and villa models already delivered on neighbouring phases.</p>
+    <div class="grid-gallery" id="gallery"></div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <details open>
+        <summary>What tenure do I acquire?</summary>
+        <p><b>Hak Sewa</b> (long-term leasehold under Indonesian law), the standard route for foreign investors on this project — not Hak Milik, which Indonesian law reserves for Indonesian citizens. Terms are confirmed in the Plot Lock agreement that follows a reservation.</p>
+      </details>
+      <details>
+        <summary>What does the reservation fee cover?</summary>
+        <p>It reserves the selected plot for the validity period stated in the Letter of Reservation, while you complete due diligence. It is <b>not</b> the deed of sale and does not transfer any right over the land. If you withdraw, or the reservation lapses, the fee is refunded per the terms in the document you receive.</p>
+      </details>
+      <details>
+        <summary>Are the prices shown final?</summary>
+        <p>No — land prices shown are the reference price per the current catalogue and are confirmed in the Plot Lock agreement. They are not a binding offer.</p>
+      </details>
+      <details>
+        <summary>Is this an investment product?</summary>
+        <p>No. This is the direct purchase of a real-estate asset (a land plot), not a security, fund, or tokenised instrument. Lawang also operates a separate, distinct project for tokenised real-estate exposure (LawangRWA) — Palm Field is not part of it.</p>
+      </details>
+      <details>
+        <summary>What happens after I reserve a plot?</summary>
+        <p>You receive the Letter of Reservation by email together with payment instructions for the reservation fee. Our team follows up to move the process to the next stage (Plot Lock / Hak Sewa) within the reservation's validity period.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="masterplan">
+  <div class="wrap">
+    <h2>Masterplan &amp; plot inventory</h2>
+    <p style="max-width:640px;margin-bottom:18px;color:#555">Live inventory, read directly from Palm Field's records. A plot shown as <b>available</b> can be reserved below; reserved or locked plots are shown for reference only.</p>
+    <figure style="margin:0 0 22px">
+      <img src="assets/gallery/11-masterplan-aerial.jpg" alt="Palm Field masterplan, aerial view" style="width:100%;border-radius:4px;display:block">
+    </figure>
+    <div id="plots-wrap"><div class="loading">Loading live plot data…</div></div>
+    <p class="disclaimer">Sizes, prices and availability are read live from Palm Field's records and are informational. Exact boundaries are confirmed by topographic survey prior to Plot Lock. A plot without a configured reservation fee is shown but cannot yet be reserved online — contact our team directly for those.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Lawang Estate — Palm Field, Balian Hills, Bali. Developed by PT SAN DAL WOODS.<br>
+    This page does not replace legal or financial advice. Nothing here constitutes an offer to sell securities or a solicitation of investment.<br>
+    Questions: <a href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a></p>
+  </div>
+</footer>
+
+<div class="backdrop" id="backdrop">
+  <div class="modal">
+    <div id="step-request">
+      <h3>Reserve plot <span id="plot-code-label"></span></h3>
+      <div class="sub">We'll email you a one-time verification code before anything is issued.</div>
+      <div id="msg-area"></div>
+      <div class="field"><label for="f-nombre">Full name</label><input id="f-nombre" autocomplete="name"></div>
+      <div class="field"><label for="f-pasaporte">Passport number</label><input id="f-pasaporte"></div>
+      <div class="field"><label for="f-email">Email</label><input id="f-email" type="email" autocomplete="email"></div>
+      <div class="field"><label for="f-telefono">Phone</label><input id="f-telefono" autocomplete="tel"></div>
+      <div class="field"><label for="f-nacionalidad">Nationality</label><input id="f-nacionalidad"></div>
+      <div class="field"><label for="f-domicilio">Address</label><input id="f-domicilio"></div>
+      <label class="consent"><input type="checkbox" id="f-consent"> I have read and agree to the reservation terms and Lawang's privacy policy, and consent to my data being processed to manage this reservation.</label>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-cancel">Cancel</button>
+        <button class="reservar" id="btn-send-code">Send verification code</button>
+      </div>
+    </div>
+    <div id="step-verify" style="display:none">
+      <h3>Enter your code</h3>
+      <div class="sub">We sent a 6-digit code to your email. It expires in 10 minutes.</div>
+      <div id="msg-area-2"></div>
+      <div class="field"><label for="f-codigo">Verification code</label><input id="f-codigo" inputmode="numeric" maxlength="6"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="btn-back">Back</button>
+        <button class="reservar" id="btn-confirm">Confirm reservation</button>
+      </div>
+    </div>
+    <div id="step-done" style="display:none">
+      <h3 id="done-title"></h3>
+      <div id="done-body" style="font-size:14px;color:#444"></div>
+      <div class="modal-actions"><button class="reservar" id="btn-close">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var SB_URL = 'https://vtulllundrfennhjddhc.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0dWxsbHVuZHJmZW5uaGpkZGhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMTgwNTcsImV4cCI6MjA5OTU5NDA1N30.K9nikTSO-7Z9civle2EzUhNp3kx8foljV06PRSWMZcs';
+  var PROYECTO = 'Palm Field W5';
+
+  // ── galería (nombres reales de intranet/dossier/palmfield/) ──────────────
+  var GALLERY = [
+    ['12-masterplan.jpg','Masterplan'],
+    ['11-masterplan-aerial.jpg','Masterplan — aerial'],
+    ['10-plot-aerial.jpg','Plot — aerial view'],
+    ['09-the-plot.jpg','The plot'],
+    ['09-the-view.jpg','The view'],
+    ['09-the-villas.jpg','The villas'],
+    ['06-balian-coast.jpg','Balian coast'],
+    ['07-balian-sunset.jpg','Balian sunset'],
+    ['01-volcano-ocean.jpg','Volcano & ocean'],
+    ['03-jungle-canopy.jpg','Jungle canopy'],
+    ['14-dune-exterior.jpg','Dune model — exterior'],
+    ['15-dune-plan.jpg','Dune model — floor plan'],
+    ['17-dream-evening.jpg','Dream model — evening'],
+    ['18-dream-day.jpg','Dream model — day']
+  ];
+  var g = document.getElementById('gallery');
+  GALLERY.forEach(function(it){
+    var fig = document.createElement('figure');
+    var img = document.createElement('img');
+    img.src = 'assets/gallery/' + it[0];
+    img.alt = it[1];
+    img.loading = 'lazy';
+    var cap = document.createElement('figcaption');
+    cap.textContent = it[1];
+    fig.appendChild(img); fig.appendChild(cap);
+    g.appendChild(fig);
+  });
+
+  // ── masterplan / inventario en vivo ───────────────────────────────────────
+  var plotsWrap = document.getElementById('plots-wrap');
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function fmtMoney(n, cur){ if(n==null) return '—'; return (cur||'EUR') + ' ' + Number(n).toLocaleString('en-GB'); }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_parcelas', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows){
+      if(!rows || !rows.length){ plotsWrap.innerHTML = '<div class="empty">No plots published yet.</div>'; return; }
+      var t = document.createElement('table');
+      t.className = 'plots';
+      t.innerHTML = '<thead><tr><th>Plot</th><th>Size</th><th>Reference price</th><th>Status</th><th></th></tr></thead>';
+      var tb = document.createElement('tbody');
+      rows.forEach(function(row){
+        var tr = document.createElement('tr');
+        var puedeReservar = row.estado === 'disponible' && row.cuota_reserva != null && Number(row.cuota_reserva) > 0;
+        tr.innerHTML =
+          '<td>'+esc(row.codigo)+'</td>' +
+          '<td>'+esc(row.superficie_m2)+' m²</td>' +
+          '<td>'+fmtMoney(row.precio, row.moneda)+'</td>' +
+          '<td><span class="pill '+esc(row.estado)+'">'+esc(row.estado.replace('_',' '))+'</span></td>' +
+          '<td></td>';
+        var td = tr.lastElementChild;
+        var btn = document.createElement('button');
+        btn.className = 'reservar';
+        if(puedeReservar){
+          btn.textContent = 'Reserve';
+          btn.addEventListener('click', function(){ openModal(row.codigo); });
+        } else if(row.estado === 'disponible'){
+          btn.textContent = 'Contact us';
+          btn.title = 'Reservation fee not yet configured for this plot — contact our team.';
+          btn.addEventListener('click', function(){ window.location.href = 'mailto:sales@lawangproperties.com?subject=Palm%20Field%20'+encodeURIComponent(row.codigo); });
+        } else {
+          btn.disabled = true; btn.textContent = '—';
+        }
+        td.appendChild(btn);
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb);
+      plotsWrap.innerHTML = '';
+      plotsWrap.appendChild(t);
+    })
+    .catch(function(){
+      plotsWrap.innerHTML = '<div class="empty">We could not load live plot data right now. Please contact <a href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+    });
+
+  // ── flujo de reserva ───────────────────────────────────────────────────
+  var EDGE_BASE = SB_URL + '/functions/v1/';
+  var backdrop = document.getElementById('backdrop');
+  var stepRequest = document.getElementById('step-request');
+  var stepVerify = document.getElementById('step-verify');
+  var stepDone = document.getElementById('step-done');
+  var currentPlot = null;
+
+  function openModal(codigo){
+    currentPlot = codigo;
+    document.getElementById('plot-code-label').textContent = codigo;
+    stepRequest.style.display = ''; stepVerify.style.display = 'none'; stepDone.style.display = 'none';
+    document.getElementById('msg-area').innerHTML = '';
+    backdrop.classList.add('open');
+  }
+  function closeModal(){ backdrop.classList.remove('open'); currentPlot = null; }
+  document.getElementById('btn-cancel').addEventListener('click', closeModal);
+  document.getElementById('btn-close').addEventListener('click', closeModal);
+  document.getElementById('btn-back').addEventListener('click', function(){ stepVerify.style.display='none'; stepRequest.style.display=''; });
+
+  function msg(elId, text, cls){
+    document.getElementById(elId).innerHTML = '<div class="msg '+cls+'">'+esc(text)+'</div>';
+  }
+
+  document.getElementById('btn-send-code').addEventListener('click', function(){
+    var email = document.getElementById('f-email').value.trim();
+    var nombre = document.getElementById('f-nombre').value.trim();
+    var pasaporte = document.getElementById('f-pasaporte').value.trim();
+    var consent = document.getElementById('f-consent').checked;
+    if(!nombre || !pasaporte || !email){ msg('msg-area','Please fill in your name, passport number and email.','err'); return; }
+    if(!consent){ msg('msg-area','Please accept the reservation terms and privacy policy to continue.','err'); return; }
+    var btn = document.getElementById('btn-send-code');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    fetch(EDGE_BASE + 'investor-deck-codigo', {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body: JSON.stringify({ email: email })
+    }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(){
+        stepRequest.style.display = 'none'; stepVerify.style.display = '';
+        document.getElementById('msg-area-2').innerHTML = '';
+      }).catch(function(){
+        msg('msg-area', 'We could not reach the server. Please try again in a moment or email sales@lawangproperties.com directly.', 'err');
+      }).finally(function(){ btn.disabled = false; btn.textContent = 'Send verification code'; });
+  });
+
+  document.getElementById('btn-confirm').addEventListener('click', function(){
+    var codigo = document.getElementById('f-codigo').value.trim();
+    if(!codigo){ msg('msg-area-2','Enter the code we emailed you.','err'); return; }
+    var btn = document.getElementById('btn-confirm');
+    btn.disabled = true; btn.textContent = 'Confirming…';
+    fetch(EDGE_BASE + 'investor-deck-reservar', {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      body: JSON.stringify({
+        email: document.getElementById('f-email').value.trim(),
+        codigo: codigo,
+        consentimiento: document.getElementById('f-consent').checked,
+        proyecto: PROYECTO,
+        parcela_codigo: currentPlot,
+        nombre: document.getElementById('f-nombre').value.trim(),
+        pasaporte: document.getElementById('f-pasaporte').value.trim(),
+        telefono: document.getElementById('f-telefono').value.trim(),
+        nacionalidad: document.getElementById('f-nacionalidad').value.trim(),
+        domicilio: document.getElementById('f-domicilio').value.trim()
+      })
+    }).then(function(r){ return r.json().catch(function(){ return {ok:false}; }); })
+      .then(function(res){
+        if(res && res.ok){
+          stepVerify.style.display = 'none'; stepDone.style.display = '';
+          document.getElementById('done-title').textContent = 'Reservation confirmed';
+          document.getElementById('done-body').innerHTML = 'Your reservation number is <b>'+esc(res.numero)+'</b>. You will receive the Letter of Reservation and payment instructions by email shortly.';
+        } else {
+          var motivos = {
+            codigo_invalido: 'That code is invalid or has expired. Please go back and request a new one.',
+            no_disponible: 'This plot is no longer available. Please choose another one.',
+            reserva_no_configurada: 'Online reservation is not yet enabled for this plot — please contact sales@lawangproperties.com.',
+            falta_consentimiento: 'Please accept the reservation terms to continue.',
+            datos_incompletos: 'Some required information is missing.',
+            espera_un_momento: 'Please wait a moment before trying again.'
+          };
+          msg('msg-area-2', motivos[(res&&res.motivo)] || 'We could not complete the reservation. Please try again or contact sales@lawangproperties.com.', 'err');
+        }
+      }).catch(function(){
+        msg('msg-area-2', 'We could not reach the server. Please try again in a moment.', 'err');
+      }).finally(function(){ btn.disabled = false; btn.textContent = 'Confirm reservation'; });
+  });
+})();
+</script>
+</body>
+</html>

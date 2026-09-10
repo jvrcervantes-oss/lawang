@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carta de Reserva — Investor Deck — LAWANG</title>
+<style>@page{ size:A4; margin:0; } body{ margin:0; }</style>
+</head>
+<body>
+  <!-- 10-sep-2026. Tipo propio `carta_reserva_investor_deck` (serie CD), nacido para el
+       flujo AUTOSERVICIO del data room público de inversores (revisión previa con
+       Seguridad+Legal+Desarrollo, CEO/flujos/revision_previa.md). No comparte tipo con
+       `carta_reserva` / `carta_reserva_ampliada`: TIPO_SLUG mapea tipo→plantilla 1:1 y
+       compartirlo rompería la reapertura de cualquiera de las dos familias.
+
+       Por qué es DISTINTA de las otras Cartas y no una simple copia:
+       - No hay agente delante para explicar nada, así que esta plantilla dice EXPRESAMENTE
+         lo que en las otras se da por hablado: que esto NO es el AJB ni transfiere título
+         (hallazgo Legal #1 de la revisión previa), y la causal de nulidad si otra reserva
+         sobre la misma parcela ya existía (hallazgo Legal #5).
+       - Los tres parámetros legales (validez, plazo de devolución, jurisdicción) son
+         tokens que SOLO rellena `investor_deck_config` — si esa tabla está vacía, la
+         función `investor_deck_reservar()` ni siquiera emite el contrato. Nunca un plazo
+         inventado en la plantilla.
+       - Precio, superficie y parcela salen de `unidades` en el momento de la reserva
+         (server-side), nunca de lo que teclea el visitante.
+       - Solo personas físicas en v1 (adq1_tipo siempre 'persona') — una sociedad exige
+         más verificación de la que da un código por email; queda para una fase futura. -->
+  <div class="doc">
+    <img class="doc-watermark" src="assets/brand/tiki-totem.png" alt="">
+
+    <div class="doc-title">
+      <span class="light"><span data-lang="es">Carta de</span><span data-lang="en">Letter of</span></span>
+      <span class="bold"><span data-lang="es">Reserva</span><span data-lang="en">Reservation</span></span>
+    </div>
+    <div class="doc-date">
+      <span data-lang="es">En Indonesia, a fecha <span class="f f-sm">{{fecha_solicitud}}</span> · Nº de Contrato: <span class="f f-md">{{contrato_num}}</span> · Solicitada desde el Investor Deck (autoservicio, sin intervención de un agente)</span>
+      <span data-lang="en">In Indonesia, dated <span class="f f-sm">{{fecha_solicitud}}</span> · Contract No.: <span class="f f-md">{{contrato_num}}</span> · Requested via the Investor Deck (self-service, no agent involved)</span>
+    </div>
+
+    <div class="doc-aviso" style="border:1px solid #b00; padding:10px; margin:14px 0; font-size:9.5pt">
+      <p data-lang="es"><b>Aviso importante — lea antes de continuar.</b> Este documento acredita el pago de una cuota de reserva y NO es el Acta de Compraventa (AJB) ni ningún otro título traslativo. No transfiere la propiedad ni ningún derecho real sobre la parcela. Su único efecto es reservar la parcela indicada durante el plazo de validez, a la espera de que las Partes avancen a la siguiente fase (Hak Sewa / Bloqueo de Parcela) tras el debido proceso (due diligence).</p>
+      <p data-lang="en"><b>Important notice — read before continuing.</b> This document evidences payment of a reservation fee and is NOT the Deed of Sale (AJB) nor any other title-transferring instrument. It does not transfer ownership or any real right over the plot. Its only effect is to reserve the indicated plot for the validity period, pending the Parties moving to the next stage (Hak Sewa / Plot Lock) after due diligence.</p>
+    </div>
+
+    <h2><span data-lang="es">Las Partes</span><span data-lang="en">The Parties</span></h2>
+    <div class="party">
+      <div class="role"><span data-lang="es">Primera Parte</span><span data-lang="en">First Party</span></div>
+      <p data-lang="es">1. <span class="f">{{prom_razon}}</span>, sociedad constituida conforme a las leyes de la República de Indonesia, con domicilio registrado en <span class="f">{{prom_domicilio}}</span>, NPWP <span class="f">{{prom_npwp}}</span>. En este acto representada por D. <span class="f">{{prom_rep}}</span> (en adelante, la «Primera Parte» o el «Promotor»).</p>
+      <p data-lang="en">1. <span class="f">{{prom_razon}}</span>, a company incorporated under the laws of the Republic of Indonesia, with registered address at <span class="f">{{prom_domicilio}}</span>, NPWP <span class="f">{{prom_npwp}}</span>. Represented herein by Mr. <span class="f">{{prom_rep}}</span> (hereinafter, the "First Party" or the "Developer").</p>
+    </div>
+    <div class="party">
+      <div class="role"><span data-lang="es">Segunda Parte</span><span data-lang="en">Second Party</span></div>
+      <p data-lang="es">2. <span class="f">{{adq1_nombre}}</span>, de nacionalidad <span class="f">{{adq1_nacionalidad}}</span>, titular del pasaporte n.º <span class="f">{{adq1_pasaporte}}</span>, teléfono <span class="f">{{adq1_telefono}}</span> y email <span class="f">{{adq1_email}}</span>, con domicilio en <span class="f">{{adq1_domicilio}}</span>. En este acto actuando en nombre propio, habiendo confirmado el control de la dirección de correo electrónico indicada mediante código de un solo uso (en adelante, la «Segunda Parte» o el «Reservante»).</p>
+      <p data-lang="en">2. <span class="f">{{adq1_nombre}}</span>, of <span class="f">{{adq1_nacionalidad}}</span> nationality, holder of passport no. <span class="f">{{adq1_pasaporte}}</span>, telephone <span class="f">{{adq1_telefono}}</span> and email <span class="f">{{adq1_email}}</span>, domiciled at <span class="f">{{adq1_domicilio}}</span>. Acting herein in their own name, having confirmed control of the email address stated above via a single-use code (hereinafter, the "Second Party" or the "Applicant").</p>
+    </div>
+
+    <h2><span data-lang="es">Objeto</span><span data-lang="en">Purpose</span></h2>
+    <p data-lang="es">1.1 El Promotor reserva a favor del Reservante, con carácter temporal y no exclusivo de ningún otro derecho, la parcela <span class="f">{{parcela_codigo}}</span> del proyecto <span class="f">{{proyecto_nombre}}</span> (Bali, Indonesia), de superficie aproximada <span class="f">{{superficie_suelo_m2}}</span> m², en régimen de tenencia <span class="f">{{regimen_tenencia}}</span>. La superficie exacta y los linderos definitivos se confirman en el levantamiento topográfico previo a la siguiente fase.</p>
+    <p data-lang="en">1.1 The Developer reserves, in favour of the Applicant, on a temporary and non-exclusive-of-any-other-right basis, plot <span class="f">{{parcela_codigo}}</span> of the <span class="f">{{proyecto_nombre}}</span> project (Bali, Indonesia), of approximate area <span class="f">{{superficie_suelo_m2}}</span> m², under <span class="f">{{regimen_tenencia}}</span> tenure. The exact surface and final boundaries are confirmed by the topographic survey prior to the next stage.</p>
+
+    <h2><span data-lang="es">Precio de referencia y cuota de reserva</span><span data-lang="en">Reference price and reservation fee</span></h2>
+    <p data-lang="es">2.1 El precio de referencia del suelo de la parcela es de <span class="f">{{precio_suelo}}</span> EUR, informativo y sujeto a confirmación en el contrato de Bloqueo de Parcela — no constituye una oferta vinculante de precio. 2.2 La cuota de reserva es de <span class="f">{{precio_reserva}}</span> EUR, que el Reservante se compromete a abonar según las instrucciones que recibirá del Promotor tras la emisión de este documento.</p>
+    <p data-lang="en">2.1 The reference land price for the plot is EUR <span class="f">{{precio_suelo}}</span>, informational and subject to confirmation in the Plot Lock agreement — it does not constitute a binding price offer. 2.2 The reservation fee is EUR <span class="f">{{precio_reserva}}</span>, which the Applicant undertakes to pay per the instructions to be received from the Developer following issuance of this document.</p>
+
+    <h2><span data-lang="es">Validez y devolución</span><span data-lang="en">Validity and refund</span></h2>
+    <p data-lang="es">3.1 Esta reserva tiene una validez de <span class="f">{{validez_dias}}</span> días naturales desde la fecha de este documento. Transcurrido ese plazo sin que las Partes hayan avanzado a la siguiente fase, la reserva caduca automáticamente y la parcela vuelve a estar disponible. 3.2 Si el Reservante desiste antes de avanzar a la siguiente fase, o si la reserva caduca por el transcurso del plazo del punto 3.1, el Promotor devuelve la cuota de reserva en un plazo máximo de <span class="f">{{plazo_devolucion_dias}}</span> días naturales, descontando únicamente los gastos bancarios de la transferencia. 3.3 Si, en el momento de solicitarse, la parcela ya hubiera sido válidamente reservada por otra persona con fecha anterior, esta Carta es nula y sin efecto, y el Promotor devuelve la totalidad de la cuota de reserva en el plazo del punto 3.2.</p>
+    <p data-lang="en">3.1 This reservation is valid for <span class="f">{{validez_dias}}</span> calendar days from the date of this document. If the Parties have not moved to the next stage within that period, the reservation automatically lapses and the plot becomes available again. 3.2 If the Applicant withdraws before moving to the next stage, or the reservation lapses under clause 3.1, the Developer refunds the reservation fee within a maximum of <span class="f">{{plazo_devolucion_dias}}</span> calendar days, deducting only the bank transfer fees. 3.3 If, at the time of this request, the plot had already been validly reserved by another person with an earlier date, this Letter is null and void, and the Developer refunds the full reservation fee within the period set out in clause 3.2.</p>
+
+    <h2><span data-lang="es">Ley aplicable y foro</span><span data-lang="en">Governing law and forum</span></h2>
+    <p data-lang="es">4.1 Esta Carta de Reserva se rige e interpreta conforme a <span class="f">{{jurisdiccion}}</span>.</p>
+    <p data-lang="en">4.1 This Letter of Reservation is governed by and construed in accordance with <span class="f">{{jurisdiccion}}</span>.</p>
+
+    <h2><span data-lang="es">Protección de datos</span><span data-lang="en">Data protection</span></h2>
+    <p data-lang="es">5.1 Los datos personales facilitados por el Reservante se tratan por el Promotor con la finalidad de gestionar esta reserva y, en su caso, avanzar a las siguientes fases de la operación, conforme a la política de privacidad aceptada expresamente antes de la emisión de este documento.</p>
+    <p data-lang="en">5.1 Personal data provided by the Applicant is processed by the Developer for the purpose of managing this reservation and, where applicable, progressing to the next stages of the transaction, in accordance with the privacy policy expressly accepted prior to the issuance of this document.</p>
+
+    <div class="firmas" style="margin-top:40px;display:flex;justify-content:space-between">
+      <div>
+        <p data-lang="es">Primera Parte<br><span class="f">{{prom_rep}}</span></p>
+        <p data-lang="en">First Party<br><span class="f">{{prom_rep}}</span></p>
+      </div>
+      <div>
+        <p data-lang="es">Segunda Parte<br><span class="f">{{adq1_nombre}}</span></p>
+        <p data-lang="en">Second Party<br><span class="f">{{adq1_nombre}}</span></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -20,4 +20,4 @@ drop policy if exists "cada uno ve lo suyo, el admin todo" on public.notificacio
 create policy "cada uno ve lo suyo, el admin todo"
   on public.notificaciones for select
   using (public.es_admin()
-         or (destinatario is not null and destinatario = (select auth.email())));
+         or (destinatario is not null and destinatario = (select auth.email())));;

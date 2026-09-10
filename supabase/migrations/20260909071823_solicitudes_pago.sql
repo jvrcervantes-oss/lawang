@@ -1,51 +1,19 @@
 -- destructivo-ok: falso positivo del guardrail — aquí no hay ningún UPDATE de
 -- datos; lo que casa con «UPDATE sin WHERE» es el `for update` de la policy de
--- RLS y el `before update on` del trigger. Solo CREA objetos. Cero filas tocadas.
+-- RLS y el `before update on` del trigger. La migración solo CREA una tabla
+-- nueva (solicitudes_pago), sus policies, triggers e índices. Cero filas tocadas.
 -- ============================================================================
 -- SOLICITUDES DE PAGO — 9-sep-2026 (encargo del owner: «un apartado donde los
 -- comerciales nos puedan crear solicitudes de pago»)
--- ----------------------------------------------------------------------------
--- La cola de entrada de Administración: el comercial (rol agente) pide que se
--- cobre/emita algo — comprador y/o contrato, concepto e importe — y el admin
--- resuelve. La solicitud NO emite ni cobra nada sola: el dinero real sigue
--- pasando únicamente por Facturas con sus guardarraíles. Herramienta:
--- /intranet/solicitudes/.
---
--- Diseño pasado por revisión previa (Seguridad + Datos + Administración,
--- 9-sep-2026) y esto es lo que cambió respecto al primer plan:
---   · La máquina de estados vive AQUÍ, no en la app: un trigger BEFORE UPDATE
---     compara old/new (cosa que una policy WITH CHECK no puede) y las policies
---     de RLS solo reparten el acceso por fila. Sin esto, una llamada REST con
---     la publishable key podía reabrir una solicitud resuelta.
---   · resuelto_por / resuelto_en los SELLA el trigger con auth.uid()/now();
---     lo que mande el cliente en esas columnas se ignora.
---   · La moneda tiene UN dueño: con contrato enlazado se lee del contrato en
---     vivo (no se persiste aquí); solo una solicitud sin contrato lleva moneda
---     propia. El CHECK de abajo hace las dos cosas obligatorias y excluyentes.
---   · aprobada ≠ facturada: existe el estado terminal 'cerrada', que exige
---     factura_id y solo se alcanza desde 'aprobada' (hallazgo de
---     Administración: sin él se acumulan aprobadas que nadie factura nunca).
---
--- DESCARTES, por escrito (norma de la revisión previa):
---   · Sin serie de numeración tipo contratos (set_contrato_numero): esto no es
---     un documento que salga hacia un tercero, es una cola interna. Un identity
---     basta para nombrarla (SP-n) y no toca los cuatro sitios de LAW-48.
---   · El importe no se ata por FK a un hito de contrato_vencimientos: la
---     solicitud es una PETICIÓN (señales, reservas, conceptos sueltos), no un
---     apunte contable, y esta tabla no se agrega en ninguna vista de cartera o
---     caja — no crea segunda fuente de dinero. La fuente del dinero contractual
---     sigue siendo Vencimientos.
+-- Registro completo con porqués: supabase/migrations/20260909120000_solicitudes_pago.sql
 -- ============================================================================
 
 create table public.solicitudes_pago (
   id           uuid primary key default gen_random_uuid(),
-  -- solo para nombrarla en pantalla y en la campana: «SP-7»
   numero       bigint generated always as identity,
   client_id    uuid references public.clients(id),
   contrato_id  uuid references public.contratos(id),
   concepto     text not null,
-  -- numeric, no text: dinero_no_es_texto.sql (19-ago). El cliente parsea lo
-  -- tecleado con lwParseImporte ANTES de mandarlo.
   importe      numeric not null,
   moneda       text,
   vence_el     date,
@@ -62,9 +30,7 @@ create table public.solicitudes_pago (
   constraint solicitud_importe_positivo  check (importe > 0),
   constraint solicitud_estado_valido
     check (estado in ('pendiente','aprobada','rechazada','anulada','cerrada')),
-  -- a quién se le cobra: comprador, contrato, o los dos — pero nunca ninguno
   constraint solicitud_con_destino check (client_id is not null or contrato_id is not null),
-  -- la moneda tiene UN dueño: la del contrato manda cuando lo hay
   constraint solicitud_moneda_un_dueno check (
     (contrato_id is not null and moneda is null) or
     (contrato_id is null and moneda in ('EUR','USD','IDR'))),
@@ -84,8 +50,6 @@ create index solicitudes_pago_creado_por_idx on public.solicitudes_pago(creado_p
 
 alter table public.solicitudes_pago enable row level security;
 
--- ── RLS: reparto de ACCESO por fila. Las transiciones NO viven aquí (una
---    policy no ve old y new a la vez): viven en el trigger de abajo. ─────────
 create policy "solicitudes: equipo lee lo suyo, admin todo"
   on public.solicitudes_pago for select
   using (public.es_admin() or creado_por = (select auth.uid()));
@@ -99,10 +63,6 @@ create policy "solicitudes: admin resuelve, el creador toca la suya pendiente"
   using (public.es_admin() or (creado_por = (select auth.uid()) and estado = 'pendiente'))
   with check (public.es_admin() or creado_por = (select auth.uid()));
 
--- sin policy de DELETE: una solicitud no se borra, se anula o se rechaza
--- (el rastro es el punto). anon y portal: sin policies = sin acceso.
-
--- ── Alta: lo que mande el cliente en las columnas selladas se pisa ──────────
 create or replace function public._trg_solicitud_pago_alta()
 returns trigger
 language plpgsql
@@ -126,12 +86,6 @@ create trigger trg_solicitud_pago_alta
   before insert on public.solicitudes_pago
   for each row execute function public._trg_solicitud_pago_alta();
 
--- ── La máquina de estados, entera y en un solo sitio ────────────────────────
---    pendiente → aprobada | rechazada   (solo admin; el trigger sella quién y cuándo)
---    pendiente → anulada                (solo el creador; también deja sello)
---    pendiente → pendiente              (el creador corrige su petición)
---    aprobada  → cerrada                (solo admin, exige factura_id; congela el resto)
---    todo lo demás → error con el motivo dicho con todas las letras
 create or replace function public._trg_solicitud_pago_transicion()
 returns trigger
 language plpgsql
@@ -140,14 +94,12 @@ set search_path to ''
 as $$
 declare v_contrato_factura uuid;
 begin
-  -- columnas de identidad y autoría: inmutables siempre
   new.numero := old.numero;
   new.creado_por := old.creado_por;
   new.creado_en := old.creado_en;
 
   if old.estado = 'pendiente' then
     if new.estado = 'pendiente' then
-      -- corrección del creador: los sellos de resolución no se tocan
       new.resuelto_por := null; new.resuelto_en := null;
       new.factura_id := null; new.motivo_rechazo := null;
       new.concepto := btrim(new.concepto);
@@ -163,7 +115,6 @@ begin
     else
       raise exception 'desde pendiente solo se puede aprobar, rechazar o anular' using errcode = '22023';
     end if;
-    -- al resolver, lo pedido queda congelado tal cual se pidió
     new.client_id := old.client_id;   new.contrato_id := old.contrato_id;
     new.concepto := old.concepto;     new.importe := old.importe;
     new.moneda := old.moneda;         new.vence_el := old.vence_el;
@@ -179,13 +130,10 @@ begin
     if new.factura_id is null then
       raise exception 'cerrar exige la factura que la cierra' using errcode = '22023';
     end if;
-    -- si los dos tienen contrato, tiene que ser el mismo: enlazar la factura
-    -- de otro contrato es exactamente el cruce que esta columna viene a evitar
     select f.contrato_id into v_contrato_factura from public.facturas f where f.id = new.factura_id;
     if old.contrato_id is not null and v_contrato_factura is distinct from old.contrato_id then
       raise exception 'esa factura es de otro contrato' using errcode = '22023';
     end if;
-    -- todo lo demás, congelado como quedó al aprobar
     new.client_id := old.client_id;   new.contrato_id := old.contrato_id;
     new.concepto := old.concepto;     new.importe := old.importe;
     new.moneda := old.moneda;         new.vence_el := old.vence_el;
@@ -203,11 +151,6 @@ create trigger trg_solicitud_pago_transicion
   before update on public.solicitudes_pago
   for each row execute function public._trg_solicitud_pago_transicion();
 
--- ── Campana: HECHOS al canal existente (notificaciones.sql, 4-ago) ──────────
---    Al crear → destinatario null (= solo administradores). Al resolver → el
---    email del creador, el MISMO criterio de reparto que ya usa el canal.
---    El fallo del aviso nunca deshace la escritura que lo disparó (patrón de
---    _trg_hilo_soporte_actividad). El texto lo pinta topbar.js con esc().
 create or replace function public._trg_solicitud_pago_aviso()
 returns trigger
 language plpgsql
@@ -226,7 +169,6 @@ begin
             '/intranet/solicitudes/?id=' || new.id::text);
   elsif tg_op = 'UPDATE' and new.estado is distinct from old.estado and new.estado <> 'pendiente' then
     select u.email into v_email from public.usuarios u where u.user_id = new.creado_por;
-    -- al creador no se le avisa de lo que hizo él mismo (anular la suya)
     if v_email is not null and new.estado <> 'anulada' then
       insert into public.notificaciones (tipo, titulo, detalle, destinatario, contrato_id, enlace)
       values ('solicitud_pago',
@@ -241,10 +183,10 @@ begin
   end if;
   return new;
 exception when others then
-  return new;   -- la solicitud ya se guardó; un fallo del aviso no la deshace
+  return new;
 end
 $$;
 
 create trigger trg_solicitud_pago_aviso
   after insert or update on public.solicitudes_pago
-  for each row execute function public._trg_solicitud_pago_aviso();
+  for each row execute function public._trg_solicitud_pago_aviso();;

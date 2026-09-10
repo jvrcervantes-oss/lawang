@@ -1,5 +1,5 @@
 -- destructivo-ok: el drop de abajo tumba una tabla creada HOY MISMO (migración
--- 20260909071823_solicitudes_pago) con CERO filas — verificado con count(*)
+-- solicitudes_pago, 20260909071823) con CERO filas — verificado con count(*)
 -- justo antes de aplicar esto. No se pierde ni un dato: se corrige la
 -- SEMÁNTICA antes de que la use nadie. (El resto de avisos del guardrail son
 -- el mismo falso positivo de la v1: `for update` de policy y `before update
@@ -186,9 +186,6 @@ create trigger trg_solicitud_pago_transicion
   for each row execute function public._trg_solicitud_pago_transicion();
 
 -- ── Campana: HECHOS al canal existente (notificaciones.sql, 4-ago) ──────────
---    Al crear → destinatario null (= solo administradores). Al resolver o
---    pagar → el email del creador. El fallo del aviso nunca deshace la
---    escritura que lo disparó. El texto lo pinta topbar.js con esc().
 create or replace function public._trg_solicitud_pago_aviso()
 returns trigger
 language plpgsql
@@ -207,7 +204,6 @@ begin
             '/intranet/solicitudes/?id=' || new.id::text);
   elsif tg_op = 'UPDATE' and new.estado is distinct from old.estado and new.estado <> 'pendiente' then
     select u.email into v_email from public.usuarios u where u.user_id = new.creado_por;
-    -- al creador no se le avisa de lo que hizo él mismo (anular la suya)
     if v_email is not null and new.estado <> 'anulada' then
       insert into public.notificaciones (tipo, titulo, detalle, destinatario, contrato_id, enlace)
       values ('solicitud_pago',
@@ -230,4 +226,4 @@ $$;
 
 create trigger trg_solicitud_pago_aviso
   after insert or update on public.solicitudes_pago
-  for each row execute function public._trg_solicitud_pago_aviso();
+  for each row execute function public._trg_solicitud_pago_aviso();;

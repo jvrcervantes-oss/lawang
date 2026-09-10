@@ -8,7 +8,7 @@
 -- que un permiso sin rellenar parezca configurado. Vacío = NINGUNO, igual que
 -- `proyectos`, y así las dos listas del panel se leen igual.
 --
--- ⚠️ Deja fuera al agente que siga con la lista vacía: al aplicarla era uno solo
+-- ⚠️ Deja fuera al agente que siga con la lista vacía: hoy es uno solo
 -- (blueiestates@gmail.com, 0 contratos creados). No se le rellena aquí a
 -- escondidas: un permiso se concede en el panel, a la vista, no en una migración.
 create or replace function public.contratos_tipo_permitido()
@@ -21,6 +21,8 @@ declare
   v_rol    text;
   v_tipos  text[];
 begin
+  -- Sin sesión (service role, edges, cron) no se comprueba: esos caminos ya
+  -- tienen su propia puerta y bloquearlos aquí rompería la firma automática.
   if auth.uid() is null then
     return new;
   end if;
@@ -28,6 +30,8 @@ begin
   select rol, tipos_contrato into v_rol, v_tipos
     from public.usuarios where user_id = auth.uid();
 
+  -- Solo aplica a AGENTES: un administrador trabaja con todos los tipos por
+  -- definición, y así además nadie puede dejarse a sí mismo sin poder emitir.
   if v_rol is distinct from 'agente' then
     return new;
   end if;
@@ -48,3 +52,4 @@ $$;
 
 comment on column public.usuarios.tipos_contrato is
   'Tipos de contrato que esta persona puede emitir. Array VACÍO = NINGUNO, igual que `proyectos`. Se comprueba en el trigger `contratos_tipo_permitido`, no solo en el navegador. Solo afecta al rol `agente`.';
+;

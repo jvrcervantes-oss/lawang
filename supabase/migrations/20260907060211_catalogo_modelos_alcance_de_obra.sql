@@ -1,28 +1,26 @@
 /* Alcance de obra y acabados al catálogo — 7-sep-2026.
+   Fichero canónico: supabase/migrations/<version>_catalogo_modelos_alcance_de_obra.sql
 
    POR QUÉ. La web pasa a leer el catálogo (decisión del owner: fuente única
-   desde el día 1), y `modelo/modelos.php` publicaba dos cosas que el catálogo
+   desde el día 1), y `modelo/modelos.php` publica dos cosas que el catálogo
    todavía no sabía: `alcance` (qué incluye y qué no incluye la obra) y
    `acabados`. Sustituir el fichero sin traérselas dejaría la ficha de Dali sin
    su alcance de obra — una regresión con otra piel, que es justo lo que prohíbe
    la Regla 0 bis de contexto/suite_lawang.md.
 
-   ⚠️ SOLO DALI LAS TIENE, Y ESO NO SE EXTRAPOLA. El comentario del propio
-   modelos.php lo decía: `acabados`/`alcance` solo se rellenan con lo verificado
-   en el ANEXO DE OBRA de ese modelo, y hoy solo existe el de Dali. Copiar su
-   alcance a los otros cuatro sería inventarse un contrato — y un contrato
-   inventado sobre qué incluye una obra es de las mentiras más caras que puede
-   publicar esta web.
+   Solo Dali las tiene, y eso NO se extrapola: el comentario de modelos.php dice
+   que `acabados`/`alcance` solo se rellenan con lo verificado en el anexo de
+   obra del modelo, y hoy solo existe el de Dali. Copiar su alcance a los otros
+   cuatro sería inventarse un contrato.
 
    jsonb y no tablas hijas a propósito: son listas editoriales que nadie cruza
    ni agrega — nada hace un join contra «Exterior terrace». Una tabla por línea
    de texto sería estructura sin ninguna pregunta que responda.
 
-   -- destructivo-ok: no hay DROP ni DELETE. El único UPDATE va acotado por
-   `where slug = 'dali'`. El `create or replace` de catalogo_publico() sustituye
-   la función por una que devuelve DOS claves más y ninguna menos, verificado
-   campo a campo contra la anterior antes de aplicar.
-*/
+   -- destructivo-ok: `drop policy` no aparece; el único DROP es implícito en el
+   `create or replace function` de catalogo_publico(), que sustituye la función
+   por una versión que devuelve DOS claves más y ninguna menos. Verificado
+   contra la anterior campo a campo antes de aplicar. */
 
 alter table public.modelos add column if not exists alcance  jsonb;
 alter table public.modelos add column if not exists acabados jsonb;
@@ -90,4 +88,4 @@ revoke all on function public.catalogo_publico() from public;
 grant execute on function public.catalogo_publico() to anon, authenticated;
 
 comment on function public.catalogo_publico() is
-  'Lo único del catálogo que ve un anónimo: modelos publicados, con specs, techos, extras, alcance de obra y acabados. Nunca notas, ni precios por proyecto (modelos_villa), ni nada de unidades. Declarada en departamentos/seguridad/rls_publico.txt.';
+  'Lo único del catálogo que ve un anónimo: modelos publicados, con specs, techos, extras, alcance de obra y acabados. Nunca notas, ni precios por proyecto (modelos_villa), ni nada de unidades. Declarada en departamentos/seguridad/rls_publico.txt.';;

@@ -16,9 +16,4 @@
 -- contrato_numero, facturado, pct_cobrado de contratos ajenos -- saltandose
 -- "agentes leen sus contratos" (es_suyo) y "agentes leen unidades" (es_agente()).
 -- Repone el estado correcto; no toca ninguna fila.
---
--- CREATE OR REPLACE VIEW no conserva reloptions: quien vuelva a tocar esta
--- vista tiene que repetir esta linea EN LA MISMA migracion, o queda otra vez
--- SECURITY DEFINER en silencio. 2a vez que pasa -> contexto/seguridad_2026.md
--- ya lo tiene como regla explicita, no solo como comentario de migracion.
-alter view public.unidades_estado set (security_invoker = true);
+alter view public.unidades_estado set (security_invoker = true);;

@@ -38,3 +38,4 @@ drop trigger if exists trg_unidad_precio_suma on public.unidades;
 create trigger trg_unidad_precio_suma
 before insert or update on public.unidades
 for each row execute function public.unidad_precio_es_la_suma();
+;

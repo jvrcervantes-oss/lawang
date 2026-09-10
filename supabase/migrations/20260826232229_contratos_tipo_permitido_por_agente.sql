@@ -47,3 +47,4 @@ drop trigger if exists trg_contratos_tipo_permitido on public.contratos;
 create trigger trg_contratos_tipo_permitido
   before insert on public.contratos
   for each row execute function public.contratos_tipo_permitido();
+;

@@ -93,7 +93,16 @@ declare
     -- por `listas.test.js`. Es la SEGUNDA vez consecutiva que un tipo nuevo entra
     -- por un .sql suelto en vez de por esta lista: el guardarrail funciona, lo
     -- que falla es la costumbre de dar de alta un tipo por otro camino.
-    ['adenda',                 'AD', 'public.contratos_ad_seq']
+    ['adenda',                 'AD', 'public.contratos_ad_seq'],
+    -- Carta de Reserva — Investor Deck (10-sep-2026, commit de esta sesión):
+    -- único tipo emitible en AUTOSERVICIO, desde el data room público de
+    -- Palm Field (contracts/sql/investor_deck_palmfield.sql). Serie propia CD:
+    -- no comparte tipo con carta_reserva/carta_reserva_ampliada por el mismo
+    -- motivo de siempre (TIPO_SLUG 1:1, reapertura). Aplicada en vivo el mismo
+    -- día por la migración `investor_deck_palmfield` — esta fila es la fuente
+    -- que la vuelve a generar, para no repetir el error de CP/adenda (parchear
+    -- la definición viva sin pasar por esta lista).
+    ['carta_reserva_investor_deck', 'CD', 'public.contratos_cd_seq']
   ];
   i          int;
   n          int := array_length(tipos, 1);

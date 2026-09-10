@@ -10,9 +10,9 @@
 -- en el buzón de alguien. Un documento cuyo enlace de firma ya salió no puede
 -- cambiar por debajo del que lo va a firmar. La base sabía algo que yo no había
 -- preguntado, y ese rechazo es el guardarraíl funcionando.
---   · 1 firmado (CR00021)         → no se toca
---   · 1 enviado a firma (RP00021) → no se toca
---   · 73 migrables                → estos
+--   · 1 firmado         → no se toca (dice lo que decía el día que se firmó)
+--   · 1 enviado a firma → no se toca (RP00021)
+--   · 73 migrables      → estos
 --
 -- El respaldo se queda EN LA BASE: deshacer esto es una sola sentencia contra
 -- esa tabla, y un fichero con 73 UUID en el repo es un fichero que nadie
@@ -41,3 +41,4 @@ update public.contratos c
    and c.pdf_firmado_hash is null
    and not exists (select 1 from public.contrato_firmas f
                     where f.contrato_id = c.id and f.estado in ('pendiente','firmado'));
+;

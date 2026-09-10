@@ -59,7 +59,7 @@
      /facturas. `creado_por` no es un adorno: es con lo que la RLS decide quién
      puede editar su propio documento. -->
 <script src="assets/autoria.js?v=4e47fa06"></script>
-<script src="assets/vocabulario.js?v=1bed6ecd"></script>
+<script src="assets/vocabulario.js?v=f84d8753"></script>
 <script src="assets/dinero.js?v=ced29282"></script>
 <script src="assets/dialogo.js?v=8197f360"></script>
 <!-- Quien compra, normalizado. La MISMA lista que usa Facturas: el nombre de
@@ -437,6 +437,13 @@ const TEMPLATES = [
   // priorizo el contraste porque su fallo es real y visible (la cabecera de la
   // tabla de pagos ilegible, que es como se cayo Soft Canopy), y porque rompe la
   // agrupacion por familia -- este sale tierra, no pizarra como el resto de Reserva.
+  // 10-sep-2026: única plantilla que emite el data room público de inversores en
+  // autoservicio (contracts/sql/investor_deck_palmfield.sql). Aparece aquí para que
+  // un agente pueda ABRIR y revisar/reenviar una reserva ya creada — no para que la
+  // cree a mano: no lleva "Nuevo <tipo>" propio en el flujo normal de la herramienta.
+  { slug:'carta_reserva_investor_deck', file:'templates/carta_reserva_investor_deck.html', cover:'#3C3422',
+    name:{es:'Carta de Reserva (Investor Deck)',en:'Reservation Letter (Investor Deck)'},
+    l2:{es:'de Reserva · autoservicio',en:'Reservation · self-service'}, ready:true },
   { slug:'carta_reserva_pma', file:'templates/carta_reserva_pma.html', cover:'#3C3422',
     // `name` es lo que IMPRIME la portada (injectBrandAndCover -> cov_t/cov_t_id),
     // no solo lo que se lee en el desplegable. Con "(PT PMA)" detras el titulo se
@@ -587,6 +594,7 @@ const CONTRACT_TIPO = {
   // estatutos_sw NO lleva número ni guardado — plantilla fija, sin campos editables.
   cc00014_timon:'cc00014_timon',   // un solo ejemplar, texto fijo — mismo motivo que ppjb_bonian_c2
   adenda:'adenda',   // serie AD · modifica un contrato ya firmado sin rehacerlo
+  carta_reserva_investor_deck:'carta_reserva_investor_deck',   // serie CD · autoservicio, data room público
 };
 const TIPO_SLUG = Object.fromEntries(Object.entries(CONTRACT_TIPO).map(([slug,tipo])=>[tipo,slug]));
 
@@ -623,6 +631,7 @@ const TIPO_PREFIX = { reserva_parcela:'RP', construccion:'CC', contrato_general:
   ppjb_bonian:'PB', ppjb_bonian_c2:'C2', hak_sewa_notario:'HS', carta_reserva_hak_sewa:'CH', poa:'PA',
   carta_reserva_pma:'CP',
   adenda:'AD',            // 9-sep-2026 -- ver la nota de su fila en tipos_de_contrato.sql
+  carta_reserva_investor_deck:'CD',   // 10-sep-2026 -- ver la nota de su fila en tipos_de_contrato.sql
   cc00014_timon:'CC' };   // misma serie que 'construccion' -- ver tipos_de_contrato.sql
 /* Los nombres salen de assets/vocabulario.js, compartidos con Operaciones.
    Estaban copiados en las dos y habian divergido: aqui 'reserva_parcela' se

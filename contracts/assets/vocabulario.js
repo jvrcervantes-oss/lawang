@@ -53,6 +53,7 @@ const LW_TIPO_CONTRATO = {
   poa:                    'Poder Notarial',
   cc00014_timon:          'Construcción · CC00014 Timon',
   adenda:                 'Adenda a contrato',
+  carta_reserva_investor_deck: 'Carta de Reserva (Investor Deck)',
 };
 /* Cae a la clave si el tipo es nuevo y nadie lo añadió aquí. Enseñar
    `ppjb_bonian_c2` es feo, pero mentir con el nombre de otro documento es peor:
@@ -77,7 +78,7 @@ const lwTipoContrato = t => LW_TIPO_CONTRATO[t] || t || '—';
    Lo ÚNICO que se hereda de una Carta es cuánto pagó el cliente: el COBRADO sí
    suma todo el grupo, para descontárselo al pasar a Bloqueo sin duplicarlo. */
 const LW_TIPOS_PRELIMINARES = ['carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa',
-                               'carta_reserva_pma'];
+                               'carta_reserva_pma', 'carta_reserva_investor_deck'];
 const lwEsPreliminar = t => LW_TIPOS_PRELIMINARES.includes(t);
 
 
