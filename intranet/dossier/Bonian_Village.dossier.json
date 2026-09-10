@@ -1,0 +1,377 @@
+{
+ "title": "Bonian Village",
+ "sizeKey": "a4l",
+ "size": {
+  "w": 297,
+  "h": 210
+ },
+ "pages": [
+  {
+   "id": "p1",
+   "type": "cover",
+   "d": {
+    "kick": "TU FUTURA VILLA · FRENTE AL MAR",
+    "title": "BONIAN VILLAGE",
+    "claim": "Bonian Coast · Costa Oeste de Bali · Oceanfront Living &amp; Investment Opportunity",
+    "foot": "PROJECT BY LAWANG"
+   },
+   "img": {
+    "bg": "bonian/cover.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
+   "free": []
+  },
+  {
+   "id": "p2",
+   "type": "text",
+   "d": {
+    "kick": "BONIAN VILLAGE",
+    "title": "Un desarrollo de villas frente al mar",
+    "body": "Bonian Village es un exclusivo desarrollo de villas frente al mar en la Costa Oeste de Bali, diseñado para quienes buscan invertir en una ubicación única y construir una villa a medida.<br><br>A diferencia de las promociones tradicionales, Bonian Village ofrece un modelo flexible que permite a cada propietario elegir la parcela que mejor se adapte a sus necesidades y, después, construir una villa personalizada entre una selección de diseños desarrollados por el equipo de Lawang."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p3",
+   "type": "feature",
+   "d": {
+    "kick": "CÓMO FUNCIONA NUESTRO MODELO",
+    "title": "Un modelo flexible<br>diseñado para adaptarse a ti",
+    "body": "Elige tu parcela ideal (ubicación y metros que se amolden a ti) y tu villa perfecta entre 5 modelos, de 1 a 4 dormitorios. Lawang gestiona todo el proceso: diseño arquitectónico, licencias, construcción, interiorismo, paisajismo y entrega llave en mano.",
+    "c1": "VIVIENDA VACACIONAL",
+    "c2": "INVERSIÓN PARA ALQUILER",
+    "c3": "REVENTA CON POTENCIAL"
+   },
+   "img": {
+    "bg": "bonian/cover.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p4",
+   "type": "feature",
+   "d": {
+    "kick": "BALIAN",
+    "title": "Votada la mejor playa de Bali<br>por medios internacionales",
+    "body": "Las corrientes marinas frontales evitan la entrada de suciedad y mantienen la playa siempre limpia. Una de las playas más largas de Bali, con una extensión de más de 40 kilómetros — reconocida como uno de los mejores lugares para surfear en Bali.",
+    "c1": "+40 KM DE COSTA",
+    "c2": "MEJOR PLAYA DE BALI",
+    "c3": "SURF DE CLASE MUNDIAL"
+   },
+   "img": {
+    "bg": "bonian/beach.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p5",
+   "type": "plan",
+   "d": {
+    "title": "Zona Balian Hills",
+    "sub": "Social Club (1 min) · Mejan Beach (5 min) · Cascada de Pangkung (7 min) · Templo Pura Kelecung (15 min) · Balian Town (15 min)"
+   },
+   "img": {
+    "bg": "soka/corridor-map.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p6",
+   "type": "feature",
+   "d": {
+    "kick": "SERVICIOS · A 1 MINUTO EN MOTO",
+    "title": "Social Club<br>Balian Hills",
+    "body": "Lawang está desarrollando Balian Hills · Social Club a solo 1 minuto en moto de Bonian Village. Tendrá pista de tenis, pádel, gimnasio y restaurante.",
+    "c1": "TENIS · PÁDEL",
+    "c2": "GIMNASIO",
+    "c3": "RESTAURANTE"
+   },
+   "img": {
+    "bg": "bonian/social-club.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p7",
+   "type": "feature",
+   "d": {
+    "kick": "ZONA DE ALTA REVALORIZACIÓN",
+    "title": "Un crecimiento planificado,<br>no especulado",
+    "body": "El crecimiento de la zona no responde a especulación, sino a planificación pública anunciada: inclusión del North Bali International Airport en el plan nacional 2027–2030, un parque temático vinculado a Paramount Pictures, y nuevas conexiones viales hacia el oeste y norte de Bali. Referencia de mercado — Canggu: €500–800/m² · Balian (actual): €200/m².",
+    "c1": "NUEVO AEROPUERTO",
+    "c2": "PARQUE TEMÁTICO",
+    "c3": "NUEVA AUTOVÍA"
+   },
+   "img": {
+    "bg": "soka/bali-map.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p8",
+   "type": "plan",
+   "d": {
+    "title": "Ubicación del proyecto",
+    "sub": "Playa de Bonian · Templo balinés · Carretera principal a 100 metros"
+   },
+   "img": {
+    "bg": "bonian/location-map.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p9",
+   "type": "plan",
+   "d": {
+    "title": "29 parcelas",
+    "sub": "Parcelas para Villa Dali (amarillo) · Villa Dune (azul) · Villa Dream, Trinity o Temple (verde) — paga por los m² que elijas"
+   },
+   "img": {
+    "bg": "bonian/masterplan.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p10",
+   "type": "villa",
+   "d": {
+    "kick": "VILLAS · BAMBOO EDITION",
+    "name": "DALI",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "1",
+    "t1": "Dormitorio",
+    "s2": "1",
+    "t2": "Baño",
+    "s3": "1",
+    "t3": "Cocina",
+    "s4": "1",
+    "t4": "Zona ext. + piscina"
+   },
+   "img": {
+    "main": "bonian/dali.jpg",
+    "sec": "bonian/masterplan.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p11",
+   "type": "villa",
+   "d": {
+    "kick": "VILLAS · BAMBOO EDITION",
+    "name": "DUNE",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "1",
+    "t1": "Dormitorio",
+    "s2": "1",
+    "t2": "Baño",
+    "s3": "1",
+    "t3": "Cocina + salón",
+    "s4": "1",
+    "t4": "Zona ext. + piscina"
+   },
+   "img": {
+    "main": "bonian/dune.jpg",
+    "sec": "bonian/masterplan.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p12",
+   "type": "villa",
+   "d": {
+    "kick": "VILLAS · BAMBOO EDITION",
+    "name": "DREAM",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "2",
+    "t1": "Dormitorios",
+    "s2": "2",
+    "t2": "Baños",
+    "s3": "1",
+    "t3": "Cocina + salón",
+    "s4": "1",
+    "t4": "Zona ext. + piscina"
+   },
+   "img": {
+    "main": "bonian/dream.jpg",
+    "sec": "bonian/masterplan.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p13",
+   "type": "villa",
+   "d": {
+    "kick": "VILLAS · BAMBOO EDITION",
+    "name": "TRINITY",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "3",
+    "t1": "Dormitorios",
+    "s2": "2",
+    "t2": "Baños",
+    "s3": "1",
+    "t3": "Cocina + salón",
+    "s4": "1",
+    "t4": "Zona ext. + piscina"
+   },
+   "img": {
+    "main": "bonian/trinity.jpg",
+    "sec": "bonian/masterplan.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p14",
+   "type": "villa",
+   "d": {
+    "kick": "VILLAS · BAMBOO EDITION",
+    "name": "TEMPLE",
+    "invfrom": "",
+    "price": "",
+    "areas": "",
+    "s1": "4",
+    "t1": "Dormitorios",
+    "s2": "3",
+    "t2": "Baños",
+    "s3": "1",
+    "t3": "Cocina + salón",
+    "s4": "1",
+    "t4": "Zona ext. + piscina"
+   },
+   "img": {
+    "main": "bonian/temple.jpg",
+    "sec": "bonian/masterplan.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p15",
+   "type": "feature",
+   "d": {
+    "kick": "PERSONALIZA TU VILLA",
+    "title": "Diferénciate,<br>haz tu villa única",
+    "body": "Oasis Pool: una piscina estilo playa, rodeada de plantas tropicales y rocas naturales. Zona Recovery: un espacio para el bienestar, con sauna, ice bath y jacuzzi. Kit AirBnB: la villa se entrega completamente amueblada y equipada, lista para rentabilizarla desde el primer día.",
+    "c1": "OASIS POOL",
+    "c2": "ZONA RECOVERY",
+    "c3": "KIT AIRBNB"
+   },
+   "img": {
+    "bg": "bonian/dream.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p16",
+   "type": "stats",
+   "d": {
+    "kick": "NOSOTROS",
+    "title": "Experiencia · Control · Seguridad",
+    "intro": "Lawang opera con estructura local propia, aliados técnicos y legales en terreno, y conocimiento real de normativas, tiempos y procesos en Indonesia.",
+    "n1": "",
+    "l1": "Años operando en Indonesia",
+    "n2": "",
+    "l2": "Proyectos desarrollados en Bali y Sumba",
+    "n3": "",
+    "l3": "",
+    "n4": "",
+    "l4": ""
+   },
+   "img": {
+    "side": "bonian/beach.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p17",
+   "type": "feature",
+   "d": {
+    "kick": "¿POR QUÉ INVERTIR EN BONIAN COAST?",
+    "title": "Potencial de inversión",
+    "body": "Ubicación en fase temprana de crecimiento. Oferta limitada de parcelas frente al mar y demanda creciente de villas vacacionales: un activo inmobiliario tangible en Bali.",
+    "c1": "REVALORIZACIÓN",
+    "c2": "ESCASEZ",
+    "c3": "PATRIMONIO"
+   },
+   "img": {
+    "bg": "soka/bali-map.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p18",
+   "type": "text",
+   "d": {
+    "kick": "PREVISIÓN DE RENTABILIDAD TURÍSTICA",
+    "title": "Bonian Coast · Costa Oeste de Bali",
+    "body": "Temporada alta: julio–agosto y diciembre–enero. Temporada media: mayo–junio y septiembre–octubre. Temporada baja: febrero–abril.<br><br>Bonian Coast combina una ubicación frente al océano en una de las últimas costas emergentes de Bali con un modelo de inversión diseñado para generar ingresos recurrentes y beneficiarse de la revalorización del activo a largo plazo."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p19",
+   "type": "stats",
+   "d": {
+    "kick": "ESTRUCTURA DE PROPIEDAD",
+    "title": "Tú eliges qué título de propiedad adquirir",
+    "intro": "Todo el terreno de Bonian Village es Freehold (propiedad plena) — la estructura concreta depende de quién adquiere.",
+    "n1": "90",
+    "l1": "Años de leasehold · persona física extranjera",
+    "n2": "80",
+    "l2": "Años con HGB + extensión indefinida",
+    "n3": "PT PMA",
+    "l3": "Propiedad plena (freehold) · empresa extranjera en Indonesia",
+    "n4": "100%",
+    "l4": "Propiedad plena · persona física indonesia"
+   },
+   "img": {
+    "side": "bonian/location-map.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p20",
+   "type": "text",
+   "d": {
+    "kick": "SISTEMA DE PAGOS",
+    "title": "Transparencia operativa",
+    "body": "Bloqueo de proyecto (parcela): 15 días para firmar el contrato de reserva. Contrato notarial y certificaciones legales, con seguimiento continuo y pagos vinculados a progreso real.<br><br><b>Fase 1 — 25%.</b> Reserva.<br><b>Fase 2 — 25%.</b> Inicio de la construcción.<br><b>Fase 3 — 25%.</b> Avance estructural (3 meses).<br><b>Fase 4 — 25%.</b> Fase final de obra (3 meses).<br><br>La construcción empieza el cuarto trimestre de 2026."
+   },
+   "img": {},
+   "free": []
+  },
+  {
+   "id": "p21",
+   "type": "statement",
+   "d": {
+    "big": "EL MEJOR MOMENTO PARA COMPRAR<br>UNA VILLA FRENTE AL MAR EN BALI<br>FUE HACE AÑOS.<br>EL SEGUNDO MEJOR MOMENTO ES AHORA.",
+    "note": "Bonian Village · Tu futura villa, frente al mar."
+   },
+   "img": {
+    "bg": "bonian/closing.jpg"
+   },
+   "free": []
+  },
+  {
+   "id": "p22",
+   "type": "back",
+   "d": {
+    "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862",
+    "legal": "© 2026 LAWANG · BONIAN VILLAGE · ALL RIGHTS RESERVED"
+   },
+   "img": {
+    "bg": "bonian/cover.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
+   "free": []
+  }
+ ]
+}
