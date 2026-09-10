@@ -1,148 +1,339 @@
 {
  "title": "Soka Village",
  "sizeKey": "a4l",
- "size": { "w": 297, "h": 210 },
+ "size": {
+  "w": 297,
+  "h": 210
+ },
  "pages": [
   {
-   "id": "p1", "type": "cover",
-   "d": { "kick": "WELCOME TO", "title": "SOKA VILLAGE", "claim": "Where buildings breathe the tropics. Your vision, our design.", "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS" },
-   "img": { "bg": "palmfield/01-volcano-ocean.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p1",
+   "type": "cover",
+   "d": {
+    "kick": "WELCOME TO",
+    "title": "SOKA VILLAGE",
+    "claim": "Where buildings breathe the tropics. Your vision, our design.",
+    "foot": "2026 · TROPICAL PROPERTIES · SIGNATURE DEVELOPMENTS"
+   },
+   "img": {
+    "bg": "palmfield/01-volcano-ocean.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   },
   {
-   "id": "p2", "type": "stats",
-   "d": { "kick": "INDONESIA", "title": "Internationally connected. Perfectly positioned.", "intro": "Where growth is unstoppable.",
-    "n1": "2nd", "l1": "Fastest-growing economy in Asia",
-    "n2": "G20", "l2": "Host nation in 2022",
-    "n3": "17,000+", "l3": "Islands in the archipelago",
-    "n4": "4th", "l4": "Most populous country in the world" },
-   "img": { "side": "soka/stats-side.jpg" },
+   "id": "p2",
+   "type": "stats",
+   "d": {
+    "kick": "INDONESIA",
+    "title": "Internationally connected. Perfectly positioned.",
+    "intro": "Where growth is unstoppable.",
+    "n1": "2nd",
+    "l1": "Fastest-growing economy in Asia",
+    "n2": "G20",
+    "l2": "Host nation in 2022",
+    "n3": "17,000+",
+    "l3": "Islands in the archipelago",
+    "n4": "4th",
+    "l4": "Most populous country in the world"
+   },
+   "img": {
+    "side": "soka/stats-side.jpg"
+   },
    "free": []
   },
   {
-   "id": "p3", "type": "plan",
-   "d": { "title": "Where prestige meets profitability", "sub": "+323% growth in digital nomad population · Future North Bali Airport · Future Paramount branded theme park" },
-   "img": { "bg": "soka/bali-map.jpg" },
+   "id": "p3",
+   "type": "plan",
+   "d": {
+    "title": "Where prestige meets profitability",
+    "sub": "+323% growth in digital nomad population · Future North Bali Airport · Future Paramount branded theme park"
+   },
+   "img": {
+    "bg": "soka/bali-map.jpg"
+   },
    "free": []
   },
   {
-   "id": "p4", "type": "plan",
-   "d": { "title": "Developing at the pace of the island", "sub": "West coast remains untouched — same corridor as Bonian Village, Palm Field, Horizon Villas &amp; Balian Hills Social Club" },
-   "img": { "bg": "soka/corridor-map.jpg" },
+   "id": "p4",
+   "type": "plan",
+   "d": {
+    "title": "Developing at the pace of the island",
+    "sub": "West coast remains untouched — same corridor as Bonian Village, Palm Field, Horizon Villas &amp; Balian Hills Social Club"
+   },
+   "img": {
+    "bg": "soka/corridor-map.jpg"
+   },
    "free": []
   },
   {
-   "id": "p5", "type": "feature",
-   "d": { "kick": "BALIAN HILLS SOCIAL CLUB", "title": "The heart of the community,<br>shared by every development", "body": "Special rates for residents of our other projects.", "c1": "WELLNESS · GYM", "c2": "POOL &amp; LOUNGE · PADEL", "c3": "RECOVERY AREA" },
-   "img": { "bg": "soka/social-club.jpg" },
+   "id": "p5",
+   "type": "feature",
+   "d": {
+    "kick": "BALIAN HILLS SOCIAL CLUB",
+    "title": "The heart of the community,<br>shared by every development",
+    "body": "Special rates for residents of our other projects.",
+    "c1": "WELLNESS · GYM",
+    "c2": "POOL &amp; LOUNGE · PADEL",
+    "c3": "RECOVERY AREA"
+   },
+   "img": {
+    "bg": "soka/social-club.jpg"
+   },
    "free": []
   },
   {
-   "id": "p6", "type": "cover",
-   "d": { "kick": "A PROJECT BY LAWANG", "title": "PRIVATE VILLAS", "claim": "Soka Village · Balian, Bali", "foot": "" },
-   "img": { "bg": "soka/resort-sunset.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p6",
+   "type": "cover",
+   "d": {
+    "kick": "A PROJECT BY LAWANG",
+    "title": "PRIVATE VILLAS",
+    "claim": "Soka Village · Balian, Bali",
+    "foot": ""
+   },
+   "img": {
+    "bg": "soka/resort-sunset.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   },
   {
-   "id": "p7", "type": "feature",
-   "d": { "kick": "5 MINUTES FROM THE BEACH", "title": "Where buildings breathe the tropics.<br><b>Your vision, our design</b>", "body": "23 plots from 200 m². Two typologies: Dali and Dream. Designed around comfort, tropical minimalism, and long-term value. Growth here is not driven by speculation — it is driven by publicly announced infrastructure within the same corridor.", "c1": "HGB · FREEHOLD", "c2": "23 VILLAS · FROM 200 M²", "c3": "LAND · 80 ARE" },
-   "img": { "bg": "soka/plot-aerial.jpg" },
+   "id": "p7",
+   "type": "feature",
+   "d": {
+    "kick": "5 MINUTES FROM THE BEACH",
+    "title": "Where buildings breathe the tropics.<br><b>Your vision, our design</b>",
+    "body": "Two typologies: Dali and Dream. Designed around comfort, tropical minimalism, and long-term value. Growth here is not driven by speculation — it is driven by publicly announced infrastructure within the same corridor. Plot count and sizes: a confirmar contra el inventario real.",
+    "c1": "HGB · FREEHOLD",
+    "c2": "23 VILLAS (A CONFIRMAR)",
+    "c3": ""
+   },
+   "img": {
+    "bg": "soka/plot-aerial.jpg"
+   },
    "free": []
   },
   {
-   "id": "p8", "type": "gallery",
-   "d": { "kick": "3.3 KM FROM SOKA BEACH", "title": "Tropical paradise, jungleview, riverfront", "cap1": "TROPICAL PARADISE", "cap2": "JUNGLEVIEW", "cap3": "RIVERFRONT" },
-   "img": { "g1": "soka/resort-sunset.jpg", "g2": "soka/resort-gallery2.jpg", "g3": "soka/plot-aerial.jpg" },
+   "id": "p8",
+   "type": "gallery",
+   "d": {
+    "kick": "3.3 KM FROM SOKA BEACH",
+    "title": "Tropical paradise, jungleview, riverfront",
+    "cap1": "TROPICAL PARADISE",
+    "cap2": "JUNGLEVIEW",
+    "cap3": "RIVERFRONT"
+   },
+   "img": {
+    "g1": "soka/resort-sunset.jpg",
+    "g2": "soka/resort-gallery2.jpg",
+    "g3": "soka/plot-aerial.jpg"
+   },
    "free": []
   },
   {
-   "id": "p9", "type": "feature",
-   "d": { "kick": "HIGH-VALUE INVESTMENT AREA", "title": "Your own<br>freehold villa", "body": "Gentle natural slopes. Lifestyle based on safety &amp; comfort.", "c1": "€125/SQM · LAND RATE", "c2": "FROM 200 M² · PLOTS AVAILABLE", "c3": "" },
-   "img": { "bg": "soka/slopes.jpg" },
+   "id": "p9",
+   "type": "feature",
+   "d": {
+    "kick": "HIGH-VALUE INVESTMENT AREA",
+    "title": "Your own<br>freehold villa",
+    "body": "Gentle natural slopes. Lifestyle based on safety &amp; comfort.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "soka/slopes.jpg"
+   },
    "free": []
   },
   {
-   "id": "p10", "type": "plan",
-   "d": { "title": "Masterplan", "sub": "Freehold land for investment · Plots from €125/sqm · The villas: Dali &amp; Dream" },
-   "img": { "bg": "soka/masterplan.jpg" },
+   "id": "p10",
+   "type": "plan",
+   "d": {
+    "title": "Masterplan",
+    "sub": "Freehold land for investment · The villas: Dali &amp; Dream"
+   },
+   "img": {
+    "bg": "soka/masterplan.jpg"
+   },
    "free": []
   },
   {
-   "id": "p11", "type": "villa",
-   "d": { "kick": "PRIVATE VILLAS", "name": "DALI", "invfrom": "", "price": "", "areas": "TERRACE POOL · 16 m²<br>BUILT · 30 m²",
-    "s1": "1", "t1": "Room", "s2": "1", "t2": "Bath", "s3": "1", "t3": "Kitchen", "s4": "1", "t4": "Salon" },
-   "img": { "main": "soka/dali-exterior.jpg", "sec": "soka/dali-floorplan.jpg" },
+   "id": "p11",
+   "type": "villa",
+   "d": {
+    "kick": "PRIVATE VILLAS",
+    "name": "DALI",
+    "invfrom": "",
+    "price": "",
+    "areas": "TERRACE POOL · 16 m²<br>BUILT · 30 m²",
+    "s1": "1",
+    "t1": "Room",
+    "s2": "1",
+    "t2": "Bath",
+    "s3": "1",
+    "t3": "Kitchen",
+    "s4": "1",
+    "t4": "Salon"
+   },
+   "img": {
+    "main": "soka/dali-exterior.jpg",
+    "sec": "soka/dali-floorplan.jpg"
+   },
    "free": []
   },
   {
-   "id": "p12", "type": "plan",
-   "d": { "title": "Dali · floor plan", "sub": "Built 30 m² · Terrace pool 16 m²" },
-   "img": { "bg": "soka/dali-floorplan.jpg" },
+   "id": "p12",
+   "type": "plan",
+   "d": {
+    "title": "Dali · floor plan",
+    "sub": "Built 30 m² · Terrace pool 16 m²"
+   },
+   "img": {
+    "bg": "soka/dali-floorplan.jpg"
+   },
    "free": []
   },
   {
-   "id": "p13", "type": "text",
-   "d": { "kick": "MATERIALS", "title": "Rattan &amp; Balinese heritage", "body": "Warmth and texture into the interiors, often used in feature panels, ceiling accents, or decorative elements. This natural material enhances the soft tropical atmosphere while keeping the design sophisticated and contemporary." },
+   "id": "p13",
+   "type": "text",
+   "d": {
+    "kick": "MATERIALS",
+    "title": "Rattan &amp; Balinese heritage",
+    "body": "Warmth and texture into the interiors, often used in feature panels, ceiling accents, or decorative elements. This natural material enhances the soft tropical atmosphere while keeping the design sophisticated and contemporary."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p14", "type": "text",
-   "d": { "kick": "FINISHES", "title": "Modern surfaces and polished finishes", "body": "Smooth rendered concrete floors, microcement finishes, and minimalist neutral palettes create a clean, airy environment. Bring durability, easy maintenance, and a timeless aesthetic that complements the villa's architecture." },
+   "id": "p14",
+   "type": "text",
+   "d": {
+    "kick": "FINISHES",
+    "title": "Modern surfaces and polished finishes",
+    "body": "Smooth rendered concrete floors, microcement finishes, and minimalist neutral palettes create a clean, airy environment. Bring durability, easy maintenance, and a timeless aesthetic that complements the villa's architecture."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p15", "type": "villa",
-   "d": { "kick": "PRIVATE VILLAS", "name": "DREAM", "invfrom": "", "price": "", "areas": "TERRACE POOL · 49 m²<br>BUILT · 76 m²",
-    "s1": "2", "t1": "Rooms", "s2": "2", "t2": "Baths", "s3": "1", "t3": "Kitchen", "s4": "1", "t4": "Living + Sunken" },
-   "img": { "main": "soka/dream-exterior.jpg", "sec": "soka/dream-interior.jpg" },
+   "id": "p15",
+   "type": "villa",
+   "d": {
+    "kick": "PRIVATE VILLAS",
+    "name": "DREAM",
+    "invfrom": "",
+    "price": "",
+    "areas": "TERRACE POOL · 49 m²<br>BUILT · 76 m²",
+    "s1": "2",
+    "t1": "Rooms",
+    "s2": "2",
+    "t2": "Baths",
+    "s3": "1",
+    "t3": "Kitchen",
+    "s4": "1",
+    "t4": "Living + Sunken"
+   },
+   "img": {
+    "main": "soka/dream-exterior.jpg",
+    "sec": "soka/dream-interior.jpg"
+   },
    "free": []
   },
   {
-   "id": "p16", "type": "plan",
-   "d": { "title": "Dream · floor plan", "sub": "Built 76 m² · Terrace pool 49 m² · Sunken livingroom · Seamless island kitchen" },
-   "img": { "bg": "soka/dream-floorplan.jpg" },
+   "id": "p16",
+   "type": "plan",
+   "d": {
+    "title": "Dream · floor plan",
+    "sub": "Built 76 m² · Terrace pool 49 m² · Sunken livingroom · Seamless island kitchen"
+   },
+   "img": {
+    "bg": "soka/dream-floorplan.jpg"
+   },
    "free": []
   },
   {
-   "id": "p17", "type": "text",
-   "d": { "kick": "THE CONCEPT", "title": "Step into your own tropical garden", "body": "<b>Comfort first.</b> The essentials should feel right from the very first use.<br><br><b>Tropical minimal.</b> Fewer pieces, better materials, and a cleaner visual reading.<br><br><b>Operational ease.</b> Everything should be easy to clean, restock, and maintain.<br><br><b>Guest perception.</b> Small details greatly elevate the overall experience." },
+   "id": "p17",
+   "type": "text",
+   "d": {
+    "kick": "THE CONCEPT",
+    "title": "Step into your own tropical garden",
+    "body": "<b>Comfort first.</b> The essentials should feel right from the very first use.<br><br><b>Tropical minimal.</b> Fewer pieces, better materials, and a cleaner visual reading.<br><br><b>Operational ease.</b> Everything should be easy to clean, restock, and maintain.<br><br><b>Guest perception.</b> Small details greatly elevate the overall experience."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p18", "type": "feature",
-   "d": { "kick": "EXPERIENCE LIVING", "title": "Outdoor landscaping", "body": "A serene, contemporary space designed for everyday relaxation. Its clean lines, tropical surroundings, and naturally cool water create a refreshing sanctuary that blends seamlessly with the landscape. Sukabumi tiles bring authentic texture, durability, and a refined, unmistakably local touch.", "c1": "", "c2": "", "c3": "" },
-   "img": { "bg": "soka/garden.jpg" },
+   "id": "p18",
+   "type": "feature",
+   "d": {
+    "kick": "EXPERIENCE LIVING",
+    "title": "Outdoor landscaping",
+    "body": "A serene, contemporary space designed for everyday relaxation. Its clean lines, tropical surroundings, and naturally cool water create a refreshing sanctuary that blends seamlessly with the landscape. Sukabumi tiles bring authentic texture, durability, and a refined, unmistakably local touch.",
+    "c1": "",
+    "c2": "",
+    "c3": ""
+   },
+   "img": {
+    "bg": "soka/garden.jpg"
+   },
    "free": []
   },
   {
-   "id": "p19", "type": "text",
-   "d": { "kick": "THE PAYMENT PLAN", "title": "Turn capital into legacy", "body": "<b>Phase 1.</b> Land preparation &amp; structural base. First payment after lock fee.<br><br><b>Phase 2.</b> Structure completion. Second payment.<br><br><b>Phase 3.</b> Installation of the facilities. Third payment.<br><br><b>Phase 4.</b> Interior design &amp; finishing. Fourth payment.<br><br>Full legal guidance &amp; transparent property management." },
+   "id": "p19",
+   "type": "text",
+   "d": {
+    "kick": "THE PAYMENT PLAN",
+    "title": "Turn capital into legacy",
+    "body": "<b>Phase 1.</b> Land preparation &amp; structural base. First payment after lock fee.<br><br><b>Phase 2.</b> Structure completion. Second payment.<br><br><b>Phase 3.</b> Installation of the facilities. Third payment.<br><br><b>Phase 4.</b> Interior design &amp; finishing. Fourth payment.<br><br>Full legal guidance &amp; transparent property management."
+   },
    "img": {},
    "free": []
   },
   {
-   "id": "p20", "type": "stats",
-   "d": { "kick": "ABOUT LAWANG", "title": "Territorial sourcing, legal structure, development &amp; build, management &amp; returns", "intro": "Behind every project is a team that combines technical expertise and vision — united by a single purpose: to be the trusted bridge between those who dream of a piece of paradise and the island that makes it possible.",
-    "n1": "6", "l1": "Years operating",
-    "n2": "+500K", "l2": "SQM land chosen by hand",
-    "n3": "+100", "l3": "Investors who chose to stay",
-    "n4": "3", "l4": "Carried out in Bali &amp; Sumba" },
-   "img": { "side": "soka/about-community.jpg" },
+   "id": "p20",
+   "type": "stats",
+   "d": {
+    "kick": "ABOUT LAWANG",
+    "title": "Territorial sourcing, legal structure, development &amp; build, management &amp; returns",
+    "intro": "Behind every project is a team that combines technical expertise and vision — united by a single purpose: to be the trusted bridge between those who dream of a piece of paradise and the island that makes it possible.",
+    "n1": "6",
+    "l1": "Years operating",
+    "n2": "+500K",
+    "l2": "SQM land chosen by hand",
+    "n3": "+100",
+    "l3": "Investors who chose to stay",
+    "n4": "3",
+    "l4": "Carried out in Bali &amp; Sumba"
+   },
+   "img": {
+    "side": "soka/about-community.jpg"
+   },
    "free": []
   },
   {
-   "id": "p21", "type": "statement",
-   "d": { "big": "WE BUILD LASTING WEALTH IN INDONESIA<br>THROUGH STRATEGY, STRUCTURE,<br>AND PRESENCE ON THE TERRITORY", "note": "Investing in Indonesia today means investing in one of Southeast Asia's most sustained growth stories." },
-   "img": { "bg": "" },
+   "id": "p21",
+   "type": "statement",
+   "d": {
+    "big": "WE BUILD LASTING WEALTH IN INDONESIA<br>THROUGH STRATEGY, STRUCTURE,<br>AND PRESENCE ON THE TERRITORY",
+    "note": "Investing in Indonesia today means investing in one of Southeast Asia's most sustained growth stories."
+   },
+   "img": {
+    "bg": ""
+   },
    "free": []
   },
   {
-   "id": "p22", "type": "back",
-   "d": { "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862", "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED" },
-   "img": { "bg": "soka/closing.jpg", "logo": "/contracts/assets/brand/lawang-logo-v3.png" },
+   "id": "p22",
+   "type": "back",
+   "d": {
+    "contact": "lawangproperties.com<br>sales@lawangproperties.com<br>+62 811-3831-9862",
+    "legal": "© 2026 LAWANG TROPICAL PROPERTIES · ALL RIGHTS RESERVED"
+   },
+   "img": {
+    "bg": "soka/closing.jpg",
+    "logo": "/contracts/assets/brand/lawang-logo-v3.png"
+   },
    "free": []
   }
  ]
