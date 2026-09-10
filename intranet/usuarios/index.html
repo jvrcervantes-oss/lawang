@@ -28,7 +28,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<script src="/contracts/assets/herramientas.js?v=e317fb69"></script>
+<script src="/contracts/assets/herramientas.js?v=0cec42d6"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="usuarios"></script>
@@ -187,7 +187,11 @@ const $ = s => document.querySelector(s);
    acceso llamaba a una herramienta por un nombre que no usa nadie más. Añadir una
    herramienta ya no se toca aquí. */
 const HERRAMIENTAS = LW_PERMISOS;
-const ROLES = [['agente','Agente'], ['admin','Administrador'], ['super_admin','Super admin']];
+// sales_manager/project_manager (10-sep-2026): solo lectura, ven todo lo que
+// pase en SUS proyectos (marcados abajo), de cualquier agente — nunca crean ni
+// editan nada. Misma mecánica de «Proyectos» que un agente, sentido invertido.
+const ROLES = [['agente','Agente'], ['sales_manager','Sales manager'], ['project_manager','Project manager'], ['admin','Administrador'], ['super_admin','Super admin']];
+const ROLES_GESTOR = ['sales_manager','project_manager'];
 
 let SB = null, YO = null, USUARIOS = [], SEL = null, PROYECTOS = [];
 
@@ -210,7 +214,8 @@ function pintarLista(){
   // Busca tambien por ROL escrito en cristiano ("admin", "agente"), no solo por la
   // clave interna: quien busca "agente" espera los agentes, no cero resultados.
   const q = (($('#qU') || {}).value || '').trim().toLowerCase();
-  const ROL_ES = { super_admin:'super admin', admin:'administrador admin', agente:'agente' };
+  const ROL_ES = { super_admin:'super admin', admin:'administrador admin', agente:'agente',
+    sales_manager:'sales manager', project_manager:'project manager' };
   const lista = !q ? USUARIOS : USUARIOS.filter(u =>
     lwBuscaEn([u.nombre, u.email, ROL_ES[u.rol] || u.rol], q));
   if(!lista.length){
@@ -221,6 +226,8 @@ function pintarLista(){
     const tags = [];
     if(u.rol === 'super_admin') tags.push('<span class="tag t-super">Super admin</span>');
     else if(u.rol === 'admin')  tags.push('<span class="tag t-admin">Administrador</span>');
+    else if(u.rol === 'sales_manager')   tags.push('<span class="tag t-admin">Sales manager</span>');
+    else if(u.rol === 'project_manager') tags.push('<span class="tag t-admin">Project manager</span>');
     if(!u.activo) tags.push('<span class="tag t-off">Desactivado</span>');
     return `<button class="u ${SEL===u.user_id?'sel':''}" data-id="${esc(u.user_id)}">
       <div class="n">${esc(u.nombre || u.email)}</div>
@@ -238,6 +245,7 @@ function pintarFicha(){
   // un admin no toca a un super_admin, y nadie se quita a sí mismo el acceso
   // por accidente desde esta pantalla
   const bloqueado = (u.rol === 'super_admin' && !soySuper);
+  const esGestor = ROLES_GESTOR.includes(u.rol);
 
   $('#ficha').innerHTML = `
     <h2 class="t">${esc(u.nombre || u.email)}</h2>
@@ -256,6 +264,9 @@ function pintarFicha(){
           </select></div>
       </div>
       <p class="nota">Un <b>administrador</b> ve todas las herramientas y puede editar documentos de cualquiera.
+        Un <b>sales manager</b> o <b>project manager</b> solo LEE — nunca crea ni edita nada — pero ve todo
+        lo que pase en sus proyectos asignados (abajo), de cualquier agente, y recibe aviso cuando cambia
+        de estado un contrato, una solicitud de pago o una unidad de esos proyectos.
         Solo un <b>super admin</b> reparte roles.</p>
     </fieldset>
 
@@ -280,8 +291,10 @@ function pintarFicha(){
              <button type="button" class="btn" id="btnProyTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
              <button type="button" class="btn" id="btnProyNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
            </div>`}
-      <p class="nota">Limita <b>en qué proyectos puede crear y editar contratos</b>. Sin ninguno marcado no
-        puede crear contratos en ningún proyecto${u.rol === 'agente' ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición'}.
+      <p class="nota">${esGestor
+        ? 'Limita <b>de qué proyectos puede LEER</b> contratos, facturas, obra, clientes y solicitudes de pago — de cualquier agente, no solo lo que él mismo gestione. Sin ninguno marcado no ve nada. Nunca crea ni edita: es un rol de solo lectura.'
+        : 'Limita <b>en qué proyectos puede crear y editar contratos</b>. Sin ninguno marcado no puede crear contratos en ningún proyecto'
+          + (u.rol === 'agente' ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición') + '.'}
         No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.</p>
     </fieldset>
 
@@ -306,10 +319,12 @@ function pintarFicha(){
         <button type="button" class="btn" id="btnTipoTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
         <button type="button" class="btn" id="btnTipoNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
       </div>
-      <p class="nota"><b>Sin ninguno marcado no puede emitir ningún contrato</b>, igual que en «Proyectos», arriba.
-        ${u.rol === 'agente'
-          ? 'Lo comprueba la <b>base de datos</b> al guardar, no solo el desplegable: esconder una opción no es impedirla.'
-          : 'A este usuario <b>no le afecta</b>: un administrador emite cualquier tipo por definición.'}</p>
+      <p class="nota">${esGestor
+        ? 'A este usuario <b>no le afecta</b>: un sales manager o project manager no crea ni edita contratos, solo los lee.'
+        : '<b>Sin ninguno marcado no puede emitir ningún contrato</b>, igual que en «Proyectos», arriba. '
+          + (u.rol === 'agente'
+            ? 'Lo comprueba la <b>base de datos</b> al guardar, no solo el desplegable: esconder una opción no es impedirla.'
+            : 'A este usuario <b>no le afecta</b>: un administrador emite cualquier tipo por definición.')}</p>
     </fieldset>
 
     <fieldset><legend>Acceso</legend>
@@ -408,8 +423,9 @@ function nuevoUsuario(){
         ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
           ${LW_PERMISOS_POR_DEFECTO.includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
-      <p class="nota">Un agente nace <b>sin ningún proyecto asignado</b>, así que todavía no podrá crear
-        contratos: al crearlo se abre su ficha y ahí se le marcan los proyectos que vende.</p>
+      <p class="nota">Un agente, sales manager o project manager nace <b>sin ningún proyecto asignado</b> —
+        un agente no podrá crear contratos y un manager no verá nada todavía: al crearlo se abre su ficha
+        y ahí se marcan los proyectos que vende (agente) o supervisa (manager).</p>
     </fieldset>
     <div class="acciones">
       <button class="btn primary" id="btnCrear">Crear usuario</button>

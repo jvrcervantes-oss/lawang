@@ -27,7 +27,7 @@ const LW_HERRAMIENTAS = [
      Aquellas tres compartieron clave porque dar de alta una nueva exigía
      redesplegar la edge admin-usuarios y estaba bloqueada (LAW-70); hoy la
      edge está activa, así que ese motivo ya no vale. */
-  { grupo:'Seguimiento', nombre:'Leads', icon:'ph-user-focus', href:'/intranet/leads/', herr:'leads',
+  { grupo:'Seguimiento', nombre:'CRM', icon:'ph-user-focus', href:'/intranet/leads/', herr:'leads',
     para:'Los leads que entran por Meta y por la web: en qué punto está cada uno y quién lo lleva.',
     claves:'leads crm meta ads formulario campañas contactos pipeline embudo kanban prospectos interesados',
     /* La cifra del hub es "sin contactar" y no "leads totales": el total no
@@ -48,7 +48,15 @@ const LW_HERRAMIENTAS = [
      porque monitorizar la conversación del bot es parte del embudo que ya
      ve cualquiera con 'leads'; agendar la llamada y ver su grabación es un
      paso más, y no todo el que ve leads debe verlo. */
+  /* `soloPermiso` (10-sep-2026, owner: «quita Agenda de cierre del menú, deja
+     solo Leads/CRM»): sigue en el catálogo para que 'closers' exista como
+     permiso propio en /intranet/usuarios/ (LW_PERMISOS se deriva de este
+     array, más abajo) — lo que desaparece es la entrada de navegación por
+     separado. Quien tenga 'closers' llega a la Agenda igual, desde la propia
+     pestaña dentro de CRM (`$('#tabAgenda').hidden` en leads.js ya la
+     enseña sola). `lwPermitida()` es quien filtra esto del menú y del hub. */
   { grupo:'Seguimiento', nombre:'Agenda de cierre', icon:'ph-video-camera', href:'/intranet/leads/?v=agenda', herr:'closers',
+    soloPermiso:true,
     para:'Agenda las llamadas de venta con el lead (Google Meet) y, cuando haya cuenta de Fathom.ai, su resumen y objeciones.',
     claves:'closers agenda citas meet llamadas fathom venta cierre grabacion transcripcion' },
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
@@ -205,6 +213,7 @@ const lwEsSuper = f => !!f && f.rol === 'super_admin';
    base (sql/permisos_admin_por_herramienta.sql). Si cambia una, cambia la otra
    o el menú ofrecerá una herramienta que rebota al guardar. */
 const lwPermitida = (t, ficha) =>
+  !t.soloPermiso &&
   (!t.soloAdmin || lwEsAdmin(ficha)) &&
   (!ficha || lwEsSuper(ficha) || !t.herr ||
    [].concat(t.herr).some(h => (ficha.herramientas || []).includes(h)));

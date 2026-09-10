@@ -61,7 +61,11 @@ const corsFor = (req: Request) => {
 // hace la llamada de venta y accede a sus grabaciones/resúmenes de Fathom — son dos
 // decisiones de acceso separadas, mismo motivo que separó 'leads' de 'operaciones'.
 const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers'];
-const ROLES = ['super_admin', 'admin', 'agente'];
+// 10-sep-2026: sales_manager/project_manager (solo lectura, ven todo lo de sus
+// proyectos asignados, nunca crean/editan nada) — misma lista que
+// usuarios_rol_check en la base. Si un día divergen, la base es la que manda:
+// esto es la primera puerta, la RLS es la que de verdad decide.
+const ROLES = ['super_admin', 'admin', 'agente', 'sales_manager', 'project_manager'];
 
 Deno.serve(async (req) => {
   const cors = corsFor(req);
