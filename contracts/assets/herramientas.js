@@ -56,6 +56,18 @@ const LW_HERRAMIENTAS = [
      del CRM pero imposible de conceder a nadie: solo la veía un super_admin.
      `soloPermiso` es justo la forma de decir las dos cosas a la vez — existe como casilla
      en /intranet/usuarios/, y NO aparece como entrada del menú. */
+  /* `reparto` (11-sep-2026) — TERCERA llave del CRM, y las tres estan separadas a
+     proposito. Seguridad lo pidio asi: quien tiene `ranking` puede editar a quien se
+     atribuye cada venta, o sea mover el ranking por cobrado, o sea mover su PROPIA cuota
+     en el reparto. Si ademas configurase quien entra en cada origen, cerraria el circulo
+     — decidiria que el #1 es el, y que el #1 se lleva el doble de leads.
+     Por eso: `leads` = ver el CRM · `ranking` = ver y corregir comisiones ·
+     `reparto` = configurar quien atiende que campana. Nunca la misma persona las tres
+     salvo que se decida a conciencia. */
+  { grupo:'Seguimiento', nombre:'Reparto de leads', icon:'ph-shuffle', href:'/intranet/leads/?v=closers', herr:'reparto',
+    soloPermiso:true,
+    para:'Que closers atienden cada campana, su tope de leads sin contactar y el reparto automatico.',
+    claves:'reparto asignacion automatica leads campanas origenes tope closers ronda cuota' },
   { grupo:'Seguimiento', nombre:'Agenda de cierre', icon:'ph-video-camera', href:'/intranet/leads/?v=agenda', herr:'closers',
     soloPermiso:true,
     para:'La agenda de llamadas de venta del closer, dentro del CRM.',

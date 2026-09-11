@@ -64,12 +64,16 @@ const corsFor = (req: Request) => {
 // dentro del CRM pero imposible de conceder: solo la veia un super_admin. En
 // LW_HERRAMIENTAS lleva `soloPermiso`, que es como se dicen las dos cosas a la
 // vez (casilla si, entrada de menu no).
+// 'reparto' (11-sep-2026): configurar que closer atiende que campana. Separado de
+// 'ranking' por peticion de Seguridad -- quien puede corregir la atribucion de una
+// venta mueve el ranking, y el ranking decide la cuota del reparto; juntar las dos
+// llaves deja que una misma persona decida que es la #1 y que la #1 reciba el doble.
 // 'ranking' (11-sep-2026) es permiso PROPIO y no cuelga de 'leads' a propósito, por el
 // mismo criterio que separó 'closers' en su día: lo que abre es cuánto factura y cuánto
 // cobra cada comercial, y con ocho de ellos eso no son estadísticas, son cifras de contrato
 // (el ticket medio por el número devuelve el importe exacto). El día que se le dé el CRM a
 // un comercial no se le puede regalar de paso la tabla de comisiones de sus compañeros.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking'];
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers', 'ranking', 'reparto'];
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)
