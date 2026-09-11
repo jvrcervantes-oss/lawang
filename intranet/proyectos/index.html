@@ -415,13 +415,22 @@ async function cargar(){
 }
 
 /* ---------- alta de proyecto/tipo desde el propio formulario ----------
-   RLS: INSERT exige es_agente()+puede('unidades'); no hay UPDATE/DELETE para
-   agentes (solo admin puede desactivar) — un catálogo existe para que no
-   convivan "Palm Field" y "Palm Field " con espacio, y dejar editar/borrar lo
-   que dio de alta otro agente reabre ese mismo problema. */
+   RLS: el INSERT de `proyectos` exige es_admin() desde el 11-sep-2026 (decisión
+   del owner, LAW-177: «un agente no puede crear proyectos, sólo super_admin o
+   administradores»). El de `tipos_vivienda` sigue en es_agente()+puede('unidades'):
+   un tipo de vivienda sí es una etiqueta de catálogo, un proyecto no.
+   No hay UPDATE/DELETE para agentes (solo admin puede desactivar) — un catálogo
+   existe para que no convivan "Palm Field" y "Palm Field " con espacio, y dejar
+   editar/borrar lo que dio de alta otro reabre ese mismo problema. */
 async function altaProyecto(nombreCrudo){
   const nombre = antiFormula(nombreCrudo);
   if(!nombre) return { ok:false, error:'El nombre no puede quedar vacío' };
+  /* El corte va AQUÍ y no solo en los dos sitios que pintan el control: a esta
+     función se llega por tres caminos —el botón de la barra, el «+ Nuevo
+     proyecto…» del formulario de parcela, y `?nuevoproyecto=1` en la URL, que
+     dispara el botón antes de que se sepa el rol—. Uno solo de los tres sin
+     tapar deja al agente delante del error crudo de la base. */
+  if(!ES_ADMIN) return { ok:false, error:'Dar de alta un proyecto es cosa de un administrador. Pídeselo a dirección.' };
   const { error } = await SB.from('proyectos').insert({ nombre });
   if(error){
     const msg = /duplicate key|proyectos_nombre_key/.test(error.message||'')
@@ -1029,7 +1038,7 @@ function abrirUnidad(id){
             <option value="">— elegir —</option>
             ${[...new Set([...PROYECTOS, u.proyecto].filter(Boolean))].sort().map(p =>
               `<option value="${esc(p)}" ${u.proyecto===p?'selected':''}>${esc(p)}</option>`).join('')}
-            <option value="__nuevo__">+ Nuevo proyecto…</option>
+            ${ES_ADMIN ? '<option value="__nuevo__">+ Nuevo proyecto…</option>' : ''}
           </select>
           <div class="nuevo-cat" id="nuevoProyectoBox" hidden>
             <input id="f-proyecto-nuevo" placeholder="Nombre del proyecto">
@@ -1508,6 +1517,16 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   ES_SUPER_ADMIN = !!(ficha && ficha.rol === 'super_admin');
   ES_ADMIN = !!(ficha && (ficha.rol === 'admin' || ficha.rol === 'super_admin'));
   PUEDE_USUARIOS = ES_SUPER_ADMIN || !!(ficha && ficha.rol === 'admin' && (ficha.herramientas || []).includes('usuarios'));
+  /* Dar de alta un proyecto es de dirección (11-sep-2026, decisión del owner —
+     LAW-177): la policy de INSERT pasó a exigir `es_admin()`. Se esconde el botón
+     aquí, en cuanto se sabe el rol y ANTES de que nadie pueda pulsarlo. La otra
+     puerta —«+ Nuevo proyecto…» dentro del formulario de parcela— se quita al
+     pintarla, en abrirUnidad(). Misma norma de siempre en esta suite: no ofrecer
+     lo que la base va a rechazar al guardar. */
+  if(!ES_ADMIN){
+    const alta = document.getElementById('btnNuevoProyecto');
+    if(alta) alta.hidden = true;
+  }
   try{
     const t = await fetch('../../contracts/tokens.json?v=' + Date.now()).then(r => r.json());
     const campo = (t.sections || []).flatMap(s => s.fields).find(f => f[0] === 'resort');
