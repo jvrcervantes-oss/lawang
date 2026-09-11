@@ -263,10 +263,12 @@ function pintarFicha(){
             ${ROLES.map(([v,l]) => `<option value="${v}" ${u.rol===v?'selected':''}>${l}</option>`).join('')}
           </select></div>
       </div>
-      <p class="nota">Un <b>administrador</b> ve todas las herramientas y puede editar documentos de cualquiera.
+      <p class="nota">Un <b>administrador</b> ve las herramientas que le marques abajo (igual que un agente,
+        no todas por defecto) y puede editar los documentos de cualquiera dentro de ellas.
         Un <b>sales manager</b> o <b>project manager</b> solo LEE — nunca crea ni edita nada — pero ve todo
-        lo que pase en sus proyectos asignados (abajo), de cualquier agente, y recibe aviso cuando cambia
-        de estado un contrato, una solicitud de pago o una unidad de esos proyectos.
+        lo que pase en sus proyectos, de cualquier agente, y recibe aviso cuando cambia de estado un
+        contrato, una solicitud de pago o una unidad de esos proyectos. A qué proyectos está asignado se
+        marca desde la ficha de cada proyecto en <b>Proyectos</b>, no aquí.
         Solo un <b>super admin</b> reparte roles.</p>
     </fieldset>
 
@@ -281,18 +283,21 @@ function pintarFicha(){
     </fieldset>
 
     <fieldset><legend>Proyectos en los que trabaja</legend>
+      ${esGestor ? `<p class="nota aviso" role="status">Los proyectos de un sales manager / project manager se asignan
+             desde la ficha de <b>cada proyecto</b> (Proyectos → el lápiz junto a su carpeta), no desde aquí —
+             para no tener dos sitios editando lo mismo. Esto de abajo es solo un espejo de lo ya asignado.</p>` : ''}
       ${PROYECTOS === null
         ? '<p class="nota">No se pudo cargar el catálogo de proyectos. Vuelve a abrir el panel: sin él, guardar dejaría a esta persona sin ningún proyecto.</p>'
         : `<div class="herr proy">
              ${PROYECTOS.map(p => `<label><input type="checkbox" value="${esc(p.id)}"
-               ${(u.proyectos || []).includes(p.id) ? 'checked' : ''} ${bloqueado?'disabled':''}> ${esc(p.nombre)}</label>`).join('')}
+               ${(u.proyectos || []).includes(p.id) ? 'checked' : ''} ${(bloqueado || esGestor)?'disabled':''}> ${esc(p.nombre)}</label>`).join('')}
            </div>
-           <div class="proy-acc">
+           ${esGestor ? '' : `<div class="proy-acc">
              <button type="button" class="btn" id="btnProyTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
              <button type="button" class="btn" id="btnProyNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
-           </div>`}
+           </div>`}`}
       <p class="nota">${esGestor
-        ? 'Limita <b>de qué proyectos puede LEER</b> contratos, facturas, obra, clientes y solicitudes de pago — de cualquier agente, no solo lo que él mismo gestione. Sin ninguno marcado no ve nada. Nunca crea ni edita: es un rol de solo lectura.'
+        ? 'De qué proyectos puede LEER contratos, facturas, obra, clientes y solicitudes de pago — de cualquier agente, no solo lo que él mismo gestione. Sin ninguno, no ve nada. Nunca crea ni edita: es un rol de solo lectura.'
         : 'Limita <b>en qué proyectos puede crear y editar contratos</b>. Sin ninguno marcado no puede crear contratos en ningún proyecto'
           + (u.rol === 'agente' ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición') + '.'}
         No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.</p>
@@ -363,8 +368,13 @@ async function guardar(){
     tipos_contrato: [...document.querySelectorAll('.tipos input:checked')].map(i => i.value),
   };
   // solo si el catálogo llegó a pintarse: con la consulta caída, mandar el array
-  // vacío le quitaría a esta persona todos sus proyectos sin que nadie lo pidiera
-  if(PROYECTOS !== null)
+  // vacío le quitaría a esta persona todos sus proyectos sin que nadie lo pidiera.
+  // Un manager NUNCA manda `proyectos` desde aquí (11-sep-2026, corrección del
+  // owner): sus checkboxes están deshabilitadas y son solo espejo — se asignan
+  // desde la ficha de cada proyecto. Enviarlo igual (aunque deshabilitado, un
+  // checkbox marcado sigue estando "checked" en el DOM) sobreescribiría lo
+  // que el owner acaba de fijar desde Proyectos.
+  if(PROYECTOS !== null && !ROLES_GESTOR.includes(u.rol))
     cambios.proyectos = [...document.querySelectorAll('.proy input:checked')].map(i => i.value);
   // rol y activo solo viajan si el select estaba habilitado: enviarlos
   // deshabilitados reescribiría con el valor pintado y anularía el guarda

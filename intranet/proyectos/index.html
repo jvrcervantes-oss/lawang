@@ -177,6 +177,7 @@
             <th class="num" data-orden="precio_construccion">Construcción</th>
             <th class="num" data-orden="precio">Total</th>
             <th data-orden="contrato_numero">Contrato</th>
+            <th data-orden="contrato_creado_por">Agente</th>
             <th data-orden="estado">Estado</th>
           </tr></thead>
           <tbody id="filas"></tbody>
@@ -251,8 +252,18 @@ let CATALOGO_RESORTS = [];
 // `usuarios` ya lo exige, esto es para no ofrecer un control que al guardar
 // solo va a fallar.
 let MANAGERS = [];
+// Email→nombre del equipo, para enseñar "Agente" en vez del email crudo
+// (11-sep-2026, encargo del owner: ver de un vistazo qué agente hizo el
+// contrato de cada unidad, sin abrir el contrato). RLS de `usuarios` ya deja
+// que cualquiera del equipo lea nombre+email de todos ("el equipo se ve
+// entre sí") — no hace falta ser admin para esto, a diferencia de MANAGERS.
+let EQUIPO_NOMBRE = {};
 const nombreEstado = e => (ESTADOS.find(x => x[0] === e) || [e, e])[1];
 const nombreTipo   = t => (TIPOS.find(x => x[0] === t) || [t, t])[1];
+// Agente que creó el contrato de la unidad — `contrato_creado_por` (email,
+// contratos.creado_por) resuelto a nombre. Sin ficha en `usuarios` (cuentas
+// legacy sin migrar) se enseña el email a secas: mejor eso que nada.
+const nombreAgente = email => email ? (EQUIPO_NOMBRE[email] || email) : '';
 const fmtNum = n => n == null ? '' : n.toLocaleString('es-ES',{ minimumFractionDigits:n%1?2:0, maximumFractionDigits:2 });
 
 /* Mitigación estándar de CSV/formula injection (OWASP): un valor que empieza
@@ -331,13 +342,14 @@ const valorDe = (u, campo) => {
   if(['precio','precio_suelo','precio_construccion','superficie_m2'].includes(campo))
     return u[campo] == null ? null : Number(u[campo]);
   if(campo === 'estado') return nombreEstado(u.estado);
+  if(campo === 'contrato_creado_por') return nombreAgente(u.contrato_creado_por);
   return u[campo];
 };
 
 /* ---------- carga ---------- */
 async function cargar(){
   CARGANDO = true; FALLO = null; pintar();
-  const [u, c, m, cat, p, t, dp, mgrs] = await Promise.all([
+  const [u, c, m, cat, p, t, dp, mgrs, eq] = await Promise.all([
     // `unidades_estado` es la vista que añade el contrato vinculado y lo
     // facturado (calculado, no guardado: guardarlo sería una tercera copia
     // que se queda vieja en cuanto se anule una factura).
@@ -359,6 +371,7 @@ async function cargar(){
     // persona, igual que ya pasa con «Qué se puede construir aquí».
     SB.from('usuarios').select('user_id, email, nombre, rol, proyectos, activo')
       .in('rol', ['sales_manager', 'project_manager']).order('nombre'),
+    SB.from('usuarios').select('email, nombre'),
   ]);
   CARGANDO = false;
   if(u.error){ FALLO = u.error.message; pintar(); return; }
@@ -390,6 +403,7 @@ async function cargar(){
   }
   if(!t.error && t.data && t.data.length) TIPOS = t.data.map(x => [x.clave, x.etiqueta]);
   MANAGERS = mgrs.error ? [] : (mgrs.data || []);
+  EQUIPO_NOMBRE = eq.error ? {} : Object.fromEntries((eq.data || []).map(x => [x.email, x.nombre]));
   // Unión defensiva: si una unidad quedó con un proyecto que ya no está en el
   // catálogo (borrado por error, o dato antiguo), sigue apareciendo en el
   // filtro — no desaparece de la vista, solo no se puede elegir para una
@@ -538,6 +552,7 @@ function pintarRejilla(){
             (u.zona_masterplan ? ' · Zona ' + esc(u.zona_masterplan) : '') + '</span>' : ''}
         ${u.contrato_numero ? '<span>' + esc(u.contrato_numero) +
             (u.pct_cobrado != null ? ' · ' + u.pct_cobrado + '%' : '') + '</span>' : ''}
+        ${u.contrato_creado_por ? '<span>' + esc(nombreAgente(u.contrato_creado_por)) + '</span>' : ''}
       </span>
     </button>`).join('');
 }
@@ -904,6 +919,7 @@ function pintarTabla(){
             ? '<span class="clave">' + esc(u.contrato_numero) + '</span>'
               + (u.pct_cobrado != null ? ' <span class="flojo">' + u.pct_cobrado + '%</span>' : '')
             : '<span class="flojo">—</span>'}</td>
+      <td>${u.contrato_creado_por ? esc(nombreAgente(u.contrato_creado_por)) : '<span class="flojo">—</span>'}</td>
       <td><span class="sui-tag e-${esc(u.estado)}">${esc(nombreEstado(u.estado))}</span></td>
     </tr>`).join('');
 
@@ -977,6 +993,7 @@ function abrirUnidad(id){
       <dl class="sui-dl" style="margin:0">
         <dt>Contrato</dt><dd><a class="enl" href="/intranet/operaciones/?contrato=${encodeURIComponent(u.contrato_id)}">${esc(u.contrato_numero)}</a>${u.contrato_firmado ? ' · firmado' : ' · sin firmar'}</dd>
         ${u.comprador_nombre ? `<dt>Comprador</dt><dd>${esc(u.comprador_nombre)}</dd>` : ''}
+        ${u.contrato_creado_por ? `<dt>Agente</dt><dd>${esc(nombreAgente(u.contrato_creado_por))}</dd>` : ''}
         <!-- «de esta unidad» no es un adorno (19-ago-2026): con un contrato de
              varias parcelas, esta cifra es LA PARTE de esta unidad, no el
              total cobrado del contrato. Sin decirlo, quien lo lee suma dos
