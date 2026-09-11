@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=ce3ef96e" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=4114d115" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=ce3ef96e" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=c46fc7ed" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=4afc04b7" defer></script>
 <link href="../assets/shell.css?v=4ce80056" rel="stylesheet">
@@ -278,10 +278,13 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid">
 <!-- CARD 1: Horizon S1 (Destacado e inspeccionado) -->
 <div class="bg-surface-container-lowest rounded-xl border-2 border-territorial-green/80 shadow-md hover:shadow-lg transition-all flex flex-col overflow-hidden group">
-<!-- Cabecera visual con textura arquitectónica y badges -->
-<div class="h-36 relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] p-4 flex flex-col justify-between overflow-hidden">
-<div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-fixed/10 pointer-events-none blur-xl"></div>
-<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+<!-- Cabecera visual: textura arquitectónica por defecto, o la foto de portada
+     que se suba desde "Editar proyecto" (datos.js le pone background-image y
+     oculta la decoración de abajo cuando hay una). -->
+<div class="h-36 relative bg-gradient-to-br from-[#1b2b1a] via-[#2d3f27] to-[#104C4F] p-4 flex flex-col justify-between overflow-hidden bg-cover bg-center" data-lw="cover">
+<div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-fixed/10 pointer-events-none blur-xl" data-lw-deco></div>
+<div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-10" data-lw-deco></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent pointer-events-none hidden" data-lw-cover-overlay></div>
 <div class="relative z-10 flex items-center justify-between">
 <span class="px-2.5 py-1 rounded-md bg-black/40 backdrop-blur-md text-[11px] font-label-md tracking-wider uppercase text-surface-bright flex items-center gap-1">
 <span class="material-symbols-outlined text-[13px] text-territorial-green">location_on</span><span data-lw="sitio">—</span></span>
@@ -300,7 +303,9 @@
 <span class="text-[13px] font-label-md font-semibold text-volcanic-ash"><span data-lw="uds">—</span> uds · <span class="text-tertiary" data-lw="vendidas">—</span> · <span class="text-territorial-green" data-lw="disp">—</span>
 </span>
 </div>
-<!-- Estado de cuentas y barra de recaudación -->
+<!-- Estado de cuentas y barra de recaudación. Dos colores en la MISMA barra
+     (11-sep-2026, encargo del owner): oscuro = ya cobrado, claro = firmado
+     pero pendiente de cobro. Los anchos los pone datos.js con FIRM_P/COB_P. -->
 <div class="flex flex-col gap-2">
 <div class="flex items-baseline justify-between">
 <span class="text-xs font-semibold uppercase tracking-wider text-outline">Recaudación</span>
@@ -308,7 +313,8 @@
 </div>
 <!-- Barra de progreso -->
 <div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden flex">
-<div class="bg-fiduciary-green h-full rounded-full transition-all" style="width: 67.7%"></div>
+<div class="bg-fiduciary-green h-full transition-all" data-barra="cobrado" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="firmado" style="width:0%"></div>
 </div>
 <div class="flex items-baseline justify-between pt-1">
 <div class="flex flex-col">
@@ -384,6 +390,33 @@
 </div>
 <!-- Cuerpo con Scroll Exhaustivo -->
 <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+<!-- 0. EXPEDIENTE: subido arriba del todo (11-sep-2026, encargo del owner —
+     antes era la última sección y era lo primero que se quería mirar). Trae
+     también la foto de portada, si se ha subido una desde "Editar proyecto". -->
+<section class="space-y-3">
+<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">engineering</span>
+          Expediente del proyecto
+        </h4>
+<div class="bg-surface-container-low rounded-xl p-4 border border-warm-border space-y-2.5 text-xs">
+<img alt="" class="w-full h-32 object-cover rounded-lg mb-1 hidden" data-lw="d-cover-img">
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Parcela máster:</span>
+<div class="flex items-center gap-1.5">
+<span class="font-mono font-bold text-volcanic-ash" data-lw="d-master">—</span>
+<span class="material-symbols-outlined text-fiduciary-green text-[16px]">verified</span>
+</div>
+</div>
+<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
+<span class="text-on-surface-variant font-medium">Documentación cargada:</span>
+<span class="px-2 py-0.5 rounded bg-[#FBEFBE] text-[#634A00] font-bold font-label-md" data-lw="d-docs">—</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-on-surface-variant font-medium">Superficie registrada:</span>
+<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash" data-lw="d-sup">—</span>
+</div>
+</div>
+</section>
 <!-- 1. RESUMEN DEL ESTADO DE CUENTAS DEL PROYECTO -->
 <section class="space-y-3">
 <div class="flex items-center justify-between">
@@ -409,20 +442,57 @@
 <span class="text-xs text-on-surface-variant font-medium">Por Cobrar (Hitos Obra / Suelo):</span>
 <span class="font-kpi-number text-[16px] font-bold text-deep-lagoon tabular-nums whitespace-nowrap" data-lw="d-pendiente2">—</span>
 </div>
-<div class="flex items-center justify-between pt-1 text-xs">
-<span class="text-outline font-medium">Parcela máster:</span>
-<span class="font-mono text-volcanic-ash font-bold bg-surface-container-lowest px-2 py-1 rounded border border-warm-border">—</span>
+<!-- Recaudación por FAMILIA (11-sep-2026, encargo del owner): Parcela y
+     Construcción por separado, cada una con dos colores en la MISMA barra —
+     oscuro = cobrado de verdad (recibí), claro = firmado (bloqueado=true)
+     pero aún sin cobrar. El resto de la barra sin colorear = ni firmado.
+     Los anchos y las cifras los pone abrirCajon() en datos.js, con
+     FAM_P (contratos_equipo + contratos_cobrado_equipo) sobre la cartera
+     real de `unidades.precio_suelo/precio_construccion`. -->
+<div class="pt-2 space-y-3" id="cajon-recaudacion-doble">
+<div>
+<div class="flex justify-between text-[11px] text-outline mb-1">
+<span class="font-semibold uppercase tracking-wider">Parcela (suelo)</span>
+<span data-lw="d-parcela-pct">—</span>
 </div>
-<!-- Barra de recaudación visual en el cajón -->
-<div class="pt-2">
+<div class="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full transition-all" data-barra="parcela-cobrado" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="parcela-firmado" style="width:0%"></div>
+</div>
+<div class="text-[11px] text-outline mt-1" data-lw="d-parcela-cifras">—</div>
+</div>
+<div>
+<div class="flex justify-between text-[11px] text-outline mb-1">
+<span class="font-semibold uppercase tracking-wider">Construcción (obra)</span>
+<span data-lw="d-obra-pct">—</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full transition-all" data-barra="obra-cobrado" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="obra-firmado" style="width:0%"></div>
+</div>
+<div class="text-[11px] text-outline mt-1" data-lw="d-obra-cifras">—</div>
+</div>
+</div>
+<!-- Alternativa SIN el desglose de arriba: proyectos cuyas unidades no
+     tienen precio_suelo/precio_construccion repartido (solo `precio`
+     global). Mismo criterio de dos colores, sin partir en familias. -->
+<div class="pt-2 hidden" id="cajon-recaudacion-simple">
 <div class="flex justify-between text-[11px] text-outline mb-1">
 <span class="" data-lw="d-pct2">—</span>
 <span class="" data-lw="d-objetivo">—</span>
 </div>
 <div class="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden flex">
-<div class="bg-fiduciary-green h-full rounded-full" style="width: 67.7%"></div>
+<div class="bg-fiduciary-green h-full transition-all" data-barra="simple-cobrado" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="simple-firmado" style="width:0%"></div>
 </div>
 </div>
+<!-- Dinero cobrado que no se ha podido atribuir a Parcela ni Construcción
+     (una Carta de Reserva sin Bloqueo todavía, u otro tipo de contrato).
+     Se dice, no se esconde: es la misma regla que ya rompió 328k/164k en
+     Operaciones (contexto/suite_lawang.md → "El modelo de venta"). -->
+<p class="hidden text-[11px] text-outline pt-1 border-t border-warm-border/60" id="cajon-nota-sin-atribuir">
+<span data-lw="d-sin-atribuir">—</span>
+</p>
 </div>
 </section>
 <!-- 1b. SALES MANAGER / PROJECT MANAGER DE ESTE PROYECTO (11-sep-2026) —
@@ -468,44 +538,29 @@
 </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 mt-6 border-t border-outline-variant/40">
-<div class="flex flex-col gap-2">
-<div class="flex items-baseline justify-between gap-3">
+<!-- Enlaces / FAQ en pestaña APARTE (11-sep-2026, encargo del owner): antes
+     iban uno junto al otro a dos columnas; ahora son dos pestañas del mismo
+     bloque — mismo contenido, se conmuta en vez de enseñarse a la vez. IDs
+     de los botones SIN TOCAR (btn-enlace/btn-faq): editores.js los busca por
+     getElementById, da igual dónde vivan en el DOM. -->
+<div class="pt-6 mt-6 border-t border-outline-variant/40">
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 w-fit mb-3" id="cajon-tabs-doc">
+<button class="px-3.5 py-1.5 rounded-md bg-surface-container-lowest text-deep-lagoon shadow-xs font-label-md text-[12px] font-semibold" data-tab-btn="enlaces" type="button">Enlaces del proyecto</button>
+<button class="px-3.5 py-1.5 rounded-md text-outline hover:text-on-surface font-label-md text-[12px] font-semibold" data-tab-btn="faq" type="button">Preguntas frecuentes</button>
+</div>
+<div data-tab-panel="enlaces">
+<div class="flex items-baseline justify-between gap-3 mb-2">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Enlaces del proyecto</span>
 <button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-enlace" type="button">+ Nuevo enlace</button>
 </div>
 <div class="flex flex-col gap-2" id="d-enlaces"><a class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors" href="#" target="_blank" rel="noopener"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="en-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="en-meta">—</span></a></div>
 </div>
-<div class="flex flex-col gap-2">
-<div class="flex items-baseline justify-between gap-3">
+<div class="hidden" data-tab-panel="faq">
+<div class="flex items-baseline justify-between gap-3 mb-2">
 <span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Preguntas frecuentes</span>
 <button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-faq" type="button">+ Nueva pregunta</button>
 </div>
 <div class="flex flex-col gap-2" id="d-faqs"><details class="px-3 py-2 rounded-lg bg-surface-container-low"><summary class="font-body-sm text-body-sm text-on-surface cursor-pointer" data-lw="fq-pregunta">—</summary><p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5" data-lw="fq-respuesta">—</p></details></div>
-</div>
-</div>
-</section>
-<!-- 3. EXPEDIENTE: lo que consta en la base (no hay permisos estructurados) -->
-<section class="space-y-3">
-<h4 class="text-xs font-bold uppercase tracking-wider text-outline flex items-center gap-1.5">
-<span class="material-symbols-outlined text-[16px] text-primary">engineering</span>
-          Expediente del proyecto
-        </h4>
-<div class="bg-surface-container-low rounded-xl p-4 border border-warm-border space-y-2.5 text-xs">
-<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
-<span class="text-on-surface-variant font-medium">Parcela máster:</span>
-<div class="flex items-center gap-1.5">
-<span class="font-mono font-bold text-volcanic-ash" data-lw="d-master">—</span>
-<span class="material-symbols-outlined text-fiduciary-green text-[16px]">verified</span>
-</div>
-</div>
-<div class="flex items-center justify-between pb-2 border-b border-warm-border/60">
-<span class="text-on-surface-variant font-medium">Documentación cargada:</span>
-<span class="px-2 py-0.5 rounded bg-[#FBEFBE] text-[#634A00] font-bold font-label-md" data-lw="d-docs">—</span>
-</div>
-<div class="flex items-center justify-between">
-<span class="text-on-surface-variant font-medium">Superficie registrada:</span>
-<span class="font-kpi-number text-[13px] font-bold text-volcanic-ash" data-lw="d-sup">—</span>
 </div>
 </div>
 </section>

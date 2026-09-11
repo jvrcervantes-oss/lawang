@@ -80,6 +80,8 @@
           }).join('') + '</select>';
       } else if (c.tipo === 'textarea') {
         d.innerHTML = inner + '<textarea data-k="' + esc(c.k) + '" rows="4" style="' + estilo + ';resize:vertical">' + esc(c.valor) + '</textarea>';
+      } else if (c.tipo === 'file') {
+        d.innerHTML = inner + '<input data-k="' + esc(c.k) + '" type="file" accept="' + esc(c.accept || '*/*') + '" style="' + estilo + ';padding:7px 10px">';
       } else if (c.tipo === 'multicheck') {
         // `o` es un string (valor = etiqueta, como ya usaba Usuarios) o un
         // par [valor, etiqueta] — igual que ya admite 'select' — para cuando el
@@ -115,6 +117,7 @@
         if (el.tagName === 'DIV') {
           vals[k] = Array.prototype.map.call(el.querySelectorAll('input:checked'), function (x) { return x.value; });
         } else if (el.type === 'checkbox') vals[k] = el.checked;
+        else if (el.type === 'file') vals[k] = el.files && el.files[0] ? el.files[0] : null;
         else vals[k] = el.value.trim();
       });
       for (var i = 0; i < campos.length; i++) {
@@ -327,7 +330,13 @@
           var campos = [
             { k: 'resort', label: 'Resort', valor: p.resort || '' },
             { k: 'parcela_master', label: 'Parcela máster (código)', valor: p.parcela_master || '' },
-            { k: 'parcela_master_m2', label: 'Superficie bruta (m²)', tipo: 'number', valor: p.parcela_master_m2 == null ? '' : p.parcela_master_m2 }
+            { k: 'parcela_master_m2', label: 'Superficie bruta (m²)', tipo: 'number', valor: p.parcela_master_m2 == null ? '' : p.parcela_master_m2 },
+            // Foto de portada (11-sep-2026, encargo del owner): va al bucket
+            // 'documentacion' que ya usan Enlaces/FAQ — nunca una columna
+            // imagen_url en `proyectos` (Regla 0, "si el cliente lo puede dar
+            // de alta no vive en un fichero/campo suelto"). Opcional: dejar en
+            // blanco no borra la que ya hubiera.
+            { k: 'imagen', label: 'Foto de portada (opcional)', tipo: 'file', accept: 'image/*', ayuda: 'Aparece como fondo de la tarjeta y en el Expediente. Dejar en blanco mantiene la que ya hay.' }
           ];
           // Solo se ofrece a quien la policy va a dejar guardar (es_admin() en
           // `modelos_villa`) — mismo criterio que ES_ADMIN en /proyectos/.
@@ -388,6 +397,31 @@
                   trabajos.push(sb.rpc('usuario_supervisa_proyecto', { p_user_id: m.user_id, p_proyecto_id: p.id, p_asignar: marcadoAhora })
                     .then(function (rr) { if (rr.error) toast('No se pudo actualizar el proyecto de ' + (m.nombre || m.email) + ': ' + rr.error.message, '#ba1a1a'); }));
                 });
+              }
+              if (v.imagen) {
+                var file = v.imagen;
+                if (file.size > 8 * 1024 * 1024) {
+                  toast('La ficha sí, la foto no: pasa de 8 MB.', '#ba1a1a');
+                } else {
+                  var ext = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+                  var path = 'proyectos/' + p.id + '/' + crypto.randomUUID() + ext;
+                  trabajos.push(
+                    sb.storage.from('documentacion').upload(path, file, { contentType: file.type || undefined }).then(function (up) {
+                      if (up.error) { toast('La ficha sí, la foto no: ' + up.error.message, '#ba1a1a'); return; }
+                      return sb.from('documentos_proyecto').insert({
+                        proyecto: p.nombre, categoria: 'portada', titulo: 'Portada',
+                        path: path, mime: file.type || null, bytes: file.size, confidencial: true
+                      }).then(function (ri) {
+                        if (ri.error) {
+                          // fichero huérfano en el bucket sin fila: se retira,
+                          // igual que hace subirDoc() en /intranet/modelos/.
+                          sb.storage.from('documentacion').remove([path]);
+                          toast('La ficha sí, la foto no: ' + ri.error.message, '#ba1a1a');
+                        }
+                      });
+                    })
+                  );
+                }
               }
               return Promise.all(trabajos).then(function () { return r; });
             });

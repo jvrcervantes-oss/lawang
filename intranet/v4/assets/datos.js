@@ -690,7 +690,11 @@
       var PAGE_SIZE = 9;
       var EST = { q: '', chipP: 'todos', chipU: 'todas', pag: 1 };
       var PS = [], POR_P = {}, COB_P = {}, DOC_P = {}, EQUIPO_NOMBRE = {}, MGRS = [];
-      var MOLDE = null;
+      // FAM_P: firmado/cobrado por proyecto y familia (parcela/obra). FIRM_P:
+      // firmado combinado por proyecto (para la barra sencilla de la tarjeta).
+      // COVER_P: URL firmada de la foto de portada, si hay una subida.
+      var FAM_P = {}, FIRM_P = {}, COVER_P = {};
+      var MOLDE = null, MOLDE_ENLACE = null, MOLDE_FAQ = null, MOLDE_UNIDAD = null;
 
       function proyectosFiltrados() {
         return PS.filter(function (p) {
@@ -722,11 +726,67 @@
         pon('d-cobrado', fmt(cob, 'EUR'));
         pon('d-pendiente', fmt(d.cartera - cob, 'EUR'));
         pon('d-pct', d.cartera ? '(' + (Math.round(cob / d.cartera * 1000) / 10) + '%)' : '(—)');
-        pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%');
-        pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
         pon('d-master', elegido.parcela_master || 'sin registrar');
         pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
         pon('d-docs', (DOC_P[elegido.nombre] || 0) + ' documentos');
+
+        /* Foto de portada en el Expediente, si hay una subida. */
+        var imgCover = document.querySelector('[data-lw="d-cover-img"]');
+        if (imgCover) {
+          var urlCover = COVER_P[elegido.nombre];
+          if (urlCover) { imgCover.src = urlCover; imgCover.classList.remove('hidden'); }
+          else { imgCover.removeAttribute('src'); imgCover.classList.add('hidden'); }
+        }
+
+        /* Recaudación por familia (11-sep-2026) — ver comentario largo en el
+           Promise.all de arriba. `d.suelo`/`d.obra` son la cartera REAL de
+           `unidades` (catálogo, venda o no); `fam.parcela/obra` son lo firmado
+           y lo cobrado por contratos de esa familia. Dos colores en la misma
+           barra: oscuro = cobrado, claro = firmado sin cobrar todavía. */
+        var fam = FAM_P[elegido.nombre] || { parcela: { firmado: 0, cobrado: 0 }, obra: { firmado: 0, cobrado: 0 }, sinAtribuir: 0 };
+        var tieneSplit = (d.suelo || 0) + (d.obra || 0) > 0;
+        var cajaDoble = document.getElementById('cajon-recaudacion-doble');
+        var cajaSimple = document.getElementById('cajon-recaudacion-simple');
+        var barraFamilia = function (clave, cartera, datos) {
+          var firmPct = cartera ? Math.min(100, datos.firmado / cartera * 100) : 0;
+          var cobPct = cartera ? Math.min(firmPct, datos.cobrado / cartera * 100) : 0;
+          var elCob = document.querySelector('[data-barra="' + clave + '-cobrado"]');
+          var elFir = document.querySelector('[data-barra="' + clave + '-firmado"]');
+          if (elCob) elCob.style.width = cobPct + '%';
+          if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+          pon('d-' + clave + '-pct', cartera ? (Math.round(firmPct * 10) / 10) + '% firmado' : 'sin cartera registrada');
+          pon('d-' + clave + '-cifras', cartera
+            ? 'Cobrado ' + fmt(datos.cobrado, 'EUR') + ' · Firmado ' + fmt(datos.firmado, 'EUR') + ' · Total ' + fmt(cartera, 'EUR')
+            : '—');
+        };
+        if (tieneSplit) {
+          if (cajaDoble) cajaDoble.classList.remove('hidden');
+          if (cajaSimple) cajaSimple.classList.add('hidden');
+          barraFamilia('parcela', d.suelo || 0, fam.parcela);
+          barraFamilia('obra', d.obra || 0, fam.obra);
+        } else {
+          // Sin precio_suelo/precio_construccion repartido: se cae a UNA barra
+          // combinada de dos colores, sobre el total de `d.cartera` — mismo
+          // criterio que la tarjeta, para no enseñar dos bloques vacíos.
+          if (cajaDoble) cajaDoble.classList.add('hidden');
+          if (cajaSimple) cajaSimple.classList.remove('hidden');
+          var firmTotal = (fam.parcela.firmado || 0) + (fam.obra.firmado || 0);
+          var firmPctS = d.cartera ? Math.min(100, firmTotal / d.cartera * 100) : 0;
+          var cobPctS = d.cartera ? Math.min(firmPctS, cob / d.cartera * 100) : 0;
+          var elCobS = document.querySelector('[data-barra="simple-cobrado"]');
+          var elFirS = document.querySelector('[data-barra="simple-firmado"]');
+          if (elCobS) elCobS.style.width = cobPctS + '%';
+          if (elFirS) elFirS.style.width = Math.max(0, firmPctS - cobPctS) + '%';
+          pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%');
+          pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
+        }
+        var notaSin = document.getElementById('cajon-nota-sin-atribuir');
+        if (notaSin) {
+          if (fam.sinAtribuir > 0) {
+            notaSin.classList.remove('hidden');
+            pon('d-sin-atribuir', fmt(fam.sinAtribuir, 'EUR') + ' cobrados sin Bloqueo de Parcela o Construcción asociado todavía (p. ej. una Carta de Reserva suelta) — no entran en las barras de arriba.');
+          } else notaSin.classList.add('hidden');
+        }
 
         /* Managers de este proyecto (11-sep-2026) — quién es el encargado,
            pintado como chips de solo lectura; asignar/desasignar es una
@@ -752,8 +812,15 @@
         var enl = docsEl.filter(function (d2) { return d2.categoria !== 'faq'; });
         var faq = docsEl.filter(function (d2) { return d2.categoria === 'faq'; });
         var cajaE = document.getElementById('d-enlaces');
-        if (cajaE && cajaE.firstElementChild) {
-          var mE = cajaE.firstElementChild.cloneNode(true);
+        // Molde cacheado UNA vez (11-sep-2026): antes se releía de
+        // `firstElementChild` en cada apertura, así que un proyecto sin
+        // enlaces dejaba el párrafo "no tiene enlaces" como único hijo, y el
+        // SIGUIENTE proyecto clonaba ESE párrafo como si fuera la plantilla —
+        // roto para cualquier apertura en secuencia. Mismo patrón que MOLDE
+        // de la rejilla, arriba.
+        if (!MOLDE_ENLACE && cajaE && cajaE.firstElementChild) MOLDE_ENLACE = cajaE.firstElementChild.cloneNode(true);
+        if (cajaE && MOLDE_ENLACE) {
+          var mE = MOLDE_ENLACE.cloneNode(true);
           cajaE.innerHTML = '';
           if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
           enl.forEach(function (d2) {
@@ -766,8 +833,9 @@
           });
         }
         var cajaF = document.getElementById('d-faqs');
-        if (cajaF && cajaF.firstElementChild) {
-          var mF = cajaF.firstElementChild.cloneNode(true);
+        if (!MOLDE_FAQ && cajaF && cajaF.firstElementChild) MOLDE_FAQ = cajaF.firstElementChild.cloneNode(true);
+        if (cajaF && MOLDE_FAQ) {
+          var mF = MOLDE_FAQ.cloneNode(true);
           cajaF.innerHTML = '';
           if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
           faq.forEach(function (d2) {
@@ -794,9 +862,9 @@
           .then(function (uu) {
             var caja = document.getElementById('d-unidades');
             if (!caja || uu == null) return;
-            var molde = caja.firstElementChild;
-            if (!molde) return;
-            var base = molde.cloneNode(true);
+            if (!MOLDE_UNIDAD && caja.firstElementChild) MOLDE_UNIDAD = caja.firstElementChild.cloneNode(true);
+            if (!MOLDE_UNIDAD) return;
+            var base = MOLDE_UNIDAD.cloneNode(true);
             caja.innerHTML = '';
             pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
             if (!uu.length) {
@@ -870,8 +938,25 @@
           pon('total', '/ ' + fmt(d.cartera, 'EUR'), c);
           pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' : 'sin cartera', c);
           pon('master', p.parcela_master || '—', c);
-          var barra = c.querySelector('.bg-fiduciary-green');
-          if (barra && barra.style) barra.style.width = (d.cartera ? Math.min(100, cob / d.cartera * 100) : 0) + '%';
+          // Dos colores en la misma barra (11-sep-2026): oscuro = cobrado,
+          // claro = firmado (bloqueado=true) pero todavía sin cobrar. FIRM_P
+          // es el firmado de Parcela+Construcción combinado — el desglose por
+          // familia vive en el cajón, donde hay sitio para dos barras.
+          var firmado = FIRM_P[p.nombre] || 0;
+          var firmPct = d.cartera ? Math.min(100, firmado / d.cartera * 100) : 0;
+          var cobPct = d.cartera ? Math.min(firmPct, cob / d.cartera * 100) : 0;
+          var bCob = c.querySelector('[data-barra="cobrado"]'), bFir = c.querySelector('[data-barra="firmado"]');
+          if (bCob) bCob.style.width = cobPct + '%';
+          if (bFir) bFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+          // Foto de portada, si se ha subido una desde "Editar proyecto";
+          // si no, se queda el degradado + la decoración de fábrica.
+          var cover = c.querySelector('[data-lw="cover"]');
+          var coverUrl = COVER_P[p.nombre];
+          if (cover && coverUrl) {
+            cover.style.backgroundImage = 'url(' + coverUrl.replace(/'/g, '%27') + ')';
+            c.querySelectorAll('[data-lw-deco]').forEach(function (x) { x.style.display = 'none'; });
+            var ov = c.querySelector('[data-lw-cover-overlay]'); if (ov) ov.classList.remove('hidden');
+          }
           c.style.cursor = 'pointer';
           var abre = function (ev) { if (ev) ev.stopPropagation(); abrirCajon(p.nombre, { mostrar: true }); };
           c.addEventListener('click', abre);
@@ -920,6 +1005,29 @@
         if (!cont || !clases) return;
         cont.querySelectorAll('button[' + attr + ']').forEach(function (b) {
           b.className = b.getAttribute(attr) === valor ? clases.activo : clases.inactivo;
+        });
+      }
+
+      /* Pestañas Enlaces / FAQ del cajón (11-sep-2026, encargo del owner: antes
+         iban a dos columnas, ahora se conmutan). DOM estático desde la carga
+         de la página —no depende de qué proyecto esté abierto—, así que se
+         cablea UNA vez, no en cada abrirCajon(). */
+      function wireTabsDoc() {
+        var cont = document.getElementById('cajon-tabs-doc');
+        if (!cont) return;
+        var botones = cont.querySelectorAll('[data-tab-btn]');
+        var activo = botones[0] ? botones[0].className : '';
+        var inactivo = botones[1] ? botones[1].className : '';
+        cont.querySelectorAll('[data-tab-btn]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var clave = b.getAttribute('data-tab-btn');
+            cont.querySelectorAll('[data-tab-btn]').forEach(function (b2) {
+              b2.className = b2.getAttribute('data-tab-btn') === clave ? activo : inactivo;
+            });
+            document.querySelectorAll('[data-tab-panel]').forEach(function (p) {
+              p.classList.toggle('hidden', p.getAttribute('data-tab-panel') !== clave);
+            });
+          });
         });
       }
 
@@ -975,9 +1083,24 @@
             .in('rol', ['sales_manager', 'project_manager']).order('nombre'), 'managers'),
         // Email→nombre del equipo, para enseñar «Agente» en vez del email crudo
         // en la lista de unidades del cajón (mismo dato que ya resuelve /proyectos/).
-        q(sb.from('usuarios').select('email,nombre'), 'equipo')
+        q(sb.from('usuarios').select('email,nombre'), 'equipo'),
+        /* Firmado/cobrado POR FAMILIA (11-sep-2026, encargo del owner: separar
+           Parcela de Construcción, y dentro de cada barra separar firmado de
+           cobrado). Mismas dos RPC que ya usan operaciones/compradores en
+           este fichero — nunca `.from('contratos')` a pelo, por el mismo
+           motivo que `facturas_equipo` de arriba: RLS por agente. */
+        q(sb.rpc('contratos_equipo').select('id,tipo,precio_total,moneda,bloqueado,proyecto_nombre,contrato_padre_id'), 'contratos (familia)'),
+        sb.rpc('contratos_cobrado_equipo').then(function (r2) { return r2.error ? (fallo('cobrado por contrato', r2.error), []) : (r2.data || []); }),
+        /* Foto de portada de cada proyecto (11-sep-2026): la más reciente de
+           categoria='portada' por proyecto. Es documentos_proyecto + el bucket
+           'documentacion' de siempre (Regla 0 — nunca una tabla/bucket nuevo
+           para lo que ya tiene sitio), nunca una columna imagen_url en
+           `proyectos`: si el cliente puede subir varias, la fuente es la
+           lista, no un campo suelto que la próxima portada pisaría en silencio. */
+        q(sb.from('documentos_proyecto').select('proyecto,path,creado_en').eq('categoria', 'portada').order('creado_en', { ascending: false }), 'portadas')
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
+        var cts = r[6] || [], cobPorContrato = r[7] || [], portadas = r[8] || [];
         if (!ps) return;
         /* Orden de la CARTERA: primero las W, luego las S, luego las G, y al
            final los proyectos sin codigo de parcela master (11-sep-2026,
@@ -1012,6 +1135,7 @@
           if (!u.moneda || u.moneda !== 'EUR') { fueraEur++; return; }
           tot.cartera += Number(u.precio || 0); tot.suelo += Number(u.precio_suelo || 0); tot.obra += Number(u.precio_construccion || 0);
           d.cartera += Number(u.precio || 0);
+          d.suelo += Number(u.precio_suelo || 0); d.obra += Number(u.precio_construccion || 0);
         });
         var cobrado = 0, facturado = 0;
         COB_P = {};
@@ -1021,6 +1145,73 @@
           else if (f.tipo === 'factura') facturado += Number(f.total || 0);
         });
         DOC_P = {}; ds.forEach(function (d) { DOC_P[d.proyecto] = (DOC_P[d.proyecto] || 0) + 1; });
+
+        /* --- FAM_P: firmado/cobrado por familia (parcela/obra), 11-sep-2026 ---
+           `reserva_parcela` es el Bloqueo de Parcela (suelo); `construccion` y
+           `cc00014_timon` son obra (contexto/suite_lawang.md → "El modelo de
+           venta"). Una Carta de Reserva es PRELIMINAR: su precio no suma nunca
+           (lwEsPreliminar, igual que en operaciones/compradores), pero su
+           COBRADO sí es dinero real — se le busca la familia subiendo por
+           `contrato_padre_id` hasta el Bloqueo del que cuelga («la Carta
+           cuelga del Bloqueo», LAW-51/LAW-50). Si no tiene padre resuelto (o
+           es un tipo fuera de las dos familias, como `contrato_general`), el
+           cobrado no se pierde: va a `sinAtribuir` y se dice en el cajón en
+           vez de desaparecer sin explicación. */
+        var FAMILIA_TIPO = { reserva_parcela: 'parcela', construccion: 'obra', cc00014_timon: 'obra' };
+        var porIdContrato = {}; cts.forEach(function (c) { porIdContrato[c.id] = c; });
+        function familiaDe(c, visto) {
+          visto = visto || {};
+          if (!c || visto[c.id]) return null;
+          visto[c.id] = true;
+          if (FAMILIA_TIPO[c.tipo]) return FAMILIA_TIPO[c.tipo];
+          if ((typeof lwEsPreliminar === 'function') && lwEsPreliminar(c.tipo) && c.contrato_padre_id) {
+            return familiaDe(porIdContrato[c.contrato_padre_id], visto);
+          }
+          return null;
+        }
+        var cobPorId = {}; cobPorContrato.forEach(function (x) { cobPorId[x.contrato_id] = Number(x.cobrado) || 0; });
+        FAM_P = {}; FIRM_P = {};
+        cts.forEach(function (c) {
+          if ((c.moneda || 'EUR') !== 'EUR') return;
+          var k = c.proyecto_nombre || '';
+          var f = FAM_P[k] = FAM_P[k] || { parcela: { firmado: 0, cobrado: 0 }, obra: { firmado: 0, cobrado: 0 }, sinAtribuir: 0 };
+          var fam = familiaDe(c);
+          var esPre = (typeof lwEsPreliminar === 'function') && lwEsPreliminar(c.tipo);
+          var cobradoC = cobPorId[c.id] || 0;
+          if (fam) {
+            if (!esPre && c.bloqueado) {
+              f[fam].firmado += Number(c.precio_total) || 0;
+              FIRM_P[k] = (FIRM_P[k] || 0) + (Number(c.precio_total) || 0);
+            }
+            f[fam].cobrado += cobradoC;
+          } else {
+            f.sinAtribuir += cobradoC;
+          }
+        });
+
+        /* --- Foto de portada: la más reciente por proyecto, en signed URLs
+           de una sola tirada (createSignedUrls admite un array de paths —
+           evita N llamadas por N tarjetas). Bucket 'documentacion' es
+           privado: sin URL firmada no hay <img> que la enseñe. */
+        var PORTADA_PATH = {};
+        portadas.forEach(function (d2) { if (!PORTADA_PATH[d2.proyecto]) PORTADA_PATH[d2.proyecto] = d2.path; });
+        COVER_P = {};
+        var pathsPortada = Object.keys(PORTADA_PATH).map(function (k) { return PORTADA_PATH[k]; });
+        (pathsPortada.length ? sb.storage.from('documentacion').createSignedUrls(pathsPortada, 3600) : Promise.resolve({ data: [] }))
+          .then(function (rs) {
+            var porPath = {};
+            (rs.data || []).forEach(function (x) { if (x.signedUrl) porPath[x.path] = x.signedUrl; });
+            Object.keys(PORTADA_PATH).forEach(function (k) {
+              var url = porPath[PORTADA_PATH[k]];
+              if (url) COVER_P[k] = url;
+            });
+            renderizar();
+            // Si el cajón ya estaba abierto cuando llegan las URLs firmadas
+            // (llegan async, después del primer render), se refresca sin
+            // reabrir ni empujar la URL — solo para que la portada aparezca.
+            var actual = window.LW_V4 && window.LW_V4.proyecto;
+            if (actual) abrirCajon(actual.nombre, { mostrar: false, empujarUrl: false });
+          });
 
         /* --- KPIs --- */
         pon('k-cartera', fmt(tot.cartera, 'EUR'));
@@ -1060,6 +1251,7 @@
         Object.keys(ests).forEach(function (e) { pon('uds-' + e, String(ests[e])); });
 
         wireControles();
+        wireTabsDoc();
         renderizar();
 
         /* Llegar con ?proyecto= en la URL abre ESE cajón — quien navega con un
