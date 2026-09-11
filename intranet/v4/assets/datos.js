@@ -749,7 +749,14 @@
         var cajaSimple = document.getElementById('cajon-recaudacion-simple');
         var barraFamilia = function (clave, cartera, datos) {
           var firmPct = cartera ? Math.min(100, datos.firmado / cartera * 100) : 0;
-          var cobPct = cartera ? Math.min(firmPct, datos.cobrado / cartera * 100) : 0;
+          // Cobrado se clampa a 100%, NUNCA a firmPct (hallazgo de Desarrollo,
+          // deploy del 11-sep): una Carta de Reserva puede cobrar ANTES de que
+          // su Bloqueo esté bloqueado=true, así que cobrado > firmado es un
+          // caso real, no un dato corrupto. Clamparlo a firmPct dejaba la
+          // barra oscura en 0% con dinero de verdad ya cobrado — el texto de
+          // al lado (d-*-cifras) decía el importe correcto y la barra lo
+          // contradecía.
+          var cobPct = cartera ? Math.min(100, datos.cobrado / cartera * 100) : 0;
           var elCob = document.querySelector('[data-barra="' + clave + '-cobrado"]');
           var elFir = document.querySelector('[data-barra="' + clave + '-firmado"]');
           if (elCob) elCob.style.width = cobPct + '%';
@@ -772,7 +779,7 @@
           if (cajaSimple) cajaSimple.classList.remove('hidden');
           var firmTotal = (fam.parcela.firmado || 0) + (fam.obra.firmado || 0);
           var firmPctS = d.cartera ? Math.min(100, firmTotal / d.cartera * 100) : 0;
-          var cobPctS = d.cartera ? Math.min(firmPctS, cob / d.cartera * 100) : 0;
+          var cobPctS = d.cartera ? Math.min(100, cob / d.cartera * 100) : 0;
           var elCobS = document.querySelector('[data-barra="simple-cobrado"]');
           var elFirS = document.querySelector('[data-barra="simple-firmado"]');
           if (elCobS) elCobS.style.width = cobPctS + '%';
@@ -944,7 +951,7 @@
           // familia vive en el cajón, donde hay sitio para dos barras.
           var firmado = FIRM_P[p.nombre] || 0;
           var firmPct = d.cartera ? Math.min(100, firmado / d.cartera * 100) : 0;
-          var cobPct = d.cartera ? Math.min(firmPct, cob / d.cartera * 100) : 0;
+          var cobPct = d.cartera ? Math.min(100, cob / d.cartera * 100) : 0;
           var bCob = c.querySelector('[data-barra="cobrado"]'), bFir = c.querySelector('[data-barra="firmado"]');
           if (bCob) bCob.style.width = cobPct + '%';
           if (bFir) bFir.style.width = Math.max(0, firmPct - cobPct) + '%';
