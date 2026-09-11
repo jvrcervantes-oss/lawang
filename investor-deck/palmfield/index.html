@@ -607,7 +607,12 @@
       cta.classList.add('inline-flex');
       if(d.titulo) cta.setAttribute('title', d.titulo);
     })
-    .catch(function(){ /* sin dosier visible: el boton se queda como nacio, oculto */ });
+    .catch(function(){ /* MUDO A PROPOSITO: el estado de reposo del boton ya es 'oculto', asi
+         que un fallo aqui deja exactamente lo mismo que el caso normal de 'no hay dosier
+         publicado' -- que es lo que pasa hoy en todos los proyectos. No hay nada que
+         avisarle al inversor: no se le promete ninguna descarga que luego falle, y un
+         aviso de error sobre un boton que nunca vio solo seria ruido. Lo que si tiene
+         que verse en pantalla (modelos, parcelas) tiene su propio aviso. */ });
 
   // ── tipologías de villa: se leen de la intranet, no se escriben a mano ────
   // Aquí había un array MODELOS clavado a mano con Dali/Dune/Dream y un comentario
