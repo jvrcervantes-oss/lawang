@@ -89,6 +89,28 @@
   "100% Freehold perpetual title guarantee": { es: "Garantía de título perpetuo 100% freehold", id: "Jaminan hak perpetual 100% freehold" },
   "Starting Turnkey":               { es: "Llave en mano desde", id: "Mulai Turnkey" },
   "Direct Flight Access":           { es: "Vuelo directo", id: "Akses Penerbangan Langsung" },
+
+  /* ── /dali, 11-sep-2026: deja de dirigirse al mercado australiano ──────────────────
+     La pagina paso a ficha de producto de la villa (la landing de campana es
+     /palmfield, que SI conserva su enfoque AU y sus claves de arriba). Estas son las
+     cadenas nuevas que sustituyeron a las australianas; las viejas se dejan porque
+     /palmfield todavia las usa. */
+  "PMA Foreign Legal Custody":      { es: "Custodia legal PMA para extranjeros", id: "Kustodi hukum PMA untuk asing" },
+  "Contact":                        { es: "Contacto", id: "Kontak" },
+  "Built Area":                     { es: "Superficie construida", id: "Luas bangunan" },
+  "30 m² + 16 m² terrace":          { es: "30 m² + 16 m² de terraza", id: "30 m² + teras 16 m²" },
+  "We reply during Bali hours (WITA)": { es: "Respondemos en horario de Bali (WITA)", id: "Kami membalas pada jam Bali (WITA)" },
+  "Direct Investor Desk":           { es: "Mesa directa de inversores", id: "Meja investor langsung" },
+  "Bali (WITA)":                    { es: "Bali (WITA)", id: "Bali (WITA)" },
+  "Investor Desk":                  { es: "Mesa de inversores", id: "Meja investor" },
+  "Working hours:":                 { es: "Horario:", id: "Jam kerja:" },
+  "Bali time (WITA)":               { es: "Hora de Bali (WITA)", id: "Waktu Bali (WITA)" },
+  "You never deal with village negotiations or missing electric poles. Groundbreaking within 14 days of contract.":
+    { es: "Tú no negocias con el pueblo ni persigues postes de luz que faltan. Se empieza a construir en los 14 días siguientes al contrato.",
+      id: "Anda tidak perlu berurusan dengan negosiasi desa atau tiang listrik yang belum ada. Pembangunan dimulai dalam 14 hari setelah kontrak." },
+  "Message our desk on WhatsApp and we will send you the available surveyed freehold coordinates, notary deed proofs, infrastructure videos and exact fixed turnkey costs in the currency you choose.":
+    { es: "Escríbenos por WhatsApp y te mandamos las coordenadas freehold levantadas y disponibles, las pruebas de escritura notarial, los vídeos de infraestructura y el coste llave en mano exacto y cerrado, en la moneda que elijas.",
+      id: "Hubungi kami lewat WhatsApp dan kami kirimkan koordinat freehold hasil survei yang tersedia, bukti akta notaris, video infrastruktur, dan biaya turnkey tetap yang pasti, dalam mata uang pilihan Anda." },
   "3.5h Perth / 6h Syd":            { es: "3,5 h Perth / 6 h Sídney", id: "3,5 jam Perth / 6 jam Sydney" },
   "Featured Design":                { es: "Diseño destacado", id: "Desain Unggulan" },
   "Villa Dali Pavilion with Sukabumi Pool": { es: "Villa Dali Pavilion con piscina de Sukabumi", id: "Villa Dali Pavilion dengan Kolam Sukabumi" },

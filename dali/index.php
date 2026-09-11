@@ -113,14 +113,14 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260908112829" defer></script>
+<script src="/assets/i18n-landing.js?v=20260911112010" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100% Freehold Architectural Villas in Bali &amp; Sumba — Lawang Tropical Properties</title>
-<meta name="description" content="Turnkey architectural villas in Bali &amp; Sumba for Australian investors. Fixed-price written EPC contract, land ready with power, water and permits. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
+<meta name="description" content="Turnkey architectural villas in Bali &amp; Sumba. Fixed-price written EPC contract, land ready with power, water and permits. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
 <link rel="canonical" href="https://lawangproperties.com/dali">
 <link rel="icon" href="/favicon.png">
 <meta property="og:title" content="100% Freehold Architectural Villas in Bali &amp; Sumba">
-<meta property="og:description" content="Turnkey villas for Australian investors. Fixed price, land ready, permits cleared. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
+<meta property="og:description" content="Turnkey villas in Bali &amp; Sumba. Fixed price, land ready, permits cleared. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
 <meta property="og:url" content="https://lawangproperties.com/dali">
 <meta property="og:image" content="https://lawangproperties.com<?= lw_e($ogImg) ?>">
 <meta property="og:type" content="website">
@@ -130,7 +130,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260911110543">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260911112010">
 </head>
 <body>
 
@@ -142,7 +142,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <nav class="nav__links">
       <a href="#estimator">Instant Estimator</a>
       <a href="#land-ready">Land Ready Infrastructure</a>
-      <a href="#desk">Perth &amp; Sydney Desk</a>
+      <a href="#desk">Contact</a>
     </nav>
     <div class="nav__cta">
       <!-- Selector de divisa. Usa las clases del selector de idioma (.lw-lang), que
@@ -166,7 +166,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   <div>
     <div class="hero__pills">
       <span class="pill pill--verde"><span class="dot"></span> 100% Freehold (Not 25-Yr Lease)</span>
-      <span class="pill pill--lag">Direct Australian Investor Gate · PMA Custody</span>
+      <span class="pill pill--lag">PMA Foreign Legal Custody</span>
       <span class="pill pill--terra">Q4 2026 Release Open</span>
     </div>
 
@@ -199,8 +199,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div class="chip">
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z"/></svg></span>
         <span>
-          <span class="chip__lb">Direct Flight Access</span>
-          <span class="chip__vl">3.5h Perth / 6h Syd</span>
+          <span class="chip__lb">Built Area</span>
+          <span class="chip__vl">30 m² + 16 m² terrace</span>
         </span>
       </div>
     </div>
@@ -242,8 +242,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <div class="sec__hd">
       <h2>Five questions, and you'll have an exact figure</h2>
       <p class="sec__desc">Select your villa size, roof finish, and land plot. Prices shown in
-        your currency at a fixed rate of <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR
-        (<?= lw_e(LW_AUD_FECHA) ?>) — the contract figure is the euro one.</p>
+        the currency you pick, converted at fixed rates
+        (<?= lw_e(LW_DIV_FECHA) ?>) — the contract figure is the euro one.</p>
     </div>
 
     <div class="cfg">
@@ -388,7 +388,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
             Send this configuration on WhatsApp
           </a>
         </div>
-        <p class="res__sync">Perth &amp; Sydney working hours · direct sync</p>
+        <p class="res__sync">We reply during Bali hours (WITA)</p>
       </div>
     </div>
   </div>
@@ -404,8 +404,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     </div>
     <h2 style="max-width:22ch;margin-inline:auto">We Buy The Land, Subdivide, Pipe Utilities
       &amp; Clear Permits. You Own It Freehold.</h2>
-    <p class="sec__desc" style="max-width:64ch;margin-inline:auto">Australian investors never
-      deal with village negotiations or missing electric poles. Groundbreaking within 14 days
+    <p class="sec__desc" style="max-width:64ch;margin-inline:auto">You never deal with
+      village negotiations or missing electric poles. Groundbreaking within 14 days
       of contract.</p>
 
     <div class="pasos" style="text-align:left">
@@ -450,13 +450,13 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   <section class="cta">
     <div>
       <div class="et">
-        <span class="pill pill--terra">Direct Australian Investor Desk</span>
-        <span class="mono" style="font-size:11px;color:#6EE7B7">Sydney (AEST) &amp; Perth (AWST)</span>
+        <span class="pill pill--terra">Direct Investor Desk</span>
+        <span class="mono" style="font-size:11px;color:#6EE7B7">Bali (WITA)</span>
       </div>
       <h2>Ready to Review Freehold Coordinates &amp; Pricing?</h2>
       <p>Message our desk on WhatsApp and we will send you the available surveyed freehold
         coordinates, notary deed proofs, infrastructure videos and exact fixed turnkey costs
-        in AUD.</p>
+        in the currency you choose.</p>
       <div class="cta__garantias">
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> 100% Freehold perpetual title guarantee</span>
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Guaranteed fixed-price written EPC contract</span>
@@ -479,20 +479,20 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <img class="pie__brand" src="/assets/img/lawang-logo-v3.webp" alt="Lawang Tropical Properties">
         <p style="margin:0">PT Tepi Sun Gai · Registered Developer &amp; Property Advisory.
           Developing verified freehold parcels and turnkey luxury architectural villas across
-          Tabanan, Uluwatu, and Sumba for Australian investors.</p>
+          Tabanan, Uluwatu, and Sumba.</p>
         <div class="pie__sellos">
           <span class="sello">100% Freehold — PMA Foreign Legal Custody</span>
         </div>
       </div>
       <div>
-        <h4>Australian Investor Desk</h4>
+        <h4>Investor Desk</h4>
         <p class="pie__dl">
           <span>Email: <a href="mailto:<?= lw_e($EMAIL) ?>"><b><?= lw_e($EMAIL) ?></b></a></span>
           <span>WhatsApp Direct: <a href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer"><b><?= lw_e($WA_SHOW) ?></b></a></span>
           <?php foreach ($TELEFONOS as $t): ?>
           <span>Direct line: <a href="tel:<?= lw_e($t['tel']) ?>"><b><?= lw_e($t['show']) ?></b></a></span>
           <?php endforeach; ?>
-          <span>Working Hours Sync: <b>8:00 AM – 7:00 PM AEST / AWST</b></span>
+          <span>Working hours: <b>Bali time (WITA)</b></span>
           <?php /* "Office", no "Registered Office" como el mockup: que esta sea la sede
                    inscrita de PT TEPI SUN GAI en el NIB/SK no consta en ninguna fuente que
                    el estudio pueda comprobar, y es un término legal concreto. "Office" es
@@ -507,7 +507,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <div class="pie__sellos">
           <span class="sello">100% Freehold</span>
           <span class="sello">Clean Deeds</span>
-          <span class="sello">Australian Desk</span>
+          <span class="sello">Investor Desk</span>
         </div>
       </div>
     </div>
@@ -578,7 +578,9 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   // El importe se pinta en la divisa elegida y SIEMPRE con el euro debajo: el contrato se
   // firma en euros, así que la divisa de cortesía nunca puede quedarse sola en pantalla.
   function pinta(n) { return divFmt(n, S.div); }
-  function alterna(n) { return S.div === 'EUR' ? divFmt(n, 'AUD') : eur(n); }
+  // Debajo del importe se ensena SIEMPRE el euro, que es la moneda del contrato. Si ya
+  // se esta mostrando en euros no hay nada que anadir.
+  function alterna(n) { return S.div === 'EUR' ? '' : eur(n); }
 
   function tarifa() {
     if (S.isla === 'sumba') return CFG.tarifas.sumba;
@@ -617,7 +619,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     }
 
     txt('lw-total', total != null ? pinta(total) : '—');
-    txt('lw-total-alt', total != null ? '≈ ' + alterna(total) : '');
+    var alt = total != null ? alterna(total) : '';
+    txt('lw-total-alt', alt ? '≈ ' + alt : '');
     txt('lw-movil-pr', pv != null ? pinta(pv) : '—');
 
     // El pie del total nombra lo que queda fuera. Si no, ver el total quieto con extras
@@ -806,7 +809,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     if (S.isla  !== 'bali')  p.set('island', S.isla);
     if (S.vista !== 'cliff') p.set('view', S.vista);
     if (S.m2    !== 160)     p.set('plot', String(S.m2));
-    if (S.div   !== 'AUD')   p.set('cur', S.div);
+    if (S.div   !== 'EUR')   p.set('cur', S.div);
     var q = p.toString();
     history.replaceState(history.state, '', '/dali' + (q ? '?' + q : ''));
   }
@@ -818,7 +821,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     var w = q.get('view');  if (w && CFG.tarifas[w] != null)    S.vista = w;
     var pl = parseInt(q.get('plot'), 10);
     if (!isNaN(pl) && pl >= 150 && pl <= 1500) S.m2 = pl;
-    var c = q.get('cur');   if (c === 'EUR' || c === 'AUD')     S.div = c;
+    var c = q.get('cur');   if (c && CFG.divisas[c])            S.div = c;
 
     var rb = document.querySelector('input[name="lw-villa"][value="' + S.villa + '"]');
     if (rb) rb.checked = true;
@@ -837,7 +840,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   function actualizaWa() {
     var m = CFG.modelos[S.villa];
     if (!m) return;
-    var t = "Hi, I'm an Australian investor interested in the " + m.villa + '.';
+    var t = "Hi, I'd like information about the " + m.villa + '.';
     var pv = precioVilla(), tf = tarifa();
     if (pv != null) t += ' ' + m.techos[S.techo].nombre + ' roof, ' + eur(pv) + '.';
     if (tf != null && S.m2) t += ' Plot: ' + (S.isla === 'sumba' ? 'Sumba' : 'Bali/' + S.vista)

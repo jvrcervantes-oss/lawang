@@ -97,17 +97,32 @@ h3{font-size:20px;font-weight:700}
 .ico{width:16px;height:16px;fill:currentColor;flex:none}
 
 /* ── Barra ────────────────────────────────────────────────────────────────────────── */
+/* ── Topbar: COPIA del investor deck (11-sep-2026) ────────────────────────────────
+   El deck manda. Se replican sus cuatro rasgos, que eran justo los que diferian:
+     1. Ancho COMPLETO con 24/48px de margen, no la caja de 1280 centrada. El logo
+        estaba a 141px del borde en 1512 y en el deck esta a 48.
+     2. El menu es un GRUPO DE PILDORAS (fondo blanco al 10%, borde al 15%, radio
+        completo) y cada enlace una pildora que al pasar el raton se invierte.
+     3. Sombra sin borde inferior.
+     4. El CTA es blanco con texto Deep Lagoon.
+   `position:sticky` se mantiene en vez del `fixed` del deck a proposito: a ras del
+   scroll se ven igual, y `fixed` obligaria a compensar 72px de padding en el body de
+   dos paginas — mas superficie de regresion que beneficio. */
 .nav{position:sticky;top:0;z-index:60;background:var(--primary);
-  border-bottom:1px solid var(--primary-cl);box-shadow:0 4px 20px rgba(16,76,79,.18)}
+  box-shadow:0 2px 16px rgba(0,0,0,.18)}
 /* Topbar unificado con el investor deck (11-sep-2026): mismo alto, mismo logo al
    mismo tamano y a la izquierda, y etiquetas en Jost. El fondo ya era #104C4F. */
-.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px}
+.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;
+  max-width:none;padding-inline:24px}
+@media(min-width:768px){.nav__in{padding-inline:48px}}
 .nav__brand{height:32px;width:auto;display:block}
 @media(max-width:720px){.nav__brand{height:24px}}
-.nav__links{display:flex;align-items:center;gap:26px}
-.nav__links a{font-family:var(--body);font-size:13px;font-weight:600;color:rgba(255,255,255,.85);
-  letter-spacing:.01em;white-space:nowrap}
-.nav__links a:hover{color:#fff}
+.nav__links{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);
+  padding:6px;border-radius:999px;border:1px solid rgba(255,255,255,.15)}
+.nav__links a{font-family:var(--body);font-size:14px;font-weight:600;color:rgba(255,255,255,.85);
+  letter-spacing:.01em;white-space:nowrap;padding:6px 14px;border-radius:999px;
+  transition:background .16s ease,color .16s ease}
+.nav__links a:hover{background:#fff;color:var(--primary)}
 .nav__cta{display:flex;align-items:center;gap:10px;
   /* Tema del selector (idioma y divisa) sobre la banda oscura. Sin esto,
      `--lw-lang-ink` cae a currentColor, que aqui es la tinta del cuerpo (#22282A)
@@ -133,6 +148,10 @@ h3{font-size:20px;font-weight:700}
 .lw-cur{position:relative;display:inline-flex;flex:none}
 .lw-cur .lw-lang__menu{display:none}
 .lw-cur .lw-lang__menu.is-open{display:block}
+/* CTA blanco como el del deck. Solo dentro de la barra: los botones de WhatsApp del
+   cuerpo de la pagina siguen en verde. */
+.nav__cta .btn--wa{background:#fff;color:var(--primary)}
+.nav__cta .btn--wa:hover{background:var(--canopy);color:var(--primary)}
 .nav__cta .lw-lang{order:1}
 .nav__cta #lw-div-sel{order:2}
 .nav__cta .btn{order:3}

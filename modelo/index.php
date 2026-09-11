@@ -328,7 +328,7 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260908112829" defer></script>
+<script src="/assets/i18n-landing.js?v=20260911112010" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= lw_e($villa . $TITULO_SUFIJO) ?></title>
 <meta name="description" content="<?= lw_e($villa) ?>: a new-build <?= lw_e($dormTxt) ?> villa, built on the plot you choose. Finishes, scope of works and call booking.">
@@ -435,9 +435,13 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 /* Barra en Deep Lagoon (4-sep, diseño de Stitch): pasa de papel translúcido a bloque
    sólido de color. El logo cambia a la versión clara — la oscura sobre el verde azulado
    se pierde. */
+/* Topbar: copia del investor deck, igual que las landings (11-sep-2026). Ver el
+   comentario largo en assets/au-landing.css. */
 .nav{position:sticky;top:0;z-index:50;background:var(--lagoon);
-  border-bottom:1px solid var(--lagoon-cl);box-shadow:0 4px 20px rgba(16,76,79,.18)}
-.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px}
+  box-shadow:0 2px 16px rgba(0,0,0,.18)}
+.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;
+  max-width:none;padding-inline:24px}
+@media(min-width:768px){.nav__in{padding-inline:48px}}
 /* Mismo tamano que en el deck y las landings (11-sep-2026): estaba a 18px. */
 .nav__brand{display:block;height:32px;width:auto}
 @media(max-width:720px){.nav__brand{height:24px}}
