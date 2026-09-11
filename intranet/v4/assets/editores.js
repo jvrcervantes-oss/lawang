@@ -440,12 +440,19 @@
       var bNuevaU = document.getElementById('btn-nueva-unidad');
       if (bNuevaU) bNuevaU.addEventListener('click', function (ev) {
         ev.stopPropagation();
+        toast('Abriendo formulario…');
         Promise.all([
           sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
           sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta')
         ]).then(function (rs) {
+          // Hallazgo de Desarrollo en la consulta de deploy: sin este chequeo,
+          // un fallo de red o de RLS abría el modal en silencio con los
+          // desplegables vacíos — el botón parecía "no hacer nada".
+          if (rs[0].error) return toast('No se pudo abrir: ' + rs[0].error.message, '#ba1a1a');
+          if (rs[1].error) return toast('No se pudo abrir: ' + rs[1].error.message, '#ba1a1a');
           var proyectos = ((rs[0] && rs[0].data) || []).map(function (p) { return p.nombre; });
           var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
+          if (!proyectos.length) return toast('No hay ningún proyecto dado de alta todavía — crea uno con «+ Nuevo proyecto» primero.', '#8A6A34');
           var actual = proyectoObj();
           modal('Nueva unidad', [
             { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, opciones: proyectos, valor: (actual && actual.nombre) || proyectos[0] },
@@ -469,6 +476,8 @@
               moneda: v.moneda, notas: v.notas.trim() || null
             });
           });
+        }, function (e) {
+          toast('No se pudo abrir: ' + (e && e.message || e), '#ba1a1a');
         });
       });
 
@@ -484,6 +493,12 @@
           sb.from('unidades').select('proyecto,estado,moneda,precio'),
           sb.rpc('facturas_equipo').select('proyecto_nombre,tipo,total,moneda,anulada')
         ]).then(function (rs) {
+          // Hallazgo de Desarrollo en la consulta de deploy: sin este chequeo,
+          // un fallo en cualquiera de las tres consultas generaba igual el CSV
+          // con datos incompletos o a cero, sin avisar — y esto es un informe
+          // financiero saliendo de la intranet.
+          var fallo = rs[0].error || rs[1].error || rs[2].error;
+          if (fallo) return toast('No se pudo generar el CSV: ' + fallo.message, '#ba1a1a');
           var ps = (rs[0] && rs[0].data) || [], us = (rs[1] && rs[1].data) || [], fs = (rs[2] && rs[2].data) || [];
           var porP = {};
           us.forEach(function (u) {
@@ -505,6 +520,8 @@
           descargaCsv('lawang-proyectos-' + new Date().toISOString().slice(0, 10) + '.csv',
             ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR', 'Cobrado EUR', 'Pendiente EUR', 'Unidades fuera de EUR'],
             filas);
+        }, function (e) {
+          toast('No se pudo generar el CSV: ' + (e && e.message || e), '#ba1a1a');
         });
       });
 
