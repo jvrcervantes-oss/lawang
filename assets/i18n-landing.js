@@ -175,6 +175,7 @@
   "Live Estimate Summary":          { es: "Resumen de la estimación en vivo", id: "Ringkasan Estimasi Langsung" },
   "Villa Dali":                     { es: "Villa Dali", id: "Villa Dali" },
   "Sirap Ulin roof":                { es: "Techo Sirap Ulin", id: "Atap Sirap Ulin" },
+  "Bamboo & Ulin shingle roof":     { es: "Techo de bambú y teja Ulin", id: "Atap bambu & sirap ulin" },
   "Bali · Cliff":                   { es: "Bali · Acantilado", id: "Bali · Tebing" },
   "Subdivided freehold · power & water": { es: "Freehold segregado · luz y agua", id: "Freehold terpecah · listrik & air" },
   "Civil Infra & Approvals":        { es: "Obra civil y licencias", id: "Infrastruktur Sipil & Perizinan" },
