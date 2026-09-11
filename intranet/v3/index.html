@@ -1161,7 +1161,7 @@ const DATOS_DEMO={
     {fecha:'2026-08-22T10:12:00Z',num:'CR00031',quien:'Marta Ferrán',que:'Contrato',href:'#',estado:['Editable','']},
     {fecha:'2026-08-22T08:40:00Z',num:'INV00112',quien:'PT Lawang Bali',que:'Factura',href:'#',importe:18500,moneda:'EUR',estado:['Emitida','info']},
     {fecha:'2026-08-21T17:05:00Z',num:'CC00028',quien:'Sven Halvorsen',que:'Contrato',href:'#',estado:['Firmado','ok']},
-    {fecha:'2026-08-21T12:30:00Z',num:'REC00041',quien:'Andrea Benimeli',que:'Recibí',href:'#',importe:5000,moneda:'EUR',estado:['Emitida','info']},
+    {fecha:'2026-08-21T12:30:00Z',num:'REC00041',quien:'Renata Solveig',que:'Recibí',href:'#',importe:5000,moneda:'EUR',estado:['Emitida','info']},
     {fecha:'2026-08-20T16:22:00Z',num:'INV00110',quien:'Kadek Surya',que:'Factura',href:'#',importe:2400,moneda:'EUR',estado:['Anulada','alerta']},
     {fecha:'2026-08-20T09:15:00Z',num:'CR00030',quien:'Lucía Prats',que:'Contrato',href:'#',estado:['Firmado','ok']},
   ],
@@ -1203,13 +1203,17 @@ document.getElementById('btnPaleta').addEventListener('click',()=>Paleta.abre())
 
 function arrancaDemo(motivo){
   DEMO=true;
-  FICHA={ rol:'super_admin', nombre:'Javier Cervantes', herramientas:[], activo:true };
+  /* Nombre de ejemplo, NO el de una persona real (11-sep-2026): el gate de
+     PII lo paró al pasar por aquí. Una maqueta que se sirve sin login no puede
+     llevar el nombre de nadie de la casa, por mucho que el banner diga que los
+     números son inventados — el nombre no lo era. */
+  FICHA={ rol:'super_admin', nombre:'Alex Muestra', herramientas:[], activo:true };
   $('#avisos').innerHTML='<p class="banner"><b>Modo demostración.</b> '+esc(motivo)
     +' Todos los números de esta pantalla son inventados y no vienen de la base de datos: '
     +'están aquí para poder juzgar el diseño, no para trabajar con ellos.</p>';
-  saludo('Javier');
-  $('#who').textContent='javier@lawang.es'; $('#rol').textContent='super admin';
-  $('#avatar').textContent=iniciales('Javier Cervantes');
+  saludo('Alex');
+  $('#who').textContent='alex@ejemplo.test'; $('#rol').textContent='super admin';
+  $('#avatar').textContent=iniciales('Alex Muestra');
   document.body.hidden=false;
   pintar();
   CIFRAS=DATOS_DEMO.cifras;
