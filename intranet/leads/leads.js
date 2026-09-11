@@ -1329,7 +1329,10 @@ function kpisSetter(){
 function horaCorta(ts){
   if(!ts) return '';
   const d = new Date(ts), ahora = new Date();
-  const dias = Math.floor((ahora.setHours(0,0,0,0) - new Date(ts).setHours(0,0,0,0)) / 86400000);
+  /* round, no floor: los dos extremos están puestos a medianoche, pero en la semana del
+     cambio de hora la diferencia es n·24h ± 1h y `floor` devolvería n-1 — un mensaje de
+     hoy etiquetado «ayer». Se ve una vez al año y nadie lo relaciona con el DST. */
+  const dias = Math.round((ahora.setHours(0,0,0,0) - new Date(ts).setHours(0,0,0,0)) / 86400000);
   if(dias === 0) return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   if(dias === 1) return 'ayer';
   if(dias < 7)   return d.toLocaleDateString('es-ES', { weekday: 'short' });
@@ -1339,9 +1342,12 @@ function horaCorta(ts){
 function pintarSetter(){
   kpisSetter();
   const filas = CONVERSACIONES.slice().sort((a, b) => (b.lastInboundAt || 0) - (a.lastInboundAt || 0));
+  /* La fila es un div con role=button y NO un <button>, porque lleva dentro otro botón
+     —el de pausar— y un <button> dentro de otro es HTML inválido: el navegador deshace
+     el anidamiento y la fila se parte en dos. El teclado se cubre a mano más abajo. */
   $('#tSetter').innerHTML = filas.length ? filas.map(l => `
-    <button type="button" class="wa-fila" data-phone="${esc(l.phone)}"
-            aria-current="${String(l.phone === CHAT_ABIERTO)}">
+    <div class="wa-fila" role="button" tabindex="0" data-phone="${esc(l.phone)}"
+         aria-current="${String(l.phone === CHAT_ABIERTO)}">
       <div class="avatar">${esc(iniciales(l.name))}</div>
       <div class="cuerpo">
         <div class="arriba">
@@ -1353,9 +1359,26 @@ function pintarSetter(){
           <span class="previo">${esc(l.lastMessage || 'Sin mensajes todavía')}</span>
         </div>
       </div>
-    </button>`).join('') : '<p class="vacio">Sin conversaciones todavía.</p>';
-  $('#tSetter').querySelectorAll('.wa-fila').forEach(c =>
-    c.onclick = () => irAConversacion(c.dataset.phone));
+      <button type="button" class="wa-acc" data-pausar="${esc(l.phone)}" data-a="${l.paused ? '0' : '1'}"
+              title="${l.paused ? 'Reanudar la IA en esta conversación' : 'Pausar la IA — a partir de ahí contesta una persona'}"
+              aria-label="${l.paused ? 'Reanudar IA' : 'Pausar IA'}">
+        <i class="ph ${l.paused ? 'ph-play' : 'ph-pause'}"></i>
+      </button>
+    </div>`).join('') : '<p class="vacio">Sin conversaciones todavía.</p>';
+
+  $('#tSetter').querySelectorAll('.wa-fila').forEach(c => {
+    c.onclick = () => irAConversacion(c.dataset.phone);
+    c.onkeydown = ev => {
+      if(ev.key !== 'Enter' && ev.key !== ' ') return;
+      ev.preventDefault();                       // Espacio no debe hacer scroll de la lista
+      irAConversacion(c.dataset.phone);
+    };
+  });
+  /* stopPropagation: sin esto, pausar desde la lista abriría además la conversación. */
+  $('#tSetter').querySelectorAll('[data-pausar]').forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    pausarLead(b.dataset.pausar, b.dataset.a === '1');
+  });
 }
 
 /* Abrir un hilo cambia la URL, y es la URL la que abre el hilo (ver aplicarRuta).
@@ -1409,14 +1432,14 @@ async function verConversacion(phone){
   try {
     const historia = await llamarBot('conversacion', { phone });
     if(CHAT_ABIERTO !== phone) return;   // se cambió de conversación mientras cargaba
-    pintarHilo(historia || []);
+    pintarHiloChat(historia || []);
   } catch(err){
     if(CHAT_ABIERTO !== phone) return;
     $('#hiloConv').innerHTML = '<p class="vacio">No se pudo leer la conversación.</p>';
   }
 }
 
-function pintarHilo(historia){
+function pintarHiloChat(historia){
   const hilo = $('#hiloConv');
   if(!historia.length){ hilo.innerHTML = '<p class="vacio">Sin mensajes.</p>'; return; }
   let ultimoDia = '';
@@ -1433,7 +1456,15 @@ function pintarHilo(historia){
       <span class="meta">${d ? esc(d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })) : ''}</span>
     </div>`;
   }).join('');
-  hilo.scrollTop = hilo.scrollHeight;   // se abre por el final, como cualquier chat
+  /* Se abre por el final, como cualquier chat. Pero NO basta con hacerlo aquí: en ese
+     instante las fuentes web todavía pueden estar cargando, el texto se remaqueta más
+     alto después y el hilo se queda a media altura con el último mensaje cortado (visto
+     en el banco de pruebas, 11-sep). Se fija tras el primer frame y otra vez cuando las
+     fuentes estén listas — si ya lo estaban, `ready` resuelve en el acto y no cuesta nada. */
+  const alFinal = () => { hilo.scrollTop = hilo.scrollHeight; };
+  alFinal();
+  requestAnimationFrame(alFinal);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(alFinal);
 }
 
 async function pausarLead(phone, paused){
@@ -1447,25 +1478,6 @@ async function pausarLead(phone, paused){
     if(CHAT_ABIERTO === phone) verConversacion(phone);
     toast(paused ? 'IA pausada para ese lead.' : 'IA reanudada para ese lead.');
   } catch(err){ toast('No se pudo cambiar el estado: ' + err.message); }
-}
-
-async function verConversacion(phone){
-  cerrarFicha();
-  const velo = document.createElement('div'); velo.className = 'velo'; velo.onclick = cerrarFicha;
-  const c = document.createElement('aside'); c.className = 'cajon';
-  c.innerHTML = `<header><button class="cerrar" aria-label="Cerrar">&times;</button><h2>${esc(phone)}</h2></header>
-    <div class="cuerpo"><div id="hiloConv" class="hilo"><p class="vacio">Cargando…</p></div></div>`;
-  document.body.append(velo, c);
-  c.querySelector('.cerrar').onclick = cerrarFicha;
-  ABIERTO = { id: '__conv__' };   // reutiliza cerrarFicha() sin chocar con la ficha de un lead
-  try {
-    const historia = await llamarBot('conversacion', { phone });
-    $('#hiloConv').innerHTML = (historia || []).map(m => `
-      <div class="ev ${m.role === 'user' ? 'alta' : 'nota'}"><div class="ico"><i class="ph ${m.role === 'user' ? 'ph-user' : 'ph-robot'}"></i></div>
-      <div><div class="qué">${esc(m.content || '')}</div>
-      <div class="cuando">${m.ts ? esc(fechaHora(new Date(m.ts).toISOString())) : ''}${m.by ? ' · ' + esc(m.by) : ''}</div></div></div>`).join('')
-      || '<p class="vacio">Sin mensajes.</p>';
-  } catch(err){ $('#hiloConv').innerHTML = '<p class="vacio">No se pudo leer la conversación.</p>'; }
 }
 
 /* ==========================================================================

@@ -301,9 +301,25 @@
 .wa-fila .punto { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 9999px; }
 .wa-fila .punto.ia    { background: #25D366; }
 .wa-fila .punto.pausa { background: var(--gold); }
+/* Pausar sin abrir la conversación: estaba en la lista vieja y no se pierde.
+   Aparece al pasar por encima o al tabular; en táctil (sin hover) está siempre. */
+.wa-fila .wa-acc { flex: 0 0 auto; opacity: 0; transition: opacity .12s;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 9999px;
+  width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer;
+  color: var(--mist); font-size: 14px; }
+.wa-fila:hover .wa-acc, .wa-fila .wa-acc:focus-visible { opacity: 1; }
+.wa-fila .wa-acc:hover { color: var(--primary); border-color: var(--primary-line); }
+.wa-fila:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+@media (hover: none) { .wa-fila .wa-acc { opacity: 1; } }
 
 /* ---- Panel derecho: el hilo ---------------------------------------------- */
-.wa-chat { display: flex; flex-direction: column; min-width: 0; background: var(--wa-fondo); }
+/* `min-height: 0` en los dos, y no es cosmético: un hijo de grid o de flex trae
+   `min-height: auto`, así que en vez de hacer scroll CRECE hasta caber su contenido y
+   se desborda por abajo — el último mensaje queda cortado y no hay forma de llegar a
+   él. Medido en el banco: el hilo daba scrollHeight === clientHeight (466) y el chat
+   523 dentro de una fila de 467. Con esto el que scrollea es .wa-hilo, como debe. */
+.wa-chat { display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--wa-fondo); }
 .wa-chat[data-vacio="1"] { display: grid; place-items: center; }
 .wa-nada { text-align: center; color: var(--mist); padding: 24px; }
 .wa-nada i { font-size: 40px; color: var(--line); display: block; margin-bottom: 10px; }
@@ -313,12 +329,13 @@
 .wa-cab { display: flex; align-items: center; gap: 11px; flex: 0 0 auto;
   background: var(--wa-cabecera); border-bottom: 1px solid var(--line); padding: 9px 14px; }
 .wa-cab .cuerpo { flex: 1 1 auto; min-width: 0; }
-.wa-cab .quien { font: 600 14.5px/1.3 var(--sans); letter-spacing: -.01em; }
+.wa-cab .quien { font: 600 14.5px/1.3 var(--sans); letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wa-cab .sub { font: 400 12px/1.4 var(--text); color: var(--mist); margin-top: 1px; }
 .wa-volver { display: none; background: none; border: 0; cursor: pointer; padding: 4px;
   font-size: 20px; color: var(--mist); line-height: 1; }
 
-.wa-hilo { flex: 1 1 auto; overflow-y: auto; padding: 16px 18px 20px;
+.wa-hilo { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 18px 20px;
   display: flex; flex-direction: column; gap: 3px; }
 .wa-dia { align-self: center; background: var(--wa-cabecera); color: var(--wa-hora);
   font: 500 11.5px/1 var(--text); padding: 6px 12px; border-radius: 9999px;
@@ -345,12 +362,21 @@
 @media (max-width: 760px) {
   /* Un panel cada vez: la lista ocupa todo hasta que se abre un hilo. */
   .wa { grid-template-columns: 1fr; height: calc(100vh - 15rem); }
-  .wa-chat { display: none; }
   .wa-lista { border-right: 0; }
+  /* `:not([data-abierto="1"])` y no un simple `.wa-chat { display:none }`: la regla
+     global `.wa-chat[data-vacio="1"] { display:grid }` tiene más especificidad y ganaba
+     dentro de la media query, así que con el chat CERRADO seguía viéndose el panel de
+     «elige una conversación» colgando debajo de la lista. */
+  .wa:not([data-abierto="1"]) .wa-chat { display: none; }
   .wa[data-abierto="1"] .wa-lista { display: none; }
   .wa[data-abierto="1"] .wa-chat { display: flex; }
   .wa[data-abierto="1"] .wa-chat[data-vacio="1"] { display: grid; }
   .wa-volver { display: block; }
+  /* En 390px no caben nombre + chip + botón: el nombre se partía en dos líneas y se
+     metía debajo del chip. El chip se va — el botón ya dice el estado ("Reanudar IA"
+     solo aparece si está pausada), así que no se pierde información, solo ruido. */
+  .wa-cab .chip { display: none; }
+  .wa-cab { padding: 8px 10px; gap: 9px; }
 }
 
 /* ---- Dueño del lead ------------------------------------------------------ */
