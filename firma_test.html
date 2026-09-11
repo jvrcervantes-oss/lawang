@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><base href="/contracts/"><link rel="stylesheet" href="assets/brand.css"><link rel="stylesheet" href="assets/contract.css"><style>@page{ size:A4; margin:0; } body{ margin:0; }
+  .doc table.pays td.cat{ font-weight:700; background:#efe9dd; color:var(--brand-accent,#42210B);
+    text-transform:uppercase; letter-spacing:.05em; font-size:8.5pt; }
+  .doc table.pays.kv td:first-child{ width:38%; font-weight:600; color:var(--brand-deep,#104C4F); }
+  .doc .sig-grid{ display:flex; gap:24px; margin-top:16px; }
+  .doc .sig-grid > div{ flex:1; }
+  .doc .sig-line{ height:20mm; border-bottom:1px solid var(--ss,#BEB3A5); margin:6px 0 4px; }
+
+  /* 🔴 LA REJILLA DE FIRMAS NO VA EN DOS COLUMNAS DE IDIOMA (4-ago-2026).
+     Al volverse bilingüe el documento, el CSS de idioma del motor (langCSS)
+     empezó a flotar TODO `p[data-lang]` a izquierda y derecha con un 47% de
+     ancho. Eso funciona en el cuerpo del contrato, pero aquí no: esta rejilla YA
+     está partida en dos columnas —Primera Parte y Segunda Parte—, así que dentro
+     de cada una entraban otras dos del 47%. Resultado medido en captura: el
+     nombre del firmante partido en cuatro líneas, «{{prom_razon}}» encima de sí
+     mismo y «Nombre:» pisando a «Nama:».
+     Aquí el bahasa se APILA debajo del español, que en una columna estrecha es
+     lo único que se lee. `clear:both` en la rejilla para que además arranque por
+     debajo del párrafo «Otorgado en Bali», que sí flota.
+     Con !important porque el motor inyecta su CSS después de este bloque. */
+  .doc .sig-grid{ clear:both; }
+  .doc .sig-grid p[data-lang]{ float:none !important; clear:none !important;
+                               width:auto !important; }
+[data-lang]{display:none!important}[data-lang="es"]{display:revert!important}[data-lang="id"]{display:block!important}.doc [data-lang="id"]{color:#6b6c66}.doc p[data-lang="es"],.doc ul[data-lang="es"],.doc ol[data-lang="es"],.doc p[data-lang="id"],.doc ul[data-lang="id"],.doc ol[data-lang="id"]{width:47%;box-sizing:border-box}.doc p[data-lang="es"],.doc ul[data-lang="es"],.doc ol[data-lang="es"]{float:left;clear:both}.doc p[data-lang="id"],.doc ul[data-lang="id"],.doc ol[data-lang="id"]{float:right;clear:right}.doc h2>[data-lang="es"]{float:left;clear:left;width:47%;box-sizing:border-box;text-align:center}.doc h2>[data-lang="id"]{float:right;clear:right;width:47%;box-sizing:border-box;text-align:center}.doc h2::after{content:"";display:table;clear:both}</style><style>body{margin:0;background:#fff}.doc{padding:18mm;width:210mm}</style><div class="doc"><p data-lang="es">Otorgado en Bali, República de Indonesia, a 21 de julio de 2026.</p><p data-lang="id">Dibuat di Bali, Republik Indonesia, pada tanggal 21 Juli 2026.</p>
+<div class="sig-grid"><div><div class="role" style="font-weight:600">LA PRIMERA PARTE</div><p style="margin:2px 0 0">{{prom_razon}}</p><div class="sig-line"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: Pablo Cantero Gambín<br>Cargo: Director</p><p style="margin:0;font-size:9pt" data-lang="id">Nama: Pablo Cantero Gambín<br>Jabatan: Direktur</p></div><div><div class="role" style="font-weight:600">LA SEGUNDA PARTE</div><p style="margin:2px 0 0" data-lang="es">Adquiriente I:</p><p style="margin:2px 0 0" data-lang="id">Pembeli I:</p><div class="sig-line"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: <span class="f f-lg">{{adq1_nombre}}</span></p><p style="margin:0;font-size:9pt" data-lang="id">Nama: {{adq1_nombre}}</p><p style="margin:12px 0 0" data-lang="es">Adquiriente II:</p><p style="margin:12px 0 0" data-lang="id">Pembeli II:</p><div class="sig-line"></div><p style="margin:0;font-size:9pt" data-lang="es">Nombre: <span class="f f-lg"></span></p><p style="margin:0;font-size:9pt" data-lang="id">Nama:</p></div></div>
+  </div>

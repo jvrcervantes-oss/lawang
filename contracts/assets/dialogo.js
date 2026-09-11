@@ -45,6 +45,15 @@
        botones tiene que poder elegir bien;
      · el cuerpo dice la consecuencia y si se puede deshacer.
 */
+/* Puente al diccionario compartido (`assets/i18n.js`, 11-sep-2026). Mismo
+   motivo que el `tbT` de topbar.js: nombre propio para no pisar `window.lwT`
+   desde un script clasico, y defensivo para que una pagina que aun no cargue
+   i18n.js siga parando al usuario en espanol en vez de reventar. Los textos
+   que se traducen aqui son solo los POR DEFECTO: cuando quien llama pasa su
+   propio `titulo` o `cancelar`, manda el suyo y lo traduce el. */
+function dlgT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
+
+
 (function(){
   var fondo, caja, elT, elC, bOk, bNo, resolverActual = null, focoPrevio = null;
 
@@ -119,13 +128,13 @@
       if(!fondo) construir();
       cerrar(false);                     // si había uno abierto, se resuelve en falso
       focoPrevio = document.activeElement;
-      elT.textContent   = o.titulo || '¿Seguimos?';
+      elT.textContent   = o.titulo || dlgT('¿Seguimos?');
       elC.innerHTML     = o.cuerpo || '';
       elC.style.display = o.cuerpo ? '' : 'none';
       bOk.textContent   = o.confirmar || 'Continuar';
       // `cancelar: false` -> un solo boton. Para mensajes que PARAN y no ofrecen
       // alternativa: dos botones ahi son mentira, porque no hay nada que elegir.
-      bNo.textContent   = o.cancelar === false ? '' : (o.cancelar || 'Cancelar');
+      bNo.textContent   = o.cancelar === false ? '' : (o.cancelar || dlgT('Cancelar'));
       bNo.style.display = o.cancelar === false ? 'none' : '';
       var peligro = o.tono === 'peligro';
       caja.setAttribute('data-tono', peligro ? 'peligro' : 'normal');
@@ -233,7 +242,7 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
                  '<span>' + it.texto.replace(/</g,'&lt;') + '</span>' +
                  (it.nota ? '<em>' + it.nota.replace(/</g,'&lt;') + '</em>' : '') + '</button>';
         }).join('')
-      : '<p class="lw-elegir-nada">Nada coincide con «' + elQ.value.replace(/</g,'&lt;') + '»</p>';
+      : '<p class="lw-elegir-nada">' + dlgT('Nada coincide con «%q»', { q: elQ.value.replace(/</g,'&lt;') }) + '</p>';
     elL.scrollTop = 0;
   }
 
@@ -279,8 +288,8 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
       cerrar(null);
       focoPrevio = document.activeElement;
       items = normaliza(o.opciones);
-      elT.textContent = o.titulo || 'Elige una opción';
-      elQ.placeholder = o.buscarPh || 'Escribe para buscar…';
+      elT.textContent = o.titulo || dlgT('Elige una opción');
+      elQ.placeholder = o.buscarPh || dlgT('Escribe para buscar…');
       elQ.value = '';
       pintar();
       resolver = res;
@@ -323,7 +332,7 @@ var LW_ELEGIR_DESDE = 8;   // menos que esto se ve de una ojeada: no hace falta 
     input.readOnly = true;                 // `readonly` y no `disabled`: sigue enviándose y sigue siendo enfocable
     input.classList.add('lw-elegible');
     input.setAttribute('aria-haspopup', 'listbox');
-    if(!input.getAttribute('title')) input.title = 'Pulsa para elegir';
+    if(!input.getAttribute('title')) input.title = dlgT('Pulsa para elegir');
     var abrir = function(e){
       if(e) e.preventDefault();
       if(input.disabled) return;

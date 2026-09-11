@@ -32,6 +32,19 @@ var TB_T = {
 };
 function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB_T[k].es) || k; }
 
+/* Puente al diccionario compartido de la suite (`assets/i18n.js`, 11-sep-2026).
+   Nombre propio y no `lwT` a secas: `function lwT(){}` a nivel de fichero en un
+   script clasico se cuelga del objeto global y SOBREESCRIBIRIA el `window.lwT`
+   que define i18n.js, que carga antes. Y es defensivo a proposito: si una pagina
+   carga topbar.js sin i18n.js, la barra sale en espanol en vez de reventar — es
+   lo unico que hay en pantalla mientras guard.js confirma la sesion.
+
+   TB_T sigue arriba con su mecanismo de claves propias: son frases que solo usa
+   esta barra, ya traducidas desde el 12-ago, y reescribirlas no le da nada a
+   nadie. Lo que baja aqui es lo que COMPARTE con las herramientas: el nombre de
+   cada una, que tambien pinta el hub. */
+function tbT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
+
 (function () {
   var SEL = 'details.lw-menu, details.pv-menu';
   var LISTA = '.lw-menu-list, .pv-menu-list';
@@ -98,7 +111,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     logo.onerror = function () { this.remove(); };   // que falte el logo no parte la barra
     var rotulo = document.createElement('h1');
     rotulo.className = 'lw-title';
-    rotulo.textContent = barra.dataset.titulo || (document.title.split('·').pop() || '').trim();
+    rotulo.textContent = tbT(barra.dataset.titulo || (document.title.split('·').pop() || '').trim());
     cab.appendChild(casa); cab.appendChild(logo); cab.appendChild(rotulo);
     barra.insertBefore(cab, barra.firstChild);
   }
@@ -479,8 +492,8 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'lw-rail-tog';
     btn.setAttribute('aria-expanded', String(abierto));
-    btn.innerHTML = '<i class="ph ph-list"></i><span>Herramientas</span>';
-    btn.title = 'Plegar o desplegar el menú';
+    btn.innerHTML = '<i class="ph ph-list"></i><span>' + tbT('Herramientas') + '</span>';
+    btn.title = tbT('Plegar o desplegar el menú');
     rail.appendChild(btn);
 
     var aqui = location.pathname.replace(/\/$/, '');
@@ -538,7 +551,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
       a.href = t.href;
       // `title` SIEMPRE, no solo plegado: plegado es la única etiqueta que hay, y
       // abierto sigue sirviendo a quien navega con teclado.
-      a.title = t.nombre;
+      a.title = tbT(t.nombre);
       /* `yaMarcada` porque dos entradas pueden compartir href —«Facturas» y
          «Recibos» son la misma herramienta con `?tipo=recibi`— y sin esto las dos
          se marcarían estando en cualquiera de las dos. Gana la primera, que es
@@ -549,7 +562,7 @@ function tb(k) { return (TB_T[k] && TB_T[k][window.LW_IDIOMA]) || (TB_T[k] && TB
         a.setAttribute('aria-current', 'page');   // no solo color: también para quien no lo ve
         yaMarcada = true;
       }
-      a.innerHTML = '<i class="ph ' + (t.icon || 'ph-circle') + '"></i><span>' + t.nombre + '</span>';
+      a.innerHTML = '<i class="ph ' + (t.icon || 'ph-circle') + '"></i><span>' + tbT(t.nombre) + '</span>';
       rail.appendChild(a);
     });
 
