@@ -517,14 +517,18 @@
         var p = proyectoObj();
         if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
         toast('Preparando el CSV de ' + p.nombre + '…');
-        sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre')
+        // `moneda` en su propia columna (hallazgo de Administración en la
+        // consulta de deploy de este mismo cambio): un proyecto con unidades
+        // en EUR e IDR a la vez (Riverfront) exportaba un "Precio" desnudo,
+        // que Excel puede sumar como si fuera una sola divisa.
+        sb.from('unidades_estado').select('codigo,modelo,estado,precio,moneda,contrato_numero,comprador_nombre')
           .eq('proyecto', p.nombre).order('codigo').then(function (r) {
             if (r.error) return toast('No se pudo exportar: ' + r.error.message, '#ba1a1a');
             var filas = (r.data || []).map(function (u) {
-              return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.contrato_numero || '', u.comprador_nombre || ''];
+              return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.moneda || '', u.contrato_numero || '', u.comprador_nombre || ''];
             });
             descargaCsv('lawang-' + slugDe(p.nombre) + '-cuentas.csv',
-              ['Código', 'Modelo', 'Estado', 'Precio', 'Contrato', 'Comprador'], filas);
+              ['Código', 'Modelo', 'Estado', 'Precio', 'Moneda', 'Contrato', 'Comprador'], filas);
           });
       });
 
