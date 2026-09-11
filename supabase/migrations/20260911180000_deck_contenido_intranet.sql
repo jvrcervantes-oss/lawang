@@ -550,3 +550,61 @@ as $$
     from base
    order by orden nulls last, nombre;
 $$;
+
+
+/* ── 8. Bucket `deck` ────────────────────────────────────────────────────────
+   PRIMER bucket publico de los seis de Lawang, decision del owner tomada a
+   sabiendas: en un bucket publico SUBIR ES PUBLICAR. Los otros cinco
+   (contratos-firmados, kyc, documentacion, obra, justificantes, modelos) siguen
+   privados y no se tocan: ahi viven pasaportes y contratos firmados.
+
+   Solo WebP, y no es cosmetica: la intranet RECODIFICA la imagen en el navegador
+   antes de subirla, lo que (a) mata el EXIF -- las coordenadas GPS de una foto de
+   obra son la casa de un comprador real -- y (b) valida que los bytes son una
+   imagen de verdad, porque lo que no decodifica no se puede recodificar.
+   `allowed_mime_types` por si solo NO basta: valida el content-type DECLARADO por
+   el cliente, no los bytes. */
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('deck', 'deck', true, 8388608, array['image/webp'])
+on conflict (id) do nothing;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='deck: sube admin') then
+    create policy "deck: sube admin" on storage.objects
+      for insert to authenticated with check (bucket_id = 'deck' and es_admin());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='deck: borra admin') then
+    create policy "deck: borra admin" on storage.objects
+      for delete to authenticated using (bucket_id = 'deck' and es_admin());
+  end if;
+end $$;
+
+
+/* ── 9. La siembra — dónde está y por qué NO se copia aquí ───────────────────
+   Aplicada el 11-sep-2026 junto con esta migración. Qué entró:
+
+   · `deck_faq`: las SIETE preguntas que el deck mostraba en su HTML, con su
+     texto EN/ES/ID copiado LITERALMENTE de `investor-deck/palmfield/i18n.js`.
+     Publicadas. Las 6 preguntas internas de `documentos_proyecto` NO se tocaron.
+   · `deck_forecast`: Dali / Dune / Dream con el ADR y la ocupación que ya tenía
+     el HTML, y `unidad_referencia_id` apuntando a la parcela de 250 m² más
+     barata del propio inventario.
+     ⚠️ LO ÚNICO QUE CAMBIA DE VALOR EN TODA LA MIGRACIÓN: `inversion_base` de
+     Dune (95.000 → 99.250) y Dream (125.000 → 132.250). Decisión del owner el
+     11-sep tras verse que las cifras publicadas estaban POR DEBAJO de
+     construcción + la parcela más barata que existe, mientras el pie de la
+     página afirma que el ROI se calcula sobre «construcción más suelo». Dali ya
+     cuadraba (48.000 + 31.250 = 79.250) y no se toca. Efecto en lo publicado:
+     Dune 11,9 % → 11,4 % y Dream 10,5 % → 9,9 % en el escenario Average.
+   · `deck_forecast_proyecto`: 20 % gestión, 5 % mantenimiento, 10 % impuesto —
+     los mismos que ya restaba el HTML. `contrato_vigente` queda NULL a
+     propósito: no consta cuál es, y por eso el pie de la página NO puede seguir
+     afirmando que son los del contrato vigente (Legal). La frase se cambió.
+
+   **Por qué los textos no se repiten en este fichero:** porque a partir de hoy
+   el dueño de esa FAQ es `deck_faq`. Pegar aquí una segunda copia del texto
+   legal sería crear exactamente la divergencia que esta migración viene a
+   cerrar — la familia de fallo de «El dato tiene un dueño». Si hay que
+   reconstruirla, el origen verificable es el commit del HTML anterior a este y
+   el historial de `deck_publicaciones`, que guarda cada versión. */
