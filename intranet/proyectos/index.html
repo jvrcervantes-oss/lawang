@@ -771,10 +771,14 @@ function editarProyecto(nombre){
         toast('No se han retirado ' + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
     }
     /* Managers: se guarda SOLO a quien cambió de estado (marcado/desmarcado),
-       nunca reescribiendo `proyectos` entero — un manager puede tener otros
-       proyectos asignados desde /usuarios/ y esto no puede pisárselos. Un
-       fallo puntual (p.ej. RLS por si acaso) se avisa por persona, no aborta
-       el resto: la ficha y los modelos ya se guardaron. */
+       vía RPC atómico (`usuario_asigna_proyecto`, 11-sep-2026) — hallazgo de
+       Seguridad en la consulta de deploy: escribir el array `proyectos`
+       entero, calculado sobre una copia cacheada al abrir la ficha, podía
+       pisar en silencio una asignación hecha casi a la vez desde /usuarios/
+       o desde otra ficha de proyecto. El RPC hace el array_append/array_remove
+       EN LA BASE, en una sola sentencia — no hay lectura-modificación-escritura
+       del cliente que pueda quedarse atrasada. Un fallo puntual se avisa por
+       persona, no aborta el resto: la ficha y los modelos ya se guardaron. */
     if(PUEDE_USUARIOS && MANAGERS.length){
       const proyectoId = (data[0] && data[0].id) || ficha.id || null;
       if(proyectoId){
@@ -784,12 +788,12 @@ function editarProyecto(nombre){
           const teniaAntes = (m.proyectos || []).includes(proyectoId);
           const marcadoAhora = marcadosMgr.has(m.user_id);
           if(teniaAntes === marcadoAhora) continue;
-          const nuevos = marcadoAhora
-            ? [...(m.proyectos || []), proyectoId]
-            : (m.proyectos || []).filter(id => id !== proyectoId);
-          const { error: eMgr } = await SB.from('usuarios').update({ proyectos: nuevos }).eq('user_id', m.user_id);
+          const { error: eMgr } = await SB.rpc('usuario_asigna_proyecto',
+            { p_user_id: m.user_id, p_proyecto_id: proyectoId, p_asignar: marcadoAhora });
           if(eMgr) fallosMgr.push(m.nombre || m.email);
-          else m.proyectos = nuevos;   // MANAGERS en memoria queda al día sin recargar
+          else m.proyectos = marcadoAhora
+            ? [...(m.proyectos || []), proyectoId]
+            : (m.proyectos || []).filter(id => id !== proyectoId);   // solo para que la ficha no recargada quede al día
         }
         if(fallosMgr.length) toast('No se pudo actualizar el proyecto de: ' + fallosMgr.join(', '));
       }
