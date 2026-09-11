@@ -426,21 +426,21 @@
           </h4>
 
 </div>
-<div class="bg-surface-container-low rounded-xl p-4 border border-warm-border space-y-3">
-<div class="flex items-baseline justify-between pb-2 border-b border-warm-border/60">
+<div class="bg-surface-container-low rounded-xl p-3.5 border border-warm-border space-y-2">
+<div class="flex items-baseline justify-between pb-1.5 border-b border-warm-border/60">
 <span class="text-xs text-on-surface-variant font-medium">Total Cartera Proyecto:</span>
-<span class="font-kpi-number text-[16px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap" data-lw="d-cartera">—</span>
+<span class="font-kpi-number text-[14px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap" data-lw="d-cartera">—</span>
 </div>
-<div class="flex items-baseline justify-between pb-2 border-b border-warm-border/60">
+<div class="flex items-baseline justify-between pb-1.5 border-b border-warm-border/60">
 <span class="text-xs text-on-surface-variant font-medium">Total Cobrado:</span>
 <div class="text-right">
-<span class="font-kpi-number text-[16px] font-bold text-fiduciary-green tabular-nums whitespace-nowrap" data-lw="d-cobrado">—</span>
+<span class="font-kpi-number text-[14px] font-bold text-fiduciary-green tabular-nums whitespace-nowrap" data-lw="d-cobrado">—</span>
 <span class="text-[11px] text-fiduciary-green font-semibold ml-1" data-lw="d-pct">—</span>
 </div>
 </div>
-<div class="flex items-baseline justify-between pb-2 border-b border-warm-border/60">
+<div class="flex items-baseline justify-between pb-1.5 border-b border-warm-border/60">
 <span class="text-xs text-on-surface-variant font-medium">Por Cobrar (Hitos Obra / Suelo):</span>
-<span class="font-kpi-number text-[16px] font-bold text-deep-lagoon tabular-nums whitespace-nowrap" data-lw="d-pendiente2">—</span>
+<span class="font-kpi-number text-[14px] font-bold text-deep-lagoon tabular-nums whitespace-nowrap" data-lw="d-pendiente2">—</span>
 </div>
 <!-- Recaudación por FAMILIA (11-sep-2026, encargo del owner): Parcela y
      Construcción por separado, cada una con dos colores en la MISMA barra —
@@ -449,7 +449,7 @@
      Los anchos y las cifras los pone abrirCajon() en datos.js, con
      FAM_P (contratos_equipo + contratos_cobrado_equipo) sobre la cartera
      real de `unidades.precio_suelo/precio_construccion`. -->
-<div class="pt-2 space-y-3" id="cajon-recaudacion-doble">
+<div class="pt-1 space-y-2" id="cajon-recaudacion-doble">
 <div>
 <div class="flex justify-between text-[11px] text-outline mb-1">
 <span class="font-semibold uppercase tracking-wider">Parcela (suelo)</span>
@@ -476,7 +476,7 @@
 <!-- Alternativa SIN el desglose de arriba: proyectos cuyas unidades no
      tienen precio_suelo/precio_construccion repartido (solo `precio`
      global). Mismo criterio de dos colores, sin partir en familias. -->
-<div class="pt-2 hidden" id="cajon-recaudacion-simple">
+<div class="pt-1 hidden" id="cajon-recaudacion-simple">
 <div class="flex justify-between text-[11px] text-outline mb-1">
 <span class="" data-lw="d-pct2">—</span>
 <span class="" data-lw="d-objetivo">—</span>
@@ -493,6 +493,32 @@
 <p class="hidden text-[11px] text-outline pt-1 border-t border-warm-border/60" id="cajon-nota-sin-atribuir">
 <span data-lw="d-sin-atribuir">—</span>
 </p>
+</div>
+<!-- Documentos y FAQ, DENTRO de "Estado de cuentas del proyecto" (encargo
+     del owner, 11-sep-2026): antes vivían en su propia sección al final del
+     cajón; ahora se suben aquí y la caja de cuentas de arriba se comprime
+     (menos padding, texto más pequeño) para hacerles sitio sin alargar el
+     cajón. Misma pestaña Enlaces/FAQ de siempre, IDs SIN TOCAR
+     (btn-enlace/btn-faq): editores.js los busca por getElementById. -->
+<div class="pt-3 mt-1 border-t border-outline-variant/40">
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 w-fit mb-2" id="cajon-tabs-doc">
+<button class="px-3 py-1 rounded-md bg-surface-container-lowest text-deep-lagoon shadow-xs font-label-md text-[11px] font-semibold" data-tab-btn="enlaces" type="button">Enlaces del proyecto</button>
+<button class="px-3 py-1 rounded-md text-outline hover:text-on-surface font-label-md text-[11px] font-semibold" data-tab-btn="faq" type="button">Preguntas frecuentes</button>
+</div>
+<div data-tab-panel="enlaces">
+<div class="flex items-baseline justify-between gap-3 mb-1.5">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Enlaces del proyecto</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-enlace" type="button">+ Nuevo enlace</button>
+</div>
+<div class="flex flex-col gap-1.5" id="d-enlaces"><a class="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors" href="#" target="_blank" rel="noopener"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="en-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="en-meta">—</span></a></div>
+</div>
+<div class="hidden" data-tab-panel="faq">
+<div class="flex items-baseline justify-between gap-3 mb-1.5">
+<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Preguntas frecuentes</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-faq" type="button">+ Nueva pregunta</button>
+</div>
+<div class="flex flex-col gap-1.5" id="d-faqs"><details class="px-2.5 py-1.5 rounded-lg bg-surface-container-low"><summary class="font-body-sm text-body-sm text-on-surface cursor-pointer" data-lw="fq-pregunta">—</summary><p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5" data-lw="fq-respuesta">—</p></details></div>
+</div>
 </div>
 </section>
 <!-- 1b. SALES MANAGER / PROJECT MANAGER DE ESTE PROYECTO (11-sep-2026) —
@@ -538,31 +564,6 @@
 </div>
 </div>
 
-<!-- Enlaces / FAQ en pestaña APARTE (11-sep-2026, encargo del owner): antes
-     iban uno junto al otro a dos columnas; ahora son dos pestañas del mismo
-     bloque — mismo contenido, se conmuta en vez de enseñarse a la vez. IDs
-     de los botones SIN TOCAR (btn-enlace/btn-faq): editores.js los busca por
-     getElementById, da igual dónde vivan en el DOM. -->
-<div class="pt-6 mt-6 border-t border-outline-variant/40">
-<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-warm-border/60 w-fit mb-3" id="cajon-tabs-doc">
-<button class="px-3.5 py-1.5 rounded-md bg-surface-container-lowest text-deep-lagoon shadow-xs font-label-md text-[12px] font-semibold" data-tab-btn="enlaces" type="button">Enlaces del proyecto</button>
-<button class="px-3.5 py-1.5 rounded-md text-outline hover:text-on-surface font-label-md text-[12px] font-semibold" data-tab-btn="faq" type="button">Preguntas frecuentes</button>
-</div>
-<div data-tab-panel="enlaces">
-<div class="flex items-baseline justify-between gap-3 mb-2">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Enlaces del proyecto</span>
-<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-enlace" type="button">+ Nuevo enlace</button>
-</div>
-<div class="flex flex-col gap-2" id="d-enlaces"><a class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors" href="#" target="_blank" rel="noopener"><span class="font-body-sm text-body-sm text-on-surface truncate" data-lw="en-titulo">—</span><span class="font-body-sm text-[11px] text-outline shrink-0" data-lw="en-meta">—</span></a></div>
-</div>
-<div class="hidden" data-tab-panel="faq">
-<div class="flex items-baseline justify-between gap-3 mb-2">
-<span class="font-label-md text-[11px] tracking-[0.16em] uppercase text-outline font-bold">Preguntas frecuentes</span>
-<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant font-label-md text-[12px] transition-colors hidden" id="btn-faq" type="button">+ Nueva pregunta</button>
-</div>
-<div class="flex flex-col gap-2" id="d-faqs"><details class="px-3 py-2 rounded-lg bg-surface-container-low"><summary class="font-body-sm text-body-sm text-on-surface cursor-pointer" data-lw="fq-pregunta">—</summary><p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5" data-lw="fq-respuesta">—</p></details></div>
-</div>
-</div>
 </section>
 </div>
 <!-- Pie de Acciones Rápidas del Cajón -->
