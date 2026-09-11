@@ -66,7 +66,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
 <script src="/contracts/assets/suite.js?v=a916961a"></script>
-<link rel="stylesheet" href="/intranet/leads/leads.css?v=6">
+<link rel="stylesheet" href="/intranet/leads/leads.css?v=7">
 <style>
   *{ box-sizing:border-box; } html,body{ margin:0; }
   body{ font-family:'Inter',ui-sans-serif,system-ui,sans-serif; background:#F8FAFC; color:#0F172A; }
@@ -229,6 +229,12 @@
             <span>Los mensajes del bot con cada lead, tal y como los ve el cliente.</span>
           </div>
         </div>
+        <!-- Tercera columna: la ficha del lead, con lo que el BOT sabe de él (Redis,
+             vía el mismo `conversaciones` que ya se carga — ni una llamada más). NO
+             se cruza con el CRM de leads de Postgres: allí el teléfono es PII detrás
+             de un registro de accesos auditado y no existe búsqueda inversa
+             teléfono→lead. Abrirla aquí sería crear una puerta lateral a esos datos. -->
+        <aside class="wa-ficha" id="waFicha"></aside>
       </div>
     </div>
   </section>
@@ -304,6 +310,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=12"></script>
+<script src="/intranet/leads/leads.js?v=13"></script>
 </body>
 </html>

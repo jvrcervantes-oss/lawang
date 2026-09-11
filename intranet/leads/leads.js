@@ -34,6 +34,10 @@ let CARGADO = { panel: false, automatismos: false, setter: false, agenda: false 
 let FICHA = null;
 let CONVERSACIONES = [], CITAS = [], EDITANDO_CITA = null;
 let CHAT_ABIERTO = null;   // teléfono del hilo abierto en Setter IA, o null
+/* La ficha del lead arranca abierta solo si hay sitio para las tres columnas. Por
+   debajo de eso se superpone al chat, y abrirla sola taparía lo que vienes a leer. */
+let FICHA_ABIERTA = window.matchMedia('(min-width: 1100px)').matches;
+let PUEDE_CLOSERS = false;   // lo fija LW_AUTH al arrancar; gobierna el botón de agendar
 
 /* Las seis columnas. El orden es el del embudo y no se reordena: la posición
    de una tarjeta ES la información. */
@@ -1391,6 +1395,7 @@ function irAConversacion(phone){
 function cerrarChat(){
   CHAT_ABIERTO = null;
   $('#wa').dataset.abierto = '0';
+  $('#wa').dataset.ficha = '0';   // sin conversacion no hay ficha que ensenar
   const c = $('#waChat');
   c.dataset.vacio = '1';
   c.innerHTML = `<div class="wa-nada"><i class="ph ph-chats-circle"></i>
@@ -1421,6 +1426,8 @@ async function verConversacion(phone){
         : '<span class="chip verde"><i class="ph ph-robot"></i> IA activa</span>'}
       <button class="btn mini" data-pausar="${esc(phone)}" data-a="${lead.paused ? '0' : '1'}">
         ${lead.paused ? 'Reanudar IA' : 'Pausar IA'}</button>
+      <button type="button" class="btn mini" id="waInfo" aria-pressed="${String(FICHA_ABIERTA)}"
+              title="Mostrar u ocultar la ficha del lead"><i class="ph ph-info"></i></button>
     </div>
     <div class="wa-hilo" id="hiloConv"><p class="vacio">Cargando…</p></div>`;
   $('#waVolver').onclick = () => { location.hash = '#setter'; };
@@ -1428,6 +1435,13 @@ async function verConversacion(phone){
     const b = ev.currentTarget;
     pausarLead(b.dataset.pausar, b.dataset.a === '1');
   };
+  $('#waInfo').onclick = () => {
+    FICHA_ABIERTA = !FICHA_ABIERTA;
+    $('#wa').dataset.ficha = FICHA_ABIERTA ? '1' : '0';
+    $('#waInfo').setAttribute('aria-pressed', String(FICHA_ABIERTA));
+  };
+  $('#wa').dataset.ficha = FICHA_ABIERTA ? '1' : '0';
+  pintarFicha(lead);
 
   try {
     const historia = await llamarBot('conversacion', { phone });
@@ -1437,6 +1451,65 @@ async function verConversacion(phone){
     if(CHAT_ABIERTO !== phone) return;
     $('#hiloConv').innerHTML = '<p class="vacio">No se pudo leer la conversación.</p>';
   }
+}
+
+/* ---------- Ficha del lead, columna derecha del chat ----------
+   Todo sale del listado que Setter IA YA tiene cargado (`conversaciones` →
+   /admin/api/leads del bot): ni una llamada más, ni un dato del CRM de Postgres.
+   Lo que no está, no se dibuja: una fila «Campaña: —» ocupa lo mismo que una con
+   dato y no dice nada. */
+const INTENCION = { exploring: 'Explorando', interested: 'Interesado', booking: 'Quiere reservar', escalate: 'Escalado' };
+const ESTADO_COM = { won: 'Ganado', lost: 'Perdido', noshow: 'No se presentó' };
+
+function pintarFicha(lead){
+  const f = $('#waFicha');
+  const filas = [
+    ['Intención',   INTENCION[lead.intent] || lead.intent],
+    ['Estado',      ESTADO_COM[lead.status] || lead.status],
+    ['País',        lead.country],
+    ['Campaña',     lead.campaign],
+    /* travelDate lo extrae el bot de la conversación, así que puede venir en
+       cualquier forma ("noviembre", "14/11"...). Se formatea SOLO si es una fecha
+       de verdad; si no, se enseña tal cual — inventarle un formato sería perderla. */
+    ['Fecha de viaje', lead.travelDate && !isNaN(new Date(lead.travelDate))
+      ? new Date(lead.travelDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+      : lead.travelDate],
+    ['Primer contacto', lead.createdAt ? fechaHora(new Date(lead.createdAt).toISOString()) : ''],
+    ['Seguimientos enviados', lead.followups],
+  ].filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 0)
+   .map(([k, v]) => `<div class="dato"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+
+  const tags = (lead.tags || []).map(t => `<span class="chip gris">${esc(t)}</span>`).join('');
+  /* Las citas viven en el historial del lead como eventos type:'appt' — es donde las
+     escribe el bot, así que se leen de ahí y no de una segunda fuente. */
+  const citas = (lead.history || []).filter(h => h.type === 'appt')
+    .sort((a, b) => String(b.when || '').localeCompare(String(a.when || '')))
+    .map(h => `<div class="cita con-meet"><div class="cuerpo">
+        <div class="cuando">${esc(h.when ? fechaHora(new Date(h.when).toISOString()) : 'sin fecha')}</div>
+        <div class="quien">${esc(h.title || 'Llamada')}</div></div></div>`).join('');
+
+  f.innerHTML = `
+    <p class="lb">El lead</p>
+    ${filas || '<p class="nada">El bot todavía no ha sacado datos de esta conversación.</p>'}
+    ${tags ? `<p class="lb">Etiquetas</p><div class="etiquetas">${tags}</div>` : ''}
+    <p class="lb">Notas del bot</p>
+    ${lead.notes ? `<div class="notas">${esc(lead.notes)}</div>` : '<p class="nada">Sin notas.</p>'}
+    <p class="lb">Citas</p>
+    ${citas || '<p class="nada">Ninguna agendada.</p>'}
+    ${PUEDE_CLOSERS ? `<button type="button" class="btn pri" id="waAgendar">
+        <i class="ph ph-calendar-plus"></i>Agendar llamada</button>` : ''}`;
+
+  /* Agendar NO abre un formulario nuevo: lleva al de la pestaña Agenda, que ya existe
+     con sus siete campos, su validación y su closer por sesión. Duplicarlo aquí sería
+     exactamente la deuda que la Regla 0 de la suite prohíbe. */
+  const btn = $('#waAgendar');
+  if(btn) btn.onclick = () => {
+    location.hash = '#agenda';
+    $('#agTelefono').value = lead.phone || '';
+    $('#agNombre').value = lead.name || '';
+    $('#agTelefono').focus();
+    toast('Rellena la fecha y guarda: el teléfono y el nombre ya van puestos.');
+  };
 }
 
 function pintarHiloChat(historia){
@@ -1643,6 +1716,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   SB = sb; YO = session && session.user; FICHA = ficha;
   const puedeClosers = !ficha || ficha.rol === 'super_admin' || (ficha.herramientas || []).includes('closers');
   $('#tabAgenda').hidden = !puedeClosers;
+  PUEDE_CLOSERS = puedeClosers;   // el boton «Agendar llamada» de la ficha del chat va detras de este permiso
   /* SOLO POR CASILLA, no por rol (decisión del owner, 11-sep-2026). La primera versión de
      esta línea dejaba pasar a cualquier `admin` por serlo, y eso metía en la tabla de
      comisiones a los cuatro admins sin que nadie lo hubiera decidido — entre ellos la

@@ -83,14 +83,26 @@
 .crm-vista[hidden] { display: none; }
 
 /* ---- Tira de indicadores -------------------------------------------------- */
-.kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 0 0 20px; }
+/* Compactadas el 11-sep-2026 (owner: «demasiado espacio para tan poca info»). Una
+   tarjeta que solo lleva un rótulo, un número de dos dígitos y una coletilla no
+   necesita 28px de cifra ni 190px de ancho mínimo: ocupaba una franja entera de
+   pantalla y empujaba hacia abajo el contenido de verdad. La cifra sigue siendo lo
+   más grande de la tarjeta —es lo que se viene a leer—, solo que a una escala
+   proporcional a lo que dice. El número y su coletilla pasan a la MISMA línea:
+   ahí estaba la mitad del alto desperdiciado. */
+.kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); margin: 0 0 16px; }
+/* flex + `flex-basis:100%` en el rótulo, y NO `display:inline` en la cifra: un <p>
+   puesto a inline pierde el margin-top y el número se pega al rótulo. Así el rótulo
+   ocupa su línea y la cifra y su coletilla comparten la siguiente, alineadas por la
+   base — que es como se leen juntas. */
 .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-box);
-  padding: 14px 16px; box-shadow: var(--e1); }
-.kpi .rot { font: 600 11px/1.3 var(--text); letter-spacing: .04em; text-transform: uppercase;
+  padding: 10px 12px; box-shadow: var(--e1);
+  display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 7px; }
+.kpi .rot { flex: 1 0 100%; font: 600 10px/1.3 var(--text); letter-spacing: .04em; text-transform: uppercase;
   color: var(--mist); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.kpi .cifra { font: 700 28px/1.15 var(--sans); letter-spacing: -.025em; margin: 8px 0 0;
+.kpi .cifra { font: 700 20px/1.15 var(--sans); letter-spacing: -.025em; margin: 5px 0 0;
   font-variant-numeric: tabular-nums; }
-.kpi .pie { font: 400 12px/1.35 var(--text); color: var(--mist); margin: 4px 0 0; }
+.kpi .pie { font: 400 11.5px/1.35 var(--text); color: var(--mist); margin: 0; }
 /* El indicador destacado va en emerald sólido: uno por tira, no cinco. */
 .kpi.fuerte { background: var(--primary); border-color: var(--primary); color: #fff; }
 .kpi.fuerte .rot, .kpi.fuerte .pie { color: #A7F3D0; }
@@ -278,7 +290,11 @@
 }
 
 .wa { display: grid; grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
-  height: clamp(26rem, calc(100vh - 22rem), 44rem); border-top: 1px solid var(--line); }
+  height: clamp(26rem, calc(100vh - 20rem), 46rem); border-top: 1px solid var(--line);
+  position: relative; }
+/* Con la ficha abierta, tres columnas. El ancho de la lista y el de la ficha son
+   fijos y el chat se come el resto: es el que tiene texto de largo variable. */
+.wa[data-ficha="1"] { grid-template-columns: minmax(0, 21rem) minmax(0, 1fr) minmax(0, 17.5rem); }
 
 /* ---- Panel izquierdo: la lista ------------------------------------------- */
 .wa-lista { overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); }
@@ -334,6 +350,35 @@
 .wa-cab .sub { font: 400 12px/1.4 var(--text); color: var(--mist); margin-top: 1px; }
 .wa-volver { display: none; background: none; border: 0; cursor: pointer; padding: 4px;
   font-size: 20px; color: var(--mist); line-height: 1; }
+
+/* ---- Tercera columna: ficha del lead ------------------------------------- */
+.wa-ficha { display: none; min-height: 0; overflow-y: auto;
+  border-left: 1px solid var(--line); background: var(--panel); padding: 14px; }
+.wa[data-ficha="1"] .wa-ficha { display: block; }
+.wa-ficha .lb { font: 600 10px/1 var(--text); letter-spacing: .05em; text-transform: uppercase;
+  color: var(--mist); margin: 16px 0 8px; }
+.wa-ficha .lb:first-child { margin-top: 0; }
+.wa-ficha .dato { display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid var(--line-soft); }
+.wa-ficha .dato span { flex: 0 0 auto; font: 400 11.5px/1.4 var(--text); color: var(--mist); }
+.wa-ficha .dato b { flex: 1 1 auto; text-align: right; font: 600 12.5px/1.4 var(--text);
+  overflow-wrap: anywhere; }
+.wa-ficha .notas { font: 400 12.5px/1.5 var(--text); background: var(--ivory);
+  border: 1px solid var(--line); border-radius: var(--r-ctrl); padding: 9px 10px;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+.wa-ficha .etiquetas { display: flex; flex-wrap: wrap; gap: 5px; }
+.wa-ficha .btn { width: 100%; justify-content: center; margin-top: 8px; }
+.wa-ficha .cita { display: block; border-left-width: 3px; margin-bottom: 6px; }
+.wa-ficha .nada { font: 400 12px/1.5 var(--text); color: var(--mist); margin: 0; }
+
+/* Bajo 1100px no caben tres columnas: la ficha pasa a superponerse sobre el chat,
+   pegada a la derecha. Sigue siendo el mismo panel y el mismo botón, solo cambia
+   dónde se dibuja — nada de una segunda ficha "para pantallas pequeñas". */
+@media (max-width: 1100px) {
+  .wa[data-ficha="1"] { grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); }
+  .wa[data-ficha="1"] .wa-ficha { position: absolute; top: 0; right: 0; bottom: 0;
+    width: min(17.5rem, 85%); z-index: 2; box-shadow: var(--e3); }
+}
 
 .wa-hilo { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 18px 20px;
   display: flex; flex-direction: column; gap: 3px; }
