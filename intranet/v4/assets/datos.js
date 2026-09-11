@@ -143,7 +143,7 @@
     d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px">' +
       '<span style="font:700 11px \'Neue Kabel\',sans-serif;letter-spacing:.18em;color:#485B37">● DATOS EN VIVO</span>' +
       '<span style="font:400 11px \'Neue Kabel\',sans-serif;color:#8A8474">lo de debajo es diseño de la maqueta</span></div>' +
-      '<p style="font:600 20px \'The Seasons\',serif;color:#314322;margin:0 0 10px">' + esc(titulo) + '</p>' +
+      '<p style="font:600 20px \'Neue Kabel\',sans-serif;color:#314322;margin:0 0 10px">' + esc(titulo) + '</p>' +
       (items.length ? '<div style="display:grid;gap:8px">' + items.join('') + '</div>'
                     : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f;margin:0">' + esc(vacio || 'Sin registros.') + '</p>') +
       (verMasUrl ? '<a href="' + verMasUrl + '" style="display:inline-block;margin-top:10px;font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir la herramienta completa →</a>' : '');
@@ -251,7 +251,7 @@
           if (!anc) { console.info('[v4] home: sin ancla de críticos'); return; }
           var card = tarjetaDe(anc);
           for (var i = 0; i < 3 && card.parentElement && card.querySelectorAll('*').length < 12; i++) card = card.parentElement;
-          card.innerHTML = '<p style="font:600 18px \'The Seasons\',serif;margin:0 0 10px">Vencimientos críticos</p>' +
+          card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Vencimientos críticos</p>' +
             (vs.length ? vs.map(function (v) { return itemPanel(esc(v.descripcion || 'Hito') + ' · ' + esc(v.contratos.numero), fFecha(v.fecha), v.monto ? esc(v.monto) : (v.pct ? esc(v.pct) + ' %' : '—')); }).join('')
                        : '<p style="font:400 13px \'Neue Kabel\',sans-serif;color:#44483f">Ninguno con fecha futura en contratos firmados.</p>') +
             '<a href="/intranet/vencimientos/" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Abrir tesorería →</a>';
@@ -265,7 +265,7 @@
           if (!anc) { console.info('[v4] home: sin ancla de firmas'); return; }
           var card = tarjetaDe(anc);
           for (var j = 0; j < 3 && card.parentElement && card.querySelectorAll('*').length < 12; j++) card = card.parentElement;
-          card.innerHTML = '<p style="font:600 18px \'The Seasons\',serif;margin:0 0 10px">Firmas pendientes</p>' +
+          card.innerHTML = '<p style="font:600 18px \'Neue Kabel\',sans-serif;margin:0 0 10px">Firmas pendientes</p>' +
             '<p style="font:700 30px \'Neue Kabel\',sans-serif;margin:0">' + total + '</p>' +
             '<p style="font:400 12px \'Neue Kabel\',sans-serif;color:#8A8474;margin:2px 0 10px">contratos esperando la firma del comprador</p>' +
             '<a href="/intranet/operaciones/?filtro=firma_viva" style="font:600 12px \'Neue Kabel\',sans-serif;color:#104C4F;text-decoration:underline">Verlos en Operaciones →</a>';
@@ -680,6 +680,279 @@
       // no hay nada que vaciar en caliente. Si la consulta falla, se queda el
       // guion y no un número inventado — que es justo lo que se busca.
 
+      /* --- estado del listado (búsqueda + los 2 ejes de chip + página) ---
+         11-sep-2026: antes eran TRES mecanismos sueltos que se pisaban entre sí
+         (un script de Stitch que buscaba sobre nodos que datos.js ya había
+         reemplazado — no filtraba nada — y unos chips que solo pintaban su
+         propio contador sin filtrar la rejilla). Ahora hay un único estado y
+         un único render: cualquier control cambia el estado y llama a
+         renderizar(), que es quien decide qué tarjetas tocan en esta página. */
+      var PAGE_SIZE = 9;
+      var EST = { q: '', chipP: 'todos', chipU: 'todas', pag: 1 };
+      var PS = [], POR_P = {}, COB_P = {}, DOC_P = {}, EQUIPO_NOMBRE = {}, MGRS = [];
+      var MOLDE = null;
+
+      function proyectosFiltrados() {
+        return PS.filter(function (p) {
+          var d = POR_P[p.nombre] || { t: 0, disp: 0, porEstado: {} };
+          if (EST.chipP === 'comercializacion' && !(d.t && d.disp)) return false;
+          if (EST.chipP === 'completados' && !(d.t && !d.disp)) return false;
+          if (EST.chipP === 'estudio' && d.t) return false;
+          if (EST.chipU !== 'todas' && !((d.porEstado || {})[EST.chipU] > 0)) return false;
+          if (EST.q) {
+            var hay = (p.nombre || '').toLowerCase().indexOf(EST.q) !== -1 ||
+                      (p.resort || '').toLowerCase().indexOf(EST.q) !== -1;
+            if (!hay) return false;
+          }
+          return true;
+        });
+      }
+
+      /* Cajón de detalle de UN proyecto — antes solo corría una vez, al cargar
+         (el de la URL o el de más unidades). Ahora es una función que cualquier
+         tarjeta puede invocar: abre SU proyecto, no el que cargó primero. */
+      function abrirCajon(nombre, opts) {
+        opts = opts || {};
+        var elegido = PS.filter(function (p) { return p.nombre === nombre; })[0];
+        if (!elegido) return;
+        window.LW_V4 = window.LW_V4 || {};
+        window.LW_V4.proyecto = elegido; window.LW_V4.managers = MGRS; window.LW_V4.equipoNombre = EQUIPO_NOMBRE;
+        var d = POR_P[elegido.nombre] || { t: 0, cartera: 0 }, cob = COB_P[elegido.nombre] || 0;
+        pon('d-cartera', fmt(d.cartera, 'EUR'));
+        pon('d-cobrado', fmt(cob, 'EUR'));
+        pon('d-pendiente', fmt(d.cartera - cob, 'EUR'));
+        pon('d-pct', d.cartera ? '(' + (Math.round(cob / d.cartera * 1000) / 10) + '%)' : '(—)');
+        pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%');
+        pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
+        pon('d-master', elegido.parcela_master || 'sin registrar');
+        pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
+        pon('d-docs', (DOC_P[elegido.nombre] || 0) + ' documentos');
+
+        /* Managers de este proyecto (11-sep-2026) — quién es el encargado,
+           pintado como chips de solo lectura; asignar/desasignar es una
+           escritura y vive en editores.js, con su propio gate de permiso. */
+        var cajaM = document.getElementById('d-managers');
+        if (cajaM) {
+          var supervisan = MGRS.filter(function (m) { return (m.proyectos_supervisados || []).indexOf(elegido.id) !== -1; });
+          cajaM.innerHTML = supervisan.length
+            ? supervisan.map(function (m) {
+                return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;' +
+                  'background:#efeee8;border:1px solid #E4DCCB;font:600 11px sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
+                  esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· ' +
+                  (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' · desactivado') + '</span></span>';
+              }).join('')
+            : '<span style="font:500 13px sans-serif;color:#75786e">Sin encargado asignado.</span>';
+        }
+
+        /* Documentacion FUSIONADA aqui (decision owner 8-sep): la boveda son
+           hoy 6 FAQ y 10 enlaces, todos con proyecto — una pestana propia no
+           se sostenia. La lectura es de equipo (es_agente); el alta seguira
+           exigiendo puede('documentacion'), la misma llave de siempre. */
+        var docsEl = DS_ACTUAL.filter(function (d2) { return d2.proyecto === elegido.nombre; });
+        var enl = docsEl.filter(function (d2) { return d2.categoria !== 'faq'; });
+        var faq = docsEl.filter(function (d2) { return d2.categoria === 'faq'; });
+        var cajaE = document.getElementById('d-enlaces');
+        if (cajaE && cajaE.firstElementChild) {
+          var mE = cajaE.firstElementChild.cloneNode(true);
+          cajaE.innerHTML = '';
+          if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
+          enl.forEach(function (d2) {
+            var f = mE.cloneNode(true);
+            var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
+            p3('en-titulo', d2.titulo || 'Enlace');
+            p3('en-meta', (d2.categoria || '—') + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
+            if (d2.url) f.href = d2.url; else { f.removeAttribute('href'); f.style.cursor = 'default'; }
+            cajaE.appendChild(f);
+          });
+        }
+        var cajaF = document.getElementById('d-faqs');
+        if (cajaF && cajaF.firstElementChild) {
+          var mF = cajaF.firstElementChild.cloneNode(true);
+          cajaF.innerHTML = '';
+          if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
+          faq.forEach(function (d2) {
+            var f = mF.cloneNode(true);
+            var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
+            p3('fq-pregunta', d2.titulo || 'Pregunta');
+            p3('fq-respuesta', d2.descripcion || '—');
+            cajaF.appendChild(f);
+          });
+        }
+        pon('d-pendiente2', fmt(d.cartera - cob, 'EUR'));
+        pon('d-presu', '—');
+        var h2 = hojaConTexto(/Master Plan/i);
+        if (h2) h2.textContent = elegido.nombre + ' · Master Plan & Cuentas';
+
+        /* La lista de unidades del cajón, con datos reales del proyecto
+           elegido. `unidades_estado` es la vista que ya trae el contrato y el
+           comprador vinculados — no se vuelve a cruzar aquí a mano. */
+        q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre,contrato_creado_por')
+            .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
+          .then(function (uu) {
+            var caja = document.getElementById('d-unidades');
+            if (!caja || uu == null) return;
+            var molde = caja.firstElementChild;
+            if (!molde) return;
+            var base = molde.cloneNode(true);
+            caja.innerHTML = '';
+            pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
+            if (!uu.length) {
+              caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
+                'Este proyecto no tiene unidades dadas de alta.</p>';
+              return;
+            }
+            uu.forEach(function (u) {
+              var f = base.cloneNode(true);
+              pon('u-titulo', u.codigo + (u.comprador_nombre ? ' · ' + u.comprador_nombre : ''), f);
+              pon('u-tipo', u.modelo || (u.estado || '—'), f);
+              pon('u-total', u.precio != null ? fmt(u.precio, 'EUR') : '—', f);
+              // Sin recibí por unidad: el cobro cuelga del CONTRATO, no de la
+              // parcela. Se dice cuál es el contrato en vez de inventar un
+              // reparto por unidad que la base no respalda.
+              pon('u-cobrado', u.contrato_numero || 'sin contrato', f);
+              pon('u-nota', (u.estado || '—').toUpperCase(), f);
+              // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
+              // de un vistazo qué agente hizo el contrato de cada unidad). Sin
+              // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
+              pon('u-agente', u.contrato_creado_por ? (EQUIPO_NOMBRE[u.contrato_creado_por] || u.contrato_creado_por) : '—', f);
+              caja.appendChild(f);
+            });
+          });
+
+        if (opts.mostrar) {
+          var cajon = document.getElementById('cajon-detalle'), velo = document.getElementById('cajon-backdrop');
+          if (cajon) cajon.classList.remove('translate-x-full');
+          if (velo) velo.classList.remove('hidden');
+        }
+        if (opts.empujarUrl !== false) {
+          var u2 = new URL(location.href);
+          u2.searchParams.set('proyecto', nombre);
+          history.replaceState(null, '', u2.pathname + u2.search);
+        }
+      }
+      window.LW_V4 = window.LW_V4 || {}; window.LW_V4.abrirProyecto = abrirCajon;
+
+      /* Rejilla + resumen + paginación de la página actual, sobre el filtro
+         vigente. Nunca vuelve a pedir datos: PS/POR_P/COB_P ya están en
+         memoria desde la carga inicial. */
+      function renderizar() {
+        var grid = document.getElementById('projects-grid');
+        if (!grid) return;
+        if (!MOLDE) MOLDE = grid.firstElementChild ? grid.firstElementChild.cloneNode(true) : null;
+        if (!MOLDE) return;
+
+        var filtrados = proyectosFiltrados();
+        var totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+        if (EST.pag > totalPaginas) EST.pag = totalPaginas;
+        var desde = (EST.pag - 1) * PAGE_SIZE;
+        var pagina = filtrados.slice(desde, desde + PAGE_SIZE);
+
+        grid.innerHTML = '';
+        if (!pagina.length) {
+          grid.innerHTML = '<p style="grid-column:1/-1;font:500 14px sans-serif;color:#75786e;padding:24px 4px">' +
+            (PS.length ? 'Ningún proyecto coincide con el filtro.' : 'Todavía no hay proyectos dados de alta.') + '</p>';
+        }
+        pagina.forEach(function (p) {
+          var c = MOLDE.cloneNode(true);
+          var d = POR_P[p.nombre] || { t: 0, disp: 0, vend: 0, cartera: 0 };
+          var cob = COB_P[p.nombre] || 0;
+          pon('nombre', p.nombre, c);
+          pon('sitio', p.resort || 'Sin ubicación asignada', c);
+          pon('sub', p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada', c);
+          pon('badge', d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado'), c);
+          pon('uds', String(d.t), c);
+          pon('vendidas', d.vend + ' vendidas', c);
+          pon('disp', d.disp + ' disp.', c);
+          pon('cobrado', fmt(cob, 'EUR'), c);
+          pon('total', '/ ' + fmt(d.cartera, 'EUR'), c);
+          pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' : 'sin cartera', c);
+          pon('master', p.parcela_master || '—', c);
+          var barra = c.querySelector('.bg-fiduciary-green');
+          if (barra && barra.style) barra.style.width = (d.cartera ? Math.min(100, cob / d.cartera * 100) : 0) + '%';
+          c.style.cursor = 'pointer';
+          var abre = function (ev) { if (ev) ev.stopPropagation(); abrirCajon(p.nombre, { mostrar: true }); };
+          c.addEventListener('click', abre);
+          var btn = c.querySelector('[data-abrir-cajon]');
+          if (btn) btn.addEventListener('click', abre);
+          grid.appendChild(c);
+        });
+
+        var resumen = document.getElementById('resumen-listado');
+        if (resumen) {
+          resumen.textContent = filtrados.length
+            ? 'Mostrando ' + (desde + 1) + '–' + Math.min(desde + PAGE_SIZE, filtrados.length) + ' de ' + filtrados.length +
+              (filtrados.length !== PS.length ? ' proyectos (filtrado de ' + PS.length + ' en total)' : (filtrados.length === 1 ? ' proyecto activo' : ' proyectos activos'))
+            : (PS.length ? 'Ningún proyecto coincide con este filtro (' + PS.length + ' en total).' : 'Todavía no hay proyectos.');
+        }
+        var cajaPag = document.getElementById('pag-paginas');
+        if (cajaPag) {
+          cajaPag.innerHTML = '';
+          for (var i = 1; i <= totalPaginas; i++) {
+            (function (n) {
+              var b = document.createElement('button');
+              b.type = 'button'; b.textContent = String(n);
+              b.className = n === EST.pag
+                ? 'w-8 h-8 rounded-full bg-deep-lagoon text-surface-bright text-xs font-label-md shadow-sm font-semibold'
+                : 'w-8 h-8 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container text-xs font-label-md transition-colors border border-warm-border shadow-xs';
+              b.addEventListener('click', function () { EST.pag = n; renderizar(); });
+              cajaPag.appendChild(b);
+            })(i);
+          }
+        }
+        var btnAnt = document.getElementById('btn-pag-anterior'), btnSig = document.getElementById('btn-pag-siguiente');
+        if (btnAnt) btnAnt.disabled = EST.pag <= 1;
+        if (btnSig) btnSig.disabled = EST.pag >= totalPaginas;
+      }
+
+      /* Clases de "activo"/"inactivo" se leen UNA VEZ del propio HTML (el
+         primer botón de cada fila ya nace activo: Todos/Todas) — así no hay
+         que mantener aquí una copia a mano de las clases de Tailwind. */
+      function chipClases(cont) {
+        if (!cont) return null;
+        var botones = cont.querySelectorAll('button');
+        if (botones.length < 2) return null;
+        return { activo: botones[0].className, inactivo: botones[1].className };
+      }
+      function marcaChip(cont, attr, valor, clases) {
+        if (!cont || !clases) return;
+        cont.querySelectorAll('button[' + attr + ']').forEach(function (b) {
+          b.className = b.getAttribute(attr) === valor ? clases.activo : clases.inactivo;
+        });
+      }
+
+      function wireControles() {
+        var contP = document.getElementById('chips-proyecto');
+        var contU = document.getElementById('chips-estado');
+        var clasesP = chipClases(contP), clasesU = chipClases(contU);
+        if (contP) contP.querySelectorAll('[data-chip-p]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            EST.chipP = b.getAttribute('data-chip-p'); EST.pag = 1;
+            marcaChip(contP, 'data-chip-p', EST.chipP, clasesP);
+            renderizar();
+          });
+        });
+        if (contU) contU.querySelectorAll('[data-chip-u]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            EST.chipU = b.getAttribute('data-chip-u'); EST.pag = 1;
+            marcaChip(contU, 'data-chip-u', EST.chipU, clasesU);
+            renderizar();
+          });
+        });
+        var buscador = document.getElementById('project-search');
+        if (buscador) buscador.addEventListener('input', function () {
+          EST.q = buscador.value.toLowerCase().trim(); EST.pag = 1; renderizar();
+        });
+        var btnAnt = document.getElementById('btn-pag-anterior');
+        if (btnAnt) btnAnt.addEventListener('click', function () { if (EST.pag > 1) { EST.pag--; renderizar(); } });
+        var btnSig = document.getElementById('btn-pag-siguiente');
+        if (btnSig) btnSig.addEventListener('click', function () {
+          var totalPaginas = Math.max(1, Math.ceil(proyectosFiltrados().length / PAGE_SIZE));
+          if (EST.pag < totalPaginas) { EST.pag++; renderizar(); }
+        });
+      }
+
+      var DS_ACTUAL = [];
+
       Promise.all([
         q(sb.from('proyectos').select('id,nombre,resort,parcela_master,parcela_master_m2').eq('activo', true).order('nombre'), 'proyectos'),
         q(sb.from('unidades').select('proyecto,estado,moneda,precio,precio_suelo,precio_construccion'), 'unidades'),
@@ -703,31 +976,35 @@
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
         if (!ps) return;
-        var equipoNombre = {};
-        eq.forEach(function (e) { if (e.email) equipoNombre[e.email] = e.nombre || e.email; });
+        PS = ps; MGRS = mgrs; DS_ACTUAL = ds;
+        EQUIPO_NOMBRE = {};
+        eq.forEach(function (e) { if (e.email) EQUIPO_NOMBRE[e.email] = e.nombre || e.email; });
 
         /* --- agregados, SOLO EUR --- */
-        var EUR = function (u) { return (u.moneda || 'EUR') === 'EUR' && u.moneda; };
-        var tot = { cartera: 0, suelo: 0, obra: 0 }, fuera = { idr: 0, sin: 0 };
-        var porP = {};
+        var tot = { cartera: 0, suelo: 0, obra: 0 };
+        var ests = { disponible: 0, reservada: 0, bloqueada: 0, vendida: 0, cobrada: 0, no_disponible: 0 };
+        POR_P = {};
         us.forEach(function (u) {
           var k = u.proyecto || '¿?';
-          var d = porP[k] = porP[k] || { t: 0, disp: 0, vend: 0, cartera: 0, suelo: 0, obra: 0 };
+          var d = POR_P[k] = POR_P[k] || { t: 0, disp: 0, vend: 0, cartera: 0, suelo: 0, obra: 0, porEstado: {} };
           d.t++;
           if (u.estado === 'disponible') d.disp++;
           if (u.estado === 'vendida' || u.estado === 'cobrada') d.vend++;
-          if (!u.moneda) { fuera.sin++; return; }
-          if (u.moneda !== 'EUR') { fuera.idr++; return; }
+          var eNorm = (u.estado || '').replace(/\s+/g, '_');
+          d.porEstado[eNorm] = (d.porEstado[eNorm] || 0) + 1;
+          if (eNorm in ests) ests[eNorm]++;
+          if (!u.moneda || u.moneda !== 'EUR') return;
           tot.cartera += Number(u.precio || 0); tot.suelo += Number(u.precio_suelo || 0); tot.obra += Number(u.precio_construccion || 0);
           d.cartera += Number(u.precio || 0);
         });
-        var cobrado = 0, facturado = 0, cobP = {};
+        var cobrado = 0, facturado = 0;
+        COB_P = {};
         fs.forEach(function (f) {
           if (f.anulada || (f.moneda || 'EUR') !== 'EUR') return;
-          if (f.tipo === 'recibi') { cobrado += Number(f.total || 0); var k = f.proyecto_nombre || ''; cobP[k] = (cobP[k] || 0) + Number(f.total || 0); }
+          if (f.tipo === 'recibi') { cobrado += Number(f.total || 0); var k = f.proyecto_nombre || ''; COB_P[k] = (COB_P[k] || 0) + Number(f.total || 0); }
           else if (f.tipo === 'factura') facturado += Number(f.total || 0);
         });
-        var docP = {}; ds.forEach(function (d) { docP[d.proyecto] = (docP[d.proyecto] || 0) + 1; });
+        DOC_P = {}; ds.forEach(function (d) { DOC_P[d.proyecto] = (DOC_P[d.proyecto] || 0) + 1; });
 
         /* --- KPIs --- */
         pon('k-cartera', fmt(tot.cartera, 'EUR'));
@@ -741,17 +1018,9 @@
         var base = tot.suelo + tot.obra;
         pon('k-mix-pie', base ? 'Suelo: ' + (Math.round(tot.suelo / base * 1000) / 10) + '% · Construcción: ' + (Math.round(tot.obra / base * 1000) / 10) + '%' : '—');
 
-        /* Lo que la vista NO está sumando se dice. Un aviso que no está es la
-           forma más barata de que un número se lea como si lo incluyera todo. */
-        if (fuera.idr || fuera.sin) {
-          bandaNota('Estas cifras son SOLO en euros. Fuera de la suma: ' +
-            (fuera.idr ? fuera.idr + ' unidades en rupias (Riverfront)' : '') +
-            (fuera.idr && fuera.sin ? ' y ' : '') +
-            (fuera.sin ? fuera.sin + ' unidades sin moneda asignada (pendiente LAW-101)' : '') +
-            '. No se mezclan monedas: el total saldría en una unidad que no existe.', '#8A6A34');
-        }
-
-        /* --- chips --- */
+        /* --- contadores de los chips: SIEMPRE globales, no cambian con el
+           filtro activo — son "cuánto habría si eligieras este chip", no
+           "cuánto hay ahora mismo visible". */
         pon('p-todos', String(ps.length));
         /* Los chips «En comercializacion / Completados / En estudio» pedian una
            clasificacion que `proyectos` NO tiene (solo hay `activo`). En vez de
@@ -760,7 +1029,7 @@
            disponibles / todo asignado / sin unidades. */
         var cl = { com: 0, fin: 0, est: 0 };
         ps.forEach(function (p) {
-          var d = porP[p.nombre];
+          var d = POR_P[p.nombre];
           if (!d || !d.t) cl.est++;
           else if (d.disp) cl.com++;
           else cl.fin++;
@@ -768,152 +1037,19 @@
         pon('c-comercializacion', String(cl.com));
         pon('c-completados', String(cl.fin));
         pon('c-estudio', String(cl.est));
-        var ests = { disponible: 0, reservada: 0, bloqueada: 0, vendida: 0, cobrada: 0, no_disponible: 0 };
-        us.forEach(function (u) { var e = (u.estado || '').replace(/\s+/g, '_'); if (e in ests) ests[e]++; });
         pon('uds-todas', String(us.length));
         Object.keys(ests).forEach(function (e) { pon('uds-' + e, String(ests[e])); });
 
-        /* --- tarjetas: se siembran del CATÁLOGO, no de las unidades ---
-           Agrupar por `unidades.proyecto` pierde todo proyecto sin unidades, y
-           justo ése suele ser el que hay que ver, porque es el que falta por
-           hacer. Es el fallo que el owner cazó el 26-ago (11 carpetas donde la
-           herramienta viva enseña 29). */
-        var grid = document.getElementById('projects-grid');
-        if (!grid) { console.info('[v4] proyectos: sin #projects-grid'); return; }
-        var plantilla = grid.firstElementChild;
-        if (!plantilla) { console.info('[v4] proyectos: grid sin plantilla'); return; }
-        var molde = plantilla.cloneNode(true);
-        grid.innerHTML = '';
-        ps.forEach(function (p) {
-          var c = molde.cloneNode(true);
-          var d = porP[p.nombre] || { t: 0, disp: 0, vend: 0, cartera: 0 };
-          var cob = cobP[p.nombre] || 0;
-          pon('nombre', p.nombre, c);
-          pon('sitio', p.resort || 'Sin ubicación asignada', c);
-          pon('sub', p.parcela_master ? 'Parcela máster ' + p.parcela_master + (p.parcela_master_m2 ? ' · ' + p.parcela_master_m2 + ' m²' : '') : 'Sin parcela máster registrada', c);
-          pon('badge', d.t === 0 ? 'Sin inventario' : (d.disp ? 'Con disponibles' : 'Todo asignado'), c);
-          pon('uds', String(d.t), c);
-          pon('vendidas', d.vend + ' vendidas', c);
-          pon('disp', d.disp + ' disp.', c);
-          pon('cobrado', fmt(cob, 'EUR'), c);
-          pon('total', '/ ' + fmt(d.cartera, 'EUR'), c);
-          pon('pct', d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) + '% cobrado' : 'sin cartera', c);
-          pon('master', p.parcela_master || '—', c);
-          var barra = c.querySelector('.bg-fiduciary-green');
-          if (barra && barra.style) barra.style.width = (d.cartera ? Math.min(100, cob / d.cartera * 100) : 0) + '%';
-          c.style.cursor = 'pointer';
-          c.addEventListener('click', function () { location.href = '/intranet/proyectos/?proyecto=' + encodeURIComponent(p.nombre); });
-          grid.appendChild(c);
-        });
+        wireControles();
+        renderizar();
 
-        /* --- cajón de detalle: el proyecto de ?proyecto= o el de más unidades --- */
+        /* Llegar con ?proyecto= en la URL abre ESE cajón — quien navega con un
+           enlace concreto ya eligió, se le enseña. Una carga a secas se queda
+           con el cajón cerrado (11-sep-2026: antes se abría solo con el
+           proyecto de más unidades, y parecía un desplegable roto). */
         var pedido = new URLSearchParams(location.search).get('proyecto');
-        var elegido = ps.filter(function (p) { return p.nombre === pedido; })[0] ||
-                      ps.slice().sort(function (a, b) { return (porP[b.nombre] || { t: 0 }).t - (porP[a.nombre] || { t: 0 }).t; })[0];
-        if (elegido) {
-          window.LW_V4 = window.LW_V4 || {};
-          window.LW_V4.proyecto = elegido; window.LW_V4.managers = mgrs; window.LW_V4.equipoNombre = equipoNombre;
-          var d = porP[elegido.nombre] || { t: 0, cartera: 0 }, cob = cobP[elegido.nombre] || 0;
-          pon('d-cartera', fmt(d.cartera, 'EUR'));
-          pon('d-cobrado', fmt(cob, 'EUR'));
-          pon('d-pendiente', fmt(d.cartera - cob, 'EUR'));
-          pon('d-pct', d.cartera ? '(' + (Math.round(cob / d.cartera * 1000) / 10) + '%)' : '(—)');
-          pon('d-pct2', 'Recaudado ' + (d.cartera ? (Math.round(cob / d.cartera * 1000) / 10) : 0) + '%');
-          pon('d-objetivo', 'Cartera ' + fmt(d.cartera, 'EUR'));
-          pon('d-master', elegido.parcela_master || 'sin registrar');
-          pon('d-sup', elegido.parcela_master_m2 ? elegido.parcela_master_m2 + ' m² (' + d.t + ' parcelas)' : d.t + ' parcelas');
-          pon('d-docs', (docP[elegido.nombre] || 0) + ' documentos');
-
-          /* Managers de este proyecto (11-sep-2026) — quién es el encargado,
-             pintado como chips de solo lectura; asignar/desasignar es un
-             escritura y vive en editores.js, con su propio gate de permiso. */
-          var cajaM = document.getElementById('d-managers');
-          if (cajaM) {
-            var supervisan = mgrs.filter(function (m) { return (m.proyectos_supervisados || []).indexOf(elegido.id) !== -1; });
-            cajaM.innerHTML = supervisan.length
-              ? supervisan.map(function (m) {
-                  return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;' +
-                    'background:#efeee8;border:1px solid #E4DCCB;font:600 11px sans-serif;color:#1b1c19' + (m.activo ? '' : ';opacity:.55') + '">' +
-                    esc(m.nombre || m.email) + '<span style="font-weight:500;color:#75786e">· ' +
-                    (m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager') + (m.activo ? '' : ' · desactivado') + '</span></span>';
-                }).join('')
-              : '<span style="font:500 13px sans-serif;color:#75786e">Sin encargado asignado.</span>';
-          }
-
-          /* Documentacion FUSIONADA aqui (decision owner 8-sep): la boveda son
-             hoy 6 FAQ y 10 enlaces, todos con proyecto — una pestana propia no
-             se sostenia. La lectura es de equipo (es_agente); el alta seguira
-             exigiendo puede('documentacion'), la misma llave de siempre. */
-          var docsEl = ds.filter(function (d2) { return d2.proyecto === elegido.nombre; });
-          var enl = docsEl.filter(function (d2) { return d2.categoria !== 'faq'; });
-          var faq = docsEl.filter(function (d2) { return d2.categoria === 'faq'; });
-          var cajaE = document.getElementById('d-enlaces');
-          if (cajaE && cajaE.firstElementChild) {
-            var mE = cajaE.firstElementChild.cloneNode(true);
-            cajaE.innerHTML = '';
-            if (!enl.length) cajaE.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Este proyecto no tiene enlaces guardados.</p>';
-            enl.forEach(function (d2) {
-              var f = mE.cloneNode(true);
-              var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
-              p3('en-titulo', d2.titulo || 'Enlace');
-              p3('en-meta', (d2.categoria || '—') + (d2.visible_portal ? ' · visible al comprador' : '') + (d2.confidencial ? ' · confidencial' : ''));
-              if (d2.url) f.href = d2.url; else { f.removeAttribute('href'); f.style.cursor = 'default'; }
-              cajaE.appendChild(f);
-            });
-          }
-          var cajaF = document.getElementById('d-faqs');
-          if (cajaF && cajaF.firstElementChild) {
-            var mF = cajaF.firstElementChild.cloneNode(true);
-            cajaF.innerHTML = '';
-            if (!faq.length) cajaF.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">Sin preguntas frecuentes para este proyecto.</p>';
-            faq.forEach(function (d2) {
-              var f = mF.cloneNode(true);
-              var p3 = function (k, v2) { var e = f.querySelector('[data-lw="' + k + '"]'); if (e) e.textContent = v2; };
-              p3('fq-pregunta', d2.titulo || 'Pregunta');
-              p3('fq-respuesta', d2.descripcion || '—');
-              cajaF.appendChild(f);
-            });
-          }
-          pon('d-pendiente2', fmt(d.cartera - cob, 'EUR'));
-          pon('d-presu', '—');
-          var h2 = hojaConTexto(/Master Plan/i);
-          if (h2) h2.textContent = elegido.nombre + ' · Master Plan & Cuentas';
-
-          /* La lista de unidades del cajón, con datos reales del proyecto
-             elegido. `unidades_estado` es la vista que ya trae el contrato y el
-             comprador vinculados — no se vuelve a cruzar aquí a mano. */
-          q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre,contrato_creado_por')
-              .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
-            .then(function (uu) {
-              var caja = document.getElementById('d-unidades');
-              if (!caja || uu == null) return;
-              var molde = caja.firstElementChild;
-              if (!molde) return;
-              var base = molde.cloneNode(true);
-              caja.innerHTML = '';
-              pon('d-uds-n', uu.length + (uu.length === 1 ? ' unidad' : ' unidades'));
-              if (!uu.length) {
-                caja.innerHTML = '<p style="font:500 13px/1.5 sans-serif;color:#75786e;margin:0">' +
-                  'Este proyecto no tiene unidades dadas de alta.</p>';
-                return;
-              }
-              uu.forEach(function (u) {
-                var f = base.cloneNode(true);
-                pon('u-titulo', u.codigo + (u.comprador_nombre ? ' · ' + u.comprador_nombre : ''), f);
-                pon('u-tipo', u.modelo || (u.estado || '—'), f);
-                pon('u-total', u.precio != null ? fmt(u.precio, 'EUR') : '—', f);
-                // Sin recibí por unidad: el cobro cuelga del CONTRATO, no de la
-                // parcela. Se dice cuál es el contrato en vez de inventar un
-                // reparto por unidad que la base no respalda.
-                pon('u-cobrado', u.contrato_numero || 'sin contrato', f);
-                pon('u-nota', (u.estado || '—').toUpperCase(), f);
-                // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
-                // de un vistazo qué agente hizo el contrato de cada unidad). Sin
-                // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
-                pon('u-agente', u.contrato_creado_por ? (equipoNombre[u.contrato_creado_por] || u.contrato_creado_por) : '—', f);
-                caja.appendChild(f);
-              });
-            });
+        if (pedido && ps.some(function (p) { return p.nombre === pedido; })) {
+          abrirCajon(pedido, { mostrar: true, empujarUrl: false });
         }
       });
     },

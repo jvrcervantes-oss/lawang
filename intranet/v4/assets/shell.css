@@ -14,7 +14,7 @@
 #lw-modal .lw-modal-fondo{position:absolute;inset:0;background:rgba(27,28,25,.45)}
 #lw-modal .lw-modal-caja{position:relative;margin:9vh auto 0;width:min(92vw,440px);background:#FBF9F4;
   border:1px solid #c5c8bc;border-radius:10px;padding:22px 24px 16px;box-shadow:0 24px 60px rgba(27,28,25,.3)}
-#lw-modal .lw-modal-titulo{font:600 22px/1.25 'The Seasons',serif;color:#314322;margin:0 0 14px}
+#lw-modal .lw-modal-titulo{font:600 22px/1.25 'Neue Kabel',sans-serif;color:#314322;margin:0 0 14px}
 #lw-modal .lw-modal-p{font:400 14px/1.5 'Neue Kabel',sans-serif;color:#44483f;margin:4px 0 8px}
 #lw-modal .lw-campo{display:block;margin-bottom:12px}
 #lw-modal .lw-campo span{display:block;font:700 10px/1 'Neue Kabel',sans-serif;letter-spacing:.14em;

@@ -53,7 +53,7 @@
       '<div role="dialog" aria-modal="true" style="position:fixed;inset:0;display:grid;place-items:center;z-index:10001;pointer-events:none">' +
       '<form data-e="form" style="pointer-events:auto;background:#fff;border:1px solid #c5c8bc;border-radius:14px;box-shadow:0 24px 48px -12px rgba(0,0,0,.25);width:min(520px,92vw);max-height:88vh;overflow:auto;padding:26px 28px;' + FUENTE + '">' +
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:16px">' +
-      '<h3 style="margin:0;font:600 22px \'The Seasons\',\'Cormorant Garamond\',serif;color:#104C4F">' + esc(titulo) + '</h3>' +
+      '<h3 style="margin:0;font:600 22px \'Neue Kabel\',sans-serif;color:#104C4F">' + esc(titulo) + '</h3>' +
       '<button type="button" data-e="cerrar" style="border:0;background:none;font-size:20px;cursor:pointer;color:#75786e">×</button></div>' +
       '<div data-e="campos" style="display:grid;gap:14px"></div>' +
       '<p data-e="error" style="display:none;margin:14px 0 0;padding:10px 12px;border-radius:8px;background:#ffdad6;color:#93000a;font-size:13px"></p>' +
@@ -144,6 +144,27 @@
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, 5200);
+  }
+
+  /* Descarga de CSV en el navegador (11-sep-2026, exportes de Proyectos).
+     `lwCsvAntiFormula` (contracts/assets/proyectos_csv.js) antepone una comilla
+     a un valor que empieza por = + - @: mitigación estándar de CSV/formula
+     injection, la misma que ya usa el import de unidades — un nombre de
+     proyecto es texto libre y esto se reabre en Excel. */
+  function descargaCsv(nombreArchivo, cabeceras, filas) {
+    var af = (typeof lwCsvAntiFormula === 'function') ? lwCsvAntiFormula : function (s) { return s; };
+    var celda = function (v) {
+      var s = af(v == null ? '' : String(v));
+      if (/[",\n;]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    var lineas = [cabeceras.map(celda).join(',')].concat(filas.map(function (f) { return f.map(celda).join(','); }));
+    var blob = new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = nombreArchivo;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
   }
 
   /* ---------- captura de botones por texto, en directo ---------- */
@@ -389,6 +410,148 @@
           setTimeout(function () { location.href = '/intranet/v4/proyectos/'; }, 1200);
         });
       });
+
+      /* Nuevo proyecto (11-sep-2026): mismo alcance que altaProyecto() en
+         /proyectos/ — solo el nombre. Resort/parcela máster se añaden después
+         desde "Editar proyecto". Sin gate de rol: la RLS de INSERT en
+         `proyectos` exige es_agente()+puede('unidades'), el mismo permiso que
+         ya hace falta para ver esta página entera. */
+      var bNuevoP = document.getElementById('btn-nuevo-proyecto');
+      if (bNuevoP) bNuevoP.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        modal('Nuevo proyecto', [
+          { k: 'nombre', label: 'Nombre', req: 1, ayuda: 'Con cuidado: un "Palm Field" y un "Palm Field " con espacio conviven como dos proyectos distintos.' }
+        ], 'Crear proyecto', function (v) {
+          var nombre = v.nombre.trim();
+          if (!nombre) return { error: { message: 'el nombre no puede quedar vacío' } };
+          return sb.from('proyectos').insert({ nombre: nombre }).then(function (r) {
+            if (r.error && /duplicate key|proyectos_nombre_key/.test(r.error.message || '')) {
+              return { error: { message: 'ya existe un proyecto con ese nombre' } };
+            }
+            return r;
+          });
+        });
+      });
+
+      /* Nueva unidad (11-sep-2026): mismo payload que guardar() en /proyectos/
+         — `precio` JAMÁS se manda (lo calcula el trigger suelo+construcción),
+         y `estado`/`contrato_id` tampoco: una unidad nueva no tiene contrato
+         todavía, y la base ya la da de alta 'disponible' por defecto. */
+      var bNuevaU = document.getElementById('btn-nueva-unidad');
+      if (bNuevaU) bNuevaU.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        Promise.all([
+          sb.from('proyectos').select('nombre').eq('activo', true).order('nombre'),
+          sb.from('tipos_vivienda').select('clave,etiqueta').eq('activo', true).order('etiqueta')
+        ]).then(function (rs) {
+          var proyectos = ((rs[0] && rs[0].data) || []).map(function (p) { return p.nombre; });
+          var tipos = ((rs[1] && rs[1].data) || []).map(function (t) { return [t.clave, t.etiqueta]; });
+          var actual = proyectoObj();
+          modal('Nueva unidad', [
+            { k: 'proyecto', label: 'Proyecto', tipo: 'select', req: 1, opciones: proyectos, valor: (actual && actual.nombre) || proyectos[0] },
+            { k: 'codigo', label: 'Código', req: 1, ayuda: 'Debe coincidir con el que se escribe en el contrato: es lo que permite cruzarlos.' },
+            { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: tipos.length ? tipos : [['parcela', 'Parcela']], valor: 'parcela' },
+            { k: 'superficie_m2', label: 'Superficie (m²)', tipo: 'number' },
+            { k: 'precio_suelo', label: 'Precio de suelo', tipo: 'number' },
+            { k: 'precio_construccion', label: 'Precio de construcción', tipo: 'number' },
+            { k: 'moneda', label: 'Moneda', tipo: 'select', opciones: ['EUR', 'IDR'], valor: 'EUR' },
+            { k: 'notas', label: 'Notas', tipo: 'textarea' }
+          ], 'Crear unidad', function (v) {
+            // Campos `type:'number'` nativos: el valor ya llega en punto decimal
+            // (p.ej. "1200.5"), nunca con el formato europeo de coma que usa
+            // parseImporte() en /proyectos/ para sus inputs de texto libre —
+            // aplicar esa transformación aquí le comería el punto y lo rompería.
+            var num = function (s) { var n = parseFloat(s); return isNaN(n) ? null : n; };
+            return sb.from('unidades').insert({
+              codigo: v.codigo.trim(), proyecto: v.proyecto,
+              tipo: v.tipo, superficie_m2: num(v.superficie_m2),
+              precio_suelo: num(v.precio_suelo), precio_construccion: num(v.precio_construccion),
+              moneda: v.moneda, notas: v.notas.trim() || null
+            });
+          });
+        });
+      });
+
+      /* Exportar informe financiero (11-sep-2026): CSV de cartera/cobrado por
+         proyecto. Consulta propia en vez de leer el estado interno de
+         datos.js — mismo patrón lazy-fetch que ya usa "Editar proyecto". */
+      var bExport = document.getElementById('btn-exportar');
+      if (bExport) bExport.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        toast('Preparando el CSV…');
+        Promise.all([
+          sb.from('proyectos').select('nombre,resort').eq('activo', true).order('nombre'),
+          sb.from('unidades').select('proyecto,estado,moneda,precio'),
+          sb.rpc('facturas_equipo').select('proyecto_nombre,tipo,total,moneda,anulada')
+        ]).then(function (rs) {
+          var ps = (rs[0] && rs[0].data) || [], us = (rs[1] && rs[1].data) || [], fs = (rs[2] && rs[2].data) || [];
+          var porP = {};
+          us.forEach(function (u) {
+            var d = porP[u.proyecto || '¿?'] = porP[u.proyecto || '¿?'] || { t: 0, disp: 0, cartera: 0, fueraEur: 0 };
+            d.t++;
+            if (u.estado === 'disponible') d.disp++;
+            if ((u.moneda || 'EUR') === 'EUR') d.cartera += Number(u.precio || 0); else d.fueraEur++;
+          });
+          var cobP = {};
+          fs.forEach(function (f) {
+            if (f.anulada || f.tipo !== 'recibi' || (f.moneda || 'EUR') !== 'EUR') return;
+            var k = f.proyecto_nombre || ''; cobP[k] = (cobP[k] || 0) + Number(f.total || 0);
+          });
+          var filas = ps.map(function (p) {
+            var d = porP[p.nombre] || { t: 0, disp: 0, cartera: 0, fueraEur: 0 };
+            var cob = cobP[p.nombre] || 0;
+            return [p.nombre, p.resort || '', d.t, d.disp, d.cartera.toFixed(2), cob.toFixed(2), (d.cartera - cob).toFixed(2), d.fueraEur];
+          });
+          descargaCsv('lawang-proyectos-' + new Date().toISOString().slice(0, 10) + '.csv',
+            ['Proyecto', 'Resort', 'Unidades', 'Disponibles', 'Cartera EUR', 'Cobrado EUR', 'Pendiente EUR', 'Unidades fuera de EUR'],
+            filas);
+        });
+      });
+
+      /* Exportar cuentas de UN proyecto (antes decía "Descargar Balance
+         Financiero (PDF)" — no hay generador de PDF en la suite; prometerlo y
+         entregar otra cosa es peor que llamarlo por su nombre real). */
+      var bBalance = document.getElementById('btn-balance-csv');
+      if (bBalance) bBalance.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var p = proyectoObj();
+        if (!p) return toast('El proyecto aún no ha cargado.', '#8A6A34');
+        toast('Preparando el CSV de ' + p.nombre + '…');
+        sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre')
+          .eq('proyecto', p.nombre).order('codigo').then(function (r) {
+            if (r.error) return toast('No se pudo exportar: ' + r.error.message, '#ba1a1a');
+            var filas = (r.data || []).map(function (u) {
+              return [u.codigo, u.modelo || '', u.estado || '', u.precio != null ? u.precio : '', u.contrato_numero || '', u.comprador_nombre || ''];
+            });
+            descargaCsv('lawang-' + slugDe(p.nombre) + '-cuentas.csv',
+              ['Código', 'Modelo', 'Estado', 'Precio', 'Contrato', 'Comprador'], filas);
+          });
+      });
+
+      /* Ver contratos: no hay un filtro por proyecto en /intranet/operaciones/
+         (revisado antes de escribir esto) — se abre sin filtrar en vez de
+         fingir uno que no existe. */
+      var bVerCon = document.getElementById('btn-ver-contratos');
+      if (bVerCon) bVerCon.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        location.href = '/intranet/operaciones/';
+      });
+
+      /* Importar CSV y las otras dos vistas (Tabla financiera / Carpetas):
+         viven de verdad en /intranet/proyectos/ — la tabla ancha editable y su
+         importador ya existen ahí, con vista previa antes de escribir nada.
+         Reconstruir un segundo importador aquí sería duplicar sin necesidad,
+         justo lo que la v4 evita en todo lo demás. */
+      var bCsv = document.getElementById('btn-importar-csv');
+      if (bCsv) bCsv.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        toast('El importador de CSV vive en Proyectos (la vista de tabla) — abriendo…');
+        setTimeout(function () { location.href = '/intranet/proyectos/'; }, 900);
+      });
+      var bTabla = document.getElementById('btn-vista-tabla');
+      if (bTabla) bTabla.addEventListener('click', function (ev) { ev.stopPropagation(); location.href = '/intranet/proyectos/'; });
+      var bCarpetas = document.getElementById('btn-vista-carpetas');
+      if (bCarpetas) bCarpetas.addEventListener('click', function (ev) { ev.stopPropagation(); location.href = '/intranet/proyectos/'; });
     },
 
     vencimientos: function (aut) {
