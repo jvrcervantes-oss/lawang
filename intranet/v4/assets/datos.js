@@ -694,7 +694,17 @@
       // firmado combinado por proyecto (para la barra sencilla de la tarjeta).
       // COVER_P: URL firmada de la foto de portada, si hay una subida.
       var FAM_P = {}, FIRM_P = {}, COVER_P = {};
+      // COMPRADOR_ID_POR_CONTRATO: contrato_id -> client_id del Adquiriente I,
+      // para el enlace directo a /compradores/ de cada parcela (11-sep-2026).
+      var COMPRADOR_ID_POR_CONTRATO = {};
       var MOLDE = null, MOLDE_ENLACE = null, MOLDE_FAQ = null, MOLDE_UNIDAD = null;
+      // Mismos colores que los chips «Unidades» de la cabecera de esta
+      // pantalla (data-chip-u): si esos chips cambian de color, este mapa
+      // también, o la pastilla del parcelario deja de coincidir con el filtro.
+      var ESTADO_COLOR = {
+        disponible: '#485B37', reservada: '#316669', bloqueada: '#563349',
+        vendida: '#104C4F', cobrada: '#314322', no_disponible: '#75786e'
+      };
 
       function proyectosFiltrados() {
         return PS.filter(function (p) {
@@ -862,9 +872,10 @@
         pon('d-titulo', elegido.nombre + ' · Master Plan & Cuentas');
 
         /* La lista de unidades del cajón, con datos reales del proyecto
-           elegido. `unidades_estado` es la vista que ya trae el contrato y el
-           comprador vinculados — no se vuelve a cruzar aquí a mano. */
-        q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,contrato_numero,comprador_nombre,contrato_creado_por')
+           elegido. `unidades_estado` es la vista que ya trae el contrato, el
+           comprador y el cobrado partido en suelo/obra (unidad_parte_cobrada_split,
+           11-sep-2026) — no se vuelve a cruzar ni repartir aquí a mano. */
+        q(sb.from('unidades_estado').select('codigo,modelo,estado,precio,precio_suelo,precio_construccion,contrato_id,contrato_numero,comprador_nombre,contrato_firmado,cobrado_suelo,cobrado_obra,obra_firmada,contrato_creado_por')
             .eq('proyecto', elegido.nombre).order('codigo').limit(60), 'unidades de ' + elegido.nombre)
           .then(function (uu) {
             var caja = document.getElementById('d-unidades');
@@ -879,16 +890,52 @@
                 'Este proyecto no tiene unidades dadas de alta.</p>';
               return;
             }
+            // Barra de pago de UNA familia (suelo u obra) de UNA parcela.
+            // «Firmado» es aquí un booleano ya resuelto por la base (contrato
+            // bloqueado para el suelo, obra_firmada para la obra): se pinta la
+            // familia entera como comprometida, sin inventar un prorrateo que
+            // la base no da. El cobrado SÍ es la cifra exacta —
+            // cobrado_suelo/cobrado_obra vienen partidos de
+            // unidad_parte_cobrada_split, no se reparten aquí.
+            var barraUnidad = function (f, clave, cartera, cobrado, firmado) {
+              var firmPct = cartera ? (firmado ? 100 : 0) : 0;
+              var cobPct = cartera ? Math.min(100, (Number(cobrado) || 0) / cartera * 100) : 0;
+              var elCob = f.querySelector('[data-barra="u-' + clave + '-cobrado"]');
+              var elFir = f.querySelector('[data-barra="u-' + clave + '-firmado"]');
+              if (elCob) elCob.style.width = cobPct + '%';
+              if (elFir) elFir.style.width = Math.max(0, firmPct - cobPct) + '%';
+              pon('u-' + clave + '-txt', cartera ? fmt(cobrado, 'EUR') + ' / ' + fmt(cartera, 'EUR') : 'sin cartera', f);
+            };
             uu.forEach(function (u) {
               var f = base.cloneNode(true);
-              pon('u-titulo', u.codigo + (u.comprador_nombre ? ' · ' + u.comprador_nombre : ''), f);
-              pon('u-tipo', u.modelo || (u.estado || '—'), f);
+              pon('u-codigo', u.codigo, f);
+              pon('u-tipo', u.modelo || '—', f);
+              // Estado destacado en pastilla de color (11-sep-2026, encargo del
+              // owner) — mismos colores que los chips «Unidades» de arriba.
+              var nota = f.querySelector('[data-lw="u-nota"]');
+              if (nota) {
+                nota.textContent = (u.estado || '—').toUpperCase();
+                nota.style.background = ESTADO_COLOR[(u.estado || '').replace(/\s+/g, '_')] || '#75786e';
+              }
               pon('u-total', u.precio != null ? fmt(u.precio, 'EUR') : '—', f);
-              // Sin recibí por unidad: el cobro cuelga del CONTRATO, no de la
-              // parcela. Se dice cuál es el contrato en vez de inventar un
-              // reparto por unidad que la base no respalda.
-              pon('u-cobrado', u.contrato_numero || 'sin contrato', f);
-              pon('u-nota', (u.estado || '—').toUpperCase(), f);
+              // Enlaces directos a la ficha del comprador y al contrato
+              // (11-sep-2026, encargo del owner). Sin ficha/contrato detrás no
+              // se pone href — un enlace a "#" es peor que texto sin subrayar.
+              var elC = f.querySelector('[data-lw="u-comprador-link"]');
+              if (elC) {
+                elC.textContent = u.comprador_nombre || '—';
+                var clienteId = u.contrato_id ? COMPRADOR_ID_POR_CONTRATO[u.contrato_id] : null;
+                if (clienteId) { elC.href = '/intranet/compradores/?id=' + clienteId; elC.target = '_blank'; }
+                else { elC.removeAttribute('href'); elC.removeAttribute('target'); elC.style.cursor = 'default'; elC.style.textDecoration = 'none'; }
+              }
+              var elK = f.querySelector('[data-lw="u-contrato-link"]');
+              if (elK) {
+                elK.textContent = u.contrato_numero || 'sin contrato';
+                if (u.contrato_numero) { elK.href = '/intranet/v4/contratos/?contrato=' + encodeURIComponent(u.contrato_numero); elK.target = '_blank'; }
+                else { elK.removeAttribute('href'); elK.removeAttribute('target'); elK.style.cursor = 'default'; elK.style.textDecoration = 'none'; }
+              }
+              barraUnidad(f, 'suelo', Number(u.precio_suelo) || 0, u.cobrado_suelo, !!u.contrato_firmado);
+              barraUnidad(f, 'obra', Number(u.precio_construccion) || 0, u.cobrado_obra, !!u.obra_firmada);
               // Agente que creó el contrato (11-sep-2026, encargo del owner: ver
               // de un vistazo qué agente hizo el contrato de cada unidad). Sin
               // ficha en `usuarios` (cuentas legacy) se enseña el email a secas.
@@ -1104,11 +1151,18 @@
            para lo que ya tiene sitio), nunca una columna imagen_url en
            `proyectos`: si el cliente puede subir varias, la fuente es la
            lista, no un campo suelto que la próxima portada pisaría en silencio. */
-        q(sb.from('documentos_proyecto').select('proyecto,path,creado_en').eq('categoria', 'portada').order('creado_en', { ascending: false }), 'portadas')
+        q(sb.from('documentos_proyecto').select('proyecto,path,creado_en').eq('categoria', 'portada').order('creado_en', { ascending: false }), 'portadas'),
+        /* Adquiriente I de cada contrato (11-sep-2026): para el enlace directo
+           a /compradores/ desde cada parcela. `contrato_compradores` no tiene
+           RLS por autoría (solo es_agente()), así que se lee entero una vez,
+           igual que managers/equipo de arriba. */
+        q(sb.from('contrato_compradores').select('contrato_id,client_id').eq('rol', 'adquiriente_1'), 'compradores por contrato')
       ]).then(function (r) {
         var ps = r[0], us = r[1] || [], fs = r[2] || [], ds = r[3] || [], mgrs = r[4] || [], eq = r[5] || [];
-        var cts = r[6] || [], cobPorContrato = r[7] || [], portadas = r[8] || [];
+        var cts = r[6] || [], cobPorContrato = r[7] || [], portadas = r[8] || [], adq1 = r[9] || [];
         if (!ps) return;
+        COMPRADOR_ID_POR_CONTRATO = {};
+        adq1.forEach(function (x) { COMPRADOR_ID_POR_CONTRATO[x.contrato_id] = x.client_id; });
         /* Orden de la CARTERA: primero las W, luego las S, luego las G, y al
            final los proyectos sin codigo de parcela master (11-sep-2026,
            peticion del owner; mismo cambio en /intranet/proyectos/). Se ordena

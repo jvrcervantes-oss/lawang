@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="es" style=""><head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js"></script><script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="unidades"></script>
-<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=ce3ef96e" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=5d497d2d" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
+<script src="/contracts/assets/dinero.js?v=ced29282" defer></script><script src="/contracts/assets/vocabulario.js?v=ce3ef96e" defer></script><script src="/contracts/assets/modelos_catalogo.js?v=4e4fdee1" defer></script><script src="/contracts/assets/proyectos_csv.js?v=e610515a" defer></script><script src="../assets/datos.js?v=23d74a9e" defer></script><link href="../assets/fonts/fonts.css" rel="stylesheet">
 <meta name="robots" content="noindex">
 <script src="../assets/nav.js?v=4afc04b7" defer></script>
 <link href="../assets/shell.css?v=4ce80056" rel="stylesheet">
-<script src="../assets/editores.js?v=bc76e459" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
+<script src="../assets/editores.js?v=76792088" defer></script><script src="../assets/maqueta.js?v=5c4cc383" defer></script>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title>Inventario de Proyectos &amp; Suelo — Lawang Intranet</title>
@@ -541,20 +541,59 @@
 <span class="text-xs text-outline" data-lw="d-uds-n">—</span>
 </div>
 <div class="space-y-2.5" id="d-unidades">
-<!-- Unidad 1 -->
-<div class="p-3.5 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-1.5">
-<div class="flex items-center justify-between">
-<span class="font-label-md text-[13px] font-bold text-deep-lagoon" data-lw="u-titulo">—</span>
-<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-primary-fixed/60 text-primary" data-lw="u-tipo">—</span>
+<!-- Unidad 1 — plantilla clonada por unidad (11-sep-2026, encargo del owner:
+     título del parcelario destacado, estado en pastilla de color, enlaces
+     directos a comprador/contrato, y la recaudación de ESTA parcela partida
+     en suelo/construcción). Los colores de la pastilla de estado los pone
+     datos.js (ESTADO_COLOR) — mismos colores que los chips «Unidades» de
+     arriba del todo de esta pantalla; si esos chips cambian de color, este
+     mapa hay que cambiarlo también. -->
+<div class="p-3.5 rounded-xl bg-surface-container-low border border-warm-border hover:bg-surface-container-lowest transition-colors flex flex-col gap-2">
+<div class="flex items-center justify-between gap-2">
+<div class="flex items-center gap-2 min-w-0">
+<span class="font-headline-sm text-[20px] font-bold text-deep-lagoon tracking-tight leading-none" data-lw="u-codigo">—</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-primary-fixed/60 text-primary shrink-0" data-lw="u-tipo">—</span>
 </div>
-<div class="flex items-baseline justify-between text-xs">
+<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide text-white shrink-0" data-lw="u-nota">—</span>
+</div>
+<div class="flex items-baseline justify-between text-xs gap-2">
+<span class="text-outline font-medium shrink-0">Comprador:</span>
+<a class="font-label-md text-[13px] font-bold text-volcanic-ash hover:underline hover:text-deep-lagoon truncate text-right" data-lw="u-comprador-link" href="#" rel="noopener">—</a>
+</div>
+<div class="flex items-baseline justify-between text-xs gap-2">
+<span class="text-outline font-medium shrink-0">Contrato:</span>
+<a class="font-kpi-number text-[13px] font-bold text-deep-lagoon hover:underline" data-lw="u-contrato-link" href="#" rel="noopener">—</a>
+</div>
+<div class="flex items-baseline justify-between text-xs pt-1 border-t border-warm-border/60">
 <span class="text-outline font-medium">Volumen total pactado:</span>
 <span class="font-kpi-number text-[14px] font-bold text-volcanic-ash tabular-nums whitespace-nowrap" data-lw="u-total">—</span>
 </div>
-<div class="flex items-center justify-between text-xs text-fiduciary-green font-medium pt-1 border-t border-warm-border/60">
-<span class="flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px]">check_circle</span><span data-lw="u-cobrado">—</span></span>
-<span class="text-outline font-body-sm text-[11px]" data-lw="u-nota">—</span>
+<!-- Recaudación de ESTA parcela, partida en suelo/construcción — mismo
+     criterio de dos colores que la barra del proyecto (oscuro=cobrado,
+     claro=firmado sin cobrar). cobrado_suelo/cobrado_obra vienen ya
+     partidos desde la base (unidad_parte_cobrada_split), no se reparte
+     aquí a mano. -->
+<div class="space-y-1.5 pt-0.5">
+<div>
+<div class="flex justify-between text-[10px] text-outline mb-0.5">
+<span class="font-semibold uppercase tracking-wider">Suelo</span>
+<span data-lw="u-suelo-txt">—</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full transition-all" data-barra="u-suelo-cobrado" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="u-suelo-firmado" style="width:0%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] text-outline mb-0.5">
+<span class="font-semibold uppercase tracking-wider">Construcción</span>
+<span data-lw="u-obra-txt">—</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden flex">
+<div class="bg-fiduciary-green h-full transition-all" data-barra="u-obra-cobrado" style="width:0%"></div>
+<div class="bg-soft-canopy h-full transition-all" data-barra="u-obra-firmado" style="width:0%"></div>
+</div>
+</div>
 </div>
 <!-- Agente que creó el contrato (11-sep-2026) — mismo dato que ya enseña /proyectos/ -->
 <div class="flex items-center justify-between text-[11px] text-outline pt-0.5">
