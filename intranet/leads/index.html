@@ -61,7 +61,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<script src="/contracts/assets/herramientas.js?v=2db05838"></script>
+<script src="/contracts/assets/herramientas.js?v=f0137e4c"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="leads"></script>
@@ -102,6 +102,12 @@
     <span class="crm-nav-sep" aria-hidden="true">· WhatsApp Bot</span>
     <button role="tab" data-v="setter" aria-selected="false"><i class="ph ph-robot"></i>Setter IA</button>
     <button role="tab" data-v="agenda" aria-selected="false" id="tabAgenda" hidden><i class="ph ph-video-camera"></i>Agenda</button>
+    <!-- Separador propio: esto no es seguimiento de leads, es rendimiento de personas, y
+         va detrás del permiso `ranking`, no de `leads`. Con ocho comerciales, el ticket
+         medio por el número devuelve el importe exacto de cada contrato — no es una tabla
+         de estadísticas, son cifras de negocio de cada compañero. -->
+    <span class="crm-nav-sep" aria-hidden="true">· Dirección</span>
+    <button role="tab" data-v="closers" aria-selected="false" id="tabClosers" hidden><i class="ph ph-trophy"></i>Closers</button>
   </nav>
 
   <!-- ========================= HOY ========================= -->
@@ -243,10 +249,48 @@
     </div>
   </section>
 
+  <!-- ======================= CLOSERS (dirección) ======================= -->
+  <section class="crm-vista" id="v-closers" hidden>
+    <div class="kpis" id="kpis-closers"></div>
+
+    <div class="aviso oro" id="avisoAtribucion" hidden></div>
+
+    <div class="caja" style="margin-bottom:16px">
+      <header>
+        <div>
+          <h2>Quién vende</h2>
+          <p id="subRanking">—</p>
+        </div>
+        <!-- Las cadenas no tienen regla de negocio fijada todavía: una construcción colgando
+             de su reserva puede ser dinero nuevo o el mismo negocio contado dos veces. En vez
+             de elegir por el owner, se le deja verlo de las dos maneras. -->
+        <div class="seg" id="filtroCadenas">
+          <button data-raices="0" aria-pressed="true">Todo lo firmado</button>
+          <button data-raices="1" aria-pressed="false">Solo contratos raíz</button>
+        </div>
+      </header>
+      <div class="tabla-scroll"><table class="tabla" id="tRanking"></table></div>
+    </div>
+
+    <div class="caja" id="cajaAtribuir">
+      <header>
+        <div>
+          <h2>A quién se atribuye cada venta</h2>
+          <p id="subAtribuir">—</p>
+        </div>
+        <div class="seg" id="filtroAtribuir">
+          <button data-pend="1" aria-pressed="true">Sin atribuir</button>
+          <button data-pend="0" aria-pressed="false">Todas</button>
+        </div>
+      </header>
+      <div class="tabla-scroll"><table class="tabla" id="tAtribuir"></table></div>
+    </div>
+  </section>
+
   <div class="toast" id="toast"></div>
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=10"></script>
+<script src="/intranet/leads/leads.js?v=11"></script>
 </body>
 </html>

@@ -36,29 +36,19 @@ const LW_HERRAMIENTAS = [
     estado:d => d.leadsNuevos == null ? null
       : [d.leadsNuevos ? d.leadsNuevos + (d.leadsNuevos === 1 ? ' sin contactar' : ' sin contactar') : 'Todos contestados',
          d.leadsNuevos > 0] },
-  /* Nueva 10-sep-2026 (owner: hay closers reales que hacen la venta por
-     llamada de Google Meet, y quiere grabarlas con Fathom.ai para analizar
-     patrones). PERMISO PROPIO 'closers', separado de 'leads' a propósito:
-     mismo motivo que separó 'leads' de 'operaciones' el 9-sep — lo que abre
-     son citas con datos de contacto y, más adelante, grabaciones/resúmenes de
-     llamadas de venta, y eso se decide persona a persona. Vive DENTRO de
-     /intranet/leads/ (pestaña «Agenda»), no es una página propia: por eso
-     lleva query param en el href en vez de una ruta nueva — la pestaña
-     «Setter IA» de esa misma página sigue detrás de 'leads', no de éste,
-     porque monitorizar la conversación del bot es parte del embudo que ya
-     ve cualquiera con 'leads'; agendar la llamada y ver su grabación es un
-     paso más, y no todo el que ve leads debe verlo. */
-  /* `soloPermiso` (10-sep-2026, owner: «quita Agenda de cierre del menú, deja
-     solo Leads/CRM»): sigue en el catálogo para que 'closers' exista como
-     permiso propio en /intranet/usuarios/ (LW_PERMISOS se deriva de este
-     array, más abajo) — lo que desaparece es la entrada de navegación por
-     separado. Quien tenga 'closers' llega a la Agenda igual, desde la propia
-     pestaña dentro de CRM (`$('#tabAgenda').hidden` en leads.js ya la
-     enseña sola). `lwPermitida()` es quien filtra esto del menú y del hub. */
-  { grupo:'Seguimiento', nombre:'Agenda de cierre', icon:'ph-video-camera', href:'/intranet/leads/?v=agenda', herr:'closers',
+  /* `ranking` (11-sep-2026) — mismo tratamiento que tenía 'closers' (Agenda de
+     cierre, retirada el 11-sep: el owner la dio de baja, ya no existe como
+     herramienta): vive DENTRO del CRM (pestaña «Closers») y por eso lleva
+     `soloPermiso`, pero necesita existir como permiso propio en
+     /intranet/usuarios/. No cuelga de 'leads' porque lo que abre es cuánto
+     factura y cuánto cobra cada comercial, y con ocho de ellos eso no son
+     estadísticas: el ticket medio por el número de contratos devuelve el
+     importe exacto, y quien tiene un solo contrato ES ese contrato (hallazgo
+     de Seguridad en la revisión previa). */
+  { grupo:'Seguimiento', nombre:'Ranking de closers', icon:'ph-trophy', href:'/intranet/leads/?v=closers', herr:'ranking',
     soloPermiso:true,
-    para:'Agenda las llamadas de venta con el lead (Google Meet) y, cuando haya cuenta de Fathom.ai, su resumen y objeciones.',
-    claves:'closers agenda citas meet llamadas fathom venta cierre grabacion transcripcion' },
+    para:'Cuánto firma y cuánto cobra cada comercial, y a quién se atribuye cada venta.',
+    claves:'ranking closers comerciales comisiones rendimiento estadisticas atribucion ventas' },
   { grupo:'Seguimiento', nombre:'Operaciones', icon:'ph-chart-line-up', href:'/intranet/operaciones/', herr:'operaciones',
     para:'Cómo va cada venta: estado de cuenta, documentos, firmas y vencimientos.',
     claves:'ventas seguimiento estado cuenta',

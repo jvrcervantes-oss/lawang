@@ -28,7 +28,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<script src="/contracts/assets/herramientas.js?v=2db05838"></script>
+<script src="/contracts/assets/herramientas.js?v=f0137e4c"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="usuarios"></script>
@@ -286,10 +286,11 @@ function pintarFicha(){
       </div>
       <p class="nota">Un <b>administrador</b> ve las herramientas que le marques abajo (igual que un agente,
         no todas por defecto) y puede editar los documentos de cualquiera dentro de ellas.
-        Un <b>sales manager</b> o <b>project manager</b> solo LEE — nunca crea ni edita nada — pero ve todo
-        lo que pase en sus proyectos, de cualquier agente, y recibe aviso cuando cambia de estado un
-        contrato, una solicitud de pago o una unidad de esos proyectos. A qué proyectos está asignado se
-        marca desde la ficha de cada proyecto en <b>Proyectos</b>, no aquí.
+        Un <b>sales manager</b> o <b>project manager</b> ve, crea y corrige contratos y facturas de
+        <b>cualquier agente</b> de los proyectos de los que es encargado — no solo lectura — y recibe aviso
+        cuando cambia de estado un contrato, una solicitud de pago o una unidad de esos proyectos. De qué
+        proyectos es <b>encargado</b> se marca desde la ficha de cada proyecto en <b>Proyectos</b>, no aquí:
+        lo de abajo es otra cosa, en qué proyectos <b>vende él mismo</b>.
         Solo un <b>super admin</b> reparte roles.</p>
     </fieldset>
 

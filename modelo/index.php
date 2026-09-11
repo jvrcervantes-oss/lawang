@@ -2,6 +2,25 @@
 /**
  * Landing de modelo de villa — /modelo/<id> (regla de reescritura en .htaccess).
  *
+ * ── 11-sep-2026: estas fichas ya NO agendan llamadas ──────────────────────────────────
+ * Encargo del owner: la landing de publicidad pasa a ser /palmfield y /dali se convierte
+ * en ficha de producto; estas fichas dejan de pedir cita. Se quita el widget de Calendly,
+ * el selector de dia, su columna lateral y el aviso a /api/booking-notify.php.
+ *
+ * ⚠️ NO se deja la pagina sin punto de conversion, y el motivo es medible: /modelo/dali es
+ * el destino documentado de la campana ES `es_ticket` (tres creatividades con UTM, ver
+ * Marketing/anuncios_es_manual.md). Borrar el agendado a secas dejaria esos anuncios
+ * apuntando a una pagina desde la que nadie puede contactar. En su lugar la conversion es
+ * WhatsApp, que ya estaba en la pagina como canal secundario y ahora es el principal.
+ *
+ * Consecuencias para el pixel, explicitas para que nadie las lea como un descuido:
+ *   · `Lead` desaparece. Colgaba del `postMessage` de Calendly, que era el unico sitio
+ *     donde constaba una cita de verdad. Un clic en WhatsApp no es un lead.
+ *   · `AbrioCalendario` desaparece: ya no hay calendario que abrir.
+ *   · `ViewContent` se mantiene.
+ * Si se quiere volver a medir conversion aqui, el camino es CTWA (clic a WhatsApp con
+ * atribucion de Meta), no reetiquetar un clic como Lead.
+ *
  * ── 1-sep-2026 · QUINTA versión, sustituye por completo a la anterior ──────────────
  * Diseño importado tal cual desde Claude Design (proyecto "Landings Lawang Bali",
  * archivo "Villa Dali Landing.dc.html") y traducido a este stack (PHP + CSS + JS
@@ -294,7 +313,6 @@ $WA_NUM   = '6281138319862';
 $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode("Hi, I'm interested in the " . $villa . ' from Lawang Tropical Properties.');
 $WA_SHOW  = '+62 811-3831-9862';
 $EMAIL    = 'sales@lawangproperties.com';
-$CALENDLY = 'https://calendly.com/lawangproperties';
 // Sin render propio todavía (Trinity/Temple): og:image y preload caen a una foto real del
 // sitio (no del modelo concreto) en vez de a una ruta vacía — nunca un render inventado.
 $ogImg = $portada ?? '/assets/img/lugar/costa.webp';
@@ -332,10 +350,6 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
 <link rel="preconnect" href="https://api.fontshare.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
-<!-- Widget real de reserva incrustado en la página (1-sep) — nada de saltar a
-     calendly.com. defer, no bloquea el LCP de la foto de portada. -->
-<link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-<script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
 <style>
 :root{
   --papel:#F5F0E6;
@@ -449,8 +463,9 @@ html:not([data-lang="es"]) .i-es{display:none !important}
 /* 300px (antes) se quedaba corto: el ancho útil tras el padding de .cal caía por debajo
    de los 320px que el propio widget de Calendly pide como mínimo, y salía con scroll
    horizontal interno. 360px deja sitio real. */
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:40px;align-items:start}
-@media(max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
+/* Una sola columna desde el 11-sep-2026: la ficha perdio su columna de calendario.
+   Se deja el max-width para que el texto no se estire a todo el ancho del wrap. */
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:40px;align-items:start}
 
 /* ── Hero ─────────────────────────────────────────────────────────────────────── */
 /* La imagen es la prueba del producto en un vistazo: columna más ancha (.62/1.38),
@@ -1343,7 +1358,7 @@ label.picker__row{cursor:pointer}
        con pasos escondidos no lee como configurador. Nada aquí es una cotización: no
        depende del modelo elegido arriba, cualifica al lead, no suma un total (decisión
        del owner). Las selecciones viajan por el camino de conversión real de la página
-       — el widget de Calendly vía api/booking-notify.php — no por el wa.me secundario
+       — hoy el wa.me, antes el widget de Calendly vía api/booking-notify.php
        del pie. -->
   <!-- Todas las opciones y sus tarifas se renderizan desde lw_picker_opciones() (fuente
        única en lib.php). Hasta el 3-sep las cuatro vistas estaban escritas a mano aquí con
@@ -1645,17 +1660,17 @@ label.picker__row{cursor:pointer}
   <!-- ── Reserva ────────────────────────────────────────────────────────────── -->
   <section class="sec reserva" id="agendar">
     <p class="et"><?= lw_i18n('Siguiente paso', 'Next step') ?></p>
-    <h2><?= lw_i18n('Reserva tu llamada', 'Book your call') ?></h2>
+    <h2><?= lw_i18n('Escríbenos', 'Talk to us') ?></h2>
     <p class="reserva__desc"><?= lw_i18n(
-      'Media hora. Te damos el presupuesto cerrado del acabado que te interese y las parcelas disponibles donde puede construirse.',
-      "Half an hour. We'll give you a fixed quote for the finish you're interested in and the available plots it can be built on."
+      'Te damos el presupuesto cerrado del acabado que te interese y las parcelas disponibles donde puede construirse.',
+      "We'll give you a fixed quote for the finish you're interested in and the available plots it can be built on."
     ) ?></p>
     <div class="reserva__card">
-      <b class="i-es">Calendario de disponibilidad</b><b class="i-en">Availability calendar</b>
-      <span class="i-es">Elige día y hora directamente en el calendario.</span>
-      <span class="i-en">Pick a day and time directly on the calendar.</span>
-      <a class="btn" id="lw-cal-cta" href="#lw-cal">
-        <?= lw_i18n('Ver horarios disponibles', 'See available times') ?>
+      <b class="i-es">WhatsApp</b><b class="i-en">WhatsApp</b>
+      <span class="i-es">Te respondemos en horario de Bali (WITA).</span>
+      <span class="i-en">We reply during Bali hours (WITA).</span>
+      <a class="btn" id="lw-wa-cta" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+        <?= lw_i18n('Escribir por WhatsApp', 'Message us on WhatsApp') ?>
       </a>
     </div>
     <div class="reserva__contact">
@@ -1666,90 +1681,6 @@ label.picker__row{cursor:pointer}
 
 </div><!-- /col -->
 
-<!-- ── Columna del calendario ─────────────────────────────────────────────── -->
-<!-- Widget real de Calendly incrustado (1-sep, pedido del owner: "integración total",
-     nada de saltar a calendly.com). Días y horas de aquí abajo son los REALES de la
-     cuenta, no una vista previa — sustituye al calendario decorativo de la versión
-     anterior, que nunca comprobaba disponibilidad real. -->
-<aside class="cal" id="lw-cal">
-  <div>
-    <div class="cal__tt i-es">Reserva tu llamada</div><div class="cal__tt i-en">Book your call</div>
-    <div class="cal__sub i-es">Media hora, sin compromiso.</div><div class="cal__sub i-en">Half an hour, no commitment.</div>
-  </div>
-  <?php
-    // Calendly no deja cambiar su tipografía ni la disposición del calendario (eso es
-    // suyo), pero sí tintarlo por parámetros en la URL — así el widget no desentona
-    // con la paleta papel/tinta/verde del resto de la página (2-sep, pedido del owner).
-    $calParams = http_build_query([
-      'hide_gdpr_banner' => '1',
-      'background_color' => 'F5F0E6', // --papel
-      'text_color'       => '2E3437', // --ink
-      'primary_color'    => '485B37', // --verde
-    ]);
-  ?>
-  <!-- Selector de día, con el diseño de Stitch (4-sep). Lo que enseña son fechas REALES
-       calculadas en servidor (mes en curso, fines de semana fuera, hoy en adelante), no
-       la rejilla congelada de "mayo 2026" del mockup.
-       ⚠️ Lo que NO hace, y por qué: NO dice qué días tienen hueco ni cuántos quedan. El
-       mockup pintaba un punto verde en unos días y "5 Slots Open" en otros; eso exige la
-       API de Calendly (`/event_type_available_times`, token del owner, LAW-120) y sin
-       ella cualquier punto sería inventado — justo la familia de fallo que ya nos costó
-       una revisión de Legal. Al pulsar un día se abre el widget REAL de Calendly en esa
-       fecha (`?month=&date=`, parámetros documentados del embed), y es Calendly quien
-       enseña las horas que de verdad quedan. Cuando llegue el token, lo único que cambia
-       es de dónde salen los puntos: la rejilla ya está. -->
-  <?php
-    // Zona horaria de Bali, igual que lw_techo_precio_activo(): la disponibilidad la fija
-    // el reloj del equipo, no el del visitante — si no, un australiano (hasta 5h por
-    // delante) vería "mañana" un día que aquí todavía no ha empezado.
-    $calTz    = new DateTimeZone('Asia/Makassar');
-    $calHoy   = new DateTimeImmutable('today', $calTz);
-    // Si al mes en curso le quedan menos de 5 días laborables, se pinta el SIGUIENTE.
-    // Sin esto, quien entra un 29 ve una rejilla con uno o dos días pulsables y el resto
-    // en gris: parece que no hay hueco en toda la agenda, cuando lo que pasa es que el
-    // mes se acaba. Cinco es el umbral porque es lo que llena una fila de la rejilla.
-    $calQuedan = 0;
-    $calFin    = $calHoy->modify('last day of this month');
-    for ($c = $calHoy; $c <= $calFin; $c = $c->modify('+1 day')) {
-        if ((int) $c->format('N') < 6) { $calQuedan++; }
-    }
-    $calIni   = $calQuedan < 5
-        ? $calHoy->modify('first day of next month')
-        : $calHoy->modify('first day of this month');
-    // ISO-8601: 1 = lunes, que es como está rotulada la cabecera M T W T F S S.
-    $calPad   = (int) $calIni->format('N') - 1;
-    $calDias  = (int) $calIni->format('t');
-  ?>
-  <div class="calx" id="lw-calx">
-    <div class="calx__hd">
-      <span class="calx__mes"><?= lw_e($calIni->format('F Y')) ?></span>
-      <span class="calx__tz">WITA · Bali</span>
-    </div>
-    <div class="calx__dow" aria-hidden="true">
-      <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-    </div>
-    <div class="calx__grid">
-      <?php for ($i = 0; $i < $calPad; $i++): ?><span class="calx__no"></span><?php endfor; ?>
-      <?php for ($d = 1; $d <= $calDias; $d++):
-        $cd     = $calIni->modify('+' . ($d - 1) . ' days');
-        $finde  = (int) $cd->format('N') >= 6;
-        $pasado = $cd < $calHoy;
-        $libre  = !$finde && !$pasado;
-      ?>
-        <?php if ($libre): ?>
-        <button type="button" class="calx__d" data-fecha="<?= lw_e($cd->format('Y-m-d')) ?>"><?= $d ?></button>
-        <?php else: ?>
-        <span class="calx__no"><?= $d ?></span>
-        <?php endif; ?>
-      <?php endfor; ?>
-    </div>
-    <p class="calx__pie">
-      <span class="i-es">Lunes a viernes. Elige un día y verás las horas libres de verdad.</span>
-      <span class="i-en">Monday to Friday. Pick a day and you'll see the times that are actually free.</span>
-    </p>
-  </div>
-  <div class="cal__widget calendly-inline-widget" data-url="<?= lw_e($CALENDLY) ?>?<?= $calParams ?>" id="lw-cal-widget"></div>
-</aside>
 
 </div><!-- /grid -->
 </div><!-- /wrap -->
@@ -1843,47 +1774,7 @@ label.picker__row{cursor:pointer}
 
   // Clic al botón que lleva al widget: evento propio, no `Schedule` — es un clic hacia
   // el calendario, no una cita confirmada. Esa sí sale del propio widget, más abajo.
-  var ctaCal = document.getElementById('lw-cal-cta');
-  if (ctaCal) ctaCal.addEventListener('click', function () { track('AbrioCalendario', {}); });
 
-  // ── Selector de día -> Calendly (4-sep, diseño de Stitch) ───────────────────────
-  // Elegir un día NO reserva nada: recarga el widget de Calendly en esa fecha, y es él
-  // quien enseña las horas reales que quedan y quien cierra la reserva. Por eso aquí se
-  // emite `AbrioCalendario` y nunca `Lead`/`Schedule` — la confirmación de verdad llega
-  // por el `postMessage` de Calendly, más abajo, que es el único sitio donde se sabe que
-  // una cita existe.
-  (function () {
-    var calx = document.getElementById('lw-calx');
-    var host = document.getElementById('lw-cal-widget');
-    if (!calx || !host) return;
-    var urlBase = host.getAttribute('data-url') || '';
-
-    calx.addEventListener('click', function (ev) {
-      var b = ev.target.closest('.calx__d');
-      if (!b || !calx.contains(b)) return;
-      var fecha = b.getAttribute('data-fecha');
-      if (!fecha) return;
-
-      calx.querySelectorAll('.calx__d.is-on').forEach(function (o) { o.classList.remove('is-on'); });
-      b.classList.add('is-on');
-
-      // `month` y `date` son los parámetros de deep-link del embed de Calendly. Se
-      // reconstruye el iframe con initInlineWidget en vez de tocar su `src` a mano:
-      // el widget guarda estado interno y cambiarle el src por debajo lo deja mudo
-      // (deja de emitir el postMessage de reserva, que es lo que dispara el aviso al
-      // equipo y el `Lead` del pixel).
-      var url = urlBase + '&month=' + fecha.slice(0, 7) + '&date=' + fecha;
-      if (window.Calendly && typeof window.Calendly.initInlineWidget === 'function') {
-        host.innerHTML = '';
-        window.Calendly.initInlineWidget({ url: url, parentElement: host });
-      } else {
-        // Calendly aún no ha cargado (va con `defer`): se deja anotado y el propio
-        // widget arrancará con esta URL cuando llegue.
-        host.setAttribute('data-url', url);
-      }
-      track('AbrioCalendario', {});
-    });
-  }());
 
   // ── Configurador: cambiar de modelo EN ESTA MISMA página, sin recargar (2-sep, pedido
   //    explícito del owner — la alternativa barata era navegar a /modelo/<id> y se
@@ -2564,50 +2455,6 @@ label.picker__row{cursor:pointer}
     })();
   })();
 
-  // ── Reserva confirmada DE VERDAD, no un clic: Calendly manda este mensaje al propio
-  //    iframe cuando el visitante completa la reserva sin salir de la página. Con el
-  //    <form> propio esto lo daba el `Lead` del envío; con Calendly incrustado, esto
-  //    es lo más parecido que existe a esa confirmación real. ──────────────────────
-  window.addEventListener('message', function (e) {
-    // Igualdad exacta, no `indexOf`: con substring, "https://calendly.com.attacker.example"
-    // también contiene "calendly.com" y colaba un Lead falso (cazado en revisión previa, 2-sep).
-    if (e.origin !== 'https://calendly.com') return;
-    if (!e.data || e.data.event !== 'calendly.event_scheduled') return;
-    track('Lead', {});
-
-    // Aviso al equipo (LAW-111): Calendly no da nombre/email en este mensaje, solo las
-    // URIs del evento y del invitado — el endpoint las usa para un aviso "sin verificar",
-    // ventas confirma en el propio Calendly. Best-effort: si falla, la reserva sigue
-    // intacta en Calendly, solo se pierde el aviso automático.
-    try {
-      var payload = e.data.payload || {};
-      var params = new URLSearchParams(location.search);
-      var fd = new URLSearchParams();
-      fd.set('modelo', MODELO);
-      fd.set('source', params.get('utm_source') || '');
-      fd.set('campana', params.get('utm_campaign') || '');
-      fd.set('event_uri', (payload.event && payload.event.uri) || '');
-      fd.set('invitee_uri', (payload.invitee && payload.invitee.uri) || '');
-      // Selecciones del configurador: lo que el lead marcó antes de reservar, para que
-      // ventas llegue a la llamada sabiendo qué quiere — no es un pedido cerrado, se
-      // etiqueta igual en el propio correo que manda el endpoint.
-      // NO se manda el importe: el endpoint no tiene auth, así que un total que llegue por
-      // POST es un número que cualquiera puede escribirle al correo de ventas. Van los
-      // INGREDIENTES y el servidor recalcula la cifra con las mismas funciones que la
-      // pintaron (lw_estimacion). Ver el porqué en api/booking-notify.php.
-      fd.set('extras', LW_CFG.extras.join(','));
-      fd.set('island', LW_CFG.island || '');
-      fd.set('view', LW_CFG.view || '');
-      fd.set('techo', LW_CFG.techo || '');
-      fd.set('parcela_m2', LW_CFG.m2 !== null ? String(LW_CFG.m2) : '');
-      // `keepalive`: Calendly puede navegar o el visitante cerrar la pestaña justo después
-      // de reservar, y sin esto el aviso se pierde en vuelo. Y el .catch() es obligatorio
-      // aunque no haga nada: sin él queda una promesa rechazada sin manejar, que el
-      // try/catch NO cubre por ser asíncrona (hallazgo de Desarrollo).
-      fetch('/api/booking-notify.php', {method: 'POST', body: fd, keepalive: true})
-        .catch(function () { /* MUDO A PROPOSITO: la reserva ya esta en Calendly, esto solo es la campanita */ });
-    } catch (err) { /* no bloquea el pixel ni la reserva */ }
-  });
 
   // ── Cookies: reabrir el aviso de consent.js ──────────────────────────────────
   ['lw-cookies', 'lw-cookies-en'].forEach(function (id) {

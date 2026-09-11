@@ -1,6 +1,21 @@
 <?php
 /**
- * /dali — landing australiana de Villa Dali. 4-sep-2026.
+ * /dali — landing de PRODUCTO de Villa Dali.
+ *
+ * ── 11-sep-2026: deja de agendar llamadas ─────────────────────────────────────────────
+ * Encargo del owner: «/dali era lo que yo estaba preparando para ser la landing para la
+ * publicidad. Pero ahora la landing para publicidad es /palmfield». Esta pagina pasa a ser
+ * la ficha de producto de la villa: informa, no capta.
+ *   · FUERA el calendario, el widget de Calendly y los tres campos (nombre/telefono/email).
+ *     Decision del owner el 11-sep: la pagina NO pide datos al visitante.
+ *   · La conversion es WhatsApp, que ya estaba y ya se sincroniza con lo elegido en el
+ *     configurador (`sincronizaWA`): el mensaje llega con villa, techo y extras dentro.
+ *   · El configurador SE QUEDA: calcula y ensena, no captura nada.
+ *   · /palmfield conserva su calendario — es la landing de campana activa.
+ * El evento de pixel `Lead` colgaba de `calendly.event_scheduled`, que era la unica cita
+ * que constaba de verdad. Sin Calendly no hay cita que confirmar, asi que ese `Lead`
+ * desaparece en vez de dispararse sobre un clic: un clic en WhatsApp no es un lead, y
+ * etiquetarlo como tal ensucia justo la senal sobre la que Meta optimiza.
  *
  * Implementa el diseño del owner (Stitch, «Bali Villa Investment Landing», fichero
  * `stitch_bali_villa_investment_landing/code.html`) sobre el stack real del sitio: PHP +
@@ -43,7 +58,6 @@ $WA_SHOW  = '+62 811-3831-9862';
 $WA_TXT   = "Hi, I'm an Australian investor interested in Lawang villas in Bali.";
 $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode($WA_TXT);
 $EMAIL    = 'sales@lawangproperties.com';
-$CALENDLY = 'https://calendly.com/lawangproperties';
 
 // Domicilio y líneas directas: los dio el owner el 4-sep-2026. Sustituyen a la oficina de
 // «Sunset Road No. 88, Seminyak» que traía el mockup y que no constaba en ninguna fuente
@@ -61,20 +75,6 @@ $TELEFONOS = [
 
 $portada  = $DALI['thumb'];
 $ogImg    = $portada ?? '/assets/img/lugar/costa.webp';
-
-// Rejilla del calendario: días laborables REALES en hora de Bali. Si al mes en curso le
-// quedan menos de 5, se pinta el siguiente — si no, quien entra un día 29 ve una rejilla
-// casi entera en gris y parece que no hay agenda.
-$calTz   = new DateTimeZone('Asia/Makassar');
-$calHoy  = new DateTimeImmutable('today', $calTz);
-$calQ    = 0;
-$calFin  = $calHoy->modify('last day of this month');
-for ($c = $calHoy; $c <= $calFin; $c = $c->modify('+1 day')) {
-    if ((int) $c->format('N') < 6) { $calQ++; }
-}
-$calIni  = $calHoy->modify($calQ < 5 ? 'first day of next month' : 'first day of this month');
-$calPad  = (int) $calIni->format('N') - 1;
-$calDias = (int) $calIni->format('t');
 
 // Payload del configurador. Lista blanca campo a campo, con los precios YA resueltos en
 // servidor: el JS pinta, no calcula precios de catálogo (revisión previa Seguridad+Diseño,
@@ -124,8 +124,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-<script src="https://assets.calendly.com/assets/external/widget.js" defer></script>
 <link rel="stylesheet" href="/assets/au-landing.css?v=20260907173345">
 </head>
 <body>
@@ -146,10 +144,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
         <span>WhatsApp Desk</span>
       </a>
-      <a class="btn btn--terra" href="#book">
-        <span>Schedule Call</span>
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5l7 7-7 7v-4H4v-6h9V5z"/></svg>
-      </a>
     </div>
   </div>
 </header>
@@ -158,7 +152,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
 <!-- ═══ HERO ═══════════════════════════════════════════════════════════════════════ -->
 <div class="wrap">
-<section class="hero">
+<section class="hero hero--solo">
   <div>
     <div class="hero__pills">
       <span class="pill pill--verde"><span class="dot"></span> 100% Freehold (Not 25-Yr Lease)</span>
@@ -225,86 +219,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <?php endif; ?>
   </div>
 
-  <!-- ── Tarjeta de reserva ────────────────────────────────────────────────────── -->
-  <aside class="book" id="book">
-    <div class="book__hd">
-      <div>
-        <div class="book__live">
-          <span class="dot live"></span>
-          <b>Live Australian Desk</b>
-          <span class="pill pill--canopy">Active Now</span>
-        </div>
-        <span class="book__zone">Sydney (AEST) &amp; Perth (AWST) direct sync</span>
-      </div>
-      <span class="pill pill--lag">Freehold Direct</span>
-    </div>
-
-    <div class="cal" id="lw-cal">
-      <div class="cal__hd">
-        <span class="cal__mes">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10z"/></svg>
-          <?= lw_e($calIni->format('F Y')) ?> · Investment Slots
-        </span>
-        <span class="cal__tz">WITA · Bali</span>
-      </div>
-      <div class="cal__dow" aria-hidden="true">
-        <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-      </div>
-      <div class="cal__grid">
-        <?php for ($i = 0; $i < $calPad; $i++): ?><span class="cal__no"></span><?php endfor; ?>
-        <?php for ($d = 1; $d <= $calDias; $d++):
-          $cd    = $calIni->modify('+' . ($d - 1) . ' days');
-          $libre = (int) $cd->format('N') < 6 && $cd >= $calHoy;
-        ?>
-          <?php if ($libre): ?>
-          <button type="button" class="cal__d" data-fecha="<?= lw_e($cd->format('Y-m-d')) ?>"
-                  data-larga="<?= lw_e($cd->format('l, j F Y')) ?>"><?= $d ?></button>
-          <?php else: ?>
-          <span class="cal__no"><?= $d ?></span>
-          <?php endif; ?>
-        <?php endfor; ?>
-      </div>
-      <div class="cal__sel">
-        <span id="lw-cal-sel">Select a day — Mon to Fri</span>
-        <span id="lw-cal-hint">Real times load below</span>
-      </div>
-    </div>
-
-    <!-- Calendly de verdad: aparece al elegir día, ya situado en esa fecha y con los datos
-         del formulario prellenados. Es quien tiene las horas libres y quien cierra la
-         reserva — aquí no se inventa disponibilidad ni se confirma nada por nuestra cuenta. -->
-    <div class="cal__wid" id="lw-wid"></div>
-
-    <div class="campos">
-      <div class="campo">
-        <label for="lw-nombre">Full Name</label>
-        <input id="lw-nombre" type="text" autocomplete="name" placeholder="First and last name">
-      </div>
-      <div class="campo">
-        <label for="lw-tel">Mobile / WhatsApp</label>
-        <input id="lw-tel" type="tel" autocomplete="tel" placeholder="+61 400 000 000">
-      </div>
-    </div>
-    <div class="campo">
-      <label for="lw-email">Email Address (for calendar invite &amp; deed dossier)</label>
-      <input id="lw-email" type="email" autocomplete="email" placeholder="name@domain.com.au">
-    </div>
-
-    <button class="btn btn--terra btn--block" type="button" id="lw-confirmar">
-      Confirm Freehold Strategy Call
-    </button>
-
-    <div class="book__pie">
-      <span class="book__np">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5l-9-4z"/></svg>
-        No high pressure
-      </span>
-      <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer" id="lw-wa">
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
-        Chat on WhatsApp
-      </a>
-    </div>
-  </aside>
 </section>
 </div>
 
@@ -464,8 +378,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
           <p class="total__nota" id="lw-total-nota">Fixed-price written EPC contract. No
             contractor escalation clauses. Notary, permits and transfer costs are quoted
             separately.</p>
-          <a class="btn btn--terra btn--block total__cta" href="#book">
-            Lock Estimate &amp; Book 30-Min Call
+          <a class="btn btn--terra btn--block total__cta" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
+            Send this configuration on WhatsApp
           </a>
         </div>
         <p class="res__sync">Perth &amp; Sydney working hours · direct sync</p>
@@ -555,7 +469,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <span>Australian benchmark figures based on CoreLogic capital city median dwelling data
           (2024/2025). Villa figures include 100% freehold land + turnkey architectural build,
           converted at <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR (<?= lw_e(LW_AUD_FECHA) ?>).</span>
-        <a class="btn btn--lag" href="#book">Lock Strategy Slot</a>
+        <a class="btn btn--lag" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">Ask about these figures</a>
       </div>
     </div>
   </div>
@@ -619,15 +533,15 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <span class="mono" style="font-size:11px;color:#6EE7B7">Sydney (AEST) &amp; Perth (AWST)</span>
       </div>
       <h2>Ready to Review Freehold Coordinates &amp; Pricing?</h2>
-      <p>In 30 minutes, our desk will walk you through available surveyed freehold coordinates,
-        notary deed proofs, infrastructure videos, and exact fixed turnkey costs in AUD.</p>
+      <p>Message our desk on WhatsApp and we will send you the available surveyed freehold
+        coordinates, notary deed proofs, infrastructure videos and exact fixed turnkey costs
+        in AUD.</p>
       <div class="cta__garantias">
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> 100% Freehold perpetual title guarantee</span>
         <span class="cta__g"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Guaranteed fixed-price written EPC contract</span>
       </div>
     </div>
     <div class="cta__btns">
-      <a class="btn btn--terra" href="#book">Select Strategy Slot ↑</a>
       <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
         Chat on WhatsApp (<?= lw_e($WA_SHOW) ?>)
       </a>
@@ -693,7 +607,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <b id="lw-movil-pr"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></b>
     <span>100% Freehold Bali</span>
   </span>
-  <a class="btn btn--terra" href="#book">Book Call</a>
   <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
     <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
   </a>
@@ -704,12 +617,13 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 (function () {
   'use strict';
   var CFG      = <?= json_encode($cfgJs, $JSON) ?>;
-  var CALENDLY = <?= json_encode($CALENDLY, $JSON) ?>;
   var WA_NUM   = <?= json_encode($WA_NUM, $JSON) ?>;
 
   // ── Píxel ────────────────────────────────────────────────────────────────────────
-  // Mismo criterio que /modelo/<id>: `Lead` NO se dispara aquí. Sale del postMessage de
-  // Calendly, que es el único sitio donde consta que una cita existe de verdad.
+  // `Lead` YA NO se dispara en esta página (11-sep-2026). Antes salía del postMessage de
+  // Calendly, que era el único sitio donde constaba una cita de verdad; sin agendado no
+  // hay nada que confirmar. Un clic en WhatsApp NO es un lead: etiquetarlo así ensuciaría
+  // la señal sobre la que Meta optimiza. Se mantiene `ViewContent`.
   function track(ev, extra) {
     if (typeof window.lwTrack === 'function') { window.lwTrack(ev, extra || {}); return; }
     if (typeof window.fbq === 'function') { window.fbq('track', ev, extra || {}); }
@@ -946,68 +860,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     document.querySelectorAll('a[href*="wa.me/"]').forEach(function (a) { a.href = href; });
   }
 
-  // ── Calendario -> Calendly ───────────────────────────────────────────────────────
-  (function () {
-    var cal = $('lw-cal'), wid = $('lw-wid');
-    if (!cal || !wid) return;
-    var fecha = null;
 
-    function abre() {
-      if (!fecha) return;
-      var u = CALENDLY + '?hide_gdpr_banner=1&background_color=FAF7F0&text_color=22282A'
-            + '&primary_color=104C4F&month=' + fecha.slice(0, 7) + '&date=' + fecha;
-      // Prellenado: Calendly acepta `name` y `email` por query. Le ahorra al lead teclear
-      // dos veces lo que ya escribió aquí arriba.
-      var n = ($('lw-nombre') || {}).value, e = ($('lw-email') || {}).value;
-      if (n) u += '&name=' + encodeURIComponent(n);
-      if (e) u += '&email=' + encodeURIComponent(e);
-
-      wid.classList.add('is-on');
-      // Se reconstruye el iframe con initInlineWidget en vez de tocarle el `src`: el widget
-      // guarda estado interno y cambiárselo por debajo lo deja mudo, o sea deja de emitir
-      // el postMessage de reserva — que es lo único que confirma que la cita existe.
-      if (window.Calendly && typeof window.Calendly.initInlineWidget === 'function') {
-        wid.innerHTML = '';
-        window.Calendly.initInlineWidget({url: u, parentElement: wid});
-      }
-      track('AbrioCalendario', {});
-    }
-
-    cal.addEventListener('click', function (ev) {
-      var b = ev.target.closest('.cal__d');
-      if (!b || !cal.contains(b)) return;
-      cal.querySelectorAll('.cal__d.is-on').forEach(function (o) { o.classList.remove('is-on'); });
-      b.classList.add('is-on');
-      fecha = b.getAttribute('data-fecha');
-      txt('lw-cal-sel', 'Selected: ' + b.getAttribute('data-larga'));
-      txt('lw-cal-hint', 'Pick a time below');
-      abre();
-    });
-
-    var conf = $('lw-confirmar');
-    if (conf) conf.addEventListener('click', function () {
-      if (!fecha) {
-        var p = cal.querySelector('.cal__d');
-        if (p) { p.focus(); cal.scrollIntoView({behavior: 'smooth', block: 'center'}); }
-        txt('lw-cal-hint', 'Pick a day first');
-        return;
-      }
-      abre();
-      wid.scrollIntoView({behavior: 'smooth', block: 'center'});
-    });
-  }());
-
-  // ── Reserva confirmada DE VERDAD: la anuncia Calendly, no nosotros ───────────────
-  window.addEventListener('message', function (e) {
-    // Igualdad exacta, no indexOf: con substring, "https://calendly.com.attacker.example"
-    // también contendría "calendly.com" y colaría un Lead falso.
-    if (e.origin !== 'https://calendly.com') return;
-    if (!e.data || e.data.event !== 'calendly.event_scheduled') return;
-    var pv = precioVilla(), tf = tarifa();
-    var total = (pv != null && tf != null && S.m2) ? pv + tf * S.m2 : pv;
-    track('Lead', {content_name: (CFG.modelos[S.villa] || {}).villa || 'Villa Dali',
-      value: total || 0, currency: 'EUR'});
-  });
 
   // ── Cookies ──────────────────────────────────────────────────────────────────────
   var ck = $('lw-cookies');

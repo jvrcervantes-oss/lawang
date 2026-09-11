@@ -56,11 +56,16 @@ const corsFor = (req: Request) => {
 // 'operaciones' porque esta edge estaba sin poder redesplegarse. Ésta no lo hace: abre
 // datos de contacto de un centenar de personas y eso tiene que poder darse cuenta a
 // cuenta.
-// 10-sep-2026: añadida 'closers' (agenda de visitas/llamadas del CRM de leads). Distinta
-// de 'leads' a propósito: quien ve la agenda de contactos no es necesariamente quien
-// hace la llamada de venta y accede a sus grabaciones/resúmenes de Fathom — son dos
-// decisiones de acceso separadas, mismo motivo que separó 'leads' de 'operaciones'.
-const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers'];
+// 'closers' (agenda de cierre / Fathom) se dio de alta el 10-sep y se retiró
+// el 11-sep-2026 (owner: la herramienta ya no existe) — quitada de aquí y de
+// LW_HERRAMIENTAS. Las fichas que ya la tuvieran marcada la conservan sin
+// efecto (nadie nuevo puede pedirla).
+// 'ranking' (11-sep-2026) es permiso PROPIO y no cuelga de 'leads' a propósito, por el
+// mismo criterio que separó 'closers' en su día: lo que abre es cuánto factura y cuánto
+// cobra cada comercial, y con ocho de ellos eso no son estadísticas, son cifras de contrato
+// (el ticket medio por el número devuelve el importe exacto). El día que se le dé el CRM a
+// un comercial no se le puede regalar de paso la tabla de comisiones de sus compañeros.
+const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'ranking'];
 // 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
 // crean y corrigen contratos/facturas de cualquier agente en los proyectos
 // que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)
