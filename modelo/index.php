@@ -348,9 +348,16 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://api.fontshare.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
 <style>
+/* Display de marca: Neue Kabel, igual que el investor deck y las landings
+   (11-sep-2026). Rutas relativas a /modelo/, de ahi el ../assets/. */
+@font-face{font-family:'Neue Kabel';src:url('../assets/fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('../assets/fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('../assets/fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('../assets/fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('../assets/fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
 :root{
   --papel:#F5F0E6;
   /* #EDF1E8 (antes) casi no se distinguía de --papel (diferencia de 2-8 puntos por canal,
@@ -382,7 +389,7 @@ $slugPath = $m['id'] === 'dali' ? 'dali' : 'modelo/' . $m['id'];
   /* Cormorant Garamond para titulares, del diseño de Stitch. Convive con Space Grotesk,
      que se queda en cifras y etiquetas (`.font-mono-caps` del mockup): es justo lo que
      hace que un importe se lea como dato y no como texto corrido. */
-  --display:'Cormorant Garamond',Georgia,serif;
+  --display:'Neue Kabel','Jost','Segoe UI',sans-serif;
   --gut:clamp(24px,7vw,140px);
 }
 *{box-sizing:border-box}
@@ -430,8 +437,10 @@ html:not([data-lang="es"]) .i-es{display:none !important}
    se pierde. */
 .nav{position:sticky;top:0;z-index:50;background:var(--lagoon);
   border-bottom:1px solid var(--lagoon-cl);box-shadow:0 4px 20px rgba(16,76,79,.18)}
-.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:18px}
-.nav__brand{display:block;height:18px;width:auto}
+.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px}
+/* Mismo tamano que en el deck y las landings (11-sep-2026): estaba a 18px. */
+.nav__brand{display:block;height:32px;width:auto}
+@media(max-width:720px){.nav__brand{height:24px}}
 .nav__right{display:flex;align-items:center;gap:14px}
 .nav__links{display:flex;align-items:center;gap:22px}
 .nav__links a{font-family:var(--head);font-size:12px;font-weight:500;

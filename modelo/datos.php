@@ -28,6 +28,33 @@ require_once __DIR__ . '/lib.php';
 const LW_AUD_TASA  = 1.62;
 const LW_AUD_FECHA = '4 Sep 2026';
 
+/**
+ * Tabla de divisas de las landings. UNA sola, y aqui, porque este fichero ya es el que
+ * resuelve los precios de /dali y /palmfield: si la tabla viviera en el JS de la pagina,
+ * el selector convertiria con un tipo y el estimador con otro — misma villa, dos precios,
+ * una sola pagina. Esa es la familia de fallo de LAW-123 y del deposito de B2K.
+ *
+ * ⚠️ AUD va a LW_AUD_TASA (1,62, fechado el 4-sep) y NO a 1,65. El investor deck y
+ * `assets/lawang-card.js` usan 1,65: son DOS tipos vivos en el mismo sitio. Aqui manda el
+ * 1,62 porque es el que ya estan anunciando estas paginas y el que lleva fecha escrita;
+ * subirlo a 1,65 moveria los precios publicados de la landing de campana activa, que es
+ * decision del owner, no del estudio. Divergencia registrada como pendiente.
+ *
+ * USD e IDR salen de la misma tabla que el resto de la casa (`assets/lawang-card.js`).
+ * Como el AUD: valores FIJOS con fecha, nunca cotizacion en vivo — el estudio no tiene
+ * proveedor de FX y una cifra presentada como "live" sin serlo envejece en silencio.
+ * El contrato va SIEMPRE en EUR; el resto es orientativo.
+ */
+const LW_DIV_FECHA = '11 Sep 2026';
+function lw_divisas() {
+    return [
+        'EUR' => ['tasa' => 1.0,          'sim' => '€',         'dec' => 0],
+        'USD' => ['tasa' => 1.08,         'sim' => '$',         'dec' => 0],
+        'AUD' => ['tasa' => LW_AUD_TASA,  'sim' => 'A$',        'dec' => 0],
+        'IDR' => ['tasa' => 17500.0,      'sim' => 'Rp ',       'dec' => 0],
+    ];
+}
+
 /** EUR → AUD, redondeado a la decena para no fingir una precisión que el tipo fijo no da. */
 function lw_aud($eur) {
     if ($eur === null) return null;

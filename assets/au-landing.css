@@ -4,6 +4,16 @@
    que alguien retoque un color en una sola de las dos, divergen para siempre.
    Viene del diseno del owner (Stitch, «Bali Villa Investment Landing»). */
 /* ═══ Sistema del diseño (DESIGN.md del proyecto de Stitch) ═══════════════════════════ */
+/* Display de marca: Neue Kabel, los mismos ficheros que sirven la home y el investor
+   deck. brand.css la fija como unica fuente ("The Seasons eliminada") y el owner descarto
+   Cormorant Garamond el 11-ago-2026; el 11-sep pidio unificar estas landings con el deck.
+   Las rutas son relativas a /assets/, que es donde vive esta hoja. */
+@font-face{font-family:'Neue Kabel';src:url('fonts/NeueKabel-ExtraLight.otf') format('opentype');font-weight:200;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/NeueKabel-Light.otf') format('opentype');font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/NeueKabel-Book.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/NeueKabel-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Neue Kabel';src:url('fonts/NeueKabel-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+
 :root{
   --primary:#104C4F;        /* Deep Lagoon */
   --primary-cl:#185D61;
@@ -22,7 +32,7 @@
   --ink:#22282A;            /* Volcanic Ash */
   --ink2:#505A5D;
   --ink3:#78807F;
-  --display:'Cormorant Garamond',Georgia,serif;
+  --display:'Neue Kabel','Jost','Segoe UI',sans-serif;
   --body:'Jost','Segoe UI',sans-serif;
   --mono:'Space Grotesk',sans-serif;
   --gut:clamp(16px,4vw,32px);
@@ -89,13 +99,22 @@ h3{font-size:20px;font-weight:700}
 /* ── Barra ────────────────────────────────────────────────────────────────────────── */
 .nav{position:sticky;top:0;z-index:60;background:var(--primary);
   border-bottom:1px solid var(--primary-cl);box-shadow:0 4px 20px rgba(16,76,79,.18)}
-.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:76px}
-.nav__brand{height:34px;width:auto}
+/* Topbar unificado con el investor deck (11-sep-2026): mismo alto, mismo logo al
+   mismo tamano y a la izquierda, y etiquetas en Jost. El fondo ya era #104C4F. */
+.nav__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px}
+.nav__brand{height:32px;width:auto;display:block}
+@media(max-width:720px){.nav__brand{height:24px}}
 .nav__links{display:flex;align-items:center;gap:26px}
-.nav__links a{font-family:var(--mono);font-size:11px;font-weight:500;color:rgba(255,255,255,.8);
-  text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.nav__links a{font-family:var(--body);font-size:13px;font-weight:600;color:rgba(255,255,255,.85);
+  letter-spacing:.01em;white-space:nowrap}
 .nav__links a:hover{color:#fff}
 .nav__cta{display:flex;align-items:center;gap:10px}
+/* Orden del grupo de acciones: idioma, divisa y al final el CTA. El selector de idioma lo
+   INYECTA i18n-landing.js al final de .nav__cta, asi que sin `order` quedaria detras del
+   boton de WhatsApp y el de divisa delante. Mismo orden que el investor deck. */
+.nav__cta .lw-lang{order:1}
+.nav__cta #lw-div-sel{order:2}
+.nav__cta .btn{order:3}
 @media(max-width:1080px){.nav__links{display:none}}
 @media(max-width:560px){.nav__cta .btn span{display:none}.nav__cta .btn{padding:12px 15px}}
 

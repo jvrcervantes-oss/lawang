@@ -52,10 +52,14 @@ require __DIR__ . '/../modelo/datos.php';
 $CAT   = lw_au_catalogo();
 $DALI  = $CAT['dali'];
 $OPC   = lw_picker_opciones();
+// Divisas: UNA tabla, la de modelo/datos.php, que es la misma que ya resuelve los precios
+// de esta pagina. Si el selector convirtiera con un tipo propio, el estimador y el topbar
+// darian dos importes distintos para la misma villa.
+$DIVISAS = lw_divisas();
 
 $WA_NUM   = '6281138319862';
 $WA_SHOW  = '+62 811-3831-9862';
-$WA_TXT   = "Hi, I'm an Australian investor interested in Lawang villas in Bali.";
+$WA_TXT   = "Hi, I'd like information about Villa Dali by Lawang in Bali.";
 $WA_LINK  = 'https://wa.me/' . $WA_NUM . '?text=' . rawurlencode($WA_TXT);
 $EMAIL    = 'sales@lawangproperties.com';
 
@@ -81,6 +85,8 @@ $ogImg    = $portada ?? '/assets/img/lugar/costa.webp';
 // 2-sep). Las tarifas de parcela salen de lw_picker_opciones(), fuente única.
 $cfgJs = [
     'tasaAud'  => LW_AUD_TASA,
+    'divisas'  => $DIVISAS,
+    'divFecha' => LW_DIV_FECHA,
     'modelos'  => [],
     'tarifas'  => ['sumba' => $OPC['island']['sumba']['rate']],
     'extras'   => $OPC['extras'],
@@ -123,8 +129,8 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <link rel="preload" as="image" href="<?= lw_e($ogImg) ?>" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/au-landing.css?v=20260911100926">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/au-landing.css?v=20260911110153">
 </head>
 <body>
 
@@ -136,10 +142,14 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <nav class="nav__links">
       <a href="#estimator">Instant Estimator</a>
       <a href="#land-ready">Land Ready Infrastructure</a>
-      <a href="#benchmark">Bali vs Australia</a>
       <a href="#desk">Perth &amp; Sydney Desk</a>
     </nav>
     <div class="nav__cta">
+      <!-- Selector de divisa. Usa las clases del selector de idioma (.lw-lang), que
+           idioma-web.js ya inyecta en esta pagina: mismo boton y mismo desplegable que
+           en el investor deck, sin una segunda hoja de estilos. `data-no-i18n` para que
+           i18n-landing.js no intente traducir "EUR"/"AUD". -->
+      <div class="lw-lang" id="lw-div-sel" data-no-i18n></div>
       <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.7 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-1-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4 1.9.7 2.5.8 3.4.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
         <span>WhatsApp Desk</span>
@@ -183,7 +193,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg></span>
         <span>
           <span class="chip__lb">Starting Turnkey</span>
-          <span class="chip__vl"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></span>
+          <span class="chip__vl" data-eur="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></span>
         </span>
       </div>
       <div class="chip">
@@ -241,10 +251,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
       <div class="cfg__card">
         <div class="cfg__hd">
           <span class="cfg__paso" id="lw-paso-lb">Step 1 of 5</span>
-          <span class="divisas" role="group" aria-label="Currency">
-            <button type="button" class="divisa is-on" data-div="AUD">AUD ($)</button>
-            <button type="button" class="divisa" data-div="EUR">EUR (€)</button>
-          </span>
         </div>
 
         <!-- Paso 1: villa -->
@@ -266,7 +272,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
                 <span class="op__sp"><?= lw_e($v['specs']) ?></span>
               </span>
               <span class="op__pr" data-eur="<?= (int) $v['desde_eur'] ?>">
-                <b><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
+                <b data-eur="<?= (int) $v['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($v['desde_eur'])) ?></b>
                 <i><?= lw_e(lw_precio_fmt($v['desde_eur'])) ?></i>
               </span>
             </label>
@@ -310,7 +316,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
               <input type="radio" name="lw-vista" value="<?= lw_e($k) ?>"<?= $k === 'cliff' ? ' checked' : '' ?>>
               <span><span class="op__nb"><?= lw_e($vw['label']) ?></span></span>
               <span class="op__pr" data-eur-m2="<?= (int) $vw['rate'] ?>">
-                <b><?= lw_e(lw_aud_fmt($vw['rate'])) ?>/m²</b>
+                <b data-eur="<?= (int) $vw['rate'] ?>" data-eur-m2><?= lw_e(lw_aud_fmt($vw['rate'])) ?>/m²</b>
                 <i><?= lw_e(lw_precio_fmt($vw['rate'])) ?>/m²</i>
               </span>
             </label>
@@ -389,91 +395,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 </section>
 
 <!-- ═══ COMPARATIVA ════════════════════════════════════════════════════════════════ -->
-<section class="sec" id="benchmark">
-  <div class="wrap">
-    <div class="et">
-      <span class="pill pill--canopy">Flight &amp; Capital Benchmark</span>
-      <span class="mono" style="font-size:11px;color:var(--ink2)">CoreLogic 2024/2025 Data</span>
-    </div>
-    <div class="sec__hd">
-      <h2>Closer than Sydney to Perth — at a Fraction of the Property Price</h2>
-      <p class="sec__desc">Direct flight times from key Australian capitals and average median
-        house price compared to a turnkey freehold villa in Bali &amp; Sumba (AUD).</p>
-    </div>
-
-    <div class="stats">
-      <div class="chip">
-        <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6V6h-2v7.4l5.2 3.1 1-1.7-4.2-2.2z"/></svg></span>
-        <span><span class="chip__lb">Zero Jetlag from WA</span>
-              <span class="chip__vl">Perth: 0h diff · 3h 40m flight</span></span>
-      </div>
-      <div class="chip">
-        <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 18l2.3-2.3-4.9-4.9-4 4L2 7.4 3.4 6l6 6 4-4 6.3 6.3L22 12v6h-6z"/></svg></span>
-        <span><span class="chip__lb">Entry Capital Efficiency</span>
-              <span class="chip__vl">Up to 14x less capital</span></span>
-      </div>
-      <div class="chip">
-        <span class="chip__ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm10 9a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM5.4 19.4L19.4 5.4 18 4 4 18l1.4 1.4z"/></svg></span>
-        <span><span class="chip__lb">Rental Yield Spread</span>
-              <span class="chip__vl" style="color:var(--secondary)">14 – 18% ROI (vs ~3% AU)</span></span>
-      </div>
-    </div>
-
-    <div class="tabla-caja">
-      <div class="tabla-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Australian City</th><th>Direct Flight Time</th><th>AU Median House</th>
-              <th>Lawang Turnkey Freehold</th><th style="text-align:right">Capital Multiple</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php
-              // Villa que se compara en cada fila. Perth se compara con Dali (la de entrada)
-              // y el resto con Dune, igual que el diseño del owner.
-              $filas = [
-                ['SYD','Sydney','NSW · AEST','~6h 15m','Daily direct: Qantas, Jetstar, Virgin','1620000','dune','~14x More Affordable',false],
-                ['MEL','Melbourne','VIC · AEST','~6h 00m','Daily direct: Jetstar, Virgin, Garuda','940000','dune','~8.5x More Affordable',false],
-                ['PER','Perth','WA · AWST (0h time diff)','~3h 40m','Multiple daily: Jetstar, AirAsia, Batik','785000','dali','~10x More Affordable',true],
-                ['BNE','Brisbane','QLD · AEST','~6h 10m','Daily direct: Virgin, Jetstar','890000','dune','~8x More Affordable',false],
-                ['ADL','Adelaide','SA · ACST','~5h 15m','Direct seasonal &amp; 1-stop options','790000','dune','~7x More Affordable',false],
-              ];
-              foreach ($filas as $f):
-                list($iata,$ciudad,$estado,$vuelo,$aerolineas,$mediana,$vid,$mult,$destaca) = $f;
-                $vv = $CAT[$vid];
-            ?>
-            <tr<?= $destaca ? ' class="destacada"' : '' ?>>
-              <td>
-                <span class="ciudad">
-                  <span class="iata<?= $destaca ? ' iata--on' : '' ?>"><?= lw_e($iata) ?></span>
-                  <span><span class="cel-b"><?= lw_e($ciudad) ?></span>
-                        <span class="cel-s"><?= $estado ?></span></span>
-                </span>
-              </td>
-              <td><span class="cel-m"><?= lw_e($vuelo) ?></span><span class="cel-s"><?= $aerolineas ?></span></td>
-              <td><span class="cel-m">~$<?= lw_e(number_format((int) $mediana, 0, '.', ',')) ?> AUD</span>
-                  <span class="cel-s mono" style="font-size:9.5px">CoreLogic 2024/25</span></td>
-              <td><span class="cel-m"><?= lw_e(lw_aud_fmt($vv['desde_eur'])) ?></span>
-                  <span class="cel-s" style="color:var(--secondary);font-weight:600"><?= lw_e($vv['villa']) ?> + land included</span></td>
-              <td style="text-align:right">
-                <span class="pill <?= $destaca ? 'pill--verde' : 'pill--canopy' ?>"><?= lw_e($mult) ?></span>
-                <span class="cel-s" style="margin-top:4px"><?= $destaca ? 'Zero jetlag · weekend commute' : '100% perpetual title' ?></span>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <div class="tabla-pie">
-        <span>Australian benchmark figures based on CoreLogic capital city median dwelling data
-          (2024/2025). Villa figures include 100% freehold land + turnkey architectural build,
-          converted at <?= lw_e(number_format(LW_AUD_TASA, 2)) ?> AUD/EUR (<?= lw_e(LW_AUD_FECHA) ?>).</span>
-        <a class="btn btn--lag" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer">Ask about these figures</a>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- ═══ LAND READY ═════════════════════════════════════════════════════════════════ -->
 <section class="sec sec--cont" id="land-ready">
@@ -604,7 +525,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 <!-- Barra inferior en móvil, del diseño -->
 <div class="movil">
   <span class="movil__pr">
-    <b id="lw-movil-pr"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></b>
+    <b id="lw-movil-pr" data-eur="<?= (int) $DALI['desde_eur'] ?>"><?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?></b>
     <span>100% Freehold Bali</span>
   </span>
   <a class="btn btn--wa" href="<?= lw_e($WA_LINK) ?>" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
@@ -636,18 +557,28 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
   else window.addEventListener('load', trackVista);
 
   // ── Estado ───────────────────────────────────────────────────────────────────────
-  var S = {villa: 'dali', techo: 'sirap', isla: 'bali', vista: 'cliff', m2: 160, div: 'AUD'};
+  // La divisa arranca en EUR: es la del contrato, y esta pagina ya no va dirigida solo
+  // al mercado australiano (11-sep-2026). Se recuerda la elección entre visitas.
+  var S = {villa: 'dali', techo: 'sirap', isla: 'bali', vista: 'cliff', m2: 160, div: 'EUR'};
+  try { var _g = localStorage.getItem('lw_deck_cur'); if (CFG.divisas[_g]) S.div = _g; } catch (e) {}
   var PASOS = 5, paso = 1;
 
   function eur(n) { return '€' + Number(n).toLocaleString('en-US'); }
-  function aud(n) { return '$' + Math.round(n * CFG.tasaAud / 10) * 10 + ' AUD'; }
-  function audFmt(n) {
-    return '$' + (Math.round(n * CFG.tasaAud / 10) * 10).toLocaleString('en-US') + ' AUD';
+
+  // Conversión con la tabla de CFG.divisas, que viene de modelo/datos.php — la MISMA que
+  // resuelve los precios que PHP ya pintó. Redondeo a la decena (a la unidad de mil en
+  // rupias) para no fingir una precisión que un tipo fijo no da.
+  function divFmt(n, cod) {
+    var d = (CFG.divisas || {})[cod];
+    if (!d) return eur(n);
+    var v = Number(n) * d.tasa;
+    v = cod === 'IDR' ? Math.round(v / 1000) * 1000 : Math.round(v / 10) * 10;
+    return d.sim + v.toLocaleString('en-US');
   }
-  // El importe se pinta en la divisa elegida y SIEMPRE con la otra debajo: el contrato se
-  // firma en euros, así que el AUD nunca puede quedarse solo en pantalla.
-  function pinta(n) { return S.div === 'AUD' ? audFmt(n) : eur(n); }
-  function alterna(n) { return S.div === 'AUD' ? eur(n) : audFmt(n); }
+  // El importe se pinta en la divisa elegida y SIEMPRE con el euro debajo: el contrato se
+  // firma en euros, así que la divisa de cortesía nunca puede quedarse sola en pantalla.
+  function pinta(n) { return divFmt(n, S.div); }
+  function alterna(n) { return S.div === 'EUR' ? divFmt(n, 'AUD') : eur(n); }
 
   function tarifa() {
     if (S.isla === 'sumba') return CFG.tarifas.sumba;
@@ -797,14 +728,68 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     }
   });
 
-  document.querySelectorAll('.divisa').forEach(function (b) {
-    b.addEventListener('click', function () {
-      document.querySelectorAll('.divisa').forEach(function (o) { o.classList.remove('is-on'); });
-      b.classList.add('is-on');
-      S.div = b.getAttribute('data-div');
-      recalcular();
+  // ── Selector de divisa del topbar ──────────────────────────────────────────────
+  // Se construye con las clases .lw-lang que idioma-web.js ya inyecta en esta página, así
+  // que sale idéntico al del investor deck sin una segunda hoja de estilos. La elección se
+  // guarda en `lw_deck_cur`, la MISMA clave que usa el deck: quien llega desde allí en
+  // dólares sigue en dólares. No se recarga la página: aquí todo se repinta en caliente.
+  (function () {
+    var host = document.getElementById('lw-div-sel');
+    if (!host) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lw-lang__btn';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'Currency');
+    btn.innerHTML = '<span class="lw-lang__cur"></span><span class="lw-lang__caret" aria-hidden="true">▾</span>';
+    var ul = document.createElement('ul');
+    ul.className = 'lw-lang__menu';
+    ul.setAttribute('role', 'listbox');
+    Object.keys(CFG.divisas).forEach(function (c) {
+      var li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-div', c);
+      li.textContent = c + '  ' + CFG.divisas[c].sim.trim();
+      ul.appendChild(li);
     });
-  });
+    host.appendChild(btn); host.appendChild(ul);
+
+    function refleja() {
+      btn.querySelector('.lw-lang__cur').textContent = S.div;
+      Array.prototype.forEach.call(ul.children, function (li) {
+        var on = li.getAttribute('data-div') === S.div;
+        li.classList.toggle('is-on', on);
+        li.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+    }
+    function cierra() { ul.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var abierto = ul.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    });
+    ul.addEventListener('click', function (e) {
+      var li = e.target.closest ? e.target.closest('li[data-div]') : null;
+      if (!li) return;
+      S.div = li.getAttribute('data-div');
+      try { localStorage.setItem('lw_deck_cur', S.div); } catch (err) {}
+      refleja(); cierra(); recalcular(); repintaPrecios();
+    });
+    document.addEventListener('click', function (e) { if (!host.contains(e.target)) cierra(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cierra(); });
+    refleja();
+    window.lwReflejaDivisa = refleja;
+  }());
+
+  // Los importes que pintó PHP llevan su valor en euros en `data-eur`: al cambiar de
+  // divisa se repintan desde ahí, nunca reconvirtiendo el texto ya formateado.
+  function repintaPrecios() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-eur]'), function (el) {
+      var v = parseFloat(el.getAttribute('data-eur'));
+      if (!isNaN(v)) el.textContent = divFmt(v, S.div) + (el.hasAttribute('data-eur-m2') ? '/m²' : '');
+    });
+  }
 
   // ── URL compartible ──────────────────────────────────────────────────────────────
   // Se PARTE de la query que ya hay y solo se borran las claves propias: barrerla entera
@@ -840,9 +825,6 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     var rm = document.querySelector('input[name="lw-m2"][value="' + S.m2 + '"]');
     if (rm) rm.checked = true;
     else if (libre) libre.value = S.m2;
-    document.querySelectorAll('.divisa').forEach(function (b) {
-      b.classList.toggle('is-on', b.getAttribute('data-div') === S.div);
-    });
   }
 
   // ── WhatsApp: el texto lleva la configuración vigente ────────────────────────────
@@ -871,6 +853,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
   // ── Arranque ─────────────────────────────────────────────────────────────────────
   aplicaQuery();
+  repintaPrecios();
   pintaTechos();
   muestraPaso(1);
   recalcular();
