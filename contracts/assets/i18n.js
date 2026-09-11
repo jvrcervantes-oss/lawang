@@ -209,6 +209,289 @@
     'Reabierto': 'Reopened',
     'Escribe a través de la intranet, igual que él ve tu respuesta en su área de clientes.':
       'You are writing through the intranet, the same way they see your reply in their client area.',
+
+    /* ---------- Obra ----------
+       El NOMBRE de cada fase no está aquí: `obra_fases` ya tiene columna `en`
+       con las siete rellenas, y el dato manda sobre el diccionario. */
+    'Buscar código, proyecto o contrato…': 'Search code, project or contract…',
+    'Todos los proyectos': 'All projects',
+    'Código': 'Code',
+    'Fase': 'Stage',
+    'Fase actual': 'Current stage',
+    'Entrega est.': 'Est. handover',
+    'Entrega estimada': 'Estimated handover',
+    'Fotos': 'Photos',
+    'Fotos (%n)': 'Photos (%n)',
+    'Actualizado': 'Updated',
+    'En obra': 'Under construction',
+    'Con contrato': 'With contract',
+    'sin empezar': 'not started',
+    '— sin empezar —': '— not started —',
+    'Contrato %n': 'Contract %n',
+    'Lo que marques aquí lo ve el comprador en su portal.':
+      'Whatever you set here is what the buyer sees in their portal.',
+    'Sin contrato vinculado: aún no lo ve ningún comprador.':
+      'No contract linked: no buyer can see this yet.',
+    'Subir fotos — se optimizan solas a tamaño web':
+      'Upload photos — they are resized for web automatically',
+    'Puedes documentar la obra igualmente: cuando la unidad se vincule a un contrato, el comprador verá el histórico completo.':
+      'You can document the work anyway: once the unit is linked to a contract, the buyer will see the full history.',
+    'Sin título': 'Untitled',
+    'Título': 'Title',
+    'Ocultar': 'Hide',
+    'Mostrar': 'Show',
+    'no se pudo convertir': 'could not be converted',
+    'imagen ilegible': 'unreadable image',
+    'sin permiso para la herramienta Obra': 'no permission for the Construction tool',
+    '%n foto subida': '%n photo uploaded',
+    '%n fotos subidas': '%n photos uploaded',
+    'Título de la foto (lo ve el comprador):': 'Photo title (the buyer sees it):',
+    'Borrar esta foto': 'Delete this photo',
+    'Se quita también del portal del comprador. Esto no se puede deshacer.':
+      'It is removed from the buyer portal too. This cannot be undone.',
+
+    /* ---------- Solicitudes de pago ----------
+       Ojo con el vocabulario: aquí «solicitud» es una PETICIÓN DE COBRO del
+       agente a Lawang (comisión, pago acordado), no una solicitud de compra.
+       En inglés eso es «payment request», nunca «application». */
+    'Nueva solicitud': 'New request',
+    'Nueva solicitud de pago': 'New payment request',
+    'Editar SP-%n': 'Edit SP-%n',
+    'Buscar concepto, contrato o compañero…': 'Search description, contract or colleague…',
+    'Nº': 'No.',
+    'Quién pide': 'Requested by',
+    'Concepto': 'Description',
+    'De la venta': 'From sale',
+    'Moneda': 'Currency',
+    'Pendientes': 'Pending',
+    'Por pagar': 'To pay',
+    'Aprobada': 'Approved',
+    'Rechazada': 'Rejected',
+    'Anulada': 'Cancelled',
+    'Pagada': 'Paid',
+    'Aprobar': 'Approve',
+    'Rechazar…': 'Reject…',
+    'Anular': 'Cancel request',
+    'Marcar pagada…': 'Mark as paid…',
+    'Crear solicitud': 'Create request',
+    'Todos los agentes': 'All agents',
+    'No se pudieron leer las solicitudes: ': 'Could not load the requests: ',
+    'Tú': 'You',
+    'contrato': 'contract',
+    '%n pendiente de resolver': '%n awaiting your decision',
+    '%n pendientes de resolver': '%n awaiting your decision',
+    '%n aprobada por pagar': '%n approved, unpaid',
+    '%n aprobadas por pagar': '%n approved, unpaid',
+    'hace %n d': '%n d ago',
+    'Fecha límite': 'Due date',
+    'Fecha límite (opcional)': 'Due date (optional)',
+    'Pedida': 'Requested',
+    'Resolución': 'Decision',
+    'Motivo': 'Reason',
+    'Motivo del rechazo': 'Reason for rejection',
+    'Resuelta por': 'Decided by',
+    'Pagada por': 'Paid by',
+    'Referencia del pago': 'Payment reference',
+    'el pago se hace fuera (transferencia); aquí queda pedido, aprobado y pagado.':
+      'the payment happens outside (bank transfer); this records the request, the approval and the payment.',
+    'Solicitud aprobada — queda por pagar': 'Request approved — pending payment',
+    'Marcada como pagada': 'Marked as paid',
+    'Solicitud rechazada': 'Request rejected',
+    'Solicitud anulada': 'Request cancelled',
+    'Se le enseña al compañero tal cual — di qué falta o por qué no procede':
+      'Your colleague sees this as written — say what is missing or why it does not apply',
+    'Rechazar la solicitud': 'Reject the request',
+    'El motivo es obligatorio: sin él la base no acepta el rechazo.':
+      'A reason is required: without one the database will not accept the rejection.',
+    'Cómo se ha pagado — transferencia, Wise, fecha… (opcional, pero al compañero le llega en el aviso)':
+      'How it was paid — bank transfer, Wise, date… (optional, but your colleague gets it in the notification)',
+    'Confirmar: pagada': 'Confirm: paid',
+    'Anular la solicitud': 'Cancel the request',
+    'SP-%n quedará anulada. No se borra: el registro se queda, sin efecto.':
+      'SP-%n will be cancelled. It is not deleted: the record stays, with no effect.',
+    'Pide un pago a Lawang — una comisión, un pago acordado. Administración lo aprueba y lo paga.':
+      'Request a payment from Lawang — a commission, an agreed payment. Administration approves and pays it.',
+    'Concepto — qué pago estás pidiendo': 'Description — what payment you are requesting',
+    'Comisión venta W3.1-D1 · pago acordado septiembre…':
+      'Commission on sale W3.1-D1 · agreed payment September…',
+    'De qué venta viene, si viene de una (opcional)': 'Which sale it comes from, if any (optional)',
+    'Elegir contrato…': 'Choose a contract…',
+    '— Sin venta asociada —': '— No sale linked —',
+    'La venta de la que viene el pago': 'The sale this payment comes from',
+    'Nota para Administración (opcional)': 'Note for Administration (optional)',
+    'El concepto no puede quedar vacío': 'The description cannot be empty',
+    'El importe no se entiende — escribe un número mayor que cero':
+      'The amount is not valid — enter a number greater than zero',
+    'Solicitud actualizada': 'Request updated',
+    'Solicitud creada — Administración ya tiene el aviso':
+      'Request created — Administration has been notified',
+    'Resueltas': 'Closed',
+
+    /* ---------- Modelos (catálogo de tipos de vivienda) ----------
+       Vocabulario fijado aquí y reutilizado por Proyectos y por Contratos:
+       modelo = house model · techo = roof type · extra = add-on ·
+       alcance de obra = scope of work · precio de catálogo = catalogue price.
+       «Villa» y «Terraza» se quedan igual: son las mismas palabras en inglés
+       y ya se usan así en la web pública. */
+    'Nuevo modelo': 'New model',
+    'Buscar modelo…': 'Search model…',
+    'Publicados y no publicados': 'Published and unpublished',
+    'Solo publicados en la web': 'Published on the website only',
+    'Solo sin publicar': 'Unpublished only',
+    '%n modelo': '%n model',
+    '%n modelos': '%n models',
+    '%n publicado en la web': '%n published on the website',
+    '%n publicados en la web': '%n published on the website',
+    '%n en la vista': '%n in view',
+    'Ningún modelo con ese filtro.': 'No model matches that filter.',
+    '%n dorm': '%n bed',
+    '%n baños': '%n baths',
+    'sin specs': 'no specs',
+    'sin precio de catálogo': 'no catalogue price',
+    'en la web': 'live',
+    'sin publicar': 'unpublished',
+    '%n proyecto': '%n project',
+    '%n proyectos': '%n projects',
+    '%n doc': '%n doc',
+    '%n docs': '%n docs',
+    'Publicado en /modelo/%s': 'Published at /modelo/%s',
+    'No sale en la web': 'Not on the website',
+    'renders pendientes': 'renders pending',
+    'Ficha': 'Details',
+    'Dormitorios': 'Bedrooms',
+    'Baños': 'Bathrooms',
+    'Villa': 'Villa',
+    'Terraza': 'Terrace',
+    'Villa (m²)': 'Villa (m²)',
+    'Terraza (m²)': 'Terrace (m²)',
+    'Descripción': 'Description',
+    'Dirección en la web': 'Website address',
+    '— cambiarla rompe los enlaces que ya estén publicados.':
+      '— changing it breaks any links already published.',
+    'Precio de construcción (catálogo)': 'Construction price (catalogue)',
+    'Precio de catálogo': 'Catalogue price',
+    'Construcción': 'Construction',
+    'Techos': 'Roof types',
+    'desde 2027: ': 'from 2027: ',
+    'Sin variantes de techo. El precio de catálogo es el único.':
+      'No roof variants. The catalogue price is the only one.',
+    'Cuál de los dos precios está vigente lo decide el reloj del servidor, nunca un ajuste a mano.':
+      'Which of the two prices applies is decided by the server clock, never by a manual switch.',
+    'Este modelo no tiene variantes de techo.': 'This model has no roof variants.',
+    'Primera columna: precio de hoy. Segunda: desde el 1-ene-2027.':
+      'First column: today’s price. Second: from 1 Jan 2027.',
+    'Precio de %s ahora': 'Price of %s now',
+    'Precio de %s desde 2027': 'Price of %s from 2027',
+    'Precio de %s': 'Price of %s',
+    'Precio en %s': 'Price in %s',
+    'Extras': 'Add-ons',
+    'Extras disponibles': 'Available add-ons',
+    'Ninguno dado de alta todavía.': 'None added yet.',
+    'se ofrece': 'offered',
+    'Sin precio, el extra no se ofrece en la web: no se estima a ojo.':
+      'With no price the add-on is not offered on the website: it is never estimated by eye.',
+    'Alcance de obra': 'Scope of work',
+    'Incluido': 'Included',
+    'No incluido': 'Not included',
+    'Sin alcance de obra. Solo se rellena con lo verificado en el':
+      'No scope of work. It is only filled in from what is verified in the',
+    'anexo de obra de este modelo': 'construction annex of this model',
+    ': copiarlo de otro es publicar un contrato que nadie ha firmado.':
+      ': copying it from another one means publishing a contract nobody signed.',
+    'Una línea por punto. Es lo que la ficha publica como «Included» y «Not included», así que':
+      'One line per item. This is what the website publishes as “Included” and “Not included”, so',
+    'solo se escribe lo que diga el anexo de obra de ESTE modelo':
+      'only write what the construction annex of THIS model says',
+    '. Copiarlo de otro modelo es publicar un contrato que nadie ha firmado.':
+      '. Copying it from another model means publishing a contract nobody signed.',
+    'Precio por proyecto': 'Price by project',
+    'Vacío significa': 'Empty means',
+    'hereda del catálogo': 'inherits the catalogue price',
+    ', no «sin dato». Solo se rellena cuando ese proyecto tiene un precio propio pactado.':
+      ', not “no data”. Fill it in only when that project has its own agreed price.',
+    'heredado': 'inherited',
+    'propio': 'own price',
+    'Este modelo no está declarado en ningún proyecto todavía.':
+      'This model is not declared in any project yet.',
+    'Este modelo no está declarado en ningún proyecto.':
+      'This model is not declared in any project.',
+    'Dejar vacío = hereda el precio de catálogo. Rellenar solo si ese proyecto tiene precio propio pactado.':
+      'Leave empty = inherits the catalogue price. Fill it in only if that project has its own agreed price.',
+    'hereda %s': 'inherits %s',
+    'Añadir a un proyecto…': 'Add to a project…',
+    'Declararlo en un proyecto es lo que hace que aparezca en el desplegable de sus parcelas.':
+      'Declaring it in a project is what makes it appear in that project’s plot dropdown.',
+    'Es el nivel 1 de la cascada: lo heredan todos los proyectos que no tengan precio propio, y es lo que publica la web como «desde».':
+      'This is level 1 of the cascade: every project without its own price inherits it, and it is what the website publishes as “from”.',
+    'Documentos': 'Documents',
+    'visible para el comprador': 'visible to the buyer',
+    'Sin planos ni memoria de calidades todavía.':
+      'No floor plans or specification sheets yet.',
+    'Tipo de documento': 'Document type',
+    'Plano · anexo del contrato': 'Floor plan · contract annex',
+    'Memoria de calidades': 'Specification sheet',
+    'Render': 'Render',
+    'Otro': 'Other',
+    'Añadir documento': 'Add document',
+    'PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.':
+      'PDF or image, up to 50 MB. Private by default: whether the buyer sees it is decided file by file.',
+    'El de tipo': 'The one of type',
+    'es el que el contrato de Construcción adjunta solo al elegir este modelo (el más reciente si hay varios). Sin ninguno, se sigue usando el PDF que el estudio tenga en el repo.':
+      'is the one the Construction contract attaches automatically when this model is chosen (the most recent one if there are several). With none, the PDF held in the studio repo is used instead.',
+    'Subiendo…': 'Uploading…',
+    'Documento añadido': 'Document added',
+    'El fichero pasa de 50 MB': 'The file is over 50 MB',
+    'No se ha subido:': 'Not uploaded:',
+    'No se ha guardado la ficha del documento:': 'The document record was not saved:',
+    'No se ha podido abrir:': 'Could not open:',
+    'sin enlace': 'no link',
+    'No se ha podido cargar: ': 'Could not load: ',
+    'Publicación': 'Publishing',
+    'Activo (si se desmarca, deja de ofrecerse en toda la suite)':
+      'Active (unchecked, it stops being offered across the whole suite)',
+    'Renders pendientes — la ficha dirá «Renders in progress» en vez de enseñar una foto de otro modelo':
+      'Renders pending — the page will say “Renders in progress” instead of showing a photo of another model',
+    'Notas internas': 'Internal notes',
+    'No sale nunca en la web: el RPC público no las devuelve.':
+      'Never shown on the website: the public RPC does not return them.',
+    'Editar datos': 'Edit details',
+    'Los precios y las specs los edita un administrador. Tú sí puedes subir documentos.':
+      'Prices and specs are edited by an administrator. You can still upload documents.',
+    'Renombrar': 'Rename',
+    'Renombrar «%a» a «%b»': 'Rename “%a” to “%b”',
+    'El nombre nuevo se propaga solo a': 'The new name propagates on its own to',
+    '%n unidad': '%n unit',
+    '%n unidades': '%n units',
+    'y a sus precios por proyecto. Lo ya impreso en un documento firmado no se toca.':
+      'and to its per-project prices. Anything already printed on a signed document is untouched.',
+    'El nombre no puede quedar vacío': 'The name cannot be empty',
+    'La dirección solo admite minúsculas, números y guiones':
+      'The address only accepts lowercase letters, numbers and hyphens',
+    'Ya hay un modelo en esa dirección': 'There is already a model at that address',
+    'No se ha guardado: ': 'Not saved: ',
+    'No se ha guardado: cambiar precios y specs es de administrador.':
+      'Not saved: changing prices and specs is for administrators.',
+    'Dar de alta un modelo es de administrador': 'Creating a model is for administrators',
+    'Tu ficha entra en Modelos para consultar y para subir documentos. Crear un modelo o cambiar un precio lo hace un administrador.':
+      'Your account can open Models to look things up and to upload documents. Creating a model or changing a price is done by an administrator.',
+    'Entendido': 'Got it',
+    'Nace sin publicar. Las specs, los techos y los extras se rellenan después.':
+      'It starts unpublished. Specs, roof types and add-ons are filled in afterwards.',
+    'Dune, Granada…': 'Dune, Granada…',
+    'Se rellena sola desde el nombre. Solo minúsculas, números y guiones.':
+      'Filled in automatically from the name. Lowercase letters, numbers and hyphens only.',
+    'IDR solo para los proyectos que llevan el inventario en rupias (Riverfront).':
+      'IDR only for the projects whose inventory is kept in rupiah (Riverfront).',
+    'Si el inventario ya usa este nombre, las unidades que lo nombran se enganchan solas al guardar: el enlace lo ata el propio trigger de la base.':
+      'If the inventory already uses this name, the units naming it link themselves on save: the database trigger ties the link.',
+    'Hacen falta el nombre y la dirección': 'The name and the address are required',
+    'Crear': 'Create',
+    'No se ha creado: ': 'Not created: ',
+    'No se ha creado: dar de alta un modelo es de administrador.':
+      'Not created: creating a model is for administrators.',
+    'Modelo creado. Ahora sus datos.': 'Model created. Now its details.',
+    'Se resuelve dando de alta el modelo con ese nombre, o corrigiendo el nombre en Proyectos. Mientras tanto se quedan como están, que es lo correcto.':
+      'Fix it by creating the model under that name, or by correcting the name in Projects. In the meantime they stay as they are, which is the right thing.',
   };
 
   window.LW_EN = EN;

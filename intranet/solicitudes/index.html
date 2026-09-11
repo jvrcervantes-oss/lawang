@@ -39,6 +39,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/i18n.js?v=d7791b96"></script>
 <script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -82,13 +86,13 @@
     <div class="lw-spacer"></div>
     <!-- ACCIÓN PRINCIPAL: una sola y última de la barra (convención de la
          suite, el porqué junto a `.lw-btn.primary` en assets/topbar.css). -->
-    <button type="button" class="lw-btn primary" id="btnNueva"><i class="ph ph-plus"></i>Nueva solicitud</button>
+    <button type="button" class="lw-btn primary" id="btnNueva"><i class="ph ph-plus"></i><span data-t>Nueva solicitud</span></button>
   </header>
 
   <div class="sui-stage">
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" placeholder="Buscar concepto, contrato o compañero…">
+        <input class="sui-buscar" id="q" data-t-ph placeholder="Buscar concepto, contrato o compañero…">
         <!-- solo lo ve el admin: para un agente todas las filas son suyas y el
              filtro sería una lista de una persona -->
         <select class="sui-sel" id="fAgente" hidden></select>
@@ -102,13 +106,13 @@
       <div class="sui-tabla-caja">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
-            <th data-orden="numero">Nº</th>
-            <th data-orden="quien">Quién pide</th>
-            <th>Concepto</th>
-            <th data-orden="importe">Importe</th>
-            <th data-orden="venta">De la venta</th>
-            <th data-orden="estado">Estado</th>
-            <th data-orden="creado_en">Cuándo</th>
+            <th data-orden="numero" data-t>Nº</th>
+            <th data-orden="quien" data-t>Quién pide</th>
+            <th data-t>Concepto</th>
+            <th data-orden="importe" data-t>Importe</th>
+            <th data-orden="venta" data-t>De la venta</th>
+            <th data-orden="estado" data-t>Estado</th>
+            <th data-orden="creado_en" data-t>Cuándo</th>
           </tr></thead>
           <tbody id="filas"></tbody>
         </table>
@@ -133,19 +137,22 @@
    suite; aquí queda quién lo pidió, quién lo aprobó y cuándo se pagó.
    ========================================================================== */
 const $ = s => document.querySelector(s);
+lwIdiomaAplicar();
 
 let SB=null, YO=null, ADMIN=false;
 let SOLICITUDES=[], CONTRATOS={}, USUARIOS={};
 let SEL=null, FILTRO='pendiente', AGENTE='';
 const ORDEN = { campo:'creado_en', dir:'desc' };
 
-const fmtFecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '';
+const fmtFecha = f => f ? new Date(f).toLocaleDateString(lwLocale(), { day:'numeric', month:'short', year:'numeric' }) : '';
 const diasDesde = f => Math.floor((Date.now() - new Date(f).getTime()) / 86400000);
 /* Los importes se leen y se escriben SIEMPRE con dinero.js (norma de la suite:
    nada de toLocaleString). */
 const fmtImporte = x => lwFormatoImporte(Number(x.importe)) + ' ' + (x.moneda || '');
 
-const ETIQUETA = { pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rechazada', anulada:'Anulada', pagada:'Pagada' };
+/* Etiqueta visible de cada estado. Las CLAVES son de la base (el trigger de
+   la maquina de estados manda) y no se traducen nunca: solo su rotulo. */
+const ETIQUETA = { pendiente:lwT('Pendiente'), aprobada:lwT('Aprobada'), rechazada:lwT('Rechazada'), anulada:lwT('Anulada'), pagada:lwT('Pagada') };
 const TAG      = { pendiente:'espera',    aprobada:'info',     rechazada:'mal',      anulada:'gris',   pagada:'ok' };
 
 /* ---------- carga ---------- */
@@ -157,7 +164,7 @@ async function cargar(){
     // propia ficha, el mapa se queda corto y el fallback pinta «—»: no es un fallo.
     SB.from('usuarios').select('user_id,nombre,email'),
   ]);
-  if(s.error){ toast('No se pudieron leer las solicitudes: ' + s.error.message); return; }
+  if(s.error){ toast(lwT('No se pudieron leer las solicitudes: ') + s.error.message); return; }
   SOLICITUDES = s.data || [];
   CONTRATOS = {}; (k.error ? [] : (k.data || [])).forEach(x => { CONTRATOS[x.id] = x; });
   USUARIOS = {}; (u.error ? [] : (u.data || [])).forEach(x => { USUARIOS[x.user_id] = x; });
@@ -166,14 +173,14 @@ async function cargar(){
 
 const nombreDe = uid => {
   const u = USUARIOS[uid];
-  return u ? (u.nombre || u.email) : (YO && uid === YO.id ? 'Tú' : '—');
+  return u ? (u.nombre || u.email) : (YO && uid === YO.id ? lwT('Tú') : '—');
 };
 
 function vistas(){
   return SOLICITUDES.map(x => {
     const ct = CONTRATOS[x.contrato_id];
     return Object.assign({}, x, {
-      venta: ct ? (ct.numero || 'contrato') : '',
+      venta: ct ? (ct.numero || lwT('contrato')) : '',
       ventaSub: ct ? [lwTipoContrato(ct.tipo), ct.proyecto_nombre].filter(Boolean).join(' · ') : '',
       contrato: ct,
       quien: nombreDe(x.creado_por),
@@ -183,8 +190,8 @@ function vistas(){
 
 /* ---------- filtros y tabla ---------- */
 const FILTROS = [
-  ['pendiente','Pendientes'], ['aprobada','Por pagar'],
-  ['resueltas','Resueltas'], ['todos','Todas'],
+  ['pendiente', lwT('Pendientes')], ['aprobada', lwT('Por pagar')],
+  ['resueltas', lwT('Resueltas')], ['todos', lwT('Todas')],
 ];
 const RESUELTAS = ['pagada','rechazada','anulada'];
 function visibles(){
@@ -211,8 +218,8 @@ function pintarResumen(todos){
   const sumas = Object.keys(porMoneda).sort()
     .map(m => lwFormatoImporte(porMoneda[m]) + ' ' + m).join(' · ');
   caja.hidden = false;
-  caja.textContent = pend + (pend === 1 ? ' pendiente de resolver' : ' pendientes de resolver')
-    + ' — ' + aprob.length + (aprob.length === 1 ? ' aprobada por pagar' : ' aprobadas por pagar')
+  caja.textContent = lwT(pend === 1 ? '%n pendiente de resolver' : '%n pendientes de resolver', { n: pend })
+    + ' — ' + lwT(aprob.length === 1 ? '%n aprobada por pagar' : '%n aprobadas por pagar', { n: aprob.length })
     + (aprob.length ? ' (' + sumas + ')' : '');
 }
 /* El filtro por agente solo existe para el admin (para un agente todas las
@@ -227,7 +234,7 @@ function pintarFiltroAgente(todos){
   if(vistos.length < 2){ sel.hidden = true; AGENTE = ''; return; }
   sel.hidden = false;
   const antes = AGENTE;
-  sel.innerHTML = '<option value="">Todos los agentes</option>' + vistos
+  sel.innerHTML = '<option value="">' + lwT('Todos los agentes') + '</option>' + vistos
     .map(uid => ({ uid, nombre: nombreDe(uid) }))
     .sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'))
     .map(o => `<option value="${esc(o.uid)}">${esc(o.nombre)}</option>`).join('');
@@ -250,7 +257,7 @@ function pintar(){
 function pintarTabla(){
   const filas = $('#filas');
   const vs = suiOrdenar(visibles(), ORDEN, (x, campo) => campo === 'importe' ? Number(x.importe) : x[campo]);
-  if(!vs.length){ filas.innerHTML = '<tr><td colspan="7" class="sui-vacio">Nada que enseñar con este filtro.</td></tr>'; return; }
+  if(!vs.length){ filas.innerHTML = '<tr><td colspan="7" class="sui-vacio">' + lwT('Nada que enseñar con este filtro.') + '</td></tr>'; return; }
   filas.innerHTML = vs.map(x => {
     const d = diasDesde(x.creado_en);
     const tarde = (x.estado === 'pendiente' || x.estado === 'aprobada') && d >= 14;
@@ -261,7 +268,7 @@ function pintarTabla(){
     <td>${esc(fmtImporte(x))}</td>
     <td class="venta">${x.venta ? esc(x.venta) : '—'}${x.ventaSub ? '<span class="mini">' + esc(x.ventaSub) + '</span>' : ''}</td>
     <td><span class="sui-tag ${TAG[x.estado] || 'gris'}">${esc(ETIQUETA[x.estado] || x.estado)}</span></td>
-    <td>${esc(fmtFecha(x.creado_en))} <span class="edad ${tarde?'tarde':''}">hace ${d} d</span></td>
+    <td>${esc(fmtFecha(x.creado_en))} <span class="edad ${tarde?'tarde':''}">${lwT('hace %n d', { n: d })}</span></td>
   </tr>`;
   }).join('');
 }
@@ -274,22 +281,22 @@ function abrir(id){
   const filaDato = (k, v) => v ? `<div class="dato"><span>${k}</span><b>${v}</b></div>` : '';
 
   let cuerpo = `<div class="bloque">
-    ${filaDato('Quién pide', esc(x.quien))}
-    ${filaDato('Concepto', esc(x.concepto))}
-    ${filaDato('Importe', esc(fmtImporte(x)))}
-    ${filaDato('De la venta', x.contrato ? esc(x.contrato.numero || '') + ' · ' + esc(lwTipoContrato(x.contrato.tipo)) + (x.contrato.proyecto_nombre ? ' · ' + esc(x.contrato.proyecto_nombre) : '') : '')}
-    ${filaDato('Fecha límite', x.vence_el ? esc(fmtFecha(x.vence_el)) : '')}
-    ${filaDato('Nota', x.nota ? esc(x.nota) : '')}
-    ${filaDato('Pedida', esc(fmtFecha(x.creado_en)))}
+    ${filaDato(lwT('Quién pide'), esc(x.quien))}
+    ${filaDato(lwT('Concepto'), esc(x.concepto))}
+    ${filaDato(lwT('Importe'), esc(fmtImporte(x)))}
+    ${filaDato(lwT('De la venta'), x.contrato ? esc(x.contrato.numero || '') + ' · ' + esc(lwTipoContrato(x.contrato.tipo)) + (x.contrato.proyecto_nombre ? ' · ' + esc(x.contrato.proyecto_nombre) : '') : '')}
+    ${filaDato(lwT('Fecha límite'), x.vence_el ? esc(fmtFecha(x.vence_el)) : '')}
+    ${filaDato(lwT('Nota'), x.nota ? esc(x.nota) : '')}
+    ${filaDato(lwT('Pedida'), esc(fmtFecha(x.creado_en)))}
   </div>`;
 
   if(x.estado !== 'pendiente'){
-    cuerpo += `<div class="bloque"><h3>Resolución</h3>
-      ${filaDato('Estado', esc(ETIQUETA[x.estado]))}
-      ${filaDato('Motivo', x.motivo_rechazo ? esc(x.motivo_rechazo) : '')}
-      ${filaDato('Resuelta por', x.resuelto_por ? esc(nombreDe(x.resuelto_por)) + ' · ' + esc(fmtFecha(x.resuelto_en)) : '')}
-      ${filaDato('Pagada por', x.pagado_por ? esc(nombreDe(x.pagado_por)) + ' · ' + esc(fmtFecha(x.pagado_en)) : '')}
-      ${filaDato('Referencia del pago', x.pago_referencia ? esc(x.pago_referencia) : '')}
+    cuerpo += `<div class="bloque"><h3>${lwT('Resolución')}</h3>
+      ${filaDato(lwT('Estado'), esc(ETIQUETA[x.estado]))}
+      ${filaDato(lwT('Motivo'), x.motivo_rechazo ? esc(x.motivo_rechazo) : '')}
+      ${filaDato(lwT('Resuelta por'), x.resuelto_por ? esc(nombreDe(x.resuelto_por)) + ' · ' + esc(fmtFecha(x.resuelto_en)) : '')}
+      ${filaDato(lwT('Pagada por'), x.pagado_por ? esc(nombreDe(x.pagado_por)) + ' · ' + esc(fmtFecha(x.pagado_en)) : '')}
+      ${filaDato(lwT('Referencia del pago'), x.pago_referencia ? esc(x.pago_referencia) : '')}
     </div>`;
   }
   // el hueco donde aparecen el motivo del rechazo o la referencia del pago
@@ -297,21 +304,21 @@ function abrir(id){
 
   const botones = [];
   if(x.estado === 'pendiente' && ADMIN){
-    botones.push('<button class="sui-btn primario" id="btnAprobar">Aprobar</button>');
-    botones.push('<button class="sui-btn" id="btnRechazar">Rechazar…</button>');
+    botones.push('<button class="sui-btn primario" id="btnAprobar">' + lwT('Aprobar') + '</button>');
+    botones.push('<button class="sui-btn" id="btnRechazar">' + lwT('Rechazar…') + '</button>');
   }
   if(x.estado === 'pendiente' && mia){
-    botones.push('<button class="sui-btn" id="btnEditar">Editar</button>');
-    botones.push('<button class="sui-btn" id="btnAnular">Anular</button>');
+    botones.push('<button class="sui-btn" id="btnEditar">' + lwT('Editar') + '</button>');
+    botones.push('<button class="sui-btn" id="btnAnular">' + lwT('Anular') + '</button>');
   }
   if(x.estado === 'aprobada' && ADMIN){
-    botones.push('<button class="sui-btn primario" id="btnPagada">Marcar pagada…</button>');
+    botones.push('<button class="sui-btn primario" id="btnPagada">' + lwT('Marcar pagada…') + '</button>');
   }
-  botones.push('<button class="sui-btn" id="btnCerrarCajon">Cerrar</button>');
+  botones.push('<button class="sui-btn" id="btnCerrarCajon">' + lwT('Cerrar') + '</button>');
 
   suiAbrirCajon({
     titulo: 'SP-' + esc(String(x.numero)) + ' · ' + esc(ETIQUETA[x.estado] || x.estado),
-    sub: esc(x.quien) + ' — el pago se hace fuera (transferencia); aquí queda pedido, aprobado y pagado.',
+    sub: esc(x.quien) + ' — ' + lwT('el pago se hace fuera (transferencia); aquí queda pedido, aprobado y pagado.'),
     cuerpo, pie: botones.join(''),
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
@@ -327,23 +334,27 @@ function abrir(id){
 async function resolver(x, estado, extra){
   const cambio = Object.assign({ estado }, extra || {});
   const { error } = await SB.from('solicitudes_pago').update(cambio).eq('id', x.id);
-  if(error){ toast('No se pudo: ' + error.message); return; }
+  if(error){ toast(lwT('No se pudo: ') + error.message); return; }
   await cargar();
-  toast(estado === 'aprobada' ? 'Solicitud aprobada — queda por pagar'
-      : estado === 'pagada' ? 'Marcada como pagada'
-      : 'Solicitud ' + ETIQUETA[estado].toLowerCase());
+  /* Frases ENTERAS por estado, no «Solicitud » + la etiqueta en minuscula: eso
+     es cirugia de cadenas sobre una palabra ya traducida, y en ingles el orden
+     de las palabras no tiene por que ser el mismo. */
+  toast(estado === 'aprobada' ? lwT('Solicitud aprobada — queda por pagar')
+      : estado === 'pagada' ? lwT('Marcada como pagada')
+      : estado === 'rechazada' ? lwT('Solicitud rechazada')
+      : lwT('Solicitud anulada'));
   abrir(x.id);
 }
 
 function pedirMotivo(x){
   const hueco = $('#cajonExtra'); if(!hueco || hueco.childElementCount) return;
-  hueco.innerHTML = `<div class="bloque extra-caja"><h3>Motivo del rechazo</h3>
+  hueco.innerHTML = `<div class="bloque extra-caja"><h3>${lwT('Motivo del rechazo')}</h3>
     <div class="form-campo">
-      <label for="fMotivo">Se le enseña al compañero tal cual — di qué falta o por qué no procede</label>
+      <label for="fMotivo">${lwT('Se le enseña al compañero tal cual — di qué falta o por qué no procede')}</label>
       <textarea id="fMotivo"></textarea>
     </div>
-    <button class="sui-btn primario" id="btnRechazarOk">Rechazar la solicitud</button>
-    <p class="aviso-falta" id="avisoMotivo" hidden>El motivo es obligatorio: sin él la base no acepta el rechazo.</p>
+    <button class="sui-btn primario" id="btnRechazarOk">${lwT('Rechazar la solicitud')}</button>
+    <p class="aviso-falta" id="avisoMotivo" hidden>${lwT('El motivo es obligatorio: sin él la base no acepta el rechazo.')}</p>
   </div>`;
   $('#fMotivo').focus();
   $('#btnRechazarOk').addEventListener('click', () => {
@@ -355,12 +366,12 @@ function pedirMotivo(x){
 
 function pedirReferenciaPago(x){
   const hueco = $('#cajonExtra'); if(!hueco || hueco.childElementCount) return;
-  hueco.innerHTML = `<div class="bloque extra-caja"><h3>Referencia del pago</h3>
+  hueco.innerHTML = `<div class="bloque extra-caja"><h3>${lwT('Referencia del pago')}</h3>
     <div class="form-campo">
-      <label for="fRef">Cómo se ha pagado — transferencia, Wise, fecha… (opcional, pero al compañero le llega en el aviso)</label>
+      <label for="fRef">${lwT('Cómo se ha pagado — transferencia, Wise, fecha… (opcional, pero al compañero le llega en el aviso)')}</label>
       <input id="fRef" autocomplete="off">
     </div>
-    <button class="sui-btn primario" id="btnPagadaOk">Confirmar: pagada</button>
+    <button class="sui-btn primario" id="btnPagadaOk">${lwT('Confirmar: pagada')}</button>
   </div>`;
   $('#fRef').focus();
   $('#btnPagadaOk').addEventListener('click', () => {
@@ -371,9 +382,9 @@ function pedirReferenciaPago(x){
 
 async function anular(x){
   const ok = await lwConfirmar({
-    titulo: 'Anular la solicitud',
-    texto: 'SP-' + x.numero + ' quedará anulada. No se borra: el registro se queda, sin efecto.',
-    confirmar: 'Anular',
+    titulo: lwT('Anular la solicitud'),
+    texto: lwT('SP-%n quedará anulada. No se borra: el registro se queda, sin efecto.', { n: x.numero }),
+    confirmar: lwT('Anular'),
   });
   if(!ok) return;
   resolver(x, 'anulada');
@@ -384,56 +395,56 @@ function formulario(existente){
   SEL = existente ? existente.id : null;
   const x = existente || {};
   suiAbrirCajon({
-    titulo: existente ? 'Editar SP-' + esc(String(x.numero)) : 'Nueva solicitud de pago',
-    sub: 'Pide un pago a Lawang — una comisión, un pago acordado. Administración lo aprueba y lo paga.',
+    titulo: existente ? lwT('Editar SP-%n', { n: esc(String(x.numero)) }) : lwT('Nueva solicitud de pago'),
+    sub: lwT('Pide un pago a Lawang — una comisión, un pago acordado. Administración lo aprueba y lo paga.'),
     cuerpo: `
       <div class="form-campo">
-        <label for="fConcepto">Concepto — qué pago estás pidiendo</label>
-        <input id="fConcepto" placeholder="Comisión venta W3.1-D1 · pago acordado septiembre…" value="${esc(x.concepto || '')}">
+        <label for="fConcepto">${lwT('Concepto — qué pago estás pidiendo')}</label>
+        <input id="fConcepto" placeholder="${lwT('Comisión venta W3.1-D1 · pago acordado septiembre…')}" value="${esc(x.concepto || '')}">
       </div>
       <div class="sui-row">
         <div class="form-campo">
-          <label for="fImporte">Importe</label>
+          <label for="fImporte">${lwT('Importe')}</label>
           <input id="fImporte" inputmode="decimal" value="${x.importe != null ? esc(lwFormatoImporte(Number(x.importe))) : ''}">
         </div>
         <div class="form-campo">
-          <label for="fMoneda">Moneda</label>
+          <label for="fMoneda">${lwT('Moneda')}</label>
           <select id="fMoneda">
             <option value="EUR">EUR</option><option value="USD">USD</option><option value="IDR">IDR</option>
           </select>
         </div>
       </div>
       <div class="form-campo">
-        <label for="fContrato">De qué venta viene, si viene de una (opcional)</label>
-        <input id="fContrato" placeholder="Elegir contrato…" autocomplete="off">
+        <label for="fContrato">${lwT('De qué venta viene, si viene de una (opcional)')}</label>
+        <input id="fContrato" placeholder="${lwT('Elegir contrato…')}" autocomplete="off">
       </div>
       <div class="form-campo">
-        <label for="fVence">Fecha límite (opcional)</label>
+        <label for="fVence">${lwT('Fecha límite (opcional)')}</label>
         <input id="fVence" type="date" value="${esc(x.vence_el || '')}">
       </div>
       <div class="form-campo">
-        <label for="fNota">Nota para Administración (opcional)</label>
+        <label for="fNota">${lwT('Nota para Administración (opcional)')}</label>
         <textarea id="fNota">${esc(x.nota || '')}</textarea>
       </div>`,
-    pie: `<button class="sui-btn primario" id="btnGuardar">${existente ? 'Guardar cambios' : 'Crear solicitud'}</button>
-          <button class="sui-btn" id="btnCancelar">Cancelar</button>`,
+    pie: `<button class="sui-btn primario" id="btnGuardar">${lwT(existente ? 'Guardar cambios' : 'Crear solicitud')}</button>
+          <button class="sui-btn" id="btnCancelar">${lwT('Cancelar')}</button>`,
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
 
   // picker de contrato: se guarda el ID en dataset y se enseña el número.
   // lwPicker escribiría el uuid en el campo, por eso aquí va lwElegir directo.
   const elK = $('#fContrato');
-  const opsContratos = () => [{ valor:'', texto:'— Sin venta asociada —' }].concat(
-    Object.values(CONTRATOS).map(k => ({ valor:k.id, texto:k.numero || 'sin nº',
+  const opsContratos = () => [{ valor:'', texto:lwT('— Sin venta asociada —') }].concat(
+    Object.values(CONTRATOS).map(k => ({ valor:k.id, texto:k.numero || lwT('sin nº'),
       nota:[lwTipoContrato(k.tipo), k.proyecto_nombre].filter(Boolean).join(' · ') }))
       .sort((a,b) => a.texto.localeCompare(b.texto, 'es')));
   const ponContrato = id => {
     elK.dataset.id = id || '';
-    elK.value = id && CONTRATOS[id] ? (CONTRATOS[id].numero || 'contrato') : '';
+    elK.value = id && CONTRATOS[id] ? (CONTRATOS[id].numero || lwT('contrato')) : '';
   };
   elK.readOnly = true; elK.classList.add('lw-elegible');
   const abrirLista = async () => {
-    const v = await lwElegir({ titulo:'La venta de la que viene el pago', opciones: opsContratos(), valor: elK.dataset.id || '' });
+    const v = await lwElegir({ titulo:lwT('La venta de la que viene el pago'), opciones: opsContratos(), valor: elK.dataset.id || '' });
     if(v !== null) ponContrato(v);
   };
   elK.addEventListener('mousedown', e => { e.preventDefault(); abrirLista(); });
@@ -445,8 +456,8 @@ function formulario(existente){
   $('#btnGuardar').addEventListener('click', async () => {
     const concepto = $('#fConcepto').value.trim();
     const importe = lwParseImporte($('#fImporte').value);
-    if(!concepto){ toast('El concepto no puede quedar vacío'); return; }
-    if(!(importe > 0)){ toast('El importe no se entiende — escribe un número mayor que cero'); return; }
+    if(!concepto){ toast(lwT('El concepto no puede quedar vacío')); return; }
+    if(!(importe > 0)){ toast(lwT('El importe no se entiende — escribe un número mayor que cero')); return; }
     const fila = {
       contrato_id: elK.dataset.id || null,
       concepto, importe,
@@ -458,9 +469,9 @@ function formulario(existente){
     const { error } = existente
       ? await SB.from('solicitudes_pago').update(fila).eq('id', existente.id)
       : await SB.from('solicitudes_pago').insert(fila);
-    if(error){ toast('No se pudo guardar: ' + error.message); btn.disabled = false; return; }
+    if(error){ toast(lwT('No se pudo guardar: ') + error.message); btn.disabled = false; return; }
     await cargar();
-    toast(existente ? 'Solicitud actualizada' : 'Solicitud creada — Administración ya tiene el aviso');
+    toast(lwT(existente ? 'Solicitud actualizada' : 'Solicitud creada — Administración ya tiene el aviso'));
     suiCerrarCajon();
   });
 }

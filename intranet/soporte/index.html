@@ -26,7 +26,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/i18n.js?v=5e155246"></script>
+<script src="/contracts/assets/i18n.js?v=d7791b96"></script>
 <script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -104,8 +104,8 @@
    ========================================================================== */
 const $ = s => document.querySelector(s);
 /* Traduce la HTML de arriba una sola vez, antes de pintar nada. En espanol
-   no toca el DOM (ver i18n.js). `t` es alias local por comodidad. */
-const t = window.lwT;
+   no toca el DOM (ver i18n.js). Se llama `lwT` y no un alias corto: un
+   `map(t => ...)` taparia a `t` dentro de su callback sin avisar. */
 lwIdiomaAplicar();
 
 let SB=null, MENSAJES=[], HILOS=[], CLIENTES={}, SEL=null, FILTRO='abierto';
@@ -120,7 +120,7 @@ async function cargar(){
     SB.from('hilo_soporte').select('id,client_id,categoria,estado,actualizado_en'),
     SB.from('clients').select('id,full_name,email'),
   ]);
-  if(h.error){ toast(t('No se pudieron leer los tickets: ') + h.error.message); return; }
+  if(h.error){ toast(lwT('No se pudieron leer los tickets: ') + h.error.message); return; }
   MENSAJES = m.error ? [] : (m.data || []);
   HILOS = h.data || [];
   CLIENTES = {};
@@ -138,7 +138,7 @@ function tickets(){
     return {
       id: h.id,
       client_id: h.client_id,
-      nombre: (cliente && cliente.full_name) || t('Sin nombre'),
+      nombre: (cliente && cliente.full_name) || lwT('Sin nombre'),
       email: cliente && cliente.email,
       categoria: h.categoria,
       mensajes: msgs,
@@ -151,7 +151,7 @@ function tickets(){
 
 /* ---------- filtros y tabla ---------- */
 const FILTROS = [
-  ['abierto', t('Abiertos')], ['resuelto', t('Resueltos')], ['todos', t('Todos')],
+  ['abierto', lwT('Abiertos')], ['resuelto', lwT('Resueltos')], ['todos', lwT('Todos')],
 ];
 function visibles(){
   const q = ($('#q').value || '').toLowerCase();
@@ -173,12 +173,12 @@ function pintar(){
 function pintarTabla(){
   const filas = $('#filas');
   const vs = suiOrdenar(visibles(), ORDEN, (x, campo) => x[campo]);
-  if(!vs.length){ filas.innerHTML = '<tr><td colspan="5" class="sui-vacio">' + t('Nada que enseñar con este filtro.') + '</td></tr>'; return; }
+  if(!vs.length){ filas.innerHTML = '<tr><td colspan="5" class="sui-vacio">' + lwT('Nada que enseñar con este filtro.') + '</td></tr>'; return; }
   filas.innerHTML = vs.map(x => `<tr data-id="${esc(x.id)}" class="${SEL===x.id?'on':''}">
     <td><b>${esc(x.nombre)}</b></td>
     <td class="cat-chip">${esc(x.categoria)}</td>
-    <td class="ultimo">${x.ultimo ? esc(x.ultimo.de === 'equipo' ? t('Tú: ') : '') + esc(x.ultimo.texto) : '—'}</td>
-    <td><span class="sui-tag ${x.estado === 'abierto' ? 'espera' : 'ok'}">${t(x.estado === 'abierto' ? 'Abierto' : 'Resuelto')}</span></td>
+    <td class="ultimo">${x.ultimo ? esc(x.ultimo.de === 'equipo' ? lwT('Tú: ') : '') + esc(x.ultimo.texto) : '—'}</td>
+    <td><span class="sui-tag ${x.estado === 'abierto' ? 'espera' : 'ok'}">${lwT(x.estado === 'abierto' ? 'Abierto' : 'Resuelto')}</span></td>
     <td>${esc(fmtFecha(x.actualizado_en))}</td>
   </tr>`).join('');
 }
@@ -189,19 +189,19 @@ function abrir(hid){
   SEL = hid; pintarTabla();
   suiAbrirCajon({
     titulo: esc(h.nombre) + ' · ' + esc(h.categoria),
-    sub: (h.email ? esc(h.email) + ' — ' : '') + t('Escribe a través de la intranet, igual que él ve tu respuesta en su área de clientes.'),
+    sub: (h.email ? esc(h.email) + ' — ' : '') + lwT('Escribe a través de la intranet, igual que él ve tu respuesta en su área de clientes.'),
     cuerpo: `
       <div class="hilo" id="hiloMsgs">${h.mensajes.map(m => `
         <div class="msg ${m.de === 'equipo' ? 'equipo' : ''}">
-          <div class="meta">${m.de === 'equipo' ? esc(m.autor || t('Equipo')) : esc(h.nombre)} · ${esc(fmtFecha(m.creado_en))}</div>
+          <div class="meta">${m.de === 'equipo' ? esc(m.autor || lwT('Equipo')) : esc(h.nombre)} · ${esc(fmtFecha(m.creado_en))}</div>
           ${esc(m.texto)}
         </div>`).join('')}</div>
       <div class="responder">
-        <textarea id="respTexto" placeholder="${t('Responder…')}"></textarea>
-        <button class="btn primary" id="btnResponder">${t('Enviar')}</button>
+        <textarea id="respTexto" placeholder="${lwT('Responder…')}"></textarea>
+        <button class="btn primary" id="btnResponder">${lwT('Enviar')}</button>
       </div>`,
-    pie: `<button class="sui-btn primario" id="btnToggleEstado">${t(h.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir')}</button>
-          <button class="sui-btn" id="btnCerrar">${t('Cerrar')}</button>`,
+    pie: `<button class="sui-btn primario" id="btnToggleEstado">${lwT(h.estado === 'abierto' ? 'Marcar resuelto' : 'Reabrir')}</button>
+          <button class="sui-btn" id="btnCerrar">${lwT('Cerrar')}</button>`,
     onCerrar: () => { SEL = null; pintarTabla(); },
   });
   const hiloEl = $('#hiloMsgs'); if(hiloEl) hiloEl.scrollTop = hiloEl.scrollHeight;
@@ -214,18 +214,18 @@ async function responder(hid){
   const ta = $('#respTexto'); const texto = ta.value.trim(); if(!texto) return;
   const btn = $('#btnResponder'); btn.disabled = true;
   const { error } = await SB.rpc('portal_enviar_mensaje', { p_hilo_id: hid, p_texto: texto });
-  if(error){ toast(t('No se pudo enviar: ') + error.message); btn.disabled = false; return; }
+  if(error){ toast(lwT('No se pudo enviar: ') + error.message); btn.disabled = false; return; }
   await cargar();
-  toast(t('Enviado'));
+  toast(lwT('Enviado'));
   abrir(hid);
 }
 
 async function toggleEstado(hid, actual){
   const nuevo = actual === 'abierto' ? 'resuelto' : 'abierto';
   const { error } = await SB.from('hilo_soporte').update({ estado: nuevo, actualizado_en: new Date().toISOString() }).eq('id', hid);
-  if(error){ toast(t('No se pudo cambiar el estado: ') + error.message); return; }
+  if(error){ toast(lwT('No se pudo cambiar el estado: ') + error.message); return; }
   await cargar();
-  toast(t(nuevo === 'resuelto' ? 'Marcado como resuelto' : 'Reabierto'));
+  toast(lwT(nuevo === 'resuelto' ? 'Marcado como resuelto' : 'Reabierto'));
   abrir(hid);
 }
 

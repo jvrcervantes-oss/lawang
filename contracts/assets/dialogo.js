@@ -131,7 +131,7 @@ function dlgT(s, h) { return window.lwT ? window.lwT(s, h) : s; }
       elT.textContent   = o.titulo || dlgT('¿Seguimos?');
       elC.innerHTML     = o.cuerpo || '';
       elC.style.display = o.cuerpo ? '' : 'none';
-      bOk.textContent   = o.confirmar || 'Continuar';
+      bOk.textContent   = o.confirmar || dlgT('Continuar');
       // `cancelar: false` -> un solo boton. Para mensajes que PARAN y no ofrecen
       // alternativa: dos botones ahi son mentira, porque no hay nada que elegir.
       bNo.textContent   = o.cancelar === false ? '' : (o.cancelar || dlgT('Cancelar'));

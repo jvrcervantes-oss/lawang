@@ -36,6 +36,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600&family=Instrument+Sans:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/contracts/assets/lawang.css?v=c4880e28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/i18n.js?v=d7791b96"></script>
 <script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -86,7 +90,7 @@
     <div class="lw-spacer"></div>
     <!-- ACCIÓN PRINCIPAL: una sola y última de la barra (convención de la suite,
          el porqué está en assets/topbar.css junto a `.lw-btn.primary`). -->
-    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i>Nuevo modelo</button>
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i><span data-t>Nuevo modelo</span></button>
   </header>
 
   <div class="sui-stage">
@@ -97,11 +101,11 @@
       <div id="avisos"></div>
 
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" placeholder="Buscar modelo…">
+        <input class="sui-buscar" id="q" data-t-ph placeholder="Buscar modelo…">
         <select class="sui-sel" id="fEstado">
-          <option value="">Publicados y no publicados</option>
-          <option value="pub">Solo publicados en la web</option>
-          <option value="nopub">Solo sin publicar</option>
+          <option value="" data-t="Publicados y no publicados">Publicados y no publicados</option>
+          <option value="pub" data-t="Solo publicados en la web">Solo publicados en la web</option>
+          <option value="nopub" data-t="Solo sin publicar">Solo sin publicar</option>
         </select>
       </div>
       <div class="sui-resumen" id="resumen"></div>
@@ -147,6 +151,7 @@ let SEL = null, CARGANDO = true, FALLO = null, EDITANDO = false;
 
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
+lwIdiomaAplicar();
 
 /* Los importes se leen y se escriben SIEMPRE con dinero.js. Ningún importe de
    la suite se pinta con toLocaleString: eso daba tres decimales en una pantalla
@@ -223,26 +228,29 @@ function visibles(){
 function pintar(){
   pintarPendientes();
   const caja = $('#rejilla'), res = $('#resumen');
-  if(CARGANDO){ caja.innerHTML = '<p class="mini">Cargando…</p>'; res.textContent = ''; return; }
-  if(FALLO){ caja.innerHTML = '<p class="mini">No se ha podido cargar: ' + esc(FALLO) + '</p>'; return; }
+  if(CARGANDO){ caja.innerHTML = '<p class="mini">' + lwT('Cargando…') + '</p>'; res.textContent = ''; return; }
+  if(FALLO){ caja.innerHTML = '<p class="mini">' + lwT('No se ha podido cargar: ') + esc(FALLO) + '</p>'; return; }
   const vis = visibles();
   const pub = MODELOS.filter(m => m.publicado).length;
-  res.innerHTML = `${MODELOS.length} modelo${MODELOS.length===1?'':'s'} · ${pub} publicado${pub===1?'':'s'} en la web`
-    + (vis.length !== MODELOS.length ? ` · ${vis.length} en la vista` : '');
-  if(!vis.length){ caja.innerHTML = '<p class="mini">Ningún modelo con ese filtro.</p>'; return; }
+  /* Frases enteras por numero, no una «s» pegada al final: el plural ingles
+     de «model» coincide por casualidad, el de «publicado» no. */
+  res.innerHTML = lwT(MODELOS.length === 1 ? '%n modelo' : '%n modelos', { n: MODELOS.length })
+    + ' · ' + lwT(pub === 1 ? '%n publicado en la web' : '%n publicados en la web', { n: pub })
+    + (vis.length !== MODELOS.length ? ' · ' + lwT('%n en la vista', { n: vis.length }) : '');
+  if(!vis.length){ caja.innerHTML = '<p class="mini">' + lwT('Ningún modelo con ese filtro.') + '</p>'; return; }
   caja.innerHTML = vis.map(m => {
-    const specs = [m.dormitorios != null ? m.dormitorios + ' dorm' : null,
-                   m.banos != null ? m.banos + ' baños' : null,
+    const specs = [m.dormitorios != null ? lwT('%n dorm', { n: m.dormitorios }) : null,
+                   m.banos != null ? lwT('%n baños', { n: m.banos }) : null,
                    m.villa_m2 != null ? m.villa_m2 + ' m²' : null].filter(Boolean).join(' · ');
     const np = preciosDe(m.id).length, nd = docsDe(m.id).length;
     return `<button type="button" class="tarjeta" data-id="${esc(m.id)}">
       <h4>${esc(m.nombre)}</h4>
-      <div class="specs">${specs || '<span class="flojo">sin specs</span>'}</div>
+      <div class="specs">${specs || '<span class="flojo">' + lwT('sin specs') + '</span>'}</div>
       <div class="precio">${m.precio_construccion == null
-          ? '<span class="flojo">sin precio de catálogo</span>'
+          ? '<span class="flojo">' + lwT('sin precio de catálogo') + '</span>'
           : '<b>' + esc(eur(m.precio_construccion, m.moneda)) + '</b>'}</div>
-      <div class="mini">${m.publicado ? '<span class="pill on">en la web</span>' : '<span class="pill">sin publicar</span>'}
-        ${np ? ' · ' + np + ' proyecto' + (np===1?'':'s') : ''}${nd ? ' · ' + nd + ' doc' + (nd===1?'':'s') : ''}</div>
+      <div class="mini">${m.publicado ? '<span class="pill on">' + lwT('en la web') + '</span>' : '<span class="pill">' + lwT('sin publicar') + '</span>'}
+        ${np ? ' · ' + lwT(np === 1 ? '%n proyecto' : '%n proyectos', { n: np }) : ''}${nd ? ' · ' + lwT(nd === 1 ? '%n doc' : '%n docs', { n: nd }) : ''}</div>
     </button>`;
   }).join('');
   $$('#rejilla .tarjeta').forEach(b => b.onclick = () => abrir(b.dataset.id));
@@ -265,8 +273,7 @@ function pintarPendientes(){
        + (x.precio_min != null && x.precio_min !== x.precio_max
             ? ` · dos precios: ${esc(lwFormatoImporte(Number(x.precio_min)))} y ${esc(lwFormatoImporte(Number(x.precio_max)))}`
             : '') + '</div>').join('')}
-    <div class="mini" style="margin-top:6px">Se resuelve dando de alta el modelo con ese nombre, o
-      corrigiendo el nombre en Proyectos. Mientras tanto se quedan como están, que es lo correcto.</div>
+    <div class="mini" style="margin-top:6px">${lwT('Se resuelve dando de alta el modelo con ese nombre, o corrigiendo el nombre en Proyectos. Mientras tanto se quedan como están, que es lo correcto.')}</div>
   </div>`;
 }
 
@@ -284,93 +291,88 @@ function render(){
   const m = SEL; if(!m) return;
   suiAbrirCajon({
     titulo: m.nombre,
-    sub: (m.publicado ? 'Publicado en /modelo/' + m.slug : 'No sale en la web')
-         + (m.renders_pendientes ? ' · renders pendientes' : ''),
+    sub: (m.publicado ? lwT('Publicado en /modelo/%s', { s: m.slug }) : lwT('No sale en la web'))
+         + (m.renders_pendientes ? ' · ' + lwT('renders pendientes') : ''),
     cuerpo: EDITANDO ? cuerpoEdicion(m) : cuerpoLectura(m),
     pie: EDITANDO
-      ? `<button type="button" class="sui-btn primario" id="bGuardar">Guardar</button>
-         <button type="button" class="sui-btn" id="bCancelar">Cancelar</button>`
+      ? `<button type="button" class="sui-btn primario" id="bGuardar">${lwT('Guardar')}</button>
+         <button type="button" class="sui-btn" id="bCancelar">${lwT('Cancelar')}</button>`
       : (ADMIN
-          ? `<button type="button" class="sui-btn primario" id="bEditar">Editar datos</button>`
-          : `<span class="mini">Los precios y las specs los edita un administrador.
-               Tú sí puedes subir documentos.</span>`),
+          ? `<button type="button" class="sui-btn primario" id="bEditar">${lwT('Editar datos')}</button>`
+          : `<span class="mini">${lwT('Los precios y las specs los edita un administrador. Tú sí puedes subir documentos.')}</span>`),
     onCerrar: () => { SEL = null; EDITANDO = false; }
   });
   enganchar(m);
 }
 
 function cuerpoLectura(m){
-  const specs = [['Dormitorios', m.dormitorios], ['Baños', m.banos],
-                 ['Villa', m.villa_m2 != null ? m.villa_m2 + ' m²' : null],
-                 ['Terraza', m.terraza_m2 != null ? m.terraza_m2 + ' m²' : null]];
+  const specs = [[lwT('Dormitorios'), m.dormitorios], [lwT('Baños'), m.banos],
+                 [lwT('Villa'), m.villa_m2 != null ? m.villa_m2 + ' m²' : null],
+                 [lwT('Terraza'), m.terraza_m2 != null ? m.terraza_m2 + ' m²' : null]];
   const th = techosDe(m.id), pr = preciosDe(m.id), dc = docsDe(m.id);
   return `
   <div class="bloque">
-    <h3>Ficha</h3>
+    <h3>${lwT('Ficha')}</h3>
     ${specs.map(([k, v]) => `<div class="dato"><span>${k}</span><b>${v == null ? '—' : esc(String(v))}</b></div>`).join('')}
-    <div class="dato"><span>Precio de construcción (catálogo)</span><b>${esc(eur(m.precio_construccion, m.moneda))}</b></div>
+    <div class="dato"><span>${lwT('Precio de construcción (catálogo)')}</span><b>${esc(eur(m.precio_construccion, m.moneda))}</b></div>
     ${m.descripcion ? `<p class="mini">${esc(m.descripcion)}</p>` : ''}
   </div>
 
   <div class="bloque">
-    <h3>Techos</h3>
+    <h3>${lwT('Techos')}</h3>
     ${th.length ? th.map(t => `<div class="dato"><span>${esc(t.nombre)}</span><b>${
         esc(eur(t.precio_ahora, m.moneda))}${t.precio_2027 != null
-          ? ' <span class="casc">· desde 2027: ' + esc(eur(t.precio_2027, m.moneda)) + '</span>' : ''}</b></div>`).join('')
-      : '<p class="mini">Sin variantes de techo. El precio de catálogo es el único.</p>'}
-    ${th.length ? '<p class="mini">Cuál de los dos precios está vigente lo decide el reloj del servidor, nunca un ajuste a mano.</p>' : ''}
+          ? ' <span class="casc">· ' + lwT('desde 2027: ') + esc(eur(t.precio_2027, m.moneda)) + '</span>' : ''}</b></div>`).join('')
+      : '<p class="mini">' + lwT('Sin variantes de techo. El precio de catálogo es el único.') + '</p>'}
+    ${th.length ? '<p class="mini">' + lwT('Cuál de los dos precios está vigente lo decide el reloj del servidor, nunca un ajuste a mano.') + '</p>' : ''}
   </div>
 
   <div class="bloque">
-    <h3>Extras disponibles</h3>
+    <h3>${lwT('Extras disponibles')}</h3>
     ${EXTRAS.map(e => { const x = extraDe(m.id, e.id);
       if(!x || !x.disponible) return '';
       return `<div class="dato"><span>${esc(e.nombre)}</span><b>${esc(eur(x.precio, x.moneda || m.moneda))}</b></div>`;
-    }).join('') || '<p class="mini">Ninguno dado de alta todavía.</p>'}
+    }).join('') || '<p class="mini">' + lwT('Ninguno dado de alta todavía.') + '</p>'}
   </div>
 
   <div class="bloque">
-    <h3>Alcance de obra</h3>
+    <h3>${lwT('Alcance de obra')}</h3>
     ${(m.alcance && (m.alcance.incluido || m.alcance.no_incluido))
-      ? `<div class="dato"><span>Incluido</span><b>${(m.alcance.incluido || []).length} punto(s)</b></div>
-         <div class="dato"><span>No incluido</span><b>${(m.alcance.no_incluido || []).length} punto(s)</b></div>
+      ? `<div class="dato"><span>${lwT('Incluido')}</span><b>${(m.alcance.incluido || []).length} punto(s)</b></div>
+         <div class="dato"><span>${lwT('No incluido')}</span><b>${(m.alcance.no_incluido || []).length} punto(s)</b></div>
          <p class="mini">${esc((m.alcance.incluido || []).join(' · '))}</p>`
-      : `<p class="mini">Sin alcance de obra. Solo se rellena con lo verificado en el <b>anexo de obra
-           de este modelo</b>: copiarlo de otro es publicar un contrato que nadie ha firmado.</p>`}
+      : `<p class="mini">${lwT('Sin alcance de obra. Solo se rellena con lo verificado en el')} <b>${lwT('anexo de obra de este modelo')}</b>${lwT(': copiarlo de otro es publicar un contrato que nadie ha firmado.')}</p>`}
   </div>
 
   <div class="bloque">
-    <h3>Precio por proyecto</h3>
-    <p class="mini">Vacío significa <b>hereda del catálogo</b>, no «sin dato». Solo se rellena
-      cuando ese proyecto tiene un precio propio pactado.</p>
+    <h3>${lwT('Precio por proyecto')}</h3>
+    <p class="mini">${lwT('Vacío significa')} <b>${lwT('hereda del catálogo')}</b>${lwT(', no «sin dato». Solo se rellena cuando ese proyecto tiene un precio propio pactado.')}</p>
     ${pr.length ? pr.map(p => {
       const c = precioEn(m, p.proyecto);
       return `<div class="dato"><span>${esc(p.proyecto)}</span><b>${esc(eur(c.valor, c.moneda))}
-        <span class="casc">${c.origen === 'catalogo' ? '· heredado' : c.origen === 'proyecto' ? '· propio' : ''}</span></b></div>`;
-    }).join('') : '<p class="mini">Este modelo no está declarado en ningún proyecto todavía.</p>'}
+        <span class="casc">${c.origen === 'catalogo' ? '· ' + lwT('heredado') : c.origen === 'proyecto' ? '· ' + lwT('propio') : ''}</span></b></div>`;
+    }).join('') : '<p class="mini">' + lwT('Este modelo no está declarado en ningún proyecto todavía.') + '</p>'}
   </div>
 
   <div class="bloque">
-    <h3>Documentos</h3>
+    <h3>${lwT('Documentos')}</h3>
     ${dc.length ? dc.map(d => `<div class="dato"><span>${esc(d.nombre)}
-        <span class="casc">· ${esc(d.tipo)}${d.visible_portal ? ' · visible para el comprador' : ''}</span></span>
-      <b><button type="button" class="sui-btn" data-desc="${esc(d.id)}">Abrir</button></b></div>`).join('')
-      : '<p class="mini">Sin planos ni memoria de calidades todavía.</p>'}
+        <span class="casc">· ${esc(d.tipo)}${d.visible_portal ? ' · ' + lwT('visible para el comprador') : ''}</span></span>
+      <b><button type="button" class="sui-btn" data-desc="${esc(d.id)}">${lwT('Abrir')}</button></b></div>`).join('')
+      : '<p class="mini">' + lwT('Sin planos ni memoria de calidades todavía.') + '</p>'}
     <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="file" id="fDoc" accept="application/pdf,image/jpeg,image/png,image/webp" hidden>
-      <select class="sui-sel" id="tipoDoc" style="max-width:220px" aria-label="Tipo de documento">
-        <option value="plano">Plano · anexo del contrato</option>
-        <option value="calidades">Memoria de calidades</option>
-        <option value="ficha">Ficha</option>
-        <option value="render">Render</option>
-        <option value="otro" selected>Otro</option>
+      <select class="sui-sel" id="tipoDoc" style="max-width:220px" aria-label="${lwT('Tipo de documento')}">
+        <option value="plano">${lwT('Plano · anexo del contrato')}</option>
+        <option value="calidades">${lwT('Memoria de calidades')}</option>
+        <option value="ficha">${lwT('Ficha')}</option>
+        <option value="render">${lwT('Render')}</option>
+        <option value="otro" selected>${lwT('Otro')}</option>
       </select>
-      <button type="button" class="sui-btn" id="bSubir">Añadir documento</button>
-      <span class="mini">PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.</span>
+      <button type="button" class="sui-btn" id="bSubir">${lwT('Añadir documento')}</button>
+      <span class="mini">${lwT('PDF o imagen, hasta 50 MB. Nace privado: que lo vea el comprador se decide fichero a fichero.')}</span>
     </div>
-    <p class="mini" style="margin-top:6px">El de tipo <b>plano</b> es el que el contrato de Construcción
-      adjunta solo al elegir este modelo (el más reciente si hay varios). Sin ninguno, se sigue usando
-      el PDF que el estudio tenga en el repo.</p>
+    <p class="mini" style="margin-top:6px">${lwT('El de tipo')} <b>plano</b> ${lwT('es el que el contrato de Construcción adjunta solo al elegir este modelo (el más reciente si hay varios). Sin ninguno, se sigue usando el PDF que el estudio tenga en el repo.')}</p>
   </div>`;
 }
 
@@ -378,104 +380,100 @@ function cuerpoEdicion(m){
   const th = techosDe(m.id);
   return `
   <div class="bloque">
-    <h3>Ficha</h3>
+    <h3>${lwT('Ficha')}</h3>
     <div class="sui-row">
-      <div class="campo"><label for="e-nombre">Nombre</label><input id="e-nombre" value="${esc(m.nombre)}"></div>
-      <div class="campo"><label for="e-slug">Dirección en la web</label><input id="e-slug" value="${esc(m.slug)}">
-        <p class="mini">/modelo/<b id="vSlug">${esc(m.slug)}</b> — cambiarla rompe los enlaces que ya estén publicados.</p></div>
+      <div class="campo"><label for="e-nombre">${lwT('Nombre')}</label><input id="e-nombre" value="${esc(m.nombre)}"></div>
+      <div class="campo"><label for="e-slug">${lwT('Dirección en la web')}</label><input id="e-slug" value="${esc(m.slug)}">
+        <p class="mini">/modelo/<b id="vSlug">${esc(m.slug)}</b> ${lwT('— cambiarla rompe los enlaces que ya estén publicados.')}</p></div>
     </div>
     <div class="sui-row">
-      <div class="campo"><label for="e-dorm">Dormitorios</label><input id="e-dorm" inputmode="numeric" value="${m.dormitorios ?? ''}"></div>
-      <div class="campo"><label for="e-banos">Baños</label><input id="e-banos" inputmode="numeric" value="${m.banos ?? ''}"></div>
+      <div class="campo"><label for="e-dorm">${lwT('Dormitorios')}</label><input id="e-dorm" inputmode="numeric" value="${m.dormitorios ?? ''}"></div>
+      <div class="campo"><label for="e-banos">${lwT('Baños')}</label><input id="e-banos" inputmode="numeric" value="${m.banos ?? ''}"></div>
     </div>
     <div class="sui-row">
-      <div class="campo"><label for="e-villa">Villa (m²)</label><input id="e-villa" inputmode="decimal" value="${m.villa_m2 ?? ''}"></div>
-      <div class="campo"><label for="e-terraza">Terraza (m²)</label><input id="e-terraza" inputmode="decimal" value="${m.terraza_m2 ?? ''}"></div>
+      <div class="campo"><label for="e-villa">${lwT('Villa (m²)')}</label><input id="e-villa" inputmode="decimal" value="${m.villa_m2 ?? ''}"></div>
+      <div class="campo"><label for="e-terraza">${lwT('Terraza (m²)')}</label><input id="e-terraza" inputmode="decimal" value="${m.terraza_m2 ?? ''}"></div>
     </div>
-    <div class="campo"><label for="e-desc">Descripción</label><textarea id="e-desc" rows="3">${esc(m.descripcion || '')}</textarea></div>
+    <div class="campo"><label for="e-desc">${lwT('Descripción')}</label><textarea id="e-desc" rows="3">${esc(m.descripcion || '')}</textarea></div>
   </div>
 
   <div class="bloque">
-    <h3>Precio de catálogo</h3>
+    <h3>${lwT('Precio de catálogo')}</h3>
     <div class="sui-row">
-      <div class="campo"><label for="e-precio">Construcción</label>
+      <div class="campo"><label for="e-precio">${lwT('Construcción')}</label>
         <input id="e-precio" inputmode="decimal" value="${m.precio_construccion != null ? lwFormatoImporte(Number(m.precio_construccion)) : ''}"></div>
-      <div class="campo"><label for="e-moneda">Moneda</label>
+      <div class="campo"><label for="e-moneda">${lwT('Moneda')}</label>
         <select class="sui-sel" id="e-moneda">
           <option value="EUR"${m.moneda === 'EUR' ? ' selected' : ''}>EUR</option>
           <option value="IDR"${m.moneda === 'IDR' ? ' selected' : ''}>IDR</option>
         </select></div>
     </div>
-    <p class="mini">Es el nivel 1 de la cascada: lo heredan todos los proyectos que no tengan precio propio,
-      y es lo que publica la web como «desde».</p>
+    <p class="mini">${lwT('Es el nivel 1 de la cascada: lo heredan todos los proyectos que no tengan precio propio, y es lo que publica la web como «desde».')}</p>
   </div>
 
   <div class="bloque">
-    <h3>Techos</h3>
+    <h3>${lwT('Techos')}</h3>
     ${th.map(t => `<div class="fila-ed" data-techo="${esc(t.id)}">
       <span>${esc(t.nombre)}</span>
-      <input type="text" data-campo="ahora" inputmode="decimal" aria-label="Precio de ${esc(t.nombre)} ahora"
+      <input type="text" data-campo="ahora" inputmode="decimal" aria-label="${lwT('Precio de %s ahora', { s: esc(t.nombre) })}"
              value="${t.precio_ahora != null ? lwFormatoImporte(Number(t.precio_ahora)) : ''}">
-      <input type="text" data-campo="y2027" inputmode="decimal" aria-label="Precio de ${esc(t.nombre)} desde 2027"
+      <input type="text" data-campo="y2027" inputmode="decimal" aria-label="${lwT('Precio de %s desde 2027', { s: esc(t.nombre) })}"
              value="${t.precio_2027 != null ? lwFormatoImporte(Number(t.precio_2027)) : ''}">
-    </div>`).join('') || '<p class="mini">Este modelo no tiene variantes de techo.</p>'}
-    ${th.length ? '<p class="mini">Primera columna: precio de hoy. Segunda: desde el 1-ene-2027.</p>' : ''}
+    </div>`).join('') || '<p class="mini">' + lwT('Este modelo no tiene variantes de techo.') + '</p>'}
+    ${th.length ? '<p class="mini">' + lwT('Primera columna: precio de hoy. Segunda: desde el 1-ene-2027.') + '</p>' : ''}
   </div>
 
   <div class="bloque">
-    <h3>Extras</h3>
+    <h3>${lwT('Extras')}</h3>
     ${EXTRAS.map(e => { const x = extraDe(m.id, e.id) || {};
       return `<div class="fila-ed" data-extra="${esc(e.id)}">
         <span>${esc(e.nombre)}</span>
-        <input type="text" data-campo="precio" inputmode="decimal" aria-label="Precio de ${esc(e.nombre)}"
+        <input type="text" data-campo="precio" inputmode="decimal" aria-label="${lwT('Precio de %s', { s: esc(e.nombre) })}"
                value="${x.precio != null ? lwFormatoImporte(Number(x.precio)) : ''}">
-        <label class="mini"><input type="checkbox" data-campo="disponible" ${x.disponible === false ? '' : 'checked'}> se ofrece</label>
+        <label class="mini"><input type="checkbox" data-campo="disponible" ${x.disponible === false ? '' : 'checked'}> ${lwT('se ofrece')}</label>
       </div>`; }).join('')}
-    <p class="mini">Sin precio, el extra no se ofrece en la web: no se estima a ojo.</p>
+    <p class="mini">${lwT('Sin precio, el extra no se ofrece en la web: no se estima a ojo.')}</p>
   </div>
 
   <div class="bloque">
-    <h3>Alcance de obra</h3>
-    <p class="mini">Una línea por punto. Es lo que la ficha publica como «Included» y «Not included»,
-      así que <b>solo se escribe lo que diga el anexo de obra de ESTE modelo</b>. Copiarlo de otro
-      modelo es publicar un contrato que nadie ha firmado.</p>
-    <div class="campo"><label for="e-incluido">Incluido</label>
+    <h3>${lwT('Alcance de obra')}</h3>
+    <p class="mini">${lwT('Una línea por punto. Es lo que la ficha publica como «Included» y «Not included», así que')} <b>${lwT('solo se escribe lo que diga el anexo de obra de ESTE modelo')}</b>${lwT('. Copiarlo de otro modelo es publicar un contrato que nadie ha firmado.')}</p>
+    <div class="campo"><label for="e-incluido">${lwT('Incluido')}</label>
       <textarea id="e-incluido" rows="6">${esc(((m.alcance || {}).incluido || []).join(SALTO))}</textarea></div>
-    <div class="campo"><label for="e-noincluido">No incluido</label>
+    <div class="campo"><label for="e-noincluido">${lwT('No incluido')}</label>
       <textarea id="e-noincluido" rows="3">${esc(((m.alcance || {}).no_incluido || []).join(SALTO))}</textarea></div>
   </div>
 
   <div class="bloque">
-    <h3>Precio por proyecto</h3>
-    <p class="mini">Dejar vacío = hereda el precio de catálogo. Rellenar solo si ese proyecto tiene precio propio pactado.</p>
+    <h3>${lwT('Precio por proyecto')}</h3>
+    <p class="mini">${lwT('Dejar vacío = hereda el precio de catálogo. Rellenar solo si ese proyecto tiene precio propio pactado.')}</p>
     ${preciosDe(m.id).map(p => `<div class="fila-ed" data-precio="${esc(p.id)}">
       <span>${esc(p.proyecto)}</span>
-      <input type="text" data-campo="precio" inputmode="decimal" aria-label="Precio en ${esc(p.proyecto)}"
-             placeholder="hereda ${m.precio_construccion != null ? lwFormatoImporte(Number(m.precio_construccion)) : '—'}"
+      <input type="text" data-campo="precio" inputmode="decimal" aria-label="${lwT('Precio en %s', { s: esc(p.proyecto) })}"
+             placeholder="${lwT('hereda %s', { s: m.precio_construccion != null ? lwFormatoImporte(Number(m.precio_construccion)) : '—' })}"
              value="${p.precio_construccion != null ? lwFormatoImporte(Number(p.precio_construccion)) : ''}">
       <span class="mini">${esc(p.moneda || m.moneda)}</span>
-    </div>`).join('') || '<p class="mini">Este modelo no está declarado en ningún proyecto.</p>'}
+    </div>`).join('') || '<p class="mini">' + lwT('Este modelo no está declarado en ningún proyecto.') + '</p>'}
     <div style="margin-top:10px">
-      <select class="sui-sel" id="e-nuevoProy"><option value="">Añadir a un proyecto…</option>
+      <select class="sui-sel" id="e-nuevoProy"><option value="">${lwT('Añadir a un proyecto…')}</option>
         ${PROYECTOS.filter(p => !preciosDe(m.id).some(x => x.proyecto === p.nombre))
                    .map(p => `<option value="${esc(p.nombre)}">${esc(p.nombre)}</option>`).join('')}
       </select>
-      <p class="mini">Declararlo en un proyecto es lo que hace que aparezca en el desplegable de sus parcelas.</p>
+      <p class="mini">${lwT('Declararlo en un proyecto es lo que hace que aparezca en el desplegable de sus parcelas.')}</p>
     </div>
   </div>
 
   <div class="bloque">
-    <h3>Publicación</h3>
+    <h3>${lwT('Publicación')}</h3>
     <label class="mini" style="display:block;padding:4px 0">
       <input type="checkbox" id="e-publicado" ${m.publicado ? 'checked' : ''}> Sale en la web, en /modelo/${esc(m.slug)}</label>
     <label class="mini" style="display:block;padding:4px 0">
-      <input type="checkbox" id="e-renders" ${m.renders_pendientes ? 'checked' : ''}> Renders pendientes
-      — la ficha dirá «Renders in progress» en vez de enseñar una foto de otro modelo</label>
+      <input type="checkbox" id="e-renders" ${m.renders_pendientes ? 'checked' : ''}> ${lwT('Renders pendientes — la ficha dirá «Renders in progress» en vez de enseñar una foto de otro modelo')}</label>
     <label class="mini" style="display:block;padding:4px 0">
-      <input type="checkbox" id="e-activo" ${m.activo ? 'checked' : ''}> Activo (si se desmarca, deja de ofrecerse en toda la suite)</label>
-    <div class="campo" style="margin-top:8px"><label for="e-notas">Notas internas</label>
+      <input type="checkbox" id="e-activo" ${m.activo ? 'checked' : ''}> ${lwT('Activo (si se desmarca, deja de ofrecerse en toda la suite)')}</label>
+    <div class="campo" style="margin-top:8px"><label for="e-notas">${lwT('Notas internas')}</label>
       <textarea id="e-notas" rows="2">${esc(m.notas || '')}</textarea>
-      <p class="mini">No sale nunca en la web: el RPC público no las devuelve.</p></div>
+      <p class="mini">${lwT('No sale nunca en la web: el RPC público no las devuelve.')}</p></div>
   </div>`;
 }
 
@@ -506,9 +504,9 @@ async function guardar(m){
   try{
     const nombre = (document.getElementById('e-nombre').value || '').trim();
     const slug   = (document.getElementById('e-slug').value || '').trim().toLowerCase();
-    if(!nombre){ toast('El nombre no puede quedar vacío'); btn.disabled = false; return; }
+    if(!nombre){ toast(lwT('El nombre no puede quedar vacío')); btn.disabled = false; return; }
     if(!/^[a-z0-9-]+$/.test(slug)){
-      toast('La dirección solo admite minúsculas, números y guiones'); btn.disabled = false; return; }
+      toast(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
 
     /* Renombrar propaga por ID a las unidades y a los precios por proyecto (lo
        hace el trigger `trg_modelo_renombrado`), así que se avisa de cuántas
@@ -517,10 +515,10 @@ async function guardar(m){
     if(nombre !== m.nombre){
       const n = MODELOS.length ? await contarUnidades(m.id) : 0;
       const ok = await lwConfirmar({
-        titulo: 'Renombrar «' + m.nombre + '» a «' + nombre + '»',
-        cuerpo: '<p>El nombre nuevo se propaga solo a <b>' + n + ' unidad' + (n === 1 ? '' : 'es') +
-                '</b> y a sus precios por proyecto. Lo ya impreso en un documento firmado no se toca.</p>',
-        confirmar: 'Renombrar' });
+        titulo: lwT('Renombrar «%a» a «%b»', { a: m.nombre, b: nombre }),
+        cuerpo: '<p>' + lwT('El nombre nuevo se propaga solo a') + ' <b>' + lwT(n === 1 ? '%n unidad' : '%n unidades', { n }) +
+                '</b> ' + lwT('y a sus precios por proyecto. Lo ya impreso en un documento firmado no se toca.') + '</p>',
+        confirmar: lwT('Renombrar') });
       if(!ok){ btn.disabled = false; return; }
     }
 
@@ -593,14 +591,14 @@ async function guardar(m){
     await cargar();
     SEL = MODELOS.find(x => x.id === m.id) || null;
     if(SEL) render();
-    toast('Guardado');
+    toast(lwT('Guardado'));
   }catch(err){
     /* Se dice CUÁL es el motivo, no solo «no se pudo». El caso frecuente es no
        ser admin: la policy rechaza y el mensaje crudo de PostgREST no lo explica. */
     const msg = (err && err.message) || 'error desconocido';
     toast(/policy|permission|denied|row-level/i.test(msg)
-      ? 'No se ha guardado: cambiar precios y specs es de administrador.'
-      : 'No se ha guardado: ' + msg);
+      ? lwT('No se ha guardado: cambiar precios y specs es de administrador.')
+      : lwT('No se ha guardado: ') + msg);
     document.getElementById('bGuardar').disabled = false;
   }
 }
@@ -620,12 +618,12 @@ async function contarUnidades(modeloId){
    nadie y todo seguia cayendo al PDF estatico del repo sin que se notara. */
 async function subirDoc(m, file, tipo){
   if(!file) return;
-  if(file.size > 52428800){ toast('El fichero pasa de 50 MB'); return; }
+  if(file.size > 52428800){ toast(lwT('El fichero pasa de 50 MB')); return; }
   const ext  = (file.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
   const path = m.id + '/' + crypto.randomUUID() + ext;
-  toast('Subiendo…');
+  toast(lwT('Subiendo…'));
   const up = await SB.storage.from('modelos').upload(path, file, { contentType:file.type || undefined });
-  if(up.error){ toast('No se ha subido: ' + up.error.message); return; }
+  if(up.error){ toast(lwT('No se ha subido:') + up.error.message); return; }
   const r = await SB.from('modelo_documentos').insert({
     modelo_id:m.id, nombre:file.name, path, tipo:(tipo || 'otro'),
     tamano_bytes:file.size, subido_por:(YO && YO.id) || null });
@@ -633,19 +631,19 @@ async function subirDoc(m, file, tipo){
     /* Si la fila no entra, el fichero que acaba de subir se queda huérfano en el
        bucket. Se retira: un objeto sin fila no lo ve nadie y no lo borra nadie. */
     await SB.storage.from('modelos').remove([path]);
-    toast('No se ha guardado la ficha del documento: ' + r.error.message);
+    toast(lwT('No se ha guardado la ficha del documento:') + r.error.message);
     return;
   }
   await cargar();
   SEL = MODELOS.find(x => x.id === m.id) || null;
   if(SEL) render();
-  toast('Documento añadido');
+  toast(lwT('Documento añadido'));
 }
 
 async function descargar(docId){
   const d = DOCS.find(x => x.id === docId); if(!d) return;
   const r = await SB.storage.from('modelos').createSignedUrl(d.path, 120);
-  if(r.error || !r.data){ toast('No se ha podido abrir: ' + ((r.error && r.error.message) || 'sin enlace')); return; }
+  if(r.error || !r.data){ toast(lwT('No se ha podido abrir:') + ((r.error && r.error.message) || lwT('sin enlace'))); return; }
   window.open(r.data.signedUrl, '_blank', 'noopener');
 }
 
@@ -660,30 +658,28 @@ async function descargar(docId){
    que rellenar antes de ver nada, y el resto de la suite no funciona así. */
 function altaModelo(){
   if(!ADMIN){
-    lwConfirmar({ titulo:'Dar de alta un modelo es de administrador',
-      cuerpo:'<p>Tu ficha entra en Modelos para consultar y para subir documentos. ' +
-             'Crear un modelo o cambiar un precio lo hace un administrador.</p>',
-      confirmar:'Entendido', cancelar:false });
+    lwConfirmar({ titulo:lwT('Dar de alta un modelo es de administrador'),
+      cuerpo:'<p>' + lwT('Tu ficha entra en Modelos para consultar y para subir documentos. Crear un modelo o cambiar un precio lo hace un administrador.') + '</p>',
+      confirmar:lwT('Entendido'), cancelar:false });
     return;
   }
   suiAbrirCajon({
-    titulo:'Nuevo modelo',
-    sub:'Nace sin publicar. Las specs, los techos y los extras se rellenan después.',
+    titulo:lwT('Nuevo modelo'),
+    sub:lwT('Nace sin publicar. Las specs, los techos y los extras se rellenan después.'),
     cuerpo:`
       <div class="bloque">
-        <div class="campo"><label for="n-nombre">Nombre</label>
-          <input id="n-nombre" placeholder="Dune, Granada…" autocomplete="off"></div>
-        <div class="campo"><label for="n-slug">Dirección en la web</label>
+        <div class="campo"><label for="n-nombre">${lwT('Nombre')}</label>
+          <input id="n-nombre" placeholder="${lwT('Dune, Granada…')}" autocomplete="off"></div>
+        <div class="campo"><label for="n-slug">${lwT('Dirección en la web')}</label>
           <input id="n-slug" placeholder="dune" autocomplete="off">
-          <p class="mini">Se rellena sola desde el nombre. Solo minúsculas, números y guiones.</p></div>
-        <div class="campo"><label for="n-moneda">Moneda</label>
+          <p class="mini">${lwT('Se rellena sola desde el nombre. Solo minúsculas, números y guiones.')}</p></div>
+        <div class="campo"><label for="n-moneda">${lwT('Moneda')}</label>
           <select class="sui-sel" id="n-moneda"><option value="EUR">EUR</option><option value="IDR">IDR</option></select>
-          <p class="mini">IDR solo para los proyectos que llevan el inventario en rupias (Riverfront).</p></div>
-        <p class="mini">Si el inventario ya usa este nombre, las unidades que lo nombran se
-          enganchan solas al guardar: el enlace lo ata el propio trigger de la base.</p>
+          <p class="mini">${lwT('IDR solo para los proyectos que llevan el inventario en rupias (Riverfront).')}</p></div>
+        <p class="mini">${lwT('Si el inventario ya usa este nombre, las unidades que lo nombran se enganchan solas al guardar: el enlace lo ata el propio trigger de la base.')}</p>
       </div>`,
-    pie:`<button type="button" class="sui-btn primario" id="bCrear">Crear</button>
-         <button type="button" class="sui-btn" id="bNoCrear">Cancelar</button>`
+    pie:`<button type="button" class="sui-btn primario" id="bCrear">${lwT('Crear')}</button>
+         <button type="button" class="sui-btn" id="bNoCrear">${lwT('Cancelar')}</button>`
   });
   const iN = document.getElementById('n-nombre'), iS = document.getElementById('n-slug');
   // El slug sigue al nombre mientras nadie lo toque a mano. En cuanto se edita,
@@ -709,9 +705,9 @@ async function crear(){
   const nombre = (document.getElementById('n-nombre').value || '').trim();
   const slug   = (document.getElementById('n-slug').value || '').trim().toLowerCase();
   const moneda = document.getElementById('n-moneda').value;
-  if(!nombre || !slug){ toast('Hacen falta el nombre y la dirección'); btn.disabled = false; return; }
-  if(!/^[a-z0-9-]+$/.test(slug)){ toast('La dirección solo admite minúsculas, números y guiones'); btn.disabled = false; return; }
-  if(MODELOS.some(m => m.slug === slug)){ toast('Ya hay un modelo en esa dirección'); btn.disabled = false; return; }
+  if(!nombre || !slug){ toast(lwT('Hacen falta el nombre y la dirección')); btn.disabled = false; return; }
+  if(!/^[a-z0-9-]+$/.test(slug)){ toast(lwT('La dirección solo admite minúsculas, números y guiones')); btn.disabled = false; return; }
+  if(MODELOS.some(m => m.slug === slug)){ toast(lwT('Ya hay un modelo en esa dirección')); btn.disabled = false; return; }
   const r = await SB.from('modelos')
     .insert({ nombre, slug, moneda, publicado:false, activo:true,
               orden:(MODELOS.reduce((a,m) => Math.max(a, m.orden || 0), 0) + 1) })
@@ -719,15 +715,15 @@ async function crear(){
   if(r.error){
     const msg = r.error.message || '';
     toast(/policy|permission|denied|row-level/i.test(msg)
-      ? 'No se ha creado: dar de alta un modelo es de administrador.'
-      : 'No se ha creado: ' + msg);
+      ? lwT('No se ha creado: dar de alta un modelo es de administrador.')
+      : lwT('No se ha creado: ') + msg);
     btn.disabled = false; return;
   }
   await cargar();
   SEL = MODELOS.find(m => m.id === r.data.id) || null;
   EDITANDO = true;
   if(SEL) render();
-  toast('Modelo creado. Ahora sus datos.');
+  toast(lwT('Modelo creado. Ahora sus datos.'));
 }
 
 /* ---------- arranque ---------- */
