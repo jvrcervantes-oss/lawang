@@ -266,9 +266,6 @@ const LW_PERMISOS = (function () {
   });
 })();
 
-/* Con qué entra un usuario nuevo. Vivía escrito dentro del formulario de alta de
-   `/intranet/usuarios/`; está aquí para que se lea junto a la lista que gobierna. */
-const LW_PERMISOS_POR_DEFECTO = ['contratos', 'facturas', 'operaciones', 'vencimientos'];
 
 /* Orden de los grupos, para que el menú lateral no repita cabeceras si el
    catálogo trae entradas del mismo grupo separadas. El hub no lo necesita

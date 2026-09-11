@@ -1,3 +1,10 @@
+-- ⚠️ `es_manager_de()` definida aquí abajo compara contra `u.proyectos` — eso
+-- quedó CORREGIDO al día siguiente en proyectos_supervisados_separado.sql
+-- (11-sep-2026): el owner señaló que "en qué proyectos puede crear contratos"
+-- y "de qué proyecto es encargado un manager" son DOS cosas distintas, así
+-- que `es_manager_de()` de verdad, en producción, compara contra la columna
+-- nueva `u.proyectos_supervisados`. Lo que sigue vigente de este fichero es
+-- todo lo demás (roles nuevos, `clients.propietario`, políticas de agente).
 -- ════════════════════════════════════════════════════════════════════════════
 -- AGENTE VE SOLO LO SUYO + ROLES sales_manager / project_manager — 10-sep-2026
 -- ════════════════════════════════════════════════════════════════════════════

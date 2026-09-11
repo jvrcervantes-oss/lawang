@@ -61,11 +61,28 @@ const corsFor = (req: Request) => {
 // hace la llamada de venta y accede a sus grabaciones/resúmenes de Fathom — son dos
 // decisiones de acceso separadas, mismo motivo que separó 'leads' de 'operaciones'.
 const HERRAMIENTAS = ['contratos', 'facturas', 'operaciones', 'unidades', 'compradores', 'obra', 'dossier', 'documentacion', 'usuarios', 'creatividades', 'vencimientos', 'soporte', 'leads', 'closers'];
-// 10-sep-2026: sales_manager/project_manager (solo lectura, ven todo lo de sus
-// proyectos asignados, nunca crean/editan nada) — misma lista que
-// usuarios_rol_check en la base. Si un día divergen, la base es la que manda:
-// esto es la primera puerta, la RLS es la que de verdad decide.
+// 10-sep-2026: sales_manager/project_manager (encargados de proyecto: ven,
+// crean y corrigen contratos/facturas de cualquier agente en los proyectos
+// que supervisan — `usuarios.proyectos_supervisados`, distinta de `proyectos`)
+// — misma lista que usuarios_rol_check en la base. Si un día divergen, la
+// base es la que manda: esto es la primera puerta, la RLS es la que de
+// verdad decide.
 const ROLES = ['super_admin', 'admin', 'agente', 'sales_manager', 'project_manager'];
+
+// 11-sep-2026: preselección de tipos de contrato al crear (encargo del owner).
+// Mismos valores que LW_TIPO_CONTRATO en contracts/assets/vocabulario.js —
+// duplicado A PROPÓSITO, mismo motivo que HERRAMIENTAS de arriba: una edge que
+// se descarga código del sitio para ejecutarlo es lo que hay que evitar.
+// `tipos_contrato` vacío en la tabla significa "TODOS" (al revés que
+// `proyectos`), así que aquí SÍ se filtra en vez de rechazar lo desconocido:
+// un tipo nuevo que aún no esté en esta lista simplemente no se preselecciona,
+// no bloquea el alta de nadie.
+const TIPOS_CONTRATO = [
+  'carta_reserva', 'carta_reserva_ampliada', 'carta_reserva_hak_sewa', 'carta_reserva_pma',
+  'reserva_parcela', 'construccion', 'contrato_general', 'commercial_offer', 'acuerdo_comercial',
+  'protocolo_operativo', 'ppjb_bonian', 'ppjb_bonian_c2', 'hak_sewa_notario', 'poa',
+  'cc00014_timon', 'adenda', 'carta_reserva_investor_deck',
+];
 
 Deno.serve(async (req) => {
   const cors = corsFor(req);
@@ -115,6 +132,8 @@ Deno.serve(async (req) => {
         return json({ error: 'herramienta_desconocida', detalle: desconocidas,
                       ayuda: 'Esta función no conoce esa herramienta. Si es nueva, añádela a HERRAMIENTAS en admin-usuarios y redespliega.' }, 400);
       const herramientas: string[] = pedidas;
+      const tipos_contrato: string[] = (Array.isArray(body.tipos_contrato) ? body.tipos_contrato.map(String) : [])
+        .filter((t: string) => TIPOS_CONTRATO.includes(t));
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'email_invalido' }, 400);
       if (password.length < 10) return json({ error: 'password_corta' }, 400);   // 10+: son cuentas con datos de clientes reales
       if (!ROLES.includes(rol)) return json({ error: 'rol_invalido' }, 400);
@@ -132,7 +151,7 @@ Deno.serve(async (req) => {
       if (eCrear || !creado?.user) return json({ error: eCrear?.message ?? 'no_se_pudo_crear' }, 400);
 
       const { error: eFila } = await admin.from('usuarios').insert({
-        user_id: creado.user.id, email, nombre, rol, herramientas, activo: true,
+        user_id: creado.user.id, email, nombre, rol, herramientas, tipos_contrato, activo: true,
         creado_por: quien.user.email ?? null,
       });
       if (eFila) {

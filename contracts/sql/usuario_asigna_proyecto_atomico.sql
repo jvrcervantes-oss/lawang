@@ -1,3 +1,11 @@
+-- ⚠️ SUPERSEDIDO el mismo día por proyectos_supervisados_separado.sql: esta
+-- función (`usuario_asigna_proyecto`) tocaba `usuarios.proyectos`, que el
+-- owner corrigió que NO es lo mismo que "de qué proyecto es encargado un
+-- manager" — eso ahora vive en la columna `proyectos_supervisados` y en la
+-- función `usuario_supervisa_proyecto`. Esta función YA NO EXISTE en la base
+-- (se dropeó). Se deja el fichero como historial de por qué se hizo atómica
+-- en primer lugar (el hallazgo de Seguridad de más abajo sigue aplicando
+-- igual a la función nueva).
 -- destructivo-ok: CREATE OR REPLACE FUNCTION es sustitucion/adicion, no retirada. Sin DELETE/TRUNCATE/RLS off.
 -- ════════════════════════════════════════════════════════════════════════════
 -- ASIGNAR/QUITAR UN PROYECTO A UN MANAGER, DE FORMA ATÓMICA — 11-sep-2026

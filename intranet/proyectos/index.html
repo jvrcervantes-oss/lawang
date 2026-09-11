@@ -23,7 +23,7 @@
      misma version fijada que las tres que ya lo tenian. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <!-- tabla, cajón lateral, densidad y estados: compartido con el resto de la suite -->
-<script src="/contracts/assets/herramientas.js?v=0cec42d6"></script>
+<script src="/contracts/assets/herramientas.js?v=2db05838"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
@@ -369,7 +369,7 @@ async function cargar(){
     // Sin permiso (no admin) esto vuelve vacío por RLS, no un error — la
     // sección de managers de la ficha simplemente no se pinta para esa
     // persona, igual que ya pasa con «Qué se puede construir aquí».
-    SB.from('usuarios').select('user_id, email, nombre, rol, proyectos, activo')
+    SB.from('usuarios').select('user_id, email, nombre, rol, proyectos_supervisados, activo')
       .in('rol', ['sales_manager', 'project_manager']).order('nombre'),
     SB.from('usuarios').select('email, nombre'),
   ]);
@@ -742,15 +742,16 @@ function editarProyecto(nombre){
 
       <div class="sui-bloque" style="margin-top:18px">
         <h3>Sales manager / Project manager de este proyecto</h3>
-        <p class="sui-nota">A quien marques aquí le llegará por correo el aviso cuando cambie de estado un
-          contrato, una solicitud de pago o una unidad de este proyecto, y podrá LEER (nunca editar) todo lo
-          que hagan aquí los agentes — es la misma casilla «Proyectos» de su ficha en <code>/usuarios/</code>,
-          marcada desde aquí en vez de una por una desde allí.</p>
+        <p class="sui-nota">A quien marques aquí es el <b>encargado</b> de este proyecto: le llegará el aviso
+          por correo cuando cambie de estado un contrato, una solicitud de pago o una unidad, y podrá ver Y
+          corregir todo lo que hagan aquí los agentes — no solo leer. Esto es distinto de la casilla
+          «Proyectos» de su ficha en <code>/usuarios/</code>, que es en qué proyectos puede crear contratos
+          él mismo: un encargado de este proyecto no tiene por qué vender aquí, y viceversa.</p>
         ${!PUEDE_USUARIOS ? '<p class="sui-nota">Solo un administrador con la herramienta «usuarios» puede asignar managers.</p>'
           : !MANAGERS.length ? '<p class="sui-nota">Todavía no hay ningún sales manager ni project manager dado de alta. Se crean desde <code>/usuarios/</code>.</p>'
           : MANAGERS.map(m => `<label class="mini" style="display:flex;gap:8px;align-items:baseline;padding:4px 0">
               <input type="checkbox" data-manager="${esc(m.user_id)}"
-                     ${(m.proyectos || []).includes(ficha.id) ? 'checked' : ''} ${m.activo ? '' : 'disabled'}>
+                     ${(m.proyectos_supervisados || []).includes(ficha.id) ? 'checked' : ''} ${m.activo ? '' : 'disabled'}>
               <span>${esc(m.nombre || m.email)}
                 <span class="flojo"> · ${m.rol === 'sales_manager' ? 'Sales manager' : 'Project manager'}${m.activo ? '' : ' · desactivado'}</span></span>
             </label>`).join('')}
@@ -786,29 +787,30 @@ function editarProyecto(nombre){
         toast('No se han retirado ' + r.rechazadas.map(x => x.modelo).join(', ') + ': hay parcelas que los usan');
     }
     /* Managers: se guarda SOLO a quien cambió de estado (marcado/desmarcado),
-       vía RPC atómico (`usuario_asigna_proyecto`, 11-sep-2026) — hallazgo de
-       Seguridad en la consulta de deploy: escribir el array `proyectos`
-       entero, calculado sobre una copia cacheada al abrir la ficha, podía
-       pisar en silencio una asignación hecha casi a la vez desde /usuarios/
-       o desde otra ficha de proyecto. El RPC hace el array_append/array_remove
-       EN LA BASE, en una sola sentencia — no hay lectura-modificación-escritura
-       del cliente que pueda quedarse atrasada. Un fallo puntual se avisa por
-       persona, no aborta el resto: la ficha y los modelos ya se guardaron. */
+       vía RPC atómico (`usuario_supervisa_proyecto`, 11-sep-2026) — hallazgo de
+       Seguridad en la consulta de deploy: escribir el array entero, calculado
+       sobre una copia cacheada al abrir la ficha, podía pisar en silencio una
+       asignación hecha casi a la vez desde otra ficha de proyecto. El RPC hace
+       el array_append/array_remove EN LA BASE, en una sola sentencia. Toca
+       `proyectos_supervisados` — distinta de `proyectos` (esa es en qué
+       proyectos puede el propio manager crear contratos, se edita en
+       /usuarios/, no aquí). Un fallo puntual se avisa por persona, no aborta
+       el resto: la ficha y los modelos ya se guardaron. */
     if(PUEDE_USUARIOS && MANAGERS.length){
       const proyectoId = (data[0] && data[0].id) || ficha.id || null;
       if(proyectoId){
         const marcadosMgr = new Set([...document.querySelectorAll('[data-manager]')].filter(c => c.checked).map(c => c.dataset.manager));
         const fallosMgr = [];
         for(const m of MANAGERS){
-          const teniaAntes = (m.proyectos || []).includes(proyectoId);
+          const teniaAntes = (m.proyectos_supervisados || []).includes(proyectoId);
           const marcadoAhora = marcadosMgr.has(m.user_id);
           if(teniaAntes === marcadoAhora) continue;
-          const { error: eMgr } = await SB.rpc('usuario_asigna_proyecto',
+          const { error: eMgr } = await SB.rpc('usuario_supervisa_proyecto',
             { p_user_id: m.user_id, p_proyecto_id: proyectoId, p_asignar: marcadoAhora });
           if(eMgr) fallosMgr.push(m.nombre || m.email);
-          else m.proyectos = marcadoAhora
-            ? [...(m.proyectos || []), proyectoId]
-            : (m.proyectos || []).filter(id => id !== proyectoId);   // solo para que la ficha no recargada quede al día
+          else m.proyectos_supervisados = marcadoAhora
+            ? [...(m.proyectos_supervisados || []), proyectoId]
+            : (m.proyectos_supervisados || []).filter(id => id !== proyectoId);   // solo para que la ficha no recargada quede al día
         }
         if(fallosMgr.length) toast('No se pudo actualizar el proyecto de: ' + fallosMgr.join(', '));
       }

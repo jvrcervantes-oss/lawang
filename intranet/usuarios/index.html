@@ -28,7 +28,7 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
-<script src="/contracts/assets/herramientas.js?v=0cec42d6"></script>
+<script src="/contracts/assets/herramientas.js?v=2db05838"></script>
 <script src="/contracts/assets/topbar.js?v=655d4b8e" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/contracts/assets/guard.js?v=d126c94d" data-herramienta="usuarios"></script>
@@ -193,6 +193,27 @@ const HERRAMIENTAS = LW_PERMISOS;
 const ROLES = [['agente','Agente'], ['sales_manager','Sales manager'], ['project_manager','Project manager'], ['admin','Administrador'], ['super_admin','Super admin']];
 const ROLES_GESTOR = ['sales_manager','project_manager'];
 
+/* Con qué herramientas y qué tipos de contrato nace cada rol (11-sep-2026,
+   encargo del owner) — solo PRESELECCIÓN al crear: sigue siendo editable
+   después, ficha a ficha. `tipos_contrato` vacío hoy significa "TODOS" (al
+   revés que «Proyectos»: ver la nota grande de más abajo), así que sin esto
+   un agente nuevo podía emitir cualquier tipo de contrato desde el minuto
+   uno — se rellena explícito para que la restricción sea real desde el alta. */
+const LW_HERR_POR_ROL = {
+  agente:          ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
+  project_manager: ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
+  sales_manager:   ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
+  admin:           ['contratos','compradores','documentacion','unidades','facturas','operaciones'],
+  super_admin:     ['contratos','compradores','documentacion','unidades','facturas','obra','operaciones'],
+};
+const LW_TIPOS_POR_ROL = {
+  agente:          ['carta_reserva','reserva_parcela','construccion'],
+  project_manager: ['carta_reserva','reserva_parcela','construccion'],
+  sales_manager:   ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
+  admin:           ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
+  super_admin:     ['carta_reserva','reserva_parcela','construccion','hak_sewa_notario','poa'],
+};
+
 let SB = null, YO = null, USUARIOS = [], SEL = null, PROYECTOS = [];
 
 async function cargar(){
@@ -283,25 +304,33 @@ function pintarFicha(){
     </fieldset>
 
     <fieldset><legend>Proyectos en los que trabaja</legend>
-      ${esGestor ? `<p class="nota aviso" role="status">Los proyectos de un sales manager / project manager se asignan
-             desde la ficha de <b>cada proyecto</b> (Proyectos → el lápiz junto a su carpeta), no desde aquí —
-             para no tener dos sitios editando lo mismo. Esto de abajo es solo un espejo de lo ya asignado.</p>` : ''}
       ${PROYECTOS === null
         ? '<p class="nota">No se pudo cargar el catálogo de proyectos. Vuelve a abrir el panel: sin él, guardar dejaría a esta persona sin ningún proyecto.</p>'
         : `<div class="herr proy">
              ${PROYECTOS.map(p => `<label><input type="checkbox" value="${esc(p.id)}"
-               ${(u.proyectos || []).includes(p.id) ? 'checked' : ''} ${(bloqueado || esGestor)?'disabled':''}> ${esc(p.nombre)}</label>`).join('')}
+               ${(u.proyectos || []).includes(p.id) ? 'checked' : ''} ${bloqueado?'disabled':''}> ${esc(p.nombre)}</label>`).join('')}
            </div>
-           ${esGestor ? '' : `<div class="proy-acc">
+           <div class="proy-acc">
              <button type="button" class="btn" id="btnProyTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
              <button type="button" class="btn" id="btnProyNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
-           </div>`}`}
-      <p class="nota">${esGestor
-        ? 'De qué proyectos puede LEER contratos, facturas, obra, clientes y solicitudes de pago — de cualquier agente, no solo lo que él mismo gestione. Sin ninguno, no ve nada. Nunca crea ni edita: es un rol de solo lectura.'
-        : 'Limita <b>en qué proyectos puede crear y editar contratos</b>. Sin ninguno marcado no puede crear contratos en ningún proyecto'
-          + (u.rol === 'agente' ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición') + '.'}
-        No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.</p>
+           </div>`}
+      <p class="nota">Limita <b>en qué proyectos puede crear y editar contratos</b> este usuario, sea agente o
+        manager — un sales manager o project manager también vende. Sin ninguno marcado no puede crear
+        contratos en ningún proyecto${(u.rol === 'agente' || esGestor) ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición'}.
+        No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.
+        ${esGestor ? ' <b>Esto no es de qué proyectos es encargado</b> — eso es la lista de abajo.' : ''}</p>
     </fieldset>
+
+    ${esGestor ? `<fieldset><legend>Proyectos que supervisa</legend>
+      <p class="nota">De esto sí ve y corrige TODO lo que hagan sus agentes — contratos, facturas, obra,
+        clientes, solicitudes — sea cual sea quien lo creó, y por eso <b>se asigna desde la ficha de cada
+        proyecto</b> (Proyectos → el lápiz junto a su carpeta), no desde aquí. Esto de abajo es solo un
+        espejo de lo ya asignado, para verlo sin salir de esta ficha.</p>
+      <div class="herr proy-mirror">
+        ${PROYECTOS === null ? '' : PROYECTOS.map(p => `<label><input type="checkbox"
+          ${(u.proyectos_supervisados || []).includes(p.id) ? 'checked' : ''} disabled> ${esc(p.nombre)}</label>`).join('')}
+      </div>
+    </fieldset>` : ''}
 
     <!-- QUÉ CONTRATOS PUEDE EMITIR — 27-ago-2026, encargo del owner. La lista
          sale de LW_TIPO_CONTRATO (vocabulario.js), que es la fuente única de
@@ -369,13 +398,11 @@ async function guardar(){
   };
   // solo si el catálogo llegó a pintarse: con la consulta caída, mandar el array
   // vacío le quitaría a esta persona todos sus proyectos sin que nadie lo pidiera.
-  // Un manager NUNCA manda `proyectos` desde aquí (11-sep-2026, corrección del
-  // owner): sus checkboxes están deshabilitadas y son solo espejo — se asignan
-  // desde la ficha de cada proyecto. Enviarlo igual (aunque deshabilitado, un
-  // checkbox marcado sigue estando "checked" en el DOM) sobreescribiría lo
-  // que el owner acaba de fijar desde Proyectos.
-  if(PROYECTOS !== null && !ROLES_GESTOR.includes(u.rol))
-    cambios.proyectos = [...document.querySelectorAll('.proy input:checked')].map(i => i.value);
+  // `.proy` la comparten AHORA dos rejillas cuando es gestor (creación +
+  // supervisión, esta última toda `disabled`): por eso el selector va con
+  // `:not([disabled])`, que ya excluye la de supervisión sin más marcador.
+  if(PROYECTOS !== null)
+    cambios.proyectos = [...document.querySelectorAll('.proy input:not([disabled]):checked')].map(i => i.value);
   // rol y activo solo viajan si el select estaba habilitado: enviarlos
   // deshabilitados reescribiría con el valor pintado y anularía el guarda
   if(!$('#fRol').disabled) cambios.rol = $('#fRol').value;
@@ -431,16 +458,35 @@ function nuevoUsuario(){
     <fieldset><legend>Herramientas que verá</legend>
       <div class="herr">
         ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
-          ${LW_PERMISOS_POR_DEFECTO.includes(v)?'checked':''}> ${l}</label>`).join('')}
+          ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
-      <p class="nota">Un agente, sales manager o project manager nace <b>sin ningún proyecto asignado</b> —
-        un agente no podrá crear contratos y un manager no verá nada todavía: al crearlo se abre su ficha
-        y ahí se marcan los proyectos que vende (agente) o supervisa (manager).</p>
+      <p class="nota">Preselección según el rol elegido arriba — sigue siendo editable.</p>
+    </fieldset>
+    <fieldset><legend>Contratos que puede hacer</legend>
+      <div class="herr tipos">
+        ${Object.entries(LW_TIPO_CONTRATO).map(([v,l]) => `<label><input type="checkbox" value="${esc(v)}"
+          ${(LW_TIPOS_POR_ROL.agente || []).includes(v) ? 'checked' : ''}> ${esc(l)}</label>`).join('')}
+      </div>
+      <p class="nota">Preselección según el rol — <b>vacío marcado del todo equivale a "todos"</b>, así que
+        conviene dejarlo tal cual salvo que sepas que este usuario necesita algo distinto.</p>
+    </fieldset>
+    <fieldset><legend>Proyectos</legend>
+      <p class="nota">Nace <b>sin ningún proyecto asignado</b> — un agente o manager no podrá crear
+        contratos todavía, y un manager tampoco supervisará nada: al crearlo se abre su ficha y ahí se
+        marcan los proyectos que vende (todos los roles) o que supervisa (solo managers, desde
+        <code>/proyectos/</code>).</p>
     </fieldset>
     <div class="acciones">
       <button class="btn primary" id="btnCrear">Crear usuario</button>
       <button class="btn" id="btnCancelar">Cancelar</button>
     </div>`;
+  $('#nRol').addEventListener('change', () => {
+    const rol = $('#nRol').value;
+    const herr = LW_HERR_POR_ROL[rol] || [];
+    const tipos = LW_TIPOS_POR_ROL[rol] || [];
+    document.querySelectorAll('.herr:not(.tipos) input').forEach(i => { i.checked = herr.includes(i.value); });
+    document.querySelectorAll('.tipos input').forEach(i => { i.checked = tipos.includes(i.value); });
+  });
   $('#btnCancelar').addEventListener('click', () => { pintarFicha(); });
   $('#btnCrear').addEventListener('click', crear);
 }
@@ -456,6 +502,7 @@ async function crear(){
     nombre: $('#nNombre').value.trim(),
     rol: $('#nRol').value,
     herramientas: [...document.querySelectorAll('.herr:not(.proy):not(.tipos) input:checked')].map(i => i.value),
+    tipos_contrato: [...document.querySelectorAll('.tipos input:checked')].map(i => i.value),
   });
   btn.disabled = false; btn.textContent = 'Crear usuario';
   if(!d.ok){ toast('No se pudo crear: ' + (d.error || '')); return; }
