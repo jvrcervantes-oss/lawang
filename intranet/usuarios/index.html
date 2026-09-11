@@ -28,6 +28,10 @@
      Va DESPUES de topbar.css y ANTES del <style> de esta pagina, asi que lo que
      esta pagina ya defina sigue ganando: aporta tokens y componentes nuevos,
      no le mueve lo que tenia. -->
+<!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
+     `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
+<script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
+<script src="/contracts/assets/i18n.js?v=9c5610e2"></script>
 <script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -136,16 +140,16 @@
   <div class="stage" id="stage">
     <div class="lista">
       <div class="cab">
-        <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Equipo</b>
+        <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)" data-lwt="Equipo">Equipo</b>
         <!-- Buscador: era la UNICA herramienta de la suite sin el (medido 15-ago-2026,
              0 campos de busqueda con 16 personas) mientras Contratos, Facturas,
              Compradores y Operaciones lo tienen todas. Y la lista ordena los 8 admin
              primero, asi que para llegar a un agente habia que bajarla entera. -->
-        <input class="sui-buscar" id="qU" type="search" placeholder="Buscar nombre, email o rol…" autocomplete="off">
+        <input class="sui-buscar" id="qU" type="search" data-lwt-ph placeholder="Buscar nombre, email o rol…" autocomplete="off">
       </div>
-      <div id="listaU">Cargando…</div>
+      <div id="listaU" data-lwt="Cargando…">Cargando…</div>
     </div>
-    <div class="ficha" id="ficha"><div class="vacio">Elige un usuario</div></div>
+    <div class="ficha" id="ficha"><div class="vacio" data-lwt="Elige un usuario">Elige un usuario</div></div>
   </div>
 
   <!-- LAW-71 (21-ago-2026): los frenos que alguien se ha saltado. Existía la
@@ -180,6 +184,7 @@
      que no se puede perder.
    ============================================================ */
 const $ = s => document.querySelector(s);
+lwIdiomaAplicar();   // traduce la HTML de arriba; en espanol no toca el DOM
 
 /* La lista sale de assets/herramientas.js (17-ago-2026, auditoría). Aquí había
    una copia con sus etiquetas a mano, y la del inventario decía «Unidades»
@@ -201,15 +206,17 @@ const HERR_RESTO = HERRAMIENTAS.filter(h => !ES_CRM(h));
 /* Qué abre cada una, en una línea. Sin esto, «Reparto de leads» y «Ranking de
    closers» se leen como lo mismo y se marcan juntas. */
 const CRM_PISTA = {
-  leads:   'ver el tablero y los datos de contacto de los leads',
-  ranking: 'ver y corregir cuánto firma y cobra cada comercial',
-  reparto: 'decidir qué closers atienden cada campaña',
-  closers: 'la agenda de llamadas de venta',
+  leads:   lwT('ver el tablero y los datos de contacto de los leads'),
+  ranking: lwT('ver y corregir cuánto firma y cobra cada comercial'),
+  reparto: lwT('decidir qué closers atienden cada campaña'),
+  closers: lwT('la agenda de llamadas de venta'),
 };
 // sales_manager/project_manager (10-sep-2026): solo lectura, ven todo lo que
 // pase en SUS proyectos (marcados abajo), de cualquier agente — nunca crean ni
 // editan nada. Misma mecánica de «Proyectos» que un agente, sentido invertido.
-const ROLES = [['agente','Agente'], ['sales_manager','Sales manager'], ['project_manager','Project manager'], ['admin','Administrador'], ['super_admin','Super admin']];
+/* Rotulo visible de cada rol. Las CLAVES son las de la base y las de la edge
+   `admin-usuarios`: traducirlas romperia el alta de usuarios. */
+const ROLES = [['agente',lwT('Agente')], ['sales_manager',lwT('Sales manager')], ['project_manager',lwT('Project manager')], ['admin',lwT('Administrador')], ['super_admin',lwT('Super admin')]];
 const ROLES_GESTOR = ['sales_manager','project_manager'];
 
 /* Con qué herramientas y qué tipos de contrato nace cada rol (11-sep-2026,
@@ -242,7 +249,7 @@ async function cargar(){
     SB.from('usuarios').select('*').order('rol').order('email'),
     SB.from('proyectos').select('id,nombre').eq('activo', true).order('nombre'),
   ]);
-  if(us.error){ $('#listaU').innerHTML = '<p class="nota" style="padding:18px">No se pudo cargar: ' + esc(us.error.message) + '</p>'; return; }
+  if(us.error){ $('#listaU').innerHTML = '<p class="nota" style="padding:18px">' + lwT('No se pudo cargar: ') + esc(us.error.message) + '</p>'; return; }
   USUARIOS = us.data || [];
   // si el catálogo no llega, la ficha lo dice en vez de pintar cero casillas y
   // dar a entender que el usuario no tiene ningún proyecto asignado
@@ -259,14 +266,14 @@ function pintarLista(){
   const lista = !q ? USUARIOS : USUARIOS.filter(u =>
     lwBuscaEn([u.nombre, u.email, ROL_ES[u.rol] || u.rol], q));
   if(!lista.length){
-    $('#listaU').innerHTML = '<p class="nota" style="padding:18px 20px">Nadie con «' + esc(q) + '».</p>';
+    $('#listaU').innerHTML = '<p class="nota" style="padding:18px 20px">' + lwT('Nadie con «%q».', { q: esc(q) }) + '</p>';
     return;
   }
   $('#listaU').innerHTML = lista.map(u => {
     const tags = [];
     if(u.rol === 'super_admin') tags.push('<span class="tag t-super">Super admin</span>');
     else if(u.rol === 'admin')  tags.push('<span class="tag t-admin">Administrador</span>');
-    else if(u.rol === 'sales_manager')   tags.push('<span class="tag t-admin">Sales manager</span>');
+    else if(u.rol === 'sales_manager')   tags.push('<span class="tag t-admin">' + lwT('Sales manager') + '</span>');
     else if(u.rol === 'project_manager') tags.push('<span class="tag t-admin">Project manager</span>');
     if(!u.activo) tags.push('<span class="tag t-off">Desactivado</span>');
     return `<button class="u ${SEL===u.user_id?'sel':''}" data-id="${esc(u.user_id)}">
@@ -279,7 +286,7 @@ function pintarLista(){
 
 function pintarFicha(){
   const u = USUARIOS.find(x => x.user_id === SEL);
-  if(!u){ $('#ficha').innerHTML = '<div class="vacio">Elige un usuario</div>'; return; }
+  if(!u){ $('#ficha').innerHTML = '<div class="vacio">' + lwT('Elige un usuario') + '</div>'; return; }
   const yoMismo = YO && u.user_id === YO.user_id;
   const soySuper = YO && YO.rol === 'super_admin';
   // un admin no toca a un super_admin, y nadie se quita a sí mismo el acceso
@@ -289,75 +296,62 @@ function pintarFicha(){
 
   $('#ficha').innerHTML = `
     <h2 class="t">${esc(u.nombre || u.email)}</h2>
-    <p class="sub">${esc(u.email)} · alta ${u.creado_en ? new Date(u.creado_en).toLocaleDateString('es-ES') : '—'}
-      ${u.creado_por ? ' · por ' + esc(u.creado_por) : ''}</p>
+    <p class="sub">${esc(u.email)} · alta ${u.creado_en ? new Date(u.creado_en).toLocaleDateString(lwLocale()) : '—'}
+      ${u.creado_por ? ' · ' + lwT('por %s', { s: esc(u.creado_por) }) : ''}</p>
 
-    ${yoMismo ? '<div class="aviso">Esta es tu propia cuenta. Para no dejarte fuera por accidente, no puedes desactivarte ni cambiarte el rol desde aquí.</div>' : ''}
-    ${bloqueado ? '<div class="aviso">Solo un super admin puede modificar la cuenta de otro super admin.</div>' : ''}
+    ${yoMismo ? '<div class="aviso">' + lwT('Esta es tu propia cuenta. Para no dejarte fuera por accidente, no puedes desactivarte ni cambiarte el rol desde aquí.') + '</div>' : ''}
+    ${bloqueado ? '<div class="aviso">' + lwT('Solo un super admin puede modificar la cuenta de otro super admin.') + '</div>' : ''}
 
-    <fieldset><legend>Identidad y rol</legend>
+    <fieldset><legend>${lwT('Identidad y rol')}</legend>
       <div class="sui-row">
-        <div><label for="fNombre">Nombre</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
-        <div><label for="fRol">Rol</label>
+        <div><label for="fNombre">${lwT('Nombre')}</label><input id="fNombre" value="${esc(u.nombre || '')}" ${bloqueado?'disabled':''}></div>
+        <div><label for="fRol">${lwT('Rol')}</label>
           <select class="sui-sel" id="fRol" ${bloqueado || yoMismo || !soySuper ? 'disabled' : ''}>
             ${ROLES.map(([v,l]) => `<option value="${v}" ${u.rol===v?'selected':''}>${l}</option>`).join('')}
           </select></div>
       </div>
-      <p class="nota">Un <b>administrador</b> ve las herramientas que le marques abajo (igual que un agente,
-        no todas por defecto) y puede editar los documentos de cualquiera dentro de ellas.
-        Un <b>sales manager</b> o <b>project manager</b> ve, crea y corrige contratos y facturas de
+      <p class="nota">${lwT('Un')} <b>administrador</b> ${lwT('ve las herramientas que le marques abajo (igual que un agente, no todas por defecto) y puede editar los documentos de cualquiera dentro de ellas. Un')} <b>sales manager</b> o <b>project manager</b> ${lwT('ve, crea y corrige contratos y facturas de')}
         <b>cualquier agente</b> de los proyectos de los que es encargado — no solo lectura — y recibe aviso
         cuando cambia de estado un contrato, una solicitud de pago o una unidad de esos proyectos. De qué
-        proyectos es <b>encargado</b> se marca desde la ficha de cada proyecto en <b>Proyectos</b>, no aquí:
-        lo de abajo es otra cosa, en qué proyectos <b>vende él mismo</b>.
-        Solo un <b>super admin</b> reparte roles.</p>
+        proyectos es <b>encargado</b> ${lwT('se marca desde la ficha de cada proyecto en')} <b>${lwT('Proyectos')}</b>${lwT(', no aquí: lo de abajo es otra cosa, en qué proyectos')} <b>${lwT('vende él mismo')}</b>${lwT('. Solo un')} <b>super admin</b> reparte roles.</p>
     </fieldset>
 
-    <fieldset><legend>CRM de leads</legend>
+    <fieldset><legend>${lwT('CRM de leads')}</legend>
       <div class="herr">
         ${HERR_CRM.map(([v,l]) => `<label title="${esc(CRM_PISTA[v]||'')}"><input type="checkbox" value="${v}"
           ${u.herramientas.includes(v)?'checked':''} ${bloqueado?'disabled':''}> ${l}</label>`).join('')}
       </div>
-      <p class="nota">Cuatro llaves distintas y a propósito: <b>Leads</b> abre los datos de contacto
-        de las personas que dejan su teléfono; <b>Ranking</b>, las cifras de cada comercial;
-        <b>Reparto</b>, quién atiende cada campaña; <b>Agenda</b>, las llamadas de venta.
-        Quien tenga Ranking y Reparto a la vez puede mover el número que decide el reparto
-        <i>y</i> el reparto — dáselas juntas solo si es a conciencia.</p>
+      <p class="nota">${lwT('Cuatro llaves distintas y a propósito:')} <b>${lwT('Leads')}</b> ${lwT('abre los datos de contacto de las personas que dejan su teléfono;')} <b>${lwT('Ranking')}</b>${lwT(', las cifras de cada comercial;')}
+        <b>${lwT('Reparto')}</b>${lwT(', quién atiende cada campaña;')} <b>${lwT('Agenda')}</b>${lwT(', las llamadas de venta. Quien tenga Ranking y Reparto a la vez puede mover el número que decide el reparto')}
+        <i>y</i> ${lwT('el reparto — dáselas juntas solo si es a conciencia.')}</p>
     </fieldset>
 
-    <fieldset><legend>Herramientas que ve</legend>
+    <fieldset><legend>${lwT('Herramientas que ve')}</legend>
       <div class="herr">
         ${HERR_RESTO.map(([v,l]) => `<label><input type="checkbox" value="${v}"
           ${u.herramientas.includes(v)?'checked':''} ${bloqueado?'disabled':''}> ${l}</label>`).join('')}
       </div>
-      <p class="nota">Controla lo que aparece en la intranet y lo que puede <b>guardar</b>.
-        La consulta de datos ya emitidos sigue abierta a todo el equipo: Operaciones cruza contratos,
-        facturas y firmas, y filtrarlas por herramienta la dejaría en blanco.</p>
+      <p class="nota">${lwT('Controla lo que aparece en la intranet y lo que puede')} <b>guardar</b>${lwT('. La consulta de datos ya emitidos sigue abierta a todo el equipo: Operaciones cruza contratos, facturas y firmas, y filtrarlas por herramienta la dejaría en blanco.')}</p>
     </fieldset>
 
-    <fieldset><legend>Proyectos en los que trabaja</legend>
+    <fieldset><legend>${lwT('Proyectos en los que trabaja')}</legend>
       ${PROYECTOS === null
-        ? '<p class="nota">No se pudo cargar el catálogo de proyectos. Vuelve a abrir el panel: sin él, guardar dejaría a esta persona sin ningún proyecto.</p>'
+        ? '<p class="nota">' + lwT('No se pudo cargar el catálogo de proyectos. Vuelve a abrir el panel: sin él, guardar dejaría a esta persona sin ningún proyecto.') + '</p>'
         : `<div class="herr proy">
              ${PROYECTOS.map(p => `<label><input type="checkbox" value="${esc(p.id)}"
                ${(u.proyectos || []).includes(p.id) ? 'checked' : ''} ${bloqueado?'disabled':''}> ${esc(p.nombre)}</label>`).join('')}
            </div>
            <div class="proy-acc">
-             <button type="button" class="btn" id="btnProyTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
-             <button type="button" class="btn" id="btnProyNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
+             <button type="button" class="btn" id="btnProyTodos" ${bloqueado?'disabled':''}>${lwT('Marcar todos')}</button>
+             <button type="button" class="btn" id="btnProyNinguno" ${bloqueado?'disabled':''}>${lwT('Ninguno')}</button>
            </div>`}
-      <p class="nota">Limita <b>en qué proyectos puede crear y editar contratos</b> este usuario, sea agente o
-        manager — un sales manager o project manager también vende. Sin ninguno marcado no puede crear
-        contratos en ningún proyecto${(u.rol === 'agente' || esGestor) ? '' : ', pero <b>a este usuario no le afecta</b>: los administradores trabajan en todos los proyectos por definición'}.
-        No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.
-        ${esGestor ? ' <b>Esto no es de qué proyectos es encargado</b> — eso es la lista de abajo.' : ''}</p>
+      <p class="nota">${lwT('Limita')} <b>${lwT('en qué proyectos puede crear y editar contratos')}</b> ${lwT('este usuario, sea agente o manager — un sales manager o project manager también vende. Sin ninguno marcado no puede crear contratos en ningún proyecto')}${(u.rol === 'agente' || esGestor) ? '' : ', ' + lwT('pero') + ' <b>' + lwT('a este usuario no le afecta') + '</b>: ' + lwT('los administradores trabajan en todos los proyectos por definición')}.
+        ${lwT('No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.')}
+        ${esGestor ? ' <b>' + lwT('Esto no es de qué proyectos es encargado') + '</b> — ' + lwT('eso es la lista de abajo.') : ''}</p>
     </fieldset>
 
-    ${esGestor ? `<fieldset><legend>Proyectos que supervisa</legend>
-      <p class="nota">De esto sí ve y corrige TODO lo que hagan sus agentes — contratos, facturas, obra,
-        clientes, solicitudes — sea cual sea quien lo creó, y por eso <b>se asigna desde la ficha de cada
-        proyecto</b> (Proyectos → el lápiz junto a su carpeta), no desde aquí. Esto de abajo es solo un
-        espejo de lo ya asignado, para verlo sin salir de esta ficha.</p>
+    ${esGestor ? `<fieldset><legend>${lwT('Proyectos que supervisa')}</legend>
+      <p class="nota">${lwT('De esto sí ve y corrige TODO lo que hagan sus agentes — contratos, facturas, obra, clientes, solicitudes — sea cual sea quien lo creó, y por eso')} <b>${lwT('se asigna desde la ficha de cada proyecto')}</b> ${lwT('(Proyectos → el lápiz junto a su carpeta), no desde aquí. Esto de abajo es solo un espejo de lo ya asignado, para verlo sin salir de esta ficha.')}</p>
       <div class="herr proy-mirror">
         ${PROYECTOS === null ? '' : PROYECTOS.map(p => `<label><input type="checkbox"
           ${(u.proyectos_supervisados || []).includes(p.id) ? 'checked' : ''} disabled> ${esc(p.nombre)}</label>`).join('')}
@@ -376,34 +370,33 @@ function pintarFicha(){
          si vacío significara «ninguno» el despliegue habría dejado a los diez
          agentes sin poder emitir un solo contrato sin que nadie lo pidiera. Se
          dice donde se marca, que es donde importa. -->
-    <fieldset><legend>Contratos que puede hacer</legend>
+    <fieldset><legend>${lwT('Contratos que puede hacer')}</legend>
       <div class="herr tipos">
         ${Object.entries(LW_TIPO_CONTRATO).map(([v,l]) => `<label><input type="checkbox" value="${esc(v)}"
           ${(u.tipos_contrato || []).includes(v) ? 'checked' : ''} ${bloqueado?'disabled':''}> ${esc(l)}</label>`).join('')}
       </div>
       <div class="proy-acc">
-        <button type="button" class="btn" id="btnTipoTodos" ${bloqueado?'disabled':''}>Marcar todos</button>
-        <button type="button" class="btn" id="btnTipoNinguno" ${bloqueado?'disabled':''}>Ninguno</button>
+        <button type="button" class="btn" id="btnTipoTodos" ${bloqueado?'disabled':''}>${lwT('Marcar todos')}</button>
+        <button type="button" class="btn" id="btnTipoNinguno" ${bloqueado?'disabled':''}>${lwT('Ninguno')}</button>
       </div>
       <p class="nota">${esGestor
-        ? 'A este usuario <b>no le afecta</b>: un sales manager o project manager no crea ni edita contratos, solo los lee.'
-        : '<b>Sin ninguno marcado no puede emitir ningún contrato</b>, igual que en «Proyectos», arriba. '
+        ? lwT('A este usuario') + ' <b>' + lwT('no le afecta') + '</b>: ' + lwT('un sales manager o project manager no crea ni edita contratos, solo los lee.')
+        : '<b>' + lwT('Sin ninguno marcado no puede emitir ningún contrato') + '</b>, ' + lwT('igual que en «Proyectos», arriba.') + ' '
           + (u.rol === 'agente'
-            ? 'Lo comprueba la <b>base de datos</b> al guardar, no solo el desplegable: esconder una opción no es impedirla.'
-            : 'A este usuario <b>no le afecta</b>: un administrador emite cualquier tipo por definición.')}</p>
+            ? lwT('Lo comprueba la') + ' <b>' + lwT('base de datos') + '</b> ' + lwT('al guardar, no solo el desplegable: esconder una opción no es impedirla.')
+            : lwT('A este usuario') + ' <b>' + lwT('no le afecta') + '</b>: ' + lwT('un administrador emite cualquier tipo por definición.'))}</p>
     </fieldset>
 
-    <fieldset><legend>Acceso</legend>
-      <label for="fActivo">Estado</label>
+    <fieldset><legend>${lwT('Acceso')}</legend>
+      <label for="fActivo">${lwT('Estado')}</label>
       <select class="sui-sel" id="fActivo" ${bloqueado || yoMismo ? 'disabled' : ''}>
-        <option value="1" ${u.activo?'selected':''}>Activo</option>
-        <option value="0" ${!u.activo?'selected':''}>Desactivado — no entra a la suite</option>
+        <option value="1" ${u.activo?'selected':''}>${lwT('Activo')}</option>
+        <option value="0" ${!u.activo?'selected':''}>${lwT('Desactivado — no entra a la suite')}</option>
       </select>
-      <p class="nota">Desactivar es lo contrario de borrar: la persona deja de entrar pero se conserva
-        qué documentos creó. Nunca se borra un usuario.</p>
+      <p class="nota">${lwT('Desactivar es lo contrario de borrar: la persona deja de entrar pero se conserva qué documentos creó. Nunca se borra un usuario.')}</p>
       <div class="acciones">
-        <button class="btn primary" id="btnGuardar" ${bloqueado?'disabled':''}>Guardar cambios</button>
-        <button class="btn" id="btnPass" ${bloqueado?'disabled':''}>Cambiar contraseña</button>
+        <button class="btn primary" id="btnGuardar" ${bloqueado?'disabled':''}>${lwT('Guardar cambios')}</button>
+        <button class="btn" id="btnPass" ${bloqueado?'disabled':''}>${lwT('Cambiar contraseña')}</button>
       </div>
     </fieldset>`;
 
@@ -419,7 +412,7 @@ function pintarFicha(){
 
 async function guardar(){
   const u = USUARIOS.find(x => x.user_id === SEL); if(!u) return;
-  const btn = $('#btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+  const btn = $('#btnGuardar'); btn.disabled = true; btn.textContent = lwT('Guardando…');
   const cambios = {
     // `.herr` la comparten TRES rejillas —herramientas, proyectos y tipos de
     // contrato— y sin excluir a las otras dos sus valores se colarían en la
@@ -440,9 +433,9 @@ async function guardar(){
   if(!$('#fRol').disabled) cambios.rol = $('#fRol').value;
   if(!$('#fActivo').disabled) cambios.activo = $('#fActivo').value === '1';
   const { error } = await SB.from('usuarios').update(cambios).eq('user_id', SEL);
-  btn.disabled = false; btn.textContent = 'Guardar cambios';
-  if(error){ toast('No se pudo guardar: ' + error.message); return; }
-  toast('Permisos actualizados');
+  btn.disabled = false; btn.textContent = lwT('Guardar cambios');
+  if(error){ toast(lwT('No se pudo guardar:') + error.message); return; }
+  toast(lwT('Permisos actualizados'));
   await cargar(); pintarFicha();
 }
 
@@ -456,16 +449,17 @@ async function llamarAdmin(payload){
       'apikey':'sb_publishable_B_ot_6lNVRLiWiEMtApYOQ_3Ho3xNUg' },
     body: JSON.stringify(payload),
   });
-  return r.json().catch(() => ({ error:'respuesta ilegible del servidor' }));
+  return r.json().catch(() => ({ error:lwT('respuesta ilegible del servidor') }));
 }
 
 async function cambiarPassword(){
   const u = USUARIOS.find(x => x.user_id === SEL); if(!u) return;
-  const p = prompt('Nueva contraseña para ' + u.email + ' (mínimo 10 caracteres).\nApúntala: no se puede volver a consultar.');
+  const p = prompt(lwT('Nueva contraseña para %s (mínimo 10 caracteres).', { s: u.email })
+                 + '\n' + lwT('Apúntala: no se puede volver a consultar.'));
   if(p === null) return;
-  if(p.length < 10){ toast('Mínimo 10 caracteres'); return; }
+  if(p.length < 10){ toast(lwT('Mínimo 10 caracteres')); return; }
   const d = await llamarAdmin({ accion:'password', user_id:SEL, password:p });
-  toast(d.ok ? 'Contraseña cambiada' : 'No se pudo: ' + (d.error || ''));
+  toast(d.ok ? lwT('Contraseña cambiada') : lwT('No se pudo: ') + (d.error || ''));
 }
 
 /* ---------- alta ---------- */
@@ -473,53 +467,50 @@ function nuevoUsuario(){
   SEL = null; pintarLista();
   $('#stage').classList.add('abierta');
   $('#ficha').innerHTML = `
-    <h2 class="t">Nuevo usuario</h2>
-    <p class="sub">Se crea la cuenta y se le da acceso de inmediato.</p>
-    <fieldset><legend>Datos de acceso</legend>
+    <h2 class="t">${lwT('Nuevo usuario')}</h2>
+    <p class="sub">${lwT('Se crea la cuenta y se le da acceso de inmediato.')}</p>
+    <fieldset><legend>${lwT('Datos de acceso')}</legend>
       <div class="sui-row">
-        <div><label for="nEmail">Email</label><input id="nEmail" type="email" placeholder="nombre@lawangproperties.com"></div>
-        <div><label for="nNombre">Nombre</label><input id="nNombre" placeholder="Nombre y apellidos"></div>
+        <div><label for="nEmail">${lwT('Email')}</label><input id="nEmail" type="email" placeholder="nombre@lawangproperties.com"></div>
+        <div><label for="nNombre">${lwT('Nombre')}</label><input id="nNombre" placeholder="${lwT('Nombre y apellidos')}"></div>
       </div>
-      <label for="nPass">Contraseña provisional (mínimo 10 caracteres)</label>
-      <input id="nPass" type="text" placeholder="La verá al entrar; que la cambie después">
-      <label for="nRol">Rol</label>
+      <label for="nPass">${lwT('Contraseña provisional (mínimo 10 caracteres)')}</label>
+      <input id="nPass" type="text" placeholder="${lwT('La verá al entrar; que la cambie después')}">
+      <label for="nRol">${lwT('Rol')}</label>
       <select class="sui-sel" id="nRol">${ROLES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
-      <p class="nota">La contraseña se muestra en claro a propósito: hay que poder copiarla para
-        dársela a la persona. No queda guardada en ningún sitio consultable.</p>
+      <p class="nota">${lwT('La contraseña se muestra en claro a propósito: hay que poder copiarla para dársela a la persona. No queda guardada en ningún sitio consultable.')}</p>
     </fieldset>
-    <fieldset><legend>CRM de leads</legend>
+    <fieldset><legend>${lwT('CRM de leads')}</legend>
       <div class="herr">
         ${HERR_CRM.map(([v,l]) => `<label title="${esc(CRM_PISTA[v]||'')}"><input type="checkbox" value="${v}"
           ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
-      <p class="nota">De salida no viene marcada ninguna, y es deliberado: <b>Leads</b> abre los
-        datos de contacto de personas reales y eso se decide una a una, nunca de regalo con el rol.</p>
+      <p class="nota">${lwT('De salida no viene marcada ninguna, y es deliberado:')} <b>${lwT('Leads')}</b> ${lwT('abre los datos de contacto de personas reales y eso se decide una a una, nunca de regalo con el rol.')}</p>
     </fieldset>
 
-    <fieldset><legend>Herramientas que verá</legend>
+    <fieldset><legend>${lwT('Herramientas que verá')}</legend>
       <div class="herr">
         ${HERR_RESTO.map(([v,l]) => `<label><input type="checkbox" value="${v}"
           ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
-      <p class="nota">Preselección según el rol elegido arriba — sigue siendo editable.</p>
+      <p class="nota">${lwT('Preselección según el rol elegido arriba — sigue siendo editable.')}</p>
     </fieldset>
-    <fieldset><legend>Contratos que puede hacer</legend>
+    <fieldset><legend>${lwT('Contratos que puede hacer')}</legend>
       <div class="herr tipos">
         ${Object.entries(LW_TIPO_CONTRATO).map(([v,l]) => `<label><input type="checkbox" value="${esc(v)}"
           ${(LW_TIPOS_POR_ROL.agente || []).includes(v) ? 'checked' : ''}> ${esc(l)}</label>`).join('')}
       </div>
-      <p class="nota">Preselección según el rol — <b>vacío marcado del todo equivale a "todos"</b>, así que
-        conviene dejarlo tal cual salvo que sepas que este usuario necesita algo distinto.</p>
+      <p class="nota">${lwT('Preselección según el rol —')} <b>${lwT('vacío marcado del todo equivale a "todos"')}</b>${lwT(', así que conviene dejarlo tal cual salvo que sepas que este usuario necesita algo distinto.')}</p>
     </fieldset>
-    <fieldset><legend>Proyectos</legend>
-      <p class="nota">Nace <b>sin ningún proyecto asignado</b> — un agente o manager no podrá crear
+    <fieldset><legend>${lwT('Proyectos')}</legend>
+      <p class="nota">${lwT('Nace')} <b>${lwT('sin ningún proyecto asignado')}</b> — un agente o manager no podrá crear
         contratos todavía, y un manager tampoco supervisará nada: al crearlo se abre su ficha y ahí se
         marcan los proyectos que vende (todos los roles) o que supervisa (solo managers, desde
         <code>/proyectos/</code>).</p>
     </fieldset>
     <div class="acciones">
-      <button class="btn primary" id="btnCrear">Crear usuario</button>
-      <button class="btn" id="btnCancelar">Cancelar</button>
+      <button class="btn primary" id="btnCrear">${lwT('Crear usuario')}</button>
+      <button class="btn" id="btnCancelar">${lwT('Cancelar')}</button>
     </div>`;
   $('#nRol').addEventListener('change', () => {
     const rol = $('#nRol').value;
@@ -535,9 +526,9 @@ function nuevoUsuario(){
 async function crear(){
   const email = $('#nEmail').value.trim().toLowerCase();
   const password = $('#nPass').value;
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Email no válido'); return; }
-  if(password.length < 10){ toast('La contraseña necesita 10 caracteres o más'); return; }
-  const btn = $('#btnCrear'); btn.disabled = true; btn.textContent = 'Creando…';
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast(lwT('Email no válido')); return; }
+  if(password.length < 10){ toast(lwT('La contraseña necesita 10 caracteres o más')); return; }
+  const btn = $('#btnCrear'); btn.disabled = true; btn.textContent = lwT('Creando…');
   const d = await llamarAdmin({
     accion:'crear', email, password,
     nombre: $('#nNombre').value.trim(),
@@ -545,9 +536,9 @@ async function crear(){
     herramientas: [...document.querySelectorAll('.herr:not(.proy):not(.tipos) input:checked')].map(i => i.value),
     tipos_contrato: [...document.querySelectorAll('.tipos input:checked')].map(i => i.value),
   });
-  btn.disabled = false; btn.textContent = 'Crear usuario';
-  if(!d.ok){ toast('No se pudo crear: ' + (d.error || '')); return; }
-  toast('Usuario creado: ' + email);
+  btn.disabled = false; btn.textContent = lwT('Crear usuario');
+  if(!d.ok){ toast(lwT('No se pudo crear:') + (d.error || '')); return; }
+  toast(lwT('Usuario creado:') + email);
   await cargar();
   SEL = d.user_id; pintarLista(); pintarFicha();
 }
@@ -585,9 +576,9 @@ LW_AUTH.then(async ({ sb, session, ficha }) => {
   if(!gestionaUsuarios){
     $('#stage').innerHTML = '<div class="vacio" style="grid-column:1/-1">'
       + (YO && YO.rol === 'admin'
-          ? 'No tienes activada la herramienta «Usuarios». Pídesela a un super admin.'
-          : 'Solo un administrador gestiona usuarios'
-            + (YO ? ' · tu rol es «' + esc(YO.rol) + '»' : ''))
+          ? lwT('No tienes activada la herramienta «Usuarios». Pídesela a un super admin.')
+          : lwT('Solo un administrador gestiona usuarios')
+            + (YO ? ' · ' + lwT('tu rol es «%r»', { r: esc(YO.rol) }) : ''))
       + '</div>';
     return;
   }
@@ -610,33 +601,33 @@ async function pintarPrivilegios(){
     SB.from('borrados').select('id', { count:'exact', head:true }),
   ]);
 
-  const fallo = priv.error ? (priv.error.message || 'no se ha podido leer') : null;
+  const fallo = priv.error ? (priv.error.message || lwT('no se ha podido leer')) : null;
   const filas = priv.data || [];
   const NOMBRE = {
-    desbloqueado:            'desbloqueó un contrato firmado',
-    editado_estando_firmado: 'editó un contrato firmado',
-    facturado_sin_bloquear:  'facturó un contrato sin firmar',
-    cobro_a_otro_comprador:  'aplicó un cobro al comprador de otro contrato',
-    cobro_a_factura_huerfana:'aplicó un cobro a una factura sin contrato',
-    guardado_sin_ficha:      'guardó un contrato sin ficha de comprador',
+    desbloqueado:            lwT('desbloqueó un contrato firmado'),
+    editado_estando_firmado: lwT('editó un contrato firmado'),
+    facturado_sin_bloquear:  lwT('facturó un contrato sin firmar'),
+    cobro_a_otro_comprador:  lwT('aplicó un cobro al comprador de otro contrato'),
+    cobro_a_factura_huerfana:lwT('aplicó un cobro a una factura sin contrato'),
+    guardado_sin_ficha:      lwT('guardó un contrato sin ficha de comprador'),
   };
-  const dia = s => new Date(s).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  const dia = s => new Date(s).toLocaleString(lwLocale(), { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
 
   caja.hidden = false;
   caja.innerHTML =
     `<div class="cab" style="margin-top:18px">
-       <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">Frenos saltados</b>
+       <b style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-2)">${lwT('Frenos saltados')}</b>
        <span style="font-size:11.5px;color:var(--texto-2)">${
-         borr.error ? 'caja negra: no se ha podido leer'
-                    : (borr.count || 0) + ' documento(s) borrados guardados en la caja negra'}</span>
+         borr.error ? lwT('caja negra: no se ha podido leer')
+                    : lwT((borr.count || 0) === 1 ? '%n documento borrado guardado en la caja negra'
+                                                  : '%n documentos borrados guardados en la caja negra', { n: borr.count || 0 })}</span>
      </div>` +
     (fallo
       ? `<p style="font-size:12.5px;color:#C8791F;margin:8px 0 0">
-           <b>No se ha podido leer el registro de privilegios.</b> Esto NO quiere decir que nadie
-           se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.</p>`
+           <b>${lwT('No se ha podido leer el registro de privilegios.')}</b> ${lwT('Esto NO quiere decir que nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.')}</p>`
       : !filas.length
       ? `<p style="font-size:12.5px;color:var(--texto-2);margin:8px 0 0">
-           Mirado ahora mismo: <b>nadie se ha saltado ningún freno</b> todavía.</p>`
+           ${lwT('Mirado ahora mismo:')} <b>${lwT('nadie se ha saltado ningún freno')}</b> ${lwT('todavía.')}</p>`
       /* La tabla se desplaza DENTRO de su caja, no empuja la página. Con
          `width:100%` a secas, la anchura mínima de cuatro celdas —la primera
          con `nowrap` para no partir la fecha— se comía el 100% y sacaba la

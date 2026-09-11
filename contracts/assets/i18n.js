@@ -492,6 +492,259 @@
     'Modelo creado. Ahora sus datos.': 'Model created. Now its details.',
     'Se resuelve dando de alta el modelo con ese nombre, o corrigiendo el nombre en Proyectos. Mientras tanto se quedan como están, que es lo correcto.':
       'Fix it by creating the model under that name, or by correcting the name in Projects. In the meantime they stay as they are, which is the right thing.',
+
+    /* ---------- Usuarios ----------
+       Los nombres de rol se traducen como ROTULO; la clave (`agente`,
+       `sales_manager`…) es la de la base y la de la edge `admin-usuarios`, y
+       no aparece aquí a propósito. «Sales manager» y «Project manager» ya
+       estaban en inglés en el original: el equipo los llama así. */
+    'Buscar nombre, email o rol…': 'Search name, email or role…',
+    'Nuevo usuario': 'New user',
+    'Elige un usuario': 'Choose a user',
+    'Nadie con «%q».': 'Nobody matching “%q”.',
+    'por %s': 'by %s',
+    'Agente': 'Agent',
+    'Sales manager': 'Sales manager',
+    'Project manager': 'Project manager',
+    'Administrador': 'Administrator',
+    'Super admin': 'Super admin',
+    'Rol': 'Role',
+    'Identidad y rol': 'Identity and role',
+    'Acceso': 'Access',
+    'Activo': 'Active',
+    'Desactivado — no entra a la suite': 'Deactivated — cannot enter the suite',
+    'Desactivar es lo contrario de borrar: la persona deja de entrar pero se conserva qué documentos creó. Nunca se borra un usuario.':
+      'Deactivating is the opposite of deleting: the person can no longer log in, but the record of what they created is kept. A user is never deleted.',
+    'Esta es tu propia cuenta. Para no dejarte fuera por accidente, no puedes desactivarte ni cambiarte el rol desde aquí.':
+      'This is your own account. So you cannot lock yourself out by accident, you cannot deactivate yourself or change your own role here.',
+    'Solo un super admin puede modificar la cuenta de otro super admin.':
+      'Only a super admin can modify another super admin’s account.',
+    'Un': 'A',
+    'Nace': 'Starts as',
+    've las herramientas que le marques abajo (igual que un agente, no todas por defecto) y puede editar los documentos de cualquiera dentro de ellas. Un':
+      'sees the tools you tick below (like an agent — not all of them by default) and can edit anyone’s documents inside them. A',
+    've, crea y corrige contratos y facturas de': 'sees, creates and corrects contracts and invoices for',
+    'vende él mismo': 'sells directly too',
+    'sin ningún proyecto asignado': 'with no project assigned',
+    'se marca desde la ficha de cada proyecto en': 'is set from each project’s record in',
+    'todavía.': 'yet.',
+    '. Solo un': '. Only a',
+    '. La consulta de datos ya emitidos sigue abierta a todo el equipo: Operaciones cruza contratos, facturas y firmas, y filtrarlas por herramienta la dejaría en blanco.':
+      '. Reading data already issued stays open to the whole team: Deals cross-references contracts, invoices and signatures, and filtering it by tool would leave it blank.',
+    'Herramientas que ve': 'Tools they see',
+    'Herramientas que verá': 'Tools they will see',
+    'Controla lo que aparece en la intranet y lo que puede':
+      'Controls what appears in the intranet and what they can',
+    'Permisos actualizados': 'Permissions updated',
+    'CRM de leads': 'Lead CRM',
+    'Cuatro llaves distintas y a propósito:': 'Four separate keys, on purpose:',
+    'Leads': 'Leads',
+    'abre los datos de contacto de las personas que dejan su teléfono;':
+      'opens the contact details of the people who leave their phone number;',
+    'Ranking': 'Leaderboard',
+    ', las cifras de cada comercial;': ', each rep’s figures;',
+    'Reparto': 'Routing',
+    ', quién atiende cada campaña;': ', who handles each campaign;',
+    'Agenda': 'Calendar',
+    ', las llamadas de venta. Quien tenga Ranking y Reparto a la vez puede mover el número que decide el reparto':
+      ', the sales calls. Anyone holding both Leaderboard and Routing can move the very number that decides the routing',
+    'el reparto — dáselas juntas solo si es a conciencia.':
+      'the routing — give them together only deliberately.',
+    'De salida no viene marcada ninguna, y es deliberado:': 'None is ticked by default, deliberately:',
+    'abre los datos de contacto de personas reales y eso se decide una a una, nunca de regalo con el rol.':
+      'opens the contact details of real people, and that is decided one by one — never thrown in with a role.',
+    'Proyectos en los que trabaja': 'Projects they work on',
+    'Proyectos que supervisa': 'Projects they supervise',
+    'Marcar todos': 'Tick all',
+    'Limita': 'Limits',
+    'en qué proyectos puede crear y editar contratos':
+      'which projects they can create and edit contracts in',
+    'este usuario, sea agente o manager — un sales manager o project manager también vende. Sin ninguno marcado no puede crear contratos en ningún proyecto':
+      'for this user, agent or manager — a sales manager or project manager sells too. With none ticked they cannot create contracts in any project',
+    'pero': 'but',
+    'a este usuario no le afecta': 'this user is not affected',
+    'los administradores trabajan en todos los proyectos por definición':
+      'administrators work across every project by definition',
+    'No cambia lo que ve en Operaciones ni en Vencimientos, que siguen mostrando la actividad del equipo.':
+      'It does not change what they see in Deals or in the Payment schedule, which keep showing the team’s activity.',
+    'Esto no es de qué proyectos es encargado': 'This is not which projects they are in charge of',
+    'eso es la lista de abajo.': 'that is the list below.',
+    ', no aquí: lo de abajo es otra cosa, en qué proyectos':
+      ', not here: the list below is a different thing — which projects',
+    'De esto sí ve y corrige TODO lo que hagan sus agentes — contratos, facturas, obra, clientes, solicitudes — sea cual sea quien lo creó, y por eso':
+      'Here they do see and correct EVERYTHING their agents do — contracts, invoices, construction, clients, requests — whoever created it, and that is why it',
+    'se asigna desde la ficha de cada proyecto': 'is assigned from each project’s record',
+    '(Proyectos → el lápiz junto a su carpeta), no desde aquí. Esto de abajo es solo un espejo de lo ya asignado, para verlo sin salir de esta ficha.':
+      '(Projects → the pencil next to its folder), not from here. The list below only mirrors what is already assigned, so you can see it without leaving this record.',
+    'Contratos que puede hacer': 'Contracts they can issue',
+    'A este usuario': 'This user',
+    'no le afecta': 'is not affected',
+    'un sales manager o project manager no crea ni edita contratos, solo los lee.':
+      'a sales manager or project manager does not create or edit contracts, only reads them.',
+    'Sin ninguno marcado no puede emitir ningún contrato':
+      'With none ticked they cannot issue any contract',
+    'igual que en «Proyectos», arriba.': 'the same as in “Projects”, above.',
+    'Lo comprueba la': 'It is checked by the',
+    'base de datos': 'database',
+    'al guardar, no solo el desplegable: esconder una opción no es impedirla.':
+      'on save, not just by the dropdown: hiding an option is not the same as preventing it.',
+    'un administrador emite cualquier tipo por definición.':
+      'an administrator issues every type by definition.',
+    'Preselección según el rol elegido arriba — sigue siendo editable.':
+      'Preselected from the role chosen above — still editable.',
+    'Preselección según el rol —': 'Preselected from the role —',
+    'vacío marcado del todo equivale a "todos"': 'nothing ticked means “all”',
+    ', así que conviene dejarlo tal cual salvo que sepas que este usuario necesita algo distinto.':
+      ', so leave it as it is unless you know this user needs something different.',
+    'Guardando…': 'Saving…',
+    'Creando…': 'Creating…',
+    'Crear usuario': 'Create user',
+    'Datos de acceso': 'Login details',
+    'Nombre y apellidos': 'Full name',
+    'Contraseña provisional (mínimo 10 caracteres)': 'Temporary password (at least 10 characters)',
+    'La verá al entrar; que la cambie después': 'They will see it on login; have them change it afterwards',
+    'Mínimo 10 caracteres': 'At least 10 characters',
+    'La contraseña necesita 10 caracteres o más': 'The password needs 10 characters or more',
+    'Email no válido': 'Invalid email',
+    'La contraseña se muestra en claro a propósito: hay que poder copiarla para dársela a la persona. No queda guardada en ningún sitio consultable.':
+      'The password is shown in the clear on purpose: you have to be able to copy it to hand it over. It is not stored anywhere you can look it up again.',
+    'Se crea la cuenta y se le da acceso de inmediato.': 'The account is created and access granted immediately.',
+    'Usuario creado:': 'User created:',
+    'No se pudo crear:': 'Could not create:',
+    'Cambiar contraseña': 'Change password',
+    'Nueva contraseña para %s (mínimo 10 caracteres).': 'New password for %s (at least 10 characters).',
+    'Apúntala: no se puede volver a consultar.': 'Write it down: it cannot be looked up again.',
+    'Contraseña cambiada': 'Password changed',
+    'respuesta ilegible del servidor': 'unreadable response from the server',
+    'No se pudo cargar el catálogo de proyectos. Vuelve a abrir el panel: sin él, guardar dejaría a esta persona sin ningún proyecto.':
+      'Could not load the project catalogue. Reopen the panel: without it, saving would leave this person with no project at all.',
+    'No tienes activada la herramienta «Usuarios». Pídesela a un super admin.':
+      'You do not have the “Users” tool enabled. Ask a super admin for it.',
+    'Solo un administrador gestiona usuarios': 'Only an administrator manages users',
+    'tu rol es «%r»': 'your role is “%r”',
+    /* Frenos saltados: el registro de quién se saltó qué. Se traduce el verbo,
+       nunca la clave del evento (`desbloqueado`, `facturado_sin_bloquear`…). */
+    'Frenos saltados': 'Overrides used',
+    'Mirado ahora mismo:': 'Checked just now:',
+    'nadie se ha saltado ningún freno': 'nobody has overridden anything',
+    'no se ha podido leer': 'could not be read',
+    'No se ha podido leer el registro de privilegios.': 'The override log could not be read.',
+    'Esto NO quiere decir que nadie se haya saltado nada: quiere decir que no se ha mirado. Recarga la página.':
+      'This does NOT mean nobody overrode anything: it means nothing was checked. Reload the page.',
+    'desbloqueó un contrato firmado': 'unlocked a signed contract',
+    'editó un contrato firmado': 'edited a signed contract',
+    'facturó un contrato sin firmar': 'invoiced an unsigned contract',
+    'aplicó un cobro al comprador de otro contrato': 'applied a payment to another contract’s buyer',
+    'aplicó un cobro a una factura sin contrato': 'applied a payment to an invoice with no contract',
+    'guardó un contrato sin ficha de comprador': 'saved a contract with no buyer record',
+    'caja negra: no se ha podido leer': 'black box: could not be read',
+    '%n documento borrado guardado en la caja negra': '%n deleted document kept in the black box',
+    '%n documentos borrados guardados en la caja negra': '%n deleted documents kept in the black box',
+    've el tablero y los datos de contacto de los leads': 'see the board and the leads’ contact details',
+    'ver el tablero y los datos de contacto de los leads': 'see the board and the leads’ contact details',
+    'ver y corregir cuánto firma y cobra cada comercial':
+      'see and correct how much each rep signs and earns',
+    'decidir qué closers atienden cada campaña': 'decide which closers handle each campaign',
+    'la agenda de llamadas de venta': 'the sales-call calendar',
+
+    /* ---------- Vencimientos (la caja de la empresa por fechas) ----------
+       «Vencimiento» aquí es una fecha en la que ENTRA dinero, no un impago:
+       payment / payment due. «Cartera» es el portfolio de contratos firmados.
+       Los cuatro tramos del aging y los «Sin proyecto/Sin comprador» salen de
+       `logica.js`, que llama al diccionario por su propio puente `vT`. */
+    'Sin proyecto': 'No project',
+    'Sin comprador': 'No buyer',
+    '1–30 días': '1–30 days',
+    '31–60 días': '31–60 days',
+    '61–90 días': '61–90 days',
+    '+90 días': '90+ days',
+    'Parcial': 'Partial',
+    'Cobrado': 'Collected',
+    'Cartera': 'Portfolio',
+    'Vence': 'Due',
+    'Vence en 30 días': 'Due in 30 days',
+    'Vence en 90 días': 'Due in 90 days',
+    'pendiente con la fecha pasada': 'outstanding past its date',
+    'nada con la fecha pasada': 'nothing past its date',
+    'previsto en el próximo mes': 'expected next month',
+    'previsto en el trimestre': 'expected this quarter',
+    '%p% de la cartera': '%p% of the portfolio',
+    'contratos firmados, sin contar las Cartas de Reserva':
+      'signed contracts, Reservation Letters excluded',
+    '%n contrato con precio y sin calendario de pagos':
+      '%n contract with a price and no payment schedule',
+    '%n contratos con precio y sin calendario de pagos':
+      '%n contracts with a price and no payment schedule',
+    '%n contrato cuyos hitos no suman 100%': '%n contract whose milestones do not add up to 100%',
+    '%n contratos cuyos hitos no suman 100%': '%n contracts whose milestones do not add up to 100%',
+    '%n sin firmar': '%n unsigned',
+    '%n Carta de Reserva': '%n Reservation Letter',
+    '%n Cartas de Reserva': '%n Reservation Letters',
+    'Fuera de este panel:': 'Outside this panel:',
+    'y': 'and',
+    'de precio': 'in price',
+    'Sobre todo en %s': 'Mostly in %s',
+    'Aquí solo entran contratos firmados que no sean preliminares':
+      'Only signed, non-preliminary contracts are counted here',
+    'Previsión de caja por mes: cobrado, pendiente y vencido':
+      'Cash forecast by month: collected, outstanding and overdue',
+    'línea discontinua = mes actual': 'dashed line = current month',
+    'Solo vencimientos con fecha: lo «sin fecha» no está aquí — está en su alerta.':
+      'Only dated payments: anything “no date” is not here — it is in its own alert.',
+    'Composición de la cartera': 'Portfolio breakdown',
+    'Composición de la cartera: cobrado, pendiente y vencido':
+      'Portfolio breakdown: collected, outstanding and overdue',
+    'Sin cartera en esta moneda.': 'No portfolio in this currency.',
+    'Dinero por trimestre (pendiente)': 'Money by quarter (outstanding)',
+    'Pendiente por trimestre': 'Outstanding by quarter',
+    'Pendiente sin vencer': 'Outstanding, not yet due',
+    'en %n vencimiento': 'across %n payment',
+    'en %n vencimientos': 'across %n payments',
+    'Vencido por antigüedad': 'Overdue by age',
+    'Vencido por antigüedad del retraso': 'Overdue by how late it is',
+    '%e de retraso': '%e late',
+    'Nada vencido en esta moneda. Que siga así.': 'Nothing overdue in this currency. Long may it last.',
+    'Por proyecto': 'By project',
+    'Sin proyectos en esta moneda.': 'No projects in this currency.',
+    'cobrado': 'collected',
+    'pendiente': 'outstanding',
+    'vencido': 'overdue',
+    'Cubierto': 'Covered',
+    'Barra = cartera del proyecto, al ancho relativo del mayor. Verde cobrado · teal pendiente · rojo vencido':
+      'Bar = the project’s portfolio, scaled to the largest. Green collected · teal outstanding · red overdue',
+    'se enseñan los 8 mayores': 'the 8 largest are shown',
+    'Necesitan atención': 'Need attention',
+    'Vencidos': 'Overdue',
+    'Próximos 90 días': 'Next 90 days',
+    'Todos los vencimientos': 'All payments',
+    'Incluir sin firmar': 'Include unsigned',
+    'Mientras se da de alta el histórico, «sin firmar» significa «aún no marcado», no «aún no acordado»':
+      'While the historical backlog is being loaded, “unsigned” means “not marked yet”, not “not agreed yet”',
+    'Nada con este filtro.': 'Nothing with this filter.',
+    'sin firmar': 'unsigned',
+    'Cliente': 'Client',
+    'Hito': 'Milestone',
+    'Cambiar la fecha de este vencimiento': 'Change this payment’s date',
+    'Fecha ajustada a mano': 'Date adjusted by hand',
+    'Facturada': 'Invoiced',
+    'El sistema ya emitió y envió la factura de este vencimiento':
+      'The system already issued and sent the invoice for this payment',
+    'Sin auto': 'No auto',
+    'Este vencimiento no recibe factura automática': 'This payment gets no automatic invoice',
+    'Nueva fecha de vencimiento': 'New due date',
+    'Vencimiento el %f': 'Due on %f',
+    'Fecha quitada — vuelve a «Sin fecha»': 'Date removed — back to “No date”',
+    'Sin contratos en esta moneda.': 'No contracts in this currency.',
+    'Factura': 'Invoice',
+    'Facturas con vencimiento propio': 'Invoices with their own due date',
+    'Vencida': 'Overdue',
+    'En plazo': 'On time',
+    'Ninguna factura con fecha de vencimiento en esta moneda.':
+      'No invoice with a due date in this currency.',
+    'No se pudieron leer los contratos:': 'Could not load the contracts:',
+    'No se pudieron leer los vencimientos:': 'Could not load the payments:',
+    'No se pudo calcular lo cobrado:': 'Could not calculate what has been collected:',
+    'No se pudo guardar la fecha:': 'Could not save the date:',
   };
 
   window.LW_EN = EN;
@@ -544,11 +797,22 @@
      ya está en el DOM cuando arranca el script de la herramienta. En vez de
      generarlo por JS se marca en el HTML y se reescribe aquí una vez:
 
-       <th data-t>Comprador</th>                    ← la clave es su texto
-       <th data-t="Estado~unidad">Estado</th>       ← clave explícita
-       <input data-t-ph placeholder="Buscar…">      ← el placeholder
-       <button data-t-title title="Borrar">         ← el title
-       <span data-t-aria aria-label="Cerrar">       ← el aria-label
+       <th data-lwt>Comprador</th>                  ← la clave es su texto
+       <th data-lwt="Estado~unidad">Estado</th>     ← clave explícita
+       <input data-lwt-ph placeholder="Buscar…">    ← el placeholder
+       <button data-lwt-title title="Borrar">       ← el title
+       <span data-lwt-aria aria-label="Cerrar">     ← el aria-label
+
+     **`data-lwt` y no `data-t`**, que sería lo natural: `data-t` YA estaba
+     cogido en este repo para dos cosas distintas, y las dos habrían roto.
+     `intranet/vencimientos/` guarda en `data-t` las CIFRAS de cada barra del
+     gráfico (`mes.dataset.t.split('·')`): traducirlo le habría borrado los
+     `<span>` de los segmentos, o sea el gráfico entero, y solo en inglés.
+     `intranet/facturas/v3/` lo usa para la clave del chip de tipo. Y el
+     piloto de `Documentacion/` lo usa para SU diccionario, con claves
+     inventadas: si algún día carga también este fichero, los dos applier se
+     pisarían. Un atributo con dos significados es la misma familia de fallo
+     que una lista escrita a mano en dos sitios.
 
      En ESPAÑOL sale sin tocar el DOM: no se normaliza ni un espacio en
      blanco. En inglés escribe la clave derivada en el atributo antes de
@@ -563,28 +827,28 @@
     if (window.LW_IDIOMA !== 'en') return;
     var r = raiz || document;
 
-    r.querySelectorAll('[data-t]').forEach(function (el) {
-      var k = el.dataset.t || el.textContent.trim();
+    r.querySelectorAll('[data-lwt]').forEach(function (el) {
+      var k = el.dataset.lwt || el.textContent.trim();
       if (!k) return;
-      el.dataset.t = k;
+      el.dataset.lwt = k;
       el.textContent = window.lwT(k);
     });
-    r.querySelectorAll('[data-t-ph]').forEach(function (el) {
-      var k = el.dataset.tPh || el.getAttribute('placeholder') || '';
+    r.querySelectorAll('[data-lwt-ph]').forEach(function (el) {
+      var k = el.dataset.lwtPh || el.getAttribute('placeholder') || '';
       if (!k) return;
-      el.dataset.tPh = k;
+      el.dataset.lwtPh = k;
       el.setAttribute('placeholder', window.lwT(k));
     });
-    r.querySelectorAll('[data-t-title]').forEach(function (el) {
-      var k = el.dataset.tTitle || el.getAttribute('title') || '';
+    r.querySelectorAll('[data-lwt-title]').forEach(function (el) {
+      var k = el.dataset.lwtTitle || el.getAttribute('title') || '';
       if (!k) return;
-      el.dataset.tTitle = k;
+      el.dataset.lwtTitle = k;
       el.setAttribute('title', window.lwT(k));
     });
-    r.querySelectorAll('[data-t-aria]').forEach(function (el) {
-      var k = el.dataset.tAria || el.getAttribute('aria-label') || '';
+    r.querySelectorAll('[data-lwt-aria]').forEach(function (el) {
+      var k = el.dataset.lwtAria || el.getAttribute('aria-label') || '';
       if (!k) return;
-      el.dataset.tAria = k;
+      el.dataset.lwtAria = k;
       el.setAttribute('aria-label', window.lwT(k));
     });
 

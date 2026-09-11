@@ -39,7 +39,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/i18n.js?v=d7791b96"></script>
+<script src="/contracts/assets/i18n.js?v=9c5610e2"></script>
 <script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -90,7 +90,7 @@
     <div class="lw-spacer"></div>
     <!-- ACCIÓN PRINCIPAL: una sola y última de la barra (convención de la suite,
          el porqué está en assets/topbar.css junto a `.lw-btn.primary`). -->
-    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i><span data-t>Nuevo modelo</span></button>
+    <button type="button" class="lw-btn primary" id="btnNuevo"><i class="ph ph-plus"></i><span data-lwt>Nuevo modelo</span></button>
   </header>
 
   <div class="sui-stage">
@@ -101,11 +101,11 @@
       <div id="avisos"></div>
 
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" data-t-ph placeholder="Buscar modelo…">
+        <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar modelo…">
         <select class="sui-sel" id="fEstado">
-          <option value="" data-t="Publicados y no publicados">Publicados y no publicados</option>
-          <option value="pub" data-t="Solo publicados en la web">Solo publicados en la web</option>
-          <option value="nopub" data-t="Solo sin publicar">Solo sin publicar</option>
+          <option value="" data-lwt="Publicados y no publicados">Publicados y no publicados</option>
+          <option value="pub" data-lwt="Solo publicados en la web">Solo publicados en la web</option>
+          <option value="nopub" data-lwt="Solo sin publicar">Solo sin publicar</option>
         </select>
       </div>
       <div class="sui-resumen" id="resumen"></div>

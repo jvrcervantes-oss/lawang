@@ -15,6 +15,15 @@
    · Monedas NUNCA mezcladas en una suma: cada agregado va por moneda, y quien
      pinta elige cuál enseña. 100 M€ no se vigilan sumando rupias con euros. */
 
+/* Puente al diccionario compartido (`contracts/assets/i18n.js`, 11-sep-2026).
+   Defensivo A PROPOSITO y no `window.lwT` a pelo: este fichero tambien se carga
+   desde node en `logica.test.js`, donde no hay `window` — sin el puente el
+   guardrail se cae al importar, y un guardrail que no arranca es peor que no
+   tenerlo. En espanol y en node devuelve su entrada, asi que las aserciones del
+   test siguen valiendo palabra por palabra. */
+function vT(s){ return (typeof window !== 'undefined' && window.lwT) ? window.lwT(s) : s; }
+
+
 /* ── el importe de un vencimiento ──────────────────────────────────────────
    Manda el monto escrito; sin monto, el pct sobre el precio del contrato; sin
    ninguno, null — un vencimiento sin importe conocido NO es un vencimiento de
@@ -172,9 +181,9 @@ function modeloFinanciero(o){
        firmados o no: mientras se carga el histórico, esa distinción es la que
        dice cuánto fiarse de la cifra. */
     {
-      const proyP = c.proyecto_nombre || 'Sin proyecto';
+      const proyP = c.proyecto_nombre || vT('Sin proyecto');
       const pp = m.porProyecto[proyP] || (m.porProyecto[proyP] = { cartera:0, cobrado:0, vencido:0, proximos90:0, personas:{} });
-      const quien = (c.comprador_nombre || '').trim() || 'Sin comprador';
+      const quien = (c.comprador_nombre || '').trim() || vT('Sin comprador');
       const per = pp.personas[quien] || (pp.personas[quien] = { precio:0, cobrado:0, pendiente:0, firmados:0, sinFirmar:0 });
       per.precio += precio; per.cobrado += cobrado;
       per.pendiente += Math.max(0, precio - cobrado);
@@ -184,7 +193,7 @@ function modeloFinanciero(o){
     const anotados = cascada(vencsDe[c.id] || [], c, cobrado, hoy);
     for(const v of anotados){
       m.filas.push({ ...v, contrato: c });
-      const proy = c.proyecto_nombre || 'Sin proyecto';
+      const proy = c.proyecto_nombre || vT('Sin proyecto');
       const p = m.porProyecto[proy] || (m.porProyecto[proy] = { cartera:0, cobrado:0, vencido:0, proximos90:0 });
       if(v.estado === 'vencido'){ m.vencido += v.pendiente; p.vencido += v.pendiente; }
       if(v.estado === 'sin_fecha'){ m.nSinFecha++; if(v.importe != null) m.sinFecha += v.pendiente ?? v.importe; }
@@ -204,7 +213,7 @@ function modeloFinanciero(o){
     }
     // cartera/cobrado por proyecto van por CONTRATO, no por vencimiento: un
     // contrato sin calendario también es cartera de su proyecto.
-    const proy = c.proyecto_nombre || 'Sin proyecto';
+    const proy = c.proyecto_nombre || vT('Sin proyecto');
     const p = m.porProyecto[proy] || (m.porProyecto[proy] = { cartera:0, cobrado:0, vencido:0, proximos90:0 });
     p.cartera += precio; p.cobrado += cobrado;
 
@@ -255,10 +264,10 @@ function mesesVentana(hoyISO){
    vieja", que es distinto de "0 € en ese tramo". */
 function agingVencido(filas, hoyISO){
   const tramos = [
-    { etiqueta:'1–30 días',  desde:1,  hasta:30,  importe:0, n:0 },
-    { etiqueta:'31–60 días', desde:31, hasta:60,  importe:0, n:0 },
-    { etiqueta:'61–90 días', desde:61, hasta:90,  importe:0, n:0 },
-    { etiqueta:'+90 días',   desde:91, hasta:Infinity, importe:0, n:0 },
+    { etiqueta:vT('1–30 días'),  desde:1,  hasta:30,  importe:0, n:0 },
+    { etiqueta:vT('31–60 días'), desde:31, hasta:60,  importe:0, n:0 },
+    { etiqueta:vT('61–90 días'), desde:61, hasta:90,  importe:0, n:0 },
+    { etiqueta:vT('+90 días'),   desde:91, hasta:Infinity, importe:0, n:0 },
   ];
   for(const f of filas){
     if(f.estado !== 'vencido' || !(f.pendiente > 0)) continue;

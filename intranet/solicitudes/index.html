@@ -42,7 +42,7 @@
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
 <script src="/contracts/assets/idioma.js?v=23ccd4b1"></script>
-<script src="/contracts/assets/i18n.js?v=d7791b96"></script>
+<script src="/contracts/assets/i18n.js?v=9c5610e2"></script>
 <script src="/contracts/assets/herramientas.js?v=a5ee097e"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -86,13 +86,13 @@
     <div class="lw-spacer"></div>
     <!-- ACCIÓN PRINCIPAL: una sola y última de la barra (convención de la
          suite, el porqué junto a `.lw-btn.primary` en assets/topbar.css). -->
-    <button type="button" class="lw-btn primary" id="btnNueva"><i class="ph ph-plus"></i><span data-t>Nueva solicitud</span></button>
+    <button type="button" class="lw-btn primary" id="btnNueva"><i class="ph ph-plus"></i><span data-lwt>Nueva solicitud</span></button>
   </header>
 
   <div class="sui-stage">
     <div class="sui-centro">
       <div class="sui-filtros">
-        <input class="sui-buscar" id="q" data-t-ph placeholder="Buscar concepto, contrato o compañero…">
+        <input class="sui-buscar" id="q" data-lwt-ph placeholder="Buscar concepto, contrato o compañero…">
         <!-- solo lo ve el admin: para un agente todas las filas son suyas y el
              filtro sería una lista de una persona -->
         <select class="sui-sel" id="fAgente" hidden></select>
@@ -106,13 +106,13 @@
       <div class="sui-tabla-caja">
         <table class="sui-tabla" id="tabla">
           <thead><tr>
-            <th data-orden="numero" data-t>Nº</th>
-            <th data-orden="quien" data-t>Quién pide</th>
-            <th data-t>Concepto</th>
-            <th data-orden="importe" data-t>Importe</th>
-            <th data-orden="venta" data-t>De la venta</th>
-            <th data-orden="estado" data-t>Estado</th>
-            <th data-orden="creado_en" data-t>Cuándo</th>
+            <th data-orden="numero" data-lwt>Nº</th>
+            <th data-orden="quien" data-lwt>Quién pide</th>
+            <th data-lwt>Concepto</th>
+            <th data-orden="importe" data-lwt>Importe</th>
+            <th data-orden="venta" data-lwt>De la venta</th>
+            <th data-orden="estado" data-lwt>Estado</th>
+            <th data-orden="creado_en" data-lwt>Cuándo</th>
           </tr></thead>
           <tbody id="filas"></tbody>
         </table>
