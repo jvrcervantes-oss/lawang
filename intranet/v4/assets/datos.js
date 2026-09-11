@@ -981,7 +981,7 @@
         eq.forEach(function (e) { if (e.email) EQUIPO_NOMBRE[e.email] = e.nombre || e.email; });
 
         /* --- agregados, SOLO EUR --- */
-        var tot = { cartera: 0, suelo: 0, obra: 0 };
+        var tot = { cartera: 0, suelo: 0, obra: 0 }, fueraEur = 0;
         var ests = { disponible: 0, reservada: 0, bloqueada: 0, vendida: 0, cobrada: 0, no_disponible: 0 };
         POR_P = {};
         us.forEach(function (u) {
@@ -993,7 +993,7 @@
           var eNorm = (u.estado || '').replace(/\s+/g, '_');
           d.porEstado[eNorm] = (d.porEstado[eNorm] || 0) + 1;
           if (eNorm in ests) ests[eNorm]++;
-          if (!u.moneda || u.moneda !== 'EUR') return;
+          if (!u.moneda || u.moneda !== 'EUR') { fueraEur++; return; }
           tot.cartera += Number(u.precio || 0); tot.suelo += Number(u.precio_suelo || 0); tot.obra += Number(u.precio_construccion || 0);
           d.cartera += Number(u.precio || 0);
         });
@@ -1008,7 +1008,10 @@
 
         /* --- KPIs --- */
         pon('k-cartera', fmt(tot.cartera, 'EUR'));
-        pon('k-cartera-pie', 'Volumen en ' + ps.length + ' desarrollos activos');
+        // Nota corta y solo cuando aplica (decisión del owner, 11-sep-2026:
+        // el aviso largo de antes "no aportaba nada" — esto es un aviso, no
+        // un párrafo). Sin unidades fuera de EUR, no hay nada que decir.
+        pon('k-cartera-pie', 'Volumen en ' + ps.length + ' desarrollos activos' + (fueraEur ? ' · cifras en EUR' : ''));
         pon('k-cobrado', fmt(cobrado, 'EUR'));
         pon('k-cobrado-pie', facturado ? (Math.round(cobrado / facturado * 1000) / 10) + '% de lo facturado (' + fmt(facturado, 'EUR') + ')' : 'sin facturas emitidas');
         pon('k-pendiente', fmt(tot.cartera - cobrado, 'EUR'));
