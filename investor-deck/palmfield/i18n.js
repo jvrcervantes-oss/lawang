@@ -189,9 +189,16 @@
     'ADR': { es: 'Precio medio/noche', id: 'Tarif rata-rata' },
     'Occupancy': { es: 'Ocupación', id: 'Okupansi' },
     'Gross villa income': { es: 'Ingreso bruto de la villa', id: 'Pendapatan kotor villa' },
-    'Management fee (20%)': { es: 'Gestión (20%)', id: 'Biaya pengelolaan (20%)' },
-    'Maintenance (5%)': { es: 'Mantenimiento (5%)', id: 'Pemeliharaan (5%)' },
-    'Rental tax (10%)': { es: 'Impuesto de alquiler (10%)', id: 'Pajak sewa (10%)' },
+    /* Sin el porcentaje dentro: lo fija la intranet y ya no es siempre 20/5/10.
+       Con la cifra en la clave, el dia que alguien ponga 18% la fila se quedaria
+       en ingles sin que nadie se entere. El JS pinta la palabra y la cifra como
+       dos nodos de texto distintos, y solo la palabra pasa por aqui. */
+    'Management fee': { es: 'Gestión', id: 'Biaya pengelolaan' },
+    'Maintenance': { es: 'Mantenimiento', id: 'Pemeliharaan' },
+    'Rental tax': { es: 'Impuesto de alquiler', id: 'Pajak sewa' },
+    'Total investment (ROI base):': { es: 'Inversión total (base del ROI):', id: 'Total investasi (dasar ROI):' },
+    'Most requested': { es: 'El más solicitado', id: 'Paling diminati' },
+    'Construction:': { es: 'Construcción:', id: 'Konstruksi:' },
     'Net income': { es: 'Ingreso neto', id: 'Pendapatan bersih' },
     'ROI': { es: 'ROI', id: 'ROI' },
     'Investment (construction):': { es: 'Inversión (construcción):', id: 'Investasi (konstruksi):' },
@@ -258,39 +265,15 @@
 
     /* — FAQ — */
     'Frequently Asked Questions': { es: 'Preguntas frecuentes', id: 'Pertanyaan yang Sering Diajukan' },
-    'What tenure do I acquire?': { es: '¿Qué derecho adquiero?', id: 'Hak apa yang saya peroleh?' },
-    '(long-term leasehold under Indonesian law) — the standard route for foreign investors on this project, not Hak Milik, which is reserved for Indonesian citizens. Exact terms are confirmed in the Plot Lock agreement that follows a reservation.':
-      { es: '(leasehold de largo plazo del derecho indonesio) — la vía estándar para inversores extranjeros en este proyecto, no Hak Milik, reservado a ciudadanos indonesios. Las condiciones exactas se confirman en el acuerdo de Plot Lock posterior a la reserva.',
-        id: '(leasehold jangka panjang menurut hukum Indonesia) — jalur standar bagi investor asing di proyek ini, bukan Hak Milik yang hanya untuk warga negara Indonesia. Ketentuan pastinya dikonfirmasi dalam perjanjian Plot Lock setelah pemesanan.' },
-    'What does the reservation fee cover?': { es: '¿Qué cubre la cuota de reserva?', id: 'Apa yang dicakup biaya pemesanan?' },
-    "It reserves the selected plot, held in the notary's escrow account, for the validity period stated in the Letter of Reservation, while you complete due diligence. It is":
-      { es: 'Reserva la parcela elegida, en la cuenta escrow del notario, durante el plazo de validez que indica la Carta de Reserva, mientras completas tu due diligence. No es',
-        id: 'Biaya ini memesan kavling yang dipilih, ditahan di rekening escrow notaris, selama masa berlaku yang tercantum dalam Surat Pemesanan, sementara Anda menyelesaikan uji tuntas. Ini' },
-    'not': { es: 'no es', id: 'bukan' },
-    'the deed of sale and does not transfer any right over the land. If you withdraw, or the reservation lapses, the fee is refunded per the terms in the document you receive.':
-      { es: 'la escritura de compraventa y no transmite ningún derecho sobre el suelo. Si desistes, o la reserva caduca, la cuota se devuelve según las condiciones del documento que recibes.',
-        id: 'akta jual beli dan tidak mengalihkan hak apa pun atas tanah. Jika Anda mundur, atau pemesanan kedaluwarsa, biaya dikembalikan sesuai ketentuan dalam dokumen yang Anda terima.' },
-    'Are the prices shown final?': { es: '¿Los precios mostrados son definitivos?', id: 'Apakah harga yang ditampilkan final?' },
-    'No — land and construction prices shown are reference prices per the current catalogue, confirmed in the Plot Lock / construction agreement. They are not a binding offer.':
-      { es: 'No — los precios de suelo y construcción son precios de referencia del catálogo vigente, y se confirman en el acuerdo de Plot Lock / construcción. No son una oferta vinculante.',
-        id: 'Tidak — harga tanah dan konstruksi adalah harga referensi sesuai katalog saat ini, dikonfirmasi dalam perjanjian Plot Lock / konstruksi. Bukan penawaran yang mengikat.' },
-    'Is this an investment product?': { es: '¿Es un producto de inversión?', id: 'Apakah ini produk investasi?' },
-    'No. This is the direct purchase of a real-estate asset (a land plot under Hak Sewa), not a security, fund, or tokenised instrument. Lawang separately operates a distinct project for tokenised real-estate exposure (LawangRWA) — Palm Field is not part of it.':
-      { es: 'No. Es la compra directa de un activo inmobiliario (una parcela en Hak Sewa), no un valor, un fondo ni un instrumento tokenizado. Lawang opera aparte un proyecto distinto de exposición inmobiliaria tokenizada (LawangRWA) — Palm Field no forma parte de él.',
-        id: 'Bukan. Ini pembelian langsung aset properti (kavling tanah dengan Hak Sewa), bukan efek, reksa dana, atau instrumen tokenisasi. Lawang secara terpisah menjalankan proyek lain untuk eksposur properti tertokenisasi (LawangRWA) — Palm Field bukan bagian darinya.' },
-    'How are construction-stage payments protected?': { es: '¿Cómo se protegen los pagos por hitos de obra?', id: 'Bagaimana pembayaran tahap konstruksi dilindungi?' },
-    'Construction payments are not made upfront in full — they are split into stages tied to verified progress on site (foundations, structure, enclosures, installations, finishes and handover), per your construction agreement.':
-      { es: 'Los pagos de construcción no se abonan por adelantado en su totalidad — se reparten en hitos ligados a avance verificado en obra (cimentación, estructura, cerramientos, instalaciones, acabados y entrega), según tu contrato de construcción.',
-        id: 'Pembayaran konstruksi tidak dibayar penuh di muka — dibagi menjadi tahapan yang terikat pada progres terverifikasi di lokasi (pondasi, struktur, dinding, instalasi, finishing, dan serah terima), sesuai perjanjian konstruksi Anda.' },
-    'Can I resell, transfer or leave the plot to my heirs?': { es: '¿Puedo revender, transmitir o dejar la parcela en herencia?', id: 'Bisakah saya menjual kembali, mengalihkan, atau mewariskan kavling?' },
-    'Yes — Hak Sewa rights are transferable, sellable and heritable within the registered lease term, subject to the conditions of your specific Hak Sewa agreement. Our team can walk you through the process for your situation.':
-      { es: 'Sí — los derechos de Hak Sewa son transmisibles, vendibles y heredables dentro del plazo inscrito, sujeto a las condiciones de tu contrato concreto de Hak Sewa. Nuestro equipo puede explicarte el proceso en tu caso.',
-        id: 'Bisa — hak dalam Hak Sewa dapat dialihkan, dijual, dan diwariskan dalam jangka sewa terdaftar, tunduk pada ketentuan perjanjian Hak Sewa Anda. Tim kami dapat memandu prosesnya sesuai situasi Anda.' },
-    'What happens after I reserve a plot?': { es: '¿Qué pasa después de reservar una parcela?', id: 'Apa yang terjadi setelah saya memesan kavling?' },
-    "You receive the Letter of Reservation by email with payment instructions for the reservation fee. Our team follows up to move the process to the next stage (Plot Lock / Hak Sewa deed) within the reservation's validity period.":
-      { es: 'Recibes la Carta de Reserva por email con las instrucciones de pago de la cuota. Nuestro equipo hace el seguimiento para pasar a la siguiente fase (Plot Lock / escritura de Hak Sewa) dentro del plazo de validez de la reserva.',
-        id: 'Anda menerima Surat Pemesanan lewat email beserta instruksi pembayaran biaya pemesanan. Tim kami menindaklanjuti untuk melanjutkan ke tahap berikutnya (Plot Lock / akta Hak Sewa) dalam masa berlaku pemesanan.' },
-
+    /* Las 7 preguntas y sus respuestas YA NO SE TRADUCEN AQUI (11-sep-2026).
+       Viven en `deck_faq` con sus tres idiomas DENTRO de la fila, y el deck las
+       pide por `investor_deck_faq`. Este diccionario casa por texto ingles del
+       HTML, asi que no puede tocar lo que pinta el JS desde la base: cada fila
+       trae su es/id y el front resuelve campo[lang] ?? campo.en.
+       Se retiran en vez de dejarlas huerfanas a proposito -- eran una SEGUNDA
+       copia del texto que paso la consulta legal del 9-sep, y dos copias de un
+       texto legal es exactamente la familia de fallo que este cambio cierra.
+       El registro de lo que decian: el commit anterior a este, y `deck_publicaciones`. */
     /* — galería — */
     'Site & Delivered Villas': { es: 'El sitio y las villas entregadas', id: 'Lokasi & Villa Terbangun' },
     'Plots, surrounding land and villa models already delivered on neighbouring phases.':
@@ -435,8 +418,8 @@
      elemento entero, porque el walker de nodos de texto los vería partidos. */
   var HTML_BLOQUES = [
     { sel: '#forecast-nota',
-      es: 'Las cifras son una previsión operativa de Año 1 facilitada por Lawang, no una rentabilidad garantizada ni histórica. El ROI se calcula sobre la inversión total (construcción más suelo) que indica cada tarjeta; la parte de suelo depende de la parcela elegida. Los porcentajes de gestión, mantenimiento e impuesto de alquiler son los del contrato de gestión vigente y pueden cambiar.',
-      id: 'Angka-angka ini adalah proyeksi operasional Tahun ke-1 dari Lawang, bukan imbal hasil yang dijamin maupun historis. ROI dihitung atas total investasi (konstruksi ditambah tanah) yang tertera di setiap kartu; bagian tanah tergantung kavling yang dipilih. Persentase pengelolaan, pemeliharaan, dan pajak sewa mengikuti perjanjian pengelolaan yang berlaku dan dapat berubah.' }
+      es: 'Las cifras son una previsión operativa de Año 1 facilitada por Lawang, no una rentabilidad garantizada ni histórica. El ROI se calcula sobre la inversión total (construcción más suelo) que indica cada tarjeta; la parte de suelo depende de la parcela elegida. Los porcentajes de gestión, mantenimiento e impuesto de alquiler son orientativos y se confirman en el contrato de gestión de alquiler que se firme; pueden cambiar.',
+      id: 'Angka-angka ini adalah proyeksi operasional Tahun ke-1 dari Lawang, bukan imbal hasil yang dijamin maupun historis. ROI dihitung atas total investasi (konstruksi ditambah tanah) yang tertera di setiap kartu; bagian tanah tergantung kavling yang dipilih. Persentase pengelolaan, pemeliharaan, dan pajak sewa bersifat indikatif dan dikonfirmasi dalam perjanjian pengelolaan sewa yang Anda tandatangani; dapat berubah.' }
   ];
 
   // Atributos visibles que también se traducen

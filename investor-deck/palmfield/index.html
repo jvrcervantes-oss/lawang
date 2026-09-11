@@ -87,7 +87,7 @@
   .lw-fade-in { animation: lwFadeIn .35s ease both; }
   @keyframes lwFadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none;} }
 </style>
-<script src="i18n.js?v=20260911170721"></script>
+<script src="i18n.js?v=20260911174255"></script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
@@ -202,16 +202,27 @@
       </p>
     </div>
 
-      <figure class="m-0 relative rounded-2xl overflow-hidden shadow-lg">
-        <img src="assets/gallery/08-resort-night.jpg" alt="Palm Field villas stepped down the Balian river valley at dusk" class="w-full h-[32vh] min-h-[220px] lg:h-[34vh] lg:max-h-[330px] object-cover" fetchpriority="high">
-        <div class="absolute inset-x-0 top-0 p-4 md:p-5 flex justify-between items-start gap-2 pointer-events-none">
+      <!-- Era UNA foto fija. Ahora es un carrusel que se llena de `deck_fotos`
+           (uso='hero') por `investor_deck_fotos`, y el equipo lo gestiona desde la
+           ficha del proyecto en la intranet. Misma mecanica exacta que el carrusel
+           de «Site & Delivered Villas» de mas abajo —scroll-snap, flechas solo con
+           raton, arrastre en tactil— para no inventar un segundo comportamiento en
+           la misma pagina. Las dos pastillas son del sitio, no de la foto: se
+           quedan fijas encima y no viajan con las diapositivas. -->
+      <div class="m-0 relative rounded-2xl overflow-hidden shadow-lg" id="hero-carrusel">
+        <div id="hero-track" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth lw-carrusel h-[32vh] min-h-[220px] lg:h-[34vh] lg:max-h-[330px] bg-[#E4DFD5]"><!-- lo llena el JS --></div>
+        <div class="absolute inset-x-0 top-0 p-4 md:p-5 flex justify-between items-start gap-2 pointer-events-none z-10">
           <span class="bg-surface/95 backdrop-blur-md px-3.5 py-1 rounded-full text-deep-lagoon font-label-md text-body-sm shadow-sm border border-[#D8D2C5]">Palm Field · Balian Hills</span>
           <span class="bg-territorial-green text-white px-3 py-1 rounded-full text-[11px] font-label-md uppercase tracking-wider font-semibold">Hak Sewa · Notarial Escrow</span>
         </div>
-        <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-stone-sand font-body-sm text-xs px-5 pt-10 pb-4">
-          Delivered villas on a neighbouring phase, Balian river valley, southwest Bali.
-        </figcaption>
-      </figure>
+        <button type="button" id="hero-prev" aria-label="Previous photos"
+          class="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-surface/90 backdrop-blur-md border border-[#D8D2C5] shadow-md text-deep-lagoon hover:bg-deep-lagoon hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none">
+          <span class="material-symbols-outlined text-[20px]">chevron_left</span></button>
+        <button type="button" id="hero-next" aria-label="More photos"
+          class="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-surface/90 backdrop-blur-md border border-[#D8D2C5] shadow-md text-deep-lagoon hover:bg-deep-lagoon hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none">
+          <span class="material-symbols-outlined text-[20px]">chevron_right</span></button>
+        <div id="hero-puntos" class="absolute right-4 bottom-3.5 z-20 flex gap-1.5"></div>
+      </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div class="bg-surface-container-lowest p-4 rounded-xl flex flex-col gap-0.5 shadow-sm border border-[#D8D2C5]"><div class="flex items-center gap-2 text-territorial-green"><span class="material-symbols-outlined text-[18px]">landscape</span><span class="font-body-sm text-[11px] font-semibold tracking-wider uppercase text-[#44483f]">Land Managed</span></div><span class="font-kpi-number text-[26px] leading-tight text-deep-lagoon">500.000+</span><span class="font-body-sm text-xs text-[#44483f]">m² under segregable title management</span></div>
@@ -240,34 +251,15 @@
 
         <div class="flex flex-col gap-2">
           <h3 class="font-body-md text-[11px] uppercase tracking-wider text-[#5F6257] font-bold m-0">Frequently Asked Questions</h3>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest" open>
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>What tenure do I acquire?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3"><b>Hak Sewa</b> (long-term leasehold under Indonesian law) — the standard route for foreign investors on this project, not Hak Milik, which is reserved for Indonesian citizens. Exact terms are confirmed in the Plot Lock agreement that follows a reservation.</div>
-    </details>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>What does the reservation fee cover?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">It reserves the selected plot, held in the notary's escrow account, for the validity period stated in the Letter of Reservation, while you complete due diligence. It is <b>not</b> the deed of sale and does not transfer any right over the land. If you withdraw, or the reservation lapses, the fee is refunded per the terms in the document you receive.</div>
-    </details>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>Are the prices shown final?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">No — land and construction prices shown are reference prices per the current catalogue, confirmed in the Plot Lock / construction agreement. They are not a binding offer.</div>
-    </details>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>Is this an investment product?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">No. This is the direct purchase of a real-estate asset (a land plot under Hak Sewa), not a security, fund, or tokenised instrument. Lawang separately operates a distinct project for tokenised real-estate exposure (LawangRWA) — Palm Field is not part of it.</div>
-    </details>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>How are construction-stage payments protected?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">Construction payments are not made upfront in full — they are split into stages tied to verified progress on site (foundations, structure, enclosures, installations, finishes and handover), per your construction agreement.</div>
-    </details>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>Can I resell, transfer or leave the plot to my heirs?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">Yes — Hak Sewa rights are transferable, sellable and heritable within the registered lease term, subject to the conditions of your specific Hak Sewa agreement. Our team can walk you through the process for your situation.</div>
-    </details>
-          <details class="group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest">
-      <summary class="flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold"><span>What happens after I reserve a plot?</span><span class="material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180">expand_more</span></summary>
-      <div class="pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3">You receive the Letter of Reservation by email with payment instructions for the reservation fee. Our team follows up to move the process to the next stage (Plot Lock / Hak Sewa deed) within the reservation's validity period.</div>
-    </details>
+          <!-- LAS PREGUNTAS YA NO VIVEN AQUI (11-sep-2026). Salen de `deck_faq` por
+               `investor_deck_faq`, y se editan desde la intranet. El comentario de
+               arriba que decia "La FAQ vive AQUI y en ningun otro sitio" describia el
+               estado anterior y ya no es cierto: la fuente unica es ahora la base.
+               El texto sembrado es LETRA POR LETRA el que paso la consulta legal del
+               9-sep-2026 -- esto movio donde vive el dato, no lo reescribio.
+               ⚠️ Lo que sale de la base NO pasa por i18n.js (que casa por texto
+               ingles): cada fila trae sus tres idiomas dentro. -->
+          <div id="faq-lista" class="flex flex-col gap-2"><!-- lo llena el JS --></div>
         </div>
 
         <div class="flex flex-wrap gap-2 pt-1 border-t border-[#D8D2C5]">
@@ -362,13 +354,16 @@
 <section class="w-full px-6 md:px-margin-desktop py-14 bg-[#DFD7C6] border-y border-[#C9BFA9]" id="rendimientos">
 <div class="lw-wide flex flex-col gap-8">
   <div class="flex flex-col gap-2 lw-prose">
-    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal">Year-1 Rental Forecast — Dali, Dune &amp; Dream</h2>
+    <!-- El titulo nombraba «Dali, Dune & Dream» a mano. Desde que los modelos del
+         forecast salen de la intranet, esa lista se queda vieja el dia que se
+         publique o se retire uno, y nadie se entera. La rellena el JS. -->
+    <h2 class="font-headline-lg text-headline-lg text-deep-lagoon font-normal" id="forecast-titulo">Year-1 Rental Forecast</h2>
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">A first-year operating forecast under two scenarios (Average / Optimal occupancy). This is a forecast, not a guarantee — actual results depend on the rental operator, market conditions and property management agreement in force.</p>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="forecast-grid"><!-- filled by JS --></div>
 
-  <p id="forecast-nota" class="font-body-sm text-xs text-[#5F6257] lw-prose">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. ROI is calculated on the total investment (construction plus land) stated on each card; the land figure depends on the plot chosen. Management fee, maintenance and rental tax percentages are those of the current rental-management agreement and may change.</p>
+  <p id="forecast-nota" class="font-body-sm text-xs text-[#5F6257] lw-prose">Figures shown are a Year-1 operating forecast provided by Lawang, not a guaranteed or historical return. ROI is calculated on the total investment (construction plus land) stated on each card; the land figure depends on the plot chosen. Management fee, maintenance and rental tax percentages are indicative and are confirmed in the rental-management agreement you sign; they may change.</p>
 </div>
 </section>
 
@@ -533,11 +528,16 @@
   // contrato sigue siendo en EUR (ver nota al pie).
   function fmtMoney(n, cur){ if(n==null) return '—'; return window.lwMoney ? lwMoney(n) : ((cur||'EUR') + ' ' + Number(n).toLocaleString('en-GB')); }
 
-  // ── galería (fotos reales de intranet/dossier/palmfield/) ────────────────
-  // 15 = 5 filas exactas de 3, sin huérfana. Se retiraron 12-masterplan y 11-masterplan-aerial:
-  // ahora se muestran a tamaño grande en su propia sección #masterplan, aquí eran duplicados.
-  // Se añadió un render de Dali: el deck vende 3 modelos y la galería solo enseñaba 2.
-  var GALLERY = [
+  // ── fotos: la intranet manda, el repo es solo el suelo bajo los pies ──────
+  // Antes habia aqui un array de 15 rutas escrito a mano, y la hero era UNA foto
+  // fija. Ahora las dos galerias salen de `deck_fotos` (RPC investor_deck_fotos)
+  // y el equipo las gestiona desde la ficha del proyecto en la intranet.
+  //
+  // SEMILLA: mientras no haya ni una foto subida se siguen viendo las del repo.
+  // No son "dos fuentes": es el suelo del que se levanta esto, y se retira solo —
+  // en cuanto la intranet tiene una foto, el array deja de mirarse. Cuando el
+  // owner confirme que ya las subio, ESTE BLOQUE SE BORRA (queda en git).
+  var SEMILLA = [
     ['10-plot-aerial.jpg','Plot — aerial view'],
     ['09-the-plot.jpg','The plot'],
     ['09-the-view.jpg','The view'],
@@ -554,47 +554,163 @@
     ['18-dream-day.jpg','Dream model — day'],
     ['19-dream-plan.jpg','Dream model — floor plan']
   ];
-  var g = document.getElementById('gallery');
-  GALLERY.forEach(function(it){
-    // Una entrada que ya empieza por '../' es una ruta propia (renders de /assets/img/buildings/);
-    // el resto son nombres de fichero dentro de assets/gallery/.
-    var src = it[0].indexOf('../') === 0 ? it[0] : 'assets/gallery/' + it[0];
-    var fig = document.createElement('figure');
-    // Ancho fijo por foto + snap: el carrusel para en foto entera, no a medias.
-    // En movil ocupa casi toda la pantalla (82vw) para que se lea; en escritorio
-    // caben tres y pico, que insinua que hay mas a la derecha.
-    fig.className = 'm-0 shrink-0 snap-start relative overflow-hidden rounded-xl border border-[#D8D2C5] ' +
-      'w-[82vw] sm:w-[46vw] lg:w-[31%] aspect-[4/3] bg-[#F0ECE1] group';
-    fig.innerHTML = '<img src="'+src+'" alt="'+esc(it[1])+'" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">' +
-      '<figcaption class="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent text-white font-body-sm text-body-sm px-4 pt-10 pb-3">'+esc(it[1])+'</figcaption>';
-    g.appendChild(fig);
-  });
+  // Seis y no una: con una sola foto el carrusel de la hero no seria un carrusel,
+  // y el encargo era justamente que lo fuera. Son fotos del SITIO (no planos ni
+  // renders), que es lo que tiene sentido en la portada. Sus pies ya estan en el
+  // diccionario de i18n.js, asi que siguen traduciendose en los tres idiomas.
+  var SEMILLA_HERO = [
+    ['08-resort-night.jpg','Delivered villas on a neighbouring phase, Balian river valley, southwest Bali.'],
+    ['13-resort-river.jpg','The villas — Balian river'],
+    ['09-the-view.jpg','The view'],
+    ['07-balian-sunset.jpg','Balian sunset'],
+    ['10-plot-aerial.jpg','Plot — aerial view'],
+    ['06-balian-coast.jpg','Balian coast']
+  ];
 
-  // Flechas: se apagan solas en los extremos. `behavior:'smooth'` no anima en
-  // Edge headless, pero en un navegador real si -- no confundir una cosa con otra
-  // al verificar (gotcha ya registrado en la memoria del estudio).
-  (function(){
-    var prev = document.getElementById('gal-prev');
-    var next = document.getElementById('gal-next');
-    if(!prev || !next || !g) return;
+  var BUCKET = SB_URL + '/storage/v1/object/public/deck/';
+
+  // Texto multiidioma venido de la base. NO pasa por i18n.js, que casa por texto
+  // ingles del HTML y no puede tocar lo que pinta el JS desde la base: cada fila
+  // trae sus tres idiomas dentro. Si falta el del visitante cae al ingles, que el
+  // CHECK de la tabla garantiza que existe.
+  function lwTxt(campo){
+    if(!campo) return '';
+    var lang = window.lwLang ? lwLang() : 'en';
+    return String(campo[lang] || campo.en || '');
+  }
+
+  // Un render de una villa que aun no existe no puede pasar por fotografia: en la
+  // UE el render publicado integra la oferta, y Permendag 19/2026 obliga a
+  // declarar la imagen generada. Lo declara quien sube y sale a la vista.
+  function etiquetaTipo(tipo){
+    if(tipo === 'render') return ' · Render';
+    if(tipo === 'ia')     return ' · AI-generated image';
+    return '';
+  }
+
+  // Flechas de un carrusel con scroll-snap. Sale a funcion porque ahora hay DOS
+  // carruseles en la pagina —la hero y la galeria— y copiarlo habria sido la
+  // segunda copia que diverge en cuanto se toque una.
+  function montaFlechas(track, prev, next, puntos){
+    if(!track || !prev || !next) return;
     function paso(){
-      var f = g.firstElementChild;
-      return f ? f.getBoundingClientRect().width + 16 : g.clientWidth * 0.8;
+      var f = track.firstElementChild;
+      return f ? f.getBoundingClientRect().width + 16 : track.clientWidth * 0.8;
     }
     function pinta(){
-      // Tolerancia de 8px, no de 1: el px-1 del contenedor deja el carrusel en
+      // Tolerancia de 8px y no de 1: el px-1 del contenedor deja el carrusel en
       // scrollLeft 4 estando al principio, y con margen de 1 la flecha izquierda
-      // nunca se apagaba en la primera foto (medido, no supuesto).
-      var fin = g.scrollWidth - g.clientWidth;
-      prev.disabled = g.scrollLeft <= 8;
-      next.disabled = g.scrollLeft >= fin - 8;
+      // no se apagaba nunca en la primera foto (medido, no supuesto).
+      var fin = track.scrollWidth - track.clientWidth;
+      prev.disabled = track.scrollLeft <= 8;
+      next.disabled = track.scrollLeft >= fin - 8;
+      if(puntos && puntos.children.length){
+        var n = Math.round(track.scrollLeft / Math.max(1, paso()));
+        for(var i = 0; i < puntos.children.length; i++){
+          puntos.children[i].className = 'w-1.5 h-1.5 rounded-full transition-all ' +
+            (i === n ? 'bg-white w-4' : 'bg-white/50');
+        }
+      }
     }
-    prev.addEventListener('click', function(){ g.scrollBy({ left: -paso(), behavior: 'smooth' }); });
-    next.addEventListener('click', function(){ g.scrollBy({ left:  paso(), behavior: 'smooth' }); });
-    g.addEventListener('scroll', pinta);
+    prev.addEventListener('click', function(){ track.scrollBy({ left: -paso(), behavior: 'smooth' }); });
+    next.addEventListener('click', function(){ track.scrollBy({ left:  paso(), behavior: 'smooth' }); });
+    // `behavior:'smooth'` no anima en Edge headless pero si en un navegador real:
+    // no confundir una cosa con la otra al verificar (gotcha ya registrado).
+    track.addEventListener('scroll', pinta);
     window.addEventListener('resize', pinta);
     pinta();
-  })();
+  }
+
+  function pintaHero(fotos){
+    var track  = document.getElementById('hero-track');
+    var puntos = document.getElementById('hero-puntos');
+    if(!track) return;
+    track.innerHTML = '';
+    if(puntos) puntos.innerHTML = '';
+    fotos.forEach(function(f, i){
+      var fig = document.createElement('figure');
+      fig.className = 'm-0 relative shrink-0 snap-center w-full h-full';
+      var img = document.createElement('img');
+      img.src = f.src;
+      img.alt = f.pie;
+      img.className = 'w-full h-full object-cover';
+      // Solo la primera es LCP. Marcarlas todas con prioridad alta es lo mismo que
+      // no marcar ninguna, y encima le pelean el ancho de banda.
+      if(i === 0) img.setAttribute('fetchpriority', 'high');
+      else img.loading = 'lazy';
+      var cap = document.createElement('figcaption');
+      cap.className = 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent ' +
+                      'text-stone-sand font-body-sm text-xs px-5 pt-10 pb-4 pr-24';
+      cap.textContent = f.pie + etiquetaTipo(f.tipo);
+      fig.appendChild(img); fig.appendChild(cap);
+      track.appendChild(fig);
+      if(puntos && fotos.length > 1){
+        var d = document.createElement('span');
+        d.className = 'w-1.5 h-1.5 rounded-full transition-all ' + (i === 0 ? 'bg-white w-4' : 'bg-white/50');
+        puntos.appendChild(d);
+      }
+    });
+    montaFlechas(track, document.getElementById('hero-prev'), document.getElementById('hero-next'), puntos);
+    if(window.lwDeck) lwDeck.traduce(track);
+  }
+
+  function pintaGaleria(fotos){
+    var g = document.getElementById('gallery');
+    if(!g) return;
+    g.innerHTML = '';
+    fotos.forEach(function(f){
+      var fig = document.createElement('figure');
+      // Ancho fijo por foto + snap: el carrusel para en foto entera, no a medias.
+      // En movil ocupa casi toda la pantalla (82vw) para que se lea; en escritorio
+      // caben tres y pico, que insinua que hay mas a la derecha.
+      fig.className = 'm-0 shrink-0 snap-start relative overflow-hidden rounded-xl border border-[#D8D2C5] ' +
+        'w-[82vw] sm:w-[46vw] lg:w-[31%] aspect-[4/3] bg-[#F0ECE1] group';
+      var img = document.createElement('img');
+      img.src = f.src; img.alt = f.pie; img.loading = 'lazy';
+      img.className = 'w-full h-full object-cover transition-transform duration-500 group-hover:scale-105';
+      var cap = document.createElement('figcaption');
+      cap.className = 'absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent ' +
+                      'text-white font-body-sm text-body-sm px-4 pt-10 pb-3';
+      // textContent y NUNCA innerHTML: este pie lo escribe una persona en la
+      // intranet y se pinta en una pagina publica. Por ahi entra un XSS
+      // almacenado, y ese mismo patron ya se cazo en este deck el 11-sep.
+      cap.textContent = f.pie + etiquetaTipo(f.tipo);
+      fig.appendChild(img); fig.appendChild(cap);
+      g.appendChild(fig);
+    });
+    montaFlechas(g, document.getElementById('gal-prev'), document.getElementById('gal-next'), null);
+    if(window.lwDeck) lwDeck.traduce(g);
+  }
+
+  function fotosDeSemilla(){
+    pintaHero(SEMILLA_HERO.map(function(it){
+      return { src: 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
+    }));
+    pintaGaleria(SEMILLA.map(function(it){
+      // Una entrada que empieza por '../' es ruta propia (renders de
+      // /assets/img/buildings/); el resto son ficheros de assets/gallery/.
+      return { src: it[0].indexOf('../') === 0 ? it[0] : 'assets/gallery/' + it[0], pie: it[1], tipo: 'foto' };
+    }));
+  }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_fotos', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows){
+      if(!rows || !rows.length){ fotosDeSemilla(); return; }
+      var fotos = rows.map(function(r){
+        return { uso:r.uso, tipo:r.tipo, src: BUCKET + r.path, pie: lwTxt(r.pie) };
+      });
+      var hero = fotos.filter(function(f){ return f.uso === 'hero'; });
+      var gal  = fotos.filter(function(f){ return f.uso === 'galeria'; });
+      // Sin ninguna marcada como hero, la portada tira de las de galeria en vez de
+      // quedarse en blanco: un hueco vacio en lo primero que se ve es peor que una
+      // foto que alguien no llego a clasificar.
+      pintaHero(hero.length ? hero : gal.slice(0, 6));
+      pintaGaleria(gal.length ? gal : hero);
+    })
+    .catch(fotosDeSemilla);
 
   // ── dosier descargable: sale de la documentacion del proyecto, o no sale ────
   // El owner decidio (11-sep) que el dosier del deck es el documento adjunto al
@@ -750,62 +866,164 @@
     .catch(modelosCaidos);
 
   // ── previsión de alquiler, Año 1 ──────────────────────────────────────────
-  // Se genera desde datos y NO a mano: un solo camino de calculo para los tres
-  // modelos, y los importes se convierten solos al cambiar de divisa.
+  // Los numeros ya no viven aqui: salen de `deck_forecast` (por modelo y proyecto)
+  // y `deck_forecast_proyecto` (los tres porcentajes, que son del contrato de
+  // gestion de alquiler y no del modelo), via `investor_deck_forecast`.
   //
-  // ⚠️ Cada escenario usa SU propia ocupacion (decision del owner, 11-sep-2026).
-  // Hasta esa fecha la columna "Average" de Dune y Dream calculaba el bruto con
-  // la ocupacion OPTIMA (19.521 = 81 x 365 x 0,66, no x 0,59), lo que inflaba
-  // el escenario conservador ~12%. Corregido: Dune 13,4%->11,9% y Dream
-  // 11,8%->10,5% en Average. Las columnas Optimal no cambian.
+  // ⚠️ EL CALCULO SIGUE VIVIENDO EN UN SOLO SITIO: aqui. El RPC devuelve los
+  // DATOS, no el resultado. Repartir la aritmetica del dinero entre SQL y JS es
+  // como acaban dos pantallas dando cifras distintas de la misma villa.
   //
-  // `base` es la inversion TOTAL (construccion + suelo) sobre la que se calcula
-  // el ROI, no solo la construccion. Dune y Dream son las cifras del owner;
-  // Dali (79.250) sale de su construccion (48.000) mas una parcela de 250 m2 al
-  // precio de referencia del propio inventario (125 €/m2).
-  var GASTOS = [
-    ['Management fee (20%)', 0.20],
-    ['Maintenance (5%)',     0.05],
-    ['Rental tax (10%)',     0.10]
-  ];
-  var FORECAST = [
-    { nombre:'Dali · 1 bedroom',   constr:48000,  base:79250,  adr:[40,60],   occ:[0.59,0.66] },
-    { nombre:'Dune · 1 bedroom',   constr:68000,  base:95000,  adr:[81,94],   occ:[0.59,0.66] },
-    { nombre:'Dream · 2 bedrooms', constr:101000, base:125000, adr:[115,132], occ:[0.48,0.54], featured:true }
-  ];
+  // ⚠️ Cada escenario usa SU propia ocupacion. Hasta el 11-sep la columna
+  // "Average" de Dune y Dream calculaba el bruto con la ocupacion OPTIMA, lo que
+  // inflaba el escenario conservador ~12%.
+  //
+  // `inversion_base` es la inversion TOTAL (construccion + suelo) sobre la que se
+  // calcula el ROI. El 11-sep se corrigio en la base: las de Dune y Dream estaban
+  // POR DEBAJO de construccion mas la parcela mas barata del propio inventario,
+  // que la pagina enseña dos secciones mas arriba.
+  function pintaForecast(filas){
+    var fg = document.getElementById('forecast-grid');
+    if(!fg) return;
+    fg.innerHTML = '';
+
+    var f0 = filas[0];
+    var GASTOS = [
+      ['Management fee', Number(f0.pct_gestion)],
+      ['Maintenance',    Number(f0.pct_mantenimiento)],
+      ['Rental tax',     Number(f0.pct_impuesto)]
+    ];
+    var retencion = GASTOS.reduce(function(a, g){ return a + g[1]; }, 0);
+
+    // El titulo nombraba «Dali, Dune & Dream» a mano. Ahora lo dicen los datos,
+    // asi que publicar o retirar un modelo no deja el encabezado mintiendo.
+    // Se escribe en el formato que la regla por regex de i18n.js ya sabe traducir
+    // (`^Year-1 Rental Forecast — (.+)$`), en vez de inventar otra clave.
+    var tit = document.getElementById('forecast-titulo');
+    if(tit){
+      var nombres = filas.map(function(r){ return r.modelo_nombre; });
+      var lista = nombres.length > 1
+        ? nombres.slice(0, -1).join(', ') + ' & ' + nombres[nombres.length - 1]
+        : nombres[0];
+      tit.textContent = 'Year-1 Rental Forecast — ' + lista;
+    }
+
+    filas.forEach(function(m){
+      var adr = [Number(m.adr_medio), Number(m.adr_optimo)];
+      var occ = [Number(m.ocupacion_media), Number(m.ocupacion_optima)];
+      var base = Number(m.inversion_base);
+      var bruto = [0,1].map(function(i){ return adr[i] * 365 * occ[i]; });
+      var neto  = bruto.map(function(g){ return g * (1 - retencion); });
+
+      var filasHtml = '';
+      filasHtml += '<tr><td>ADR</td><td class="text-right lw-money">'+eur(adr[0])+'</td><td class="text-right lw-money">'+eur(adr[1])+'</td></tr>';
+      filasHtml += '<tr><td>Occupancy</td><td class="text-right lw-money">'+Math.round(occ[0]*100)+'%</td><td class="text-right lw-money">'+Math.round(occ[1]*100)+'%</td></tr>';
+      filasHtml += '<tr><td>Gross villa income</td><td class="text-right lw-money">'+eur(bruto[0])+'</td><td class="text-right lw-money">'+eur(bruto[1])+'</td></tr>';
+      GASTOS.forEach(function(g){
+        // La palabra y el porcentaje van en NODOS DE TEXTO distintos a proposito:
+        // el % lo fija la intranet, y si viajara dentro de la clave de traduccion
+        // («Management fee (20%)») el dia que alguien ponga 18% la fila se
+        // quedaria en ingles sin que nadie lo notara.
+        filasHtml += '<tr><td><span>'+esc(g[0])+'</span> ('+Math.round(g[1]*100)+'%)</td>' +
+          '<td class="text-right lw-money">'+eur(-bruto[0]*g[1])+'</td>' +
+          '<td class="text-right lw-money">'+eur(-bruto[1]*g[1])+'</td></tr>';
+      });
+      filasHtml += '<tr class="font-semibold text-deep-lagoon border-t-2 border-[#D8D2C5]"><td>Net income</td><td class="text-right lw-money">'+eur(neto[0])+'</td><td class="text-right lw-money">'+eur(neto[1])+'</td></tr>';
+      filasHtml += '<tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">'+(neto[0]/base*100).toFixed(1)+'%</td><td class="text-right lw-money">'+(neto[1]/base*100).toFixed(1)+'%</td></tr>';
+
+      // El nombre del modelo lo teclea una persona en la intranet y esto es una
+      // pagina publica: pasa por esc() SIEMPRE (XSS almacenado ya cazado aqui).
+      var dorm = m.dormitorios === 1 ? '1 bedroom' : (m.dormitorios || 0) + ' bedrooms';
+      var card = document.createElement('div');
+      card.className = 'bg-surface-container-lowest rounded-2xl shadow-md overflow-hidden relative border' +
+        (m.destacado ? '-2 border-territorial-green' : ' border-[#D8D2C5]');
+      card.innerHTML =
+        (m.destacado ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
+        '<div class="p-5 bg-[#E4DFD5] border-b border-[#D8D2C5]">' +
+          '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(m.modelo_nombre)+' · '+esc(dorm)+'</span>' +
+          '<div class="text-xs text-[#44483f] font-body-sm mt-1"><span>Construction:</span> <b>'+eur(Number(m.precio_construccion))+'</b></div>' +
+          '<div class="text-xs text-[#5F6257] font-body-sm"><span>Total investment (ROI base):</span> '+eur(base)+'</div>' +
+        '</div>' +
+        '<table class="w-full text-sm"><thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md">' +
+          '<th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th>' +
+          '<th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>' +
+          '<tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">'+filasHtml+'</tbody></table>';
+      fg.appendChild(card);
+    });
+    if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
+    if(window.lwRepintaDinero) lwRepintaDinero();
+  }
+
+  function forecastCaido(){
+    var fg = document.getElementById('forecast-grid');
+    if(!fg) return;
+    // Nunca un hueco en blanco en una pagina de inversores: un vacio se lee como
+    // «no hay previsión», que es una afirmacion, y ademas no da salida a nadie.
+    fg.innerHTML = '<div class="col-span-full p-6 rounded-2xl border border-[#D8D2C5] bg-surface-container-lowest text-sm text-[#5F6257]">' +
+      'We could not load the rental forecast right now. Please contact ' +
+      '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</div>';
+    if(window.lwDeck) lwDeck.traduce(fg);
+  }
 
   function eur(v){ return '<span data-eur="'+Math.round(v)+'">'+(window.lwMoney?lwMoney(v):'€'+Math.round(v).toLocaleString('en-GB'))+'</span>'; }
 
-  var fg = document.getElementById('forecast-grid');
-  if(fg) FORECAST.forEach(function(m){
-    var bruto = [0,1].map(function(i){ return m.adr[i]*365*m.occ[i]; });
-    var neto  = bruto.map(function(g){ return g*(1-0.20-0.05-0.10); });
-    var filas = '';
-    filas += '<tr><td>ADR</td><td class="text-right lw-money">'+eur(m.adr[0])+'</td><td class="text-right lw-money">'+eur(m.adr[1])+'</td></tr>';
-    filas += '<tr><td>Occupancy</td><td class="text-right lw-money">'+Math.round(m.occ[0]*100)+'%</td><td class="text-right lw-money">'+Math.round(m.occ[1]*100)+'%</td></tr>';
-    filas += '<tr><td>Gross villa income</td><td class="text-right lw-money">'+eur(bruto[0])+'</td><td class="text-right lw-money">'+eur(bruto[1])+'</td></tr>';
-    GASTOS.forEach(function(g){
-      filas += '<tr><td>'+g[0]+'</td><td class="text-right lw-money">'+eur(-bruto[0]*g[1])+'</td><td class="text-right lw-money">'+eur(-bruto[1]*g[1])+'</td></tr>';
-    });
-    filas += '<tr class="font-semibold text-deep-lagoon border-t-2 border-[#D8D2C5]"><td>Net income</td><td class="text-right lw-money">'+eur(neto[0])+'</td><td class="text-right lw-money">'+eur(neto[1])+'</td></tr>';
-    filas += '<tr class="font-bold text-territorial-green text-base"><td>ROI</td><td class="text-right lw-money">'+(neto[0]/m.base*100).toFixed(1)+'%</td><td class="text-right lw-money">'+(neto[1]/m.base*100).toFixed(1)+'%</td></tr>';
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_forecast', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    // Cero filas llega como 200 con []: sin este guardia la seccion se queda vacia
+    // y parece intencionada.
+    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaForecast(rows); })
+    .catch(forecastCaido);
 
-    var card = document.createElement('div');
-    card.className = 'bg-surface-container-lowest rounded-2xl shadow-md overflow-hidden relative border' + (m.featured ? '-2 border-territorial-green' : ' border-[#D8D2C5]');
-    card.innerHTML =
-      (m.featured ? '<span class="absolute top-3 right-3 z-10 bg-territorial-green text-white text-[10px] font-label-md font-bold px-3 py-0.5 rounded-full tracking-wider uppercase">Most requested</span>' : '') +
-      '<div class="p-5 bg-[#E4DFD5] border-b border-[#D8D2C5]">' +
-        '<span class="font-headline-sm text-xl font-bold text-deep-lagoon">'+esc(m.nombre)+'</span>' +
-        '<div class="text-xs text-[#44483f] font-body-sm mt-1">Construction: <b>'+eur(m.constr)+'</b></div>' +
-        '<div class="text-xs text-[#5F6257] font-body-sm">Total investment (ROI base): '+eur(m.base)+'</div>' +
-      '</div>' +
-      '<table class="w-full text-sm"><thead><tr class="text-[11px] uppercase tracking-wide text-[#5F6257] font-label-md">' +
-        '<th class="text-left font-medium px-5 pt-4 pb-2"></th><th class="text-right font-medium px-5 pt-4 pb-2">Average</th>' +
-        '<th class="text-right font-medium px-5 pt-4 pb-2">Optimal</th></tr></thead>' +
-        '<tbody class="[&_td]:px-5 [&_td]:py-2 [&_tr]:border-t [&_tr]:border-[#EFEAE0]">'+filas+'</tbody></table>';
-    fg.appendChild(card);
-  });
-  if(window.lwDeck) lwDeck.traduce(document.getElementById('rendimientos'));
+  // ── FAQ: sale de `deck_faq`, no del HTML ──────────────────────────────────
+  // Las siete preguntas vivian clavadas en el marcado. Ahora las edita el equipo
+  // desde la intranet y se publican una a una. El texto sembrado es LETRA POR
+  // LETRA el que paso la consulta legal del 9-sep-2026.
+  //
+  // ⚠️ La respuesta se pinta con textContent, NUNCA con innerHTML: la escribe una
+  // persona en la intranet y esto es una pagina publica sin login. Se pierde el
+  // <b> que llevaban dos respuestas —«Hak Sewa» y «not» en negrita—; son las
+  // PALABRAS las que pasaron revision legal, no el peso de la fuente.
+  function pintaFaq(filas){
+    var cont = document.getElementById('faq-lista');
+    if(!cont) return;
+    cont.innerHTML = '';
+    filas.forEach(function(q, i){
+      var d = document.createElement('details');
+      d.className = 'group bg-surface-container-low/60 px-4 py-3 rounded-xl border border-[#D8D2C5] transition-all open:bg-surface-container-lowest';
+      if(i === 0) d.open = true;   // la primera abierta, como estaba
+      var sum = document.createElement('summary');
+      sum.className = 'flex items-start gap-3 justify-between cursor-pointer list-none text-deep-lagoon font-body-md text-body-md font-semibold';
+      var txt = document.createElement('span');
+      txt.textContent = lwTxt(q.pregunta);
+      var ico = document.createElement('span');
+      ico.className = 'material-symbols-outlined text-[20px] shrink-0 text-territorial-green transition-transform group-open:rotate-180';
+      ico.textContent = 'expand_more';
+      sum.appendChild(txt); sum.appendChild(ico);
+      var cuerpo = document.createElement('div');
+      cuerpo.className = 'pt-3 font-body-sm text-body-sm text-[#44483f] leading-relaxed border-t border-[#D8D2C5] mt-3';
+      cuerpo.textContent = lwTxt(q.respuesta);
+      d.appendChild(sum); d.appendChild(cuerpo);
+      cont.appendChild(d);
+    });
+  }
+
+  function faqCaida(){
+    var cont = document.getElementById('faq-lista');
+    if(!cont) return;
+    cont.innerHTML = '<p class="font-body-sm text-body-sm text-[#5F6257] m-0">' +
+      'We could not load the questions right now. Please contact ' +
+      '<a class="text-deep-lagoon underline" href="mailto:sales@lawangproperties.com">sales@lawangproperties.com</a>.</p>';
+    if(window.lwDeck) lwDeck.traduce(cont);
+  }
+
+  fetch(SB_URL + '/rest/v1/rpc/investor_deck_faq', {
+    method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+    body: JSON.stringify({ p_proyecto: PROYECTO })
+  }).then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows){ if(!rows || !rows.length) throw new Error('vacio'); pintaFaq(rows); })
+    .catch(faqCaida);
 
   // ── masterplan interactivo ────────────────────────────────────────────────
   // Rectangulos en % sobre 12-masterplan.jpg (1690x2200). Medidos sobre la
