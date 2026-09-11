@@ -272,15 +272,28 @@
             { k: 'url', label: 'URL', req: 1, ayuda: 'https://…' },
             { k: 'categoria', label: 'Categoría', tipo: 'select', opciones: ['comercial', 'legal', 'tecnico', 'precios'], valor: 'comercial' },
             { k: 'visible_portal', label: 'Visible para el comprador', tipo: 'check', ayuda: 'lo verán TODOS los compradores de ' + p + ' en su portal' },
-            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check' }
+            { k: 'confidencial', label: 'Confidencial (solo equipo)', tipo: 'check' },
+            { k: 'publicado_investor_deck', label: 'Publicar en el dosier de inversores', tipo: 'check', ayuda: 'PÚBLICO: lo ve cualquiera que abra el enlace del deck, sin contraseña y sin contrato' }
           ], 'Guardar enlace', function (v) {
             if (!/^https?:\/\//.test(v.url)) return { error: { message: 'la URL tiene que empezar por http:// o https://' } };
             if (v.visible_portal && !window.confirm('«' + v.titulo + '» quedará visible para TODOS los compradores de ' + p + ' en su portal. ¿Publicarlo?')) {
               return { error: { message: 'publicación al portal cancelada — desmarca la casilla o confirma' } };
             }
+            // El deck es PÚBLICO y sin login, así que su confirmación es más dura que la
+            // del portal: aquello lo ven compradores con contrato, esto lo ve internet.
+            if (v.publicado_investor_deck && v.confidencial) {
+              return { error: { message: 'un documento confidencial no puede publicarse en el dosier de inversores — desmarca una de las dos' } };
+            }
+            if (v.publicado_investor_deck && !window.confirm('«' + v.titulo + '» quedará descargable por CUALQUIERA que abra el dosier público de ' + p + ', sin contraseña y sin contrato.\n\nSi el enlace es de Drive, ábrelo antes en una ventana de incógnito: si no está compartido en abierto, el inversor se choca con una pantalla de permisos.\n\n¿Publicarlo?')) {
+              return { error: { message: 'publicación al dosier cancelada — desmarca la casilla o confirma' } };
+            }
             return sb.from('documentos_proyecto').insert({
               proyecto: p, titulo: v.titulo, url: v.url, categoria: v.categoria,
-              visible_portal: v.visible_portal, confidencial: v.confidencial
+              visible_portal: v.visible_portal, confidencial: v.confidencial,
+              // Confidencial MANDA sobre publicado. La misma regla vive también en el
+              // RPC `investor_deck_documentos` a propósito: una casilla del navegador
+              // no es un permiso.
+              publicado_investor_deck: !!v.publicado_investor_deck && !v.confidencial
             });
           });
         });

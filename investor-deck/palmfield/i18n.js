@@ -89,7 +89,13 @@
     'Financial Forecast': { es: 'Previsión financiera', id: 'Proyeksi Keuangan' },
     'Legal Security': { es: 'Seguridad jurídica', id: 'Keamanan Hukum' },
     'FAQ': { es: 'Preguntas', id: 'FAQ' },
-    'Request Dossier': { es: 'Pedir dossier', id: 'Minta Dosir' },
+    /* El CTA de cabecera dejo de pedir el dossier por formulario (11-sep): ahora
+       o descarga el documento que el proyecto tenga publicado, o no sale. */
+    'Download dossier': { es: 'Descargar dosier', id: 'Unduh dosir' },
+    'Questions? WhatsApp': { es: '¿Dudas? WhatsApp', id: 'Ada pertanyaan? WhatsApp' },
+    'Ask about Palm Field on WhatsApp': { es: 'Preguntar por Palm Field por WhatsApp', id: 'Tanya tentang Palm Field lewat WhatsApp' },
+    'Previous photos': { es: 'Fotos anteriores', id: 'Foto sebelumnya' },
+    'More photos': { es: 'Más fotos', id: 'Foto lainnya' },
     'Dossier': { es: 'Dossier', id: 'Dosir' },
 
     /* — portada — */
