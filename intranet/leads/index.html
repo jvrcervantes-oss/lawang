@@ -82,6 +82,12 @@
     <button type="button" class="lw-btn" id="btnRefrescar"><i class="ph ph-arrows-clockwise"></i>Refrescar</button>
   </header>
 
+  <!-- El alcance, dicho en voz alta (11-sep-2026). Desde que la campaña define qué leads ve
+       cada uno, una persona sin campaña asignada abre esto y no ve NADA — y una pantalla
+       vacía se lee como una herramienta rota, no como "no te han dado ninguna campaña".
+       Este aviso es la diferencia entre las dos cosas. -->
+  <div id="avisoAlcance" class="aviso" hidden style="margin:12px 16px 0"></div>
+
   <nav class="crm-nav" id="nav" role="tablist">
     <!-- «Hoy» va la PRIMERA (11-sep-2026). El tablero dice en qué punto está cada lead;
          la pregunta con la que se abre esta pantalla por la mañana es otra: a quién hay
@@ -332,6 +338,6 @@
 
 <script src="/contracts/assets/dialogo.js?v=8197f360"></script>
 <script src="/contracts/assets/suite-comun.js?v=7d904f26"></script>
-<script src="/intranet/leads/leads.js?v=13"></script>
+<script src="/intranet/leads/leads.js?v=14"></script>
 </body>
 </html>

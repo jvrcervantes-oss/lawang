@@ -53,9 +53,9 @@ $CAT   = lw_au_catalogo();
 $DALI  = $CAT['dali'];
 $OPC   = lw_picker_opciones();
 
-// Renders por nombre de fichero. dali7 y dali8 son las DOS variantes de techo que el
-// dossier documenta (p3 «Traditional Elegance» = Ulin; p4 «Timeless Craftsmanship» =
-// Ulin + bambu) y que el configurador vende como `sirap` y `bambu`. Se busca por nombre
+// Renders por nombre de fichero. dali2 y dali3 son las DOS variantes de techo que el
+// dossier documenta (p3 «Traditional Elegance» = Sirap Ulin; p4 «Timeless Craftsmanship»
+// = bambu + Ulin) y que el configurador vende como `sirap` y `bambu`. Se busca por nombre
 // y no por posicion: anadir un render mas desplazaria los indices y el mosaico pasaria a
 // ensenar otra cosa sin que nadie se entere. Si falta el fichero, la figura no se pinta.
 $IMG = [];
@@ -121,7 +121,7 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
      posible: fija el idioma y la tipografia antes del primer pintado. El
      diccionario de landings sí puede diferirse: traduce sobre el DOM ya montado. -->
 <script src="/assets/idioma-web.js?v=20260908113407"></script>
-<script src="/assets/i18n-landing.js?v=20260911113158" defer></script>
+<script src="/assets/i18n-landing.js?v=20260911114520" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>100% Freehold Architectural Villas in Bali &amp; Sumba — Lawang Tropical Properties</title>
 <meta name="description" content="Turnkey architectural villas in Bali &amp; Sumba. Fixed-price written EPC contract, land ready with power, water and permits. From <?= lw_e(lw_aud_fmt($DALI['desde_eur'])) ?>.">
@@ -216,25 +216,25 @@ $JSON = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
     <?php if (!$DALI['sinRender']): ?>
     <div class="mosaico">
       <figure>
-        <img src="<?= lw_e($DALI['imgs'][0]) ?>" alt="Villa Dali pavilion with sukabumi stone pool, Lawang Tropical Properties" fetchpriority="high">
+        <img src="<?= lw_e($DALI['imgs'][0]) ?>" alt="Villa Dali with its private pool, set in the jungle — Lawang Tropical Properties" fetchpriority="high">
         <figcaption>
           <span class="mos__et">Featured Design</span>
-          <span class="mos__tt">Villa Dali Pavilion with Sukabumi Pool</span>
+          <span class="mos__tt">Villa Dali with its Private Pool</span>
           <span class="mos__sub">Freehold deed + fixed EPC contract included</span>
         </figcaption>
       </figure>
       <?php /* Las dos tejas que se eligen en el configurador, cada una con su foto del
                dossier. Antes aqui habia un interior y una foto generica de la costa de
                Bali, que no es la villa. */ ?>
-      <?php if (isset($IMG['dali7'])): ?>
+      <?php if (isset($IMG['dali2'])): ?>
       <figure>
-        <img src="<?= lw_e($IMG['dali7']) ?>" alt="Villa Dali with the Sirap Ulin shingle roof, Lawang Tropical Properties" loading="lazy">
+        <img src="<?= lw_e($IMG['dali2']) ?>" alt="Villa Dali with the Sirap Ulin shingle roof, Lawang Tropical Properties" loading="lazy">
         <figcaption><span class="mos__tt">Sirap Ulin roof</span></figcaption>
       </figure>
       <?php endif; ?>
-      <?php if (isset($IMG['dali8'])): ?>
+      <?php if (isset($IMG['dali3'])): ?>
       <figure>
-        <img src="<?= lw_e($IMG['dali8']) ?>" alt="Villa Dali with the Bamboo and Ulin shingle roof, Lawang Tropical Properties" loading="lazy">
+        <img src="<?= lw_e($IMG['dali3']) ?>" alt="Villa Dali with the Bamboo and Ulin shingle roof, Lawang Tropical Properties" loading="lazy">
         <figcaption><span class="mos__tt">Bamboo &amp; Ulin shingle roof</span></figcaption>
       </figure>
       <?php endif; ?>

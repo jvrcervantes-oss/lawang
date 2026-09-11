@@ -451,6 +451,37 @@ function pintarHoy(){
   });
 }
 
+/* ---------- qué alcance tengo, y por qué ----------
+   Desde el 11-sep la campaña decide qué leads ve cada uno. Eso deja un caso nuevo que ANTES
+   no existía: alguien con la casilla «Leads» y sin ninguna campaña asignada abre la
+   herramienta y no ve nada. Sin este aviso, eso se lee como que el CRM está roto — y la
+   persona escribe para preguntar, o peor, deja de abrirlo.
+   El número sale de la base (`crm_mi_alcance`), no de contar lo que llegó: si algún día el
+   filtro falla, aquí se vería el desajuste en vez de taparlo. */
+async function pintarAlcance(){
+  const av = $('#avisoAlcance');
+  const { data, error } = await SB.rpc('crm_mi_alcance');
+  if(error || !data || !data.length){ av.hidden = true; return; }
+  const a = data[0];
+  if(a.es_gestor){ av.hidden = true; return; }   // dirección lo ve todo: no hay nada que explicar
+
+  const cuantas = (a.campanas || []).length;
+  if(!cuantas){
+    av.hidden = false;
+    av.className = 'aviso oro';
+    av.innerHTML = '<b>Todavía no tienes ninguna campaña asignada.</b> Por eso esta pantalla '
+      + 'aparece vacía: verás los leads en cuanto dirección te asigne una. No es un fallo de '
+      + 'la herramienta.';
+    return;
+  }
+  av.hidden = false;
+  av.className = 'aviso gris';
+  av.innerHTML = 'Ves los leads de ' + (cuantas === 1 ? 'tu campaña' : 'tus ' + cuantas + ' campañas')
+    + ': <b>' + (a.campanas || []).map(c => esc(canal(c))).join(' · ') + '</b>'
+    + ' — ' + a.leads_visibles + (a.leads_visibles === 1 ? ' lead' : ' leads') + '. '
+    + 'Los de otras campañas los llevan otras personas.';
+}
+
 /* ==========================================================================
    CARGA
    ========================================================================== */
@@ -1815,6 +1846,7 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
   $('#tabClosers').hidden = !GESTOR_CRM;
   $('#tabCampanas').hidden = !GESTOR_CRM;
   $('#tabAutomatismos').hidden = !GESTOR_CRM;
+  await pintarAlcance();
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
   /* La cuenta de «Hoy» se calcula del listado que ya está cargado, sin una llamada más:

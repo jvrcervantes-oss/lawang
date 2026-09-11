@@ -176,6 +176,7 @@
   "Villa Dali":                     { es: "Villa Dali", id: "Villa Dali" },
   "Sirap Ulin roof":                { es: "Techo Sirap Ulin", id: "Atap Sirap Ulin" },
   "Bamboo & Ulin shingle roof":     { es: "Techo de bambú y teja Ulin", id: "Atap bambu & sirap ulin" },
+  "Villa Dali with its Private Pool": { es: "Villa Dali con su piscina privada", id: "Villa Dali dengan kolam pribadinya" },
   "Bali · Cliff":                   { es: "Bali · Acantilado", id: "Bali · Tebing" },
   "Subdivided freehold · power & water": { es: "Freehold segregado · luz y agua", id: "Freehold terpecah · listrik & air" },
   "Civil Infra & Approvals":        { es: "Obra civil y licencias", id: "Infrastruktur Sipil & Perizinan" },
