@@ -341,6 +341,14 @@
               parcela_master_m2: v.parcela_master_m2 === '' ? null : Number(v.parcela_master_m2)
             }).eq('id', p.id).select('id').then(function (r) {
               if (r.error) return r;
+              // La RLS de `proyectos` exige es_admin() para UPDATE: un no-admin
+              // no da error, da 0 filas (mismo aviso que /proyectos/ desde el
+              // 12-ago). Sin este chequeo la ficha no se guarda y aun así se
+              // cierra el modal como si hubiera ido bien — un fallo silencioso
+              // (hallazgo de Desarrollo en la revisión de este mismo despliegue).
+              if (!r.data || !r.data.length) {
+                return { error: { message: 'no tienes permiso para editar la ficha del proyecto (solo admin)' } };
+              }
               var trabajos = [];
               if (esAdminP && catalogo.length) {
                 trabajos.push(lwDeclaraModelosEnProyecto(sb, p.nombre, v.modelos || [], {
