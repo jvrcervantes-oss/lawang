@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="documento.css?v=20260731">
 <!-- Idioma de la interfaz: los dos SIN defer y antes que nada, para que
      `lwT` exista cuando arranque el codigo propio de esta herramienta. -->
-<script src="/contracts/assets/i18n.js?v=41527d1c"></script>
+<script src="/contracts/assets/i18n.js?v=13f682f7"></script>
 <script src="/contracts/assets/herramientas.js?v=cce2c8c2"></script>
 <script src="/contracts/assets/topbar.js?v=c1bc6349" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.min.js" integrity="sha384-XtYxyIfxexJVTROWK0+c5T8tJ2ItsVLcdgR5nJIoo6WzQqaBZoTPGgbS7XvkRNBZ" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -654,8 +654,8 @@
     <span class="lw-sep"></span>
     <!-- Mismo sitio que el tipo de contrato en Contratos: es la primera
          decisión (qué documento haces), no un campo más del formulario. -->
-    <select id="selTipo" class="lw-select" aria-label="Tipo de documento"
-            title="Cada tipo lleva su propia serie: INV, PRO, REC">
+    <select id="selTipo" class="lw-select" data-lwt-aria aria-label="Tipo de documento"
+            data-lwt-title title="Cada tipo lleva su propia serie: INV, PRO, REC">
       <!-- LOS TRES DOCUMENTOS, Y QUÉ HACE CADA UNO (27-ago-2026)
            · Proforma — el TOTAL del proyecto. Se manda al cliente para que sepa
              a qué se compromete. Es informativa, sin validez fiscal, y NO CUENTA
@@ -913,7 +913,7 @@
         <button class="btn" id="btnMail" data-lwt="Enviar por email">Enviar por email</button>
         <button class="btn" id="btnRecibiDeFactura" data-lwt="Crear recibí">Crear recibí</button>
         <button class="btn ghost" id="btnRegistro" style="display:none"
-                title="A qué correos se ha enviado este documento">📨 Registro</button>
+                data-lwt-title title="A qué correos se ha enviado este documento">📨 Registro</button>
       </div>
       <div class="pv-scroll"><div class="sheet"><div class="doc" id="doc"></div></div></div>
     </div>
@@ -2875,7 +2875,7 @@ function pintarPorContrato(box, data, filaDoc){
     if(c.sinContrato) return `<details class="ctr" data-ctr="${esc(c.clave)}" data-alerta="sinfactura"${CTR_ABIERTOS.has(c.clave) ? ' open' : ''}>
       <summary>
         <span><span class="cnom"><span class="sui-tag alerta" title="Un cobro aplicado aquí no se atribuye a ninguna operación (LAW-38)">${lwT('Sin contrato')}</span></span>
-          <span class="csub">${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}${c.variosClientes ? ' de varios clientes' : (c.cliente ? ' \u00b7 ' + esc(c.cliente) : '')} <span class="sep">·</span> ${lwT('no son un contrato: no se suman entre s\\u00ed')}</span></span>
+          <span class="csub">${c.docs.length} ${c.docs.length === 1 ? 'documento' : 'documentos'}${c.variosClientes ? ' de varios clientes' : (c.cliente ? ' \u00b7 ' + esc(c.cliente) : '')} <span class="sep">·</span> ${lwT('no son un contrato: no se suman entre s\u00ed')}</span></span>
         <span class="cplata"></span>
       </summary>
       <table class="docs"><tbody>${c.docs.map(filaDoc).join('')}</tbody></table>
