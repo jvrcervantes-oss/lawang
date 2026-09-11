@@ -103,6 +103,11 @@ h3{font-size:20px;font-weight:700}
 .hero{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:34px;
   align-items:start;padding:34px 0 46px}
 @media(max-width:1080px){.hero{grid-template-columns:minmax(0,1fr);gap:28px}}
+/* Hero sin tarjeta lateral. /dali paso a landing de producto el 11-sep-2026 y perdio su
+   columna de reserva; sin esto el contenido se quedaba en 7fr con 5fr vacios a la derecha.
+   Es una VARIANTE, no un cambio de .hero: /palmfield sigue con su calendario y su 7fr+5fr. */
+.hero--solo{grid-template-columns:minmax(0,1fr)}
+.hero--solo .hero__sub{max-width:68ch}
 .hero__pills{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}
 .hero__sub{font-size:16px;color:var(--ink2);margin:16px 0 0;max-width:56ch}
 .chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:22px}

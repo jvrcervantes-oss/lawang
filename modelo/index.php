@@ -923,11 +923,6 @@ label.picker__row{cursor:pointer}
 /* max-height+overflow: en pantallas bajas (portátil, o con el aviso de cookies de
    consent.js todavía en pantalla, fixed a bottom:20px) el calendario no cabía entero
    y su nota final quedaba tapada. Verificado con capture real, no a ojo. */
-.cal{position:sticky;top:96px;max-height:calc(100vh - 116px);overflow-y:auto;
-  background:var(--papel);border:1px solid var(--linea);
-  border-radius:12px;padding:22px 20px;box-shadow:0 12px 32px rgba(46,52,55,.1);
-  display:flex;flex-direction:column;gap:16px}
-@media(max-width:1100px){.cal{position:static;margin-top:44px;max-height:none}}
 .cal__tt{font-size:15px;font-weight:700}
 .cal__sub{font-size:12px;color:var(--ink2);margin-top:2px}
 /* 320px es el mínimo real que pide el propio widget de Calendly; con la columna a
@@ -935,8 +930,6 @@ label.picker__row{cursor:pointer}
 .cal__widget{min-width:320px;height:600px}
 
 /* ── Selector de día (diseño de Stitch, 4-sep) ────────────────────────────────── */
-.calx{background:#fff;border:1px solid var(--linea);border-radius:12px;padding:14px 14px 12px;
-  display:flex;flex-direction:column;gap:9px}
 .calx__hd{display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding-bottom:8px;border-bottom:1px solid var(--linea)}
 .calx__mes{font-family:var(--head);font-size:12px;font-weight:700;letter-spacing:.07em;
@@ -960,7 +953,6 @@ label.picker__row{cursor:pointer}
    como "hay un número ahí" y la rejilla parece rota. */
 .calx__no{color:#9A968C}
 .calx__pie{font-size:11.5px;line-height:1.45;color:var(--ink2);margin:0}
-@media(max-width:1100px){.calx{max-width:420px}}
 
 /* ── Pie ──────────────────────────────────────────────────────────────────────── */
 .pie{border-top:1px solid var(--linea)}
