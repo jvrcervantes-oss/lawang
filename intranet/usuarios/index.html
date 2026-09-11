@@ -187,6 +187,25 @@ const $ = s => document.querySelector(s);
    acceso llamaba a una herramienta por un nombre que no usa nadie más. Añadir una
    herramienta ya no se toca aquí. */
 const HERRAMIENTAS = LW_PERMISOS;
+/* Las llaves del CRM van en su PROPIO bloque y no mezcladas con las herramientas
+   (encargo del owner, 11-sep-2026). No es cosmética: son cuatro permisos que se
+   reparten con criterios distintos entre sí y distintos del resto de la suite —
+   uno abre los datos de contacto de un centenar de personas, otro las cifras de
+   comisiones de cada comercial, y otro decide quién recibe qué leads. Verlos
+   sueltos entre «Obra» y «Facturas» hace que se marquen por inercia, que es
+   justo lo que Seguridad pidió evitar al separarlos. */
+const PERMISOS_CRM = ['leads', 'ranking', 'reparto', 'closers'];
+const ES_CRM  = ([v]) => PERMISOS_CRM.includes(v);
+const HERR_CRM  = HERRAMIENTAS.filter(ES_CRM);
+const HERR_RESTO = HERRAMIENTAS.filter(h => !ES_CRM(h));
+/* Qué abre cada una, en una línea. Sin esto, «Reparto de leads» y «Ranking de
+   closers» se leen como lo mismo y se marcan juntas. */
+const CRM_PISTA = {
+  leads:   'ver el tablero y los datos de contacto de los leads',
+  ranking: 'ver y corregir cuánto firma y cobra cada comercial',
+  reparto: 'decidir qué closers atienden cada campaña',
+  closers: 'la agenda de llamadas de venta',
+};
 // sales_manager/project_manager (10-sep-2026): solo lectura, ven todo lo que
 // pase en SUS proyectos (marcados abajo), de cualquier agente — nunca crean ni
 // editan nada. Misma mecánica de «Proyectos» que un agente, sentido invertido.
@@ -294,9 +313,21 @@ function pintarFicha(){
         Solo un <b>super admin</b> reparte roles.</p>
     </fieldset>
 
+    <fieldset><legend>CRM de leads</legend>
+      <div class="herr">
+        ${HERR_CRM.map(([v,l]) => `<label title="${esc(CRM_PISTA[v]||'')}"><input type="checkbox" value="${v}"
+          ${u.herramientas.includes(v)?'checked':''} ${bloqueado?'disabled':''}> ${l}</label>`).join('')}
+      </div>
+      <p class="nota">Cuatro llaves distintas y a propósito: <b>Leads</b> abre los datos de contacto
+        de las personas que dejan su teléfono; <b>Ranking</b>, las cifras de cada comercial;
+        <b>Reparto</b>, quién atiende cada campaña; <b>Agenda</b>, las llamadas de venta.
+        Quien tenga Ranking y Reparto a la vez puede mover el número que decide el reparto
+        <i>y</i> el reparto — dáselas juntas solo si es a conciencia.</p>
+    </fieldset>
+
     <fieldset><legend>Herramientas que ve</legend>
       <div class="herr">
-        ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
+        ${HERR_RESTO.map(([v,l]) => `<label><input type="checkbox" value="${v}"
           ${u.herramientas.includes(v)?'checked':''} ${bloqueado?'disabled':''}> ${l}</label>`).join('')}
       </div>
       <p class="nota">Controla lo que aparece en la intranet y lo que puede <b>guardar</b>.
@@ -456,9 +487,18 @@ function nuevoUsuario(){
       <p class="nota">La contraseña se muestra en claro a propósito: hay que poder copiarla para
         dársela a la persona. No queda guardada en ningún sitio consultable.</p>
     </fieldset>
+    <fieldset><legend>CRM de leads</legend>
+      <div class="herr">
+        ${HERR_CRM.map(([v,l]) => `<label title="${esc(CRM_PISTA[v]||'')}"><input type="checkbox" value="${v}"
+          ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
+      </div>
+      <p class="nota">De salida no viene marcada ninguna, y es deliberado: <b>Leads</b> abre los
+        datos de contacto de personas reales y eso se decide una a una, nunca de regalo con el rol.</p>
+    </fieldset>
+
     <fieldset><legend>Herramientas que verá</legend>
       <div class="herr">
-        ${HERRAMIENTAS.map(([v,l]) => `<label><input type="checkbox" value="${v}"
+        ${HERR_RESTO.map(([v,l]) => `<label><input type="checkbox" value="${v}"
           ${(LW_HERR_POR_ROL.agente || []).includes(v)?'checked':''}> ${l}</label>`).join('')}
       </div>
       <p class="nota">Preselección según el rol elegido arriba — sigue siendo editable.</p>

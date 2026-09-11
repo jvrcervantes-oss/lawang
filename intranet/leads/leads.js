@@ -171,16 +171,96 @@ function ir(v){
    lo decide el COBRADO (decisión del owner): premiar la firma es premiar papel sin pagar.
    ========================================================================== */
 let RANKING = [], ATRIBUIR = [], SOLO_RAICES = false, SOLO_PENDIENTES = true;
+/* Quien gestiona el CRM (tiene `ranking` o `reparto`). Decide que pestanas de
+   direccion se ven; la puerta de verdad sigue siendo la de la base. */
+let GESTOR_CRM = false, REPARTO = [];
 
 async function cargarClosers(){
-  const [r, a] = await Promise.all([
+  const [r, a, p] = await Promise.all([
     SB.rpc('crm_ranking_closers', { p_solo_raices: SOLO_RAICES }),
     SB.rpc('crm_contratos_para_atribuir', { p_solo_pendientes: SOLO_PENDIENTES }),
+    SB.rpc('crm_reparto_config'),
   ]);
   RANKING  = r.error ? [] : (r.data || []);
   ATRIBUIR = a.error ? [] : (a.data || []);
+  REPARTO  = p.error ? [] : (p.data || []);
   await cargarEquipo();
   pintarClosers();
+  pintarReparto();
+}
+
+/* ---------- quién atiende cada campaña ----------
+   Lo que se configura es la CAMPAÑA, nunca el lead: se marca quién la atiende y el sistema
+   reparte sus leads entre ellos. El reparto elige al que más lejos esté de su cuota, y la
+   cuota sale del ranking de arriba — el primero por dinero cobrado recibe el doble que el
+   resto. Por eso las dos cosas viven en la misma pantalla: la de abajo configura, la de
+   arriba explica por qué a uno le tocan más. */
+function pintarReparto(){
+  const caja = $('#tReparto'); if(!caja) return;
+  const sinConfigurar = REPARTO.filter(x => !x.activo).length;
+  $('#subReparto').textContent = REPARTO.length
+    ? REPARTO.length + ' campañas · ' + (sinConfigurar
+        ? sinConfigurar + ' sin reparto automático' : 'todas con reparto automático')
+    : 'Todavía no ha entrado ningún lead.';
+
+  caja.innerHTML = REPARTO.length ? REPARTO.map(o => {
+    const suyos = o.closers || [];
+    return `<article class="cita${o.activo ? ' con-meet' : ''}">
+      <div class="avatar">${esc(iniciales(canal(o.source)))}</div>
+      <div class="cuerpo">
+        <div class="quien">${esc(canal(o.source))}</div>
+        <div class="sub">${o.leads_totales} leads${
+          o.leads_sin_dueno > 0 ? ' · <b>' + o.leads_sin_dueno + ' sin dueño</b>' : ''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+          ${(EQUIPO || []).map(u => {
+            const dentro = suyos.some(c => c.toLowerCase() === u.email.toLowerCase());
+            return `<button class="btn mini${dentro ? ' pri' : ''}"
+              data-rc="${esc(o.source)}" data-mail="${esc(u.email)}" data-dentro="${dentro ? '1' : '0'}">
+              ${dentro ? '<i class="ph ph-check"></i>' : ''}${esc(u.nombre || u.email)}</button>`;
+          }).join('') || '<span class="chip gris">nadie tiene acceso al CRM todavía</span>'}
+        </div>
+        ${o.activo && !suyos.length ? `<div class="aviso rojo" style="margin:9px 0 0">
+          <b>Reparto encendido pero sin nadie asignado.</b> Sus leads se quedarán sin dueño.</div>` : ''}
+      </div>
+      <div class="acciones" style="flex-direction:column;align-items:flex-end;gap:7px">
+        <label style="display:flex;align-items:center;gap:6px;font:600 12px/1 var(--text);color:var(--mist)">
+          <input type="checkbox" data-activo="${esc(o.source)}" ${o.activo ? 'checked' : ''}>
+          Reparto automático
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font:500 11.5px/1 var(--text);color:var(--mist)">
+          tope
+          <input type="number" min="1" max="50" value="${o.tope_sin_contactar}"
+            data-tope="${esc(o.source)}" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:var(--r-ctrl)">
+        </label>
+      </div>
+    </article>`;
+  }).join('') : '<p class="vacio">Todavía no ha entrado ningún lead, así que no hay campañas que configurar.</p>';
+
+  caja.querySelectorAll('[data-rc]').forEach(b => b.onclick = () =>
+    marcarCloser(b.dataset.rc, b.dataset.mail, b.dataset.dentro !== '1'));
+  caja.querySelectorAll('[data-activo]').forEach(c => c.onchange = () =>
+    guardarOrigen(c.dataset.activo, c.checked, null));
+  caja.querySelectorAll('[data-tope]').forEach(i => i.onchange = () =>
+    guardarOrigen(i.dataset.tope, null, Number(i.value)));
+}
+
+async function marcarCloser(source, email, incluir){
+  const { error } = await SB.rpc('crm_reparto_closer_set',
+    { p_source: source, p_email: email, p_incluir: incluir });
+  /* El mensaje de la base se enseña tal cual: el más probable es «no puedes añadirte a ti
+     mismo a un origen», que es una regla de negocio, no un fallo — y explicarla con otras
+     palabras aquí sería tener la regla escrita en dos sitios. */
+  if(error){ toast(error.message); return; }
+  cargarClosers();
+}
+
+async function guardarOrigen(source, activo, tope){
+  const { error } = await SB.rpc('crm_reparto_origen_set',
+    { p_source: source, p_activo: activo, p_tope: tope, p_dias: null });
+  if(error){ toast('No se pudo guardar: ' + error.message); return; }
+  toast(activo === true ? 'Reparto automático encendido.'
+      : activo === false ? 'Reparto automático apagado.' : 'Tope guardado.');
+  cargarClosers();
 }
 
 function pintarClosers(){
@@ -1725,7 +1805,16 @@ window.LW_AUTH.then(async ({ sb, session, ficha }) => {
      El super_admin sigue pasando porque pasa por todo, igual que en el resto de la suite. */
   const puedeRanking = !!ficha && (ficha.rol === 'super_admin' ||
     (ficha.herramientas || []).includes('ranking'));
-  $('#tabClosers').hidden = !puedeRanking;
+  const puedeReparto = !!ficha && (ficha.rol === 'super_admin' ||
+    (ficha.herramientas || []).includes('reparto'));
+  /* «Gestor del CRM» = cualquiera de las dos llaves de dirección. Campañas (gasto en
+     publicidad, coste por lead) y Automatismos (lo que hace el vigilante del estudio) no son
+     información para un comercial: abre esta herramienta para llamar a gente, no para
+     auditar el presupuesto de marketing. Owner, 11-sep-2026. */
+  GESTOR_CRM = puedeRanking || puedeReparto;
+  $('#tabClosers').hidden = !GESTOR_CRM;
+  $('#tabCampanas').hidden = !GESTOR_CRM;
+  $('#tabAutomatismos').hidden = !GESTOR_CRM;
   await cargar();
   $('#c-pipeline').textContent = LEADS.length;
   /* La cuenta de «Hoy» se calcula del listado que ya está cargado, sin una llamada más:

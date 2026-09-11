@@ -90,8 +90,13 @@
     <button role="tab" data-v="hoy" aria-selected="true"><i class="ph ph-flag"></i>Hoy <span class="cuenta" id="c-hoy">—</span></button>
     <button role="tab" data-v="pipeline"    aria-selected="false"><i class="ph ph-kanban"></i>Pipeline <span class="cuenta" id="c-pipeline">—</span></button>
     <button role="tab" data-v="bandeja"     aria-selected="false"><i class="ph ph-chats-circle"></i>Bandeja</button>
-    <button role="tab" data-v="panel"       aria-selected="false"><i class="ph ph-chart-line-up"></i>Campañas</button>
-    <button role="tab" data-v="automatismos" aria-selected="false"><i class="ph ph-flow-arrow"></i>Automatismos</button>
+    <!-- Campañas y Automatismos se esconden a quien no gestiona el CRM (owner, 11-sep-2026).
+         No es informacion para un closer: una ensena el gasto en publicidad y el coste por
+         lead, y la otra lo que hacen los automatismos del estudio sobre las campañas de
+         Lawang. Un comercial abre esta herramienta para llamar a gente, no para auditar el
+         presupuesto de marketing. Gestor del CRM = tiene `ranking` o `reparto`. -->
+    <button role="tab" data-v="panel" aria-selected="false" id="tabCampanas" hidden><i class="ph ph-chart-line-up"></i>Campañas</button>
+    <button role="tab" data-v="automatismos" aria-selected="false" id="tabAutomatismos" hidden><i class="ph ph-flow-arrow"></i>Automatismos</button>
     <!-- Dos pestañas nuevas, 10-sep-2026 (owner: hay closers reales que llaman
          por Google Meet y quiere grabarlas con Fathom.ai). Separador visual
          propio ("· WhatsApp Bot") a propósito: son datos del bot (Redis, vía
@@ -289,6 +294,23 @@
         </div>
       </header>
       <div class="tabla-scroll"><table class="tabla" id="tRanking"></table></div>
+    </div>
+
+    <!-- ASIGNAR CLOSERS A CADA CAMPAÑA (owner, 11-sep-2026: «asignamos X closers a esas
+         campañas y ya el sistema reparte, pero asignación por campaña no por lead»).
+         La clave es el ORIGEN y no el id de campaña de Meta: el QR del aeropuerto y la web
+         —32 de los 108 leads— no tienen campaña ninguna, y con el id como clave se habrían
+         quedado fuera del reparto. Los orígenes salen de los leads reales, así que una
+         campaña nueva aparece aquí sola como «sin configurar» en vez de tragarse sus leads
+         en silencio. -->
+    <div class="caja" id="cajaReparto" style="margin-bottom:16px">
+      <header>
+        <div>
+          <h2>Quién atiende cada campaña</h2>
+          <p id="subReparto">—</p>
+        </div>
+      </header>
+      <div id="tReparto" class="citas"></div>
     </div>
 
     <div class="caja" id="cajaAtribuir">
